@@ -6,7 +6,10 @@ import re
 from typing import Any
 
 from django.conf import settings
+from django.contrib.postgres.indexes import GinIndex, OpClass
 from django.db import models
+from django.db.models import Value
+from django.db.models.functions import Concat
 from django.utils import timezone
 
 from caldart.models import TimestampedModel
@@ -48,12 +51,173 @@ class OwnerType(models.TextChoices):
     CLUB = "club", "Flying club"
 
 
+def type_name_expression() -> Concat:
+    """The SQL expression ``make || ' ' || model`` over ``AircraftType``.
+
+    The trigram index is built on this expression and the type search compares against
+    it, so the two must stay one expression.
+    """
+    return Concat("make", Value(" "), "model", output_field=models.TextField())
+
+
+class AircraftType(models.Model):
+    """One aircraft type: a manufacturer and model an aircraft is picked from.
+
+    The entries come from the FAA registry's aircraft reference file, one per
+    manufacturer-model code (``faa_code``), keeping the FAA's own spellings in
+    ``faa_make`` and ``faa_model`` beside the display names every screen prints in
+    ``make`` and ``model``.  An entry an account administrator adds by hand, for a type
+    the FAA has never registered, has ``is_custom`` set.
+    """
+
+    faa_code = models.CharField("FAA code", max_length=7, unique=True)
+    faa_make = models.CharField("FAA make", max_length=120)
+    faa_model = models.CharField("FAA model", max_length=60)
+    make = models.CharField(max_length=120)
+    model = models.CharField(max_length=60)
+    seats = models.PositiveSmallIntegerField(null=True, blank=True)
+    engines = models.PositiveSmallIntegerField(null=True, blank=True)
+    is_custom = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["make", "model"]
+        verbose_name = "aircraft type"
+        indexes = [
+            models.Index(fields=["make", "model"], name="aircraft_type_name_idx"),
+            GinIndex(
+                OpClass(type_name_expression(), name="gin_trgm_ops"),
+                name="aircraft_type_trgm_idx",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        """Return the display make and model, e.g. ``Cessna 172S``."""
+        return f"{self.make} {self.model}"
+
+
+class AircraftTypeAlias(models.Model):
+    """A lower-case name a person may search by, such as ``c172`` or ``skyhawk``.
+
+    Each alias points at the one aircraft type it names, and deleting the type deletes
+    its aliases.
+    """
+
+    alias = models.CharField(max_length=40, unique=True)
+    type = models.ForeignKey(AircraftType, on_delete=models.CASCADE, related_name="aliases")
+
+    class Meta:
+        ordering = ["alias"]
+        verbose_name = "aircraft type alias"
+        verbose_name_plural = "aircraft type aliases"
+
+    def __str__(self) -> str:
+        """Return the alias itself."""
+        return self.alias
+
+    def save(self, *args: Any, **kwargs: Any) -> None:
+        """Save the alias stripped and lower-cased, the form a search compares against."""
+        self.alias = self.alias.strip().lower()
+        super().save(*args, **kwargs)
+
+
+class RegistrantType(models.TextChoices):
+    """Who an FAA registration is held by, as the registry codes it."""
+
+    INDIVIDUAL = "individual", "Individual"
+    PARTNERSHIP = "partnership", "Partnership"
+    CORPORATION = "corporation", "Corporation"
+    CO_OWNED = "co_owned", "Co-owned"
+    GOVERNMENT = "government", "Government"
+    LLC = "llc", "LLC"
+    NON_CITIZEN_CORPORATION = "non_citizen_corporation", "Non-citizen corporation"
+    NON_CITIZEN_CO_OWNED = "non_citizen_co_owned", "Non-citizen co-owned"
+    UNKNOWN = "unknown", "Unknown"
+
+
+class RegistrationStatus(models.TextChoices):
+    """Whether an FAA registration stands."""
+
+    VALID = "valid", "Valid"
+    PENDING = "pending", "Pending"
+    REVOKED = "revoked", "Revoked"
+    EXPIRED = "expired", "Expired"
+    OTHER = "other", "Other"
+
+
+class Registration(models.Model):
+    """One N-number as the FAA registry holds it: the type, the year, and the registrant.
+
+    ``n_number`` is stored normalized as ``Aircraft.n_number`` is, with the leading
+    ``N``.  No address is kept.
+    """
+
+    n_number = models.CharField("N-number", max_length=6, unique=True)
+    type = models.ForeignKey(AircraftType, on_delete=models.PROTECT, related_name="registrations")
+    year = models.PositiveSmallIntegerField(null=True, blank=True)
+    registrant_name = models.CharField(max_length=160, blank=True)
+    # 24 rather than 16: ``non_citizen_corporation`` is 23 characters.
+    registrant_type = models.CharField(
+        max_length=24, choices=RegistrantType.choices, default=RegistrantType.UNKNOWN
+    )
+    status = models.CharField(
+        max_length=16, choices=RegistrationStatus.choices, default=RegistrationStatus.VALID
+    )
+    certificate_issued_on = models.DateField(null=True, blank=True)
+    expires_on = models.DateField(null=True, blank=True)
+    imported_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ["n_number"]
+
+    def __str__(self) -> str:
+        """Return the N-number."""
+        return self.n_number
+
+    def save(self, *args: Any, **kwargs: Any) -> None:
+        """Save the record after normalizing ``n_number`` to canonical form."""
+        self.n_number = normalize_n_number(self.n_number)
+        super().save(*args, **kwargs)
+
+
+class RegistryImport(models.Model):
+    """One run of the FAA registry import, whatever its outcome.
+
+    ``finished_at`` is null while the run is under way; ``ok`` says whether it
+    succeeded and ``error`` why it did not.  ``started_by`` is the system administrator
+    who started it from the System screen, null for a run the timer started.
+    """
+
+    started_at = models.DateTimeField(default=timezone.now)
+    finished_at = models.DateTimeField(null=True, blank=True)
+    source = models.CharField(max_length=500, blank=True)
+    types_written = models.PositiveIntegerField(default=0)
+    registrations_written = models.PositiveIntegerField(default=0)
+    types_folded = models.PositiveIntegerField(default=0)
+    ok = models.BooleanField(default=False)
+    error = models.TextField(blank=True)
+    started_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="registry_imports",
+    )
+
+    class Meta:
+        ordering = ["-started_at", "-id"]
+
+    def __str__(self) -> str:
+        """Return when the run started and whether it succeeded."""
+        outcome = "ok" if self.ok else "not ok"
+        return f"registry import {self.started_at:%Y-%m-%d %H:%M} ({outcome})"
+
+
 class Aircraft(TimestampedModel):
     """One airframe, with the insurance a DART leader needs to check."""
 
     n_number = models.CharField("N-number", max_length=12, unique=True)
-    make = models.CharField(max_length=60, blank=True)
-    model = models.CharField(max_length=60, blank=True)
+    type = models.ForeignKey(AircraftType, on_delete=models.PROTECT, related_name="aircraft")
     year = models.PositiveIntegerField(null=True, blank=True)
     owner_type = models.CharField(
         max_length=12, choices=OwnerType.choices, default=OwnerType.INDIVIDUAL
@@ -105,7 +269,6 @@ class Aircraft(TimestampedModel):
         verbose_name_plural = "aircraft"
         indexes = [
             models.Index(fields=["insurance_expiration"], name="aircraft_insexp_idx"),
-            models.Index(fields=["make", "model"], name="aircraft_make_model_idx"),
             models.Index(fields=["is_active"], name="aircraft_active_idx"),
         ]
 
@@ -118,6 +281,16 @@ class Aircraft(TimestampedModel):
         """Save the record after normalizing ``n_number`` to canonical form."""
         self.n_number = normalize_n_number(self.n_number)
         super().save(*args, **kwargs)
+
+    @property
+    def make(self) -> str:
+        """The display make of the aircraft's type, e.g. ``Cessna``."""
+        return self.type.make
+
+    @property
+    def model(self) -> str:
+        """The display model of the aircraft's type, e.g. ``172S``."""
+        return self.type.model
 
     @property
     def insurance_is_current(self) -> bool:

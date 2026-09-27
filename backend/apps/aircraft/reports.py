@@ -32,6 +32,8 @@ from caldart.reports import (
 EXPORT_FILTER_PARAMS: tuple[str, ...] = (
     "search",
     "make",
+    "model",
+    "type",
     "owner_type",
     "insurance",
     "expiring_within",
@@ -124,12 +126,12 @@ def aircraft_report_query(params: Params) -> ReportQuery[Aircraft]:
 
     ``params`` are the register's own query parameters: the filters of
     ``AircraftFilter`` and ``ordering``, which ``order_register`` reads the way the
-    list does.  A filter the set refuses raises DRF's
-    ``ValidationError`` keyed by that filter.  The pilots are fetched with the rows, a
+    list does.  A filter the set refuses raises DRF's ``ValidationError`` keyed by that
+    filter.  The aircraft type is joined and the pilots are fetched with the rows, a
     chunk at a time, and the applied filters are those of :data:`EXPORT_FILTER_PARAMS`
     given a value.
     """
-    narrowed = apply_filterset(AircraftFilter, params, Aircraft.objects.all())
+    narrowed = apply_filterset(AircraftFilter, params, Aircraft.objects.select_related("type"))
     ordered = order_register(narrowed, params.get("ordering", "")).prefetch_related("pilots__user")
     return ReportQuery(
         rows=ordered.iterator(chunk_size=200),

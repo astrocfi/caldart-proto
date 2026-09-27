@@ -25,8 +25,12 @@ if TYPE_CHECKING:
 
 #: The fields ``?ordering=`` accepts.  The first three are the core sorts;
 #: ``model`` and ``owner_name`` are here so every column of the admin table is
-#: genuinely sortable.
+#: genuinely sortable.  ``make`` and ``model`` are the register's column names;
+#: :data:`ORDERING_PATHS` says which columns of the aircraft type they sort on.
 ORDERING_FIELDS = ["n_number", "make", "insurance_expiration", "model", "owner_name"]
+
+#: The query path each ordering name that is not a column of ``Aircraft`` sorts on.
+ORDERING_PATHS: dict[str, str] = {"make": "type__make", "model": "type__model"}
 
 #: The order the register takes when ``?ordering=`` names nothing it accepts.
 DEFAULT_ORDERING = ["n_number"]
@@ -39,10 +43,16 @@ INSURANCE_CHOICES = (
 
 
 class AircraftFilter(django_filters.FilterSet):
-    """``?search=&make=&owner_type=&insurance=&expiring_within=``."""
+    """``?search=&make=&model=&type=&owner_type=&insurance=&expiring_within=``.
+
+    ``make`` and ``model`` match the display names of the aircraft's type,
+    case-insensitively and anywhere in the name; ``type`` is the id of one aircraft type.
+    """
 
     search = django_filters.CharFilter(method="filter_search", label="Search")
-    make = django_filters.CharFilter(field_name="make", lookup_expr="icontains")
+    make = django_filters.CharFilter(field_name="type__make", lookup_expr="icontains")
+    model = django_filters.CharFilter(field_name="type__model", lookup_expr="icontains")
+    type = django_filters.NumberFilter(field_name="type_id", label="Aircraft type")
     owner_type = django_filters.ChoiceFilter(choices=OwnerType.choices)
     insurance = django_filters.ChoiceFilter(
         choices=INSURANCE_CHOICES, method="filter_insurance", label="Insurance"
@@ -54,7 +64,16 @@ class AircraftFilter(django_filters.FilterSet):
 
     class Meta:
         model = Aircraft
-        fields = ["search", "make", "owner_type", "insurance", "expiring_within", "is_active"]
+        fields = [
+            "search",
+            "make",
+            "model",
+            "type",
+            "owner_type",
+            "insurance",
+            "expiring_within",
+            "is_active",
+        ]
 
     def filter_search(
         self, queryset: QuerySet[Aircraft], name: str, value: str
@@ -69,8 +88,8 @@ class AircraftFilter(django_filters.FilterSet):
             return queryset
         matches = (
             Q(n_number__icontains=term)
-            | Q(make__icontains=term)
-            | Q(model__icontains=term)
+            | Q(type__make__icontains=term)
+            | Q(type__model__icontains=term)
             | Q(owner_name__icontains=term)
         )
         normalized = normalize_n_number(term)
@@ -126,17 +145,25 @@ class NullsLastOrderingFilter(OrderingFilter):
 def nulls_last_order[M: Model](queryset: QuerySet[M], ordering: Sequence[str]) -> QuerySet[M]:
     """``queryset`` ordered by ``ordering``, NULLs last either way, the key breaking ties.
 
-    Each term is a field name with an optional leading ``-`` for descending.  Unless a
-    term already names the primary key, ``pk`` ascending is appended, so rows the
-    ordering cannot separate keep a stable order from one page to the next.
+    Each term is a field name with an optional leading ``-`` for descending; a name in
+    :data:`ORDERING_PATHS` sorts on the path it maps to (``make`` on ``type__make``).
+    Unless a term already names the primary key, ``pk`` ascending is appended, so rows
+    the ordering cannot separate keep a stable order from one page to the next.
     """
     terms = [
-        F(term[1:]).desc(nulls_last=True) if term.startswith("-") else F(term).asc(nulls_last=True)
+        F(_ordering_path(term[1:])).desc(nulls_last=True)
+        if term.startswith("-")
+        else F(_ordering_path(term)).asc(nulls_last=True)
         for term in ordering
     ]
     if not any(term.lstrip("-") in {"pk", "id"} for term in ordering):
         terms.append(F("pk").asc())
     return queryset.order_by(*terms)
+
+
+def _ordering_path(name: str) -> str:
+    """The query path ``name`` sorts on: its :data:`ORDERING_PATHS` entry, or itself."""
+    return ORDERING_PATHS.get(name, name)
 
 
 def order_register(queryset: QuerySet[Aircraft], ordering: str) -> QuerySet[Aircraft]:

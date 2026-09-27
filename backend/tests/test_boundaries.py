@@ -21,7 +21,13 @@ from apps.members.filters import MAX_EXPIRING_WINDOW_DAYS as MAX_MEMBER_WINDOW_D
 from apps.members.models import MembershipPlan
 from caldart.pagination import StandardPagination
 from tests.conftest import read_csv
-from tests.factories import AircraftFactory, MemberProfileFactory, MembershipFactory, UserFactory
+from tests.factories import (
+    AircraftFactory,
+    AircraftTypeFactory,
+    MemberProfileFactory,
+    MembershipFactory,
+    UserFactory,
+)
 
 pytestmark = pytest.mark.django_db
 
@@ -44,11 +50,11 @@ ABSURD_WINDOW = 10**12
 def make_register(count: int, *, expires_in_days: int = 200) -> None:
     """Insert ``count`` aircraft whose cover runs out ``expires_in_days`` from today."""
     expiration = timezone.localdate() + timedelta(days=expires_in_days)
+    skyhawk = AircraftTypeFactory(make="Cessna", model="172S")
     Aircraft.objects.bulk_create(
         Aircraft(
             n_number=f"N{9000 + index}B",
-            make="Cessna",
-            model="172S",
+            type=skyhawk,
             owner_type=OwnerType.INDIVIDUAL,
             seats=4,
             insurance_expiration=expiration,
@@ -213,29 +219,19 @@ def test_an_absurd_membership_window_is_clamped_to_ten_years(
 # --------------------------------------------------------------------------
 # Column limits
 # --------------------------------------------------------------------------
-def test_a_make_of_exactly_sixty_characters_is_stored(api_client: APIClient, member: User) -> None:
-    """A make filling the column exactly is accepted and comes back unchanged."""
+def test_a_make_filling_its_column_reads_back_unchanged(
+    api_client: APIClient, member: User
+) -> None:
+    """A type whose make fills its 120-character column reads back whole."""
     api_client.force_login(member)
-    make = "C" * 60
+    make = "C" * 120
+    long_named = AircraftTypeFactory(make=make, model="172S")
 
     response = api_client.post(
-        AIRCRAFT_URL, {"n_number": "N60EX", "make": make, "model": "172S"}, format="json"
+        AIRCRAFT_URL, {"n_number": "N60EX", "type_id": long_named.pk}, format="json"
     )
 
-    assert response.status_code == 201
     assert response.json()["make"] == make
-
-
-def test_a_make_one_character_too_long_is_refused(api_client: APIClient, member: User) -> None:
-    """A make past the column length is a 400 naming the field and the limit."""
-    api_client.force_login(member)
-
-    response = api_client.post(
-        AIRCRAFT_URL, {"n_number": "N61L", "make": "C" * 61, "model": "172S"}, format="json"
-    )
-
-    assert response.status_code == 400
-    assert response.json() == {"make": ["Ensure this field has no more than 60 characters."]}
 
 
 def test_a_phone_of_more_than_ten_digits_is_refused(api_client: APIClient, member: User) -> None:

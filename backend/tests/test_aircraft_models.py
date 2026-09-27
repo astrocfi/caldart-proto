@@ -10,7 +10,7 @@ from django.utils import timezone
 
 from apps.aircraft.models import Aircraft, normalize_n_number
 from apps.members.models import MemberProfile
-from tests.factories import AircraftFactory
+from tests.factories import AircraftFactory, AircraftTypeFactory
 
 pytestmark = pytest.mark.django_db
 
@@ -46,7 +46,7 @@ def test_n_number_is_unique_after_normalization() -> None:
     """Creating an aircraft with a colliding normalized N-number raises an error."""
     AircraftFactory(n_number="N999ZZ")
     with pytest.raises(IntegrityError, match="aircraft_aircraft_n_number_key"):
-        Aircraft.objects.create(n_number="999zz")
+        Aircraft.objects.create(n_number="999zz", type=AircraftTypeFactory())
 
 
 def test_insurance_is_current_today_counts() -> None:
