@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { makeProfile } from '@test/fixtures/profile';
+import { makeVerifiedProfile } from '@test/handlers';
 import {
   EMPTY_PROFILE_FORM,
   REQUIRED_PROFILE_FIELDS,
@@ -24,6 +25,12 @@ describe('profileToForm', () => {
     expect(values.flight_review_date).toBe('');
   });
 
+  it('reads the kind of photo ID onto its select', () => {
+    expect(profileToForm(makeVerifiedProfile({ photo_id_type: 'passport' })).photo_id_type).toBe(
+      'passport',
+    );
+  });
+
   it('defaults a missing state to CA', () => {
     expect(profileToForm(makeProfile({ state: 'CA' })).state).toBe('CA');
   });
@@ -37,6 +44,15 @@ describe('formToPatch', () => {
     expect(patch.ratings).toEqual(['instrument']);
     expect(patch.total_hours).toBe(750);
     expect(patch.vol_ground_team).toBe(false);
+  });
+
+  it('sends the kind of photo ID', () => {
+    const patch = formToPatch({ ...EMPTY_PROFILE_FORM, photo_id_type: 'military_id' });
+    expect(patch.photo_id_type).toBe('military_id');
+  });
+
+  it('starts a blank form on no photo ID provided', () => {
+    expect(EMPTY_PROFILE_FORM.photo_id_type).toBe('not_provided');
   });
 
   it('nulls the empty date, hour, and dart values', () => {

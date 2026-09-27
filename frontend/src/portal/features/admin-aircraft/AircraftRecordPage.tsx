@@ -1,6 +1,6 @@
 /**
- * `/admin/aircraft/:id` — one record: edit it, read its history, see who flies
- * it, delete it.
+ * `/admin/aircraft/:id` — one record: edit it, verify its insurance, read its
+ * history, see who flies it, delete it.
  */
 import { useState } from 'react';
 import type { JSX } from 'react';
@@ -15,6 +15,7 @@ import { EmptyState } from '@/portal/components/EmptyState';
 import { Page } from '@/portal/components/Page';
 import { StatusChip } from '@/portal/components/StatusChip';
 import { useToast } from '@/portal/components/Toast';
+import { VerifiedMark } from '@/portal/components/VerifiedMark';
 import { AircraftForm } from '@/portal/features/aircraft/AircraftForm';
 import { InsuranceChip } from '@/portal/features/aircraft/InsuranceChip';
 import { ServiceChip } from '@/portal/features/aircraft/ServiceChip';
@@ -25,6 +26,8 @@ import {
   useUpdateAircraft,
 } from '@/portal/features/aircraft/api';
 import { aircraftToValues } from '@/portal/features/aircraft/form';
+import { InsuranceVerificationPanel } from '@/portal/features/verification/InsuranceVerificationPanel';
+import { useCanVerify } from '@/portal/features/verification/useCanVerify';
 import { changeLine, lastUpdatedLine } from './history';
 import '@/portal/features/aircraft/aircraft.css';
 import './history.css';
@@ -45,6 +48,8 @@ export function AircraftRecordPage(): JSX.Element {
   const update = useUpdateAircraft(aircraftId);
   const remove = useDeleteAircraft(aircraftId);
   const [confirming, setConfirming] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const canVerify = useCanVerify();
 
   if (knownId && record.isPending) {
     return (
@@ -132,16 +137,28 @@ export function AircraftRecordPage(): JSX.Element {
       actions={
         <>
           <InsuranceChip aircraft={aircraft} />
+          <VerifiedMark verification={aircraft.insurance_verification} />
           <ServiceChip aircraft={aircraft} />
+          {canVerify && !verifying ? (
+            <Button variant="secondary" small onClick={() => setVerifying(true)}>
+              Verify
+            </Button>
+          ) : null}
         </>
       }
     >
+      {verifying ? (
+        <InsuranceVerificationPanel aircraft={aircraft} onClose={() => setVerifying(false)} />
+      ) : null}
+
       <Card
         eyebrow={lastUpdatedLine(aircraft.updated_at, aircraft.updated_by ?? null)}
         title="Details"
       >
         <AircraftForm
-          key={aircraft.id}
+          // A verification save may correct the insurance, so a written record
+          // starts the form again from what the register now holds.
+          key={`${aircraft.id}-${aircraft.updated_at}`}
           initial={aircraftToValues(aircraft)}
           submitLabel="Save changes"
           pending={update.isPending}

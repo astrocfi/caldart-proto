@@ -126,6 +126,7 @@ interface Identity {
 const IDENTITIES: Identity[] = [
   { name: 'no roles', roles: [] },
   { name: 'member', roles: ['member'] },
+  { name: 'verifier', roles: ['member', 'verifier'] },
   { name: 'dart_leader', roles: ['member', 'dart_leader'] },
   { name: 'user_admin', roles: ['member', 'user_admin'] },
   { name: 'treasurer', roles: ['member', 'treasurer'] },
@@ -138,6 +139,7 @@ const IDENTITIES: Identity[] = [
 const ANY_SIGNED_IN = [
   'no roles',
   'member',
+  'verifier',
   'dart_leader',
   'user_admin',
   'treasurer',
@@ -165,12 +167,12 @@ const GUARDED_PATHS: GuardedPath[] = [
   {
     path: '/leader',
     heading: 'Member check',
-    allowed: ['dart_leader', 'account_admin', 'system_admin'],
+    allowed: ['verifier', 'dart_leader', 'user_admin', 'account_admin', 'system_admin'],
   },
   {
     path: '/leader/aircraft',
     heading: 'Aircraft check',
-    allowed: ['dart_leader', 'account_admin', 'system_admin'],
+    allowed: ['verifier', 'dart_leader', 'user_admin', 'account_admin', 'system_admin'],
   },
   {
     path: '/admin/members',

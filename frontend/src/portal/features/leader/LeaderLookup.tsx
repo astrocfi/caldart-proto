@@ -30,6 +30,8 @@ export interface LeaderLookupProps<T> {
   title: string;
   /** The line under the heading while the search is showing. */
   lede: string;
+  /** Shown above the search box while no record is open, such as a report's downloads. */
+  aboveSearch?: ReactNode;
   /** The query-string key that holds the chosen record. */
   param: string;
   /** The chosen record from the raw query-string value, or `null` when it names none. */
@@ -60,6 +62,7 @@ export interface LeaderLookupProps<T> {
 export function LeaderLookup<T>({
   title,
   lede,
+  aboveSearch,
   param,
   parse,
   label,
@@ -103,6 +106,7 @@ export function LeaderLookup<T>({
 
   return (
     <Page title={title} eyebrow="DART leader" lede={lede}>
+      {aboveSearch}
       <Card>
         <Field label={label} hint={hint}>
           {(field) => (

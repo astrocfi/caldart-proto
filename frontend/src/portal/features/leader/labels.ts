@@ -9,6 +9,7 @@ export {
   CERTIFICATE_LABELS,
   IFR_LABELS,
   MEDICAL_LABELS,
+  PHOTO_ID_LABELS,
   RATING_LABELS,
   ratingLabels,
 } from '@/portal/choices';

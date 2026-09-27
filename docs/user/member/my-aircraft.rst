@@ -23,6 +23,10 @@ file, for example *$1,000,000 / $100,000 · exp 2027-03-01*. The chip reads:
 * **Expired**: the expiry date on file has passed;
 * **Not on file**: the record has no insurance expiry date at all.
 
+After the chip comes the insurance's mark: **Verified** once a DART leader or a
+verifier has checked the policy against its documents, or **Not yet verified**. A DART
+leader treats an airplane whose insurance is not verified as a no-go.
+
 A record with no insurance reads *No insurance on file* in place of the limits.
 With nothing attached, the card says **No aircraft attached yet**.
 
@@ -84,7 +88,9 @@ type** (Individual, FBO, or Flying club), **Owner name**, and **Owner contact**;
 **Carrier**, **Policy number**, **Liability per occurrence**, **Liability per
 person**, **Hull**, and **Insurance expires**. Money is in whole dollars, and the
 commas write themselves. The **Model** box suggests types as you type. Press **Save
-aircraft**; *N12345 updated.* appears.
+aircraft**; *N12345 updated.* appears. Saving a change to any insurance detail clears
+the insurance's verification, and the mark reads **Not yet verified** until a DART
+leader or a verifier checks the new policy.
 
 For an airplane somebody else added, **Edit** shows **Someone else added this
 aircraft**: *Ask a CalDART account administrator to correct it.* The register is

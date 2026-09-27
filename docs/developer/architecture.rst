@@ -28,7 +28,8 @@ One Django project serves two deliverables from one origin:
     A React single-page application (SPA) under ``/portal/``, backed by a
     JSON API under ``/api/v1/``.  Members join, pay, renew, and keep their
     profiles and aircraft up to date; DART leaders check whether a member may
-    fly a mission; administrators look after accounts, members, aircraft
+    fly a mission, and verifiers check certificates, medicals, photo IDs, and
+    insurance against the documents; administrators look after accounts, members, aircraft
     , payments, and the server.
 
 Editors get Wagtail's page tree, previews, and revision history, and the
@@ -495,7 +496,8 @@ File                      Routes, and who may open them
 ``dashboard.tsx``         ``/``: signed in
 ``profile.tsx``           ``/profile``, ``/profile/aircraft``: signed in
 ``payments.tsx``          ``/payments``: signed in
-``leader.tsx``            ``/leader``, ``/leader/aircraft``: ``dart_leader`` or
+``leader.tsx``            ``/leader``, ``/leader/aircraft``: ``verifier``,
+                          ``dart_leader``, ``user_admin``, or
                           ``account_admin``
 ``admin-members.tsx``     ``/admin/members``: ``account_admin`` or
                           ``dart_leader``; ``/admin/members/new``,
@@ -609,6 +611,10 @@ the files they test, and an ``index.ts`` of what the route files use:
 ``aircraft``            the aircraft picker, form, and insurance and service
                         chips that the profile, leader, and admin screens reuse
 ``leader``              the DART leader's member check and aircraft check
+``verification``        the verification panels for a person's certificate,
+                        medical, and photo ID and for an aircraft's
+                        insurance, the member record's Verification card,
+                        the three writes behind them, and ``useCanVerify``
 ``admin-*``             the members, aircraft, DARTs, payments, reminder-log,
                         reports, notifications, and users screens
 ``system``              the System page: health, backups, and reminders
@@ -618,9 +624,9 @@ Shared code sits outside ``features/``: ``components/`` holds the primitives
 every screen uses (``Page``, ``Card``, ``Field``, ``FixedValue``, ``Button``,
 ``IconButton``, ``DeleteButton``, ``StatusChip``, ``DataTable``,
 ``PanelButton``, ``ColumnChooser``, ``FilterBar``, ``RunActionsTable``,
-``Money``, ``DateText``, ``EmptyState``, and ``Toast``), and ``choices.ts``
-holds the one set of labels for certificate, medical, IFR, rating, and role
-codes, and the list of California counties.
+``Money``, ``DateText``, ``EmptyState``, ``VerifiedMark``, and ``Toast``), and
+``choices.ts`` holds the one set of labels for certificate, medical, IFR,
+rating, photo ID, and role codes, and the list of California counties.
 ``components/icons.tsx`` holds the inline SVG icons -- ``TrashcanIcon``,
 ``ArrowUpIcon``, and ``ArrowDownIcon`` -- each ``aria-hidden``, drawn in
 ``currentColor``, square, and ``1.25em`` on a side unless the caller asks for

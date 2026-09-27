@@ -11,6 +11,7 @@ import type {
   CaliforniaCounty,
   IfrRated,
   MedicalType,
+  PhotoIdType,
   PilotCertificateType,
   Profile,
   ProfilePatch,
@@ -61,6 +62,8 @@ export interface ProfileFormValues {
   ratings: Rating[];
   medical_type: MedicalType;
   medical_expiration: string;
+  /** Only the kind of document is recorded, never a number or a date. */
+  photo_id_type: PhotoIdType;
   flight_review_date: string;
   total_hours: string;
   flies_rented_aircraft: boolean;
@@ -100,6 +103,7 @@ export const EMPTY_PROFILE_FORM: ProfileFormValues = {
   ratings: [],
   medical_type: 'none',
   medical_expiration: '',
+  photo_id_type: 'not_provided',
   flight_review_date: '',
   total_hours: '',
   flies_rented_aircraft: false,
@@ -114,6 +118,7 @@ export const EMPTY_PROFILE_FORM: ProfileFormValues = {
 
 /** Turn the API's profile into editable form values. */
 export function profileToForm(profile: Profile): ProfileFormValues {
+  const { photo_id_type } = profile;
   return {
     phone: profile.phone,
     phone_extension: profile.phone_extension,
@@ -138,6 +143,7 @@ export function profileToForm(profile: Profile): ProfileFormValues {
     ratings: profile.ratings,
     medical_type: profile.medical_type,
     medical_expiration: profile.medical_expiration ?? '',
+    photo_id_type,
     flight_review_date: profile.flight_review_date ?? '',
     total_hours: profile.total_hours === null ? '' : String(profile.total_hours),
     flies_rented_aircraft: profile.flies_rented_aircraft,
@@ -178,6 +184,7 @@ export function formToPatch(values: ProfileFormValues): ProfilePatch {
     ratings: values.ratings,
     medical_type: values.medical_type,
     medical_expiration: values.medical_expiration || null,
+    photo_id_type: values.photo_id_type,
     flight_review_date: values.flight_review_date || null,
     total_hours: hours === '' ? null : Number(hours),
     flies_rented_aircraft: values.flies_rented_aircraft,

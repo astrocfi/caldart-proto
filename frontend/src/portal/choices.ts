@@ -20,6 +20,7 @@ import type {
   PaymentProvider,
   PaymentState,
   PaymentWallet,
+  PhotoIdType,
   PilotCertificateType,
   Rating,
   RoleSlug,
@@ -338,3 +339,19 @@ export const PAYMENT_WALLET_LABELS: Record<PaymentWallet, string> = {
   other: 'Other',
   unknown: '—',
 };
+
+/**
+ * The kinds of photo ID, in the order the profile's select offers them.  Only the
+ * kind is recorded, never a number or a date; *Not provided* is a state a verifier
+ * may verify too.
+ */
+export const PHOTO_ID_TYPES: Choice<PhotoIdType>[] = [
+  { value: 'not_provided', label: 'Not provided' },
+  { value: 'drivers_license', label: "Driver's license" },
+  { value: 'passport', label: 'Passport' },
+  { value: 'state_id', label: 'State ID card' },
+  { value: 'military_id', label: 'Military ID' },
+  { value: 'other', label: 'Other' },
+];
+
+export const PHOTO_ID_LABELS = asRecord(PHOTO_ID_TYPES);

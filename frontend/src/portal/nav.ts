@@ -42,19 +42,20 @@ export const NAV_ITEMS: NavItem[] = [
   { to: '/change-password', label: 'Change password', roles: [], group: 'Membership' },
   { to: '/change-email', label: 'Change email', roles: [], group: 'Membership' },
 
-  // The leader API and `routes/leader.tsx` both admit `account_admin`, so the
-  // rail has to as well or an account administrator reaches these by URL only.
+  // The two checks are where a person or an aircraft is verified, so the leader
+  // API and `routes/leader.tsx` admit every verifying role, and the rail has to as
+  // well or a verifier reaches these by URL only.
   {
     to: '/leader',
     label: 'Member check',
-    roles: ['dart_leader', 'account_admin'],
+    roles: ['dart_leader', 'account_admin', 'user_admin', 'verifier'],
     group: 'Operations',
     end: true,
   },
   {
     to: '/leader/aircraft',
     label: 'Aircraft check',
-    roles: ['dart_leader', 'account_admin'],
+    roles: ['dart_leader', 'account_admin', 'user_admin', 'verifier'],
     group: 'Operations',
   },
 

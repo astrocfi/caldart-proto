@@ -53,6 +53,18 @@ describe('visibleNavItems', () => {
     expect(visible).not.toContain('Users & roles');
   });
 
+  it.each([['verifier'], ['user_admin']] as const)(
+    'gives %s both checks, where a person or an aircraft is verified',
+    (role) => {
+      const visible = labels(['member', role]);
+      expect(visible).toEqual(expect.arrayContaining(['Member check', 'Aircraft check']));
+    },
+  );
+
+  it('keeps the member list away from a verifier', () => {
+    expect(labels(['member', 'verifier'])).not.toContain('Members');
+  });
+
   it('gives account_admin the member, aircraft, and payment screens but not users', () => {
     const visible = labels(['member', 'account_admin']);
     expect(visible).toEqual(expect.arrayContaining(['Members', 'Aircraft', 'Payments']));

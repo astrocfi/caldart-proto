@@ -4,14 +4,13 @@
  * The search half is `<AircraftPicker/>` from `@/portal/features/aircraft`;
  * this page attaches and detaches what it hands back, opens `<AircraftEditor/>`
  * on an attached aircraft, and shows the insurance currency a DART leader will
- * check.
+ * check and whether an authority has verified the policy.
  */
 import { AircraftPicker } from '@/portal/features/aircraft';
 import { useState } from 'react';
 import type { JSX } from 'react';
 
 import { ApiError } from '@/portal/api/client';
-import type { AircraftSummary } from '@/portal/api/types';
 import { ButtonLink, Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { DeleteButton } from '@/portal/components/DeleteButton';
@@ -19,6 +18,7 @@ import { EmptyState } from '@/portal/components/EmptyState';
 import { Page } from '@/portal/components/Page';
 import { CurrencyChip } from '@/portal/components/StatusChip';
 import { useToast } from '@/portal/components/Toast';
+import { VerifiedMark } from '@/portal/components/VerifiedMark';
 import { useAuth } from '@/portal/auth/useAuth';
 import { AircraftEditor } from './AircraftEditor';
 import { useAttachAircraft, useDetachAircraft, useProfile } from './api';
@@ -35,7 +35,7 @@ export function MyAircraftPage(): JSX.Element {
   // they added themselves.
   const [editing, setEditing] = useState<number | null>(null);
 
-  const aircraft: AircraftSummary[] = profile.data?.aircraft ?? [];
+  const aircraft = profile.data?.aircraft ?? [];
   const busy = attach.isPending || detach.isPending;
 
   function fail(error: unknown, fallback: string) {
@@ -73,6 +73,7 @@ export function MyAircraftPage(): JSX.Element {
                   isCurrent={plane.insurance_is_current}
                   missing={plane.insurance_expiration === null}
                 />
+                <VerifiedMark verification={{ verified: plane.insurance_verified }} pending />
                 <p className="aircraft-list__meta">{plane.insurance_summary}</p>
                 <span className="aircraft-list__actions">
                   <Button

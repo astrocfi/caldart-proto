@@ -10,7 +10,7 @@ import { useState } from 'react';
 import type { FormEvent, JSX, ReactNode } from 'react';
 
 import { useDarts } from '@/portal/api/queries';
-import type { ProfilePatch } from '@/portal/api/types';
+import type { ProfilePatch, ProfileVerification } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { ProfileFieldsets } from './ProfileFieldsets';
 import { formToPatch, validateProfileForm } from './form';
@@ -26,6 +26,8 @@ export interface ProfileFormProps {
   serverErrors?: Record<string, string>;
   /** Rendered beside the submit button — a "Back" link in the wizard. */
   secondaryAction?: ReactNode;
+  /** The verified state of the certificate, medical, and photo ID, marked under each. */
+  verification?: ProfileVerification;
 }
 
 /** The member profile form: validated fieldsets, a submit button, and an optional action. */
@@ -36,6 +38,7 @@ export function ProfileForm({
   submitLabel = 'Save profile',
   serverErrors,
   secondaryAction,
+  verification,
 }: ProfileFormProps): JSX.Element {
   const [values, setValues] = useState<ProfileFormValues>(initialValues);
   // The fields the member has typed in and left, so a complaint appears when
@@ -74,6 +77,7 @@ export function ProfileForm({
         darts={darts.data ?? []}
         dartsLoading={darts.isPending}
         markRequired
+        verification={verification}
         onFieldBlur={(key) => setTouched((left) => ({ ...left, [key]: true }))}
       />
 

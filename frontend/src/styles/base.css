@@ -727,6 +727,24 @@ th.numeric {
   border-color: var(--color-rule-strong);
 }
 
+/*
+ * Whether an authority has checked an item: a chip, then who and when in the
+ * muted small face.  The member's profile adds a one-line hint under the first.
+ */
+.verified-mark {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+}
+
+.verified-mark__hint {
+  display: block;
+  margin-top: var(--space-1);
+}
+
 /* --------------------------------------------------------------- card */
 .card {
   border: var(--hairline) solid var(--color-rule);

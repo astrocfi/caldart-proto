@@ -20,7 +20,19 @@ import type {
   SavedColumnSetWrite,
   User,
 } from '../portal/api/types';
+import type {
+  InsuranceVerificationPayload,
+  MemberVerificationPayload,
+  ProfileVerification,
+  Verification,
+  AircraftDetail,
+  AircraftSummary,
+  LeaderStatus,
+  Profile,
+  VerifierGrantPayload,
+} from '@/portal/api/types';
 import type { ReportSlug } from '../portal/reports/types';
+import { makeProfile } from './fixtures/profile';
 
 export const API = '/api/v1';
 
@@ -585,4 +597,161 @@ export function makeNotificationSubscription(
     updated_at: '2026-09-20T18:00:00Z',
     ...overrides,
   };
+}
+
+/* ------------------------------------------------------------ verification */
+
+/** An item a verifier checked. */
+export const VERIFIED: Verification = {
+  verified: true,
+  verified_by: 'Dana Leader',
+  verified_at: '2026-05-01T16:30:00Z',
+};
+
+/** An item nobody has checked, or one a change cleared. */
+export const NOT_VERIFIED: Verification = { verified: false, verified_by: null, verified_at: null };
+
+/** All three of a person's items verified. */
+export const ALL_VERIFIED: ProfileVerification = {
+  certificate: VERIFIED,
+  medical: VERIFIED,
+  photo_id: VERIFIED,
+};
+
+/** None of a person's items verified. */
+export const NONE_VERIFIED: ProfileVerification = {
+  certificate: NOT_VERIFIED,
+  medical: NOT_VERIFIED,
+  photo_id: NOT_VERIFIED,
+};
+
+/** A `/me/profile` payload with a photo ID and every item verified, `overrides` merged over. */
+export function makeVerifiedProfile(overrides: Partial<Profile> = {}): Profile {
+  return {
+    ...makeProfile(),
+    photo_id_type: 'passport',
+    verification: ALL_VERIFIED,
+    ...overrides,
+  };
+}
+
+/** An aircraft summary row with current, verified insurance. */
+export function makeVerifiedAircraftSummary(
+  overrides: Partial<AircraftSummary> = {},
+): AircraftSummary {
+  return {
+    id: 1,
+    n_number: 'N172SP',
+    make: 'Cessna',
+    model: '172S Skyhawk',
+    insurance_is_current: true,
+    insurance_expiration: '2027-03-01',
+    insurance_summary: '$1,000,000 / $100,000 · exp 2027-03-01',
+    insurance_verified: true,
+    ...overrides,
+  };
+}
+
+/** An aircraft detail payload with current insurance, verified, and one pilot. */
+export function makeVerifiedAircraft(overrides: Partial<AircraftDetail> = {}): AircraftDetail {
+  const { insurance_verified: _verified, ...summary } = makeVerifiedAircraftSummary();
+  return {
+    ...summary,
+    updated_at: '2026-09-01T12:00:00Z',
+    year: 2008,
+    owner_type: 'club',
+    owner_name: 'Palo Alto Flying Club',
+    owner_contact: 'ops@example.org',
+    seats: 4,
+    insurance_carrier: 'Avemco',
+    insurance_policy_number: 'AV-00012345',
+    insurance_liability_per_occurrence_cents: 100_000_000,
+    insurance_liability_per_person_cents: 10_000_000,
+    insurance_hull_cents: 14_500_000,
+    notes: '',
+    created_by: null,
+    is_active: true,
+    insurance_verification: VERIFIED,
+    pilots: [
+      {
+        user_id: 7,
+        name: 'Marta Reyes',
+        email: 'marta@example.org',
+        membership_status: 'current',
+        medical_is_current: true,
+      },
+    ],
+    ...overrides,
+  };
+}
+
+/** A member check status card for a current, verified pilot: a GO. */
+export function makeLeaderStatus(overrides: Partial<LeaderStatus> = {}): LeaderStatus {
+  return {
+    name: 'Marta Reyes',
+    email: 'marta@example.org',
+    phone: '650-555-0100',
+    dart: 'Palo Alto',
+    membership: { status: 'current', expires_on: '2027-06-30', plan: 'Annual' },
+    certificate: {
+      type: 'private',
+      number: '3181234',
+      ifr_rated: 'yes',
+      ratings: ['instrument'],
+      verification: VERIFIED,
+    },
+    medical: { type: 'third', expiration: '2026-12-01', is_current: true, verification: VERIFIED },
+    photo_id: { type: 'passport', verification: VERIFIED },
+    is_verifier: false,
+    aircraft: [makeVerifiedAircraftSummary()],
+    go_no_go: { membership: true, medical: true, verified: true },
+    ...overrides,
+  };
+}
+
+/** The requests the verification handlers received, in order. */
+export interface VerificationCalls {
+  members: { userId: number; body: MemberVerificationPayload }[];
+  aircraft: { aircraftId: number; body: InsuranceVerificationPayload }[];
+  verifier: { userId: number; body: VerifierGrantPayload }[];
+}
+
+/** What the verification handlers answer with. */
+export interface VerificationStub {
+  /** The status card both member writes answer with. */
+  status?: LeaderStatus;
+  /** The aircraft the insurance write answers with. */
+  aircraft?: AircraftDetail;
+}
+
+/**
+ * Handlers for the three verification writes, recording each body in `calls` and
+ * answering with the stub's status card or aircraft.
+ */
+export function verificationHandlers(
+  calls: VerificationCalls,
+  { status = makeLeaderStatus(), aircraft = makeVerifiedAircraft() }: VerificationStub = {},
+): HttpHandler[] {
+  return [
+    http.put(`${API}/leader/members/:id/verification`, async ({ params, request }) => {
+      const body = (await request.json()) as MemberVerificationPayload;
+      calls.members.push({ userId: Number(params.id), body });
+      return HttpResponse.json(status);
+    }),
+    http.put(`${API}/leader/aircraft/:id/verification`, async ({ params, request }) => {
+      const body = (await request.json()) as InsuranceVerificationPayload;
+      calls.aircraft.push({ aircraftId: Number(params.id), body });
+      return HttpResponse.json(aircraft);
+    }),
+    http.put(`${API}/leader/members/:id/verifier`, async ({ params, request }) => {
+      const body = (await request.json()) as VerifierGrantPayload;
+      calls.verifier.push({ userId: Number(params.id), body });
+      return HttpResponse.json({ ...status, is_verifier: body.verifier });
+    }),
+  ];
+}
+
+/** An empty record for `verificationHandlers` to fill. */
+export function emptyVerificationCalls(): VerificationCalls {
+  return { members: [], aircraft: [], verifier: [] };
 }

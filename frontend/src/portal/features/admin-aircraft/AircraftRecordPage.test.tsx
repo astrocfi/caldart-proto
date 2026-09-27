@@ -4,36 +4,23 @@ import { HttpResponse, delay, http } from 'msw';
 import { describe, expect, it } from 'vitest';
 import { Route, Routes } from 'react-router-dom';
 
-import { API } from '@test/handlers';
+import {
+  API,
+  NOT_VERIFIED,
+  emptyVerificationCalls,
+  makeUser,
+  makeVerifiedAircraft,
+  signedInAs,
+  verificationHandlers,
+} from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
 import type { AircraftDetail } from '@/portal/api/types';
 import { AircraftRecordPage } from './AircraftRecordPage';
 
+/** The register's record, flown by one member whose medical has lapsed. */
 function makeDetail(overrides: Partial<AircraftDetail> = {}): AircraftDetail {
-  return {
-    id: 1,
-    n_number: 'N172SP',
-    make: 'Cessna',
-    model: '172S Skyhawk',
-    insurance_is_current: true,
-    insurance_expiration: '2027-03-01',
-    insurance_summary: '$1,000,000 / $100,000 · exp 2027-03-01',
-    insurance_verification: { verified: false, verified_by: null, verified_at: null },
-    updated_at: '2026-09-01T12:00:00Z',
-    year: 2008,
-    owner_type: 'club',
-    owner_name: 'Palo Alto Flying Club',
-    owner_contact: 'ops@example.org',
-    seats: 4,
-    insurance_carrier: 'Avemco',
-    insurance_policy_number: 'AV-00012345',
-    insurance_liability_per_occurrence_cents: 100_000_000,
-    insurance_liability_per_person_cents: 10_000_000,
-    insurance_hull_cents: 14_500_000,
-    notes: '',
-    created_by: null,
-    is_active: true,
+  return makeVerifiedAircraft({
     pilots: [
       {
         user_id: 7,
@@ -44,7 +31,7 @@ function makeDetail(overrides: Partial<AircraftDetail> = {}): AircraftDetail {
       },
     ],
     ...overrides,
-  };
+  });
 }
 
 /** The record page reads `:id`, so it needs a matching route around it. */
@@ -326,5 +313,36 @@ describe('AircraftRecordPage', () => {
     );
     renderRecord();
     expect(await screen.findByText('No such aircraft')).toBeInTheDocument();
+  });
+
+  it('marks the insurance with who verified it and when', async () => {
+    server.use(http.get(`${API}/aircraft/1`, () => HttpResponse.json(makeDetail())));
+    renderRecord();
+
+    expect(await screen.findByText('Verified')).toBeInTheDocument();
+    expect(screen.getByText('Verified').parentElement).toHaveTextContent(
+      /^Verified by Dana Leader on 2026\/05\/01$/,
+    );
+  });
+
+  it('verifies the insurance from the record for an administrator', async () => {
+    const user = userEvent.setup();
+    const calls = emptyVerificationCalls();
+    server.use(
+      signedInAs(makeUser({ roles: ['member', 'account_admin'] })),
+      http.get(`${API}/aircraft/1`, () =>
+        HttpResponse.json(makeDetail({ insurance_verification: NOT_VERIFIED })),
+      ),
+      ...verificationHandlers(calls),
+    );
+    renderRecord();
+
+    expect(await screen.findByText('Not verified')).toBeInTheDocument();
+    await user.click(await screen.findByRole('button', { name: 'Verify' }));
+    await user.click(screen.getByLabelText('Insurance verified'));
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(await screen.findByText('Verification saved')).toBeInTheDocument();
+    expect(calls.aircraft).toEqual([{ aircraftId: 1, body: { verified: true } }]);
   });
 });

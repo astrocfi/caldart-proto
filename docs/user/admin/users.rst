@@ -62,7 +62,7 @@ Exporting the roles report
 ==========================
 
 **Export CSV** and **Export PDF**, beside the filters, download the CalDART roles report:
-the people who hold each role other than member, with a section per role from DART leader to
+the people who hold each role other than member, with a section per role from Verifier to
 System administrator. A section nobody holds still appears, and the PDF says *Nobody holds
 this role.* under it. A person holding two such roles is listed in both sections.
 
@@ -102,12 +102,17 @@ What each role opens
 ====================
 
 - **Member**: the portal's own screens, for somebody with an account.
+- **Verifier**: the member check and the aircraft check, to verify a member's pilot
+  certificate, medical, and photo ID, and an airplane's insurance.
 - **DART leader**: the member check, the aircraft check, and the member list and its report.
-- **User administrator**: this screen.
+  A DART leader verifies too, and can make a member a verifier.
+- **User administrator**: this screen, and the member check and the aircraft check, where a
+  user administrator verifies and makes members verifiers.
 - **Treasurer**: the payment screens and the money reports, and nothing that shows a
   member's medical or certificate.
 - **Account administrator**: the member list and records, the aircraft register, the DARTs,
-  the payments, the reminders, and the reports.
+  the payments, the reminders, and the reports, and verifying from the checks and the
+  records.
 - **Website administrator**: the website's editor, for pages, images, documents, redirects,
   and site settings.
 - **System administrator**: everything above, plus the :doc:`system` page.

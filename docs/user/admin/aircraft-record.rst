@@ -14,7 +14,13 @@ What you see
 
 The N-number heads the page, with the make and model under it and the insurance chip
 (**Insured**, **Expiring soon**, **Insurance expired**, or **No insurance on file**) at the
-right, beside **Out of service** when the airplane is out of service.
+right. Beside the chip are the insurance's mark (**Verified** with who verified it and on
+which day, or **Not verified**), **Out of service** when the airplane is out of service,
+and **Verify**.
+
+**Verify** opens the same verification panel as the :doc:`aircraft-check`: correct the
+policy against its documents, tick **Insurance verified**, and press **Save**. *Verification
+saved* confirms it, and the form below starts again from the saved record.
 
 **Details** is the form, headed by a line such as *Last updated 2026/09/01 by Dana Fiske*:
 the date of the last change and the account behind it. A record nobody has changed since it
@@ -43,7 +49,8 @@ was loaded gives the date alone. The form has four parts.
    who types its whole registration still finds it, marked, so nobody adds a second record
    for the same airplane.
 
-Press **Save changes**. The message reads that the airplane was *saved*.
+Press **Save changes**. The message reads that the airplane was *saved*. Saving a change to
+any insurance field clears the insurance's verification.
 
 
 History

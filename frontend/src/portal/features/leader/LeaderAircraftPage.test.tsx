@@ -3,7 +3,15 @@ import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { API } from '@test/handlers';
+import {
+  API,
+  NOT_VERIFIED,
+  emptyVerificationCalls,
+  makeUser,
+  makeVerifiedAircraft,
+  signedInAs,
+  verificationHandlers,
+} from '@test/handlers';
 import { renderRoutes, renderWithProviders } from '@test/render';
 import { server } from '@test/server';
 import type { AircraftDetail } from '@/portal/api/types';
@@ -14,43 +22,6 @@ const SEARCH_LABEL = /^Search by N-number/;
 
 /** The day the search tests run on, so the list's GO/NO-GO never follows the wall clock. */
 const TODAY = new Date('2026-09-24T12:00:00Z');
-
-function makeDetail(overrides: Partial<AircraftDetail> = {}): AircraftDetail {
-  return {
-    id: 1,
-    n_number: 'N172SP',
-    make: 'Cessna',
-    model: '172S Skyhawk',
-    insurance_is_current: true,
-    insurance_expiration: '2027-03-01',
-    insurance_summary: '$1,000,000 / $100,000 · exp 2027-03-01',
-    insurance_verification: { verified: false, verified_by: null, verified_at: null },
-    updated_at: '2026-09-01T12:00:00Z',
-    year: 2008,
-    owner_type: 'club',
-    owner_name: 'Palo Alto Flying Club',
-    owner_contact: 'ops@example.org',
-    seats: 4,
-    insurance_carrier: 'Avemco',
-    insurance_policy_number: 'AV-00012345',
-    insurance_liability_per_occurrence_cents: 100_000_000,
-    insurance_liability_per_person_cents: 10_000_000,
-    insurance_hull_cents: 14_500_000,
-    notes: '',
-    created_by: null,
-    is_active: true,
-    pilots: [
-      {
-        user_id: 7,
-        name: 'Marta Reyes',
-        email: 'marta@example.org',
-        membership_status: 'current',
-        medical_is_current: true,
-      },
-    ],
-    ...overrides,
-  };
-}
 
 /** A userEvent instance whose internal waits advance the fake clock instead of sleeping. */
 function setupUser() {
@@ -99,7 +70,7 @@ describe('LeaderAircraftPage search', () => {
   it('searches the register as the leader types', async () => {
     const user = setupUser();
     const asked: string[] = [];
-    server.use(...registerFinds([makeDetail()], (term) => asked.push(term)));
+    server.use(...registerFinds([makeVerifiedAircraft()], (term) => asked.push(term)));
 
     renderPage();
     await search(user, 'cessna');
@@ -110,7 +81,7 @@ describe('LeaderAircraftPage search', () => {
 
   it('prints the N-number, the make and model, and the insurance verdict on one row', async () => {
     const user = setupUser();
-    server.use(...registerFinds([makeDetail()]));
+    server.use(...registerFinds([makeVerifiedAircraft()]));
 
     renderPage();
     await search(user, 'cessna');
@@ -124,7 +95,7 @@ describe('LeaderAircraftPage search', () => {
     const user = setupUser();
     server.use(
       ...registerFinds([
-        makeDetail({ insurance_is_current: false, insurance_expiration: '2026-01-01' }),
+        makeVerifiedAircraft({ insurance_is_current: false, insurance_expiration: '2026-01-01' }),
       ]),
     );
 
@@ -135,11 +106,22 @@ describe('LeaderAircraftPage search', () => {
     expect(within(row).getByText('NO-GO')).toBeInTheDocument();
   });
 
+  it('marks a current policy nobody has verified NO-GO, read out as not verified', async () => {
+    const user = setupUser();
+    server.use(...registerFinds([makeVerifiedAircraft({ insurance_verification: NOT_VERIFIED })]));
+
+    renderPage();
+    await search(user, 'cessna');
+
+    const row = await screen.findByRole('button', { name: /N172SP/ });
+    expect(row).toHaveTextContent(/Not verifiedNO-GO$/);
+  });
+
   it('marks an aircraft whose policy is about to expire GO in the list', async () => {
     const user = setupUser();
     server.use(
       ...registerFinds([
-        makeDetail({ insurance_is_current: true, insurance_expiration: '2026-10-10' }),
+        makeVerifiedAircraft({ insurance_is_current: true, insurance_expiration: '2026-10-10' }),
       ]),
     );
 
@@ -154,10 +136,10 @@ describe('LeaderAircraftPage search', () => {
     const user = setupUser();
     const asked: string[] = [];
     server.use(
-      ...registerFinds([makeDetail()]),
+      ...registerFinds([makeVerifiedAircraft()]),
       http.get(`${API}/leader/aircraft`, ({ request }) => {
         asked.push(new URL(request.url).searchParams.get('n_number') ?? '');
-        return HttpResponse.json(makeDetail());
+        return HttpResponse.json(makeVerifiedAircraft());
       }),
     );
 
@@ -172,7 +154,7 @@ describe('LeaderAircraftPage search', () => {
 
   it('goes back to the search from the card', async () => {
     const user = userEvent.setup();
-    server.use(http.get(`${API}/leader/aircraft`, () => HttpResponse.json(makeDetail())));
+    server.use(http.get(`${API}/leader/aircraft`, () => HttpResponse.json(makeVerifiedAircraft())));
 
     const { router } = renderPage('/leader/aircraft?aircraft=N172SP');
     expect(await screen.findByText('INSURED')).toBeInTheDocument();
@@ -204,7 +186,7 @@ describe('LeaderAircraftPage card', () => {
     server.use(
       http.get(`${API}/leader/aircraft`, ({ request }) => {
         asked.push(new URL(request.url).searchParams.get('n_number') ?? '');
-        return HttpResponse.json(makeDetail());
+        return HttpResponse.json(makeVerifiedAircraft());
       }),
     );
     renderWithProviders(<LeaderAircraftPage />, { route: '/leader/aircraft?aircraft=n-172sp' });
@@ -217,7 +199,7 @@ describe('LeaderAircraftPage card', () => {
     server.use(
       http.get(`${API}/leader/aircraft`, () =>
         HttpResponse.json(
-          makeDetail({ insurance_is_current: false, insurance_expiration: '2026-01-01' }),
+          makeVerifiedAircraft({ insurance_is_current: false, insurance_expiration: '2026-01-01' }),
         ),
       ),
     );
@@ -233,7 +215,7 @@ describe('LeaderAircraftPage card', () => {
     server.use(
       http.get(`${API}/leader/aircraft`, () =>
         HttpResponse.json(
-          makeDetail({ insurance_is_current: true, insurance_expiration: '2026-10-10' }),
+          makeVerifiedAircraft({ insurance_is_current: true, insurance_expiration: '2026-10-10' }),
         ),
       ),
     );
@@ -246,7 +228,9 @@ describe('LeaderAircraftPage card', () => {
   it('says NOT INSURED when there is no policy at all', async () => {
     server.use(
       http.get(`${API}/leader/aircraft`, () =>
-        HttpResponse.json(makeDetail({ insurance_is_current: false, insurance_expiration: null })),
+        HttpResponse.json(
+          makeVerifiedAircraft({ insurance_is_current: false, insurance_expiration: null }),
+        ),
       ),
     );
     renderWithProviders(<LeaderAircraftPage />, { route: '/leader/aircraft?aircraft=N172SP' });
@@ -256,7 +240,7 @@ describe('LeaderAircraftPage card', () => {
   });
 
   it('lists the members who fly it with their own currency', async () => {
-    server.use(http.get(`${API}/leader/aircraft`, () => HttpResponse.json(makeDetail())));
+    server.use(http.get(`${API}/leader/aircraft`, () => HttpResponse.json(makeVerifiedAircraft())));
     renderWithProviders(<LeaderAircraftPage />, { route: '/leader/aircraft?aircraft=N172SP' });
 
     expect(await screen.findByText('Marta Reyes')).toBeInTheDocument();
@@ -267,7 +251,7 @@ describe('LeaderAircraftPage card', () => {
   it('says when the record was last written and who wrote it', async () => {
     server.use(
       http.get(`${API}/leader/aircraft`, () =>
-        HttpResponse.json(makeDetail({ updated_by: { id: 4, name: 'Dana Fiske' } })),
+        HttpResponse.json(makeVerifiedAircraft({ updated_by: { id: 4, name: 'Dana Fiske' } })),
       ),
     );
     renderWithProviders(<LeaderAircraftPage />, { route: '/leader/aircraft?aircraft=N172SP' });
@@ -278,7 +262,9 @@ describe('LeaderAircraftPage card', () => {
 
   it('gives the date alone when nobody is recorded against the last write', async () => {
     server.use(
-      http.get(`${API}/leader/aircraft`, () => HttpResponse.json(makeDetail({ updated_by: null }))),
+      http.get(`${API}/leader/aircraft`, () =>
+        HttpResponse.json(makeVerifiedAircraft({ updated_by: null })),
+      ),
     );
     renderWithProviders(<LeaderAircraftPage />, { route: '/leader/aircraft?aircraft=N172SP' });
 
@@ -287,7 +273,7 @@ describe('LeaderAircraftPage card', () => {
   });
 
   it('shows the liability limits the leader has to check', async () => {
-    server.use(http.get(`${API}/leader/aircraft`, () => HttpResponse.json(makeDetail())));
+    server.use(http.get(`${API}/leader/aircraft`, () => HttpResponse.json(makeVerifiedAircraft())));
     renderWithProviders(<LeaderAircraftPage />, { route: '/leader/aircraft?aircraft=N172SP' });
 
     expect(await screen.findByText(/\$1,000,000/)).toBeInTheDocument();
@@ -318,6 +304,57 @@ describe('LeaderAircraftPage card', () => {
     await user.click(screen.getByRole('button', { name: 'Search again' }));
     expect(screen.getByLabelText(SEARCH_LABEL)).toBeInTheDocument();
     expect(router.state.location.search).toBe('');
+  });
+
+  it('says NOT VERIFIED when a current policy has not been verified', async () => {
+    server.use(
+      http.get(`${API}/leader/aircraft`, () =>
+        HttpResponse.json(makeVerifiedAircraft({ insurance_verification: NOT_VERIFIED })),
+      ),
+    );
+    renderWithProviders(<LeaderAircraftPage />, { route: '/leader/aircraft?aircraft=N172SP' });
+
+    expect(await screen.findByText('NOT VERIFIED')).toBeInTheDocument();
+    expect(screen.getByText('Coverage is current but not verified')).toBeInTheDocument();
+  });
+
+  it('marks the insurance row with who verified it and when', async () => {
+    server.use(http.get(`${API}/leader/aircraft`, () => HttpResponse.json(makeVerifiedAircraft())));
+    renderWithProviders(<LeaderAircraftPage />, { route: '/leader/aircraft?aircraft=N172SP' });
+
+    const row = await screen.findByText('Insurance');
+    expect(row.parentElement).toHaveTextContent(/Verified by Dana Leader on 2026\/05\/01$/);
+  });
+
+  it('offers a verifier Verify, and verifies the insurance from the card', async () => {
+    const user = userEvent.setup();
+    const calls = emptyVerificationCalls();
+    server.use(
+      signedInAs(makeUser({ roles: ['member', 'verifier'] })),
+      http.get(`${API}/leader/aircraft`, () =>
+        HttpResponse.json(makeVerifiedAircraft({ insurance_verification: NOT_VERIFIED })),
+      ),
+      ...verificationHandlers(calls),
+    );
+    renderWithProviders(<LeaderAircraftPage />, { route: '/leader/aircraft?aircraft=N172SP' });
+
+    await user.click(await screen.findByRole('button', { name: 'Verify' }));
+    await user.click(screen.getByLabelText('Insurance verified'));
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(await screen.findByText('Verification saved')).toBeInTheDocument();
+    expect(calls.aircraft).toEqual([{ aircraftId: 1, body: { verified: true } }]);
+  });
+
+  it('offers no Verify to a reader without a verifying role', async () => {
+    server.use(
+      signedInAs(makeUser({ roles: ['member'] })),
+      http.get(`${API}/leader/aircraft`, () => HttpResponse.json(makeVerifiedAircraft())),
+    );
+    renderWithProviders(<LeaderAircraftPage />, { route: '/leader/aircraft?aircraft=N172SP' });
+
+    expect(await screen.findByText('INSURED')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Verify' })).not.toBeInTheDocument();
   });
 
   it('asks nothing until a registration is given', () => {

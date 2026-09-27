@@ -42,9 +42,19 @@ Verifier
 
 A verifier checks a member's pilot certificate, medical, and photo ID, and an
 aircraft's insurance, against the documents, and marks each one verified. The role
-opens **Member check** (:doc:`admin/member-check`) and **Aircraft check**
-(:doc:`admin/aircraft-check`), where the verifying is done. A DART leader or a user
-administrator grants the role.
+adds the **Operations** group:
+
+* **Member check** (:doc:`admin/member-check`): look up a member, read their
+  verdict, and press **Verify** to correct and verify their pilot certificate,
+  medical, and photo ID in one save. It also downloads the CalDART verification
+  report of everything nobody has verified yet.
+* **Aircraft check** (:doc:`admin/aircraft-check`): look up an airplane and press
+  **Verify** to correct and verify its insurance.
+
+A verifier does not browse the membership list. A DART leader or a user
+administrator grants the role from the member check, and a user administrator can
+also grant it on the **User record** (:doc:`admin/user-record`). You may verify your
+own documents.
 
 
 DART leader
@@ -55,10 +65,12 @@ CalDART. The role adds the **Operations** group and one entry of
 **Administration**:
 
 * **Member check** (:doc:`admin/member-check`): look up any member by name, email,
-  phone, or N-number and see whether their membership, medical, pilot certificate,
-  and aircraft insurance are current.
-* **Aircraft check** (:doc:`admin/aircraft-check`): look up an airplane by N-number
-  and see its insurance and who flies it.
+  phone, or N-number and see whether their membership and medical are current, whether
+  their pilot certificate, medical, and photo ID are verified, and whether their
+  aircraft insurance is current and verified. A DART leader verifies there as a
+  verifier does, and makes a member a verifier with **Make a verifier**.
+* **Aircraft check** (:doc:`admin/aircraft-check`): look up an airplane by N-number,
+  see its insurance and who flies it, and verify the insurance.
 * **Members** (:doc:`admin/members`): the whole membership list, with its filters
   and downloads. The member record behind each name stays the account
   administrator's.
@@ -77,8 +89,11 @@ A user administrator looks after accounts. The role adds:
   activating and deactivating it, correcting its email address, and sending a
   password reset link or a verification message. The screen also downloads the
   CalDART roles report as a CSV or a PDF.
+* **Member check** and **Aircraft check** (:doc:`admin/member-check`,
+  :doc:`admin/aircraft-check`): verifying, as a verifier does, and making a member a
+  verifier from the member check.
 * The **CalDART roles report**: the people who hold each role other than member,
-  in a section per role. An account administrator can have it emailed to a user
+  in a section per role, Verifier among them. An account administrator can have it emailed to a user
   administrator on a schedule (:doc:`admin/reports`).
 
 A user administrator cannot grant or take away the system administrator role.
@@ -123,7 +138,8 @@ An account administrator looks after the membership records. The role adds:
 * **Notifications** (:doc:`admin/notifications`): who hears about what by email,
   from a sign-up to a refund.
 * **Member check** and **Aircraft check** (:doc:`admin/member-check`,
-  :doc:`admin/aircraft-check`), as a DART leader has them.
+  :doc:`admin/aircraft-check`), with verifying, as a verifier has them. An account
+  administrator also verifies from each member record and aircraft record.
 
 
 Website administrator

@@ -55,6 +55,20 @@
   font-size: var(--text-sm);
 }
 
+/* Verify and the verifier role, under the name; empty for a reader who holds neither. */
+.leader-card__actions {
+  margin-top: var(--space-3);
+}
+
+.leader-card__actions:empty {
+  display: none;
+}
+
+/* The verification panel opens inside the card, inset like its rows. */
+.leader-card .verification-panel {
+  margin: var(--space-4);
+}
+
 .leader-card__subhead {
   font-family: var(--font-body);
   font-size: var(--text-xs);
