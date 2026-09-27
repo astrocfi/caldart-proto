@@ -545,7 +545,14 @@ def is_running() -> bool:
 
 
 def as_of() -> datetime | None:
-    """When the newest successful import finished: the date the registry is as of."""
+    """When the newest successful import finished: the date the registry is as of.
+
+    ``None`` before any import has succeeded, and also whenever the registrations table
+    is empty whatever the import log says: a backup leaves the registrations out, so
+    after a restore the registry reads as not imported until the next import refills it.
+    """
+    if not Registration.objects.exists():
+        return None
     newest = (
         RegistryImport.objects.filter(ok=True, finished_at__isnull=False)
         .order_by("-finished_at")
