@@ -339,6 +339,19 @@ AUTH_THROTTLE_RATES = {
     "donate": _throttle_rate("AUTH_THROTTLE_DONATE", "10/hour"),
 }
 
+# --------------------------------------------------------------------------
+# Address suggestions (Geoapify)
+# --------------------------------------------------------------------------
+# The key for Geoapify's autocomplete endpoint, which ``apps.members.addresses``
+# calls on behalf of the profile form.  Blank turns address suggestions off.
+GEOAPIFY_API_KEY = env("GEOAPIFY_API_KEY", default="")
+# The autocomplete endpoint itself.  Only the end-to-end run points it elsewhere,
+# at a stub that answers a fixed response.
+GEOAPIFY_URL = env("GEOAPIFY_URL", default="https://api.geoapify.com/v1/geocode/autocomplete")
+# Suggestions a signed-in account may ask for, read by ``apps.members.throttling``.
+# ``None`` is off.
+ADDRESS_SUGGEST_THROTTLE_RATE = _throttle_rate("ADDRESS_SUGGEST_THROTTLE_RATE", "60/min")
+
 # How long an email verification link stays usable, in seconds: three days, the
 # same as Django's default for a password link.
 EMAIL_VERIFICATION_TIMEOUT = env.int("EMAIL_VERIFICATION_TIMEOUT", default=259_200)
