@@ -1,4 +1,4 @@
-import { act, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { useState } from 'react';
@@ -111,6 +111,15 @@ describe('<AircraftTypePicker/>', () => {
     const user = renderPicker(['account_admin']);
     await search(user, 'zzzz');
     expect(await screen.findByRole('button', { name: 'Add a type' })).toBeVisible();
+  });
+
+  it('keeps the focus in the box when Add a type is pressed', async () => {
+    // Leaving the box marks it, and the mark pushes the button down under the
+    // pointer; the press must not move the focus, or its click lands elsewhere.
+    const user = renderPicker(['account_admin']);
+    await search(user, 'zzzz');
+    const add = await screen.findByRole('button', { name: 'Add a type' });
+    expect(fireEvent.mouseDown(add)).toBe(false);
   });
 
   it('offers Add a type to a system administrator too', async () => {

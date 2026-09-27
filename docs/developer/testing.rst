@@ -845,7 +845,7 @@ database, and ``e2e/helpers.ts`` reads it once per run and exports
 whole document.  A spec that hard-codes ``caldart-demo`` or ``$45.00`` is a
 copy of ``apps/*/seed.py`` that will one day disagree with it, and one that
 hard-codes a *generated* member's name disagrees sooner than that.  The
-document has seven keys:
+document has eight keys:
 
 ``demoPassword``
    The password every demo account shares.
@@ -879,6 +879,16 @@ document has seven keys:
    charge or has already charged out from under it; ``pausedMandate``, one
    paused after every retry was refused; and ``contributionMandate``, a life
    member whose authority charges a contribution alone.
+``registry``
+   A registration for **Look up** on the aircraft forms: ``knownNNumber``, the
+   first valid registration by N-number that carries a year and is on no
+   register record, preferring one a corporation or an LLC holds, with the
+   ``knownType``, ``knownYear``, and ``knownOwner`` a lookup on it answers; and
+   ``asOf``, the day the newest successful import finished, written
+   ``YYYY/MM/DD`` as the screens print it.  ``aircraft-registry.spec.ts`` adds
+   that airplane from My aircraft, and runs the import from the System screen,
+   which ``make e2e`` points at the registry fixture through
+   ``FAA_REGISTRY_URL`` (:doc:`aircraft-registry`).
 
 Every member is found in the seeded data rather than typed into the spec, and
 a fact the seed cannot supply comes back as empty strings, so the spec fails

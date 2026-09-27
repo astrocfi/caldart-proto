@@ -192,10 +192,17 @@ membership buys.*
    **Current** and add it.  It appears in your list with the same chip and a
    *Remove* button.
 
-   If the airplane you fly is not in the register, the picker offers a short
-   inline form to add it — make, model, and the insurance details — and selects
-   it for you.  You may edit an aircraft you added; only an account
-   administrator may edit one somebody else added.
+   If the airplane you fly is not in the register, press **Add a new
+   aircraft**: a short inline form adds it and selects it for you.  Type
+   ``N10131``, a registration the FAA registry holds and the register does not,
+   and press **Look up**.  The form fills from the registry, the type (a Cessna
+   150L), the year, and the owner's name, and says *From the FAA registry as of*
+   the day the seed imported it.  The aircraft type is picked from a list, never
+   typed free: clear the **Aircraft type** box, type ``cesna 172``, and the
+   misspelling still leads with *Cessna 172*.  Pick it and press **Add
+   aircraft**; the airplane joins your list as a Cessna 172.  You may edit an
+   aircraft you added; only an account administrator may edit one somebody else
+   added.
 
 5. Read members-only content.  From the dashboard, follow one of the
    members-only page links, or open http://localhost:8000/members/ directly.
@@ -367,7 +374,18 @@ those need the ``system_admin`` role.
 After the walkthrough
 =====================
 
-Three more screens are worth a look, none of them one of the five flows:
+Four more screens are worth a look, none of them one of the five flows:
+
+**Aircraft register** — sign in as ``accountadmin@example.org`` and open
+``/portal/admin/aircraft``.  The header says the day the FAA registry is *as
+of*.  Press **New aircraft** and type a type the FAA has never registered,
+such as ``quillfeather zq``, into **Aircraft type**: nothing matches, and an
+account administrator is offered **Add a type**.  Keep digits out of the
+example: a search holding digits also lists every type whose model contains
+them, so ``zq1`` would list every model with a 1 in it.  Give the type a make
+and a model, such as ``Quillfeather`` and ``ZQ``, and press **Add type**; the
+type is picked at once, and from then on every aircraft form lists it.  See :doc:`user/admin/aircraft-register` and
+:doc:`developer/aircraft-registry`.
 
 **Users and roles** — sign in as ``useradmin@example.org`` and open
 ``/portal/admin/users``.  Search for a member, open them, and add or remove
@@ -394,7 +412,12 @@ page's email log files each of these messages under its event, as
 Health shows database connectivity, pending migrations, free disk and the last
 backup; Backups lists the dumps in ``backups/`` and can make a new one;
 Reminders runs the renewal scan — leave *dry run* ticked the first time — and
-lists what was recently sent.  Then try the scan from the command line against
+lists what was recently sent.  The *FAA registry import* panel's **Run now**
+imports the registry again, from the FAA's download unless
+``FAA_REGISTRY_URL`` names the fixture directory
+``backend/apps/aircraft/fixtures/faa`` the seed reads; the panel follows the run
+and, once it ends, reads *Imported* so many types and registrations on today's
+date.  Then try the scan from the command line against
 a future date, which is how you rehearse a year's worth of reminders in a
 second:
 
