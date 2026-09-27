@@ -23,6 +23,7 @@ from types import ModuleType
 from typing import Any
 
 import pytest
+from django.apps import apps as django_apps
 from django.conf import settings as django_settings
 from django.core.exceptions import ImproperlyConfigured
 from django.core.management import call_command
@@ -35,7 +36,7 @@ from rest_framework.test import APIClient
 
 from apps.accounts.models import User
 from apps.cms import seed_content_data as content
-from apps.cms.models import ContactPage, DonatePage, HomePage, SiteSettings, get_site_settings
+from apps.cms.models import ContactPage, DonatePage, HomePage, SiteSettings
 from apps.cms.seed import ensure_site_root
 from apps.members.models import MembershipPlan
 from apps.notifications.events import EVENTS
@@ -49,6 +50,7 @@ from tests.factories import (
     RenewalMandateFactory,
     UserFactory,
     expire_membership,
+    grant_membership,
     make_dart_index,
     make_standard_page,
 )
@@ -340,6 +342,30 @@ def test_the_login_redirect_goes_to_the_prefixed_portal(
     assert response["Location"] == f"{PREFIX}/portal/login?next={PREFIX}/docs/"
 
 
+def test_the_site_config_links_every_page_under_the_prefix(
+    api_client: APIClient,
+    home_page: HomePage,
+    prefixed: str,
+    member: User,
+    annual_plan: MembershipPlan,
+) -> None:
+    """The portal's nav and members-only links arrive with the prefix already on them."""
+    make_standard_page(home_page, "about", "About", show_in_menus=True)
+    make_standard_page(home_page, "inside", "Inside", members_only=True)
+    grant_membership(member, annual_plan)
+    api_client.force_login(member)
+
+    body = api_client.get("/api/v1/site/config", SCRIPT_NAME=PREFIX).json()
+    urls = [entry["url"] for entry in [*body["nav"], *body["members_pages"]]]
+
+    assert urls == [
+        f"{PREFIX}/",
+        f"{PREFIX}/about/",
+        f"{PREFIX}/portal/",
+        f"{PREFIX}/inside/",
+    ]
+
+
 @pytest.mark.needs_frontend_build
 def test_whitenoise_serves_a_hashed_asset_under_the_prefix(
     client: Client, prefixed: str, settings: Settings
@@ -406,10 +432,33 @@ def test_the_home_page_writes_every_link_under_the_prefix(
     member: User,
 ) -> None:
     """The masthead, navigation, sidebar, footer and assets all start with the prefix."""
-    HomePage.objects.filter(pk=home_page.pk).update(primary_cta_url=f"{PREFIX}/portal/join")
+    # The home page the migrations publish was stored with the suite's own prefix.
+    HomePage.objects.filter(pk=home_page.pk).update(
+        urgent_cta_url=f"{PREFIX}/contact/",
+        primary_cta_url=f"{PREFIX}/portal/join",
+        secondary_cta_url=f"{PREFIX}/about/",
+    )
     make_dart_index(home_page)
     DartFactory()
     client.force_login(member)
+
+    body = client.get("/").content.decode()
+
+    assert unprefixed_links(body) == []
+
+
+def test_the_home_pages_blank_buttons_fall_back_under_the_prefix(
+    client: Client, home_page: HomePage, site_settings: SiteSettings, prefixed: str
+) -> None:
+    """A labeled button with no URL links the contact page, the join screen, or home."""
+    HomePage.objects.filter(pk=home_page.pk).update(
+        urgent_cta_label="Request air support",
+        urgent_cta_url="",
+        primary_cta_label="Join CalDART",
+        primary_cta_url="",
+        secondary_cta_label="About us",
+        secondary_cta_url="",
+    )
 
     body = client.get("/").content.decode()
 
@@ -522,6 +571,20 @@ def test_ensure_site_root_links_the_join_screen_under_the_prefix(prefixed: str) 
     assert site.root_page.specific.primary_cta_url == f"{PREFIX}/portal/join"
 
 
+def test_the_migrated_home_page_links_its_buttons_under_the_prefix(prefixed: str) -> None:
+    """The home page ``migrate`` publishes links its two buttons under the prefix."""
+    HomePage.objects.all().delete()
+    site_root = importlib.import_module("apps.cms.migrations.0002_site_root")
+
+    site_root.create_site_root(django_apps, None)
+
+    home = HomePage.objects.get()
+    assert (home.primary_cta_url, home.secondary_cta_url) == (
+        f"{PREFIX}/portal/join",
+        f"{PREFIX}/about/",
+    )
+
+
 @pytest.mark.slow
 def test_seed_content_writes_its_links_under_the_prefix(prefixed_content: ModuleType) -> None:
     """The home page's buttons, a page's button, and the donate setting carry it."""
@@ -535,7 +598,7 @@ def test_seed_content_writes_its_links_under_the_prefix(prefixed_content: Module
         "contact page buttons": [
             block.value["url"] for block in contact.body if block.block_type == "cta"
         ],
-        "donate setting": get_site_settings().donate_url,
+        "donate setting": SiteSettings.objects.get().donate_url,
     }
 
     assert stored == {

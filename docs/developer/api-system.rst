@@ -576,6 +576,9 @@ home page.
 ``members_pages`` lists ``{title, url}`` for every live members-only page, and
 is empty for a caller who fails the same test the members-only wall applies —
 an empty list rather than a 403, so nobody learns which pages exist by asking.
+Every ``url`` in ``nav`` and ``members_pages`` is a path from the root of the
+host that already carries the site's ``URL_PREFIX`` (see :doc:`configuration`),
+so a client uses it as it stands.
 See :doc:`cms` for that test and for where the settings come from.
 
 Before ``migrate`` has created the site settings row, ``org_name`` falls back

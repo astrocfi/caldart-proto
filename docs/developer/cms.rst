@@ -239,7 +239,8 @@ as the rows of one table.
 
 ``cta`` (``CTABlock``) is the call to action: a ``label``; a target that is
 either a ``page`` from the tree or a ``url`` (an external address, or a path
-such as ``/portal/join``); a ``style`` of ``primary`` (the default),
+such as ``/portal/join``, written with the site's ``URL_PREFIX`` in front of it
+when it has one); a ``style`` of ``primary`` (the default),
 ``secondary`` or ``quiet``; and an optional ``note`` printed small under the
 button.  Saving one with neither a page nor a URL fails validation.
 
@@ -297,7 +298,7 @@ supplies four names:
     ``portal.html`` put it on ``<html data-theme="...">``.
 
 ``nav``
-    ``build_nav(request)``: ``Home`` -> ``/``, then the live top-level pages
+    ``build_nav(request)``: ``Home`` -> the home page, then the live top-level pages
     flagged *show in menus* as ``kind="page"``, each carrying its own in-menu
     children as ``children`` for a drop-down.  A menu page behind the
     members-only wall is moved to the end as ``kind="portal"``, beside the
@@ -309,7 +310,16 @@ supplies four names:
     bar's links and the second at its right-hand end, with a
     ``Welcome, <first name>`` greeting ahead of it for a signed-in reader.  An
     entry is marked ``active`` when the request path starts with its URL, and
-    ``Home`` only when the path is exactly ``/``.
+    ``Home`` only when the path is exactly the home page's.  Every URL is
+    built with ``reverse()`` or Wagtail's page URL, so each carries the
+    ``URL_PREFIX`` (see :doc:`configuration`): ``/caldart-proto/portal/login``
+    under ``/caldart-proto``.
+
+``url_prefix``
+    The ``URL_PREFIX`` setting, empty at the root of a host.  ``base.html`` and
+    ``portal.html`` put it on ``<html data-url-prefix="...">`` for their
+    scripts.  The templates themselves write every link with ``{% url %}``,
+    which carries the prefix even on the 500 page, where there is no context.
 
 ``can_preview_theme``
     True for website and system administrators.  ``base.html`` turns it into
@@ -416,6 +426,17 @@ and writes the pages, so changing a sentence never touches the code that builds
 the tree.  The donation page's rich-text intro and thanks are a
 ``DonatePageSpec`` of their own.  Site settings come from the same module's
 ``SITE_SETTINGS``.
+
+Every link the copy makes into the site -- a button's ``url``, a rich-text
+``<a href>``, the home page's join button, the ``donate_url`` setting -- is
+written with ``site_path()`` from ``apps.cms.models``, which puts the
+``URL_PREFIX`` in front of a root-relative path.  The prefix is read when the
+module is imported, so the stored links are right for the prefix
+``seed_content`` runs under.  Links to pages the command has just built, such
+as the home page's *Find your DART* button, come from the page's own URL, which
+carries the prefix already.  The home page ``migrate`` publishes, and the one
+``ensure_site_root`` creates when there is none, link their buttons the same
+way.
 
 It also calls ``ensure_members_only_collection``, so the ``Members only``
 document collection exists on a fresh site and the members-area copy can tell

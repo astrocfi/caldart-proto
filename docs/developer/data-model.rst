@@ -3834,15 +3834,15 @@ than stores.
    * - ``urgent_cta_url``
      - ``CharField(200)``
      - not null; default ``""``
-     - where it goes; blank goes to ``/contact/``
+     - where it goes; blank goes to the ``contact/`` page under the site root
    * - ``primary_cta_label``
      - ``CharField(60)``
      - not null; default ``"Join CalDART"``
      - the second button; a blank label hides it
    * - ``primary_cta_url``
      - ``CharField(200)``
-     - not null; default ``"/portal/join"``
-     - where it goes; blank goes to ``/portal/join``
+     - not null; default ``"<URL_PREFIX>/portal/join"``
+     - where it goes; blank goes to the portal's join screen
    * - ``secondary_cta_label``
      - ``CharField(60)``
      - not null; default ``""``

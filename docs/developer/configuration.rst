@@ -56,7 +56,8 @@ Where settings are read
    the code.  Four variables have **no default** and a missing one is a
    start-up error: ``SECRET_KEY``, ``ALLOWED_HOSTS``, ``SITE_URL``, and
    ``EMAIL_URL``.  A ``SECRET_KEY`` equal to the published development key is a
-   start-up error too.  Selected by
+   start-up error too, and so is a ``SITE_URL`` whose path is not the
+   ``URL_PREFIX``.  Selected by
    ``Environment=DJANGO_SETTINGS_MODULE=caldart.settings.prod`` in all five
    systemd services: ``caldart-web`` and the four scheduled jobs
    (``caldart-reminders``, ``caldart-renewals``, ``caldart-reports``, and
@@ -118,16 +119,55 @@ Core
    Comma-separated origins, *with scheme*, allowed to post to the site.
    Needed behind TLS termination.
 
-   :Development: defaults to ``[SITE_URL]``.
+   :Development: defaults to the scheme and host of ``SITE_URL``: a browser's
+      ``Origin`` header never carries a path, so a ``SITE_URL`` under a
+      ``URL_PREFIX`` still yields ``https://caldart.example.org``.
    :Production: ``https://caldart.example.org,https://www.caldart.example.org``.
 
 ``SITE_URL``
    The public base URL.  Used for links in emails — including the renewal
-   reminders' ``/portal/renew`` link — and as ``WAGTAILADMIN_BASE_URL``.
+   reminders' ``/portal/renew`` link — and as ``WAGTAILADMIN_BASE_URL``.  Its
+   path is the ``URL_PREFIX``: ``https://paloaltodart.org/caldart-proto`` for a
+   site under ``/caldart-proto``, and no path at all for a site at the root of
+   its host.  ``prod.py`` refuses to start when the two disagree, since the
+   emails would then link somewhere the pages do not.
 
    :Development: ``http://localhost:8000``
    :Production: **required**, ``https://caldart.example.org``, no trailing
       slash.
+
+``URL_PREFIX``
+   The path the site is served under when it shares its host with another
+   site, such as ``/caldart-proto``; empty when it owns the whole host.  Any
+   spelling with or without a leading or trailing slash reads the same, so
+   ``caldart-proto`` and ``/caldart-proto/`` both mean ``/caldart-proto``.
+   Each segment is letters, digits, ``.``, ``_``, ``~``, or ``-``; an empty
+   segment (``//x//``), a ``.`` or ``..`` segment, or any other character is an
+   ``ImproperlyConfigured`` error at start-up.
+
+   The web server in front strips the prefix before it proxies a request, and
+   ``base.py`` sets ``FORCE_SCRIPT_NAME`` to the prefix, so Django routes on the
+   path below it and writes it back onto every URL it builds: ``reverse()``,
+   ``{% url %}``, ``static()`` and the media URL.  ``STATIC_URL`` and
+   ``MEDIA_URL`` are the relative ``static/`` and ``media/`` for that reason:
+   Django prefixes a relative value with the script name, and leaves one that
+   starts with a slash alone.  ``LOGIN_URL`` (``<prefix>/portal/login``),
+   ``LOGIN_REDIRECT_URL`` (``<prefix>/portal/``) and ``LOGOUT_REDIRECT_URL``
+   (``<prefix>/``) are built from it.  The session and CSRF cookies keep the
+   path ``/``: a host runs one CalDART, and the public pages and the portal
+   share the same cookies.
+
+   Both HTML shells, ``base.html`` and ``portal.html``, carry the prefix as
+   ``data-url-prefix`` on ``<html>`` (from the ``url_prefix`` the
+   ``apps.cms`` context processor supplies), which is where the portal and the
+   public site's script read it.  The templates write every link with
+   ``{% url %}``.  ``seed_content``, and the home page ``migrate`` publishes,
+   store their links with the prefix already on them, so run them with the
+   same ``URL_PREFIX`` the site is served under.
+
+   :Development: empty.
+   :Production: empty, or the prefix the site is served under;
+      ``SITE_URL`` must end in the same path.
 
 
 Authentication rate limits
