@@ -348,13 +348,15 @@ def test_the_insurance_body_writes_no_other_field(
     leader_client: APIClient, aircraft: Aircraft
 ) -> None:
     """A register field outside the insurance, such as the make, is ignored."""
-    leader_client.put(
+    original_make = aircraft.make
+    response = leader_client.put(
         aircraft_verification_url(aircraft),
         {"make": "Piper", "verified": True},
         format="json",
     )
+    assert response.status_code == 200
     aircraft.refresh_from_db()
-    assert aircraft.make != "Piper"
+    assert aircraft.make == original_make
 
 
 # --------------------------------------------------------------------------

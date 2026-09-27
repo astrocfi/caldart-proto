@@ -11,7 +11,7 @@ from rest_framework.test import APIClient
 from apps.accounts.models import User
 from apps.aircraft.models import Aircraft
 from apps.darts.models import Dart
-from apps.members.models import MemberProfile, MembershipPlan
+from apps.members.models import MemberProfile, MembershipPlan, PhotoIdType
 from tests.conftest import ROLE_MATRIX
 from tests.factories import (
     AircraftFactory,
@@ -250,7 +250,8 @@ def test_put_clears_fields_left_out_of_the_body(
 ) -> None:
     """A ``PUT`` clears every writable field the body leaves out, back to its default."""
     profile.vol_ground_team = True
-    profile.save(update_fields=["vol_ground_team"])
+    profile.photo_id_type = PhotoIdType.PASSPORT
+    profile.save(update_fields=["vol_ground_team", "photo_id_type"])
     api_client.force_login(member)
 
     response = api_client.put(PROFILE_URL, MINIMAL_PUT, format="json")
@@ -264,6 +265,7 @@ def test_put_clears_fields_left_out_of_the_body(
     assert profile.total_hours is None
     assert profile.vol_ground_team is False
     assert profile.state == "CA"  # back to the model default
+    assert profile.photo_id_type == PhotoIdType.NOT_PROVIDED
 
 
 def test_patch_leaves_untouched_fields_alone(
