@@ -1,13 +1,8 @@
 # CalDART scheduled reports: the report subscriptions and the DART rosters.
 #
 # Deploy path: /srv/caldart. Triggered by caldart-reports.timer, which runs it
-# daily at 06:00; it is a oneshot, so it is not enabled directly -- enable the
-# timer instead:
-#
-#   sudo cp deploy/systemd/caldart-reports.service \
-#           deploy/systemd/caldart-reports.timer /etc/systemd/system/
-#   sudo systemctl daemon-reload
-#   sudo systemctl enable --now caldart-reports.timer
+# daily at 06:00; it is a oneshot, so it is not enabled directly.
+# deploy/steps/timers.sh installs it and enables the timer.
 #
 # Run it by hand (safe to repeat -- a sent subscription moves on to its next
 # day, and a sent roster is stamped with the month):

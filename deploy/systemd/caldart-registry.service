@@ -1,13 +1,8 @@
 # CalDART FAA registry import.
 #
 # Deploy path: /srv/caldart. Triggered by caldart-registry.timer, which runs it
-# daily at 04:30; it is a oneshot, so it is not enabled directly -- enable the
-# timer instead:
-#
-#   sudo cp deploy/systemd/caldart-registry.service \
-#           deploy/systemd/caldart-registry.timer /etc/systemd/system/
-#   sudo systemctl daemon-reload
-#   sudo systemctl enable --now caldart-registry.timer
+# daily at 04:30; it is a oneshot, so it is not enabled directly.
+# deploy/steps/timers.sh installs it and enables the timer.
 #
 # Run it by hand (safe to repeat -- every run replaces the registry with the
 # FAA's current copy):

@@ -283,6 +283,8 @@ def test_the_production_template_names_every_variable_the_settings_read() -> Non
     assert missing == []
 
 
-def test_the_web_unit_installs_the_production_template() -> None:
-    """The web systemd unit installs the template to ``/etc/caldart/caldart.env``."""
-    assert "deploy/caldart.env.example /etc/caldart/caldart.env" in WEB_UNIT.read_text()
+def test_the_web_unit_reads_the_production_template() -> None:
+    """The web systemd unit reads the template installed at ``/etc/caldart/caldart.env``."""
+    unit = WEB_UNIT.read_text()
+    assert "deploy/caldart.env.example" in unit
+    assert "EnvironmentFile=/etc/caldart/caldart.env" in unit

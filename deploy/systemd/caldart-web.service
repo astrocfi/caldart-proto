@@ -4,19 +4,11 @@
 # and readable by the "caldart" service user, with the uv-managed virtualenv at
 # /srv/caldart/.venv and the Django project at /srv/caldart/backend.
 #
-# Install:
-#   sudo useradd --system --home-dir /srv/caldart --shell /usr/sbin/nologin caldart
-#   sudo install -d -m 0750 -o root -g caldart /etc/caldart
-#   sudo install -m 0640 -o root -g caldart \
-#        deploy/caldart.env.example /etc/caldart/caldart.env
-#   # edit /etc/caldart/caldart.env -- see docs/developer/configuration.rst for every variable
-#   # The repository's own .env.example is the DEVELOPMENT template: it ships a
-#   # published SECRET_KEY and turns the mock payment provider on.
-#   sudo install -d -o caldart -g caldart /srv/caldart/backend/media \
-#        /srv/caldart/backend/staticfiles /srv/caldart/backups
-#   sudo cp deploy/systemd/caldart-web.service /etc/systemd/system/
-#   sudo systemctl daemon-reload
-#   sudo systemctl enable --now caldart-web.service
+# Installed by deploy/steps/web-service.sh, which renders this file with the
+# deploy root written in, enables it, and restarts it -- see
+# docs/developer/deployment.rst for the full install sequence, and
+# docs/developer/configuration.rst for every variable in
+# /etc/caldart/caldart.env.
 #
 # Logs: journalctl -u caldart-web -f
 

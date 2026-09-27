@@ -1,13 +1,8 @@
 # CalDART renewal reminder scan.
 #
 # Deploy path: /srv/caldart. Triggered by caldart-reminders.timer, which runs
-# it daily at 07:00; it is a oneshot, so it is not enabled directly -- enable
-# the timer instead:
-#
-#   sudo cp deploy/systemd/caldart-reminders.service \
-#           deploy/systemd/caldart-reminders.timer /etc/systemd/system/
-#   sudo systemctl daemon-reload
-#   sudo systemctl enable --now caldart-reminders.timer
+# it daily at 07:00; it is a oneshot, so it is not enabled directly.
+# deploy/steps/timers.sh installs it and enables the timer.
 #
 # Run it by hand (safe to repeat -- ReminderLog dedupes per user/membership/kind):
 #   sudo systemctl start caldart-reminders.service
