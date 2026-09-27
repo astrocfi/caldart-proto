@@ -14,7 +14,7 @@ The decisions on the issue are reproduced in §5 with the detail a worker needs.
 
 ## 1. How to run this plan
 
-Wave 1 has two packages in parallel, wave 2 one, wave 3 one. Each package is a worktree, a branch, a database, a worker, and (where the manifest says `review: true`) an Opus reviewer confined to the diff with a fix pass only on a blocking finding. The orchestrator reads every PR before merging it and merges one at a time, the last of a wave rebased with its own CI run. The plan PR lands this file alone; there is no skeleton, because the two wave-1 packages share nothing but the `create_admin` contract in §5.10.
+Wave 1 has two packages in parallel, wave 2 two, wave 3 one. Each package is a worktree, a branch, a database, a worker, and (where the manifest says `review: true`) an Opus reviewer confined to the diff with a fix pass only on a blocking finding. The orchestrator reads every PR before merging it and merges one at a time, the last of a wave rebased with its own CI run. The plan PR lands this file alone; there is no skeleton, because the two wave-1 packages share nothing but the `create_admin` contract in §5.10.
 
 ## 2. Preconditions
 
@@ -123,7 +123,7 @@ When `CALDART_ETC` is not `/etc/caldart` the step skips the root check and the `
 
 ### 5.8 The build (`steps/build.sh`)
 
-From the root: `env UV_PYTHON_INSTALL_DIR=/opt/uv/python uv sync --frozen --no-dev --group docs`; `cd frontend && npm ci && npm run build`; /seti/newnav/capped-run.sh `.venv/bin/sphinx-build -n -W -b dirhtml -t guide -c docs docs/user docs/_build/guide`. The checkout stays root-owned and world-readable, as the guide has it.
+From the root: `env UV_PYTHON_INSTALL_DIR=/opt/uv/python uv sync --frozen --no-dev --group docs`; `cd frontend && npm ci && npm run build`; `.venv/bin/sphinx-build -n -W -b dirhtml -t guide -c docs docs/user docs/_build/guide`. The checkout stays root-owned and world-readable, as the guide has it.
 
 ### 5.9 The database (`steps/database.sh`)
 
@@ -206,6 +206,17 @@ Requires `--yes`. Stops and disables `caldart-web` and the six timers, removes t
 - `README.rst`: a short **On a server** paragraph after the development quick start, pointing at the one-liner and the deployment page.
 - The header comments of every unit under `deploy/systemd/` and of both vhosts and `deploy/caldart.env.example` point at the scripts instead of listing `cp` commands (closeout).
 
+### 5.22 Backups leave the FAA registry out
+
+The owner, asked whether a backup carries the whole FAA registry: "Yes change the backup to not include the registry including when the user presses the backup button in the gui."
+
+Measured with a real import: a full dump gzips to 10.8 MB, of which the registrations table is 7.8 MB and the aircraft types 2.9 MB; the demo data alone is 32 KB. The two tables differ. Nothing references a registration row, so `aircraft_registration` is reproducible from the FAA's nightly file and leaves the dump. Every aircraft on the register points at an `AircraftType` row (`Aircraft.type`, `PROTECT`), so the types table, its aliases, and the import log stay in.
+
+- `apps.sysadmin.services.backup` adds `--exclude-table-data=aircraft_registration` to the `pg_dump` argument list, in both the local and the compose forms. The table's schema is still in the dump, so a restore recreates it empty. The table name comes from `Registration._meta.db_table`, never a literal. There is no flag for a full dump: the registry is the FAA's, and the next import brings it back.
+- Both paths to a dump share that function (the `db_backup` command, the `caldart-backup` timer, and `POST /api/v1/system/backups` behind the System screen's **Create backup** button), so one change covers the button. A test asserts the argv the service builds carries the exclusion, and one asserts the dump the command writes contains `CREATE TABLE` for the registrations table and no `COPY` for it while it still copies `aircraft_aircrafttype`.
+- `apps.aircraft.registry.as_of` returns `None` when the registrations table is empty, whatever the import log says, so after a restore the register, the N-number lookup, and `GET /aircraft/registry` say the registry has not been imported yet rather than claiming the date of an import whose rows are gone. `GET /aircraft/registry/{n_number}` answers 404 as it does before any import. The next timer run, or **Run now**, fills the table and the date returns.
+- `db_restore` is unchanged; `backup-restore.rst` gains a paragraph under How a dump is taken saying what is left out and why, and one under Restoring saying the registry refills at 04:30 or with **Run now**. `docs/user/admin/system.rst` says the backup leaves the FAA registry out, in one sentence, where it describes **Create backup**; `aircraft-registry.rst` says the registrations are not backed up and how the date behaves after a restore.
+
 ## 6. Failure handling and the final report
 
 A worker that cannot finish its package leaves the branch pushed, the PR open with the failing gate named under Notes, and reports the problem; the orchestrator decides. A reviewer's blocking finding gets one fix pass; a second failure goes to the orchestrator. The closeout's report to the owner names every PR, what landed, and what the rehearsal saw on each web server.
@@ -240,6 +251,14 @@ A worker that cannot finish its package leaves the branch pushed, the PR open wi
 - **Steps:** §5.20's third bullet. Run `make rehearse-deploy` with `REHEARSE_WEB_SERVER=apache` and again with `nginx`, and iterate on the scripts until both pass end to end: install, upgrade, idempotent re-install, uninstall. Record in the PR's Notes the wall-clock time of each run, every script change the rehearsal forced, and any drop-in the container needed.
 - **Verify:** both rehearsals green; `make lint test check docs audit`.
 
+#### registry-free-backups (Opus, reviewed)
+
+- **Refs:** #325
+- **Branch:** `feature/registry-free-backups`; database `caldart_backups`
+- **Owns:** `backend/apps/sysadmin/services.py#backup`, `backend/apps/aircraft/registry.py#as_of`, `backend/tests/test_backup_registry.py` (new), `docs/developer/backup-restore.rst#registry`, `docs/developer/aircraft-registry.rst#backups`, `docs/user/admin/system.rst#backups`, `docs/developer/api-aircraft.rst#as-of` if the status endpoint's description needs the empty-table rule.
+- **Steps:** §5.22.
+- **Verify:** `make lint test check docs audit`; `make backup` on a database with the fixture registry writes a dump whose `zcat | grep -c 'COPY public.aircraft_registration'` is 0 and whose `grep -c 'COPY public.aircraft_aircrafttype'` is 1; `make restore` of it, then `GET /api/v1/aircraft/registry` answers `as_of: null`, and `make reset` afterwards.
+
 ### Wave 3
 
 #### closeout (Sonnet)
@@ -257,6 +276,7 @@ A worker that cannot finish its package leaves the branch pushed, the PR open wi
   {"wave": 1, "package": "install-scripts", "model": "opus", "review": true, "branch": "feature/install-scripts", "database": "caldart_install", "closes": [], "refs": [325], "after": []},
   {"wave": 1, "package": "create-admin", "model": "sonnet", "review": true, "branch": "feature/create-admin", "database": "caldart_admin", "closes": [], "refs": [325], "after": []},
   {"wave": 2, "package": "install-rehearsal", "model": "opus", "review": true, "branch": "feature/install-rehearsal", "database": "caldart_rehearsal", "closes": [], "refs": [325], "after": ["install-scripts", "create-admin"]},
-  {"wave": 3, "package": "closeout", "model": "sonnet", "review": false, "branch": "chore/install-closeout", "database": "caldart_closeout", "closes": [325], "refs": [], "after": ["install-rehearsal"]}
+  {"wave": 2, "package": "registry-free-backups", "model": "opus", "review": true, "branch": "feature/registry-free-backups", "database": "caldart_backups", "closes": [], "refs": [325], "after": []},
+  {"wave": 3, "package": "closeout", "model": "sonnet", "review": false, "branch": "chore/install-closeout", "database": "caldart_closeout", "closes": [325], "refs": [], "after": ["install-rehearsal", "registry-free-backups"]}
 ]
 ```
