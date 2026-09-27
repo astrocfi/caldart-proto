@@ -284,7 +284,7 @@ def test_the_production_template_names_every_variable_the_settings_read() -> Non
 
 
 def test_the_web_unit_reads_the_production_template() -> None:
-    """The web systemd unit reads the template installed at ``/etc/caldart/caldart.env``."""
+    """The web unit reads the template installed at ``/etc/caldart/caldart.env``."""
     unit = WEB_UNIT.read_text()
     assert "deploy/caldart.env.example" in unit
     assert "EnvironmentFile=/etc/caldart/caldart.env" in unit
