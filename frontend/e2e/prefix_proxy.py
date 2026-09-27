@@ -47,6 +47,10 @@ HOP_BY_HOP = frozenset(
     }
 )
 
+#: ``send_response`` already writes these for the proxy's own hop to the client, so the
+#: upstream's own copies are dropped rather than sent twice.
+SELF_WRITTEN_ON_RESPONSE = frozenset({"server", "date"})
+
 #: The headers the proxy writes itself, so a client's own copies are dropped.
 FORWARDED = frozenset(
     {"x-forwarded-for", "x-forwarded-host", "x-forwarded-proto", "x-forwarded-prefix"}
@@ -160,7 +164,7 @@ class PrefixProxyHandler(BaseHTTPRequestHandler):
         """Copy the upstream's status, headers and body to the client as they arrive."""
         self.send_response(response.status, response.reason)
         for name, value in response.getheaders():
-            if name.lower() not in HOP_BY_HOP:
+            if name.lower() not in HOP_BY_HOP | SELF_WRITTEN_ON_RESPONSE:
                 self.send_header(name, value)
         self.end_headers()
         if self.command != "HEAD":
