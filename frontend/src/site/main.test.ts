@@ -1,5 +1,6 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { clearUrlPrefix, stampUrlPrefix } from '@test/render';
 import { applyThemePreview, markCurrentNav } from './main';
 
 function navFixture(): HTMLElement {
@@ -37,6 +38,47 @@ describe('markCurrentNav', () => {
     const nav = navFixture();
     markCurrentNav(nav, '/portal/join');
     expect(currentLabels(nav)).toEqual(['Join']);
+  });
+});
+
+/** The public nav as the site renders it under `/x`: the home entry is the prefix itself. */
+function prefixedNavFixture(): HTMLElement {
+  document.body.innerHTML = `
+    <nav data-site-nav>
+      <ul>
+        <li><a href="/x/">Home</a></li>
+        <li><a href="/x/about/">About Us</a></li>
+      </ul>
+    </nav>
+  `;
+  return document.querySelector<HTMLElement>('[data-site-nav]')!;
+}
+
+describe('markCurrentNav under a URL prefix', () => {
+  afterEach(clearUrlPrefix);
+
+  it('marks the home entry on the home page', async () => {
+    stampUrlPrefix('/x');
+    const main = await import('./main');
+    const nav = prefixedNavFixture();
+    main.markCurrentNav(nav, '/x/');
+    expect(currentLabels(nav)).toEqual(['Home']);
+  });
+
+  it('does not mark the home entry on every page under the prefix', async () => {
+    stampUrlPrefix('/x');
+    const main = await import('./main');
+    const nav = prefixedNavFixture();
+    main.markCurrentNav(nav, '/x/contact/');
+    expect(currentLabels(nav)).toEqual([]);
+  });
+
+  it('marks the section a deeper page belongs to', async () => {
+    stampUrlPrefix('/x');
+    const main = await import('./main');
+    const nav = prefixedNavFixture();
+    main.markCurrentNav(nav, '/x/about/history/');
+    expect(currentLabels(nav)).toEqual(['About Us']);
   });
 });
 

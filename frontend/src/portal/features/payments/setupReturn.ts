@@ -12,10 +12,23 @@ import { useSearchParams } from 'react-router-dom';
 
 import { ApiError } from '@/portal/api/client';
 import type { MandateScope } from '@/portal/api/queries';
+import { PORTAL_BASENAME } from '@/portal/urlPrefix';
 import { useConfirmRenewal } from './api';
 
 /** The query parameter the return URL names the authority in; absent means the renewal. */
 export const SETUP_SCOPE_PARAM = 'mandate';
+
+/**
+ * Where Stripe sends the browser back for a card that needs a bank confirmation.
+ *
+ * The Payments screen, under the site's URL prefix, told which authority the card
+ * was for, so the right card there finishes the setup.
+ *
+ * @returns an absolute URL on the page's own origin.
+ */
+export function setupReturnUrl(scope: MandateScope): string {
+  return `${window.location.origin}${PORTAL_BASENAME}/payments?${SETUP_SCOPE_PARAM}=${scope}`;
+}
 
 /** What Stripe appends to the return URL once the bank has answered, and our own scope. */
 const RETURN_PARAMS = [

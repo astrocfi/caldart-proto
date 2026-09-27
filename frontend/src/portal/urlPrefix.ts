@@ -23,6 +23,21 @@ export function sitePath(path: string): string {
   return `${URL_PREFIX}${path}`;
 }
 
+/**
+ * `path` as it would read if the site were the root of its host.
+ *
+ * A path under the prefix loses it (the prefix alone reads as `/`); any other
+ * string, an absolute URL included, is returned unchanged.
+ *
+ * @param path a path the browser requests, such as `/caldart-proto/about/`.
+ * @returns the path without the prefix, such as `/about/`.
+ */
+export function stripUrlPrefix(path: string): string {
+  if (URL_PREFIX === '') return path;
+  if (path === URL_PREFIX) return '/';
+  return path.startsWith(`${URL_PREFIX}/`) ? path.slice(URL_PREFIX.length) : path;
+}
+
 /** Where the REST API lives. */
 export const API_BASE: string = sitePath('/api/v1');
 

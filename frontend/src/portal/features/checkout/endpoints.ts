@@ -7,6 +7,7 @@
  * and default to the portal's.
  */
 import type { CheckoutRequest, CheckoutResponse, PaymentResult } from '@/portal/api/types';
+import { PORTAL_BASENAME } from '@/portal/urlPrefix';
 import {
   capturePayPalOrder,
   completeMockPayment,
@@ -41,7 +42,7 @@ export interface PaymentEndpoints {
 /** The portal's own address for a redirect-based Stripe method to come back to. */
 function portalReturnUrl(paymentId: number): string {
   const origin = typeof window === 'undefined' ? '' : window.location.origin;
-  return `${origin}/portal/join/done?payment_id=${paymentId}`;
+  return `${origin}${PORTAL_BASENAME}/join/done?payment_id=${paymentId}`;
 }
 
 /** The signed-in member's checkout, through `/payments/...`. */

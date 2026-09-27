@@ -29,6 +29,12 @@ describe('urlPrefix without data-url-prefix', () => {
     expect(API_BASE).toBe('/api/v1');
   });
 
+  it('leaves a path alone when there is no prefix to strip', async () => {
+    clearUrlPrefix();
+    const { stripUrlPrefix } = await loadUrlPrefix();
+    expect(stripUrlPrefix('/about/')).toBe('/about/');
+  });
+
   it('mounts the portal at /portal', async () => {
     clearUrlPrefix();
     const { PORTAL_BASENAME } = await loadUrlPrefix();
@@ -67,5 +73,18 @@ describe('urlPrefix under data-url-prefix', () => {
     stampUrlPrefix('/x');
     const { PORTAL_BASENAME } = await loadUrlPrefix();
     expect(PORTAL_BASENAME).toBe('/x/portal');
+  });
+
+  it.each<[string, string]>([
+    ['/x/about/', '/about/'],
+    ['/x/', '/'],
+    ['/x', '/'],
+    ['/xyz/about/', '/xyz/about/'],
+    ['/about/', '/about/'],
+    ['https://example.org/x/about/', 'https://example.org/x/about/'],
+  ])('reads %s as %s once the prefix is taken off', async (path, expected) => {
+    stampUrlPrefix('/x');
+    const { stripUrlPrefix } = await loadUrlPrefix();
+    expect(stripUrlPrefix(path)).toBe(expected);
   });
 });

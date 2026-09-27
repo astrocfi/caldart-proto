@@ -25,19 +25,8 @@ import {
 } from '@/portal/features/checkout/StripePanel';
 import type { RenewalSetupFields } from './api';
 import { renewalSetupRequest, startRenewalSetup, useConfirmRenewal } from './api';
-import { SETUP_SCOPE_PARAM } from './setupReturn';
+import { setupReturnUrl } from './setupReturn';
 import type { RenewalPanelProps } from './types';
-
-/**
- * Where Stripe sends the browser back for a card that needs a bank confirmation.
- *
- * The Payments screen, told which authority the card was for, so the right card
- * there finishes the setup.
- */
-function returnUrl(scope: MandateScope): string {
-  const origin = typeof window === 'undefined' ? '' : window.location.origin;
-  return `${origin}/portal/payments?${SETUP_SCOPE_PARAM}=${scope}`;
-}
 
 /**
  * The setup request for the current selection, once that selection has held still.
@@ -165,7 +154,7 @@ function StripeSetupForm({
     try {
       const confirmation = await stripe.confirmSetup({
         elements,
-        confirmParams: { return_url: returnUrl(scope) },
+        confirmParams: { return_url: setupReturnUrl(scope) },
         redirect: 'if_required',
       });
       if (confirmation.error) {
