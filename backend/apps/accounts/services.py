@@ -219,11 +219,14 @@ def update_account(actor: User | str, target: User, changes: AccountChanges) -> 
     whichever endpoint, command, or admin screen asked.  ``actor`` is ordinarily the
     signed-in account making the edit; a management command passes
     ``audit.COMMAND_ACTOR`` instead, which counts as holding every role (see
-    :func:`effective_roles`) and so may grant or revoke any role, but can still refuse
-    the edit only when it deactivates its own account, which a command actor never
-    does since it names no account of its own.  The rules run in this order, and the
-    first refusal raises ``DomainValidationError`` naming the field it belongs on,
-    leaving the account untouched:
+    :func:`effective_roles`) and so may grant or revoke any role: the self-deactivation
+    rule never applies to the command actor, which names no account.  A caller passing
+    ``audit.COMMAND_ACTOR`` should wrap the call in
+    :func:`apps.notifications.dispatch.suspended`, because a role change raises
+    ``roles_changed`` with ``actor`` in its payload and that event's message requires a
+    ``User`` actor, not the command actor's string; ``create_admin`` does.  The rules
+    run in this order, and the first refusal raises ``DomainValidationError`` naming
+    the field it belongs on, leaving the account untouched:
 
     #. nobody may deactivate their own account;
     #. only a system administrator may grant or revoke ``system_admin``;

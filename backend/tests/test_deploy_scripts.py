@@ -979,6 +979,11 @@ def test_the_web_server_step_starts_a_stopped_web_server(
 def test_the_web_server_step_never_plainly_reloads(
     web_server: str, root: Path, etc: Path, tmp_path: Path
 ) -> None:
-    """No step runs a plain ``systemctl reload``, which fails on a stopped server."""
+    """The install's web-server step never runs a plain ``systemctl reload``.
+
+    ``uninstall.sh`` still does, guarded by ``systemctl is-active``: removing a vhost
+    from a server that was never started does not need to start it, so the guard
+    (rather than ``reload-or-restart``) is the right fix there.
+    """
     commands = _commands(_install_dry_run(root, etc, tmp_path, "--web-server", web_server))
     assert [command for command in commands if command.startswith("systemctl reload ")] == []

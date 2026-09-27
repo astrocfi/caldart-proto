@@ -2,12 +2,7 @@
 #
 # Deploy path: /srv/caldart. Triggered by caldart-statements.timer, which runs
 # it once a year on January 15th; it is a oneshot, so it is not enabled
-# directly -- enable the timer instead:
-#
-#   sudo cp deploy/systemd/caldart-statements.service \
-#           deploy/systemd/caldart-statements.timer /etc/systemd/system/
-#   sudo systemctl daemon-reload
-#   sudo systemctl enable --now caldart-statements.timer
+# directly. deploy/steps/timers.sh installs it and enables the timer.
 #
 # Run it by hand (safe to repeat -- a year already sent reaches nobody again):
 #   sudo systemctl start caldart-statements.service

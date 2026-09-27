@@ -1,13 +1,8 @@
 # CalDART automatic-renewal scan.
 #
 # Deploy path: /srv/caldart. Triggered by caldart-renewals.timer, which runs
-# it daily at 06:30; it is a oneshot, so it is not enabled directly -- enable
-# the timer instead:
-#
-#   sudo cp deploy/systemd/caldart-renewals.service \
-#           deploy/systemd/caldart-renewals.timer /etc/systemd/system/
-#   sudo systemctl daemon-reload
-#   sudo systemctl enable --now caldart-renewals.timer
+# it daily at 06:30; it is a oneshot, so it is not enabled directly.
+# deploy/steps/timers.sh installs it and enables the timer.
 #
 # Run it by hand (safe to repeat -- each renewal attempt records which emails
 # have gone out, and an attempt that has been charged is no longer scheduled):

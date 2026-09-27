@@ -270,6 +270,9 @@ rehearse-deploy: ## Rehearse the server install in a throwaway systemd container
 	      docker volume rm "$$name-docker" "$$name-containerd" >/dev/null 2>&1 || true; \
 	    fi; \
 	  }; \
+	  if docker inspect "$$name" >/dev/null 2>&1; then \
+	    echo "==> Removing the previous $$name"; \
+	  fi; \
 	  docker rm -f "$$name" >/dev/null 2>&1 || true; \
 	  docker volume rm "$$name-docker" "$$name-containerd" >/dev/null 2>&1 || true; \
 	  trap cleanup EXIT; \
@@ -298,7 +301,11 @@ rehearse-deploy: ## Rehearse the server install in a throwaway systemd container
 	  echo "==> Rehearsing an upgrade that changes nothing"; \
 	  inside /srv/caldart/deploy/upgrade.sh; \
 	  echo "==> Rehearsing a second install with no flags"; \
+	  before=$$(inside sha256sum /etc/caldart/caldart.env /etc/caldart/install.conf); \
 	  inside /srv/caldart/deploy/install.sh; \
+	  after=$$(inside sha256sum /etc/caldart/caldart.env /etc/caldart/install.conf); \
+	  [ "$$before" = "$$after" ] \
+	    || { echo "error: a no-flag install changed the environment file or the install record" >&2; exit 1; }; \
 	  echo "==> Rehearsing the uninstall"; \
 	  inside /srv/caldart/deploy/uninstall.sh --yes --purge; \
 	  inside test ! -e /srv/caldart; \

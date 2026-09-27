@@ -513,6 +513,14 @@ the published development ``SECRET_KEY`` as well.  Nothing in the production
 settings reads a ``.env`` file, so a stray one in the checkout cannot fill in a
 variable that is missing.
 
+``install.sh`` runs this step right after the Postgres one, in the same
+process, so the password reaches ``DATABASE_URL`` the way the block above
+shows.  Run ``steps/configure.sh`` on its own before the Postgres step has
+handed it a password, and it warns on standard error and writes a generated
+password of its own instead, which the database does not have; run the
+Postgres step (or the whole installer) first, or edit ``DATABASE_URL`` in the
+file by hand afterwards.
+
 It also sets ``CSRF_TRUSTED_ORIGINS`` to the ``https://`` form of the same
 hosts, ``DEFAULT_FROM_EMAIL`` from ``--from-email`` (``CalDART
 <noreply@HOST>`` by default), ``BACKUP_DIR`` and ``USER_GUIDE_ROOT`` under the
