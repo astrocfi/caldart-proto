@@ -53,6 +53,12 @@ describe('changeLine', () => {
     );
   });
 
+  it('names a change of aircraft type as the form does', () => {
+    expect(changeLine(makeChange({ fields: ['type'] }))).toBe(
+      '2026/09/01 12:34 · Dana Fiske · updated aircraft type',
+    );
+  });
+
   it('says only updated when an update names no column', () => {
     expect(changeLine(makeChange({ fields: [], changed_by: null }))).toBe(
       '2026/09/01 12:34 · the seed · updated',

@@ -14,6 +14,7 @@ import type {
   AircraftChange,
   AircraftDetail,
   AircraftPatch,
+  AircraftType,
   OwnerType,
   Paginated,
 } from '@/portal/api/types';
@@ -125,6 +126,16 @@ export function useAircraftSearch(term: string): UseQueryResult<AircraftSearchRe
     queryKey: [AIRCRAFT_KEY, 'search', term],
     queryFn: () => findAircraft(term),
     enabled: term.trim().length > 0,
+  });
+}
+
+/** The aircraft types `GET /aircraft/types` finds for `term`, disabled while it is blank. */
+export function useAircraftTypes(term: string): UseQueryResult<AircraftType[]> {
+  return useQuery({
+    queryKey: [AIRCRAFT_KEY, 'types', term],
+    queryFn: () => api.get<AircraftType[]>('/aircraft/types', { query: { q: term } }),
+    enabled: term.trim().length > 0,
+    placeholderData: keepPreviousData,
   });
 }
 

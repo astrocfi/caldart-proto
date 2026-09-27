@@ -16,8 +16,7 @@ import { formatDate, formatDateTime } from '@/portal/components/DateText';
  */
 const FIELD_LABELS: Record<string, string> = {
   n_number: 'N-number',
-  make: 'make',
-  model: 'model',
+  type: 'aircraft type',
   year: 'year',
   seats: 'seats',
   owner_type: 'owner type',

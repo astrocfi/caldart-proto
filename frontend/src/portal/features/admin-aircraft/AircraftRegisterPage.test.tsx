@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { makeAircraftType } from '@test/fixtures/profile';
 import { API } from '@test/handlers';
 import { renderRoutes, renderWithProviders } from '@test/render';
 import { server } from '@test/server';
@@ -16,6 +17,7 @@ function makeAircraft(overrides: Partial<Aircraft> = {}): Aircraft {
     n_number: 'N172SP',
     make: 'Cessna',
     model: '172S Skyhawk',
+    type: makeAircraftType({ id: 1, model: '172S Skyhawk' }),
     insurance_is_current: true,
     insurance_expiration: '2027-03-01',
     insurance_summary: '$1,000,000 / $100,000 · exp 2027-03-01',
@@ -363,11 +365,14 @@ describe('AircraftRegisterPage', () => {
 
     const form = screen.getByRole('group', { name: 'Aircraft' });
     await user.type(within(form).getByLabelText(/^N-number/), 'n4321q');
-    await user.type(within(form).getByLabelText(/^Make/), 'Cirrus');
-    await user.type(within(form).getByLabelText(/^Model/), 'SR22');
+    await user.type(within(form).getByLabelText(/^Find the aircraft type/), 'sr22');
+    await user.selectOptions(
+      within(form).getByLabelText(/^Aircraft type/),
+      await within(form).findByRole('option', { name: /^Cirrus SR22/ }),
+    );
     await user.click(screen.getByRole('button', { name: 'Add aircraft' }));
 
-    await waitFor(() => expect(posted).toMatchObject({ n_number: 'N4321Q', make: 'Cirrus' }));
+    await waitFor(() => expect(posted).toMatchObject({ n_number: 'N4321Q', type_id: 3 }));
   });
 
   it('surfaces a duplicate registration from the server', async () => {
@@ -388,8 +393,11 @@ describe('AircraftRegisterPage', () => {
 
     const form = screen.getByRole('group', { name: 'Aircraft' });
     await user.type(within(form).getByLabelText(/^N-number/), 'n172sp');
-    await user.type(within(form).getByLabelText(/^Make/), 'Cessna');
-    await user.type(within(form).getByLabelText(/^Model/), '172S');
+    await user.type(within(form).getByLabelText(/^Find the aircraft type/), '172S');
+    await user.selectOptions(
+      within(form).getByLabelText(/^Aircraft type/),
+      await within(form).findByRole('option', { name: /^Cessna 172S/ }),
+    );
     await user.click(screen.getByRole('button', { name: 'Add aircraft' }));
 
     expect(await screen.findByText(/already on file/)).toBeInTheDocument();

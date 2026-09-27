@@ -34,6 +34,7 @@ import type {
   AircraftPatch,
   AircraftPilot,
   AircraftSummary,
+  AircraftType,
   AttachedAircraft,
   Backup,
   BecomeFriendPayload,
@@ -261,6 +262,7 @@ const aircraftPilot: Matches<AircraftPilot, Schemas['AircraftPilot']> = true;
 const aircraftActor: Matches<AircraftActor, Schemas['AircraftActor']> = true;
 const aircraftChange: Matches<AircraftChange, Schemas['AircraftChange']> = true;
 const aircraftDetail: Matches<AircraftDetail, Schemas['AircraftDetail']> = true;
+const aircraftType: Matches<AircraftType, Schemas['AircraftType']> = true;
 
 /* --------------------------------------------------------------- payments */
 const payment: Matches<Payment, Schemas['FinancePayment']> = true;
@@ -455,6 +457,7 @@ const assertions: readonly true[] = [
   aircraftActor,
   aircraftChange,
   aircraftDetail,
+  aircraftType,
   payment,
   paymentDetail,
   financePaymentTerm,
@@ -604,6 +607,7 @@ const MAPPED_COMPONENTS: readonly (keyof Schemas)[] = [
   'AircraftActor',
   'AircraftChange',
   'AircraftDetail',
+  'AircraftType',
   'FinancePayment',
   'FinancePaymentDetail',
   'FinancePaymentTerm',

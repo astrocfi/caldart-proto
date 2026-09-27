@@ -2,6 +2,7 @@ import { screen } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { makeAircraftType } from '@test/fixtures/profile';
 import { API, makeUser, signedInAs } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
@@ -16,6 +17,7 @@ function makeDetail(overrides: Partial<AircraftDetail> = {}): AircraftDetail {
     n_number: 'N12345',
     make: 'Cessna',
     model: '182T Skylane',
+    type: makeAircraftType(),
     year: 2004,
     owner_type: 'individual',
     owner_name: 'Dana Ruiz',

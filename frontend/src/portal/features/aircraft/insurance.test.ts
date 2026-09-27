@@ -2,7 +2,14 @@ import { describe, expect, it } from 'vitest';
 
 import { aircraftQuery } from './api';
 import { matchType, suggestTypes } from './catalog';
-import { N_NUMBER_MESSAGE, aircraftPayload, emptyAircraftValues, validateAircraft } from './form';
+import { makeAircraftType } from '@test/fixtures/profile';
+import {
+  N_NUMBER_MESSAGE,
+  TYPE_MESSAGE,
+  aircraftPayload,
+  emptyAircraftValues,
+  validateAircraft,
+} from './form';
 import {
   centsToDollars,
   dollarsToCents,
@@ -111,9 +118,9 @@ describe('the type catalog', () => {
 });
 
 describe('validateAircraft', () => {
-  it('requires a registration, a make and a model', () => {
+  it('requires a registration and an aircraft type', () => {
     const errors = validateAircraft(emptyAircraftValues());
-    expect(Object.keys(errors).sort()).toEqual(['make', 'model', 'n_number']);
+    expect(Object.keys(errors).sort()).toEqual(['n_number', 'type_id']);
   });
 
   it.each([
@@ -128,30 +135,33 @@ describe('validateAircraft', () => {
     ['N1I', N_NUMBER_MESSAGE],
     ['N12ABC', N_NUMBER_MESSAGE],
   ])('judges the registration %s', (n_number, expected) => {
-    const values = { ...emptyAircraftValues(), n_number, make: 'Cessna', model: '172' };
+    const values = { ...emptyAircraftValues(), n_number, type: makeAircraftType() };
     expect(validateAircraft(values).n_number).toBe(expected);
   });
 
   it('rejects a negative liability limit', () => {
-    const values = { ...emptyAircraftValues('N1'), make: 'Cessna', model: '172' };
+    const values = { ...emptyAircraftValues('N1'), type: makeAircraftType() };
     values.liability_per_occurrence = '-1';
     expect(validateAircraft(values).liability_per_occurrence).toMatch(/\$0 or more/);
   });
 
   it('rejects a year that is not four digits', () => {
-    const values = { ...emptyAircraftValues('N1'), make: 'Cessna', model: '172', year: '19' };
+    const values = { ...emptyAircraftValues('N1'), type: makeAircraftType(), year: '19' };
     expect(validateAircraft(values).year).toMatch(/four-digit/);
   });
 
   it('accepts a complete record', () => {
     const values = {
       ...emptyAircraftValues('n-172sp'),
-      make: 'Cessna',
-      model: '172S',
+      type: makeAircraftType(),
       year: '2008',
       liability_per_occurrence: '1,000,000',
     };
     expect(validateAircraft(values)).toEqual({});
+  });
+
+  it('asks for a type picked from the list', () => {
+    expect(validateAircraft(emptyAircraftValues('N1')).type_id).toBe(TYPE_MESSAGE);
   });
 });
 
@@ -159,8 +169,7 @@ describe('aircraftPayload', () => {
   it('normalizes the registration and converts dollars to cents', () => {
     const payload = aircraftPayload({
       ...emptyAircraftValues('n-172sp'),
-      make: ' Cessna ',
-      model: '172S Skyhawk',
+      type: makeAircraftType({ id: 1 }),
       year: '2008',
       liability_per_occurrence: '1,000,000',
       liability_per_person: '100000',
@@ -170,7 +179,7 @@ describe('aircraftPayload', () => {
 
     expect(payload).toMatchObject({
       n_number: 'N172SP',
-      make: 'Cessna',
+      type_id: 1,
       year: 2008,
       insurance_liability_per_occurrence_cents: 100_000_000,
       insurance_liability_per_person_cents: 10_000_000,
@@ -180,10 +189,14 @@ describe('aircraftPayload', () => {
   });
 
   it('sends nulls rather than empty strings for the optional numbers', () => {
-    const payload = aircraftPayload({ ...emptyAircraftValues('N1'), make: 'C', model: '1' });
+    const payload = aircraftPayload({ ...emptyAircraftValues('N1'), type: makeAircraftType() });
     expect(payload.year).toBeNull();
     expect(payload.seats).toBeNull();
     expect(payload.insurance_expiration).toBeNull();
+  });
+
+  it('leaves the type out while none is picked', () => {
+    expect(aircraftPayload(emptyAircraftValues('N1'))).not.toHaveProperty('type_id');
   });
 });
 

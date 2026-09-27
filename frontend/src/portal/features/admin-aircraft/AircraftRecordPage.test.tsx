@@ -61,7 +61,9 @@ describe('AircraftRecordPage', () => {
     expect(await screen.findByRole('heading', { name: 'N172SP' })).toBeInTheDocument();
     const form = screen.getByRole('group', { name: 'Aircraft' });
     expect(within(form).getByLabelText(/^N-number/)).toHaveValue('N172SP');
-    expect(within(form).getByLabelText(/^Make/)).toHaveValue('Cessna');
+    expect(within(form).getByLabelText(/^Aircraft type/)).toHaveDisplayValue(
+      'Cessna 172S Skyhawk · 4 seats',
+    );
     expect(within(form).getByLabelText(/^Year/)).toHaveValue('2008');
 
     const insurance = screen.getByRole('group', { name: 'Insurance' });
@@ -116,16 +118,16 @@ describe('AircraftRecordPage', () => {
     expect(await screen.findByText(/\$0 or more/)).toBeInTheDocument();
   });
 
-  it('will not save an empty make', async () => {
+  it('will not save without an aircraft type', async () => {
     const user = userEvent.setup();
     server.use(http.get(`${API}/aircraft/1`, () => HttpResponse.json(makeDetail())));
 
     renderRecord();
     const form = await screen.findByRole('group', { name: 'Aircraft' });
-    await user.clear(within(form).getByLabelText(/^Make/));
+    await user.selectOptions(within(form).getByLabelText(/^Aircraft type/), '');
     await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
-    expect(await screen.findByText(/Enter the make/)).toBeInTheDocument();
+    expect(await screen.findByText('Pick the aircraft type from the list.')).toBeInTheDocument();
   });
 
   it('says over the details when the record was last written and by whom', async () => {
