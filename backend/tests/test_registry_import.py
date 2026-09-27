@@ -10,7 +10,9 @@ from __future__ import annotations
 import logging
 import shutil
 import zipfile
-from datetime import date
+from collections.abc import Iterator
+from contextlib import contextmanager
+from datetime import date, timedelta
 from io import StringIO
 from pathlib import Path
 
@@ -18,8 +20,11 @@ import httpx
 import pytest
 import respx
 from django.core.management import CommandError, call_command
+from django.db import connection
+from django.utils import timezone
 from pytest_django import Settings
 
+from apps.aircraft import registry
 from apps.aircraft.aliases import ALIASES
 from apps.aircraft.models import (
     AircraftType,
@@ -30,7 +35,9 @@ from apps.aircraft.models import (
     RegistryImport,
 )
 from apps.aircraft.registry import (
+    ALREADY_RUNNING,
     FIXTURE_DIR,
+    ImportAlreadyRunningError,
     RegistryFormatError,
     import_registry,
     parse_date,
@@ -337,6 +344,48 @@ def test_a_failed_download_is_recorded(tmp_path: Path) -> None:
             import_registry(url)
     run = RegistryImport.objects.get()
     assert (run.ok, "503" in run.error) == (False, True)
+
+
+def test_the_source_opens_before_any_transaction(
+    small_registry: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A slow or failed download never holds a database transaction open.
+
+    Every test already runs inside pytest-django's own wrapping transaction, so a
+    nested ``transaction.atomic()`` shows up as a new savepoint rather than a change
+    in ``connection.in_atomic_block``; the write phase's savepoint should not exist yet
+    when the source opens.
+    """
+    original = registry._opened_source
+    baseline = len(connection.savepoint_ids)
+    savepoints_when_opened: list[int] = []
+
+    @contextmanager
+    def spy(source: str) -> Iterator[registry.Opener]:
+        savepoints_when_opened.append(len(connection.savepoint_ids) - baseline)
+        with original(source) as opener:
+            yield opener
+
+    monkeypatch.setattr(registry, "_opened_source", spy)
+    import_registry(str(small_registry))
+    assert savepoints_when_opened == [0]
+
+
+def test_a_call_with_no_row_refuses_while_one_is_running(small_registry: Path) -> None:
+    """The nightly timer's own path -- no ``run`` passed in -- takes the same lock.
+
+    So it can never overlap a Run now press: whichever gets there first runs.
+    """
+    RegistryImport.objects.create(started_at=timezone.now())
+    with pytest.raises(ImportAlreadyRunningError, match=ALREADY_RUNNING):
+        import_registry(str(small_registry))
+
+
+def test_a_call_with_no_row_ignores_a_stale_one(small_registry: Path) -> None:
+    """A run stuck past the stale limit does not block a fresh unattended one."""
+    RegistryImport.objects.create(started_at=timezone.now() - timedelta(minutes=31))
+    run = import_registry(str(small_registry))
+    assert run.ok is True
 
 
 def test_importing_twice_writes_the_same_rows() -> None:

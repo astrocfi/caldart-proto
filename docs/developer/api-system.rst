@@ -526,8 +526,12 @@ While an import has started, not finished, and started less than
 and ``{"detail": "An import is already running."}``.  An unfinished import older
 than that is taken to have died with its process — a restart of the web service
 stops it — so the press closes it as failed, with ``ok`` false and the error
-``Did not finish.``, and starts a fresh one.  Two presses at the same instant are
-serialized by a database advisory lock, so only one of them starts an import.
+``Did not finish.``, and starts a fresh one.  Two presses at the same instant,
+and a press racing the nightly timer, are serialized by the same database
+advisory lock, so only one of them starts an import.  When the subprocess
+itself cannot be started, the row is closed at once as failed, with the error
+``Could not start the import.``, rather than sitting unfinished until the stale
+timeout, and the request answers **500**.
 
 The caller is the actor on a ``system.registry_import`` audit line whose target
 is the new row; a refused press writes the same action at WARNING with the

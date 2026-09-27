@@ -30,13 +30,16 @@ was loaded gives the date alone. The form has four parts.
    **N-number** with **Look up**, **Year**, **Aircraft type**, and **Seats**. The N-number
    is a US registration: the box writes the N, then takes digits first and at most two
    letters, never I or O. **Look up**, or leaving the box with a changed registration, asks
-   the FAA registry and fills the type, year, seats, owner name, and owner type; the line
-   under the box reads *From the FAA registry as of* the day of CalDART's copy, or *Not in
-   the FAA registry*. The aircraft type is picked from a list: type the make, the model, or
-   a designator (cessna 172, c172, skyhawk) in **Aircraft type** and pick the entry, which
-   shows its seats. The make and model come from the type, and picking one with **Seats**
-   empty fills in its seats. A type the list lacks can be added with **Add a type**, as the
-   :doc:`aircraft-register` describes.
+   the FAA registry and fills the type, year, and seats; it fills **Owner name** from the
+   registration and guesses **Owner type** from the kind of registrant it is (a person or
+   co-owners become Individual, a partnership becomes Flying club, a company becomes FBO;
+   a government registrant, or one that fits none of those, leaves Owner type as it was).
+   The line under the box reads *From the FAA registry as of* the day of CalDART's copy, or
+   *Not in the FAA registry*. The aircraft type is picked from a list: type the make, the
+   model, or a designator (cessna 172, c172, skyhawk) in **Aircraft type** and pick the
+   entry, which shows its seats. The make and model come from the type, and picking one
+   with **Seats** empty fills in its seats. A type the list lacks can be added with
+   **Add a type**, as the :doc:`aircraft-register` describes.
 
 **Owner**
    **Owner type** (Individual, FBO, or Flying club), **Owner name**, and **Owner contact**,

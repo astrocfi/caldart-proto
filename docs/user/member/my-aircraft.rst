@@ -90,7 +90,11 @@ Looking an airplane up in the FAA registry
 Every US airplane is in the FAA's aircraft registry, and CalDART keeps a copy of it,
 refreshed every night. Type the N-number and press **Look up**; leaving the box with a
 whole registration does the same. When the registry has the airplane, the form fills in
-its aircraft type, year, seats, and owner, and the line under the box reads, for
+its aircraft type, year, and seats; **Owner name** takes the registrant's name, and
+**Owner type** takes a guess from the kind of registrant it is: a person or co-owners
+become **Individual**, a partnership becomes **Flying club**, and a company becomes
+**FBO**. A government registrant, or one the registry does not sort into any of those,
+leaves **Owner type** as it was. The line under the N-number box reads, for
 example, *From the FAA registry as of 2026/09/20*, the day of the copy. Check what it
 filled and correct anything that is out of date. When the registry has no such
 registration, the line reads *Not in the FAA registry* and nothing changes. If the
