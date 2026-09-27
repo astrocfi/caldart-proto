@@ -475,7 +475,30 @@ The portal SPA
 
 The portal lives in ``frontend/src/portal/``.  ``main.tsx`` mounts ``<App>``
 on ``#portal-root``, and ``App.tsx`` wraps a browser router with the
-basename ``/portal`` in the query client and the toast provider.
+basename ``/portal`` (behind the URL prefix, when the site has one) in the
+query client and the toast provider.
+
+**The URL prefix.**  A site served under a path such as ``/caldart-proto``
+rather than at the root of its host (``URL_PREFIX`` in :doc:`configuration`)
+tells the browser so through ``data-url-prefix`` on the ``<html>`` element of
+both Django shells, ``base.html`` and ``portal.html``: the prefix, or the empty
+string.  ``src/portal/urlPrefix.ts`` is the one module that reads it, once, when
+it is first imported.  It exports ``URL_PREFIX``; ``sitePath(path)``, the
+prefix in front of a root-relative path; ``stripUrlPrefix(path)``, the reverse;
+and the two bases built from them, ``API_BASE`` (``<prefix>/api/v1``), which the
+API client and the export links read, and ``PORTAL_BASENAME``
+(``<prefix>/portal``), the router's basename.  Every real URL the frontend
+writes itself goes through ``sitePath`` or one of the bases: the user guide
+and its **Help** links, the link back to the public site, and the addresses
+Stripe returns the browser to.  A React Router path, such as a ``Link`` target
+or a ``navigate`` call, is relative to the basename and carries no prefix.  The
+public site's ``site/main.ts`` imports the same module and compares its
+navigation links with the address bar with the prefix taken off.  The bundle
+itself needs no prefix: Vite builds with a relative base, so each chunk,
+stylesheet, and font is fetched relative to the file that names it, and
+django-vite writes the entry scripts' URLs from Django's static URL, which
+carries the prefix.  The Vite dev server keeps ``/static/`` as its base, the
+path django-vite asks it for in dev mode.
 
 **Routing.**  Each feature exports a ``RouteObject[]`` from its own file in
 ``routes/``, and ``routes/index.tsx`` only concatenates them under one
@@ -577,7 +600,7 @@ signing out clear the whole cache and write the result into that key, so
 nothing cached for one person is shown to the next.
 
 **The API client.**  ``api/client.ts`` is the only code that calls
-``fetch``.  It prefixes ``/api/v1``, sends the session cookie, performs the
+``fetch``.  It prefixes ``API_BASE``, sends the session cookie, performs the
 CSRF bootstrap, encodes JSON, and turns any non-2xx response into an
 ``ApiError`` with the status, the DRF error body, and ``fieldErrors`` keyed
 by field for forms.  A 403 whose ``detail`` starts ``CSRF Failed`` is the one

@@ -8,6 +8,7 @@ import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
 import type { EmailLogEntry, Paginated } from '@/portal/api/types';
 import { SEARCH_DEBOUNCE_MS } from '@/portal/components/useDebounced';
+import { API_BASE } from '@/portal/urlPrefix';
 import { EmailLogPanel } from './EmailLogPanel';
 
 /** A userEvent instance whose internal waits advance the fake clock instead of sleeping. */
@@ -215,7 +216,7 @@ describe('EmailLogPanel', () => {
     server.use(
       capturingHandler(
         captured,
-        page(fullPage, { count: 60, next: `${API}/system/emails?page=2` }),
+        page(fullPage, { count: 60, next: `${API_BASE}/system/emails?page=2` }),
       ),
     );
     renderWithProviders(<EmailLogPanel />);

@@ -1,6 +1,7 @@
 /**
  * The portal application shell: TanStack Query, the toast queue and
- * the router mounted under the `/portal` basename.
+ * the router mounted under the `PORTAL_BASENAME` basename: `/portal`, behind
+ * the site's URL prefix when it has one.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { JSX, ReactNode } from 'react';
@@ -9,8 +10,7 @@ import { RouterProvider, createBrowserRouter } from 'react-router-dom';
 import { ApiError } from './api/client';
 import { ToastProvider } from './components/Toast';
 import { routes } from './routes';
-
-export const PORTAL_BASENAME = '/portal';
+import { PORTAL_BASENAME } from './urlPrefix';
 
 /** Builds the TanStack Query client, retrying failed queries but not 4xx responses. */
 export function createQueryClient(): QueryClient {

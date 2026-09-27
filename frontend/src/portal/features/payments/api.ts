@@ -17,7 +17,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
 
-import { API_BASE, api } from '@/portal/api/client';
+import { api } from '@/portal/api/client';
 import { MANDATE_PATHS, mandateKey } from '@/portal/api/queries';
 import type { MandateScope } from '@/portal/api/queries';
 import type {
@@ -31,6 +31,7 @@ import type {
   RenewalSetupResponse,
   StatementYears,
 } from '@/portal/api/types';
+import { API_BASE } from '@/portal/urlPrefix';
 
 export const STATEMENT_YEARS_KEY = ['me', 'payments', 'statements'] as const;
 

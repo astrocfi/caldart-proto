@@ -10,10 +10,10 @@ import { HttpResponse, http } from 'msw';
 import type { JSX } from 'react';
 import { Route, Routes } from 'react-router-dom';
 import type { RouteObject } from 'react-router-dom';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { API, NO_MEMBERSHIP, makeUser, signedInAs } from '@test/handlers';
-import { renderRoutes, renderWithProviders } from '@test/render';
+import { clearUrlPrefix, renderRoutes, renderWithProviders, stampUrlPrefix } from '@test/render';
 import { server } from '@test/server';
 import type { MembershipStatus, RoleSlug } from '../api/types';
 import { useAuth } from '../auth/useAuth';
@@ -401,5 +401,51 @@ describe('<PortalLayout/> sign out', () => {
     await screen.findByText('dashboard body');
     expect(screen.getByRole('link', { name: 'Sign in' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Sign out' })).not.toBeInTheDocument();
+  });
+});
+
+describe('PortalLayout under a URL prefix', () => {
+  afterEach(clearUrlPrefix);
+
+  /** Render the layout from modules loaded afresh under `/x`, signed in as a member. */
+  async function renderUnderPrefix(): Promise<void> {
+    stampUrlPrefix('/x');
+    const render = await import('@test/render');
+    const { PortalLayout: Layout } = await import('./PortalLayout');
+    server.use(signedInAs(makeUser({ roles: ['member'] })));
+    render.renderWithProviders(
+      <Routes>
+        <Route element={<Layout />}>
+          <Route path="/" element={<p>dashboard body</p>} />
+        </Route>
+      </Routes>,
+      { route: '/' },
+    );
+  }
+
+  it('links to the guide under the prefix', async () => {
+    await renderUnderPrefix();
+    const rail = await screen.findByRole('navigation', { name: 'Portal sections' });
+    expect(within(rail).getByRole('link', { name: 'User guide' })).toHaveAttribute(
+      'href',
+      '/x/docs/',
+    );
+  });
+
+  it('links back to the public site at the prefix', async () => {
+    await renderUnderPrefix();
+    const rail = await screen.findByRole('navigation', { name: 'Portal sections' });
+    expect(within(rail).getByRole('link', { name: 'Back to caldart.org' })).toHaveAttribute(
+      'href',
+      '/x/',
+    );
+  });
+
+  it("sends the Help link to the screen's guide page under the prefix", async () => {
+    await renderUnderPrefix();
+    expect(await screen.findByRole('link', { name: 'Help for this screen' })).toHaveAttribute(
+      'href',
+      '/x/docs/member/dashboard/',
+    );
   });
 });

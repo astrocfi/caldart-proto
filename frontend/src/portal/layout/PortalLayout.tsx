@@ -11,6 +11,7 @@ import { Button } from '../components/Button';
 import { GUIDE_PREFIX } from '../guide';
 import { helpPath } from '../help';
 import { groupedNavItems } from '../nav';
+import { sitePath } from '../urlPrefix';
 
 /** The portal chrome: header, role-filtered navigation, and the routed page outlet. */
 export function PortalLayout(): JSX.Element {
@@ -58,7 +59,7 @@ export function PortalLayout(): JSX.Element {
 
           <div className="portal__identity">
             {/* A plain anchor, not `Link`: the guide is outside the SPA, under a
-                path the router's `/portal` basename would otherwise prefix onto. */}
+                path the router's basename would otherwise prefix onto. */}
             <a
               href={helpPath(location.pathname)}
               className="button button--quiet button--small portal__help-link"
@@ -114,7 +115,7 @@ export function PortalLayout(): JSX.Element {
                 </a>
               </p>
               <p>
-                <a href="/">Back to caldart.org</a>
+                <a href={sitePath('/')}>Back to caldart.org</a>
               </p>
             </div>
           </nav>

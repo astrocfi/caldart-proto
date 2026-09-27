@@ -7,6 +7,7 @@ import type { DonorRow, ReportColumn } from '@/portal/api/types';
 import { API, makeDonorRow } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
+import { API_BASE } from '@/portal/urlPrefix';
 import { DonorsPage } from './DonorsPage';
 
 /** The donors report's column registry, matching the server's default set. */
@@ -111,7 +112,7 @@ describe('DonorsPage', () => {
 
     expect(screen.getByRole('link', { name: 'Export CSV' })).toHaveAttribute(
       'href',
-      `${API}/reports/donors/export.csv?search=Dana` +
+      `${API_BASE}/reports/donors/export.csv?search=Dana` +
         '&columns=name%2Cemail%2Cphone%2Ccity%2Cstate%2Cfirst_gift%2Clast_gift%2Cgifts%2Cgiven%2Cnet',
     );
   });

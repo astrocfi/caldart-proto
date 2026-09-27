@@ -10,6 +10,7 @@
 // `site.css` pulls in the shared `index.css` itself, so the cascade order is
 // fixed by the stylesheet rather than by Vite's chunking.
 import '../styles/site.css';
+import { stripUrlPrefix } from '@/portal/urlPrefix';
 import { currentNavIndex, isTheme } from './nav';
 
 function initNavToggle(): void {
@@ -44,13 +45,15 @@ function initNavToggle(): void {
  *
  * The server already sets `aria-current`, but a cached page or a URL with a
  * query string can leave it on the wrong entry; this settles it against the
- * address bar.
+ * address bar.  The hrefs and the path are compared with the site's URL prefix
+ * (the page's `data-url-prefix`) taken off, so the home entry, which is the
+ * prefix itself, matches only the home page.
  */
 export function markCurrentNav(nav: HTMLElement, path: string): void {
   const links = Array.from(nav.querySelectorAll<HTMLAnchorElement>('a[href]'));
   const index = currentNavIndex(
-    links.map((link) => link.getAttribute('href') ?? ''),
-    path,
+    links.map((link) => stripUrlPrefix(link.getAttribute('href') ?? '')),
+    stripUrlPrefix(path),
   );
   links.forEach((link, i) => {
     if (i === index) {

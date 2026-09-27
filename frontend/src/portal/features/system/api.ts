@@ -11,7 +11,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
 
-import { API_BASE, api } from '@/portal/api/client';
+import { api } from '@/portal/api/client';
 import { REGISTRY_KEY } from '@/portal/api/queries';
 import type {
   Backup,
@@ -29,6 +29,7 @@ import type {
 } from '@/portal/api/types';
 import { ROSTERS_KEY, SUBSCRIPTIONS_KEY } from '@/portal/reports/api';
 import type { FilterValues } from '@/portal/reports/types';
+import { API_BASE } from '@/portal/urlPrefix';
 
 export const HEALTH_KEY = ['system', 'health'] as const;
 export const BACKUPS_KEY = ['system', 'backups'] as const;

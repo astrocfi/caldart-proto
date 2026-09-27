@@ -5,6 +5,7 @@ import type { RenderOptions, RenderResult } from '@testing-library/react';
 import type { ReactElement, ReactNode } from 'react';
 import { MemoryRouter, RouterProvider, createMemoryRouter } from 'react-router-dom';
 import type { RouteObject } from 'react-router-dom';
+import { vi } from 'vitest';
 
 import { ToastProvider } from '../portal/components/Toast';
 
@@ -83,4 +84,23 @@ export function renderRoutes(
     client: queryClient,
     router,
   };
+}
+
+/**
+ * Serve the page under `prefix`, as a Django shell does with `data-url-prefix`.
+ *
+ * `@/portal/urlPrefix` reads the attribute once, when it is first imported, so the
+ * module cache is dropped as well: a module the test imports dynamically afterwards
+ * reads `prefix`, while the ones imported at the top of the file keep the empty one.
+ * Pair it with `clearUrlPrefix` in an `afterEach`.
+ */
+export function stampUrlPrefix(prefix: string): void {
+  document.documentElement.dataset.urlPrefix = prefix;
+  vi.resetModules();
+}
+
+/** Take `data-url-prefix` off `<html>` again and drop the module cache. */
+export function clearUrlPrefix(): void {
+  delete document.documentElement.dataset.urlPrefix;
+  vi.resetModules();
 }

@@ -1,11 +1,13 @@
-import { renderHook, waitFor } from '@testing-library/react';
+import { render, renderHook, screen, waitFor } from '@testing-library/react';
 import { QueryClientProvider, useQuery } from '@tanstack/react-query';
 import type { QueryClient } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+import { clearUrlPrefix, stampUrlPrefix } from '@test/render';
 
 import { ApiError } from './api/client';
-import { PORTAL_BASENAME, createQueryClient } from './App';
+import { createQueryClient } from './App';
 
 /** Run `queryFn` under the application's real query client. */
 function runQuery(client: QueryClient, queryFn: () => Promise<string>) {
@@ -17,9 +19,30 @@ function runQuery(client: QueryClient, queryFn: () => Promise<string>) {
   });
 }
 
-describe('PORTAL_BASENAME', () => {
-  it('is the path Django mounts the SPA at', () => {
-    expect(PORTAL_BASENAME).toBe('/portal');
+describe('the router', () => {
+  afterEach(() => {
+    clearUrlPrefix();
+    window.history.replaceState(null, '', '/');
+  });
+
+  it('routes under the basename the page is served under', async () => {
+    stampUrlPrefix('/x');
+    window.history.replaceState(null, '', '/x/portal/login');
+    const { App } = await import('./App');
+
+    render(<App />);
+
+    expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeInTheDocument();
+  });
+
+  it('routes under /portal when the page carries no prefix', async () => {
+    clearUrlPrefix();
+    window.history.replaceState(null, '', '/portal/login');
+    const { App } = await import('./App');
+
+    render(<App />);
+
+    expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeInTheDocument();
   });
 });
 

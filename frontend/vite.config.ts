@@ -9,9 +9,15 @@ import { defineConfig } from 'vitest/config';
  * form the public donation page mounts, and the portal SPA.  Django reads
  * `dist/.vite/manifest.json` through django-vite, and `frontend/dist` is on
  * STATICFILES_DIRS so `collectstatic` picks the built assets up unchanged.
+ *
+ * The build's base is relative: django-vite writes each entry's URL from Django's
+ * own static URL, which carries the site's URL prefix, and the bundle reaches its
+ * chunks, its CSS and their assets relative to the file that names them, so one
+ * build serves under any prefix.  The dev server keeps `/static/`, the path
+ * django-vite asks it for in dev mode.
  */
-export default defineConfig({
-  base: '/static/',
+export default defineConfig(({ command }) => ({
+  base: command === 'build' ? './' : '/static/',
   plugins: [react()],
   // Mirrors the path mappings in tsconfig.json so the bundler and the
   // type-checker agree; code imports across the portal as `@/portal/...`
@@ -73,4 +79,4 @@ export default defineConfig({
       reportsDirectory: 'coverage',
     },
   },
-});
+}));

@@ -7,6 +7,7 @@ import { API } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
 import type { ContributionRow } from '@/portal/api/types';
+import { API_BASE } from '@/portal/urlPrefix';
 import { ContributionsPage } from './ContributionsPage';
 import { statementUrl } from './api';
 
@@ -93,7 +94,7 @@ describe('ContributionsPage', () => {
     expect(screen.getByRole('table', { name: `Contributions in ${thisYear}` })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Export CSV' })).toHaveAttribute(
       'href',
-      `${API}/reports/contributions/export.csv`,
+      `${API_BASE}/reports/contributions/export.csv`,
     );
   });
 
@@ -106,7 +107,7 @@ describe('ContributionsPage', () => {
 
     expect(screen.getByRole('link', { name: 'Export PDF' })).toHaveAttribute(
       'href',
-      `${API}/reports/contributions/export.pdf?year=2024`,
+      `${API_BASE}/reports/contributions/export.pdf?year=2024`,
     );
   });
 
