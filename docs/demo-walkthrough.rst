@@ -183,10 +183,10 @@ membership buys.*
    marked and the save is refused.  The same rule is enforced on the server,
    so an API client cannot store a medical without its date either.
 
-4. Go to **My aircraft**.  Search the register — type ``N419JM``, or any part
+4. Go to **My aircraft**.  Search the register — type ``N1517T``, or any part
    of a make or model such as ``Cirrus``.  The picker looks the exact
-   registration up first and falls back to a fuzzy search, so ``419jm``
-   , ``n-419jm``, and ``N419JM`` all find the same airplane.
+   registration up first and falls back to a fuzzy search, so ``1517t``,
+   ``n-1517t``, and ``N1517T`` all find the same airplane.
 
    Each result carries an insurance chip.  Pick one whose chip says
    **Current** and add it.  It appears in your list with the same chip and a
@@ -254,9 +254,11 @@ airplane for us today?" in one screen.*
    of you disagrees (changing a field unticks its box), tick **Pilot
    certificate verified** and **Medical verified**, and press **Save**.  The
    band turns **GO** — *"Membership and medical are current and verified"* —
-   and each row reads *Verified by Priya Raman on* today's date.  One save
-   sends one *Verification recorded* email to the account administrator,
-   whom the seed subscribes to it; open Mailpit to read it.
+   and the Pilot certificate and Medical rows read *Verified by Priya Raman
+   on* today's date.  Photo ID, which this save left alone, still reads the
+   seed's own stamp and date.  One save sends one *Verification recorded*
+   email to the account administrator, whom the seed subscribes to it; open
+   Mailpit to read it.
 
    Beside **Verify** sits **Make a verifier**.  It gives the member the
    Verifier role, which opens the Member check and the Aircraft check to them
