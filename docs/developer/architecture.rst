@@ -116,13 +116,15 @@ Repository layout
                                 model inherits
         pagination.py           page-number pagination for the API
         exceptions.py           DRF error handling (401 for anonymous)
+        events.py               the events an app raises with ``emit``,
+                                which the notifications app hears
         reports.py              the report engine: specs, columns, and the
                                 CSV and PDF every report is built as
         audit.py                the audit log: one record per privileged
                                 action, ids, and slugs only
       apps/                     one Django app per domain area
         accounts/  darts/  mail/  members/  aircraft/
-        payments/  reminders/  reports/  cms/  sysadmin/
+        payments/  reminders/  reports/  notifications/  cms/  sysadmin/
       templates/
         base.html               the public-site shell
         portal.html             the SPA mount point
@@ -369,9 +371,9 @@ Layer                                       Apps
 4                                           ``aircraft`` and ``payments``,
                                             siblings that never import each
                                             other
-5                                           ``reminders`` and ``reports``,
-                                            siblings that never import each
-                                            other
+5                                           ``reminders``, ``reports``, and
+                                            ``notifications``, siblings that
+                                            never import each other
 6                                           ``cms`` and ``sysadmin``
 ==========================================  ==================================
 
