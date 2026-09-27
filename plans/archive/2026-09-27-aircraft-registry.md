@@ -174,3 +174,32 @@ A package that cannot finish reports the reason under `open_problems`; the orche
   {"wave": 3, "package": "closeout", "model": "sonnet", "review": false, "branch": "chore/registry-closeout", "database": "caldart_registry_closeout", "e2e_port": 8274, "closes": [318], "refs": [], "after": ["registry-e2e"]}
 ]
 ```
+
+## 9. Orchestrator notes after the skeleton (PR #320)
+
+- `Registration.registrant_type` is `CharField(24)` (the longest choice is 23 characters).
+- `ORDERING_FIELDS` keeps the public names `make`/`model`; `ORDERING_PATHS` maps them to `type__make`/`type__model`. `AircraftFilter` has `make`, `model`, and `type` filters; `EXPORT_FILTER_PARAMS` follows.
+- `aliases.py` also holds `resolve_alias()` and `write_aliases()` implementing §5.3's resolution rule; the import calls `write_aliases`.
+- The seed's `AIRFRAMES` says `Grumman American`, matching `MAKE_NAMES`.
+- **For the backend package:** `display_make` maps on `faa_make` alone, so `TEXTRON AVIATION INC` cannot become *Beechcraft* for Beech models: add a model-aware rule once the fixture shows which models carry that spelling. The model prefixes in `ALIASES` are best guesses at FAA display models (Beechcraft `A36`, `C24R`, `D18S`; MD Helicopters `369`; Airbus `AS350`): when cutting the fixture, check that every alias resolves and fix any prefix that does not.
+- The stopgap `AircraftTypeSelect` (search box plus select) is what the ui package replaces with the `Typeahead`; `catalog.ts` is unused and the ui package deletes it.
+
+## 10. Orchestrator notes after wave 1 (residue for the closeout)
+
+Both reviews approved (the ui review's two blocking findings were fixed in its fix pass). The closeout acts on these:
+
+- **Launch failure (backend, advisory).** `start_import` commits the `RegistryImport` row, then calls `launch_import` outside the transaction; a `Popen` failure leaves the row unfinished and every Run now answers 409 until the stale limit. Catch `OSError`, close the row (`ok=False`, `finished_at=now`, error *Could not start the import.*), re-raise; test by monkeypatching the launcher.
+- **Download inside the transaction (backend, advisory).** `import_registry` opens the source (and downloads) inside `transaction.atomic()`; open the source first, then the transaction for the writes.
+- **Timer versus Run now (backend, advisory).** The timer's command path does not take the advisory lock `start_import` takes; have `import_registry` (or the command without `--import-id`) take `pg_try_advisory_lock` or check `is_running()` and fail with *An import is already running.*
+- **Add a type (backend, advisory).** `POST /aircraft/types` accepts names that normalize to blank (`INC`, `.`); refuse them with a field error. The duplicate check is check-then-insert; take a short advisory lock around it, or document the race (a unique constraint on the display names is impossible because FAA codes share them).
+- **Zombie children (backend, advisory).** The detached `Popen` child is never waited on; double-fork or poll the handles, or document it. Also documented already: a Run-now import is a child of the web service and dies with a restart; the stale rule then records *Did not finish.*
+- **Ranking on real data (backend, open).** On the full registry a bare `cesna` leads with short-model entries such as *Cessna AW* because similarity outranks the registration-count tie-break; the fixture leads with Cessna 172. Revisit ranking for bare make names against the real download (the closeout runs one).
+- **Route naming.** The Run now route is `/admin/system/registry-import` as the plan wrote it, unlike the other run-now routes under `/system/<job>/run`; leave it or move both sides together, and say which in the PR.
+- **Types (ui).** `Registration`, `RegistryImport`, `RegistryStatus`, and `AircraftTypeCreate` live in `features/aircraft/registry.ts`; move them into `api/types.ts` with contract pairs now that the backend has merged. `useRegistryStatus` is read by two features from `features/aircraft/api.ts`; `api/queries.ts` is the conventional home.
+- **Owner type mapping (ui decision).** Registrant individual, co-owned, non-citizen co-owned map to owner type individual; partnership to club; corporation, LLC, non-citizen corporation to FBO; government and unknown leave the field alone. Confirm the docs say so.
+- **Trailers.** Every worker commit names *Claude Opus 5* from the wave script's `MODEL_NAMES`; the reviewer believed the worker model is *Claude Opus 5.5*. Check the model actually used and correct `MODEL_NAMES` for later builds; squash-merged commits carry the PR body, not the worker trailers.
+- **Seed shifts (backend).** The seed takes N-numbers, types, and years from fixture registrations and attaches at most two aircraft per pilot; `test_seed.py` totals moved (payments 54 to 65, contributions 19 to 27, expired 5 to 6). `docs/demo-walkthrough.rst` now names `N206KM`.
+- **Duplicate display names (backend, open).** Two FAA codes can share one display make and model (Cessna 172S appears twice for `cesna 172`), and the list shows two identical lines. The search should collapse entries with equal display names into one (prefer the code with more registrations; keep the others reachable through the registration lookup), or the picker should merge them; the closeout decides and documents it.
+- **Digit fallback (backend, open).** `search_types` step 3 lists every type whose model contains the query's digits, so a query like `zq1` lists every model holding a 1 and *Add a type* is never offered. Narrow it: apply the digit fallback only when the digits are at least two or three characters, or only when the query's letters also match the make or model by trigram. The e2e spec and the walkthrough avoid digits in a made-up model for now.
+- **Lost click (fixed in #323).** Leaving the type box with an error pushed *Add a type* under the pointer; the button now keeps focus on mouse-down.
+- **Trailers.** The e2e worker signed its commits *Claude Opus 5.5*, the model actually doing the work; the wave scripts' `MODEL_NAMES` now say so for later packages.
