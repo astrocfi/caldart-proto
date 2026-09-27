@@ -14,7 +14,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
 
-import { API_BASE, api } from '@/portal/api/client';
+import { api } from '@/portal/api/client';
 import type {
   ReportColumn,
   ReportRunResult,
@@ -26,6 +26,7 @@ import type {
   SavedColumnSet,
   SavedColumnSetWrite,
 } from '@/portal/api/types';
+import { API_BASE } from '@/portal/urlPrefix';
 import type { ReportFormat, ReportSlug } from './types';
 
 export const REPORTS_KEY = ['reports'] as const;

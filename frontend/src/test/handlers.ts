@@ -35,7 +35,11 @@ import type { ReportSlug } from '../portal/reports/types';
 import { TEST_AIRCRAFT_TYPES, makeAircraftType, makeProfile } from './fixtures/profile';
 import { makeRegistryStatus } from './fixtures/registry';
 
-export const API = '/api/v1';
+/**
+ * The API base the handlers answer under, whatever URL prefix is in front of it: a
+ * test that serves the page under a prefix is answered by the same handlers.
+ */
+export const API = '*/api/v1';
 
 /** The value the default `GET /auth/csrf` handler hands out. */
 export const TEST_CSRF_TOKEN = 'test-csrf-token';

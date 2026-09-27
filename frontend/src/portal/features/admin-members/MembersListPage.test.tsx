@@ -11,6 +11,7 @@ import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
 import { MembersListPage } from './MembersListPage';
 import { LIFETIME, makeRow } from '@test/fixtures/members';
+import { API_BASE } from '@/portal/urlPrefix';
 
 /** The registry `GET /reports/members/columns` answers with, trimmed to five. */
 const COLUMNS: ReportColumn[] = [
@@ -47,7 +48,7 @@ function listHandlers(rows = [makeRow()], count = rows.length) {
       requestedUrls.push(request.url);
       return HttpResponse.json({
         count,
-        next: count > rows.length ? `${API}/admin/members?page=2` : null,
+        next: count > rows.length ? `${API_BASE}/admin/members?page=2` : null,
         previous: null,
         results: rows,
       });

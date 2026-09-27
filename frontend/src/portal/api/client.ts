@@ -3,14 +3,16 @@
  *
  * - same-origin session cookies, so there is no token to store; a request for any other
  *   origin is refused with a `TypeError` before it is sent;
- * - CSRF fetched from `GET /api/v1/auth/csrf` whenever the `csrftoken` cookie is
+ * - CSRF fetched from `GET <API_BASE>/auth/csrf` whenever the `csrftoken` cookie is
  *   missing, then sent as `X-CSRFToken` on every unsafe method; a request the
  *   server refuses with a `CSRF Failed` 403 is retried once with a fresh token;
  * - JSON in, JSON out: a non-2xx response becomes a typed `ApiError`, and a 2xx
  *   body that is neither empty nor JSON becomes an `UnexpectedResponseError`.
+ *
+ * Paths are read relative to `API_BASE`, which carries the site's URL prefix.
  */
 
-export const API_BASE = '/api/v1';
+import { API_BASE } from '@/portal/urlPrefix';
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS', 'TRACE']);
 

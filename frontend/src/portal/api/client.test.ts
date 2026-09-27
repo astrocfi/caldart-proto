@@ -1,8 +1,10 @@
 import { HttpResponse, http } from 'msw';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { API } from '@test/handlers';
+import { clearUrlPrefix, stampUrlPrefix } from '@test/render';
 import { server } from '@test/server';
+import { API_BASE } from '@/portal/urlPrefix';
 import {
   ApiError,
   UnexpectedResponseError,
@@ -12,6 +14,7 @@ import {
   request,
   resetCsrfBootstrap,
 } from './client';
+import type * as clientModule from './client';
 
 /** A 204 that hands out `token`, exactly as `GET /auth/csrf` does. */
 function csrfCookie(token: string): HttpResponse<null> {
@@ -401,13 +404,15 @@ describe('the origins the client will talk to', () => {
         return HttpResponse.json({ ok: true });
       }),
     );
-    await request(`${API}/thing`);
+    await request(`${API_BASE}/thing`);
     expect(path).toBe('/api/v1/thing');
   });
 
   it("accepts an absolute URL on the page's own origin", async () => {
     server.use(http.get(`${API}/thing`, () => HttpResponse.json({ ok: true })));
-    await expect(request(`${window.location.origin}${API}/thing`)).resolves.toEqual({ ok: true });
+    await expect(request(`${window.location.origin}${API_BASE}/thing`)).resolves.toEqual({
+      ok: true,
+    });
   });
 
   it('refuses an absolute URL on another origin', async () => {
@@ -525,5 +530,48 @@ describe('response bodies', () => {
       status: 502,
       message: 'Request failed (502).',
     });
+  });
+});
+
+describe('a site served under a URL prefix', () => {
+  afterEach(clearUrlPrefix);
+
+  /** Load the client afresh under `/x` and record the path of every request it makes. */
+  async function clientUnderPrefix(): Promise<{
+    client: typeof clientModule;
+    paths: string[];
+  }> {
+    stampUrlPrefix('/x');
+    const client = await import('./client');
+    const paths: string[] = [];
+    server.use(
+      http.get(`${API}/auth/csrf`, ({ request: req }) => {
+        paths.push(new URL(req.url).pathname);
+        return csrfCookie('prefixed');
+      }),
+      http.post(`${API}/thing`, ({ request: req }) => {
+        paths.push(new URL(req.url).pathname);
+        return HttpResponse.json({ ok: true });
+      }),
+    );
+    return { client, paths };
+  }
+
+  it('sends a request to the API under the prefix', async () => {
+    const { client, paths } = await clientUnderPrefix();
+    await client.api.post('/thing', {});
+    expect(paths).toContain('/x/api/v1/thing');
+  });
+
+  it('fetches the CSRF cookie from under the prefix', async () => {
+    const { client, paths } = await clientUnderPrefix();
+    await client.api.post('/thing', {});
+    expect(paths[0]).toBe('/x/api/v1/auth/csrf');
+  });
+
+  it('does not prefix a path that already names the API under the prefix', async () => {
+    const { client, paths } = await clientUnderPrefix();
+    await client.api.post('/x/api/v1/thing', {});
+    expect(paths).toContain('/x/api/v1/thing');
   });
 });

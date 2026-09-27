@@ -7,9 +7,10 @@ import type { DonationCheckoutRequest, DonationsConfig } from '@/portal/api/type
 import { API } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
+import { API_BASE } from '@/portal/urlPrefix';
 import { DonationForm } from './DonationForm';
 
-const CONFIG_URL = `${API}/donations/config`;
+const CONFIG_URL = `${API_BASE}/donations/config`;
 const RETURN_URL = '/donate/';
 const TOKEN = 'signed-token';
 

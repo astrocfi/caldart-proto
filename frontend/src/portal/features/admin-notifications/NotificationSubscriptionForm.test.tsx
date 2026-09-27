@@ -4,12 +4,13 @@ import { HttpResponse, http } from 'msw';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { NotificationSubscription } from '@/portal/api/types';
-import { API, makeNotificationSubscription, notificationHandlers } from '@test/handlers';
+import { makeNotificationSubscription, notificationHandlers } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
+import { API_BASE } from '@/portal/urlPrefix';
 import { NotificationSubscriptionForm } from './NotificationSubscriptionForm';
 
-const SUBSCRIPTIONS_URL = `${API}/notifications/subscriptions`;
+const SUBSCRIPTIONS_URL = `${API_BASE}/notifications/subscriptions`;
 
 /** Render the form, new or editing `subscription`, and wait for the event boxes. */
 async function renderForm(subscription?: NotificationSubscription, handleDone = vi.fn()) {

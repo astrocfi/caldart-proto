@@ -1,9 +1,10 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { clearUrlPrefix, stampUrlPrefix } from '@test/render';
+import type * as urlPrefix from './urlPrefix';
 
 /** Import the module afresh, so it reads whatever `<html>` carries now. */
-async function loadUrlPrefix(): Promise<typeof import('./urlPrefix')> {
+async function loadUrlPrefix(): Promise<typeof urlPrefix> {
   return import('./urlPrefix');
 }
 

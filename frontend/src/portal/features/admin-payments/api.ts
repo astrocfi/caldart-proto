@@ -12,7 +12,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
 
-import { API_BASE, api } from '@/portal/api/client';
+import { api } from '@/portal/api/client';
 import type { ApiError } from '@/portal/api/client';
 import type {
   DonorRow,
@@ -29,6 +29,7 @@ import type {
   RefundRequest,
 } from '@/portal/api/types';
 import type { FilterValues } from '@/portal/reports/types';
+import { API_BASE } from '@/portal/urlPrefix';
 
 export const FINANCE_KEY = ['admin-payments'] as const;
 

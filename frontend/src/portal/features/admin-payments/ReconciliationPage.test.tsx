@@ -7,6 +7,7 @@ import { API } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
 import type { ReconciliationRow } from '@/portal/api/types';
+import { API_BASE } from '@/portal/urlPrefix';
 import { ReconciliationPage } from './ReconciliationPage';
 import { reconciliationPeriodLabel } from './reports-api';
 
@@ -89,11 +90,11 @@ describe('ReconciliationPage', () => {
 
     expect(screen.getByRole('link', { name: 'Export CSV' })).toHaveAttribute(
       'href',
-      `${API}/reports/reconciliation/export.csv?to=2026-03-31&group=month`,
+      `${API_BASE}/reports/reconciliation/export.csv?to=2026-03-31&group=month`,
     );
     expect(screen.getByRole('link', { name: 'Export PDF' })).toHaveAttribute(
       'href',
-      `${API}/reports/reconciliation/export.pdf?to=2026-03-31&group=month`,
+      `${API_BASE}/reports/reconciliation/export.pdf?to=2026-03-31&group=month`,
     );
   });
 
