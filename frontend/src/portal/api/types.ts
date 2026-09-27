@@ -177,6 +177,60 @@ export type Rating =
 
 export type MedicalType = 'none' | 'basicmed' | 'first' | 'second' | 'third';
 
+/* ------------------------------------------------------------ verification */
+/** The kind of photo ID a verifier saw; nothing else about the document is recorded. */
+export type PhotoIdType =
+  'not_provided' | 'drivers_license' | 'passport' | 'state_id' | 'military_id' | 'other';
+
+/** A person's verified item: the pilot certificate, the medical, or the photo ID. */
+export type VerificationItem = 'certificate' | 'medical' | 'photo_id';
+
+/**
+ * One verified item's state.  `verified_by` is the verifier's display name and
+ * `verified_at` the moment; both are `null` while the item is unverified.
+ */
+export interface Verification {
+  verified: boolean;
+  verified_by: string | null;
+  verified_at: IsoDateTime | null;
+}
+
+/** The verified state of a person's three items, as a profile carries it. */
+export interface ProfileVerification {
+  certificate: Verification;
+  medical: Verification;
+  photo_id: Verification;
+}
+
+/**
+ * `PUT /leader/members/{user_id}/verification`.  Each field is optional (an
+ * omitted one is left alone); `verified` lists the items that end verified.
+ */
+export interface MemberVerificationPayload {
+  pilot_certificate_type?: PilotCertificateType;
+  certificate_number?: string;
+  medical_type?: MedicalType;
+  medical_expiration?: IsoDate | null;
+  photo_id_type?: PhotoIdType;
+  verified: VerificationItem[];
+}
+
+/** `PUT /leader/aircraft/{id}/verification`: the insurance fields and the verdict. */
+export interface InsuranceVerificationPayload {
+  insurance_carrier?: string;
+  insurance_policy_number?: string;
+  insurance_liability_per_occurrence_cents?: number;
+  insurance_liability_per_person_cents?: number;
+  insurance_hull_cents?: number | null;
+  insurance_expiration?: IsoDate | null;
+  verified: boolean;
+}
+
+/** `PUT /leader/members/{user_id}/verifier`: whether the member holds the role. */
+export interface VerifierGrantPayload {
+  verifier: boolean;
+}
+
 /** One named volunteer who runs a DART, and how to reach them. */
 export interface DartContact {
   id?: number;
@@ -393,6 +447,9 @@ export interface Profile {
   medical_is_current: boolean;
   flight_review_date: IsoDate | null;
   total_hours: number | null;
+  photo_id_type: PhotoIdType;
+  /** Read-only: only the member check's verification endpoint verifies an item. */
+  verification: ProfileVerification;
   aircraft: AircraftSummary[];
   flies_rented_aircraft: boolean;
   /* volunteer interests */
@@ -407,7 +464,7 @@ export interface Profile {
 
 /** The writable half of a profile: `dart` reads nested, but writes as `dart_id`. */
 export type ProfilePatch = Partial<
-  Omit<Profile, 'dart' | 'aircraft' | 'medical_is_current' | 'member_since'> & {
+  Omit<Profile, 'dart' | 'aircraft' | 'medical_is_current' | 'member_since' | 'verification'> & {
     dart_id: number | null;
   }
 >;
@@ -546,9 +603,11 @@ export interface AircraftSummary {
   insurance_is_current: boolean;
   insurance_expiration: IsoDate | null;
   insurance_summary: string;
+  insurance_verified: boolean;
 }
 
-export interface Aircraft extends AircraftSummary {
+/** The register record; its insurance state is `insurance_verification` rather than a flag. */
+export interface Aircraft extends Omit<AircraftSummary, 'insurance_verified'> {
   year: number | null;
   /** When the register record was last written, by anybody. */
   updated_at: IsoDateTime;
@@ -561,6 +620,7 @@ export interface Aircraft extends AircraftSummary {
   insurance_liability_per_occurrence_cents: number;
   insurance_liability_per_person_cents: number;
   insurance_hull_cents: number | null;
+  insurance_verification: Verification;
   notes: string;
   created_by: number | null;
   is_active: boolean;
@@ -569,7 +629,14 @@ export interface Aircraft extends AircraftSummary {
 export type AircraftPatch = Partial<
   Omit<
     Aircraft,
-    'id' | 'insurance_is_current' | 'insurance_summary' | 'created_by' | 'updated_at' | 'n_number'
+    | 'id'
+    | 'insurance_is_current'
+    | 'insurance_summary'
+    | 'insurance_verified'
+    | 'insurance_verification'
+    | 'created_by'
+    | 'updated_at'
+    | 'n_number'
   > & { n_number: string }
 >;
 
@@ -1143,12 +1210,23 @@ export interface LeaderMedical {
   type: MedicalType;
   expiration: IsoDate | null;
   is_current: boolean;
+  verification: Verification;
 }
 
-/** Why a member is a go or a no-go, rather than only whether they are. */
+/** The kind of photo ID on file, and its verification. */
+export interface LeaderPhotoId {
+  type: PhotoIdType;
+  verification: Verification;
+}
+
+/**
+ * Why a member is a go or a no-go, rather than only whether they are.
+ * `verified` is true when the certificate, the medical, and the photo ID are all verified.
+ */
 export interface LeaderGoNoGo {
   membership: boolean;
   medical: boolean;
+  verified: boolean;
 }
 
 export interface LeaderSearchResult {
@@ -1175,8 +1253,11 @@ export interface LeaderStatus {
     number: string;
     ifr_rated: IfrRated;
     ratings: Rating[];
+    verification: Verification;
   };
   medical: LeaderMedical;
+  photo_id: LeaderPhotoId;
+  is_verifier: boolean;
   aircraft: AircraftSummary[];
   go_no_go: LeaderGoNoGo;
 }

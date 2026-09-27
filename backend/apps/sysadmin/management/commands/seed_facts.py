@@ -21,6 +21,7 @@ from apps.accounts.seed import DEMO_ACCOUNTS, DEMO_PASSWORD
 from apps.aircraft.models import Aircraft
 from apps.members.models import MembershipPlan, MembershipState
 from apps.members.services import membership_status
+from apps.members.verification import is_fully_verified, verified_items
 from apps.payments.models import (
     MandateStatus,
     Payment,
@@ -56,12 +57,34 @@ def _is_comfortably_insured(aircraft: Aircraft) -> bool:
     return expires_on > timezone.localdate() + timedelta(days=INSURANCE_WARNING_DAYS)
 
 
+def _is_insured_and_verified(aircraft: Aircraft) -> bool:
+    """True when ``aircraft`` is comfortably insured and its insurance is verified."""
+    return _is_comfortably_insured(aircraft) and aircraft.insurance_is_verified
+
+
+def _unverified_pilot() -> dict[str, str]:
+    """A current member with a current medical and none of their documents verified.
+
+    The member check reads such a member as not verified on all three items.  Returns
+    ``{"name"}``, and an empty name when nobody in the seed fits.
+    """
+    for user in User.objects.filter(profile__isnull=False).select_related("profile"):
+        if membership_status(user)["status"] != MembershipState.CURRENT:
+            continue
+        if not user.profile.medical_is_current:
+            continue
+        if len(verified_items(user.profile)) == 0:
+            return {"name": user.display_name}
+    return {"name": ""}
+
+
 def _subject(*, insured: bool | None, status: MembershipState) -> dict[str, str]:
     """A seeded member the leader check can be demonstrated on.
 
     ``status`` is the membership state the member must be in.  ``insured`` picks
-    somebody whose medical is current and whose every listed aircraft is insured
-    past the portal's warning window (``True``), so the card is a GO showing
+    somebody whose medical is current, whose pilot certificate, medical, and photo ID
+    are all verified, and whose every listed aircraft is insured past the portal's
+    warning window with its insurance verified (``True``), so the card is a GO showing
     nothing but insured airplanes; somebody who lists an aircraft whose expiration
     date has passed (``False``); or anybody at all (``None``).
     Returns ``{"name", "nNumber"}``, with an empty ``nNumber`` when the member
@@ -74,7 +97,9 @@ def _subject(*, insured: bool | None, status: MembershipState) -> dict[str, str]
         listed = list(user.profile.aircraft.all())
         if insured and not user.profile.medical_is_current:
             continue
-        if insured and not all(_is_comfortably_insured(aircraft) for aircraft in listed):
+        if insured and not is_fully_verified(user.profile):
+            continue
+        if insured and not all(_is_insured_and_verified(aircraft) for aircraft in listed):
             continue
         for aircraft in listed:
             if insured is None:
@@ -180,10 +205,12 @@ def seed_facts() -> dict[str, Any]:
     ``accounts`` maps each demo key (``member``, ``leader``, ``sysadmin``, and the
     rest) to that account's address. ``planPricesCents`` maps each membership
     plan's slug to its price in cents, read from the database so it reflects the
-    plans that are actually there.  ``leaderCheck`` names three members the
-    leader check reads differently -- an insured pilot, one whose aircraft
-    insurance has lapsed, and one whose membership has -- so the specs assert on
-    the seed rather than on names typed into them, which drift.
+    plans that are actually there.  ``leaderCheck`` names four members the
+    leader check reads differently -- an insured pilot verified on every count, one
+    whose aircraft insurance has lapsed, one whose membership has, and a current
+    pilot with a current medical and nothing verified (``unverifiedPilot``, a name
+    alone) -- so the specs assert on the seed rather than on names typed into them,
+    which drift.
     ``manualPaymentCount`` is how many payments the seed recorded by hand, which
     is what a finance spec filtering the list to checks expects to find.
     ``autoRenewal`` names one member whose membership renews itself, one whose
@@ -202,6 +229,7 @@ def seed_facts() -> dict[str, Any]:
             "insuredPilot": _subject(insured=True, status=MembershipState.CURRENT),
             "lapsedInsurance": _subject(insured=False, status=MembershipState.CURRENT),
             "expiredMember": _subject(insured=None, status=MembershipState.EXPIRED),
+            "unverifiedPilot": _unverified_pilot(),
         },
         "manualPaymentCount": Payment.objects.filter(provider=PaymentProvider.MANUAL).count(),
         "refundedPayment": _refunded_payment_member(),

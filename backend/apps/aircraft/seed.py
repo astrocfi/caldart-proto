@@ -6,6 +6,9 @@ import random
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 
+from django.utils import timezone
+
+from apps.accounts.models import User
 from apps.aircraft.models import Aircraft, OwnerType
 
 if TYPE_CHECKING:
@@ -50,6 +53,11 @@ INSURANCE_MIX: tuple[tuple[str, int], ...] = (
 )
 
 
+#: Of every ten seeded aircraft, the positions (counting from zero, in seeding order)
+#: whose insurance the seeded DART leader has not verified; the other seven are.
+UNVERIFIED_POSITIONS = frozenset({2, 5, 8})
+
+
 #: The FAA never issues I or O in a registration suffix.
 SUFFIX_LETTERS = "ABCDEFGHJKLMNPQRSTUVWXYZ"
 
@@ -65,12 +73,29 @@ def _n_number(rng: random.Random) -> str:
     return f"N{rng.randint(10000, 99999)}"
 
 
+def _seed_verification(aircraft: list[Aircraft], leader: User | None) -> None:
+    """Verify, as ``leader``, the insurance of every aircraft outside the gaps.
+
+    Positions in :data:`UNVERIFIED_POSITIONS` (of every ten) stay unverified, and so
+    does everything when there is no ``leader``.  Both columns are written every time,
+    so re-seeding leaves the same state however the previous run ended.
+    """
+    now = timezone.now()
+    for position, record in enumerate(aircraft):
+        is_verified = leader is not None and position % 10 not in UNVERIFIED_POSITIONS
+        record.insurance_verified_at = now if is_verified else None
+        record.insurance_verified_by = leader if is_verified else None
+        record.save(update_fields=["insurance_verified_at", "insurance_verified_by", "updated_at"])
+
+
 def run(ctx: dict[str, Any], stdout: TextIOBase | None = None) -> dict[str, Any]:
     """Create the aircraft register and attach airframes to pilot profiles.
 
     Reads ``rng``, ``faker``, and ``today`` from ``ctx``, and ``profiles`` when present.
     Adds the created ``Aircraft`` list to ``ctx`` under ``aircraft`` and returns
-    ``ctx``. Writes a one-line summary to ``stdout`` when given.
+    ``ctx``. Writes a one-line summary to ``stdout`` when given.  The seeded DART
+    leader (``demo_users["leader"]``, when present) verifies the insurance of every
+    aircraft outside :data:`UNVERIFIED_POSITIONS`; the rest stay unverified.
     """
     rng = ctx["rng"]
     faker = ctx["faker"]
@@ -142,6 +167,8 @@ def run(ctx: dict[str, Any], stdout: TextIOBase | None = None) -> dict[str, Any]
             },
         )
         created.append(aircraft)
+
+    _seed_verification(created, ctx.get("demo_users", {}).get("leader"))
 
     # Attach aircraft to the pilots who fly them.
     pilot_profiles = [p for p in profiles if p.pilot_certificate_type != "none"]

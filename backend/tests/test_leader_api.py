@@ -14,7 +14,7 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 
 from apps.accounts.models import User
-from apps.accounts.roles import ACCOUNT_ADMIN, DART_LEADER, SYSTEM_ADMIN
+from apps.accounts.roles import ACCOUNT_ADMIN, DART_LEADER, SYSTEM_ADMIN, USER_ADMIN, VERIFIER
 from apps.darts.models import Dart
 from apps.members.models import MedicalType, MembershipPlan, MembershipStatusChoices
 from tests.conftest import role_matrix
@@ -28,6 +28,9 @@ from tests.factories import (
 pytestmark = pytest.mark.django_db
 
 SEARCH_URL = "/api/v1/leader/search"
+
+#: An item's verification while nobody has verified it.
+UNVERIFIED = {"verified": False, "verified_by": None, "verified_at": None}
 AIRCRAFT_URL = "/api/v1/leader/aircraft"
 
 
@@ -82,7 +85,10 @@ def test_status_requires_authentication(api_client: APIClient, pilot: User) -> N
     ],
     ids=["search", "status", "aircraft"],
 )
-@pytest.mark.parametrize(("slug", "allowed"), role_matrix(DART_LEADER, ACCOUNT_ADMIN, SYSTEM_ADMIN))
+@pytest.mark.parametrize(
+    ("slug", "allowed"),
+    role_matrix(VERIFIER, DART_LEADER, USER_ADMIN, ACCOUNT_ADMIN, SYSTEM_ADMIN),
+)
 def test_leader_role_matrix(
     api_client: APIClient,
     all_role_users: dict[str, User],
@@ -92,7 +98,7 @@ def test_leader_role_matrix(
     slug: str,
     allowed: bool,
 ) -> None:
-    """Only a DART leader, account admin or system admin may use the leader endpoints."""
+    """Only a verifying role or a system administrator may use the leader endpoints."""
     url = {"search": SEARCH_URL, "status": status_url(pilot), "aircraft": AIRCRAFT_URL}[endpoint]
     api_client.force_login(all_role_users[slug])
     assert api_client.get(url, query).status_code == (200 if allowed else 403)
@@ -285,10 +291,11 @@ def test_status_card_shape(
         "number": "3181234",
         "ifr_rated": "yes",
         "ratings": ["instrument"],
+        "verification": UNVERIFIED,
     }
     assert data["medical"]["type"] == "third"
     assert data["medical"]["is_current"] is True
-    assert data["go_no_go"] == {"membership": True, "medical": True}
+    assert data["go_no_go"] == {"membership": True, "medical": True, "verified": False}
 
     aircraft = data["aircraft"][0]
     assert aircraft["n_number"] == "N172SP"
@@ -366,7 +373,12 @@ def test_no_medical_on_file_is_never_current(api_client: APIClient, dart_leader:
     MemberProfileFactory(user=user, medical_type=MedicalType.NONE, medical_expiration=None)
     api_client.force_login(dart_leader)
     data = api_client.get(status_url(user)).json()
-    assert data["medical"] == {"type": "none", "expiration": None, "is_current": False}
+    assert data["medical"] == {
+        "type": "none",
+        "expiration": None,
+        "is_current": False,
+        "verification": UNVERIFIED,
+    }
     assert data["go_no_go"]["medical"] is False
 
 
@@ -469,7 +481,7 @@ def test_status_card_for_a_user_without_a_profile(api_client: APIClient, dart_le
     assert data["phone"] == ""
     assert data["dart"] is None
     assert data["certificate"]["type"] == "none"
-    assert data["go_no_go"] == {"membership": False, "medical": False}
+    assert data["go_no_go"] == {"membership": False, "medical": False, "verified": False}
 
 
 # --------------------------------------------------------------------------

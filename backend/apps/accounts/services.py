@@ -29,7 +29,7 @@ from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 
 from apps.accounts.models import PERSON_KINDS, AccountKind, User
-from apps.accounts.roles import MEMBER, ROLE_SLUGS, SYSTEM_ADMIN, WEBSITE_ADMIN
+from apps.accounts.roles import MEMBER, ROLE_SLUGS, SYSTEM_ADMIN, VERIFIER, WEBSITE_ADMIN
 from caldart import audit, events
 from caldart.exceptions import DomainError, DomainValidationError
 from caldart.mail import contact_email, org_name, send_templated
@@ -290,6 +290,20 @@ def update_account(actor: User, target: User, changes: AccountChanges) -> User:
         audit.record(action, actor=actor, target=target, **logged)
         _raise_edit_event(action, logged, actor=actor, target=target)
     return target
+
+
+def set_verifier(actor: User, target: User, *, wanted: bool) -> User:
+    """Give ``target`` the verifier role when ``wanted``, or take it away, and return it.
+
+    The target's role list is rebuilt with ``verifier`` added or removed and written
+    through :func:`update_account` under ``actor``, so the change is audited as
+    ``account.roles`` and raised as ``roles_changed``, and every other role the target
+    holds is kept.  A list that changes nothing writes, records and raises nothing.
+    Who may call this is the endpoint's rule, not this function's.
+    """
+    held = [slug for slug in target.roles if slug != VERIFIER]
+    roles = [*held, VERIFIER] if wanted else held
+    return update_account(actor, target, {"roles": roles})
 
 
 def _raise_edit_event(action: str, logged: AuditFields, *, actor: User, target: User) -> None:

@@ -58,6 +58,9 @@ The demo accounts all use the password ``caldart-demo``:
    * - ``leader@example.org``
      - Priya Raman
      - ``member``, ``dart_leader``; current
+   * - ``verifier@example.org``
+     - Tomas Vega
+     - ``member``, ``verifier``; a friend of CalDART, no membership term
    * - ``useradmin@example.org``
      - Nina Kowalski
      - ``member``, ``user_admin``; current

@@ -26,6 +26,7 @@ export const TEST_AIRCRAFT: AircraftSummary = {
   insurance_is_current: true,
   insurance_expiration: '2027-03-01',
   insurance_summary: '$1,000,000 / $100,000 · exp 2027-03-01',
+  insurance_verified: false,
 };
 
 /** A complete `Profile` fixture, with `overrides` merged over the defaults. */
@@ -58,6 +59,12 @@ export function makeProfile(overrides: Partial<Profile> = {}): Profile {
     medical_is_current: true,
     flight_review_date: null,
     total_hours: 750,
+    photo_id_type: 'passport',
+    verification: {
+      certificate: { verified: false, verified_by: null, verified_at: null },
+      medical: { verified: false, verified_by: null, verified_at: null },
+      photo_id: { verified: false, verified_by: null, verified_at: null },
+    },
     aircraft: [],
     flies_rented_aircraft: false,
     vol_mission_pilot: false,

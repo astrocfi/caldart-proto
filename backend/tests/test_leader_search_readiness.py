@@ -93,6 +93,7 @@ def test_a_ready_member_is_a_go_on_both_counts(leader_client: APIClient, go: Use
     assert search_row(leader_client, go)["go_no_go"] == {
         "membership": True,
         "medical": True,
+        "verified": False,
     }
 
 
@@ -111,6 +112,7 @@ def test_a_lapsed_membership_is_a_no_go_on_the_membership(
     assert search_row(leader_client, user)["go_no_go"] == {
         "membership": False,
         "medical": True,
+        "verified": False,
     }
 
 
@@ -129,6 +131,7 @@ def test_a_lapsed_medical_is_a_no_go_on_the_medical(
     assert search_row(leader_client, user)["go_no_go"] == {
         "membership": True,
         "medical": False,
+        "verified": False,
     }
 
 
@@ -147,6 +150,7 @@ def test_no_medical_on_file_is_a_no_go_on_the_medical(
     assert search_row(leader_client, user)["go_no_go"] == {
         "membership": True,
         "medical": False,
+        "verified": False,
     }
 
 
@@ -171,6 +175,7 @@ def test_a_member_with_no_profile_is_a_no_go_on_both_counts(leader_client: APICl
     assert search_row(leader_client, user)["go_no_go"] == {
         "membership": False,
         "medical": False,
+        "verified": False,
     }
 
 

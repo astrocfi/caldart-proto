@@ -212,7 +212,7 @@ def test_the_readiness_on_a_search_result_costs_no_query_of_its_own(
     api_client.force_login(dart_leader)
     with django_assert_num_queries(LEADER_SEARCH_QUERIES):
         rows = api_client.get(LEADER_SEARCH, {"q": SEARCH_TERM}).json()
-    assert [set(row["go_no_go"]) for row in rows] == [{"membership", "medical"}] * size
+    assert [set(row["go_no_go"]) for row in rows] == [{"membership", "medical", "verified"}] * size
 
 
 @pytest.mark.parametrize("size", PAGE_SIZES)

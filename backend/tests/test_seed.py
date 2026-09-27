@@ -19,14 +19,22 @@ from pytest_django.fixtures import DjangoCaptureOnCommitCallbacks
 from wagtail.models import Site
 
 from apps.accounts.models import AccountKind
-from apps.accounts.roles import ROLE_SLUGS, SYSTEM_ADMIN
+from apps.accounts.roles import MEMBER, ROLE_SLUGS, SYSTEM_ADMIN, VERIFIER
 from apps.accounts.seed import DEMO_ACCOUNTS, DEMO_PASSWORD, GENERATED_MEMBER_COUNT
 from apps.aircraft.models import Aircraft
+from apps.aircraft.services import leader_status
 from apps.cms.models import SiteSettings
 from apps.darts.models import Dart
-from apps.members.models import MemberProfile, Membership, MembershipPlan, MembershipState
+from apps.members.models import (
+    MemberProfile,
+    Membership,
+    MembershipPlan,
+    MembershipState,
+    PhotoIdType,
+)
 from apps.members.seed import DART_SEED, EMPTY_DART
 from apps.members.services import membership_status
+from apps.members.verification import verified_items
 from apps.notifications.events import EVENTS
 from apps.notifications.models import NotificationSubscription
 from apps.payments.models import Payment, PaymentStatus, RenewalMandate
@@ -39,6 +47,7 @@ from apps.payments.seed import (
 )
 from apps.reports.models import ReportSubscription
 from apps.reports.services import due_subscriptions, run_scheduled_reports
+from apps.sysadmin.management.commands.seed_facts import seed_facts
 
 User = get_user_model()
 
@@ -50,9 +59,9 @@ SEEDED_FRIEND_GIFTS = 1
 SEEDED_STORED_FRIENDS = 6
 
 #: The accounts whose membership reads ``friend``: the stored friends, the four
-#: generated joiners who chose member and never paid, and the one member whose only
-#: term the seeded full refunds canceled.
-SEEDED_EFFECTIVE_FRIENDS = SEEDED_STORED_FRIENDS + 4 + 1
+#: generated joiners who chose member and never paid, the one member whose only
+#: term the seeded full refunds canceled, and the demo verifier, who holds no term.
+SEEDED_EFFECTIVE_FRIENDS = SEEDED_STORED_FRIENDS + 4 + 1 + 1
 
 #: The donors ``seed_demo`` makes, and the gifts they gave between them.
 SEEDED_DONORS = len(DONOR_GIFT_COUNTS)
@@ -187,7 +196,7 @@ def test_seed_demo_has_expiring_and_mixed_medicals() -> None:
 
     profiles = MemberProfile.objects.exclude(medical_type="none")
     assert sum(1 for p in profiles if not p.medical_is_current) == 13
-    assert sum(1 for p in profiles if p.medical_is_current) == 33
+    assert sum(1 for p in profiles if p.medical_is_current) == 34
     assert {p.pilot_certificate_type for p in MemberProfile.objects.all()} == {
         "none",
         "student",
@@ -556,3 +565,104 @@ def test_seed_demo_mails_nobody_on_a_second_run(
         _seed()
 
     assert mailoutbox == []
+
+
+# --------------------------------------------------------------------------
+# Verification
+# --------------------------------------------------------------------------
+def _seeded_leader_id() -> int:
+    """The id of the seeded DART leader, who verifies the seeded documents."""
+    leader_id: int = User.objects.get(email="leader@example.org").pk
+    return leader_id
+
+
+def test_seed_demo_makes_the_verifier_account() -> None:
+    """``verifier@example.org`` is Tomas Vega, a member and a verifier."""
+    _seed()
+    verifier = User.objects.get(email="verifier@example.org")
+    assert (verifier.display_name, verifier.roles) == ("Tomas Vega", [MEMBER, VERIFIER])
+
+
+def test_seed_demo_verifies_about_seven_in_ten_members() -> None:
+    """Most seeded members have all three items verified by the leader; the rest none."""
+    _seed()
+    members = MemberProfile.objects.filter(user__kind=AccountKind.MEMBER)
+    verified = [profile for profile in members if len(verified_items(profile)) == 3]
+    unverified = [profile for profile in members if len(verified_items(profile)) == 0]
+    assert len(verified) + len(unverified) == members.count()
+    assert 0.6 <= len(verified) / members.count() <= 0.8
+
+
+def test_seed_demo_stamps_every_verification_with_the_leader() -> None:
+    """Every seeded verification names the seeded DART leader."""
+    _seed()
+    verifiers = set(
+        MemberProfile.objects.filter(medical_verified_at__isnull=False).values_list(
+            "medical_verified_by", flat=True
+        )
+    ) | set(
+        Aircraft.objects.filter(insurance_verified_at__isnull=False).values_list(
+            "insurance_verified_by", flat=True
+        )
+    )
+    assert verifiers == {_seeded_leader_id()}
+
+
+def test_seed_demo_verifies_the_demo_member() -> None:
+    """The demo member's three items are all verified."""
+    _seed()
+    profile = MemberProfile.objects.get(user__email="member@example.org")
+    assert verified_items(profile) == ["certificate", "medical", "photo_id"]
+
+
+def test_seed_demo_verifies_about_seven_in_ten_aircraft() -> None:
+    """Most of the register's insurance is verified; the rest is not."""
+    _seed()
+    verified = Aircraft.objects.filter(insurance_verified_at__isnull=False).count()
+    assert 0.6 <= verified / Aircraft.objects.count() <= 0.8
+
+
+def test_seed_demo_records_a_photo_id_for_members_and_friends() -> None:
+    """Friends mostly show nothing; members show a spread of document kinds."""
+    _seed()
+    friends = Counter(
+        MemberProfile.objects.filter(user__kind=AccountKind.FRIEND).values_list(
+            "photo_id_type", flat=True
+        )
+    )
+    members = Counter(
+        MemberProfile.objects.filter(user__kind=AccountKind.MEMBER).values_list(
+            "photo_id_type", flat=True
+        )
+    )
+    assert friends.most_common(1)[0][0] == PhotoIdType.NOT_PROVIDED
+    assert len(set(members) - {PhotoIdType.NOT_PROVIDED}) >= 4
+
+
+def test_seed_facts_name_an_unverified_pilot_the_check_reads_as_not_verified() -> None:
+    """``leaderCheck.unverifiedPilot`` is current, medically current, and unverified."""
+    _seed()
+    name = seed_facts()["leaderCheck"]["unverifiedPilot"]["name"]
+    user = next(user for user in User.objects.all() if user.display_name == name)
+    status = leader_status(user)
+    assert (status["membership"]["status"], status["go_no_go"]) == (
+        MembershipState.CURRENT,
+        {"membership": True, "medical": True, "verified": False},
+    )
+
+
+def test_seed_facts_name_an_insured_pilot_who_is_verified_on_every_count() -> None:
+    """``leaderCheck.insuredPilot`` is verified, and so is the airplane named."""
+    _seed()
+    subject = seed_facts()["leaderCheck"]["insuredPilot"]
+    user = next(user for user in User.objects.all() if user.display_name == subject["name"])
+    aircraft = Aircraft.objects.get(n_number=subject["nNumber"])
+    assert (leader_status(user)["go_no_go"]["verified"], aircraft.insurance_is_verified) == (
+        True,
+        True,
+    )
+
+
+def test_seed_facts_name_the_verifier_account() -> None:
+    """``accounts.verifier`` is the seeded verifier's address."""
+    assert seed_facts()["accounts"]["verifier"] == "verifier@example.org"

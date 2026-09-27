@@ -15,6 +15,16 @@ and photo ID) live in ``apps.members.verification``.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
+
+from django.db import transaction
+from django.utils import timezone
+
+from apps.accounts.models import User
+from apps.aircraft import services
+from apps.aircraft.models import Aircraft
+from caldart import audit, events
+
 #: The item's label as every screen prints it.
 INSURANCE_LABEL = "Insurance"
 
@@ -27,3 +37,77 @@ INSURANCE_FIELDS: tuple[str, ...] = (
     "insurance_hull_cents",
     "insurance_expiration",
 )
+
+
+def clear_stale_insurance(aircraft: Aircraft, moved_fields: list[str]) -> bool:
+    """Clear ``aircraft``'s insurance verification when ``moved_fields`` touches it.
+
+    ``moved_fields`` names the columns a write has just changed
+    (:func:`apps.aircraft.services.changed_fields`).  When any of them is in
+    :data:`INSURANCE_FIELDS` and the insurance is verified, both verification columns
+    are set to ``None`` and saved, and the answer is True.  Otherwise nothing is
+    written and the answer is False: a write that moved no insurance field, or one to
+    insurance that was not verified, clears nothing.
+    """
+    if not any(name in INSURANCE_FIELDS for name in moved_fields):
+        return False
+    if aircraft.insurance_verified_at is None:
+        return False
+    aircraft.insurance_verified_at = None
+    aircraft.insurance_verified_by = None
+    aircraft.save(update_fields=["insurance_verified_at", "insurance_verified_by", "updated_at"])
+    return True
+
+
+@transaction.atomic
+def verify_insurance(
+    aircraft: Aircraft,
+    *,
+    actor: User,
+    changes: Mapping[str, object],
+    verified: bool,
+) -> Aircraft:
+    """Write ``changes`` to ``aircraft``'s insurance and leave it verified or not.
+
+    ``changes`` maps some of :data:`INSURANCE_FIELDS` to the values to write.  The
+    record is saved and :func:`apps.aircraft.services.record_updated` records the
+    write under ``actor`` -- the history row, the ``aircraft.update`` audit record, the
+    ``aircraft_changed`` event when a column moved, and the clearing of a verification
+    the change made stale.
+
+    Then, when ``verified`` is true and the insurance is not verified, it is stamped
+    with ``timezone.now()`` and ``actor``; verified insurance keeps its stamp.  When
+    ``verified`` is false the insurance ends unverified.  The audit log records
+    ``aircraft.verify`` with ``verified`` (true or false), and when the verified state
+    before the save differs from the state after it, or the insurance was stamped
+    anew, ``verification_changed`` is raised once with ``aircraft``, ``verified`` and
+    ``cleared`` as item labels, and ``actor``.  Returns the saved aircraft.
+    """
+    was_verified = aircraft.insurance_is_verified
+    moved = services.changed_fields(aircraft, dict(changes))
+    for name, value in changes.items():
+        setattr(aircraft, name, value)
+    aircraft.save()
+    services.record_updated(aircraft, actor=actor, fields=moved)
+
+    stamped = False
+    if verified and not aircraft.insurance_is_verified:
+        aircraft.insurance_verified_at = timezone.now()
+        aircraft.insurance_verified_by = actor
+        stamped = True
+    elif not verified:
+        aircraft.insurance_verified_at = None
+        aircraft.insurance_verified_by = None
+    aircraft.save(update_fields=["insurance_verified_at", "insurance_verified_by", "updated_at"])
+
+    cleared = was_verified and not verified
+    audit.record(audit.AIRCRAFT_VERIFY, actor=actor, target=aircraft, verified=verified)
+    if stamped or cleared:
+        events.emit(
+            "verification_changed",
+            aircraft=aircraft,
+            verified=[INSURANCE_LABEL] if stamped else [],
+            cleared=[INSURANCE_LABEL] if cleared else [],
+            actor=actor,
+        )
+    return aircraft

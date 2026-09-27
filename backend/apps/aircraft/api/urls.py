@@ -19,5 +19,20 @@ urlpatterns = [
         views.LeaderMemberStatusView.as_view(),
         name="leader-member-status",
     ),
+    path(
+        "leader/members/<int:user_id>/verification",
+        views.LeaderMemberVerificationView.as_view(),
+        name="leader-member-verification",
+    ),
+    path(
+        "leader/members/<int:user_id>/verifier",
+        views.LeaderMemberVerifierView.as_view(),
+        name="leader-member-verifier",
+    ),
     path("leader/aircraft", views.LeaderAircraftView.as_view(), name="leader-aircraft"),
+    path(
+        "leader/aircraft/<int:pk>/verification",
+        views.LeaderAircraftVerificationView.as_view(),
+        name="leader-aircraft-verification",
+    ),
 ]

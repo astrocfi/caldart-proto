@@ -9,12 +9,13 @@ from __future__ import annotations
 
 import re
 from datetime import date
-from typing import Any
+from typing import Any, cast
 
 from django.db import models
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
-from apps.aircraft.api.serializers import AircraftSummarySerializer
+from apps.aircraft.api.serializers import AircraftSummarySerializer, VerificationSerializer
 from apps.darts.api.serializers import DartRefSerializer
 from apps.darts.models import (
     AIRPORT_IDENTIFIER_MESSAGE,
@@ -29,12 +30,11 @@ from apps.members.models import (
     MAX_TOTAL_HOURS,
     RATING_VALUES,
     US_STATE_VALUES,
-    MedicalType,
     MemberProfile,
     Membership,
-    PilotCertificateType,
 )
 from apps.members.services import touch_profile
+from apps.members.verification import VerificationState, clear_stale, document_errors, item_state
 from apps.payments.models import Payment, PaymentKind
 from caldart import events
 from caldart.phone import PHONE_EXTENSION_RE, PHONE_RE, normalize_phone
@@ -117,12 +117,22 @@ class PaymentSummarySerializer(serializers.ModelSerializer[Payment]):
         return obj.plan.name if obj.plan is not None else None
 
 
+class ProfileVerificationSerializer(serializers.Serializer[dict[str, VerificationState]]):
+    """The verified state of a person's three items, as a profile reports it."""
+
+    certificate = VerificationSerializer()
+    medical = VerificationSerializer()
+    photo_id = VerificationSerializer()
+
+
 class ProfileSerializer(serializers.ModelSerializer[MemberProfile]):
     """``GET/PUT/PATCH /me/profile``.
 
     ``dart`` reads as ``{id, name}`` and is written as ``dart_id``; ``aircraft``
     is read-only here and maintained through ``/me/profile/aircraft``.  The
     admin-only ``notes`` and ``how_heard`` fields are deliberately absent.
+    ``verification`` is read-only: only the member check's verification endpoint
+    verifies an item.
     """
 
     dart = DartRefSerializer(read_only=True, allow_null=True)
@@ -163,6 +173,7 @@ class ProfileSerializer(serializers.ModelSerializer[MemberProfile]):
         required=False,
         allow_empty=True,
     )
+    verification = serializers.SerializerMethodField()
 
     class Meta:
         model = MemberProfile
@@ -197,6 +208,8 @@ class ProfileSerializer(serializers.ModelSerializer[MemberProfile]):
             "medical_is_current",
             "flight_review_date",
             "total_hours",
+            "photo_id_type",
+            "verification",
             "aircraft",
             "flies_rented_aircraft",
             # volunteer interests
@@ -208,6 +221,12 @@ class ProfileSerializer(serializers.ModelSerializer[MemberProfile]):
             "vol_social_media",
             "vol_newsletter",
         ]
+
+    @extend_schema_field(ProfileVerificationSerializer)
+    def get_verification(self, obj: MemberProfile) -> dict[str, VerificationState]:
+        """The verified state of ``obj``'s pilot certificate, medical, and photo ID."""
+        states = {slug: item_state(obj, slug) for slug in ("certificate", "medical", "photo_id")}
+        return cast("dict[str, VerificationState]", ProfileVerificationSerializer(states).data)
 
     # -- field-level rules -------------------------------------------------
     def validate_phone(self, value: str) -> str:
@@ -324,24 +343,13 @@ class ProfileSerializer(serializers.ModelSerializer[MemberProfile]):
         behind, not on the fields this request happens to carry, and both
         complaints are raised together when both apply.
         """
-        errors: dict[str, str] = {}
-
-        medical_type = self._merged(attrs, "medical_type")
-        if (
-            medical_type
-            and medical_type != MedicalType.NONE
-            and not self._merged(attrs, "medical_expiration")
-        ):
-            errors["medical_expiration"] = "Give the expiration date of your medical certificate."
-
-        certificate = self._merged(attrs, "pilot_certificate_type")
-        if (
-            certificate
-            and certificate != PilotCertificateType.NONE
-            and not self._merged_text(attrs, "certificate_number").strip()
-        ):
-            errors["certificate_number"] = "Give your pilot certificate number."
-
+        medical_expiration = self._merged(attrs, "medical_expiration")
+        errors = document_errors(
+            certificate_type=self._merged_text(attrs, "pilot_certificate_type"),
+            certificate_number=self._merged_text(attrs, "certificate_number"),
+            medical_type=self._merged_text(attrs, "medical_type"),
+            medical_expiration=medical_expiration if isinstance(medical_expiration, date) else None,
+        )
         if errors:
             raise serializers.ValidationError(errors)
         return attrs
@@ -369,6 +377,10 @@ class ProfileSerializer(serializers.ModelSerializer[MemberProfile]):
         member having edited their own profile.  A write that moves nothing raises
         nothing, and neither does one to an incomplete profile that leaves it
         incomplete: the join is under way.
+
+        A write that changes a field a verified item covers clears that item in the
+        same save (:func:`apps.members.verification.clear_stale`); the member's own
+        edit raises no ``verification_changed``, only the ``profile_changed`` above.
         """
         if not self.partial:
             for name, field in self.fields.items():
@@ -390,6 +402,7 @@ class ProfileSerializer(serializers.ModelSerializer[MemberProfile]):
                 validated_data[source] = model_field.get_default()
         was_complete = instance.is_complete
         changed = changed_field_labels(instance, validated_data)
+        clear_stale(instance, validated_data)
         instance = super().update(instance, validated_data)
         touch_profile(instance)
         if not was_complete and instance.is_complete:

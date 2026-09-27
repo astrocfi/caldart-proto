@@ -75,6 +75,20 @@ Returns every ``MemberProfile`` field except the admin-only ``notes`` and
      "medical_is_current": true,
      "flight_review_date": null,
      "total_hours": 750,
+     "photo_id_type": "drivers_license",
+     "verification": {
+       "certificate": {
+         "verified": true,
+         "verified_by": "Priya Raman",
+         "verified_at": "2026-09-20T10:04:11.512000-07:00"
+       },
+       "medical": {"verified": false, "verified_by": null, "verified_at": null},
+       "photo_id": {
+         "verified": true,
+         "verified_by": "Priya Raman",
+         "verified_at": "2026-09-20T10:04:11.512000-07:00"
+       }
+     },
      "aircraft": [
        {
          "id": 7,
@@ -83,7 +97,8 @@ Returns every ``MemberProfile`` field except the admin-only ``notes`` and
          "model": "182T Skylane",
          "insurance_is_current": true,
          "insurance_expiration": "2027-03-01",
-         "insurance_summary": "$1,000,000 / $100,000 · exp 2027-03-01"
+         "insurance_summary": "$1,000,000 / $100,000 · exp 2027-03-01",
+         "insurance_verified": true
        }
      ],
      "vol_ground_team": false,
@@ -96,10 +111,23 @@ Returns every ``MemberProfile`` field except the admin-only ``notes`` and
 
 Read-only fields
   ``dart`` (a ``{id, name}`` stub — write ``dart_id`` instead),
-  ``aircraft`` (maintained through the attach/detach endpoints) and
+  ``aircraft`` (maintained through the attach/detach endpoints; each row's
+  ``insurance_verified`` says whether that airplane's insurance is verified),
   ``medical_is_current`` (a property: the expiration date is on or after
   today, for BasicMed and class medicals alike; ``medical_type: "none"``
-  is always ``false``).
+  is always ``false``) and ``verification``.
+
+``photo_id_type`` is the kind of photo ID the member shows — ``not_provided``
+(the default), ``drivers_license``, ``passport``, ``state_id``,
+``military_id``, or ``other`` — and nothing else about the document is ever
+recorded.
+
+``verification`` holds the verified state of the pilot certificate, the medical,
+and the photo ID, each as ``{verified, verified_by, verified_at}``: whether an
+authority has checked the item against the document, the display name of the
+account that did, and when.  Both are ``null`` while the item is unverified.
+Only the member check verifies an item (:doc:`verification`); a member cannot
+verify their own, and a body that sends ``verification`` changes nothing.
 
 Statuses:
 
@@ -157,6 +185,14 @@ the write, so a ``PATCH`` that sets only ``medical_type`` is rejected unless an
 expiration date is already stored.  The response is the stored profile in the
 ``GET`` shape above.
 
+A write that moves a field a verified item covers clears that item: a new
+``pilot_certificate_type`` or ``certificate_number`` clears the certificate, a
+new ``medical_type`` or ``medical_expiration`` the medical, and a new
+``photo_id_type`` the photo ID.  A field resent at its stored value clears
+nothing, and ratings, IFR, the flight review, and hours are not verified at
+all.  The same holds for ``PUT``.  The clearing raises no event of its own;
+``profile_changed`` below already names the fields (:doc:`verification`).
+
 The write that makes an incomplete profile complete is the join wizard's
 profile step finishing: it raises the ``signed_up`` event with the account and
 the chosen DART, and nothing else.  Any other ``PUT`` or ``PATCH`` to a complete
@@ -208,6 +244,7 @@ Field                        Rule
 ``ratings``                  Each value from ``asel, amel, ases, ames, helicopter,
                              instrument, cfi, cfii, mei``; repeats are dropped and the
                              order is kept.
+``photo_id_type``            One of the six kinds above.
 ``medical_expiration``       Required once ``medical_type`` is anything but ``none``.
 ``certificate_number``       Required once ``pilot_certificate_type`` is anything but
                              ``none``.

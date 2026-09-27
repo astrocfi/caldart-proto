@@ -89,11 +89,13 @@
       "phone_alt": "string",
       "phone_alt_extension": "string",
       "phone_extension": "string",
+      "photo_id_type": "ref:PhotoIdTypeEnum",
       "pilot_certificate_type": "ref:PilotCertificateTypeEnum",
       "postal_code": "string",
       "ratings": "array<ref:RatingsEnum>",
       "state": "ref:StateEnum",
       "total_hours": "integer|null",
+      "verification": "ref:ProfileVerification",
       "vol_exercise_training": "boolean",
       "vol_fundraising": "boolean",
       "vol_ground_team": "boolean",
@@ -105,7 +107,8 @@
     "required": [
       "aircraft",
       "dart",
-      "medical_is_current"
+      "medical_is_current",
+      "verification"
     ]
   },
   "AdminProfileRequest": {
@@ -134,6 +137,7 @@
       "phone_alt": "string",
       "phone_alt_extension": "string",
       "phone_extension": "string",
+      "photo_id_type": "ref:PhotoIdTypeEnum",
       "pilot_certificate_type": "ref:PilotCertificateTypeEnum",
       "postal_code": "string",
       "ratings": "array<ref:RatingsEnum>",
@@ -186,6 +190,7 @@
       "insurance_liability_per_person_cents": "integer",
       "insurance_policy_number": "string",
       "insurance_summary": "string",
+      "insurance_verification": "ref:Verification",
       "is_active": "boolean",
       "make": "string",
       "model": "string",
@@ -203,6 +208,7 @@
       "id",
       "insurance_is_current",
       "insurance_summary",
+      "insurance_verification",
       "make",
       "model",
       "n_number",
@@ -261,6 +267,7 @@
       "insurance_liability_per_person_cents": "integer",
       "insurance_policy_number": "string",
       "insurance_summary": "string",
+      "insurance_verification": "ref:Verification",
       "is_active": "boolean",
       "make": "string",
       "model": "string",
@@ -280,6 +287,7 @@
       "id",
       "insurance_is_current",
       "insurance_summary",
+      "insurance_verification",
       "make",
       "model",
       "n_number",
@@ -335,6 +343,7 @@
       "insurance_expiration": "string(date)|null",
       "insurance_is_current": "boolean",
       "insurance_summary": "string",
+      "insurance_verified": "boolean",
       "make": "string",
       "model": "string",
       "n_number": "string"
@@ -344,6 +353,7 @@
       "insurance_expiration",
       "insurance_is_current",
       "insurance_summary",
+      "insurance_verified",
       "make",
       "model",
       "n_number"
@@ -1010,40 +1020,60 @@
       "no"
     ]
   },
+  "InsuranceVerificationRequest": {
+    "properties": {
+      "insurance_carrier": "string",
+      "insurance_expiration": "string(date)|null",
+      "insurance_hull_cents": "integer|null",
+      "insurance_liability_per_occurrence_cents": "integer",
+      "insurance_liability_per_person_cents": "integer",
+      "insurance_policy_number": "string",
+      "verified": "boolean"
+    },
+    "required": [
+      "verified"
+    ]
+  },
   "LeaderCertificate": {
     "properties": {
       "ifr_rated": "ref:IfrRatedEnum",
       "number": "string",
       "ratings": "array<ref:RatingsEnum>",
-      "type": "ref:PilotCertificateTypeEnum"
+      "type": "ref:PilotCertificateTypeEnum",
+      "verification": "ref:Verification"
     },
     "required": [
       "ifr_rated",
       "number",
       "ratings",
-      "type"
+      "type",
+      "verification"
     ]
   },
   "LeaderGoNoGo": {
     "properties": {
       "medical": "boolean",
-      "membership": "boolean"
+      "membership": "boolean",
+      "verified": "boolean"
     },
     "required": [
       "medical",
-      "membership"
+      "membership",
+      "verified"
     ]
   },
   "LeaderMedical": {
     "properties": {
       "expiration": "string(date)|null",
       "is_current": "boolean",
-      "type": "ref:MedicalTypeEnum"
+      "type": "ref:MedicalTypeEnum",
+      "verification": "ref:Verification"
     },
     "required": [
       "expiration",
       "is_current",
-      "type"
+      "type",
+      "verification"
     ]
   },
   "LeaderMembership": {
@@ -1056,6 +1086,16 @@
       "expires_on",
       "plan",
       "status"
+    ]
+  },
+  "LeaderPhotoId": {
+    "properties": {
+      "type": "ref:PhotoIdTypeEnum",
+      "verification": "ref:Verification"
+    },
+    "required": [
+      "type",
+      "verification"
     ]
   },
   "LeaderSearchResult": {
@@ -1083,10 +1123,12 @@
       "dart": "string|null",
       "email": "string(email)",
       "go_no_go": "ref:LeaderGoNoGo",
+      "is_verifier": "boolean",
       "medical": "ref:LeaderMedical",
       "membership": "ref:LeaderMembership",
       "name": "string",
-      "phone": "string"
+      "phone": "string",
+      "photo_id": "ref:LeaderPhotoId"
     },
     "required": [
       "aircraft",
@@ -1094,10 +1136,12 @@
       "dart",
       "email",
       "go_no_go",
+      "is_verifier",
       "medical",
       "membership",
       "name",
-      "phone"
+      "phone",
+      "photo_id"
     ]
   },
   "LedgerMember": {
@@ -1294,6 +1338,19 @@
       "pilot_certificate_type",
       "profile_updated_at",
       "user_id"
+    ]
+  },
+  "MemberVerificationRequest": {
+    "properties": {
+      "certificate_number": "string",
+      "medical_expiration": "string(date)|null",
+      "medical_type": "ref:MedicalTypeEnum",
+      "photo_id_type": "ref:PhotoIdTypeEnum",
+      "pilot_certificate_type": "ref:PilotCertificateTypeEnum",
+      "verified": "array<ref:VerificationItemEnum>"
+    },
+    "required": [
+      "verified"
     ]
   },
   "MembersPage": {
@@ -1684,6 +1741,7 @@
       "phone_alt": "string",
       "phone_alt_extension": "string",
       "phone_extension": "string",
+      "photo_id_type": "ref:PhotoIdTypeEnum",
       "pilot_certificate_type": "ref:PilotCertificateTypeEnum",
       "postal_code": "string",
       "ratings": "array<ref:RatingsEnum>",
@@ -1788,6 +1846,7 @@
       "phone_alt": "string",
       "phone_alt_extension": "string",
       "phone_extension": "string",
+      "photo_id_type": "ref:PhotoIdTypeEnum",
       "pilot_certificate_type": "ref:PilotCertificateTypeEnum",
       "postal_code": "string",
       "ratings": "array<ref:RatingsEnum>",
@@ -2024,6 +2083,16 @@
       "friend"
     ]
   },
+  "PhotoIdTypeEnum": {
+    "enum": [
+      "not_provided",
+      "drivers_license",
+      "passport",
+      "state_id",
+      "military_id",
+      "other"
+    ]
+  },
   "PilotCertificateTypeEnum": {
     "enum": [
       "none",
@@ -2077,11 +2146,13 @@
       "phone_alt": "string",
       "phone_alt_extension": "string",
       "phone_extension": "string",
+      "photo_id_type": "ref:PhotoIdTypeEnum",
       "pilot_certificate_type": "ref:PilotCertificateTypeEnum",
       "postal_code": "string",
       "ratings": "array<ref:RatingsEnum>",
       "state": "ref:StateEnum",
       "total_hours": "integer|null",
+      "verification": "ref:ProfileVerification",
       "vol_exercise_training": "boolean",
       "vol_fundraising": "boolean",
       "vol_ground_team": "boolean",
@@ -2096,7 +2167,8 @@
       "medical_is_current",
       "member_since",
       "phone",
-      "state"
+      "state",
+      "verification"
     ]
   },
   "ProfileRequest": {
@@ -2122,6 +2194,7 @@
       "phone_alt": "string",
       "phone_alt_extension": "string",
       "phone_extension": "string",
+      "photo_id_type": "ref:PhotoIdTypeEnum",
       "pilot_certificate_type": "ref:PilotCertificateTypeEnum",
       "postal_code": "string",
       "ratings": "array<ref:RatingsEnum>",
@@ -2138,6 +2211,18 @@
     "required": [
       "phone",
       "state"
+    ]
+  },
+  "ProfileVerification": {
+    "properties": {
+      "certificate": "ref:Verification",
+      "medical": "ref:Verification",
+      "photo_id": "ref:Verification"
+    },
+    "required": [
+      "certificate",
+      "medical",
+      "photo_id"
     ]
   },
   "Provider278Enum": {
@@ -2941,12 +3026,39 @@
       "roles"
     ]
   },
+  "Verification": {
+    "properties": {
+      "verified": "boolean",
+      "verified_at": "string(date-time)|null",
+      "verified_by": "string|null"
+    },
+    "required": [
+      "verified",
+      "verified_at",
+      "verified_by"
+    ]
+  },
+  "VerificationItemEnum": {
+    "enum": [
+      "certificate",
+      "medical",
+      "photo_id"
+    ]
+  },
   "VerificationSent": {
     "properties": {
       "detail": "string"
     },
     "required": [
       "detail"
+    ]
+  },
+  "VerifierGrantRequest": {
+    "properties": {
+      "verifier": "boolean"
+    },
+    "required": [
+      "verifier"
     ]
   },
   "WalletEnum": {

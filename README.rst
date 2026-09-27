@@ -91,6 +91,7 @@ member@example.org             member (current membership)
 expired@example.org            member (expired membership)
 friend@example.org             member (a friend of CalDART: no dues)
 leader@example.org             member, dart_leader
+verifier@example.org           member, verifier (no membership term)
 useradmin@example.org          member, user_admin
 treasurer@example.org          member, treasurer
 accountadmin@example.org       member, account_admin
@@ -100,7 +101,8 @@ sysadmin@example.org           member, system_admin (superuser)
 
 Plus about 40 generated members and friends with mixed membership, certificate, and
 medical states, 25 aircraft with varied insurance currency, and two years of
-payment history.
+payment history.  The demo DART leader has verified the documents of about seven
+in ten members and the insurance of about seven in ten aircraft.
 
 Everyday commands:
 

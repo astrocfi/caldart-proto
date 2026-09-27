@@ -425,8 +425,9 @@ Views declare their gates with the permission classes in
 are factories that return a DRF permission class; ``IsUserAdmin``,
 ``IsAccountAdmin``, ``IsFinance``, ``IsVerifier``, and ``IsSystemAdmin`` are
 ready-made ones,
-and ``HasAnyRole(DART_LEADER, ACCOUNT_ADMIN)`` guards the leader check and
-``GET /admin/members``, whose ``POST`` stays ``IsAccountAdmin``.
+``HasAnyRole(DART_LEADER, ACCOUNT_ADMIN)`` guards ``GET /admin/members``, whose
+``POST`` stays ``IsAccountAdmin``, and ``HasAnyRole(*VERIFY_ROLES)`` guards the
+leader check (``/leader/...``).
 ``IsFinance`` is ``HasAnyRole(TREASURER, ACCOUNT_ADMIN)`` and guards every
 ``/admin/payments`` and ``/admin/renewals`` endpoint.  ``IsVerifier`` is
 ``HasAnyRole(*VERIFY_ROLES)``: ``verifier``, ``dart_leader``, ``user_admin``,
@@ -463,7 +464,9 @@ Permission matrix
 
 Who may call what.  ``·`` means no access, ✓ means access.  ``system_admin``
 is omitted from the columns because it passes every row except the three
-payment-confirmation rows, which are owner-only for everybody.
+payment-confirmation rows, which are owner-only for everybody.  ``verifier`` is
+omitted too: it reaches every row a ``member`` does, plus the leader-check rows
+whose notes name it.
 
 *Anonymous* means no session at all; anything it cannot reach answers **401**,
 provided the request carried a CSRF token.  An unsafe method without one never
@@ -809,7 +812,7 @@ not (see :ref:`api-csrf-bootstrap`).
      - ✓
      - ✓
      - ✓
-     - ``pilots`` only for leaders/admins
+     - ``pilots`` only for the verifying roles
    * - ``GET /aircraft/{id}``
      - ·
      - ✓
@@ -817,7 +820,7 @@ not (see :ref:`api-csrf-bootstrap`).
      - ✓
      - ✓
      - ✓
-     - ``pilots`` only for leaders/admins
+     - ``pilots`` only for the verifying roles
    * - ``GET /aircraft/{id}/changes``
      - ·
      - ·
@@ -846,26 +849,50 @@ not (see :ref:`api-csrf-bootstrap`).
      - ·
      - ·
      - ✓
-     - ·
+     - ✓
      - ·
      - ✓
-     - param is ``q``; max 20
+     - param is ``q``; max 20; ``verifier`` too
    * - ``GET /leader/members/{id}/status``
      - ·
      - ·
      - ✓
+     - ✓
+     - ·
+     - ✓
+     - ``verifier`` too
+   * - ``PUT /leader/members/{id}/verification``
      - ·
      - ·
      - ✓
-     -
+     - ✓
+     - ·
+     - ✓
+     - ``verifier`` too; answers the status card
+   * - ``PUT /leader/members/{id}/verifier``
+     - ·
+     - ·
+     - ✓
+     - ✓
+     - ·
+     - ·
+     - grants or revokes ``verifier``
    * - ``GET /leader/aircraft``
      - ·
      - ·
      - ✓
+     - ✓
+     - ·
+     - ✓
+     - always includes ``pilots``; ``verifier`` too
+   * - ``PUT /leader/aircraft/{id}/verification``
      - ·
      - ·
      - ✓
-     - always includes ``pilots``
+     - ✓
+     - ·
+     - ✓
+     - ``verifier`` too
    * - ``GET /payments/config``
      - ·
      - ✓
@@ -1396,8 +1423,8 @@ Reading the matrix:
 **Serializer switching on aircraft.**  ``GET /aircraft/{id}`` and
 ``GET /aircraft/lookup`` return the ``pilots`` array and ``updated_by`` (other
 members' names, emails, membership state, and medical currency) only to
-``dart_leader``, ``account_admin``, or ``system_admin``.  Plain members get the
-airplane alone.  ``GET /aircraft`` (the list) never includes it for anybody.
+the verifying roles (``verifier``, ``dart_leader``, ``user_admin``, and
+``account_admin``) and ``system_admin``.  Plain members get the airplane alone.  ``GET /aircraft`` (the list) never includes it for anybody.
 That is what stops the register from being a way around the leader-check gate.
 
 **Restricted methods.**  ``/admin/users/{id}`` accepts ``GET`` and ``PATCH``;
