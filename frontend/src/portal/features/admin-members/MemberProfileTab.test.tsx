@@ -71,4 +71,18 @@ describe('MemberProfileTab', () => {
     renderWithProviders(<MemberProfileTab member={makeDetail({ profile: null })} />);
     expect(screen.queryByRole('heading', { name: 'Verification' })).not.toBeInTheDocument();
   });
+
+  it('offers no Verify for a deactivated member, whom the endpoint would refuse', () => {
+    renderWithProviders(<MemberProfileTab member={makeDetail({ is_active: false })} />);
+    expect(
+      within(verificationCard()).queryByRole('button', { name: 'Verify' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('offers no Verify for a donor, whom the endpoint would refuse', () => {
+    renderWithProviders(<MemberProfileTab member={makeDetail({ kind: 'donor' })} />);
+    expect(
+      within(verificationCard()).queryByRole('button', { name: 'Verify' }),
+    ).not.toBeInTheDocument();
+  });
 });

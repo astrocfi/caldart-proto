@@ -41,7 +41,9 @@ A **Verification** card heads the tab. It lists **Pilot certificate**, **Medical
 **Not verified**. **Verify** opens the same verification panel as the :doc:`member-check`:
 correct the fields against the documents, tick the items you have checked, and press
 **Save**. *Verification saved* confirms it, and a field you corrected there is filled in on
-the form below too. A record with no profile yet has no Verification card.
+the form below too. A record with no profile yet has no Verification card, and one for a
+donor or a deactivated account has the card but no **Verify**: there is nothing to check
+against, since neither can fly.
 
 Below the card are the same fields as :doc:`new-member`, less the password, with **Photo
 ID** (the kind of photo ID only) among the aviation fields, plus:
