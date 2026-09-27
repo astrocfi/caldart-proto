@@ -47,6 +47,21 @@ class MedicalType(models.TextChoices):
     THIRD = "third", "Third class"
 
 
+class PhotoIdType(models.TextChoices):
+    """The kind of photo ID a verifier has seen; nothing else about it is recorded.
+
+    ``NOT_PROVIDED`` is the default and a legitimate verified state: a verifier who saw
+    the document and chose not to record its kind, or a friend with nothing to show.
+    """
+
+    NOT_PROVIDED = "not_provided", "Not provided"
+    DRIVERS_LICENSE = "drivers_license", "Driver's license"
+    PASSPORT = "passport", "Passport"
+    STATE_ID = "state_id", "State ID card"
+    MILITARY_ID = "military_id", "Military ID"
+    OTHER = "other", "Other"
+
+
 #: Values allowed in ``MemberProfile.ratings``, in the two rows the forms show:
 #: the category and class ratings, then the instructor ones.
 RATING_CHOICES: tuple[tuple[str, str], ...] = (
@@ -240,6 +255,9 @@ class MemberProfile(TimestampedModel):
     medical_expiration = models.DateField(null=True, blank=True)
     flight_review_date = models.DateField(null=True, blank=True)
     total_hours = models.PositiveIntegerField(null=True, blank=True)
+    photo_id_type = models.CharField(
+        "photo ID", max_length=16, choices=PhotoIdType.choices, default=PhotoIdType.NOT_PROVIDED
+    )
     aircraft = models.ManyToManyField(
         "aircraft.Aircraft", blank=True, related_name="pilots", verbose_name="planes commonly flown"
     )
@@ -255,6 +273,35 @@ class MemberProfile(TimestampedModel):
     vol_fundraising = models.BooleanField("fundraising", default=False)
     vol_social_media = models.BooleanField("social media", default=False)
     vol_newsletter = models.BooleanField("newsletter", default=False)
+
+    # -- verification -----------------------------------------------------
+    #: Each verified item (see ``apps.members.verification``) carries when it was
+    #: verified and by whom.  Both are ``NULL`` while the item is unverified; a write
+    #: that changes a field the item covers sets them back to ``NULL``.
+    certificate_verified_at = models.DateTimeField(null=True, blank=True)
+    certificate_verified_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+    medical_verified_at = models.DateTimeField(null=True, blank=True)
+    medical_verified_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+    photo_id_verified_at = models.DateTimeField(null=True, blank=True)
+    photo_id_verified_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
 
     # -- membership -------------------------------------------------------
     #: The day this person first joined, set when their first term is created
@@ -303,6 +350,25 @@ class MemberProfile(TimestampedModel):
         if self.medical_type == MedicalType.NONE or self.medical_expiration is None:
             return False
         return self.medical_expiration >= timezone.localdate()
+
+    @property
+    def certificate_is_verified(self) -> bool:
+        """True when the pilot certificate type and number have been verified."""
+        return self.certificate_verified_at is not None
+
+    @property
+    def medical_is_verified(self) -> bool:
+        """True when the medical type and expiration have been verified.
+
+        A verified medical whose expiration passes stays verified: currency is
+        ``medical_is_current``, a separate fact.
+        """
+        return self.medical_verified_at is not None
+
+    @property
+    def photo_id_is_verified(self) -> bool:
+        """True when the photo ID type has been verified."""
+        return self.photo_id_verified_at is not None
 
     #: The fields ``profile_complete`` requires.  One list, used by
     #: :py:meth:`is_complete`, by the ``user`` payload the API returns, and --

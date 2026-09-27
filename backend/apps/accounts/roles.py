@@ -6,6 +6,7 @@ editor permissions.
 """
 
 MEMBER = "member"
+VERIFIER = "verifier"
 DART_LEADER = "dart_leader"
 USER_ADMIN = "user_admin"
 TREASURER = "treasurer"
@@ -17,6 +18,10 @@ SYSTEM_ADMIN = "system_admin"
 #: the order used by ``GET /api/v1/roles``.
 ROLE_DESCRIPTIONS: dict[str, str] = {
     MEMBER: "A member or a friend with a portal account.",
+    VERIFIER: (
+        "Verify a member's pilot certificate, medical, and photo ID, and an "
+        "aircraft's insurance, from the member check and the aircraft check."
+    ),
     DART_LEADER: (
         "Look up any member and see membership, medical, certificate, and "
         "aircraft insurance currency."
@@ -52,6 +57,7 @@ STAFF_ROLE_SLUGS: tuple[str, ...] = tuple(s for s in ROLE_SLUGS if s != MEMBER)
 #: Ordered slug -> the role's name as every screen and report prints it.
 ROLE_LABELS: dict[str, str] = {
     MEMBER: "Member",
+    VERIFIER: "Verifier",
     DART_LEADER: "DART leader",
     USER_ADMIN: "User administrator",
     TREASURER: "Treasurer",
@@ -62,3 +68,7 @@ ROLE_LABELS: dict[str, str] = {
 
 #: The labels of the staff roles, every role but ``member``, in privilege order.
 STAFF_ROLE_LABELS: dict[str, str] = {slug: ROLE_LABELS[slug] for slug in STAFF_ROLE_SLUGS}
+
+#: The roles that may verify a member's pilot certificate, medical, and photo ID, and an
+#: aircraft's insurance.  A system administrator and a superuser pass as always.
+VERIFY_ROLES: tuple[str, ...] = (VERIFIER, DART_LEADER, USER_ADMIN, ACCOUNT_ADMIN)

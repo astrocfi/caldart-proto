@@ -209,6 +209,7 @@ export const RATINGS: Choice<Rating>[] = [...CATEGORY_RATINGS, ...INSTRUCTOR_RAT
  */
 export const ROLE_LABELS: Record<RoleSlug, string> = {
   member: 'Member',
+  verifier: 'Verifier',
   dart_leader: 'DART leader',
   user_admin: 'User administrator',
   treasurer: 'Treasurer',

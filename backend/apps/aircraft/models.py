@@ -70,6 +70,17 @@ class Aircraft(TimestampedModel):
     insurance_liability_per_person_cents = models.PositiveBigIntegerField(default=0)
     insurance_hull_cents = models.PositiveBigIntegerField(null=True, blank=True)
     insurance_expiration = models.DateField(null=True, blank=True)
+    #: When the insurance was verified and by whom (see ``apps.aircraft.verification``).
+    #: Both are ``NULL`` while it is unverified; a write that changes an insurance field
+    #: sets them back to ``NULL``.
+    insurance_verified_at = models.DateTimeField(null=True, blank=True)
+    insurance_verified_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
 
     notes = models.TextField(blank=True)
     created_by = models.ForeignKey(
@@ -114,6 +125,15 @@ class Aircraft(TimestampedModel):
         if self.insurance_expiration is None:
             return False
         return self.insurance_expiration >= timezone.localdate()
+
+    @property
+    def insurance_is_verified(self) -> bool:
+        """True when the insurance has been verified.
+
+        Verified insurance whose expiration passes stays verified: currency is
+        ``insurance_is_current``, a separate fact.
+        """
+        return self.insurance_verified_at is not None
 
     @property
     def insurance_summary(self) -> str:

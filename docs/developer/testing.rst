@@ -218,8 +218,8 @@ for constantly:
    * - ``csrf_headers``
      - ``csrf_headers(client)`` fetches ``GET /auth/csrf`` and returns the
        ``{"HTTP_X_CSRFTOKEN": …}`` kwargs an unsafe method needs
-   * - ``member``, ``dart_leader``, ``user_admin``, ``account_admin``,
-       ``website_admin``, ``system_admin``
+   * - ``member``, ``verifier``, ``dart_leader``, ``user_admin``, ``treasurer``,
+       ``account_admin``, ``website_admin``, ``system_admin``
      - one ``User`` per role, each also holding ``member``
    * - ``superuser``
      - ``is_superuser=True`` as well as the ``system_admin`` role

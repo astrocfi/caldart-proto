@@ -37,6 +37,16 @@ your membership is current, the members-only pages of the public site open to yo
 all.
 
 
+Verifier
+========
+
+A verifier checks a member's pilot certificate, medical, and photo ID, and an
+aircraft's insurance, against the documents, and marks each one verified. The role
+opens **Member check** (:doc:`admin/member-check`) and **Aircraft check**
+(:doc:`admin/aircraft-check`), where the verifying is done. A DART leader or a user
+administrator grants the role.
+
+
 DART leader
 ===========
 
