@@ -447,6 +447,23 @@ describe('<ProfileFieldsets/> address suggestions', () => {
     });
   });
 
+  it('offers and fills two addresses that share a label as two', async () => {
+    const withoutCounty = { ...AMPHITHEATRE, county: '' };
+    suggestAddresses([AMPHITHEATRE, withoutCounty]);
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const user = userEvent.setup();
+    const onChange = renderStateful({ ...EMPTY_PROFILE_FORM, county: 'Napa' });
+
+    await user.type(screen.getByRole('combobox', { name: 'Address' }), '1600 Amph');
+    const options = await screen.findAllByRole('option', { name: AMPHITHEATRE.label });
+    await user.click(options[1] as HTMLElement);
+
+    expect(consoleError).not.toHaveBeenCalled();
+    expect(onChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({ county: '' }) as Partial<ProfileFormValues>,
+    );
+  });
+
   it('clears the county when the picked address is outside California', async () => {
     suggestAddresses([LAS_VEGAS]);
     const user = userEvent.setup();

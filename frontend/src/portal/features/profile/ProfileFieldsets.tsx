@@ -81,15 +81,20 @@ function isCaliforniaCounty(name: string): name is CaliforniaCounty {
 }
 
 /**
+ * A picked address's identity in the list.  The server offers two results once only
+ * when they would fill the same five fields, so two with one label can both appear.
+ */
+function addressKey(pick: AddressSuggestion): string {
+  return [pick.address_line1, pick.city, pick.state, pick.postal_code, pick.county].join('|');
+}
+
+/**
  * `value` with a picked address written into its street, city, state, ZIP code,
  * and county.  The address line 2 is the member's own and is left alone.  A state
  * the form does not offer keeps the one already chosen, and a county it does not
  * offer (every address outside California) reads as none.
  */
-function withPickedAddress(
-  value: ProfileFormValues,
-  pick: AddressSuggestion,
-): ProfileFormValues {
+function withPickedAddress(value: ProfileFormValues, pick: AddressSuggestion): ProfileFormValues {
   return {
     ...value,
     address_line1: pick.address_line1,
@@ -317,7 +322,7 @@ export function ProfileFieldsets({
                 onPick={(pick: AddressSuggestion) => onChange(withPickedAddress(value, pick))}
                 onBlur={handleBlur('address_line1')}
                 useSuggestions={useAddressSuggestions}
-                itemKey={(pick) => pick.label}
+                itemKey={addressKey}
                 itemLabel={(pick) => pick.label}
               />
             )}
