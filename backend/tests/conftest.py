@@ -18,7 +18,7 @@ import shutil
 import smtplib
 import tempfile
 import zlib
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterator, Mapping
 from datetime import date, timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING, Protocol
@@ -49,7 +49,7 @@ from apps.accounts.roles import (
     WEBSITE_ADMIN,
 )
 from apps.sysadmin import services
-from caldart import audit
+from caldart import audit, events
 from caldart.settings.test import STATIC_ROOT_PREFIX
 from tests.factories import (
     DEFAULT_PASSWORD,
@@ -862,3 +862,26 @@ def audit_messages(caplog: pytest.LogCaptureFixture, level: int | None = None) -
         for record in caplog.records
         if record.name == audit.LOGGER_NAME and (level is None or record.levelno == level)
     ]
+
+
+#: Every event a test raised, as ``(slug, payload)`` pairs in the order raised.
+type RecordedEvents = list[tuple[str, Mapping[str, object]]]
+
+
+@pytest.fixture
+def recorded_events() -> Iterator[RecordedEvents]:
+    """Record every event raised through ``caldart.events`` while the test runs.
+
+    A handler subscribes for the length of the test and unsubscribes afterwards, so a
+    test reads back what a service raised whatever the notifications app does with it.
+    """
+    seen: RecordedEvents = []
+
+    def record(slug: str, payload: Mapping[str, object]) -> None:
+        seen.append((slug, dict(payload)))
+
+    events.subscribe(record)
+    try:
+        yield seen
+    finally:
+        events.unsubscribe(record)
