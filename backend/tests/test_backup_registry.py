@@ -108,8 +108,9 @@ def test_the_create_backup_button_leaves_the_registration_rows_out(
     """``POST /system/backups``, behind **Create backup**, runs the same exclusion."""
     api_client.force_login(system_admin)
 
-    api_client.post(BACKUPS_URL)
+    response = api_client.post(BACKUPS_URL)
 
+    assert response.status_code == 201
     assert EXCLUSION in dump_argvs[0]
 
 
