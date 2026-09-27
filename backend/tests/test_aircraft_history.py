@@ -18,7 +18,12 @@ from apps.accounts.roles import ACCOUNT_ADMIN, SYSTEM_ADMIN
 from apps.aircraft.models import Aircraft, AircraftChange, AircraftChangeKind
 from apps.aircraft.services import changed_fields, record_change
 from tests.conftest import role_matrix
-from tests.factories import AircraftChangeFactory, AircraftFactory, UserFactory
+from tests.factories import (
+    AircraftChangeFactory,
+    AircraftFactory,
+    AircraftTypeFactory,
+    UserFactory,
+)
 
 pytestmark = pytest.mark.django_db
 
@@ -35,12 +40,16 @@ def changes_url(aircraft: Aircraft) -> str:
     return f"{LIST_URL}/{aircraft.pk}/changes"
 
 
+def sr22_id() -> int:
+    """The id of the Cirrus SR22 aircraft type, found or created."""
+    return AircraftTypeFactory(make="Cirrus", model="SR22").pk
+
+
 def creation_payload() -> dict[str, object]:
-    """A complete, valid body for ``POST /aircraft``."""
+    """A complete, valid body for ``POST /aircraft``: a Cirrus SR22."""
     return {
         "n_number": "N4321Q",
-        "make": "Cirrus",
-        "model": "SR22",
+        "type_id": sr22_id(),
         "year": 2019,
         "owner_type": "individual",
         "owner_name": "Marta Reyes",
@@ -84,14 +93,15 @@ def test_record_change_accepts_no_actor() -> None:
 
 def test_changed_fields_names_only_the_columns_whose_value_moves() -> None:
     """A value equal to the stored one is not a change."""
-    aircraft = AircraftFactory(n_number="N15RC", make="Cessna", model="182T Skylane")
-    assert changed_fields(aircraft, {"make": "Cessna", "model": "SR22"}) == ["model"]
+    aircraft = AircraftFactory(n_number="N15RC", make="Cessna", model="182T Skylane", seats=4)
+    retyped = AircraftTypeFactory(make="Cirrus", model="SR22")
+    assert changed_fields(aircraft, {"seats": 4, "type": retyped}) == ["type"]
 
 
 def test_changed_fields_is_empty_when_nothing_moves() -> None:
     """Resending the stored values names no column."""
     aircraft = AircraftFactory(n_number="N16RC", make="Cessna", model="182T Skylane")
-    assert changed_fields(aircraft, {"make": "Cessna"}) == []
+    assert changed_fields(aircraft, {"type": aircraft.type}) == []
 
 
 def test_changed_fields_ignores_a_key_the_model_does_not_carry() -> None:
@@ -165,11 +175,11 @@ def test_patching_an_aircraft_records_the_changed_fields(
     api_client: APIClient, account_admin: User
 ) -> None:
     """The row names the columns whose value the body actually moved."""
-    aircraft = AircraftFactory(n_number="N30PA", make="Cessna", model="182T Skylane")
+    aircraft = AircraftFactory(n_number="N30PA", make="Cessna", model="182T Skylane", seats=4)
     api_client.force_login(account_admin)
-    response = api_client.patch(detail_url(aircraft), {"make": "Cessna", "model": "SR22"})
+    response = api_client.patch(detail_url(aircraft), {"seats": 4, "type_id": sr22_id()})
     assert response.status_code == 200
-    assert AircraftChange.objects.get(aircraft=aircraft).fields == ["model"]
+    assert AircraftChange.objects.get(aircraft=aircraft).fields == ["type"]
 
 
 def test_patching_an_aircraft_records_an_updated_change(
@@ -178,7 +188,7 @@ def test_patching_an_aircraft_records_an_updated_change(
     """An edit is an ``updated`` row, not a second ``created`` one."""
     aircraft = AircraftFactory(n_number="N31PA")
     api_client.force_login(account_admin)
-    api_client.patch(detail_url(aircraft), {"model": "SR22"})
+    api_client.patch(detail_url(aircraft), {"type_id": sr22_id()})
     assert AircraftChange.objects.get(aircraft=aircraft).kind == AircraftChangeKind.UPDATED
 
 
@@ -187,7 +197,7 @@ def test_patching_an_aircraft_stamps_the_editor(api_client: APIClient, account_a
     creator = UserFactory(email="creator@example.test")
     aircraft = AircraftFactory(n_number="N32PA", created_by=creator)
     api_client.force_login(account_admin)
-    api_client.patch(detail_url(aircraft), {"model": "SR22"})
+    api_client.patch(detail_url(aircraft), {"type_id": sr22_id()})
     aircraft.refresh_from_db()
     assert aircraft.updated_by == account_admin
 
@@ -198,11 +208,9 @@ def test_putting_an_aircraft_records_the_changed_fields(
     """A ``PUT`` is recorded on the same terms as a ``PATCH``."""
     aircraft = AircraftFactory(n_number="N33PA", make="Cessna", model="182T Skylane")
     api_client.force_login(account_admin)
-    response = api_client.put(
-        detail_url(aircraft), {"n_number": "N33PA", "make": "Cessna", "model": "SR22"}
-    )
+    response = api_client.put(detail_url(aircraft), {"n_number": "N33PA", "type_id": sr22_id()})
     assert response.status_code == 200
-    assert AircraftChange.objects.get(aircraft=aircraft).fields == ["model"]
+    assert AircraftChange.objects.get(aircraft=aircraft).fields == ["type"]
 
 
 def test_a_save_that_moves_nothing_still_records_the_write(
@@ -211,7 +219,7 @@ def test_a_save_that_moves_nothing_still_records_the_write(
     """The history records who wrote to the airframe, so an unchanged save is a row."""
     aircraft = AircraftFactory(n_number="N36PA", model="182T Skylane")
     api_client.force_login(account_admin)
-    response = api_client.patch(detail_url(aircraft), {"model": "182T Skylane"})
+    response = api_client.patch(detail_url(aircraft), {"type_id": aircraft.type_id})
     assert response.status_code == 200
     assert AircraftChange.objects.get(aircraft=aircraft).fields == []
 
@@ -222,7 +230,7 @@ def test_a_save_that_moves_nothing_records_an_updated_row(
     """That row is an ``updated`` one, with no column named."""
     aircraft = AircraftFactory(n_number="N37PA", model="182T Skylane")
     api_client.force_login(account_admin)
-    api_client.patch(detail_url(aircraft), {"model": "182T Skylane"})
+    api_client.patch(detail_url(aircraft), {"type_id": aircraft.type_id})
     assert AircraftChange.objects.get(aircraft=aircraft).kind == AircraftChangeKind.UPDATED
 
 
@@ -230,7 +238,7 @@ def test_a_refused_edit_records_nothing(api_client: APIClient, member: User) -> 
     """A 403 leaves no trail: nothing was changed."""
     aircraft = AircraftFactory(n_number="N34PA", created_by=UserFactory(email="other@example.test"))
     api_client.force_login(member)
-    assert api_client.patch(detail_url(aircraft), {"model": "SR22"}).status_code == 403
+    assert api_client.patch(detail_url(aircraft), {"type_id": sr22_id()}).status_code == 403
     assert AircraftChange.objects.count() == 0
 
 
@@ -238,7 +246,7 @@ def test_an_invalid_edit_records_nothing(api_client: APIClient, account_admin: U
     """A 400 leaves no trail either."""
     aircraft = AircraftFactory(n_number="N35PA")
     api_client.force_login(account_admin)
-    assert api_client.patch(detail_url(aircraft), {"make": ""}).status_code == 400
+    assert api_client.patch(detail_url(aircraft), {"type_id": ""}).status_code == 400
     assert AircraftChange.objects.count() == 0
 
 

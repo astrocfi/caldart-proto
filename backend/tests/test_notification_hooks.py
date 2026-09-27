@@ -66,6 +66,7 @@ from caldart import events
 from tests.factories import (
     DEFAULT_PASSWORD,
     AircraftFactory,
+    AircraftTypeFactory,
     MemberProfileFactory,
     MembershipFactory,
     PaymentFactory,
@@ -994,8 +995,7 @@ def test_adding_an_aircraft_raises_aircraft_added(
         "/api/v1/aircraft",
         {
             "n_number": "N4321Q",
-            "make": "Cirrus",
-            "model": "SR22",
+            "type_id": AircraftTypeFactory(make="Cirrus", model="SR22").pk,
             "year": 2019,
             "owner_type": "individual",
             "owner_name": "Marta Reyes",
@@ -1017,14 +1017,15 @@ def test_editing_an_aircraft_raises_aircraft_changed(
 ) -> None:
     """``PATCH /aircraft/{id}`` names the columns that moved, as the history does."""
     aircraft = AircraftFactory(make="Cessna", seats=4)
+    piper = AircraftTypeFactory(make="Piper", model="PA-28-181")
     api_client.force_login(account_admin)
 
     api_client.patch(
-        f"/api/v1/aircraft/{aircraft.pk}", {"make": "Piper", "seats": 4}, format="json"
+        f"/api/v1/aircraft/{aircraft.pk}", {"type_id": piper.pk, "seats": 4}, format="json"
     )
 
     assert raised(recorded, "aircraft_changed") == [
-        {"aircraft": aircraft, "fields": ["make"], "actor": account_admin}
+        {"aircraft": aircraft, "fields": ["type"], "actor": account_admin}
     ]
 
 
@@ -1036,7 +1037,7 @@ def test_resending_an_aircraft_unchanged_raises_nothing(
     api_client.force_login(account_admin)
 
     response = api_client.patch(
-        f"/api/v1/aircraft/{aircraft.pk}", {"make": "Cessna"}, format="json"
+        f"/api/v1/aircraft/{aircraft.pk}", {"type_id": aircraft.type_id}, format="json"
     )
 
     assert response.status_code == 200

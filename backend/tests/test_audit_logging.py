@@ -30,7 +30,13 @@ from apps.sysadmin import services as sysadmin_services
 from apps.sysadmin.management.commands import db_reset as db_reset_command
 from caldart import audit
 from tests.conftest import audit_messages
-from tests.factories import AircraftFactory, MembershipFactory, PaymentFactory, UserFactory
+from tests.factories import (
+    AircraftFactory,
+    AircraftTypeFactory,
+    MembershipFactory,
+    PaymentFactory,
+    UserFactory,
+)
 
 if TYPE_CHECKING:
     from pytest_django.fixtures import Settings
@@ -668,8 +674,9 @@ def test_adding_an_aircraft_records_the_record(
 ) -> None:
     """Adding an airframe records the id of the record it created."""
     api_client.force_login(member)
+    sr22 = AircraftTypeFactory(make="Cirrus", model="SR22")
     response = api_client.post(
-        AIRCRAFT_URL, {"n_number": "N4321Q", "make": "Cirrus", "model": "SR22"}, format="json"
+        AIRCRAFT_URL, {"n_number": "N4321Q", "type_id": sr22.pk}, format="json"
     )
     assert response.status_code == 201
     assert one_message(audit_log) == (
@@ -683,14 +690,15 @@ def test_editing_an_aircraft_records_the_columns_that_changed(
     audit_log: pytest.LogCaptureFixture,
 ) -> None:
     """The register's form resends every field, so only what moved is a field name."""
-    aircraft = AircraftFactory(n_number="N77AU", make="Cessna", model="182T Skylane")
+    aircraft = AircraftFactory(n_number="N77AU", make="Cessna", model="182T Skylane", seats=4)
+    sr22 = AircraftTypeFactory(make="Cirrus", model="SR22")
     api_client.force_login(account_admin)
     response = api_client.patch(
-        f"{AIRCRAFT_URL}/{aircraft.pk}", {"make": "Cessna", "model": "SR22"}, format="json"
+        f"{AIRCRAFT_URL}/{aircraft.pk}", {"seats": 4, "type_id": sr22.pk}, format="json"
     )
     assert response.status_code == 200
     assert one_message(audit_log) == (
-        f"action=aircraft.update actor={account_admin.pk} target={aircraft.pk} fields=model"
+        f"action=aircraft.update actor={account_admin.pk} target={aircraft.pk} fields=type"
     )
 
 
@@ -702,7 +710,9 @@ def test_an_edit_that_moves_no_aircraft_column_records_a_dash(
     """A save that alters nothing is still a write, with no column named."""
     aircraft = AircraftFactory(n_number="N78AU", make="Cessna", model="182T Skylane")
     api_client.force_login(account_admin)
-    response = api_client.patch(f"{AIRCRAFT_URL}/{aircraft.pk}", {"make": "Cessna"}, format="json")
+    response = api_client.patch(
+        f"{AIRCRAFT_URL}/{aircraft.pk}", {"type_id": aircraft.type_id}, format="json"
+    )
     assert response.status_code == 200
     assert one_message(audit_log) == (
         f"action=aircraft.update actor={account_admin.pk} target={aircraft.pk} fields=-"

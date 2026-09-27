@@ -25,7 +25,7 @@ from apps.aircraft.models import Aircraft
 from apps.members.models import MemberProfile, MembershipSource, MembershipStatusChoices
 from apps.payments.models import Payment, PaymentStatus
 from tests.conftest import GOOD_PASSWORD, REGISTER_URL
-from tests.factories import AircraftFactory, PaymentFactory, UserFactory
+from tests.factories import AircraftFactory, AircraftTypeFactory, PaymentFactory, UserFactory
 
 if TYPE_CHECKING:
     from pytest_django.fixtures import Settings
@@ -243,7 +243,11 @@ def test_adding_an_aircraft_ignores_a_supplied_last_writer(
     api_client.force_login(member)
     response = api_client.post(
         AIRCRAFT,
-        {"n_number": "N4321Q", "make": "Cirrus", "model": "SR22", "updated_by": other_member.pk},
+        {
+            "n_number": "N4321Q",
+            "type_id": AircraftTypeFactory(make="Cirrus", model="SR22").pk,
+            "updated_by": other_member.pk,
+        },
         format="json",
     )
     assert response.status_code == 201
@@ -258,7 +262,7 @@ def test_editing_an_aircraft_ignores_a_supplied_last_writer(
     api_client.force_login(account_admin)
     response = api_client.patch(
         f"{AIRCRAFT}/{aircraft.pk}",
-        {"model": "SR22", "updated_by": other_member.pk},
+        {"owner_name": "Marta Reyes", "updated_by": other_member.pk},
         format="json",
     )
     assert response.status_code == 200
@@ -274,7 +278,7 @@ def test_editing_an_aircraft_ignores_a_supplied_change_timestamp(
     api_client.force_login(account_admin)
     response = api_client.patch(
         f"{AIRCRAFT}/{aircraft.pk}",
-        {"model": "SR22", "updated_at": "2001-01-01T00:00:00Z"},
+        {"owner_name": "Marta Reyes", "updated_at": "2001-01-01T00:00:00Z"},
         format="json",
     )
     assert response.status_code == 200

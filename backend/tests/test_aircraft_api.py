@@ -19,7 +19,12 @@ from apps.accounts.roles import ACCOUNT_ADMIN, MEMBER, SYSTEM_ADMIN
 from apps.aircraft.models import Aircraft
 from apps.members.models import MemberProfile
 from tests.conftest import RegisterDict, role_matrix
-from tests.factories import AircraftFactory, MemberProfileFactory, UserFactory
+from tests.factories import (
+    AircraftFactory,
+    AircraftTypeFactory,
+    MemberProfileFactory,
+    UserFactory,
+)
 
 if TYPE_CHECKING:
     # rest_framework.test.APIClient.get() is typed to return this class, but it
@@ -39,11 +44,13 @@ def detail_url(aircraft: Aircraft) -> str:
 
 
 def valid_payload(**overrides: Any) -> dict[str, Any]:
-    """A complete, valid aircraft-creation payload, with ``overrides`` merged in."""
+    """A complete, valid aircraft-creation payload, with ``overrides`` merged in.
+
+    The aircraft type is a Cirrus SR22, found or created for the payload.
+    """
     payload: dict[str, Any] = {
         "n_number": "N4321Q",
-        "make": "Cirrus",
-        "model": "SR22",
+        "type_id": AircraftTypeFactory(make="Cirrus", model="SR22").pk,
         "year": 2019,
         "owner_type": "individual",
         "owner_name": "Marta Reyes",
@@ -247,18 +254,50 @@ def test_blank_n_number_is_rejected(api_client: APIClient, member: User, blank: 
     assert "n_number" in response.json()
 
 
-@pytest.mark.parametrize("field", ["make", "model"])
-def test_make_and_model_are_required(api_client: APIClient, member: User, field: str) -> None:
-    """Omitting or blanking ``make`` or ``model`` is a 400 naming that field."""
+@pytest.mark.parametrize(
+    "type_id", [None, 999_999, "cessna"], ids=["missing", "unknown", "not-an-id"]
+)
+def test_the_aircraft_type_is_required(
+    api_client: APIClient, member: User, type_id: int | str | None
+) -> None:
+    """A create without a usable ``type_id`` is a 400 asking for a type from the list."""
     api_client.force_login(member)
-    payload = valid_payload()
-    del payload[field]
-    assert api_client.post(LIST_URL, payload).status_code == 400
+    payload = valid_payload(type_id=type_id)
+    if type_id is None:
+        del payload["type_id"]
+    response = api_client.post(LIST_URL, payload, format="json")
+    assert (response.status_code, response.json()) == (
+        400,
+        {"type_id": ["Pick the aircraft type from the list."]},
+    )
 
-    payload = valid_payload(**{field: ""})
-    response = api_client.post(LIST_URL, payload)
-    assert response.status_code == 400
-    assert field in response.json()
+
+def test_a_created_aircraft_answers_with_its_type(api_client: APIClient, member: User) -> None:
+    """The record reads back its nested type, with its make and model beside it."""
+    api_client.force_login(member)
+    response = api_client.post(LIST_URL, valid_payload(), format="json")
+    body = response.json()
+    assert (body["make"], body["model"], body["type"]) == (
+        "Cirrus",
+        "SR22",
+        {
+            "id": Aircraft.objects.get().type_id,
+            "make": "Cirrus",
+            "model": "SR22",
+            "seats": 4,
+            "engines": 1,
+            "is_custom": False,
+        },
+    )
+
+
+def test_a_make_and_model_in_the_body_are_not_written(api_client: APIClient, member: User) -> None:
+    """``make`` and ``model`` come from the type; a body naming them changes nothing."""
+    api_client.force_login(member)
+    response = api_client.post(
+        LIST_URL, valid_payload(make="Piper", model="PA-28-181"), format="json"
+    )
+    assert (response.json()["make"], response.json()["model"]) == ("Cirrus", "SR22")
 
 
 @pytest.mark.parametrize(
@@ -293,8 +332,9 @@ def test_created_by_cannot_be_spoofed(
 def test_creator_may_update_their_own_aircraft(api_client: APIClient, member: User) -> None:
     """The member who created an aircraft may patch it."""
     aircraft = AircraftFactory(n_number="N55CR", created_by=member)
+    retyped = AircraftTypeFactory(make="Cessna", model="182T Skylane II")
     api_client.force_login(member)
-    response = api_client.patch(detail_url(aircraft), {"model": "182T Skylane II"})
+    response = api_client.patch(detail_url(aircraft), {"type_id": retyped.pk})
     assert response.status_code == 200
     aircraft.refresh_from_db()
     assert aircraft.model == "182T Skylane II"
@@ -306,18 +346,19 @@ def test_another_member_may_not_update_someone_elses_aircraft(
     """A member who did not create the aircraft gets 403 patching it; nothing changes."""
     owner = UserFactory(email="owner@example.test", roles=[MEMBER])
     aircraft = AircraftFactory(n_number="N56CR", created_by=owner)
+    hijacked = AircraftTypeFactory(make="Hijacked", model="X")
     api_client.force_login(member)
-    response = api_client.patch(detail_url(aircraft), {"model": "hijacked"})
+    response = api_client.patch(detail_url(aircraft), {"type_id": hijacked.pk})
     assert response.status_code == 403
     aircraft.refresh_from_db()
-    assert aircraft.model != "hijacked"
+    assert aircraft.type != hijacked
 
 
 def test_nobody_owns_an_aircraft_created_by_the_seed(api_client: APIClient, member: User) -> None:
     """An aircraft with no creator (seeded) cannot be patched by a plain member."""
     aircraft = AircraftFactory(n_number="N57CR", created_by=None)
     api_client.force_login(member)
-    assert api_client.patch(detail_url(aircraft), {"model": "x"}).status_code == 403
+    assert api_client.patch(detail_url(aircraft), {"owner_name": "x"}).status_code == 403
 
 
 def test_account_admin_may_update_any_aircraft(
@@ -356,8 +397,9 @@ def test_update_keeping_the_same_n_number_is_not_a_duplicate(
 ) -> None:
     """Patching an aircraft with its own (differently typed) N-number is not rejected."""
     aircraft = AircraftFactory(n_number="N62CR")
+    piper = AircraftTypeFactory(make="Piper", model="PA-28-181")
     api_client.force_login(account_admin)
-    response = api_client.patch(detail_url(aircraft), {"n_number": "62cr", "make": "Piper"})
+    response = api_client.patch(detail_url(aircraft), {"n_number": "62cr", "type_id": piper.pk})
     assert response.status_code == 200, response.json()
     aircraft.refresh_from_db()
     assert (aircraft.n_number, aircraft.make) == ("N62CR", "Piper")
@@ -470,6 +512,23 @@ def test_make_filter_matches_case_insensitively(
     """The ``make`` filter matches case-insensitively on the aircraft's make."""
     api_client.force_login(member)
     assert numbers(api_client.get(LIST_URL, {"make": "cessna"})) == ["N172SP"]
+
+
+def test_model_filter_matches_anywhere_in_the_model(
+    api_client: APIClient, member: User, register: RegisterDict
+) -> None:
+    """The ``model`` filter matches part of the type's model, case-insensitively."""
+    api_client.force_login(member)
+    assert numbers(api_client.get(LIST_URL, {"model": "archer"})) == ["N9021K"]
+
+
+def test_type_filter_lists_the_aircraft_of_one_type(
+    api_client: APIClient, member: User, register: RegisterDict
+) -> None:
+    """The ``type`` filter narrows the register to the aircraft of that type id."""
+    api_client.force_login(member)
+    type_id = register["expired"].type_id
+    assert numbers(api_client.get(LIST_URL, {"type": type_id})) == ["N33MM"]
 
 
 def test_owner_type_filter(api_client: APIClient, member: User, register: RegisterDict) -> None:
