@@ -30,7 +30,7 @@ have `-backend` and `-frontend` halves for iterating on one side.
 
 | Scope | Target | Runs |
 |-------|--------|------|
-| Code | `make lint` | `ruff check`, `ruff format --check`, `mypy backend`, `tsc --noEmit`, ESLint (`--max-warnings 0`), `prettier --check`, `codespell` |
+| Code | `make lint` | `ruff check`, `ruff format --check`, `mypy backend frontend/e2e/prefix_proxy.py`, `tsc --noEmit`, ESLint (`--max-warnings 0`), `prettier --check`, `codespell` |
 | Tests | `make test` | pytest (needs `make up`; warnings are errors) and vitest |
 | Coverage (opt-in) | `make coverage` | `make coverage-backend` (pytest-cov over `backend/apps` and `backend/caldart`) and `make coverage-frontend` (vitest with `@vitest/coverage-v8`), production code only; reports are written, nothing gates on them |
 | System | `make check` | Django system checks (`--fail-level WARNING`), missing-migration check, deployment checks against the production settings (`check --deploy` with the `security`, `caches`, `async_support` and `mail` tags against `caldart.settings.prod`), the OpenAPI schema the portal's types are checked against, production frontend build |

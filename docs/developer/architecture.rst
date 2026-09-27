@@ -205,7 +205,8 @@ is true (:doc:`cms`).
 from the site's theme and loads the portal bundle.  The server knows nothing
 of the SPA's routes and makes no access decision here; React Router picks
 the screen in the browser, so a reload or a shared link lands in the right
-place.  Django's ``LOGIN_URL`` is ``/portal/login``.
+place.  Django's ``LOGIN_URL`` is ``/portal/login``, or that path under the
+site's ``URL_PREFIX`` (:doc:`configuration`) when it has one.
 
 **The user guide.**  ``make guide`` builds ``docs/user/`` alone into
 ``docs/_build/guide``, and ``user_guide`` serves those files at ``/docs/`` to
