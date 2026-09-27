@@ -29,7 +29,7 @@ async function registerMember(page: Page, first: string, email: string): Promise
 
   await expect(page.getByRole('heading', { name: 'About you' })).toBeVisible();
   await page.getByRole('textbox', { name: 'Phone', exact: true }).fill('650-555-0161');
-  await page.getByRole('textbox', { name: 'Address', exact: true }).fill('7 Taxiway Court');
+  await page.getByRole('combobox', { name: 'Address', exact: true }).fill('7 Taxiway Court');
   await page.getByRole('textbox', { name: 'City', exact: true }).fill('Watsonville');
   await page.getByRole('textbox', { name: 'ZIP code', exact: true }).fill('95076');
   await page.getByRole('button', { name: 'Save and continue' }).click();

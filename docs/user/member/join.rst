@@ -95,6 +95,10 @@ describes every field. Only these are required now: **Phone**, **Address**,
 **City**, **State**, and **ZIP code**. **Pilot certificate** always holds a value;
 leave it at *Not a pilot* if that is what you are. Everything else can wait.
 
+As you type your street into **Address**, matching addresses appear in a list
+under the box. Pick yours and the form fills in **City**, **State**, **ZIP code**,
+and **California county** for you; :doc:`profile` describes the list in full.
+
 Press **Save and continue**. The form saves only when every field it checks is
 right, and a form that saves lets you move on.
 

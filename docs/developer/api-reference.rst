@@ -330,8 +330,9 @@ Throttling
 
 There is no project-wide throttle.  The anonymous auth endpoints, and the start
 of a gift on the public donation page, are rate limited by client IP address,
-with the rates read from the environment.  Both password-reset endpoints share
-one scope, so asking for links and spending them draw on the same budget:
+and address suggestions by signed-in account, with the rates read from the
+environment.  Both password-reset endpoints share one scope, so asking for
+links and spending them draw on the same budget:
 
 .. list-table::
    :header-rows: 1
@@ -361,14 +362,20 @@ one scope, so asking for links and spending them draw on the same budget:
    * - ``POST /donations/checkout``
      - ``donate``
      - ``AUTH_THROTTLE_DONATE`` (``10/hour``)
+   * - ``GET /addresses/suggest``
+     - ``address_suggest``
+     - ``ADDRESS_SUGGEST_THROTTLE_RATE`` (``60/min``), per account
 
 Setting a rate to empty turns that throttle off, and a value that is neither
 empty nor a readable rate stops start-up; see :doc:`configuration`.  The test
 settings switch every one off in Python rather than through the environment.
-The classes subclass ``AnonRateThrottle`` but override
+The auth and donation classes subclass ``AnonRateThrottle`` but override
 ``get_cache_key`` so they bucket by address even for an authenticated caller —
 registration signs the new account in, and every request after the first would
-otherwise go uncounted.  Exceeding a rate is **429**.
+otherwise go uncounted.  The address-suggestion class subclasses
+``UserRateThrottle`` and counts each account on its own, because every
+suggestion spends the Geoapify quota the whole site shares.  Exceeding a rate
+is **429**.
 
 .. _api-machine-readable-schema:
 
@@ -677,6 +684,14 @@ not (see :ref:`api-csrf-bootstrap`).
      - ✓
      - ✓
      - become a friend, or take back a change still ahead (see :doc:`api-profile`)
+   * - ``GET /addresses/suggest``
+     - ·
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+     - throttled per account; ``[]`` while no Geoapify key is set
    * - ``GET /me/membership``, ``GET /me/payments``
      - ·
      - ✓

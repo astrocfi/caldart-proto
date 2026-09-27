@@ -363,8 +363,10 @@ Generate a secret key with::
   python3 -c "import secrets; print(secrets.token_urlsafe(64))"
 
 Then work down the rest of the template: ``CSRF_TRUSTED_ORIGINS``,
-``DEFAULT_FROM_EMAIL``, the throttle rates, the Stripe and PayPal keys,
-``BACKUP_DIR``, and ``DB_BACKUP_VIA_DOCKER``.  :doc:`configuration` documents
+``DEFAULT_FROM_EMAIL``, the throttle rates, ``GEOAPIFY_API_KEY`` (the key
+behind the profile form's address suggestions, which stay off while it is
+blank), the Stripe and PayPal keys, ``BACKUP_DIR``, and
+``DB_BACKUP_VIA_DOCKER``.  :doc:`configuration` documents
 every variable, what reads it, and its development and production values.  The
 Stripe and PayPal keys are covered in :doc:`payments-setup`, and what the mail
 domain needs before ``EMAIL_URL`` delivers anything in :doc:`email`.

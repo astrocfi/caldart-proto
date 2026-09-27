@@ -32,6 +32,10 @@ E2E_DB ?= caldart_e2e
 E2E_DATABASE_URL ?= postgres://caldart:caldart@localhost:5432/$(E2E_DB)
 E2E_LOG ?= /tmp/caldart-e2e-server.log
 E2E_MAIL_DIR := $(abspath frontend/e2e/.mail)
+# The run cannot call Geoapify, so a static file server on the next port answers
+# every address-suggestion request with the one recorded response in this directory.
+E2E_GEOAPIFY_PORT ?= $(shell expr $(E2E_PORT) + 1)
+E2E_GEOAPIFY_DIR := $(abspath frontend/e2e/geoapify)
 
 # The end-to-end server's whole environment, spelled out rather than inherited.
 # The run has to behave the same on a laptop with a `.env` and on CI without
@@ -54,6 +58,10 @@ E2E_MAIL_DIR := $(abspath frontend/e2e/.mail)
 #                      than a person ever would; every anonymous rate is
 #                      lifted, since one run registers more than ten accounts
 #                      from one address.
+#   GEOAPIFY_*         a key, so address suggestions are on, and the stub's
+#                      URL in place of Geoapify's; the stub answers every query
+#                      with frontend/e2e/geoapify/autocomplete.json.  The
+#                      suggestion rate is lifted with the others.
 E2E_ENV := DJANGO_SETTINGS_MODULE=caldart.settings.dev \
            DATABASE_URL="$(E2E_DATABASE_URL)" \
            SECRET_KEY=e2e-insecure-secret-key \
@@ -69,7 +77,10 @@ E2E_ENV := DJANGO_SETTINGS_MODULE=caldart.settings.dev \
            AUTH_THROTTLE_PASSWORD_RESET=1000/min \
            AUTH_THROTTLE_VERIFY=1000/min \
            AUTH_THROTTLE_VERIFY_RESEND=1000/min \
-           AUTH_THROTTLE_DONATE=1000/min
+           AUTH_THROTTLE_DONATE=1000/min \
+           GEOAPIFY_API_KEY=e2e-stub-key \
+           GEOAPIFY_URL="http://127.0.0.1:$(E2E_GEOAPIFY_PORT)/autocomplete.json" \
+           ADDRESS_SUGGEST_THROTTLE_RATE=1000/min
 
 .PHONY: help setup up down wait-db createdb migrate makemigrations seed reset run \
         dev-frontend build test test-backend test-frontend coverage coverage-backend \
@@ -191,9 +202,13 @@ e2e: ## Playwright end-to-end tests (own database, own server, mock payments)
 	$(E2E_ENV) $(MANAGE) collectstatic --noinput
 	$(MAKE) --no-print-directory guide
 	@set -e; \
+	  $(UV) run python -m http.server $(E2E_GEOAPIFY_PORT) --bind 127.0.0.1 \
+	    --directory "$(E2E_GEOAPIFY_DIR)" > /dev/null 2>&1 & \
+	  geoapify=$$!; \
 	  $(E2E_ENV) $(MANAGE) runserver 0.0.0.0:$(E2E_PORT) --noreload > $(E2E_LOG) 2>&1 & \
 	  server=$$!; \
-	  trap 'pkill -P $$server >/dev/null 2>&1; kill $$server >/dev/null 2>&1; true' EXIT INT TERM; \
+	  trap 'pkill -P $$server >/dev/null 2>&1; kill $$server >/dev/null 2>&1; \
+	        pkill -P $$geoapify >/dev/null 2>&1; kill $$geoapify >/dev/null 2>&1; true' EXIT INT TERM; \
 	  for i in $$(seq 1 60); do \
 	    curl -sf -o /dev/null "http://localhost:$(E2E_PORT)/portal/login" && break; \
 	    sleep 1; \
