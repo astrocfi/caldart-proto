@@ -86,7 +86,7 @@ function isCaliforniaCounty(name: string): name is CaliforniaCounty {
  * the form does not offer keeps the one already chosen, and a county it does not
  * offer (every address outside California) reads as none.
  */
-export function withPickedAddress(
+function withPickedAddress(
   value: ProfileFormValues,
   pick: AddressSuggestion,
 ): ProfileFormValues {
