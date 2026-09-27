@@ -1357,6 +1357,21 @@ looking the ids up.  A richer trail, held in the database and readable from the
 portal, is the ``AuditEntry`` model in :doc:`roadmap`.
 
 
+.. _deploy-rehearsal:
+
+Rehearsing an install
+=====================
+
+``make rehearse-deploy``, run on a development machine with Docker, puts these
+scripts through a whole life on a throwaway Ubuntu 24.04 container running
+systemd: ``bootstrap.sh`` with ``--tls self-signed``, an ``upgrade.sh`` with
+nothing to pull, ``install.sh`` again with no flags, and ``uninstall.sh --yes
+--purge``, with Apache by default or nginx with
+``REHEARSE_WEB_SERVER=nginx``.  It is the way to try a change to anything
+under ``deploy/`` before a server sees it; :ref:`testing-rehearsal` describes
+what it runs and how the container is set up.
+
+
 Upgrading
 =========
 

@@ -88,8 +88,9 @@ E2E_ENV := DJANGO_SETTINGS_MODULE=caldart.settings.dev \
 
 # `make rehearse-deploy` runs the real installer in a throwaway systemd
 # container: deploy/bootstrap.sh, then deploy/upgrade.sh, deploy/install.sh a
-# second time, and deploy/uninstall.sh --yes --purge.  Slow and opt-in, like
-# `make e2e`; CI does not run it.
+# second time, and deploy/uninstall.sh --yes --purge, with every scheduled job
+# started once after the install.  Slow and opt-in, like `make e2e`; CI does
+# not run it.
 #
 #   REHEARSE_WEB_SERVER  apache or nginx, what the installer is told to use
 #   REHEARSE_KEEP        a switch: keep the container and its volumes afterwards
@@ -290,6 +291,10 @@ rehearse-deploy: ## Rehearse the server install in a throwaway systemd container
 	  inside bash /mnt/caldart/deploy/bootstrap.sh --repo /mnt/caldart --ref "$(REHEARSE_REF)" \
 	    --hostname caldart.test --tls self-signed --web-server $(REHEARSE_WEB_SERVER) \
 	    --email-url smtp://localhost:25 --admin-email admin@caldart.test; \
+	  : "The install started the registry import itself; it downloads the FAA file."; \
+	  echo "==> Running every other scheduled job once, hardening and all"; \
+	  inside systemctl start caldart-backup.service caldart-reports.service \
+	    caldart-renewals.service caldart-reminders.service caldart-statements.service; \
 	  echo "==> Rehearsing an upgrade that changes nothing"; \
 	  inside /srv/caldart/deploy/upgrade.sh; \
 	  echo "==> Rehearsing a second install with no flags"; \
