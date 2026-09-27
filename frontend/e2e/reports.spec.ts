@@ -17,7 +17,7 @@ test('an account administrator subscribes somebody to the member report, sends i
     .getByRole('link', { name: 'Subscriptions' })
     .click();
   await expect(page).toHaveURL(/\/portal\/admin\/reports/);
-  await expect(page.getByRole('heading', { name: 'Subscriptions', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Subscriptions' })).toBeVisible();
 
   await page.getByRole('button', { name: 'New subscription' }).click();
   await page.getByLabel('Report', { exact: true }).selectOption('members');
@@ -43,7 +43,7 @@ test('an account administrator subscribes somebody to the member report, sends i
 
   const subscriptions = page
     .locator('section.card')
-    .filter({ has: page.getByRole('heading', { name: 'Subscriptions' }) });
+    .filter({ has: page.getByRole('heading', { level: 2, name: 'Subscriptions' }) });
   const created = subscriptions
     .getByRole('row')
     .filter({ hasText: /^CalDART membership report/ })
@@ -111,7 +111,7 @@ test('a treasurer reads the subscriptions but not the DART rosters', async ({ pa
   await signIn(page, DEMO.treasurer);
   await page.goto('portal/admin/reports');
 
-  await expect(page.getByRole('heading', { name: 'Subscriptions' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 2, name: 'Subscriptions' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'DART rosters' })).toHaveCount(0);
 });
 
