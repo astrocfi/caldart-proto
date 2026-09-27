@@ -52,10 +52,10 @@ class RowContext(TypedDict):
 #: with, ``label`` is the header both exports print, ``default`` says whether
 #: the column appears when the caller chooses none, and ``width`` is the share
 #: of the page the PDF gives it.  The ones that are off by default -- the plan,
-#: the certificate number, the instrument rating, the town, the state, the county,
-#: the two joining dates and the profile's last update -- are there for a roster
-#: or an audit rather than for the everyday report, which is sized so no default
-#: cell has to wrap.
+#: the certificate number, the instrument rating, the two airports, the town, the
+#: state, the county, the two joining dates and the profile's last update -- are
+#: there for a roster or an audit rather than for the everyday report, which is
+#: sized so no default cell has to wrap.
 #:
 #: A lifetime membership has no expiry date, so ``expires_on`` is blank for one;
 #: the ``plan`` column ("Life") and ``status`` ("Current") say what it is.  The
@@ -107,7 +107,9 @@ MEMBER_REPORT_COLUMNS: tuple[ReportColumn[RowContext], ...] = (
         lambda ctx: _value(ctx["profile"], "certificate_number"),
         width=1.6,
     ),
-    ReportColumn("ifr", "IFR", False, lambda ctx: _display(ctx["profile"], "ifr_rated"), width=0.8),
+    ReportColumn(
+        "instrument", "Instrument", False, lambda ctx: _instrument(ctx["profile"]), width=1.3
+    ),
     ReportColumn(
         "medical_type",
         "Medical",
@@ -123,6 +125,20 @@ MEMBER_REPORT_COLUMNS: tuple[ReportColumn[RowContext], ...] = (
         width=2.25,
     ),
     ReportColumn("aircraft", "Aircraft", True, lambda ctx: " ".join(ctx["aircraft"]), width=2.35),
+    ReportColumn(
+        "home_airport",
+        "Home airport",
+        False,
+        lambda ctx: _value(ctx["profile"], "home_airport_identifier"),
+        width=1.3,
+    ),
+    ReportColumn(
+        "secondary_airport",
+        "Secondary airport",
+        False,
+        lambda ctx: _value(ctx["profile"], "secondary_airport_identifier"),
+        width=1.5,
+    ),
     ReportColumn("city", "City", False, lambda ctx: _value(ctx["profile"], "city"), width=1.6),
     ReportColumn("state", "State", False, lambda ctx: _value(ctx["profile"], "state"), width=0.8),
     ReportColumn(
@@ -165,6 +181,16 @@ def _date(profile: MemberProfile | None, field: str) -> date | None:
     return value
 
 
+def _instrument(profile: MemberProfile | None) -> str:
+    """``Yes`` or ``No`` for a pilot, by whether ``ratings`` holds ``instrument``.
+
+    A member without a profile, and one who is not a pilot, read as a blank cell.
+    """
+    if profile is None or profile.pilot_certificate_type == PilotCertificateType.NONE:
+        return ""
+    return "Yes" if "instrument" in profile.ratings else "No"
+
+
 def _profile_updated(profile: MemberProfile | None) -> str:
     """``profile.profile_updated_at`` as a local calendar date, or a blank cell.
 
@@ -177,7 +203,7 @@ def _profile_updated(profile: MemberProfile | None) -> str:
 
 #: Choice values that mean "nothing on file"; they read better as a blank cell
 #: than as the word "None" in a spreadsheet.
-_EMPTY_CHOICES = frozenset({"none", "na"})
+_EMPTY_CHOICES = frozenset({"none"})
 
 
 def _display(profile: MemberProfile | None, field: str) -> str:

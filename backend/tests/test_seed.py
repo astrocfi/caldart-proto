@@ -112,22 +112,38 @@ def test_seed_demo_does_not_reseed_the_shared_faker_generator(
 
 
 def test_every_seeded_town_comes_from_the_town_generator() -> None:
-    """A seeded profile's two towns are draws from the seed's own town generator.
+    """A seeded profile's town is a draw from the seed's own town generator.
 
     The generator the rest of the demo data is drawn from runs on through the
     aircraft and payment seeds, so a town taken from it would move every name,
-    number and payment drawn after it.  Two towns per profile are drawn, in the
+    number and payment drawn after it.  One town per profile is drawn, in the
     order the profiles are created, so the towns on the seeded profiles are
-    exactly the first two per profile that a generator on the same seed gives.
+    exactly the first one per profile that a generator on the same seed gives.
     """
     _seed()
     profiles = list(MemberProfile.objects.all())
     towns = Faker("en_US")
     towns.seed_instance(DART_SEED)
-    expected = Counter(towns.city() for _ in range(2 * len(profiles)))
-    found = Counter([profile.city for profile in profiles])
-    found.update(profile.home_airport_city for profile in profiles)
+    expected = Counter(towns.city() for _ in range(len(profiles)))
+    found = Counter(profile.city for profile in profiles)
     assert found == expected
+
+
+def test_fifteen_seeded_pilots_have_a_secondary_airport() -> None:
+    """Roughly one member in three, fifteen of the seeded fifty, has a secondary airport."""
+    _seed()
+    profiles = MemberProfile.objects.exclude(secondary_airport_identifier="")
+    assert profiles.count() == 15
+
+
+def test_a_seeded_secondary_airport_is_never_the_home_airport() -> None:
+    """A secondary airport is drawn from the seed's airports other than the home one."""
+    _seed()
+    profiles = MemberProfile.objects.exclude(secondary_airport_identifier="")
+    assert all(
+        profile.secondary_airport_identifier != profile.home_airport_identifier
+        for profile in profiles
+    )
 
 
 def test_seed_roles_command() -> None:

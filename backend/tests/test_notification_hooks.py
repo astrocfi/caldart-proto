@@ -905,12 +905,14 @@ def test_editing_your_own_profile_raises_profile_changed_with_no_actor(
     api_client.force_login(member)
 
     response = api_client.patch(
-        "/api/v1/me/profile", {"city": "Fresno", "ifr_rated": "no"}, format="json"
+        "/api/v1/me/profile",
+        {"city": "Fresno", "air_care_alliance_number": "ACA-99999"},
+        format="json",
     )
 
     assert response.status_code == 200
     assert raised(recorded, "profile_changed") == [
-        {"user": member, "fields": ["City", "IFR rated"], "actor": None}
+        {"user": member, "fields": ["City", "Air Care Alliance number"], "actor": None}
     ]
 
 
@@ -918,7 +920,9 @@ def test_editing_your_own_profile_raises_profile_changed_with_no_actor(
     ("name", "label"),
     [
         ("dart", "DART"),
-        ("ifr_rated", "IFR rated"),
+        ("air_care_alliance_number", "Air Care Alliance number"),
+        ("home_airport_identifier", "Home airport"),
+        ("secondary_airport_identifier", "Secondary airport"),
         ("address_line1", "Address line 1"),
         ("first_name", "First name"),
         ("city", "City"),

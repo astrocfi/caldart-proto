@@ -31,7 +31,7 @@ class MemberProfileAdmin(ProfileAdminBase):
         "medical_expiration",
         "medical_is_current",
     ]
-    list_filter = ["dart", "pilot_certificate_type", "medical_type", "ifr_rated"]
+    list_filter = ["dart", "pilot_certificate_type", "medical_type"]
     search_fields = ["user__email", "user__first_name", "user__last_name", "certificate_number"]
     autocomplete_fields = ["user", "dart", "aircraft"]
     readonly_fields = ["created_at", "updated_at", "profile_updated_at"]

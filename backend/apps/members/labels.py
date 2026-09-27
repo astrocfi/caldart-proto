@@ -1,7 +1,8 @@
 """The words a notification uses for a member record's fields.
 
 A ``profile_changed`` event names the fields an edit moved by their labels, so the
-email reads DART and IFR rated rather than ``dart`` and ``ifr_rated``.
+email reads DART and Air Care Alliance number rather than ``dart`` and
+``air_care_alliance_number``.
 """
 
 from __future__ import annotations
@@ -29,7 +30,8 @@ _FIELD_LABELS: dict[str, str] = {
     "address_line2": "Address line 2",
     "dart": "DART",
     "air_care_alliance_number": "Air Care Alliance number",
-    "ifr_rated": "IFR rated",
+    "home_airport_identifier": "Home airport",
+    "secondary_airport_identifier": "Secondary airport",
     "how_heard": "How they heard of CalDART",
 }
 
@@ -37,8 +39,8 @@ _FIELD_LABELS: dict[str, str] = {
 def profile_field_label(name: str) -> str:
     """The words a notification uses for the profile or name field ``name``.
 
-    ``dart`` reads DART, ``ifr_rated`` IFR rated, ``first_name`` First name, and so
-    on; a field with no label of its own reads as its model field's verbose name with
+    ``dart`` reads DART, ``phone_alt`` Alternate phone, ``first_name`` First name, and
+    so on; a field with no label of its own reads as its model field's verbose name with
     a capital letter, e.g. ``city`` -> City, ``county`` -> California county.  A name
     that is no profile field raises ``FieldDoesNotExist``.
     """

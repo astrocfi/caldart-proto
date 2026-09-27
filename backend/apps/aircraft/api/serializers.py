@@ -28,7 +28,6 @@ from apps.aircraft.naming import display_make, display_model
 from apps.aircraft.verification import INSURANCE_FIELDS
 from apps.members.models import (
     RATING_VALUES,
-    IfrRated,
     MedicalType,
     MembershipState,
     PhotoIdType,
@@ -463,7 +462,6 @@ class LeaderCertificateSerializer(serializers.Serializer[Any]):
 
     type = serializers.ChoiceField(choices=PilotCertificateType.choices)
     number = serializers.CharField(allow_blank=True)
-    ifr_rated = serializers.ChoiceField(choices=IfrRated.choices)
     ratings = serializers.ListField(child=serializers.ChoiceField(choices=RATING_VALUES))
     verification = VerificationSerializer()
 

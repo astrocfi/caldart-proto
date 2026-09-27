@@ -37,7 +37,6 @@ from apps.cms.models import (
 from apps.darts.models import Dart, DartContact
 from apps.mail.models import EmailLog, EmailStatus
 from apps.members.models import (
-    IfrRated,
     MedicalType,
     MemberProfile,
     Membership,
@@ -248,7 +247,6 @@ class MemberProfileFactory(ModelFactory[MemberProfile]):
     dart = factory.SubFactory(DartFactory)
     pilot_certificate_type = PilotCertificateType.PRIVATE
     certificate_number = factory.Faker("numerify", text="#######")
-    ifr_rated = IfrRated.YES
     ratings = factory.LazyFunction(lambda: ["instrument"])
     medical_type = MedicalType.THIRD
     medical_expiration = factory.LazyFunction(lambda: timezone.localdate() + timedelta(days=365))

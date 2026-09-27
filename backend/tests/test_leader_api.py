@@ -289,7 +289,6 @@ def test_status_card_shape(
     assert data["certificate"] == {
         "type": "private",
         "number": "3181234",
-        "ifr_rated": "yes",
         "ratings": ["instrument"],
         "verification": UNVERIFIED,
     }

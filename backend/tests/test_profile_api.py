@@ -215,11 +215,10 @@ def test_put_updates_every_writable_section(
             "emergency_contact_name": "Dana Lee",
             "emergency_contact_phone": "650-555-0199",
             "home_airport_identifier": "SQL",
-            "home_airport_city": "San Carlos",
+            "secondary_airport_identifier": "PAO",
             "dart_id": dart.id,
             "pilot_certificate_type": "commercial",
             "certificate_number": "3141592",
-            "ifr_rated": "yes",
             "ratings": ["instrument", "amel"],
             "medical_type": "second",
             "medical_expiration": "2030-01-31",
@@ -635,53 +634,85 @@ def test_an_extension_is_digits_only(
     assert response.json()[field] == ["An extension is digits only, for example 4021."]
 
 
-def test_home_airport_is_stored_in_upper_case(
-    api_client: APIClient, member: User, profile: MemberProfile
+#: The two airport fields share one rule, so every airport case runs against both.
+AIRPORT_FIELDS = pytest.mark.parametrize(
+    "field", ["home_airport_identifier", "secondary_airport_identifier"], ids=["home", "secondary"]
+)
+
+
+@AIRPORT_FIELDS
+def test_an_airport_is_stored_in_upper_case(
+    api_client: APIClient, member: User, profile: MemberProfile, field: str
 ) -> None:
     """A lower-cased identifier is stored as the three upper-case characters."""
     api_client.force_login(member)
-    response = api_client.patch(PROFILE_URL, {"home_airport_identifier": "pao"}, format="json")
+    response = api_client.patch(PROFILE_URL, {field: "pao"}, format="json")
     assert response.status_code == 200, response.json()
-    assert response.json()["home_airport_identifier"] == "PAO"
+    assert response.json()[field] == "PAO"
 
 
+@AIRPORT_FIELDS
 @pytest.mark.parametrize(
     "identifier",
-    ["PA", "XPAO", "PAOXX", "PA-"],
-    ids=["too-short", "four-without-the-k", "too-long", "punctuation"],
+    ["PA", "XPAO", "PAOXX", "PA-", "KSQL1"],
+    ids=["too-short", "four-without-the-k", "too-long", "punctuation", "icao-with-a-fifth"],
 )
-def test_home_airport_must_be_three_letters_or_digits(
-    api_client: APIClient, member: User, profile: MemberProfile, identifier: str
+def test_an_airport_must_be_three_letters_or_digits(
+    api_client: APIClient, member: User, profile: MemberProfile, field: str, identifier: str
 ) -> None:
     """Three characters is the stored form; a fourth is only ever an ICAO ``K``."""
     api_client.force_login(member)
-    response = api_client.patch(PROFILE_URL, {"home_airport_identifier": identifier}, format="json")
+    response = api_client.patch(PROFILE_URL, {field: identifier}, format="json")
     assert response.status_code == 400
-    assert response.json()["home_airport_identifier"] == [
-        "Use a three-character identifier like PAO, E16, or KLS."
-    ]
+    assert response.json()[field] == ["Use a three-character identifier like PAO, E16, or KLS."]
 
 
+@AIRPORT_FIELDS
 @pytest.mark.parametrize(
     ("typed", "stored"),
-    [("kls", "KLS"), ("l08", "L08"), ("kcrq", "CRQ")],
-    ids=["k-is-the-identifier", "digits", "icao-form-trimmed"],
+    [("kls", "KLS"), ("l08", "L08"), ("e16", "E16"), ("kcrq", "CRQ"), ("KSQL", "SQL"), ("", "")],
+    ids=[
+        "k-is-the-identifier",
+        "digits",
+        "leading-letter-digit",
+        "icao-form-trimmed",
+        "icao-upper-case-trimmed",
+        "blank",
+    ],
 )
-def test_home_airport_is_stored_in_the_one_spelling(
-    api_client: APIClient, member: User, profile: MemberProfile, typed: str, stored: str
+def test_an_airport_is_stored_in_the_one_spelling(
+    api_client: APIClient,
+    member: User,
+    profile: MemberProfile,
+    field: str,
+    typed: str,
+    stored: str,
 ) -> None:
     """``KCRQ`` typed is ``CRQ`` stored, so one airport reads one way everywhere."""
     api_client.force_login(member)
-    response = api_client.patch(PROFILE_URL, {"home_airport_identifier": typed}, format="json")
+    response = api_client.patch(PROFILE_URL, {field: typed}, format="json")
     assert response.status_code == 200, response.json()
-    assert response.json()["home_airport_identifier"] == stored
+    assert response.json()[field] == stored
 
 
-def test_home_airport_accepts_an_identifier_with_a_digit(
+def test_the_secondary_airport_is_saved_on_the_profile(
     api_client: APIClient, member: User, profile: MemberProfile
 ) -> None:
-    """``E16`` is San Martin's identifier: a digit is as good as a letter."""
+    """The secondary airport is stored beside the home airport, not in place of it."""
     api_client.force_login(member)
-    response = api_client.patch(PROFILE_URL, {"home_airport_identifier": "e16"}, format="json")
+    response = api_client.patch(
+        PROFILE_URL, {"secondary_airport_identifier": "kpao"}, format="json"
+    )
     assert response.status_code == 200, response.json()
-    assert response.json()["home_airport_identifier"] == "E16"
+    profile.refresh_from_db()
+    assert profile.secondary_airport_identifier == "PAO"
+
+
+@pytest.mark.parametrize("field", ["home_airport_city", "ifr_rated"])
+def test_the_profile_carries_no_airport_city_or_ifr_rating(
+    api_client: APIClient, member: User, profile: MemberProfile, field: str
+) -> None:
+    """The airport says its own town, and ``ratings`` holds the instrument rating."""
+    api_client.force_login(member)
+    response = api_client.get(PROFILE_URL)
+    assert field not in response.json()

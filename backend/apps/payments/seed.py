@@ -626,7 +626,7 @@ def _seed_donors(ctx: dict[str, Any]) -> int:
     within the last :data:`DONOR_HISTORY_DAYS`, through the seed's usual provider mix,
     each with its fee and its receipt recorded.  Names, amounts and days come from a
     source of their own (:data:`DONOR_SEED`), so the rest of the demo data draws the
-    same whether or not the donors are there; the two towns on each profile come from
+    same whether or not the donors are there; the town on each profile comes from
     the members seed's town generator, which runs on.  The donor at
     :data:`DONOR_ON_A_DART` names the first DART that is not the empty one.  A second
     run finds every row it made before.
@@ -652,7 +652,6 @@ def _seed_donors(ctx: dict[str, Any]) -> int:
             defaults={
                 "phone": f"415-555-{number:04d}",
                 "city": towns.city(),
-                "home_airport_city": towns.city(),
                 "state": "CA",
                 "dart": dart if number == DONOR_ON_A_DART else None,
             },

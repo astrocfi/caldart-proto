@@ -128,8 +128,8 @@ def test_clear_stale_clears_nothing_for_a_value_resent_unchanged(
 
 
 def test_clear_stale_ignores_a_field_no_item_covers(verified_profile: MemberProfile) -> None:
-    """Ratings, IFR, the flight review, and hours are not verified, so clear nothing."""
-    changes = {"ifr_rated": "yes", "ratings": ["instrument"], "total_hours": 9000}
+    """Ratings, the flight review, and hours are not verified, so clear nothing."""
+    changes = {"ratings": ["instrument"], "total_hours": 9000}
     assert clear_stale(verified_profile, changes) == []
 
 
@@ -171,7 +171,7 @@ def test_clear_stale_insurance_leaves_it_for_a_field_it_does_not_cover(
         ({"certificate_number": "7654321"}, ["medical", "photo_id"]),
         ({"pilot_certificate_type": "commercial"}, ["medical", "photo_id"]),
         ({"photo_id_type": "state_id"}, ["certificate", "medical"]),
-        ({"ifr_rated": "yes", "total_hours": 1200}, list(PERSON_ITEMS)),
+        ({"ratings": ["instrument", "amel"], "total_hours": 1200}, list(PERSON_ITEMS)),
     ],
     ids=["medical-type", "medical-expiration", "number", "certificate", "photo-id", "unverified"],
 )

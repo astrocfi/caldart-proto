@@ -265,7 +265,6 @@ def leader_status(user: UserModel) -> dict[str, Any]:
         "certificate": {
             "type": profile.pilot_certificate_type if profile is not None else "none",
             "number": profile.certificate_number if profile is not None else "",
-            "ifr_rated": profile.ifr_rated if profile is not None else "na",
             "ratings": list(profile.ratings or []) if profile is not None else [],
             "verification": _item_state(profile, "certificate"),
         },
