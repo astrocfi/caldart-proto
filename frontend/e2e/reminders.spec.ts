@@ -33,7 +33,7 @@ test('an account administrator reads the reminder log and filters it by kind', a
 
 test('the account administrator has no way to start a scan', async ({ page }) => {
   await signIn(page, DEMO.accountadmin);
-  await page.goto('/portal/admin/reminders');
+  await page.goto('portal/admin/reminders');
   await expect(page.getByRole('heading', { name: 'Renewal reminders' })).toBeVisible();
 
   await expect(page.getByRole('button', { name: 'Run now' })).toHaveCount(0);
@@ -42,7 +42,7 @@ test('the account administrator has no way to start a scan', async ({ page }) =>
 
 test('a DART leader cannot reach the reminder log', async ({ page }) => {
   await signIn(page, DEMO.leader);
-  await page.goto('/portal/admin/reminders');
+  await page.goto('portal/admin/reminders');
 
   await expect(page.getByRole('heading', { name: 'Not allowed' })).toBeVisible();
   await expect(
@@ -54,7 +54,7 @@ test('a DART leader cannot reach the reminder log', async ({ page }) => {
 
 test('a system administrator keeps the run controls on the System page', async ({ page }) => {
   await signIn(page, DEMO.sysadmin);
-  await page.goto('/portal/system');
+  await page.goto('portal/system');
 
   // The System page carries a second scan, the automatic renewals one, with
   // run controls of its own, so every control here is read inside its panel.
@@ -75,7 +75,7 @@ test('a system administrator keeps the run controls on the System page', async (
 
 test('a system administrator filters the email log and downloads it', async ({ page }) => {
   await signIn(page, DEMO.sysadmin);
-  await page.goto('/portal/system');
+  await page.goto('portal/system');
 
   const panel = page
     .locator('section.card')

@@ -24,7 +24,7 @@ function memberCard(page: Page, name: string): Locator {
 
 /** Search the member check for `term` and open the result named `name`. */
 async function lookUp(page: Page, term: string, name: string): Promise<Locator> {
-  await page.goto('/portal/leader');
+  await page.goto('portal/leader');
   await page.getByRole('searchbox', { name: 'Name, email, phone, or N-number' }).fill(term);
   await page.getByRole('button', { name: new RegExp(name) }).click();
   const card = memberCard(page, name);
@@ -61,7 +61,7 @@ test('the results list answers go or no-go before the card is opened', async ({ 
   const { name } = SEED.leaderCheck.expiredMember;
   await signIn(page, DEMO.leader);
 
-  await page.goto('/portal/leader');
+  await page.goto('portal/leader');
   await page
     .getByRole('searchbox', { name: 'Name, email, phone, or N-number' })
     .fill(surname(name));
@@ -78,7 +78,7 @@ test('a friend of CalDART is a NO-GO, called a friend rather than expired', asyn
   await signIn(page, DEMO.leader);
   // Any seeded friend will do: the member list's kind selector names them.
   const friends = (await (
-    await page.request.get('/api/v1/admin/members?kind=friend&ordering=name')
+    await page.request.get('api/v1/admin/members?kind=friend&ordering=name')
   ).json()) as { results: { name: string; email: string }[] };
   const friend = friends.results[0];
   expect(friend).toBeDefined();
@@ -134,7 +134,7 @@ test('a leader searches for a tail number and reads its insurance card', async (
   const { name, nNumber } = SEED.leaderCheck.insuredPilot;
   await signIn(page, DEMO.leader);
 
-  await page.goto('/portal/leader/aircraft');
+  await page.goto('portal/leader/aircraft');
   await expect(page.getByRole('button', { name: /Check aircraft/ })).toHaveCount(0);
   await page.getByRole('searchbox', { name: 'Search by N-number' }).fill(nNumber);
   // The result row answers before the card is opened.
@@ -165,7 +165,7 @@ test('a leader searches for a tail number and reads its insurance card', async (
 test('a plain member cannot reach the leader check', async ({ page }) => {
   await signIn(page, DEMO.member);
 
-  await page.goto('/portal/leader');
+  await page.goto('portal/leader');
 
   await expect(page.getByRole('heading', { name: 'Not allowed' })).toBeVisible();
 });
@@ -175,10 +175,10 @@ test('a plain member cannot reach the leader check', async ({ page }) => {
 // filter is sure to list somebody whichever county the seed drew.
 test('a leader filters the member list by county and downloads the PDF', async ({ page }) => {
   await signIn(page, DEMO.leader);
-  const { county } = (await (await page.request.get('/api/v1/me/profile')).json()) as {
+  const { county } = (await (await page.request.get('api/v1/me/profile')).json()) as {
     county: string;
   };
-  const me = (await (await page.request.get('/api/v1/auth/me')).json()) as {
+  const me = (await (await page.request.get('api/v1/auth/me')).json()) as {
     first_name: string;
     last_name: string;
   };

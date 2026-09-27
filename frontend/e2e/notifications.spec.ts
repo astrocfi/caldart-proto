@@ -38,7 +38,7 @@ interface RosterDart {
  * an earlier spec that changed a DART's people cannot leave this one stale.
  */
 async function rosterDart(page: Page): Promise<RosterDart> {
-  const response = await page.request.get('/api/v1/admin/darts');
+  const response = await page.request.get('api/v1/admin/darts');
   expect(response.status()).toBe(200);
   const darts = (await response.json()) as AdminDart[];
   for (const dart of darts) {
@@ -67,7 +67,7 @@ async function joinAsFriend(
   page: Page,
   { first, email, dartId }: { first: string; email: string; dartId: number },
 ): Promise<void> {
-  await page.goto('/portal/join');
+  await page.goto('portal/join');
   await page.getByRole('radio', { name: /Join as a friend/ }).check();
   await page.getByRole('textbox', { name: 'First name' }).fill(first);
   await page.getByRole('textbox', { name: 'Last name' }).fill('Nansen');
@@ -144,7 +144,7 @@ test('an outside address hears of a sign-up, and stops once sign-ups are dropped
 
   // The account administrator drops sign-ups from the subscription.
   await signIn(page, DEMO.accountadmin);
-  await page.goto('/portal/admin/notifications');
+  await page.goto('portal/admin/notifications');
   await row.getByRole('button', { name: 'Edit' }).click();
   const edit = page.getByRole('form', { name: 'Edit subscription' });
   await expect(edit.getByRole('group', { name: 'Recipient' })).toHaveText(`Recipient${outside}`);
@@ -174,7 +174,7 @@ test('an outside address hears of a sign-up, and stops once sign-ups are dropped
 
   // The user administrator deactivates the seeded member.
   await signIn(page, DEMO.useradmin);
-  await page.goto('/portal/admin/users');
+  await page.goto('portal/admin/users');
   await page.getByRole('searchbox', { name: 'Search' }).fill(DEMO.member);
   const link = page.getByRole('row').filter({ hasText: DEMO.member }).getByRole('link');
   const name = (await link.textContent()) ?? '';

@@ -18,7 +18,7 @@ import { followVerificationLink, uniqueEmail } from './helpers';
  * fields that make the profile complete.  Ends on the pay step.
  */
 async function registerMember(page: Page, first: string, email: string): Promise<void> {
-  await page.goto('/portal/join');
+  await page.goto('portal/join');
   await page.getByRole('textbox', { name: 'First name' }).fill(first);
   await page.getByRole('textbox', { name: 'Last name' }).fill('Castellanos');
   await page.getByRole('textbox', { name: 'Email address' }).fill(email);
@@ -69,17 +69,17 @@ test('a current member asks to become a friend, then undoes it', async ({ page }
 test('a member who leaves the pay step is a friend until they pay', async ({ page }) => {
   await registerMember(page, 'Tomas', uniqueEmail('unpaid'));
   // Leave the pay step without paying.
-  await page.goto('/portal/');
+  await page.goto('portal/');
 
   const friendCard = membershipCard(page, 'You are a friend of CalDART');
   await expect(friendCard.getByRole('link', { name: 'Make me a member' })).toBeVisible();
   await expect(friendCard.getByRole('link', { name: /Renew/ })).toHaveCount(0);
 
   // The wizard remembers the kind they chose, and picks up at the pay step.
-  await page.goto('/portal/join');
+  await page.goto('portal/join');
   await expect(page.getByRole('heading', { name: 'Pay your dues' })).toBeVisible();
 
-  await page.goto('/portal/');
+  await page.goto('portal/');
   await membershipCard(page, 'You are a friend of CalDART')
     .getByRole('link', { name: 'Make me a member' })
     .click();

@@ -35,7 +35,7 @@ interface RegistryStatus {
 
 /** What `GET /aircraft/registry` answers now, read through the signed-in session. */
 async function registryStatus(page: Page): Promise<RegistryStatus> {
-  const response = await page.request.get('/api/v1/aircraft/registry');
+  const response = await page.request.get('api/v1/aircraft/registry');
   return (await response.json()) as RegistryStatus;
 }
 
@@ -81,7 +81,7 @@ function unusedModel(): string {
 
 test('a member looks up a registration and picks a misspelled type', async ({ page }) => {
   await signIn(page, DEMO.member);
-  await page.goto('/portal/profile/aircraft');
+  await page.goto('portal/profile/aircraft');
   await page.getByRole('button', { name: 'Add a new aircraft' }).click();
 
   await page.getByRole('textbox', { name: /^N-number/ }).fill(REGISTRY.knownNNumber);
@@ -110,7 +110,7 @@ test('a member looks up a registration and picks a misspelled type', async ({ pa
 
 test('an account administrator adds a type the FAA has never registered', async ({ page }) => {
   await signIn(page, DEMO.accountadmin);
-  await page.goto('/portal/admin/aircraft');
+  await page.goto('portal/admin/aircraft');
   await expect(page.getByText(`Registry as of ${REGISTRY.asOf}`)).toBeVisible();
   await page.getByRole('button', { name: 'New aircraft' }).click();
 
@@ -139,7 +139,7 @@ test('an account administrator adds a type the FAA has never registered', async 
 
 test('the system administrator runs the FAA registry import', async ({ page }) => {
   await signIn(page, DEMO.sysadmin);
-  await page.goto('/portal/system');
+  await page.goto('portal/system');
 
   // The System screen's panels are cards, each a section headed by its title.
   const panel = page

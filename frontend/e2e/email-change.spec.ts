@@ -13,7 +13,7 @@ test('a member changes their address and verifies the new one', async ({ page })
   const second = uniqueEmail('moved');
 
   // Register; the wizard stops to ask for the first address to be verified.
-  await page.goto('/portal/join');
+  await page.goto('portal/join');
   await page.getByRole('textbox', { name: 'First name' }).fill('Irena');
   await page.getByRole('textbox', { name: 'Last name' }).fill('Varga');
   await page.getByRole('textbox', { name: 'Email address' }).fill(first);
@@ -22,7 +22,7 @@ test('a member changes their address and verifies the new one', async ({ page })
   await expect(page.getByRole('heading', { name: 'Check your email' })).toBeVisible();
 
   // Change the address from the menu's screen.
-  await page.goto('/portal/change-email');
+  await page.goto('portal/change-email');
   await page.getByRole('textbox', { name: 'New email address' }).fill(second);
   await page.getByLabel(/^Current password/).fill(PASSWORD);
   await page.getByRole('button', { name: 'Change email' }).click();
@@ -40,7 +40,7 @@ test('a member changes their address and verifies the new one', async ({ page })
   await page.goto(verificationLink(await latestEmailTo(second)));
   await expect(page.getByText(`${second} is verified.`)).toBeVisible();
 
-  await page.goto('/portal/');
+  await page.goto('portal/');
   await expect(page.getByRole('heading', { name: /Welcome, Irena/ })).toBeVisible();
   await expect(nudge).toHaveCount(0);
 });

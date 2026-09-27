@@ -19,7 +19,7 @@ function bodyRows(page: Page, caption: RegExp): Locator {
 
 test('a treasurer reconciles a period and exports it', async ({ page }) => {
   await signIn(page, DEMO.treasurer);
-  await page.goto('/portal/admin/payments/reconciliation');
+  await page.goto('portal/admin/payments/reconciliation');
 
   await expect(page.getByRole('heading', { name: 'Reconciliation', level: 1 })).toBeVisible();
 
@@ -60,7 +60,7 @@ async function contributionRows(page: Page, year: number): Promise<Locator> {
 
 test('a treasurer reads the year of giving and can print a statement', async ({ page }) => {
   await signIn(page, DEMO.treasurer);
-  await page.goto('/portal/admin/payments/contributions');
+  await page.goto('portal/admin/payments/contributions');
 
   await expect(page.getByRole('heading', { name: 'Contributions', level: 1 })).toBeVisible();
 
@@ -82,7 +82,7 @@ test('a treasurer reads the year of giving and can print a statement', async ({ 
 
 test('a treasurer turns a stalled renewal off', async ({ page }) => {
   await signIn(page, DEMO.treasurer);
-  await page.goto('/portal/admin/payments/renewals');
+  await page.goto('portal/admin/payments/renewals');
 
   await expect(page.getByRole('heading', { name: 'Renewals', level: 1 })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Recent charges' })).toBeVisible();
@@ -103,7 +103,7 @@ test('a treasurer turns a stalled renewal off', async ({ page }) => {
 
 test('a system administrator rehearses the renewal scan', async ({ page }) => {
   await signIn(page, DEMO.sysadmin);
-  await page.goto('/portal/system');
+  await page.goto('portal/system');
 
   const panel = page
     .locator('section.card')
@@ -119,7 +119,7 @@ test("a treasurer sees a life member's standing authority as a recurring donatio
   page,
 }) => {
   await signIn(page, DEMO.treasurer);
-  await page.goto('/portal/admin/payments/renewals');
+  await page.goto('portal/admin/payments/renewals');
 
   await page.getByLabel('Search').fill(SEED.contributionMandate.name);
   const row = bodyRows(page, /renewals?$/).first();
@@ -129,6 +129,6 @@ test("a treasurer sees a life member's standing authority as a recurring donatio
 
 test('a plain member reaches none of the finance reports', async ({ page }) => {
   await signIn(page, DEMO.member);
-  await page.goto('/portal/admin/payments/reconciliation');
+  await page.goto('portal/admin/payments/reconciliation');
   await expect(page.getByRole('heading', { name: 'Not allowed' })).toBeVisible();
 });

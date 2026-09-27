@@ -9,7 +9,7 @@ import { DEMO, DEMO_PASSWORD } from './helpers';
 const SECTION_MENU = '.navbar__menu';
 
 test('the section drop-down is closed until the pointer is over its section', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
   const menu = page.locator(SECTION_MENU).first();
   const about = page.getByRole('navigation', { name: 'Main' }).getByRole('link', {
     name: 'About Us',
@@ -29,13 +29,16 @@ test('the section drop-down is closed until the pointer is over its section', as
 
 test("the footer's guide link opens a new tab that asks a visitor to sign in, then shows the guide", async ({
   page,
+  baseURL,
 }) => {
-  await page.goto('/');
+  // The sign-in page is sent back to the guide's path, prefix and all.
+  const guidePath = new URL('docs/', baseURL).pathname;
+  await page.goto('./');
   const [guide] = await Promise.all([
     page.waitForEvent('popup'),
     page.getByRole('contentinfo').getByRole('link', { name: 'User guide' }).click(),
   ]);
-  await expect(guide).toHaveURL(/\/portal\/login\?next=\/docs\/$/);
+  await expect(guide).toHaveURL(new URL(`portal/login?next=${guidePath}`, baseURL).href);
 
   await guide.getByLabel('Email address').fill(DEMO.member);
   await guide.getByLabel('Password').fill(DEMO_PASSWORD);
@@ -46,7 +49,7 @@ test("the footer's guide link opens a new tab that asks a visitor to sign in, th
 });
 
 test('the bar opens with Home and offers one way to join', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
   const bar = page.getByRole('navigation', { name: 'Main' });
 
   const titles = await bar.getByRole('link').allInnerTexts();
@@ -55,7 +58,7 @@ test('the bar opens with Home and offers one way to join', async ({ page }) => {
 });
 
 test("the menu's Donate entry opens the donation form", async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
 
   await page
     .getByRole('navigation', { name: 'Main' })

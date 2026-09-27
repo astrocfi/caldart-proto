@@ -6,12 +6,23 @@
  * server and tears it down again.  Run them against a server you started
  * yourself with `E2E_BASE_URL=http://localhost:8020 npm run e2e`.
  *
+ * `E2E_BASE_URL` may carry a URL prefix (`make e2e E2E_URL_PREFIX=/caldart-proto`
+ * sets `http://localhost:8021/caldart-proto`).  The base URL always ends in a slash
+ * and every spec navigates with a relative path (`portal/login`, `./`), which
+ * resolves under the prefix; a path with a leading slash would resolve against the
+ * host's root and miss the prefix.
+ *
  * One worker, no parallelism: every spec shares one database, and flows A, D
  * and E write to it.
  */
 import { defineConfig, devices } from '@playwright/test';
 
-const baseURL = process.env.E2E_BASE_URL ?? 'http://localhost:8021';
+const baseURL = withTrailingSlash(process.env.E2E_BASE_URL ?? 'http://localhost:8021');
+
+/** `url` ending in exactly one slash, so a relative path resolves beneath it. */
+function withTrailingSlash(url: string): string {
+  return `${url.replace(/\/+$/, '')}/`;
+}
 
 export default defineConfig({
   testDir: './e2e',

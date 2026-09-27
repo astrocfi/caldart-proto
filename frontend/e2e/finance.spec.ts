@@ -18,7 +18,7 @@ import { DEMO, SEED, signIn, uniqueEmail } from './helpers';
 function financeRailEntry(page: Page): Locator {
   return page
     .getByRole('navigation', { name: 'Portal sections' })
-    .locator('a[href="/portal/admin/payments"]');
+    .locator('a[href$="/portal/admin/payments"]');
 }
 
 /** Open the finance area's Payments tab as the treasurer. */
@@ -38,7 +38,7 @@ test('a treasurer reaches the finance area from the portal menu', async ({ page 
 
 test('a treasurer does not reach the member register', async ({ page }) => {
   await signIn(page, DEMO.treasurer);
-  await page.goto('/portal/admin/members');
+  await page.goto('portal/admin/members');
 
   await expect(page.getByRole('heading', { name: 'Not allowed' })).toBeVisible();
 });
@@ -47,11 +47,11 @@ test('a DART leader reaches none of the finance routes', async ({ page }) => {
   await signIn(page, DEMO.leader);
 
   for (const path of [
-    '/portal/admin/payments',
-    '/portal/admin/payments/list',
-    '/portal/admin/payments/record',
-    '/portal/admin/payments/members/1',
-    '/portal/admin/payments/1',
+    'portal/admin/payments',
+    'portal/admin/payments/list',
+    'portal/admin/payments/record',
+    'portal/admin/payments/members/1',
+    'portal/admin/payments/1',
   ]) {
     await page.goto(path);
     await expect(page.getByRole('heading', { name: 'Not allowed' })).toBeVisible();
@@ -124,7 +124,7 @@ test('the treasurer refunds part of a payment and the status follows', async ({ 
 
 test('the treasurer records a check and finds it in the list', async ({ page }) => {
   await signIn(page, DEMO.treasurer);
-  await page.goto('/portal/admin/payments/record');
+  await page.goto('portal/admin/payments/record');
 
   const reference = `E2E-${uniqueEmail('check').split('@')[0]}`;
   await page.getByLabel('Member').fill(SEED.refundedPayment.email);
@@ -136,7 +136,7 @@ test('the treasurer records a check and finds it in the list', async ({ page }) 
   await expect(page.getByRole('heading', { name: /^Payment CALDART-/ })).toBeVisible();
   await expect(page.getByText('By hand')).toBeVisible();
 
-  await page.goto('/portal/admin/payments/list');
+  await page.goto('portal/admin/payments/list');
   await page.getByLabel('Search').fill(reference);
   await expect(page.getByText('1 payment')).toBeVisible();
 });

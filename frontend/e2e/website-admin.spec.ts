@@ -31,19 +31,26 @@ async function publish(page: Page): Promise<void> {
   await expect(page.getByText(/published/i).first()).toBeVisible();
 }
 
+/** The page id in a Wagtail admin URL such as `/admin/pages/3/edit/`, prefixed or not. */
+function wagtailPageId(url: string): string {
+  const match = /\/admin\/pages\/(\d+)\//.exec(url);
+  if (match?.[1] === undefined) throw new Error(`No Wagtail page id in ${url}`);
+  return match[1];
+}
+
 test('a website administrator creates, edits and deletes a page', async ({ page }) => {
   await signInToWagtail(page, DEMO.webadmin);
 
   // Into the page tree, and add a child of Home.  In the explorer a page's
   // title links to its editor, so take the id from there and open the
   // children of Home explicitly.
-  await page.goto('/admin/pages/');
+  await page.goto('admin/pages/');
   const homeHref = await page
     .getByRole('link', { name: 'Home', exact: true })
     .first()
     .getAttribute('href');
-  const homeId = (homeHref ?? '').split('/').filter(Boolean)[2];
-  const homeUrl = `/admin/pages/${homeId}/`;
+  const homeId = wagtailPageId(homeHref ?? '');
+  const homeUrl = `admin/pages/${homeId}/`;
   await page.goto(homeUrl);
   await page.getByRole('link', { name: 'Add child page' }).first().click();
   await page.getByRole('link', { name: 'Standard page', exact: true }).click();
@@ -59,7 +66,7 @@ test('a website administrator creates, edits and deletes a page', async ({ page 
   await expect(page.getByText(/created and published/)).toBeVisible();
 
   // It is live on the public site.
-  const created = await page.goto(`/${SLUG}/`);
+  const created = await page.goto(`${SLUG}/`);
   expect(created?.status()).toBe(200);
   await expect(page.getByRole('heading', { level: 1, name: TITLE })).toBeVisible();
 
@@ -67,25 +74,25 @@ test('a website administrator creates, edits and deletes a page', async ({ page 
   await page.goto(homeUrl);
   await page.getByRole('link', { name: TITLE }).first().click();
   await expect(page.locator('#id_title')).toHaveValue(TITLE);
-  const pageId = new URL(page.url()).pathname.split('/').filter(Boolean)[2];
+  const pageId = wagtailPageId(page.url());
   await page.locator('#id_title').fill(EDITED);
   await publish(page);
 
-  const edited = await page.goto(`/${SLUG}/`);
+  const edited = await page.goto(`${SLUG}/`);
   expect(edited?.status()).toBe(200);
   await expect(page.getByRole('heading', { level: 1, name: EDITED })).toBeVisible();
 
   // Delete it.
-  await page.goto(`/admin/pages/${pageId}/delete/`);
+  await page.goto(`admin/pages/${pageId}/delete/`);
   await page.getByRole('button', { name: /^Yes, delete it$/ }).click();
   await expect(page.getByText(/deleted/i).first()).toBeVisible();
 
-  const gone = await page.goto(`/${SLUG}/`);
+  const gone = await page.goto(`${SLUG}/`);
   expect(gone?.status()).toBe(404);
 });
 
 test('a plain member cannot open the Wagtail admin', async ({ page }) => {
-  await page.goto('/admin/login/');
+  await page.goto('admin/login/');
   await page.getByLabel(/email/i).fill(DEMO.member);
   await page.getByLabel(/password/i).fill(DEMO_PASSWORD);
   await page.getByRole('button', { name: /sign in/i }).click();

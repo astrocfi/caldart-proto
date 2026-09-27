@@ -12,7 +12,7 @@ import { DEMO, latestEmailTo, uniqueEmail } from './helpers';
 
 /** Fill in a $100 gift from `email` and go on to the payment. */
 async function startGift(page: Page, email: string): Promise<void> {
-  await page.goto('/donate/');
+  await page.goto('donate/');
   await page.getByRole('radio', { name: /Bronze/ }).check();
   await page.getByRole('textbox', { name: 'First name' }).fill('Rosa');
   await page.getByRole('textbox', { name: 'Last name' }).fill('Delgado');

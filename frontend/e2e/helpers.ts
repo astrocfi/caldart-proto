@@ -299,7 +299,7 @@ export function uniqueEmail(prefix: string): string {
 
 /** Sign in through the portal's own login form and wait for it to take. */
 export async function signIn(page: Page, email: string): Promise<void> {
-  await page.goto('/portal/login');
+  await page.goto('portal/login');
   await page.getByRole('textbox', { name: 'Email address' }).fill(email);
   await page.getByLabel(/^Password/).fill(DEMO_PASSWORD);
   await page.getByRole('button', { name: 'Sign in' }).click();
@@ -308,7 +308,7 @@ export async function signIn(page: Page, email: string): Promise<void> {
 
 /** Sign in to the Wagtail admin, which has its own login form. */
 export async function signInToWagtail(page: Page, email: string): Promise<void> {
-  await page.goto('/admin/login/');
+  await page.goto('admin/login/');
   await page.getByLabel(/email/i).fill(email);
   await page.getByLabel(/password/i).fill(DEMO_PASSWORD);
   await page.getByRole('button', { name: /sign in/i }).click();

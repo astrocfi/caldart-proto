@@ -70,7 +70,7 @@ test('an account administrator subscribes somebody to the member report, sends i
 
 test('an account administrator rehearses the DART rosters', async ({ page }) => {
   await signIn(page, DEMO.accountadmin);
-  await page.goto('/portal/admin/reports');
+  await page.goto('portal/admin/reports');
 
   const card = page
     .locator('section.card')
@@ -84,7 +84,7 @@ test('an account administrator rehearses the DART rosters', async ({ page }) => 
   expect(dartName).not.toBe('');
 
   // The seed generates the people's names, so read one ticked on that DART from its form.
-  await page.goto('/portal/admin/darts');
+  await page.goto('portal/admin/darts');
   await page
     .getByRole('row')
     .filter({ hasText: dartName })
@@ -96,7 +96,7 @@ test('an account administrator rehearses the DART rosters', async ({ page }) => 
   const person = tickedLabel.replace(/ receives the roster$/, '');
   expect(person).not.toBe('');
 
-  await page.goto('/portal/admin/reports');
+  await page.goto('portal/admin/reports');
   await expect(card.getByLabel('Dry run (send nothing)')).toBeChecked();
   await card.getByRole('button', { name: 'Send rosters now' }).click();
   await expect(card.getByRole('status')).toHaveText(/^Would send [1-9]\d* emails?/);
@@ -109,7 +109,7 @@ test('an account administrator rehearses the DART rosters', async ({ page }) => 
 
 test('a treasurer reads the subscriptions but not the DART rosters', async ({ page }) => {
   await signIn(page, DEMO.treasurer);
-  await page.goto('/portal/admin/reports');
+  await page.goto('portal/admin/reports');
 
   await expect(page.getByRole('heading', { name: 'Subscriptions' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'DART rosters' })).toHaveCount(0);
@@ -117,7 +117,7 @@ test('a treasurer reads the subscriptions but not the DART rosters', async ({ pa
 
 test('a DART leader cannot reach the reports screen', async ({ page }) => {
   await signIn(page, DEMO.leader);
-  await page.goto('/portal/admin/reports');
+  await page.goto('portal/admin/reports');
 
   await expect(page.getByRole('heading', { name: 'Not allowed' })).toBeVisible();
 });

@@ -12,7 +12,7 @@ test('a person deactivates their account and reactivates it at sign-in', async (
   const email = uniqueEmail('leaver');
 
   // A fresh account, so no other spec's demo account is touched.
-  await page.goto('/portal/join');
+  await page.goto('portal/join');
   await page.getByRole('textbox', { name: 'First name' }).fill('Lena');
   await page.getByRole('textbox', { name: 'Last name' }).fill('Park');
   await page.getByRole('textbox', { name: 'Email address' }).fill(email);
@@ -22,7 +22,7 @@ test('a person deactivates their account and reactivates it at sign-in', async (
   await followVerificationLink(page, email);
 
   // Deactivate from the foot of the profile page.
-  await page.goto('/portal/profile');
+  await page.goto('portal/profile');
   const card = page.locator('section.card', {
     has: page.getByRole('heading', { name: 'Deactivate my account' }),
   });
@@ -48,6 +48,6 @@ test('a person deactivates their account and reactivates it at sign-in', async (
   // Reactivating signs the person in.
   await page.getByRole('button', { name: 'Reactivate my account' }).click();
   await expect(page).not.toHaveURL(/\/portal\/login/);
-  await page.goto('/portal/profile');
+  await page.goto('portal/profile');
   await expect(page.getByRole('heading', { name: 'My profile' })).toBeVisible();
 });

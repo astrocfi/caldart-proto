@@ -15,7 +15,7 @@ const NAME = 'Shelter Cove';
 const DELETABLE = 'San Carlos';
 
 /** That team's own page on the public site, which outlives the team. */
-const DELETABLE_PAGE = '/about/darts/sql/';
+const DELETABLE_PAGE = 'about/darts/sql/';
 
 /** A seeded DART no other spec edits, whose people this file adds to. */
 const GROWING = 'Watsonville';
@@ -53,13 +53,13 @@ test('an account administrator adds a DART and it is offered straight away', asy
   await expect(page.getByRole('cell', { name: NAME })).toBeVisible();
 
   // The public catalog is the same table, so the profile's DART box has it.
-  await page.goto('/portal/profile');
+  await page.goto('portal/profile');
   await expect(page.getByLabel('DART').getByRole('option', { name: NAME })).toHaveCount(1);
 });
 
 test('deleting a DART leaves its website page standing', async ({ page }) => {
   await signIn(page, DEMO.accountadmin);
-  await page.goto('/portal/admin/darts');
+  await page.goto('portal/admin/darts');
 
   // The seed puts nobody on San Carlos and gives it a page, so the delete has a
   // page to unlink and no member to unaffiliate.
@@ -84,7 +84,7 @@ test('deleting a DART leaves its website page standing', async ({ page }) => {
 
 test('the member count opens the member list filtered to that DART', async ({ page }) => {
   await signIn(page, DEMO.accountadmin);
-  await page.goto('/portal/admin/darts');
+  await page.goto('portal/admin/darts');
 
   const row = page.getByRole('row').filter({ hasText: 'Palo Alto' }).first();
   await row.getByRole('link', { name: /^\d+$/ }).click();
@@ -94,7 +94,7 @@ test('the member count opens the member list filtered to that DART', async ({ pa
 
 test('a plain member cannot reach the DART screen', async ({ page }) => {
   await signIn(page, DEMO.member);
-  await page.goto('/portal/admin/darts');
+  await page.goto('portal/admin/darts');
 
   await expect(page.getByRole('link', { name: 'DARTs' })).toHaveCount(0);
   await expect(page.getByRole('heading', { name: 'DARTs', exact: true })).toHaveCount(0);
@@ -104,7 +104,7 @@ test('a DART takes a sixth person, and the Roster column counts the ticked ones'
   page,
 }) => {
   await signIn(page, DEMO.accountadmin);
-  await page.goto('/portal/admin/darts');
+  await page.goto('portal/admin/darts');
 
   // The seed ticks each team's leader and deputy, both with an address.
   const before = await rosterCell(page, GROWING);
