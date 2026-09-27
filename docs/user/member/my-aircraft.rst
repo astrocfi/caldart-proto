@@ -118,7 +118,8 @@ leader or a verifier checks the new policy.
 
 For an airplane somebody else added, **Edit** shows **Someone else added this
 aircraft**: *Ask a CalDART account administrator to correct it.* The register is
-shared, so flying an airplane does not make its record yours to change.
+shared, so flying an airplane does not make its record yours to change. An account
+administrator is the exception: for them **Edit** opens any airplane on the list.
 
 
 Removing an airplane

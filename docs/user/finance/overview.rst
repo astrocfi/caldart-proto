@@ -88,7 +88,7 @@ Go to the list
 Reports by email
 ~~~~~~~~~~~~~~~~
 
-The **Reports** screen, also under **Administration**, sends the payments,
+The **Subscriptions** screen, also under **Administration**, sends the payments,
 reconciliation, and contributions reports, and for the treasurer the donors report, to you
 or to anyone else allowed to read them, on a schedule you choose.
 

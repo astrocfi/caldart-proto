@@ -88,7 +88,7 @@ dollar sign and lists the filters you used under its title.
 Receive the list by email
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The **Reports** screen sends this list on a schedule. There, a **Period** choice of
+The **Subscriptions** screen sends this list on a schedule. There, a **Period** choice of
 **This month**, **Last month**, **This year**, or **Last year** picks the dates each
 emailed copy covers, worked out on the day it is sent.
 

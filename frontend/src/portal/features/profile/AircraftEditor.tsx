@@ -2,9 +2,10 @@
  * Editing an aircraft from the member's own screen.
  *
  * `AircraftPermission` lets the member who added an airplane keep it up to
- * date.  This is the same `<AircraftForm/>` the administrator uses, without
- * the administrator's own fields (notes, in-service), and only for a record
- * this member created; anyone else's shows who to ask instead.
+ * date, and an account administrator edit any record.  This is the same
+ * `<AircraftForm/>` the administrator uses, without the administrator's own
+ * fields (notes, in-service); a record somebody else added, opened by a member
+ * who is not an account administrator, shows who to ask instead.
  */
 import { useAircraft, useUpdateAircraft } from '@/portal/features/aircraft';
 import { AircraftForm } from '@/portal/features/aircraft';
@@ -24,14 +25,20 @@ export interface AircraftEditorProps {
   aircraftId: number;
   /** The signed-in member, to tell their own records from everyone else's. */
   userId: number | null;
+  /** Whether the signed-in member holds `account_admin`, which edits any record. */
+  isAccountAdmin: boolean;
   onClose: () => void;
   onSaved: () => void;
 }
 
-/** Edits an aircraft the signed-in member added; shows who to ask for any other record. */
+/**
+ * Edits an aircraft the signed-in member added, or any aircraft for an account
+ * administrator; shows who to ask for any other record.
+ */
 export function AircraftEditor({
   aircraftId,
   userId,
+  isAccountAdmin,
   onClose: handleClose,
   onSaved,
 }: AircraftEditorProps): JSX.Element {
@@ -69,7 +76,7 @@ export function AircraftEditor({
   const record = aircraft.data;
   const mine = userId !== null && record.created_by === userId;
 
-  if (!mine) {
+  if (!mine && !isAccountAdmin) {
     return (
       <Card eyebrow="Edit" title={record.n_number}>
         <EmptyState

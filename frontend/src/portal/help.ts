@@ -58,7 +58,7 @@ export const HELP_PAGES: readonly HelpPage[] = [
   { pattern: '/admin/payments/donors', slug: 'finance/donors' },
   { pattern: '/admin/payments/:id', slug: 'finance/payment-record' },
   { pattern: '/admin/reminders', slug: 'admin/reminders' },
-  { pattern: '/admin/reports', slug: 'admin/reports' },
+  { pattern: '/admin/reports', slug: 'admin/subscriptions' },
   { pattern: '/admin/notifications', slug: 'admin/notifications' },
   { pattern: '/admin/users', slug: 'admin/users' },
   { pattern: '/admin/users/:id', slug: 'admin/user-record' },

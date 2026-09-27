@@ -94,7 +94,7 @@ A user administrator looks after accounts. The role adds:
   verifier from the member check.
 * The **CalDART roles report**: the people who hold each role other than member,
   in a section per role, Verifier among them. An account administrator can have it emailed to a user
-  administrator on a schedule (:doc:`admin/reports`).
+  administrator on a schedule (:doc:`admin/subscriptions`).
 
 A user administrator cannot grant or take away the system administrator role.
 
@@ -115,7 +115,7 @@ The treasurer looks after the money. The role adds:
   lets the treasurer refund it (:doc:`finance/payment-record`). A member's
   **Member ledger** (:doc:`finance/member-ledger`) shows everything one person has
   paid.
-* **Reports** (:doc:`admin/reports`): the financial reports, and emailing them on
+* **Subscriptions** (:doc:`admin/subscriptions`): the financial reports, and emailing them on
   a schedule.
 
 
@@ -134,7 +134,7 @@ An account administrator looks after the membership records. The role adds:
 * **Payments**: the finance area as the treasurer sees it, without **Donors**
   (:doc:`finance/index`).
 * **Reminders** (:doc:`admin/reminders`): every renewal reminder CalDART has sent.
-* **Reports** (:doc:`admin/reports`): reports by email, the CalDART roles report
+* **Subscriptions** (:doc:`admin/subscriptions`): reports by email, the CalDART roles report
   among them, and sending each DART its roster.
 * **Notifications** (:doc:`admin/notifications`): who hears about what by email,
   from a sign-up to a refund.

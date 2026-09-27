@@ -24,7 +24,7 @@ export function AdminReportsPage(): JSX.Element {
 
   return (
     <Page
-      title="Reports"
+      title="Subscriptions"
       eyebrow="Administration"
       lede="The reports CalDART emails on a schedule, and who receives them."
     >

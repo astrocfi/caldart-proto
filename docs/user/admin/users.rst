@@ -84,7 +84,7 @@ report has nobody to list, so the two export buttons and **Columns** are grayed 
 rest the pointer on a grayed-out button to see why.
 
 An account administrator can have the same report emailed on a schedule, to themselves or to
-a user administrator, from :doc:`reports`.
+a user administrator, from :doc:`subscriptions`.
 
 
 Donor accounts

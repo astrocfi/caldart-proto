@@ -14,10 +14,10 @@ test('an account administrator subscribes somebody to the member report, sends i
   await signIn(page, DEMO.accountadmin);
   await page
     .getByRole('navigation', { name: 'Portal sections' })
-    .getByRole('link', { name: 'Reports' })
+    .getByRole('link', { name: 'Subscriptions' })
     .click();
   await expect(page).toHaveURL(/\/portal\/admin\/reports/);
-  await expect(page.getByRole('heading', { name: 'Reports', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Subscriptions', exact: true })).toBeVisible();
 
   await page.getByRole('button', { name: 'New subscription' }).click();
   await page.getByLabel('Report', { exact: true }).selectOption('members');

@@ -105,6 +105,7 @@ export function MyAircraftPage(): JSX.Element {
         <AircraftEditor
           aircraftId={editing}
           userId={user?.id ?? null}
+          isAccountAdmin={user?.roles.includes('account_admin') ?? false}
           onClose={() => setEditing(null)}
           onSaved={() => setEditing(null)}
         />
