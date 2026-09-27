@@ -963,7 +963,7 @@ def test_uninstall_keeps_the_data_without_purge(root: Path, etc: Path) -> None:
 def test_the_web_server_step_starts_a_stopped_web_server(
     web_server: str, unit: str, root: Path, etc: Path, tmp_path: Path
 ) -> None:
-    """The vhost is applied with ``reload-or-restart``, which also starts a stopped server.
+    """The vhost is applied with ``reload-or-restart``, which starts a stopped server.
 
     A package install need not leave the web server running (a ``policy-rc.d`` can
     forbid it, and an operator can stop it), and ``systemctl reload`` fails on a
@@ -979,6 +979,6 @@ def test_the_web_server_step_starts_a_stopped_web_server(
 def test_the_web_server_step_never_plainly_reloads(
     web_server: str, root: Path, etc: Path, tmp_path: Path
 ) -> None:
-    """No step asks ``systemctl reload`` alone, which fails while the server is stopped."""
+    """No step runs a plain ``systemctl reload``, which fails on a stopped server."""
     commands = _commands(_install_dry_run(root, etc, tmp_path, "--web-server", web_server))
     assert [command for command in commands if command.startswith("systemctl reload ")] == []
