@@ -70,7 +70,7 @@ class AircraftType(models.Model):
     the FAA has never registered, has ``is_custom`` set.
     """
 
-    faa_code = models.CharField("FAA code", max_length=7, unique=True)
+    faa_code = models.CharField("FAA code", max_length=16, unique=True)
     faa_make = models.CharField("FAA make", max_length=120)
     faa_model = models.CharField("FAA model", max_length=60)
     make = models.CharField(max_length=120)

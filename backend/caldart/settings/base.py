@@ -352,6 +352,21 @@ GEOAPIFY_URL = env("GEOAPIFY_URL", default="https://api.geoapify.com/v1/geocode/
 # ``None`` is off.
 ADDRESS_SUGGEST_THROTTLE_RATE = _throttle_rate("ADDRESS_SUGGEST_THROTTLE_RATE", "60/min")
 
+# --------------------------------------------------------------------------
+# FAA registry
+# --------------------------------------------------------------------------
+# Where ``manage.py import_faa_registry`` reads the FAA's Releasable Aircraft
+# Database from when no ``--source`` is given: an ``http(s)`` URL of the zip, which
+# is downloaded, or a local zip or directory holding ``ACFTREF.txt`` and
+# ``MASTER.txt`` (as a path or a ``file://`` URL).  The end-to-end run points it at
+# the fixture in ``apps/aircraft/fixtures/faa``.
+FAA_REGISTRY_URL = env(
+    "FAA_REGISTRY_URL", default="https://registry.faa.gov/database/ReleasableAircraft.zip"
+)
+# How many minutes an import started from the System screen may run before a later
+# press treats it as failed and starts another.
+REGISTRY_IMPORT_STALE_MINUTES = env.int("REGISTRY_IMPORT_STALE_MINUTES", default=30)
+
 # How long an email verification link stays usable, in seconds: three days, the
 # same as Django's default for a password link.
 EMAIL_VERIFICATION_TIMEOUT = env.int("EMAIL_VERIFICATION_TIMEOUT", default=259_200)

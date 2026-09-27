@@ -22,7 +22,7 @@ class Migration(migrations.Migration):
             name='AircraftType',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('faa_code', models.CharField(max_length=7, unique=True, verbose_name='FAA code')),
+                ('faa_code', models.CharField(max_length=16, unique=True, verbose_name='FAA code')),
                 ('faa_make', models.CharField(max_length=120, verbose_name='FAA make')),
                 ('faa_model', models.CharField(max_length=60, verbose_name='FAA model')),
                 ('make', models.CharField(max_length=120)),

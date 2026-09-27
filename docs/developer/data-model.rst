@@ -2493,9 +2493,10 @@ does not inherit ``TimestampedModel``: ``created_at`` is its only date.
      - not null; assigned by the database
      - primary key
    * - ``faa_code``
-     - ``CharField(7)``, unique
+     - ``CharField(16)``, unique
      - not null; required
-     - the FAA's manufacturer-model code, which a registration points at
+     - the FAA's seven-character manufacturer-model code, which a registration
+       points at; ``CUSTOM-<id>`` for a type added by hand
    * - ``faa_make``
      - ``CharField(120)``
      - not null; required
