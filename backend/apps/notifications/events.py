@@ -166,6 +166,14 @@ _EVENTS: tuple[Event, ...] = (
         _ACCOUNT_ROLES,
     ),
     Event(
+        "verification_changed",
+        "Verification recorded",
+        "Accounts",
+        "A verifier verified or cleared a member's certificate, medical, or photo ID, "
+        "or an aircraft's insurance.",
+        (USER_ADMIN, ACCOUNT_ADMIN),
+    ),
+    Event(
         "aircraft_added",
         "Aircraft added",
         "Aircraft",

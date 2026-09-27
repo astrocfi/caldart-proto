@@ -113,8 +113,9 @@ When there are more than 25 emails, the foot reads, for example, *Showing 1–25
    *Notification: Payment recorded by hand*, *Notification: Payment refunded*,
    *Notification: Account deactivated*, *Notification: Account reactivated*,
    *Notification: Roles changed*, *Notification: Email address changed*,
-   *Notification: Profile changed*, *Notification: Aircraft added*, *Notification:
-   Aircraft changed*, or *Notification: Aircraft removed*.
+   *Notification: Profile changed*, *Notification: Verification recorded*,
+   *Notification: Aircraft added*, *Notification: Aircraft changed*, or *Notification:
+   Aircraft removed*.
 **Status**
    **Sent** or **Failed**.
 **From** and **To**

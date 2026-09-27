@@ -153,6 +153,9 @@ Accounts
 *Notification: Profile changed*
    A profile is edited, by its holder or by an administrator. It names the fields that
    changed. An edit that changes nothing sends nothing.
+*Notification: Verification recorded*
+   A verifier verifies or clears a member's pilot certificate, medical, or photo ID, or an
+   aircraft's insurance. One email covers everything verified or cleared in one save.
 
 Aircraft
 ~~~~~~~~

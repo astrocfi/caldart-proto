@@ -189,6 +189,13 @@ Accounts
        the member's own ``PUT`` or ``PATCH /me/profile`` (``actor=None``), and
        ``members.services.update_member`` for an administrator's edit
      - ``user``; ``fields``, the labels of the fields whose value moved; ``actor``
+   * - ``verification_changed``
+     - the verification services, ``members.verification.verify_member`` for a
+       member's pilot certificate, medical, and photo ID, and
+       ``aircraft.verification.verify_insurance`` for an aircraft's insurance, once
+       per save and only when an item's verified state changes
+     - ``actor``; ``verified`` and ``cleared``, lists of item labels; and either
+       ``user`` or ``aircraft``
 
 ``profile_changed`` names each field by
 ``members.labels.profile_field_label``: DART, IFR rated, Address line 1,

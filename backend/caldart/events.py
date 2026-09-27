@@ -37,6 +37,7 @@ EVENT_SLUGS: tuple[str, ...] = (
     "roles_changed",
     "email_changed",
     "profile_changed",
+    "verification_changed",
     "aircraft_added",
     "aircraft_changed",
     "aircraft_removed",
