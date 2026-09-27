@@ -45,14 +45,9 @@ Backups
 The table lists every backup on the server, newest first, with its **File** name, when it
 was **Taken**, its **Size**, and a **Download** link.
 
-**Create backup** takes one now. The button reads *Taking a backup…* while it works, which
-takes a minute or two on a large database, so leave the page open. A message names the file
-when it is done.
-
-A backup leaves out CalDART's copy of the FAA aircraft registry, which the nightly import
-copies again from the FAA. After a restore from a backup, the aircraft register reads
-*Registry not imported yet* until the next nightly import, or until you press **Run now**
-under *FAA registry import* below.
+**Create backup** takes one now. It leaves out the FAA registrations **Look up** reads, which
+the next nightly import brings back. The button reads *Taking a backup…* while it works, a
+minute or two on a large database, so leave the page open. A message names the file when done.
 
 **Download** saves a backup to your own computer. Keep at least one copy somewhere other than
 the server: a backup on the same disk as the database is lost with it. Take a backup before
