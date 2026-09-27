@@ -4,8 +4,9 @@
 #
 # Runs every step under deploy/steps/ in order: the operating system packages,
 # the service user, Postgres in Docker, the environment file, the build, the
-# database, gunicorn under systemd, the web server and its certificate, the
-# scheduled jobs, a first backup, and the checks.  Every step is idempotent,
+# database, gunicorn under systemd, the web server and its certificate (or,
+# behind an existing site, the snippet that site includes), the scheduled jobs,
+# a first backup, and the checks.  Every step is idempotent,
 # so running this again repairs or re-applies an install and never destroys
 # data or overwrites a secret.  Each step also runs alone, as
 # sudo deploy/steps/<step>.sh, reading what it needs from the install record.
@@ -23,8 +24,16 @@
 #   --hostname HOST            the public hostname; required on the first run
 #   --www, --no-www            also answer for www.HOST (default --www)
 #   --web-server apache|nginx  which web server to install (default apache)
-#   --tls certbot|self-signed  how the certificate is obtained (default certbot)
+#   --tls certbot|self-signed|existing
+#                              how the certificate is obtained (default certbot); existing
+#                              means a web server here already serves HOST over HTTPS, and
+#                              CalDART is included in its vhost instead of getting its own
 #   --certbot-email ADDRESS    the Let's Encrypt account address; required with certbot
+#   --url-prefix PREFIX        serve the site under this path, such as /caldart-proto
+#                              (default: the root of HOST, which / also names); must match
+#                              URL_PREFIX once the environment file exists
+#   --attach-to FILE           with --tls existing, the existing site's vhost file to
+#                              include CalDART's snippet in (default: print the line to add)
 #   --certbot-staging          use Let's Encrypt's staging directory
 #   --db-port PORT             the host port Postgres listens on, 1024-65535 (default 5432);
 #                              must match DATABASE_URL once the environment file exists
@@ -100,6 +109,14 @@ parse_flags() {
                 RECORD_FLAGS[CALDART_DB_PORT]="$(option_value "$1" "${2:-}")"
                 shift
                 ;;
+            --url-prefix)
+                RECORD_FLAGS[CALDART_URL_PREFIX]="$(option_value "$1" "${2:-}")"
+                shift
+                ;;
+            --attach-to)
+                RECORD_FLAGS[CALDART_ATTACH_TO]="$(option_value "$1" "${2:-}")"
+                shift
+                ;;
             --email-url)
                 EMAIL_URL="$(option_value "$1" "${2:-}")"
                 shift
@@ -148,11 +165,18 @@ validate() {
         certbot)
             [[ -n "$CALDART_CERTBOT_EMAIL" ]] || usage_error "--certbot-email is required with --tls certbot"
             ;;
-        self-signed) ;;
-        *) usage_error "--tls must be certbot or self-signed, not $CALDART_TLS" ;;
+        self-signed | existing) ;;
+        *) usage_error "--tls must be certbot, self-signed, or existing, not $CALDART_TLS" ;;
     esac
+    if [[ -n "$CALDART_ATTACH_TO" ]]; then
+        [[ "$CALDART_TLS" == existing ]] || usage_error "--attach-to is used only with --tls existing"
+        [[ "$CALDART_ATTACH_TO" == /* && "$CALDART_ATTACH_TO" != *$'\n'* ]] ||
+            usage_error "--attach-to must be an absolute path, not $CALDART_ATTACH_TO"
+    fi
     validate_db_port "$CALDART_DB_PORT"
     validate_db_port_matches_env_file
+    validate_url_prefix
+    validate_url_prefix_matches_env_file
     validate_email_flags
     if [[ -z "$EMAIL_URL" && ! -f "$ENV_FILE" ]]; then
         usage_error "--email-url or --email local is required until $ENV_FILE exists"

@@ -1025,6 +1025,7 @@ Rehearsing a server install
 
    $ make rehearse-deploy                            # with Apache
    $ make rehearse-deploy REHEARSE_WEB_SERVER=nginx  # with nginx
+   $ make rehearse-deploy REHEARSE_URL_PREFIX=/caldart-proto  # behind an existing site
    $ make rehearse-deploy REHEARSE_KEEP=1            # keep the container to look inside
 
 The unit tests in ``backend/tests/test_deploy_scripts.py`` read the
@@ -1055,7 +1056,8 @@ systemd runs as it does on a server, and drives the scripts of
 Any step that fails stops the run, and the target exits non-zero.  At the end
 it prints how long the run took and removes the container, unless
 ``REHEARSE_KEEP`` is on (a switch, :ref:`make-switches`), in which case
-``docker exec -it caldart-rehearsal-<server> bash`` opens a shell inside it.  A
+``docker exec -it caldart-rehearsal-<server>`` (with ``-prefix`` appended
+under a prefix) ``bash`` opens a shell inside it.  A
 run takes a few minutes, most of them the package installs and the build,
 and needs the network: it installs from the Ubuntu archive, NodeSource, PyPI,
 npm, and Docker Hub.
@@ -1064,8 +1066,33 @@ npm, and Docker Hub.
    ``apache`` (the default) or ``nginx``: the ``--web-server`` the install is
    given, and part of the container's name, ``caldart-rehearsal-<server>``, so
    an Apache and an nginx rehearsal can run side by side.
+``REHEARSE_URL_PREFIX``
+   A URL prefix such as ``/caldart-proto``: rehearse the install behind an
+   existing site (:ref:`deploy-prefix`) instead of on a host of its own.  The
+   container is named ``caldart-rehearsal-<server>-prefix``, so a prefix and a
+   plain rehearsal on the same server can run side by side.  Both servers with
+   and without a prefix are the four rehearsals a change to the installer
+   gets.
 ``REHEARSE_KEEP``
    Keep the container and its volumes after the run.
+
+**Behind an existing site.**  With ``REHEARSE_URL_PREFIX`` the target first
+stands up the site CalDART is to be included in: it installs the web server,
+makes a self-signed certificate for ``caldart.test`` in ``/etc/ssl/standin/``,
+and installs the matching vhost from ``frontend/e2e/rehearsal/``
+(``apache.conf`` as ``/etc/apache2/sites-available/standin.conf``, or
+``nginx.conf`` as ``/etc/nginx/sites-available/standin``), an HTTPS host that
+serves a one-line page at ``/``.  Step 1 then runs with ``--tls existing
+--url-prefix <prefix> --attach-to <that vhost> --email local`` in place of
+``--tls self-signed --email-url smtp://localhost:25``.  The container has no
+postfix, so the target asserts that the install printed the note that nothing
+listens on port 25.  The install's own checks prove that
+``https://caldart.test/<prefix>/``, the sign-in page under it, and the portal
+script the sign-in page names answer ``200``; the target also asserts that
+``https://caldart.test/`` still serves the stand-in page and that the bare
+prefix redirects to the prefix with a slash.  Steps 2 to 5 follow as above,
+and after the uninstall the stand-in vhost must no longer include the snippet
+and must still pass ``apachectl configtest`` or ``nginx -t``.
 
 **It installs the commit, not the working tree.**  ``bootstrap.sh`` clones
 the checkout, and a clone copies commits: commit before rehearsing, or the

@@ -5,7 +5,9 @@ Deployment
 How to put CalDART on a single Linux server: Postgres in Docker, gunicorn under
 systemd, Apache in front terminating TLS.  Apache is the primary target because
 the machines this is aimed at already run it; an nginx configuration ships as
-the alternative and is called out where the two differ.
+the alternative and is called out where the two differ.  The site either has a
+hostname of its own or lives under a path, such as ``/caldart-proto``, of a
+site the machine already serves over HTTPS (:ref:`deploy-prefix`).
 
 Scripts under ``deploy/`` do all of it.  ``deploy/bootstrap.sh`` clones the
 repository and runs ``deploy/install.sh``, which runs the steps under
@@ -65,12 +67,22 @@ The flags:
    * - ``--web-server apache|nginx``
      - which web server to install
      - ``apache``
-   * - ``--tls certbot|self-signed``
-     - how the certificate is obtained
+   * - ``--tls certbot|self-signed|existing``
+     - how the certificate is obtained; ``existing`` means a web server on this
+       machine already serves the hostname over HTTPS, and CalDART is included
+       in its vhost (:ref:`deploy-prefix`)
      - ``certbot``
    * - ``--certbot-email ADDRESS``
      - the Let's Encrypt account address
      - required with ``--tls certbot``
+   * - ``--url-prefix PREFIX``
+     - serve the site under this path, such as ``/caldart-proto``; ``/`` names
+       the root of the host (:ref:`deploy-prefix`)
+     - the root of the host
+   * - ``--attach-to FILE``
+     - with ``--tls existing``, the existing site's vhost file to include
+       CalDART's snippet in
+     - print the line to add
    * - ``--certbot-staging``
      - use Let's Encrypt's staging directory, for a trial run
      - off
@@ -116,7 +128,7 @@ for a name the box does not own.  There is no plain-HTTP mode:
 
 **The install record.**  The values that describe the box (the root, the
 hostname, ``www``, the web server, the TLS mode, the certbot address, staging,
-and the database port) are written to ``/etc/caldart/install.conf``,
+the database port, the URL prefix, and the attached vhost file) are written to ``/etc/caldart/install.conf``,
 ``root:root``, mode ``0644``, holding no secret.  Every step reads it, so a
 later run needs no flags, and a flag given on a later run updates the record.
 ``--email-url``, ``--email``, ``--from-email``, ``--admin-email``, and
@@ -125,7 +137,8 @@ creates the administrator, and are not recorded.  The first run stops with a
 usage error naming ``--hostname`` when no record exists, ``--email-url`` and
 ``--email local`` while no environment file exists, and ``--certbot-email``
 with certbot.  Giving both ``--email-url`` and ``--email local`` is a usage
-error too.
+error too, and so is ``--attach-to`` without ``--tls existing`` or with a
+relative path.
 
 **Running it again.**  Every step is idempotent: a user that exists, a unit
 already enabled, a certificate already issued, and a database already migrated
@@ -388,6 +401,9 @@ distribution, naming the two it supports.  ``apt-get`` runs with
   sudo apt-get install -y apache2 certbot python3-certbot-apache
   # ... or, with --web-server nginx:
   sudo apt-get install -y nginx certbot python3-certbot-nginx
+  # ... or, with --tls existing, the web server alone: the existing site holds
+  # the certificate, and the package is already there, which apt-get leaves be.
+  sudo apt-get install -y apache2
 
   # Node 22 for the frontend build, from NodeSource, only when node is missing
   # or older: Debian and Ubuntu ship older releases than the build needs.
@@ -401,7 +417,9 @@ distribution, naming the two it supports.  ``apt-get`` runs with
   sudo systemctl enable --now docker
 
 The script installs one Compose package and one web server; ``docker compose
-version`` then prints a v2 version.
+version`` then prints a v2 version.  A Docker the machine already has is kept:
+``docker.io`` is left out of the list when ``docker --version`` works, and the
+Compose package too when ``docker compose version`` does (:ref:`deploy-sharing`).
 
 ``uv`` goes to ``/usr/local/bin`` because ``sudo`` resets ``PATH`` to a
 fixed list that does not include root's ``~/.local/bin``, where the installer
@@ -540,13 +558,14 @@ it is published on, and ``--db-port`` moves it::
 
 The step above stops before it creates the container when the port is taken,
 so a clash is reported rather than half-installed.  A Docker that is already
-installed is left as it is: the packages step installs ``docker.io`` and the
-Compose plugin through ``apt-get``, which does nothing for a package already
-there, and the containers other projects run keep running.  The exception is a
-Docker installed from Docker's own apt repository (``docker-ce`` and
-``containerd.io``): ``docker.io`` conflicts with those packages, and ``apt-get``
-may remove them to install it.  On such a machine, run ``apt-get install
---simulate docker.io`` before the installer and read what it would remove.
+installed is left as it is, and the containers other projects run keep
+running.  The packages step installs ``docker.io`` only when ``docker
+--version`` fails, and the Compose package only when ``docker compose
+version`` fails, so a Docker from Docker's own apt repository (``docker-ce``
+and ``containerd.io``, which ``docker.io`` conflicts with) is never replaced.
+Such a Docker without its Compose plugin gets the distribution's Compose
+package, which may want ``docker.io``; install ``docker-compose-plugin`` from
+Docker's repository first instead.
 
 **Moving the port on an installed box.**  The install leaves an existing
 environment file alone, so ``--db-port`` alone would move the container while
@@ -584,7 +603,7 @@ step uncomments and sets every one::
 
   SECRET_KEY=<python3 -c "import secrets; print(secrets.token_urlsafe(64))">
   ALLOWED_HOSTS=caldart.example.org,www.caldart.example.org
-  SITE_URL=https://caldart.example.org
+  SITE_URL=https://caldart.example.org<--url-prefix>
   EMAIL_URL=<--email-url, or smtp://localhost:25 with --email local>
   DATABASE_URL=postgres://caldart:<the password from step 4>@localhost:<--db-port>/caldart
 
@@ -606,7 +625,10 @@ It also sets ``CSRF_TRUSTED_ORIGINS`` to the ``https://`` form of the same
 hosts, ``DEFAULT_FROM_EMAIL`` from ``--from-email`` (``CalDART
 <noreply@HOST>`` by default), ``BACKUP_DIR`` and ``USER_GUIDE_ROOT`` under the
 deploy root, ``DB_BACKUP_VIA_DOCKER=false``, and ``BACKUP_RETENTION_DAYS=30``;
-with ``--tls self-signed``, ``SECURE_HSTS_SECONDS=0`` too.
+with ``--url-prefix``, ``URL_PREFIX`` (``SITE_URL`` must end in it, and
+``prod.py`` refuses a file where it does not); with ``--tls self-signed``,
+``SECURE_HSTS_SECONDS=0`` too.  With ``--tls existing`` the HSTS default is
+left as the template has it: the existing site owns HSTS for its host.
 
 With ``--email local`` the step checks with ``ss -ltnH "sport = :25"`` that
 something listens on port 25, and, when nothing does, prints a note on standard
@@ -821,7 +843,9 @@ exists, so a second run never asks Let's Encrypt again.  The fourth runs every
 time: the vhost is configuration, not data, and the step rewrites it from the
 shipped file.  With ``--tls self-signed`` the first two become one ``openssl``
 command (:ref:`deploy-self-signed`).  With certbot the step also installs the
-renewal hook of :ref:`deploy-renewal-hsts`.
+renewal hook of :ref:`deploy-renewal-hsts`.  With ``--tls existing`` none of
+the four runs: the step writes a snippet for the existing site's vhost instead
+(:ref:`deploy-prefix`).
 
 Use Apache or nginx, never both on the same host: the step leaves the other
 server's configuration alone and refuses to run while both ``apache2`` and
@@ -1085,6 +1109,114 @@ browser preload list; :doc:`configuration` explains what that commits the site
 to.
 
 
+.. _deploy-prefix:
+
+Under a URL prefix, behind an existing site
+-------------------------------------------
+
+A machine that already serves a site over HTTPS, such as
+``https://paloaltodart.org/``, can serve CalDART under a path of it, such as
+``https://paloaltodart.org/caldart-proto/``, without touching the rest of that
+site.  One command installs it::
+
+  curl -fsSL https://raw.githubusercontent.com/astrocfi/caldart-proto/main/deploy/bootstrap.sh \
+      | sudo bash -s -- --hostname paloaltodart.org --url-prefix /caldart-proto \
+          --tls existing --attach-to /etc/apache2/sites-available/paloaltodart.conf \
+          --email local --admin-email you@example.org
+
+``--attach-to`` names the file that holds the site's ``<VirtualHost *:443>``
+block; on a site set up with certbot's Apache plugin that is
+``<name>-le-ssl.conf`` (here ``paloaltodart-le-ssl.conf``), since certbot
+leaves only the plain-HTTP redirect in ``<name>.conf``.
+
+``--tls existing`` says a web server on this machine already serves the
+hostname over HTTPS.  The installer then obtains no certificate, installs no
+certbot package, and writes no vhost of its own: the existing site's
+certificate is the one browsers see, and the hop from its web server to
+gunicorn stays on loopback.  ``--url-prefix`` is the path, written as the
+settings read ``URL_PREFIX``: one leading and one trailing slash are optional,
+and each segment is letters, digits, ``.``, ``_``, ``~``, or ``-``.  Without
+it the site takes the whole of the existing host; on nginx that snippet holds
+``location ^~ /``, so the existing server block must have no ``location /`` of
+its own, or ``nginx -t`` refuses the pair and the step puts the vhost back.  ``--email local`` sends
+mail through the postfix the machine already runs (:ref:`email-local-postfix`).
+
+**The snippet.**  Step 9 writes one file for the web server the record names,
+with the prefix and the deploy root written in:
+
+- Apache: ``deploy/apache/caldart-attach.conf`` to
+  ``/etc/apache2/conf-available/caldart.conf``, after ``a2enmod proxy
+  proxy_http headers expires``.  It is not enabled with ``a2enconf``, which
+  would load it for every host.
+- nginx: ``deploy/nginx/caldart-attach.conf`` to
+  ``/etc/nginx/snippets/caldart.conf``, and the ``caldart_app`` upstream it
+  proxies to, ``deploy/nginx/caldart-upstream.conf``, to
+  ``/etc/nginx/conf.d/caldart-upstream.conf``, which ``nginx.conf`` loads once
+  into its ``http`` block: a snippet included in two server blocks must not
+  define the upstream twice.
+
+For the prefix ``/caldart-proto`` the snippet redirects ``/caldart-proto`` to
+``/caldart-proto/``; refuses ``/caldart-proto/media/documents/`` (a document
+may belong to the members-only collection, and Django's document view is what
+checks that); serves ``/caldart-proto/media/`` off disk with the same headers
+as the full vhost; and proxies everything else under ``/caldart-proto/`` to
+gunicorn on ``127.0.0.1:8001`` with the ``Host`` header preserved,
+``X-Forwarded-Proto: https``, ``X-Forwarded-Port: 443``, and any inbound
+``X-Forwarded-Ssl`` or ``X-Forwarded-Protocol`` dropped (gunicorn reads both as
+the scheme too).  The proxy strips the prefix, and Django puts it
+back on every URL it writes, because ``URL_PREFIX`` sets ``FORCE_SCRIPT_NAME``
+(:doc:`configuration`).  The nginx snippet uses ``^~`` locations, so a
+regular-expression location of the existing site (``location ~ \.php$``, say)
+never takes a request under the prefix.  Static files need nothing: whitenoise
+serves them under the prefix through the proxy.
+
+**The include line.**  The existing site's vhost pulls the snippet in with one
+line inside its HTTPS block::
+
+  Include conf-available/caldart.conf     # Apache, inside <VirtualHost *:443>
+  include snippets/caldart.conf;          # nginx, inside the listen 443 ssl server
+
+``--attach-to FILE`` names the file that holds that block.  The step inserts
+the line before the closing ``</VirtualHost>`` or ``}`` of every block in the
+file that terminates TLS, or of every block when none does, indented one
+level deeper than the closing line.  An Apache block terminates TLS when its
+``<VirtualHost>`` line names port 443 or it holds ``SSLEngine on`` or an
+``SSLCertificateFile``; an nginx block, when a ``listen`` names port 443 or
+``ssl``, or it holds an ``ssl_certificate``.  The plain-HTTP block that
+redirects to HTTPS never gets the line: the snippet tells Django every request
+arrived over HTTPS, so a plain-HTTP request proxied from there would pass for a
+secure one.  It keeps the file as it was before the first insertion at
+``FILE.caldart.bak``, leaves a file that already carries the line alone, and
+edits the file a symbolic link points at rather than replacing the link.  Then
+it runs ``apachectl configtest`` or ``nginx -t`` and ``systemctl
+reload-or-restart``.  When the check fails, the step takes the line it inserted
+back out, so the existing site's vhost is as it was before the run and still
+passes its check, and stops saying so.  Without ``--attach-to`` it writes the snippet, prints the
+line and where it goes, and reloads; the checks then fail, since the site does
+not answer under the prefix until the line is in place, and a second run of
+``sudo deploy/steps/check.sh`` passes once it is.
+
+**What changes for the operator.**  The environment file carries
+``SITE_URL=https://paloaltodart.org/caldart-proto`` and
+``URL_PREFIX=/caldart-proto``; ``ALLOWED_HOSTS`` and ``CSRF_TRUSTED_ORIGINS``
+name the host alone, as always.  The public site is at ``/caldart-proto/``, the
+portal at ``/caldart-proto/portal/``, the Wagtail admin at
+``/caldart-proto/admin/``, and the user guide at ``/caldart-proto/docs/``.
+Every link in an email is built on ``SITE_URL``, so it carries the prefix too.
+The session and CSRF cookies keep the path ``/``, so one host serves one
+CalDART.  The install leaves the environment file alone once it exists, so a
+later ``--url-prefix`` that differs from its ``URL_PREFIX`` is refused, naming
+the file, until ``URL_PREFIX`` and the path of ``SITE_URL`` there are changed
+to match.  An earlier CalDART vhost for the hostname, from a certbot or
+self-signed install, is disabled and removed, since the existing site answers
+for the hostname.
+
+"Don't need SSL" means the installer need not obtain a certificate, not that
+the site runs over plain HTTP: ``caldart.settings.prod`` keeps secure cookies
+and the redirect to HTTPS, so a site the browser reaches over plain HTTP is not
+a deployment this project supports.
+
+
 10. Renewal reminders (``steps/timers.sh``)
 ===========================================
 
@@ -1230,7 +1362,7 @@ Checking it worked (``steps/check.sh``)
 =======================================
 
 The last step checks what the others built, and fails naming every check that
-missed::
+missed.  For a site at the root of its host it runs::
 
   systemctl is-active caldart-web.service caldart-backup.timer \
       caldart-registry.timer caldart-reports.timer caldart-renewals.timer \
@@ -1241,8 +1373,15 @@ missed::
       https://caldart.example.org/portal/login
   sudo deploy/manage.sh health --json
 
-Both ``curl`` requests must answer ``200``.  ``--resolve`` sends them to this
-machine whatever the DNS says, and ``-k`` accepts a self-signed certificate.
+Both ``curl`` requests must answer ``200``, and so must a third: the portal
+script the sign-in page names (the ``src`` of its ``<script>`` under
+``/static/``), which proves the static files resolve.  Under a URL prefix
+every path carries it: ``https://HOST/caldart-proto/``,
+``/caldart-proto/portal/login``, and the script under
+``/caldart-proto/static/``.  ``--resolve`` sends the requests to this
+machine whatever the DNS says, which holds behind an existing site too, since
+that site's web server is on this machine; ``-k`` accepts a self-signed
+certificate.
 The ``health`` command prints the same report as ``GET /system/health`` and
 the health panel of ``/portal/system``: database connectivity, pending
 migrations, free space on the backup filesystem, the last backup, the version
@@ -1463,7 +1602,9 @@ scripts through a whole life on a throwaway Ubuntu 24.04 container running
 systemd: ``bootstrap.sh`` with ``--tls self-signed``, an ``upgrade.sh`` with
 nothing to pull, ``install.sh`` again with no flags, and ``uninstall.sh --yes
 --purge``, with Apache by default or nginx with
-``REHEARSE_WEB_SERVER=nginx``.  It is the way to try a change to anything
+``REHEARSE_WEB_SERVER=nginx``.  ``REHEARSE_URL_PREFIX=/caldart-proto``
+rehearses :ref:`deploy-prefix` instead, behind a stand-in for the existing
+site.  It is the way to try a change to anything
 under ``deploy/`` before a server sees it; :ref:`testing-rehearsal` describes
 what it runs and how the container is set up.
 
@@ -1505,10 +1646,10 @@ list so that no upgrade can leave a box without ``caldart_cache``.
 code.  The timers start a fresh process on every run, so they pick up the new
 code by themselves; reinstalling their units carries any change to a unit file.
 
-An upgrade never touches the environment file or the vhost.  A change to
-either is made by hand (``sudoedit`` and a restart), or, for the vhost, by
-running ``sudo deploy/steps/web-server.sh``, which rewrites it from the shipped
-file.
+An upgrade never touches the environment file, the vhost, or the snippet.  A
+change to one is made by hand (``sudoedit`` and a restart), or, for the vhost
+or the snippet, by running ``sudo deploy/steps/web-server.sh``, which rewrites
+it from the shipped file.
 
 Rolling back is ``sudo deploy/upgrade.sh --ref <the previous commit>``, plus,
 when the schema the previous commit expects differs from the one applied,
@@ -1529,8 +1670,12 @@ Uninstalling
 ``uninstall.sh`` refuses to run without ``--yes``.  It stops and disables
 ``caldart-web`` and the six timers, removes their unit files and reloads
 systemd, removes the vhost and any bootstrap host from the web server the
-install record names and reloads that server, and removes the certbot renewal
-hook.  ``--purge`` also removes ``/etc/caldart`` (the environment file, the
+install record names, and, behind an existing site, the snippet (and nginx's
+upstream file) and the include line, then reloads that server and removes the
+certbot renewal hook.  The include line comes out of the file ``--attach-to``
+named, or, when none was recorded, out of every file under the server's
+``sites-available`` that carries it; the rest of the existing site's vhost is
+left as it is, and so is ``FILE.caldart.bak``.  ``--purge`` also removes ``/etc/caldart`` (the environment file, the
 install record, and a self-signed certificate), runs ``docker compose down
 -v`` from the deploy root, which deletes the ``caldart_pgdata`` volume and every
 row in it, and removes the deploy root, uploads and dumps included.  Copy off
@@ -1549,6 +1694,12 @@ on the port before it created CalDART's container, most often a Postgres
 installed from the distribution or run by another project in Docker.  Run the
 installer again with a free port, ``sudo deploy/install.sh --db-port 5433``;
 the record keeps it for every later run (:ref:`deploy-sharing`).
+
+**The site does not answer under its prefix.**  ``check.sh`` reports
+``https://HOST/caldart-proto/`` answering ``404`` (or the existing site's own
+page): the existing vhost does not include the snippet.  Add the line
+:ref:`deploy-prefix` shows inside its HTTPS block, or run the installer again
+with ``--attach-to``, then ``sudo deploy/steps/check.sh``.
 
 **502 from Apache.**  gunicorn is not running or not on 8001.  ``systemctl
 status caldart-web``, then ``journalctl -u caldart-web -n 50``; once the cause

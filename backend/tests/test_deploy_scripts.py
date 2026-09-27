@@ -740,7 +740,11 @@ def test_the_compose_package_follows_the_distribution(
     distro: str, compose: str, etc: Path, root: Path, tmp_path: Path
 ) -> None:
     """Debian installs ``docker-compose`` and Ubuntu ``docker-compose-v2``."""
-    env = _env(etc, CALDART_OS_RELEASE=str(_os_release(tmp_path, distro)))
+    env = _env(
+        etc,
+        CALDART_OS_RELEASE=str(_os_release(tmp_path, distro)),
+        PATH=_machine_path(tmp_path),
+    )
     result = _run(root / "deploy" / "steps" / "packages.sh", "--dry-run", env=env)
     commands = _commands(result)
     packages = commands[_position(commands, "apt-get install")].split()
@@ -1293,3 +1297,814 @@ def test_the_web_server_step_never_plainly_reloads(
     """
     commands = _commands(_install_dry_run(root, etc, tmp_path, "--web-server", web_server))
     assert [command for command in commands if command.startswith("systemctl reload ")] == []
+
+
+# -- under a URL prefix, behind an existing site ------------------------------------
+
+#: The prefix the tests serve the site under; production code never names it.
+PREFIX: Final = "/caldart-proto"
+
+#: The first-install flags for a site under ``PREFIX`` behind an existing HTTPS site.
+EXISTING_INSTALL: Final = (
+    "--hostname",
+    "caldart.test",
+    "--tls",
+    "existing",
+    "--url-prefix",
+    PREFIX,
+    "--email",
+    "local",
+)
+
+#: The shipped snippets and where the ``existing`` mode installs each one.
+SNIPPETS: Final = {
+    "apache": ("apache/caldart-attach.conf", "/etc/apache2/conf-available/caldart.conf"),
+    "nginx": ("nginx/caldart-attach.conf", "/etc/nginx/snippets/caldart.conf"),
+}
+
+#: The line that includes the snippet in the existing site's vhost, per web server.
+INCLUDE_LINES: Final = {
+    "apache": "Include conf-available/caldart.conf",
+    "nginx": "include snippets/caldart.conf;",
+}
+
+#: An existing Apache site: a plain-HTTP host that redirects, and the HTTPS one.
+APACHE_SITE: Final = """\
+<VirtualHost *:80>
+    ServerName caldart.test
+    Redirect permanent / https://caldart.test/
+</VirtualHost>
+
+<VirtualHost *:443>
+    ServerName caldart.test
+    SSLEngine on
+    DocumentRoot /var/www/html
+</VirtualHost>
+"""
+
+#: ``APACHE_SITE`` with the snippet included in its HTTPS host.
+APACHE_SITE_ATTACHED: Final = APACHE_SITE.replace(
+    "    DocumentRoot /var/www/html\n",
+    "    DocumentRoot /var/www/html\n    Include conf-available/caldart.conf\n",
+)
+
+#: An existing nginx site: a plain-HTTP server, and the HTTPS one with a location.
+NGINX_SITE: Final = """\
+server {
+    listen 80;
+    server_name caldart.test;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name caldart.test;
+    location / {
+        root /var/www/html;
+    }
+}
+"""
+
+#: ``NGINX_SITE`` with the snippet included in its HTTPS server.
+NGINX_SITE_ATTACHED: Final = NGINX_SITE.replace(
+    "        root /var/www/html;\n    }\n}\n",
+    "        root /var/www/html;\n    }\n    include snippets/caldart.conf;\n}\n",
+)
+
+#: An Apache site as certbot leaves it: a ``:80`` host that redirects with mod_alias,
+#: and a ``:443`` host whose ``SSLEngine`` comes from certbot's options include.
+APACHE_CERTBOT_SITE: Final = """\
+<VirtualHost *:80>
+    ServerName caldart.test
+    Redirect permanent / https://caldart.test/
+</VirtualHost>
+<IfModule mod_ssl.c>
+<virtualhost *:443>
+    ServerName caldart.test
+    DocumentRoot /var/www/html
+    SSLCertificateFile /etc/letsencrypt/live/caldart.test/fullchain.pem
+    Include /etc/letsencrypt/options-ssl-apache.conf
+</virtualhost>
+</IfModule>
+"""
+
+#: ``APACHE_CERTBOT_SITE`` with the snippet included in its ``:443`` host only.
+APACHE_CERTBOT_SITE_ATTACHED: Final = APACHE_CERTBOT_SITE.replace(
+    "    Include /etc/letsencrypt/options-ssl-apache.conf\n",
+    "    Include /etc/letsencrypt/options-ssl-apache.conf\n"
+    "    Include conf-available/caldart.conf\n",
+)
+
+#: An nginx site whose HTTPS server listens on 443 without ``ssl`` on the ``listen``.
+NGINX_CERTIFICATE_SITE: Final = """\
+server {
+    listen 80;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443;
+    ssl_certificate /etc/ssl/site.pem;
+}
+"""
+
+#: ``NGINX_CERTIFICATE_SITE`` with the snippet included in its HTTPS server only.
+NGINX_CERTIFICATE_SITE_ATTACHED: Final = NGINX_CERTIFICATE_SITE.replace(
+    "    ssl_certificate /etc/ssl/site.pem;\n}\n",
+    "    ssl_certificate /etc/ssl/site.pem;\n    include snippets/caldart.conf;\n}\n",
+)
+
+#: A shell function that stands in for a configuration check that fails.
+FAILING_CHECK: Final = {
+    "apache": "apachectl() { echo 'Syntax error' >&2; return 1; }",
+    "nginx": "nginx() { echo 'duplicate location' >&2; return 1; }",
+}
+
+
+def _render_snippet(root: Path, source: str, prefix: str) -> str:
+    """What ``render_snippet`` writes from ``source`` for ``prefix`` under ``/srv/x``."""
+    dest = root / "rendered"
+    result = _source_lib(
+        root,
+        f"ROOT=/srv/x; CALDART_HOSTNAME=caldart.test; CALDART_URL_PREFIX={prefix}; "
+        f'render_snippet "{DEPLOY_DIR / source}" "{dest}"',
+    )
+    assert result.returncode == 0, result.stderr
+    return dest.read_text()
+
+
+def _attach(
+    root: Path, web_server: str, vhost: Path, *, then: str = ""
+) -> subprocess.CompletedProcess[str]:
+    """Run ``attach_include`` from the web-server step on ``vhost``, then ``then``."""
+    return subprocess.run(  # noqa: S603 - fixed argv, BASH is a resolved path
+        [
+            BASH,
+            "-c",
+            'set -euo pipefail; source "$1"; CALDART_WEB_SERVER=$2; attach_include "$3"; ' + then,
+            "bash",
+            str(root / "deploy" / "steps" / "web-server.sh"),
+            web_server,
+            str(vhost),
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+        env=_env(root),
+    )
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("caldart-proto", "/caldart-proto"),
+        ("/caldart-proto", "/caldart-proto"),
+        ("/caldart-proto/", "/caldart-proto"),
+        ("/dart/caldart-proto", "/dart/caldart-proto"),
+        ("/", ""),
+        ("", ""),
+    ],
+)
+def test_the_url_prefix_is_normalized(raw: str, expected: str, root: Path) -> None:
+    """One leading and one trailing slash are optional, as ``URL_PREFIX`` reads them."""
+    result = _source_lib(
+        root, f"CALDART_URL_PREFIX='{raw}'; validate_url_prefix; printf %s \"$CALDART_URL_PREFIX\""
+    )
+    assert result.stdout == expected
+
+
+@pytest.mark.parametrize("prefix", ["//x//", "/a b", "/../x", "/x?y", "/./x", "/x#y"])
+def test_a_url_prefix_that_is_not_a_path_is_a_usage_error(
+    prefix: str, root: Path, etc: Path, tmp_path: Path
+) -> None:
+    """``--url-prefix`` segments are letters, digits, ``.``, ``_``, ``~``, and ``-``."""
+    flags = (*EXISTING_INSTALL[:5], prefix, *EXISTING_INSTALL[6:])
+    result = _install_dry_run(root, etc, tmp_path, flags=flags)
+    assert _errors(result) == [
+        f"error: --url-prefix must be a path such as /caldart-proto, not {prefix}"
+    ]
+
+
+def test_a_url_prefix_that_is_not_a_path_exits_2(root: Path, etc: Path, tmp_path: Path) -> None:
+    """A malformed ``--url-prefix`` is a usage error, not a failure."""
+    flags = (*EXISTING_INSTALL[:5], "//x//", *EXISTING_INSTALL[6:])
+    result = _install_dry_run(root, etc, tmp_path, flags=flags)
+    assert result.returncode == 2
+
+
+@pytest.mark.parametrize(
+    ("key", "line"),
+    [
+        ("CALDART_URL_PREFIX", f"CALDART_URL_PREFIX={PREFIX}"),
+        ("CALDART_ATTACH_TO", "CALDART_ATTACH_TO=/etc/apache2/sites-available/site.conf"),
+    ],
+)
+def test_the_install_record_keeps_the_prefix_and_the_attached_file(
+    key: str, line: str, root: Path
+) -> None:
+    """``install.conf`` records the prefix and the vhost the snippet is included in."""
+    result = _source_lib(
+        root,
+        f"ROOT=/r; CALDART_URL_PREFIX={PREFIX}; "
+        "CALDART_ATTACH_TO=/etc/apache2/sites-available/site.conf; "
+        "write_file() { cat; }; write_record",
+    )
+    assert line in result.stdout.splitlines()
+
+
+def test_the_recorded_prefix_is_read_back(root: Path) -> None:
+    """``load_record`` reads ``CALDART_URL_PREFIX`` like every other recorded value."""
+    (root / "install.conf").write_text(f"CALDART_URL_PREFIX={PREFIX}\n")
+    result = _source_lib(root, 'load_record; printf %s "$CALDART_URL_PREFIX"')
+    assert result.stdout == PREFIX
+
+
+def test_an_unknown_tls_mode_names_the_three(root: Path, etc: Path, tmp_path: Path) -> None:
+    """``--tls`` accepts ``certbot``, ``self-signed``, and ``existing``."""
+    result = _install_dry_run(root, etc, tmp_path, "--tls", "none")
+    assert _errors(result) == ["error: --tls must be certbot, self-signed, or existing, not none"]
+
+
+def test_existing_needs_no_certbot_email(root: Path, etc: Path, tmp_path: Path) -> None:
+    """``--tls existing`` obtains no certificate, so it needs no Let's Encrypt account."""
+    result = _install_dry_run(root, etc, tmp_path, flags=EXISTING_INSTALL)
+    assert result.returncode == 0, result.stderr
+
+
+def test_existing_never_runs_certbot(root: Path, etc: Path, tmp_path: Path) -> None:
+    """``--tls existing`` installs no certbot package and runs no certbot command."""
+    commands = _commands(_install_dry_run(root, etc, tmp_path, flags=EXISTING_INSTALL))
+    assert [command for command in commands if "certbot" in command] == []
+
+
+def test_existing_still_installs_the_web_server(root: Path, etc: Path, tmp_path: Path) -> None:
+    """The web server package stays: its tools check and reload the configuration."""
+    commands = _commands(_install_dry_run(root, etc, tmp_path, flags=EXISTING_INSTALL))
+    assert "apache2" in commands[_position(commands, "apt-get install")].split()
+
+
+def test_existing_makes_no_certificate(root: Path, etc: Path, tmp_path: Path) -> None:
+    """The existing site's certificate is the one browsers see: no ``openssl req``."""
+    output = _install_dry_run(root, etc, tmp_path, flags=EXISTING_INSTALL).stdout
+    assert "openssl req" not in output
+
+
+@pytest.mark.parametrize("web_server", ["apache", "nginx"])
+def test_existing_installs_no_vhost(web_server: str, root: Path, etc: Path, tmp_path: Path) -> None:
+    """``--tls existing`` writes nothing into the web server's sites directory."""
+    commands = _commands(
+        _install_dry_run(root, etc, tmp_path, "--web-server", web_server, flags=EXISTING_INSTALL)
+    )
+    assert [command for command in commands if "sites-available/caldart" in command] == []
+
+
+@pytest.mark.parametrize("web_server", ["apache", "nginx"])
+def test_existing_installs_the_snippet(
+    web_server: str, root: Path, etc: Path, tmp_path: Path
+) -> None:
+    """The snippet is rendered to the web server's include directory."""
+    source, dest = SNIPPETS[web_server]
+    commands = _commands(
+        _install_dry_run(root, etc, tmp_path, "--web-server", web_server, flags=EXISTING_INSTALL)
+    )
+    rendered = commands[_position(commands, f"deploy/{source}")]
+    assert rendered.endswith(f"install -m 0644 /dev/stdin {dest}")
+
+
+def test_existing_nginx_installs_the_upstream_once(root: Path, etc: Path, tmp_path: Path) -> None:
+    """The nginx upstream goes in ``conf.d``, outside the snippet a server includes."""
+    commands = _commands(
+        _install_dry_run(root, etc, tmp_path, "--web-server", "nginx", flags=EXISTING_INSTALL)
+    )
+    rendered = commands[_position(commands, "deploy/nginx/caldart-upstream.conf")]
+    assert rendered.endswith("install -m 0644 /dev/stdin /etc/nginx/conf.d/caldart-upstream.conf")
+
+
+@pytest.mark.parametrize(("web_server", "unit"), [("apache", "apache2"), ("nginx", "nginx")])
+def test_existing_reloads_the_web_server(
+    web_server: str, unit: str, root: Path, etc: Path, tmp_path: Path
+) -> None:
+    """After the snippet, the configuration is checked and the server reloaded."""
+    commands = _commands(
+        _install_dry_run(root, etc, tmp_path, "--web-server", web_server, flags=EXISTING_INSTALL)
+    )
+    assert f"systemctl reload-or-restart {unit}" in commands
+
+
+@pytest.mark.parametrize("web_server", ["apache", "nginx"])
+def test_without_attach_to_the_step_prints_the_include_line(
+    web_server: str, root: Path, etc: Path, tmp_path: Path
+) -> None:
+    """With no ``--attach-to`` the step says which line to add to the existing vhost."""
+    output = _install_dry_run(
+        root, etc, tmp_path, "--web-server", web_server, flags=EXISTING_INSTALL
+    ).stdout
+    assert f"    {INCLUDE_LINES[web_server]}" in output.splitlines()
+
+
+def test_attach_to_needs_the_existing_mode(root: Path, etc: Path, tmp_path: Path) -> None:
+    """``--attach-to`` names an existing site's vhost, so it needs ``--tls existing``."""
+    result = _install_dry_run(root, etc, tmp_path, "--attach-to", "/etc/apache2/x.conf")
+    assert _errors(result) == ["error: --attach-to is used only with --tls existing"]
+
+
+def test_attach_to_must_be_an_absolute_path(root: Path, etc: Path, tmp_path: Path) -> None:
+    """A relative ``--attach-to`` would mean a different file for each step."""
+    result = _install_dry_run(
+        root, etc, tmp_path, "--attach-to", "site.conf", flags=EXISTING_INSTALL
+    )
+    assert _errors(result) == ["error: --attach-to must be an absolute path, not site.conf"]
+
+
+def test_the_owner_one_liner_inserts_the_include(root: Path, etc: Path, tmp_path: Path) -> None:
+    """The dry run with ``--attach-to`` prints the insertion into the named file."""
+    vhost = tmp_path / "site.conf"
+    vhost.write_text(APACHE_SITE)
+    commands = _commands(
+        _install_dry_run(root, etc, tmp_path, "--attach-to", str(vhost), flags=EXISTING_INSTALL)
+    )
+    assert (
+        f"sed -i --follow-symlinks -e '10i\\    Include conf-available/caldart.conf' {vhost}"
+        in commands
+    )
+
+
+def test_the_owner_one_liner_keeps_a_copy(root: Path, etc: Path, tmp_path: Path) -> None:
+    """The dry run copies the vhost aside before it inserts the include."""
+    vhost = tmp_path / "site.conf"
+    vhost.write_text(APACHE_SITE)
+    commands = _commands(
+        _install_dry_run(root, etc, tmp_path, "--attach-to", str(vhost), flags=EXISTING_INSTALL)
+    )
+    assert _position(commands, f"cp -p {vhost} {vhost}.caldart.bak") < _position(commands, "sed -i")
+
+
+def test_the_one_liner_dry_run_names_an_absent_vhost(root: Path, etc: Path, tmp_path: Path) -> None:
+    """A dry run on a machine without the named vhost still prints the insertion."""
+    vhost = tmp_path / "absent.conf"
+    result = _install_dry_run(
+        root, etc, tmp_path, "--attach-to", str(vhost), flags=EXISTING_INSTALL
+    )
+    assert (
+        f"dry run: {vhost} does not exist here; the real run inserts "
+        "'Include conf-available/caldart.conf' before the end of each HTTPS block in it"
+    ) in result.stderr.splitlines()
+
+
+@pytest.mark.parametrize(
+    ("web_server", "site", "attached"),
+    [("apache", APACHE_SITE, APACHE_SITE_ATTACHED), ("nginx", NGINX_SITE, NGINX_SITE_ATTACHED)],
+)
+def test_the_include_goes_in_the_https_block(
+    web_server: str, site: str, attached: str, root: Path, tmp_path: Path
+) -> None:
+    """The include line lands before the end of the block that serves HTTPS, only."""
+    vhost = tmp_path / "site.conf"
+    vhost.write_text(site)
+    result = _attach(root, web_server, vhost)
+    assert result.returncode == 0, result.stderr
+    assert vhost.read_text() == attached
+
+
+@pytest.mark.parametrize(
+    ("web_server", "site", "attached"),
+    [
+        ("apache", APACHE_CERTBOT_SITE, APACHE_CERTBOT_SITE_ATTACHED),
+        ("nginx", NGINX_CERTIFICATE_SITE, NGINX_CERTIFICATE_SITE_ATTACHED),
+    ],
+    ids=["apache-certbot", "nginx-ssl-certificate"],
+)
+def test_a_block_with_a_certificate_counts_as_https(
+    web_server: str, site: str, attached: str, root: Path, tmp_path: Path
+) -> None:
+    """A certificate or port 443 marks HTTPS; the plain-HTTP block gets no include."""
+    vhost = tmp_path / "site.conf"
+    vhost.write_text(site)
+    result = _attach(root, web_server, vhost)
+    assert result.returncode == 0, result.stderr
+    assert vhost.read_text() == attached
+
+
+@pytest.mark.parametrize(
+    ("web_server", "site"),
+    [("apache", APACHE_SITE), ("nginx", NGINX_SITE)],
+    ids=["apache", "nginx"],
+)
+def test_a_failed_check_puts_the_vhost_back(
+    web_server: str, site: str, root: Path, tmp_path: Path
+) -> None:
+    """When the configuration check fails, the include this run inserted is taken out."""
+    vhost = tmp_path / "site.conf"
+    vhost.write_text(site)
+    _attach(root, web_server, vhost, then=f'{FAILING_CHECK[web_server]}; check_or_detach "$3"')
+    assert vhost.read_text() == site
+
+
+@pytest.mark.parametrize("web_server", ["apache", "nginx"])
+def test_a_failed_check_says_the_vhost_was_put_back(
+    web_server: str, root: Path, tmp_path: Path
+) -> None:
+    """The step stops naming itself and the vhost it restored."""
+    vhost = tmp_path / "site.conf"
+    vhost.write_text(APACHE_SITE if web_server == "apache" else NGINX_SITE)
+    result = _attach(
+        root, web_server, vhost, then=f'{FAILING_CHECK[web_server]}; check_or_detach "$3"'
+    )
+    assert _errors(result) == [
+        "error: web-server step: the configuration check failed with the snippet included; "
+        f"{vhost} is back as it was before this run"
+    ]
+
+
+def test_a_failed_check_leaves_an_earlier_include_alone(root: Path, tmp_path: Path) -> None:
+    """A vhost that carried the include before this run keeps it: nothing was inserted."""
+    vhost = tmp_path / "site.conf"
+    vhost.write_text(APACHE_SITE_ATTACHED)
+    _attach(root, "apache", vhost, then=f'{FAILING_CHECK["apache"]}; check_or_detach "$3"')
+    assert vhost.read_text() == APACHE_SITE_ATTACHED
+
+
+def test_a_failed_check_without_an_insertion_names_the_step(root: Path, tmp_path: Path) -> None:
+    """With nothing to put back, the step stops saying the check failed."""
+    vhost = tmp_path / "site.conf"
+    vhost.write_text(APACHE_SITE_ATTACHED)
+    result = _attach(root, "apache", vhost, then=f'{FAILING_CHECK["apache"]}; check_or_detach "$3"')
+    assert _errors(result) == [
+        "error: web-server step: the configuration check failed with the snippet in place"
+    ]
+
+
+@pytest.mark.parametrize(
+    ("web_server", "site"),
+    [
+        ("apache", "<VirtualHost *:80>\n    ServerName a.test\n</VirtualHost>\n"),
+        ("nginx", "server {\n    listen 80;\n}\n"),
+    ],
+)
+def test_without_an_https_block_every_block_gets_the_include(
+    web_server: str, site: str, root: Path, tmp_path: Path
+) -> None:
+    """A vhost that terminates no TLS (behind a proxy) gets the line in every block."""
+    vhost = tmp_path / "site.conf"
+    vhost.write_text(site)
+    _attach(root, web_server, vhost)
+    assert f"    {INCLUDE_LINES[web_server]}\n" in vhost.read_text()
+
+
+@pytest.mark.parametrize(("web_server", "site"), [("apache", APACHE_SITE), ("nginx", NGINX_SITE)])
+def test_attaching_twice_changes_nothing(
+    web_server: str, site: str, root: Path, tmp_path: Path
+) -> None:
+    """A vhost already carrying the include line is left byte-identical."""
+    vhost = tmp_path / "site.conf"
+    vhost.write_text(site)
+    _attach(root, web_server, vhost)
+    once = vhost.read_bytes()
+    _attach(root, web_server, vhost)
+    assert vhost.read_bytes() == once
+
+
+@pytest.mark.parametrize(("web_server", "site"), [("apache", APACHE_SITE), ("nginx", NGINX_SITE)])
+def test_attaching_keeps_the_original_beside_it(
+    web_server: str, site: str, root: Path, tmp_path: Path
+) -> None:
+    """``FILE.caldart.bak`` holds the vhost as it was before the first insertion."""
+    vhost = tmp_path / "site.conf"
+    vhost.write_text(site)
+    _attach(root, web_server, vhost)
+    _attach(root, web_server, vhost)
+    assert (tmp_path / "site.conf.caldart.bak").read_text() == site
+
+
+def test_attaching_through_a_symlink_keeps_the_link(root: Path, tmp_path: Path) -> None:
+    """An ``--attach-to`` in ``sites-enabled`` edits the file the link points at."""
+    vhost = tmp_path / "site.conf"
+    vhost.write_text(APACHE_SITE)
+    link = tmp_path / "enabled.conf"
+    link.symlink_to(vhost)
+    _attach(root, "apache", link)
+    assert link.is_symlink()
+
+
+def test_attaching_through_a_symlink_edits_its_target(root: Path, tmp_path: Path) -> None:
+    """The include line lands in the vhost the link points at."""
+    vhost = tmp_path / "site.conf"
+    vhost.write_text(APACHE_SITE)
+    link = tmp_path / "enabled.conf"
+    link.symlink_to(vhost)
+    _attach(root, "apache", link)
+    assert vhost.read_text() == APACHE_SITE_ATTACHED
+
+
+@pytest.mark.parametrize(
+    ("web_server", "block"), [("apache", "<VirtualHost>"), ("nginx", "server")]
+)
+def test_a_vhost_with_no_block_is_refused(
+    web_server: str, block: str, root: Path, tmp_path: Path
+) -> None:
+    """A file with nothing to include the snippet in stops the step naming the file."""
+    vhost = tmp_path / "site.conf"
+    vhost.write_text("# nothing here\n")
+    result = _attach(root, web_server, vhost)
+    assert _errors(result) == [f"error: {vhost} holds no {block} block to include the snippet in"]
+
+
+def test_a_missing_vhost_is_refused(root: Path, tmp_path: Path) -> None:
+    """A real run on an ``--attach-to`` that does not exist stops naming it."""
+    vhost = tmp_path / "absent.conf"
+    result = _attach(root, "apache", vhost)
+    assert _errors(result) == [
+        f"error: {vhost} does not exist; --attach-to names the vhost file of the existing site"
+    ]
+
+
+@pytest.mark.parametrize(
+    ("web_server", "fragment"),
+    [
+        ("apache", 'ProxyPass "/caldart-proto/" "http://127.0.0.1:8001/"'),
+        ("apache", 'ProxyPass "/caldart-proto/media/" "!"'),
+        ("apache", 'RedirectMatch 301 "^/caldart-proto$" "/caldart-proto/"'),
+        ("apache", 'Alias "/caldart-proto/media/" "/srv/x/backend/media/"'),
+        ("apache", '<Directory "/srv/x/backend/media/documents">'),
+        ("nginx", "location ^~ /caldart-proto/ {"),
+        ("nginx", "proxy_pass http://caldart_app/;"),
+        ("nginx", "location ^~ /caldart-proto/media/documents/ {"),
+        ("nginx", "alias /srv/x/backend/media/;"),
+        ("nginx", "return 301 /caldart-proto/;"),
+    ],
+)
+def test_the_snippet_serves_the_prefix(web_server: str, fragment: str, root: Path) -> None:
+    """The snippet proxies the prefix, serves media, and redirects the bare path."""
+    assert fragment in _render_snippet(root, SNIPPETS[web_server][0], PREFIX)
+
+
+@pytest.mark.parametrize("web_server", ["apache", "nginx"])
+def test_the_snippet_leaves_no_placeholder(web_server: str, root: Path) -> None:
+    """Every ``__PREFIX__`` and ``/opt/caldart`` is replaced as the snippet is copied."""
+    rendered = _render_snippet(root, SNIPPETS[web_server][0], PREFIX)
+    assert [word for word in ("__PREFIX__", "/opt/caldart") if word in rendered] == []
+
+
+@pytest.mark.parametrize(
+    ("web_server", "fragment"),
+    [
+        ("apache", "RequestHeader unset X-Forwarded-Ssl"),
+        ("apache", "RequestHeader unset X-Forwarded-Protocol"),
+        ("nginx", 'proxy_set_header X-Forwarded-Ssl   "";'),
+        ("nginx", 'proxy_set_header X-Forwarded-Protocol "";'),
+    ],
+)
+def test_the_snippet_drops_the_other_scheme_headers(
+    web_server: str, fragment: str, root: Path
+) -> None:
+    """A client's own scheme headers never reach gunicorn to contradict the proxy's."""
+    assert fragment in _render_snippet(root, SNIPPETS[web_server][0], PREFIX)
+
+
+def test_the_apache_snippet_sends_the_scheme(root: Path) -> None:
+    """Django learns the request arrived over HTTPS from the proxy's header."""
+    rendered = _render_snippet(root, SNIPPETS["apache"][0], PREFIX)
+    assert 'RequestHeader set X-Forwarded-Proto "https"' in rendered
+
+
+def test_the_apache_snippet_keeps_media_ahead_of_the_proxy(root: Path) -> None:
+    """``ProxyPass P/media/ !`` must come before ``ProxyPass P/`` or the proxy wins."""
+    rendered = _render_snippet(root, SNIPPETS["apache"][0], PREFIX)
+    assert rendered.index('ProxyPass "/caldart-proto/media/"') < rendered.index(
+        'ProxyPass "/caldart-proto/" '
+    )
+
+
+def test_the_nginx_snippet_defines_no_upstream(root: Path) -> None:
+    """A second include of the snippet must not define ``caldart_app`` again."""
+    rendered = _render_snippet(root, SNIPPETS["nginx"][0], PREFIX)
+    assert "upstream caldart_app" not in rendered
+
+
+def test_the_nginx_upstream_names_gunicorn() -> None:
+    """``caldart-upstream.conf`` points ``caldart_app`` at gunicorn on loopback."""
+    upstream = (DEPLOY_DIR / "nginx" / "caldart-upstream.conf").read_text()
+    assert "server 127.0.0.1:8001" in upstream
+
+
+@pytest.mark.parametrize(
+    ("web_server", "fragment"),
+    [
+        ("apache", 'ProxyPass "/" "http://127.0.0.1:8001/"'),
+        ("nginx", "location ^~ / {"),
+    ],
+)
+def test_the_snippet_without_a_prefix_serves_the_whole_host(
+    web_server: str, fragment: str, root: Path
+) -> None:
+    """With no prefix the snippet proxies everything from ``/``."""
+    assert fragment in _render_snippet(root, SNIPPETS[web_server][0], "")
+
+
+@pytest.fixture
+def prefixed_env_file(root: Path, etc: Path, tmp_path: Path) -> Path:
+    """What ``configure.sh`` writes for ``caldart.test`` under ``PREFIX``."""
+    result = _configure(
+        root,
+        etc,
+        "--hostname",
+        "caldart.test",
+        "--tls",
+        "existing",
+        "--url-prefix",
+        PREFIX,
+        "--email",
+        "local",
+        PATH=_machine_path(tmp_path, listening=(25,)),
+    )
+    assert result.returncode == 0, result.stderr
+    return etc / "caldart.env"
+
+
+@pytest.mark.parametrize(
+    ("variable", "expected"),
+    [
+        ("SITE_URL", f"https://caldart.test{PREFIX}"),
+        ("URL_PREFIX", PREFIX),
+        ("ALLOWED_HOSTS", "caldart.test,www.caldart.test"),
+        ("CSRF_TRUSTED_ORIGINS", "https://caldart.test,https://www.caldart.test"),
+    ],
+)
+def test_configure_writes_the_prefix(variable: str, expected: str, prefixed_env_file: Path) -> None:
+    """``SITE_URL`` ends in the prefix, and the origins stay scheme and host."""
+    assert _variables(prefixed_env_file)[variable] == expected
+
+
+def test_configure_leaves_hsts_to_the_existing_site(prefixed_env_file: Path) -> None:
+    """In ``existing`` mode the template's HSTS default is not written over."""
+    assert "SECURE_HSTS_SECONDS" not in _variables(prefixed_env_file)
+
+
+def test_configure_without_a_prefix_leaves_url_prefix_commented(env_file: Path) -> None:
+    """A site at the root of its host keeps the template's commented ``URL_PREFIX``."""
+    assert "URL_PREFIX" not in _variables(env_file)
+
+
+def test_a_prefixed_file_passes_the_deployment_checks(prefixed_env_file: Path) -> None:
+    """``prod.py`` accepts the file: ``SITE_URL`` ends in ``URL_PREFIX``."""
+    base = {key: os.environ[key] for key in ("PATH", "HOME", "LANG") if key in os.environ}
+    result = subprocess.run(  # noqa: S603 - fixed argv, sys.executable is this interpreter
+        [
+            sys.executable,
+            str(MANAGE_PY),
+            "check",
+            "--deploy",
+            *("--tag", "security", "--tag", "caches", "--tag", "async_support", "--tag", "mail"),
+            "--fail-level",
+            "WARNING",
+            "--settings",
+            "caldart.settings.prod",
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+        env={**base, **_variables(prefixed_env_file)},
+    )
+    assert result.returncode == 0, result.stderr
+
+
+def _installed_at_the_root(etc: Path) -> None:
+    """Write the record and environment file of a box serving from ``/``."""
+    (etc / "install.conf").write_text("CALDART_HOSTNAME=caldart.test\nCALDART_TLS=existing\n")
+    (etc / "caldart.env").write_text(
+        "SECRET_KEY=x\nSITE_URL=https://caldart.test\n#URL_PREFIX=\n"
+        "DATABASE_URL=postgres://caldart:pw@localhost:5432/caldart\n"
+    )
+
+
+def test_a_prefix_that_disagrees_with_the_env_file_is_refused(
+    root: Path, etc: Path, tmp_path: Path
+) -> None:
+    """Moving an installed site under a prefix names ``URL_PREFIX`` first."""
+    _installed_at_the_root(etc)
+    result = _install_dry_run(root, etc, tmp_path, "--url-prefix", PREFIX, flags=())
+    assert _errors(result) == [
+        f"error: the URL prefix {PREFIX} differs from URL_PREFIX in {etc}/caldart.env (none); "
+        "set URL_PREFIX and the path of SITE_URL there to match first, then run install.sh again"
+    ]
+
+
+def test_a_prefix_that_disagrees_with_the_env_file_exits_2(
+    root: Path, etc: Path, tmp_path: Path
+) -> None:
+    """The refusal is a usage error, not a failure."""
+    _installed_at_the_root(etc)
+    result = _install_dry_run(root, etc, tmp_path, "--url-prefix", PREFIX, flags=())
+    assert result.returncode == 2
+
+
+def test_a_prefix_that_matches_the_env_file_carries_on(
+    root: Path, etc: Path, tmp_path: Path
+) -> None:
+    """Once ``URL_PREFIX`` names the prefix, the install runs."""
+    _installed_at_the_root(etc)
+    env_file = etc / "caldart.env"
+    env_file.write_text(env_file.read_text().replace("#URL_PREFIX=", f"URL_PREFIX={PREFIX}/"))
+    result = _install_dry_run(root, etc, tmp_path, "--url-prefix", PREFIX, flags=())
+    assert result.returncode == 0, result.stderr
+
+
+@pytest.mark.parametrize("path", [f"{PREFIX}/", f"{PREFIX}/portal/login"], ids=["home", "login"])
+def test_the_check_requests_the_prefixed_site(
+    path: str, root: Path, etc: Path, tmp_path: Path
+) -> None:
+    """``check.sh`` asks for the home page and the sign-in page under the prefix."""
+    commands = _commands(_install_dry_run(root, etc, tmp_path, flags=EXISTING_INSTALL))
+    assert f"curl -sk --resolve caldart.test:443:127.0.0.1 https://caldart.test{path}" in commands
+
+
+def test_the_check_fetches_the_portal_bundle(root: Path, etc: Path, tmp_path: Path) -> None:
+    """``check.sh`` fetches the script the sign-in page names, under the prefix."""
+    commands = _commands(_install_dry_run(root, etc, tmp_path, flags=EXISTING_INSTALL))
+    assert (
+        "curl -sk --resolve caldart.test:443:127.0.0.1 "
+        f"'https://caldart.test{PREFIX}/static/<the bundle the sign-in page names>'"
+    ) in commands
+
+
+def test_the_summary_names_the_prefixed_address(root: Path, etc: Path, tmp_path: Path) -> None:
+    """The last lines give the site's address with its prefix."""
+    output = _install_dry_run(root, etc, tmp_path, flags=EXISTING_INSTALL).stdout
+    assert f"CalDART is running at https://caldart.test{PREFIX}/" in output.splitlines()
+
+
+def test_bootstrap_passes_the_prefix_and_attach_flags_through(tmp_path: Path) -> None:
+    """``--url-prefix`` and ``--attach-to`` take values that reach ``install.sh``."""
+    result = _bootstrap_dry_run(tmp_path, "--url-prefix", PREFIX, "--attach-to", "/etc/a.conf")
+    assert _commands(result)[-1] == (
+        f"bash {tmp_path}/srv/deploy/install.sh --dry-run --url-prefix {PREFIX} "
+        "--attach-to /etc/a.conf"
+    )
+
+
+def test_uninstall_takes_the_include_line_out(root: Path, etc: Path, tmp_path: Path) -> None:
+    """The recorded vhost loses the include line and nothing else."""
+    vhost = tmp_path / "site.conf"
+    vhost.write_text(APACHE_SITE_ATTACHED)
+    (etc / "install.conf").write_text(f"CALDART_TLS=existing\nCALDART_ATTACH_TO={vhost}\n")
+    result = _run(root / "deploy" / "uninstall.sh", "--yes", "--dry-run", env=_env(etc))
+    assert (
+        "sed -i --follow-symlinks -e "
+        f"'\\#^[[:space:]]*Include conf-available/caldart\\.conf[[:space:]]*$#d' {vhost}"
+        in _commands(result)
+    )
+
+
+def test_uninstall_leaves_a_vhost_without_the_line_alone(
+    root: Path, etc: Path, tmp_path: Path
+) -> None:
+    """A recorded vhost that no longer carries the include line is not edited."""
+    vhost = tmp_path / "site.conf"
+    vhost.write_text(APACHE_SITE)
+    (etc / "install.conf").write_text(f"CALDART_TLS=existing\nCALDART_ATTACH_TO={vhost}\n")
+    result = _run(root / "deploy" / "uninstall.sh", "--yes", "--dry-run", env=_env(etc))
+    assert [command for command in _commands(result) if str(vhost) in command] == []
+
+
+# -- a machine whose Docker is already installed ------------------------------------
+
+
+def _packages_dry_run(etc: Path, root: Path, tmp_path: Path, docker: str) -> list[str]:
+    """The ``apt-get install`` line of ``packages.sh`` with ``docker`` as the machine's.
+
+    ``docker`` is a shell script body for the ``docker`` on ``PATH``.
+    """
+    shims = tmp_path / "docker-shims"
+    shims.mkdir()
+    (shims / "docker").write_text(f"#!/bin/sh\n{docker}\n")
+    (shims / "docker").chmod(0o755)
+    env = _env(
+        etc,
+        CALDART_OS_RELEASE=str(_os_release(tmp_path, "ubuntu")),
+        PATH=f"{shims}:{os.environ['PATH']}",
+    )
+    commands = _commands(_run(root / "deploy" / "steps" / "packages.sh", "--dry-run", env=env))
+    return commands[_position(commands, "apt-get install")].split()
+
+
+def test_a_working_docker_skips_the_docker_packages(etc: Path, root: Path, tmp_path: Path) -> None:
+    """With ``docker compose`` already working, neither Docker package is installed."""
+    packages = _packages_dry_run(etc, root, tmp_path, "exit 0")
+    assert [name for name in packages if name.startswith("docker")] == []
+
+
+def test_a_docker_without_compose_gets_only_compose(etc: Path, root: Path, tmp_path: Path) -> None:
+    """A Docker with no Compose v2 plugin keeps its engine and gains the plugin."""
+    packages = _packages_dry_run(
+        etc, root, tmp_path, 'case "$1" in compose) exit 1 ;; *) exit 0 ;; esac'
+    )
+    assert [name for name in packages if name.startswith("docker")] == ["docker-compose-v2"]
+
+
+def test_no_docker_installs_both_packages(etc: Path, root: Path, tmp_path: Path) -> None:
+    """A machine without Docker gets the engine and the Compose v2 plugin."""
+    packages = _packages_dry_run(etc, root, tmp_path, "exit 127")
+    assert [name for name in packages if name.startswith("docker")] == [
+        "docker.io",
+        "docker-compose-v2",
+    ]

@@ -108,7 +108,17 @@ E2E_ENV := DJANGO_SETTINGS_MODULE=caldart.settings.dev \
 # not run it.
 #
 #   REHEARSE_WEB_SERVER  apache or nginx, what the installer is told to use
+#   REHEARSE_URL_PREFIX  a URL prefix such as /caldart-proto: install behind an
+#                        existing site instead of on a host of its own
 #   REHEARSE_KEEP        a switch: keep the container and its volumes afterwards
+#
+# With REHEARSE_URL_PREFIX the recipe first stands up the existing site: the web
+# server, a self-signed certificate for caldart.test, and the HTTPS vhost from
+# frontend/e2e/rehearsal/ serving a one-line page at /.  Then it installs with
+# --tls existing --url-prefix --attach-to that vhost --email local, asserts the
+# note that nothing listens on port 25 (the container has no postfix), and that
+# the stand-in page and the redirect of the bare prefix still answer; after the
+# uninstall the vhost must no longer include the snippet and must still load.
 #
 # It installs HEAD, never the working tree, because bootstrap.sh clones the
 # checkout: commit before rehearsing.  A git worktree's .git is a file naming a
@@ -119,7 +129,16 @@ E2E_ENV := DJANGO_SETTINGS_MODULE=caldart.settings.dev \
 # volumes are named after the web server, so two rehearsals never share one.
 REHEARSE_WEB_SERVER ?= apache
 REHEARSE_IMAGE := jrei/systemd-ubuntu:24.04
-REHEARSE_NAME = caldart-rehearsal-$(REHEARSE_WEB_SERVER)
+REHEARSE_URL_PREFIX ?=
+# A prefix rehearsal gets its own container and volumes, so it can run beside
+# a plain one on the same web server.
+REHEARSE_NAME = caldart-rehearsal-$(REHEARSE_WEB_SERVER)$(if $(REHEARSE_URL_PREFIX),-prefix)
+# Where the stand-in for the existing site's vhost goes, per web server.
+REHEARSE_STANDIN_apache := /etc/apache2/sites-available/standin.conf
+REHEARSE_STANDIN_nginx := /etc/nginx/sites-available/standin
+REHEARSE_STANDIN = $(REHEARSE_STANDIN_$(REHEARSE_WEB_SERVER))
+# The line of the stand-in page, which must still answer at / with CalDART installed.
+REHEARSE_STANDIN_PAGE := The existing site at caldart.test
 REHEARSE_GIT_COMMON = $(abspath $(shell git rev-parse --git-common-dir))
 # The branch HEAD is on, or the commit when HEAD is detached.
 REHEARSE_REF = $(shell git symbolic-ref -q --short HEAD || git rev-parse HEAD)
@@ -275,17 +294,26 @@ e2e: ## Playwright end-to-end tests (own database, own server, mock payments; E2
 	  cd frontend && E2E_BASE_URL="$(E2E_SITE_URL)" $(NPM) run e2e \
 	    || { echo; echo "==== last 100 lines of $(E2E_LOG) ===="; tail -100 $(E2E_LOG); exit 1; }
 
-rehearse-deploy: ## Rehearse the server install in a throwaway systemd container (REHEARSE_WEB_SERVER=apache|nginx)
+rehearse-deploy: ## Rehearse the server install in a throwaway systemd container (REHEARSE_WEB_SERVER=apache|nginx, REHEARSE_URL_PREFIX=/path)
 	@case "$(REHEARSE_WEB_SERVER)" in apache|nginx) ;; \
 	  *) echo "REHEARSE_WEB_SERVER=$(REHEARSE_WEB_SERVER) is not apache or nginx" >&2; exit 2 ;; esac
+	@case "$(REHEARSE_URL_PREFIX)" in ''|/*) ;; \
+	  *) echo "REHEARSE_URL_PREFIX=$(REHEARSE_URL_PREFIX) does not start with /" >&2; exit 2 ;; esac
 	@test -z "$$(git status --porcelain)" \
 	  || echo "note: the rehearsal installs HEAD; uncommitted changes are not in it" >&2
 	@set -euo pipefail; \
 	  name=$(REHEARSE_NAME); keep="$(REHEARSE_KEEP_FLAG)"; started=$$(date +%s); \
+	  prefix="$(REHEARSE_URL_PREFIX)"; standin="$(REHEARSE_STANDIN)"; \
+	  log=$$(mktemp); \
 	  inside() { docker exec "$$name" "$$@"; }; \
+	  configtest() { \
+	    if [ "$(REHEARSE_WEB_SERVER)" = apache ]; then inside apachectl configtest; else inside nginx -t; fi; \
+	  }; \
+	  site() { inside curl -sk --resolve caldart.test:443:127.0.0.1 "$$@"; }; \
 	  cleanup() { \
 	    status=$$?; \
-	    echo "==> rehearsal on $(REHEARSE_WEB_SERVER) took $$(( $$(date +%s) - started ))s and exited $$status"; \
+	    rm -f "$$log"; \
+	    echo "==> rehearsal on $(REHEARSE_WEB_SERVER)$${prefix:+ under $$prefix} took $$(( $$(date +%s) - started ))s and exited $$status"; \
 	    if [ -n "$$keep" ]; then \
 	      echo "==> kept $$name; docker exec -it $$name bash to look inside"; \
 	    else \
@@ -314,9 +342,42 @@ rehearse-deploy: ## Rehearse the server install in a throwaway systemd container
 	  inside env DEBIAN_FRONTEND=noninteractive apt-get install -y -qq git curl >/dev/null; \
 	  : "The rehearsal container only: root clones a checkout another uid owns."; \
 	  inside git config --system safe.directory '*'; \
+	  if [ -n "$$prefix" ]; then \
+	    echo "==> Standing in for an existing $(REHEARSE_WEB_SERVER) site at https://caldart.test/"; \
+	    server_package=$$([ "$(REHEARSE_WEB_SERVER)" = apache ] && echo apache2 || echo nginx); \
+	    inside env DEBIAN_FRONTEND=noninteractive apt-get install -y -qq openssl "$$server_package" >/dev/null; \
+	    inside mkdir -p /etc/ssl/standin /var/www/standin; \
+	    inside openssl req -x509 -newkey rsa:2048 -nodes -days 30 -subj /CN=caldart.test \
+	      -addext subjectAltName=DNS:caldart.test \
+	      -keyout /etc/ssl/standin/privkey.pem -out /etc/ssl/standin/fullchain.pem 2>/dev/null; \
+	    inside sh -c 'echo "$(REHEARSE_STANDIN_PAGE)" > /var/www/standin/index.html'; \
+	    inside cp /mnt/caldart/frontend/e2e/rehearsal/$(REHEARSE_WEB_SERVER).conf "$$standin"; \
+	    if [ "$(REHEARSE_WEB_SERVER)" = apache ]; then \
+	      inside a2enmod -q ssl; inside a2ensite -q standin; \
+	    else \
+	      inside ln -sfn "$$standin" /etc/nginx/sites-enabled/standin; \
+	    fi; \
+	    configtest; \
+	    inside systemctl reload-or-restart "$$server_package"; \
+	    site https://caldart.test/ | grep -qF "$(REHEARSE_STANDIN_PAGE)" \
+	      || { echo "error: the stand-in site does not answer" >&2; exit 1; }; \
+	    set -- --tls existing --url-prefix "$$prefix" --attach-to "$$standin" --email local; \
+	  else \
+	    set -- --tls self-signed --email-url smtp://localhost:25; \
+	  fi; \
 	  inside bash /mnt/caldart/deploy/bootstrap.sh --repo /mnt/caldart --ref "$(REHEARSE_REF)" \
-	    --hostname caldart.test --tls self-signed --web-server $(REHEARSE_WEB_SERVER) \
-	    --email-url smtp://localhost:25 --admin-email admin@caldart.test; \
+	    --hostname caldart.test --web-server $(REHEARSE_WEB_SERVER) \
+	    --admin-email admin@caldart.test "$$@" 2>&1 | tee "$$log"; \
+	  if [ -n "$$prefix" ]; then \
+	    echo "==> Checking the note about port 25, the stand-in page, and the bare prefix"; \
+	    grep -qF "Nothing listens on port 25 on this machine" "$$log" \
+	      || { echo "error: the install printed no note about port 25" >&2; exit 1; }; \
+	    site https://caldart.test/ | grep -qF "$(REHEARSE_STANDIN_PAGE)" \
+	      || { echo "error: the stand-in site no longer answers at /" >&2; exit 1; }; \
+	    bare=$$(site -o /dev/null -w '%{http_code} %{redirect_url}' "https://caldart.test$$prefix"); \
+	    [ "$$bare" = "301 https://caldart.test$$prefix/" ] \
+	      || { echo "error: https://caldart.test$$prefix answered $$bare, not a redirect to $$prefix/" >&2; exit 1; }; \
+	  fi; \
 	  : "The install started the registry import itself; it downloads the FAA file."; \
 	  echo "==> Running every other scheduled job once, hardening and all"; \
 	  inside systemctl start caldart-backup.service caldart-reports.service \
@@ -333,7 +394,14 @@ rehearse-deploy: ## Rehearse the server install in a throwaway systemd container
 	  inside /opt/caldart/deploy/uninstall.sh --yes --purge; \
 	  inside test ! -e /opt/caldart; \
 	  inside test ! -e /etc/caldart; \
-	  echo "==> The rehearsal on $(REHEARSE_WEB_SERVER) passed"
+	  if [ -n "$$prefix" ]; then \
+	    echo "==> Checking the stand-in vhost after the uninstall"; \
+	    if inside grep -q 'caldart\.conf' "$$standin"; then \
+	      echo "error: $$standin still includes the snippet" >&2; exit 1; \
+	    fi; \
+	    configtest; \
+	  fi; \
+	  echo "==> The rehearsal on $(REHEARSE_WEB_SERVER)$${prefix:+ under $$prefix} passed"
 
 # ----------------------------------------------------------------- lint
 lint: lint-backend lint-shell lint-frontend lint-spelling ## ruff + mypy + shellcheck + tsc + eslint + prettier + contrast + codespell

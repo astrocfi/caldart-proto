@@ -5,12 +5,15 @@
 # Writes /etc/caldart/caldart.env once, root:caldart, mode 0640, from the
 # production template deploy/caldart.env.example.  The five variables the
 # template leaves commented out are uncommented and set: SECRET_KEY generated,
-# ALLOWED_HOSTS from the hostname (and its www. form), SITE_URL, EMAIL_URL from
+# ALLOWED_HOSTS from the hostname (and its www. form), SITE_URL (https://HOST and
+# the URL prefix), EMAIL_URL from
 # --email-url (or smtp://localhost:25 with --email local), and DATABASE_URL with
 # the password the Postgres step set and the recorded database port.  It
 # also sets CSRF_TRUSTED_ORIGINS for the same hosts, DEFAULT_FROM_EMAIL,
 # BACKUP_DIR and USER_GUIDE_ROOT under the deploy root, DB_BACKUP_VIA_DOCKER=false,
-# BACKUP_RETENTION_DAYS=30, and, with self-signed TLS, SECURE_HSTS_SECONDS=0.
+# BACKUP_RETENTION_DAYS=30, URL_PREFIX when the site has one, and, with
+# self-signed TLS, SECURE_HSTS_SECONDS=0.  Behind an existing site the HSTS
+# default is left alone: that site owns HSTS for the host.
 # Everything else, comments included, stays as the template has it.  With
 # --email local, a note (not an error) says so when nothing listens on port 25:
 # mail fails until postfix is installed and listening on localhost.
@@ -26,7 +29,10 @@
 # Options:
 #   --hostname HOST        the public hostname (default: the install record's)
 #   --www, --no-www        also answer for www.HOST (default: the record's, or --www)
-#   --tls MODE             certbot or self-signed (default: the record's, or certbot)
+#   --tls MODE             certbot, self-signed, or existing (default: the record's, or
+#                          certbot)
+#   --url-prefix PREFIX    the path the site is served under (default: the record's, or
+#                          none)
 #   --email-url URL        EMAIL_URL; this or --email local is required when the
 #                          file does not exist
 #   --email local          send mail through the postfix on this machine
@@ -146,7 +152,7 @@ configure_step() {
     local values=(
         "SECRET_KEY=$(generate_secret "$SECRET_KEY_BYTES")"
         "ALLOWED_HOSTS=$(join_by , "${names[@]}")"
-        "SITE_URL=https://$CALDART_HOSTNAME"
+        "SITE_URL=$(site_url)"
         "EMAIL_URL=$EMAIL_URL"
         "DATABASE_URL=postgres://caldart:${DB_PASSWORD}@localhost:${CALDART_DB_PORT}/caldart"
         "CSRF_TRUSTED_ORIGINS=$(join_by , "${origins[@]}")"
@@ -156,6 +162,9 @@ configure_step() {
         "BACKUP_RETENTION_DAYS=30"
         "USER_GUIDE_ROOT=$ROOT/docs/_build/guide"
     )
+    if [[ -n "$CALDART_URL_PREFIX" ]]; then
+        values+=("URL_PREFIX=$CALDART_URL_PREFIX")
+    fi
     # A browser must not remember HSTS for a hostname the box does not own.
     if [[ "$CALDART_TLS" == self-signed ]]; then
         values+=("SECURE_HSTS_SECONDS=0")
@@ -187,6 +196,10 @@ configure_main() {
                 flags[CALDART_TLS]="$(option_value "$1" "${2:-}")"
                 shift
                 ;;
+            --url-prefix)
+                flags[CALDART_URL_PREFIX]="$(option_value "$1" "${2:-}")"
+                shift
+                ;;
             --email-url)
                 EMAIL_URL="$(option_value "$1" "${2:-}")"
                 shift
@@ -213,6 +226,7 @@ configure_main() {
         printf -v "$key" '%s' "${flags[$key]}"
     done
     [[ -z "$CALDART_HOSTNAME" ]] || validate_hostname "$CALDART_HOSTNAME"
+    validate_url_prefix
     validate_email_flags
     if [[ "$ETC_DIR" == "$DEFAULT_ETC" ]]; then
         require_root
