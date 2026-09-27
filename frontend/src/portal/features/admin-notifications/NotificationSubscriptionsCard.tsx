@@ -9,6 +9,7 @@
 import { useState } from 'react';
 import type { JSX } from 'react';
 
+import type { NotificationSubscription } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import type { Column } from '@/portal/components/DataTable';
@@ -23,7 +24,6 @@ import {
 } from './api';
 import { eventLabels, recipientLabel } from './labels';
 import { NotificationSubscriptionForm } from './NotificationSubscriptionForm';
-import type { NotificationSubscription } from './types';
 
 /** Which form is open: a new subscription, or the edit of one. */
 type OpenForm = { mode: 'new' } | { mode: 'edit'; id: number } | null;

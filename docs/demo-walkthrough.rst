@@ -331,12 +331,28 @@ those need the ``system_admin`` role.
 After the walkthrough
 =====================
 
-Two more screens are worth a look, neither of them one of the five flows:
+Three more screens are worth a look, none of them one of the five flows:
 
 **Users and roles** — sign in as ``useradmin@example.org`` and open
 ``/portal/admin/users``.  Search for a member, open them, and add or remove
 roles; press *Send password reset* and watch the email arrive in Mailpit.  See
 :doc:`user/admin/users`.
+
+**Notifications** — sign in as ``accountadmin@example.org`` and open
+``/portal/admin/notifications``.  The seed has already subscribed this
+administrator to every Membership and Accounts event and the treasurer to every
+Money event.  Press **New subscription**, type an address no account holds,
+tick **Sign-up** and **Friend became a member**, and save.  The server asks you
+to confirm the outside address: tick the box and save again.  Then, in a
+private window, join as a friend through ``/portal/join`` and pick a DART on
+the profile step.  Saving that step is the sign-up, and Mailpit shows the
+*signed up as a friend* email at your address, at the account administrator's,
+and at every person that DART has ticked to receive its roster.  Back on the
+Notifications screen, **Edit** the subscription and clear **Sign-up**; from
+then on the address hears only of a friend becoming a member.  The System
+page's email log files each of these messages under its event, as
+*Notification: Sign-up*.  See :doc:`user/admin/notifications` and
+:doc:`developer/notifications`.
 
 **System** — sign in as ``sysadmin@example.org`` and open ``/portal/system``.
 Health shows database connectivity, pending migrations, free disk and the last
@@ -440,6 +456,7 @@ Related material
 - :doc:`/user/admin/index` — the full member, aircraft, and
   payment filters and exports.
 - :doc:`/user/admin/users` — manage accounts and roles.
+- :doc:`/user/admin/notifications` — who hears about which events, by email.
 - :doc:`/user/admin/system` — health, backups, and reminders from
   the portal.
 - :doc:`/developer/reminders` — how the renewal scan decides what to send.

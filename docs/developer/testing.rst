@@ -890,6 +890,14 @@ address)``, which opens that link and presses **Continue**.  Every spec that
 registers an account goes through it, because the join wizard waits at its
 verify step until the address is verified.
 
+**Prove that nothing was sent by counting.**  ``emailCountTo(address)``, from the
+same module, counts the messages sent to an address so far in the run.  The
+server writes a message before it answers the request that sent it, so a count
+read once that response has landed is final for the request.  The notifications
+spec reads it after a deactivation to show that an address subscribed to other
+events heard nothing, and reads the account administrator's newest message in the
+same step to show the event did go out.
+
 Environment variables
 ---------------------
 
