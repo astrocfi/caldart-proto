@@ -110,7 +110,14 @@ export function AircraftTypePicker({
         <p className="cluster aircraft-type__none">
           <span className="muted">No aircraft type matches that.</span>
           {canAdd ? (
-            <Button variant="secondary" small onClick={() => setIsAdding(true)}>
+            <Button
+              variant="secondary"
+              small
+              // Leaving the box marks it with its error, which pushes this button
+              // down under the pointer, so the press keeps the focus where it is.
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => setIsAdding(true)}
+            >
               Add a type
             </Button>
           ) : null}
