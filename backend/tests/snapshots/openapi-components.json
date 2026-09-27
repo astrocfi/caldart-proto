@@ -2639,6 +2639,7 @@
   "RolesEnum": {
     "enum": [
       "member",
+      "verifier",
       "dart_leader",
       "user_admin",
       "treasurer",

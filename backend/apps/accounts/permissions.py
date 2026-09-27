@@ -15,7 +15,7 @@ from rest_framework.request import Request
 from rest_framework.views import APIView
 
 from apps.accounts.models import User
-from apps.accounts.roles import ACCOUNT_ADMIN, SYSTEM_ADMIN, TREASURER, USER_ADMIN
+from apps.accounts.roles import ACCOUNT_ADMIN, SYSTEM_ADMIN, TREASURER, USER_ADMIN, VERIFY_ROLES
 
 
 def user_has_any_role(user: User | AnonymousUser | None, slugs: tuple[str, ...]) -> bool:
@@ -72,3 +72,7 @@ IsSystemAdmin = HasRole(SYSTEM_ADMIN)
 #: A treasurer sees the money but not the medical and certificate data on
 #: ``/admin/members/*``; an account administrator holds both.
 IsFinance = HasAnyRole(TREASURER, ACCOUNT_ADMIN)
+
+#: Verification: every role in ``VERIFY_ROLES`` may verify a member's items and an
+#: aircraft's insurance.
+IsVerifier = HasAnyRole(*VERIFY_ROLES)

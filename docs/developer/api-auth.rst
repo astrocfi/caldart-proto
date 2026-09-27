@@ -575,13 +575,15 @@ Roles
 --------------
 
 The role catalog, in privilege order, for any authenticated caller.  It is a
-bare array rather than a paginated envelope: there are seven roles and there
+bare array rather than a paginated envelope: there are eight roles and there
 will not be many more.
 
 .. code-block:: json
 
    [{"slug": "member",
      "description": "A member or a friend with a portal account."},
+    {"slug": "verifier",
+     "description": "Verify a member's pilot certificate, medical, and photo ID, and an aircraft's insurance, from the member check and the aircraft check."},
     {"slug": "dart_leader",
      "description": "Look up any member and see membership, medical, certificate, and aircraft insurance currency."}]
 

@@ -423,11 +423,14 @@ rules govern every gate in the matrix below:
 Views declare their gates with the permission classes in
 ``apps/accounts/permissions.py``.  ``HasRole(slug)`` and ``HasAnyRole(*slugs)``
 are factories that return a DRF permission class; ``IsUserAdmin``,
-``IsAccountAdmin``, ``IsFinance``, and ``IsSystemAdmin`` are ready-made ones,
+``IsAccountAdmin``, ``IsFinance``, ``IsVerifier``, and ``IsSystemAdmin`` are
+ready-made ones,
 and ``HasAnyRole(DART_LEADER, ACCOUNT_ADMIN)`` guards the leader check and
 ``GET /admin/members``, whose ``POST`` stays ``IsAccountAdmin``.
 ``IsFinance`` is ``HasAnyRole(TREASURER, ACCOUNT_ADMIN)`` and guards every
-``/admin/payments`` and ``/admin/renewals`` endpoint.  Every one
+``/admin/payments`` and ``/admin/renewals`` endpoint.  ``IsVerifier`` is
+``HasAnyRole(*VERIFY_ROLES)``: ``verifier``, ``dart_leader``, ``user_admin``,
+and ``account_admin`` (``apps/accounts/roles.py``).  Every one
 of them runs its test through ``user_has_any_role``, so an anonymous caller
 always fails and the two rules above always hold.  Object-level rules, such
 as who may edit an aircraft record, are separate classes in the owning app
@@ -439,6 +442,11 @@ data, so a volunteer who keeps the books reads the money without reading
 anybody's medical currency.  An ``account_admin`` holds both.  Like every slug
 in ``STAFF_ROLE_SLUGS`` it does widen one thing outside the API: the holder
 reads the website's members-only pages whatever their own membership says.
+
+``verifier`` is the least privileged staff role, between ``member`` and
+``dart_leader``.  It verifies a member's pilot certificate, medical, and photo
+ID, and an aircraft's insurance, and reaches no member list or member record.
+Like every staff slug it opens the website's members-only pages.
 
 ``website_admin`` grants **no API endpoint at all**.  It exists to give its
 holder Wagtail admin permissions, which are enforced by Wagtail, not by DRF.
@@ -1404,7 +1412,7 @@ Testing the API
 
 Every endpoint has role-matrix coverage — allow *and* deny — in
 ``backend/tests/``.  ``conftest.py`` provides an ``api_client`` fixture, one
-user fixture per role (``member``, ``dart_leader``, ``user_admin``,
+user fixture per role (``member``, ``verifier``, ``dart_leader``, ``user_admin``,
 ``treasurer``, ``account_admin``, ``website_admin``, ``system_admin``) and an
 ``all_role_users`` dict keyed by slug, so a new endpoint's permission test is a
 short parametrized loop over the roles that should pass and the roles that

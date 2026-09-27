@@ -26,6 +26,7 @@ from apps.accounts.roles import (
     SYSTEM_ADMIN,
     TREASURER,
     USER_ADMIN,
+    VERIFIER,
     WEBSITE_ADMIN,
 )
 from apps.darts.models import Dart
@@ -42,8 +43,9 @@ CSV_URL = "/api/v1/reports/roles/export.csv"
 PDF_URL = "/api/v1/reports/roles/export.pdf"
 SUBSCRIPTIONS_URL = "/api/v1/reports/subscriptions"
 
-#: The six staff roles' section titles, in the order the report draws them.
+#: The seven staff roles' section titles, in the order the report draws them.
 SECTION_TITLES = [
+    "Verifier",
     "DART leader",
     "User administrator",
     "Treasurer",
@@ -79,9 +81,10 @@ def section_titles(params: Params | None = None) -> list[str]:
 # The role labels
 # --------------------------------------------------------------------------
 def test_every_role_is_labeled_as_the_screens_name_it() -> None:
-    """``ROLE_LABELS`` names the seven roles in privilege order."""
+    """``ROLE_LABELS`` names the eight roles in privilege order."""
     assert list(ROLE_LABELS.items()) == [
         (MEMBER, "Member"),
+        (VERIFIER, "Verifier"),
         (DART_LEADER, "DART leader"),
         (USER_ADMIN, "User administrator"),
         (TREASURER, "Treasurer"),
@@ -144,7 +147,7 @@ def test_every_column_is_registered_in_export_order() -> None:
 # Rows and sections
 # --------------------------------------------------------------------------
 def test_every_staff_role_is_a_section_even_when_nobody_holds_it() -> None:
-    """The six staff roles are the sections, in privilege order, with no rows at all."""
+    """The seven staff roles are the sections, in privilege order, with no rows at all."""
     assert section_titles() == SECTION_TITLES
 
 
@@ -400,9 +403,9 @@ def test_the_pdf_heads_each_role_s_section(
 def test_the_pdf_says_so_under_a_role_nobody_holds(
     account_admin_client: APIClient, pdf_text: PdfText
 ) -> None:
-    """With only the account administrator signed in, the leader's section is empty."""
+    """With only the account administrator signed in, the verifier's section is empty."""
     strings = pdf_text(account_admin_client.get(PDF_URL).content)[0]
-    assert strings[2:4] == ["DART leader", "Nobody holds this role."]
+    assert strings[2:4] == ["Verifier", "Nobody holds this role."]
 
 
 def test_an_account_administrator_can_send_the_report_to_a_user_administrator(

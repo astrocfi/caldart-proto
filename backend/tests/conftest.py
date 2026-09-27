@@ -45,6 +45,7 @@ from apps.accounts.roles import (
     SYSTEM_ADMIN,
     TREASURER,
     USER_ADMIN,
+    VERIFIER,
     WEBSITE_ADMIN,
 )
 from apps.sysadmin import services
@@ -356,6 +357,7 @@ def _role_fixture(slug: str, email: str, name: tuple[str, str]) -> Callable[...,
 
 
 member = _role_fixture(MEMBER, "member@example.test", ("Robin", "Ashby"))
+verifier = _role_fixture(VERIFIER, "verifier@example.test", ("Lee", "Okafor"))
 dart_leader = _role_fixture(DART_LEADER, "leader@example.test", ("Jordan", "Keel"))
 user_admin = _role_fixture(USER_ADMIN, "useradmin@example.test", ("Sam", "Pryor"))
 treasurer = _role_fixture(TREASURER, "treasurer@example.test", ("Casey", "Lund"))
@@ -395,9 +397,9 @@ def role_matrix(*allowed: str) -> list[tuple[str, bool]]:
     ``allowed`` names the role slugs the endpoint under test admits; every other slug
     in ``ROLE_MATRIX`` is paired with ``False``.  The cases come back in privilege
     order, so ``role_matrix(ACCOUNT_ADMIN, SYSTEM_ADMIN)`` is
-    ``[("member", False), ("dart_leader", False), ("user_admin", False),
-    ("treasurer", False), ("account_admin", True), ("website_admin", False),
-    ("system_admin", True)]``
+    ``[("member", False), ("verifier", False), ("dart_leader", False),
+    ("user_admin", False), ("treasurer", False), ("account_admin", True),
+    ("website_admin", False), ("system_admin", True)]``
     and collects as ``[member-False]`` ... ``[system_admin-True]``.  Pair it with the
     ``all_role_users`` fixture to sign the matching user in.
     """
@@ -407,6 +409,7 @@ def role_matrix(*allowed: str) -> list[tuple[str, bool]]:
 @pytest.fixture
 def all_role_users(
     member: UserModel,
+    verifier: UserModel,
     dart_leader: UserModel,
     user_admin: UserModel,
     treasurer: UserModel,
@@ -417,6 +420,7 @@ def all_role_users(
     """Return every role fixture's user keyed by its role slug, for allow/deny tests."""
     return {
         MEMBER: member,
+        VERIFIER: verifier,
         DART_LEADER: dart_leader,
         USER_ADMIN: user_admin,
         TREASURER: treasurer,

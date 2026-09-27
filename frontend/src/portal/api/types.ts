@@ -13,6 +13,7 @@ export type IsoDateTime = string;
 
 export type RoleSlug =
   | 'member'
+  | 'verifier'
   | 'dart_leader'
   | 'user_admin'
   | 'treasurer'
