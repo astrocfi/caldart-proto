@@ -377,6 +377,7 @@ def test_whitenoise_serves_a_hashed_asset_under_the_prefix(
     bundle = manifest["src/portal/main.tsx"]["file"]
 
     response = client.get(f"/static/{bundle}", SCRIPT_NAME=PREFIX)
+    response.close()
 
     assert response.status_code == 200
 
