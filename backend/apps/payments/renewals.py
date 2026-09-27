@@ -39,7 +39,7 @@ import smtplib
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import date, timedelta
-from typing import Any
+from typing import Any, Literal
 
 from django.conf import settings
 from django.db import IntegrityError, models, transaction
@@ -68,7 +68,7 @@ from apps.payments.providers.base import (
 )
 from apps.payments.receipts import receipt_filename, render_receipt_pdf
 from apps.payments.services import create_checkout, mark_failed
-from caldart import audit
+from caldart import audit, events
 from caldart.exceptions import DomainError, DomainValidationError
 from caldart.mail import Attachment, contact_email, org_name, send_templated
 from caldart.reports import PDF_MEDIA_TYPE, money_label
@@ -668,8 +668,10 @@ def save_method(
     the method and the next charge date.  The plan is named where there is one; a
     recurring donation renews nothing, so it names none and the record's
     ``plan`` field renders ``-``.  The email is sent after the transaction commits,
-    so a rollback tells nobody anything.
+    so a rollback tells nobody anything.  A mandate that was not active already
+    raises the ``auto_renewal_on`` event; a new card on an active one raises nothing.
     """
+    was_active = mandate.status == MandateStatus.ACTIVE
     mandate.customer_ref = method.customer_ref or mandate.customer_ref
     mandate.method_ref = method.method_ref
     mandate.method_brand = method.brand
@@ -697,11 +699,19 @@ def save_method(
     transaction.on_commit(
         lambda: send_mandate_email(mandate, "renewal_enabled", next_charge_on=charge_on)
     )
+    if not was_active:
+        events.emit("auto_renewal_on", mandate=mandate)
     return mandate
 
 
+#: How an automatic payment was turned off, as the ``auto_renewal_off`` event names it.
+type OffHow = Literal["member", "administrator", "lapsed", "deactivated"]
+
+
 @transaction.atomic
-def cancel_mandate(mandate: RenewalMandate, *, actor: User | None) -> RenewalMandate:
+def cancel_mandate(
+    mandate: RenewalMandate, *, actor: User | None, how: OffHow | None = None
+) -> RenewalMandate:
     """Turn automatic renewal off, whoever asked, and tell the member.
 
     ``actor`` is the member themselves or the administrator who turned it off,
@@ -711,9 +721,16 @@ def cancel_mandate(mandate: RenewalMandate, *, actor: User | None) -> RenewalMan
     charges nothing.  Writes one ``renewal.cancel`` audit record
     and emails the member after the transaction commits.  Calling it on a
     mandate that is already canceled changes nothing and sends nothing.
+
+    Canceling a mandate that was active raises the ``auto_renewal_off`` event with
+    the mandate and ``how``: the caller's word when given (``deactivated`` when the
+    member left), otherwise ``member`` when ``actor`` is the mandate's own member and
+    ``administrator`` for anybody else.  A paused mandate was off already, and
+    raised its event when it paused, so canceling it raises nothing.
     """
     if mandate.status == MandateStatus.CANCELED:
         return mandate
+    was_active = mandate.status == MandateStatus.ACTIVE
     mandate.status = MandateStatus.CANCELED
     mandate.canceled_at = timezone.now()
     mandate.canceled_by = actor
@@ -727,6 +744,10 @@ def cancel_mandate(mandate: RenewalMandate, *, actor: User | None) -> RenewalMan
         self_service=actor is not None and actor.pk == mandate.user_id,
     )
     transaction.on_commit(lambda: send_mandate_email(mandate, "renewal_canceled"))
+    if was_active:
+        if how is None:
+            how = "member" if actor is not None and actor.pk == mandate.user_id else "administrator"
+        events.emit("auto_renewal_off", mandate=mandate, how=how)
     return mandate
 
 
@@ -771,7 +792,8 @@ def cancel_all_mandates(user: User) -> None:
 
     Each active or paused mandate is canceled through :func:`cancel_mandate` with the
     account itself as the actor, so it is recorded as a self-service
-    ``renewal.cancel`` and the member is told; a pending one is thrown away by
+    ``renewal.cancel``, raised as ``auto_renewal_off`` with ``how="deactivated"`` when it
+    was active, and the member is told; a pending one is thrown away by
     :func:`discard_pending_mandate`.  A mandate already canceled is left as it is.
     Called when a person deactivates their own account.
     """
@@ -779,7 +801,7 @@ def cancel_all_mandates(user: User) -> None:
         status__in=(MandateStatus.CANCELED, MandateStatus.PENDING)
     )
     for mandate in standing:
-        cancel_mandate(mandate, actor=user)
+        cancel_mandate(mandate, actor=user, how="deactivated")
     discard_pending_mandate(user)
 
 
@@ -1347,6 +1369,7 @@ def _abandon(mandate: RenewalMandate, run: RenewalRun, *, dry_run: bool) -> None
     Nothing is charged and no attempt is written: there is no term the money
     would extend.  The member is told that automatic renewal is off, why, and
     where to renew by hand, and the ordinary reminders cover them from then on.
+    The pause raises the ``auto_renewal_off`` event with ``how="lapsed"``.
     """
     run.paused += 1
     run.record_action("renewal_failed", mandate, detail=LAPSED_TOO_LONG_MESSAGE)
@@ -1354,6 +1377,7 @@ def _abandon(mandate: RenewalMandate, run: RenewalRun, *, dry_run: bool) -> None
         return
     mandate.status = MandateStatus.PAUSED
     mandate.save(update_fields=["status", "updated_at"])
+    events.emit("auto_renewal_off", mandate=mandate, how="lapsed")
     send_mandate_email(
         mandate, "renewal_failed", error=LAPSED_TOO_LONG_MESSAGE, next_on=None, lapsed=True
     )
@@ -1601,7 +1625,9 @@ def _record_failure(
     The provider's reason is kept on the attempt and quoted to the member.  A
     mandate with retries left gets the next one from :data:`RETRY_OFFSETS`; one
     whose retries are exhausted is paused, and the member is told that automatic
-    renewal is off and the ordinary reminders resume.
+    renewal is off and the ordinary reminders resume.  Every decline raises the
+    ``auto_renewal_declined`` event with the mandate, the ``reason``, and ``next_on``,
+    the day of the retry or ``None`` once the mandate is paused.
     """
     mandate = attempt.mandate
     if payment.status != PaymentStatus.SUCCEEDED:
@@ -1619,6 +1645,7 @@ def _record_failure(
 
     attempt.outcome = RenewalOutcome.FAILED
     attempt.error = reason[:255]
+    events.emit("auto_renewal_declined", mandate=mandate, reason=attempt.error, next_on=next_on)
     run.record_action("renewal_failed", mandate, on=next_on, detail=attempt.error)
     if send_mandate_email(mandate, "renewal_failed", error=attempt.error, next_on=next_on):
         attempt.result_emailed_at = timezone.now()

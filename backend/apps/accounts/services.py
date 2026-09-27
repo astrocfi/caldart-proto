@@ -30,7 +30,7 @@ from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 
 from apps.accounts.models import PERSON_KINDS, AccountKind, User
 from apps.accounts.roles import MEMBER, ROLE_SLUGS, SYSTEM_ADMIN, WEBSITE_ADMIN
-from caldart import audit
+from caldart import audit, events
 from caldart.exceptions import DomainError, DomainValidationError
 from caldart.mail import contact_email, org_name, send_templated
 
@@ -243,6 +243,15 @@ def update_account(actor: User, target: User, changes: AccountChanges) -> User:
     constraint compares it, so a change of case is not one -- clears
     ``email_verified_at`` and, once the transaction commits, mails the new address a
     verification link through :func:`send_email_verification`.
+
+    Each change the save really makes raises its notification event through
+    :func:`caldart.events.emit`, after the save and inside the transaction:
+    ``became_friend`` or ``became_member`` with ``how="administrator"`` for a new
+    kind, ``account_deactivated`` or ``account_reactivated`` with ``actor`` for the
+    active flag, and ``roles_changed`` with the slugs ``added`` and ``removed`` (in
+    privilege order) and ``actor``.  An edit that alters nothing raises nothing.  A
+    new address raises nothing yet: the verification link carries the address it
+    replaced, and :func:`verify_email` raises ``email_changed`` when it is followed.
     """
     fields = _account_fields(changes)
     roles = changes.get("roles")
@@ -261,6 +270,7 @@ def update_account(actor: User, target: User, changes: AccountChanges) -> User:
 
     records = _change_records(target, fields, roles)
     is_new_address = len(_altered_fields(target, fields, ("email",))) > 0
+    old_email = target.email
     for field in ACCOUNT_FIELDS:
         if field in fields:
             setattr(target, field, fields[field])
@@ -270,14 +280,38 @@ def update_account(actor: User, target: User, changes: AccountChanges) -> User:
         target.set_roles(roles)
         sync_django_flags(target)
     target.save()
-    if kind is not None and kind != target.kind:
-        set_kind(target, kind, actor=actor)
+    if kind is not None and kind != target.kind and set_kind(target, kind, actor=actor):
+        became = "became_friend" if kind == AccountKind.FRIEND else "became_member"
+        events.emit(became, user=target, how="administrator")
     if is_new_address:
-        transaction.on_commit(lambda: send_email_verification(target))
+        transaction.on_commit(lambda: send_email_verification(target, previous_email=old_email))
 
     for action, logged in records:
         audit.record(action, actor=actor, target=target, **logged)
+        _raise_edit_event(action, logged, actor=actor, target=target)
     return target
+
+
+def _raise_edit_event(action: str, logged: AuditFields, *, actor: User, target: User) -> None:
+    """Raise the notification event behind one audit record :func:`update_account` wrote.
+
+    ``account.activate`` raises ``account_reactivated``, ``account.deactivate`` raises
+    ``account_deactivated`` and ``account.roles`` raises ``roles_changed`` with the
+    slugs ``added`` and ``removed``; each names ``actor``.  ``account.update`` raises
+    nothing here: the address has its own event and a name belongs to the profile.
+    """
+    if action == audit.ACCOUNT_ACTIVATE:
+        events.emit("account_reactivated", user=target, actor=actor)
+    elif action == audit.ACCOUNT_DEACTIVATE:
+        events.emit("account_deactivated", user=target, actor=actor)
+    elif action == audit.ACCOUNT_ROLES:
+        events.emit(
+            "roles_changed",
+            user=target,
+            added=logged.get("added", []),
+            removed=logged.get("removed", []),
+            actor=actor,
+        )
 
 
 def _account_fields(changes: AccountChanges) -> dict[str, AccountFieldValue]:
@@ -629,7 +663,9 @@ class DonorUpgrade(TypedDict):
     kind: str
 
 
-def make_email_verification_token(user: User, *, upgrade: DonorUpgrade | None = None) -> str:
+def make_email_verification_token(
+    user: User, *, upgrade: DonorUpgrade | None = None, previous_email: str | None = None
+) -> str:
     """A signed token naming ``user`` and the address they hold now.
 
     The address is signed stripped and lowercased, so a change of case keeps the
@@ -637,24 +673,33 @@ def make_email_verification_token(user: User, *, upgrade: DonorUpgrade | None = 
     its own timestamp; :func:`verify_email` refuses it once
     ``EMAIL_VERIFICATION_TIMEOUT`` seconds have passed.  A donor's token also carries
     the ``upgrade`` its registration asked for, which :func:`verify_email` applies.
+    A token mailed after a change of address carries the ``previous_email`` it
+    replaced, which :func:`verify_email` reports in the ``email_changed`` event.
     """
     payload: dict[str, object] = {"user": user.pk, "email": normalized_email(user.email)}
     if upgrade is not None:
         payload["upgrade"] = dict(upgrade)
+    if previous_email is not None:
+        payload["previous_email"] = previous_email
     return signing.dumps(payload, salt=EMAIL_VERIFICATION_SALT)
 
 
-def build_email_verification_url(user: User, *, upgrade: DonorUpgrade | None = None) -> str:
+def build_email_verification_url(
+    user: User, *, upgrade: DonorUpgrade | None = None, previous_email: str | None = None
+) -> str:
     """The absolute ``/portal/verify-email?token=...`` link mailed to ``user``.
 
-    Built on ``SITE_URL`` with any trailing slash dropped; ``upgrade`` is signed into
-    the token as :func:`make_email_verification_token` describes.
+    Built on ``SITE_URL`` with any trailing slash dropped; ``upgrade`` and
+    ``previous_email`` are signed into the token as
+    :func:`make_email_verification_token` describes.
     """
-    token = make_email_verification_token(user, upgrade=upgrade)
+    token = make_email_verification_token(user, upgrade=upgrade, previous_email=previous_email)
     return f"{settings.SITE_URL.rstrip('/')}{VERIFY_PATH}?token={token}"
 
 
-def send_email_verification(user: User, *, upgrade: DonorUpgrade | None = None) -> None:
+def send_email_verification(
+    user: User, *, upgrade: DonorUpgrade | None = None, previous_email: str | None = None
+) -> None:
     """Mail ``user`` a link that proves the address they hold now is theirs.
 
     The subject is ``"<organization name>: verify your email address"`` and the two
@@ -665,6 +710,8 @@ def send_email_verification(user: User, *, upgrade: DonorUpgrade | None = None) 
     never less than one), ``site_url``, ``org_name`` and ``contact_email``.  A donor,
     who cannot sign in, is sent nothing -- unless ``upgrade`` is given, when the link
     carries the registration that asked for it (:func:`verify_email` applies it).
+    ``previous_email``, given after a change of address, is signed into the link so
+    that following it raises ``email_changed``.
     """
     if is_donor(user) and upgrade is None:
         return
@@ -673,7 +720,9 @@ def send_email_verification(user: User, *, upgrade: DonorUpgrade | None = None) 
         "user": user,
         "first_name": user.first_name or user.display_name,
         "email": user.email,
-        "verify_url": build_email_verification_url(user, upgrade=upgrade),
+        "verify_url": build_email_verification_url(
+            user, upgrade=upgrade, previous_email=previous_email
+        ),
         "expiry_days": max(1, settings.EMAIL_VERIFICATION_TIMEOUT // SECONDS_PER_DAY),
         "site_url": settings.SITE_URL.rstrip("/"),
         "org_name": name,
@@ -703,6 +752,11 @@ def verify_email(token: str) -> User:
     the names and the kind the form gave and the ``member`` role (see
     :func:`upgrade_donor`), then is verified, so it can sign in with the password
     chosen then.  A donor's token that carries no upgrade is refused as invalid.
+
+    A token mailed after a change of address carries the address it replaced; the
+    visit that stamps the account verified raises the ``email_changed`` event with
+    the account and that ``old_email``.  A second visit, and a token with no previous
+    address, raise nothing.
     """
     try:
         payload = signing.loads(
@@ -719,6 +773,9 @@ def verify_email(token: str) -> User:
             raise EmailVerificationError(EMAIL_VERIFICATION_INVALID)
         upgrade_donor(user, upgrade)
     if confirm_email_address(user):
+        previous_email = payload.get("previous_email")
+        if isinstance(previous_email, str):
+            events.emit("email_changed", user=user, old_email=previous_email)
         return user
     # Nothing was stamped: the account was verified already, or its address changed
     # after it was read above.  Read it again to tell the two apart.
@@ -734,7 +791,9 @@ def upgrade_donor(donor: User, upgrade: DonorUpgrade) -> None:
     The names are replaced by the upgrade's, the account gains the ``member`` role,
     and the kind is set through :func:`set_kind` with the account as its own actor,
     which records ``account.kind``.  The password was written when the person
-    registered; the caller proves the address.
+    registered; the caller proves the address.  The donor has not signed up yet:
+    like anybody who registers, they do when the join wizard's profile step
+    completes the profile, which raises ``signed_up``.
     """
     donor.first_name = upgrade["first_name"]
     donor.last_name = upgrade["last_name"]
@@ -810,8 +869,9 @@ def change_own_email(user: User, *, email: str) -> User:
 
     This is :func:`update_account` with the account as both actor and target, so the
     change is audited as an ``account.update`` of ``email``, the address is marked
-    unverified, and the new address is mailed a verification link on commit.  The
-    caller has already checked the current password and that the address is free.
+    unverified, and the new address is mailed a verification link on commit;
+    following that link raises the ``email_changed`` event.  The caller has already
+    checked the current password and that the address is free.
     """
     return update_account(user, user, {"email": email})
 
@@ -830,9 +890,10 @@ def deactivate_own_account(user: User) -> None:
     no portal account to deactivate.")``; each refusal is recorded at WARNING as
     ``account.deactivate`` with the reason ``system_admin_target`` or
     ``donor_account``.  Otherwise the account is saved inactive and the change is
-    recorded as ``account.deactivate`` with ``self_service=true``.  The kind, the
-    roles and every record are kept.  The caller cancels the mandates, suspends the
-    membership, and ends the session.
+    recorded as ``account.deactivate`` with ``self_service=true`` and raised as the
+    ``account_deactivated`` event with ``actor=None``.  The kind, the roles and every
+    record are kept.  The caller cancels the mandates, suspends the membership, and
+    ends the session.
     """
     if is_donor(user):
         audit.refuse(
@@ -850,6 +911,7 @@ def deactivate_own_account(user: User) -> None:
     user.is_active = False
     user.save(update_fields=["is_active", "updated_at"])
     audit.record(audit.ACCOUNT_DEACTIVATE, actor=user, target=user, self_service=True)
+    events.emit("account_deactivated", user=user, actor=None)
 
 
 def deactivated_account(email: str, password: str) -> User | None:
@@ -869,12 +931,14 @@ def reactivate_own_account(user: User) -> None:
     """Set ``user``'s active flag again, the person having proved who they are.
 
     The kind and roles are exactly as they were.  The change is recorded as
-    ``account.activate`` with ``self_service=true``, and an account whose address was
-    never verified is mailed a verification link once the transaction commits.  The
-    caller restores the membership and, where it signs the person in, does so.
+    ``account.activate`` with ``self_service=true`` and raised as the
+    ``account_reactivated`` event with ``actor=None``, and an account whose address
+    was never verified is mailed a verification link once the transaction commits.
+    The caller restores the membership and, where it signs the person in, does so.
     """
     user.is_active = True
     user.save(update_fields=["is_active", "updated_at"])
     audit.record(audit.ACCOUNT_ACTIVATE, actor=user, target=user, self_service=True)
+    events.emit("account_reactivated", user=user, actor=None)
     if user.email_verified_at is None:
         transaction.on_commit(lambda: send_email_verification(user))

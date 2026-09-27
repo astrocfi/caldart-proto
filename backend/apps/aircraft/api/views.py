@@ -36,9 +36,8 @@ from apps.aircraft.filters import (
     AircraftFilter,
     NullsLastOrderingFilter,
 )
-from apps.aircraft.models import Aircraft, AircraftChange, AircraftChangeKind, normalize_n_number
+from apps.aircraft.models import Aircraft, AircraftChange, normalize_n_number
 from apps.members.api.actors import acting_user
-from caldart import audit
 
 User = get_user_model()
 
@@ -81,7 +80,7 @@ class AircraftListCreateView(AircraftQuerysetMixin, generics.ListCreateAPIView[A
 
     @transaction.atomic
     def perform_create(self, serializer: BaseSerializer[Aircraft]) -> None:
-        """Save the new aircraft, recording who added it in the history and the log.
+        """Save the new aircraft, and record who added it through ``record_added``.
 
         The record and its history row commit together: a failure writing the trail
         rolls the record back with it, so no aircraft can exist without a ``created``
@@ -89,8 +88,7 @@ class AircraftListCreateView(AircraftQuerysetMixin, generics.ListCreateAPIView[A
         """
         actor = acting_user(self.request)
         aircraft = serializer.save(created_by=actor)
-        services.record_change(aircraft, actor=actor, kind=AircraftChangeKind.CREATED, fields=[])
-        audit.record(audit.AIRCRAFT_CREATE, actor=actor, target=aircraft)
+        services.record_added(aircraft, actor=actor)
 
 
 class AircraftDetailView(generics.RetrieveUpdateDestroyAPIView[Aircraft]):
@@ -122,15 +120,11 @@ class AircraftDetailView(generics.RetrieveUpdateDestroyAPIView[Aircraft]):
         fields = services.changed_fields(instance, dict(serializer.validated_data))
         actor = acting_user(self.request)
         aircraft = serializer.save()
-        services.record_change(
-            aircraft, actor=actor, kind=AircraftChangeKind.UPDATED, fields=fields
-        )
-        audit.record(audit.AIRCRAFT_UPDATE, actor=actor, target=aircraft, fields=fields)
+        services.record_updated(aircraft, actor=actor, fields=fields)
 
     def perform_destroy(self, instance: Aircraft) -> None:
-        """Delete the record, its history with it, and log the deletion."""
-        audit.record(audit.AIRCRAFT_DELETE, actor=acting_user(self.request), target=instance)
-        instance.delete()
+        """Delete the record and its history through ``services.delete_aircraft``."""
+        services.delete_aircraft(instance, actor=acting_user(self.request))
 
 
 class AircraftChangesView(generics.ListAPIView[AircraftChange]):

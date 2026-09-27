@@ -37,7 +37,7 @@ from apps.payments.models import (
     RefundReason,
     RefundStatus,
 )
-from caldart import audit
+from caldart import audit, events
 from caldart.exceptions import DomainValidationError
 from caldart.mail import contact_email, org_name, send_templated
 from caldart.reports import money_label
@@ -117,8 +117,9 @@ def issue_refund(
     payment becomes ``refunded`` when its succeeded refunds come to its whole
     amount and ``partially_refunded`` otherwise.  ``cancel_term`` cancels the
     membership term the payment bought, with a note naming this refund; a payment
-    that bought no term ignores it.  The member is emailed, and the action is
-    recorded in the audit log under ``payment.refund``.
+    that bought no term ignores it.  The member is emailed, the action is
+    recorded in the audit log under ``payment.refund``, and the ``payment_refunded``
+    event is raised once the refund has succeeded (:func:`_raise_refunded`).
 
     ``actor`` is the administrator issuing it, and is kept on the row as
     ``requested_by``.  ``reason`` is one of the ``RefundReason`` values and
@@ -168,6 +169,7 @@ def issue_refund(
         refund.save(update_fields=["provider_ref", "raw", "status", "refunded_at", "updated_at"])
         apply_refund_totals(locked)
         term = _canceled_term(refund, actor=actor) if cancel_term else None
+        _raise_refunded(locked, amount_cents, actor=actor, term_canceled=term is not None)
 
     audit.record(
         audit.PAYMENT_REFUND,
@@ -192,8 +194,9 @@ def record_dashboard_refund(
     """Record a refund somebody took in the provider's own dashboard.
 
     Writes a ``succeeded`` refund with no ``requested_by``, the reason ``other``
-    and :data:`DASHBOARD_NOTE`, updates the payment's status, and emails the
-    member.  No membership term is canceled: a webhook never decides that.
+    and :data:`DASHBOARD_NOTE`, updates the payment's status, emails the member,
+    and raises ``payment_refunded`` with ``actor=None``.  No membership term is
+    canceled: a webhook never decides that.
 
     Returns ``None`` and writes nothing when a refund already carries
     ``provider_ref`` against this payment, which is what makes a second delivery
@@ -229,6 +232,7 @@ def record_dashboard_refund(
             raw=raw,
         )
         apply_refund_totals(locked)
+        _raise_refunded(locked, amount_cents, actor=None, term_canceled=False)
 
     audit.record(
         audit.PAYMENT_REFUND,
@@ -241,6 +245,24 @@ def record_dashboard_refund(
     )
     send_refund_email(refund, term_canceled=False)
     return refund
+
+
+def _raise_refunded(
+    payment: Payment, refund_cents: int, *, actor: User | None, term_canceled: bool
+) -> None:
+    """Raise ``payment_refunded`` for ``refund_cents`` of ``payment`` given back.
+
+    ``actor`` is the administrator who issued it, ``None`` for one taken in the
+    provider's dashboard, and ``term_canceled`` says whether the term the payment
+    bought ended with it.
+    """
+    events.emit(
+        "payment_refunded",
+        payment=payment,
+        refund_cents=refund_cents,
+        actor=actor,
+        term_canceled=term_canceled,
+    )
 
 
 def apply_refund_totals(payment: Payment) -> Payment:

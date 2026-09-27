@@ -94,6 +94,9 @@ What a succeeded refund does
 #. One ``payment.refund`` line goes to the audit log, carrying the refund id,
    the amount, the reason and whether a term was canceled.  A cancellation
    writes its own ``membership.correct`` line.
+#. The ``payment_refunded`` event is raised with the amount, the caller, and
+   whether a term was canceled (:doc:`notification-events`).  A refund taken in
+   the provider's dashboard raises it too, with no actor; a refused one does not.
 
 Per provider
 ------------

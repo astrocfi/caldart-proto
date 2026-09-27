@@ -534,6 +534,9 @@ File                                   Contents
 ``apps/aircraft/models.py``            ``Aircraft``, ``AircraftChange``,
                                        ``normalize_n_number``
 ``apps/aircraft/services.py``          ``record_change``, ``changed_fields``,
+                                       ``record_added``, ``record_updated``,
+                                       ``delete_aircraft`` (each raising its
+                                       event, :doc:`notification-events`),
                                        leader search, status card, insurance
                                        querysets
 ``apps/aircraft/reports.py``           The aircraft report: columns, query
