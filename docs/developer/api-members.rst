@@ -41,7 +41,8 @@ The DART catalog and the DART screen live in their own app; see
    The member record itself: ``register_member``, ``create_member``,
    ``update_member``, and ``delete_member`` own the rules the endpoints below
    state, and the account half of each goes to ``accounts.services``.  The
-   membership status and ``activate_term`` live here too.
+   membership status, ``activate_term``, and ``grant_term`` live here too.  The
+   notification events these raise are listed in :doc:`notification-events`.
 ``api/actors.py``
    ``acting_user(request)``, the signed-in account behind a request every
    view here has already gated on a role.
@@ -602,11 +603,13 @@ member record — and records the grant in the audit log.
    {"plan": "annual", "starts_on": null, "note": "Check 1041"}
 
 ``plan`` is a ``MembershipPlan`` slug and must be an active plan.
-``starts_on`` and ``note`` are optional.  The term is created through
+``starts_on`` and ``note`` are optional.  The view calls
+``members.services.grant_term``, which creates the term through
 ``members.services.activate_term`` with ``source="manual"`` and ``granted_by``
 set to the caller, so a manual grant is placed by the same rule a payment is.
 A grant to a friend makes them a member, audited as ``account.kind`` under the
-caller.
+caller.  The grant raises the ``membership_granted`` event, and a friend's the
+``became_member`` event too (:doc:`notification-events`).
 
 With no ``starts_on``, that rule reads the largest ``ends_on`` across the
 member's **active or suspended** terms — terms whose stored status is

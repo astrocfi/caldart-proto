@@ -139,7 +139,10 @@ account reads ``membership.status: "friend"`` until the first payment clears.
 In one transaction
 the endpoint creates the ``User`` of that kind, grants the ``member`` role and
 creates an empty ``MemberProfile``, then calls ``django.contrib.auth.login``.  If
-any part fails, none of it is written.  Once the transaction commits, the new
+any part fails, none of it is written.  No event is raised yet: the join
+wizard asks for the DART at its profile step, and the ``PATCH /me/profile``
+that completes the profile raises ``signed_up`` (:doc:`notification-events`).
+Once the transaction commits, the new
 address is mailed a verification link (see `Email verification`_), and the
 payload's ``email_verified`` is false.
 
@@ -375,13 +378,15 @@ concurrent request waits and then finds the account already inactive and does
 nothing:
 
 #. a system administrator or a donor is refused (below), which changes nothing;
-   otherwise ``is_active`` is cleared and ``account.deactivate`` is recorded with
-   ``self_service=true`` (``accounts.services.deactivate_own_account``);
+   otherwise ``is_active`` is cleared, ``account.deactivate`` is recorded with
+   ``self_service=true``, and the ``account_deactivated`` event is raised with no
+   actor (``accounts.services.deactivate_own_account``);
 #. every active or paused renewal mandate — automatic renewal or recurring
    donation — is canceled by ``payments.renewals.cancel_mandate`` with the account
-   as its own actor (a self-service ``renewal.cancel``, and the usual "automatic
-   renewal is off" email once the transaction commits), and a pending one is
-   discarded (``payments.renewals.cancel_all_mandates``);
+   as its own actor (a self-service ``renewal.cancel``, the ``auto_renewal_off``
+   event with ``how="deactivated"``, and the usual "automatic renewal is off" email
+   once the transaction commits), and a pending one is discarded
+   (``payments.renewals.cancel_all_mandates``);
 #. every active term that is lifetime or ends on or after today — the covering
    term and any renewal already paid for that starts later — is set to
    ``suspended``, each recorded as ``membership.correct`` with
@@ -423,8 +428,9 @@ reactivated (``accounts.services.deactivated_account``; the address is compared
 case-insensitively).  The account's row is locked for the transaction, so of two
 concurrent requests the second finds the account active and is refused.  Then:
 
-#. ``is_active`` is set and ``account.activate`` is recorded with
-   ``self_service=true``; the kind and the roles are exactly as they were;
+#. ``is_active`` is set, ``account.activate`` is recorded with
+   ``self_service=true``, and the ``account_reactivated`` event is raised with no
+   actor; the kind and the roles are exactly as they were;
 #. each suspended term becomes ``active`` when it is lifetime or ends on or after
    today, so the membership resumes through its original date, and ``expired``
    when its end passed in the meantime, each recorded as ``membership.correct``
@@ -481,8 +487,10 @@ records it under the purpose ``email_verification``.
 ``accounts.services.update_account`` is the one hook for a change of address:
 whenever an edit really changes ``email`` — compared stripped and
 case-insensitively — it clears ``email_verified_at`` and mails the new address
-once the transaction commits.  That covers ``PATCH /admin/users/{id}``,
-``PATCH /admin/members/{user_id}``, and ``POST /auth/email/change`` alike.
+once the transaction commits, with the address it replaced signed into the
+link.  That covers
+``PATCH /admin/users/{id}``, ``PATCH /admin/members/{user_id}``, and
+``POST /auth/email/change`` alike.
 
 ``POST /auth/email/verify``
 ---------------------------
@@ -502,7 +510,10 @@ The account the token names is stamped verified and an
 ``account.email_verified`` audit line is written.  A link mailed when somebody
 registered with a donor's address first upgrades the donor to the member or
 friend that registration asked for (see `POST /auth/register`_); a donor's
-link that carries no upgrade is refused like a forged one.  Following a link a second
+link that carries no upgrade is refused like a forged one.  A link mailed after a
+change of address carries the address it replaced, and the visit that stamps the
+account verified raises the ``email_changed`` event with that old address
+(:doc:`notification-events`).  Following a link a second
 time answers 200 again and changes nothing.  Every way a link can be unusable —
 a forged or mangled token, one older than the timeout, a deactivated or deleted
 account, an address the account no longer holds — returns the same

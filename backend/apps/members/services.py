@@ -81,6 +81,7 @@ from apps.accounts.services import (
     set_kind,
     update_account,
 )
+from apps.members.labels import NAME_FIELDS, changed_field_labels
 from apps.members.models import (
     MemberProfile,
     Membership,
@@ -89,7 +90,7 @@ from apps.members.models import (
     MembershipState,
     MembershipStatusChoices,
 )
-from caldart import audit
+from caldart import audit, events
 from caldart.exceptions import DomainError, DomainPermissionError
 
 if TYPE_CHECKING:
@@ -174,7 +175,10 @@ def register_member(
     than a create.  Account and profile are written together, so a failure leaves no
     half-made member.  The profile's ``profile_updated_at`` is stamped as the moment
     it was written.  The account starts unverified, and once the transaction commits
-    its address is mailed a verification link.
+    its address is mailed a verification link.  Nothing is raised yet: the join
+    wizard asks for the DART at the profile step, and the save that completes the
+    profile raises ``signed_up``
+    (:meth:`apps.members.api.profile_serializers.ProfileSerializer.update`).
 
     An address that belongs to a donor is not a new account, and the donor is
     returned still a donor: only the password is written, which a donor cannot sign
@@ -230,7 +234,8 @@ def create_member(
     mail is queued past the commit, so a create that rolls back mails nobody.
     ``request`` only tells the invitation which site's name and contact address to
     use.  The new
-    profile's ``profile_updated_at`` is stamped as the moment it was created.
+    profile's ``profile_updated_at`` is stamped as the moment it was created.  The
+    ``member_added`` event is raised with the account and ``actor``.
     """
     user = create_account(
         email=email, password=password, first_name=first_name, last_name=last_name, kind=kind
@@ -242,6 +247,7 @@ def create_member(
     else:
         transaction.on_commit(lambda: send_password_invitation(user, request=request))
     audit.record(audit.MEMBER_CREATE, actor=actor, target=user, invited=not password)
+    events.emit("member_added", user=user, actor=actor)
     return user
 
 
@@ -267,10 +273,19 @@ def update_member(
     the fields a member record shows alongside the rest of the profile.  A
     request that only flips ``is_active`` leaves the stamp alone, and so does
     one for a target with no profile row to stamp.
+
+    When a name or a profile field really changes value, the ``profile_changed``
+    event is raised with the account, the labels of those fields
+    (:func:`apps.members.labels.changed_field_labels`: names first, then the profile
+    in the order given), and ``actor``.  The address, the active flag and the kind
+    raise their own events.
     """
+    names = {key: value for key, value in (account or {}).items() if key in NAME_FIELDS}
+    changed = changed_field_labels(target, names)
     apply_account_changes(actor, target, account or {})
     if profile is not None:
         row, _ = MemberProfile.objects.get_or_create(user=target)
+        changed += changed_field_labels(row, profile)
         for field, value in profile.items():
             setattr(row, field, value)
         row.save()
@@ -280,6 +295,8 @@ def update_member(
         existing = MemberProfile.objects.filter(user=target).first()
         if existing is not None:
             touch_profile(existing)
+    if len(changed) > 0:
+        events.emit("profile_changed", user=target, fields=changed, actor=actor)
     return target
 
 
@@ -409,7 +426,8 @@ def convert_due_friends(today: date | None = None) -> int:
 
     Each member whose ``friend_on`` is on or before ``today`` (the local date by
     default) is stored as a friend with no pending date, and the change is recorded
-    as ``account.kind`` with ``to=friend`` and ``on=<friend_on>`` under ``command``.
+    as ``account.kind`` with ``to=friend`` and ``on=<friend_on>`` under ``command``,
+    and raised as the ``became_friend`` event with ``how="lapsed"``.
     The daily reminder run calls this, so the stored kind catches up with the one
     :func:`account_kind` already reports.  A date still ahead is left alone.
 
@@ -435,6 +453,8 @@ def convert_due_friends(today: date | None = None) -> int:
             to=AccountKind.FRIEND.value,
             on=str(user.friend_on),
         )
+        user.kind, user.friend_on = AccountKind.FRIEND, None
+        events.emit("became_friend", user=user, how="lapsed")
     return converted
 
 
@@ -465,7 +485,9 @@ def become_friend(user: User, today: date | None = None) -> User:
 
     A membership current on ``today`` (the local date by default) is kept: ``friend_on``
     becomes the day after the unbroken coverage ends and the stored kind stays
-    ``member`` until then.  Anybody else is stored as a friend at once.  One
+    ``member`` until then.  Anybody else is stored as a friend at once, which raises
+    the ``became_friend`` event with ``how="chose"``; a change that waits raises it
+    from :func:`convert_due_friends` on the day.  One
     ``account.kind`` record, under the account itself, names ``to=friend`` and the day
     the change takes effect as ``on``.  Raises what :func:`check_can_become_friend`
     raises, before writing anything.  The automatic renewal is the caller's to end.
@@ -481,6 +503,8 @@ def become_friend(user: User, today: date | None = None) -> User:
     audit.record(
         audit.ACCOUNT_KIND, actor=user, target=user, to=AccountKind.FRIEND, on=str(effective_on)
     )
+    if user.kind == AccountKind.FRIEND:
+        events.emit("became_friend", user=user, how="chose")
     return user
 
 
@@ -804,7 +828,9 @@ def activate_term(
 
     Paying dues, or an administrator's grant, is what membership is: a friend who
     is given a term becomes a member (recorded as ``account.kind`` under the
-    granting administrator, or ``command``), and a member with a pending
+    granting administrator, or ``command``, and raised as the ``became_member``
+    event with ``how="paid"`` for a term a payment bought and ``how="granted"``
+    otherwise), and a member with a pending
     ``friend_on`` date keeps being a member, the date cleared.  A donor's kind is
     left alone.
 
@@ -853,12 +879,45 @@ def activate_term(
         note=note,
     )
     stamp_member_since(user, starts_on)
-    if not is_donor(user):
-        set_kind(
-            user,
-            AccountKind.MEMBER,
-            actor=granted_by if granted_by is not None else audit.COMMAND_ACTOR,
-        )
+    became_member = not is_donor(user) and set_kind(
+        user,
+        AccountKind.MEMBER,
+        actor=granted_by if granted_by is not None else audit.COMMAND_ACTOR,
+    )
+    if became_member:
+        how = "paid" if source == MembershipSource.PAYMENT else "granted"
+        events.emit("became_member", user=user, how=how)
+    return term
+
+
+@transaction.atomic
+def grant_term(
+    actor: User,
+    user: User,
+    plan: MembershipPlan,
+    *,
+    starts_on: date | None = None,
+    note: str = "",
+) -> Membership:
+    """Grant ``user`` a term on ``plan`` by hand on ``actor``'s behalf, and return it.
+
+    The term is created by :func:`activate_term` as a ``manual`` one granted by
+    ``actor``, placed after any coverage the member holds unless ``starts_on`` says
+    otherwise, with ``note`` as the reason.  The grant is recorded in the audit log as
+    ``membership.grant`` with the plan's slug and the term's id, and raised as the
+    ``membership_granted`` event with the account, the term and ``actor``.  A friend
+    granted a term also becomes a member, as :func:`activate_term` describes.
+    """
+    term = activate_term(
+        user,
+        plan,
+        source=MembershipSource.MANUAL,
+        granted_by=actor,
+        starts_on=starts_on,
+        note=note,
+    )
+    audit.record(audit.MEMBERSHIP_GRANT, actor=actor, target=user, plan=plan.slug, term=term.pk)
+    events.emit("membership_granted", user=user, term=term, actor=actor)
     return term
 
 
@@ -1004,14 +1063,32 @@ def stamp_member_since(user: User, joined_on: date) -> None:
     profile.save(update_fields=["member_since"])
 
 
+@transaction.atomic
 def expire_lapsed_memberships(on_date: date | None = None) -> int:
-    """Flip active terms whose ``ends_on`` has passed to ``expired``.
+    """Flip active terms whose ``ends_on`` is before ``on_date`` to ``expired``.
 
+    ``on_date`` defaults to the local date.  Returns how many terms were flipped.
     Used by the reminder scanner and by the seed to keep data honest.
+
+    Each account whose terms were flipped and that is no longer current on
+    ``on_date`` raises one ``membership_expired`` event, with the account and the
+    flipped term that ended last.  An account a later term still covers, such as a
+    renewal bought early, has not lost its membership and raises nothing.
     """
     on_date = on_date or timezone.localdate()
-    return Membership.objects.filter(
-        status=MembershipStatusChoices.ACTIVE,
-        ends_on__isnull=False,
-        ends_on__lt=on_date,
-    ).update(status=MembershipStatusChoices.EXPIRED, updated_at=timezone.now())
+    lapsed = list(
+        Membership.objects.select_for_update()
+        .select_related("user")
+        .filter(status=MembershipStatusChoices.ACTIVE, ends_on__isnull=False, ends_on__lt=on_date)
+        .order_by("user_id", "ends_on", "id")
+    )
+    flipped = Membership.objects.filter(pk__in=[term.pk for term in lapsed]).update(
+        status=MembershipStatusChoices.EXPIRED, updated_at=timezone.now()
+    )
+    # Later terms overwrite earlier ones, so each account keeps the one that ended last.
+    last_terms = {term.user_id: term for term in lapsed}
+    for term in last_terms.values():
+        term.status = MembershipStatusChoices.EXPIRED
+        if membership_status(term.user, on_date)["status"] != MembershipState.CURRENT:
+            events.emit("membership_expired", user=term.user, term=term)
+    return flipped

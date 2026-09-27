@@ -12,6 +12,7 @@ from datetime import timedelta
 from typing import Any
 
 from django.contrib.auth import get_user_model
+from django.db import transaction
 from django.db.models import Q, QuerySet
 from django.utils import timezone
 
@@ -30,6 +31,7 @@ from apps.members.services import (
     membership_status,
     with_membership,
 )
+from caldart import audit, events
 from caldart.phone import normalize_phone
 
 User = get_user_model()
@@ -83,6 +85,48 @@ def record_change(
     return AircraftChange.objects.create(
         aircraft=aircraft, changed_by=actor, kind=kind, fields=list(fields)
     )
+
+
+@transaction.atomic
+def record_added(aircraft: Aircraft, *, actor: UserModel) -> None:
+    """Record that ``actor`` has just saved ``aircraft`` as a new record.
+
+    Writes the ``created`` history row and the ``aircraft.create`` audit record, and
+    raises the ``aircraft_added`` event with the aircraft and ``actor``.  Called in the
+    transaction that saved the record, so the record never stands without its trail.
+    """
+    record_change(aircraft, actor=actor, kind=AircraftChangeKind.CREATED, fields=[])
+    audit.record(audit.AIRCRAFT_CREATE, actor=actor, target=aircraft)
+    events.emit("aircraft_added", aircraft=aircraft, actor=actor)
+
+
+@transaction.atomic
+def record_updated(aircraft: Aircraft, *, actor: UserModel, fields: list[str]) -> None:
+    """Record that ``actor`` has just saved an edit to ``aircraft`` moving ``fields``.
+
+    ``fields`` is :func:`changed_fields`, worked out before the save.  Writes the
+    ``updated`` history row and the ``aircraft.update`` audit record naming them, and,
+    when any column moved, raises the ``aircraft_changed`` event with the aircraft,
+    those column names and ``actor``; an edit that moved nothing raises nothing.
+    """
+    record_change(aircraft, actor=actor, kind=AircraftChangeKind.UPDATED, fields=fields)
+    audit.record(audit.AIRCRAFT_UPDATE, actor=actor, target=aircraft, fields=fields)
+    if len(fields) > 0:
+        events.emit("aircraft_changed", aircraft=aircraft, fields=fields, actor=actor)
+
+
+@transaction.atomic
+def delete_aircraft(aircraft: Aircraft, *, actor: UserModel) -> None:
+    """Delete ``aircraft`` and its history on ``actor``'s behalf.
+
+    The deletion is recorded as ``aircraft.delete`` and raised as the
+    ``aircraft_removed`` event.  The record is gone by then, so the event carries its
+    ``n_number`` and ``owner`` (the owner's name as the record gave it) with ``actor``.
+    """
+    audit.record(audit.AIRCRAFT_DELETE, actor=actor, target=aircraft)
+    n_number, owner = aircraft.n_number, aircraft.owner_name
+    aircraft.delete()
+    events.emit("aircraft_removed", n_number=n_number, owner=owner, actor=actor)
 
 
 def _cleaned(term: str) -> str:

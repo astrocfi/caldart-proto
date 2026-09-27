@@ -23,6 +23,7 @@ from apps.darts.models import (
     normalize_airport_identifier,
 )
 from apps.members.api.serializers import MembershipStatusSerializer
+from apps.members.labels import changed_field_labels
 from apps.members.models import (
     CALIFORNIA_COUNTIES,
     MAX_TOTAL_HOURS,
@@ -35,6 +36,7 @@ from apps.members.models import (
 )
 from apps.members.services import touch_profile
 from apps.payments.models import Payment, PaymentKind
+from caldart import events
 from caldart.phone import PHONE_EXTENSION_RE, PHONE_RE, normalize_phone
 
 #: Five digits, e.g. ``95035``.  The four-digit add-on is not collected: it is
@@ -356,6 +358,17 @@ class ProfileSerializer(serializers.ModelSerializer[MemberProfile]):
         Raises ``TypeError`` if a writable field names something other than a
         concrete model field, since only a concrete field carries the default
         the reset needs.  Stamps ``profile_updated_at`` once the write lands.
+
+        The write that turns an incomplete profile complete
+        (``MemberProfile.is_complete``) is the join wizard's profile step finishing,
+        so it raises the ``signed_up`` event with the account and the profile's
+        ``dart`` (``None`` when none was chosen), and no ``profile_changed``.  Any
+        other write that changes a field's value raises ``profile_changed`` with the
+        account, the labels of those fields
+        (:func:`apps.members.labels.changed_field_labels`) and ``actor=None``, the
+        member having edited their own profile.  A write that moves nothing raises
+        nothing, and neither does one to an incomplete profile that leaves it
+        incomplete: the join is under way.
         """
         if not self.partial:
             for name, field in self.fields.items():
@@ -375,8 +388,14 @@ class ProfileSerializer(serializers.ModelSerializer[MemberProfile]):
                         f"default to reset {name!r} to."
                     )
                 validated_data[source] = model_field.get_default()
+        was_complete = instance.is_complete
+        changed = changed_field_labels(instance, validated_data)
         instance = super().update(instance, validated_data)
         touch_profile(instance)
+        if not was_complete and instance.is_complete:
+            events.emit("signed_up", user=instance.user, dart=instance.dart)
+        elif was_complete and len(changed) > 0:
+            events.emit("profile_changed", user=instance.user, fields=changed, actor=None)
         return instance
 
 

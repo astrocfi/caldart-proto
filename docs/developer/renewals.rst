@@ -446,6 +446,13 @@ take your recurring donation on ...", "thank you for your recurring donation",
 where the amount is named.  The templates read ``kind``, ``kind_label``,
 ``cadence`` and ``cadence_label`` out of the shared context.
 
+Beside the member's own emails, the mandate raises notification events for the
+administrators who subscribe to them (:doc:`notification-events`):
+``auto_renewal_on`` when ``save_method`` makes a mandate active,
+``auto_renewal_off`` when ``cancel_mandate`` turns an active one off or the scan pauses one
+whose member lapsed too long ago, ``auto_renewal_declined`` for every refused
+charge, and ``membership_paid`` or ``donation_received`` for every charge taken.
+
 ``renewal_enabled`` and ``renewal_charged`` each carry the charge date and say
 ``Your next charge will be on <date>``.  It is never blank: the date reporting a
 charge is read after the stored day has been rolled forward, so it is the charge

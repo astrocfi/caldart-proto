@@ -157,6 +157,14 @@ the write, so a ``PATCH`` that sets only ``medical_type`` is rejected unless an
 expiration date is already stored.  The response is the stored profile in the
 ``GET`` shape above.
 
+The write that makes an incomplete profile complete is the join wizard's
+profile step finishing: it raises the ``signed_up`` event with the account and
+the chosen DART, and nothing else.  Any other ``PUT`` or ``PATCH`` to a complete
+profile that moves a field's value raises the ``profile_changed`` event with the
+labels of those fields and no actor (:doc:`notification-events`).  One that
+resends what is stored, or leaves an incomplete profile incomplete, raises
+nothing.
+
 Statuses:
 
 * **200** — the updated profile.

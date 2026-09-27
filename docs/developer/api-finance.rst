@@ -431,7 +431,10 @@ Statuses: **200**; **401** when anonymous; **403** without a finance role.
 Money that arrived by check, cash or bank transfer.  The payment is created
 already succeeded with provider ``manual``, a zero fee and a net equal to the
 amount, and whatever term it bought is activated through the same service a
-card checkout uses — which also emails the member their receipt.
+card checkout uses — which also emails the member their receipt.  The recording
+raises the ``payment_recorded`` event naming the caller, beside the
+``membership_paid`` or ``donation_received`` the money itself raises
+(:doc:`notification-events`).
 
 .. code-block:: json
 

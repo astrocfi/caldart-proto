@@ -40,8 +40,8 @@ from apps.members.filters import (
     MemberOrderingFilter,
     member_admin_queryset,
 )
-from apps.members.models import Membership, MembershipSource
-from apps.members.services import activate_term, delete_member
+from apps.members.models import Membership
+from apps.members.services import delete_member, grant_term
 from caldart import audit
 
 if TYPE_CHECKING:
@@ -155,7 +155,7 @@ class MemberMembershipGrantView(APIView):
     @extend_schema(request=MembershipGrantSerializer, responses={201: AdminMembershipSerializer})
     @transaction.atomic
     def post(self, request: Request, pk: int) -> Response:
-        """201 with the granted term, recorded in the audit log.
+        """201 with the granted term, through ``grant_term``, recorded in the audit log.
 
         ``plan`` is a plan slug and must be an active plan; ``starts_on`` and
         ``note`` are optional, and a missing start date lets the service place
@@ -165,20 +165,12 @@ class MemberMembershipGrantView(APIView):
         member = get_object_or_404(User, pk=pk)
         serializer = MembershipGrantSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        term = activate_term(
+        term = grant_term(
+            acting_user(request),
             member,
             serializer.validated_data["plan"],
-            source=MembershipSource.MANUAL,
-            granted_by=acting_user(request),
             starts_on=serializer.validated_data.get("starts_on") or None,
             note=serializer.validated_data.get("note", ""),
-        )
-        audit.record(
-            audit.MEMBERSHIP_GRANT,
-            actor=acting_user(request),
-            target=member,
-            plan=term.plan.slug,
-            term=term.pk,
         )
         return Response(AdminMembershipSerializer(term).data, status=status.HTTP_201_CREATED)
 

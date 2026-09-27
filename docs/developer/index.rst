@@ -43,6 +43,7 @@ New to the codebase?  :doc:`setup` gets it running, the
    reminders
    scheduled-reports
    notifications
+   notification-events
    renewals
    statements
 

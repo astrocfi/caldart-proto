@@ -17,6 +17,7 @@ from apps.accounts.models import User
 from apps.payments.dates import is_in_the_future
 from apps.payments.models import Payment, PaymentProvider, PaymentWallet
 from apps.payments.services import create_checkout, mark_succeeded
+from caldart import events
 from caldart.exceptions import DomainValidationError
 
 #: How a payment recorded by hand can have been presented.  Every other wallet
@@ -55,7 +56,9 @@ def record_manual_payment(
 
     The payment is created already succeeded, with a zero fee and a net equal to
     the amount, and the term is activated through the same service a card
-    checkout uses, which also emails the receipt.  Returns the payment as saved.
+    checkout uses, which also emails the receipt and raises ``membership_paid`` or
+    ``donation_received``.  The recording itself raises ``payment_recorded`` with the
+    payment and ``actor``.  Returns the payment as saved.
 
     Raises ``DomainValidationError`` keyed by ``method`` for a method outside
     :data:`MANUAL_METHODS`, by ``received_on`` for a day later than the one
@@ -101,7 +104,9 @@ def record_manual_payment(
             )
     except IntegrityError as exc:
         raise DomainValidationError("reference", _taken_message(reference)) from exc
-    return mark_succeeded(payment, wallet=method, provider_ref=reference)
+    payment = mark_succeeded(payment, wallet=method, provider_ref=reference)
+    events.emit("payment_recorded", payment=payment, actor=actor)
+    return payment
 
 
 def _taken_message(reference: str) -> str:

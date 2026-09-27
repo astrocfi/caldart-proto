@@ -25,6 +25,7 @@ from apps.members.models import (
 from apps.members.services import activate_term
 from apps.payments.models import Payment, PaymentProvider, PaymentStatus, PaymentWallet
 from apps.payments.receipts import send_receipt
+from caldart import events
 from caldart.exceptions import DomainValidationError
 
 #: The fee a provider that has not settled yet reports: none, because it does
@@ -195,6 +196,12 @@ def _complete(
     A term the payment buys also rolls the member's standing authority forward, so
     the coverage it just paid for is never charged for twice.
 
+    The move raises one notification event: ``membership_paid`` with the payment,
+    the term and ``automatic`` (true when the renewal scanner took it) for a payment
+    that names a plan, contribution and all, and ``donation_received`` with the
+    payment for one that names none -- a public gift, a contribution, or a recurring
+    donation's charge.
+
     Returns the row as saved and whether this call is the one that moved it, so
     only the caller that did the work sends the receipt.
     """
@@ -243,7 +250,7 @@ def _complete(
 
     if payment.plan is not None:
         covered = term_to_renew(payment.user, timezone.localdate())
-        activate_term(
+        term = activate_term(
             payment.user,
             payment.plan,
             source=MembershipSource.PAYMENT,
@@ -254,6 +261,14 @@ def _complete(
         roll_charge_date_past(
             payment.user, covered_until=covered.ends_on if covered is not None else None
         )
+        events.emit(
+            "membership_paid",
+            payment=payment,
+            term=term,
+            automatic=payment.renewal_attempts.exists(),
+        )
+    else:
+        events.emit("donation_received", payment=payment)
 
     activate_pending_mandate(payment)
     return payment, True
