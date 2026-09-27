@@ -204,6 +204,16 @@ capital letter (City, California county).  An administrator's edit lists the
 first and last name before the profile fields; the address, the active flag,
 and the kind raise their own events and are not listed.
 
+``verification_changed`` reads, for a member, *Lee Boss verified Pat Quill's pilot
+certificate, medical, and photo ID* when the save only verified items, *Lee Boss
+cleared the verification of Pat Quill's medical* when it only cleared them, and *Lee
+Boss changed the verification of Pat Quill's details* when it did both; for an
+aircraft, *N123AB's insurance* (or *N123AB's details*) takes the member's place.  The
+items are the labels in ``verified`` or ``cleared``, each with a lower-case first
+letter, listed with a serial comma.  Its lines are ``Verified`` and ``Cleared``, each
+the labels joined with commas or ``None``, and ``By``, the actor; it links the member
+record, or the aircraft record when the payload names an ``aircraft``.
+
 Aircraft
 --------
 

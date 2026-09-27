@@ -155,7 +155,11 @@ Accounts
    changed. An edit that changes nothing sends nothing.
 *Notification: Verification recorded*
    A verifier verifies or clears a member's pilot certificate, medical, or photo ID, or an
-   aircraft's insurance. One email covers everything verified or cleared in one save.
+   aircraft's insurance. One email covers everything verified or cleared in one save. It
+   lists what was verified, what was cleared, and who did it, and links the member's
+   record or the aircraft. A change a member makes to their own details clears the
+   verification without this email: *Notification: Profile changed* or *Notification:
+   Aircraft changed* covers it.
 
 Aircraft
 ~~~~~~~~
