@@ -144,6 +144,10 @@ What ``caldart.settings.test`` changes
   auth throttles inert.  The throttling test turns one back on with
   ``override_settings`` rather than having every other test race a shared
   counter.
+- ``GEOAPIFY_API_KEY`` is blank and ``ADDRESS_SUGGEST_THROTTLE_RATE`` is
+  ``None``, so address suggestions are off and unthrottled whatever ``.env``
+  says.  ``test_address_suggestions.py`` sets a key with the ``settings``
+  fixture and answers Geoapify with ``respx``, so no test reaches the network.
 - ``STATIC_ROOT`` is a temporary directory the settings module creates on
   import, because WhiteNoise warns about a ``STATIC_ROOT`` that is not on disk
   and the suite never runs ``collectstatic``.  ``conftest.py``'s
@@ -801,6 +805,19 @@ chromium`` (on a bare machine add ``npx playwright install-deps chromium``,
 which needs ``sudo``).  The specs are single-worker on purpose: three of the
 flows write to the shared database.
 
+The run cannot call Geoapify for the profile form's address suggestions, and
+production code never asks whether it is under test.  Instead ``make e2e``
+starts a static file server (``python -m http.server``) on the port after
+``E2E_PORT``, serving ``frontend/e2e/geoapify/``, and points the server at it
+with ``GEOAPIFY_URL=http://127.0.0.1:<port>/autocomplete.json`` and a stand-in
+``GEOAPIFY_API_KEY``.  The file server ignores the query string, so every
+suggestion request gets ``autocomplete.json``, a response in Geoapify's shape
+with one match in Mountain View and one in Las Vegas;
+``address-completion.spec.ts`` types an address prefix and picks each.  Any
+spec that types into the **Address** box sees those two offered, and moving to
+the next field shuts the list again.  The target stops the file server along
+with Django.
+
 ``failOnFlakyTests`` is on in ``playwright.config.ts``.  CI retries a failing
 spec once so the failure is easy to read, but a spec that fails and then passes
 still fails the run: a flaky end-to-end spec is a race somewhere real.
@@ -915,6 +932,9 @@ from other end-to-end runs on the same machine:
    The full connection string the run's Django process uses.  Defaults to
    ``postgres://caldart:caldart@localhost:5432/$(E2E_DB)``; set it directly to
    override the host or credentials instead of just the database name.
+``E2E_GEOAPIFY_PORT``
+   The port the Geoapify stub listens on.  Defaults to one more than
+   ``E2E_PORT``, so a branch that moves ``E2E_PORT`` moves the stub with it.
 ``E2E_LOG``
    Where the Django server's stdout and stderr are captured.  Defaults to
    ``/tmp/caldart-e2e-server.log``; the target tails it automatically when

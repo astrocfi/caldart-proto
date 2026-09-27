@@ -4,7 +4,8 @@ API: member self-service
 
 The member self-service half of the API, plus the pair of endpoints that
 attach an aircraft to the member's profile and detach it (the rest of the
-aircraft API is in :doc:`api-aircraft`).  Every ``/me/...`` endpoint acts on the
+aircraft API is in :doc:`api-aircraft`), and the street-address suggestions the
+profile form offers as it is typed into.  Every ``/me/...`` endpoint acts on the
 signed-in user and no one else; ``/darts`` and ``/plans`` are public so the
 join wizard can render before the visitor has an account.
 
@@ -30,6 +31,7 @@ Endpoint                                     Methods                  Who
 ``/api/v1/me/payments``                      ``GET``                  any signed-in user
 ``/api/v1/darts``                            ``GET``                  public
 ``/api/v1/plans``                            ``GET``                  public
+``/api/v1/addresses/suggest``                ``GET``                  any signed-in user
 ===========================================  =======================  ===============
 
 There is no role check beyond authentication: the resource *is* the caller,
@@ -515,6 +517,75 @@ Statuses:
   alike.
 
 
+``GET /addresses/suggest``
+==========================
+
+Street addresses matching what a member has typed into the profile form's
+**Address** box, so a pick can fill the street, city, state, ZIP code, and
+county at once.  The server forwards the query to Geoapify's autocomplete
+endpoint with the key from ``GEOAPIFY_API_KEY``; the browser never talks to
+Geoapify, the key never appears in a response, and the Content-Security-Policy
+needs no Geoapify origin.  Results are limited to the United States and biased
+toward California, so in-state matches come first.
+
+Query parameters:
+
+``q``
+   The street line typed so far.  Surrounding whitespace is ignored.  Optional;
+   at most 200 characters.
+
+.. code-block:: json
+
+   [
+     {
+       "label": "1600 Amphitheatre Parkway, Mountain View, CA 94043",
+       "address_line1": "1600 Amphitheatre Parkway",
+       "city": "Mountain View",
+       "state": "CA",
+       "postal_code": "94043",
+       "county": "Santa Clara"
+     }
+   ]
+
+Up to five suggestions, in Geoapify's order.  ``label`` is the whole address on
+one line, for the list under the box; the other five fields are the profile
+fields a pick fills, each in the profile's own terms:
+
+* ``address_line1`` is the house number and street.  A Geoapify result with no
+  street, such as a whole city, is not offered.
+* ``city`` is the city, or the town, village, or hamlet when Geoapify names no
+  city.
+* ``state`` is a two-letter code the profile stores, or empty.
+* ``postal_code`` is the five-digit ZIP code, with any ZIP+4 extension dropped,
+  or empty when Geoapify's postcode holds no five digits.
+* ``county`` is one of the fifty-eight California counties the profile offers,
+  with Geoapify's trailing "County" (or leading "City and County of") removed,
+  or empty when the state is not ``CA`` or the county is not one of them.
+
+Two results that would fill the same five fields are offered once.
+
+The list is empty, and Geoapify is not called, when ``GEOAPIFY_API_KEY`` is
+blank (the feature is off) or ``q`` is missing or shorter than three
+characters.  It is also empty when Geoapify does not answer within three
+seconds, cannot be reached, answers an error status, or answers anything but a
+JSON object with a ``results`` list; the failure is logged as a warning without
+the query, since the query is somebody's address.  The outbound request itself
+is not logged: ``httpx`` logs every request's full URL at ``INFO``, key and
+query included, so the logging configuration holds the ``httpx`` and
+``httpcore`` loggers at ``WARNING`` whatever ``LOG_LEVEL`` says.  A suggestion
+is a convenience, so nothing about it ever turns into an error on the form.
+
+Each account is throttled on its own under ``ADDRESS_SUGGEST_THROTTLE_RATE``
+(``60/min`` by default); see :doc:`configuration`.
+
+Statuses:
+
+* **200** — the list above, possibly empty.
+* **400** — ``q`` is over 200 characters, reported as
+  ``{"q": ["Ensure this field has no more than 200 characters."]}``.
+* **429** — the caller has asked for more suggestions than the rate allows.
+
+
 Where the code lives
 ====================
 
@@ -537,7 +608,15 @@ Module                                                      Holds
                                                             ``undo_become_friend``
 ``backend/apps/payments/renewals.py``                       ``switch_to_friend``,
                                                             ``keep_renewal_contribution``
+``backend/apps/members/addresses.py``                       the Geoapify client and
+                                                            the county mapping
+``backend/apps/members/api/address_views.py``               the suggestion view and
+                                                            its serializers
+``backend/apps/members/throttling.py``                      the per-account throttle
+``backend/tests/test_address_suggestions.py``               address suggestions
 ``frontend/src/portal/features/profile/api.ts``             the TanStack Query hooks
+``frontend/src/portal/components/Typeahead.tsx``            the Address box's list of
+                                                            suggestions
 ==========================================================  ==========================
 
 ``AircraftSummarySerializer`` comes from ``apps.aircraft.api.serializers``,

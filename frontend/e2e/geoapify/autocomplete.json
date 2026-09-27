@@ -1,0 +1,37 @@
+{
+  "results": [
+    {
+      "country_code": "us",
+      "housenumber": "1600",
+      "street": "Amphitheatre Parkway",
+      "country": "United States",
+      "county": "Santa Clara County",
+      "postcode": "94043",
+      "state": "California",
+      "state_code": "CA",
+      "city": "Mountain View",
+      "lon": -122.0842,
+      "lat": 37.4224,
+      "result_type": "building",
+      "formatted": "1600 Amphitheatre Parkway, Mountain View, CA 94043, United States of America",
+      "address_line1": "1600 Amphitheatre Parkway",
+      "address_line2": "Mountain View, CA 94043, United States of America"
+    },
+    {
+      "country_code": "us",
+      "housenumber": "1600",
+      "street": "Amphitheater Drive",
+      "country": "United States",
+      "county": "Clark County",
+      "postcode": "89109",
+      "state": "Nevada",
+      "state_code": "NV",
+      "city": "Las Vegas",
+      "result_type": "building",
+      "formatted": "1600 Amphitheater Drive, Las Vegas, NV 89109, United States of America",
+      "address_line1": "1600 Amphitheater Drive",
+      "address_line2": "Las Vegas, NV 89109, United States of America"
+    }
+  ],
+  "query": { "text": "1600 Amph" }
+}

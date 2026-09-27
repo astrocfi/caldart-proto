@@ -1,13 +1,19 @@
-import { screen, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { HttpResponse, http } from 'msw';
+import { useState } from 'react';
+import type { JSX } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
+import type { AddressSuggestion } from '@/portal/api/types';
 import { renderWithProviders } from '@test/render';
+import { server } from '@test/server';
 import { ProfileFieldsets } from './ProfileFieldsets';
 import type { ProfileFieldsetsProps } from './ProfileFieldsets';
 import { TEST_DARTS } from '@test/fixtures/profile';
 import { EMPTY_PROFILE_FORM } from './form';
-import { ALL_VERIFIED, NONE_VERIFIED, NOT_VERIFIED } from '@test/handlers';
+import type { ProfileFormValues } from './form';
+import { ALL_VERIFIED, API, NONE_VERIFIED, NOT_VERIFIED } from '@test/handlers';
 
 const CONTACT_LABELS = [
   'Phone',
@@ -340,5 +346,184 @@ describe('<ProfileFieldsets/>', () => {
     expect(screen.getByLabelText('Pilot certificate')).toHaveAccessibleDescription(
       'Not yet verified A DART leader or verifier checks these against the documents.',
     );
+  });
+});
+
+const AMPHITHEATRE: AddressSuggestion = {
+  label: '1600 Amphitheatre Parkway, Mountain View, CA 94043',
+  address_line1: '1600 Amphitheatre Parkway',
+  city: 'Mountain View',
+  state: 'CA',
+  postal_code: '94043',
+  county: 'Santa Clara',
+};
+
+const LAS_VEGAS: AddressSuggestion = {
+  label: '1600 Amphitheater Drive, Las Vegas, NV 89109',
+  address_line1: '1600 Amphitheater Drive',
+  city: 'Las Vegas',
+  state: 'NV',
+  postal_code: '89109',
+  county: '',
+};
+
+/** Answer `GET /addresses/suggest` with `suggestions`, recording each `q` it is sent. */
+function suggestAddresses(suggestions: AddressSuggestion[]): string[] {
+  const queries: string[] = [];
+  server.use(
+    http.get(`${API}/addresses/suggest`, ({ request }) => {
+      queries.push(new URL(request.url).searchParams.get('q') ?? '');
+      return HttpResponse.json(suggestions);
+    }),
+  );
+  return queries;
+}
+
+/** The fieldsets holding their own value, as a form does, reporting every change. */
+function StatefulFieldsets({
+  initial,
+  onChange: handleReport,
+}: {
+  initial: ProfileFormValues;
+  onChange: (next: ProfileFormValues) => void;
+}): JSX.Element {
+  const [value, setValue] = useState(initial);
+  const handleChange = (next: ProfileFormValues): void => {
+    setValue(next);
+    handleReport(next);
+  };
+  return <ProfileFieldsets value={value} onChange={handleChange} darts={TEST_DARTS} />;
+}
+
+function renderStateful(initial: ProfileFormValues = EMPTY_PROFILE_FORM) {
+  const handleChange = vi.fn<(next: ProfileFormValues) => void>();
+  renderWithProviders(<StatefulFieldsets initial={initial} onChange={handleChange} />);
+  return handleChange;
+}
+
+describe('<ProfileFieldsets/> address suggestions', () => {
+  it('offers the matching addresses under the Address box', async () => {
+    suggestAddresses([AMPHITHEATRE, LAS_VEGAS]);
+    const user = userEvent.setup();
+    renderStateful();
+
+    await user.type(screen.getByRole('combobox', { name: 'Address' }), '1600 Amph');
+
+    const list = await screen.findByRole('listbox', { name: 'Suggested addresses' });
+    expect(
+      within(list)
+        .getAllByRole('option')
+        .map((option) => option.textContent),
+    ).toEqual([AMPHITHEATRE.label, LAS_VEGAS.label]);
+  });
+
+  it('asks the server with the street line as typed', async () => {
+    const queries = suggestAddresses([AMPHITHEATRE]);
+    const user = userEvent.setup();
+    renderStateful();
+
+    await user.type(screen.getByRole('combobox', { name: 'Address' }), '1600 Amph');
+    await screen.findByRole('listbox');
+
+    expect(queries).toEqual(['1600 Amph']);
+  });
+
+  it('fills the street, city, state, ZIP code, and county at a pick', async () => {
+    suggestAddresses([AMPHITHEATRE]);
+    const user = userEvent.setup();
+    const onChange = renderStateful({ ...EMPTY_PROFILE_FORM, address_line2: 'Building 40' });
+
+    await user.type(screen.getByRole('combobox', { name: 'Address' }), '1600 Amph');
+    await user.click(await screen.findByRole('option', { name: AMPHITHEATRE.label }));
+
+    expect(onChange).toHaveBeenLastCalledWith({
+      ...EMPTY_PROFILE_FORM,
+      address_line1: '1600 Amphitheatre Parkway',
+      address_line2: 'Building 40',
+      city: 'Mountain View',
+      state: 'CA',
+      postal_code: '94043',
+      county: 'Santa Clara',
+    });
+  });
+
+  it('offers and fills two addresses that share a label as two', async () => {
+    const withoutCounty = { ...AMPHITHEATRE, county: '' };
+    suggestAddresses([AMPHITHEATRE, withoutCounty]);
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const user = userEvent.setup();
+    const onChange = renderStateful({ ...EMPTY_PROFILE_FORM, county: 'Napa' });
+
+    await user.type(screen.getByRole('combobox', { name: 'Address' }), '1600 Amph');
+    const options = await screen.findAllByRole('option', { name: AMPHITHEATRE.label });
+    await user.click(options[1] as HTMLElement);
+
+    expect(consoleError).not.toHaveBeenCalled();
+    expect(onChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({ county: '' }) as Partial<ProfileFormValues>,
+    );
+  });
+
+  it('clears the county when the picked address is outside California', async () => {
+    suggestAddresses([LAS_VEGAS]);
+    const user = userEvent.setup();
+    const onChange = renderStateful({ ...EMPTY_PROFILE_FORM, county: 'Napa' });
+
+    await user.type(screen.getByRole('combobox', { name: 'Address' }), '1600 Amph');
+    await user.click(await screen.findByRole('option', { name: LAS_VEGAS.label }));
+
+    expect(onChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({ state: 'NV', county: '' }) as Partial<ProfileFormValues>,
+    );
+  });
+
+  it('keeps the state already chosen when the pick names none the form knows', async () => {
+    suggestAddresses([{ ...AMPHITHEATRE, state: '', county: '' }]);
+    const user = userEvent.setup();
+    const onChange = renderStateful({ ...EMPTY_PROFILE_FORM, state: 'OR' });
+
+    await user.type(screen.getByRole('combobox', { name: 'Address' }), '1600 Amph');
+    await user.click(await screen.findByRole('option', { name: AMPHITHEATRE.label }));
+
+    expect(onChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({ state: 'OR' }) as Partial<ProfileFormValues>,
+    );
+  });
+
+  it('leaves every field editable after a pick', async () => {
+    suggestAddresses([AMPHITHEATRE]);
+    const user = userEvent.setup();
+    renderStateful();
+    await user.type(screen.getByRole('combobox', { name: 'Address' }), '1600 Amph');
+    await user.click(await screen.findByRole('option', { name: AMPHITHEATRE.label }));
+
+    await user.clear(screen.getByLabelText('City'));
+    await user.type(screen.getByLabelText('City'), 'Palo Alto');
+
+    expect(screen.getByLabelText('City')).toHaveValue('Palo Alto');
+  });
+
+  it('offers nothing while the server has no suggestions', async () => {
+    const queries = suggestAddresses([]);
+    const user = userEvent.setup();
+    renderStateful();
+
+    await user.type(screen.getByRole('combobox', { name: 'Address' }), '1600 Amph');
+    await waitFor(() => expect(queries).toEqual(['1600 Amph']));
+
+    expect(screen.queryByRole('listbox')).toBeNull();
+  });
+
+  it('keeps what was typed when the member picks nothing', async () => {
+    suggestAddresses([AMPHITHEATRE]);
+    const user = userEvent.setup();
+    renderStateful();
+    const address = screen.getByRole('combobox', { name: 'Address' });
+
+    await user.type(address, '1600 Amph');
+    await screen.findByRole('listbox');
+    await user.keyboard('{Escape}');
+
+    expect(address).toHaveValue('1600 Amph');
   });
 });

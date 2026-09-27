@@ -21,6 +21,7 @@ import { describe, expect, it } from 'vitest';
 import type { components } from './schema';
 import type { ReportSlug } from '@/portal/reports/types';
 import type {
+  AddressSuggestion,
   AdminProfile,
   AdminProfilePayload,
   AdminUser,
@@ -241,6 +242,7 @@ const adminProfile: Matches<AdminProfile, Schemas['AdminProfile']> = true;
 const adminProfilePayload: Matches<AdminProfilePayload, Schemas['PatchedAdminProfileRequest']> =
   true;
 const attachedAircraft: Matches<AttachedAircraft, Schemas['AttachedAircraft']> = true;
+const addressSuggestion: Matches<AddressSuggestion, Schemas['AddressSuggestion']> = true;
 
 /* -------------------------------------------------- member administration */
 const memberRow: Matches<MemberRow, Schemas['MemberList']> = true;
@@ -438,6 +440,7 @@ const assertions: readonly true[] = [
   adminProfile,
   adminProfilePayload,
   attachedAircraft,
+  addressSuggestion,
   memberRow,
   memberDetail,
   memberTerm,
@@ -586,6 +589,7 @@ const MAPPED_COMPONENTS: readonly (keyof Schemas)[] = [
   'AdminProfile',
   'PatchedAdminProfileRequest',
   'AttachedAircraft',
+  'AddressSuggestion',
   'MemberList',
   'MemberDetail',
   'AdminMembership',

@@ -28,6 +28,12 @@ STATIC_ROOT = Path(tempfile.mkdtemp(prefix=STATIC_ROOT_PREFIX))
 # ``override_settings`` rather than every other test racing a shared counter.
 AUTH_THROTTLE_RATES = dict.fromkeys(AUTH_THROTTLE_RATES, None)
 
+# Address suggestions are off unless a test configures a key and mocks Geoapify, so a
+# real key in a developer's ``.env`` never sends a request from the suite.
+GEOAPIFY_API_KEY = ""
+GEOAPIFY_URL = "https://api.geoapify.com/v1/geocode/autocomplete"
+ADDRESS_SUGGEST_THROTTLE_RATE = None
+
 PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
 
 MAILERS = {"default": {"BACKEND": "django.core.mail.backends.locmem.EmailBackend"}}

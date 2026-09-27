@@ -27,6 +27,14 @@ Contact
 * **State** and **California county** are lists. The county list starts with
   *Not in California*.
 * **ZIP code** takes five digits.
+* **Address** suggests addresses as you type. Once you have typed three
+  characters and paused, a list of matching US addresses opens under the box,
+  California addresses first. Click one, or move to it with the up and down arrow
+  keys and press Enter, and it fills **Address**, **City**, **State**, **ZIP code**,
+  and **California county** in one go. **Address line 2** is left as you had it,
+  so add an apartment or suite there. Press Escape, or click anywhere else, to
+  close the list and keep what you typed. Every field stays yours to change after
+  a pick. When no list appears, type the address in full as usual.
 
 Aviation
 ~~~~~~~~

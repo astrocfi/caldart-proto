@@ -6,6 +6,24 @@
       "donor"
     ]
   },
+  "AddressSuggestion": {
+    "properties": {
+      "address_line1": "string",
+      "city": "string",
+      "county": "string",
+      "label": "string",
+      "postal_code": "string",
+      "state": "string"
+    },
+    "required": [
+      "address_line1",
+      "city",
+      "county",
+      "label",
+      "postal_code",
+      "state"
+    ]
+  },
   "AdminMembership": {
     "properties": {
       "created_at": "string(date-time)",

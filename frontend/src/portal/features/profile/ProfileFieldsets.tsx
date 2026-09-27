@@ -12,6 +12,10 @@
  * `verification` too, which marks the pilot certificate, the medical, and the
  * photo ID with whether an authority has checked them.
  *
+ * The Address box offers matching US addresses as it is typed into, from
+ * `GET /addresses/suggest`, and a pick fills the street, city, state, ZIP code,
+ * and county at once; every field stays editable afterwards.
+ *
  * Validation, submission, and the administrator-only fields belong to the
  * caller.
  */
@@ -19,6 +23,7 @@ import { useId } from 'react';
 import type { JSX, ReactNode } from 'react';
 
 import type {
+  AddressSuggestion,
   CaliforniaCounty,
   Dart,
   ProfileVerification,
@@ -29,6 +34,7 @@ import type {
 import { CA_COUNTIES, CATEGORY_RATINGS, INSTRUCTOR_RATINGS, US_STATES } from '@/portal/choices';
 import { Field } from '@/portal/components/Field';
 import { MaskedInput } from '@/portal/components/MaskedInput';
+import { Typeahead } from '@/portal/components/Typeahead';
 import { VerifiedMark } from '@/portal/components/VerifiedMark';
 import {
   maskAirportIdentifier,
@@ -37,6 +43,7 @@ import {
   maskPhone,
   maskPostalCode,
 } from '@/portal/masks';
+import { useAddressSuggestions } from './api';
 import {
   CERTIFICATE_TYPES,
   IFR_OPTIONS,
@@ -58,6 +65,45 @@ type CodedKey = 'pilot_certificate_type' | 'ifr_rated' | 'medical_type' | 'photo
 
 /** Said once, under the first verified item, so the member knows who checks them. */
 export const VERIFICATION_HINT = 'A DART leader or verifier checks these against the documents.';
+
+/** The two-letter codes the State list offers. */
+const STATE_CODES: ReadonlySet<string> = new Set(US_STATES.map((state) => state.value));
+
+/** The counties the California county list offers. */
+const COUNTY_NAMES: ReadonlySet<string> = new Set(CA_COUNTIES);
+
+function isUsState(code: string): code is UsState {
+  return STATE_CODES.has(code);
+}
+
+function isCaliforniaCounty(name: string): name is CaliforniaCounty {
+  return COUNTY_NAMES.has(name);
+}
+
+/**
+ * A picked address's identity in the list.  The server offers two results once only
+ * when they would fill the same five fields, so two with one label can both appear.
+ */
+function addressKey(pick: AddressSuggestion): string {
+  return [pick.address_line1, pick.city, pick.state, pick.postal_code, pick.county].join('|');
+}
+
+/**
+ * `value` with a picked address written into its street, city, state, ZIP code,
+ * and county.  The address line 2 is the member's own and is left alone.  A state
+ * the form does not offer keeps the one already chosen, and a county it does not
+ * offer (every address outside California) reads as none.
+ */
+function withPickedAddress(value: ProfileFormValues, pick: AddressSuggestion): ProfileFormValues {
+  return {
+    ...value,
+    address_line1: pick.address_line1,
+    city: pick.city,
+    state: isUsState(pick.state) ? pick.state : value.state,
+    postal_code: pick.postal_code,
+    county: isCaliforniaCounty(pick.county) ? pick.county : '',
+  };
+}
 
 /** The two rows of ratings, as the form lays them out. */
 const RATING_ROWS: readonly (readonly Choice<Rating>[])[] = [CATEGORY_RATINGS, INSTRUCTOR_RATINGS];
@@ -264,11 +310,23 @@ export function ProfileFieldsets({
             hint: 'Ten digits; the dashes write themselves',
           })}
           {phone('phone_alt', 'phone_alt_extension', 'Alternate phone')}
-          {text('address_line1', {
-            label: 'Address',
-            autoComplete: 'address-line1',
-            required: true,
-          })}
+          <Field label="Address" error={errors.address_line1} required={markRequired}>
+            {(props) => (
+              <Typeahead
+                {...props}
+                listLabel="Suggested addresses"
+                name="address_line1"
+                autoComplete="address-line1"
+                value={value.address_line1}
+                onValueChange={(next) => set('address_line1', next)}
+                onPick={(pick: AddressSuggestion) => onChange(withPickedAddress(value, pick))}
+                onBlur={handleBlur('address_line1')}
+                useSuggestions={useAddressSuggestions}
+                itemKey={addressKey}
+                itemLabel={(pick) => pick.label}
+              />
+            )}
+          </Field>
           {text('address_line2', { label: 'Address line 2', autoComplete: 'address-line2' })}
           {text('city', { label: 'City', autoComplete: 'address-level2', required: true })}
           <Field label="State" error={errors.state} required={markRequired}>

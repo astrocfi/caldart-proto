@@ -13,6 +13,7 @@ import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
 import { api } from '@/portal/api/client';
 import { DONATION_KEY, RENEWAL_KEY } from '@/portal/api/queries';
 import type {
+  AddressSuggestion,
   AttachedAircraft,
   BecomeFriendPayload,
   DeactivatePayload,
@@ -27,6 +28,10 @@ import { AUTH_ME_KEY } from '@/portal/auth/useAuth';
 export const PROFILE_KEY = ['me', 'profile'] as const;
 export const MEMBERSHIP_KEY = ['me', 'membership'] as const;
 export const PAYMENTS_KEY = ['me', 'payments'] as const;
+export const ADDRESS_SUGGESTIONS_KEY = ['addresses', 'suggest'] as const;
+
+/** How long a street line's suggestions are reused before they are asked for again. */
+const ADDRESS_SUGGESTIONS_STALE_MS = 5 * 60_000;
 
 /** The signed-in member's own profile, via `GET /me/profile`. */
 export function useProfile(): UseQueryResult<Profile> {
@@ -46,6 +51,25 @@ export function useMyPayments(): UseQueryResult<PaymentSummary[]> {
   return useQuery({
     queryKey: PAYMENTS_KEY,
     queryFn: () => api.get<PaymentSummary[]>('/me/payments'),
+  });
+}
+
+/**
+ * Addresses matching the street line `term`, via `GET /addresses/suggest?q=`.
+ *
+ * Idle for an empty `term`.  The server answers an empty list when suggestions
+ * are switched off or the provider cannot be reached, and a failed request
+ * (such as a 429 past the rate limit) leaves `data` undefined, so either way the
+ * form simply offers nothing.
+ */
+export function useAddressSuggestions(term: string): UseQueryResult<AddressSuggestion[]> {
+  return useQuery({
+    queryKey: [...ADDRESS_SUGGESTIONS_KEY, term],
+    queryFn: () => api.get<AddressSuggestion[]>('/addresses/suggest', { query: { q: term } }),
+    enabled: term.length > 0,
+    staleTime: ADDRESS_SUGGESTIONS_STALE_MS,
+    // Keep the last list on screen while the next keystroke's is on its way.
+    placeholderData: (previous) => previous,
   });
 }
 

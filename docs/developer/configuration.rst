@@ -194,8 +194,10 @@ The rates land in the ``AUTH_THROTTLE_RATES`` setting, one key per scope, and
 are read by ``apps.accounts.throttling``.  A scope mapped to ``None``, mapped
 to an empty string, or missing from that dict is off, so an
 ``override_settings`` in a test can switch one on or off without knowing how
-the environment was set.  There is no project-wide throttle; every other
-endpoint is unlimited.  See :doc:`api-reference`.
+the environment was set.  There is no project-wide throttle: apart from these
+and the per-account limit on :ref:`address suggestions
+<configuration-address-suggestions>`, every endpoint is unlimited.  See
+:doc:`api-reference`.
 
 Which address is counted
 ------------------------
@@ -233,6 +235,51 @@ Email verification
 
    :Development: ``259200`` (three days)
    :Production: ``259200``
+
+
+.. _configuration-address-suggestions:
+
+Address suggestions
+===================
+
+As a member types their street address on the profile form, the form offers
+matching US addresses, and a pick fills the street, city, state, ZIP code, and
+county at once.  The suggestions come from Geoapify's autocomplete endpoint,
+called by the server through ``GET /addresses/suggest`` (see
+:doc:`api-profile`), so the key stays on the server and the
+Content-Security-Policy needs no Geoapify origin.
+
+``GEOAPIFY_API_KEY``
+   The Geoapify API key.  Blank turns suggestions off: the endpoint answers an
+   empty list without calling anyone, and the Address box behaves as a plain
+   text box.  Geoapify's free tier needs no card and covers a membership
+   register's traffic; create a project at https://myprojects.geoapify.com and
+   copy its key.  ``caldart.settings.test`` blanks it whatever the environment
+   says, so a key in a developer's ``.env`` never sends a request from the
+   suite.
+
+   :Development: blank, or a key of your own to try the suggestions.
+   :Production: the project's key.
+
+``GEOAPIFY_URL``
+   The autocomplete endpoint the server calls.  Only the end-to-end run changes
+   it, pointing it at a local stub that answers a recorded response (see
+   :doc:`testing`).
+
+   :Both: ``https://api.geoapify.com/v1/geocode/autocomplete``
+
+``ADDRESS_SUGGEST_THROTTLE_RATE``
+   How many suggestions one signed-in account may ask for, as a DRF rate
+   (``<count>/<period>``), read and checked exactly like the authentication
+   rates above: empty turns the limit off, and an unreadable value stops
+   start-up.  Each account has its own budget, counted in the default cache;
+   the limit protects the Geoapify quota the whole site shares.  The form asks
+   once the typing pauses, so a member typing an address spends a handful.
+   Read by ``apps.members.throttling``; ``caldart.settings.test`` sets it to
+   ``None``.
+
+   :Development: ``60/min``
+   :Production: ``60/min``
 
 
 Email
