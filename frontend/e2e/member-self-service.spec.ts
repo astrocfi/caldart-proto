@@ -34,15 +34,19 @@ test('a member signs in, edits their profile and reads members-only content', as
   await page.goto('portal/profile');
   await page.getByRole('textbox', { name: 'Total hours' }).fill('1234');
   await page.getByRole('textbox', { name: 'Home airport', exact: true }).fill('SQL');
+  await page.getByRole('textbox', { name: 'Secondary airport', exact: true }).fill('KPAO');
   await page.getByRole('button', { name: 'Save profile' }).click();
   await expect(page.getByText('Profile saved.')).toBeVisible();
 
   await page.reload();
   await expect(page.getByRole('textbox', { name: 'Total hours' })).toHaveValue('1234');
+  await expect(page.getByRole('textbox', { name: 'Secondary airport', exact: true })).toHaveValue(
+    'PAO',
+  );
 
-  // The form says what it wants: no leading K, one primary DART, and ground
-  // support among the volunteer interests.
-  await expect(page.getByText('Three characters, omit the leading K')).toBeVisible();
+  // The form says what it wants: no leading K on either airport, one primary
+  // DART, and ground support among the volunteer interests.
+  await expect(page.getByText('Three characters, omit the leading K')).toHaveCount(2);
   await expect(page.getByText('Your primary DART')).toBeVisible();
   await expect(page.getByRole('checkbox', { name: 'Ground support' })).toBeVisible();
 
