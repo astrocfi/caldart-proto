@@ -8,12 +8,11 @@ from typing import TYPE_CHECKING, Any
 
 from django.utils import timezone
 
+from apps.accounts.models import User
 from apps.aircraft.models import Aircraft, OwnerType
 
 if TYPE_CHECKING:
     from io import TextIOBase
-
-    from apps.accounts.models import User
 
 AIRCRAFT_COUNT = 25
 
