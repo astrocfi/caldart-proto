@@ -1,4 +1,4 @@
-"""The server installer under ``deploy/``: its scripts, their dry run, and what they write.
+"""The server installer under ``deploy/``: its scripts, their dry run, and their files.
 
 ``docs/developer/deployment.rst`` describes the scripts: ``install.sh`` runs the steps
 under ``deploy/steps/`` in order, and ``--dry-run`` prints every command that changes
@@ -142,7 +142,7 @@ def _position(commands: list[str], fragment: str) -> int:
 def _install_dry_run(
     root: Path, etc: Path, tmp_path: Path, *extra: str
 ) -> subprocess.CompletedProcess[str]:
-    """The dry run of ``install.sh`` for a first install on Ubuntu, plus ``extra`` flags."""
+    """The dry run of a first ``install.sh`` on Ubuntu, plus the ``extra`` flags."""
     env = _env(etc, CALDART_OS_RELEASE=str(_os_release(tmp_path, "ubuntu")))
     return _run(root / "deploy" / "install.sh", "--dry-run", *FIRST_INSTALL, *extra, env=env)
 
@@ -151,20 +151,32 @@ def _variables(env_file: Path) -> dict[str, str]:
     """The uncommented ``KEY=value`` lines of an environment file."""
     lines = env_file.read_text().splitlines()
     pairs = [line.split("=", 1) for line in lines if "=" in line and not line.startswith("#")]
-    return {key: value for key, value in pairs}
+    return dict(pairs)
 
 
-def _configure(
-    root: Path, etc: Path, *args: str, **extra: str
-) -> subprocess.CompletedProcess[str]:
+def _configure(root: Path, etc: Path, *args: str, **extra: str) -> subprocess.CompletedProcess[str]:
     """Run ``configure.sh`` for real into ``etc``."""
     return _run(root / "deploy" / "steps" / "configure.sh", *args, env=_env(etc, **extra))
+
+
+def _render_vhost(root: Path, vhost: str, www: str, tls: str) -> str:
+    """What ``render_vhost`` writes for ``caldart.test`` under the root ``/opt/x``."""
+    dest = root / "rendered"
+    source = DEPLOY_DIR / vhost
+    _source_lib(root, f'ROOT=/opt/x; render_vhost "{source}" "{dest}" caldart.test {www} {tls}')
+    return dest.read_text()
 
 
 def _source_lib(root: Path, snippet: str) -> subprocess.CompletedProcess[str]:
     """Run ``snippet`` in a shell that has sourced ``deploy/lib.sh``."""
     return subprocess.run(  # noqa: S603 - fixed argv, BASH is a resolved path
-        [BASH, "-c", f'set -euo pipefail; source "$1"; {snippet}', "bash", str(root / "deploy" / "lib.sh")],
+        [
+            BASH,
+            "-c",
+            f'set -euo pipefail; source "$1"; {snippet}',
+            "bash",
+            str(root / "deploy" / "lib.sh"),
+        ],
         capture_output=True,
         text=True,
         check=False,
@@ -198,14 +210,18 @@ def test_every_entry_point_answers_help_from_its_header(script: str, etc: Path) 
     assert f"Usage:\n  sudo deploy/{script}" in result.stdout
 
 
-@pytest.mark.parametrize("script", ENTRY_POINTS)
+@pytest.mark.parametrize("script", [name for name in ENTRY_POINTS if name != "manage.sh"])
 def test_an_unknown_flag_is_a_usage_error(script: str, etc: Path) -> None:
     """A flag the script does not know exits 2 with an ``error:`` line on stderr."""
-    if script == "manage.sh":
-        pytest.skip("manage.sh hands every argument after its own flags to manage.py")
     result = _run(DEPLOY_DIR / script, "--nonsense", env=_env(etc))
     assert result.returncode == 2
     assert "error: unknown option --nonsense" in result.stderr
+
+
+def test_manage_without_a_command_is_a_usage_error(etc: Path) -> None:
+    """``manage.sh`` hands its arguments to ``manage.py``, so it needs a command name."""
+    result = _run(DEPLOY_DIR / "manage.sh", "--dry-run", env=_env(etc))
+    assert result.returncode == 2
 
 
 # -- install.sh ---------------------------------------------------------------------
@@ -229,7 +245,6 @@ def test_the_install_dry_run_changes_nothing(root: Path, etc: Path, tmp_path: Pa
         ("apt-get install", "useradd"),
         ("docker compose up -d db", "ALTER USER"),
         ("npm run build", "collectstatic"),
-        ("certbot certonly", "a2ensite caldart"),
         ("collectstatic", "systemctl restart caldart-web"),
         ("systemctl restart caldart-web", "systemctl enable --now caldart-registry.timer"),
         ("db_backup", "systemctl is-active"),
@@ -238,7 +253,6 @@ def test_the_install_dry_run_changes_nothing(root: Path, etc: Path, tmp_path: Pa
         "packages-before-the-user",
         "database-up-before-the-password",
         "build-before-collectstatic",
-        "certificate-before-the-vhost",
         "collectstatic-before-the-restart",
         "web-unit-before-the-timers",
         "backup-before-the-check",
@@ -250,6 +264,12 @@ def test_the_install_runs_its_steps_in_order(
     """The dry run prints each command before the ones that depend on it."""
     commands = _commands(_install_dry_run(root, etc, tmp_path))
     assert _position(commands, earlier) < _position(commands, later)
+
+
+def test_the_vhost_is_enabled_after_the_certificate(root: Path, etc: Path, tmp_path: Path) -> None:
+    """The shipped vhost names the certificate, so it goes in once certbot has one."""
+    commands = _commands(_install_dry_run(root, etc, tmp_path))
+    assert _position(commands, "certbot certonly") < commands.index("a2ensite caldart")
 
 
 def test_the_vhost_is_enabled_after_the_bootstrap_host(
@@ -345,20 +365,13 @@ def test_no_www_asks_for_one_name(root: Path, etc: Path, tmp_path: Path) -> None
     assert "www.caldart.test" not in commands[_position(commands, "certbot certonly")]
 
 
-@pytest.mark.parametrize(
-    ("dropped", "flag"),
-    [
-        (("--hostname", "caldart.test"), "--hostname"),
-        (("--email-url", "smtp://localhost:25"), "--email-url"),
-        (("--certbot-email", "ops@caldart.test"), "--certbot-email"),
-    ],
-    ids=["hostname", "email-url", "certbot-email"],
-)
+@pytest.mark.parametrize("flag", ["--hostname", "--email-url", "--certbot-email"])
 def test_a_first_install_names_the_flag_it_is_missing(
-    dropped: tuple[str, str], flag: str, root: Path, etc: Path, tmp_path: Path
+    flag: str, root: Path, etc: Path, tmp_path: Path
 ) -> None:
-    """With no record and no environment file, a missing required flag exits 2 naming it."""
-    args = [arg for arg in FIRST_INSTALL if arg not in dropped]
+    """With no record and no environment file, a missing flag exits 2 naming it."""
+    index = FIRST_INSTALL.index(flag)
+    args = [*FIRST_INSTALL[:index], *FIRST_INSTALL[index + 2 :]]
     env = _env(etc, CALDART_OS_RELEASE=str(_os_release(tmp_path, "ubuntu")))
     result = _run(root / "deploy" / "install.sh", "--dry-run", *args, env=env)
     assert result.returncode == 2
@@ -423,7 +436,9 @@ def test_another_distribution_is_refused(etc: Path, root: Path, tmp_path: Path) 
 @pytest.fixture
 def env_file(root: Path, etc: Path) -> Path:
     """The environment file ``configure.sh`` writes for ``caldart.test``."""
-    result = _configure(root, etc, "--hostname", "caldart.test", "--email-url", "smtp://localhost:25")
+    result = _configure(
+        root, etc, "--hostname", "caldart.test", "--email-url", "smtp://localhost:25"
+    )
     assert result.returncode == 0, result.stderr
     return etc / "caldart.env"
 
@@ -507,7 +522,7 @@ def test_configure_never_rewrites_the_file(env_file: Path, root: Path, etc: Path
 
 
 def test_configure_reports_ignored_flags(env_file: Path, root: Path, etc: Path) -> None:
-    """A second run says it is leaving the file alone and that ``--email-url`` is ignored."""
+    """A second run leaves the file alone and says ``--email-url`` is ignored."""
     result = _configure(root, etc, "--email-url", "smtp://elsewhere:25")
     assert "--email-url is ignored" in result.stdout
 
@@ -521,7 +536,14 @@ def test_configure_without_www_names_one_host(root: Path, etc: Path) -> None:
 def test_self_signed_turns_hsts_off(root: Path, etc: Path) -> None:
     """With ``--tls self-signed`` the file sets ``SECURE_HSTS_SECONDS=0``."""
     _configure(
-        root, etc, "--hostname", "caldart.test", "--tls", "self-signed", "--email-url", "smtp://x:25"
+        root,
+        etc,
+        "--hostname",
+        "caldart.test",
+        "--tls",
+        "self-signed",
+        "--email-url",
+        "smtp://x:25",
     )
     assert _variables(etc / "caldart.env")["SECURE_HSTS_SECONDS"] == "0"
 
@@ -572,7 +594,9 @@ def test_render_file_moves_every_path_to_the_deploy_root(source: str, root: Path
     assert "/srv/caldart" not in dest.read_text()
 
 
-@pytest.mark.parametrize("source", [f"systemd/{unit}" for unit in UNITS if unit.endswith("service")])
+@pytest.mark.parametrize(
+    "source", [f"systemd/{unit}" for unit in UNITS if unit.endswith("service")]
+)
 def test_render_file_writes_the_deploy_root(source: str, root: Path) -> None:
     """A rendered service names the root in place of ``/srv/caldart``."""
     dest = root / "rendered"
@@ -583,37 +607,29 @@ def test_render_file_writes_the_deploy_root(source: str, root: Path) -> None:
 @pytest.mark.parametrize("vhost", VHOSTS)
 def test_render_vhost_replaces_the_example_hostname(vhost: str, root: Path) -> None:
     """Every ``caldart.example.org`` in a vhost becomes the hostname."""
-    dest = root / "rendered"
-    _source_lib(root, f'render_vhost "{DEPLOY_DIR / vhost}" "{dest}" caldart.test yes certbot')
-    assert "caldart.example.org" not in dest.read_text()
+    assert "caldart.example.org" not in _render_vhost(root, vhost, "yes", "certbot")
 
 
 @pytest.mark.parametrize("vhost", VHOSTS)
 def test_render_vhost_keeps_the_www_alias(vhost: str, root: Path) -> None:
     """With ``www`` the vhost answers for ``www.HOST`` too."""
-    dest = root / "rendered"
-    _source_lib(root, f'render_vhost "{DEPLOY_DIR / vhost}" "{dest}" caldart.test yes certbot')
-    assert "www.caldart.test" in dest.read_text()
+    assert "www.caldart.test" in _render_vhost(root, vhost, "yes", "certbot")
 
 
 @pytest.mark.parametrize("vhost", VHOSTS)
 def test_render_vhost_drops_the_www_alias(vhost: str, root: Path) -> None:
     """Without ``www`` no ``www.`` name is left in the vhost."""
-    dest = root / "rendered"
-    _source_lib(root, f'render_vhost "{DEPLOY_DIR / vhost}" "{dest}" caldart.test no certbot')
-    assert "www." not in dest.read_text()
+    assert "www." not in _render_vhost(root, vhost, "no", "certbot")
 
 
 @pytest.mark.parametrize("vhost", VHOSTS)
 def test_render_vhost_points_self_signed_at_the_local_certificate(vhost: str, root: Path) -> None:
     """In self-signed mode the certificate paths name ``/etc/caldart/tls/``."""
-    dest = root / "rendered"
-    _source_lib(root, f'render_vhost "{DEPLOY_DIR / vhost}" "{dest}" caldart.test yes self-signed')
-    assert "/etc/letsencrypt/live/" not in dest.read_text()
+    assert "/etc/letsencrypt/live/" not in _render_vhost(root, vhost, "yes", "self-signed")
 
 
 def test_the_backup_unit_prunes_by_the_retention_variable() -> None:
-    """``caldart-backup.service`` reads ``BACKUP_RETENTION_DAYS`` rather than a literal."""
+    """``caldart-backup.service`` prunes by ``BACKUP_RETENTION_DAYS``, not a literal."""
     unit = (DEPLOY_DIR / "systemd" / "caldart-backup.service").read_text()
     assert "-mtime +${BACKUP_RETENTION_DAYS} -delete" in unit
 
@@ -649,9 +665,7 @@ def test_manage_writes_with_the_service_umask(root: Path, etc: Path) -> None:
 
 def test_manage_passes_the_arguments_through(root: Path, etc: Path) -> None:
     """Everything after the command name reaches ``manage.py`` unchanged."""
-    result = _run(
-        root / "deploy" / "manage.sh", "--dry-run", "health", "--json", env=_env(etc)
-    )
+    result = _run(root / "deploy" / "manage.sh", "--dry-run", "health", "--json", env=_env(etc))
     assert _commands(result)[0].endswith(f"{root}/.venv/bin/python manage.py health --json")
 
 
@@ -685,23 +699,27 @@ def test_upgrade_ends_with_the_check(checkout: Path, etc: Path) -> None:
 def test_upgrade_checks_out_a_ref(checkout: Path, etc: Path) -> None:
     """``--ref`` fetches and checks out that ref instead of pulling."""
     result = _run(
-        checkout / "deploy" / "upgrade.sh", "--dry-run", "--ref", "v1.2", env=_env(etc), cwd=checkout
+        checkout / "deploy" / "upgrade.sh",
+        "--dry-run",
+        "--ref",
+        "v1.2",
+        env=_env(etc),
+        cwd=checkout,
     )
     commands = _commands(result)
     assert _position(commands, "git fetch origin") < _position(commands, "git checkout v1.2")
 
 
-def test_upgrade_never_touches_the_environment_file_or_the_vhost(
-    checkout: Path, etc: Path
-) -> None:
+def test_upgrade_never_touches_the_environment_file_or_the_vhost(checkout: Path, etc: Path) -> None:
     """The upgrade leaves ``caldart.env`` and the web server's configuration alone."""
     result = _run(checkout / "deploy" / "upgrade.sh", "--dry-run", env=_env(etc), cwd=checkout)
-    output = result.stdout
-    assert [word for word in ("caldart.env", "sites-available") if word in output] == []
+    commands = _commands(result)
+    written = [c for c in commands if c.endswith("caldart.env") or "sites-available" in c]
+    assert written == []
 
 
 def test_upgrade_refuses_local_changes(checkout: Path, etc: Path) -> None:
-    """A checkout with local changes stops the upgrade before anything runs."""
+    """A checkout with local changes stops the upgrade before the code changes."""
     (checkout / "stray.txt").write_text("local change\n", encoding="utf-8")
     result = _run(checkout / "deploy" / "upgrade.sh", "--dry-run", env=_env(etc), cwd=checkout)
     assert result.returncode == 1

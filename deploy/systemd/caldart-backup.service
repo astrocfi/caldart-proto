@@ -1,0 +1,85 @@
+# CalDART nightly database backup.
+#
+# Deploy path: /srv/caldart. Triggered by caldart-backup.timer, which runs it
+# daily at 03:30; it is a oneshot, so it is not enabled directly.
+# deploy/steps/timers.sh installs it and enables the timer, and
+# docs/developer/backup-restore.rst describes what it keeps.
+#
+# Run it by hand (a second dump the same night is harmless):
+#   sudo systemctl start caldart-backup.service
+#   journalctl -u caldart-backup -n 20
+
+[Unit]
+Description=CalDART database backup
+Documentation=file:///srv/caldart/docs/developer/backup-restore.rst
+# Needs the database.
+After=network.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+
+User=caldart
+Group=caldart
+# The dump holds member records and password hashes: readable by the caldart
+# group and no wider.
+UMask=0027
+
+WorkingDirectory=/srv/caldart/backend
+
+# Same configuration as the web service: DATABASE_URL, BACKUP_DIR,
+# DB_BACKUP_VIA_DOCKER and BACKUP_RETENTION_DAYS are the ones this unit uses.
+EnvironmentFile=/etc/caldart/caldart.env
+
+Environment=DJANGO_SETTINGS_MODULE=caldart.settings.prod
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONDONTWRITEBYTECODE=1
+
+# Writes BACKUP_DIR/caldart-<timestamp>.sql.gz with the local pg_dump
+# (DB_BACKUP_VIA_DOCKER=false).
+ExecStart=/srv/caldart/.venv/bin/python /srv/caldart/backend/manage.py db_backup
+
+# Nothing rotates dumps, so the same run drops the generated ones older than
+# BACKUP_RETENTION_DAYS.  systemd expands both variables from the environment
+# file, so the prune reads the directory the dump just wrote to; a dump given
+# its own --name is never matched.  A oneshot fails if either line fails.
+ExecStart=/usr/bin/find ${BACKUP_DIR} -name 'caldart-*.sql.gz' -mtime +${BACKUP_RETENTION_DAYS} -delete
+
+# pg_dump on a large database is not quick.
+TimeoutStartSec=3600
+
+# --- Hardening --------------------------------------------------------------
+# Same profile as caldart-web, with one writable path: the backup directory.
+
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectHome=true
+ProtectSystem=strict
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+ProtectProc=invisible
+RestrictSUIDSGID=true
+RestrictRealtime=true
+RestrictNamespaces=true
+LockPersonality=true
+RemoveIPC=true
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+CapabilityBoundingSet=
+AmbientCapabilities=
+
+# ReadWritePaths expands no variables: it has to name whatever BACKUP_DIR
+# points at, or ProtectSystem=strict fails the dump with a permission error.
+ReadWritePaths=/srv/caldart/backups
+
+[Install]
+# Present so "systemctl enable caldart-backup.service" is not an error, but
+# the timer is what should normally be enabled.
+WantedBy=multi-user.target
