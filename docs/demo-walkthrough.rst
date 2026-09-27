@@ -173,6 +173,12 @@ membership buys.*
    expiration date comfortably in the future; set **IFR rated** as you like.
    Save.  A toast confirms it.
 
+   Under **Pilot certificate** and **Medical** the mark turns to *Not yet
+   verified*.  The seed had both items verified, and any change to what an item
+   covers clears its verification, whoever makes it: a DART leader or verifier
+   checks the new values against the documents in flow C.  **Photo ID**, which
+   you left alone, stays *Verified*.
+
    Try saving with the medical class set but the expiry blank: the field is
    marked and the save is refused.  The same rule is enforced on the server,
    so an API client cannot store a medical without its date either.
@@ -218,32 +224,57 @@ airplane for us today?" in one screen.*
 4. Choose Marta Reyes from the results.  The status card opens.
 
    Across the top is a full-width verdict band that says **GO** or **NO-GO**
-   in words as well as color.  Because you gave Marta a current medical in
-   flow B, and her membership is current, the verdict is **GO** — *"Membership
-   and medical are current"*.
+   in words as well as color.  Marta's membership is current and flow B gave
+   her a current medical, but it also cleared the verification of her pilot
+   certificate and medical, so the verdict is **NO-GO** — *"Medical not
+   verified · Certificate not verified"*.
 
    Below it, one row each for:
 
    - **Membership** — current, expiring soon, expired, or friend, with the expiry date
      and plan.
-   - **Medical** — the class and expiry, and whether it is current.  BasicMed
-     and class medicals both use the stored expiration date.
-   - **Certificate** — type, number, IFR rating and any ratings on file.
+   - **Medical** — the class and expiry, whether it is current, and whether it
+     is verified.  BasicMed and class medicals both use the stored expiration
+     date.
+   - **Certificate** — type, number, IFR rating and any ratings on file, and
+     whether it is verified.
+   - **Photo ID** — the kind of document, never its details, and whether it is
+     verified.
    - **Aircraft** — a row per airplane attached to the profile, each with its
-     own insurance state, limits, and expiry.
+     own insurance state, limits, and expiry, and *not verified* beside any
+     policy nobody has checked.
 
-   The verdict is membership **and** medical.  Insurance is shown per
-   airplane rather than folded into the verdict, because which airplane the
-   member is about to fly is a fact you have and the system does not.
+   The verdict is membership, medical, and verification.  Insurance is shown
+   per airplane rather than folded into the verdict, because which airplane
+   the member is about to fly is a fact you have and the system does not.
 
-5. Undo flow B's edit if you want to see the other outcome: clear Marta's
+5. Verify Marta's documents.  Press **Verify** in the card's head: the
+   *Verification* panel opens with her certificate, medical, and photo ID
+   fields and a box for each item.  Correct a field if the document in front
+   of you disagrees (changing a field unticks its box), tick **Pilot
+   certificate verified** and **Medical verified**, and press **Save**.  The
+   band turns **GO** — *"Membership and medical are current and verified"* —
+   and each row reads *Verified by Priya Raman on* today's date.  One save
+   sends one *Verification recorded* email to the account administrator,
+   whom the seed subscribes to it; open Mailpit to read it.
+
+   Beside **Verify** sits **Make a verifier**.  It gives the member the
+   Verifier role, which opens the Member check and the Aircraft check to them
+   and lets them verify, without the rest of a DART leader's screens.
+   Press it again, now reading **Remove as verifier**, to take the role away.
+6. Undo flow B's edit if you want to see the other outcomes: clear Marta's
    medical, or check a member who has a lapsed one.  The band turns **NO-GO**
-   and states the reasons — *"Medical expired"*, *"Membership expired"* —
-   in the order a leader would say them out loud.
-6. Follow **Aircraft check** (``/portal/leader/aircraft``), type a
-   registration, e.g. ``N419JM``, and tap the result.  You get the airplane's
+   and states the reasons — *"Medical expired"*, *"Membership expired"*,
+   *"Photo ID not verified"* — in the order a leader would say them out loud.
+7. Follow **Aircraft check** (``/portal/leader/aircraft``), type a
+   registration, e.g. ``N1517T``, and tap the result.  You get the airplane's
    insurance card and a list of the members who fly it, each with their own
-   membership and medical currency.
+   membership and medical currency.  The verdict is **INSURED** for a current
+   policy somebody has verified, **NOT VERIFIED** for a current one nobody
+   has, and **NOT INSURED** for no current policy; the seed leaves about three
+   in ten airplanes unverified, ``N1517T`` among them.  Press **Verify**, tick
+   **Insurance verified**, and save to turn **NOT VERIFIED** into
+   **INSURED**.
 
 **What success looks like.**  The subject of the card is in the query string,
 so a card can be reloaded, backed out of, or sent to another leader as a link.
@@ -428,6 +459,12 @@ Troubleshooting
 - *An airplane marked out of service* is labeled as such on the card, and is
   dropped from the picker's fuzzy search — though an exact registration still
   finds it, labeled, so nobody adds a duplicate.
+- *A GO turned NO-GO overnight with "not verified".*  Somebody changed a field
+  the item covers — the member on their own profile, or an administrator on the
+  member record — and the change cleared the verification.  Verify it again
+  from the card.
+- *No Verify button.*  It shows only to a verifier, a DART leader, a user
+  administrator, an account administrator, or a system administrator.
 
 .. rubric:: Flow D — an account administrator reviews payments by month
    and year

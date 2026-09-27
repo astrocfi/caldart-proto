@@ -6,11 +6,11 @@
  * Runs at desktop and at iPhone size — this is the flow that happens standing
  * on a ramp with a phone.
  *
- * The three demo accounts used here are seeded deliberately: the leader is
- * current with a current medical and an insured airplane (a GO), the expired
- * account is expired on both counts (a NO-GO), and the website administrator
- * is a GO whose airplane's insurance has lapsed.  The demo friend is a NO-GO
- * whose card calls them a friend of CalDART, never expired.
+ * The members read here come from the seed facts: an insured pilot whose
+ * certificate, medical, photo ID, and airplane's insurance are all verified (a
+ * GO), a member whose membership has expired (a NO-GO), and one whose airplane's
+ * insurance has lapsed.  The demo friend is a NO-GO whose card calls them a friend
+ * of CalDART, never expired.  Verifying from the card is `verification.spec.ts`.
  */
 import { expect, test } from '@playwright/test';
 import type { Locator, Page } from '@playwright/test';
@@ -96,9 +96,29 @@ test('a member who is current on both counts is a GO', async ({ page }) => {
   await signIn(page, DEMO.leader);
 
   const card = await lookUp(page, surname(name), name);
-  await expect(card.getByRole('status')).toContainText('GO');
+  await expect(card.getByRole('status')).toContainText(
+    'Membership and medical are current and verified',
+  );
+  await expect(card.getByRole('status')).not.toContainText('NO-GO');
   await expect(card.getByRole('heading', { name: 'Aircraft' })).toBeVisible();
   await expect(card.getByRole('listitem').first()).toContainText('Insured');
+});
+
+test('a verified pilot has each document marked with who verified it', async ({ page }) => {
+  const { name } = SEED.leaderCheck.insuredPilot;
+  await signIn(page, DEMO.leader);
+
+  const card = await lookUp(page, surname(name), name);
+  for (const term of ['Medical', 'Certificate', 'Photo ID']) {
+    const row = card.getByRole('term').filter({ hasText: new RegExp(`^${term}$`) });
+    await expect(row.locator('xpath=following-sibling::dd[1]')).toContainText(
+      /Verified by .+ on \d{4}\/\d{2}\/\d{2}/,
+    );
+  }
+  // A leader verifies from the card, and makes the pilot a verifier there.
+  await expect(card.getByRole('button', { name: 'Verify' })).toBeVisible();
+  await expect(card.getByRole('button', { name: 'Make a verifier' })).toBeVisible();
+  await expect(card.getByRole('listitem').first()).not.toContainText('not verified');
 });
 
 test('a lapsed insurance policy is called out on the airplane, not the pilot', async ({ page }) => {
@@ -128,7 +148,9 @@ test('a leader searches for a tail number and reads its insurance card', async (
   await expect(card.getByRole('heading', { name: nNumber })).toBeVisible();
   await expect(card.getByRole('status')).toContainText('INSURED');
   await expect(card.getByRole('status')).toContainText('Coverage is current');
-  await expect(card.getByRole('term').filter({ hasText: /^Insurance$/ })).toBeVisible();
+  const insurance = card.getByRole('term').filter({ hasText: /^Insurance$/ });
+  await expect(insurance).toBeVisible();
+  await expect(insurance.locator('xpath=following-sibling::dd[1]')).toContainText('Verified by');
   await expect(card.getByRole('term').filter({ hasText: /^Liability$/ })).toBeVisible();
   // How old the record behind the insurance is, which a leader weighs against
   // the expiry date on it.
