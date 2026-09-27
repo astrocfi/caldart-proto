@@ -474,6 +474,21 @@ export interface AttachedAircraft {
   aircraft: AircraftSummary[];
 }
 
+/**
+ * One address `GET /addresses/suggest` offers for the street line typed so far:
+ * the whole address on one line, and the five profile fields a pick fills.
+ * `state` is a two-letter code and `county` one of California's, each empty when
+ * the provider named none the profile stores.
+ */
+export interface AddressSuggestion {
+  label: string;
+  address_line1: string;
+  city: string;
+  state: string;
+  postal_code: string;
+  county: string;
+}
+
 /** A row in the `account_admin` member list. */
 export interface MemberRow {
   user_id: number;

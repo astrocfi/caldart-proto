@@ -152,6 +152,9 @@ export const handlers = [
   http.get(`${API}/system/emails`, () =>
     HttpResponse.json({ count: 0, next: null, previous: null, results: [] }),
   ),
+  // The profile form's Address box asks for suggestions as it is typed into.  No
+  // suggestions is also what the server answers while the feature is off.
+  http.get(`${API}/addresses/suggest`, () => HttpResponse.json([])),
   // The purposes its filter offers, read as it mounts too.
   http.get(`${API}/system/emails/purposes`, () =>
     HttpResponse.json([

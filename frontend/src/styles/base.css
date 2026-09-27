@@ -545,6 +545,38 @@ legend {
   gap: var(--space-2);
 }
 
+/* A text box that lists matches under it as the person types.  The list floats
+ * over what follows, like the multi-select's panel, and is as wide as the box. */
+.typeahead {
+  position: relative;
+}
+
+.typeahead__list {
+  position: absolute;
+  z-index: 2;
+  top: 100%;
+  right: 0;
+  left: 0;
+  max-height: 20rem;
+  overflow-y: auto;
+  margin: 0;
+  padding: var(--space-1) 0;
+  list-style: none;
+  border: var(--hairline) solid var(--color-rule-strong);
+  background: var(--color-bg-raised);
+  font-size: var(--text-sm);
+}
+
+.typeahead__option {
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+}
+
+.typeahead__option:hover,
+.typeahead__option--active {
+  background: var(--color-bg-sunken);
+}
+
 .column-chooser {
   gap: var(--space-2);
 }
