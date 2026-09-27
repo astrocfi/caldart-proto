@@ -216,16 +216,17 @@ USE_TZ = True
 # --------------------------------------------------------------------------
 # Static & media
 # --------------------------------------------------------------------------
-# Relative on purpose: Django prefixes a relative ``STATIC_URL`` or ``MEDIA_URL`` with
-# the script name, so both read ``/static/`` and ``/media/`` at the root of a host and
-# ``<URL_PREFIX>/static/`` and ``<URL_PREFIX>/media/`` under a prefix.  A value with a
-# leading slash would be left as it is.
-STATIC_URL = "static/"
+# Spelled out with the prefix rather than left relative.  Django would prefix a relative
+# ``STATIC_URL`` or ``MEDIA_URL`` with the script name, but only once a request has set
+# it, and gunicorn imports the application (and with it the storages, which cache the
+# URL) before its first request, so the bundle and upload URLs would miss the prefix.
+# whitenoise strips ``FORCE_SCRIPT_NAME`` from ``STATIC_URL`` before matching a path.
+STATIC_URL = f"{URL_PREFIX}/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 # The built frontend, then the handful of files the templates reference
 # directly (the CalDART logo in the masthead).
 STATICFILES_DIRS = [REPO_ROOT / "frontend" / "dist", BASE_DIR / "static"]
-MEDIA_URL = "media/"
+MEDIA_URL = f"{URL_PREFIX}/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 # The built user guide, which ``caldart.views.user_guide`` serves at ``/docs/``

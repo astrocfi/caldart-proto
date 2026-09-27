@@ -149,9 +149,11 @@ Core
    ``base.py`` sets ``FORCE_SCRIPT_NAME`` to the prefix, so Django routes on the
    path below it and writes it back onto every URL it builds: ``reverse()``,
    ``{% url %}``, ``static()`` and the media URL.  ``STATIC_URL`` and
-   ``MEDIA_URL`` are the relative ``static/`` and ``media/`` for that reason:
-   Django prefixes a relative value with the script name, and leaves one that
-   starts with a slash alone.  ``LOGIN_URL`` (``<prefix>/portal/login``),
+   ``MEDIA_URL`` are built from it too, ``<prefix>/static/`` and
+   ``<prefix>/media/``: Django would prefix a relative value with the script
+   name only once a request has set it, and gunicorn loads the application,
+   whose storages keep the URL, before its first request.  whitenoise strips
+   the prefix from ``STATIC_URL`` before it matches a request.  ``LOGIN_URL`` (``<prefix>/portal/login``),
    ``LOGIN_REDIRECT_URL`` (``<prefix>/portal/``) and ``LOGOUT_REDIRECT_URL``
    (``<prefix>/``) are built from it.  The session and CSRF cookies keep the
    path ``/``: a host runs one CalDART, and the public pages and the portal

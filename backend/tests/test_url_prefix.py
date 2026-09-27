@@ -144,15 +144,15 @@ def prefixed(settings: Settings) -> Iterator[str]:
 
     ``FORCE_SCRIPT_NAME`` is what WSGI uses; the thread's script prefix is what
     ``reverse()`` reads, and Django's test client never sets it, so it is set here and
-    put back afterwards.  ``STATIC_URL`` and ``MEDIA_URL`` are assigned again because
-    Django computes their prefixed form once and caches it.
+    put back afterwards.  ``STATIC_URL`` and ``MEDIA_URL`` are assigned the values
+    ``base.py`` builds from the prefix.
     """
     set_script_prefix(f"{PREFIX}/")
     settings.URL_PREFIX = PREFIX
     settings.FORCE_SCRIPT_NAME = PREFIX
     settings.SITE_URL = f"https://caldart.example.org{PREFIX}"
-    settings.STATIC_URL = django_settings.STATIC_URL
-    settings.MEDIA_URL = django_settings.MEDIA_URL
+    settings.STATIC_URL = f"{PREFIX}/static/"
+    settings.MEDIA_URL = f"{PREFIX}/media/"
     yield PREFIX
     set_script_prefix("/")
 
@@ -237,6 +237,26 @@ def test_the_login_and_logout_redirects_carry_the_prefix(
     base = execute_base_settings()
 
     assert expected == (base.LOGIN_URL, base.LOGIN_REDIRECT_URL, base.LOGOUT_REDIRECT_URL)
+
+
+@pytest.mark.parametrize(
+    ("prefix", "expected"),
+    [("", ("/static/", "/media/")), (PREFIX, (f"{PREFIX}/static/", f"{PREFIX}/media/"))],
+    ids=["root", "prefixed"],
+)
+def test_the_static_and_media_urls_carry_the_prefix_outside_a_request(
+    clean_env: pytest.MonkeyPatch, prefix: str, expected: tuple[str, str]
+) -> None:
+    """``STATIC_URL`` and ``MEDIA_URL`` name the prefix before any request has set one.
+
+    gunicorn imports the application, and with it the storages that cache these URLs,
+    before the first request sets the script prefix, so the settings spell it out.
+    """
+    clean_env.setenv("URL_PREFIX", prefix)
+
+    base = execute_base_settings()
+
+    assert expected == (base.STATIC_URL, base.MEDIA_URL)
 
 
 def test_the_default_trusted_origin_is_the_site_urls_scheme_and_host(
