@@ -21,7 +21,6 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.accounts.models import User
-from apps.aircraft import services
 from apps.aircraft.models import Aircraft
 from caldart import audit, events
 
@@ -82,7 +81,16 @@ def verify_insurance(
     before the save differs from the state after it, or the insurance was stamped
     anew, ``verification_changed`` is raised once with ``aircraft``, ``verified`` and
     ``cleared`` as item labels, and ``actor``.  Returns the saved aircraft.
+
+    Locks the aircraft row with ``select_for_update`` before reading it, so a save
+    racing this one -- the owner's own edit, or another verifier's -- waits for this
+    transaction to finish rather than acting on a value this call is about to move.
     """
+    # Imported here, not at module level: `apps.aircraft.services` imports this module
+    # for `clear_stale_insurance`, so a top-level import back would be circular.
+    from apps.aircraft import services
+
+    aircraft = Aircraft.objects.select_for_update().get(pk=aircraft.pk)
     was_verified = aircraft.insurance_is_verified
     moved = services.changed_fields(aircraft, dict(changes))
     for name, value in changes.items():
