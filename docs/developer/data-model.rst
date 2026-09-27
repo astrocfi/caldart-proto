@@ -115,13 +115,14 @@ Accounts, members, DARTs, and aircraft
           User -> Group [label="groups\n(m2m)", dir=none, color="black:black"];
           User -> Permission [label="user_permissions\n(m2m)", dir=none, color="black:black"];
           Profile -> User [label="user 1--1\nCASCADE", arrowhead=none];
+          Profile -> User [label="certificate_, medical_,\nphoto_id_verified_by\nSET_NULL"];
           Profile -> Dart [label="dart\nSET_NULL"];
           Profile -> Aircraft [label="aircraft (m2m)\npilots", dir=none, color="black:black"];
           Contact -> Dart [label="dart\nCASCADE"];
           Membership -> User [label="user CASCADE\ngranted_by SET_NULL"];
           Membership -> Plan [label="plan\nPROTECT"];
           Membership -> Payment [label="payment 1--1\nSET_NULL", arrowhead=none];
-          Aircraft -> User [label="created_by, updated_by\nSET_NULL"];
+          Aircraft -> User [label="created_by, updated_by,\ninsurance_verified_by\nSET_NULL"];
           Change -> Aircraft [label="aircraft\nCASCADE"];
           Change -> User [label="changed_by\nSET_NULL"];
       }
@@ -158,6 +159,9 @@ Accounts, members, DARTs, and aircraft
       members.MemberProfile.user        -> accounts.User           1--1, CASCADE
       members.MemberProfile.dart        -> darts.Dart              FK, SET_NULL, nullable
       members.MemberProfile.aircraft    -> aircraft.Aircraft       m2m, related name pilots
+      members.MemberProfile.certificate_verified_by -> accounts.User  FK, SET_NULL, nullable
+      members.MemberProfile.medical_verified_by     -> accounts.User  FK, SET_NULL, nullable
+      members.MemberProfile.photo_id_verified_by    -> accounts.User  FK, SET_NULL, nullable
       darts.DartContact.dart            -> darts.Dart              FK, CASCADE
       members.Membership.user           -> accounts.User           FK, CASCADE
       members.Membership.granted_by     -> accounts.User           FK, SET_NULL, nullable
@@ -165,6 +169,7 @@ Accounts, members, DARTs, and aircraft
       members.Membership.payment        -> payments.Payment        1--1, SET_NULL, nullable
       aircraft.Aircraft.created_by      -> accounts.User           FK, SET_NULL, nullable
       aircraft.Aircraft.updated_by      -> accounts.User           FK, SET_NULL, nullable
+      aircraft.Aircraft.insurance_verified_by -> accounts.User     FK, SET_NULL, nullable
       aircraft.AircraftChange.aircraft  -> aircraft.Aircraft       FK, CASCADE
       aircraft.AircraftChange.changed_by -> accounts.User          FK, SET_NULL, nullable
 
@@ -569,6 +574,35 @@ How a term was come by (``Membership.source``).
      - Second class
    * - ``third``
      - Third class
+
+.. _choices-photo-id-type:
+
+``PhotoIdType`` (``apps/members/models.py``)
+--------------------------------------------
+
+``MemberProfile.photo_id_type``: the kind of photo ID a verifier has seen.
+Nothing else about the document is recorded.  ``not_provided`` is the default
+and a legitimate verified state: a verifier who saw the document and chose not
+to record its kind, or a friend with nothing to show.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 70
+
+   * - Value
+     - Label
+   * - ``not_provided``
+     - Not provided
+   * - ``drivers_license``
+     - Driver's license
+   * - ``passport``
+     - Passport
+   * - ``state_id``
+     - State ID card
+   * - ``military_id``
+     - Military ID
+   * - ``other``
+     - Other
 
 .. _choices-ratings:
 
@@ -1151,7 +1185,7 @@ and ``PermissionsMixin`` classes it builds on.
 
 - ``groups``: many-to-many to ``auth.Group``; the reverse accessor is ``user_set``.
 - ``user_permissions``: many-to-many to ``auth.Permission``; the reverse accessor is ``user_set``.
-- Referenced by ``aircraft.Aircraft.created_by``, ``aircraft.Aircraft.updated_by``, ``aircraft.AircraftChange.changed_by``, ``mail.EmailLog.user``, ``members.MemberProfile.user``, ``members.Membership.granted_by``, ``members.Membership.user``, ``payments.Payment.reconciled_by``, ``payments.Payment.recorded_by``, ``payments.Payment.user``, ``payments.Refund.requested_by``, ``payments.RenewalMandate.canceled_by``, ``payments.RenewalMandate.user``, ``payments.YearStatement.user``, ``reminders.ReminderLog.user``, ``reports.ReportSubscription.created_by``, ``reports.ReportSubscription.recipient_user``, ``reports.SavedColumnSet.user``.
+- Referenced by ``aircraft.Aircraft.created_by``, ``aircraft.Aircraft.insurance_verified_by``, ``aircraft.Aircraft.updated_by``, ``aircraft.AircraftChange.changed_by``, ``mail.EmailLog.user``, ``members.MemberProfile.certificate_verified_by``, ``members.MemberProfile.medical_verified_by``, ``members.MemberProfile.photo_id_verified_by``, ``members.MemberProfile.user``, ``members.Membership.granted_by``, ``members.Membership.user``, ``payments.Payment.reconciled_by``, ``payments.Payment.recorded_by``, ``payments.Payment.user``, ``payments.Refund.requested_by``, ``payments.RenewalMandate.canceled_by``, ``payments.RenewalMandate.user``, ``payments.YearStatement.user``, ``reminders.ReminderLog.user``, ``reports.ReportSubscription.created_by``, ``reports.ReportSubscription.recipient_user``, ``reports.SavedColumnSet.user``.
 
 **Invariants.**
 
@@ -1620,6 +1654,10 @@ administrators see.  Deleting the account deletes the profile.
      - ``PositiveIntegerField``
      - null; default ``NULL``
      - logged hours, at most ``MAX_TOTAL_HOURS`` (99,999)
+   * - ``photo_id_type``
+     - ``CharField(16)``, choices :ref:`PhotoIdType <choices-photo-id-type>`
+     - not null; default ``"not_provided"``
+     - the kind of photo ID a verifier has seen, and nothing else about it
    * - ``flies_rented_aircraft``
      - ``BooleanField``
      - not null; default ``False``
@@ -1652,6 +1690,30 @@ administrators see.  Deleting the account deletes the profile.
      - ``BooleanField``
      - not null; default ``False``
      - volunteer interest: newsletter
+   * - ``certificate_verified_at``
+     - ``DateTimeField``
+     - null; default ``NULL``
+     - when the pilot certificate was verified; ``NULL`` while unverified
+   * - ``certificate_verified_by``
+     - ``ForeignKey`` to ``accounts.User``, ``SET_NULL``
+     - null; default ``NULL``
+     - who verified the pilot certificate; no related name
+   * - ``medical_verified_at``
+     - ``DateTimeField``
+     - null; default ``NULL``
+     - when the medical was verified; ``NULL`` while unverified
+   * - ``medical_verified_by``
+     - ``ForeignKey`` to ``accounts.User``, ``SET_NULL``
+     - null; default ``NULL``
+     - who verified the medical; no related name
+   * - ``photo_id_verified_at``
+     - ``DateTimeField``
+     - null; default ``NULL``
+     - when the photo ID was verified; ``NULL`` while unverified
+   * - ``photo_id_verified_by``
+     - ``ForeignKey`` to ``accounts.User``, ``SET_NULL``
+     - null; default ``NULL``
+     - who verified the photo ID; no related name
    * - ``member_since``
      - ``DateField``
      - null; default ``NULL``
@@ -1684,13 +1746,14 @@ administrators see.  Deleting the account deletes the profile.
 - ``user``: one-to-one to ``accounts.User``, ``CASCADE``; the reverse accessor is ``profile``.
 - ``dart``: foreign key to ``darts.Dart``, ``SET_NULL``, nullable; the reverse accessor is ``members``.
 - ``aircraft``: many-to-many to ``aircraft.Aircraft``; the reverse accessor is ``pilots``.
+- ``certificate_verified_by``, ``medical_verified_by``, ``photo_id_verified_by``: foreign keys to ``accounts.User``, ``SET_NULL``, nullable; no reverse accessor.
 
 **Groups of fields.**  The contact fields come first: ``save()`` stores
 ``phone``, ``phone_alt``, and ``emergency_contact_phone`` as ``XXX-XXX-XXXX``
 (``PHONE_FIELDS``), and each number carries its own extension, so nobody appends
 one to the number and breaks the format every other screen relies on.  The
-aviation fields follow, then the seven ``vol_*`` volunteer interests, then
-``member_since`` and ``profile_updated_at``.  ``notes`` and ``how_heard`` are
+aviation fields follow, then the seven ``vol_*`` volunteer interests, then the
+verification columns, then ``member_since`` and ``profile_updated_at``.  ``notes`` and ``how_heard`` are
 administrator-only: neither is in the member-facing serializer, and both appear
 on ``GET /admin/members/{id}``.
 
@@ -1701,6 +1764,16 @@ email, an aircraft attached or detached, or the profile's creation.  It stays
 answers ``NULL``, and it never moves for a payment, a membership grant or
 renewal, a reminder, or a role change.  ``apps.members.services.touch_profile``
 is its only writer.
+
+**Verification.**  Three items of a profile are verified by an authority: the
+pilot certificate (``pilot_certificate_type`` and ``certificate_number``), the
+medical (``medical_type`` and ``medical_expiration``), and the photo ID
+(``photo_id_type``).  ``apps.members.verification.ITEMS`` lists them.  Each
+item's ``<item>_verified_at`` and ``<item>_verified_by`` are both ``NULL``
+while it is unverified.  A write that changes a field an item covers clears
+that item's verification, whoever writes it; a write that changes nothing
+clears nothing.  A verified medical whose expiration passes stays verified:
+currency and verification are two separate facts.
 
 ``ratings`` is a ``JSONField(default=list)`` of
 :ref:`RATING_CHOICES <choices-ratings>` values.  The database does not police
@@ -1727,6 +1800,8 @@ that the message a person reads can be specific:
     is ``NULL``; otherwise ``medical_expiration >= today``.  BasicMed and class
     medicals both use the same stored date; the model does not try to compute
     a BasicMed expiry from the exam date.
+``certificate_is_verified``, ``medical_is_verified``, ``photo_id_is_verified``
+    ``True`` when the item's ``<item>_verified_at`` is set.
 ``is_complete``
     ``True`` when every field in ``MemberProfile.COMPLETE_FIELDS`` has a
     value: ``phone``, ``address_line1``, ``city``, ``state``,
@@ -2178,6 +2253,14 @@ than copying it, so an insurance renewal entered once is right for everybody.
      - ``DateField``
      - null; default ``NULL``
      - the day the policy runs out
+   * - ``insurance_verified_at``
+     - ``DateTimeField``
+     - null; default ``NULL``
+     - when the insurance was verified; ``NULL`` while unverified
+   * - ``insurance_verified_by``
+     - ``ForeignKey`` to ``accounts.User``, ``SET_NULL``
+     - null; default ``NULL``
+     - who verified the insurance; no related name
    * - ``notes``
      - ``TextField``
      - not null; default ``""``
@@ -2206,6 +2289,7 @@ than copying it, so an insurance renewal entered once is right for everybody.
 
 - ``created_by``: foreign key to ``accounts.User``, ``SET_NULL``, nullable; the reverse accessor is ``aircraft_created``.
 - ``updated_by``: foreign key to ``accounts.User``, ``SET_NULL``, nullable; the reverse accessor is ``aircraft_updated``.
+- ``insurance_verified_by``: foreign key to ``accounts.User``, ``SET_NULL``, nullable; no reverse accessor.
 - Referenced by ``aircraft.AircraftChange.aircraft``, ``members.MemberProfile.aircraft``.
 
 **N-number normalization** is the invariant that makes the register usable.
@@ -2227,6 +2311,11 @@ normalizes the query term the same way.
     ``False`` when ``insurance_expiration`` is ``NULL``; otherwise
     ``insurance_expiration >= today``.  "No policy on file" and "policy
     expired" are different states in the UI but both fail this test.
+``insurance_is_verified``
+    ``True`` when ``insurance_verified_at`` is set.  The insurance fields
+    (``apps.aircraft.verification.INSURANCE_FIELDS``) are one verified item: a
+    write that changes any of them clears the verification, and verified
+    insurance whose expiration passes stays verified.
 ``insurance_summary``
     ``"$1,000,000 / $100,000 · exp 2027-03-01"``: per-occurrence over
     per-person, then the expiry.  ``"No insurance on file"`` when there is
