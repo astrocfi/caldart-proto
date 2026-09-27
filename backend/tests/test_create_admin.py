@@ -2,16 +2,22 @@
 
 from __future__ import annotations
 
+import logging
+import re
 from urllib.parse import parse_qs, urlparse
 
+import freezegun
 import pytest
+from django.conf import settings
 from django.contrib.auth.tokens import default_token_generator
+from django.core.mail import EmailMessage
 from django.core.management import call_command
 from django.core.management.base import CommandError
+from pytest_django.fixtures import DjangoCaptureOnCommitCallbacks
 
-from apps.accounts.models import User
+from apps.accounts.models import AccountKind, User
 from apps.accounts.roles import MEMBER, SYSTEM_ADMIN, TREASURER, WEBSITE_ADMIN
-from apps.accounts.services import RESET_PATH, user_from_uid
+from apps.accounts.services import RESET_PATH, make_reset_token, user_from_uid
 from caldart import audit
 from tests.conftest import RecordedEvents
 from tests.factories import UserFactory
@@ -151,6 +157,24 @@ def test_promoting_an_existing_account_does_not_mark_its_email_verified(
 
 
 # --------------------------------------------------------------------------
+# An existing donor
+# --------------------------------------------------------------------------
+def test_an_existing_donor_address_is_a_command_error(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """A donor holds no role and cannot sign in, so promoting one is refused."""
+    donor = UserFactory(email="donor@example.test", kind=AccountKind.DONOR)
+
+    with pytest.raises(CommandError, match=re.escape("donor@example.test")):
+        call_command("create_admin", email="donor@example.test")
+
+    donor.refresh_from_db()
+    assert donor.is_superuser is False
+    assert donor.is_staff is False
+    assert set(donor.roles) == set()
+
+
+# --------------------------------------------------------------------------
 # Idempotence
 # --------------------------------------------------------------------------
 def test_running_it_twice_writes_the_account_roles_audit_line_only_once(
@@ -212,16 +236,41 @@ def test_raises_roles_changed_naming_the_command_actor(
     assert roles_changed[0]["actor"] == audit.COMMAND_ACTOR
 
 
+def test_runs_the_role_write_with_notifications_suspended(
+    capsys: pytest.CaptureFixture[str],
+    caplog: pytest.LogCaptureFixture,
+    mailoutbox: list[EmailMessage],
+    django_capture_on_commit_callbacks: DjangoCaptureOnCommitCallbacks,
+) -> None:
+    """The role write suspends notifications, so the dispatcher never hears it.
+
+    Without ``suspended()``, the subscribed dispatcher would try to build the
+    ``roles_changed`` message for the command actor, fail because it names no real
+    ``User``, and log an error naming the event -- caught, not raised, so only this
+    log line would betray a removed ``suspended()`` block.
+    """
+    with (
+        caplog.at_level(logging.ERROR, logger="apps.notifications.dispatch"),
+        django_capture_on_commit_callbacks(execute=True),
+    ):
+        call_command("create_admin", email="new.admin@example.test")
+
+    assert caplog.text == ""
+    assert mailoutbox == []
+
+
 # --------------------------------------------------------------------------
 # The printed link
 # --------------------------------------------------------------------------
 def test_prints_only_the_password_reset_link(capsys: pytest.CaptureFixture[str]) -> None:
-    """Standard output is exactly one line: the password-reset link."""
-    call_command("create_admin", email="new.admin@example.test")
+    """Standard output is exactly the reset URL for the created account, one line."""
+    with freezegun.freeze_time("2026-09-27 12:00:00"):
+        call_command("create_admin", email="new.admin@example.test")
+        user = User.objects.get(email="new.admin@example.test")
+        uid, token = make_reset_token(user)
 
     out = capsys.readouterr().out
-    assert out.count("\n") == 1
-    assert out.strip().startswith("http")
+    assert out == f"{settings.SITE_URL.rstrip('/')}{RESET_PATH}?uid={uid}&token={token}\n"
 
 
 def test_the_printed_link_resolves_to_the_reset_form_for_the_right_account(

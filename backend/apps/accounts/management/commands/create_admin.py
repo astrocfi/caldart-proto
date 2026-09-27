@@ -15,6 +15,7 @@ from apps.accounts.services import (
     build_reset_url,
     confirm_email_address,
     create_account,
+    is_donor,
     update_account,
 )
 from apps.notifications.dispatch import suspended
@@ -23,6 +24,9 @@ from caldart import audit
 #: The roles this command grants: the ``member`` role for portal access, plus the
 #: two roles a fresh installation needs to finish setting itself up.
 ADMIN_ROLES: tuple[str, ...] = (MEMBER, SYSTEM_ADMIN, WEBSITE_ADMIN)
+
+#: Raised when ``--email`` already names a donor, who holds no role and cannot sign in.
+DONOR_ADMIN_REFUSED = "'{email}' is a donor account, which holds no role and cannot sign in."
 
 
 class Command(BaseCommand):
@@ -37,7 +41,9 @@ class Command(BaseCommand):
     With an account at that address already, it is made a superuser and given
     whatever of those three roles it lacks; every other role it holds is kept, and
     its password and names are left exactly as they were.  ``--first-name`` and
-    ``--last-name`` are ignored in that case.
+    ``--last-name`` are ignored in that case.  An existing account that is a donor
+    is refused with ``CommandError``: a donor holds no role and cannot sign in, so
+    it cannot be made an administrator.
 
     Either way the role write goes through
     :func:`apps.accounts.services.update_account`, the same service an
@@ -51,7 +57,8 @@ class Command(BaseCommand):
     from :func:`apps.accounts.services.build_reset_url`: open it, signed out, to set
     a password.  The link is usable for ``PASSWORD_RESET_TIMEOUT``.
 
-    Raises ``CommandError`` when ``--email`` is not a valid email address.
+    Raises ``CommandError`` when ``--email`` is not a valid email address, or when
+    it already names a donor.
     """
 
     help = "Create or promote the account at --email to a system administrator."
@@ -70,7 +77,7 @@ class Command(BaseCommand):
         """Create or promote the account named by ``--email``, and print its link.
 
         Raises ``CommandError`` naming the address when it is not a valid email
-        address.
+        address, or when it already names a donor.
         """
         email = options["email"].strip()
         try:
@@ -88,6 +95,8 @@ class Command(BaseCommand):
                     kind=AccountKind.MEMBER,
                 )
                 confirm_email_address(user)
+            elif is_donor(user):
+                raise CommandError(DONOR_ADMIN_REFUSED.format(email=email))
 
             wanted = [slug for slug in ROLE_SLUGS if slug in set(user.roles) | set(ADMIN_ROLES)]
             with suspended():
