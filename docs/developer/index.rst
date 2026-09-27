@@ -44,6 +44,7 @@ New to the codebase?  :doc:`setup` gets it running, the
    scheduled-reports
    notifications
    verification
+   aircraft-registry
    notification-events
    renewals
    statements

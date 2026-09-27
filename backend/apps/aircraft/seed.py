@@ -183,10 +183,11 @@ def run(ctx: dict[str, Any], stdout: TextIOBase | None = None) -> dict[str, Any]
 
     _seed_verification(created, ctx.get("demo_users", {}).get("leader"))
 
-    # Attach aircraft to the pilots who fly them.
+    # Attach aircraft to the pilots who fly them: at most two each, which is as many
+    # registrations as the member report's Aircraft column holds on one line.
     pilot_profiles = [p for p in profiles if p.pilot_certificate_type != "none"]
     for profile in pilot_profiles:
-        wanted = rng.choices([0, 1, 1, 2, 3], weights=[15, 40, 20, 18, 7])[0]
+        wanted = rng.choices([0, 1, 2], weights=[15, 60, 25])[0]
         if not wanted:
             continue
         chosen = rng.sample(created, k=min(wanted, len(created)))

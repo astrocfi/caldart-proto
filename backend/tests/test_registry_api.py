@@ -95,7 +95,7 @@ def test_searching_needs_a_signed_in_user(api_client: APIClient) -> None:
 def test_an_account_admin_adds_a_custom_type(account_admin_client: APIClient) -> None:
     """A type the FAA has never registered is added, marked custom, and answered 201."""
     response = account_admin_client.post(
-        TYPES_URL, {"make": "zenith", "model": "ch 750 cruzer", "seats": 2, "engines": 1}
+        TYPES_URL, {"make": "zenith", "model": "ch 750", "seats": 2, "engines": 1}
     )
     assert (response.status_code, response.json()["is_custom"]) == (201, True)
 

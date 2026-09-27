@@ -71,7 +71,7 @@ SEEDED_DONOR_GIFTS = sum(DONOR_GIFT_COUNTS)
 #: The payments ``seed_demo`` creates from its fixed random seed: one per term,
 #: plus the ones recorded by hand, the demo friend's gift and the donors' gifts, all
 #: succeeded.
-SEEDED_PAYMENTS = 64 + MANUAL_PAYMENT_COUNT + SEEDED_FRIEND_GIFTS + SEEDED_DONOR_GIFTS
+SEEDED_PAYMENTS = 65 + MANUAL_PAYMENT_COUNT + SEEDED_FRIEND_GIFTS + SEEDED_DONOR_GIFTS
 
 #: How many of them the seed refunds: two in full and four contributions, which
 #: leaves the first two ``refunded`` and the other four ``partially_refunded``.

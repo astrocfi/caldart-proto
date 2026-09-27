@@ -62,6 +62,9 @@ E2E_GEOAPIFY_DIR := $(abspath frontend/e2e/geoapify)
 #                      URL in place of Geoapify's; the stub answers every query
 #                      with frontend/e2e/geoapify/autocomplete.json.  The
 #                      suggestion rate is lifted with the others.
+#   FAA_REGISTRY_URL   the registry fixture's directory, so Run now on the
+#                      System screen imports the fixture instead of downloading
+#                      the FAA's registry.
 E2E_ENV := DJANGO_SETTINGS_MODULE=caldart.settings.dev \
            DATABASE_URL="$(E2E_DATABASE_URL)" \
            SECRET_KEY=e2e-insecure-secret-key \
@@ -80,7 +83,8 @@ E2E_ENV := DJANGO_SETTINGS_MODULE=caldart.settings.dev \
            AUTH_THROTTLE_DONATE=1000/min \
            GEOAPIFY_API_KEY=e2e-stub-key \
            GEOAPIFY_URL="http://127.0.0.1:$(E2E_GEOAPIFY_PORT)/autocomplete.json" \
-           ADDRESS_SUGGEST_THROTTLE_RATE=1000/min
+           ADDRESS_SUGGEST_THROTTLE_RATE=1000/min \
+           FAA_REGISTRY_URL="$(abspath backend/apps/aircraft/fixtures/faa)"
 
 .PHONY: help setup up down wait-db createdb migrate makemigrations seed reset run \
         dev-frontend build test test-backend test-frontend coverage coverage-backend \

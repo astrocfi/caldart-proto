@@ -20,6 +20,7 @@ import respx
 from django.core.management import CommandError, call_command
 from pytest_django import Settings
 
+from apps.aircraft.aliases import ALIASES
 from apps.aircraft.models import (
     AircraftType,
     AircraftTypeAlias,
@@ -38,6 +39,7 @@ from apps.aircraft.registry import (
     registrant_type_for,
     status_for,
 )
+from apps.aircraft.seed import AIRFRAMES
 from tests.factories import AircraftFactory, AircraftTypeFactory
 
 pytestmark = pytest.mark.django_db
@@ -530,3 +532,29 @@ def test_the_command_reports_its_counts(small_registry: Path) -> None:
     out = StringIO()
     call_command("import_faa_registry", source=str(small_registry), stdout=out)
     assert "Imported 2 types and 3 registrations" in out.getvalue()
+
+
+# -- the fixture ----------------------------------------------------------------------
+
+
+def test_every_alias_resolves_against_the_fixture() -> None:
+    """Each alias names a type the fixture holds, so the demo searches as production."""
+    import_registry(str(FIXTURE_DIR))
+    unresolved = sorted(
+        set(ALIASES) - set(AircraftTypeAlias.objects.values_list("alias", flat=True))
+    )
+    assert unresolved == []
+
+
+@pytest.mark.parametrize("airframe", AIRFRAMES, ids=" ".join)
+def test_every_seeded_airframe_has_registrations_to_seed(airframe: tuple[str, str]) -> None:
+    """The fixture holds at least three valid, dated registrations of each seeded type."""
+    import_registry(str(FIXTURE_DIR))
+    make, model = airframe
+    held = Registration.objects.filter(
+        type__make=make,
+        type__model=model,
+        status=RegistrationStatus.VALID,
+        year__isnull=False,
+    ).count()
+    assert held >= 3

@@ -38,7 +38,8 @@ It runs in three places:
   validators on whatever ``to_internal_value`` returns, so the uniqueness
   check sees the canonical value and ``n-12345`` collides with an existing
   ``N12345`` as it should;
-- the ``n_number`` query parameter of both lookup endpoints.
+- the ``n_number`` query parameter of both lookup endpoints, and the
+  ``n_number`` of ``GET /aircraft/registry/{n_number}``.
 
 The frontend mirrors it in ``features/aircraft/insurance.ts`` so the canonical
 form can be shown before the round trip.  Change one, change both — the rule
@@ -456,15 +457,129 @@ authenticated user.  This is what the aircraft forms search to pick a type.
 
 ``search_types()`` in ``apps/aircraft/types.py`` answers it: first the type an
 alias names exactly (``c172``, ``skyhawk``), then the types whose
-``make || ' ' || model`` is similar to ``q`` by trigram, then, when ``q``
+``make || ' ' || model`` is similar to ``q`` by trigram (most similar first,
+then the one more aircraft are registered as, then by name), then, when ``q``
 holds digits, the types whose model contains them.  So ``cesna 172``,
-``CESSNA``, ``c172``, and ``skyhawk`` all lead with the Cessna 172.
-:doc:`data-model` describes the rule in full.
+``CESSNA``, ``cesna``, ``c172``, and ``skyhawk`` all lead with the Cessna 172.
+:doc:`aircraft-registry` describes the rule in full.
 
 Statuses:
 
 * **200** — the array above; ``[]`` when ``q`` is missing or blank, or nothing
   resembles it.
+
+``POST /aircraft/types``
+------------------------
+
+Adds an aircraft type the FAA has never registered — a homebuilt, or a type
+built abroad that no US owner has registered yet — so an aircraft of that type
+can go on the register.  Every type the FAA has registered is already in the
+vocabulary, so this is the exception, and only ``account_admin`` (and
+``system_admin``) may do it.
+
+.. code-block:: json
+
+   {"make": "zenith", "model": "ch 750", "seats": 2, "engines": 1}
+
+``make`` and ``model`` are required; ``seats`` (at least 1) and ``engines`` (at
+least 0) are optional.  The names are written as the registry's own would be:
+``make`` through ``display_make`` and ``model`` through ``display_model`` of its
+upper-cased form, so ``cessna aircraft co`` is stored ``Cessna`` and ``ch 750
+sport`` is ``CH 750 Sport``.  The type is stored with ``is_custom`` true and
+the FAA code ``CUSTOM-<id>``.  When the FAA later lists the same make and model,
+the nightly import folds the hand-added type into the FAA's entry
+(:doc:`aircraft-registry`).  The answer is the new type, in the shape
+``GET /aircraft/types`` answers.
+
+Statuses:
+
+* **201** — the type added.
+* **400** — ``make`` or ``model`` missing or blank, a number out of range, or a
+  make and model already listed (compared case-insensitively, after the
+  normalization above), answered
+  ``{"model": ["That aircraft type is already listed."]}``.
+* **403** — the caller does not hold ``account_admin``.
+
+
+The FAA registry
+================
+
+The FAA's Releasable Aircraft Database, imported nightly, answers a lookup by
+N-number; :doc:`aircraft-registry` describes the data and the import.  Both
+endpoints are open to any authenticated user.  Starting an import by hand is
+``POST /admin/system/registry-import`` (:doc:`api-system`).
+
+``GET /aircraft/registry/{n_number}``
+-------------------------------------
+
+The registration for ``n_number``, normalized as above, so ``n128sc`` and
+``N-128-SC`` find ``N128SC``.  The aircraft forms call it when **Look up** is
+pressed.
+
+.. code-block:: json
+
+   {
+     "n_number": "N128SC",
+     "type": {"id": 41, "make": "Cessna", "model": "172S", "seats": 4,
+              "engines": 1, "is_custom": false},
+     "year": 1999,
+     "registrant_name": "EXAMPLE FLYING CLUB INC",
+     "registrant_type": "corporation",
+     "status": "valid",
+     "certificate_issued_on": "2021-03-02",
+     "expires_on": "2028-03-31",
+     "imported_at": "2026-09-27T04:31:12Z"
+   }
+
+``registrant_type`` is one of ``individual``, ``partnership``,
+``corporation``, ``co_owned``, ``government``, ``llc``,
+``non_citizen_corporation``, ``non_citizen_co_owned``, and ``unknown``;
+``status`` is one of ``valid``, ``pending``, ``revoked``, ``expired``, and
+``other``.  ``year``, ``certificate_issued_on``, and ``expires_on`` are null
+when the registry leaves them blank.  ``imported_at`` is when the import that
+wrote the row ran.
+
+Statuses:
+
+* **200** — the registration.
+* **400** — ``n_number`` normalizing to nothing, answered
+  ``{"n_number": "Enter a registration, for example N12345."}``.
+* **404** — the registry does not hold it, answered
+  ``{"detail": "No registration for N12345 in the registry."}``.
+
+``GET /aircraft/registry``
+--------------------------
+
+The date the registry is as of, whether an import is running, and the newest
+import.  The register's header and the System screen's *FAA registry import*
+row read it; the System screen polls it every five seconds while ``running``.
+
+.. code-block:: json
+
+   {
+     "as_of": "2026-09-27T04:31:12Z",
+     "running": false,
+     "last": {
+       "started_at": "2026-09-27T04:30:40Z",
+       "finished_at": "2026-09-27T04:31:12Z",
+       "ok": true,
+       "error": "",
+       "types_written": 94077,
+       "registrations_written": 316992,
+       "types_folded": 0,
+       "source": "https://registry.faa.gov/database/ReleasableAircraft.zip"
+     }
+   }
+
+``as_of`` is when the newest successful import finished, null before one has.
+``running`` is true while an import has started, not finished, and started less
+than ``REGISTRY_IMPORT_STALE_MINUTES`` ago.  ``last`` is the newest import of any
+outcome, null before the first: ``finished_at`` is null while it runs, ``ok``
+says whether it succeeded, and ``error`` why not.
+
+Statuses:
+
+* **200** — the object above.
 
 
 The aircraft report
@@ -783,6 +898,11 @@ File                                   Contents
                                        ``MAKE_NAMES``
 ``apps/aircraft/aliases.py``           ``ALIASES``, ``write_aliases``
 ``apps/aircraft/types.py``             ``search_types``
+``apps/aircraft/registry.py``          the registry parser,
+                                       ``import_registry``, the fold,
+                                       ``start_import``, ``launch_import``;
+                                       the ``import_faa_registry`` command
+                                       in ``management/commands/`` wraps it
 ``apps/aircraft/services.py``          ``record_change``, ``changed_fields``,
                                        ``record_added``, ``record_updated``,
                                        ``delete_aircraft`` (each raising its
@@ -802,7 +922,9 @@ File                                   Contents
 
 Tests: ``backend/tests/test_aircraft_api.py`` (CRUD, permissions,
 normalization, every filter), ``test_aircraft_types.py`` (the aircraft types,
-their display names, aliases, and search), ``test_aircraft_history.py`` (the change rows the
+their display names, aliases, and search), ``test_registry_import.py`` (the
+parser, the import, the fold, and the command), ``test_registry_api.py`` (the
+type search against the fixture, Add a type, the lookup, and the status), ``test_aircraft_history.py`` (the change rows the
 register's writes leave and the history endpoint),
 ``test_aircraft_exports.py`` (the aircraft report: CSV content, PDF
 validity, subtitle), ``test_leader_api.py`` (search, the membership ×

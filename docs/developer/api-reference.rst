@@ -836,6 +836,30 @@ not (see :ref:`api-csrf-bootstrap`).
      - ✓
      - ✓
      - the aircraft type search
+   * - ``POST /aircraft/types``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ✓
+     - adds a type the FAA has never registered
+   * - ``GET /aircraft/registry``
+     - ·
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+     - the registry date and the last import
+   * - ``GET /aircraft/registry/{n_number}``
+     - ·
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+     - the FAA registration for an N-number
    * - ``GET /aircraft/{id}``
      - ·
      - ✓
@@ -1404,6 +1428,14 @@ not (see :ref:`api-csrf-bootstrap`).
      - ·
      - ·
      - ``system_admin`` only
+   * - ``POST /admin/system/registry-import``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ``system_admin`` only; 409 while an import runs
    * - ``GET /system/health``
      - ·
      - ·

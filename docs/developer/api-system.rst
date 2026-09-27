@@ -9,7 +9,8 @@ before it has a user: ``GET /admin/reminders/log`` and
 ``POST /system/reminders/run`` from ``apps.reminders``,
 ``POST /system/reports/run`` from ``apps.reports``,
 ``GET /system/emails`` and ``GET /system/emails/purposes`` from ``apps.mail``, the health, backup,
-renewal-scan and year-end-statement routes under ``/system/`` from ``apps.sysadmin``, and
+renewal-scan and year-end-statement routes under ``/system/`` and
+``POST /admin/system/registry-import`` from ``apps.sysadmin``, and
 ``GET /site/config`` from ``apps.cms``.  :doc:`api-reference` covers the conventions they share —
 session authentication, the CSRF header, pagination, and the error shapes.
 
@@ -17,6 +18,7 @@ The subsystem chapters behind them are :doc:`reminders` (what the scan sends
 and when), :doc:`scheduled-reports` (which reports and rosters go out, and
 when), :doc:`renewals` (what the automatic-renewal scan charges and when),
 :doc:`statements` (who is sent a year-end statement and when),
+:doc:`aircraft-registry` (what the FAA registry import reads and writes),
 :doc:`backup-restore` (what a dump contains and how to restore one) and
 :doc:`cms` (where the navigation and the members-only pages come from).
 
@@ -484,6 +486,56 @@ Statuses: **200**; **400** when ``dry_run`` is not a boolean, or ``year`` is
 not an integer between 1900 and 9000; **401** when anonymous; **403** for any
 other role.
 
+.. _api-registry-import:
+
+``POST /admin/system/registry-import``
+--------------------------------------
+
+Starts the FAA registry import now instead of waiting for the nightly timer.
+``system_admin`` only.  It takes no body and has no dry run: the import changes
+nothing but the aircraft types and the registrations.  Unlike the other run-now
+endpoints it does not wait for the job: the import downloads about 70 MB, so it
+runs as ``manage.py import_faa_registry --import-id <id>`` in a process of its
+own, started in a new session with the server's output as its own, and the
+answer comes back at once.
+
+Before answering, the endpoint writes the ``RegistryImport`` row the command
+then fills in — started now, not finished, its ``source`` the
+``FAA_REGISTRY_URL`` setting, ``started_by`` the caller — and answers **202**
+with it:
+
+.. code-block:: json
+
+   {
+     "started_at": "2026-09-27T14:05:09Z",
+     "finished_at": null,
+     "ok": false,
+     "error": "",
+     "types_written": 0,
+     "registrations_written": 0,
+     "types_folded": 0,
+     "source": "https://registry.faa.gov/database/ReleasableAircraft.zip"
+   }
+
+The System screen then polls ``GET /aircraft/registry`` (:doc:`api-aircraft`)
+every five seconds until ``running`` is false, and reads the outcome from its
+``last``.
+
+While an import has started, not finished, and started less than
+``REGISTRY_IMPORT_STALE_MINUTES`` ago, a second press is refused with **409**
+and ``{"detail": "An import is already running."}``.  An unfinished import older
+than that is taken to have died with its process — a restart of the web service
+stops it — so the press closes it as failed, with ``ok`` false and the error
+``Did not finish.``, and starts a fresh one.  Two presses at the same instant are
+serialized by a database advisory lock, so only one of them starts an import.
+
+The caller is the actor on a ``system.registry_import`` audit line whose target
+is the new row; a refused press writes the same action at WARNING with the
+reason ``import_running``.
+
+Statuses: **202**; **401** when anonymous; **403** for any other role; **409**
+while an import is running.
+
 
 Site
 ====
@@ -554,3 +606,8 @@ Tests
    Who counts as a giver in a year, the run's counts and actions, a dry run
    writing nothing, a rerun sending nothing twice, the command, and the
    endpoint's role matrix.
+
+``backend/tests/test_system_registry_import.py``
+   Run now answering 202 with the unfinished row, the launcher handed that row,
+   the 409 while an import runs, a stale import closed as *Did not finish.*,
+   the audit lines, the role matrix, and the launcher's command line.

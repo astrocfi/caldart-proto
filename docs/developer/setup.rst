@@ -438,8 +438,9 @@ Beyond Django's and Wagtail's own, this project adds:
      - the example Wagtail site, and the ``website_admin`` permission grant
    * - ``seed_facts``
      - print the demo data set's facts as JSON (the password, the accounts,
-       the plan prices, and the members, payments, and mandates the specs
-       need), which ``make e2e`` saves for the end-to-end specs
+       the plan prices, the members, payments, and mandates the specs need,
+       and a registration to look up), which ``make e2e`` saves for the
+       end-to-end specs
        (:doc:`testing`)
    * - ``db_backup [--name NAME]``
      - write ``caldart-<timestamp>.sql.gz`` into ``BACKUP_DIR``, or ``NAME``
@@ -463,6 +464,9 @@ Beyond Django's and Wagtail's own, this project adds:
      - email the previous year's contribution statements (:doc:`statements`)
    * - ``payments_sandbox_check``
      - check the configured Stripe and PayPal credentials without moving money
+   * - ``import_faa_registry [--source URL|PATH] [--types-only] [--import-id ID]``
+     - import the aircraft types and the registrations from the FAA registry
+       (:doc:`aircraft-registry`)
 
 Run any of them with ``uv run backend/manage.py <command>``.  See
 :doc:`backup-restore` for the data commands and the page linked beside each job
