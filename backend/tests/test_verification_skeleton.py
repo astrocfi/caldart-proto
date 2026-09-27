@@ -229,8 +229,7 @@ def test_the_event_is_described_by_what_was_verified() -> None:
 
 
 def test_the_purpose_is_labeled_verification_recorded() -> None:
-    """The email log reads the event's purpose as *Notification: Verification recorded*."""
+    """The email log reads the purpose as *Notification: Verification recorded*."""
     assert (
-        PURPOSE_LABELS["notification_verification_changed"]
-        == "Notification: Verification recorded"
+        PURPOSE_LABELS["notification_verification_changed"] == "Notification: Verification recorded"
     )
