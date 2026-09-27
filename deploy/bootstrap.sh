@@ -70,9 +70,33 @@ print_help() {
     done <"$1"
 }
 
+shell_quote() {
+    if [[ "$1" =~ ^[A-Za-z0-9_./:=@%+,-]+$ ]]; then
+        printf '%s' "$1"
+    else
+        printf "'%s'" "${1//\'/\'\\\'\'}"
+    fi
+}
+
+# Print a command shell-quoted, one line, with the value of --email-url, which
+# can carry the mail relay's password, masked.
+quote_command() {
+    local word first=1 masked=0
+    for word in "$@"; do
+        [[ $first == 1 ]] || printf ' '
+        if [[ $masked == 1 ]]; then
+            word='<email-url>'
+        fi
+        shell_quote "$word"
+        first=0
+        masked=0
+        [[ "$word" != --email-url ]] || masked=1
+    done
+}
+
 run() {
     if [[ "$DRY_RUN" == 1 ]]; then
-        printf '+ %s\n' "$*"
+        printf '+ %s\n' "$(quote_command "$@")"
         return 0
     fi
     "$@"

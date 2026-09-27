@@ -28,9 +28,11 @@ source "$ROOT/deploy/lib.sh"
 
 readonly BASE_PACKAGES=(git curl ca-certificates openssl postgresql-client docker.io)
 readonly NODE_MAJOR=22
-readonly NODESOURCE_SETUP="curl -fsSL https://deb.nodesource.com/setup_${NODE_MAJOR}.x | bash -"
+# pipefail, so a download that fails fails the step instead of piping nothing
+# into a shell that exits 0.
+readonly NODESOURCE_SETUP="set -o pipefail; curl -fsSL https://deb.nodesource.com/setup_${NODE_MAJOR}.x | bash -"
 readonly UV_BIN=/usr/local/bin/uv
-readonly UV_INSTALL="curl -LsSf https://astral.sh/uv/install.sh | sh"
+readonly UV_INSTALL="set -o pipefail; curl -LsSf https://astral.sh/uv/install.sh | sh"
 
 # Print the value of $1 in the os-release file, without quotes.
 os_release_value() {
@@ -91,11 +93,17 @@ packages_step() {
         log "Installing Node ${NODE_MAJOR} from NodeSource"
         run bash -c "$NODESOURCE_SETUP"
         apt_install nodejs
+        if ! is_dry_run && needs_node; then
+            die "the packages step installed $(node -v 2>/dev/null || printf 'no Node'), not Node ${NODE_MAJOR}; check the NodeSource repository"
+        fi
     fi
 
     if [[ ! -x "$UV_BIN" ]]; then
         log "Installing uv into $(dirname "$UV_BIN")"
         run env UV_INSTALL_DIR="$(dirname "$UV_BIN")" UV_NO_MODIFY_PATH=1 bash -c "$UV_INSTALL"
+        if ! is_dry_run && [[ ! -x "$UV_BIN" ]]; then
+            die "the packages step did not install $UV_BIN; check the uv installer's output above"
+        fi
     fi
 
     log "Starting Docker"

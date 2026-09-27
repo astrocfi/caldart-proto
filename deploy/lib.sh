@@ -70,10 +70,35 @@ CALDART_TLS="${CALDART_TLS:-certbot}"
 CALDART_CERTBOT_EMAIL="${CALDART_CERTBOT_EMAIL:-}"
 CALDART_CERTBOT_STAGING="${CALDART_CERTBOT_STAGING:-no}"
 
+# A DNS name of at least two labels: letters, digits, and inner hyphens.  The
+# hostname is written into sed expressions, the vhost, and line-based files, so
+# nothing else may reach them.
+readonly HOSTNAME_PATTERN='^[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)+$'
+
+# The stage the last log line announced, which a failing command is reported in.
+CURRENT_STAGE=""
+
 # Print one stage line on stdout.
 log() {
+    CURRENT_STAGE="$*"
     printf '==> %s\n' "$*"
 }
+
+# Report a command that failed under set -e with the stage it failed in.  Only
+# the top-level shell reports, once a stage has begun: a failure inside a
+# command substitution already printed its own error line, and one before the
+# first stage is a usage error that did too.
+report_failure() {
+    local status=$1 command=$2
+    [[ -n "$CURRENT_STAGE" ]] || return 0
+    ((BASH_SUBSHELL == 0)) || return 0
+    printf 'error: %s failed: %s exited with status %s\n' \
+        "$CURRENT_STAGE" "$command" "$status" >&2
+}
+
+# errtrace carries the trap into functions, where every step's commands run.
+set -E
+trap 'report_failure "$?" "$BASH_COMMAND"' ERR
 
 # Print a note on stderr that is not an error.
 note() {
@@ -272,6 +297,12 @@ have_env_file() {
     fi
     is_dry_run && note "dry run: no environment file at $ENV_FILE; treating it as absent"
     return 1
+}
+
+# Stop with a usage error unless $1 is a DNS name.
+validate_hostname() {
+    [[ "$1" =~ $HOSTNAME_PATTERN ]] ||
+        usage_error "--hostname must be a DNS name such as $SHIPPED_HOSTNAME, not $1"
 }
 
 # The hostname, or a placeholder in a dry run that has none.

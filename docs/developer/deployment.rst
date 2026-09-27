@@ -55,7 +55,7 @@ The flags:
      - Meaning
      - Default
    * - ``--hostname HOST``
-     - the public hostname
+     - the public hostname, a DNS name such as ``caldart.example.org``
      - required on the first run
    * - ``--www`` / ``--no-www``
      - also answer for ``www.HOST``
@@ -131,8 +131,8 @@ wrote, such as the environment file or the record, is treated as absent, with a
 note on standard error; the generated database password appears as
 ``<generated>``, and the environment file's contents are never printed.
 
-**What it prints.**  One ``==>`` line per stage, the commands of any step that
-fails, and at the end the checks of :ref:`deploy-check` and a summary: the
+**What it prints.**  One ``==>`` line per stage; when a command fails, its own
+output and an ``error:`` line naming the stage and the command; and at the end the checks of :ref:`deploy-check` and a summary: the
 site's address, the environment file, the administrator's one-time link when
 ``--admin-email`` created one, the Stripe, PayPal, and Geoapify settings still
 empty in the environment file, and, with a self-signed certificate, the
@@ -1365,7 +1365,10 @@ Upgrading
 
 ``upgrade.sh`` runs, in order:
 
-1. a backup, ``sudo deploy/manage.sh db_backup``, always first;
+1. a backup, ``sudo deploy/manage.sh db_backup``, always first, unless a
+   plain upgrade finds the checkout on a detached ``HEAD`` (as a rollback with
+   ``--ref`` leaves it), where it stops before anything runs and asks for
+   ``--ref <branch>``;
 2. a refusal if ``git status --porcelain`` shows local changes in the checkout;
 3. ``git pull --ff-only``, or with ``--ref`` a ``git fetch origin`` and ``git
    checkout REF`` (then ``git pull --ff-only`` when the ref is a branch);
@@ -1397,7 +1400,8 @@ file.
 Rolling back is ``sudo deploy/upgrade.sh --ref <the previous commit>``, plus,
 when the schema the previous commit expects differs from the one applied,
 a ``sudo deploy/manage.sh db_restore`` of the dump the upgrade took first.
-That restore stays a command run by hand, because it drops the database
+The rollback leaves the checkout on a detached ``HEAD``, so the next upgrade
+names the branch again (``--ref main``).  The restore stays a command run by hand, because it drops the database
 (:doc:`backup-restore`).
 
 

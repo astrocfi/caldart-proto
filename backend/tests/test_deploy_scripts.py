@@ -131,6 +131,11 @@ def _commands(result: subprocess.CompletedProcess[str]) -> list[str]:
     return [line[2:] for line in result.stdout.splitlines() if line.startswith("+ ")]
 
 
+def _errors(result: subprocess.CompletedProcess[str]) -> list[str]:
+    """The ``error:`` lines a script printed on stderr, without its notes."""
+    return [line for line in result.stderr.splitlines() if line.startswith("error:")]
+
+
 def _position(commands: list[str], fragment: str) -> int:
     """The index of the first command containing ``fragment``; fails when none does."""
     for index, command in enumerate(commands):
@@ -222,6 +227,7 @@ def test_manage_without_a_command_is_a_usage_error(etc: Path) -> None:
     """``manage.sh`` hands its arguments to ``manage.py``, so it needs a command name."""
     result = _run(DEPLOY_DIR / "manage.sh", "--dry-run", env=_env(etc))
     assert result.returncode == 2
+    assert _errors(result) == ["error: name the management command to run"]
 
 
 # -- install.sh ---------------------------------------------------------------------
@@ -382,6 +388,31 @@ def test_an_unknown_web_server_is_a_usage_error(root: Path, etc: Path, tmp_path:
     """``--web-server`` accepts only ``apache`` and ``nginx``."""
     result = _install_dry_run(root, etc, tmp_path, "--web-server", "caddy")
     assert result.returncode == 2
+    assert _errors(result) == ["error: --web-server must be apache or nginx, not caddy"]
+
+
+@pytest.mark.parametrize(
+    "hostname",
+    ["https://caldart.org/", "caldart org", "caldart", "-caldart.org", "cal&dart.org"],
+)
+def test_a_hostname_that_is_not_a_dns_name_is_a_usage_error(
+    hostname: str, root: Path, etc: Path, tmp_path: Path
+) -> None:
+    """``--hostname`` must be a DNS name: it is written into sed, the vhost, and files."""
+    args = ["--hostname", hostname, *FIRST_INSTALL[2:]]
+    env = _env(etc, CALDART_OS_RELEASE=str(_os_release(tmp_path, "ubuntu")))
+    result = _run(root / "deploy" / "install.sh", "--dry-run", *args, env=env)
+    assert _errors(result) == [
+        f"error: --hostname must be a DNS name such as caldart.example.org, not {hostname}"
+    ]
+
+
+def test_a_hostname_that_is_not_a_dns_name_exits_2(root: Path, etc: Path, tmp_path: Path) -> None:
+    """A malformed ``--hostname`` is a usage error, not a failure."""
+    args = ["--hostname", "https://caldart.org/", *FIRST_INSTALL[2:]]
+    env = _env(etc, CALDART_OS_RELEASE=str(_os_release(tmp_path, "ubuntu")))
+    result = _run(root / "deploy" / "install.sh", "--dry-run", *args, env=env)
+    assert result.returncode == 2
 
 
 def test_the_install_record_supplies_the_flags(root: Path, etc: Path, tmp_path: Path) -> None:
@@ -428,6 +459,71 @@ def test_another_distribution_is_refused(etc: Path, root: Path, tmp_path: Path) 
     result = _run(root / "deploy" / "steps" / "packages.sh", "--dry-run", env=env)
     assert result.returncode == 1
     assert "error: fedora is not supported; use Debian or Ubuntu" in result.stderr
+
+
+def test_the_nodesource_installer_fails_when_its_download_fails(
+    etc: Path, root: Path, tmp_path: Path
+) -> None:
+    """The ``curl | bash`` installer runs under ``pipefail``: a failed download stops."""
+    shims = tmp_path / "shims"
+    shims.mkdir()
+    (shims / "node").write_text("#!/bin/sh\necho v18.19.1\n")
+    (shims / "node").chmod(0o755)
+    env = _env(
+        etc,
+        CALDART_OS_RELEASE=str(_os_release(tmp_path, "ubuntu")),
+        PATH=f"{shims}:{os.environ['PATH']}",
+    )
+    commands = _commands(_run(root / "deploy" / "steps" / "packages.sh", "--dry-run", env=env))
+    assert "'set -o pipefail; curl" in commands[_position(commands, "deb.nodesource.com")]
+
+
+# -- lib.sh -------------------------------------------------------------------------
+
+
+def test_a_failing_command_names_the_stage_it_failed_in(root: Path) -> None:
+    """A command failing under ``set -e`` leaves an ``error:`` line naming the stage."""
+    result = _source_lib(root, 'log "Building the frontend"; false')
+    assert result.stderr.splitlines() == [
+        "error: Building the frontend failed: false exited with status 1"
+    ]
+
+
+def test_a_failing_command_keeps_its_exit_status(root: Path) -> None:
+    """The stage report leaves the failing command's status as the script's."""
+    result = _source_lib(root, 'log "Stage"; (exit 3)')
+    assert result.returncode == 3
+
+
+def test_a_command_tested_in_a_condition_reports_nothing(root: Path) -> None:
+    """A command whose failure a condition handles is not an error."""
+    result = _source_lib(root, 'log "Stage"; if false; then :; fi; false || true')
+    assert result.stderr == ""
+
+
+# -- bootstrap.sh -------------------------------------------------------------------
+
+
+def _bootstrap_dry_run(tmp_path: Path, *args: str) -> subprocess.CompletedProcess[str]:
+    """The dry run of ``bootstrap.sh`` into an absent deploy root under ``tmp_path``."""
+    env = _env(tmp_path, CALDART_ROOT=str(tmp_path / "srv"))
+    return _run(DEPLOY_DIR / "bootstrap.sh", "--dry-run", "--repo", "/nowhere", *args, env=env)
+
+
+def test_bootstrap_masks_the_email_url(tmp_path: Path) -> None:
+    """The mail relay's credential is never printed in the installer line."""
+    result = _bootstrap_dry_run(tmp_path, "--email-url", "smtp+tls://user:mailsecret@x.org:587")
+    assert _commands(result)[-1] == (
+        f"bash {tmp_path}/srv/deploy/install.sh --dry-run --email-url '<email-url>'"
+    )
+
+
+def test_bootstrap_quotes_what_it_prints(tmp_path: Path) -> None:
+    """An argument with spaces is printed shell-quoted, so the line runs as printed."""
+    result = _bootstrap_dry_run(tmp_path, "--from-email", "CalDART <ops@x.org>")
+    assert _commands(result)[-1] == (
+        f"bash {tmp_path}/srv/deploy/install.sh --dry-run --from-email 'CalDART <ops@x.org>'"
+    )
 
 
 # -- configure.sh -------------------------------------------------------------------
@@ -557,7 +653,87 @@ def test_configure_needs_a_hostname(root: Path, etc: Path) -> None:
     """With no record and no ``--hostname`` the step exits 2 naming the flag."""
     result = _configure(root, etc, "--email-url", "smtp://localhost:25")
     assert result.returncode == 2
-    assert "--hostname" in result.stderr
+    assert _errors(result) == [f"error: --hostname is required to write {etc}/caldart.env"]
+
+
+def test_configure_refuses_a_hostname_that_is_not_a_dns_name(root: Path, etc: Path) -> None:
+    """``configure.sh`` checks ``--hostname`` as ``install.sh`` does."""
+    result = _configure(root, etc, "--hostname", "https://x.org/", "--email-url", "smtp://x:25")
+    assert _errors(result) == [
+        "error: --hostname must be a DNS name such as caldart.example.org, not https://x.org/"
+    ]
+
+
+@pytest.fixture
+def recorded_env_file(root: Path, etc: Path) -> Path:
+    """What ``configure.sh`` writes from the install record and ``--email-url``."""
+    (etc / "install.conf").write_text(
+        "CALDART_HOSTNAME=recorded.test\nCALDART_WWW=no\nCALDART_TLS=self-signed\n"
+    )
+    result = _configure(root, etc, "--email-url", "smtp://x:25")
+    assert result.returncode == 0, result.stderr
+    return etc / "caldart.env"
+
+
+@pytest.mark.parametrize(
+    ("variable", "expected"),
+    [("ALLOWED_HOSTS", "recorded.test"), ("SECURE_HSTS_SECONDS", "0")],
+)
+def test_configure_reads_the_install_record(
+    variable: str, expected: str, recorded_env_file: Path
+) -> None:
+    """Run alone, the step reads the hostname, ``www``, and TLS mode from the record."""
+    assert _variables(recorded_env_file)[variable] == expected
+
+
+def test_a_configure_flag_overrides_the_install_record(root: Path, etc: Path) -> None:
+    """``--hostname`` given to the step wins over the recorded one."""
+    (etc / "install.conf").write_text("CALDART_HOSTNAME=recorded.test\nCALDART_WWW=no\n")
+    _configure(root, etc, "--hostname", "flag.test", "--email-url", "smtp://x:25")
+    assert _variables(etc / "caldart.env")["ALLOWED_HOSTS"] == "flag.test"
+
+
+@pytest.fixture
+def exec_log(root: Path, etc: Path, tmp_path: Path) -> tuple[str, Path]:
+    """The argv of every program ``configure.sh`` execs, logged by shims on ``PATH``.
+
+    Returns the file the step wrote, read back, and the log of argument lists.
+    """
+    shims = tmp_path / "shims"
+    shims.mkdir()
+    log = tmp_path / "exec.log"
+    real_path = os.environ["PATH"]
+    for program in ("env", "awk", "install", "python3", "sed", "cat"):
+        shim = shims / program
+        shim.write_text(
+            "#!/bin/sh\n"
+            f'printf "%s\\n" "$0 $*" >> "{log}"\n'
+            f'PATH="{real_path}" exec {program} "$@"\n'
+        )
+        shim.chmod(0o755)
+    result = _run(
+        root / "deploy" / "steps" / "configure.sh",
+        "--hostname",
+        "caldart.test",
+        "--email-url",
+        "smtp://user:mailsecret@localhost:25",
+        env={**_env(etc), "PATH": f"{shims}:{real_path}"},
+    )
+    assert result.returncode == 0, result.stderr
+    assert "awk" in log.read_text()
+    return (etc / "caldart.env").read_text(), log
+
+
+@pytest.mark.parametrize("variable", ["SECRET_KEY", "DATABASE_URL", "EMAIL_URL"])
+def test_configure_never_puts_a_secret_on_a_command_line(
+    variable: str, exec_log: tuple[str, Path]
+) -> None:
+    """The key, the database password, and the mail relay reach no program's arguments."""
+    content, log = exec_log
+    values = [
+        line.split("=", 1)[1] for line in content.splitlines() if line.startswith(f"{variable}=")
+    ]
+    assert [line for line in log.read_text().splitlines() if values[0] in line] == []
 
 
 def test_configure_writes_a_file_the_deployment_checks_accept(env_file: Path) -> None:
@@ -723,14 +899,40 @@ def test_upgrade_refuses_local_changes(checkout: Path, etc: Path) -> None:
     (checkout / "stray.txt").write_text("local change\n", encoding="utf-8")
     result = _run(checkout / "deploy" / "upgrade.sh", "--dry-run", env=_env(etc), cwd=checkout)
     assert result.returncode == 1
-    assert "local changes" in result.stderr
+    assert _errors(result) == [
+        f"error: the checkout at {checkout} has local changes; commit, stash, or discard them first"
+    ]
+
+
+def test_upgrade_refuses_a_detached_head_before_the_backup(checkout: Path, etc: Path) -> None:
+    """A plain upgrade of a checkout left detached by ``--ref`` stops naming the fix."""
+    git = shutil.which("git")
+    assert git is not None
+    subprocess.run(  # noqa: S603 - fixed argv
+        [git, "checkout", "-q", "--detach"], cwd=checkout, check=True, capture_output=True
+    )
+    result = _run(checkout / "deploy" / "upgrade.sh", "--dry-run", env=_env(etc), cwd=checkout)
+    assert _errors(result) == [
+        "error: the checkout is on a detached HEAD; run upgrade.sh --ref <branch>"
+    ]
+
+
+def test_upgrade_of_a_detached_head_takes_no_backup(checkout: Path, etc: Path) -> None:
+    """The detached-HEAD refusal comes before anything runs."""
+    git = shutil.which("git")
+    assert git is not None
+    subprocess.run(  # noqa: S603 - fixed argv
+        [git, "checkout", "-q", "--detach"], cwd=checkout, check=True, capture_output=True
+    )
+    result = _run(checkout / "deploy" / "upgrade.sh", "--dry-run", env=_env(etc), cwd=checkout)
+    assert _commands(result) == []
 
 
 def test_uninstall_needs_yes(root: Path, etc: Path) -> None:
     """Without ``--yes`` the uninstall is a usage error."""
     result = _run(root / "deploy" / "uninstall.sh", "--dry-run", env=_env(etc))
     assert result.returncode == 2
-    assert "--yes" in result.stderr
+    assert _errors(result) == ["error: --yes is required: this removes the site"]
 
 
 def test_uninstall_purge_removes_the_data(root: Path, etc: Path) -> None:

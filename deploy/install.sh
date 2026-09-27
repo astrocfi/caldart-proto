@@ -126,6 +126,7 @@ apply_record_flags() {
 # no step can use.
 validate() {
     [[ -n "$CALDART_HOSTNAME" ]] || usage_error "--hostname is required on the first run"
+    validate_hostname "$CALDART_HOSTNAME"
     case "$CALDART_WEB_SERVER" in
         apache | nginx) ;;
         *) usage_error "--web-server must be apache or nginx, not $CALDART_WEB_SERVER" ;;

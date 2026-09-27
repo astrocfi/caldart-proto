@@ -77,6 +77,11 @@ main() {
     parse_flags "$@"
     require_root
     git -C "$ROOT" rev-parse --git-dir >/dev/null 2>&1 || die "$ROOT is not a git checkout"
+    # A rollback with --ref leaves HEAD detached, where git pull has no branch
+    # to pull; say so before the backup rather than failing inside git.
+    if [[ -z "$REF" ]] && ! git -C "$ROOT" symbolic-ref -q HEAD >/dev/null; then
+        die "the checkout is on a detached HEAD; run upgrade.sh --ref <branch>"
+    fi
 
     log "Taking a database backup"
     "$ROOT/deploy/manage.sh" db_backup

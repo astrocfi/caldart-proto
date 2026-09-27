@@ -55,15 +55,19 @@ join_by() {
 
 # Print the template with each KEY=value from the arguments written over the
 # line that sets or comments out KEY.  awk reads the values from its
-# environment, so no character in them needs escaping.
-fill_template() {
-    local pairs=("$@") names=() pair
-    for pair in "${pairs[@]}"; do
+# environment, so no character in them needs escaping, and they are exported
+# by the shell's own export in a subshell rather than handed to env, so the
+# secret key and the database password never appear in a program's arguments.
+fill_template() (
+    local pair names=()
+    for pair in "$@"; do
         names+=("${pair%%=*}")
+        export "FILL_${pair%%=*}=${pair#*=}"
     done
+    export FILL_NAMES="${names[*]}"
     # The $ signs below are awk's, not the shell's.
     # shellcheck disable=SC2016
-    env "${pairs[@]/#/FILL_}" FILL_NAMES="${names[*]}" awk '
+    exec awk '
         BEGIN { count = split(ENVIRON["FILL_NAMES"], names, " ") }
         {
             for (i = 1; i <= count; i++) {
@@ -84,7 +88,7 @@ fill_template() {
             }
         }
     ' "$TEMPLATE"
-}
+)
 
 configure_step() {
     if have_env_file; then
@@ -135,17 +139,21 @@ configure_step() {
     printf '%s\n' "$content" | write_file "$ENV_FILE" 0640 "${owner[@]}"
 }
 
+# Read the flags, then the install record, then apply the flags over it, so a
+# step run alone knows the box and a flag given to it still wins.
 configure_main() {
+    local -A flags=()
+    local key
     while (($#)); do
         case "$1" in
             --hostname)
-                CALDART_HOSTNAME="$(option_value "$1" "${2:-}")"
+                flags[CALDART_HOSTNAME]="$(option_value "$1" "${2:-}")"
                 shift
                 ;;
-            --www) CALDART_WWW=yes ;;
-            --no-www) CALDART_WWW=no ;;
+            --www) flags[CALDART_WWW]=yes ;;
+            --no-www) flags[CALDART_WWW]=no ;;
             --tls)
-                CALDART_TLS="$(option_value "$1" "${2:-}")"
+                flags[CALDART_TLS]="$(option_value "$1" "${2:-}")"
                 shift
                 ;;
             --email-url)
@@ -165,7 +173,14 @@ configure_main() {
         esac
         shift
     done
-    [[ "$ETC_DIR" == "$DEFAULT_ETC" ]] && require_root
+    load_record
+    for key in "${!flags[@]}"; do
+        printf -v "$key" '%s' "${flags[$key]}"
+    done
+    [[ -z "$CALDART_HOSTNAME" ]] || validate_hostname "$CALDART_HOSTNAME"
+    if [[ "$ETC_DIR" == "$DEFAULT_ETC" ]]; then
+        require_root
+    fi
     configure_step
 }
 
