@@ -14,8 +14,10 @@ What the site sends
 Every message is rendered from a pair of templates in
 ``backend/templates/emails/``, one plain-text and one HTML, and sent by
 ``caldart.mail.send_templated``.  The template name is the message's
-*purpose*, and ``apps/mail/purposes.py`` gives each purpose the label the
-portal's email log shows:
+*purpose*, except for the notifications, which share the ``notification``
+template and each carry the purpose ``notification_<slug>`` of their event.
+``apps/mail/purposes.py`` gives each purpose the label the portal's email log
+shows:
 
 .. list-table::
    :header-rows: 1
@@ -47,6 +49,12 @@ portal's email log shows:
    * - ``scheduled_report``, ``dart_roster``
      - Scheduled report, DART roster
      - the daily report run (:doc:`scheduled-reports`)
+   * - ``notification_<slug>``, one per event, from ``notification_signed_up``
+       to ``notification_aircraft_removed``
+     - Notification: and the event's label, from Notification: Sign-up to
+       Notification: Aircraft removed
+     - the service that raised the event, once its transaction commits
+       (:doc:`notifications`)
 
 Every message comes from ``DEFAULT_FROM_EMAIL``.  None sets a ``Reply-To``
 header: where a template tells the reader how to get in touch, it prints the

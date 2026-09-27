@@ -82,6 +82,10 @@ import type {
   MembershipTermStatus,
   NavEntry,
   NavKind,
+  NotificationEvent,
+  NotificationSubscription,
+  NotificationSubscriptionCreate,
+  NotificationSubscriptionPatch,
   OwnerType,
   Paginated,
   PasswordChangePayload,
@@ -348,6 +352,21 @@ const paginatedReminders: Matches<
 > = true;
 const paginatedEmails: Matches<Paginated<EmailLogEntry>, Schemas['PaginatedEmailLogList']> = true;
 
+/* ---------------------------------------------------------- notifications */
+const notificationEvent: Matches<NotificationEvent, Schemas['NotificationEvent']> = true;
+const notificationSubscription: Matches<
+  NotificationSubscription,
+  Schemas['NotificationSubscription']
+> = true;
+const notificationSubscriptionCreate: Matches<
+  NotificationSubscriptionCreate,
+  Schemas['NotificationSubscriptionCreateRequest']
+> = true;
+const notificationSubscriptionPatch: Matches<
+  NotificationSubscriptionPatch,
+  Schemas['PatchedNotificationSubscriptionRequest']
+> = true;
+
 /** Every pair above, so `noUnusedLocals` keeps each assertion referenced. */
 const assertions: readonly true[] = [
   roleSlug,
@@ -482,6 +501,10 @@ const assertions: readonly true[] = [
   paginatedAircraft,
   paginatedReminders,
   paginatedEmails,
+  notificationEvent,
+  notificationSubscription,
+  notificationSubscriptionCreate,
+  notificationSubscriptionPatch,
 ];
 
 /** The schema component each assertion above names, in the same order. */
@@ -618,6 +641,10 @@ const MAPPED_COMPONENTS: readonly (keyof Schemas)[] = [
   'PaginatedAircraftList',
   'PaginatedReminderLogList',
   'PaginatedEmailLogList',
+  'NotificationEvent',
+  'NotificationSubscription',
+  'NotificationSubscriptionCreateRequest',
+  'PatchedNotificationSubscriptionRequest',
 ];
 
 /** Vitest runs with `frontend/` as its root, so the repository root is one level up. */

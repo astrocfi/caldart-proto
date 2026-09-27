@@ -513,10 +513,14 @@ def test_the_purposes_are_every_labeled_template_in_order(
 
 
 def test_the_purposes_name_every_template_the_application_sends() -> None:
-    """Every email template on disk has a label, so no purpose reads as a bare slug."""
+    """Every email template on disk has a label, so no purpose reads as a bare slug.
+
+    The ``notification`` template is shared by every event, and each send carries its
+    event's own ``notification_<slug>`` purpose, labeled in turn.
+    """
     templates = {path.stem for path in (settings.BASE_DIR / "templates" / "emails").glob("*.txt")}
 
-    assert sorted(templates - set(PURPOSE_LABELS)) == []
+    assert sorted(templates - set(PURPOSE_LABELS) - {"notification"}) == []
 
 
 # --------------------------------------------------------------------------

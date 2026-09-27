@@ -259,19 +259,20 @@ Payments and renewals
       payments.RenewalAttempt.retry_of  -> payments.RenewalAttempt FK, SET_NULL, nullable
       payments.YearStatement.user       -> accounts.User           FK, CASCADE
 
-Mail, reminders, reports, and the CMS pages
--------------------------------------------
+Mail, reminders, reports, notifications, and the CMS pages
+----------------------------------------------------------
 
 .. only:: graphviz
 
    .. graphviz::
-      :caption: Mail, reminders, reports, and the CMS pages.  The four records
-                at the top point at the account and the term they concern.
+      :caption: Mail, reminders, reports, notifications, and the CMS pages.  The
+                five records at the top point at the account and the term they
+                concern.
                 Below them, every page type inherits the abstract
                 ``cms.BasePage``, and ``StandardPage`` and ``NewsPage`` also
                 inherit ``cms.MembersOnlyMixin``.  Which page may live under
                 which is in :doc:`cms`, not in this diagram.
-      :alt: Entity-relationship diagram of the mail, reminder, report, and CMS page models
+      :alt: Entity-relationship diagram of the mail, reminder, report, notification, and CMS page models
 
       digraph caldart_records_and_pages {
           rankdir=TB;
@@ -285,13 +286,15 @@ Mail, reminders, reports, and the CMS pages
           Email [label="mail.EmailLog"];
           Reminder [label="reminders.ReminderLog"];
           ColumnSet [label="reports.SavedColumnSet"];
-          Subscription [label="reports.ReportSubscription"];
+          Subscription [label="reports.\nReportSubscription"];
+          Notification [label="notifications.\nNotificationSubscription"];
       
           Email -> User [label="user\nSET_NULL"];
           Reminder -> User [label="user\nCASCADE"];
           Reminder -> Membership [label="membership\nCASCADE"];
           ColumnSet -> User [label="user\nCASCADE"];
           Subscription -> User [label="recipient_user,\ncreated_by\nSET_NULL"];
+          Notification -> User [label="recipient_user,\ncreated_by\nSET_NULL"];
       
           User -> Page [style=invis];
           Membership -> Page [style=invis];
@@ -352,6 +355,8 @@ Mail, reminders, reports, and the CMS pages
       reminders.ReminderLog       one renewal reminder sent
       reports.SavedColumnSet      a named choice of one report's columns
       reports.ReportSubscription  one report, emailed on a schedule
+      notifications.NotificationSubscription
+                                  one address, and the events it is emailed about
       cms.HomePage, cms.StandardPage, cms.NewsIndexPage, cms.NewsPage,
       cms.EventIndexPage, cms.EventPage, cms.DartIndexPage, cms.DartPage,
       cms.ContactPage, cms.DonatePage
@@ -377,6 +382,10 @@ Mail, reminders, reports, and the CMS pages
       reports.SavedColumnSet.user          -> accounts.User       FK, CASCADE
       reports.ReportSubscription.recipient_user -> accounts.User  FK, SET_NULL, nullable
       reports.ReportSubscription.created_by     -> accounts.User  FK, SET_NULL, nullable
+      notifications.NotificationSubscription.recipient_user
+                                           -> accounts.User       FK, SET_NULL, nullable
+      notifications.NotificationSubscription.created_by
+                                           -> accounts.User       FK, SET_NULL, nullable
       cms.BasePage                         inherits wagtailcore.Page
       cms.<every page type>                inherits cms.BasePage
       cms.StandardPage, cms.NewsPage       also inherit cms.MembersOnlyMixin
@@ -3202,6 +3211,77 @@ subscriptions are due.
 A DART's roster needs no row of its own: who receives it is
 ``DartContact.receives_roster`` and when it last went is
 ``Dart.roster_sent_at``.
+
+.. _data-model-notifications:
+
+notifications
+=============
+
+An event itself is not a row: it is an entry of the catalog in
+``apps/notifications/events.py`` (see :doc:`notifications`), and a subscription
+names events by their slugs.
+
+``NotificationSubscription``
+----------------------------
+
+One address, and the events it is emailed about.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 22 26 18 34
+
+   * - Field
+     - Type
+     - Null, default
+     - Meaning
+   * - ``id``
+     - ``BigAutoField``
+     - not null; assigned by the database
+     - primary key
+   * - ``created_at``
+     - ``DateTimeField``
+     - not null; set on insert
+     - when the row was inserted
+   * - ``updated_at``
+     - ``DateTimeField``
+     - not null; set on every save
+     - when the row was last saved
+   * - ``recipient_user``
+     - ``ForeignKey`` to ``accounts.User``, ``SET_NULL``
+     - null; default ``NULL``
+     - the account the notifications go to; null for a confirmed address outside CalDART; related name ``notification_subscriptions``
+   * - ``recipient_email``
+     - ``EmailField(254)``, unique
+     - not null; required
+     - always filled and stored in lower case: the account's address, or the address typed
+   * - ``events``
+     - ``JSONField``
+     - not null; default ``[]``
+     - JSON list of event slugs, in catalog order; at least one, none repeated, every one in the catalog
+   * - ``is_active``
+     - ``BooleanField``
+     - not null; default ``True``
+     - false pauses it
+   * - ``created_by``
+     - ``ForeignKey`` to ``accounts.User``, ``SET_NULL``
+     - null; default ``NULL``
+     - who set it up; related name ``created_notification_subscriptions``
+
+**Constraints, indexes, and ordering.**
+
+- ``recipient_email`` is unique.
+- Ordering: ``recipient_email``.
+
+**Relationships.**
+
+- ``recipient_user``: foreign key to ``accounts.User``, ``SET_NULL``, nullable; the reverse accessor is ``notification_subscriptions``.
+- ``created_by``: foreign key to ``accounts.User``, ``SET_NULL``, nullable; the reverse accessor is ``created_notification_subscriptions``.
+
+``save()`` strips the address and lowers its case before every write, so the
+unique index compares addresses without regard to case.  Whether a bound
+account may still be sent an event is checked at send time, not stored: an
+account that loses the role, or is deactivated, is skipped and its
+subscription is left as it is.
 
 cms
 ===

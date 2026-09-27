@@ -25,6 +25,8 @@ from apps.darts.models import Dart
 from apps.members.models import MemberProfile, Membership, MembershipPlan, MembershipState
 from apps.members.seed import DART_SEED, EMPTY_DART
 from apps.members.services import membership_status
+from apps.notifications.events import EVENTS
+from apps.notifications.models import NotificationSubscription
 from apps.payments.models import Payment, PaymentStatus, RenewalMandate
 from apps.payments.renewals import _due_attempts, lapsed_term_to_renew, run_auto_renewals
 from apps.payments.seed import (
@@ -478,3 +480,47 @@ def test_seed_demo_puts_one_donor_on_a_dart() -> None:
     )
     assert len(names) == 1
     assert EMPTY_DART not in names
+
+
+# -- notifications -------------------------------------------------------------
+def _seeded_notifications() -> dict[str, list[str]]:
+    """Each seeded notification subscription's address and its events."""
+    return {row.recipient_email: row.events for row in NotificationSubscription.objects.all()}
+
+
+def _events_in(*categories: str) -> list[str]:
+    """The slugs of every event in ``categories``, in catalog order."""
+    return [slug for slug, event in EVENTS.items() if event.category in categories]
+
+
+def test_seed_demo_subscribes_the_administrator_and_the_treasurer_to_notifications() -> None:
+    """The administrator hears of membership and accounts, the treasurer of money."""
+    _seed()
+
+    assert _seeded_notifications() == {
+        "accountadmin@example.org": _events_in("Membership", "Accounts"),
+        "treasurer@example.org": _events_in("Money"),
+    }
+
+
+def test_seed_demo_binds_each_notification_subscription_to_its_account() -> None:
+    """Both are bound, active, and set up by the demo account administrator."""
+    _seed()
+
+    rows = [
+        (
+            row.recipient_user_id is not None,
+            row.is_active,
+            None if row.created_by is None else row.created_by.email,
+        )
+        for row in NotificationSubscription.objects.select_related("created_by")
+    ]
+    assert rows == [(True, True, "accountadmin@example.org")] * 2
+
+
+def test_seed_demo_keeps_two_notification_subscriptions_on_a_second_run() -> None:
+    """Running the seed again updates the two subscriptions rather than adding more."""
+    _seed()
+    _seed()
+
+    assert NotificationSubscription.objects.count() == 2

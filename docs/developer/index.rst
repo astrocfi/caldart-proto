@@ -30,6 +30,7 @@ New to the codebase?  :doc:`setup` gets it running, the
    api-reference
    api-system
    api-renewals
+   api-notifications
 
 .. toctree::
    :maxdepth: 1
@@ -41,6 +42,7 @@ New to the codebase?  :doc:`setup` gets it running, the
    reports
    reminders
    scheduled-reports
+   notifications
    renewals
    statements
 

@@ -1463,6 +1463,55 @@
       "portal"
     ]
   },
+  "NotificationEvent": {
+    "properties": {
+      "category": "string",
+      "description": "string",
+      "label": "string",
+      "roles": "array<string>",
+      "slug": "string"
+    },
+    "required": [
+      "category",
+      "description",
+      "label",
+      "roles",
+      "slug"
+    ]
+  },
+  "NotificationSubscription": {
+    "properties": {
+      "created_at": "string(date-time)",
+      "created_by_name": "string",
+      "events": "array<string>",
+      "id": "integer",
+      "is_active": "boolean",
+      "recipient_email": "string(email)",
+      "recipient_name": "string",
+      "recipient_user": "integer|null",
+      "updated_at": "string(date-time)"
+    },
+    "required": [
+      "created_at",
+      "created_by_name",
+      "id",
+      "recipient_email",
+      "recipient_name",
+      "recipient_user",
+      "updated_at"
+    ]
+  },
+  "NotificationSubscriptionCreateRequest": {
+    "properties": {
+      "confirmed": "boolean",
+      "events": "array<string>",
+      "recipient_email": "string(email)"
+    },
+    "required": [
+      "events",
+      "recipient_email"
+    ]
+  },
   "NullEnum": {
     "enum": [
       null
@@ -1699,6 +1748,13 @@
       "kind": "ref:PersonKindEnum",
       "last_name": "string",
       "profile": "ref:PatchedAdminProfileRequest"
+    },
+    "required": []
+  },
+  "PatchedNotificationSubscriptionRequest": {
+    "properties": {
+      "events": "array<string>",
+      "is_active": "boolean"
     },
     "required": []
   },
