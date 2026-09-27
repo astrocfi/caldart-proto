@@ -97,6 +97,7 @@ Returns every ``MemberProfile`` field except the admin-only ``notes`` and
          "n_number": "N12345",
          "make": "Cessna",
          "model": "182T Skylane",
+         "type": {"id": 3, "make": "Cessna", "model": "182T Skylane", "seats": 4, "engines": 1, "is_custom": false},
          "insurance_is_current": true,
          "insurance_expiration": "2027-03-01",
          "insurance_summary": "$1,000,000 / $100,000 · exp 2027-03-01",
@@ -316,6 +317,7 @@ the whole list, so the client never has to re-read the profile.
          "n_number": "N12345",
          "make": "Cessna",
          "model": "182T Skylane",
+         "type": {"id": 3, "make": "Cessna", "model": "182T Skylane", "seats": 4, "engines": 1, "is_custom": false},
          "insurance_is_current": true,
          "insurance_expiration": "2027-03-01",
          "insurance_summary": "$1,000,000 / $100,000 · exp 2027-03-01"

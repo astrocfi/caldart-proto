@@ -27,10 +27,11 @@ the date of the last change and the account behind it. A record nobody has chang
 was loaded gives the date alone. The form has four parts.
 
 **Aircraft**
-   **N-number**, **Year**, **Make**, **Model**, and **Seats**. The N-number is a US
-   registration: the box writes the N, then takes digits first and at most two letters,
-   never I or O. The model box suggests types as you type (*Start typing: Mal, 172, RV-7*),
-   and picking one fills in the make.
+   **N-number**, **Year**, **Find the aircraft type**, **Aircraft type**, and **Seats**.
+   The N-number is a US registration: the box writes the N, then takes digits first and at
+   most two letters, never I or O. The aircraft type is picked from a list: type the make,
+   the model, or a designator (cessna 172, c172, skyhawk) in **Find the aircraft type**,
+   then choose the type in **Aircraft type**. The make and model come from the type.
 
 **Owner**
    **Owner type** (Individual, FBO, or Flying club), **Owner name**, and **Owner contact**,

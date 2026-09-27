@@ -26,6 +26,10 @@ House rules that apply throughout:
   so editing the settings overwrites the single row and records nothing about
   when or by whom.  ``aircraft.AircraftChange`` carries its own ``changed_at``
   and no row is ever updated, so the inherited pair would only duplicate it.
+  The registry's tables carry the dates the import needs instead:
+  ``AircraftType.created_at``, ``Registration.imported_at``, and
+  ``RegistryImport.started_at`` and ``finished_at``; ``AircraftTypeAlias``
+  carries none.
 - **``DEFAULT_AUTO_FIELD`` is ``BigAutoField``**, so every ``id`` below is a
   ``BigAutoField`` except the page models', which Wagtail keys on its own
   ``AutoField``.
@@ -109,6 +113,10 @@ Accounts, members, DARTs, and aircraft
           Contact [label="darts.DartContact"];
           Aircraft [label="aircraft.Aircraft"];
           Change [label="aircraft.AircraftChange"];
+          Type [label="aircraft.AircraftType"];
+          Alias [label="aircraft.AircraftTypeAlias"];
+          Registration [label="aircraft.Registration"];
+          Import [label="aircraft.RegistryImport"];
           Payment [label="payments.Payment\n(see payments)", style="rounded,dotted"];
 
           User -> AbstractUser [arrowhead=empty];
@@ -125,6 +133,10 @@ Accounts, members, DARTs, and aircraft
           Aircraft -> User [label="created_by, updated_by,\ninsurance_verified_by\nSET_NULL"];
           Change -> Aircraft [label="aircraft\nCASCADE"];
           Change -> User [label="changed_by\nSET_NULL"];
+          Aircraft -> Type [label="type\nPROTECT"];
+          Alias -> Type [label="type\nCASCADE"];
+          Registration -> Type [label="type\nPROTECT"];
+          Import -> User [label="started_by\nSET_NULL"];
       }
 
 .. only:: not graphviz
@@ -146,6 +158,10 @@ Accounts, members, DARTs, and aircraft
       darts.DartContact         one named person who runs a DART
       aircraft.Aircraft         one airframe on the register
       aircraft.AircraftChange   one write to a register record
+      aircraft.AircraftType     one entry of the aircraft types
+      aircraft.AircraftTypeAlias  a name an aircraft type is searched by
+      aircraft.Registration     one N-number as the FAA registry holds it
+      aircraft.RegistryImport   one run of the FAA registry import
 
       Drawn with another area
       -----------------------
@@ -172,6 +188,10 @@ Accounts, members, DARTs, and aircraft
       aircraft.Aircraft.insurance_verified_by -> accounts.User     FK, SET_NULL, nullable
       aircraft.AircraftChange.aircraft  -> aircraft.Aircraft       FK, CASCADE
       aircraft.AircraftChange.changed_by -> accounts.User          FK, SET_NULL, nullable
+      aircraft.Aircraft.type            -> aircraft.AircraftType   FK, PROTECT
+      aircraft.AircraftTypeAlias.type   -> aircraft.AircraftType   FK, CASCADE
+      aircraft.Registration.type        -> aircraft.AircraftType   FK, PROTECT
+      aircraft.RegistryImport.started_by -> accounts.User          FK, SET_NULL, nullable
 
 Payments and renewals
 ---------------------
@@ -695,6 +715,65 @@ name (``Contra Costa``), so the column holds the name as a person reads it.
    * - ``updated``
      - Updated
 
+.. _choices-registrant-type:
+
+``RegistrantType`` (``apps/aircraft/models.py``)
+------------------------------------------------
+
+``Registration.registrant_type``: who holds an FAA registration, mapped from the
+registry's registrant type code.  ``unknown`` stands for a code the registry
+uses that none of the others covers.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 70
+
+   * - Value
+     - Label
+   * - ``individual``
+     - Individual
+   * - ``partnership``
+     - Partnership
+   * - ``corporation``
+     - Corporation
+   * - ``co_owned``
+     - Co-owned
+   * - ``government``
+     - Government
+   * - ``llc``
+     - LLC
+   * - ``non_citizen_corporation``
+     - Non-citizen corporation
+   * - ``non_citizen_co_owned``
+     - Non-citizen co-owned
+   * - ``unknown``
+     - Unknown
+
+.. _choices-registration-status:
+
+``RegistrationStatus`` (``apps/aircraft/models.py``)
+----------------------------------------------------
+
+``Registration.status``: whether the registration stands, mapped from the
+registry's status code.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 70
+
+   * - Value
+     - Label
+   * - ``valid``
+     - Valid
+   * - ``pending``
+     - Pending
+   * - ``revoked``
+     - Revoked
+   * - ``expired``
+     - Expired
+   * - ``other``
+     - Other
+
 .. _choices-payment-provider:
 
 ``PaymentProvider`` (``apps/payments/models.py``)
@@ -1185,7 +1264,7 @@ and ``PermissionsMixin`` classes it builds on.
 
 - ``groups``: many-to-many to ``auth.Group``; the reverse accessor is ``user_set``.
 - ``user_permissions``: many-to-many to ``auth.Permission``; the reverse accessor is ``user_set``.
-- Referenced by ``aircraft.Aircraft.created_by``, ``aircraft.Aircraft.insurance_verified_by``, ``aircraft.Aircraft.updated_by``, ``aircraft.AircraftChange.changed_by``, ``mail.EmailLog.user``, ``members.MemberProfile.certificate_verified_by``, ``members.MemberProfile.medical_verified_by``, ``members.MemberProfile.photo_id_verified_by``, ``members.MemberProfile.user``, ``members.Membership.granted_by``, ``members.Membership.user``, ``payments.Payment.reconciled_by``, ``payments.Payment.recorded_by``, ``payments.Payment.user``, ``payments.Refund.requested_by``, ``payments.RenewalMandate.canceled_by``, ``payments.RenewalMandate.user``, ``payments.YearStatement.user``, ``reminders.ReminderLog.user``, ``reports.ReportSubscription.created_by``, ``reports.ReportSubscription.recipient_user``, ``reports.SavedColumnSet.user``.
+- Referenced by ``aircraft.Aircraft.created_by``, ``aircraft.Aircraft.insurance_verified_by``, ``aircraft.Aircraft.updated_by``, ``aircraft.AircraftChange.changed_by``, ``aircraft.RegistryImport.started_by``, ``mail.EmailLog.user``, ``members.MemberProfile.certificate_verified_by``, ``members.MemberProfile.medical_verified_by``, ``members.MemberProfile.photo_id_verified_by``, ``members.MemberProfile.user``, ``members.Membership.granted_by``, ``members.Membership.user``, ``payments.Payment.reconciled_by``, ``payments.Payment.recorded_by``, ``payments.Payment.user``, ``payments.Refund.requested_by``, ``payments.RenewalMandate.canceled_by``, ``payments.RenewalMandate.user``, ``payments.YearStatement.user``, ``reminders.ReminderLog.user``, ``reports.ReportSubscription.created_by``, ``reports.ReportSubscription.recipient_user``, ``reports.SavedColumnSet.user``.
 
 **Invariants.**
 
@@ -2201,14 +2280,10 @@ than copying it, so an insurance renewal entered once is right for everybody.
      - ``CharField(12)``, unique
      - not null; required
      - the registration, normalized on save (below)
-   * - ``make``
-     - ``CharField(60)``
-     - not null; default ``""``
-     - manufacturer
-   * - ``model``
-     - ``CharField(60)``
-     - not null; default ``""``
-     - model
+   * - ``type``
+     - ``ForeignKey`` to ``aircraft.AircraftType``, ``PROTECT``
+     - not null; required
+     - the aircraft type; related name ``aircraft``
    * - ``year``
      - ``PositiveIntegerField``
      - null; default ``NULL``
@@ -2281,7 +2356,6 @@ than copying it, so an insurance renewal entered once is right for everybody.
 **Constraints, indexes, and ordering.**
 
 - Index ``aircraft_insexp_idx`` on (``insurance_expiration``).
-- Index ``aircraft_make_model_idx`` on (``make``, ``model``).
 - Index ``aircraft_active_idx`` on (``is_active``).
 - Ordering: ``n_number``.
 
@@ -2289,6 +2363,7 @@ than copying it, so an insurance renewal entered once is right for everybody.
 
 - ``created_by``: foreign key to ``accounts.User``, ``SET_NULL``, nullable; the reverse accessor is ``aircraft_created``.
 - ``updated_by``: foreign key to ``accounts.User``, ``SET_NULL``, nullable; the reverse accessor is ``aircraft_updated``.
+- ``type``: foreign key to ``aircraft.AircraftType``, ``PROTECT``; the reverse accessor is ``aircraft``.
 - ``insurance_verified_by``: foreign key to ``accounts.User``, ``SET_NULL``, nullable; no reverse accessor.
 - Referenced by ``aircraft.AircraftChange.aircraft``, ``members.MemberProfile.aircraft``.
 
@@ -2307,6 +2382,11 @@ normalizes the query term the same way.
 
 **Derived properties.**
 
+``make`` and ``model``
+    The display make and model of ``type`` (``Cessna``, ``172S``), read-only.
+    Every template, report column, and email prints these, so one type always
+    reads one way.  The register's filters and ordering reach them as
+    ``type__make`` and ``type__model``.
 ``insurance_is_current``
     ``False`` when ``insurance_expiration`` is ``NULL``; otherwise
     ``insurance_expiration >= today``.  "No policy on file" and "policy
@@ -2388,7 +2468,279 @@ same instant.
 on the record in the same call, and the register's create and update handlers
 are its only callers, so no write can leave the trail behind.
 :doc:`api-aircraft` covers ``GET /aircraft/{id}/changes``, which is
-``account_admin`` only.
+``account_admin`` only.  A write that moves the aircraft type names ``type``.
+
+``AircraftType``
+----------------
+
+One entry of the *aircraft types*, the vocabulary an aircraft's make and model
+are picked from.  The entries come from the FAA registry's aircraft reference
+file, one per manufacturer-model code, keeping the FAA's own spellings beside
+the display names every screen prints.  An entry an account administrator adds
+by hand, for a type the FAA has never registered, is marked ``is_custom``.  It
+does not inherit ``TimestampedModel``: ``created_at`` is its only date.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 22 26 18 34
+
+   * - Field
+     - Type
+     - Null, default
+     - Meaning
+   * - ``id``
+     - ``BigAutoField``
+     - not null; assigned by the database
+     - primary key
+   * - ``faa_code``
+     - ``CharField(7)``, unique
+     - not null; required
+     - the FAA's manufacturer-model code, which a registration points at
+   * - ``faa_make``
+     - ``CharField(120)``
+     - not null; required
+     - the manufacturer as the FAA spells it (``CESSNA AIRCRAFT CO``)
+   * - ``faa_model``
+     - ``CharField(60)``
+     - not null; required
+     - the model as the FAA spells it (``172S``)
+   * - ``make``
+     - ``CharField(120)``
+     - not null; required
+     - the display make (``Cessna``), from ``apps.aircraft.naming.display_make``
+   * - ``model``
+     - ``CharField(60)``
+     - not null; required
+     - the display model (``172S``), from ``apps.aircraft.naming.display_model``
+   * - ``seats``
+     - ``PositiveSmallIntegerField``
+     - null; default ``NULL``
+     - seats aboard, when the registry says
+   * - ``engines``
+     - ``PositiveSmallIntegerField``
+     - null; default ``NULL``
+     - number of engines, when the registry says
+   * - ``is_custom``
+     - ``BooleanField``
+     - not null; default ``False``
+     - added by an account administrator rather than read from the registry
+   * - ``created_at``
+     - ``DateTimeField``
+     - not null; set on insert
+     - when the row was inserted
+
+**Constraints, indexes, and ordering.**
+
+- Unique on ``faa_code``.
+- Index ``aircraft_type_name_idx`` on (``make``, ``model``).
+- GIN index ``aircraft_type_trgm_idx`` on the expression ``make || ' ' || model``
+  with the ``gin_trgm_ops`` operator class, from the ``pg_trgm`` extension the
+  aircraft migration installs.  The type search compares against the same
+  expression.
+- Ordering: ``make``, ``model``.
+
+``str()`` of a type is ``<make> <model>``, e.g. ``Cessna 172S``.
+
+**Relationships.**
+
+- Referenced by ``aircraft.Aircraft.type`` and ``aircraft.Registration.type``
+  (both ``PROTECT``, so a type in use cannot be deleted), and by
+  ``aircraft.AircraftTypeAlias.type`` (``CASCADE``).
+
+**Display names.**  ``display_make()`` looks the FAA manufacturer up in
+``MAKE_NAMES``, which maps every spelling the FAA uses for a manufacturer a
+DART meets to one name (``CESSNA`` and ``CESSNA AIRCRAFT CO`` are *Cessna*,
+``BEECH`` is *Beechcraft*, ``AEROPRO CZ`` is *Aeropro*).  A spelling it does not
+list loses a trailing ``S R O``, its full stops, and the words ``INC``,
+``CORP``, ``CO``, ``LLC``, ``LTD``, ``IND``, ``AVN``, ``ACFT``, and ``MFG``, and is
+title-cased: ``FOO AIRCRAFT CORP`` is *Foo Aircraft*.  ``display_model()`` keeps
+a token that holds a digit or is three characters or shorter as it is
+(``172S``, ``PA-28-181``, ``DA 40``) and title-cases a longer word
+(``SKYHAWK`` is *Skyhawk*, ``EUROFOX`` is *Eurofox*).
+
+**The search.**  ``apps.aircraft.types.search_types(q, limit=10)`` answers
+``GET /aircraft/types``.  The query is lower-cased and stripped, and a blank one
+finds nothing.  The answer lists, each type once and at most ``limit`` of them:
+the type an alias names exactly (the query as typed, and with its spaces
+removed); then the types whose ``make || ' ' || model`` has a trigram
+similarity above 0.2 to the query, most similar first, then by name; then, when
+the query holds digits, the types whose model contains those digits.  So
+``cesna 172``, ``CESSNA``, ``c172``, and ``skyhawk`` all lead with the Cessna
+172, and ``eurofox`` finds the Aeropro Eurofox.
+
+``AircraftTypeAlias``
+---------------------
+
+A name people search the aircraft types by, such as the ICAO designator
+``c172`` or the popular name ``skyhawk``.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 22 26 18 34
+
+   * - Field
+     - Type
+     - Null, default
+     - Meaning
+   * - ``id``
+     - ``BigAutoField``
+     - not null; assigned by the database
+     - primary key
+   * - ``alias``
+     - ``CharField(40)``, unique
+     - not null; required
+     - the name, stored stripped and lower-case
+   * - ``type``
+     - ``ForeignKey`` to ``aircraft.AircraftType``, ``CASCADE``
+     - not null; required
+     - the type the name means; related name ``aliases``
+
+**Constraints, indexes, and ordering.**
+
+- Unique on ``alias``.
+- Ordering: ``alias``.
+
+**Relationships.**
+
+- ``type``: foreign key to ``aircraft.AircraftType``, ``CASCADE``; the reverse accessor is ``aliases``.
+
+The rows are written from ``ALIASES`` in ``apps/aircraft/aliases.py``, which
+maps each lower-case alias to a display make and the start of a display model
+(``c172`` and ``skyhawk`` to *Cessna* and ``172``).
+``apps.aircraft.aliases.write_aliases()`` points each alias at the type whose
+display make matches and whose display model starts with the prefix, both
+compared case-insensitively, choosing the shortest model when several match;
+an alias that matches no type is logged and has no row.
+
+``Registration``
+----------------
+
+One N-number as the FAA registry holds it: the aircraft type, the year, and who
+holds the registration.  No address is kept.  It does not inherit
+``TimestampedModel``: ``imported_at`` is its only date.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 22 26 18 34
+
+   * - Field
+     - Type
+     - Null, default
+     - Meaning
+   * - ``id``
+     - ``BigAutoField``
+     - not null; assigned by the database
+     - primary key
+   * - ``n_number``
+     - ``CharField(6)``, unique
+     - not null; required
+     - the registration, normalized on save as ``Aircraft.n_number`` is, with the leading ``N``
+   * - ``type``
+     - ``ForeignKey`` to ``aircraft.AircraftType``, ``PROTECT``
+     - not null; required
+     - the registered aircraft type; related name ``registrations``
+   * - ``year``
+     - ``PositiveSmallIntegerField``
+     - null; default ``NULL``
+     - the year of manufacture
+   * - ``registrant_name``
+     - ``CharField(160)``
+     - not null; default ``""``
+     - who holds the registration
+   * - ``registrant_type``
+     - ``CharField(24)``, choices :ref:`RegistrantType <choices-registrant-type>`
+     - not null; default ``"unknown"``
+     - what kind of registrant that is
+   * - ``status``
+     - ``CharField(16)``, choices :ref:`RegistrationStatus <choices-registration-status>`
+     - not null; default ``"valid"``
+     - whether the registration stands
+   * - ``certificate_issued_on``
+     - ``DateField``
+     - null; default ``NULL``
+     - when the registration certificate was issued
+   * - ``expires_on``
+     - ``DateField``
+     - null; default ``NULL``
+     - when the registration expires
+   * - ``imported_at``
+     - ``DateTimeField``
+     - not null; default now
+     - when the import last wrote the row
+
+**Constraints, indexes, and ordering.**
+
+- Unique on ``n_number``.
+- Ordering: ``n_number``.
+
+``str()`` of a registration is its N-number.
+
+**Relationships.**
+
+- ``type``: foreign key to ``aircraft.AircraftType``, ``PROTECT``; the reverse accessor is ``registrations``.
+
+``RegistryImport``
+------------------
+
+One run of the FAA registry import, whatever its outcome.  The newest
+successful row is the date the registry is current as of.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 22 26 18 34
+
+   * - Field
+     - Type
+     - Null, default
+     - Meaning
+   * - ``id``
+     - ``BigAutoField``
+     - not null; assigned by the database
+     - primary key
+   * - ``started_at``
+     - ``DateTimeField``
+     - not null; default now
+     - when the run started
+   * - ``finished_at``
+     - ``DateTimeField``
+     - null; default ``NULL``
+     - when the run finished; ``NULL`` while it is under way
+   * - ``source``
+     - ``CharField(500)``
+     - not null; default ``""``
+     - the URL or path the run read
+   * - ``types_written``
+     - ``PositiveIntegerField``
+     - not null; default ``0``
+     - aircraft types created or updated
+   * - ``registrations_written``
+     - ``PositiveIntegerField``
+     - not null; default ``0``
+     - registrations created or updated
+   * - ``types_folded``
+     - ``PositiveIntegerField``
+     - not null; default ``0``
+     - hand-added types folded into the FAA entry of the same name
+   * - ``ok``
+     - ``BooleanField``
+     - not null; default ``False``
+     - whether the run succeeded
+   * - ``error``
+     - ``TextField``
+     - not null; default ``""``
+     - why the run failed
+   * - ``started_by``
+     - ``ForeignKey`` to ``accounts.User``, ``SET_NULL``
+     - null; default ``NULL``
+     - the system administrator who started the run; ``NULL`` for the timer; related name ``registry_imports``
+
+**Constraints, indexes, and ordering.**
+
+- Ordering: ``-started_at``, ``-id``.
+
+**Relationships.**
+
+- ``started_by``: foreign key to ``accounts.User``, ``SET_NULL``, nullable; the reverse accessor is ``registry_imports``.
 
 payments
 ========

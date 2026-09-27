@@ -67,8 +67,10 @@ register**:
 
 * **N-number** (required). The box writes the N and takes digits first, then at
   most two letters, so 172sp becomes N172SP.
-* **Make** (required), for example Cessna.
-* **Model** (required), for example 172S Skyhawk.
+* **Find the aircraft type**: type the make, the model, or a designator, for example
+  cessna 172, c172, or skyhawk.
+* **Aircraft type** (required): pick the type from the list the search fills. The make
+  and model come from the type, so one type always reads the same way.
 * **Year**, four digits.
 * **Owner**: the person, club, or FBO that owns it.
 * **Insurance carrier**.
@@ -83,11 +85,12 @@ Editing an airplane
 ===================
 
 Press **Edit** beside an airplane. For one you added yourself, the form opens with
-every detail: **N-number**, **Year**, **Make**, **Model**, and **Seats**; **Owner
+every detail: **N-number**, **Year**, **Aircraft type**, and **Seats**; **Owner
 type** (Individual, FBO, or Flying club), **Owner name**, and **Owner contact**; and
 **Carrier**, **Policy number**, **Liability per occurrence**, **Liability per
 person**, **Hull**, and **Insurance expires**. Money is in whole dollars, and the
-commas write themselves. The **Model** box suggests types as you type. Press **Save
+commas write themselves. To change the type, search in **Find the aircraft type** and pick
+it from **Aircraft type**. Press **Save
 aircraft**; *N12345 updated.* appears. Saving a change to any insurance detail clears
 the insurance's verification, and the mark reads **Not yet verified** until a DART
 leader or a verifier checks the new policy.

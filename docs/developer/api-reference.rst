@@ -828,6 +828,14 @@ not (see :ref:`api-csrf-bootstrap`).
      - ✓
      - ✓
      - ``pilots`` only for the verifying roles
+   * - ``GET /aircraft/types``
+     - ·
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+     - the aircraft type search
    * - ``GET /aircraft/{id}``
      - ·
      - ✓

@@ -430,6 +430,7 @@ to it, and ``null`` while it is unverified.
            "n_number": "N172SP",
            "make": "Cessna",
            "model": "172S Skyhawk",
+           "type": {"id": 3, "make": "Cessna", "model": "172S Skyhawk", "seats": 4, "engines": 1, "is_custom": false},
            "insurance_is_current": true,
            "insurance_expiration": "2027-03-01",
            "insurance_summary": "$1,000,000 / $100,000 · exp 2027-03-01",
