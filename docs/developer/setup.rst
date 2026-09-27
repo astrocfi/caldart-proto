@@ -347,6 +347,11 @@ list, in full:
      - Playwright against its own database (``caldart_e2e``, or ``E2E_DB``)
        and its own server (port ``8021``, or ``E2E_PORT``), with the mock
        payment provider and the file email backend; see :doc:`testing`
+   * - ``rehearse-deploy``
+     - the server installer, run for real in a throwaway systemd container:
+       install, upgrade, a second install, and uninstall
+       (``REHEARSE_WEB_SERVER=apache|nginx``, ``REHEARSE_KEEP=1``); slow,
+       opt-in, and not run by CI; see :doc:`testing`
    * - ``lint``
      - ``lint-backend``, ``lint-shell``, ``lint-frontend``, then
        ``lint-spelling``
@@ -412,7 +417,8 @@ database from ``E2E_DB``.
 Switch variables
 ================
 
-``YES`` on ``make restore`` and ``DRY_RUN`` on ``make reminders`` are switches:
+``YES`` on ``make restore``, ``DRY_RUN`` on ``make reminders``, and
+``REHEARSE_KEEP`` on ``make rehearse-deploy`` are switches:
 ``1``, ``yes``, or ``true`` turns the option on; ``0``, ``no``, ``false``, an
 empty value or leaving the variable unset leaves it off; any other value stops
 ``make`` with an error naming the variable, before a single line of the recipe

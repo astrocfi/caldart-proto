@@ -25,6 +25,10 @@ all of which CI runs on every push to ``main`` and every pull request:
 ``make test`` runs the first two.  ``make e2e`` is separate because it needs a
 built frontend, a seeded database and a browser.
 
+``make rehearse-deploy`` is a fourth, slower check that no pull request
+waits on and CI does not run: the server installer, run for real in a
+throwaway container (:ref:`testing-rehearsal`).
+
 Running the backend suite
 =========================
 
@@ -964,6 +968,78 @@ from other end-to-end runs on the same machine:
    ``test.only``, retries a failing spec once, and switches its reporter to a
    list plus an HTML report instead of interactive output.  The CI workflow
    sets it; a local run leaves it unset.
+
+.. _testing-rehearsal:
+
+Rehearsing a server install
+===========================
+
+.. code-block:: console
+
+   $ make rehearse-deploy                            # with Apache
+   $ make rehearse-deploy REHEARSE_WEB_SERVER=nginx  # with nginx
+   $ make rehearse-deploy REHEARSE_KEEP=1            # keep the container to look inside
+
+The unit tests in ``backend/tests/test_deploy_scripts.py`` read the
+installer's dry run; none of them installs anything.  ``make rehearse-deploy``
+does: it starts a privileged ``jrei/systemd-ubuntu:24.04`` container, in which
+systemd runs as it does on a server, and drives the scripts of
+:doc:`deployment` inside it from start to finish:
+
+1. ``deploy/bootstrap.sh --repo /mnt/caldart --hostname caldart.test --tls
+   self-signed --web-server <server> --email-url smtp://localhost:25
+   --admin-email admin@caldart.test``, which clones the checkout into
+   ``/srv/caldart`` and installs it: the packages, Postgres in Docker, the
+   build, the database, gunicorn, the web server, the timers, a first backup,
+   and the checks, which the install passes only when every unit is active and
+   the site answers ``200`` over HTTPS;
+2. ``systemctl start`` of the backup, reports, renewals, reminders, and
+   statements services, each of which must finish without an error, so every
+   unit's hardening is honored as well as the web unit's (the install has
+   already started the registry import, which downloads the FAA's file);
+3. ``deploy/upgrade.sh``, an upgrade with nothing new to pull, which must
+   still back up, rebuild, restart, and pass the checks;
+4. ``deploy/install.sh`` with no flags, which must read everything from the
+   install record and change nothing;
+5. ``deploy/uninstall.sh --yes --purge``, after which neither ``/srv/caldart``
+   nor ``/etc/caldart`` may exist.
+
+Any step that fails stops the run, and the target exits non-zero.  At the end
+it prints how long the run took and removes the container, unless
+``REHEARSE_KEEP`` is on (a switch, :ref:`make-switches`), in which case
+``docker exec -it caldart-rehearsal-<server> bash`` opens a shell inside it.  A
+run takes a few minutes, most of them the package installs and the build,
+and needs the network: it installs from the Ubuntu archive, NodeSource, PyPI,
+npm, and Docker Hub.
+
+``REHEARSE_WEB_SERVER``
+   ``apache`` (the default) or ``nginx``: the ``--web-server`` the install is
+   given, and part of the container's name, ``caldart-rehearsal-<server>``, so
+   an Apache and an nginx rehearsal can run side by side.
+``REHEARSE_KEEP``
+   Keep the container and its volumes after the run.
+
+**It installs the commit, not the working tree.**  ``bootstrap.sh`` clones
+the checkout, and a clone copies commits: commit before rehearsing, or the
+rehearsal installs what ``HEAD`` was.  The target checks out the branch
+``HEAD`` is on (or the commit, when ``HEAD`` is detached), and says so when
+the working tree has uncommitted changes.
+
+**How the container is set up.**  The checkout is mounted read-only at
+``/mnt/caldart``.  In a git worktree ``.git`` is a file naming a directory in
+the main repository's ``.git``, so the target also mounts that common git
+directory, read-only, at the path it has on the host, where the file points.
+Root inside the container clones a repository another user owns, which git
+refuses as dubious ownership, so the target sets ``safe.directory`` for the
+container's git alone; ``bootstrap.sh`` is unchanged.  The installer runs
+Postgres in Docker, which here is Docker inside Docker: overlayfs cannot stack
+on overlayfs, so ``/var/lib/docker`` and ``/var/lib/containerd`` inside are
+Docker volumes of the outer daemon, named ``caldart-rehearsal-<server>-docker``
+and ``-containerd``.  The image forbids package scripts from starting services
+(it ships a ``policy-rc.d``), so a web server comes up only because the
+installer starts it, which is as it should be.  The units under
+``deploy/systemd/`` run in the container exactly as shipped, hardening
+included.
 
 Linting and type-checking
 =========================

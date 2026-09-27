@@ -84,14 +84,17 @@ bootstrap_config() {
     fi
 }
 
-# Check the configuration and reload the web server in use.
+# Check the configuration and reload the web server in use.  reload-or-restart
+# also starts a stopped server, which a plain reload refuses: a package install
+# need not leave it running (a policy-rc.d can forbid that), nor need the
+# operator.
 reload_web_server() {
     if [[ "$CALDART_WEB_SERVER" == apache ]]; then
         run apachectl configtest
-        run systemctl reload apache2
+        run systemctl reload-or-restart apache2
     else
         run nginx -t
-        run systemctl reload nginx
+        run systemctl reload-or-restart nginx
     fi
 }
 

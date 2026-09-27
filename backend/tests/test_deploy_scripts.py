@@ -952,3 +952,33 @@ def test_uninstall_keeps_the_data_without_purge(root: Path, etc: Path) -> None:
     """Without ``--purge`` the database volume stays."""
     result = _run(root / "deploy" / "uninstall.sh", "--dry-run", "--yes", env=_env(etc))
     assert "docker compose down" not in result.stdout
+
+
+# -- a real machine, as the rehearsal in a systemd container finds it ---------------
+
+
+@pytest.mark.parametrize(
+    ("web_server", "unit"), [("apache", "apache2"), ("nginx", "nginx")], ids=["apache", "nginx"]
+)
+def test_the_web_server_step_starts_a_stopped_web_server(
+    web_server: str, unit: str, root: Path, etc: Path, tmp_path: Path
+) -> None:
+    """The vhost is applied with ``reload-or-restart``, which starts a stopped server.
+
+    A package install need not leave the web server running (a ``policy-rc.d`` can
+    forbid it, and an operator can stop it), and ``systemctl reload`` fails on a
+    stopped unit.
+    """
+    commands = _commands(
+        _install_dry_run(root, etc, tmp_path, "--web-server", web_server, "--tls", "self-signed")
+    )
+    assert f"systemctl reload-or-restart {unit}" in commands
+
+
+@pytest.mark.parametrize("web_server", ["apache", "nginx"])
+def test_the_web_server_step_never_plainly_reloads(
+    web_server: str, root: Path, etc: Path, tmp_path: Path
+) -> None:
+    """No step runs a plain ``systemctl reload``, which fails on a stopped server."""
+    commands = _commands(_install_dry_run(root, etc, tmp_path, "--web-server", web_server))
+    assert [command for command in commands if command.startswith("systemctl reload ")] == []

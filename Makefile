@@ -86,9 +86,33 @@ E2E_ENV := DJANGO_SETTINGS_MODULE=caldart.settings.dev \
            ADDRESS_SUGGEST_THROTTLE_RATE=1000/min \
            FAA_REGISTRY_URL="$(abspath backend/apps/aircraft/fixtures/faa)"
 
+# `make rehearse-deploy` runs the real installer in a throwaway systemd
+# container: deploy/bootstrap.sh, then deploy/upgrade.sh, deploy/install.sh a
+# second time, and deploy/uninstall.sh --yes --purge, with every scheduled job
+# started once after the install.  Slow and opt-in, like `make e2e`; CI does
+# not run it.
+#
+#   REHEARSE_WEB_SERVER  apache or nginx, what the installer is told to use
+#   REHEARSE_KEEP        a switch: keep the container and its volumes afterwards
+#
+# It installs HEAD, never the working tree, because bootstrap.sh clones the
+# checkout: commit before rehearsing.  A git worktree's .git is a file naming a
+# directory under the main repository's .git, so the common git directory is
+# mounted too, read-only, at the path it has here, where that file points.  The
+# inner Docker keeps /var/lib/docker and /var/lib/containerd on volumes of this
+# Docker, since overlayfs inside overlayfs fails with "invalid argument"; the
+# volumes are named after the web server, so two rehearsals never share one.
+REHEARSE_WEB_SERVER ?= apache
+REHEARSE_IMAGE := jrei/systemd-ubuntu:24.04
+REHEARSE_NAME = caldart-rehearsal-$(REHEARSE_WEB_SERVER)
+REHEARSE_GIT_COMMON = $(abspath $(shell git rev-parse --git-common-dir))
+# The branch HEAD is on, or the commit when HEAD is detached.
+REHEARSE_REF = $(shell git symbolic-ref -q --short HEAD || git rev-parse HEAD)
+REHEARSE_KEEP_FLAG = $(call flag,REHEARSE_KEEP,keep)
+
 .PHONY: help setup up down wait-db createdb migrate makemigrations seed reset run \
         dev-frontend build test test-backend test-frontend coverage coverage-backend \
-        coverage-frontend e2e \
+        coverage-frontend e2e rehearse-deploy \
         lint lint-backend lint-shell \
         lint-frontend lint-spelling format check check-backend check-deploy check-frontend \
         audit audit-backend audit-frontend backup restore reminders sandbox-check docs guide shell \
@@ -227,6 +251,59 @@ e2e: ## Playwright end-to-end tests (own database, own server, mock payments)
 	         tail -20 $(E2E_LOG) >&2; exit 1; }; \
 	  cd frontend && E2E_BASE_URL="http://localhost:$(E2E_PORT)" $(NPM) run e2e \
 	    || { echo; echo "==== last 100 lines of $(E2E_LOG) ===="; tail -100 $(E2E_LOG); exit 1; }
+
+rehearse-deploy: ## Rehearse the server install in a throwaway systemd container (REHEARSE_WEB_SERVER=apache|nginx)
+	@case "$(REHEARSE_WEB_SERVER)" in apache|nginx) ;; \
+	  *) echo "REHEARSE_WEB_SERVER=$(REHEARSE_WEB_SERVER) is not apache or nginx" >&2; exit 2 ;; esac
+	@test -z "$$(git status --porcelain)" \
+	  || echo "note: the rehearsal installs HEAD; uncommitted changes are not in it" >&2
+	@set -euo pipefail; \
+	  name=$(REHEARSE_NAME); keep="$(REHEARSE_KEEP_FLAG)"; started=$$(date +%s); \
+	  inside() { docker exec "$$name" "$$@"; }; \
+	  cleanup() { \
+	    status=$$?; \
+	    echo "==> rehearsal on $(REHEARSE_WEB_SERVER) took $$(( $$(date +%s) - started ))s and exited $$status"; \
+	    if [ -n "$$keep" ]; then \
+	      echo "==> kept $$name; docker exec -it $$name bash to look inside"; \
+	    else \
+	      docker rm -f "$$name" >/dev/null 2>&1 || true; \
+	      docker volume rm "$$name-docker" "$$name-containerd" >/dev/null 2>&1 || true; \
+	    fi; \
+	  }; \
+	  docker rm -f "$$name" >/dev/null 2>&1 || true; \
+	  docker volume rm "$$name-docker" "$$name-containerd" >/dev/null 2>&1 || true; \
+	  trap cleanup EXIT; \
+	  echo "==> Starting $$name from $(REHEARSE_IMAGE)"; \
+	  docker run -d --name "$$name" --privileged --cgroupns=host \
+	    -v /sys/fs/cgroup:/sys/fs/cgroup:rw --tmpfs /run --tmpfs /run/lock \
+	    -v "$$name-docker:/var/lib/docker" -v "$$name-containerd:/var/lib/containerd" \
+	    -v "$(CURDIR):/mnt/caldart:ro" \
+	    -v "$(REHEARSE_GIT_COMMON):$(REHEARSE_GIT_COMMON):ro" \
+	    $(REHEARSE_IMAGE) >/dev/null; \
+	  state=$$(inside systemctl is-system-running --wait || true); \
+	  case "$$state" in running|degraded) ;; \
+	    *) echo "systemd in $$name did not start: $$state" >&2; exit 1 ;; esac; \
+	  echo "==> Installing git and curl in the container"; \
+	  inside env DEBIAN_FRONTEND=noninteractive apt-get update -qq; \
+	  inside env DEBIAN_FRONTEND=noninteractive apt-get install -y -qq git curl >/dev/null; \
+	  : "The rehearsal container only: root clones a checkout another uid owns."; \
+	  inside git config --system safe.directory '*'; \
+	  inside bash /mnt/caldart/deploy/bootstrap.sh --repo /mnt/caldart --ref "$(REHEARSE_REF)" \
+	    --hostname caldart.test --tls self-signed --web-server $(REHEARSE_WEB_SERVER) \
+	    --email-url smtp://localhost:25 --admin-email admin@caldart.test; \
+	  : "The install started the registry import itself; it downloads the FAA file."; \
+	  echo "==> Running every other scheduled job once, hardening and all"; \
+	  inside systemctl start caldart-backup.service caldart-reports.service \
+	    caldart-renewals.service caldart-reminders.service caldart-statements.service; \
+	  echo "==> Rehearsing an upgrade that changes nothing"; \
+	  inside /srv/caldart/deploy/upgrade.sh; \
+	  echo "==> Rehearsing a second install with no flags"; \
+	  inside /srv/caldart/deploy/install.sh; \
+	  echo "==> Rehearsing the uninstall"; \
+	  inside /srv/caldart/deploy/uninstall.sh --yes --purge; \
+	  inside test ! -e /srv/caldart; \
+	  inside test ! -e /etc/caldart; \
+	  echo "==> The rehearsal on $(REHEARSE_WEB_SERVER) passed"
 
 # ----------------------------------------------------------------- lint
 lint: lint-backend lint-shell lint-frontend lint-spelling ## ruff + mypy + shellcheck + tsc + eslint + prettier + contrast + codespell
