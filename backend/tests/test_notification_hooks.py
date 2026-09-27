@@ -27,6 +27,7 @@ from apps.accounts.services import (
 from apps.aircraft.models import Aircraft
 from apps.darts.models import Dart
 from apps.members.labels import profile_field_label
+from apps.members.lifecycle import become_friend, convert_due_friends, expire_lapsed_memberships
 from apps.members.models import (
     MemberProfile,
     Membership,
@@ -36,9 +37,6 @@ from apps.members.models import (
 )
 from apps.members.services import (
     activate_term,
-    become_friend,
-    convert_due_friends,
-    expire_lapsed_memberships,
     register_member,
     update_member,
 )

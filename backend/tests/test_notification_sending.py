@@ -464,3 +464,48 @@ def test_an_event_whose_email_cannot_be_built_does_not_fail_the_caller(
 
     assert mailoutbox == []
     assert "notification not built: event=signed_up" in caplog.text
+
+
+# -- suspending the dispatcher, for seeding ---------------------------------------
+def test_an_event_raised_while_suspended_sends_nothing(
+    pat: User,
+    mailoutbox: list[EmailMessage],
+    django_capture_on_commit_callbacks: DjangoCaptureOnCommitCallbacks,
+) -> None:
+    """Inside :func:`dispatch.suspended`, a subscribed address hears nothing."""
+    subscribe("outside@example.test", ["signed_up"])
+
+    with dispatch.suspended(), django_capture_on_commit_callbacks(execute=True):
+        emit("signed_up", user=pat, dart=None)
+
+    assert mailoutbox == []
+
+
+def test_the_dispatcher_resumes_once_suspended_ends(
+    pat: User,
+    mailoutbox: list[EmailMessage],
+    django_capture_on_commit_callbacks: DjangoCaptureOnCommitCallbacks,
+) -> None:
+    """The dispatcher hears events again once the ``suspended`` block ends."""
+    subscribe("outside@example.test", ["signed_up"])
+    with dispatch.suspended():
+        pass
+
+    sign_up(django_capture_on_commit_callbacks, pat)
+
+    assert recipients(mailoutbox) == ["outside@example.test"]
+
+
+def test_suspended_resumes_the_dispatcher_even_when_the_block_raises(
+    pat: User,
+    mailoutbox: list[EmailMessage],
+    django_capture_on_commit_callbacks: DjangoCaptureOnCommitCallbacks,
+) -> None:
+    """A block that raises still leaves the dispatcher subscribed afterward."""
+    subscribe("outside@example.test", ["signed_up"])
+    with pytest.raises(ValueError, match="boom"), dispatch.suspended():
+        raise ValueError("boom")
+
+    sign_up(django_capture_on_commit_callbacks, pat)
+
+    assert recipients(mailoutbox) == ["outside@example.test"]

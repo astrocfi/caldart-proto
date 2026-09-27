@@ -30,12 +30,12 @@ from apps.accounts.services import (
     send_password_reset_email,
 )
 from apps.cms.models import SiteSettings, StandardPage, members_wall_state
-from apps.members import services as members_services
+from apps.members import lifecycle as members_lifecycle
+from apps.members.lifecycle import convert_due_friends
 from apps.members.models import MemberProfile, MembershipPlan, MembershipState
 from apps.members.services import (
     account_kind,
     activate_term,
-    convert_due_friends,
     kind_annotation,
     membership_status,
     register_member,
@@ -238,14 +238,14 @@ def test_convert_due_friends_leaves_a_member_who_paid_after_the_list_was_read(
 ) -> None:
     """A payment that lands between the read and the write keeps the member a member."""
     user = UserFactory(email="due@example.test", friend_on=today)
-    listed = members_services.due_conversions
+    listed = members_lifecycle.due_conversions
 
     def listed_then_paid(day: date) -> list[User]:
         due = listed(day)
         User.objects.filter(pk=user.pk).update(kind=AccountKind.MEMBER, friend_on=None)
         return due
 
-    monkeypatch.setattr(members_services, "due_conversions", listed_then_paid)
+    monkeypatch.setattr(members_lifecycle, "due_conversions", listed_then_paid)
     assert convert_due_friends(today) == 0
     user.refresh_from_db()
     assert user.kind == AccountKind.MEMBER

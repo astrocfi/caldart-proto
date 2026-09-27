@@ -47,8 +47,9 @@ from django.db.models import Model
 from django.utils import timezone
 
 from apps.accounts.models import AccountKind, User
+from apps.members.lifecycle import become_friend, check_can_become_friend
 from apps.members.models import Membership, MembershipPlan, MembershipStatusChoices
-from apps.members.services import account_kind, become_friend, check_can_become_friend
+from apps.members.services import account_kind
 from apps.payments.models import (
     MandateCadence,
     MandateProvider,
@@ -824,7 +825,7 @@ KEEP_CONTRIBUTION_DONATION_HELD = (
 def switch_to_friend(user: User, *, keep_contribution: bool | None) -> User:
     """Make ``user`` a friend of CalDART at their own request, and return the account.
 
-    The account becomes a friend through :func:`apps.members.services.become_friend`:
+    The account becomes a friend through :func:`apps.members.lifecycle.become_friend`:
     the day after a current membership runs out, or at once.  Their automatic renewal
     ends with it (a friend has no dues to renew): an active or paused one is canceled
     through :func:`cancel_mandate` under their own name, and a pending one is thrown

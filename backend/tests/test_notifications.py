@@ -10,7 +10,7 @@ built from the objects the event was raised with.  The sending itself is covered
 
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date
 
 import pytest
 from django.db import IntegrityError
@@ -447,27 +447,28 @@ def test_auto_renewal_off(pat: User, annual_plan: MembershipPlan, how: str, word
     )
 
 
-def test_auto_renewal_declined_with_a_retry_to_come(pat: User, today: date) -> None:
-    """A decline quotes the reason and the day of the next try."""
-    mandate = RenewalMandateFactory(user=pat, plan=None, contribution_cents=1_000, failure_count=2)
+def test_auto_renewal_declined_with_a_retry_to_come(pat: User) -> None:
+    """A decline quotes the reason and the day of the next try, from the payload."""
+    mandate = RenewalMandateFactory(user=pat, plan=None, contribution_cents=1_000)
 
     message = build_message(
-        "auto_renewal_declined", {"mandate": mandate, "reason": "Card declined"}
+        "auto_renewal_declined",
+        {"mandate": mandate, "reason": "Card declined", "next_on": date(2026, 9, 30)},
     )
 
     assert (message.headline, message.lines) == (
         "Pat Quill's automatic donation was declined",
-        (("Reason", "Card declined"), ("Next try", slash_date(today + timedelta(days=3)))),
+        (("Reason", "Card declined"), ("Next try", "2026/09/30")),
     )
 
 
 def test_auto_renewal_declined_for_the_last_time(pat: User, annual_plan: MembershipPlan) -> None:
-    """A decline that paused the mandate says no try is left."""
-    mandate = RenewalMandateFactory(
-        user=pat, plan=annual_plan, failure_count=4, status=MandateStatus.PAUSED
-    )
+    """A decline with no ``next_on`` says no try is left, regardless of the mandate."""
+    mandate = RenewalMandateFactory(user=pat, plan=annual_plan, status=MandateStatus.PAUSED)
 
-    message = build_message("auto_renewal_declined", {"mandate": mandate, "reason": "Expired"})
+    message = build_message(
+        "auto_renewal_declined", {"mandate": mandate, "reason": "Expired", "next_on": None}
+    )
 
     assert message.lines == (
         ("Reason", "Expired"),
@@ -539,7 +540,8 @@ def test_payment_refunded_by_an_administrator(
     payment = PaymentFactory(user=pat, plan=annual_plan, status=PaymentStatus.PARTIALLY_REFUNDED)
 
     message = build_message(
-        "payment_refunded", {"payment": payment, "refund_cents": 1_500, "actor": boss}
+        "payment_refunded",
+        {"payment": payment, "refund_cents": 1_500, "actor": boss, "term_canceled": False},
     )
 
     assert (message.headline, message.lines, message.link) == (
@@ -553,12 +555,11 @@ def test_a_full_refund_from_the_dashboard_names_the_canceled_membership(
     pat: User, annual_plan: MembershipPlan
 ) -> None:
     """A refund with no actor came from the provider's dashboard and may cancel a term."""
-    term = paid_term(pat, annual_plan, status=PaymentStatus.REFUNDED)
-    term.status = MembershipStatusChoices.CANCELED
-    term.save(update_fields=["status"])
+    payment = PaymentFactory(user=pat, plan=annual_plan, status=PaymentStatus.REFUNDED)
 
     message = build_message(
-        "payment_refunded", {"payment": term.payment, "refund_cents": 4_500, "actor": None}
+        "payment_refunded",
+        {"payment": payment, "refund_cents": 4_500, "actor": None, "term_canceled": True},
     )
 
     assert message.lines == (

@@ -496,7 +496,7 @@ Module                                                      Holds
                                                             payments, catalogs
 ``backend/tests/test_profile_aircraft_api.py``              attach and detach
 ``backend/tests/test_friend_switching.py``                  ``/me/kind/friend``
-``backend/apps/members/services.py``                        ``become_friend``,
+``backend/apps/members/lifecycle.py``                       ``become_friend``,
                                                             ``undo_become_friend``
 ``backend/apps/payments/renewals.py``                       ``switch_to_friend``,
                                                             ``keep_renewal_contribution``

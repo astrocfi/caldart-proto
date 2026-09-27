@@ -41,6 +41,7 @@ from faker import Faker
 
 from apps.accounts.models import AccountKind, User
 from apps.accounts.services import create_account
+from apps.members.lifecycle import expire_lapsed_memberships
 from apps.members.models import (
     MemberProfile,
     Membership,
@@ -52,7 +53,6 @@ from apps.members.seed import EMPTY_DART
 from apps.members.services import (
     activate_term,
     cancel_term,
-    expire_lapsed_memberships,
     membership_status,
 )
 from apps.payments.models import (

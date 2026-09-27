@@ -84,7 +84,7 @@ _EVENTS: tuple[Event, ...] = (
         "membership_expired",
         "Membership expired",
         "Membership",
-        "A membership ran out and the person is a friend until they renew.",
+        "A membership ran out.",
         _MEMBERSHIP_ROLES,
     ),
     Event(

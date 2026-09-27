@@ -2,8 +2,8 @@
  * Notifications as an account administrator sets them up: an address outside
  * CalDART subscribed to sign-ups, a visitor joining as a friend with a DART,
  * the sign-up email at that address and at the DART's roster contact, and an
- * edit that drops sign-ups, after which a deactivation sends the address
- * nothing.
+ * edit that drops sign-ups, after which a second friend's sign-up reaches the
+ * roster contact alone and a deactivation sends the address nothing.
  */
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
@@ -159,6 +159,17 @@ test('an outside address hears of a sign-up, and stops once sign-ups are dropped
   await expect(edit).toHaveCount(0);
   await expect(row).toContainText('Friend became a member');
   await expect(row).not.toContainText('Sign-up');
+  await signOut(page);
+
+  // A second friend joins the same DART now that the subscription has dropped
+  // sign-ups: the roster contact still hears of it, since that goes out
+  // whether or not the address is subscribed, but the outside address does not.
+  const secondFirst = `Nora${Date.now().toString(36)}`;
+  const secondJoiner = uniqueEmail('joiner');
+  await joinAsFriend(page, { first: secondFirst, email: secondJoiner, dartId: dart.id });
+  const secondHeadline = `${secondFirst} Nansen signed up as a friend`;
+  await expect.poll(() => latestEmailTo(dart.rosterEmail)).toContain(secondHeadline);
+  expect(emailCountTo(outside)).toBe(1);
   await signOut(page);
 
   // The user administrator deactivates the seeded member.

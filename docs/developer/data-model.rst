@@ -1224,7 +1224,7 @@ expression, and ``membership_annotations`` carries it as ``effective_kind``;
 everything that reads the effective kind (the membership state, the member list
 and its **Kind** column, the member report, the rosters, the member check, the
 reminder and renewal scans, the members-only wall, the dashboard, and the
-portal's **Renew** entry) treats a member who has never paid as a friend.  ``convert_due_friends(today)`` writes the due conversions
+portal's **Renew** entry) treats a member who has never paid as a friend.  ``members.lifecycle.convert_due_friends(today)`` writes the due conversions
 down (``kind = friend``, ``friend_on = null``, audit ``account.kind``); the daily
 reminder run calls it.  ``accounts.services.set_kind`` is the one way a kind is
 written by hand (by an administrator's edit that changes the kind, the
@@ -1234,7 +1234,7 @@ row only while it still qualifies, so a member whose payment cleared
 ``friend_on`` after the list was read stays a member.
 
 A member sets ``friend_on`` themselves with ``POST /me/kind/friend``
-(:ref:`api-kind-switch`): ``members.services.become_friend(user, today)`` stores
+(:ref:`api-kind-switch`): ``members.lifecycle.become_friend(user, today)`` stores
 the day after a current membership's unbroken coverage ends, or makes a member
 with nothing current a friend at once, and ``undo_become_friend`` clears a date
 still ahead.  ``become_friend`` refuses a donor, a current life member, and a
