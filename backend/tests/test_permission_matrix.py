@@ -53,6 +53,7 @@ NO_ROLE_ALLOWED_GETS = [
     "/api/v1/me/membership",
     "/api/v1/me/payments",
     "/api/v1/aircraft",
+    "/api/v1/aircraft/registrations?q=N1",
     "/api/v1/payments/config",
     "/api/v1/site/config",
 ]
@@ -367,7 +368,7 @@ def test_wagtail_admin_redirects_to_login(
 def test_no_role_user_reaches_self_service_endpoints(
     api_client: APIClient, no_role_user: User, url: str
 ) -> None:
-    """Its own records, the aircraft register and the public configuration stay open."""
+    """Its own records, the register, the registry search, and site settings stay open."""
     api_client.force_login(no_role_user)
     assert api_client.get(url).status_code == 200
 

@@ -64,6 +64,7 @@ class Migration(migrations.Migration):
             ],
             options={
                 'ordering': ['n_number'],
+                'indexes': [models.Index(fields=['n_number'], name='aircraft_registration_prefix', opclasses=['varchar_pattern_ops'])],
             },
         ),
         migrations.CreateModel(
