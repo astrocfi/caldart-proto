@@ -89,7 +89,7 @@ E2E_ENV := DJANGO_SETTINGS_MODULE=caldart.settings.dev \
 .PHONY: help setup up down wait-db createdb migrate makemigrations seed reset run \
         dev-frontend build test test-backend test-frontend coverage coverage-backend \
         coverage-frontend e2e \
-        lint lint-backend \
+        lint lint-backend lint-shell \
         lint-frontend lint-spelling format check check-backend check-deploy check-frontend \
         audit audit-backend audit-frontend backup restore reminders sandbox-check docs guide shell \
         superuser read-docs collectstatic clean
@@ -229,12 +229,19 @@ e2e: ## Playwright end-to-end tests (own database, own server, mock payments)
 	    || { echo; echo "==== last 100 lines of $(E2E_LOG) ===="; tail -100 $(E2E_LOG); exit 1; }
 
 # ----------------------------------------------------------------- lint
-lint: lint-backend lint-frontend lint-spelling ## ruff + mypy + tsc + eslint + prettier + contrast + codespell
+lint: lint-backend lint-shell lint-frontend lint-spelling ## ruff + mypy + shellcheck + tsc + eslint + prettier + contrast + codespell
 
 lint-backend: ## ruff check + ruff format --check + mypy
 	$(UV) run ruff check .
 	$(UV) run ruff format --check .
 	$(UV) run mypy backend
+
+# Every shell script: the server installer under deploy/ and the developer
+# conveniences under scripts/.  shellcheck comes from the shellcheck-py wheel in
+# the dev group, so no system package is needed.  --external-sources follows
+# the `source` lines the installer uses to share deploy/lib.sh.
+lint-shell: ## shellcheck over deploy/ and scripts/
+	$(UV) run shellcheck --external-sources deploy/*.sh deploy/steps/*.sh scripts/*.sh
 
 # American spelling and common typos, everywhere prose and code are written.
 # `plans/` stays out: the archived plans are frozen, and a live plan may quote

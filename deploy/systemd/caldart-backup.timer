@@ -1,0 +1,26 @@
+# Nightly trigger for the CalDART database backup.
+#
+# Deploy path: /srv/caldart. deploy/steps/timers.sh installs and enables it.
+# Inspect with:
+#   systemctl list-timers caldart-backup.timer
+
+[Unit]
+Description=Take a CalDART database backup daily at 03:30
+Documentation=file:///srv/caldart/docs/developer/backup-restore.rst
+
+[Timer]
+Unit=caldart-backup.service
+
+# 03:30, before the FAA registry import at 04:30 and the jobs that write mail
+# and payments from 06:00, so each morning starts from a fresh dump.
+OnCalendar=*-*-* 03:30:00
+
+# If the machine was off at 03:30, take the missed backup as soon as it comes
+# back rather than skipping the night.
+Persistent=true
+
+AccuracySec=1min
+RandomizedDelaySec=5min
+
+[Install]
+WantedBy=timers.target

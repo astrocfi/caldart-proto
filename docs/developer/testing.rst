@@ -972,6 +972,7 @@ Linting and type-checking
 
    $ make lint            # everything below
    $ make lint-backend    # ruff check, ruff format --check, mypy backend
+   $ make lint-shell      # shellcheck over deploy/ and scripts/
    $ make lint-frontend   # tsc --noEmit, eslint --max-warnings 0, prettier --check
    $ make lint-spelling   # codespell over the prose, the code and the tests
    $ make format          # fix what can be fixed automatically
@@ -1070,6 +1071,16 @@ underscore, the marker for a deliberately unused variable or parameter.  The
 deliberately keeps a component beside the pure helper that computes its input.
 ``jsx-a11y/no-redundant-roles`` carries its list exception here as well.
 
+``make lint-shell`` runs ``shellcheck --external-sources`` over
+``deploy/*.sh``, ``deploy/steps/*.sh``, and ``scripts/*.sh``.  shellcheck comes
+from the ``shellcheck-py`` wheel in the ``dev`` group, so ``uv sync`` installs
+it and no system package is needed; ``--external-sources`` lets it follow the
+``source`` lines the installer shares ``deploy/lib.sh`` through.  A
+``# shellcheck disable=`` directive is allowed only with a comment on the line
+above saying why.  ``backend/tests/test_deploy_scripts.py`` exercises the same
+scripts: it parses each with ``bash -n`` and reads the installer's dry run
+(:doc:`deployment`).
+
 ``make lint-spelling`` runs ``codespell``, configured under ``[tool.codespell]``
 in ``pyproject.toml``, over ``README.rst``, ``CLAUDE.md``, ``docs``, ``backend``,
 ``frontend/src``, ``frontend/e2e``, ``.github``, ``deploy``, and ``.claude``.  The
@@ -1128,8 +1139,8 @@ commands above run locally.
 
 **Backend**
     A PostgreSQL 16 service container, ``uv sync --frozen``, then
-    ``make lint-backend``, ``make lint-spelling``, ``make check-backend``,
-    ``make check-deploy`` and ``make test-backend``.
+    ``make lint-backend``, ``make lint-shell``, ``make lint-spelling``,
+    ``make check-backend``, ``make check-deploy`` and ``make test-backend``.
 
 **Frontend**
     Node 22 and ``npm ci``, plus uv and ``uv sync`` because every frontend

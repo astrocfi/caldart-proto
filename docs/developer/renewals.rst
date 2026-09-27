@@ -486,11 +486,12 @@ renewed by one scan is never also nagged about by the other on the same morning.
 Operating it
 ============
 
-Run the scan by hand, rehearse it, or run it as of another date::
+Run the scan by hand, rehearse it, or run it as of another date, on a server
+through ``deploy/manage.sh`` (:ref:`deploy-manage-commands`)::
 
-  caldart_manage run_auto_renewals
-  caldart_manage run_auto_renewals --dry-run
-  caldart_manage run_auto_renewals --today 2026-10-03 --dry-run
+  sudo deploy/manage.sh run_auto_renewals
+  sudo deploy/manage.sh run_auto_renewals --dry-run
+  sudo deploy/manage.sh run_auto_renewals --today 2026-10-03 --dry-run
 
 The command prints the counts and exits non-zero when any charge was refused, so
 the systemd unit goes to ``failed`` rather than reporting a clean run that took

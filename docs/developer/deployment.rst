@@ -7,18 +7,146 @@ systemd, Apache in front terminating TLS.  Apache is the primary target because
 the machines this is aimed at already run it; an nginx configuration ships as
 the alternative and is called out where the two differ.
 
-Every path below assumes the deploy root ``/srv/caldart``.  If you use
-another, change it in every file under ``deploy/`` that names it, which is all
-fifteen of them: ``deploy/gunicorn.conf.py``, ``deploy/apache/caldart.conf``,
-``deploy/nginx/caldart.conf``, ``deploy/caldart.env.example``, and the six
-services and five timers under ``deploy/systemd/`` (a timer names the path
-only in its ``Documentation=`` line).  ``grep -rn /srv/caldart deploy/`` finds
-every occurrence.
+Scripts under ``deploy/`` do all of it.  ``deploy/bootstrap.sh`` clones the
+repository and runs ``deploy/install.sh``, which runs the steps under
+``deploy/steps/`` in order; ``deploy/upgrade.sh`` upgrades a running server and
+``deploy/uninstall.sh`` takes it off again.  The numbered sections below are
+the steps, each titled with the script that runs it and showing the commands
+that script runs, so the page reads both as the description of the installer
+and as what to do by hand when one step needs attention.
 
-The steps run in the order written, and none depends on a later one.  Commands
-that start with ``sudo`` run on the server as an administrator; the few that
-use ``caldart_manage`` need the shell function defined in
-:ref:`deploy-manage-commands` first.
+The deploy root is ``/srv/caldart``, which is what the shipped files say.
+Clone anywhere else and the scripts follow: every unit and vhost they install
+has ``/srv/caldart`` replaced by the real root as it is copied, and
+``deploy/gunicorn.conf.py`` finds the checkout from its own location.
+
+
+.. _deploy-install-scripts:
+
+Installing with the scripts
+===========================
+
+On a fresh Debian 13 (trixie) or Ubuntu 24.04 (noble) server, with the
+hostname's DNS ``A`` (and ``AAAA``) records already pointing at it and ports 80
+and 443 open, one command installs everything::
+
+  curl -fsSL https://raw.githubusercontent.com/astrocfi/caldart-proto/main/deploy/bootstrap.sh \
+      | sudo bash -s -- --hostname caldart.example.org \
+          --certbot-email ops@example.org \
+          --email-url smtp+tls://user:password@smtp.example.org:587 \
+          --admin-email you@example.org
+
+``bootstrap.sh`` installs ``git`` if the box has none, clones
+``https://github.com/astrocfi/caldart-proto.git`` into ``/srv/caldart`` (or,
+when a checkout is already there, fetches and checks out the ref), and runs
+``deploy/install.sh`` from it with every other flag passed through untouched.
+``CALDART_ROOT`` in its environment clones somewhere else.  On a server that
+already has the checkout, run the installer directly::
+
+  sudo /srv/caldart/deploy/install.sh --hostname caldart.example.org ...
+
+The flags:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 45 25
+
+   * - Flag
+     - Meaning
+     - Default
+   * - ``--hostname HOST``
+     - the public hostname, a DNS name such as ``caldart.example.org``
+     - required on the first run
+   * - ``--www`` / ``--no-www``
+     - also answer for ``www.HOST``
+     - ``--www``
+   * - ``--web-server apache|nginx``
+     - which web server to install
+     - ``apache``
+   * - ``--tls certbot|self-signed``
+     - how the certificate is obtained
+     - ``certbot``
+   * - ``--certbot-email ADDRESS``
+     - the Let's Encrypt account address
+     - required with ``--tls certbot``
+   * - ``--certbot-staging``
+     - use Let's Encrypt's staging directory, for a trial run
+     - off
+   * - ``--email-url URL``
+     - ``EMAIL_URL`` for the environment file (:doc:`email`)
+     - required on the first run
+   * - ``--from-email ADDRESS``
+     - ``DEFAULT_FROM_EMAIL``
+     - ``CalDART <noreply@HOST>``
+   * - ``--admin-email ADDRESS``
+     - create the first administrator
+     - none
+   * - ``--seed-content``
+     - load the example pages
+     - off
+   * - ``--repo URL-OR-PATH``
+     - ``bootstrap.sh`` only: what to clone
+     - ``https://github.com/astrocfi/caldart-proto.git``
+   * - ``--ref REF``
+     - ``bootstrap.sh`` and ``upgrade.sh``: the branch, tag, or commit
+     - ``main``, or the current branch
+   * - ``--dry-run``
+     - print every command that changes the machine instead of running it
+     - off
+   * - ``--help``
+     - print the script's header, which lists its options
+     -
+
+``--tls self-signed`` is for a box without a public hostname, such as a trial
+server on a private network: the certificate is made with ``openssl`` in
+``/etc/caldart/tls/``, browsers warn until a real one replaces it, and the
+environment file sets ``SECURE_HSTS_SECONDS=0`` so no browser remembers HSTS
+for a name the box does not own.  There is no plain-HTTP mode:
+``caldart.settings.prod`` insists on secure cookies and redirects HTTP to HTTPS.
+
+**The install record.**  The values that describe the box (the root, the
+hostname, ``www``, the web server, the TLS mode, the certbot address, and
+staging) are written to ``/etc/caldart/install.conf``, ``root:root``, mode
+``0644``, holding no secret.  Every step reads it, so a later run needs no
+flags, and a flag given on a later run updates the record.  ``--email-url``,
+``--from-email``, ``--admin-email``, and ``--seed-content`` are used by the run
+that writes the environment file or creates the administrator, and are not
+recorded.  The first run stops with a usage error naming ``--hostname`` when no
+record exists, ``--email-url`` while no environment file exists, and
+``--certbot-email`` with certbot.
+
+**Running it again.**  Every step is idempotent: a user that exists, a unit
+already enabled, a certificate already issued, and a database already migrated
+are all left as they are, so a second run repairs or re-applies an install and
+never destroys data or overwrites a secret.  Each step also runs alone, reading
+what it needs from the record::
+
+  sudo /srv/caldart/deploy/steps/web-server.sh
+
+``--dry-run`` on any script (or ``CALDART_DRY_RUN=1`` in its environment) prints
+every command that would change the machine, prefixed ``+``, instead of running
+it, and needs no root.  The reads still happen, so a dry run on a fresh box
+prints the whole sequence a real run would, in order.  A file the dry run never
+wrote, such as the environment file or the record, is treated as absent, with a
+note on standard error; the generated database password appears as
+``<generated>``, and the environment file's contents are never printed.
+
+**What it prints.**  One ``==>`` line per stage; when a command fails, its own
+output and an ``error:`` line naming the stage and the command; and at the end the checks of :ref:`deploy-check` and a summary: the
+site's address, the environment file, the administrator's one-time link when
+``--admin-email`` created one, the Stripe, PayPal, and Geoapify settings still
+empty in the environment file, and, with a self-signed certificate, the
+browser warning.  Open the administrator's link to set a password; it lasts as
+long as any password-reset link (``PASSWORD_RESET_TIMEOUT``).
+
+**Afterwards.**  The site runs without payment or address keys: checkout
+offers no provider and the profile form offers no address suggestions until
+they are set.  Add them with ``sudoedit /etc/caldart/caldart.env``, then
+``sudo systemctl restart caldart-web``: the Stripe and PayPal keys as
+:doc:`payments-setup` describes, and ``GEOAPIFY_API_KEY`` (:doc:`configuration`).
+A changed SMTP relay is edited the same way.  No script ever rewrites the
+environment file once it exists.  Point the mail domain's SPF, DKIM, and DMARC
+records at the relay before relying on the mail (:doc:`email`).
 
 
 What you are deploying
@@ -63,7 +191,7 @@ What you are deploying
               Django [label="Django 6 + Wagtail 8\l  caldart.settings.prod\l  /static/ via whitenoise\l"];
               Postgres [label="Postgres in Docker :5432\l  compose service db\l"];
               Media [label="backend/media/\l  Wagtail uploads;\l  documents/ denied to\l  the web server\l", shape=folder, style=""];
-              Env [label="/etc/caldart/caldart.env\l  root:caldart 0640\l  EnvironmentFile for\l  all six services\l", shape=note, style=""];
+              Env [label="/etc/caldart/caldart.env\l  root:caldart 0640\l  EnvironmentFile for\l  all seven services\l", shape=note, style=""];
 
               Apache -> Gunicorn [label="HTTP 127.0.0.1:8001\lX-Forwarded-Proto: https\l"];
               Gunicorn -> Django [label="WSGI\lcaldart.wsgi:application\l", arrowhead=none];
@@ -80,17 +208,17 @@ What you are deploying
       }
 
    .. graphviz::
-      :caption: The same server's five scheduled jobs.  Each timer starts its
-                service, which runs one management command and exits.  A
+      :caption: The same server's six scheduled jobs.  Each timer starts its
+                service, which runs a management command and exits.  A
                 **solid arrow** is the job reading and writing the database; a
-                **dashed arrow** is an outbound call.  Every job service reads
-                its settings from the same environment file as
-                ``caldart-web.service``, so the server runs six services in
-                all.
-      :alt: The five CalDART timers and their services, each writing to
+                **dashed arrow** is an outbound call; a **dotted arrow** is a
+                file written to disk.  Every job service reads its settings
+                from the same environment file as ``caldart-web.service``, so
+                the server runs seven services in all.
+      :alt: The six CalDART timers and their services, each using
             Postgres; four send mail, the renewals job also charges through
-            Stripe and PayPal, and the registry job downloads the FAA
-            registry
+            Stripe and PayPal, the registry job downloads the FAA registry,
+            and the backup job writes dumps to the backup directory
 
       digraph caldart_jobs {
           rankdir=LR;
@@ -106,17 +234,21 @@ What you are deploying
           Reminders [label="caldart-reminders.timer\l  daily 07:00 ->\l  caldart-reminders.service\l  manage.py send_renewal_reminders\l"];
           Statements [label="caldart-statements.timer\l  yearly Jan 15, 06:45 ->\l  caldart-statements.service\l  manage.py send_year_statements\l"];
           Registry [label="caldart-registry.timer\l  daily 04:30 ->\l  caldart-registry.service\l  manage.py import_faa_registry\l"];
+          Backup [label="caldart-backup.timer\l  daily 03:30 ->\l  caldart-backup.service\l  manage.py db_backup,\l  then prunes old dumps\l"];
+          Dumps [label="backups/\l  BACKUP_DIR, kept for\l  BACKUP_RETENTION_DAYS\l", shape=folder, style=""];
           Faa [label="registry.faa.gov\l  ReleasableAircraft.zip\l"];
           Stripe [label="Stripe and PayPal\l  off-session charges\l"];
           Postgres [label="Postgres in Docker :5432\l"];
           Smtp [label="SMTP server\l  from EMAIL_URL\l"];
 
-          {rank=same; Faa; Stripe; Postgres; Smtp;}
-          {rank=same; Registry; Reports; Renewals; Reminders; Statements;}
-          Faa -> Stripe -> Postgres -> Smtp [style=invis];
-          Registry -> Reports -> Renewals -> Reminders -> Statements [style=invis];
+          {rank=same; Dumps; Faa; Stripe; Postgres; Smtp;}
+          {rank=same; Backup; Registry; Reports; Renewals; Reminders; Statements;}
+          Dumps -> Faa -> Stripe -> Postgres -> Smtp [style=invis];
+          Backup -> Registry -> Reports -> Renewals -> Reminders -> Statements [style=invis];
 
-          Env -> {Registry Reports Renewals Reminders Statements} [style=dashed, arrowhead=none];
+          Env -> {Backup Registry Reports Renewals Reminders Statements} [style=dashed, arrowhead=none];
+          Backup -> Postgres;
+          Backup -> Dumps [style=dotted];
           Registry -> Faa [style=dashed];
           Registry -> Postgres;
           Renewals -> Stripe [style=dashed];
@@ -149,7 +281,13 @@ What you are deploying
       Stripe / PayPal webhooks arrive                 |
       through Apache like any other request           v
                                                 Postgres in Docker :5432
-      caldart-registry.timer, daily 04:30             ^
+      caldart-backup.timer, daily 03:30               ^
+        -> caldart-backup.service                     |
+           manage.py db_backup -----------------------|
+           -> backups/ (BACKUP_DIR), then deletes     |
+              dumps older than BACKUP_RETENTION_DAYS  |
+                                                      |
+      caldart-registry.timer, daily 04:30             |
         -> caldart-registry.service                   |
            manage.py import_faa_registry -------------|
            -> registry.faa.gov, for the FAA's         |
@@ -178,23 +316,24 @@ What you are deploying
            manage.py send_year_statements ------------'
            -> the SMTP server, for the contribution statements
 
-   Apache, gunicorn, Postgres, and the five timers run on one Linux server with
-   the deploy root ``/srv/caldart``, and all six services (``caldart-web`` and
-   the five job services) read their settings from ``/etc/caldart/caldart.env``
+   Apache, gunicorn, Postgres, and the six timers run on one Linux server with
+   the deploy root ``/srv/caldart``, and all seven services (``caldart-web`` and
+   the six job services) read their settings from ``/etc/caldart/caldart.env``
    (``root:caldart``, mode ``0640``).  Django calls out to ``api.stripe.com``
    and ``api-m.paypal.com`` during a checkout, and to the same SMTP server for
    password resets and invitations.  ``nginx`` (``deploy/nginx/caldart.conf``)
    takes Apache's place unchanged when you deploy it instead.
 
 Three things run continuously: the Docker Postgres container, the
-``caldart-web`` gunicorn unit, and Apache.  Five jobs run on a schedule: the
-``caldart-registry`` timer daily at 04:30, the ``caldart-reports`` timer daily
+``caldart-web`` gunicorn unit, and Apache.  Six jobs run on a schedule: the
+``caldart-backup`` timer daily at 03:30, the ``caldart-registry`` timer daily at
+04:30, the ``caldart-reports`` timer daily
 at 06:00, the ``caldart-renewals`` timer daily at 06:30, the
 ``caldart-reminders`` timer daily at 07:00, and the ``caldart-statements`` timer
 yearly at 06:45 on January 15th.
 
 The application is a **Django 6** project with Wagtail 8 on top, and step 6
-installs it with ``uv sync --frozen``, so the box runs the exact versions
+(``deploy/steps/build.sh``) installs it with ``uv sync --frozen``, so the box runs the exact versions
 ``uv.lock`` pins, the ones the test suite ran against.  Django 6 configures
 outgoing mail through its ``MAILERS`` setting, which ``prod.py`` builds from
 ``EMAIL_URL`` and ``EMAIL_TIMEOUT``; both are in the environment file written
@@ -213,49 +352,51 @@ is what enforces that (:doc:`cms`).  Both vhosts refuse that prefix, so a
 document is only ever reachable at ``/documents/<id>/<filename>``.
 
 
-1. Operating system packages
-============================
+1. Operating system packages (``steps/packages.sh``)
+====================================================
 
-The steps below are written for Debian 13 (trixie) and Ubuntu 24.04 (noble),
-and every package they name comes from those distributions' own archives.
-Everything runs as a user with ``sudo``.
+The steps are written for Debian 13 (trixie) and Ubuntu 24.04 (noble), and
+every package they name comes from those distributions' own archives.  The
+script reads ``ID`` from ``/etc/os-release`` and stops on any other
+distribution, naming the two it supports.  ``apt-get`` runs with
+``DEBIAN_FRONTEND=noninteractive`` and ``-y``.  What it runs::
 
-::
-
-  sudo apt update
-  sudo apt install -y git curl ca-certificates postgresql-client docker.io
+  sudo apt-get update
+  sudo apt-get install -y git curl ca-certificates openssl postgresql-client docker.io
 
   # Debian 13: the Compose v2 plugin is the docker-compose package
-  sudo apt install -y docker-compose
+  sudo apt-get install -y docker-compose
   # Ubuntu 24.04: it is docker-compose-v2 (docker-compose there is the old v1)
-  sudo apt install -y docker-compose-v2
+  sudo apt-get install -y docker-compose-v2
 
-  # The web server, certbot, and certbot's plugin for that server.  The plugin
-  # is what writes the TLS options file the vhost includes (step 9).
-  sudo apt install -y apache2 certbot python3-certbot-apache
-  # ... or, for nginx instead of Apache:
-  sudo apt install -y nginx certbot python3-certbot-nginx
+  # The web server the record names, certbot, and certbot's plugin for that
+  # server.  The plugin is what writes the TLS options file the vhost includes
+  # (step 9).
+  sudo apt-get install -y apache2 certbot python3-certbot-apache
+  # ... or, with --web-server nginx:
+  sudo apt-get install -y nginx certbot python3-certbot-nginx
 
-  # Node 22 for the frontend build, from NodeSource: Debian and Ubuntu ship
-  # older releases than the build needs.
-  curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
-  sudo apt install -y nodejs
+  # Node 22 for the frontend build, from NodeSource, only when node is missing
+  # or older: Debian and Ubuntu ship older releases than the build needs.
+  curl -fsSL https://deb.nodesource.com/setup_22.x | sudo bash -
+  sudo apt-get install -y nodejs
 
-  # uv, installed where sudo can find it.
+  # uv, only when /usr/local/bin/uv is missing, installed where sudo finds it.
   curl -LsSf https://astral.sh/uv/install.sh \
       | sudo env UV_INSTALL_DIR=/usr/local/bin UV_NO_MODIFY_PATH=1 sh
 
-Install one of the two Compose packages and one of the two web servers.
-``docker compose version`` should then print a v2 version.
+  sudo systemctl enable --now docker
+
+The script installs one Compose package and one web server; ``docker compose
+version`` then prints a v2 version.
 
 ``uv`` goes to ``/usr/local/bin`` because ``sudo`` resets ``PATH`` to a
 fixed list that does not include root's ``~/.local/bin``, where the installer
 puts it by default.
 
-``postgresql-client`` is optional but recommended: ``db_backup`` and
-``db_restore`` prefer a local ``pg_dump``/``psql`` and fall back to running them
-inside the container.  Set ``DB_BACKUP_VIA_DOCKER=false`` once the client is
-installed.
+``postgresql-client`` gives ``db_backup`` and ``db_restore`` a local
+``pg_dump``/``psql``, which they prefer over running them inside the container;
+the environment file of step 5 sets ``DB_BACKUP_VIA_DOCKER=false`` to match.
 
 The project pins Python 3.12, and uv downloads that interpreter itself when
 the system has another version.  Step 6 tells it to put the download in
@@ -263,135 +404,143 @@ the system has another version.  Step 6 tells it to put the download in
 ``/root``.
 
 
-2. Service user
-===============
+2. Service user (``steps/user.sh``)
+===================================
 
 ::
 
   sudo useradd --system --home-dir /srv/caldart --shell /usr/sbin/nologin caldart
-  sudo usermod -aG docker caldart          # only if the app must talk to compose
   sudo install -d -o root -g caldart -m 0750 /etc/caldart
-
-``useradd --system`` does not create the home directory, so ``/srv/caldart``
-does not exist yet; the clone in the next step creates it.
-
-
-.. _deploy-checkout:
-
-3. The checkout
-===============
-
-Clone into ``/srv/caldart`` while it does not exist or is still empty, since
-``git clone`` refuses a directory with anything in it::
-
-  sudo git clone https://github.com/astrocfi/caldart-proto.git /srv/caldart
-  cd /srv/caldart
-
-The checkout is owned by root and readable by the service user.  The web unit
-mounts everything read-only except three directories, which the service user
-owns.  Create them now, inside the checkout; ``caldart-web.service`` refuses to
-start when a directory it lists in ``ReadWritePaths`` is missing::
-
   sudo install -d -o caldart -g caldart \
       /srv/caldart/backend/media \
       /srv/caldart/backend/staticfiles \
       /srv/caldart/backups
 
-``backend/media`` holds Wagtail's uploads, ``backend/staticfiles`` what
-``collectstatic`` writes, and ``backups`` the database dumps.  All three are
-gitignored, so a later ``git pull`` never touches them.
+``useradd`` runs only when the user is missing.  ``--system`` does not create
+the home directory; the checkout of step 3 is already there.  The user is not
+in the ``docker`` group: nothing the services run talks to Docker, since the
+backups use the local ``pg_dump``.
+
+The checkout is owned by root and readable by the service user.  The web unit
+mounts everything read-only except the three directories above, which the
+service user owns, and ``caldart-web.service`` refuses to start when a
+directory it lists in ``ReadWritePaths`` is missing.  ``backend/media`` holds
+Wagtail's uploads, ``backend/staticfiles`` what ``collectstatic`` writes, and
+``backups`` the database dumps.  All three are gitignored, so an upgrade never
+touches them.
+
+
+.. _deploy-checkout:
+
+3. The checkout (``bootstrap.sh``)
+==================================
+
+``bootstrap.sh`` makes the checkout before ``install.sh`` starts, so on a
+scripted install this step runs first::
+
+  sudo git clone https://github.com/astrocfi/caldart-proto.git /srv/caldart
+  sudo git -C /srv/caldart checkout main
+
+``git clone`` refuses a directory with anything in it, so ``bootstrap.sh``
+stops when ``/srv/caldart`` exists, is not empty, and is not a checkout.  When
+it is a checkout, ``bootstrap.sh`` fetches, checks out ``--ref``, and pulls a
+branch instead of cloning.  ``--repo`` clones from another URL or a local path.
 
 Every command from here on runs from ``/srv/caldart``.
 
 
-4. Postgres in Docker
-=====================
+4. Postgres in Docker (``steps/postgres.sh``)
+=============================================
 
 ``docker-compose.yml`` at the repository root defines the ``db`` service with a
 named volume, ``caldart_pgdata``, so the data survives ``docker compose down``
-and container upgrades::
+and container upgrades.  The step starts that service alone (Mailpit is a
+development container and never starts on a server) and waits up to 60
+seconds for it::
 
   sudo docker compose up -d db
-  sudo docker compose ps
+  sudo docker compose exec -T db pg_isready -U caldart -d caldart
 
 ``docker-compose.yml`` publishes the database as ``"127.0.0.1:5432:5432"``, so
 it listens on loopback only and nothing off the box can reach port 5432.  The
 container has ``restart: unless-stopped``, so Docker starts it again after a
 reboot.
 
-.. warning::
+The container starts with the development password.  On the first run of
+``install.sh``, before the environment file exists, the step replaces it with a
+generated one and hands the password to step 5 in a shell variable, never in a
+file.  The statement reaches ``psql`` on standard input, so the password never
+appears on a command line or in the process list::
 
-   The password is still the development default.  Change it before anything
-   real goes in.
+  echo "ALTER USER caldart WITH PASSWORD '<generated>';" \
+      | sudo docker compose exec -T db psql -q -v ON_ERROR_STOP=1 -U caldart -d postgres
 
-Change it with::
+Once the environment file exists the password is whatever ``DATABASE_URL``
+there says, and the step only starts the service and waits.  Run alone, it
+never changes the password.
 
-  sudo docker compose exec -T db psql -U caldart -d postgres \
-      -c "ALTER USER caldart WITH PASSWORD 'a-long-random-password';"
-
-and put the same password in ``DATABASE_URL`` in the next step.
-
-The container creates a database named ``caldart`` on its first start.  To
-use another name, create it and name it in ``DATABASE_URL``::
-
-  sudo docker compose exec -T db createdb -U caldart -O caldart caldart_live
+The container creates a database named ``caldart`` on its first start, which
+is the name the environment file uses.
 
 
-5. Configuration
-================
+5. Configuration (``steps/configure.sh``)
+=========================================
 
-``/etc/caldart/caldart.env`` holds every runtime setting.  Start from the
-**production** template and edit it::
-
-  sudo install -m 0640 -o root -g caldart \
-       deploy/caldart.env.example /etc/caldart/caldart.env
-  sudoedit /etc/caldart/caldart.env
+``/etc/caldart/caldart.env`` holds every runtime setting.  The step writes it
+once, ``root:caldart``, mode ``0640``, from the **production** template
+``deploy/caldart.env.example``.
 
 .. warning::
 
-   Do not install the repository's ``.env.example``.  That one is the
-   development template: it ships the published ``SECRET_KEY`` and sets
-   ``PAYMENTS_MOCK_ENABLED=true``, which renders "Succeed" and "Fail" buttons
-   at checkout and would hand out memberships for free.
+   The repository's ``.env.example`` is the development template: it ships the
+   published ``SECRET_KEY`` and sets ``PAYMENTS_MOCK_ENABLED=true``, which
+   renders "Succeed" and "Fail" buttons at checkout and would hand out
+   memberships for free.  Nothing installs it on a server.
 
 The five variables at the top of the template are commented out, so an
-unedited copy refuses to start rather than serving with a guessed value.
-Uncomment and set every one::
+unedited copy refuses to start rather than serving with a guessed value.  The
+step uncomments and sets every one::
 
-  SECRET_KEY=<50+ random characters>
+  SECRET_KEY=<python3 -c "import secrets; print(secrets.token_urlsafe(64))">
   ALLOWED_HOSTS=caldart.example.org,www.caldart.example.org
   SITE_URL=https://caldart.example.org
-  EMAIL_URL=smtp+tls://user:password@smtp.example.org:587
-  DATABASE_URL=postgres://caldart:a-long-random-password@localhost:5432/caldart
+  EMAIL_URL=<--email-url>
+  DATABASE_URL=postgres://caldart:<the password from step 4>@localhost:5432/caldart
 
-Four of them have no default at all — ``prod.py`` refuses to start without
+Four of them have no default at all: ``prod.py`` refuses to start without
 ``SECRET_KEY``, ``ALLOWED_HOSTS``, ``SITE_URL``, or ``EMAIL_URL``, and refuses
 the published development ``SECRET_KEY`` as well.  Nothing in the production
 settings reads a ``.env`` file, so a stray one in the checkout cannot fill in a
-variable you missed.
+variable that is missing.
 
-Generate a secret key with::
+It also sets ``CSRF_TRUSTED_ORIGINS`` to the ``https://`` form of the same
+hosts, ``DEFAULT_FROM_EMAIL`` from ``--from-email`` (``CalDART
+<noreply@HOST>`` by default), ``BACKUP_DIR`` and ``USER_GUIDE_ROOT`` under the
+deploy root, ``DB_BACKUP_VIA_DOCKER=false``, and ``BACKUP_RETENTION_DAYS=30``;
+with ``--tls self-signed``, ``SECURE_HSTS_SECONDS=0`` too.  Everything else,
+comments included, stays as the template has it, so the file still explains
+itself: the throttle rates, ``GEOAPIFY_API_KEY`` (the key behind the profile
+form's address suggestions, which stay off while it is blank), and the Stripe
+and PayPal keys.  :doc:`configuration` documents every variable, what reads
+it, and its development and production values.  The Stripe and PayPal keys are
+covered in :doc:`payments-setup`, and what the mail domain needs before
+``EMAIL_URL`` delivers anything in :doc:`email`.
 
-  python3 -c "import secrets; print(secrets.token_urlsafe(64))"
+When the file exists the step says it is leaving it alone and reports any
+``--email-url`` or ``--from-email`` given on that run as ignored.  Change the
+file by hand, then restart the web unit::
 
-Then work down the rest of the template: ``CSRF_TRUSTED_ORIGINS``,
-``DEFAULT_FROM_EMAIL``, the throttle rates, ``GEOAPIFY_API_KEY`` (the key
-behind the profile form's address suggestions, which stay off while it is
-blank), the Stripe and PayPal keys, ``BACKUP_DIR``, and
-``DB_BACKUP_VIA_DOCKER``.  :doc:`configuration` documents
-every variable, what reads it, and its development and production values.  The
-Stripe and PayPal keys are covered in :doc:`payments-setup`, and what the mail
-domain needs before ``EMAIL_URL`` delivers anything in :doc:`email`.
+  sudoedit /etc/caldart/caldart.env
+  sudo systemctl restart caldart-web
 
-The file is root-owned, mode 0640, group ``caldart``.  It contains the database
-password, the Django secret key and the payment provider secrets; it should
-never be world-readable and never be committed.
+The file contains the database password, the Django secret key and the payment
+provider secrets; it is never world-readable and never committed.
 
 
 .. _deploy-build:
 
-6. Build
-========
+6. Build (``steps/build.sh``)
+=============================
 
 ::
 
@@ -420,54 +569,57 @@ Without this step ``/docs/`` answers 404 and the journal says the guide has not
 been built.  A deployment that keeps the guide elsewhere sets
 ``USER_GUIDE_ROOT``.
 
+The checkout stays root-owned and world-readable.
 
-7. Database and static files
-============================
+
+7. Database and static files (``steps/database.sh``)
+====================================================
 
 .. _deploy-manage-commands:
 
 Running management commands
 ---------------------------
 
-A management command needs the same five things ``caldart-web.service`` gives
-gunicorn: the ``caldart`` user, ``/srv/caldart/backend`` as the working
-directory, ``/etc/caldart/caldart.env``,
-``DJANGO_SETTINGS_MODULE=caldart.settings.prod``, and ``UMask=0027``.  Let
-systemd assemble them again, as a transient unit, instead of loading the
-environment file from a shell.  systemd keeps interior whitespace in an
-unquoted value, so ``DEFAULT_FROM_EMAIL=CalDART <noreply@caldart.example.org>``
-reaches the command intact; a shell splits it at the spaces and the command
-never starts.
-
-Define this function once in the shell you are deploying from.  Every
+``deploy/manage.sh`` runs a management command on the server, and every
 production command in this document and in :doc:`backup-restore` is written as
 a call to it::
 
-  caldart_manage() {
-      sudo systemd-run --quiet --wait --collect --pty --pipe \
-          --uid=caldart --gid=caldart \
-          --working-directory=/srv/caldart/backend \
-          --property=EnvironmentFile=/etc/caldart/caldart.env \
-          --property=UMask=0027 \
-          --setenv=DJANGO_SETTINGS_MODULE=caldart.settings.prod \
-          /srv/caldart/.venv/bin/python manage.py "$@"
-  }
+  sudo deploy/manage.sh migrate
+  sudo deploy/manage.sh health --json
 
-``--wait`` blocks until the command finishes and hands its exit status back, so
-``caldart_manage`` can be tested in a script.  ``--collect`` unloads the
-transient unit afterwards, including when it failed.  Given both ``--pty`` and
-``--pipe``, systemd allocates a terminal when one is attached — which
-``createsuperuser`` and the ``db_restore`` prompt need — and passes plain pipes
-through when the output is redirected.
+A management command needs the same five things ``caldart-web.service`` gives
+gunicorn: the ``caldart`` user, ``/srv/caldart/backend`` as the working
+directory, ``/etc/caldart/caldart.env``,
+``DJANGO_SETTINGS_MODULE=caldart.settings.prod``, and ``UMask=0027``.  The
+script lets systemd assemble them again, as a transient unit, instead of
+loading the environment file from a shell.  systemd keeps interior whitespace
+in an unquoted value, so ``DEFAULT_FROM_EMAIL=CalDART <noreply@caldart.example.org>``
+reaches the command intact; a shell splits it at the spaces and the command
+never starts.  What it runs::
+
+  sudo systemd-run --quiet --wait --collect --pty --pipe \
+      --uid=caldart --gid=caldart \
+      --working-directory=/srv/caldart/backend \
+      --property=EnvironmentFile=/etc/caldart/caldart.env \
+      --property=UMask=0027 \
+      --setenv=DJANGO_SETTINGS_MODULE=caldart.settings.prod \
+      /srv/caldart/.venv/bin/python manage.py "$@"
+
+``--wait`` blocks until the command finishes and hands its exit status back,
+which the script passes on, so ``deploy/manage.sh`` can be tested in a script.
+``--collect`` unloads the transient unit afterwards, including when it failed.
+Given both ``--pty`` and ``--pipe``, systemd allocates a terminal when one is
+attached (which the ``db_restore`` prompt needs) and passes plain pipes
+through when the output is redirected.  ``--dry-run`` before the command name
+prints the ``systemd-run`` line instead of running it.
 
 ``UMask=0027`` is the one property with nothing to do with finding the code or
 the settings, and it is not optional: a transient unit otherwise takes
-systemd's system default of ``0022``, and ``caldart_manage db_backup`` would
-write a full dump of the database — member records, password hashes, payment
-history — world-readable at mode 0644.  All five shipped services and the
-``caldart-backup.service`` in :doc:`backup-restore` set the same mask, so every
-path that writes a dump writes it readable by the ``caldart`` group and no
-wider.
+systemd's system default of ``0022``, and ``deploy/manage.sh db_backup`` would
+write a full dump of the database (member records, password hashes, payment
+history) world-readable at mode 0644.  All seven shipped services set the same
+mask, so every path that writes a dump writes it readable by the ``caldart``
+group and no wider.
 
 Confirm the environment file is being read before relying on it::
 
@@ -482,11 +634,11 @@ Preparing the database
 
 ::
 
-  caldart_manage migrate
-  caldart_manage createcachetable
-  caldart_manage seed_roles
-  caldart_manage seed_content     # example pages; optional
-  caldart_manage collectstatic --noinput
+  sudo deploy/manage.sh migrate
+  sudo deploy/manage.sh createcachetable
+  sudo deploy/manage.sh seed_roles
+  sudo deploy/manage.sh seed_content     # with --seed-content: example pages
+  sudo deploy/manage.sh collectstatic --noinput
 
 ``createcachetable`` builds ``caldart_cache``, the table the default cache
 uses.  The anonymous auth throttles count in that cache, and every gunicorn
@@ -494,65 +646,65 @@ worker has to see the same counters; the PayPal access token sits there too,
 so one fetch serves every worker (see :ref:`paypal-token-cache`).  The command
 is idempotent, so running it again costs nothing.
 
-Do **not** run ``seed_demo`` on a production box: it creates demo accounts with
-a published password.
+The step never runs ``seed_demo``, and neither should anyone on a production
+box: it creates demo accounts with a published password.
 
-Create the first real administrator::
+With ``--admin-email`` the step creates the first real administrator::
 
-  caldart_manage createsuperuser
+  sudo deploy/manage.sh create_admin --email you@example.org
 
-then sign in at ``/admin/`` and give the account its roles, or from a shell::
-
-  caldart_manage shell -c "
-  from django.contrib.auth import get_user_model
-  u = get_user_model().objects.get(email='you@example.org')
-  for role in ['member','system_admin','website_admin']:
-      u.add_role(role)
-  "
-
-``system_admin`` plus ``is_superuser`` is what unlocks ``/portal/system`` and
-the Wagtail admin.
+``create_admin`` makes the account a superuser with the ``member``,
+``system_admin``, and ``website_admin`` roles and no usable password (an
+existing account with that address gains what it lacks), and prints one line:
+a password-reset link, which the installer's summary repeats.  Open it to set
+the password.  ``system_admin`` plus ``is_superuser`` is what unlocks
+``/portal/system`` and the Wagtail admin.
 
 
-8. gunicorn under systemd
-=========================
+8. gunicorn under systemd (``steps/web-service.sh``)
+====================================================
 
 ::
 
-  sudo cp deploy/systemd/caldart-web.service /etc/systemd/system/
+  sudo install -m 0644 deploy/systemd/caldart-web.service /etc/systemd/system/
   sudo systemctl daemon-reload
-  sudo systemctl enable --now caldart-web.service
-  systemctl status caldart-web
+  sudo systemctl enable caldart-web.service
+  sudo systemctl restart caldart-web.service
   curl -sI -H 'Host: caldart.example.org' -H 'X-Forwarded-Proto: https' \
       http://127.0.0.1:8001/ | head -1
+
+The unit is copied with ``/srv/caldart`` replaced by the deploy root, and
+``restart`` both starts a stopped unit and picks up new code on an upgrade.
+The step then waits up to 30 seconds for the ``curl`` to answer ``200``, and on
+a timeout prints the unit's last 30 journal lines and fails.
 
 The unit runs ``/srv/caldart/.venv/bin/gunicorn --config
 /srv/caldart/deploy/gunicorn.conf.py`` as ``caldart``, with
 ``DJANGO_SETTINGS_MODULE=caldart.settings.prod`` and the environment file from
-step 5.  ``deploy/gunicorn.conf.py`` binds loopback only, sizes the worker pool
-at ``2 × cores + 1`` **capped at 12** — every worker preloads Django and
-Wagtail, so a large machine would otherwise spend its memory on idle processes
-— sets a 60 second worker timeout, logs to stdout, and trusts
+step 5.  ``deploy/gunicorn.conf.py`` is read in place and finds the Django
+project from its own location.  It binds loopback only, sizes the worker pool
+at ``2 × cores + 1`` **capped at 12** (every worker preloads Django and
+Wagtail, so a large machine would otherwise spend its memory on idle
+processes), sets a 60 second worker timeout, logs to stdout, and trusts
 ``X-Forwarded-*`` only from ``127.0.0.1``.  Set ``WEB_CONCURRENCY`` in the
 environment file to override the count outright.
 
-It is hardened with the usual systemd sandbox — ``ProtectSystem=strict``,
-``NoNewPrivileges``, an empty capability set — so the only writable paths are
+It is hardened with the usual systemd sandbox (``ProtectSystem=strict``,
+``NoNewPrivileges``, an empty capability set), so the only writable paths are
 ``media/``, ``staticfiles/``, and ``backups/``.  If you move ``BACKUP_DIR``, add
 the new path to ``ReadWritePaths`` or backups will fail with a permission
 error.
 
-The ``curl`` stands in for the web server of step 9, which is not there yet,
-and should answer ``200 OK``.  It needs both headers.  Without the ``Host``
-of a name in ``ALLOWED_HOSTS`` Django answers ``400 Bad Request``, and
-without ``X-Forwarded-Proto: https`` ``SECURE_SSL_REDIRECT`` answers ``301``
-with a redirect to ``https://``.
+The ``curl`` stands in for the web server of step 9, which is not there yet.
+It needs both headers.  Without the ``Host`` of a name in ``ALLOWED_HOSTS``
+Django answers ``400 Bad Request``, and without ``X-Forwarded-Proto: https``
+``SECURE_SSL_REDIRECT`` answers ``301`` with a redirect to ``https://``.
 
 
 .. _deploy-web-server:
 
-9. The web server and TLS
-=========================
+9. The web server and TLS (``steps/web-server.sh``)
+====================================================
 
 The shipped vhosts, ``deploy/apache/caldart.conf`` and
 ``deploy/nginx/caldart.conf``, each hold two hosts: one on port 80 that
@@ -560,23 +712,36 @@ answers certbot's challenges and redirects everything else to HTTPS, and one
 on port 443 that terminates TLS and proxies to gunicorn.  The port-443 host
 names the certificate files and certbot's TLS options file, and neither
 server loads a configuration that names a file that does not exist.  So the
-order is fixed:
+order is fixed, and the step follows it for whichever server the install record
+names:
 
 1. serve the challenge directory over plain HTTP with a small bootstrap host;
 2. obtain the certificate with ``certbot certonly --webroot``;
 3. have certbot's plugin write its options file;
 4. replace the bootstrap host with the shipped vhost.
 
-Use Apache or nginx, never both on the same host.  In every file and command
-below, replace ``caldart.example.org`` with the real hostname; it must also be
-in ``ALLOWED_HOSTS``, and its ``https://`` form in ``CSRF_TRUSTED_ORIGINS``.
-Its DNS ``A`` (and ``AAAA``) records must already point at this server, and
-ports 80 and 443 must be open, or the certificate step fails.
+The first two are skipped once ``/etc/letsencrypt/live/HOST/fullchain.pem``
+exists, so a second run never asks Let's Encrypt again.  The fourth runs every
+time: the vhost is configuration, not data, and the step rewrites it from the
+shipped file.  With ``--tls self-signed`` the first two become one ``openssl``
+command (:ref:`deploy-self-signed`).  With certbot the step also installs the
+renewal hook of :ref:`deploy-renewal-hsts`.
+
+Use Apache or nginx, never both on the same host: the step leaves the other
+server's configuration alone and refuses to run while both ``apache2`` and
+``nginx`` are active.  The shipped files name ``caldart.example.org``, and the
+step writes the real hostname in its place, drops the ``www.`` alias under
+``--no-www``, and replaces ``/srv/caldart`` with the deploy root, as the
+commands below show by hand.  The hostname is also in ``ALLOWED_HOSTS``, and
+its ``https://`` form in ``CSRF_TRUSTED_ORIGINS`` (step 5).  Its DNS ``A`` (and
+``AAAA``) records must already point at this server, and ports 80 and 443 must
+be open, or the certificate step fails.
 
 Apache
 ------
 
-Enable the modules the vhost needs::
+The modules the vhost needs, which the step enables just before it installs
+the vhost::
 
   sudo a2enmod proxy proxy_http headers ssl rewrite deflate expires http2
 
@@ -603,7 +768,11 @@ certificate authority fetches it over port 80, and the certificate lands in
 ``/etc/letsencrypt/live/caldart.example.org/``::
 
   sudo certbot certonly --webroot -w /var/www/certbot \
-       -d caldart.example.org -d www.caldart.example.org
+       -d caldart.example.org -d www.caldart.example.org \
+       --non-interactive --agree-tos -m ops@example.org
+
+``--certbot-email`` supplies the address, and ``--certbot-staging`` adds
+``--staging``.
 
 **The TLS options file.**  The port-443 host includes
 ``/etc/letsencrypt/options-ssl-apache.conf``, certbot's recommended protocols
@@ -615,16 +784,21 @@ there::
   sudo certbot plugins --init --prepare --installers
   ls /etc/letsencrypt/options-ssl-apache.conf
 
-**The vhost.**  Swap the bootstrap host for the shipped one, set the hostname,
-and check the syntax before reloading::
+**The vhost.**  Swap the bootstrap host for the shipped one with the hostname
+and the deploy root written in, and check the syntax before reloading::
 
   sudo a2dissite caldart-acme
-  sudo cp deploy/apache/caldart.conf /etc/apache2/sites-available/caldart.conf
-  sudoedit /etc/apache2/sites-available/caldart.conf   # ServerName, ServerAlias
+  sudo rm /etc/apache2/sites-available/caldart-acme.conf
+  sed -e "s#/srv/caldart#$ROOT#g" -e "s/caldart\.example\.org/$HOST/g" \
+      deploy/apache/caldart.conf \
+      | sudo install -m 0644 /dev/stdin /etc/apache2/sites-available/caldart.conf
   sudo a2ensite caldart
   sudo apachectl configtest
   sudo systemctl reload apache2
-  sudo rm /etc/apache2/sites-available/caldart-acme.conf
+
+``$ROOT`` is the deploy root and ``$HOST`` the hostname; the dry run of the
+step prints the command with the real values.  Under ``--no-www`` a third
+expression drops the ``ServerAlias`` line.
 
 The vhost:
 
@@ -680,14 +854,15 @@ port 80; it can stay, because a request for the CalDART hostname matches the
       }
   }
   EOF
-  sudo ln -s /etc/nginx/sites-available/caldart-acme /etc/nginx/sites-enabled/
+  sudo ln -sfn /etc/nginx/sites-available/caldart-acme /etc/nginx/sites-enabled/caldart-acme
   sudo nginx -t
   sudo systemctl reload nginx
 
 **The certificate.**  Exactly as for Apache::
 
   sudo certbot certonly --webroot -w /var/www/certbot \
-       -d caldart.example.org -d www.caldart.example.org
+       -d caldart.example.org -d www.caldart.example.org \
+       --non-interactive --agree-tos -m ops@example.org
 
 **The TLS options files.**  The port-443 server includes
 ``/etc/letsencrypt/options-ssl-nginx.conf`` and reads
@@ -702,16 +877,18 @@ both files are there::
 **The vhost.**  Swap the bootstrap server for the shipped one::
 
   sudo rm /etc/nginx/sites-enabled/caldart-acme /etc/nginx/sites-available/caldart-acme
-  sudo cp deploy/nginx/caldart.conf /etc/nginx/sites-available/caldart
-  sudoedit /etc/nginx/sites-available/caldart          # server_name, both servers
-  sudo ln -s /etc/nginx/sites-available/caldart /etc/nginx/sites-enabled/
+  sed -e "s#/srv/caldart#$ROOT#g" -e "s/caldart\.example\.org/$HOST/g" \
+      deploy/nginx/caldart.conf \
+      | sudo install -m 0644 /dev/stdin /etc/nginx/sites-available/caldart
+  sudo ln -sfn /etc/nginx/sites-available/caldart /etc/nginx/sites-enabled/caldart
   sudo nginx -t
   sudo systemctl reload nginx
 
 The file turns HTTP/2 on with ``http2 on;``, a directive nginx has had since
 1.25.1; Debian 13 ships 1.26.  Ubuntu 24.04 ships 1.24, where ``nginx -t``
-stops on ``unknown directive "http2"``.  There, move HTTP/2 onto the two
-``listen 443`` lines after the ``cp`` and before ``nginx -t``::
+stops on ``unknown directive "http2"``.  When ``nginx -v`` reports a version
+older than 1.25.1, the step moves HTTP/2 onto the two ``listen 443`` lines
+after writing the file and before ``nginx -t``::
 
   sudo sed -i -e '/^ *http2 *on;/d' \
       -e 's/listen\( *\)443 ssl;/listen\1443 ssl http2;/' \
@@ -752,6 +929,32 @@ The file leaves compression to the ``http`` block of ``/etc/nginx/nginx.conf``,
 where Debian's stock configuration already turns ``gzip`` on for HTML; its
 header comment lists the lines that extend it to JSON, CSS, and JavaScript.
 
+.. _deploy-self-signed:
+
+Self-signed instead
+-------------------
+
+With ``--tls self-signed`` there is no bootstrap host and no request to Let's
+Encrypt.  The certificate is made once, for each name the site answers for,
+and kept for ten years::
+
+  sudo install -d -m 0750 -o root -g root /etc/caldart/tls
+  sudo openssl req -x509 -newkey rsa:2048 -nodes -days 3650 \
+      -subj /CN=caldart.example.org \
+      -addext subjectAltName=DNS:caldart.example.org,DNS:www.caldart.example.org \
+      -keyout /etc/caldart/tls/privkey.pem -out /etc/caldart/tls/fullchain.pem
+  sudo chmod 0640 /etc/caldart/tls/privkey.pem
+
+The TLS options step still runs, since the vhost includes certbot's options
+file in both modes, and the vhost is written with its two certificate paths
+pointing at ``/etc/caldart/tls/``.  To move to a real certificate later, run
+``sudo deploy/install.sh --tls certbot --certbot-email ADDRESS`` once the
+hostname's DNS points at the box: the record changes and step 9 requests one.
+Remove ``SECURE_HSTS_SECONDS=0`` from the environment file afterwards to turn
+HSTS on.
+
+.. _deploy-renewal-hsts:
+
 Renewal and HSTS
 ----------------
 
@@ -762,8 +965,9 @@ reachable.  Rehearse a renewal with::
   sudo certbot renew --dry-run
 
 The certificate files are replaced in place, but the web server reads them
-only at start-up, so reload it after a renewal.  certbot runs every script in
-``/etc/letsencrypt/renewal-hooks/deploy/`` after a successful renewal::
+only at start-up, so it has to be reloaded after a renewal.  certbot runs every
+script in ``/etc/letsencrypt/renewal-hooks/deploy/`` after a successful
+renewal, and with certbot the step installs this one::
 
   sudo tee /etc/letsencrypt/renewal-hooks/deploy/reload-web-server >/dev/null <<'EOF'
   #!/bin/sh
@@ -771,23 +975,32 @@ only at start-up, so reload it after a renewal.  certbot runs every script in
   EOF
   sudo chmod 0755 /etc/letsencrypt/renewal-hooks/deploy/reload-web-server
 
-Turn HSTS off for the first deploy of a new hostname: set
-``SECURE_HSTS_SECONDS=0`` in ``/etc/caldart/caldart.env`` and restart
-``caldart-web``, until HTTPS is known good.  That one setting is the whole
-switch — neither vhost sets a ``Strict-Transport-Security`` header of its own.
+``SECURE_HSTS_SECONDS`` in ``/etc/caldart/caldart.env`` is the whole HSTS
+switch: neither vhost sets a ``Strict-Transport-Security`` header of its own.
+With certbot the installer leaves the template's one-year default in place,
+because it confirms HTTPS answers before it finishes (:ref:`deploy-check`); with a
+self-signed certificate it writes ``0``.  To be more cautious on a new
+hostname, set ``0`` and restart ``caldart-web`` until HTTPS is known good.
 Browsers honor the header for its full duration and there is no way to take it
 back early.  ``SECURE_HSTS_PRELOAD`` stays off unless you mean to join the
 browser preload list; :doc:`configuration` explains what that commits the site
 to.
 
 
-10. Renewal reminders
-=====================
+10. Renewal reminders (``steps/timers.sh``)
+===========================================
+
+Steps 10 to 14, and the backup timer of step 15, are one script:
+``steps/timers.sh`` copies the six service and timer pairs into
+``/etc/systemd/system`` with ``/srv/caldart`` replaced by the deploy root, runs
+``systemctl daemon-reload`` once, enables and starts every timer, and starts
+the first registry import.  Each section shows the commands for its own pair.
+Reinstalling the units is how an upgrade picks up a changed one.
 
 ::
 
-  sudo cp deploy/systemd/caldart-reminders.service \
-          deploy/systemd/caldart-reminders.timer /etc/systemd/system/
+  sudo install -m 0644 deploy/systemd/caldart-reminders.service \
+      deploy/systemd/caldart-reminders.timer /etc/systemd/system/
   sudo systemctl daemon-reload
   sudo systemctl enable --now caldart-reminders.timer
   systemctl list-timers caldart-reminders.timer
@@ -797,13 +1010,13 @@ the kinds, the templates and how to change the cadence.
 
 .. _deploy-renewals:
 
-11. Automatic renewals
-======================
+11. Automatic renewals (``steps/timers.sh``)
+============================================
 
 ::
 
-  sudo cp deploy/systemd/caldart-renewals.service \
-          deploy/systemd/caldart-renewals.timer /etc/systemd/system/
+  sudo install -m 0644 deploy/systemd/caldart-renewals.service \
+      deploy/systemd/caldart-renewals.timer /etc/systemd/system/
   sudo systemctl daemon-reload
   sudo systemctl enable --now caldart-renewals.timer
   systemctl list-timers caldart-renewals.timer
@@ -818,13 +1031,13 @@ See :doc:`renewals` for what it charges, when, and how to change the cadence.
 
 .. _deploy-reports:
 
-12. Scheduled reports
-=====================
+12. Scheduled reports (``steps/timers.sh``)
+===========================================
 
 ::
 
-  sudo cp deploy/systemd/caldart-reports.service \
-          deploy/systemd/caldart-reports.timer /etc/systemd/system/
+  sudo install -m 0644 deploy/systemd/caldart-reports.service \
+      deploy/systemd/caldart-reports.timer /etc/systemd/system/
   sudo systemctl daemon-reload
   sudo systemctl enable --now caldart-reports.timer
   systemctl list-timers caldart-reports.timer
@@ -833,19 +1046,19 @@ Daily at 06:00, with catch-up if the machine was off: whatever was due is still
 due, and the next run sends it.  It sends the report subscriptions that are due
 and each DART's monthly roster; it needs the database and the SMTP server, from
 the same ``/etc/caldart/caldart.env``.  Rehearse the first of next month with
-``caldart_manage send_scheduled_reports --dry-run --today <YYYY-MM-01>``.  See
+``sudo deploy/manage.sh send_scheduled_reports --dry-run --today <YYYY-MM-01>``.  See
 :doc:`scheduled-reports` for what it sends, and when.
 
 
 .. _deploy-statements:
 
-13. Year-end statements
-========================
+13. Year-end statements (``steps/timers.sh``)
+=============================================
 
 ::
 
-  sudo cp deploy/systemd/caldart-statements.service \
-          deploy/systemd/caldart-statements.timer /etc/systemd/system/
+  sudo install -m 0644 deploy/systemd/caldart-statements.service \
+      deploy/systemd/caldart-statements.timer /etc/systemd/system/
   sudo systemctl daemon-reload
   sudo systemctl enable --now caldart-statements.timer
   systemctl list-timers caldart-statements.timer
@@ -856,22 +1069,22 @@ every active account -- a member, a friend, or a donor -- that made a settled
 contribution the year before, with that year's statement PDF attached; it
 needs the database and the SMTP server, from the same
 ``/etc/caldart/caldart.env``.  Rehearse it any time with
-``caldart_manage send_year_statements --dry-run --today <YYYY-01-15>``.  See
+``sudo deploy/manage.sh send_year_statements --dry-run --today <YYYY-01-15>``.  See
 :doc:`statements` for who is sent one, and when.
 
 
 .. _deploy-registry:
 
-14. The FAA registry
-====================
+14. The FAA registry (``steps/timers.sh``)
+==========================================
 
 ::
 
-  sudo cp deploy/systemd/caldart-registry.service \
-          deploy/systemd/caldart-registry.timer /etc/systemd/system/
+  sudo install -m 0644 deploy/systemd/caldart-registry.service \
+      deploy/systemd/caldart-registry.timer /etc/systemd/system/
   sudo systemctl daemon-reload
   sudo systemctl enable --now caldart-registry.timer
-  sudo systemctl start caldart-registry.service
+  sudo systemctl start --no-block caldart-registry.service
   systemctl list-timers caldart-registry.timer
 
 Daily at 04:30, with catch-up if the machine was off: every run replaces the
@@ -890,36 +1103,59 @@ starts another.  See :doc:`aircraft-registry` for what the import reads and
 writes.
 
 
-15. Backups
-===========
+15. Backups (``steps/timers.sh``, ``steps/backup.sh``)
+======================================================
 
-Take one now and schedule them::
+The backup timer is installed with the other scheduled jobs::
 
-  caldart_manage db_backup
+  sudo install -m 0644 deploy/systemd/caldart-backup.service \
+      deploy/systemd/caldart-backup.timer /etc/systemd/system/
+  sudo systemctl daemon-reload
+  sudo systemctl enable --now caldart-backup.timer
+  systemctl list-timers caldart-backup.timer
 
-:doc:`backup-restore` covers the commands, the timer, retention, and restoring.
+Daily at 03:30, with catch-up if the machine was off.  Each run writes a dump
+to ``BACKUP_DIR`` and deletes the generated dumps older than
+``BACKUP_RETENTION_DAYS`` (30 in the environment file the installer writes).
+Then ``steps/backup.sh`` takes one straight away, so a fresh install has a dump
+before anything else happens::
+
+  sudo deploy/manage.sh db_backup
+
+:doc:`backup-restore` covers the commands, the timer, retention, copying dumps
+off the machine, and restoring.
 
 
-Checking it worked
-==================
+.. _deploy-check:
 
-::
+Checking it worked (``steps/check.sh``)
+=======================================
 
-  systemctl status caldart-web caldart-reminders.timer caldart-renewals.timer \
-      caldart-reports.timer caldart-statements.timer caldart-registry.timer
-  sudo docker compose ps
-  curl -sI https://caldart.example.org/ | head -1
-  caldart_manage health --json
+The last step checks what the others built, and fails naming every check that
+missed::
 
-The ``health`` command prints the same report as ``GET /system/health`` and the
-health panel of ``/portal/system``: database connectivity, pending migrations,
-free space on the backup filesystem, the last backup, the version from
-``pyproject.toml``, and whether ``DEBUG`` is on.  On a healthy production box
-``debug`` is ``false`` and ``pending_migrations`` is ``0``.
+  systemctl is-active caldart-web.service caldart-backup.timer \
+      caldart-registry.timer caldart-reports.timer caldart-renewals.timer \
+      caldart-reminders.timer caldart-statements.timer
+  sudo docker compose ps --format '{{.Health}}' db        # healthy
+  curl -sk --resolve caldart.example.org:443:127.0.0.1 https://caldart.example.org/
+  curl -sk --resolve caldart.example.org:443:127.0.0.1 \
+      https://caldart.example.org/portal/login
+  sudo deploy/manage.sh health --json
+
+Both ``curl`` requests must answer ``200``.  ``--resolve`` sends them to this
+machine whatever the DNS says, and ``-k`` accepts a self-signed certificate.
+The ``health`` command prints the same report as ``GET /system/health`` and
+the health panel of ``/portal/system``: database connectivity, pending
+migrations, free space on the backup filesystem, the last backup, the version
+from ``pyproject.toml``, and whether ``DEBUG`` is on.  The step requires
+``debug`` to be ``false`` and ``pending_migrations`` to be ``0``.  Then it
+prints the summary described under :ref:`deploy-install-scripts`.
 
 Then, in a browser: the public site loads and is styled, ``/portal/`` signs you
 in, ``/admin/`` opens Wagtail, every check on the health panel of
-``/portal/system`` is green, and the **User guide** link at the foot of the portal's menu opens the user guide.
+``/portal/system`` is green, and the **User guide** link at the foot of the
+portal's menu opens the user guide.
 
 
 Deployment checks
@@ -1003,6 +1239,7 @@ Reminder runs                ``journalctl -u caldart-reminders -n 50``
 Renewal runs                 ``journalctl -u caldart-renewals -n 50``
 Scheduled report runs        ``journalctl -u caldart-reports -n 50``
 Year-end statement runs      ``journalctl -u caldart-statements -n 50``
+Nightly backups              ``journalctl -u caldart-backup -n 20``
 FAA registry imports         ``journalctl -u caldart-registry -n 50``; an
                              import started with **Run now** logs to
                              ``journalctl -u caldart-web``
@@ -1121,38 +1358,72 @@ portal, is the ``AuditEntry`` model in :doc:`roadmap`.
 Upgrading
 =========
 
-Take a backup first, always.  ``caldart_manage`` is the function from
-:ref:`deploy-manage-commands`::
+::
 
-  caldart_manage db_backup
+  sudo deploy/upgrade.sh                 # pull the current branch
+  sudo deploy/upgrade.sh --ref v1.4      # or check out a branch, tag, or commit
 
-  cd /srv/caldart
-  sudo git pull
-  sudo env UV_PYTHON_INSTALL_DIR=/opt/uv/python uv sync --frozen --no-dev --group docs
-  cd frontend && sudo npm ci && sudo npm run build && cd ..
-  sudo .venv/bin/sphinx-build -n -W -b dirhtml -t guide -c docs docs/user docs/_build/guide
+``upgrade.sh`` runs, in order:
 
-  caldart_manage migrate
-  caldart_manage createcachetable
-  caldart_manage collectstatic --noinput
+1. a backup, ``sudo deploy/manage.sh db_backup``, always first, unless a
+   plain upgrade finds the checkout on a detached ``HEAD`` (as a rollback with
+   ``--ref`` leaves it), where it stops before anything runs and asks for
+   ``--ref <branch>``;
+2. a refusal if ``git status --porcelain`` shows local changes in the checkout;
+3. ``git pull --ff-only``, or with ``--ref`` a ``git fetch origin`` and ``git
+   checkout REF`` (then ``git pull --ff-only`` when the ref is a branch);
+4. step 6, the build (``steps/build.sh``);
+5. step 7's database commands (``steps/database.sh``): ``migrate``,
+   ``createcachetable``, ``seed_roles``, and ``collectstatic``, with no
+   administrator and no example content;
+6. step 8 (``steps/web-service.sh``), which reinstalls the web unit and
+   restarts it, then waits for gunicorn to answer;
+7. ``steps/timers.sh``, which reinstalls the job units and reloads systemd;
+8. the checks (``steps/check.sh``).
 
-  sudo systemctl restart caldart-web
-  journalctl -u caldart-web -n 30
+Each step runs as the freshly checked-out script, so an upgrade that changes
+the installer runs the changed one.  Order matters: the frontend is built
+before ``collectstatic``, and the web unit restarts after both.  The guide is
+rebuilt in the same sequence, so the copy at ``/docs/`` is always the one the
+running code describes; Django reads it off disk on every request, so it needs
+no restart of its own.  ``createcachetable`` is idempotent, and it is in the
+list so that no upgrade can leave a box without ``caldart_cache``.
+``preload_app`` is on, so a restart, and not a reload, is what picks up new
+code.  The timers start a fresh process on every run, so they pick up the new
+code by themselves; reinstalling their units carries any change to a unit file.
 
-Order matters: build the frontend before ``collectstatic``, and restart the web
-unit last.  The guide is rebuilt in the same sequence, so the copy at ``/docs/``
-is always the one the running code describes; Django reads it off disk on every
-request, so it needs no restart of its own.  ``createcachetable`` is
-idempotent: it does nothing when ``caldart_cache`` is already there, and it is
-in the list so that no upgrade can leave a box without it.  ``preload_app`` is
-on, so a restart, and not a reload, is what picks up new code.  The timers
-start a fresh process on every run, so they pick up the new code by
-themselves; copy a unit file again, and ``systemctl daemon-reload``, only when
-``git pull`` changed one under ``deploy/systemd/``.
+An upgrade never touches the environment file or the vhost.  A change to
+either is made by hand (``sudoedit`` and a restart), or, for the vhost, by
+running ``sudo deploy/steps/web-server.sh``, which rewrites it from the shipped
+file.
 
-Rolling back is the same sequence against the previous commit, plus a
-``db_restore`` if the schema the previous commit expects differs from the
-one currently applied.
+Rolling back is ``sudo deploy/upgrade.sh --ref <the previous commit>``, plus,
+when the schema the previous commit expects differs from the one applied,
+a ``sudo deploy/manage.sh db_restore`` of the dump the upgrade took first.
+The rollback leaves the checkout on a detached ``HEAD``, so the next upgrade
+names the branch again (``--ref main``).  The restore stays a command run by hand, because it drops the database
+(:doc:`backup-restore`).
+
+
+Uninstalling
+============
+
+::
+
+  sudo deploy/uninstall.sh --yes              # the services, the units, the vhost
+  sudo deploy/uninstall.sh --yes --purge      # ... and every piece of data
+
+``uninstall.sh`` refuses to run without ``--yes``.  It stops and disables
+``caldart-web`` and the six timers, removes their unit files and reloads
+systemd, removes the vhost and any bootstrap host from the web server the
+install record names and reloads that server, and removes the certbot renewal
+hook.  ``--purge`` also removes ``/etc/caldart`` (the environment file, the
+install record, and a self-signed certificate), runs ``docker compose down
+-v`` from the deploy root, which deletes the ``caldart_pgdata`` volume and every
+row in it, and removes the deploy root, uploads and dumps included.  Copy off
+what you want to keep first.  Each removal prints what it removed, and anything
+already absent is skipped.  Certificates under ``/etc/letsencrypt`` and the
+operating system packages stay in both modes.
 
 
 .. _deploy-troubleshooting:
@@ -1161,54 +1432,74 @@ Troubleshooting
 ===============
 
 **502 from Apache.**  gunicorn is not running or not on 8001.  ``systemctl
-status caldart-web``, then ``journalctl -u caldart-web -n 50``.
+status caldart-web``, then ``journalctl -u caldart-web -n 50``; once the cause
+is fixed, ``sudo deploy/steps/web-service.sh`` restarts it and waits for it to
+answer.
 
 ``caldart-web`` **fails with** ``status=226/NAMESPACE``.  A directory named in
-``ReadWritePaths`` does not exist.  Create ``backend/media``,
-``backend/staticfiles``, and ``backups`` as in :ref:`step 3 <deploy-checkout>`, owned
-by ``caldart``, and start the unit again.
+``ReadWritePaths`` does not exist.  ``sudo deploy/steps/user.sh`` creates
+``backend/media``, ``backend/staticfiles``, and ``backups``, owned by
+``caldart``; then ``sudo deploy/steps/web-service.sh`` starts the unit again.
 
-``git clone`` **says the destination already exists and is not empty.**
-Something created a directory under ``/srv/caldart`` before the clone.  Move
-it aside, clone, then create the three writable directories.
+``bootstrap.sh`` **says the deploy root exists and is not a checkout.**
+Something created ``/srv/caldart`` before the clone (:ref:`step 3
+<deploy-checkout>`).  Move it aside and run ``bootstrap.sh`` again.
 
 ``apachectl configtest`` **or** ``nginx -t`` **says a certificate or**
 ``options-ssl`` **file does not exist.**  The shipped vhost went in before its
-files did.  Put the bootstrap host back, then run the certificate and
-options-file steps of :ref:`step 9 <deploy-web-server>` in order.
+files did.  Disable the shipped vhost and run ``sudo deploy/steps/web-server.sh``,
+which puts the bootstrap host back while the certificate is missing and runs
+the certificate and options-file steps of :ref:`step 9 <deploy-web-server>` in
+order.
 
 **certbot says the challenge failed, or reports a 404.**  The hostname's DNS
 does not point at this server, port 80 is closed, or the bootstrap host is not
 the one answering.  ``curl -I http://caldart.example.org/.well-known/acme-challenge/x``
 from another machine should reach this server and answer 404 from the
-bootstrap host; the port-80 error log names the path it looked for.
+bootstrap host; the port-80 error log names the path it looked for.  Once the
+DNS or the firewall is fixed, run ``sudo deploy/steps/web-server.sh`` again;
+Let's Encrypt limits failed attempts per hour, so check the ``curl`` first.
 
 ``DisallowedHost`` **in the log.**  The hostname is missing from
-``ALLOWED_HOSTS``.  Add it and restart.
+``ALLOWED_HOSTS``.  Add it with ``sudoedit /etc/caldart/caldart.env`` and
+restart ``caldart-web``.
+
+**The install stops at a step.**  Every step is idempotent: fix what its
+error names and run ``sudo deploy/install.sh`` again, with no flags once the
+install record exists, or run that step alone as
+``sudo deploy/steps/<step>.sh``.  ``--dry-run`` shows what a run would do.
+
+**The checks fail.**  ``steps/check.sh`` names each check that missed.  Run it
+alone as ``sudo deploy/steps/check.sh`` after fixing the cause.
 
 **CSRF failures when signing in.**  ``CSRF_TRUSTED_ORIGINS`` must list the
 ``https://`` origin, and the proxy must set ``X-Forwarded-Proto``.  Both are in
 this document; check the vhost was actually reloaded.
 
 **Unstyled pages, or** ``Manifest file not found``.  ``npm run build`` did not
-run, or ``collectstatic`` did not.  Run both, then restart the unit.
+run, or ``collectstatic`` did not.  Run ``sudo deploy/steps/build.sh``, then
+``sudo deploy/steps/database.sh``, then ``sudo deploy/steps/web-service.sh``.
 
 ``/docs/`` **answers 404 and the journal says the user guide has not been
 built.**  The Sphinx step of :ref:`the build <deploy-build>` did not run, or
-``USER_GUIDE_ROOT`` names a directory with no ``index.html``.  Run it, or point
-the variable at the directory it wrote to.
+``USER_GUIDE_ROOT`` names a directory with no ``index.html``.  Run
+``sudo deploy/steps/build.sh``, or point the variable at the directory it
+wrote to.
 
 ``ValueError: Missing staticfiles manifest entry``.  ``collectstatic`` ran
-before the frontend build.  Run them in that order and restart.
+before the frontend build.  Run ``sudo deploy/steps/build.sh``, then
+``sudo deploy/steps/database.sh``, then ``sudo deploy/steps/web-service.sh``.
 
 **Backups fail with a permission error.**  ``BACKUP_DIR`` is outside the
-``ReadWritePaths`` in ``caldart-web.service``, or is not owned by ``caldart``.
+``ReadWritePaths`` in ``caldart-web.service`` and ``caldart-backup.service``, or
+is not owned by ``caldart``; ``sudo deploy/steps/user.sh`` restores the
+ownership of the deploy root's ``backups``.
 
 **Redirect loop.**  ``SECURE_SSL_REDIRECT`` is on but the proxy is not sending
 ``X-Forwarded-Proto: https``, so Django redirects a request it thinks is plain
 HTTP, forever.  Fix the header rather than turning the redirect off.
 
-**No email.**  Check ``EMAIL_URL`` and try ``caldart_manage
+**No email.**  Check ``EMAIL_URL`` and try ``sudo deploy/manage.sh
 send_renewal_reminders --dry-run``; then send one for real and read
 ``journalctl -u caldart-web``.  Many providers need
 ``smtp+tls://`` on port 587 with an app password rather than the account one.

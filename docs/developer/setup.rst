@@ -348,9 +348,12 @@ list, in full:
        and its own server (port ``8021``, or ``E2E_PORT``), with the mock
        payment provider and the file email backend; see :doc:`testing`
    * - ``lint``
-     - ``lint-backend``, ``lint-frontend``, then ``lint-spelling``
+     - ``lint-backend``, ``lint-shell``, ``lint-frontend``, then
+       ``lint-spelling``
    * - ``lint-backend``
      - ``ruff check``, ``ruff format --check`` and ``mypy backend``
+   * - ``lint-shell``
+     - ``shellcheck`` over every script under ``deploy/`` and ``scripts/``
    * - ``lint-frontend``
      - ``tsc --noEmit``, ``eslint``, ``prettier --check``, then
        ``theme-contrast``, the WCAG contrast check over every theme
@@ -501,7 +504,8 @@ Five commands must be green, and CI runs all five on every pull request:
 .. code-block:: console
 
    $ make test     # pytest + vitest; a warning fails the run
-   $ make lint     # ruff, mypy, tsc, eslint (no warnings), prettier, codespell
+   $ make lint     # ruff, mypy, shellcheck, tsc, eslint (no warnings), prettier,
+                   # codespell
    $ make check    # manage.py check, makemigrations --check, spectacular,
                    # check-deploy, npm run typecheck and npm run build
    $ make docs     # sphinx-build -n -W: nitpicky, warnings are errors

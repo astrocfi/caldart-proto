@@ -1,8 +1,10 @@
 """Gunicorn configuration for the CalDART application server.
 
-The deploy path is ``/srv/caldart`` -- a checkout of this repository with its
-``uv``-managed virtualenv at ``/srv/caldart/.venv``.  Loaded by the systemd
-unit in ``deploy/systemd/caldart-web.service``::
+The deploy root defaults to ``/srv/caldart`` -- a checkout of this repository with
+its ``uv``-managed virtualenv at ``/srv/caldart/.venv`` -- but this file is read in
+place and finds the checkout from its own location, so a checkout anywhere else
+works unchanged.  Loaded by the systemd unit in
+``deploy/systemd/caldart-web.service``::
 
     /srv/caldart/.venv/bin/gunicorn --config /srv/caldart/deploy/gunicorn.conf.py
 
@@ -15,12 +17,16 @@ from this file.
 
 import multiprocessing
 import os
+from pathlib import Path
 
 # --- Application ------------------------------------------------------------
 
+# The checkout this file belongs to: deploy/ sits at its top.
+DEPLOY_ROOT = Path(__file__).resolve().parents[1]
+
 # Django project root.  manage.py, the caldart package, media/ and
 # staticfiles/ all live here, and relative paths in settings resolve from it.
-chdir = "/srv/caldart/backend"
+chdir = str(DEPLOY_ROOT / "backend")
 
 # The WSGI callable, resolved relative to ``chdir``.
 wsgi_app = "caldart.wsgi:application"
