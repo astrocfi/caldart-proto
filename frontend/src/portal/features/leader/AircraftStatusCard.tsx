@@ -1,44 +1,69 @@
 /**
- * The aircraft half of the leader check: is the insurance on this
- * tail number current, who flies it, and how fresh is the record?
+ * The aircraft half of the leader check: is the insurance on this tail number
+ * current and verified, who flies it, and how fresh is the record?  A verifier
+ * corrects and verifies the insurance from the card's head.
  */
+import { useState } from 'react';
 import type { JSX } from 'react';
 
-import type { AircraftDetail, AircraftSummary } from '@/portal/api/types';
+import type { Aircraft, AircraftDetail } from '@/portal/api/types';
+import { Button } from '@/portal/components/Button';
 import { DateText } from '@/portal/components/DateText';
 import { Money } from '@/portal/components/Money';
 import { StatusChip } from '@/portal/components/StatusChip';
 import type { StatusTone } from '@/portal/components/StatusChip';
+import { VerifiedMark } from '@/portal/components/VerifiedMark';
 import { InsuranceChip } from '@/portal/features/aircraft/InsuranceChip';
 import { ServiceChip } from '@/portal/features/aircraft/ServiceChip';
 import { OWNER_TYPE_LABELS } from '@/portal/features/aircraft/form';
 import { insuranceTone } from '@/portal/features/aircraft/insurance';
+import { InsuranceVerificationPanel } from '@/portal/features/verification/InsuranceVerificationPanel';
+import { useCanVerify } from '@/portal/features/verification/useCanVerify';
 import './leader.css';
 
-interface Verdict {
+export interface Verdict {
   word: string;
   why: string;
+  /** What the results list's mark reads: *Insured*, *Not verified*, or *Not insured*. */
+  mark: string;
   go: boolean;
 }
 
 const VERDICT: Record<StatusTone, Verdict> = {
-  current: { word: 'INSURED', why: 'Coverage is current', go: true },
-  expiring: { word: 'INSURED', why: 'Coverage expires soon', go: true },
+  current: { word: 'INSURED', why: 'Coverage is current', mark: 'Insured', go: true },
+  expiring: { word: 'INSURED', why: 'Coverage expires soon', mark: 'Insured', go: true },
   // Unreachable for insurance; kept so the map stays total over the tones.
-  new: { word: 'NOT INSURED', why: 'No policy on file', go: false },
-  expired: { word: 'NOT INSURED', why: 'Coverage has expired', go: false },
-  none: { word: 'NOT INSURED', why: 'No policy on file', go: false },
+  new: { word: 'NOT INSURED', why: 'No policy on file', mark: 'Not insured', go: false },
+  expired: { word: 'NOT INSURED', why: 'Coverage has expired', mark: 'Not insured', go: false },
+  none: { word: 'NOT INSURED', why: 'No policy on file', mark: 'Not insured', go: false },
 };
 
+/** A current policy nobody has checked against the documents: not yet a go. */
+const NOT_VERIFIED: Verdict = {
+  word: 'NOT VERIFIED',
+  why: 'Coverage is current but not verified',
+  mark: 'Not verified',
+  go: false,
+};
+
+type InsuranceFacts = Pick<
+  Aircraft,
+  'insurance_is_current' | 'insurance_expiration' | 'insurance_verification'
+>;
+
 /**
- * Whether an aircraft's insurance lets it fly: a current policy, including one
- * about to expire.  The results list and the card's band read the same answer.
+ * The aircraft check's verdict: INSURED for a current, verified policy (one about
+ * to expire included), NOT VERIFIED for a current one nobody has verified, and NOT
+ * INSURED for no current policy.  The results list and the card read the same answer.
  */
-export function isInsured(
-  aircraft: Pick<AircraftSummary, 'insurance_is_current' | 'insurance_expiration'>,
-  today?: Date,
-): boolean {
-  return VERDICT[insuranceTone(aircraft, today)].go;
+export function insuranceVerdict(aircraft: InsuranceFacts, today?: Date): Verdict {
+  const verdict = VERDICT[insuranceTone(aircraft, today)];
+  return verdict.go && !aircraft.insurance_verification.verified ? NOT_VERIFIED : verdict;
+}
+
+/** Whether an aircraft's insurance lets it fly: current and verified. */
+export function isInsured(aircraft: InsuranceFacts, today?: Date): boolean {
+  return insuranceVerdict(aircraft, today).go;
 }
 
 export interface AircraftStatusCardProps {
@@ -48,7 +73,9 @@ export interface AircraftStatusCardProps {
 
 /** The aircraft half of the leader check: insurance status and the pilots who fly it. */
 export function AircraftStatusCard({ aircraft, today }: AircraftStatusCardProps): JSX.Element {
-  const verdict = VERDICT[insuranceTone(aircraft, today)];
+  const verdict = insuranceVerdict(aircraft, today);
+  const canVerify = useCanVerify();
+  const [verifying, setVerifying] = useState(false);
   // Only a leader or administrator is sent the pilot list.
   const pilots = aircraft.pilots ?? [];
 
@@ -70,7 +97,18 @@ export function AircraftStatusCard({ aircraft, today }: AircraftStatusCardProps)
           {aircraft.year ? ` · ${aircraft.year}` : ''}
           {aircraft.seats ? ` · ${aircraft.seats} seats` : ''}
         </p>
+        {canVerify && !verifying ? (
+          <div className="leader-card__actions cluster">
+            <Button variant="secondary" small onClick={() => setVerifying(true)}>
+              Verify
+            </Button>
+          </div>
+        ) : null}
       </header>
+
+      {verifying ? (
+        <InsuranceVerificationPanel aircraft={aircraft} onClose={() => setVerifying(false)} />
+      ) : null}
 
       <dl className="leader-rows">
         <div className="leader-row">
@@ -86,6 +124,7 @@ export function AircraftStatusCard({ aircraft, today }: AircraftStatusCardProps)
                 </>
               ) : null}
             </span>
+            <VerifiedMark verification={aircraft.insurance_verification} />
           </dd>
         </div>
 

@@ -49,6 +49,7 @@ export function ProfilePage(): JSX.Element {
   }
 
   const serverErrors = save.error instanceof ApiError ? save.error.fieldErrors : undefined;
+  const { verification } = profile.data;
 
   return (
     <Page
@@ -64,6 +65,7 @@ export function ProfilePage(): JSX.Element {
       <Card>
         <ProfileForm
           initialValues={profileToForm(profile.data)}
+          verification={verification}
           submitting={save.isPending}
           serverErrors={serverErrors}
           onSubmit={(patch) =>

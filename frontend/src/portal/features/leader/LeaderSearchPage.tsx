@@ -11,19 +11,20 @@ import type { LeaderGoNoGo, LeaderSearchResult } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { EmptyState } from '@/portal/components/EmptyState';
 import { looksLikeRegistration, normalizeNNumber } from '@/portal/features/aircraft/insurance';
+import { reportExportUrl } from '@/portal/reports/api';
 import { GoMark, LeaderLookup } from './LeaderLookup';
 import { MemberStatusCard } from './MemberStatusCard';
 import { useLeaderSearch, useMemberStatus } from './api';
 import './leader.css';
 
 /**
- * Whether a search row is a go: both counts the server reports have to be true.
+ * Whether a search row is a go: all three counts the server reports have to be true.
  *
- * The same two booleans drive the verdict band on the status card, so the list
+ * The same three booleans drive the verdict band on the status card, so the list
  * and the card can never disagree about who may fly.
  */
 function isReady(goNoGo: LeaderGoNoGo): boolean {
-  return goNoGo.membership && goNoGo.medical;
+  return goNoGo.membership && goNoGo.medical && goNoGo.verified;
 }
 
 /**
@@ -40,7 +41,8 @@ export function LeaderSearchPage(): JSX.Element {
   return (
     <LeaderLookup<LeaderSearchResult>
       title="Member check"
-      lede="Look someone up before a flight: membership, medical, certificate, and the insurance on the planes they fly."
+      lede="Look someone up before a flight: membership, medical, certificate, photo ID, and the insurance on the planes they fly."
+      aboveSearch={<VerificationReportLinks />}
       param="member"
       parse={parseMemberId}
       label="Name, email, phone, or N-number"
@@ -62,6 +64,30 @@ export function LeaderSearchPage(): JSX.Element {
       renderEmpty={(term) => <NoMemberFound term={term} />}
       renderSelected={(id, handleBack) => <MemberCheck userId={Number(id)} onBack={handleBack} />}
     />
+  );
+}
+
+/**
+ * The verification report, downloaded with its default filter: every item nobody has
+ * verified yet.
+ */
+function VerificationReportLinks(): JSX.Element {
+  return (
+    <p className="cluster leader-report">
+      <span className="muted">Verification report</span>
+      <a
+        className="button button--quiet button--small"
+        href={reportExportUrl('verification', 'csv', {})}
+      >
+        Export CSV
+      </a>
+      <a
+        className="button button--quiet button--small"
+        href={reportExportUrl('verification', 'pdf', {})}
+      >
+        Export PDF
+      </a>
+    </p>
   );
 }
 
@@ -120,7 +146,7 @@ function MemberCheck({ userId, onBack: handleBack }: MemberCheckProps): JSX.Elem
           }
         />
       ) : null}
-      {status.data ? <MemberStatusCard status={status.data} /> : null}
+      {status.data ? <MemberStatusCard userId={userId} status={status.data} /> : null}
     </>
   );
 }

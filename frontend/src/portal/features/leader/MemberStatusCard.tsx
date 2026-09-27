@@ -3,17 +3,34 @@
  *
  * Designed to be read at arm's length on a phone, standing on a ramp: the
  * verdict is a full-width band in words as well as color, and every row
- * answers one question — membership, medical, certificate, insurance.
+ * answers one question — membership, medical, certificate, photo ID, insurance.
+ * A verifier corrects and verifies the certificate, medical, and photo ID from
+ * the card's head, and a DART leader or user administrator makes the person a
+ * verifier there.
  */
+import { useState } from 'react';
 import type { JSX } from 'react';
 
 import type { LeaderStatus, MembershipState } from '@/portal/api/types';
 import { MEMBERSHIP_STATUS_LABELS } from '@/portal/choices';
+import { Button } from '@/portal/components/Button';
 import { DateText } from '@/portal/components/DateText';
 import { StatusChip } from '@/portal/components/StatusChip';
 import type { StatusTone } from '@/portal/components/StatusChip';
+import { useToast } from '@/portal/components/Toast';
+import { VerifiedMark } from '@/portal/components/VerifiedMark';
 import { InsuranceChip } from '@/portal/features/aircraft/InsuranceChip';
-import { CERTIFICATE_LABELS, IFR_LABELS, MEDICAL_LABELS, ratingLabels } from './labels';
+import { MemberVerificationPanel } from '@/portal/features/verification/MemberVerificationPanel';
+import { useSetVerifier } from '@/portal/features/verification/api';
+import { draftFromStatus } from '@/portal/features/verification/memberDraft';
+import { useCanGrantVerifier, useCanVerify } from '@/portal/features/verification/useCanVerify';
+import {
+  CERTIFICATE_LABELS,
+  IFR_LABELS,
+  MEDICAL_LABELS,
+  PHOTO_ID_LABELS,
+  ratingLabels,
+} from './labels';
 import './leader.css';
 
 const MEMBERSHIP_TONE: Record<MembershipState, StatusTone> = {
@@ -31,7 +48,10 @@ function membershipNoGo(state: MembershipState): string {
   return state === 'expired' ? 'Membership expired' : 'Friend of CalDART, not a member';
 }
 
-/** Why the member is a no-go, in the order a leader would say them out loud. */
+/**
+ * Why the member is a no-go, in the order a leader would say them out loud: the
+ * membership, the medical's currency, then each item nobody has verified.
+ */
 export function noGoReasons(status: LeaderStatus): string[] {
   const reasons: string[] = [];
   if (!status.go_no_go.membership) {
@@ -45,23 +65,33 @@ export function noGoReasons(status: LeaderStatus): string[] {
     else if (status.medical.expiration === null) reasons.push('No medical expiry on file');
     else reasons.push('Medical expired');
   }
+  if (!status.medical.verification.verified) reasons.push('Medical not verified');
+  if (!status.certificate.verification.verified) reasons.push('Certificate not verified');
+  if (!status.photo_id.verification.verified) reasons.push('Photo ID not verified');
   return reasons;
 }
 
-/** A member is a go when their membership and medical are both current. */
+/**
+ * A member is a go when their membership and medical are current and their
+ * certificate, medical, and photo ID are all verified.
+ */
 export function isGo(status: LeaderStatus): boolean {
-  return status.go_no_go.membership && status.go_no_go.medical;
+  return status.go_no_go.membership && status.go_no_go.medical && status.go_no_go.verified;
 }
 
 export interface MemberStatusCardProps {
+  /** The person on the card, for the verification writes. */
+  userId: number;
   status: LeaderStatus;
   today?: Date;
 }
 
 /** The pre-flight status card: go/no-go verdict plus membership, medical, and aircraft. */
-export function MemberStatusCard({ status, today }: MemberStatusCardProps): JSX.Element {
+export function MemberStatusCard({ userId, status, today }: MemberStatusCardProps): JSX.Element {
   const go = isGo(status);
   const reasons = noGoReasons(status);
+  const canVerify = useCanVerify();
+  const [verifying, setVerifying] = useState(false);
 
   return (
     <section className="leader-card" aria-label={`Status for ${status.name}`}>
@@ -71,7 +101,7 @@ export function MemberStatusCard({ status, today }: MemberStatusCardProps): JSX.
       >
         <span className="leader-verdict__word">{go ? 'GO' : 'NO-GO'}</span>
         <span className="leader-verdict__why">
-          {go ? 'Membership and medical are current' : reasons.join(' · ')}
+          {go ? 'Membership and medical are current and verified' : reasons.join(' · ')}
         </span>
       </p>
 
@@ -79,6 +109,7 @@ export function MemberStatusCard({ status, today }: MemberStatusCardProps): JSX.
         <h2 className="leader-card__name">{status.name}</h2>
         <p className="leader-card__meta muted">
           {status.dart ?? 'No DART'}
+          {status.is_verifier ? ' · Verifier' : ''}
           {status.phone ? (
             <>
               {' · '}
@@ -90,7 +121,23 @@ export function MemberStatusCard({ status, today }: MemberStatusCardProps): JSX.
           {' · '}
           <a href={`mailto:${status.email}`}>{status.email}</a>
         </p>
+        <div className="leader-card__actions cluster">
+          {canVerify && !verifying ? (
+            <Button variant="secondary" small onClick={() => setVerifying(true)}>
+              Verify
+            </Button>
+          ) : null}
+          <VerifierButton userId={userId} status={status} />
+        </div>
       </header>
+
+      {verifying ? (
+        <MemberVerificationPanel
+          userId={userId}
+          initial={draftFromStatus(status)}
+          onClose={() => setVerifying(false)}
+        />
+      ) : null}
 
       <dl className="leader-rows">
         <div className="leader-row">
@@ -137,6 +184,7 @@ export function MemberStatusCard({ status, today }: MemberStatusCardProps): JSX.
                 </>
               ) : null}
             </span>
+            <VerifiedMark verification={status.medical.verification} />
           </dd>
         </div>
 
@@ -156,6 +204,15 @@ export function MemberStatusCard({ status, today }: MemberStatusCardProps): JSX.
                 ? ` · ${ratingLabels(status.certificate.ratings)}`
                 : ''}
             </span>
+            <VerifiedMark verification={status.certificate.verification} />
+          </dd>
+        </div>
+
+        <div className="leader-row">
+          <dt>Photo ID</dt>
+          <dd>
+            <span className="leader-row__detail">{PHOTO_ID_LABELS[status.photo_id.type]}</span>
+            <VerifiedMark verification={status.photo_id.verification} />
           </dd>
         </div>
       </dl>
@@ -181,11 +238,46 @@ export function MemberStatusCard({ status, today }: MemberStatusCardProps): JSX.
                 ) : (
                   'no policy on file'
                 )}
+                {aircraft.insurance_verified ? '' : ' · not verified'}
               </span>
             </li>
           ))}
         </ul>
       )}
     </section>
+  );
+}
+
+interface VerifierButtonProps {
+  userId: number;
+  status: LeaderStatus;
+}
+
+/** *Make a verifier* or *Remove as verifier*, for a DART leader or user administrator. */
+function VerifierButton({ userId, status }: VerifierButtonProps): JSX.Element | null {
+  const canGrant = useCanGrantVerifier();
+  const setVerifier = useSetVerifier(userId);
+  const toast = useToast();
+  if (!canGrant) return null;
+
+  const wanted = !status.is_verifier;
+  const handleClick = (): void => {
+    setVerifier.mutate(
+      { verifier: wanted },
+      {
+        onSuccess: () =>
+          toast.show(
+            wanted ? `${status.name} is a verifier.` : `${status.name} is no longer a verifier.`,
+            'success',
+          ),
+        onError: (error) => toast.show(error.message, 'error'),
+      },
+    );
+  };
+
+  return (
+    <Button variant="quiet" small disabled={setVerifier.isPending} onClick={handleClick}>
+      {wanted ? 'Make a verifier' : 'Remove as verifier'}
+    </Button>
   );
 }

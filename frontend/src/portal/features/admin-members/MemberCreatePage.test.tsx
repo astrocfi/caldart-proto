@@ -75,6 +75,19 @@ describe('MemberCreatePage', () => {
     expect(profile.dart_id).toBeNull();
   });
 
+  it('sends the kind of photo ID with the profile', async () => {
+    const user = userEvent.setup();
+    server.use(...createHandlers());
+    renderCreate();
+
+    await user.type(screen.getByLabelText(/Email address/), 'nova@example.org');
+    await user.selectOptions(screen.getByLabelText('Photo ID'), 'passport');
+    await user.click(screen.getByRole('button', { name: 'Create member' }));
+
+    await waitFor(() => expect(posted).not.toBeNull());
+    expect((posted?.profile as Record<string, unknown>).photo_id_type).toBe('passport');
+  });
+
   it('creates a member unless told otherwise', async () => {
     const user = userEvent.setup();
     server.use(...createHandlers());

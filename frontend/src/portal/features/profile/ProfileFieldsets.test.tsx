@@ -7,6 +7,7 @@ import { ProfileFieldsets } from './ProfileFieldsets';
 import type { ProfileFieldsetsProps } from './ProfileFieldsets';
 import { TEST_DARTS } from '@test/fixtures/profile';
 import { EMPTY_PROFILE_FORM } from './form';
+import { ALL_VERIFIED, NONE_VERIFIED, NOT_VERIFIED } from '@test/handlers';
 
 const CONTACT_LABELS = [
   'Phone',
@@ -31,6 +32,7 @@ const AVIATION_LABELS = [
   'IFR rated',
   'Medical',
   'Medical expires',
+  'Photo ID',
   'Last flight review',
   'Total hours',
 ];
@@ -286,5 +288,57 @@ describe('<ProfileFieldsets/>', () => {
       value: { ...EMPTY_PROFILE_FORM, medical_type: 'third' },
     });
     expect(screen.getByLabelText('Medical expires*')).toBeInTheDocument();
+  });
+
+  it('offers the kinds of photo ID, and nothing else about the document', () => {
+    renderFieldsets();
+    const select = screen.getByLabelText('Photo ID');
+    expect(
+      within(select)
+        .getAllByRole('option')
+        .map((option) => option.textContent),
+    ).toEqual([
+      'Not provided',
+      "Driver's license",
+      'Passport',
+      'State ID card',
+      'Military ID',
+      'Other',
+    ]);
+  });
+
+  it('hands a picked photo ID back through onChange', async () => {
+    const user = userEvent.setup();
+    const handleChange = renderFieldsets();
+    await user.selectOptions(screen.getByLabelText('Photo ID'), 'state_id');
+    expect(handleChange).toHaveBeenLastCalledWith({
+      ...EMPTY_PROFILE_FORM,
+      photo_id_type: 'state_id',
+    });
+  });
+
+  it('shows no verification mark unless the caller passes the verified state', () => {
+    renderFieldsets();
+    expect(screen.queryByText(/verified/i)).not.toBeInTheDocument();
+  });
+
+  it('marks each verified item in the member’s own wording', () => {
+    renderFieldsets({
+      verification: { ...ALL_VERIFIED, medical: NOT_VERIFIED },
+    });
+    expect(screen.getByLabelText('Medical')).toHaveAccessibleDescription('Not yet verified');
+    expect(screen.getByLabelText('Photo ID')).toHaveAccessibleDescription(
+      'Verified by Dana Leader on 2026/05/01',
+    );
+  });
+
+  it('says who checks the items once, under the pilot certificate', () => {
+    renderFieldsets({ verification: NONE_VERIFIED });
+    expect(
+      screen.getAllByText('A DART leader or verifier checks these against the documents.'),
+    ).toHaveLength(1);
+    expect(screen.getByLabelText('Pilot certificate')).toHaveAccessibleDescription(
+      'Not yet verified A DART leader or verifier checks these against the documents.',
+    );
   });
 });

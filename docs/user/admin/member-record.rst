@@ -35,7 +35,16 @@ so you can send a colleague straight to somebody's payments.
 Profile
 =======
 
-The same fields as :doc:`new-member`, less the password, plus:
+A **Verification** card heads the tab. It lists **Pilot certificate**, **Medical**, and
+**Photo ID**, each with what the record holds (such as *Private · 1234567* or *Third class
+· expires 2027/01/31*) and its mark: **Verified** with who verified it and on which day, or
+**Not verified**. **Verify** opens the same verification panel as the :doc:`member-check`:
+correct the fields against the documents, tick the items you have checked, and press
+**Save**. *Verification saved* confirms it, and a field you corrected there is filled in on
+the form below too. A record with no profile yet has no Verification card.
+
+Below the card are the same fields as :doc:`new-member`, less the password, with **Photo
+ID** (the kind of photo ID only) among the aviation fields, plus:
 
 - **Kind of account**, **Member** or **Friend**. Saving a change of kind makes it at once: a
   member made a friend reads **Friend** from that moment, and any change to friend they had
@@ -48,7 +57,8 @@ The same fields as :doc:`new-member`, less the password, plus:
   the :doc:`user-record`, and the member can from their own dashboard.
 
 **Save changes** saves the account and the profile together, and the message *Member saved.*
-confirms it. Changing the email address marks it **Unverified** and sends the new address a
+confirms it. Saving a changed pilot certificate, medical, or photo ID clears that item's
+verification. Changing the email address marks it **Unverified** and sends the new address a
 message with the subject *CalDART: verify your email address*. Beside the button,
 **Aircraft on file** lists the airplanes on the person's profile; each N-number opens the
 :doc:`aircraft-record`.

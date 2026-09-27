@@ -72,11 +72,14 @@ export function adminOnlyDraft(profile: AdminProfile | null): AdminOnlyDraft {
   return { notes: profile.notes, how_heard: profile.how_heard };
 }
 
-/** The profile half of the request body: the member's patch plus the extras. */
-export function adminProfilePayload(
-  patch: AdminProfilePayload,
+/**
+ * The profile half of the request body: the member's patch, the photo ID with it, plus
+ * the extras.
+ */
+export function adminProfilePayload<Patch extends AdminProfilePayload>(
+  patch: Patch,
   extra: AdminOnlyDraft,
-): AdminProfilePayload {
+): Patch & AdminOnlyDraft {
   return { ...patch, notes: extra.notes, how_heard: extra.how_heard };
 }
 

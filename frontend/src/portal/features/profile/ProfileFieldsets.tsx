@@ -8,18 +8,28 @@
  * difference between a member's screen and an administrator's is
  * `markRequired`, which stars the fields that make a profile complete.  The
  * administrator's screens leave it off, because a half-known record is a
- * normal thing for them to save.
+ * normal thing for them to save.  The member's own profile passes
+ * `verification` too, which marks the pilot certificate, the medical, and the
+ * photo ID with whether an authority has checked them.
  *
  * Validation, submission, and the administrator-only fields belong to the
  * caller.
  */
 import { useId } from 'react';
-import type { JSX } from 'react';
+import type { JSX, ReactNode } from 'react';
 
-import type { CaliforniaCounty, Dart, Rating, UsState } from '@/portal/api/types';
+import type {
+  CaliforniaCounty,
+  Dart,
+  ProfileVerification,
+  Rating,
+  UsState,
+  VerificationItem,
+} from '@/portal/api/types';
 import { CA_COUNTIES, CATEGORY_RATINGS, INSTRUCTOR_RATINGS, US_STATES } from '@/portal/choices';
 import { Field } from '@/portal/components/Field';
 import { MaskedInput } from '@/portal/components/MaskedInput';
+import { VerifiedMark } from '@/portal/components/VerifiedMark';
 import {
   maskAirportIdentifier,
   maskDigits,
@@ -27,7 +37,13 @@ import {
   maskPhone,
   maskPostalCode,
 } from '@/portal/masks';
-import { CERTIFICATE_TYPES, IFR_OPTIONS, MEDICAL_TYPES, VOLUNTEER_INTERESTS } from './constants';
+import {
+  CERTIFICATE_TYPES,
+  IFR_OPTIONS,
+  MEDICAL_TYPES,
+  PHOTO_ID_TYPES,
+  VOLUNTEER_INTERESTS,
+} from './constants';
 import type { Choice } from './constants';
 import type { ProfileFormErrors, ProfileFormValues } from './form';
 import './profile.css';
@@ -38,7 +54,10 @@ type TextKey = {
 }[keyof ProfileFormValues];
 
 /** The form keys holding a coded value, which a `<select>` picks from a list. */
-type CodedKey = 'pilot_certificate_type' | 'ifr_rated' | 'medical_type';
+type CodedKey = 'pilot_certificate_type' | 'ifr_rated' | 'medical_type' | 'photo_id_type';
+
+/** Said once, under the first verified item, so the member knows who checks them. */
+export const VERIFICATION_HINT = 'A DART leader or verifier checks these against the documents.';
 
 /** The two rows of ratings, as the form lays them out. */
 const RATING_ROWS: readonly (readonly Choice<Rating>[])[] = [CATEGORY_RATINGS, INSTRUCTOR_RATINGS];
@@ -78,6 +97,11 @@ export interface ProfileFieldsetsProps {
    * field's error the moment the member leaves it rather than at save time.
    */
   onFieldBlur?: (key: keyof ProfileFormValues) => void;
+  /**
+   * The verified state of the member's pilot certificate, medical, and photo ID,
+   * shown under each in the member's own wording.  Left out, no mark is shown.
+   */
+  verification?: ProfileVerification;
 }
 
 /**
@@ -94,8 +118,22 @@ export function ProfileFieldsets({
   dartsLoading = false,
   markRequired = false,
   onFieldBlur,
+  verification,
 }: ProfileFieldsetsProps): JSX.Element {
   const extensionIds = useId();
+
+  /** The mark under an item's field, with the hint under the first; nothing without marks. */
+  const mark = (item: VerificationItem): ReactNode => {
+    if (verification === undefined) return undefined;
+    return (
+      <>
+        <VerifiedMark verification={verification[item]} pending />
+        {item === 'certificate' ? (
+          <span className="verified-mark__hint">{VERIFICATION_HINT}</span>
+        ) : null}
+      </>
+    );
+  };
 
   const handleBlur = (key: keyof ProfileFormValues) => () => onFieldBlur?.(key);
 
@@ -194,8 +232,9 @@ export function ProfileFieldsets({
     key: Key,
     label: string,
     choices: readonly Choice<ProfileFormValues[Key]>[],
+    hint?: ReactNode,
   ) => (
-    <Field label={label} error={errors[key]}>
+    <Field label={label} error={errors[key]} hint={hint}>
       {(props) => (
         <select
           {...props}
@@ -316,19 +355,25 @@ export function ProfileFieldsets({
             )}
           </Field>
           {text('air_care_alliance_number', { label: 'Air Care Alliance number' })}
-          {coded('pilot_certificate_type', 'Pilot certificate', CERTIFICATE_TYPES)}
+          {coded(
+            'pilot_certificate_type',
+            'Pilot certificate',
+            CERTIFICATE_TYPES,
+            mark('certificate'),
+          )}
           {text('certificate_number', {
             label: 'Certificate number',
             className: 'mono',
             required: value.pilot_certificate_type !== 'none',
           })}
           {coded('ifr_rated', 'IFR rated', IFR_OPTIONS)}
-          {coded('medical_type', 'Medical', MEDICAL_TYPES)}
+          {coded('medical_type', 'Medical', MEDICAL_TYPES, mark('medical'))}
           {text('medical_expiration', {
             label: 'Medical expires',
             type: 'date',
             required: value.medical_type !== 'none',
           })}
+          {coded('photo_id_type', 'Photo ID', PHOTO_ID_TYPES, mark('photo_id'))}
           {text('flight_review_date', { label: 'Last flight review', type: 'date' })}
           {text('total_hours', {
             label: 'Total hours',

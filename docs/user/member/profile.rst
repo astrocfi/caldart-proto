@@ -35,12 +35,19 @@ Aviation
 airport city**, **DART** (your primary Disaster Airlift Response Team, a local
 group of volunteers at one airport; *Not decided yet* if you have not chosen),
 **Air Care Alliance number**, **Pilot certificate**, **Certificate number**, **IFR
-rated**, **Medical**, **Medical expires**, **Last flight review**, and **Total
-hours**.
+rated**, **Medical**, **Medical expires**, **Photo ID**, **Last flight review**, and
+**Total hours**.
 
 * **Pilot certificate** offers *Not a pilot*, Student, Sport, Recreational,
   Private, Commercial, and Airline transport pilot.
 * **Medical** offers *None*, BasicMed, First class, Second class, and Third class.
+* **Photo ID** offers *Not provided*, Driver's license, Passport, State ID card,
+  Military ID, and Other. Only the kind of document is recorded, never its number or
+  its dates.
+* Under **Pilot certificate**, **Medical**, and **Photo ID** is each one's mark:
+  **Verified** with who verified it and on which day, or **Not yet verified**. Under
+  the first is *A DART leader or verifier checks these against the documents.* You
+  cannot verify them yourself here. Show the documents to a DART leader or a verifier.
 * **Aircraft**: tick **I fly rented or borrowed aircraft** if you have no airframe
   of your own to list, so a DART leader knows why your list is empty.
 * **Ratings**: ASEL, AMEL, ASES, AMES, Helicopter, and Instrument on one row; CFI,
@@ -79,6 +86,11 @@ the reason under it, and nothing is saved until you fix it:
 Keep your **Medical expires** date, your certificate, and your phone current. A
 DART leader checks them before a mission, and CalDART treats a medical as current
 only up to the date you entered.
+
+Saving a change to your pilot certificate or its number, your medical or its date,
+or your photo ID clears that item's verification, and its mark reads **Not yet
+verified** until a DART leader or a verifier checks the new details. A DART leader
+reads you as a NO-GO until all three are verified again.
 
 
 Your kind of account

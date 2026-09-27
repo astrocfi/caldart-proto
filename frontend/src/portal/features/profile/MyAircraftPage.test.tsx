@@ -1,9 +1,9 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { API, makeUser, signedInAs } from '@test/handlers';
+import { API, makeUser, makeVerifiedAircraftSummary, signedInAs } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
 import type { AircraftPickerProps } from '@/portal/features/aircraft';
@@ -264,5 +264,58 @@ describe('<MyAircraftPage/> editing', () => {
 
     expect(await screen.findByText('Someone else added this aircraft')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Save aircraft' })).not.toBeInTheDocument();
+  });
+
+  it.each([
+    [true, 'Verified'],
+    [false, 'Not yet verified'],
+  ])('marks insurance verified=%s as %s', async (verified, mark) => {
+    server.use(
+      http.get(`${API}/me/profile`, () =>
+        HttpResponse.json(
+          makeProfile({
+            aircraft: [makeVerifiedAircraftSummary({ insurance_verified: verified })],
+          }),
+        ),
+      ),
+    );
+
+    renderWithProviders(<MyAircraftPage />, { route: '/profile/aircraft' });
+
+    const row = (await screen.findByText('N172SP')).closest('li') as HTMLElement;
+    expect(within(row).getByText(mark)).toBeInTheDocument();
+  });
+
+  it('reads the insurance as not yet verified once the member edits it', async () => {
+    let edited = false;
+    server.use(
+      http.get(`${API}/me/profile`, () =>
+        HttpResponse.json(
+          makeProfile({
+            aircraft: [
+              makeVerifiedAircraftSummary({
+                id: TEST_AIRCRAFT.id,
+                n_number: TEST_AIRCRAFT.n_number,
+                insurance_verified: !edited,
+              }),
+            ],
+          }),
+        ),
+      ),
+      http.get(`${API}/aircraft/7`, () => HttpResponse.json(record(1))),
+      http.patch(`${API}/aircraft/7`, () => {
+        edited = true;
+        return HttpResponse.json(record(1));
+      }),
+    );
+
+    renderWithProviders(<MyAircraftPage />);
+
+    expect(await screen.findByText('Verified')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    await userEvent.type(await screen.findByLabelText('Carrier'), 'AIG');
+    await userEvent.click(screen.getByRole('button', { name: 'Save aircraft' }));
+
+    expect(await screen.findByText('Not yet verified')).toBeInTheDocument();
   });
 });

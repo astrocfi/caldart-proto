@@ -3,11 +3,19 @@ import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { API, TEST_CSRF_TOKEN, makeUser, signedInAs } from '@test/handlers';
+import {
+  API,
+  NONE_VERIFIED,
+  NOT_VERIFIED,
+  TEST_CSRF_TOKEN,
+  makeUser,
+  makeVerifiedProfile,
+  signedInAs,
+} from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
 import { ProfilePage } from './ProfilePage';
-import { TEST_DARTS, makeProfile } from '@test/fixtures/profile';
+import { TEST_DARTS } from '@test/fixtures/profile';
 
 function label(text: string): RegExp {
   // `<Field>` appends an aria-hidden "*" to required labels.
@@ -23,7 +31,7 @@ describe('<ProfilePage/>', () => {
   });
 
   it('fills the form from the saved profile', async () => {
-    server.use(http.get(`${API}/me/profile`, () => HttpResponse.json(makeProfile())));
+    server.use(http.get(`${API}/me/profile`, () => HttpResponse.json(makeVerifiedProfile())));
 
     renderWithProviders(<ProfilePage />, { route: '/profile' });
 
@@ -36,7 +44,7 @@ describe('<ProfilePage/>', () => {
   });
 
   it('offers the DARTs the catalog returned', async () => {
-    server.use(http.get(`${API}/me/profile`, () => HttpResponse.json(makeProfile())));
+    server.use(http.get(`${API}/me/profile`, () => HttpResponse.json(makeVerifiedProfile())));
 
     renderWithProviders(<ProfilePage />, { route: '/profile' });
 
@@ -49,10 +57,10 @@ describe('<ProfilePage/>', () => {
   it('refuses to save without a phone number and never calls the API', async () => {
     const save = vi.fn();
     server.use(
-      http.get(`${API}/me/profile`, () => HttpResponse.json(makeProfile({ phone: '' }))),
+      http.get(`${API}/me/profile`, () => HttpResponse.json(makeVerifiedProfile({ phone: '' }))),
       http.put(`${API}/me/profile`, () => {
         save();
-        return HttpResponse.json(makeProfile());
+        return HttpResponse.json(makeVerifiedProfile());
       }),
     );
 
@@ -67,7 +75,9 @@ describe('<ProfilePage/>', () => {
   it('reports a medical without an expiration date', async () => {
     server.use(
       http.get(`${API}/me/profile`, () =>
-        HttpResponse.json(makeProfile({ medical_type: 'basicmed', medical_expiration: null })),
+        HttpResponse.json(
+          makeVerifiedProfile({ medical_type: 'basicmed', medical_expiration: null }),
+        ),
       ),
     );
 
@@ -82,8 +92,8 @@ describe('<ProfilePage/>', () => {
 
   it('clears an inline error as soon as the member fixes it', async () => {
     server.use(
-      http.get(`${API}/me/profile`, () => HttpResponse.json(makeProfile({ phone: '' }))),
-      http.put(`${API}/me/profile`, () => HttpResponse.json(makeProfile())),
+      http.get(`${API}/me/profile`, () => HttpResponse.json(makeVerifiedProfile({ phone: '' }))),
+      http.put(`${API}/me/profile`, () => HttpResponse.json(makeVerifiedProfile())),
     );
 
     renderWithProviders(<ProfilePage />, { route: '/profile' });
@@ -101,10 +111,10 @@ describe('<ProfilePage/>', () => {
   it('PUTs every field and shows a toast on success', async () => {
     let body: Record<string, unknown> | null = null;
     server.use(
-      http.get(`${API}/me/profile`, () => HttpResponse.json(makeProfile())),
+      http.get(`${API}/me/profile`, () => HttpResponse.json(makeVerifiedProfile())),
       http.put(`${API}/me/profile`, async ({ request }) => {
         body = (await request.json()) as Record<string, unknown>;
-        return HttpResponse.json(makeProfile({ city: 'Napa' }));
+        return HttpResponse.json(makeVerifiedProfile({ city: 'Napa' }));
       }),
     );
 
@@ -121,10 +131,10 @@ describe('<ProfilePage/>', () => {
   it('carries the bootstrapped CSRF token on the save', async () => {
     let sentToken: string | null = null;
     server.use(
-      http.get(`${API}/me/profile`, () => HttpResponse.json(makeProfile())),
+      http.get(`${API}/me/profile`, () => HttpResponse.json(makeVerifiedProfile())),
       http.put(`${API}/me/profile`, ({ request }) => {
         sentToken = request.headers.get('X-CSRFToken');
-        return HttpResponse.json(makeProfile());
+        return HttpResponse.json(makeVerifiedProfile());
       }),
     );
 
@@ -138,7 +148,7 @@ describe('<ProfilePage/>', () => {
 
   it('shows a field error the server sent back, and points the toast at it', async () => {
     server.use(
-      http.get(`${API}/me/profile`, () => HttpResponse.json(makeProfile())),
+      http.get(`${API}/me/profile`, () => HttpResponse.json(makeVerifiedProfile())),
       http.put(`${API}/me/profile`, () =>
         HttpResponse.json({ county: 'No such county.' }, { status: 400 }),
       ),
@@ -170,7 +180,7 @@ describe('<ProfilePage/> inline complaints', () => {
     server.use(
       signedInAs(makeUser()),
       http.get(`${API}/darts`, () => HttpResponse.json(TEST_DARTS)),
-      http.get(`${API}/me/profile`, () => HttpResponse.json(makeProfile())),
+      http.get(`${API}/me/profile`, () => HttpResponse.json(makeVerifiedProfile())),
     );
   });
 
@@ -211,5 +221,58 @@ describe('<ProfilePage/> inline complaints', () => {
     await user.type(phone, '4155550100');
 
     expect(screen.queryByText('Use a ten-digit number like 415-555-0100.')).not.toBeInTheDocument();
+  });
+
+  it('marks the certificate, the medical, and the photo ID with who verified them', async () => {
+    server.use(http.get(`${API}/me/profile`, () => HttpResponse.json(makeVerifiedProfile())));
+
+    renderWithProviders(<ProfilePage />, { route: '/profile' });
+
+    expect(await screen.findByLabelText(label('Photo ID'))).toHaveValue('passport');
+    expect(screen.getByLabelText(label('Medical'))).toHaveAccessibleDescription(
+      'Verified by Dana Leader on 2026/05/01',
+    );
+  });
+
+  it('reads Not yet verified for an item nobody has checked', async () => {
+    server.use(
+      http.get(`${API}/me/profile`, () =>
+        HttpResponse.json(makeVerifiedProfile({ verification: NONE_VERIFIED })),
+      ),
+    );
+
+    renderWithProviders(<ProfilePage />, { route: '/profile' });
+
+    expect(await screen.findByLabelText(label('Photo ID'))).toHaveAccessibleDescription(
+      'Not yet verified',
+    );
+  });
+
+  it('shows the medical as not yet verified once a change the member saves clears it', async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.get(`${API}/me/profile`, () => HttpResponse.json(makeVerifiedProfile())),
+      http.put(`${API}/me/profile`, () =>
+        HttpResponse.json(
+          makeVerifiedProfile({
+            medical_type: 'second',
+            verification: { ...makeVerifiedProfile().verification, medical: NOT_VERIFIED },
+          }),
+        ),
+      ),
+    );
+
+    renderWithProviders(<ProfilePage />, { route: '/profile' });
+    await user.selectOptions(await screen.findByLabelText(label('Medical')), 'second');
+    await user.click(screen.getByRole('button', { name: 'Save profile' }));
+
+    await waitFor(() =>
+      expect(screen.getByLabelText(label('Medical'))).toHaveAccessibleDescription(
+        'Not yet verified',
+      ),
+    );
+    expect(screen.getByLabelText(label('Pilot certificate'))).toHaveAccessibleDescription(
+      /^Verified by Dana Leader/,
+    );
   });
 });

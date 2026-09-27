@@ -1,19 +1,21 @@
 /**
  * The Profile tab of a member record: the same fields as "New member", plus
- * the account's active switch and the administrator-only notes.
+ * the account's active switch and the administrator-only notes, under a
+ * Verification card for the pilot certificate, the medical, and the photo ID.
  */
 import { useState } from 'react';
 import type { JSX } from 'react';
 import { Link } from 'react-router-dom';
 
 import { useDarts } from '@/portal/api/queries';
-import type { MemberDetail } from '@/portal/api/types';
+import type { LeaderStatus, MemberDetail } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { EmailVerifiedText } from '@/portal/components/EmailVerifiedText';
 import { useToast } from '@/portal/components/Toast';
 import { ProfileFieldsets } from '@/portal/features/profile/ProfileFieldsets';
 import { EMPTY_PROFILE_FORM, formToPatch, profileToForm } from '@/portal/features/profile/form';
+import { MemberVerificationCard } from '@/portal/features/verification/MemberVerificationCard';
 import {
   AccountFields,
   AdminOnlyFields,
@@ -49,6 +51,19 @@ export function MemberProfileTab({ member }: { member: MemberDetail }): JSX.Elem
   const [adminOnly, setAdminOnly] = useState(() => adminOnlyDraft(member.profile));
 
   const errors = splitErrors(update.error);
+  const verified = member.profile;
+
+  /** A verification save may correct the fields the form below holds; take them up. */
+  const handleVerified = (status: LeaderStatus): void => {
+    setProfile((current) => ({
+      ...current,
+      pilot_certificate_type: status.certificate.type,
+      certificate_number: status.certificate.number,
+      medical_type: status.medical.type,
+      medical_expiration: status.medical.expiration ?? '',
+      photo_id_type: status.photo_id.type,
+    }));
+  };
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
@@ -67,53 +82,58 @@ export function MemberProfileTab({ member }: { member: MemberDetail }): JSX.Elem
   };
 
   return (
-    <Card>
-      <form onSubmit={handleSubmit} noValidate>
-        {errors.detail ? (
-          <p role="alert" className="field__error">
-            {errors.detail}
-          </p>
-        ) : null}
-
-        <AccountFields
-          value={account}
-          onChange={(next) => setAccount(next)}
-          errors={errors.account}
-          withActive
-          emailHint={<EmailVerifiedText verifiedAt={member.email_verified_at} />}
-        />
-        <ProfileFieldsets
-          value={profile}
-          onChange={(next) => setProfile(next)}
-          errors={errors.profile}
-          darts={darts.data ?? []}
-          dartsLoading={darts.isPending}
-        />
-        <AdminOnlyFields
-          value={adminOnly}
-          onChange={(next) => setAdminOnly(next)}
-          errors={errors.profile}
-        />
-
-        <div className="cluster">
-          <Button type="submit" disabled={update.isPending}>
-            {update.isPending ? 'Saving…' : 'Save changes'}
-          </Button>
-          {member.profile?.aircraft.length ? (
-            <p className="muted">
-              Aircraft on file:{' '}
-              {member.profile.aircraft.map((one, index) => (
-                <span key={one.id}>
-                  {index > 0 ? ', ' : ''}
-                  <Link className="mono" to={`/admin/aircraft/${one.id}`}>
-                    {one.n_number}
-                  </Link>
-                </span>
-              ))}
+    <>
+      {verified !== null ? (
+        <MemberVerificationCard userId={member.id} profile={verified} onSaved={handleVerified} />
+      ) : null}
+      <Card>
+        <form onSubmit={handleSubmit} noValidate>
+          {errors.detail ? (
+            <p role="alert" className="field__error">
+              {errors.detail}
             </p>
           ) : null}
-        </div>
-      </form>
-    </Card>
+
+          <AccountFields
+            value={account}
+            onChange={(next) => setAccount(next)}
+            errors={errors.account}
+            withActive
+            emailHint={<EmailVerifiedText verifiedAt={member.email_verified_at} />}
+          />
+          <ProfileFieldsets
+            value={profile}
+            onChange={(next) => setProfile(next)}
+            errors={errors.profile}
+            darts={darts.data ?? []}
+            dartsLoading={darts.isPending}
+          />
+          <AdminOnlyFields
+            value={adminOnly}
+            onChange={(next) => setAdminOnly(next)}
+            errors={errors.profile}
+          />
+
+          <div className="cluster">
+            <Button type="submit" disabled={update.isPending}>
+              {update.isPending ? 'Saving…' : 'Save changes'}
+            </Button>
+            {member.profile?.aircraft.length ? (
+              <p className="muted">
+                Aircraft on file:{' '}
+                {member.profile.aircraft.map((one, index) => (
+                  <span key={one.id}>
+                    {index > 0 ? ', ' : ''}
+                    <Link className="mono" to={`/admin/aircraft/${one.id}`}>
+                      {one.n_number}
+                    </Link>
+                  </span>
+                ))}
+              </p>
+            ) : null}
+          </div>
+        </form>
+      </Card>
+    </>
   );
 }

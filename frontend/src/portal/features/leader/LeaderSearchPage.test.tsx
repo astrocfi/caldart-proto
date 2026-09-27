@@ -3,10 +3,10 @@ import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { API } from '@test/handlers';
+import { API, makeLeaderStatus } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
-import type { LeaderSearchResult, LeaderStatus } from '@/portal/api/types';
+import type { LeaderSearchResult } from '@/portal/api/types';
 import { SEARCH_DEBOUNCE_MS } from '@/portal/components/useDebounced';
 import { LeaderSearchPage } from './LeaderSearchPage';
 
@@ -32,33 +32,10 @@ const MARTA: LeaderSearchResult = {
   go_no_go: { membership: true, medical: true, verified: true },
 };
 
-const STATUS: LeaderStatus = {
-  name: 'Marta Reyes',
-  email: 'marta@example.org',
-  phone: '650-555-0100',
-  dart: 'Palo Alto',
-  membership: { status: 'current', expires_on: '2027-06-30', plan: 'Annual' },
-  certificate: {
-    type: 'private',
-    number: '3181234',
-    ifr_rated: 'yes',
-    ratings: ['instrument'],
-    verification: { verified: false, verified_by: null, verified_at: null },
-  },
-  medical: {
-    type: 'third',
-    expiration: '2027-12-01',
-    is_current: true,
-    verification: { verified: false, verified_by: null, verified_at: null },
-  },
-  photo_id: {
-    type: 'passport',
-    verification: { verified: false, verified_by: null, verified_at: null },
-  },
-  is_verifier: false,
+const STATUS = makeLeaderStatus({
+  medical: { ...makeLeaderStatus().medical, expiration: '2027-12-01' },
   aircraft: [],
-  go_no_go: { membership: true, medical: true, verified: true },
-};
+});
 
 function searchReturns(results: LeaderSearchResult[], onQuery?: (q: string) => void) {
   return http.get(`${API}/leader/search`, ({ request }) => {
@@ -235,5 +212,37 @@ describe('LeaderSearchPage', () => {
 
     expect(await screen.findByText(/Try a surname/i)).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /Check/ })).not.toBeInTheDocument();
+  });
+
+  it('marks a current member whose items are not all verified NO-GO', async () => {
+    const user = setupUser();
+    server.use(
+      searchReturns([{ ...MARTA, go_no_go: { membership: true, medical: true, verified: false } }]),
+    );
+
+    renderWithProviders(<LeaderSearchPage />, { route: '/leader' });
+    await search(user, 'reyes');
+
+    const marta = await screen.findByRole('button', { name: /Marta Reyes/ });
+    expect(marta).toHaveTextContent(/^Marta ReyesNot cleared to flyNO-GO$/);
+  });
+
+  it('offers the verification report for download above the search', () => {
+    renderWithProviders(<LeaderSearchPage />, { route: '/leader' });
+    expect(screen.getByRole('link', { name: 'Export CSV' })).toHaveAttribute(
+      'href',
+      '/api/v1/reports/verification/export.csv',
+    );
+    expect(screen.getByRole('link', { name: 'Export PDF' })).toHaveAttribute(
+      'href',
+      '/api/v1/reports/verification/export.pdf',
+    );
+  });
+
+  it('leaves the report off the screen while a card is open', async () => {
+    server.use(http.get(`${API}/leader/members/7/status`, () => HttpResponse.json(STATUS)));
+    renderWithProviders(<LeaderSearchPage />, { route: '/leader?member=7' });
+    expect(await screen.findByText('GO')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Export CSV' })).not.toBeInTheDocument();
   });
 });

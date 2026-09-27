@@ -9,6 +9,7 @@
 import { useAircraft, useUpdateAircraft } from '@/portal/features/aircraft';
 import { AircraftForm } from '@/portal/features/aircraft';
 import { aircraftToValues } from '@/portal/features/aircraft';
+import { useQueryClient } from '@tanstack/react-query';
 import type { JSX } from 'react';
 
 import { ApiError } from '@/portal/api/client';
@@ -17,6 +18,7 @@ import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { EmptyState } from '@/portal/components/EmptyState';
 import { useToast } from '@/portal/components/Toast';
+import { PROFILE_KEY } from './api';
 
 export interface AircraftEditorProps {
   aircraftId: number;
@@ -36,6 +38,7 @@ export function AircraftEditor({
   const aircraft = useAircraft(aircraftId);
   const update = useUpdateAircraft(aircraftId);
   const toast = useToast();
+  const queryClient = useQueryClient();
 
   if (aircraft.isPending) {
     return (
@@ -91,6 +94,8 @@ export function AircraftEditor({
         onSubmit={(payload: AircraftPatch) =>
           update.mutate(payload, {
             onSuccess: () => {
+              // An insurance edit clears its verification, which My aircraft shows.
+              void queryClient.invalidateQueries({ queryKey: PROFILE_KEY });
               toast.show(`${record.n_number} updated.`, 'success');
               onSaved();
             },

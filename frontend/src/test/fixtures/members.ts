@@ -1,5 +1,6 @@
 /** Test fixtures for the members-admin screens. */
-import type { MemberDetail, MemberRow, MembershipStatus } from '@/portal/api/types';
+import type { AdminProfile, MemberDetail, MemberRow, MembershipStatus } from '@/portal/api/types';
+import { NONE_VERIFIED } from '../handlers';
 
 export const CURRENT: MembershipStatus = {
   status: 'current',
@@ -37,6 +38,61 @@ export function makeRow(overrides: Partial<MemberRow> = {}): MemberRow {
   };
 }
 
+/** The member record's profile, with nothing verified yet. */
+const PROFILE: AdminProfile = {
+  phone: '415-555-0100',
+  phone_extension: '',
+  phone_alt_extension: '',
+  emergency_contact_phone_extension: '',
+  phone_alt: '',
+  address_line1: '1 Airport Way',
+  address_line2: '',
+  city: 'Palo Alto',
+  state: 'CA',
+  postal_code: '94303',
+  county: 'Santa Clara',
+  emergency_contact_name: 'Bo Bracco',
+  emergency_contact_phone: '415-555-0101',
+  member_since: null,
+  home_airport_identifier: 'PAO',
+  home_airport_city: 'Palo Alto',
+  dart: { id: 3, name: 'Palo Alto' },
+  air_care_alliance_number: '',
+  pilot_certificate_type: 'private',
+  certificate_number: '1234567',
+  ifr_rated: 'yes',
+  ratings: ['instrument'],
+  medical_type: 'third',
+  medical_expiration: '2027-01-31',
+  medical_is_current: true,
+  flight_review_date: '2026-02-01',
+  total_hours: 750,
+  aircraft: [
+    {
+      id: 9,
+      n_number: 'N172SP',
+      make: 'Cessna',
+      model: '172S',
+      insurance_is_current: true,
+      insurance_expiration: '2027-03-01',
+      insurance_summary: '$1,000,000 / $100,000 · exp 2027-03-01',
+      insurance_verified: false,
+    },
+  ],
+  flies_rented_aircraft: false,
+  vol_mission_pilot: false,
+  vol_ground_team: true,
+  vol_exercise_training: false,
+  vol_member_support: false,
+  vol_fundraising: false,
+  vol_social_media: false,
+  vol_newsletter: false,
+  notes: 'Called about the Napa exercise.',
+  how_heard: 'EAA chapter meeting',
+  photo_id_type: 'drivers_license',
+  verification: NONE_VERIFIED,
+};
+
 /** Builds a member detail record for tests, with `overrides` replacing any default field. */
 export function makeDetail(overrides: Partial<MemberDetail> = {}): MemberDetail {
   return {
@@ -53,63 +109,7 @@ export function makeDetail(overrides: Partial<MemberDetail> = {}): MemberDetail 
     joined_on: '2024-07-01',
     profile_updated_at: '2026-08-11T09:14:02.100522-07:00',
     membership: CURRENT,
-    profile: {
-      phone: '415-555-0100',
-      phone_extension: '',
-      phone_alt_extension: '',
-      emergency_contact_phone_extension: '',
-      phone_alt: '',
-      address_line1: '1 Airport Way',
-      address_line2: '',
-      city: 'Palo Alto',
-      state: 'CA',
-      postal_code: '94303',
-      county: 'Santa Clara',
-      emergency_contact_name: 'Bo Bracco',
-      emergency_contact_phone: '415-555-0101',
-      member_since: null,
-      home_airport_identifier: 'PAO',
-      home_airport_city: 'Palo Alto',
-      dart: { id: 3, name: 'Palo Alto' },
-      air_care_alliance_number: '',
-      pilot_certificate_type: 'private',
-      certificate_number: '1234567',
-      ifr_rated: 'yes',
-      ratings: ['instrument'],
-      medical_type: 'third',
-      medical_expiration: '2027-01-31',
-      medical_is_current: true,
-      flight_review_date: '2026-02-01',
-      total_hours: 750,
-      photo_id_type: 'passport',
-      verification: {
-        certificate: { verified: false, verified_by: null, verified_at: null },
-        medical: { verified: false, verified_by: null, verified_at: null },
-        photo_id: { verified: false, verified_by: null, verified_at: null },
-      },
-      aircraft: [
-        {
-          id: 9,
-          n_number: 'N172SP',
-          make: 'Cessna',
-          model: '172S',
-          insurance_is_current: true,
-          insurance_expiration: '2027-03-01',
-          insurance_summary: '$1,000,000 / $100,000 · exp 2027-03-01',
-          insurance_verified: false,
-        },
-      ],
-      flies_rented_aircraft: false,
-      vol_mission_pilot: false,
-      vol_ground_team: true,
-      vol_exercise_training: false,
-      vol_member_support: false,
-      vol_fundraising: false,
-      vol_social_media: false,
-      vol_newsletter: false,
-      notes: 'Called about the Napa exercise.',
-      how_heard: 'EAA chapter meeting',
-    },
+    profile: PROFILE,
     memberships: [
       {
         id: 11,
