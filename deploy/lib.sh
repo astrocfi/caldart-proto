@@ -14,6 +14,8 @@
 #   CALDART_ETC        the configuration directory (default /etc/caldart); the
 #                      tests point it at a temporary directory
 #   CALDART_OS_RELEASE the os-release file to read (default /etc/os-release)
+#   CALDART_DB_PORT    the host port of the Postgres container (default 5432);
+#                      the install record's value wins once it is read
 
 # The constants below are read by the scripts that source this file, which a
 # check of this file alone cannot see.
@@ -25,7 +27,7 @@
 CALDART_LIB_LOADED=1
 
 # The path every shipped file names, replaced by the real root as it is copied.
-readonly SHIPPED_ROOT=/srv/caldart
+readonly SHIPPED_ROOT=/opt/caldart
 # The hostname every shipped vhost names, replaced by the real one.
 readonly SHIPPED_HOSTNAME=caldart.example.org
 readonly DEFAULT_ETC=/etc/caldart
@@ -50,11 +52,21 @@ readonly RECORD_KEYS=(
     CALDART_TLS
     CALDART_CERTBOT_EMAIL
     CALDART_CERTBOT_STAGING
+    CALDART_DB_PORT
 )
 # Random bytes behind the generated database password.
 readonly DB_PASSWORD_BYTES=32
 readonly LETSENCRYPT_DIR=/etc/letsencrypt
 readonly CERTBOT_WEBROOT=/var/www/certbot
+# The host port docker-compose.yml publishes the database on, and its bounds:
+# above the privileged ports, within TCP's range.
+readonly DEFAULT_DB_PORT=5432
+readonly MIN_DB_PORT=1024
+readonly MAX_DB_PORT=65535
+# A decimal port with no leading zero, which bash arithmetic would read as octal.
+readonly PORT_PATTERN='^[1-9][0-9]{0,4}$'
+# The mail relay --email local stands for: the postfix on this machine.
+readonly LOCAL_EMAIL_URL=smtp://localhost:25
 
 ETC_DIR="${CALDART_ETC:-$DEFAULT_ETC}"
 ENV_FILE="$ETC_DIR/caldart.env"
@@ -69,6 +81,10 @@ CALDART_WEB_SERVER="${CALDART_WEB_SERVER:-apache}"
 CALDART_TLS="${CALDART_TLS:-certbot}"
 CALDART_CERTBOT_EMAIL="${CALDART_CERTBOT_EMAIL:-}"
 CALDART_CERTBOT_STAGING="${CALDART_CERTBOT_STAGING:-no}"
+# Exported, so every docker compose a script runs publishes the recorded port:
+# docker-compose.yml reads it, and a compose command without it would move the
+# container back to the default.  load_record keeps the export as it assigns.
+export CALDART_DB_PORT="${CALDART_DB_PORT:-$DEFAULT_DB_PORT}"
 
 # A DNS name of at least two labels: letters, digits, and inner hyphens.  The
 # hostname is written into sed expressions, the vhost, and line-based files, so
@@ -305,6 +321,21 @@ validate_hostname() {
         usage_error "--hostname must be a DNS name such as $SHIPPED_HOSTNAME, not $1"
 }
 
+# Stop with a usage error unless $1 is a port from MIN_DB_PORT to MAX_DB_PORT.
+validate_db_port() {
+    if [[ "$1" =~ $PORT_PATTERN ]] && (($1 >= MIN_DB_PORT && $1 <= MAX_DB_PORT)); then
+        return 0
+    fi
+    usage_error "--db-port must be a port number from $MIN_DB_PORT to $MAX_DB_PORT, not $1"
+}
+
+# True when something on this machine listens on TCP port $1.  Without ss
+# there is no telling, and the answer is no.
+port_in_use() {
+    command -v ss >/dev/null 2>&1 || return 1
+    [[ -n "$(ss -ltnH "sport = :$1")" ]]
+}
+
 # The hostname, or a placeholder in a dry run that has none.
 require_hostname() {
     if [[ -n "$CALDART_HOSTNAME" ]]; then
@@ -345,7 +376,7 @@ generate_secret() {
     python3 -c "import secrets, sys; print(secrets.token_urlsafe(int(sys.argv[1])))" "$1"
 }
 
-# Copy $1 to $2 with /srv/caldart replaced by the deploy root, plus any further
+# Copy $1 to $2 with /opt/caldart replaced by the deploy root, plus any further
 # sed arguments.  A dry run prints the pipeline.
 render_file() {
     local source=$1 dest=$2

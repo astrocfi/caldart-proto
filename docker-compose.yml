@@ -12,8 +12,9 @@ services:
     ports:
       # Loopback only: these are development containers with a password of
       # "caldart", and nothing outside this machine has any business reaching
-      # them.
-      - "127.0.0.1:5432:5432"
+      # them.  A server install sets CALDART_DB_PORT (install.sh --db-port) to
+      # stay clear of another Postgres on the machine; development never does.
+      - "127.0.0.1:${CALDART_DB_PORT:-5432}:5432"
     volumes:
       - caldart_pgdata:/var/lib/postgresql/data
     healthcheck:

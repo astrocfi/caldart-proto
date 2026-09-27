@@ -6,11 +6,14 @@
 # production template deploy/caldart.env.example.  The five variables the
 # template leaves commented out are uncommented and set: SECRET_KEY generated,
 # ALLOWED_HOSTS from the hostname (and its www. form), SITE_URL, EMAIL_URL from
-# --email-url, and DATABASE_URL with the password the Postgres step set.  It
+# --email-url (or smtp://localhost:25 with --email local), and DATABASE_URL with
+# the password the Postgres step set and the recorded database port.  It
 # also sets CSRF_TRUSTED_ORIGINS for the same hosts, DEFAULT_FROM_EMAIL,
 # BACKUP_DIR and USER_GUIDE_ROOT under the deploy root, DB_BACKUP_VIA_DOCKER=false,
 # BACKUP_RETENTION_DAYS=30, and, with self-signed TLS, SECURE_HSTS_SECONDS=0.
-# Everything else, comments included, stays as the template has it.
+# Everything else, comments included, stays as the template has it.  With
+# --email local, a note (not an error) says so when nothing listens on port 25:
+# mail fails until postfix is installed and listening on localhost.
 #
 # When the file exists this step leaves it alone: edit it with sudoedit, then
 # run systemctl restart caldart-web.  Run alone rather than from install.sh, the
@@ -24,7 +27,9 @@
 #   --hostname HOST        the public hostname (default: the install record's)
 #   --www, --no-www        also answer for www.HOST (default: the record's, or --www)
 #   --tls MODE             certbot or self-signed (default: the record's, or certbot)
-#   --email-url URL        EMAIL_URL; required when the file does not exist
+#   --email-url URL        EMAIL_URL; this or --email local is required when the
+#                          file does not exist
+#   --email local          send mail through the postfix on this machine
 #   --from-email ADDRESS   DEFAULT_FROM_EMAIL (default: CalDART <noreply@HOST>)
 #   --dry-run              print every state-changing command instead of running it
 #   --help                 show this help
@@ -41,8 +46,11 @@ source "$ROOT/deploy/lib.sh"
 
 readonly TEMPLATE="$ROOT/deploy/caldart.env.example"
 readonly SECRET_KEY_BYTES=64
+readonly SMTP_PORT=25
 
 EMAIL_URL="${EMAIL_URL:-}"
+# local when --email local was given, which stands for LOCAL_EMAIL_URL.
+EMAIL_MODE="${EMAIL_MODE:-}"
 FROM_EMAIL="${FROM_EMAIL:-}"
 DB_PASSWORD="${DB_PASSWORD:-}"
 
@@ -90,17 +98,40 @@ fill_template() (
     ' "$TEMPLATE"
 )
 
+# Stop with a usage error on an --email other than local, or on --email local
+# together with --email-url; otherwise let --email local set EMAIL_URL.
+validate_email_flags() {
+    [[ -n "$EMAIL_MODE" ]] || return 0
+    [[ "$EMAIL_MODE" == local ]] || usage_error "--email takes only local, not $EMAIL_MODE"
+    [[ -z "$EMAIL_URL" ]] || usage_error "give --email local or --email-url, not both"
+    EMAIL_URL="$LOCAL_EMAIL_URL"
+}
+
+# Say so when --email local finds nothing to relay through.  The installer
+# installs no mail server: the machine's own postfix is the operator's.
+note_local_mail() {
+    [[ "$EMAIL_MODE" == local ]] || return 0
+    port_in_use "$SMTP_PORT" && return 0
+    note "Nothing listens on port $SMTP_PORT on this machine: mail fails until postfix is" \
+        "installed and listening on localhost."
+}
+
 configure_step() {
     if have_env_file; then
         log "Leaving $ENV_FILE alone: it exists"
-        [[ -z "$EMAIL_URL" ]] || printf '    --email-url is ignored: edit the file with sudoedit\n'
+        if [[ "$EMAIL_MODE" == local ]]; then
+            printf '    --email local is ignored: edit the file with sudoedit\n'
+        elif [[ -n "$EMAIL_URL" ]]; then
+            printf '    --email-url is ignored: edit the file with sudoedit\n'
+        fi
         [[ -z "$FROM_EMAIL" ]] || printf '    --from-email is ignored: edit the file with sudoedit\n'
         return 0
     fi
     [[ -n "$CALDART_HOSTNAME" ]] || usage_error "--hostname is required to write $ENV_FILE"
-    [[ -n "$EMAIL_URL" ]] || usage_error "--email-url is required to write $ENV_FILE"
+    [[ -n "$EMAIL_URL" ]] || usage_error "--email-url or --email local is required to write $ENV_FILE"
 
     log "Writing $ENV_FILE"
+    note_local_mail
     local names=() origins=() name
     mapfile -t names < <(site_names)
     for name in "${names[@]}"; do
@@ -117,7 +148,7 @@ configure_step() {
         "ALLOWED_HOSTS=$(join_by , "${names[@]}")"
         "SITE_URL=https://$CALDART_HOSTNAME"
         "EMAIL_URL=$EMAIL_URL"
-        "DATABASE_URL=postgres://caldart:${DB_PASSWORD}@localhost:5432/caldart"
+        "DATABASE_URL=postgres://caldart:${DB_PASSWORD}@localhost:${CALDART_DB_PORT}/caldart"
         "CSRF_TRUSTED_ORIGINS=$(join_by , "${origins[@]}")"
         "DEFAULT_FROM_EMAIL=${FROM_EMAIL:-CalDART <noreply@$CALDART_HOSTNAME>}"
         "BACKUP_DIR=$ROOT/backups"
@@ -160,6 +191,10 @@ configure_main() {
                 EMAIL_URL="$(option_value "$1" "${2:-}")"
                 shift
                 ;;
+            --email)
+                EMAIL_MODE="$(option_value "$1" "${2:-}")"
+                shift
+                ;;
             --from-email)
                 FROM_EMAIL="$(option_value "$1" "${2:-}")"
                 shift
@@ -178,6 +213,7 @@ configure_main() {
         printf -v "$key" '%s' "${flags[$key]}"
     done
     [[ -z "$CALDART_HOSTNAME" ]] || validate_hostname "$CALDART_HOSTNAME"
+    validate_email_flags
     if [[ "$ETC_DIR" == "$DEFAULT_ETC" ]]; then
         require_root
     fi
