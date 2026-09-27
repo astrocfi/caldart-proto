@@ -177,15 +177,19 @@ def set_kind(user: User, kind: AccountKind, *, actor: User | str = audit.COMMAND
 # --------------------------------------------------------------------------
 # Roles
 # --------------------------------------------------------------------------
-def effective_roles(user: User) -> set[str]:
+def effective_roles(user: User | str) -> set[str]:
     """The role slugs ``user`` counts as holding.
 
     These are the user's own role groups, plus ``system_admin`` when the account is a
     Django superuser.  ``createsuperuser`` sets the flag without adding the role, and
     such an account has every power a system administrator has, so the guards treat
     the two the same way in both directions: as the actor making a change and as the
-    target of one.
+    target of one.  The command actor (``audit.COMMAND_ACTOR``) counts as holding
+    every role, since a management command runs with the operator's own privilege,
+    not a portal account's.
     """
+    if isinstance(user, str):
+        return set(ROLE_SLUGS)
     held = set(user.roles)
     if user.is_superuser:
         held.add(SYSTEM_ADMIN)
@@ -208,13 +212,18 @@ def sync_django_flags(user: User) -> None:
 # Account edits
 # --------------------------------------------------------------------------
 @transaction.atomic
-def update_account(actor: User, target: User, changes: AccountChanges) -> User:
+def update_account(actor: User | str, target: User, changes: AccountChanges) -> User:
     """Apply ``changes`` to ``target`` on ``actor``'s behalf, save it and return it.
 
     This is the only way an account is edited, so every rule is enforced once,
-    whichever endpoint, command, or admin screen asked.  The rules run in this
-    order, and the first refusal raises ``DomainValidationError`` naming the
-    field it belongs on, leaving the account untouched:
+    whichever endpoint, command, or admin screen asked.  ``actor`` is ordinarily the
+    signed-in account making the edit; a management command passes
+    ``audit.COMMAND_ACTOR`` instead, which counts as holding every role (see
+    :func:`effective_roles`) and so may grant or revoke any role, but can still refuse
+    the edit only when it deactivates its own account, which a command actor never
+    does since it names no account of its own.  The rules run in this order, and the
+    first refusal raises ``DomainValidationError`` naming the field it belongs on,
+    leaving the account untouched:
 
     #. nobody may deactivate their own account;
     #. only a system administrator may grant or revoke ``system_admin``;
@@ -306,7 +315,7 @@ def set_verifier(actor: User, target: User, *, wanted: bool) -> User:
     return update_account(actor, target, {"roles": roles})
 
 
-def _raise_edit_event(action: str, logged: AuditFields, *, actor: User, target: User) -> None:
+def _raise_edit_event(action: str, logged: AuditFields, *, actor: User | str, target: User) -> None:
     """Raise the notification event behind one audit record :func:`update_account` wrote.
 
     ``account.activate`` raises ``account_reactivated``, ``account.deactivate`` raises
@@ -375,7 +384,7 @@ def _change_records(
     return records
 
 
-def _checked_roles(actor: User, target: User, wanted: list[str]) -> list[str]:
+def _checked_roles(actor: User | str, target: User, wanted: list[str]) -> list[str]:
     """``wanted`` in privilege order, refused if ``actor`` may not move ``system_admin``.
 
     Writing a role list rebuilds the Django flags from that list alone, so the two
@@ -415,13 +424,14 @@ def _moves_system_admin(target: User, wanted: set[str]) -> bool:
     return SYSTEM_ADMIN in effective_roles(target)
 
 
-def may_edit_protected_fields(actor: User, target: User) -> bool:
+def may_edit_protected_fields(actor: User | str, target: User) -> bool:
     """True when ``actor`` may write ``target``'s protected fields at all.
 
     The actor must hold every role the target holds; a system administrator, including
-    a Django superuser without the role group, holds them all.  This judges the pair of
-    accounts, not a particular edit: self-deactivation is refused separately, and a
-    caller who may not write these fields may still change names and profile fields.
+    a Django superuser without the role group or the command actor, holds them all.
+    This judges the pair of accounts, not a particular edit: self-deactivation is
+    refused separately, and a caller who may not write these fields may still change
+    names and profile fields.
     """
     actor_roles = effective_roles(actor)
     if SYSTEM_ADMIN in actor_roles:
@@ -429,7 +439,9 @@ def may_edit_protected_fields(actor: User, target: User) -> bool:
     return len(effective_roles(target) - actor_roles) == 0
 
 
-def check_account_edit(actor: User, target: User, changes: dict[str, AccountFieldValue]) -> None:
+def check_account_edit(
+    actor: User | str, target: User, changes: dict[str, AccountFieldValue]
+) -> None:
     """Refuse an edit of ``target``'s protected fields that ``actor`` may not make.
 
     ``changes`` is the incoming data; only the keys in ``PROTECTED_ACCOUNT_FIELDS``
@@ -468,13 +480,14 @@ def check_account_edit(actor: User, target: User, changes: dict[str, AccountFiel
     )
 
 
-def _refuse_self_deactivation(actor: User, target: User, changed: list[str]) -> None:
+def _refuse_self_deactivation(actor: User | str, target: User, changed: list[str]) -> None:
     """Refuse the one protected change an actor can make to their own account.
 
     An authenticated actor is active, so the only move they can make on their own
     flag is to clear it.  ``changed`` is the protected fields the edit really alters.
+    The command actor names no account of its own, so it never matches ``target``.
     """
-    if target.pk == actor.pk and "is_active" in changed:
+    if isinstance(actor, User) and target.pk == actor.pk and "is_active" in changed:
         _refuse(
             actor,
             target,
@@ -527,7 +540,7 @@ def normalized_email(value: AccountFieldValue | None) -> str:
 
 
 def _refuse(
-    actor: User,
+    actor: User | str,
     target: User,
     changed: list[str],
     *,

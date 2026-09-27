@@ -432,6 +432,9 @@ Beyond Django's and Wagtail's own, this project adds:
      - What it does
    * - ``seed_roles``
      - create one group per role slug; idempotent, also run by a data migration
+   * - ``create_admin --email ADDRESS [--first-name NAME] [--last-name NAME]``
+     - create the account at ``ADDRESS`` as a system administrator, or promote an
+       existing one; either way print its password-reset link
    * - ``seed_demo [--seed N]``
      - the demo data set; ``--seed`` is the *random* seed, default ``20260904``
    * - ``seed_content``
