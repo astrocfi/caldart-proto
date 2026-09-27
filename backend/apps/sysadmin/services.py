@@ -24,6 +24,7 @@ from django.conf import settings
 from django.db import connection
 from django.utils import timezone
 
+from apps.aircraft.models import Registration
 from caldart import audit
 
 if TYPE_CHECKING:
@@ -259,7 +260,16 @@ def resolve_backup(name: str) -> Path:
 
 
 def create_backup(name: str | None = None) -> BackupFile:
-    """Dump the database to ``backups/caldart-<timestamp>.sql.gz``."""
+    """Dump the database to ``BACKUP_DIR/caldart-<timestamp>.sql.gz``, or to ``name``.
+
+    The dump leaves out the rows of the FAA registrations table
+    (``--exclude-table-data``) and keeps its schema, so a restore recreates the table
+    empty and the next registry import refills it.  Every other table, the aircraft
+    types, their aliases, and the import log included, is dumped whole.  The
+    ``db_backup`` command, the backup timer, and ``POST /system/backups`` all dump
+    through here.  Raises :class:`BackupError` when neither ``pg_dump`` nor docker is
+    available or the dump fails, and leaves no partial file behind.
+    """
     argv = _pg_command("pg_dump")
     if argv is None:
         raise BackupError(
@@ -270,7 +280,14 @@ def create_backup(name: str | None = None) -> BackupFile:
     stamp = timezone.localtime().strftime("%Y%m%d-%H%M%S")
     target = backup_dir() / (name or f"caldart-{stamp}{BACKUP_SUFFIX}")
 
-    dump = [*argv, "--no-owner", "--no-privileges", "--dbname", _dbname_url_for(argv)]
+    dump = [
+        *argv,
+        "--no-owner",
+        "--no-privileges",
+        f"--exclude-table-data={Registration._meta.db_table}",
+        "--dbname",
+        _dbname_url_for(argv),
+    ]
     try:
         with gzip.open(target, "wb") as handle:
             _stream_pg(dump, "pg_dump", target=handle)

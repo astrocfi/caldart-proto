@@ -226,7 +226,8 @@ class RegistryImportSerializer(serializers.ModelSerializer[RegistryImport]):
 class RegistryStatusSerializer(serializers.Serializer[dict[str, Any]]):
     """``GET /aircraft/registry``: the date the registry is as of, and the last run.
 
-    ``as_of`` is when the newest successful import finished (null before one has);
+    ``as_of`` is when the newest successful import finished (null before one has, and
+    whenever the registrations table is empty, as after a restore);
     ``running`` whether an import is under way; ``last`` the newest import of any
     outcome, or null.
     """
