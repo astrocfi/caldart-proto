@@ -114,7 +114,9 @@ Step by step:
    due, two members with an ordinary automatic renewal due, and one more with
    a catch-up renewal due, so ``send_scheduled_reports`` and
    ``run_auto_renewals`` always have real work waiting (see
-   :doc:`scheduled-reports` and :doc:`renewals`).
+   :doc:`scheduled-reports` and :doc:`renewals`).  It also subscribes the demo
+   account administrator to every Membership and Accounts notification and the
+   demo treasurer to every Money notification (see :doc:`notifications`).
 
 5. ``make build`` compiles the frontend into ``frontend/dist`` and writes
    ``frontend/dist/.vite/manifest.json``.  **This step is not optional.**  With

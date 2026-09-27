@@ -103,8 +103,18 @@ When there are more than 25 emails, the foot reads, for example, *Showing 1–25
    reminder (7 days)*, *Renewal reminder (expired)*, *Renewal reminder (30 days after)*,
    *Renewal turned on*, *Renewal notice*, *Card expiring*, *Renewal charged*, *Renewal
    declined*, *Renewal turned off*, *Receipt*, *Refund*, *Contribution statement*,
-   *Invitation*, *Password reset*, *Email verification*, *Scheduled report*, or *DART
-   roster*.
+   *Invitation*, *Password reset*, *Email verification*, *Scheduled report*, *DART
+   roster*, or one of the notifications: *Notification: Sign-up*, *Notification: Member
+   added by an administrator*, *Notification: Member became a friend*, *Notification:
+   Friend became a member*, *Notification: Membership paid*, *Notification: Membership
+   granted by an administrator*, *Notification: Membership expired*, *Notification:
+   Automatic payment turned on*, *Notification: Automatic payment turned off*,
+   *Notification: Automatic payment declined*, *Notification: Donation received*,
+   *Notification: Payment recorded by hand*, *Notification: Payment refunded*,
+   *Notification: Account deactivated*, *Notification: Account reactivated*,
+   *Notification: Roles changed*, *Notification: Email address changed*,
+   *Notification: Profile changed*, *Notification: Aircraft added*, *Notification:
+   Aircraft changed*, or *Notification: Aircraft removed*.
 **Status**
    **Sent** or **Failed**.
 **From** and **To**

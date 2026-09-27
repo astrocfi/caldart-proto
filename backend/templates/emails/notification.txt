@@ -1,0 +1,13 @@
+{% autoescape off %}{{ org_name }} — {{ headline }}
+
+{{ headline }}
+
+{% for label, value in lines %}{{ label }}: {{ value }}
+{% endfor %}{% if link %}
+Open it in the portal: {{ link }}
+{% endif %}
+--
+{{ org_name }} is a volunteer disaster air transportation network.
+{% if contact_email %}Questions? Write to {{ contact_email }}.
+{% endif %}{{ why }}
+{% endautoescape %}

@@ -20,6 +20,7 @@ to document each app's endpoints in detail, request body by response body.
    api-refunds
    api-renewals
    api-reports
+   api-notifications
    api-system
 
 Every endpoint the project serves is on one of those pages, and every one
@@ -1169,6 +1170,30 @@ not (see :ref:`api-csrf-bootstrap`).
      - ·
      - ✓
      - every active DART; ``dry_run`` rehearses
+   * - ``GET /notifications/events``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ✓
+     - the event catalog (see :doc:`api-notifications`)
+   * - ``GET | POST /notifications/subscriptions``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ✓
+     - a recipient's roles must admit every event chosen
+   * - ``GET | PATCH | DELETE /notifications/subscriptions/{id}``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ✓
+     - ``PATCH`` takes ``events`` and ``is_active``
    * - ``GET | PATCH /admin/payments/{id}``
      - ·
      - ·
@@ -1368,8 +1393,9 @@ airplane alone.  ``GET /aircraft`` (the list) never includes it for anybody.
 That is what stops the register from being a way around the leader-check gate.
 
 **Restricted methods.**  ``/admin/users/{id}`` accepts ``GET`` and ``PATCH``;
-``/admin/members/{id}``, ``/admin/darts/{id}``, and
-``/reports/subscriptions/{id}`` accept ``GET``, ``PATCH``, and ``DELETE``;
+``/admin/members/{id}``, ``/admin/darts/{id}``, ``/reports/subscriptions/{id}``,
+and ``/notifications/subscriptions/{id}`` accept ``GET``, ``PATCH``, and
+``DELETE``;
 ``/admin/memberships/{id}`` accepts ``PATCH`` only.  Everything else on those
 paths is 405.
 

@@ -1414,3 +1414,51 @@ export interface ReportRunResult {
   skipped_by_reason: Record<string, number>;
   actions: RunAction[];
 }
+
+/* ------------------------------------------------------------ notifications */
+
+/**
+ * One event an address may subscribe to, from `GET /notifications/events`, in
+ * catalog order. `category` is the heading the screen groups it under, and
+ * `roles` the role slugs whose holders may receive it (a system administrator
+ * always may).
+ */
+export interface NotificationEvent {
+  slug: string;
+  label: string;
+  category: string;
+  description: string;
+  roles: string[];
+}
+
+/**
+ * One notification subscription: an address and the event slugs it is sent,
+ * in catalog order. `recipient_user` is the bound account, or null for an
+ * address outside CalDART, whose `recipient_name` is then blank.
+ */
+export interface NotificationSubscription {
+  id: number;
+  recipient_user: number | null;
+  recipient_name: string;
+  recipient_email: string;
+  events: string[];
+  is_active: boolean;
+  created_by_name: string;
+  created_at: IsoDateTime;
+  updated_at: IsoDateTime;
+}
+
+/**
+ * The body of `POST /notifications/subscriptions`. `confirmed` must be true
+ * when no account holds `recipient_email`.
+ */
+export interface NotificationSubscriptionCreate {
+  recipient_email: string;
+  events: string[];
+  confirmed?: boolean;
+}
+
+/** The fields `PATCH /notifications/subscriptions/{id}` may change. */
+export type NotificationSubscriptionPatch = Partial<
+  Pick<NotificationSubscription, 'events' | 'is_active'>
+>;
