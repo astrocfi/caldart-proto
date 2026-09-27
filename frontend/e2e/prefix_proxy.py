@@ -40,7 +40,7 @@ HOP_BY_HOP = frozenset(
         "keep-alive",
         "proxy-authenticate",
         "proxy-authorization",
-        "te",
+        "te",  # codespell:ignore te
         "trailer",
         "transfer-encoding",
         "upgrade",
