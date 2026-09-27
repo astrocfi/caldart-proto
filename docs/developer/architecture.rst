@@ -655,7 +655,7 @@ every screen uses (``Page``, ``Card``, ``Field``, ``FixedValue``, ``Button``,
 ``IconButton``, ``DeleteButton``, ``StatusChip``, ``DataTable``,
 ``PanelButton``, ``ColumnChooser``, ``FilterBar``, ``RunActionsTable``,
 ``Money``, ``DateText``, ``EmptyState``, ``VerifiedMark``, and ``Toast``), and
-``choices.ts`` holds the one set of labels for certificate, medical, IFR,
+``choices.ts`` holds the one set of labels for certificate, medical,
 rating, photo ID, and role codes, and the list of California counties.
 ``components/icons.tsx`` holds the inline SVG icons -- ``TrashcanIcon``,
 ``ArrowUpIcon``, and ``ArrowDownIcon`` -- each ``aria-hidden``, drawn in

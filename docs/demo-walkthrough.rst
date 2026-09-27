@@ -170,11 +170,12 @@ membership buys.*
    Volunteer interests — one column on a phone and two from about 40rem wide.
 3. In *Aviation*, set **Pilot certificate** to ``Private`` and type any
    certificate number; set **Medical** to ``Third class`` and give an
-   expiration date comfortably in the future; set **IFR rated** as you like.
-   Save.  A toast confirms it.
+   expiration date comfortably in the future; tick **Instrument** under
+   *Ratings* if you like, and type a **Secondary airport** such as ``KPAO``,
+   which the form trims to ``PAO``.  Save.  A toast confirms it.
 
-   Under **Pilot certificate** and **Medical** the mark turns to *Not yet
-   verified*.  The seed had both items verified, and any change to what an item
+   Under **Pilot certificate** and **Medical expires** the mark turns to *Not
+   yet verified*.  The seed had both items verified, and any change to what an item
    covers clears its verification, whoever makes it: a DART leader or verifier
    checks the new values against the documents in flow C.  **Photo ID**, which
    you left alone, stays *Verified*.
@@ -244,8 +245,8 @@ airplane for us today?" in one screen.*
    - **Medical** — the class and expiry, whether it is current, and whether it
      is verified.  BasicMed and class medicals both use the stored expiration
      date.
-   - **Certificate** — type, number, IFR rating and any ratings on file, and
-     whether it is verified.
+   - **Certificate** — type, number, any ratings on file (Instrument among
+     them), and whether it is verified.
    - **Photo ID** — the kind of document, never its details, and whether it is
      verified.
    - **Aircraft** — a row per airplane attached to the profile, each with its

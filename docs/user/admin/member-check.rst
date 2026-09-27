@@ -89,8 +89,8 @@ counts as current up to and including its last day.
 **Medical** shows **Current** or **Not current**, the kind of medical (BasicMed or the
 class), its expiry date, and its mark. A medical expiring today still counts as current.
 
-**Certificate** shows the certificate, its number, whether the pilot is IFR rated (**IFR**,
-**VFR only**, or **Not stated**), any ratings, and its mark.
+**Certificate** shows the certificate, its number, any ratings (**Instrument** among them
+when the pilot holds an instrument rating), and its mark.
 
 **Photo ID** shows the kind of photo ID the member showed (a driver's license, a
 passport, a state ID card, a military ID, another kind, or *Not provided*) and its mark.

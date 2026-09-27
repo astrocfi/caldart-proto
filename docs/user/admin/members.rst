@@ -131,10 +131,11 @@ Choosing the columns
 ~~~~~~~~~~~~~~~~~~~~
 
 **Columns**, beside the filters, opens a list of every column the report offers, with a box
-to tick for each. Nine more are on offer: **Plan**, **Certificate number**, **IFR**,
-**City**, **State**, **County**, **Joined** (the day the first term on file began), **Member
-since** (the day the member says they joined), and **Profile updated** (the day their profile
-was last changed). **Reset to the default columns**, under the boxes, ticks the eleven again.
+to tick for each. Eleven more are on offer: **Plan**, **Certificate number**, **Instrument**
+(Yes or No for a pilot, by whether **Instrument** is among the ratings; blank for a
+non-pilot), **Home airport**, **Secondary airport**, **City**, **State**, **County**,
+**Joined** (the day the first term on file began), **Member since** (the day the member says
+they joined), and **Profile updated** (the day their profile was last changed). **Reset to the default columns**, under the boxes, ticks the eleven again.
 
 Your choice changes the downloads only. The list on screen keeps its five columns. You cannot
 untick the last column. Add many columns and the PDF starts to wrap its cells, which is the

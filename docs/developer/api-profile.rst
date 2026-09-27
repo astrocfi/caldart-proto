@@ -65,12 +65,11 @@ Returns every ``MemberProfile`` field except the admin-only ``notes`` and
      "emergency_contact_phone": "650-555-0199",
      "emergency_contact_phone_extension": "",
      "home_airport_identifier": "SQL",
-     "home_airport_city": "San Carlos",
+     "secondary_airport_identifier": "PAO",
      "dart": {"id": 9, "name": "San Carlos"},
      "air_care_alliance_number": "",
      "pilot_certificate_type": "private",
      "certificate_number": "3141592",
-     "ifr_rated": "yes",
      "ratings": ["instrument"],
      "medical_type": "third",
      "medical_expiration": "2029-05-31",
@@ -192,7 +191,7 @@ A write that moves a field a verified item covers clears that item: a new
 ``pilot_certificate_type`` or ``certificate_number`` clears the certificate, a
 new ``medical_type`` or ``medical_expiration`` the medical, and a new
 ``photo_id_type`` the photo ID.  A field resent at its stored value clears
-nothing, and ratings, IFR, the flight review, and hours are not verified at
+nothing, and ratings, the flight review, and hours are not verified at
 all.  The same holds for ``PUT``.  The clearing raises no event of its own;
 ``profile_changed`` below already names the fields (:doc:`verification`).
 
@@ -236,6 +235,11 @@ Field                        Rule
                              and trimmed, so ``KCRQ`` is stored as ``CRQ``; a
                              three-character identifier that begins with ``K``
                              is left alone, because Kelso really is ``KLS``.
+                             Anything else, such as ``KSQL1``, is refused with
+                             "Use a three-character identifier like PAO, E16, or
+                             KLS."
+``secondary_airport_``       The same rule, through the same validator, and it may
+``identifier``               be blank too.
 ``state``                    One of the two-letter codes, and required: the fifty
                              states, DC, and the territories with USPS codes.
 ``postal_code``              Five digits if given.  ZIP+4 is refused: five reach
