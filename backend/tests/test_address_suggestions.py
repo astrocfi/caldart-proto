@@ -9,6 +9,7 @@ empty list rather than an error.  Geoapify is mocked with ``respx`` throughout.
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Iterator
 from typing import Any
 
@@ -180,6 +181,22 @@ def test_the_key_never_reaches_the_client(member_client: APIClient, geoapify: re
     response = member_client.get(SUGGEST_URL, {"q": "1600 Amph"})
 
     assert API_KEY not in response.content.decode()
+
+
+def test_the_outbound_request_is_not_logged(
+    member_client: APIClient, geoapify: respx.Router, caplog: pytest.LogCaptureFixture
+) -> None:
+    """At INFO, the log carries neither the key nor the member's typed address.
+
+    The HTTP client logs every request's full URL at INFO, query string included, so the
+    project's logging configuration holds its loggers at WARNING.
+    """
+    caplog.set_level(logging.INFO)
+
+    member_client.get(SUGGEST_URL, {"q": "1600 Amph"})
+
+    logged = [record.getMessage() for record in caplog.records]
+    assert [message for message in logged if API_KEY in message or "Amph" in message] == []
 
 
 @pytest.mark.parametrize("query", ["", "16", "  16  "], ids=["empty", "two", "two-padded"])

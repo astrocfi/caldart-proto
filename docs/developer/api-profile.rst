@@ -569,8 +569,11 @@ blank (the feature is off) or ``q`` is missing or shorter than three
 characters.  It is also empty when Geoapify does not answer within three
 seconds, cannot be reached, answers an error status, or answers anything but a
 JSON object with a ``results`` list; the failure is logged as a warning without
-the query, since the query is somebody's address.  A suggestion is a
-convenience, so nothing about it ever turns into an error on the form.
+the query, since the query is somebody's address.  The outbound request itself
+is not logged: ``httpx`` logs every request's full URL at ``INFO``, key and
+query included, so the logging configuration holds the ``httpx`` and
+``httpcore`` loggers at ``WARNING`` whatever ``LOG_LEVEL`` says.  A suggestion
+is a convenience, so nothing about it ever turns into an error on the form.
 
 Each account is throttled on its own under ``ADDRESS_SUGGEST_THROTTLE_RATE``
 (``60/min`` by default); see :doc:`configuration`.

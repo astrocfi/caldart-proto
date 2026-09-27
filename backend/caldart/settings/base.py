@@ -481,5 +481,9 @@ LOGGING: dict[str, Any] = {
         # The audit trail carries its own level and handler and stops here, so
         # raising LOG_LEVEL to quiet the application cannot silence it.
         "caldart.audit": {"level": "INFO", "handlers": ["console"], "propagate": False},
+        # The HTTP client logs each request's full URL at INFO, and the Geoapify URL
+        # carries the API key and a member's typed home address.
+        "httpx": {"level": "WARNING"},
+        "httpcore": {"level": "WARNING"},
     },
 }
