@@ -34,6 +34,8 @@ APP_LAYERS: dict[str, int] = {
     "reminders": 5,
     # Reports gathers every app's report and sends them, so it sits beside reminders.
     "reports": 5,
+    # Notifications hears every app's events and sends them, so it sits beside reports.
+    "notifications": 5,
     "cms": 6,
     "sysadmin": 6,
 }
