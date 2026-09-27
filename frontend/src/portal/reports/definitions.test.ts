@@ -8,6 +8,7 @@ import type { ReportSlug } from './types';
 const SLUGS: ReportSlug[] = [
   'members',
   'roles',
+  'verification',
   'aircraft',
   'payments',
   'reconciliation',
@@ -181,6 +182,18 @@ describe('REPORTS', () => {
     expect(amounts.map((field) => field.key)).toEqual(['min_cents', 'max_cents']);
   });
 
+  it('filters the verification report by status and DART', () => {
+    expect(keysOf('verification')).toEqual(['status', 'dart']);
+  });
+
+  it('leaves the verification status blank for the unverified items, the default', () => {
+    const status = REPORTS.verification.filters.find((field) => field.key === 'status');
+    expect([status?.placeholder, status?.options?.map((option) => option.value)]).toEqual([
+      'Not verified',
+      ['verified', 'all'],
+    ]);
+  });
+
   it('filters the email log by purpose, status, date range and search', () => {
     expect(keysOf('emails')).toEqual(['purpose', 'status', 'from', 'to', 'q']);
   });
@@ -189,6 +202,7 @@ describe('REPORTS', () => {
     expect(SLUGS.filter((slug) => REPORTS[slug].choosable)).toEqual([
       'members',
       'roles',
+      'verification',
       'aircraft',
       'payments',
       'donors',

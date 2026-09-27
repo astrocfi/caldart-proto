@@ -13,6 +13,7 @@ import type { Choice } from '@/portal/choices';
 export type ReportSlug =
   | 'members'
   | 'roles'
+  | 'verification'
   | 'aircraft'
   | 'payments'
   | 'reconciliation'
