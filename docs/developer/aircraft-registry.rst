@@ -129,7 +129,8 @@ and whether it succeeded.  A failure anywhere rolls the whole import back, so
 the registry is never half-replaced; the row records it as not ``ok`` with the
 error, and the command fails with a ``CommandError`` naming it.  The newest
 successful row is the date the registry is *as of*, which the register's header
-shows.  The log carries counts and never a registrant's name.
+shows, as long as the registrations table holds a row (:ref:`registry-backups`).
+The log carries counts and never a registrant's name.
 
 The whole registry — some 94,000 types and 317,000 registrations — imports in
 well under a minute once the file is down.
@@ -163,6 +164,27 @@ service, not of the request: it is never waited on, so if it dies without
 finishing its own row — a crash, or the service restarting under it — the row
 is left exactly as an import that ran past the stale limit would leave it, and
 the stale rule is what notices it.
+
+
+.. _registry-backups:
+
+Backups and restores
+--------------------
+
+The registrations are not backed up.  Every dump carries the
+``aircraft_registration`` table's schema and none of its rows
+(:ref:`backup-registry`), because the FAA publishes them afresh every night.
+The aircraft types, their aliases, and the ``RegistryImport`` log are backed up
+with everything else.
+
+So a restored database has a full import log and no registrations.
+``registry.as_of()`` answers ``None`` whenever the registrations table is empty,
+whatever the log says, so the register's header, the N-number lookup, and
+``GET /aircraft/registry`` all say the registry has not been imported yet rather
+than naming the date of an import whose rows are gone; a lookup answers 404, as
+it does before any import.  An import with ``--types-only`` into an empty table
+leaves the date empty the same way.  The next full import, from the 04:30 timer
+or **Run now**, fills the table and the date returns.
 
 
 Display names

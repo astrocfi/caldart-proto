@@ -25,6 +25,21 @@ Keep the ``.sql.gz`` ending whatever you call it.  The download endpoint only
 serves names matching ``^[A-Za-z0-9][A-Za-z0-9._-]*\.sql\.gz$``, and
 ``db_restore`` expects gzip.
 
+.. _backup-registry:
+
+A dump leaves the FAA registry's registrations out.  ``pg_dump`` runs with
+``--exclude-table-data=aircraft_registration`` (the name read from the
+``Registration`` model, never typed), so the dump creates the table and copies
+none of its rows.  Those rows are the FAA's, some 317,000 of them, and are nearly
+three quarters of a compressed dump; the nightly import brings them back from the
+FAA's own file (:doc:`aircraft-registry`).  Everything else is dumped whole,
+the aircraft types, their aliases, and the import log included, because every
+aircraft on the register points at a type and a dump without them would not
+restore.  There is no option for a full dump.  The ``db_backup`` command, the
+``caldart-backup`` timer, and the System screen's **Create backup** button all
+go through the same ``create_backup()``, so all three leave the registrations
+out.
+
 It finds ``pg_dump`` in one of two places:
 
 * the local binary, when ``postgresql-client`` is installed and
@@ -267,6 +282,12 @@ follow :doc:`deployment` up to its database step, restore, migrate,
 ``collectstatic``, and put the media files back from the copy taken beside the
 dump (:ref:`backup-media`).  Either way, go through :ref:`backup-after-restore`
 before the site takes traffic.
+
+A restored database has an empty registrations table (:ref:`backup-registry`).
+Until the next import fills it, the register reads *Registry not imported yet*
+and an N-number lookup finds nothing.  The ``caldart-registry`` timer, which the
+restore above leaves running, imports at 04:30; **Run now** on the System screen
+imports at once.
 
 There is no restore button in the portal, and there will not be one.  Wiping
 the database is not a thing to do from a browser tab.

@@ -576,7 +576,9 @@ row read it; the System screen polls it every five seconds while ``running``.
      }
    }
 
-``as_of`` is when the newest successful import finished, null before one has.
+``as_of`` is when the newest successful import finished, null before one has
+and null whenever the registry holds no registration, as after a restore from a
+backup, which leaves the registrations out (:ref:`registry-backups`).
 ``running`` is true while an import has started, not finished, and started less
 than ``REGISTRY_IMPORT_STALE_MINUTES`` ago.  ``last`` is the newest import of any
 outcome, null before the first: ``finished_at`` is null while it runs, ``ok``

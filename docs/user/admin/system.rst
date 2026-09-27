@@ -49,6 +49,11 @@ was **Taken**, its **Size**, and a **Download** link.
 takes a minute or two on a large database, so leave the page open. A message names the file
 when it is done.
 
+A backup leaves out CalDART's copy of the FAA aircraft registry, which the nightly import
+copies again from the FAA. After a restore from a backup, the aircraft register reads
+*Registry not imported yet* until the next nightly import, or until you press **Run now**
+under *FAA registry import* below.
+
 **Download** saves a backup to your own computer. Keep at least one copy somewhere other than
 the server: a backup on the same disk as the database is lost with it. Take a backup before
 every upgrade, before any bulk change, and before anyone experiments with the data.
