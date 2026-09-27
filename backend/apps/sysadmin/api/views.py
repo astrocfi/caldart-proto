@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from django.http import FileResponse
 from django.utils import timezone
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import status
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.request import Request
@@ -18,6 +18,8 @@ from rest_framework.views import APIView
 
 from apps.accounts.models import User
 from apps.accounts.permissions import IsSystemAdmin
+from apps.aircraft import registry
+from apps.aircraft.api.serializers import RegistryImportSerializer
 from apps.payments.api.serializers import (
     RenewalRunRequestSerializer,
     RenewalRunResultSerializer,
@@ -203,3 +205,35 @@ class StatementsRunView(APIView):
         year = data["year"] if data["year"] is not None else timezone.localdate().year - 1
         run = send_year_statements(year, dry_run=data["dry_run"], actor=_actor(request))
         return Response(StatementsRunResultSerializer(run.as_dict()).data)
+
+
+class RegistryImportRunView(APIView):
+    """``POST /admin/system/registry-import`` -- start the FAA registry import now."""
+
+    permission_classes = [IsSystemAdmin]
+
+    @extend_schema(
+        request=None,
+        responses={
+            202: RegistryImportSerializer,
+            409: OpenApiResponse(description="An import is already running."),
+        },
+    )
+    def post(self, request: Request) -> Response:
+        """Start ``import_faa_registry`` in its own process and answer 202 with its row.
+
+        The row (started, not finished, its source ``FAA_REGISTRY_URL``, started by the
+        caller) is written before the answer, and a ``system.registry_import`` audit
+        record names the caller and the row.  While another import runs the answer is
+        409 with ``An import is already running.``, and a WARNING audit record with
+        reason ``import_running`` is written instead; an unfinished import older than
+        ``REGISTRY_IMPORT_STALE_MINUTES`` is closed as failed and does not block.
+        """
+        actor = _actor(request)
+        try:
+            run = registry.start_import(actor)
+        except registry.ImportAlreadyRunningError as exc:
+            audit.refuse(audit.REGISTRY_IMPORT, actor=actor, reason=audit.REASON_IMPORT_RUNNING)
+            return Response({"detail": str(exc)}, status=status.HTTP_409_CONFLICT)
+        audit.record(audit.REGISTRY_IMPORT, actor=actor, target=run)
+        return Response(RegistryImportSerializer(run).data, status=status.HTTP_202_ACCEPTED)

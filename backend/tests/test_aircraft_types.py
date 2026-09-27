@@ -239,7 +239,7 @@ def test_display_make_gives_one_name_per_manufacturer(faa_make: str, expected: s
     ],
 )
 def test_textron_aviation_reads_as_the_maker_of_the_model(faa_model: str, expected: str) -> None:
-    """``TEXTRON AVIATION INC`` builds both Cessnas and Beechcrafts; the model says which."""
+    """``TEXTRON AVIATION INC`` builds Cessnas and Beechcrafts; the model says which."""
     assert display_make("TEXTRON AVIATION INC", faa_model) == expected
 
 
@@ -370,7 +370,7 @@ def test_a_search_answers_at_most_the_limit(vocabulary: dict[str, AircraftType])
 
 
 def test_equally_similar_types_lead_with_the_most_registered() -> None:
-    """Of two types a query resembles equally, the one more aircraft are registered as leads."""
+    """Of two types a query resembles equally, the more registered one leads."""
     AircraftTypeFactory(make="Cessna", model="150")
     popular = AircraftTypeFactory(make="Cessna", model="172")
     Registration.objects.create(n_number="N172AB", type=popular)

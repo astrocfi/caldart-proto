@@ -63,8 +63,7 @@ MASTER_HEADER = (
 def _ref_row(code: str, mfr: str, model: str, *, engines: str = "01", seats: str = "004") -> str:
     """One ``ACFTREF.txt`` row, padded as the FAA pads it."""
     return (
-        f"{code},{mfr:<30},{model:<20},4,1 ,1,0,{engines},{seats},CLASS 1,0120,"
-        f"{'':<15},{'':<50},"
+        f"{code},{mfr:<30},{model:<20},4,1 ,1,0,{engines},{seats},CLASS 1,0120,{'':<15},{'':<50},"
     )
 
 
@@ -330,9 +329,10 @@ def test_an_http_source_is_downloaded(small_registry: Path, tmp_path: Path) -> N
 def test_a_failed_download_is_recorded(tmp_path: Path) -> None:
     """A download the server refuses leaves a failed run naming the status."""
     url = "https://registry.example.test/ReleasableAircraft.zip"
-    with respx.mock() as router, pytest.raises(httpx.HTTPStatusError, match="503"):
+    with respx.mock() as router:
         router.get(url).mock(return_value=httpx.Response(503))
-        import_registry(url)
+        with pytest.raises(httpx.HTTPStatusError, match="503"):
+            import_registry(url)
     run = RegistryImport.objects.get()
     assert (run.ok, "503" in run.error) == (False, True)
 

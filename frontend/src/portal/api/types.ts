@@ -625,6 +625,67 @@ export interface AircraftType {
   is_custom: boolean;
 }
 
+/**
+ * The body of `POST /aircraft/types` (account administrators): a type the FAA has
+ * never registered.  The make and model come back as display names.
+ */
+export interface AircraftTypeCreatePayload {
+  make: string;
+  model: string;
+  seats?: number | null;
+  engines?: number | null;
+}
+
+/** Who holds an FAA registration, as the registry codes it. */
+export type RegistrantType =
+  | 'individual'
+  | 'partnership'
+  | 'corporation'
+  | 'co_owned'
+  | 'government'
+  | 'llc'
+  | 'non_citizen_corporation'
+  | 'non_citizen_co_owned'
+  | 'unknown';
+
+/** Whether an FAA registration stands. */
+export type RegistrationStatus = 'valid' | 'pending' | 'revoked' | 'expired' | 'other';
+
+/** One N-number as the FAA registry holds it, from `GET /aircraft/registry/{n_number}`. */
+export interface Registration {
+  n_number: string;
+  type: AircraftType;
+  year: number | null;
+  registrant_name: string;
+  registrant_type: RegistrantType;
+  status: RegistrationStatus;
+  certificate_issued_on: IsoDate | null;
+  expires_on: IsoDate | null;
+  imported_at: IsoDateTime;
+}
+
+/** One run of the FAA registry import; `finished_at` is null while it runs. */
+export interface RegistryImport {
+  started_at: IsoDateTime;
+  finished_at: IsoDateTime | null;
+  ok: boolean;
+  error: string;
+  types_written: number;
+  registrations_written: number;
+  types_folded: number;
+  source: string;
+}
+
+/**
+ * `GET /aircraft/registry`: when the newest successful import finished (`as_of`),
+ * whether one is running, and the newest run of any outcome.
+ */
+export interface RegistryStatus {
+  as_of: IsoDateTime | null;
+  running: boolean;
+  last: RegistryImport | null;
+}
+
 /** `make` and `model` are the display names of `type`, repeated for convenience. */
 export interface AircraftSummary {
   id: number;

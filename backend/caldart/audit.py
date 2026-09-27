@@ -89,6 +89,7 @@ RENEWAL_CANCEL = "renewal.cancel"
 RENEWAL_CHANGE = "renewal.change"
 RENEWALS_RUN = "renewals.run"
 STATEMENTS_RUN = "statements.run"
+REGISTRY_IMPORT = "system.registry_import"
 
 # -- why an attempt was turned away -----------------------------------------
 REASON_SELF_DEACTIVATION = "self_deactivation"
@@ -101,6 +102,7 @@ REASON_INACTIVE_ACCOUNT = "inactive_account"
 REASON_NO_SUCH_BACKUP = "no_such_backup"
 REASON_DONOR_KIND = "donor_kind"
 REASON_DONOR_ACCOUNT = "donor_account"
+REASON_IMPORT_RUNNING = "import_running"
 
 log = logging.getLogger(LOGGER_NAME)
 

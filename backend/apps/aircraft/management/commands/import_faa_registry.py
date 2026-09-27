@@ -60,8 +60,7 @@ class Command(BaseCommand):
             # Every failure is already on the run's row; the operator gets the reason.
             raise CommandError(f"Registry import failed: {exc}") from exc
         summary = (
-            f"Imported {run.types_written} types and {run.registrations_written} "
-            f"registrations"
+            f"Imported {run.types_written} types and {run.registrations_written} registrations"
         )
         if run.types_folded > 0:
             summary += f", folded {run.types_folded} hand-added types"

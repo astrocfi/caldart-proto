@@ -399,6 +399,18 @@
       "seats"
     ]
   },
+  "AircraftTypeCreateRequest": {
+    "properties": {
+      "engines": "integer|null",
+      "make": "string",
+      "model": "string",
+      "seats": "integer|null"
+    },
+    "required": [
+      "make",
+      "model"
+    ]
+  },
   "AttachedAircraft": {
     "properties": {
       "aircraft": "array<ref:AircraftSummary>"
@@ -2426,6 +2438,86 @@
       "first_name",
       "last_name",
       "password"
+    ]
+  },
+  "RegistrantTypeEnum": {
+    "enum": [
+      "individual",
+      "partnership",
+      "corporation",
+      "co_owned",
+      "government",
+      "llc",
+      "non_citizen_corporation",
+      "non_citizen_co_owned",
+      "unknown"
+    ]
+  },
+  "Registration": {
+    "properties": {
+      "certificate_issued_on": "string(date)|null",
+      "expires_on": "string(date)|null",
+      "imported_at": "string(date-time)",
+      "n_number": "string",
+      "registrant_name": "string",
+      "registrant_type": "ref:RegistrantTypeEnum",
+      "status": "ref:RegistrationStatusEnum",
+      "type": "ref:AircraftType",
+      "year": "integer|null"
+    },
+    "required": [
+      "certificate_issued_on",
+      "expires_on",
+      "imported_at",
+      "n_number",
+      "registrant_name",
+      "registrant_type",
+      "status",
+      "type",
+      "year"
+    ]
+  },
+  "RegistrationStatusEnum": {
+    "enum": [
+      "valid",
+      "pending",
+      "revoked",
+      "expired",
+      "other"
+    ]
+  },
+  "RegistryImport": {
+    "properties": {
+      "error": "string",
+      "finished_at": "string(date-time)|null",
+      "ok": "boolean",
+      "registrations_written": "integer",
+      "source": "string",
+      "started_at": "string(date-time)",
+      "types_folded": "integer",
+      "types_written": "integer"
+    },
+    "required": [
+      "error",
+      "finished_at",
+      "ok",
+      "registrations_written",
+      "source",
+      "started_at",
+      "types_folded",
+      "types_written"
+    ]
+  },
+  "RegistryStatus": {
+    "properties": {
+      "as_of": "string(date-time)|null",
+      "last": "ref:RegistryImport|null",
+      "running": "boolean"
+    },
+    "required": [
+      "as_of",
+      "last",
+      "running"
     ]
   },
   "ReminderKindEnum": {

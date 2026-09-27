@@ -226,9 +226,7 @@ def _registry() -> dict[str, Any]:
         .select_related("type")
         .order_by("n_number")
     )
-    known = (
-        candidates.filter(registrant_type__in=COMPANY_REGISTRANTS).first() or candidates.first()
-    )
+    known = candidates.filter(registrant_type__in=COMPANY_REGISTRANTS).first() or candidates.first()
     finished = as_of()
     return {
         "knownNNumber": "" if known is None else known.n_number,

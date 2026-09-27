@@ -695,7 +695,10 @@ def test_seed_demo_records_the_registry_import() -> None:
 
 
 def test_every_seeded_aircraft_is_in_the_registry_as_itself() -> None:
-    """Each seeded N-number is a fixture registration with the aircraft's type and year."""
+    """Each seeded N-number is a fixture registration with the aircraft's type and year.
+
+    So a registry lookup on any seeded aircraft answers it.
+    """
     _seed()
     mismatched = [
         aircraft.n_number

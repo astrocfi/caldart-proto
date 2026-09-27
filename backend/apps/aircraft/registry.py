@@ -178,7 +178,7 @@ def status_for(code: str) -> str:
 
 
 def parse_date(value: str) -> date | None:
-    """The date a registry ``YYYYMMDD`` value names, or ``None`` when blank or malformed."""
+    """The date a registry ``YYYYMMDD`` value names; ``None`` when blank or malformed."""
     text = value.strip()
     if len(text) != DATE_LENGTH or not text.isdigit():
         return None
@@ -189,7 +189,7 @@ def parse_date(value: str) -> date | None:
 
 
 def _parse_int(value: str) -> int | None:
-    """The whole number ``value`` holds (``"004"`` is 4), or ``None`` when it holds none."""
+    """The whole number ``value`` holds (``"004"`` is 4); ``None`` when it holds none."""
     text = value.strip()
     return int(text) if text.isdigit() else None
 
@@ -371,8 +371,7 @@ def import_registry(
     run.finished_at = timezone.now()
     run.save()
     log.info(
-        "Registry import %s wrote %d types and %d registrations, and folded %d hand-added "
-        "types.",
+        "Registry import %s wrote %d types and %d registrations, and folded %d hand-added types.",
         run.pk,
         *counts,
     )
@@ -380,7 +379,7 @@ def import_registry(
 
 
 def _import(source: str, *, types_only: bool) -> ImportCounts:
-    """Read ``source`` and write the types, the fold, the registrations, and the aliases."""
+    """Read ``source``; write the types, the fold, the registrations, and the aliases."""
     with _opened_source(source) as open_file:
         with open_file(REFERENCE_FILE) as stream:
             types_written = _write_types(read_types(stream))
@@ -452,9 +451,7 @@ def _write_registrations(rows: Iterator[RegistrationRow]) -> int:
     A row whose type code the reference file does not hold is skipped and counted in
     the log.  Every registration the rows do not name is deleted afterwards.
     """
-    type_ids = dict(
-        AircraftType.objects.filter(is_custom=False).values_list("faa_code", "id")
-    )
+    type_ids = dict(AircraftType.objects.filter(is_custom=False).values_list("faa_code", "id"))
     stamp = timezone.now()
     written = skipped = 0
     batch: dict[str, Registration] = {}
@@ -483,7 +480,7 @@ def _write_registrations(rows: Iterator[RegistrationRow]) -> int:
 
 
 def _flush_registrations(batch: dict[str, Registration]) -> int:
-    """Upsert the registrations in ``batch`` by N-number, empty it, and return the count."""
+    """Upsert ``batch``'s registrations by N-number, empty it, and return the count."""
     count = len(batch)
     Registration.objects.bulk_create(
         list(batch.values()),
