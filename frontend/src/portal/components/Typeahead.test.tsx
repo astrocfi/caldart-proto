@@ -36,12 +36,14 @@ function makeSuggestions(): {
 interface HarnessProps {
   onPick?: (place: Place) => void;
   useSuggestions?: (term: string) => SuggestionResults<Place>;
+  itemMeta?: (place: Place) => string;
 }
 
 /** Holds the typed text the way a form does, and fills it with the picked place. */
 function Harness({
   onPick: handleReport,
   useSuggestions = makeSuggestions().useSuggestions,
+  itemMeta,
 }: HarnessProps): JSX.Element {
   const [value, setValue] = useState('');
   const handlePick = (place: Place): void => {
@@ -60,6 +62,7 @@ function Harness({
         useSuggestions={useSuggestions}
         itemKey={(place) => place.id}
         itemLabel={(place) => place.label}
+        itemMeta={itemMeta}
       />
       <p>somewhere else</p>
       <button type="button">Next field</button>
@@ -236,5 +239,25 @@ describe('Typeahead', () => {
     await typeAndWaitForList('1600');
 
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('3 suggestions'));
+  });
+
+  it("shows an item's meta after its label, in the muted face", async () => {
+    const user = userEvent.setup();
+    render(<Harness itemMeta={(place) => place.id.toUpperCase()} />);
+    await user.type(screen.getByRole('combobox'), 'page');
+
+    const option = await screen.findByRole('option', { name: /Page Mill/ });
+
+    expect(option.querySelector('.typeahead__meta')).toHaveTextContent('PA');
+  });
+
+  it('names an option by its label and its meta together', async () => {
+    const user = userEvent.setup();
+    render(<Harness itemMeta={(place) => place.id.toUpperCase()} />);
+    await user.type(screen.getByRole('combobox'), 'page');
+
+    expect(
+      await screen.findByRole('option', { name: '1600 Page Mill Road, Palo Alto PA' }),
+    ).toBeInTheDocument();
   });
 });

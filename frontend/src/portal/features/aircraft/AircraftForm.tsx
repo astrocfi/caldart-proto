@@ -1,19 +1,24 @@
 /**
  * The full aircraft record, in four sections: the airframe, its owner, its
  * insurance and the administrator's own notes.
+ *
+ * **Look up** beside the N-number fills the airframe and its owner from the FAA
+ * registry, and the aircraft type is picked from the aircraft types.
  */
 import { useState } from 'react';
 import type { JSX } from 'react';
 
-import type { AircraftPatch, AircraftType } from '@/portal/api/types';
+import type { AircraftPatch, AircraftType, Registration } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { Field } from '@/portal/components/Field';
 import { MaskedInput } from '@/portal/components/MaskedInput';
-import { maskDigits, maskDollars, maskNNumber } from '@/portal/masks';
-import { AircraftTypeSelect } from './AircraftTypeSelect';
+import { maskDigits, maskDollars } from '@/portal/masks';
+import { AircraftTypePicker } from './AircraftTypePicker';
 import './aircraft.css';
 import type { AircraftFormValues } from './form';
 import { OWNER_TYPES, OWNER_TYPE_LABELS, aircraftPayload, validateAircraft } from './form';
+import { NNumberField } from './NNumberField';
+import { withPickedType, withRegistration } from './registry';
 
 export interface AircraftFormProps {
   initial: AircraftFormValues;
@@ -57,7 +62,11 @@ export function AircraftForm({
     setValues((current) => ({ ...current, [key]: value }));
   };
 
-  const handleType = (type: AircraftType | null): void => set('type', type);
+  const handleType = (type: AircraftType | null): void =>
+    setValues((current) => withPickedType(current, type));
+
+  const handleFound = (registration: Registration): void =>
+    setValues((current) => withRegistration(current, registration));
 
   const handleSubmit = (event: React.FormEvent): void => {
     event.preventDefault();
@@ -71,24 +80,15 @@ export function AircraftForm({
       <fieldset className="aircraft-form__section">
         <legend className="aircraft-form__legend">Aircraft</legend>
         <div className="aircraft-form__grid">
-          <Field
-            label="N-number"
-            required
+          <NNumberField
+            value={values.n_number}
+            onValueChange={(next) => set('n_number', next)}
+            onFound={handleFound}
+            onBlur={handleBlur('n_number')}
+            savedNNumber={initial.n_number}
             error={shown.n_number}
             hint="Digits, then up to two letters"
-          >
-            {(field) => (
-              <MaskedInput
-                {...field}
-                className="mono"
-                placeholder="N172SP"
-                mask={maskNNumber}
-                value={values.n_number}
-                onValueChange={(next) => set('n_number', next)}
-                onBlur={handleBlur('n_number')}
-              />
-            )}
-          </Field>
+          />
           <Field label="Year" error={shown.year}>
             {(field) => (
               <MaskedInput
@@ -103,7 +103,7 @@ export function AircraftForm({
               />
             )}
           </Field>
-          <AircraftTypeSelect
+          <AircraftTypePicker
             value={values.type}
             onChange={handleType}
             onBlur={handleBlur('type_id')}

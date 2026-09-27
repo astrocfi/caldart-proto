@@ -61,8 +61,8 @@ describe('AircraftRecordPage', () => {
     expect(await screen.findByRole('heading', { name: 'N172SP' })).toBeInTheDocument();
     const form = screen.getByRole('group', { name: 'Aircraft' });
     expect(within(form).getByLabelText(/^N-number/)).toHaveValue('N172SP');
-    expect(within(form).getByLabelText(/^Aircraft type/)).toHaveDisplayValue(
-      'Cessna 172S Skyhawk · 4 seats',
+    expect(within(form).getByRole('combobox', { name: /^Aircraft type/ })).toHaveValue(
+      'Cessna 172S Skyhawk',
     );
     expect(within(form).getByLabelText(/^Year/)).toHaveValue('2008');
 
@@ -124,7 +124,7 @@ describe('AircraftRecordPage', () => {
 
     renderRecord();
     const form = await screen.findByRole('group', { name: 'Aircraft' });
-    await user.selectOptions(within(form).getByLabelText(/^Aircraft type/), '');
+    await user.clear(within(form).getByRole('combobox', { name: /^Aircraft type/ }));
     await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
     expect(await screen.findByText('Pick the aircraft type from the list.')).toBeInTheDocument();

@@ -1,16 +1,17 @@
 /**
  * Read-only queries shared by more than one feature.
  *
- * `useDarts`, `usePlans`, `useSiteConfig`, `useRenewal`, and `useDonation` back
- * screens across several features (the join wizard, the dashboard, the payments
- * screen, the checkout, and administration screens), so they live here rather than
- * inside any one feature's `api.ts`.
+ * `useDarts`, `usePlans`, `useSiteConfig`, `useRenewal`, `useDonation`, and
+ * `useRegistryStatus` back screens across several features (the join wizard, the
+ * dashboard, the payments screen, the checkout, the aircraft register, and
+ * administration screens), so they live here rather than inside any one feature's
+ * `api.ts`.
  */
 import { useQuery } from '@tanstack/react-query';
 import type { UseQueryResult } from '@tanstack/react-query';
 
 import { api } from '@/portal/api/client';
-import type { Dart, Plan, RenewalEnvelope, SiteConfig } from '@/portal/api/types';
+import type { Dart, Plan, RegistryStatus, RenewalEnvelope, SiteConfig } from '@/portal/api/types';
 
 export const DARTS_KEY = ['darts'] as const;
 export const PLANS_KEY = ['plans'] as const;
@@ -92,5 +93,25 @@ export function useSiteConfig(): UseQueryResult<SiteConfig> {
     queryKey: SITE_CONFIG_KEY,
     queryFn: () => api.get<SiteConfig>('/site/config'),
     staleTime: 5 * 60_000,
+  });
+}
+
+/** The registry's state is cached under this key, which the System screen's import drops. */
+export const REGISTRY_KEY = ['aircraft', 'registry'] as const;
+
+/** How often the registry's state is asked for again while an import runs. */
+export const REGISTRY_POLL_MS: number = 5_000;
+
+/**
+ * The registry's state via `GET /aircraft/registry`: the day of the newest
+ * successful import, whether one is running, and the newest import.  While an
+ * import runs it is asked for again every `REGISTRY_POLL_MS`, so the screen
+ * follows the import to its end.
+ */
+export function useRegistryStatus(): UseQueryResult<RegistryStatus> {
+  return useQuery({
+    queryKey: REGISTRY_KEY,
+    queryFn: () => api.get<RegistryStatus>('/aircraft/registry'),
+    refetchInterval: (query) => (query.state.data?.running === true ? REGISTRY_POLL_MS : false),
   });
 }

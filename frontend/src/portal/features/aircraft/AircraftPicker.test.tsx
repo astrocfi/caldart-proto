@@ -4,6 +4,7 @@ import { HttpResponse, http } from 'msw';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { makeAircraftType } from '@test/fixtures/profile';
+import { makeRegistration } from '@test/fixtures/registry';
 import { API } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
@@ -316,17 +317,35 @@ describe('AircraftPicker', () => {
     await search(user, /Search the aircraft register/i, 'n4321q');
     await user.click(await screen.findByRole('button', { name: /Add a new aircraft/i }));
 
-    await search(user, /^Find the aircraft type/, 'sr22');
-    await user.selectOptions(
-      screen.getByLabelText(/^Aircraft type/),
-      await screen.findByRole('option', { name: /^Cirrus SR22/ }),
-    );
+    await search(user, /^Aircraft type/, 'sr22');
+    await user.click(await screen.findByRole('option', { name: /^Cirrus SR22/ }));
     await user.click(screen.getByRole('button', { name: /^Add aircraft$/ }));
 
     await waitFor(() =>
       expect(handleSelect).toHaveBeenCalledWith(expect.objectContaining(created)),
     );
     expect(posted).toMatchObject({ n_number: 'N4321Q', type_id: 3 });
+  });
+
+  it('fills a new aircraft from the FAA registry with Look up', async () => {
+    const user = setupUser();
+    server.use(
+      ...searchOnly([]),
+      http.get(`${API}/aircraft/registry/N739TA`, () => HttpResponse.json(makeRegistration())),
+    );
+
+    renderWithProviders(<AircraftPicker onSelect={() => {}} />);
+    await search(user, /Search the aircraft register/i, 'n739ta');
+    await user.click(await screen.findByRole('button', { name: /Add a new aircraft/i }));
+    await user.click(screen.getByRole('button', { name: 'Look up' }));
+
+    await screen.findByText('From the FAA registry as of 2026/09/20');
+    const boxes = [
+      screen.getByRole('combobox', { name: /^Aircraft type/ }),
+      screen.getByLabelText('Year'),
+      screen.getByLabelText('Owner'),
+    ] as HTMLInputElement[];
+    expect(boxes.map((box) => box.value)).toEqual(['Cessna 172S', '2004', 'PALO ALTO FLYING CLUB']);
   });
 
   it('will not submit without an aircraft type', async () => {
@@ -364,11 +383,8 @@ describe('AircraftPicker', () => {
     renderWithProviders(<AircraftPicker onSelect={() => {}} />);
     await search(user, /Search the aircraft register/i, 'n172sp');
     await user.click(await screen.findByRole('button', { name: /Add a new aircraft/i }));
-    await search(user, /^Find the aircraft type/, '172S');
-    await user.selectOptions(
-      screen.getByLabelText(/^Aircraft type/),
-      await screen.findByRole('option', { name: /^Cessna 172S/ }),
-    );
+    await search(user, /^Aircraft type/, '172S');
+    await user.click(await screen.findByRole('option', { name: /^Cessna 172S/ }));
     await user.click(screen.getByRole('button', { name: /^Add aircraft$/ }));
 
     expect(await screen.findByText(/already on file/i)).toBeInTheDocument();

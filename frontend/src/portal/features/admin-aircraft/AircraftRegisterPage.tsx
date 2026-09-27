@@ -1,6 +1,7 @@
 /**
  * `/admin/aircraft` — the register an account administrator maintains:
- * filter, sort, export, and add a record.
+ * filter, sort, export, and add a record.  The header says which day the FAA
+ * registry behind **Look up** and the aircraft types was imported.
  *
  * The exports carry more columns than the five the table shows, so the column
  * chooser drives the two download links rather than the table: the register
@@ -17,7 +18,7 @@ import { Card } from '@/portal/components/Card';
 import { ColumnChooser, defaultColumnKeys } from '@/portal/components/ColumnChooser';
 import { DataTable } from '@/portal/components/DataTable';
 import type { Column } from '@/portal/components/DataTable';
-import { DateText } from '@/portal/components/DateText';
+import { DateText, formatDate } from '@/portal/components/DateText';
 import { FilterBar } from '@/portal/components/FilterBar';
 import { Page } from '@/portal/components/Page';
 import { useToast } from '@/portal/components/Toast';
@@ -26,6 +27,8 @@ import {
   useFirstPageWhenMissing,
   useUrlListPosition,
 } from '@/portal/components/useUrlListPosition';
+import { useRegistryStatus } from '@/portal/api/queries';
+import type { RegistryStatus } from '@/portal/api/types';
 import { AircraftForm } from '@/portal/features/aircraft/AircraftForm';
 import { InsuranceDot } from '@/portal/features/aircraft/InsuranceChip';
 import { ServiceChip } from '@/portal/features/aircraft/ServiceChip';
@@ -42,6 +45,11 @@ const FILTER_FIELDS = listFilters(REPORTS.aircraft);
 const FILTER_KEYS = FILTER_FIELDS.map((field) => field.key);
 
 const DEFAULT_ORDERING = 'n_number';
+
+/** The header's line about the FAA registry: the day of its newest successful import. */
+function registryLine({ as_of: asOf }: RegistryStatus): string {
+  return asOf === null ? 'Registry not imported yet' : `Registry as of ${formatDate(asOf)}`;
+}
 
 /** `/admin/aircraft` page: filter, sort, export, and add aircraft register records. */
 export function AircraftRegisterPage(): JSX.Element {
@@ -65,6 +73,7 @@ export function AircraftRegisterPage(): JSX.Element {
 
   const list = useAircraftList({ ...query, page });
   const create = useCreateAircraft();
+  const registryStatus = useRegistryStatus();
   useFirstPageWhenMissing(position, list.error);
 
   const registry = useReportColumns('aircraft');
@@ -140,15 +149,22 @@ export function AircraftRegisterPage(): JSX.Element {
       eyebrow="Administration"
       lede="Every airframe CalDART members fly, with the insurance a DART leader checks before a mission."
       actions={
-        <Button
-          variant={adding ? 'quiet' : 'primary'}
-          onClick={() => {
-            create.reset();
-            setAdding((current) => !current);
-          }}
-        >
-          {adding ? 'Close' : 'New aircraft'}
-        </Button>
+        <>
+          {registryStatus.data === undefined ? null : (
+            <span className="muted aircraft-registry-date">
+              {registryLine(registryStatus.data)}
+            </span>
+          )}
+          <Button
+            variant={adding ? 'quiet' : 'primary'}
+            onClick={() => {
+              create.reset();
+              setAdding((current) => !current);
+            }}
+          >
+            {adding ? 'Close' : 'New aircraft'}
+          </Button>
+        </>
       }
     >
       {adding ? (

@@ -609,7 +609,11 @@ the files they test, and an ``index.ts`` of what the route files use:
 ``profile``             the profile form, the fieldsets the admin member
                         screens share with it, and *My aircraft*
 ``aircraft``            the aircraft picker, form, and insurance and service
-                        chips that the profile, leader, and admin screens reuse
+                        chips that the profile, leader, and admin screens reuse;
+                        the form's N-number **Look up** against the FAA
+                        registry, the aircraft type typeahead with **Add a
+                        type**, and the registry state the register and the
+                        System page read
 ``leader``              the DART leader's member check and aircraft check
 ``verification``        the verification panels for a person's certificate,
                         medical, and photo ID and for an aircraft's
@@ -617,7 +621,9 @@ the files they test, and an ``index.ts`` of what the route files use:
                         the three writes behind them, and ``useCanVerify``
 ``admin-*``             the members, aircraft, DARTs, payments, reminder-log,
                         reports, notifications, and users screens
-``system``              the System page: health, backups, and reminders
+``system``              the System page: health, backups, the email log, and
+                        the five scheduled jobs, the FAA registry import among
+                        them
 ======================  ======================================================
 
 Shared code sits outside ``features/``: ``components/`` holds the primitives

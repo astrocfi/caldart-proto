@@ -2,22 +2,23 @@
  * Shared aircraft search-and-attach control.
  *
  * It searches with `GET /aircraft/lookup`, then `GET /aircraft`, and can add a
- * missing aircraft with `POST /aircraft`.  `/profile/aircraft` uses it for the
- * planes a member commonly flies.
+ * missing aircraft with `POST /aircraft`; the add form's **Look up** fills the
+ * airframe and its owner from the FAA registry.  `/profile/aircraft` uses it for
+ * the planes a member commonly flies.
  */
 import { useState } from 'react';
 import type { JSX } from 'react';
 
 import { ApiError } from '@/portal/api/client';
-import type { Aircraft, AircraftType } from '@/portal/api/types';
+import type { Aircraft, AircraftType, Registration } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { EmptyState } from '@/portal/components/EmptyState';
 import { Field } from '@/portal/components/Field';
 import { MaskedInput } from '@/portal/components/MaskedInput';
 import { useDebounced } from '@/portal/components/useDebounced';
-import { maskDigits, maskNNumber } from '@/portal/masks';
-import { AircraftTypeSelect } from './AircraftTypeSelect';
+import { maskDigits } from '@/portal/masks';
+import { AircraftTypePicker } from './AircraftTypePicker';
 import './aircraft.css';
 import { InsuranceChip } from './InsuranceChip';
 import { ServiceChip } from './ServiceChip';
@@ -25,6 +26,8 @@ import { useAircraftSearch, useCreateAircraft } from './api';
 import type { AircraftFormValues } from './form';
 import { aircraftPayload, emptyAircraftValues, validateAircraft } from './form';
 import { normalizeNNumber } from './insurance';
+import { NNumberField } from './NNumberField';
+import { withPickedType, withRegistration } from './registry';
 
 export interface AircraftPickerProps {
   onSelect: (aircraft: Aircraft) => void;
@@ -180,7 +183,11 @@ function NewAircraftForm({
     setValues((current) => ({ ...current, [key]: value }));
   };
 
-  const handleType = (type: AircraftType | null): void => set('type', type);
+  const handleType = (type: AircraftType | null): void =>
+    setValues((current) => withPickedType(current, type));
+
+  const handleFound = (registration: Registration): void =>
+    setValues((current) => withRegistration(current, registration));
 
   const handleSubmit = (event: React.FormEvent): void => {
     event.preventDefault();
@@ -199,21 +206,15 @@ function NewAircraftForm({
     <form className="aircraft-new" onSubmit={handleSubmit} noValidate>
       <h3 className="aircraft-new__title">Add an aircraft to the register</h3>
 
-      <Field label="N-number" required error={errors.n_number}>
-        {(field) => (
-          <MaskedInput
-            {...field}
-            className="mono"
-            placeholder="N172SP"
-            mask={maskNNumber}
-            value={values.n_number}
-            onValueChange={(next) => set('n_number', next)}
-          />
-        )}
-      </Field>
+      <NNumberField
+        value={values.n_number}
+        onValueChange={(next) => set('n_number', next)}
+        onFound={handleFound}
+        error={errors.n_number}
+      />
 
       <div className="aircraft-new__pair">
-        <AircraftTypeSelect value={values.type} onChange={handleType} error={errors.type_id} />
+        <AircraftTypePicker value={values.type} onChange={handleType} error={errors.type_id} />
       </div>
 
       <div className="aircraft-new__pair">
