@@ -71,6 +71,9 @@ jobs:
       - name: Lint
         run: make lint-backend
 
+      - name: Shell scripts
+        run: make lint-shell
+
       - name: Spelling
         run: make lint-spelling
 

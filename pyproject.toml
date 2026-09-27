@@ -46,6 +46,7 @@ dev = [
     "django-stubs[compatible-mypy]>=6.1.1",
     "djangorestframework-stubs[compatible-mypy]>=3.18.1",
     "types-reportlab>=5.0.0.20260911",
+    "shellcheck-py>=0.10",
 ]
 
 [tool.uv]
