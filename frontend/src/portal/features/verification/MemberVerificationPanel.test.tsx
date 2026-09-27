@@ -11,6 +11,7 @@ import {
 } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
+import { PROFILE_KEY } from '@/portal/features/profile/api';
 import { MemberVerificationPanel } from './MemberVerificationPanel';
 import type { MemberVerificationDraft } from './memberDraft';
 
@@ -26,7 +27,7 @@ const INITIAL: MemberVerificationDraft = {
 function renderPanel(overrides: { handleSaved?: () => void } = {}) {
   const handleClose = vi.fn();
   const { handleSaved } = overrides;
-  renderWithProviders(
+  const { client } = renderWithProviders(
     <MemberVerificationPanel
       userId={7}
       initial={INITIAL}
@@ -34,7 +35,7 @@ function renderPanel(overrides: { handleSaved?: () => void } = {}) {
       onClose={handleClose}
     />,
   );
-  return { handleClose };
+  return { handleClose, client };
 }
 
 describe('MemberVerificationPanel', () => {
@@ -67,6 +68,19 @@ describe('MemberVerificationPanel', () => {
     ]);
     expect(handleSaved).toHaveBeenCalledWith(makeLeaderStatus());
     expect(handleClose).toHaveBeenCalled();
+  });
+
+  it('marks the /me/profile query stale, since a verifier may verify themselves', async () => {
+    const user = userEvent.setup();
+    server.use(...verificationHandlers(emptyVerificationCalls()));
+    const { client } = renderPanel();
+    const invalidated = vi.spyOn(client, 'invalidateQueries');
+
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(await screen.findByText('Verification saved')).toBeInTheDocument();
+    const keys = invalidated.mock.calls.map(([filters]) => filters?.queryKey);
+    expect(keys).toContainEqual(PROFILE_KEY);
   });
 
   it('unticks an item when one of its fields is edited', async () => {

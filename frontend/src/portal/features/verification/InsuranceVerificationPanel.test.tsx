@@ -12,6 +12,8 @@ import {
 } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
+import { MEMBERS_KEY } from '@/portal/features/admin-members/api';
+import { PROFILE_KEY } from '@/portal/features/profile/api';
 import { InsuranceVerificationPanel } from './InsuranceVerificationPanel';
 
 const UNVERIFIED = makeVerifiedAircraft({
@@ -19,14 +21,14 @@ const UNVERIFIED = makeVerifiedAircraft({
 });
 
 function renderPanel(handleClose = vi.fn(), handleSaved = vi.fn()) {
-  renderWithProviders(
+  const { client } = renderWithProviders(
     <InsuranceVerificationPanel
       aircraft={UNVERIFIED}
       onSaved={handleSaved}
       onClose={handleClose}
     />,
   );
-  return { handleClose, handleSaved };
+  return { handleClose, handleSaved, client };
 }
 
 describe('InsuranceVerificationPanel', () => {
@@ -49,6 +51,21 @@ describe('InsuranceVerificationPanel', () => {
     expect(calls.aircraft).toEqual([{ aircraftId: 1, body: { verified: true } }]);
     expect(handleSaved).toHaveBeenCalledWith(makeVerifiedAircraft());
     expect(handleClose).toHaveBeenCalled();
+  });
+
+  it('marks the profile and member-record queries stale, wherever the mark also shows', async () => {
+    const user = userEvent.setup();
+    server.use(...verificationHandlers(emptyVerificationCalls()));
+    const { client } = renderPanel();
+    const invalidated = vi.spyOn(client, 'invalidateQueries');
+
+    await user.click(screen.getByLabelText('Insurance verified'));
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(await screen.findByText('Verification saved')).toBeInTheDocument();
+    const keys = invalidated.mock.calls.map(([filters]) => filters?.queryKey);
+    expect(keys).toContainEqual(PROFILE_KEY);
+    expect(keys).toContainEqual(MEMBERS_KEY);
   });
 
   it('unticks the box when a field is edited, and sends the edit', async () => {
