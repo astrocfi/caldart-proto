@@ -9,8 +9,10 @@ before this module, and ``prod.py`` deliberately does not, so a production box
 takes its values from the environment alone.
 """
 
+import re
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 import environ
 from csp.constants import SELF, UNSAFE_INLINE
@@ -26,6 +28,40 @@ REPO_ROOT = BASE_DIR.parent
 
 env = environ.Env()
 
+#: One segment of ``URL_PREFIX``: the characters a path segment may carry unescaped,
+#: less the dots-only segments ``.`` and ``..``, which ``normalize_url_prefix`` refuses.
+URL_PREFIX_SEGMENT = re.compile(r"[A-Za-z0-9._~-]+")
+
+
+def normalize_url_prefix(raw: str) -> str:
+    """The URL prefix ``raw`` names, as ``/segment[/segment...]``, or ``""`` for none.
+
+    Surrounding whitespace is ignored, and one leading and one trailing slash are
+    optional, so ``caldart-proto``, ``/caldart-proto`` and ``/caldart-proto/`` all read
+    as ``/caldart-proto``.  An empty value or a lone ``/`` means the site is served
+    from the root of its host.  A prefix with an empty segment (``//x//``), a ``.`` or
+    ``..`` segment, or any character other than letters, digits, ``.``, ``_``, ``~``
+    and ``-`` raises ``ImproperlyConfigured`` naming ``URL_PREFIX``.
+    """
+    value = raw.strip().removeprefix("/").removesuffix("/")
+    if value == "":
+        return ""
+    segments = value.split("/")
+    for segment in segments:
+        if URL_PREFIX_SEGMENT.fullmatch(segment) is None or segment in {".", ".."}:
+            raise ImproperlyConfigured(
+                f"URL_PREFIX {raw!r} is not a path such as /caldart-proto: each segment "
+                "is letters, digits, '.', '_', '~' or '-', with no empty segment."
+            )
+    return "/" + "/".join(segments)
+
+
+def site_origin(site_url: str) -> str:
+    """The scheme and host of ``site_url``: what a browser sends as ``Origin``."""
+    parts = urlsplit(site_url)
+    return f"{parts.scheme}://{parts.netloc}"
+
+
 # --------------------------------------------------------------------------
 # Core
 # --------------------------------------------------------------------------
@@ -33,7 +69,17 @@ SECRET_KEY = env("SECRET_KEY", default="dev-insecure-secret-key-change-me")
 DEBUG = env.bool("DEBUG", default=True)
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1", "[::1]"])
 SITE_URL = env("SITE_URL", default="http://localhost:8000")
-CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[SITE_URL])
+CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[site_origin(SITE_URL)])
+
+# The path the site is served under when it shares its host with another site, such
+# as ``/caldart-proto``; empty when it owns the whole host.  The web server in front
+# strips it before proxying, and ``FORCE_SCRIPT_NAME`` makes Django put it back on
+# every URL it writes: ``reverse()``, ``{% url %}``, ``static()`` and the media URL.
+# ``SITE_URL`` must end in the same path (``prod.py`` refuses a mismatch).  The session
+# and CSRF cookies keep the path ``/``: one host runs one CalDART, and the public
+# pages beside the portal need the same cookies.
+URL_PREFIX = normalize_url_prefix(env("URL_PREFIX", default=""))
+FORCE_SCRIPT_NAME = URL_PREFIX or None
 
 WSGI_APPLICATION = "caldart.wsgi.application"
 ASGI_APPLICATION = "caldart.asgi.application"
@@ -148,9 +194,9 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # Auth
 # --------------------------------------------------------------------------
 AUTH_USER_MODEL = "accounts.User"
-LOGIN_URL = "/portal/login"
-LOGIN_REDIRECT_URL = "/portal/"
-LOGOUT_REDIRECT_URL = "/"
+LOGIN_URL = f"{URL_PREFIX}/portal/login"
+LOGIN_REDIRECT_URL = f"{URL_PREFIX}/portal/"
+LOGOUT_REDIRECT_URL = f"{URL_PREFIX}/"
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
@@ -170,12 +216,16 @@ USE_TZ = True
 # --------------------------------------------------------------------------
 # Static & media
 # --------------------------------------------------------------------------
-STATIC_URL = "/static/"
+# Relative on purpose: Django prefixes a relative ``STATIC_URL`` or ``MEDIA_URL`` with
+# the script name, so both read ``/static/`` and ``/media/`` at the root of a host and
+# ``<URL_PREFIX>/static/`` and ``<URL_PREFIX>/media/`` under a prefix.  A value with a
+# leading slash would be left as it is.
+STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 # The built frontend, then the handful of files the templates reference
 # directly (the CalDART logo in the masthead).
 STATICFILES_DIRS = [REPO_ROOT / "frontend" / "dist", BASE_DIR / "static"]
-MEDIA_URL = "/media/"
+MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 # The built user guide, which ``caldart.views.user_guide`` serves at ``/docs/``
