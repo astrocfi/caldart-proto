@@ -67,6 +67,18 @@ function unusedNNumber(): string {
   return `N${1 + Math.floor(Math.random() * 9)}${Math.floor(Math.random() * 100)}ZQ`;
 }
 
+/**
+ * A model no fixture type holds: `Zq` and five random letters, written as the register
+ * prints a word of letters longer than three.  It carries no digits, because a query
+ * holding digits also finds every type whose model contains them.
+ */
+function unusedModel(): string {
+  const letters = Array.from({ length: 5 }, () =>
+    String.fromCharCode(97 + Math.floor(Math.random() * 26)),
+  );
+  return `Zq${letters.join('')}`;
+}
+
 test('a member looks up a registration and picks a misspelled type', async ({ page }) => {
   await signIn(page, DEMO.member);
   await page.goto('/portal/profile/aircraft');
@@ -107,7 +119,7 @@ test('an account administrator adds a type the FAA has never registered', async 
   await page.getByRole('button', { name: 'Look up' }).click();
   await expect(page.getByText('Not in the FAA registry')).toBeVisible();
 
-  const model = `ZQ${Date.now() % 1000}`;
+  const model = unusedModel();
   await typeBox(page).pressSequentially(`quillfeather ${model}`);
   await expect(page.getByText('No aircraft type matches that.')).toBeVisible();
   await page.getByRole('button', { name: 'Add a type' }).click();
@@ -143,12 +155,16 @@ test('the system administrator runs the FAA registry import', async ({ page }) =
   expect(response.status()).toBe(202);
   const startedAt = ((await response.json()) as { started_at: string }).started_at;
 
-  // The import runs in its own process; wait for the run this press started to end.
+  // The import runs in its own process, which starts Django and reads the whole
+  // fixture, so wait longer than the default expect timeout for this press's run to end.
   await expect
-    .poll(async () => {
-      const { running, last } = await registryStatus(page);
-      return last?.started_at === startedAt && !running ? last.ok : null;
-    })
+    .poll(
+      async () => {
+        const { running, last } = await registryStatus(page);
+        return last?.started_at === startedAt && !running ? last.ok : null;
+      },
+      { timeout: 40_000 },
+    )
     .toBe(true);
   const { last } = await registryStatus(page);
   if (last?.finished_at == null) throw new Error('The import the press started never finished.');

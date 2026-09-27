@@ -379,10 +379,12 @@ Four more screens are worth a look, none of them one of the five flows:
 **Aircraft register** — sign in as ``accountadmin@example.org`` and open
 ``/portal/admin/aircraft``.  The header says the day the FAA registry is *as
 of*.  Press **New aircraft** and type a type the FAA has never registered,
-such as ``quillfeather zq1``, into **Aircraft type**: nothing matches, and an
-account administrator is offered **Add a type**.  Give it a make and a model
-and press **Add type**; the type is picked at once, and from then on every
-aircraft form lists it.  See :doc:`user/admin/aircraft-register` and
+such as ``quillfeather zq``, into **Aircraft type**: nothing matches, and an
+account administrator is offered **Add a type**.  Keep digits out of the
+example: a search holding digits also lists every type whose model contains
+them, so ``zq1`` would list every model with a 1 in it.  Give the type a make
+and a model, such as ``Quillfeather`` and ``ZQ``, and press **Add type**; the
+type is picked at once, and from then on every aircraft form lists it.  See :doc:`user/admin/aircraft-register` and
 :doc:`developer/aircraft-registry`.
 
 **Users and roles** — sign in as ``useradmin@example.org`` and open
