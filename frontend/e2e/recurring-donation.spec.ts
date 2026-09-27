@@ -18,7 +18,7 @@ const LATER_DAYS = 10;
 
 /** Create an account at the first step of the join wizard, which signs its owner in. */
 async function createAccount(page: Page, email: string): Promise<void> {
-  await page.goto('/portal/join');
+  await page.goto('portal/join');
   await page.getByRole('textbox', { name: 'First name' }).fill('Ines');
   await page.getByRole('textbox', { name: 'Last name' }).fill('Carvalho');
   await page.getByRole('textbox', { name: 'Email address' }).fill(email);
@@ -45,7 +45,7 @@ function display(day: Date): string {
  * which the runner's clock need not share, so the spec asks rather than works it out.
  */
 async function storedNextCharge(page: Page): Promise<string> {
-  const response = await page.request.get('/api/v1/me/donation');
+  const response = await page.request.get('api/v1/me/donation');
   expect(response.ok()).toBe(true);
   const body = (await response.json()) as { mandate: { next_charge_on: string } | null };
   expect(body.mandate).not.toBeNull();
@@ -61,7 +61,7 @@ function donationCard(page: Page) {
 
 /** Choose the Participating tier on the Donate screen and make it recurring. */
 async function chooseRecurringGift(page: Page): Promise<void> {
-  await page.goto('/portal/donate');
+  await page.goto('portal/donate');
   await expect(page.getByRole('heading', { name: 'Donate', level: 1 })).toBeVisible();
   await page.getByRole('radio', { name: /Participating/ }).check();
   await page.getByRole('checkbox', { name: 'Make this a recurring donation' }).check();

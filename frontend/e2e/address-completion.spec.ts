@@ -29,7 +29,7 @@ test('a picked suggestion fills the street, city, state, ZIP code, and county', 
   page,
 }) => {
   await signIn(page, DEMO.member);
-  await page.goto('/portal/profile');
+  await page.goto('portal/profile');
 
   const list = await typeAddressPrefix(page);
   await expect(list.getByRole('option')).toHaveText([MOUNTAIN_VIEW, LAS_VEGAS]);
@@ -53,7 +53,7 @@ test('the keyboard picks a suggestion outside California and clears the county',
   page,
 }) => {
   await signIn(page, DEMO.member);
-  await page.goto('/portal/profile');
+  await page.goto('portal/profile');
 
   await typeAddressPrefix(page);
   await page.keyboard.press('ArrowDown');

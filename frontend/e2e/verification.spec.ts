@@ -35,7 +35,7 @@ function memberCard(page: Page, name: string): Locator {
 
 /** Search the member check for `term` and open the result named `name`. */
 async function lookUp(page: Page, term: string, name: string): Promise<Locator> {
-  await page.goto('/portal/leader');
+  await page.goto('portal/leader');
   await page.getByRole('searchbox', { name: 'Name, email, phone, or N-number' }).fill(term);
   await page.getByRole('button', { name: new RegExp(name) }).click();
   const card = memberCard(page, name);
@@ -53,7 +53,7 @@ function row(card: Locator, term: string): Locator {
 
 /** The signed-in person's name as the portal shows it, which is how a stamp names them. */
 async function signedInName(page: Page): Promise<string> {
-  const me = (await (await page.request.get('/api/v1/auth/me')).json()) as {
+  const me = (await (await page.request.get('api/v1/auth/me')).json()) as {
     first_name: string;
     last_name: string;
   };
@@ -65,7 +65,7 @@ async function signedInName(page: Page): Promise<string> {
  * insurance nobody has verified, read from the register as the signed-in member.
  */
 async function unverifiedAirplane(page: Page): Promise<string> {
-  const response = await page.request.get('/api/v1/aircraft?insurance=current&page_size=200');
+  const response = await page.request.get('api/v1/aircraft?insurance=current&page_size=200');
   expect(response.status()).toBe(200);
   const { results } = (await response.json()) as { results: RegisterRow[] };
   const airplane = results.find(
@@ -164,7 +164,7 @@ test('a leader verifies a pilot, who verifies an airplane and then edits a medic
 
   // The pilot's own change to the medical drops that item, and that item alone.
   await switchTo(page, pilotEmail);
-  await page.goto('/portal/profile');
+  await page.goto('portal/profile');
   const expires = page.getByLabel('Medical expires');
   const current = await expires.inputValue();
   expect(current).not.toBe('');

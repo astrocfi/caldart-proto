@@ -14,7 +14,7 @@ import { followVerificationLink, uniqueEmail } from './helpers';
  * fields that make the profile complete.  Ends on the friend's pay step.
  */
 async function registerAsFriend(page: Page, first: string, email: string): Promise<void> {
-  await page.goto('/portal/join');
+  await page.goto('portal/join');
   await page.getByRole('radio', { name: /Join as a friend/ }).check();
   await page.getByRole('textbox', { name: 'First name' }).fill(first);
   await page.getByRole('textbox', { name: 'Last name' }).fill('Amundsen');
@@ -63,7 +63,7 @@ test('a visitor joins as a friend and skips the contribution', async ({ page }) 
   await expect(card).toBeVisible();
   await expect(card.getByRole('link', { name: 'Make me a member' })).toHaveAttribute(
     'href',
-    '/portal/membership/join',
+    /\/portal\/membership\/join$/,
   );
   await expect(card.getByRole('link', { name: /Renew/ })).toHaveCount(0);
   // The members-only pages would answer a friend with the wall, so none are offered.
@@ -86,7 +86,7 @@ test('a friend contributes on the way through the wizard', async ({ page }) => {
 test('coming back to the wizard, a friend lands on done rather than paying', async ({ page }) => {
   await registerAsFriend(page, 'Fiona', uniqueEmail('friend-return'));
 
-  await page.goto('/portal/join');
+  await page.goto('portal/join');
 
   await expect(page).toHaveURL(/\/portal\/join\/done/);
   await expect(page.getByRole('heading', { name: 'Welcome to CalDART' })).toBeVisible();

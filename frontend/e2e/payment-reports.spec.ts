@@ -90,7 +90,7 @@ function parseCsv(text: string): string[][] {
  * membership of its own, or had a card declined.
  */
 async function ledgerTotals(page: Page): Promise<LedgerTotals> {
-  await page.goto('/portal/admin/payments/list');
+  await page.goto('portal/admin/payments/list');
   const [download] = await Promise.all([
     page.waitForEvent('download'),
     page.getByRole('link', { name: 'Export CSV' }).click(),
@@ -122,7 +122,7 @@ test('an account administrator reads the monthly and yearly totals and exports t
   // this one, so the administration entry is named by its address.
   await page
     .getByRole('navigation', { name: 'Portal sections' })
-    .locator('a[href="/portal/admin/payments"]')
+    .locator('a[href$="/portal/admin/payments"]')
     .click();
   await expect(page).toHaveURL(/\/portal\/admin\/payments/);
 
@@ -137,7 +137,7 @@ test('an account administrator reads the monthly and yearly totals and exports t
   expect(totals.payments).toBeGreaterThan(totals.months);
   expect(totals.months).toBeGreaterThan(totals.years);
 
-  await page.goto('/portal/admin/payments');
+  await page.goto('portal/admin/payments');
 
   // Month is the default grouping: one row per month that carries a payment.
   const periodTable = page.getByRole('region', { name: 'Payments by period' });
@@ -153,13 +153,13 @@ test('an account administrator reads the monthly and yearly totals and exports t
   await expect(periodRows(page)).toHaveCount(totals.years);
 
   // The Payments tab counts the same payments in its caption.
-  await page.goto('/portal/admin/payments/list');
+  await page.goto('portal/admin/payments/list');
   await expect(page.getByText(`${totals.payments} payments`)).toBeVisible();
 });
 
 test('a filtered export carries the filter', async ({ page }) => {
   await signIn(page, DEMO.accountadmin);
-  await page.goto('/portal/admin/payments/list');
+  await page.goto('portal/admin/payments/list');
 
   await page.getByLabel('Provider').selectOption('mock');
   await expect(page.getByRole('link', { name: 'Export CSV' })).toHaveAttribute(
@@ -175,7 +175,7 @@ test('a filtered export carries the filter', async ({ page }) => {
 
 test('a saved set of columns comes back after a reload', async ({ page }) => {
   await signIn(page, DEMO.accountadmin);
-  await page.goto('/portal/admin/payments/list');
+  await page.goto('portal/admin/payments/list');
   const header = page.locator('thead');
   const chooser = page.getByRole('group', { name: 'Columns to show and export' });
 
@@ -210,6 +210,6 @@ test('a saved set of columns comes back after a reload', async ({ page }) => {
 
 test('a plain member cannot reach the payment reports', async ({ page }) => {
   await signIn(page, DEMO.member);
-  await page.goto('/portal/admin/payments');
+  await page.goto('portal/admin/payments');
   await expect(page.getByRole('heading', { name: 'Not allowed' })).toBeVisible();
 });

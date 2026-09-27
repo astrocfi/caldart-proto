@@ -822,6 +822,48 @@ spec that types into the **Address** box sees those two offered, and moving to
 the next field shuts the list again.  The target stops the file server along
 with Django.
 
+.. _testing-e2e-prefix:
+
+Under a URL prefix
+------------------
+
+.. code-block:: console
+
+   $ make e2e E2E_URL_PREFIX=/caldart-proto
+
+runs the same specs with the site served under a URL prefix, the way a web
+server in front of an existing site serves it (:doc:`deployment`).  The run
+sets ``URL_PREFIX`` to the prefix and ``SITE_URL`` to
+``http://localhost:<E2E_PORT>/caldart-proto``, starts Django on ``E2E_PORT`` +
+2, and puts ``frontend/e2e/prefix_proxy.py`` on ``E2E_PORT`` in front of it.
+The proxy uses the standard library alone and plays the part of the Apache or
+nginx snippet:
+
+* ``/caldart-proto`` answers ``301`` to ``/caldart-proto/``;
+* a path under the prefix loses the prefix and goes to Django with its
+  ``Host`` header kept and ``X-Forwarded-For``, ``X-Forwarded-Host``,
+  ``X-Forwarded-Proto``, and ``X-Forwarded-Prefix`` added, and the answer comes
+  back unchanged, since Django writes the prefix into its own links and
+  redirects;
+* any other path answers ``404``, so a link, fetch, or asset the site builds
+  without its prefix fails the run instead of reaching Django by accident;
+* an unreachable Django answers ``502``.
+
+Its log joins the server's in ``E2E_LOG``.  The proxy is Python kept beside the
+specs it serves, and ``make lint`` checks it with ruff and mypy like the
+backend; ``backend/tests/test_e2e_prefix_proxy.py`` covers its routing.
+Playwright's ``baseURL`` becomes ``http://localhost:<E2E_PORT>/caldart-proto/``,
+and CI's **e2e-prefix** job runs this variant beside the plain one.
+
+A spec therefore never names a path from the root of the host.
+``playwright.config.ts`` ends the base URL in a slash, and a spec navigates
+and requests with a relative path (``page.goto('portal/login')``,
+``page.goto('./')`` for the home page, ``page.request.get('api/v1/auth/me')``),
+which resolves beneath the prefix; a leading slash would resolve against the
+host's root and miss it.  An assertion on an address matches its tail
+(``toHaveURL(/\/portal\/payments$/)``, ``a[href$="/portal/admin/payments"]``)
+or builds the whole address from the ``baseURL`` fixture.
+
 ``failOnFlakyTests`` is on in ``playwright.config.ts``.  CI retries a failing
 spec once so the failure is easy to read, but a spec that fails and then passes
 still fails the run: a flaky end-to-end spec is a race somewhere real.
@@ -936,9 +978,14 @@ Environment variables
 from other end-to-end runs on the same machine:
 
 ``E2E_PORT``
-   The port Django listens on for the run.  Defaults to ``8021``; a parallel
-   branch running its own ``make e2e`` sets this to something else so the two
-   servers do not collide.
+   The port the browser talks to: Django's, or the prefix proxy's under
+   ``E2E_URL_PREFIX``, when Django takes the port two above it.  Defaults to
+   ``8021``; a parallel branch running its own ``make e2e`` sets this to
+   something else so the two runs do not collide.
+``E2E_URL_PREFIX``
+   A URL prefix such as ``/caldart-proto`` to serve the site under, through
+   the prefix proxy (:ref:`testing-e2e-prefix`).  Empty by default: the site is
+   the root of its host.
 ``E2E_DB``
    The database name.  Defaults to ``caldart_e2e``; combine with ``E2E_PORT``
    per branch for isolation.
@@ -1048,7 +1095,7 @@ Linting and type-checking
 .. code-block:: console
 
    $ make lint            # everything below
-   $ make lint-backend    # ruff check, ruff format --check, mypy backend
+   $ make lint-backend    # ruff check, ruff format --check, mypy
    $ make lint-shell      # shellcheck over deploy/ and scripts/
    $ make lint-frontend   # tsc --noEmit, eslint --max-warnings 0, prettier --check
    $ make lint-spelling   # codespell over the prose, the code and the tests

@@ -17,7 +17,7 @@ import { SEED, followVerificationLink, formatCents, signIn, uniqueEmail } from '
  * the Menu button.
  */
 async function joinFromPublicSite(page: Page): Promise<void> {
-  await page.goto('/');
+  await page.goto('./');
   // Scope to the bar: the welcome box carries a "Join CalDART" button of its
   // own, and on a phone the bar's copy is behind the Menu button.
   const join = page
@@ -87,7 +87,7 @@ test('a visitor joins from the public site and pays their dues', async ({ page }
 });
 
 test('a declined payment says so and leaves the visitor able to try again', async ({ page }) => {
-  await page.goto('/portal/join');
+  await page.goto('portal/join');
   await register(page, 'Dez', uniqueEmail('payer'));
 
   await page.getByRole('tab', { name: 'Test payment' }).click();
@@ -100,7 +100,7 @@ test('a declined payment says so and leaves the visitor able to try again', asyn
 
 test('a life member contributes where the renew screen would renew', async ({ page }) => {
   await signIn(page, SEED.contributionMandate.email);
-  await page.goto('/portal/renew');
+  await page.goto('portal/renew');
 
   await expect(page.getByRole('heading', { name: 'Contribute to CalDART' })).toBeVisible();
   await expect(page.getByText('You are a life member. Thank you.')).toBeVisible();

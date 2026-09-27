@@ -346,7 +346,8 @@ list, in full:
    * - ``e2e``
      - Playwright against its own database (``caldart_e2e``, or ``E2E_DB``)
        and its own server (port ``8021``, or ``E2E_PORT``), with the mock
-       payment provider and the file email backend; see :doc:`testing`
+       payment provider and the file email backend; ``E2E_URL_PREFIX`` serves
+       the site under a URL prefix through a proxy; see :doc:`testing`
    * - ``rehearse-deploy``
      - the server installer, run for real in a throwaway systemd container:
        install, upgrade, a second install, and uninstall
@@ -356,7 +357,8 @@ list, in full:
      - ``lint-backend``, ``lint-shell``, ``lint-frontend``, then
        ``lint-spelling``
    * - ``lint-backend``
-     - ``ruff check``, ``ruff format --check`` and ``mypy backend``
+     - ``ruff check``, ``ruff format --check`` and ``mypy`` over ``backend``
+       and ``frontend/e2e/prefix_proxy.py``
    * - ``lint-shell``
      - ``shellcheck`` over every script under ``deploy/`` and ``scripts/``
    * - ``lint-frontend``

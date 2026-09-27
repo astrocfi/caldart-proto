@@ -31,7 +31,7 @@ test('a member signs in, edits their profile and reads members-only content', as
   await expect(page.getByRole('heading', { name: 'Your membership is current' })).toBeVisible();
 
   // Edit the profile and see it stick.
-  await page.goto('/portal/profile');
+  await page.goto('portal/profile');
   await page.getByRole('textbox', { name: 'Total hours' }).fill('1234');
   await page.getByRole('textbox', { name: 'Home airport', exact: true }).fill('SQL');
   await page.getByRole('button', { name: 'Save profile' }).click();
@@ -47,7 +47,7 @@ test('a member signs in, edits their profile and reads members-only content', as
   await expect(page.getByRole('checkbox', { name: 'Ground support' })).toBeVisible();
 
   // My aircraft ledes in one sentence and offers one way to add an airplane.
-  await page.goto('/portal/profile/aircraft');
+  await page.goto('portal/profile/aircraft');
   await expect(page.getByText('The planes you commonly fly.')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Add a new aircraft' })).toHaveCount(1);
   await expect(page.getByText('Not in the register? Add it yourself.')).toBeVisible();
@@ -75,7 +75,7 @@ test('a member signs in, edits their profile and reads members-only content', as
   await expect(page.getByText(`${nNumber} is already on your list.`)).toBeVisible();
 
   // The dashboard lists the members-only pages, and one of them opens.
-  await page.goto('/portal/');
+  await page.goto('portal/');
   const memberContent = page
     .locator('section')
     .filter({ has: page.getByRole('heading', { name: 'Member content' }) });
@@ -93,23 +93,23 @@ test('signing out takes a button, and no address can do it', async ({ page }) =>
 
   // Opening the old sign-out address is just an unknown path, and the session
   // survives it: the dashboard still knows who is here.
-  await page.goto('/portal/logout');
+  await page.goto('portal/logout');
   await expect(page.getByRole('heading', { level: 1, name: 'Page not found' })).toBeVisible();
-  await page.goto('/portal/');
+  await page.goto('portal/');
   await expect(page.getByRole('heading', { name: /^Welcome, / })).toBeVisible();
 
   await page.getByRole('button', { name: 'Sign out' }).click();
   await expect(page).toHaveURL(/\/portal\/login/);
 
   // The session really ended: a guarded screen asks for a sign-in again.
-  await page.goto('/portal/profile');
+  await page.goto('portal/profile');
   await expect(page).toHaveURL(/\/portal\/login\?next=%2Fprofile/);
 });
 
 test('an expired member is walled out and offered a renewal', async ({ page }) => {
   await signIn(page, DEMO.expired);
 
-  const response = await page.goto('/members/');
+  const response = await page.goto('members/');
   expect(response?.status()).toBe(403);
 
   await page.locator('#main').getByRole('link', { name: 'Renew my membership' }).click();
@@ -122,14 +122,14 @@ test('an expired member is walled out and offered a renewal', async ({ page }) =
 test('a signed-out visitor is asked to sign in and comes back where they were', async ({
   page,
 }) => {
-  const response = await page.goto('/members/');
+  const response = await page.goto('members/');
   expect(response?.status()).toBe(403);
   // The wall's own two calls to action, not the site header's.
   const wall = page.locator('#main');
   await expect(wall.getByRole('link', { name: 'Sign in' })).toBeVisible();
   await expect(wall.getByRole('link', { name: 'Join CalDART' })).toBeVisible();
 
-  await page.goto('/portal/profile');
+  await page.goto('portal/profile');
   await expect(page).toHaveURL(/\/portal\/login\?next=%2Fprofile/);
   await page.getByRole('textbox', { name: 'Email address' }).fill(DEMO.member);
   await page.getByLabel(/^Password/).fill(DEMO_PASSWORD);

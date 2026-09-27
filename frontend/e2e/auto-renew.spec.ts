@@ -15,7 +15,7 @@ import { SEED, followVerificationLink, formatCents, signIn, uniqueEmail } from '
 
 /** Steps 1 to 3 of the join wizard: an account, its verified address, then a usable profile. */
 async function register(page: Page, email: string): Promise<void> {
-  await page.goto('/portal/join');
+  await page.goto('portal/join');
   await page.getByRole('textbox', { name: 'First name' }).fill('Rosa');
   await page.getByRole('textbox', { name: 'Last name' }).fill('Belmonte');
   await page.getByRole('textbox', { name: 'Email address' }).fill(email);
@@ -52,7 +52,7 @@ function yearsOnDisplay(years: number): string {
 
 /** The day the signed-in member's membership runs out, from the API itself. */
 async function expiryIso(page: Page): Promise<string> {
-  const response = await page.request.get('/api/v1/me/membership');
+  const response = await page.request.get('api/v1/me/membership');
   const body = (await response.json()) as { expires_on: string | null };
   expect(body.expires_on).not.toBeNull();
   return body.expires_on ?? '';
@@ -83,7 +83,7 @@ test('a member pays with renewal on, reads it, takes a receipt, and turns it off
   await expect(page.getByText(/A receipt is on its way to your inbox/)).toBeVisible();
 
   // The Payments screen names the saved method and what will be charged.
-  await page.goto('/portal/payments');
+  await page.goto('portal/payments');
   const card = renewalCard(page);
   await expect(card.getByText('On', { exact: true })).toBeVisible();
   await expect(card.getByText('Test card ending 4242, expires 12/2030')).toBeVisible();
@@ -118,7 +118,7 @@ test('a member turns automatic renewal on from the Payments screen alone', async
   await page.getByRole('button', { name: 'Succeed', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Welcome to CalDART' })).toBeVisible();
 
-  await page.goto('/portal/payments');
+  await page.goto('portal/payments');
   const card = renewalCard(page);
   await expect(card.getByText('Off', { exact: true })).toBeVisible();
 
@@ -150,7 +150,7 @@ test('a life member reads their recurring donation, turns it off, and is sent to
   page,
 }) => {
   await signIn(page, SEED.contributionMandate.email);
-  await page.goto('/portal/payments');
+  await page.goto('portal/payments');
 
   // Nothing of theirs renews, so the only card is their recurring donation.
   await expect(page.getByRole('heading', { name: 'Automatic renewal' })).toHaveCount(0);
