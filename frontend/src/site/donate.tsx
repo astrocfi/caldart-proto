@@ -14,6 +14,7 @@ import { createRoot } from 'react-dom/client';
 import { ToastProvider } from '@/portal/components/Toast';
 import { DonationForm } from '@/donate/DonationForm';
 import '@/portal/portal.css';
+import { API_BASE } from '@/portal/urlPrefix';
 
 /** Show the page's own thanks text, which the template renders hidden. */
 function handleGiven(): void {
@@ -23,7 +24,7 @@ function handleGiven(): void {
 
 const container = document.getElementById('donate-app');
 if (container) {
-  const configUrl = container.dataset.configUrl ?? '/api/v1/donations/config';
+  const configUrl = container.dataset.configUrl ?? `${API_BASE}/donations/config`;
   const returnUrl = container.dataset.returnUrl ?? window.location.pathname;
   createRoot(container).render(
     <StrictMode>
