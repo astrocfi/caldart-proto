@@ -229,7 +229,7 @@ describe('<ProfilePage/> inline complaints', () => {
     renderWithProviders(<ProfilePage />, { route: '/profile' });
 
     expect(await screen.findByLabelText(label('Photo ID'))).toHaveValue('passport');
-    expect(screen.getByLabelText(label('Medical'))).toHaveAccessibleDescription(
+    expect(screen.getByLabelText(label('Medical expires'))).toHaveAccessibleDescription(
       'Verified by Dana Leader on 2026/05/01',
     );
   });
@@ -267,7 +267,7 @@ describe('<ProfilePage/> inline complaints', () => {
     await user.click(screen.getByRole('button', { name: 'Save profile' }));
 
     await waitFor(() =>
-      expect(screen.getByLabelText(label('Medical'))).toHaveAccessibleDescription(
+      expect(screen.getByLabelText(label('Medical expires'))).toHaveAccessibleDescription(
         'Not yet verified',
       ),
     );

@@ -166,8 +166,6 @@ export interface SendPasswordResetResult {
 export type PilotCertificateType =
   'none' | 'student' | 'sport' | 'recreational' | 'private' | 'commercial' | 'atp';
 
-export type IfrRated = 'na' | 'yes' | 'no';
-
 /**
  * A rating a member holds, in the two rows the forms show: the category and
  * class ratings, then the instructor ones.
@@ -435,12 +433,11 @@ export interface Profile {
   member_since: IsoDate | null;
   /* aviation */
   home_airport_identifier: string;
-  home_airport_city: string;
+  secondary_airport_identifier: string;
   dart: Pick<Dart, 'id' | 'name'> | null;
   air_care_alliance_number: string;
   pilot_certificate_type: PilotCertificateType;
   certificate_number: string;
-  ifr_rated: IfrRated;
   ratings: Rating[];
   medical_type: MedicalType;
   medical_expiration: IsoDate | null;
@@ -983,11 +980,9 @@ export interface DonationCheckoutRequest {
   postal_code?: string;
   county?: CaliforniaCounty | '';
   home_airport_identifier?: string;
-  home_airport_city?: string;
   dart_id?: number | null;
   air_care_alliance_number?: string;
   pilot_certificate_type?: PilotCertificateType;
-  ifr_rated?: IfrRated;
   vol_mission_pilot?: boolean;
   vol_ground_team?: boolean;
   vol_exercise_training?: boolean;
@@ -1351,7 +1346,6 @@ export interface LeaderStatus {
   certificate: {
     type: PilotCertificateType;
     number: string;
-    ifr_rated: IfrRated;
     ratings: Rating[];
     verification: Verification;
   };
