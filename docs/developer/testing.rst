@@ -1000,7 +1000,8 @@ systemd runs as it does on a server, and drives the scripts of
 3. ``deploy/upgrade.sh``, an upgrade with nothing new to pull, which must
    still back up, rebuild, restart, and pass the checks;
 4. ``deploy/install.sh`` with no flags, which must read everything from the
-   install record and change nothing;
+   install record and leave the environment file and the install record
+   byte-identical, checked with ``sha256sum`` before and after;
 5. ``deploy/uninstall.sh --yes --purge``, after which neither ``/srv/caldart``
    nor ``/etc/caldart`` may exist.
 
