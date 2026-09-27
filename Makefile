@@ -36,6 +36,17 @@ E2E_MAIL_DIR := $(abspath frontend/e2e/.mail)
 # every address-suggestion request with the one recorded response in this directory.
 E2E_GEOAPIFY_PORT ?= $(shell expr $(E2E_PORT) + 1)
 E2E_GEOAPIFY_DIR := $(abspath frontend/e2e/geoapify)
+# `make e2e E2E_URL_PREFIX=/caldart-proto` runs the same specs with the site under
+# a URL prefix.  frontend/e2e/prefix_proxy.py takes E2E_PORT and plays the web
+# server in front of a prefixed deployment: it strips the prefix and forwards to
+# runserver on E2E_PORT + 2, and answers 404 for any path outside the prefix, so
+# a URL built without the prefix fails the run.  The proxy is Python kept beside
+# the specs it serves, where ruff and mypy (see lint-backend) still check it.
+E2E_URL_PREFIX ?=
+E2E_ORIGIN := http://localhost:$(E2E_PORT)
+E2E_SITE_URL := $(E2E_ORIGIN)$(E2E_URL_PREFIX)
+E2E_SERVER_PORT := $(if $(E2E_URL_PREFIX),$(shell expr $(E2E_PORT) + 2),$(E2E_PORT))
+E2E_PROXY := frontend/e2e/prefix_proxy.py
 
 # The end-to-end server's whole environment, spelled out rather than inherited.
 # The run has to behave the same on a laptop with a `.env` and on CI without
@@ -65,13 +76,17 @@ E2E_GEOAPIFY_DIR := $(abspath frontend/e2e/geoapify)
 #   FAA_REGISTRY_URL   the registry fixture's directory, so Run now on the
 #                      System screen imports the fixture instead of downloading
 #                      the FAA's registry.
+#   URL_PREFIX         E2E_URL_PREFIX, empty unless the run is under a prefix;
+#                      SITE_URL carries it too, since a prefixed site's links
+#                      and emails name it.
 E2E_ENV := DJANGO_SETTINGS_MODULE=caldart.settings.dev \
            DATABASE_URL="$(E2E_DATABASE_URL)" \
            SECRET_KEY=e2e-insecure-secret-key \
            DEBUG=false \
            ALLOWED_HOSTS='localhost,127.0.0.1,[::1]' \
-           SITE_URL="http://localhost:$(E2E_PORT)" \
-           CSRF_TRUSTED_ORIGINS="http://localhost:$(E2E_PORT)" \
+           URL_PREFIX="$(E2E_URL_PREFIX)" \
+           SITE_URL="$(E2E_SITE_URL)" \
+           CSRF_TRUSTED_ORIGINS="$(E2E_ORIGIN)" \
            EMAIL_URL=filemail:///$(E2E_MAIL_DIR) \
            DJANGO_VITE_DEV_MODE=false \
            PAYMENTS_MOCK_ENABLED=true \
@@ -217,7 +232,7 @@ coverage-backend: ## pytest-cov over production code only; writes backend/htmlco
 coverage-frontend: ## vitest with coverage; writes frontend/coverage/
 	cd frontend && $(NPM) run coverage
 
-e2e: ## Playwright end-to-end tests (own database, own server, mock payments)
+e2e: ## Playwright end-to-end tests (own database, own server, mock payments; E2E_URL_PREFIX=/path)
 	@# CI creates the database with psql, having no compose services to exec into.
 	@test -n "$(SKIP_CREATEDB)" \
 	  || $(MAKE) --no-print-directory createdb DATABASE_URL="$(E2E_DATABASE_URL)"
@@ -233,23 +248,31 @@ e2e: ## Playwright end-to-end tests (own database, own server, mock payments)
 	  $(UV) run python -m http.server $(E2E_GEOAPIFY_PORT) --bind 127.0.0.1 \
 	    --directory "$(E2E_GEOAPIFY_DIR)" > /dev/null 2>&1 & \
 	  geoapify=$$!; \
-	  $(E2E_ENV) $(MANAGE) runserver 0.0.0.0:$(E2E_PORT) --noreload > $(E2E_LOG) 2>&1 & \
+	  $(E2E_ENV) $(MANAGE) runserver 0.0.0.0:$(E2E_SERVER_PORT) --noreload > $(E2E_LOG) 2>&1 & \
 	  server=$$!; \
+	  proxy=; \
+	  if test -n "$(E2E_URL_PREFIX)"; then \
+	    $(UV) run python $(E2E_PROXY) --port $(E2E_PORT) --upstream-port $(E2E_SERVER_PORT) \
+	      --prefix "$(E2E_URL_PREFIX)" >> $(E2E_LOG) 2>&1 & \
+	    proxy=$$!; \
+	  fi; \
 	  trap 'pkill -P $$server >/dev/null 2>&1; kill $$server >/dev/null 2>&1; \
-	        pkill -P $$geoapify >/dev/null 2>&1; kill $$geoapify >/dev/null 2>&1; true' EXIT INT TERM; \
+	        pkill -P $$geoapify >/dev/null 2>&1; kill $$geoapify >/dev/null 2>&1; \
+	        test -z "$$proxy" || { pkill -P $$proxy >/dev/null 2>&1; kill $$proxy >/dev/null 2>&1; }; \
+	        true' EXIT INT TERM; \
 	  for i in $$(seq 1 60); do \
-	    curl -sf -o /dev/null "http://localhost:$(E2E_PORT)/portal/login" && break; \
+	    curl -sf -o /dev/null "$(E2E_SITE_URL)/portal/login" && break; \
 	    sleep 1; \
 	    test $$i -lt 60 || { echo "Django did not start; see $(E2E_LOG)" >&2; tail -20 $(E2E_LOG) >&2; exit 1; }; \
 	  done; \
-	  bundle=$$(curl -s "http://localhost:$(E2E_PORT)/portal/login" \
-	    | sed -n 's/.*src="\(\/static\/[^"]*\.js\)".*/\1/p' | head -1); \
+	  bundle=$$(curl -s "$(E2E_SITE_URL)/portal/login" \
+	    | sed -n 's#.*src="\($(E2E_URL_PREFIX)/static/[^"]*\.js\)".*#\1#p' | head -1); \
 	  test -n "$$bundle" \
 	    || { echo "The portal shell names no bundle; see $(E2E_LOG)" >&2; tail -20 $(E2E_LOG) >&2; exit 1; }; \
-	  curl -sf -o /dev/null "http://localhost:$(E2E_PORT)$$bundle" \
+	  curl -sf -o /dev/null "$(E2E_ORIGIN)$$bundle" \
 	    || { echo "The portal bundle $$bundle is not served — the SPA would never start." >&2; \
 	         tail -20 $(E2E_LOG) >&2; exit 1; }; \
-	  cd frontend && E2E_BASE_URL="http://localhost:$(E2E_PORT)" $(NPM) run e2e \
+	  cd frontend && E2E_BASE_URL="$(E2E_SITE_URL)" $(NPM) run e2e \
 	    || { echo; echo "==== last 100 lines of $(E2E_LOG) ===="; tail -100 $(E2E_LOG); exit 1; }
 
 rehearse-deploy: ## Rehearse the server install in a throwaway systemd container (REHEARSE_WEB_SERVER=apache|nginx)
@@ -318,7 +341,7 @@ lint: lint-backend lint-shell lint-frontend lint-spelling ## ruff + mypy + shell
 lint-backend: ## ruff check + ruff format --check + mypy
 	$(UV) run ruff check .
 	$(UV) run ruff format --check .
-	$(UV) run mypy backend
+	$(UV) run mypy backend $(E2E_PROXY)
 
 # Every shell script: the server installer under deploy/ and the developer
 # conveniences under scripts/.  shellcheck comes from the shellcheck-py wheel in
