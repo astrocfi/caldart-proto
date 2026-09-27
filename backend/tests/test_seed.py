@@ -21,7 +21,8 @@ from wagtail.models import Site
 from apps.accounts.models import AccountKind
 from apps.accounts.roles import MEMBER, ROLE_SLUGS, SYSTEM_ADMIN, VERIFIER
 from apps.accounts.seed import DEMO_ACCOUNTS, DEMO_PASSWORD, GENERATED_MEMBER_COUNT
-from apps.aircraft.models import Aircraft
+from apps.aircraft.models import Aircraft, AircraftType, Registration, RegistryImport
+from apps.aircraft.seed import AIRFRAMES
 from apps.aircraft.services import leader_status
 from apps.cms.models import SiteSettings
 from apps.darts.models import Dart
@@ -59,9 +60,9 @@ SEEDED_FRIEND_GIFTS = 1
 SEEDED_STORED_FRIENDS = 6
 
 #: The accounts whose membership reads ``friend``: the stored friends, the four
-#: generated joiners who chose member and never paid, the one member whose only
-#: term the seeded full refunds canceled, and the demo verifier, who holds no term.
-SEEDED_EFFECTIVE_FRIENDS = SEEDED_STORED_FRIENDS + 4 + 1 + 1
+#: generated joiners who chose member and never paid, and the demo verifier, who
+#: holds no term.
+SEEDED_EFFECTIVE_FRIENDS = SEEDED_STORED_FRIENDS + 4 + 1
 
 #: The donors ``seed_demo`` makes, and the gifts they gave between them.
 SEEDED_DONORS = len(DONOR_GIFT_COUNTS)
@@ -70,7 +71,7 @@ SEEDED_DONOR_GIFTS = sum(DONOR_GIFT_COUNTS)
 #: The payments ``seed_demo`` creates from its fixed random seed: one per term,
 #: plus the ones recorded by hand, the demo friend's gift and the donors' gifts, all
 #: succeeded.
-SEEDED_PAYMENTS = 54 + MANUAL_PAYMENT_COUNT + SEEDED_FRIEND_GIFTS + SEEDED_DONOR_GIFTS
+SEEDED_PAYMENTS = 64 + MANUAL_PAYMENT_COUNT + SEEDED_FRIEND_GIFTS + SEEDED_DONOR_GIFTS
 
 #: How many of them the seed refunds: two in full and four contributions, which
 #: leaves the first two ``refunded`` and the other four ``partially_refunded``.
@@ -184,7 +185,7 @@ def test_seed_demo_covers_every_membership_status() -> None:
     _seed()
     counts = Counter(membership_status(u)["status"] for u in User.objects.all())
     assert counts[MembershipState.CURRENT] == 33
-    assert counts[MembershipState.EXPIRED] == 5
+    assert counts[MembershipState.EXPIRED] == 6
     assert counts[MembershipState.DONOR] == SEEDED_DONORS
     assert counts[MembershipState.FRIEND] == SEEDED_EFFECTIVE_FRIENDS
     lifetime = [u for u in User.objects.all() if membership_status(u)["is_lifetime"]]
@@ -225,7 +226,7 @@ def test_seed_demo_payments_are_mixed_and_span_two_years() -> None:
     assert providers == {"stripe", "paypal", "manual"}
     with_contribution = Payment.objects.filter(contribution_cents__gt=0).count()
     assert with_contribution == (
-        19 + MANUAL_PAYMENT_COUNT + SEEDED_FRIEND_GIFTS + SEEDED_DONOR_GIFTS
+        27 + MANUAL_PAYMENT_COUNT + SEEDED_FRIEND_GIFTS + SEEDED_DONOR_GIFTS
     )
     months = Payment.objects.dates("created_at", "month")
     oldest, newest = min(months), max(months)
@@ -676,3 +677,49 @@ def test_seed_facts_name_an_insured_pilot_who_is_verified_on_every_count() -> No
 def test_seed_facts_name_the_verifier_account() -> None:
     """``accounts.verifier`` is the seeded verifier's address."""
     assert seed_facts()["accounts"]["verifier"] == "verifier@example.org"
+
+
+# -- the registry ---------------------------------------------------------------------
+
+
+def test_seed_demo_imports_the_registry_fixture() -> None:
+    """The seed loads the fixture registry: every reference entry and every master row."""
+    _seed()
+    assert (AircraftType.objects.count(), Registration.objects.count()) == (330, 210)
+
+
+def test_seed_demo_records_the_registry_import() -> None:
+    """The fixture import is a successful run, so the register reads a registry date."""
+    _seed()
+    assert list(RegistryImport.objects.values_list("ok", flat=True)) == [True]
+
+
+def test_every_seeded_aircraft_is_in_the_registry_as_itself() -> None:
+    """Each seeded N-number is a fixture registration with the aircraft's type and year."""
+    _seed()
+    mismatched = [
+        aircraft.n_number
+        for aircraft in Aircraft.objects.all()
+        if not Registration.objects.filter(
+            n_number=aircraft.n_number, type=aircraft.type, year=aircraft.year
+        ).exists()
+    ]
+    assert mismatched == []
+
+
+def test_seed_demo_flies_every_seeded_airframe() -> None:
+    """The seeded aircraft cover every type the seed names, the Eurofox included."""
+    _seed()
+    flown = {(aircraft.make, aircraft.model) for aircraft in Aircraft.objects.all()}
+    assert flown == set(AIRFRAMES)
+
+
+def test_seed_demo_twice_keeps_one_registry() -> None:
+    """A second seed leaves the same types and registrations, and records a second run."""
+    _seed()
+    _seed()
+    assert (
+        AircraftType.objects.count(),
+        Registration.objects.count(),
+        RegistryImport.objects.count(),
+    ) == (330, 210, 2)

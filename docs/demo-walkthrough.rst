@@ -183,10 +183,10 @@ membership buys.*
    marked and the save is refused.  The same rule is enforced on the server,
    so an API client cannot store a medical without its date either.
 
-4. Go to **My aircraft**.  Search the register — type ``N1517T``, or any part
+4. Go to **My aircraft**.  Search the register — type ``N206KM``, or any part
    of a make or model such as ``Cirrus``.  The picker looks the exact
-   registration up first and falls back to a fuzzy search, so ``1517t``,
-   ``n-1517t``, and ``N1517T`` all find the same airplane.
+   registration up first and falls back to a fuzzy search, so ``206km``,
+   ``n-206km``, and ``N206KM`` all find the same airplane.
 
    Each result carries an insurance chip.  Pick one whose chip says
    **Current** and add it.  It appears in your list with the same chip and a
@@ -269,12 +269,12 @@ airplane for us today?" in one screen.*
    and states the reasons — *"Medical expired"*, *"Membership expired"*,
    *"Photo ID not verified"* — in the order a leader would say them out loud.
 7. Follow **Aircraft check** (``/portal/leader/aircraft``), type a
-   registration, e.g. ``N1517T``, and tap the result.  You get the airplane's
+   registration, e.g. ``N206KM``, and tap the result.  You get the airplane's
    insurance card and a list of the members who fly it, each with their own
    membership and medical currency.  The verdict is **INSURED** for a current
    policy somebody has verified, **NOT VERIFIED** for a current one nobody
    has, and **NOT INSURED** for no current policy; the seed leaves about three
-   in ten airplanes unverified, ``N1517T`` among them.  Press **Verify**, tick
+   in ten airplanes unverified, ``N206KM`` among them.  Press **Verify**, tick
    **Insurance verified**, and save to turn **NOT VERIFIED** into
    **INSURED**.
 

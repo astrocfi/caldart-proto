@@ -10,6 +10,8 @@ from django.utils import timezone
 
 from apps.accounts.models import AccountKind, User
 from apps.accounts.seed import DEMO_ACCOUNTS, DEMO_PASSWORD
+from apps.aircraft.models import Aircraft, Registration, RegistryImport
+from apps.aircraft.registry import FIXTURE_DIR, import_registry
 from apps.members.models import MembershipPlan
 from apps.members.verification import ITEMS
 from apps.payments.models import PaymentStatus
@@ -80,6 +82,7 @@ def test_writes_one_json_object_and_nothing_else(capsys: pytest.CaptureFixture[s
         "manualPaymentCount",
         "planPricesCents",
         "refundedPayment",
+        "registry",
     ]
 
 
@@ -267,3 +270,66 @@ def test_names_a_current_pilot_with_nothing_verified(
     facts = read_facts(capsys)["leaderCheck"]
 
     assert facts["unverifiedPilot"] == {"name": "Ben Brown"}
+
+
+# -- the registry ---------------------------------------------------------------------
+
+
+@pytest.fixture
+def registry() -> None:
+    """The fixture registry, imported as the seed imports it."""
+    import_registry(str(FIXTURE_DIR))
+
+
+def test_names_a_registered_n_number_not_on_the_register(
+    registry: None, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """``registry.knownNNumber`` is in the registry and on no register record."""
+    known = read_facts(capsys)["registry"]["knownNNumber"]
+    assert (
+        Registration.objects.filter(n_number=known).exists(),
+        Aircraft.objects.filter(n_number=known).exists(),
+    ) == (True, False)
+
+
+def test_skips_a_registered_n_number_already_on_the_register(
+    registry: None, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """An N-number the register already holds is never the one named."""
+    first = read_facts(capsys)["registry"]["knownNNumber"]
+    AircraftFactory(n_number=first)
+    assert read_facts(capsys)["registry"]["knownNNumber"] != first
+
+
+def test_describes_the_known_registration(
+    registry: None, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """``knownType`` and ``knownYear`` are what a lookup on ``knownNNumber`` answers."""
+    facts = read_facts(capsys)["registry"]
+    registration = Registration.objects.get(n_number=facts["knownNNumber"])
+    assert (facts["knownType"], facts["knownYear"], facts["knownOwner"]) == (
+        str(registration.type),
+        registration.year,
+        registration.registrant_name,
+    )
+
+
+def test_reports_the_date_the_registry_is_as_of(
+    registry: None, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """``registry.asOf`` is the newest successful import's day, written ``YYYY/MM/DD``."""
+    finished = RegistryImport.objects.get().finished_at
+    assert finished is not None
+    expected = timezone.localtime(finished).strftime("%Y/%m/%d")
+    assert read_facts(capsys)["registry"]["asOf"] == expected
+
+
+def test_reports_no_registry_before_an_import(capsys: pytest.CaptureFixture[str]) -> None:
+    """With nothing imported, the registry facts are empty."""
+    assert read_facts(capsys)["registry"] == {
+        "knownNNumber": "",
+        "knownType": "",
+        "knownYear": None,
+        "knownOwner": "",
+        "asOf": "",
+    }
