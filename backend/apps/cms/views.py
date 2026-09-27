@@ -29,4 +29,6 @@ def find_dart(request: HttpRequest) -> HttpResponseRedirect:
         return redirect(page.url)
 
     index_page = DartIndexPage.objects.live().first()
-    return redirect(index_page.url if index_page is not None else "/")
+    if index_page is not None:
+        return redirect(index_page.url)
+    return redirect("wagtail_serve", "")

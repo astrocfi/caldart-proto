@@ -34,18 +34,21 @@
 
       {% if page.welcome_body %}<div class="richtext">{{ page.welcome_body|richtext }}</div>{% endif %}
 
+      {% url 'wagtail_serve' 'contact/' as contact_url %}
+      {% url 'portal' 'join' as join_url %}
+      {% url 'wagtail_serve' '' as home_url %}
       <p class="cluster">
         {% if page.urgent_cta_label %}
-          <a class="button button--urgent" href="{{ page.urgent_cta_url|default:'/contact/' }}">{{ page.urgent_cta_label }}</a>
+          <a class="button button--urgent" href="{{ page.urgent_cta_url|default:contact_url }}">{{ page.urgent_cta_label }}</a>
         {% endif %}
         {% if page.primary_cta_label %}
-          <a class="button" href="{{ page.primary_cta_url|default:'/portal/join' }}">{{ page.primary_cta_label }}</a>
+          <a class="button" href="{{ page.primary_cta_url|default:join_url }}">{{ page.primary_cta_label }}</a>
         {% endif %}
         {% if site_settings.donate_url %}
           <a class="button button--secondary" href="{{ site_settings.donate_url }}">Donate</a>
         {% endif %}
         {% if page.secondary_cta_label %}
-          <a class="button button--secondary" href="{{ page.secondary_cta_url|default:'/' }}">{{ page.secondary_cta_label }}</a>
+          <a class="button button--secondary" href="{{ page.secondary_cta_url|default:home_url }}">{{ page.secondary_cta_label }}</a>
         {% endif %}
       </p>
     </div>
@@ -120,7 +123,7 @@
         <p class="small">
           Sign in to update your profile, check your medical and insurance dates, or renew.
         </p>
-        <p><a class="button button--small" href="/portal/">Sign-in</a></p>
+        <p><a class="button button--small" href="{% url 'portal' '' %}">Sign-in</a></p>
       </div>
     </section>
 
@@ -161,7 +164,7 @@
               {% endfor %}
             </tbody>
           </table>
-          <p><a class="button button--small" href="/portal/join">Join CalDART</a></p>
+          <p><a class="button button--small" href="{% url 'portal' 'join' %}">Join CalDART</a></p>
           {% if page.tax_status %}<div class="small richtext">{{ page.tax_status|richtext }}</div>{% endif %}
         </div>
       </section>

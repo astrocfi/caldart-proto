@@ -11,13 +11,14 @@ from typing import Any
 from django.core.management.base import OutputWrapper
 from wagtail.models import Page, Site
 
-from apps.cms.models import DEFAULT_THEME, HomePage, SiteSettings
+from apps.cms.models import DEFAULT_THEME, HomePage, SiteSettings, site_path
 
 
 def ensure_site_root() -> Site:
     """Return the default site, creating a ``HomePage`` root if needed.
 
-    A missing home page is created under the Wagtail root and published, and a
+    A missing home page is created under the Wagtail root and published, with its
+    join button linking the portal under ``URL_PREFIX``, and a
     missing site is created as the default on ``localhost:80`` pointing at it.  An
     existing site whose root page is some other page is repointed at the home page.
     Safe to call repeatedly.
@@ -36,7 +37,7 @@ def ensure_site_root() -> Site:
                 "relief supplies, personnel, and information move when roads do not."
             ),
             primary_cta_label="Join CalDART",
-            primary_cta_url="/portal/join",
+            primary_cta_url=site_path("/portal/join"),
         )
         root.add_child(instance=home)
         home.save_revision().publish()

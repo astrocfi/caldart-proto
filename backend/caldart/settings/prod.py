@@ -12,11 +12,12 @@ value.
 """
 
 from copy import deepcopy
+from urllib.parse import urlsplit
 
 from django.core.exceptions import ImproperlyConfigured
 
 from .base import *  # noqa: F403
-from .base import LOGGING, REPO_ROOT, REST_FRAMEWORK, env
+from .base import LOGGING, REPO_ROOT, REST_FRAMEWORK, URL_PREFIX, env, site_origin
 from .mailers import default_mailer
 
 # ``from .base import *`` binds the *same* dict objects as the base module, so
@@ -47,8 +48,17 @@ if SECRET_KEY == DEVELOPMENT_SECRET_KEY:
 
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS")
 SITE_URL = env("SITE_URL")
-CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[SITE_URL])
+CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[site_origin(SITE_URL)])
 WAGTAILADMIN_BASE_URL = SITE_URL
+
+# Every link an email carries is built on SITE_URL, and every link a page carries on
+# URL_PREFIX, so the two must name the same path: a site under /caldart-proto has a
+# SITE_URL ending in /caldart-proto, and a site at the root of its host has none.
+if urlsplit(SITE_URL).path.rstrip("/") != URL_PREFIX:
+    raise ImproperlyConfigured(
+        f"SITE_URL {SITE_URL!r} must end in the URL_PREFIX {URL_PREFIX!r}: its path "
+        "is the prefix the site is served under, or empty when there is none."
+    )
 
 # --------------------------------------------------------------------------
 # TLS and cookies

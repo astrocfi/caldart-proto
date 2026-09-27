@@ -17,6 +17,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, ClassVar, Literal, TypedDict
 
+from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.db import models
 from django.db.models import QuerySet
@@ -262,6 +263,22 @@ class MembersOnlyMixin(_MembersOnlyBase):
         return TemplateResponse(request, "cms/members_only_wall.html", context, status=403)
 
 
+def site_path(path: str) -> str:
+    """``path``, a root-relative URL such as ``/portal/join``, under ``URL_PREFIX``.
+
+    Links stored in page fields are written out as they are, so a link to another part
+    of the site is stored with the prefix the site is served under:
+    ``/caldart-proto/portal/join`` under ``/caldart-proto``, ``/portal/join`` at the root
+    of a host.
+    """
+    return f"{settings.URL_PREFIX}{path}"
+
+
+def default_primary_cta_url() -> str:
+    """The home page's join button by default: the portal's join screen."""
+    return site_path("/portal/join")
+
+
 class HomePage(BasePage):
     """The site root: welcome box, featured news, missions flown, and the sidebar."""
 
@@ -283,7 +300,7 @@ class HomePage(BasePage):
     )
     urgent_cta_url = models.CharField(max_length=200, blank=True)
     primary_cta_label = models.CharField(max_length=60, blank=True, default="Join CalDART")
-    primary_cta_url = models.CharField(max_length=200, blank=True, default="/portal/join")
+    primary_cta_url = models.CharField(max_length=200, blank=True, default=default_primary_cta_url)
     secondary_cta_label = models.CharField(max_length=60, blank=True)
     secondary_cta_url = models.CharField(max_length=200, blank=True)
 

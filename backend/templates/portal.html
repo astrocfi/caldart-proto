@@ -7,8 +7,11 @@
   component module the Vite dev server compiles checks for before it runs.
   It has to come before the HMR client and the entry module, and it renders
   nothing unless `dev_mode` is on, so the built assets are unaffected.
+
+  `data-url-prefix` is the path the site is served under (empty at the root of
+  a host): the portal builds its API and router base from it.
 {% endcomment %}
-<html lang="en" data-theme="{{ theme|default:'duty' }}">
+<html lang="en" data-url-prefix="{{ url_prefix }}" data-theme="{{ theme|default:'duty' }}">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
