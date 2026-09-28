@@ -2,7 +2,10 @@
  * The shared checkout widget used by `/join`, `/renew`, and `/donate`.
  *
  * Choose a plan, optionally add a contribution, then pay with whichever
- * providers this deployment has keys for.  In `contribute` mode there is no
+ * providers this deployment has keys for.  The first plan `GET /payments/config`
+ * lists is chosen until somebody picks another; where the server lists none, the
+ * form says no membership plan is set up and offers no way to pay for one.  In
+ * `contribute` mode there is no
  * plan to choose: the payment buys no membership term, which is the only thing
  * a life member can do here, so one is shown this form whatever mode was asked
  * for.
@@ -54,9 +57,6 @@ import type { RecurringDonation } from './RecurringDonationFields';
 import type { CheckoutMode, CheckoutProps, ProviderPanelProps } from './types';
 import './checkout.css';
 
-/** Renewals default to the annual plan. */
-const DEFAULT_PLAN = 'annual';
-
 /** The eyebrow and title over each mode's form. */
 const HEADINGS: Record<CheckoutMode, { eyebrow: string; title: string }> = {
   join: { eyebrow: 'Membership', title: 'Join CalDART' },
@@ -99,7 +99,8 @@ export function Checkout({
   const { user } = useAuth();
   const becomeFriend = useBecomeFriend();
 
-  const [plan, setPlan] = useState<string>(DEFAULT_PLAN);
+  // Null until somebody picks: the first plan the server lists stands in for it.
+  const [plan, setPlan] = useState<string | null>(null);
   const [contributionCents, setContributionCents] = useState(0);
   const [isOther, setIsOther] = useState(false);
   const [provider, setProvider] = useState<PaymentProvider | null>(null);
@@ -191,10 +192,27 @@ export function Checkout({
     );
   }
 
-  // "Annual" is only the default where the server offers it; anywhere else the
-  // first plan on the list stands in, so the chooser always has a selection.
+  // The first plan the server lists stands in until somebody picks one, so the
+  // chooser always has a selection whenever there is a plan to select.
   const offered = config.plans.map((entry) => entry.slug);
-  const effectivePlan = offered.includes(plan) ? plan : (offered[0] ?? plan);
+  const effectivePlan = plan !== null && offered.includes(plan) ? plan : (offered[0] ?? null);
+
+  // A server with no plan set up has nothing to sell a member; the friend card and
+  // a contribution still work without one.
+  if (!isContributing && effectivePlan === null) {
+    return (
+      <Card eyebrow={heading.eyebrow} title={heading.title} className="checkout">
+        {offersFriend ? (
+          <PlanChooser plans={[]} value="" onChange={(next) => setPlan(next)} offerFriend />
+        ) : null}
+        <EmptyState
+          title="Membership is not on offer yet"
+          description="No membership plan is set up yet. Ask an administrator."
+        />
+        <SkipFooter onSkip={handleSkip} />
+      </Card>
+    );
+  }
 
   const selectedPlan = isContributing
     ? null
@@ -246,7 +264,7 @@ export function Checkout({
       {isContributing ? null : (
         <PlanChooser
           plans={config.plans}
-          value={effectivePlan}
+          value={effectivePlan ?? ''}
           onChange={(next) => setPlan(next)}
           offerFriend={offersFriend}
         />

@@ -134,7 +134,10 @@ payment clears; there is nobody to wait for. There is no way past this step exce
 paying or choosing to be a friend instead.
 
 #. **Membership.** Choose **Annual** ($45.00, *One year*) or **Life** ($650.00,
-   *One payment, membership for life*). Annual is chosen for you. The third card,
+   *One payment, membership for life*). The first plan on the list, Annual, is
+   chosen for you. If the step says *No membership plan is set up yet. Ask an
+   administrator.*, CalDART has not set up its plans on this site: ask the office.
+   The third card,
    **I changed my mind, I just want to be a friend** (*A friend has an account and
    hears from CalDART, but is not a member.*), is for joining as a friend after
    all: choosing it hides the rest of the form and shows one button, **Continue as
