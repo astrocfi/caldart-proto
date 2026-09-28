@@ -177,7 +177,7 @@ function LoadColumnSets({ report, onLoad: handleLoad }: LoadColumnSetsProps): JS
           </Button>
           <DeleteButton
             label={`Delete the saved set ${set.name}`}
-            onClick={() => remove.mutate(set.id)}
+            onDelete={() => remove.mutateAsync(set.id).catch(() => undefined)}
             disabled={remove.isPending}
           />
         </div>

@@ -13,7 +13,7 @@ export function AdminNotificationsPage(): JSX.Element {
     <Page
       title="Notifications"
       eyebrow="Administration"
-      lede="The email addresses that hear about what happens in CalDART, and the events each one hears about."
+      lede="Email addresses that receive notification of system changes"
     >
       <NotificationSubscriptionsCard />
     </Page>

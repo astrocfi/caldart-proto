@@ -136,10 +136,12 @@ administrator is the exception: for them **Edit** opens any airplane on the list
 Removing an airplane
 ====================
 
-The trashcan takes the airplane off your list, and *N12345 removed.* appears. It
-only detaches the airplane from you. The record stays in the register, and anyone
-else who flies it keeps it on their list. Only an account administrator can delete
-an airplane from the register.
+The trashcan asks first: press it and it turns into **Remove** and **Keep**. Press
+**Remove** and the airplane comes off your list, and *N12345 removed.* appears;
+press **Keep**, press Escape, or click away and nothing changes. Removing only
+detaches the airplane from you. The record stays in the register, and anyone else
+who flies it keeps it on their list. Only an account administrator can delete an
+airplane from the register.
 
 
 If something looks wrong

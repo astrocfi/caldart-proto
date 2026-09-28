@@ -169,7 +169,26 @@ describe('<MyAircraftPage/>', () => {
     expect(await screen.findByText('N12345')).toBeInTheDocument();
   });
 
-  it('detaches an aircraft and confirms it', async () => {
+  it('does nothing to an aircraft on the first press of its trashcan', async () => {
+    let deleted: string | null = null;
+    server.use(
+      http.get(`${API}/me/profile`, () =>
+        HttpResponse.json(makeProfile({ aircraft: [TEST_AIRCRAFT] })),
+      ),
+      http.delete(`${API}/me/profile/aircraft/:id`, ({ params }) => {
+        deleted = String(params.id);
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+
+    renderWithProviders(<MyAircraftPage />, { route: '/profile/aircraft' });
+    await userEvent.click(await screen.findByRole('button', { name: 'Remove N12345' }));
+
+    expect(screen.getByText('N12345')).toBeInTheDocument();
+    expect(deleted).toBeNull();
+  });
+
+  it('detaches an aircraft once the trashcan is confirmed', async () => {
     let attached = true;
     let deleted: string | null = null;
     server.use(
@@ -185,6 +204,7 @@ describe('<MyAircraftPage/>', () => {
 
     renderWithProviders(<MyAircraftPage />, { route: '/profile/aircraft' });
     await userEvent.click(await screen.findByRole('button', { name: 'Remove N12345' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Remove' }));
 
     expect(await screen.findByText('N12345 removed.')).toBeInTheDocument();
     expect(deleted).toBe('7');
@@ -203,6 +223,7 @@ describe('<MyAircraftPage/>', () => {
 
     renderWithProviders(<MyAircraftPage />, { route: '/profile/aircraft' });
     await userEvent.click(await screen.findByRole('button', { name: 'Remove N12345' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Remove' }));
 
     expect(await screen.findByText('Not found.')).toBeInTheDocument();
   });

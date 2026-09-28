@@ -2,11 +2,11 @@
 Notifications
 =============
 
-**Notifications** is where you choose who hears about what happens in CalDART. A
-notification is a short email sent the moment something happens: somebody signs up, a
-friend becomes a member, a donation arrives, an account is deactivated, or an aircraft
-changes. Each email address you subscribe hears about the events you pick for it, and
-nothing else.
+**Notifications** lists the email addresses that receive notification of system changes,
+and which changes each one hears about. A notification is a short email sent the moment
+something happens: somebody signs up, a friend becomes a member, a donation arrives, an
+account is deactivated, or an aircraft changes. Each email address you subscribe hears
+about the events you pick for it, and nothing else.
 
 An account administrator finds it under **Administration** in the menu. A system
 administrator can open it too.
@@ -34,7 +34,8 @@ Each row carries three controls. The line above the table says what the last two
    and the line says why.
 
 **The trashcan**
-   Deletes the subscription.
+   Asks first: press it and it turns into **Delete** and **Keep**. Press **Delete** and
+   the subscription is gone; **Keep**, Escape, or a click elsewhere leaves it as it is.
 
 With none set up the table reads *Nobody is subscribed to a notification yet*.
 

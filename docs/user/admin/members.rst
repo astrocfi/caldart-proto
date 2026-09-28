@@ -147,8 +147,10 @@ Saved column sets
 ~~~~~~~~~~~~~~~~~
 
 Beside **Columns**, **Load columns** lists the sets of columns you have saved for this
-report. Pick a name and its columns are ticked for you. The trashcan beside a name deletes
-that set. **Save columns** keeps the boxes as they stand: type a name of up to 60 characters
+report. Pick a name and its columns are ticked for you. The trashcan beside a name asks
+first: press it and it turns into **Delete** and **Keep**; press **Delete** and that set
+is gone, or **Keep**, Escape, or a click elsewhere to leave it as it is. **Save columns**
+keeps the boxes as they stand: type a name of up to 60 characters
 and press **Save**, or press Enter. Saving under a name you already use replaces that set,
 and loading a set puts its name in the box, so a set you load and change saves again under
 the same name. Each of the three buttons opens its own panel under itself, and a click

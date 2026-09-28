@@ -56,12 +56,11 @@ export function NotificationSubscriptionsCard(): JSX.Element {
     );
   };
 
-  const handleDelete = (row: NotificationSubscription): void => {
-    remove.mutate(row.id, {
-      onSuccess: () => setNotice('Deleted.'),
-      onError: (error) => setNotice(errorText(error, 'The subscription was not deleted.')),
-    });
-  };
+  const handleDelete = (row: NotificationSubscription): Promise<void> =>
+    remove.mutateAsync(row.id).then(
+      () => setNotice('Deleted.'),
+      (error) => setNotice(errorText(error, 'The subscription was not deleted.')),
+    );
 
   const handleAdd = (): void => {
     setNotice(null);
@@ -120,7 +119,7 @@ export function NotificationSubscriptionsCard(): JSX.Element {
           <DeleteButton
             label="Delete subscription"
             disabled={isBusy}
-            onClick={() => handleDelete(row)}
+            onDelete={() => handleDelete(row)}
           />
         </span>
       ),

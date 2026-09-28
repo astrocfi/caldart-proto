@@ -539,7 +539,31 @@ describe('DartsPage', () => {
     expect(screen.getByRole('button', { name: 'Move person 1 down' })).toHaveClass('icon-button');
   });
 
-  it('takes a person off the list with the trashcan', async () => {
+  it('does nothing to a person on the first press of their trashcan', async () => {
+    const user = userEvent.setup();
+    stubList([
+      makeDart({
+        contacts: [
+          {
+            id: 1,
+            name: 'Helen',
+            title: 'DART leader',
+            phone: '',
+            email: '',
+            receives_roster: false,
+          },
+        ],
+      }),
+    ]);
+    renderPage();
+
+    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+    await user.click(screen.getByRole('button', { name: 'Remove person 1' }));
+
+    expect(screen.getByDisplayValue('Helen')).toBeInTheDocument();
+  });
+
+  it('takes a person off the list once their trashcan is confirmed', async () => {
     const user = userEvent.setup();
     let patched: { contacts?: { name: string }[] } | null = null;
     stubList([
@@ -567,6 +591,7 @@ describe('DartsPage', () => {
 
     await user.click(await screen.findByRole('button', { name: 'Edit' }));
     await user.click(screen.getByRole('button', { name: 'Remove person 1' }));
+    await user.click(screen.getByRole('button', { name: 'Remove' }));
     await user.click(screen.getByRole('button', { name: 'Save DART' }));
 
     await waitFor(() => expect(patched?.contacts?.map((one) => one.name)).toEqual(['Sam']));

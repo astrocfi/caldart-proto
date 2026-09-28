@@ -135,12 +135,22 @@ describe('NotificationSubscriptionsCard', () => {
     expect(await screen.findByRole('status')).toHaveTextContent(message);
   });
 
-  it('deletes a subscription with the trashcan', async () => {
+  it('does nothing to a subscription on the first press of its trashcan', async () => {
     const table = await renderCard();
 
     await userEvent.click(
       within(row(table, /Ada Admin/)).getByRole('button', { name: 'Delete subscription' }),
     );
+
+    expect(within(table).getByRole('row', { name: /Ada Admin/ })).toBeInTheDocument();
+  });
+
+  it('deletes a subscription once its trashcan is confirmed', async () => {
+    const table = await renderCard();
+    const target = row(table, /Ada Admin/);
+
+    await userEvent.click(within(target).getByRole('button', { name: 'Delete subscription' }));
+    await userEvent.click(within(target).getByRole('button', { name: 'Delete' }));
 
     expect(await screen.findByRole('status')).toHaveTextContent('Deleted.');
     await vi.waitFor(() =>
