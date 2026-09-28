@@ -45,6 +45,7 @@ canceled terms, and friends.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import date, timedelta
 from typing import TYPE_CHECKING, Any, NoReturn, TypedDict, cast
 
@@ -63,7 +64,6 @@ from django.db.models import (
     Value,
     When,
 )
-from django.db.models.deletion import ProtectedError
 from django.http import HttpRequest
 from django.utils import timezone
 
@@ -302,49 +302,96 @@ def update_member(
     return target
 
 
+#: The first name every tombstone carries; its last name is the deleted account's id.
+TOMBSTONE_FIRST_NAME = "Deleted member"
+
+#: The tombstone's address, on the reserved ``.invalid`` domain so nothing is ever sent.
+TOMBSTONE_EMAIL = "deleted-{id}@deleted.invalid"
+
+
+@dataclass(frozen=True)
+class PaymentHandover:
+    """How many payments :func:`hand_over_payments` moved, and to which tombstone."""
+
+    payments: int
+    owner: User
+
+    def audit_fields(self) -> dict[str, int]:
+        """The ``payments`` and ``owner`` fields of the ``member.delete`` audit line."""
+        return {"payments": self.payments, "owner": self.owner.pk}
+
+
+def tombstone_for(target: User) -> User:
+    """Create the account that keeps ``target``'s payments, ``Deleted member <id>``.
+
+    A deactivated donor: no password, no role, no sign-in, and off every list of active
+    accounts.  Its address is ``deleted-<id>@deleted.invalid`` and its profile blank.
+    """
+    tombstone = create_account(
+        email=TOMBSTONE_EMAIL.format(id=target.pk),
+        first_name=TOMBSTONE_FIRST_NAME,
+        last_name=str(target.pk),
+        kind=AccountKind.DONOR,
+    )
+    tombstone.is_active = False
+    tombstone.save(update_fields=["is_active"])
+    MemberProfile.objects.create(user=tombstone)
+    return tombstone
+
+
+@transaction.atomic
+def hand_over_payments(actor: User, target: User) -> PaymentHandover | None:
+    """Clear ``target``'s money out of the way of deleting the account, which stays.
+
+    Each active or paused automatic payment is canceled by ``actor`` through
+    ``cancel_mandate`` with the audit reason ``member.delete``, which tells the member.
+    Every payment, whatever its status, then moves to a new :func:`tombstone_for`
+    account, refunds and all.  Returns what moved, or ``None`` (and makes no tombstone)
+    when ``target`` never paid.
+    """
+    # Inline: payments sits above members and apps.payments.services imports this
+    # module, so a top-level import here would close the cycle.
+    from apps.payments.models import MandateStatus, Payment
+    from apps.payments.renewals import cancel_mandate
+
+    # Locking the account holds back a payment being written for it until this
+    # transaction ends, so none can arrive between the move and the delete.
+    User.objects.select_for_update().filter(pk=target.pk).first()
+    standing = target.renewal_mandates.filter(
+        status__in=(MandateStatus.ACTIVE, MandateStatus.PAUSED)
+    )
+    for mandate in standing:
+        cancel_mandate(mandate, actor=actor, reason=audit.MEMBER_DELETE)
+    payments = Payment.objects.filter(user=target)
+    if not payments.exists():
+        return None
+    owner = tombstone_for(target)
+    return PaymentHandover(payments=payments.update(user=owner), owner=owner)
+
+
 @transaction.atomic
 def delete_member(actor: User, target: User) -> None:
-    """Delete ``target``'s account and everything hanging off it, refused three ways.
+    """Delete ``target``'s account and everything hanging off it, refused two ways.
 
-    Nobody may delete themselves; only a system administrator may delete one.
-    Both of those tests are judged on effective roles, so a Django superuser
-    counts as a system administrator whether or not the role group was ever
-    added.  The third refusal protects the accounts: a member with any payment,
-    whatever its status, cannot be deleted, because the payment is a financial
-    record.  Deactivation is the alternative.
+    Nobody may delete themselves; only a system administrator may delete one, judged
+    on effective roles, so a Django superuser counts as one.  A refusal raises
+    ``DomainPermissionError``, writes nothing, and is audited at WARNING with a reason.
 
-    Every refusal raises ``DomainPermissionError``, writes nothing and is recorded
-    in the audit log at WARNING with a reason; the delete itself is recorded at
-    INFO, which is the only trace the account leaves.
+    Payments outlive the account: :func:`hand_over_payments` moves them to a tombstone
+    first.  The profile, terms, automatic payments and statements go with the account.
+    The delete is audited at INFO as ``member.delete``, with ``payments=<n>
+    owner=<tombstone id>`` when payments moved.
     """
     if target.pk == actor.pk:
         _refuse_delete(actor, target, audit.REASON_SELF_DELETE, SELF_DELETE_REFUSED)
     target_is_system_admin = SYSTEM_ADMIN in effective_roles(target)
     if target_is_system_admin and SYSTEM_ADMIN not in effective_roles(actor):
         _refuse_delete(actor, target, audit.REASON_SYSTEM_ADMIN_TARGET, SYSTEM_ADMIN_DELETE_REFUSED)
-    # Inline: payments sits above members and apps.payments.services imports this
-    # module, so a top-level import here would close the cycle.
-    from apps.payments.models import payment_deletion_refusal
-
-    refusal = payment_deletion_refusal(target)
-    if refusal is not None:
-        _refuse_delete(actor, target, audit.REASON_HAS_PAYMENTS, refusal)
+    handover = hand_over_payments(actor, target)
     target_id = target.pk
-    try:
-        target.delete()
-    except ProtectedError as exc:
-        # ``Payment.user`` is the only protected reference to an account, so a row
-        # created between the check above and the delete lands here, and the same
-        # sentence is now there to quote.  Anything else protecting the row is a
-        # bug, not a refusal, and travels on as the server error it is.
-        late_refusal = payment_deletion_refusal(target)
-        if late_refusal is None:
-            raise
-        audit.refuse(
-            audit.MEMBER_DELETE, actor=actor, target=target, reason=audit.REASON_HAS_PAYMENTS
-        )
-        raise DomainPermissionError(late_refusal) from exc
-    audit.record(audit.MEMBER_DELETE, actor=actor, target=target_id)
+    target.delete()
+    fields = {} if handover is None else handover.audit_fields()
+    audit.record(audit.MEMBER_DELETE, actor=actor, target=target_id, **fields)
 
 
 def _refuse_delete(actor: User, target: User, reason: str, message: str) -> NoReturn:

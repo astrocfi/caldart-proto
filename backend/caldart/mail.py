@@ -129,7 +129,8 @@ def _record(
 
     A blank ``to_name`` with a ``user_id`` is filled in from that account's current
     ``display_name`` before the row is written, so the log keeps the name the
-    recipient had at send time even after the account is later renamed.  Whatever
+    recipient had at send time even after the account is later renamed.  A ``user_id``
+    whose account no longer exists is recorded as no account at all.  Whatever
     name results is cut to fit ``EmailLog.to_name``: a first and last name can
     together run past that limit, and the row must still be written rather than
     raise past a mail server that already took the message.
@@ -139,9 +140,13 @@ def _record(
     from apps.mail.models import EmailLog, EmailStatus
 
     name = to_name
-    if not name and user_id is not None:
+    if user_id is not None:
         account = get_user_model().objects.filter(pk=user_id).first()
-        if account is not None:
+        if account is None:
+            # The account was deleted before the message went, as a deleted member's
+            # "automatic renewal is off" email is: keep the row, naming no account.
+            user_id = None
+        elif not name:
             name = account.display_name
 
     max_length = EmailLog._meta.get_field("to_name").max_length
