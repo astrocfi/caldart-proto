@@ -161,6 +161,6 @@ test('a demo administrator signs in straight to the dashboard', async ({ page })
 
   await expect(page).toHaveURL(/\/portal\/?$/);
   await expect(page.getByRole('heading', { name: /^Welcome, / })).toBeVisible();
-  // On a phone the rail sits in the closed drawer, so it is present rather than visible.
-  await expect(page.getByRole('navigation', { name: 'Portal sections' })).toHaveCount(1);
+  // On a phone the rail sits in the closed drawer, hidden, so look for the element itself.
+  await expect(page.locator('#portal-nav')).toHaveCount(1);
 });
