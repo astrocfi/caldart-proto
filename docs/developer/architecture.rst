@@ -691,9 +691,19 @@ the row already says what the control acts on -- an attached aircraft, a person
 on a DART -- so a list of records reads as a list rather than as a wall of
 buttons.  ``DeleteButton`` is every Remove and Delete control in the portal: a
 bare ``IconButton`` trashcan where the control sits in a row or on a form line,
-and a quiet ``Button`` with the trashcan leading its words where the action is
-confirmed, with the trashcan at the text size there rather than at the larger
-size a bare icon takes.  ``PanelButton`` is a quiet small ``Button`` with
+and a quiet ``Button`` with the trashcan leading its words where it wants more
+weight, with the trashcan at the text size there rather than at the larger size
+a bare icon takes.  Every delete asks first.  Given ``onDelete``, the first
+press swaps the control, in place, for an inline pair, a ``role="group"`` named
+by ``label``: a small danger button reading ``confirmLabel`` (**Delete** unless
+the caller names another word, such as **Remove**) and a plain **Keep**.  Only
+the danger button calls ``onDelete``; **Keep**, Escape, a click outside, or the
+focus leaving the pair restore the trashcan.  The focus moves to **Keep** when
+the pair opens and back to the trashcan after **Keep** or Escape, and an Escape
+on the pair stops there, so the panel around it stays open.  A caller whose own
+flow already confirms the action, such as the member record's type-the-email
+delete, leaves ``onDelete`` out, and the control fires its ordinary
+``onClick`` at once.  ``PanelButton`` is a quiet small ``Button`` with
 ``aria-expanded`` and ``aria-controls`` and the captioned panel (a
 ``<fieldset>`` with its ``legend``) it opens under itself.  The panel's contents
 mount only while it is open, and receive a function that closes it; the panel

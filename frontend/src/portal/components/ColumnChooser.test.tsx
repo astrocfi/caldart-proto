@@ -322,6 +322,15 @@ describe('ColumnChooser Load columns', () => {
     );
   });
 
+  it('keeps the panel open when Escape backs out of a delete', async () => {
+    const { user } = await openWithSets(SAVED_SETS, 'Load columns');
+
+    await user.click(await screen.findByRole('button', { name: 'Delete the saved set Audit' }));
+    await user.keyboard('{Escape}');
+
+    expect(loadPanel()).toBeInTheDocument();
+  });
+
   it('keeps the panel open after a delete', async () => {
     const { user } = await openWithSets(SAVED_SETS, 'Load columns');
 
