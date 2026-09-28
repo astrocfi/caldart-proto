@@ -744,9 +744,11 @@ def test_seed_demo_twice_keeps_one_registry() -> None:
 
 
 def test_seed_demo_completes_every_seeded_profile() -> None:
-    """Every seeded account that can sign in and has a profile has a complete one, so
-    no seeded sign-in is held at the join wizard's profile step.  A donor cannot sign
-    in, so a donor's partial profile is left out."""
+    """Every seeded account that can sign in and has a profile has a complete one.
+
+    No seeded sign-in is therefore held at the join wizard's profile step.  A donor
+    cannot sign in, so a donor's partial profile is left out.
+    """
     _seed()
     incomplete = [
         profile.user.email
@@ -759,8 +761,11 @@ def test_seed_demo_completes_every_seeded_profile() -> None:
 
 
 def test_seed_demo_leaves_no_demo_account_owing_its_first_dues() -> None:
-    """No demo account is a member who has never held a term, whom the portal would
-    hold at the join wizard's pay step: each is a friend, or has held a membership."""
+    """No demo account is a member who has never held a term.
+
+    The portal would hold such an account at the join wizard's pay step; each demo
+    account is a friend, or has held a membership.
+    """
     _seed()
     owing = [
         email
@@ -773,8 +778,7 @@ def test_seed_demo_leaves_no_demo_account_owing_its_first_dues() -> None:
 
 
 def test_seed_demo_verifies_every_demo_address() -> None:
-    """Every demo account's address is verified, so no demo sign-in meets the verify
-    screen."""
+    """Every demo account's address is verified, so none meets the verify step."""
     _seed()
     unverified = [
         email

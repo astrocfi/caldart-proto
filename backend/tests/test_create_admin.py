@@ -147,7 +147,9 @@ def test_promoting_an_existing_account_does_not_mark_its_email_verified(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     """Only account creation marks the email verified; promoting one does not."""
-    existing = UserFactory(email="already.here@example.test", roles=[MEMBER])
+    existing = UserFactory(
+        email="already.here@example.test", roles=[MEMBER], email_verified_at=None
+    )
     assert existing.email_verified is False
 
     call_command("create_admin", email="already.here@example.test")

@@ -24,15 +24,19 @@ EMAIL_UNVERIFIED_CODE = "email_unverified"
 #: The sentence the refusal carries as ``detail``.
 EMAIL_UNVERIFIED_DETAIL = "Verify your email address to continue."
 
-#: The routes an unverified session may still call, by their resolved view names: who
-#: is signed in, signing out or in again, the CSRF token every write needs, following
+#: The routes an unverified session may still call, by their resolved view names: the
+#: ones an anonymous visitor may call (the CSRF token every write needs, signing in,
+#: registering, and resetting a password), who is signed in, signing out, following
 #: the link, asking for another one, correcting the address, and the site chrome.
 UNVERIFIED_ALLOWED_VIEWS: frozenset[str] = frozenset(
     {
+        "api:accounts:csrf",
+        "api:accounts:login",
+        "api:accounts:register",
+        "api:accounts:password-reset",
+        "api:accounts:password-reset-confirm",
         "api:accounts:me",
         "api:accounts:logout",
-        "api:accounts:login",
-        "api:accounts:csrf",
         "api:accounts:email-verify",
         "api:accounts:email-resend",
         "api:accounts:email-change",

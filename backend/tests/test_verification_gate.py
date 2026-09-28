@@ -1,4 +1,4 @@
-"""The email-verification gate: an unverified session reaches only the verify screen's API.
+"""The email-verification gate: an unverified session reaches only the verify step's API.
 
 ``apps.accounts.middleware.EmailVerificationGateMiddleware`` answers 403 with the code
 ``email_unverified`` to any ``/api/v1/`` request from a signed-in account whose address
@@ -22,7 +22,7 @@ from rest_framework.test import APIClient
 from apps.accounts.models import User
 from apps.accounts.services import make_email_verification_token, send_email_verification
 from caldart.views import GUIDE_INDEX
-from tests.conftest import GOOD_PASSWORD, LOGIN_URL, ME_URL
+from tests.conftest import GOOD_PASSWORD, LOGIN_URL, ME_URL, REGISTER_URL, RESET_URL
 from tests.factories import DEFAULT_PASSWORD, UserFactory
 
 pytestmark = pytest.mark.django_db
@@ -38,6 +38,8 @@ LOGOUT_URL = "/api/v1/auth/logout"
 VERIFY_URL = "/api/v1/auth/email/verify"
 RESEND_URL = "/api/v1/auth/email/resend"
 CHANGE_EMAIL_URL = "/api/v1/auth/email/change"
+PASSWORD_RESET_URL = RESET_URL
+PASSWORD_RESET_CONFIRM_URL = "/api/v1/auth/password/reset/confirm"  # noqa: S105 - a URL, not a password
 
 GUIDE_HTML = "<h1>User guide</h1>"
 
@@ -123,6 +125,38 @@ def test_an_unverified_session_may_sign_in_again(
     assert response.status_code == 200
 
 
+def test_an_unverified_session_may_register_another_account(unverified_client: APIClient) -> None:
+    """``POST /auth/register`` stays open, as it is to an anonymous visitor."""
+    response = unverified_client.post(
+        REGISTER_URL,
+        {
+            "email": "another@example.test",
+            "password": GOOD_PASSWORD,
+            "first_name": "Ann",
+            "last_name": "Other",
+        },
+    )
+    assert response.status_code == 201
+
+
+def test_an_unverified_session_may_ask_for_a_password_reset(
+    unverified_client: APIClient, unverified: User
+) -> None:
+    """``POST /auth/password/reset`` stays open, as it is to an anonymous visitor."""
+    response = unverified_client.post(PASSWORD_RESET_URL, {"email": unverified.email})
+    assert response.status_code == 204
+
+
+def test_an_unverified_session_reaches_the_password_reset_confirmation(
+    unverified_client: APIClient,
+) -> None:
+    """``POST /auth/password/reset/confirm`` is not gated: a bad token is its own 400."""
+    response = unverified_client.post(
+        PASSWORD_RESET_CONFIRM_URL, {"uid": "x", "token": "y", "new_password": GOOD_PASSWORD}
+    )
+    assert response.status_code == 400
+
+
 def test_following_the_link_opens_the_member_endpoints(
     unverified_client: APIClient, unverified: User
 ) -> None:
@@ -170,5 +204,5 @@ def test_the_verification_email_says_the_same_in_html(unverified: User) -> None:
     send_email_verification(unverified)
     message = mail.outbox[0]
     assert isinstance(message, EmailMultiAlternatives)
-    html = str(message.alternatives[0].content)
-    assert RESEND_ADVICE in " ".join(html.split())
+    html, _mimetype = message.alternatives[0]
+    assert RESEND_ADVICE in " ".join(str(html).split())

@@ -490,6 +490,8 @@ def test_reactivating_mails_an_unverified_address(
     django_capture_on_commit_callbacks: OnCommit,
 ) -> None:
     """An account that never proved its address is sent the verification message."""
+    member.email_verified_at = None
+    member.save(update_fields=["email_verified_at"])
     deactivated(member)
     with django_capture_on_commit_callbacks(execute=True):
         reactivate(api_client, member.email, password)

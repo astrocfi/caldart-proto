@@ -76,7 +76,11 @@ def verified(db: None) -> User:
 def unverified(db: None) -> User:
     """A member who has never clicked a verification link."""
     return UserFactory(
-        email="unverified@example.test", first_name="Uma", last_name="Pike", roles=["member"]
+        email="unverified@example.test",
+        first_name="Uma",
+        last_name="Pike",
+        roles=["member"],
+        email_verified_at=None,
     )
 
 

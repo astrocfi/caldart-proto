@@ -105,8 +105,9 @@ class UserFactory(ModelFactory["UserModel"]):
     ``roles=[...]`` grants each named role slug through ``User.add_role`` after
     creation; omitting it leaves the user with no roles.  The address is verified
     (``email_verified_at`` is the time of creation), since an unverified account may
-    use almost none of the API; pass ``email_verified_at=None`` for one that is not. The user's password is set to
-    ``DEFAULT_PASSWORD`` unless ``password=...`` supplies another plaintext value.
+    use almost none of the API; pass ``email_verified_at=None`` for one that is not.
+    The user's password is set to ``DEFAULT_PASSWORD`` unless ``password=...``
+    supplies another plaintext value.
     """
 
     class Meta:
