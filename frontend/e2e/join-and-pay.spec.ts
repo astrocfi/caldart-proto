@@ -160,5 +160,7 @@ test('a demo administrator signs in straight to the dashboard', async ({ page })
   await signIn(page, SEED.accounts.accountadmin);
 
   await expect(page).toHaveURL(/\/portal\/?$/);
-  await expect(page.getByRole('navigation', { name: 'Portal sections' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /^Welcome, / })).toBeVisible();
+  // On a phone the rail sits in the closed drawer, so it is present rather than visible.
+  await expect(page.getByRole('navigation', { name: 'Portal sections' })).toHaveCount(1);
 });
