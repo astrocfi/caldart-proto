@@ -9,11 +9,13 @@
  * One test, because each step stands on the one before it: the pilot the leader
  * verifies is the verifier who checks the airplane and the member who edits the
  * medical.  It writes to the seeded pilot and to one airplane, so it runs at
- * desktop size only.
+ * desktop size only.  A second test has the account administrator verify another
+ * airplane from its aircraft record.
  *
  * Isolation rests on nothing else in the suite reading `SEED.leaderCheck.unverifiedPilot`,
- * the airplane this spec picks from the register, or the account administrator's mail
- * count: another spec touching any of those would race this one.
+ * the airplanes this spec picks from the register (one with current cover, one
+ * without), or the account administrator's mail count: another spec touching any of
+ * those would race this one.
  */
 import { expect, test } from '@playwright/test';
 import type { Locator, Page } from '@playwright/test';
@@ -22,6 +24,7 @@ import { DEMO, SEED, emailCountTo, latestEmailTo, signIn } from './helpers';
 
 /** One register row as `GET /api/v1/aircraft` answers, cut to what this spec reads. */
 interface RegisterRow {
+  id: number;
   n_number: string;
   is_active: boolean;
   insurance_is_current: boolean;
@@ -75,6 +78,24 @@ async function unverifiedAirplane(page: Page): Promise<string> {
     throw new Error('The register holds no in-service airplane with unverified current cover.');
   }
   return airplane.n_number;
+}
+
+/**
+ * An in-service airplane whose insurance is not current and nobody has verified, read
+ * from the register as the signed-in account.  Lapsed cover keeps it apart from the
+ * airplane `unverifiedAirplane` picks.
+ */
+async function unverifiedLapsedAirplane(page: Page): Promise<RegisterRow> {
+  const response = await page.request.get('api/v1/aircraft?page_size=200');
+  expect(response.status()).toBe(200);
+  const { results } = (await response.json()) as { results: RegisterRow[] };
+  const airplane = results.find(
+    (each) => each.is_active && !each.insurance_is_current && !each.insurance_verification.verified,
+  );
+  if (airplane === undefined) {
+    throw new Error('The register holds no in-service airplane with unverified lapsed cover.');
+  }
+  return airplane;
 }
 
 /** A date one day after `iso` (`YYYY-MM-DD`), in the same form. */
@@ -185,4 +206,24 @@ test('a leader verifies a pilot, who verifies an airplane and then edits a medic
   await expect(again.getByRole('status')).not.toContainText('Certificate not verified');
   await expect(again.getByRole('status')).not.toContainText('Photo ID not verified');
   await expect(row(again, 'Medical')).toContainText('Not verified');
+});
+
+test('an account administrator verifies an airplane from its aircraft record', async ({
+  page,
+}) => {
+  await signIn(page, DEMO.accountadmin);
+  const adminName = await signedInName(page);
+  const airplane = await unverifiedLapsedAirplane(page);
+  await page.goto(`portal/admin/aircraft/${airplane.id}`);
+
+  const card = page
+    .locator('section')
+    .filter({ has: page.getByRole('heading', { name: 'Verification', exact: true }) });
+  await expect(card).toContainText('Not verified');
+  await card.getByRole('button', { name: 'Verify' }).click();
+  await page.getByRole('checkbox', { name: 'Insurance verified' }).check();
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(page.getByText('Verification saved')).toBeVisible();
+
+  await expect(card).toContainText(`Verified by ${adminName} on`);
 });

@@ -23,6 +23,17 @@ describe('InsuranceVerificationCard', () => {
     );
   });
 
+  it('prints the per-occurrence limit alone when no per-person limit is set', () => {
+    renderWithProviders(
+      <InsuranceVerificationCard
+        aircraft={makeVerifiedAircraft({ insurance_liability_per_person_cents: 0 })}
+      />,
+    );
+    expect(screen.getByRole('listitem')).toHaveTextContent(
+      'InsuranceAvemco · AV-00012345 · $1,000,000 · expires 03/01/2027',
+    );
+  });
+
   it('reads Not on file for an aircraft with no insurance on record', () => {
     renderWithProviders(
       <InsuranceVerificationCard

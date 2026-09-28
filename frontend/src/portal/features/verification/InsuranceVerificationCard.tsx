@@ -27,8 +27,10 @@ function insuranceDetail(aircraft: AircraftDetail): string {
     const occurrence = formatCents(aircraft.insurance_liability_per_occurrence_cents, {
       whole: true,
     });
-    const person = formatCents(aircraft.insurance_liability_per_person_cents, { whole: true });
-    parts.push(`${occurrence} / ${person}`);
+    const perPerson = aircraft.insurance_liability_per_person_cents;
+    parts.push(
+      perPerson > 0 ? `${occurrence} / ${formatCents(perPerson, { whole: true })}` : occurrence,
+    );
   }
   if (aircraft.insurance_expiration !== null) {
     parts.push(`expires ${formatDate(aircraft.insurance_expiration)}`);
