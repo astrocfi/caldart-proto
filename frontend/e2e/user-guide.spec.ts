@@ -15,15 +15,23 @@ import { DEMO, signIn } from './helpers';
 const ADMINISTRATOR_GROUPS = ['admin', 'finance', 'website'] as const;
 
 /** Open the guide's front page once its sidebar has been trimmed to the reader's roles. */
-async function openGuide(page: Page, path = 'docs/'): Promise<Locator> {
-  await page.goto(path);
+async function openGuide(page: Page): Promise<Locator> {
+  await page.goto('docs/');
   await expect(page.locator('html')).not.toHaveClass(/guide-roles-pending/);
   return page.locator('.sidebar-tree');
 }
 
-/** The links in `tree` that lead into the guide's directory `group`. */
-function groupLinks(tree: Locator, group: string): Locator {
-  return tree.locator(`a[href*="${group}/"]`);
+/** The guide groups the links in `tree` lead into, such as `member` or `admin`. */
+async function linkedGroups(tree: Locator): Promise<Set<string>> {
+  const paths = await tree
+    .locator('a')
+    .evaluateAll((anchors) =>
+      anchors.map((anchor) => new URL((anchor as HTMLAnchorElement).href).pathname),
+    );
+  const groups = paths
+    .map((path) => /\/docs\/([^/]+)\//.exec(path)?.[1])
+    .filter((group) => group !== undefined);
+  return new Set(groups);
 }
 
 test('a member opening an administrator page is sent to the guide index', async ({ page }) => {
@@ -39,19 +47,19 @@ test("a member's sidebar lacks the administrator sections", async ({ page }) => 
   const tree = await openGuide(page);
 
   await expect(tree.locator('.caption-text')).toHaveText(['Start here', 'Screens', 'Reference']);
-  await expect(groupLinks(tree, 'member').first()).toBeAttached();
-  for (const group of ADMINISTRATOR_GROUPS) {
-    await expect(groupLinks(tree, group)).toHaveCount(0);
-  }
+  const groups = await linkedGroups(tree);
+  expect(groups.has('member')).toBe(true);
+  expect(ADMINISTRATOR_GROUPS.filter((group) => groups.has(group))).toEqual([]);
 });
 
 test('the system administrator sees every section of the sidebar', async ({ page }) => {
   await signIn(page, DEMO.sysadmin);
   const tree = await openGuide(page);
 
-  for (const group of ADMINISTRATOR_GROUPS) {
-    await expect(groupLinks(tree, group).first()).toBeAttached();
-  }
+  const groups = await linkedGroups(tree);
+  expect(ADMINISTRATOR_GROUPS.filter((group) => groups.has(group))).toEqual([
+    ...ADMINISTRATOR_GROUPS,
+  ]);
 });
 
 test('the system administrator opens an administrator page', async ({ page }) => {
