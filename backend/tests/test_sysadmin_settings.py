@@ -283,6 +283,13 @@ def execute_base_settings() -> ModuleType:
     return module
 
 
+def test_uploads_and_their_directories_are_readable_by_the_web_server() -> None:
+    """Uploads are written ``0644`` and their directories ``0755``, whatever the umask."""
+    base = execute_base_settings()
+    assert base.FILE_UPLOAD_PERMISSIONS == 0o644
+    assert base.FILE_UPLOAD_DIRECTORY_PERMISSIONS == 0o755
+
+
 def test_media_root_comes_from_the_environment(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:

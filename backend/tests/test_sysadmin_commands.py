@@ -285,7 +285,7 @@ def test_db_reset_migrates_and_seeds_roles(reset_calls: list[str]) -> None:
     """``db_reset --noinput`` drops the schema, migrates, and seeds roles in order."""
     call_command("db_reset", "--noinput", stdout=StringIO())
 
-    assert reset_calls == ["drop_schema", "migrate", "seed_roles"]
+    assert reset_calls == ["drop_schema", "migrate", "seed_roles", "seed_plans"]
 
 
 def test_db_reset_seed_flag_runs_the_seeders(reset_calls: list[str]) -> None:
@@ -296,6 +296,7 @@ def test_db_reset_seed_flag_runs_the_seeders(reset_calls: list[str]) -> None:
         "drop_schema",
         "migrate",
         "seed_roles",
+        "seed_plans",
         "seed_demo",
         "seed_content",
     ]
@@ -346,7 +347,14 @@ def test_db_reset_seed_propagates_a_failure(monkeypatch: pytest.MonkeyPatch) -> 
     with pytest.raises(RuntimeError, match="example site"):
         call_command("db_reset", "--noinput", "--seed", stdout=StringIO())
 
-    assert calls == ["drop_schema", "migrate", "seed_roles", "seed_demo", "seed_content"]
+    assert calls == [
+        "drop_schema",
+        "migrate",
+        "seed_roles",
+        "seed_plans",
+        "seed_demo",
+        "seed_content",
+    ]
 
 
 # --------------------------------------------------------------- drop_schema

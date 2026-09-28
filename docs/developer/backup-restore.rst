@@ -424,8 +424,8 @@ re-seeds::
   uv run backend/manage.py db_reset            # asks first
   uv run backend/manage.py db_reset --seed     # + seed_demo and seed_content
 
-Without ``--seed`` it stops after ``migrate`` and ``seed_roles``, leaving an
-empty but usable database.  With it, ``seed_demo`` creates the demo accounts
+Without ``--seed`` it stops after ``migrate``, ``seed_roles``, and ``seed_plans``,
+leaving an empty but usable database with its two membership plans.  With it, ``seed_demo`` creates the demo accounts
 (password ``caldart-demo``) and ``seed_content`` the example pages.
 
 It names the database it is about to destroy in the prompt.  On a parallel

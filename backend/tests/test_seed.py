@@ -152,6 +152,24 @@ def test_seed_roles_command() -> None:
     assert Group.objects.filter(name__in=ROLE_SLUGS).count() == len(ROLE_SLUGS)
 
 
+def test_a_migrated_database_already_holds_the_two_plans() -> None:
+    """The ``members`` data migration writes the annual and life plans by itself."""
+    assert sorted(MembershipPlan.objects.values_list("slug", flat=True)) == ["annual", "life"]
+
+
+def test_seed_plans_command_is_idempotent_and_restores_the_table() -> None:
+    """``seed_plans`` writes each plan once and puts back a hand-edited price."""
+    MembershipPlan.objects.filter(slug="annual").update(price_cents=1, is_active=False)
+    out = StringIO()
+    call_command("seed_plans", stdout=out)
+    call_command("seed_plans", stdout=StringIO())
+    annual = MembershipPlan.objects.get(slug="annual")
+    assert MembershipPlan.objects.filter(slug__in=["annual", "life"]).count() == 2
+    assert annual.price_cents == 4_500
+    assert annual.is_active is True
+    assert "2 plans present." in out.getvalue()
+
+
 def test_seed_demo_creates_the_documented_accounts() -> None:
     """Every ``DEMO_ACCOUNTS`` entry exists with its documented roles and password."""
     _seed()

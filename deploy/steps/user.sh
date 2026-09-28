@@ -49,6 +49,10 @@ user_step() {
     run install -d -o root -g "$SERVICE_USER" -m 0750 "$ETC_DIR"
     run install -d -o "$SERVICE_USER" -g "$SERVICE_USER" \
         "$ROOT/backups" "$ROOT/media" "$CHECKOUT/backend/staticfiles"
+    # The web server reads the uploads as its own user, so every directory under
+    # media/ must let others in: the site creates new ones 0755, and this repairs
+    # any an earlier run left 0750.
+    run find "$ROOT/media" -type d -exec chmod 0755 '{}' +
 }
 
 user_main() {

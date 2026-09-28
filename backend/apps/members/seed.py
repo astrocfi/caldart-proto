@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import random
 from datetime import date, timedelta
-from typing import Any, TypedDict
+from typing import Any
 
 from django.core.management.base import OutputWrapper
 from django.utils import timezone
@@ -25,10 +25,10 @@ from apps.members.models import (
     RATING_VALUES,
     MedicalType,
     MemberProfile,
-    MembershipPlan,
     PhotoIdType,
     PilotCertificateType,
 )
+from apps.members.plans import PLANS, seed_plans
 from apps.members.verification import ITEMS
 
 #: The DARTs to seed.
@@ -67,37 +67,6 @@ SECONDARY_AIRPORT_CHANCE = 0.4
 #: deleted without unaffiliating anybody.  It keeps its public page.
 EMPTY_DART = "San Carlos"
 
-
-class PlanSpec(TypedDict):
-    """One membership plan the seed creates, keyed on its slug."""
-
-    name: str
-    slug: str
-    price_cents: int
-    duration_days: int | None
-    sort_order: int
-    description: str
-
-
-#: The membership plans to seed.
-PLANS: tuple[PlanSpec, ...] = (
-    {
-        "name": "Annual",
-        "slug": "annual",
-        "price_cents": 4_500,
-        "duration_days": 365,
-        "sort_order": 1,
-        "description": "One year of CalDART membership, renewable each year.",
-    },
-    {
-        "name": "Life",
-        "slug": "life",
-        "price_cents": 65_000,
-        "duration_days": None,
-        "sort_order": 2,
-        "description": "A lifetime membership. Pay once, never renew.",
-    },
-)
 
 CA_COUNTIES: tuple[str, ...] = (
     "Alameda",
@@ -269,29 +238,6 @@ def seed_dart_contacts(dart: Dart, faker: Faker, rng: random.Random) -> None:
             sort_order=position,
             receives_roster=receives_roster,
         )
-
-
-def seed_plans() -> list[MembershipPlan]:
-    """Create or update every plan in :data:`PLANS`, and return them in that order.
-
-    Each is keyed on its slug, so running the seed twice leaves one row per
-    plan with the price, duration, and description the table gives it.
-    """
-    plans = []
-    for spec in PLANS:
-        plan, _ = MembershipPlan.objects.update_or_create(
-            slug=spec["slug"],
-            defaults={
-                "name": spec["name"],
-                "price_cents": spec["price_cents"],
-                "duration_days": spec["duration_days"],
-                "sort_order": spec["sort_order"],
-                "description": spec["description"],
-                "is_active": True,
-            },
-        )
-        plans.append(plan)
-    return plans
 
 
 def _secondary_airport(draw: float, home_airport: str) -> str:

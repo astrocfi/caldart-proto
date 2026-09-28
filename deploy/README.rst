@@ -292,8 +292,9 @@ build.  It runs these stages, each announced by an ``==>`` line:
 5. the environment file, on the first run only;
 6. the build: the Python packages from ``uv.lock``, the frontend, and the user
    guide;
-7. the database: migrations, the cache table, the roles, the demo accounts
-   with ``--seed-demo``, the example pages with ``--seed-content``, the static
+7. the database: migrations, the cache table, the roles, the membership plans,
+   the demo accounts with ``--seed-demo``, the example pages with
+   ``--seed-content``, the static
    files, and the administrator with ``--admin-email``;
 8. gunicorn under systemd, waiting up to 30 seconds for it to answer;
 9. the web server and the certificate, or the snippet behind an existing
@@ -705,9 +706,9 @@ status is the command's::
 Never source the environment file into a shell to run ``manage.py`` by hand: a
 shell splits a value with spaces in it, such as ``DEFAULT_FROM_EMAIL``.
 
-The three seeds ``make seed`` runs in development are three separate steps on a
-server, each runnable on its own: the roles (``seed_roles``, which every install
-runs), the example website (``seed_content``, ``--seed-content``), and the demo
+The seeds ``make seed`` runs in development are separate steps on a server,
+each runnable on its own: the roles and the membership plans (``seed_roles`` and
+``seed_plans``, which every install runs), the example website (``seed_content``, ``--seed-content``), and the demo
 accounts (``seed_demo``, ``--seed-demo``).  Run or re-run either optional one on
 an installed server the same way::
 

@@ -352,9 +352,9 @@ log), ``caldart/org.py`` (the
 organization's letterhead, read from the Wagtail site settings),
 ``caldart/audit.py`` (the audit log, described in :ref:`deploy-audit-log`),
 ``caldart/pagination.py`` and ``caldart/exceptions.py``.
-``make seed`` runs ``seed_roles``, then ``seed_demo`` (every app's ``seed.py``,
-with a fixed random seed so every machine gets the same data), then
-``seed_content``; all three are idempotent.
+``make seed`` runs ``seed_roles`` and ``seed_plans``, then ``seed_demo`` (every
+app's ``seed.py``, with a fixed random seed so every machine gets the same data),
+then ``seed_content``; all four are idempotent.
 
 .. _architecture-app-dependencies:
 

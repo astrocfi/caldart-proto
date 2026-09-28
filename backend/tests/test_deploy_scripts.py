@@ -2993,3 +2993,11 @@ def test_the_dry_run_names_the_code_in_the_checkout_and_the_data_beside_it(
         f"sed -e 's#/opt/caldart/caldart#__CALDART_CHECKOUT__#g' -e 's#/opt/caldart#{root}#g' "
         f"-e 's#__CALDART_CHECKOUT__#{_checkout(root)}#g'"
     )
+
+
+def test_the_user_step_opens_every_media_directory_to_the_web_server(
+    root: Path, etc: Path, tmp_path: Path
+) -> None:
+    """Each install makes every directory under ``media/`` ``0755`` for the web server."""
+    commands = _commands(_install_dry_run(root, etc, tmp_path))
+    assert f"find {root}/media -type d -exec chmod 0755 '{{}}' +" in commands

@@ -51,6 +51,7 @@ class Command(BaseCommand):
         self.stdout.write("Migrating\u2026")
         call_command("migrate", verbosity=0)
         call_command("seed_roles", verbosity=0)
+        call_command("seed_plans", verbosity=0)
 
         if options["seed"]:
             self.stdout.write("Seeding\u2026")

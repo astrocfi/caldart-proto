@@ -234,8 +234,9 @@ migrate: ## Apply database migrations
 makemigrations: ## Generate migrations for changed models
 	$(MANAGE) makemigrations
 
-seed: ## Seed roles, demo data and example content
+seed: ## Seed roles, plans, demo data and example content
 	$(MANAGE) seed_roles
+	$(MANAGE) seed_plans
 	$(MANAGE) seed_demo
 	$(MANAGE) seed_content
 
@@ -502,9 +503,13 @@ rehearse-deploy: ## Rehearse the server install in a throwaway systemd container
 	      || { echo "error: the sign-in page does not answer after seeding" >&2; exit 1; }; \
 	  fi; \
 	  if [ "$$seed" = content ] || [ "$$seed" = all ]; then \
-	    echo "==> Checking that the example website is there"; \
+	    echo "==> Checking that the example website is there, photograph included"; \
 	    site -o /dev/null -w '%{http_code}\n' "https://caldart.test$$prefix/about/" | grep -qx 200 \
 	      || { echo "error: the seeded About Us page does not answer 200" >&2; exit 1; }; \
+	    hero=$$(site "https://caldart.test$$prefix/" | grep -o 'src="[^"]*/media/[^"]*"' | head -1 | cut -d'"' -f2); \
+	    [ -n "$$hero" ] || { echo "error: the seeded home page carries no photograph from /media/" >&2; exit 1; }; \
+	    site -o /dev/null -w '%{http_code}\n' "https://caldart.test$$hero" | grep -qx 200 \
+	      || { echo "error: the home page's photograph $$hero does not answer 200" >&2; exit 1; }; \
 	  fi; \
 	  if [ "$$seed" = content ]; then \
 	    echo "==> Checking that the website seed created no demo account"; \
