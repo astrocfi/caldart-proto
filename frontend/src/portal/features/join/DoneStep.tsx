@@ -10,31 +10,35 @@ import type { JSX } from 'react';
 import { Link } from 'react-router-dom';
 
 import { useSiteConfig } from '@/portal/api/queries';
-import { useAuth } from '@/portal/auth/useAuth';
+import type { PersonKind } from '@/portal/api/types';
 import { ButtonLink } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { DateText } from '@/portal/components/DateText';
 import { EmptyState } from '@/portal/components/EmptyState';
 import { MembershipChip } from '@/portal/components/StatusChip';
 import { useMembership } from '@/portal/features/profile/api';
-import { joinStepEyebrow, joiningAs } from './steps';
+import { joinStepEyebrow } from './steps';
 import './join.css';
 
 export interface DoneStepProps {
+  /**
+   * The kind the visitor is joining as: the wizard's own choice, the same one its
+   * lede reads, rather than the cached account that has yet to catch up with it.
+   */
+  joiningAs: PersonKind;
   /** True when a payment settled in this visit, so a receipt is on its way. */
   hasPaid: boolean;
 }
 
 /** Step 5 of the join wizard: membership status and links to members-only pages. */
-export function DoneStep({ hasPaid }: DoneStepProps): JSX.Element {
-  const { user } = useAuth();
+export function DoneStep({ joiningAs, hasPaid }: DoneStepProps): JSX.Element {
   const membership = useMembership();
   const siteConfig = useSiteConfig();
   const membersPages = siteConfig.data?.members_pages ?? [];
   const status = membership.data ?? null;
-  // The stored intent, not the membership: a member whose payment has not settled
-  // still reads as a friend, and is told their membership is on its way.
-  const isFriend = joiningAs(user) === 'friend';
+  // The kind being joined as, not the membership: a member whose payment has not
+  // settled has no term yet, and is told their membership is on its way.
+  const isFriend = joiningAs === 'friend';
 
   return (
     <>

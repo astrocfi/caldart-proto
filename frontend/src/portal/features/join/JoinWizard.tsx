@@ -160,7 +160,7 @@ export function JoinWizard(): JSX.Element {
           returning ? (
             <ReturnStep onSettled={handleReturnSettled} />
           ) : (
-            <DoneStep hasPaid={hasPaid} />
+            <DoneStep joiningAs={kind} hasPaid={hasPaid} />
           )
         ) : null}
       </Page>
