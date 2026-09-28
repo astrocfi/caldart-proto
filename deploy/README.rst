@@ -96,8 +96,8 @@ You need:
 - **An SMTP relay** (its URL, with credentials) or a postfix already running
   on the machine.  `Mail`_ below says which to pick.
 - **Disk for the dumps.**  The backups live on the same disk as the site, and
-  the health panel of the portal's System screen warns when that filesystem
-  has less than 2 GB free.
+  the health panel of the portal's Health & Database page warns when that
+  filesystem has less than 2 GB free.
 
 Docker does not need to be installed: the packages step installs
 ``docker.io`` and the distribution's Compose v2 package when ``docker`` and
@@ -660,10 +660,10 @@ summary.
 
 Then, in a browser: the public site loads and is styled, ``/portal/`` signs
 you in, ``/admin/`` opens Wagtail, every check on the health panel of the
-portal's System screen (``/portal/system``) is green, and the **User guide**
-link at the foot of the portal's menu opens the user guide.  The guide is
-served at ``/docs/`` (under the prefix, when there is one), to signed-in users
-only.
+portal's Health & Database page (``/portal/system/health``) is green, and the
+**User guide** link at the foot of the portal's menu opens the user guide.  The
+guide is served at ``/docs/`` (under the prefix, when there is one), to
+signed-in users only.
 
 Run management commands
 -----------------------
@@ -791,14 +791,14 @@ Take one by hand, or check on the timer::
   journalctl -u caldart-backup -n 20
 
 A system administrator can also take and download one from the portal's
-System screen, under **Backups**.
+Health & Database page, under **Backups**.
 
 A dump leaves out the rows of the FAA registry's registrations (some 317,000
 rows, most of a dump's size): it creates the table empty.  The
 aircraft types, and everything else, are dumped whole.  The registry comes
 back from the FAA's own file on the next import: ``caldart-registry.timer``
-runs one daily at 04:30, and **Run now** on the *FAA registry import* row of
-the System screen runs one at once, as does::
+runs one daily at 04:30, and **Run now** on the **Aircraft database** panel of
+the portal's Health & Database page runs one at once, as does::
 
   sudo systemctl start caldart-registry.service
 
