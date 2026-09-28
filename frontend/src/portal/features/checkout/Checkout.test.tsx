@@ -4,7 +4,12 @@ import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { CheckoutRequest, PaymentsConfig, RenewalSetupRequest } from '@/portal/api/types';
+import type {
+  CheckoutRequest,
+  PaymentsConfig,
+  RenewalSetupRequest,
+  User,
+} from '@/portal/api/types';
 import { todayIso } from '@/portal/components/DateText';
 import { makeContributionMandate } from '@test/fixtures/payments';
 import {
@@ -15,7 +20,7 @@ import {
   makeUser,
   signedInAs,
 } from '@test/handlers';
-import { renderWithProviders } from '@test/render';
+import { makeTestQueryClient, renderWithProviders } from '@test/render';
 import { server } from '@test/server';
 import { AUTH_ME_KEY } from '@/portal/auth/useAuth';
 import { Checkout } from './Checkout';
@@ -129,6 +134,14 @@ function serveCheckout(client: Record<string, string> = {}) {
     }),
   );
   return requests;
+}
+
+/** A query client that already knows `user` is signed in, and a server that agrees. */
+function signedInClient(user: User): QueryClient {
+  server.use(signedInAs(user));
+  const client = makeTestQueryClient();
+  client.setQueryData(AUTH_ME_KEY, user);
+  return client;
 }
 
 beforeEach(() => {
@@ -1048,5 +1061,86 @@ describe('Checkout · changing one’s mind to a friend', () => {
 
     await waitFor(() => expect(handleBecomeFriend).toHaveBeenCalledOnce());
     expect(calls).toHaveLength(1);
+  });
+
+  it('hands a friend straight back to the host without asking the server', async () => {
+    serveConfig(config());
+    const client = signedInClient(makeUser({ kind: 'friend', membership: NO_MEMBERSHIP }));
+    const calls = serveBecomeFriend();
+    const handleBecomeFriend = vi.fn();
+    renderWithProviders(
+      <Checkout mode="join" onSuccess={() => {}} onBecomeFriend={handleBecomeFriend} />,
+      { client },
+    );
+
+    await userEvent.click(await screen.findByRole('radio', { name: FRIEND_CARD }));
+    await userEvent.click(screen.getByRole('button', { name: 'Continue as a friend' }));
+
+    await waitFor(() => expect(handleBecomeFriend).toHaveBeenCalledOnce());
+    expect(calls).toHaveLength(0);
+  });
+});
+
+describe('Checkout · changing one’s mind to a member', () => {
+  const MEMBER_BUTTON = 'I changed my mind, I want to be a member';
+
+  it('offers the way back only when the host asks', async () => {
+    serveConfig(config());
+    renderWithProviders(<Checkout mode="contribute" onSuccess={() => {}} />);
+
+    await screen.findByRole('radio', { name: /Participating/ });
+    expect(screen.queryByRole('button', { name: MEMBER_BUTTON })).not.toBeInTheDocument();
+  });
+
+  it('offers it on a contribution when the host asks', async () => {
+    serveConfig(config());
+    renderWithProviders(
+      <Checkout mode="contribute" onSuccess={() => {}} onBecomeMember={() => {}} />,
+    );
+
+    expect(await screen.findByRole('button', { name: MEMBER_BUTTON })).toBeInTheDocument();
+  });
+
+  it('puts it under the contribution chooser', async () => {
+    serveConfig(config());
+    renderWithProviders(
+      <Checkout mode="contribute" onSuccess={() => {}} onBecomeMember={() => {}} />,
+    );
+
+    const button = await screen.findByRole('button', { name: MEMBER_BUTTON });
+    const chooser = screen.getByRole('group', { name: 'Add a contribution' });
+    expect(chooser.compareDocumentPosition(button)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+
+  it('never offers it where a plan is on sale, even when asked', async () => {
+    serveConfig(config());
+    renderWithProviders(<Checkout mode="join" onSuccess={() => {}} onBecomeMember={() => {}} />);
+
+    await screen.findByRole('radio', { name: /Annual/ });
+    expect(screen.queryByRole('button', { name: MEMBER_BUTTON })).not.toBeInTheDocument();
+  });
+
+  it('never offers it to a life member, even when asked', async () => {
+    serveConfig(config());
+    const client = signedInClient(makeUser({ membership: LIFETIME_MEMBERSHIP }));
+    renderWithProviders(
+      <Checkout mode="contribute" onSuccess={() => {}} onBecomeMember={() => {}} />,
+      { client },
+    );
+
+    await screen.findByRole('radio', { name: /Participating/ });
+    expect(screen.queryByRole('button', { name: MEMBER_BUTTON })).not.toBeInTheDocument();
+  });
+
+  it('hands the change to the host', async () => {
+    serveConfig(config());
+    const handleBecomeMember = vi.fn();
+    renderWithProviders(
+      <Checkout mode="contribute" onSuccess={() => {}} onBecomeMember={handleBecomeMember} />,
+    );
+
+    await userEvent.click(await screen.findByRole('button', { name: MEMBER_BUTTON }));
+
+    expect(handleBecomeMember).toHaveBeenCalledOnce();
   });
 });

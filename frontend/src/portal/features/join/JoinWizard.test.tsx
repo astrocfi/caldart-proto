@@ -40,6 +40,14 @@ const UNPAID: MembershipStatus = {
   is_lifetime: false,
 };
 
+/** The lede over a member's pay step. */
+const MEMBER_PAY_LEDE =
+  'Card, Apple Pay, Google Pay, or PayPal. Your membership starts immediately.';
+
+/** The lede over a friend's pay step. */
+const FRIEND_PAY_LEDE =
+  'Card, Apple Pay, Google Pay, or PayPal. Any amount helps, and none is required.';
+
 /** The done step's sentence about the receipt a payment in this visit sent. */
 const RECEIPT = /A receipt is on its way to your inbox/;
 
@@ -195,6 +203,30 @@ describe('<JoinWizard/> layout', () => {
     expect(shell).not.toBeNull();
     expect(shell?.querySelector('.page__header')).not.toBeNull();
     expect(shell?.querySelector('.join-steps')).not.toBeNull();
+  });
+
+  it('gives the profile step the full working width', async () => {
+    stubApi(makeUser({ profile_complete: false, membership: UNPAID }));
+    const { container } = renderWizard('/join/profile');
+
+    await screen.findByRole('button', { name: 'Save and continue' });
+    expect(container.querySelector('.join-card--wide')).not.toBeNull();
+  });
+
+  it('widens the header and the step list over the profile step', async () => {
+    stubApi(makeUser({ profile_complete: false, membership: UNPAID }));
+    const { container } = renderWizard('/join/profile');
+
+    await screen.findByRole('button', { name: 'Save and continue' });
+    expect(container.querySelector('.join-shell--wide')).not.toBeNull();
+  });
+
+  it('keeps every other step at the wizard’s own width', async () => {
+    stubApi(makeUser({ kind: 'member', membership: UNPAID }));
+    const { container } = renderWizard('/join/pay');
+
+    await screen.findByRole('heading', { name: 'Pay your dues' });
+    expect(container.querySelector('.join-card--wide, .join-shell--wide')).toBeNull();
   });
 });
 
@@ -649,14 +681,80 @@ describe('<JoinWizard/> for a member who changes their mind', () => {
     expect(await screen.findByRole('radio', { name: FRIEND_CARD })).toBeInTheDocument();
   });
 
-  it('reaches the done step as a friend', async () => {
+  it('offers a friend’s contribution before the done step', async () => {
     stubChangeOfMind();
     renderWizard('/join/pay');
 
     await userEvent.click(await screen.findByRole('radio', { name: FRIEND_CARD }));
     await userEvent.click(screen.getByRole('button', { name: 'Continue as a friend' }));
 
+    expect(
+      await screen.findByRole('heading', { name: 'Contribute to CalDART' }),
+    ).toBeInTheDocument();
+    expect(path()).toBe('/join/pay');
+  });
+
+  it('reads as a friend’s pay step in the lede once the member is a friend', async () => {
+    stubChangeOfMind();
+    renderWizard('/join/pay');
+
+    await userEvent.click(await screen.findByRole('radio', { name: FRIEND_CARD }));
+    await userEvent.click(screen.getByRole('button', { name: 'Continue as a friend' }));
+
+    expect(await screen.findByText(FRIEND_PAY_LEDE)).toBeInTheDocument();
+  });
+
+  it('reaches the done step as a friend after Not now', async () => {
+    stubChangeOfMind();
+    renderWizard('/join/pay');
+
+    await userEvent.click(await screen.findByRole('radio', { name: FRIEND_CARD }));
+    await userEvent.click(screen.getByRole('button', { name: 'Continue as a friend' }));
+    await screen.findByRole('radio', { name: /No thank you/ });
+    await userEvent.click(screen.getByRole('button', { name: 'Not now' }));
+
     expect(await screen.findByText('You are a friend of CalDART.')).toBeInTheDocument();
+    expect(path()).toBe('/join/done');
+  });
+});
+
+describe('<JoinWizard/> for a friend who changes their mind', () => {
+  const MEMBER_BUTTON = 'I changed my mind, I want to be a member';
+
+  /** A stored friend on the pay step, whose payment makes them a current member. */
+  function stubFriendToMember(): void {
+    let user = makeUser({ kind: 'friend', membership: UNPAID });
+    stubApi(user);
+    server.use(
+      http.get(`${API}/auth/me`, () => HttpResponse.json(user)),
+      http.post(`${API}/payments/checkout`, () =>
+        HttpResponse.json({ payment_id: 5, provider: 'mock', client: {} }, { status: 201 }),
+      ),
+      http.post(`${API}/payments/mock/complete`, () => {
+        user = makeUser({ kind: 'member', membership: CURRENT });
+        return HttpResponse.json({ status: 'succeeded', membership: CURRENT });
+      }),
+    );
+  }
+
+  it('shows the dues checkout and the member’s lede', async () => {
+    stubFriendToMember();
+    renderWizard('/join/pay');
+
+    await userEvent.click(await screen.findByRole('button', { name: MEMBER_BUTTON }));
+
+    expect(screen.getByRole('heading', { name: 'Pay your dues' })).toBeInTheDocument();
+    expect(screen.getByText(MEMBER_PAY_LEDE)).toBeInTheDocument();
+  });
+
+  it('reaches the done step as a member once the dues are paid', async () => {
+    stubFriendToMember();
+    renderWizard('/join/pay');
+
+    await userEvent.click(await screen.findByRole('button', { name: MEMBER_BUTTON }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Succeed' }));
+
+    expect(await screen.findByText('You are a member of CalDART.')).toBeInTheDocument();
     expect(path()).toBe('/join/done');
   });
 });
