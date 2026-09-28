@@ -2921,6 +2921,7 @@ def test_behind_an_existing_site_the_other_web_server_is_not_mentioned(
     assert result.returncode == 0
     assert "is running too" not in result.stderr
 
+
 # -- the layout: the checkout inside the deploy root, the data beside it ------------
 
 
