@@ -422,6 +422,31 @@ describe('AircraftPicker', () => {
     expect(await screen.findByText(/already on file/i)).toBeInTheDocument();
   });
 
+  it('clears a failed add’s field errors when the form is opened again', async () => {
+    const user = setupUser();
+    server.use(
+      ...searchOnly([]),
+      http.post(`${API}/aircraft`, () =>
+        HttpResponse.json(
+          { n_number: ['An aircraft with this N-number is already on file.'] },
+          { status: 400 },
+        ),
+      ),
+    );
+
+    renderWithProviders(<AircraftPicker onSelect={() => {}} />);
+    await search(user, /Search the aircraft register/i, 'n172sp');
+    await user.click(await screen.findByRole('button', { name: /Add a new aircraft/i }));
+    await search(user, /^Aircraft type/, '172S');
+    await user.click(await screen.findByRole('option', { name: /^Cessna 172S/ }));
+    await user.click(screen.getByRole('button', { name: /^Add aircraft$/ }));
+    await screen.findByText(/already on file/i);
+    await user.click(screen.getByRole('button', { name: /^Cancel$/ }));
+    await user.click(screen.getByRole('button', { name: /Add a new aircraft/i }));
+
+    expect(screen.queryByText(/already on file/i)).not.toBeInTheDocument();
+  });
+
   it('asks the server once per settled search term', async () => {
     const user = setupUser();
     let lookups = 0;
