@@ -208,9 +208,7 @@ test('a leader verifies a pilot, who verifies an airplane and then edits a medic
   await expect(row(again, 'Medical')).toContainText('Not verified');
 });
 
-test('an account administrator verifies an airplane from its aircraft record', async ({
-  page,
-}) => {
+test('an account administrator verifies an airplane from its aircraft record', async ({ page }) => {
   await signIn(page, DEMO.accountadmin);
   const adminName = await signedInName(page);
   const airplane = await unverifiedLapsedAirplane(page);

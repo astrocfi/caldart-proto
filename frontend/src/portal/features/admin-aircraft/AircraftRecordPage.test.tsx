@@ -333,9 +333,7 @@ describe('AircraftRecordPage', () => {
 
     const verification = await screen.findByRole('heading', { name: 'Verification' });
     const details = screen.getByRole('heading', { name: 'Details' });
-    expect(verification.compareDocumentPosition(details)).toBe(
-      Node.DOCUMENT_POSITION_FOLLOWING,
-    );
+    expect(verification.compareDocumentPosition(details)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
   });
 
   it('keeps the mark and Verify out of the page header', async () => {
