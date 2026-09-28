@@ -593,8 +593,70 @@ describe('<JoinWizard/> for a friend', () => {
     stubFriendApi(makeFriend());
     renderWizard('/join/done');
 
+    expect(await screen.findByText('You are a friend of CalDART.')).toBeInTheDocument();
+  });
+});
+
+describe('<JoinWizard/> ledes', () => {
+  it('names no prices before the pay step', async () => {
+    stubApi(null);
+    renderWizard('/join/account');
+
     expect(
-      await screen.findByText('You are a friend of the California DART Network.'),
+      await screen.findByText(
+        'Membership is annual or for life; the pay step shows the prices. ' +
+          'It takes about three minutes.',
+      ),
     ).toBeInTheDocument();
+  });
+
+  it('says nothing else is available until the address is verified', async () => {
+    stubApi(makeUser({ email_verified: false, profile_complete: false, membership: UNPAID }));
+    renderWizard('/join/verify');
+
+    expect(
+      await screen.findByText(
+        'Nothing else in the portal is available until you verify your email address.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('welcomes a member to CalDART by its short name', async () => {
+    stubApi(makeUser());
+    renderWizard('/join/done');
+
+    expect(await screen.findByText('You are a member of CalDART.')).toBeInTheDocument();
+  });
+});
+
+describe('<JoinWizard/> for a member who changes their mind', () => {
+  const FRIEND_CARD = /I changed my mind, I just want to be a friend/;
+
+  function stubChangeOfMind(): void {
+    stubApi(makeUser({ kind: 'member', membership: UNPAID }));
+    server.use(
+      http.post(`${API}/me/kind/friend`, () =>
+        HttpResponse.json(makeUser({ kind: 'friend', membership: UNPAID })),
+      ),
+      http.get(`${API}/me/membership`, () => HttpResponse.json({ ...UNPAID, history: [] })),
+    );
+  }
+
+  it('offers the friend card on the pay step', async () => {
+    stubChangeOfMind();
+    renderWizard('/join/pay');
+
+    expect(await screen.findByRole('radio', { name: FRIEND_CARD })).toBeInTheDocument();
+  });
+
+  it('reaches the done step as a friend', async () => {
+    stubChangeOfMind();
+    renderWizard('/join/pay');
+
+    await userEvent.click(await screen.findByRole('radio', { name: FRIEND_CARD }));
+    await userEvent.click(screen.getByRole('button', { name: 'Continue as a friend' }));
+
+    expect(await screen.findByText('You are a friend of CalDART.')).toBeInTheDocument();
+    expect(path()).toBe('/join/done');
   });
 });

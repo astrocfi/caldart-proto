@@ -977,3 +977,76 @@ describe('Checkout · recurring donation', () => {
     expect(await screen.findByRole('button', { name: 'Continue' })).toBeInTheDocument();
   });
 });
+
+describe('Checkout · changing one’s mind to a friend', () => {
+  const FRIEND_CARD = /I changed my mind, I just want to be a friend/;
+
+  /** Record every `POST /me/kind/friend` and answer with the account as a friend. */
+  function serveBecomeFriend() {
+    const calls: unknown[] = [];
+    server.use(
+      http.post(`${API}/me/kind/friend`, async ({ request }) => {
+        calls.push(await request.json().catch(() => null));
+        return HttpResponse.json(makeUser({ kind: 'friend', membership: NO_MEMBERSHIP }));
+      }),
+    );
+    return calls;
+  }
+
+  it('offers the friend card only when the host asks', async () => {
+    serveConfig(config());
+    renderWithProviders(<Checkout mode="join" onSuccess={() => {}} />);
+
+    await screen.findByRole('radio', { name: /Annual/ });
+    expect(screen.queryByRole('radio', { name: FRIEND_CARD })).not.toBeInTheDocument();
+  });
+
+  it('offers the friend card when joining and the host asks', async () => {
+    serveConfig(config());
+    renderWithProviders(<Checkout mode="join" onSuccess={() => {}} onBecomeFriend={() => {}} />);
+
+    expect(await screen.findByRole('radio', { name: FRIEND_CARD })).toBeInTheDocument();
+  });
+
+  it('never offers it on a renewal, even when asked', async () => {
+    serveConfig(config());
+    renderWithProviders(<Checkout mode="renew" onSuccess={() => {}} onBecomeFriend={() => {}} />);
+
+    await screen.findByRole('radio', { name: /Annual/ });
+    expect(screen.queryByRole('radio', { name: FRIEND_CARD })).not.toBeInTheDocument();
+  });
+
+  it('swaps the payment for one Continue as a friend button once chosen', async () => {
+    serveConfig(config());
+    renderWithProviders(<Checkout mode="join" onSuccess={() => {}} onBecomeFriend={() => {}} />);
+
+    await userEvent.click(await screen.findByRole('radio', { name: FRIEND_CARD }));
+
+    expect(screen.getByRole('button', { name: 'Continue as a friend' })).toBeInTheDocument();
+    expect(screen.queryByRole('tablist', { name: 'Payment method' })).not.toBeInTheDocument();
+  });
+
+  it('hides the contribution once the friend card is chosen', async () => {
+    serveConfig(config());
+    renderWithProviders(<Checkout mode="join" onSuccess={() => {}} onBecomeFriend={() => {}} />);
+
+    await userEvent.click(await screen.findByRole('radio', { name: FRIEND_CARD }));
+
+    expect(screen.queryByRole('radio', { name: /Participating/ })).not.toBeInTheDocument();
+  });
+
+  it('makes the account a friend and hands over to the host', async () => {
+    serveConfig(config());
+    const calls = serveBecomeFriend();
+    const handleBecomeFriend = vi.fn();
+    renderWithProviders(
+      <Checkout mode="join" onSuccess={() => {}} onBecomeFriend={handleBecomeFriend} />,
+    );
+
+    await userEvent.click(await screen.findByRole('radio', { name: FRIEND_CARD }));
+    await userEvent.click(screen.getByRole('button', { name: 'Continue as a friend' }));
+
+    await waitFor(() => expect(handleBecomeFriend).toHaveBeenCalledOnce());
+    expect(calls).toHaveLength(1);
+  });
+});

@@ -7,8 +7,9 @@
  * activated the membership.  The step follows the kind the visitor chose when they
  * registered.  A friend owes no dues, so a friend's step offers a contribution
  * alone, and its **Not now** button moves on without paying.  A member's step has
- * no **Not now**: paying is what makes a member, and somebody who leaves before
- * paying is a friend until they come back and pay.
+ * no **Not now**: paying is what makes a member.  Its one other way on is the card
+ * for changing one's mind, which makes the account a friend and moves on to the done
+ * step.
  */
 import { Checkout } from '@/portal/features/checkout';
 import type { CheckoutResult } from '@/portal/features/checkout';
@@ -24,7 +25,7 @@ import './join.css';
 export interface PayStepProps {
   /** Called when a payment settles, before `onDone`; skipping does not call it. */
   onPaid: () => void;
-  /** Called to move on, after a payment or a friend's **Not now**. */
+  /** Called to move on, after a payment, a friend's **Not now**, or becoming a friend. */
   onDone: () => void;
 }
 
@@ -59,7 +60,7 @@ export function PayStep({ onPaid: handlePaid, onDone: handleDone }: PayStepProps
         Membership starts the moment the payment clears. You can add a contribution on top if you
         would like to support CalDART further.
       </p>
-      <Checkout mode="join" onSuccess={handleSuccess} />
+      <Checkout mode="join" onSuccess={handleSuccess} onBecomeFriend={handleDone} />
     </Card>
   );
 }

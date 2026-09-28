@@ -16,7 +16,11 @@
  *
  * A friend walks the same five steps, but owes no dues: their pay step offers a
  * contribution they may skip, and a friend with a complete profile resumes on the
- * done step rather than being held at paying.
+ * done step rather than being held at paying.  A member's pay step also offers to
+ * become a friend instead, which ends on the done step as a friend.
+ *
+ * Until the wizard is finished it is the whole portal: `RequireOnboarded` sends
+ * every other screen here, and the layout draws no rail.
  */
 import { useCallback, useState } from 'react';
 import type { JSX } from 'react';
@@ -45,17 +49,19 @@ import { VerifyStep } from './VerifyStep';
 import './join.css';
 
 const LEDE: Record<JoinStep, string> = {
-  account: 'Membership is $45 a year, or $650 for life. It takes about three minutes.',
-  verify: 'We need to know the address is yours before you go on.',
+  account:
+    'Membership is annual or for life; the pay step shows the prices. ' +
+    'It takes about three minutes.',
+  verify: 'Nothing else in the portal is available until you verify your email address.',
   profile: 'Tell us how to reach you and what you fly.',
   pay: 'Card, Apple Pay, Google Pay, or PayPal. Your membership starts immediately.',
-  done: 'You are a member of the California DART Network.',
+  done: 'You are a member of CalDART.',
 };
 
 /** Where a friend's walk through the wizard reads differently from a member's. */
 const FRIEND_LEDE: Partial<Record<JoinStep, string>> = {
   pay: 'Card, Apple Pay, Google Pay, or PayPal. Any amount helps, and none is required.',
-  done: 'You are a friend of the California DART Network.',
+  done: 'You are a friend of CalDART.',
 };
 
 /** Renders the join wizard step named by the URL, redirecting to a valid one. */
