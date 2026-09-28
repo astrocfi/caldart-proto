@@ -99,7 +99,7 @@ passport, a state ID card, a military ID, another kind, or *Not provided*) and i
 Nothing else about the document is recorded.
 
 Each mark reads **Verified** followed by who verified it and on which day, such as
-*Verified by Dana Leader on 2026/05/01*, or **Not verified**.
+*Verified by Dana Leader on 05/01/2026*, or **Not verified**.
 
 **Aircraft** lists every airplane on the member's profile, each with its insurance chip
 and expiry date:

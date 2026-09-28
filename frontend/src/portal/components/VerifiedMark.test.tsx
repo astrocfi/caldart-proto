@@ -14,7 +14,7 @@ const UNVERIFIED = { verified: false, verified_by: null, verified_at: null };
 describe('VerifiedMark', () => {
   it('reads Verified, by whom, and on which day', () => {
     const { container } = render(<VerifiedMark verification={VERIFIED} />);
-    expect(container).toHaveTextContent(/^Verified by Dana Leader on 2026\/05\/01$/);
+    expect(container).toHaveTextContent(/^Verified by Dana Leader on 05\/01\/2026$/);
   });
 
   it('colors a verified item in the current tone', () => {
@@ -35,14 +35,14 @@ describe('VerifiedMark', () => {
 
   it('keeps Verified by wording on the member’s own screens', () => {
     const { container } = render(<VerifiedMark verification={VERIFIED} pending />);
-    expect(container).toHaveTextContent(/^Verified by Dana Leader on 2026\/05\/01$/);
+    expect(container).toHaveTextContent(/^Verified by Dana Leader on 05\/01\/2026$/);
   });
 
   it('leaves out the verifier when the account behind the stamp is gone', () => {
     const { container } = render(
       <VerifiedMark verification={{ ...VERIFIED, verified_by: null }} />,
     );
-    expect(container).toHaveTextContent(/^Verified on 2026\/05\/01$/);
+    expect(container).toHaveTextContent(/^Verified on 05\/01\/2026$/);
   });
 
   it('reads plain Verified from a summary that carries only the flag', () => {

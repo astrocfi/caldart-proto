@@ -40,14 +40,14 @@ function statusAnswers(...answers: RegistryStatus[]) {
 describe('registryImportSummary', () => {
   it('counts what the last import wrote and names its day', () => {
     expect(registryImportSummary(makeRegistryStatus())).toBe(
-      'Imported 312 types and 204 registrations on 2026/09/20.',
+      'Imported 312 types and 204 registrations on 09/20/2026.',
     );
   });
 
   it('adds the hand-added types the import folded in', () => {
     const status = makeRegistryStatus({ last: makeRegistryImport({ types_folded: 2 }) });
     expect(registryImportSummary(status)).toBe(
-      'Imported 312 types and 204 registrations on 2026/09/20, folded 2 hand-added types.',
+      'Imported 312 types and 204 registrations on 09/20/2026, folded 2 hand-added types.',
     );
   });
 
@@ -56,7 +56,7 @@ describe('registryImportSummary', () => {
       last: makeRegistryImport({ types_written: 1, registrations_written: 1, types_folded: 1 }),
     });
     expect(registryImportSummary(status)).toBe(
-      'Imported 1 type and 1 registration on 2026/09/20, folded 1 hand-added type.',
+      'Imported 1 type and 1 registration on 09/20/2026, folded 1 hand-added type.',
     );
   });
 
@@ -100,7 +100,7 @@ describe('<RegistryPanel/>', () => {
     server.use(statusAnswers(makeRegistryStatus()));
     renderWithProviders(<RegistryPanel />);
     expect(
-      await screen.findByText('Imported 312 types and 204 registrations on 2026/09/20.'),
+      await screen.findByText('Imported 312 types and 204 registrations on 09/20/2026.'),
     ).toBeVisible();
   });
 

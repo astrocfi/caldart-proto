@@ -20,13 +20,13 @@ The N-number heads the page, with the make and model under it and the insurance 
 
 A **Verification** card heads the page below that, the same as on a :doc:`member-record`.
 It lists **Insurance**, with what the record holds (such as *Avemco · AV-00012345 ·
-$1,000,000 / $100,000 · expires 2027/03/01*, or *Not on file* with nothing recorded) and its
+$1,000,000 / $100,000 · expires 03/01/2027*, or *Not on file* with nothing recorded) and its
 mark: **Verified** with who verified it and on which day, or **Not verified**. **Verify**
 opens the same verification panel as the :doc:`aircraft-check`: correct the policy against
 its documents, tick **Insurance verified**, and press **Save**. *Verification saved*
 confirms it, the card returns, and the form below starts again from the saved record.
 
-**Details** is the form, headed by a line such as *Last updated 2026/09/01 by Dana Fiske*:
+**Details** is the form, headed by a line such as *Last updated 09/01/2026 by Dana Fiske*:
 the date of the last change and the account behind it. A record nobody has changed since it
 was loaded gives the date alone. The form has four parts.
 
@@ -73,7 +73,7 @@ History
 =======
 
 **History** lists every change to the record, newest first, one line each: the date and
-time, the account that made it, and what it did, such as *2026/09/01 12:00 · Dana Fiske ·
+time, the account that made it, and what it did, such as *09/01/2026 12:00 · Dana Fiske ·
 updated carrier, insurance expiry*, or *created* for the change that added the airplane. A
 change with no account behind it, such as the demo data, reads *the seed*. The words match
 the form, so *insurance expiry* is the **Insurance expires** box.

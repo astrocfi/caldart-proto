@@ -107,7 +107,7 @@ describe('<KindSwitch/>', () => {
     await openPanel();
     expect(
       screen.getByText(
-        'Your membership stays current through 2027/06/30. On 2027/07/01 you become a friend ' +
+        'Your membership stays current through 06/30/2027. On 07/01/2027 you become a friend ' +
           'of CalDART: no dues, no expiry, and no renewal reminders.',
       ),
     ).toBeInTheDocument();
@@ -129,7 +129,7 @@ describe('<KindSwitch/>', () => {
     renderWithProviders(<KindSwitch />);
     await openPanel();
     await userEvent.click(await readyButton('Make me a friend'));
-    await screen.findByText('You become a friend on 2027/07/01.');
+    await screen.findByText('You become a friend on 07/01/2027.');
     expect(calls.bodies).toEqual([{}]);
   });
 
@@ -158,7 +158,7 @@ describe('<KindSwitch/>', () => {
     renderWithProviders(<KindSwitch />);
     await openPanel();
     await userEvent.click(await readyButton('Keep the contribution'));
-    await screen.findByText('You become a friend on 2027/07/01.');
+    await screen.findByText('You become a friend on 07/01/2027.');
     expect(calls.bodies).toEqual([{ keep_contribution: true }]);
   });
 
@@ -167,7 +167,7 @@ describe('<KindSwitch/>', () => {
     renderWithProviders(<KindSwitch />);
     await openPanel();
     await userEvent.click(await readyButton('Stop it'));
-    await screen.findByText('You become a friend on 2027/07/01.');
+    await screen.findByText('You become a friend on 07/01/2027.');
     expect(calls.bodies).toEqual([{ keep_contribution: false }]);
   });
 
@@ -178,7 +178,7 @@ describe('<KindSwitch/>', () => {
       renderWithProviders(<KindSwitch />);
       await openPanel();
       await userEvent.click(await readyButton('Make me a friend'));
-      await screen.findByText('You become a friend on 2027/07/01.');
+      await screen.findByText('You become a friend on 07/01/2027.');
       expect(calls.bodies).toEqual([{}]);
     },
   );
@@ -207,7 +207,7 @@ describe('<KindSwitch/>', () => {
   it('shows a pending change with its day', async () => {
     setUp({ user: makeUser({ friend_on: '2027-07-01' }) });
     renderWithProviders(<KindSwitch />);
-    expect(await screen.findByText('You become a friend on 2027/07/01.')).toBeInTheDocument();
+    expect(await screen.findByText('You become a friend on 07/01/2027.')).toBeInTheDocument();
   });
 
   it('undoes a pending change', async () => {

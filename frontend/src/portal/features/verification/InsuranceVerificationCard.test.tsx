@@ -19,7 +19,7 @@ describe('InsuranceVerificationCard', () => {
     renderWithProviders(<InsuranceVerificationCard aircraft={makeVerifiedAircraft()} />);
     const row = screen.getByRole('listitem');
     expect(row).toHaveTextContent(
-      'InsuranceAvemco · AV-00012345 · $1,000,000 / $100,000 · expires 2027/03/01Verified by Dana Leader on 2026/05/01',
+      'InsuranceAvemco · AV-00012345 · $1,000,000 / $100,000 · expires 03/01/2027Verified by Dana Leader on 05/01/2026',
     );
   });
 

@@ -27,9 +27,9 @@ describe('MemberVerificationCard', () => {
     );
     const rows = screen.getAllByRole('listitem');
     expect(rows.map((row) => row.textContent)).toEqual([
-      'Pilot certificatePrivate · 3141592Verified by Dana Leader on 2026/05/01',
-      'MedicalThird class · expires 2029/05/31Verified by Dana Leader on 2026/05/01',
-      'Photo IDPassportVerified by Dana Leader on 2026/05/01',
+      'Pilot certificatePrivate · 3141592Verified by Dana Leader on 05/01/2026',
+      'MedicalThird class · expires 05/31/2029Verified by Dana Leader on 05/01/2026',
+      'Photo IDPassportVerified by Dana Leader on 05/01/2026',
     ]);
   });
 

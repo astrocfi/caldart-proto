@@ -190,6 +190,15 @@ Columns and cells
    text for people either way; an amount bound for Stripe or PayPal is built by
    the provider module that speaks to that API.
 
+**Dates in a report.**  A date column whose value is a ``date`` passes through
+``cell_text`` as its ``str``, ISO-8601 (``YYYY-MM-DD``), in both formats, so a
+spreadsheet sorts it: the membership, aircraft, and payments reports read that
+way.  A column that describes rather than sorts writes its date through
+``caldart.dates`` (:doc:`architecture`), the ``MM/DD/YYYY`` a screen shows: the
+verification report's *Details*, *Updated*, and *Verified on* cells, and the
+email log's *Sent* cell (``MM/DD/YYYY HH:MM``).  The PDF footer stamps the
+moment it was generated the same way.  A file's name keeps ``YYYY-MM-DD``.
+
 Filters
 -------
 
@@ -217,8 +226,8 @@ The house style
 ``build_pdf_table(buffer, *, title, subtitle, header, rows, landscape, widths, sections, empty_section)``
    A reportlab table in the CalDART palette, written to any binary stream:
    hairline rules instead of boxes, zebra rows, the header repeated on every
-   page, and a footer carrying "CalDART · generated <timestamp>" and "Page n of
-   m".  ``landscape`` defaults to true, which is landscape US letter (792 × 612
+   page, and a footer carrying "CalDART · generated MM/DD/YYYY HH:MM <zone>"
+   (local time, through ``caldart.dates``) and "Page n of m".  ``landscape`` defaults to true, which is landscape US letter (792 × 612
    points); ``landscape=False`` is the same page upright (612 × 792).
    ``widths`` gives the columns relative shares of the printable width —
    ``[3, 1, 1]`` makes the first column three times either of the others — and
@@ -507,17 +516,17 @@ name          Name           yes     The person's full name (or address), or the
                                      aircraft's N-number
 dart          DART           yes     The person's DART, or the aircraft's owner
 details       Details        yes     What is on file: ``Private · 1234567``,
-                                     ``Third class · expires 2027/03/01``,
-                                     ``Passport``, ``Avemco · expires 2027/03/01``;
+                                     ``Third class · expires 03/01/2027``,
+                                     ``Passport``, ``Avemco · expires 03/01/2027``;
                                      a blank part is left out
-updated       Updated        yes     ``YYYY/MM/DD`` of the profile's
+updated       Updated        yes     ``MM/DD/YYYY`` of the profile's
                                      ``profile_updated_at`` or the aircraft's
                                      ``updated_at``; blank for a profile nobody has
                                      written
 verified      Verified       yes     ``Yes`` or ``No``
 verified_by   Verified by    yes     The verifier's name, blank when unverified or
                                      when the verifier's account is gone
-verified_on   Verified on    yes     ``YYYY/MM/DD`` of the verification, in local
+verified_on   Verified on    yes     ``MM/DD/YYYY`` of the verification, in local
                                      time
 ============= ============== ======= =============================================
 
@@ -753,7 +762,7 @@ ordering is ignored, as the list ignores it.  The columns, in order:
 Key           Label       Default Contents
 ============= =========== ======= ==============================================
 sent_at       Sent        yes     When the message went, local time,
-                                  ``YYYY-MM-DD HH:MM``
+                                  ``MM/DD/YYYY HH:MM``
 purpose       Purpose     yes     The purpose's label from
                                   ``apps/mail/purposes.py``, or the template
                                   name when no label names it

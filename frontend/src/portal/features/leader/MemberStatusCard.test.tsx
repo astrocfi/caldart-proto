@@ -243,7 +243,7 @@ describe('MemberStatusCard', () => {
     renderWithProviders(<MemberStatusCard userId={7} status={makeStatus()} today={TODAY} />);
     for (const label of ['Medical', 'Certificate']) {
       const row = screen.getByText(label, { selector: 'dt' }).closest('.leader-row');
-      expect(row).toHaveTextContent(/Verified by Dana Leader on 2026\/05\/01$/);
+      expect(row).toHaveTextContent(/Verified by Dana Leader on 05\/01\/2026$/);
     }
   });
 
@@ -274,7 +274,7 @@ describe('MemberStatusCard', () => {
         today={TODAY}
       />,
     );
-    expect(screen.getByText(/not verified/)).toHaveTextContent('expires 2027/03/01 · not verified');
+    expect(screen.getByText(/not verified/)).toHaveTextContent('expires 03/01/2027 · not verified');
   });
 });
 

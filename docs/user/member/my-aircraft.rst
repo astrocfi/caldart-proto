@@ -17,7 +17,7 @@ What you see
 
 The **Attached aircraft** card lists each airplane on your profile: its N-number,
 make, and model, an insurance chip, and the liability limits and expiry date on
-file, for example *$1,000,000 / $100,000 · exp 2027-03-01*. The chip reads:
+file, for example *$1,000,000 / $100,000 · exp 03/01/2027*. The chip reads:
 
 * **Current**: a policy is on file and has not expired;
 * **Expired**: the expiry date on file has passed;
@@ -103,7 +103,7 @@ takes a guess from the kind of registrant it is: a person or co-owners become
 **Individual**, a partnership becomes **Flying club**, and a company becomes
 **FBO**. A government registrant, or one the registry does not sort into any of
 those, leaves **Owner type** as it was. The line under the N-number box then reads,
-for example, *From the FAA registry as of 2026/09/20*, the day of the copy, until
+for example, *From the FAA registry as of 09/20/2026*, the day of the copy, until
 you change the N-number again. Check what it filled and correct anything that is
 out of date.
 

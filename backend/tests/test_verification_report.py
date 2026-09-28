@@ -58,7 +58,7 @@ SECTION_TITLES = ["Pilot certificates", "Medicals", "Photo IDs", "Aircraft insur
 #: The day the report is built on in the table tests.
 TODAY = date(2026, 9, 26)
 
-#: When the verification tests stamp an item: noon on 2026/09/20 in California.
+#: When the verification tests stamp an item: noon on 09/20/2026 in California.
 STAMP = datetime(2026, 9, 20, 19, 0, tzinfo=UTC)
 
 
@@ -296,9 +296,9 @@ def test_a_certificate_with_no_number_reads_its_type_alone() -> None:
 
 
 def test_a_medical_reads_its_class_and_expiration() -> None:
-    """*Third class \u00b7 expires 2027/03/01*."""
+    """*Third class \u00b7 expires 03/01/2027*."""
     person(medical_type=MedicalType.THIRD, medical_expiration=date(2027, 3, 1))
-    assert cells("Medicals", "Pat Doe")[1] == "Third class \u00b7 expires 2027/03/01"
+    assert cells("Medicals", "Pat Doe")[1] == "Third class \u00b7 expires 03/01/2027"
 
 
 def test_no_medical_reads_none() -> None:
@@ -323,7 +323,7 @@ def test_insurance_reads_the_owner_the_carrier_and_the_expiration() -> None:
     )
     assert cells("Aircraft insurance", "N123AB")[:2] == [
         "Sky Club",
-        "Avemco \u00b7 expires 2027/03/01",
+        "Avemco \u00b7 expires 03/01/2027",
     ]
 
 
@@ -334,23 +334,23 @@ def test_insurance_with_nothing_on_file_has_blank_details() -> None:
 
 
 def test_a_person_s_updated_cell_is_when_the_profile_was_last_written() -> None:
-    """``profile_updated_at`` printed as ``YYYY/MM/DD``."""
+    """``profile_updated_at`` printed as ``MM/DD/YYYY``."""
     person(profile_updated_at=STAMP)
-    assert cells("Photo IDs", "Pat Doe")[2] == "2026/09/20"
+    assert cells("Photo IDs", "Pat Doe")[2] == "09/20/2026"
 
 
 def test_an_aircraft_s_updated_cell_is_when_the_record_was_last_written() -> None:
-    """The aircraft's ``updated_at`` printed as ``YYYY/MM/DD``."""
+    """The aircraft's ``updated_at`` printed as ``MM/DD/YYYY``."""
     aircraft = AircraftFactory(n_number="N123AB")
     Aircraft.objects.filter(pk=aircraft.pk).update(updated_at=STAMP)
-    assert cells("Aircraft insurance", "N123AB")[2] == "2026/09/20"
+    assert cells("Aircraft insurance", "N123AB")[2] == "09/20/2026"
 
 
 def test_a_verified_item_names_who_verified_it_and_when(dart_leader: User) -> None:
     """Verified *Yes*, the verifier's name, and the local day of the stamp."""
     verify_all(person(), dart_leader)
     row = cells("Medicals", "Pat Doe", {"status": "verified"})
-    assert row[3:] == ["Yes", "Jordan Keel", "2026/09/20"]
+    assert row[3:] == ["Yes", "Jordan Keel", "09/20/2026"]
 
 
 def test_verified_insurance_names_who_verified_it_and_when(dart_leader: User) -> None:
@@ -359,7 +359,7 @@ def test_verified_insurance_names_who_verified_it_and_when(dart_leader: User) ->
         n_number="N123AB", insurance_verified_at=STAMP, insurance_verified_by=dart_leader
     )
     row = cells("Aircraft insurance", "N123AB", {"status": "verified"})
-    assert row[3:] == ["Yes", "Jordan Keel", "2026/09/20"]
+    assert row[3:] == ["Yes", "Jordan Keel", "09/20/2026"]
 
 
 def test_an_item_whose_verifier_is_gone_still_reads_verified() -> None:
@@ -367,7 +367,7 @@ def test_an_item_whose_verifier_is_gone_still_reads_verified() -> None:
     profile = person()
     profile.photo_id_verified_at = STAMP
     profile.save()
-    assert cells("Photo IDs", "Pat Doe", {"status": "verified"})[3:] == ["Yes", "", "2026/09/20"]
+    assert cells("Photo IDs", "Pat Doe", {"status": "verified"})[3:] == ["Yes", "", "09/20/2026"]
 
 
 def test_the_section_cell_carries_the_section() -> None:

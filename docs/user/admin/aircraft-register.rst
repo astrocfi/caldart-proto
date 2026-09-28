@@ -25,7 +25,7 @@ What you see
 ============
 
 The header, beside **New aircraft**, says how fresh CalDART's copy of the FAA aircraft
-registry is, such as *Registry as of 2026/09/20*: the day of the last successful import,
+registry is, such as *Registry as of 09/20/2026*: the day of the last successful import,
 which runs every night. Until the first import it reads *Registry not imported yet*.
 The airplanes the N-number box lists on the aircraft forms and the list of aircraft types
 both come from that copy.

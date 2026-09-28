@@ -11,7 +11,7 @@
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
-import { completeOnboarding, uniqueEmail } from './helpers';
+import { completeOnboarding, displayDate, uniqueEmail } from './helpers';
 
 /** How far out the later first charge falls. */
 const LATER_DAYS = 10;
@@ -33,7 +33,7 @@ function iso(day: Date): string {
 
 /** `day` as the portal prints it. */
 function display(day: Date): string {
-  return iso(day).replaceAll('-', '/');
+  return displayDate(iso(day));
 }
 
 /**
@@ -46,7 +46,7 @@ async function storedNextCharge(page: Page): Promise<string> {
   expect(response.ok()).toBe(true);
   const body = (await response.json()) as { mandate: { next_charge_on: string } | null };
   expect(body.mandate).not.toBeNull();
-  return (body.mandate?.next_charge_on ?? '').replaceAll('-', '/');
+  return displayDate(body.mandate?.next_charge_on ?? '');
 }
 
 /** The Recurring donation card on `/portal/payments`. */

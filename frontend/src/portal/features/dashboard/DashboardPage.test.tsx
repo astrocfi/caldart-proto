@@ -367,7 +367,7 @@ describe('DashboardPage · payments and renewal', () => {
 
     const line = await screen.findByText(/Automatic renewal and contribution is on/);
     expect(within(line).getByText('$70.00')).toBeInTheDocument();
-    expect(within(line).getByText('2027/03/12')).toBeInTheDocument();
+    expect(within(line).getByText('03/12/2027')).toBeInTheDocument();
   });
 
   it('says the recurring donation is off for a life member who has none', async () => {
@@ -387,7 +387,7 @@ describe('DashboardPage · payments and renewal', () => {
     mount({ user: makeUser({ membership: LIFETIME }), status: LIFETIME });
 
     const line = await screen.findByText(/Recurring donation is on/);
-    expect(line).toHaveTextContent('Recurring donation is on: $50.00 on 2027/08/20.');
+    expect(line).toHaveTextContent('Recurring donation is on: $50.00 on 08/20/2027.');
   });
 
   it('says renewal stopped when a mandate has run out of retries', async () => {
@@ -447,8 +447,9 @@ describe('DashboardPage · switching kinds', () => {
 
     await screen.findByRole('heading', { name: 'Your membership is current' });
     const status = card('Your membership is current');
+    const [year, month, day] = isoIn(201).split('-');
     expect(
-      await status.findByText(`You become a friend on ${isoIn(201).replaceAll('-', '/')}.`),
+      await status.findByText(`You become a friend on ${month}/${day}/${year}.`),
     ).toBeInTheDocument();
     expect(status.getByRole('button', { name: 'Undo' })).toBeInTheDocument();
   });

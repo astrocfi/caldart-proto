@@ -43,25 +43,25 @@ describe('actorName', () => {
 describe('changeLine', () => {
   it('reads a creation as the date, the name, and created', () => {
     expect(changeLine(makeChange({ kind: 'created', fields: [] }))).toBe(
-      '2026/09/01 12:34 · Dana Fiske · created',
+      '09/01/2026 12:34 · Dana Fiske · created',
     );
   });
 
   it('names every column an update moved', () => {
     expect(changeLine(makeChange({ fields: ['insurance_carrier', 'insurance_expiration'] }))).toBe(
-      '2026/09/01 12:34 · Dana Fiske · updated carrier, insurance expiry',
+      '09/01/2026 12:34 · Dana Fiske · updated carrier, insurance expiry',
     );
   });
 
   it('names a change of aircraft type as the form does', () => {
     expect(changeLine(makeChange({ fields: ['type'] }))).toBe(
-      '2026/09/01 12:34 · Dana Fiske · updated aircraft type',
+      '09/01/2026 12:34 · Dana Fiske · updated aircraft type',
     );
   });
 
   it('says only updated when an update names no column', () => {
     expect(changeLine(makeChange({ fields: [], changed_by: null }))).toBe(
-      '2026/09/01 12:34 · the seed · updated',
+      '09/01/2026 12:34 · the seed · updated',
     );
   });
 });
@@ -69,11 +69,11 @@ describe('changeLine', () => {
 describe('lastUpdatedLine', () => {
   it('names the date and the account behind the last write', () => {
     expect(lastUpdatedLine(CHANGED_AT, { id: 4, name: 'Dana Fiske' })).toBe(
-      'Last updated 2026/09/01 by Dana Fiske',
+      'Last updated 09/01/2026 by Dana Fiske',
     );
   });
 
   it('gives the date alone when nobody is recorded', () => {
-    expect(lastUpdatedLine(CHANGED_AT, null)).toBe('Last updated 2026/09/01');
+    expect(lastUpdatedLine(CHANGED_AT, null)).toBe('Last updated 09/01/2026');
   });
 });

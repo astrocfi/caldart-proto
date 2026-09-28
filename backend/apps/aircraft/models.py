@@ -12,6 +12,7 @@ from django.db.models import Value
 from django.db.models.functions import Concat
 from django.utils import timezone
 
+from caldart.dates import format_display_date
 from caldart.models import TimestampedModel
 
 _N_NUMBER_STRIP = re.compile(r"[^A-Za-z0-9]")
@@ -312,7 +313,11 @@ class Aircraft(TimestampedModel):
 
     @property
     def insurance_summary(self) -> str:
-        """e.g. ``$1,000,000 / $100,000 \u00b7 exp 2027-03-01``."""
+        """The liability limits and the expiry as a screen shows them.
+
+        For example ``$1,000,000 / $100,000 \u00b7 exp 03/01/2027``, or ``No insurance on
+        file`` when neither a limit nor an expiry is recorded.
+        """
         if not self.insurance_liability_per_occurrence_cents and not self.insurance_expiration:
             return "No insurance on file"
         parts: list[str] = []
@@ -321,7 +326,7 @@ class Aircraft(TimestampedModel):
             person = self.insurance_liability_per_person_cents // 100
             parts.append(f"${occurrence:,} / ${person:,}")
         if self.insurance_expiration:
-            parts.append(f"exp {self.insurance_expiration.isoformat()}")
+            parts.append(f"exp {format_display_date(self.insurance_expiration)}")
         return " \u00b7 ".join(parts)
 
     @property

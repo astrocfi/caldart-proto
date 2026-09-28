@@ -91,7 +91,7 @@ describe('AutoRenewalCard', () => {
 
     expect(await screen.findByText('Next charge')).toBeInTheDocument();
     expect(screen.getByText('Next charge').nextElementSibling).toHaveTextContent(
-      'after your membership runs out on 2027/06/30',
+      'after your membership runs out on 06/30/2027',
     );
   });
 
@@ -100,7 +100,7 @@ describe('AutoRenewalCard', () => {
 
     expect(await screen.findByText('Next charge')).toBeInTheDocument();
     expect(screen.getByText('Next charge').nextElementSibling).toHaveTextContent(
-      '2027/07/15 after your membership runs out on 2027/06/30 · $70.00',
+      '07/15/2027 after your membership runs out on 06/30/2027 · $70.00',
     );
   });
 
@@ -214,7 +214,7 @@ describe('AutoRenewalCard', () => {
 
     expect(await screen.findByText('On')).toBeInTheDocument();
     expect(screen.getByText('Visa ending 4242, expires 03/2028')).toBeInTheDocument();
-    expect(screen.getByText('2027/03/12')).toBeInTheDocument();
+    expect(screen.getByText('03/12/2027')).toBeInTheDocument();
     expect(screen.getByText('$70.00')).toBeInTheDocument();
   });
 
@@ -244,7 +244,7 @@ describe('AutoRenewalCard', () => {
     mount(makeMandate({ status: 'canceled', canceled_at: '2026-05-04T10:00:00Z' }));
 
     expect(await screen.findByText('Off')).toBeInTheDocument();
-    expect(screen.getByText('2026/05/04')).toBeInTheDocument();
+    expect(screen.getByText('05/04/2026')).toBeInTheDocument();
   });
 
   it('asks before turning renewal off, and reports it once the server agrees', async () => {

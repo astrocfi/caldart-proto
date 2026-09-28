@@ -14,7 +14,7 @@ When does my membership expire?
 
 Sign in and look at your dashboard. The membership card shows a chip and the date
 your membership runs to. An Annual term runs 365 days counting the day it starts, so
-a term that starts on 2026/03/01 ends on 2027/02/28. A life membership reads **Never
+a term that starts on 03/01/2026 ends on 02/28/2027. A life membership reads **Never
 expires**. See :doc:`member/dashboard`.
 
 I renewed early. Why does it still show my old date?

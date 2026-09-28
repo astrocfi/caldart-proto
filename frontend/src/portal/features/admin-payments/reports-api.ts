@@ -23,11 +23,11 @@ import type {
   RenewalMandate,
   RenewalOutcome,
 } from '@/portal/api/types';
+import { formatMonth } from '@/portal/components/DateText';
 import type { StatusTone } from '@/portal/components/StatusChip';
 import type { FilterValues } from '@/portal/reports/types';
 import { filterParams, queryString } from './api';
 import { PROVIDER_LABELS } from './labels';
-import { periodLabel } from './PeriodTable';
 
 /** How the reconciliation table gathers its rows. */
 export type ReconciliationGroup = 'month' | 'year' | 'provider';
@@ -154,11 +154,11 @@ export const RENEWAL_OUTCOME_TONES: Record<RenewalOutcome, StatusTone> = {
   skipped: 'none',
 };
 
-/** `2026-03` reads as `March 2026`; a year reads as itself, a provider by its name. */
+/** `2026-03` reads as `Mar 2026`; a year reads as itself, a provider by its name. */
 export function reconciliationPeriodLabel(period: string, group: ReconciliationGroup): string {
   if (group === 'provider') {
     const label: string | undefined = PROVIDER_LABELS[period as PaymentProvider];
     return label ?? period;
   }
-  return periodLabel(period, group);
+  return group === 'year' ? period : formatMonth(period);
 }

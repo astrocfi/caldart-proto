@@ -77,7 +77,7 @@ describe('<RenewPage/>', () => {
     renderRenew(detail());
 
     expect(await screen.findByText('Current')).toHaveAttribute('data-tone', 'current');
-    expect(screen.getByText('2027/06/30')).toBeInTheDocument();
+    expect(screen.getByText('06/30/2027')).toBeInTheDocument();
     expect(screen.getByText('Annual membership')).toBeInTheDocument();
   });
 
@@ -86,7 +86,7 @@ describe('<RenewPage/>', () => {
 
     const chip = await screen.findByText('Expired', { selector: 'span.chip' });
     expect(chip).toHaveAttribute('data-tone', 'expired');
-    expect(screen.getByText('2024/06/30')).toBeInTheDocument();
+    expect(screen.getByText('06/30/2024')).toBeInTheDocument();
   });
 
   it('thanks a life member rather than offering a renewal', async () => {

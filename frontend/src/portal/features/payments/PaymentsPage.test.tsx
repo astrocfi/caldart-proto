@@ -127,7 +127,7 @@ describe('PaymentsPage', () => {
     mount({ payments: [makePaymentSummary({ id: 414, plan: 'Annual', kind: 'both' })] });
 
     const row = within(await screen.findByRole('row', { name: /Annual and contribution/ }));
-    expect(row.getByText('2026/03/14')).toBeInTheDocument();
+    expect(row.getByText('03/14/2026')).toBeInTheDocument();
     expect(row.getByText('$45.00')).toBeInTheDocument();
     expect(row.getByRole('link', { name: 'Receipt' })).toHaveAttribute(
       'href',

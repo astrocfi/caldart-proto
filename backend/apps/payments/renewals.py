@@ -70,6 +70,7 @@ from apps.payments.providers.base import (
 from apps.payments.receipts import receipt_filename, render_receipt_pdf
 from apps.payments.services import create_checkout, mark_failed
 from caldart import audit, events
+from caldart.dates import format_display_date
 from caldart.exceptions import DomainError, DomainValidationError
 from caldart.mail import Attachment, contact_email, org_name, send_templated
 from caldart.reports import PDF_MEDIA_TYPE, money_label
@@ -445,6 +446,14 @@ def mandate_context(mandate: RenewalMandate, **extra: Any) -> dict[str, Any]:
     return context
 
 
+def _subject_fields(extra: dict[str, Any]) -> dict[str, Any]:
+    """``extra`` with every date written as a screen shows it, for a subject line."""
+    return {
+        key: format_display_date(value) if isinstance(value, date) else value
+        for key, value in extra.items()
+    }
+
+
 def send_mandate_email(
     mandate: RenewalMandate,
     template: str,
@@ -455,7 +464,8 @@ def send_mandate_email(
     """Send one renewal email to the mandate's member, and say whether it went.
 
     The subject comes from :data:`SUBJECTS` with the organization's name filled
-    in, and the body from ``emails/<template>.{txt,html}`` rendered over
+    in and any date in ``extra`` written ``MM/DD/YYYY``, as the Sent Emails page
+    lists it; the body from ``emails/<template>.{txt,html}`` rendered over
     :func:`mandate_context`.  Each entry of ``attachments`` is a filename, its
     bytes and its media type, which is how the charge report carries the
     receipt.  A member with no email address is not written to.  The send is
@@ -471,7 +481,9 @@ def send_mandate_email(
     if not mandate.user.email:
         return False
     context = mandate_context(mandate, **extra)
-    subject = SUBJECTS[template][context["kind"]].format(org=context["org_name"], **extra)
+    subject = SUBJECTS[template][context["kind"]].format(
+        org=context["org_name"], **_subject_fields(extra)
+    )
     try:
         send_templated(
             to=mandate.user.email,

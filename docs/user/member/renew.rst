@@ -35,13 +35,13 @@ arrives by email, subject *CalDART: your receipt for $45.00* with your own amoun
 (see :doc:`payments`).
 
 * If you renew while you are still current, the new term starts the day after the
-  present one ends. Renew on 2027/03/01 with an expiry of 2027/06/30, and your new
-  expiry is 2028/06/29.
+  present one ends. Renew on 03/01/2027 with an expiry of 06/30/2027, and your new
+  expiry is 06/29/2028.
 * If your membership has already lapsed, the new term starts today. You do not pay
   for the gap, and you do not get it back.
 
 An Annual term runs 365 days, counting the day it starts, so a term that starts on
-2026/03/01 ends on 2027/02/28.
+03/01/2026 ends on 02/28/2027.
 
 
 Life members

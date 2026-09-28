@@ -6,7 +6,7 @@ reads the same way: the subject is ``<org name>: <headline>``, the lines are
 ``(label, value)`` pairs, and the link opens the record the event is about in the
 portal (the member record, the user record, the payment, or the aircraft), or is blank
 when there is nothing left to open.  Names are the account's display name, money is
-printed as dollars, and a date is ``YYYY/MM/DD``.
+printed as dollars, and a date is ``MM/DD/YYYY`` (``caldart.dates``).
 """
 
 from __future__ import annotations
@@ -24,6 +24,7 @@ from apps.darts.models import Dart
 from apps.members.models import MemberProfile, Membership
 from apps.members.services import account_kind
 from apps.payments.models import Payment, PaymentKind, RenewalMandate
+from caldart.dates import format_display_date
 from caldart.mail import org_name
 from caldart.reports import money_label
 
@@ -119,14 +120,9 @@ def _words(payload: Mapping[str, object], key: str) -> list[str]:
 
 
 # -- words -------------------------------------------------------------------------
-def _slash(day: date) -> str:
-    """``day`` as the administrative screens print it: ``YYYY/MM/DD``."""
-    return day.strftime("%Y/%m/%d")
-
-
 def _through(term: Membership) -> str:
     """The last day ``term`` covers, or ``Lifetime`` for a term with no end."""
-    return "Lifetime" if term.ends_on is None else _slash(term.ends_on)
+    return "Lifetime" if term.ends_on is None else format_display_date(term.ends_on)
 
 
 def _actor(actor: User | None, subject: User) -> str:
@@ -323,7 +319,7 @@ def _auto_renewal_on(payload: Mapping[str, object]) -> Built:
         [
             what,
             ("Cadence", mandate.get_cadence_display()),
-            ("Next charge", _slash(mandate.next_charge_on)),
+            ("Next charge", format_display_date(mandate.next_charge_on)),
         ],
         _member_link(mandate.user),
     )
@@ -349,7 +345,7 @@ def _next_try(mandate: RenewalMandate, next_on: date | None) -> str:
     """
     if next_on is None:
         return f"None: automatic {_mandate_kind(mandate)} is paused"
-    return _slash(next_on)
+    return format_display_date(next_on)
 
 
 def _auto_renewal_declined(payload: Mapping[str, object]) -> Built:

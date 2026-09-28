@@ -49,9 +49,9 @@ def subscribe(email: str, events: list[str], **fields: object) -> NotificationSu
     return NotificationSubscription.objects.create(recipient_email=email, events=events, **fields)
 
 
-def slash_date(day: date) -> str:
-    """``day`` as the administrative screens print it: ``YYYY/MM/DD``."""
-    return day.strftime("%Y/%m/%d")
+def screen_date(day: date) -> str:
+    """``day`` as the administrative screens print it: ``MM/DD/YYYY``."""
+    return day.strftime("%m/%d/%Y")
 
 
 # -- the model ------------------------------------------------------------------
@@ -305,7 +305,7 @@ def test_membership_paid(pat: User, annual_plan: MembershipPlan) -> None:
     """A payment names the plan, the amount, the end of the term, and the contribution."""
     term = paid_term(pat, annual_plan, amount_cents=5_500, contribution_cents=1_000)
     assert term.ends_on is not None
-    through = slash_date(term.ends_on)
+    through = screen_date(term.ends_on)
 
     message = build_message(
         "membership_paid", {"payment": term.payment, "term": term, "automatic": False}
@@ -329,7 +329,7 @@ def test_an_automatic_renewal_says_so_and_leaves_out_a_missing_contribution(
     """An automatic payment reads as a renewal, and no contribution means no line."""
     term = paid_term(pat, annual_plan)
     assert term.ends_on is not None
-    through = slash_date(term.ends_on)
+    through = screen_date(term.ends_on)
 
     message = build_message(
         "membership_paid", {"payment": term.payment, "term": term, "automatic": True}
@@ -359,7 +359,7 @@ def test_membership_granted(pat: User, boss: User, annual_plan: MembershipPlan) 
     """A grant names the actor, the plan and the end of the term."""
     term = MembershipFactory(user=pat, plan=annual_plan)
     assert term.ends_on is not None
-    through = slash_date(term.ends_on)
+    through = screen_date(term.ends_on)
 
     message = build_message("membership_granted", {"user": pat, "term": term, "actor": boss})
 
@@ -388,7 +388,7 @@ def test_membership_expired(pat: User, annual_plan: MembershipPlan) -> None:
     message = build_message("membership_expired", {"user": pat, "term": term})
 
     assert (message.headline, message.lines, message.link) == (
-        "Pat Quill's membership expired on 2026/03/31",
+        "Pat Quill's membership expired on 03/31/2026",
         (("Email", "pat@example.test"), ("Kind now", "Member")),
         member_link(pat),
     )
@@ -402,7 +402,7 @@ def test_auto_renewal_on_for_a_renewal(pat: User, annual_plan: MembershipPlan) -
 
     assert (message.headline, message.lines, message.link) == (
         "Pat Quill turned on automatic renewal",
-        (("Plan", "Annual"), ("Cadence", "Yearly"), ("Next charge", "2027/01/05")),
+        (("Plan", "Annual"), ("Cadence", "Yearly"), ("Next charge", "01/05/2027")),
         member_link(pat),
     )
 
@@ -421,7 +421,7 @@ def test_auto_renewal_on_for_a_donation(pat: User) -> None:
 
     assert (message.headline, message.lines) == (
         "Pat Quill turned on automatic donation",
-        (("Amount", "$25.00"), ("Cadence", "Monthly"), ("Next charge", "2026/11/01")),
+        (("Amount", "$25.00"), ("Cadence", "Monthly"), ("Next charge", "11/01/2026")),
     )
 
 
@@ -458,7 +458,7 @@ def test_auto_renewal_declined_with_a_retry_to_come(pat: User) -> None:
 
     assert (message.headline, message.lines) == (
         "Pat Quill's automatic donation was declined",
-        (("Reason", "Card declined"), ("Next try", "2026/09/30")),
+        (("Reason", "Card declined"), ("Next try", "09/30/2026")),
     )
 
 

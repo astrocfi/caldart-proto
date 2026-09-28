@@ -35,6 +35,7 @@ from apps.payments.models import (
     PaymentStatus,
     RenewalMandate,
 )
+from caldart.dates import format_display_date
 
 
 def _has_lapsed_insurance(aircraft: Aircraft) -> bool:
@@ -216,7 +217,7 @@ def _registry() -> dict[str, Any]:
     and is on no register record, preferring one a corporation or an LLC holds;
     ``knownType``, ``knownYear``, and ``knownOwner`` are its type (``<make> <model>``),
     year, and registrant, which is what picking it fills in.  ``asOf`` is the local
-    day the newest successful import finished, written ``YYYY/MM/DD`` as the screens
+    day the newest successful import finished, written ``MM/DD/YYYY`` as the screens
     print it.  Each is empty (``knownYear`` ``null``) when the registry holds nothing
     that fits.
     """
@@ -233,7 +234,7 @@ def _registry() -> dict[str, Any]:
         "knownType": "" if known is None else str(known.type),
         "knownYear": None if known is None else known.year,
         "knownOwner": "" if known is None else known.registrant_name,
-        "asOf": "" if finished is None else timezone.localtime(finished).strftime("%Y/%m/%d"),
+        "asOf": "" if finished is None else format_display_date(timezone.localdate(finished)),
     }
 
 

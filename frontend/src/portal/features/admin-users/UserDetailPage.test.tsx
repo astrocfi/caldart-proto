@@ -178,7 +178,7 @@ describe('UserDetailPage', () => {
     renderDetail();
     await screen.findByRole('heading', { name: 'Priya Raman' });
 
-    expect(screen.getByText('Verified')).toHaveTextContent('Verified 2024/07/01');
+    expect(screen.getByText('Verified')).toHaveTextContent('Verified 07/01/2024');
     expect(
       screen.queryByRole('button', { name: /resend verification message/i }),
     ).not.toBeInTheDocument();
@@ -249,7 +249,7 @@ describe('UserDetailPage', () => {
     await userEvent.click(screen.getByRole('button', { name: /resend verification message/i }));
     await screen.findByText('That address is already verified.');
 
-    expect(await screen.findByText('Verified')).toHaveTextContent('Verified 2024/07/01');
+    expect(await screen.findByText('Verified')).toHaveTextContent('Verified 07/01/2024');
   });
 
   describe('for a donor', () => {

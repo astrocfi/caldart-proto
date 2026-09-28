@@ -257,7 +257,7 @@ describe('LeaderAircraftPage card', () => {
     renderWithProviders(<LeaderAircraftPage />, { route: '/leader/aircraft?aircraft=N172SP' });
 
     const row = await screen.findByText('Last updated');
-    expect(row.parentElement).toHaveTextContent('Last updated2026/09/01 by Dana Fiske');
+    expect(row.parentElement).toHaveTextContent('Last updated09/01/2026 by Dana Fiske');
   });
 
   it('gives the date alone when nobody is recorded against the last write', async () => {
@@ -269,7 +269,7 @@ describe('LeaderAircraftPage card', () => {
     renderWithProviders(<LeaderAircraftPage />, { route: '/leader/aircraft?aircraft=N172SP' });
 
     const row = await screen.findByText('Last updated');
-    expect(row.parentElement).toHaveTextContent('Last updated2026/09/01');
+    expect(row.parentElement).toHaveTextContent('Last updated09/01/2026');
   });
 
   it('shows the liability limits the leader has to check', async () => {
@@ -323,7 +323,7 @@ describe('LeaderAircraftPage card', () => {
     renderWithProviders(<LeaderAircraftPage />, { route: '/leader/aircraft?aircraft=N172SP' });
 
     const row = await screen.findByText('Insurance');
-    expect(row.parentElement).toHaveTextContent(/Verified by Dana Leader on 2026\/05\/01$/);
+    expect(row.parentElement).toHaveTextContent(/Verified by Dana Leader on 05\/01\/2026$/);
   });
 
   it('offers a verifier Verify, and verifies the insurance from the card', async () => {

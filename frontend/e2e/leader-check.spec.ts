@@ -112,7 +112,7 @@ test('a verified pilot has each document marked with who verified it', async ({ 
   for (const term of ['Medical', 'Certificate', 'Photo ID']) {
     const row = card.getByRole('term').filter({ hasText: new RegExp(`^${term}$`) });
     await expect(row.locator('xpath=following-sibling::dd[1]')).toContainText(
-      /Verified by .+ on \d{4}\/\d{2}\/\d{2}/,
+      /Verified by .+ on \d{2}\/\d{2}\/\d{4}/,
     );
   }
   // A leader verifies from the card, and makes the pilot a verifier there.
@@ -157,7 +157,7 @@ test('a leader searches for a tail number and reads its insurance card', async (
   const updated = card.getByRole('term').filter({ hasText: /^Last updated$/ });
   await expect(updated).toBeVisible();
   await expect(updated.locator('xpath=following-sibling::dd[1]')).toContainText(
-    /\d{4}\/\d{2}\/\d{2}/,
+    /\d{2}\/\d{2}\/\d{4}/,
   );
   await expect(card.getByText(name)).toBeVisible();
 });

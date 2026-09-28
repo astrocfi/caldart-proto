@@ -66,8 +66,8 @@ describe('SubscriptionsCard', () => {
   it('dates the last send and the next one', async () => {
     const table = await renderCard();
 
-    expect(row(table, /Ada Admin/)).toHaveTextContent('2026/09/15');
-    expect(row(table, /Ada Admin/)).toHaveTextContent('2026/10/01');
+    expect(row(table, /Ada Admin/)).toHaveTextContent('09/15/2026');
+    expect(row(table, /Ada Admin/)).toHaveTextContent('10/01/2026');
   });
 
   it('marks a paused subscription as paused', async () => {

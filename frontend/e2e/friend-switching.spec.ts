@@ -36,12 +36,12 @@ test('a current member asks to become a friend, then undoes it', async ({ page }
   const card = membershipCard(page, 'Your membership is current');
   await card.getByRole('button', { name: 'Make me a friend' }).click();
   await expect(
-    card.getByText(/^Your membership stays current through \d{4}\/\d{2}\/\d{2}\./),
+    card.getByText(/^Your membership stays current through \d{2}\/\d{2}\/\d{4}\./),
   ).toBeVisible();
   await card.getByRole('button', { name: 'Make me a friend' }).click();
 
   // The membership stays current, and the day of the change is shown.
-  await expect(card.getByText(/^You become a friend on \d{4}\/\d{2}\/\d{2}\.$/)).toBeVisible();
+  await expect(card.getByText(/^You become a friend on \d{2}\/\d{2}\/\d{4}\.$/)).toBeVisible();
   await card.getByRole('button', { name: 'Undo' }).click();
   await expect(card.getByRole('button', { name: 'Make me a friend' })).toBeVisible();
 });

@@ -12,7 +12,7 @@ import type { JSX } from 'react';
 
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
-import { formatDate, formatDateTime } from '@/portal/components/DateText';
+import { formatDate, formatTime } from '@/portal/components/DateText';
 import { useRegistryStatus } from '@/portal/api/queries';
 import type { RegistryStatus } from '@/portal/api/types';
 import { useRunRegistryImport } from './api';
@@ -30,8 +30,7 @@ function counted(count: number, noun: string): string {
 export function registryImportSummary({ running, last }: RegistryStatus): string {
   if (last === null) return 'No import has run yet.';
   if (running) {
-    const clock = formatDateTime(last.started_at).split(' ')[1] ?? '';
-    return `Running since ${clock}`;
+    return `Running since ${formatTime(last.started_at)}`;
   }
   if (!last.ok) return `Failed: ${last.error}`;
   const written =
