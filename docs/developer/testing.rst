@@ -1039,6 +1039,7 @@ Rehearsing a server install
    $ make rehearse-deploy                            # with Apache
    $ make rehearse-deploy REHEARSE_WEB_SERVER=nginx  # with nginx
    $ make rehearse-deploy REHEARSE_URL_PREFIX=/caldart-proto  # behind an existing site
+   $ make rehearse-deploy REHEARSE_GUNICORN_PORT=8101  # gunicorn on another port
    $ make rehearse-deploy REHEARSE_KEEP=1            # keep the container to look inside
 
 The unit tests in ``backend/tests/test_deploy_scripts.py`` read the
@@ -1070,7 +1071,7 @@ Any step that fails stops the run, and the target exits non-zero.  At the end
 it prints how long the run took and removes the container, unless
 ``REHEARSE_KEEP`` is on (a switch, :ref:`make-switches`), in which case
 ``docker exec -it caldart-rehearsal-<server>`` (with ``-prefix`` appended
-under a prefix) ``bash`` opens a shell inside it.  A
+under a prefix, then ``-port`` with a gunicorn port) ``bash`` opens a shell inside it.  A
 run takes a few minutes, most of them the package installs and the build,
 and needs the network: it installs from the Ubuntu archive, NodeSource, PyPI,
 npm, and Docker Hub.
@@ -1086,6 +1087,17 @@ npm, and Docker Hub.
    plain rehearsal on the same server can run side by side.  Both servers with
    and without a prefix are the four rehearsals a change to the installer
    gets.
+``REHEARSE_GUNICORN_PORT``
+   A port such as ``8101``: step 1 also passes ``--gunicorn-port <port>``,
+   which puts the hop from the web server's proxy to gunicorn on that port
+   (:ref:`deploy-sharing`).  Empty by default, which leaves the installer's
+   default, 8001.  After the install the target asserts that the web server's
+   configuration under ``/etc/apache2`` or ``/etc/nginx`` names
+   ``127.0.0.1:<port>`` and never ``127.0.0.1:8001``, that
+   ``/etc/caldart/caldart.env`` sets ``CALDART_GUNICORN_PORT=<port>``, that
+   gunicorn answers ``200`` on that port, and that the site answers ``200``
+   over HTTPS through the proxy.  The container's name gains ``-port``, and
+   the variable combines with the other two.
 ``REHEARSE_KEEP``
    Keep the container and its volumes after the run.
 

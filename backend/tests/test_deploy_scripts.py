@@ -2115,6 +2115,9 @@ def test_no_docker_installs_both_packages(etc: Path, root: Path, tmp_path: Path)
 #: A gunicorn port other than the default, which every test below moves gunicorn to.
 GUNICORN_PORT: Final = "8101"
 
+#: An install record that puts gunicorn on ``GUNICORN_PORT``.
+MOVED_RECORD: Final = "CALDART_HOSTNAME=caldart.test\nCALDART_GUNICORN_PORT=8101\n"
+
 #: Every shipped file that names gunicorn's address, and the function that copies it.
 GUNICORN_FILES: Final = (
     ("apache/caldart.conf", "vhost"),
@@ -2163,7 +2166,7 @@ def _web_service(
 
 
 def _gunicorn_bind(monkeypatch: pytest.MonkeyPatch, port: str | None) -> object:
-    """The ``bind`` ``gunicorn.conf.py`` sets with ``CALDART_GUNICORN_PORT`` at ``port``."""
+    """The ``bind`` of ``gunicorn.conf.py`` with ``CALDART_GUNICORN_PORT`` at ``port``."""
     if port is None:
         monkeypatch.delenv("CALDART_GUNICORN_PORT", raising=False)
     else:
@@ -2272,7 +2275,7 @@ def test_every_shipped_proxy_file_names_the_default_port(source: str, how: str) 
 
 def test_configure_writes_the_recorded_gunicorn_port(root: Path, etc: Path) -> None:
     """The environment file carries ``CALDART_GUNICORN_PORT`` from the install record."""
-    (etc / "install.conf").write_text("CALDART_HOSTNAME=caldart.test\nCALDART_GUNICORN_PORT=8101\n")
+    (etc / "install.conf").write_text(MOVED_RECORD)
     _configure(root, etc, "--email-url", "smtp://x:25")
     assert _variables(etc / "caldart.env")["CALDART_GUNICORN_PORT"] == "8101"
 
@@ -2282,9 +2285,11 @@ def test_configure_writes_8001_by_default(env_file: Path) -> None:
     assert _variables(env_file)["CALDART_GUNICORN_PORT"] == "8001"
 
 
-def test_configure_moves_the_port_in_an_existing_file(env_file: Path, root: Path, etc: Path) -> None:
+def test_configure_moves_the_port_in_an_existing_file(
+    env_file: Path, root: Path, etc: Path
+) -> None:
     """A changed port in the record reaches a file that exists already."""
-    (etc / "install.conf").write_text("CALDART_HOSTNAME=caldart.test\nCALDART_GUNICORN_PORT=8101\n")
+    (etc / "install.conf").write_text(MOVED_RECORD)
     _configure(root, etc)
     assert _variables(env_file)["CALDART_GUNICORN_PORT"] == "8101"
 
@@ -2292,7 +2297,7 @@ def test_configure_moves_the_port_in_an_existing_file(env_file: Path, root: Path
 def test_configure_moves_the_port_and_nothing_else(env_file: Path, root: Path, etc: Path) -> None:
     """Moving the port rewrites that one line and keeps every other one."""
     before = env_file.read_text()
-    (etc / "install.conf").write_text("CALDART_HOSTNAME=caldart.test\nCALDART_GUNICORN_PORT=8101\n")
+    (etc / "install.conf").write_text(MOVED_RECORD)
     _configure(root, etc)
     expected = before.replace("CALDART_GUNICORN_PORT=8001\n", "CALDART_GUNICORN_PORT=8101\n")
     assert env_file.read_text() == expected
@@ -2300,7 +2305,7 @@ def test_configure_moves_the_port_and_nothing_else(env_file: Path, root: Path, e
 
 def test_configure_adds_the_port_to_a_file_without_it(root: Path, etc: Path) -> None:
     """An environment file written before the variable existed gains the line."""
-    (etc / "install.conf").write_text("CALDART_HOSTNAME=caldart.test\nCALDART_GUNICORN_PORT=8101\n")
+    (etc / "install.conf").write_text(MOVED_RECORD)
     (etc / "caldart.env").write_text("SECRET_KEY=x\n")
     _configure(root, etc)
     assert (etc / "caldart.env").read_text() == "SECRET_KEY=x\nCALDART_GUNICORN_PORT=8101\n"
@@ -2310,7 +2315,7 @@ def test_configure_keeps_the_file_mode_when_it_moves_the_port(
     env_file: Path, root: Path, etc: Path
 ) -> None:
     """The rewritten environment file stays readable by its owner and group only."""
-    (etc / "install.conf").write_text("CALDART_HOSTNAME=caldart.test\nCALDART_GUNICORN_PORT=8101\n")
+    (etc / "install.conf").write_text(MOVED_RECORD)
     _configure(root, etc)
     assert stat.S_IMODE(env_file.stat().st_mode) == 0o640
 
@@ -2357,7 +2362,7 @@ def _installed_on_8001(etc: Path) -> None:
 @pytest.mark.parametrize(
     ("earlier", "later"),
     [
-        (f"install -m 0640 /dev/stdin {{etc}}/caldart.env", "systemctl restart caldart-web"),
+        ("install -m 0640 /dev/stdin {etc}/caldart.env", "systemctl restart caldart-web"),
         ("systemctl restart caldart-web", "systemctl reload-or-restart apache2"),
     ],
     ids=["environment-then-service", "service-then-web-server"],
@@ -2378,7 +2383,7 @@ def test_moving_the_gunicorn_port_rewrites_restarts_and_reloads_in_order(
 
 def test_upgrade_keeps_the_recorded_gunicorn_port(checkout: Path, etc: Path) -> None:
     """The upgrade's readiness check asks gunicorn on the port the record names."""
-    (etc / "install.conf").write_text("CALDART_HOSTNAME=caldart.test\nCALDART_GUNICORN_PORT=8101\n")
+    (etc / "install.conf").write_text(MOVED_RECORD)
     result = _run(checkout / "deploy" / "upgrade.sh", "--dry-run", env=_env(etc), cwd=checkout)
     assert _position(_commands(result), "http://127.0.0.1:8101/") >= 0
 
