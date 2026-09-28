@@ -24,6 +24,12 @@ function withTrailingSlash(url: string): string {
   return `${url.replace(/\/+$/, '')}/`;
 }
 
+// The specs compute a few dates themselves (a renewal's next charge, the
+// registry's import day); they must land on the same day Django and the
+// browser see, so the runner keeps California time too.  Set before any
+// Date is made, and inherited by every worker process.
+process.env.TZ ??= 'America/Los_Angeles';
+
 export default defineConfig({
   testDir: './e2e',
   workers: 1,
@@ -38,6 +44,10 @@ export default defineConfig({
   timeout: 60_000,
   expect: { timeout: 10_000 },
   use: {
+    // The browser is a Californian's, like the runner below: Django formats the
+    // seed's dates in America/Los_Angeles, and a machine on UTC would otherwise
+    // show the next day's date for seven hours every night.
+    timezoneId: 'America/Los_Angeles',
     baseURL,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',

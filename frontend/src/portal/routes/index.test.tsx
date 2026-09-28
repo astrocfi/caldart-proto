@@ -97,7 +97,7 @@ vi.mock('../features/admin-reminders/AdminRemindersPage', () => ({
   AdminRemindersPage: pageStub('Reminders'),
 }));
 vi.mock('../features/admin-reports/AdminReportsPage', () => ({
-  AdminReportsPage: pageStub('Reports'),
+  AdminReportsPage: pageStub('Subscriptions'),
 }));
 vi.mock('../features/admin-notifications/AdminNotificationsPage', () => ({
   AdminNotificationsPage: pageStub('Notifications'),
@@ -247,7 +247,7 @@ const GUARDED_PATHS: GuardedPath[] = [
   { path: '/admin/reminders', heading: 'Reminders', allowed: ['account_admin', 'system_admin'] },
   {
     path: '/admin/reports',
-    heading: 'Reports',
+    heading: 'Subscriptions',
     allowed: ['account_admin', 'treasurer', 'system_admin'],
   },
   {

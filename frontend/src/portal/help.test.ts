@@ -92,7 +92,7 @@ const HELP_PAGE_CASES: readonly [pathname: string, expectedHref: string][] = [
   ['/admin/payments/donors', '/docs/finance/donors/'],
   ['/admin/payments/42', '/docs/finance/payment-record/'],
   ['/admin/reminders', '/docs/admin/reminders/'],
-  ['/admin/reports', '/docs/admin/reports/'],
+  ['/admin/reports', '/docs/admin/subscriptions/'],
   ['/admin/notifications', '/docs/admin/notifications/'],
   ['/admin/users', '/docs/admin/users/'],
   ['/admin/users/42', '/docs/admin/user-record/'],

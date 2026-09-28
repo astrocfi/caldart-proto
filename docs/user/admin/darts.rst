@@ -97,7 +97,7 @@ What happens next
 =================
 
 Early each month every active team's roster goes by email to each person ticked **Roster**.
-The subject is the team's name, the word *roster*, and the date. The :doc:`reports` screen
+The subject is the team's name, the word *roster*, and the date. The :doc:`subscriptions` screen
 lists the rosters, shows when each was last sent, and can send them all at once.
 
 Each person ticked **Roster** also hears of every sign-up that chooses the team: the email

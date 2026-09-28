@@ -117,12 +117,12 @@ describe('visibleNavItems', () => {
     },
   );
 
-  it('gives a treasurer the reports screen', () => {
-    expect(labels(['member', 'treasurer'])).toContain('Reports');
+  it('gives a treasurer the subscriptions screen', () => {
+    expect(labels(['member', 'treasurer'])).toContain('Subscriptions');
   });
 
-  it('keeps the reports screen away from dart_leader', () => {
-    expect(labels(['member', 'dart_leader'])).not.toContain('Reports');
+  it('keeps the subscriptions screen away from dart_leader', () => {
+    expect(labels(['member', 'dart_leader'])).not.toContain('Subscriptions');
   });
 
   it('offers the leader checks to account_admin, as the API and guards do', () => {

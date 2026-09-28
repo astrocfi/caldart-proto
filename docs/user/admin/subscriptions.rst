@@ -1,8 +1,8 @@
-=======
-Reports
-=======
+=============
+Subscriptions
+=============
 
-**Reports** is where you tell CalDART to email a report on a schedule, and where each DART's
+**Subscriptions** is where you tell CalDART to email a report on a schedule, and where each DART's
 monthly roster is sent from. A roster is the list of a DART's members and friends with the
 details a team needs to reach them.
 

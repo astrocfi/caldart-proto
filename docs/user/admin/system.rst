@@ -143,7 +143,7 @@ every address the site has written to.
 Scheduled reports
 =================
 
-Every morning at 06:00 CalDART sends the report subscriptions set up on :doc:`reports`, and
+Every morning at 06:00 CalDART sends the report subscriptions set up on :doc:`subscriptions`, and
 early each month it sends each DART's roster. This panel sends them by hand and works like the
 reminders panel: leave **Dry run (send nothing)** ticked, press **Run now**, read the result,
 then clear the box and press **Run now** again to send for real.

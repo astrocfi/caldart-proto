@@ -64,7 +64,7 @@ Choose the columns and download
 list (see :doc:`payment-list`). **Export CSV** gives a file for a mailing list and
 **Export PDF** a copy for the board, each with the columns you chose.
 
-The **Reports** screen can send this list on a schedule. There, a **Period** choice of
+The **Subscriptions** screen can send this list on a schedule. There, a **Period** choice of
 **This month**, **Last month**, **This year**, or **Last year** picks the dates each
 emailed copy covers.
 

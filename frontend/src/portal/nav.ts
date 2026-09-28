@@ -68,6 +68,7 @@ export const NAV_ITEMS: NavItem[] = [
     group: 'Administration',
   },
   { to: '/admin/aircraft', label: 'Aircraft', roles: ['account_admin'], group: 'Administration' },
+  { to: '/admin/users', label: 'Users & roles', roles: ['user_admin'], group: 'Administration' },
   { to: '/admin/darts', label: 'DARTs', roles: ['account_admin'], group: 'Administration' },
   // The finance area admits a treasurer as well as an account administrator,
   // and the rail has to say so or a treasurer reaches it by URL only.
@@ -87,7 +88,7 @@ export const NAV_ITEMS: NavItem[] = [
   // screen too; the DART rosters on it are the account administrator's.
   {
     to: '/admin/reports',
-    label: 'Reports',
+    label: 'Subscriptions',
     roles: ['account_admin', 'treasurer'],
     group: 'Administration',
   },
@@ -97,7 +98,6 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ['account_admin'],
     group: 'Administration',
   },
-  { to: '/admin/users', label: 'Users & roles', roles: ['user_admin'], group: 'Administration' },
 
   { to: '/system', label: 'System', roles: ['system_admin'], group: 'System' },
 ];

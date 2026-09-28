@@ -16,7 +16,7 @@ The screens a DART leader, an account administrator, a user administrator, or a 
    aircraft-record
    darts
    reminders
-   reports
+   subscriptions
    notifications
    users
    user-record

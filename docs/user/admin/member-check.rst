@@ -153,7 +153,7 @@ Above the search box, **Export CSV** and **Export PDF** download the CalDART
 verification report: every pilot certificate, medical, photo ID, and aircraft insurance
 nobody has verified yet, each under its own heading, with the person or airplane, their
 DART or owner, the details, and the day the record last changed. It can also be emailed on
-a schedule from the :doc:`reports` screen.
+a schedule from the :doc:`subscriptions` screen.
 
 
 When nobody matches
