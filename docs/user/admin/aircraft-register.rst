@@ -25,7 +25,8 @@ What you see
 The header, beside **New aircraft**, says how fresh CalDART's copy of the FAA aircraft
 registry is, such as *Registry as of 2026/09/20*: the day of the last successful import,
 which runs every night. Until the first import it reads *Registry not imported yet*.
-**Look up** on the aircraft forms and the list of aircraft types both come from that copy.
+The airplanes the N-number box lists on the aircraft forms and the list of aircraft types
+both come from that copy.
 
 The caption over the table counts the airplanes your filters match, such as *57 aircraft*.
 The table shows 25 at a time, with **← Previous** and **Next →** and a count such as
@@ -84,10 +85,12 @@ Adding an airplane
 ==================
 
 **New aircraft**, at the top right, opens **Add an aircraft** above the table, and the
-button reads **Close** while the form is open. The form is the one on the
-:doc:`aircraft-record`. Only the N-number and the aircraft type are required. Type the
-N-number and press **Look up** to fill the type, year, seats, and owner from the FAA
-registry, then check them. Press **Add aircraft**. The message reads that the airplane was
+button reads **Close** while the form is open. The form is the whole record, the one on the
+:doc:`aircraft-record`, so everything can be filled in at once. Only the N-number and the
+aircraft type are required. Type the start of the N-number, such as N17, and the FAA
+registry's airplanes whose N-number starts with it are listed under the box; pick one to
+fill the type, year, seats, and owner from the registry, then check them. Press **Add
+aircraft**. The message reads that the airplane was
 *added to the register*, and its record opens.
 
 

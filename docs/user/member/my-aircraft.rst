@@ -63,55 +63,66 @@ Adding an airplane that is not in the register
 
 **Add a new aircraft** sits at the foot of the card (*Not in the register? Add it
 yourself.*), and you do not have to search first. It opens **Add an aircraft to the
-register**:
+register**, the whole record, with every box the record has when you edit it later:
 
 * **N-number** (required). The box writes the N and takes digits first, then at
-  most two letters, so 172sp becomes N172SP. **Look up** beside it, or leaving the
-  box, asks the FAA registry about the registration: see :ref:`look-up-registry`.
+  most two letters, so 172sp becomes N172SP. Anything you typed in the search box is
+  already in it. As you type, the FAA registry's airplanes whose N-number starts
+  with what you typed are listed under the box: see :ref:`registry-list`.
+* **Year**, four digits.
 * **Aircraft type** (required): type the make, the model, or a designator, for example
   cessna 172, c172, or skyhawk, and pick the type from the list under the box. Each
   entry reads as its make and model, with its seats after it. Picking from the list
   is the only way to set the type, so one type always reads the same way, however it
   was typed. A search that finds nothing says *No aircraft type matches that.*
-* **Year**, four digits.
-* **Owner**: the person, club, or FBO that owns it.
-* **Insurance carrier**.
-* **Insurance expires**: the most useful field on the form, since it is what a DART
-  leader looks at.
+* **Seats**. Picking a type with **Seats** empty fills in its seats.
+* **Owner type** (Individual, FBO, or Flying club), **Owner name**, and **Owner
+  contact**, an email address or a phone number.
+* **Carrier**, **Policy number**, **Liability per occurrence**, **Liability per
+  person**, **Hull**, and **Insurance expires**. Money is in whole dollars, and the
+  commas write themselves. **Insurance expires** is the most useful box on the form,
+  since it is what a DART leader looks at.
 
 Press **Add aircraft**. The airplane joins the register and your list at once.
 **Cancel** closes the form.
 
-.. _look-up-registry:
+.. _registry-list:
 
-Looking an airplane up in the FAA registry
-------------------------------------------
+Picking an airplane from the FAA registry
+-----------------------------------------
 
 Every US airplane is in the FAA's aircraft registry, and CalDART keeps a copy of it,
-refreshed every night. Type the N-number and press **Look up**; leaving the box with a
-whole registration does the same. When the registry has the airplane, the form fills in
-its aircraft type, year, and seats; **Owner name** takes the registrant's name, and
-**Owner type** takes a guess from the kind of registrant it is: a person or co-owners
-become **Individual**, a partnership becomes **Flying club**, and a company becomes
-**FBO**. A government registrant, or one the registry does not sort into any of those,
-leaves **Owner type** as it was. The line under the N-number box reads, for
-example, *From the FAA registry as of 2026/09/20*, the day of the copy. Check what it
-filled and correct anything that is out of date. When the registry has no such
-registration, the line reads *Not in the FAA registry* and nothing changes. If the
-registry cannot be reached, no line appears; fill the form in by hand.
+refreshed every night. Type the start of the N-number, such as N17, and up to eight
+airplanes whose N-number starts with it are listed under the box, each with its
+N-number, aircraft type, year, and registrant. Keep typing to narrow the list. Click
+one, or move to it with the arrow keys and press Enter; Escape closes the list.
+
+Picking an airplane writes its N-number into the box and fills in its aircraft type,
+year, and seats; **Owner name** takes the registrant's name, and **Owner type**
+takes a guess from the kind of registrant it is: a person or co-owners become
+**Individual**, a partnership becomes **Flying club**, and a company becomes
+**FBO**. A government registrant, or one the registry does not sort into any of
+those, leaves **Owner type** as it was. The line under the N-number box then reads,
+for example, *From the FAA registry as of 2026/09/20*, the day of the copy, until
+you change the N-number again. Check what it filled and correct anything that is
+out of date.
+
+An airplane the registry does not have simply does not appear in the list. Finish
+typing its N-number and fill the rest of the form in by hand.
 
 
 Editing an airplane
 ===================
 
 Press **Edit** beside an airplane. For one you added yourself, the form opens with
-every detail: **N-number** with **Look up**, **Year**, **Aircraft type**, and
+every detail, as it was added: **N-number**, **Year**, **Aircraft type**, and
 **Seats**; **Owner type** (Individual, FBO, or Flying club), **Owner name**, and
 **Owner contact**; and **Carrier**, **Policy number**, **Liability per occurrence**,
 **Liability per person**, **Hull**, and **Insurance expires**. Money is in whole
 dollars, and the commas write themselves. To change the type, type in **Aircraft
 type** and pick the new one from the list. Picking a type with **Seats** empty fills
-in its seats. A **Look up** asks the registry again. Press **Save aircraft**;
+in its seats. Typing in **N-number** lists the registry's airplanes again, and
+picking one fills the form from it (:ref:`registry-list`). Press **Save aircraft**;
 *N12345 updated.* appears. Saving a change to any insurance detail clears the
 insurance's verification, and the mark reads **Not yet verified** until a DART
 leader or a verifier checks the new policy.

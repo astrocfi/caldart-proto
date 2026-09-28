@@ -2,32 +2,27 @@
  * Shared aircraft search-and-attach control.
  *
  * It searches with `GET /aircraft/lookup`, then `GET /aircraft`, and can add a
- * missing aircraft with `POST /aircraft`; the add form's **Look up** fills the
- * airframe and its owner from the FAA registry.  `/profile/aircraft` uses it for
- * the planes a member commonly flies.
+ * missing aircraft with `POST /aircraft` through the full `<AircraftForm/>`, whose
+ * N-number box offers the FAA registry's registrations as it is typed into.
+ * `/profile/aircraft` uses it for the planes a member commonly flies.
  */
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import type { JSX } from 'react';
 
 import { ApiError } from '@/portal/api/client';
-import type { Aircraft, AircraftType, Registration } from '@/portal/api/types';
+import type { Aircraft } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { EmptyState } from '@/portal/components/EmptyState';
 import { Field } from '@/portal/components/Field';
-import { MaskedInput } from '@/portal/components/MaskedInput';
 import { useDebounced } from '@/portal/components/useDebounced';
-import { maskDigits } from '@/portal/masks';
-import { AircraftTypePicker } from './AircraftTypePicker';
+import { AircraftForm } from './AircraftForm';
 import './aircraft.css';
 import { InsuranceChip } from './InsuranceChip';
 import { ServiceChip } from './ServiceChip';
 import { useAircraftSearch, useCreateAircraft } from './api';
-import type { AircraftFormValues } from './form';
-import { aircraftPayload, emptyAircraftValues, validateAircraft } from './form';
+import { emptyAircraftValues } from './form';
 import { normalizeNNumber } from './insurance';
-import { NNumberField } from './NNumberField';
-import { withPickedType, withRegistration } from './registry';
 
 export interface AircraftPickerProps {
   onSelect: (aircraft: Aircraft) => void;
@@ -42,6 +37,8 @@ export function AircraftPicker({ onSelect, excludeIds = [] }: AircraftPickerProp
   const debounced = useDebounced(term.trim());
   const search = useAircraftSearch(debounced);
   const create = useCreateAircraft();
+  const addTitleId = useId();
+  const fieldErrors = create.error instanceof ApiError ? create.error.fieldErrors : undefined;
 
   const found = search.data?.matches ?? [];
   const results = found.filter((aircraft) => !excludeIds.includes(aircraft.id));
@@ -142,12 +139,24 @@ export function AircraftPicker({ onSelect, excludeIds = [] }: AircraftPickerProp
       )}
 
       {adding ? (
-        <NewAircraftForm
-          nNumber={normalizeNNumber(term)}
-          onCancel={() => setAdding(false)}
-          onCreated={handleCreated}
-          create={create}
-        />
+        <section className="aircraft-new" aria-labelledby={addTitleId}>
+          <h3 id={addTitleId} className="aircraft-new__title">
+            Add an aircraft to the register
+          </h3>
+          <AircraftForm
+            initial={emptyAircraftValues(normalizeNNumber(term))}
+            submitLabel="Add aircraft"
+            pending={create.isPending}
+            serverErrors={fieldErrors}
+            onSubmit={(payload) => create.mutate(payload, { onSuccess: handleCreated })}
+            onCancel={() => setAdding(false)}
+          />
+          {create.isError && Object.keys(fieldErrors ?? {}).length === 0 ? (
+            <p className="field__error" role="alert">
+              {create.error.message}
+            </p>
+          ) : null}
+        </section>
       ) : null}
     </Card>
   );
@@ -160,124 +169,4 @@ export function AircraftPicker({ onSelect, excludeIds = [] }: AircraftPickerProp
 function joinNNumbers(nNumbers: string[]): string {
   if (nNumbers.length < 3) return nNumbers.join(' and ');
   return `${nNumbers.slice(0, -1).join(', ')}, and ${nNumbers.at(-1)}`;
-}
-
-interface NewAircraftFormProps {
-  nNumber: string;
-  onCancel: () => void;
-  onCreated: (aircraft: Aircraft) => void;
-  create: ReturnType<typeof useCreateAircraft>;
-}
-
-/** The short form: enough to identify the plane and its insurance. */
-function NewAircraftForm({
-  nNumber,
-  onCancel: handleCancel,
-  onCreated,
-  create,
-}: NewAircraftFormProps) {
-  const [values, setValues] = useState<AircraftFormValues>(() => emptyAircraftValues(nNumber));
-  const [errors, setErrors] = useState<Record<string, string>>({});
-
-  const set = <K extends keyof AircraftFormValues>(key: K, value: AircraftFormValues[K]): void => {
-    setValues((current) => ({ ...current, [key]: value }));
-  };
-
-  const handleType = (type: AircraftType | null): void =>
-    setValues((current) => withPickedType(current, type));
-
-  const handleFound = (registration: Registration): void =>
-    setValues((current) => withRegistration(current, registration));
-
-  const handleSubmit = (event: React.FormEvent): void => {
-    event.preventDefault();
-    const found = validateAircraft(values);
-    setErrors(found);
-    if (Object.keys(found).length > 0) return;
-    create.mutate(aircraftPayload(values), {
-      onSuccess: onCreated,
-      onError: (error) => {
-        if (error instanceof ApiError) setErrors(error.fieldErrors);
-      },
-    });
-  };
-
-  return (
-    <form className="aircraft-new" onSubmit={handleSubmit} noValidate>
-      <h3 className="aircraft-new__title">Add an aircraft to the register</h3>
-
-      <NNumberField
-        value={values.n_number}
-        onValueChange={(next) => set('n_number', next)}
-        onFound={handleFound}
-        error={errors.n_number}
-      />
-
-      <div className="aircraft-new__pair">
-        <AircraftTypePicker value={values.type} onChange={handleType} error={errors.type_id} />
-      </div>
-
-      <div className="aircraft-new__pair">
-        <Field label="Year" error={errors.year}>
-          {(field) => (
-            <MaskedInput
-              {...field}
-              className="mono"
-              inputMode="numeric"
-              mask={(raw) => maskDigits(raw, 4)}
-              value={values.year}
-              onValueChange={(next) => set('year', next)}
-            />
-          )}
-        </Field>
-        <Field label="Owner">
-          {(field) => (
-            <input
-              {...field}
-              value={values.owner_name}
-              onChange={(event) => set('owner_name', event.target.value)}
-            />
-          )}
-        </Field>
-      </div>
-
-      <div className="aircraft-new__pair">
-        <Field label="Insurance carrier">
-          {(field) => (
-            <input
-              {...field}
-              value={values.insurance_carrier}
-              onChange={(event) => set('insurance_carrier', event.target.value)}
-            />
-          )}
-        </Field>
-        <Field label="Insurance expires" error={errors.insurance_expiration}>
-          {(field) => (
-            <input
-              {...field}
-              type="date"
-              className="mono"
-              value={values.insurance_expiration}
-              onChange={(event) => set('insurance_expiration', event.target.value)}
-            />
-          )}
-        </Field>
-      </div>
-
-      {create.isError && Object.keys(errors).length === 0 ? (
-        <p className="field__error" role="alert">
-          {create.error.message}
-        </p>
-      ) : null}
-
-      <div className="cluster">
-        <Button type="submit" disabled={create.isPending}>
-          {create.isPending ? 'Adding…' : 'Add aircraft'}
-        </Button>
-        <Button variant="quiet" onClick={handleCancel}>
-          Cancel
-        </Button>
-      </div>
-    </form>
-  );
 }

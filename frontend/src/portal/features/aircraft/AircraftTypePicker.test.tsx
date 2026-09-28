@@ -92,7 +92,7 @@ describe('<AircraftTypePicker/>', () => {
     expect(picked()).toBe('none');
   });
 
-  it('shows a type set from outside, such as by a Look up', async () => {
+  it('shows a type set from outside, such as by a registration picked', async () => {
     const user = renderPicker();
     await user.click(screen.getByRole('button', { name: 'Set from outside' }));
     expect(screen.getByRole('combobox', { name: /^Aircraft type/ })).toHaveValue(

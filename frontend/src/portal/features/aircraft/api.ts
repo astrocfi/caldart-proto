@@ -20,7 +20,6 @@ import type {
   Paginated,
   Registration,
 } from '@/portal/api/types';
-import { normalizeNNumber } from './insurance';
 
 export type InsuranceState = 'current' | 'expired' | 'missing';
 
@@ -160,29 +159,23 @@ export function useCreateAircraftType(): UseMutationResult<
   });
 }
 
-/** What a Look up of one N-number learned from the registry. */
-export type RegistryLookup =
-  { status: 'found'; registration: Registration } | { status: 'missing' } | { status: 'failed' };
-
 /**
- * Looks `nNumber` up in the FAA registry via `GET /aircraft/registry/{n_number}`,
- * after writing it in its one form (`n-739ta` asks for `N739TA`).
- *
- * @returns `found` with the registration, `missing` when the registry has no such
- *   registration (a 404), or `failed` for any other answer or a dropped request,
- *   which the form shows nothing for.
+ * The registrations whose N-number starts with `prefix`, via
+ * `GET /aircraft/registrations?q=`: at most eight, in N-number order.  The server
+ * normalizes the prefix, and answers an empty list for one too short to search.
  */
-export async function lookupRegistration(nNumber: string): Promise<RegistryLookup> {
-  const registration = encodeURIComponent(normalizeNNumber(nNumber));
-  try {
-    return {
-      status: 'found',
-      registration: await api.get<Registration>(`/aircraft/registry/${registration}`),
-    };
-  } catch (error) {
-    if (error instanceof ApiError && error.status === 404) return { status: 'missing' };
-    return { status: 'failed' };
-  }
+export async function searchRegistrations(prefix: string): Promise<Registration[]> {
+  return api.get<Registration[]>('/aircraft/registrations', { query: { q: prefix } });
+}
+
+/** The N-number typeahead's registrations for `prefix`, disabled while it is blank. */
+export function useRegistrationSearch(prefix: string): UseQueryResult<Registration[]> {
+  return useQuery({
+    queryKey: [AIRCRAFT_KEY, 'registrations', prefix],
+    queryFn: () => searchRegistrations(prefix),
+    enabled: prefix.trim().length > 0,
+    placeholderData: keepPreviousData,
+  });
 }
 
 function useInvalidateAircraft() {

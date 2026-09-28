@@ -1,6 +1,6 @@
 /**
  * The FAA registry import panel of `/portal/system`: when the aircraft types and
- * the registrations a Look up reads were last imported, and **Run now** to import
+ * the registrations the N-number box offers were last imported, and **Run now** to import
  * them again.
  *
  * There is no dry run: the import changes nothing but those two reference
@@ -65,9 +65,8 @@ export function RegistryPanel(): JSX.Element {
       <p className="muted">
         The import also runs every night at 04:30 from the{' '}
         <code className="mono">caldart-registry</code> timer. It reads the FAA&rsquo;s aircraft
-        registry and refreshes the aircraft types and the registrations that{' '}
-        <strong>Look up</strong> on an aircraft form reads. It changes nothing else, so running it
-        again is harmless.
+        registry and refreshes the aircraft types and the registrations the N-number box on an
+        aircraft form offers. It changes nothing else, so running it again is harmless.
       </p>
 
       {status.data === undefined ? null : <p role="status">{registryImportSummary(status.data)}</p>}

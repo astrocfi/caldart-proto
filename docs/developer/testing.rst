@@ -932,14 +932,15 @@ document has eight keys:
    paused after every retry was refused; and ``contributionMandate``, a life
    member whose authority charges a contribution alone.
 ``registry``
-   A registration for **Look up** on the aircraft forms: ``knownNNumber``, the
-   first valid registration by N-number that carries a year and is on no
-   register record, preferring one a corporation or an LLC holds, with the
-   ``knownType``, ``knownYear``, and ``knownOwner`` a lookup on it answers; and
-   ``asOf``, the day the newest successful import finished, written
-   ``YYYY/MM/DD`` as the screens print it.  ``aircraft-registry.spec.ts`` adds
-   that airplane from My aircraft, and runs the import from the System screen,
-   which ``make e2e`` points at the registry fixture through
+   A registration for the N-number box on the aircraft forms:
+   ``knownNNumber``, the first valid registration by N-number that carries a
+   year and is on no register record, preferring one a corporation or an LLC
+   holds, with the ``knownType``, ``knownYear``, and ``knownOwner`` that picking
+   it fills in; and ``asOf``, the day the newest successful import finished,
+   written ``YYYY/MM/DD`` as the screens print it.  ``aircraft-registry.spec.ts``
+   adds that airplane from My aircraft, typing a prefix of ``knownNNumber``
+   into the N-number box and picking it from the list, and runs the import from
+   the System screen, which ``make e2e`` points at the registry fixture through
    ``FAA_REGISTRY_URL`` (:doc:`aircraft-registry`).
 
 Every member is found in the seeded data rather than typed into the spec, and

@@ -149,7 +149,9 @@ class Registration(models.Model):
     """One N-number as the FAA registry holds it: the type, the year, and the registrant.
 
     ``n_number`` is stored normalized as ``Aircraft.n_number`` is, with the leading
-    ``N``.  No address is kept.
+    ``N``.  Its uniqueness gives it, on Postgres, a second index built with
+    ``varchar_pattern_ops``, which is what serves the N-number typeahead's prefix
+    match.  No address is kept.
     """
 
     n_number = models.CharField("N-number", max_length=6, unique=True)

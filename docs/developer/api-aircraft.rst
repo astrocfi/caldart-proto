@@ -38,8 +38,9 @@ It runs in three places:
   validators on whatever ``to_internal_value`` returns, so the uniqueness
   check sees the canonical value and ``n-12345`` collides with an existing
   ``N12345`` as it should;
-- the ``n_number`` query parameter of both lookup endpoints, and the
-  ``n_number`` of ``GET /aircraft/registry/{n_number}``.
+- the ``n_number`` query parameter of both lookup endpoints, the
+  ``n_number`` of ``GET /aircraft/registry/{n_number}``, and the ``q`` of
+  ``GET /aircraft/registrations``.
 
 The frontend mirrors it in ``features/aircraft/insurance.ts`` so the canonical
 form can be shown before the round trip.  Change one, change both — the rule
@@ -510,16 +511,18 @@ The FAA registry
 ================
 
 The FAA's Releasable Aircraft Database, imported nightly, answers a lookup by
-N-number; :doc:`aircraft-registry` describes the data and the import.  Both
-endpoints are open to any authenticated user.  Starting an import by hand is
+N-number and a search by the start of one; :doc:`aircraft-registry` describes
+the data and the import.  All three endpoints are open to any authenticated
+user.  Starting an import by hand is
 ``POST /admin/system/registry-import`` (:doc:`api-system`).
 
 ``GET /aircraft/registry/{n_number}``
 -------------------------------------
 
 The registration for ``n_number``, normalized as above, so ``n128sc`` and
-``N-128-SC`` find ``N128SC``.  The aircraft forms call it when **Look up** is
-pressed.
+``N-128-SC`` find ``N128SC``.  It serves anything that reads one registration
+by its N-number; the aircraft form's N-number box searches with
+``GET /aircraft/registrations`` instead.
 
 .. code-block:: json
 
@@ -551,6 +554,46 @@ Statuses:
   ``{"n_number": "Enter a registration, for example N12345."}``.
 * **404** — the registry does not hold it, answered
   ``{"detail": "No registration for N12345 in the registry."}``.
+
+``GET /aircraft/registrations?q=``
+----------------------------------
+
+The registrations whose N-number starts with ``q``: the aircraft form's N-number
+box asks it as the box is typed into, and lists the answer under the box.  ``q``
+is normalized as above, so the leading ``N`` is optional and case and
+punctuation do not matter: ``n17``, ``17``, and ``N-17`` all ask for ``N17``.
+At most eight registrations come back, in N-number order, each in the shape
+``GET /aircraft/registry/{n_number}`` answers.
+
+.. code-block:: text
+
+   GET /api/v1/aircraft/registrations?q=n128s
+
+.. code-block:: json
+
+   [
+     {
+       "n_number": "N128SC",
+       "type": {"id": 41, "make": "Cessna", "model": "172S", "seats": 4,
+                "engines": 1, "is_custom": false},
+       "year": 1999,
+       "registrant_name": "EXAMPLE FLYING CLUB INC",
+       "registrant_type": "corporation",
+       "status": "valid",
+       "certificate_issued_on": "2021-03-02",
+       "expires_on": "2028-03-31",
+       "imported_at": "2026-09-27T04:31:12Z"
+     }
+   ]
+
+A ``q`` shorter than two characters after normalizing (``N`` alone, or none at
+all) answers an empty list rather than an error, so the box may ask on every
+keystroke.  The prefix match is served by the ``varchar_pattern_ops`` index
+Django builds for the unique ``n_number`` (:doc:`aircraft-registry`).
+
+Statuses:
+
+* **200** — the matches, possibly none.
 
 ``GET /aircraft/registry``
 --------------------------
@@ -931,7 +974,8 @@ Tests: ``backend/tests/test_aircraft_api.py`` (CRUD, permissions,
 normalization, every filter), ``test_aircraft_types.py`` (the aircraft types,
 their display names, aliases, and search), ``test_registry_import.py`` (the
 parser, the import, the fold, and the command), ``test_registry_api.py`` (the
-type search against the fixture, Add a type, the lookup, and the status), ``test_aircraft_history.py`` (the change rows the
+type search against the fixture, Add a type, the lookup, and the status),
+``test_registry_search.py`` (the N-number prefix search and its index), ``test_aircraft_history.py`` (the change rows the
 register's writes leave and the history endpoint),
 ``test_aircraft_exports.py`` (the aircraft report: CSV content, PDF
 validity, subtitle), ``test_leader_api.py`` (search, the membership ×

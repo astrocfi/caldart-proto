@@ -1,7 +1,7 @@
 /**
  * `/admin/aircraft` — the register an account administrator maintains:
  * filter, sort, export, and add a record.  The header says which day the FAA
- * registry behind **Look up** and the aircraft types was imported.
+ * registry behind the N-number box and the aircraft types was imported.
  *
  * The exports carry more columns than the five the table shows, so the column
  * chooser drives the two download links rather than the table: the register

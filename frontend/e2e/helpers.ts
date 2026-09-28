@@ -60,7 +60,7 @@ export interface ContributionMandateMember {
 
 /**
  * A registration the FAA registry fixture holds and the aircraft register does not,
- * and what a Look up on it answers.
+ * and what picking it from the N-number box fills in.
  */
 export interface RegistryFacts {
   /** The N-number, with its leading N, e.g. `N10131`. */
@@ -68,7 +68,7 @@ export interface RegistryFacts {
   /** Its aircraft type as the screens print it: make, then model. */
   knownType: string;
   knownYear: number;
-  /** The registrant's name, which a Look up writes into the owner's name. */
+  /** The registrant's name, which picking the registration writes into the owner's name. */
   knownOwner: string;
   /** The day the newest successful import finished, as `YYYY/MM/DD`. */
   asOf: string;
@@ -97,7 +97,7 @@ export interface SeedFacts {
   refundedPayment: RefundedPayment;
   /** The life member whose standing authority charges a contribution alone. */
   contributionMandate: ContributionMandateMember;
-  /** A registration for the Look up on the aircraft forms, and the registry's date. */
+  /** A registration for the N-number box on the aircraft forms, and the registry's date. */
   registry: RegistryFacts;
 }
 

@@ -71,6 +71,12 @@ PILOT_ROLES: tuple[str, ...] = VERIFY_ROLES
 #: Roles that may grant or revoke the verifier role from the member check.
 CanGrantVerifier = HasAnyRole(DART_LEADER, USER_ADMIN)
 
+#: The most registrations the N-number typeahead lists at once.
+REGISTRATION_SEARCH_LIMIT = 8
+
+#: The fewest characters of a normalized N-number prefix worth searching: ``N1``.
+REGISTRATION_SEARCH_MIN_LENGTH = 2
+
 
 def aircraft_serializer_for(request: Request) -> type[AircraftSerializer]:
     """The register record, with ``pilots`` only for callers entitled to it.
@@ -271,6 +277,39 @@ class RegistrationLookupView(APIView):
         if found is None:
             raise NotFound(f"No registration for {normalized} in the registry.")
         return Response(RegistrationSerializer(found).data)
+
+
+class RegistrationSearchView(APIView):
+    """``GET /aircraft/registrations?q=`` -- the registrations starting with ``q``."""
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "q", str, description="The start of an N-number; the leading N is optional."
+            )
+        ],
+        responses={200: RegistrationSerializer(many=True)},
+    )
+    def get(self, request: Request) -> Response:
+        """Return up to eight registrations whose N-number starts with ``q``.
+
+        ``q`` is normalized as an N-number is (upper case, punctuation dropped, a leading
+        ``N`` added when it starts with a digit), and the matches come in N-number order,
+        each shaped as ``GET /aircraft/registry/{n_number}`` answers it.  A ``q`` shorter
+        than two characters after normalizing, or none at all, answers an empty list
+        rather than an error, so a typeahead may ask on every keystroke.
+        """
+        prefix = normalize_n_number(request.query_params.get("q", ""))
+        if len(prefix) < REGISTRATION_SEARCH_MIN_LENGTH:
+            return Response([])
+        found = (
+            Registration.objects.filter(n_number__startswith=prefix)
+            .select_related("type")
+            .order_by("n_number")[:REGISTRATION_SEARCH_LIMIT]
+        )
+        return Response(RegistrationSerializer(found, many=True).data)
 
 
 # --------------------------------------------------------------------------

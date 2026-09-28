@@ -14,6 +14,11 @@ urlpatterns = [
     # -- the FAA registry -------------------------------------------------
     path("aircraft/registry", views.RegistryStatusView.as_view(), name="registry"),
     path(
+        "aircraft/registrations",
+        views.RegistrationSearchView.as_view(),
+        name="registrations",
+    ),
+    path(
         "aircraft/registry/<str:n_number>",
         views.RegistrationLookupView.as_view(),
         name="registry-lookup",

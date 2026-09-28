@@ -5,10 +5,11 @@
  * and `make e2e` points `FAA_REGISTRY_URL` at the same directory, so Run now
  * imports the fixture again rather than downloading the FAA's registry.
  * `seed_facts` names a registration the fixture holds and the register does not
- * (`registry.knownNNumber`) and what a Look up on it answers.
+ * (`registry.knownNNumber`) and what the registry says of it.
  *
- * A member adds that airplane from My aircraft: Look up fills its type, year, and
- * owner, and a misspelled `cesna 172` still finds the Cessna 172.  An account
+ * A member adds that airplane from My aircraft: typing the start of its N-number
+ * lists it, picking it fills its type, year, and owner, and a misspelled
+ * `cesna 172` still finds the Cessna 172.  An account
  * administrator adds an aircraft type the FAA has never registered from the
  * register's New aircraft form.  The system administrator runs the import.
  */
@@ -79,20 +80,30 @@ function unusedModel(): string {
   return `Zq${letters.join('')}`;
 }
 
-test('a member looks up a registration and picks a misspelled type', async ({ page }) => {
+test('a member picks a registration from the N-number list and a misspelled type', async ({
+  page,
+}) => {
   await signIn(page, DEMO.member);
   await page.goto('portal/profile/aircraft');
   await page.getByRole('button', { name: 'Add a new aircraft' }).click();
 
-  await page.getByRole('textbox', { name: /^N-number/ }).fill(REGISTRY.knownNNumber);
-  await page.getByRole('button', { name: 'Look up' }).click();
+  const prefix = REGISTRY.knownNNumber.slice(0, -1);
+  await page.getByRole('combobox', { name: /^N-number/ }).pressSequentially(prefix);
+  const registrations = page.getByRole('listbox', { name: 'FAA registrations' });
+  await expect(registrations).toBeVisible();
+  await registrations
+    .getByRole('option', { name: new RegExp(`^${REGISTRY.knownNNumber} `) })
+    .click();
 
+  await expect(page.getByRole('combobox', { name: /^N-number/ })).toHaveValue(
+    REGISTRY.knownNNumber,
+  );
   await expect(page.getByText(`From the FAA registry as of ${REGISTRY.asOf}`)).toBeVisible();
   await expect(typeBox(page)).toHaveValue(REGISTRY.knownType);
   await expect(page.getByRole('textbox', { name: 'Year', exact: true })).toHaveValue(
     String(REGISTRY.knownYear),
   );
-  await expect(page.getByRole('textbox', { name: 'Owner', exact: true })).toHaveValue(
+  await expect(page.getByRole('textbox', { name: 'Owner name', exact: true })).toHaveValue(
     REGISTRY.knownOwner,
   );
 
@@ -115,9 +126,7 @@ test('an account administrator adds a type the FAA has never registered', async 
   await page.getByRole('button', { name: 'New aircraft' }).click();
 
   const nNumber = unusedNNumber();
-  await page.getByRole('textbox', { name: /^N-number/ }).fill(nNumber);
-  await page.getByRole('button', { name: 'Look up' }).click();
-  await expect(page.getByText('Not in the FAA registry')).toBeVisible();
+  await page.getByRole('combobox', { name: /^N-number/ }).fill(nNumber);
 
   const model = unusedModel();
   await typeBox(page).pressSequentially(`quillfeather ${model}`);

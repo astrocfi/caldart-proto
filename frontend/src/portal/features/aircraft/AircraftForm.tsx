@@ -2,8 +2,9 @@
  * The full aircraft record, in four sections: the airframe, its owner, its
  * insurance and the administrator's own notes.
  *
- * **Look up** beside the N-number fills the airframe and its owner from the FAA
- * registry, and the aircraft type is picked from the aircraft types.
+ * The same form adds a record and edits one.  The N-number box offers the FAA
+ * registry's registrations as it is typed into, and picking one fills the airframe
+ * and its owner; the aircraft type is picked from the aircraft types.
  */
 import { useState } from 'react';
 import type { JSX } from 'react';
@@ -85,7 +86,6 @@ export function AircraftForm({
             onValueChange={(next) => set('n_number', next)}
             onFound={handleFound}
             onBlur={handleBlur('n_number')}
-            savedNNumber={initial.n_number}
             error={shown.n_number}
             hint="Digits, then up to two letters"
           />

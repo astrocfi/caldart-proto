@@ -51,7 +51,8 @@ export function AircraftTypePicker({
   error,
 }: AircraftTypePickerProps): JSX.Element {
   const [text, setText] = useState(value === null ? '' : aircraftTypeName(value));
-  // The type the box last showed: a type set from outside (a Look up) writes its
+  // The type the box last showed: a type set from outside (a registration picked in
+  // the N-number box) writes its
   // name into the box, while a type dropped by typing leaves the typing alone.
   const [shownId, setShownId] = useState<number | null>(value?.id ?? null);
   const [isAdding, setIsAdding] = useState(false);

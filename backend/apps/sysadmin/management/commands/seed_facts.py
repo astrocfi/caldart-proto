@@ -210,12 +210,12 @@ COMPANY_REGISTRANTS = (RegistrantType.CORPORATION, RegistrantType.LLC)
 
 
 def _registry() -> dict[str, Any]:
-    """A registration the end-to-end lookup can find, and the date the registry is as of.
+    """The registration the end-to-end spec picks by N-number, and the registry date.
 
     ``knownNNumber`` is the first valid registration, by N-number, that carries a year
     and is on no register record, preferring one a corporation or an LLC holds;
     ``knownType``, ``knownYear``, and ``knownOwner`` are its type (``<make> <model>``),
-    year, and registrant, which is what a lookup on it answers.  ``asOf`` is the local
+    year, and registrant, which is what picking it fills in.  ``asOf`` is the local
     day the newest successful import finished, written ``YYYY/MM/DD`` as the screens
     print it.  Each is empty (``knownYear`` ``null``) when the registry holds nothing
     that fits.
@@ -257,8 +257,8 @@ def seed_facts() -> dict[str, Any]:
     standing authority charges a contribution alone.  ``refundedPayment`` names a
     member whose payment was refunded in part, and the receipt number that payment
     carries, which is how a finance spec finds it in the list.  ``registry`` names a
-    registration on no register record, for the lookup spec, and the date the registry
-    is as of (see :func:`_registry`).
+    registration on no register record, for the spec that picks it from the N-number
+    box, and the date the registry is as of (see :func:`_registry`).
     """
     return {
         "demoPassword": DEMO_PASSWORD,

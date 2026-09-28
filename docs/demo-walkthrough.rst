@@ -193,9 +193,10 @@ membership buys.*
    *Remove* button.
 
    If the airplane you fly is not in the register, press **Add a new
-   aircraft**: a short inline form adds it and selects it for you.  Type
-   ``N10131``, a registration the FAA registry holds and the register does not,
-   and press **Look up**.  The form fills from the registry, the type (a Cessna
+   aircraft**: the whole aircraft form opens under the search, adds it, and
+   selects it for you.  Type ``N1013`` in **N-number**, and the registrations
+   the FAA registry holds under it are listed under the box; pick ``N10131``,
+   one the register does not hold.  The form fills from the registry, the type (a Cessna
    150L), the year, and the owner's name, and says *From the FAA registry as of*
    the day the seed imported it.  The aircraft type is picked from a list, never
    typed free: clear the **Aircraft type** box, type ``cesna 172``, and the
