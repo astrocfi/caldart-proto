@@ -364,7 +364,7 @@ def test_email_content(
 ) -> None:
     """The subject, recipient, sender and both bodies carry the expected content."""
     settings.SITE_URL = "https://caldart.example.org/"
-    site_settings.org_name = "CalDART"
+    site_settings.org_name = "Example DART Network"
     site_settings.contact_email = "info@caldart.example.org"
     site_settings.save()
 
@@ -376,7 +376,7 @@ def test_email_content(
 
     message = mailoutbox[0]
     assert isinstance(message, EmailMultiAlternatives)
-    assert message.subject == "CalDART: your membership expires in 30 days"
+    assert message.subject == "Example DART Network: your membership expires in 30 days"
     assert message.to == [user.email]
     assert message.from_email == settings.DEFAULT_FROM_EMAIL
 
@@ -390,7 +390,7 @@ def test_email_content(
     assert mime == "text/html"
     assert isinstance(html, str)
     assert "https://caldart.example.org/portal/renew" in html
-    assert "CalDART" in html
+    assert "Example DART Network" in html
     assert "<!doctype html>" in html
 
 

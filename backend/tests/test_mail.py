@@ -148,9 +148,9 @@ def test_contact_email_is_empty_when_there_is_no_site_settings_row() -> None:
 
 def test_org_name_comes_from_the_site_settings() -> None:
     """A filled-in settings row names the organization."""
-    make_site_settings(org_name="CalDART")
+    make_site_settings(org_name="Example DART Network")
 
-    assert org_name() == "CalDART"
+    assert org_name() == "Example DART Network"
 
 
 def test_contact_email_comes_from_the_site_settings() -> None:
@@ -162,9 +162,9 @@ def test_contact_email_comes_from_the_site_settings() -> None:
 
 def test_org_details_names_the_organization() -> None:
     """The letterhead's name is the settings row's ``org_name``."""
-    make_site_settings(org_name="CalDART")
+    make_site_settings(org_name="Example DART Network")
 
-    assert org_details().name == "CalDART"
+    assert org_details().name == "Example DART Network"
 
 
 def test_org_details_carries_the_mailing_address() -> None:

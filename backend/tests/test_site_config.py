@@ -44,7 +44,7 @@ def test_anonymous_callers_get_the_chrome(
     api_client: APIClient, site_settings: SiteSettings, site_tree: Page
 ) -> None:
     """An anonymous caller gets the org name, contact email, theme and no member pages."""
-    site_settings.org_name = "CalDART"
+    site_settings.org_name = "Example DART Network"
     site_settings.contact_email = "info@caldart.example.org"
     site_settings.theme = "pacific"
     site_settings.save()
@@ -53,7 +53,7 @@ def test_anonymous_callers_get_the_chrome(
     assert response.status_code == 200
 
     data = response.json()
-    assert data["org_name"] == "CalDART"
+    assert data["org_name"] == "Example DART Network"
     assert data["contact_email"] == "info@caldart.example.org"
     assert data["theme"] == "pacific"
     assert data["members_pages"] == []
