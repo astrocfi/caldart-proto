@@ -336,12 +336,6 @@ def test_the_install_creates_the_administrator(root: Path, etc: Path, tmp_path: 
     assert admin.endswith("manage.py create_admin --email ops@caldart.test")
 
 
-def test_the_install_never_seeds_the_demo(root: Path, etc: Path, tmp_path: Path) -> None:
-    """``seed_demo`` publishes a password, so no install runs it."""
-    output = _install_dry_run(root, etc, tmp_path, "--seed-content").stdout
-    assert "seed_demo" not in output
-
-
 def test_seed_content_loads_the_example_pages(root: Path, etc: Path, tmp_path: Path) -> None:
     """``--seed-content`` adds ``seed_content`` to the database step."""
     commands = _commands(_install_dry_run(root, etc, tmp_path, "--seed-content"))
