@@ -10,7 +10,6 @@ import { DateText } from '@/portal/components/DateText';
 import { EmptyState } from '@/portal/components/EmptyState';
 import { Money } from '@/portal/components/Money';
 import { Page } from '@/portal/components/Page';
-import { ResendVerificationButton } from '@/portal/components/ResendVerificationButton';
 import { MembershipChip, PaymentChip, membershipTone } from '@/portal/components/StatusChip';
 import { automaticCardTitle, automaticKindLabel } from '@/portal/features/payments/labels';
 import { useMembership, useMyPayments } from '@/portal/features/profile/api';
@@ -24,10 +23,11 @@ const RECENT_PAYMENTS = 5;
 /**
  * `/` — the member's home.
  *
- * Reading order is the order things matter: is my address verified, is my
- * membership current, is my profile usable, what can I read, what have I paid.
- * The renewal call to action moves to the top and takes an accent edge inside
- * 30 days.  An unverified address gates nothing; the card only asks.  A friend's
+ * Reading order is the order things matter: is my membership current, what can I
+ * read, what have I paid.  Nobody reaches it before the join wizard is finished (an
+ * unverified address, an incomplete profile, and an unpaid member are all held
+ * there), so it never asks for any of those.  The renewal call to action takes an
+ * accent edge inside 30 days.  A friend's
  * membership card says what being a friend means and offers membership instead
  * of a renewal; a member's (not a life member's) offers **Make me a friend** beside
  * the renewal, or shows the day a change they asked for takes effect.
@@ -65,20 +65,6 @@ export function DashboardPage(): JSX.Element {
     <Page title={greeting} eyebrow="Member portal">
       <div className="grid">
         <div className="col-text stack-loose">
-          {user && !user.email_verified ? (
-            <Card
-              className="dashboard__nudge"
-              eyebrow="Your account"
-              title="Verify your email address"
-              footer={<ResendVerificationButton />}
-            >
-              <p>
-                Your email address, {user.email}, is unverified until you click the link in the
-                verification message we sent it.
-              </p>
-            </Card>
-          ) : null}
-
           <Card
             className={urgent ? 'dashboard__card--urgent' : undefined}
             eyebrow={isFriend ? 'Friend of CalDART' : 'Membership'}
@@ -119,20 +105,6 @@ export function DashboardPage(): JSX.Element {
               </div>
             ) : null}
           </Card>
-
-          {user && !user.profile_complete ? (
-            <Card
-              className="dashboard__nudge"
-              eyebrow="Next step"
-              title="Finish your profile"
-              footer={<ButtonLink to="/profile">Complete my profile</ButtonLink>}
-            >
-              <p>
-                We still need your phone number and address so a DART leader can reach you during an
-                activation.
-              </p>
-            </Card>
-          ) : null}
 
           {isWalledOut ? null : (
             <Card eyebrow="Members only" title="Member content">

@@ -4,20 +4,18 @@ Dashboard
 
 The **Dashboard** is the portal's home page, where you land after signing in. It
 greets you as **Welcome, <first name>** and answers, in order, the questions that
-matter: is my membership current, is my profile complete, what can I read, and
-what have I paid.
+matter: is my membership current, what can I read, and what have I paid.
+
+You reach it once you have finished joining: your address verified, your profile
+complete, and, if you joined as a member, your first payment made or a friend's
+account chosen instead. Until then every portal screen, this one included, opens
+the step of :doc:`join` you still have to finish.
 
 
 What you see
 ============
 
 The cards read down the page in this order. Each appears only when it applies.
-
-**Verify your email address**
-  Shown first, and only while your address is unverified: after you change it, or
-  when you finished joining without opening the link. It names the address and
-  offers **Resend verification message**. It goes away once you open the link (see
-  :doc:`verify-email`). Nothing else waits on it.
 
 **Membership**
   A chip with your membership's state, and the date it runs to or ran out on. The
@@ -41,13 +39,7 @@ The cards read down the page in this order. Each appears only when it applies.
   A friend's card is labeled **Friend of CalDART** and headed **You are a friend of
   CalDART**. It reads *You are a friend of CalDART: no dues, no expiry. Become a
   member any time.* and offers **Make me a member** (see :doc:`become-a-member`).
-  It never takes the colored edge. You see this card too if you joined as a member
-  and stopped before paying: you are a friend until your first payment clears.
-
-**Finish your profile**
-  Shown while your profile lacks a detail CalDART counts as essential: your phone,
-  address, city, state, or ZIP code. **Complete my profile** opens
-  :doc:`profile`. The card goes away once they are saved.
+  It never takes the colored edge.
 
 **Member content**
   The members-only pages you may read, straight from the public site (see

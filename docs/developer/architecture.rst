@@ -551,7 +551,10 @@ page's link to join.  Inside the card, an ``auth__actions`` block stacks the
 submit button at the card's full width above a centered secondary link.  A
 visitor who is not signed in gets no rail, so ``PortalLayout`` adds the
 ``portal__frame--no-rail`` class to the frame, which makes it a single column
-at every width; the page therefore has the whole window to center in.  The
+at every width; the page therefore has the whole window to center in.  A
+signed-in reader who has not finished joining (``isOnboarded`` is false) gets the
+same frame and no **Menu** toggle, since the join wizard is the only screen open
+to them; the header keeps **Help**, the address, and **Sign out**.  The
 join wizard's cards center themselves in it, and a ``.join-shell`` wrapper
 around ``JoinWizard`` (``features/join/join.css``) caps the page header and
 the step list at 46rem, centered on the same axis as the join card below,
@@ -586,7 +589,18 @@ progress bar over it.
 needs a session and sends an anonymous visitor to
 ``/login?next=<the path they asked for>``; the sign-in page returns them
 there.  ``RequireRole`` wraps each role-gated route file and shows a 403 page
-naming the role.  Both wait for ``GET /auth/me`` to settle, so a slow answer
+naming the role.  ``RequireOnboarded`` sits inside ``RequireAuth`` around every
+signed-in route but ``/change-email`` and sends a reader who has not finished
+joining to the join wizard step they owe: ``/join/verify`` while the address is
+unverified, ``/join/profile`` while the profile is incomplete, and ``/join/pay``
+while a member has never paid.  ``isOnboarded(user)`` in
+``features/join/steps.ts`` is the one definition of finished, which the guard,
+``PortalLayout``, the wizard's ``furthestJoinStep``, and the verify-email page all
+read.  The public routes (``/login``, ``/forgot-password``, ``/reset-password``,
+``/verify-email``, and ``/join/*``) sit outside it.  The server backs the first of
+those steps itself: an unverified session is refused the API beyond a few
+endpoints (see :doc:`api-auth`).  ``RequireRole`` and ``RequireAuth`` both wait
+for ``GET /auth/me`` to settle, so a slow answer
 never flashes the sign-in page, and ``system_admin`` satisfies every role.
 When the check fails outright -- a 5xx or a dropped connection, after the
 retries -- they show "We could not check your sign-in" with a **Try again**

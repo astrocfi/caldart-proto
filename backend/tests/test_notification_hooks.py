@@ -14,6 +14,7 @@ from datetime import date, timedelta
 
 import pytest
 from django.core.mail import EmailMessage
+from django.utils import timezone
 from pytest_django.fixtures import DjangoCaptureOnCommitCallbacks, Settings
 from rest_framework.test import APIClient
 
@@ -134,7 +135,11 @@ def current_term(user: User, plan: MembershipPlan, today: date) -> Membership:
 # signed_up
 # --------------------------------------------------------------------------
 def register(api_client: APIClient, email: str = NEWCOMER) -> User:
-    """Register ``email`` as a friend through ``POST /auth/register``, signed in."""
+    """Register ``email`` as a friend through ``POST /auth/register``, signed in.
+
+    The address is then marked verified, as following the link would, since the join
+    wizard's profile step and the API behind it open only to a verified address.
+    """
     response = api_client.post(
         "/api/v1/auth/register",
         {
@@ -146,6 +151,7 @@ def register(api_client: APIClient, email: str = NEWCOMER) -> User:
         },
     )
     assert response.status_code == 201
+    User.objects.filter(email=email).update(email_verified_at=timezone.now())
     return User.objects.get(email=email)
 
 

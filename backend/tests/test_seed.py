@@ -55,14 +55,13 @@ User = get_user_model()
 #: The demo friend's one contribution, which buys no term.
 SEEDED_FRIEND_GIFTS = 1
 
-#: The accounts ``seed_demo`` stores as friends: the demo friend, the treasurer, and
-#: the four generated friends.
-SEEDED_STORED_FRIENDS = 6
+#: The accounts ``seed_demo`` stores as friends: the demo friend, the treasurer, the
+#: verifier, and the four generated friends.
+SEEDED_STORED_FRIENDS = 7
 
-#: The accounts whose membership reads ``friend``: the stored friends, the four
-#: generated joiners who chose member and never paid, and the demo verifier, who
-#: holds no term.
-SEEDED_EFFECTIVE_FRIENDS = SEEDED_STORED_FRIENDS + 4 + 1
+#: The accounts whose membership reads ``friend``: the stored friends and the four
+#: generated joiners who chose member and never paid.
+SEEDED_EFFECTIVE_FRIENDS = SEEDED_STORED_FRIENDS + 4
 
 #: The donors ``seed_demo`` makes, and the gifts they gave between them.
 SEEDED_DONORS = len(DONOR_GIFT_COUNTS)
@@ -742,3 +741,48 @@ def test_seed_demo_twice_keeps_one_registry() -> None:
         Registration.objects.count(),
         RegistryImport.objects.count(),
     ) == (330, 210, 2)
+
+
+def test_seed_demo_completes_every_seeded_profile() -> None:
+    """Every seeded account that can sign in and has a profile has a complete one.
+
+    No seeded sign-in is therefore held at the join wizard's profile step.  A donor
+    cannot sign in, so a donor's partial profile is left out.
+    """
+    _seed()
+    incomplete = [
+        profile.user.email
+        for profile in MemberProfile.objects.select_related("user").exclude(
+            user__kind=AccountKind.DONOR
+        )
+        if not profile.is_complete
+    ]
+    assert incomplete == []
+
+
+def test_seed_demo_leaves_no_demo_account_owing_its_first_dues() -> None:
+    """No demo account is a member who has never held a term.
+
+    The portal would hold such an account at the join wizard's pay step; each demo
+    account is a friend, or has held a membership.
+    """
+    _seed()
+    owing = [
+        email
+        for _key, email, *_rest in DEMO_ACCOUNTS
+        if (user := User.objects.get(email=email)).kind == AccountKind.MEMBER
+        and membership_status(user)["status"] == MembershipState.FRIEND
+        and user.friend_on is None
+    ]
+    assert owing == []
+
+
+def test_seed_demo_verifies_every_demo_address() -> None:
+    """Every demo account's address is verified, so none meets the verify step."""
+    _seed()
+    unverified = [
+        email
+        for _key, email, *_rest in DEMO_ACCOUNTS
+        if not User.objects.get(email=email).email_verified
+    ]
+    assert unverified == []

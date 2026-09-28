@@ -20,6 +20,12 @@
  * once, where the keys are known.  A host where paying is optional passes
  * `onSkip`, and the widget offers a quiet **Not now** button under the provider
  * tabs that calls it.
+ *
+ * A host joining somebody as a member may pass `onBecomeFriend`: in `join` mode the
+ * plan list then ends with a card for changing one's mind and becoming a friend of
+ * CalDART instead.  Choosing it hides the contribution and the payment methods behind
+ * one **Continue as a friend** button, which asks the server to make the account a
+ * friend (`POST /me/kind/friend`) and then calls `onBecomeFriend`.
  */
 import { useEffect, useId, useMemo, useState } from 'react';
 import type { JSX } from 'react';
@@ -32,9 +38,10 @@ import { formatDate, todayIso } from '@/portal/components/DateText';
 import { EmptyState } from '@/portal/components/EmptyState';
 import { formatCents } from '@/portal/components/Money';
 import { MandateSetupTabs } from '@/portal/features/payments/MandateSetupTabs';
+import { useBecomeFriend } from '@/portal/features/profile/api';
 import { PROVIDER_ORDER, usePaymentsConfig } from './api';
 import { ContributionChooser } from './ContributionChooser';
-import { PlanChooser } from './PlanChooser';
+import { FRIEND_CHOICE, PlanChooser } from './PlanChooser';
 import { ProviderTabs } from './ProviderTabs';
 import { RecurringDonationFields } from './RecurringDonationFields';
 import type { RecurringDonation } from './RecurringDonationFields';
@@ -57,6 +64,11 @@ export type { CheckoutProps, CheckoutResult } from './types';
 export interface SkippableCheckoutProps extends CheckoutProps {
   /** Called by the **Not now** button; the button is shown only when this is given. */
   onSkip?: () => void;
+  /**
+   * Called once the account has become a friend from the friend card; the card is
+   * offered only in `join` mode, and only when this is given.
+   */
+  onBecomeFriend?: () => void;
 }
 
 /**
@@ -68,9 +80,11 @@ export function Checkout({
   onSuccess,
   onScheduled: handleScheduled,
   onSkip: handleSkip,
+  onBecomeFriend: handleBecomeFriend,
 }: SkippableCheckoutProps): JSX.Element {
   const { data: config, isPending, error } = usePaymentsConfig();
   const { user } = useAuth();
+  const becomeFriend = useBecomeFriend();
 
   const [plan, setPlan] = useState<string>(DEFAULT_PLAN);
   const [contributionCents, setContributionCents] = useState(0);
@@ -128,6 +142,36 @@ export function Checkout({
   }
 
   const isContributing = effectiveMode === 'contribute';
+  const offersFriend = effectiveMode === 'join' && handleBecomeFriend !== undefined;
+  const isFriendChosen = offersFriend && plan === FRIEND_CHOICE;
+
+  function handleContinueAsFriend(): void {
+    becomeFriend.mutate({}, { onSuccess: () => handleBecomeFriend?.() });
+  }
+
+  if (isFriendChosen) {
+    return (
+      <Card eyebrow={heading.eyebrow} title={heading.title} className="checkout">
+        <PlanChooser
+          plans={config.plans}
+          value={FRIEND_CHOICE}
+          onChange={(next) => setPlan(next)}
+          disabled={becomeFriend.isPending}
+          offerFriend
+        />
+        {becomeFriend.error ? (
+          <p className="field__error" role="alert">
+            {becomeFriend.error.message}
+          </p>
+        ) : null}
+        <div className="cluster card__footer">
+          <Button onClick={handleContinueAsFriend} disabled={becomeFriend.isPending}>
+            Continue as a friend
+          </Button>
+        </div>
+      </Card>
+    );
+  }
 
   // "Annual" is only the default where the server offers it; anywhere else the
   // first plan on the list stands in, so the chooser always has a selection.
@@ -186,6 +230,7 @@ export function Checkout({
           plans={config.plans}
           value={effectivePlan}
           onChange={(next) => setPlan(next)}
+          offerFriend={offersFriend}
         />
       )}
 

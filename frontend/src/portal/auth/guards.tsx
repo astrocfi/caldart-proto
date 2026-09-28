@@ -1,12 +1,14 @@
 /**
  * Route guards.
  *
- * Both guards wait for `GET /auth/me` to settle, so a slow answer never
+ * `RequireAuth` and `RequireRole` wait for `GET /auth/me` to settle, so a slow answer never
  * flashes the sign-in page at somebody who is in fact signed in, and then
  * take one of three outcomes: an anonymous visitor goes to `/login?next=`;
  * a signed-in user who lacks the role gets the 403 page; and a check that
  * failed outright gets an error with a "Try again" button, because a server
- * error is not a sign-out.
+ * error is not a sign-out.  `RequireOnboarded` sits inside `RequireAuth` and holds a
+ * signed-in reader who has not finished joining at the join wizard's step they still
+ * owe.
  */
 import type { JSX, ReactNode } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
@@ -18,6 +20,7 @@ import { Button, ButtonLink } from '../components/Button';
 import { EmptyState } from '../components/EmptyState';
 import { Loading } from '../components/Loading';
 import { Page } from '../components/Page';
+import { furthestJoinStep, isOnboarded } from '../features/join/steps';
 import { hasAnyRole } from '../nav';
 import { useAuth } from './useAuth';
 
@@ -65,6 +68,23 @@ export function RequireAuth({ children }: { children?: ReactNode }): JSX.Element
   if (!isAuthenticated && error != null)
     return <AuthUnavailable onRetry={handleRetry} isRetrying={isRefetching} />;
   if (!isAuthenticated) return <Navigate to={loginRedirect(location)} replace />;
+  return <>{children ?? <Outlet />}</>;
+}
+
+/**
+ * Route guard: renders the outlet only for a reader who has finished joining.
+ *
+ * A signed-in reader whose address is unverified, whose profile is incomplete, or who
+ * chose membership and has not yet paid is sent to that step of the join wizard
+ * (`/join/verify`, `/join/profile`, or `/join/pay`), which is also where they left
+ * it, since a step is left only by finishing it.  Nobody signed in, or a check still
+ * in flight, is left to `RequireAuth`, which this guard sits inside.
+ */
+export function RequireOnboarded({ children }: { children?: ReactNode }): JSX.Element {
+  const { user } = useAuth();
+  if (user !== null && !isOnboarded(user)) {
+    return <Navigate to={`/join/${furthestJoinStep(user)}`} replace />;
+  }
   return <>{children ?? <Outlet />}</>;
 }
 

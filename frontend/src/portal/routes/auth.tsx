@@ -4,10 +4,13 @@
  * These sit in `publicRoutes`, outside the shell's `RequireAuth`, so
  * `/change-password` and `/change-email` carry their own guard.  `/verify-email`
  * is public: a verification link may be opened in a browser with no session.
+ * `/change-email` stays open to a reader who has not finished joining, so a
+ * mistyped address can be corrected from the verify step; `/change-password` does
+ * not.
  */
 import type { RouteObject } from 'react-router-dom';
 
-import { RequireAuth } from '../auth/guards';
+import { RequireAuth, RequireOnboarded } from '../auth/guards';
 import {
   ChangePasswordPage,
   ForgotPasswordPage,
@@ -26,7 +29,9 @@ export const authRoutes: RouteObject[] = [
     path: 'change-password',
     element: (
       <RequireAuth>
-        <ChangePasswordPage />
+        <RequireOnboarded>
+          <ChangePasswordPage />
+        </RequireOnboarded>
       </RequireAuth>
     ),
   },

@@ -56,13 +56,21 @@ join wizard. The payment step then offers a contribution you may skip with **Not
 now**. A member pays dues: you are a member from the moment your first payment
 clears. See :doc:`member/join`.
 
+Why can I see only the Check your email screen?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Your email address is not verified yet, so nothing else in the portal is open to
+you. Open the message *CalDART: verify your email address* and follow its link.
+If it has not arrived, look in your spam folder, then press **Resend verification
+message** on that screen. See :doc:`member/verify-email`.
+
 I registered as a member but did not pay. What am I?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-A friend of CalDART, until you pay. Your dashboard shows the friend card with
-**Make me a member**, and the join wizard, opened again from **Join CalDART**, puts
-you back on **Pay your dues**. Either way, you are a member as soon as the payment
-clears. See :doc:`member/dashboard` and :doc:`member/join`.
+Not a member yet, because you have not finished joining. Every time you sign in, the join wizard
+puts you back on **Pay your dues**, and the rest of the portal stays closed until you
+pay or choose **I changed my mind, I just want to be a friend** there. You are a
+member as soon as the payment clears. See :doc:`member/join`.
 
 How do I stop being a member but keep supporting CalDART?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

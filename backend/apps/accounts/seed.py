@@ -54,10 +54,12 @@ DEMO_ACCOUNTS: tuple[tuple[str, str, str, str, tuple[str, ...], bool], ...] = (
 )
 
 #: The demo accounts that are not members, keyed as in ``DEMO_ACCOUNTS``: every
-#: other one is a member.  The treasurer holds no term, so is a friend.
+#: other one is a member.  The treasurer and the verifier hold no term, so are stored
+#: as friends: a member who has never paid is held at the join wizard's pay step.
 DEMO_KINDS: dict[str, AccountKind] = {
     "friend": AccountKind.FRIEND,
     "treasurer": AccountKind.FRIEND,
+    "verifier": AccountKind.FRIEND,
 }
 
 #: The demo accounts whose profile the seed writes from fixed values rather than from

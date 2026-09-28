@@ -9,7 +9,15 @@
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
-import { SEED, followVerificationLink, formatCents, signIn, uniqueEmail } from './helpers';
+import {
+  JOINER_PASSWORD,
+  SEED,
+  followVerificationLink,
+  formatCents,
+  registerAccount,
+  signIn,
+  uniqueEmail,
+} from './helpers';
 
 /**
  * Walk the public site the way a visitor does: the Join CalDART page from the
@@ -113,4 +121,46 @@ test('a life member contributes where the renew screen would renew', async ({ pa
 
   await expect(page.getByText('Thank you for your contribution.').first()).toBeVisible();
   await expect(page).toHaveURL(/\/portal\/?$/);
+});
+
+test('an unverified joiner sees only the verify screen, even after signing in again', async ({
+  page,
+}) => {
+  const email = uniqueEmail('waiting');
+  await registerAccount(page, email, { as: 'member', firstName: 'Vera' });
+  const rail = page.getByRole('navigation', { name: 'Portal sections' });
+  await expect(rail).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Menu' })).toHaveCount(0);
+
+  // Every other screen sends them back, and the API refuses them too.
+  await page.goto('portal/profile');
+  await expect(page).toHaveURL(/\/portal\/join\/verify/);
+  const refused = await page.request.get('api/v1/me/profile');
+  expect(refused.status()).toBe(403);
+  expect(await refused.json()).toMatchObject({ code: 'email_unverified' });
+
+  // Signing out and in again lands on the same screen, with the offer to resend.
+  await page.getByRole('button', { name: 'Sign out' }).click();
+  await expect(page).toHaveURL(/\/portal\/login/);
+  await page.getByRole('textbox', { name: 'Email address' }).fill(email);
+  await page.getByLabel(/^Password/).fill(JOINER_PASSWORD);
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await expect(page).toHaveURL(/\/portal\/join\/verify/);
+  await page.getByRole('button', { name: 'Resend verification message' }).click();
+  await expect(page.getByText(`Verification message sent to ${email}.`)).toBeVisible();
+  await expect(rail).toHaveCount(0);
+
+  // Following the link opens the profile step, still with no rail.
+  await followVerificationLink(page, email);
+  await expect(page.getByRole('heading', { name: 'About you' })).toBeVisible();
+  await expect(rail).toHaveCount(0);
+});
+
+test('a demo administrator signs in straight to the dashboard', async ({ page }) => {
+  await signIn(page, SEED.accounts.accountadmin);
+
+  await expect(page).toHaveURL(/\/portal\/?$/);
+  await expect(page.getByRole('heading', { name: /^Welcome, / })).toBeVisible();
+  // On a phone the rail sits in the closed drawer, hidden, so look for the element itself.
+  await expect(page.locator('#portal-nav')).toHaveCount(1);
 });

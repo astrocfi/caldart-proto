@@ -2,13 +2,13 @@ import { act, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it } from 'vitest';
-import { Route, Routes, useSearchParams } from 'react-router-dom';
+import { Route, Routes, useLocation, useSearchParams } from 'react-router-dom';
 
-import type { RoleSlug } from '../api/types';
+import type { MembershipStatus, RoleSlug, User } from '../api/types';
 import { API, makeUser, signedInAs } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
-import { RequireAuth, RequireRole, loginRedirect } from './guards';
+import { RequireAuth, RequireOnboarded, RequireRole, loginRedirect } from './guards';
 import { AUTH_ME_KEY } from './useAuth';
 
 /** `/auth/me` answers 500, as it does while the backend is restarting. */
@@ -233,5 +233,75 @@ describe('the 403 page', () => {
     );
     expect(await screen.findByText(/open to the User administrator role/i)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /go to the dashboard/i })).toBeInTheDocument();
+  });
+});
+
+describe('RequireOnboarded', () => {
+  const UNPAID: MembershipStatus = {
+    status: 'friend',
+    expires_on: null,
+    plan: null,
+    is_lifetime: false,
+  };
+
+  function JoinStub() {
+    return <p>join wizard</p>;
+  }
+
+  function WhereAmI() {
+    return <p>{useLocation().pathname}</p>;
+  }
+
+  /** Render the guard around a secret page for `user`, with a stub wizard to land on. */
+  function renderGate(user: User) {
+    server.use(signedInAs(user));
+    return renderWithProviders(
+      <Routes>
+        <Route
+          path="/join/:step"
+          element={
+            <>
+              <JoinStub />
+              <WhereAmI />
+            </>
+          }
+        />
+        <Route
+          path="/secret"
+          element={
+            <RequireOnboarded>
+              <Secret />
+            </RequireOnboarded>
+          }
+        />
+      </Routes>,
+      { route: '/secret' },
+    );
+  }
+
+  it.each([
+    ['an unverified address', makeUser({ email_verified: false }), '/join/verify'],
+    ['an incomplete profile', makeUser({ profile_complete: false }), '/join/profile'],
+    ['an unpaid member', makeUser({ kind: 'member', membership: UNPAID }), '/join/pay'],
+  ])('sends %s to the step still to finish', async (_label, user, step) => {
+    renderGate(user);
+    expect(await screen.findByText('join wizard')).toBeInTheDocument();
+    expect(screen.getByText(step)).toBeInTheDocument();
+  });
+
+  it('keeps the guarded page from a reader who has not finished joining', async () => {
+    renderGate(makeUser({ email_verified: false }));
+    await screen.findByText('join wizard');
+    expect(screen.queryByText('secret content')).not.toBeInTheDocument();
+  });
+
+  it('lets a friend with a complete profile through', async () => {
+    renderGate(makeUser({ kind: 'friend', membership: UNPAID }));
+    expect(await screen.findByText('secret content')).toBeInTheDocument();
+  });
+
+  it('lets an onboarded member through', async () => {
+    renderGate(makeUser());
+    expect(await screen.findByText('secret content')).toBeInTheDocument();
   });
 });

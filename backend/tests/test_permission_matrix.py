@@ -231,6 +231,7 @@ def test_only_user_administrators_may_send_an_email_verification(
     allowed: bool,
 ) -> None:
     """A user or system administrator may resend a verification link; others get 403."""
+    User.objects.filter(pk=target_member.pk).update(email_verified_at=None)
     api_client.force_login(all_role_users[role])
     response = api_client.post(send_verification_url(target_member))
     assert response.status_code == (202 if allowed else 403)

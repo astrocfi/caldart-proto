@@ -4,22 +4,13 @@
  */
 import { expect, test } from '@playwright/test';
 
-import { followVerificationLink, uniqueEmail } from './helpers';
-
-const PASSWORD = 'a-long-demo-passphrase';
+import { JOINER_PASSWORD as PASSWORD, completeOnboarding, uniqueEmail } from './helpers';
 
 test('a person deactivates their account and reactivates it at sign-in', async ({ page }) => {
   const email = uniqueEmail('leaver');
 
   // A fresh account, so no other spec's demo account is touched.
-  await page.goto('portal/join');
-  await page.getByRole('textbox', { name: 'First name' }).fill('Lena');
-  await page.getByRole('textbox', { name: 'Last name' }).fill('Park');
-  await page.getByRole('textbox', { name: 'Email address' }).fill(email);
-  await page.getByLabel(/^Password/).fill(PASSWORD);
-  await page.getByRole('button', { name: 'Create account' }).click();
-  await expect(page.getByRole('heading', { name: 'Check your email' })).toBeVisible();
-  await followVerificationLink(page, email);
+  await completeOnboarding(page, email, { as: 'friend', firstName: 'Lena' });
 
   // Deactivate from the foot of the profile page.
   await page.goto('portal/profile');

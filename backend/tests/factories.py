@@ -103,8 +103,11 @@ class UserFactory(ModelFactory["UserModel"]):
     """Builds a ``User``, reusing an existing row with the same email.
 
     ``roles=[...]`` grants each named role slug through ``User.add_role`` after
-    creation; omitting it leaves the user with no roles. The user's password is set to
-    ``DEFAULT_PASSWORD`` unless ``password=...`` supplies another plaintext value.
+    creation; omitting it leaves the user with no roles.  The address is verified
+    (``email_verified_at`` is the time of creation), since an unverified account may
+    use almost none of the API; pass ``email_verified_at=None`` for one that is not.
+    The user's password is set to ``DEFAULT_PASSWORD`` unless ``password=...``
+    supplies another plaintext value.
     """
 
     class Meta:
@@ -117,6 +120,7 @@ class UserFactory(ModelFactory["UserModel"]):
     last_name = factory.Faker("last_name")
     is_active = True
     kind = AccountKind.MEMBER
+    email_verified_at = factory.LazyFunction(timezone.now)
 
     # factory.post_generation is untyped (a factory_boy stub gap), which otherwise
     # makes the decorated function untyped too under strict mode.

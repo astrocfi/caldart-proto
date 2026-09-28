@@ -50,23 +50,42 @@ export function nextJoinStep(step: JoinStep): JoinStep {
 }
 
 /**
+ * True when `user` has finished joining, so the rest of the portal is open to them.
+ *
+ * That takes a verified address, a complete profile, and, for somebody who chose to
+ * be a member, a membership they have paid for: a stored friend owes nothing.  A
+ * member whose term has run out has joined already (renewing is not joining), and so
+ * has a member who asked to become a friend (`friend_on` is set).  Nobody signed in
+ * has not joined.  This is the one definition: the wizard's resume point, the route
+ * guard, and the layout's rail all read it.
+ */
+export function isOnboarded(user: User | null): boolean {
+  if (user === null) return false;
+  return user.email_verified && user.profile_complete && !owesFirstDues(user);
+}
+
+/** A member who has never held a paid term and has not asked to become a friend. */
+function owesFirstDues(user: User): boolean {
+  return user.kind === 'member' && user.membership.status === 'friend' && user.friend_on === null;
+}
+
+/**
  * How far the visitor has got, from the server's view of them.
  *
  * No session at all means they still need an account; an address nobody has
  * verified yet means they still have to click the link we mailed; a session
- * without a usable profile means the profile step.  After that it turns on the
- * kind they chose (`joiningAs`): somebody joining as a member without a current
- * membership still owes the fee, so is at the pay step however often they leave
- * and come back, while a friend owes nothing, so a friend with a complete profile
- * has joined: the wizard offers them the pay step only on the way through from the
- * profile step, never as the place to resume.
+ * without a usable profile means the profile step; a member who still owes their
+ * first dues is at the pay step however often they leave and come back.  Everybody
+ * else (`isOnboarded`) has joined.  A friend owes nothing, so the wizard offers a
+ * friend the pay step only on the way through from the profile step, never as the
+ * place to resume.  Because a step is left only by finishing it, this is also the
+ * step the visitor last saw.
  */
 export function furthestJoinStep(user: User | null): JoinStep {
   if (!user) return 'account';
   if (!user.email_verified) return 'verify';
   if (!user.profile_complete) return 'profile';
-  if (joiningAs(user) === 'friend') return 'done';
-  if (user.membership.status !== 'current') return 'pay';
+  if (!isOnboarded(user)) return 'pay';
   return 'done';
 }
 
