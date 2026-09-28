@@ -280,7 +280,7 @@ def test_nginx_refuses_the_documents_directory() -> None:
 def test_apache_refuses_the_documents_directory() -> None:
     """The Apache config denies all access to the documents media directory."""
     pattern = (
-        r"<Directory\s+\"?/opt/caldart/backend/media/documents\"?\s*>"
+        r"<Directory\s+\"?/opt/caldart/media/documents\"?\s*>"
         r"[^<]*Require\s+all\s+denied"
     )
     assert re.search(pattern, config_text(APACHE)) is not None

@@ -138,7 +138,10 @@ backup.
            --email-url smtp+tls://user:password@smtp.example.org:587 \
            --admin-email you@example.org
 
-``sudo /opt/caldart/deploy/upgrade.sh`` upgrades it later.  The Deployment page
+The checkout lands in ``/opt/caldart/caldart``, with the database dumps in
+``/opt/caldart/backups`` and the uploads in ``/opt/caldart/media`` beside it,
+and ``sudo /opt/caldart/caldart/deploy/upgrade.sh`` upgrades it later.  The
+Deployment page
 of the developer guide, ``docs/developer/deployment.rst``, describes every flag
 and every step the scripts run.
 

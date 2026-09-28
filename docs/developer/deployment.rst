@@ -19,10 +19,40 @@ the steps, each titled with the script that runs it and showing the commands
 that script runs, so the page reads both as the description of the installer
 and as what to do by hand when one step needs attention.
 
-The deploy root is ``/opt/caldart``, which is what the shipped files say.
-Clone anywhere else and the scripts follow: every unit and vhost they install
-has ``/opt/caldart`` replaced by the real root as it is copied, and
-``deploy/gunicorn.conf.py`` finds the checkout from its own location.
+
+.. _deploy-layout:
+
+The deploy root
+===============
+
+The deploy root is ``/opt/caldart``, which is what the shipped files say.  It
+holds the checkout and, beside it, everything the site writes that must outlive
+the code, so a dump or an upload is never inside the git checkout:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 35 65
+
+   * - Path
+     - What it holds
+   * - ``/opt/caldart/caldart``
+     - the checkout of this repository, owned by root and readable by the
+       ``caldart`` service user, with the build output inside it: the
+       virtualenv in ``.venv``, the frontend in ``frontend/dist``, the static
+       files in ``backend/staticfiles``, and the user guide in ``docs/_build``
+   * - ``/opt/caldart/backups``
+     - the database dumps (``BACKUP_DIR``), owned by the service user
+   * - ``/opt/caldart/media``
+     - Wagtail's image and document uploads (``MEDIA_ROOT``), owned by the
+       service user
+
+Every script finds the checkout from its own location, and the deploy root as
+the checkout's parent, so a clone anywhere else works as well: every unit,
+vhost, and snippet the scripts install has ``/opt/caldart/caldart`` replaced by
+the real checkout and ``/opt/caldart`` by the real deploy root as it is copied,
+and ``deploy/gunicorn.conf.py`` finds the checkout from its own location.  The
+install record's ``CALDART_ROOT`` names the deploy root for the operator;
+nothing reads it back.
 
 
 .. _deploy-install-scripts:
@@ -40,14 +70,16 @@ and 443 open, one command installs everything::
           --email-url smtp+tls://user:password@smtp.example.org:587 \
           --admin-email you@example.org
 
-``bootstrap.sh`` installs ``git`` if the box has none, clones
-``https://github.com/astrocfi/caldart-proto.git`` into ``/opt/caldart`` (or,
-when a checkout is already there, fetches and checks out the ref), and runs
-``deploy/install.sh`` from it with every other flag passed through untouched.
-``CALDART_ROOT`` in its environment clones somewhere else.  On a server that
-already has the checkout, run the installer directly::
+``bootstrap.sh`` installs ``git`` if the box has none, creates the deploy root
+``/opt/caldart`` when it is missing, clones
+``https://github.com/astrocfi/caldart-proto.git`` into ``/opt/caldart/caldart``
+(or, when a checkout is already there, fetches and checks out the ref), and
+runs ``deploy/install.sh`` from it with every other flag passed through
+untouched.  ``CALDART_ROOT`` in its environment names another deploy root; the
+checkout always goes in its ``caldart`` directory.  On a server that already
+has the checkout, run the installer directly::
 
-  sudo /opt/caldart/deploy/install.sh --hostname caldart.example.org ...
+  sudo /opt/caldart/caldart/deploy/install.sh --hostname caldart.example.org ...
 
 The flags:
 
@@ -135,7 +167,7 @@ environment file sets ``SECURE_HSTS_SECONDS=0`` so no browser remembers HSTS
 for a name the box does not own.  There is no plain-HTTP mode:
 ``caldart.settings.prod`` insists on secure cookies and redirects HTTP to HTTPS.
 
-**The install record.**  The values that describe the box (the root, the
+**The install record.**  The values that describe the box (the deploy root, the
 hostname, ``www``, the web server, the TLS mode, the certbot address, staging,
 the database port, the gunicorn port, the URL prefix, and the attached vhost file) are written to ``/etc/caldart/install.conf``,
 ``root:root``, mode ``0644``, holding no secret.  Every step reads it, so a
@@ -156,7 +188,7 @@ are all left as they are, so a second run repairs or re-applies an install and
 never destroys data or overwrites a secret.  Each step also runs alone, reading
 what it needs from the record::
 
-  sudo /opt/caldart/deploy/steps/web-server.sh
+  sudo /opt/caldart/caldart/deploy/steps/web-server.sh
 
 ``--dry-run`` on any script (or ``CALDART_DRY_RUN=1`` in its environment) prints
 every command that would change the machine, prefixed ``+``, instead of running
@@ -216,7 +248,7 @@ What you are deploying
           Smtp [label="SMTP server\l  from EMAIL_URL\l"];
 
           subgraph cluster_server {
-              label="One Linux server, deploy root /opt/caldart";
+              label="One Linux server, deploy root /opt/caldart,\lcheckout /opt/caldart/caldart\l";
               fontname="Helvetica";
               fontsize=11;
               style=dashed;
@@ -226,7 +258,7 @@ What you are deploying
               Gunicorn [label="gunicorn 127.0.0.1\l  :CALDART_GUNICORN_PORT, 8001 by default\l  caldart-web.service\l  deploy/gunicorn.conf.py\l  2 x CPU + 1 workers, max 12\l  timeout 60, preload\l"];
               Django [label="Django 6 + Wagtail 8\l  caldart.settings.prod\l  /static/ via whitenoise\l"];
               Postgres [label="Postgres in Docker\l  :CALDART_DB_PORT, 5432 by default\l  compose service db\l"];
-              Media [label="backend/media/\l  Wagtail uploads;\l  documents/ denied to\l  the web server\l", shape=folder, style=""];
+              Media [label="/opt/caldart/media/\l  MEDIA_ROOT, Wagtail uploads;\l  documents/ denied to\l  the web server\l", shape=folder, style=""];
               Env [label="/etc/caldart/caldart.env\l  root:caldart 0640\l  EnvironmentFile for\l  all seven services\l", shape=note, style=""];
 
               Apache -> Gunicorn [label="HTTP 127.0.0.1:CALDART_GUNICORN_PORT\lX-Forwarded-Proto: https\l"];
@@ -271,7 +303,7 @@ What you are deploying
           Statements [label="caldart-statements.timer\l  yearly Jan 15, 06:45 ->\l  caldart-statements.service\l  manage.py send_year_statements\l"];
           Registry [label="caldart-registry.timer\l  daily 04:30 ->\l  caldart-registry.service\l  manage.py import_faa_registry\l"];
           Backup [label="caldart-backup.timer\l  daily 03:30 ->\l  caldart-backup.service\l  manage.py db_backup,\l  then prunes old dumps\l"];
-          Dumps [label="backups/\l  BACKUP_DIR, kept for\l  BACKUP_RETENTION_DAYS\l", shape=folder, style=""];
+          Dumps [label="/opt/caldart/backups/\l  BACKUP_DIR, kept for\l  BACKUP_RETENTION_DAYS\l", shape=folder, style=""];
           Faa [label="registry.faa.gov\l  ReleasableAircraft.zip\l"];
           Stripe [label="Stripe and PayPal\l  off-session charges\l"];
           Postgres [label="Postgres in Docker\l  :CALDART_DB_PORT, 5432 by default\l"];
@@ -311,7 +343,8 @@ What you are deploying
                                   |                   |  caldart-web.service
                                   |                   |  2 x CPU + 1 workers,
             serves /media/ -------'                   |  max 12, timeout 60
-            off disk; documents/ is denied,           v
+            off /opt/caldart/media;                   |
+            documents/ is denied,                     v
             because Django's members-only       Django 6 + Wagtail 8
             check is the only way in            caldart.settings.prod
                                                 /static/ via whitenoise
@@ -322,7 +355,8 @@ What you are deploying
       caldart-backup.timer, daily 03:30               ^
         -> caldart-backup.service                     |
            manage.py db_backup -----------------------|
-           -> backups/ (BACKUP_DIR), then deletes     |
+           -> /opt/caldart/backups (BACKUP_DIR),      |
+              then deletes                            |
               dumps older than BACKUP_RETENTION_DAYS  |
                                                       |
       caldart-registry.timer, daily 04:30             |
@@ -355,7 +389,8 @@ What you are deploying
            -> the SMTP server, for the contribution statements
 
    Apache, gunicorn, Postgres, and the six timers run on one Linux server with
-   the deploy root ``/opt/caldart``, and all seven services (``caldart-web`` and
+   the deploy root ``/opt/caldart`` and the checkout in
+   ``/opt/caldart/caldart``, and all seven services (``caldart-web`` and
    the six job services) read their settings from ``/etc/caldart/caldart.env``
    (``root:caldart``, mode ``0640``).  Django calls out to ``api.stripe.com``
    and ``api-m.paypal.com`` during a checkout, and to the same SMTP server for
@@ -456,14 +491,14 @@ the system has another version.  Step 6 tells it to put the download in
       --shell /usr/sbin/nologin caldart
   sudo install -d -o root -g caldart -m 0750 /etc/caldart
   sudo install -d -o caldart -g caldart \
-      /opt/caldart/backend/media \
-      /opt/caldart/backend/staticfiles \
-      /opt/caldart/backups
+      /opt/caldart/backups \
+      /opt/caldart/media \
+      /opt/caldart/caldart/backend/staticfiles
 
 ``useradd`` runs only when the user is missing.  Its home is ``/home/caldart``,
 its own directory and never the checkout; nothing is ever written there,
 because the units keep ``/home`` out of reach (``ProtectHome=true``) and the
-services write only under the checkout.  An existing user whose home is
+services write only the three directories above.  An existing user whose home is
 somewhere else (an earlier install put it at the checkout) is given the
 directory and pointed at it with ``usermod --home``; the old home is left as
 it is.  The user is not in the ``docker`` group: nothing the services run
@@ -472,10 +507,12 @@ talks to Docker, since the backups use the local ``pg_dump``.
 The checkout is owned by root and readable by the service user.  The web unit
 mounts everything read-only except the three directories above, which the
 service user owns, and ``caldart-web.service`` refuses to start when a
-directory it lists in ``ReadWritePaths`` is missing.  ``backend/media`` holds
-Wagtail's uploads, ``backend/staticfiles`` what ``collectstatic`` writes, and
-``backups`` the database dumps.  All three are gitignored, so an upgrade never
-touches them.
+directory it lists in ``ReadWritePaths`` is missing.  ``backups`` in the deploy
+root holds the database dumps and ``media`` beside it Wagtail's uploads, both
+outside the checkout (:ref:`deploy-layout`), so neither git nor an upgrade
+ever sees them, and a reinstall keeps whatever they hold.
+``backend/staticfiles`` in the checkout holds what ``collectstatic`` writes;
+it is build output, and gitignored.
 
 
 .. _deploy-checkout:
@@ -486,15 +523,19 @@ touches them.
 ``bootstrap.sh`` makes the checkout before ``install.sh`` starts, so on a
 scripted install this step runs first::
 
-  sudo git clone https://github.com/astrocfi/caldart-proto.git /opt/caldart
-  sudo git -C /opt/caldart checkout main
+  sudo install -d /opt/caldart
+  sudo git clone https://github.com/astrocfi/caldart-proto.git /opt/caldart/caldart
+  sudo git -C /opt/caldart/caldart checkout main
 
 ``git clone`` refuses a directory with anything in it, so ``bootstrap.sh``
-stops when ``/opt/caldart`` exists, is not empty, and is not a checkout.  When
-it is a checkout, ``bootstrap.sh`` fetches, checks out ``--ref``, and pulls a
-branch instead of cloning.  ``--repo`` clones from another URL or a local path.
+stops when ``/opt/caldart/caldart`` exists, is not empty, and is not a
+checkout.  The deploy root around it may hold anything: a ``backups`` or
+``media`` directory from an earlier install stays as it is.  When
+``/opt/caldart/caldart`` is a checkout, ``bootstrap.sh`` fetches, checks out
+``--ref``, and pulls a branch instead of cloning.  ``--repo`` clones from
+another URL or a local path.
 
-Every command from here on runs from ``/opt/caldart``.
+Every command from here on runs from the checkout, ``/opt/caldart/caldart``.
 
 
 4. Postgres in Docker (``steps/postgres.sh``)
@@ -529,14 +570,14 @@ A later run finds its own container holding the port and skips the check.
 
 **deploy/compose.sh.**  Run ``docker compose`` on the server through
 ``deploy/compose.sh``, which loads the install record, exports
-``CALDART_DB_PORT``, changes to the deploy root, and hands its arguments to
+``CALDART_DB_PORT``, changes to the checkout, and hands its arguments to
 ``docker compose``::
 
   sudo deploy/compose.sh ps
   sudo deploy/compose.sh logs -f db
   sudo deploy/compose.sh exec -T db psql -U caldart -d caldart
 
-A plain ``sudo docker compose up`` in the deploy root works on a box that kept
+A plain ``sudo docker compose up`` in the checkout works on a box that kept
 port 5432, but on one that moved it the missing variable publishes the
 container on 5432 again.  ``--dry-run`` before the command prints it instead,
 with the port it would use.
@@ -611,7 +652,7 @@ The record keeps it as ``CALDART_GUNICORN_PORT``, and a record without that key
 means 8001.  gunicorn reads it from ``CALDART_GUNICORN_PORT`` in the environment
 file, and every shipped file that names gunicorn's address (both vhosts, both
 snippets, and the nginx upstream) is copied with the port written in, as the
-deploy root is.  The gunicorn step stops before it installs the unit when the
+checkout and the deploy root are.  The gunicorn step stops before it installs the unit when the
 port is taken (:ref:`deploy-web-service`).
 
 **Moving gunicorn's port on an installed box.**  Run the installer with the
@@ -667,8 +708,10 @@ file by hand afterwards.
 
 It also sets ``CSRF_TRUSTED_ORIGINS`` to the ``https://`` form of the same
 hosts, ``DEFAULT_FROM_EMAIL`` from ``--from-email`` (``CalDART
-<noreply@HOST>`` by default), ``BACKUP_DIR`` and ``USER_GUIDE_ROOT`` under the
-deploy root, ``DB_BACKUP_VIA_DOCKER=false``, ``BACKUP_RETENTION_DAYS=30``, and
+<noreply@HOST>`` by default), ``BACKUP_DIR`` and ``MEDIA_ROOT`` to the deploy
+root's ``backups`` and ``media`` (beside the checkout, :ref:`deploy-layout`),
+``USER_GUIDE_ROOT`` to the checkout's ``docs/_build/guide``,
+``DB_BACKUP_VIA_DOCKER=false``, ``BACKUP_RETENTION_DAYS=30``, and
 ``CALDART_GUNICORN_PORT`` to the gunicorn port the record names (8001 unless
 ``--gunicorn-port`` says otherwise), printing that one line under its stage
 line, a dry run included; with ``--url-prefix``, ``URL_PREFIX`` (``SITE_URL`` must end in it, and
@@ -711,13 +754,13 @@ provider secrets; it is never world-readable and never committed.
 
 ::
 
-  cd /opt/caldart
+  cd /opt/caldart/caldart
   sudo env UV_PYTHON_INSTALL_DIR=/opt/uv/python uv sync --frozen --no-dev --group docs
   cd frontend && sudo npm ci && sudo npm run build && cd ..
   sudo .venv/bin/sphinx-build -n -W -b dirhtml -t guide -c docs docs/user docs/_build/guide
 
 ``uv sync --frozen`` installs the exact versions ``uv.lock`` pins, the ones the
-test suite ran against, into ``/opt/caldart/.venv``.  ``--no-dev`` leaves out
+test suite ran against, into ``/opt/caldart/caldart/.venv``.  ``--no-dev`` leaves out
 the test and lint tools, and ``--group docs`` adds Sphinx and its theme for the
 last line.  ``UV_PYTHON_INSTALL_DIR`` matters only when uv has to download
 Python 3.12: the virtualenv links to that interpreter, and under ``/root`` the
@@ -757,7 +800,7 @@ a call to it::
   sudo deploy/manage.sh health --json
 
 A management command needs the same five things ``caldart-web.service`` gives
-gunicorn: the ``caldart`` user, ``/opt/caldart/backend`` as the working
+gunicorn: the ``caldart`` user, ``/opt/caldart/caldart/backend`` as the working
 directory, ``/etc/caldart/caldart.env``,
 ``DJANGO_SETTINGS_MODULE=caldart.settings.prod``, and ``UMask=0027``.  The
 script lets systemd assemble them again, as a transient unit, instead of
@@ -768,11 +811,11 @@ never starts.  What it runs::
 
   sudo systemd-run --quiet --wait --collect --pty --pipe \
       --uid=caldart --gid=caldart \
-      --working-directory=/opt/caldart/backend \
+      --working-directory=/opt/caldart/caldart/backend \
       --property=EnvironmentFile=/etc/caldart/caldart.env \
       --property=UMask=0027 \
       --setenv=DJANGO_SETTINGS_MODULE=caldart.settings.prod \
-      /opt/caldart/.venv/bin/python manage.py "$@"
+      /opt/caldart/caldart/.venv/bin/python manage.py "$@"
 
 ``--wait`` blocks until the command finishes and hands its exit status back,
 which the script passes on, so ``deploy/manage.sh`` can be tested in a script.
@@ -859,7 +902,8 @@ the password.  ``system_admin`` plus ``is_superuser`` is what unlocks
       http://127.0.0.1:$PORT/ | head -1
 
 ``$PORT`` is the gunicorn port, 8001 unless ``--gunicorn-port`` says otherwise.
-The unit is copied with ``/opt/caldart`` replaced by the deploy root, and
+The unit is copied with ``/opt/caldart/caldart`` replaced by the checkout and
+``/opt/caldart`` by the deploy root, and
 ``restart`` both starts a stopped unit and picks up new code on an upgrade, or
 a new port on a later install.  The step then waits up to 30 seconds for the
 ``curl`` to answer ``200``, and on a timeout prints the unit's last 30 journal
@@ -875,8 +919,9 @@ does::
 A later run finds the unit installed, and gunicorn itself holding the port, and
 skips the check.
 
-The unit runs ``/opt/caldart/.venv/bin/gunicorn --config
-/opt/caldart/deploy/gunicorn.conf.py`` as ``caldart``, with
+The unit runs ``/opt/caldart/caldart/.venv/bin/gunicorn --config
+/opt/caldart/caldart/deploy/gunicorn.conf.py`` as ``caldart``, from
+``/opt/caldart/caldart/backend``, with
 ``DJANGO_SETTINGS_MODULE=caldart.settings.prod`` and the environment file from
 step 5.  ``deploy/gunicorn.conf.py`` is read in place and finds the Django
 project from its own location.  It binds loopback only, on
@@ -932,7 +977,8 @@ Use Apache or nginx, never both on the same host: the step leaves the other
 server's configuration alone and refuses to run while both ``apache2`` and
 ``nginx`` are active.  The shipped files name ``caldart.example.org``, and the
 step writes the real hostname in its place, drops the ``www.`` alias under
-``--no-www``, and replaces ``/opt/caldart`` with the deploy root, as the
+``--no-www``, and replaces ``/opt/caldart/caldart`` with the checkout and
+``/opt/caldart`` with the deploy root, as the
 commands below show by hand.  The hostname is also in ``ALLOWED_HOSTS``, and
 its ``https://`` form in ``CSRF_TRUSTED_ORIGINS`` (step 5).  Its DNS ``A`` (and
 ``AAAA``) records must already point at this server, and ports 80 and 443 must
@@ -986,11 +1032,13 @@ there::
   ls /etc/letsencrypt/options-ssl-apache.conf
 
 **The vhost.**  Swap the bootstrap host for the shipped one with the hostname,
-the deploy root, and the gunicorn port written in, and check the syntax before reloading::
+the checkout, the deploy root, and the gunicorn port written in, and check the
+syntax before reloading::
 
   sudo a2dissite caldart-acme
   sudo rm /etc/apache2/sites-available/caldart-acme.conf
-  sed -e "s#/opt/caldart#$ROOT#g" -e "s#127.0.0.1:8001#127.0.0.1:$PORT#g" \
+  sed -e "s#/opt/caldart/caldart#__CALDART_CHECKOUT__#g" -e "s#/opt/caldart#$ROOT#g" \
+      -e "s#__CALDART_CHECKOUT__#$CHECKOUT#g" -e "s#127.0.0.1:8001#127.0.0.1:$PORT#g" \
       -e "s/caldart\.example\.org/$HOST/g" \
       deploy/apache/caldart.conf \
       | sudo install -m 0644 /dev/stdin /etc/apache2/sites-available/caldart.conf
@@ -998,8 +1046,10 @@ the deploy root, and the gunicorn port written in, and check the syntax before r
   sudo apachectl configtest
   sudo systemctl reload-or-restart apache2
 
-``$ROOT`` is the deploy root, ``$PORT`` the gunicorn port, and ``$HOST`` the
-hostname; the dry run of the
+``$CHECKOUT`` is the checkout, ``$ROOT`` the deploy root, ``$PORT`` the
+gunicorn port, and ``$HOST`` the hostname.  The checkout goes through a stand-in
+while the deploy root is written, so a checkout whose own path contains
+``/opt/caldart`` is not rewritten twice.  The dry run of the
 step prints the command with the real values.  ``reload-or-restart`` rather
 than ``reload``, because it also starts a web server that is stopped, where a
 plain reload fails.  Under ``--no-www`` a third
@@ -1018,10 +1068,11 @@ The vhost:
   inbound ``X-Forwarded-Ssl``.  ``X-Forwarded-Proto`` is what
   ``SECURE_PROXY_SSL_HEADER`` in ``prod.py`` reads, and gunicorn only accepts
   it from loopback, so a client cannot forge it;
-* serves ``/media/`` from ``/opt/caldart/backend/media/`` with a one-week cache
+* serves ``/media/`` from ``/opt/caldart/media/``, the deploy root's uploads
+  (``MEDIA_ROOT``), with a one-week cache
   and ``X-Content-Type-Options: nosniff``, never runs a script from there, and
   excludes it from the proxy;
-* denies ``/opt/caldart/backend/media/documents``, the directory Wagtail writes
+* denies ``/opt/caldart/media/documents``, the directory Wagtail writes
   document uploads to, with ``Require all denied``.  The deeper ``<Directory>``
   section is applied after the one above it, so it wins;
 * sets **no** security headers of its own on proxied responses.  HSTS,
@@ -1082,7 +1133,8 @@ both files are there::
 **The vhost.**  Swap the bootstrap server for the shipped one::
 
   sudo rm /etc/nginx/sites-enabled/caldart-acme /etc/nginx/sites-available/caldart-acme
-  sed -e "s#/opt/caldart#$ROOT#g" -e "s#127.0.0.1:8001#127.0.0.1:$PORT#g" \
+  sed -e "s#/opt/caldart/caldart#__CALDART_CHECKOUT__#g" -e "s#/opt/caldart#$ROOT#g" \
+      -e "s#__CALDART_CHECKOUT__#$CHECKOUT#g" -e "s#127.0.0.1:8001#127.0.0.1:$PORT#g" \
       -e "s/caldart\.example\.org/$HOST/g" \
       deploy/nginx/caldart.conf \
       | sudo install -m 0644 /dev/stdin /etc/nginx/sites-available/caldart
@@ -1116,7 +1168,8 @@ The shipped file:
   auth throttles count the last entry (:doc:`configuration`);
 * allows 10 seconds to connect and 60 seconds to send or read, matching
   gunicorn's worker timeout, and buffers the responses;
-* serves ``/media/`` from ``/opt/caldart/backend/media/`` with a one-week
+* serves ``/media/`` from ``/opt/caldart/media/``, the deploy root's uploads
+  (``MEDIA_ROOT``), with a one-week
   cache, ``Cache-Control: public``, and ``X-Content-Type-Options: nosniff``,
   without directory listings or access logging;
 * answers ``/media/documents/`` with ``return 404;``.  It is the longer prefix,
@@ -1311,7 +1364,8 @@ a deployment this project supports.
 
 Steps 10 to 14, and the backup timer of step 15, are one script:
 ``steps/timers.sh`` copies the six service and timer pairs into
-``/etc/systemd/system`` with ``/opt/caldart`` replaced by the deploy root, runs
+``/etc/systemd/system`` with ``/opt/caldart/caldart`` replaced by the checkout
+and ``/opt/caldart`` by the deploy root, runs
 ``systemctl daemon-reload`` once, enables and starts every timer, and starts
 the first registry import.  Each section shows the commands for its own pair.
 Reinstalling the units is how an upgrade picks up a changed one.
@@ -1714,7 +1768,9 @@ rehearses :ref:`deploy-prefix` instead, behind a stand-in for the existing
 site; ``REHEARSE_GUNICORN_PORT=8101`` installs with ``--gunicorn-port
 8101``, ``REHEARSE_DB_PORT=5433`` with ``--db-port 5433``, and
 ``REHEARSE_SEED=content``, ``demo``, or ``all`` with ``--seed-content``,
-``--seed-demo``, or both.  It is the way to try
+``--seed-demo``, or both.  After the install it checks the layout of
+:ref:`deploy-layout`, and with a moved port it checks the port after the
+install, after the upgrade, and after the second install.  It is the way to try
 a change to anything under ``deploy/`` before a server sees it;
 :ref:`testing-rehearsal` describes what it runs and how the container is set
 up.
@@ -1757,9 +1813,15 @@ list so that no upgrade can leave a box without ``caldart_cache``.
 code.  The timers start a fresh process on every run, so they pick up the new
 code by themselves; reinstalling their units carries any change to a unit file.
 
-An upgrade never touches the environment file, the vhost, or the snippet, and
-takes no ``--gunicorn-port``: gunicorn stays on the port the record names.  A
-change to one is made by hand (``sudoedit`` and a restart), or, for the vhost
+An upgrade never touches the environment file, the vhost, or the snippet.  It
+keeps the recorded gunicorn and Postgres ports: each step it runs reads the
+install record, so gunicorn restarts on the recorded ``CALDART_GUNICORN_PORT``,
+the readiness check asks it there, and every ``docker compose`` command runs
+with the recorded ``CALDART_DB_PORT`` exported.  It takes no
+``--gunicorn-port`` or ``--db-port``; either is a usage error naming
+``install.sh``, whose ``--gunicorn-port`` and ``--db-port`` are the way to move
+a port (:ref:`deploy-sharing`).  A change to the environment file is made by
+hand (``sudoedit`` and a restart), or, for the vhost
 or the snippet, by running ``sudo deploy/steps/web-server.sh``, which rewrites
 it from the shipped file.
 
@@ -1769,6 +1831,35 @@ a ``sudo deploy/manage.sh db_restore`` of the dump the upgrade took first.
 The rollback leaves the checkout on a detached ``HEAD``, so the next upgrade
 names the branch again (``--ref main``).  The restore stays a command run by hand, because it drops the database
 (:doc:`backup-restore`).
+
+
+Moving to the current layout
+----------------------------
+
+An install whose checkout is the deploy root itself, ``/opt/caldart``, with the
+dumps in ``/opt/caldart/backups`` and the uploads in
+``/opt/caldart/backend/media`` inside it, is moved by reinstalling; no script
+moves it.  With the same flags the first install was given:
+
+1. take a backup: ``sudo /opt/caldart/deploy/manage.sh db_backup``;
+2. copy the dumps and the uploads aside::
+
+     sudo cp -a /opt/caldart/backups /root/caldart-backups
+     sudo cp -a /opt/caldart/backend/media /root/caldart-media
+
+3. ``sudo /opt/caldart/deploy/uninstall.sh --yes --purge``, which removes
+   ``/opt/caldart`` and the database;
+4. run ``bootstrap.sh`` with the same flags, which clones into
+   ``/opt/caldart/caldart`` and installs an empty site;
+5. put the dumps and the uploads back beside the checkout::
+
+     sudo cp -a /root/caldart-backups/. /opt/caldart/backups/
+     sudo cp -a /root/caldart-media/. /opt/caldart/media/
+     sudo chown -R caldart:caldart /opt/caldart/backups /opt/caldart/media
+
+6. restore the dump from step 1 (:doc:`backup-restore`):
+   ``sudo /opt/caldart/caldart/deploy/manage.sh db_restore
+   /opt/caldart/backups/<the dump> --yes``.
 
 
 Uninstalling
@@ -1789,9 +1880,10 @@ named, or, when none was recorded, out of every file under the server's
 ``sites-available`` that carries it; the rest of the existing site's vhost is
 left as it is, and so is ``FILE.caldart.bak``.  ``--purge`` also removes ``/etc/caldart`` (the environment file, the
 install record, and a self-signed certificate), runs ``docker compose down
--v`` from the deploy root, which deletes the ``caldart_pgdata`` volume and every
-row in it, and removes the deploy root, uploads and dumps included.  Copy off
-what you want to keep first.  Each removal prints what it removed, and anything
+-v`` from the checkout, which deletes the ``caldart_pgdata`` volume and every
+row in it, and removes the deploy root whole: the checkout, the dumps in
+``backups``, and the uploads in ``media``, as its stage line says.  Without
+``--purge`` all three stay.  Copy off what you want to keep first.  Each removal prints what it removed, and anything
 already absent is skipped.  Certificates under ``/etc/letsencrypt`` and the
 operating system packages stay in both modes.
 
@@ -1829,13 +1921,14 @@ is fixed, ``sudo deploy/steps/web-service.sh`` restarts it and waits for it to
 answer.
 
 ``caldart-web`` **fails with** ``status=226/NAMESPACE``.  A directory named in
-``ReadWritePaths`` does not exist.  ``sudo deploy/steps/user.sh`` creates
-``backend/media``, ``backend/staticfiles``, and ``backups``, owned by
-``caldart``; then ``sudo deploy/steps/web-service.sh`` starts the unit again.
+``ReadWritePaths`` does not exist.  ``sudo deploy/steps/user.sh`` creates the
+deploy root's ``backups`` and ``media`` and the checkout's
+``backend/staticfiles``, owned by ``caldart``; then ``sudo deploy/steps/web-service.sh`` starts the unit again.
 
-``bootstrap.sh`` **says the deploy root exists and is not a checkout.**
-Something created ``/opt/caldart`` before the clone (:ref:`step 3
-<deploy-checkout>`).  Move it aside and run ``bootstrap.sh`` again.
+``bootstrap.sh`` **says** ``/opt/caldart/caldart`` **exists and is not a
+checkout.**  Something created the checkout's directory before the clone
+(:ref:`step 3 <deploy-checkout>`).  Move it aside and run ``bootstrap.sh``
+again; the rest of the deploy root can stay.
 
 ``apachectl configtest`` **or** ``nginx -t`` **says a certificate or**
 ``options-ssl`` **file does not exist.**  The shipped vhost went in before its
