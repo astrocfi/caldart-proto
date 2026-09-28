@@ -1,6 +1,7 @@
 # CalDART FAA registry import.
 #
-# Deploy path: /opt/caldart. Triggered by caldart-registry.timer, which runs it
+# Deploy root: /opt/caldart, with the checkout in caldart/.
+# Triggered by caldart-registry.timer, which runs it
 # daily at 04:30; it is a oneshot, so it is not enabled directly.
 # deploy/steps/timers.sh installs it and enables the timer.
 #
@@ -11,7 +12,7 @@
 
 [Unit]
 Description=CalDART FAA registry import
-Documentation=file:///opt/caldart/docs/developer/deployment.rst
+Documentation=file:///opt/caldart/caldart/docs/developer/deployment.rst
 # Needs the database and an outbound HTTPS connection to registry.faa.gov.
 After=network-online.target docker.service caldart-web.service
 Wants=network-online.target
@@ -23,7 +24,7 @@ User=caldart
 Group=caldart
 UMask=0027
 
-WorkingDirectory=/opt/caldart/backend
+WorkingDirectory=/opt/caldart/caldart/backend
 
 # Same configuration as the web service: DATABASE_URL and FAA_REGISTRY_URL are
 # the ones this command actually uses.
@@ -37,7 +38,7 @@ Environment=PYTHONDONTWRITEBYTECODE=1
 # temporary file and imports its aircraft types and registrations. Add
 # --types-only to refresh the aircraft types alone, or --source to read a zip
 # or a directory already on disk.
-ExecStart=/opt/caldart/.venv/bin/python /opt/caldart/backend/manage.py import_faa_registry
+ExecStart=/opt/caldart/caldart/.venv/bin/python /opt/caldart/caldart/backend/manage.py import_faa_registry
 
 # The download is about 70 MB and the import writes some 300,000 rows; a slow
 # link should still not leave this hanging until the next trigger.

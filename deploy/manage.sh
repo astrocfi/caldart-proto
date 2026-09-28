@@ -24,9 +24,13 @@
 
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+CHECKOUT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# Read by lib.sh: this script is safe on an install that keeps its data inside
+# the checkout.
+# shellcheck disable=SC2034
+CALDART_ANY_LAYOUT=1
 # shellcheck source=deploy/lib.sh
-source "$ROOT/deploy/lib.sh"
+source "$CHECKOUT/deploy/lib.sh"
 
 main() {
     while (($#)); do
@@ -48,11 +52,11 @@ main() {
     # landing world-readable under systemd's default 0022.
     run systemd-run --quiet --wait --collect --pty --pipe \
         --uid="$SERVICE_USER" --gid="$SERVICE_USER" \
-        --working-directory="$ROOT/backend" \
+        --working-directory="$CHECKOUT/backend" \
         --property=EnvironmentFile="$DEFAULT_ETC/caldart.env" \
         --property=UMask=0027 \
         --setenv=DJANGO_SETTINGS_MODULE=caldart.settings.prod \
-        "$ROOT/.venv/bin/python" manage.py "$@"
+        "$CHECKOUT/.venv/bin/python" manage.py "$@"
 }
 
 main "$@"

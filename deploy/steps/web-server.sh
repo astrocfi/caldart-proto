@@ -14,8 +14,8 @@
 #   3. certbot's TLS options file (and nginx's DH parameters), written into
 #      /etc/letsencrypt/ by preparing certbot's plugin, in both modes;
 #   4. the shipped vhost in place of the bootstrap host, with the hostname,
-#      the deploy root, and the certificate paths written in.  The vhost is
-#      configuration, so this step rewrites it on every run.
+#      the checkout, the deploy root, and the certificate paths written in.
+#      The vhost is configuration, so this step rewrites it on every run.
 #
 # With certbot it also installs a renewal hook that reloads the web server.
 #
@@ -45,9 +45,9 @@
 
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+CHECKOUT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 # shellcheck source=deploy/lib.sh
-source "$ROOT/deploy/lib.sh"
+source "$CHECKOUT/deploy/lib.sh"
 
 readonly APACHE_SITES=/etc/apache2/sites-available
 readonly APACHE_MODULES=(proxy proxy_http headers ssl rewrite deflate expires http2)
@@ -256,11 +256,11 @@ install_vhost() {
     if [[ "$CALDART_WEB_SERVER" == apache ]]; then
         dest="$APACHE_SITES/caldart.conf"
         run a2enmod "${APACHE_MODULES[@]}"
-        render_vhost "$ROOT/deploy/apache/caldart.conf" "$dest" \
+        render_vhost "$CHECKOUT/deploy/apache/caldart.conf" "$dest" \
             "$CALDART_HOSTNAME" "$CALDART_WWW" "$CALDART_TLS"
     else
         dest="$NGINX_SITES/caldart"
-        render_vhost "$ROOT/deploy/nginx/caldart.conf" "$dest" \
+        render_vhost "$CHECKOUT/deploy/nginx/caldart.conf" "$dest" \
             "$CALDART_HOSTNAME" "$CALDART_WWW" "$CALDART_TLS"
         if nginx_needs_http2_on_listen; then
             run sed -i -e '/^ *http2 *on;/d' \
@@ -415,11 +415,11 @@ install_snippet() {
     remove_own_vhost
     if [[ "$CALDART_WEB_SERVER" == apache ]]; then
         run a2enmod "${APACHE_SNIPPET_MODULES[@]}"
-        render_snippet "$ROOT/deploy/apache/caldart-attach.conf" "$APACHE_SNIPPET"
+        render_snippet "$CHECKOUT/deploy/apache/caldart-attach.conf" "$APACHE_SNIPPET"
     else
         run install -d "$(dirname "$NGINX_SNIPPET")" "$(dirname "$NGINX_UPSTREAM")"
-        render_snippet "$ROOT/deploy/nginx/caldart-upstream.conf" "$NGINX_UPSTREAM"
-        render_snippet "$ROOT/deploy/nginx/caldart-attach.conf" "$NGINX_SNIPPET"
+        render_snippet "$CHECKOUT/deploy/nginx/caldart-upstream.conf" "$NGINX_UPSTREAM"
+        render_snippet "$CHECKOUT/deploy/nginx/caldart-attach.conf" "$NGINX_SNIPPET"
     fi
     if [[ -n "$CALDART_ATTACH_TO" ]]; then
         log "Including the snippet in $CALDART_ATTACH_TO"

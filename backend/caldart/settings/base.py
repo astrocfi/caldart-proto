@@ -229,7 +229,8 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 # directly (the CalDART logo in the masthead).
 STATICFILES_DIRS = [REPO_ROOT / "frontend" / "dist", BASE_DIR / "static"]
 MEDIA_URL = f"{URL_PREFIX}/media/"
-MEDIA_ROOT = BASE_DIR / "media"
+# A server keeps the uploads beside the checkout, in the deploy root, rather than in it.
+MEDIA_ROOT = Path(env("MEDIA_ROOT", default=str(BASE_DIR / "media")))
 
 # The built user guide, which ``caldart.views.user_guide`` serves at ``/docs/``
 # to signed-in users.  ``make guide`` writes it here; a deployment that builds

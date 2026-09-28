@@ -3,11 +3,22 @@
 # CalDART - functions every installer script shares.
 #
 # Sourced, never run: logging, the dry run, the root check, the install record,
-# and copying files out of deploy/ with the deploy root, the hostname, and the
-# URL prefix written in.  docs/developer/deployment.rst describes the scripts that use it.
+# and copying files out of deploy/ with the checkout, the deploy root, the
+# hostname, and the URL prefix written in.  docs/developer/deployment.rst
+# describes the scripts that use it.
+#
+# The script that sources it first sets CHECKOUT, the checkout its deploy/
+# directory sits in; this file sets ROOT, the deploy root, to the checkout's
+# parent.  The deploy root holds the checkout, the database dumps (backups/),
+# and the uploads (media/).
+#
+# Sourcing it stops, with a pointer to 'Moving to the current layout' in
+# deploy/README.rst, when the install record names the checkout itself as the
+# deploy root, unless the script sets CALDART_ANY_LAYOUT=1 first.
 #
 # Usage:
-#   source "$ROOT/deploy/lib.sh"
+#   CHECKOUT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+#   source "$CHECKOUT/deploy/lib.sh"
 #
 # Environment:
 #   CALDART_DRY_RUN    1 prints every state-changing command instead of running it
@@ -29,8 +40,13 @@
 [[ -n "${CALDART_LIB_LOADED:-}" ]] && return 0
 CALDART_LIB_LOADED=1
 
-# The path every shipped file names, replaced by the real root as it is copied.
+# The paths every shipped file names, replaced by the real ones as it is copied:
+# the deploy root, and the checkout inside it.
 readonly SHIPPED_ROOT=/opt/caldart
+readonly SHIPPED_CHECKOUT=$SHIPPED_ROOT/caldart
+# A stand-in for the checkout while the deploy root is written in, so a checkout
+# path that itself contains /opt/caldart is not rewritten twice.
+readonly CHECKOUT_MARK=__CALDART_CHECKOUT__
 # The hostname every shipped vhost names, replaced by the real one.
 readonly SHIPPED_HOSTNAME=caldart.example.org
 # The URL prefix every shipped snippet names, replaced by the real one (or by
@@ -84,6 +100,8 @@ readonly LOCAL_EMAIL_URL=smtp://localhost:25
 # path segment carries unescaped.  The segments . and .. are refused as well.
 readonly PREFIX_SEGMENT_PATTERN='^[A-Za-z0-9._~-]+$'
 
+# The deploy root: the directory the checkout sits in.
+ROOT="$(dirname "$CHECKOUT")"
 ETC_DIR="${CALDART_ETC:-$DEFAULT_ETC}"
 ENV_FILE="$ETC_DIR/caldart.env"
 RECORD_FILE="$ETC_DIR/install.conf"
@@ -291,7 +309,9 @@ wait_for() {
 }
 
 # Read install.conf into the CALDART_* variables.  Only the known keys are
-# read, one KEY=value per line, and the file is never executed.
+# read, one KEY=value per line, and the file is never executed.  CALDART_ROOT,
+# the deploy root, is recorded for the operator and never read back: every
+# script finds the checkout from its own location and the deploy root from it.
 load_record() {
     local line key value known
     if [[ ! -f "$RECORD_FILE" ]]; then
@@ -510,14 +530,16 @@ generate_secret() {
     python3 -c "import secrets, sys; print(secrets.token_urlsafe(int(sys.argv[1])))" "$1"
 }
 
-# Copy $1 to $2 with /opt/caldart replaced by the deploy root and gunicorn's
-# shipped address by the recorded one, plus any further sed arguments.  A dry
-# run prints the pipeline.
+# Copy $1 to $2 with /opt/caldart/caldart replaced by the checkout, then
+# /opt/caldart by the deploy root, and gunicorn's shipped address by the
+# recorded one, plus any further sed arguments.  A dry run prints the pipeline.
 render_file() {
     local source=$1 dest=$2
     shift 2
     local sed_command=(
-        sed -e "s#${SHIPPED_ROOT}#${ROOT}#g"
+        sed -e "s#${SHIPPED_CHECKOUT}#${CHECKOUT_MARK}#g"
+        -e "s#${SHIPPED_ROOT}#${ROOT}#g"
+        -e "s#${CHECKOUT_MARK}#${CHECKOUT}#g"
         -e "s#127.0.0.1:${SHIPPED_GUNICORN_PORT}#127.0.0.1:${CALDART_GUNICORN_PORT}#g"
         "$@" "$source"
     )
@@ -553,3 +575,31 @@ render_snippet() {
         -e "s#${SHIPPED_PREFIX}#${CALDART_URL_PREFIX}#g" \
         -e "s/${shipped}/${CALDART_HOSTNAME}/g"
 }
+
+# The deploy root the install record names, or nothing when there is no record
+# or it names none.
+recorded_root() {
+    [[ -f "$RECORD_FILE" ]] || return 0
+    sed -n 's/^CALDART_ROOT=//p' "$RECORD_FILE" | tail -n 1
+}
+
+# True when the install record names the checkout itself as the deploy root: an
+# install whose checkout is /opt/caldart, with its dumps and uploads inside it.
+is_checkout_layout() {
+    [[ "$(recorded_root)" == "$CHECKOUT" ]]
+}
+
+# Stop on an install that keeps its data inside the checkout.  Every path these
+# scripts write names the checkout's parent, which on such an install is the
+# machine's /opt, so running on would point the site at directories that are
+# not there.
+refuse_checkout_layout() {
+    is_checkout_layout || return 0
+    die "this install keeps its data inside the checkout at $CHECKOUT;" \
+        "see 'Moving to the current layout' in deploy/README.rst"
+}
+
+# A script that is safe on either layout (the uninstaller, manage.sh, and
+# compose.sh) sets CALDART_ANY_LAYOUT=1 before sourcing this file; every other
+# script stops here on such an install, before it changes anything.
+[[ "${CALDART_ANY_LAYOUT:-0}" == 1 ]] || refuse_checkout_layout

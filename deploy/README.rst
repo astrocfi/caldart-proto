@@ -32,8 +32,9 @@ The files:
 
 ``bootstrap.sh``
    The one file a server needs before the repository is on it.  Installs
-   ``git`` when it is missing, clones the repository into the deploy root
-   (``/opt/caldart`` by default), and runs ``install.sh`` from the checkout.
+   ``git`` when it is missing, creates the deploy root (``/opt/caldart`` by
+   default), clones the repository into its ``caldart`` directory, and runs
+   ``install.sh`` from that checkout.
 ``install.sh``
    Installs the site: runs every step under ``steps/`` in order.
 ``upgrade.sh``
@@ -41,7 +42,8 @@ The files:
    steps that depend on the code.
 ``uninstall.sh``
    Removes the services and the web server configuration; with ``--purge``,
-   also the configuration, the database, and the deploy root.
+   also the configuration, the database, and the checkout, the backups, and
+   the uploads in the deploy root.
 ``manage.sh``
    Runs a Django management command the way the web service runs the site.
 ``compose.sh``
@@ -65,8 +67,13 @@ The files:
    snippet for a site under a path of an existing HTTPS site
    (``caldart-attach.conf``; nginx also has ``caldart-upstream.conf``).
 
-Every shipped file names ``/opt/caldart``; the scripts replace it with the real
-deploy root as they copy each file, so a checkout anywhere else works.
+The deploy root, ``/opt/caldart``, holds the checkout at ``/opt/caldart/caldart``
+and, beside it, the database dumps in ``/opt/caldart/backups`` and the uploads in
+``/opt/caldart/media`` (`Directories in the deploy root`_), so nothing the site
+keeps is inside the git checkout.  Every shipped file names those paths; the
+scripts find the checkout from their own location and the deploy root as its
+parent, and write both into each file as they copy it, so a checkout anywhere
+else works.
 
 
 Before you start
@@ -95,8 +102,8 @@ You need:
   registry import).
 - **An SMTP relay** (its URL, with credentials) or a postfix already running
   on the machine.  `Mail`_ below says which to pick.
-- **Disk for the dumps.**  The backups live on the same disk as the site, and
-  the health panel of the portal's Health & Database page warns when that
+- **Disk for the dumps and the uploads.**  Both live in the deploy root, on the
+  same disk as the site, and the health panel of the portal's Health & Database page warns when that
   filesystem has less than 2 GB free.
 
 Docker does not need to be installed: the packages step installs
@@ -136,24 +143,28 @@ On the server, one command fetches the code and installs everything::
    Print the clone and the install instead of running them (also passed on
    to ``install.sh``).
 
-``CALDART_ROOT`` in its environment picks the deploy root; the default is
-``/opt/caldart``.  Because ``sudo`` drops the caller's environment, set it
-after ``sudo``::
+``bootstrap.sh`` creates the deploy root when it is missing and clones into
+``caldart/`` inside it, so the checkout is ``/opt/caldart/caldart``.
+``CALDART_ROOT`` in its environment picks another deploy root; the checkout
+always goes in its ``caldart`` directory.  Because ``sudo`` drops the caller's
+environment, set it after ``sudo``::
 
   curl -fsSL https://raw.githubusercontent.com/astrocfi/caldart-proto/main/deploy/bootstrap.sh \
       | sudo env CALDART_ROOT=/srv/caldart bash -s -- --hostname caldart.example.org ...
 
-When the deploy root is already a checkout, ``bootstrap.sh`` fetches, checks
-out ``--ref``, and pulls it (when it is a branch) instead of cloning.  When the
-directory exists, is not empty, and is not a checkout, it stops.
+When ``/opt/caldart/caldart`` is already a checkout, ``bootstrap.sh`` fetches,
+checks out ``--ref``, and pulls it (when it is a branch) instead of cloning.
+When that directory exists, is not empty, and is not a checkout, it stops.  The
+deploy root around it may already hold ``backups/`` and ``media/``, as it does
+after an uninstall without ``--purge``; the install keeps them.
 
 On a server that already has the checkout, run the installer directly, with
 the same flags::
 
-  sudo /opt/caldart/deploy/install.sh --hostname caldart.example.org ...
+  sudo /opt/caldart/caldart/deploy/install.sh --hostname caldart.example.org ...
 
 The commands on this page name ``/opt/caldart``; with another deploy root,
-run the scripts from there instead.
+run the scripts from its ``caldart`` checkout instead.
 
 Step 2: the install flags
 -------------------------
@@ -264,9 +275,9 @@ secrets appear as ``<generated>``, and a file the dry run never wrote (the
 environment file, the install record) is treated as absent, with a note on
 standard error.  A dry run is the quickest way to check a set of flags::
 
-  sudo /opt/caldart/deploy/install.sh --dry-run --hostname caldart.example.org \
+  sudo /opt/caldart/caldart/deploy/install.sh --dry-run --hostname caldart.example.org \
       --certbot-email ops@example.org --email local
-  CALDART_DRY_RUN=1 /opt/caldart/deploy/install.sh --hostname caldart.example.org ...
+  CALDART_DRY_RUN=1 /opt/caldart/caldart/deploy/install.sh --hostname caldart.example.org ...
 
 Step 4: what the run prints
 ---------------------------
@@ -308,7 +319,7 @@ signed out, to set the administrator's password.  It expires with any
 password-reset link, after ``PASSWORD_RESET_TIMEOUT`` (three days by default).
 To make another link later::
 
-  sudo /opt/caldart/deploy/manage.sh create_admin --email you@example.org
+  sudo /opt/caldart/caldart/deploy/manage.sh create_admin --email you@example.org
 
 With a self-signed certificate the summary adds that browsers warn until a
 real certificate replaces it.
@@ -378,7 +389,7 @@ What the installer does behind an existing site:
   was, and stops.  Otherwise it reloads the server.
 
 Without ``--attach-to`` it prints the line and where it goes; add it by hand,
-reload the web server, and run ``sudo /opt/caldart/deploy/steps/check.sh``,
+reload the web server, and run ``sudo /opt/caldart/caldart/deploy/steps/check.sh``,
 whose checks fail until the line is there.
 
 The environment file gets ``SITE_URL=https://example.org/caldart-proto`` and
@@ -416,7 +427,7 @@ Browsers warn about the certificate; accept it once.  To move the box to a
 real certificate when its hostname becomes public, point the DNS at it and
 run::
 
-  sudo /opt/caldart/deploy/install.sh --tls certbot --certbot-email ops@example.org
+  sudo /opt/caldart/caldart/deploy/install.sh --tls certbot --certbot-email ops@example.org
 
 then remove ``SECURE_HSTS_SECONDS=0`` from ``/etc/caldart/caldart.env`` and
 ``sudo systemctl restart caldart-web`` to turn HSTS on.  To try certbot
@@ -434,8 +445,9 @@ The install record: ``/etc/caldart/install.conf``
 Every script reads it; it is never executed.
 
 ``CALDART_ROOT``
-   The deploy root the installer ran from.  Written for reference; the scripts
-   find the root from their own location.
+   The deploy root, the parent of the checkout the installer ran from.
+   Written for reference; the scripts find the checkout from their own
+   location and the deploy root as its parent, and never read this key.
 ``CALDART_HOSTNAME``
    ``--hostname``.
 ``CALDART_WWW``
@@ -477,8 +489,9 @@ secret key, and the payment keys.  The first run writes it from
 - ``DEFAULT_FROM_EMAIL``, from ``--from-email``;
 - ``DATABASE_URL``, with the generated database password and the recorded
   port;
-- ``BACKUP_DIR`` (the deploy root's ``backups``), ``DB_BACKUP_VIA_DOCKER=false``,
-  ``BACKUP_RETENTION_DAYS=30``, and ``USER_GUIDE_ROOT`` (the deploy root's
+- ``BACKUP_DIR`` (the deploy root's ``backups``), ``MEDIA_ROOT`` (the deploy
+  root's ``media``), ``DB_BACKUP_VIA_DOCKER=false``,
+  ``BACKUP_RETENTION_DAYS=30``, and ``USER_GUIDE_ROOT`` (the checkout's
   ``docs/_build/guide``);
 - ``SECURE_HSTS_SECONDS=0`` with a self-signed certificate.
 
@@ -495,8 +508,9 @@ The job services read the file afresh on every run, so they need no restart.
 The systemd units
 -----------------
 
-Installed into ``/etc/systemd/system/`` from ``systemd/``, with the deploy
-root written in.  Every service runs as the ``caldart`` user with
+Installed into ``/etc/systemd/system/`` from ``systemd/``, with the checkout
+and the deploy root written in.  Every service runs from the checkout's
+``backend/`` with the checkout's ``.venv``.  Every service runs as the ``caldart`` user with
 ``UMask=0027``, reads the environment file, and runs under the same systemd
 sandbox (``ProtectSystem=strict``, no capabilities).
 
@@ -548,7 +562,8 @@ With ``certbot`` or ``self-signed``:
 
 Each holds a port-80 host, which answers Let's Encrypt's challenges and
 redirects everything else to HTTPS, and a port-443 host, which terminates TLS,
-serves ``/media/`` off disk, and proxies the rest to gunicorn.  While a
+serves ``/media/`` off disk from ``/opt/caldart/media``, and proxies the rest
+to gunicorn.  While a
 certbot certificate does not exist yet, a bootstrap host (``caldart-acme``)
 answers the challenge alone; it is removed once the certificate is there.
 The certificate is in ``/etc/letsencrypt/live/HOST/`` with certbot, or
@@ -571,27 +586,30 @@ Run ``docker compose`` against it through ``compose.sh``, which exports the
 recorded port first; a plain ``docker compose up`` on a box that moved the
 port would publish the container on 5432 again::
 
-  sudo /opt/caldart/deploy/compose.sh ps
-  sudo /opt/caldart/deploy/compose.sh logs -f db
-  sudo /opt/caldart/deploy/compose.sh exec -T db psql -U caldart -d caldart
+  sudo /opt/caldart/caldart/deploy/compose.sh ps
+  sudo /opt/caldart/caldart/deploy/compose.sh logs -f db
+  sudo /opt/caldart/caldart/deploy/compose.sh exec -T db psql -U caldart -d caldart
 
 Directories in the deploy root
 ------------------------------
 
-The checkout is root-owned and world-readable.  The service user owns the
-three directories it writes, all ignored by git so an upgrade never touches
-them:
+``/opt/caldart``
+   The deploy root, root-owned.  It holds the three below and nothing else.
+``/opt/caldart/caldart``
+   The checkout, root-owned and world-readable.  The only things the install
+   writes in it are build output, all ignored by git: ``.venv/`` (the Python
+   packages), ``frontend/dist/`` (the portal), ``backend/staticfiles/`` (what
+   ``collectstatic`` writes, owned by the service user), and
+   ``docs/_build/guide/`` (the user guide).
+``/opt/caldart/backups``
+   The database dumps (``BACKUP_DIR``), owned by the service user.
+``/opt/caldart/media``
+   Wagtail's uploads, images and documents (``MEDIA_ROOT``), owned by the
+   service user.
 
-``backend/media/``
-   Wagtail's uploads: images and documents.
-``backend/staticfiles/``
-   What ``collectstatic`` writes.
-``backups/``
-   The database dumps (``BACKUP_DIR``).
-
-The build also writes ``.venv/`` (the Python packages), ``frontend/dist/``
-(the portal), and ``docs/_build/guide/`` (the user guide), and ``uv`` keeps
-any Python it downloads in ``/opt/uv/python``.
+The dumps and the uploads sit beside the checkout rather than in it, so git,
+an upgrade, and a fresh clone never see them.  ``uv`` keeps any Python it
+downloads in ``/opt/uv/python``.
 
 
 After the install
@@ -640,7 +658,7 @@ before relying on it.
 
 Send a test message through the configured path::
 
-  sudo /opt/caldart/deploy/manage.sh sendtestemail you@example.org
+  sudo /opt/caldart/caldart/deploy/manage.sh sendtestemail you@example.org
 
 and read ``journalctl -u postfix`` (or the relay's logs) for its delivery.
 ``docs/developer/email.rst`` covers the DNS records and the email log.
@@ -651,7 +669,7 @@ Check the site
 The install ends with the checks, and any time later ``steps/check.sh`` runs
 them again::
 
-  sudo /opt/caldart/deploy/steps/check.sh
+  sudo /opt/caldart/caldart/deploy/steps/check.sh
 
 It checks that ``caldart-web`` and the six timers are active, that the
 database container is healthy, that ``https://HOST/`` (under the prefix, when
@@ -678,11 +696,11 @@ Options for ``manage.sh`` itself (``--dry-run``, ``--help``) go before the
 command; everything from the command on goes to ``manage.py``.  Its exit
 status is the command's::
 
-  sudo /opt/caldart/deploy/manage.sh sendtestemail you@example.org
-  sudo /opt/caldart/deploy/manage.sh health --json
-  sudo /opt/caldart/deploy/manage.sh db_backup
-  sudo /opt/caldart/deploy/manage.sh send_renewal_reminders --dry-run
-  sudo /opt/caldart/deploy/manage.sh --dry-run migrate
+  sudo /opt/caldart/caldart/deploy/manage.sh sendtestemail you@example.org
+  sudo /opt/caldart/caldart/deploy/manage.sh health --json
+  sudo /opt/caldart/caldart/deploy/manage.sh db_backup
+  sudo /opt/caldart/caldart/deploy/manage.sh send_renewal_reminders --dry-run
+  sudo /opt/caldart/caldart/deploy/manage.sh --dry-run migrate
 
 Never source the environment file into a shell to run ``manage.py`` by hand: a
 shell splits a value with spaces in it, such as ``DEFAULT_FROM_EMAIL``.
@@ -693,8 +711,8 @@ runs), the example website (``seed_content``, ``--seed-content``), and the demo
 accounts (``seed_demo``, ``--seed-demo``).  Run or re-run either optional one on
 an installed server the same way::
 
-  sudo /opt/caldart/deploy/manage.sh seed_content     # the website alone
-  sudo /opt/caldart/deploy/manage.sh seed_demo        # the demo accounts alone
+  sudo /opt/caldart/caldart/deploy/manage.sh seed_content     # the website alone
+  sudo /opt/caldart/caldart/deploy/manage.sh seed_demo        # the demo accounts alone
 
 Both are idempotent: running either again updates the existing rows rather
 than duplicating them.  **Caution:** the demo accounts ``seed_demo`` creates
@@ -724,7 +742,7 @@ Everything goes to the journal:
   (the port-80 host logs to ``caldart-http-access.log`` and
   ``caldart-http-error.log``);
 - nginx: ``/var/log/nginx/caldart-access.log`` and ``caldart-error.log``;
-- Postgres: ``sudo /opt/caldart/deploy/compose.sh logs -f db``.
+- Postgres: ``sudo /opt/caldart/caldart/deploy/compose.sh logs -f db``.
 
 Behind an existing site, the web server's requests are in that site's logs.
 
@@ -734,9 +752,9 @@ Upgrading
 
 ::
 
-  sudo /opt/caldart/deploy/upgrade.sh                  # pull the current branch
-  sudo /opt/caldart/deploy/upgrade.sh --ref v1.4       # or check out a branch, tag, or commit
-  sudo /opt/caldart/deploy/upgrade.sh --dry-run        # print what it would do
+  sudo /opt/caldart/caldart/deploy/upgrade.sh                  # pull the current branch
+  sudo /opt/caldart/caldart/deploy/upgrade.sh --ref v1.4       # or check out a branch, tag, or commit
+  sudo /opt/caldart/caldart/deploy/upgrade.sh --dry-run        # print what it would do
 
 ``upgrade.sh`` takes ``--ref REF``, ``--dry-run``, and ``--help``.  In order,
 it:
@@ -760,6 +778,12 @@ nothing to pull still backs up, rebuilds, restarts, and passes the checks.
 It never touches the environment file, the install record, or the web
 server's configuration.
 
+An upgrade keeps the recorded gunicorn and Postgres ports: every step it runs
+reads them from the install record, so gunicorn comes back on the same port and
+the database container stays where it is.  ``install.sh --gunicorn-port`` and
+``install.sh --db-port`` are the way to move them (`Sharing the machine`_);
+``upgrade.sh`` refuses both flags.
+
 ``install.sh`` with no flags is safe to run at any time too: it reads
 everything from the install record, re-applies every step, and leaves the
 environment file and the install record byte for byte as they were.  Run it to
@@ -769,12 +793,51 @@ the web server step).
 
 **Rolling back.**  Run ``upgrade.sh --ref`` with the previous commit::
 
-  sudo /opt/caldart/deploy/upgrade.sh --ref 1a2b3c4
+  sudo /opt/caldart/caldart/deploy/upgrade.sh --ref 1a2b3c4
 
 When the migrations of the upgrade changed the schema, also restore the dump
 the upgrade took first (see `Restoring`_).  A rollback leaves
 the checkout on a detached ``HEAD``, where a plain ``upgrade.sh`` stops and
 asks for a branch: name it on the next upgrade, ``--ref main``.
+
+Moving to the current layout
+----------------------------
+
+An install from before the checkout moved into ``/opt/caldart/caldart`` has
+the checkout at ``/opt/caldart`` itself, with the dumps in
+``/opt/caldart/backups`` and the uploads in ``/opt/caldart/backend/media``
+inside it.  No script moves it; reinstall instead, with the flags the first
+install was given.  Do this before any upgrade: once the checkout holds the
+current scripts, ``install.sh``, ``upgrade.sh``, and the steps refuse such an
+install and point here, while ``uninstall.sh``, ``manage.sh``, and
+``compose.sh`` still run.
+
+1. Take a backup::
+
+     sudo /opt/caldart/deploy/manage.sh db_backup
+
+2. Copy the dumps and the uploads aside::
+
+     sudo cp -a /opt/caldart/backups /root/caldart-backups
+     sudo cp -a /opt/caldart/backend/media /root/caldart-media
+
+3. Remove the install whose checkout is ``/opt/caldart``, database
+   included; the purge removes that checkout, and nothing else under
+   ``/opt``::
+
+     sudo /opt/caldart/deploy/uninstall.sh --yes --purge
+
+4. Run ``bootstrap.sh`` with the same flags (`Step 1: bootstrap`_), which
+   clones into ``/opt/caldart/caldart`` and installs an empty site.
+5. Put the dumps and the uploads under the deploy root::
+
+     sudo cp -a /root/caldart-backups/. /opt/caldart/backups/
+     sudo cp -a /root/caldart-media/. /opt/caldart/media/
+     sudo chown -R caldart:caldart /opt/caldart/backups /opt/caldart/media
+
+6. Restore the dump from step 1 (`Restoring`_)::
+
+     sudo /opt/caldart/caldart/deploy/manage.sh db_restore /opt/caldart/backups/<the dump> --yes
 
 
 Backups and restoring
@@ -792,8 +855,8 @@ straight away, and every upgrade takes one before it changes anything.
 
 Take one by hand, or check on the timer::
 
-  sudo /opt/caldart/deploy/manage.sh db_backup
-  sudo /opt/caldart/deploy/manage.sh db_backup --name before-the-change.sql.gz
+  sudo /opt/caldart/caldart/deploy/manage.sh db_backup
+  sudo /opt/caldart/caldart/deploy/manage.sh db_backup --name before-the-change.sql.gz
   systemctl list-timers caldart-backup.timer
   journalctl -u caldart-backup -n 20
 
@@ -810,11 +873,10 @@ the portal's Health & Database page runs one at once, as does::
   sudo systemctl start caldart-registry.service
 
 A dump on the same disk as the database is not a backup.  Copy the dumps, and
-the uploads in ``/opt/caldart/backend/media/``, to another machine, for
-example::
+the uploads in ``/opt/caldart/media/``, to another machine, for example::
 
   sudo rsync -a /opt/caldart/backups/ backup-host:/backups/caldart/dumps/
-  sudo rsync -a --delete /opt/caldart/backend/media/ backup-host:/backups/caldart/media/
+  sudo rsync -a --delete /opt/caldart/media/ backup-host:/backups/caldart/media/
 
 Treat both as sensitive: the dumps hold every member record, and the uploads
 hold the members-only documents.  The health panel warns when the newest dump
@@ -828,8 +890,8 @@ jobs that write, restore, and migrate::
 
   sudo systemctl stop caldart-web caldart-renewals.timer caldart-reminders.timer \
       caldart-reports.timer caldart-statements.timer caldart-backup.timer
-  sudo /opt/caldart/deploy/manage.sh db_restore /opt/caldart/backups/caldart-20260601-033000.sql.gz
-  sudo /opt/caldart/deploy/manage.sh migrate
+  sudo /opt/caldart/caldart/deploy/manage.sh db_restore /opt/caldart/backups/caldart-20260601-033000.sql.gz
+  sudo /opt/caldart/caldart/deploy/manage.sh migrate
 
 ``db_restore`` asks for confirmation (``--yes`` skips the question) and takes
 a path or a bare file name in ``BACKUP_DIR``.  It reads the whole file before
@@ -837,12 +899,12 @@ it drops anything, so a damaged dump leaves the database as it was.  The
 ``migrate`` brings a dump from an older release up to the running code.
 
 Before starting anything again, check that the restore is the site you meant
-to bring back: ``sudo /opt/caldart/deploy/manage.sh health`` reports no
+to bring back: ``sudo /opt/caldart/caldart/deploy/manage.sh health`` reports no
 pending migrations, and the member list and payments look as expected.  A
 dump older than the last automatic renewal makes that renewal look due again,
 so check what the renewal job would charge before restarting the timers::
 
-  sudo /opt/caldart/deploy/manage.sh run_auto_renewals --dry-run
+  sudo /opt/caldart/caldart/deploy/manage.sh run_auto_renewals --dry-run
   sudo systemctl start caldart-web caldart-renewals.timer caldart-reminders.timer \
       caldart-reports.timer caldart-statements.timer caldart-backup.timer
 
@@ -864,7 +926,7 @@ Postgres step stops when something already listens on that port, so a clash is
 reported before anything is half-installed.  Pick a free port::
 
   ss -ltn 'sport = :5433'           # prints only its header when the port is free
-  sudo /opt/caldart/deploy/install.sh --db-port 5433
+  sudo /opt/caldart/caldart/deploy/install.sh --db-port 5433
 
 To move the port on an installed box, first change the port in
 ``DATABASE_URL`` in ``/etc/caldart/caldart.env`` to the same number, then run
@@ -897,7 +959,7 @@ that port, so a clash is reported before the unit is installed.  Pick a free
 port::
 
   ss -ltn 'sport = :8101'           # prints only its header when the port is free
-  sudo /opt/caldart/deploy/install.sh --gunicorn-port 8101
+  sudo /opt/caldart/caldart/deploy/install.sh --gunicorn-port 8101
 
 On a later run ``--gunicorn-port`` moves an installed site: it writes the port
 into the environment file, rewrites the vhost or snippet, restarts gunicorn,
@@ -909,9 +971,9 @@ Uninstalling
 
 ::
 
-  sudo /opt/caldart/deploy/uninstall.sh --yes              # the services and the vhost
-  sudo /opt/caldart/deploy/uninstall.sh --yes --purge      # ... and every piece of data
-  sudo /opt/caldart/deploy/uninstall.sh --yes --dry-run    # print what it would remove
+  sudo /opt/caldart/caldart/deploy/uninstall.sh --yes              # the services and the vhost
+  sudo /opt/caldart/caldart/deploy/uninstall.sh --yes --purge      # ... and every piece of data
+  sudo /opt/caldart/caldart/deploy/uninstall.sh --yes --dry-run    # print what it would remove
 
 Without ``--yes`` it refuses to run.  It:
 
@@ -928,12 +990,19 @@ Without ``--yes`` it refuses to run.  It:
 
 It keeps ``/etc/caldart`` (the environment file, the install record, and a
 self-signed certificate), the database container, which keeps running, and its
-data, and the deploy root with its uploads and dumps.
+data, and the whole deploy root: the checkout, the dumps in
+``/opt/caldart/backups``, and the uploads in ``/opt/caldart/media``.
 
 ``--purge`` also removes ``/etc/caldart``, runs ``docker compose down -v``
-from the deploy root, which deletes the container and the
-``caldart_caldart_pgdata`` volume with every row in it, and removes the deploy
-root, uploads and dumps included.  Copy off what you want to keep first.
+from the checkout, which deletes the container and the
+``caldart_caldart_pgdata`` volume with every row in it, and removes what the
+install made in the deploy root, as its stage line says: the checkout, the
+dumps in ``backups``, and the uploads in ``media``.  It then removes the deploy
+root itself when nothing else is in it; a root that holds anything more stays,
+with that in it, and the purge says so.  On an install whose checkout is the
+deploy root itself (`Moving to the current layout`_) the purge removes the
+checkout alone, dumps and uploads inside it.  Copy off what you want to keep
+first.
 
 Both leave alone the certificates under ``/etc/letsencrypt``, the operating
 system packages (Docker, the web server, certbot, Node, ``uv``), the
@@ -964,7 +1033,10 @@ which systemd runs as on a server, and drives the scripts through a whole life:
 smtp://localhost:25``), every other job service started once, ``upgrade.sh`` with
 nothing to pull, ``install.sh`` with no flags (which must leave the
 environment file and the install record byte-identical), and ``uninstall.sh
---yes --purge``.  Any failure stops the run and the target exits non-zero.
+--yes --purge``.  After the install it checks the layout: the checkout at
+``/opt/caldart/caldart``, the first dump in ``/opt/caldart/backups``,
+``/opt/caldart/media`` owned by the service user, and nothing the site writes
+inside the checkout.  Any failure stops the run and the target exits non-zero.
 
 ``REHEARSE_WEB_SERVER``
    ``apache`` (the default) or ``nginx``.
@@ -978,11 +1050,13 @@ environment file and the install record byte-identical), and ``uninstall.sh
    A port such as ``8101``: passes ``--gunicorn-port PORT`` to the install,
    then checks that the web server proxies to it and never to 8001, that the
    environment file records it, and that gunicorn and the site both answer
-   through it.
+   through it, after the install, after the upgrade, and after the second
+   install.
 ``REHEARSE_DB_PORT``
    A port such as ``5433``: passes ``--db-port PORT`` to the install, then
-   checks that the database container is published on it and that the
-   install's own checks, which reach it there, pass.
+   checks that the database container is published on it after the install,
+   after the upgrade, and after the second install, and that the install's
+   own checks, which reach it there, pass.
 ``REHEARSE_SEED``
    ``content``, ``demo``, or ``all``: passes ``--seed-content``, ``--seed-demo``,
    or both to the install.  With the website seeded it checks that a seeded
@@ -1065,14 +1139,19 @@ the message says, then run the same command again.
 ``error: ... is not supported; use Debian or Ubuntu``
    The packages step runs only on Debian and Ubuntu.
 
-``error: /opt/caldart exists and is not a checkout; move it aside first``
+``error: /opt/caldart/caldart exists and is not a checkout; move it aside first``
    ``bootstrap.sh`` cannot clone into a directory that already has something
-   in it.  Move it aside and run ``bootstrap.sh`` again.
+   in it.  Move it aside and run ``bootstrap.sh`` again; the rest of the
+   deploy root can stay.
 
-``error: the checkout at /opt/caldart has local changes; commit, stash, or discard them first``
+``error: the checkout at /opt/caldart/caldart has local changes; commit, stash, or discard them first``
    ``upgrade.sh`` refuses to pull over edits to the checkout.  ``git -C
-   /opt/caldart status`` shows them; ``git -C /opt/caldart stash`` sets them
-   aside.
+   /opt/caldart/caldart status`` shows them; ``git -C /opt/caldart/caldart
+   stash`` sets them aside.
+
+``error: upgrade.sh keeps the recorded ports; run install.sh --gunicorn-port PORT to move one``
+   ``upgrade.sh`` takes no port flag (nor ``--db-port``, which it names the
+   same way).  Move a port with ``install.sh``, then upgrade.
 
 ``error: the checkout is on a detached HEAD; run upgrade.sh --ref <branch>``
    A rollback left the checkout on a commit.  Upgrade with ``--ref main``.
@@ -1083,22 +1162,22 @@ the message says, then run the same command again.
 ``error: caldart-web did not answer 200 on http://127.0.0.1:8001/ within 30 seconds`` (8001 unless ``--gunicorn-port`` says otherwise)
    The web service did not start.  The installer prints the unit's last 30
    journal lines above the error; ``journalctl -u caldart-web -n 50`` shows
-   more.  After fixing the cause, ``sudo /opt/caldart/deploy/steps/web-service.sh``
+   more.  After fixing the cause, ``sudo /opt/caldart/caldart/deploy/steps/web-service.sh``
    restarts it and waits again.  A ``status=226/NAMESPACE`` there means a
-   directory the unit writes is missing: ``sudo /opt/caldart/deploy/steps/user.sh``
+   directory the unit writes is missing: ``sudo /opt/caldart/caldart/deploy/steps/user.sh``
    creates them.
 
 ``error: check failed: ...``
    ``steps/check.sh`` names every check that missed.  Behind an existing site
    installed without ``--attach-to``, the site does not answer under the
    prefix until the include line is in place.  Fix the cause, then run
-   ``sudo /opt/caldart/deploy/steps/check.sh``.
+   ``sudo /opt/caldart/caldart/deploy/steps/check.sh``.
 
 **certbot says the challenge failed.**  The hostname (or ``www.HOST``) does
 not resolve to this server, or port 80 is closed.  From another machine,
 ``curl -I http://caldart.example.org/.well-known/acme-challenge/x`` should
 reach this server and answer 404.  Fix the DNS or the firewall, or give
-``--no-www``, then run ``sudo /opt/caldart/deploy/steps/web-server.sh``.  Let's
+``--no-www``, then run ``sudo /opt/caldart/caldart/deploy/steps/web-server.sh``.  Let's
 Encrypt limits failed attempts per hour, so check with ``curl`` first.
 
 **No mail arrives.**  Run ``sendtestemail`` as under `Mail`_, and read
@@ -1109,8 +1188,8 @@ postfix.  Many providers want ``smtp+tls://`` on port 587 with an app password.
 **One step needs running again.**  Every step runs alone and reads the install
 record::
 
-  sudo /opt/caldart/deploy/steps/web-server.sh
-  sudo /opt/caldart/deploy/steps/build.sh --dry-run
+  sudo /opt/caldart/caldart/deploy/steps/web-server.sh
+  sudo /opt/caldart/caldart/deploy/steps/build.sh --dry-run
 
 ``steps/database.sh`` also takes ``--admin-email``, ``--seed-demo``, and
 ``--seed-content``, and ``steps/configure.sh`` the environment file's flags

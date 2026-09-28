@@ -25,9 +25,9 @@
 
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+CHECKOUT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 # shellcheck source=deploy/lib.sh
-source "$ROOT/deploy/lib.sh"
+source "$CHECKOUT/deploy/lib.sh"
 
 readonly DB_READY_SECONDS=60
 # What Compose names the db service's container in the project "caldart".
@@ -47,7 +47,7 @@ postgres_check_port() {
 postgres_step() {
     log "Starting Postgres on 127.0.0.1:$CALDART_DB_PORT"
     postgres_check_port
-    run cd "$ROOT"
+    run cd "$CHECKOUT"
     run docker compose up -d db
     wait_for "$DB_READY_SECONDS" docker compose exec -T db pg_isready -U caldart -d caldart \
         || die "Postgres did not accept connections within ${DB_READY_SECONDS} seconds"

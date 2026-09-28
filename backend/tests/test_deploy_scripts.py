@@ -4,9 +4,10 @@
 under ``deploy/steps/`` in order, and ``--dry-run`` prints every command that changes
 the machine instead of running it.  These tests read that dry run as an ordered command
 list and hold it to the order the guide gives.  Nothing here needs root, Docker, or the
-network: every dry run happens in a copy of ``deploy/`` under ``tmp_path``, with
-``CALDART_ETC`` pointing at an empty temporary directory, so even a script that forgot
-the dry run could only touch the copy.  ``configure.sh`` runs for real into that
+network: every dry run happens in a copy of ``deploy/`` in a checkout under a deploy
+root in ``tmp_path``, laid out as a server's ``/opt/caldart`` is, with ``CALDART_ETC``
+pointing at an empty temporary directory, so even a script that forgot the dry run could
+only touch the copy.  ``configure.sh`` runs for real into that
 temporary directory, and the file it writes is checked by ``manage.py check --deploy``.
 """
 
@@ -55,6 +56,12 @@ ENTRY_POINTS: Final = (
     "steps/check.sh",
 )
 
+#: The directory in the deploy root the checkout sits in, as ``bootstrap.sh`` clones it.
+CHECKOUT_NAME: Final = "caldart"
+
+#: The shell assignments that make ``/srv/x`` the deploy root for a sourced ``lib.sh``.
+SRV_X_LAYOUT: Final = "CHECKOUT=/srv/x/caldart; ROOT=/srv/x;"
+
 #: Every file the installer copies out of ``deploy/`` through ``render_file``.
 UNITS: Final = sorted(path.name for path in (DEPLOY_DIR / "systemd").iterdir())
 VHOSTS: Final = ("apache/caldart.conf", "nginx/caldart.conf")
@@ -86,10 +93,24 @@ OS_RELEASES: Final = {
 
 @pytest.fixture
 def root(tmp_path: Path) -> Path:
-    """A deploy root holding a copy of ``deploy/``, so a dry run can touch only it."""
+    """A deploy root holding a checkout with a copy of ``deploy/``.
+
+    A dry run can touch only the copy.
+    """
     target = tmp_path / "root"
-    shutil.copytree(DEPLOY_DIR, target / "deploy")
+    shutil.copytree(DEPLOY_DIR, _checkout(target) / "deploy")
     return target
+
+
+@pytest.fixture
+def checkout(root: Path) -> Path:
+    """The checkout inside the deploy root ``root``."""
+    return _checkout(root)
+
+
+def _checkout(root: Path) -> Path:
+    """The checkout inside the deploy root ``root``: its ``caldart`` directory."""
+    return root / CHECKOUT_NAME
 
 
 @pytest.fixture
@@ -228,7 +249,7 @@ def _install_dry_run(
             active=active,
         ),
     )
-    return _run(root / "deploy" / "install.sh", "--dry-run", *flags, *extra, env=env)
+    return _run(_checkout(root) / "deploy" / "install.sh", "--dry-run", *flags, *extra, env=env)
 
 
 def _variables(env_file: Path) -> dict[str, str]:
@@ -240,26 +261,36 @@ def _variables(env_file: Path) -> dict[str, str]:
 
 def _configure(root: Path, etc: Path, *args: str, **extra: str) -> subprocess.CompletedProcess[str]:
     """Run ``configure.sh`` for real into ``etc``."""
-    return _run(root / "deploy" / "steps" / "configure.sh", *args, env=_env(etc, **extra))
+    return _run(
+        _checkout(root) / "deploy" / "steps" / "configure.sh", *args, env=_env(etc, **extra)
+    )
 
 
 def _render_vhost(root: Path, vhost: str, www: str, tls: str) -> str:
     """What ``render_vhost`` writes for ``caldart.test`` under the root ``/srv/x``."""
     dest = root / "rendered"
     source = DEPLOY_DIR / vhost
-    _source_lib(root, f'ROOT=/srv/x; render_vhost "{source}" "{dest}" caldart.test {www} {tls}')
+    _source_lib(
+        root,
+        f'{SRV_X_LAYOUT} render_vhost "{source}" "{dest}" caldart.test {www} {tls}',
+    )
     return dest.read_text()
 
 
 def _source_lib(root: Path, snippet: str) -> subprocess.CompletedProcess[str]:
-    """Run ``snippet`` in a shell that has sourced ``deploy/lib.sh``."""
+    """Run ``snippet`` in a shell that has sourced ``deploy/lib.sh`` as a script does.
+
+    ``CHECKOUT`` is the checkout in ``root`` when the library is sourced, so ``ROOT`` is
+    ``root``; a snippet that sets both first writes in another layout.
+    """
     return subprocess.run(  # noqa: S603 - fixed argv, BASH is a resolved path
         [
             BASH,
             "-c",
-            f'set -euo pipefail; source "$1"; {snippet}',
+            f'set -euo pipefail; CHECKOUT="$2"; source "$1"; {snippet}',
             "bash",
-            str(root / "deploy" / "lib.sh"),
+            str(_checkout(root) / "deploy" / "lib.sh"),
+            str(_checkout(root)),
         ],
         capture_output=True,
         text=True,
@@ -477,7 +508,7 @@ def test_a_hostname_that_is_not_a_dns_name_is_a_usage_error(
     """``--hostname`` must be a DNS name: it is written into sed, the vhost, and files."""
     args = ["--hostname", hostname, *FIRST_INSTALL[2:]]
     env = _env(etc, CALDART_OS_RELEASE=str(_os_release(tmp_path, "ubuntu")))
-    result = _run(root / "deploy" / "install.sh", "--dry-run", *args, env=env)
+    result = _run(_checkout(root) / "deploy" / "install.sh", "--dry-run", *args, env=env)
     assert _errors(result) == [
         f"error: --hostname must be a DNS name such as caldart.example.org, not {hostname}"
     ]
@@ -487,7 +518,7 @@ def test_a_hostname_that_is_not_a_dns_name_exits_2(root: Path, etc: Path, tmp_pa
     """A malformed ``--hostname`` is a usage error, not a failure."""
     args = ["--hostname", "https://caldart.org/", *FIRST_INSTALL[2:]]
     env = _env(etc, CALDART_OS_RELEASE=str(_os_release(tmp_path, "ubuntu")))
-    result = _run(root / "deploy" / "install.sh", "--dry-run", *args, env=env)
+    result = _run(_checkout(root) / "deploy" / "install.sh", "--dry-run", *args, env=env)
     assert result.returncode == 2
 
 
@@ -648,13 +679,18 @@ def test_configure_writes_5432_by_default(env_file: Path) -> None:
 def test_compose_runs_with_the_recorded_port(root: Path, etc: Path) -> None:
     """``compose.sh`` hands its arguments to ``docker compose`` with the recorded port."""
     (etc / "install.conf").write_text("CALDART_DB_PORT=5433\n")
-    result = _run(root / "deploy" / "compose.sh", "--dry-run", "ps", "db", env=_env(etc))
-    assert _commands(result) == [f"cd {root}", "env CALDART_DB_PORT=5433 docker compose ps db"]
+    result = _run(_checkout(root) / "deploy" / "compose.sh", "--dry-run", "ps", "db", env=_env(etc))
+    assert _commands(result) == [
+        f"cd {_checkout(root)}",
+        "env CALDART_DB_PORT=5433 docker compose ps db",
+    ]
 
 
 def test_compose_defaults_to_5432(root: Path, etc: Path) -> None:
     """With no install record, ``compose.sh`` uses port 5432."""
-    result = _run(root / "deploy" / "compose.sh", "--dry-run", "logs", "-f", "db", env=_env(etc))
+    result = _run(
+        _checkout(root) / "deploy" / "compose.sh", "--dry-run", "logs", "-f", "db", env=_env(etc)
+    )
     assert _commands(result)[-1] == "env CALDART_DB_PORT=5432 docker compose logs -f db"
 
 
@@ -759,7 +795,7 @@ def test_bootstrap_passes_the_port_and_mail_flags_through(tmp_path: Path) -> Non
     """``--db-port`` and ``--email`` take values that reach ``install.sh``."""
     result = _bootstrap_dry_run(tmp_path, "--db-port", "5433", "--email", "local")
     assert _commands(result)[-1] == (
-        f"bash {tmp_path}/srv/deploy/install.sh --dry-run --db-port 5433 --email local"
+        f"bash {tmp_path}/srv/caldart/deploy/install.sh --dry-run --db-port 5433 --email local"
     )
 
 
@@ -779,7 +815,7 @@ def test_the_compose_package_follows_the_distribution(
         CALDART_OS_RELEASE=str(_os_release(tmp_path, distro)),
         PATH=_machine_path(tmp_path),
     )
-    result = _run(root / "deploy" / "steps" / "packages.sh", "--dry-run", env=env)
+    result = _run(_checkout(root) / "deploy" / "steps" / "packages.sh", "--dry-run", env=env)
     commands = _commands(result)
     packages = commands[_position(commands, "apt-get install")].split()
     assert [name for name in packages if name.startswith("docker-compose")] == [compose]
@@ -788,7 +824,7 @@ def test_the_compose_package_follows_the_distribution(
 def test_another_distribution_is_refused(etc: Path, root: Path, tmp_path: Path) -> None:
     """Any other ``ID`` stops with a message naming the two supported families."""
     env = _env(etc, CALDART_OS_RELEASE=str(_os_release(tmp_path, "fedora")))
-    result = _run(root / "deploy" / "steps" / "packages.sh", "--dry-run", env=env)
+    result = _run(_checkout(root) / "deploy" / "steps" / "packages.sh", "--dry-run", env=env)
     assert result.returncode == 1
     assert "error: fedora is not supported; use Debian or Ubuntu" in result.stderr
 
@@ -806,7 +842,9 @@ def test_the_nodesource_installer_fails_when_its_download_fails(
         CALDART_OS_RELEASE=str(_os_release(tmp_path, "ubuntu")),
         PATH=f"{shims}:{os.environ['PATH']}",
     )
-    commands = _commands(_run(root / "deploy" / "steps" / "packages.sh", "--dry-run", env=env))
+    commands = _commands(
+        _run(_checkout(root) / "deploy" / "steps" / "packages.sh", "--dry-run", env=env)
+    )
     assert "'set -o pipefail; curl" in commands[_position(commands, "deb.nodesource.com")]
 
 
@@ -846,7 +884,7 @@ def test_bootstrap_masks_the_email_url(tmp_path: Path) -> None:
     """The mail relay's credential is never printed in the installer line."""
     result = _bootstrap_dry_run(tmp_path, "--email-url", "smtp+tls://user:mailsecret@x.org:587")
     assert _commands(result)[-1] == (
-        f"bash {tmp_path}/srv/deploy/install.sh --dry-run --email-url '<email-url>'"
+        f"bash {tmp_path}/srv/caldart/deploy/install.sh --dry-run --email-url '<email-url>'"
     )
 
 
@@ -854,7 +892,8 @@ def test_bootstrap_quotes_what_it_prints(tmp_path: Path) -> None:
     """An argument with spaces is printed shell-quoted, so the line runs as printed."""
     result = _bootstrap_dry_run(tmp_path, "--from-email", "CalDART <ops@x.org>")
     assert _commands(result)[-1] == (
-        f"bash {tmp_path}/srv/deploy/install.sh --dry-run --from-email 'CalDART <ops@x.org>'"
+        f"bash {tmp_path}/srv/caldart/deploy/install.sh --dry-run "
+        "--from-email 'CalDART <ops@x.org>'"
     )
 
 
@@ -915,14 +954,21 @@ def test_configure_fills_in_the_host_values(variable: str, expected: str, env_fi
 
 
 @pytest.mark.parametrize(
-    ("variable", "suffix"),
-    [("BACKUP_DIR", "backups"), ("USER_GUIDE_ROOT", "docs/_build/guide")],
+    ("variable", "suffix"), [("BACKUP_DIR", "backups"), ("MEDIA_ROOT", "media")]
 )
-def test_configure_puts_paths_under_the_deploy_root(
+def test_configure_puts_the_data_in_the_deploy_root(
     variable: str, suffix: str, env_file: Path, root: Path
 ) -> None:
-    """``BACKUP_DIR`` and ``USER_GUIDE_ROOT`` name directories inside the deploy root."""
+    """``BACKUP_DIR`` and ``MEDIA_ROOT`` name directories in the deploy root.
+
+    They sit beside the checkout rather than inside it.
+    """
     assert _variables(env_file)[variable] == f"{root}/{suffix}"
+
+
+def test_configure_puts_the_user_guide_in_the_checkout(env_file: Path, checkout: Path) -> None:
+    """``USER_GUIDE_ROOT`` names the build output inside the checkout."""
+    assert _variables(env_file)["USER_GUIDE_ROOT"] == f"{checkout}/docs/_build/guide"
 
 
 def test_configure_uses_the_generated_database_password(env_file: Path) -> None:
@@ -1044,7 +1090,7 @@ def exec_log(root: Path, etc: Path, tmp_path: Path) -> tuple[str, Path]:
         )
         shim.chmod(0o755)
     result = _run(
-        root / "deploy" / "steps" / "configure.sh",
+        _checkout(root) / "deploy" / "steps" / "configure.sh",
         "--hostname",
         "caldart.test",
         "--email-url",
@@ -1098,7 +1144,7 @@ def test_configure_writes_a_file_the_deployment_checks_accept(env_file: Path) ->
 def test_render_file_moves_every_path_to_the_deploy_root(source: str, root: Path) -> None:
     """``render_file`` replaces ``/opt/caldart`` with the root as it copies a file."""
     dest = root / "rendered"
-    _source_lib(root, f'ROOT=/srv/x; render_file "{DEPLOY_DIR / source}" "{dest}"')
+    _source_lib(root, f'{SRV_X_LAYOUT} render_file "{DEPLOY_DIR / source}" "{dest}"')
     assert "/opt/caldart" not in dest.read_text()
 
 
@@ -1108,20 +1154,92 @@ def test_every_shipped_file_names_the_opt_root(source: str) -> None:
     assert "/opt/caldart" in (DEPLOY_DIR / source).read_text()
 
 
-def test_bootstrap_clones_into_the_opt_root(etc: Path) -> None:
-    """``bootstrap.sh`` clones into ``/opt/caldart`` unless ``CALDART_ROOT`` says not."""
+def test_bootstrap_names_the_opt_root(etc: Path) -> None:
+    """``bootstrap.sh`` uses ``/opt/caldart`` unless ``CALDART_ROOT`` says not."""
     result = _run(DEPLOY_DIR / "bootstrap.sh", "--help", env=_env(etc))
-    assert "CALDART_ROOT   the deploy root to clone into (default /opt/caldart)" in result.stdout
+    assert (
+        "CALDART_ROOT   the deploy root, which the checkout goes in as caldart/\n"
+        "                 (default /opt/caldart)"
+    ) in result.stdout
 
 
 @pytest.mark.parametrize(
     "source", [f"systemd/{unit}" for unit in UNITS if unit.endswith("service")]
 )
-def test_render_file_writes_the_deploy_root(source: str, root: Path) -> None:
-    """A rendered service names the root in place of ``/opt/caldart``."""
+def test_render_file_writes_the_checkout(source: str, root: Path) -> None:
+    """A rendered service runs the interpreter in the checkout under the deploy root."""
+    assert "/srv/x/caldart/.venv/bin/" in _render_at_srv_x(root, source)
+
+
+@pytest.mark.parametrize(
+    "source", [f"systemd/{unit}" for unit in UNITS if unit.endswith("service")]
+)
+def test_every_service_works_in_the_checkouts_backend(source: str) -> None:
+    """Every shipped service runs from ``backend/`` in the checkout in the deploy root."""
+    assert "WorkingDirectory=/opt/caldart/caldart/backend\n" in (DEPLOY_DIR / source).read_text()
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "ReadWritePaths=/srv/x/media\n",
+        "ReadWritePaths=/srv/x/backups\n",
+        "ReadWritePaths=/srv/x/caldart/backend/staticfiles\n",
+    ],
+)
+def test_the_web_unit_writes_the_data_in_the_deploy_root(path: str, root: Path) -> None:
+    """The web unit may write the uploads and dumps beside the checkout.
+
+    It may also write the static files, which live in the checkout.
+    """
+    assert path in _render_at_srv_x(root, "systemd/caldart-web.service")
+
+
+@pytest.mark.parametrize(
+    "path", ["/srv/x/caldart/backups", "/srv/x/caldart/media", "backend/media"]
+)
+def test_nothing_rendered_puts_the_data_in_the_checkout(path: str, root: Path) -> None:
+    """No unit, vhost, or snippet names a dump or upload directory inside the checkout."""
+    sources = [*(f"systemd/{unit}" for unit in UNITS), *VHOSTS, *(s for s, _ in SNIPPETS.values())]
+    assert [source for source in sources if path in _render_at_srv_x(root, source)] == []
+
+
+def test_render_file_writes_a_checkout_path_once(root: Path) -> None:
+    """A deploy root that itself lies under ``/opt/caldart`` is not written in twice."""
     dest = root / "rendered"
-    _source_lib(root, f'ROOT=/srv/x; render_file "{DEPLOY_DIR / source}" "{dest}"')
-    assert "/srv/x/.venv/bin/" in dest.read_text()
+    source = DEPLOY_DIR / "systemd" / "caldart-web.service"
+    _source_lib(
+        root,
+        "CHECKOUT=/opt/caldart/site/caldart; ROOT=/opt/caldart/site; "
+        f'render_file "{source}" "{dest}"',
+    )
+    assert "WorkingDirectory=/opt/caldart/site/caldart/backend\n" in dest.read_text()
+
+
+@pytest.mark.parametrize(
+    ("vhost", "fragment"),
+    [
+        ("apache/caldart.conf", "Alias /media/ /srv/x/media/"),
+        ("apache/caldart.conf", '<Directory "/srv/x/media/documents">'),
+        ("nginx/caldart.conf", "alias /srv/x/media/;"),
+    ],
+)
+def test_the_vhost_serves_the_uploads_from_the_deploy_root(
+    vhost: str, fragment: str, root: Path
+) -> None:
+    """Each vhost aliases ``/media/`` to the deploy root's ``media`` directory."""
+    assert fragment in _render_vhost(root, vhost, "yes", "certbot")
+
+
+def _render_at_srv_x(root: Path, source: str) -> str:
+    """What ``render_file`` writes from ``source`` for the deploy root ``/srv/x``."""
+    dest = root / "rendered"
+    result = _source_lib(
+        root,
+        f'{SRV_X_LAYOUT} render_file "{DEPLOY_DIR / source}" "{dest}"',
+    )
+    assert result.returncode == 0, result.stderr
+    return dest.read_text()
 
 
 @pytest.mark.parametrize("vhost", VHOSTS)
@@ -1161,10 +1279,10 @@ def test_the_template_sets_the_backup_retention() -> None:
 
 def test_gunicorn_finds_the_project_from_its_own_location() -> None:
     """``gunicorn.conf.py`` computes ``chdir`` from its own path, not ``/opt/caldart``."""
-    config: dict[str, object] = {"__file__": "/srv/x/deploy/gunicorn.conf.py"}
+    config: dict[str, object] = {"__file__": "/srv/x/caldart/deploy/gunicorn.conf.py"}
     source = (DEPLOY_DIR / "gunicorn.conf.py").read_text()
     exec(compile(source, "gunicorn.conf.py", "exec"), config)  # noqa: S102 - our own config file
-    assert config["chdir"] == "/srv/x/backend"
+    assert config["chdir"] == "/srv/x/caldart/backend"
 
 
 # -- manage.sh, upgrade.sh, uninstall.sh --------------------------------------------
@@ -1172,130 +1290,314 @@ def test_gunicorn_finds_the_project_from_its_own_location() -> None:
 
 def test_manage_runs_the_command_as_the_service_user(root: Path, etc: Path) -> None:
     """``manage.sh`` runs ``manage.py`` through ``systemd-run`` as ``caldart``."""
-    result = _run(root / "deploy" / "manage.sh", "--dry-run", "migrate", env=_env(etc))
+    result = _run(_checkout(root) / "deploy" / "manage.sh", "--dry-run", "migrate", env=_env(etc))
     command = _commands(result)[0]
     assert command.startswith("systemd-run --quiet --wait --collect --pty --pipe --uid=caldart")
 
 
 def test_manage_writes_with_the_service_umask(root: Path, etc: Path) -> None:
     """A dump written through ``manage.sh`` is never world-readable."""
-    result = _run(root / "deploy" / "manage.sh", "--dry-run", "db_backup", env=_env(etc))
+    result = _run(_checkout(root) / "deploy" / "manage.sh", "--dry-run", "db_backup", env=_env(etc))
     assert "--property=UMask=0027" in _commands(result)[0]
 
 
 def test_manage_passes_the_arguments_through(root: Path, etc: Path) -> None:
     """Everything after the command name reaches ``manage.py`` unchanged."""
-    result = _run(root / "deploy" / "manage.sh", "--dry-run", "health", "--json", env=_env(etc))
-    assert _commands(result)[0].endswith(f"{root}/.venv/bin/python manage.py health --json")
+    result = _run(
+        _checkout(root) / "deploy" / "manage.sh", "--dry-run", "health", "--json", env=_env(etc)
+    )
+    assert _commands(result)[0].endswith(
+        f"{_checkout(root)}/.venv/bin/python manage.py health --json"
+    )
 
 
 @pytest.fixture
-def checkout(root: Path) -> Path:
-    """The deploy root as a clean git checkout."""
+def git_checkout(checkout: Path) -> Path:
+    """The checkout in the deploy root as a clean git checkout."""
     git = shutil.which("git")
     assert git is not None
     identity = ("-c", "user.name=Test", "-c", "user.email=test@example.org")
     for args in (("init", "-q"), ("add", "."), (*identity, "commit", "-qm", "init")):
-        subprocess.run([git, *args], cwd=root, check=True, capture_output=True)  # noqa: S603 - fixed argv
-    return root
+        subprocess.run([git, *args], cwd=checkout, check=True, capture_output=True)  # noqa: S603 - fixed argv
+    return checkout
 
 
-def test_upgrade_backs_up_before_it_pulls(checkout: Path, etc: Path) -> None:
+def test_upgrade_backs_up_before_it_pulls(git_checkout: Path, etc: Path) -> None:
     """The upgrade takes a dump before it changes the code."""
-    result = _run(checkout / "deploy" / "upgrade.sh", "--dry-run", env=_env(etc), cwd=checkout)
+    result = _run(
+        git_checkout / "deploy" / "upgrade.sh", "--dry-run", env=_env(etc), cwd=git_checkout
+    )
     commands = _commands(result)
     assert _position(commands, "db_backup") < _position(commands, "git pull --ff-only")
 
 
-def test_upgrade_ends_with_the_check(checkout: Path, etc: Path) -> None:
+def test_upgrade_ends_with_the_check(git_checkout: Path, etc: Path) -> None:
     """The last thing an upgrade runs is the check."""
-    result = _run(checkout / "deploy" / "upgrade.sh", "--dry-run", env=_env(etc), cwd=checkout)
+    result = _run(
+        git_checkout / "deploy" / "upgrade.sh", "--dry-run", env=_env(etc), cwd=git_checkout
+    )
     commands = _commands(result)
     assert _position(commands, "systemctl restart caldart-web") < _position(
         commands, "systemctl is-active"
     )
 
 
-def test_upgrade_checks_out_a_ref(checkout: Path, etc: Path) -> None:
+def test_upgrade_checks_out_a_ref(git_checkout: Path, etc: Path) -> None:
     """``--ref`` fetches and checks out that ref instead of pulling."""
     result = _run(
-        checkout / "deploy" / "upgrade.sh",
+        git_checkout / "deploy" / "upgrade.sh",
         "--dry-run",
         "--ref",
         "v1.2",
         env=_env(etc),
-        cwd=checkout,
+        cwd=git_checkout,
     )
     commands = _commands(result)
     assert _position(commands, "git fetch origin") < _position(commands, "git checkout v1.2")
 
 
-def test_upgrade_never_touches_the_environment_file_or_the_vhost(checkout: Path, etc: Path) -> None:
+def test_upgrade_never_touches_the_environment_file_or_the_vhost(
+    git_checkout: Path, etc: Path
+) -> None:
     """The upgrade leaves ``caldart.env`` and the web server's configuration alone."""
-    result = _run(checkout / "deploy" / "upgrade.sh", "--dry-run", env=_env(etc), cwd=checkout)
+    result = _run(
+        git_checkout / "deploy" / "upgrade.sh", "--dry-run", env=_env(etc), cwd=git_checkout
+    )
     commands = _commands(result)
     written = [c for c in commands if c.endswith("caldart.env") or "sites-available" in c]
     assert written == []
 
 
-def test_upgrade_refuses_local_changes(checkout: Path, etc: Path) -> None:
+def test_upgrade_refuses_local_changes(git_checkout: Path, etc: Path) -> None:
     """A checkout with local changes stops the upgrade before the code changes."""
-    (checkout / "stray.txt").write_text("local change\n", encoding="utf-8")
-    result = _run(checkout / "deploy" / "upgrade.sh", "--dry-run", env=_env(etc), cwd=checkout)
+    (git_checkout / "stray.txt").write_text("local change\n", encoding="utf-8")
+    result = _run(
+        git_checkout / "deploy" / "upgrade.sh", "--dry-run", env=_env(etc), cwd=git_checkout
+    )
     assert result.returncode == 1
     assert _errors(result) == [
-        f"error: the checkout at {checkout} has local changes; commit, stash, or discard them first"
+        f"error: the checkout at {git_checkout} has local changes; "
+        "commit, stash, or discard them first"
     ]
 
 
-def test_upgrade_refuses_a_detached_head_before_the_backup(checkout: Path, etc: Path) -> None:
+def test_upgrade_refuses_a_detached_head_before_the_backup(git_checkout: Path, etc: Path) -> None:
     """A plain upgrade of a checkout left detached by ``--ref`` stops naming the fix."""
     git = shutil.which("git")
     assert git is not None
     subprocess.run(  # noqa: S603 - fixed argv
-        [git, "checkout", "-q", "--detach"], cwd=checkout, check=True, capture_output=True
+        [git, "checkout", "-q", "--detach"], cwd=git_checkout, check=True, capture_output=True
     )
-    result = _run(checkout / "deploy" / "upgrade.sh", "--dry-run", env=_env(etc), cwd=checkout)
+    result = _run(
+        git_checkout / "deploy" / "upgrade.sh", "--dry-run", env=_env(etc), cwd=git_checkout
+    )
     assert _errors(result) == [
         "error: the checkout is on a detached HEAD; run upgrade.sh --ref <branch>"
     ]
 
 
-def test_upgrade_of_a_detached_head_takes_no_backup(checkout: Path, etc: Path) -> None:
+def test_upgrade_of_a_detached_head_takes_no_backup(git_checkout: Path, etc: Path) -> None:
     """The detached-HEAD refusal comes before anything runs."""
     git = shutil.which("git")
     assert git is not None
     subprocess.run(  # noqa: S603 - fixed argv
-        [git, "checkout", "-q", "--detach"], cwd=checkout, check=True, capture_output=True
+        [git, "checkout", "-q", "--detach"], cwd=git_checkout, check=True, capture_output=True
     )
-    result = _run(checkout / "deploy" / "upgrade.sh", "--dry-run", env=_env(etc), cwd=checkout)
+    result = _run(
+        git_checkout / "deploy" / "upgrade.sh", "--dry-run", env=_env(etc), cwd=git_checkout
+    )
     assert _commands(result) == []
 
 
 def test_uninstall_needs_yes(root: Path, etc: Path) -> None:
     """Without ``--yes`` the uninstall is a usage error."""
-    result = _run(root / "deploy" / "uninstall.sh", "--dry-run", env=_env(etc))
+    result = _run(_checkout(root) / "deploy" / "uninstall.sh", "--dry-run", env=_env(etc))
     assert result.returncode == 2
     assert _errors(result) == ["error: --yes is required: this removes the site"]
 
 
+def _purge_dry_run(root: Path, etc: Path) -> list[str]:
+    """The commands the dry run of ``uninstall.sh --yes --purge`` in ``root`` prints."""
+    result = _run(
+        _checkout(root) / "deploy" / "uninstall.sh", "--dry-run", "--yes", "--purge", env=_env(etc)
+    )
+    assert result.returncode == 0, result.stderr
+    return _commands(result)
+
+
+def _deploy_root_with_data(root: Path) -> Path:
+    """Give the deploy root ``root`` the dumps and uploads directories of an install."""
+    (root / "backups").mkdir()
+    (root / "media").mkdir()
+    return root
+
+
 def test_uninstall_purge_removes_the_data(root: Path, etc: Path) -> None:
-    """``--purge`` drops the database volume and the deploy root."""
-    result = _run(root / "deploy" / "uninstall.sh", "--dry-run", "--yes", "--purge", env=_env(etc))
+    """``--purge`` drops the database volume before it removes the checkout."""
+    commands = _purge_dry_run(root, etc)
+    assert _position(commands, "docker compose down -v") < _position(
+        commands, f"rm -rf {_checkout(root)}"
+    )
+
+
+@pytest.mark.parametrize("entry", [CHECKOUT_NAME, "backups", "media"])
+def test_uninstall_purge_removes_what_the_install_made(entry: str, root: Path, etc: Path) -> None:
+    """``--purge`` removes the checkout, the dumps, and the uploads in the deploy root."""
+    commands = _purge_dry_run(_deploy_root_with_data(root), etc)
+    assert f"rm -rf {root / entry}" in commands
+
+
+def test_uninstall_purge_removes_the_emptied_deploy_root(root: Path, etc: Path) -> None:
+    """A deploy root that holds only what the install made is removed once emptied."""
+    commands = _purge_dry_run(_deploy_root_with_data(root), etc)
+    assert commands[-1] == f"rmdir {root}"
+
+
+def test_uninstall_purge_never_removes_the_deploy_root_whole(root: Path, etc: Path) -> None:
+    """The purge removes the deploy root's entries one by one, never the root at once."""
+    commands = _purge_dry_run(_deploy_root_with_data(root), etc)
+    assert f"rm -rf {root}" not in commands
+
+
+def test_uninstall_purge_keeps_a_deploy_root_holding_more(root: Path, etc: Path) -> None:
+    """A deploy root that holds anything else keeps it, and the root stays."""
+    (_deploy_root_with_data(root) / "other").mkdir()
+    commands = _purge_dry_run(root, etc)
+    assert [c for c in commands if c.startswith("rmdir") or str(root / "other") in c] == []
+
+
+def test_uninstall_purge_says_it_keeps_a_deploy_root_holding_more(root: Path, etc: Path) -> None:
+    """The purge names the deploy root it leaves in place."""
+    (root / "other").mkdir()
+    result = _run(
+        _checkout(root) / "deploy" / "uninstall.sh", "--dry-run", "--yes", "--purge", env=_env(etc)
+    )
+    assert (
+        f"kept {root}: it holds more than the checkout, the backups, and the uploads"
+    ) in result.stderr.splitlines()
+
+
+def test_uninstall_purge_of_a_checkout_layout_removes_only_the_checkout(
+    root: Path, etc: Path
+) -> None:
+    """A record naming the checkout as the deploy root purges the checkout alone.
+
+    The dumps and uploads of such an install are inside the checkout, and its parent
+    (``/opt`` for a checkout at ``/opt/caldart``) belongs to the machine.
+    """
+    _record_checkout_layout(root, etc)
+    commands = _purge_dry_run(_deploy_root_with_data(root), etc)
+    removed = [c for c in commands if c.startswith(("rm -rf", "rmdir")) and str(etc) not in c]
+    assert removed == [f"rm -rf {_checkout(root)}"]
+
+
+def test_uninstall_purge_says_what_the_deploy_root_holds(root: Path, etc: Path) -> None:
+    """The purge's stage line names the checkout, the backups, and the uploads."""
+    result = _run(
+        _checkout(root) / "deploy" / "uninstall.sh", "--dry-run", "--yes", "--purge", env=_env(etc)
+    )
+    assert (
+        f"==> Removing the configuration, the database, and {root} "
+        "(the checkout, the backups, and the uploads)"
+    ) in result.stdout.splitlines()
+
+
+def test_uninstall_purge_composes_down_from_the_checkout(root: Path, etc: Path) -> None:
+    """``docker compose down`` runs where ``docker-compose.yml`` is: the checkout."""
+    result = _run(
+        _checkout(root) / "deploy" / "uninstall.sh", "--dry-run", "--yes", "--purge", env=_env(etc)
+    )
     commands = _commands(result)
-    assert _position(commands, "docker compose down -v") < _position(commands, f"rm -rf {root}")
+    assert commands[_position(commands, "docker compose down -v") - 1] == f"cd {_checkout(root)}"
 
 
 def test_uninstall_dry_run_removes_nothing(root: Path, etc: Path) -> None:
     """The dry run of a purge leaves the deploy root in place."""
-    _run(root / "deploy" / "uninstall.sh", "--dry-run", "--yes", "--purge", env=_env(etc))
-    assert (root / "deploy" / "lib.sh").is_file()
+    _run(
+        _checkout(root) / "deploy" / "uninstall.sh", "--dry-run", "--yes", "--purge", env=_env(etc)
+    )
+    assert (_checkout(root) / "deploy" / "lib.sh").is_file()
 
 
 def test_uninstall_keeps_the_data_without_purge(root: Path, etc: Path) -> None:
     """Without ``--purge`` the database volume stays."""
-    result = _run(root / "deploy" / "uninstall.sh", "--dry-run", "--yes", env=_env(etc))
+    result = _run(_checkout(root) / "deploy" / "uninstall.sh", "--dry-run", "--yes", env=_env(etc))
     assert "docker compose down" not in result.stdout
+
+
+# -- an install whose checkout is the deploy root ----------------------------------
+
+#: The message every script but the uninstaller, manage.sh, and compose.sh stops with on
+#: an install that keeps its data inside the checkout.
+CHECKOUT_LAYOUT_ERROR: Final = (
+    "error: this install keeps its data inside the checkout at {checkout}; "
+    "see 'Moving to the current layout' in deploy/README.rst"
+)
+
+#: Every step, each of which refuses such an install when run on its own.
+STEPS: Final = sorted(
+    path.relative_to(DEPLOY_DIR).as_posix() for path in (DEPLOY_DIR / "steps").glob("*.sh")
+)
+
+
+def _record_checkout_layout(root: Path, etc: Path) -> None:
+    """Write an install record whose deploy root is the checkout in ``root`` itself."""
+    (etc / "install.conf").write_text(
+        f"CALDART_ROOT={_checkout(root)}\nCALDART_HOSTNAME=caldart.test\n"
+    )
+
+
+@pytest.mark.parametrize("script", ["install.sh", *STEPS])
+def test_a_checkout_layout_is_refused(script: str, root: Path, etc: Path) -> None:
+    """The installer and every step stop, naming the runbook section, and run nothing."""
+    _record_checkout_layout(root, etc)
+    result = _run(_checkout(root) / "deploy" / script, "--dry-run", env=_env(etc))
+    assert (_errors(result), _commands(result), result.returncode) == (
+        [CHECKOUT_LAYOUT_ERROR.format(checkout=_checkout(root))],
+        [],
+        1,
+    )
+
+
+def test_an_upgrade_of_a_checkout_layout_is_refused_before_the_backup(
+    git_checkout: Path, etc: Path
+) -> None:
+    """``upgrade.sh`` stops before it backs up, pulls, or restarts anything."""
+    _record_checkout_layout(git_checkout.parent, etc)
+    result = _run(
+        git_checkout / "deploy" / "upgrade.sh", "--dry-run", env=_env(etc), cwd=git_checkout
+    )
+    assert (_errors(result), _commands(result)) == (
+        [CHECKOUT_LAYOUT_ERROR.format(checkout=git_checkout)],
+        [],
+    )
+
+
+def test_manage_still_runs_on_a_checkout_layout(root: Path, etc: Path) -> None:
+    """``manage.sh`` still runs there, so the backup the move starts with can be taken."""
+    _record_checkout_layout(root, etc)
+    result = _run(_checkout(root) / "deploy" / "manage.sh", "--dry-run", "db_backup", env=_env(etc))
+    assert result.returncode == 0, result.stderr
+
+
+def test_a_deploy_root_elsewhere_is_not_a_checkout_layout(root: Path, etc: Path) -> None:
+    """A record naming the checkout's parent as the deploy root lets a step run."""
+    (etc / "install.conf").write_text(f"CALDART_ROOT={root}\n")
+    result = _run(_checkout(root) / "deploy" / "steps" / "build.sh", "--dry-run", env=_env(etc))
+    assert result.returncode == 0, result.stderr
+
+
+def test_bootstrap_refuses_a_deploy_root_that_is_a_checkout(tmp_path: Path) -> None:
+    """``bootstrap.sh`` never clones into a checkout that is itself the deploy root."""
+    (tmp_path / "srv" / ".git").mkdir(parents=True)
+    result = _bootstrap_dry_run(tmp_path)
+    assert (_errors(result), _commands(result)) == (
+        [
+            f"error: {tmp_path}/srv is a checkout, which keeps the data inside it; "
+            "see 'Moving to the current layout' in deploy/README.rst"
+        ],
+        [],
+    )
 
 
 # -- a real machine, as the rehearsal in a systemd container finds it ---------------
@@ -1460,7 +1762,7 @@ def _render_snippet(root: Path, source: str, prefix: str) -> str:
     dest = root / "rendered"
     result = _source_lib(
         root,
-        f"ROOT=/srv/x; CALDART_HOSTNAME=caldart.test; CALDART_URL_PREFIX={prefix}; "
+        f"{SRV_X_LAYOUT} CALDART_HOSTNAME=caldart.test; CALDART_URL_PREFIX={prefix}; "
         f'render_snippet "{DEPLOY_DIR / source}" "{dest}"',
     )
     assert result.returncode == 0, result.stderr
@@ -1477,7 +1779,7 @@ def _attach(
             "-c",
             'set -euo pipefail; source "$1"; CALDART_WEB_SERVER=$2; attach_include "$3"; ' + then,
             "bash",
-            str(root / "deploy" / "steps" / "web-server.sh"),
+            str(_checkout(root) / "deploy" / "steps" / "web-server.sh"),
             web_server,
             str(vhost),
         ],
@@ -1858,12 +2160,12 @@ def test_a_missing_vhost_is_refused(root: Path, tmp_path: Path) -> None:
         ("apache", 'ProxyPass "/caldart-proto/" "http://127.0.0.1:8001/"'),
         ("apache", 'ProxyPass "/caldart-proto/media/" "!"'),
         ("apache", 'RedirectMatch 301 "^/caldart-proto$" "/caldart-proto/"'),
-        ("apache", 'Alias "/caldart-proto/media/" "/srv/x/backend/media/"'),
-        ("apache", '<Directory "/srv/x/backend/media/documents">'),
+        ("apache", 'Alias "/caldart-proto/media/" "/srv/x/media/"'),
+        ("apache", '<Directory "/srv/x/media/documents">'),
         ("nginx", "location ^~ /caldart-proto/ {"),
         ("nginx", "proxy_pass http://caldart_app/;"),
         ("nginx", "location ^~ /caldart-proto/media/documents/ {"),
-        ("nginx", "alias /srv/x/backend/media/;"),
+        ("nginx", "alias /srv/x/media/;"),
         ("nginx", "return 301 /caldart-proto/;"),
     ],
 )
@@ -2071,7 +2373,7 @@ def test_bootstrap_passes_the_prefix_and_attach_flags_through(tmp_path: Path) ->
     """``--url-prefix`` and ``--attach-to`` take values that reach ``install.sh``."""
     result = _bootstrap_dry_run(tmp_path, "--url-prefix", PREFIX, "--attach-to", "/etc/a.conf")
     assert _commands(result)[-1] == (
-        f"bash {tmp_path}/srv/deploy/install.sh --dry-run --url-prefix {PREFIX} "
+        f"bash {tmp_path}/srv/caldart/deploy/install.sh --dry-run --url-prefix {PREFIX} "
         "--attach-to /etc/a.conf"
     )
 
@@ -2081,7 +2383,7 @@ def test_uninstall_takes_the_include_line_out(root: Path, etc: Path, tmp_path: P
     vhost = tmp_path / "site.conf"
     vhost.write_text(APACHE_SITE_ATTACHED)
     (etc / "install.conf").write_text(f"CALDART_TLS=existing\nCALDART_ATTACH_TO={vhost}\n")
-    result = _run(root / "deploy" / "uninstall.sh", "--yes", "--dry-run", env=_env(etc))
+    result = _run(_checkout(root) / "deploy" / "uninstall.sh", "--yes", "--dry-run", env=_env(etc))
     assert (
         "sed -i --follow-symlinks -e "
         f"'\\#^[[:space:]]*Include conf-available/caldart\\.conf[[:space:]]*$#d' {vhost}"
@@ -2096,7 +2398,7 @@ def test_uninstall_leaves_a_vhost_without_the_line_alone(
     vhost = tmp_path / "site.conf"
     vhost.write_text(APACHE_SITE)
     (etc / "install.conf").write_text(f"CALDART_TLS=existing\nCALDART_ATTACH_TO={vhost}\n")
-    result = _run(root / "deploy" / "uninstall.sh", "--yes", "--dry-run", env=_env(etc))
+    result = _run(_checkout(root) / "deploy" / "uninstall.sh", "--yes", "--dry-run", env=_env(etc))
     assert [command for command in _commands(result) if str(vhost) in command] == []
 
 
@@ -2117,7 +2419,9 @@ def _packages_dry_run(etc: Path, root: Path, tmp_path: Path, docker: str) -> lis
         CALDART_OS_RELEASE=str(_os_release(tmp_path, "ubuntu")),
         PATH=f"{shims}:{os.environ['PATH']}",
     )
-    commands = _commands(_run(root / "deploy" / "steps" / "packages.sh", "--dry-run", env=env))
+    commands = _commands(
+        _run(_checkout(root) / "deploy" / "steps" / "packages.sh", "--dry-run", env=env)
+    )
     return commands[_position(commands, "apt-get install")].split()
 
 
@@ -2171,7 +2475,7 @@ def _render_with_port(root: Path, source: str, how: str, port: str) -> str:
     )
     result = _source_lib(
         root,
-        f"ROOT=/srv/x; CALDART_HOSTNAME=caldart.test; CALDART_GUNICORN_PORT={port}; {call}",
+        f"{SRV_X_LAYOUT} CALDART_HOSTNAME=caldart.test; CALDART_GUNICORN_PORT={port}; {call}",
     )
     assert result.returncode == 0, result.stderr
     return dest.read_text()
@@ -2190,7 +2494,7 @@ def _web_service(
             'set -euo pipefail; source "$1"; enable_dry_run; CALDART_HOSTNAME=caldart.test; '
             f"web_unit_installed() {{ return {answer}; }}; web_service_step",
             "bash",
-            str(root / "deploy" / "steps" / "web-service.sh"),
+            str(_checkout(root) / "deploy" / "steps" / "web-service.sh"),
         ],
         capture_output=True,
         text=True,
@@ -2205,7 +2509,7 @@ def _gunicorn_bind(monkeypatch: pytest.MonkeyPatch, port: str | None) -> object:
         monkeypatch.delenv("CALDART_GUNICORN_PORT", raising=False)
     else:
         monkeypatch.setenv("CALDART_GUNICORN_PORT", port)
-    config: dict[str, object] = {"__file__": "/srv/x/deploy/gunicorn.conf.py"}
+    config: dict[str, object] = {"__file__": "/srv/x/caldart/deploy/gunicorn.conf.py"}
     source = (DEPLOY_DIR / "gunicorn.conf.py").read_text()
     exec(compile(source, "gunicorn.conf.py", "exec"), config)  # noqa: S102 - our own config file
     return config["bind"]
@@ -2415,18 +2719,57 @@ def test_moving_the_gunicorn_port_rewrites_restarts_and_reloads_in_order(
     assert first < _position(commands, later)
 
 
-def test_upgrade_keeps_the_recorded_gunicorn_port(checkout: Path, etc: Path) -> None:
+def test_upgrade_keeps_the_recorded_gunicorn_port(git_checkout: Path, etc: Path) -> None:
     """The upgrade's readiness check asks gunicorn on the port the record names."""
     (etc / "install.conf").write_text(MOVED_RECORD)
-    result = _run(checkout / "deploy" / "upgrade.sh", "--dry-run", env=_env(etc), cwd=checkout)
+    result = _run(
+        git_checkout / "deploy" / "upgrade.sh", "--dry-run", env=_env(etc), cwd=git_checkout
+    )
     assert _position(_commands(result), "http://127.0.0.1:8101/") >= 0
+
+
+#: An install record that moved both gunicorn and Postgres off their defaults.
+MOVED_PORTS_RECORD: Final = f"{MOVED_RECORD}CALDART_DB_PORT=5433\n"
+
+
+def test_upgrade_probes_gunicorn_on_both_recorded_ports(git_checkout: Path, etc: Path) -> None:
+    """With both ports moved, the web service's readiness probe asks gunicorn on 8101."""
+    (etc / "install.conf").write_text(MOVED_PORTS_RECORD)
+    result = _run(
+        git_checkout / "deploy" / "upgrade.sh", "--dry-run", env=_env(etc), cwd=git_checkout
+    )
+    commands = _commands(result)
+    probe = _position(commands, "http://127.0.0.1:8101/")
+    assert probe < _position(commands, "systemctl is-active")
+
+
+def test_upgrade_runs_docker_compose_with_the_recorded_db_port(
+    git_checkout: Path, etc: Path
+) -> None:
+    """Every ``docker compose`` the upgrade prints runs with ``CALDART_DB_PORT=5433``."""
+    (etc / "install.conf").write_text(MOVED_PORTS_RECORD)
+    result = _run(
+        git_checkout / "deploy" / "upgrade.sh", "--dry-run", env=_env(etc), cwd=git_checkout
+    )
+    composes = [command for command in _commands(result) if "docker compose" in command]
+    assert composes == ["env CALDART_DB_PORT=5433 docker compose ps --format '{{.Health}}' db"]
+
+
+@pytest.mark.parametrize("flag", ["--gunicorn-port", "--db-port"])
+def test_upgrade_takes_no_port_flag(flag: str, etc: Path) -> None:
+    """A port flag given to ``upgrade.sh`` is a usage error naming ``install.sh``."""
+    result = _run(DEPLOY_DIR / "upgrade.sh", flag, "8101", env=_env(etc))
+    assert result.returncode == 2
+    assert _errors(result) == [
+        f"error: upgrade.sh keeps the recorded ports; run install.sh {flag} PORT to move one"
+    ]
 
 
 def test_bootstrap_passes_the_gunicorn_port_through(tmp_path: Path) -> None:
     """``--gunicorn-port`` takes a value that reaches ``install.sh``."""
     result = _bootstrap_dry_run(tmp_path, "--gunicorn-port", GUNICORN_PORT)
     assert _commands(result)[-1] == (
-        f"bash {tmp_path}/srv/deploy/install.sh --dry-run --gunicorn-port 8101"
+        f"bash {tmp_path}/srv/caldart/deploy/install.sh --dry-run --gunicorn-port 8101"
     )
 
 
@@ -2464,7 +2807,7 @@ def _check_function(
             "-c",
             f'set -euo pipefail; source "$1"; load_record; {function}',
             "bash",
-            str(root / "deploy" / "steps" / "check.sh"),
+            str(_checkout(root) / "deploy" / "steps" / "check.sh"),
         ],
         capture_output=True,
         text=True,
@@ -2476,7 +2819,7 @@ def _check_function(
 def test_the_check_dry_run_asks_gunicorn_on_the_recorded_port(root: Path, etc: Path) -> None:
     """The check asks gunicorn itself on the port the install record names."""
     (etc / "install.conf").write_text(MOVED_RECORD)
-    result = _run(root / "deploy" / "steps" / "check.sh", "--dry-run", env=_env(etc))
+    result = _run(_checkout(root) / "deploy" / "steps" / "check.sh", "--dry-run", env=_env(etc))
     assert (
         "curl -sI -H 'Host: caldart.test' -H 'X-Forwarded-Proto: https' http://127.0.0.1:8101/"
         in _commands(result)
@@ -2486,7 +2829,7 @@ def test_the_check_dry_run_asks_gunicorn_on_the_recorded_port(root: Path, etc: P
 def test_the_check_dry_run_asks_gunicorn_on_8001_by_default(root: Path, etc: Path) -> None:
     """With no gunicorn port recorded, the check asks port 8001."""
     (etc / "install.conf").write_text("CALDART_HOSTNAME=caldart.test\n")
-    result = _run(root / "deploy" / "steps" / "check.sh", "--dry-run", env=_env(etc))
+    result = _run(_checkout(root) / "deploy" / "steps" / "check.sh", "--dry-run", env=_env(etc))
     assert (
         "curl -sI -H 'Host: caldart.test' -H 'X-Forwarded-Proto: https' http://127.0.0.1:8001/"
         in _commands(result)
@@ -2535,7 +2878,7 @@ def test_an_existing_user_homed_at_the_checkout_is_moved_to_its_own_home(
     root: Path, etc: Path, tmp_path: Path
 ) -> None:
     """A user an earlier install homed at the checkout is pointed at ``/home/caldart``."""
-    commands = _commands(_install_dry_run(root, etc, tmp_path, service_home=str(root)))
+    commands = _commands(_install_dry_run(root, etc, tmp_path, service_home=str(_checkout(root))))
     assert not any(command.startswith("useradd ") for command in commands)
     assert "install -d -o caldart -g caldart -m 0750 /home/caldart" in commands
     assert "usermod --home /home/caldart caldart" in commands
@@ -2577,3 +2920,76 @@ def test_behind_an_existing_site_the_other_web_server_is_not_mentioned(
     )
     assert result.returncode == 0
     assert "is running too" not in result.stderr
+
+
+# -- the layout: the checkout inside the deploy root, the data beside it ------------
+
+
+def test_the_user_step_creates_the_data_in_the_deploy_root(
+    root: Path, etc: Path, tmp_path: Path
+) -> None:
+    """The dumps and uploads go in the deploy root and the static files in the checkout.
+
+    All three are owned by the service user.
+    """
+    commands = _commands(_install_dry_run(root, etc, tmp_path))
+    assert (
+        f"install -d -o caldart -g caldart {root}/backups {root}/media "
+        f"{_checkout(root)}/backend/staticfiles"
+    ) in commands
+
+
+def test_the_install_record_names_the_deploy_root(root: Path) -> None:
+    """``CALDART_ROOT`` in ``install.conf`` is the checkout's parent, not the checkout."""
+    result = _source_lib(root, "write_file() { cat; }; write_record")
+    assert f"CALDART_ROOT={root}" in result.stdout.splitlines()
+
+
+def test_a_recorded_root_does_not_move_the_checkout(root: Path) -> None:
+    """``load_record`` never reads ``CALDART_ROOT``.
+
+    The scripts find the checkout from their own location.
+    """
+    (root / "install.conf").write_text("CALDART_ROOT=/elsewhere\n")
+    result = _source_lib(root, 'load_record; printf "%s %s" "$ROOT" "$CHECKOUT"')
+    assert result.stdout == f"{root} {_checkout(root)}"
+
+
+def test_bootstrap_creates_the_deploy_root_and_clones_into_it(tmp_path: Path) -> None:
+    """A fresh server gets the deploy root, then the checkout at ``caldart/`` in it."""
+    commands = _commands(_bootstrap_dry_run(tmp_path))
+    assert commands[:2] == [
+        f"install -d {tmp_path}/srv",
+        f"git clone /nowhere {tmp_path}/srv/caldart",
+    ]
+
+
+def test_bootstrap_keeps_the_data_of_an_earlier_install(tmp_path: Path) -> None:
+    """A deploy root that already holds ``backups/`` and ``media/`` is cloned into."""
+    for name in ("backups", "media"):
+        (tmp_path / "srv" / name).mkdir(parents=True)
+        (tmp_path / "srv" / name / "kept").write_text("kept\n")
+    result = _bootstrap_dry_run(tmp_path)
+    assert f"git clone /nowhere {tmp_path}/srv/caldart" in _commands(result)
+
+
+def test_bootstrap_refuses_a_checkout_directory_that_is_not_a_checkout(tmp_path: Path) -> None:
+    """Something other than a checkout at ``caldart/`` stops the bootstrap, naming it."""
+    (tmp_path / "srv" / "caldart").mkdir(parents=True)
+    (tmp_path / "srv" / "caldart" / "stray").write_text("stray\n")
+    result = _bootstrap_dry_run(tmp_path)
+    assert _errors(result) == [
+        f"error: {tmp_path}/srv/caldart exists and is not a checkout; move it aside first"
+    ]
+
+
+def test_the_dry_run_names_the_code_in_the_checkout_and_the_data_beside_it(
+    root: Path, etc: Path, tmp_path: Path
+) -> None:
+    """The install's rendering writes the checkout, then the deploy root, into a file."""
+    commands = _commands(_install_dry_run(root, etc, tmp_path))
+    render = commands[_position(commands, "caldart-web.service")]
+    assert render.startswith(
+        f"sed -e 's#/opt/caldart/caldart#__CALDART_CHECKOUT__#g' -e 's#/opt/caldart#{root}#g' "
+        f"-e 's#__CALDART_CHECKOUT__#{_checkout(root)}#g'"
+    )

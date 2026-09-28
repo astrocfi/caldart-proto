@@ -9,25 +9,34 @@
 # server's sites-available that carries it), leaving the rest of that file as
 # it is; then reloads the server and removes the certbot renewal hook.  With
 # --purge it also removes /etc/caldart (the environment file and the install
-# record), the Postgres container and its caldart_pgdata volume, and the deploy
-# root itself.  Each removal prints what it removed; anything already absent is
-# skipped.  Certificates under /etc/letsencrypt are left alone either way, and
-# so are the packages.
+# record), the Postgres container and its caldart_pgdata volume, and what the
+# install made in the deploy root: the checkout, the database dumps in
+# backups/, and the uploads in media/, then the deploy root itself when nothing
+# else is in it.  Without --purge all three stay.  On an install that keeps its
+# dumps and uploads inside the checkout, the purge removes the checkout alone.
+# Each removal prints what it removed; anything already absent is skipped.
+# Certificates under /etc/letsencrypt are left alone either way, and so are the
+# packages.
 #
 # Usage:
 #   sudo deploy/uninstall.sh --yes [--purge] [--dry-run]
 #
 # Options:
 #   --yes       confirm; without it nothing runs
-#   --purge     also remove the configuration, the database, and the deploy root
+#   --purge     also remove the configuration, the database, and the checkout,
+#               the backups, and the uploads in the deploy root
 #   --dry-run   print every state-changing command instead of running it
 #   --help      show this help
 
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+CHECKOUT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# Read by lib.sh: this script is safe on an install that keeps its data inside
+# the checkout.
+# shellcheck disable=SC2034
+CALDART_ANY_LAYOUT=1
 # shellcheck source=deploy/lib.sh
-source "$ROOT/deploy/lib.sh"
+source "$CHECKOUT/deploy/lib.sh"
 
 readonly APACHE_SITES=/etc/apache2/sites-available
 readonly APACHE_ENABLED=/etc/apache2/sites-enabled
@@ -144,14 +153,49 @@ remove_vhost() {
     remove "$RENEWAL_HOOK"
 }
 
+# Print the first entry of the deploy root that the install did not make: not
+# the checkout, backups/, or media/.  Nothing when there is none.
+foreign_entry() {
+    find "$ROOT" -mindepth 1 -maxdepth 1 ! -name "$(basename "$CHECKOUT")" \
+        ! -name backups ! -name media -print -quit
+}
+
+# Remove what the install made in the deploy root, and the root once it is
+# empty.  On an install that keeps its data inside the checkout, the checkout
+# is all of it: the directory above belongs to the machine.
+remove_deploy_root() {
+    local layout=$1 foreign
+    if [[ "$layout" == checkout ]]; then
+        remove "$CHECKOUT"
+        return 0
+    fi
+    foreign="$(foreign_entry)"
+    remove "$CHECKOUT"
+    remove "$ROOT/backups"
+    remove "$ROOT/media"
+    if [[ -n "$foreign" ]]; then
+        note "kept $ROOT: it holds more than the checkout, the backups, and the uploads"
+        return 0
+    fi
+    run rmdir "$ROOT"
+    is_dry_run || printf 'removed %s\n' "$ROOT"
+}
+
 purge() {
-    log "Removing the configuration, the database, and $ROOT"
+    # Decided before the configuration goes, since the record says which it is.
+    local layout=root
+    if is_checkout_layout; then
+        layout=checkout
+        log "Removing the configuration, the database, and $CHECKOUT (the checkout, with the backups and the uploads inside it)"
+    else
+        log "Removing the configuration, the database, and $ROOT (the checkout, the backups, and the uploads)"
+    fi
     remove "$ETC_DIR"
-    run cd "$ROOT"
+    run cd "$CHECKOUT"
     # -v removes the caldart_pgdata volume: every row of the database.
     run docker compose down -v
     run cd /
-    remove "$ROOT"
+    remove_deploy_root "$layout"
 }
 
 main() {
@@ -166,7 +210,7 @@ main() {
     log "Uninstalled"
 }
 
-# Everything above is a function, so removing the deploy root, this file
+# Everything above is a function, so removing the checkout, this file
 # included, cannot change what the running copy does.
 main "$@"
 exit

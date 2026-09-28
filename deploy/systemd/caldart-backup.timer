@@ -1,12 +1,13 @@
 # Nightly trigger for the CalDART database backup.
 #
-# Deploy path: /opt/caldart. deploy/steps/timers.sh installs and enables it.
+# Deploy root: /opt/caldart, with the checkout in caldart/.
+# deploy/steps/timers.sh installs and enables it.
 # Inspect with:
 #   systemctl list-timers caldart-backup.timer
 
 [Unit]
 Description=Take a CalDART database backup daily at 03:30
-Documentation=file:///opt/caldart/docs/developer/backup-restore.rst
+Documentation=file:///opt/caldart/caldart/docs/developer/backup-restore.rst
 
 [Timer]
 Unit=caldart-backup.service

@@ -14,13 +14,13 @@
 
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+CHECKOUT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 # shellcheck source=deploy/lib.sh
-source "$ROOT/deploy/lib.sh"
+source "$CHECKOUT/deploy/lib.sh"
 
 backup_step() {
     log "Taking a database backup"
-    "$ROOT/deploy/manage.sh" db_backup
+    "$CHECKOUT/deploy/manage.sh" db_backup
 }
 
 backup_main() {

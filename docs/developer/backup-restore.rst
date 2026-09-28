@@ -104,10 +104,12 @@ untouched, and the extra pass costs no memory.
 
 ``BACKUP_DIR`` defaults to ``backups/`` at the repository root, which is
 gitignored.  A relative value is resolved against the repository root; an
-absolute one is used as given.  In production, put it somewhere the systemd
-unit can write: ``caldart-web.service`` mounts the filesystem read-only except
-for ``media/``, ``staticfiles/``, and ``backups/``, so a ``BACKUP_DIR``
-elsewhere needs a matching ``ReadWritePaths`` line.
+absolute one is used as given.  In production the installer sets it to
+``/opt/caldart/backups``, in the deploy root beside the checkout, so a dump is
+never inside the git checkout.  Put it somewhere the systemd unit can write:
+``caldart-web.service`` mounts the filesystem read-only except for the deploy
+root's ``media/`` and ``backups/`` and the checkout's ``backend/staticfiles/``,
+so a ``BACKUP_DIR`` elsewhere needs a matching ``ReadWritePaths`` line.
 
 
 Taking a backup
@@ -200,8 +202,9 @@ Backing up the media files
 ==========================
 
 A database dump carries every row and none of the uploaded files.  Those live
-under ``backend/media/`` (``/opt/caldart/backend/media`` in production), in
-three directories Wagtail writes:
+in ``MEDIA_ROOT``: ``backend/media/`` in development, and ``/opt/caldart/media``
+in production, in the deploy root beside the checkout.  Wagtail writes three
+directories there:
 
 ``original_images/``
    every image an editor uploaded, as uploaded;
@@ -214,21 +217,21 @@ three directories Wagtail writes:
 Back up the whole directory, alongside each dump.  ``rsync`` keeps a mirror
 on another machine up to date and copies only what changed::
 
-  sudo rsync -a --delete /opt/caldart/backend/media/ backup-host:/backups/caldart/media/
+  sudo rsync -a --delete /opt/caldart/media/ backup-host:/backups/caldart/media/
 
 A ``tar`` archive is a point-in-time copy to keep beside the dump of the same
 moment.  Write it outside ``BACKUP_DIR``: the backup list and the health panel
 read every ``*.sql.gz`` there, and nothing else belongs in it::
 
   sudo tar -czf /root/caldart-media-$(date +%Y%m%d-%H%M%S).tar.gz \
-      -C /opt/caldart/backend media
+      -C /opt/caldart media
 
 The files are as sensitive as the dump: the members-only documents are in
-them.  To put an archive back, unpack it over the checkout and give the files
-back to the service user::
+them.  To put an archive back, unpack it into the deploy root and give the
+files back to the service user::
 
-  sudo tar -xzf /root/caldart-media-20260601-033000.tar.gz -C /opt/caldart/backend
-  sudo chown -R caldart:caldart /opt/caldart/backend/media
+  sudo tar -xzf /root/caldart-media-20260601-033000.tar.gz -C /opt/caldart
+  sudo chown -R caldart:caldart /opt/caldart/media
 
 
 Downloading a backup
@@ -325,7 +328,7 @@ line wins over ``.env``::
 
 On a server, the environment file wins over anything ``deploy/manage.sh``
 could set, so replay the dump with ``psql`` inside the container instead.  Run it
-from ``/opt/caldart``::
+from the checkout, ``/opt/caldart/caldart``::
 
   sudo deploy/compose.sh exec -T db createdb -U caldart caldart_rehearsal
   sudo zcat /opt/caldart/backups/caldart-20260601-033000.sql.gz \

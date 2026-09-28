@@ -1,12 +1,15 @@
 """Gunicorn configuration for the CalDART application server.
 
-The deploy root defaults to ``/opt/caldart`` -- a checkout of this repository with
-its ``uv``-managed virtualenv at ``/opt/caldart/.venv`` -- but this file is read in
-place and finds the checkout from its own location, so a checkout anywhere else
-works unchanged.  Loaded by the systemd unit in
-``deploy/systemd/caldart-web.service``::
+The deploy root defaults to ``/opt/caldart``.  It holds the checkout of this
+repository at ``/opt/caldart/caldart``, with its ``uv``-managed virtualenv at
+``/opt/caldart/caldart/.venv``, beside the database dumps in ``/opt/caldart/backups``
+and the uploads in ``/opt/caldart/media``.  This file is read in place and finds the
+checkout from its own location, so a checkout anywhere else works unchanged.  The
+systemd unit in ``deploy/systemd/caldart-web.service`` runs the virtualenv's gunicorn
+with ``--config`` naming this file::
 
-    /opt/caldart/.venv/bin/gunicorn --config /opt/caldart/deploy/gunicorn.conf.py
+    /opt/caldart/caldart/.venv/bin/gunicorn --config
+        /opt/caldart/caldart/deploy/gunicorn.conf.py
 
 Gunicorn listens on loopback only; Apache (``deploy/apache/caldart.conf``) or
 nginx (``deploy/nginx/caldart.conf``) terminates TLS and proxies to it.  The port is
@@ -25,11 +28,12 @@ from pathlib import Path
 # --- Application ------------------------------------------------------------
 
 # The checkout this file belongs to: deploy/ sits at its top.
-DEPLOY_ROOT = Path(__file__).resolve().parents[1]
+CHECKOUT = Path(__file__).resolve().parents[1]
 
-# Django project root.  manage.py, the caldart package, media/ and
-# staticfiles/ all live here, and relative paths in settings resolve from it.
-chdir = str(DEPLOY_ROOT / "backend")
+# Django project root.  manage.py, the caldart package, and staticfiles/ live
+# here, and relative paths in settings resolve from it.  The uploads live in the
+# deploy root instead, where MEDIA_ROOT in the environment file points.
+chdir = str(CHECKOUT / "backend")
 
 # The WSGI callable, resolved relative to ``chdir``.
 wsgi_app = "caldart.wsgi:application"

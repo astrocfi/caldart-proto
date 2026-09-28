@@ -2,9 +2,12 @@
 #
 # CalDART - fetch the site onto a fresh server and install it.
 #
-# Clones the repository into the deploy root (or, when a checkout is already
-# there, fetches and checks out the ref), then runs deploy/install.sh from that
-# checkout with every other flag passed through untouched.  It is the one file
+# Creates the deploy root when it is missing and clones the repository into
+# caldart/ inside it (or, when a checkout is already there, fetches and checks
+# out the ref), then runs deploy/install.sh from that checkout with every other
+# flag passed through untouched.  The deploy root holds the checkout, the
+# database dumps (backups/), and the uploads (media/); a deploy root that
+# already holds backups/ or media/ keeps them.  It is the one file
 # a server needs before the repository is there, so it is meant to be piped
 # into bash:
 #
@@ -23,13 +26,16 @@
 #   Every other option goes to deploy/install.sh; see its --help.
 #
 # Environment:
-#   CALDART_ROOT   the deploy root to clone into (default /opt/caldart)
+#   CALDART_ROOT   the deploy root, which the checkout goes in as caldart/
+#                  (default /opt/caldart)
 
 set -euo pipefail
 
 readonly DEFAULT_REPO=https://github.com/astrocfi/caldart-proto.git
 readonly DEFAULT_REF=main
 readonly DEPLOY_ROOT="${CALDART_ROOT:-/opt/caldart}"
+# The checkout, inside the deploy root.
+readonly CHECKOUT="$DEPLOY_ROOT/caldart"
 # The install options that take a value, so their values are passed through too.
 readonly VALUE_OPTIONS=" --hostname --web-server --tls --certbot-email --db-port --gunicorn-port --url-prefix --attach-to --email-url --email --from-email --admin-email "
 
@@ -149,31 +155,38 @@ parse_flags() {
 # True when the ref names a branch on the remote, which a checkout leaves
 # behind its remote until it is pulled.
 ref_is_branch() {
-    git -C "$DEPLOY_ROOT" show-ref --verify --quiet "refs/remotes/origin/$REF"
+    git -C "$CHECKOUT" show-ref --verify --quiet "refs/remotes/origin/$REF"
 }
 
 fetch_code() {
-    if [[ -d "$DEPLOY_ROOT/.git" ]]; then
-        log "Updating the checkout at $DEPLOY_ROOT"
-        run git -C "$DEPLOY_ROOT" fetch origin
-        run git -C "$DEPLOY_ROOT" checkout "$REF"
+    if [[ -d "$CHECKOUT/.git" ]]; then
+        log "Updating the checkout at $CHECKOUT"
+        run git -C "$CHECKOUT" fetch origin
+        run git -C "$CHECKOUT" checkout "$REF"
         if ref_is_branch; then
-            run git -C "$DEPLOY_ROOT" pull --ff-only
+            run git -C "$CHECKOUT" pull --ff-only
         fi
         return 0
     fi
-    if [[ -e "$DEPLOY_ROOT" ]] && [[ -n "$(ls -A "$DEPLOY_ROOT")" ]]; then
-        die "$DEPLOY_ROOT exists and is not a checkout; move it aside first"
+    if [[ -e "$CHECKOUT" ]] && [[ -n "$(ls -A "$CHECKOUT")" ]]; then
+        die "$CHECKOUT exists and is not a checkout; move it aside first"
     fi
-    log "Cloning $REPO into $DEPLOY_ROOT"
-    run git clone "$REPO" "$DEPLOY_ROOT"
-    run git -C "$DEPLOY_ROOT" checkout "$REF"
+    log "Cloning $REPO into $CHECKOUT"
+    run install -d "$DEPLOY_ROOT"
+    run git clone "$REPO" "$CHECKOUT"
+    run git -C "$CHECKOUT" checkout "$REF"
 }
 
 main() {
     parse_flags "$@"
     if [[ "$DRY_RUN" != 1 && "$(id -u)" != 0 ]]; then
         die "run this as root (sudo bash)"
+    fi
+    # An install whose checkout is the deploy root itself is moved by hand; a
+    # clone inside it would leave the site running from the outer checkout.
+    if [[ -d "$DEPLOY_ROOT/.git" ]]; then
+        die "$DEPLOY_ROOT is a checkout, which keeps the data inside it;" \
+            "see 'Moving to the current layout' in deploy/README.rst"
     fi
     if ! command -v git >/dev/null 2>&1; then
         log "Installing git"
@@ -182,7 +195,7 @@ main() {
     fi
     fetch_code
 
-    local installer="$DEPLOY_ROOT/deploy/install.sh"
+    local installer="$CHECKOUT/deploy/install.sh"
     if [[ "$DRY_RUN" == 1 && ! -f "$installer" ]]; then
         run bash "$installer" "${PASSTHROUGH[@]}"
         return 0

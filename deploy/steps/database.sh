@@ -22,11 +22,11 @@
 
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+CHECKOUT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 # shellcheck source=deploy/lib.sh
-source "$ROOT/deploy/lib.sh"
+source "$CHECKOUT/deploy/lib.sh"
 
-readonly MANAGE="$ROOT/deploy/manage.sh"
+readonly MANAGE="$CHECKOUT/deploy/manage.sh"
 
 ADMIN_EMAIL="${ADMIN_EMAIL:-}"
 SEED_DEMO="${SEED_DEMO:-no}"

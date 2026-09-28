@@ -1054,10 +1054,16 @@ systemd runs as it does on a server, and drives the scripts of
 1. ``deploy/bootstrap.sh --repo /mnt/caldart --hostname caldart.test --tls
    self-signed --web-server <server> --email-url smtp://localhost:25
    --admin-email admin@caldart.test``, which clones the checkout into
-   ``/opt/caldart`` and installs it: the packages, Postgres in Docker, the
-   build, the database, gunicorn, the web server, the timers, a first backup,
-   and the checks, which the install passes only when every unit is active and
-   the site answers ``200`` over HTTPS;
+   ``/opt/caldart/caldart`` and installs it: the packages, Postgres in Docker,
+   the build, the database, gunicorn, the web server, the timers, a first
+   backup, and the checks, which the install passes only when every unit is
+   active and the site answers ``200`` over HTTPS.  The target then checks the
+   layout (:ref:`deploy-layout`): ``/opt/caldart/caldart`` is a git checkout,
+   ``/opt/caldart/backups`` holds the first dump, ``/opt/caldart/media``
+   exists and belongs to the ``caldart`` user, and nothing the site writes is
+   inside the checkout: there is no ``/opt/caldart/backend``, no ``backups``
+   or ``backend/media`` in the checkout, and ``git status --porcelain`` there
+   names nothing;
 2. ``systemctl start`` of the backup, reports, renewals, reminders, and
    statements services, each of which must finish without an error, so every
    unit's hardening is honored as well as the web unit's (the install has
@@ -1096,19 +1102,22 @@ npm, and Docker Hub.
    A port such as ``8101``: step 1 also passes ``--gunicorn-port <port>``,
    which puts the hop from the web server's proxy to gunicorn on that port
    (:ref:`deploy-sharing`).  Empty by default, which leaves the installer's
-   default, 8001.  After the install the target asserts that the web server's
-   configuration under ``/etc/apache2`` or ``/etc/nginx`` names
+   default, 8001.  After the install, again after the upgrade (step 3), and
+   again after the second install (step 4), the target asserts that the web
+   server's configuration under ``/etc/apache2`` or ``/etc/nginx`` names
    ``127.0.0.1:<port>`` and never ``127.0.0.1:8001``, that
    ``/etc/caldart/caldart.env`` sets ``CALDART_GUNICORN_PORT=<port>``, that
    gunicorn answers ``200`` on that port, and that the site answers ``200``
-   over HTTPS through the proxy.  The install's own checks ask gunicorn on
-   that port too.  The container's name gains ``-port``, and the variable
-   combines with the others.
+   over HTTPS through the proxy, so an upgrade or a rerun that lost the
+   recorded port fails.  The install's own checks ask gunicorn on that port
+   too.  The container's name gains ``-port``, and the variable combines with
+   the others.
 ``REHEARSE_DB_PORT``
    A port such as ``5433``: step 1 also passes ``--db-port <port>``, which
    publishes Postgres on that port (:ref:`deploy-sharing`).  Empty by default,
-   which means 5432.  After the install the target asserts that ``docker
-   port`` shows the database container on ``127.0.0.1:<port>``; the install's
+   which means 5432.  After the install, the upgrade, and the second install
+   the target asserts that ``docker port`` shows the database container on
+   ``127.0.0.1:<port>``; the install's
    checks, which pass only when the container is healthy and ``manage.py
    health`` reaches the database, then hold on the moved port.  The container's
    name gains ``-db``.

@@ -133,12 +133,19 @@ E2E_ENV := DJANGO_SETTINGS_MODULE=caldart.settings.dev \
 # the stand-in page and the redirect of the bare prefix still answer; after the
 # uninstall the vhost must no longer include the snippet and must still load.
 #
-# With REHEARSE_GUNICORN_PORT, after the install the web server's configuration
-# must proxy to 127.0.0.1 on that port and name 8001 nowhere, the environment
-# file must carry the port, and gunicorn must answer 200 there; the install's own
-# checks then confirm the site answers through the proxy.  With REHEARSE_DB_PORT
-# the database container must be published on 127.0.0.1 at that port, and the
-# install's checks, which reach it there, must pass.  With REHEARSE_SEED=content
+# After the install the recipe checks the layout: /opt/caldart/caldart is a git
+# checkout, /opt/caldart/backups holds the first dump, /opt/caldart/media exists
+# and belongs to the caldart user, nothing the site writes sits inside the
+# checkout (no /opt/caldart/backend, and git status in the checkout names
+# nothing), and the uninstall leaves no /opt/caldart.
+#
+# With REHEARSE_GUNICORN_PORT, the web server's configuration must proxy to
+# 127.0.0.1 on that port and name 8001 nowhere, the environment file must carry
+# the port, gunicorn must answer 200 there, and the site must answer through the
+# proxy.  With REHEARSE_DB_PORT the database container must be published on
+# 127.0.0.1 at that port.  Both checks run three times: after the install, after
+# the upgrade, and after the second install with no flags, so an upgrade or a
+# rerun that dropped a recorded port fails.  With REHEARSE_SEED=content
 # the install loads the example website alone, and the recipe checks that a
 # seeded page answers.  With REHEARSE_SEED=demo it loads the demo accounts alone
 # (all loads both); since the demo mandates use the mock payment provider and
@@ -364,6 +371,29 @@ rehearse-deploy: ## Rehearse the server install in a throwaway systemd container
 	    if [ "$(REHEARSE_WEB_SERVER)" = apache ]; then inside apachectl configtest; else inside nginx -t; fi; \
 	  }; \
 	  site() { inside curl -sk --resolve caldart.test:443:127.0.0.1 "$$@"; }; \
+	  check_ports() { \
+	    if [ -n "$$port" ]; then \
+	      echo "==> Checking that the web server proxies to gunicorn on port $$port $$1"; \
+	      inside grep -rqF "127.0.0.1:$$port" $(REHEARSE_CONFIG_DIR) \
+	        || { echo "error: nothing in $(REHEARSE_CONFIG_DIR) proxies to 127.0.0.1:$$port $$1" >&2; exit 1; }; \
+	      if inside grep -rqF "127.0.0.1:8001" $(REHEARSE_CONFIG_DIR); then \
+	        echo "error: $(REHEARSE_CONFIG_DIR) still proxies to 127.0.0.1:8001 $$1" >&2; exit 1; \
+	      fi; \
+	      inside grep -qx "CALDART_GUNICORN_PORT=$$port" /etc/caldart/caldart.env \
+	        || { echo "error: /etc/caldart/caldart.env does not set CALDART_GUNICORN_PORT=$$port $$1" >&2; exit 1; }; \
+	      direct=$$(inside curl -s -o /dev/null -w '%{http_code}' -H 'Host: caldart.test' \
+	        -H 'X-Forwarded-Proto: https' "http://127.0.0.1:$$port/"); \
+	      [ "$$direct" = 200 ] \
+	        || { echo "error: gunicorn on 127.0.0.1:$$port answered $$direct, not 200, $$1" >&2; exit 1; }; \
+	      site -o /dev/null -w '%{http_code}\n' "https://caldart.test$$prefix/" | grep -qx 200 \
+	        || { echo "error: the site does not answer 200 through the proxy $$1" >&2; exit 1; }; \
+	    fi; \
+	    if [ -n "$$dbport" ]; then \
+	      echo "==> Checking that Postgres is published on port $$dbport $$1"; \
+	      inside docker port caldart-db-1 5432 | grep -qx "127.0.0.1:$$dbport" \
+	        || { echo "error: the database container is not published on 127.0.0.1:$$dbport $$1" >&2; exit 1; }; \
+	    fi; \
+	  }; \
 	  cleanup() { \
 	    status=$$?; \
 	    rm -f "$$log"; \
@@ -436,27 +466,19 @@ rehearse-deploy: ## Rehearse the server install in a throwaway systemd container
 	    [ "$$bare" = "301 https://caldart.test$$prefix/" ] \
 	      || { echo "error: https://caldart.test$$prefix answered $$bare, not a redirect to $$prefix/" >&2; exit 1; }; \
 	  fi; \
-	  if [ -n "$$port" ]; then \
-	    echo "==> Checking that the web server proxies to gunicorn on port $$port"; \
-	    inside grep -rqF "127.0.0.1:$$port" $(REHEARSE_CONFIG_DIR) \
-	      || { echo "error: nothing in $(REHEARSE_CONFIG_DIR) proxies to 127.0.0.1:$$port" >&2; exit 1; }; \
-	    if inside grep -rqF "127.0.0.1:8001" $(REHEARSE_CONFIG_DIR); then \
-	      echo "error: $(REHEARSE_CONFIG_DIR) still proxies to 127.0.0.1:8001" >&2; exit 1; \
-	    fi; \
-	    inside grep -qx "CALDART_GUNICORN_PORT=$$port" /etc/caldart/caldart.env \
-	      || { echo "error: /etc/caldart/caldart.env does not set CALDART_GUNICORN_PORT=$$port" >&2; exit 1; }; \
-	    direct=$$(inside curl -s -o /dev/null -w '%{http_code}' -H 'Host: caldart.test' \
-	      -H 'X-Forwarded-Proto: https' "http://127.0.0.1:$$port/"); \
-	    [ "$$direct" = 200 ] \
-	      || { echo "error: gunicorn on 127.0.0.1:$$port answered $$direct, not 200" >&2; exit 1; }; \
-	    site -o /dev/null -w '%{http_code}\n' "https://caldart.test$$prefix/" | grep -qx 200 \
-	      || { echo "error: the site does not answer 200 through the proxy" >&2; exit 1; }; \
-	  fi; \
-	  if [ -n "$$dbport" ]; then \
-	    echo "==> Checking that Postgres is published on port $$dbport"; \
-	    inside docker port caldart-db-1 5432 | grep -qx "127.0.0.1:$$dbport" \
-	      || { echo "error: the database container is not published on 127.0.0.1:$$dbport" >&2; exit 1; }; \
-	  fi; \
+	  echo "==> Checking the layout: the checkout in /opt/caldart/caldart, the data beside it"; \
+	  inside test -e /opt/caldart/caldart/.git \
+	    || { echo "error: /opt/caldart/caldart is not a git checkout" >&2; exit 1; }; \
+	  inside sh -c 'ls /opt/caldart/backups/*.sql.gz' >/dev/null 2>&1 \
+	    || { echo "error: /opt/caldart/backups holds no dump after the install" >&2; exit 1; }; \
+	  [ "$$(inside stat -c %U:%G /opt/caldart/media)" = caldart:caldart ] \
+	    || { echo "error: /opt/caldart/media is missing or not owned by caldart" >&2; exit 1; }; \
+	  for inner in /opt/caldart/backend /opt/caldart/caldart/backups /opt/caldart/caldart/backend/media; do \
+	    if inside test -e "$$inner"; then echo "error: $$inner exists; the data belongs beside the checkout" >&2; exit 1; fi; \
+	  done; \
+	  [ -z "$$(inside git -C /opt/caldart/caldart status --porcelain)" ] \
+	    || { echo "error: the install left files in the checkout that git sees" >&2; exit 1; }; \
+	  check_ports "after the install"; \
 	  if [ -n "$$seed" ]; then \
 	    echo "==> Installing postfix, so the seeded jobs have a mail transport"; \
 	    : "Either seed gives the scheduled jobs mail to send (the website seed"; \
@@ -474,7 +496,7 @@ rehearse-deploy: ## Rehearse the server install in a throwaway systemd container
 	    : "here, the same way an operator demonstrating checkout would."; \
 	    inside sh -c 'echo PAYMENTS_MOCK_ENABLED_IN_PRODUCTION=true >> /etc/caldart/caldart.env'; \
 	    echo "==> Checking that the demo accounts did not disturb health or sign-in"; \
-	    inside /opt/caldart/deploy/manage.sh health --json >/dev/null \
+	    inside /opt/caldart/caldart/deploy/manage.sh health --json >/dev/null \
 	      || { echo "error: manage.sh health --json failed after seeding" >&2; exit 1; }; \
 	    site -o /dev/null -w '%{http_code}\n' "https://caldart.test$$prefix/portal/login" | grep -qx 200 \
 	      || { echo "error: the sign-in page does not answer after seeding" >&2; exit 1; }; \
@@ -486,7 +508,7 @@ rehearse-deploy: ## Rehearse the server install in a throwaway systemd container
 	  fi; \
 	  if [ "$$seed" = content ]; then \
 	    echo "==> Checking that the website seed created no demo account"; \
-	    inside /opt/caldart/deploy/manage.sh shell -c \
+	    inside /opt/caldart/caldart/deploy/manage.sh shell -c \
 	      'from apps.accounts.models import User; import sys; sys.exit(0 if User.objects.count() == 1 else 1)' \
 	      || { echo "error: a website-only install holds more than the administrator's account" >&2; exit 1; }; \
 	  fi; \
@@ -495,15 +517,17 @@ rehearse-deploy: ## Rehearse the server install in a throwaway systemd container
 	  inside systemctl start caldart-backup.service caldart-reports.service \
 	    caldart-renewals.service caldart-reminders.service caldart-statements.service; \
 	  echo "==> Rehearsing an upgrade that changes nothing"; \
-	  inside /opt/caldart/deploy/upgrade.sh; \
+	  inside /opt/caldart/caldart/deploy/upgrade.sh; \
+	  check_ports "after the upgrade"; \
 	  echo "==> Rehearsing a second install with no flags"; \
 	  before=$$(inside sha256sum /etc/caldart/caldart.env /etc/caldart/install.conf); \
-	  inside /opt/caldart/deploy/install.sh; \
+	  inside /opt/caldart/caldart/deploy/install.sh; \
 	  after=$$(inside sha256sum /etc/caldart/caldart.env /etc/caldart/install.conf); \
 	  [ "$$before" = "$$after" ] \
 	    || { echo "error: a no-flag install changed the environment file or the install record" >&2; exit 1; }; \
+	  check_ports "after the second install"; \
 	  echo "==> Rehearsing the uninstall"; \
-	  inside /opt/caldart/deploy/uninstall.sh --yes --purge; \
+	  inside /opt/caldart/caldart/deploy/uninstall.sh --yes --purge; \
 	  inside test ! -e /opt/caldart; \
 	  inside test ! -e /etc/caldart; \
 	  if [ -n "$$prefix" ]; then \

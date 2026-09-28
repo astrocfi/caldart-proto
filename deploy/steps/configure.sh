@@ -10,7 +10,9 @@
 # --email-url (or smtp://localhost:25 with --email local), and DATABASE_URL with
 # the password the Postgres step set and the recorded database port.  It
 # also sets CSRF_TRUSTED_ORIGINS for the same hosts, DEFAULT_FROM_EMAIL,
-# BACKUP_DIR and USER_GUIDE_ROOT under the deploy root, DB_BACKUP_VIA_DOCKER=false,
+# BACKUP_DIR and MEDIA_ROOT in the deploy root (its backups and media
+# directories, beside the checkout), USER_GUIDE_ROOT in the checkout,
+# DB_BACKUP_VIA_DOCKER=false,
 # BACKUP_RETENTION_DAYS=30, CALDART_GUNICORN_PORT from the install record (8001
 # unless install.sh --gunicorn-port says otherwise), URL_PREFIX when the site
 # has one, and, with self-signed TLS, SECURE_HSTS_SECONDS=0.  It prints the
@@ -50,11 +52,11 @@
 
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+CHECKOUT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 # shellcheck source=deploy/lib.sh
-source "$ROOT/deploy/lib.sh"
+source "$CHECKOUT/deploy/lib.sh"
 
-readonly TEMPLATE="$ROOT/deploy/caldart.env.example"
+readonly TEMPLATE="$CHECKOUT/deploy/caldart.env.example"
 readonly SECRET_KEY_BYTES=64
 readonly SMTP_PORT=25
 
@@ -205,9 +207,10 @@ configure_step() {
         "CSRF_TRUSTED_ORIGINS=$(join_by , "${origins[@]}")"
         "DEFAULT_FROM_EMAIL=${FROM_EMAIL:-CalDART <noreply@$CALDART_HOSTNAME>}"
         "BACKUP_DIR=$ROOT/backups"
+        "MEDIA_ROOT=$ROOT/media"
         "DB_BACKUP_VIA_DOCKER=false"
         "BACKUP_RETENTION_DAYS=30"
-        "USER_GUIDE_ROOT=$ROOT/docs/_build/guide"
+        "USER_GUIDE_ROOT=$CHECKOUT/docs/_build/guide"
         "CALDART_GUNICORN_PORT=$CALDART_GUNICORN_PORT"
     )
     if [[ -n "$CALDART_URL_PREFIX" ]]; then

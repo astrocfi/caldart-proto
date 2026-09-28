@@ -495,9 +495,25 @@ User guide
    logs a warning.
 
    :Development: ``docs/_build/guide``, under the repository root.
-   :Production: ``/opt/caldart/docs/_build/guide``, the deploy root's
+   :Production: ``/opt/caldart/caldart/docs/_build/guide``, the checkout's
       ``docs/_build/guide``, as the installer writes it; set it elsewhere only
       when the guide is built somewhere else.
+
+
+Uploads
+=======
+
+``MEDIA_ROOT``
+   The directory Wagtail writes image and document uploads into, and the one
+   Django's document view reads a members-only document from.  The web server
+   serves ``/media/`` straight from it, except ``media/documents/``, which only
+   Django serves.
+
+   :Development: unset: ``backend/media`` in the checkout, gitignored.
+   :Production: ``/opt/caldart/media``, the deploy root's ``media`` beside the
+      checkout, as the installer writes it: owned by the service user, listed
+      in ``ReadWritePaths`` in ``caldart-web.service``, and named by the
+      vhost's ``/media/`` alias.  Moving it means changing all three.
 
 
 Backups
@@ -509,8 +525,10 @@ Backups
    is also the filesystem ``/system/health`` measures free space on.
 
    :Development: ``backups`` — gitignored.
-   :Production: ``/opt/caldart/backups``, owned by the service user and listed
-      in ``ReadWritePaths`` in ``caldart-web.service``.
+   :Production: ``/opt/caldart/backups``, the deploy root's ``backups`` beside
+      the checkout, as the installer writes it: owned by the service user and
+      listed in ``ReadWritePaths`` in ``caldart-web.service`` and
+      ``caldart-backup.service``.
 
 ``DB_BACKUP_VIA_DOCKER``
    ``true`` runs ``pg_dump``/``psql`` through ``docker compose exec -T db``.
