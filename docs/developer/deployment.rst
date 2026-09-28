@@ -1173,11 +1173,12 @@ reachable.  Rehearse a renewal with::
 The certificate files are replaced in place, but the web server reads them
 only at start-up, so it has to be reloaded after a renewal.  certbot runs every
 script in ``/etc/letsencrypt/renewal-hooks/deploy/`` after a successful
-renewal, and with certbot the step installs this one::
+renewal, and with certbot the step installs this one, naming the web server the
+install record holds (``nginx`` with ``--web-server nginx``)::
 
   sudo tee /etc/letsencrypt/renewal-hooks/deploy/reload-web-server >/dev/null <<'EOF'
   #!/bin/sh
-  systemctl reload apache2 2>/dev/null || systemctl reload nginx
+  systemctl reload-or-restart apache2
   EOF
   sudo chmod 0755 /etc/letsencrypt/renewal-hooks/deploy/reload-web-server
 
