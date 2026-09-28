@@ -447,6 +447,15 @@ def test_auto_renewal_off(pat: User, annual_plan: MembershipPlan, how: str, word
     )
 
 
+def test_auto_renewal_off_by_a_delete_links_nowhere(pat: User, annual_plan: MembershipPlan) -> None:
+    """A renewal stopped because its account was deleted names no member record."""
+    mandate = RenewalMandateFactory(user=pat, plan=annual_plan, status=MandateStatus.CANCELED)
+
+    message = build_message("auto_renewal_off", {"mandate": mandate, "how": "deleted"})
+
+    assert (message.lines, message.link) == ((("How", "Account deleted"),), "")
+
+
 def test_auto_renewal_declined_with_a_retry_to_come(pat: User) -> None:
     """A decline quotes the reason and the day of the next try, from the payload."""
     mandate = RenewalMandateFactory(user=pat, plan=None, contribution_cents=1_000)

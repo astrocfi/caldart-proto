@@ -588,11 +588,15 @@ Before the account goes, in the same transaction, the view:
    administrator's cancellation (the ``renewal.cancel`` audit line ends in
    ``reason=member.delete``), so nothing is charged again and the member is
    emailed that it is off, and throws away a ``pending`` one, which has saved no
-   payment method and told nobody;
+   payment method and told nobody.  The *Automatic payment turned off*
+   notification for an active one says the account was deleted
+   (``how="deleted"``) and links to no member record;
 #. when the member has any payment, whatever its status, creates a *tombstone*
    account — a deactivated ``donor`` with no password, no role, and a blank
    profile, named ``Deleted member <id>`` after the deleted account's id, with
-   the address ``deleted-<id>@deleted.invalid`` — and moves every payment to it,
+   the address ``deleted-<id>@deleted.invalid``, or
+   ``deleted-<id>-<8 hex digits>@deleted.invalid`` when another account already
+   holds that one — and moves every payment to it,
    clearing each one's ``donor_fields``.  Refunds stay on their payments.
 
 A payment still ``pending`` when it moves can settle later, when the provider or

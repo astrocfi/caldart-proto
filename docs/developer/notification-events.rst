@@ -123,7 +123,8 @@ Money
        is ``member`` when the actor is the mandate's own member, ``administrator``
        for anybody else, and
        ``deactivated`` from ``cancel_all_mandates`` when the member deactivates
-       their account); the scanner's ``_abandon`` when it pauses a mandate whose
+       their account, and ``deleted`` from ``members.services.hand_over_payments``
+       when their account is deleted); the scanner's ``_abandon`` when it pauses a mandate whose
        member lapsed too long ago (``how="lapsed"``)
      - ``mandate``, ``how``
    * - ``auto_renewal_declined``

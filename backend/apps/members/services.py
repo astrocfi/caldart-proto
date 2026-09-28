@@ -45,6 +45,7 @@ canceled terms, and friends.
 
 from __future__ import annotations
 
+import secrets
 from datetime import date, timedelta
 from typing import TYPE_CHECKING, Any, NoReturn, TypedDict, cast
 
@@ -308,15 +309,24 @@ TOMBSTONE_FIRST_NAME = "Deleted member"
 TOMBSTONE_DOMAIN = "deleted.invalid"
 TOMBSTONE_EMAIL = "deleted-{id}@" + TOMBSTONE_DOMAIN
 
+#: The address a tombstone takes when another account already holds its own.
+TOMBSTONE_EMAIL_WITH_TOKEN = "deleted-{id}-{token}@" + TOMBSTONE_DOMAIN
+
+#: How many random bytes that address carries, written as twice as many hex digits.
+TOMBSTONE_TOKEN_BYTES = 4
+
 
 def tombstone_for(target: User) -> User:
     """Create the account that keeps ``target``'s payments, ``Deleted member <id>``.
 
     A deactivated donor: no password, no role, no sign-in, and off every list of active
-    accounts.  Its address is ``deleted-<id>@deleted.invalid`` and its profile blank.
+    accounts.  Its address is ``deleted-<id>@deleted.invalid`` and its profile blank;
+    when another account already holds that address, it is
+    ``deleted-<id>-<8 hex digits>@deleted.invalid`` instead, so nobody can make a
+    delete fail by taking the address first.
     """
     tombstone = create_account(
-        email=TOMBSTONE_EMAIL.format(id=target.pk),
+        email=_tombstone_email(target),
         first_name=TOMBSTONE_FIRST_NAME,
         last_name=str(target.pk),
         kind=AccountKind.DONOR,
@@ -327,13 +337,30 @@ def tombstone_for(target: User) -> User:
     return tombstone
 
 
-def is_tombstone(user: User) -> bool:
-    """Whether ``user`` is a tombstone: a deactivated account on :data:`TOMBSTONE_DOMAIN`.
+def _tombstone_email(target: User) -> str:
+    """The address for ``target``'s tombstone: the plain one, or one with a token if taken."""
+    email = TOMBSTONE_EMAIL.format(id=target.pk)
+    if not User.objects.filter(email__iexact=email).exists():
+        return email
+    token = secrets.token_hex(TOMBSTONE_TOKEN_BYTES)
+    return TOMBSTONE_EMAIL_WITH_TOKEN.format(id=target.pk, token=token)
 
-    A payment a tombstone holds is kept in the books and nothing more: when one that
-    was pending settles, it buys no term and sends no mail.
+
+def is_tombstone(user: User) -> bool:
+    """Whether ``user`` is a tombstone, as :func:`tombstone_for` makes one.
+
+    A tombstone is a deactivated donor whose first name is
+    :data:`TOMBSTONE_FIRST_NAME` and whose address is on :data:`TOMBSTONE_DOMAIN`; an
+    account that merely holds such an address is not one.  A payment a tombstone holds
+    is kept in the books and nothing more: when one that was pending settles, it buys
+    no term and sends no mail.
     """
-    return not user.is_active and user.email.endswith(f"@{TOMBSTONE_DOMAIN}")
+    return (
+        user.kind == AccountKind.DONOR
+        and not user.is_active
+        and user.first_name == TOMBSTONE_FIRST_NAME
+        and user.email.endswith(f"@{TOMBSTONE_DOMAIN}")
+    )
 
 
 @transaction.atomic
@@ -341,7 +368,8 @@ def hand_over_payments(actor: User, target: User) -> dict[str, int]:
     """Clear ``target``'s money out of the way of deleting the account, which stays.
 
     Each active or paused automatic payment is canceled by ``actor`` through
-    ``cancel_mandate`` with the audit reason ``member.delete``, which tells the member;
+    ``cancel_mandate`` with the audit reason ``member.delete``, which tells the member
+    and raises ``auto_renewal_off`` with ``how="deleted"`` for an active one;
     a pending one, which has saved nothing and told nobody, is thrown away.
     Every payment, whatever its status, then moves to a new :func:`tombstone_for`
     account, refunds and all, with any public gift's stored giver details wiped, so a
@@ -363,7 +391,7 @@ def hand_over_payments(actor: User, target: User) -> dict[str, int]:
         status__in=(MandateStatus.ACTIVE, MandateStatus.PAUSED)
     )
     for mandate in standing:
-        cancel_mandate(mandate, actor=actor, reason=audit.MEMBER_DELETE)
+        cancel_mandate(mandate, actor=actor, how="deleted", reason=audit.MEMBER_DELETE)
     discard_pending_mandate(target)
     payments = Payment.objects.filter(user=target)
     if not payments.exists():

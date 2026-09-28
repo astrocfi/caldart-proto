@@ -54,6 +54,7 @@ AUTO_RENEWAL_OFF_HOW: dict[str, str] = {
     "administrator": "Turned off by an administrator",
     "lapsed": "Membership lapsed",
     "deactivated": "Account deactivated",
+    "deleted": "Account deleted",
 }
 
 #: Who gave a refund when no account did.
@@ -326,13 +327,17 @@ def _auto_renewal_on(payload: Mapping[str, object]) -> Built:
 
 
 def _auto_renewal_off(payload: Mapping[str, object]) -> Built:
-    """``auto_renewal_off``: a renewal or a recurring donation, stopped, and how."""
+    """``auto_renewal_off``: a renewal or a recurring donation, stopped, and how.
+
+    One stopped because its account is being deleted links nowhere: the member record
+    is gone by the time the email is read.
+    """
     mandate = _required(payload, "mandate", RenewalMandate)
     how = _required(payload, "how", str)
     return (
         f"{mandate.user.display_name}'s automatic {_mandate_kind(mandate)} is off",
         [("How", AUTO_RENEWAL_OFF_HOW.get(how, how))],
-        _member_link(mandate.user),
+        "" if how == "deleted" else _member_link(mandate.user),
     )
 
 

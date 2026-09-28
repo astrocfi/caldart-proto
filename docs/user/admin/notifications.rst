@@ -129,7 +129,8 @@ Money
    gives the plan or amount, how often, and the next charge.
 *Notification: Automatic payment turned off*
    An automatic renewal or recurring donation stops, and says whether the person, an
-   administrator, a lapse, or a deactivation stopped it.
+   administrator, a lapse, a deactivation, or the account's deletion stopped it. When
+   the account was deleted, the email has no link, because the record is gone.
 *Notification: Automatic payment declined*
    An automatic charge is declined. It gives the reason and when it is tried again.
 *Notification: Donation received*
