@@ -54,7 +54,7 @@ def test_a_moment_just_after_utc_midnight_reads_the_local_day_before() -> None:
 
 
 def test_the_pdf_footer_stamps_the_moment_in_the_display_format(pdf_text: PdfText) -> None:
-    """The report footer reads ``CalDART · generated MM/DD/YYYY HH:MM <zone>``."""
+    """The report footer stamps its moment as ``generated MM/DD/YYYY HH:MM <zone>``."""
     buffer = io.BytesIO()
     build_pdf_table(
         buffer,
@@ -64,4 +64,4 @@ def test_the_pdf_footer_stamps_the_moment_in_the_display_format(pdf_text: PdfTex
         generated_at=dt.datetime(2026, 9, 27, 14, 30, tzinfo=PACIFIC),
     )
 
-    assert "CalDART · generated 09/27/2026 14:30 PDT" in pdf_text(buffer.getvalue())[0]
+    assert "CalDART \u00b7 generated 09/27/2026 14:30 PDT" in pdf_text(buffer.getvalue())[0]
