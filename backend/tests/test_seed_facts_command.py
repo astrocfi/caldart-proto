@@ -317,10 +317,10 @@ def test_describes_the_known_registration(
 def test_reports_the_date_the_registry_is_as_of(
     registry: None, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """``registry.asOf`` is the newest successful import's day, written ``YYYY/MM/DD``."""
+    """``registry.asOf`` is the newest successful import's day, written ``MM/DD/YYYY``."""
     finished = RegistryImport.objects.get().finished_at
     assert finished is not None
-    expected = timezone.localtime(finished).strftime("%Y/%m/%d")
+    expected = timezone.localtime(finished).strftime("%m/%d/%Y")
     assert read_facts(capsys)["registry"]["asOf"] == expected
 
 

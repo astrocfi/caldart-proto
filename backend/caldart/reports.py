@@ -48,6 +48,8 @@ from reportlab.platypus import (
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
+from caldart.dates import format_display_datetime
+
 #: The media type of a CSV document, as an email attachment names it.
 CSV_DOCUMENT_TYPE = "text/csv"
 
@@ -457,8 +459,10 @@ def build_pdf_table(
     if widths is not None and len(widths) != len(header):
         raise ValueError(f"{len(header)} columns but {len(widths)} widths")
     pagesize = landscape_size(letter) if landscape else letter
-    generated_at = generated_at or timezone.localtime()
-    footer_left = f"CalDART \u00b7 generated {generated_at:%Y-%m-%d %H:%M %Z}".strip()
+    generated_at = timezone.localtime(generated_at)
+    footer_left = (
+        f"CalDART \u00b7 generated {format_display_datetime(generated_at)} {generated_at:%Z}"
+    ).strip()
 
     doc = BaseDocTemplate(
         buffer,

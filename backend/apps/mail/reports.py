@@ -10,12 +10,12 @@ and which rows the report holds.
 from __future__ import annotations
 
 from django.db.models import QuerySet
-from django.utils import timezone
 
 from apps.accounts.roles import SYSTEM_ADMIN
 from apps.mail.filters import EmailLogFilterSet
 from apps.mail.models import EmailLog
 from apps.mail.purposes import purpose_label
+from caldart.dates import format_display_datetime
 from caldart.reports import (
     Params,
     ReportColumn,
@@ -35,13 +35,10 @@ ORDERINGS: frozenset[str] = frozenset({"sent_at", "-sent_at"})
 #: The order with no ``ordering`` given: the most recent send first.
 DEFAULT_ORDERING = "-sent_at"
 
-#: The minute a message went, in the installation's own timezone.
-SENT_AT_FORMAT = "%Y-%m-%d %H:%M"
-
 
 def _sent_at(row: EmailLog) -> str:
-    """When ``row`` went, as local ``YYYY-MM-DD HH:MM``."""
-    return timezone.localtime(row.sent_at).strftime(SENT_AT_FORMAT)
+    """When ``row`` went, as local ``MM/DD/YYYY HH:MM``, as the Sent Emails page reads."""
+    return format_display_datetime(row.sent_at)
 
 
 def _user_name(row: EmailLog) -> str:

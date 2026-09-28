@@ -223,7 +223,7 @@ def test_the_notice_goes_out_a_fortnight_before_the_contribution(
         run_auto_renewals()
 
     assert str(mailoutbox[-1].subject) == (
-        "CalDART: we will take your recurring donation on " + str(due)
+        f"CalDART: we will take your recurring donation on {due:%m/%d/%Y}"
     )
 
 

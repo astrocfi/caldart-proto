@@ -162,7 +162,9 @@ def test_the_notice_names_the_date_the_card_will_be_charged(
     run_auto_renewals(today=today)
 
     charge_on = ends_on
-    assert subjects(mailoutbox) == [f"CalDART: we will renew your membership on {charge_on}"]
+    assert subjects(mailoutbox) == [
+        f"CalDART: we will renew your membership on {charge_on:%m/%d/%Y}"
+    ]
 
 
 def test_a_term_further_out_than_the_notice_window_is_left_alone(

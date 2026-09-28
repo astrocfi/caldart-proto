@@ -25,6 +25,7 @@ from apps.accounts.roles import VERIFY_ROLES
 from apps.aircraft.models import Aircraft
 from apps.aircraft.services import checkable_people
 from apps.members.models import MedicalType, MemberProfile, PhotoIdType, PilotCertificateType
+from caldart.dates import format_display_date
 from caldart.reports import Params, ReportColumn, ReportQuery, ReportSpec
 
 #: The section each person's item is listed under, keyed by the item's slug.
@@ -85,16 +86,11 @@ class VerificationRow:
         return self.verified_at is not None
 
 
-def _slash_day(moment: datetime | None) -> str:
-    """The local day of ``moment`` as ``YYYY/MM/DD``, or a blank cell for ``None``."""
+def _local_day(moment: datetime | None) -> str:
+    """The local day of ``moment`` as ``MM/DD/YYYY``, or a blank cell for ``None``."""
     if moment is None:
         return ""
-    return _slash(timezone.localdate(moment))
-
-
-def _slash(day: date) -> str:
-    """``day`` as the administrative screens print it: ``YYYY/MM/DD``."""
-    return day.strftime("%Y/%m/%d")
+    return format_display_date(timezone.localdate(moment))
 
 
 def _details(*parts: str) -> str:
@@ -103,8 +99,8 @@ def _details(*parts: str) -> str:
 
 
 def _expires(day: date | None) -> str:
-    """``expires YYYY/MM/DD``, or blank when no expiration is on file."""
-    return "" if day is None else f"expires {_slash(day)}"
+    """``expires MM/DD/YYYY``, or blank when no expiration is on file."""
+    return "" if day is None else f"expires {format_display_date(day)}"
 
 
 def certificate_details(profile: MemberProfile) -> str:
@@ -114,7 +110,7 @@ def certificate_details(profile: MemberProfile) -> str:
 
 
 def medical_details(profile: MemberProfile) -> str:
-    """The medical and ``expires 2027/03/01``, joined by a middle dot.
+    """The medical and ``expires 03/01/2027``, joined by a middle dot.
 
     A medical with no expiration on file, such as ``None``, reads its type alone.
     """
@@ -128,7 +124,7 @@ def photo_id_details(profile: MemberProfile) -> str:
 
 
 def insurance_details(aircraft: Aircraft) -> str:
-    """The carrier and ``expires 2027/03/01``, joined by a middle dot, or blank."""
+    """The carrier and ``expires 03/01/2027``, joined by a middle dot, or blank."""
     return _details(aircraft.insurance_carrier, _expires(aircraft.insurance_expiration))
 
 
@@ -151,13 +147,13 @@ VERIFICATION_REPORT_COLUMNS: tuple[ReportColumn[VerificationRow], ...] = (
     ReportColumn("name", "Name", True, lambda row: row.name, width=2.6),
     ReportColumn("dart", "DART", True, lambda row: row.dart, width=3.0),
     ReportColumn("details", "Details", True, lambda row: row.details, width=4.2),
-    ReportColumn("updated", "Updated", True, lambda row: _slash_day(row.updated_at), width=1.4),
+    ReportColumn("updated", "Updated", True, lambda row: _local_day(row.updated_at), width=1.4),
     ReportColumn(
         "verified", "Verified", True, lambda row: "Yes" if row.is_verified else "No", width=1.2
     ),
     ReportColumn("verified_by", "Verified by", True, _verified_by_name, width=2.4),
     ReportColumn(
-        "verified_on", "Verified on", True, lambda row: _slash_day(row.verified_at), width=1.5
+        "verified_on", "Verified on", True, lambda row: _local_day(row.verified_at), width=1.5
     ),
 )
 
