@@ -3,17 +3,19 @@
 # CalDART install step - the database and the static files.
 #
 # Through deploy/manage.sh: applies the migrations, creates the cache table,
-# creates the roles, and collects the static files.  With --seed-content it
-# also loads the example pages, and with --admin-email it creates the first
-# administrator (or gives an existing account the administrator's roles) and
-# keeps the one-time password-reset link create_admin prints for the summary.
-# It never runs seed_demo.
+# creates the roles, and collects the static files.  With --seed-demo it also
+# loads the demo accounts (the same data development seeds with make seed),
+# with --seed-content it loads the example pages, and with --admin-email it
+# creates the first administrator (or gives an existing account the
+# administrator's roles) and keeps the one-time password-reset link
+# create_admin prints for the summary.
 #
 # Usage:
 #   sudo deploy/steps/database.sh [options]
 #
 # Options:
 #   --admin-email ADDRESS   create the first administrator with this address
+#   --seed-demo             load the demo accounts
 #   --seed-content          load the example pages
 #   --dry-run               print every state-changing command instead of running it
 #   --help                  show this help
@@ -27,6 +29,7 @@ source "$ROOT/deploy/lib.sh"
 readonly MANAGE="$ROOT/deploy/manage.sh"
 
 ADMIN_EMAIL="${ADMIN_EMAIL:-}"
+SEED_DEMO="${SEED_DEMO:-no}"
 SEED_CONTENT="${SEED_CONTENT:-no}"
 # The link create_admin printed, for check.sh's summary.
 ADMIN_LINK="${ADMIN_LINK:-}"
@@ -36,8 +39,9 @@ database_step() {
     "$MANAGE" migrate
     "$MANAGE" createcachetable
     "$MANAGE" seed_roles
-    # Never seed_demo here: it creates demo accounts with a password published
-    # in the repository's README.
+    if [[ "$SEED_DEMO" == yes ]]; then
+        "$MANAGE" seed_demo
+    fi
     if [[ "$SEED_CONTENT" == yes ]]; then
         "$MANAGE" seed_content
     fi
@@ -63,6 +67,7 @@ database_main() {
                 ADMIN_EMAIL="$(option_value "$1" "${2:-}")"
                 shift
                 ;;
+            --seed-demo) SEED_DEMO=yes ;;
             --seed-content) SEED_CONTENT=yes ;;
             --dry-run) enable_dry_run ;;
             --help)

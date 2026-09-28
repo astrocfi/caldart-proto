@@ -12,7 +12,8 @@
 # fails the step.  Then prints the summary: the site's address, the
 # environment file, the administrator's one-time link when one was created,
 # the Stripe, PayPal, and Geoapify settings the environment file still leaves
-# empty, and, with a self-signed certificate, that browsers warn until a real
+# empty, a caution when this run's database step seeded the demo accounts, and,
+# with a self-signed certificate, that browsers warn until a real
 # certificate replaces it.  A dry run prints the checks instead of running them.
 #
 # Usage:
@@ -48,6 +49,8 @@ print("; ".join(problems))
 
 # The link database.sh kept when it created the administrator.
 ADMIN_LINK="${ADMIN_LINK:-}"
+# Whether this run's database step loaded the demo accounts, for the summary's caution.
+SEED_DEMO="${SEED_DEMO:-no}"
 FAILURES=0
 
 fail_check() {
@@ -146,6 +149,9 @@ print_summary() {
     fi
     if ((${#empty[@]})); then
         printf 'Still empty in the settings: %s\n' "${empty[*]}"
+    fi
+    if [[ "$SEED_DEMO" == yes ]]; then
+        printf 'Demo accounts seeded: their shared password is the one README.rst documents; this is a demonstration server.\n'
     fi
     if [[ "$CALDART_TLS" == self-signed ]]; then
         printf 'The certificate is self-signed: browsers warn until a real one replaces it.\n'
