@@ -1,0 +1,470 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CalDART - Volunteer disaster air transportation for California</title>
+<style>
+  * { box-sizing: border-box; }
+  html { background: #dcdeda; }
+  body {
+    margin: 0;
+    font: 15px/1.5 "Nimbus Sans", Helvetica, Arial, sans-serif;
+    color: #1f2328;
+  }
+  a { color: #114078; }
+  a:visited { color: #5a2d7a; }
+  h1, h2, h3 { font-weight: bold; }
+  .wrap { width: 1180px; max-width: 100%; margin: 0 auto; padding: 0 18px; }
+  .vh {
+    position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
+  }
+
+  /* ---------- header ---------- */
+  .site-header { background: #fff; border-bottom: 4px solid #173a63; }
+  .header-row {
+    display: flex; align-items: center; gap: 16px;
+    padding: 14px 0 12px;
+  }
+  .wordmark { display: flex; align-items: center; gap: 12px; flex: none; }
+  .wordmark img { width: 42px; height: 42px; flex: none; }
+  .wordmark h1 { margin: 0; font-size: 30px; line-height: 1; letter-spacing: .01em; }
+  .wordmark h1 a { color: #173a63; text-decoration: none; }
+  .wordmark h1 a:visited { color: #173a63; }
+  .wordmark .sub { margin: 4px 0 0; font-size: 13px; color: #444a52; line-height: 1.25; }
+
+  .site-nav { margin-left: auto; }
+  .site-nav ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0 2px; }
+  .site-nav a {
+    display: block; padding: 6px 8px; text-decoration: none;
+    color: #1f2328; border: 1px solid transparent;
+  }
+  .site-nav a:visited { color: #1f2328; }
+  .site-nav a:hover { border-color: #9aa2ab; background: #eef0ed; }
+  .site-nav a[aria-current] { border-color: #173a63; background: #173a63; color: #fff; }
+  .site-nav .portal a { font-weight: bold; }
+
+  .search { display: flex; flex: none; }
+  .search input {
+    width: 146px; padding: 6px 8px; font: inherit; font-size: 14px;
+    border: 1px solid #6f7781; border-right: 0; background: #fff; color: #1f2328;
+  }
+  .search button {
+    padding: 6px 14px; font: inherit; font-size: 14px; font-weight: bold;
+    border: 1px solid #173a63; background: #173a63; color: #fff; cursor: pointer;
+  }
+
+  /* ---------- tabs ---------- */
+  .tabs { position: relative; padding-top: 18px; }
+  .tabs > input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+  .tabstrip { display: flex; margin-bottom: -1px; position: relative; z-index: 2; }
+  .tabstrip label {
+    display: block; padding: 9px 20px; border: 1px solid #6f7781; border-right: 0;
+    background: #e4e6e2; color: #2b3138; font-weight: bold; cursor: pointer;
+    white-space: nowrap;
+  }
+  .tabstrip label:last-child { border-right: 1px solid #6f7781; }
+  .tabstrip label:hover { background: #d6d9d3; }
+  .panel {
+    display: none; border: 1px solid #6f7781; background: #fff;
+    padding: 20px; position: relative; z-index: 1;
+  }
+  #t-pilots:checked  ~ .tabstrip label[for="t-pilots"],
+  #t-ground:checked  ~ .tabstrip label[for="t-ground"],
+  #t-owners:checked  ~ .tabstrip label[for="t-owners"],
+  #t-agency:checked  ~ .tabstrip label[for="t-agency"],
+  #t-donors:checked  ~ .tabstrip label[for="t-donors"] {
+    background: #fff; color: #173a63; border-bottom-color: #fff;
+    box-shadow: inset 0 3px 0 #173a63;
+  }
+  #t-pilots:checked ~ #p-pilots,
+  #t-ground:checked ~ #p-ground,
+  #t-owners:checked ~ #p-owners,
+  #t-agency:checked ~ #p-agency,
+  #t-donors:checked ~ #p-donors { display: block; }
+  .tabs > input:focus-visible ~ .tabstrip label[for="t-pilots"],
+  .tabs > input:focus-visible ~ .tabstrip label[for="t-ground"],
+  .tabs > input:focus-visible ~ .tabstrip label[for="t-owners"],
+  .tabs > input:focus-visible ~ .tabstrip label[for="t-agency"],
+  .tabs > input:focus-visible ~ .tabstrip label[for="t-donors"] { outline: 2px solid #b3261e; outline-offset: -4px; }
+
+  .panel-grid { display: flex; gap: 24px; align-items: flex-start; }
+  .panel-grid .photo { flex: 0 0 320px; height: 214px; }
+  .panel-body { flex: 1 1 auto; min-width: 0; }
+  .panel-body h2 { margin: 0 0 8px; font-size: 21px; color: #173a63; }
+  .panel-body p { margin: 0 0 12px; max-width: 62em; }
+  .needs { margin: 0 0 14px; padding-left: 20px; }
+  .needs li { margin-bottom: 4px; }
+  .duty {
+    border: 1px solid #6f7781; border-left: 6px solid #b3261e; background: #f6f2ef;
+    padding: 10px 14px; margin: 0 0 14px;
+  }
+  .duty .num { display: block; font-size: 28px; font-weight: bold; line-height: 1.15; color: #1f2328; }
+  .duty .lbl { font-size: 13px; color: #3c434b; }
+  .btn {
+    display: inline-block; padding: 9px 22px; font-weight: bold; text-decoration: none;
+    border: 1px solid #143b22; background: #1d5a34; color: #fff;
+  }
+  .btn:visited { color: #fff; }
+  .btn:hover { background: #164727; }
+
+  .photo {
+    background: #aab6c0 repeating-linear-gradient(135deg, rgba(255,255,255,.22) 0 7px, rgba(255,255,255,0) 7px 14px);
+    border: 1px solid #6f7781; color: #1b2a35; font-size: 12px;
+    display: flex; align-items: flex-end; padding: 8px;
+  }
+
+  /* ---------- about ---------- */
+  section { margin-top: 26px; }
+  .about { border: 1px solid #6f7781; background: #fff; }
+  .about h2, .block > h2 {
+    margin: 0; padding: 8px 14px; font-size: 17px; color: #fff; background: #173a63;
+    border-bottom: 1px solid #6f7781;
+  }
+  .about-body { display: flex; gap: 22px; padding: 16px 14px; align-items: flex-start; }
+  .about-body p { margin: 0 0 12px; }
+  .about-body p:last-child { margin-bottom: 0; }
+  .about-body .map { flex: none; text-align: center; font-size: 12px; color: #444a52; }
+  .about-body .map img { display: block; width: 126px; height: auto; border: 1px solid #9aa2ab; background: #fff; }
+  .about-body .map span { display: block; margin-top: 5px; width: 126px; }
+
+  /* ---------- flow ---------- */
+  .block > h2 { border: 1px solid #6f7781; }
+  .flow { display: flex; align-items: stretch; border: 1px solid #6f7781; border-top: 0; background: #fff; padding: 16px 14px; }
+  .step { flex: 1 1 0; border: 1px solid #6f7781; background: #f7f8f6; padding: 10px 11px; min-width: 0; }
+  .step h3 { margin: 0 0 5px; font-size: 14px; line-height: 1.3; color: #173a63; }
+  .step p { margin: 0; font-size: 13px; line-height: 1.45; }
+  .conn { flex: 0 0 30px; position: relative; }
+  .conn::before {
+    content: ""; position: absolute; top: 50%; left: 3px; right: 9px;
+    border-top: 2px solid #5a6672; margin-top: -1px;
+  }
+  .conn::after {
+    content: ""; position: absolute; top: 50%; right: 2px; margin-top: -6px;
+    border-left: 9px solid #5a6672; border-top: 6px solid transparent; border-bottom: 6px solid transparent;
+  }
+
+  /* ---------- tables ---------- */
+  .two-up { display: flex; gap: 22px; align-items: flex-start; }
+  .two-up > * { flex: 1 1 0; min-width: 0; margin-top: 0; }
+  .tscroll { overflow-x: auto; border: 1px solid #6f7781; border-top: 0; background: #fff; }
+  table.list { width: 100%; border-collapse: collapse; font-size: 14px; }
+  table.list th, table.list td { padding: 7px 10px; border-bottom: 1px solid #c9cdc7; text-align: left; vertical-align: top; }
+  table.list thead th { background: #eceee9; font-size: 13px; border-bottom: 1px solid #6f7781; white-space: nowrap; }
+  table.list tbody tr:last-child td { border-bottom: 0; }
+  table.list td.date { white-space: nowrap; width: 1%; color: #3c434b; }
+  .more { padding: 7px 10px; border-top: 1px solid #c9cdc7; background: #f7f8f6; font-size: 13px; }
+
+  /* ---------- footer ---------- */
+  .site-footer { margin-top: 28px; background: #4a5058; color: #fff; border-top: 4px solid #173a63; }
+  .site-footer a { color: #fff; }
+  .site-footer a:visited { color: #fff; }
+  .foot-row { display: flex; flex-wrap: wrap; gap: 14px 46px; padding: 18px 0 6px; font-size: 14px; }
+  .foot-row p { margin: 0; }
+  .foot-row b { display: block; }
+  .fine { padding: 8px 0 20px; font-size: 12.5px; color: #dfe2e6; border-top: 1px solid #6b727a; margin-top: 12px; }
+  .fine p { margin: 0 0 3px; }
+
+  @media (max-width: 1000px) {
+    .header-row { flex-wrap: wrap; gap: 12px 18px; }
+    .site-nav { margin-left: 0; order: 3; flex-basis: 100%; }
+    .search { margin-left: auto; }
+    .search input { width: 140px; }
+  }
+  @media (max-width: 820px) {
+    .panel-grid { flex-direction: column; }
+    .panel-grid .photo { flex: none; width: 100%; height: 170px; }
+    .flow { flex-direction: column; }
+    .conn { flex: none; width: 100%; height: 26px; }
+    .conn::before { top: 2px; bottom: 9px; left: 50%; right: auto; border-top: 0; border-left: 2px solid #5a6672; margin: 0 0 0 -1px; }
+    .conn::after {
+      top: auto; bottom: 1px; right: auto; left: 50%; margin: 0 0 0 -6px;
+      border-left: 6px solid transparent; border-right: 6px solid transparent;
+      border-top: 9px solid #5a6672; border-bottom: 0;
+    }
+    .two-up { flex-direction: column; }
+    .two-up > * + * { margin-top: 26px; }
+    .about-body { flex-direction: column-reverse; }
+    .about-body .map { align-self: flex-start; }
+  }
+  @media (max-width: 700px) {
+    .tabstrip { display: block; margin-bottom: -1px; }
+    .tabstrip label { border-right: 1px solid #6f7781; border-bottom: 0; }
+    .tabstrip label:last-child { border-bottom: 1px solid #6f7781; }
+    #t-pilots:checked  ~ .tabstrip label[for="t-pilots"],
+    #t-ground:checked  ~ .tabstrip label[for="t-ground"],
+    #t-owners:checked  ~ .tabstrip label[for="t-owners"],
+    #t-agency:checked  ~ .tabstrip label[for="t-agency"],
+    #t-donors:checked  ~ .tabstrip label[for="t-donors"] {
+      border-bottom-color: #6f7781; box-shadow: inset 4px 0 0 #173a63;
+    }
+  }
+  @media (max-width: 560px) {
+    .wrap { padding: 0 12px; }
+    .wordmark h1 { font-size: 26px; }
+    .search { flex-basis: 100%; margin-left: 0; order: 2; }
+    .search input { flex: 1 1 auto; width: auto; }
+    .site-nav a { padding: 6px 8px; font-size: 14px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap header-row">
+    <div class="wordmark">
+      <img src="../shared/plane.svg" alt="">
+      <div>
+        <h1><a href="#">CalDART</a></h1>
+        <p class="sub">Volunteer pilots and aircraft for California's emergencies</p>
+      </div>
+    </div>
+    <nav class="site-nav" aria-label="Main">
+      <ul>
+        <li><a href="#" aria-current="page">Home</a></li>
+        <li><a href="#about">About</a></li>
+        <li><a href="#">DARTs</a></li>
+        <li><a href="#news">News</a></li>
+        <li><a href="#">Join</a></li>
+        <li><a href="#">Donate</a></li>
+        <li><a href="#">Contact</a></li>
+        <li class="portal"><a href="#">Members</a></li>
+      </ul>
+    </nav>
+    <form class="search" role="search" action="#">
+      <label class="vh" for="q">Search caldart.example</label>
+      <input id="q" name="q" type="search" placeholder="Search this site">
+      <button type="submit">Search</button>
+    </form>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <h2 class="vh">Who CalDART is for</h2>
+  <div class="tabs">
+    <input type="radio" name="audience" id="t-pilots" checked>
+    <input type="radio" name="audience" id="t-ground">
+    <input type="radio" name="audience" id="t-owners">
+    <input type="radio" name="audience" id="t-agency">
+    <input type="radio" name="audience" id="t-donors">
+
+    <div class="tabstrip">
+      <label for="t-pilots">Pilots</label>
+      <label for="t-ground">Ground crew</label>
+      <label for="t-owners">Aircraft owners</label>
+      <label for="t-agency">Emergency managers</label>
+      <label for="t-donors">Donors</label>
+    </div>
+
+    <div class="panel" id="p-pilots">
+      <div class="panel-grid">
+        <div class="photo">Photo: pilot and ground volunteer loading a Cessna 182 at Livermore</div>
+        <div class="panel-body">
+          <h2>Pilots</h2>
+          <p>CalDART organizes pilots, aircraft owners and ground crews into local teams at general aviation airports around the state. You fly at your own discretion and expense under standard FAA rules, and the flight time counts toward currency. Pilots without an aircraft are paired with owners in their DART.</p>
+          <ul class="needs">
+            <li>Private pilot certificate or higher</li>
+            <li>Current medical or BasicMed</li>
+            <li>Access to an aircraft, or a pairing with an owner at your airport</li>
+            <li>Annual membership, $45 a year</li>
+          </ul>
+          <a class="btn" href="#">Join</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" id="p-ground">
+      <div class="panel-grid">
+        <div class="photo">Photo: ground crew at the Hayward workshop</div>
+        <div class="panel-body">
+          <h2>Ground crew</h2>
+          <p>No pilot certificate is needed. Ground volunteers load and unload aircraft, work the radios, run the logistics at each end of a mission and act as the liaison with airport management. Between emergencies a DART trains, exercises with county agencies and keeps its roster and aircraft list current.</p>
+          <ul class="needs">
+            <li>Loading and unloading, and the paperwork that travels with a load</li>
+            <li>Radio and communications</li>
+            <li>Logistics and airport liaison</li>
+            <li>Annual membership, $45 a year</li>
+          </ul>
+          <a class="btn" href="#">Join</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" id="p-owners">
+      <div class="panel-grid">
+        <div class="photo">Photo: Cessna 182 on the ramp at Reid-Hillview</div>
+        <div class="panel-body">
+          <h2>Aircraft owners</h2>
+          <p>CalDART flies single-engine and light twin aircraft based at a member airport. CalDART carries non-owned aircraft liability coverage for the missions it dispatches; owners keep their own hull and liability policies. An owner who does not want to fly a mission can pair the aircraft with a pilot in the same DART.</p>
+          <ul class="needs">
+            <li>Single-engine or light twin aircraft based at a member airport</li>
+            <li>Your own hull and liability policies, kept current</li>
+            <li>A current aircraft record in the member portal</li>
+            <li>Annual membership, $45 a year</li>
+          </ul>
+          <a class="btn" href="#">Join</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" id="p-agency">
+      <div class="panel-grid">
+        <div class="photo">Photo: county OES staff briefing pilots at the Livermore terminal</div>
+        <div class="panel-body">
+          <h2>Emergency managers</h2>
+          <p>County OES, hospitals, tribal governments and mutual-aid partners request support through the duty coordinator, any hour. CalDART gives California's emergency managers a trained, insured and practiced volunteer air transportation capability, kept current all year so it is ready on the day an agency calls.</p>
+          <p class="duty">
+            <span class="lbl">Requests for air support, any hour:</span>
+            <span class="num">(555) 010-2201</span>
+          </p>
+          <ul class="needs">
+            <li>The agency name</li>
+            <li>The mission: what, where and by when</li>
+            <li>The departure and arrival airports</li>
+            <li>The deadline</li>
+          </ul>
+          <a class="btn" href="#">Request support</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" id="p-donors">
+      <div class="panel-grid">
+        <div class="photo">Photo: supplies staged at San Luis Obispo during the spring exercise</div>
+        <div class="panel-body">
+          <h2>Donors</h2>
+          <p>Volunteers fly at their own expense. Donations pay for the insurance, the training and the exercises that keep fifteen teams current between emergencies. A Friend of CalDART gives any amount and takes no membership; members can also pay once and never renew.</p>
+          <ul class="needs">
+            <li>Annual membership, $45 a year, renewable each year</li>
+            <li>Life membership, $650, paid once</li>
+            <li>Friend of CalDART, a donation of any amount</li>
+            <li>Dues and contributions are tax deductible to the extent allowed by law</li>
+          </ul>
+          <a class="btn" href="#">Donate</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <section class="about" id="about">
+    <h2>About CalDART</h2>
+    <div class="about-body">
+      <div>
+        <p>CalDART organizes pilots, aircraft owners and ground crews into local teams at general aviation airports around the state. A DART is a Disaster Airlift Response Team. When an earthquake, wildfire or flood closes the roads, those teams fly relief supplies, responders and information to the communities that need them.</p>
+        <p>CalDART gives California's emergency managers a trained, insured and practiced volunteer air transportation capability. Teams are organized, exercised and kept current all year, so they are ready on the day an agency calls. There are 15 DARTs, 240 members and 96 aircraft, and 11 counties hold a signed agreement.</p>
+      </div>
+      <div class="map">
+        <img src="../shared/california.svg" alt="Map of California with the fifteen DART airports marked">
+        <span>15 DARTs, Santa Rosa to Santa Monica</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="block">
+    <h2>How an activation works</h2>
+    <div class="flow">
+      <div class="step">
+        <h3>Local teams form around an airport</h3>
+        <p>Each DART is a group of pilots, aircraft owners and ground volunteers based at one general aviation airport and led by a DART coordinator.</p>
+      </div>
+      <div class="conn" aria-hidden="true"></div>
+      <div class="step">
+        <h3>An agency requests air support</h3>
+        <p>A county emergency operations center or a partner agency contacts CalDART's duty coordinator with the mission: what, where and by when.</p>
+      </div>
+      <div class="conn" aria-hidden="true"></div>
+      <div class="step">
+        <h3>The coordinator matches the mission to aircraft</h3>
+        <p>Available aircraft and pilots are matched to the load, the distance and conditions at the destination airport.</p>
+      </div>
+      <div class="conn" aria-hidden="true"></div>
+      <div class="step">
+        <h3>Volunteers fly the mission</h3>
+        <p>Pilots fly at their own discretion and expense under standard FAA rules. Ground crews load, unload and hand off the cargo.</p>
+      </div>
+      <div class="conn" aria-hidden="true"></div>
+      <div class="step">
+        <h3>Every flight is logged</h3>
+        <p>Each leg is recorded for the agency's records and for CalDART's own after-action review.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="two-up">
+    <section class="block" id="news">
+      <h2>News</h2>
+      <div class="tscroll">
+        <table class="list">
+          <thead>
+            <tr><th scope="col">Date</th><th scope="col">Headline</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="date">14 Apr 2026</td>
+              <td><a href="#">Spring exercise moves 4,200 lb of supplies between Livermore and San Luis Obispo</a></td>
+            </tr>
+            <tr>
+              <td class="date">2 Mar 2026</td>
+              <td><a href="#">Winter storm activation: three flights for Monterey County OES</a></td>
+            </tr>
+            <tr>
+              <td class="date">19 Feb 2026</td>
+              <td><a href="#">Annual meeting set for 7 June at Reid-Hillview</a></td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="more"><a href="#">All news</a></p>
+      </div>
+    </section>
+
+    <section class="block">
+      <h2>Calendar</h2>
+      <div class="tscroll">
+        <table class="list">
+          <thead>
+            <tr><th scope="col">Date</th><th scope="col">Event</th><th scope="col">Where</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="date">Sat 18 Oct 2026</td>
+              <td><a href="#">Ground crew workshop</a></td>
+              <td>Hayward Executive Airport, 9 am to 1 pm</td>
+            </tr>
+            <tr>
+              <td class="date">Sat 8 Nov 2026</td>
+              <td><a href="#">Statewide radio and communications drill</a></td>
+              <td>All DARTs</td>
+            </tr>
+            <tr>
+              <td class="date">Sat 6 Dec 2026</td>
+              <td><a href="#">DART coordinators' meeting</a></td>
+              <td>Palo Alto, 10 am</td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="more"><a href="#">Full calendar</a></p>
+      </div>
+    </section>
+  </div>
+
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="foot-row">
+      <p><b>The California DART Network</b>P.O. Box 1149<br>Livermore, CA 94551</p>
+      <p><b>Contact</b><a href="mailto:info@caldart.example">info@caldart.example</a><br>(555) 010-2200</p>
+      <p><b>Duty coordinator, any hour</b>(555) 010-2201</p>
+      <p><b>Members</b><a href="#">Sign in to the member portal</a><br>Update your profile, check your medical and insurance dates, or renew.</p>
+    </div>
+    <div class="fine">
+      <p>EIN 00-0000000. CalDART is a 501(c)(3) public charity; dues and contributions are tax deductible to the extent allowed by law.</p>
+      <p>Example content for a prototype. Volunteers fly at their own expense and at their own discretion; CalDART does not self-deploy.</p>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

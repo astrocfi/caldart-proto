@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CalDART - The California DART Network</title>
+<style>
+  * { box-sizing: border-box; }
+  :root {
+    --green: #1d4e2e;
+    --green-dark: #143721;
+    --blue: #dbe6f0;
+    --ink: #20242a;
+    --rule: #b9bfc6;
+  }
+  html { background: #fff; }
+  body {
+    margin: 0;
+    font: 16px/1.6 "Noto Sans", "Liberation Sans", Arial, sans-serif;
+    color: var(--ink);
+  }
+  h1, h2, h3, .wordmark, .btn, th { font-family: Ubuntu, "Noto Sans", "Liberation Sans", Arial, sans-serif; }
+  a { color: #14477d; }
+  a:visited { color: #553089; }
+  p { margin: 0 0 14px; }
+  p:last-child { margin-bottom: 0; }
+
+  .band { padding: 36px 24px; }
+  .inner { width: 1120px; max-width: 100%; margin: 0 auto; }
+
+  /* ---- header ---- */
+  .site-head { background: #fff; border-bottom: 3px solid var(--green); text-align: center; padding: 18px 24px 0; }
+  .wordmark { display: inline-block; text-decoration: none; color: var(--green); }
+  .wordmark img { width: 42px; height: 42px; display: block; margin: 0 auto 4px; }
+  .wordmark b { display: block; font-size: 32px; font-weight: 700; line-height: 1.1; letter-spacing: .02em; }
+  .wordmark span { display: block; font-size: 13px; color: #43484f; margin-top: 2px; font-family: "Noto Sans", Arial, sans-serif; }
+  .site-nav { margin-top: 14px; }
+  .site-nav ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 4px 2px; }
+  .site-nav a { display: block; padding: 10px 14px; color: #1b2026; text-decoration: none; font-weight: 600; font-size: 15px; border-bottom: 3px solid transparent; }
+  .site-nav a:visited { color: #1b2026; }
+  .site-nav a:hover { border-bottom-color: var(--green); }
+  .site-nav a[aria-current] { border-bottom-color: var(--green); }
+  .site-nav .members a { background: var(--green); color: #fff; border: 1px solid var(--green-dark); margin-left: 10px; padding: 8px 18px; }
+  .site-nav .members a:visited { color: #fff; }
+  .site-nav .members a:hover { background: var(--green-dark); }
+
+  /* ---- buttons ---- */
+  .btn {
+    display: inline-block; padding: 11px 22px; border: 1px solid var(--green-dark);
+    background: var(--green); color: #fff; text-decoration: none; font-weight: 700; font-size: 16px;
+  }
+  .btn:visited { color: #fff; }
+  .btn:hover { background: var(--green-dark); }
+  .btn.plain { background: #fff; color: var(--green-dark); }
+  .btn.plain:visited { color: var(--green-dark); }
+  .btn.plain:hover { background: #eef2ee; }
+  .btn-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+
+  /* ---- photo slots ---- */
+  .photo {
+    background: #8fa3b4 repeating-linear-gradient(135deg, rgba(255,255,255,.2) 0 7px, transparent 7px 14px);
+    border: 1px solid #6d7f8e; color: #16222c; display: flex; align-items: flex-end;
+    padding: 10px; font-size: 13px; min-height: 200px;
+  }
+  .photo span { background: rgba(255,255,255,.82); padding: 3px 7px; }
+
+  /* ---- band 1: intro split ---- */
+  .intro { background: var(--blue); border-bottom: 1px solid #b7c7d6; }
+  .split { display: flex; gap: 32px; align-items: flex-start; }
+  .split .photo { flex: 0 0 46%; min-height: 300px; }
+  .split .text { flex: 1 1 auto; min-width: 0; }
+  .split h1 { margin: 0 0 14px; font-size: 36px; line-height: 1.18; font-weight: 700; color: #16211a; }
+  .split .lede { font-size: 18px; }
+
+  /* ---- band 2: what CalDART does ---- */
+  .does h2, .steps h2, .faq h2 { margin: 0 0 22px; font-size: 26px; font-weight: 700; }
+  .does h2 { border-bottom: 2px solid var(--green); padding-bottom: 8px; }
+  .row { display: flex; gap: 28px; align-items: center; padding: 20px 0; border-bottom: 1px solid var(--rule); }
+  .row:last-of-type { border-bottom: 0; padding-bottom: 0; }
+  .row .photo { flex: 0 0 340px; min-height: 190px; }
+  .row .text { flex: 1 1 auto; min-width: 0; }
+  .row.flip { flex-direction: row-reverse; }
+  .row h3 { margin: 0 0 8px; font-size: 20px; font-weight: 700; }
+  .row .who { font-size: 14px; color: #4a5058; margin-top: 8px; }
+
+  /* ---- band 3: mission ---- */
+  .mission { background: var(--green); color: #fff; text-align: center; }
+  .mission h2 { margin: 0 0 16px; font-size: 22px; font-weight: 700; color: #fff; }
+  .mission p { font-size: 24px; line-height: 1.5; max-width: 50ch; margin: 0 auto; }
+
+  /* ---- band 4: activation table ---- */
+  .table-wrap { overflow-x: auto; border: 1px solid #8d949c; }
+  table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 15px; background: #fff; }
+  th, td { border: 1px solid #b0b6bd; padding: 10px 12px; text-align: left; vertical-align: top; }
+  thead th { background: #d9dee3; font-size: 15px; font-weight: 700; border-color: #8d949c; }
+  tbody th { background: #f2f4f6; font-weight: 700; width: 24%; }
+  td.who { width: 22%; }
+  .steps .note { margin-top: 14px; font-size: 15px; }
+
+  /* ---- band 5: FAQ ---- */
+  .faq { background: #eeefec; border-top: 1px solid #d7d9d4; border-bottom: 1px solid #d7d9d4; }
+  .faq details { border-bottom: 0; }
+  .faq summary {
+    position: relative; list-style: none; cursor: pointer; padding: 14px 44px 14px 0;
+    border-bottom: 1px solid #9ea49b; font-weight: 700; font-size: 17px;
+    font-family: Ubuntu, "Noto Sans", Arial, sans-serif;
+  }
+  .faq summary::-webkit-details-marker { display: none; }
+  .faq summary::after {
+    content: ""; position: absolute; right: 8px; top: 50%; width: 16px; height: 16px; margin-top: -8px;
+    background:
+      linear-gradient(var(--green), var(--green)) center / 16px 2px no-repeat,
+      linear-gradient(var(--green), var(--green)) center / 2px 16px no-repeat;
+  }
+  .faq details[open] summary::after {
+    background: linear-gradient(var(--green), var(--green)) center / 16px 2px no-repeat;
+  }
+  .faq details p { padding: 12px 44px 16px 0; margin: 0; border-bottom: 1px solid #c8ccc5; }
+
+  /* ---- band 6: call to action over a photo ---- */
+  .cta { position: relative; padding: 0; }
+  .cta .photo { min-height: 420px; align-items: flex-start; border-left: 0; border-right: 0; padding: 24px; }
+  .cta .overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 24px; }
+  .cta .card {
+    background: #fff; border: 1px solid #6d7f8e; padding: 26px 30px; width: 520px; max-width: 100%;
+  }
+  .cta .card h2 { margin: 0 0 10px; font-size: 26px; font-weight: 700; }
+  .cta .prices { list-style: none; margin: 18px 0 0; padding: 0; font-size: 15px; border-top: 1px solid var(--rule); }
+  .cta .prices li { display: flex; justify-content: space-between; gap: 16px; padding: 7px 0; border-bottom: 1px solid var(--rule); }
+  .cta .prices b { font-weight: 700; white-space: nowrap; }
+
+  /* ---- footer ---- */
+  .site-foot { background: #1b2026; color: #dfe3e8; border-top: 4px solid var(--green); }
+  .site-foot a { color: #b9d3ee; }
+  .site-foot a:visited { color: #c9c2e6; }
+  .foot-cols { display: flex; gap: 40px; align-items: flex-start; }
+  .foot-cols > div { flex: 1 1 0; min-width: 0; }
+  .site-foot h2 { margin: 0 0 10px; font-size: 17px; font-weight: 700; color: #fff; }
+  .site-foot .map { display: flex; gap: 14px; align-items: flex-start; }
+  .site-foot .map img { flex: none; width: 104px; height: auto; }
+  .site-foot .map div { min-width: 0; }
+  .site-foot p { font-size: 15px; }
+  .site-foot .phone { font-size: 22px; font-weight: 700; color: #fff; display: block; }
+  .site-foot label { display: block; font-size: 14px; margin-bottom: 6px; }
+  .site-foot input {
+    width: 100%; padding: 9px 10px; border: 1px solid #757d86; background: #fff; color: #20242a;
+    font: inherit; font-size: 15px;
+  }
+  .site-foot button {
+    margin-top: 10px; padding: 10px 22px; border: 1px solid var(--green-dark); background: var(--green);
+    color: #fff; font: 700 16px Ubuntu, "Noto Sans", Arial, sans-serif; cursor: pointer;
+  }
+  .site-foot button:hover { background: #256239; }
+  .fine { border-top: 1px solid #3a4149; margin-top: 28px; padding-top: 16px; font-size: 13px; color: #aeb5bd; }
+  .fine p { font-size: 13px; }
+
+  @media (max-width: 860px) {
+    .band { padding: 28px 18px; }
+    .split, .row, .row.flip { flex-direction: column; gap: 16px; }
+    .split .photo, .row .photo { flex: none; width: 100%; }
+    .split h1 { font-size: 28px; }
+    .mission p { font-size: 20px; }
+    .cta .photo { min-height: 0; }
+    .cta .overlay { position: static; padding: 0; }
+    .cta .card { width: 100%; border-top: 0; }
+    .foot-cols { flex-direction: column; gap: 26px; }
+    .site-nav .members a { margin-left: 0; }
+  }
+</style>
+</head>
+<body>
+
+<header class="site-head">
+  <a class="wordmark" href="#">
+    <img src="../shared/plane.svg" alt="">
+    <b>CalDART</b>
+    <span>The California DART Network &mdash; Disaster Airlift Response Teams</span>
+  </a>
+  <nav class="site-nav" aria-label="Main">
+    <ul>
+      <li><a href="#" aria-current="page">Home</a></li>
+      <li><a href="#">About</a></li>
+      <li><a href="#">DARTs</a></li>
+      <li><a href="#">News</a></li>
+      <li><a href="#">Join</a></li>
+      <li><a href="#">Donate</a></li>
+      <li><a href="#">Contact</a></li>
+      <li class="members"><a href="#">Members</a></li>
+    </ul>
+  </nav>
+</header>
+
+<main>
+
+  <section class="band intro">
+    <div class="inner split">
+      <div class="photo"><span>Photo: pilots briefing at Reid-Hillview</span></div>
+      <div class="text">
+        <h1>Volunteer pilots and aircraft for California's emergencies</h1>
+        <p class="lede">CalDART organizes pilots, aircraft owners and ground crews into local teams at general aviation airports around the state. When an earthquake, wildfire or flood closes the roads, those teams fly relief supplies, responders and information to the communities that need them.</p>
+        <p class="btn-row">
+          <a class="btn" href="#">Join CalDART</a>
+          <a class="btn plain" href="#">Find your DART</a>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="band does">
+    <div class="inner">
+      <h2>What CalDART does</h2>
+
+      <div class="row">
+        <div class="photo"><span>Photo: Cessna 182 being loaded at Livermore</span></div>
+        <div class="text">
+          <h3>Pilots fly the missions</h3>
+          <p>Private pilot certificate or higher, current medical or BasicMed, access to an aircraft. Flight time counts toward currency. Pilots without an aircraft are paired with owners in their DART.</p>
+          <p class="who">Aircraft owners: single-engine and light twin aircraft based at a member airport.</p>
+        </div>
+      </div>
+
+      <div class="row flip">
+        <div class="photo"><span>Photo: ground crew at the Hayward workshop</span></div>
+        <div class="text">
+          <h3>Ground crews move the load</h3>
+          <p>No pilot certificate needed. Loading, radio, logistics, airport liaison. Ground volunteers train with their DART through the year and work the ramp on an activation, handing each load off to the agency that asked for it.</p>
+          <p class="who">Next: ground crew workshop, Hayward Executive Airport, Saturday 18 October, 9 am to 1 pm.</p>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="photo"><span>Photo: county OES staff at the Livermore operations table</span></div>
+        <div class="text">
+          <h3>Emergency managers request support</h3>
+          <p>County OES, hospitals, tribal governments and mutual-aid partners request support through the duty coordinator. Eleven counties hold a signed agreement with CalDART.</p>
+          <p class="who">Requests for air support: call the duty coordinator at <b>(555) 010-2201</b>, any hour. Give the agency name, the mission, the departure and arrival airports and the deadline.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band mission">
+    <div class="inner">
+      <h2>Our mission</h2>
+      <p>CalDART gives California's emergency managers a trained, insured and practiced volunteer air transportation capability. Teams are organized, exercised and kept current all year, so they are ready on the day an agency calls.</p>
+    </div>
+  </section>
+
+  <section class="band steps">
+    <div class="inner">
+      <h2>How an activation works</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th scope="col">Step</th><th scope="col">Who acts</th><th scope="col">What happens</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">1. Local teams form around an airport</th>
+              <td class="who">Pilots, aircraft owners, ground volunteers</td>
+              <td>Each DART is a group of pilots, aircraft owners and ground volunteers based at one general aviation airport and led by a DART coordinator.</td>
+            </tr>
+            <tr>
+              <th scope="row">2. An agency requests air support</th>
+              <td class="who">County EOC or partner agency</td>
+              <td>A county emergency operations center or a partner agency contacts CalDART's duty coordinator with the mission: what, where and by when.</td>
+            </tr>
+            <tr>
+              <th scope="row">3. The coordinator matches the mission to aircraft</th>
+              <td class="who">CalDART duty coordinator</td>
+              <td>Available aircraft and pilots are matched to the load, the distance and conditions at the destination airport.</td>
+            </tr>
+            <tr>
+              <th scope="row">4. Volunteers fly the mission</th>
+              <td class="who">Pilots and ground crews</td>
+              <td>Pilots fly at their own discretion and expense under standard FAA rules. Ground crews load, unload and hand off the cargo.</td>
+            </tr>
+            <tr>
+              <th scope="row">5. Every flight is logged</th>
+              <td class="who">DART coordinator</td>
+              <td>Each leg is recorded for the agency's records and for CalDART's own after-action review.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note">15 DARTs &middot; 240 members &middot; 96 aircraft &middot; 11 counties with a signed agreement &middot; 3 activations and 6 exercises in the past 12 months.</p>
+    </div>
+  </section>
+
+  <section class="band faq">
+    <div class="inner">
+      <h2>Questions</h2>
+      <details open>
+        <summary>Do I need my own aircraft?</summary>
+        <p>No. Pilots without an aircraft are paired with owners in their DART.</p>
+      </details>
+      <details>
+        <summary>Who pays for the flight?</summary>
+        <p>The pilot, unless an agency agreement says otherwise. The cost is generally deductible as a charitable expense.</p>
+      </details>
+      <details>
+        <summary>Is there insurance?</summary>
+        <p>CalDART carries non-owned aircraft liability coverage for missions it dispatches. Owners keep their own hull and liability policies.</p>
+      </details>
+      <details>
+        <summary>What does a DART do between emergencies?</summary>
+        <p>Trains, exercises with county agencies and keeps its roster and aircraft list current.</p>
+      </details>
+    </div>
+  </section>
+
+  <section class="band cta">
+    <div class="photo"><span>Photo: Central Coast DART staging area at San Luis Obispo</span></div>
+    <div class="overlay">
+      <div class="card">
+        <h2>Ready to help?</h2>
+        <p>Pilots, aircraft owners and ground volunteers join the DART at their own airport. Membership runs a year from the day you join.</p>
+        <p class="btn-row"><a class="btn" href="#">Join CalDART</a></p>
+        <ul class="prices">
+          <li><span>Annual membership, renewable each year</span> <b>$45 a year</b></li>
+          <li><span>Life membership, pay once, never renew</span> <b>$650</b></li>
+          <li><span>Friend of CalDART, no membership</span> <b>any amount</b></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-foot">
+  <div class="band inner">
+    <div class="foot-cols">
+      <div>
+        <h2>Where the DARTs are</h2>
+        <div class="map">
+          <img src="../shared/california.svg" alt="Map of California with the fifteen DART airports marked">
+          <div>
+            <p>15 DARTs from Santa Rosa to Santa Monica, at general aviation airports in the North Bay, the East Bay, the Peninsula, the South Bay, the Central Coast and Southern California.</p>
+            <p><a href="#">See every DART</a></p>
+          </div>
+        </div>
+      </div>
+      <div>
+        <h2>Contact</h2>
+        <p>
+          The California DART Network<br>
+          P.O. Box 1149<br>
+          Livermore, CA 94551
+        </p>
+        <p>
+          <span class="phone">(555) 010-2200</span>
+          <a href="mailto:info@caldart.example">info@caldart.example</a>
+        </p>
+        <p>Duty coordinator, any hour: <b>(555) 010-2201</b></p>
+      </div>
+      <div>
+        <h2>Newsletter</h2>
+        <p>Exercise dates, activation reports and the annual meeting notice, a few times a year.</p>
+        <form action="#" method="post">
+          <label for="news-email">Email address</label>
+          <input id="news-email" type="email" name="email" autocomplete="email" placeholder="you@example.com">
+          <button type="submit">Subscribe</button>
+        </form>
+        <p style="margin-top:14px"><a href="#">Sign in to the member portal</a> to update your profile, check your medical and insurance dates, or renew.</p>
+      </div>
+    </div>
+    <div class="fine">
+      <p>EIN 00-0000000. CalDART is a 501(c)(3) public charity.</p>
+      <p>Example content for a prototype. Volunteers fly at their own expense and at their own discretion; CalDART does not self-deploy.</p>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

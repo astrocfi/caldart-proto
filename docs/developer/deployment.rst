@@ -109,11 +109,11 @@ The flags:
      - create the first administrator
      - none
    * - ``--seed-demo``
-     - load the demo accounts, sharing the password ``README.rst`` documents
-       (:ref:`deploy-database`)
+     - load the demo accounts alone, sharing the password ``README.rst``
+       documents (:ref:`deploy-database`)
      - off
    * - ``--seed-content``
-     - load the example pages
+     - load the example website alone, with no accounts
      - off
    * - ``--repo URL-OR-PATH``
      - ``bootstrap.sh`` only: what to clone
@@ -1707,7 +1707,8 @@ nothing to pull, ``install.sh`` again with no flags, and ``uninstall.sh --yes
 rehearses :ref:`deploy-prefix` instead, behind a stand-in for the existing
 site; ``REHEARSE_GUNICORN_PORT=8101`` installs with ``--gunicorn-port
 8101``, ``REHEARSE_DB_PORT=5433`` with ``--db-port 5433``, and
-``REHEARSE_SEED=1`` with ``--seed-demo --seed-content``.  It is the way to try
+``REHEARSE_SEED=content``, ``demo``, or ``all`` with ``--seed-content``,
+``--seed-demo``, or both.  It is the way to try
 a change to anything under ``deploy/`` before a server sees it;
 :ref:`testing-rehearsal` describes what it runs and how the container is set
 up.

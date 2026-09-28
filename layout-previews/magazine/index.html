@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CalDART - The California DART Network</title>
+<style>
+  * { box-sizing: border-box; }
+  html { background: #ffffff; }
+  body {
+    margin: 0;
+    color: #1a1a1a;
+    font: 17px/1.55 "Bitstream Charter", Charter, "Liberation Serif", "Nimbus Roman", Times, serif;
+  }
+  a { color: #8c0016; }
+  a:visited { color: #6b1040; }
+
+  .narrow { font-family: "Liberation Sans Narrow", "Nimbus Sans Narrow", "Arial Narrow", sans-serif; }
+
+  .wrap { width: 1180px; max-width: 100%; margin: 0 auto; padding: 0 20px; }
+
+  /* ---------- header ---------- */
+  .topbar { background: #000; color: #fff; }
+  .topbar .wrap { display: flex; align-items: center; gap: 16px; min-height: 58px; padding-top: 8px; padding-bottom: 8px; flex-wrap: wrap; }
+  .wordmark { display: flex; align-items: center; gap: 8px; text-decoration: none; color: #fff; }
+  .wordmark img { width: 20px; height: 20px; filter: brightness(0) invert(1); }
+  .wordmark b {
+    font-family: "Liberation Sans Narrow", "Arial Narrow", sans-serif;
+    font-size: 23px; font-weight: bold; letter-spacing: .06em; text-transform: uppercase;
+  }
+  .wordmark span { font-size: 12px; color: #cfcfcf; }
+  .topnav { margin-left: auto; }
+  .topnav ul { list-style: none; display: flex; align-items: center; gap: 22px; margin: 0; padding: 0; flex-wrap: wrap; }
+  .topnav a {
+    color: #fff; text-decoration: none;
+    font-family: "Liberation Sans Narrow", "Arial Narrow", sans-serif;
+    font-size: 15px; font-weight: bold; letter-spacing: .08em; text-transform: uppercase;
+  }
+  .topnav a:visited { color: #fff; }
+  .topnav a:hover { text-decoration: underline; }
+  .topnav .members a { border: 2px solid #fff; padding: 6px 14px; display: block; }
+  .topnav .members a:hover { background: #fff; color: #000; text-decoration: none; }
+
+  /* ---------- hero ---------- */
+  .hero { margin-top: 18px; }
+  .shot {
+    position: relative; height: 560px; overflow: hidden;
+    background: #9aa6ad repeating-linear-gradient(135deg, rgba(255,255,255,.16) 0 8px, transparent 8px 16px);
+  }
+  .shot .slotlabel {
+    position: absolute; top: 0; left: 0; background: #f2f2ef; color: #222;
+    font-size: 12px; padding: 5px 10px; border-right: 2px solid #000; border-bottom: 2px solid #000;
+  }
+  .hero .band {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,.72); color: #fff; padding: 26px 30px 28px;
+  }
+  .hero h1 {
+    margin: 0;
+    font-family: "Liberation Sans Narrow", "Arial Narrow", sans-serif;
+    font-size: 74px; line-height: .94; font-weight: bold; text-transform: uppercase; letter-spacing: .005em;
+  }
+  .ribbon {
+    background: #b3001b; color: #fff; padding: 12px 30px;
+    display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 26px;
+  }
+  .ribbon .tag {
+    font-family: "Liberation Sans Narrow", "Arial Narrow", sans-serif;
+    font-size: 27px; line-height: 1.15; font-weight: bold; text-transform: uppercase; letter-spacing: .05em;
+  }
+  .ribbon .duty { font-size: 15px; color: #ffdfe3; margin-left: auto; }
+  .ribbon .duty b { color: #fff; }
+
+  /* ---------- article ---------- */
+  .article { max-width: 1040px; margin: 30px auto 36px; }
+  .cols { column-count: 2; column-gap: 54px; column-rule: 1px solid #c9c9c4; }
+  .cols p { margin: 0 0 15px; text-align: justify; hyphens: auto; }
+  .cols p b { font-weight: bold; }
+  .cols p:first-of-type::first-letter {
+    float: left; font-family: "Liberation Sans Narrow", "Arial Narrow", sans-serif;
+    font-size: 78px; line-height: .78; font-weight: bold; margin: 4px 8px 0 0; color: #000;
+  }
+
+  .numbers {
+    float: right; width: 224px; margin: 6px 0 16px 26px;
+    border-top: 3px solid #000; border-bottom: 3px solid #000; padding: 10px 0 4px;
+    break-inside: avoid;
+  }
+  .numbers h2 {
+    margin: 0 0 10px;
+    font-family: "Liberation Sans Narrow", "Arial Narrow", sans-serif;
+    font-size: 17px; font-weight: bold; text-transform: uppercase; letter-spacing: .1em;
+  }
+  .numbers .fig { margin-bottom: 9px; }
+  .numbers .fig b {
+    display: block;
+    font-family: "Liberation Sans Narrow", "Arial Narrow", sans-serif;
+    font-size: 40px; line-height: 1; font-weight: bold;
+  }
+  .numbers .fig span { display: block; font-size: 13px; color: #333; line-height: 1.25; }
+
+  /* ---------- section headings ---------- */
+  .sect { margin: 0 0 22px; }
+  .sect h2 {
+    margin: 0 0 14px; padding-bottom: 6px; border-bottom: 3px solid #000;
+    font-family: "Liberation Sans Narrow", "Arial Narrow", sans-serif;
+    font-size: 30px; font-weight: bold; text-transform: uppercase; letter-spacing: .06em;
+  }
+
+  /* ---------- meet a DART ---------- */
+  .panel { background: #e5e5e1; padding: 26px 0 30px; margin-bottom: 30px; }
+  .panel .grid { display: flex; gap: 32px; align-items: flex-start; }
+  .panel .shotwrap { flex: 0 0 440px; }
+  .panel .shot { height: 300px; }
+  .panel .cap { font-size: 13px; color: #333; margin: 6px 0 0; }
+  .panel .text { flex: 1 1 auto; min-width: 0; }
+  .panel h3 {
+    margin: 0 0 12px;
+    font-family: "Liberation Sans Narrow", "Arial Narrow", sans-serif;
+    font-size: 34px; font-weight: bold; text-transform: uppercase; letter-spacing: .03em;
+  }
+  .panel dl { margin: 0 0 16px; display: grid; grid-template-columns: 190px 1fr; gap: 0; }
+  .panel dt {
+    font-family: "Liberation Sans Narrow", "Arial Narrow", sans-serif;
+    font-size: 15px; font-weight: bold; text-transform: uppercase; letter-spacing: .07em;
+    padding: 7px 0; border-top: 1px solid #b4b4ae;
+  }
+  .panel dd { margin: 0; padding: 7px 0; border-top: 1px solid #b4b4ae; font-size: 16px; }
+  .panel blockquote { margin: 0; font-style: italic; font-size: 19px; line-height: 1.45; }
+  .panel blockquote cite { display: block; margin-top: 8px; font-style: normal; font-size: 14px; color: #333; }
+
+  /* ---------- calendar ---------- */
+  .calendar { display: flex; margin-bottom: 30px; }
+  .calendar .date { flex: 1 1 0; display: flex; gap: 14px; align-items: flex-start; padding: 0 22px; min-width: 0; }
+  .calendar .date + .date { border-left: 2px solid #000; }
+  .calendar .date:first-child { padding-left: 0; }
+  .calendar .date:last-child { padding-right: 0; }
+  .calendar .day {
+    font-family: "Liberation Sans Narrow", "Arial Narrow", sans-serif;
+    font-size: 66px; line-height: .86; font-weight: bold; flex: none;
+  }
+  .calendar .what { min-width: 0; }
+  .calendar .month {
+    font-family: "Liberation Sans Narrow", "Arial Narrow", sans-serif;
+    font-size: 16px; font-weight: bold; text-transform: uppercase; letter-spacing: .1em;
+  }
+  .calendar .what b { display: block; font-size: 16px; margin-top: 2px; }
+  .calendar .what span { display: block; font-size: 14px; color: #333; }
+
+  /* ---------- steps ---------- */
+  .steps { margin: 0 0 30px; padding-left: 26px; max-width: 1040px; }
+  .steps li { margin-bottom: 11px; padding-left: 4px; }
+  .steps li b { font-weight: bold; }
+
+  /* ---------- supporters ---------- */
+  .supporters { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 34px; }
+  .supporters div {
+    background: #d8d8d3; border: 1px solid #b0b0aa; height: 92px;
+    display: grid; place-items: center; text-align: center; padding: 8px;
+    font-family: "Liberation Sans Narrow", "Arial Narrow", sans-serif;
+    font-size: 16px; font-weight: bold; text-transform: uppercase; letter-spacing: .05em; color: #262626;
+  }
+
+  /* ---------- footer ---------- */
+  .foot { background: #000; color: #e4e4e4; font-size: 14px; padding: 24px 0 28px; }
+  .foot .wrap { display: flex; flex-wrap: wrap; gap: 14px 46px; }
+  .foot p { margin: 0; }
+  .foot b {
+    display: block; color: #fff;
+    font-family: "Liberation Sans Narrow", "Arial Narrow", sans-serif;
+    font-size: 16px; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 4px;
+  }
+  .foot a { color: #fff; }
+  .foot a:visited { color: #fff; }
+  .foot .fine { flex-basis: 100%; color: #b8b8b8; font-size: 13px; border-top: 1px solid #3a3a3a; padding-top: 12px; }
+
+  @media (max-width: 760px) {
+    .wrap { padding: 0 14px; }
+    .topbar .wrap { min-height: 0; }
+    .topnav { margin-left: 0; flex-basis: 100%; }
+    .topnav ul { gap: 12px 18px; }
+    .shot { height: 380px; }
+    .hero .band { padding: 16px 16px 18px; }
+    .hero h1 { font-size: 34px; }
+    .ribbon { padding: 12px 16px; }
+    .ribbon .tag { font-size: 21px; }
+    .ribbon .duty { margin-left: 0; flex-basis: 100%; }
+    .article { margin-top: 22px; }
+    .cols { column-count: 1; }
+    .cols p { text-align: left; hyphens: manual; }
+    .numbers { float: none; width: 100%; margin: 4px 0 18px; }
+    .numbers .fig { display: flex; align-items: baseline; gap: 12px; margin-bottom: 6px; }
+    .numbers .fig b { font-size: 34px; }
+    .numbers .fig span { font-size: 14px; }
+    .sect h2 { font-size: 23px; }
+    .panel .grid { display: block; }
+    .panel .shotwrap { margin-bottom: 16px; }
+    .panel .shot { height: 220px; }
+    .panel h3 { font-size: 26px; }
+    .panel dl { grid-template-columns: 1fr; }
+    .panel dt { padding-bottom: 0; }
+    .panel dd { border-top: 0; padding-top: 2px; }
+    .panel blockquote { font-size: 17px; }
+    .calendar { display: block; }
+    .calendar .date { padding: 12px 0; }
+    .calendar .date + .date { border-left: 0; border-top: 2px solid #000; }
+    .calendar .day { font-size: 52px; }
+    .supporters { grid-template-columns: 1fr 1fr; }
+    .supporters div { height: 74px; font-size: 14px; }
+    .supporters div:last-child { grid-column: 1 / -1; }
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap">
+    <a class="wordmark" href="#main">
+      <img src="../shared/plane.svg" alt="">
+      <b>CalDART</b>
+      <span>The California DART Network</span>
+    </a>
+    <nav class="topnav" aria-label="Main">
+      <ul>
+        <li><a href="#">About</a></li>
+        <li><a href="#">DARTs</a></li>
+        <li><a href="#">News</a></li>
+        <li><a href="#">Join</a></li>
+        <li><a href="#">Donate</a></li>
+        <li><a href="#">Contact</a></li>
+        <li class="members"><a href="#">Members</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <div class="wrap hero">
+    <div class="shot">
+      <p class="slotlabel">Photo: Piper Cherokee on short final at Half Moon Bay</p>
+      <div class="band">
+        <h1>Volunteer pilots and aircraft for California's emergencies</h1>
+      </div>
+    </div>
+    <div class="ribbon">
+      <p class="tag">Volunteer disaster air transportation for California</p>
+      <p class="duty">Agency requests, any hour: <b>(555) 010-2201</b></p>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <article class="article">
+      <div class="cols">
+        <p>CalDART organizes pilots, aircraft owners and ground crews into local teams &mdash; Disaster Airlift Response Teams, or DARTs &mdash; at general aviation airports around the state. When an earthquake, wildfire or flood closes the roads, those teams fly relief supplies, responders and information to the communities that need them.</p>
+
+        <aside class="numbers">
+          <h2>By the numbers</h2>
+          <div class="fig"><b>15</b><span>DARTs</span></div>
+          <div class="fig"><b>240</b><span>members</span></div>
+          <div class="fig"><b>96</b><span>aircraft</span></div>
+          <div class="fig"><b>11</b><span>counties with a signed agreement</span></div>
+          <div class="fig"><b>3</b><span>activations in the past 12 months</span></div>
+          <div class="fig"><b>6</b><span>exercises in the past 12 months</span></div>
+        </aside>
+
+        <p>CalDART gives California's emergency managers a trained, insured and practiced volunteer air transportation capability. Teams are organized, exercised and kept current all year, so they are ready on the day an agency calls.</p>
+
+        <p><b>Who joins.</b> Pilots hold a private pilot certificate or higher, a current medical or BasicMed, and access to an aircraft; flight time counts toward currency. Aircraft owners bring single-engine and light twin aircraft based at a member airport. Ground crew need no pilot certificate: loading, radio, logistics and airport liaison.</p>
+
+        <p><b>Emergency managers.</b> County OES, hospitals, tribal governments and mutual-aid partners request support through the duty coordinator. Give the agency name, the mission, the departure and arrival airports and the deadline.</p>
+
+        <p><b>Membership.</b> Annual membership is $45 a year, renewable each year. Life membership is $650, paid once. A Friend of CalDART gives a donation of any amount, with no membership. Already a member? <a href="#">Sign in to the member portal</a> to update your profile, check your medical and insurance dates, or renew.</p>
+
+        <p><b>Do I need my own aircraft?</b> No. Pilots without an aircraft are paired with owners in their DART.</p>
+
+        <p><b>Who pays for the flight?</b> The pilot, unless an agency agreement says otherwise. The cost is generally deductible as a charitable expense.</p>
+
+        <p><b>Is there insurance?</b> CalDART carries non-owned aircraft liability coverage for missions it dispatches. Owners keep their own hull and liability policies.</p>
+
+        <p><b>What does a DART do between emergencies?</b> Trains, exercises with county agencies and keeps its roster and aircraft list current.</p>
+      </div>
+    </article>
+  </div>
+
+  <section class="panel">
+    <div class="wrap">
+      <div class="sect"><h2>Meet a DART</h2></div>
+      <div class="grid">
+        <div class="shotwrap">
+          <div class="shot"></div>
+          <p class="cap">Photo: Livermore DART members beside a Cessna 182</p>
+        </div>
+        <div class="text">
+          <h3>Livermore DART (LVK)</h3>
+          <dl>
+            <dt>Airport</dt><dd>Livermore Municipal Airport, Livermore</dd>
+            <dt>Members</dt><dd>22 pilots, owners and ground crew</dd>
+            <dt>Aircraft</dt><dd>9, single-engine and one light twin</dd>
+            <dt>Coordinator meets</dt><dd>First Tuesday of the month, 7 pm, terminal building</dd>
+            <dt>County agreement</dt><dd>Alameda County OES, signed February 2024</dd>
+          </dl>
+          <blockquote>
+            <p>Teams are organized, exercised and kept current all year, so they are ready on the day an agency calls.</p>
+            <cite>DART coordinator, Livermore</cite>
+          </blockquote>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="wrap">
+    <section class="sect">
+      <h2>On the calendar</h2>
+      <div class="calendar">
+        <div class="date">
+          <div class="day">18</div>
+          <div class="what">
+            <div class="month">October 2026</div>
+            <b>Ground crew workshop</b>
+            <span>Hayward Executive Airport, 9 am to 1 pm</span>
+          </div>
+        </div>
+        <div class="date">
+          <div class="day">8</div>
+          <div class="what">
+            <div class="month">November 2026</div>
+            <b>Statewide radio and communications drill</b>
+            <span>All DARTs</span>
+          </div>
+        </div>
+        <div class="date">
+          <div class="day">6</div>
+          <div class="what">
+            <div class="month">December 2026</div>
+            <b>DART coordinators' meeting</b>
+            <span>Palo Alto, 10 am</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="sect">
+      <h2>How an activation works</h2>
+      <ol class="steps">
+        <li><b>Local teams form around an airport.</b> Each DART is a group of pilots, aircraft owners and ground volunteers based at one general aviation airport and led by a DART coordinator.</li>
+        <li><b>An agency requests air support.</b> A county emergency operations center or a partner agency contacts CalDART's duty coordinator with the mission: what, where and by when.</li>
+        <li><b>The coordinator matches the mission to aircraft.</b> Available aircraft and pilots are matched to the load, the distance and conditions at the destination airport.</li>
+        <li><b>Volunteers fly the mission.</b> Pilots fly at their own discretion and expense under standard FAA rules. Ground crews load, unload and hand off the cargo.</li>
+        <li><b>Every flight is logged.</b> Each leg is recorded for the agency's records and for CalDART's own after-action review.</li>
+      </ol>
+    </section>
+
+    <section class="sect">
+      <h2>Supporters</h2>
+      <div class="supporters">
+        <div>County OES partner</div>
+        <div>FBO</div>
+        <div>Flying club</div>
+        <div>Aviation insurer</div>
+        <div>Community foundation</div>
+      </div>
+    </section>
+  </div>
+
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <p><b>The California DART Network</b>P.O. Box 1149<br>Livermore, CA 94551</p>
+    <p><b>Contact</b><a href="mailto:info@caldart.example">info@caldart.example</a><br>(555) 010-2200</p>
+    <p><b>Duty coordinator</b>(555) 010-2201, any hour<br>For agency requests for air support</p>
+    <p><b>Support CalDART</b><a href="#">Join</a> &middot; <a href="#">Donate</a> &middot; <a href="#">Members</a><br>EIN 00-0000000</p>
+    <p class="fine">Example content for a prototype. Volunteers fly at their own expense and at their own discretion; CalDART does not self-deploy.</p>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CalDART home page layouts</title>
+<style>
+  body { margin: 0; font: 15px/1.5 "Liberation Sans", Arial, sans-serif; color: #111; background: #fff; }
+  header, main { padding: 0 24px; max-width: 1200px; }
+  header { padding-top: 24px; }
+  h1 { font-size: 24px; margin: 0 0 6px; }
+  header p { margin: 0 0 12px; max-width: 80ch; }
+  nav ol { margin: 0; padding-left: 20px; columns: 2; }
+  section { border-top: 2px solid #333; padding: 20px 0 28px; }
+  h2 { font-size: 20px; margin: 0 0 4px; }
+  h2 code { font-size: 14px; font-weight: normal; margin-left: 8px; color: #555; }
+  h3 { font-size: 15px; margin: 18px 0 4px; }
+  .model, .fonts { margin: 0; color: #444; }
+  .shots { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 16px; margin: 14px 0; }
+  figure { margin: 0; }
+  figure img { display: block; border: 1px solid #999; object-fit: cover; object-position: top; background: #fff; }
+  figure img.desktop { width: 560px; height: 350px; max-width: 100%; }
+  figure img.mobile { width: 140px; height: 350px; }
+  figcaption { font-size: 13px; color: #444; }
+  ol li { margin-bottom: 3px; }
+  code { font-family: "Liberation Mono", monospace; }
+</style>
+</head>
+<body>
+<header>
+  <h1>CalDART home page layouts</h1>
+  <p>Ten page structures for the public home page, each a standalone mockup with the
+     same copy (<code>shared/copy.md</code>). Thumbnails show the top of the full-page
+     shot; click one for the whole page. <code>README.md</code> explains how to regenerate.</p>
+  <nav><ol><li><a href="#county-bulletin">County bulletin</a></li><li><a href="#boxed-chapter">Boxed chapter site</a></li><li><a href="#official-notice">Official notice</a></li><li><a href="#newsletter">Chapter newsletter</a></li><li><a href="#magazine">Magazine feature</a></li><li><a href="#banner-split">Banner and audience split</a></li><li><a href="#brochure-bands">Brochure bands</a></li><li><a href="#audience-tabs">Audience tabs</a></li><li><a href="#status-board">Operations status board</a></li><li><a href="#map-finder">Map finder</a></li></ol></nav>
+</header>
+<main>
+<section id="county-bulletin">
+  <h2>1. County bulletin <code>county-bulletin</code></h2>
+  <p class="model">Modeled on: a county office of emergency services site</p>
+  <p class="fonts">Type: Liberation Sans throughout</p>
+  <div class="shots">
+    <figure><a href="county-bulletin/desktop.png"><img class="desktop" src="county-bulletin/desktop.png" alt="County bulletin at 1440px"></a><figcaption>1440px (top of the page; click for all of it)</figcaption></figure>
+    <figure><a href="county-bulletin/mobile.png"><img class="mobile" src="county-bulletin/mobile.png" alt="County bulletin at 420px"></a><figcaption>420px</figcaption></figure>
+  </div>
+  <p><a href="county-bulletin/index.html">Open the live mockup</a></p>
+  <h3>Structure, top to bottom</h3>
+  <ol><li>Thin navy utility bar: organization name left, agency phone and Members link right.</li><li>White masthead with wordmark and tagline; office contact right-aligned.</li><li>Full-width solid navy nav bar, current item darkened.</li><li>Three columns on a gray ground: 200px left section menu with bordered items, white main panel, 260px right column of boxes.</li><li>Main: Welcome h1, photo floated right with the lede wrapping, figures strip, Announcements box with bold dates, Upcoming training zebra table, activation steps as bold run-in paragraphs.</li><li>Right: Quick links, Request air support (phone in large type), Member login form, Membership price table.</li><li>Gray footer band with three plain-text columns and the fine print.</li></ol>
+</section>
+
+<section id="boxed-chapter">
+  <h2>2. Boxed chapter site <code>boxed-chapter</code></h2>
+  <p class="model">Modeled on: an EAA chapter or CAP squadron site</p>
+  <p class="fonts">Type: CalDART wordmark image, DejaVu Sans body</p>
+  <div class="shots">
+    <figure><a href="boxed-chapter/desktop.png"><img class="desktop" src="boxed-chapter/desktop.png" alt="Boxed chapter site at 1440px"></a><figcaption>1440px (top of the page; click for all of it)</figcaption></figure>
+    <figure><a href="boxed-chapter/mobile.png"><img class="mobile" src="boxed-chapter/mobile.png" alt="Boxed chapter site at 420px"></a><figcaption>420px</figcaption></figure>
+  </div>
+  <p><a href="boxed-chapter/index.html">Open the live mockup</a></p>
+  <h3>Structure, top to bottom</h3>
+  <ol><li>Dotted blue-gray page ground with a centered 1000px white container, 1px border, softly rounded corners and a shadow.</li><li>Masthead: the CalDART logo from caldart.org with the tagline beneath, Duty Officer phone and mailing address right; double rule beneath.</li><li>Solid navy nav bar with white bold links separated by darker vertical lines; Members pushed right.</li><li>Two columns 66/34. Main column is a stack of titled boxes with blue title bars: Welcome (captioned photograph banner, lede, the mission statement as a rule-marked quote, two paragraphs of context, four buttons with a red 'Request air support' first), Latest news (definition list with dates, All news footer), Missions flown (year-and-description table of real CalDART activations).</li><li>Sidebar boxes with lighter blue title bars: Upcoming events with date tiles, Member login form, Find your DART select, Membership table.</li><li>Footer inside the container with the mailing address, Duty Officer number, EIN and the fine print.</li></ol>
+</section>
+
+<section id="official-notice">
+  <h2>3. Official notice <code>official-notice</code></h2>
+  <p class="model">Modeled on: a state agency information page</p>
+  <p class="fonts">Type: Liberation Sans 16px, blue underlined links</p>
+  <div class="shots">
+    <figure><a href="official-notice/desktop.png"><img class="desktop" src="official-notice/desktop.png" alt="Official notice at 1440px"></a><figcaption>1440px (top of the page; click for all of it)</figcaption></figure>
+    <figure><a href="official-notice/mobile.png"><img class="mobile" src="official-notice/mobile.png" alt="Official notice at 420px"></a><figcaption>420px</figcaption></figure>
+  </div>
+  <p><a href="official-notice/index.html">Open the live mockup</a></p>
+  <h3>Structure, top to bottom</h3>
+  <ol><li>Dark top bar with the organization name and main phone.</li><li>Wordmark and tagline, one-line pipe-separated nav between rules, breadcrumb.</li><li>Single 880px column. First element is a yellow notice box for emergency managers with the duty phone in large bold.</li><li>h1 on a double rule, lede paragraph, photo slot.</li><li>Key facts as a two-column table with a shaded header column (Who we are, What we do, Where we operate, How to request support, How to join, Tax status).</li><li>Activation steps as a decimal ordered list; activation checklist with CSS-drawn checkboxes; Documents list with PDF sizes; Recent activity dated list; Membership table.</li><li>Footer as plain stacked text lines including 'Page updated'.</li></ol>
+</section>
+
+<section id="newsletter">
+  <h2>4. Chapter newsletter <code>newsletter</code></h2>
+  <p class="model">Modeled on: the front page of a printed club newsletter</p>
+  <p class="fonts">Type: URW Bookman masthead, Nimbus Roman justified body, Liberation Sans Narrow headlines</p>
+  <div class="shots">
+    <figure><a href="newsletter/desktop.png"><img class="desktop" src="newsletter/desktop.png" alt="Chapter newsletter at 1440px"></a><figcaption>1440px (top of the page; click for all of it)</figcaption></figure>
+    <figure><a href="newsletter/mobile.png"><img class="mobile" src="newsletter/mobile.png" alt="Chapter newsletter at 420px"></a><figcaption>420px</figcaption></figure>
+  </div>
+  <p><a href="newsletter/index.html">Open the live mockup</a></p>
+  <h3>Structure, top to bottom</h3>
+  <ol><li>Masthead: thick top rule, plane at left, 'The CalDART Dispatch' centered, a bordered ear at right with the duty phone; small-caps dateline strip between rules.</li><li>Nav as one centered line separated by vertical bars.</li><li>Three-column newspaper grid with vertical rules. Columns 1 and 2: lead story with headline, small-caps deck, two-column photo with italic caption, two-column body text with a drop cap; below it a 'fifteen DARTs' roster by region.</li><li>Column 3: In this issue, From the coordinator (signed), Calendar, and a dashed-border Join coupon with checkboxes and fill-in lines.</li><li>Below the fold: a tinted explainer box for the activation steps with bold run-in heads, then Briefs as three ruled columns opening with small-caps datelines.</li><li>Footer as three lines of small type.</li></ol>
+</section>
+
+<section id="magazine">
+  <h2>5. Magazine feature <code>magazine</code></h2>
+  <p class="model">Modeled on: a feature spread in a general-aviation magazine</p>
+  <p class="fonts">Type: Liberation Sans Narrow uppercase display, Bitstream Charter body</p>
+  <div class="shots">
+    <figure><a href="magazine/desktop.png"><img class="desktop" src="magazine/desktop.png" alt="Magazine feature at 1440px"></a><figcaption>1440px (top of the page; click for all of it)</figcaption></figure>
+    <figure><a href="magazine/mobile.png"><img class="mobile" src="magazine/mobile.png" alt="Magazine feature at 420px"></a><figcaption>420px</figcaption></figure>
+  </div>
+  <p><a href="magazine/index.html">Open the live mockup</a></p>
+  <h3>Structure, top to bottom</h3>
+  <ol><li>Black header bar, small wordmark, nav at right with Members in a white outlined square.</li><li>560px photo with the headline in very large white uppercase on a dark band at the photo's foot; solid red ribbon under it with the tagline and duty phone.</li><li>Article in two CSS columns with a drop cap and bold run-in subheads; a 'By the numbers' box floats right between 3px black rules.</li><li>'Meet a DART' gray panel: photo left, Livermore DART definition list and an italic quotation right.</li><li>'On the calendar' strip of three dates with very large day numbers separated by vertical rules.</li><li>Activation steps as a plain serif numbered list; a row of five gray supporter rectangles.</li><li>Black footer with narrow uppercase column heads.</li></ol>
+</section>
+
+<section id="banner-split">
+  <h2>6. Banner and audience split <code>banner-split</code></h2>
+  <p class="model">Modeled on: a regional non-profit with a photo banner</p>
+  <p class="fonts">Type: Liberation Sans Narrow headings, Noto Sans body</p>
+  <div class="shots">
+    <figure><a href="banner-split/desktop.png"><img class="desktop" src="banner-split/desktop.png" alt="Banner and audience split at 1440px"></a><figcaption>1440px (top of the page; click for all of it)</figcaption></figure>
+    <figure><a href="banner-split/mobile.png"><img class="mobile" src="banner-split/mobile.png" alt="Banner and audience split at 420px"></a><figcaption>420px</figcaption></figure>
+  </div>
+  <p><a href="banner-split/index.html">Open the live mockup</a></p>
+  <h3>Structure, top to bottom</h3>
+  <ol><li>White header, wordmark left, nav right with a square Members button; 2px rule.</li><li>Full-bleed 520px photo; a dark-blue rectangle overlaps its lower-left corner and hangs 60px below it, holding the headline, a yellow bar, the lede and a white button.</li><li>Two solid half-width panels with no gap: green 'For pilots, owners and ground crew' with three ruled entries and a Join button; slate 'For emergency managers' with the duty phone at 54px.</li><li>White section: activation steps as five bordered boxes joined by CSS arrows (stack vertically on phones).</li><li>Three unequal columns separated by 2px vertical rules: News, Training, Membership.</li><li>Dark-blue footer.</li></ol>
+</section>
+
+<section id="brochure-bands">
+  <h2>7. Brochure bands <code>brochure-bands</code></h2>
+  <p class="model">Modeled on: a small non-profit's site-builder page</p>
+  <p class="fonts">Type: Ubuntu headings, Noto Sans body</p>
+  <div class="shots">
+    <figure><a href="brochure-bands/desktop.png"><img class="desktop" src="brochure-bands/desktop.png" alt="Brochure bands at 1440px"></a><figcaption>1440px (top of the page; click for all of it)</figcaption></figure>
+    <figure><a href="brochure-bands/mobile.png"><img class="mobile" src="brochure-bands/mobile.png" alt="Brochure bands at 420px"></a><figcaption>420px</figcaption></figure>
+  </div>
+  <p><a href="brochure-bands/index.html">Open the live mockup</a></p>
+  <h3>Structure, top to bottom</h3>
+  <ol><li>Centered header: plane above the wordmark, centered nav row with a square Members button, 3px green rule.</li><li>Band 1 (pale blue): photo left, headline, lede and two buttons right.</li><li>Band 2 (white): 'What CalDART does' as three stacked rows, photo alternating sides.</li><li>Band 3 (dark green): mission paragraph centered in white 24px type.</li><li>Band 4 (white): activation steps as a bordered Step / Who acts / What happens table.</li><li>Band 5 (gray): FAQ as native details/summary elements with a CSS-drawn plus.</li><li>Band 6: photo with a centered white 'Ready to help?' card holding the Join button and prices.</li><li>Dark footer: small California map, contact, newsletter signup; fine print below.</li></ol>
+</section>
+
+<section id="audience-tabs">
+  <h2>8. Audience tabs <code>audience-tabs</code></h2>
+  <p class="model">Modeled on: a member-services hub with a search box</p>
+  <p class="fonts">Type: Nimbus Sans throughout</p>
+  <div class="shots">
+    <figure><a href="audience-tabs/desktop.png"><img class="desktop" src="audience-tabs/desktop.png" alt="Audience tabs at 1440px"></a><figcaption>1440px (top of the page; click for all of it)</figcaption></figure>
+    <figure><a href="audience-tabs/mobile.png"><img class="mobile" src="audience-tabs/mobile.png" alt="Audience tabs at 420px"></a><figcaption>420px</figcaption></figure>
+  </div>
+  <p><a href="audience-tabs/index.html">Open the live mockup</a></p>
+  <h3>Structure, top to bottom</h3>
+  <ol><li>White header with wordmark, nav (current item a filled chip) and a search form at the far right; 4px navy rule.</li><li>Five-tab strip (Pilots, Ground crew, Aircraft owners, Emergency managers, Donors) driven by hidden radio inputs, no JavaScript; the selected tab joins its bordered panel.</li><li>Each panel: photo left; heading, paragraph, requirement list and a square button right. Emergency managers panel carries the duty phone.</li><li>Bordered 'About CalDART' box with a navy title bar, two paragraphs and a small California map.</li><li>Activation steps as five bordered boxes joined by CSS arrows.</li><li>Two bordered tables side by side: News (Date, Headline) and Calendar (Date, Event, Where).</li><li>Gray footer with a fine-print band.</li></ol>
+</section>
+
+<section id="status-board">
+  <h2>9. Operations status board <code>status-board</code></h2>
+  <p class="model">Modeled on: an operations center readiness page</p>
+  <p class="fonts">Type: Noto Sans with tabular numerals, Liberation Mono for identifiers and times</p>
+  <div class="shots">
+    <figure><a href="status-board/desktop.png"><img class="desktop" src="status-board/desktop.png" alt="Operations status board at 1440px"></a><figcaption>1440px (top of the page; click for all of it)</figcaption></figure>
+    <figure><a href="status-board/mobile.png"><img class="mobile" src="status-board/mobile.png" alt="Operations status board at 420px"></a><figcaption>420px</figcaption></figure>
+  </div>
+  <p><a href="status-board/index.html">Open the live mockup</a></p>
+  <h3>Structure, top to bottom</h3>
+  <ol><li>Dark slate header with the wordmark and duty phone; nav as square tabs along the bar's bottom edge, the current tab white.</li><li>Solid green status strip: network status, activations, DARTs reporting, update stamp.</li><li>Two-column board (2:1). Left: 'Network at a glance' two-column table, full 15-row DARTs table grouped by region with Ready chips, Scheduled table.</li><li>Right: California map in a bordered panel, mono 'Recent flights' log table, Request air support panel with the phone in large mono type.</li><li>Light-gray 'About CalDART' band with the lede and mission side by side and Join and Donate buttons.</li><li>Plain small footer.</li></ol>
+</section>
+
+<section id="map-finder">
+  <h2>10. Map finder <code>map-finder</code></h2>
+  <p class="model">Modeled on: a 'find your local unit' page</p>
+  <p class="fonts">Type: Liberation Sans Narrow headings, Noto Sans body, Liberation Mono identifiers</p>
+  <div class="shots">
+    <figure><a href="map-finder/desktop.png"><img class="desktop" src="map-finder/desktop.png" alt="Map finder at 1440px"></a><figcaption>1440px (top of the page; click for all of it)</figcaption></figure>
+    <figure><a href="map-finder/mobile.png"><img class="mobile" src="map-finder/mobile.png" alt="Map finder at 420px"></a><figcaption>420px</figcaption></figure>
+  </div>
+  <p><a href="map-finder/index.html">Open the live mockup</a></p>
+  <h3>Structure, top to bottom</h3>
+  <ol><li>White header with wordmark and one-line DART definition, nav right with a square Members button; 3px rule.</li><li>Full-width light strip: 'Find your DART' h1 with one sentence at left, a labeled search input and Find button at right.</li><li>Left 55%: bordered panel with the California map at 620px and a legend; a second bordered 'Bay Area detail' panel with a hand-drawn schematic of the twelve Bay Area pins.</li><li>Right 45%: 'DARTs by region' with six region headings and rows of mono identifier badge, name and city; then Request air support and Already a member panels.</li><li>'Take part' as a bordered table with colored full-height label cells (Fly, Crew, Give).</li><li>Single-line news bar separated by navy vertical bars (scrolls in its wrapper on phones); light footer.</li></ol>
+</section>
+</main>
+</body>
+</html>

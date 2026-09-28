@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CalDART - Network status board</title>
+<style>
+  * { box-sizing: border-box; }
+  :root {
+    --ink: #1a2228;
+    --dim: #4a5560;
+    --rule: #a7b1b8;
+    --rule-soft: #d3d9dd;
+    --bar: #17242d;
+    --bar-tab: #2c3f4c;
+    --shade: #e4e9ec;
+    --green: #6fbf73;
+    --green-edge: #3d8a44;
+    --green-ink: #10280f;
+    --link: #14507f;
+  }
+  html { background: #dfe3e6; }
+  body {
+    margin: 0;
+    font: 14px/1.45 "Noto Sans", "Liberation Sans", Arial, sans-serif;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+  }
+  .mono, td.mono, th.mono { font-family: "Liberation Mono", "DejaVu Sans Mono", monospace; }
+  a { color: var(--link); }
+  a:visited { color: #5a3a86; }
+  h1, h2, h3 { margin: 0; }
+  p { margin: 0 0 9px; }
+  p:last-child { margin-bottom: 0; }
+
+  .page { max-width: 1320px; margin: 0 auto; background: #fff; border-left: 1px solid var(--rule); border-right: 1px solid var(--rule); }
+  .pad { padding: 0 18px; }
+
+  /* ---- header bar + tabs ---- */
+  .bar { background: var(--bar); color: #fff; padding: 14px 18px 0; }
+  .bar-top { display: flex; align-items: flex-end; gap: 14px; flex-wrap: wrap; padding-bottom: 12px; }
+  .wordmark { display: flex; align-items: center; gap: 10px; }
+  .wordmark .badge { flex: none; width: 42px; height: 42px; background: #cfe3d2; border: 1px solid #8fae93; display: grid; place-items: center; }
+  .wordmark .badge img { width: 30px; height: 30px; display: block; }
+  .wordmark h1 { font-size: 27px; line-height: 1; letter-spacing: .02em; font-weight: 700; }
+  .wordmark .long { display: block; font-size: 12px; font-weight: 400; letter-spacing: .01em; color: #b9c6cf; margin-top: 3px; }
+  .bar-meta { margin-left: auto; text-align: right; font-size: 12px; color: #b9c6cf; line-height: 1.5; }
+  .bar-meta b { color: #fff; font-size: 14px; }
+
+  nav.tabs ul { list-style: none; display: flex; flex-wrap: wrap; margin: 0; padding: 0; gap: 2px; }
+  nav.tabs a {
+    display: block; padding: 8px 15px; background: var(--bar-tab); color: #fff;
+    text-decoration: none; font-size: 13px; font-weight: 700; border: 1px solid #3d525f; border-bottom: 0;
+  }
+  nav.tabs a:visited { color: #fff; }
+  nav.tabs a:hover { background: #3a5161; }
+  nav.tabs a[aria-current="page"] { background: #fff; color: var(--bar); border-color: #fff; }
+  nav.tabs li:last-child { margin-left: auto; }
+  nav.tabs li:last-child a { background: #0e161c; }
+
+  /* ---- status strip ---- */
+  .statusbar {
+    background: var(--green); color: var(--green-ink); border: 1px solid var(--green-edge);
+    padding: 9px 13px; margin: 12px 0; font-size: 14px; font-weight: 700;
+  }
+  .statusbar .sep { color: #1d4520; font-weight: 400; padding: 0 3px; }
+  .statusbar .when { font-weight: 400; }
+
+  /* ---- body grid ---- */
+  .board { display: flex; align-items: flex-start; gap: 18px; padding-bottom: 20px; }
+  .col-main { flex: 2 1 0; min-width: 0; }
+  .col-side { flex: 1 1 0; min-width: 0; }
+
+  .panel { border: 1px solid var(--rule); margin-bottom: 16px; background: #fff; }
+  .panel > h2, .panel > h3 { font-size: 14px; padding: 6px 10px; background: var(--shade); border-bottom: 1px solid var(--rule); letter-spacing: .01em; }
+  .panel .inner { padding: 10px; }
+  .panel-note { border-top: 1px solid var(--rule-soft); background: #f5f7f8; font-size: 12px; color: var(--dim); padding: 5px 10px; }
+
+  table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+  th, td { border: 1px solid var(--rule-soft); padding: 5px 9px; text-align: left; }
+  thead th { background: var(--shade); border-color: var(--rule); font-size: 13px; }
+  tbody tr:nth-child(even) td { background: #f7f9fa; }
+
+  table.glance td { font-size: 14px; }
+  table.glance td.fig { width: 86px; text-align: right; font-size: 19px; font-weight: 700; font-family: "Liberation Mono", monospace; background: #f1f4f5; }
+  table.glance tbody tr:nth-child(even) td.fig { background: #eaeff1; }
+
+  .scroller { overflow-x: auto; }
+  table.darts { min-width: 560px; font-size: 13px; }
+  table.darts td.id { font-family: "Liberation Mono", monospace; width: 54px; }
+  table.darts td.st { width: 74px; }
+  table.darts td.st span { display: inline-block; border: 1px solid var(--green-edge); background: #d6ecd7; color: #143e18; padding: 0 6px; font-size: 12px; font-weight: 700; }
+  table.darts tbody tr.group-start td { border-top: 2px solid var(--rule); }
+
+  table.sched { font-size: 13px; }
+  table.sched td.id { font-family: "Liberation Mono", monospace; white-space: nowrap; width: 140px; }
+
+  .mapbox { padding: 8px; }
+  .mapbox img { display: block; width: 100%; height: auto; }
+  .mapcap { font-size: 12px; color: var(--dim); padding: 6px 2px 0; border-top: 1px solid var(--rule-soft); margin-top: 6px; }
+
+  table.log { font-family: "Liberation Mono", "DejaVu Sans Mono", monospace; font-size: 12px; }
+  table.log th { font-family: "Noto Sans", sans-serif; }
+  table.log td, table.log th { padding: 4px 8px; }
+  table.log td.load { text-align: right; white-space: nowrap; }
+
+  .callbox .inner { text-align: left; }
+  .callbox .tel { font-family: "Liberation Mono", monospace; font-size: 27px; font-weight: 700; line-height: 1.1; margin: 2px 0 6px; letter-spacing: -.01em; }
+  .callbox .hours { font-size: 12px; color: var(--dim); margin-bottom: 8px; }
+  .callbox ul { margin: 6px 0 0; padding-left: 18px; font-size: 13px; }
+  .callbox li { margin-bottom: 2px; }
+
+  /* ---- about band ---- */
+  .about { background: #eef0f1; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); padding: 16px 18px 18px; }
+  .about h2 { font-size: 16px; margin-bottom: 10px; }
+  .about .cols { display: flex; gap: 26px; }
+  .about .cols p { flex: 1 1 0; margin: 0; }
+  .btnrow { margin-top: 14px; display: flex; gap: 10px; flex-wrap: wrap; }
+  .btn { display: inline-block; padding: 9px 20px; background: var(--bar); color: #fff; text-decoration: none; font-weight: 700; font-size: 14px; border: 1px solid var(--bar); }
+  .btn:visited { color: #fff; }
+  .btn.alt { background: #fff; color: var(--bar); border-color: #5a6b77; }
+
+  /* ---- footer ---- */
+  footer { padding: 12px 18px 20px; font-size: 12px; color: var(--dim); line-height: 1.6; }
+  footer p { margin: 0 0 4px; }
+  footer .fine { color: #67727c; max-width: 80ch; }
+
+  @media (max-width: 760px) {
+    .bar-meta { margin-left: 0; text-align: left; }
+    nav.tabs li:last-child { margin-left: 0; }
+    nav.tabs a { padding: 7px 11px; }
+    .board { flex-direction: column; gap: 0; }
+    .col-main, .col-side { flex: 1 1 auto; width: 100%; }
+    .about .cols { flex-direction: column; gap: 9px; }
+    .btnrow .btn { flex: 1 1 auto; text-align: center; }
+    .wordmark h1 { font-size: 23px; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="bar">
+    <div class="bar-top">
+      <div class="wordmark">
+        <span class="badge"><img src="../shared/plane.svg" alt=""></span>
+        <h1>CalDART<span class="long">The California DART Network &mdash; Disaster Airlift Response Teams</span></h1>
+      </div>
+      <div class="bar-meta">
+        Duty coordinator, any hour<br>
+        <b class="mono">(555) 010-2201</b><br>
+        info@caldart.example
+      </div>
+    </div>
+    <nav class="tabs" aria-label="Main">
+      <ul>
+        <li><a href="#" aria-current="page">Status</a></li>
+        <li><a href="#">About</a></li>
+        <li><a href="#">DARTs</a></li>
+        <li><a href="#">News</a></li>
+        <li><a href="#">Join</a></li>
+        <li><a href="#">Donate</a></li>
+        <li><a href="#">Contact</a></li>
+        <li><a href="#">Members</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main>
+    <div class="pad">
+      <p class="statusbar">
+        Network status: Normal operations<span class="sep">&middot;</span>No active activations<span class="sep">&middot;</span>15 DARTs reporting<span class="sep">&middot;</span><span class="when">Updated <span class="mono">21 Sep 2026 08:00 PDT</span></span>
+      </p>
+    </div>
+
+    <div class="pad board">
+      <div class="col-main">
+
+        <section class="panel">
+          <h2>Network at a glance</h2>
+          <table class="glance">
+            <tbody>
+              <tr><td class="fig">15</td><td>DARTs at general aviation airports</td></tr>
+              <tr><td class="fig">240</td><td>Members</td></tr>
+              <tr><td class="fig">96</td><td>Aircraft on the roster</td></tr>
+              <tr><td class="fig">11</td><td>Counties with a signed agreement</td></tr>
+              <tr><td class="fig">3</td><td>Activations in the past 12 months</td></tr>
+              <tr><td class="fig">6</td><td>Exercises in the past 12 months</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="panel">
+          <h2>DARTs</h2>
+          <div class="scroller">
+            <table class="darts">
+              <thead>
+                <tr>
+                  <th scope="col">Name</th>
+                  <th scope="col">Airport</th>
+                  <th scope="col">City</th>
+                  <th scope="col">Region</th>
+                  <th scope="col">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="group-start"><td>Angwin</td><td class="id">2O3</td><td>Angwin</td><td>North Bay</td><td class="st"><span>Ready</span></td></tr>
+                <tr><td>Napa</td><td class="id">APC</td><td>Napa</td><td>North Bay</td><td class="st"><span>Ready</span></td></tr>
+                <tr><td>Santa Rosa</td><td class="id">STS</td><td>Santa Rosa</td><td>North Bay</td><td class="st"><span>Ready</span></td></tr>
+                <tr class="group-start"><td>Contra Costa</td><td class="id">CCR</td><td>Concord</td><td>East Bay</td><td class="st"><span>Ready</span></td></tr>
+                <tr><td>Hayward</td><td class="id">HWD</td><td>Hayward</td><td>East Bay</td><td class="st"><span>Ready</span></td></tr>
+                <tr><td>Livermore</td><td class="id">LVK</td><td>Livermore</td><td>East Bay</td><td class="st"><span>Ready</span></td></tr>
+                <tr class="group-start"><td>Half Moon Bay</td><td class="id">HAF</td><td>Half Moon Bay</td><td>Peninsula</td><td class="st"><span>Ready</span></td></tr>
+                <tr><td>Palo Alto</td><td class="id">PAO</td><td>Palo Alto</td><td>Peninsula</td><td class="st"><span>Ready</span></td></tr>
+                <tr><td>San Carlos</td><td class="id">SQL</td><td>San Carlos</td><td>Peninsula</td><td class="st"><span>Ready</span></td></tr>
+                <tr class="group-start"><td>Reid-Hillview</td><td class="id">RHV</td><td>San Jose</td><td>South Bay</td><td class="st"><span>Ready</span></td></tr>
+                <tr><td>San Martin</td><td class="id">E16</td><td>San Martin</td><td>South Bay</td><td class="st"><span>Ready</span></td></tr>
+                <tr class="group-start"><td>Central Coast</td><td class="id">SBP</td><td>San Luis Obispo</td><td>Central Coast</td><td class="st"><span>Ready</span></td></tr>
+                <tr><td>Monterey</td><td class="id">MRY</td><td>Monterey</td><td>Central Coast</td><td class="st"><span>Ready</span></td></tr>
+                <tr><td>Watsonville</td><td class="id">WVI</td><td>Watsonville</td><td>Central Coast</td><td class="st"><span>Ready</span></td></tr>
+                <tr class="group-start"><td>Santa Monica</td><td class="id">SMO</td><td>Santa Monica</td><td>Southern California</td><td class="st"><span>Ready</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="panel-note">Each DART is a group of pilots, aircraft owners and ground volunteers based at one general aviation airport and led by a DART coordinator. <a href="#">Find your DART</a></p>
+        </section>
+
+        <section class="panel">
+          <h2>Scheduled</h2>
+          <table class="sched">
+            <thead>
+              <tr>
+                <th scope="col">Date</th>
+                <th scope="col">Activity</th>
+                <th scope="col">Location</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td class="id">Sat 18 Oct 2026</td><td>Ground crew workshop</td><td>Hayward Executive Airport, 9 am to 1 pm</td></tr>
+              <tr><td class="id">Sat 08 Nov 2026</td><td>Statewide radio and communications drill</td><td>All DARTs</td></tr>
+              <tr><td class="id">Sat 06 Dec 2026</td><td>DART coordinators' meeting</td><td>Palo Alto, 10 am</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+      </div>
+
+      <div class="col-side">
+
+        <section class="panel">
+          <h2>Coverage</h2>
+          <div class="mapbox">
+            <img src="../shared/california.svg" alt="Map of California with the fifteen DART airports marked">
+            <p class="mapcap">DART airports</p>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>Recent flights</h2>
+          <table class="log">
+            <thead>
+              <tr>
+                <th scope="col">Date</th>
+                <th scope="col">From</th>
+                <th scope="col">To</th>
+                <th scope="col">Load</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>14 Apr</td><td>LVK</td><td>SBP</td><td class="load">700 lb supplies</td></tr>
+              <tr><td>14 Apr</td><td>HWD</td><td>SBP</td><td class="load">620 lb supplies</td></tr>
+              <tr><td>14 Apr</td><td>CCR</td><td>SBP</td><td class="load">540 lb supplies</td></tr>
+              <tr><td>02 Mar</td><td>WVI</td><td>MRY</td><td class="load">180 lb test kits</td></tr>
+              <tr><td>02 Mar</td><td>RHV</td><td>MRY</td><td class="load">2 health staff</td></tr>
+            </tbody>
+          </table>
+          <p class="panel-note">Every leg is logged for the agency's records and for CalDART's after-action review. <a href="#">News and after-action reports</a></p>
+        </section>
+
+        <section class="panel callbox">
+          <h2>Request air support</h2>
+          <div class="inner">
+            <p class="tel">(555) 010-2201</p>
+            <p class="hours">Duty coordinator, any hour</p>
+            <p>For county OES, hospitals, tribal governments and mutual-aid partners. Give the duty coordinator:</p>
+            <ul>
+              <li>the agency name</li>
+              <li>the mission: what, where and by when</li>
+              <li>the departure and arrival airports</li>
+              <li>the deadline</li>
+            </ul>
+          </div>
+        </section>
+
+      </div>
+    </div>
+
+    <section class="about">
+      <h2>About CalDART</h2>
+      <div class="cols">
+        <p>CalDART organizes pilots, aircraft owners and ground crews into local teams at general aviation airports around the state. When an earthquake, wildfire or flood closes the roads, those teams fly relief supplies, responders and information to the communities that need them.</p>
+        <p>CalDART gives California's emergency managers a trained, insured and practiced volunteer air transportation capability. Teams are organized, exercised and kept current all year, so they are ready on the day an agency calls.</p>
+      </div>
+      <p class="btnrow">
+        <a class="btn" href="#">Join CalDART</a>
+        <a class="btn alt" href="#">Donate</a>
+      </p>
+    </section>
+  </main>
+
+  <footer>
+    <p><b>The California DART Network</b> &mdash; P.O. Box 1149, Livermore, CA 94551 &mdash; <span class="mono">(555) 010-2200</span> &mdash; info@caldart.example &mdash; EIN 00-0000000</p>
+    <p>Already a member? <a href="#">Sign in to the member portal</a> to update your profile, check your medical and insurance dates, or renew.</p>
+    <p class="fine">Example content for a prototype. Volunteers fly at their own expense and at their own discretion; CalDART does not self-deploy.</p>
+  </footer>
+
+</div>
+</body>
+</html>

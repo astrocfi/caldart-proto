@@ -232,12 +232,14 @@ These are every option ``install.sh`` accepts (``sudo deploy/install.sh
    Create the first administrator with this address (or give an existing
    account with that address the administrator's roles).
 ``--seed-demo``
-   Load the demo accounts: the same data ``make seed`` loads in development,
-   sharing the password this repository's ``README.rst`` documents.  A server
-   seeded with them is a demonstration server, never one holding real member
-   data.
+   Load the demo accounts and their records (members, DARTs, aircraft,
+   payments), sharing the password this repository's ``README.rst`` documents.
+   A server seeded with them is a demonstration server, never one holding real
+   member data.  Independent of ``--seed-content``.
 ``--seed-content``
-   Load the example pages into the public site.
+   Load the example website: the public pages and the members-only area, with
+   no accounts.  Give it alone to see the website by itself.  Independent of
+   ``--seed-demo``.
 ``--dry-run``
    Print every state-changing command instead of running it.
 ``--help``
@@ -684,10 +686,14 @@ status is the command's::
 Never source the environment file into a shell to run ``manage.py`` by hand: a
 shell splits a value with spaces in it, such as ``DEFAULT_FROM_EMAIL``.
 
-Run or re-run the seeds on an installed server the same way::
+The three seeds ``make seed`` runs in development are three separate steps on a
+server, each runnable on its own: the roles (``seed_roles``, which every install
+runs), the example website (``seed_content``, ``--seed-content``), and the demo
+accounts (``seed_demo``, ``--seed-demo``).  Run or re-run either optional one on
+an installed server the same way::
 
-  sudo /opt/caldart/deploy/manage.sh seed_demo
-  sudo /opt/caldart/deploy/manage.sh seed_content
+  sudo /opt/caldart/deploy/manage.sh seed_content     # the website alone
+  sudo /opt/caldart/deploy/manage.sh seed_demo        # the demo accounts alone
 
 Both are idempotent: running either again updates the existing rows rather
 than duplicating them.  **Caution:** the demo accounts ``seed_demo`` creates
@@ -945,7 +951,9 @@ before a server sees it.  On a development machine with Docker::
   make rehearse-deploy REHEARSE_URL_PREFIX=/caldart-proto    # behind an existing site
   make rehearse-deploy REHEARSE_GUNICORN_PORT=8101           # gunicorn on another port
   make rehearse-deploy REHEARSE_DB_PORT=5433                 # Postgres on another port
-  make rehearse-deploy REHEARSE_SEED=1                       # with --seed-demo --seed-content
+  make rehearse-deploy REHEARSE_SEED=content                 # the example website alone
+  make rehearse-deploy REHEARSE_SEED=demo                    # the demo accounts alone
+  make rehearse-deploy REHEARSE_SEED=all                     # both
   make rehearse-deploy REHEARSE_KEEP=1                       # keep the container afterwards
 
 The target starts a privileged ``jrei/systemd-ubuntu:24.04`` container, in
@@ -975,9 +983,11 @@ environment file and the install record byte-identical), and ``uninstall.sh
    checks that the database container is published on it and that the
    install's own checks, which reach it there, pass.
 ``REHEARSE_SEED``
-   A switch: passes ``--seed-demo --seed-content`` to the install, then checks
-   that ``manage.sh health --json`` still passes and that the sign-in page
-   still answers.
+   ``content``, ``demo``, or ``all``: passes ``--seed-content``, ``--seed-demo``,
+   or both to the install.  With the website seeded it checks that a seeded
+   page answers, and that a website-only install holds no account but the
+   administrator's; with the demo accounts seeded it checks that ``manage.sh
+   health --json`` still passes and that the sign-in page still answers.
 ``REHEARSE_KEEP``
    A switch (``1``, ``yes``, or ``true``): keep the container and its volumes
    afterwards, and open a shell in it with ``docker exec -it
