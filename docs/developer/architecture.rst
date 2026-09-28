@@ -211,9 +211,10 @@ site's ``URL_PREFIX`` (:doc:`configuration`) when it has one.
 **The user guide.**  ``make guide`` builds ``docs/user/`` alone into
 ``docs/_build/guide``, and ``user_guide`` serves those files at ``/docs/`` to
 anyone signed in, each reader seeing only the pages their roles reach
-(:ref:`documentation-role-gated-pages`); a visitor who is not is sent to the portal's login page with
-the guide page as ``next``, and the login page hands them back to the guide
-with a full-page navigation, since the guide lives outside the SPA.  The
+(:ref:`documentation-role-gated-pages`); a visitor who is not is sent to the
+portal's login page with the guide page as ``next``, and the login page hands
+them back to the guide with a full-page navigation, since the guide lives
+outside the SPA.  The
 portal's top bar carries a **Help** link, shown whether or not anyone is
 signed in, that opens the guide page for the screen the visitor is on:
 ``help.ts`` maps every route pattern to a guide slug in ``HELP_PAGES``, in

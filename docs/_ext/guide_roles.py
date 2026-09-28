@@ -140,8 +140,14 @@ def page_roles(env: BuildEnvironment) -> dict[str, list[str]]:
 
 
 def write_roles(app: Sphinx, exception: Exception | None) -> None:
-    """Write ``roles.json`` into the output directory after a successful HTML build."""
+    """Write ``roles.json`` into the output directory after a successful HTML build.
+
+    The file is written to a temporary name beside it and renamed over it, so the site
+    reading it during a rebuild finds the old file or the new one, never half of one.
+    """
     if exception is not None or app.builder.format != "html":
         return
     target = Path(app.outdir) / ROLES_FILE
-    target.write_text(json.dumps(page_roles(app.env), indent=2) + "\n", encoding="utf-8")
+    partial = target.with_name(f".{ROLES_FILE}.partial")
+    partial.write_text(json.dumps(page_roles(app.env), indent=2) + "\n", encoding="utf-8")
+    partial.replace(target)

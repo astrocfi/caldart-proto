@@ -160,6 +160,9 @@ templates_path: list[str] = []
 # reader never sees an entry appear and then vanish.  The inline script runs in the
 # head, before the trees exist; the guide's ``script-src`` allows inline scripts.
 if tags.has("guide"):  # noqa: F821 - Sphinx injects ``tags``
+    # No ``_sources/`` copy of each page: the site serves the guide's files as they
+    # are, and a restricted page's text would otherwise be one address away.
+    html_copy_source = False
     html_css_files.append("guide-roles.css")
     html_js_files += [
         (None, {"body": "document.documentElement.classList.add('guide-roles-pending');"}),

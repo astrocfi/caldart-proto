@@ -163,7 +163,14 @@ def _load_roles(roles_file: Path, modified: float) -> dict[str, tuple[str, ...]]
     """Read ``roles.json``: each restricted docname and the role slugs that may read it.
 
     ``modified`` is the file's modification time and part of the cache key, so a
-    rebuilt guide is read again on its first request and never before.
+    rebuilt guide is read again on its first request and never before.  A file that is
+    not valid JSON is logged as an error and read as restricting nothing, so every page
+    is served, as for a guide built without the roles extension, rather than every
+    request failing.
     """
-    raw: dict[str, list[str]] = json.loads(roles_file.read_text(encoding="utf-8"))
+    try:
+        raw: dict[str, list[str]] = json.loads(roles_file.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        log.exception("The user guide's %s is not valid JSON; serving every page", roles_file)
+        return {}
     return {docname: tuple(slugs) for docname, slugs in raw.items()}

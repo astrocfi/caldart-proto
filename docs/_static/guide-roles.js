@@ -8,7 +8,9 @@
  * own roles from the portal's /api/v1/auth/me.  It then removes every sidebar
  * entry, table-of-contents entry, and next or previous link that leads to a page
  * the reader's roles do not reach, and any caption or table whose entries are all
- * gone.  A system administrator sees everything.
+ * gone.  On the search page it does the same to every result, as Sphinx adds them,
+ * and makes the closing count say how many are left.  A system administrator sees
+ * everything.
  *
  * An inline script in the page head marks <html> "guide-roles-pending", and
  * guide-roles.css keeps the trees hidden while it is there; this script clears the
@@ -31,6 +33,11 @@
   /** The lists this script trims, and the next and previous links under each page. */
   const TREES = '.sidebar-tree, .toctree-wrapper';
   const RELATED = '.related-pages a';
+  /** Sphinx's search page: the results it lists, and the sentence that counts them. */
+  const SEARCH_RESULTS = 'search-results';
+  const SEARCH_ITEMS = 'ul.search > li > a:first-child';
+  const SEARCH_SUMMARY = 'p.search-summary';
+  const SEARCH_FINISHED = 'Search finished';
 
   const guideRoot = new URL(
     document.documentElement.dataset.content_root ?? './',
@@ -121,6 +128,45 @@
     removeEmptyLists();
   }
 
+  /** The sentence Sphinx closes a search with, for ``count`` results. */
+  function searchSummary(count) {
+    if (count === 0) {
+      return 'Your search did not match any page you can open.';
+    }
+    const pages = count === 1 ? 'one page' : `${count} pages`;
+    return `${SEARCH_FINISHED}, found ${pages} matching the search query.`;
+  }
+
+  /**
+   * Take out of the search results, now and as Sphinx adds more, every page the
+   * reader's roles do not reach, and recount them once Sphinx has said it is done.
+   */
+  function trimSearchResults(pageRoles, held) {
+    const results = document.getElementById(SEARCH_RESULTS);
+    if (results === null) {
+      return;
+    }
+    let removed = 0;
+    const trim = () => {
+      for (const anchor of results.querySelectorAll(SEARCH_ITEMS)) {
+        if (isHidden(anchor, pageRoles, held)) {
+          anchor.parentElement.remove();
+          removed += 1;
+        }
+      }
+      const summary = results.querySelector(SEARCH_SUMMARY);
+      if (removed === 0 || summary === null || !summary.textContent.startsWith(SEARCH_FINISHED)) {
+        return;
+      }
+      const recount = searchSummary(results.querySelectorAll(SEARCH_ITEMS).length);
+      if (summary.textContent !== recount) {
+        summary.textContent = recount;
+      }
+    };
+    trim();
+    new MutationObserver(trim).observe(results, { childList: true, subtree: true });
+  }
+
   /** Read the page roles and the reader's roles, trim the page, and show the trees. */
   async function run() {
     try {
@@ -129,6 +175,7 @@
         readJson(new URL(ME_PATH, guideRoot)),
       ]);
       prune(pageRoles, me.roles ?? []);
+      trimSearchResults(pageRoles, me.roles ?? []);
     } catch (error) {
       console.warn("The guide could not read the reader's roles; every entry stays.", error);
     } finally {
