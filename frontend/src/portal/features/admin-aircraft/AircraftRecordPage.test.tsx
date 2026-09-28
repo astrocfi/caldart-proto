@@ -327,6 +327,29 @@ describe('AircraftRecordPage', () => {
     );
   });
 
+  it('puts the Verification card above Details', async () => {
+    server.use(http.get(`${API}/aircraft/1`, () => HttpResponse.json(makeDetail())));
+    renderRecord();
+
+    const verification = await screen.findByRole('heading', { name: 'Verification' });
+    const details = screen.getByRole('heading', { name: 'Details' });
+    expect(verification.compareDocumentPosition(details)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+
+  it('keeps the mark and Verify out of the page header', async () => {
+    server.use(
+      signedInAs(makeUser({ roles: ['member', 'account_admin'] })),
+      http.get(`${API}/aircraft/1`, () => HttpResponse.json(makeDetail())),
+    );
+    renderRecord();
+
+    await screen.findByRole('button', { name: 'Verify' });
+    const header = screen.getByRole('heading', { level: 1 }).closest('header');
+    if (header === null) throw new Error('the page title is not inside a header');
+    expect(within(header).queryByRole('button', { name: 'Verify' })).not.toBeInTheDocument();
+    expect(within(header).queryByText(/^Verified\b/)).not.toBeInTheDocument();
+  });
+
   it('verifies the insurance from the Verification card for an administrator', async () => {
     const user = userEvent.setup();
     const calls = emptyVerificationCalls();

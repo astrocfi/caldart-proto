@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, JSX, ReactNode } from 'react';
+import type { ComponentPropsWithRef, JSX, ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'quiet' | 'danger';
@@ -16,7 +16,7 @@ function classNames(variant: ButtonVariant, small: boolean, extra?: string): str
     .join(' ');
 }
 
-export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+export interface ButtonProps extends ComponentPropsWithRef<'button'> {
   variant?: ButtonVariant;
   small?: boolean;
   children: ReactNode;

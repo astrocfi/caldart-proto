@@ -248,6 +248,47 @@ describe('DeleteButton confirmation', () => {
     expect(handleDelete).not.toHaveBeenCalled();
   });
 
+  it('moves the focus to Keep when the confirmation opens', async () => {
+    render(<DeleteButton label="Remove N12345" onDelete={() => {}} />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Remove N12345' }));
+
+    expect(screen.getByRole('button', { name: 'Keep' })).toHaveFocus();
+  });
+
+  it('hands the focus back to the trashcan on Keep', async () => {
+    render(<DeleteButton label="Remove N12345" onDelete={() => {}} />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Remove N12345' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Keep' }));
+
+    expect(screen.getByRole('button', { name: 'Remove N12345' })).toHaveFocus();
+  });
+
+  it('hands the focus back to the trashcan on Escape', async () => {
+    render(<DeleteButton label="Remove N12345" onDelete={() => {}} />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Remove N12345' }));
+    await userEvent.keyboard('{Escape}');
+
+    expect(screen.getByRole('button', { name: 'Remove N12345' })).toHaveFocus();
+  });
+
+  it('keeps an Escape pressed on the confirmation from reaching the page around it', async () => {
+    const handlePageKey = vi.fn();
+    document.addEventListener('keydown', handlePageKey);
+    try {
+      render(<DeleteButton label="Remove N12345" onDelete={() => {}} />);
+
+      await userEvent.click(screen.getByRole('button', { name: 'Remove N12345' }));
+      await userEvent.keyboard('{Escape}');
+
+      expect(handlePageKey).not.toHaveBeenCalled();
+    } finally {
+      document.removeEventListener('keydown', handlePageKey);
+    }
+  });
+
   it('restores the trashcan on a press outside it, without calling onDelete', async () => {
     const handleDelete = vi.fn();
     render(

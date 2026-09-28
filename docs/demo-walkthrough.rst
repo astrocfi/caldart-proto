@@ -468,9 +468,8 @@ Troubleshooting
   value — the same list the server uses for ``profile_complete``.  The API
   itself only insists on phone, so a client that is not the portal may store a
   partial profile.
-- *The "finish your profile" nudge will not go away.*  It reads
-  ``profile_complete``; open **Profile** and fill in whichever of those fields
-  is still blank.
+- *Signing in keeps opening the About you step.*  The onboarding guard reads
+  ``profile_complete``; fill in whichever of those fields is still blank.
 - *An aircraft will not attach.*  Attaching is idempotent, so a second attempt
   at the same airplane is silently fine; a genuinely unknown id is a 404.
 - *You cannot see a members-only page you expect to see.*  Membership status

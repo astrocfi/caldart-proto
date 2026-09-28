@@ -3,8 +3,8 @@
  * caller's summary of what happened, and the table of every action behind
  * it — one row per email sent or charge taken, so "who did this actually
  * reach?" never needs a shell.  The renewals, reminders and scheduled-reports
- * panels of `/portal/system` use it, and so does the DART rosters card of
- * `/admin/reports`.
+ * panels of the Scheduled page (`/portal/system/scheduled`) use it, and so does
+ * the DART rosters card of `/admin/reports`.
  */
 import type { JSX, ReactNode } from 'react';
 

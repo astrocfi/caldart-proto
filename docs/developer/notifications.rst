@@ -148,11 +148,13 @@ message is a ``Message`` with four parts:
    for a member or friend, ``/portal/admin/users/<id>`` for an account event,
    ``/portal/admin/payments/<id>`` for a payment, or
    ``/portal/admin/aircraft/<id>`` for an aircraft.  A removed aircraft has
-   none.
+   none, and neither has an automatic payment turned off because its member's
+   account was deleted.
 
 Names are the account's display name, money is printed in dollars from integer
-cents, and a date is ``MM/DD/YYYY`` (``caldart.dates``).  The footer says why the address hears of
-it: subscribed to that notification, or listed to receive the DART's roster.
+cents, and a date is ``MM/DD/YYYY`` (``caldart.dates``).  The footer says why
+the address hears of it: subscribed to that notification, or listed to receive
+the DART's roster.
 
 
 The data

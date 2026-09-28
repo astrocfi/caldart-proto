@@ -232,8 +232,11 @@ Field                        Rule
 ``phone_extension``
 ``address_line1``,           Stored in title case, every word, through
 ``address_line2``,           ``caldart.casing.title_case_words``: a word carrying a digit
-``city``                     is left exactly as typed.  Blank is fine on the two address
-                             lines; ``city`` is required by :ref:`profile-completeness`.
+``city``                     is left exactly as typed.  After an apostrophe the next
+                             part capitalizes only when one letter precedes it
+                             (``O'Brien``, but ``King's``).  Blank is fine on the two
+                             address lines; ``city`` is required by
+                             :ref:`profile-completeness`.
 ``home_airport_identifier``  Three letters or digits if given, upper-cased on the
                              way in.  The four-letter ICAO spelling is accepted
                              and trimmed, so ``KCRQ`` is stored as ``CRQ``; a
@@ -297,7 +300,10 @@ One list serves every reader of it:
 - ``profile_complete`` on the user payload (:doc:`api-auth`) is
   ``MemberProfile.is_complete`` over those six fields.  It gates the portal:
   while it is false, every signed-in screen sends the reader to the join
-  wizard's profile step, and the wizard's step order keys off it too.
+  wizard's profile step, and the wizard's step order keys off it too.  The
+  pay step that follows holds only a ``member`` who has never held a paid
+  term (``membership.status`` is ``friend`` and ``friend_on`` is null); a
+  member whose term has expired has joined, and renews from the portal.
 - The portal's profile form requires exactly the same six
   (``REQUIRED_PROFILE_FIELDS`` in
   ``frontend/src/portal/features/profile/form.ts``), so a profile the form

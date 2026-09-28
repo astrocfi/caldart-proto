@@ -1810,7 +1810,9 @@ administrators see.  Deleting the account deletes the profile.
 one to the number and breaks the format every other screen relies on.  The same
 ``save()`` stores ``address_line1``, ``address_line2``, and ``city``
 (``TITLE_CASE_FIELDS``) in title case, every word, through
-``caldart.casing.title_case_words``.  The aviation fields follow, then the seven
+``caldart.casing.title_case_words``, which leaves a word with a digit as typed
+and capitalizes after an apostrophe only past a lone letter (``O'Brien``, but
+``King's``).  The aviation fields follow, then the seven
 ``vol_*`` volunteer interests, then the verification columns, then
 ``member_since`` and ``profile_updated_at``.  ``notes`` and ``how_heard`` are
 administrator-only: neither is in the member-facing serializer, and both appear
@@ -1868,8 +1870,8 @@ that the message a person reads can be specific:
     ``postal_code``, and ``pilot_certificate_type``.  ``state`` defaults to
     ``CA`` and so never blocks the check on its own.  This is the single
     definition of "complete": the accounts ``UserSerializer`` delegates
-    to it for the ``profile_complete`` flag that drives the dashboard nudge and
-    the join wizard's step gating, and the portal form's
+    to it for the ``profile_complete`` flag that drives the join wizard's
+    step gating and the portal's onboarding guard, and the portal form's
     ``REQUIRED_PROFILE_FIELDS`` (``frontend/src/portal/features/profile/form.ts``)
     mirrors the same list, so a profile the form accepts is a profile the
     server calls complete.  See :ref:`profile-completeness`.
@@ -2885,11 +2887,15 @@ the contribution, or both, for the provider's own record of the charge.
   deactivated ``donor`` account with no password, no role, and a blank
   ``MemberProfile``, whose ``first_name`` is ``Deleted member``, whose
   ``last_name`` is the deleted account's id (so ``display_name`` reads
-  ``Deleted member 5``), and whose ``email`` is ``deleted-<id>@deleted.invalid``.
+  ``Deleted member 5``), and whose ``email`` is ``deleted-<id>@deleted.invalid``,
+  or ``deleted-<id>-<8 hex digits>@deleted.invalid`` when another account
+  already holds that address, so taking it first cannot make a delete fail.
   Every payment of the member, whatever its status, moves to it in the same
   transaction with its ``donor_fields`` cleared; refunds stay on their
   payments.  A member who never paid gets no tombstone.  ``is_tombstone`` names
-  such an account (deactivated, on the ``deleted.invalid`` domain), and
+  such an account (a deactivated ``donor`` whose ``first_name`` is ``Deleted
+  member`` and whose address is on the ``deleted.invalid`` domain; the address
+  alone does not make one), and
   ``mark_succeeded`` settles a payment it holds without fulfilling it: no giver's
   details, no term, no event, and no receipt.
 - The two ways the Wagtail admin deletes an account, the delete view at
@@ -2900,7 +2906,11 @@ the contribution, or both, for the provider's own record of the charge.
   tombstone for each account in the batch that paid.  Each writes the
   ``member.delete`` audit line: the bulk action with the handover, inside the
   transaction that deletes the batch, and the delete view from the
-  ``after_delete_user`` hook, once the account is gone.
+  ``after_delete_user`` hook, once the account is gone.  The delete view's
+  handover commits on its own, before Wagtail's delete runs in a transaction of
+  its own: a delete that then fails leaves the payments on the tombstone and the
+  account in place, with no ``member.delete`` line.  Deleting the account again
+  finishes the job, and finds no payments left to move.
 - ``partially_refunded`` and ``refunded`` say how much of the payment has been
   given back; the ``Refund`` rows beneath it carry the amounts, and
   ``refunded_cents`` adds the succeeded ones up.  The refund service writes

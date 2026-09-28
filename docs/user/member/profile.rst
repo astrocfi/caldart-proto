@@ -38,7 +38,8 @@ Contact
 * **Address**, **Address line 2**, and **City** are stored in title case, every
   word, however you type them: ``123 main st`` reads back **123 Main St** and
   ``palo alto`` reads back **Palo Alto**. A word that carries a digit, such as a
-  unit number, is left exactly as you typed it.
+  unit number, is left exactly as you typed it. After an apostrophe, a name keeps
+  its capital and a possessive stays lower: **O'Brien Ln** and **King's Rd**.
 
 Aviation
 ~~~~~~~~
@@ -177,8 +178,9 @@ deactivate their own account.*
 If something looks wrong
 ========================
 
-If the dashboard still asks you to finish your profile, open the form: it marks each
-required field that is still empty. If an account administrator set your account up
-for you, some of those were never asked for. If a detail you cannot change is wrong,
+If signing in opens the **About you** step of :doc:`join` instead of your dashboard,
+your profile is missing something: the step marks each required field that is still
+empty. If an account administrator set your account up for you, some of those were
+never asked for. If a detail you cannot change is wrong,
 such as your name or a membership date, contact the office; an account
 administrator can correct it.

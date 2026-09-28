@@ -1,6 +1,6 @@
 """The email log as a CSV and a PDF.
 
-The ``emails`` report is the log the system screen pages through, as a file: the
+The ``emails`` report is the log the Sent Emails page pages through, as a file: the
 same filters (:class:`~apps.mail.filters.EmailLogFilterSet`), the same order, newest
 first, and one column registry that the column chooser and both formats share.  The
 house style lives in ``caldart.reports``; this module only decides what a row prints

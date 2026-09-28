@@ -248,12 +248,12 @@ def test_the_roster_lists_friends_and_leaves_out_deactivated_accounts_and_donors
 
 
 def test_the_subject_names_the_dart_and_the_day(mailoutbox: list[EmailMessage]) -> None:
-    """The subject reads ``<DART name> roster (<Month D, YYYY>)``."""
+    """The subject reads ``<DART name> roster (<MM/DD/YYYY>)``."""
     ticked_dart()
 
     run_scheduled_reports(today=TODAY)
 
-    assert mailoutbox[0].subject == "Bay Area DART roster (October 1, 2026)"
+    assert mailoutbox[0].subject == "Bay Area DART roster (10/01/2026)"
 
 
 def test_the_body_matches_its_recorded_text(

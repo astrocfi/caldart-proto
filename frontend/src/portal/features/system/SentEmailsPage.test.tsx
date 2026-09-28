@@ -24,9 +24,14 @@ describe('SentEmailsPage', () => {
     renderWithProviders(<SentEmailsPage />);
 
     expect(await screen.findByText('No emails sent yet')).toBeInTheDocument();
-    const titles = screen
-      .getAllByRole('heading', { level: 2 })
-      .map((heading) => heading.textContent);
-    expect(titles).toEqual(['Email log']);
+    expect(document.querySelectorAll('section.card')).toHaveLength(1);
+  });
+
+  it('carries no second heading under the page title', async () => {
+    server.use(...systemPageHandlers());
+    renderWithProviders(<SentEmailsPage />);
+
+    expect(await screen.findByText('No emails sent yet')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { level: 2 })).not.toBeInTheDocument();
   });
 });

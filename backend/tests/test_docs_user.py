@@ -437,6 +437,33 @@ def test_the_extension_writes_each_restricted_page_and_its_roles(tmp_path: Path)
     }
 
 
+def test_the_extension_moves_roles_json_into_place_whole(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """``roles.json`` is written beside itself and renamed over, never written in place.
+
+    A request reading it mid-build finds the old file or the new one, never half.
+    """
+    renamed: list[str] = []
+    original_replace = Path.replace
+
+    def record_replace(self: Path, target: str | Path) -> Path:
+        renamed.append(Path(target).name)
+        return original_replace(self, target)
+
+    monkeypatch.setattr(Path, "replace", record_replace)
+    source, out = _write_project(tmp_path, SAMPLE_GUIDE)
+    assert build_main(["-q", "-W", "-b", "dirhtml", str(source), str(out)]) == 0
+    assert "roles.json" in renamed
+
+
+def test_the_extension_leaves_no_temporary_file_behind(tmp_path: Path) -> None:
+    """Only ``roles.json`` is left in the output directory, no half-written copy."""
+    source, out = _write_project(tmp_path, SAMPLE_GUIDE)
+    assert build_main(["-q", "-W", "-b", "dirhtml", str(source), str(out)]) == 0
+    assert sorted(path.name for path in out.glob("roles*")) == ["roles.json"]
+
+
 def test_an_index_with_an_open_page_under_it_is_open(tmp_path: Path) -> None:
     """A group index that lists any page without roles is every reader's."""
     pages = {

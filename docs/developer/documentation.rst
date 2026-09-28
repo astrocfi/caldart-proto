@@ -4,10 +4,10 @@ Documentation
 
 How the documentation under ``docs/`` is built, published, and kept in step
 with the code: the two builds, the static assets they ship, the pages only some
-roles may read, the rules every diagram follows, the voice of each guide, and the tests that fail when a
-page and the code disagree.  The documentation is the specification, so a
-change to the software and the change to its page land in the same pull
-request.
+roles may read, the rules every diagram follows, the voice of each guide, and
+the tests that fail when a page and the code disagree.  The documentation is
+the specification, so a change to the software and the change to its page land
+in the same pull request.
 
 
 Where the pages live
@@ -176,7 +176,9 @@ when any page it lists is.
 **The JSON.**  At the end of a successful HTML build the extension writes
 ``roles.json`` into the output directory, beside the front page: each
 restricted page's docname and its slugs, in role order, and nothing for an
-open page::
+open page.  It writes the file under a temporary name beside it and renames it
+into place, so the site reading it during a rebuild finds the old file or the
+new one, never half of one::
 
   {
     "admin/health-database": ["system_admin"],
@@ -192,8 +194,12 @@ anyone else is redirected to the guide's front page.  The page is named by the
 file the request resolves to, so ``admin/members/``,
 ``admin/members/index.html``, and a path that reaches it through ``..`` are
 judged alike.  ``roles.json`` itself and the static assets are served to every
-reader, and a guide built without ``roles.json`` serves every page.  This is
-the enforcement; the script below only tidies the navigation.
+reader, and a guide built without ``roles.json`` serves every page.  A
+``roles.json`` that is not valid JSON is logged as an error and serves every
+page too, rather than failing every request.  The guide build sets
+``html_copy_source`` off, so no page's reStructuredText is published under
+``_sources/``.  This is the enforcement; the script below only tidies the
+navigation.
 
 **The script.**  ``docs/_static/guide-roles.js``, deferred, reads
 ``roles.json`` and the reader's roles from ``/api/v1/auth/me``, both beside
@@ -206,10 +212,15 @@ caption or table whose entries are all gone.  An inline script in the page's
 head marks ``<html>`` with ``guide-roles-pending`` before the page draws, and
 ``guide-roles.css`` keeps the trees hidden while the mark is there; the script
 clears it once both reads have settled, and removes nothing when either
-fails.  Both reads are same-origin, which the site's ``connect-src`` of
-``'self'`` allows, and the guide's ``script-src`` already allows its own
-inline scripts (:ref:`configuration-csp`).  A link in a page's prose is left
-alone: following one to a restricted page lands on the front page.
+fails.  On the search page it trims ``#search-results`` the same way, as
+Sphinx adds each result, and rewrites the closing count to the results left;
+the results stay hidden while the mark is there.  The search index itself,
+``searchindex.js``, still names every page's title and words, so a reader can
+learn that a restricted page exists, though not open it.  Both reads are
+same-origin, which the site's ``connect-src`` of ``'self'`` allows, and the
+guide's ``script-src`` already allows its own inline scripts
+(:ref:`configuration-csp`).  A link in a page's prose is left alone: following
+one to a restricted page lands on the front page.
 
 To restrict a new page, give it the field and run ``make guide``; to change
 who reads a screen, change its menu entry and its page's field together.

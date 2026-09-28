@@ -7,7 +7,7 @@
  * keyboard focus, so a list of rows reads as a list rather than as a wall of
  * buttons.  It is never a `Button`: the two look nothing alike on purpose.
  */
-import type { ButtonHTMLAttributes, JSX } from 'react';
+import type { ComponentPropsWithRef, JSX } from 'react';
 
 import { ArrowDownIcon, ArrowUpIcon, TrashcanIcon } from './icons';
 import type { IconProps } from './icons';
@@ -21,7 +21,7 @@ const ICONS: Record<IconName, (props: IconProps) => JSX.Element> = {
   'arrow-down': ArrowDownIcon,
 };
 
-export interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+export interface IconButtonProps extends ComponentPropsWithRef<'button'> {
   /** Which icon to draw. */
   icon: IconName;
   /** The accessible name, e.g. "Remove N12345" or "Move person 2 up". */

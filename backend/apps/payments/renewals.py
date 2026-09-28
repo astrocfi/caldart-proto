@@ -718,7 +718,7 @@ def save_method(
 
 
 #: How an automatic payment was turned off, as the ``auto_renewal_off`` event names it.
-type OffHow = Literal["member", "administrator", "lapsed", "deactivated"]
+type OffHow = Literal["member", "administrator", "lapsed", "deactivated", "deleted"]
 
 
 class _CancelReason(TypedDict, total=False):
@@ -748,8 +748,9 @@ def cancel_mandate(
 
     Canceling a mandate that was active raises the ``auto_renewal_off`` event with
     the mandate and ``how``: the caller's word when given (``deactivated`` when the
-    member left), otherwise ``member`` when ``actor`` is the mandate's own member and
-    ``administrator`` for anybody else.  A paused mandate was off already, and
+    member left, ``deleted`` when their account is being deleted), otherwise
+    ``member`` when ``actor`` is the mandate's own member and ``administrator`` for
+    anybody else.  A paused mandate was off already, and
     raised its event when it paused, so canceling it raises nothing.
     """
     if mandate.status == MandateStatus.CANCELED:

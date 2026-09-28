@@ -255,8 +255,8 @@ const REQUIRED_MESSAGES: Record<(typeof REQUIRED_PROFILE_FIELDS)[number], string
 /**
  * Inline validation.
  *
- * The required fields are exactly what makes a profile "complete" for the
- * dashboard nudge and the join wizard; the rest of the rules are the server's,
+ * The required fields are exactly what makes a profile "complete" for the join
+ * wizard and the onboarding guard; the rest of the rules are the server's,
  * checked here so the member sees them without a round trip.
  */
 export function validateProfileForm(values: ProfileFormValues): ProfileFormErrors {

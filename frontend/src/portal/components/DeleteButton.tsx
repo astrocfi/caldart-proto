@@ -15,7 +15,7 @@
  * The trashcan is drawn inline in `currentColor`, so it takes the variant's color
  * and the surrounding font size without an icon library.
  */
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { FocusEvent, JSX, ReactNode } from 'react';
 
 import { Button } from './Button';
@@ -33,7 +33,7 @@ const DEFAULT_CONFIRM_LABEL = 'Delete';
 /** What the confirmation's second button always reads. */
 const KEEP_LABEL = 'Keep';
 
-interface DeleteButtonBaseProps extends Omit<ButtonProps, 'children'> {
+interface DeleteButtonBaseProps extends Omit<ButtonProps, 'children' | 'ref'> {
   /** The accessible name, e.g. "Remove N12345" or "Delete this DART". */
   label: string;
   /**
@@ -85,7 +85,10 @@ export type DeleteButtonProps = WordedDeleteButtonProps | IconDeleteButtonProps;
  * `role="group"` pair named by `label`: a small danger button reading
  * `confirmLabel` and a plain **Keep**. Only the danger button calls `onDelete`;
  * pressing **Keep**, pressing Escape, clicking outside the pair, or moving the
- * focus off it all restore the trashcan without calling anything. The pair
+ * focus off it all restore the trashcan without calling anything. The focus
+ * moves to **Keep** when the pair opens, so a stray second Enter keeps the thing,
+ * and returns to the trashcan after **Keep** or Escape. An Escape pressed on the
+ * pair stops there, so a panel or dialog the control sits in stays open. The pair
  * disables both of its buttons while `onDelete`'s promise is in flight, and
  * while the caller's own `disabled` is true. Every other `Button` prop --
  * `type`, `aria-*`, a caller's own `onClick` used when `onDelete` is left out --
@@ -108,9 +111,44 @@ export function DeleteButton(props: DeleteButtonProps): JSX.Element {
   const [isConfirming, setIsConfirming] = useState(false);
   const [isPending, setIsPending] = useState(false);
   const containerRef = useRef<HTMLSpanElement>(null);
+  const keepRef = useRef<HTMLButtonElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  // Set by Keep and Escape, the two ways out that leave the reader where they were;
+  // a click elsewhere or a tab away has already put the focus somewhere of its own.
+  const shouldRefocusTriggerRef = useRef(false);
 
-  const handleKeep = useCallback((): void => setIsConfirming(false), []);
-  useClickOutside(containerRef, handleKeep, isConfirming);
+  const handleDismiss = useCallback((): void => setIsConfirming(false), []);
+  const handleKeep = useCallback((): void => {
+    shouldRefocusTriggerRef.current = true;
+    setIsConfirming(false);
+  }, []);
+  useClickOutside(containerRef, handleDismiss, isConfirming);
+
+  useEffect(() => {
+    if (isConfirming) {
+      keepRef.current?.focus();
+      return undefined;
+    }
+    if (shouldRefocusTriggerRef.current) {
+      shouldRefocusTriggerRef.current = false;
+      triggerRef.current?.focus();
+    }
+    return undefined;
+  }, [isConfirming]);
+
+  // A native listener on the pair, so the key is stopped before it reaches the
+  // document listeners of a panel around the control (which would close too).
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!isConfirming || container === null) return undefined;
+    const handleKeyDown = (event: KeyboardEvent): void => {
+      if (event.key !== 'Escape') return;
+      event.stopPropagation();
+      handleKeep();
+    };
+    container.addEventListener('keydown', handleKeyDown);
+    return () => container.removeEventListener('keydown', handleKeyDown);
+  }, [isConfirming, handleKeep]);
 
   // Tabbing away is not a click, so `useClickOutside`'s pointerdown listener
   // never sees it; a plain blur that lands outside the pair closes it the
@@ -118,7 +156,7 @@ export function DeleteButton(props: DeleteButtonProps): JSX.Element {
   const handleBlur = (event: FocusEvent<HTMLSpanElement>): void => {
     const next = event.relatedTarget;
     if (next instanceof Node && containerRef.current?.contains(next) === true) return;
-    handleKeep();
+    handleDismiss();
   };
 
   const handleConfirm = (): void => {
@@ -143,7 +181,13 @@ export function DeleteButton(props: DeleteButtonProps): JSX.Element {
         <Button variant="danger" small onClick={handleConfirm} disabled={disabled || isPending}>
           {confirmLabel}
         </Button>
-        <Button variant="quiet" small onClick={handleKeep} disabled={disabled || isPending}>
+        <Button
+          ref={keepRef}
+          variant="quiet"
+          small
+          onClick={handleKeep}
+          disabled={disabled || isPending}
+        >
           {KEEP_LABEL}
         </Button>
       </span>
@@ -156,6 +200,7 @@ export function DeleteButton(props: DeleteButtonProps): JSX.Element {
   if (isIconOnly) {
     return (
       <IconButton
+        ref={triggerRef}
         icon="trashcan"
         label={label}
         className={className}
@@ -168,6 +213,7 @@ export function DeleteButton(props: DeleteButtonProps): JSX.Element {
   }
   return (
     <Button
+      ref={triggerRef}
       variant={variant ?? 'quiet'}
       small={small ?? true}
       className={className}

@@ -86,7 +86,7 @@ the account may read the report again.
 The email
 ---------
 
-The subject is ``CalDART report: <title> (<Month D, YYYY>)``.  The body names
+The subject is ``CalDART report: <title> (<MM/DD/YYYY>)``.  The body names
 the report, the filters the report applied (a ``period`` reads as the dates it
 resolved to, as the PDF's subtitle prints it), the schedule, who set it up, and the attached files,
 and says that an account administrator or a treasurer can change or stop it.
@@ -119,7 +119,7 @@ its people again, since a repeated roster does less harm than a missing one.
 A DART with nobody ticked who has an address is skipped as ``no_recipients``.
 Otherwise each ticked person without an address is skipped as ``no_email`` and
 everyone else is sent the roster.  The subject is
-``<DART name> roster (<Month D, YYYY>)``, and the body says how many members it
+``<DART name> roster (<MM/DD/YYYY>)``, and the body says how many members it
 lists and that the DART's leaders may ask a CalDART account administrator to
 change who receives it.  The email log records it under the purpose
 ``dart_roster``, naming the contact as the row's own name -- a DART contact

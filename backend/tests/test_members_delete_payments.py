@@ -11,6 +11,7 @@ account that never paid is deleted with no tombstone.
 
 from __future__ import annotations
 
+import re
 from collections.abc import Iterable
 
 import pytest
@@ -25,10 +26,10 @@ from apps.accounts.models import AccountKind, User
 from apps.accounts.roles import ACCOUNT_ADMIN, MEMBER, SYSTEM_ADMIN
 from apps.mail.models import EmailLog
 from apps.members.models import MemberProfile, Membership, MembershipPlan
-from apps.members.services import tombstone_for
+from apps.members.services import is_tombstone, tombstone_for
 from apps.payments.models import MandateStatus, Payment, PaymentStatus, RenewalMandate
 from apps.payments.services import mark_succeeded
-from tests.conftest import audit_messages
+from tests.conftest import RecordedEvents, audit_messages
 from tests.factories import (
     MemberProfileFactory,
     MembershipFactory,
@@ -271,6 +272,38 @@ def test_the_tombstone_has_a_blank_profile(payer: User) -> None:
     assert profile.phone == ""
 
 
+def test_the_tombstone_takes_another_address_when_its_own_is_taken(payer: User) -> None:
+    """Another account holding ``deleted-<id>@deleted.invalid`` cannot block a delete."""
+    taken = f"deleted-{payer.pk}@deleted.invalid"
+    UserFactory(email=taken)
+
+    email = tombstone_for(payer).email
+
+    assert re.fullmatch(rf"deleted-{payer.pk}-[0-9a-f]{{8}}@deleted\.invalid", email) is not None
+
+
+def test_a_member_is_deleted_although_the_tombstone_address_is_taken(
+    account_admin_client: APIClient, payer: User, annual_plan: MembershipPlan
+) -> None:
+    """Registering the address a tombstone would use does not make the delete fail."""
+    UserFactory(email=f"deleted-{payer.pk}@deleted.invalid")
+    PaymentFactory(user=payer, plan=annual_plan)
+
+    assert account_admin_client.delete(detail_url(payer)).status_code == 204
+
+
+def test_the_tombstone_is_recognized_as_one(payer: User) -> None:
+    """``is_tombstone`` holds for the account ``tombstone_for`` makes."""
+    assert is_tombstone(tombstone_for(payer)) is True
+
+
+def test_a_deactivated_account_on_the_tombstone_domain_is_not_a_tombstone() -> None:
+    """The address alone does not make a tombstone: a member who used it is not one."""
+    user = UserFactory(email="deleted-1@deleted.invalid", first_name="Ana", is_active=False)
+
+    assert is_tombstone(user) is False
+
+
 # --------------------------------------------------------------------------
 # Automatic payments
 # --------------------------------------------------------------------------
@@ -323,6 +356,22 @@ def test_the_member_is_told_their_automatic_payment_is_off(
         account_admin_client.delete(detail_url(payer))
 
     assert [message.to for message in mail.outbox] == [["payer@example.test"]]
+
+
+def test_the_notice_that_the_automatic_payment_is_off_says_the_account_was_deleted(
+    account_admin_client: APIClient,
+    payer: User,
+    annual_plan: MembershipPlan,
+    recorded_events: RecordedEvents,
+) -> None:
+    """``auto_renewal_off`` says ``deleted``, so its email links to no member record."""
+    PaymentFactory(user=payer, plan=annual_plan)
+    RenewalMandateFactory(user=payer, plan=annual_plan)
+
+    account_admin_client.delete(detail_url(payer))
+
+    hows = [payload["how"] for slug, payload in recorded_events if slug == "auto_renewal_off"]
+    assert hows == ["deleted"]
 
 
 def test_the_email_log_keeps_the_message_without_the_deleted_account(

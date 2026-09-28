@@ -2,6 +2,7 @@
  * `/profile` — the member's own details, the kind of account they hold, and the way to
  * deactivate it.
  */
+import { useState } from 'react';
 import type { JSX } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -22,6 +23,9 @@ export function ProfilePage(): JSX.Element {
   const profile = useProfile();
   const save = useSaveProfile();
   const toast = useToast();
+  // Bumped on every successful save, so the form starts again from what the server
+  // stored (a street or city it title-cased, say) rather than from what was typed.
+  const [formResetKey, setFormResetKey] = useState(0);
 
   if (profile.isPending) {
     return (
@@ -64,13 +68,17 @@ export function ProfilePage(): JSX.Element {
     >
       <Card>
         <ProfileForm
+          key={formResetKey}
           initialValues={profileToForm(profile.data)}
           verification={verification}
           submitting={save.isPending}
           serverErrors={serverErrors}
           onSubmit={(patch) =>
             save.mutate(patch, {
-              onSuccess: () => toast.show('Profile saved.', 'success'),
+              onSuccess: () => {
+                setFormResetKey((key) => key + 1);
+                toast.show('Profile saved.', 'success');
+              },
               onError: (error) => toast.show(saveErrorMessage(error), 'error'),
             })
           }

@@ -211,9 +211,10 @@ site's ``URL_PREFIX`` (:doc:`configuration`) when it has one.
 **The user guide.**  ``make guide`` builds ``docs/user/`` alone into
 ``docs/_build/guide``, and ``user_guide`` serves those files at ``/docs/`` to
 anyone signed in, each reader seeing only the pages their roles reach
-(:ref:`documentation-role-gated-pages`); a visitor who is not is sent to the portal's login page with
-the guide page as ``next``, and the login page hands them back to the guide
-with a full-page navigation, since the guide lives outside the SPA.  The
+(:ref:`documentation-role-gated-pages`); a visitor who is not is sent to the
+portal's login page with the guide page as ``next``, and the login page hands
+them back to the guide with a full-page navigation, since the guide lives
+outside the SPA.  The
 portal's top bar carries a **Help** link, shown whether or not anyone is
 signed in, that opens the guide page for the screen the visitor is on:
 ``help.ts`` maps every route pattern to a guide slug in ``HELP_PAGES``, in
@@ -691,9 +692,19 @@ the row already says what the control acts on -- an attached aircraft, a person
 on a DART -- so a list of records reads as a list rather than as a wall of
 buttons.  ``DeleteButton`` is every Remove and Delete control in the portal: a
 bare ``IconButton`` trashcan where the control sits in a row or on a form line,
-and a quiet ``Button`` with the trashcan leading its words where the action is
-confirmed, with the trashcan at the text size there rather than at the larger
-size a bare icon takes.  ``PanelButton`` is a quiet small ``Button`` with
+and a quiet ``Button`` with the trashcan leading its words where it wants more
+weight, with the trashcan at the text size there rather than at the larger size
+a bare icon takes.  Every delete asks first.  Given ``onDelete``, the first
+press swaps the control, in place, for an inline pair, a ``role="group"`` named
+by ``label``: a small danger button reading ``confirmLabel`` (**Delete** unless
+the caller names another word, such as **Remove**) and a plain **Keep**.  Only
+the danger button calls ``onDelete``; **Keep**, Escape, a click outside, or the
+focus leaving the pair restore the trashcan.  The focus moves to **Keep** when
+the pair opens and back to the trashcan after **Keep** or Escape, and an Escape
+on the pair stops there, so the panel around it stays open.  A caller whose own
+flow already confirms the action, such as the member record's type-the-email
+delete, leaves ``onDelete`` out, and the control fires its ordinary
+``onClick`` at once.  ``PanelButton`` is a quiet small ``Button`` with
 ``aria-expanded`` and ``aria-controls`` and the captioned panel (a
 ``<fieldset>`` with its ``legend``) it opens under itself.  The panel's contents
 mount only while it is open, and receive a function that closes it; the panel
@@ -786,18 +797,18 @@ the ``RequireRole`` on its route.
 ``withTime``), a time of day alone reads ``HH:MM`` (``formatTime``), and a
 ``YYYY-MM`` month reads ``Mar 2026`` (``formatMonth``).  A bare ``YYYY-MM-DD``
 is read as local midnight, so a date never shows as the day before west of
-Greenwich.  ESLint's ``no-restricted-syntax`` refuses ``toLocaleDateString``,
-``toLocaleTimeString``, and ``Intl.DateTimeFormat`` anywhere else under
-``src/portal``.  Date inputs stay native ``<input type="date">``, which the
+Greenwich.  ESLint's ``no-restricted-syntax`` refuses five calls anywhere else
+under ``src/portal``: ``toLocaleDateString``, ``toLocaleTimeString``,
+``toDateString``, ``toTimeString``, and ``new Intl.DateTimeFormat``.  Date inputs stay native ``<input type="date">``, which the
 browser draws in the reader's own locale; ``todayIso`` gives one its value.
 
 The backend's counterpart is ``caldart/dates.py``: ``DISPLAY_DATE_FORMAT``
 (``%m/%d/%Y``), ``format_display_date``, and ``format_display_datetime``, which
 converts a moment to ``TIME_ZONE`` first.  Everything that writes a date into
 text a screen or a download shows uses it: the verification report, the
-notification emails and the renewal email subjects that the Sent Emails page
-lists, the email log report's ``Sent`` column, the PDF report footer, and
-``seed_facts``.  Three kinds of date keep their own form: ISO-8601 dates in a
+notification emails, and the renewal, scheduled-report, and DART-roster email
+subjects that the Sent Emails page lists, the email log report's ``Sent``
+column, the PDF report footer, and ``seed_facts``.  Three kinds of date keep their own form: ISO-8601 dates in a
 CSV data column, which a spreadsheet sorts (:doc:`reports`); dates in the
 prose of an email body or a public-site page, written ``F j, Y``; and the
 dates on a receipt PDF, a financial record.

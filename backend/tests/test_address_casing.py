@@ -54,6 +54,9 @@ def empty_donation_throttle_cache() -> Iterator[None]:
         ("apt 3B", "Apt 3B"),
         ("  san   carlos  ", "San Carlos"),
         ("", ""),
+        ("KING'S rd", "King's Rd"),
+        ("st. john's pl", "St. John's Pl"),
+        ("d'angelo way", "D'Angelo Way"),
     ],
     ids=[
         "every-word-lowercase",
@@ -64,6 +67,9 @@ def empty_donation_throttle_cache() -> Iterator[None]:
         "a-digit-and-letter-word-left-alone",
         "whitespace-trimmed-and-collapsed",
         "blank-stays-blank",
+        "a-possessive-stays-lower",
+        "a-possessive-after-a-period-stays-lower",
+        "a-one-letter-prefix-keeps-its-capital",
     ],
 )
 def test_title_case_words_matches_the_documented_examples(value: str, expected: str) -> None:

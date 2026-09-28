@@ -270,6 +270,25 @@ def test_a_guide_without_a_roles_file_serves_every_page(reader: Client, gated_gu
     assert guide_body(response) == SYSTEM_HTML.encode()
 
 
+def test_an_unreadable_roles_file_serves_every_page(reader: Client, gated_guide: Path) -> None:
+    """A ``roles.json`` that is not JSON serves every page instead of failing requests."""
+    (gated_guide / GUIDE_ROLES).write_text('{"admin/health-database": [')
+    response = reader.get("/docs/admin/health-database/")
+    assert guide_body(response) == SYSTEM_HTML.encode()
+
+
+def test_an_unreadable_roles_file_is_logged(
+    reader: Client, gated_guide: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    """The broken ``roles.json`` is logged as an error naming the file."""
+    roles_file = gated_guide / GUIDE_ROLES
+    roles_file.write_text("not json")
+    later = roles_file.stat().st_mtime + 20
+    os.utime(roles_file, (later, later))
+    guide_body(reader.get("/docs/admin/health-database/"))
+    assert f"The user guide's {roles_file} is not valid JSON" in caplog.text
+
+
 def test_a_rebuilt_roles_file_is_read_again(reader: Client, gated_guide: Path) -> None:
     """A ``roles.json`` rewritten with a newer modification time takes effect at once."""
     guide_body(reader.get("/docs/member-guide/"))

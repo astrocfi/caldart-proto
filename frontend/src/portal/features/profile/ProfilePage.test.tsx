@@ -128,6 +128,24 @@ describe('<ProfilePage/>', () => {
     expect(body).toMatchObject({ city: 'Napa', phone: '650-555-0101', dart_id: 1 });
   });
 
+  it('shows the stored casing as soon as the save succeeds', async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.get(`${API}/me/profile`, () => HttpResponse.json(makeVerifiedProfile())),
+      http.put(`${API}/me/profile`, () =>
+        HttpResponse.json(makeVerifiedProfile({ city: 'Palo Alto' })),
+      ),
+    );
+
+    renderWithProviders(<ProfilePage />, { route: '/profile' });
+    const city = await screen.findByLabelText(label('City'));
+    await user.clear(city);
+    await user.type(city, 'palo ALTO');
+    await user.click(screen.getByRole('button', { name: 'Save profile' }));
+
+    await waitFor(() => expect(screen.getByLabelText(label('City'))).toHaveValue('Palo Alto'));
+  });
+
   it('carries the bootstrapped CSRF token on the save', async () => {
     let sentToken: string | null = null;
     server.use(

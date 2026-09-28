@@ -388,12 +388,12 @@ def test_a_period_is_the_one_the_report_is_sent_in(
 
 @pytest.mark.django_db
 def test_the_subject_names_the_report_and_the_day(mailoutbox: list[EmailMessage]) -> None:
-    """The subject reads ``CalDART report: <title> (<Month D, YYYY>)``."""
+    """The subject reads ``CalDART report: <title> (<MM/DD/YYYY>)``."""
     ReportSubscriptionFactory(next_due_on=TODAY)
 
     run_scheduled_reports(today=TODAY)
 
-    assert mailoutbox[0].subject == "CalDART report: CalDART membership report (October 1, 2026)"
+    assert mailoutbox[0].subject == "CalDART report: CalDART membership report (10/01/2026)"
 
 
 @pytest.mark.django_db
