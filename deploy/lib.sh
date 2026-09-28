@@ -443,6 +443,26 @@ site_url() {
     printf 'https://%s%s\n' "$CALDART_HOSTNAME" "$CALDART_URL_PREFIX"
 }
 
+# The address gunicorn answers on: 127.0.0.1 at the recorded gunicorn port.
+gunicorn_url() {
+    printf 'http://127.0.0.1:%s/\n' "$CALDART_GUNICORN_PORT"
+}
+
+# Ask gunicorn itself, not the web server, for the site's front page, with the
+# command word $1 in front: run, for a dry run that prints the request, or
+# command, which sends it.  The
+# Host header must be in ALLOWED_HOSTS, and X-Forwarded-Proto keeps
+# SECURE_SSL_REDIRECT from answering 301.
+gunicorn_probe() {
+    "$1" curl -sI -H "Host: $CALDART_HOSTNAME" -H 'X-Forwarded-Proto: https' "$(gunicorn_url)"
+}
+
+# The HTTP status gunicorn answers the probe with, or nothing when it answers
+# nothing.
+gunicorn_status() {
+    gunicorn_probe command | awk 'NR == 1 { print $2 }'
+}
+
 # True when something on this machine listens on TCP port $1.  Without ss
 # there is no telling, and the answer is no.
 port_in_use() {

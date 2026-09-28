@@ -118,6 +118,8 @@ E2E_ENV := DJANGO_SETTINGS_MODULE=caldart.settings.dev \
 #                        a port such as 8101 for the installer's --gunicorn-port,
 #                        where the web server's proxy reaches gunicorn (default:
 #                        empty, the installer's own default)
+#   REHEARSE_DB_PORT     a port such as 5433 for the installer's --db-port, where
+#                        Postgres is published (default: empty, meaning 5432)
 #   REHEARSE_KEEP        a switch: keep the container and its volumes afterwards
 #
 # With REHEARSE_URL_PREFIX the recipe first stands up the existing site: the web
@@ -131,7 +133,9 @@ E2E_ENV := DJANGO_SETTINGS_MODULE=caldart.settings.dev \
 # With REHEARSE_GUNICORN_PORT, after the install the web server's configuration
 # must proxy to 127.0.0.1 on that port and name 8001 nowhere, the environment
 # file must carry the port, and gunicorn must answer 200 there; the install's own
-# checks then confirm the site answers through the proxy.
+# checks then confirm the site answers through the proxy.  With REHEARSE_DB_PORT
+# the database container must be published on 127.0.0.1 at that port, and the
+# install's checks, which reach it there, must pass.
 #
 # It installs HEAD, never the working tree, because bootstrap.sh clones the
 # checkout: commit before rehearsing.  A git worktree's .git is a file naming a
@@ -144,9 +148,10 @@ REHEARSE_WEB_SERVER ?= apache
 REHEARSE_IMAGE := jrei/systemd-ubuntu:24.04
 REHEARSE_URL_PREFIX ?=
 REHEARSE_GUNICORN_PORT ?=
+REHEARSE_DB_PORT ?=
 # A prefix rehearsal gets its own container and volumes, so it can run beside
 # a plain one on the same web server.
-REHEARSE_NAME = caldart-rehearsal-$(REHEARSE_WEB_SERVER)$(if $(REHEARSE_URL_PREFIX),-prefix)$(if $(REHEARSE_GUNICORN_PORT),-port)
+REHEARSE_NAME = caldart-rehearsal-$(REHEARSE_WEB_SERVER)$(if $(REHEARSE_URL_PREFIX),-prefix)$(if $(REHEARSE_GUNICORN_PORT),-port)$(if $(REHEARSE_DB_PORT),-db)
 # The directory the web server in the container reads its configuration from.
 REHEARSE_CONFIG_DIR_apache := /etc/apache2
 REHEARSE_CONFIG_DIR_nginx := /etc/nginx
@@ -321,19 +326,21 @@ e2e: ## Playwright end-to-end tests (own database, own server, mock payments; E2
 	  cd frontend && E2E_BASE_URL="$(E2E_SITE_URL)" $(NPM) run e2e \
 	    || { echo; echo "==== last 100 lines of $$logs ===="; dump_logs 100; exit 1; }
 
-rehearse-deploy: ## Rehearse the server install in a throwaway systemd container (REHEARSE_WEB_SERVER=apache|nginx, REHEARSE_URL_PREFIX=/path, REHEARSE_GUNICORN_PORT=port)
+rehearse-deploy: ## Rehearse the server install in a throwaway systemd container (REHEARSE_WEB_SERVER=apache|nginx, REHEARSE_URL_PREFIX=/path, REHEARSE_GUNICORN_PORT=port, REHEARSE_DB_PORT=port)
 	@case "$(REHEARSE_WEB_SERVER)" in apache|nginx) ;; \
 	  *) echo "REHEARSE_WEB_SERVER=$(REHEARSE_WEB_SERVER) is not apache or nginx" >&2; exit 2 ;; esac
 	@case "$(REHEARSE_URL_PREFIX)" in ''|/*) ;; \
 	  *) echo "REHEARSE_URL_PREFIX=$(REHEARSE_URL_PREFIX) does not start with /" >&2; exit 2 ;; esac
-	@case "$(REHEARSE_GUNICORN_PORT)" in ''|[1-9]|[1-9][0-9]|[1-9][0-9][0-9]|[1-9][0-9][0-9][0-9]|[1-9][0-9][0-9][0-9][0-9]) ;; \
-	  *) echo "REHEARSE_GUNICORN_PORT=$(REHEARSE_GUNICORN_PORT) is not a port number" >&2; exit 2 ;; esac
+	@for pair in "REHEARSE_GUNICORN_PORT=$(REHEARSE_GUNICORN_PORT)" "REHEARSE_DB_PORT=$(REHEARSE_DB_PORT)"; do \
+	  case "$${pair#*=}" in ''|[1-9]|[1-9][0-9]|[1-9][0-9][0-9]|[1-9][0-9][0-9][0-9]|[1-9][0-9][0-9][0-9][0-9]) ;; \
+	    *) echo "$$pair is not a port number" >&2; exit 2 ;; esac; \
+	done
 	@test -z "$$(git status --porcelain)" \
 	  || echo "note: the rehearsal installs HEAD; uncommitted changes are not in it" >&2
 	@set -euo pipefail; \
 	  name=$(REHEARSE_NAME); keep="$(REHEARSE_KEEP_FLAG)"; started=$$(date +%s); \
 	  prefix="$(REHEARSE_URL_PREFIX)"; standin="$(REHEARSE_STANDIN)"; \
-	  port="$(REHEARSE_GUNICORN_PORT)"; \
+	  port="$(REHEARSE_GUNICORN_PORT)"; dbport="$(REHEARSE_DB_PORT)"; \
 	  log=$$(mktemp); \
 	  inside() { docker exec "$$name" "$$@"; }; \
 	  configtest() { \
@@ -343,7 +350,7 @@ rehearse-deploy: ## Rehearse the server install in a throwaway systemd container
 	  cleanup() { \
 	    status=$$?; \
 	    rm -f "$$log"; \
-	    echo "==> rehearsal on $(REHEARSE_WEB_SERVER)$${prefix:+ under $$prefix}$${port:+ with gunicorn on $$port} took $$(( $$(date +%s) - started ))s and exited $$status"; \
+	    echo "==> rehearsal on $(REHEARSE_WEB_SERVER)$${prefix:+ under $$prefix}$${port:+ with gunicorn on $$port}$${dbport:+ and Postgres on $$dbport} took $$(( $$(date +%s) - started ))s and exited $$status"; \
 	    if [ -n "$$keep" ]; then \
 	      echo "==> kept $$name; docker exec -it $$name bash to look inside"; \
 	    else \
@@ -396,6 +403,7 @@ rehearse-deploy: ## Rehearse the server install in a throwaway systemd container
 	    set -- --tls self-signed --email-url smtp://localhost:25; \
 	  fi; \
 	  if [ -n "$$port" ]; then set -- "$$@" --gunicorn-port "$$port"; fi; \
+	  if [ -n "$$dbport" ]; then set -- "$$@" --db-port "$$dbport"; fi; \
 	  inside bash /mnt/caldart/deploy/bootstrap.sh --repo /mnt/caldart --ref "$(REHEARSE_REF)" \
 	    --hostname caldart.test --web-server $(REHEARSE_WEB_SERVER) \
 	    --admin-email admin@caldart.test "$$@" 2>&1 | tee "$$log"; \
@@ -425,6 +433,11 @@ rehearse-deploy: ## Rehearse the server install in a throwaway systemd container
 	    site -o /dev/null -w '%{http_code}\n' "https://caldart.test$$prefix/" | grep -qx 200 \
 	      || { echo "error: the site does not answer 200 through the proxy" >&2; exit 1; }; \
 	  fi; \
+	  if [ -n "$$dbport" ]; then \
+	    echo "==> Checking that Postgres is published on port $$dbport"; \
+	    inside docker port caldart-db-1 5432 | grep -qx "127.0.0.1:$$dbport" \
+	      || { echo "error: the database container is not published on 127.0.0.1:$$dbport" >&2; exit 1; }; \
+	  fi; \
 	  : "The install started the registry import itself; it downloads the FAA file."; \
 	  echo "==> Running every other scheduled job once, hardening and all"; \
 	  inside systemctl start caldart-backup.service caldart-reports.service \
@@ -448,7 +461,7 @@ rehearse-deploy: ## Rehearse the server install in a throwaway systemd container
 	    fi; \
 	    configtest; \
 	  fi; \
-	  echo "==> The rehearsal on $(REHEARSE_WEB_SERVER)$${prefix:+ under $$prefix}$${port:+ with gunicorn on $$port} passed"
+	  echo "==> The rehearsal on $(REHEARSE_WEB_SERVER)$${prefix:+ under $$prefix}$${port:+ with gunicorn on $$port}$${dbport:+ and Postgres on $$dbport} passed"
 
 # ----------------------------------------------------------------- lint
 lint: lint-backend lint-shell lint-frontend lint-spelling ## ruff + mypy + shellcheck + tsc + eslint + prettier + contrast + codespell

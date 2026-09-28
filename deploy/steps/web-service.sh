@@ -29,11 +29,6 @@ source "$ROOT/deploy/lib.sh"
 
 readonly WEB_READY_SECONDS=30
 
-# The address gunicorn answers on, from the recorded port.
-gunicorn_url() {
-    printf 'http://127.0.0.1:%s/\n' "$CALDART_GUNICORN_PORT"
-}
-
 # True when caldart-web.service is installed, so the port's listener is gunicorn.
 web_unit_installed() {
     [[ -e "$SYSTEMD_DIR/$WEB_UNIT.service" ]]
@@ -47,16 +42,9 @@ check_gunicorn_port() {
     die "port $CALDART_GUNICORN_PORT is already in use on this machine; run install.sh --gunicorn-port PORT to put gunicorn on another port"
 }
 
-# True when gunicorn answers 200 for the hostname.  The Host header must be in
-# ALLOWED_HOSTS, and X-Forwarded-Proto keeps SECURE_SSL_REDIRECT from answering 301.
+# True when gunicorn answers 200 for the hostname.
 web_answers() {
-    [[ "$(web_probe)" == 200 ]]
-}
-
-# The status gunicorn answers for the hostname.
-web_probe() {
-    curl -sI -o /dev/null -w '%{http_code}' -H "Host: $CALDART_HOSTNAME" \
-        -H 'X-Forwarded-Proto: https' "$(gunicorn_url)"
+    [[ "$(gunicorn_status)" == 200 ]]
 }
 
 web_service_step() {
@@ -68,7 +56,7 @@ web_service_step() {
     run systemctl enable "$WEB_UNIT.service"
     run systemctl restart "$WEB_UNIT.service"
     if is_dry_run; then
-        run curl -sI -H "Host: $CALDART_HOSTNAME" -H 'X-Forwarded-Proto: https' "$(gunicorn_url)"
+        gunicorn_probe run
         return 0
     fi
     if ! wait_for "$WEB_READY_SECONDS" web_answers; then
