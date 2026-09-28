@@ -108,7 +108,7 @@ export function DonorDetails({ value, onChange, config }: DonorDetailsProps): JS
               {...props}
               name="home_airport_identifier"
               size={4}
-              placeholder="PAO"
+              placeholder="XXX"
               mask={maskAirportIdentifier}
               value={value.home_airport_identifier}
               onValueChange={(next) => set('home_airport_identifier', next)}

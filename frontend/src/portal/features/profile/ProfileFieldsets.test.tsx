@@ -110,6 +110,14 @@ describe('<ProfileFieldsets/>', () => {
     );
   });
 
+  it.each(['Home airport', 'Secondary airport'])(
+    'shows XXX as the ghost text for %s, not a real airport',
+    (label) => {
+      renderFieldsets();
+      expect(screen.getByLabelText(label)).toHaveAttribute('placeholder', 'XXX');
+    },
+  );
+
   it('upper-cases a home airport as it is typed', async () => {
     const user = userEvent.setup();
     const onChange = renderFieldsets();
