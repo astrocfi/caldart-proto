@@ -1416,13 +1416,79 @@ def test_uninstall_needs_yes(root: Path, etc: Path) -> None:
     assert _errors(result) == ["error: --yes is required: this removes the site"]
 
 
-def test_uninstall_purge_removes_the_data(root: Path, etc: Path) -> None:
-    """``--purge`` drops the database volume and the deploy root."""
+def _purge_dry_run(root: Path, etc: Path) -> list[str]:
+    """The commands the dry run of ``uninstall.sh --yes --purge`` in ``root`` prints."""
     result = _run(
         _checkout(root) / "deploy" / "uninstall.sh", "--dry-run", "--yes", "--purge", env=_env(etc)
     )
-    commands = _commands(result)
-    assert _position(commands, "docker compose down -v") < _position(commands, f"rm -rf {root}")
+    assert result.returncode == 0, result.stderr
+    return _commands(result)
+
+
+def _deploy_root_with_data(root: Path) -> Path:
+    """Give the deploy root ``root`` the dumps and uploads directories of an install."""
+    (root / "backups").mkdir()
+    (root / "media").mkdir()
+    return root
+
+
+def test_uninstall_purge_removes_the_data(root: Path, etc: Path) -> None:
+    """``--purge`` drops the database volume before it removes the checkout."""
+    commands = _purge_dry_run(root, etc)
+    assert _position(commands, "docker compose down -v") < _position(
+        commands, f"rm -rf {_checkout(root)}"
+    )
+
+
+@pytest.mark.parametrize("entry", [CHECKOUT_NAME, "backups", "media"])
+def test_uninstall_purge_removes_what_the_install_made(entry: str, root: Path, etc: Path) -> None:
+    """``--purge`` removes the checkout, the dumps, and the uploads in the deploy root."""
+    commands = _purge_dry_run(_deploy_root_with_data(root), etc)
+    assert f"rm -rf {root / entry}" in commands
+
+
+def test_uninstall_purge_removes_the_emptied_deploy_root(root: Path, etc: Path) -> None:
+    """A deploy root that holds only what the install made is removed once emptied."""
+    commands = _purge_dry_run(_deploy_root_with_data(root), etc)
+    assert commands[-1] == f"rmdir {root}"
+
+
+def test_uninstall_purge_never_removes_the_deploy_root_whole(root: Path, etc: Path) -> None:
+    """The purge removes the deploy root's entries one by one, never the root at once."""
+    commands = _purge_dry_run(_deploy_root_with_data(root), etc)
+    assert f"rm -rf {root}" not in commands
+
+
+def test_uninstall_purge_keeps_a_deploy_root_holding_more(root: Path, etc: Path) -> None:
+    """A deploy root that holds anything else keeps it, and the root stays."""
+    (_deploy_root_with_data(root) / "other").mkdir()
+    commands = _purge_dry_run(root, etc)
+    assert [c for c in commands if c.startswith("rmdir") or str(root / "other") in c] == []
+
+
+def test_uninstall_purge_says_it_keeps_a_deploy_root_holding_more(root: Path, etc: Path) -> None:
+    """The purge names the deploy root it leaves in place."""
+    (root / "other").mkdir()
+    result = _run(
+        _checkout(root) / "deploy" / "uninstall.sh", "--dry-run", "--yes", "--purge", env=_env(etc)
+    )
+    assert (
+        f"kept {root}: it holds more than the checkout, the backups, and the uploads"
+    ) in result.stderr.splitlines()
+
+
+def test_uninstall_purge_of_a_checkout_layout_removes_only_the_checkout(
+    root: Path, etc: Path
+) -> None:
+    """A record naming the checkout as the deploy root purges the checkout alone.
+
+    The dumps and uploads of such an install are inside the checkout, and its parent
+    (``/opt`` for a checkout at ``/opt/caldart``) belongs to the machine.
+    """
+    _record_checkout_layout(root, etc)
+    commands = _purge_dry_run(_deploy_root_with_data(root), etc)
+    removed = [c for c in commands if c.startswith(("rm -rf", "rmdir")) and str(etc) not in c]
+    assert removed == [f"rm -rf {_checkout(root)}"]
 
 
 def test_uninstall_purge_says_what_the_deploy_root_holds(root: Path, etc: Path) -> None:
@@ -1457,6 +1523,81 @@ def test_uninstall_keeps_the_data_without_purge(root: Path, etc: Path) -> None:
     """Without ``--purge`` the database volume stays."""
     result = _run(_checkout(root) / "deploy" / "uninstall.sh", "--dry-run", "--yes", env=_env(etc))
     assert "docker compose down" not in result.stdout
+
+
+# -- an install whose checkout is the deploy root ----------------------------------
+
+#: The message every script but the uninstaller, manage.sh, and compose.sh stops with on
+#: an install that keeps its data inside the checkout.
+CHECKOUT_LAYOUT_ERROR: Final = (
+    "error: this install keeps its data inside the checkout at {checkout}; "
+    "see 'Moving to the current layout' in deploy/README.rst"
+)
+
+#: Every step, each of which refuses such an install when run on its own.
+STEPS: Final = sorted(
+    path.relative_to(DEPLOY_DIR).as_posix() for path in (DEPLOY_DIR / "steps").glob("*.sh")
+)
+
+
+def _record_checkout_layout(root: Path, etc: Path) -> None:
+    """Write an install record whose deploy root is the checkout in ``root`` itself."""
+    (etc / "install.conf").write_text(
+        f"CALDART_ROOT={_checkout(root)}\nCALDART_HOSTNAME=caldart.test\n"
+    )
+
+
+@pytest.mark.parametrize("script", ["install.sh", *STEPS])
+def test_a_checkout_layout_is_refused(script: str, root: Path, etc: Path) -> None:
+    """The installer and every step stop, naming the runbook section, and run nothing."""
+    _record_checkout_layout(root, etc)
+    result = _run(_checkout(root) / "deploy" / script, "--dry-run", env=_env(etc))
+    assert (_errors(result), _commands(result), result.returncode) == (
+        [CHECKOUT_LAYOUT_ERROR.format(checkout=_checkout(root))],
+        [],
+        1,
+    )
+
+
+def test_an_upgrade_of_a_checkout_layout_is_refused_before_the_backup(
+    git_checkout: Path, etc: Path
+) -> None:
+    """``upgrade.sh`` stops before it backs up, pulls, or restarts anything."""
+    _record_checkout_layout(git_checkout.parent, etc)
+    result = _run(
+        git_checkout / "deploy" / "upgrade.sh", "--dry-run", env=_env(etc), cwd=git_checkout
+    )
+    assert (_errors(result), _commands(result)) == (
+        [CHECKOUT_LAYOUT_ERROR.format(checkout=git_checkout)],
+        [],
+    )
+
+
+def test_manage_still_runs_on_a_checkout_layout(root: Path, etc: Path) -> None:
+    """``manage.sh`` still runs there, so the backup the move starts with can be taken."""
+    _record_checkout_layout(root, etc)
+    result = _run(_checkout(root) / "deploy" / "manage.sh", "--dry-run", "db_backup", env=_env(etc))
+    assert result.returncode == 0, result.stderr
+
+
+def test_a_deploy_root_elsewhere_is_not_a_checkout_layout(root: Path, etc: Path) -> None:
+    """A record naming the checkout's parent as the deploy root lets a step run."""
+    (etc / "install.conf").write_text(f"CALDART_ROOT={root}\n")
+    result = _run(_checkout(root) / "deploy" / "steps" / "build.sh", "--dry-run", env=_env(etc))
+    assert result.returncode == 0, result.stderr
+
+
+def test_bootstrap_refuses_a_deploy_root_that_is_a_checkout(tmp_path: Path) -> None:
+    """``bootstrap.sh`` never clones into a checkout that is itself the deploy root."""
+    (tmp_path / "srv" / ".git").mkdir(parents=True)
+    result = _bootstrap_dry_run(tmp_path)
+    assert (_errors(result), _commands(result)) == (
+        [
+            f"error: {tmp_path}/srv is a checkout, which keeps the data inside it; "
+            "see 'Moving to the current layout' in deploy/README.rst"
+        ],
+        [],
+    )
 
 
 # -- a real machine, as the rehearsal in a systemd container finds it ---------------
