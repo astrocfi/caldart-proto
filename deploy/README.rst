@@ -42,8 +42,8 @@ The files:
    steps that depend on the code.
 ``uninstall.sh``
    Removes the services and the web server configuration; with ``--purge``,
-   also the configuration, the database, and the deploy root: the checkout,
-   the backups, and the uploads.
+   also the configuration, the database, and the checkout, the backups, and
+   the uploads in the deploy root.
 ``manage.sh``
    Runs a Django management command the way the web service runs the site.
 ``compose.sh``
@@ -807,7 +807,10 @@ An install from before the checkout moved into ``/opt/caldart/caldart`` has
 the checkout at ``/opt/caldart`` itself, with the dumps in
 ``/opt/caldart/backups`` and the uploads in ``/opt/caldart/backend/media``
 inside it.  No script moves it; reinstall instead, with the flags the first
-install was given:
+install was given.  Do this before any upgrade: once the checkout holds the
+current scripts, ``install.sh``, ``upgrade.sh``, and the steps refuse such an
+install and point here, while ``uninstall.sh``, ``manage.sh``, and
+``compose.sh`` still run.
 
 1. Take a backup::
 
@@ -818,7 +821,9 @@ install was given:
      sudo cp -a /opt/caldart/backups /root/caldart-backups
      sudo cp -a /opt/caldart/backend/media /root/caldart-media
 
-3. Remove the old install, database included::
+3. Remove the install whose checkout is ``/opt/caldart``, database
+   included; the purge removes that checkout, and nothing else under
+   ``/opt``::
 
      sudo /opt/caldart/deploy/uninstall.sh --yes --purge
 
@@ -990,9 +995,14 @@ data, and the whole deploy root: the checkout, the dumps in
 
 ``--purge`` also removes ``/etc/caldart``, runs ``docker compose down -v``
 from the checkout, which deletes the container and the
-``caldart_caldart_pgdata`` volume with every row in it, and removes the deploy
-root whole, as its stage line says: the checkout, the dumps, and the uploads.
-Copy off what you want to keep first.
+``caldart_caldart_pgdata`` volume with every row in it, and removes what the
+install made in the deploy root, as its stage line says: the checkout, the
+dumps in ``backups``, and the uploads in ``media``.  It then removes the deploy
+root itself when nothing else is in it; a root that holds anything more stays,
+with that in it, and the purge says so.  On an install whose checkout is the
+deploy root itself (`Moving to the current layout`_) the purge removes the
+checkout alone, dumps and uploads inside it.  Copy off what you want to keep
+first.
 
 Both leave alone the certificates under ``/etc/letsencrypt``, the operating
 system packages (Docker, the web server, certbot, Node, ``uv``), the

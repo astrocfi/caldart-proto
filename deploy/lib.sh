@@ -12,6 +12,10 @@
 # parent.  The deploy root holds the checkout, the database dumps (backups/),
 # and the uploads (media/).
 #
+# Sourcing it stops, with a pointer to 'Moving to the current layout' in
+# deploy/README.rst, when the install record names the checkout itself as the
+# deploy root, unless the script sets CALDART_ANY_LAYOUT=1 first.
+#
 # Usage:
 #   CHECKOUT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 #   source "$CHECKOUT/deploy/lib.sh"
@@ -571,3 +575,31 @@ render_snippet() {
         -e "s#${SHIPPED_PREFIX}#${CALDART_URL_PREFIX}#g" \
         -e "s/${shipped}/${CALDART_HOSTNAME}/g"
 }
+
+# The deploy root the install record names, or nothing when there is no record
+# or it names none.
+recorded_root() {
+    [[ -f "$RECORD_FILE" ]] || return 0
+    sed -n 's/^CALDART_ROOT=//p' "$RECORD_FILE" | tail -n 1
+}
+
+# True when the install record names the checkout itself as the deploy root: an
+# install whose checkout is /opt/caldart, with its dumps and uploads inside it.
+is_checkout_layout() {
+    [[ "$(recorded_root)" == "$CHECKOUT" ]]
+}
+
+# Stop on an install that keeps its data inside the checkout.  Every path these
+# scripts write names the checkout's parent, which on such an install is the
+# machine's /opt, so running on would point the site at directories that are
+# not there.
+refuse_checkout_layout() {
+    is_checkout_layout || return 0
+    die "this install keeps its data inside the checkout at $CHECKOUT;" \
+        "see 'Moving to the current layout' in deploy/README.rst"
+}
+
+# A script that is safe on either layout (the uninstaller, manage.sh, and
+# compose.sh) sets CALDART_ANY_LAYOUT=1 before sourcing this file; every other
+# script stops here on such an install, before it changes anything.
+[[ "${CALDART_ANY_LAYOUT:-0}" == 1 ]] || refuse_checkout_layout

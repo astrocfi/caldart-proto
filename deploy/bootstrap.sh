@@ -182,6 +182,12 @@ main() {
     if [[ "$DRY_RUN" != 1 && "$(id -u)" != 0 ]]; then
         die "run this as root (sudo bash)"
     fi
+    # An install whose checkout is the deploy root itself is moved by hand; a
+    # clone inside it would leave the site running from the outer checkout.
+    if [[ -d "$DEPLOY_ROOT/.git" ]]; then
+        die "$DEPLOY_ROOT is a checkout, which keeps the data inside it;" \
+            "see 'Moving to the current layout' in deploy/README.rst"
+    fi
     if ! command -v git >/dev/null 2>&1; then
         log "Installing git"
         run env DEBIAN_FRONTEND=noninteractive apt-get update

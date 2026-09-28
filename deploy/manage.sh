@@ -25,6 +25,10 @@
 set -euo pipefail
 
 CHECKOUT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# Read by lib.sh: this script is safe on an install that keeps its data inside
+# the checkout.
+# shellcheck disable=SC2034
+CALDART_ANY_LAYOUT=1
 # shellcheck source=deploy/lib.sh
 source "$CHECKOUT/deploy/lib.sh"
 

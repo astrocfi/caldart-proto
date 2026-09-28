@@ -1839,7 +1839,13 @@ Moving to the current layout
 An install whose checkout is the deploy root itself, ``/opt/caldart``, with the
 dumps in ``/opt/caldart/backups`` and the uploads in
 ``/opt/caldart/backend/media`` inside it, is moved by reinstalling; no script
-moves it.  With the same flags the first install was given:
+moves it.  Do it before any upgrade: sourcing ``deploy/lib.sh`` stops when the
+install record's ``CALDART_ROOT`` is the checkout itself, so ``install.sh``,
+``upgrade.sh``, and every step refuse such an install, naming this section of
+the runbook, and ``bootstrap.sh`` refuses a deploy root that is a checkout.
+``uninstall.sh``, ``manage.sh``, and ``compose.sh`` set
+``CALDART_ANY_LAYOUT=1`` and still run, so the backup and the purge below work.
+With the same flags the first install was given:
 
 1. take a backup: ``sudo /opt/caldart/deploy/manage.sh db_backup``;
 2. copy the dumps and the uploads aside::
@@ -1848,7 +1854,8 @@ moves it.  With the same flags the first install was given:
      sudo cp -a /opt/caldart/backend/media /root/caldart-media
 
 3. ``sudo /opt/caldart/deploy/uninstall.sh --yes --purge``, which removes
-   ``/opt/caldart`` and the database;
+   the checkout ``/opt/caldart`` and the database, and nothing else under
+   ``/opt``;
 4. run ``bootstrap.sh`` with the same flags, which clones into
    ``/opt/caldart/caldart`` and installs an empty site;
 5. put the dumps and the uploads back beside the checkout::
@@ -1881,9 +1888,13 @@ named, or, when none was recorded, out of every file under the server's
 left as it is, and so is ``FILE.caldart.bak``.  ``--purge`` also removes ``/etc/caldart`` (the environment file, the
 install record, and a self-signed certificate), runs ``docker compose down
 -v`` from the checkout, which deletes the ``caldart_pgdata`` volume and every
-row in it, and removes the deploy root whole: the checkout, the dumps in
-``backups``, and the uploads in ``media``, as its stage line says.  Without
-``--purge`` all three stay.  Copy off what you want to keep first.  Each removal prints what it removed, and anything
+row in it, and removes what the install made in the deploy root: the checkout,
+the dumps in ``backups``, and the uploads in ``media``, as its stage line says.
+It then runs ``rmdir`` on the deploy root, and only when nothing else is in it,
+so a checkout cloned into a directory that holds more (``/home/admin`` or
+``/srv``) never takes that directory with it; the purge says it kept the root.
+When the record's ``CALDART_ROOT`` is the checkout itself, the purge removes
+the checkout alone.  Without ``--purge`` all three stay.  Copy off what you want to keep first.  Each removal prints what it removed, and anything
 already absent is skipped.  Certificates under ``/etc/letsencrypt`` and the
 operating system packages stay in both modes.
 
