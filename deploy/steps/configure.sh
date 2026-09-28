@@ -13,7 +13,8 @@
 # BACKUP_DIR and USER_GUIDE_ROOT under the deploy root, DB_BACKUP_VIA_DOCKER=false,
 # BACKUP_RETENTION_DAYS=30, CALDART_GUNICORN_PORT from the install record (8001
 # unless install.sh --gunicorn-port says otherwise), URL_PREFIX when the site
-# has one, and, with self-signed TLS, SECURE_HSTS_SECONDS=0.  Behind an existing site the HSTS
+# has one, and, with self-signed TLS, SECURE_HSTS_SECONDS=0.  It prints the
+# CALDART_GUNICORN_PORT line, the one line of the file a dry run shows.  Behind an existing site the HSTS
 # default is left alone: that site owns HSTS for the host.
 # Everything else, comments included, stays as the template has it.  With
 # --email local, a note (not an error) says so when nothing listens on port 25:
@@ -182,6 +183,7 @@ configure_step() {
     [[ -n "$EMAIL_URL" ]] || usage_error "--email-url or --email local is required to write $ENV_FILE"
 
     log "Writing $ENV_FILE"
+    printf '    with CALDART_GUNICORN_PORT=%s\n' "$CALDART_GUNICORN_PORT"
     note_local_mail
     local names=() origins=() name
     mapfile -t names < <(site_names)

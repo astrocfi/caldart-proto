@@ -2394,3 +2394,11 @@ def test_bootstrap_passes_the_gunicorn_port_through(tmp_path: Path) -> None:
     assert _commands(result)[-1] == (
         f"bash {tmp_path}/srv/deploy/install.sh --dry-run --gunicorn-port 8101"
     )
+
+
+def test_the_install_dry_run_names_the_gunicorn_port_line(
+    root: Path, etc: Path, tmp_path: Path
+) -> None:
+    """The dry run, which never prints the environment file, still names the port line."""
+    result = _install_dry_run(root, etc, tmp_path, "--gunicorn-port", GUNICORN_PORT)
+    assert "    with CALDART_GUNICORN_PORT=8101" in result.stdout.splitlines()

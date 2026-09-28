@@ -659,7 +659,8 @@ hosts, ``DEFAULT_FROM_EMAIL`` from ``--from-email`` (``CalDART
 <noreply@HOST>`` by default), ``BACKUP_DIR`` and ``USER_GUIDE_ROOT`` under the
 deploy root, ``DB_BACKUP_VIA_DOCKER=false``, ``BACKUP_RETENTION_DAYS=30``, and
 ``CALDART_GUNICORN_PORT`` to the gunicorn port the record names (8001 unless
-``--gunicorn-port`` says otherwise); with ``--url-prefix``, ``URL_PREFIX`` (``SITE_URL`` must end in it, and
+``--gunicorn-port`` says otherwise), printing that one line under its stage
+line, a dry run included; with ``--url-prefix``, ``URL_PREFIX`` (``SITE_URL`` must end in it, and
 ``prod.py`` refuses a file where it does not); with ``--tls self-signed``,
 ``SECURE_HSTS_SECONDS=0`` too.  With ``--tls existing`` the HSTS default is
 left as the template has it: the existing site owns HSTS for its host.
