@@ -1,14 +1,12 @@
 /**
  * The Danger zone tab: hard-delete a member record.
  *
- * A payment is a financial record and is kept whatever happens to the account,
- * so a member who has ever paid cannot be deleted at all: the tab explains that
- * and points at deactivation instead of offering a form the server would refuse.
- *
- * For a member who never paid, deleting takes the profile and the membership
- * terms with it, so the button stays disabled until the administrator has typed
- * the member's email address back.  The server refuses to delete you, or a
- * system administrator unless you are one, and says so here.
+ * Deleting takes the profile and the membership terms with it, so the button
+ * stays disabled until the administrator has typed the member's email address
+ * back.  A payment is a financial record and is kept whatever happens to the
+ * account: the server hands a member's payments to a "Deleted member {id}"
+ * account, and the tab says so before the delete.  The server refuses to delete
+ * you, or a system administrator unless you are one, and says so here.
  */
 import { useState } from 'react';
 import type { JSX } from 'react';
@@ -22,23 +20,19 @@ import { useDeleteMember } from './api';
 import { splitErrors } from './errors';
 import type { MemberDetail } from '@/portal/api/types';
 
-function PaymentsKept({ member }: { member: MemberDetail }) {
+function PaymentsNote({ member }: { member: MemberDetail }) {
   const count = member.payments.length;
+  if (count === 0) return null;
+  const records =
+    count === 1 ? '1 payment record. It stays' : `${count} payment records. They stay`;
   return (
-    <Card title="This member cannot be deleted" eyebrow="Danger zone">
-      <p>
-        {member.name} has {count} payment record{count === 1 ? '' : 's'}, which must be kept.
-        Deleting the account would take the payment history with it, so the delete is refused.
-      </p>
-      <p>
-        Clear Account is active on the Profile tab instead. A deactivated member cannot sign in, and
-        their profile, membership terms, and payments stay exactly as they are.
-      </p>
-    </Card>
+    <p>
+      {member.name} has {records} in the books under the name Deleted member {member.id}.
+    </p>
   );
 }
 
-/** The Danger zone tab: hard-delete a member record, once payments allow it. */
+/** The Danger zone tab: hard-delete a member record, keeping their payments in the books. */
 export function MemberDangerZone({ member }: { member: MemberDetail }): JSX.Element {
   const navigate = useNavigate();
   const toast = useToast();
@@ -59,8 +53,6 @@ export function MemberDangerZone({ member }: { member: MemberDetail }): JSX.Elem
     });
   };
 
-  if (member.payments.length > 0) return <PaymentsKept member={member} />;
-
   return (
     <Card title="Delete this member" eyebrow="Danger zone">
       <p>
@@ -68,6 +60,7 @@ export function MemberDangerZone({ member }: { member: MemberDetail }): JSX.Elem
         {member.memberships.length} membership term
         {member.memberships.length === 1 ? '' : 's'}. This cannot be undone.
       </p>
+      <PaymentsNote member={member} />
       <form onSubmit={handleSubmit} noValidate>
         {errors.detail ? (
           <p role="alert" className="field__error">
