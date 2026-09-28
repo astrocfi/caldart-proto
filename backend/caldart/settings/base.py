@@ -510,6 +510,10 @@ CONTENT_SECURITY_POLICY = {
         # the vendor origins carry the wallet and funding-source artwork the
         # Payment Element and the PayPal buttons draw inside their own frames.
         "img-src": [SELF, "data:", *STRIPE_IMG_ORIGINS, *PAYPAL_ORIGINS],
+        # The production bundle inlines the Fraunces font faces as ``data:`` URLs
+        # (Vite inlines assets under its size limit), which ``default-src`` alone
+        # would refuse, leaving every heading in the fallback face.
+        "font-src": [SELF, "data:"],
         # Stripe's Payment Element and Wagtail's admin both set styles from
         # JavaScript.  No template carries an inline script, so ``script-src``
         # needs no matching relaxation outside the admin and the user guide,
