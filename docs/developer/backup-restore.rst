@@ -5,7 +5,7 @@ Backup and restore
 Four commands look after the data: ``db_backup`` writes a dump, ``db_restore``
 puts one back, ``db_reset`` rebuilds a development database from nothing, and
 ``health`` says whether any of that has been happening.  They live in
-``backend/apps/sysadmin/``; the portal's System page reaches the same code
+``backend/apps/sysadmin/``; the portal's Health & Database page reaches the same code
 through the endpoints listed under :ref:`api-reminders-system`.
 
 
@@ -51,7 +51,7 @@ from the FAA's own file (:doc:`aircraft-registry`).  Everything else is dumped
 whole, the aircraft types, their aliases, and the import log included, because
 every member's aircraft points at a type and a dump without them would not
 restore.  There is no option for a full dump.  The ``db_backup`` command, the
-``caldart-backup`` timer, and the System screen's **Create backup** button all
+``caldart-backup`` timer, and the Health & Database page's **Create backup** button all
 go through the same ``create_backup()``, so all three leave the registrations
 out.
 
@@ -121,7 +121,7 @@ Production, through ``deploy/manage.sh`` (:ref:`deploy-manage-commands`)::
 
   sudo deploy/manage.sh db_backup
 
-Or from a browser: ``/portal/system`` → **Backups** → **Create backup**.  Three
+Or from a browser: ``/portal/system/health`` → **Backups** → **Create backup**.  Three
 endpoints back that panel, all ``system_admin`` only:
 
 .. code-block:: text
@@ -289,8 +289,8 @@ before the site takes traffic.
 A restored database has an empty registrations table (:ref:`backup-registry`).
 Until the next import fills it, the register reads *Registry not imported yet*
 and an N-number lookup finds nothing.  The ``caldart-registry`` timer, which the
-restore above leaves running, imports at 04:30; **Run now** on the System screen
-imports at once.
+restore above leaves running, imports at 04:30; **Run now** on the Health &
+Database page imports at once.
 
 There is no restore button in the portal, and there will not be one.  Wiping
 the database is not a thing to do from a browser tab.
@@ -435,7 +435,7 @@ Checking on all of this
 =======================
 
 ``manage.py health``, ``GET /system/health`` and the health panel of
-``/portal/system`` all return the same six facts:
+``/portal/system/health`` all return the same six facts:
 
 ========================  ==================================================
 Field                     Meaning

@@ -298,7 +298,7 @@ System
 ======
 
 All five routes are ``system_admin`` only, and every one of them is behind
-``/portal/system`` in the portal.  Restoring a dump is deliberately not among
+``/portal/system/health`` in the portal.  Restoring a dump is deliberately not among
 them: wiping the database is ``manage.py db_restore``, not a browser tab
 (:doc:`backup-restore`).
 
@@ -517,7 +517,7 @@ with it:
      "source": "https://registry.faa.gov/database/ReleasableAircraft.zip"
    }
 
-The System screen then polls ``GET /aircraft/registry`` (:doc:`api-aircraft`)
+The Health & Database page then polls ``GET /aircraft/registry`` (:doc:`api-aircraft`)
 every five seconds until ``running`` is false, and reads the outcome from its
 ``last``.
 

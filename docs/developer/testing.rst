@@ -940,7 +940,7 @@ document has eight keys:
    written ``YYYY/MM/DD`` as the screens print it.  ``aircraft-registry.spec.ts``
    adds that airplane from My aircraft, typing a prefix of ``knownNNumber``
    into the N-number box and picking it from the list, and runs the import from
-   the System screen, which ``make e2e`` points at the registry fixture through
+   the Health & Database page, which ``make e2e`` points at the registry fixture through
    ``FAA_REGISTRY_URL`` (:doc:`aircraft-registry`).
 
 Every member is found in the seeded data rather than typed into the spec, and

@@ -599,8 +599,8 @@ Statuses:
 --------------------------
 
 The date the registry is as of, whether an import is running, and the newest
-import.  The register's header and the System screen's *FAA registry import*
-row read it; the System screen polls it every five seconds while ``running``.
+import.  The register's header and the Health & Database page's *Aircraft
+database* panel read it; that page polls it every five seconds while ``running``.
 
 .. code-block:: json
 

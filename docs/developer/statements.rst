@@ -71,8 +71,8 @@ takes the ``year`` to send statements for, and returns a ``StatementRun``:
 
 One giver's problem never stops the run.  Before sending, the account's
 ``YearStatement`` row for the year is claimed with ``get_or_create``, so two
-runs started at once -- the timer and an operator's click on the System
-screen, say -- cannot both email the same address: the second finds the row
+runs started at once -- the timer and an operator's click on the Scheduled
+page, say -- cannot both email the same address: the second finds the row
 already claimed and counts the account as skipped.  A dry run writes and
 emails nothing, and reports exactly the statements a live run would send,
 with the same totals, counting an account with no address on file as

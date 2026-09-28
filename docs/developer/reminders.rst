@@ -169,7 +169,7 @@ Either way the scan carries on with the next member and returns its summary.
 non-zero when it is not zero, which is what makes the systemd unit go to
 ``failed`` and show up in ``systemctl list-timers`` and the journal.  The
 ``POST /system/reminders/run`` payload carries
-``{sent, skipped, failed, skipped_by_reason, actions}``, so the System screen
+``{sent, skipped, failed, skipped_by_reason, actions}``, so the Scheduled page
 says why a thin run was thin without anybody reading the log.
 
 
@@ -222,7 +222,7 @@ The command exits 0 when ``failed`` is 0, and 1 with a ``CommandError`` on
 stderr when it is not.  Everything it managed to send is still sent, and the
 summary is still printed; the non-zero status is what the timer notices.
 
-System administrators can also run the scan from ``/portal/system``, with the
+System administrators can also run the scan from ``/portal/system/scheduled``, with the
 same dry-run switch.  That endpoint is ``POST /system/reminders/run`` and
 returns ``{"sent": n, "skipped": n, "failed": n, "skipped_by_reason": {...},
 "actions": [...]}``, the same actions the command prints; see :doc:`api-system`.
@@ -379,8 +379,9 @@ reminders, newest first, with a filter by kind.
    job.  :doc:`/user/admin/reminders` describes it for the people
    who use it.
 
-``/portal/system``
-   The reminders panel of the System page, guarded by ``system_admin``.  The
+``/portal/system/scheduled``
+   The *Renewal reminder emails* panel of the Scheduled page, guarded by
+   ``system_admin``.  The
    same table with the *Run now* button and the *Dry run* switch above it,
    which call ``POST /system/reminders/run``.
 

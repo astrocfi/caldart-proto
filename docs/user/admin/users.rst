@@ -115,7 +115,8 @@ What each role opens
   records.
 - **Website administrator**: the website's editor, for pages, images, documents, redirects,
   and site settings.
-- **System administrator**: everything above, plus the :doc:`system` page.
+- **System administrator**: everything above, plus the :doc:`health-database`,
+  :doc:`sent-emails`, and :doc:`scheduled` pages.
 
 Every role beyond Member also opens the members-only pages of the website, even when the
 holder's own membership has lapsed.

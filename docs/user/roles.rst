@@ -161,9 +161,12 @@ System administrator
 A system administrator holds every role above and can do everything they can. The
 role adds:
 
-* **System** (:doc:`admin/system`): the site's health, database backups, the five
-  jobs that run on a timer (renewal reminders, automatic renewals, scheduled
-  reports, year-end contribution statements, and the FAA registry import) with a
-  way to run each now, and the log of every email CalDART has sent.
+* **Health & Database** (:doc:`admin/health-database`): the site's health, database
+  backups, and the aircraft database loaded from the FAA registry, with a way to load
+  it now.
+* **Sent Emails** (:doc:`admin/sent-emails`): the log of every email CalDART has sent.
+* **Scheduled** (:doc:`admin/scheduled`): the four jobs that run on a schedule (the
+  renewal reminder emails, the automatic renewal charges, the scheduled reports, and
+  the year-end contribution statements), with a way to run each now.
 
 A system administrator cannot deactivate their own account.

@@ -538,7 +538,9 @@ File                      Routes, and who may open them
                           ``treasurer``
 ``admin-reminders.tsx``   ``/admin/reminders``: ``account_admin``
 ``admin-users.tsx``       ``/admin/users``, ``/admin/users/:id``: ``user_admin``
-``system.tsx``            ``/system``: ``system_admin``
+``system.tsx``            ``/system/health``, ``/system/emails``,
+                          ``/system/scheduled``: ``system_admin``;
+                          ``/system`` redirects to ``/system/health``
 ``not-found.tsx``         any other path
 ========================  ======================================================
 
@@ -651,7 +653,7 @@ the files they test, and an ``index.ts`` of what the route files use:
                         the form's N-number typeahead over the FAA
                         registry, the aircraft type typeahead with **Add a
                         type**, and the registry state the register and the
-                        System page read
+                        Health & Database page read
 ``leader``              the DART leader's member check and aircraft check
 ``verification``        the verification panels for a person's certificate,
                         medical, and photo ID and for an aircraft's
@@ -659,9 +661,11 @@ the files they test, and an ``index.ts`` of what the route files use:
                         the three writes behind them, and ``useCanVerify``
 ``admin-*``             the members, aircraft, DARTs, payments, reminder-log,
                         reports, notifications, and users screens
-``system``              the System page: health, backups, the email log, and
-                        the five scheduled jobs, the FAA registry import among
-                        them
+``system``              the three System pages: Health & Database (health,
+                        backups, and the FAA registry import), Sent Emails
+                        (the email log), and Scheduled (the reminder emails,
+                        the renewal charges, the scheduled reports, and the
+                        year-end statements)
 ======================  ======================================================
 
 Shared code sits outside ``features/``: ``components/`` holds the primitives
@@ -790,13 +794,13 @@ so a second run sends nothing twice, and it marks lapsed terms expired;
 lifetime members are skipped.  ``deploy/systemd/caldart-reminders.timer``
 runs it daily at 07:00 in production, ``make reminders`` in development
 (``TODAY=YYYY-MM-DD`` scans as of another date, ``DRY_RUN=1`` rehearses),
-and a system administrator can run it from the portal's System page
+and a system administrator can run it from the portal's Scheduled page
 (:doc:`reminders`).
 
 **Backups.**  ``db_backup`` writes a gzipped ``pg_dump`` into ``BACKUP_DIR``
 (``backups/`` by default), inside the Compose database container while
 ``DB_BACKUP_VIA_DOCKER`` is on, the default, and with a local ``pg_dump``
-otherwise.  ``make backup`` runs it, and so does the System page, which also
+otherwise.  ``make backup`` runs it, and so does the Health & Database page, which also
 lists and downloads dumps.  No backup timer ships in ``deploy/``
 (:doc:`backup-restore` shows how to add one), and restore and reset are
 command-line only, so nothing destructive is one click away.  ``health``

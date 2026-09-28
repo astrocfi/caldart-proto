@@ -36,8 +36,8 @@ year on screen as a PDF. It is the same document the person can download from th
 
 Every active account that gave that year is also emailed its statement, once, with the
 subject *The California DART Network: your 2025 contribution statement* (with that
-year's number). A system administrator runs and checks that sending from the **System**
-screen.
+year's number). A system administrator runs and checks that sending from the
+:doc:`../admin/scheduled` screen.
 
 Download the list
 ~~~~~~~~~~~~~~~~~

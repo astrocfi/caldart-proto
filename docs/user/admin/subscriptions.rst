@@ -149,4 +149,4 @@ whether that is still so. If a roster never reaches a DART's people, check on :d
 that somebody is ticked **Roster** and has an email address, then run **Send rosters now**
 with **Dry run (send nothing)** ticked to see who it would reach. If a line reads *Not sent*
 and blames the mail server, try **Send now** again later, and tell a system administrator if
-it keeps failing; they can see every email CalDART tried to send on the :doc:`system` page.
+it keeps failing; they can see every email CalDART tried to send on the :doc:`sent-emails` page.
