@@ -1070,7 +1070,11 @@ The vhost:
   ``SECURE_PROXY_SSL_HEADER`` in ``prod.py`` reads, and gunicorn only accepts
   it from loopback, so a client cannot forge it;
 * serves ``/media/`` from ``/opt/caldart/media/``, the deploy root's uploads
-  (``MEDIA_ROOT``), with a one-week cache
+  (``MEDIA_ROOT``), as its own user: the site writes every upload ``0644`` and
+  every directory under it ``0755`` (``FILE_UPLOAD_PERMISSIONS`` and
+  ``FILE_UPLOAD_DIRECTORY_PERMISSIONS`` in ``base.py``), whatever umask it runs
+  under, and the user step repairs any directory an earlier run left
+  ``0750``; with a one-week cache
   and ``X-Content-Type-Options: nosniff``, never runs a script from there, and
   excludes it from the proxy;
 * denies ``/opt/caldart/media/documents``, the directory Wagtail writes

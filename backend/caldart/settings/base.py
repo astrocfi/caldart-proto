@@ -231,6 +231,12 @@ STATICFILES_DIRS = [REPO_ROOT / "frontend" / "dist", BASE_DIR / "static"]
 MEDIA_URL = f"{URL_PREFIX}/media/"
 # A server keeps the uploads beside the checkout, in the deploy root, rather than in it.
 MEDIA_ROOT = Path(env("MEDIA_ROOT", default=str(BASE_DIR / "media")))
+# The web server serves ``/media/`` straight off disk as its own user, so every
+# upload and every directory the site creates under ``MEDIA_ROOT`` must be readable
+# by others whatever umask the service runs under (the units use ``UMask=0027``,
+# which would otherwise leave a new directory ``0750`` and the web server refused).
+FILE_UPLOAD_PERMISSIONS = 0o644
+FILE_UPLOAD_DIRECTORY_PERMISSIONS = 0o755
 
 # The built user guide, which ``caldart.views.user_guide`` serves at ``/docs/``
 # to signed-in users.  ``make guide`` writes it here; a deployment that builds
