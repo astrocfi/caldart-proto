@@ -3,8 +3,9 @@ Join CalDART
 ============
 
 The **Join CalDART** wizard creates your account and, for a member, takes your first
-year's dues. It takes about three minutes. Membership is $45 a year, or $650 for
-life. You can also join as a friend of CalDART, a supporter who pays no dues.
+year's dues. It takes about three minutes. Membership is annual or for life, and the
+pay step shows the prices. You can also join as a friend of CalDART, a supporter who
+pays no dues.
 
 You open it from **Join CalDART** in the public site's top menu, from the **Join
 CalDART** buttons on the home page, or from *Not a member yet?* on the sign-in
@@ -19,15 +20,23 @@ finish: **Account**, **Verify**, **Profile**, **Pay**, and **Done**. The line ab
 each step's title says where you are, for example *Step 2 of 5 · Joining as a
 friend*.
 
-You can close the tab at any point and come back later, on any browser or device.
-The wizard works out how far you got from your account, your profile, and your
-membership, and puts you back on that step. You can always go back to an earlier
-step, but you cannot skip ahead of one you have not finished.
+Until you finish, the wizard is the whole portal. There is no menu down the left,
+and any other portal screen you open brings you back to the step you still have to
+finish. The header keeps **Help**, your address, and **Sign out**. The user guide
+stays open to you from **Help**.
 
-You are a member once you pay. If you chose **Join as a member** and stop before
-paying, you are a friend of CalDART until your first payment clears: your dashboard
-shows the friend card with **Make me a member**, and members-only pages stay closed.
-Open the wizard again and it puts you back on **Pay your dues**.
+You can close the tab or sign out at any point and come back later, on any browser
+or device. When you sign in again, the wizard puts you back on the step you last
+saw: it works out how far you got from your address, your profile, and your
+membership, and you leave a step only by finishing it. You can always go back to an
+earlier step, but you cannot skip ahead of one you have not finished.
+
+You have finished joining once your address is verified, your profile is complete,
+and, if you chose **Join as a member**, your first payment has cleared or you have
+chosen to be a friend instead on the pay step. A friend has finished once the
+profile is saved; paying is optional. An account an administrator created for you
+works the same way: if its profile is missing something, your first sign-in opens
+the profile step.
 
 
 Step 1: Account
@@ -83,6 +92,11 @@ The link opens the **Email verified** screen (see :doc:`verify-email`); press
 * **Use a different email address** opens :doc:`change-email` to fix a mistyped
   address, and brings you back here. A fresh message goes to the corrected one.
 
+Nothing else in the portal is available until you verify your email address. If
+you sign out, or close the tab, and sign in again before you have followed the
+link, you land back on **Check your email**: press **Resend verification message**
+there if the first message is lost or its link has expired.
+
 The link is good for three days. An address you verified before skips this step.
 
 
@@ -107,10 +121,17 @@ Step 4: Pay
 ===========
 
 A member's step is headed **Pay your dues**. Membership starts the moment the
-payment clears; there is nobody to wait for.
+payment clears; there is nobody to wait for. There is no way past this step except
+paying or choosing to be a friend instead.
 
 #. **Membership.** Choose **Annual** ($45.00, *One year*) or **Life** ($650.00,
-   *One payment, membership for life*). Annual is chosen for you.
+   *One payment, membership for life*). Annual is chosen for you. The third card,
+   **I changed my mind, I just want to be a friend** (*A friend has an account and
+   hears from CalDART, but is not a member.*), is for joining as a friend after
+   all: choosing it hides the rest of the form and shows one button, **Continue as
+   a friend**. Pressing it makes your account a friend of CalDART and takes you to
+   the done step. You can still become a member later (see
+   :doc:`become-a-member`).
 #. **Add a contribution.** CalDART is a 501(c)(3), so a contribution on top of your
    dues is tax deductible and pays for training, fuel, and equipment. Choose a tier
    (Participating $20, Bronze $100, Silver $300, Gold $1,000, Diamond $3,000, or
@@ -155,8 +176,9 @@ check.
 Step 5: Done
 ============
 
-The step is headed **Welcome to CalDART**, with your membership chip and the date
-your membership runs until. A life member reads *You are a life member. There is
+The lede reads *You are a member of CalDART.*, or *You are a friend of CalDART.* for
+a friend. The step is headed **Welcome to CalDART**, with your membership chip and
+the date your membership runs until. A life member reads *You are a life member. There is
 nothing more to pay, ever.* A friend reads *You are a friend of CalDART: no dues,
 no expiry. Become a member any time.*
 
@@ -165,7 +187,8 @@ with the PDF attached, subject *CalDART: your receipt for $45.00* (with your own
 amount). You can download it again from :doc:`payments`.
 
 Two buttons take you on: **Go to my dashboard** and **Add the planes I fly** (see
-:doc:`my-aircraft`). A member also sees **What you can read now**, the
+:doc:`my-aircraft`). From here the whole portal is open, with its menu down the
+left. A member also sees **What you can read now**, the
 members-only pages the membership opens (see :doc:`members-only-content`).
 
 If the step is headed **Almost there**, your payment has not cleared yet, and you are

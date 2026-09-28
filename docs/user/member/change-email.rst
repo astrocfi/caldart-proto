@@ -25,15 +25,17 @@ What happens next
 =================
 
 *Your email is now marta.reyes@example.org. We sent a verification message to it.*
-appears, and you return to your dashboard, or to the join wizard if you came from
-its **Use a different email address** link. You stay signed in on the device you
+appears, and you land on the join wizard's **Check your email** screen, which names
+the new address. You stay signed in on the device you
 changed it from, and from then on you sign in with the new address.
 
 CalDART sends the new address a message with the subject *CalDART: verify your
 email address*. The address is unverified until you open its link (see
-:doc:`verify-email`). Until then your dashboard shows a **Verify your email address**
-card with **Resend verification message**. An unverified address does not lock you
-out of anything.
+:doc:`verify-email`). Until then **Check your email** is all of the portal you can
+use: every other screen brings you back to it, and there is no menu down the left.
+It offers **Resend verification message**, and **Use a different email address**,
+which opens this screen again so that a mistyped address can be corrected. Once
+you follow the link, **Continue** takes you back to your dashboard.
 
 Capital letters make no difference: Marta@example.org and marta@example.org are the
 same address.
@@ -57,5 +59,6 @@ If something looks wrong
 ========================
 
 If the verification message does not arrive, look in your spam folder, then press
-**Resend verification message** on your dashboard. If you changed to a mistyped
-address, you can still sign in with it: sign in, then change it again here.
+**Resend verification message** on **Check your email**. If you changed to a
+mistyped address, you can still sign in with it: sign in, and press **Use a
+different email address** on the screen you land on to change it again.

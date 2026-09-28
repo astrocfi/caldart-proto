@@ -30,9 +30,9 @@ matter which device your email program opens it on.
 
 **Continue** takes you on to the right place:
 
-* the join wizard's profile step, if you are part way through joining (see
-  :doc:`join`);
-* your :doc:`dashboard`, if you are signed in and your profile is complete;
+* the next step of the join wizard, if you are signed in and have not finished
+  joining (see :doc:`join`);
+* your :doc:`dashboard`, if you are signed in and have finished joining;
 * the **Sign in** screen with your address already filled in, if you are not
   signed in. Signing in there carries you on into the join wizard.
 
@@ -42,11 +42,12 @@ If the link does not work
 
 The screen says **Email not verified** with the reason, usually *That verification
 link is invalid or has expired.* Sign in, and press **Resend verification
-message** on your dashboard to get a new one.
+message** on the screen you land on to get a new one.
 
-An address that is still unverified does not lock you out of anything. Your
-dashboard shows a **Verify your email address** card until you follow the link,
-and the join wizard waits on its **Check your email** step.
+Until the address is verified, that **Check your email** screen is all of the
+portal you can use: every other screen brings you back to it, and there is no menu
+down the left. This holds for an address you have just changed, too (see
+:doc:`change-email`).
 
 
 If something looks wrong

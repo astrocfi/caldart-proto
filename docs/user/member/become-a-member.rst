@@ -9,7 +9,9 @@ Nothing changes if you leave this page.*
 
 You reach it from **Make me a member**, which a friend finds on the membership card
 of the :doc:`dashboard`, on the **Your kind of account** card of :doc:`profile`, and
-on the wall of any members-only page (see :doc:`members-only-content`).
+on the wall of any members-only page (see :doc:`members-only-content`). It is open
+to every friend, including one who chose **I changed my mind, I just want to be a
+friend** while joining (see :doc:`join`).
 
 
 What you see

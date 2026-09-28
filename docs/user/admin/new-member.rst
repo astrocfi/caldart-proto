@@ -55,7 +55,12 @@ tell them the password yourself. They are sent an email with the subject *CalDAR
 your email address*, and their address shows **Unverified** on their record until they open
 the link in it.
 
-Either way the account can use the portal, with an empty profile ready to fill in.
+Either way the person's first sign-in opens the join wizard (see :doc:`../member/join`),
+and the rest of the portal stays closed until they finish it:
+they verify the address if it is not verified yet, fill in any required profile field you
+left empty, and, when the kind is member and no term has started, pay their dues or choose
+to be a friend instead. Grant the term first, as below, and complete the profile, and they
+go straight to the dashboard.
 Creating an account does not give anybody a membership: the account is a friend of CalDART
 until a term starts, and reads **Friend** on :doc:`members` and on its record whichever
 kind you chose. Grant a term on the **Memberships** tab of the :doc:`member-record`, or let

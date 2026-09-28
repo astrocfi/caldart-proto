@@ -291,8 +291,9 @@ and *Not a pilot* counts; ``state`` is a list that defaults to ``CA``.
 One list serves every reader of it:
 
 - ``profile_complete`` on the user payload (:doc:`api-auth`) is
-  ``MemberProfile.is_complete`` over those six fields.  It is what the
-  dashboard nudge and the join wizard's step gating key off.
+  ``MemberProfile.is_complete`` over those six fields.  It gates the portal:
+  while it is false, every signed-in screen sends the reader to the join
+  wizard's profile step, and the wizard's step order keys off it too.
 - The portal's profile form requires exactly the same six
   (``REQUIRED_PROFILE_FIELDS`` in
   ``frontend/src/portal/features/profile/form.ts``), so a profile the form

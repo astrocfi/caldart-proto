@@ -23,9 +23,10 @@ Create an account
    CalDART**, or press **Not now**.
 #. On **Welcome to CalDART**, press **Go to my dashboard**.
 
-You are a member once you pay. If you stop before paying, you are a friend: your
-dashboard shows **Make me a member**, and **Join CalDART** takes you back to **Pay
-your dues** whenever you are ready.
+Until the last step, the wizard is the whole portal: there is no menu, and signing
+in again brings you back to the step you still have to finish. A member who would
+rather not pay after all chooses **I changed my mind, I just want to be a friend**
+on **Pay your dues**, then **Continue as a friend**.
 
 Next time, choose **Sign in** in the public site's top menu and use the same email
 address and password. See :doc:`member/join`, :doc:`member/verify-email`, and

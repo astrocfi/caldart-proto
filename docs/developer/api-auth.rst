@@ -92,22 +92,25 @@ Every endpoint that returns an account returns the same object:
 ``profile_complete``
    True when the member profile has ``phone``, ``address_line1``, ``city``,
    ``state``, ``postal_code``, and ``pilot_certificate_type`` filled in.  False when there is
-   no profile at all.  The portal uses it to decide whether to nag.
+   no profile at all.  The portal holds a reader whose profile is incomplete at the
+   join wizard's profile step (see `How the portal uses this`_).
 
 ``email_verified``
    True once the account's owner has followed a link sent to the address the
    account holds now: a verification link (see `Email verification`_), or a
    password reset or invitation link.  A new account and a changed address
-   start false.  The join wizard waits on it, and the dashboard asks for it;
-   nothing else in the portal is gated on it.
+   start false.  While it is false the API refuses the session everything but a
+   few endpoints (see `Unverified sessions`_), and the portal shows only the join
+   wizard's verify step.
 
 ``kind``
    ``member``, ``friend``, or ``donor``, as stored (:ref:`kinds of account <account-kinds>`):
    what the person asked to be.  A member with a pending ``friend_on`` still
    reads ``member`` here until the day comes; ``membership.status`` already
    reads ``friend`` from that day.  A member who registered and has not paid
-   reads ``kind: "member"`` with ``membership.status: "friend"``, and the join
-   wizard reads the pair to put them back on its payment step.
+   reads ``kind: "member"`` with ``membership.status: "friend"`` and
+   ``friend_on: null``, and the portal reads the three to hold them at the join
+   wizard's payment step.
 
 ``friend_on``
    The date a member who asked to become a friend becomes one, or ``null``.
@@ -236,6 +239,10 @@ case-insensitive (``UserManager.get_by_natural_key`` uses ``email__iexact``).
 A donor cannot sign in at all.  A donor's account holds no usable password, and
 even one that somehow does is answered with the same 400 as wrong
 credentials.
+
+An account whose address is unverified signs in like any other and gets its
+session, but that session reaches only the endpoints listed under `Unverified
+sessions`_ until the address is verified.
 
 Statuses: **200** with the user payload and a session cookie; **400** for a
 missing field or wrong credentials; **403** for a deactivated account whose
@@ -566,6 +573,34 @@ stays signed in.
 
 Statuses: **200**; **400** for any rejection above or a missing field;
 **401** when anonymous.
+
+
+Unverified sessions
+-------------------
+
+A signed-in account whose ``email_verified`` is false may call only these:
+
+* the endpoints an anonymous visitor may call: ``GET /auth/csrf``,
+  ``POST /auth/login``, ``POST /auth/register``, ``POST /auth/password/reset``, and
+  ``POST /auth/password/reset/confirm``;
+* ``GET /auth/me`` and ``POST /auth/logout``;
+* ``POST /auth/email/verify``, ``POST /auth/email/resend``, and
+  ``POST /auth/email/change``;
+* ``GET /site/config``.
+
+Every other request under ``/api/v1/``, read or write, is answered::
+
+    403 {"detail": "Verify your email address to continue.", "code": "email_unverified"}
+
+The check is ``apps.accounts.middleware.EmailVerificationGateMiddleware``,
+installed after ``AuthenticationMiddleware``.  It runs before the view, matches the
+allowed routes by their URL names (``UNVERIFIED_ALLOWED_VIEWS``), and leaves an
+anonymous request, a verified account, and every path outside the API alone, so
+the user guide at ``/docs/`` stays readable.  It is enforced on the server, not
+only by the portal's screens: an unverified account cannot read or change its
+profile, pay, or open an administrative endpoint by calling the API directly.
+Following the link, or an administrator's resend being followed, opens the rest
+of the API on the next request.
 
 
 Roles
@@ -936,6 +971,11 @@ person presses one — no address signs anybody out by being opened.
 
 ``src/portal/auth/guards.tsx`` turns a missing session into a redirect to
 ``/login?next=<where they were going>`` and a missing role into the 403 page.
+``RequireOnboarded``, nested inside ``RequireAuth`` around every signed-in route
+except ``/change-email``, sends a reader who has not finished joining
+(``isOnboarded`` in ``features/join/steps.ts``) to ``/join/verify``,
+``/join/profile``, or ``/join/pay``, whichever they still owe; the portal chrome
+draws no rail for them (see :doc:`architecture`).
 The guards wait for ``GET /auth/me`` to settle first, so a slow answer never
 flashes the sign-in page at somebody who is in fact signed in.
 
@@ -974,6 +1014,11 @@ Tests
 
 ``backend/tests/test_auth_api.py``
    The minimal surface the portal shell needs — CSRF, login, logout, me.
+
+``backend/tests/test_verification_gate.py``
+   The unverified-session gate: the 403 and its code on member endpoints, each
+   allowed endpoint, no effect on a verified or anonymous caller or on the user
+   guide, and the verification email's advice for an expired link.
 
 ``backend/tests/test_account_services.py``
    ``accounts.services`` on its own: creating an account, and each edit rule
