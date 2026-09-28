@@ -16,9 +16,9 @@
 # --gunicorn-port given to a later run moves gunicorn: the run writes the port
 # into the environment file, rewrites the vhost or snippet, restarts gunicorn,
 # and reloads the web server, in that order.
-# --email-url, --email, --from-email, --admin-email, and --seed-content are
-# used by the run that writes the environment file or creates the
-# administrator, and are not recorded.
+# --email-url, --email, --from-email, --admin-email, --seed-demo, and
+# --seed-content are used by the run that writes the environment file or
+# creates the administrator, and are not recorded.
 #
 # Usage:
 #   sudo deploy/install.sh [options]
@@ -49,6 +49,9 @@
 #                              (EMAIL_URL=smtp://localhost:25) instead of --email-url
 #   --from-email ADDRESS       DEFAULT_FROM_EMAIL (default CalDART <noreply@HOST>)
 #   --admin-email ADDRESS      create the first administrator with this address
+#   --seed-demo                load the demo accounts (the shared password README.rst
+#                              documents; a server seeded with them is a demonstration
+#                              server)
 #   --seed-content             load the example pages
 #   --dry-run                  print every state-changing command instead of running it
 #   --help                     show this help
@@ -143,6 +146,7 @@ parse_flags() {
                 ADMIN_EMAIL="$(option_value "$1" "${2:-}")"
                 shift
                 ;;
+            --seed-demo) SEED_DEMO=yes ;;
             --seed-content) SEED_CONTENT=yes ;;
             --dry-run) enable_dry_run ;;
             --help)

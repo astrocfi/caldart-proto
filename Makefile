@@ -120,6 +120,7 @@ E2E_ENV := DJANGO_SETTINGS_MODULE=caldart.settings.dev \
 #                        empty, the installer's own default)
 #   REHEARSE_DB_PORT     a port such as 5433 for the installer's --db-port, where
 #                        Postgres is published (default: empty, meaning 5432)
+#   REHEARSE_SEED        a switch: add --seed-demo --seed-content to the install
 #   REHEARSE_KEEP        a switch: keep the container and its volumes afterwards
 #
 # With REHEARSE_URL_PREFIX the recipe first stands up the existing site: the web
@@ -135,7 +136,15 @@ E2E_ENV := DJANGO_SETTINGS_MODULE=caldart.settings.dev \
 # file must carry the port, and gunicorn must answer 200 there; the install's own
 # checks then confirm the site answers through the proxy.  With REHEARSE_DB_PORT
 # the database container must be published on 127.0.0.1 at that port, and the
-# install's checks, which reach it there, must pass.
+# install's checks, which reach it there, must pass.  With REHEARSE_SEED the
+# install loads the demo accounts and the example pages; since the demo
+# mandates use the mock payment provider and production leaves it off, the
+# recipe also turns it on, so caldart-renewals (step 2) has a provider to
+# charge against.  The container also has no mail transport of its own, so
+# the recipe installs postfix too, so caldart-reminders, caldart-reports and
+# caldart-statements (step 2) can send mail; then it asserts that manage.sh
+# health --json still passes and that the sign-in page still answers, so
+# seeding disturbed neither.
 #
 # It installs HEAD, never the working tree, because bootstrap.sh clones the
 # checkout: commit before rehearsing.  A git worktree's .git is a file naming a
@@ -149,9 +158,11 @@ REHEARSE_IMAGE := jrei/systemd-ubuntu:24.04
 REHEARSE_URL_PREFIX ?=
 REHEARSE_GUNICORN_PORT ?=
 REHEARSE_DB_PORT ?=
+REHEARSE_SEED ?=
 # A prefix rehearsal gets its own container and volumes, so it can run beside
 # a plain one on the same web server.
-REHEARSE_NAME = caldart-rehearsal-$(REHEARSE_WEB_SERVER)$(if $(REHEARSE_URL_PREFIX),-prefix)$(if $(REHEARSE_GUNICORN_PORT),-port)$(if $(REHEARSE_DB_PORT),-db)
+REHEARSE_NAME = caldart-rehearsal-$(REHEARSE_WEB_SERVER)$(if $(REHEARSE_URL_PREFIX),-prefix)$(if $(REHEARSE_GUNICORN_PORT),-port)$(if $(REHEARSE_DB_PORT),-db)$(if $(REHEARSE_SEED_FLAG),-seed)
+REHEARSE_SEED_FLAG = $(call flag,REHEARSE_SEED,seed)
 # The directory the web server in the container reads its configuration from.
 REHEARSE_CONFIG_DIR_apache := /etc/apache2
 REHEARSE_CONFIG_DIR_nginx := /etc/nginx
@@ -326,7 +337,7 @@ e2e: ## Playwright end-to-end tests (own database, own server, mock payments; E2
 	  cd frontend && E2E_BASE_URL="$(E2E_SITE_URL)" $(NPM) run e2e \
 	    || { echo; echo "==== last 100 lines of $$logs ===="; dump_logs 100; exit 1; }
 
-rehearse-deploy: ## Rehearse the server install in a throwaway systemd container (REHEARSE_WEB_SERVER=apache|nginx, REHEARSE_URL_PREFIX=/path, REHEARSE_GUNICORN_PORT=port, REHEARSE_DB_PORT=port)
+rehearse-deploy: ## Rehearse the server install in a throwaway systemd container (REHEARSE_WEB_SERVER=apache|nginx, REHEARSE_URL_PREFIX=/path, REHEARSE_GUNICORN_PORT=port, REHEARSE_DB_PORT=port, REHEARSE_SEED=1)
 	@case "$(REHEARSE_WEB_SERVER)" in apache|nginx) ;; \
 	  *) echo "REHEARSE_WEB_SERVER=$(REHEARSE_WEB_SERVER) is not apache or nginx" >&2; exit 2 ;; esac
 	@case "$(REHEARSE_URL_PREFIX)" in ''|/*) ;; \
@@ -341,6 +352,7 @@ rehearse-deploy: ## Rehearse the server install in a throwaway systemd container
 	  name=$(REHEARSE_NAME); keep="$(REHEARSE_KEEP_FLAG)"; started=$$(date +%s); \
 	  prefix="$(REHEARSE_URL_PREFIX)"; standin="$(REHEARSE_STANDIN)"; \
 	  port="$(REHEARSE_GUNICORN_PORT)"; dbport="$(REHEARSE_DB_PORT)"; \
+	  seed="$(REHEARSE_SEED_FLAG)"; \
 	  log=$$(mktemp); \
 	  inside() { docker exec "$$name" "$$@"; }; \
 	  configtest() { \
@@ -350,7 +362,7 @@ rehearse-deploy: ## Rehearse the server install in a throwaway systemd container
 	  cleanup() { \
 	    status=$$?; \
 	    rm -f "$$log"; \
-	    echo "==> rehearsal on $(REHEARSE_WEB_SERVER)$${prefix:+ under $$prefix}$${port:+ with gunicorn on $$port}$${dbport:+ and Postgres on $$dbport} took $$(( $$(date +%s) - started ))s and exited $$status"; \
+	    echo "==> rehearsal on $(REHEARSE_WEB_SERVER)$${prefix:+ under $$prefix}$${port:+ with gunicorn on $$port}$${dbport:+ and Postgres on $$dbport}$${seed:+, seeded} took $$(( $$(date +%s) - started ))s and exited $$status"; \
 	    if [ -n "$$keep" ]; then \
 	      echo "==> kept $$name; docker exec -it $$name bash to look inside"; \
 	    else \
@@ -404,6 +416,7 @@ rehearse-deploy: ## Rehearse the server install in a throwaway systemd container
 	  fi; \
 	  if [ -n "$$port" ]; then set -- "$$@" --gunicorn-port "$$port"; fi; \
 	  if [ -n "$$dbport" ]; then set -- "$$@" --db-port "$$dbport"; fi; \
+	  if [ -n "$$seed" ]; then set -- "$$@" --seed-demo --seed-content; fi; \
 	  inside bash /mnt/caldart/deploy/bootstrap.sh --repo /mnt/caldart --ref "$(REHEARSE_REF)" \
 	    --hostname caldart.test --web-server $(REHEARSE_WEB_SERVER) \
 	    --admin-email admin@caldart.test "$$@" 2>&1 | tee "$$log"; \
@@ -438,6 +451,22 @@ rehearse-deploy: ## Rehearse the server install in a throwaway systemd container
 	    inside docker port caldart-db-1 5432 | grep -qx "127.0.0.1:$$dbport" \
 	      || { echo "error: the database container is not published on 127.0.0.1:$$dbport" >&2; exit 1; }; \
 	  fi; \
+	  if [ -n "$$seed" ]; then \
+	    echo "==> Enabling mock payments and postfix, so the seeded jobs can run for real"; \
+	    : "seed_demo's renewal mandates use the mock provider so the scheduled jobs"; \
+	    : "have something to do; production leaves it off, so the demo needs it named"; \
+	    : "here, the same way an operator demonstrating checkout would."; \
+	    inside sh -c 'echo PAYMENTS_MOCK_ENABLED_IN_PRODUCTION=true >> /etc/caldart/caldart.env'; \
+	    inside bash -c "printf '%s\n' 'postfix postfix/main_mailer_type select Internet Site' \
+	      'postfix postfix/mailname string caldart.test' | debconf-set-selections"; \
+	    inside env DEBIAN_FRONTEND=noninteractive apt-get install -y -qq postfix >/dev/null; \
+	    inside systemctl start postfix; \
+	    echo "==> Checking that the demo accounts did not disturb health or sign-in"; \
+	    inside /opt/caldart/deploy/manage.sh health --json >/dev/null \
+	      || { echo "error: manage.sh health --json failed after seeding" >&2; exit 1; }; \
+	    site -o /dev/null -w '%{http_code}\n' "https://caldart.test$$prefix/portal/login" | grep -qx 200 \
+	      || { echo "error: the sign-in page does not answer after seeding" >&2; exit 1; }; \
+	  fi; \
 	  : "The install started the registry import itself; it downloads the FAA file."; \
 	  echo "==> Running every other scheduled job once, hardening and all"; \
 	  inside systemctl start caldart-backup.service caldart-reports.service \
@@ -461,7 +490,7 @@ rehearse-deploy: ## Rehearse the server install in a throwaway systemd container
 	    fi; \
 	    configtest; \
 	  fi; \
-	  echo "==> The rehearsal on $(REHEARSE_WEB_SERVER)$${prefix:+ under $$prefix}$${port:+ with gunicorn on $$port}$${dbport:+ and Postgres on $$dbport} passed"
+	  echo "==> The rehearsal on $(REHEARSE_WEB_SERVER)$${prefix:+ under $$prefix}$${port:+ with gunicorn on $$port}$${dbport:+ and Postgres on $$dbport}$${seed:+, seeded} passed"
 
 # ----------------------------------------------------------------- lint
 lint: lint-backend lint-shell lint-frontend lint-spelling ## ruff + mypy + shellcheck + tsc + eslint + prettier + contrast + codespell

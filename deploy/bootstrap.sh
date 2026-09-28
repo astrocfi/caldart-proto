@@ -132,7 +132,9 @@ parse_flags() {
                         ;;
                     *)
                         case "$1" in
-                            --www | --no-www | --certbot-staging | --seed-content) PASSTHROUGH+=("$1") ;;
+                            --www | --no-www | --certbot-staging | --seed-demo | --seed-content)
+                                PASSTHROUGH+=("$1")
+                                ;;
                             *) usage_error "unknown option $1" ;;
                         esac
                         ;;

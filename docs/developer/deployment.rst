@@ -108,6 +108,10 @@ The flags:
    * - ``--admin-email ADDRESS``
      - create the first administrator
      - none
+   * - ``--seed-demo``
+     - load the demo accounts, sharing the password ``README.rst`` documents
+       (:ref:`deploy-database`)
+     - off
    * - ``--seed-content``
      - load the example pages
      - off
@@ -136,9 +140,10 @@ hostname, ``www``, the web server, the TLS mode, the certbot address, staging,
 the database port, the gunicorn port, the URL prefix, and the attached vhost file) are written to ``/etc/caldart/install.conf``,
 ``root:root``, mode ``0644``, holding no secret.  Every step reads it, so a
 later run needs no flags, and a flag given on a later run updates the record.
-``--email-url``, ``--email``, ``--from-email``, ``--admin-email``, and
-``--seed-content`` are used by the run that writes the environment file or
-creates the administrator, and are not recorded.  The first run stops with a
+``--email-url``, ``--email``, ``--from-email``, ``--admin-email``,
+``--seed-demo``, and ``--seed-content`` are used by the run that writes the
+environment file or creates the administrator, and are not recorded.  The
+first run stops with a
 usage error naming ``--hostname`` when no record exists, ``--email-url`` and
 ``--email local`` while no environment file exists, and ``--certbot-email``
 with certbot.  Giving both ``--email-url`` and ``--email local`` is a usage
@@ -165,9 +170,10 @@ note on standard error; the generated database password appears as
 output and an ``error:`` line naming the stage and the command; and at the end the checks of :ref:`deploy-check` and a summary: the
 site's address, the environment file, the administrator's one-time link when
 ``--admin-email`` created one, the Stripe, PayPal, and Geoapify settings still
-empty in the environment file, and, with a self-signed certificate, the
-browser warning.  Open the administrator's link to set a password; it lasts as
-long as any password-reset link (``PASSWORD_RESET_TIMEOUT``).
+empty in the environment file, a caution naming the shared demo password when
+``--seed-demo`` ran, and, with a self-signed certificate, the browser warning.
+Open the administrator's link to set a password; it lasts as long as any
+password-reset link (``PASSWORD_RESET_TIMEOUT``).
 
 **Afterwards.**  The site runs without payment or address keys: checkout
 offers no provider and the profile form offers no address suggestions until
@@ -728,6 +734,8 @@ been built.  A deployment that keeps the guide elsewhere sets
 The checkout stays root-owned and world-readable.
 
 
+.. _deploy-database:
+
 7. Database and static files (``steps/database.sh``)
 ====================================================
 
@@ -793,6 +801,7 @@ Preparing the database
   sudo deploy/manage.sh migrate
   sudo deploy/manage.sh createcachetable
   sudo deploy/manage.sh seed_roles
+  sudo deploy/manage.sh seed_demo        # with --seed-demo: demo accounts
   sudo deploy/manage.sh seed_content     # with --seed-content: example pages
   sudo deploy/manage.sh collectstatic --noinput
 
@@ -802,8 +811,21 @@ worker has to see the same counters; the PayPal access token sits there too,
 so one fetch serves every worker (see :ref:`paypal-token-cache`).  The command
 is idempotent, so running it again costs nothing.
 
-The step never runs ``seed_demo``, and neither should anyone on a production
-box: it creates demo accounts with a published password.
+``seed_demo`` and ``seed_content`` are idempotent too, ``get_or_create`` and
+``update_or_create`` throughout: running either again on an installed server
+updates the existing rows rather than duplicating them, and both run under
+``caldart.settings.prod`` like every other management command ``manage.sh``
+runs.  **Caution:** the demo accounts ``seed_demo`` creates share the password
+``README.rst`` documents, so a server seeded with them is a demonstration
+server, never one holding real member data.
+
+``seed_demo``'s renewal mandates use the mock payment provider, so
+``caldart-renewals`` has real work to do; production leaves that provider
+off, so it fails against the seeded mandates on a server until
+``PAYMENTS_MOCK_ENABLED_IN_PRODUCTION=true`` is set in the environment file.
+That switch also shows every visitor a **Test payment** tab with *Succeed*
+and *Fail* buttons, a way for anyone to grant themselves a membership with no
+money changing hands, as :doc:`payments-setup` describes.
 
 With ``--admin-email`` the step creates the first real administrator::
 
@@ -1684,9 +1706,11 @@ nothing to pull, ``install.sh`` again with no flags, and ``uninstall.sh --yes
 ``REHEARSE_WEB_SERVER=nginx``.  ``REHEARSE_URL_PREFIX=/caldart-proto``
 rehearses :ref:`deploy-prefix` instead, behind a stand-in for the existing
 site; ``REHEARSE_GUNICORN_PORT=8101`` installs with ``--gunicorn-port
-8101``, and ``REHEARSE_DB_PORT=5433`` with ``--db-port 5433``.  It is the way to try a change to anything
-under ``deploy/`` before a server sees it; :ref:`testing-rehearsal` describes
-what it runs and how the container is set up.
+8101``, ``REHEARSE_DB_PORT=5433`` with ``--db-port 5433``, and
+``REHEARSE_SEED=1`` with ``--seed-demo --seed-content``.  It is the way to try
+a change to anything under ``deploy/`` before a server sees it;
+:ref:`testing-rehearsal` describes what it runs and how the container is set
+up.
 
 
 Upgrading
