@@ -25,7 +25,13 @@
  * plan list then ends with a card for changing one's mind and becoming a friend of
  * CalDART instead.  Choosing it hides the contribution and the payment methods behind
  * one **Continue as a friend** button, which asks the server to make the account a
- * friend (`POST /me/kind/friend`) and then calls `onBecomeFriend`.
+ * friend (`POST /me/kind/friend`) and then calls `onBecomeFriend`.  An account that is
+ * a friend already has nothing to change, so the button calls `onBecomeFriend` at once.
+ *
+ * A host offering a friend's contribution may pass `onBecomeMember`: in `contribute`
+ * mode the contribution chooser is then followed by a link-styled **I changed my mind,
+ * I want to be a member** button that calls it.  Nothing is sent to the server: paying
+ * for a membership is what makes a member.  A life member is never offered it.
  */
 import { useEffect, useId, useMemo, useState } from 'react';
 import type { JSX } from 'react';
@@ -69,6 +75,12 @@ export interface SkippableCheckoutProps extends CheckoutProps {
    * offered only in `join` mode, and only when this is given.
    */
   onBecomeFriend?: () => void;
+  /**
+   * Called by the **I changed my mind, I want to be a member** button; the button is
+   * offered only in `contribute` mode, never to a life member, and only when this is
+   * given.
+   */
+  onBecomeMember?: () => void;
 }
 
 /**
@@ -81,6 +93,7 @@ export function Checkout({
   onScheduled: handleScheduled,
   onSkip: handleSkip,
   onBecomeFriend: handleBecomeFriend,
+  onBecomeMember: handleBecomeMember,
 }: SkippableCheckoutProps): JSX.Element {
   const { data: config, isPending, error } = usePaymentsConfig();
   const { user } = useAuth();
@@ -144,8 +157,13 @@ export function Checkout({
   const isContributing = effectiveMode === 'contribute';
   const offersFriend = effectiveMode === 'join' && handleBecomeFriend !== undefined;
   const isFriendChosen = offersFriend && plan === FRIEND_CHOICE;
+  const offersMember = isContributing && !isLifetime && handleBecomeMember !== undefined;
 
   function handleContinueAsFriend(): void {
+    if (user?.kind === 'friend') {
+      handleBecomeFriend?.();
+      return;
+    }
     becomeFriend.mutate({}, { onSuccess: () => handleBecomeFriend?.() });
   }
 
@@ -246,6 +264,18 @@ export function Checkout({
           if (next) setContributionCents(0);
         }}
       />
+
+      {offersMember ? (
+        <p className="checkout__switch">
+          <button
+            type="button"
+            className="checkout__switch-button"
+            onClick={() => handleBecomeMember?.()}
+          >
+            I changed my mind, I want to be a member
+          </button>
+        </p>
+      ) : null}
 
       <dl className="checkout__total">
         {isContributing ? null : (

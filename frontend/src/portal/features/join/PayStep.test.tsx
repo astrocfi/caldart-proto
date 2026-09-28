@@ -86,7 +86,7 @@ function Harness({ initial, onPaid: handlePaid, onDone: handleDone }: HarnessPro
       <span data-testid="kind">{kind}</span>
       <PayStep
         joiningAs={kind}
-        onJoiningAsChange={setKind}
+        onJoiningAsChange={(next) => setKind(next)}
         onPaid={handlePaid}
         onDone={handleDone}
       />

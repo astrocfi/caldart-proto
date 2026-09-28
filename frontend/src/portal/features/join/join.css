@@ -80,6 +80,15 @@
   max-width: 30rem;
 }
 
+/* The profile step holds the form `/profile` shows, so it takes the portal's full
+ * working width, as that card does, and the header and step list above it widen
+ * with it so their edges still line up with the card's. */
+.portal__main .card.join-card--wide,
+.join-shell--wide .page__header,
+.join-shell--wide .join-steps {
+  max-width: var(--page-max);
+}
+
 .join__aside {
   font-size: var(--text-sm);
   margin-top: var(--space-4);
