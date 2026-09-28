@@ -35,6 +35,10 @@ Contact
   so add an apartment or suite there. Press Escape, or click anywhere else, to
   close the list and keep what you typed. Every field stays yours to change after
   a pick. When no list appears, type the address in full as usual.
+* **Address**, **Address line 2**, and **City** are stored in title case, every
+  word, however you type them: ``123 main st`` reads back **123 Main St** and
+  ``palo alto`` reads back **Palo Alto**. A word that carries a digit, such as a
+  unit number, is left exactly as you typed it.
 
 Aviation
 ~~~~~~~~

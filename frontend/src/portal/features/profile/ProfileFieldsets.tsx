@@ -383,14 +383,14 @@ export function ProfileFieldsets({
           {text('home_airport_identifier', {
             label: 'Home airport',
             size: 4,
-            placeholder: 'PAO',
+            placeholder: 'XXX',
             hint: 'Three characters, omit the leading K',
             mask: maskAirportIdentifier,
           })}
           {text('secondary_airport_identifier', {
             label: 'Secondary airport',
             size: 4,
-            placeholder: 'SQL',
+            placeholder: 'XXX',
             hint: 'Three characters, omit the leading K',
             mask: maskAirportIdentifier,
           })}
