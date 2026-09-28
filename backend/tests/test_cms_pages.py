@@ -61,7 +61,9 @@ def test_home_page_renders_the_welcome_box(client: Client, site_settings: SiteSe
     home.tax_status = "<p>CalDART is a 501(c)(3).</p>"
     home.save()
     home.save_revision().publish()
-    MembershipPlan.objects.create(name="Annual", slug="annual", price_cents=4500)
+    MembershipPlan.objects.update_or_create(
+        slug="annual", defaults={"name": "Annual", "price_cents": 4500}
+    )
 
     body = client.get("/").content.decode()
     assert "Welcome to CalDART" in body
@@ -154,8 +156,12 @@ def test_home_page_sidebar_prices_every_active_plan(
     client: Client, site_settings: SiteSettings
 ) -> None:
     """The membership box lists the active plans and offers the join button."""
-    MembershipPlan.objects.create(name="Annual", slug="annual", price_cents=4500)
-    MembershipPlan.objects.create(name="Life", slug="life", price_cents=65000)
+    MembershipPlan.objects.update_or_create(
+        slug="annual", defaults={"name": "Annual", "price_cents": 4500}
+    )
+    MembershipPlan.objects.update_or_create(
+        slug="life", defaults={"name": "Life", "price_cents": 65000}
+    )
     MembershipPlan.objects.create(name="Retired", slug="retired", price_cents=100, is_active=False)
 
     body = client.get("/").content.decode()

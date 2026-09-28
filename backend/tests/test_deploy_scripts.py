@@ -3000,4 +3000,4 @@ def test_the_user_step_opens_every_media_directory_to_the_web_server(
 ) -> None:
     """Each install makes every directory under ``media/`` ``0755`` for the web server."""
     commands = _commands(_install_dry_run(root, etc, tmp_path))
-    assert f"find {root}/media -type d -exec chmod 0755 {{}} +" in commands
+    assert f"find {root}/media -type d -exec chmod 0755 '{{}}' +" in commands

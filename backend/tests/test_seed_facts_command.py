@@ -66,6 +66,7 @@ def test_reports_no_plan_prices_when_no_plan_is_seeded(
     db: None, capsys: pytest.CaptureFixture[str]
 ) -> None:
     """``planPricesCents`` is empty when the database holds no membership plan."""
+    MembershipPlan.objects.all().delete()
     assert read_facts(capsys)["planPricesCents"] == {}
 
 
