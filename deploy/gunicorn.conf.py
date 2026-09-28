@@ -43,6 +43,11 @@ proc_name = "caldart-web"
 
 # --- Socket -----------------------------------------------------------------
 
+# gunicorn 26 opens a control socket under the service user's home by default;
+# the units keep /home out of reach (ProtectHome=true), which logs a permission
+# error at every start, and nothing here uses the socket.
+control_socket_disable = True
+
 # Loopback only: the reverse proxy is the sole entry point, so the app server
 # is never reachable from outside the machine.  The installer renders the vhost
 # with the same port it writes into the environment file.

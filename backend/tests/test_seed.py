@@ -153,12 +153,12 @@ def test_seed_roles_command() -> None:
 
 
 def test_a_migrated_database_already_holds_the_two_plans() -> None:
-    """The ``members`` data migration writes the annual and life plans, demo data or not."""
+    """The ``members`` data migration writes the annual and life plans by itself."""
     assert sorted(MembershipPlan.objects.values_list("slug", flat=True)) == ["annual", "life"]
 
 
 def test_seed_plans_command_is_idempotent_and_restores_the_table() -> None:
-    """``seed_plans`` writes each plan once, and puts back a price edited by hand."""
+    """``seed_plans`` writes each plan once and puts back a hand-edited price."""
     MembershipPlan.objects.filter(slug="annual").update(price_cents=1, is_active=False)
     out = StringIO()
     call_command("seed_plans", stdout=out)
