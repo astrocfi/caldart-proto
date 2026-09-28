@@ -17,7 +17,13 @@
  * A friend walks the same five steps, but owes no dues: their pay step offers a
  * contribution they may skip, and a friend with a complete profile resumes on the
  * done step rather than being held at paying.  A member's pay step also offers to
- * become a friend instead, which ends on the done step as a friend.
+ * become a friend instead, which turns it into a friend's contribution, and a
+ * friend's pay step offers to become a member, which turns it into the member's
+ * dues.  The wizard remembers that choice in this tab only, so the ledes follow it;
+ * a reload goes back to the kind the server has stored.
+ *
+ * The profile step's form is the one `/profile` shows, so that step takes the
+ * portal's full working width, as `/profile` does, rather than the wizard's own.
  *
  * Until the wizard is finished it is the whole portal: `RequireOnboarded` sends
  * every other screen here, and the layout draws no rail.
@@ -27,6 +33,7 @@ import type { JSX } from 'react';
 import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 
+import type { PersonKind } from '@/portal/api/types';
 import { useAuth } from '@/portal/auth/useAuth';
 import { Page } from '@/portal/components/Page';
 import { AccountStep } from './AccountStep';
@@ -81,6 +88,9 @@ export function JoinWizard(): JSX.Element {
   // since the done step is also where a friend who skipped, or an established
   // member who signed in, lands.
   const [hasPaid, setHasPaid] = useState(false);
+  // The kind chosen on the pay step, when the visitor changed their mind there;
+  // null follows the kind the server has stored.
+  const [chosenKind, setChosenKind] = useState<PersonKind | null>(null);
 
   const handleReturnSettled = useCallback(() => {
     refreshAfterPayment(queryClient);
@@ -122,7 +132,8 @@ export function JoinWizard(): JSX.Element {
     return <Navigate to={`/join/${current}`} replace />;
   }
 
-  const lede = (joiningAs(user) === 'friend' ? FRIEND_LEDE[current] : undefined) ?? LEDE[current];
+  const kind = chosenKind ?? joiningAs(user);
+  const lede = (kind === 'friend' ? FRIEND_LEDE[current] : undefined) ?? LEDE[current];
 
   function advance(from: JoinStep) {
     const next = nextJoinStep(from);
@@ -131,20 +142,25 @@ export function JoinWizard(): JSX.Element {
   }
 
   return (
-    <div className="join-shell">
+    <div className={current === 'profile' ? 'join-shell join-shell--wide' : 'join-shell'}>
       <Page title="Join CalDART" eyebrow="Membership" lede={lede}>
         <StepIndicator current={current} />
         {current === 'account' ? <AccountStep onDone={() => advance('account')} /> : null}
         {current === 'verify' ? <VerifyStep onDone={() => advance('verify')} /> : null}
         {current === 'profile' ? <ProfileStep onDone={() => advance('profile')} /> : null}
         {current === 'pay' ? (
-          <PayStep onPaid={() => setHasPaid(true)} onDone={() => advance('pay')} />
+          <PayStep
+            joiningAs={kind}
+            onJoiningAsChange={(next) => setChosenKind(next)}
+            onPaid={() => setHasPaid(true)}
+            onDone={() => advance('pay')}
+          />
         ) : null}
         {current === 'done' ? (
           returning ? (
             <ReturnStep onSettled={handleReturnSettled} />
           ) : (
-            <DoneStep hasPaid={hasPaid} />
+            <DoneStep joiningAs={kind} hasPaid={hasPaid} />
           )
         ) : null}
       </Page>

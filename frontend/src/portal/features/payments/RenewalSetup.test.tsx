@@ -10,9 +10,9 @@ import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { RenewalEnvelope, RenewalSetupRequest } from '@/portal/api/types';
+import type { Plan, RenewalEnvelope, RenewalSetupRequest } from '@/portal/api/types';
 import { todayIso } from '@/portal/components/DateText';
-import { makeMandate, makePaymentsConfig } from '@test/fixtures/payments';
+import { ANNUAL_PLAN, LIFE_PLAN, makeMandate, makePaymentsConfig } from '@test/fixtures/payments';
 import { API, makeUser, signedInAs } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
@@ -57,19 +57,32 @@ vi.mock('@paypal/react-paypal-js', () => ({
 /** The day the fixture membership runs out, which the date box opens on. */
 const EXPIRES_ON = '2027-06-30';
 
+/** A renewing plan the server lists ahead of the annual one. */
+const BIENNIAL_PLAN: Plan = {
+  slug: 'biennial',
+  name: 'Biennial',
+  price_cents: 8000,
+  duration_days: 730,
+  description: 'Two years of CalDART membership.',
+};
+
 /** Serve the config and record every setup request the flow sends. */
 function mount({
   providers,
   expiresOn = EXPIRES_ON,
+  plans = [ANNUAL_PLAN, LIFE_PLAN],
 }: {
   providers: ('stripe' | 'paypal' | 'mock')[];
   expiresOn?: string | null;
+  plans?: Plan[];
 }) {
   const setups: RenewalSetupRequest[] = [];
   const confirms: unknown[] = [];
   server.use(
     signedInAs(makeUser()),
-    http.get(`${API}/payments/config`, () => HttpResponse.json(makePaymentsConfig({ providers }))),
+    http.get(`${API}/payments/config`, () =>
+      HttpResponse.json(makePaymentsConfig({ providers, plans })),
+    ),
     http.post(`${API}/me/renewal/setup`, async ({ request }) => {
       const body = (await request.json()) as RenewalSetupRequest;
       setups.push(body);
@@ -103,6 +116,27 @@ describe('RenewalSetup', () => {
 
     expect(await screen.findByRole('radio', { name: /Annual/ })).toBeInTheDocument();
     expect(screen.queryByRole('radio', { name: /Life/ })).not.toBeInTheDocument();
+  });
+
+  it('preselects the first renewing plan the server lists', async () => {
+    mount({ providers: ['mock'], plans: [LIFE_PLAN, BIENNIAL_PLAN, ANNUAL_PLAN] });
+
+    expect(await screen.findByRole('radio', { name: /Biennial/ })).toBeChecked();
+  });
+
+  it('says so when no membership plan is set up', async () => {
+    mount({ providers: ['mock'], plans: [] });
+
+    expect(
+      await screen.findByText('No membership plan is set up yet. Ask an administrator.'),
+    ).toBeInTheDocument();
+  });
+
+  it('offers no way to save a method when no membership plan is set up', async () => {
+    mount({ providers: ['mock'], plans: [] });
+
+    await screen.findByText('No membership plan is set up yet. Ask an administrator.');
+    expect(screen.queryByRole('button', { name: 'Save this test card' })).not.toBeInTheDocument();
   });
 
   it('states what the first charge comes to and the day it falls on', async () => {

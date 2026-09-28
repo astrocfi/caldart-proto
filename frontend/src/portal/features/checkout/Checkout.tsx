@@ -2,7 +2,10 @@
  * The shared checkout widget used by `/join`, `/renew`, and `/donate`.
  *
  * Choose a plan, optionally add a contribution, then pay with whichever
- * providers this deployment has keys for.  In `contribute` mode there is no
+ * providers this deployment has keys for.  The first plan `GET /payments/config`
+ * lists is chosen until somebody picks another; where the server lists none, the
+ * form says no membership plan is set up and offers no way to pay for one.  In
+ * `contribute` mode there is no
  * plan to choose: the payment buys no membership term, which is the only thing
  * a life member can do here, so one is shown this form whatever mode was asked
  * for.
@@ -25,7 +28,13 @@
  * plan list then ends with a card for changing one's mind and becoming a friend of
  * CalDART instead.  Choosing it hides the contribution and the payment methods behind
  * one **Continue as a friend** button, which asks the server to make the account a
- * friend (`POST /me/kind/friend`) and then calls `onBecomeFriend`.
+ * friend (`POST /me/kind/friend`) and then calls `onBecomeFriend`.  An account that is
+ * a friend already has nothing to change, so the button calls `onBecomeFriend` at once.
+ *
+ * A host offering a friend's contribution may pass `onBecomeMember`: in `contribute`
+ * mode the contribution chooser is then followed by a link-styled **I changed my mind,
+ * I want to be a member** button that calls it.  Nothing is sent to the server: paying
+ * for a membership is what makes a member.  A life member is never offered it.
  */
 import { useEffect, useId, useMemo, useState } from 'react';
 import type { JSX } from 'react';
@@ -48,9 +57,6 @@ import type { RecurringDonation } from './RecurringDonationFields';
 import type { CheckoutMode, CheckoutProps, ProviderPanelProps } from './types';
 import './checkout.css';
 
-/** Renewals default to the annual plan. */
-const DEFAULT_PLAN = 'annual';
-
 /** The eyebrow and title over each mode's form. */
 const HEADINGS: Record<CheckoutMode, { eyebrow: string; title: string }> = {
   join: { eyebrow: 'Membership', title: 'Join CalDART' },
@@ -69,6 +75,12 @@ export interface SkippableCheckoutProps extends CheckoutProps {
    * offered only in `join` mode, and only when this is given.
    */
   onBecomeFriend?: () => void;
+  /**
+   * Called by the **I changed my mind, I want to be a member** button; the button is
+   * offered only in `contribute` mode, never to a life member, and only when this is
+   * given.
+   */
+  onBecomeMember?: () => void;
 }
 
 /**
@@ -81,12 +93,14 @@ export function Checkout({
   onScheduled: handleScheduled,
   onSkip: handleSkip,
   onBecomeFriend: handleBecomeFriend,
+  onBecomeMember: handleBecomeMember,
 }: SkippableCheckoutProps): JSX.Element {
   const { data: config, isPending, error } = usePaymentsConfig();
   const { user } = useAuth();
   const becomeFriend = useBecomeFriend();
 
-  const [plan, setPlan] = useState<string>(DEFAULT_PLAN);
+  // Null until somebody picks: the first plan the server lists stands in for it.
+  const [plan, setPlan] = useState<string | null>(null);
   const [contributionCents, setContributionCents] = useState(0);
   const [isOther, setIsOther] = useState(false);
   const [provider, setProvider] = useState<PaymentProvider | null>(null);
@@ -144,8 +158,13 @@ export function Checkout({
   const isContributing = effectiveMode === 'contribute';
   const offersFriend = effectiveMode === 'join' && handleBecomeFriend !== undefined;
   const isFriendChosen = offersFriend && plan === FRIEND_CHOICE;
+  const offersMember = isContributing && !isLifetime && handleBecomeMember !== undefined;
 
   function handleContinueAsFriend(): void {
+    if (user?.kind === 'friend') {
+      handleBecomeFriend?.();
+      return;
+    }
     becomeFriend.mutate({}, { onSuccess: () => handleBecomeFriend?.() });
   }
 
@@ -173,10 +192,27 @@ export function Checkout({
     );
   }
 
-  // "Annual" is only the default where the server offers it; anywhere else the
-  // first plan on the list stands in, so the chooser always has a selection.
+  // The first plan the server lists stands in until somebody picks one, so the
+  // chooser always has a selection whenever there is a plan to select.
   const offered = config.plans.map((entry) => entry.slug);
-  const effectivePlan = offered.includes(plan) ? plan : (offered[0] ?? plan);
+  const effectivePlan = plan !== null && offered.includes(plan) ? plan : (offered[0] ?? null);
+
+  // A server with no plan set up has nothing to sell a member; the friend card and
+  // a contribution still work without one.
+  if (!isContributing && effectivePlan === null) {
+    return (
+      <Card eyebrow={heading.eyebrow} title={heading.title} className="checkout">
+        {offersFriend ? (
+          <PlanChooser plans={[]} value="" onChange={(next) => setPlan(next)} offerFriend />
+        ) : null}
+        <EmptyState
+          title="Membership is not on offer yet"
+          description="No membership plan is set up yet. Ask an administrator."
+        />
+        <SkipFooter onSkip={handleSkip} />
+      </Card>
+    );
+  }
 
   const selectedPlan = isContributing
     ? null
@@ -228,7 +264,7 @@ export function Checkout({
       {isContributing ? null : (
         <PlanChooser
           plans={config.plans}
-          value={effectivePlan}
+          value={effectivePlan ?? ''}
           onChange={(next) => setPlan(next)}
           offerFriend={offersFriend}
         />
@@ -246,6 +282,18 @@ export function Checkout({
           if (next) setContributionCents(0);
         }}
       />
+
+      {offersMember ? (
+        <p className="checkout__switch">
+          <button
+            type="button"
+            className="checkout__switch-button"
+            onClick={() => handleBecomeMember?.()}
+          >
+            I changed my mind, I want to be a member
+          </button>
+        </p>
+      ) : null}
 
       <dl className="checkout__total">
         {isContributing ? null : (

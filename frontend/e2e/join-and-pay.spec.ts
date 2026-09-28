@@ -19,6 +19,28 @@ import {
   uniqueEmail,
 } from './helpers';
 
+/** The desktop project's window width, at which the profile step is as wide as `/profile`. */
+const DESKTOP_WIDTH = 1280;
+
+/**
+ * The profile step takes the portal's full working width, as `/profile` does, so a
+ * phone number and its extension sit on one line rather than the extension wrapping
+ * under the number.  The pair is centered on its line and the extension's box is a
+ * little shorter, so the two share a vertical center rather than a top edge.
+ */
+async function expectPhoneOnOneLine(page: Page): Promise<void> {
+  const phone = await page.getByRole('textbox', { name: 'Phone', exact: true }).boundingBox();
+  const extension = await page.locator('input[name="phone_extension"]').boundingBox();
+  expect(phone).not.toBeNull();
+  expect(extension).not.toBeNull();
+  expect(verticalCenter(extension)).toBeCloseTo(verticalCenter(phone), 0);
+}
+
+/** The vertical middle of a box, or NaN for a box that is not on the page. */
+function verticalCenter(box: { y: number; height: number } | null): number {
+  return box === null ? Number.NaN : box.y + box.height / 2;
+}
+
 /**
  * Walk the public site the way a visitor does: the Join CalDART page from the
  * navigation bar, then the call to action on it.  On a phone the bar is behind
@@ -60,6 +82,7 @@ async function register(page: Page, first: string, email: string): Promise<void>
   await followVerificationLink(page, email);
 
   await expect(page.getByRole('heading', { name: 'About you' })).toBeVisible();
+  if ((page.viewportSize()?.width ?? 0) >= DESKTOP_WIDTH) await expectPhoneOnOneLine(page);
   await page.getByRole('textbox', { name: 'Phone', exact: true }).fill('650-555-0142');
   await page.getByRole('combobox', { name: 'Address', exact: true }).fill('12 Skyway Road');
   await page.getByRole('textbox', { name: 'City', exact: true }).fill('San Carlos');

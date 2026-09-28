@@ -302,3 +302,28 @@
   padding: var(--space-2) var(--space-3);
   max-width: var(--measure);
 }
+
+/* The way back from a friend's contribution to a member's dues: a button, since it
+ * changes the form rather than going anywhere, drawn as a link so it reads as the
+ * quiet aside it is beside the contribution tiers. */
+.checkout__switch {
+  margin: calc(-1 * var(--space-3)) 0 var(--space-5);
+  font-size: var(--text-sm);
+}
+
+.checkout__switch-button {
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: var(--color-primary);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+  cursor: pointer;
+}
+
+.checkout__switch-button:hover {
+  color: var(--color-accent);
+}

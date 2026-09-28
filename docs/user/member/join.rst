@@ -108,7 +108,8 @@ Step 3: Profile
 
 The step is headed **About you**: *CalDART needs a way to reach you during an
 activation.* It is the same form you later keep up to date on :doc:`profile`, which
-describes every field. Only these are required now: **Phone**, **Address**,
+describes every field, and it is as wide as that screen, so on a computer each
+phone number sits on one line with its extension. Only these are required now: **Phone**, **Address**,
 **City**, **State**, and **ZIP code**. **Pilot certificate** always holds a value;
 leave it at *Not a pilot* if that is what you are. Everything else can wait.
 
@@ -123,18 +124,26 @@ right, and a form that saves lets you move on.
 Step 4: Pay
 ===========
 
+The step follows the choice you made on the account step, and it offers three
+choices: pay your dues as a member, give a contribution as a friend, or go on as a
+friend without giving. You can change your mind on this step as often as you
+like.
+
 A member's step is headed **Pay your dues**. Membership starts the moment the
 payment clears; there is nobody to wait for. There is no way past this step except
 paying or choosing to be a friend instead.
 
 #. **Membership.** Choose **Annual** ($45.00, *One year*) or **Life** ($650.00,
-   *One payment, membership for life*). Annual is chosen for you. The third card,
+   *One payment, membership for life*). The first plan on the list, Annual, is
+   chosen for you. If the step says *No membership plan is set up yet. Ask an
+   administrator.*, CalDART has not set up its plans on this site: ask the office.
+   The third card,
    **I changed my mind, I just want to be a friend** (*A friend has an account and
    hears from CalDART, but is not a member.*), is for joining as a friend after
    all: choosing it hides the rest of the form and shows one button, **Continue as
-   a friend**. Pressing it makes your account a friend of CalDART and takes you to
-   the done step. You can still become a member later (see
-   :doc:`become-a-member`).
+   a friend**. Pressing it makes your account a friend of CalDART and turns the
+   step into a friend's, described below, so you can still give a contribution or
+   press **Not now**.
 #. **Add a contribution.** CalDART is a 501(c)(3), so a contribution on top of your
    dues is tax deductible and pays for training, fuel, and equipment. Choose a tier
    (Participating $20, Bronze $100, Silver $300, Gold $1,000, Diamond $3,000, or
@@ -149,7 +158,15 @@ paying or choosing to be a friend instead.
 A friend's step is headed **Contribute to CalDART** instead: *Friends pay no dues.*
 It offers the contribution alone, paid the same ways, with the option **Make this
 a recurring donation** (see :doc:`donate`). **Not now**, at the foot of the card,
-moves on without paying anything.
+moves on without paying anything, and you finish as a friend.
+
+Under the contribution tiers, **I changed my mind, I want to be a member** turns
+the step back into **Pay your dues**. Your account stays a friend until the dues
+are paid: paying makes you a member, and choosing **I changed my mind, I just want
+to be a friend** again takes you back to the contribution. If you reload the page,
+the step shows the kind of account CalDART has stored for you, which is a friend
+until you have paid. You can also become a member any time later (see
+:doc:`become-a-member`).
 
 The payment tabs
 ~~~~~~~~~~~~~~~~
