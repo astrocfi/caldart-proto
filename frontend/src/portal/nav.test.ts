@@ -69,7 +69,7 @@ describe('visibleNavItems', () => {
     const visible = labels(['member', 'account_admin']);
     expect(visible).toEqual(expect.arrayContaining(['Members', 'Aircraft', 'Payments']));
     expect(visible).not.toContain('Users & roles');
-    expect(visible).not.toContain('System');
+    expect(visible).not.toContain('Health & Database');
   });
 
   it('gives account_admin the reminder log', () => {
@@ -176,6 +176,28 @@ describe('visibleNavItems', () => {
 
   it('keeps Renew for a member who is not an effective friend', () => {
     expect(labels(['member'], false)).toContain('Renew');
+  });
+});
+
+describe('the System group', () => {
+  it('lists Health & Database, Sent Emails, and Scheduled, in that order', () => {
+    const system = groupedNavItems(['member', 'system_admin']).find(
+      (bucket) => bucket.group === 'System',
+    );
+    expect(system?.items.map((item) => [item.label, item.to])).toEqual([
+      ['Health & Database', '/system/health'],
+      ['Sent Emails', '/system/emails'],
+      ['Scheduled', '/system/scheduled'],
+    ]);
+  });
+
+  it('keeps every System entry to the system administrator', () => {
+    const system = NAV_ITEMS.filter((item) => item.group === 'System');
+    expect(system.map((item) => item.roles)).toEqual([
+      ['system_admin'],
+      ['system_admin'],
+      ['system_admin'],
+    ]);
   });
 });
 

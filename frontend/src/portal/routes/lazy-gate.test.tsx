@@ -20,11 +20,11 @@ import { routes } from './index';
 
 const { systemPageLoads } = vi.hoisted(() => ({ systemPageLoads: { count: 0 } }));
 
-vi.mock('../features/system/SystemPage', () => {
+vi.mock('../features/system/HealthDatabasePage', () => {
   systemPageLoads.count += 1;
   return {
-    SystemPage: function SystemPage() {
-      return <h1>System</h1>;
+    HealthDatabasePage: function HealthDatabasePage() {
+      return <h1>Health &amp; Database</h1>;
     },
   };
 });
@@ -33,7 +33,7 @@ describe('a guarded route that loads on demand', () => {
   it('has already fetched the page module when the guard refuses', async () => {
     server.use(signedInAs(makeUser({ roles: ['member'] })));
 
-    renderRoutes(routes, { route: '/system' });
+    renderRoutes(routes, { route: '/system/health' });
 
     expect(await screen.findByText('You do not have access to this page')).toBeInTheDocument();
     await waitFor(() => expect(systemPageLoads.count).toBe(1));
