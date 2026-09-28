@@ -130,7 +130,7 @@ def test_every_seeded_town_comes_from_the_town_generator() -> None:
 
 
 def test_fifteen_seeded_pilots_have_a_secondary_airport() -> None:
-    """Roughly one member in three, fifteen of the seeded fifty, has a secondary airport."""
+    """Fifteen of the fifty seeded members and friends, about one in three, have one."""
     _seed()
     profiles = MemberProfile.objects.exclude(secondary_airport_identifier="")
     assert profiles.count() == 15
