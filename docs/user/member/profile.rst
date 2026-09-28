@@ -177,8 +177,9 @@ deactivate their own account.*
 If something looks wrong
 ========================
 
-If the dashboard still asks you to finish your profile, open the form: it marks each
-required field that is still empty. If an account administrator set your account up
-for you, some of those were never asked for. If a detail you cannot change is wrong,
+If signing in opens the **About you** step of :doc:`join` instead of your dashboard,
+your profile is missing something: the step marks each required field that is still
+empty. If an account administrator set your account up for you, some of those were
+never asked for. If a detail you cannot change is wrong,
 such as your name or a membership date, contact the office; an account
 administrator can correct it.

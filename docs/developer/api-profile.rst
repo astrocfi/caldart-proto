@@ -297,7 +297,10 @@ One list serves every reader of it:
 - ``profile_complete`` on the user payload (:doc:`api-auth`) is
   ``MemberProfile.is_complete`` over those six fields.  It gates the portal:
   while it is false, every signed-in screen sends the reader to the join
-  wizard's profile step, and the wizard's step order keys off it too.
+  wizard's profile step, and the wizard's step order keys off it too.  The
+  pay step that follows holds only a ``member`` who has never held a paid
+  term (``membership.status`` is ``friend`` and ``friend_on`` is null); a
+  member whose term has expired has joined, and renews from the portal.
 - The portal's profile form requires exactly the same six
   (``REQUIRED_PROFILE_FIELDS`` in
   ``frontend/src/portal/features/profile/form.ts``), so a profile the form

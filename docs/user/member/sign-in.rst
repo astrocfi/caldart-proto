@@ -37,7 +37,9 @@ If you have not finished joining, you land on the step of :doc:`join` you still
 have to finish instead, whatever page you asked for: **Check your email** while
 your address is unverified (press **Resend verification message** there for a
 fresh link), then **About you**, then, if you joined as a member, **Pay your
-dues**. The rest of the portal opens once that is done. The public site's top menu then reads **Welcome, <first name>**
+dues**. The rest of the portal opens once that is done.
+
+Once you are signed in, the public site's top menu reads **Welcome, <first name>**
 in place of **Sign in**, and takes you back to the portal from any page.
 
 A page of this guide also asks you to sign in first, because the guide is for

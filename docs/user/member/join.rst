@@ -34,7 +34,10 @@ earlier step, but you cannot skip ahead of one you have not finished.
 You have finished joining once your address is verified, your profile is complete,
 and, if you chose **Join as a member**, your first payment has cleared or you have
 chosen to be a friend instead on the pay step. A friend has finished once the
-profile is saved; paying is optional. An account an administrator created for you
+profile is saved; paying is optional. A member whose membership has expired has
+already joined: the portal stays open to them, and they renew from it (see
+:doc:`renew`). Only a member who has never held a paid membership is held at the
+pay step. An account an administrator created for you
 works the same way: if its profile is missing something, your first sign-in opens
 the profile step.
 

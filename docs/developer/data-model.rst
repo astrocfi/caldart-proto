@@ -1868,8 +1868,8 @@ that the message a person reads can be specific:
     ``postal_code``, and ``pilot_certificate_type``.  ``state`` defaults to
     ``CA`` and so never blocks the check on its own.  This is the single
     definition of "complete": the accounts ``UserSerializer`` delegates
-    to it for the ``profile_complete`` flag that drives the dashboard nudge and
-    the join wizard's step gating, and the portal form's
+    to it for the ``profile_complete`` flag that drives the join wizard's
+    step gating and the portal's onboarding guard, and the portal form's
     ``REQUIRED_PROFILE_FIELDS`` (``frontend/src/portal/features/profile/form.ts``)
     mirrors the same list, so a profile the form accepts is a profile the
     server calls complete.  See :ref:`profile-completeness`.

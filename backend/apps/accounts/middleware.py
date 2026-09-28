@@ -18,7 +18,8 @@ from apps.accounts.models import User
 #: The namespace every ``/api/v1/`` route resolves under (``caldart.api_urls``).
 API_NAMESPACE = "api"
 
-#: The ``code`` the refusal carries, which the portal keys its redirect off.
+#: The ``code`` the refusal carries, so a client can tell the gate's 403 from a permission
+#: refusal.
 EMAIL_UNVERIFIED_CODE = "email_unverified"
 
 #: The sentence the refusal carries as ``detail``.

@@ -622,16 +622,16 @@ inside an msw handler uses msw's own ``delay(ms)`` rather than a raw
 
    import { renderWithProviders } from '@test/render';
    import { server } from '@test/server';
-   import { DashboardPage } from './DashboardPage';
+   import { JoinWizard } from './JoinWizard';
 
-   it('nudges a member whose profile is incomplete', async () => {
+   it('resumes a member with an incomplete profile on the profile step', async () => {
      server.use(
        http.get('/api/v1/auth/me', () =>
          HttpResponse.json({ /* … */ profile_complete: false }),
        ),
      );
-     renderWithProviders(<DashboardPage />);
-     expect(await screen.findByText(/finish your profile/i)).toBeInTheDocument();
+     renderWithProviders(<JoinWizard />, { route: '/join' });
+     expect(await screen.findByRole('heading', { name: 'About you' })).toBeInTheDocument();
    });
 
 Query by role and by accessible name wherever you can
