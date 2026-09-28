@@ -495,7 +495,9 @@ User guide
    logs a warning.
 
    :Development: ``docs/_build/guide``, under the repository root.
-   :Production: unset unless the deploy builds the guide elsewhere.
+   :Production: ``/opt/caldart/docs/_build/guide``, the deploy root's
+      ``docs/_build/guide``, as the installer writes it; set it elsewhere only
+      when the guide is built somewhere else.
 
 
 Backups
