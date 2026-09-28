@@ -2249,7 +2249,7 @@ def test_the_install_renders_the_vhost_for_the_chosen_port(
     """The vhost is copied with gunicorn's shipped address replaced by the chosen one."""
     commands = _commands(_install_dry_run(root, etc, tmp_path, "--gunicorn-port", GUNICORN_PORT))
     vhost = commands[_position(commands, "/etc/apache2/sites-available/caldart.conf")]
-    assert "-e s#127.0.0.1:8001#127.0.0.1:8101#g" in vhost
+    assert "-e 's#127.0.0.1:8001#127.0.0.1:8101#g'" in vhost
 
 
 @pytest.mark.parametrize(("source", "how"), GUNICORN_FILES)

@@ -9,7 +9,10 @@ works unchanged.  Loaded by the systemd unit in
     /opt/caldart/.venv/bin/gunicorn --config /opt/caldart/deploy/gunicorn.conf.py
 
 Gunicorn listens on loopback only; Apache (``deploy/apache/caldart.conf``) or
-nginx (``deploy/nginx/caldart.conf``) terminates TLS and proxies to it.
+nginx (``deploy/nginx/caldart.conf``) terminates TLS and proxies to it.  The port is
+``CALDART_GUNICORN_PORT`` from ``/etc/caldart/caldart.env``, which ``install.sh
+--gunicorn-port`` writes, or 8001 when the variable is unset.  It is the proxy's
+target on 127.0.0.1, not the port the site is served on.
 Runtime configuration -- database, secret key, allowed hosts, payment keys --
 comes from ``/etc/caldart/caldart.env`` via the unit's ``EnvironmentFile``, not
 from this file.
@@ -37,8 +40,10 @@ proc_name = "caldart-web"
 # --- Socket -----------------------------------------------------------------
 
 # Loopback only: the reverse proxy is the sole entry point, so the app server
-# is never reachable from outside the machine.
-bind = "127.0.0.1:8001"
+# is never reachable from outside the machine.  The installer renders the vhost
+# with the same port it writes into the environment file.
+DEFAULT_PORT = "8001"
+bind = f"127.0.0.1:{os.environ.get('CALDART_GUNICORN_PORT', DEFAULT_PORT)}"
 
 # Kernel-side accept queue for bursts while workers are busy.
 backlog = 2048

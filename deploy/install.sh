@@ -13,6 +13,9 @@
 #
 # The values that describe the box are kept in /etc/caldart/install.conf, so a
 # later run needs no flags and a flag given later updates the record.
+# --gunicorn-port given to a later run moves gunicorn: the run writes the port
+# into the environment file, rewrites the vhost or snippet, restarts gunicorn,
+# and reloads the web server, in that order.
 # --email-url, --email, --from-email, --admin-email, and --seed-content are
 # used by the run that writes the environment file or creates the
 # administrator, and are not recorded.
@@ -37,6 +40,9 @@
 #   --certbot-staging          use Let's Encrypt's staging directory
 #   --db-port PORT             the host port Postgres listens on, 1024-65535 (default 5432);
 #                              must match DATABASE_URL once the environment file exists
+#   --gunicorn-port PORT       the port on 127.0.0.1 where the web server's proxy reaches
+#                              gunicorn, 1024-65535 (default 8001); not the site's port,
+#                              which is 80 and 443 on the web server
 #   --email-url URL            EMAIL_URL; this or --email local is required while no
 #                              environment file exists
 #   --email local              send mail through the postfix on this machine
@@ -109,6 +115,10 @@ parse_flags() {
                 RECORD_FLAGS[CALDART_DB_PORT]="$(option_value "$1" "${2:-}")"
                 shift
                 ;;
+            --gunicorn-port)
+                RECORD_FLAGS[CALDART_GUNICORN_PORT]="$(option_value "$1" "${2:-}")"
+                shift
+                ;;
             --url-prefix)
                 RECORD_FLAGS[CALDART_URL_PREFIX]="$(option_value "$1" "${2:-}")"
                 shift
@@ -175,6 +185,7 @@ validate() {
     fi
     validate_db_port "$CALDART_DB_PORT"
     validate_db_port_matches_env_file
+    validate_gunicorn_port "$CALDART_GUNICORN_PORT"
     validate_url_prefix
     validate_url_prefix_matches_env_file
     validate_email_flags
