@@ -1,5 +1,5 @@
 /**
- * The FAA registry on the aircraft forms and the System screen.
+ * The FAA registry on the aircraft forms and the Health & Database page.
  *
  * The seed imports the registry fixture in `backend/apps/aircraft/fixtures/faa`,
  * and `make e2e` points `FAA_REGISTRY_URL` at the same directory, so Run now
@@ -20,7 +20,7 @@ import { DEMO, SEED, signIn } from './helpers';
 
 const REGISTRY = SEED.registry;
 
-/** The status the System screen and the register read, as `GET /aircraft/registry` answers it. */
+/** The status Health & Database and the register read, as `GET /aircraft/registry` answers it. */
 interface RegistryStatus {
   as_of: string | null;
   running: boolean;
@@ -149,11 +149,12 @@ test('an account administrator adds a type the FAA has never registered', async 
 test('the system administrator runs the FAA registry import', async ({ page }) => {
   await signIn(page, DEMO.sysadmin);
   await page.goto('portal/system');
+  await expect(page).toHaveURL(/\/portal\/system\/health$/);
 
-  // The System screen's panels are cards, each a section headed by its title.
+  // Health & Database's panels are cards, each a section headed by its title.
   const panel = page
     .locator('section')
-    .filter({ has: page.getByRole('heading', { name: 'FAA registry import' }) });
+    .filter({ has: page.getByRole('heading', { name: 'Aircraft database' }) });
   const started = page.waitForResponse(
     (response) =>
       response.url().endsWith('/api/v1/admin/system/registry-import') &&

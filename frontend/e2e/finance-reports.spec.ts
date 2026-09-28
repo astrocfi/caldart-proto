@@ -103,11 +103,11 @@ test('a treasurer turns a stalled renewal off', async ({ page }) => {
 
 test('a system administrator rehearses the renewal scan', async ({ page }) => {
   await signIn(page, DEMO.sysadmin);
-  await page.goto('portal/system');
+  await page.goto('portal/system/scheduled');
 
   const panel = page
     .locator('section.card')
-    .filter({ has: page.getByRole('heading', { name: 'Automatic renewals' }) });
+    .filter({ has: page.getByRole('heading', { name: 'Automatic renewal charges' }) });
   await expect(panel.getByLabel('Dry run (charge nothing)')).toBeChecked();
   await panel.getByRole('button', { name: 'Run now' }).click();
 
