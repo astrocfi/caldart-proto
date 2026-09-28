@@ -214,13 +214,26 @@ describe('Checkout', () => {
     expect(screen.queryByRole('tablist', { name: 'Payment method' })).not.toBeInTheDocument();
   });
 
-  it('still offers the friend card when no membership plan is set up', async () => {
+  it('still takes a reader through the friend card when no membership plan is set up', async () => {
     serveConfig(config({ plans: [] }));
-    renderWithProviders(<Checkout mode="join" onSuccess={() => {}} onBecomeFriend={() => {}} />);
+    server.use(
+      http.post(`${API}/me/kind/friend`, () =>
+        HttpResponse.json(makeUser({ kind: 'friend', membership: NO_MEMBERSHIP })),
+      ),
+    );
+    const handleBecomeFriend = vi.fn();
+    renderWithProviders(
+      <Checkout mode="join" onSuccess={() => {}} onBecomeFriend={handleBecomeFriend} />,
+    );
 
-    expect(
+    await userEvent.click(
       await screen.findByRole('radio', { name: /I changed my mind, I just want to be a friend/ }),
-    ).toBeInTheDocument();
+    );
+    const continueButton = await screen.findByRole('button', { name: 'Continue as a friend' });
+    expect(continueButton).toBeInTheDocument();
+    await userEvent.click(continueButton);
+
+    await waitFor(() => expect(handleBecomeFriend).toHaveBeenCalledOnce());
   });
 
   it('takes a contribution when no membership plan is set up', async () => {
