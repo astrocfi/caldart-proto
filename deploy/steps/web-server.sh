@@ -121,6 +121,28 @@ reload_web_server() {
     restart_web_server
 }
 
+# The systemd unit of the web server in use, and of the other one.
+web_server_unit() {
+    if [[ "$CALDART_WEB_SERVER" == apache ]]; then printf 'apache2\n'; else printf 'nginx\n'; fi
+}
+
+other_web_server_unit() {
+    if [[ "$CALDART_WEB_SERVER" == apache ]]; then printf 'nginx\n'; else printf 'apache2\n'; fi
+}
+
+# Say so when the other web server is running too.  --web-server names the one
+# CalDART configures, and the other is left alone; with a vhost of CalDART's own
+# the two would both want ports 80 and 443, which is the operator's to sort out,
+# so this is a note, never a refusal.  Behind an existing site (--tls existing)
+# CalDART holds no port itself, so nothing is said.
+note_other_web_server() {
+    local other
+    other="$(other_web_server_unit)"
+    [[ "$CALDART_TLS" != existing ]] || return 0
+    systemctl is-active --quiet "$other" 2>/dev/null || return 0
+    note "$other is running too; CalDART configures $(web_server_unit) only, and both cannot hold ports 80 and 443"
+}
+
 # Check the configuration of the web server in use.
 check_web_server_config() {
     if [[ "$CALDART_WEB_SERVER" == apache ]]; then
@@ -412,7 +434,7 @@ install_snippet() {
 install_renewal_hook() {
     log "Reloading the web server after each certificate renewal"
     run install -d "$(dirname "$RENEWAL_HOOK")"
-    printf '#!/bin/sh\nsystemctl reload apache2 2>/dev/null || systemctl reload nginx\n' |
+    printf '#!/bin/sh\nsystemctl reload-or-restart %s\n' "$(web_server_unit)" |
         write_file "$RENEWAL_HOOK" 0755
 }
 
@@ -422,9 +444,7 @@ web_server_step() {
         apache | nginx) ;;
         *) die "unknown web server $CALDART_WEB_SERVER in $RECORD_FILE" ;;
     esac
-    if systemctl is-active --quiet apache2 2>/dev/null && systemctl is-active --quiet nginx 2>/dev/null; then
-        die "apache2 and nginx are both running; stop the one CalDART does not use"
-    fi
+    note_other_web_server
 
     if [[ "$CALDART_TLS" == existing ]]; then
         install_snippet

@@ -151,17 +151,28 @@ def _machine_path(
     listening: tuple[int, ...] = (),
     container: bool = False,
     service_home: str | None = None,
+    active: tuple[str, ...] = (),
 ) -> str:
-    """A ``PATH`` whose ``ss``, ``docker``, ``id``, and ``getent`` describe a machine.
+    """A ``PATH`` whose command shims describe a machine, ahead of the real ones.
 
     ``ss`` reports a listener on each port in ``listening`` and nothing else,
     ``docker container inspect`` finds the CalDART database container only when
-    ``container`` is true, and the ``caldart`` user exists, with ``service_home`` as
-    its home directory, only when ``service_home`` is given, so no test depends on
-    what the machine running it has.  The shims sit ahead of the real commands.
+    ``container`` is true, the ``caldart`` user exists, with ``service_home`` as its
+    home directory, only when ``service_home`` is given, and ``systemctl is-active``
+    reports exactly the units in ``active`` as active, so no test depends on what
+    the machine running it has.  The shims sit ahead of the real commands, and hand
+    any other question to them.
     """
     shims = tmp_path / "machine"
     shims.mkdir(exist_ok=True)
+    active_units = " ".join(active)
+    (shims / "systemctl").write_text(
+        "#!/bin/sh\n"
+        'if [ "$1" = is-active ]; then\n'
+        f'    for unit in {active_units}; do [ "$3" = "$unit" ] && exit 0; done; exit 3\n'
+        "fi\n"
+        'exec /usr/bin/systemctl "$@"\n'
+    )
     user_exists = 0 if service_home is not None else 1
     passwd_line = f"caldart:x:999:999::{service_home}:/usr/sbin/nologin" if service_home else ""
     # Only the questions about the service user are answered here; anything else
@@ -197,19 +208,24 @@ def _install_dry_run(
     listening: tuple[int, ...] = (),
     container: bool = False,
     service_home: str | None = None,
+    active: tuple[str, ...] = (),
     flags: tuple[str, ...] = FIRST_INSTALL,
 ) -> subprocess.CompletedProcess[str]:
     """The dry run of a first ``install.sh`` on Ubuntu, plus the ``extra`` flags.
 
-    ``listening``, ``container``, and ``service_home`` describe the machine (see
-    ``_machine_path``), and ``flags`` replaces the first-install flags the ``extra``
-    ones follow.
+    ``listening``, ``container``, ``service_home``, and ``active`` describe the
+    machine (see ``_machine_path``), and ``flags`` replaces the first-install flags
+    the ``extra`` ones follow.
     """
     env = _env(
         etc,
         CALDART_OS_RELEASE=str(_os_release(tmp_path, "ubuntu")),
         PATH=_machine_path(
-            tmp_path, listening=listening, container=container, service_home=service_home
+            tmp_path,
+            listening=listening,
+            container=container,
+            service_home=service_home,
+            active=active,
         ),
     )
     return _run(root / "deploy" / "install.sh", "--dry-run", *flags, *extra, env=env)
@@ -2531,3 +2547,33 @@ def test_a_user_already_homed_at_its_own_directory_is_left_alone(
     """A second run neither recreates the user nor moves a home that is already right."""
     commands = _commands(_install_dry_run(root, etc, tmp_path, service_home="/home/caldart"))
     assert not any(command.startswith(("useradd ", "usermod ")) for command in commands)
+
+
+def test_the_other_web_server_running_is_a_note_not_a_refusal(
+    root: Path, etc: Path, tmp_path: Path
+) -> None:
+    """With both servers active, the step names the one it configures and carries on."""
+    result = _install_dry_run(root, etc, tmp_path, active=("apache2", "nginx"))
+    assert result.returncode == 0
+    assert (
+        "nginx is running too; CalDART configures apache2 only, "
+        "and both cannot hold ports 80 and 443\n"
+    ) in result.stderr
+
+
+def test_behind_an_existing_site_the_other_web_server_is_not_mentioned(
+    root: Path, etc: Path, tmp_path: Path
+) -> None:
+    """With ``--tls existing`` CalDART holds no port, so a second server draws no note."""
+    result = _install_dry_run(
+        root,
+        etc,
+        tmp_path,
+        "--tls",
+        "existing",
+        "--web-server",
+        "nginx",
+        active=("apache2", "nginx"),
+    )
+    assert result.returncode == 0
+    assert "is running too" not in result.stderr

@@ -169,8 +169,9 @@ These are every option ``install.sh`` accepts (``sudo deploy/install.sh
    and ``CSRF_TRUSTED_ORIGINS`` all name both.  Default ``--www``.
 ``--web-server apache|nginx``
    Which web server to install and configure.  Default ``apache``.  The other
-   server's configuration is never touched, and the web server step refuses
-   to run while ``apache2`` and ``nginx`` are both active.
+   server's configuration is never touched; when it is running too, the web
+   server step says so, since with a vhost of CalDART's own both would want
+   ports 80 and 443, and carries on.
 ``--tls certbot|self-signed|existing``
    How the site gets its certificate.  Default ``certbot``.
 
@@ -1060,10 +1061,6 @@ the message says, then run the same command again.
 
 ``error: --hostname is required on the first run``
    No install record exists yet.  Give ``--hostname``.
-
-``error: apache2 and nginx are both running; stop the one CalDART does not use``
-   Stop and disable the other server, or install with ``--web-server`` naming
-   the one that runs.
 
 ``error: ... is not supported; use Debian or Ubuntu``
    The packages step runs only on Debian and Ubuntu.
