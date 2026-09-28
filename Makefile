@@ -139,10 +139,12 @@ E2E_ENV := DJANGO_SETTINGS_MODULE=caldart.settings.dev \
 # install's checks, which reach it there, must pass.  With REHEARSE_SEED the
 # install loads the demo accounts and the example pages; since the demo
 # mandates use the mock payment provider and production leaves it off, the
-# recipe also turns it on and installs postfix, so the scheduled renewal and
-# reminder jobs (step 2) can charge and mail for real, then asserts that
-# manage.sh health --json still passes and that the sign-in page still
-# answers, so seeding disturbed neither.
+# recipe also turns it on, so caldart-renewals (step 2) has a provider to
+# charge against.  The container also has no mail transport of its own, so
+# the recipe installs postfix too, so caldart-reminders, caldart-reports and
+# caldart-statements (step 2) can send mail; then it asserts that manage.sh
+# health --json still passes and that the sign-in page still answers, so
+# seeding disturbed neither.
 #
 # It installs HEAD, never the working tree, because bootstrap.sh clones the
 # checkout: commit before rehearsing.  A git worktree's .git is a file naming a

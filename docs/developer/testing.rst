@@ -1113,14 +1113,17 @@ npm, and Docker Hub.
    name gains ``-db``.
 ``REHEARSE_SEED``
    A switch: step 1 also passes ``--seed-demo --seed-content``, loading the
-   demo accounts and the example pages the same run development's ``make
-   seed`` loads (:ref:`deploy-database`).  Since the demo mandates use the
-   mock payment provider and production leaves it off, the target also sets
-   ``PAYMENTS_MOCK_ENABLED_IN_PRODUCTION=true`` in the environment file and
-   installs and starts postfix, so ``caldart-renewals`` and
-   ``caldart-reminders`` (step 2) have somewhere to charge and mail; neither
-   the container's package scripts nor a plain install do this on their own
-   (:doc:`payments-setup`).  After the install the target asserts that
+   demo accounts and the example pages, the same data ``make seed`` loads in
+   development (:ref:`deploy-database`).  The demo mandates use the mock
+   payment provider, which production leaves off, so the target also sets
+   ``PAYMENTS_MOCK_ENABLED_IN_PRODUCTION=true`` in the environment file, the
+   same switch :doc:`payments-setup` describes for demonstrating checkout
+   with no payment keys, so ``caldart-renewals`` (step 2) has a provider to
+   charge against.  The container also has no mail transport of its own, so
+   the target installs and starts postfix, so ``caldart-reminders``,
+   ``caldart-reports`` and ``caldart-statements`` (step 2) can send mail.
+   Neither is something the container's package scripts or a plain install
+   does on its own.  After the install the target asserts that
    ``manage.sh health --json`` still passes and that the sign-in page still
    answers, so seeding did not disturb the checks.  The container's name
    gains ``-seed``.

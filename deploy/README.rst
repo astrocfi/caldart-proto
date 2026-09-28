@@ -696,12 +696,13 @@ server seeded with them is a demonstration server, never one holding real
 member data.
 
 ``seed_demo``'s renewal mandates use the mock payment provider, so the
-scheduled ``caldart-renewals`` and ``caldart-reminders`` jobs have real work
-to do; production leaves that provider off, so on a server seeded with the
-demo data those jobs fail against the seeded mandates until the operator sets
-``PAYMENTS_MOCK_ENABLED_IN_PRODUCTION=true`` in the environment file, the same
-switch that demonstrates checkout with no payment keys
-(``docs/developer/payments-setup.rst``).
+scheduled ``caldart-renewals`` job has real work to do; production leaves
+that provider off, so on a server seeded with the demo data it fails against
+the seeded mandates until the operator sets
+``PAYMENTS_MOCK_ENABLED_IN_PRODUCTION=true`` in the environment file.  That
+switch also shows every visitor a **Test payment** tab with *Succeed* and
+*Fail* buttons, a way for anyone to grant themselves a membership with no
+money changing hands (``docs/developer/payments-setup.rst``).
 
 Logs
 ----

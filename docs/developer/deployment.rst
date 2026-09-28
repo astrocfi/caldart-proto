@@ -820,11 +820,12 @@ runs.  **Caution:** the demo accounts ``seed_demo`` creates share the password
 server, never one holding real member data.
 
 ``seed_demo``'s renewal mandates use the mock payment provider, so
-``caldart-renewals`` and ``caldart-reminders`` have real work to do;
-production leaves that provider off, so those jobs fail against the seeded
-mandates on a server until ``PAYMENTS_MOCK_ENABLED_IN_PRODUCTION=true`` is
-set in the environment file, the same switch :doc:`payments-setup` describes
-for demonstrating checkout with no payment keys.
+``caldart-renewals`` has real work to do; production leaves that provider
+off, so it fails against the seeded mandates on a server until
+``PAYMENTS_MOCK_ENABLED_IN_PRODUCTION=true`` is set in the environment file.
+That switch also shows every visitor a **Test payment** tab with *Succeed*
+and *Fail* buttons, a way for anyone to grant themselves a membership with no
+money changing hands, as :doc:`payments-setup` describes.
 
 With ``--admin-email`` the step creates the first real administrator::
 
