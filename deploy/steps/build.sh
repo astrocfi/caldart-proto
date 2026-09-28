@@ -2,7 +2,7 @@
 #
 # CalDART install step - the build.
 #
-# From the deploy root: installs the exact Python packages uv.lock pins into
+# From the checkout: installs the exact Python packages uv.lock pins into
 # .venv (without the development tools, with the Sphinx toolchain), with any
 # Python uv downloads put in /opt/uv/python where the service user can read it;
 # builds the frontend into frontend/dist; and builds the user guide the site
@@ -18,26 +18,26 @@
 
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+CHECKOUT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 # shellcheck source=deploy/lib.sh
-source "$ROOT/deploy/lib.sh"
+source "$CHECKOUT/deploy/lib.sh"
 
 readonly UV_PYTHON_DIR=/opt/uv/python
 
 build_step() {
     log "Installing the Python packages"
-    run cd "$ROOT"
+    run cd "$CHECKOUT"
     run env UV_PYTHON_INSTALL_DIR="$UV_PYTHON_DIR" uv sync --frozen --no-dev --group docs
 
     log "Building the frontend"
-    run cd "$ROOT/frontend"
+    run cd "$CHECKOUT/frontend"
     run npm ci
     run npm run build
 
     # The virtualenv's sphinx-build, not `uv run`: that would first sync the
     # default dependency groups, development tools included.
     log "Building the user guide"
-    run cd "$ROOT"
+    run cd "$CHECKOUT"
     run .venv/bin/sphinx-build -n -W -b dirhtml -t guide -c docs docs/user docs/_build/guide
 }
 

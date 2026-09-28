@@ -25,9 +25,9 @@
 
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+CHECKOUT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 # shellcheck source=deploy/lib.sh
-source "$ROOT/deploy/lib.sh"
+source "$CHECKOUT/deploy/lib.sh"
 
 # The pages the site must serve, under the URL prefix.
 readonly SITE_PATHS=(/ /portal/login)
@@ -82,7 +82,8 @@ print_dry_run_checks() {
     for unit in "$WEB_UNIT.service" "${JOB_UNITS[@]/%/.timer}"; do
         run systemctl is-active --quiet "$unit"
     done
-    run docker compose ps --format '{{.Health}}' db
+    run cd "$CHECKOUT"
+    run env "CALDART_DB_PORT=$CALDART_DB_PORT" docker compose ps --format '{{.Health}}' db
     gunicorn_probe run
     for path in "${SITE_PATHS[@]}"; do
         run curl -sk --resolve "$CALDART_HOSTNAME:443:127.0.0.1" \
@@ -90,14 +91,14 @@ print_dry_run_checks() {
     done
     run curl -sk --resolve "$CALDART_HOSTNAME:443:127.0.0.1" \
         "https://$CALDART_HOSTNAME$CALDART_URL_PREFIX/static/<the bundle the sign-in page names>"
-    "$ROOT/deploy/manage.sh" health --json
+    "$CHECKOUT/deploy/manage.sh" health --json
 }
 
 # Check that the compose db service is healthy.  docker compose reads the
 # exported CALDART_DB_PORT, as compose.sh's does.
 check_database() {
     local status
-    status="$(cd "$ROOT" && docker compose ps --format '{{.Health}}' db 2>/dev/null || true)"
+    status="$(cd "$CHECKOUT" && docker compose ps --format '{{.Health}}' db 2>/dev/null || true)"
     [[ "$status" == healthy ]] ||
         fail_check "the compose db service on 127.0.0.1:$CALDART_DB_PORT is not healthy (${status:-not running})"
 }
@@ -129,7 +130,7 @@ run_checks() {
         [[ "$status" == 200 ]] ||
             fail_check "the portal script https://$CALDART_HOSTNAME$bundle answered ${status:-nothing}, not 200"
     fi
-    if health="$("$ROOT/deploy/manage.sh" health --json)"; then
+    if health="$("$CHECKOUT/deploy/manage.sh" health --json)"; then
         problems="$(printf '%s' "$health" | python3 -c "$HEALTH_CHECK" 2>&1 || printf 'unreadable report')"
         [[ -z "$problems" ]] || fail_check "manage.py health: $problems"
     else

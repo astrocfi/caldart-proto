@@ -2,8 +2,8 @@
 #
 # CalDART install step - gunicorn under systemd.
 #
-# Installs caldart-web.service into /etc/systemd/system with the deploy root
-# written in, enables it, and restarts it: a restart starts a stopped unit and
+# Installs caldart-web.service into /etc/systemd/system with the checkout and
+# the deploy root written in, enables it, and restarts it: a restart starts a stopped unit and
 # picks up new code, or a new port, on an upgrade or a later install.  Then
 # waits up to 30 seconds for gunicorn on 127.0.0.1 at the recorded gunicorn
 # port (8001 unless install.sh --gunicorn-port says otherwise) to answer 200 for
@@ -23,9 +23,9 @@
 
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+CHECKOUT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 # shellcheck source=deploy/lib.sh
-source "$ROOT/deploy/lib.sh"
+source "$CHECKOUT/deploy/lib.sh"
 
 readonly WEB_READY_SECONDS=30
 
@@ -51,7 +51,7 @@ web_service_step() {
     require_hostname
     check_gunicorn_port
     log "Installing and restarting $WEB_UNIT.service"
-    render_file "$ROOT/deploy/systemd/$WEB_UNIT.service" "$SYSTEMD_DIR/$WEB_UNIT.service"
+    render_file "$CHECKOUT/deploy/systemd/$WEB_UNIT.service" "$SYSTEMD_DIR/$WEB_UNIT.service"
     run systemctl daemon-reload
     run systemctl enable "$WEB_UNIT.service"
     run systemctl restart "$WEB_UNIT.service"

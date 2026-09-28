@@ -10,7 +10,8 @@
 # it is; then reloads the server and removes the certbot renewal hook.  With
 # --purge it also removes /etc/caldart (the environment file and the install
 # record), the Postgres container and its caldart_pgdata volume, and the deploy
-# root itself.  Each removal prints what it removed; anything already absent is
+# root whole: the checkout, the database dumps in backups/, and the uploads in
+# media/.  Without --purge all three stay.  Each removal prints what it removed; anything already absent is
 # skipped.  Certificates under /etc/letsencrypt are left alone either way, and
 # so are the packages.
 #
@@ -20,14 +21,15 @@
 # Options:
 #   --yes       confirm; without it nothing runs
 #   --purge     also remove the configuration, the database, and the deploy root
+#               (the checkout, the backups, and the uploads)
 #   --dry-run   print every state-changing command instead of running it
 #   --help      show this help
 
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+CHECKOUT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=deploy/lib.sh
-source "$ROOT/deploy/lib.sh"
+source "$CHECKOUT/deploy/lib.sh"
 
 readonly APACHE_SITES=/etc/apache2/sites-available
 readonly APACHE_ENABLED=/etc/apache2/sites-enabled
@@ -145,9 +147,9 @@ remove_vhost() {
 }
 
 purge() {
-    log "Removing the configuration, the database, and $ROOT"
+    log "Removing the configuration, the database, and $ROOT (the checkout, the backups, and the uploads)"
     remove "$ETC_DIR"
-    run cd "$ROOT"
+    run cd "$CHECKOUT"
     # -v removes the caldart_pgdata volume: every row of the database.
     run docker compose down -v
     run cd /

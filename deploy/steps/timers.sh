@@ -5,7 +5,7 @@
 # Installs the six service and timer pairs under deploy/systemd/ (the FAA
 # registry import, the scheduled reports, the automatic renewals, the renewal
 # reminders, the year-end statements, and the nightly backup) into
-# /etc/systemd/system with the deploy root written in, enables and starts each
+# /etc/systemd/system with the checkout and the deploy root written in, enables and starts each
 # timer, and starts one registry import at once so the aircraft type picker
 # has its vocabulary before anybody opens it.  Reinstalling the units is how
 # an upgrade picks up a changed one.
@@ -19,16 +19,16 @@
 
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+CHECKOUT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 # shellcheck source=deploy/lib.sh
-source "$ROOT/deploy/lib.sh"
+source "$CHECKOUT/deploy/lib.sh"
 
 timers_step() {
     local unit suffix
     log "Installing the scheduled jobs"
     for unit in "${JOB_UNITS[@]}"; do
         for suffix in service timer; do
-            render_file "$ROOT/deploy/systemd/$unit.$suffix" "$SYSTEMD_DIR/$unit.$suffix"
+            render_file "$CHECKOUT/deploy/systemd/$unit.$suffix" "$SYSTEMD_DIR/$unit.$suffix"
         done
     done
     run systemctl daemon-reload

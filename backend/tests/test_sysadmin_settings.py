@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import ast
 import importlib
+import importlib.util
 import multiprocessing
 import re
 import runpy
@@ -26,6 +27,7 @@ from caldart.settings import base
 from tests.conftest import DEPLOY_DIR, REPO_ROOT
 
 PROD_SETTINGS = REPO_ROOT / "backend" / "caldart" / "settings" / "prod.py"
+BASE_SETTINGS = REPO_ROOT / "backend" / "caldart" / "settings" / "base.py"
 
 #: The smallest environment a production box can boot with.
 MINIMAL_ENV = {
@@ -265,6 +267,38 @@ def test_importing_prod_does_not_disturb_the_running_settings(
     assert settings.LOGGING["root"]["level"] == "ERROR"
 
 
+# -------------------------------------------------------------------- media
+def execute_base_settings() -> ModuleType:
+    """Execute ``settings/base.py`` as a throwaway module and return it.
+
+    ``base`` reads the environment once, at import, so a variable set for one test
+    shows only in a fresh execution.  The module is loaded under its own name,
+    outside ``sys.modules``, so the settings the suite runs under are left alone.
+    """
+    spec = importlib.util.spec_from_file_location("caldart_media_probe", BASE_SETTINGS)
+    assert spec is not None
+    assert spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_media_root_comes_from_the_environment(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """``MEDIA_ROOT`` names the directory the environment gives."""
+    monkeypatch.setenv("MEDIA_ROOT", str(tmp_path / "media"))
+    assert tmp_path / "media" == execute_base_settings().MEDIA_ROOT
+
+
+def test_media_root_defaults_to_the_backends_media_directory(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """With ``MEDIA_ROOT`` unset, uploads go to ``backend/media`` in the checkout."""
+    monkeypatch.delenv("MEDIA_ROOT", raising=False)
+    assert execute_base_settings().MEDIA_ROOT == REPO_ROOT / "backend" / "media"
+
+
 # ------------------------------------------------------------------- deploy
 def test_gunicorn_binds_to_loopback_only() -> None:
     """Gunicorn binds to loopback, trusts the proxy, and sizes workers to the CPU."""
@@ -311,7 +345,7 @@ def test_apache_proxies_to_gunicorn_and_sets_the_scheme_header() -> None:
 
     assert "ProxyPass / http://127.0.0.1:8001/" in normalized
     assert 'RequestHeader set X-Forwarded-Proto "https"' in config
-    assert "Alias /media/ /opt/caldart/backend/media/" in config
+    assert "Alias /media/ /opt/caldart/media/" in config
     assert "certbot" in config
 
 
@@ -342,7 +376,7 @@ def test_the_web_unit_runs_gunicorn_from_the_venv() -> None:
     unit = (DEPLOY_DIR / "systemd" / "caldart-web.service").read_text()
 
     assert "EnvironmentFile=/etc/caldart/caldart.env" in unit
-    assert "ExecStart=/opt/caldart/.venv/bin/gunicorn" in unit
+    assert "ExecStart=/opt/caldart/caldart/.venv/bin/gunicorn" in unit
     assert "Environment=DJANGO_SETTINGS_MODULE=caldart.settings.prod" in unit
     assert "User=caldart" in unit
 

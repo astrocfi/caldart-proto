@@ -63,31 +63,31 @@
 
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+CHECKOUT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=deploy/lib.sh
-source "$ROOT/deploy/lib.sh"
+source "$CHECKOUT/deploy/lib.sh"
 # shellcheck source=deploy/steps/packages.sh
-source "$ROOT/deploy/steps/packages.sh"
+source "$CHECKOUT/deploy/steps/packages.sh"
 # shellcheck source=deploy/steps/user.sh
-source "$ROOT/deploy/steps/user.sh"
+source "$CHECKOUT/deploy/steps/user.sh"
 # shellcheck source=deploy/steps/postgres.sh
-source "$ROOT/deploy/steps/postgres.sh"
+source "$CHECKOUT/deploy/steps/postgres.sh"
 # shellcheck source=deploy/steps/configure.sh
-source "$ROOT/deploy/steps/configure.sh"
+source "$CHECKOUT/deploy/steps/configure.sh"
 # shellcheck source=deploy/steps/build.sh
-source "$ROOT/deploy/steps/build.sh"
+source "$CHECKOUT/deploy/steps/build.sh"
 # shellcheck source=deploy/steps/database.sh
-source "$ROOT/deploy/steps/database.sh"
+source "$CHECKOUT/deploy/steps/database.sh"
 # shellcheck source=deploy/steps/web-service.sh
-source "$ROOT/deploy/steps/web-service.sh"
+source "$CHECKOUT/deploy/steps/web-service.sh"
 # shellcheck source=deploy/steps/web-server.sh
-source "$ROOT/deploy/steps/web-server.sh"
+source "$CHECKOUT/deploy/steps/web-server.sh"
 # shellcheck source=deploy/steps/timers.sh
-source "$ROOT/deploy/steps/timers.sh"
+source "$CHECKOUT/deploy/steps/timers.sh"
 # shellcheck source=deploy/steps/backup.sh
-source "$ROOT/deploy/steps/backup.sh"
+source "$CHECKOUT/deploy/steps/backup.sh"
 # shellcheck source=deploy/steps/check.sh
-source "$ROOT/deploy/steps/check.sh"
+source "$CHECKOUT/deploy/steps/check.sh"
 
 # Flags that update the record, applied over it once it is read.
 declare -A RECORD_FLAGS=()

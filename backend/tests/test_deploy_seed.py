@@ -180,7 +180,10 @@ def test_bootstrap_passes_seed_demo_through(tmp_path: Path) -> None:
     result = _run(
         DEPLOY_DIR / "bootstrap.sh", "--dry-run", "--repo", "/nowhere", "--seed-demo", env=env
     )
-    assert _commands(result)[-1] == f"bash {tmp_path}/srv/deploy/install.sh --dry-run --seed-demo"
+    assert (
+        _commands(result)[-1]
+        == f"bash {tmp_path}/srv/caldart/deploy/install.sh --dry-run --seed-demo"
+    )
 
 
 # -- production settings ---------------------------------------------------------------

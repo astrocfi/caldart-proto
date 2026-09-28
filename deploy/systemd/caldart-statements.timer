@@ -1,12 +1,13 @@
 # Yearly trigger for the CalDART contribution statements.
 #
-# Deploy path: /opt/caldart. deploy/steps/timers.sh installs and enables it.
+# Deploy root: /opt/caldart, with the checkout in caldart/.
+# deploy/steps/timers.sh installs and enables it.
 # Inspect with:
 #   systemctl list-timers caldart-statements.timer
 
 [Unit]
 Description=Send the CalDART contribution statements yearly on January 15th
-Documentation=file:///opt/caldart/docs/developer/deployment.rst
+Documentation=file:///opt/caldart/caldart/docs/developer/deployment.rst
 
 [Timer]
 Unit=caldart-statements.service

@@ -1,12 +1,13 @@
 # Daily trigger for the CalDART automatic-renewal scan.
 #
-# Deploy path: /opt/caldart. deploy/steps/timers.sh installs and enables it.
+# Deploy root: /opt/caldart, with the checkout in caldart/.
+# deploy/steps/timers.sh installs and enables it.
 # Inspect with:
 #   systemctl list-timers caldart-renewals.timer
 
 [Unit]
 Description=Run the CalDART automatic-renewal scan daily at 06:30
-Documentation=file:///opt/caldart/docs/developer/deployment.rst
+Documentation=file:///opt/caldart/caldart/docs/developer/deployment.rst
 
 [Timer]
 Unit=caldart-renewals.service

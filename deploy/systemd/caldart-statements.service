@@ -1,6 +1,7 @@
 # CalDART year-end contribution statements.
 #
-# Deploy path: /opt/caldart. Triggered by caldart-statements.timer, which runs
+# Deploy root: /opt/caldart, with the checkout in caldart/.
+# Triggered by caldart-statements.timer, which runs
 # it once a year on January 15th; it is a oneshot, so it is not enabled
 # directly. deploy/steps/timers.sh installs it and enables the timer.
 #
@@ -10,7 +11,7 @@
 
 [Unit]
 Description=CalDART year-end contribution statements
-Documentation=file:///opt/caldart/docs/developer/deployment.rst
+Documentation=file:///opt/caldart/caldart/docs/developer/deployment.rst
 # Needs the database and outbound SMTP.
 After=network.target docker.service caldart-web.service
 Wants=network-online.target
@@ -22,7 +23,7 @@ User=caldart
 Group=caldart
 UMask=0027
 
-WorkingDirectory=/opt/caldart/backend
+WorkingDirectory=/opt/caldart/caldart/backend
 
 # Same configuration as the web service: DATABASE_URL, EMAIL_URL and
 # DEFAULT_FROM_EMAIL are the ones this command actually uses.
@@ -35,7 +36,7 @@ Environment=PYTHONDONTWRITEBYTECODE=1
 # Sends the previous calendar year's contribution statements to every active
 # account that gave. Add --dry-run to rehearse, or --year=YYYY to name another
 # year, or --today=YYYY-MM-DD to run as of another date.
-ExecStart=/opt/caldart/.venv/bin/python /opt/caldart/backend/manage.py send_year_statements
+ExecStart=/opt/caldart/caldart/.venv/bin/python /opt/caldart/caldart/backend/manage.py send_year_statements
 
 # A slow SMTP server, or a year with many givers, should not leave this
 # hanging until the next trigger.
