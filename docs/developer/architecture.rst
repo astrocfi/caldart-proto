@@ -394,10 +394,12 @@ Two further rules complete it:
   app's models, services, and serializers.
 - An upward import is allowed only inside a function, only where it breaks an
   app-level cycle, and only with a comment on the line above saying which one.
-  There are four in the apps: ``User.membership_status`` and
+  There are five in the apps: ``User.membership_status`` and
   ``User.can_access_members_content`` reaching ``members``,
   ``accounts.services`` reaching the Wagtail site settings, and
-  ``delete_member`` reaching ``payments.models`` for the refusal sentence.
+  ``members.services.hand_over_payments`` reaching ``payments.models`` and
+  ``payments.renewals`` to cancel a deleted member's automatic payments and
+  move their payments to a tombstone account.
   Three more are in the project package, which sits below every app:
   ``caldart.org`` and ``caldart.views`` read the Wagtail site settings, and
   ``caldart.mail`` writes the email log.

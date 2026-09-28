@@ -352,6 +352,8 @@ def hand_over_payments(actor: User, target: User) -> PaymentHandover | None:
     # Inline: payments sits above members and apps.payments.services imports this
     # module, so a top-level import here would close the cycle.
     from apps.payments.models import MandateStatus, Payment
+
+    # Inline: renewals imports this module, so a top-level import would close a cycle.
     from apps.payments.renewals import cancel_mandate
 
     # Locking the account holds back a payment being written for it until this
