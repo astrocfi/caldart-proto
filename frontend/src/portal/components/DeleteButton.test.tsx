@@ -104,22 +104,22 @@ describe('DeleteButton', () => {
     expect(screen.getByRole('button', { name: 'Delete member' })).toHaveClass('button--danger');
   });
 
-  it('reports the press to the caller', async () => {
-    const handleDelete = vi.fn();
-    render(<DeleteButton label="Remove N12345" onClick={handleDelete} />);
+  it('reports the press to the caller when it has no confirmation of its own', async () => {
+    const handleClick = vi.fn();
+    render(<DeleteButton label="Remove N12345" onClick={handleClick} />);
 
     await userEvent.click(screen.getByRole('button', { name: 'Remove N12345' }));
 
-    expect(handleDelete).toHaveBeenCalledOnce();
+    expect(handleClick).toHaveBeenCalledOnce();
   });
 
   it('ignores a press while it is disabled', async () => {
-    const handleDelete = vi.fn();
-    render(<DeleteButton label="Remove N12345" disabled onClick={handleDelete} />);
+    const handleClick = vi.fn();
+    render(<DeleteButton label="Remove N12345" disabled onClick={handleClick} />);
 
     await userEvent.click(screen.getByRole('button', { name: 'Remove N12345' }));
 
-    expect(handleDelete).not.toHaveBeenCalled();
+    expect(handleClick).not.toHaveBeenCalled();
   });
 
   it('keeps a caller-supplied title, such as the reason it is disabled', () => {
@@ -138,5 +138,171 @@ describe('DeleteButton', () => {
       'type',
       'button',
     );
+  });
+});
+
+describe('DeleteButton confirmation', () => {
+  it('does not call onDelete on the first press', async () => {
+    const handleDelete = vi.fn();
+    render(<DeleteButton label="Remove N12345" onDelete={handleDelete} />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Remove N12345' }));
+
+    expect(handleDelete).not.toHaveBeenCalled();
+  });
+
+  it('replaces the trashcan with a named confirmation group on the first press', async () => {
+    render(<DeleteButton label="Remove N12345" onDelete={() => {}} />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Remove N12345' }));
+
+    expect(screen.queryByRole('button', { name: 'Remove N12345' })).toBeNull();
+    expect(screen.getByRole('group', { name: 'Remove N12345' })).toBeInTheDocument();
+  });
+
+  it('reads Delete on the confirmation unless the caller names another word', async () => {
+    render(<DeleteButton label="Remove N12345" onDelete={() => {}} />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Remove N12345' }));
+
+    expect(screen.getByRole('button', { name: 'Delete' })).toBeInTheDocument();
+  });
+
+  it('reads the caller-chosen word on the confirmation', async () => {
+    render(<DeleteButton label="Remove N12345" confirmLabel="Remove" onDelete={() => {}} />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Remove N12345' }));
+
+    expect(screen.getByRole('button', { name: 'Remove' })).toBeInTheDocument();
+  });
+
+  it('calls onDelete only once the confirmation is pressed', async () => {
+    const handleDelete = vi.fn().mockResolvedValue(undefined);
+    render(<DeleteButton label="Remove N12345" onDelete={handleDelete} />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Remove N12345' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Delete' }));
+
+    expect(handleDelete).toHaveBeenCalledOnce();
+  });
+
+  it('restores the trashcan once onDelete settles', async () => {
+    const handleDelete = vi.fn().mockResolvedValue(undefined);
+    render(<DeleteButton label="Remove N12345" onDelete={handleDelete} />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Remove N12345' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Delete' }));
+
+    expect(await screen.findByRole('button', { name: 'Remove N12345' })).toBeInTheDocument();
+  });
+
+  it('restores the trashcan even when onDelete fails', async () => {
+    const handleDelete = vi.fn().mockRejectedValue(new Error('nope'));
+    render(<DeleteButton label="Remove N12345" onDelete={handleDelete} />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Remove N12345' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Delete' }));
+
+    expect(await screen.findByRole('button', { name: 'Remove N12345' })).toBeInTheDocument();
+  });
+
+  it('disables both confirmation buttons while onDelete is in flight', async () => {
+    let resolveDelete: () => void = () => {};
+    const handleDelete = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveDelete = resolve;
+        }),
+    );
+    render(<DeleteButton label="Remove N12345" onDelete={handleDelete} />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Remove N12345' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Delete' }));
+
+    expect(screen.getByRole('button', { name: 'Delete' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Keep' })).toBeDisabled();
+
+    resolveDelete();
+    await screen.findByRole('button', { name: 'Remove N12345' });
+  });
+
+  it('restores the trashcan when Keep is pressed, without calling onDelete', async () => {
+    const handleDelete = vi.fn();
+    render(<DeleteButton label="Remove N12345" onDelete={handleDelete} />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Remove N12345' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Keep' }));
+
+    expect(screen.getByRole('button', { name: 'Remove N12345' })).toBeInTheDocument();
+    expect(handleDelete).not.toHaveBeenCalled();
+  });
+
+  it('restores the trashcan on Escape, without calling onDelete', async () => {
+    const handleDelete = vi.fn();
+    render(<DeleteButton label="Remove N12345" onDelete={handleDelete} />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Remove N12345' }));
+    await userEvent.keyboard('{Escape}');
+
+    expect(screen.getByRole('button', { name: 'Remove N12345' })).toBeInTheDocument();
+    expect(handleDelete).not.toHaveBeenCalled();
+  });
+
+  it('restores the trashcan on a press outside it, without calling onDelete', async () => {
+    const handleDelete = vi.fn();
+    render(
+      <>
+        <DeleteButton label="Remove N12345" onDelete={handleDelete} />
+        <p>somewhere else</p>
+      </>,
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'Remove N12345' }));
+    await userEvent.click(screen.getByText('somewhere else'));
+
+    expect(screen.getByRole('button', { name: 'Remove N12345' })).toBeInTheDocument();
+    expect(handleDelete).not.toHaveBeenCalled();
+  });
+
+  it('restores the trashcan when the focus leaves it, without calling onDelete', async () => {
+    const handleDelete = vi.fn();
+    render(
+      <>
+        <DeleteButton label="Remove N12345" onDelete={handleDelete} />
+        <button>elsewhere</button>
+      </>,
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'Remove N12345' }));
+    screen.getByRole('button', { name: 'Keep' }).focus();
+    await userEvent.tab();
+
+    expect(screen.getByRole('button', { name: 'Remove N12345' })).toBeInTheDocument();
+    expect(handleDelete).not.toHaveBeenCalled();
+  });
+
+  it('confirms in the worded form too', async () => {
+    const handleDelete = vi.fn();
+    render(
+      <DeleteButton label="Delete this DART" confirmLabel="Delete for good" onDelete={handleDelete}>
+        Delete this DART
+      </DeleteButton>,
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'Delete this DART' }));
+
+    expect(screen.getByRole('group', { name: 'Delete this DART' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Delete for good' })).toBeInTheDocument();
+    expect(handleDelete).not.toHaveBeenCalled();
+  });
+
+  it('never shows a confirmation for a caller with no onDelete', async () => {
+    const handleClick = vi.fn();
+    render(<DeleteButton label="Delete member" type="submit" onClick={handleClick} />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Delete member' }));
+
+    expect(screen.queryByRole('group', { name: 'Delete member' })).toBeNull();
+    expect(handleClick).toHaveBeenCalledOnce();
   });
 });
