@@ -452,17 +452,22 @@ the system has another version.  Step 6 tells it to put the download in
 
 ::
 
-  sudo useradd --system --home-dir /opt/caldart --shell /usr/sbin/nologin caldart
+  sudo useradd --system --create-home --home-dir /home/caldart \
+      --shell /usr/sbin/nologin caldart
   sudo install -d -o root -g caldart -m 0750 /etc/caldart
   sudo install -d -o caldart -g caldart \
       /opt/caldart/backend/media \
       /opt/caldart/backend/staticfiles \
       /opt/caldart/backups
 
-``useradd`` runs only when the user is missing.  ``--system`` does not create
-the home directory; the checkout of step 3 is already there.  The user is not
-in the ``docker`` group: nothing the services run talks to Docker, since the
-backups use the local ``pg_dump``.
+``useradd`` runs only when the user is missing.  Its home is ``/home/caldart``,
+its own directory and never the checkout; nothing is ever written there,
+because the units keep ``/home`` out of reach (``ProtectHome=true``) and the
+services write only under the checkout.  An existing user whose home is
+somewhere else (an earlier install put it at the checkout) is given the
+directory and pointed at it with ``usermod --home``; the old home is left as
+it is.  The user is not in the ``docker`` group: nothing the services run
+talks to Docker, since the backups use the local ``pg_dump``.
 
 The checkout is owned by root and readable by the service user.  The web unit
 mounts everything read-only except the three directories above, which the

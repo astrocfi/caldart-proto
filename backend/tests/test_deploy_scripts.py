@@ -146,16 +146,36 @@ def _position(commands: list[str], fragment: str) -> int:
 
 
 def _machine_path(
-    tmp_path: Path, *, listening: tuple[int, ...] = (), container: bool = False
+    tmp_path: Path,
+    *,
+    listening: tuple[int, ...] = (),
+    container: bool = False,
+    service_home: str | None = None,
 ) -> str:
-    """A ``PATH`` whose ``ss`` and ``docker`` describe a machine, ahead of the real one.
+    """A ``PATH`` whose ``ss``, ``docker``, ``id``, and ``getent`` describe a machine.
 
-    ``ss`` reports a listener on each port in ``listening`` and nothing else, and
+    ``ss`` reports a listener on each port in ``listening`` and nothing else,
     ``docker container inspect`` finds the CalDART database container only when
-    ``container`` is true, so no test depends on what the machine running it has.
+    ``container`` is true, and the ``caldart`` user exists, with ``service_home`` as
+    its home directory, only when ``service_home`` is given, so no test depends on
+    what the machine running it has.  The shims sit ahead of the real commands.
     """
     shims = tmp_path / "machine"
     shims.mkdir(exist_ok=True)
+    user_exists = 0 if service_home is not None else 1
+    passwd_line = f"caldart:x:999:999::{service_home}:/usr/sbin/nologin" if service_home else ""
+    # Only the questions about the service user are answered here; anything else
+    # (``id -u`` for the root check, say) goes to the real command.
+    (shims / "id").write_text(
+        f'#!/bin/sh\n[ "$*" = "-u caldart" ] && exit {user_exists}\nexec /usr/bin/id "$@"\n'
+    )
+    (shims / "getent").write_text(
+        "#!/bin/sh\n"
+        'if [ "$*" = "passwd caldart" ]; then\n'
+        f'    [ -n "{passwd_line}" ] && echo "{passwd_line}"; exit 0\n'
+        "fi\n"
+        'exec /usr/bin/getent "$@"\n'
+    )
     ports = " ".join(str(port) for port in listening)
     (shims / "ss").write_text(
         "#!/bin/sh\n"
@@ -176,17 +196,21 @@ def _install_dry_run(
     *extra: str,
     listening: tuple[int, ...] = (),
     container: bool = False,
+    service_home: str | None = None,
     flags: tuple[str, ...] = FIRST_INSTALL,
 ) -> subprocess.CompletedProcess[str]:
     """The dry run of a first ``install.sh`` on Ubuntu, plus the ``extra`` flags.
 
-    ``listening`` and ``container`` describe the machine (see ``_machine_path``), and
-    ``flags`` replaces the first-install flags the ``extra`` ones follow.
+    ``listening``, ``container``, and ``service_home`` describe the machine (see
+    ``_machine_path``), and ``flags`` replaces the first-install flags the ``extra``
+    ones follow.
     """
     env = _env(
         etc,
         CALDART_OS_RELEASE=str(_os_release(tmp_path, "ubuntu")),
-        PATH=_machine_path(tmp_path, listening=listening, container=container),
+        PATH=_machine_path(
+            tmp_path, listening=listening, container=container, service_home=service_home
+        ),
     )
     return _run(root / "deploy" / "install.sh", "--dry-run", *flags, *extra, env=env)
 
@@ -2478,3 +2502,32 @@ def test_an_unhealthy_database_check_names_the_port(root: Path, tmp_path: Path) 
     assert _errors(result) == [
         "error: check failed: the compose db service on 127.0.0.1:5433 is not healthy (not running)"
     ]
+
+
+def test_a_first_install_creates_the_service_user_with_its_own_home(
+    root: Path, etc: Path, tmp_path: Path
+) -> None:
+    """The user step gives ``caldart`` its own ``/home/caldart``, never the checkout."""
+    commands = _commands(_install_dry_run(root, etc, tmp_path))
+    assert (
+        "useradd --system --create-home --home-dir /home/caldart --shell /usr/sbin/nologin caldart"
+    ) in commands
+    assert not any(command.startswith("usermod ") for command in commands)
+
+
+def test_an_existing_user_homed_at_the_checkout_is_moved_to_its_own_home(
+    root: Path, etc: Path, tmp_path: Path
+) -> None:
+    """A user an earlier install homed at the checkout is pointed at ``/home/caldart``."""
+    commands = _commands(_install_dry_run(root, etc, tmp_path, service_home=str(root)))
+    assert not any(command.startswith("useradd ") for command in commands)
+    assert "install -d -o caldart -g caldart -m 0750 /home/caldart" in commands
+    assert "usermod --home /home/caldart caldart" in commands
+
+
+def test_a_user_already_homed_at_its_own_directory_is_left_alone(
+    root: Path, etc: Path, tmp_path: Path
+) -> None:
+    """A second run neither recreates the user nor moves a home that is already right."""
+    commands = _commands(_install_dry_run(root, etc, tmp_path, service_home="/home/caldart"))
+    assert not any(command.startswith(("useradd ", "usermod ")) for command in commands)
