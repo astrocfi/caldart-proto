@@ -3,7 +3,9 @@
  *
  * The member picks the plan that will renew, the contribution to renew beside
  * it, and the provider that will hold the method.  Only plans with a duration
- * are offered: a membership for life has nothing to renew.
+ * are offered: a membership for life has nothing to renew.  The first of them the
+ * server lists is chosen until the member picks another, and a server with no plan
+ * set up at all says so and offers no way to save a method.
  *
  * The day of the first charge is the member's own.  It opens on the day their
  * membership runs out, which is the day the charge is wanted on, and it takes any
@@ -24,9 +26,6 @@ import { PlanChooser } from '@/portal/features/checkout/PlanChooser';
 import { notBeforeToday } from './chargeDate';
 import { MandateSetupTabs, mandateProviders } from './MandateSetupTabs';
 import '@/portal/features/checkout/checkout.css';
-
-/** The plan a renewal defaults to, where the deployment offers it. */
-const DEFAULT_PLAN = 'annual';
 
 export interface RenewalSetupProps {
   /**
@@ -53,7 +52,8 @@ export function RenewalSetup({
   const { data: config, isPending, error } = usePaymentsConfig();
 
   const earliestChargeOn = todayIso();
-  const [plan, setPlan] = useState<string>(DEFAULT_PLAN);
+  // Null until somebody picks: the first renewing plan the server lists stands in.
+  const [plan, setPlan] = useState<string | null>(null);
   const [nextChargeOn, setNextChargeOn] = useState(() => notBeforeToday(expiresOn));
   const [contributionCents, setContributionCents] = useState(initialContributionCents);
   const [isOther, setIsOther] = useState(false);
@@ -75,9 +75,19 @@ export function RenewalSetup({
     );
   }
 
+  if (config.plans.length === 0) {
+    return (
+      <EmptyState
+        title="Membership is not on offer yet"
+        description="No membership plan is set up yet. Ask an administrator."
+      />
+    );
+  }
+
   // A membership that never expires cannot renew itself, so it is not offered.
   const renewable = config.plans.filter((entry) => entry.duration_days !== null);
-  if (renewable.length === 0 || mandateProviders(config).length === 0) {
+  const [firstRenewable] = renewable;
+  if (firstRenewable === undefined || mandateProviders(config).length === 0) {
     return (
       <EmptyState
         title="Automatic renewal is not available"
@@ -86,10 +96,9 @@ export function RenewalSetup({
     );
   }
 
-  const offered = renewable.map((entry) => entry.slug);
-  const effectivePlan = offered.includes(plan) ? plan : (offered[0] ?? plan);
-  const selectedPlan = renewable.find((entry) => entry.slug === effectivePlan) ?? null;
-  const chargeCents = (selectedPlan?.price_cents ?? 0) + contributionCents;
+  const selectedPlan = renewable.find((entry) => entry.slug === plan) ?? firstRenewable;
+  const effectivePlan = selectedPlan.slug;
+  const chargeCents = selectedPlan.price_cents + contributionCents;
   // An empty box is valid HTML, and an empty date is not a date the API takes, so
   // the provider step waits for one rather than sending it.
   const needsChargeDate = nextChargeOn === '';
