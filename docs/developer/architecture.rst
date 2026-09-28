@@ -566,8 +566,13 @@ around ``JoinWizard`` (``features/join/join.css``) caps the page header and
 the step list at 46rem, centered on the same axis as the join card below,
 rather than the header spanning the full window above a narrower, centered
 card.  The account and verify steps use a narrower, 30rem card on that same
-axis, so the header sits wider than the card on those two steps; every
-other step's card is the full 46rem, so the edges line up there.
+axis, so the header sits wider than the card on those two steps; the pay and
+done steps' cards are the full 46rem, so the edges line up there.  The profile
+step holds the form ``/profile`` shows, so its card carries
+``join-card--wide`` and takes the portal's working width (``--page-max``), as
+``/profile``'s card does, which keeps a phone number and its extension on one
+line; the wizard adds ``join-shell--wide`` on that step, widening the header and
+the step list to match.
 
 **Code splitting.**  A route names its page with React Router's ``lazy``
 property rather than an ``element``, so the page's code is a chunk of its own
