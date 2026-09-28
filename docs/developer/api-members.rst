@@ -550,8 +550,8 @@ not deactivate their own account.  A refusal is a **400** keyed on ``email`` or
 request included.
 
 Deactivation — ``PATCH`` with ``is_active`` false — is the tool for a member
-who has left.  The hard delete below is for accounts that never paid:
-duplicates, spam, and test accounts.
+who has left.  The hard delete below is for duplicates, spam, test accounts,
+and a person who asks to be removed; their payments stay in the books.
 
 Statuses:
 
@@ -566,42 +566,49 @@ Statuses:
 ``DELETE /admin/members/{user_id}``
 ===================================
 
-Hard-deletes the account: the cascade takes the profile and the membership
-terms with it, and the audit log is the only trace left.  There is no response
-body.
+Hard-deletes the account: the cascade takes the profile, the membership terms,
+the automatic payments, and the contribution statements with it.  There is no
+response body.
 
 The delete is refused when
 
 * the target is the caller — you cannot delete your own account, whatever roles
-  you hold;
-* the target is a ``system_admin``, unless the caller is a ``system_admin``; or
-* the target has any payment.
+  you hold; or
+* the target is a ``system_admin``, unless the caller is a ``system_admin``.
 
 The two role tests read *effective* roles, so a Django superuser without the
-role group counts as a system administrator on either side.  They are applied
-in that order, so an administrator who has paid is told they cannot delete
-themselves rather than told about their payments.
+role group counts as a system administrator on either side.  A refusal writes
+nothing.
 
-The payment guard keeps the financial record: a payment is revenue or a
-donation, and the accounts must not change after the fact.  It counts every
-payment, ``pending``, and ``failed`` rows included, and the ``detail`` reads::
+Payments are kept.  A payment is revenue or a donation, and the accounts must
+not change after the fact, so ``Payment.user`` is ``PROTECT`` (:doc:`data-model`).
+Before the account goes, in the same transaction, the view:
 
-   Ana Bracco has 3 payment records, which must be kept. Deactivate the account instead.
+#. cancels every ``active`` or ``paused`` automatic payment of the member, as an
+   administrator's cancellation (the ``renewal.cancel`` audit line ends in
+   ``reason=member.delete``), so nothing is charged again and the member is
+   emailed that it is off;
+#. when the member has any payment, whatever its status, creates a *tombstone*
+   account — a deactivated ``donor`` with no password, no role, and a blank
+   profile, named ``Deleted member <id>`` after the deleted account's id, with
+   the address ``deleted-<id>@deleted.invalid`` — and moves every payment to it.
+   Refunds stay on their payments.
 
-with ``payment record`` singular for a count of one.  Nothing is written — the
-payments, the profile and the membership terms are all still there afterwards.
+The payment list, the ledger, and the donors report name the tombstone as the
+payer; the member list and **Users & roles**, which show active accounts, do
+not list it.  A member who never paid leaves no tombstone.
 
-``Payment.user`` is ``PROTECT`` (:doc:`data-model`), so the protection is on
-the foreign key rather than on this view alone: the Django admin, a management
-command and a shell session all raise ``ProtectedError`` instead of cascading.
-The view catches that error and answers with the same **403**.
+The delete is recorded as ``member.delete``, with ``payments=<n>
+owner=<tombstone id>`` when payments moved.  The Wagtail users admin's delete
+view and its **Delete** bulk action hand payments over the same way and write
+the same line (:doc:`data-model`).
 
 Statuses:
 
 * **204** — the account is gone, with an empty body.
-* **403** — one of the three refusals, as ``{"detail": "..."}``.  The sentences
-  are "You cannot delete your own account.", "Only a system administrator can
-  delete a system administrator." and the payment sentence above.
+* **403** — one of the two refusals, as ``{"detail": "..."}``: "You cannot
+  delete your own account." or "Only a system administrator can delete a
+  system administrator."
 * **404** — no account has that id.
 
 
@@ -731,10 +738,11 @@ Tests
    whole membership in the answer, the DART filter, the report download, and
    the refusal of creating a member, reading a member record, and granting a term.
 ``backend/tests/test_members_delete_payments.py``
-   The payment guard: a refusal for every payment status and its message, the
-   payment summary before and after a refusal, the same refusal for a system
-   administrator, the delete of a member who never paid, and the
-   ``ProtectedError`` the model raises on its own.
+   Deleting a member who paid: every payment status moving to the tombstone,
+   the tombstone's kind, activity, name, address, and profile, the automatic
+   payments canceled, refunds kept on their payments, the audit line, the
+   payment list and member list afterwards, the Wagtail single and bulk paths,
+   and the ``ProtectedError`` the model still raises on its own.
 ``backend/tests/test_members_admin_status.py``
    The SQL annotations against ``membership_status``, and ``membership_of``
    answering the same either way.

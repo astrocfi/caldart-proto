@@ -111,7 +111,10 @@ membership back as their own reactivation would.
 Deactivation is the right step for someone who has left. It does not keep out somebody who
 knows the password, so for an account you think has been taken over, deactivate it and ask
 the owner to reset the password once they are back in. Deleting an account is an account
-administrator's job, on the **Danger zone** tab of the :doc:`member-record`.
+administrator's job, on the **Danger zone** tab of the :doc:`member-record`; the person's
+payments stay in the books under the name **Deleted member** and the account's number.
+That name belongs to a deactivated account, so the :doc:`users` list shows it only when
+**Account status** includes deactivated accounts.
 
 
 Helping someone back in

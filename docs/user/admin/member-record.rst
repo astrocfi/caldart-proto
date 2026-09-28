@@ -128,15 +128,19 @@ organization's figures, use **Payments** under **Administration** in the menu.
 Danger zone
 ===========
 
-**A person who has ever paid cannot be deleted.** Payments are the organization's financial
-record, so the tab says *This member cannot be deleted*, counts their payment records, and
-asks you to clear **Account is active** on the **Profile** tab instead.
-
-For an account with no payments, such as a duplicate, a spam sign-up, or a test record, the
-tab offers **Delete this member**. The delete is permanent and takes the profile and every
+The tab offers **Delete this member**, for a duplicate, a spam sign-up, a test record, or a
+person who asks to be removed. The delete is permanent and takes the profile and every
 membership term with it. There is no undo. Type the person's email address into the box; the
 **Delete member** button stays disabled until the address matches. Two deletions are refused
 outright: your own account, and a system administrator's account unless you are one.
+
+Payments are the organization's financial record, so they are never deleted. When the person
+has paid, the card says how many payment records they have and that they stay in the books
+under the name **Deleted member** followed by the account's number, such as **Deleted member
+5**. That name stands in for the person's on the payment list, a payment's record, and the
+**Donors** tab, and the organization's totals do not change. An automatic
+renewal or recurring donation the person had is turned off first, and they are emailed that it
+is off.
 
 When somebody has simply left, deactivate them. A deactivated account cannot sign in, stays
 off the member reports, the rosters, and the member check, and keeps its record. A member can
@@ -157,8 +161,6 @@ probably changed **Account is active** on a record that is guarded the same way:
 has no message for that box, and the whole save is refused. Put the box back and save again.
 *The end date cannot be before the start date.* means the end date you typed is too early.
 *You cannot delete your own account.* and *Only a system administrator can delete a system
-administrator.* mean what they say. A message that the person *has* a number of *payment
-records, which must be kept* means a payment arrived while the page was open; reload and
-deactivate instead. A granted term that starts later than you expected follows on from the
-current term; set the start date yourself to override it. Roles are changed by a user
-administrator on the :doc:`user-record`.
+administrator.* mean what they say. A granted term that starts later than you expected
+follows on from the current term; set the start date yourself to override it. Roles are
+changed by a user administrator on the :doc:`user-record`.

@@ -36,6 +36,13 @@ columns you start with, each row shows the donor's **Name**, **Email**, **Phone*
 **Gifts**, the total **Given**, and the **Net** once anything refunded is taken
 off.
 
+A row named **Deleted member** followed by a number, such as **Deleted member 5**,
+holds the gifts of a person whose account an account administrator deleted (see
+:doc:`../admin/member-record`). The gifts stay in the books under that name, so the
+organization's totals do not change, and the row's email address, which ends in
+``deleted.invalid``, reaches nobody. A deleted member's gifts beyond their dues are
+listed here too, because that name is not a member.
+
 Four more columns start off: **County**, **DART**, **Refunded**, and **Active**, which
 reads **Active** or **Deactivated**. Turn them on from **Columns** when a mailing list or
 an audit needs them.

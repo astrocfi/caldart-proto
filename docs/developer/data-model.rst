@@ -2872,19 +2872,26 @@ the contribution, or both, for the provider's own record of the charge.
 - ``user`` is ``PROTECT``, which makes the payment table the ledger the
   accounts can rely on: revenue and donations for a closed period cannot
   disappear because somebody tidied up a departed member.  Deleting an account
-  that has any payment raises ``ProtectedError``, whether the delete comes from
-  the API, the Django admin, a management command or a shell.
-  ``payment_deletion_refusal(user)`` words the refusal, and
-  ``DELETE /admin/members/{user_id}`` turns it into a **403** pointing at
-  deactivation (:doc:`api-members`); deactivating keeps the member, the profile,
-  the terms, and the payments and only stops the sign-in.
+  that still holds a payment raises ``ProtectedError``, whether the delete
+  comes from the Django admin, a management command or a shell.
+- Deleting a member through ``DELETE /admin/members/{user_id}``
+  (:doc:`api-members`) first hands their payments to a *tombstone*:
+  ``hand_over_payments`` in ``apps/members/services.py`` cancels the member's
+  ``active`` and ``paused`` mandates, and ``tombstone_for`` creates a
+  deactivated ``donor`` account with no password, no role, and a blank
+  ``MemberProfile``, whose ``first_name`` is ``Deleted member``, whose
+  ``last_name`` is the deleted account's id (so ``display_name`` reads
+  ``Deleted member 5``), and whose ``email`` is ``deleted-<id>@deleted.invalid``.
+  Every payment of the member, whatever its status, moves to it in the same
+  transaction; refunds stay on their payments.  A member who never paid gets
+  no tombstone.
 - The two ways the Wagtail admin deletes an account, the delete view at
   ``/admin/users/delete/<id>/`` and the ``Delete`` bulk action on the users
-  listing, are stopped before they write, by the ``before_delete_user`` and
-  ``before_bulk_action`` hooks in ``apps/payments/wagtail_hooks.py``.  Each
-  sends the operator back to the users listing with that same sentence as an
-  error message; one protected account refuses a whole bulk batch, because the
-  bulk delete is a single query that cannot succeed in part.
+  listing, hand payments over the same way, through the ``before_delete_user``
+  and ``before_bulk_action`` hooks in ``apps/payments/wagtail_hooks.py``: the
+  delete view only when the delete is confirmed, and the bulk action with a
+  tombstone for each account in the batch that paid.  Each writes the
+  ``member.delete`` audit line.
 - ``partially_refunded`` and ``refunded`` say how much of the payment has been
   given back; the ``Refund`` rows beneath it carry the amounts, and
   ``refunded_cents`` adds the succeeded ones up.  The refund service writes
@@ -3420,7 +3427,7 @@ system said to whom, which is what ``GET /system/emails`` reads
    * - ``user``
      - ``ForeignKey`` to ``accounts.User``, ``SET_NULL``
      - null; default ``NULL``
-     - the account the email concerned; null for an address with no account behind it, or one since deleted; related name ``email_logs``
+     - the account the email concerned; null for an address with no account behind it, or one since deleted (even before the message went out); related name ``email_logs``
    * - ``purpose``
      - ``SlugField(64)``
      - not null; required
