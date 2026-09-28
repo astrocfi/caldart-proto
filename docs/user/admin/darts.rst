@@ -63,7 +63,9 @@ The people who run it
 - The arrows at the head of a row move that person up or down. The order is the order the
   team's page on the public website lists them in, so put the leader first. A row with no
   name cannot be moved, and neither can its neighbors past it.
-- The trashcan at the end of a row takes that person off the list.
+- The trashcan at the end of a row asks first: press it and it turns into **Remove** and
+  **Keep**. Press **Remove** and that person comes off the list; **Keep**, Escape, or a
+  click elsewhere leaves them on it.
 
 The people are saved with the rest of the form.
 

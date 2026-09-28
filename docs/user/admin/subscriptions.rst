@@ -43,7 +43,8 @@ Each row carries four controls. The line above the table says what the last thre
    line says why.
 
 **The trashcan**
-   Deletes the subscription.
+   Asks first: press it and it turns into **Delete** and **Keep**. Press **Delete** and
+   the subscription is gone; **Keep**, Escape, or a click elsewhere leaves it as it is.
 
 With none set up the table reads *No reports are sent by email yet*.
 
