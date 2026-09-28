@@ -654,6 +654,10 @@ cannot admit a plaintext copy of an SDK.
    avatar from its own static files rather than from Gravatar, and an account's
    email address stays out of a third-party request.
 
+``font-src 'self' data:``
+   The production bundle inlines the Fraunces font faces as ``data:`` URLs (Vite
+   inlines assets under its size limit), which ``default-src`` alone refuses.
+
 ``style-src 'self' 'unsafe-inline'``
    Stripe's Payment Element and Wagtail's admin both set styles from
    JavaScript, which a browser attributes to this directive.

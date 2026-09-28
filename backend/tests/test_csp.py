@@ -65,6 +65,7 @@ SITE_POLICY = {
         *PAYPAL,
     ],
     "img-src": ["'self'", "data:", "https://*.link.com", *PAYPAL],
+    "font-src": ["'self'", "data:"],
     "style-src": ["'self'", "'unsafe-inline'"],
 }
 
