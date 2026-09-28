@@ -63,9 +63,9 @@ Send or download the receipt
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 **Resend receipt** emails the member their receipt again, and the screen confirms with
-*Receipt emailed again.* The email's subject is the organization's name followed by
-*your receipt for* and the amount, for example *The California DART Network: your receipt
-for $50.00*. **Download receipt** gives you the same receipt as a PDF.
+*Receipt emailed again.* The email's subject is the organization's name followed by *your
+receipt for* and the amount, for example *CalDART: your receipt for $50.00*. **Download
+receipt** gives you the same receipt as a PDF.
 
 Ask the provider for the fee
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -103,9 +103,9 @@ Press **Refund** to issue it, or **Cancel** to close the form. The screen confir
 
 The site asks the provider to send the money back to the card or account the member paid
 with. Their bank decides how quickly it appears, usually a few working days. The member
-is emailed with the subject *The California DART Network: a refund of* and the amount;
-the email names what the payment was for, the reason you chose, and, when you canceled
-the term, that their membership has ended. The payment's status then reads **Partly
+is emailed with the subject *CalDART: a refund of* and the amount; the email names what
+the payment was for, the reason you chose, and, when you canceled the term, that their
+membership has ended. The payment's status then reads **Partly
 refunded** while some of it is still kept and **Refunded** once all of it has gone back.
 
 A payment recorded by hand is refunded the same way, except that no provider is asked:

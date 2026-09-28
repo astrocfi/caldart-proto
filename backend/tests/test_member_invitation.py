@@ -29,7 +29,7 @@ RESET_CONFIRM = "/api/v1/auth/password/reset/confirm"
 GOOD_PASSWORD = "correct-horse-battery"  # noqa: S105 - test fixture
 
 #: The ``SiteSettings`` defaults the ``site_settings`` fixture writes.
-ORG_NAME = "The California DART Network"
+ORG_NAME = "CalDART"
 CONTACT_EMAIL = "info@caldart.example.org"
 
 

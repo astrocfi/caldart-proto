@@ -66,9 +66,8 @@ What happens next:
 * Every charge still scheduled against it is dropped.
 * The membership itself runs to the end of its term.
 * The row stays in the table, marked **Off**.
-* The person is emailed. The subject is *The California DART Network: automatic renewal
-  is off* for a renewal, or *The California DART Network: your recurring donation is off*
-  for a recurring donation.
+* The person is emailed. The subject is *CalDART: automatic renewal is off* for a
+  renewal, or *CalDART: your recurring donation is off* for a recurring donation.
 * They can turn it on again themselves from their own **Payments** screen, or, for a
   recurring donation, from the **Donate** screen.
 

@@ -22,7 +22,7 @@ from caldart.receipts import (
 from tests.conftest import PdfText, pdf_page_count
 
 ORG = OrgDetails(
-    name="The California DART Network",
+    name="CalDART",
     contact_email="info@caldart.example.org",
     mailing_address="PO Box 41\nPalo Alto, CA 94301",
     ein="94-1234567",
@@ -122,7 +122,7 @@ def test_the_receipt_prints_the_letterhead(pdf_text: PdfText) -> None:
     """The organization's name, mailing address and EIN head the page."""
     page = pdf_text(render_receipt(receipt(DUES, GIFT)))[0]
 
-    assert page[0] == "The California DART Network"
+    assert page[0] == "CalDART"
     assert "PO Box 41" in page
     assert "Palo Alto, CA 94301" in page
     assert "EIN 94-1234567" in page
@@ -244,7 +244,7 @@ def test_the_statement_prints_the_letterhead(pdf_text: PdfText) -> None:
     """The organization's name and EIN head the statement too."""
     page = pdf_text(render_statement(STATEMENT))[0]
 
-    assert page[0] == "The California DART Network"
+    assert page[0] == "CalDART"
     assert "EIN 94-1234567" in page
 
 
@@ -266,7 +266,7 @@ def test_the_letterhead_leaves_out_what_nobody_has_filled_in(
     page = pdf_text(render_receipt(data))[0]
 
     assert gone not in page
-    assert page[0] == "The California DART Network"
+    assert page[0] == "CalDART"
 
 
 def test_a_statement_year_with_nothing_in_it_still_renders(pdf_text: PdfText) -> None:

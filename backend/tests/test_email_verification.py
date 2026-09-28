@@ -55,7 +55,7 @@ MEMBERS_URL = "/api/v1/admin/members"
 INVALID_LINK = "That verification link is invalid or has expired."
 
 #: The ``SiteSettings`` defaults the ``site_settings`` fixture writes.
-ORG_NAME = "The California DART Network"
+ORG_NAME = "CalDART"
 CONTACT_EMAIL = "info@caldart.example.org"
 
 type OnCommit = DjangoCaptureOnCommitCallbacks

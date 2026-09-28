@@ -839,7 +839,7 @@ DonatePage.subpage_types = []
 class SiteSettings(BaseSiteSetting):
     """Organization details and the active theme."""
 
-    org_name = models.CharField(max_length=120, default="The California DART Network")
+    org_name = models.CharField(max_length=120, default="CalDART")
     tagline = models.CharField(
         max_length=200, blank=True, default="Volunteer disaster air transportation for California"
     )

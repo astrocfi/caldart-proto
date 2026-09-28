@@ -166,7 +166,7 @@ class Migration(migrations.Migration):
             name='SiteSettings',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('org_name', models.CharField(default='The California DART Network', max_length=120)),
+                ('org_name', models.CharField(default='CalDART', max_length=120)),
                 ('tagline', models.CharField(blank=True, default='Volunteer disaster air transportation for California', max_length=200)),
                 ('contact_email', models.EmailField(blank=True, default='info@caldart.example.org', max_length=254)),
                 ('duty_phone', models.CharField(blank=True, help_text='Shown in the masthead as the number to call about a mission.', max_length=32, verbose_name='duty officer phone')),

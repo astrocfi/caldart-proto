@@ -145,7 +145,7 @@ TODAY = date(2026, 10, 1)
 def named_site(settings: Settings, site_settings: SiteSettings) -> None:
     """Pin the organization name and the contact address the emails print."""
     settings.SITE_URL = "https://caldart.example.org/"
-    site_settings.org_name = "The California DART Network"
+    site_settings.org_name = "CalDART"
     site_settings.contact_email = "info@caldart.example.org"
     site_settings.save()
 

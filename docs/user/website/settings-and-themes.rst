@@ -16,7 +16,8 @@ changes.
 
 * **Org name**, the organization's full name. It ends every page's title in the browser
   tab, heads the footer, and names the member portal. It also begins the subject of the
-  emails the site sends, such as receipts.
+  emails the site sends, such as receipts. It reads **CalDART** until an administrator
+  changes it here.
 * **Tagline**, shown under the logo, and used as a page's description for search engines
   when the page has none of its own.
 * **EIN**, shown in the footer and on the contact page.
