@@ -355,7 +355,9 @@ are optional profile fields, each written onto the donor's profile under its own
 name, and under the profile's own rules (see :doc:`api-profile`): ``address_line1``,
 ``address_line2``, ``city``, ``state``, ``postal_code``, ``county``,
 ``home_airport_identifier``, ``dart_id``, ``air_care_alliance_number``,
-``pilot_certificate_type``, and the seven ``vol_*`` volunteer interests.  A pilot certificate needs no number here.
+``pilot_certificate_type``, and the seven ``vol_*`` volunteer interests.  A pilot
+certificate needs no number here.  ``address_line1``, ``address_line2``, and
+``city`` land on the profile in title case, the same as a member's own.
 ``contribution_cents`` runs from 1 to ``max_contribution_cents``.
 
 The address is matched case-insensitively.  A new address becomes a bare donor

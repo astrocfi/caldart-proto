@@ -13,6 +13,7 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
+from caldart.casing import title_case_words
 from caldart.models import TimestampedModel
 from caldart.phone import normalize_phone
 
@@ -377,14 +378,21 @@ class MemberProfile(TimestampedModel):
     #: The fields ``save`` puts into canonical phone form.
     PHONE_FIELDS = ("phone", "phone_alt", "emergency_contact_phone")
 
+    #: The fields ``save`` puts into title case, every word.
+    TITLE_CASE_FIELDS = ("address_line1", "address_line2", "city")
+
     def save(self, *args: Any, **kwargs: Any) -> None:
         """Save the profile with every phone number in ``XXX-XXX-XXXX`` form.
 
         A number that cannot be read as ten digits is stored as it was typed, so
-        nothing is invented here; the serializer refuses it at the boundary.
+        nothing is invented here; the serializer refuses it at the boundary.  The
+        street address and the city are stored in title case, every word, through
+        :func:`caldart.casing.title_case_words`.
         """
         for field in self.PHONE_FIELDS:
             setattr(self, field, normalize_phone(getattr(self, field)))
+        for field in self.TITLE_CASE_FIELDS:
+            setattr(self, field, title_case_words(getattr(self, field)))
         super().save(*args, **kwargs)
 
     @property

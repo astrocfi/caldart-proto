@@ -230,6 +230,10 @@ Field                        Rule
 ``phone_alt_extension``,     extension of its own, so nobody appends one to a
 ``emergency_contact_``       number and breaks the stored format.
 ``phone_extension``
+``address_line1``,           Stored in title case, every word, through
+``address_line2``,           ``caldart.casing.title_case_words``: a word carrying a digit
+``city``                     is left exactly as typed.  Blank is fine on the two address
+                             lines; ``city`` is required by :ref:`profile-completeness`.
 ``home_airport_identifier``  Three letters or digits if given, upper-cased on the
                              way in.  The four-letter ICAO spelling is accepted
                              and trimmed, so ``KCRQ`` is stored as ``CRQ``; a

@@ -1632,15 +1632,15 @@ administrators see.  Deleting the account deletes the profile.
    * - ``address_line1``
      - ``CharField(200)``
      - not null; default ``""``
-     - street address
+     - street address, stored in title case
    * - ``address_line2``
      - ``CharField(200)``
      - not null; default ``""``
-     - second address line
+     - second address line, stored in title case
    * - ``city``
      - ``CharField(120)``
      - not null; default ``""``
-     - city
+     - city, stored in title case
    * - ``state``
      - ``CharField(2)``, choices :ref:`US_STATE_CHOICES <choices-us-state>`
      - not null; default ``"CA"``
@@ -1807,9 +1807,12 @@ administrators see.  Deleting the account deletes the profile.
 **Groups of fields.**  The contact fields come first: ``save()`` stores
 ``phone``, ``phone_alt``, and ``emergency_contact_phone`` as ``XXX-XXX-XXXX``
 (``PHONE_FIELDS``), and each number carries its own extension, so nobody appends
-one to the number and breaks the format every other screen relies on.  The
-aviation fields follow, then the seven ``vol_*`` volunteer interests, then the
-verification columns, then ``member_since`` and ``profile_updated_at``.  ``notes`` and ``how_heard`` are
+one to the number and breaks the format every other screen relies on.  The same
+``save()`` stores ``address_line1``, ``address_line2``, and ``city``
+(``TITLE_CASE_FIELDS``) in title case, every word, through
+``caldart.casing.title_case_words``.  The aviation fields follow, then the seven
+``vol_*`` volunteer interests, then the verification columns, then
+``member_since`` and ``profile_updated_at``.  ``notes`` and ``how_heard`` are
 administrator-only: neither is in the member-facing serializer, and both appear
 on ``GET /admin/members/{id}``.
 
