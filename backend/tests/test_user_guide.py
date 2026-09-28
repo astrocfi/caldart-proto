@@ -271,7 +271,7 @@ def test_a_guide_without_a_roles_file_serves_every_page(reader: Client, gated_gu
 
 
 def test_an_unreadable_roles_file_serves_every_page(reader: Client, gated_guide: Path) -> None:
-    """A ``roles.json`` that is not JSON serves every page rather than failing the request."""
+    """A ``roles.json`` that is not JSON serves every page instead of failing requests."""
     (gated_guide / GUIDE_ROLES).write_text('{"admin/health-database": [')
     response = reader.get("/docs/admin/health-database/")
     assert guide_body(response) == SYSTEM_HTML.encode()

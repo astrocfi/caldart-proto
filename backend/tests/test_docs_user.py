@@ -442,7 +442,7 @@ def test_the_extension_moves_roles_json_into_place_whole(
 ) -> None:
     """``roles.json`` is written beside itself and renamed over, never written in place.
 
-    A request that reads it mid-build then finds the old file or the new one, never half.
+    A request reading it mid-build finds the old file or the new one, never half.
     """
     renamed: list[str] = []
     original_replace = Path.replace
@@ -458,7 +458,7 @@ def test_the_extension_moves_roles_json_into_place_whole(
 
 
 def test_the_extension_leaves_no_temporary_file_behind(tmp_path: Path) -> None:
-    """Only ``roles.json`` itself is left in the output directory, no half-written copy."""
+    """Only ``roles.json`` is left in the output directory, no half-written copy."""
     source, out = _write_project(tmp_path, SAMPLE_GUIDE)
     assert build_main(["-q", "-W", "-b", "dirhtml", str(source), str(out)]) == 0
     assert sorted(path.name for path in out.glob("roles*")) == ["roles.json"]

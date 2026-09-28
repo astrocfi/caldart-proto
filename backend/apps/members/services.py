@@ -338,7 +338,7 @@ def tombstone_for(target: User) -> User:
 
 
 def _tombstone_email(target: User) -> str:
-    """The address for ``target``'s tombstone: the plain one, or one with a token if taken."""
+    """The address for ``target``'s tombstone: the plain one, or a token's when taken."""
     email = TOMBSTONE_EMAIL.format(id=target.pk)
     if not User.objects.filter(email__iexact=email).exists():
         return email

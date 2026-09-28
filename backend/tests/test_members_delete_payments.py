@@ -272,7 +272,7 @@ def test_the_tombstone_has_a_blank_profile(payer: User) -> None:
 
 
 def test_the_tombstone_takes_another_address_when_its_own_is_taken(payer: User) -> None:
-    """An account already holding ``deleted-<id>@deleted.invalid`` cannot block a delete."""
+    """Another account holding ``deleted-<id>@deleted.invalid`` cannot block a delete."""
     taken = f"deleted-{payer.pk}@deleted.invalid"
     UserFactory(email=taken)
 
@@ -285,7 +285,7 @@ def test_the_tombstone_takes_another_address_when_its_own_is_taken(payer: User) 
 def test_a_member_is_deleted_although_the_tombstone_address_is_taken(
     account_admin_client: APIClient, payer: User, annual_plan: MembershipPlan
 ) -> None:
-    """Registering the address a tombstone would use first does not make the delete fail."""
+    """Registering the address a tombstone would use does not make the delete fail."""
     UserFactory(email=f"deleted-{payer.pk}@deleted.invalid")
     PaymentFactory(user=payer, plan=annual_plan)
 
