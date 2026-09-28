@@ -363,3 +363,42 @@ describe('the routes that load on demand', () => {
     expect(screen.getByRole('heading', { name: 'Sign in' })).toBeInTheDocument();
   });
 });
+
+describe('the onboarding gate', () => {
+  const UNVERIFIED = makeUser({ email_verified: false });
+
+  it.each(['/', '/profile', '/payments', '/renew', '/change-password'])(
+    '%s sends a reader with an unverified address to the verify step',
+    async (path) => {
+      server.use(signedInAs(UNVERIFIED));
+
+      const { router } = renderRoutes(routes, { route: path });
+
+      await waitFor(() => expect(router.state.location.pathname).toBe('/join/verify'));
+    },
+  );
+
+  it('sends a reader with an incomplete profile to the profile step', async () => {
+    server.use(signedInAs(makeUser({ profile_complete: false })));
+
+    const { router } = renderRoutes(routes, { route: '/' });
+
+    await waitFor(() => expect(router.state.location.pathname).toBe('/join/profile'));
+  });
+
+  it('leaves the change-email page open, so a mistyped address can be corrected', async () => {
+    server.use(signedInAs(UNVERIFIED));
+
+    renderRoutes(routes, { route: '/change-email' });
+
+    expect(await screen.findByRole('heading', { name: 'Change email' })).toBeInTheDocument();
+  });
+
+  it('leaves the verify-email page open to a reader following the link', async () => {
+    server.use(signedInAs(UNVERIFIED));
+
+    renderRoutes(routes, { route: '/verify-email?token=abc' });
+
+    expect(await screen.findByRole('heading', { name: 'Verify email' })).toBeInTheDocument();
+  });
+});

@@ -6,6 +6,7 @@ import {
   clampJoinStep,
   furthestJoinStep,
   isJoinStep,
+  isOnboarded,
   joinStepEyebrow,
   joinStepIndex,
   joiningAs,
@@ -55,8 +56,8 @@ describe('furthestJoinStep', () => {
     ).toBe('pay');
   });
 
-  it('treats an expired membership as still owing the fee', () => {
-    expect(furthestJoinStep(makeUser({ membership: EXPIRED }))).toBe('pay');
+  it('counts a member whose term ran out as joined, since renewing is not joining', () => {
+    expect(furthestJoinStep(makeUser({ membership: EXPIRED }))).toBe('done');
   });
 
   it('sends a current member straight to done', () => {
@@ -71,6 +72,48 @@ describe('furthestJoinStep', () => {
     expect(
       furthestJoinStep(makeUser({ kind: 'friend', membership: FRIEND, profile_complete: false })),
     ).toBe('profile');
+  });
+});
+
+const CURRENT: MembershipStatus = {
+  status: 'current',
+  expires_on: '2027-01-01',
+  plan: 'Annual',
+  is_lifetime: false,
+};
+
+describe('isOnboarded', () => {
+  it('is false with nobody signed in', () => {
+    expect(isOnboarded(null)).toBe(false);
+  });
+
+  it.each([
+    // verified, complete, kind, membership, onboarded
+    [true, true, 'member', CURRENT, true],
+    [true, true, 'member', EXPIRED, true],
+    [true, true, 'member', FRIEND, false],
+    [true, true, 'friend', FRIEND, true],
+    [true, false, 'member', CURRENT, false],
+    [true, false, 'friend', FRIEND, false],
+    [false, true, 'member', CURRENT, false],
+    [false, true, 'friend', FRIEND, false],
+    [false, false, 'member', FRIEND, false],
+  ] as const)(
+    'verified %s, profile complete %s, kind %s, membership %o reads %s',
+    (emailVerified, profileComplete, kind, membership, expected) => {
+      const user = makeUser({
+        email_verified: emailVerified,
+        profile_complete: profileComplete,
+        kind,
+        membership,
+      });
+      expect(isOnboarded(user)).toBe(expected);
+    },
+  );
+
+  it('counts a member who asked to become a friend as joined, before the change is stored', () => {
+    const user = makeUser({ kind: 'member', membership: FRIEND, friend_on: '2026-01-01' });
+    expect(isOnboarded(user)).toBe(true);
   });
 });
 

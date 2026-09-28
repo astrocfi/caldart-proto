@@ -1,12 +1,17 @@
 /**
  * The portal chrome: a left rail on desktop, a hamburger drawer on
  * mobile, filtered by the signed-in user's roles and, for Renew, their kind.
+ *
+ * A reader who has not finished the join wizard (`isOnboarded`) gets neither the
+ * rail nor the **Menu** toggle: the wizard is the whole portal until it is done, so
+ * the header keeps only **Help**, the address, and **Sign out**.
  */
 import { useEffect, useState } from 'react';
 import type { JSX } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 
 import { useAuth, useSignOut } from '../auth/useAuth';
+import { isOnboarded } from '../features/join/steps';
 import { Button } from '../components/Button';
 import { GUIDE_PREFIX } from '../guide';
 import { helpPath } from '../help';
@@ -29,7 +34,7 @@ export function PortalLayout(): JSX.Element {
   }, [location.pathname]);
 
   const isEffectiveFriend = user?.membership.status === 'friend';
-  const groups = isAuthenticated ? groupedNavItems(roles, isEffectiveFriend) : [];
+  const groups = isOnboarded(user) ? groupedNavItems(roles, isEffectiveFriend) : [];
   const hasRail = groups.length > 0;
 
   return (
@@ -40,7 +45,7 @@ export function PortalLayout(): JSX.Element {
 
       <header className="portal__bar">
         <div className="portal__bar-inner">
-          {isAuthenticated ? (
+          {hasRail ? (
             <button
               type="button"
               className="button button--quiet button--small portal__drawer-toggle"

@@ -6,6 +6,7 @@ import { ApiError } from '@/portal/api/client';
 import type { User } from '@/portal/api/types';
 import { useAuth, useEmailVerify } from '@/portal/auth/useAuth';
 import { ButtonLink } from '@/portal/components/Button';
+import { isOnboarded } from '@/portal/features/join/steps';
 import { AuthShell } from './AuthShell';
 
 /** What the server says about every unusable link, shown too for a link with no token. */
@@ -16,9 +17,9 @@ const INVALID_LINK = 'That verification link is invalid or has expired.';
  *
  * It posts the token as soon as it loads, signed in or not, since the mail client
  * may open the link in a browser that has no session.  Continuing goes on with the
- * join wizard when the visitor still has a profile to fill in, to the dashboard
- * when they are signed in otherwise, and to the sign-in page, then the join wizard,
- * when they are not.
+ * join wizard when the visitor has not finished joining (a profile to fill in, or a
+ * membership to pay for), to the dashboard when they have, and to the sign-in page,
+ * then the join wizard, when nobody is signed in.
  */
 export function VerifyEmailPage(): JSX.Element {
   const [params] = useSearchParams();
@@ -67,7 +68,7 @@ export function VerifyEmailPage(): JSX.Element {
  */
 function continueTo(user: User | null, email: string): string {
   if (user === null) return `/login?next=/join&email=${encodeURIComponent(email)}`;
-  return user.profile_complete ? '/' : '/join';
+  return isOnboarded(user) ? '/' : '/join';
 }
 
 /** The server's reason for refusing the link, or the one message for a missing token. */
@@ -83,8 +84,8 @@ function VerifyFailed({ message }: { message: string }): JSX.Element {
         {message}
       </p>
       <p>
-        <Link to="/login">Sign in</Link> and use Resend verification message on your dashboard to
-        get a new one.
+        <Link to="/login">Sign in</Link> and press Resend verification message on the screen you
+        land on to get a new one.
       </p>
     </AuthShell>
   );

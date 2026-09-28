@@ -207,6 +207,43 @@ describe('PortalLayout', () => {
     expect(container.querySelector('.portal__frame')).not.toHaveClass('portal__frame--no-rail');
   });
 
+  describe.each([
+    ['an unverified address', makeUser({ email_verified: false })],
+    ['an incomplete profile', makeUser({ profile_complete: false })],
+    ['an unpaid member', makeUser({ membership: NO_MEMBERSHIP })],
+  ])('for a reader with %s', (_label, user) => {
+    it('shows no rail', async () => {
+      server.use(signedInAs(user));
+      renderWithProviders(tree(), { route: '/' });
+
+      expect(await screen.findByText(user.email)).toBeInTheDocument();
+      expect(screen.queryByRole('navigation', { name: 'Portal sections' })).not.toBeInTheDocument();
+    });
+
+    it('gives a single-column frame', async () => {
+      server.use(signedInAs(user));
+      const { container } = renderWithProviders(tree(), { route: '/' });
+
+      await screen.findByText(user.email);
+      expect(container.querySelector('.portal__frame')).toHaveClass('portal__frame--no-rail');
+    });
+
+    it('offers no Menu toggle', async () => {
+      server.use(signedInAs(user));
+      renderWithProviders(tree(), { route: '/' });
+
+      await screen.findByText(user.email);
+      expect(screen.queryByRole('button', { name: 'Menu' })).not.toBeInTheDocument();
+    });
+
+    it('still offers Sign out', async () => {
+      server.use(signedInAs(user));
+      renderWithProviders(tree(), { route: '/' });
+
+      expect(await screen.findByRole('button', { name: 'Sign out' })).toBeInTheDocument();
+    });
+  });
+
   it('offers an anonymous visitor a way to sign in instead of an identity', async () => {
     renderWithProviders(tree(), { route: '/' });
 

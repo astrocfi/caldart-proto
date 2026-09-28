@@ -78,6 +78,20 @@ describe('<VerifyEmailPage/>', () => {
     expect(await screen.findByTestId('where')).toHaveTextContent('/join');
   });
 
+  it('continues to the join wizard when a member still owes their first dues', async () => {
+    verifySucceeds();
+    server.use(
+      signedInAs(
+        makeUser({
+          membership: { status: 'friend', expires_on: null, plan: null, is_lifetime: false },
+        }),
+      ),
+    );
+    renderPage();
+
+    expect(await screen.findByRole('link', { name: 'Continue' })).toHaveAttribute('href', '/join');
+  });
+
   it('continues to the dashboard when the member has finished joining', async () => {
     verifySucceeds();
     server.use(signedInAs(makeUser()));
@@ -127,7 +141,9 @@ describe('<VerifyEmailPage/>', () => {
 
     expect(await screen.findByText(INVALID)).toBeInTheDocument();
     expect(
-      screen.getByText(/and use Resend verification message on your dashboard to get a new one\./),
+      screen.getByText(
+        /and press Resend verification message on the screen you land on to get a new one\./,
+      ),
     ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Sign in' })).toHaveAttribute('href', '/login');
   });

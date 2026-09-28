@@ -5,7 +5,8 @@
  * this module only concatenates them.
  *
  * `/login` and friends sit outside `RequireAuth`; everything else is behind it,
- * inside the portal layout.
+ * inside the portal layout, and behind `RequireOnboarded` too, so a reader who has
+ * not finished the join wizard is held at the step they still owe.
  *
  * Most feature routes name their page with `lazy`, so its code arrives only
  * when somebody opens it; the root route's hydrate fallback covers that wait on
@@ -16,7 +17,7 @@
  */
 import type { RouteObject } from 'react-router-dom';
 
-import { RequireAuth } from '../auth/guards';
+import { RequireAuth, RequireOnboarded } from '../auth/guards';
 import { Loading } from '../components/Loading';
 import { PortalLayout } from '../layout/PortalLayout';
 import { NotFound } from './not-found';
@@ -41,7 +42,7 @@ import { systemRoutes } from './system';
 /** Routes reachable without signing in. */
 export const publicRoutes: RouteObject[] = [...authRoutes, ...joinRoutes];
 
-/** Routes that require a session. */
+/** Routes that require a session whose owner has finished joining. */
 export const privateRoutes: RouteObject[] = [
   ...dashboardRoutes,
   ...renewRoutes,
@@ -68,7 +69,10 @@ export const routes: RouteObject[] = [
     hydrateFallbackElement: <Loading />,
     children: [
       ...publicRoutes,
-      { element: <RequireAuth />, children: privateRoutes },
+      {
+        element: <RequireAuth />,
+        children: [{ element: <RequireOnboarded />, children: privateRoutes }],
+      },
       { path: '*', element: <NotFound /> },
     ],
   },

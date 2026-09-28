@@ -259,26 +259,6 @@ describe('<DashboardPage/>', () => {
     });
   });
 
-  it('nudges a member whose profile is incomplete', async () => {
-    mount({
-      user: makeUser({ membership: CURRENT, profile_complete: false }),
-      status: CURRENT,
-    });
-
-    expect(await screen.findByText('Finish your profile')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Complete my profile' })).toHaveAttribute(
-      'href',
-      '/profile',
-    );
-  });
-
-  it('leaves a complete profile alone', async () => {
-    mount({ user: makeUser({ membership: CURRENT }), status: CURRENT });
-
-    await screen.findByText('Your membership is current');
-    expect(screen.queryByText('Finish your profile')).not.toBeInTheDocument();
-  });
-
   it('filters the quick links by role', async () => {
     mount({
       user: makeUser({ membership: CURRENT, roles: ['member', 'account_admin'] }),
@@ -421,69 +401,6 @@ describe('DashboardPage · payments and renewal', () => {
     expect(
       await screen.findByText(/Automatic renewal and contribution stopped/),
     ).toBeInTheDocument();
-  });
-});
-
-describe('DashboardPage · email verification', () => {
-  const UNVERIFIED = makeUser({
-    email: 'new@example.org',
-    email_verified: false,
-    membership: CURRENT,
-  });
-
-  it('asks a member with an unverified address to verify it, above everything else', async () => {
-    mount({ user: UNVERIFIED, status: CURRENT });
-
-    const heading = await screen.findByRole('heading', { name: 'Verify your email address' });
-    const cards = Array.from(document.querySelectorAll('.col-text > section'));
-    expect(cards[0]).toBe(heading.closest('section'));
-  });
-
-  it('says which address is unverified', async () => {
-    mount({ user: UNVERIFIED, status: CURRENT });
-
-    await screen.findByRole('heading', { name: 'Verify your email address' });
-    expect(
-      card('Verify your email address').getByText(
-        'Your email address, new@example.org, is unverified until you click the link in the ' +
-          'verification message we sent it.',
-      ),
-    ).toBeVisible();
-  });
-
-  it('marks the verification card as a nudge', async () => {
-    mount({ user: UNVERIFIED, status: CURRENT });
-
-    const heading = await screen.findByRole('heading', { name: 'Verify your email address' });
-    expect(heading.closest('section')).toHaveClass('dashboard__nudge');
-  });
-
-  it('resends the message and says where it went', async () => {
-    server.use(
-      http.post(`${API}/auth/email/resend`, () =>
-        HttpResponse.json(
-          { detail: 'Verification message sent to new@example.org.' },
-          { status: 202 },
-        ),
-      ),
-    );
-    mount({ user: UNVERIFIED, status: CURRENT });
-
-    await screen.findByRole('heading', { name: 'Verify your email address' });
-    card('Verify your email address')
-      .getByRole('button', { name: 'Resend verification message' })
-      .click();
-
-    expect(await screen.findByText('Verification message sent to new@example.org.')).toBeVisible();
-  });
-
-  it('leaves a verified address alone', async () => {
-    mount({ user: makeUser({ membership: CURRENT }), status: CURRENT });
-
-    await screen.findByRole('heading', { name: 'Your membership is current' });
-    expect(
-      screen.queryByRole('heading', { name: 'Verify your email address' }),
-    ).not.toBeInTheDocument();
   });
 });
 
