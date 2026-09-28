@@ -797,18 +797,18 @@ the ``RequireRole`` on its route.
 ``withTime``), a time of day alone reads ``HH:MM`` (``formatTime``), and a
 ``YYYY-MM`` month reads ``Mar 2026`` (``formatMonth``).  A bare ``YYYY-MM-DD``
 is read as local midnight, so a date never shows as the day before west of
-Greenwich.  ESLint's ``no-restricted-syntax`` refuses ``toLocaleDateString``,
-``toLocaleTimeString``, and ``Intl.DateTimeFormat`` anywhere else under
-``src/portal``.  Date inputs stay native ``<input type="date">``, which the
+Greenwich.  ESLint's ``no-restricted-syntax`` refuses five calls anywhere else
+under ``src/portal``: ``toLocaleDateString``, ``toLocaleTimeString``,
+``toDateString``, ``toTimeString``, and ``new Intl.DateTimeFormat``.  Date inputs stay native ``<input type="date">``, which the
 browser draws in the reader's own locale; ``todayIso`` gives one its value.
 
 The backend's counterpart is ``caldart/dates.py``: ``DISPLAY_DATE_FORMAT``
 (``%m/%d/%Y``), ``format_display_date``, and ``format_display_datetime``, which
 converts a moment to ``TIME_ZONE`` first.  Everything that writes a date into
 text a screen or a download shows uses it: the verification report, the
-notification emails and the renewal email subjects that the Sent Emails page
-lists, the email log report's ``Sent`` column, the PDF report footer, and
-``seed_facts``.  Three kinds of date keep their own form: ISO-8601 dates in a
+notification emails, and the renewal, scheduled-report, and DART-roster email
+subjects that the Sent Emails page lists, the email log report's ``Sent``
+column, the PDF report footer, and ``seed_facts``.  Three kinds of date keep their own form: ISO-8601 dates in a
 CSV data column, which a spreadsheet sorts (:doc:`reports`); dates in the
 prose of an email body or a public-site page, written ``F j, Y``; and the
 dates on a receipt PDF, a financial record.

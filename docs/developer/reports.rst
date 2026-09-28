@@ -227,8 +227,9 @@ The house style
    A reportlab table in the CalDART palette, written to any binary stream:
    hairline rules instead of boxes, zebra rows, the header repeated on every
    page, and a footer carrying "CalDART · generated MM/DD/YYYY HH:MM <zone>"
-   (local time, through ``caldart.dates``) and "Page n of m".  ``landscape`` defaults to true, which is landscape US letter (792 × 612
-   points); ``landscape=False`` is the same page upright (612 × 792).
+   (local time, through ``caldart.dates``) and "Page n of m".  ``landscape``
+   defaults to true, which is landscape US letter (792 × 612 points);
+   ``landscape=False`` is the same page upright (612 × 792).
    ``widths`` gives the columns relative shares of the printable width —
    ``[3, 1, 1]`` makes the first column three times either of the others — and
    is scaled to fill the page; without it every column is the same width.  One

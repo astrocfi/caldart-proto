@@ -118,8 +118,9 @@ What happens next
 ~~~~~~~~~~~~~~~~~
 
 The emails go out every morning at 06:00. The subject reads *CalDART report:* with the
-report's title and the date, and the files are attached. A subscription that could not be
-sent is tried again the next morning. One whose recipient has lost the role is paused.
+report's title and the date, such as *(09/27/2026)*, and the files are attached. A
+subscription that could not be sent is tried again the next morning. One whose recipient
+has lost the role is paused.
 
 
 DART rosters

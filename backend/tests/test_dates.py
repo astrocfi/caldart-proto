@@ -11,6 +11,8 @@ import datetime as dt
 import io
 from zoneinfo import ZoneInfo
 
+import pytest
+
 from caldart.dates import (
     DISPLAY_DATE_FORMAT,
     DISPLAY_DATETIME_FORMAT,
@@ -53,6 +55,12 @@ def test_a_moment_just_after_utc_midnight_reads_the_local_day_before() -> None:
     assert format_display_datetime(moment) == "03/01/2026 19:00"
 
 
+def test_a_naive_moment_is_refused() -> None:
+    """A datetime without a time zone cannot be placed in the local day, so it raises."""
+    with pytest.raises(ValueError, match="naive"):
+        format_display_datetime(dt.datetime(2026, 9, 27, 14, 30))
+
+
 def test_the_pdf_footer_stamps_the_moment_in_the_display_format(pdf_text: PdfText) -> None:
     """The report footer stamps its moment as ``generated MM/DD/YYYY HH:MM <zone>``."""
     buffer = io.BytesIO()
@@ -62,6 +70,20 @@ def test_the_pdf_footer_stamps_the_moment_in_the_display_format(pdf_text: PdfTex
         header=["One"],
         rows=[["a"]],
         generated_at=dt.datetime(2026, 9, 27, 14, 30, tzinfo=PACIFIC),
+    )
+
+    assert "CalDART \u00b7 generated 09/27/2026 14:30 PDT" in pdf_text(buffer.getvalue())[0]
+
+
+def test_the_pdf_footer_stamps_a_utc_moment_in_local_time(pdf_text: PdfText) -> None:
+    """A UTC ``generated_at`` is stamped as the installation's own time and zone."""
+    buffer = io.BytesIO()
+    build_pdf_table(
+        buffer,
+        title="Anything",
+        header=["One"],
+        rows=[["a"]],
+        generated_at=dt.datetime(2026, 9, 27, 21, 30, tzinfo=dt.UTC),
     )
 
     assert "CalDART \u00b7 generated 09/27/2026 14:30 PDT" in pdf_text(buffer.getvalue())[0]

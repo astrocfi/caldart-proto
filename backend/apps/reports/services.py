@@ -25,7 +25,7 @@ from typing import Any
 
 from django.db import transaction
 from django.db.models import Model, Q, QuerySet
-from django.utils import dateformat, timezone
+from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
 from apps.accounts.models import User
@@ -36,6 +36,7 @@ from apps.reports.permissions import can_read_report
 from apps.reports.registry import REPORTS
 from apps.reports.schedule import next_due_after, schedule_label
 from caldart import audit
+from caldart.dates import format_display_date
 from caldart.mail import Attachment, contact_email, org_name, send_templated
 from caldart.reports import (
     Params,
@@ -96,9 +97,6 @@ SEND_ERRORS: tuple[type[Exception], ...] = (smtplib.SMTPException, OSError)
 #: What a subscription's send can fail with: a refused send, or a report the stored
 #: params no longer build.
 SUBSCRIPTION_ERRORS: tuple[type[Exception], ...] = (*SEND_ERRORS, ValidationError)
-
-#: The prose date format of every email: ``October 1, 2026``.
-PROSE_DATE = "F j, Y"
 
 
 @dataclass
@@ -256,7 +254,7 @@ def send_subscription_email(
 ) -> None:
     """Build ``subscription``'s files for ``today`` and email them to its recipient.
 
-    The subject reads ``CalDART report: <title> (<Month D, YYYY>)``, and the body
+    The subject reads ``CalDART report: <title> (<MM/DD/YYYY>)``, and the body
     (``emails/scheduled_report.{txt,html}``) names the report, ``filters`` (the
     summary :func:`applied_filters` gives), the schedule and who set it up.  The email
     log records the send under the purpose ``scheduled_report``, with the recipient's
@@ -284,7 +282,7 @@ def send_subscription_email(
     }
     send_templated(
         to=subscription.recipient_email,
-        subject=f"CalDART report: {spec.title} ({dateformat.format(today, PROSE_DATE)})",
+        subject=f"CalDART report: {spec.title} ({format_display_date(today)})",
         template="scheduled_report",
         context=context,
         attachments=attachments,
@@ -443,7 +441,7 @@ def send_roster_email(
 ) -> None:
     """Email ``dart``'s roster, already built as ``document``, to one ticked person.
 
-    The subject reads ``<DART name> roster (<Month D, YYYY>)`` and the body
+    The subject reads ``<DART name> roster (<MM/DD/YYYY>)`` and the body
     (``emails/dart_roster.{txt,html}``) says how many members the roster lists and
     that the DART's leaders may ask a CalDART account administrator to change who
     receives it.  The email log records it under the purpose ``dart_roster``, naming
@@ -461,7 +459,7 @@ def send_roster_email(
     }
     send_templated(
         to=contact.email,
-        subject=f"{dart.name} roster ({dateformat.format(today, PROSE_DATE)})",
+        subject=f"{dart.name} roster ({format_display_date(today)})",
         template="dart_roster",
         context=context,
         attachments=[(document.filename, document.content, document.media_type)],
