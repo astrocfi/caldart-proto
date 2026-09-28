@@ -3,7 +3,7 @@
 # CalDART install step - the database and the static files.
 #
 # Through deploy/manage.sh: applies the migrations, creates the cache table,
-# creates the roles, and collects the static files.  With --seed-demo it also
+# creates the roles and the membership plans, and collects the static files.  With --seed-demo it also
 # loads the demo accounts (the same data development seeds with make seed),
 # with --seed-content it loads the example pages, and with --admin-email it
 # creates the first administrator (or gives an existing account the
@@ -39,6 +39,7 @@ database_step() {
     "$MANAGE" migrate
     "$MANAGE" createcachetable
     "$MANAGE" seed_roles
+    "$MANAGE" seed_plans
     if [[ "$SEED_DEMO" == yes ]]; then
         "$MANAGE" seed_demo
     fi

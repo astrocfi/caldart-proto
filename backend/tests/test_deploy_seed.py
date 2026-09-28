@@ -142,9 +142,17 @@ def test_seed_demo_runs_between_the_roles_and_the_content(tmp_path: Path, etc: P
     commands = _commands(_install_dry_run(tmp_path, etc, "--seed-demo", "--seed-content"))
     assert (
         _position(commands, "manage.py seed_roles")
+        < _position(commands, "manage.py seed_plans")
         < _position(commands, "manage.py seed_demo")
         < _position(commands, "manage.py seed_content")
     )
+
+
+def test_every_install_seeds_the_membership_plans(tmp_path: Path, etc: Path) -> None:
+    """The database step runs ``seed_plans`` after the roles, flags or no flags."""
+    commands = _commands(_install_dry_run(tmp_path, etc))
+    assert _position(commands, "manage.py seed_roles") < _position(commands, "manage.py seed_plans")
+    assert not any("manage.py seed_demo" in command for command in commands)
 
 
 def test_seed_demo_alone_runs_after_the_roles(tmp_path: Path, etc: Path) -> None:

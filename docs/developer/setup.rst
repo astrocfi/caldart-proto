@@ -106,7 +106,7 @@ Step by step:
    ``cms.0003_website_admin_permissions`` gives the ``website_admin`` group its
    editing rights.
 
-4. ``make seed`` runs ``seed_roles``, then ``seed_demo`` (demo accounts,
+4. ``make seed`` runs ``seed_roles`` and ``seed_plans``, then ``seed_demo`` (demo accounts,
    about forty generated members, twenty-five aircraft, two years of
    payments), then ``seed_content`` (the example Wagtail site).  All three are
    idempotent — running ``make seed`` twice changes nothing.  The day it runs,
@@ -311,7 +311,7 @@ list, in full:
    * - ``makemigrations``
      - ``manage.py makemigrations``
    * - ``seed``
-     - ``seed_roles``, ``seed_demo``, ``seed_content``
+     - ``seed_roles``, ``seed_plans``, ``seed_demo``, ``seed_content``
    * - ``reset``
      - ``db_reset --seed --noinput`` — **destroys** the database, then
        migrates and re-seeds
@@ -443,6 +443,9 @@ Beyond Django's and Wagtail's own, this project adds:
      - What it does
    * - ``seed_roles``
      - create one group per role slug; idempotent, also run by a data migration
+   * - ``seed_plans``
+     - create or update the annual and life membership plans; idempotent, also run
+       by a data migration
    * - ``create_admin --email ADDRESS [--first-name NAME] [--last-name NAME]``
      - create the account at ``ADDRESS`` as a system administrator, or promote an
        existing one; either way print its password-reset link

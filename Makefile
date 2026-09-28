@@ -234,8 +234,9 @@ migrate: ## Apply database migrations
 makemigrations: ## Generate migrations for changed models
 	$(MANAGE) makemigrations
 
-seed: ## Seed roles, demo data and example content
+seed: ## Seed roles, plans, demo data and example content
 	$(MANAGE) seed_roles
+	$(MANAGE) seed_plans
 	$(MANAGE) seed_demo
 	$(MANAGE) seed_content
 

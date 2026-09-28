@@ -201,6 +201,7 @@ migration is regenerated.
 The pieces can be run one at a time::
 
   uv run backend/manage.py seed_roles              # the role groups
+  uv run backend/manage.py seed_plans              # the annual and life plans
   uv run backend/manage.py seed_demo               # accounts, members, payments
   uv run backend/manage.py seed_demo --seed 7      # the same shape, other names
   uv run backend/manage.py seed_content            # the example Wagtail site

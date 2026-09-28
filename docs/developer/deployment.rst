@@ -849,6 +849,7 @@ Preparing the database
   sudo deploy/manage.sh migrate
   sudo deploy/manage.sh createcachetable
   sudo deploy/manage.sh seed_roles
+  sudo deploy/manage.sh seed_plans
   sudo deploy/manage.sh seed_demo        # with --seed-demo: demo accounts
   sudo deploy/manage.sh seed_content     # with --seed-content: example pages
   sudo deploy/manage.sh collectstatic --noinput
@@ -1795,7 +1796,7 @@ Upgrading
    checkout REF`` (then ``git pull --ff-only`` when the ref is a branch);
 4. step 6, the build (``steps/build.sh``);
 5. step 7's database commands (``steps/database.sh``): ``migrate``,
-   ``createcachetable``, ``seed_roles``, and ``collectstatic``, with no
+   ``createcachetable``, ``seed_roles``, ``seed_plans``, and ``collectstatic``, with no
    administrator and no example content;
 6. step 8 (``steps/web-service.sh``), which reinstalls the web unit and
    restarts it, then waits for gunicorn to answer;

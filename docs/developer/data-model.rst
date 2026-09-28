@@ -1422,6 +1422,10 @@ Rules:
   holds.
 - ``STAFF_ROLE_SLUGS`` is every slug except ``member``, and is what
   ``can_access_members_content`` tests.
+- ``manage.py seed_plans`` creates or updates the annual and life plans from
+  ``apps.members.plans.PLANS`` and is idempotent; the ``members.0004_seed_plans``
+  data migration writes the same rows, so a migrated database sells memberships
+  before any demo data is loaded.
 - ``manage.py seed_roles`` creates the groups and is idempotent.  It is also
   called from the ``accounts.0002_seed_roles`` data migration, so a freshly
   migrated database already has them.
