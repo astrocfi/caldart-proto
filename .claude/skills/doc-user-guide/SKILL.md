@@ -33,7 +33,7 @@ accomplish a documented task.
     - `website/` — the website administrator's editing screens, which open from the public
       site's own Wagtail admin rather than the member portal.
 - A page's slug is its path under `docs/user/` without the extension (`member/profile`,
-  `admin/system`). The slug is binding: it is the **Help** button's target
+  `admin/scheduled`). The slug is binding: it is the **Help** button's target
   (`frontend/src/portal/help.ts`'s `HELP_PAGES`) and the `:doc:` target every other page uses
   to reach it. Adding, renaming, or removing a page updates `HELP_PAGES`, the group's toctree,
   and every `:doc:` reference to it, in the same change.

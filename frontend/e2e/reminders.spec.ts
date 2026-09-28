@@ -83,9 +83,7 @@ test('a system administrator filters the email log and downloads it', async ({ p
   await page.goto('portal/system/emails');
   await expect(page.getByRole('heading', { level: 1, name: 'Sent Emails' })).toBeVisible();
 
-  const panel = page
-    .locator('section.card')
-    .filter({ has: page.getByRole('heading', { name: 'Email log' }) });
+  const panel = page.locator('section.card').filter({ has: page.getByLabel('Purpose') });
   await expect(panel).toBeVisible();
   await expect(panel.getByLabel('Purpose')).toBeVisible();
   await expect(panel.getByLabel('Status')).toBeVisible();

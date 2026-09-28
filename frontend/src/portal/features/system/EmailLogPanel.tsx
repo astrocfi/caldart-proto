@@ -112,7 +112,7 @@ export function EmailLogPanel(): JSX.Element {
   const lastRow = (page - 1) * EMAIL_LOG_PAGE_SIZE + rows.length;
 
   return (
-    <Card eyebrow="Operations" title="Email log">
+    <Card>
       {log.isError ? (
         <p className="field__error" role="alert">
           {log.error instanceof Error ? log.error.message : 'Could not read the email log.'}

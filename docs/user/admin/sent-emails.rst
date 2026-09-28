@@ -9,7 +9,7 @@ It answers "what did we send this person?" and "is our mail going out at all?" O
 administrator sees it, under **System** in the menu, because it lists every address the site
 has written to.
 
-The page holds one panel, the **Email log**.
+The page is the log itself: the filters, then the table of emails.
 
 
 What you see
