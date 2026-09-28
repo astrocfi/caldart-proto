@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CalDART - The California DART Network</title>
+<style>
+  * { box-sizing: border-box; }
+  html { background: #ccd3dc url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6'%3E%3Crect width='6' height='6' fill='%23ccd3dc'/%3E%3Ccircle cx='3' cy='3' r='.7' fill='%23b2bdcb'/%3E%3C/svg%3E"); }
+  body { margin: 0; font: 14px/1.5 "DejaVu Sans", Verdana, Geneva, sans-serif; color: #222; }
+  a { color: #1a4f8a; }
+  a:visited { color: #4b2e83; }
+  .page { width: 1000px; max-width: 100%; margin: 18px auto; background: #fff; border: 1px solid #8c97a5; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,.25); overflow: hidden; }
+
+  .masthead { padding: 16px 20px 12px; border-bottom: 3px double #1f4e79; display: flex; align-items: center; gap: 20px; }
+  .masthead .logo { flex: none; }
+  .masthead .logo img { display: block; width: 330px; max-width: 100%; height: auto; }
+  .masthead .tagline { font-size: 13px; color: #444; }
+  .masthead .est { margin-left: auto; text-align: right; font-size: 12px; color: #555; }
+  .masthead .est b { display: block; font-size: 15px; color: #222; }
+
+  .navbar { background: #1f4e79; border-top: 1px solid #4a7fae; border-bottom: 1px solid #14395a; }
+  .navbar ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; }
+  .navbar li { border-right: 1px solid #14395a; }
+  .navbar a { display: block; padding: 8px 16px; color: #fff; text-decoration: none; font-weight: bold; font-size: 13px; }
+  .navbar a:hover { background: #17405f; }
+  .navbar a:visited { color: #fff; }
+  .navbar li.members { margin-left: auto; border-left: 1px solid #14395a; border-right: 0; background: #14395a; }
+
+  .body { display: flex; gap: 0; }
+  .main { flex: 1 1 auto; padding: 16px 20px 24px; min-width: 0; }
+  .side { flex: 0 0 300px; padding: 16px 16px 24px; background: #eef2f7; border-left: 1px solid #ccd6e1; }
+
+  .box { border: 1px solid #b2bccb; border-radius: 6px; margin: 0 0 18px; background: #fff; overflow: hidden; }
+  .box h2, .box h3 { margin: 0; padding: 6px 10px; font: bold 15px/1.3 "DejaVu Sans", Verdana, sans-serif; color: #fff; background: #2a6296; }
+  .side .box h3 { background: #3f7fb0; font-size: 14px; }
+  .box .inner { padding: 10px 12px; }
+  .box p { margin: 0 0 10px; }
+  .box p:last-child { margin-bottom: 0; }
+
+  .photo { margin: 0 0 12px; border: 1px solid #98a4b2; border-radius: 4px; overflow: hidden; background: #dde3ea; }
+  .photo img { display: block; width: 100%; height: auto; }
+  .photo figcaption { padding: 5px 8px; font-size: 12px; color: #4a5560; background: #f4f7fa; border-top: 1px solid #dde3ea; }
+  .welcome p.lead { font-size: 15px; }
+  .buttons a { display: inline-block; padding: 7px 14px; border: 1px solid #14395a; border-radius: 5px; background: #1f4e79; color: #fff; text-decoration: none; font-weight: bold; margin: 4px 6px 0 0; }
+  .buttons a.alt { background: #fff; color: #1f4e79; }
+  .buttons a.urgent { background: #b3261e; border-color: #7d1a14; color: #fff; }
+
+  .mission { border-left: 4px solid #2a6296; padding-left: 12px; margin: 0 0 10px; }
+
+  .news dl { margin: 0; }
+  .news dt { font-weight: bold; margin-top: 8px; }
+  .news dt span { font-weight: normal; color: #666; font-size: 12px; margin-left: 6px; }
+  .news dd { margin: 2px 0 0; }
+  .more { text-align: right; font-size: 12px; padding: 6px 12px; border-top: 1px dotted #b2bccb; background: #f4f7fa; }
+
+  .flown { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .flown td { padding: 6px 0; border-bottom: 1px solid #e2e8ef; vertical-align: top; }
+  .flown tr:last-child td { border-bottom: 0; }
+  .flown td.year { width: 52px; padding-right: 10px; font-weight: bold; color: #1f4e79; white-space: nowrap; }
+
+  .event { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 8px; }
+  .event .date { flex: none; width: 46px; text-align: center; border: 1px solid #3f7fb0; border-radius: 4px; background: #fff; line-height: 1.1; font-size: 11px; padding: 3px 0; }
+  .event .date b { display: block; font-size: 18px; }
+
+  form label { display: block; font-size: 12px; margin-top: 6px; }
+  form input[type=text], form input[type=password], form select { width: 100%; padding: 4px 6px; border: 1px solid #9aa4b0; border-radius: 4px; font: inherit; font-size: 13px; background: #fff; }
+  form button { margin-top: 8px; padding: 5px 12px; border: 1px solid #14395a; border-radius: 5px; background: #2a6296; color: #fff; font: inherit; font-weight: bold; }
+  .side .small { font-size: 12px; color: #555; }
+
+  .plans { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .plans td { padding: 4px 6px; border-bottom: 1px solid #dde4ec; }
+  .plans td:last-child { text-align: right; white-space: nowrap; }
+
+  .footer { border-top: 3px double #1f4e79; padding: 12px 20px; font-size: 12px; color: #444; display: flex; flex-wrap: wrap; gap: 8px 30px; background: #eef2f7; }
+  .footer p { margin: 0; }
+  .footer .fine { flex-basis: 100%; color: #666; }
+
+  @media (max-width: 760px) {
+    .page { margin: 0; border: 0; border-radius: 0; }
+    .masthead { flex-wrap: wrap; }
+    .masthead .est { margin-left: 0; text-align: left; flex-basis: 100%; }
+    .navbar li.members { margin-left: 0; }
+    .body { flex-direction: column; }
+    .side { flex-basis: auto; border-left: 0; border-top: 1px solid #ccd6e1; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="masthead">
+    <div class="logo">
+      <img src="../shared/caldart-logo.png" alt="CalDART, the California DART Network">
+      <div class="tagline">Improving California's disaster resilience through general aviation</div>
+    </div>
+    <div class="est"><b>Duty Officer: (408) 713-0646</b>Answered by the CalDART member on watch<br>PO Box 606, San Martin, CA 95046</div>
+  </header>
+  <nav class="navbar" aria-label="Main">
+    <ul>
+      <li><a href="#" aria-current="page">Home</a></li>
+      <li><a href="#">About</a></li>
+      <li><a href="#">DARTs</a></li>
+      <li><a href="#">News</a></li>
+      <li><a href="#">Join</a></li>
+      <li><a href="#">Donate</a></li>
+      <li><a href="#">Contact</a></li>
+      <li class="members"><a href="#">Members</a></li>
+    </ul>
+  </nav>
+
+  <div class="body">
+    <main class="main">
+      <section class="box welcome">
+        <h2>Welcome to CalDART</h2>
+        <div class="inner">
+          <figure class="photo">
+            <img src="../shared/airlift-krhv.jpg" alt="A Second Harvest of Silicon Valley refrigerated truck parked wingtip to wingtip with a single-engine aircraft on the ramp at Reid-Hillview Airport.">
+            <figcaption>Food aid meets the ramp at Reid-Hillview (KRHV). Photo: CalDART.</figcaption>
+          </figure>
+          <p class="lead"><b>Volunteer pilots, aircraft, and ground crews for California's disasters.</b></p>
+          <p class="mission"><b>Mission:</b> CalDART organizes California pilots and ground personnel to provide volunteer disaster air transportation services to benefit communities experiencing a major earthquake, flood, or other disaster.</p>
+          <p>California has some 28,000 aircraft and 54,000 pilots. Most of them would help after a disaster if they knew how, and CalDART is the way they do: twelve local Disaster Airlift Response Teams, each based at a general aviation airport, each able to fly people and supplies between any of the state's roughly 250 public airports under Part 91 rules.</p>
+          <p>Every DART runs a practice mobilization exercise at least once a year, and invites county emergency managers, the local VOAD groups (Volunteer Organizations Active in Disaster, the nonprofits that coordinate relief work), and neighboring DARTs to take part. A DART can call for mutual aid from other DARTs, from CalDART members and friends, and from pilots anywhere in the state.</p>
+          <p class="buttons"><a class="urgent" href="#">Request air support</a> <a href="#">Join CalDART</a> <a class="alt" href="#">Find your DART</a> <a class="alt" href="#">Donate</a></p>
+        </div>
+      </section>
+
+      <section class="box news">
+        <h2>Latest news</h2>
+        <div class="inner">
+          <dl>
+            <dt><a href="#">Spring exercise moves 4,200 lb of supplies between Livermore and Watsonville</a><span>14 April 2026</span></dt>
+            <dd>Twelve aircraft from six DARTs flew a simulated post-earthquake resupply, with WEACT receiving, weighing, and staging every load.</dd>
+            <dt><a href="#">Winter storm activation: three flights for county emergency management</a><span>2 March 2026</span></dt>
+            <dd>Pilots from Watsonville and Reid-Hillview carried water-testing kits, a generator, and two public health staff after Highway 1 closed.</dd>
+            <dt><a href="#">Annual meeting set for 7 June at Reid-Hillview</a><span>19 February 2026</span></dt>
+            <dd>Elections, the treasurer's report, and a briefing from county emergency management.</dd>
+          </dl>
+        </div>
+        <div class="more"><a href="#">All news &raquo;</a></div>
+      </section>
+
+      <section class="box missions">
+        <h2>Missions flown</h2>
+        <div class="inner">
+          <table class="flown">
+            <tr><td class="year">2023</td><td>Snowstorms trapped 20,000 people in the San Bernardino Mountains. CalDART used helicopters to deliver 21,000 lb of medical supplies and food to several locations.</td></tr>
+            <tr><td class="year">2022</td><td>A magnitude 6.4 earthquake in Humboldt County brought down power lines, damaged roads, and cut off towns. CalDART flew emergency supplies to Fortuna for local volunteers to distribute.</td></tr>
+            <tr><td class="year">2021</td><td>The Dixie Fire left 200 students without back-to-school supplies. CalDART carried 1,100 lb of them from Chino to Quincy.</td></tr>
+            <tr><td class="year">2021</td><td>CalDART flew PPE and medical gowns from Santa Barbara to the Yurok Tribe on the Klamath River.</td></tr>
+            <tr><td class="year">2021</td><td>Twenty-three aircraft carried 4,800 lb of KN-95 masks, trundle beds, and other medical supplies from Santa Barbara to firefighters near Eugene, Oregon.</td></tr>
+            <tr><td class="year">2020</td><td>Face shields from Palo Alto to Walla Walla, Washington, and ventilators from San Diego to Sacramento.</td></tr>
+          </table>
+        </div>
+        <div class="more"><a href="#">Every activation &raquo;</a></div>
+      </section>
+    </main>
+
+    <aside class="side">
+      <div class="box">
+        <h3>Upcoming events</h3>
+        <div class="inner">
+          <div class="event"><div class="date">Oct<b>18</b></div><div><a href="#">Ground crew workshop</a><br><span class="small">Reid-Hillview, 9 am to 1 pm</span></div></div>
+          <div class="event"><div class="date">Nov<b>8</b></div><div><a href="#">Statewide radio and communications drill</a><br><span class="small">All DARTs</span></div></div>
+          <div class="event"><div class="date">Dec<b>6</b></div><div><a href="#">DART leaders' meeting</a><br><span class="small">San Martin, 10 am</span></div></div>
+        </div>
+      </div>
+
+      <div class="box">
+        <h3>Member login</h3>
+        <div class="inner">
+          <form>
+            <label>Email <input type="text"></label>
+            <label>Password <input type="password"></label>
+            <button type="button">Sign in</button>
+            <p class="small" style="margin:8px 0 0"><a href="#">Forgot your password?</a><br>Sign in to update your profile, check your medical and insurance dates, or renew.</p>
+          </form>
+        </div>
+      </div>
+
+      <div class="box">
+        <h3>Find your DART</h3>
+        <div class="inner">
+          <form>
+            <label>Airport<select><option>Choose an airport</option><option>Angwin (2O3)</option><option>Concord (KCCR)</option><option>Half Moon Bay (KHAF)</option><option>Livermore (KLVK)</option><option>Napa (KAPC)</option><option>Novato (KDVO)</option><option>Palo Alto (KPAO)</option><option>Reid-Hillview (KRHV)</option><option>San Carlos (KSQL)</option><option>San Martin (E16)</option><option>Santa Monica (KSMO)</option><option>Santa Rosa (KSTS)</option><option>Torrance (KTOA)</option><option>Watsonville (KWVI)</option></select></label>
+            <button type="button">Go</button>
+          </form>
+          <p class="small" style="margin:8px 0 0">Twelve DARTs at general aviation airports from Santa Rosa to San Diego. <a href="#">See the map</a>.</p>
+        </div>
+      </div>
+
+      <div class="box">
+        <h3>Membership</h3>
+        <div class="inner">
+          <table class="plans">
+            <tr><td>Annual membership</td><td>$45 / year</td></tr>
+            <tr><td>Life membership</td><td>$650</td></tr>
+            <tr><td>Friend of CalDART</td><td>$20 and up</td></tr>
+          </table>
+          <p class="small" style="margin:8px 0 0">Pilots who fly CalDART missions, and anyone serving as a DART manager or above, must be members. CalDART has no paid employees, and dues and contributions are tax deductible under IRC 501(c)(3).</p>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <footer class="footer">
+    <p><b>CalDART, The California DART Network</b><br>PO Box 606, San Martin, CA 95046</p>
+    <p>Duty Officer: (408) 713-0646<br><a href="#">Contact us</a></p>
+    <p>IRS EIN 83-1407209<br>California public benefit corporation</p>
+    <p class="fine">Layout mockup for the CalDART site prototype. The news items and the events are placeholders; the photograph, the contact details, and the membership fees come from caldart.org, and the missions flown from paloaltodart.org. Volunteers fly at their own expense and at their own discretion, and CalDART does not self-deploy.</p>
+  </footer>
+</div>
+</body>
+</html>

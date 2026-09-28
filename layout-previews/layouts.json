@@ -1,0 +1,148 @@
+[
+  {
+    "slug": "county-bulletin",
+    "title": "County bulletin",
+    "modeledOn": "a county office of emergency services site",
+    "fonts": "Liberation Sans throughout",
+    "structure": [
+      "Thin navy utility bar: organization name left, agency phone and Members link right.",
+      "White masthead with wordmark and tagline; office contact right-aligned.",
+      "Full-width solid navy nav bar, current item darkened.",
+      "Three columns on a gray ground: 200px left section menu with bordered items, white main panel, 260px right column of boxes.",
+      "Main: Welcome h1, photo floated right with the lede wrapping, figures strip, Announcements box with bold dates, Upcoming training zebra table, activation steps as bold run-in paragraphs.",
+      "Right: Quick links, Request air support (phone in large type), Member login form, Membership price table.",
+      "Gray footer band with three plain-text columns and the fine print."
+    ]
+  },
+  {
+    "slug": "boxed-chapter",
+    "title": "Boxed chapter site",
+    "modeledOn": "an EAA chapter or CAP squadron site",
+    "fonts": "CalDART wordmark image, DejaVu Sans body",
+    "structure": [
+      "Dotted blue-gray page ground with a centered 1000px white container, 1px border, softly rounded corners and a shadow.",
+      "Masthead: the CalDART logo from caldart.org with the tagline beneath, Duty Officer phone and mailing address right; double rule beneath.",
+      "Solid navy nav bar with white bold links separated by darker vertical lines; Members pushed right.",
+      "Two columns 66/34. Main column is a stack of titled boxes with blue title bars: Welcome (captioned photograph banner, lede, the mission statement as a rule-marked quote, two paragraphs of context, four buttons with a red 'Request air support' first), Latest news (definition list with dates, All news footer), Missions flown (year-and-description table of real CalDART activations).",
+      "Sidebar boxes with lighter blue title bars: Upcoming events with date tiles, Member login form, Find your DART select, Membership table.",
+      "Footer inside the container with the mailing address, Duty Officer number, EIN and the fine print."
+    ]
+  },
+  {
+    "slug": "official-notice",
+    "title": "Official notice",
+    "modeledOn": "a state agency information page",
+    "fonts": "Liberation Sans 16px, blue underlined links",
+    "structure": [
+      "Dark top bar with the organization name and main phone.",
+      "Wordmark and tagline, one-line pipe-separated nav between rules, breadcrumb.",
+      "Single 880px column. First element is a yellow notice box for emergency managers with the duty phone in large bold.",
+      "h1 on a double rule, lede paragraph, photo slot.",
+      "Key facts as a two-column table with a shaded header column (Who we are, What we do, Where we operate, How to request support, How to join, Tax status).",
+      "Activation steps as a decimal ordered list; activation checklist with CSS-drawn checkboxes; Documents list with PDF sizes; Recent activity dated list; Membership table.",
+      "Footer as plain stacked text lines including 'Page updated'."
+    ]
+  },
+  {
+    "slug": "newsletter",
+    "title": "Chapter newsletter",
+    "modeledOn": "the front page of a printed club newsletter",
+    "fonts": "URW Bookman masthead, Nimbus Roman justified body, Liberation Sans Narrow headlines",
+    "structure": [
+      "Masthead: thick top rule, plane at left, 'The CalDART Dispatch' centered, a bordered ear at right with the duty phone; small-caps dateline strip between rules.",
+      "Nav as one centered line separated by vertical bars.",
+      "Three-column newspaper grid with vertical rules. Columns 1 and 2: lead story with headline, small-caps deck, two-column photo with italic caption, two-column body text with a drop cap; below it a 'fifteen DARTs' roster by region.",
+      "Column 3: In this issue, From the coordinator (signed), Calendar, and a dashed-border Join coupon with checkboxes and fill-in lines.",
+      "Below the fold: a tinted explainer box for the activation steps with bold run-in heads, then Briefs as three ruled columns opening with small-caps datelines.",
+      "Footer as three lines of small type."
+    ]
+  },
+  {
+    "slug": "magazine",
+    "title": "Magazine feature",
+    "modeledOn": "a feature spread in a general-aviation magazine",
+    "fonts": "Liberation Sans Narrow uppercase display, Bitstream Charter body",
+    "structure": [
+      "Black header bar, small wordmark, nav at right with Members in a white outlined square.",
+      "560px photo with the headline in very large white uppercase on a dark band at the photo's foot; solid red ribbon under it with the tagline and duty phone.",
+      "Article in two CSS columns with a drop cap and bold run-in subheads; a 'By the numbers' box floats right between 3px black rules.",
+      "'Meet a DART' gray panel: photo left, Livermore DART definition list and an italic quotation right.",
+      "'On the calendar' strip of three dates with very large day numbers separated by vertical rules.",
+      "Activation steps as a plain serif numbered list; a row of five gray supporter rectangles.",
+      "Black footer with narrow uppercase column heads."
+    ]
+  },
+  {
+    "slug": "banner-split",
+    "title": "Banner and audience split",
+    "modeledOn": "a regional non-profit with a photo banner",
+    "fonts": "Liberation Sans Narrow headings, Noto Sans body",
+    "structure": [
+      "White header, wordmark left, nav right with a square Members button; 2px rule.",
+      "Full-bleed 520px photo; a dark-blue rectangle overlaps its lower-left corner and hangs 60px below it, holding the headline, a yellow bar, the lede and a white button.",
+      "Two solid half-width panels with no gap: green 'For pilots, owners and ground crew' with three ruled entries and a Join button; slate 'For emergency managers' with the duty phone at 54px.",
+      "White section: activation steps as five bordered boxes joined by CSS arrows (stack vertically on phones).",
+      "Three unequal columns separated by 2px vertical rules: News, Training, Membership.",
+      "Dark-blue footer."
+    ]
+  },
+  {
+    "slug": "brochure-bands",
+    "title": "Brochure bands",
+    "modeledOn": "a small non-profit's site-builder page",
+    "fonts": "Ubuntu headings, Noto Sans body",
+    "structure": [
+      "Centered header: plane above the wordmark, centered nav row with a square Members button, 3px green rule.",
+      "Band 1 (pale blue): photo left, headline, lede and two buttons right.",
+      "Band 2 (white): 'What CalDART does' as three stacked rows, photo alternating sides.",
+      "Band 3 (dark green): mission paragraph centered in white 24px type.",
+      "Band 4 (white): activation steps as a bordered Step / Who acts / What happens table.",
+      "Band 5 (gray): FAQ as native details/summary elements with a CSS-drawn plus.",
+      "Band 6: photo with a centered white 'Ready to help?' card holding the Join button and prices.",
+      "Dark footer: small California map, contact, newsletter signup; fine print below."
+    ]
+  },
+  {
+    "slug": "audience-tabs",
+    "title": "Audience tabs",
+    "modeledOn": "a member-services hub with a search box",
+    "fonts": "Nimbus Sans throughout",
+    "structure": [
+      "White header with wordmark, nav (current item a filled chip) and a search form at the far right; 4px navy rule.",
+      "Five-tab strip (Pilots, Ground crew, Aircraft owners, Emergency managers, Donors) driven by hidden radio inputs, no JavaScript; the selected tab joins its bordered panel.",
+      "Each panel: photo left; heading, paragraph, requirement list and a square button right. Emergency managers panel carries the duty phone.",
+      "Bordered 'About CalDART' box with a navy title bar, two paragraphs and a small California map.",
+      "Activation steps as five bordered boxes joined by CSS arrows.",
+      "Two bordered tables side by side: News (Date, Headline) and Calendar (Date, Event, Where).",
+      "Gray footer with a fine-print band."
+    ]
+  },
+  {
+    "slug": "status-board",
+    "title": "Operations status board",
+    "modeledOn": "an operations center readiness page",
+    "fonts": "Noto Sans with tabular numerals, Liberation Mono for identifiers and times",
+    "structure": [
+      "Dark slate header with the wordmark and duty phone; nav as square tabs along the bar's bottom edge, the current tab white.",
+      "Solid green status strip: network status, activations, DARTs reporting, update stamp.",
+      "Two-column board (2:1). Left: 'Network at a glance' two-column table, full 15-row DARTs table grouped by region with Ready chips, Scheduled table.",
+      "Right: California map in a bordered panel, mono 'Recent flights' log table, Request air support panel with the phone in large mono type.",
+      "Light-gray 'About CalDART' band with the lede and mission side by side and Join and Donate buttons.",
+      "Plain small footer."
+    ]
+  },
+  {
+    "slug": "map-finder",
+    "title": "Map finder",
+    "modeledOn": "a 'find your local unit' page",
+    "fonts": "Liberation Sans Narrow headings, Noto Sans body, Liberation Mono identifiers",
+    "structure": [
+      "White header with wordmark and one-line DART definition, nav right with a square Members button; 3px rule.",
+      "Full-width light strip: 'Find your DART' h1 with one sentence at left, a labeled search input and Find button at right.",
+      "Left 55%: bordered panel with the California map at 620px and a legend; a second bordered 'Bay Area detail' panel with a hand-drawn schematic of the twelve Bay Area pins.",
+      "Right 45%: 'DARTs by region' with six region headings and rows of mono identifier badge, name and city; then Request air support and Already a member panels.",
+      "'Take part' as a bordered table with colored full-height label cells (Fly, Crew, Give).",
+      "Single-line news bar separated by navy vertical bars (scrolls in its wrapper on phones); light footer."
+    ]
+  }
+]

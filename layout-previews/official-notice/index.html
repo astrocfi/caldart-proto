@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CalDART - The California DART Network</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: #fff;
+    color: #1c1c1c;
+    font: 16px/1.55 "Liberation Sans", Arial, Helvetica, sans-serif;
+  }
+  a { color: #0b3d91; text-decoration: underline; }
+  a:visited { color: #54308c; }
+  a:hover { color: #08296a; }
+
+  .wrap { max-width: 880px; margin: 0 auto; padding: 0 16px; }
+
+  /* Top bar */
+  .topbar { background: #1b2a41; color: #fff; font-size: 14px; }
+  .topbar .wrap { display: flex; flex-wrap: wrap; gap: 4px 20px; align-items: baseline;
+    padding-top: 7px; padding-bottom: 7px; }
+  .topbar .org { font-weight: bold; }
+  .topbar .tel { margin-left: auto; }
+  .topbar a { color: #fff; }
+  .topbar a:visited { color: #fff; }
+
+  /* Wordmark */
+  .masthead .wrap { display: flex; align-items: center; gap: 14px;
+    padding-top: 18px; padding-bottom: 16px; }
+  .masthead .mark { display: flex; align-items: center; gap: 10px; }
+  .masthead img { width: 42px; height: 42px; flex: none; }
+  .masthead .name { font-size: 34px; font-weight: bold; line-height: 1; letter-spacing: .01em; }
+  .masthead .tagline { font-size: 15px; color: #333; border-left: 1px solid #b6b6b6;
+    padding-left: 14px; }
+
+  /* Nav */
+  .mainnav { border-top: 1px solid #1c1c1c; border-bottom: 1px solid #1c1c1c; }
+  .mainnav .wrap { padding-top: 8px; padding-bottom: 8px; }
+  .mainnav ul { list-style: none; margin: 0; padding: 0; }
+  .mainnav li { display: inline; }
+  .mainnav li::after { content: ""; display: inline-block; width: 1px; height: 12px;
+    background: #9a9a9a; margin: 0 9px -1px 12px; }
+  .mainnav li:last-child::after { display: none; }
+  .mainnav a { font-size: 15px; }
+  .mainnav a[aria-current] { font-weight: bold; color: #1c1c1c; text-decoration: none; }
+
+  .breadcrumb { font-size: 14px; color: #555; }
+  .breadcrumb .wrap { padding-top: 8px; padding-bottom: 4px; }
+
+  main .wrap { padding-bottom: 8px; }
+
+  h1 { font-size: 30px; line-height: 1.2; margin: 18px 0 0;
+    border-bottom: 3px double #1c1c1c; padding-bottom: 10px; }
+  h2 { font-size: 21px; margin: 30px 0 10px; border-bottom: 1px solid #c4c4c4;
+    padding-bottom: 5px; }
+  h3 { font-size: 17px; margin: 18px 0 6px; }
+  p { margin: 0 0 14px; }
+  .lede { margin-top: 16px; }
+
+  /* Notice box */
+  .notice { border: 1px solid #c8a200; border-left-width: 4px; border-top-width: 4px;
+    border-left-color: #d98b00; border-top-color: #d98b00; background: #fdf6dc;
+    padding: 14px 16px; margin-top: 18px; }
+  .notice h2 { margin: 0 0 8px; border: 0; padding: 0; font-size: 19px; }
+  .notice .tel { font-size: 27px; font-weight: bold; line-height: 1.2; margin: 0 0 8px;
+    display: block; }
+  .notice p:last-child { margin-bottom: 0; }
+
+  /* Key facts table */
+  .tablewrap { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 15px; }
+  caption { text-align: left; font-size: 14px; color: #555; padding-bottom: 6px; }
+  .facts th, .facts td { border: 1px solid #9a9a9a; padding: 9px 11px; text-align: left;
+    vertical-align: top; }
+  .facts th { background: #e7e9ed; width: 210px; font-weight: bold; }
+  .plans th, .plans td { border: 1px solid #9a9a9a; padding: 8px 11px; text-align: left;
+    vertical-align: top; }
+  .plans thead th { background: #e7e9ed; }
+  .plans td.amount { white-space: nowrap; font-weight: bold; }
+
+  /* Steps */
+  ol.steps { margin: 0 0 14px; padding-left: 26px; }
+  ol.steps li { margin-bottom: 9px; }
+
+  /* Checklist */
+  ul.checklist { list-style: none; margin: 0; padding: 12px 16px;
+    border: 1px solid #9a9a9a; background: #fafafa; }
+  ul.checklist li { position: relative; padding-left: 30px; margin-bottom: 10px; }
+  ul.checklist li:last-child { margin-bottom: 0; }
+  ul.checklist li::before { content: ""; position: absolute; left: 0; top: 4px;
+    width: 15px; height: 15px; border: 2px solid #1c1c1c; background: #fff; }
+
+  /* Documents */
+  ul.docs { margin: 0 0 14px; padding-left: 22px; }
+  ul.docs li { margin-bottom: 6px; }
+  ul.docs .meta { color: #444; }
+
+  /* Activity */
+  dl.activity { margin: 0; }
+  dl.activity dt { font-weight: bold; margin-top: 12px; }
+  dl.activity dt:first-child { margin-top: 0; }
+  dl.activity dd { margin: 2px 0 0; }
+
+  /* Photo slot */
+  .photo { border: 1px solid #8a8a8a; background: #dfe3e7
+    repeating-linear-gradient(135deg, rgba(0,0,0,.07) 0 7px, transparent 7px 14px);
+    height: 190px; display: flex; align-items: flex-end; padding: 8px; font-size: 13px;
+    color: #263238; margin: 0 0 14px; }
+
+  .related { font-size: 15px; }
+
+  /* Footer */
+  footer { border-top: 3px double #1c1c1c; margin-top: 34px; font-size: 14px; color: #333; }
+  footer .wrap { padding-top: 16px; padding-bottom: 28px; }
+  footer p { margin: 0 0 6px; }
+  footer .fine { margin-top: 12px; color: #555; }
+
+  @media (max-width: 620px) {
+    body { font-size: 15px; }
+    .topbar .tel { margin-left: 0; }
+    .masthead .wrap { flex-wrap: wrap; gap: 8px; }
+    .masthead .tagline { border-left: 0; padding-left: 0; flex-basis: 100%; }
+    .masthead .name { font-size: 28px; }
+    h1 { font-size: 24px; }
+    .notice .tel { font-size: 23px; }
+    .facts th, .facts td { display: block; width: auto; border-bottom: 0; }
+    .facts tr:last-child td { border-bottom: 1px solid #9a9a9a; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="wrap">
+    <span class="org">The California DART Network</span>
+    <span class="tel">(555) 010-2200</span>
+  </div>
+</div>
+
+<header class="masthead">
+  <div class="wrap">
+    <span class="mark">
+      <img src="../shared/plane.svg" alt="" width="42" height="42">
+      <span class="name">CalDART</span>
+    </span>
+    <span class="tagline">Volunteer disaster air transportation for California</span>
+  </div>
+</header>
+
+<nav class="mainnav" aria-label="Main">
+  <div class="wrap">
+    <ul>
+      <li><a href="#" aria-current="page">Home</a></li>
+      <li><a href="#">About</a></li>
+      <li><a href="#">DARTs</a></li>
+      <li><a href="#">News</a></li>
+      <li><a href="#">Join</a></li>
+      <li><a href="#">Donate</a></li>
+      <li><a href="#">Contact</a></li>
+      <li><a href="/portal/">Members</a></li>
+    </ul>
+  </div>
+</nav>
+
+<div class="breadcrumb">
+  <div class="wrap">Home</div>
+</div>
+
+<main>
+  <div class="wrap">
+
+    <section class="notice" aria-labelledby="notice-heading">
+      <h2 id="notice-heading">Notice to emergency managers</h2>
+      <span class="tel">(555) 010-2201</span>
+      <p>Requests for air support go to the CalDART duty coordinator at the number above,
+        any hour. Give the agency name, the mission, the departure and arrival airports
+        and the deadline, and the coordinator will match the mission to available
+        aircraft and pilots.</p>
+    </section>
+
+    <h1>Volunteer pilots and aircraft for California's emergencies</h1>
+
+    <p class="lede">CalDART organizes pilots, aircraft owners and ground crews into local
+      teams at general aviation airports around the state. When an earthquake, wildfire or
+      flood closes the roads, those teams fly relief supplies, responders and information
+      to the communities that need them.</p>
+
+    <div class="photo">Photo: Cessna 182 being loaded at Livermore</div>
+
+    <h2>Key facts</h2>
+    <div class="tablewrap">
+      <table class="facts">
+        <caption>Summary of CalDART's organization, service area and membership.</caption>
+        <tbody>
+          <tr>
+            <th scope="row">Who we are</th>
+            <td>CalDART, the California DART Network. A DART is a Disaster Airlift
+              Response Team: pilots, aircraft owners and ground volunteers based at one
+              general aviation airport and led by a DART coordinator. 15 DARTs,
+              240 members and 96 aircraft.</td>
+          </tr>
+          <tr>
+            <th scope="row">What we do</th>
+            <td>CalDART gives California's emergency managers a trained, insured and
+              practiced volunteer air transportation capability. Teams are organized,
+              exercised and kept current all year, so they are ready on the day an agency
+              calls. 3 activations and 6 exercises in the past 12 months.</td>
+          </tr>
+          <tr>
+            <th scope="row">Where we operate</th>
+            <td>General aviation airports from Santa Rosa to Santa Monica, grouped into
+              six regions: North Bay, East Bay, Peninsula, South Bay, Central Coast and
+              Southern California. 11 counties have a signed agreement.
+              <a href="#">See the list of DARTs</a>.</td>
+          </tr>
+          <tr>
+            <th scope="row">How to request support</th>
+            <td>County OES, hospitals, tribal governments and mutual-aid partners call the
+              duty coordinator at (555) 010-2201, any hour.</td>
+          </tr>
+          <tr>
+            <th scope="row">How to join</th>
+            <td>Pilots need a private pilot certificate or higher, a current medical or
+              BasicMed and access to an aircraft; flight time counts toward currency.
+              Aircraft owners bring single-engine or light twin aircraft based at a member
+              airport. Ground crew need no pilot certificate: loading, radio, logistics and
+              airport liaison. <a href="#">Join CalDART</a>.</td>
+          </tr>
+          <tr>
+            <th scope="row">Tax status</th>
+            <td>501(c)(3) public charity, EIN 00-0000000. Dues and contributions are tax
+              deductible to the extent allowed by law. Pilots pay for their own flights,
+              unless an agency agreement says otherwise, and the cost is generally
+              deductible as a charitable expense.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>How an activation works</h2>
+    <ol class="steps">
+      <li><b>Local teams form around an airport.</b> Each DART is a group of pilots,
+        aircraft owners and ground volunteers based at one general aviation airport and
+        led by a DART coordinator.</li>
+      <li><b>An agency requests air support.</b> A county emergency operations center or a
+        partner agency contacts CalDART's duty coordinator with the mission: what, where
+        and by when.</li>
+      <li><b>The coordinator matches the mission to aircraft.</b> Available aircraft and
+        pilots are matched to the load, the distance and conditions at the destination
+        airport.</li>
+      <li><b>Volunteers fly the mission.</b> Pilots fly at their own discretion and expense
+        under standard FAA rules. Ground crews load, unload and hand off the cargo.</li>
+      <li><b>Every flight is logged.</b> Each leg is recorded for the agency's records and
+        for CalDART's own after-action review.</li>
+    </ol>
+
+    <h2>Before you call: activation checklist</h2>
+    <p>Have these ready when you reach the duty coordinator. They are what the coordinator
+      needs to start matching aircraft to the mission.</p>
+    <ul class="checklist">
+      <li>Agency name and the requesting officer, with a callback number.</li>
+      <li>The mission: what is being moved, how much it weighs and how many people travel
+        with it.</li>
+      <li>Departure and arrival airports, and any restriction in force at either one.</li>
+      <li>The deadline: when the load must arrive, and when it can first be collected.</li>
+      <li>A ground contact at each end who will meet the aircraft and sign for the load.</li>
+    </ul>
+
+    <h2>Documents</h2>
+    <ul class="docs">
+      <li><a href="#">Mutual aid agreement template</a> <span class="meta">(PDF, 140 KB)</span></li>
+      <li><a href="#">Pilot membership application</a> <span class="meta">(PDF, 90 KB)</span></li>
+      <li><a href="#">Ground crew handbook</a> <span class="meta">(PDF, 2.1 MB)</span></li>
+      <li><a href="#">Aircraft data sheet</a> <span class="meta">(PDF, 60 KB)</span></li>
+    </ul>
+
+    <h2>Recent activity</h2>
+    <dl class="activity">
+      <dt>14 April 2026</dt>
+      <dd><a href="#">Spring exercise moves 4,200 lb of supplies between Livermore and San
+        Luis Obispo.</a> Twelve aircraft from six DARTs flew a simulated post-earthquake
+        resupply, with the Central Coast DART receiving and staging every load.</dd>
+      <dt>2 March 2026</dt>
+      <dd><a href="#">Winter storm activation: three flights for Monterey County OES.</a>
+        Pilots from Watsonville and Reid-Hillview carried water-testing kits and two public
+        health staff to Big Sur after Highway 1 closed.</dd>
+      <dt>19 February 2026</dt>
+      <dd><a href="#">Annual meeting set for 7 June at Reid-Hillview.</a> Elections, the
+        treasurer's report and a briefing from Santa Clara County OES.</dd>
+    </dl>
+    <p class="related" style="margin-top:12px"><a href="#">All news</a> &middot;
+      <a href="#">Calendar: ground crew workshop, Hayward, Sat 18 Oct 2026</a></p>
+
+    <h2>Membership</h2>
+    <div class="tablewrap">
+      <table class="plans">
+        <thead>
+          <tr><th scope="col">Plan</th><th scope="col">Amount</th><th scope="col">Term</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Annual membership</td><td class="amount">$45</td>
+            <td>One year of CalDART membership, renewable each year.</td></tr>
+          <tr><td>Life membership</td><td class="amount">$650</td>
+            <td>Pay once, never renew.</td></tr>
+          <tr><td>Friend of CalDART</td><td class="amount">Any amount</td>
+            <td>A donation. Carries no membership.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="margin-top:12px">Already a member? <a href="/portal/">Sign in to the member
+      portal</a> to update your profile, check your medical and insurance dates, or renew.</p>
+
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p><b>CalDART &mdash; The California DART Network</b></p>
+    <p>P.O. Box 1149, Livermore, CA 94551</p>
+    <p>info@caldart.example &middot; (555) 010-2200 &middot; Duty coordinator, any hour:
+      (555) 010-2201</p>
+    <p>EIN 00-0000000. 501(c)(3) public charity.</p>
+    <p>Page updated 14 April 2026.</p>
+    <p class="fine">Example content for a prototype. Volunteers fly at their own expense and
+      at their own discretion; CalDART does not self-deploy.</p>
+  </div>
+</footer>
+
+</body>
+</html>

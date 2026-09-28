@@ -1041,7 +1041,8 @@ Rehearsing a server install
    $ make rehearse-deploy REHEARSE_URL_PREFIX=/caldart-proto  # behind an existing site
    $ make rehearse-deploy REHEARSE_GUNICORN_PORT=8101  # gunicorn on another port
    $ make rehearse-deploy REHEARSE_DB_PORT=5433        # Postgres on another port
-   $ make rehearse-deploy REHEARSE_SEED=1              # with --seed-demo --seed-content
+   $ make rehearse-deploy REHEARSE_SEED=content        # the example website alone
+   $ make rehearse-deploy REHEARSE_SEED=demo           # the demo accounts alone
    $ make rehearse-deploy REHEARSE_KEEP=1            # keep the container to look inside
 
 The unit tests in ``backend/tests/test_deploy_scripts.py`` read the
@@ -1112,21 +1113,25 @@ npm, and Docker Hub.
    health`` reaches the database, then hold on the moved port.  The container's
    name gains ``-db``.
 ``REHEARSE_SEED``
-   A switch: step 1 also passes ``--seed-demo --seed-content``, loading the
-   demo accounts and the example pages, the same data ``make seed`` loads in
-   development (:ref:`deploy-database`).  The demo mandates use the mock
-   payment provider, which production leaves off, so the target also sets
-   ``PAYMENTS_MOCK_ENABLED_IN_PRODUCTION=true`` in the environment file, the
-   same switch :doc:`payments-setup` describes for demonstrating checkout
-   with no payment keys, so ``caldart-renewals`` (step 2) has a provider to
-   charge against.  The container also has no mail transport of its own, so
-   the target installs and starts postfix, so ``caldart-reminders``,
-   ``caldart-reports`` and ``caldart-statements`` (step 2) can send mail.
-   Neither is something the container's package scripts or a plain install
-   does on its own.  After the install the target asserts that
-   ``manage.sh health --json`` still passes and that the sign-in page still
-   answers, so seeding did not disturb the checks.  The container's name
-   gains ``-seed``.
+   ``content``, ``demo``, or ``all``: step 1 also passes ``--seed-content``
+   (the example website alone), ``--seed-demo`` (the demo accounts alone), or
+   both, the seeds ``make seed`` runs in development (:ref:`deploy-database`).
+   Either seed gives the scheduled jobs mail to send (the website seed creates
+   the DARTs whose rosters ``caldart-reports`` mails), and the container has no
+   mail transport of its own, so with any seed the target installs and starts
+   postfix, so ``caldart-reminders``, ``caldart-reports`` and
+   ``caldart-statements`` (step 2) can send mail.  With the website seeded, the
+   target checks that a seeded page answers and that a website-only install
+   holds no account but the administrator's.  With the demo accounts seeded:
+   the demo mandates use the mock payment provider, which production leaves
+   off, so the target also sets ``PAYMENTS_MOCK_ENABLED_IN_PRODUCTION=true`` in
+   the environment file, the same switch :doc:`payments-setup` describes for
+   demonstrating checkout with no payment keys, so ``caldart-renewals`` (step
+   2) has a provider to charge against, and asserts that ``manage.sh health
+   --json`` still passes and that the sign-in page still answers.  Neither
+   postfix nor the switch is something the container's package scripts or a
+   plain install does on its own.  The container's name gains
+   ``-seed-<value>``.
 ``REHEARSE_KEEP``
    Keep the container and its volumes after the run.
 
