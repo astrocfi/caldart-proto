@@ -23,6 +23,12 @@ has been **Refunded**, the **Provider**, the **Method**, the **Status**, the pro
 A payment's name opens that payment's own screen (see :doc:`payment-record`). An email
 address opens a message to the member in your email program.
 
+A payment whose name reads **Deleted member** followed by a number, such as **Deleted member
+5**, belonged to a person whose account an account administrator deleted (see
+:doc:`../admin/member-record`). The payment itself is unchanged and still counts in every
+total; only the name changed, and the email address, which ends in ``deleted.invalid``,
+reaches nobody.
+
 The statuses are **Pending**, **Succeeded**, **Failed**, **Partly refunded**, and
 **Refunded**. The providers are **Stripe**, **PayPal**, **By hand** for money you recorded
 yourself, and **Test**, which appears only on a demonstration site.

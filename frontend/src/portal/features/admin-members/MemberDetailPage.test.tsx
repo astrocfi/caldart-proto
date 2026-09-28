@@ -270,7 +270,6 @@ describe('MemberDetailPage', () => {
 
   it('requires the email address to be typed before deleting', async () => {
     const user = userEvent.setup();
-    // Only a member who never paid can be deleted at all.
     server.use(...detailHandlers(makeDetail({ payments: [] })));
     renderDetail('/admin/members/1?tab=danger');
 
@@ -287,6 +286,20 @@ describe('MemberDetailPage', () => {
     await user.click(button);
     await waitFor(() => expect(captured.deleted).toBe(true));
     expect(await screen.findByText('member list')).toBeInTheDocument();
+  });
+
+  it('deletes a member who has payments', async () => {
+    const user = userEvent.setup();
+    server.use(...detailHandlers());
+    renderDetail('/admin/members/1?tab=danger');
+
+    await user.type(
+      await screen.findByLabelText(/Type ana@example.org to confirm/),
+      'ana@example.org',
+    );
+    await user.click(screen.getByRole('button', { name: 'Delete member' }));
+
+    await waitFor(() => expect(captured.deleted).toBe(true));
   });
 
   it('reports a refused delete', async () => {

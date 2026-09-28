@@ -1603,7 +1603,10 @@ Action                        Fields beyond actor and target
 ``account.activate``          --
 ``account.deactivate``        --
 ``member.create``             ``invited`` -- whether an invitation was mailed
-``member.delete``             --
+``member.delete``             ``payments``, ``owner`` -- when the member had
+                              paid, how many payments moved and the
+                              tombstone account that holds them; from the
+                              API and from the Wagtail users admin
 ``dart.create``               --
 ``dart.update``               --
 ``dart.delete``               ``members``, ``pages`` -- the members the
@@ -1630,7 +1633,9 @@ Action                        Fields beyond actor and target
 ``renewal.enable``            ``provider``, ``plan`` -- ``-`` for a
                               recurring donation, which renews nothing
 ``renewal.cancel``            ``provider``, ``self_service`` -- whether the
-                              member turned it off themselves
+                              member turned it off themselves; ``reason``
+                              ``member.delete`` when the member's account
+                              is being deleted
 ``renewal.change``            ``contribution_cents``, ``removed_cents`` -- the
                               contribution taken off a renewal to make room
                               for a recurring donation
@@ -1656,8 +1661,7 @@ names the columns that moved, and ``fields=-`` when none did.
 A privileged attempt a rule turns away is logged at WARNING under the same
 action, with a ``reason`` slug saying which rule refused it: ``self_deactivation``,
 ``roles_not_held``, ``system_admin_role``, ``self_delete``,
-``system_admin_target``, ``has_payments``, ``inactive_account``,
-``no_such_backup``, or ``import_running`` (a **Run now** pressed while an
+``system_admin_target``, ``inactive_account``, ``no_such_backup``, or ``import_running`` (a **Run now** pressed while an
 import is under way).
 
 A record carries ids, counts, flags, and slugs and nothing else.  Email

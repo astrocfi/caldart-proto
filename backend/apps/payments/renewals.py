@@ -39,7 +39,7 @@ import smtplib
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import date, timedelta
-from typing import Any, Literal
+from typing import Any, Literal, TypedDict
 
 from django.conf import settings
 from django.db import IntegrityError, models, transaction
@@ -709,9 +709,19 @@ def save_method(
 type OffHow = Literal["member", "administrator", "lapsed", "deactivated"]
 
 
+class _CancelReason(TypedDict, total=False):
+    """The optional ``reason`` field a ``renewal.cancel`` audit line ends with."""
+
+    reason: str
+
+
 @transaction.atomic
 def cancel_mandate(
-    mandate: RenewalMandate, *, actor: User | None, how: OffHow | None = None
+    mandate: RenewalMandate,
+    *,
+    actor: User | None,
+    how: OffHow | None = None,
+    reason: str | None = None,
 ) -> RenewalMandate:
     """Turn automatic renewal off, whoever asked, and tell the member.
 
@@ -719,9 +729,10 @@ def cancel_mandate(
     and is recorded as ``canceled_by`` and in the audit record's
     ``self_service`` flag; it is ``None`` for a cancellation nobody signed for.
     Every scheduled attempt still waiting is marked ``skipped``, so the next scan
-    charges nothing.  Writes one ``renewal.cancel`` audit record
-    and emails the member after the transaction commits.  Calling it on a
-    mandate that is already canceled changes nothing and sends nothing.
+    charges nothing.  Writes one ``renewal.cancel`` audit record, ending in
+    ``reason=<reason>`` when ``reason`` is given (``member.delete`` when the member's
+    account is being deleted), and emails the member after the transaction commits.
+    Calling it on a mandate that is already canceled changes nothing and sends nothing.
 
     Canceling a mandate that was active raises the ``auto_renewal_off`` event with
     the mandate and ``how``: the caller's word when given (``deactivated`` when the
@@ -737,12 +748,14 @@ def cancel_mandate(
     mandate.canceled_by = actor
     mandate.save(update_fields=["status", "canceled_at", "canceled_by", "updated_at"])
     mandate.attempts.filter(outcome=RenewalOutcome.SCHEDULED).update(outcome=RenewalOutcome.SKIPPED)
+    extra: _CancelReason = {} if reason is None else {"reason": reason}
     audit.record(
         audit.RENEWAL_CANCEL,
         actor=actor or audit.COMMAND_ACTOR,
         target=mandate.user,
         provider=mandate.provider,
         self_service=actor is not None and actor.pk == mandate.user_id,
+        **extra,
     )
     transaction.on_commit(lambda: send_mandate_email(mandate, "renewal_canceled"))
     if was_active:

@@ -915,17 +915,16 @@ def test_delete_hard_deletes_and_cascades(
     assert not Membership.objects.filter(user_id=pk).exists()
 
 
-def test_delete_is_refused_for_a_member_with_payments(
+def test_delete_keeps_the_payments_of_a_member_who_paid(
     account_admin_client: APIClient, population: dict[str, User], annual_plan: MembershipPlan
 ) -> None:
-    """Payments are kept, so the account that made them cannot be deleted."""
+    """A member who paid is deleted, and the payment stays in the books."""
     member = population["current"]
     payment = PaymentFactory(user=member, plan=annual_plan)
+    pk = member.pk
 
-    response = account_admin_client.delete(detail_url(member))
-
-    assert response.status_code == 403
-    assert User.objects.filter(pk=member.pk).exists()
+    assert account_admin_client.delete(detail_url(member)).status_code == 204
+    assert not User.objects.filter(pk=pk).exists()
     assert Payment.objects.filter(pk=payment.pk).exists()
 
 

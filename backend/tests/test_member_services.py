@@ -23,7 +23,7 @@ from apps.members.services import (
     register_member,
     update_member,
 )
-from apps.payments.models import PaymentStatus
+from apps.payments.models import Payment, PaymentStatus
 from caldart.exceptions import DomainPermissionError, DomainValidationError
 from tests.factories import MemberProfileFactory, PaymentFactory, UserFactory
 
@@ -241,29 +241,30 @@ def test_a_system_admin_may_delete_another_system_admin(system_admin: User) -> N
     assert User.objects.filter(email="root2@example.test").exists() is False
 
 
-def test_a_member_with_a_payment_cannot_be_deleted(
+def test_a_member_with_a_payment_is_deleted(
     account_admin: User, payment_factory: type[PaymentFactory]
 ) -> None:
-    """A member with any payment on file, whatever its status, cannot be deleted."""
+    """A member with any payment on file, whatever its status, is deleted all the same."""
     target = UserFactory(email="target@example.test", roles=[MEMBER])
     payment_factory(user=target, status=PaymentStatus.PENDING)
-    with pytest.raises(DomainPermissionError, match="which must be kept"):
-        delete_member(account_admin, target)
+    delete_member(account_admin, target)
+    assert User.objects.filter(email="target@example.test").exists() is False
 
 
-def test_the_payment_refusal_counts_the_records(
+def test_the_deleted_members_payments_belong_to_their_tombstone(
     account_admin: User, payment_factory: type[PaymentFactory]
 ) -> None:
-    """The refusal message states exactly how many payment records are kept."""
-    target = UserFactory(email="target@example.test", roles=[MEMBER], first_name="", last_name="")
-    payment_factory(user=target)
-    payment_factory(user=target)
-    with pytest.raises(DomainPermissionError) as refusal:
-        delete_member(account_admin, target)
-    assert refusal.value.message == (
-        "target@example.test has 2 payment records, which must be kept. "
-        "Deactivate the account instead."
-    )
+    """Every payment moves to the account named for the deleted member's id."""
+    target = UserFactory(email="target@example.test", roles=[MEMBER])
+    first = payment_factory(user=target)
+    second = payment_factory(user=target)
+    target_id = target.pk
+    delete_member(account_admin, target)
+    owners = {
+        Payment.objects.get(pk=first.pk).user.display_name,
+        Payment.objects.get(pk=second.pk).user.display_name,
+    }
+    assert owners == {f"Deleted member {target_id}"}
 
 
 # --------------------------------------------------------------------------

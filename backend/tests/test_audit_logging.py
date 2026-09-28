@@ -582,21 +582,23 @@ def test_deleting_a_system_admin_is_refused_and_recorded(
     )
 
 
-def test_deleting_a_member_with_a_payment_is_refused_and_recorded(
+def test_deleting_a_member_with_a_payment_records_where_the_payments_went(
     api_client: APIClient,
     account_admin: UserModel,
     target_member: UserModel,
     annual_plan: MembershipPlan,
     audit_log: pytest.LogCaptureFixture,
 ) -> None:
-    """Deleting a member who has a payment is refused and logged at warning."""
+    """The delete line counts the payments kept and names the tombstone that owns them."""
     PaymentFactory(user=target_member, plan=annual_plan)
+    target_id = target_member.pk
     api_client.force_login(account_admin)
-    response = api_client.delete(f"{MEMBERS_URL}/{target_member.pk}")
-    assert response.status_code == 403
-    assert one_message(audit_log, logging.WARNING) == (
-        f"action=member.delete actor={account_admin.pk} target={target_member.pk} "
-        f"reason=has_payments"
+    response = api_client.delete(f"{MEMBERS_URL}/{target_id}")
+    assert response.status_code == 204
+    owner = User.objects.get(email=f"deleted-{target_id}@deleted.invalid")
+    assert one_message(audit_log) == (
+        f"action=member.delete actor={account_admin.pk} target={target_id} "
+        f"payments=1 owner={owner.pk}"
     )
 
 

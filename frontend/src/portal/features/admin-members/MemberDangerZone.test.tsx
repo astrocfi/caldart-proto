@@ -26,49 +26,42 @@ function renderZone(payments: MemberPayment[]) {
 }
 
 describe('MemberDangerZone', () => {
-  it('says why a member with one payment cannot be deleted', () => {
+  it('says where the one payment of a member goes', () => {
     renderZone([PAYMENT]);
 
     expect(
       screen.getByText(
-        'Ana Bracco has 1 payment record, which must be kept. Deleting the account would ' +
-          'take the payment history with it, so the delete is refused.',
+        'Ana Bracco has 1 payment record. It stays in the books under the name Deleted member 1.',
       ),
     ).toBeInTheDocument();
   });
 
-  it('counts every payment in the explanation', () => {
+  it('counts every payment that stays in the books', () => {
     renderZone([PAYMENT, { ...PAYMENT, id: 22, provider_ref: 'pi_456' }]);
 
     expect(
       screen.getByText(
-        'Ana Bracco has 2 payment records, which must be kept. Deleting the account would ' +
-          'take the payment history with it, so the delete is refused.',
+        'Ana Bracco has 2 payment records. They stay in the books under the name Deleted member 1.',
       ),
     ).toBeInTheDocument();
   });
 
-  it('points at deactivation instead', () => {
+  it('offers the delete form to a member with payments', () => {
     renderZone([PAYMENT]);
 
-    expect(
-      screen.getByText(
-        'Clear Account is active on the Profile tab instead. A deactivated member cannot ' +
-          'sign in, and their profile, membership terms, and payments stay exactly as they are.',
-      ),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Delete member' })).toBeDisabled();
   });
 
-  it('offers no delete form to a member with payments', () => {
+  it('asks for the email address of a member with payments', () => {
     renderZone([PAYMENT]);
 
-    expect(screen.queryByRole('button', { name: 'Delete member' })).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/Type ana@example.org to confirm/)).toBeInTheDocument();
   });
 
-  it('asks no confirmation of a member with payments', () => {
-    renderZone([PAYMENT]);
+  it('says nothing about payments to a member who never paid', () => {
+    renderZone([]);
 
-    expect(screen.queryByLabelText(/Type ana@example.org to confirm/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/stays? in the books/)).not.toBeInTheDocument();
   });
 
   it('offers the delete form to a member with no payments', () => {
