@@ -432,3 +432,70 @@ export async function followVerificationLink(page: Page, email: string): Promise
   await expect(page.getByRole('heading', { name: 'Email verified' })).toBeVisible();
   await page.getByRole('link', { name: 'Continue' }).click();
 }
+
+/** The password every account a spec registers through the join wizard is given. */
+export const JOINER_PASSWORD = 'a-long-demo-passphrase';
+
+/** How a spec's fresh account joins: as a member, who pays, or as a friend, who does not. */
+export interface JoinAs {
+  as: 'member' | 'friend';
+  /** The first name on the account; `Casey` when left out. */
+  firstName?: string;
+}
+
+/**
+ * Create an account at the join wizard's first step, which signs its owner in and
+ * ends on the verify step, the only screen an unverified account may see.
+ */
+export async function registerAccount(
+  page: Page,
+  email: string,
+  { as, firstName = 'Casey' }: JoinAs,
+): Promise<void> {
+  await page.goto('portal/join');
+  if (as === 'friend') await page.getByRole('radio', { name: /Join as a friend/ }).check();
+  await page.getByRole('textbox', { name: 'First name' }).fill(firstName);
+  await page.getByRole('textbox', { name: 'Last name' }).fill('Okafor');
+  await page.getByRole('textbox', { name: 'Email address' }).fill(email);
+  await page.getByLabel(/^Password/).fill(JOINER_PASSWORD);
+  await page.getByRole('button', { name: 'Create account' }).click();
+  await expect(page).toHaveURL(/\/portal\/join\/verify/);
+  await expect(page.getByRole('heading', { name: 'Check your email' })).toBeVisible();
+}
+
+/**
+ * Fill the fields that make the profile complete on the join wizard's profile step,
+ * and save them, which moves the wizard on to the pay step.
+ */
+export async function completeProfileStep(page: Page): Promise<void> {
+  await expect(page.getByRole('heading', { name: 'About you' })).toBeVisible();
+  await page.getByRole('textbox', { name: 'Phone', exact: true }).fill('650-555-0190');
+  await page.getByRole('combobox', { name: 'Address', exact: true }).fill('4 Hangar Row');
+  await page.getByRole('textbox', { name: 'City', exact: true }).fill('Hollister');
+  await page.getByRole('textbox', { name: 'ZIP code', exact: true }).fill('95023');
+  await page.getByRole('button', { name: 'Save and continue' }).click();
+  await expect(page).toHaveURL(/\/portal\/join\/pay/);
+}
+
+/**
+ * Walk a fresh account at `email` through the whole join wizard, which is the whole
+ * portal until it is done: register, follow the verification link, complete the
+ * profile, then pay the annual dues with the mock provider (a member) or press
+ * **Not now** (a friend).  Ends on the wizard's done step, with the rest of the
+ * portal open.
+ */
+export async function completeOnboarding(page: Page, email: string, joinAs: JoinAs): Promise<void> {
+  await registerAccount(page, email, joinAs);
+  await followVerificationLink(page, email);
+  await completeProfileStep(page);
+  if (joinAs.as === 'member') {
+    await page.getByRole('tab', { name: 'Test payment' }).click();
+    await page.getByRole('button', { name: 'Succeed', exact: true }).click();
+  } else {
+    // Wait for the payment options, so the click lands on the loaded form's button.
+    await expect(page.getByRole('radio', { name: /Participating/ })).toBeVisible();
+    await page.getByRole('button', { name: 'Not now' }).click();
+  }
+  await expect(page).toHaveURL(/\/portal\/join\/done/);
+  await expect(page.getByRole('heading', { name: 'Welcome to CalDART' })).toBeVisible();
+}

@@ -11,20 +11,17 @@
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
-import { uniqueEmail } from './helpers';
+import { completeOnboarding, uniqueEmail } from './helpers';
 
 /** How far out the later first charge falls. */
 const LATER_DAYS = 10;
 
-/** Create an account at the first step of the join wizard, which signs its owner in. */
+/**
+ * Create an account and walk it through the join wizard as a friend, who pays no
+ * dues, so the rest of the portal is open to it.
+ */
 async function createAccount(page: Page, email: string): Promise<void> {
-  await page.goto('portal/join');
-  await page.getByRole('textbox', { name: 'First name' }).fill('Ines');
-  await page.getByRole('textbox', { name: 'Last name' }).fill('Carvalho');
-  await page.getByRole('textbox', { name: 'Email address' }).fill(email);
-  await page.getByLabel(/^Password/).fill('a-long-demo-passphrase');
-  await page.getByRole('button', { name: 'Create account' }).click();
-  await expect(page.getByRole('heading', { name: 'Check your email' })).toBeVisible();
+  await completeOnboarding(page, email, { as: 'friend', firstName: 'Ines' });
 }
 
 /** `day` as `YYYY-MM-DD`. */
