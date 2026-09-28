@@ -105,8 +105,10 @@ Docker does not need to be installed: the packages step installs
 is (see `Sharing the machine`_).
 
 Postgres listens on ``127.0.0.1:5432`` by default and gunicorn on
-``127.0.0.1:8001``; neither is reachable from outside the machine.  Port 8001
-must be free.  When another Postgres already uses 5432, give ``--db-port``.
+``127.0.0.1:8001`` unless ``--gunicorn-port`` says otherwise; neither is
+reachable from outside the machine.  Both ports must be free.  When another
+Postgres already uses 5432, give ``--db-port``; when something already uses
+8001, give ``--gunicorn-port``.
 
 
 Installing
@@ -209,6 +211,10 @@ These are every option ``install.sh`` accepts (``sudo deploy/install.sh
    The host port the Postgres container is published on, from 1024 to 65535.
    Default ``5432``.  Once the environment file exists this must match the
    port in its ``DATABASE_URL``.
+``--gunicorn-port PORT``
+   The port on ``127.0.0.1`` where the web server's proxy reaches gunicorn,
+   from 1024 to 65535; not the site's port, which is 80 and 443 on the web
+   server.  Default ``8001`` (see `Sharing the machine`_).
 ``--email-url URL``
    The SMTP relay, written as ``EMAIL_URL``: ``smtp+tls://`` for STARTTLS
    (usually port 587), ``smtp+ssl://`` for implicit TLS (port 465), or
@@ -225,21 +231,25 @@ These are every option ``install.sh`` accepts (``sudo deploy/install.sh
 ``--admin-email ADDRESS``
    Create the first administrator with this address (or give an existing
    account with that address the administrator's roles).
+``--seed-demo``
+   Load the demo accounts: the same data ``make seed`` loads in development,
+   sharing the password this repository's ``README.rst`` documents.  A server
+   seeded with them is a demonstration server, never one holding real member
+   data.
 ``--seed-content``
-   Load the example pages into the public site.  The installer never loads the
-   demo accounts.
+   Load the example pages into the public site.
 ``--dry-run``
    Print every state-changing command instead of running it.
 ``--help``
    Print the options.
 
 The hostname, ``www``, the web server, the TLS mode, the certbot address and
-staging switch, the database port, the URL prefix, and the attached vhost file
-are kept in the install record (see `What the installer writes`_), so a later
-run needs no flags, and a flag given later updates the record.  The mail
-flags, ``--from-email``, ``--admin-email``, and ``--seed-content`` are used by
-the run that writes the environment file or creates the administrator, and
-are not recorded.
+staging switch, the database port, the gunicorn port, the URL prefix, and the
+attached vhost file are kept in the install record (see `What the installer
+writes`_), so a later run needs no flags, and a flag given later updates the
+record.  The mail flags, ``--from-email``, ``--admin-email``, ``--seed-demo``,
+and ``--seed-content`` are used by the run that writes the environment file or
+creates the administrator, and are not recorded.
 
 Step 3: try it with a dry run
 -----------------------------
@@ -268,9 +278,9 @@ build.  It runs these stages, each announced by an ``==>`` line:
 5. the environment file, on the first run only;
 6. the build: the Python packages from ``uv.lock``, the frontend, and the user
    guide;
-7. the database: migrations, the cache table, the roles, the example pages
-   with ``--seed-content``, the static files, and the administrator with
-   ``--admin-email``;
+7. the database: migrations, the cache table, the roles, the demo accounts
+   with ``--seed-demo``, the example pages with ``--seed-content``, the static
+   files, and the administrator with ``--admin-email``;
 8. gunicorn under systemd, waiting up to 30 seconds for it to answer;
 9. the web server and the certificate, or the snippet behind an existing
    site;
@@ -437,6 +447,9 @@ Every script reads it; it is never executed.
    ``yes`` or ``no``.
 ``CALDART_DB_PORT``
    The Postgres host port, ``5432`` unless ``--db-port`` said otherwise.
+``CALDART_GUNICORN_PORT``
+   The port gunicorn listens on, ``8001`` unless ``--gunicorn-port`` said
+   otherwise.
 ``CALDART_URL_PREFIX``
    The normalized prefix, such as ``/caldart-proto``, or empty.
 ``CALDART_ATTACH_TO``
@@ -491,7 +504,7 @@ sandbox (``ProtectSystem=strict``, no capabilities).
      - Runs
      - When
    * - ``caldart-web.service``
-     - gunicorn on ``127.0.0.1:8001``
+     - gunicorn on ``127.0.0.1:8001`` unless ``--gunicorn-port`` says otherwise
      - always; restarted on failure
    * - ``caldart-backup.timer``
      - ``manage.py db_backup``, then deletes the dumps older than ``BACKUP_RETENTION_DAYS``
@@ -668,10 +681,19 @@ status is the command's::
   sudo /opt/caldart/deploy/manage.sh send_renewal_reminders --dry-run
   sudo /opt/caldart/deploy/manage.sh --dry-run migrate
 
-Never source the environment file into a shell to run ``manage.py`` by hand:
-a shell splits a value with spaces in it, such as ``DEFAULT_FROM_EMAIL``, and
-never run ``seed_demo`` on a server, which creates demo accounts with a
-password published in the repository.
+Never source the environment file into a shell to run ``manage.py`` by hand: a
+shell splits a value with spaces in it, such as ``DEFAULT_FROM_EMAIL``.
+
+Run or re-run the seeds on an installed server the same way::
+
+  sudo /opt/caldart/deploy/manage.sh seed_demo
+  sudo /opt/caldart/deploy/manage.sh seed_content
+
+Both are idempotent: running either again updates the existing rows rather
+than duplicating them.  **Caution:** the demo accounts ``seed_demo`` creates
+share the password documented in this repository's ``README.rst``, so a
+server seeded with them is a demonstration server, never one holding real
+member data.
 
 Logs
 ----
@@ -853,7 +875,17 @@ CalDART adds its own vhost for its hostname beside the others.  With
 ``--tls existing`` it adds a snippet to one existing vhost and nothing else.
 Only one of Apache and nginx may be running.
 
-**Gunicorn's port.**  Gunicorn binds ``127.0.0.1:8001``, which must be free.
+**Gunicorn's port.**  Gunicorn binds ``127.0.0.1:8001`` unless ``--gunicorn-port``
+says otherwise.  The web service step stops when something already listens on
+that port, so a clash is reported before the unit is installed.  Pick a free
+port::
+
+  ss -ltn 'sport = :8101'           # prints only its header when the port is free
+  sudo /opt/caldart/deploy/install.sh --gunicorn-port 8101
+
+On a later run ``--gunicorn-port`` moves an installed site: it writes the port
+into the environment file, rewrites the vhost or snippet, restarts gunicorn,
+and reloads the web server, in that order.
 
 
 Uninstalling
@@ -902,6 +934,9 @@ before a server sees it.  On a development machine with Docker::
   make rehearse-deploy                                       # with Apache
   make rehearse-deploy REHEARSE_WEB_SERVER=nginx             # with nginx
   make rehearse-deploy REHEARSE_URL_PREFIX=/caldart-proto    # behind an existing site
+  make rehearse-deploy REHEARSE_GUNICORN_PORT=8101           # gunicorn on another port
+  make rehearse-deploy REHEARSE_DB_PORT=5433                 # Postgres on another port
+  make rehearse-deploy REHEARSE_SEED=1                       # with --seed-demo --seed-content
   make rehearse-deploy REHEARSE_KEEP=1                       # keep the container afterwards
 
 The target starts a privileged ``jrei/systemd-ubuntu:24.04`` container, in
@@ -921,6 +956,19 @@ environment file and the install record byte-identical), and ``uninstall.sh
    existing --url-prefix PREFIX --attach-to <its vhost> --email local``, then
    checks that the stand-in page still answers, that the bare prefix
    redirects, and that the uninstall takes the include line out again.
+``REHEARSE_GUNICORN_PORT``
+   A port such as ``8101``: passes ``--gunicorn-port PORT`` to the install,
+   then checks that the web server proxies to it and never to 8001, that the
+   environment file records it, and that gunicorn and the site both answer
+   through it.
+``REHEARSE_DB_PORT``
+   A port such as ``5433``: passes ``--db-port PORT`` to the install, then
+   checks that the database container is published on it and that the
+   install's own checks, which reach it there, pass.
+``REHEARSE_SEED``
+   A switch: passes ``--seed-demo --seed-content`` to the install, then checks
+   that ``manage.sh health --json`` still passes and that the sign-in page
+   still answers.
 ``REHEARSE_KEEP``
    A switch (``1``, ``yes``, or ``true``): keep the container and its volumes
    afterwards, and open a shell in it with ``docker exec -it
@@ -944,6 +992,12 @@ the message says, then run the same command again.
    Something, most often another Postgres, already listens on the port.  Run
    the installer again with a free port, ``--db-port 5433`` for example; the
    record keeps it for every later run (`Sharing the machine`_).
+
+``error: port 8001 is already in use on this machine; run install.sh --gunicorn-port PORT to put gunicorn on another port``
+   Something already listens on gunicorn's port (8001 unless
+   ``--gunicorn-port`` says otherwise).  Run the installer again with a free
+   port, ``--gunicorn-port 8101`` for example; the record keeps it for every
+   later run (`Sharing the machine`_).
 
 ``error: --email-url or --email local is required until /etc/caldart/caldart.env exists``
    The first run writes the environment file and needs a mail setting for it.
@@ -1010,7 +1064,7 @@ the message says, then run the same command again.
 ``error: --yes is required: this removes the site``
    ``uninstall.sh`` needs ``--yes``.
 
-``error: caldart-web did not answer 200 on http://127.0.0.1:8001/ within 30 seconds``
+``error: caldart-web did not answer 200 on http://127.0.0.1:8001/ within 30 seconds`` (8001 unless ``--gunicorn-port`` says otherwise)
    The web service did not start.  The installer prints the unit's last 30
    journal lines above the error; ``journalctl -u caldart-web -n 50`` shows
    more.  After fixing the cause, ``sudo /opt/caldart/deploy/steps/web-service.sh``
@@ -1042,9 +1096,9 @@ record::
   sudo /opt/caldart/deploy/steps/web-server.sh
   sudo /opt/caldart/deploy/steps/build.sh --dry-run
 
-``steps/database.sh`` also takes ``--admin-email`` and ``--seed-content``, and
-``steps/configure.sh`` the environment file's flags (it does nothing once the
-file exists).
+``steps/database.sh`` also takes ``--admin-email``, ``--seed-demo``, and
+``--seed-content``, and ``steps/configure.sh`` the environment file's flags
+(it does nothing once the file exists).
 
 
 For the design behind these scripts, and every command each step runs, read

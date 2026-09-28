@@ -1041,6 +1041,7 @@ Rehearsing a server install
    $ make rehearse-deploy REHEARSE_URL_PREFIX=/caldart-proto  # behind an existing site
    $ make rehearse-deploy REHEARSE_GUNICORN_PORT=8101  # gunicorn on another port
    $ make rehearse-deploy REHEARSE_DB_PORT=5433        # Postgres on another port
+   $ make rehearse-deploy REHEARSE_SEED=1              # with --seed-demo --seed-content
    $ make rehearse-deploy REHEARSE_KEEP=1            # keep the container to look inside
 
 The unit tests in ``backend/tests/test_deploy_scripts.py`` read the
@@ -1072,8 +1073,9 @@ Any step that fails stops the run, and the target exits non-zero.  At the end
 it prints how long the run took and removes the container, unless
 ``REHEARSE_KEEP`` is on (a switch, :ref:`make-switches`), in which case
 ``docker exec -it caldart-rehearsal-<server>`` (with ``-prefix`` appended
-under a prefix, then ``-port`` with a gunicorn port and ``-db`` with a database
-port) ``bash`` opens a shell inside it.  A
+under a prefix, then ``-port`` with a gunicorn port, ``-db`` with a database
+port, and ``-seed`` when the demo accounts and example pages were loaded)
+``bash`` opens a shell inside it.  A
 run takes a few minutes, most of them the package installs and the build,
 and needs the network: it installs from the Ubuntu archive, NodeSource, PyPI,
 npm, and Docker Hub.
@@ -1109,6 +1111,13 @@ npm, and Docker Hub.
    checks, which pass only when the container is healthy and ``manage.py
    health`` reaches the database, then hold on the moved port.  The container's
    name gains ``-db``.
+``REHEARSE_SEED``
+   A switch: step 1 also passes ``--seed-demo --seed-content``, loading the
+   demo accounts and the example pages the same run development's ``make
+   seed`` loads (:ref:`deploy-database`).  After the install the target
+   asserts that ``manage.sh health --json`` still passes and that the sign-in
+   page still answers, so seeding did not disturb the checks.  The container's
+   name gains ``-seed``.
 ``REHEARSE_KEEP``
    Keep the container and its volumes after the run.
 
