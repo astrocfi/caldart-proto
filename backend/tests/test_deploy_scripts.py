@@ -2108,3 +2108,284 @@ def test_no_docker_installs_both_packages(etc: Path, root: Path, tmp_path: Path)
         "docker.io",
         "docker-compose-v2",
     ]
+
+
+# -- the gunicorn port --------------------------------------------------------------
+
+#: A gunicorn port other than the default, which every test below moves gunicorn to.
+GUNICORN_PORT: Final = "8101"
+
+#: Every shipped file that names gunicorn's address, and the function that copies it.
+GUNICORN_FILES: Final = (
+    ("apache/caldart.conf", "vhost"),
+    ("nginx/caldart.conf", "vhost"),
+    ("apache/caldart-attach.conf", "snippet"),
+    ("nginx/caldart-upstream.conf", "snippet"),
+)
+
+
+def _render_with_port(root: Path, source: str, how: str, port: str) -> str:
+    """What ``render_vhost`` or ``render_snippet`` writes from ``source`` for ``port``."""
+    dest = root / "rendered"
+    call = (
+        f'render_vhost "{DEPLOY_DIR / source}" "{dest}" caldart.test yes certbot'
+        if how == "vhost"
+        else f'render_snippet "{DEPLOY_DIR / source}" "{dest}"'
+    )
+    result = _source_lib(
+        root,
+        f"ROOT=/srv/x; CALDART_HOSTNAME=caldart.test; CALDART_GUNICORN_PORT={port}; {call}",
+    )
+    assert result.returncode == 0, result.stderr
+    return dest.read_text()
+
+
+def _web_service(
+    root: Path, etc: Path, tmp_path: Path, *, installed: bool, listening: tuple[int, ...]
+) -> subprocess.CompletedProcess[str]:
+    """The dry run of the web-service step, with the unit installed or not."""
+    answer = 0 if installed else 1
+    env = _env(etc, PATH=_machine_path(tmp_path, listening=listening))
+    return subprocess.run(  # noqa: S603 - fixed argv, BASH is a resolved path
+        [
+            BASH,
+            "-c",
+            'set -euo pipefail; source "$1"; enable_dry_run; CALDART_HOSTNAME=caldart.test; '
+            f"web_unit_installed() {{ return {answer}; }}; web_service_step",
+            "bash",
+            str(root / "deploy" / "steps" / "web-service.sh"),
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+        env=env,
+    )
+
+
+def _gunicorn_bind(monkeypatch: pytest.MonkeyPatch, port: str | None) -> object:
+    """The ``bind`` ``gunicorn.conf.py`` sets with ``CALDART_GUNICORN_PORT`` at ``port``."""
+    if port is None:
+        monkeypatch.delenv("CALDART_GUNICORN_PORT", raising=False)
+    else:
+        monkeypatch.setenv("CALDART_GUNICORN_PORT", port)
+    config: dict[str, object] = {"__file__": "/srv/x/deploy/gunicorn.conf.py"}
+    source = (DEPLOY_DIR / "gunicorn.conf.py").read_text()
+    exec(compile(source, "gunicorn.conf.py", "exec"), config)  # noqa: S102 - our own config file
+    return config["bind"]
+
+
+def test_gunicorn_binds_to_the_port_in_its_environment(monkeypatch: pytest.MonkeyPatch) -> None:
+    """``CALDART_GUNICORN_PORT`` from the unit's environment file sets the port."""
+    assert _gunicorn_bind(monkeypatch, GUNICORN_PORT) == "127.0.0.1:8101"
+
+
+def test_gunicorn_binds_to_8001_without_the_variable(monkeypatch: pytest.MonkeyPatch) -> None:
+    """With no ``CALDART_GUNICORN_PORT`` gunicorn listens on 8001."""
+    assert _gunicorn_bind(monkeypatch, None) == "127.0.0.1:8001"
+
+
+def test_the_install_record_keeps_the_gunicorn_port(root: Path) -> None:
+    """``install.conf`` records ``CALDART_GUNICORN_PORT`` beside the other values."""
+    result = _source_lib(
+        root, "ROOT=/r; CALDART_GUNICORN_PORT=8101; write_file() { cat; }; write_record"
+    )
+    assert "CALDART_GUNICORN_PORT=8101" in result.stdout.splitlines()
+
+
+def test_the_recorded_gunicorn_port_is_read_back(root: Path) -> None:
+    """``load_record`` reads ``CALDART_GUNICORN_PORT`` and exports it."""
+    (root / "install.conf").write_text("CALDART_GUNICORN_PORT=8101\n")
+    result = _source_lib(root, "load_record; bash -c 'printf %s \"$CALDART_GUNICORN_PORT\"'")
+    assert result.stdout == "8101"
+
+
+def test_a_record_without_the_gunicorn_port_reads_as_8001(root: Path) -> None:
+    """An install record written before the key existed means port 8001."""
+    (root / "install.conf").write_text("CALDART_HOSTNAME=caldart.test\n")
+    result = _source_lib(root, 'load_record; printf %s "$CALDART_GUNICORN_PORT"')
+    assert result.stdout == "8001"
+
+
+@pytest.mark.parametrize("port", ["80", "70000", "abc"])
+def test_a_gunicorn_port_out_of_range_is_a_usage_error(
+    port: str, root: Path, etc: Path, tmp_path: Path
+) -> None:
+    """``--gunicorn-port`` takes an integer from 1024 to 65535 and nothing else."""
+    result = _install_dry_run(root, etc, tmp_path, "--gunicorn-port", port)
+    assert _errors(result) == [
+        f"error: --gunicorn-port must be a port number from 1024 to 65535, not {port}"
+    ]
+
+
+def test_a_gunicorn_port_out_of_range_exits_2(root: Path, etc: Path, tmp_path: Path) -> None:
+    """A malformed ``--gunicorn-port`` is a usage error, not a failure."""
+    result = _install_dry_run(root, etc, tmp_path, "--gunicorn-port", "80")
+    assert result.returncode == 2
+
+
+def test_the_install_waits_on_the_chosen_gunicorn_port(
+    root: Path, etc: Path, tmp_path: Path
+) -> None:
+    """The readiness check asks gunicorn on the port ``--gunicorn-port`` names."""
+    commands = _commands(_install_dry_run(root, etc, tmp_path, "--gunicorn-port", GUNICORN_PORT))
+    assert (
+        "curl -sI -H 'Host: caldart.test' -H 'X-Forwarded-Proto: https' http://127.0.0.1:8101/"
+        in commands
+    )
+
+
+def test_the_install_waits_on_8001_by_default(root: Path, etc: Path, tmp_path: Path) -> None:
+    """Without ``--gunicorn-port`` the readiness check asks port 8001."""
+    commands = _commands(_install_dry_run(root, etc, tmp_path))
+    assert (
+        "curl -sI -H 'Host: caldart.test' -H 'X-Forwarded-Proto: https' http://127.0.0.1:8001/"
+        in commands
+    )
+
+
+def test_the_install_renders_the_vhost_for_the_chosen_port(
+    root: Path, etc: Path, tmp_path: Path
+) -> None:
+    """The vhost is copied with gunicorn's shipped address replaced by the chosen one."""
+    commands = _commands(_install_dry_run(root, etc, tmp_path, "--gunicorn-port", GUNICORN_PORT))
+    vhost = commands[_position(commands, "/etc/apache2/sites-available/caldart.conf")]
+    assert "-e s#127.0.0.1:8001#127.0.0.1:8101#g" in vhost
+
+
+@pytest.mark.parametrize(("source", "how"), GUNICORN_FILES)
+def test_a_rendered_file_proxies_to_the_chosen_port(source: str, how: str, root: Path) -> None:
+    """Every vhost, snippet, and upstream names gunicorn on the chosen port."""
+    assert "127.0.0.1:8101" in _render_with_port(root, source, how, GUNICORN_PORT)
+
+
+@pytest.mark.parametrize(("source", "how"), GUNICORN_FILES)
+def test_a_rendered_file_keeps_no_8001(source: str, how: str, root: Path) -> None:
+    """No ``8001`` survives in a file rendered for another port, comments included."""
+    assert "8001" not in _render_with_port(root, source, how, GUNICORN_PORT)
+
+
+@pytest.mark.parametrize(("source", "how"), GUNICORN_FILES)
+def test_every_shipped_proxy_file_names_the_default_port(source: str, how: str) -> None:
+    """The shipped files name ``127.0.0.1:8001``, which rendering replaces."""
+    assert "127.0.0.1:8001" in (DEPLOY_DIR / source).read_text()
+
+
+def test_configure_writes_the_recorded_gunicorn_port(root: Path, etc: Path) -> None:
+    """The environment file carries ``CALDART_GUNICORN_PORT`` from the install record."""
+    (etc / "install.conf").write_text("CALDART_HOSTNAME=caldart.test\nCALDART_GUNICORN_PORT=8101\n")
+    _configure(root, etc, "--email-url", "smtp://x:25")
+    assert _variables(etc / "caldart.env")["CALDART_GUNICORN_PORT"] == "8101"
+
+
+def test_configure_writes_8001_by_default(env_file: Path) -> None:
+    """With no gunicorn port recorded, the environment file names 8001."""
+    assert _variables(env_file)["CALDART_GUNICORN_PORT"] == "8001"
+
+
+def test_configure_moves_the_port_in_an_existing_file(env_file: Path, root: Path, etc: Path) -> None:
+    """A changed port in the record reaches a file that exists already."""
+    (etc / "install.conf").write_text("CALDART_HOSTNAME=caldart.test\nCALDART_GUNICORN_PORT=8101\n")
+    _configure(root, etc)
+    assert _variables(env_file)["CALDART_GUNICORN_PORT"] == "8101"
+
+
+def test_configure_moves_the_port_and_nothing_else(env_file: Path, root: Path, etc: Path) -> None:
+    """Moving the port rewrites that one line and keeps every other one."""
+    before = env_file.read_text()
+    (etc / "install.conf").write_text("CALDART_HOSTNAME=caldart.test\nCALDART_GUNICORN_PORT=8101\n")
+    _configure(root, etc)
+    expected = before.replace("CALDART_GUNICORN_PORT=8001\n", "CALDART_GUNICORN_PORT=8101\n")
+    assert env_file.read_text() == expected
+
+
+def test_configure_adds_the_port_to_a_file_without_it(root: Path, etc: Path) -> None:
+    """An environment file written before the variable existed gains the line."""
+    (etc / "install.conf").write_text("CALDART_HOSTNAME=caldart.test\nCALDART_GUNICORN_PORT=8101\n")
+    (etc / "caldart.env").write_text("SECRET_KEY=x\n")
+    _configure(root, etc)
+    assert (etc / "caldart.env").read_text() == "SECRET_KEY=x\nCALDART_GUNICORN_PORT=8101\n"
+
+
+def test_configure_keeps_the_file_mode_when_it_moves_the_port(
+    env_file: Path, root: Path, etc: Path
+) -> None:
+    """The rewritten environment file stays readable by its owner and group only."""
+    (etc / "install.conf").write_text("CALDART_HOSTNAME=caldart.test\nCALDART_GUNICORN_PORT=8101\n")
+    _configure(root, etc)
+    assert stat.S_IMODE(env_file.stat().st_mode) == 0o640
+
+
+def test_a_taken_gunicorn_port_stops_the_first_start(root: Path, etc: Path, tmp_path: Path) -> None:
+    """Before the unit is installed, a listener on the gunicorn port stops the step."""
+    result = _web_service(root, etc, tmp_path, installed=False, listening=(8001,))
+    assert _errors(result) == [
+        "error: port 8001 is already in use on this machine; "
+        "run install.sh --gunicorn-port PORT to put gunicorn on another port"
+    ]
+
+
+def test_a_taken_gunicorn_port_fails_the_install(root: Path, etc: Path, tmp_path: Path) -> None:
+    """The taken-port refusal is a failure, exit 1, before the unit is installed."""
+    result = _install_dry_run(root, etc, tmp_path, listening=(8001,))
+    assert result.returncode == 1
+
+
+def test_another_gunicorn_port_avoids_the_taken_one(root: Path, etc: Path, tmp_path: Path) -> None:
+    """A listener on 8001 is left alone when ``--gunicorn-port`` names another port."""
+    result = _install_dry_run(
+        root, etc, tmp_path, "--gunicorn-port", GUNICORN_PORT, listening=(8001,)
+    )
+    assert result.returncode == 0, result.stderr
+
+
+def test_an_installed_unit_skips_the_gunicorn_port_check(
+    root: Path, etc: Path, tmp_path: Path
+) -> None:
+    """A later run finds gunicorn itself on the port and carries on."""
+    result = _web_service(root, etc, tmp_path, installed=True, listening=(8001,))
+    assert result.returncode == 0, result.stderr
+
+
+def _installed_on_8001(etc: Path) -> None:
+    """Write the record and environment file of a box with gunicorn on 8001."""
+    (etc / "install.conf").write_text(
+        "CALDART_HOSTNAME=caldart.test\nCALDART_TLS=self-signed\nCALDART_GUNICORN_PORT=8001\n"
+    )
+    (etc / "caldart.env").write_text("SECRET_KEY=x\nCALDART_GUNICORN_PORT=8001\n")
+
+
+@pytest.mark.parametrize(
+    ("earlier", "later"),
+    [
+        (f"install -m 0640 /dev/stdin {{etc}}/caldart.env", "systemctl restart caldart-web"),
+        ("systemctl restart caldart-web", "systemctl reload-or-restart apache2"),
+    ],
+    ids=["environment-then-service", "service-then-web-server"],
+)
+def test_moving_the_gunicorn_port_rewrites_restarts_and_reloads_in_order(
+    earlier: str, later: str, root: Path, etc: Path, tmp_path: Path
+) -> None:
+    """The environment file, then gunicorn, then the web server take the new port."""
+    _installed_on_8001(etc)
+    commands = _commands(
+        _install_dry_run(
+            root, etc, tmp_path, "--gunicorn-port", GUNICORN_PORT, container=True, flags=()
+        )
+    )
+    first = _position(commands, earlier.format(etc=etc))
+    assert first < _position(commands, later)
+
+
+def test_upgrade_keeps_the_recorded_gunicorn_port(checkout: Path, etc: Path) -> None:
+    """The upgrade's readiness check asks gunicorn on the port the record names."""
+    (etc / "install.conf").write_text("CALDART_HOSTNAME=caldart.test\nCALDART_GUNICORN_PORT=8101\n")
+    result = _run(checkout / "deploy" / "upgrade.sh", "--dry-run", env=_env(etc), cwd=checkout)
+    assert _position(_commands(result), "http://127.0.0.1:8101/") >= 0
+
+
+def test_bootstrap_passes_the_gunicorn_port_through(tmp_path: Path) -> None:
+    """``--gunicorn-port`` takes a value that reaches ``install.sh``."""
+    result = _bootstrap_dry_run(tmp_path, "--gunicorn-port", GUNICORN_PORT)
+    assert _commands(result)[-1] == (
+        f"bash {tmp_path}/srv/deploy/install.sh --dry-run --gunicorn-port 8101"
+    )
