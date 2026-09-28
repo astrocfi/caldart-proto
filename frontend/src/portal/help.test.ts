@@ -51,6 +51,9 @@ const HELP_ROUTE_PATTERNS: readonly string[] = [
   '/admin/users',
   '/admin/users/:id',
   '/system',
+  '/system/health',
+  '/system/emails',
+  '/system/scheduled',
 ];
 
 /**
@@ -96,7 +99,10 @@ const HELP_PAGE_CASES: readonly [pathname: string, expectedHref: string][] = [
   ['/admin/notifications', '/docs/admin/notifications/'],
   ['/admin/users', '/docs/admin/users/'],
   ['/admin/users/42', '/docs/admin/user-record/'],
-  ['/system', '/docs/admin/system/'],
+  ['/system', '/docs/admin/health-database/'],
+  ['/system/health', '/docs/admin/health-database/'],
+  ['/system/emails', '/docs/admin/sent-emails/'],
+  ['/system/scheduled', '/docs/admin/scheduled/'],
 ];
 
 describe('helpPath', () => {

@@ -1,7 +1,7 @@
 /**
- * The FAA registry import panel of `/portal/system`: when the aircraft types and
- * the registrations the N-number box offers were last imported, and **Run now** to import
- * them again.
+ * The aircraft database panel of `/portal/system/health`: when the FAA registry's
+ * aircraft types and the registrations the N-number box offers were last
+ * imported, and **Run now** to import them again.
  *
  * There is no dry run: the import changes nothing but those two reference
  * tables.  The server starts the import in its own process and answers at once,
@@ -55,7 +55,7 @@ export function RegistryPanel(): JSX.Element {
   return (
     <Card
       eyebrow="Aircraft"
-      title="FAA registry import"
+      title="Aircraft database"
       footer={
         <Button onClick={handleRun} disabled={isRunning || run.isPending}>
           {isRunning ? 'Running…' : 'Run now'}
@@ -63,10 +63,8 @@ export function RegistryPanel(): JSX.Element {
       }
     >
       <p className="muted">
-        The import also runs every night at 04:30 from the{' '}
-        <code className="mono">caldart-registry</code> timer. It reads the FAA&rsquo;s aircraft
-        registry and refreshes the aircraft types and the registrations the N-number box on an
-        aircraft form offers. It changes nothing else, so running it again is harmless.
+        Loads the FAA aircraft registry, which is what the N-number box on an aircraft form offers.
+        It runs every night and changes nothing else, so running it again is harmless.
       </p>
 
       {status.data === undefined ? null : <p role="status">{registryImportSummary(status.data)}</p>}

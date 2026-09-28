@@ -108,7 +108,11 @@ vi.mock('../features/admin-users/UsersListPage', () => ({
 vi.mock('../features/admin-users/UserDetailPage', () => ({
   UserDetailPage: pageStub('User record'),
 }));
-vi.mock('../features/system/SystemPage', () => ({ SystemPage: pageStub('System') }));
+vi.mock('../features/system/HealthDatabasePage', () => ({
+  HealthDatabasePage: pageStub('Health & Database'),
+}));
+vi.mock('../features/system/SentEmailsPage', () => ({ SentEmailsPage: pageStub('Sent Emails') }));
+vi.mock('../features/system/ScheduledPage', () => ({ ScheduledPage: pageStub('Scheduled') }));
 
 /** The 403 page's headline, from `auth/guards.tsx`. */
 const FORBIDDEN = 'You do not have access to this page';
@@ -257,7 +261,10 @@ const GUARDED_PATHS: GuardedPath[] = [
   },
   { path: '/admin/users', heading: 'Users and roles', allowed: ['user_admin', 'system_admin'] },
   { path: '/admin/users/1', heading: 'User record', allowed: ['user_admin', 'system_admin'] },
-  { path: '/system', heading: 'System', allowed: ['system_admin'] },
+  { path: '/system', heading: 'Health & Database', allowed: ['system_admin'] },
+  { path: '/system/health', heading: 'Health & Database', allowed: ['system_admin'] },
+  { path: '/system/emails', heading: 'Sent Emails', allowed: ['system_admin'] },
+  { path: '/system/scheduled', heading: 'Scheduled', allowed: ['system_admin'] },
 ];
 
 interface RouteCase {
@@ -313,6 +320,16 @@ describe('the finance area', () => {
     ).map((guarded) => guarded.path);
 
     expect(openToTreasurer).toEqual(expect.arrayContaining(FINANCE_TABS.map((tab) => tab.to)));
+  });
+});
+
+describe('the System section', () => {
+  it('sends a system administrator at /system to Health & Database', async () => {
+    server.use(signedInAs(makeUser({ roles: ['member', 'system_admin'] })));
+
+    const { router } = renderRoutes(routes, { route: '/system' });
+
+    await waitFor(() => expect(router.state.location.pathname).toBe('/system/health'));
   });
 });
 

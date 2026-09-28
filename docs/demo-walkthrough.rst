@@ -405,21 +405,22 @@ the profile step.  Saving that step is the sign-up, and Mailpit shows the
 *signed up as a friend* email at your address, at the account administrator's,
 and at every person that DART has ticked to receive its roster.  Back on the
 Notifications screen, **Edit** the subscription and clear **Sign-up**; from
-then on the address hears only of a friend becoming a member.  The System
-page's email log files each of these messages under its event, as
+then on the address hears only of a friend becoming a member.  The Sent
+Emails page's log files each of these messages under its event, as
 *Notification: Sign-up*.  See :doc:`user/admin/notifications` and
 :doc:`developer/notifications`.
 
-**System** — sign in as ``sysadmin@example.org`` and open ``/portal/system``.
-Health shows database connectivity, pending migrations, free disk and the last
-backup; Backups lists the dumps in ``backups/`` and can make a new one;
-Reminders runs the renewal scan — leave *dry run* ticked the first time — and
-lists what was recently sent.  The *FAA registry import* panel's **Run now**
+**System** — sign in as ``sysadmin@example.org`` and open ``/portal/system``,
+which lands on Health & Database.  Health shows database connectivity, pending
+migrations, free disk and the last backup; Backups lists the dumps in
+``backups/`` and can make a new one.  The *Aircraft database* panel's **Run now**
 imports the registry again, from the FAA's download unless
 ``FAA_REGISTRY_URL`` names the fixture directory
 ``backend/apps/aircraft/fixtures/faa`` the seed reads; the panel follows the run
 and, once it ends, reads *Imported* so many types and registrations on today's
-date.  Then try the scan from the command line against
+date.  On Scheduled, *Renewal reminder emails* runs the renewal scan — leave
+*dry run* ticked the first time — and lists what was recently sent.  Then try
+the scan from the command line against
 a future date, which is how you rehearse a year's worth of reminders in a
 second:
 
@@ -427,11 +428,11 @@ second:
 
    $ make reminders TODAY=2027-01-01 DRY_RUN=1
 
-The Renewals panel runs the automatic-renewal scan: the seed leaves two
+The *Automatic renewal charges* panel runs the automatic-renewal scan: the seed leaves two
 members with an ordinary renewal due today and one with a catch-up renewal
 overdue, so a dry run there reports three charges and a real run makes them.
 
-See :doc:`user/admin/system` and
+See :doc:`user/admin/health-database`, :doc:`user/admin/scheduled`, and
 :doc:`developer/reminders`.
 
 The seed also leaves three report subscriptions and every DART's roster due
@@ -524,6 +525,7 @@ Related material
   payment filters and exports.
 - :doc:`/user/admin/users` — manage accounts and roles.
 - :doc:`/user/admin/notifications` — who hears about which events, by email.
-- :doc:`/user/admin/system` — health, backups, and reminders from
-  the portal.
+- :doc:`/user/admin/health-database`, :doc:`/user/admin/sent-emails`, and
+  :doc:`/user/admin/scheduled` — health, backups, the email log, and the
+  scheduled jobs from the portal.
 - :doc:`/developer/reminders` — how the renewal scan decides what to send.

@@ -1,6 +1,6 @@
 /**
- * The reminders panel of `/portal/system`: run the scan by
- * hand — optionally as a rehearsal — and read the log of what went out.
+ * The renewal reminder emails panel of `/portal/system/scheduled`: run the scan
+ * by hand — optionally as a rehearsal — and read the log of what went out.
  */
 import { useState } from 'react';
 import type { ChangeEvent, JSX } from 'react';
@@ -46,7 +46,7 @@ export function RemindersPanel(): JSX.Element {
   return (
     <Card
       eyebrow="Membership"
-      title="Renewal reminders"
+      title="Renewal reminder emails"
       footer={
         <>
           <Button onClick={handleRun} disabled={run.isPending}>
@@ -60,9 +60,10 @@ export function RemindersPanel(): JSX.Element {
       }
     >
       <p className="muted">
-        The scan also runs every morning at 07:00 from the{' '}
-        <code className="mono">caldart-reminders</code> timer. Running it again is harmless: each
-        member gets one email per membership per kind.
+        Emails members whose membership is about to expire or has just expired: 60, 30, and 7 days
+        before, on the day, and 30 days after. It sends email only and never charges anyone. A
+        member whose automatic renewal is on is skipped. It runs every morning; running it again is
+        harmless, because each member gets each reminder once per membership.
       </p>
 
       {run.isSuccess ? (

@@ -42,7 +42,7 @@ do, then read the guide for what you do:
    * - A website administrator
      - :doc:`user/website/index`
    * - A system administrator
-     - :doc:`user/admin/system`
+     - :doc:`user/admin/health-database`
 
 **If you build CalDART**, read the :doc:`developer/index`.
 :doc:`developer/setup` takes a clean machine to a running application;

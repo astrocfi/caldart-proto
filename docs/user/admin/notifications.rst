@@ -92,7 +92,7 @@ The events
 Each email's subject is the organization's name and a one-line headline, such as
 *CalDART: Pat Pilot signed up as a friend*. The email gives a few labeled lines and one
 link, to the member's record, the user's record, the payment, or the aircraft. A system
-administrator sees each one in the email log on the :doc:`system` page under the purpose
+administrator sees each one in the email log on the :doc:`sent-emails` page under the purpose
 shown in italics below.
 
 Membership
@@ -179,5 +179,5 @@ If an address stops hearing about an event, look at its **Active** dot: a gray o
 the subscription is paused, and **Resume** says whether the account may still receive every
 event on it. An account that lost a role or was deactivated is skipped quietly, so check
 its roles on the **Users & roles** screen. If a notification never arrives, a system
-administrator can find it in the email log on the :doc:`system` page and see whether the
+administrator can find it in the email log on the :doc:`sent-emails` page and see whether the
 mail server refused it.

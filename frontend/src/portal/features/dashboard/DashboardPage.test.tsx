@@ -270,7 +270,7 @@ describe('<DashboardPage/>', () => {
     const links = card('Quick links');
     expect(links.getByRole('link', { name: 'My profile' })).toBeInTheDocument();
     expect(links.getByRole('link', { name: 'Members' })).toBeInTheDocument();
-    expect(links.queryByRole('link', { name: 'System' })).not.toBeInTheDocument();
+    expect(links.queryByRole('link', { name: 'Health & Database' })).not.toBeInTheDocument();
     // The dashboard does not link to itself.
     expect(links.queryByRole('link', { name: 'Dashboard' })).not.toBeInTheDocument();
   });

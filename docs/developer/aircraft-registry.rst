@@ -92,7 +92,7 @@ The import
 
 ``manage.py import_faa_registry`` runs it; the ``caldart-registry`` timer runs
 the command daily at 04:30 (:ref:`deploy-registry`), and a system administrator
-can start it from the System screen (below).
+can start it from the Health & Database page (below).
 
 ::
 
@@ -145,7 +145,7 @@ Run now answers.
 Run now
 -------
 
-The System screen's *FAA registry import* row has a **Run now** button, which
+The Health & Database page's *Aircraft database* panel has a **Run now** button, which
 calls ``POST /admin/system/registry-import`` (:ref:`api-registry-import`).
 ``start_import()`` writes the ``RegistryImport`` row, unfinished, and hands its
 id to ``launch_import()``, which starts ``manage.py import_faa_registry

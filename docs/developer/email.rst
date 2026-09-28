@@ -266,8 +266,8 @@ log, and each scheduled job catches the error for that one recipient, logs it
 to the journal, counts it among its failures, and carries on with the next.
 The body itself is not stored.
 
-A system administrator reads the log in the portal, on the **System** page's
-**Email log** panel, which filters by date, purpose, recipient, status, and
+A system administrator reads the log in the portal, on the **Sent Emails**
+page's **Email log** panel, which filters by date, purpose, recipient, status, and
 attachments and exports what it shows; the same rows come from
 ``GET /api/v1/system/emails`` (:doc:`api-system`) and, read-only, from the
 Django admin.

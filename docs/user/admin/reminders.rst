@@ -6,7 +6,7 @@ Reminders
 answer "were they told?" when somebody says their membership lapsed without warning.
 
 An account administrator finds it under **Administration** in the menu. A system
-administrator can open it too, and also reads the same record on the :doc:`system` page,
+administrator can open it too, and also reads the same record on the :doc:`scheduled` page,
 where the reminders can be sent by hand.
 
 
@@ -62,4 +62,4 @@ prove the email arrived, so ask them to check their spam folder, and check the a
 **To** against their record on :doc:`members`. No row at all usually means one of the
 reasons above applied, most often that they had already renewed or had automatic renewal
 turned on. If the table stops gaining rows for days on end, the morning scan may have
-stopped; tell a system administrator, who can check it on the :doc:`system` page.
+stopped; tell a system administrator, who can check it on the :doc:`scheduled` page.

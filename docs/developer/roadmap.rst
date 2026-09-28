@@ -117,7 +117,7 @@ but it touches every file that contains a sentence.
 Operational
 ===========
 
-**Restore from the portal.**  ``/portal/system`` can list, create, and download
+**Restore from the portal.**  ``/portal/system/health`` can list, create, and download
 backups but cannot restore one — deliberately, because wiping the database is
 not a browser-tab action.  If it is ever added it needs a confirmation flow
 worth the name, and probably a maintenance mode.

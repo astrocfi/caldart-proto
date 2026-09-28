@@ -189,8 +189,8 @@ describe('RemindersPanel', () => {
   });
 
   it('refreshes the email log after a live run, so its new rows show up', async () => {
-    // The email log panel sits right below this one on /portal/system (SystemPage.tsx),
-    // reading the same 'system','emails' query key a live run's onSuccess invalidates.
+    // The email log on /portal/system/emails reads the same 'system','emails' query key a
+    // live run's onSuccess invalidates, so the log is fresh when the reader opens it.
     let emailRequests = 0;
     server.use(
       logHandler(ENTRIES),

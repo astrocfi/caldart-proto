@@ -814,7 +814,7 @@ With ``--admin-email`` the step creates the first real administrator::
 existing account with that address gains what it lacks), and prints one line:
 a password-reset link, which the installer's summary repeats.  Open it to set
 the password.  ``system_admin`` plus ``is_superuser`` is what unlocks
-``/portal/system`` and the Wagtail admin.
+``/portal/system/`` and the Wagtail admin.
 
 
 .. _deploy-web-service:
@@ -1386,8 +1386,8 @@ registrations, which takes well under a minute once the file is down; it needs
 the database and an outbound HTTPS connection to ``registry.faa.gov``.  The
 ``systemctl start`` above runs the first import straight away, so the aircraft
 type picker has its vocabulary before anybody opens it.  A system administrator
-can also start an import from the System screen (**Run now** on the *FAA
-registry import* row); that import runs as a child of ``caldart-web``, so
+can also start an import from the Health & Database page (**Run now** on the
+*Aircraft database* panel); that import runs as a child of ``caldart-web``, so
 restarting the web service while one is under way stops it, and the next press
 after ``REGISTRY_IMPORT_STALE_MINUTES`` records it as *Did not finish.* and
 starts another.  See :doc:`aircraft-registry` for what the import reads and
@@ -1456,8 +1456,8 @@ certificate.
 With gunicorn answering on its port and the site answering through the web
 server, the vhost proxies to the right port.  The ``health`` command prints the
 same report as ``GET /system/health`` and the health panel of
-``/portal/system``, and depends on neither port: it reaches the database through
-``DATABASE_URL``, which step 5 wrote with the recorded database port.  It
+``/portal/system/health``, and depends on neither port: it reaches the database
+through ``DATABASE_URL``, which step 5 wrote with the recorded database port.  It
 reports database connectivity, pending
 migrations, free space on the backup filesystem, the last backup, the version
 from ``pyproject.toml``, and whether ``DEBUG`` is on.  The step requires
@@ -1466,7 +1466,7 @@ prints the summary described under :ref:`deploy-install-scripts`.
 
 Then, in a browser: the public site loads and is styled, ``/portal/`` signs you
 in, ``/admin/`` opens Wagtail, every check on the health panel of
-``/portal/system`` is green, and the **User guide** link at the foot of the
+``/portal/system/health`` is green, and the **User guide** link at the foot of the
 portal's menu opens the user guide.
 
 
@@ -1643,7 +1643,7 @@ Action                        Fields beyond actor and target
                               ``failed``; one line per **Send now**, and per
                               DART when the rosters are sent by hand
 ``system.registry_import``    -- (the target is the ``RegistryImport`` row);
-                              one line per **Run now** on the System screen
+                              one line per **Run now** on Health & Database
 ============================= ===============================================
 
 An account edit is recorded only when it really alters the record.  The admin

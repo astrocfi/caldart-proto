@@ -1,5 +1,5 @@
 /**
- * The health panel of `/portal/system`.
+ * The health panel of `/portal/system/health`.
  *
  * `healthChecks` turns the raw payload into one row per check with an ok /
  * warn / bad verdict; the component only renders what it returns.

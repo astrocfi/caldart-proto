@@ -165,7 +165,7 @@ describe('PortalLayout', () => {
     ['dart_leader', ['Member check', 'Aircraft check']],
     ['account_admin', ['Member check', 'Aircraft check', 'Members', 'Aircraft', 'Payments']],
     ['user_admin', ['Users & roles']],
-    ['system_admin', ['System']],
+    ['system_admin', ['Health & Database', 'Sent Emails', 'Scheduled']],
   ])('adds the %s entries to the rail', async (role, expected) => {
     server.use(signedInAs(makeUser({ roles: ['member', role] })));
     renderWithProviders(tree(), { route: '/' });

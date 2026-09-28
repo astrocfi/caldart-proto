@@ -1,7 +1,7 @@
 /**
  * The renewal reminder log as each role sees it: an account administrator
  * reads and filters it, a DART leader cannot reach it, and only a system
- * administrator can start a scan or read the email log behind it.
+ * administrator can start a scan or read the Sent Emails log behind it.
  */
 import { expect, test } from '@playwright/test';
 
@@ -52,15 +52,20 @@ test('a DART leader cannot reach the reminder log', async ({ page }) => {
   ).toHaveCount(0);
 });
 
-test('a system administrator keeps the run controls on the System page', async ({ page }) => {
+test('a system administrator keeps the run controls on the Scheduled page', async ({ page }) => {
   await signIn(page, DEMO.sysadmin);
-  await page.goto('portal/system');
+  await page
+    .getByRole('navigation', { name: 'Portal sections' })
+    .getByRole('link', { name: 'Scheduled' })
+    .click();
+  await expect(page).toHaveURL(/\/portal\/system\/scheduled$/);
 
-  // The System page carries a second scan, the automatic renewals one, with
-  // run controls of its own, so every control here is read inside its panel.
+  // The Scheduled page carries other scans, the automatic renewal charges
+  // first among them, with run controls of their own, so every control here
+  // is read inside its panel.
   const panel = page
     .locator('section.card')
-    .filter({ has: page.getByRole('heading', { name: 'Renewal reminders' }) });
+    .filter({ has: page.getByRole('heading', { name: 'Renewal reminder emails' }) });
   await expect(panel).toBeVisible();
   await expect(panel.getByLabel('Dry run (send nothing)')).toBeChecked();
 
@@ -75,7 +80,8 @@ test('a system administrator keeps the run controls on the System page', async (
 
 test('a system administrator filters the email log and downloads it', async ({ page }) => {
   await signIn(page, DEMO.sysadmin);
-  await page.goto('portal/system');
+  await page.goto('portal/system/emails');
+  await expect(page.getByRole('heading', { level: 1, name: 'Sent Emails' })).toBeVisible();
 
   const panel = page
     .locator('section.card')
