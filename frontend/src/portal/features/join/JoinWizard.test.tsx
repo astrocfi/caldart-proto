@@ -1,6 +1,6 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { HttpResponse, http } from 'msw';
+import { HttpResponse, delay, http } from 'msw';
 import { Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -752,9 +752,20 @@ describe('<JoinWizard/> for a friend who changes their mind', () => {
     renderWizard('/join/pay');
 
     await userEvent.click(await screen.findByRole('button', { name: MEMBER_BUTTON }));
+    // Hold the account's refetch, so the cached friend is all the done step could read.
+    server.use(
+      http.get(`${API}/auth/me`, async () => {
+        await delay('infinite');
+        return HttpResponse.json(null);
+      }),
+    );
     await userEvent.click(await screen.findByRole('button', { name: 'Succeed' }));
 
     expect(await screen.findByText('You are a member of CalDART.')).toBeInTheDocument();
     expect(path()).toBe('/join/done');
+    await waitFor(() =>
+      expect(screen.queryByText('Checking your membership…')).not.toBeInTheDocument(),
+    );
+    expect(screen.queryByText(/You are a friend of CalDART: no dues/)).not.toBeInTheDocument();
   });
 });
