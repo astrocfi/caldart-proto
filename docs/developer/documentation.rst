@@ -3,8 +3,8 @@ Documentation
 =============
 
 How the documentation under ``docs/`` is built, published, and kept in step
-with the code: the two builds, the static assets both of them ship, the rules
-every diagram follows, the voice of each guide, and the tests that fail when a
+with the code: the two builds, the static assets they ship, the pages only some
+roles may read, the rules every diagram follows, the voice of each guide, and the tests that fail when a
 page and the code disagree.  The documentation is the specification, so a
 change to the software and the change to its page land in the same pull
 request.
@@ -17,9 +17,10 @@ Where the pages live
 
   docs/
     conf.py              the one Sphinx configuration, for both builds
+    _ext/                guide_roles.py, the one local Sphinx extension
     index.rst            the root of the whole tree
     demo-walkthrough.rst a tour of the seeded demo site
-    _static/             hand-written CSS and JavaScript both builds ship
+    _static/             hand-written CSS and JavaScript the builds ship
     user/                the user guide: the pages the site serves at /docs/
       index.rst          the beginning, and the root of the guide build
       member/ admin/ finance/ website/
@@ -58,8 +59,10 @@ first:
    the ``dirhtml`` builder gives every page a directory of its own, so an
    address reads ``/docs/member/profile/``.  This is what the site serves:
    the ``user_guide`` view streams these files at ``/docs/`` to anyone signed
-   in, from ``USER_GUIDE_ROOT`` (:doc:`configuration`), and sends a visitor to
-   the portal's login page first.
+   in, from ``USER_GUIDE_ROOT`` (:doc:`configuration`), holds back the pages
+   the reader's roles do not reach (:ref:`documentation-role-gated-pages`),
+   and sends a visitor to the portal's login page first.  Only this build
+   ships ``guide-roles.css`` and ``guide-roles.js``.
 
 ``make docs``
    ``sphinx-build -n -W -b html docs docs/_build/html``: the whole tree,
@@ -85,9 +88,11 @@ therefore sits inside ``.. only:: graphviz`` with a text fallback inside
 Static assets and the figure toolbar
 ====================================
 
-``docs/_static/`` holds the only custom assets, both hand-written and
-dependency-free, and ``conf.py`` ships them in both builds through
-``html_static_path``, ``html_css_files``, and ``html_js_files``.  The path is
+``docs/_static/`` holds the only custom assets, all hand-written and
+dependency-free, and ``conf.py`` ships them through ``html_static_path``,
+``html_css_files``, and ``html_js_files``: the figure toolbar's two files in
+both builds, and ``guide-roles.css`` and ``guide-roles.js``
+(:ref:`documentation-role-gated-pages`) in the guide build alone.  The path is
 relative to ``conf.py``, so the guide build, whose source tree is
 ``docs/user``, finds the same directory.  There are no custom templates.
 
@@ -121,10 +126,93 @@ relative to ``conf.py``, so the guide build, whose source tree is
    as ``text/css``, and a diagram under ``_images/`` as ``image/svg+xml``,
    and ``backend/tests/test_user_guide.py`` checks all three.
 
-No package supplies either file, and nothing is added to the ``docs``
+No package supplies any of these files, and nothing is added to the ``docs``
 dependency group or to ``frontend/package.json`` for them.  To change the
 toolbar, edit the two files, run ``make docs``, and open a page with a
 diagram, such as ``docs/_build/html/developer/deployment.html``.
+
+
+.. _documentation-role-gated-pages:
+
+Role-gated pages
+================
+
+The guide shows each reader the screens their roles reach, and nothing else:
+a plain member's sidebar lists the pages under **Start here**, their own
+screens, and **Reference**, while the system administrator's lists every page.
+Five pieces do it.
+
+**The field.**  A page only some roles may read opens with a ``:roles:``
+field, before its title::
+
+  :roles: account_admin, dart_leader
+
+  =======
+  Members
+  =======
+
+The slugs are the role slugs of ``apps/accounts/roles.py``, separated by
+commas.  A reader holding any one of them may read the page, and a system
+administrator may read every page.  A page without the field is every signed-in
+reader's.  Sphinx reads a field list that comes before anything else as the
+page's metadata (``env.metadata``), so the field never shows on the page.  The
+roles follow the portal's menu (``frontend/src/portal/nav.ts``): each page
+names the roles of the menu entry for its screen, so every page under
+``admin/``, ``finance/``, and ``website/`` carries the field, and no page under
+``member/`` and no top-level page does.  A group's ``index.rst`` carries none:
+its roles are computed.
+
+**The extension.**  ``docs/_ext/guide_roles.py`` is a local Sphinx extension,
+pure Python, which ``conf.py`` puts on ``sys.path`` and in ``extensions`` for
+both builds.  Once every page is read it checks each field and warns, against
+the page, about a slug that is not a role or a field that names none, so
+``-W`` fails the build on a misspelling.  It spells the role slugs itself,
+since it cannot import the Django project, and a test holds its list equal to
+``ROLE_SLUGS``.  A page with no field of its own that lists others in a
+toctree takes the union of their roles, so ``admin/index`` is readable by
+every role that reaches any administrator screen, and it is open to everyone
+when any page it lists is.
+
+**The JSON.**  At the end of a successful HTML build the extension writes
+``roles.json`` into the output directory, beside the front page: each
+restricted page's docname and its slugs, in role order, and nothing for an
+open page::
+
+  {
+    "admin/health-database": ["system_admin"],
+    "admin/members": ["dart_leader", "account_admin"],
+    ...
+  }
+
+**The view.**  ``caldart.views.user_guide`` reads ``roles.json`` from
+``USER_GUIDE_ROOT``, cached until the file's modification time changes, so a
+rebuilt guide takes effect on the next request.  A page the file restricts is
+served only to a reader for whom ``User.has_any_role`` is true of its slugs;
+anyone else is redirected to the guide's front page.  The page is named by the
+file the request resolves to, so ``admin/members/``,
+``admin/members/index.html``, and a path that reaches it through ``..`` are
+judged alike.  ``roles.json`` itself and the static assets are served to every
+reader, and a guide built without ``roles.json`` serves every page.  This is
+the enforcement; the script below only tidies the navigation.
+
+**The script.**  ``docs/_static/guide-roles.js``, deferred, reads
+``roles.json`` and the reader's roles from ``/api/v1/auth/me``, both beside
+the guide's root, which it takes from the ``data-content_root`` attribute
+Sphinx writes on ``<html>``, so it works under a ``URL_PREFIX``.  It removes
+from the sidebar (``.sidebar-tree``), from every table of contents
+(``.toctree-wrapper``), and from the next and previous links at the foot of the
+page every entry whose link leads to a page the reader may not read, then any
+caption or table whose entries are all gone.  An inline script in the page's
+head marks ``<html>`` with ``guide-roles-pending`` before the page draws, and
+``guide-roles.css`` keeps the trees hidden while the mark is there; the script
+clears it once both reads have settled, and removes nothing when either
+fails.  Both reads are same-origin, which the site's ``connect-src`` of
+``'self'`` allows, and the guide's ``script-src`` already allows its own
+inline scripts (:ref:`configuration-csp`).  A link in a page's prose is left
+alone: following one to a restricted page lands on the front page.
+
+To restrict a new page, give it the field and run ``make guide``; to change
+who reads a screen, change its menu entry and its page's field together.
 
 
 .. _documentation-diagrams:
@@ -261,7 +349,15 @@ against the code on every run.
   the user guide;
 - ``docs/conf.py`` connects no ``missing-reference`` handler, so a link from
   a user page into the developer guide fails the guide build instead of
-  rendering there.
+  rendering there;
+- every page under ``admin/``, ``finance/``, and ``website/`` except an index
+  carries a ``:roles:`` field naming exactly the roles its screen's menu entry
+  names, every slug is a role, and no other page carries the field
+  (:ref:`documentation-role-gated-pages`);
+- the ``guide_roles`` extension's slugs equal ``ROLE_SLUGS``, and, run on a
+  small project in a temporary directory, it writes each restricted page and
+  a group index's union into ``roles.json``, leaves an index open when a page
+  it lists is open, and fails a ``-W`` build on an unknown slug.
 
 ``frontend/src/portal/help.test.ts`` walks the route table exported by
 ``routes/index.tsx`` and checks that every screen's path pattern is a
@@ -273,7 +369,13 @@ repository, so a Help button never opens a missing page.
 
 ``backend/tests/test_user_guide.py`` checks how ``/docs/`` is served: the
 redirect to sign in, the directory index, the private revalidated caching,
-the refusal of paths that leave the guide, and the content type of each
-asset the figure toolbar depends on.
+the refusal of paths that leave the guide, the content type of each
+asset the figure toolbar depends on, and ``roles.json``: a restricted page
+redirects a reader without its roles and is served to one with them, a page
+it does not name is served to a member, and a guide without it serves every
+page.  ``frontend/e2e/user-guide.spec.ts`` checks the same in a browser: a
+member typing an administrator page's address lands on the front page, a
+member's sidebar has no administrator, treasurer, or website entries, and the
+system administrator's has all three.
 
 :doc:`testing` describes how the suites run.

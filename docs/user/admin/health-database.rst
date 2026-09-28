@@ -1,3 +1,5 @@
+:roles: system_admin
+
 =================
 Health & Database
 =================

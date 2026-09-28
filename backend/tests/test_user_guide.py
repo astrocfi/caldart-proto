@@ -8,7 +8,9 @@ so they run whether or not the real guide has been built.
 from __future__ import annotations
 
 import importlib
+import json
 import logging
+import os
 from collections.abc import Iterator
 from pathlib import Path
 from types import ModuleType
@@ -22,8 +24,10 @@ from django.utils.http import http_date
 from pytest_django.fixtures import Settings
 
 from apps.accounts.models import User
+from apps.accounts.roles import ACCOUNT_ADMIN, DART_LEADER, SYSTEM_ADMIN
 from apps.cms.models import SiteSettings
-from caldart.views import GUIDE_INDEX
+from caldart.views import GUIDE_INDEX, GUIDE_ROLES
+from tests.conftest import role_matrix
 
 pytestmark = pytest.mark.django_db
 
@@ -151,6 +155,130 @@ def test_the_default_root_is_the_guide_build_directory() -> None:
     """With ``USER_GUIDE_ROOT`` unset, the root is ``docs/_build/guide``."""
     root = Path(django_settings.USER_GUIDE_ROOT)
     assert root.parts[-3:] == ("docs", "_build", "guide")
+
+
+# ------------------------------------------------------------------ roles
+#: The roles ``roles.json`` gives the stand-in administrator page.
+MEMBERS_PAGE_ROLES = [ACCOUNT_ADMIN, DART_LEADER]
+
+ADMIN_INDEX_HTML = "<h1>Leader and administrator screens</h1>"
+MEMBERS_HTML = "<h1>Members</h1>"
+SYSTEM_HTML = "<h1>Health &amp; Database</h1>"
+
+
+@pytest.fixture
+def gated_guide(guide_root: Path) -> Path:
+    """``guide_root`` with administrator pages and the ``roles.json`` that restricts them.
+
+    ``admin/`` is an index page (docname ``admin/index``), ``admin/members/`` a page for
+    an account administrator or a DART leader, and ``admin/health-database/`` a page for
+    a system administrator; ``member-guide/`` carries no roles.
+    """
+    (guide_root / "admin" / "members").mkdir(parents=True)
+    (guide_root / "admin" / "health-database").mkdir()
+    (guide_root / "admin" / GUIDE_INDEX).write_text(ADMIN_INDEX_HTML)
+    (guide_root / "admin" / "members" / GUIDE_INDEX).write_text(MEMBERS_HTML)
+    (guide_root / "admin" / "health-database" / GUIDE_INDEX).write_text(SYSTEM_HTML)
+    roles = {
+        "admin/index": [ACCOUNT_ADMIN, DART_LEADER, SYSTEM_ADMIN],
+        "admin/members": MEMBERS_PAGE_ROLES,
+        "admin/health-database": [SYSTEM_ADMIN],
+    }
+    (guide_root / GUIDE_ROLES).write_text(json.dumps(roles))
+    return guide_root
+
+
+def test_a_member_asking_for_an_administrator_page_is_sent_to_the_index(
+    reader: Client, gated_guide: Path
+) -> None:
+    """A page whose roles the reader lacks redirects to the guide's front page."""
+    response = reader.get("/docs/admin/health-database/")
+    assert response.status_code == 302
+    assert response.headers["Location"] == "/docs/"
+
+
+def test_a_system_administrator_is_served_every_page(
+    client: Client, system_admin: User, gated_guide: Path
+) -> None:
+    """A system administrator reads a page that names only their role."""
+    client.force_login(system_admin)
+    response = client.get("/docs/admin/health-database/")
+    assert response.status_code == 200
+    assert guide_body(response) == SYSTEM_HTML.encode()
+
+
+@pytest.mark.parametrize(("slug", "allowed"), role_matrix(*MEMBERS_PAGE_ROLES, SYSTEM_ADMIN))
+def test_a_page_with_roles_is_served_to_a_holder_of_any_of_them(
+    client: Client,
+    all_role_users: dict[str, User],
+    gated_guide: Path,
+    slug: str,
+    allowed: bool,
+) -> None:
+    """``admin/members/`` is served to the roles it names, and the rest are redirected.
+
+    An account administrator, a DART leader, and a system administrator read it; every
+    other role is sent to the index.
+    """
+    client.force_login(all_role_users[slug])
+    response = client.get("/docs/admin/members/")
+    response.close()
+    assert response.status_code == (200 if allowed else 302)
+
+
+def test_an_index_page_follows_its_computed_roles(reader: Client, gated_guide: Path) -> None:
+    """``admin/`` is the docname ``admin/index``, and a member is redirected from it."""
+    response = reader.get("/docs/admin/")
+    assert response.status_code == 302
+
+
+def test_a_page_named_by_its_file_is_held_to_the_same_roles(
+    reader: Client, gated_guide: Path
+) -> None:
+    """``admin/members/index.html`` is the same page as ``admin/members/``."""
+    response = reader.get("/docs/admin/members/index.html")
+    assert response.status_code == 302
+
+
+def test_a_detour_through_dot_dot_is_held_to_the_same_roles(
+    reader: Client, gated_guide: Path
+) -> None:
+    """A path that reaches a gated page by way of ``..`` is judged by where it lands."""
+    response = reader.get("/docs/member-guide/../admin/members/")
+    assert response.status_code == 302
+
+
+def test_a_page_without_roles_is_served_to_a_member(reader: Client, gated_guide: Path) -> None:
+    """A page ``roles.json`` does not name is every signed-in reader's."""
+    response = reader.get("/docs/member-guide/")
+    assert response.status_code == 200
+    assert guide_body(response) == MEMBER_HTML.encode()
+
+
+def test_the_roles_file_is_served_to_a_member(reader: Client, gated_guide: Path) -> None:
+    """``roles.json`` is served to every reader, so the sidebar script can read it."""
+    response = reader.get(f"/docs/{GUIDE_ROLES}")
+    assert response.status_code == 200
+    assert json.loads(guide_body(response))["admin/members"] == MEMBERS_PAGE_ROLES
+
+
+def test_a_guide_without_a_roles_file_serves_every_page(reader: Client, gated_guide: Path) -> None:
+    """With no ``roles.json`` (a build without the extension), every page is served."""
+    (gated_guide / GUIDE_ROLES).unlink()
+    response = reader.get("/docs/admin/health-database/")
+    assert response.status_code == 200
+    assert guide_body(response) == SYSTEM_HTML.encode()
+
+
+def test_a_rebuilt_roles_file_is_read_again(reader: Client, gated_guide: Path) -> None:
+    """A ``roles.json`` rewritten with a newer modification time takes effect at once."""
+    guide_body(reader.get("/docs/member-guide/"))
+    roles_file = gated_guide / GUIDE_ROLES
+    roles_file.write_text(json.dumps({"member-guide": [SYSTEM_ADMIN]}))
+    later = roles_file.stat().st_mtime + 10
+    os.utime(roles_file, (later, later))
+    response = reader.get("/docs/member-guide/")
+    assert response.status_code == 302
 
 
 # ------------------------------------------------------------------ assets

@@ -1,3 +1,5 @@
+:roles: website_admin
+
 ==========
 DART pages
 ==========

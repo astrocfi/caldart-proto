@@ -1,3 +1,5 @@
+:roles: treasurer, account_admin
+
 ==================
 The money overview
 ==================

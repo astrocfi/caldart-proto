@@ -11,6 +11,12 @@ is missing, ask one.
 If you open a screen your roles do not reach, the portal shows **Not allowed** and
 names the role the screen needs.
 
+This guide works the same way. It shows each reader the screens their roles reach:
+its menu and its contents list only the pages you can use, and the address of any
+other page brings you back to the guide's front page. A system administrator sees
+every page. The links on this page lead to every role's screens, so some of them
+may bring you back to the front page too.
+
 
 Member
 ======

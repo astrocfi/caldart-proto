@@ -1,3 +1,5 @@
+:roles: dart_leader, account_admin, user_admin, verifier
+
 ============
 Member check
 ============

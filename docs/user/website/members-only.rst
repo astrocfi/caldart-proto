@@ -1,3 +1,5 @@
+:roles: website_admin
+
 =====================
 The members-only area
 =====================

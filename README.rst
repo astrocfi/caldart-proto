@@ -164,10 +164,11 @@ covers the user guide (``docs/user/``) for members, DART leaders and
 administrators, and the developer guide (``docs/developer/``) for setup,
 architecture, and the API reference.
 
-The site serves the user guide itself, at ``/docs/``, to anyone signed in:
-``make guide`` builds that copy into ``docs/_build/guide``, the portal's menu
-links each user to the page for their role, and the public site's footer links
-to its front page. The developer guide is not published.
+The site serves the user guide itself, at ``/docs/``, to anyone signed in, each
+reader seeing only the pages their roles reach: ``make guide`` builds that copy
+into ``docs/_build/guide``, the portal's menu links each user to the page for
+their role, and the public site's footer links to its front page. The developer
+guide is not published.
 
 
 Contributing

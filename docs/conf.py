@@ -13,11 +13,18 @@ tag and the ``dirhtml`` builder, into the user guide the site serves at
 ``/docs/`` to signed-in members.  The developer guide is outside that build's
 source tree, so a user page never links into it: every reference on a user page
 resolves inside ``docs/user/``, and the guide build needs no special case.
+
+One local extension, ``docs/_ext/guide_roles.py``, reads the ``:roles:`` field a
+user page opens with and writes ``roles.json`` beside the built pages; the site
+reads it to show each reader only the pages their roles reach.  It is pure Python
+and needs nothing installed.
 """
 
 from __future__ import annotations
 
 import shutil
+import sys
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -49,7 +56,14 @@ release = ""
 # the nicer one.
 _HAS_DOT = shutil.which("dot") is not None
 
-extensions: list[str] = ["sphinx.ext.graphviz"] if _HAS_DOT else []
+# ``guide_roles`` is the one local extension, in ``docs/_ext``: pure Python, it reads
+# each user page's ``:roles:`` field, fails the build on a slug that is not a role,
+# and writes ``roles.json`` beside the built pages for the site's ``user_guide`` view
+# and ``_static/guide-roles.js``.  The path is taken from this file, so the guide
+# build, whose source tree is ``docs/user``, finds it too.
+sys.path.insert(0, str(Path(__file__).resolve().parent / "_ext"))
+
+extensions: list[str] = ["guide_roles", *(["sphinx.ext.graphviz"] if _HAS_DOT else [])]
 
 if _HAS_DOT:
     tags.add("graphviz")  # noqa: F821 - Sphinx injects ``tags`` into conf.py
@@ -136,5 +150,18 @@ html_title = "CalDART user guide" if tags.has("guide") else "CalDART"  # noqa: F
 # exist would raise a warning, and warnings are errors.
 html_static_path = ["_static"]
 html_css_files = ["figure-zoom.css"]
-html_js_files = [("figure-zoom.js", {"defer": "defer"})]
+html_js_files: list[tuple[str | None, dict[str, str]]] = [("figure-zoom.js", {"defer": "defer"})]
 templates_path: list[str] = []
+
+# The guide the site serves takes out of its sidebar and its tables of contents
+# every page the reader's roles do not reach.  ``guide-roles.js`` does it, reading
+# ``roles.json`` and the reader's roles; until it has, the inline script marks the
+# page ``guide-roles-pending`` and ``guide-roles.css`` keeps the trees hidden, so a
+# reader never sees an entry appear and then vanish.  The inline script runs in the
+# head, before the trees exist; the guide's ``script-src`` allows inline scripts.
+if tags.has("guide"):  # noqa: F821 - Sphinx injects ``tags``
+    html_css_files.append("guide-roles.css")
+    html_js_files += [
+        (None, {"body": "document.documentElement.classList.add('guide-roles-pending');"}),
+        ("guide-roles.js", {"defer": "defer"}),
+    ]
