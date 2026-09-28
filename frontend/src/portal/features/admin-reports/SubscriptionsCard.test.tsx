@@ -176,7 +176,7 @@ describe('SubscriptionsCard', () => {
     );
   });
 
-  it('deletes a subscription with the trashcan', async () => {
+  it('does nothing to a subscription on the first press of its trashcan', async () => {
     const deleted: string[] = [];
     const table = await renderCard();
     server.use(
@@ -189,6 +189,23 @@ describe('SubscriptionsCard', () => {
     await userEvent.click(
       within(row(table, /Ada Admin/)).getByRole('button', { name: 'Delete subscription' }),
     );
+
+    expect(deleted).toEqual([]);
+  });
+
+  it('deletes a subscription once its trashcan is confirmed', async () => {
+    const deleted: string[] = [];
+    const table = await renderCard();
+    server.use(
+      http.delete(`${API}/reports/subscriptions/:id`, ({ params }) => {
+        deleted.push(String(params.id));
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+    const target = row(table, /Ada Admin/);
+
+    await userEvent.click(within(target).getByRole('button', { name: 'Delete subscription' }));
+    await userEvent.click(within(target).getByRole('button', { name: 'Delete' }));
 
     expect(await screen.findByRole('status')).toHaveTextContent('Deleted.');
     expect(deleted).toEqual(['1']);

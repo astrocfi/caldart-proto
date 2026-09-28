@@ -86,12 +86,13 @@ export function MyAircraftPage(): JSX.Element {
                   </Button>
                   <DeleteButton
                     label={`Remove ${plane.n_number}`}
+                    confirmLabel="Remove"
                     disabled={busy}
-                    onClick={() =>
-                      detach.mutate(plane.id, {
-                        onSuccess: () => toast.show(`${plane.n_number} removed.`, 'success'),
-                        onError: (error) => fail(error, `${plane.n_number} was not removed.`),
-                      })
+                    onDelete={() =>
+                      detach.mutateAsync(plane.id).then(
+                        () => toast.show(`${plane.n_number} removed.`, 'success'),
+                        (error) => fail(error, `${plane.n_number} was not removed.`),
+                      )
                     }
                   />
                 </span>

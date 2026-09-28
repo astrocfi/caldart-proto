@@ -422,7 +422,8 @@ export function DartForm({
             </div>
             <DeleteButton
               label={`Remove person ${index + 1}`}
-              onClick={() => handleRemoveContact(index)}
+              confirmLabel="Remove"
+              onDelete={() => handleRemoveContact(index)}
             />
           </div>
         ))}

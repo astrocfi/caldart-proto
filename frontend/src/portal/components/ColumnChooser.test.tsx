@@ -301,10 +301,20 @@ describe('ColumnChooser Load columns', () => {
     expect(screen.getByRole('textbox', { name: 'Name for these columns' })).toHaveValue('Short');
   });
 
-  it('deletes a set with the trashcan beside its name', async () => {
+  it('does nothing to a saved set on the first press of its trashcan', async () => {
     const { user, requests } = await openWithSets(SAVED_SETS, 'Load columns');
 
     await user.click(await screen.findByRole('button', { name: 'Delete the saved set Audit' }));
+
+    expect(screen.getByRole('button', { name: 'Audit' })).toBeInTheDocument();
+    expect(requests.some((request) => request.method === 'DELETE')).toBe(false);
+  });
+
+  it('deletes a set once its trashcan is confirmed', async () => {
+    const { user, requests } = await openWithSets(SAVED_SETS, 'Load columns');
+
+    await user.click(await screen.findByRole('button', { name: 'Delete the saved set Audit' }));
+    await user.click(screen.getByRole('button', { name: 'Delete' }));
 
     await waitFor(() => expect(loadNames()).toEqual(['Short']));
     expect(requests.find((request) => request.method === 'DELETE')?.url).toMatch(
@@ -316,6 +326,7 @@ describe('ColumnChooser Load columns', () => {
     const { user } = await openWithSets(SAVED_SETS, 'Load columns');
 
     await user.click(await screen.findByRole('button', { name: 'Delete the saved set Audit' }));
+    await user.click(screen.getByRole('button', { name: 'Delete' }));
 
     await waitFor(() => expect(loadNames()).toEqual(['Short']));
     expect(loadPanel()).toBeInTheDocument();
@@ -330,6 +341,7 @@ describe('ColumnChooser Load columns', () => {
     );
 
     await user.click(await screen.findByRole('button', { name: 'Delete the saved set Audit' }));
+    await user.click(screen.getByRole('button', { name: 'Delete' }));
 
     expect(await within(loadPanel()).findByRole('alert')).toHaveTextContent('Not found.');
   });

@@ -206,6 +206,18 @@ test('a saved set of columns comes back after a reload', async ({ page }) => {
     'href',
     /columns=paid_on%2Creceipt_number%2Cname/,
   );
+
+  // The trashcan asks before it deletes the saved set.
+  await page.getByRole('button', { name: 'Load columns' }).click();
+  await loadPanel.getByRole('button', { name: 'Delete the saved set Audit' }).click();
+  await loadPanel.getByRole('button', { name: 'Keep' }).click();
+  await expect(loadPanel.getByRole('button', { name: 'Delete the saved set Audit' })).toBeVisible();
+
+  await loadPanel.getByRole('button', { name: 'Delete the saved set Audit' }).click();
+  await loadPanel.getByRole('button', { name: 'Delete', exact: true }).click();
+  await expect(loadPanel.getByRole('button', { name: 'Delete the saved set Audit' })).toHaveCount(
+    0,
+  );
 });
 
 test('a plain member cannot reach the payment reports', async ({ page }) => {
