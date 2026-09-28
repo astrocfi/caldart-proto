@@ -25,7 +25,7 @@ describe('ScheduledPage', () => {
     ).toBeInTheDocument();
   });
 
-  it('puts the reminder emails and the renewal charges first, then reports and statements', async () => {
+  it('puts the reminder emails and renewal charges first, then reports and statements', async () => {
     renderPage();
 
     await screen.findByText('No reminders sent yet');
