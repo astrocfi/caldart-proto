@@ -364,7 +364,7 @@ def test_email_content(
 ) -> None:
     """The subject, recipient, sender and both bodies carry the expected content."""
     settings.SITE_URL = "https://caldart.example.org/"
-    site_settings.org_name = "The California DART Network"
+    site_settings.org_name = "CalDART"
     site_settings.contact_email = "info@caldart.example.org"
     site_settings.save()
 
@@ -376,7 +376,7 @@ def test_email_content(
 
     message = mailoutbox[0]
     assert isinstance(message, EmailMultiAlternatives)
-    assert message.subject == "The California DART Network: your membership expires in 30 days"
+    assert message.subject == "CalDART: your membership expires in 30 days"
     assert message.to == [user.email]
     assert message.from_email == settings.DEFAULT_FROM_EMAIL
 
@@ -390,7 +390,7 @@ def test_email_content(
     assert mime == "text/html"
     assert isinstance(html, str)
     assert "https://caldart.example.org/portal/renew" in html
-    assert "The California DART Network" in html
+    assert "CalDART" in html
     assert "<!doctype html>" in html
 
 
@@ -398,7 +398,7 @@ def test_email_content(
 def named_site(settings: Settings, site_settings: SiteSettings) -> None:
     """Pin the organization name, the contact address and the site URL in the emails."""
     settings.SITE_URL = "https://caldart.example.org/"
-    site_settings.org_name = "The California DART Network"
+    site_settings.org_name = "CalDART"
     site_settings.contact_email = "info@caldart.example.org"
     site_settings.save()
 
@@ -559,8 +559,16 @@ def test_a_dry_run_prints_who_would_be_written_to(annual_plan: MembershipPlan) -
 def test_reminder_email_takes_its_name_from_site_settings(
     mailoutbox: list[EmailMessage],
 ) -> None:
-    """A reminder email's subject and body carry the seeded site's organization name."""
+    """A reminder email's subject and body carry the site's configured organization name.
+
+    A name distinct from the default proves the email reads it, rather than hardcoding it.
+    """
     call_command("seed_content", stdout=StringIO(), verbosity=0)
+
+    site_settings = get_site_settings()
+    assert site_settings is not None
+    site_settings.org_name = "Example DART Network"
+    site_settings.save()
 
     profile = MemberProfileFactory()
     membership = MembershipFactory(
@@ -569,9 +577,5 @@ def test_reminder_email_takes_its_name_from_site_settings(
 
     send_reminder_email(profile.user, membership, "t30", timezone.localdate())
 
-    site_settings = get_site_settings()
-    assert site_settings is not None
-    # The seeded site uses the organization's full name, not the short one.
-    assert site_settings.org_name != "CalDART"
-    assert site_settings.org_name in mailoutbox[0].subject
-    assert site_settings.org_name in mailoutbox[0].body
+    assert "Example DART Network" in mailoutbox[0].subject
+    assert "Example DART Network" in mailoutbox[0].body

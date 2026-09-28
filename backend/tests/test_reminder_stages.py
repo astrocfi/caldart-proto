@@ -239,7 +239,7 @@ def test_the_expired_body_counts_the_days_since_the_term_ran_out(
 def named_site(settings: Settings, site_settings: SiteSettings) -> None:
     """Pin the organization name, the contact address and the site URL in the emails."""
     settings.SITE_URL = "https://caldart.example.org/"
-    site_settings.org_name = "The California DART Network"
+    site_settings.org_name = "CalDART"
     site_settings.contact_email = "info@caldart.example.org"
     site_settings.save()
 
