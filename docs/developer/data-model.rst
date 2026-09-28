@@ -4211,7 +4211,7 @@ so there is one row per Wagtail site, and editing it overwrites that row.
      - the Wagtail site these settings belong to
    * - ``org_name``
      - ``CharField(120)``
-     - not null; default ``"The California DART Network"``
+     - not null; default ``"CalDART"``
      - the organization's name, on every public page, in the portal, and in every email
    * - ``tagline``
      - ``CharField(200)``

@@ -345,7 +345,7 @@ The one endpoint the portal calls before it has a user, so it is ``AllowAny``:
 .. code-block:: json
 
    {
-     "org_name": "The California DART Network",
+     "org_name": "CalDART",
      "theme": "duty",
      "contact_email": "info@caldart.example.org",
      "nav": [{"title": "About Us", "url": "/about/", "active": false, "kind": "page"}],

@@ -38,8 +38,8 @@ What happens next
 * The payment is recorded as already paid, with **By hand** as its provider and no fee,
   so its net is the whole amount.
 * If it paid for a plan, the membership term starts at once.
-* The member is emailed their receipt, with the subject *The California DART Network:
-  your receipt for* and the amount.
+* The member is emailed their receipt, with the subject *CalDART: your receipt for* and
+  the amount.
 * **Received on** is the date the payment carries everywhere in the books: in the
   headline figures, the period table, reconciliation, and the year-end contributions
   list. Set it to the day the check arrived, which may be earlier than the day you enter
