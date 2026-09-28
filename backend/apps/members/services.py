@@ -50,7 +50,7 @@ from datetime import date, timedelta
 from typing import TYPE_CHECKING, Any, NoReturn, TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.db.models import (
     Case,
     CharField,
@@ -325,25 +325,38 @@ def tombstone_for(target: User) -> User:
     ``deleted-<id>-<8 hex digits>@deleted.invalid`` instead, so nobody can make a
     delete fail by taking the address first.
     """
-    tombstone = create_account(
-        email=_tombstone_email(target),
-        first_name=TOMBSTONE_FIRST_NAME,
-        last_name=str(target.pk),
-        kind=AccountKind.DONOR,
-    )
+    tombstone = _create_tombstone_account(target)
     tombstone.is_active = False
     tombstone.save(update_fields=["is_active"])
     MemberProfile.objects.create(user=tombstone)
     return tombstone
 
 
-def _tombstone_email(target: User) -> str:
-    """The address for ``target``'s tombstone: the plain one, or a token's when taken."""
-    email = TOMBSTONE_EMAIL.format(id=target.pk)
-    if not User.objects.filter(email__iexact=email).exists():
-        return email
-    token = secrets.token_hex(TOMBSTONE_TOKEN_BYTES)
-    return TOMBSTONE_EMAIL_WITH_TOKEN.format(id=target.pk, token=token)
+def _create_tombstone_account(target: User) -> User:
+    """Create the tombstone's account at its plain address, or at a token's when taken.
+
+    The plain address is tried inside a savepoint, so the unique constraint on the
+    address, not a check before the insert, decides whether it is free: a registration
+    landing between a check and the insert cannot make the delete fail.
+    """
+    try:
+        with transaction.atomic():
+            return _create_account_named(target, TOMBSTONE_EMAIL.format(id=target.pk))
+    except IntegrityError:
+        token = secrets.token_hex(TOMBSTONE_TOKEN_BYTES)
+        return _create_account_named(
+            target, TOMBSTONE_EMAIL_WITH_TOKEN.format(id=target.pk, token=token)
+        )
+
+
+def _create_account_named(target: User, email: str) -> User:
+    """Create the donor account ``Deleted member <id>`` at ``email``."""
+    return create_account(
+        email=email,
+        first_name=TOMBSTONE_FIRST_NAME,
+        last_name=str(target.pk),
+        kind=AccountKind.DONOR,
+    )
 
 
 def is_tombstone(user: User) -> bool:

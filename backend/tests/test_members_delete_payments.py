@@ -11,6 +11,7 @@ account that never paid is deleted with no tombstone.
 
 from __future__ import annotations
 
+import re
 from collections.abc import Iterable
 
 import pytest
@@ -278,8 +279,7 @@ def test_the_tombstone_takes_another_address_when_its_own_is_taken(payer: User) 
 
     email = tombstone_for(payer).email
 
-    assert email.startswith(f"deleted-{payer.pk}-")
-    assert email.endswith("@deleted.invalid")
+    assert re.fullmatch(rf"deleted-{payer.pk}-[0-9a-f]{{8}}@deleted\.invalid", email) is not None
 
 
 def test_a_member_is_deleted_although_the_tombstone_address_is_taken(

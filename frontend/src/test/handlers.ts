@@ -174,7 +174,7 @@ export const handlers = [
       { status: 404 },
     ),
   ),
-  // The email log panel reads this as `/portal/system` mounts, so a suite that
+  // The Sent Emails page reads this as it mounts, so a suite that
   // is not about the log does not have to declare one.
   http.get(`${API}/system/emails`, () =>
     HttpResponse.json({ count: 0, next: null, previous: null, results: [] }),
