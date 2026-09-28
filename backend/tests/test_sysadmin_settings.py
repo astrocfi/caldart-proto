@@ -270,7 +270,7 @@ def test_gunicorn_binds_to_loopback_only() -> None:
     """Gunicorn binds to loopback, trusts the proxy, and sizes workers to the CPU."""
     config = (DEPLOY_DIR / "gunicorn.conf.py").read_text()
 
-    assert 'bind = "127.0.0.1:8001"' in config
+    assert 'bind = f"127.0.0.1:{' in config
     assert 'forwarded_allow_ips = "127.0.0.1"' in config
     assert "multiprocessing.cpu_count()" in config
 

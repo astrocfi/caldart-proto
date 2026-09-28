@@ -11,15 +11,19 @@
 # the password the Postgres step set and the recorded database port.  It
 # also sets CSRF_TRUSTED_ORIGINS for the same hosts, DEFAULT_FROM_EMAIL,
 # BACKUP_DIR and USER_GUIDE_ROOT under the deploy root, DB_BACKUP_VIA_DOCKER=false,
-# BACKUP_RETENTION_DAYS=30, URL_PREFIX when the site has one, and, with
-# self-signed TLS, SECURE_HSTS_SECONDS=0.  Behind an existing site the HSTS
+# BACKUP_RETENTION_DAYS=30, CALDART_GUNICORN_PORT from the install record (8001
+# unless install.sh --gunicorn-port says otherwise), URL_PREFIX when the site
+# has one, and, with self-signed TLS, SECURE_HSTS_SECONDS=0.  It prints the
+# CALDART_GUNICORN_PORT line, the one line of the file a dry run shows.  Behind an existing site the HSTS
 # default is left alone: that site owns HSTS for the host.
 # Everything else, comments included, stays as the template has it.  With
 # --email local, a note (not an error) says so when nothing listens on port 25:
 # mail fails until postfix is installed and listening on localhost.
 #
-# When the file exists this step leaves it alone: edit it with sudoedit, then
-# run systemctl restart caldart-web.  Run alone rather than from install.sh, the
+# When the file exists this step leaves it alone but for one line: it sets
+# CALDART_GUNICORN_PORT to the recorded port, replacing the line or adding it,
+# and rewrites nothing when the line already names that port.  For anything
+# else, edit the file with sudoedit, then run systemctl restart caldart-web.  Run alone rather than from install.sh, the
 # step has no database password handed to it and writes a generated one the
 # database does not have.
 #
@@ -122,9 +126,51 @@ note_local_mail() {
         "installed and listening on localhost."
 }
 
+# The owner and group the environment file is written with: root and the
+# service's group in /etc/caldart, and whoever runs the step anywhere else.
+env_file_owner() {
+    if [[ "$ETC_DIR" == "$DEFAULT_ETC" ]]; then
+        printf '%s\n' root "$SERVICE_USER"
+    fi
+}
+
+# Print the environment file with every CALDART_GUNICORN_PORT line set to the
+# recorded port, or the line added at the end when the file has none.  awk
+# reads the port from its environment, as fill_template does.
+env_file_with_gunicorn_port() {
+    # The $ signs below are awk's, not the shell's.
+    # shellcheck disable=SC2016
+    FILL_PORT="$CALDART_GUNICORN_PORT" awk '
+        /^CALDART_GUNICORN_PORT=/ { print "CALDART_GUNICORN_PORT=" ENVIRON["FILL_PORT"]; found = 1; next }
+        { print }
+        END { if (!found) print "CALDART_GUNICORN_PORT=" ENVIRON["FILL_PORT"] }
+    ' "$ENV_FILE"
+}
+
+# Bring CALDART_GUNICORN_PORT in the existing environment file to the recorded
+# port, so a port install.sh --gunicorn-port moved reaches gunicorn on its next
+# start.  A file that names the port already is not written.
+sync_gunicorn_port() {
+    local line="CALDART_GUNICORN_PORT=$CALDART_GUNICORN_PORT"
+    if [[ ! -r "$ENV_FILE" ]] && is_dry_run; then
+        log "Leaving $ENV_FILE alone but for $line"
+        note "dry run: $ENV_FILE is not readable here; the real run writes $line into it when it names another port"
+        return 0
+    fi
+    if grep -qxF "$line" "$ENV_FILE"; then
+        log "Leaving $ENV_FILE alone: it exists"
+        return 0
+    fi
+    log "Setting $line in $ENV_FILE, leaving the rest of it alone"
+    local owner=() content
+    mapfile -t owner < <(env_file_owner)
+    content="$(env_file_with_gunicorn_port)"
+    printf '%s\n' "$content" | write_file "$ENV_FILE" 0640 "${owner[@]}"
+}
+
 configure_step() {
     if have_env_file; then
-        log "Leaving $ENV_FILE alone: it exists"
+        sync_gunicorn_port
         if [[ "$EMAIL_MODE" == local ]]; then
             printf '    --email local is ignored: edit the file with sudoedit\n'
         elif [[ -n "$EMAIL_URL" ]]; then
@@ -137,6 +183,7 @@ configure_step() {
     [[ -n "$EMAIL_URL" ]] || usage_error "--email-url or --email local is required to write $ENV_FILE"
 
     log "Writing $ENV_FILE"
+    printf '    with CALDART_GUNICORN_PORT=%s\n' "$CALDART_GUNICORN_PORT"
     note_local_mail
     local names=() origins=() name
     mapfile -t names < <(site_names)
@@ -161,6 +208,7 @@ configure_step() {
         "DB_BACKUP_VIA_DOCKER=false"
         "BACKUP_RETENTION_DAYS=30"
         "USER_GUIDE_ROOT=$ROOT/docs/_build/guide"
+        "CALDART_GUNICORN_PORT=$CALDART_GUNICORN_PORT"
     )
     if [[ -n "$CALDART_URL_PREFIX" ]]; then
         values+=("URL_PREFIX=$CALDART_URL_PREFIX")
@@ -170,11 +218,8 @@ configure_step() {
         values+=("SECURE_HSTS_SECONDS=0")
     fi
 
-    local owner=()
-    if [[ "$ETC_DIR" == "$DEFAULT_ETC" ]]; then
-        owner=(root "$SERVICE_USER")
-    fi
-    local content
+    local owner=() content
+    mapfile -t owner < <(env_file_owner)
     content="$(fill_template "${values[@]}")"
     printf '%s\n' "$content" | write_file "$ENV_FILE" 0640 "${owner[@]}"
 }

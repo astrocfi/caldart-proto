@@ -16,6 +16,9 @@
 #   CALDART_OS_RELEASE the os-release file to read (default /etc/os-release)
 #   CALDART_DB_PORT    the host port of the Postgres container (default 5432);
 #                      the install record's value wins once it is read
+#   CALDART_GUNICORN_PORT
+#                      the port on 127.0.0.1 the web server proxies to gunicorn on
+#                      (default 8001); the install record's value wins once it is read
 
 # The constants below are read by the scripts that source this file, which a
 # check of this file alone cannot see.
@@ -33,6 +36,9 @@ readonly SHIPPED_HOSTNAME=caldart.example.org
 # The URL prefix every shipped snippet names, replaced by the real one (or by
 # nothing, for a site at the root of its host).
 readonly SHIPPED_PREFIX=__PREFIX__
+# The port on 127.0.0.1 every shipped vhost, snippet, and upstream proxies to,
+# replaced by the recorded one; also the port gunicorn listens on by default.
+readonly SHIPPED_GUNICORN_PORT=8001
 readonly DEFAULT_ETC=/etc/caldart
 readonly SYSTEMD_DIR=/etc/systemd/system
 readonly SERVICE_USER=caldart
@@ -56,6 +62,7 @@ readonly RECORD_KEYS=(
     CALDART_CERTBOT_EMAIL
     CALDART_CERTBOT_STAGING
     CALDART_DB_PORT
+    CALDART_GUNICORN_PORT
     CALDART_URL_PREFIX
     CALDART_ATTACH_TO
 )
@@ -63,11 +70,12 @@ readonly RECORD_KEYS=(
 readonly DB_PASSWORD_BYTES=32
 readonly LETSENCRYPT_DIR=/etc/letsencrypt
 readonly CERTBOT_WEBROOT=/var/www/certbot
-# The host port docker-compose.yml publishes the database on, and its bounds:
-# above the privileged ports, within TCP's range.
+# The host port docker-compose.yml publishes the database on.
 readonly DEFAULT_DB_PORT=5432
-readonly MIN_DB_PORT=1024
-readonly MAX_DB_PORT=65535
+# The bounds of a port an option names: above the privileged ports, within
+# TCP's range.
+readonly MIN_PORT=1024
+readonly MAX_PORT=65535
 # A decimal port with no leading zero, which bash arithmetic would read as octal.
 readonly PORT_PATTERN='^[1-9][0-9]{0,4}$'
 # The mail relay --email local stands for: the postfix on this machine.
@@ -98,6 +106,9 @@ CALDART_ATTACH_TO="${CALDART_ATTACH_TO:-}"
 # docker-compose.yml reads it, and a compose command without it would move the
 # container back to the default.  load_record keeps the export as it assigns.
 export CALDART_DB_PORT="${CALDART_DB_PORT:-$DEFAULT_DB_PORT}"
+# Exported for the same reason: a record written before the key existed leaves
+# the default in place, the port every earlier install used.
+export CALDART_GUNICORN_PORT="${CALDART_GUNICORN_PORT:-$SHIPPED_GUNICORN_PORT}"
 
 # A DNS name of at least two labels: letters, digits, and inner hyphens.  The
 # hostname is written into sed expressions, the vhost, and line-based files, so
@@ -334,12 +345,24 @@ validate_hostname() {
         usage_error "--hostname must be a DNS name such as $SHIPPED_HOSTNAME, not $1"
 }
 
-# Stop with a usage error unless $1 is a port from MIN_DB_PORT to MAX_DB_PORT.
-validate_db_port() {
-    if [[ "$1" =~ $PORT_PATTERN ]] && (($1 >= MIN_DB_PORT && $1 <= MAX_DB_PORT)); then
+# Stop with a usage error naming the option $1 unless $2 is a port from
+# MIN_PORT to MAX_PORT.
+validate_port() {
+    local option=$1 value=$2
+    if [[ "$value" =~ $PORT_PATTERN ]] && ((value >= MIN_PORT && value <= MAX_PORT)); then
         return 0
     fi
-    usage_error "--db-port must be a port number from $MIN_DB_PORT to $MAX_DB_PORT, not $1"
+    usage_error "$option must be a port number from $MIN_PORT to $MAX_PORT, not $value"
+}
+
+# Stop with a usage error unless $1 is a port Postgres may be published on.
+validate_db_port() {
+    validate_port --db-port "$1"
+}
+
+# Stop with a usage error unless $1 is a port gunicorn may listen on.
+validate_gunicorn_port() {
+    validate_port --gunicorn-port "$1"
 }
 
 # The port DATABASE_URL in the environment file connects to: the port it names,
@@ -420,6 +443,26 @@ site_url() {
     printf 'https://%s%s\n' "$CALDART_HOSTNAME" "$CALDART_URL_PREFIX"
 }
 
+# The address gunicorn answers on: 127.0.0.1 at the recorded gunicorn port.
+gunicorn_url() {
+    printf 'http://127.0.0.1:%s/\n' "$CALDART_GUNICORN_PORT"
+}
+
+# Ask gunicorn itself, not the web server, for the site's front page, with the
+# command word $1 in front: run, for a dry run that prints the request, or
+# command, which sends it.  The
+# Host header must be in ALLOWED_HOSTS, and X-Forwarded-Proto keeps
+# SECURE_SSL_REDIRECT from answering 301.
+gunicorn_probe() {
+    "$1" curl -sI -H "Host: $CALDART_HOSTNAME" -H 'X-Forwarded-Proto: https' "$(gunicorn_url)"
+}
+
+# The HTTP status gunicorn answers the probe with, or nothing when it answers
+# nothing.
+gunicorn_status() {
+    gunicorn_probe command | awk 'NR == 1 { print $2 }'
+}
+
 # True when something on this machine listens on TCP port $1.  Without ss
 # there is no telling, and the answer is no.
 port_in_use() {
@@ -467,12 +510,17 @@ generate_secret() {
     python3 -c "import secrets, sys; print(secrets.token_urlsafe(int(sys.argv[1])))" "$1"
 }
 
-# Copy $1 to $2 with /opt/caldart replaced by the deploy root, plus any further
-# sed arguments.  A dry run prints the pipeline.
+# Copy $1 to $2 with /opt/caldart replaced by the deploy root and gunicorn's
+# shipped address by the recorded one, plus any further sed arguments.  A dry
+# run prints the pipeline.
 render_file() {
     local source=$1 dest=$2
     shift 2
-    local sed_command=(sed -e "s#${SHIPPED_ROOT}#${ROOT}#g" "$@" "$source")
+    local sed_command=(
+        sed -e "s#${SHIPPED_ROOT}#${ROOT}#g"
+        -e "s#127.0.0.1:${SHIPPED_GUNICORN_PORT}#127.0.0.1:${CALDART_GUNICORN_PORT}#g"
+        "$@" "$source"
+    )
     if is_dry_run; then
         printf '+ %s | %s\n' "$(quote_command "${sed_command[@]}")" \
             "$(quote_command install -m 0644 /dev/stdin "$dest")"

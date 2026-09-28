@@ -9,7 +9,8 @@
 # cache table, the roles, and the static files), gunicorn under systemd (which
 # reinstalls the unit and restarts it), the scheduled jobs (which reinstalls
 # their units), and the checks.  It never touches the environment file or the
-# web server's configuration.
+# web server's configuration, and it takes no --gunicorn-port: gunicorn stays on
+# the port the install record names, which install.sh --gunicorn-port moves.
 #
 # Rolling back is --ref with the previous commit, plus, when the schema moved,
 # sudo deploy/manage.sh db_restore with the backup this run took.

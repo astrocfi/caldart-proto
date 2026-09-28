@@ -90,6 +90,11 @@ The flags:
      - the host port Postgres is published on, 1024 to 65535
        (:ref:`deploy-sharing`)
      - ``5432``
+   * - ``--gunicorn-port PORT``
+     - the port on ``127.0.0.1`` where the web server's proxy reaches
+       gunicorn, 1024 to 65535; not the site's port, which is 80 and 443 on the
+       web server (:ref:`deploy-sharing`)
+     - ``8001``
    * - ``--email-url URL``
      - ``EMAIL_URL`` for the environment file (:doc:`email`)
      - this or ``--email local`` on the first run
@@ -128,7 +133,7 @@ for a name the box does not own.  There is no plain-HTTP mode:
 
 **The install record.**  The values that describe the box (the root, the
 hostname, ``www``, the web server, the TLS mode, the certbot address, staging,
-the database port, the URL prefix, and the attached vhost file) are written to ``/etc/caldart/install.conf``,
+the database port, the gunicorn port, the URL prefix, and the attached vhost file) are written to ``/etc/caldart/install.conf``,
 ``root:root``, mode ``0644``, holding no secret.  Every step reads it, so a
 later run needs no flags, and a flag given on a later run updates the record.
 ``--email-url``, ``--email``, ``--from-email``, ``--admin-email``, and
@@ -212,13 +217,13 @@ What you are deploying
               color="gray";
 
               Apache [label="Apache 2.4 :80 and :443\l  deploy/apache/caldart.conf\l  terminates TLS (certbot)\l  :80 -> :443, except ACME\l  ProxyTimeout 60\l"];
-              Gunicorn [label="gunicorn 127.0.0.1:8001\l  caldart-web.service\l  deploy/gunicorn.conf.py\l  2 x CPU + 1 workers, max 12\l  timeout 60, preload\l"];
+              Gunicorn [label="gunicorn 127.0.0.1\l  :CALDART_GUNICORN_PORT, 8001 by default\l  caldart-web.service\l  deploy/gunicorn.conf.py\l  2 x CPU + 1 workers, max 12\l  timeout 60, preload\l"];
               Django [label="Django 6 + Wagtail 8\l  caldart.settings.prod\l  /static/ via whitenoise\l"];
               Postgres [label="Postgres in Docker\l  :CALDART_DB_PORT, 5432 by default\l  compose service db\l"];
               Media [label="backend/media/\l  Wagtail uploads;\l  documents/ denied to\l  the web server\l", shape=folder, style=""];
               Env [label="/etc/caldart/caldart.env\l  root:caldart 0640\l  EnvironmentFile for\l  all seven services\l", shape=note, style=""];
 
-              Apache -> Gunicorn [label="HTTP 127.0.0.1:8001\lX-Forwarded-Proto: https\l"];
+              Apache -> Gunicorn [label="HTTP 127.0.0.1:CALDART_GUNICORN_PORT\lX-Forwarded-Proto: https\l"];
               Gunicorn -> Django [label="WSGI\lcaldart.wsgi:application\l", arrowhead=none];
               Django -> Postgres [label="DATABASE_URL\l"];
               Apache -> Media [label="/media/ off disk\l", style=dotted];
@@ -294,9 +299,10 @@ What you are deploying
 
    .. code-block:: text
 
-      browser --HTTPS :443--> Apache 2.4 --HTTP--> gunicorn 127.0.0.1:8001
-      (:80 redirects              |                   |
-       except ACME)               |                   |  caldart-web.service
+      browser --HTTPS :443--> Apache 2.4 --HTTP--> gunicorn 127.0.0.1
+      (:80 redirects              |                   |  :CALDART_GUNICORN_PORT,
+       except ACME)               |                   |  8001 by default
+                                  |                   |  caldart-web.service
                                   |                   |  2 x CPU + 1 workers,
             serves /media/ -------'                   |  max 12, timeout 60
             off disk; documents/ is denied,           v
@@ -582,13 +588,40 @@ the container on the new port, records it, and restarts ``caldart-web``::
 
   sudo deploy/install.sh --db-port 5433
 
+**The gunicorn port.**  The web server reaches gunicorn on ``127.0.0.1`` at a
+port of its own, 8001 by default, and ``--gunicorn-port`` moves it when another
+program on the machine holds 8001::
+
+  sudo deploy/install.sh --gunicorn-port 8101 ...
+
+It is the port of the hop from the web server's proxy to gunicorn, never the
+port the site is served on: browsers still reach the web server on 80 and 443.
+The record keeps it as ``CALDART_GUNICORN_PORT``, and a record without that key
+means 8001.  gunicorn reads it from ``CALDART_GUNICORN_PORT`` in the environment
+file, and every shipped file that names gunicorn's address (both vhosts, both
+snippets, and the nginx upstream) is copied with the port written in, as the
+deploy root is.  The gunicorn step stops before it installs the unit when the
+port is taken (:ref:`deploy-web-service`).
+
+**Moving gunicorn's port on an installed box.**  Run the installer with the
+flag.  It records the port, writes it into the environment file, restarts
+``caldart-web`` on it, and then rewrites the vhost (or the snippet and the
+upstream) and reloads the web server with ``reload-or-restart``, in that order::
+
+  sudo deploy/install.sh --gunicorn-port 8101
+
+The step's own check runs only before the unit is installed, so first check
+that nothing listens on the new port (``ss -ltn "sport = :8101"`` prints only
+its header).  ``upgrade.sh`` takes no such flag and keeps the recorded port.
+
 
 5. Configuration (``steps/configure.sh``)
 =========================================
 
 ``/etc/caldart/caldart.env`` holds every runtime setting.  The step writes it
 once, ``root:caldart``, mode ``0640``, from the **production** template
-``deploy/caldart.env.example``.
+``deploy/caldart.env.example``, and afterwards changes only the gunicorn port
+in it.
 
 .. warning::
 
@@ -624,8 +657,10 @@ file by hand afterwards.
 It also sets ``CSRF_TRUSTED_ORIGINS`` to the ``https://`` form of the same
 hosts, ``DEFAULT_FROM_EMAIL`` from ``--from-email`` (``CalDART
 <noreply@HOST>`` by default), ``BACKUP_DIR`` and ``USER_GUIDE_ROOT`` under the
-deploy root, ``DB_BACKUP_VIA_DOCKER=false``, and ``BACKUP_RETENTION_DAYS=30``;
-with ``--url-prefix``, ``URL_PREFIX`` (``SITE_URL`` must end in it, and
+deploy root, ``DB_BACKUP_VIA_DOCKER=false``, ``BACKUP_RETENTION_DAYS=30``, and
+``CALDART_GUNICORN_PORT`` to the gunicorn port the record names (8001 unless
+``--gunicorn-port`` says otherwise), printing that one line under its stage
+line, a dry run included; with ``--url-prefix``, ``URL_PREFIX`` (``SITE_URL`` must end in it, and
 ``prod.py`` refuses a file where it does not); with ``--tls self-signed``,
 ``SECURE_HSTS_SECONDS=0`` too.  With ``--tls existing`` the HSTS default is
 left as the template has it: the existing site owns HSTS for its host.
@@ -643,10 +678,13 @@ it, and its development and production values.  The Stripe and PayPal keys are
 covered in :doc:`payments-setup`, and what the mail domain needs before
 ``EMAIL_URL`` delivers anything in :doc:`email`.
 
-When the file exists the step says it is leaving it alone and reports any
-``--email-url``, ``--email local``, or ``--from-email`` given on that run as
-ignored.  Change the
-file by hand, then restart the web unit::
+When the file exists the step leaves it alone but for one line: when
+``CALDART_GUNICORN_PORT`` names another port than the record, or the file has
+no such line, it sets the line to the recorded port and writes the file back
+with the same owner and mode, every other line as it was.  Otherwise it says it
+is leaving the file alone.  Either way it reports any ``--email-url``,
+``--email local``, or ``--from-email`` given on that run as ignored.  Change
+anything else in the file by hand, then restart the web unit::
 
   sudoedit /etc/caldart/caldart.env
   sudo systemctl restart caldart-web
@@ -779,6 +817,8 @@ the password.  ``system_admin`` plus ``is_superuser`` is what unlocks
 ``/portal/system`` and the Wagtail admin.
 
 
+.. _deploy-web-service:
+
 8. gunicorn under systemd (``steps/web-service.sh``)
 ====================================================
 
@@ -789,18 +829,32 @@ the password.  ``system_admin`` plus ``is_superuser`` is what unlocks
   sudo systemctl enable caldart-web.service
   sudo systemctl restart caldart-web.service
   curl -sI -H 'Host: caldart.example.org' -H 'X-Forwarded-Proto: https' \
-      http://127.0.0.1:8001/ | head -1
+      http://127.0.0.1:$PORT/ | head -1
 
+``$PORT`` is the gunicorn port, 8001 unless ``--gunicorn-port`` says otherwise.
 The unit is copied with ``/opt/caldart`` replaced by the deploy root, and
-``restart`` both starts a stopped unit and picks up new code on an upgrade.
-The step then waits up to 30 seconds for the ``curl`` to answer ``200``, and on
-a timeout prints the unit's last 30 journal lines and fails.
+``restart`` both starts a stopped unit and picks up new code on an upgrade, or
+a new port on a later install.  The step then waits up to 30 seconds for the
+``curl`` to answer ``200``, and on a timeout prints the unit's last 30 journal
+lines and fails.
+
+Before it installs the unit (no ``caldart-web.service`` in
+``/etc/systemd/system`` yet), the step asks ``ss -ltnH "sport = :PORT"``
+whether anything already listens on the gunicorn port, and stops if something
+does::
+
+  error: port 8001 is already in use on this machine; run install.sh --gunicorn-port PORT to put gunicorn on another port
+
+A later run finds the unit installed, and gunicorn itself holding the port, and
+skips the check.
 
 The unit runs ``/opt/caldart/.venv/bin/gunicorn --config
 /opt/caldart/deploy/gunicorn.conf.py`` as ``caldart``, with
 ``DJANGO_SETTINGS_MODULE=caldart.settings.prod`` and the environment file from
 step 5.  ``deploy/gunicorn.conf.py`` is read in place and finds the Django
-project from its own location.  It binds loopback only, sizes the worker pool
+project from its own location.  It binds loopback only, on
+``CALDART_GUNICORN_PORT`` from the environment file (8001 when the variable is
+unset; Django itself ignores it), sizes the worker pool
 at ``2 × cores + 1`` **capped at 12** (every worker preloads Django and
 Wagtail, so a large machine would otherwise spend its memory on idle
 processes), sets a 60 second worker timeout, logs to stdout, and trusts
@@ -904,19 +958,21 @@ there::
   sudo certbot plugins --init --prepare --installers
   ls /etc/letsencrypt/options-ssl-apache.conf
 
-**The vhost.**  Swap the bootstrap host for the shipped one with the hostname
-and the deploy root written in, and check the syntax before reloading::
+**The vhost.**  Swap the bootstrap host for the shipped one with the hostname,
+the deploy root, and the gunicorn port written in, and check the syntax before reloading::
 
   sudo a2dissite caldart-acme
   sudo rm /etc/apache2/sites-available/caldart-acme.conf
-  sed -e "s#/opt/caldart#$ROOT#g" -e "s/caldart\.example\.org/$HOST/g" \
+  sed -e "s#/opt/caldart#$ROOT#g" -e "s#127.0.0.1:8001#127.0.0.1:$PORT#g" \
+      -e "s/caldart\.example\.org/$HOST/g" \
       deploy/apache/caldart.conf \
       | sudo install -m 0644 /dev/stdin /etc/apache2/sites-available/caldart.conf
   sudo a2ensite caldart
   sudo apachectl configtest
   sudo systemctl reload-or-restart apache2
 
-``$ROOT`` is the deploy root and ``$HOST`` the hostname; the dry run of the
+``$ROOT`` is the deploy root, ``$PORT`` the gunicorn port, and ``$HOST`` the
+hostname; the dry run of the
 step prints the command with the real values.  ``reload-or-restart`` rather
 than ``reload``, because it also starts a web server that is stopped, where a
 plain reload fails.  Under ``--no-www`` a third
@@ -928,7 +984,7 @@ The vhost:
   ``/var/www/certbot`` and redirects everything else to HTTPS with a 301;
 * speaks HTTP/2 and HTTP/1.1 on port 443, with the certbot certificate and
   ``options-ssl-apache.conf``;
-* proxies everything to ``http://127.0.0.1:8001/`` with
+* proxies everything to gunicorn on ``http://127.0.0.1:$PORT/`` with
   ``ProxyPreserveHost On`` and a 60-second ``ProxyTimeout``, matching
   gunicorn's worker timeout;
 * sets ``X-Forwarded-Proto: https`` and ``X-Forwarded-Port: 443`` and drops any
@@ -999,7 +1055,8 @@ both files are there::
 **The vhost.**  Swap the bootstrap server for the shipped one::
 
   sudo rm /etc/nginx/sites-enabled/caldart-acme /etc/nginx/sites-available/caldart-acme
-  sed -e "s#/opt/caldart#$ROOT#g" -e "s/caldart\.example\.org/$HOST/g" \
+  sed -e "s#/opt/caldart#$ROOT#g" -e "s#127.0.0.1:8001#127.0.0.1:$PORT#g" \
+      -e "s/caldart\.example\.org/$HOST/g" \
       deploy/nginx/caldart.conf \
       | sudo install -m 0644 /dev/stdin /etc/nginx/sites-available/caldart
   sudo ln -sfn /etc/nginx/sites-available/caldart /etc/nginx/sites-enabled/caldart
@@ -1023,7 +1080,7 @@ The shipped file:
   ``/var/www/certbot`` and redirects everything else to HTTPS with a 301;
 * speaks HTTP/2 and HTTP/1.1 on port 443, IPv4 and IPv6, with the certbot
   certificate, ``options-ssl-nginx.conf``, and ``ssl-dhparams.pem``;
-* proxies everything to ``http://127.0.0.1:8001`` over HTTP/1.1, passing
+* proxies everything to gunicorn on ``http://127.0.0.1:$PORT`` over HTTP/1.1, passing
   ``Host``, ``X-Real-IP``, ``X-Forwarded-For``, ``X-Forwarded-Proto``,
   ``X-Forwarded-Host``, and ``X-Forwarded-Port``.  ``X-Forwarded-Proto`` is
   ``$scheme``, which is ``https`` on this server; gunicorn only accepts it
@@ -1160,7 +1217,8 @@ For the prefix ``/caldart-proto`` the snippet redirects ``/caldart-proto`` to
 may belong to the members-only collection, and Django's document view is what
 checks that); serves ``/caldart-proto/media/`` off disk with the same headers
 as the full vhost; and proxies everything else under ``/caldart-proto/`` to
-gunicorn on ``127.0.0.1:8001`` with the ``Host`` header preserved,
+gunicorn on ``127.0.0.1`` at the gunicorn port, 8001 unless ``--gunicorn-port``
+says otherwise, with the ``Host`` header preserved,
 ``X-Forwarded-Proto: https``, ``X-Forwarded-Port: 443``, and any inbound
 ``X-Forwarded-Ssl`` or ``X-Forwarded-Protocol`` dropped (gunicorn reads both as
 the scheme too).  The proxy strips the prefix, and Django puts it
@@ -1371,12 +1429,22 @@ missed.  For a site at the root of its host it runs::
       caldart-registry.timer caldart-reports.timer caldart-renewals.timer \
       caldart-reminders.timer caldart-statements.timer
   sudo deploy/compose.sh ps --format '{{.Health}}' db     # healthy
+  curl -sI -H 'Host: caldart.example.org' -H 'X-Forwarded-Proto: https' \
+      http://127.0.0.1:$PORT/
   curl -sk --resolve caldart.example.org:443:127.0.0.1 https://caldart.example.org/
   curl -sk --resolve caldart.example.org:443:127.0.0.1 \
       https://caldart.example.org/portal/login
   sudo deploy/manage.sh health --json
 
-Both ``curl`` requests must answer ``200``, and so must a third: the portal
+``$PORT`` is the gunicorn port, 8001 unless ``--gunicorn-port`` says
+otherwise, and the first ``curl`` asks gunicorn itself with the request step 8
+waits on; a miss is ``gunicorn did not answer 200 on 127.0.0.1:PORT``.  The
+database check reaches the container through ``CALDART_DB_PORT`` from the
+record, as ``deploy/compose.sh`` does, and its failure names the port:
+``the compose db service on 127.0.0.1:PORT is not healthy``.
+
+The two ``curl`` requests through the web server must answer ``200``, and so
+must a third: the portal
 script the sign-in page names (the ``src`` of its ``<script>`` under
 ``/static/``), which proves the static files resolve.  Under a URL prefix
 every path carries it: ``https://HOST/caldart-proto/``,
@@ -1385,8 +1453,12 @@ every path carries it: ``https://HOST/caldart-proto/``,
 machine whatever the DNS says, which holds behind an existing site too, since
 that site's web server is on this machine; ``-k`` accepts a self-signed
 certificate.
-The ``health`` command prints the same report as ``GET /system/health`` and
-the health panel of ``/portal/system``: database connectivity, pending
+With gunicorn answering on its port and the site answering through the web
+server, the vhost proxies to the right port.  The ``health`` command prints the
+same report as ``GET /system/health`` and the health panel of
+``/portal/system``, and depends on neither port: it reaches the database through
+``DATABASE_URL``, which step 5 wrote with the recorded database port.  It
+reports database connectivity, pending
 migrations, free space on the backup filesystem, the last backup, the version
 from ``pyproject.toml``, and whether ``DEBUG`` is on.  The step requires
 ``debug`` to be ``false`` and ``pending_migrations`` to be ``0``.  Then it
@@ -1607,7 +1679,8 @@ nothing to pull, ``install.sh`` again with no flags, and ``uninstall.sh --yes
 --purge``, with Apache by default or nginx with
 ``REHEARSE_WEB_SERVER=nginx``.  ``REHEARSE_URL_PREFIX=/caldart-proto``
 rehearses :ref:`deploy-prefix` instead, behind a stand-in for the existing
-site.  It is the way to try a change to anything
+site; ``REHEARSE_GUNICORN_PORT=8101`` installs with ``--gunicorn-port
+8101``, and ``REHEARSE_DB_PORT=5433`` with ``--db-port 5433``.  It is the way to try a change to anything
 under ``deploy/`` before a server sees it; :ref:`testing-rehearsal` describes
 what it runs and how the container is set up.
 
@@ -1649,7 +1722,8 @@ list so that no upgrade can leave a box without ``caldart_cache``.
 code.  The timers start a fresh process on every run, so they pick up the new
 code by themselves; reinstalling their units carries any change to a unit file.
 
-An upgrade never touches the environment file, the vhost, or the snippet.  A
+An upgrade never touches the environment file, the vhost, or the snippet, and
+takes no ``--gunicorn-port``: gunicorn stays on the port the record names.  A
 change to one is made by hand (``sudoedit`` and a restart), or, for the vhost
 or the snippet, by running ``sudo deploy/steps/web-server.sh``, which rewrites
 it from the shipped file.
@@ -1704,7 +1778,17 @@ page): the existing vhost does not include the snippet.  Add the line
 :ref:`deploy-prefix` shows inside its HTTPS block, or run the installer again
 with ``--attach-to``, then ``sudo deploy/steps/check.sh``.
 
-**502 from Apache.**  gunicorn is not running or not on 8001.  ``systemctl
+**Port 8001 is already in use.**  The gunicorn step found something listening
+on the gunicorn port before it installed ``caldart-web.service``, such as
+another application server.  Run the installer again with a free port, ``sudo
+deploy/install.sh --gunicorn-port 8101``; the record keeps it for every later
+run (:ref:`deploy-sharing`).
+
+**502 from Apache.**  gunicorn is not running or not on the port the vhost
+proxies to: the gunicorn port, 8001 unless ``--gunicorn-port`` says otherwise.
+``CALDART_GUNICORN_PORT`` in ``/etc/caldart/caldart.env`` and the address in the
+vhost must name the same port; ``sudo deploy/install.sh`` writes both from the
+record.  ``systemctl
 status caldart-web``, then ``journalctl -u caldart-web -n 50``; once the cause
 is fixed, ``sudo deploy/steps/web-service.sh`` restarts it and waits for it to
 answer.

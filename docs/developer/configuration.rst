@@ -536,9 +536,9 @@ Production hardening
 ====================
 
 These take effect only in production and all have sensible defaults, so none
-of them is in ``.env.example``.  All but the last are read by ``prod.py``;
-``WEB_CONCURRENCY`` is read by gunicorn's own configuration file and never by
-Django at all.
+of them is in ``.env.example``.  All but the last two are read by ``prod.py``;
+``WEB_CONCURRENCY`` and ``CALDART_GUNICORN_PORT`` are read by gunicorn's own
+configuration file and never by Django at all.
 
 ``SECURE_SSL_REDIRECT``
    Redirect plain HTTP to HTTPS.  Default ``true``.  Only turn it off if
@@ -581,6 +581,15 @@ Django at all.
    Read by ``deploy/gunicorn.conf.py``, not by Django: how many worker
    processes to run.  Defaults to ``2 × cores + 1`` capped at 12, because every
    worker preloads Django and Wagtail.  Set it lower on a small VM.
+
+``CALDART_GUNICORN_PORT``
+   Read by ``deploy/gunicorn.conf.py``, not by Django: the port on
+   ``127.0.0.1`` gunicorn listens on, where the web server's proxy reaches it.
+   It is not the site's port, which is 80 and 443 on the web server.  Default
+   ``8001``.  ``install.sh --gunicorn-port`` writes it into
+   ``/etc/caldart/caldart.env`` and writes the same port into the vhost, so
+   change it with that flag rather than by hand: the two must agree
+   (:ref:`deploy-sharing`).
 
 
 .. _configuration-csp:

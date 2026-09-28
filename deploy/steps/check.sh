@@ -3,7 +3,9 @@
 # CalDART install step - the checks, and the summary.
 #
 # Checks that caldart-web and the six timers are active, that the compose db
-# service is healthy, that the site answers 200 over HTTPS on this machine for
+# service is healthy (the failure names the port the install record publishes
+# it on), that gunicorn itself answers 200 on 127.0.0.1 at the recorded gunicorn
+# port, that the site answers 200 over HTTPS on this machine for
 # / and /portal/login under the URL prefix, that the portal script the sign-in
 # page names answers 200 too (so the static files resolve under the prefix),
 # and that manage.py health reports DEBUG off and no pending migration.  Every miss is an error naming the check, and any miss
@@ -78,6 +80,7 @@ print_dry_run_checks() {
         run systemctl is-active --quiet "$unit"
     done
     run docker compose ps --format '{{.Health}}' db
+    gunicorn_probe run
     for path in "${SITE_PATHS[@]}"; do
         run curl -sk --resolve "$CALDART_HOSTNAME:443:127.0.0.1" \
             "https://$CALDART_HOSTNAME$CALDART_URL_PREFIX$path"
@@ -87,13 +90,29 @@ print_dry_run_checks() {
     "$ROOT/deploy/manage.sh" health --json
 }
 
+# Check that the compose db service is healthy.  docker compose reads the
+# exported CALDART_DB_PORT, as compose.sh's does.
+check_database() {
+    local status
+    status="$(cd "$ROOT" && docker compose ps --format '{{.Health}}' db 2>/dev/null || true)"
+    [[ "$status" == healthy ]] ||
+        fail_check "the compose db service on 127.0.0.1:$CALDART_DB_PORT is not healthy (${status:-not running})"
+}
+
+# Check that gunicorn answers 200 on the recorded port, apart from the web
+# server; the HTTPS checks then show the web server proxies to that port.
+check_gunicorn() {
+    [[ "$(gunicorn_status || true)" == 200 ]] ||
+        fail_check "gunicorn did not answer 200 on 127.0.0.1:$CALDART_GUNICORN_PORT"
+}
+
 run_checks() {
     local unit path status health problems bundle
     for unit in "$WEB_UNIT.service" "${JOB_UNITS[@]/%/.timer}"; do
         systemctl is-active --quiet "$unit" || fail_check "$unit is not active"
     done
-    status="$(cd "$ROOT" && docker compose ps --format '{{.Health}}' db 2>/dev/null || true)"
-    [[ "$status" == healthy ]] || fail_check "the compose db service is not healthy (${status:-not running})"
+    check_database
+    check_gunicorn
     for path in "${SITE_PATHS[@]}"; do
         status="$(site_status "$path" || true)"
         [[ "$status" == 200 ]] ||
