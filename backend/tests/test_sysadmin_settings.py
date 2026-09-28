@@ -284,7 +284,7 @@ def execute_base_settings() -> ModuleType:
 
 
 def test_uploads_and_their_directories_are_readable_by_the_web_server() -> None:
-    """The site writes uploads ``0644`` and their directories ``0755``, whatever its umask."""
+    """Uploads are written ``0644`` and their directories ``0755``, whatever the umask."""
     base = execute_base_settings()
     assert base.FILE_UPLOAD_PERMISSIONS == 0o644
     assert base.FILE_UPLOAD_DIRECTORY_PERMISSIONS == 0o755

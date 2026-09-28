@@ -2998,6 +2998,6 @@ def test_the_dry_run_names_the_code_in_the_checkout_and_the_data_beside_it(
 def test_the_user_step_opens_every_media_directory_to_the_web_server(
     root: Path, etc: Path, tmp_path: Path
 ) -> None:
-    """Each install makes every directory under ``media/`` ``0755``, so Apache can read it."""
+    """Each install makes every directory under ``media/`` ``0755`` for the web server."""
     commands = _commands(_install_dry_run(root, etc, tmp_path))
     assert f"find {root}/media -type d -exec chmod 0755 {{}} +" in commands
