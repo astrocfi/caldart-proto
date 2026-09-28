@@ -22,4 +22,13 @@ describe('AdminNotificationsPage', () => {
       await screen.findByRole('heading', { name: 'Who hears about what' }),
     ).toBeInTheDocument();
   });
+
+  it('ledes with what the screen is for', () => {
+    server.use(...notificationHandlers());
+    renderWithProviders(<AdminNotificationsPage />);
+
+    expect(
+      screen.getByText('Email addresses that receive notification of system changes'),
+    ).toBeInTheDocument();
+  });
 });
