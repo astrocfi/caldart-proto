@@ -70,7 +70,7 @@ def test_missing_insurance_is_not_current() -> None:
 
 
 def test_insurance_summary_format() -> None:
-    """``insurance_summary`` gives both liability limits and the expiry as ``MM/DD/YYYY``."""
+    """``insurance_summary`` gives both limits and the expiry as ``MM/DD/YYYY``."""
     aircraft = AircraftFactory(
         n_number="N4AA",
         insurance_liability_per_occurrence_cents=100_000_000,
