@@ -15,7 +15,6 @@ import { EmptyState } from '@/portal/components/EmptyState';
 import { Page } from '@/portal/components/Page';
 import { StatusChip } from '@/portal/components/StatusChip';
 import { useToast } from '@/portal/components/Toast';
-import { VerifiedMark } from '@/portal/components/VerifiedMark';
 import { AircraftForm } from '@/portal/features/aircraft/AircraftForm';
 import { InsuranceChip } from '@/portal/features/aircraft/InsuranceChip';
 import { ServiceChip } from '@/portal/features/aircraft/ServiceChip';
@@ -26,8 +25,7 @@ import {
   useUpdateAircraft,
 } from '@/portal/features/aircraft/api';
 import { aircraftToValues } from '@/portal/features/aircraft/form';
-import { InsuranceVerificationPanel } from '@/portal/features/verification/InsuranceVerificationPanel';
-import { useCanVerify } from '@/portal/features/verification/useCanVerify';
+import { InsuranceVerificationCard } from '@/portal/features/verification/InsuranceVerificationCard';
 import { changeLine, lastUpdatedLine } from './history';
 import '@/portal/features/aircraft/aircraft.css';
 import './history.css';
@@ -48,12 +46,10 @@ export function AircraftRecordPage(): JSX.Element {
   const update = useUpdateAircraft(aircraftId);
   const remove = useDeleteAircraft(aircraftId);
   const [confirming, setConfirming] = useState(false);
-  const [verifying, setVerifying] = useState(false);
   // Bumped only when the insurance panel saves, so the Details form starts again
   // from the corrected record; an unrelated write (someone else's edit, a
   // background refetch) must not discard whatever the admin is mid-typing there.
   const [formResetKey, setFormResetKey] = useState(0);
-  const canVerify = useCanVerify();
 
   if (knownId && record.isPending) {
     return (
@@ -141,23 +137,14 @@ export function AircraftRecordPage(): JSX.Element {
       actions={
         <>
           <InsuranceChip aircraft={aircraft} />
-          <VerifiedMark verification={aircraft.insurance_verification} />
           <ServiceChip aircraft={aircraft} />
-          {canVerify && !verifying ? (
-            <Button variant="secondary" small onClick={() => setVerifying(true)}>
-              Verify
-            </Button>
-          ) : null}
         </>
       }
     >
-      {verifying ? (
-        <InsuranceVerificationPanel
-          aircraft={aircraft}
-          onSaved={() => setFormResetKey((key) => key + 1)}
-          onClose={() => setVerifying(false)}
-        />
-      ) : null}
+      <InsuranceVerificationCard
+        aircraft={aircraft}
+        onSaved={() => setFormResetKey((key) => key + 1)}
+      />
 
       <Card
         eyebrow={lastUpdatedLine(aircraft.updated_at, aircraft.updated_by ?? null)}
