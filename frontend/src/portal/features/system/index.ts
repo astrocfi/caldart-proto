@@ -1,11 +1,13 @@
-/** System administration screen. */
+/** The System section: Health & Database, Sent Emails, and Scheduled. */
 
 export { BackupsPanel, formatBytes } from './BackupsPanel';
 export { HealthPanel, healthChecks } from './HealthPanel';
 export type { CheckVerdict, HealthCheck } from './HealthPanel';
 export { KIND_LABELS, ReminderLog } from './ReminderLog';
 export { RemindersPanel } from './RemindersPanel';
-export { SystemPage } from './SystemPage';
+export { HealthDatabasePage } from './HealthDatabasePage';
+export { ScheduledPage } from './ScheduledPage';
+export { SentEmailsPage } from './SentEmailsPage';
 export {
   BACKUPS_KEY,
   HEALTH_KEY,

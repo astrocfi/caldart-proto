@@ -1,5 +1,5 @@
 /**
- * The backups panel of `/portal/system`: what is on disk, a button
+ * The backups panel of `/portal/system/health`: what is on disk, a button
  * that takes a fresh dump, and a download link per file.
  */
 import type { JSX } from 'react';

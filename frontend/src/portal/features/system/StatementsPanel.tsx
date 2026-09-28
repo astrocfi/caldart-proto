@@ -1,5 +1,5 @@
 /**
- * The year-end statements panel of `/portal/system`: run the statement sender
+ * The year-end statements panel of `/portal/system/scheduled`: run the statement sender
  * by hand for a chosen year, optionally as a rehearsal, and read who it
  * reached.
  *
@@ -16,7 +16,7 @@ import { Card } from '@/portal/components/Card';
 import { RunActionsTable } from '@/portal/components/RunActionsTable';
 import { useRunStatements } from './api';
 
-/** The year the panel offers by default: the one the timer sends on January 15th. */
+/** The year the panel offers by default: the one the January run sends. */
 export function defaultStatementYear(today: Date = new Date()): number {
   return today.getFullYear() - 1;
 }
@@ -82,11 +82,10 @@ export function StatementsPanel(): JSX.Element {
       }
     >
       <p className="muted">
-        The sender also runs once a year, at 06:45 on January 15th, from the{' '}
-        <code className="mono">caldart-statements</code> timer, for the year before. It emails every
-        active account — a member, a friend, or a donor — that gave a settled contribution in the
-        chosen year, with that year&rsquo;s statement PDF attached. Running it again is harmless: an
-        account already sent a year&rsquo;s statement is not sent it twice.
+        The sender runs once a year in January, for the year before. It emails every active account
+        — a member, a friend, or a donor — that gave a settled contribution in the chosen year, with
+        that year&rsquo;s statement PDF attached. Running it again is harmless: an account already
+        sent a year&rsquo;s statement is not sent it twice.
       </p>
 
       {run.isSuccess ? (

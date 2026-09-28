@@ -2,8 +2,8 @@
  * The renewal-reminder log: what went out, to whom and when, filtered by kind.
  *
  * Read-only, and the same table on both screens that show it — the account
- * administrator's Reminders screen and the reminders panel of
- * `/portal/system`.  Running the scan is a system administrator's control and
+ * administrator's Reminders screen and the renewal reminder emails panel of
+ * `/portal/system/scheduled`.  Running the scan is a system administrator's control and
  * lives in the panel, not here.
  */
 import { useState } from 'react';

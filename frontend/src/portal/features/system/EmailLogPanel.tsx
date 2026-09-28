@@ -1,5 +1,5 @@
 /**
- * The email log panel of `/portal/system`: every message the system has tried
+ * The email log, the body of `/portal/system/emails`: every message the system has tried
  * to send, a page at a time, newest first.
  *
  * The filters are the `emails` report's own, drawn by the shared `FilterBar`

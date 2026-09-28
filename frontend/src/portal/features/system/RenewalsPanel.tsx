@@ -1,10 +1,10 @@
 /**
- * The automatic-renewal panel of `/portal/system`: run the daily scan by hand,
- * optionally as a rehearsal, and read the counts it reports.
+ * The automatic renewal charges panel of `/portal/system/scheduled`: run the
+ * daily scan by hand, optionally as a rehearsal, and read the counts it reports.
  *
- * It sits beside the reminders panel because the two scans are a pair — the
- * renewals one runs first each morning, so a membership it renews is never
- * also nagged about.
+ * It sits right after the renewal reminder emails panel because the two scans
+ * are a pair — the charges run first each morning, so a membership they renew
+ * is never also reminded about.
  *
  * A rehearsal runs on one press.  A real run asks first, because it charges
  * every member whose renewal is due, and a cleared checkbox is a quiet thing
@@ -90,7 +90,7 @@ export function RenewalsPanel(): JSX.Element {
   return (
     <Card
       eyebrow="Membership"
-      title="Automatic renewals"
+      title="Automatic renewal charges"
       footer={
         isConfirming ? (
           <>
@@ -115,11 +115,10 @@ export function RenewalsPanel(): JSX.Element {
       }
     >
       <p className="muted">
-        The scan also runs every morning at 06:30 from the{' '}
-        <code className="mono">caldart-renewals</code> timer, half an hour before the reminders. It
-        sends the fortnight&rsquo;s warning, warns about a card that is about to expire, and charges
-        whatever is due. Running it again is harmless: every scheduled charge records what has
-        already gone out.
+        Charges the saved card or PayPal account of every member whose automatic renewal is due,
+        after emailing a notice two weeks ahead and a warning when the card is about to expire. It
+        runs every morning before the reminder emails, so a member it renews is not also reminded.
+        Running it again is harmless: every scheduled charge records what has already gone out.
       </p>
 
       {isConfirming ? (

@@ -99,7 +99,9 @@ export const NAV_ITEMS: NavItem[] = [
     group: 'Administration',
   },
 
-  { to: '/system', label: 'System', roles: ['system_admin'], group: 'System' },
+  { to: '/system/health', label: 'Health & Database', roles: ['system_admin'], group: 'System' },
+  { to: '/system/emails', label: 'Sent Emails', roles: ['system_admin'], group: 'System' },
+  { to: '/system/scheduled', label: 'Scheduled', roles: ['system_admin'], group: 'System' },
 ];
 
 /** Order the rail renders groups in. */

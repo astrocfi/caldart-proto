@@ -1,5 +1,5 @@
 /**
- * The scheduled-reports panel of `/portal/system`: run the report sender by
+ * The scheduled-reports panel of `/portal/system/scheduled`: run the report sender by
  * hand, optionally as a rehearsal, and read who it reached.
  *
  * The sender mails every report subscription that is due and every DART roster
@@ -47,11 +47,10 @@ export function ReportsPanel(): JSX.Element {
       }
     >
       <p className="muted">
-        The sender also runs every morning at 06:00 from the{' '}
-        <code className="mono">caldart-reports</code> timer. It emails every report subscription
-        that is due and, once a month, each DART&rsquo;s roster to the people ticked to receive it.
-        Running it again is harmless: a subscription that has gone out is not due again until its
-        next date, and a DART gets one roster a month.
+        The sender runs every morning. It emails every report subscription that is due and, once a
+        month, each DART&rsquo;s roster to the people ticked to receive it. Running it again is
+        harmless: a subscription that has gone out is not due again until its next date, and a
+        DART gets one roster a month.
       </p>
 
       {run.isSuccess ? <ReportRunOutcome result={run.data} dryRun={lastRunWasDry} /> : null}
