@@ -2402,3 +2402,85 @@ def test_the_install_dry_run_names_the_gunicorn_port_line(
     """The dry run, which never prints the environment file, still names the port line."""
     result = _install_dry_run(root, etc, tmp_path, "--gunicorn-port", GUNICORN_PORT)
     assert "    with CALDART_GUNICORN_PORT=8101" in result.stdout.splitlines()
+
+
+# -- check.sh and the two ports -----------------------------------------------------
+
+
+def _check_function(
+    root: Path, tmp_path: Path, function: str, *, record: str, curl_status: str = "502"
+) -> subprocess.CompletedProcess[str]:
+    """Run ``function`` from ``check.sh`` with ``record`` as the install record.
+
+    ``curl`` answers every request with ``curl_status`` and ``docker`` finds no
+    container, so the result depends on nothing the machine running the test has.
+    """
+    shims = tmp_path / "check-shims"
+    shims.mkdir()
+    (shims / "curl").write_text(f"#!/bin/sh\nprintf 'HTTP/1.1 {curl_status} X\\r\\n'\n")
+    (shims / "docker").write_text("#!/bin/sh\nexit 1\n")
+    for shim in shims.iterdir():
+        shim.chmod(0o755)
+    etc = tmp_path / "check-etc"
+    etc.mkdir()
+    (etc / "install.conf").write_text(record)
+    return subprocess.run(  # noqa: S603 - fixed argv, BASH is a resolved path
+        [
+            BASH,
+            "-c",
+            f'set -euo pipefail; source "$1"; load_record; {function}',
+            "bash",
+            str(root / "deploy" / "steps" / "check.sh"),
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+        env=_env(etc, PATH=f"{shims}:{os.environ['PATH']}"),
+    )
+
+
+def test_the_check_dry_run_asks_gunicorn_on_the_recorded_port(root: Path, etc: Path) -> None:
+    """The check asks gunicorn itself on the port the install record names."""
+    (etc / "install.conf").write_text(MOVED_RECORD)
+    result = _run(root / "deploy" / "steps" / "check.sh", "--dry-run", env=_env(etc))
+    assert (
+        "curl -sI -H 'Host: caldart.test' -H 'X-Forwarded-Proto: https' http://127.0.0.1:8101/"
+        in _commands(result)
+    )
+
+
+def test_the_check_dry_run_asks_gunicorn_on_8001_by_default(root: Path, etc: Path) -> None:
+    """With no gunicorn port recorded, the check asks port 8001."""
+    (etc / "install.conf").write_text("CALDART_HOSTNAME=caldart.test\n")
+    result = _run(root / "deploy" / "steps" / "check.sh", "--dry-run", env=_env(etc))
+    assert (
+        "curl -sI -H 'Host: caldart.test' -H 'X-Forwarded-Proto: https' http://127.0.0.1:8001/"
+        in _commands(result)
+    )
+
+
+def test_a_gunicorn_that_does_not_answer_fails_the_check(root: Path, tmp_path: Path) -> None:
+    """The check names the port gunicorn did not answer 200 on."""
+    result = _check_function(root, tmp_path, "check_gunicorn", record=MOVED_RECORD)
+    assert _errors(result) == ["error: check failed: gunicorn did not answer 200 on 127.0.0.1:8101"]
+
+
+def test_a_gunicorn_that_answers_passes_the_check(root: Path, tmp_path: Path) -> None:
+    """A ``200`` from gunicorn on the recorded port is no failure."""
+    result = _check_function(
+        root, tmp_path, "check_gunicorn", record=MOVED_RECORD, curl_status="200"
+    )
+    assert _errors(result) == []
+
+
+def test_an_unhealthy_database_check_names_the_port(root: Path, tmp_path: Path) -> None:
+    """The database check's failure names the port the record publishes Postgres on."""
+    result = _check_function(
+        root,
+        tmp_path,
+        "check_database",
+        record="CALDART_HOSTNAME=caldart.test\nCALDART_DB_PORT=5433\n",
+    )
+    assert _errors(result) == [
+        "error: check failed: the compose db service on 127.0.0.1:5433 is not healthy (not running)"
+    ]
