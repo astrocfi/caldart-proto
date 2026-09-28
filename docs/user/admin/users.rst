@@ -1,3 +1,5 @@
+:roles: user_admin
+
 ===============
 Users and roles
 ===============

@@ -1,3 +1,5 @@
+:roles: account_admin, treasurer
+
 =============
 Subscriptions
 =============

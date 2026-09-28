@@ -1,3 +1,5 @@
+:roles: website_admin
+
 ===================
 Settings and themes
 ===================

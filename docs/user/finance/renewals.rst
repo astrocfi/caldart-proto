@@ -1,3 +1,5 @@
+:roles: treasurer, account_admin
+
 ========
 Renewals
 ========
