@@ -695,6 +695,14 @@ share the password documented in this repository's ``README.rst``, so a
 server seeded with them is a demonstration server, never one holding real
 member data.
 
+``seed_demo``'s renewal mandates use the mock payment provider, so the
+scheduled ``caldart-renewals`` and ``caldart-reminders`` jobs have real work
+to do; production leaves that provider off, so on a server seeded with the
+demo data those jobs fail against the seeded mandates until the operator sets
+``PAYMENTS_MOCK_ENABLED_IN_PRODUCTION=true`` in the environment file, the same
+switch that demonstrates checkout with no payment keys
+(``docs/developer/payments-setup.rst``).
+
 Logs
 ----
 

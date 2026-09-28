@@ -137,9 +137,12 @@ E2E_ENV := DJANGO_SETTINGS_MODULE=caldart.settings.dev \
 # checks then confirm the site answers through the proxy.  With REHEARSE_DB_PORT
 # the database container must be published on 127.0.0.1 at that port, and the
 # install's checks, which reach it there, must pass.  With REHEARSE_SEED the
-# install loads the demo accounts and the example pages; the recipe then
-# asserts that manage.sh health --json still passes and that the sign-in page
-# still answers, so seeding disturbed neither.
+# install loads the demo accounts and the example pages; since the demo
+# mandates use the mock payment provider and production leaves it off, the
+# recipe also turns it on and installs postfix, so the scheduled renewal and
+# reminder jobs (step 2) can charge and mail for real, then asserts that
+# manage.sh health --json still passes and that the sign-in page still
+# answers, so seeding disturbed neither.
 #
 # It installs HEAD, never the working tree, because bootstrap.sh clones the
 # checkout: commit before rehearsing.  A git worktree's .git is a file naming a
@@ -447,6 +450,15 @@ rehearse-deploy: ## Rehearse the server install in a throwaway systemd container
 	      || { echo "error: the database container is not published on 127.0.0.1:$$dbport" >&2; exit 1; }; \
 	  fi; \
 	  if [ -n "$$seed" ]; then \
+	    echo "==> Enabling mock payments and postfix, so the seeded jobs can run for real"; \
+	    : "seed_demo's renewal mandates use the mock provider so the scheduled jobs"; \
+	    : "have something to do; production leaves it off, so the demo needs it named"; \
+	    : "here, the same way an operator demonstrating checkout would."; \
+	    inside sh -c 'echo PAYMENTS_MOCK_ENABLED_IN_PRODUCTION=true >> /etc/caldart/caldart.env'; \
+	    inside bash -c "printf '%s\n' 'postfix postfix/main_mailer_type select Internet Site' \
+	      'postfix postfix/mailname string caldart.test' | debconf-set-selections"; \
+	    inside env DEBIAN_FRONTEND=noninteractive apt-get install -y -qq postfix >/dev/null; \
+	    inside systemctl start postfix; \
 	    echo "==> Checking that the demo accounts did not disturb health or sign-in"; \
 	    inside /opt/caldart/deploy/manage.sh health --json >/dev/null \
 	      || { echo "error: manage.sh health --json failed after seeding" >&2; exit 1; }; \
