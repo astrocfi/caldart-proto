@@ -587,12 +587,19 @@ Before the account goes, in the same transaction, the view:
 #. cancels every ``active`` or ``paused`` automatic payment of the member, as an
    administrator's cancellation (the ``renewal.cancel`` audit line ends in
    ``reason=member.delete``), so nothing is charged again and the member is
-   emailed that it is off;
+   emailed that it is off, and throws away a ``pending`` one, which has saved no
+   payment method and told nobody;
 #. when the member has any payment, whatever its status, creates a *tombstone*
    account — a deactivated ``donor`` with no password, no role, and a blank
    profile, named ``Deleted member <id>`` after the deleted account's id, with
-   the address ``deleted-<id>@deleted.invalid`` — and moves every payment to it.
-   Refunds stay on their payments.
+   the address ``deleted-<id>@deleted.invalid`` — and moves every payment to it,
+   clearing each one's ``donor_fields``.  Refunds stay on their payments.
+
+A payment still ``pending`` when it moves can settle later, when the provider or
+the giver's browser confirms it.  It is then marked ``succeeded`` and nothing
+more: a payment the tombstone holds applies no giver's details, grants no term,
+raises no notification, and sends no receipt, so the tombstone keeps its name and
+blank profile and never becomes a member.
 
 The payment list, the ledger, and the donors report name the tombstone as the
 payer; the member list and **Users & roles**, which show active accounts, do
@@ -601,7 +608,8 @@ not list it.  A member who never paid leaves no tombstone.
 The delete is recorded as ``member.delete``, with ``payments=<n>
 owner=<tombstone id>`` when payments moved.  The Wagtail users admin's delete
 view and its **Delete** bulk action hand payments over the same way and write
-the same line (:doc:`data-model`).
+the same line (:doc:`data-model`); the delete view writes it only once the account
+is gone.
 
 Statuses:
 
@@ -740,7 +748,8 @@ Tests
 ``backend/tests/test_members_delete_payments.py``
    Deleting a member who paid: every payment status moving to the tombstone,
    the tombstone's kind, activity, name, address, and profile, the automatic
-   payments canceled, refunds kept on their payments, the audit line, the
+   payments canceled, refunds kept on their payments, a pending gift and a
+   pending plan payment settling after the delete, the audit line, the
    payment list and member list afterwards, the Wagtail single and bulk paths,
    and the ``ProtectedError`` the model still raises on its own.
 ``backend/tests/test_members_admin_status.py``

@@ -305,8 +305,11 @@ def update_member(
 #: The first name every tombstone carries; its last name is the deleted account's id.
 TOMBSTONE_FIRST_NAME = "Deleted member"
 
-#: The tombstone's address, on the reserved ``.invalid`` domain so nothing is ever sent.
-TOMBSTONE_EMAIL = "deleted-{id}@deleted.invalid"
+#: The domain of every tombstone's address, reserved (``.invalid``): nothing is sent.
+TOMBSTONE_DOMAIN = "deleted.invalid"
+
+#: The tombstone's address, on :data:`TOMBSTONE_DOMAIN`.
+TOMBSTONE_EMAIL = "deleted-{id}@" + TOMBSTONE_DOMAIN
 
 
 @dataclass(frozen=True)
@@ -339,14 +342,26 @@ def tombstone_for(target: User) -> User:
     return tombstone
 
 
+def is_tombstone(user: User) -> bool:
+    """Whether ``user`` is a tombstone: a deactivated account on :data:`TOMBSTONE_DOMAIN`.
+
+    A payment a tombstone holds is kept in the books and nothing more: when one that
+    was pending settles, it buys no term and sends no mail.
+    """
+    return not user.is_active and user.email.endswith(f"@{TOMBSTONE_DOMAIN}")
+
+
 @transaction.atomic
 def hand_over_payments(actor: User, target: User) -> PaymentHandover | None:
     """Clear ``target``'s money out of the way of deleting the account, which stays.
 
     Each active or paused automatic payment is canceled by ``actor`` through
-    ``cancel_mandate`` with the audit reason ``member.delete``, which tells the member.
+    ``cancel_mandate`` with the audit reason ``member.delete``, which tells the member;
+    a pending one, which has saved nothing and told nobody, is thrown away.
     Every payment, whatever its status, then moves to a new :func:`tombstone_for`
-    account, refunds and all.  Returns what moved, or ``None`` (and makes no tombstone)
+    account, refunds and all, with any public gift's stored giver details wiped, so a
+    payment still pending cannot write the person back when it settles (see
+    :func:`is_tombstone`).  Returns what moved, or ``None`` (and makes no tombstone)
     when ``target`` never paid.
     """
     # Inline: payments sits above members and apps.payments.services imports this
@@ -354,7 +369,7 @@ def hand_over_payments(actor: User, target: User) -> PaymentHandover | None:
     from apps.payments.models import MandateStatus, Payment
 
     # Inline: renewals imports this module, so a top-level import would close a cycle.
-    from apps.payments.renewals import cancel_mandate
+    from apps.payments.renewals import cancel_mandate, discard_pending_mandate
 
     # Locking the account holds back a payment being written for it until this
     # transaction ends, so none can arrive between the move and the delete.
@@ -364,11 +379,12 @@ def hand_over_payments(actor: User, target: User) -> PaymentHandover | None:
     )
     for mandate in standing:
         cancel_mandate(mandate, actor=actor, reason=audit.MEMBER_DELETE)
+    discard_pending_mandate(target)
     payments = Payment.objects.filter(user=target)
     if not payments.exists():
         return None
     owner = tombstone_for(target)
-    return PaymentHandover(payments=payments.update(user=owner), owner=owner)
+    return PaymentHandover(payments=payments.update(user=owner, donor_fields={}), owner=owner)
 
 
 @transaction.atomic

@@ -7,12 +7,14 @@ surfaces it offers -- the delete view at ``/admin/users/delete/<id>/`` and the
 payments to a tombstone account first, exactly as ``DELETE /admin/members/{id}``
 does (see ``apps.members.services.hand_over_payments``), and let the delete go
 ahead.  Each deleted account is recorded as a ``member.delete`` audit line, naming
-the tombstone when payments moved.
+the tombstone when payments moved; the delete view writes it only once the account
+is gone, so a delete that fails after the handover leaves no such line.
 """
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
+from weakref import WeakKeyDictionary
 
 from django.contrib.auth import get_user_model
 from django.db.models import Model
@@ -26,6 +28,12 @@ from caldart import audit
 if TYPE_CHECKING:
     from wagtail.admin.views.bulk_action import BulkAction
 
+#: The ``member.delete`` line a confirmed delete view owes, held from the handover
+#: until Wagtail reports the account deleted: the account id and the handover fields.
+_PENDING_DELETE_LINES: WeakKeyDictionary[HttpRequest, tuple[int, dict[str, int]]] = (
+    WeakKeyDictionary()
+)
+
 
 # wagtail's hooks.register is untyped, which would otherwise make the hook untyped.
 @hooks.register("before_delete_user")  # type: ignore[untyped-decorator]
@@ -34,10 +42,23 @@ def keep_the_payments_of_a_deleted_user(request: HttpRequest, user: User) -> Htt
 
     Wagtail runs this before it renders the confirmation page as well as before the
     delete itself, so only the confirming ``POST`` moves anything; opening the page
-    changes nothing.  Always returns ``None``, letting Wagtail carry on.
+    changes nothing.  The ``member.delete`` line waits for
+    :func:`record_a_deleted_user`.  Always returns ``None``, letting Wagtail carry on.
     """
     if request.method == "POST":
-        _hand_over_and_record(request, user)
+        _PENDING_DELETE_LINES[request] = (user.pk, _hand_over(request, user))
+    return None
+
+
+# wagtail's hooks.register is untyped, which would otherwise make the hook untyped.
+@hooks.register("after_delete_user")  # type: ignore[untyped-decorator]
+def record_a_deleted_user(request: HttpRequest, _user: User) -> HttpResponse | None:
+    """Write the ``member.delete`` line of the account the delete view just deleted.
+
+    Always returns ``None``, letting Wagtail carry on.
+    """
+    target_id, fields = _PENDING_DELETE_LINES.pop(request)
+    audit.record(audit.MEMBER_DELETE, actor=_actor(request), target=target_id, **fields)
     return None
 
 
@@ -57,15 +78,20 @@ def keep_the_payments_of_bulk_deleted_users(
     user_model = get_user_model()
     for obj in objects:
         if isinstance(obj, user_model):
-            _hand_over_and_record(request, obj)
+            fields = _hand_over(request, obj)
+            audit.record(audit.MEMBER_DELETE, actor=_actor(request), target=obj.pk, **fields)
     return None
 
 
-def _hand_over_and_record(request: HttpRequest, user: User) -> None:
-    """Move ``user``'s payments to a tombstone and write the ``member.delete`` line."""
+def _hand_over(request: HttpRequest, user: User) -> dict[str, int]:
+    """Move ``user``'s payments to a tombstone; return the ``member.delete`` fields."""
+    handover = hand_over_payments(_actor(request), user)
+    return {} if handover is None else handover.audit_fields()
+
+
+def _actor(request: HttpRequest) -> User:
+    """The signed-in account behind a Wagtail delete; ``TypeError`` when there is none."""
     actor = request.user
     if not isinstance(actor, User):
         raise TypeError("A Wagtail delete needs a signed-in account")
-    handover = hand_over_payments(actor, user)
-    fields = {} if handover is None else handover.audit_fields()
-    audit.record(audit.MEMBER_DELETE, actor=actor, target=user.pk, **fields)
+    return actor

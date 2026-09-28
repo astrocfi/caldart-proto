@@ -19,6 +19,7 @@ from django.db.models import ProtectedError
 from django.test import Client
 from pytest_django.fixtures import DjangoCaptureOnCommitCallbacks
 from rest_framework.test import APIClient
+from wagtail.actions.delete import DeleteAction
 
 from apps.accounts.models import AccountKind, User
 from apps.accounts.roles import ACCOUNT_ADMIN, MEMBER, SYSTEM_ADMIN
@@ -26,6 +27,7 @@ from apps.mail.models import EmailLog
 from apps.members.models import MemberProfile, Membership, MembershipPlan
 from apps.members.services import tombstone_for
 from apps.payments.models import MandateStatus, Payment, PaymentStatus, RenewalMandate
+from apps.payments.services import mark_succeeded
 from tests.conftest import audit_messages
 from tests.factories import (
     MemberProfileFactory,
@@ -59,6 +61,10 @@ def bulk_delete_url(users: Iterable[User]) -> str:
 def tombstone_of(target_id: int) -> User:
     """The tombstone account made for the deleted account ``target_id``."""
     return User.objects.get(email=f"deleted-{target_id}@deleted.invalid")
+
+
+#: A public gift's giver, as ``start_donation`` files them on the payment.
+GIVER_FIELDS = {"first_name": "Ana", "last_name": "Bracco", "phone": "415-555-0199"}
 
 
 def audit_lines(audit_log: pytest.LogCaptureFixture, action: str) -> list[str]:
@@ -137,6 +143,82 @@ def test_a_refund_stays_attached_to_its_payment(
 
     refund.refresh_from_db()
     assert refund.payment.user_id == tombstone_of(target_id).pk
+
+
+def test_a_moved_payment_keeps_no_donor_details(
+    account_admin_client: APIClient, payer: User
+) -> None:
+    """A public gift's stored giver details are wiped as it moves to the tombstone."""
+    payment = PaymentFactory(user=payer, plan=None, donor_fields=GIVER_FIELDS)
+
+    account_admin_client.delete(detail_url(payer))
+
+    payment.refresh_from_db()
+    assert payment.donor_fields == {}
+
+
+# --------------------------------------------------------------------------
+# A pending payment that settles after the delete
+# --------------------------------------------------------------------------
+@pytest.fixture
+def settled_after_delete(
+    account_admin_client: APIClient,
+    payer: User,
+    annual_plan: MembershipPlan,
+    django_capture_on_commit_callbacks: DjangoCaptureOnCommitCallbacks,
+) -> int:
+    """Delete ``payer`` holding a pending gift and pending dues, then settle them both.
+
+    Returns the deleted account's id, which names the tombstone the payments moved to.
+    """
+    gift = PaymentFactory(
+        user=payer, plan=None, status=PaymentStatus.PENDING, donor_fields=GIVER_FIELDS
+    )
+    dues = PaymentFactory(user=payer, plan=annual_plan, status=PaymentStatus.PENDING)
+    target_id = payer.pk
+    account_admin_client.delete(detail_url(payer))
+    mail.outbox.clear()
+    with django_capture_on_commit_callbacks(execute=True):
+        mark_succeeded(gift)
+        mark_succeeded(dues)
+    return target_id
+
+
+def test_a_payment_settling_after_the_delete_is_recorded_as_paid(
+    settled_after_delete: int,
+) -> None:
+    """The money that arrives is in the books, under the tombstone."""
+    statuses = set(tombstone_of(settled_after_delete).payments.values_list("status", flat=True))
+    assert statuses == {PaymentStatus.SUCCEEDED}
+
+
+def test_a_gift_settling_after_the_delete_leaves_the_tombstone_named(
+    settled_after_delete: int,
+) -> None:
+    """The giver's name is not written back onto the tombstone."""
+    tombstone = tombstone_of(settled_after_delete)
+    assert tombstone.display_name == f"Deleted member {settled_after_delete}"
+
+
+def test_a_gift_settling_after_the_delete_leaves_the_profile_blank(
+    settled_after_delete: int,
+) -> None:
+    """The giver's phone is not written back onto the tombstone's profile."""
+    assert MemberProfile.objects.get(user=tombstone_of(settled_after_delete)).phone == ""
+
+
+def test_a_plan_payment_settling_after_the_delete_grants_no_term(
+    settled_after_delete: int,
+) -> None:
+    """The tombstone never becomes a member."""
+    assert not Membership.objects.filter(user=tombstone_of(settled_after_delete)).exists()
+
+
+def test_a_payment_settling_after_the_delete_sends_no_mail(
+    settled_after_delete: int,
+) -> None:
+    """No receipt, and nothing else, goes to the tombstone's address."""
+    assert [message.to for message in mail.outbox] == []
 
 
 def test_a_member_who_never_paid_leaves_no_tombstone(
@@ -470,6 +552,26 @@ def test_the_wagtail_delete_is_recorded_with_the_owner(
         f"action=member.delete actor={superuser.pk} target={target_id} "
         f"payments=1 owner={tombstone_of(target_id).pk}"
     ]
+
+
+def test_a_wagtail_delete_that_fails_writes_no_delete_line(
+    wagtail_client: Client,
+    payer: User,
+    annual_plan: MembershipPlan,
+    audit_log: pytest.LogCaptureFixture,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The ``member.delete`` line is written only once the account is really gone."""
+    PaymentFactory(user=payer, plan=annual_plan)
+
+    def refuse(*_args: object, **_kwargs: object) -> None:
+        raise RuntimeError("delete refused")
+
+    monkeypatch.setattr(DeleteAction, "execute", refuse)
+
+    with pytest.raises(RuntimeError, match="delete refused"):
+        wagtail_client.post(WAGTAIL_DELETE_URL.format(pk=payer.pk))
+    assert audit_lines(audit_log, "member.delete") == []
 
 
 def test_the_wagtail_admin_deletes_an_account_that_never_paid(

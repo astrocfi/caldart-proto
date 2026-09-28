@@ -138,9 +138,12 @@ Payments are the organization's financial record, so they are never deleted. Whe
 has paid, the card says how many payment records they have and that they stay in the books
 under the name **Deleted member** followed by the account's number, such as **Deleted member
 5**. That name stands in for the person's on the payment list, a payment's record, and the
-**Donors** tab, and the organization's totals do not change. An automatic
-renewal or recurring donation the person had is turned off first, and they are emailed that it
-is off.
+**Donors** tab, and the organization's totals do not change. An automatic renewal or recurring
+donation the person had is turned off first, and they are emailed that it is off. Anyone
+subscribed to **Automatic payment turned off** (:doc:`notifications`) is told too; the member
+link in that notification no longer opens, because the record is gone. A payment the person
+started but had not finished can still go through afterwards: it joins the books under
+**Deleted member** and buys no membership, and nobody is emailed a receipt.
 
 When somebody has simply left, deactivate them. A deactivated account cannot sign in, stays
 off the member reports, the rosters, and the member check, and keeps its record. A member can

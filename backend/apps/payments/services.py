@@ -22,7 +22,7 @@ from apps.members.models import (
     MembershipSource,
     MembershipStatusChoices,
 )
-from apps.members.services import activate_term
+from apps.members.services import activate_term, is_tombstone
 from apps.payments.models import Payment, PaymentProvider, PaymentStatus, PaymentWallet
 from apps.payments.receipts import send_receipt
 from caldart import events
@@ -177,7 +177,7 @@ def mark_succeeded(
     payment, transitioned = _complete(
         payment, wallet=wallet, raw=raw, provider_ref=provider_ref, fees=(fee_cents, net_cents)
     )
-    if transitioned and not payment.renewal_attempts.exists():
+    if transitioned and not payment.renewal_attempts.exists() and not is_tombstone(payment.user):
         send_receipt(payment)
     return payment
 
@@ -216,7 +216,11 @@ def _complete(
     # whatever the provider's start, confirm and webhook calls did to `raw`.
     from apps.payments.donations import apply_donor_fields
 
-    apply_donor_fields(payment)
+    # A deleted member's payment settles into the books and no further: the tombstone
+    # that holds it takes no giver's details, no term, and no notification.
+    fulfill = not is_tombstone(payment.user)
+    if fulfill:
+        apply_donor_fields(payment)
 
     payment.status = PaymentStatus.SUCCEEDED
     payment.completed_at = timezone.now()
@@ -239,6 +243,8 @@ def _complete(
             "updated_at",
         ]
     )
+    if not fulfill:
+        return payment, True
 
     # Inline: renewals reads this module for create_checkout and mark_failed, so a
     # top-level import here would close the cycle.
