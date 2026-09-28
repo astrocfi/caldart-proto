@@ -114,6 +114,10 @@ E2E_ENV := DJANGO_SETTINGS_MODULE=caldart.settings.dev \
 #   REHEARSE_WEB_SERVER  apache or nginx, what the installer is told to use
 #   REHEARSE_URL_PREFIX  a URL prefix such as /caldart-proto: install behind an
 #                        existing site instead of on a host of its own
+#   REHEARSE_GUNICORN_PORT
+#                        a port such as 8101 for the installer's --gunicorn-port,
+#                        where the web server's proxy reaches gunicorn (default:
+#                        empty, the installer's own default)
 #   REHEARSE_KEEP        a switch: keep the container and its volumes afterwards
 #
 # With REHEARSE_URL_PREFIX the recipe first stands up the existing site: the web
@@ -123,6 +127,11 @@ E2E_ENV := DJANGO_SETTINGS_MODULE=caldart.settings.dev \
 # note that nothing listens on port 25 (the container has no postfix), and that
 # the stand-in page and the redirect of the bare prefix still answer; after the
 # uninstall the vhost must no longer include the snippet and must still load.
+#
+# With REHEARSE_GUNICORN_PORT, after the install the web server's configuration
+# must proxy to 127.0.0.1 on that port and name 8001 nowhere, the environment
+# file must carry the port, and gunicorn must answer 200 there; the install's own
+# checks then confirm the site answers through the proxy.
 #
 # It installs HEAD, never the working tree, because bootstrap.sh clones the
 # checkout: commit before rehearsing.  A git worktree's .git is a file naming a
@@ -134,9 +143,14 @@ E2E_ENV := DJANGO_SETTINGS_MODULE=caldart.settings.dev \
 REHEARSE_WEB_SERVER ?= apache
 REHEARSE_IMAGE := jrei/systemd-ubuntu:24.04
 REHEARSE_URL_PREFIX ?=
+REHEARSE_GUNICORN_PORT ?=
 # A prefix rehearsal gets its own container and volumes, so it can run beside
 # a plain one on the same web server.
-REHEARSE_NAME = caldart-rehearsal-$(REHEARSE_WEB_SERVER)$(if $(REHEARSE_URL_PREFIX),-prefix)
+REHEARSE_NAME = caldart-rehearsal-$(REHEARSE_WEB_SERVER)$(if $(REHEARSE_URL_PREFIX),-prefix)$(if $(REHEARSE_GUNICORN_PORT),-port)
+# The directory the web server in the container reads its configuration from.
+REHEARSE_CONFIG_DIR_apache := /etc/apache2
+REHEARSE_CONFIG_DIR_nginx := /etc/nginx
+REHEARSE_CONFIG_DIR = $(REHEARSE_CONFIG_DIR_$(REHEARSE_WEB_SERVER))
 # Where the stand-in for the existing site's vhost goes, per web server.
 REHEARSE_STANDIN_apache := /etc/apache2/sites-available/standin.conf
 REHEARSE_STANDIN_nginx := /etc/nginx/sites-available/standin
@@ -307,16 +321,19 @@ e2e: ## Playwright end-to-end tests (own database, own server, mock payments; E2
 	  cd frontend && E2E_BASE_URL="$(E2E_SITE_URL)" $(NPM) run e2e \
 	    || { echo; echo "==== last 100 lines of $$logs ===="; dump_logs 100; exit 1; }
 
-rehearse-deploy: ## Rehearse the server install in a throwaway systemd container (REHEARSE_WEB_SERVER=apache|nginx, REHEARSE_URL_PREFIX=/path)
+rehearse-deploy: ## Rehearse the server install in a throwaway systemd container (REHEARSE_WEB_SERVER=apache|nginx, REHEARSE_URL_PREFIX=/path, REHEARSE_GUNICORN_PORT=port)
 	@case "$(REHEARSE_WEB_SERVER)" in apache|nginx) ;; \
 	  *) echo "REHEARSE_WEB_SERVER=$(REHEARSE_WEB_SERVER) is not apache or nginx" >&2; exit 2 ;; esac
 	@case "$(REHEARSE_URL_PREFIX)" in ''|/*) ;; \
 	  *) echo "REHEARSE_URL_PREFIX=$(REHEARSE_URL_PREFIX) does not start with /" >&2; exit 2 ;; esac
+	@case "$(REHEARSE_GUNICORN_PORT)" in ''|[1-9]|[1-9][0-9]|[1-9][0-9][0-9]|[1-9][0-9][0-9][0-9]|[1-9][0-9][0-9][0-9][0-9]) ;; \
+	  *) echo "REHEARSE_GUNICORN_PORT=$(REHEARSE_GUNICORN_PORT) is not a port number" >&2; exit 2 ;; esac
 	@test -z "$$(git status --porcelain)" \
 	  || echo "note: the rehearsal installs HEAD; uncommitted changes are not in it" >&2
 	@set -euo pipefail; \
 	  name=$(REHEARSE_NAME); keep="$(REHEARSE_KEEP_FLAG)"; started=$$(date +%s); \
 	  prefix="$(REHEARSE_URL_PREFIX)"; standin="$(REHEARSE_STANDIN)"; \
+	  port="$(REHEARSE_GUNICORN_PORT)"; \
 	  log=$$(mktemp); \
 	  inside() { docker exec "$$name" "$$@"; }; \
 	  configtest() { \
@@ -326,7 +343,7 @@ rehearse-deploy: ## Rehearse the server install in a throwaway systemd container
 	  cleanup() { \
 	    status=$$?; \
 	    rm -f "$$log"; \
-	    echo "==> rehearsal on $(REHEARSE_WEB_SERVER)$${prefix:+ under $$prefix} took $$(( $$(date +%s) - started ))s and exited $$status"; \
+	    echo "==> rehearsal on $(REHEARSE_WEB_SERVER)$${prefix:+ under $$prefix}$${port:+ with gunicorn on $$port} took $$(( $$(date +%s) - started ))s and exited $$status"; \
 	    if [ -n "$$keep" ]; then \
 	      echo "==> kept $$name; docker exec -it $$name bash to look inside"; \
 	    else \
@@ -378,6 +395,7 @@ rehearse-deploy: ## Rehearse the server install in a throwaway systemd container
 	  else \
 	    set -- --tls self-signed --email-url smtp://localhost:25; \
 	  fi; \
+	  if [ -n "$$port" ]; then set -- "$$@" --gunicorn-port "$$port"; fi; \
 	  inside bash /mnt/caldart/deploy/bootstrap.sh --repo /mnt/caldart --ref "$(REHEARSE_REF)" \
 	    --hostname caldart.test --web-server $(REHEARSE_WEB_SERVER) \
 	    --admin-email admin@caldart.test "$$@" 2>&1 | tee "$$log"; \
@@ -390,6 +408,22 @@ rehearse-deploy: ## Rehearse the server install in a throwaway systemd container
 	    bare=$$(site -o /dev/null -w '%{http_code} %{redirect_url}' "https://caldart.test$$prefix"); \
 	    [ "$$bare" = "301 https://caldart.test$$prefix/" ] \
 	      || { echo "error: https://caldart.test$$prefix answered $$bare, not a redirect to $$prefix/" >&2; exit 1; }; \
+	  fi; \
+	  if [ -n "$$port" ]; then \
+	    echo "==> Checking that the web server proxies to gunicorn on port $$port"; \
+	    inside grep -rqF "127.0.0.1:$$port" $(REHEARSE_CONFIG_DIR) \
+	      || { echo "error: nothing in $(REHEARSE_CONFIG_DIR) proxies to 127.0.0.1:$$port" >&2; exit 1; }; \
+	    if inside grep -rqF "127.0.0.1:8001" $(REHEARSE_CONFIG_DIR); then \
+	      echo "error: $(REHEARSE_CONFIG_DIR) still proxies to 127.0.0.1:8001" >&2; exit 1; \
+	    fi; \
+	    inside grep -qx "CALDART_GUNICORN_PORT=$$port" /etc/caldart/caldart.env \
+	      || { echo "error: /etc/caldart/caldart.env does not set CALDART_GUNICORN_PORT=$$port" >&2; exit 1; }; \
+	    direct=$$(inside curl -s -o /dev/null -w '%{http_code}' -H 'Host: caldart.test' \
+	      -H 'X-Forwarded-Proto: https' "http://127.0.0.1:$$port/"); \
+	    [ "$$direct" = 200 ] \
+	      || { echo "error: gunicorn on 127.0.0.1:$$port answered $$direct, not 200" >&2; exit 1; }; \
+	    site -o /dev/null -w '%{http_code}\n' "https://caldart.test$$prefix/" | grep -qx 200 \
+	      || { echo "error: the site does not answer 200 through the proxy" >&2; exit 1; }; \
 	  fi; \
 	  : "The install started the registry import itself; it downloads the FAA file."; \
 	  echo "==> Running every other scheduled job once, hardening and all"; \
@@ -414,7 +448,7 @@ rehearse-deploy: ## Rehearse the server install in a throwaway systemd container
 	    fi; \
 	    configtest; \
 	  fi; \
-	  echo "==> The rehearsal on $(REHEARSE_WEB_SERVER)$${prefix:+ under $$prefix} passed"
+	  echo "==> The rehearsal on $(REHEARSE_WEB_SERVER)$${prefix:+ under $$prefix}$${port:+ with gunicorn on $$port} passed"
 
 # ----------------------------------------------------------------- lint
 lint: lint-backend lint-shell lint-frontend lint-spelling ## ruff + mypy + shellcheck + tsc + eslint + prettier + contrast + codespell
