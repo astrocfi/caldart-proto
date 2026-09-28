@@ -1,0 +1,12 @@
+/*
+ * The user guide keeps its sidebar and tables of contents hidden until
+ * guide-roles.js has taken out the pages the reader's roles do not reach, so an
+ * entry never appears and then vanishes.  The script clears the class whether
+ * its reads succeed or fail.
+ */
+
+.guide-roles-pending .sidebar-tree,
+.guide-roles-pending .toctree-wrapper,
+.guide-roles-pending .related-pages {
+  visibility: hidden;
+}
