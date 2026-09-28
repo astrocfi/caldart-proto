@@ -60,7 +60,9 @@ Sphinx build requirements for all documentation in this repository. Docstring ru
 
 ## 3. Sphinx Configuration (`conf.py`)
 
-- `docs/conf.py` is deliberately minimal: Sphinx and the `furo` theme, plus
+- `docs/conf.py` is deliberately minimal: Sphinx and the `furo` theme, the local
+  `guide_roles` extension in `docs/_ext/` (pure Python; it reads each user page's `:roles:`
+  field and writes `roles.json`), plus
   `sphinx.ext.graphviz` only when Graphviz's `dot` is installed. Add an extension only when a
   page needs it, and only one that builds on a machine without extra system packages, since
   `-W` turns a missing-tool warning into a failed build.

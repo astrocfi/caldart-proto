@@ -13,6 +13,11 @@ tag and the ``dirhtml`` builder, into the user guide the site serves at
 ``/docs/`` to signed-in members.  The developer guide is outside that build's
 source tree, so a user page never links into it: every reference on a user page
 resolves inside ``docs/user/``, and the guide build needs no special case.
+
+One local extension, ``docs/_ext/guide_roles.py``, reads the ``:roles:`` field a
+user page opens with and writes ``roles.json`` beside the built pages; the site
+reads it to show each reader only the pages their roles reach.  It is pure Python
+and needs nothing installed.
 """
 
 from __future__ import annotations
