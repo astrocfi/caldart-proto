@@ -866,7 +866,9 @@ or builds the whole address from the ``baseURL`` fixture.
 
 ``failOnFlakyTests`` is on in ``playwright.config.ts``.  CI retries a failing
 spec once so the failure is easy to read, but a spec that fails and then passes
-still fails the run: a flaky end-to-end spec is a race somewhere real.
+still fails the run: a flaky end-to-end spec is a race somewhere real.  The browser runs in ``America/Los_Angeles`` (``timezoneId``), the zone Django
+formats the seed's dates in, so a runner on UTC never shows the next day's date
+for a value the seed wrote in the evening.
 
 Writing a spec
 --------------

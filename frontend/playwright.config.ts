@@ -38,6 +38,10 @@ export default defineConfig({
   timeout: 60_000,
   expect: { timeout: 10_000 },
   use: {
+    // The browser is a Californian's: Django formats the seed's dates in
+    // America/Los_Angeles, and a runner on UTC would otherwise show the next
+    // day's date for seven hours every night.
+    timezoneId: 'America/Los_Angeles',
     baseURL,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
