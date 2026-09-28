@@ -9,7 +9,6 @@
 import { ApiError } from '@/portal/api/client';
 import type {
   CaliforniaCounty,
-  IfrRated,
   MedicalType,
   PhotoIdType,
   PilotCertificateType,
@@ -52,13 +51,12 @@ export interface ProfileFormValues {
   emergency_contact_phone_extension: string;
   /* aviation */
   home_airport_identifier: string;
-  home_airport_city: string;
+  secondary_airport_identifier: string;
   /** Empty string means "no DART chosen". */
   dart_id: string;
   air_care_alliance_number: string;
   pilot_certificate_type: PilotCertificateType;
   certificate_number: string;
-  ifr_rated: IfrRated;
   ratings: Rating[];
   medical_type: MedicalType;
   medical_expiration: string;
@@ -94,12 +92,11 @@ export const EMPTY_PROFILE_FORM: ProfileFormValues = {
   emergency_contact_phone: '',
   emergency_contact_phone_extension: '',
   home_airport_identifier: '',
-  home_airport_city: '',
+  secondary_airport_identifier: '',
   dart_id: '',
   air_care_alliance_number: '',
   pilot_certificate_type: 'none',
   certificate_number: '',
-  ifr_rated: 'na',
   ratings: [],
   medical_type: 'none',
   medical_expiration: '',
@@ -134,12 +131,11 @@ export function profileToForm(profile: Profile): ProfileFormValues {
     emergency_contact_phone: profile.emergency_contact_phone,
     emergency_contact_phone_extension: profile.emergency_contact_phone_extension,
     home_airport_identifier: profile.home_airport_identifier,
-    home_airport_city: profile.home_airport_city,
+    secondary_airport_identifier: profile.secondary_airport_identifier,
     dart_id: profile.dart ? String(profile.dart.id) : '',
     air_care_alliance_number: profile.air_care_alliance_number,
     pilot_certificate_type: profile.pilot_certificate_type,
     certificate_number: profile.certificate_number,
-    ifr_rated: profile.ifr_rated,
     ratings: profile.ratings,
     medical_type: profile.medical_type,
     medical_expiration: profile.medical_expiration ?? '',
@@ -175,12 +171,11 @@ export function formToPatch(values: ProfileFormValues): ProfilePatch {
     emergency_contact_phone: normalizePhone(values.emergency_contact_phone),
     emergency_contact_phone_extension: values.emergency_contact_phone_extension.trim(),
     home_airport_identifier: values.home_airport_identifier.trim().toUpperCase(),
-    home_airport_city: values.home_airport_city.trim(),
+    secondary_airport_identifier: values.secondary_airport_identifier.trim().toUpperCase(),
     dart_id: values.dart_id === '' ? null : Number(values.dart_id),
     air_care_alliance_number: values.air_care_alliance_number.trim(),
     pilot_certificate_type: values.pilot_certificate_type,
     certificate_number: values.certificate_number.trim(),
-    ifr_rated: values.ifr_rated,
     ratings: values.ratings,
     medical_type: values.medical_type,
     medical_expiration: values.medical_expiration || null,
@@ -286,9 +281,9 @@ export function validateProfileForm(values: ProfileFormValues): ProfileFormError
     if (extension && !EXTENSION_RE.test(extension)) errors[field] = EXTENSION_MESSAGE;
   }
 
-  const airport = values.home_airport_identifier.trim().toUpperCase();
-  if (airport && !AIRPORT_RE.test(airport)) {
-    errors.home_airport_identifier = AIRPORT_MESSAGE;
+  for (const field of ['home_airport_identifier', 'secondary_airport_identifier'] as const) {
+    const airport = values[field].trim().toUpperCase();
+    if (airport && !AIRPORT_RE.test(airport)) errors[field] = AIRPORT_MESSAGE;
   }
 
   const postal = values.postal_code.trim();

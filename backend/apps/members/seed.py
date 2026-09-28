@@ -23,7 +23,6 @@ from apps.accounts.models import AccountKind, User
 from apps.darts.models import Dart, DartContact
 from apps.members.models import (
     RATING_VALUES,
-    IfrRated,
     MedicalType,
     MemberProfile,
     MembershipPlan,
@@ -53,6 +52,15 @@ DARTS: tuple[tuple[str, str], ...] = (
     ("Santa Rosa", "STS"),
     ("Watsonville", "WVI"),
 )
+
+
+#: The airports a seeded member's home airport falls back to when the DART has none,
+#: and the ones a secondary airport is drawn from.
+SEED_AIRPORTS: tuple[str, ...] = ("SQL", "PAO", "LVK")
+
+#: The chance a seeded pilot has a secondary airport.  Most seeded members are
+#: pilots, so this comes to roughly one member in three.
+SECONDARY_AIRPORT_CHANCE = 0.4
 
 
 #: The one DART the seed puts nobody on, so the demo can show a team being
@@ -170,8 +178,9 @@ def _fixed_profile(darts: list[Dart], towns: Faker, today: date) -> dict[str, An
     """The fixed profile of a demo account left out of the shared random draws.
 
     A private pilot with a third-class medical good for :data:`FIXED_MEDICAL_DAYS`, a
-    driver's license, and the first DART in :data:`DARTS` as home.  Its two towns are
-    the next two from ``towns``, the generator every seeded profile's towns come from.
+    driver's license, the first DART in :data:`DARTS` as home, and no secondary
+    airport.  Its town is the next one from ``towns``, the generator every seeded
+    profile's town comes from.
     """
     dart = darts[0]
     return {
@@ -182,11 +191,9 @@ def _fixed_profile(darts: list[Dart], towns: Faker, today: date) -> dict[str, An
         "postal_code": "94508",
         "county": "Napa",
         "home_airport_identifier": dart.home_airport,
-        "home_airport_city": towns.city(),
         "dart": dart,
         "pilot_certificate_type": PilotCertificateType.PRIVATE,
         "certificate_number": "4207311",
-        "ifr_rated": IfrRated.YES,
         "ratings": ["asel", "instrument"],
         "medical_type": MedicalType.THIRD,
         "medical_expiration": today + timedelta(days=FIXED_MEDICAL_DAYS),
@@ -287,6 +294,20 @@ def seed_plans() -> list[MembershipPlan]:
     return plans
 
 
+def _secondary_airport(draw: float, home_airport: str) -> str:
+    """The secondary airport a uniform ``draw`` in ``[0, 1)`` gives, or blank.
+
+    Blank unless ``draw`` falls below :data:`SECONDARY_AIRPORT_CHANCE`; below it, the
+    same draw picks evenly among :data:`SEED_AIRPORTS` other than ``home_airport``.
+    One draw serves both choices so each pilot takes exactly one value from the
+    seed's random source, whatever the outcome, and every later draw stays put.
+    """
+    if draw >= SECONDARY_AIRPORT_CHANCE:
+        return ""
+    others = [airport for airport in SEED_AIRPORTS if airport != home_airport]
+    return others[int(draw / SECONDARY_AIRPORT_CHANCE * len(others))]
+
+
 def _profile_defaults(
     rng: random.Random,
     faker: Faker,
@@ -302,7 +323,9 @@ def _profile_defaults(
     are given a medical that expired before ``today`` so the leader checks have
     something to fail on.  The DART is drawn from ``darts`` and supplies the
     member's home airport -- never :data:`EMPTY_DART`, which the seed leaves with
-    nobody on it -- while ``towns`` supplies the two town names.
+    nobody on it -- while ``towns`` supplies the town.  A pilot has a secondary
+    airport with the chance :data:`SECONDARY_AIRPORT_CHANCE`, which comes to roughly
+    one member in three (:func:`_secondary_airport`).
     ``certificate`` forces the pilot
     certificate, which the caller uses to make sure every kind appears at least
     once however the draw falls.
@@ -345,6 +368,7 @@ def _profile_defaults(
         ratings = rng.sample(pool, k=rng.choices([0, 1, 2, 3], weights=[35, 35, 20, 10])[0])
 
     dart = rng.choice([candidate for candidate in darts if candidate.name != EMPTY_DART])
+    home_airport = dart.home_airport or rng.choice(SEED_AIRPORTS)
     return {
         "phone": faker.numerify("###-###-####"),
         "phone_alt": faker.numerify("###-###-####") if rng.random() < 0.3 else "",
@@ -356,16 +380,13 @@ def _profile_defaults(
         "county": rng.choice(CA_COUNTIES),
         "emergency_contact_name": faker.name(),
         "emergency_contact_phone": faker.numerify("###-###-####"),
-        "home_airport_identifier": dart.home_airport or rng.choice(["SQL", "PAO", "LVK"]),
-        "home_airport_city": towns.city(),
+        "home_airport_identifier": home_airport,
         "dart": dart,
         "air_care_alliance_number": (faker.numerify("ACA-#####") if rng.random() < 0.35 else ""),
         "pilot_certificate_type": certificate,
         "certificate_number": faker.numerify("#######") if is_pilot else "",
-        "ifr_rated": (
-            rng.choices([IfrRated.YES, IfrRated.NO], weights=[45, 55])[0]
-            if is_pilot
-            else IfrRated.NA
+        "secondary_airport_identifier": (
+            _secondary_airport(rng.random(), home_airport) if is_pilot else ""
         ),
         "ratings": ratings,
         "medical_type": medical_type,

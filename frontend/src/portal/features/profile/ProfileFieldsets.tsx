@@ -44,13 +44,7 @@ import {
   maskPostalCode,
 } from '@/portal/masks';
 import { useAddressSuggestions } from './api';
-import {
-  CERTIFICATE_TYPES,
-  IFR_OPTIONS,
-  MEDICAL_TYPES,
-  PHOTO_ID_TYPES,
-  VOLUNTEER_INTERESTS,
-} from './constants';
+import { CERTIFICATE_TYPES, MEDICAL_TYPES, PHOTO_ID_TYPES, VOLUNTEER_INTERESTS } from './constants';
 import type { Choice } from './constants';
 import type { ProfileFormErrors, ProfileFormValues } from './form';
 import './profile.css';
@@ -61,7 +55,7 @@ type TextKey = {
 }[keyof ProfileFormValues];
 
 /** The form keys holding a coded value, which a `<select>` picks from a list. */
-type CodedKey = 'pilot_certificate_type' | 'ifr_rated' | 'medical_type' | 'photo_id_type';
+type CodedKey = 'pilot_certificate_type' | 'medical_type' | 'photo_id_type';
 
 /** Said once, under the first verified item, so the member knows who checks them. */
 export const VERIFICATION_HINT = 'A DART leader or verifier checks these against the documents.';
@@ -117,7 +111,8 @@ interface TextFieldOptions {
   maxLength?: number;
   size?: number;
   className?: string;
-  hint?: string;
+  /** Under the field: help text, or a verification mark as `coded` takes one. */
+  hint?: ReactNode;
   /** Starred, and only when the caller asked for markers. */
   required?: boolean;
   /**
@@ -392,7 +387,13 @@ export function ProfileFieldsets({
             hint: 'Three characters, omit the leading K',
             mask: maskAirportIdentifier,
           })}
-          {text('home_airport_city', { label: 'Home airport city' })}
+          {text('secondary_airport_identifier', {
+            label: 'Secondary airport',
+            size: 4,
+            placeholder: 'SQL',
+            hint: 'Three characters, omit the leading K',
+            mask: maskAirportIdentifier,
+          })}
           <Field label="DART" error={errors.dart_id} hint="Your primary DART">
             {(props) => (
               <select
@@ -424,12 +425,12 @@ export function ProfileFieldsets({
             className: 'mono',
             required: value.pilot_certificate_type !== 'none',
           })}
-          {coded('ifr_rated', 'IFR rated', IFR_OPTIONS)}
-          {coded('medical_type', 'Medical', MEDICAL_TYPES, mark('medical'))}
+          {coded('medical_type', 'Medical', MEDICAL_TYPES)}
           {text('medical_expiration', {
             label: 'Medical expires',
             type: 'date',
             required: value.medical_type !== 'none',
+            hint: mark('medical'),
           })}
           {coded('photo_id_type', 'Photo ID', PHOTO_ID_TYPES, mark('photo_id'))}
           {text('flight_review_date', { label: 'Last flight review', type: 'date' })}

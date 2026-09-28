@@ -148,7 +148,7 @@ describe('MemberStatusCard', () => {
   it('spells out the certificate, its number and the ratings', () => {
     renderWithProviders(<MemberStatusCard userId={7} status={makeStatus()} today={TODAY} />);
     const row = screen.getByText('Certificate').closest('.leader-row');
-    expect(row).toHaveTextContent('Private · 3181234 · IFR · Instrument');
+    expect(row).toHaveTextContent('Private · 3181234 · Instrument');
   });
 
   it('labels a friend "Friend" and invents neither a plan nor a lifetime', () => {

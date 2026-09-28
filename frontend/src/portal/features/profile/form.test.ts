@@ -76,9 +76,26 @@ describe('formToPatch', () => {
     expect(patch.emergency_contact_phone).toBe('415-555-0111');
     expect(patch.home_airport_identifier).toBe('PAO');
   });
+
+  it('sends the secondary airport upper-cased and trimmed', () => {
+    const patch = formToPatch({ ...EMPTY_PROFILE_FORM, secondary_airport_identifier: ' sql ' });
+    expect(patch.secondary_airport_identifier).toBe('SQL');
+  });
+
+  it.each(['home_airport_city', 'ifr_rated'])('sends no %s', (field) => {
+    expect(field in formToPatch(EMPTY_PROFILE_FORM)).toBe(false);
+  });
 });
 
 describe('validateProfileForm', () => {
+  it.each(['home_airport_identifier', 'secondary_airport_identifier'] as const)(
+    'refuses a %s that is not three letters or digits',
+    (field) => {
+      const errors = validateProfileForm({ ...EMPTY_PROFILE_FORM, [field]: 'PA' });
+      expect(errors[field]).toBe('Use a three-character identifier like PAO, E16, or KLS.');
+    },
+  );
+
   it('accepts a filled-in profile', () => {
     expect(validateProfileForm(profileToForm(makeProfile()))).toEqual({});
   });

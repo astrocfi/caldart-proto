@@ -50,7 +50,6 @@ describe('donorBody', () => {
       city: 'Petaluma',
       state: 'CA',
       pilot_certificate_type: 'private',
-      ifr_rated: 'yes',
       volunteer: { ...EMPTY_DONATION_FORM.volunteer, vol_newsletter: true },
     });
 
@@ -58,7 +57,6 @@ describe('donorBody', () => {
       city: 'Petaluma',
       state: 'CA',
       pilot_certificate_type: 'private',
-      ifr_rated: 'yes',
       vol_newsletter: true,
     });
   });
@@ -66,9 +64,7 @@ describe('donorBody', () => {
   it('leaves out a select left on its default and an unticked box', () => {
     const body = donorBody(FILLED);
 
-    expect(
-      ['pilot_certificate_type', 'ifr_rated', 'vol_newsletter'].some((key) => key in body),
-    ).toBe(false);
+    expect(['pilot_certificate_type', 'vol_newsletter'].some((key) => key in body)).toBe(false);
   });
 });
 

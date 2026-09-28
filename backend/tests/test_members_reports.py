@@ -50,10 +50,12 @@ DOCUMENTED_COLUMNS = (
     "expires_on",
     "certificate",
     "certificate_number",
-    "ifr",
+    "instrument",
     "medical_type",
     "medical_expiration",
     "aircraft",
+    "home_airport",
+    "secondary_airport",
     "city",
     "state",
     "county",
@@ -97,6 +99,8 @@ def reportable(
         phone="415-555-0100",
         city="Palo Alto",
         state="CA",
+        home_airport_identifier="PAO",
+        secondary_airport_identifier="SQL",
         pilot_certificate_type=PilotCertificateType.COMMERCIAL,
         certificate_number="7654321",
         medical_type=MedicalType.SECOND,
@@ -181,10 +185,12 @@ def test_csv_row_content(
     assert row["expires_on"] == (today + timedelta(days=334)).isoformat()
     assert row["certificate"] == "Commercial"
     assert row["certificate_number"] == "7654321"
-    assert row["ifr"] == "Yes"
+    assert row["instrument"] == "Yes"
     assert row["medical_type"] == "Second class"
     assert row["medical_expiration"] == (today + timedelta(days=90)).isoformat()
     assert set(row["aircraft"].split()) == {"N172SP", "N9021K"}
+    assert row["home_airport"] == "PAO"
+    assert row["secondary_airport"] == "SQL"
     assert row["city"] == "Palo Alto"
     assert row["state"] == "CA"
     assert row["joined_on"] == (today - timedelta(days=30)).isoformat()
@@ -244,6 +250,18 @@ def test_csv_blanks_a_missing_certificate_and_medical(
     assert row["medical_type"] == ""
     assert row["medical_expiration"] == ""
     assert row["aircraft"] == ""
+    assert row["instrument"] == ""
+
+
+def test_a_pilot_without_the_instrument_rating_reads_no(
+    account_admin_client: APIClient, reportable: dict[str, User]
+) -> None:
+    """The Instrument cell reads No for a pilot whose ratings leave the instrument out."""
+    profile = reportable["lifer"].profile
+    profile.ratings = ["asel"]
+    profile.save(update_fields=["ratings"])
+    table = read_csv(account_admin_client.get(CSV_URL, ALL_COLUMNS))
+    assert row_for(table, "lifer@example.test")["instrument"] == "No"
 
 
 @pytest.fixture

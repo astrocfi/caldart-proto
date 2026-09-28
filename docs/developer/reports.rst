@@ -339,12 +339,17 @@ certificate          Certificate             yes     Pilot certificate, e.g. ``P
                                                      ``ATP`` for an airline transport
                                                      pilot; blank for none
 certificate_number   Certificate number      no      Certificate number as entered
-ifr                  IFR                     no      ``Yes``, ``No``, or ``Not applicable``
+instrument           Instrument              no      ``Yes`` or ``No`` for a pilot, by
+                                                     whether ``instrument`` is among the
+                                                     ratings; blank for a non-pilot
 medical_type         Medical                 yes     ``BasicMed``, ``Third class``, …;
                                                      blank for none
 medical_expiration   Medical expires         yes     Medical expiry date
 aircraft             Aircraft                yes     N-numbers of the planes the member
                                                      commonly flies, spaced
+home_airport         Home airport            no      Home airport identifier, e.g. ``PAO``
+secondary_airport    Secondary airport       no      Secondary airport identifier; blank
+                                                     when none is on file
 city                 City                    no      City from the profile
 state                State                   no      Two-letter state
 county               County                  no      California county from the profile

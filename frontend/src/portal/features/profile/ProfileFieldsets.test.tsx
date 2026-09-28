@@ -30,12 +30,11 @@ const CONTACT_LABELS = [
 
 const AVIATION_LABELS = [
   'Home airport',
-  'Home airport city',
+  'Secondary airport',
   'DART',
   'Air Care Alliance number',
   'Pilot certificate',
   'Certificate number',
-  'IFR rated',
   'Medical',
   'Medical expires',
   'Photo ID',
@@ -225,11 +224,40 @@ describe('<ProfileFieldsets/>', () => {
     expect(onChange).toHaveBeenCalledWith({ ...EMPTY_PROFILE_FORM, vol_newsletter: true });
   });
 
-  it('asks for the home airport without its leading K', () => {
+  it.each(['Home airport', 'Secondary airport'])(
+    'asks for the %s without its leading K',
+    (label) => {
+      renderFieldsets();
+      expect(screen.getByLabelText(label)).toHaveAccessibleDescription(
+        'Three characters, omit the leading K',
+      );
+    },
+  );
+
+  it('upper-cases the secondary airport identifier as it is typed', async () => {
+    const user = userEvent.setup();
+    const onChange = renderFieldsets();
+
+    await user.type(screen.getByLabelText('Secondary airport'), 'k');
+
+    expect(onChange).toHaveBeenCalledWith({
+      ...EMPTY_PROFILE_FORM,
+      secondary_airport_identifier: 'K',
+    });
+  });
+
+  it('puts the secondary airport right after the home airport', () => {
     renderFieldsets();
-    expect(screen.getByLabelText('Home airport')).toHaveAccessibleDescription(
-      'Three characters, omit the leading K',
+    const aviation = within(screen.getByRole('group', { name: 'Aviation' }));
+    const names = aviation.getAllByRole('textbox').map((box) => box.getAttribute('name'));
+    expect(names.indexOf('secondary_airport_identifier')).toBe(
+      names.indexOf('home_airport_identifier') + 1,
     );
+  });
+
+  it.each(['IFR rated', 'Home airport city'])('offers no %s field', (label) => {
+    renderFieldsets();
+    expect(screen.queryByLabelText(label)).not.toBeInTheDocument();
   });
 
   it('calls the DART field a primary DART', () => {
@@ -332,10 +360,26 @@ describe('<ProfileFieldsets/>', () => {
     renderFieldsets({
       verification: { ...ALL_VERIFIED, medical: NOT_VERIFIED },
     });
-    expect(screen.getByLabelText('Medical')).toHaveAccessibleDescription('Not yet verified');
+    expect(screen.getByLabelText('Medical expires')).toHaveAccessibleDescription(
+      'Not yet verified',
+    );
     expect(screen.getByLabelText('Photo ID')).toHaveAccessibleDescription(
       'Verified by Dana Leader on 2026/05/01',
     );
+  });
+
+  it('leaves the medical class without a mark, since the expiration carries it', () => {
+    renderFieldsets({ verification: NONE_VERIFIED });
+    expect(screen.getByLabelText('Medical')).not.toHaveAccessibleDescription();
+  });
+
+  it('renders the medical mark after the expiration control', () => {
+    renderFieldsets({ verification: { ...ALL_VERIFIED, medical: NOT_VERIFIED } });
+    const expiration = screen.getByLabelText('Medical expires');
+    const medicalMark = screen.getByText('Not yet verified');
+    expect(
+      expiration.compareDocumentPosition(medicalMark) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
   it('says who checks the items once, under the pilot certificate', () => {

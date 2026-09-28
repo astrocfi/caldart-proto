@@ -723,7 +723,6 @@ The pre-flight status card for one member.
      "certificate": {
        "type": "private",
        "number": "3181234",
-       "ifr_rated": "yes",
        "ratings": ["instrument"],
        "verification": {
          "verified": true,

@@ -58,7 +58,6 @@ import type {
   FinancePaymentTerm,
   GrantTermPayload,
   Health,
-  IfrRated,
   InsuranceVerificationPayload,
   LeaderPhotoId,
   LeaderSearchResult,
@@ -196,7 +195,6 @@ const membershipState: Matches<MembershipState, Schemas['MembershipStateEnum']> 
 const termStatus: Matches<MembershipTermStatus, Schemas['MembershipTermStatusEnum']> = true;
 const membershipSource: Matches<MembershipSource, Schemas['SourceEnum']> = true;
 const certificateType: Matches<PilotCertificateType, Schemas['PilotCertificateTypeEnum']> = true;
-const ifrRated: Matches<IfrRated, Schemas['IfrRatedEnum']> = true;
 const rating: Matches<Rating, Schemas['RatingsEnum']> = true;
 const medicalType: Matches<MedicalType, Schemas['MedicalTypeEnum']> = true;
 const ownerType: Matches<OwnerType, Schemas['OwnerTypeEnum']> = true;
@@ -413,7 +411,6 @@ const assertions: readonly true[] = [
   termStatus,
   membershipSource,
   certificateType,
-  ifrRated,
   rating,
   medicalType,
   ownerType,
@@ -569,7 +566,6 @@ const MAPPED_COMPONENTS: readonly (keyof Schemas)[] = [
   'MembershipTermStatusEnum',
   'SourceEnum',
   'PilotCertificateTypeEnum',
-  'IfrRatedEnum',
   'RatingsEnum',
   'MedicalTypeEnum',
   'OwnerTypeEnum',

@@ -51,6 +51,20 @@ PHONE_MESSAGE = "Use a ten-digit number like 415-555-0100."
 RAW_PHONE_LENGTH = 24
 
 
+def airport_identifier(value: str) -> str:
+    """An airport identifier as this system stores it: three characters, or blank.
+
+    A blank value passes: every airport field is optional.  The ICAO spelling is
+    accepted and trimmed, so ``KCRQ`` is stored as ``CRQ``; anything that is not then
+    three letters or digits (``KSQL1``, ``PA-``) raises a ``ValidationError`` carrying
+    ``AIRPORT_IDENTIFIER_MESSAGE``.
+    """
+    value = normalize_airport_identifier(value or "")
+    if value and not AIRPORT_IDENTIFIER_RE.match(value):
+        raise serializers.ValidationError(AIRPORT_IDENTIFIER_MESSAGE)
+    return value
+
+
 class MembershipTermSerializer(serializers.ModelSerializer[Membership]):
     """One row of the membership history in ``GET /me/membership``."""
 
@@ -163,6 +177,9 @@ class ProfileSerializer(serializers.ModelSerializer[MemberProfile]):
     # Wider than the column, so a pasted ICAO identifier is answered with the
     # rule rather than with a complaint about length.
     home_airport_identifier = serializers.CharField(max_length=8, required=False, allow_blank=True)
+    secondary_airport_identifier = serializers.CharField(
+        max_length=8, required=False, allow_blank=True
+    )
     state = serializers.ChoiceField(choices=US_STATE_VALUES)
     county = serializers.ChoiceField(choices=CALIFORNIA_COUNTIES, required=False, allow_blank=True)
     total_hours = serializers.IntegerField(
@@ -195,13 +212,12 @@ class ProfileSerializer(serializers.ModelSerializer[MemberProfile]):
             "member_since",
             # aviation
             "home_airport_identifier",
-            "home_airport_city",
+            "secondary_airport_identifier",
             "dart",
             "dart_id",
             "air_care_alliance_number",
             "pilot_certificate_type",
             "certificate_number",
-            "ifr_rated",
             "ratings",
             "medical_type",
             "medical_expiration",
@@ -283,17 +299,12 @@ class ProfileSerializer(serializers.ModelSerializer[MemberProfile]):
         return value
 
     def validate_home_airport_identifier(self, value: str) -> str:
-        """The home airport as this system stores it: three characters.
+        """The home airport as this system stores it, by :func:`airport_identifier`."""
+        return airport_identifier(value)
 
-        A blank value passes: the field is optional.  The ICAO spelling is
-        accepted and trimmed, so ``KCRQ`` is stored as ``CRQ``; anything that
-        is not then three letters or digits is refused with
-        ``AIRPORT_IDENTIFIER_MESSAGE``.
-        """
-        value = normalize_airport_identifier(value or "")
-        if value and not AIRPORT_IDENTIFIER_RE.match(value):
-            raise serializers.ValidationError(AIRPORT_IDENTIFIER_MESSAGE)
-        return value
+    def validate_secondary_airport_identifier(self, value: str) -> str:
+        """The secondary airport, by the same rule: :func:`airport_identifier`."""
+        return airport_identifier(value)
 
     def validate_postal_code(self, value: str) -> str:
         """Trim the ZIP code, rejecting anything but five digits.

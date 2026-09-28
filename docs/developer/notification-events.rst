@@ -198,8 +198,8 @@ Accounts
        ``user`` or ``aircraft``
 
 ``profile_changed`` names each field by
-``members.labels.profile_field_label``: DART, IFR rated, Address line 1,
-First name, and so on, and otherwise the model field's verbose name with a
+``members.labels.profile_field_label``: DART, Home airport, Secondary airport,
+Address line 1, First name, and so on, and otherwise the model field's verbose name with a
 capital letter (City, California county).  An administrator's edit lists the
 first and last name before the profile fields; the address, the active flag,
 and the kind raise their own events and are not listed.

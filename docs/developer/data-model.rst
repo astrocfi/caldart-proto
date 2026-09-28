@@ -551,26 +551,6 @@ How a term was come by (``Membership.source``).
    * - ``atp``
      - Airline Transport Pilot
 
-.. _choices-ifr-rated:
-
-``IfrRated`` (``apps/members/models.py``)
------------------------------------------
-
-``MemberProfile.ifr_rated``.
-
-.. list-table::
-   :header-rows: 1
-   :widths: 30 70
-
-   * - Value
-     - Label
-   * - ``na``
-     - Not applicable
-   * - ``yes``
-     - Yes
-   * - ``no``
-     - No
-
 .. _choices-medical-type:
 
 ``MedicalType`` (``apps/members/models.py``)
@@ -1689,10 +1669,10 @@ administrators see.  Deleting the account deletes the profile.
      - ``CharField(3)``
      - not null; default ``""``
      - three characters, never a leading ``K``
-   * - ``home_airport_city``
-     - ``CharField(120)``
+   * - ``secondary_airport_identifier``
+     - ``CharField(3)``
      - not null; default ``""``
-     - the town the home airport serves
+     - another airport the member flies from, under the home airport's rule
    * - ``dart``
      - ``ForeignKey`` to ``darts.Dart``, ``SET_NULL``
      - null; default ``NULL``
@@ -1709,14 +1689,11 @@ administrators see.  Deleting the account deletes the profile.
      - ``CharField(40)``
      - not null; default ``""``
      - required by the serializer when a certificate is held
-   * - ``ifr_rated``
-     - ``CharField(4)``, choices :ref:`IfrRated <choices-ifr-rated>`
-     - not null; default ``"na"``
-     - whether the pilot holds an instrument rating
    * - ``ratings``
      - ``JSONField``
      - not null; default ``[]``
-     - a JSON list of rating values (below)
+     - a JSON list of rating values (below); ``instrument`` among them is the one
+       record of an instrument rating
    * - ``medical_type``
      - ``CharField(16)``, choices :ref:`MedicalType <choices-medical-type>`
      - not null; default ``"none"``
@@ -1867,8 +1844,9 @@ that the message a person reads can be specific:
 - A ``medical_type`` other than ``none`` requires a ``medical_expiration``.
 - A ``pilot_certificate_type`` other than ``none`` requires a
   ``certificate_number``.
-- ``postal_code`` is five digits; ``home_airport_identifier`` is three letters
-  or digits, the ICAO ``K`` trimmed.
+- ``postal_code`` is five digits; ``home_airport_identifier`` and
+  ``secondary_airport_identifier`` are each three letters or digits, the ICAO
+  ``K`` trimmed, or blank.
 - Cross-field rules are evaluated against the row **as it would be after the
   write**, so a one-field ``PATCH`` is judged on the whole profile.
 

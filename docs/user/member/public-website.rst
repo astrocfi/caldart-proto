@@ -86,9 +86,9 @@ form:
    here*), and **Phone** are required. The phone box takes ten digits and writes
    the dashes itself.
 #. **Tell us more (optional).** Closed until you open it: your address, city, state,
-   ZIP code, and California county; your home airport and its city; your DART; your
-   Air Care Alliance number, pilot certificate, and whether you are IFR rated; and
-   the volunteer interests you would help with.
+   ZIP code, and California county; your home airport; your DART; your Air Care
+   Alliance number and pilot certificate; and the volunteer interests you would help
+   with.
 #. **Continue to payment.** The form checks the required fields, then shows what you
    are giving and as whom: *You are giving $100.00 as Rosa Delgado
    (rosa@example.org).* **Change** takes you back with everything you typed kept.

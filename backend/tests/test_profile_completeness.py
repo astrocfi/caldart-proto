@@ -53,9 +53,7 @@ def test_a_blank_state_leaves_the_profile_incomplete() -> None:
 
 def test_not_a_pilot_still_counts_as_complete() -> None:
     """A ground-team volunteer has answered the question, so they are done."""
-    profile = MemberProfileFactory(
-        pilot_certificate_type="none", certificate_number="", ifr_rated="na", ratings=[]
-    )
+    profile = MemberProfileFactory(pilot_certificate_type="none", certificate_number="", ratings=[])
     assert profile.is_complete is True
 
 

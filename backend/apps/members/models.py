@@ -29,14 +29,6 @@ class PilotCertificateType(models.TextChoices):
     ATP = "atp", "Airline Transport Pilot"
 
 
-class IfrRated(models.TextChoices):
-    """Whether a pilot holds an instrument rating; ``NA`` for a non-pilot."""
-
-    NA = "na", "Not applicable"
-    YES = "yes", "Yes"
-    NO = "no", "No"
-
-
 class MedicalType(models.TextChoices):
     """The medical certificate a member holds, or ``NONE`` for none on file."""
 
@@ -238,7 +230,7 @@ class MemberProfile(TimestampedModel):
 
     # -- aviation ---------------------------------------------------------
     home_airport_identifier = models.CharField(max_length=3, blank=True)
-    home_airport_city = models.CharField(max_length=120, blank=True)
+    secondary_airport_identifier = models.CharField(max_length=3, blank=True)
     dart = models.ForeignKey(
         "darts.Dart", on_delete=models.SET_NULL, null=True, blank=True, related_name="members"
     )
@@ -247,7 +239,6 @@ class MemberProfile(TimestampedModel):
         max_length=16, choices=PilotCertificateType.choices, default=PilotCertificateType.NONE
     )
     certificate_number = models.CharField(max_length=40, blank=True)
-    ifr_rated = models.CharField(max_length=4, choices=IfrRated.choices, default=IfrRated.NA)
     ratings = models.JSONField(default=list, blank=True)
     medical_type = models.CharField(
         max_length=16, choices=MedicalType.choices, default=MedicalType.NONE

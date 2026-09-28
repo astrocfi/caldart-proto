@@ -179,7 +179,7 @@ describe('MemberCreatePage', () => {
     expect(screen.getByRole('link', { name: 'Cancel' })).toHaveAttribute('href', '/admin/members');
   });
 
-  it.each(['Home airport', 'IFR rated', 'Medical expires', 'Last flight review'])(
+  it.each(['Home airport', 'Secondary airport', 'Medical expires', 'Last flight review'])(
     'labels %s exactly as the member form does',
     (label) => {
       server.use(...createHandlers());

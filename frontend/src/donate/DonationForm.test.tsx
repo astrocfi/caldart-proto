@@ -128,6 +128,19 @@ describe('DonationForm', () => {
     );
   });
 
+  it.each(['IFR rated', 'Home airport city'])(
+    'asks for no %s in the optional section',
+    async (label) => {
+      const user = userEvent.setup();
+      serveGift();
+      renderForm();
+
+      await user.click(await screen.findByText('Tell us more (optional)'));
+
+      expect(screen.queryByLabelText(label)).not.toBeInTheDocument();
+    },
+  );
+
   it('shows what is being given before the payment', async () => {
     serveGift();
     const user = userEvent.setup();

@@ -6,7 +6,7 @@
  * hears about a typo before anything is paid; the server still has the last word.
  */
 import { ApiError } from '@/portal/api/client';
-import type { IfrRated, PilotCertificateType } from '@/portal/api/types';
+import type { PilotCertificateType } from '@/portal/api/types';
 import { normalizePhone } from '@/portal/features/profile/form';
 import { VOLUNTEER_INTERESTS } from '@/portal/features/profile/constants';
 import { EMAIL_MESSAGE, isEmailAddress } from '@/portal/masks';
@@ -28,12 +28,10 @@ export interface DonationFormValues {
   postal_code: string;
   county: string;
   home_airport_identifier: string;
-  home_airport_city: string;
   /** The DART's id as the select holds it, or `''` for none. */
   dart_id: string;
   air_care_alliance_number: string;
   pilot_certificate_type: PilotCertificateType;
-  ifr_rated: IfrRated;
   volunteer: Record<VolunteerField, boolean>;
 }
 
@@ -44,7 +42,6 @@ const OPTIONAL_TEXT = [
   'city',
   'postal_code',
   'home_airport_identifier',
-  'home_airport_city',
   'air_care_alliance_number',
 ] as const;
 
@@ -61,11 +58,9 @@ export const EMPTY_DONATION_FORM: DonationFormValues = {
   postal_code: '',
   county: '',
   home_airport_identifier: '',
-  home_airport_city: '',
   dart_id: '',
   air_care_alliance_number: '',
   pilot_certificate_type: 'none',
-  ifr_rated: 'na',
   volunteer: Object.fromEntries(VOLUNTEER_INTERESTS.map(({ field }) => [field, false])) as Record<
     VolunteerField,
     boolean
@@ -124,7 +119,6 @@ export function donorBody(values: DonationFormValues): DonorBody {
   if (values.pilot_certificate_type !== 'none') {
     body.pilot_certificate_type = values.pilot_certificate_type;
   }
-  if (values.ifr_rated !== 'na') body.ifr_rated = values.ifr_rated;
   for (const { field } of VOLUNTEER_INTERESTS) {
     if (values.volunteer[field]) body[field] = true;
   }
@@ -149,11 +143,9 @@ const DONOR_FORM_FIELDS: readonly (keyof DonationFormValues)[] = [
   'postal_code',
   'county',
   'home_airport_identifier',
-  'home_airport_city',
   'dart_id',
   'air_care_alliance_number',
   'pilot_certificate_type',
-  'ifr_rated',
 ];
 
 /**

@@ -67,11 +67,9 @@ DONOR_PROFILE_FIELDS: tuple[str, ...] = (
     "postal_code",
     "county",
     "home_airport_identifier",
-    "home_airport_city",
     "dart",
     "air_care_alliance_number",
     "pilot_certificate_type",
-    "ifr_rated",
     "vol_mission_pilot",
     "vol_ground_team",
     "vol_exercise_training",
@@ -100,11 +98,9 @@ class DonorFields(TypedDict, total=False):
     postal_code: str
     county: str
     home_airport_identifier: str
-    home_airport_city: str
     dart: Dart | None
     air_care_alliance_number: str
     pilot_certificate_type: str
-    ifr_rated: str
     vol_mission_pilot: bool
     vol_ground_team: bool
     vol_exercise_training: bool

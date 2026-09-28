@@ -24,13 +24,7 @@ import { MemberVerificationPanel } from '@/portal/features/verification/MemberVe
 import { useSetVerifier } from '@/portal/features/verification/api';
 import { draftFromStatus } from '@/portal/features/verification/memberDraft';
 import { useCanGrantVerifier, useCanVerify } from '@/portal/features/verification/useCanVerify';
-import {
-  CERTIFICATE_LABELS,
-  IFR_LABELS,
-  MEDICAL_LABELS,
-  PHOTO_ID_LABELS,
-  ratingLabels,
-} from './labels';
+import { CERTIFICATE_LABELS, MEDICAL_LABELS, PHOTO_ID_LABELS, ratingLabels } from './labels';
 import './leader.css';
 
 const MEMBERSHIP_TONE: Record<MembershipState, StatusTone> = {
@@ -199,7 +193,6 @@ export function MemberStatusCard({ userId, status, today }: MemberStatusCardProp
                   <span className="mono">{status.certificate.number}</span>
                 </>
               ) : null}
-              {` · ${IFR_LABELS[status.certificate.ifr_rated]}`}
               {status.certificate.ratings.length > 0
                 ? ` · ${ratingLabels(status.certificate.ratings)}`
                 : ''}

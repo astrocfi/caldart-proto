@@ -39,12 +39,16 @@ Contact
 Aviation
 ~~~~~~~~
 
-**Home airport** (three characters, with the leading K left off: PAO, E16), **Home
-airport city**, **DART** (your primary Disaster Airlift Response Team, a local
-group of volunteers at one airport; *Not decided yet* if you have not chosen),
-**Air Care Alliance number**, **Pilot certificate**, **Certificate number**, **IFR
-rated**, **Medical**, **Medical expires**, **Photo ID**, **Last flight review**, and
-**Total hours**.
+**Home airport** (three characters, with the leading K left off: PAO, E16),
+**Secondary airport** (another field you fly from, under the same three-character
+rule), **DART** (your primary Disaster Airlift Response Team, a local group of
+volunteers at one airport; *Not decided yet* if you have not chosen), **Air Care
+Alliance number**, **Pilot certificate**, **Certificate number**, **Medical**,
+**Medical expires**, **Photo ID**, **Last flight review**, and **Total hours**.
+
+* **Home airport** and **Secondary airport** each take three letters or digits,
+  upper-cased as you type. Type the four-letter form, such as KSQL, and the K is
+  dropped as the fourth letter arrives, leaving SQL. Either may be left blank.
 
 * **Pilot certificate** offers *Not a pilot*, Student, Sport, Recreational,
   Private, Commercial, and Airline transport pilot.
@@ -52,14 +56,17 @@ rated**, **Medical**, **Medical expires**, **Photo ID**, **Last flight review**,
 * **Photo ID** offers *Not provided*, Driver's license, Passport, State ID card,
   Military ID, and Other. Only the kind of document is recorded, never its number or
   its dates.
-* Under **Pilot certificate**, **Medical**, and **Photo ID** is each one's mark:
-  **Verified** with who verified it and on which day, or **Not yet verified**. Under
-  the first is *A DART leader or verifier checks these against the documents.* You
-  cannot verify them yourself here. Show the documents to a DART leader or a verifier.
+* Under **Pilot certificate**, **Medical expires**, and **Photo ID** is each item's
+  mark: **Verified** with who verified it and on which day, or **Not yet verified**.
+  The medical's mark sits under its expiration date, the date a verifier checks
+  against the certificate. Under the first
+  is *A DART leader or verifier checks these against the documents.* You cannot
+  verify them yourself here. Show the documents to a DART leader or a verifier.
 * **Aircraft**: tick **I fly rented or borrowed aircraft** if you have no airframe
   of your own to list, so a DART leader knows why your list is empty.
 * **Ratings**: ASEL, AMEL, ASES, AMES, Helicopter, and Instrument on one row; CFI,
-  CFII, and MEI on the next.
+  CFII, and MEI on the next. Tick **Instrument** if you hold an instrument rating:
+  it is the one place the profile records it.
 
 Volunteer interests
 ~~~~~~~~~~~~~~~~~~~

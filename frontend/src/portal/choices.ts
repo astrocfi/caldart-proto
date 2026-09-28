@@ -1,7 +1,7 @@
 /**
  * The portal's one vocabulary for the coded profile fields.
  *
- * Every screen that shows a certificate, medical, IFR, or rating code reads its
+ * Every screen that shows a certificate, medical, or rating code reads its
  * wording from here: the profile form's `<select>` options, the admin filter
  * bar, the member report screens and the DART leader's status card.  They had
  * drifted apart — "None" against "Not a pilot" against "No certificate on
@@ -14,7 +14,6 @@
 import type {
   AccountKind,
   CaliforniaCounty,
-  IfrRated,
   MedicalType,
   MembershipState,
   PaymentProvider,
@@ -40,12 +39,6 @@ export const CERTIFICATE_TYPES: Choice<PilotCertificateType>[] = [
   { value: 'private', label: 'Private' },
   { value: 'commercial', label: 'Commercial' },
   { value: 'atp', label: 'Airline transport pilot' },
-];
-
-export const IFR_OPTIONS: Choice<IfrRated>[] = [
-  { value: 'na', label: 'Not applicable' },
-  { value: 'yes', label: 'Yes' },
-  { value: 'no', label: 'No' },
 ];
 
 export const MEDICAL_TYPES: Choice<MedicalType>[] = [
@@ -275,20 +268,6 @@ function asRecord<Value extends string>(choices: readonly Choice<Value>[]): Reco
 export const CERTIFICATE_LABELS = asRecord(CERTIFICATE_TYPES);
 export const MEDICAL_LABELS = asRecord(MEDICAL_TYPES);
 export const RATING_LABELS = asRecord(RATINGS);
-
-/**
- * IFR read *on its own*.
- *
- * `IFR_OPTIONS` answers the form's question — "IFR rated? Yes / No / Not
- * applicable" — which is meaningless printed alone on a status card, where the
- * value has to say what it means without the question.  Both renderings live
- * here so there is still one file to edit when the wording changes.
- */
-export const IFR_LABELS: Record<IfrRated, string> = {
-  na: 'Not stated',
-  yes: 'IFR',
-  no: 'VFR only',
-};
 
 /** The label for a certificate type code. */
 export const certificateLabel = (value: string): string => labelFor(CERTIFICATE_TYPES, value);

@@ -171,9 +171,8 @@ test('a leader verifies a pilot, who verifies an airplane and then edits a medic
   await expires.fill(dayAfter(current));
   await page.getByRole('button', { name: 'Save profile' }).click();
   await expect(page.getByText('Profile saved.')).toBeVisible();
-  await expect(
-    page.getByRole('combobox', { name: 'Medical', exact: true }),
-  ).toHaveAccessibleDescription(/Not yet verified/);
+  // The medical's mark sits under the expiration date, the field a verifier checks.
+  await expect(expires).toHaveAccessibleDescription(/Not yet verified/);
   await expect(
     page.getByRole('combobox', { name: 'Pilot certificate', exact: true }),
   ).toHaveAccessibleDescription(new RegExp(`Verified by ${leaderName} on`));

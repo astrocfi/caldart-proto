@@ -8,7 +8,7 @@
 import type { JSX } from 'react';
 
 import type { DonationsConfig } from '@/portal/api/types';
-import { CERTIFICATE_TYPES, IFR_OPTIONS } from '@/portal/choices';
+import { CERTIFICATE_TYPES } from '@/portal/choices';
 import { Field } from '@/portal/components/Field';
 import { MaskedInput } from '@/portal/components/MaskedInput';
 import { VOLUNTEER_INTERESTS } from '@/portal/features/profile/constants';
@@ -17,8 +17,7 @@ import type { DonationFormValues } from './form';
 import '@/portal/features/profile/profile.css';
 
 /** The optional fields a plain text box edits. */
-type TextKey =
-  'address_line1' | 'address_line2' | 'city' | 'home_airport_city' | 'air_care_alliance_number';
+type TextKey = 'address_line1' | 'address_line2' | 'city' | 'air_care_alliance_number';
 
 export interface DonorDetailsProps {
   value: DonationFormValues;
@@ -116,7 +115,6 @@ export function DonorDetails({ value, onChange, config }: DonorDetailsProps): JS
             />
           )}
         </Field>
-        {text('home_airport_city', 'Home airport city')}
         <Field label="DART">
           {(props) => (
             <select
@@ -149,24 +147,6 @@ export function DonorDetails({ value, onChange, config }: DonorDetailsProps): JS
               }
             >
               {CERTIFICATE_TYPES.map((choice) => (
-                <option key={choice.value} value={choice.value}>
-                  {choice.label}
-                </option>
-              ))}
-            </select>
-          )}
-        </Field>
-        <Field label="IFR rated">
-          {(props) => (
-            <select
-              {...props}
-              name="ifr_rated"
-              value={value.ifr_rated}
-              onChange={(event) =>
-                set('ifr_rated', event.target.value as DonationFormValues['ifr_rated'])
-              }
-            >
-              {IFR_OPTIONS.map((choice) => (
                 <option key={choice.value} value={choice.value}>
                   {choice.label}
                 </option>
