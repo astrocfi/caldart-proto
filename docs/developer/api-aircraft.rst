@@ -588,8 +588,8 @@ At most eight registrations come back, in N-number order, each in the shape
 
 A ``q`` shorter than two characters after normalizing (``N`` alone, or none at
 all) answers an empty list rather than an error, so the box may ask on every
-keystroke.  The prefix match is served by the ``aircraft_registration_prefix``
-index (:doc:`aircraft-registry`).
+keystroke.  The prefix match is served by the ``varchar_pattern_ops`` index
+Django builds for the unique ``n_number`` (:doc:`aircraft-registry`).
 
 Statuses:
 

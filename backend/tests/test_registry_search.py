@@ -110,13 +110,16 @@ def test_searching_needs_a_signed_in_user(api_client: APIClient) -> None:
     assert api_client.get(SEARCH_URL, {"q": "N1"}).status_code == 401
 
 
-def test_the_prefix_index_is_on_the_registrations_n_number() -> None:
-    """``aircraft_registration_prefix`` indexes ``n_number`` for ``LIKE`` prefixes."""
+def test_a_pattern_ops_index_serves_the_registrations_n_number_prefix() -> None:
+    """Django's ``_like`` index on the unique ``n_number`` uses ``varchar_pattern_ops``.
+
+    A ``LIKE 'N17%'`` prefix match cannot use a plain B-tree under a non-C collation;
+    the operator class compares character by character, so the typeahead's query can.
+    """
     with connection.cursor() as cursor:
         cursor.execute(
-            "SELECT indexdef FROM pg_indexes WHERE indexname = %s",
-            ["aircraft_registration_prefix"],
+            "SELECT indexdef FROM pg_indexes WHERE tablename = %s AND indexdef LIKE %s",
+            [Registration._meta.db_table, "%(n_number varchar_pattern_ops)%"],
         )
-        row = cursor.fetchone()
-    assert row is not None
-    assert "(n_number varchar_pattern_ops)" in row[0]
+        rows = cursor.fetchall()
+    assert len(rows) == 1

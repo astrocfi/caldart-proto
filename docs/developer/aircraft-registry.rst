@@ -290,11 +290,11 @@ any other.
 
 The search normalizes ``q`` with ``normalize_n_number`` and matches with
 ``n_number__startswith``, a ``LIKE 'N17%'`` query.  Under the database's
-collation a plain B-tree index cannot serve a ``LIKE`` prefix, so the
-registrations carry a second index on ``n_number``,
-``aircraft_registration_prefix``, built with the ``varchar_pattern_ops`` operator
-class, which compares character by character and can.  The search reads a
-handful of index entries whatever the size of the registry.
+collation a plain B-tree index cannot serve a ``LIKE`` prefix.  ``n_number`` is
+unique, and on Postgres Django gives every unique or indexed character column a
+second index built with the ``varchar_pattern_ops`` operator class, which
+compares character by character and can; that index is what the search uses.
+It reads a handful of index entries whatever the size of the registry.
 
 
 Hand-added types

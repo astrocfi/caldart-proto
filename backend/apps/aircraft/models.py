@@ -149,8 +149,9 @@ class Registration(models.Model):
     """One N-number as the FAA registry holds it: the type, the year, and the registrant.
 
     ``n_number`` is stored normalized as ``Aircraft.n_number`` is, with the leading
-    ``N``, and indexed for prefix matching as ``aircraft_registration_prefix``.  No
-    address is kept.
+    ``N``.  Its uniqueness gives it, on Postgres, a second index built with
+    ``varchar_pattern_ops``, which is what serves the N-number typeahead's prefix
+    match.  No address is kept.
     """
 
     n_number = models.CharField("N-number", max_length=6, unique=True)
@@ -170,16 +171,6 @@ class Registration(models.Model):
 
     class Meta:
         ordering = ["n_number"]
-        indexes = [
-            # The N-number typeahead matches on a prefix (``LIKE 'N17%'``), which a
-            # plain btree cannot serve under a non-C collation; ``varchar_pattern_ops``
-            # compares character by character, so it can.
-            models.Index(
-                fields=["n_number"],
-                name="aircraft_registration_prefix",
-                opclasses=["varchar_pattern_ops"],
-            ),
-        ]
 
     def __str__(self) -> str:
         """Return the N-number."""
