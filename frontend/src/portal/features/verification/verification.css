@@ -11,7 +11,7 @@
   margin-block: var(--space-3);
 }
 
-/* The Verification card on the member record: one line per item. */
+/* The Verification card on the member and aircraft records: one line per item. */
 .verification-items {
   list-style: none;
   margin: 0 0 var(--space-3);

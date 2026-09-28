@@ -317,17 +317,17 @@ describe('AircraftRecordPage', () => {
     expect(await screen.findByText('No such aircraft')).toBeInTheDocument();
   });
 
-  it('marks the insurance with who verified it and when', async () => {
+  it('opens with a Verification card that marks the insurance and its verifier', async () => {
     server.use(http.get(`${API}/aircraft/1`, () => HttpResponse.json(makeDetail())));
     renderRecord();
 
-    expect(await screen.findByText('Verified')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Verification' })).toBeInTheDocument();
     expect(screen.getByText('Verified').parentElement).toHaveTextContent(
       /^Verified by Dana Leader on 2026\/05\/01$/,
     );
   });
 
-  it('verifies the insurance from the record for an administrator', async () => {
+  it('verifies the insurance from the Verification card for an administrator', async () => {
     const user = userEvent.setup();
     const calls = emptyVerificationCalls();
     server.use(

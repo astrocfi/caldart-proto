@@ -13,14 +13,16 @@ What you see
 ============
 
 The N-number heads the page, with the make and model under it and the insurance chip
-(**Insured**, **Expiring soon**, **Insurance expired**, or **No insurance on file**) at the
-right. Beside the chip are the insurance's mark (**Verified** with who verified it and on
-which day, or **Not verified**), **Out of service** when the airplane is out of service,
-and **Verify**.
+(**Insured**, **Expiring soon**, **Insurance expired**, or **No insurance on file**) and
+**Out of service** (when the airplane is out of service) at the right.
 
-**Verify** opens the same verification panel as the :doc:`aircraft-check`: correct the
-policy against its documents, tick **Insurance verified**, and press **Save**. *Verification
-saved* confirms it, and the form below starts again from the saved record.
+A **Verification** card heads the page below that, the same as on a :doc:`member-record`.
+It lists **Insurance**, with what the record holds (such as *Avemco · AV-00012345 ·
+$1,000,000 / $100,000 · expires 2027/03/01*, or *Not on file* with nothing recorded) and its
+mark: **Verified** with who verified it and on which day, or **Not verified**. **Verify**
+opens the same verification panel as the :doc:`aircraft-check`: correct the policy against
+its documents, tick **Insurance verified**, and press **Save**. *Verification saved*
+confirms it, the card returns, and the form below starts again from the saved record.
 
 **Details** is the form, headed by a line such as *Last updated 2026/09/01 by Dana Fiske*:
 the date of the last change and the account behind it. A record nobody has changed since it
