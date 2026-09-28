@@ -31,6 +31,10 @@ E2E_PORT ?= 8021
 E2E_DB ?= caldart_e2e
 E2E_DATABASE_URL ?= postgres://caldart:caldart@localhost:5432/$(E2E_DB)
 E2E_LOG ?= /tmp/caldart-e2e-server.log
+# The proxy's own log, so its writes never interleave with runserver's in E2E_LOG:
+# runserver truncates its log at the start of each run, and a shared file appended
+# to by both processes would corrupt whichever wrote second.
+E2E_PROXY_LOG := $(E2E_LOG).proxy
 E2E_MAIL_DIR := $(abspath frontend/e2e/.mail)
 # The run cannot call Geoapify, so a static file server on the next port answers
 # every address-suggestion request with the one recorded response in this directory.
@@ -252,6 +256,12 @@ coverage-frontend: ## vitest with coverage; writes frontend/coverage/
 	cd frontend && $(NPM) run coverage
 
 e2e: ## Playwright end-to-end tests (own database, own server, mock payments; E2E_URL_PREFIX=/path)
+	@case "$(E2E_URL_PREFIX)" in \
+	  '') ;; \
+	  */) echo "E2E_URL_PREFIX=$(E2E_URL_PREFIX) must not end with /" >&2; exit 2 ;; \
+	  /*) ;; \
+	  *) echo "E2E_URL_PREFIX=$(E2E_URL_PREFIX) must start with /" >&2; exit 2 ;; \
+	esac
 	@# CI creates the database with psql, having no compose services to exec into.
 	@test -n "$(SKIP_CREATEDB)" \
 	  || $(MAKE) --no-print-directory createdb DATABASE_URL="$(E2E_DATABASE_URL)"
@@ -271,28 +281,31 @@ e2e: ## Playwright end-to-end tests (own database, own server, mock payments; E2
 	  server=$$!; \
 	  proxy=; \
 	  if test -n "$(E2E_URL_PREFIX)"; then \
+	    : > $(E2E_PROXY_LOG); \
 	    $(UV) run python $(E2E_PROXY) --port $(E2E_PORT) --upstream-port $(E2E_SERVER_PORT) \
-	      --prefix "$(E2E_URL_PREFIX)" >> $(E2E_LOG) 2>&1 & \
+	      --prefix "$(E2E_URL_PREFIX)" >> $(E2E_PROXY_LOG) 2>&1 & \
 	    proxy=$$!; \
 	  fi; \
 	  trap 'pkill -P $$server >/dev/null 2>&1; kill $$server >/dev/null 2>&1; \
 	        pkill -P $$geoapify >/dev/null 2>&1; kill $$geoapify >/dev/null 2>&1; \
 	        test -z "$$proxy" || { pkill -P $$proxy >/dev/null 2>&1; kill $$proxy >/dev/null 2>&1; }; \
 	        true' EXIT INT TERM; \
+	  logs="$(E2E_LOG)"; test -z "$$proxy" || logs="$$logs and $(E2E_PROXY_LOG)"; \
+	  dump_logs() { tail -n "$$1" $(E2E_LOG); test -z "$$proxy" || tail -n "$$1" $(E2E_PROXY_LOG); }; \
 	  for i in $$(seq 1 60); do \
 	    curl -sf -o /dev/null "$(E2E_SITE_URL)/portal/login" && break; \
 	    sleep 1; \
-	    test $$i -lt 60 || { echo "Django did not start; see $(E2E_LOG)" >&2; tail -20 $(E2E_LOG) >&2; exit 1; }; \
+	    test $$i -lt 60 || { echo "Django did not start; see $$logs" >&2; dump_logs 20 >&2; exit 1; }; \
 	  done; \
 	  bundle=$$(curl -s "$(E2E_SITE_URL)/portal/login" \
 	    | sed -n 's#.*src="\($(E2E_URL_PREFIX)/static/[^"]*\.js\)".*#\1#p' | head -1); \
 	  test -n "$$bundle" \
-	    || { echo "The portal shell names no bundle; see $(E2E_LOG)" >&2; tail -20 $(E2E_LOG) >&2; exit 1; }; \
+	    || { echo "The portal shell names no bundle; see $$logs" >&2; dump_logs 20 >&2; exit 1; }; \
 	  curl -sf -o /dev/null "$(E2E_ORIGIN)$$bundle" \
 	    || { echo "The portal bundle $$bundle is not served — the SPA would never start." >&2; \
-	         tail -20 $(E2E_LOG) >&2; exit 1; }; \
+	         dump_logs 20 >&2; exit 1; }; \
 	  cd frontend && E2E_BASE_URL="$(E2E_SITE_URL)" $(NPM) run e2e \
-	    || { echo; echo "==== last 100 lines of $(E2E_LOG) ===="; tail -100 $(E2E_LOG); exit 1; }
+	    || { echo; echo "==== last 100 lines of $$logs ===="; dump_logs 100; exit 1; }
 
 rehearse-deploy: ## Rehearse the server install in a throwaway systemd container (REHEARSE_WEB_SERVER=apache|nginx, REHEARSE_URL_PREFIX=/path)
 	@case "$(REHEARSE_WEB_SERVER)" in apache|nginx) ;; \

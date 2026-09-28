@@ -849,9 +849,12 @@ nginx snippet:
   without its prefix fails the run instead of reaching Django by accident;
 * an unreachable Django answers ``502``.
 
-Its log joins the server's in ``E2E_LOG``.  The proxy is Python kept beside the
-specs it serves, and ``make lint`` checks it with ruff and mypy like the
-backend; ``backend/tests/test_e2e_prefix_proxy.py`` covers its routing.
+Its log is ``E2E_LOG`` with a ``.proxy`` suffix, kept apart from the server's
+own so the two processes never interleave writes into one file; the target
+tails both when startup fails or a spec run reports failures.  The proxy is
+Python kept beside the specs it serves, and ``make lint`` checks it with ruff
+and mypy like the backend; ``backend/tests/test_e2e_prefix_proxy.py`` covers
+its routing.
 Playwright's ``baseURL`` becomes ``http://localhost:<E2E_PORT>/caldart-proto/``,
 and CI's **e2e-prefix** job runs this variant beside the plain one.
 
@@ -1002,7 +1005,9 @@ from other end-to-end runs on the same machine:
 ``E2E_LOG``
    Where the Django server's stdout and stderr are captured.  Defaults to
    ``/tmp/caldart-e2e-server.log``; the target tails it automatically when
-   startup fails or a spec run reports failures.
+   startup fails or a spec run reports failures.  Under ``E2E_URL_PREFIX``, the
+   prefix proxy's own output goes to ``$(E2E_LOG).proxy`` and is tailed
+   alongside it.
 ``SKIP_CREATEDB``
    When set to any non-empty value, skips the ``make createdb`` step and
    assumes the database already exists.  CI sets this because it creates the
@@ -1011,8 +1016,12 @@ from other end-to-end runs on the same machine:
 ``E2E_BASE_URL``
    Read by ``frontend/playwright.config.ts``, not by the Makefile: the URL the
    specs open in the browser.  ``make e2e`` sets it to
-   ``http://localhost:$(E2E_PORT)``; running Playwright by hand against an
-   already-running server needs it set explicitly.
+   ``http://localhost:$(E2E_PORT)$(E2E_URL_PREFIX)``, empty ``E2E_URL_PREFIX``
+   giving the plain host; ``playwright.config.ts`` always ends it in a slash,
+   and every spec navigates and requests with a path relative to it rather
+   than an absolute one, so the same spec passes under either variant.
+   Running Playwright by hand against an already-running server needs it set
+   explicitly.
 ``CI``
    Also read by ``playwright.config.ts``.  When set, Playwright forbids
    ``test.only``, retries a failing spec once, and switches its reporter to a

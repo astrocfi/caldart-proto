@@ -48,7 +48,14 @@ class _RecordingHandler(BaseHTTPRequestHandler):
     """An upstream that answers every request with a JSON echo of what it received."""
 
     def _echo(self) -> None:
-        """Answer with the method, path, headers and body this request carried."""
+        """Answer with the method, path, headers and body this request carried.
+
+        Every header is kept, including a name sent more than once, so a test can tell a
+        header the proxy replaced from one it merely added alongside the client's own.
+        ``/hop-by-hop-response`` additionally answers with a ``Connection`` header of its
+        own, to prove the proxy strips it rather than relaying the upstream's hop-by-hop
+        header to the client.
+        """
         length = int(self.headers.get("Content-Length", "0"))
         body = self.rfile.read(length).decode() if length > 0 else ""
         if self.path == "/redirect":
@@ -61,13 +68,15 @@ class _RecordingHandler(BaseHTTPRequestHandler):
             {
                 "method": self.command,
                 "path": self.path,
-                "headers": {key.lower(): value for key, value in self.headers.items()},
+                "headers": [[key.lower(), value] for key, value in self.headers.items()],
                 "body": body,
             }
         ).encode()
         self.send_response(201)
         self.send_header("Content-Type", "application/json")
         self.send_header("Set-Cookie", "sessionid=abc; Path=/")
+        if self.path == "/hop-by-hop-response":
+            self.send_header("Connection", "keep-alive")
         self.send_header("Content-Length", str(len(payload)))
         self.end_headers()
         self.wfile.write(payload)
@@ -76,8 +85,24 @@ class _RecordingHandler(BaseHTTPRequestHandler):
         """Echo a GET."""
         self._echo()
 
+    def do_HEAD(self) -> None:
+        """Echo a HEAD like a GET; the proxy is what must drop the body, not this stub."""
+        self._echo()
+
     def do_POST(self) -> None:
         """Echo a POST."""
+        self._echo()
+
+    def do_PUT(self) -> None:
+        """Echo a PUT."""
+        self._echo()
+
+    def do_PATCH(self) -> None:
+        """Echo a PATCH."""
+        self._echo()
+
+    def do_DELETE(self) -> None:
+        """Echo a DELETE."""
         self._echo()
 
     def log_message(self, format: str, *args: object) -> None:  # noqa: A002 - the stdlib's name
@@ -138,11 +163,16 @@ def _echoed(response: http.client.HTTPResponse) -> dict[str, object]:
     return echoed
 
 
+def _echoed_header_pairs(response: http.client.HTTPResponse) -> list[tuple[str, str]]:
+    """Every request header the upstream saw, lower-cased name first, duplicates kept."""
+    pairs = _echoed(response)["headers"]
+    assert isinstance(pairs, list)
+    return [(str(name), str(value)) for name, value in pairs]
+
+
 def _echoed_headers(response: http.client.HTTPResponse) -> dict[str, str]:
-    """The request headers the upstream saw, lower-cased."""
-    headers = _echoed(response)["headers"]
-    assert isinstance(headers, dict)
-    return headers
+    """The request headers the upstream saw, lower-cased, keeping the last of a repeat."""
+    return dict(_echoed_header_pairs(response))
 
 
 def test_a_path_under_the_prefix_reaches_the_upstream_without_it(running: _Running) -> None:
@@ -163,7 +193,8 @@ def test_the_bare_prefix_redirects_to_the_prefix_with_a_slash(running: _Running)
     """``/caldart-proto`` answers a redirect to ``/caldart-proto/``."""
     response = _request(running, "GET", PREFIX)
 
-    assert (response.status, response.getheader("Location")) == (301, f"{PREFIX}/")
+    assert response.status == 301
+    assert response.getheader("Location") == f"{PREFIX}/"
 
 
 def test_the_bare_prefix_keeps_its_query_string_through_the_redirect(running: _Running) -> None:
@@ -190,14 +221,26 @@ def test_the_upstream_status_and_headers_come_back(running: _Running) -> None:
     response = _request(running, "GET", f"{PREFIX}/x")
     response.read()
 
-    assert (response.status, response.getheader("Set-Cookie")) == (201, "sessionid=abc; Path=/")
+    assert response.status == 201
+    assert response.getheader("Set-Cookie") == "sessionid=abc; Path=/"
+
+
+def test_the_proxys_own_server_and_date_headers_are_not_doubled(running: _Running) -> None:
+    """``send_response`` already wrote them; the upstream's own copies are dropped."""
+    response = _request(running, "GET", f"{PREFIX}/x")
+    response.read()
+
+    names = [name.lower() for name, _ in response.getheaders()]
+    assert names.count("server") == 1
+    assert names.count("date") == 1
 
 
 def test_an_upstream_redirect_is_passed_through_unchanged(running: _Running) -> None:
     """Django writes the prefix into ``Location`` itself, so the proxy leaves it alone."""
     response = _request(running, "GET", f"{PREFIX}/redirect")
 
-    assert (response.status, response.getheader("Location")) == (302, f"{PREFIX}/portal/login")
+    assert response.status == 302
+    assert response.getheader("Location") == f"{PREFIX}/portal/login"
 
 
 def test_a_request_body_reaches_the_upstream(running: _Running) -> None:
@@ -211,6 +254,59 @@ def test_a_request_body_reaches_the_upstream(running: _Running) -> None:
     )
 
     assert _echoed(response)["body"] == '{"email": "a@b.test"}'
+
+
+@pytest.mark.parametrize("method", ["PUT", "PATCH", "DELETE"])
+def test_a_method_besides_get_and_post_is_forwarded(running: _Running, method: str) -> None:
+    """PUT, PATCH and DELETE reach the upstream, exactly as GET and POST do."""
+    response = _request(running, method, f"{PREFIX}/x")
+
+    assert _echoed(response)["method"] == method
+
+
+def test_a_head_request_reaches_the_upstream_with_no_body_in_the_answer(
+    running: _Running,
+) -> None:
+    """A HEAD gets the same status and headers a GET would, but never a body."""
+    response = _request(running, "HEAD", f"{PREFIX}/x")
+
+    assert response.status == 201
+    assert response.read() == b""
+
+
+def test_a_hop_by_hop_request_header_is_not_forwarded(running: _Running) -> None:
+    """A hop-by-hop request header describes only the client's own hop to the proxy."""
+    # codespell:ignore-next-line te
+    response = _request(running, "GET", f"{PREFIX}/", headers={"TE": "trailers"})
+
+    assert "te" not in dict(_echoed_header_pairs(response))  # codespell:ignore te
+
+
+def test_a_hop_by_hop_response_header_is_not_relayed(running: _Running) -> None:
+    """The upstream's own hop-by-hop header describes its hop to the proxy.
+
+    It is not the proxy's hop to the client, so the proxy strips it rather than relay it.
+    """
+    response = _request(running, "GET", f"{PREFIX}/hop-by-hop-response")
+    response.read()
+
+    assert response.getheader("Connection") is None
+
+
+def test_a_clients_own_forwarded_headers_are_replaced_not_doubled(running: _Running) -> None:
+    """A client cannot forge ``X-Forwarded-*``: the proxy's value is the only one sent."""
+    response = _request(
+        running,
+        "GET",
+        f"{PREFIX}/",
+        headers={"X-Forwarded-For": "9.9.9.9", "X-Forwarded-Host": "evil.example"},
+    )
+
+    pairs = _echoed_header_pairs(response)
+    assert [value for name, value in pairs if name == "x-forwarded-for"] == ["127.0.0.1"]
+    assert [value for name, value in pairs if name == "x-forwarded-host"] == [
+        f"127.0.0.1:{running.port}"
+    ]
 
 
 def test_the_host_header_is_kept(running: _Running) -> None:

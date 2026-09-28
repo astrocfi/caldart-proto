@@ -1176,7 +1176,10 @@ line inside its HTTPS block::
   Include conf-available/caldart.conf     # Apache, inside <VirtualHost *:443>
   include snippets/caldart.conf;          # nginx, inside the listen 443 ssl server
 
-``--attach-to FILE`` names the file that holds that block.  The step inserts
+``--attach-to FILE`` names the file that holds that block, and it must already
+exist: a real run that cannot find it stops without touching anything, and a
+dry run only notes that it would have inserted the line, since there is
+nothing there yet to back up or edit.  The step inserts
 the line before the closing ``</VirtualHost>`` or ``}`` of every block in the
 file that terminates TLS, or of every block when none does, indented one
 level deeper than the closing line.  An Apache block terminates TLS when its
