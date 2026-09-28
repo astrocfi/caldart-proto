@@ -1429,12 +1429,22 @@ missed.  For a site at the root of its host it runs::
       caldart-registry.timer caldart-reports.timer caldart-renewals.timer \
       caldart-reminders.timer caldart-statements.timer
   sudo deploy/compose.sh ps --format '{{.Health}}' db     # healthy
+  curl -sI -H 'Host: caldart.example.org' -H 'X-Forwarded-Proto: https' \
+      http://127.0.0.1:$PORT/
   curl -sk --resolve caldart.example.org:443:127.0.0.1 https://caldart.example.org/
   curl -sk --resolve caldart.example.org:443:127.0.0.1 \
       https://caldart.example.org/portal/login
   sudo deploy/manage.sh health --json
 
-Both ``curl`` requests must answer ``200``, and so must a third: the portal
+``$PORT`` is the gunicorn port, 8001 unless ``--gunicorn-port`` says
+otherwise, and the first ``curl`` asks gunicorn itself with the request step 8
+waits on; a miss is ``gunicorn did not answer 200 on 127.0.0.1:PORT``.  The
+database check reaches the container through ``CALDART_DB_PORT`` from the
+record, as ``deploy/compose.sh`` does, and its failure names the port:
+``the compose db service on 127.0.0.1:PORT is not healthy``.
+
+The two ``curl`` requests through the web server must answer ``200``, and so
+must a third: the portal
 script the sign-in page names (the ``src`` of its ``<script>`` under
 ``/static/``), which proves the static files resolve.  Under a URL prefix
 every path carries it: ``https://HOST/caldart-proto/``,
@@ -1443,8 +1453,12 @@ every path carries it: ``https://HOST/caldart-proto/``,
 machine whatever the DNS says, which holds behind an existing site too, since
 that site's web server is on this machine; ``-k`` accepts a self-signed
 certificate.
-The ``health`` command prints the same report as ``GET /system/health`` and
-the health panel of ``/portal/system``: database connectivity, pending
+With gunicorn answering on its port and the site answering through the web
+server, the vhost proxies to the right port.  The ``health`` command prints the
+same report as ``GET /system/health`` and the health panel of
+``/portal/system``, and depends on neither port: it reaches the database through
+``DATABASE_URL``, which step 5 wrote with the recorded database port.  It
+reports database connectivity, pending
 migrations, free space on the backup filesystem, the last backup, the version
 from ``pyproject.toml``, and whether ``DEBUG`` is on.  The step requires
 ``debug`` to be ``false`` and ``pending_migrations`` to be ``0``.  Then it
@@ -1665,8 +1679,8 @@ nothing to pull, ``install.sh`` again with no flags, and ``uninstall.sh --yes
 --purge``, with Apache by default or nginx with
 ``REHEARSE_WEB_SERVER=nginx``.  ``REHEARSE_URL_PREFIX=/caldart-proto``
 rehearses :ref:`deploy-prefix` instead, behind a stand-in for the existing
-site, and ``REHEARSE_GUNICORN_PORT=8101`` installs with ``--gunicorn-port
-8101``.  It is the way to try a change to anything
+site; ``REHEARSE_GUNICORN_PORT=8101`` installs with ``--gunicorn-port
+8101``, and ``REHEARSE_DB_PORT=5433`` with ``--db-port 5433``.  It is the way to try a change to anything
 under ``deploy/`` before a server sees it; :ref:`testing-rehearsal` describes
 what it runs and how the container is set up.
 

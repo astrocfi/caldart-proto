@@ -1040,6 +1040,7 @@ Rehearsing a server install
    $ make rehearse-deploy REHEARSE_WEB_SERVER=nginx  # with nginx
    $ make rehearse-deploy REHEARSE_URL_PREFIX=/caldart-proto  # behind an existing site
    $ make rehearse-deploy REHEARSE_GUNICORN_PORT=8101  # gunicorn on another port
+   $ make rehearse-deploy REHEARSE_DB_PORT=5433        # Postgres on another port
    $ make rehearse-deploy REHEARSE_KEEP=1            # keep the container to look inside
 
 The unit tests in ``backend/tests/test_deploy_scripts.py`` read the
@@ -1071,7 +1072,8 @@ Any step that fails stops the run, and the target exits non-zero.  At the end
 it prints how long the run took and removes the container, unless
 ``REHEARSE_KEEP`` is on (a switch, :ref:`make-switches`), in which case
 ``docker exec -it caldart-rehearsal-<server>`` (with ``-prefix`` appended
-under a prefix, then ``-port`` with a gunicorn port) ``bash`` opens a shell inside it.  A
+under a prefix, then ``-port`` with a gunicorn port and ``-db`` with a database
+port) ``bash`` opens a shell inside it.  A
 run takes a few minutes, most of them the package installs and the build,
 and needs the network: it installs from the Ubuntu archive, NodeSource, PyPI,
 npm, and Docker Hub.
@@ -1096,8 +1098,17 @@ npm, and Docker Hub.
    ``127.0.0.1:<port>`` and never ``127.0.0.1:8001``, that
    ``/etc/caldart/caldart.env`` sets ``CALDART_GUNICORN_PORT=<port>``, that
    gunicorn answers ``200`` on that port, and that the site answers ``200``
-   over HTTPS through the proxy.  The container's name gains ``-port``, and
-   the variable combines with the other two.
+   over HTTPS through the proxy.  The install's own checks ask gunicorn on
+   that port too.  The container's name gains ``-port``, and the variable
+   combines with the others.
+``REHEARSE_DB_PORT``
+   A port such as ``5433``: step 1 also passes ``--db-port <port>``, which
+   publishes Postgres on that port (:ref:`deploy-sharing`).  Empty by default,
+   which means 5432.  After the install the target asserts that ``docker
+   port`` shows the database container on ``127.0.0.1:<port>``; the install's
+   checks, which pass only when the container is healthy and ``manage.py
+   health`` reaches the database, then hold on the moved port.  The container's
+   name gains ``-db``.
 ``REHEARSE_KEEP``
    Keep the container and its volumes after the run.
 
