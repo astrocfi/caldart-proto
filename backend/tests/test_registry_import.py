@@ -557,7 +557,7 @@ def test_the_command_takes_types_only(small_registry: Path) -> None:
 
 
 def test_the_command_fills_in_the_row_it_is_given(small_registry: Path) -> None:
-    """``--import-id`` finishes the row the System screen wrote, rather than a new one."""
+    """``--import-id`` fills in the row the Health & Database page wrote, not another."""
     run = RegistryImport.objects.create(source="pending")
     call_command("import_faa_registry", source=str(small_registry), import_id=run.pk)
     run.refresh_from_db()
