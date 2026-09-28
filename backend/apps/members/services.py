@@ -45,7 +45,6 @@ canceled terms, and friends.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from datetime import date, timedelta
 from typing import TYPE_CHECKING, Any, NoReturn, TypedDict, cast
 
@@ -305,23 +304,9 @@ def update_member(
 #: The first name every tombstone carries; its last name is the deleted account's id.
 TOMBSTONE_FIRST_NAME = "Deleted member"
 
-#: The domain of every tombstone's address, reserved (``.invalid``): nothing is sent.
+#: A tombstone's domain and address, reserved (``.invalid``) so nothing is ever sent.
 TOMBSTONE_DOMAIN = "deleted.invalid"
-
-#: The tombstone's address, on :data:`TOMBSTONE_DOMAIN`.
 TOMBSTONE_EMAIL = "deleted-{id}@" + TOMBSTONE_DOMAIN
-
-
-@dataclass(frozen=True)
-class PaymentHandover:
-    """How many payments :func:`hand_over_payments` moved, and to which tombstone."""
-
-    payments: int
-    owner: User
-
-    def audit_fields(self) -> dict[str, int]:
-        """The ``payments`` and ``owner`` fields of the ``member.delete`` audit line."""
-        return {"payments": self.payments, "owner": self.owner.pk}
 
 
 def tombstone_for(target: User) -> User:
@@ -352,7 +337,7 @@ def is_tombstone(user: User) -> bool:
 
 
 @transaction.atomic
-def hand_over_payments(actor: User, target: User) -> PaymentHandover | None:
+def hand_over_payments(actor: User, target: User) -> dict[str, int]:
     """Clear ``target``'s money out of the way of deleting the account, which stays.
 
     Each active or paused automatic payment is canceled by ``actor`` through
@@ -361,11 +346,11 @@ def hand_over_payments(actor: User, target: User) -> PaymentHandover | None:
     Every payment, whatever its status, then moves to a new :func:`tombstone_for`
     account, refunds and all, with any public gift's stored giver details wiped, so a
     payment still pending cannot write the person back when it settles (see
-    :func:`is_tombstone`).  Returns what moved, or ``None`` (and makes no tombstone)
+    :func:`is_tombstone`).  Returns the ``member.delete`` audit fields: ``payments``,
+    how many moved, and ``owner``, the tombstone's id; or none, and makes no tombstone,
     when ``target`` never paid.
     """
-    # Inline: payments sits above members and apps.payments.services imports this
-    # module, so a top-level import here would close the cycle.
+    # Inline: payments sits above members and apps.payments.services imports this module.
     from apps.payments.models import MandateStatus, Payment
 
     # Inline: renewals imports this module, so a top-level import would close a cycle.
@@ -382,9 +367,9 @@ def hand_over_payments(actor: User, target: User) -> PaymentHandover | None:
     discard_pending_mandate(target)
     payments = Payment.objects.filter(user=target)
     if not payments.exists():
-        return None
+        return {}
     owner = tombstone_for(target)
-    return PaymentHandover(payments=payments.update(user=owner, donor_fields={}), owner=owner)
+    return {"payments": payments.update(user=owner, donor_fields={}), "owner": owner.pk}
 
 
 @transaction.atomic
@@ -405,10 +390,9 @@ def delete_member(actor: User, target: User) -> None:
     target_is_system_admin = SYSTEM_ADMIN in effective_roles(target)
     if target_is_system_admin and SYSTEM_ADMIN not in effective_roles(actor):
         _refuse_delete(actor, target, audit.REASON_SYSTEM_ADMIN_TARGET, SYSTEM_ADMIN_DELETE_REFUSED)
-    handover = hand_over_payments(actor, target)
+    fields = hand_over_payments(actor, target)
     target_id = target.pk
     target.delete()
-    fields = {} if handover is None else handover.audit_fields()
     audit.record(audit.MEMBER_DELETE, actor=actor, target=target_id, **fields)
 
 

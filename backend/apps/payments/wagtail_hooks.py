@@ -85,8 +85,7 @@ def keep_the_payments_of_bulk_deleted_users(
 
 def _hand_over(request: HttpRequest, user: User) -> dict[str, int]:
     """Move ``user``'s payments to a tombstone; return the ``member.delete`` fields."""
-    handover = hand_over_payments(_actor(request), user)
-    return {} if handover is None else handover.audit_fields()
+    return hand_over_payments(_actor(request), user)
 
 
 def _actor(request: HttpRequest) -> User:
