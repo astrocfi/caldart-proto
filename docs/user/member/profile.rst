@@ -38,7 +38,8 @@ Contact
 * **Address**, **Address line 2**, and **City** are stored in title case, every
   word, however you type them: ``123 main st`` reads back **123 Main St** and
   ``palo alto`` reads back **Palo Alto**. A word that carries a digit, such as a
-  unit number, is left exactly as you typed it.
+  unit number, is left exactly as you typed it. After an apostrophe, a name keeps
+  its capital and a possessive stays lower: **O'Brien Ln** and **King's Rd**.
 
 Aviation
 ~~~~~~~~

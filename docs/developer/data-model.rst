@@ -1810,7 +1810,9 @@ administrators see.  Deleting the account deletes the profile.
 one to the number and breaks the format every other screen relies on.  The same
 ``save()`` stores ``address_line1``, ``address_line2``, and ``city``
 (``TITLE_CASE_FIELDS``) in title case, every word, through
-``caldart.casing.title_case_words``.  The aviation fields follow, then the seven
+``caldart.casing.title_case_words``, which leaves a word with a digit as typed
+and capitalizes after an apostrophe only past a lone letter (``O'Brien``, but
+``King's``).  The aviation fields follow, then the seven
 ``vol_*`` volunteer interests, then the verification columns, then
 ``member_since`` and ``profile_updated_at``.  ``notes`` and ``how_heard`` are
 administrator-only: neither is in the member-facing serializer, and both appear

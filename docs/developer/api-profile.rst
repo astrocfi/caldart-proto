@@ -232,8 +232,11 @@ Field                        Rule
 ``phone_extension``
 ``address_line1``,           Stored in title case, every word, through
 ``address_line2``,           ``caldart.casing.title_case_words``: a word carrying a digit
-``city``                     is left exactly as typed.  Blank is fine on the two address
-                             lines; ``city`` is required by :ref:`profile-completeness`.
+``city``                     is left exactly as typed.  After an apostrophe the next
+                             part capitalizes only when one letter precedes it
+                             (``O'Brien``, but ``King's``).  Blank is fine on the two
+                             address lines; ``city`` is required by
+                             :ref:`profile-completeness`.
 ``home_airport_identifier``  Three letters or digits if given, upper-cased on the
                              way in.  The four-letter ICAO spelling is accepted
                              and trimmed, so ``KCRQ`` is stored as ``CRQ``; a
