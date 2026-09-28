@@ -7,16 +7,32 @@ the banned words and no contrast construction ("X, not Y"); no ``--``, at most t
 dashes, no line that begins with a comma, and no more than 250 lines.  The guide
 describes every email a person can receive, so each email purpose label appears in it.
 Because no reference leaves the guide, the Sphinx configuration needs no special case
-for the guide build, and a test holds it to that too.
+for the guide build, and a test holds it to that too.  Every page a reader needs a role
+for names those roles in a ``:roles:`` field, and the ``guide_roles`` extension turns the
+fields into the ``roles.json`` the site reads.
 """
 
 from __future__ import annotations
 
+import importlib.util
+import json
 import re
 from pathlib import Path
+from types import ModuleType
 
 import pytest
+from sphinx.cmd.build import build_main
 
+from apps.accounts.roles import (
+    ACCOUNT_ADMIN,
+    DART_LEADER,
+    ROLE_SLUGS,
+    SYSTEM_ADMIN,
+    TREASURER,
+    USER_ADMIN,
+    VERIFIER,
+    WEBSITE_ADMIN,
+)
 from apps.mail.purposes import PURPOSE_LABELS
 from tests.conftest import REPO_ROOT
 
@@ -240,3 +256,200 @@ def test_every_email_purpose_is_described_in_the_guide(label: str) -> None:
 def test_the_sphinx_configuration_has_no_developer_guide_special_case(name: str) -> None:
     """``docs/conf.py`` carries no handler that renders links into the developer guide."""
     assert name not in CONF_PY.read_text(encoding="utf-8")
+
+
+# -- roles ----------------------------------------------------------------------
+
+#: The local Sphinx extension that reads each page's ``:roles:`` field.
+GUIDE_ROLES_EXTENSION = DOCS / "_ext" / "guide_roles.py"
+
+#: A ``:roles:`` field at the head of a page, before its title.
+ROLES_FIELD = re.compile(r"\A:roles:[ \t]*(.*)$", re.MULTILINE)
+
+#: The directories whose pages each need a role.
+RESTRICTED_DIRECTORIES = ("admin", "finance", "website")
+
+#: The roles that reach each leader and administrator screen, as the portal's menu grants
+#: them.
+ADMIN_PAGE_ROLES: dict[str, frozenset[str]] = {
+    "admin/member-check": frozenset({DART_LEADER, ACCOUNT_ADMIN, USER_ADMIN, VERIFIER}),
+    "admin/aircraft-check": frozenset({DART_LEADER, ACCOUNT_ADMIN, USER_ADMIN, VERIFIER}),
+    "admin/members": frozenset({ACCOUNT_ADMIN, DART_LEADER}),
+    "admin/new-member": frozenset({ACCOUNT_ADMIN, DART_LEADER}),
+    "admin/member-record": frozenset({ACCOUNT_ADMIN, DART_LEADER}),
+    "admin/aircraft-register": frozenset({ACCOUNT_ADMIN}),
+    "admin/aircraft-record": frozenset({ACCOUNT_ADMIN}),
+    "admin/darts": frozenset({ACCOUNT_ADMIN}),
+    "admin/reminders": frozenset({ACCOUNT_ADMIN}),
+    "admin/notifications": frozenset({ACCOUNT_ADMIN}),
+    "admin/subscriptions": frozenset({ACCOUNT_ADMIN, TREASURER}),
+    "admin/users": frozenset({USER_ADMIN}),
+    "admin/user-record": frozenset({USER_ADMIN}),
+    "admin/health-database": frozenset({SYSTEM_ADMIN}),
+    "admin/sent-emails": frozenset({SYSTEM_ADMIN}),
+    "admin/scheduled": frozenset({SYSTEM_ADMIN}),
+}
+
+#: The roles that reach every page of a group other than ``admin/``.
+GROUP_ROLES: dict[str, frozenset[str]] = {
+    "finance": frozenset({TREASURER, ACCOUNT_ADMIN}),
+    "website": frozenset({WEBSITE_ADMIN}),
+}
+
+
+def _roles_field(page: Path) -> list[str] | None:
+    """The slugs a page's ``:roles:`` field names, or ``None`` when it has no field."""
+    match = ROLES_FIELD.search(page.read_text(encoding="utf-8"))
+    if match is None:
+        return None
+    return [slug.strip() for slug in match.group(1).split(",")]
+
+
+def _slug(page: Path) -> str:
+    """A page's slug: its path under ``docs/user/`` without ``.rst``."""
+    return page.relative_to(USER_GUIDE).with_suffix("").as_posix()
+
+
+def _is_index(page: Path) -> bool:
+    """True for a group's ``index.rst`` and the guide's own."""
+    return page.name == "index.rst"
+
+
+#: Every page of the restricted groups, index pages left out.
+RESTRICTED_PAGES = [
+    page
+    for page in USER_PAGES
+    if page.relative_to(USER_GUIDE).parts[0] in RESTRICTED_DIRECTORIES and not _is_index(page)
+]
+
+#: Every page open to any signed-in reader: the member screens, the top-level pages, and
+#: every index page.
+OPEN_PAGES = [page for page in USER_PAGES if page not in RESTRICTED_PAGES]
+
+
+def _expected_roles(page: Path) -> frozenset[str]:
+    """The roles the portal's menu gives the screen ``page`` describes."""
+    slug = _slug(page)
+    group = slug.split("/")[0]
+    if group in GROUP_ROLES:
+        return GROUP_ROLES[group]
+    return ADMIN_PAGE_ROLES[slug]
+
+
+@pytest.fixture(scope="module")
+def guide_roles() -> ModuleType:
+    """The ``guide_roles`` Sphinx extension, imported from ``docs/_ext``."""
+    spec = importlib.util.spec_from_file_location("guide_roles", GUIDE_ROLES_EXTENSION)
+    assert spec is not None
+    assert spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_the_guide_has_restricted_pages_to_check() -> None:
+    """The scan finds the administrator, treasurer, and website pages."""
+    assert len(RESTRICTED_PAGES) > 0
+
+
+@pytest.mark.parametrize("page", RESTRICTED_PAGES, ids=_page_id)
+def test_every_administrator_page_names_the_roles_that_reach_it(page: Path) -> None:
+    """Each page under ``admin/``, ``finance/``, and ``website/`` names its roles.
+
+    The field is the page's first line, so Sphinx reads it as the page's metadata, and
+    it names exactly the roles the portal's menu gives the screen.
+    """
+    roles = _roles_field(page)
+    assert roles is not None
+    assert frozenset(roles) == _expected_roles(page)
+
+
+@pytest.mark.parametrize("page", OPEN_PAGES, ids=_page_id)
+def test_a_page_for_every_reader_carries_no_roles(page: Path) -> None:
+    """A member page, a top-level page, and an index page carry no ``:roles:`` field.
+
+    An index page's roles are computed from the pages under it.
+    """
+    assert _roles_field(page) is None
+
+
+@pytest.mark.parametrize("page", RESTRICTED_PAGES, ids=_page_id)
+def test_every_slug_in_a_roles_field_is_a_role(page: Path) -> None:
+    """Every slug a ``:roles:`` field names is one of the site's roles."""
+    assert set(_roles_field(page) or []) <= set(ROLE_SLUGS)
+
+
+def test_the_extension_knows_the_sites_roles(guide_roles: ModuleType) -> None:
+    """The extension's own list of role slugs is the site's, in the same order."""
+    assert guide_roles.ROLE_SLUGS == ROLE_SLUGS
+
+
+def _write_project(root: Path, pages: dict[str, str]) -> tuple[Path, Path]:
+    """A tiny Sphinx project under ``root`` using the extension; its source and output."""
+    source = root / "source"
+    for name, text in pages.items():
+        path = source / f"{name}.rst"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+    (source / "conf.py").write_text(
+        "import sys\n"
+        f"sys.path.insert(0, {str(GUIDE_ROLES_EXTENSION.parent)!r})\n"
+        "extensions = ['guide_roles']\n"
+        "html_theme = 'basic'\n",
+        encoding="utf-8",
+    )
+    return source, root / "out"
+
+
+def _toctree(*entries: str) -> str:
+    """A toctree directive listing ``entries``."""
+    return ".. toctree::\n\n" + "".join(f"   {entry}\n" for entry in entries)
+
+
+def _page(title: str, roles: str | None = None, body: str = "") -> str:
+    """A page titled ``title``, headed by a ``:roles:`` field when ``roles`` is given."""
+    field = "" if roles is None else f":roles: {roles}\n\n"
+    return f"{field}{title}\n{'=' * len(title)}\n\n{body}"
+
+
+#: A guide whose front page lists an open page and a group of two restricted pages.
+SAMPLE_GUIDE = {
+    "index": _page("Guide", body=_toctree("open", "admin/index")),
+    "open": _page("Open"),
+    "admin/index": _page("Admin", body=_toctree("members", "money")),
+    "admin/members": _page("Members", roles="dart_leader, account_admin"),
+    "admin/money": _page("Money", roles="treasurer"),
+}
+
+
+def test_the_extension_writes_each_restricted_page_and_its_roles(tmp_path: Path) -> None:
+    """``roles.json`` names each restricted page, and a group's index gets the union.
+
+    Slugs come back in privilege order; the open page and the front page, which lists
+    it, are left out.
+    """
+    source, out = _write_project(tmp_path, SAMPLE_GUIDE)
+    assert build_main(["-q", "-W", "-b", "dirhtml", str(source), str(out)]) == 0
+    assert json.loads((out / "roles.json").read_text(encoding="utf-8")) == {
+        "admin/index": [DART_LEADER, TREASURER, ACCOUNT_ADMIN],
+        "admin/members": [DART_LEADER, ACCOUNT_ADMIN],
+        "admin/money": [TREASURER],
+    }
+
+
+def test_an_index_with_an_open_page_under_it_is_open(tmp_path: Path) -> None:
+    """A group index that lists any page without roles is every reader's."""
+    pages = {**SAMPLE_GUIDE, "admin/index": _page("Admin", body=_toctree("members", "../open"))}
+    source, out = _write_project(tmp_path, pages)
+    assert build_main(["-q", "-W", "-b", "dirhtml", str(source), str(out)]) == 0
+    assert "admin/index" not in json.loads((out / "roles.json").read_text(encoding="utf-8"))
+
+
+def test_an_unknown_role_fails_the_build(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A ``:roles:`` slug that is not a role is a warning, so ``-W`` fails the build."""
+    pages = {**SAMPLE_GUIDE, "admin/money": _page("Money", roles="treasurer, bookkeeper")}
+    source, out = _write_project(tmp_path, pages)
+    assert build_main(["-q", "-W", "-b", "dirhtml", str(source), str(out)]) != 0
+    assert "unknown role 'bookkeeper'" in capsys.readouterr().err
