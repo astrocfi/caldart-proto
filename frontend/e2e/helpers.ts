@@ -70,7 +70,7 @@ export interface RegistryFacts {
   knownYear: number;
   /** The registrant's name, which picking the registration writes into the owner's name. */
   knownOwner: string;
-  /** The day the newest successful import finished, as `YYYY/MM/DD`. */
+  /** The day the newest successful import finished, as `MM/DD/YYYY`. */
   asOf: string;
 }
 
@@ -289,6 +289,12 @@ export const DEMO: Record<DemoAccount, string> = SEED.accounts;
 /** Format a price in cents the way the portal renders it, e.g. `$45.00`. */
 export function formatCents(cents: number): string {
   return `$${(cents / 100).toFixed(2)}`;
+}
+
+/** Write a `YYYY-MM-DD` day the way the portal renders it, e.g. `09/27/2026`. */
+export function displayDate(iso: string): string {
+  const [year, month, day] = iso.split('-');
+  return `${month}/${day}/${year}`;
 }
 
 /** An address nobody else in this run will use. */

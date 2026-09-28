@@ -112,7 +112,7 @@ describe('RenewalSetup', () => {
     await user.click(await screen.findByRole('radio', { name: /Supporter/ }));
 
     expect(screen.getByText(/CalDART will charge/)).toHaveTextContent(
-      'CalDART will charge $70.00 on 2027/06/30, and each year after that.',
+      'CalDART will charge $70.00 on 06/30/2027, and each year after that.',
     );
   });
 

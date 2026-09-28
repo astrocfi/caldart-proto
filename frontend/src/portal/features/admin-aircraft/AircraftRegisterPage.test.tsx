@@ -342,7 +342,7 @@ describe('AircraftRegisterPage', () => {
     server.use(columnsReturn(), listReturns([], [], 0));
 
     renderWithProviders(<AircraftRegisterPage />, { route: '/admin/aircraft' });
-    expect(await screen.findByText('Registry as of 2026/09/20')).toBeInTheDocument();
+    expect(await screen.findByText('Registry as of 09/20/2026')).toBeInTheDocument();
   });
 
   it('says so in its header when the FAA registry has never been imported', async () => {

@@ -1,13 +1,32 @@
+/**
+ * The one place the portal turns a date or a time into text.
+ *
+ * Every date or time a portal screen shows passes through this module, so the
+ * format can change here alone: dates read `MM/DD/YYYY`, datetimes add a
+ * 24-hour `HH:MM`, a time of day alone reads `HH:MM`, and a month reads
+ * `Mar 2026`. Date inputs stay native `<input type="date">`, which the browser
+ * renders in the reader's own locale; `todayIso` gives them their value.
+ */
 import type { JSX } from 'react';
 
 import type { IsoDate } from '@/portal/api/types';
 
-/**
- * Dates read `YYYY/MM/DD` everywhere in the portal, and datetimes add a
- * 24-hour clock. The portal is an administrative screen: a fixed, sortable,
- * unambiguous order beats `Jun 16, 2026`, which reads differently on either
- * side of the Atlantic and lines up in no column.
- */
+/** Three-letter month names, so no month label wraps in a narrow column. */
+const MONTH_ABBREVIATIONS = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+] as const;
+
 function pad(value: number): string {
   return String(value).padStart(2, '0');
 }
@@ -18,7 +37,7 @@ export function todayIso(today: Date = new Date()): IsoDate {
 }
 
 function dateParts(value: Date): string {
-  return `${value.getFullYear()}/${pad(value.getMonth() + 1)}/${pad(value.getDate())}`;
+  return `${pad(value.getMonth() + 1)}/${pad(value.getDate())}/${value.getFullYear()}`;
 }
 
 function timeParts(value: Date): string {
@@ -32,18 +51,32 @@ function parse(iso: string): Date | null {
   return Number.isNaN(value.getTime()) ? null : value;
 }
 
-/** Formats an ISO date or datetime as a short date, or `placeholder` when it is unparseable. */
+/** Formats an ISO date or datetime as `MM/DD/YYYY`, or `placeholder` when it is unparseable. */
 export function formatDate(iso: string | null | undefined, placeholder = '—'): string {
   if (!iso) return placeholder;
   const value = parse(iso);
   return value ? dateParts(value) : placeholder;
 }
 
-/** Formats an ISO datetime with the time of day, or `placeholder` when it is unparseable. */
+/** Formats an ISO datetime as `MM/DD/YYYY HH:MM`, or `placeholder` when it is unparseable. */
 export function formatDateTime(iso: string | null | undefined, placeholder = '—'): string {
   if (!iso) return placeholder;
   const value = parse(iso);
   return value ? `${dateParts(value)} ${timeParts(value)}` : placeholder;
+}
+
+/** Formats an ISO datetime's time of day as `HH:MM`, or `placeholder` when it is unparseable. */
+export function formatTime(iso: string | null | undefined, placeholder = '—'): string {
+  if (!iso) return placeholder;
+  const value = parse(iso);
+  return value ? timeParts(value) : placeholder;
+}
+
+/** Formats a `YYYY-MM` month as `Mar 2026`; any other value comes back unchanged. */
+export function formatMonth(yyyyMm: string): string {
+  const match = /^(\d{4})-(\d{2})$/.exec(yyyyMm);
+  const month = match ? MONTH_ABBREVIATIONS[Number(match[2]) - 1] : undefined;
+  return match && month ? `${month} ${match[1]}` : yyyyMm;
 }
 
 export interface DateTextProps {
@@ -53,7 +86,7 @@ export interface DateTextProps {
   placeholder?: string;
 }
 
-/** Dates render in the mono face so columns line up. */
+/** A date, or a datetime with `withTime`, in the mono face so columns line up. */
 export function DateText({
   value,
   withTime = false,

@@ -55,12 +55,12 @@ async function searchTypes(page: Page, text: string): Promise<Locator> {
   return list;
 }
 
-/** A day as the screens print it, `YYYY/MM/DD`, in this machine's time zone. */
+/** A day as the screens print it, `MM/DD/YYYY`, in this machine's time zone. */
 function screenDate(iso: string): string {
   const day = new Date(iso);
   const month = String(day.getMonth() + 1).padStart(2, '0');
   const date = String(day.getDate()).padStart(2, '0');
-  return `${day.getFullYear()}/${month}/${date}`;
+  return `${month}/${date}/${day.getFullYear()}`;
 }
 
 /** A registration nobody has used: never in the fixture, whose N-numbers never end in ZQ. */

@@ -119,6 +119,28 @@ export default tseslint.config(
     },
   },
   {
+    // Every date or time the portal shows is written by `DateText.tsx`, so the
+    // format can change in one place. A locale formatter anywhere else would
+    // print a second format; a number's `toLocaleString` stays allowed.
+    files: ['src/portal/**/*.{ts,tsx}'],
+    ignores: ['src/portal/components/DateText.tsx'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector:
+            'CallExpression[callee.property.name=/^(toLocaleDateString|toLocaleTimeString|toDateString|toTimeString)$/]',
+          message: 'Format dates with formatDate, formatDateTime, formatTime, or formatMonth.',
+        },
+        {
+          selector:
+            "NewExpression[callee.object.name='Intl'][callee.property.name='DateTimeFormat']",
+          message: 'Format dates with formatDate, formatDateTime, formatTime, or formatMonth.',
+        },
+      ],
+    },
+  },
+  {
     // A feature directory is the unit of relative addressing: inside
     // `src/portal/features/<feature>/` a relative import must stay in the
     // feature, so any specifier starting with `../` is refused -- one level up

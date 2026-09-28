@@ -30,7 +30,7 @@ function mount(mandate: RenewalMandate | null, { route = '/payments' }: { route?
   return renderWithProviders(<RecurringDonationCard />, { route });
 }
 
-/** A monthly donation of $25.00, next charged on 2026/11/05. */
+/** A monthly donation of $25.00, next charged on 11/05/2026. */
 function monthly(overrides: Partial<RenewalMandate> = {}): RenewalMandate {
   return makeContributionMandate({
     cadence: 'monthly',
@@ -89,7 +89,7 @@ describe('RecurringDonationCard', () => {
 
     expect(await screen.findByText('Next charge')).toBeInTheDocument();
     expect(screen.getByText('Next charge').nextElementSibling).toHaveTextContent(
-      '2026/11/05 · $25.00',
+      '11/05/2026 · $25.00',
     );
   });
 

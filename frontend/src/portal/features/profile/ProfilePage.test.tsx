@@ -230,7 +230,7 @@ describe('<ProfilePage/> inline complaints', () => {
 
     expect(await screen.findByLabelText(label('Photo ID'))).toHaveValue('passport');
     expect(screen.getByLabelText(label('Medical expires'))).toHaveAccessibleDescription(
-      'Verified by Dana Leader on 2026/05/01',
+      'Verified by Dana Leader on 05/01/2026',
     );
   });
 

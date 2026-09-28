@@ -51,7 +51,7 @@ export function actorName(actor: AircraftActor | null): string {
 /**
  * One history entry as a single line.
  *
- * Reads `2026/09/01 12:34 · Dana Fiske · created` for a creation, where the
+ * Reads `09/01/2026 12:34 · Dana Fiske · created` for a creation, where the
  * whole record is the change, and `… · updated carrier, insurance expiry` for a
  * write, naming every column that moved.  A write that names no column at all
  * reads `updated` on its own.
@@ -64,7 +64,7 @@ export function changeLine(change: AircraftChange): string {
 }
 
 /**
- * The eyebrow over a record's details: `Last updated 2026/09/01 by Dana Fiske`.
+ * The eyebrow over a record's details: `Last updated 09/01/2026 by Dana Fiske`.
  *
  * The name is left off when no account is recorded against the last write,
  * rather than blaming the seed for a record nobody has touched since.

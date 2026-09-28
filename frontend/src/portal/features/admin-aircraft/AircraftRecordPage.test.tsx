@@ -138,7 +138,7 @@ describe('AircraftRecordPage', () => {
     );
     renderRecord();
 
-    expect(await screen.findByText('Last updated 2026/09/01 by Dana Fiske')).toBeInTheDocument();
+    expect(await screen.findByText('Last updated 09/01/2026 by Dana Fiske')).toBeInTheDocument();
   });
 
   it("lists the record's history, newest first", async () => {
@@ -168,9 +168,9 @@ describe('AircraftRecordPage', () => {
     const history = await historyCard();
     const entries = within(history).getAllByRole('listitem');
     expect(entries[0]).toHaveTextContent(
-      '2026/09/01 12:00 · Dana Fiske · updated carrier, insurance expiry',
+      '09/01/2026 12:00 · Dana Fiske · updated carrier, insurance expiry',
     );
-    expect(entries[1]).toHaveTextContent('2026/01/04 09:15 · the seed · created');
+    expect(entries[1]).toHaveTextContent('01/04/2026 09:15 · the seed · created');
   });
 
   it('says so when no change is recorded against the record', async () => {
@@ -323,7 +323,7 @@ describe('AircraftRecordPage', () => {
 
     expect(await screen.findByRole('heading', { name: 'Verification' })).toBeInTheDocument();
     expect(screen.getByText('Verified').parentElement).toHaveTextContent(
-      /^Verified by Dana Leader on 2026\/05\/01$/,
+      /^Verified by Dana Leader on 05\/01\/2026$/,
     );
   });
 

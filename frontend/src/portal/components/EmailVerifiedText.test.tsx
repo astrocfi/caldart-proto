@@ -11,6 +11,6 @@ describe('EmailVerifiedText', () => {
 
   it('reads Verified with the date when the address has been verified', () => {
     render(<EmailVerifiedText verifiedAt="2024-07-01T12:05:00Z" />);
-    expect(screen.getByText('Verified')).toHaveTextContent('Verified 2024/07/01');
+    expect(screen.getByText('Verified')).toHaveTextContent('Verified 07/01/2024');
   });
 });

@@ -15,7 +15,7 @@ import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import type { Column } from '@/portal/components/DataTable';
 import { DataTable } from '@/portal/components/DataTable';
-import { DateText } from '@/portal/components/DateText';
+import { DateText, formatDate } from '@/portal/components/DateText';
 import { Field } from '@/portal/components/Field';
 import { useToast } from '@/portal/components/Toast';
 import { TERM_STATUS_CHOICES } from './choices';
@@ -81,7 +81,9 @@ export function MemberMembershipsTab({ member }: { member: MemberDetail }): JSX.
           setStartsOn('');
           setNote('');
           toast.show(
-            term.ends_on ? `Term granted through ${term.ends_on}.` : 'Lifetime membership granted.',
+            term.ends_on
+              ? `Term granted through ${formatDate(term.ends_on)}.`
+              : 'Lifetime membership granted.',
             'success',
           );
         },

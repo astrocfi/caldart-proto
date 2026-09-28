@@ -372,7 +372,7 @@ describe('<ProfileFieldsets/>', () => {
       'Not yet verified',
     );
     expect(screen.getByLabelText('Photo ID')).toHaveAccessibleDescription(
-      'Verified by Dana Leader on 2026/05/01',
+      'Verified by Dana Leader on 05/01/2026',
     );
   });
 

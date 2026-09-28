@@ -36,7 +36,7 @@ describe('MemberProfileTab', () => {
     const rows = within(verificationCard()).getAllByRole('listitem');
     expect(rows.map((row) => row.textContent)).toEqual([
       'Pilot certificatePrivate · 1234567Not verified',
-      'MedicalThird class · expires 2027/01/31Not verified',
+      'MedicalThird class · expires 01/31/2027Not verified',
       "Photo IDDriver's licenseNot verified",
     ]);
   });

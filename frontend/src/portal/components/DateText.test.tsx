@@ -1,10 +1,94 @@
 /** The date helpers every screen that reads or offers a date shares. */
+import { screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
-import { todayIso } from './DateText';
+import { renderWithProviders } from '@test/render';
+
+import {
+  DateText,
+  formatDate,
+  formatDateTime,
+  formatMonth,
+  formatTime,
+  todayIso,
+} from './DateText';
 
 describe('todayIso', () => {
   it('writes the reader’s own day as the date box wants it', () => {
     expect(todayIso(new Date(2026, 8, 4))).toBe('2026-09-04');
+  });
+});
+
+describe('formatDate', () => {
+  it('reads a bare ISO date as MM/DD/YYYY with leading zeros', () => {
+    expect(formatDate('2026-09-04')).toBe('09/04/2026');
+  });
+
+  it('reads a bare ISO date as that day wherever the reader is', () => {
+    expect(formatDate('2027-01-01')).toBe('01/01/2027');
+  });
+
+  it('reads a datetime as its local day', () => {
+    expect(formatDate(new Date(2026, 2, 7, 23, 59).toISOString())).toBe('03/07/2026');
+  });
+
+  it('gives the placeholder for a missing value', () => {
+    expect(formatDate(null)).toBe('—');
+  });
+
+  it('gives the placeholder for an unparseable value', () => {
+    expect(formatDate('not a date', 'Never')).toBe('Never');
+  });
+});
+
+describe('formatDateTime', () => {
+  it('adds a 24-hour clock to MM/DD/YYYY', () => {
+    expect(formatDateTime(new Date(2026, 8, 27, 14, 5).toISOString())).toBe('09/27/2026 14:05');
+  });
+
+  it('gives the placeholder for a missing value', () => {
+    expect(formatDateTime(undefined, 'Not yet')).toBe('Not yet');
+  });
+});
+
+describe('formatTime', () => {
+  it('reads the time of day alone, on a 24-hour clock', () => {
+    expect(formatTime(new Date(2026, 8, 27, 3, 7).toISOString())).toBe('03:07');
+  });
+
+  it('gives the placeholder for an unparseable value', () => {
+    expect(formatTime('soon')).toBe('—');
+  });
+});
+
+describe('formatMonth', () => {
+  it('reads a YYYY-MM month as a short month and the year', () => {
+    expect(formatMonth('2026-03')).toBe('Mar 2026');
+  });
+
+  it('reads December as the last month of its own year', () => {
+    expect(formatMonth('2025-12')).toBe('Dec 2025');
+  });
+
+  it('gives back a value that is not a month unchanged', () => {
+    expect(formatMonth('2026')).toBe('2026');
+  });
+});
+
+describe('DateText', () => {
+  it('renders the date as MM/DD/YYYY in a time element', () => {
+    renderWithProviders(<DateText value="2026-09-27" />);
+    expect(screen.getByText('09/27/2026')).toHaveAttribute('datetime', '2026-09-27');
+  });
+
+  it('renders the time of day when asked', () => {
+    const value = new Date(2026, 8, 27, 8, 30).toISOString();
+    renderWithProviders(<DateText value={value} withTime />);
+    expect(screen.getByText('09/27/2026 08:30')).toBeInTheDocument();
+  });
+
+  it('renders the placeholder for a missing value', () => {
+    renderWithProviders(<DateText value={null} placeholder="Lifetime" />);
+    expect(screen.getByText('Lifetime')).toBeInTheDocument();
   });
 });

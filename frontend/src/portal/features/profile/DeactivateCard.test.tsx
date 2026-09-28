@@ -59,7 +59,7 @@ describe('<DeactivateCard/>', () => {
     renderCard(CURRENT_MEMBERSHIP);
     expect(
       await screen.findByText(
-        'Your membership is current through 2027/06/30. Deactivating ends it now; if you ' +
+        'Your membership is current through 06/30/2027. Deactivating ends it now; if you ' +
           'reactivate before that date, it resumes.',
       ),
     ).toBeInTheDocument();

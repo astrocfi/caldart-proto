@@ -54,7 +54,7 @@ describe('RostersCard', () => {
     const table = await renderCard();
 
     expect(within(table).getByRole('row', { name: /Bay Area DART/ })).toHaveTextContent(
-      'Bay Area DART22026/09/15',
+      'Bay Area DART209/15/2026',
     );
     expect(within(table).getByRole('row', { name: /Sierra DART/ })).toHaveTextContent(
       'Sierra DART0—',

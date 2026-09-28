@@ -11,7 +11,14 @@
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
-import { SEED, followVerificationLink, formatCents, signIn, uniqueEmail } from './helpers';
+import {
+  SEED,
+  displayDate,
+  followVerificationLink,
+  formatCents,
+  signIn,
+  uniqueEmail,
+} from './helpers';
 
 /** Steps 1 to 3 of the join wizard: an account, its verified address, then a usable profile. */
 async function register(page: Page, email: string): Promise<void> {
@@ -47,7 +54,7 @@ function yearsOnIso(years: number): string {
 
 /** The same day `years` from today, as the portal prints it. */
 function yearsOnDisplay(years: number): string {
-  return yearsOnIso(years).replaceAll('-', '/');
+  return displayDate(yearsOnIso(years));
 }
 
 /** The day the signed-in member's membership runs out, from the API itself. */
@@ -92,7 +99,7 @@ test('a member pays with renewal on, reads it, takes a receipt, and turns it off
   // Nothing was chosen at the checkout, so the charge falls on the day the term
   // it bought runs out.
   const expiry = await expiryIso(page);
-  await expect(card.getByText(expiry.replaceAll('-', '/'))).toBeVisible();
+  await expect(card.getByText(displayDate(expiry))).toBeVisible();
 
   // The receipt the email carried can be fetched again, and it is a PDF.
   const receipt = page.getByRole('link', { name: 'Receipt' }).first();
@@ -157,7 +164,7 @@ test('a life member reads their recurring donation, turns it off, and is sent to
   const card = authorityCard(page, 'Recurring donation');
   await expect(card.getByText('On', { exact: true })).toBeVisible();
   await expect(card.getByText('Yearly')).toBeVisible();
-  await expect(card.locator('dd').filter({ hasText: /\d{4}\/\d{2}\/\d{2} · \$/ })).toBeVisible();
+  await expect(card.locator('dd').filter({ hasText: /\d{2}\/\d{2}\/\d{4} · \$/ })).toBeVisible();
 
   await card.getByRole('button', { name: 'Turn off' }).click();
   await page.getByRole('button', { name: 'Yes, turn it off' }).click();

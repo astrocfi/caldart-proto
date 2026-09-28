@@ -69,7 +69,7 @@ describe('PaymentDetailPage', () => {
     servePayment();
     renderDetail();
 
-    expect(await screen.findByText(/2026\/01\/09/)).toBeInTheDocument();
+    expect(await screen.findByText(/01\/09\/2026/)).toBeInTheDocument();
   });
 
   it.each<[PaymentDetail['kind'], string]>([

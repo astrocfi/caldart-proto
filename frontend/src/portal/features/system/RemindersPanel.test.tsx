@@ -77,7 +77,7 @@ describe('RemindersPanel', () => {
     const actionsTable = screen.getByRole('table', { name: '1 action' });
     const row = within(actionsTable).getByRole('row', { name: /Marta Reyes/ });
     expect(row).toHaveTextContent('30 days before');
-    expect(row).toHaveTextContent('2026/07/15');
+    expect(row).toHaveTextContent('07/15/2026');
   });
 
   it('says nothing was due when a run finds no actions', async () => {

@@ -68,8 +68,8 @@ describe('DonorsPage', () => {
     renderWithProviders(<DonorsPage />);
 
     const row = within(await screen.findByRole('row', { name: /Dana Doe/ }));
-    expect(row.getByText('2026/01/10')).toBeInTheDocument();
-    expect(row.getByText('2026/06/20')).toBeInTheDocument();
+    expect(row.getByText('01/10/2026')).toBeInTheDocument();
+    expect(row.getByText('06/20/2026')).toBeInTheDocument();
   });
 
   it('draws the default columns the registry names', async () => {

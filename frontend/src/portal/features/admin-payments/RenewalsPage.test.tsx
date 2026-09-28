@@ -130,7 +130,7 @@ describe('RenewalsPage', () => {
     const row = within(await screen.findByRole('row', { name: /Maria Alvarez/ }));
     expect(row.getByText('Visa ending 4242, expires 03/2028')).toBeInTheDocument();
     expect(row.getByText('$70.00')).toBeInTheDocument();
-    expect(row.getByText('2027/03/14')).toBeInTheDocument();
+    expect(row.getByText('03/14/2027')).toBeInTheDocument();
   });
 
   it('names a mandate with no plan a recurring donation, with its cadence', async () => {
@@ -219,7 +219,7 @@ describe('RenewalsPage', () => {
     server.use(...renewalHandlers([], [REFUSED], record()));
     renderWithProviders(<RenewalsPage />);
 
-    const row = within(await screen.findByRole('row', { name: /2026\/03\/14/ }));
+    const row = within(await screen.findByRole('row', { name: /03\/14\/2026/ }));
     expect(row.getByText('Refused')).toBeInTheDocument();
     expect(row.getByText('Your card was declined')).toBeInTheDocument();
   });
@@ -302,7 +302,7 @@ describe('RenewalsPage', () => {
     const seen = record();
     server.use(...renewalHandlers([], [REFUSED], seen));
     renderWithProviders(<RenewalsPage />);
-    await screen.findByRole('row', { name: /2026\/03\/14/ });
+    await screen.findByRole('row', { name: /03\/14\/2026/ });
 
     await userEvent.selectOptions(screen.getByLabelText('Outcome'), 'succeeded');
 

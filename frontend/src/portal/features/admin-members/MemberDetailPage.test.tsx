@@ -87,7 +87,7 @@ describe('MemberDetailPage', () => {
     renderDetail();
 
     const header = (await screen.findByText('Current')).closest('.cluster');
-    expect(header).toHaveTextContent('updated 2026/08/11');
+    expect(header).toHaveTextContent('updated 08/11/2026');
   });
 
   it('says a profile nobody has written has never been edited', async () => {
@@ -113,8 +113,8 @@ describe('MemberDetailPage', () => {
     renderDetail();
 
     await screen.findByLabelText('Administrator notes');
-    // The member also joined on 2024/07/01, so scope past that coincidence.
-    expect(screen.getByText('Verified')).toHaveTextContent('Verified 2024/07/01');
+    // The member also joined on 07/01/2024, so scope past that coincidence.
+    expect(screen.getByText('Verified')).toHaveTextContent('Verified 07/01/2024');
   });
 
   it('shows an unverified email address with no resend button', async () => {
@@ -198,6 +198,18 @@ describe('MemberDetailPage', () => {
       starts_on: null,
       note: 'Comped by the board',
     });
+  });
+
+  it('names the granted term’s last day as MM/DD/YYYY', async () => {
+    const user = userEvent.setup();
+    server.use(...detailHandlers());
+    renderDetail('/admin/members/1?tab=memberships');
+
+    await screen.findByRole('option', { name: 'Annual' });
+    await user.selectOptions(screen.getByLabelText(/Plan/), 'annual');
+    await user.click(screen.getByRole('button', { name: 'Grant term' }));
+
+    expect(await screen.findByText('Term granted through 06/30/2027.')).toBeInTheDocument();
   });
 
   it('sends an explicit start date when one is given', async () => {
