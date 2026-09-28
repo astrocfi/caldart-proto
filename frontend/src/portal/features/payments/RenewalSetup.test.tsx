@@ -80,7 +80,9 @@ function mount({
   const confirms: unknown[] = [];
   server.use(
     signedInAs(makeUser()),
-    http.get(`${API}/payments/config`, () => HttpResponse.json(makePaymentsConfig({ providers, plans }))),
+    http.get(`${API}/payments/config`, () =>
+      HttpResponse.json(makePaymentsConfig({ providers, plans })),
+    ),
     http.post(`${API}/me/renewal/setup`, async ({ request }) => {
       const body = (await request.json()) as RenewalSetupRequest;
       setups.push(body);
