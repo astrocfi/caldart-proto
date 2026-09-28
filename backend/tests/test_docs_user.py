@@ -439,7 +439,11 @@ def test_the_extension_writes_each_restricted_page_and_its_roles(tmp_path: Path)
 
 def test_an_index_with_an_open_page_under_it_is_open(tmp_path: Path) -> None:
     """A group index that lists any page without roles is every reader's."""
-    pages = {**SAMPLE_GUIDE, "admin/index": _page("Admin", body=_toctree("members", "../open"))}
+    pages = {
+        **SAMPLE_GUIDE,
+        "admin/index": _page("Admin", body=_toctree("members", "money", "help")),
+        "admin/help": _page("Help"),
+    }
     source, out = _write_project(tmp_path, pages)
     assert build_main(["-q", "-W", "-b", "dirhtml", str(source), str(out)]) == 0
     assert "admin/index" not in json.loads((out / "roles.json").read_text(encoding="utf-8"))
