@@ -53,7 +53,7 @@ Tick **Renew automatically each year** when you pay for a membership, or press
 opens the same choices the checkout offers: the plan that will renew, the
 contribution to renew beside it, **First charge on**, and a tab per payment method.
 The line above the tabs says what will happen, for example *CalDART will charge
-$145.00 on 2027/03/01, and each year after that. We will email you fourteen days
+$145.00 on 03/01/2027, and each year after that. We will email you fourteen days
 before every charge.*
 
 **First charge on** is yours to choose. It opens on the day your membership runs

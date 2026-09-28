@@ -61,7 +61,7 @@ With the first charge today, the gift is paid now and the card or account is sav
 for the charges after it. With a later day, nothing is paid today and **Total
 today** reads $0.00: the tabs save a card or PayPal account without charging it, and
 the screen says *Your recurring donation is set up. The first charge is on
-2027/03/01.* Either way you move to :doc:`payments`, and CalDART emails *CalDART:
+03/01/2027.* Either way you move to :doc:`payments`, and CalDART emails *CalDART:
 your recurring donation is on*.
 
 Each charge moves the next one on by a month, a quarter, or a year from the day it

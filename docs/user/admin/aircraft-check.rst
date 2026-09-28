@@ -62,7 +62,7 @@ the airplane out of service, and the make, model, year, and seats. Then come fou
    reach them.
 
 **Last updated**
-   The date of the last change to the record and who made it, such as *2026/09/01 by Dana
+   The date of the last change to the record and who made it, such as *09/01/2026 by Dana
    Fiske*. A record nobody has changed since it was loaded shows the date alone. It tells
    you how old the insurance details are: a policy that runs out next month on a record
    last changed two years ago is worth a phone call.

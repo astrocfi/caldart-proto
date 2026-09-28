@@ -39,7 +39,7 @@ Profile
 
 A **Verification** card heads the tab. It lists **Pilot certificate**, **Medical**, and
 **Photo ID**, each with what the record holds (such as *Private · 1234567* or *Third class
-· expires 2027/01/31*) and its mark: **Verified** with who verified it and on which day, or
+· expires 01/31/2027*) and its mark: **Verified** with who verified it and on which day, or
 **Not verified**. **Verify** opens the same verification panel as the :doc:`member-check`:
 correct the fields against the documents, tick the items you have checked, and press
 **Save**. *Verification saved* confirms it, and a field you corrected there is filled in on

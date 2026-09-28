@@ -151,7 +151,7 @@ message is a ``Message`` with four parts:
    none.
 
 Names are the account's display name, money is printed in dollars from integer
-cents, and a date is ``YYYY/MM/DD``.  The footer says why the address hears of
+cents, and a date is ``MM/DD/YYYY`` (``caldart.dates``).  The footer says why the address hears of
 it: subscribed to that notification, or listed to receive the DART's roster.
 
 

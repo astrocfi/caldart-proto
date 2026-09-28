@@ -70,15 +70,15 @@ def test_missing_insurance_is_not_current() -> None:
 
 
 def test_insurance_summary_format() -> None:
-    """``insurance_summary`` formats both liability limits and the expiration date."""
+    """``insurance_summary`` gives both liability limits and the expiry as ``MM/DD/YYYY``."""
     aircraft = AircraftFactory(
         n_number="N4AA",
         insurance_liability_per_occurrence_cents=100_000_000,
         insurance_liability_per_person_cents=10_000_000,
         insurance_expiration=timezone.localdate().replace(month=3, day=1),
     )
-    summary = aircraft.insurance_summary
-    assert summary.startswith("$1,000,000 / $100,000 \u00b7 exp ")
+    expected = f"$1,000,000 / $100,000 \u00b7 exp 03/01/{timezone.localdate().year}"
+    assert aircraft.insurance_summary == expected
 
 
 def test_insurance_summary_when_nothing_on_file() -> None:

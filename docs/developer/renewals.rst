@@ -444,7 +444,9 @@ recurring donation, never says "renew" or "membership renewal" at all -- "we wil
 take your recurring donation on ...", "thank you for your recurring donation",
 "your recurring donation is on" -- and says how often it charges ("each month")
 where the amount is named.  The templates read ``kind``, ``kind_label``,
-``cadence`` and ``cadence_label`` out of the shared context.
+``cadence`` and ``cadence_label`` out of the shared context.  A subject that names a
+day writes it ``MM/DD/YYYY`` through ``caldart.dates``, as the Sent Emails page
+lists it; the body writes the day in words, such as *October 11, 2026*.
 
 Beside the member's own emails, the mandate raises notification events for the
 administrators who subscribe to them (:doc:`notification-events`):

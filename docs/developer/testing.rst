@@ -937,7 +937,7 @@ document has eight keys:
    year and is on no register record, preferring one a corporation or an LLC
    holds, with the ``knownType``, ``knownYear``, and ``knownOwner`` that picking
    it fills in; and ``asOf``, the day the newest successful import finished,
-   written ``YYYY/MM/DD`` as the screens print it.  ``aircraft-registry.spec.ts``
+   written ``MM/DD/YYYY`` as the screens print it.  ``aircraft-registry.spec.ts``
    adds that airplane from My aircraft, typing a prefix of ``knownNNumber``
    into the N-number box and picking it from the list, and runs the import from
    the Health & Database page, which ``make e2e`` points at the registry fixture through

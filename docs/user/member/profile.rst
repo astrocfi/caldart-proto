@@ -124,7 +124,7 @@ member stays a member and is offered neither.
 
 **Make me a friend**
   Opens a short confirmation. While your membership is current it reads *Your
-  membership stays current through 2027/03/01. On 2027/03/02 you become a friend of
+  membership stays current through 03/01/2027. On 03/02/2027 you become a friend of
   CalDART: no dues, no expiry, and no renewal reminders.* You keep what you paid
   for. With nothing current, you become a friend today.
 
@@ -141,7 +141,7 @@ member stays a member and is offered neither.
 
 **Undo**
   While the change waits for its day, the card reads *You become a friend on
-  2027/03/02.* with an **Undo** button, which keeps you a member. It does not turn
+  03/02/2027.* with an **Undo** button, which keeps you a member. It does not turn
   automatic renewal back on; do that on :doc:`payments`, or renew. Renewing while a
   change waits also keeps you a member.
 
