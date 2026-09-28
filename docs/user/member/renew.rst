@@ -21,9 +21,11 @@ member and has not paid yet, has nothing to renew: opening **Renew** takes a fri
 to :doc:`become-a-member` instead.
 
 Below it is the checkout, headed **Renew your membership**. It works the same way
-as the join wizard's payment step (see :doc:`join`): choose the plan, with Annual
-chosen for you, add a contribution if you like, tick **Renew automatically each
-year** if you want CalDART to renew you from now on, and pay from one of the tabs.
+as the join wizard's payment step (see :doc:`join`): choose the plan, with the first
+plan listed chosen for you, add a contribution if you like, tick **Renew
+automatically each year** if you want CalDART to renew you from now on, and pay from
+one of the tabs. A site with no membership plan set up shows *No membership plan is
+set up yet. Ask an administrator.* instead of the plans, and offers no way to pay.
 
 
 What happens next

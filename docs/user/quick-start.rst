@@ -75,7 +75,9 @@ Pay, renew, and give
 To renew your membership:
 
 #. Choose **Renew** in the menu, or the **Renew** button on your **Dashboard**.
-#. Check **Where you stand**. Annual is chosen for you.
+#. Check **Where you stand**. The first plan listed is chosen for you. A site with
+   no membership plan set up shows *No membership plan is set up yet. Ask an
+   administrator.* instead of the plans.
 #. Tick **Renew automatically each year** if you want CalDART to renew you from
    now on.
 #. Pay from the **Card · Apple Pay · Google Pay** tab or the **PayPal** tab. If you

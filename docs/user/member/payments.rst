@@ -52,6 +52,9 @@ Tick **Renew automatically each year** when you pay for a membership, or press
 **Turn on** on the card here, which saves a method without charging it. **Turn on**
 opens the same choices the checkout offers: the plan that will renew, the
 contribution to renew beside it, **First charge on**, and a tab per payment method.
+The first plan listed that renews is chosen for you. A site with no membership plan
+set up shows *No membership plan is set up yet. Ask an administrator.* instead, and
+offers no way to save a method.
 The line above the tabs says what will happen, for example *CalDART will charge
 $145.00 on 03/01/2027, and each year after that. We will email you fourteen days
 before every charge.*

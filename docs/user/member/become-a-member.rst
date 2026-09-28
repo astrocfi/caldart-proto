@@ -21,7 +21,9 @@ The checkout, headed **Join CalDART**, the same one the join wizard uses (see
 :doc:`join`):
 
 #. **Membership**: **Annual** ($45.00, *One year*) or **Life** ($650.00, *One
-   payment, membership for life*).
+   payment, membership for life*). The first plan listed is chosen for you. A site
+   with no membership plan set up shows *No membership plan is set up yet. Ask an
+   administrator.* instead of the plans, and offers no way to pay.
 #. **Add a contribution**, if you would like to give more on top of the dues.
 #. **Renew automatically each year**, if you want CalDART to renew the membership
    for you (see :doc:`payments`).
