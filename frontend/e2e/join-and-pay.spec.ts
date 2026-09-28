@@ -25,14 +25,20 @@ const DESKTOP_WIDTH = 1280;
 /**
  * The profile step takes the portal's full working width, as `/profile` does, so a
  * phone number and its extension sit on one line rather than the extension wrapping
- * under the number.
+ * under the number.  The pair is centered on its line and the extension's box is a
+ * little shorter, so the two share a vertical center rather than a top edge.
  */
 async function expectPhoneOnOneLine(page: Page): Promise<void> {
   const phone = await page.getByRole('textbox', { name: 'Phone', exact: true }).boundingBox();
   const extension = await page.locator('input[name="phone_extension"]').boundingBox();
   expect(phone).not.toBeNull();
   expect(extension).not.toBeNull();
-  expect(extension?.y).toBeCloseTo(phone?.y ?? Number.NaN, 0);
+  expect(verticalCenter(extension)).toBeCloseTo(verticalCenter(phone), 0);
+}
+
+/** The vertical middle of a box, or NaN for a box that is not on the page. */
+function verticalCenter(box: { y: number; height: number } | null): number {
+  return box === null ? Number.NaN : box.y + box.height / 2;
 }
 
 /**

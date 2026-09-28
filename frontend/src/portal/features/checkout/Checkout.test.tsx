@@ -149,13 +149,29 @@ beforeEach(() => {
 });
 
 describe('Checkout', () => {
-  it('offers every plan and defaults to Annual', async () => {
+  it('offers every plan and preselects the first the server lists', async () => {
     serveConfig(config());
     renderWithProviders(<Checkout mode="join" onSuccess={() => {}} />);
 
     expect(await screen.findByRole('radio', { name: /Annual/ })).toBeChecked();
     expect(screen.getByRole('radio', { name: /Life/ })).not.toBeChecked();
     expect(screen.getByTestId('checkout-total')).toHaveTextContent('$45.00');
+  });
+
+  it('keeps the order the server lists the plans in', async () => {
+    serveConfig(config({ plans: [PLANS[1]!, PLANS[0]!] }));
+    renderWithProviders(<Checkout mode="join" onSuccess={() => {}} />);
+
+    await screen.findByRole('radio', { name: /Life/ });
+    const names = screen.getAllByRole('radio').map((radio) => radio.getAttribute('value'));
+    expect(names.slice(0, 2)).toEqual(['life', 'annual']);
+  });
+
+  it('preselects the first plan listed even when an annual plan comes later', async () => {
+    serveConfig(config({ plans: [PLANS[1]!, PLANS[0]!] }));
+    renderWithProviders(<Checkout mode="join" onSuccess={() => {}} />);
+
+    expect(await screen.findByRole('radio', { name: /Life/ })).toBeChecked();
   });
 
   it('selects the first plan offered when there is no annual plan', async () => {
@@ -179,6 +195,41 @@ describe('Checkout', () => {
     await user.click(await screen.findByRole('button', { name: 'Succeed' }));
 
     await waitFor(() => expect(requests).toEqual([expect.objectContaining({ plan: 'life' })]));
+  });
+
+  it('says so when no membership plan is set up', async () => {
+    serveConfig(config({ plans: [] }));
+    renderWithProviders(<Checkout mode="join" onSuccess={() => {}} />);
+
+    expect(
+      await screen.findByText('No membership plan is set up yet. Ask an administrator.'),
+    ).toBeInTheDocument();
+  });
+
+  it('offers no way to pay when no membership plan is set up', async () => {
+    serveConfig(config({ plans: [] }));
+    renderWithProviders(<Checkout mode="renew" onSuccess={() => {}} />);
+
+    await screen.findByText('No membership plan is set up yet. Ask an administrator.');
+    expect(screen.queryByRole('tablist', { name: 'Payment method' })).not.toBeInTheDocument();
+  });
+
+  it('still offers the friend card when no membership plan is set up', async () => {
+    serveConfig(config({ plans: [] }));
+    renderWithProviders(<Checkout mode="join" onSuccess={() => {}} onBecomeFriend={() => {}} />);
+
+    expect(
+      await screen.findByRole('radio', { name: /I changed my mind, I just want to be a friend/ }),
+    ).toBeInTheDocument();
+  });
+
+  it('takes a contribution when no membership plan is set up', async () => {
+    serveConfig(config({ plans: [] }));
+    renderWithProviders(<Checkout mode="contribute" onSuccess={() => {}} />);
+
+    await userEvent.click(await screen.findByRole('radio', { name: /Participating/ }));
+
+    expect(screen.getByRole('button', { name: 'Succeed' })).toBeInTheDocument();
   });
 
   it('renewals are labeled as renewals', async () => {
