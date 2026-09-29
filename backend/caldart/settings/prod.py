@@ -166,14 +166,17 @@ MAILERS = {
 # --------------------------------------------------------------------------
 # Static files
 #
-# Compressed *manifest* storage: collectstatic hashes every file name, so the
-# far-future cache headers whitenoise sets are safe.  Apache and nginx both
-# proxy /static/ through to whitenoise rather than aliasing it, precisely so
-# the manifest stays authoritative (see deploy/apache/caldart.conf).
+# Compressed *manifest* storage: every file name carries a hash of its content,
+# so the far-future cache headers whitenoise sets are safe.  collectstatic adds
+# that hash to every file except Vite's build output under assets/, which Vite
+# has hashed already and whose chunks import one another by those names
+# (caldart.storage).  Apache and nginx both proxy /static/ through to
+# whitenoise rather than aliasing it, precisely so the manifest stays
+# authoritative (see deploy/apache/caldart.conf).
 # --------------------------------------------------------------------------
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
-    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+    "staticfiles": {"BACKEND": "caldart.storage.ViteManifestStaticFilesStorage"},
 }
 WHITENOISE_MAX_AGE = 31536000
 

@@ -243,10 +243,12 @@ FILE_UPLOAD_DIRECTORY_PERMISSIONS = 0o755
 # it elsewhere points this at that directory.
 USER_GUIDE_ROOT = Path(env("USER_GUIDE_ROOT", default=str(REPO_ROOT / "docs" / "_build" / "guide")))
 
+# whitenoise's compressed manifest storage, except that Vite's build output keeps the
+# names Vite gave it (``caldart.storage``): its chunks import one another by them.
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
     "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        "BACKEND": "caldart.storage.ViteManifestStaticFilesStorage",
     },
 }
 
