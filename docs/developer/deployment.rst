@@ -496,8 +496,14 @@ the system has another version.  Step 6 tells it to put the download in
       /opt/caldart/backups \
       /opt/caldart/media \
       /opt/caldart/caldart/backend/staticfiles
+  sudo find /opt/caldart/media -type d -exec chmod 0755 {} +
+  sudo find /opt/caldart/media -type f -exec chmod 0644 {} +
 
-``useradd`` runs only when the user is missing.  Its home is ``/home/caldart``,
+``useradd`` runs only when the user is missing.  The two ``find`` commands make
+every upload readable by the web server, which serves ``/media/`` off disk as
+its own user: the site writes uploads ``0644`` in ``0755`` directories, and
+these repair any an earlier run wrote under the service's ``UMask=0027``.  The
+upgrade runs this step too.  Its home is ``/home/caldart``,
 its own directory and never the checkout; nothing is ever written there,
 because the units keep ``/home`` out of reach (``ProtectHome=true``) and the
 services write only the three directories above.  An existing user whose home is
@@ -1075,8 +1081,8 @@ The vhost:
   (``MEDIA_ROOT``), as its own user: the site writes every upload ``0644`` and
   every directory under it ``0755`` (``FILE_UPLOAD_PERMISSIONS`` and
   ``FILE_UPLOAD_DIRECTORY_PERMISSIONS`` in ``base.py``), whatever umask it runs
-  under, and the user step repairs any directory an earlier run left
-  ``0750``; with a one-week cache
+  under, and the user step (which every install and upgrade runs) repairs any
+  directory or file an earlier run left ``0750`` or ``0640``; with a one-week cache
   and ``X-Content-Type-Options: nosniff``, never runs a script from there, and
   excludes it from the proxy;
 * denies ``/opt/caldart/media/documents``, the directory Wagtail writes
@@ -1800,14 +1806,16 @@ Upgrading
 2. a refusal if ``git status --porcelain`` shows local changes in the checkout;
 3. ``git pull --ff-only``, or with ``--ref`` a ``git fetch origin`` and ``git
    checkout REF`` (then ``git pull --ff-only`` when the ref is a branch);
-4. step 6, the build (``steps/build.sh``);
-5. step 7's database commands (``steps/database.sh``): ``migrate``,
+4. step 2, the service user and its directories (``steps/user.sh``), which also
+   makes every upload readable by the web server again;
+5. step 6, the build (``steps/build.sh``);
+6. step 7's database commands (``steps/database.sh``): ``migrate``,
    ``createcachetable``, ``seed_roles``, ``seed_plans``, and ``collectstatic``, with no
    administrator and no example content;
-6. step 8 (``steps/web-service.sh``), which reinstalls the web unit and
+7. step 8 (``steps/web-service.sh``), which reinstalls the web unit and
    restarts it, then waits for gunicorn to answer;
-7. ``steps/timers.sh``, which reinstalls the job units and reloads systemd;
-8. the checks (``steps/check.sh``).
+8. ``steps/timers.sh``, which reinstalls the job units and reloads systemd;
+9. the checks (``steps/check.sh``).
 
 Each step runs as the freshly checked-out script, so an upgrade that changes
 the installer runs the changed one.  Order matters: the frontend is built
