@@ -1093,7 +1093,17 @@ describe('Checkout · changing one’s mind to a friend', () => {
     expect(screen.queryByRole('radio', { name: FRIEND_CARD })).not.toBeInTheDocument();
   });
 
-  it('swaps the payment for one Continue as a friend button once chosen', async () => {
+  it('keeps the contribution under the cards once the friend card is chosen', async () => {
+    serveConfig(config());
+    renderWithProviders(<Checkout mode="join" onSuccess={() => {}} onBecomeFriend={() => {}} />);
+
+    await userEvent.click(await screen.findByRole('radio', { name: FRIEND_CARD }));
+
+    expect(screen.getByRole('radio', { name: /Participating/ })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: FRIEND_CARD })).toBeChecked();
+  });
+
+  it('offers Continue as a friend while no contribution is chosen', async () => {
     serveConfig(config());
     renderWithProviders(<Checkout mode="join" onSuccess={() => {}} onBecomeFriend={() => {}} />);
 
@@ -1103,27 +1113,80 @@ describe('Checkout · changing one’s mind to a friend', () => {
     expect(screen.queryByRole('tablist', { name: 'Payment method' })).not.toBeInTheDocument();
   });
 
-  it('hides the contribution once the friend card is chosen', async () => {
+  it('offers the payment methods once a friend chooses a contribution', async () => {
     serveConfig(config());
     renderWithProviders(<Checkout mode="join" onSuccess={() => {}} onBecomeFriend={() => {}} />);
 
     await userEvent.click(await screen.findByRole('radio', { name: FRIEND_CARD }));
+    await userEvent.click(screen.getByRole('radio', { name: /Participating/ }));
 
-    expect(screen.queryByRole('radio', { name: /Participating/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('tablist', { name: 'Payment method' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Continue as a friend' })).not.toBeInTheDocument();
   });
 
-  it('makes the account a friend and hands over to the host', async () => {
+  it('charges a friend the contribution alone, with no plan', async () => {
+    serveConfig(config());
+    serveBecomeFriend();
+    const requests = serveCheckout();
+    server.use(
+      http.post(`${API}/payments/mock/complete`, () =>
+        HttpResponse.json({ status: 'succeeded', membership: NO_MEMBERSHIP }),
+      ),
+    );
+    renderWithProviders(<Checkout mode="join" onSuccess={() => {}} onBecomeFriend={() => {}} />);
+
+    await userEvent.click(await screen.findByRole('radio', { name: FRIEND_CARD }));
+    await userEvent.click(screen.getByRole('radio', { name: /Participating/ }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Succeed' }));
+
+    await waitFor(() =>
+      expect(requests).toEqual([expect.objectContaining({ plan: null, contribution_cents: 2000 })]),
+    );
+  });
+
+  it('makes the account a friend once the contribution is paid, then hands over', async () => {
+    serveConfig(config());
+    const calls = serveBecomeFriend();
+    serveCheckout();
+    server.use(
+      http.post(`${API}/payments/mock/complete`, () =>
+        HttpResponse.json({ status: 'succeeded', membership: NO_MEMBERSHIP }),
+      ),
+    );
+    const handleSuccess = vi.fn();
+    const handleBecomeFriend = vi.fn();
+    renderWithProviders(
+      <Checkout mode="join" onSuccess={handleSuccess} onBecomeFriend={handleBecomeFriend} />,
+    );
+
+    await userEvent.click(await screen.findByRole('radio', { name: FRIEND_CARD }));
+    await userEvent.click(screen.getByRole('radio', { name: /Participating/ }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Succeed' }));
+
+    await waitFor(() => expect(handleSuccess).toHaveBeenCalledOnce());
+    expect(handleBecomeFriend).toHaveBeenCalledOnce();
+    expect(calls).toHaveLength(1);
+  });
+
+  it('makes the account a friend and finishes when no contribution is chosen', async () => {
     serveConfig(config());
     const calls = serveBecomeFriend();
     const handleBecomeFriend = vi.fn();
+    const handleFriendDone = vi.fn();
     renderWithProviders(
-      <Checkout mode="join" onSuccess={() => {}} onBecomeFriend={handleBecomeFriend} />,
+      <Checkout
+        mode="join"
+        onSuccess={() => {}}
+        onBecomeFriend={handleBecomeFriend}
+        onFriendDone={handleFriendDone}
+      />,
     );
 
     await userEvent.click(await screen.findByRole('radio', { name: FRIEND_CARD }));
     await userEvent.click(screen.getByRole('button', { name: 'Continue as a friend' }));
 
-    await waitFor(() => expect(handleBecomeFriend).toHaveBeenCalledOnce());
+    await waitFor(() => expect(handleFriendDone).toHaveBeenCalledOnce());
+    expect(handleBecomeFriend).toHaveBeenCalledOnce();
     expect(calls).toHaveLength(1);
   });
 

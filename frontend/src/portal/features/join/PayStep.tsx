@@ -12,8 +12,8 @@
  * my mind, I want to be a member** swaps the step to a member's: nothing changes on
  * the server until a membership is paid for.  A member's step has no **Not now**:
  * paying is what makes a member.  Its one other way on is the card for changing
- * one's mind, which makes the account a friend and swaps the step to a friend's
- * contribution.
+ * one's mind, chosen like a plan: the contribution stays under it, and paying one, or
+ * **Continue as a friend** without one, makes the account a friend and moves on.
  */
 import { Checkout } from '@/portal/features/checkout';
 import type { CheckoutResult } from '@/portal/features/checkout';
@@ -88,6 +88,7 @@ export function PayStep({
         mode="join"
         onSuccess={handleSuccess}
         onBecomeFriend={() => handleJoiningAsChange('friend')}
+        onFriendDone={handleDone}
       />
     </Card>
   );

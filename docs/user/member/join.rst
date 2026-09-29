@@ -140,10 +140,12 @@ paying or choosing to be a friend instead.
    The third card,
    **I changed my mind, I just want to be a friend** (*A friend has an account and
    hears from CalDART, but is not a member.*), is for joining as a friend after
-   all: choosing it hides the rest of the form and shows one button, **Continue as
-   a friend**. Pressing it makes your account a friend of CalDART and turns the
-   step into a friend's, described below, so you can still give a contribution or
-   press **Not now**.
+   all. It is chosen like a plan: the contribution tiers stay under it, and **Total
+   today** is the contribution alone. Choose a tier and pay it with the tabs below,
+   and your account becomes a friend of CalDART as the payment goes through; or,
+   with **No thank you** chosen, press **Continue as a friend** to finish without
+   giving. A recurring donation is not offered here; set one up later from
+   :doc:`donate`. To go back to membership, choose **Annual** or **Life** again.
 #. **Add a contribution.** CalDART is a 501(c)(3), so a contribution on top of your
    dues is tax deductible and pays for training, fuel, and equipment. Choose a tier
    (Participating $20, Bronze $100, Silver $300, Gold $1,000, Diamond $3,000, or
@@ -160,10 +162,11 @@ It offers the contribution alone, paid the same ways, with the option **Make thi
 a recurring donation** (see :doc:`donate`). **Not now**, at the foot of the card,
 moves on without paying anything, and you finish as a friend.
 
-Under the contribution tiers, **I changed my mind, I want to be a member** turns
-the step back into **Pay your dues**. Your account stays a friend until the dues
-are paid: paying makes you a member, and choosing **I changed my mind, I just want
-to be a friend** again takes you back to the contribution. If you reload the page,
+If you chose to join as a friend when you made your account, under the
+contribution tiers **I changed my mind, I want to be a member** turns the step
+into **Pay your dues**. Your account stays a friend until the dues are paid:
+paying makes you a member, and choosing **I changed my mind, I just want to be a
+friend** there finishes as a friend again. If you reload the page,
 the step shows the kind of account CalDART has stored for you, which is a friend
 until you have paid. You can also become a member any time later (see
 :doc:`become-a-member`).

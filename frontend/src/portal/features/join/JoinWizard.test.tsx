@@ -44,10 +44,6 @@ const UNPAID: MembershipStatus = {
 const MEMBER_PAY_LEDE =
   'Card, Apple Pay, Google Pay, or PayPal. Your membership starts immediately.';
 
-/** The lede over a friend's pay step. */
-const FRIEND_PAY_LEDE =
-  'Card, Apple Pay, Google Pay, or PayPal. Any amount helps, and none is required.';
-
 /** The done step's sentence about the receipt a payment in this visit sent. */
 const RECEIPT = /A receipt is on its way to your inbox/;
 
@@ -681,37 +677,22 @@ describe('<JoinWizard/> for a member who changes their mind', () => {
     expect(await screen.findByRole('radio', { name: FRIEND_CARD })).toBeInTheDocument();
   });
 
-  it('offers a friend’s contribution before the done step', async () => {
+  it('keeps a friend’s contribution in the pay step’s own card', async () => {
     stubChangeOfMind();
     renderWizard('/join/pay');
 
     await userEvent.click(await screen.findByRole('radio', { name: FRIEND_CARD }));
-    await userEvent.click(screen.getByRole('button', { name: 'Continue as a friend' }));
 
-    expect(
-      await screen.findByRole('heading', { name: 'Contribute to CalDART' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: /No thank you/ })).toBeInTheDocument();
     expect(path()).toBe('/join/pay');
   });
 
-  it('reads as a friend’s pay step in the lede once the member is a friend', async () => {
+  it('reaches the done step as a friend after Continue as a friend', async () => {
     stubChangeOfMind();
     renderWizard('/join/pay');
 
     await userEvent.click(await screen.findByRole('radio', { name: FRIEND_CARD }));
     await userEvent.click(screen.getByRole('button', { name: 'Continue as a friend' }));
-
-    expect(await screen.findByText(FRIEND_PAY_LEDE)).toBeInTheDocument();
-  });
-
-  it('reaches the done step as a friend after Not now', async () => {
-    stubChangeOfMind();
-    renderWizard('/join/pay');
-
-    await userEvent.click(await screen.findByRole('radio', { name: FRIEND_CARD }));
-    await userEvent.click(screen.getByRole('button', { name: 'Continue as a friend' }));
-    await screen.findByRole('radio', { name: /No thank you/ });
-    await userEvent.click(screen.getByRole('button', { name: 'Not now' }));
 
     expect(await screen.findByText('You are a friend of CalDART.')).toBeInTheDocument();
     expect(path()).toBe('/join/done');

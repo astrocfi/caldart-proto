@@ -26,10 +26,12 @@
  *
  * A host joining somebody as a member may pass `onBecomeFriend`: in `join` mode the
  * plan list then ends with a card for changing one's mind and becoming a friend of
- * CalDART instead.  Choosing it hides the contribution and the payment methods behind
- * one **Continue as a friend** button, which asks the server to make the account a
- * friend (`POST /me/kind/friend`) and then calls `onBecomeFriend`.  An account that is
- * a friend already has nothing to change, so the button calls `onBecomeFriend` at once.
+ * CalDART instead.  It is chosen like a plan: the contribution chooser stays under the
+ * cards, with the payment methods once an amount is chosen, and the total is the
+ * contribution alone.  Paying it asks the server to make the account a friend
+ * (`POST /me/kind/friend`), calls `onBecomeFriend`, then `onSuccess`.  With no
+ * contribution chosen, a **Continue as a friend** button does the same and then calls
+ * `onFriendDone`.  An account that is a friend already skips the request.
  *
  * A host offering a friend's contribution may pass `onBecomeMember`: in `contribute`
  * mode the contribution chooser is then followed by a link-styled **I changed my mind,
@@ -71,10 +73,16 @@ export interface SkippableCheckoutProps extends CheckoutProps {
   /** Called by the **Not now** button; the button is shown only when this is given. */
   onSkip?: () => void;
   /**
-   * Called once the account has become a friend from the friend card; the card is
-   * offered only in `join` mode, and only when this is given.
+   * Called once the account has become a friend from the friend card, before
+   * `onSuccess` when a contribution was paid; the card is offered only in `join`
+   * mode, and only when this is given.
    */
   onBecomeFriend?: () => void;
+  /**
+   * Called after `onBecomeFriend` when the reader chose the friend card and pressed
+   * **Continue as a friend** without a contribution: the host moves on.
+   */
+  onFriendDone?: () => void;
   /**
    * Called by the **I changed my mind, I want to be a member** button; the button is
    * offered only in `contribute` mode, never to a life member, and only when this is
@@ -93,6 +101,7 @@ export function Checkout({
   onScheduled: handleScheduled,
   onSkip: handleSkip,
   onBecomeFriend: handleBecomeFriend,
+  onFriendDone: handleFriendDone,
   onBecomeMember: handleBecomeMember,
 }: SkippableCheckoutProps): JSX.Element {
   const { data: config, isPending, error } = usePaymentsConfig();
@@ -160,36 +169,17 @@ export function Checkout({
   const isFriendChosen = offersFriend && plan === FRIEND_CHOICE;
   const offersMember = isContributing && !isLifetime && handleBecomeMember !== undefined;
 
-  function handleContinueAsFriend(): void {
-    if (user?.kind === 'friend') {
+  // Make the account a friend (unless it is one already), tell the host, then `then`.
+  function finishAsFriend(then: () => void): void {
+    const done = () => {
       handleBecomeFriend?.();
+      then();
+    };
+    if (user?.kind === 'friend') {
+      done();
       return;
     }
-    becomeFriend.mutate({}, { onSuccess: () => handleBecomeFriend?.() });
-  }
-
-  if (isFriendChosen) {
-    return (
-      <Card eyebrow={heading.eyebrow} title={heading.title} className="checkout">
-        <PlanChooser
-          plans={config.plans}
-          value={FRIEND_CHOICE}
-          onChange={(next) => setPlan(next)}
-          disabled={becomeFriend.isPending}
-          offerFriend
-        />
-        {becomeFriend.error ? (
-          <p className="field__error" role="alert">
-            {becomeFriend.error.message}
-          </p>
-        ) : null}
-        <div className="cluster card__footer">
-          <Button onClick={handleContinueAsFriend} disabled={becomeFriend.isPending}>
-            Continue as a friend
-          </Button>
-        </div>
-      </Card>
-    );
+    becomeFriend.mutate({}, { onSuccess: done });
   }
 
   // The first plan the server lists stands in until somebody picks one, so the
@@ -199,7 +189,7 @@ export function Checkout({
 
   // A server with no plan set up has nothing to sell a member; the friend card and
   // a contribution still work without one.
-  if (!isContributing && effectivePlan === null) {
+  if (!isContributing && !isFriendChosen && effectivePlan === null) {
     return (
       <Card eyebrow={heading.eyebrow} title={heading.title} className="checkout">
         {offersFriend ? (
@@ -214,7 +204,10 @@ export function Checkout({
     );
   }
 
-  const selectedPlan = isContributing
+  // The friend card is chosen like a plan, but it buys nothing: what is left to pay
+  // for is the contribution, exactly as in `contribute` mode.
+  const isContributionOnly = isContributing || isFriendChosen;
+  const selectedPlan = isContributionOnly
     ? null
     : (config.plans.find((entry) => entry.slug === effectivePlan) ?? null);
   const planCents = selectedPlan?.price_cents ?? 0;
@@ -223,9 +216,13 @@ export function Checkout({
   // Only a plan with a term can renew itself, and a contribution can only
   // repeat once there is an amount, so the offer is hidden rather than shown
   // and refused by the server.
-  const canAutoRenew = isContributing
-    ? contributionCents > 0
-    : selectedPlan !== null && selectedPlan.duration_days !== null;
+  // A friend chosen on the card gives once here; a recurring donation is set up
+  // later from Donate.
+  const canAutoRenew = isFriendChosen
+    ? false
+    : isContributing
+      ? contributionCents > 0
+      : selectedPlan !== null && selectedPlan.duration_days !== null;
 
   // The server refuses a payment of nothing, so a contribution waits for an
   // amount rather than starting a provider that cannot be paid.
@@ -240,7 +237,7 @@ export function Checkout({
   const needsMove = isDonating && moveMessage !== null && !isMoveAgreed;
 
   const panelProps: ProviderPanelProps = {
-    plan: isContributing ? null : effectivePlan,
+    plan: isContributionOnly ? null : effectivePlan,
     contributionCents,
     amountCents: totalCents,
     autoRenew: isContributing ? isDonating : canAutoRenew && autoRenew,
@@ -251,7 +248,8 @@ export function Checkout({
           onRenewalContribution: setMoveMessage,
         }
       : {}),
-    onSuccess,
+    // A paid contribution from the friend card makes the account a friend first.
+    onSuccess: isFriendChosen ? (result) => finishAsFriend(() => onSuccess(result)) : onSuccess,
   };
 
   function handleSetUp(): void {
@@ -264,8 +262,9 @@ export function Checkout({
       {isContributing ? null : (
         <PlanChooser
           plans={config.plans}
-          value={effectivePlan ?? ''}
+          value={isFriendChosen ? FRIEND_CHOICE : (effectivePlan ?? '')}
           onChange={(next) => setPlan(next)}
+          disabled={becomeFriend.isPending}
           offerFriend={offersFriend}
         />
       )}
@@ -296,7 +295,7 @@ export function Checkout({
       ) : null}
 
       <dl className="checkout__total">
-        {isContributing ? null : (
+        {isContributionOnly ? null : (
           <div>
             <dt>{selectedPlan?.name ?? 'Membership'}</dt>
             <dd className="mono">{formatCents(planCents)}</dd>
@@ -342,7 +341,22 @@ export function Checkout({
         </div>
       ) : null}
 
-      {needsContribution ? (
+      {becomeFriend.error ? (
+        <p className="field__error" role="alert">
+          {becomeFriend.error.message}
+        </p>
+      ) : null}
+
+      {isFriendChosen && contributionCents === 0 ? (
+        <div className="cluster card__footer">
+          <Button
+            onClick={() => finishAsFriend(() => handleFriendDone?.())}
+            disabled={becomeFriend.isPending}
+          >
+            Continue as a friend
+          </Button>
+        </div>
+      ) : needsContribution ? (
         <p className="checkout__blocked muted" role="status">
           Choose a contribution to continue.
         </p>
