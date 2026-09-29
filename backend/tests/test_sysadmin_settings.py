@@ -214,10 +214,11 @@ def test_the_cache_table_is_the_one_the_deployment_guide_creates(prod: ModuleTyp
 
 
 # ------------------------------------------------------- assets and email
-def test_static_files_use_the_hashed_manifest_storage(prod: ModuleType) -> None:
-    """Static files are served through whitenoise's compressed manifest storage."""
+def test_static_files_use_the_vite_aware_manifest_storage(prod: ModuleType) -> None:
+    """Static files are served through the compressed manifest storage that leaves Vite's
+    build output under Vite's own names (``caldart.storage``)."""
     backend = prod.STORAGES["staticfiles"]["BACKEND"]
-    assert backend == "whitenoise.storage.CompressedManifestStaticFilesStorage"
+    assert backend == "caldart.storage.ViteManifestStaticFilesStorage"
 
 
 def test_vite_reads_the_built_manifest(prod: ModuleType) -> None:
