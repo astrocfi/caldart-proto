@@ -1063,7 +1063,10 @@ systemd runs as it does on a server, and drives the scripts of
    exists and belongs to the ``caldart`` user, and nothing the site writes is
    inside the checkout: there is no ``/opt/caldart/backend``, no ``backups``
    or ``backend/media`` in the checkout, and ``git status --porcelain`` there
-   names nothing;
+   names nothing.  It also checks that the sign-in page loads the portal's
+   entry script under exactly the name ``frontend/dist/.vite/manifest.json``
+   gives it, the name every lazy chunk imports it by, so the production static
+   storage has not renamed Vite's output (:doc:`architecture`);
 2. ``systemctl start`` of the backup, reports, renewals, reminders, and
    statements services, each of which must finish without an error, so every
    unit's hardening is honored as well as the web unit's (the install has

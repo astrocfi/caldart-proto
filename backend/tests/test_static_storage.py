@@ -20,7 +20,7 @@ from pytest_django.fixtures import Settings
 
 from caldart.storage import VITE_ASSETS_DIR
 
-#: The storage the production settings name (``test_sysadmin_settings.py`` holds them to it).
+#: The storage the production settings name (``test_sysadmin_settings.py`` checks it).
 PRODUCTION_STORAGE = "caldart.storage.ViteManifestStaticFilesStorage"
 
 #: A name Django's manifest storage writes: the stem, twelve hex digits, the extension.
@@ -36,14 +36,18 @@ IMAGE = "assets/hero-LkJh4321.png"
 
 @pytest.fixture
 def built(tmp_path: Path, settings: Settings) -> Path:
-    """Collect a small fake Vite build and one other static file with the production storage.
+    """Collect a small fake Vite build and one other file with the production storage.
 
     Returns the ``STATIC_ROOT`` the files were collected into.
     """
     dist = tmp_path / "dist"
     (dist / "assets").mkdir(parents=True)
-    (dist / ENTRY).write_text('export const answer = 42;\nimport("./ProfilePage-XyZ98765.js");\n')
-    (dist / CHUNK).write_text('import { answer } from "./portal-AbCd1234.js";\nconsole.log(answer);\n')
+    # Long enough to shrink under gzip: whitenoise keeps no copy that does not.
+    padding = "".join(f"export const line{index} = {index};\n" for index in range(200))
+    (dist / ENTRY).write_text(f'{padding}import("./ProfilePage-XyZ98765.js");\n')
+    (dist / CHUNK).write_text(
+        'import { answer } from "./portal-AbCd1234.js";\nconsole.log(answer);\n'
+    )
     (dist / STYLESHEET).write_text('.hero { background: url("./hero-LkJh4321.png"); }\n')
     (dist / IMAGE).write_bytes(b"\x89PNG\r\n\x1a\n")
     extra = tmp_path / "extra"
@@ -90,7 +94,7 @@ def test_a_vite_stylesheet_keeps_its_references_to_vite_files(built: Path) -> No
 
 
 def test_vite_output_is_compressed_for_whitenoise(built: Path) -> None:
-    """whitenoise still writes a gzip copy beside each Vite file it serves."""
+    """A gzip copy is still written beside each Vite file, for whitenoise to serve."""
     assert (built / f"{ENTRY}.gz").is_file()
 
 

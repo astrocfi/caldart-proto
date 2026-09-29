@@ -413,8 +413,10 @@ outgoing mail through its ``MAILERS`` setting, which ``prod.py`` builds from
 in step 5 and documented in :doc:`configuration`.
 
 ``/static/`` is deliberately **not** aliased in the web server.  whitenoise
-serves it through the proxy so that the hashed filenames ``collectstatic``
-produces stay authoritative and get far-future cache headers.  The user guide
+serves it through the proxy so that the hashed filenames stay authoritative
+and get far-future cache headers: ``collectstatic`` hashes every file's name
+except Vite's build output under ``assets/``, which Vite has hashed already
+(:doc:`architecture`).  The user guide
 at ``/docs/`` is not aliased either: Django serves it from ``USER_GUIDE_ROOT``
 and asks the reader to sign in first, so it stays behind the same login as the
 portal and needs nothing from the web server (:doc:`configuration`).  Only

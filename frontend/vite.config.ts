@@ -32,6 +32,11 @@ export default defineConfig(({ command }) => ({
   build: {
     manifest: true,
     outDir: 'dist',
+    // Named here because Django's static storage keeps every file under it as
+    // Vite named it (`VITE_ASSETS_DIR` in `backend/caldart/storage.py`): the
+    // chunks import one another by these names, so a second hash would load
+    // the portal's entry twice.
+    assetsDir: 'assets',
     emptyOutDir: true,
     rollupOptions: {
       input: {

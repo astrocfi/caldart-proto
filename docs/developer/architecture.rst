@@ -259,6 +259,15 @@ copies the build into ``backend/staticfiles/`` for WhiteNoise, and Apache
 and nginx proxy ``/static/`` through rather than aliasing it, so the
 manifest stays authoritative.
 
+The production storage, ``caldart.storage.ViteManifestStaticFilesStorage``,
+is WhiteNoise's compressed manifest storage with one exception: every file
+under ``assets/`` keeps the name Vite gave it.  Vite has already put a content
+hash in those names, and its chunks import one another by them.  A second hash
+would make a page load the portal's entry under one name while its lazy chunks
+import it under another, so the browser would run the entry twice and mount
+two React roots on ``#portal-root``.  Every other static file (the Django and
+Wagtail admins', the site's own images) is hashed as usual.
+
 
 The backend apps
 ================

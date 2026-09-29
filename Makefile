@@ -157,6 +157,10 @@ E2E_ENV := DJANGO_SETTINGS_MODULE=caldart.settings.dev \
 # with any seed the recipe installs postfix too, so
 # seeding disturbed neither.
 #
+# After every install the portal page must load its entry script under exactly the
+# name in Vite's manifest: the lazy chunks import it by that name, and a second name
+# would run it twice (caldart.storage).
+#
 # It installs HEAD, never the working tree, because bootstrap.sh clones the
 # checkout: commit before rehearsing.  A git worktree's .git is a file naming a
 # directory under the main repository's .git, so the common git directory is
@@ -517,6 +521,10 @@ rehearse-deploy: ## Rehearse the server install in a throwaway systemd container
 	      'from apps.accounts.models import User; import sys; sys.exit(0 if User.objects.count() == 1 else 1)' \
 	      || { echo "error: a website-only install holds more than the administrator's account" >&2; exit 1; }; \
 	  fi; \
+	  echo "==> Checking that the portal loads its entry under the name Vite gave it"; \
+	  entry=$$(inside python3 -c 'import json; print(json.load(open("/opt/caldart/caldart/frontend/dist/.vite/manifest.json"))["src/portal/main.tsx"]["file"])'); \
+	  site "https://caldart.test$$prefix/portal/login" | grep -qF "static/$$entry\"" \
+	    || { echo "error: the portal page does not load its entry as $$entry, the name its chunks import" >&2; exit 1; }; \
 	  : "The install started the registry import itself; it downloads the FAA file."; \
 	  echo "==> Running every other scheduled job once, hardening and all"; \
 	  inside systemctl start caldart-backup.service caldart-reports.service \

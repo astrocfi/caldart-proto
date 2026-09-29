@@ -215,8 +215,7 @@ def test_the_cache_table_is_the_one_the_deployment_guide_creates(prod: ModuleTyp
 
 # ------------------------------------------------------- assets and email
 def test_static_files_use_the_vite_aware_manifest_storage(prod: ModuleType) -> None:
-    """Static files are served through the compressed manifest storage that leaves Vite's
-    build output under Vite's own names (``caldart.storage``)."""
+    """Static files use the compressed manifest storage that leaves Vite's names alone."""
     backend = prod.STORAGES["staticfiles"]["BACKEND"]
     assert backend == "caldart.storage.ViteManifestStaticFilesStorage"
 
