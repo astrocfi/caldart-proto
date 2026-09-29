@@ -10,7 +10,7 @@ from caldart import audit
 
 
 class Command(BaseCommand):
-    """``manage.py db_reset`` command: drops the schema, migrates, and seeds roles."""
+    """``manage.py db_reset``: drops the schema, migrates, and seeds roles and plans."""
 
     help = "Drop the public schema, re-migrate, and optionally re-seed. Destructive."
 
@@ -30,7 +30,12 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args: Any, **options: Any) -> None:
-        """Drop the public schema, migrate, seed roles, and optionally seed demo data.
+        """Drop the public schema, migrate, and rebuild what every install needs.
+
+        After ``migrate`` it creates the cache table (production keeps its cache in the
+        database; where no database cache is configured this does nothing), then seeds
+        the roles and the membership plans, and with ``--seed`` the demo data and the
+        example site.
 
         Prompts for confirmation and raises ``CommandError`` on any answer other
         than ``yes`` unless ``--noinput`` was given. Writes an
@@ -50,6 +55,7 @@ class Command(BaseCommand):
 
         self.stdout.write("Migrating\u2026")
         call_command("migrate", verbosity=0)
+        call_command("createcachetable", verbosity=0)
         call_command("seed_roles", verbosity=0)
         call_command("seed_plans", verbosity=0)
 

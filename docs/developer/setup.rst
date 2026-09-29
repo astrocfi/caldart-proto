@@ -465,7 +465,8 @@ Beyond Django's and Wagtail's own, this project adds:
    * - ``db_restore <file> [--yes]``
      - drop the schema and replay a dump into it
    * - ``db_reset [--seed] [--noinput]``
-     - drop and recreate the schema, migrate, seed roles, optionally seed data
+     - drop and recreate the schema, migrate, create the cache table, seed roles
+       and plans, optionally seed data
    * - ``health [--json]``
      - print database connectivity, pending migrations, free disk, last
        backup, version, and ``DEBUG``; ``--json`` for a monitoring check

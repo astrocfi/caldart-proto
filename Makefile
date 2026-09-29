@@ -106,10 +106,10 @@ E2E_ENV := DJANGO_SETTINGS_MODULE=caldart.settings.dev \
            FAA_REGISTRY_URL="$(abspath backend/apps/aircraft/fixtures/faa)"
 
 # `make rehearse-deploy` runs the real installer in a throwaway systemd
-# container: deploy/bootstrap.sh, then deploy/upgrade.sh, deploy/install.sh a
-# second time, and deploy/uninstall.sh --yes --purge, with every scheduled job
-# started once after the install.  Slow and opt-in, like `make e2e`; CI does
-# not run it.
+# container: deploy/bootstrap.sh, with every scheduled job started once after
+# the install, then deploy/reset-database.sh and deploy/seed.sh --content twice,
+# deploy/upgrade.sh, deploy/install.sh a second time, and deploy/uninstall.sh
+# --yes --purge.  Slow and opt-in, like `make e2e`; CI does not run it.
 #
 #   REHEARSE_WEB_SERVER  apache or nginx, what the installer is told to use
 #   REHEARSE_URL_PREFIX  a URL prefix such as /caldart-proto: install behind an
@@ -529,6 +529,27 @@ rehearse-deploy: ## Rehearse the server install in a throwaway systemd container
 	  echo "==> Running every other scheduled job once, hardening and all"; \
 	  inside systemctl start caldart-backup.service caldart-reports.service \
 	    caldart-renewals.service caldart-reminders.service caldart-statements.service; \
+	  echo "==> Rehearsing a database reset"; \
+	  inside /opt/caldart/caldart/deploy/reset-database.sh --yes --admin-email admin@caldart.test; \
+	  inside /opt/caldart/caldart/deploy/manage.sh shell -c \
+	    'from apps.accounts.models import User; import sys; sys.exit(0 if User.objects.count() == 1 else 1)' \
+	    || { echo "error: the reset left more than the administrator's account" >&2; exit 1; }; \
+	  inside /opt/caldart/caldart/deploy/manage.sh health --json >/dev/null \
+	    || { echo "error: manage.sh health --json failed after the reset" >&2; exit 1; }; \
+	  site -o /dev/null -w '%{http_code}\n' "https://caldart.test$$prefix/portal/login" | grep -qx 200 \
+	    || { echo "error: the sign-in page does not answer after the reset" >&2; exit 1; }; \
+	  site -o /dev/null -w '%{http_code}\n' "https://caldart.test$$prefix/about/" | grep -qx 404 \
+	    || { echo "error: the reset left the example website's About Us page" >&2; exit 1; }; \
+	  echo "==> Rehearsing the website seed, twice"; \
+	  pages() { inside /opt/caldart/caldart/deploy/manage.sh shell -c \
+	    'from wagtail.models import Page; print(Page.objects.count())' | tr -d '\r'; }; \
+	  inside /opt/caldart/caldart/deploy/seed.sh --content; \
+	  first=$$(pages); \
+	  inside /opt/caldart/caldart/deploy/seed.sh --content; \
+	  [ "$$first" = "$$(pages)" ] \
+	    || { echo "error: a second website seed changed the page count from $$first" >&2; exit 1; }; \
+	  site -o /dev/null -w '%{http_code}\n' "https://caldart.test$$prefix/about/" | grep -qx 200 \
+	    || { echo "error: the seeded About Us page does not answer 200 after the reset" >&2; exit 1; }; \
 	  echo "==> Rehearsing an upgrade that changes nothing"; \
 	  inside /opt/caldart/caldart/deploy/upgrade.sh; \
 	  check_ports "after the upgrade"; \
