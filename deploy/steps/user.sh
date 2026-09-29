@@ -50,9 +50,11 @@ user_step() {
     run install -d -o "$SERVICE_USER" -g "$SERVICE_USER" \
         "$ROOT/backups" "$ROOT/media" "$CHECKOUT/backend/staticfiles"
     # The web server reads the uploads as its own user, so every directory under
-    # media/ must let others in: the site creates new ones 0755, and this repairs
-    # any an earlier run left 0750.
+    # media/ must let others in and every file must be readable: the site writes
+    # new ones 0755 and 0644, and this repairs any written under the service's
+    # UMask=0027 (0750 and 0640) before it did.
     run find "$ROOT/media" -type d -exec chmod 0755 '{}' +
+    run find "$ROOT/media" -type f -exec chmod 0644 '{}' +
 }
 
 user_main() {

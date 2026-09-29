@@ -1331,6 +1331,24 @@ def test_upgrade_backs_up_before_it_pulls(git_checkout: Path, etc: Path) -> None
     assert _position(commands, "db_backup") < _position(commands, "git pull --ff-only")
 
 
+def test_upgrade_reopens_the_uploads_to_the_web_server(git_checkout: Path, etc: Path) -> None:
+    """After pulling, the upgrade runs the user step, which opens every upload to Apache.
+
+    An install whose uploads were written under ``UMask=0027`` has ``0750`` directories
+    and ``0640`` files the web server cannot read; the upgrade repairs them before it
+    restarts the site.
+    """
+    result = _run(
+        git_checkout / "deploy" / "upgrade.sh", "--dry-run", env=_env(etc), cwd=git_checkout
+    )
+    commands = _commands(result)
+    media = git_checkout.parent / "media"
+    reopen_dirs = f"find {media} -type d -exec chmod 0755 '{{}}' +"
+    reopen_files = f"find {media} -type f -exec chmod 0644 '{{}}' +"
+    assert _position(commands, "git pull --ff-only") < _position(commands, reopen_dirs)
+    assert _position(commands, reopen_files) < _position(commands, "systemctl restart caldart-web")
+
+
 def test_upgrade_ends_with_the_check(git_checkout: Path, etc: Path) -> None:
     """The last thing an upgrade runs is the check."""
     result = _run(
@@ -3001,3 +3019,4 @@ def test_the_user_step_opens_every_media_directory_to_the_web_server(
     """Each install makes every directory under ``media/`` ``0755`` for the web server."""
     commands = _commands(_install_dry_run(root, etc, tmp_path))
     assert f"find {root}/media -type d -exec chmod 0755 '{{}}' +" in commands
+    assert f"find {root}/media -type f -exec chmod 0644 '{{}}' +" in commands

@@ -5,7 +5,8 @@
 # Takes a backup, refuses a checkout with local changes, brings the code up to
 # date (git pull --ff-only, or with --ref a fetch and a checkout of that
 # branch, tag, or commit), then runs the steps that depend on the code, each as
-# the freshly checked-out script: the build, the database (migrations, the
+# the freshly checked-out script: the service user and its directories (which
+# also reopens every upload to the web server), the build, the database (migrations, the
 # cache table, the roles, and the static files), gunicorn under systemd (which
 # reinstalls the unit and restarts it), the scheduled jobs (which reinstalls
 # their units), and the checks.  It never touches the environment file or the
@@ -32,7 +33,7 @@ CHECKOUT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$CHECKOUT/deploy/lib.sh"
 
 # The steps an upgrade re-runs, in order.
-readonly UPGRADE_STEPS=(build database web-service timers check)
+readonly UPGRADE_STEPS=(user build database web-service timers check)
 
 REF=""
 

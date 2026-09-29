@@ -764,14 +764,16 @@ it:
 2. refuses to go on when the checkout has local changes;
 3. runs ``git pull --ff-only``, or with ``--ref`` fetches and checks out
    ``REF`` (and pulls it when it is a branch);
-4. rebuilds (``steps/build.sh``): the Python packages, the frontend, and the
+4. checks the service user and its directories (``steps/user.sh``), which also
+   makes every upload readable by the web server again;
+5. rebuilds (``steps/build.sh``): the Python packages, the frontend, and the
    user guide;
-5. prepares the database (``steps/database.sh``): migrations, the cache
-   table, the roles, and the static files;
-6. reinstalls and restarts ``caldart-web`` and waits for it to answer
+6. prepares the database (``steps/database.sh``): migrations, the cache
+   table, the roles, the membership plans, and the static files;
+7. reinstalls and restarts ``caldart-web`` and waits for it to answer
    (``steps/web-service.sh``);
-7. reinstalls the job units (``steps/timers.sh``);
-8. runs the checks (``steps/check.sh``), and prints the commit it upgraded to.
+8. reinstalls the job units (``steps/timers.sh``);
+9. runs the checks (``steps/check.sh``), and prints the commit it upgraded to.
 
 Each step runs as the freshly checked-out script, so an upgrade that changes
 the installer runs the changed one.  It is safe to run again: an upgrade with
@@ -836,9 +838,17 @@ install and point here, while ``uninstall.sh``, ``manage.sh``, and
      sudo cp -a /root/caldart-media/. /opt/caldart/media/
      sudo chown -R caldart:caldart /opt/caldart/backups /opt/caldart/media
 
-6. Restore the dump from step 1 (`Restoring`_)::
+   The old install wrote its uploads readable only by the service user, so the
+   web server refused its photographs; open them to it::
+
+     sudo find /opt/caldart/media -type d -exec chmod 0755 {} +
+     sudo find /opt/caldart/media -type f -exec chmod 0644 {} +
+
+6. Restore the dump from step 1 (`Restoring`_), then bring it up to the
+   current code::
 
      sudo /opt/caldart/caldart/deploy/manage.sh db_restore /opt/caldart/backups/<the dump> --yes
+     sudo /opt/caldart/caldart/deploy/manage.sh migrate
 
 
 Backups and restoring
