@@ -49,6 +49,12 @@ The files:
 ``compose.sh``
    Runs ``docker compose`` against the database container with the recorded
    port.
+``seed.sh``
+   Loads the seed data you name: the roles, the membership plans, the demo
+   accounts, or the example website (`Seeding`_).
+``reset-database.sh``
+   Backs up, then empties the database and starts the site again as a fresh
+   install would (`Resetting the database`_).
 ``lib.sh``
    Functions every script shares; sourced, never run.
 ``steps/``
@@ -706,20 +712,40 @@ status is the command's::
 Never source the environment file into a shell to run ``manage.py`` by hand: a
 shell splits a value with spaces in it, such as ``DEFAULT_FROM_EMAIL``.
 
+Seeding
+-------
+
 The seeds ``make seed`` runs in development are separate steps on a server,
 each runnable on its own: the roles and the membership plans (``seed_roles`` and
-``seed_plans``, which every install runs), the example website (``seed_content``, ``--seed-content``), and the demo
-accounts (``seed_demo``, ``--seed-demo``).  Run or re-run either optional one on
-an installed server the same way::
+``seed_plans``, which every install runs), the example website
+(``seed_content``, the install's ``--seed-content``), and the demo accounts
+(``seed_demo``, the install's ``--seed-demo``).  ``seed.sh`` runs the ones you
+name, in that order, while the site keeps running::
 
-  sudo /opt/caldart/caldart/deploy/manage.sh seed_content     # the website alone
-  sudo /opt/caldart/caldart/deploy/manage.sh seed_demo        # the demo accounts alone
+  sudo /opt/caldart/caldart/deploy/seed.sh --content          # the website alone
+  sudo /opt/caldart/caldart/deploy/seed.sh --demo             # the demo accounts alone
+  sudo /opt/caldart/caldart/deploy/seed.sh --demo --content   # both
+  sudo /opt/caldart/caldart/deploy/seed.sh --all              # roles, plans, demo, website
 
-Both are idempotent: running either again updates the existing rows rather
-than duplicating them.  **Caution:** the demo accounts ``seed_demo`` creates
-share the password documented in this repository's ``README.rst``, so a
-server seeded with them is a demonstration server, never one holding real
-member data.
+Its flags are ``--roles``, ``--plans``, ``--demo``, ``--content``, and
+``--all``; with none it stops and lists them.
+
+Seeding twice is safe: every seed finds the rows it made before and updates
+them rather than adding a second copy, so a second run leaves one of
+everything.  It also puts back what it seeds, so run one again only when you
+want its values back:
+
+* ``--plans`` resets the Annual and Life plans' price and description.
+* ``--content`` overwrites the example pages' text and publishes them again,
+  reusing the photograph it uploaded the first time.  Pages made in the CMS
+  are left alone.
+* ``--demo`` resets the demo accounts' names, kinds, roles, and password, and
+  their profiles and aircraft.  A payment, a refund, or a renewal mandate is
+  created only when missing, so nothing is charged or recorded twice.
+
+**Caution:** the demo accounts ``seed_demo`` creates share the password
+documented in this repository's ``README.rst``, so a server seeded with them
+is a demonstration server, never one holding real member data.
 
 ``seed_demo``'s renewal mandates use the mock payment provider, so the
 scheduled ``caldart-renewals`` job has real work to do; production leaves
@@ -925,6 +951,45 @@ restoring onto a fresh machine, putting the uploads back, rehearsing a
 restore into a scratch database, and recording a payment the provider took
 after the dump.
 
+Resetting the database
+----------------------
+
+``reset-database.sh`` empties the database and leaves the site as a fresh
+install leaves it: no accounts, no payments, no pages but a blank home page,
+with the roles and the two membership plans in place.  It refuses to run
+without ``--yes``::
+
+  sudo /opt/caldart/caldart/deploy/reset-database.sh --yes --admin-email you@example.org
+  sudo /opt/caldart/caldart/deploy/reset-database.sh --yes --admin-email you@example.org --seed-content
+
+In order, it:
+
+#. takes a dump into ``/opt/caldart/backups``, the one to restore to undo the
+   reset (`Restoring`_);
+#. stops ``caldart-web``, the six timers, and any job they started, so nothing
+   writes while the tables go;
+#. drops every table and migrates again (``manage.py db_reset``);
+#. runs the install's database step (``steps/database.sh``): the cache table,
+   the roles, the plans, the static files, and, with the flags, the
+   administrator and the seeds;
+#. starts the site and the timers, and starts an import of the FAA registry in
+   the background, since its table is empty too.
+
+``--admin-email`` creates the administrator and prints the one-time link that
+sets its password, as the install does.  ``--seed-content`` and ``--seed-demo``
+load the example website and the demo accounts (`Seeding`_).  With neither
+``--admin-email`` nor ``--seed-demo`` nobody can sign in afterwards, and the
+script says so; create an administrator then with::
+
+  sudo /opt/caldart/caldart/deploy/manage.sh create_admin --email you@example.org
+
+The environment file, the install record, the web server, the backups, and the
+uploads in ``/opt/caldart/media`` are left alone.  The uploads stay on disk
+with nothing in the database naming them; to clear them too, empty the
+directory once the reset is done::
+
+  sudo find /opt/caldart/media -mindepth 1 -delete
+
 
 Sharing the machine
 ===================
@@ -1041,8 +1106,12 @@ The target starts a privileged ``jrei/systemd-ubuntu:24.04`` container, in
 which systemd runs as on a server, and drives the scripts through a whole life:
 ``bootstrap.sh`` against the checkout (``--hostname caldart.test
 --admin-email admin@caldart.test``, with ``--tls self-signed --email-url
-smtp://localhost:25``), every other job service started once, ``upgrade.sh`` with
-nothing to pull, ``install.sh`` with no flags (which must leave the
+smtp://localhost:25``), every other job service started once,
+``reset-database.sh --yes --admin-email admin@caldart.test`` (after which only
+the administrator's account may exist, the health check must pass, and the
+example About Us page must answer 404), ``seed.sh --content`` twice (the page
+count must not change between the runs, and About Us must answer 200),
+``upgrade.sh`` with nothing to pull, ``install.sh`` with no flags (which must leave the
 environment file and the install record byte-identical), and ``uninstall.sh
 --yes --purge``.  After the install it checks the layout: the checkout at
 ``/opt/caldart/caldart``, the first dump in ``/opt/caldart/backups``,

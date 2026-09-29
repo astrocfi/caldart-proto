@@ -14,7 +14,9 @@ repository and runs ``deploy/install.sh``, which runs the steps under
 ``deploy/steps/`` in order; ``deploy/upgrade.sh`` upgrades a running server and
 ``deploy/uninstall.sh`` takes it off again; ``deploy/manage.sh`` and
 ``deploy/compose.sh`` run a management command and a ``docker compose``
-command against the installed site.  The numbered sections below are
+command against the installed site; ``deploy/seed.sh`` loads the seed data
+by name, and ``deploy/reset-database.sh`` empties the database
+(:ref:`deploy-reset`).  The numbered sections below are
 the steps, each titled with the script that runs it and showing the commands
 that script runs, so the page reads both as the description of the installer
 and as what to do by hand when one step needs attention.
@@ -872,7 +874,16 @@ is idempotent, so running it again costs nothing.
 ``update_or_create`` throughout: running either again on an installed server
 updates the existing rows rather than duplicating them, and both run under
 ``caldart.settings.prod`` like every other management command ``manage.sh``
-runs.  **Caution:** the demo accounts ``seed_demo`` creates share the password
+runs.  A second run also writes back what it seeds: ``seed_plans`` a plan's
+price and description, ``seed_content`` the example pages' fields (and
+publishes them), and ``seed_demo`` the demo accounts' names, roles, password,
+profiles, and aircraft; a payment, a refund, or a mandate is created only when
+missing.  ``deploy/seed.sh`` runs any of the four on an installed server, in
+the order above::
+
+  sudo deploy/seed.sh --content          # --roles, --plans, --demo, --content, or --all
+
+**Caution:** the demo accounts ``seed_demo`` creates share the password
 ``README.rst`` documents, so a server seeded with them is a demonstration
 server, never one holding real member data.
 
@@ -1882,6 +1893,30 @@ With the same flags the first install was given:
 6. restore the dump from step 1 (:doc:`backup-restore`):
    ``sudo /opt/caldart/caldart/deploy/manage.sh db_restore
    /opt/caldart/backups/<the dump> --yes``.
+
+
+.. _deploy-reset:
+
+Resetting the database
+======================
+
+::
+
+  sudo deploy/reset-database.sh --yes [--admin-email ADDRESS] [--seed-content] [--seed-demo]
+
+``reset-database.sh`` refuses to run without ``--yes``.  It takes a dump with
+``db_backup``; stops ``caldart-web``, the six timers, and their services; runs
+``manage.py db_reset --noinput``, which drops the ``public`` schema, migrates,
+creates the cache table, and seeds the roles and the plans; runs
+``steps/database.sh`` with the flags it was given, which repeats the idempotent
+part, collects the static files, loads the seeds, and runs ``create_admin``;
+then starts the site and the timers again and starts
+``caldart-registry.service`` with ``--no-block``, because the registrations
+table is empty too.  With neither ``--admin-email`` nor ``--seed-demo`` it ends
+with a note that no account can sign in.  The environment file, the install
+record, the web server's configuration, the dumps, and the uploads under
+``media/`` are left as they are.  The dump it took is how a reset is undone
+(:doc:`backup-restore`).
 
 
 Uninstalling

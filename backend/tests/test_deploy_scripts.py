@@ -43,6 +43,8 @@ ENTRY_POINTS: Final = (
     "uninstall.sh",
     "manage.sh",
     "compose.sh",
+    "seed.sh",
+    "reset-database.sh",
     "steps/packages.sh",
     "steps/user.sh",
     "steps/postgres.sh",
@@ -1309,6 +1311,124 @@ def test_manage_passes_the_arguments_through(root: Path, etc: Path) -> None:
     assert _commands(result)[0].endswith(
         f"{_checkout(root)}/.venv/bin/python manage.py health --json"
     )
+
+
+# -- seed.sh, reset-database.sh ----------------------------------------------------
+
+
+def _manage_commands(result: subprocess.CompletedProcess[str]) -> list[str]:
+    """The ``manage.py`` command lines a dry run sent through ``manage.sh``, in order."""
+    marker = " manage.py "
+    return [c.split(marker, 1)[1] for c in _commands(result) if marker in c]
+
+
+@pytest.mark.parametrize(
+    ("flags", "expected"),
+    [
+        (("--content",), ["seed_content"]),
+        (("--demo",), ["seed_demo"]),
+        (("--content", "--roles"), ["seed_roles", "seed_content"]),
+        (("--all",), ["seed_roles", "seed_plans", "seed_demo", "seed_content"]),
+    ],
+    ids=["content-alone", "demo-alone", "install-order", "all"],
+)
+def test_seed_runs_the_named_seeds_in_install_order(
+    root: Path, etc: Path, flags: tuple[str, ...], expected: list[str]
+) -> None:
+    """Each flag runs its seed alone; several run in the order an install runs them."""
+    result = _run(_checkout(root) / "deploy" / "seed.sh", "--dry-run", *flags, env=_env(etc))
+    assert _manage_commands(result) == expected
+
+
+def test_seed_without_a_seed_is_a_usage_error(root: Path, etc: Path) -> None:
+    """``seed.sh`` with no seed named runs nothing and says which flags there are."""
+    result = _run(_checkout(root) / "deploy" / "seed.sh", "--dry-run", env=_env(etc))
+    assert (result.returncode, _errors(result)) == (
+        2,
+        ["error: name at least one seed: --roles, --plans, --demo, --content, or --all"],
+    )
+
+
+def test_seed_demo_warns_of_the_shared_password(root: Path, etc: Path) -> None:
+    """Seeding the demo accounts says the server is now a demonstration server."""
+    result = _run(_checkout(root) / "deploy" / "seed.sh", "--dry-run", "--demo", env=_env(etc))
+    assert "this is now a demonstration server" in result.stderr
+
+
+def _reset_dry_run(root: Path, etc: Path, *flags: str) -> subprocess.CompletedProcess[str]:
+    """The dry run of ``reset-database.sh --yes`` with ``flags``."""
+    script = _checkout(root) / "deploy" / "reset-database.sh"
+    return _run(script, "--dry-run", "--yes", *flags, env=_env(etc))
+
+
+def test_reset_database_refuses_to_run_without_yes(root: Path, etc: Path) -> None:
+    """Without ``--yes`` the reset stops before its first command."""
+    result = _run(_checkout(root) / "deploy" / "reset-database.sh", "--dry-run", env=_env(etc))
+    assert (result.returncode, _commands(result)) == (2, [])
+
+
+def test_reset_database_backs_up_and_stops_the_site_before_the_reset(root: Path, etc: Path) -> None:
+    """The dump comes first, then the site and the jobs stop, then the tables go."""
+    commands = _commands(_reset_dry_run(root, etc))
+    backup = _position(commands, "manage.py db_backup")
+    stop = _position(commands, "systemctl stop caldart-web.service")
+    assert backup < stop < _position(commands, "manage.py db_reset --noinput")
+
+
+def test_reset_database_stops_every_timer_and_job(root: Path, etc: Path) -> None:
+    """No scheduled job can write while the database is emptied."""
+    commands = _commands(_reset_dry_run(root, etc))
+    stop = commands[_position(commands, "systemctl stop")].split()[2:]
+    jobs = ("registry", "reports", "renewals", "reminders", "statements", "backup")
+    expected = [
+        "caldart-web.service",
+        *(f"caldart-{job}.timer" for job in jobs),
+        *(f"caldart-{job}.service" for job in jobs),
+    ]
+    assert stop == expected
+
+
+def test_reset_database_runs_the_database_step_after_the_reset(root: Path, etc: Path) -> None:
+    """After the reset the install's database step runs, with the flags it was given."""
+    result = _reset_dry_run(
+        root, etc, "--admin-email", "ops@caldart.test", "--seed-content", "--seed-demo"
+    )
+    assert _manage_commands(result) == [
+        "db_backup",
+        "db_reset --noinput",
+        "migrate",
+        "createcachetable",
+        "seed_roles",
+        "seed_plans",
+        "seed_demo",
+        "seed_content",
+        "collectstatic --noinput",
+        "create_admin --email ops@caldart.test",
+    ]
+
+
+def test_reset_database_starts_the_site_and_the_registry_import_last(root: Path, etc: Path) -> None:
+    """The site and the timers start again, then the FAA registry import begins."""
+    commands = _commands(_reset_dry_run(root, etc))
+    assert commands[-2:] == [
+        "systemctl start caldart-web.service caldart-registry.timer caldart-reports.timer "
+        "caldart-renewals.timer caldart-reminders.timer caldart-statements.timer "
+        "caldart-backup.timer",
+        "systemctl start --no-block caldart-registry.service",
+    ]
+
+
+@pytest.mark.parametrize(
+    ("flags", "warns"),
+    [((), True), (("--admin-email", "ops@caldart.test"), False), (("--seed-demo",), False)],
+    ids=["nobody", "administrator", "demo-accounts"],
+)
+def test_reset_database_says_when_nobody_can_sign_in(
+    root: Path, etc: Path, flags: tuple[str, ...], warns: bool
+) -> None:
+    """A reset with no administrator and no demo accounts says how to make one."""
+    result = _reset_dry_run(root, etc, *flags)
+    assert ("no account can sign in yet" in result.stderr) is warns
 
 
 @pytest.fixture

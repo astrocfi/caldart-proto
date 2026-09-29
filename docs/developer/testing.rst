@@ -1071,12 +1071,18 @@ systemd runs as it does on a server, and drives the scripts of
    statements services, each of which must finish without an error, so every
    unit's hardening is honored as well as the web unit's (the install has
    already started the registry import, which downloads the FAA's file);
-3. ``deploy/upgrade.sh``, an upgrade with nothing new to pull, which must
+3. ``deploy/reset-database.sh --yes --admin-email admin@caldart.test``, after
+   which the administrator's must be the only account, ``manage.sh health
+   --json`` must succeed, the sign-in page must answer ``200``, and the example
+   About Us page ``404``; then ``deploy/seed.sh --content`` twice, which must
+   leave the same number of Wagtail pages after the second run as after the
+   first, with About Us answering ``200`` (:ref:`deploy-reset`);
+4. ``deploy/upgrade.sh``, an upgrade with nothing new to pull, which must
    still back up, rebuild, restart, and pass the checks;
-4. ``deploy/install.sh`` with no flags, which must read everything from the
+5. ``deploy/install.sh`` with no flags, which must read everything from the
    install record and leave the environment file and the install record
    byte-identical, checked with ``sha256sum`` before and after;
-5. ``deploy/uninstall.sh --yes --purge``, after which neither ``/opt/caldart``
+6. ``deploy/uninstall.sh --yes --purge``, after which neither ``/opt/caldart``
    nor ``/etc/caldart`` may exist.
 
 Any step that fails stops the run, and the target exits non-zero.  At the end

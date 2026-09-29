@@ -281,11 +281,23 @@ def reset_calls(monkeypatch: pytest.MonkeyPatch) -> list[str]:
     return calls
 
 
-def test_db_reset_migrates_and_seeds_roles(reset_calls: list[str]) -> None:
-    """``db_reset --noinput`` drops the schema, migrates, and seeds roles in order."""
+def test_db_reset_migrates_creates_the_cache_table_and_seeds_roles(
+    reset_calls: list[str],
+) -> None:
+    """``db_reset --noinput`` rebuilds everything an install needs, in order.
+
+    The schema goes, the migrations run, the cache table production keeps in the
+    database comes back, and the roles and the plans are seeded.
+    """
     call_command("db_reset", "--noinput", stdout=StringIO())
 
-    assert reset_calls == ["drop_schema", "migrate", "seed_roles", "seed_plans"]
+    assert reset_calls == [
+        "drop_schema",
+        "migrate",
+        "createcachetable",
+        "seed_roles",
+        "seed_plans",
+    ]
 
 
 def test_db_reset_seed_flag_runs_the_seeders(reset_calls: list[str]) -> None:
@@ -295,6 +307,7 @@ def test_db_reset_seed_flag_runs_the_seeders(reset_calls: list[str]) -> None:
     assert reset_calls == [
         "drop_schema",
         "migrate",
+        "createcachetable",
         "seed_roles",
         "seed_plans",
         "seed_demo",
@@ -350,6 +363,7 @@ def test_db_reset_seed_propagates_a_failure(monkeypatch: pytest.MonkeyPatch) -> 
     assert calls == [
         "drop_schema",
         "migrate",
+        "createcachetable",
         "seed_roles",
         "seed_plans",
         "seed_demo",
