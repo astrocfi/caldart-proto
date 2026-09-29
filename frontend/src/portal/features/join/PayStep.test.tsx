@@ -106,53 +106,51 @@ function renderPayStep(initial: PersonKind) {
   return { handlePaid, handleDone };
 }
 
-/** Choose the friend card on a member's checkout and continue as a friend. */
-async function continueAsFriend(): Promise<void> {
+/** Choose the friend card on a member's checkout. */
+async function chooseFriendCard(): Promise<void> {
   await userEvent.click(await screen.findByRole('radio', { name: FRIEND_CARD }));
+}
+
+/** Choose the friend card on a member's checkout and continue as a friend, giving nothing. */
+async function continueAsFriend(): Promise<void> {
+  await chooseFriendCard();
   await userEvent.click(screen.getByRole('button', { name: 'Continue as a friend' }));
 }
 
 describe('<PayStep/> for a member who chooses to be a friend', () => {
-  it('offers a friend’s contribution instead of moving on', async () => {
-    stubPayApi('member');
-    const { handleDone } = renderPayStep('member');
-
-    await continueAsFriend();
-
-    expect(
-      await screen.findByRole('heading', { name: 'Contribute to CalDART' }),
-    ).toBeInTheDocument();
-    expect(handleDone).not.toHaveBeenCalled();
-  });
-
-  it('offers Not now on the contribution', async () => {
+  it('keeps the contribution in the same card as the plans', async () => {
     stubPayApi('member');
     renderPayStep('member');
 
-    await continueAsFriend();
+    await chooseFriendCard();
 
-    expect(await screen.findByRole('button', { name: 'Not now' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Pay your dues' })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: /Participating/ })).toBeInTheDocument();
   });
 
-  it('tells the wizard the joiner is a friend now', async () => {
-    stubPayApi('member');
-    renderPayStep('member');
-
-    await continueAsFriend();
-
-    await waitFor(() => expect(screen.getByTestId('kind')).toHaveTextContent('friend'));
-  });
-
-  it('moves on when the friend says Not now', async () => {
+  it('moves on as a friend when no contribution is chosen', async () => {
     stubPayApi('member');
     const { handleDone, handlePaid } = renderPayStep('member');
 
     await continueAsFriend();
-    await screen.findByRole('radio', { name: /Participating/ });
-    await userEvent.click(screen.getByRole('button', { name: 'Not now' }));
 
-    expect(handleDone).toHaveBeenCalledOnce();
+    await waitFor(() => expect(handleDone).toHaveBeenCalledOnce());
     expect(handlePaid).not.toHaveBeenCalled();
+    expect(screen.getByTestId('kind')).toHaveTextContent('friend');
+  });
+
+  it('moves on as a friend once the contribution is paid', async () => {
+    const kindCalls = stubPayApi('member');
+    const { handleDone, handlePaid } = renderPayStep('member');
+
+    await chooseFriendCard();
+    await userEvent.click(screen.getByRole('radio', { name: /Participating/ }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Succeed' }));
+
+    await waitFor(() => expect(handleDone).toHaveBeenCalledOnce());
+    expect(handlePaid).toHaveBeenCalledOnce();
+    expect(kindCalls).toEqual(['POST']);
+    expect(screen.getByTestId('kind')).toHaveTextContent('friend');
   });
 });
 
@@ -198,14 +196,12 @@ describe('<PayStep/> for a friend who chooses to be a member', () => {
 
   it('goes back to being a friend without asking the server again', async () => {
     const kindCalls = stubPayApi('friend');
-    renderPayStep('friend');
+    const { handleDone } = renderPayStep('friend');
 
     await userEvent.click(await screen.findByRole('button', { name: MEMBER_BUTTON }));
     await continueAsFriend();
 
-    expect(
-      await screen.findByRole('heading', { name: 'Contribute to CalDART' }),
-    ).toBeInTheDocument();
+    await waitFor(() => expect(handleDone).toHaveBeenCalledOnce());
     expect(kindCalls).toEqual([]);
   });
 });
