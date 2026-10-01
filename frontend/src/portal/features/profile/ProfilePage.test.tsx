@@ -180,6 +180,107 @@ describe('<ProfilePage/>', () => {
     expect(screen.getByText('Check the highlighted fields and try again.')).toBeInTheDocument();
   });
 
+  it('fills the first and last name from the account', async () => {
+    server.use(http.get(`${API}/me/profile`, () => HttpResponse.json(makeVerifiedProfile())));
+
+    renderWithProviders(<ProfilePage />, { route: '/profile' });
+
+    expect(await screen.findByLabelText(label('First name'))).toHaveValue('Marta');
+    expect(screen.getByLabelText(label('Last name'))).toHaveValue('Reyes');
+  });
+
+  it('saves edited names with the rest of the profile', async () => {
+    const user = userEvent.setup();
+    let body: Record<string, unknown> | null = null;
+    server.use(
+      http.get(`${API}/me/profile`, () => HttpResponse.json(makeVerifiedProfile())),
+      http.put(`${API}/me/profile`, async ({ request }) => {
+        body = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json(makeVerifiedProfile({ last_name: 'Smith' }));
+      }),
+    );
+
+    renderWithProviders(<ProfilePage />, { route: '/profile' });
+    const last = await screen.findByLabelText(label('Last name'));
+    await user.clear(last);
+    await user.type(last, ' SMITH ');
+    await user.click(screen.getByRole('button', { name: 'Save profile' }));
+
+    await screen.findByText('Profile saved.');
+    expect(body).toMatchObject({ first_name: 'Marta', last_name: 'SMITH' });
+  });
+
+  it('shows the stored casing of a name once the save succeeds', async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.get(`${API}/me/profile`, () => HttpResponse.json(makeVerifiedProfile())),
+      http.put(`${API}/me/profile`, () =>
+        HttpResponse.json(makeVerifiedProfile({ last_name: 'Smith' })),
+      ),
+    );
+
+    renderWithProviders(<ProfilePage />, { route: '/profile' });
+    const last = await screen.findByLabelText(label('Last name'));
+    await user.clear(last);
+    await user.type(last, 'SMITH');
+    await user.click(screen.getByRole('button', { name: 'Save profile' }));
+
+    await waitFor(() => expect(screen.getByLabelText(label('Last name'))).toHaveValue('Smith'));
+  });
+
+  it('refuses to save a blank first name and never calls the API', async () => {
+    const user = userEvent.setup();
+    const save = vi.fn();
+    server.use(
+      http.get(`${API}/me/profile`, () => HttpResponse.json(makeVerifiedProfile())),
+      http.put(`${API}/me/profile`, () => {
+        save();
+        return HttpResponse.json(makeVerifiedProfile());
+      }),
+    );
+
+    renderWithProviders(<ProfilePage />, { route: '/profile' });
+    await user.clear(await screen.findByLabelText(label('First name')));
+    await user.click(screen.getByRole('button', { name: 'Save profile' }));
+
+    expect(await screen.findByText('Your first name is required.')).toBeInTheDocument();
+    expect(save).not.toHaveBeenCalled();
+  });
+
+  it('saves the callsign upper case as it was typed', async () => {
+    const user = userEvent.setup();
+    let body: Record<string, unknown> | null = null;
+    server.use(
+      http.get(`${API}/me/profile`, () => HttpResponse.json(makeVerifiedProfile())),
+      http.put(`${API}/me/profile`, async ({ request }) => {
+        body = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json(makeVerifiedProfile({ ham_callsign: 'W6ABC' }));
+      }),
+    );
+
+    renderWithProviders(<ProfilePage />, { route: '/profile' });
+    const callsign = await screen.findByLabelText('Amateur radio callsign');
+    await user.type(callsign, 'w6abc');
+    expect(callsign).toHaveValue('W6ABC');
+    await user.click(screen.getByRole('button', { name: 'Save profile' }));
+
+    await screen.findByText('Profile saved.');
+    expect(body).toMatchObject({ ham_callsign: 'W6ABC' });
+  });
+
+  it('refuses a callsign that is not in US format', async () => {
+    const user = userEvent.setup();
+    server.use(http.get(`${API}/me/profile`, () => HttpResponse.json(makeVerifiedProfile())));
+
+    renderWithProviders(<ProfilePage />, { route: '/profile' });
+    await user.type(await screen.findByLabelText('Amateur radio callsign'), 'X1ABC');
+    await user.tab();
+
+    expect(
+      await screen.findByText('Enter a US amateur radio callsign, such as W6ABC.'),
+    ).toBeVisible();
+  });
+
   it('explains itself when the profile cannot be loaded', async () => {
     server.use(
       http.get(`${API}/me/profile`, () =>

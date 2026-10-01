@@ -5,7 +5,9 @@ import { makeVerifiedProfile } from '@test/handlers';
 import {
   EMPTY_PROFILE_FORM,
   REQUIRED_PROFILE_FIELDS,
+  formToMemberPatch,
   formToPatch,
+  maskCallsign,
   profileToForm,
   validateProfileForm,
 } from './form';
@@ -84,6 +86,51 @@ describe('formToPatch', () => {
 
   it.each(['home_airport_city', 'ifr_rated'])('sends no %s', (field) => {
     expect(field in formToPatch(EMPTY_PROFILE_FORM)).toBe(false);
+  });
+});
+
+describe('formToMemberPatch', () => {
+  it('adds the trimmed names when the form shows them', () => {
+    const values = { ...profileToForm(makeProfile()), first_name: ' Ann ', last_name: 'Lee ' };
+    expect(formToMemberPatch(values, true)).toMatchObject({ first_name: 'Ann', last_name: 'Lee' });
+  });
+
+  it('leaves the names out when the form does not show them', () => {
+    expect(formToMemberPatch(profileToForm(makeProfile()), false)).not.toHaveProperty('first_name');
+  });
+});
+
+describe('formToPatch names and callsign', () => {
+  it('never sends the names, which the member record writes on the account', () => {
+    expect(formToPatch(profileToForm(makeProfile()))).not.toHaveProperty('last_name');
+  });
+
+  it('sends the callsign upper case without spaces', () => {
+    const patch = formToPatch({ ...EMPTY_PROFILE_FORM, ham_callsign: 'w6 abc' });
+    expect(patch.ham_callsign).toBe('W6ABC');
+  });
+});
+
+describe('profileToForm names', () => {
+  it('reads the names off the member’s own profile', () => {
+    const values = profileToForm(makeProfile({ first_name: 'Ann', last_name: 'Lee' }));
+    expect([values.first_name, values.last_name]).toEqual(['Ann', 'Lee']);
+  });
+
+  it('reads absent names as blank, as the member record’s profile has none', () => {
+    const { first_name: _first, last_name: _last, ...rest } = makeProfile();
+    expect(profileToForm(rest).first_name).toBe('');
+  });
+});
+
+describe('maskCallsign', () => {
+  it.each([
+    ['w6abc', 'W6ABC'],
+    ['w6 a-b.c', 'W6ABC'],
+    ['WA6ABCD', 'WA6ABC'],
+    ['', ''],
+  ])('turns %j into %j', (typed, kept) => {
+    expect(maskCallsign(typed)).toBe(kept);
   });
 });
 
@@ -176,6 +223,35 @@ describe('validateProfileForm', () => {
       postal_code: postalCode,
     };
     expect(validateProfileForm(values).postal_code).toBe(expected);
+  });
+
+  it.each(['W6ABC', 'K6A', 'KD6AB', 'AA6A', 'AL7XYZ', ''])('accepts the callsign %j', (call) => {
+    expect(
+      validateProfileForm({ ...profileToForm(makeProfile()), ham_callsign: call }).ham_callsign,
+    ).toBeUndefined();
+  });
+
+  it.each(['X1ABC', 'AM6ABC', 'W6', 'W6A1', 'WAB6ABC'])('refuses the callsign %j', (call) => {
+    expect(
+      validateProfileForm({ ...profileToForm(makeProfile()), ham_callsign: call }).ham_callsign,
+    ).toBe('Enter a US amateur radio callsign, such as W6ABC.');
+  });
+
+  it('wants both names when the form shows them', () => {
+    const errors = validateProfileForm(
+      { ...profileToForm(makeProfile()), first_name: ' ', last_name: '' },
+      true,
+    );
+    expect([errors.first_name, errors.last_name]).toEqual([
+      'Your first name is required.',
+      'Your last name is required.',
+    ]);
+  });
+
+  it('asks nothing of the names when the form does not show them', () => {
+    expect(
+      validateProfileForm({ ...profileToForm(makeProfile()), first_name: '' }).first_name,
+    ).toBeUndefined();
   });
 
   it('wants an expiration date once a medical is claimed', () => {

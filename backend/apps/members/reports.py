@@ -144,6 +144,13 @@ MEMBER_REPORT_COLUMNS: tuple[ReportColumn[RowContext], ...] = (
     ReportColumn(
         "county", "County", False, lambda ctx: _value(ctx["profile"], "county"), width=1.8
     ),
+    ReportColumn(
+        "ham_callsign",
+        "Callsign",
+        False,
+        lambda ctx: _value(ctx["profile"], "ham_callsign"),
+        width=1.2,
+    ),
     ReportColumn("joined_on", "Joined", False, lambda ctx: _iso(ctx["joined_on"]), width=1.6),
     ReportColumn(
         "member_since",

@@ -363,6 +363,8 @@ secondary_airport    Secondary airport       no      Secondary airport identifie
 city                 City                    no      City from the profile
 state                State                   no      Two-letter state
 county               County                  no      California county from the profile
+ham_callsign         Callsign                no      Amateur radio callsign; blank when
+                                                     none is on file
 joined_on            Joined                  no      Start of the earliest membership term
 member_since         Member since            no      The day the member joined, as recorded
                                                      on their profile: the same date until

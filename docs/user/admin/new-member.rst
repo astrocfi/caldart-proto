@@ -22,9 +22,10 @@ in later, by you or by the member.
    **Password**. **Kind of account** is **Member**, the first choice, or **Friend**; its
    hint reads *A friend pays no dues and is never current or expired.*
 
-**Contact**, **Aviation**, and **Volunteer interests**
-   The same fields a member fills in on their own profile: address and phones, DART,
-   certificate, medical, ratings, hours, and the ways they would like to help. None of them
+**Contact**, **Amateur radio**, **Aviation**, and **Volunteer interests**
+   The same fields a member fills in on their own profile: address and phones, the
+   amateur radio callsign, DART, certificate, medical, ratings, hours, and the ways they
+   would like to help. None of them
    is required here.
 
 **Administration**

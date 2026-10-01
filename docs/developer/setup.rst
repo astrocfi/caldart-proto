@@ -485,6 +485,12 @@ Beyond Django's and Wagtail's own, this project adds:
    * - ``import_faa_registry [--source URL|PATH] [--types-only] [--import-id ID]``
      - import the aircraft types and the registrations from the FAA registry
        (:doc:`aircraft-registry`)
+   * - ``normalize_casing [--dry-run]``
+     - put every stored first and last name, street, and city in the casing a save
+       gives it (the ``User`` and ``MemberProfile`` entries of :doc:`data-model`), writing only the fields that change and
+       printing each as ``<email>: last_name "SMITH" -> "Smith"``, then a count;
+       ``--dry-run`` lists the changes without writing them.  Run it once after
+       an upgrade that changes a casing rule.
 
 Run any of them with ``uv run backend/manage.py <command>``.  See
 :doc:`backup-restore` for the data commands and the page linked beside each job

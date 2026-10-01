@@ -86,13 +86,54 @@ describe('<ProfileFieldsets/>', () => {
     },
   );
 
-  it.each(['Contact', 'Aviation', 'Ratings', 'Volunteer interests'])(
+  it.each(['Contact', 'Amateur radio', 'Aviation', 'Ratings', 'Volunteer interests'])(
     'groups the fields under the %s legend',
     (legend) => {
       renderFieldsets();
       expect(screen.getByRole('group', { name: legend })).toBeInTheDocument();
     },
   );
+
+  it('puts the callsign in its own fieldset right after Contact', () => {
+    renderFieldsets();
+    const legends = screen
+      .getAllByRole('group')
+      .map((group) => group.querySelector(':scope > legend')?.textContent);
+    expect(legends.slice(0, 3)).toEqual(['Contact', 'Amateur radio', 'Aviation']);
+  });
+
+  it('labels the callsign field inside the Amateur radio fieldset', () => {
+    renderFieldsets();
+    const radio = screen.getByRole('group', { name: 'Amateur radio' });
+    expect(within(radio).getByLabelText('Amateur radio callsign')).toBeInTheDocument();
+  });
+
+  it('upper-cases a callsign and drops anything but letters and digits as it is typed', async () => {
+    const user = userEvent.setup();
+    const onChange = renderStateful();
+
+    await user.type(screen.getByLabelText('Amateur radio callsign'), 'w6 a-b');
+
+    expect(onChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({ ham_callsign: 'W6AB' }) as Partial<typeof EMPTY_PROFILE_FORM>,
+    );
+  });
+
+  it('leaves the names out unless withNames is set', () => {
+    renderFieldsets();
+    expect(screen.queryByLabelText(/^First name/)).not.toBeInTheDocument();
+  });
+
+  it('puts the names, required, at the top of Contact when withNames is set', () => {
+    renderFieldsets({ withNames: true, markRequired: true });
+    const contact = screen.getByRole('group', { name: 'Contact' });
+    const inputs = within(contact).getAllByRole('textbox');
+    expect(inputs.slice(0, 2).map((input) => input.getAttribute('name'))).toEqual([
+      'first_name',
+      'last_name',
+    ]);
+    expect(screen.getByLabelText('First name*')).toBeInTheDocument();
+  });
 
   it('gives each of the three numbers an extension box beside it', () => {
     renderFieldsets();

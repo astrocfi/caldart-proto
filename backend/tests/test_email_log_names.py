@@ -80,8 +80,9 @@ def test_a_long_display_name_is_truncated_to_the_fields_max_length(email_templat
     characters, past ``EmailLog.to_name``'s 200-character limit; the row must still
     be written rather than raise once the mail server has already taken the message.
     """
-    first_name = "A" * 150
-    last_name = "B" * 150
+    # Mixed case, so the account stores the names exactly as given.
+    first_name = "Ab" * 75
+    last_name = "Cd" * 75
     member = UserFactory(email="long-name@example.org", first_name=first_name, last_name=last_name)
 
     send_templated(
