@@ -4,7 +4,7 @@ A name typed entirely in upper or entirely in lower case is stored in title case
 ``caldart.casing.person_name``, applied in ``User.save()``, so every write path stores the
 same result; a name typed in mixed case is kept as typed.  ``manage.py normalize_casing``
 applies the same rules to the rows already stored.  The docs pages are
-``docs/user/member/profile.rst`` and ``docs/developer/operations.rst``.
+``docs/user/member/profile.rst`` and ``docs/developer/setup.rst``.
 """
 
 from __future__ import annotations
@@ -15,6 +15,8 @@ from io import StringIO
 import pytest
 from django.core.cache import cache
 from django.core.management import call_command
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 from rest_framework.test import APIClient
 
 from apps.accounts.models import User
@@ -85,6 +87,12 @@ def empty_throttle_cache() -> Iterator[None]:
         ("  DeAnna   Lee ", "DeAnna Lee"),
         ("", ""),
         ("   ", ""),
+        ("J.R.", "J.R."),
+        ("a.j.", "A.J."),
+        ("o\u2019brien", "O\u2019Brien"),
+        ("TJ", "TJ"),
+        ("tj", "TJ"),
+        ("DJ SMITH", "DJ Smith"),
     ],
     ids=[
         "upper-case",
@@ -106,6 +114,12 @@ def empty_throttle_cache() -> Iterator[None]:
         "mixed-case-still-trimmed-and-collapsed",
         "blank-stays-blank",
         "spaces-only-is-blank",
+        "upper-case-initials-with-periods-kept",
+        "each-letter-after-a-period-capitalized",
+        "typographic-apostrophe-honored-and-kept",
+        "vowel-less-initials-kept-upper",
+        "vowel-less-initials-upper-cased",
+        "vowel-less-first-word-upper-the-rest-title-cased",
     ],
 )
 def test_person_name_matches_the_documented_examples(value: str, expected: str) -> None:
@@ -346,11 +360,16 @@ def test_normalize_casing_dry_run_lists_without_writing() -> None:
     assert 'ann@example.test: last_name "SMITH" -> "Smith"' in output.splitlines()
 
 
-def test_normalize_casing_writes_only_the_rows_that_change() -> None:
-    """A row already in order is not saved, so its ``updated_at`` does not move."""
-    untouched = UserFactory(first_name="Ann", last_name="Lee")
-    stamp = User.objects.get(pk=untouched.pk).updated_at
-    changed = UserFactory(first_name="Bo")
+def test_normalize_casing_writes_only_the_changed_column_of_the_changed_row() -> None:
+    """The run issues one ``UPDATE``: the changed row's changed column, nothing else."""
+    UserFactory(first_name="Ann", last_name="Lee")
+    changed = UserFactory(first_name="Bo", last_name="Lee")
     store_raw(changed, last_name="SMITH")
-    run_normalize()
-    assert User.objects.get(pk=untouched.pk).updated_at == stamp
+    with CaptureQueriesContext(connection) as queries:
+        run_normalize()
+    updates = [query["sql"] for query in queries if query["sql"].startswith("UPDATE")]
+    statements = [update.split(" WHERE ") for update in updates]
+    assert [statement[0] for statement in statements] == [
+        'UPDATE "accounts_user" SET "last_name" = \'Smith\''
+    ]
+    assert [statement[1] for statement in statements] == [f'"accounts_user"."id" = {changed.pk}']

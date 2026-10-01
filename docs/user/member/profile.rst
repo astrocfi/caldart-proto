@@ -25,7 +25,9 @@ Contact
   greets you by and lists you under. Both are required.
 * A name typed all in capitals or all in lower case is saved in title case:
   ``SMITH`` is saved as **Smith**, ``mcdonald`` as **McDonald**, ``o'brien`` as
-  **O'Brien**, and ``smith-jones`` as **Smith-Jones**. After the first word,
+  **O'Brien** (with a curly apostrophe too), ``a.j.`` as **A.J.**, and
+  ``smith-jones`` as **Smith-Jones**. A part with no vowel is taken for initials and
+  saved in capitals, so ``tj`` and ``TJ`` are both saved as **TJ**. After the first word,
   *van*, *von*, *der*, *den*, *de*, *del*, *della*, *da*, *di*, *du*, *la*, and
   *le* stay lower case, so ``VAN DER BERG`` is saved as **Van der Berg**, and
   *II*, *III*, and *IV* stay capitals. A name you type with both capitals and

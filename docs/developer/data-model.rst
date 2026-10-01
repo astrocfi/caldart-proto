@@ -1247,10 +1247,12 @@ spelling.  Leading and trailing spaces are dropped and runs of spaces collapse t
 one.  A name typed with letters in both cases (``DeAnna``, ``MacArthur``, ``van
 Dyke``) is otherwise kept as typed.  A name typed entirely in upper or entirely in
 lower case is title-cased word by word: each hyphenated part capitalized
-(``Smith-Jones``), the letter after a one-letter prefix and an apostrophe
-capitalized (``O'Brien``), and the letter after a leading ``Mc`` capitalized
+(``Smith-Jones``), the letter after a one-letter prefix and an apostrophe, straight
+or typographic (U+2019), capitalized (``O'Brien``), the letter after each period
+capitalized (``A.J.``), and the letter after a leading ``Mc`` capitalized
 (``McDonald``; ``Mac`` is left alone, since ``Macarthur`` is as likely as
-``MacArthur``).  After the first word, the particles ``van``, ``von``, ``der``,
+``MacArthur``).  A part with no vowel (``a``, ``e``, ``i``, ``o``, ``u``, ``y``) is
+taken for initials and upper-cased whole (``tj`` and ``TJ`` are both stored ``TJ``).  After the first word, the particles ``van``, ``von``, ``der``,
 ``den``, ``de``, ``del``, ``della``, ``da``, ``di``, ``du``, ``la``, and ``le`` stay
 lower case (``VAN DER BERG`` is stored ``Van der Berg``) and the suffixes ``II``,
 ``III``, and ``IV`` upper case.  ``manage.py normalize_casing`` applies the same rule

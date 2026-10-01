@@ -110,12 +110,12 @@ describe('<ProfileFieldsets/>', () => {
 
   it('upper-cases a callsign and drops anything but letters and digits as it is typed', async () => {
     const user = userEvent.setup();
-    const onChange = renderFieldsets();
+    const onChange = renderStateful();
 
-    await user.type(screen.getByLabelText('Amateur radio callsign'), 'w');
+    await user.type(screen.getByLabelText('Amateur radio callsign'), 'w6 a-b');
 
     expect(onChange).toHaveBeenLastCalledWith(
-      expect.objectContaining({ ham_callsign: 'W' }) as Partial<typeof EMPTY_PROFILE_FORM>,
+      expect.objectContaining({ ham_callsign: 'W6AB' }) as Partial<typeof EMPTY_PROFILE_FORM>,
     );
   });
 
