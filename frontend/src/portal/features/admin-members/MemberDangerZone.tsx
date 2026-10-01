@@ -1,5 +1,6 @@
 /**
- * The Danger zone tab: hard-delete a member record.
+ * The Danger zone tab: the account actions (make a friend, deactivate, reactivate),
+ * then hard-deleting the member record.
  *
  * Deleting takes the profile and the membership terms with it, so the button
  * stays disabled until the administrator has typed the member's email address
@@ -16,6 +17,7 @@ import { Card } from '@/portal/components/Card';
 import { DeleteButton } from '@/portal/components/DeleteButton';
 import { Field } from '@/portal/components/Field';
 import { useToast } from '@/portal/components/Toast';
+import { MemberAccountActions } from './MemberAccountActions';
 import { useDeleteMember } from './api';
 import { splitErrors } from './errors';
 import type { MemberDetail } from '@/portal/api/types';
@@ -32,7 +34,10 @@ function PaymentsNote({ member }: { member: MemberDetail }) {
   );
 }
 
-/** The Danger zone tab: hard-delete a member record, keeping their payments in the books. */
+/**
+ * The Danger zone tab: the account actions, then the delete, which keeps the member's
+ * payments in the books.
+ */
 export function MemberDangerZone({ member }: { member: MemberDetail }): JSX.Element {
   const navigate = useNavigate();
   const toast = useToast();
@@ -54,43 +59,46 @@ export function MemberDangerZone({ member }: { member: MemberDetail }): JSX.Elem
   };
 
   return (
-    <Card title="Delete this member" eyebrow="Danger zone">
-      <p>
-        Deleting <strong>{member.name}</strong> also deletes their profile and{' '}
-        {member.memberships.length} membership term
-        {member.memberships.length === 1 ? '' : 's'}. This cannot be undone.
-      </p>
-      <PaymentsNote member={member} />
-      <form onSubmit={handleSubmit} noValidate>
-        {errors.detail ? (
-          <p role="alert" className="field__error">
-            {errors.detail}
-          </p>
-        ) : null}
-        <Field
-          label={`Type ${member.email} to confirm`}
-          hint="The delete button stays disabled until the address matches."
-        >
-          {(props) => (
-            <input
-              {...props}
-              type="text"
-              autoComplete="off"
-              value={confirmation}
-              onChange={(event) => setConfirmation(event.target.value)}
-            />
-          )}
-        </Field>
-        <DeleteButton
-          label="Delete member"
-          type="submit"
-          variant="danger"
-          small={false}
-          disabled={!confirmed || remove.isPending}
-        >
-          {remove.isPending ? 'Deleting…' : 'Delete member'}
-        </DeleteButton>
-      </form>
-    </Card>
+    <>
+      <MemberAccountActions member={member} />
+      <Card title="Delete this member" eyebrow="Danger zone">
+        <p>
+          Deleting <strong>{member.name}</strong> also deletes their profile and{' '}
+          {member.memberships.length} membership term
+          {member.memberships.length === 1 ? '' : 's'}. This cannot be undone.
+        </p>
+        <PaymentsNote member={member} />
+        <form onSubmit={handleSubmit} noValidate>
+          {errors.detail ? (
+            <p role="alert" className="field__error">
+              {errors.detail}
+            </p>
+          ) : null}
+          <Field
+            label={`Type ${member.email} to confirm`}
+            hint="The delete button stays disabled until the address matches."
+          >
+            {(props) => (
+              <input
+                {...props}
+                type="text"
+                autoComplete="off"
+                value={confirmation}
+                onChange={(event) => setConfirmation(event.target.value)}
+              />
+            )}
+          </Field>
+          <DeleteButton
+            label="Delete member"
+            type="submit"
+            variant="danger"
+            small={false}
+            disabled={!confirmed || remove.isPending}
+          >
+            {remove.isPending ? 'Deleting…' : 'Delete member'}
+          </DeleteButton>
+        </form>
+      </Card>
+    </>
   );
 }

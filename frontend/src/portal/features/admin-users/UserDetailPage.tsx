@@ -1,4 +1,7 @@
-/** `/admin/users/:id` — edit one account's names, email, roles, and status. */
+/**
+ * `/admin/users/:id` — edit one account's names, email, and roles, and change its
+ * status: deactivate or reactivate it, and block it from reactivating or lift the block.
+ */
 import { useEffect, useState } from 'react';
 import type { JSX } from 'react';
 import { Link, useParams } from 'react-router-dom';
@@ -18,6 +21,7 @@ import { ResendVerificationButton } from '@/portal/components/ResendVerification
 import { useToast } from '@/portal/components/Toast';
 import { EMAIL_MESSAGE, isEmailAddress, maskEmail } from '@/portal/masks';
 import { FormAlert, fieldError } from '@/portal/features/auth/form';
+import { AccountStatusCard } from './AccountStatusCard';
 import {
   useAdminUser,
   useSendEmailVerification,
@@ -29,7 +33,6 @@ interface FormState {
   first_name: string;
   last_name: string;
   email: string;
-  is_active: boolean;
   roles: RoleSlug[];
 }
 
@@ -38,7 +41,6 @@ function formFor(user: AdminUser): FormState {
     first_name: user.first_name,
     last_name: user.last_name,
     email: user.email,
-    is_active: user.is_active,
     roles: user.roles,
   };
 }
@@ -47,7 +49,7 @@ function displayName(user: AdminUser): string {
   return `${user.first_name} ${user.last_name}`.trim() || user.email;
 }
 
-/** `/admin/users/:id` page: edit one account's names, email, roles, and status. */
+/** `/admin/users/:id` page: edit one account's names, email, and roles, and its status. */
 export function UserDetailPage(): JSX.Element {
   const { id = '' } = useParams();
   const query = useAdminUser(id);
@@ -203,26 +205,6 @@ export function UserDetailPage(): JSX.Element {
           )}
 
           <fieldset>
-            <legend>Account status</legend>
-            <label className="cluster">
-              <input
-                type="checkbox"
-                name="is_active"
-                checked={form.is_active}
-                disabled={isSelf}
-                onChange={(event) => setForm({ ...form, is_active: event.target.checked })}
-              />
-              <span>Active — the account can sign in</span>
-            </label>
-            {isSelf ? <p className="field__hint">You cannot deactivate your own account.</p> : null}
-            {fieldError(update.error, 'is_active') ? (
-              <p className="field__error" role="alert">
-                {fieldError(update.error, 'is_active')}
-              </p>
-            ) : null}
-          </fieldset>
-
-          <fieldset>
             <legend>Roles</legend>
             {roles.isPending ? <p className="muted">Loading roles…</p> : null}
             <ul role="list" className="stack">
@@ -249,10 +231,7 @@ export function UserDetailPage(): JSX.Element {
             ) : null}
           </fieldset>
 
-          <FormAlert
-            error={update.error}
-            handled={['first_name', 'last_name', 'email', 'is_active', 'roles']}
-          />
+          <FormAlert error={update.error} handled={['first_name', 'last_name', 'email', 'roles']} />
 
           <div className="cluster">
             <Button type="submit" disabled={update.isPending}>
@@ -264,6 +243,8 @@ export function UserDetailPage(): JSX.Element {
           </div>
         </form>
       </Card>
+
+      {isDonor ? null : <AccountStatusCard user={user} isSelf={isSelf} />}
 
       {isDonor ? null : (
         <Card

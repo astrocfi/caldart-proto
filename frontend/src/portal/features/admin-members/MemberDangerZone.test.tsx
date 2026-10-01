@@ -1,7 +1,11 @@
 import { screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { HttpResponse, http } from 'msw';
+import { beforeEach, describe, expect, it } from 'vitest';
 
+import { makeLedger } from '@test/fixtures/finance';
+import { API } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
+import { server } from '@test/server';
 import { MemberDangerZone } from './MemberDangerZone';
 import { makeDetail } from '@test/fixtures/members';
 import type { MemberPayment } from '@/portal/api/types';
@@ -26,6 +30,19 @@ function renderZone(payments: MemberPayment[]) {
 }
 
 describe('MemberDangerZone', () => {
+  beforeEach(() => {
+    server.use(http.get(`${API}/admin/payments/ledger/1`, () => HttpResponse.json(makeLedger())));
+  });
+
+  it('leads with the account actions above the delete', () => {
+    renderZone([]);
+
+    expect(screen.getAllByRole('heading').map((heading) => heading.textContent)).toEqual([
+      'Account',
+      'Delete this member',
+    ]);
+  });
+
   it('says where the one payment of a member goes', () => {
     renderZone([PAYMENT]);
 

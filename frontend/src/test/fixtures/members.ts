@@ -107,6 +107,8 @@ export function makeDetail(overrides: Partial<MemberDetail> = {}): MemberDetail 
     last_name: 'Bracco',
     name: 'Ana Bracco',
     is_active: true,
+    reactivation_blocked: false,
+    friend_on: null,
     kind: 'member',
     roles: ['member'],
     created_at: '2024-07-01T12:00:00Z',

@@ -115,6 +115,11 @@ describe('MemberProfileTab', () => {
     expect(sent.profile).not.toHaveProperty('first_name');
   });
 
+  it('offers no Account is active box: the Danger zone deactivates', () => {
+    renderWithProviders(<MemberProfileTab member={makeDetail()} />);
+    expect(screen.queryByRole('checkbox', { name: /account is active/i })).not.toBeInTheDocument();
+  });
+
   it('shows no Verification card for a member with no profile yet', () => {
     renderWithProviders(<MemberProfileTab member={makeDetail({ profile: null })} />);
     expect(screen.queryByRole('heading', { name: 'Verification' })).not.toBeInTheDocument();

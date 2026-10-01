@@ -96,6 +96,7 @@ export function makeAdminUser(overrides: Partial<AdminUser> = {}): AdminUser {
     ...makeUser(userOverrides),
     email_verified: email_verified_at !== null,
     email_verified_at,
+    reactivation_blocked: false,
   };
 }
 

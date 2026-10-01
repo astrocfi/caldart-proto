@@ -30,7 +30,6 @@ export interface AccountDraft {
   first_name: string;
   last_name: string;
   password: string;
-  is_active: boolean;
   /** A donor's kind is shown elsewhere and never edited here. */
   kind: AccountKind;
 }
@@ -61,7 +60,6 @@ export function emptyAccountDraft(): AccountDraft {
     first_name: '',
     last_name: '',
     password: '',
-    is_active: true,
     kind: 'member',
   };
 }
@@ -91,22 +89,19 @@ export interface AccountFieldsProps {
   errors?: FieldErrors;
   /** Offer a password box (creation only; changing one is the member's own job). */
   withPassword?: boolean;
-  /** Offer the active/inactive switch (editing only). */
-  withActive?: boolean;
   /** Extra hint content under the email field, such as its verification status. */
   emailHint?: ReactNode;
 }
 
 /**
  * The account fieldset: email, name, the kind of account (member or friend; a
- * donor's is left alone), and optionally a password and active switch.
+ * donor's is left alone), and optionally a password.
  */
 export function AccountFields({
   value,
   onChange,
   errors = {},
   withPassword = false,
-  withActive = false,
   emailHint,
 }: AccountFieldsProps): JSX.Element {
   const set = <Key extends keyof AccountDraft>(key: Key, next: AccountDraft[Key]) =>
@@ -197,16 +192,6 @@ export function AccountFields({
           </div>
         ) : null}
       </div>
-      {withActive ? (
-        <label>
-          <input
-            type="checkbox"
-            checked={value.is_active}
-            onChange={(event) => set('is_active', event.target.checked)}
-          />{' '}
-          Account is active
-        </label>
-      ) : null}
     </fieldset>
   );
 }

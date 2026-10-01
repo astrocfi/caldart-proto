@@ -143,17 +143,23 @@ export interface VerificationSentResult {
 }
 
 /* ------------------------------------------------------ user administration */
-/** `/admin/users`: the user payload, plus when the address was verified. */
+/**
+ * `/admin/users`: the user payload, plus when the address was verified and whether a
+ * user administrator has blocked the account from reactivating.
+ */
 export interface AdminUser extends User {
   email_verified_at: IsoDateTime | null;
+  reactivation_blocked: boolean;
 }
 
-/** The writable half of `PATCH /admin/users/{id}`. */
+/**
+ * The writable half of `PATCH /admin/users/{id}`. The active flag and the block are
+ * changed through the record's own actions, never a patch.
+ */
 export interface AdminUserPatch {
   first_name?: string;
   last_name?: string;
   email?: string;
-  is_active?: boolean;
   roles?: RoleSlug[];
 }
 
@@ -559,7 +565,11 @@ export interface MemberDetail {
   last_name: string;
   name: string;
   is_active: boolean;
+  /** Set by a user administrator: the account stays deactivated until it is lifted. */
+  reactivation_blocked: boolean;
   kind: AccountKind;
+  /** The day a member who is to become a friend becomes one; null when none is pending. */
+  friend_on: IsoDate | null;
   roles: RoleSlug[];
   created_at: IsoDateTime;
   email_verified_at: IsoDateTime | null;
@@ -590,12 +600,11 @@ export interface MemberCreatePayload {
   profile?: AdminProfilePayload;
 }
 
-/** `PATCH /admin/members/{id}`. */
+/** `PATCH /admin/members/{id}`. The danger zone deactivates and reactivates. */
 export interface MemberUpdatePayload {
   email?: string;
   first_name?: string;
   last_name?: string;
-  is_active?: boolean;
   /** Makes the account that kind at once; refused for a donor. */
   kind?: PersonKind;
   profile?: AdminProfilePayload;
