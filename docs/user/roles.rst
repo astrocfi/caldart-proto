@@ -92,8 +92,8 @@ A user administrator looks after accounts. The role adds:
 
 * **Users & roles** (:doc:`admin/users`): every account, with filters, and the
   **User record** (:doc:`admin/user-record`) behind each: the roles it holds,
-  activating and deactivating it, correcting its email address, and sending a
-  password reset link or a verification message. The screen also downloads the
+  deactivating and reactivating it, blocking it from reactivating, correcting its
+  email address, and sending a password reset link or a verification message. The screen also downloads the
   CalDART roles report as a CSV or a PDF.
 * **Member check** and **Aircraft check** (:doc:`admin/member-check`,
   :doc:`admin/aircraft-check`): verifying, as a verifier does, and making a member a
@@ -132,7 +132,8 @@ An account administrator looks after the membership records. The role adds:
 
 * **Members** (:doc:`admin/members`), **New member** (:doc:`admin/new-member`),
   and each member's record (:doc:`admin/member-record`): the profile, the
-  membership terms, granting a term by hand, and deleting a member.
+  membership terms, granting a term by hand, making a member a friend,
+  deactivating and reactivating an account, and deleting a member.
 * **Aircraft** (the **Aircraft register**; :doc:`admin/aircraft-register`) and
   each aircraft's record (:doc:`admin/aircraft-record`), and **Add a type** on any
   aircraft form, for an aircraft type the FAA has never registered.

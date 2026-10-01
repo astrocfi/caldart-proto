@@ -5,7 +5,7 @@ User record
 ===========
 
 The **user record** is one account seen by a user administrator: where its membership
-stands, its name and address, whether it can sign in, the roles it holds, and a button that
+stands, its name and address, the roles it holds, whether it can sign in, and a button that
 sends a password reset link. Open it by clicking a name on :doc:`users`.
 
 
@@ -13,7 +13,7 @@ What you see
 ============
 
 The person's name heads the page, with their address under it and **Back to users** beside
-it. Three cards follow.
+it. Four cards follow.
 
 **Where this account stands**
    The kind of account (**Member**, **Friend**, or **Donor**), the membership chip, and
@@ -22,9 +22,13 @@ it. Three cards follow.
 
 **Account**
    **First name**, **Last name**, and **Email address**, with the hint *This is also how
-   they sign in.* and **Verified** with a date, or **Unverified**. Then **Account status**
-   (*Active — the account can sign in*) and **Roles**, a box for each role with a line
-   saying what it grants.
+   they sign in.* and **Verified** with a date, or **Unverified**. Then **Roles**, a box
+   for each role with a line saying what it grants.
+
+**Account status**
+   Whether the account can sign in, and the actions that change it: **Deactivate account**
+   or **Reactivate account**, and **Block reactivation** or **Allow reactivation**. A
+   donor's record leaves this card out.
 
 **Password**
    **Send password reset**, which a donor's record leaves out.
@@ -78,13 +82,13 @@ Things worth knowing:
 Rules the site enforces
 =======================
 
-- **You cannot deactivate your own account.** The box is disabled on your own record, with
-  *You cannot deactivate your own account.* under it.
+- **You cannot deactivate or block your own account.** Your own record's **Account
+  status** card says so and offers no action.
 - **Only a system administrator may grant or remove System administrator.** You can change
   every other role on a system administrator's account.
-- **The email address and the Active box are guarded.** You can change them only on an
-  account whose roles you hold yourself, since moving somebody's address is enough to take
-  their account over. As a user administrator you can move an ordinary member's address, or
+- **The email address and the account's status are guarded.** You can change the address,
+  deactivate, reactivate, or block an account only when you hold every role it holds, since
+  moving somebody's address is enough to take their account over. As a user administrator you can move an ordinary member's address, or
   another user administrator's, and nobody else's with a role you lack. Because granting
   roles is your job, you can lift this for any role except System administrator: tick the
   missing role on your own record, save, and make the change. Names are never guarded.
@@ -98,17 +102,24 @@ the rest of the form still saves.
 Deactivating and reactivating
 =============================
 
-Untick **Active** and save. The account's password no longer signs it in, and nothing is
-deleted: the profile, the membership history, and the payments stay as they were. Tick the
-box again to restore access.
+Each action on the **Account status** card asks first: pressing it opens a short
+explanation with a button to go ahead and **Cancel**. A refusal appears in the card.
 
-The person can come back on their own. Signing in with the right password tells them *This
-account is deactivated. You can reactivate it.* and offers **Reactivate my account**, and
-completing a password reset they asked for reactivates it too. People can also deactivate
-their own account from their profile, which cancels their automatic renewal and recurring
-donations and sets their membership aside until they return. Unticking **Active** yourself
-does neither. Ticking it again on an account the person deactivated themselves brings their
-membership back as their own reactivation would.
+**Deactivate account** does everything the person's own deactivation from their profile
+does. The account's password no longer signs it in, and it is signed out everywhere at once.
+Their automatic renewal and any recurring donation are canceled, and they are emailed that it
+is off. Any membership term with time left is set aside until they come back. Nothing is
+deleted: the profile, the membership history, and the payments stay as they were. An
+account administrator has the same action on the **Danger zone** tab of the
+:doc:`member-record`.
+
+**Reactivate account** brings a deactivated account back as the person's own reactivation
+would: they can sign in again, and a membership set aside when the account was deactivated
+resumes, or reads expired if its end date passed meanwhile. Automatic renewal stays off.
+
+The person can also come back on their own. Signing in with the right password tells them
+*This account is deactivated. You can reactivate it.* and offers **Reactivate my account**,
+and completing a password reset they asked for reactivates it too.
 
 Deactivation is the right step for someone who has left. It does not keep out somebody who
 knows the password, so for an account you think has been taken over, deactivate it and ask
@@ -117,6 +128,26 @@ administrator's job, on the **Danger zone** tab of the :doc:`member-record`; the
 payments stay in the books under the name **Deleted member** and the account's number.
 That name belongs to a deactivated account, so the :doc:`users` list shows it only when
 **Account status** includes deactivated accounts.
+
+
+Blocking reactivation
+=====================
+
+To keep a deactivated account deactivated, so that the person cannot bring it back, press
+**Block reactivation** and confirm. On an active account it deactivates the account first,
+exactly as **Deactivate account** does. While the block holds:
+
+- signing in with the right password, or pressing **Reactivate my account**, is answered
+  *This account has been closed. Contact CalDART to reopen it.*, with your organization's
+  name in place of CalDART;
+- asking for a password reset sends no email, and a reset link sent before the block is
+  answered with the same sentence;
+- registering again with the same address is answered with the same sentence;
+- nobody can press **Reactivate account**, here or on the :doc:`member-record`.
+
+Only a user administrator blocks an account or lifts the block. **Allow reactivation** lifts
+it and leaves the account deactivated: the person can then reactivate it themselves, or you
+can press **Reactivate account**. Both changes are recorded under your name.
 
 
 Helping someone back in
@@ -139,11 +170,13 @@ If something looks wrong
 A message that only a system administrator can grant or revoke that role means you changed a
 box on a system administrator's account, or on an account with full system access; put the
 ticks back and save, or ask a system administrator. *You cannot change the email address of
-an account that holds roles you do not hold.* and *You cannot activate or deactivate an
-account that holds roles you do not hold.* mean the account holds a role you lack; tick it
-on your own record, save, and try again. If the address will not save, another account
+an account that holds roles you do not hold.*, *You cannot activate or deactivate an
+account that holds roles you do not hold.*, and *You cannot block or unblock an account that
+holds roles you do not hold.* mean the account holds a role you lack; tick it on your own
+record, save, and try again. If the address will not save, another account
 already uses it, and you have probably found a duplicate. *That account is deactivated, so
 no reset email was sent.* means the account was deactivated while the page was open; reload
-and tick **Active** first. If somebody still cannot see a page after you ticked its role, ask
+and reactivate it first. *That account is already deactivated.* and *That account is
+already active.* mean somebody changed it while the page was open; reload the page. If somebody still cannot see a page after you ticked its role, ask
 them to reload the portal, and check that you pressed **Save changes**. Profiles,
 memberships, and payments are not on this screen; they belong to an account administrator.

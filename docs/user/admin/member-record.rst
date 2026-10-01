@@ -54,8 +54,6 @@ ID** (the kind of photo ID only) among the aviation fields, plus:
   member made a friend reads **Friend** from that moment, and any change to friend they had
   asked for at the end of their term is dropped. A donor's record has no such field. A donor
   becomes a member or a friend only by registering on the site with the same address.
-- **Account is active**. Clearing it stops the person signing in without deleting
-  anything.
 - Under **Email address**, **Verified** with the date the address was confirmed, or
   **Unverified**. Nothing on this screen resends the message; a user administrator can, from
   the :doc:`user-record`, and the member can from their own dashboard.
@@ -74,13 +72,13 @@ all in capitals or all in lower case is saved in title case, *SMITH* as **Smith*
 typed in mixed case, such as **DeAnna**, is kept as typed; :doc:`../member/profile` gives the
 whole rule.
 
-Two fields are guarded, because between them they are enough to take an account over: the
-email address, where a password reset link goes, and **Account is active**, which locks
-somebody out. You can change them only on an account whose roles you hold yourself. As an
-account administrator you can change them on an ordinary member's record and on another
-account administrator's, and on nobody else's with a role you lack, such as a DART leader
-or a treasurer. You cannot clear **Account is active** on your own record either. Names,
-the DART, the phones, and every profile field stay editable on any record you can open.
+The email address is guarded, because it is where a password reset link goes and so is
+enough to take an account over. You can change it only on an account whose roles you hold
+yourself. As an account administrator you can change it on an ordinary member's record and
+on another account administrator's, and on nobody else's with a role you lack, such as a
+DART leader or a treasurer. Names, the DART, the phones, and every profile field stay
+editable on any record you can open. Deactivating the account is not part of this form: it
+is on the **Danger zone** tab.
 
 
 Memberships
@@ -137,11 +135,61 @@ organization's figures, use **Payments** under **Administration** in the menu.
 Danger zone
 ===========
 
-The tab offers **Delete this member**, for a duplicate, a spam sign-up, a test record, or a
-person who asks to be removed. The delete is permanent and takes the profile and every
-membership term with it. There is no undo. Type the person's email address into the box; the
-**Delete member** button stays disabled until the address matches. Two deletions are refused
-outright: your own account, and a system administrator's account unless you are one.
+The tab holds two cards: **Account**, with the actions that change what the person can do,
+and **Delete this member**. Each action asks first: pressing it opens a short explanation
+with a button to go ahead and **Cancel**. A refusal appears in the card, under the action.
+
+Account
+-------
+
+**Make a friend** is offered for a member who is not a life member. It does exactly what the
+person's own **Make me a friend** does on their profile (see :doc:`../member/profile`): a
+membership that is current stays current to its end and they become a friend the day after,
+or they become one at once when nothing is current, and their automatic renewal is canceled.
+The explanation says which. When their automatic renewal also gives a contribution, it asks
+*Keep it as a yearly recurring donation?* and offers **Keep the contribution** and **Stop
+it** in place of **Make a friend**. Once the change is waiting for its day, the card reads
+the name and *becomes a friend of CalDART on* the date instead of the button. The change is
+recorded under your name, and anyone subscribed to **Member became a friend**
+(:doc:`notifications`) hears that an administrator made it. *They already have a recurring
+donation, so the contribution cannot be kept as one.* means the person already gives a
+recurring donation of their own; choose **Stop it**.
+
+**Deactivate account** does everything the person's own deactivation does: the account can
+no longer sign in, and is signed out everywhere at once; their automatic renewal and any
+recurring donation are canceled, and they are emailed that it is off; and any membership
+term with time left is set aside (suspended) until they come back. Nothing is deleted. A
+deactivated account stays off the member reports, the rosters, and the member check, and
+keeps its record. Use it when somebody has simply left.
+
+A deactivated account's card offers **Reactivate account** instead. It does what the
+person's own reactivation does: they can sign in again, each suspended term is active again
+(or expired, if its end date passed in the meantime), and an address that was never verified
+is sent a verification message. Automatic renewal stays off. The person can also reactivate
+the account themselves, by signing in with the right password or by resetting their
+password.
+
+Four refusals can appear:
+
+- *You cannot deactivate your own account.*
+- *You cannot activate or deactivate an account that holds roles you do not hold.*: the
+  account holds a role you lack, such as a DART leader's, a treasurer's, or a system
+  administrator's. Ask a system administrator, or a colleague who holds every role that
+  account holds.
+- *A user administrator has blocked this account from reactivating. Allow reactivation on
+  its user record first.*: the card also says the account is blocked. Only a user
+  administrator lifts the block, from the :doc:`user-record`.
+- *That account is already deactivated.* or *That account is already active.*: somebody
+  changed it while the page was open; reload it.
+
+Delete this member
+------------------
+
+The card is for a duplicate, a spam sign-up, a test record, or a person who asks to be
+removed. The delete is permanent and takes the profile and every membership term with it.
+There is no undo. Type the person's email address into the box; the **Delete member** button
+stays disabled until the address matches. Two deletions are refused outright: your own
+account, and a system administrator's account unless you are one.
 
 Payments are the organization's financial record, so they are never deleted. When the person
 has paid, the card says how many payment records they have and that they stay in the books
@@ -154,23 +202,13 @@ link in that notification no longer opens, because the record is gone. A payment
 started but had not finished can still go through afterwards: it joins the books under
 **Deleted member** and buys no membership, and nobody is emailed a receipt.
 
-When somebody has simply left, deactivate them. A deactivated account cannot sign in, stays
-off the member reports, the rosters, and the member check, and keeps its record. A member can
-also deactivate their own account from their profile; that cancels their automatic renewal
-and recurring donations and marks any term with time left as suspended. Signing in with the
-right password offers them **Reactivate my account**, and a password reset reactivates the
-account too, as does ticking **Account is active** again. Reactivating makes each suspended
-term active again, or expired if its end date passed in the meantime.
-
 
 If something looks wrong
 ========================
 
 *You cannot change the email address of an account that holds roles you do not hold.* means
 the record carries a role you lack; ask a system administrator, or a colleague who holds
-every role that account holds. If **Save changes** seems to do nothing and says nothing, you
-probably changed **Account is active** on a record that is guarded the same way: the screen
-has no message for that box, and the whole save is refused. Put the box back and save again.
+every role that account holds. The **Danger zone** tab lists what its own refusals mean.
 *The end date cannot be before the start date.* means the end date you typed is too early.
 *You cannot delete your own account.* and *Only a system administrator can delete a system
 administrator.* mean what they say. A granted term that starts later than you expected

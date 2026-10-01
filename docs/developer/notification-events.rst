@@ -71,7 +71,9 @@ Membership
      - ``user``, ``actor``
    * - ``became_friend``
      - ``members.lifecycle.become_friend`` when the account is a friend at once
-       (``how="chose"``); ``members.lifecycle.convert_due_friends`` for each account
+       (``how="chose"``, or ``how="administrator"`` when an account administrator
+       made the switch from the member record);
+       ``members.lifecycle.convert_due_friends`` for each account
        it converts (``how="lapsed"``); ``accounts.services.update_account`` when an
        administrator sets the kind to friend (``how="administrator"``)
      - ``user``, ``how``
@@ -164,14 +166,14 @@ Accounts
      - Raised in
      - Payload
    * - ``account_deactivated``
-     - ``accounts.services.deactivate_own_account`` (``actor=None``), and
-       ``accounts.services.update_account`` when an administrator clears the active
-       flag
+     - ``accounts.status.deactivate_own_account`` (``actor=None``), and
+       ``accounts.status.deactivate_account`` when an administrator deactivates the
+       account, from the member record or the user record, or blocks an active one
      - ``user``, ``actor``
    * - ``account_reactivated``
-     - ``accounts.services.reactivate_own_account``, which ``POST /auth/reactivate``
+     - ``accounts.status.reactivate_own_account``, which ``POST /auth/reactivate``
        and a completed password reset both reach (``actor=None``), and
-       ``update_account`` when an administrator sets the active flag
+       ``accounts.status.reactivate_account`` when an administrator reactivates it
      - ``user``, ``actor``
    * - ``roles_changed``
      - ``accounts.services.update_account`` when the role list really changes

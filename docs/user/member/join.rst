@@ -75,6 +75,9 @@ Two addresses are handled differently:
 * **The address of a deactivated account.** The step says *This email belongs to a
   deactivated account. Sign in to reactivate it.* and offers **Sign in to
   reactivate**, which opens the sign-in screen with the address filled in.
+* **The address of an account an administrator has closed.** The step says *This
+  account has been closed. Contact CalDART to reopen it.*, with your
+  organization's name in place of CalDART, and offers nothing else.
 
 An address another account already uses is refused with *An account already uses
 that email address. Sign in, or reset your password.*

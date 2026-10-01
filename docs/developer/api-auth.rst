@@ -184,9 +184,14 @@ as ``account.kind``.  Registering again with the address mails a fresh link.
 
 Rejections, all 400:
 
+``{"email": ["This account has been closed. Contact CalDART to reopen it."]}``
+   The address belongs to an account a user administrator has blocked from
+   reactivating (:ref:`api-reactivation-block`).  The organization's name comes
+   from the site settings.  No ``code``: the portal offers nothing further.
+
 ``{"email": ["This email belongs to a deactivated account. Sign in to reactivate it."], "code": "deactivated"}``
-   The address belongs to a deactivated account, of any kind.  ``code`` lets
-   the portal offer a sign-in instead of a second account.
+   The address belongs to any other deactivated account, of any kind.  ``code``
+   lets the portal offer a sign-in instead of a second account.
 
 ``{"email": [...]}``
    The address is already in use by an active member or friend.  The check is
@@ -235,6 +240,11 @@ case-insensitive (``UserManager.get_by_natural_key`` uses ``email__iexact``).
   Only somebody who already holds the password sees this.  The ``code`` tells the
   portal to offer reactivation, which posts the same credentials to
   ``POST /auth/reactivate`` (:ref:`api-deactivation`).
+* **403** ``{"detail": "This account has been closed. Contact CalDART to reopen
+  it."}`` — the password matched, but a user administrator has blocked the
+  account from reactivating (:ref:`api-reactivation-block`).  It carries no
+  ``code``, so the portal shows the sentence and offers no reactivation; the
+  organization's name comes from the site settings.
 
 A donor cannot sign in at all.  A donor's account holds no usable password, and
 even one that somehow does is answered with the same 400 as wrong
@@ -245,8 +255,8 @@ session, but that session reaches only the endpoints listed under `Unverified
 sessions`_ until the address is verified.
 
 Statuses: **200** with the user payload and a session cookie; **400** for a
-missing field or wrong credentials; **403** for a deactivated account whose
-password was correct; **429** when the ``auth_login`` throttle is exhausted.
+missing field or wrong credentials; **403** for a deactivated or closed account
+whose password was correct; **429** when the ``auth_login`` throttle is exhausted.
 
 ``POST /auth/logout``
 ---------------------
@@ -304,8 +314,10 @@ is a client bug rather than an answer about the database.
 
    {"email": "marta.reyes@example.org"}
 
-A donor is mailed nothing, since a donor cannot sign in.  When there is an
-account of any other kind, active or deactivated,
+A donor is mailed nothing, since a donor cannot sign in, and neither is an
+account a user administrator has blocked from reactivating
+(:ref:`api-reactivation-block`).  When there is an account of any other kind,
+active or deactivated,
 ``apps.accounts.services.send_password_reset_email`` renders ``templates/emails/password_reset.{txt,html}`` and mails a link::
 
     {SITE_URL}/portal/reset-password?uid=<urlsafe_base64(pk)>&token=<token>
@@ -348,10 +360,13 @@ verified keeps its original time.
 A link for a deactivated account is accepted, and spending it reactivates the
 account exactly as ``POST /auth/reactivate`` does — the person proved the address
 and chose to come back — except that nobody is signed in: the portal sends them
-to ``/login`` as for any reset.
+to ``/login`` as for any reset.  A good link for an account a user administrator
+has blocked from reactivating (one mailed before the block) is refused with
+``{"token": ["This account has been closed. Contact CalDART to reopen it."]}``,
+the organization's name read from the site settings, and no password is set.
 
-Statuses: **204**; **400** for an unusable link, a weak password or a missing
-field; **429** when the ``auth_password_reset`` throttle is exhausted, which
+Statuses: **204**; **400** for an unusable link, a closed account, a weak
+password or a missing field; **429** when the ``auth_password_reset`` throttle is exhausted, which
 is the same budget the request endpoint draws on.
 
 
@@ -360,11 +375,11 @@ is the same budget the request endpoint draws on.
 Deactivating and reactivating your own account
 ==============================================
 
-A member or a friend can switch their own account off and back on.  The user
-administrator's ``is_active`` flag (:ref:`account-edit-guard` below) stays
-the only way to deactivate somebody else, and ``update_account`` still refuses
-any caller's edit of their own flag; these two endpoints are the self-service
-path.
+A member or a friend can switch their own account off and back on with these two
+endpoints.  An administrator does the same for somebody else with the account
+status actions (:ref:`api-account-status` below, and the member record's actions
+in :doc:`api-members`), which do everything these do; ``is_active`` is never part
+of an edit.  The functions that write the flag live in ``accounts.status``.
 
 While an account is deactivated, every membership term it held with time left is
 ``suspended`` (see :doc:`data-model`).  A suspended term never covers a day and
@@ -387,7 +402,7 @@ nothing:
 #. a system administrator or a donor is refused (below), which changes nothing;
    otherwise ``is_active`` is cleared, ``account.deactivate`` is recorded with
    ``self_service=true``, and the ``account_deactivated`` event is raised with no
-   actor (``accounts.services.deactivate_own_account``);
+   actor (``accounts.status.deactivate_own_account``);
 #. every active or paused renewal mandate — automatic renewal or recurring
    donation — is canceled by ``payments.renewals.cancel_mandate`` with the account
    as its own actor (a self-service ``renewal.cancel``, the ``auto_renewal_off``
@@ -431,7 +446,7 @@ payload.  It takes the same body as a sign-in, and shares its throttle scope,
    {"email": "marta.reyes@example.org", "password": "..."}
 
 Only an inactive account that is not a donor's, whose password matches, is
-reactivated (``accounts.services.deactivated_account``; the address is compared
+reactivated (``accounts.status.deactivated_account``; the address is compared
 case-insensitively).  The account's row is locked for the transaction, so of two
 concurrent requests the second finds the account active and is refused.  Then:
 
@@ -458,17 +473,21 @@ payload, as a sign-in gives it, with ``is_active`` true:
     "profile_complete": true, "email_verified": true, "kind": "member",
     "friend_on": null}
 
-An administrator who sets ``is_active`` back to true — ``PATCH /admin/users/{id}``
-or ``PATCH /admin/members/{id}`` — brings the suspended terms back the same way
-(``members.services.apply_account_changes``), each ``membership.correct`` recorded
-under the administrator.
+An administrator's reactivation — ``POST /admin/users/{id}/reactivate`` or
+``POST /admin/members/{user_id}/reactivate`` — brings the suspended terms back the
+same way, each ``membership.correct`` recorded under the administrator.
 
 * **400** ``{"detail": "Incorrect email address or password."}`` — a wrong
   password, an active account, an unknown address, or a donor, all answered
   with the body a failed sign-in gives.
+* **403** ``{"detail": "This account has been closed. Contact CalDART to reopen
+  it."}`` — the password matched, but a user administrator has blocked the
+  account from reactivating (:ref:`api-reactivation-block`); it stays
+  deactivated, and ``accounts.status.reactivate_own_account`` refuses it the same
+  way, recorded as ``action=account.activate ... reason=reactivation_blocked``.
 
 Statuses: **200** with the user payload and a session cookie; **400** as above
-or for a missing field; **429** when the ``auth_login`` throttle is exhausted.
+or for a missing field; **403** for a closed account; **429** when the ``auth_login`` throttle is exhausted.
 
 
 Email verification
@@ -632,7 +651,7 @@ Statuses: **200**; **401** when anonymous.
 Users admin
 ===========
 
-All five endpoints require the ``user_admin`` role.  ``system_admin`` passes
+All nine endpoints require the ``user_admin`` role.  ``system_admin`` passes
 every role check, so system administrators have them too; every other role gets
 403.
 
@@ -641,7 +660,9 @@ every role check, so system administrators have them too; every other role gets
 
 Paginated list of user payloads, ordered by last name, first name, email.
 Each row also carries ``email_verified_at``: when the owner last proved the
-address, as an ISO datetime, or ``null`` while it is unverified.
+address, as an ISO datetime, or ``null`` while it is unverified; and
+``reactivation_blocked``, true while a user administrator has blocked the account
+from reactivating (:ref:`api-reactivation-block`).
 
 .. code-block:: json
 
@@ -657,7 +678,8 @@ address, as an ISO datetime, or ``null`` while it is unverified.
                        "plan": "Annual", "is_lifetime": false},
         "profile_complete": true, "email_verified": true, "kind": "member",
         "friend_on": null,
-        "email_verified_at": "2026-09-01T10:14:02.100522-07:00"}
+        "email_verified_at": "2026-09-01T10:14:02.100522-07:00",
+        "reactivation_blocked": false}
      ]
    }
 
@@ -695,30 +717,33 @@ Statuses: **200**; **401** when anonymous; **403** without ``user_admin``;
 ``PATCH /admin/users/{id}``
 ---------------------------
 
-Accepts any of ``first_name``, ``last_name``, ``email``, ``is_active``, and
-``roles``, and returns the updated payload.  ``PUT`` and ``DELETE`` are 405:
+Accepts any of ``first_name``, ``last_name``, ``email``, and ``roles``, and
+returns the updated payload.  ``PUT`` and ``DELETE`` are 405:
 this API edits accounts, it does not replace or remove them.  Deleting a member
 is ``DELETE /admin/members/{user_id}``, behind ``account_admin`` — see
 :doc:`api-members`.
 
 .. code-block:: json
 
-   {"roles": ["member", "dart_leader"], "is_active": false}
+   {"roles": ["member", "dart_leader"]}
 
 .. code-block:: json
 
    {"id": 12, "email": "marta.reyes@example.org", "first_name": "Marta",
     "last_name": "Reyes", "roles": ["member", "dart_leader"],
-    "is_active": false,
+    "is_active": true,
     "membership": {"status": "current", "expires_on": "2027-06-30",
                    "plan": "Annual", "is_lifetime": false},
     "profile_complete": true, "email_verified": true, "kind": "member",
     "friend_on": null,
-    "email_verified_at": "2026-09-01T10:14:02.100522-07:00"}
+    "email_verified_at": "2026-09-01T10:14:02.100522-07:00",
+    "reactivation_blocked": false}
 
-``email_verified_at``, ``kind`` and ``friend_on`` are read-only here: the kind
-is the account administrator's to change (:doc:`api-members`), never the user
-administrator's.  A write that really changes ``email``
+``email_verified_at``, ``kind``, ``friend_on``, ``is_active`` and
+``reactivation_blocked`` are read-only here: an ``is_active`` sent in the body is
+ignored.  The kind is the account administrator's to change (:doc:`api-members`),
+never the user administrator's, and the two flags change only through the
+account status actions (:ref:`api-account-status`).  A write that really changes ``email``
 clears it and mails the new address a verification link (see `Email
 verification`_); a change of capitalization alone leaves it alone.
 
@@ -743,9 +768,9 @@ in the list — but no role list of a ``createsuperuser`` account is open to the
 because writing one rebuilds the flags from that list alone: leaving the role
 out would take the superuser flag away, and putting it in grants the group.
 
-**The account-edit guard covers ``email`` and ``is_active``.**  It is shared
-with ``PATCH /admin/members/{user_id}`` and described in full under
-:ref:`account-edit-guard` below.  ``first_name`` and ``last_name`` are outside
+**The account-edit guard covers ``email``.**  It is shared with ``PATCH
+/admin/members/{user_id}`` and with the account status actions, and described in
+full under :ref:`account-edit-guard` below.  ``first_name`` and ``last_name`` are outside
 it: anyone who may open the record may correct a name on it.
 
 Granting or revoking ``system_admin`` also syncs the Django flags, because a
@@ -818,28 +843,114 @@ address, or a deactivated account; **401** when anonymous; **403** without ``use
 **404** for an unknown id.  Not throttled.
 
 
+.. _api-account-status:
+
+The account's status
+--------------------
+
+Four endpoints change whether an account can sign in.  None takes a body, and
+each answers 200 with the user payload above as it stands afterwards.  Each runs
+in one transaction holding a lock on the account's row
+(``accounts.api.account_actions``), so two administrators acting at once take
+turns.  A refusal is a 400 ``{"detail": "<sentence>"}`` and changes nothing; the
+sentences are listed under :ref:`account-edit-guard`.
+
+``POST /admin/users/{id}/deactivate``
+   Everything ``POST /auth/deactivate`` does, under the administrator
+   (``accounts.status.deactivate_account``): ``is_active`` is cleared,
+   ``account.deactivate`` is recorded with the administrator as actor, the
+   ``account_deactivated`` event is raised naming them, and every unexpired
+   session signed in to the account is deleted (``accounts.status.end_sessions``);
+   then every active or paused mandate is canceled with the administrator as
+   ``canceled_by`` (a pending one discarded), and every term with time left is
+   suspended, each ``membership.correct`` recorded under the administrator.
+   Refused for your own account, a donor, an account holding roles you do not
+   hold, and an account already deactivated.
+
+``POST /admin/users/{id}/reactivate``
+   Everything ``POST /auth/reactivate`` does, under the administrator
+   (``accounts.status.reactivate_account``), except signing anybody in:
+   ``account.activate`` and ``account_reactivated`` name the administrator, each
+   suspended term is restored, and an unverified address is mailed a link.
+   Refused for a donor, an account holding roles you do not hold, an account
+   blocked from reactivating, and an account already active.
+
+``POST /admin/users/{id}/block``
+   Sets ``reactivation_blocked`` (:ref:`api-reactivation-block`), recorded as
+   ``account.block``.  An active account is deactivated first, exactly as
+   ``/deactivate`` does it.  Blocking an account already blocked changes
+   nothing.  Refused for your own account, a donor, and an account holding roles
+   you do not hold.
+
+``POST /admin/users/{id}/unblock``
+   Clears ``reactivation_blocked``, recorded as ``account.unblock``, and leaves
+   the account deactivated for its owner to bring back.  The same refusals as
+   ``/block``.
+
+Statuses: **200** with the updated payload; **400** for a refusal; **401** when
+anonymous; **403** without ``user_admin``; **404** for an unknown id.
+
+The account administrator has ``/deactivate`` and ``/reactivate`` on the member
+record too, behind ``account_admin`` (:doc:`api-members`); blocking is the user
+administrator's alone.
+
+
+.. _api-reactivation-block:
+
+Blocking reactivation
+=====================
+
+A deactivated account normally comes back whenever its owner wants: by signing
+in, through ``POST /auth/reactivate``, by completing a password reset, or by
+registering again with the address.  ``User.reactivation_blocked`` closes all four
+doors.  Only a user administrator sets or clears it, through ``POST
+/admin/users/{id}/block`` and ``/unblock`` above, and setting it on an active
+account deactivates the account first, so a blocked account is always
+deactivated.  While it is set:
+
+* ``POST /auth/login`` and ``POST /auth/reactivate`` answer the right password
+  with 403 ``{"detail": "This account has been closed. Contact CalDART to
+  reopen it."}`` and no ``code``; a wrong password still gets the ordinary 400;
+* ``POST /auth/password/reset`` mails nothing, and answers 204 as for any
+  address;
+* ``POST /auth/password/reset/confirm`` refuses a link mailed before the block
+  with the same sentence under ``token``;
+* ``POST /auth/register`` refuses the address with the same sentence under
+  ``email``;
+* an administrator's ``/reactivate`` is refused with "A user administrator has
+  blocked this account from reactivating. Allow reactivation on its user record
+  first."
+
+The organization's name in the sentence comes from the site settings
+(``accounts.status.closed_account_message``), ``CalDART`` until one is set.
+
+
+
 .. _account-edit-guard:
 
 The account-edit guard
 ======================
 
-``email`` and ``is_active`` are the two account fields an administrator could use
-to take an account over: the address is the login *and* where a password reset
-link is mailed, and clearing the flag locks the account's owner out.  Both
-administrator edit endpoints — ``PATCH /admin/users/{id}`` above and ``PATCH
-/admin/members/{user_id}`` in :doc:`api-members` — write through
-``accounts.services.update_account``, which runs every write of those two fields
-past ``accounts.services.check_account_edit`` first.
+Two things an administrator could use to take an account over are guarded: the
+email address, which is the login *and* where a password reset link is mailed,
+and the account's status, since deactivating or blocking it locks its owner out.
+Both administrator edit endpoints — ``PATCH /admin/users/{id}`` above and
+``PATCH /admin/members/{user_id}`` in :doc:`api-members` — write through
+``accounts.services.update_account``, which runs every write of ``email`` past
+``accounts.services.check_account_edit`` first.  The status actions — the user
+record's ``/deactivate``, ``/reactivate``, ``/block`` and ``/unblock`` above and
+the member record's ``/deactivate`` and ``/reactivate`` — apply the same rule in
+``accounts.status``.
 
 The rule, in the order it is applied:
 
-#. **Only a real change counts.**  A field that arrives carrying the value the
+#. **Only a real change counts.**  An address that arrives carrying the value the
    account already has is not a change, so an administration form that resends
    every field is judged only on the fields it actually moves.  Email addresses
    are compared case-insensitively after stripping, exactly as the uniqueness
-   constraint compares them, and ``is_active`` as a boolean.
-#. **Nobody may deactivate their own account** through an edit, whatever roles
-   they hold; ``POST /auth/deactivate`` (:ref:`api-deactivation`) is the one
+   constraint compares them.
+#. **Nobody may deactivate or block their own account**, whatever roles they
+   hold; ``POST /auth/deactivate`` (:ref:`api-deactivation`) is the one
    self-service path.
 #. **Otherwise the actor must hold every role the target holds.**  A system
    administrator holds every role, so one always passes.
@@ -869,37 +980,49 @@ included — is closed to a lower administrator by either route.  Against an
 account administrator the guard is absolute in one request as well as two,
 because ``PATCH /admin/members/{user_id}`` has no ``roles`` field at all.
 
-On a record whose protected fields the caller may not write, a value that is not
-a real change is dropped rather than saved, so an address resent in another case
-leaves the stored one exactly as it was.  A caller who may write those fields
-saves what they sent, case included.
+On a record whose address the caller may not write, a value that is not a real
+change is dropped rather than saved, so an address resent in another case leaves
+the stored one exactly as it was.  A caller who may write it saves what they
+sent, case included.
 
-A refusal is a 400 keyed on the field it belongs to, the same shape as the
-``roles`` guard, so a client can show it against the input it came from::
+A refused address is a 400 keyed on ``email``, the same shape as the ``roles``
+guard, so a client can show it against the input it came from; a refused status
+action is a 400 carrying ``detail``::
 
     400 {"email": ["<message>"]}
+    400 {"detail": "<message>"}
 
-=================  =============  ===============================================
-Refused change     Field          Message
-=================  =============  ===============================================
-Your own status    ``is_active``  You cannot deactivate your own account.
-Their address      ``email``      You cannot change the email address of an
-                                  account that holds roles you do not hold.
-Their status       ``is_active``  You cannot activate or deactivate an account
-                                  that holds roles you do not hold.
-=================  =============  ===============================================
+==================  ==============================================================
+Refused change      Message
+==================  ==============================================================
+Their address       You cannot change the email address of an account that holds
+                    roles you do not hold.
+Your own status     You cannot deactivate your own account.
+Their status        You cannot activate or deactivate an account that holds roles
+                    you do not hold.
+Your own block      You cannot block your own account.
+Their block         You cannot block or unblock an account that holds roles you
+                    do not hold.
+A donor             A donor has no portal account to deactivate. (or *to
+                    reactivate.*, or *to block.*)
+A blocked account   A user administrator has blocked this account from
+                    reactivating. Allow reactivation on its user record first.
+No change           That account is already deactivated. (or *That account is
+                    already active.*)
+==================  ==============================================================
 
-When both fields are refused at once the complaint lands on ``email``.  Every
-refusal also writes one WARNING record to the audit log
+Every refusal but the last also writes one WARNING record to the audit log
 (:ref:`deploy-audit-log`)::
 
     action=account.update actor=12 target=3 fields=email reason=roles_not_held
 
 Account ids, field names and a reason slug only: no address, and nothing else
 that identifies a person.  A refused role change reads
-``action=account.roles ... reason=system_admin_role``, and a refused
-self-deactivation ``action=account.deactivate ... reason=self_deactivation``.
-An edit that goes through is recorded the same way at INFO.  The self-service
+``action=account.roles ... reason=system_admin_role``; a refused status action
+reads ``action=account.deactivate``, ``account.activate``, ``account.block`` or
+``account.unblock`` with ``reason=self_deactivation``, ``roles_not_held``,
+``donor_account`` or ``reactivation_blocked``.  An action that goes through is
+recorded the same way at INFO, under the administrator.  The self-service
 endpoints record ``action=account.deactivate actor=12 target=12
 self_service=true`` and ``action=account.activate actor=12 target=12
 self_service=true``.

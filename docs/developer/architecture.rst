@@ -688,7 +688,7 @@ the files they test, and an ``index.ts`` of what the route files use:
 
 Shared code sits outside ``features/``: ``components/`` holds the primitives
 every screen uses (``Page``, ``Card``, ``Field``, ``FixedValue``, ``Button``,
-``IconButton``, ``DeleteButton``, ``StatusChip``, ``DataTable``,
+``IconButton``, ``DeleteButton``, ``ConfirmButton``, ``StatusChip``, ``DataTable``,
 ``PanelButton``, ``ColumnChooser``, ``FilterBar``, ``RunActionsTable``,
 ``Money``, ``DateText``, ``EmptyState``, ``VerifiedMark``, and ``Toast``), and
 ``choices.ts`` holds the one set of labels for certificate, medical,
@@ -718,7 +718,13 @@ the pair opens and back to the trashcan after **Keep** or Escape, and an Escape
 on the pair stops there, so the panel around it stays open.  A caller whose own
 flow already confirms the action, such as the member record's type-the-email
 delete, leaves ``onDelete`` out, and the control fires its ordinary
-``onClick`` at once.  ``PanelButton`` is a quiet small ``Button`` with
+``onClick`` at once.  ``ConfirmButton`` asks before an action that is not a
+delete, such as deactivating an account: its first press replaces it with a
+section named by its ``label``, holding the caller's explanation, one button per
+way to go ahead (``choices``; making somebody a friend whose renewal carries a
+contribution offers two), and **Cancel**.  A choice's ``onChoose`` returns a
+promise; the section closes when it resolves and stays open when it rejects, so
+the caller can draw the refusal beside it.  ``PanelButton`` is a quiet small ``Button`` with
 ``aria-expanded`` and ``aria-controls`` and the captioned panel (a
 ``<fieldset>`` with its ``legend``) it opens under itself.  The panel's contents
 mount only while it is open, and receive a function that closes it; the panel

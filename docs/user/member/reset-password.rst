@@ -38,7 +38,10 @@ with it to get back to the portal.* Press **Go to sign in** and sign in with the
 new password (see :doc:`sign-in`).
 
 Setting the password also confirms your email address, since the link could only
-have reached you there. If the account was deactivated, it is active again.
+have reached you there. If the account was deactivated, it is active again,
+unless an administrator has closed it: then the screen answers *This account has
+been closed. Contact CalDART to reopen it.*, with your organization's name in place
+of CalDART, and the password is not changed.
 
 
 Password rules

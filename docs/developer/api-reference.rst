@@ -636,6 +636,22 @@ not (see :ref:`api-csrf-bootstrap`).
      - ·
      - ·
      -
+   * - ``POST /admin/users/{id}/deactivate``, ``/reactivate``
+     - ·
+     - ·
+     - ·
+     - ✓
+     - ·
+     - ·
+     - the account-edit guard applies
+   * - ``POST /admin/users/{id}/block``, ``/unblock``
+     - ·
+     - ·
+     - ·
+     - ✓
+     - ·
+     - ·
+     - blocking deactivates an active account
    * - ``GET /darts``, ``GET /plans``
      - ✓
      - ✓
@@ -804,6 +820,22 @@ not (see :ref:`api-csrf-bootstrap`).
      - ·
      - ✓
      - grants a term
+   * - ``POST /admin/members/{id}/friend``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ✓
+     - as the member's own switch, under the caller
+   * - ``POST /admin/members/{id}/deactivate``, ``/reactivate``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ✓
+     - the account-edit guard applies
    * - ``PATCH /admin/memberships/{id}``
      - ·
      - ·
