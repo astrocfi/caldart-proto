@@ -16,8 +16,11 @@ The extension warns about a slug that is not one of the site's roles, so the ``-
 build fails on a misspelling, and at the end of an HTML build writes ``roles.json``
 into the output directory: one entry per restricted page, its docname mapped to its
 role slugs.  The site's ``user_guide`` view reads that file to refuse a restricted
-page to a reader without its roles, and ``_static/guide-roles.js`` reads it to take
-those pages out of the sidebar.
+page to a reader without its roles, and to take those pages out of the navigation and
+the search index it serves that reader.  So that the index holds a page's title only
+under that page, the extension marks every table of contents ``no-search``; Sphinx
+would otherwise index the titles a table of contents lists as words of the page
+holding it.
 
 The extension is pure Python and imports nothing from the Django project, so the
 role slugs are spelled here; ``backend/tests/test_docs_user.py`` holds them equal to
@@ -30,6 +33,8 @@ import json
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from docutils import nodes
+from sphinx import addnodes
 from sphinx.util import logging
 
 if TYPE_CHECKING:
@@ -55,15 +60,21 @@ ROLES_FIELD = "roles"
 #: The file written into the output directory.
 ROLES_FILE = "roles.json"
 
+#: The class Sphinx's search indexer skips a node for.
+NO_SEARCH = "no-search"
+
 log = logging.getLogger(__name__)
 
 
 def setup(app: Sphinx) -> ExtensionMetadata:
     """Check the ``:roles:`` fields once every page is read; write ``roles.json`` last.
 
+    Each table of contents is kept out of the search index as each page is read.
+
     The extension keeps no state of its own (the fields live in Sphinx's metadata), so
     it is safe for parallel reading and writing.
     """
+    app.connect("doctree-read", keep_toctrees_out_of_search)
     app.connect("env-check-consistency", check_roles)
     app.connect("build-finished", write_roles)
     return {"version": "1", "parallel_read_safe": True, "parallel_write_safe": True}
@@ -78,6 +89,20 @@ def declared_roles(env: BuildEnvironment, docname: str) -> tuple[str, ...]:
     if raw is None:
         return ()
     return tuple(slug for slug in (part.strip() for part in str(raw).split(",")) if slug)
+
+
+def keep_toctrees_out_of_search(app: Sphinx, doctree: nodes.document) -> None:
+    """Mark every table of contents on a page ``no-search``, so the index skips it.
+
+    A table of contents shows the titles of the pages it lists, and Sphinx would
+    otherwise index them as words of the page that holds it: the front page would
+    match a word from a restricted page's title.  Each page's own words are indexed
+    on that page alone.
+    """
+    for toctree in doctree.findall(addnodes.toctree):
+        wrapper = toctree.parent
+        if isinstance(wrapper, nodes.compound) and NO_SEARCH not in wrapper["classes"]:
+            wrapper["classes"].append(NO_SEARCH)
 
 
 def check_roles(app: Sphinx, env: BuildEnvironment) -> None:
