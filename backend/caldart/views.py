@@ -17,6 +17,7 @@ from csp.constants import SELF, UNSAFE_INLINE
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import AnonymousUser
+from django.db.models import prefetch_related_objects
 from django.http import (
     FileResponse,
     Http404,
@@ -125,14 +126,22 @@ def user_guide(request: HttpRequest, path: str) -> HttpResponseBase:
         return HttpResponseRedirect(reverse("user-guide", kwargs={"path": ""}))
     page_roles = _guide_roles(root)
     roles = _page_roles(page_roles, relative)
-    if roles and not request.user.has_any_role(*roles):
+    trims = relative.suffix == PAGE_SUFFIX or relative.as_posix() == SEARCH_INDEX
+    user = request.user
+    if roles or trims:
+        # One query for the reader's roles, which every ``has_any_role`` below then
+        # reads from the prefetched groups; none for a file that is neither gated nor
+        # trimmed, such as a stylesheet.
+        prefetch_related_objects([user], "groups")
+    if roles and not user.has_any_role(*roles):
         return HttpResponseRedirect(reverse("user-guide", kwargs={"path": ""}))
 
-    hidden = frozenset(
-        docname for docname, slugs in page_roles.items() if not request.user.has_any_role(*slugs)
+    hidden = (
+        frozenset(docname for docname, slugs in page_roles.items() if not user.has_any_role(*slugs))
+        if trims
+        else frozenset()
     )
     modified = target.stat().st_mtime_ns
-    trims = relative.suffix == PAGE_SUFFIX or relative.as_posix() == SEARCH_INDEX
     etag = _guide_etag(modified, hidden) if trims else None
     last_modified = modified // 1_000_000_000
     not_modified = get_conditional_response(request, etag=etag, last_modified=last_modified)

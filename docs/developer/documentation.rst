@@ -217,10 +217,12 @@ pages they may not open taken out, by ``caldart/guide_search.py``:
   foot of the page (``.related-pages``) and every ``<link rel="next">`` or
   ``<link rel="prev">`` in its head, which carries the page's title.  Then
   every list left with no entries goes, with the caption before it, and a
-  table of contents left with no list.  A link is resolved against the
-  page's own address and judged by the same rule as a request; a link that
-  leaves the guide, and a link in a page's prose, are left alone (following
-  one to a restricted page lands on the front page).  A page that loses
+  table of contents left with no list.  Any other link to a hidden page,
+  such as a ``:doc:`` reference in a page's prose, loses its anchor and keeps
+  its text, so no link leads the reader to a page they cannot open; the
+  words stay, since a screen's name is no secret.  A link is resolved
+  against the page's own address and judged by the same rule as a request,
+  and a link that leaves the guide is left alone.  A page that loses
   nothing is served byte for byte as built.  The page is parsed with
   Beautiful Soup's ``html.parser``.
 - *The search index.*  The hidden pages leave ``docnames``, ``filenames``,
@@ -235,7 +237,10 @@ pages they may not open taken out, by ``caldart/guide_search.py``:
   page's words to a member.  A member's search therefore finds nothing on a
   restricted page, and Sphinx's own results and count need no correction.
 
-A reader's reach is the set of restricted docnames they may not open.  Both
+The view reads the reader's roles once per request, and only for a file it
+gates or trims, so a stylesheet or an image costs no query beyond the
+session's.  A reader's reach is the set of restricted docnames they may not
+open.  Both
 trims are cached in memory per file, modification time, and reach, so readers
 with the same reach share one copy, and a rebuilt guide is trimmed afresh; a
 system administrator, from whom nothing is hidden, is served every file as
@@ -408,7 +413,8 @@ redirects a reader without its roles and is served to one with them, a page
 it does not name is served to a member, and a guide without it serves every
 page.  ``backend/tests/test_user_guide_search.py`` checks the trimming: on a
 stand-in guide, each field of a member's and a DART leader's search index,
-each piece of navigation a member's page loses or keeps, the system
+each piece of navigation a member's page loses or keeps, a prose link to a
+restricted page reduced to its text, the queries a page and a stylesheet cost, the system
 administrator's untouched files, the ``ETag`` that changes with the reader's
 reach, the refusal of the build files that name restricted pages, and an
 index that cannot be trimmed; and, on a guide built by Sphinx with the

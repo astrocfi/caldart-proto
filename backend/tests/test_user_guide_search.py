@@ -18,6 +18,7 @@ from typing import cast
 import pytest
 from django.http import HttpResponseBase, StreamingHttpResponse
 from django.test import Client
+from pytest_django import DjangoAssertNumQueries
 from pytest_django.fixtures import Settings
 from sphinx.cmd.build import build_main
 
@@ -90,7 +91,9 @@ Health &amp; Database</a></li>
 <div class="toctree-wrapper compound">
 <ul><li class="toctree-l1"><a class="reference internal" href="admin/members/">Members</a></li></ul>
 </div>
-<p>See <a href="https://example.org/admin/members/">the outside world</a>.</p>
+<p>See <a href="https://example.org/admin/members/">the outside world</a>, the \
+<a class="reference internal" href="admin/members/"><span class="doc">Members screen</span></a>, \
+and <a class="reference internal" href="member/profile/">your profile</a>.</p>
 <div class="related-pages">
 <a class="next-page" href="admin/"><div class="title">Leader screens</div></a>
 </div>
@@ -104,12 +107,12 @@ PROFILE_PAGE = """<!doctype html>
 <li class="toctree-l1"><a class="reference internal" href="../../">User guide</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">My profile</a></li>
 </ul></div>
-<p>Rock &amp; roll, caf\u00e9, <br>and a <b>bold</b>  spacing.</p>
+<p>Rock &amp; roll, a dash \u2014 here, <br>and a <b>bold</b>  spacing.</p>
 </body></html>
 """
 
 #: Every title a member must not see, as the stand-in's HTML spells it.
-RESTRICTED_TITLES = ["Leader screens", "Members", "Health &amp; Database"]
+RESTRICTED_TITLES = ["Leader screens", ">Members<", "Health &amp; Database"]
 
 
 def serialize_index(data: object) -> str:
@@ -366,6 +369,18 @@ def test_a_link_that_leaves_the_guide_is_kept(reader: Client, guide: Path) -> No
     assert "https://example.org/admin/members/" in page
 
 
+def test_a_prose_link_to_a_restricted_page_keeps_only_its_text(reader: Client, guide: Path) -> None:
+    """A link in the page body to a restricted page loses its anchor; its words stay."""
+    page = body(reader.get("/docs/")).decode()
+    assert 'the <span class="doc">Members screen</span>, and' in page
+
+
+def test_a_prose_link_to_an_open_page_is_kept(reader: Client, guide: Path) -> None:
+    """A link in the page body to a page the reader may open is left alone."""
+    page = body(reader.get("/docs/")).decode()
+    assert '<a class="reference internal" href="member/profile/">your profile</a>' in page
+
+
 def test_a_page_with_nothing_to_remove_is_served_as_built(reader: Client, guide: Path) -> None:
     """A page that links no restricted page is served byte for byte."""
     response = reader.get("/docs/member/profile/")
@@ -377,6 +392,25 @@ def test_a_system_administrator_gets_every_page_as_built(
 ) -> None:
     """The front page reaches a system administrator untouched."""
     assert body(administrator.get("/docs/")) == FRONT_PAGE.encode()
+
+
+# ------------------------------------------------------------------ queries
+def test_a_page_reads_the_readers_roles_once(
+    reader: Client, guide: Path, django_assert_max_num_queries: DjangoAssertNumQueries
+) -> None:
+    """Serving a trimmed page costs the session, the user, and one read of the roles."""
+    with django_assert_max_num_queries(3):
+        body(reader.get("/docs/"))
+
+
+def test_a_static_file_reads_no_roles(
+    reader: Client, guide: Path, django_assert_max_num_queries: DjangoAssertNumQueries
+) -> None:
+    """A stylesheet is neither gated nor trimmed, so the reader's roles are not read."""
+    (guide / "_static").mkdir()
+    (guide / "_static" / "styles.css").write_text("body { color: black; }")
+    with django_assert_max_num_queries(2):
+        body(reader.get("/docs/_static/styles.css"))
 
 
 # ------------------------------------------------------------------ build files
@@ -413,7 +447,7 @@ REAL_PAGES = {
 }
 
 #: Words only the restricted pages carry, each of which must vanish for a member.
-REAL_SECRETS = ["Quokka", "Wombat", "wombat", "numbat"]
+REAL_SECRETS = ["Quokka", "quokka", "Wombat", "wombat", "numbat"]
 
 
 @pytest.fixture(scope="module")

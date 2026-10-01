@@ -188,10 +188,11 @@ def trimmed_page(page_file: Path, page_path: str, modified: int, hidden: frozens
     resolved (``link_is_hidden``).  Taken out: every sidebar and table-of-contents
     entry whose link leads to a hidden page, with everything nested under it; every
     next or previous link at the foot of the page and in its head that leads to one;
-    and then every list in the navigation left with no entries, with the caption
-    before it and a table of contents left with no list.  A page that loses nothing is
-    returned byte for byte as built.  ``modified`` is the file's modification time in
-    nanoseconds, part of the cache key only.
+    every other link to one, such as a link in the page's prose, which loses its
+    anchor and keeps its text; and then every list in the navigation left with no
+    entries, with the caption before it and a table of contents left with no list.
+    A page that loses nothing is returned byte for byte as built.  ``modified`` is the
+    file's modification time in nanoseconds, part of the cache key only.
     """
     raw = page_file.read_bytes()
     soup = BeautifulSoup(raw, "html.parser")
@@ -206,6 +207,10 @@ def trimmed_page(page_file: Path, page_path: str, modified: int, hidden: frozens
     for link in soup.select(_RELATED):
         if _leads_to_hidden(link, page_path, hidden):
             link.decompose()
+            removed = True
+    for anchor in soup.select("a[href]"):
+        if not anchor.decomposed and _leads_to_hidden(anchor, page_path, hidden):
+            anchor.unwrap()
             removed = True
     if not removed:
         return raw
