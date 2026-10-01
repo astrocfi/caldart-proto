@@ -9,17 +9,23 @@ reactivates it.  The API contract is ``docs/developer/api-auth.rst``.
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 import pytest
+from django.contrib import admin
 from django.core import mail
+from django.test import RequestFactory
 from rest_framework.test import APIClient
 
+from apps.accounts.api.views import reactivate
 from apps.accounts.models import AccountKind, User
 from apps.accounts.roles import SYSTEM_ADMIN, USER_ADMIN
 from apps.accounts.services import make_reset_token
+from apps.accounts.status import deactivated_account
 from apps.cms.models import SiteSettings
 from apps.members.models import MembershipPlan, MembershipStatusChoices
+from caldart.exceptions import DomainError
 from tests.conftest import (
     GOOD_PASSWORD,
     LOGIN_URL,
@@ -340,3 +346,88 @@ def test_once_unblocked_the_owner_is_offered_reactivation(
         user_admin_client, LOGIN_URL, email=blocked.email, password=DEFAULT_PASSWORD
     )
     assert (status, body["code"]) == (403, "deactivated")
+
+
+# --------------------------------------------------------------------------
+# A block set while a reactivation is under way
+# --------------------------------------------------------------------------
+def _block_in_database(user: User) -> None:
+    """Set ``user``'s block in the database only, leaving the object in hand stale."""
+    User.objects.filter(pk=user.pk).update(reactivation_blocked=True)
+
+
+def test_a_stale_copy_cannot_reactivate_a_blocked_account(target: User) -> None:
+    """The block is read from the locked row, not from the copy the caller loaded."""
+    target.is_active = False
+    target.save(update_fields=["is_active"])
+    stale = deactivated_account(target.email, DEFAULT_PASSWORD)
+    assert stale is not None
+    _block_in_database(target)
+
+    with pytest.raises(DomainError, match=re.escape(CLOSED)):
+        reactivate(stale)
+    assert fresh(target).is_active is False
+
+
+def test_reactivating_answers_closed_when_blocked_after_the_lookup(
+    api_client: APIClient, target: User, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A block landing between the password check and the lock still answers closed."""
+    target.is_active = False
+    target.save(update_fields=["is_active"])
+
+    def stale_lookup(email: str, password: str) -> User | None:
+        found = deactivated_account(email, password)
+        _block_in_database(target)
+        return found
+
+    monkeypatch.setattr("apps.accounts.api.views.deactivated_account", stale_lookup)
+    status, body = post(api_client, REACTIVATE_URL, email=target.email, password=DEFAULT_PASSWORD)
+    assert (status, body, fresh(target).is_active) == (403, {"detail": CLOSED}, False)
+
+
+def test_a_reset_blocked_after_the_link_check_changes_nothing(
+    api_client: APIClient, target: User, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The reset is refused under ``token`` and rolled back, password included."""
+    target.is_active = False
+    target.save(update_fields=["is_active"])
+    uid, token = make_reset_token(target)
+
+    def block_then_confirm(user: User) -> bool:
+        _block_in_database(user)
+        return False
+
+    monkeypatch.setattr("apps.accounts.api.views.confirm_email_address", block_then_confirm)
+    status, body = post(
+        api_client, RESET_CONFIRM_URL, uid=uid, token=token, new_password=GOOD_PASSWORD
+    )
+    target = fresh(target)
+    assert (status, body) == (400, {"token": [CLOSED]})
+    assert (target.check_password(DEFAULT_PASSWORD), target.is_active) == (True, False)
+
+
+# --------------------------------------------------------------------------
+# The Django admin keeps an account from being active and blocked at once
+# --------------------------------------------------------------------------
+def _readonly(user: User) -> list[str]:
+    """The fields the Django admin's change form shows read-only for ``user``."""
+    model_admin = admin.site._registry[User]
+    return list(model_admin.get_readonly_fields(RequestFactory().get("/"), user))
+
+
+def test_the_django_admin_locks_the_active_flag_of_a_blocked_account(blocked: User) -> None:
+    """A blocked account cannot be switched back on there."""
+    assert "is_active" in _readonly(blocked)
+
+
+def test_the_django_admin_locks_the_block_of_an_active_account(target: User) -> None:
+    """Blocking an active account is the user record's job, which deactivates it fully."""
+    assert "reactivation_blocked" in _readonly(target)
+
+
+def test_the_django_admin_lets_a_deactivated_account_be_blocked(target: User) -> None:
+    """With the account already deactivated, both flags are editable."""
+    target.is_active = False
+    target.save(update_fields=["is_active"])
+    assert {"is_active", "reactivation_blocked"} & set(_readonly(target)) == set()

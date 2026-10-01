@@ -405,9 +405,10 @@ def test_a_member_record_edit_ignores_the_active_flag(
     account_admin_client: APIClient, target: User
 ) -> None:
     """``is_active`` in a ``PATCH`` is not a field the edit accepts."""
-    account_admin_client.patch(
+    response = account_admin_client.patch(
         f"/api/v1/admin/members/{target.pk}", {"is_active": False}, format="json"
     )
+    assert response.status_code == 200
     assert fresh(target).is_active is True
 
 
@@ -415,7 +416,10 @@ def test_a_user_record_edit_ignores_the_active_flag(
     user_admin_client: APIClient, target: User
 ) -> None:
     """``is_active`` is read-only on ``/admin/users/{id}``."""
-    user_admin_client.patch(f"/api/v1/admin/users/{target.pk}", {"is_active": False}, format="json")
+    response = user_admin_client.patch(
+        f"/api/v1/admin/users/{target.pk}", {"is_active": False}, format="json"
+    )
+    assert response.status_code == 200
     assert fresh(target).is_active is True
 
 

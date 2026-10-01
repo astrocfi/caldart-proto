@@ -343,12 +343,18 @@ class PasswordResetConfirmView(APIView):
         serializer = PasswordResetConfirmSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data["user"]
-        with transaction.atomic():
-            user.set_password(serializer.validated_data["new_password"])
-            user.save(update_fields=["password", "updated_at"])
-            confirm_email_address(user)
-            if not user.is_active:
-                reactivate(user)
+        try:
+            with transaction.atomic():
+                user.set_password(serializer.validated_data["new_password"])
+                user.save(update_fields=["password", "updated_at"])
+                confirm_email_address(user)
+                if not user.is_active:
+                    reactivate(user)
+        except DomainError:
+            # Blocked after the link was checked: the whole reset is rolled back.
+            return Response(
+                {"token": [closed_account_message()]}, status=status.HTTP_400_BAD_REQUEST
+            )
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -360,13 +366,14 @@ def _closed() -> Response:
     return Response({"detail": closed_account_message()}, status=status.HTTP_403_FORBIDDEN)
 
 
-def _locked_is_active(user: User) -> bool:
-    """Lock ``user``'s row until the transaction ends, and read its stored active flag.
+def _locked(user: User) -> User:
+    """Lock ``user``'s row until the transaction ends, and read the whole of it afresh.
 
     Two requests racing to deactivate or reactivate one account run one after the
-    other, and the second sees what the first wrote.
+    other, and the second sees what the first wrote -- the active flag and the
+    reactivation block alike, so a block set after ``user`` was read still holds.
     """
-    return User.objects.select_for_update().values_list("is_active", flat=True).get(pk=user.pk)
+    return User.objects.select_for_update().get(pk=user.pk)
 
 
 @transaction.atomic
@@ -378,11 +385,12 @@ def deactivate(user: User) -> None:
     term with time left is suspended.  Raises the ``DomainError`` a refusal raises.
     An account already inactive when its row is locked is left alone.
     """
-    if not _locked_is_active(user):
+    locked = _locked(user)
+    if not locked.is_active:
         return
-    deactivate_own_account(user)
-    cancel_all_mandates(user)
-    suspend_terms(user)
+    deactivate_own_account(locked)
+    cancel_all_mandates(locked)
+    suspend_terms(locked)
 
 
 @transaction.atomic
@@ -392,13 +400,16 @@ def reactivate(user: User) -> bool:
     Kind and roles are untouched; each suspended term is active again, or expired if
     it ran out meanwhile.  Canceled mandates stay canceled.  ``False``, changing
     nothing, when the account is already active once its row is locked; ``True``
-    otherwise.  Raises the ``DomainError`` ``reactivate_own_account`` raises for an
-    account blocked from reactivating.
+    otherwise, when ``user`` is read again so the caller holds the account as stored.
+    The block is read from the locked row, so an account blocked after ``user`` was
+    loaded is refused: raises the ``DomainError`` ``reactivate_own_account`` raises.
     """
-    if _locked_is_active(user):
+    locked = _locked(user)
+    if locked.is_active:
         return False
-    reactivate_own_account(user)
-    restore_terms(user)
+    reactivate_own_account(locked)
+    restore_terms(locked)
+    user.refresh_from_db()
     return True
 
 
@@ -461,7 +472,12 @@ class ReactivateView(APIView):
         )
         if user is not None and user.reactivation_blocked:
             return _closed()
-        if user is None or not reactivate(user):
+        try:
+            is_reactivated = user is not None and reactivate(user)
+        except DomainError:
+            # Blocked between the read above and the row lock.
+            return _closed()
+        if user is None or not is_reactivated:
             return Response(
                 {"detail": WRONG_CREDENTIALS_MESSAGE},
                 status=status.HTTP_400_BAD_REQUEST,

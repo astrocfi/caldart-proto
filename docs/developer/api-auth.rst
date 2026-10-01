@@ -363,7 +363,9 @@ and chose to come back — except that nobody is signed in: the portal sends the
 to ``/login`` as for any reset.  A good link for an account a user administrator
 has blocked from reactivating (one mailed before the block) is refused with
 ``{"token": ["This account has been closed. Contact CalDART to reopen it."]}``,
-the organization's name read from the site settings, and no password is set.
+the organization's name read from the site settings, and no password is set.  The block is
+read again from the locked account row, so one set while the reset is under way
+refuses it the same way and rolls the whole reset back.
 
 Statuses: **204**; **400** for an unusable link, a closed account, a weak
 password or a missing field; **429** when the ``auth_password_reset`` throttle is exhausted, which

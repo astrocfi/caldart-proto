@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
 
 import { api } from '@/portal/api/client';
+import { ADMIN_USERS_KEY } from '@/portal/api/queries';
 import type {
   AccountKind,
   AdminUser,
@@ -27,7 +28,7 @@ export interface AdminUserFilters {
   page?: number;
 }
 
-export const ADMIN_USERS_KEY = ['admin', 'users'] as const;
+export { ADMIN_USERS_KEY };
 
 /** The query key for a filtered users list. */
 export function adminUsersKey(

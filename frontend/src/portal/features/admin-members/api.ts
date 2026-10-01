@@ -9,6 +9,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
 
 import { api } from '@/portal/api/client';
+import { ADMIN_USERS_KEY } from '@/portal/api/queries';
 import type {
   BecomeFriendPayload,
   GrantTermPayload,
@@ -127,7 +128,7 @@ export function useUpdateTerm(): UseMutationResult<
  * One of the danger zone's account actions: `POST /admin/members/{id}/{action}`.
  *
  * The answer is the member record as it stands afterwards. Every member query is
- * invalidated, and so is the finance area, since deactivating or making a friend
+ * invalidated, and so are the users list and the finance area, since deactivating or making a friend
  * cancels the automatic renewal and may start a recurring donation.
  */
 function useMemberAction<Body>(
@@ -141,6 +142,7 @@ function useMemberAction<Body>(
       Promise.all([
         queryClient.invalidateQueries({ queryKey: MEMBERS_KEY }),
         queryClient.invalidateQueries({ queryKey: FINANCE_KEY }),
+        queryClient.invalidateQueries({ queryKey: ADMIN_USERS_KEY }),
       ]),
   });
 }
