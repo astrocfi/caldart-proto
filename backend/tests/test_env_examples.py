@@ -15,7 +15,7 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SETTINGS_DIR = REPO_ROOT / "backend" / "caldart" / "settings"
 EXAMPLE_FILES = [REPO_ROOT / ".env.example", REPO_ROOT / "deploy" / "caldart.env.example"]
-ENV_READ = re.compile(r"\benv(?:\.\w+)?\(\s*\"([A-Z][A-Z0-9_]*)\"")
+ENV_READ = re.compile(r"\b(?:env(?:\.\w+)?|_throttle_rate)\(\s*\"([A-Z][A-Z0-9_]*)\"")
 ASSIGNMENT = re.compile(r"^#?([A-Z][A-Z0-9_]*)=", re.MULTILINE)
 
 
@@ -35,7 +35,7 @@ def _assigned(path: Path) -> set[str]:
 
 def test_the_settings_modules_read_variables() -> None:
     """The scan finds the variables, so the checks below are not vacuous."""
-    assert "SECRET_KEY" in _settings_variables()
+    assert {"SECRET_KEY", "AUTH_THROTTLE_LOGIN"} <= _settings_variables()
 
 
 @pytest.mark.parametrize("name", sorted(_settings_variables()))

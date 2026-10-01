@@ -142,7 +142,9 @@ describe('RecordPaymentPage', () => {
     await chooseMember(user);
     await user.click(screen.getByRole('button', { name: 'Record the payment' }));
 
-    expect(await screen.findByText('Nothing to charge.')).toBeInTheDocument();
+    expect(await screen.findByLabelText('Contribution')).toHaveAccessibleDescription(
+      /Nothing to charge\./,
+    );
   });
 
   it('shows an error that carries only a sentence', async () => {

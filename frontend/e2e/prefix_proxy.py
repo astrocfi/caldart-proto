@@ -161,16 +161,18 @@ class PrefixProxyHandler(BaseHTTPRequestHandler):
         }
 
     def _relay(self, response: http.client.HTTPResponse) -> None:
-        """Copy the upstream's status, headers and body to the client as they arrive."""
-        self.send_response(response.status, response.reason)
-        for name, value in response.getheaders():
-            if name.lower() not in HOP_BY_HOP | SELF_WRITTEN_ON_RESPONSE:
-                self.send_header(name, value)
-        self.end_headers()
-        if self.command == "HEAD":
-            return
+        """Copy the upstream's status, headers and body to the client as they arrive.
+
+        A client that vanishes mid-response is logged on one line and ignored.
+        """
         try:
-            shutil.copyfileobj(response, self.wfile, CHUNK_SIZE)
+            self.send_response(response.status, response.reason)
+            for name, value in response.getheaders():
+                if name.lower() not in HOP_BY_HOP | SELF_WRITTEN_ON_RESPONSE:
+                    self.send_header(name, value)
+            self.end_headers()
+            if self.command != "HEAD":
+                shutil.copyfileobj(response, self.wfile, CHUNK_SIZE)
         except (BrokenPipeError, ConnectionResetError):
             log.info("client closed the connection during %s %s", self.command, self.path)
 

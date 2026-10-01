@@ -448,8 +448,9 @@ verifies whichever of the keys below are set before you open a browser.
    :Production: ignored.
 
 ``PAYMENTS_MOCK_ENABLED_IN_PRODUCTION`` *(prod only)*
-   The only way to enable the mock provider under ``prod.py``.  It appears in
-   no template, so turning it on is a deliberate act: on a public site it lets
+   The only way to enable the mock provider under ``prod.py``.  The
+   production template lists it commented out, so turning it on is a deliberate
+   uncomment: on a public site it lets
    anyone who can sign in grant themselves a membership.  Set it only to
    demonstrate the checkout flow on a box with no payment keys.
 
@@ -554,7 +555,8 @@ Production hardening
 ====================
 
 These take effect only in production and all have sensible defaults, so none
-of them is in ``.env.example``.  All but the last two are read by ``prod.py``;
+of them is set in a template.  ``.env.example`` lists each one commented out,
+and ``deploy/caldart.env.example`` is the template a server starts from.  All but the last two are read by ``prod.py``;
 ``WEB_CONCURRENCY`` and ``CALDART_GUNICORN_PORT`` are read by gunicorn's own
 configuration file and never by Django at all.
 

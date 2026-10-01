@@ -201,7 +201,7 @@ DJANGO_VITE = {
 # can grant themselves a membership.  The development flag, PAYMENTS_MOCK_ENABLED,
 # is ignored here: it is on in `.env.example`, and a copied environment file must
 # not be what turns it on.  Demonstrating the flow without payment keys takes this
-# variable, which exists nowhere else.
+# variable, which no other settings module reads.
 PAYMENTS_MOCK_ENABLED = env.bool("PAYMENTS_MOCK_ENABLED_IN_PRODUCTION", default=False)
 
 # --------------------------------------------------------------------------
