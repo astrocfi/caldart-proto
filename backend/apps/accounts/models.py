@@ -122,6 +122,9 @@ class User(AbstractUser):
     #: The day a member who asked to become a friend becomes one; ``None`` when no
     #: change is pending.
     friend_on = models.DateField(null=True, blank=True)
+    #: Set by a user administrator to keep a deactivated account deactivated: while it
+    #: is set, no sign-in, password reset, or registration brings the account back.
+    reactivation_blocked = models.BooleanField(default=False)
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS: ClassVar[list[str]] = []

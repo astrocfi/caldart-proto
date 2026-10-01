@@ -1,7 +1,8 @@
 """The account-edit guard on both administrator edit endpoints.
 
-A protected change -- the email address or the active flag -- is refused unless the
-actor holds every role the target holds.  A Django superuser counts as a system
+A protected change -- the email address on an edit, or deactivating the account
+through the record's own action -- is refused unless the actor holds every role the
+target holds.  A Django superuser counts as a system
 administrator whether or not the role group was ever added.  These cases replay the
 takeover the guard closes, check the edits that stay allowed, and mark how far a
 caller who may also write roles reaches over a second request.  What a refusal
@@ -18,11 +19,8 @@ from rest_framework.test import APIClient
 
 from apps.accounts.models import User
 from apps.accounts.roles import ACCOUNT_ADMIN, DART_LEADER, MEMBER, SYSTEM_ADMIN, USER_ADMIN
-from apps.accounts.services import (
-    EMAIL_CHANGE_REFUSED,
-    SELF_DEACTIVATION_REFUSED,
-    STATUS_CHANGE_REFUSED,
-)
+from apps.accounts.services import EMAIL_CHANGE_REFUSED
+from apps.accounts.status import SELF_DEACTIVATION_REFUSED, STATUS_CHANGE_REFUSED
 from tests.factories import UserFactory
 
 pytestmark = pytest.mark.django_db
@@ -98,13 +96,13 @@ def test_a_lower_admin_cannot_deactivate_a_protected_account(
     actor_role: str,
     detail: Callable[[User], str],
 ) -> None:
-    """The Active box is guarded exactly as the address is, on both kinds of target."""
+    """Deactivating is guarded exactly as the address is, on both kinds of target."""
     target = request.getfixturevalue(target_fixture)
     api_client.force_login(request.getfixturevalue(actor_role))
-    response = api_client.patch(detail(target), {"is_active": False})
+    response = api_client.post(f"{detail(target)}/deactivate")
 
     assert response.status_code == 400
-    assert response.json()["is_active"] == [STATUS_CHANGE_REFUSED]
+    assert response.json() == {"detail": STATUS_CHANGE_REFUSED}
     target.refresh_from_db()
     assert target.is_active is True
 
@@ -140,10 +138,10 @@ def test_a_user_admin_cannot_deactivate_a_dart_leader(
 ) -> None:
     """Any role the actor lacks protects the account, administrative or not."""
     api_client.force_login(user_admin)
-    response = api_client.patch(user_detail(dart_leader), {"is_active": False})
+    response = api_client.post(f"{user_detail(dart_leader)}/deactivate")
 
     assert response.status_code == 400
-    assert response.json()["is_active"] == [STATUS_CHANGE_REFUSED]
+    assert response.json() == {"detail": STATUS_CHANGE_REFUSED}
     dart_leader.refresh_from_db()
     assert dart_leader.is_active is True
 
@@ -153,10 +151,10 @@ def test_an_account_admin_cannot_deactivate_themselves(
 ) -> None:
     """An account administrator cannot deactivate their own account."""
     api_client.force_login(account_admin)
-    response = api_client.patch(member_detail(account_admin), {"is_active": False})
+    response = api_client.post(f"{member_detail(account_admin)}/deactivate")
 
     assert response.status_code == 400
-    assert response.json()["is_active"] == [SELF_DEACTIVATION_REFUSED]
+    assert response.json() == {"detail": SELF_DEACTIVATION_REFUSED}
     account_admin.refresh_from_db()
     assert account_admin.is_active is True
 

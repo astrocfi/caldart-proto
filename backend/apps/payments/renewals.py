@@ -814,21 +814,22 @@ def discard_pending_mandate(user: User) -> None:
     RenewalMandate.objects.filter(user=user, status=MandateStatus.PENDING).delete()
 
 
-def cancel_all_mandates(user: User) -> None:
+def cancel_all_mandates(user: User, *, actor: User | None = None) -> None:
     """Withdraw every standing authority ``user`` has given CalDART to charge them.
 
-    Each active or paused mandate is canceled through :func:`cancel_mandate` with the
-    account itself as the actor, so it is recorded as a self-service
-    ``renewal.cancel``, raised as ``auto_renewal_off`` with ``how="deactivated"`` when it
-    was active, and the member is told; a pending one is thrown away by
-    :func:`discard_pending_mandate`.  A mandate already canceled is left as it is.
-    Called when a person deactivates their own account.
+    Each active or paused mandate is canceled through :func:`cancel_mandate` under
+    ``actor``, the account itself when none is given (so it is recorded as a
+    self-service ``renewal.cancel``), raised as ``auto_renewal_off`` with
+    ``how="deactivated"`` when it was active, and the member is told; a pending one is
+    thrown away by :func:`discard_pending_mandate`.  A mandate already canceled is left
+    as it is.  Called whenever an account is deactivated, by its owner or by an
+    administrator.
     """
     standing = RenewalMandate.objects.filter(user=user).exclude(
         status__in=(MandateStatus.CANCELED, MandateStatus.PENDING)
     )
     for mandate in standing:
-        cancel_mandate(mandate, actor=user, how="deactivated")
+        cancel_mandate(mandate, actor=actor or user, how="deactivated")
     discard_pending_mandate(user)
 
 
@@ -846,10 +847,24 @@ KEEP_CONTRIBUTION_DONATION_HELD = (
     "You already have a recurring donation. Change it on the Donate screen."
 )
 
+#: The same refusal, told to the administrator making somebody else a friend.
+KEEP_CONTRIBUTION_DONATION_HELD_ADMIN = (
+    "They already have a recurring donation, so the contribution cannot be kept as one."
+)
+
 
 @transaction.atomic
-def switch_to_friend(user: User, *, keep_contribution: bool | None) -> User:
-    """Make ``user`` a friend of CalDART at their own request, and return the account.
+def switch_to_friend(
+    user: User, *, keep_contribution: bool | None, actor: User | None = None
+) -> User:
+    """Make ``user`` a friend of CalDART, and return the account.
+
+    ``actor`` is the administrator who asked on the person's behalf, or ``None`` (the
+    default) when the person asked for themselves; it is recorded on the canceled
+    renewal and on the ``account.kind`` audit line, and an administrator's change
+    raises ``became_friend`` with ``how="administrator"``.  An administrator who asks to
+    keep the contribution while a recurring donation is held is refused with
+    :data:`KEEP_CONTRIBUTION_DONATION_HELD_ADMIN` instead.
 
     The account becomes a friend through :func:`apps.members.lifecycle.become_friend`:
     the day after a current membership runs out, or at once.  Their automatic renewal
@@ -869,6 +884,7 @@ def switch_to_friend(user: User, *, keep_contribution: bool | None) -> User:
     work.  The account returned is the freshly locked copy.
     """
     user = User.objects.select_for_update().get(pk=user.pk)
+    actor = actor or user
     check_can_become_friend(user, timezone.localdate())
     renewal = (
         RenewalMandate.objects.select_for_update().filter(user=user, plan__isnull=False).first()
@@ -876,19 +892,22 @@ def switch_to_friend(user: User, *, keep_contribution: bool | None) -> User:
     if renewal is not None and renewal.status == MandateStatus.PENDING:
         renewal.delete()
     elif renewal is not None and renewal.status != MandateStatus.CANCELED:
-        is_kept = _keeps_contribution(renewal, keep_contribution)
-        cancel_mandate(renewal, actor=user)
+        is_kept = _keeps_contribution(renewal, keep_contribution, is_own=actor.pk == user.pk)
+        cancel_mandate(renewal, actor=actor)
         if is_kept:
             keep_renewal_contribution(renewal)
-    return become_friend(user)
+    return become_friend(user, actor=actor)
 
 
-def _keeps_contribution(renewal: RenewalMandate, keep_contribution: bool | None) -> bool:
+def _keeps_contribution(
+    renewal: RenewalMandate, keep_contribution: bool | None, *, is_own: bool = True
+) -> bool:
     """Whether switching to friend keeps ``renewal``'s contribution as a donation.
 
     Only an active renewal with a contribution offers one to keep; for it, a missing
     answer, or true while a recurring donation is already active or paused, raises
-    ``DomainValidationError`` keyed by :data:`KEEP_CONTRIBUTION_FIELD`.
+    ``DomainValidationError`` keyed by :data:`KEEP_CONTRIBUTION_FIELD`, the second in
+    the member's own words when ``is_own`` and an administrator's otherwise.
     """
     if renewal.status != MandateStatus.ACTIVE or renewal.contribution_cents == 0:
         return False
@@ -898,7 +917,10 @@ def _keeps_contribution(renewal: RenewalMandate, keep_contribution: bool | None)
         return False
     held = donation_of(renewal.user)
     if held is not None and held.status in (MandateStatus.ACTIVE, MandateStatus.PAUSED):
-        raise DomainValidationError(KEEP_CONTRIBUTION_FIELD, KEEP_CONTRIBUTION_DONATION_HELD)
+        message = (
+            KEEP_CONTRIBUTION_DONATION_HELD if is_own else KEEP_CONTRIBUTION_DONATION_HELD_ADMIN
+        )
+        raise DomainValidationError(KEEP_CONTRIBUTION_FIELD, message)
     return True
 
 

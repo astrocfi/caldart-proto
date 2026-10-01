@@ -184,6 +184,7 @@
       "last_name": "string",
       "membership": "ref:MembershipStatus",
       "profile_complete": "boolean",
+      "reactivation_blocked": "boolean",
       "roles": "array<ref:RolesEnum>"
     },
     "required": [
@@ -191,9 +192,11 @@
       "email_verified_at",
       "friend_on",
       "id",
+      "is_active",
       "kind",
       "membership",
-      "profile_complete"
+      "profile_complete",
+      "reactivation_blocked"
     ]
   },
   "Aircraft": {
@@ -1376,6 +1379,7 @@
       "email": "string(email)",
       "email_verified_at": "string(date-time)|null",
       "first_name": "string",
+      "friend_on": "string(date)|null",
       "id": "integer",
       "is_active": "boolean",
       "joined_on": "string(date)|null",
@@ -1387,6 +1391,7 @@
       "payments": "array<ref:AdminPayment>",
       "profile": "ref:AdminProfile|null",
       "profile_updated_at": "string(date-time)|null",
+      "reactivation_blocked": "boolean",
       "roles": "array<ref:RolesEnum>"
     },
     "required": [
@@ -1394,6 +1399,7 @@
       "email",
       "email_verified_at",
       "first_name",
+      "friend_on",
       "id",
       "is_active",
       "joined_on",
@@ -1405,6 +1411,7 @@
       "payments",
       "profile",
       "profile_updated_at",
+      "reactivation_blocked",
       "roles"
     ]
   },
@@ -1881,7 +1888,6 @@
     "properties": {
       "email": "string(email)",
       "first_name": "string",
-      "is_active": "boolean",
       "last_name": "string",
       "roles": "array<ref:RolesEnum>"
     },
@@ -1923,7 +1929,6 @@
     "properties": {
       "email": "string(email)",
       "first_name": "string",
-      "is_active": "boolean",
       "kind": "ref:PersonKindEnum",
       "last_name": "string",
       "profile": "ref:PatchedAdminProfileRequest"

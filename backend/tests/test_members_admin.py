@@ -689,6 +689,8 @@ def test_detail_returns_the_whole_record(
         "payments",
         "joined_on",
         "email_verified_at",
+        "reactivation_blocked",
+        "friend_on",
     }
     assert body["profile"]["notes"] == "Called about the Napa exercise."
     assert body["profile"]["how_heard"] == "EAA chapter meeting"
@@ -843,7 +845,6 @@ def test_patch_updates_the_user_and_the_nested_profile(
         detail_url(member),
         {
             "first_name": "Cleopatra",
-            "is_active": False,
             "profile": {"phone": "650-555-9999", "notes": "Lapsed; sent a note."},
         },
         format="json",
@@ -851,7 +852,6 @@ def test_patch_updates_the_user_and_the_nested_profile(
     assert response.status_code == 200
     body = response.json()
     assert body["first_name"] == "Cleopatra"
-    assert body["is_active"] is False
     assert body["profile"]["phone"] == "650-555-9999"
     assert body["profile"]["notes"] == "Lapsed; sent a note."
     # Untouched profile fields survive a partial update.

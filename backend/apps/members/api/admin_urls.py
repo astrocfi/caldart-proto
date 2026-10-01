@@ -25,6 +25,21 @@ urlpatterns = [
         name="admin-member-memberships",
     ),
     path(
+        "admin/members/<int:pk>/friend",
+        admin_views.MemberMakeFriendView.as_view(),
+        name="admin-member-friend",
+    ),
+    path(
+        "admin/members/<int:pk>/deactivate",
+        admin_views.MemberDeactivateView.as_view(),
+        name="admin-member-deactivate",
+    ),
+    path(
+        "admin/members/<int:pk>/reactivate",
+        admin_views.MemberReactivateView.as_view(),
+        name="admin-member-reactivate",
+    ),
+    path(
         "admin/memberships/<int:pk>",
         admin_views.MembershipAdminDetailView.as_view(),
         name="admin-membership-detail",

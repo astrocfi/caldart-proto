@@ -31,7 +31,7 @@ from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from apps.accounts.models import PERSON_KINDS, AccountKind, User
 from apps.accounts.roles import MEMBER, ROLE_SLUGS, SYSTEM_ADMIN, VERIFIER, WEBSITE_ADMIN
 from caldart import audit, events
-from caldart.exceptions import DomainError, DomainValidationError
+from caldart.exceptions import DomainValidationError
 from caldart.mail import contact_email, org_name, send_templated
 
 #: Where the SPA serves the reset form (``routes/auth.tsx``).
@@ -56,31 +56,23 @@ DEFAULT_ORG_NAME = "CalDART"
 SECONDS_PER_DAY = 86_400
 
 #: The fields an administrator may change on another account only while holding
-#: every role that account holds.  Both are takeover routes: the email address is
-#: the login and the target of a reset link, and ``is_active`` locks the account.
-#: The order is the order in which a refusal reports them.
-PROTECTED_ACCOUNT_FIELDS: tuple[str, ...] = ("email", "is_active")
+#: every role that account holds.  The email address is a takeover route: it is the
+#: login and the target of a reset link.  The active flag is guarded the same way,
+#: but it is not an edit: see ``apps.accounts.status``.
+PROTECTED_ACCOUNT_FIELDS: tuple[str, ...] = ("email",)
 
 #: The account columns :func:`update_account` writes, in the order it writes them.
 #: Anything else in the changes it is handed is ignored.
-ACCOUNT_FIELDS: tuple[str, ...] = ("email", "first_name", "last_name", "is_active")
+ACCOUNT_FIELDS: tuple[str, ...] = ("email", "first_name", "last_name")
 
-SELF_DEACTIVATION_REFUSED = "You cannot deactivate your own account."
 EMAIL_CHANGE_REFUSED = (
     "You cannot change the email address of an account that holds roles you do not hold."
 )
-STATUS_CHANGE_REFUSED = (
-    "You cannot activate or deactivate an account that holds roles you do not hold."
-)
 ROLE_CHANGE_REFUSED = "Only a system administrator can grant or revoke the system_admin role."
 DONOR_KIND_REFUSED = "A donor becomes a member or a friend only by registering."
-SYSTEM_ADMIN_SELF_DEACTIVATION_REFUSED = (
-    "A system administrator cannot deactivate their own account."
-)
-DONOR_SELF_DEACTIVATION_REFUSED = "A donor has no portal account to deactivate."
 
-#: What one account column carries in an edit: an address or a name, or the active flag.
-type AccountFieldValue = str | bool
+#: What one account column carries in an edit: an address or a name.
+type AccountFieldValue = str
 
 
 class EmailVerificationError(DomainValidationError):
@@ -114,7 +106,6 @@ class AccountChanges(TypedDict, total=False):
     email: str
     first_name: str
     last_name: str
-    is_active: bool
     roles: list[str]
     kind: AccountKind
 
@@ -228,12 +219,15 @@ def update_account(actor: User | str, target: User, changes: AccountChanges) -> 
     run in this order, and the first refusal raises ``DomainValidationError`` naming
     the field it belongs on, leaving the account untouched:
 
-    #. nobody may deactivate their own account;
     #. only a system administrator may grant or revoke ``system_admin``;
     #. a donor's kind is never changed by hand ("A donor becomes a member or a
        friend only by registering.", against ``kind``);
     #. an account holding roles the actor does not hold has an untouchable email
-       address and active flag -- see :func:`check_account_edit`.
+       address -- see :func:`check_account_edit`.
+
+    The active flag is not an edit: ``apps.accounts.status`` deactivates and
+    reactivates an account, and a change the caller hands in under ``is_active`` is
+    ignored like any other key that is not an account column.
 
     A value that would not really alter the account is not a change and so is
     never a refusal; on a record whose protected fields the actor may not write
@@ -259,8 +253,7 @@ def update_account(actor: User | str, target: User, changes: AccountChanges) -> 
     Each change the save really makes raises its notification event through
     :func:`caldart.events.emit`, after the save and inside the transaction:
     ``became_friend`` or ``became_member`` with ``how="administrator"`` for a new
-    kind, ``account_deactivated`` or ``account_reactivated`` with ``actor`` for the
-    active flag, and ``roles_changed`` with the slugs ``added`` and ``removed`` (in
+    kind, and ``roles_changed`` with the slugs ``added`` and ``removed`` (in
     privilege order) and ``actor``.  An edit that alters nothing raises nothing.  A
     new address raises nothing yet: the verification link carries the address it
     replaced, and :func:`verify_email` raises ``email_changed`` when it is followed.
@@ -268,7 +261,6 @@ def update_account(actor: User | str, target: User, changes: AccountChanges) -> 
     fields = _account_fields(changes)
     roles = changes.get("roles")
 
-    _refuse_self_deactivation(actor, target, _protected_changes(target, fields))
     if roles is not None:
         roles = _checked_roles(actor, target, roles)
     kind = changes.get("kind")
@@ -321,16 +313,11 @@ def set_verifier(actor: User, target: User, *, wanted: bool) -> User:
 def _raise_edit_event(action: str, logged: AuditFields, *, actor: User | str, target: User) -> None:
     """Raise the notification event behind one audit record :func:`update_account` wrote.
 
-    ``account.activate`` raises ``account_reactivated``, ``account.deactivate`` raises
-    ``account_deactivated`` and ``account.roles`` raises ``roles_changed`` with the
-    slugs ``added`` and ``removed``; each names ``actor``.  ``account.update`` raises
-    nothing here: the address has its own event and a name belongs to the profile.
+    ``account.roles`` raises ``roles_changed`` with the slugs ``added`` and ``removed``
+    and ``actor``.  ``account.update`` raises nothing here: the address has its own
+    event and a name belongs to the profile.
     """
-    if action == audit.ACCOUNT_ACTIVATE:
-        events.emit("account_reactivated", user=target, actor=actor)
-    elif action == audit.ACCOUNT_DEACTIVATE:
-        events.emit("account_deactivated", user=target, actor=actor)
-    elif action == audit.ACCOUNT_ROLES:
+    if action == audit.ACCOUNT_ROLES:
         events.emit(
             "roles_changed",
             user=target,
@@ -344,7 +331,7 @@ def _account_fields(changes: AccountChanges) -> dict[str, AccountFieldValue]:
     """The account columns ``changes`` carries, in ``ACCOUNT_FIELDS`` order.
 
     The role list is left out, and so is any key that is not an account column: only
-    these four are ever written.  A key ``changes`` does not carry is absent from the
+    these three are ever written.  A key ``changes`` does not carry is absent from the
     result rather than present as ``None``.
     """
     fields: dict[str, AccountFieldValue] = {}
@@ -354,8 +341,6 @@ def _account_fields(changes: AccountChanges) -> dict[str, AccountFieldValue]:
         fields["first_name"] = changes["first_name"]
     if "last_name" in changes:
         fields["last_name"] = changes["last_name"]
-    if "is_active" in changes:
-        fields["is_active"] = changes["is_active"]
     return fields
 
 
@@ -366,18 +351,13 @@ def _change_records(
 
     One ``account.update`` for the columns whose stored value the save really
     alters, named but never valued -- a form that resends a column unchanged is
-    not an edit of it; one ``account.activate`` or ``account.deactivate`` when
-    the active flag really turns over; and one ``account.roles`` carrying the
-    slugs added and removed when the role list really changes.
+    not an edit of it; and one ``account.roles`` carrying the slugs added and
+    removed when the role list really changes.
     """
     records: list[tuple[str, AuditFields]] = []
-    altered = _altered_fields(target, fields, ACCOUNT_FIELDS)
-    written = [name for name in altered if name != "is_active"]
+    written = _altered_fields(target, fields, ACCOUNT_FIELDS)
     if len(written) > 0:
         records.append((audit.ACCOUNT_UPDATE, {"fields": written}))
-    if "is_active" in altered:
-        activating = bool(fields["is_active"])
-        records.append((audit.ACCOUNT_ACTIVATE if activating else audit.ACCOUNT_DEACTIVATE, {}))
     if roles is not None and _writes_roles(target, set(roles)):
         held = set(target.roles)
         wanted = set(roles)
@@ -432,9 +412,9 @@ def may_edit_protected_fields(actor: User | str, target: User) -> bool:
 
     The actor must hold every role the target holds; a system administrator, including
     a Django superuser without the role group or the command actor, holds them all.
-    This judges the pair of accounts, not a particular edit: self-deactivation is
-    refused separately, and a caller who may not write these fields may still change
-    names and profile fields.
+    This judges the pair of accounts, not a particular edit: a caller who may not write
+    these fields may still change names and profile fields.  The same rule guards
+    deactivating, reactivating, and blocking an account (``apps.accounts.status``).
     """
     actor_roles = effective_roles(actor)
     if SYSTEM_ADMIN in actor_roles:
@@ -449,57 +429,27 @@ def check_account_edit(
 
     ``changes`` is the incoming data; only the keys in ``PROTECTED_ACCOUNT_FIELDS``
     are examined, and only where they would really alter the account.  An email
-    address is compared case-insensitively after stripping and ``is_active`` as a
-    bool, so an administration form that resends every field is not treated as a
-    change to the fields it left alone.  Names are never protected.
+    address is compared case-insensitively after stripping, so an administration form
+    that resends every field is not treated as a change to the address.  Names are
+    never protected.
 
-    Nobody may deactivate their own account.  Beyond that, a protected change is
-    refused unless the actor holds every role the target holds; a system
-    administrator, including a Django superuser without the role, holds them all.
-    Raises ``DomainValidationError`` on the first refused field, email before status,
-    and returns ``None`` when the edit is allowed.  Every refusal is recorded in the
-    audit log at WARNING with the two account ids, the field names and a reason, and
-    no personal data.
+    A protected change is refused unless the actor holds every role the target holds;
+    a system administrator, including a Django superuser without the role, holds them
+    all.  Raises ``DomainValidationError`` against ``email``, and returns ``None`` when
+    the edit is allowed.  Every refusal is recorded in the audit log at WARNING with
+    the two account ids, the field names and a reason, and no personal data.
     """
     changed = _protected_changes(target, changes)
-    if len(changed) == 0:
+    if len(changed) == 0 or may_edit_protected_fields(actor, target):
         return
-
-    _refuse_self_deactivation(actor, target, changed)
-
-    if may_edit_protected_fields(actor, target):
-        return
-
-    field = changed[0]
-    message = EMAIL_CHANGE_REFUSED if field == "email" else STATUS_CHANGE_REFUSED
-    _refuse(
-        actor,
-        target,
-        changed,
-        field=field,
-        message=message,
-        action=audit.ACCOUNT_UPDATE,
+    audit.refuse(
+        audit.ACCOUNT_UPDATE,
+        actor=actor,
+        target=target,
+        fields=changed,
         reason=audit.REASON_ROLES_NOT_HELD,
     )
-
-
-def _refuse_self_deactivation(actor: User | str, target: User, changed: list[str]) -> None:
-    """Refuse the one protected change an actor can make to their own account.
-
-    An authenticated actor is active, so the only move they can make on their own
-    flag is to clear it.  ``changed`` is the protected fields the edit really alters.
-    The command actor names no account of its own, so it never matches ``target``.
-    """
-    if isinstance(actor, User) and target.pk == actor.pk and "is_active" in changed:
-        _refuse(
-            actor,
-            target,
-            changed,
-            field="is_active",
-            message=SELF_DEACTIVATION_REFUSED,
-            action=audit.ACCOUNT_DEACTIVATE,
-            reason=audit.REASON_SELF_DEACTIVATION,
-        )
+    raise DomainValidationError(changed[0], EMAIL_CHANGE_REFUSED)
 
 
 def _protected_changes(target: User, changes: dict[str, AccountFieldValue]) -> list[str]:
@@ -524,13 +474,11 @@ def _alters(target: User, field: str, value: AccountFieldValue) -> bool:
     """True when writing ``value`` to ``target.<field>`` would change the account.
 
     An email address is compared normalized, so the stored address resent in another
-    case does not alter the account; ``is_active`` is compared as a boolean; a name is
-    compared exactly, so a change of case is a change.
+    case does not alter the account; a name is compared exactly, so a change of case
+    is a change.
     """
     if field == "email":
         return normalized_email(value) != normalized_email(target.email)
-    if field == "is_active":
-        return bool(value) != target.is_active
     return bool(value != getattr(target, field))
 
 
@@ -540,26 +488,6 @@ def normalized_email(value: AccountFieldValue | None) -> str:
     Stripped and lowercased; ``None`` and an empty address both give an empty string.
     """
     return str(value or "").strip().lower()
-
-
-def _refuse(
-    actor: User | str,
-    target: User,
-    changed: list[str],
-    *,
-    field: str,
-    message: str,
-    action: str,
-    reason: str,
-) -> None:
-    """Record the refused edit and raise ``DomainValidationError`` for ``field``.
-
-    ``changed`` is the protected fields the edit really alters, ``action`` the
-    audit action the attempt belongs to and ``reason`` the slug saying which rule
-    turned it away.
-    """
-    audit.refuse(action, actor=actor, target=target, fields=changed, reason=reason)
-    raise DomainValidationError(field, message)
 
 
 # --------------------------------------------------------------------------
@@ -635,15 +563,16 @@ def send_password_reset_email(user: User, *, request: HttpRequest | None = None)
     The subject is ``"<organization name>: reset your password"`` and the two
     bodies are ``emails/password_reset.{txt,html}``.
 
-    Donors -- who cannot sign in, so have no password to reset -- and accounts
-    without an address are skipped silently: the caller answers 204 either way so
-    the endpoint cannot be used to discover which addresses are registered.  A
-    deactivated account is mailed the link like an active one, because completing a
-    reset reactivates it.  An account that has never set a usable password is mailed
-    the link like any other, so an invited member who asks for a reset before
-    following their invitation still receives one.
+    Donors -- who cannot sign in, so have no password to reset -- accounts without
+    an address, and accounts a user administrator has blocked from reactivating are
+    skipped silently: the caller answers 204 either way so the endpoint cannot be
+    used to discover which addresses are registered.  A deactivated account that is
+    not blocked is mailed the link like an active one, because completing a reset
+    reactivates it.  An account that has never set a usable password is mailed the
+    link like any other, so an invited member who asks for a reset before following
+    their invitation still receives one.
     """
-    if not user.email or is_donor(user):
+    if not user.email or is_donor(user) or user.reactivation_blocked:
         return False
 
     context = _password_link_context(user, request=request)
@@ -910,71 +839,3 @@ def change_own_email(user: User, *, email: str) -> User:
     checked the current password and that the address is free.
     """
     return update_account(user, user, {"email": email})
-
-
-# --------------------------------------------------------------------------
-# Deactivating and reactivating your own account
-# --------------------------------------------------------------------------
-def deactivate_own_account(user: User) -> None:
-    """Clear ``user``'s active flag at their own request.
-
-    This is the only way a person deactivates themselves; :func:`update_account`
-    refuses the same change.  A system administrator -- the role, or a Django
-    superuser -- is refused with ``DomainError("A system administrator cannot
-    deactivate their own account.")``, so the site is never left without one by
-    accident, and a donor, who has no portal account, with ``DomainError("A donor has
-    no portal account to deactivate.")``; each refusal is recorded at WARNING as
-    ``account.deactivate`` with the reason ``system_admin_target`` or
-    ``donor_account``.  Otherwise the account is saved inactive and the change is
-    recorded as ``account.deactivate`` with ``self_service=true`` and raised as the
-    ``account_deactivated`` event with ``actor=None``.  The kind, the roles and every
-    record are kept.  The caller cancels the mandates, suspends the membership, and
-    ends the session.
-    """
-    if is_donor(user):
-        audit.refuse(
-            audit.ACCOUNT_DEACTIVATE, actor=user, target=user, reason=audit.REASON_DONOR_ACCOUNT
-        )
-        raise DomainError(DONOR_SELF_DEACTIVATION_REFUSED)
-    if SYSTEM_ADMIN in effective_roles(user):
-        audit.refuse(
-            audit.ACCOUNT_DEACTIVATE,
-            actor=user,
-            target=user,
-            reason=audit.REASON_SYSTEM_ADMIN_TARGET,
-        )
-        raise DomainError(SYSTEM_ADMIN_SELF_DEACTIVATION_REFUSED)
-    user.is_active = False
-    user.save(update_fields=["is_active", "updated_at"])
-    audit.record(audit.ACCOUNT_DEACTIVATE, actor=user, target=user, self_service=True)
-    events.emit("account_deactivated", user=user, actor=None)
-
-
-def deactivated_account(email: str, password: str) -> User | None:
-    """The deactivated account ``email`` names, when ``password`` is its password.
-
-    The address is compared case-insensitively.  ``None`` for an unknown address, an
-    active account, a donor's account, and a wrong password alike, so a caller can
-    say nothing that tells them apart.
-    """
-    user = User.objects.filter(email__iexact=email.strip(), is_active=False).first()
-    if user is None or is_donor(user) or not user.check_password(password):
-        return None
-    return user
-
-
-def reactivate_own_account(user: User) -> None:
-    """Set ``user``'s active flag again, the person having proved who they are.
-
-    The kind and roles are exactly as they were.  The change is recorded as
-    ``account.activate`` with ``self_service=true`` and raised as the
-    ``account_reactivated`` event with ``actor=None``, and an account whose address
-    was never verified is mailed a verification link once the transaction commits.
-    The caller restores the membership and, where it signs the person in, does so.
-    """
-    user.is_active = True
-    user.save(update_fields=["is_active", "updated_at"])
-    audit.record(audit.ACCOUNT_ACTIVATE, actor=user, target=user, self_service=True)
-    events.emit("account_reactivated", user=user, actor=None)
-    if user.email_verified_at is None:
-        transaction.on_commit(lambda: send_email_verification(user))

@@ -690,11 +690,11 @@ def test_an_administrator_reactivating_restores_a_suspended_term(
     days_left: int,
     expected: str,
 ) -> None:
-    """Ticking Account is active again brings the membership back, or lets it expire."""
+    """**Reactivate account** brings the membership back, or lets it expire."""
     ends_on = timezone.localdate() + timedelta(days=days_left)
     held = suspended(deactivated(member), annual_plan, ends_on=ends_on)
     api_client.force_login(system_admin)
-    response = api_client.patch(f"{base_url}/{member.pk}", {"is_active": True}, format="json")
+    response = api_client.post(f"{base_url}/{member.pk}/reactivate")
     held.refresh_from_db()
     assert (response.status_code, held.status) == (200, expected)
 
@@ -710,19 +710,19 @@ def test_an_administrator_reactivating_is_recorded_under_the_administrator(
     ends_on = timezone.localdate() + timedelta(days=30)
     held = suspended(deactivated(member), annual_plan, ends_on=ends_on)
     api_client.force_login(system_admin)
-    api_client.patch(f"{USERS_URL}/{member.pk}", {"is_active": True}, format="json")
+    api_client.post(f"{USERS_URL}/{member.pk}/reactivate")
     assert (
         f"action=membership.correct actor={system_admin.pk} target={held.pk} status=active"
         in audit_messages(audit_log)
     )
 
 
-def test_an_administrator_edit_of_an_active_account_restores_nothing(
+def test_an_administrator_reactivating_an_active_account_restores_nothing(
     api_client: APIClient, system_admin: User, member: User, annual_plan: MembershipPlan
 ) -> None:
     """Only the change from inactive to active brings a suspended term back."""
     held = suspended(member, annual_plan, ends_on=timezone.localdate() + timedelta(days=30))
     api_client.force_login(system_admin)
-    api_client.patch(f"{USERS_URL}/{member.pk}", {"is_active": True}, format="json")
+    api_client.post(f"{USERS_URL}/{member.pk}/reactivate")
     held.refresh_from_db()
     assert held.status == MembershipStatusChoices.SUSPENDED

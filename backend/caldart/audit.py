@@ -58,6 +58,8 @@ ACCOUNT_ACTIVATE = "account.activate"
 ACCOUNT_DEACTIVATE = "account.deactivate"
 ACCOUNT_EMAIL_VERIFIED = "account.email_verified"
 ACCOUNT_KIND = "account.kind"
+ACCOUNT_BLOCK = "account.block"
+ACCOUNT_UNBLOCK = "account.unblock"
 MEMBER_CREATE = "member.create"
 MEMBER_DELETE = "member.delete"
 MEMBER_VERIFY = "member.verify"
@@ -102,6 +104,7 @@ REASON_NO_SUCH_BACKUP = "no_such_backup"
 REASON_DONOR_KIND = "donor_kind"
 REASON_DONOR_ACCOUNT = "donor_account"
 REASON_IMPORT_RUNNING = "import_running"
+REASON_REACTIVATION_BLOCKED = "reactivation_blocked"
 
 log = logging.getLogger(LOGGER_NAME)
 
