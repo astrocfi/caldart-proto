@@ -167,8 +167,12 @@ class PrefixProxyHandler(BaseHTTPRequestHandler):
             if name.lower() not in HOP_BY_HOP | SELF_WRITTEN_ON_RESPONSE:
                 self.send_header(name, value)
         self.end_headers()
-        if self.command != "HEAD":
+        if self.command == "HEAD":
+            return
+        try:
             shutil.copyfileobj(response, self.wfile, CHUNK_SIZE)
+        except (BrokenPipeError, ConnectionResetError):
+            log.info("client closed the connection during %s %s", self.command, self.path)
 
 
 class PrefixProxyServer(ThreadingHTTPServer):

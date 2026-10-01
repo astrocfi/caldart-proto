@@ -134,6 +134,17 @@ describe('RecordPaymentPage', () => {
     expect(await screen.findByText('Another payment carries that reference.')).toBeInTheDocument();
   });
 
+  it('shows Nothing to charge under the contribution when the payment comes to zero', async () => {
+    const user = userEvent.setup();
+    serveRecord([], { amount_cents: ['Nothing to charge.'] });
+    renderWithProviders(<RecordPaymentPage />);
+
+    await chooseMember(user);
+    await user.click(screen.getByRole('button', { name: 'Record the payment' }));
+
+    expect(await screen.findByText('Nothing to charge.')).toBeInTheDocument();
+  });
+
   it('shows an error that carries only a sentence', async () => {
     const user = userEvent.setup();
     serveRecord([], { detail: 'No member matches that id.' }, 404);

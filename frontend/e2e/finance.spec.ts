@@ -144,7 +144,11 @@ test('the treasurer records a check and finds it in the list', async ({ page }) 
 test('the member ledger gathers one member whole history', async ({ page }) => {
   await openPaymentList(page);
   await page.getByLabel('Search').fill(SEED.refundedPayment.email);
-  await page.getByRole('link', { name: SEED.refundedPayment.name }).first().click();
+  const memberLinks = page.getByRole('link', { name: SEED.refundedPayment.name });
+  // Only the header row lacks the member's link once the filter has applied; a click
+  // before that lands on a row the list is about to replace.
+  await expect(page.getByRole('row').filter({ hasNot: memberLinks })).toHaveCount(1);
+  await memberLinks.first().click();
   await page
     .getByRole('link', { name: `Everything ${SEED.refundedPayment.name} has paid` })
     .click();

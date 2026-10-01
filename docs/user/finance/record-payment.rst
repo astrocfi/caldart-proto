@@ -57,6 +57,7 @@ Mistakes the form catches
 * A reference another recorded payment already carries: *Another recorded payment
   already carries the reference* followed by the number. This stops the same check being
   entered twice.
+* No plan and no contribution, or a contribution of zero: *Nothing to charge.*
 * A plan for a life member, who has nothing left to renew: *You are a life member, so
   there is nothing to renew. Make a contribution instead.*
 
