@@ -11,6 +11,7 @@ from django.db.models.functions import Lower
 from django.utils import timezone
 
 from apps.accounts.roles import ROLE_SLUGS, STAFF_ROLE_SLUGS, SYSTEM_ADMIN
+from caldart.casing import person_name
 
 if TYPE_CHECKING:
     # Inline: members sits above accounts in the app order, so even a type-only
@@ -143,14 +144,18 @@ class User(AbstractUser):
         return self.get_full_name() or self.email
 
     def save(self, *args: Any, **kwargs: Any) -> None:
-        """Strip the email address, then save the row as Django would.
+        """Strip the email, normalize both names, and save the row as Django would.
 
-        Stripping here rather than in a form means every writer -- the API, the Django
-        admin, a management command -- stores the address the unique constraint
-        compares.
+        The first and last name go through :func:`caldart.casing.person_name`: trimmed,
+        and title-cased when typed entirely in one case.  Doing both here rather than in
+        a form means every writer -- registration, the profile, the administrator's
+        editor, a donation, the Django admin, a management command -- stores the address
+        the unique constraint compares and the same spelling of a name.
         """
         if self.email:
             self.email = self.email.strip()
+        self.first_name = person_name(self.first_name)
+        self.last_name = person_name(self.last_name)
         super().save(*args, **kwargs)
 
     # -- names ------------------------------------------------------------
