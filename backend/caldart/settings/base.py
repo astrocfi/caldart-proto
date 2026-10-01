@@ -1,7 +1,8 @@
 """Base Django settings for CalDART.
 
-Every environment variable in ``.env.example`` is read here, with a
-development-friendly default so a bare checkout runs without a ``.env``.
+Every environment variable in ``.env.example`` outside its production-only section is
+read here, with a development-friendly default so a bare checkout runs without a
+``.env``.
 ``docs/developer/configuration.rst`` documents each one.
 
 Nothing here reads ``.env``: ``dev.py`` and ``test.py`` import ``_dotenv``

@@ -180,7 +180,11 @@ export function RecordPaymentPage(): JSX.Element {
             )}
           </Field>
 
-          <Field label="Contribution" hint="Dollars" error={errors.contribution_cents}>
+          <Field
+            label="Contribution"
+            hint="Dollars"
+            error={errors.contribution_cents ?? errors.amount_cents}
+          >
             {(props) => (
               <input
                 {...props}

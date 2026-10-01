@@ -30,6 +30,18 @@ async function openPaymentList(page: Page): Promise<void> {
   await expect(page).toHaveURL(/\/portal\/admin\/payments\/list/);
 }
 
+/**
+ * Search the payment list for the refunded payment's member and wait for the list to
+ * show only that member's rows, so a click never lands on a row about to be replaced.
+ */
+async function filterPaymentsByMember(page: Page): Promise<void> {
+  await page.getByLabel('Search').fill(SEED.refundedPayment.email);
+  await expect(page).toHaveURL(/[?&]search=/);
+  const memberLinks = page.getByRole('link', { name: SEED.refundedPayment.name });
+  await expect(memberLinks.first()).toBeVisible();
+  await expect(page.getByRole('row').filter({ hasNot: memberLinks })).toHaveCount(1);
+}
+
 test('a treasurer reaches the finance area from the portal menu', async ({ page }) => {
   await signIn(page, DEMO.treasurer);
 
@@ -95,7 +107,7 @@ test('the treasurer downloads the list as a CSV and as a PDF', async ({ page }) 
 
 test('a seeded refund is on the payment it came out of', async ({ page }) => {
   await openPaymentList(page);
-  await page.getByLabel('Search').fill(SEED.refundedPayment.email);
+  await filterPaymentsByMember(page);
   await page.getByRole('link', { name: SEED.refundedPayment.name }).first().click();
 
   await expect(
@@ -143,7 +155,7 @@ test('the treasurer records a check and finds it in the list', async ({ page }) 
 
 test('the member ledger gathers one member whole history', async ({ page }) => {
   await openPaymentList(page);
-  await page.getByLabel('Search').fill(SEED.refundedPayment.email);
+  await filterPaymentsByMember(page);
   await page.getByRole('link', { name: SEED.refundedPayment.name }).first().click();
   await page
     .getByRole('link', { name: `Everything ${SEED.refundedPayment.name} has paid` })
