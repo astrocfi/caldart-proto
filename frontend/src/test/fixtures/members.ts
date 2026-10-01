@@ -54,6 +54,7 @@ const PROFILE: AdminProfile = {
   county: 'Santa Clara',
   emergency_contact_name: 'Bo Bracco',
   emergency_contact_phone: '415-555-0101',
+  ham_callsign: '',
   member_since: null,
   home_airport_identifier: 'PAO',
   secondary_airport_identifier: '',

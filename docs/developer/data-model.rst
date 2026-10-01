@@ -1200,11 +1200,11 @@ and ``PermissionsMixin`` classes it builds on.
    * - ``first_name``
      - ``CharField(150)``
      - not null; default ``""``
-     - may be blank
+     - may be blank; stored through ``caldart.casing.person_name`` (below)
    * - ``last_name``
      - ``CharField(150)``
      - not null; default ``""``
-     - may be blank
+     - may be blank; stored through ``caldart.casing.person_name`` (below)
    * - ``created_at``
      - ``DateTimeField``
      - not null; default ``timezone.now``
@@ -1239,6 +1239,22 @@ and ``PermissionsMixin`` classes it builds on.
 - Constraint ``accounts_user_email_ci_unique``: unique on ``Lower("email")``.
 - Index ``accounts_user_name_idx`` on (``last_name``, ``first_name``).
 - Ordering: ``last_name``, ``first_name``, ``email``.
+
+**Names.**  ``save()`` strips ``email`` and passes ``first_name`` and ``last_name``
+through ``caldart.casing.person_name``, so registration, the member's profile, the
+administrator's editor, a settled donation, and the seed all store the same
+spelling.  Leading and trailing spaces are dropped and runs of spaces collapse to
+one.  A name typed with letters in both cases (``DeAnna``, ``MacArthur``, ``van
+Dyke``) is otherwise kept as typed.  A name typed entirely in upper or entirely in
+lower case is title-cased word by word: each hyphenated part capitalized
+(``Smith-Jones``), the letter after a one-letter prefix and an apostrophe
+capitalized (``O'Brien``), and the letter after a leading ``Mc`` capitalized
+(``McDonald``; ``Mac`` is left alone, since ``Macarthur`` is as likely as
+``MacArthur``).  After the first word, the particles ``van``, ``von``, ``der``,
+``den``, ``de``, ``del``, ``della``, ``da``, ``di``, ``du``, ``la``, and ``le`` stay
+lower case (``VAN DER BERG`` is stored ``Van der Berg``) and the suffixes ``II``,
+``III``, and ``IV`` upper case.  ``manage.py normalize_casing`` applies the same rule
+to the rows already stored (:doc:`setup`).
 
 **Relationships.**
 
@@ -1669,6 +1685,10 @@ administrators see.  Deleting the account deletes the profile.
      - ``CharField(6)``
      - not null; default ``""``
      - up to six digits
+   * - ``ham_callsign``
+     - ``CharField(6)``, validated by ``HAM_CALLSIGN_RE``
+     - not null; default ``""``
+     - the amateur radio callsign: a US callsign, upper case and without spaces, or blank
    * - ``home_airport_identifier``
      - ``CharField(3)``
      - not null; default ``""``
@@ -1816,7 +1836,12 @@ one to the number and breaks the format every other screen relies on.  The same
 (``TITLE_CASE_FIELDS``) in title case, every word, through
 ``caldart.casing.title_case_words``, which leaves a word with a digit as typed
 and capitalizes after an apostrophe only past a lone letter (``O'Brien``, but
-``King's``).  The aviation fields follow, then the seven
+``King's``).  It also stores ``ham_callsign`` upper case with every space removed;
+the serializers refuse anything that does not then match ``HAM_CALLSIGN_RE``: a
+prefix of ``K``, ``N``, or ``W`` alone, one of them and a letter, or ``A`` and a
+letter from ``A`` to ``L``; one digit; and a suffix of one to three letters.
+``manage.py normalize_casing`` title-cases the street and city of the rows already
+stored.  The aviation fields follow, then the seven
 ``vol_*`` volunteer interests, then the verification columns, then
 ``member_since`` and ``profile_updated_at``.  ``notes`` and ``how_heard`` are
 administrator-only: neither is in the member-facing serializer, and both appear

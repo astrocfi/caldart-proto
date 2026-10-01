@@ -59,6 +59,7 @@ DOCUMENTED_COLUMNS = (
     "city",
     "state",
     "county",
+    "ham_callsign",
     "joined_on",
     "member_since",
     "profile_updated",

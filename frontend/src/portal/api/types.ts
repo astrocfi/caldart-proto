@@ -415,6 +415,9 @@ export type CaliforniaCounty =
   | 'Yuba';
 
 export interface Profile {
+  /** The account's names, edited here with the profile; never blank once saved. */
+  first_name: string;
+  last_name: string;
   /* contact */
   phone: string;
   phone_extension: string;
@@ -429,6 +432,8 @@ export interface Profile {
   emergency_contact_name: string;
   emergency_contact_phone: string;
   emergency_contact_phone_extension: string;
+  /** A US amateur radio callsign, upper case, or blank. */
+  ham_callsign: string;
   /** The day they first joined, stamped with their first term and never moved. */
   member_since: IsoDate | null;
   /* aviation */
@@ -458,6 +463,9 @@ export interface Profile {
   vol_social_media: boolean;
   vol_newsletter: boolean;
 }
+
+/** The account's names, which `/me/profile` carries and the member record keeps apart. */
+export type ProfileNameKey = 'first_name' | 'last_name';
 
 /** The writable half of a profile: `dart` reads nested, but writes as `dart_id`. */
 export type ProfilePatch = Partial<
@@ -506,8 +514,11 @@ export interface MemberRow {
 }
 
 /* ---------------------------------------------------- member administration */
-/** The profile in `GET /admin/members/{id}`: the member's own, plus the notes. */
-export interface AdminProfile extends Profile {
+/**
+ * The profile in `GET /admin/members/{id}`: the member's own, plus the notes.  The
+ * names are the member record's account fields, so the nested profile leaves them out.
+ */
+export interface AdminProfile extends Omit<Profile, ProfileNameKey> {
   notes: string;
   how_heard: string;
 }
@@ -561,7 +572,7 @@ export interface MemberDetail {
 }
 
 /** The nested `profile` of a member write: the member's patch, plus the notes. */
-export type AdminProfilePayload = ProfilePatch & {
+export type AdminProfilePayload = Omit<ProfilePatch, ProfileNameKey> & {
   notes?: string;
   how_heard?: string;
   /** Read-only for a member; an administrator may correct the joining date. */

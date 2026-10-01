@@ -24,19 +24,23 @@ from apps.darts.models import (
     normalize_airport_identifier,
 )
 from apps.members.api.serializers import MembershipStatusSerializer
-from apps.members.labels import changed_field_labels
+from apps.members.labels import NAME_FIELDS, changed_field_labels
 from apps.members.models import (
     CALIFORNIA_COUNTIES,
+    HAM_CALLSIGN_MESSAGE,
+    HAM_CALLSIGN_RE,
     MAX_TOTAL_HOURS,
     RATING_VALUES,
     US_STATE_VALUES,
     MemberProfile,
     Membership,
+    normalize_ham_callsign,
 )
 from apps.members.services import touch_profile
 from apps.members.verification import VerificationState, clear_stale, document_errors, item_state
 from apps.payments.models import Payment, PaymentKind
 from caldart import events
+from caldart.casing import person_name
 from caldart.phone import PHONE_EXTENSION_RE, PHONE_RE, normalize_phone
 
 #: Five digits, e.g. ``95035``.  The four-digit add-on is not collected: it is
@@ -142,12 +146,20 @@ class ProfileVerificationSerializer(serializers.Serializer[dict[str, Verificatio
 class ProfileSerializer(serializers.ModelSerializer[MemberProfile]):
     """``GET/PUT/PATCH /me/profile``.
 
+    ``first_name`` and ``last_name`` are the account's, read from and written to the
+    ``User`` row: optional on ``PUT`` and ``PATCH`` alike (left out, they are left
+    alone), never blank, and stored through :func:`caldart.casing.person_name`.
     ``dart`` reads as ``{id, name}`` and is written as ``dart_id``; ``aircraft``
     is read-only here and maintained through ``/me/profile/aircraft``.  The
     admin-only ``notes`` and ``how_heard`` fields are deliberately absent.
     ``verification`` is read-only: only the member check's verification endpoint
     verifies an item.
     """
+
+    # The names live on the account, so a PUT that leaves them out does not reset
+    # them the way it resets a profile field; trimming makes a blank of spaces only.
+    first_name = serializers.CharField(source="user.first_name", max_length=150, required=False)
+    last_name = serializers.CharField(source="user.last_name", max_length=150, required=False)
 
     dart = DartRefSerializer(read_only=True, allow_null=True)
     dart_id = serializers.PrimaryKeyRelatedField(
@@ -181,6 +193,9 @@ class ProfileSerializer(serializers.ModelSerializer[MemberProfile]):
         max_length=8, required=False, allow_blank=True
     )
     state = serializers.ChoiceField(choices=US_STATE_VALUES)
+    # Wider than the column, so a callsign typed with spaces is answered with the
+    # rule rather than with a complaint about length.
+    ham_callsign = serializers.CharField(max_length=12, required=False, allow_blank=True)
     county = serializers.ChoiceField(choices=CALIFORNIA_COUNTIES, required=False, allow_blank=True)
     total_hours = serializers.IntegerField(
         min_value=0, max_value=MAX_TOTAL_HOURS, required=False, allow_null=True
@@ -195,6 +210,8 @@ class ProfileSerializer(serializers.ModelSerializer[MemberProfile]):
     class Meta:
         model = MemberProfile
         fields = [
+            # the account's names
+            *NAME_FIELDS,
             # contact
             "phone",
             "phone_alt",
@@ -209,6 +226,7 @@ class ProfileSerializer(serializers.ModelSerializer[MemberProfile]):
             "emergency_contact_name",
             "emergency_contact_phone",
             "emergency_contact_phone_extension",
+            "ham_callsign",
             "member_since",
             # aviation
             "home_airport_identifier",
@@ -245,6 +263,25 @@ class ProfileSerializer(serializers.ModelSerializer[MemberProfile]):
         return cast("dict[str, VerificationState]", ProfileVerificationSerializer(states).data)
 
     # -- field-level rules -------------------------------------------------
+    def validate_first_name(self, value: str) -> str:
+        """The first name as it will be stored, by :func:`caldart.casing.person_name`."""
+        return person_name(value)
+
+    def validate_last_name(self, value: str) -> str:
+        """The last name as it will be stored, by :func:`caldart.casing.person_name`."""
+        return person_name(value)
+
+    def validate_ham_callsign(self, value: str) -> str:
+        """The callsign upper case without spaces, refused unless it is in US format.
+
+        A blank value passes: the field is optional.  Anything else is refused with
+        "Enter a US amateur radio callsign, such as W6ABC."
+        """
+        value = normalize_ham_callsign(value)
+        if value and not HAM_CALLSIGN_RE.match(value):
+            raise serializers.ValidationError(HAM_CALLSIGN_MESSAGE)
+        return value
+
     def validate_phone(self, value: str) -> str:
         """The member's own number, in canonical form and never blank."""
         return self._phone(value, required=True)
@@ -375,6 +412,9 @@ class ProfileSerializer(serializers.ModelSerializer[MemberProfile]):
         API contract says one is a full update and the other partial,
         so unticked checkboxes and cleared text really do get cleared.
 
+        The account's names are the exception: they are written to the ``User`` row
+        when the request carries them and left alone when it does not.
+
         Raises ``TypeError`` if a writable field names something other than a
         concrete model field, since only a concrete field carries the default
         the reset needs.  Stamps ``profile_updated_at`` once the write lands.
@@ -385,7 +425,8 @@ class ProfileSerializer(serializers.ModelSerializer[MemberProfile]):
         ``dart`` (``None`` when none was chosen), and no ``profile_changed``.  Any
         other write that changes a field's value raises ``profile_changed`` with the
         account, the labels of those fields
-        (:func:`apps.members.labels.changed_field_labels`) and ``actor=None``, the
+        (:func:`apps.members.labels.changed_field_labels`: names first) and
+        ``actor=None``, the
         member having edited their own profile.  A write that moves nothing raises
         nothing, and neither does one to an incomplete profile that leaves it
         incomplete: the join is under way.
@@ -400,9 +441,10 @@ class ProfileSerializer(serializers.ModelSerializer[MemberProfile]):
         though it had not happened.
         """
         instance = MemberProfile.objects.select_for_update().get(pk=instance.pk)
+        names: dict[str, str] = validated_data.pop("user", {})
         if not self.partial:
             for name, field in self.fields.items():
-                if field.read_only:
+                if field.read_only or field.source_attrs[0] == "user":
                     continue
                 source = field.source or name
                 if source in validated_data:
@@ -419,9 +461,14 @@ class ProfileSerializer(serializers.ModelSerializer[MemberProfile]):
                     )
                 validated_data[source] = model_field.get_default()
         was_complete = instance.is_complete
-        changed = changed_field_labels(instance, validated_data)
+        changed = changed_field_labels(instance.user, names)
+        changed += changed_field_labels(instance, validated_data)
         clear_stale(instance, validated_data)
         instance = super().update(instance, validated_data)
+        if len(names) > 0:
+            for account_field, value in names.items():
+                setattr(instance.user, account_field, value)
+            instance.user.save(update_fields=[*names, "updated_at"])
         touch_profile(instance)
         if not was_complete and instance.is_complete:
             events.emit("signed_up", user=instance.user, dart=instance.dart)

@@ -24,6 +24,7 @@ from apps.members.api.profile_serializers import (
     ProfileSerializer,
 )
 from apps.members.api.serializers import MembershipStatusSerializer
+from apps.members.labels import NAME_FIELDS
 from apps.members.models import (
     MedicalType,
     MemberProfile,
@@ -32,6 +33,7 @@ from apps.members.models import (
     PilotCertificateType,
 )
 from apps.members.services import create_member, membership_of, membership_payload, update_member
+from caldart.casing import person_name
 
 if TYPE_CHECKING:
     from apps.members.services import MemberRow
@@ -60,7 +62,13 @@ class AdminProfileSerializer(ProfileSerializer):
     member_since = serializers.DateField(required=False, allow_null=True)
 
     class Meta(ProfileSerializer.Meta):
-        fields = [*ProfileSerializer.Meta.fields, "notes", "how_heard"]
+        # The names are the member record's account fields, so the nested profile
+        # leaves them out rather than carrying them twice.
+        fields = [
+            *(name for name in ProfileSerializer.Meta.fields if name not in NAME_FIELDS),
+            "notes",
+            "how_heard",
+        ]
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         """Build the serializer, then make every field optional."""
@@ -406,6 +414,14 @@ class MemberUpdateSerializer(serializers.Serializer[User]):
             # nested serializer is, without a way to say which one.
             nested = cast("AdminProfileSerializer", self.fields["profile"])
             nested.instance = profile
+
+    def validate_first_name(self, value: str) -> str:
+        """The first name as it will be stored, by :func:`caldart.casing.person_name`."""
+        return person_name(value)
+
+    def validate_last_name(self, value: str) -> str:
+        """The last name as it will be stored, by :func:`caldart.casing.person_name`."""
+        return person_name(value)
 
     def validate_email(self, value: str) -> str:
         """Trim the address, refusing one another account already has.

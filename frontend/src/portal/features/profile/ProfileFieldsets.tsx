@@ -1,6 +1,6 @@
 /**
- * The three profile fieldsets — Contact, Aviation (with Ratings) and Volunteer
- * interests — as one controlled component.
+ * The four profile fieldsets — Contact, Amateur radio, Aviation (with Ratings) and
+ * Volunteer interests — as one controlled component.
  *
  * `/profile`, join step 2, "New member" and the Profile tab of a member record
  * all edit the same `ProfileFormValues`, so they all render this: one set of
@@ -10,7 +10,9 @@
  * administrator's screens leave it off, because a half-known record is a
  * normal thing for them to save.  The member's own profile passes
  * `verification` too, which marks the pilot certificate, the medical, and the
- * photo ID with whether an authority has checked them.
+ * photo ID with whether an authority has checked them, and `withNames`, which
+ * puts the account's first and last name at the top of Contact: the member record
+ * edits those as account fields of its own, and the join wizard has just asked.
  *
  * The Address box offers matching US addresses as it is typed into, from
  * `GET /addresses/suggest`, and a pick fills the street, city, state, ZIP code,
@@ -44,6 +46,7 @@ import {
   maskPostalCode,
 } from '@/portal/masks';
 import { useAddressSuggestions } from './api';
+import { maskCallsign } from './form';
 import { CERTIFICATE_TYPES, MEDICAL_TYPES, PHOTO_ID_TYPES, VOLUNTEER_INTERESTS } from './constants';
 import type { Choice } from './constants';
 import type { ProfileFormErrors, ProfileFormValues } from './form';
@@ -143,6 +146,8 @@ export interface ProfileFieldsetsProps {
    * shown under each in the member's own wording.  Left out, no mark is shown.
    */
   verification?: ProfileVerification;
+  /** Put the account's first and last name, both required, at the top of Contact. */
+  withNames?: boolean;
 }
 
 /**
@@ -160,6 +165,7 @@ export function ProfileFieldsets({
   markRequired = false,
   onFieldBlur,
   verification,
+  withNames = false,
 }: ProfileFieldsetsProps): JSX.Element {
   const extensionIds = useId();
 
@@ -299,6 +305,20 @@ export function ProfileFieldsets({
       <fieldset>
         <legend>Contact</legend>
         <div className="form-grid">
+          {withNames ? (
+            <>
+              {text('first_name', {
+                label: 'First name',
+                autoComplete: 'given-name',
+                required: true,
+              })}
+              {text('last_name', {
+                label: 'Last name',
+                autoComplete: 'family-name',
+                required: true,
+              })}
+            </>
+          ) : null}
           {phone('phone', 'phone_extension', 'Phone', {
             required: true,
             autoComplete: 'tel',
@@ -374,6 +394,20 @@ export function ProfileFieldsets({
             'emergency_contact_phone_extension',
             'Emergency contact phone',
           )}
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Amateur radio</legend>
+        <div className="form-grid">
+          {text('ham_callsign', {
+            label: 'Amateur radio callsign',
+            className: 'mono',
+            size: 7,
+            placeholder: 'W6ABC',
+            hint: 'Optional; a US callsign',
+            mask: maskCallsign,
+          })}
         </div>
       </fieldset>
 

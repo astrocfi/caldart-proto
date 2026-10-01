@@ -67,6 +67,13 @@ message with the subject *CalDART: verify your email address*. Beside the button
 **Aircraft on file** lists the airplanes on the person's profile; each N-number opens the
 :doc:`aircraft-record`.
 
+The **Amateur radio** fieldset, under the emergency contact, holds the **Amateur radio
+callsign**: optional, a US callsign such as W6ABC, upper-cased as you type. Anything else is
+refused with *Enter a US amateur radio callsign, such as W6ABC.* A first or last name typed
+all in capitals or all in lower case is saved in title case, *SMITH* as **Smith**, while one
+typed in mixed case, such as **DeAnna**, is kept as typed; :doc:`../member/profile` gives the
+whole rule.
+
 Two fields are guarded, because between them they are enough to take an account over: the
 email address, where a password reset link goes, and **Account is active**, which locks
 somebody out. You can change them only on an account whose roles you hold yourself. As an

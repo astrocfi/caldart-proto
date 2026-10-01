@@ -83,7 +83,7 @@ export function useSaveProfile(): UseMutationResult<Profile, Error, ProfilePatch
     mutationFn: (patch: ProfilePatch) => api.put<Profile>('/me/profile', patch),
     onSuccess: (profile) => {
       queryClient.setQueryData(PROFILE_KEY, profile);
-      // `profile_complete` lives on the user payload.
+      // `profile_complete` and the names live on the user payload.
       void queryClient.invalidateQueries({ queryKey: AUTH_ME_KEY });
     },
   });

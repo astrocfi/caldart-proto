@@ -328,8 +328,9 @@ which on the day somebody joins at an airshow may be no more than a name.
 creates a donor, and ``donor`` is a 400 on ``kind``.
 
 ``profile`` is ``AdminProfileSerializer``, which extends the ``/me/profile``
-serializer: the same fields (``dart`` reads nested and is written as
-``dart_id``), the same rules — a two-letter state, a well-formed ZIP code, an
+serializer: the same fields except ``first_name`` and ``last_name``, which the
+member record takes as account fields beside ``email`` (``dart`` reads nested
+and is written as ``dart_id``), the same rules — a two-letter state, a well-formed ZIP code, an
 expiry date whenever a medical class is given, a number whenever a certificate
 is — plus ``notes`` and ``how_heard``, and nothing mandatory.
 
@@ -405,6 +406,7 @@ to it, and ``null`` while it is unverified.
        "emergency_contact_name": "Dana Lee",
        "emergency_contact_phone": "650-555-0199",
        "emergency_contact_phone_extension": "",
+       "ham_callsign": "",
        "home_airport_identifier": "SQL",
        "secondary_airport_identifier": "",
        "dart": {"id": 3, "name": "Palo Alto"},
@@ -511,6 +513,10 @@ however few fields the request carried.
 The body takes ``email``, ``first_name``, ``last_name``, ``is_active``,
 ``kind``, and a partial ``profile`` object.  A profile is created if the account
 somehow has none.  ``PUT`` is not offered.
+
+``first_name`` and ``last_name`` are stored as every write stores a name
+(``caldart.casing.person_name``, :doc:`data-model`), so ``SMITH`` is saved, and
+answered, as ``Smith``.
 
 ``kind`` is ``member`` or ``friend``.  A kind other than the stored one makes
 the account that kind at once through ``accounts.services.set_kind``: any

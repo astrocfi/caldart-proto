@@ -67,6 +67,54 @@ describe('MemberProfileTab', () => {
     expect(screen.getByLabelText('Photo ID')).toHaveValue('passport');
   });
 
+  it('shows the member’s callsign in the Amateur radio fieldset', () => {
+    const detail = makeDetail();
+    renderWithProviders(
+      <MemberProfileTab
+        member={{
+          ...detail,
+          profile: detail.profile && { ...detail.profile, ham_callsign: 'W6ABC' },
+        }}
+      />,
+    );
+    const radio = screen.getByRole('group', { name: 'Amateur radio' });
+    expect(within(radio).getByLabelText('Amateur radio callsign')).toHaveValue('W6ABC');
+  });
+
+  it('saves an edited callsign in the nested profile, upper case', async () => {
+    const user = userEvent.setup();
+    const sent: { profile?: Record<string, unknown> } = {};
+    server.use(
+      http.patch(`${API}/admin/members/:id`, async ({ request }) => {
+        Object.assign(sent, (await request.json()) as { profile?: Record<string, unknown> });
+        return HttpResponse.json(makeDetail());
+      }),
+    );
+    renderWithProviders(<MemberProfileTab member={makeDetail()} />);
+
+    await user.type(screen.getByLabelText('Amateur radio callsign'), 'kd6ab');
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
+
+    await waitFor(() => expect(sent.profile).toMatchObject({ ham_callsign: 'KD6AB' }));
+  });
+
+  it('sends the names only as account fields, never inside the profile', async () => {
+    const user = userEvent.setup();
+    const sent: { profile?: Record<string, unknown> } = {};
+    server.use(
+      http.patch(`${API}/admin/members/:id`, async ({ request }) => {
+        Object.assign(sent, (await request.json()) as { profile?: Record<string, unknown> });
+        return HttpResponse.json(makeDetail());
+      }),
+    );
+    renderWithProviders(<MemberProfileTab member={makeDetail()} />);
+
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
+
+    await waitFor(() => expect(sent.profile).toBeDefined());
+    expect(sent.profile).not.toHaveProperty('first_name');
+  });
+
   it('shows no Verification card for a member with no profile yet', () => {
     renderWithProviders(<MemberProfileTab member={makeDetail({ profile: null })} />);
     expect(screen.queryByRole('heading', { name: 'Verification' })).not.toBeInTheDocument();

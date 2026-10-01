@@ -6,10 +6,12 @@ membership, and it carries its own airports and its own people.
 
 from __future__ import annotations
 
+import re
 from datetime import date
 from typing import Any
 
 from django.conf import settings
+from django.core.validators import RegexValidator
 from django.db import models
 from django.utils import timezone
 
@@ -199,6 +201,23 @@ CALIFORNIA_COUNTIES: tuple[str, ...] = (
 #: highest civil totals on record are under 60,000.
 MAX_TOTAL_HOURS = 99_999
 
+#: A US amateur radio callsign: a prefix of ``K``, ``N``, or ``W`` alone, one of them
+#: followed by a letter, or ``A`` followed by ``A`` to ``L``; then one digit; then a
+#: suffix of one to three letters.
+HAM_CALLSIGN_RE = re.compile(r"^(?:[KNW][A-Z]?|A[A-L])[0-9][A-Z]{1,3}$")
+
+#: What a callsign that is not in US format is answered with.
+HAM_CALLSIGN_MESSAGE = "Enter a US amateur radio callsign, such as W6ABC."
+
+
+def normalize_ham_callsign(value: str) -> str:
+    """A callsign as it is stored: upper case, with every space removed.
+
+    Nothing else is changed, so a value that is still not a callsign afterwards is left
+    for ``HAM_CALLSIGN_RE`` to refuse.
+    """
+    return "".join(value.split()).upper()
+
 
 class MemberProfile(TimestampedModel):
     """Everything the join form collects, plus admin-only notes."""
@@ -228,6 +247,13 @@ class MemberProfile(TimestampedModel):
     emergency_contact_name = models.CharField(max_length=160, blank=True)
     emergency_contact_phone = models.CharField(max_length=12, blank=True)
     emergency_contact_phone_extension = models.CharField(max_length=6, blank=True)
+    #: Upper case, without spaces; see ``HAM_CALLSIGN_RE`` for the format.
+    ham_callsign = models.CharField(
+        "amateur radio callsign",
+        max_length=6,
+        blank=True,
+        validators=[RegexValidator(HAM_CALLSIGN_RE, HAM_CALLSIGN_MESSAGE)],
+    )
 
     # -- aviation ---------------------------------------------------------
     home_airport_identifier = models.CharField(max_length=3, blank=True)
@@ -387,8 +413,10 @@ class MemberProfile(TimestampedModel):
         A number that cannot be read as ten digits is stored as it was typed, so
         nothing is invented here; the serializer refuses it at the boundary.  The
         street address and the city are stored in title case, every word, through
-        :func:`caldart.casing.title_case_words`.
+        :func:`caldart.casing.title_case_words`, and the amateur radio callsign upper
+        case without spaces (:func:`normalize_ham_callsign`).
         """
+        self.ham_callsign = normalize_ham_callsign(self.ham_callsign)
         for field in self.PHONE_FIELDS:
             setattr(self, field, normalize_phone(getattr(self, field)))
         for field in self.TITLE_CASE_FIELDS:

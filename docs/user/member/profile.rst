@@ -10,17 +10,28 @@ or a friend, lets you switch, and lets you deactivate your account.
 What you see
 ============
 
-The form is the same one the join wizard used, filled in with what CalDART has on
-file. **My aircraft**, at the top right, opens :doc:`my-aircraft`. Below the form
+The form is the one the join wizard used, with your first and last name added at
+the top, filled in with what CalDART has on file. **My aircraft**, at the top right, opens :doc:`my-aircraft`. Below the form
 come the **Your kind of account** card and the **Deactivate my account** card.
 
 Contact
 ~~~~~~~
 
-**Phone**, **Alternate phone**, **Address**, **Address line 2**, **City**,
+**First name**, **Last name**, **Phone**, **Alternate phone**, **Address**, **Address line 2**, **City**,
 **State**, **ZIP code**, **California county**, **Emergency contact**, and
 **Emergency contact phone**.
 
+* **First name** and **Last name** are the name on your account, the one CalDART
+  greets you by and lists you under. Both are required.
+* A name typed all in capitals or all in lower case is saved in title case:
+  ``SMITH`` is saved as **Smith**, ``mcdonald`` as **McDonald**, ``o'brien`` as
+  **O'Brien**, and ``smith-jones`` as **Smith-Jones**. After the first word,
+  *van*, *von*, *der*, *den*, *de*, *del*, *della*, *da*, *di*, *du*, *la*, and
+  *le* stay lower case, so ``VAN DER BERG`` is saved as **Van der Berg**, and
+  *II*, *III*, and *IV* stay capitals. A name you type with both capitals and
+  lower case, such as **DeAnna**, **MacArthur**, or **van Dyke**, is saved exactly as
+  you typed it, so type yours that way if the rule gets it wrong. Spaces before,
+  after, and doubled between words are dropped either way.
 * Each phone number has its own **ext.** box beside it for an extension.
 * A phone box takes digits only and writes the dashes for you as you type, so a
   number reads 415-555-0100. An eleventh digit is refused.
@@ -40,6 +51,12 @@ Contact
   ``palo alto`` reads back **Palo Alto**. A word that carries a digit, such as a
   unit number, is left exactly as you typed it. After an apostrophe, a name keeps
   its capital and a possessive stays lower: **O'Brien Ln** and **King's Rd**.
+
+Amateur radio
+~~~~~~~~~~~~~
+
+**Amateur radio callsign**, under the emergency contact. It is optional. It takes a
+US callsign, such as W6ABC or KD6AB, and capitalizes it as you type.
 
 Aviation
 ~~~~~~~~
@@ -91,6 +108,8 @@ Your aircraft are kept on their own screen and are not touched.
 The form checks each field as you leave it. A field that is wrong turns red with
 the reason under it, and nothing is saved until you fix it:
 
+* *Your first name is required.* and *Your last name is required.* when either
+  name is blank.
 * *A phone number is required.*, *Your street address is required.*, *Your city is
   required.*, *Choose your state.*, and *Your ZIP code is required.* for the
   details every profile needs.
@@ -102,6 +121,8 @@ the reason under it, and nothing is saved until you fix it:
 * *Give your pilot certificate number.* when you chose a certificate.
 * *Give the expiration date of your medical certificate.* when you chose a medical.
 * *Enter your total hours as a whole number.*
+* *Enter a US amateur radio callsign, such as W6ABC.* for a callsign that is not a
+  US one.
 
 Keep your **Medical expires** date, your certificate, and your phone current. A
 DART leader checks them before a mission, and CalDART treats a medical as current
@@ -181,6 +202,5 @@ If something looks wrong
 If signing in opens the **About you** step of :doc:`join` instead of your dashboard,
 your profile is missing something: the step marks each required field that is still
 empty. If an account administrator set your account up for you, some of those were
-never asked for. If a detail you cannot change is wrong,
-such as your name or a membership date, contact the office; an account
-administrator can correct it.
+never asked for. If a detail you cannot change is wrong, such as a membership
+date, contact the office; an account administrator can correct it.

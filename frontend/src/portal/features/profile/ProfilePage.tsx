@@ -24,7 +24,7 @@ export function ProfilePage(): JSX.Element {
   const save = useSaveProfile();
   const toast = useToast();
   // Bumped on every successful save, so the form starts again from what the server
-  // stored (a street or city it title-cased, say) rather than from what was typed.
+  // stored (a name, street, or city it title-cased, say) rather than from what was typed.
   const [formResetKey, setFormResetKey] = useState(0);
 
   if (profile.isPending) {
@@ -71,6 +71,7 @@ export function ProfilePage(): JSX.Element {
           key={formResetKey}
           initialValues={profileToForm(profile.data)}
           verification={verification}
+          withNames
           submitting={save.isPending}
           serverErrors={serverErrors}
           onSubmit={(patch) =>

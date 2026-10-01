@@ -13,7 +13,7 @@ import { useDarts } from '@/portal/api/queries';
 import type { ProfilePatch, ProfileVerification } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { ProfileFieldsets } from './ProfileFieldsets';
-import { formToPatch, validateProfileForm } from './form';
+import { formToMemberPatch, validateProfileForm } from './form';
 import type { ProfileFormErrors, ProfileFormValues } from './form';
 import './profile.css';
 
@@ -28,6 +28,8 @@ export interface ProfileFormProps {
   secondaryAction?: ReactNode;
   /** The verified state of the certificate, medical, and photo ID, marked under each. */
   verification?: ProfileVerification;
+  /** Show the account's first and last name, require them, and save them with the rest. */
+  withNames?: boolean;
 }
 
 /** The member profile form: validated fieldsets, a submit button, and an optional action. */
@@ -39,6 +41,7 @@ export function ProfileForm({
   serverErrors,
   secondaryAction,
   verification,
+  withNames = false,
 }: ProfileFormProps): JSX.Element {
   const [values, setValues] = useState<ProfileFormValues>(initialValues);
   // The fields the member has typed in and left, so a complaint appears when
@@ -47,7 +50,7 @@ export function ProfileForm({
   const [submitted, setSubmitted] = useState(false);
   const darts = useDarts();
 
-  const errors = validateProfileForm(values);
+  const errors = validateProfileForm(values, withNames);
 
   // Before the first save attempt only a field they have left says anything;
   // afterwards every complaint is shown, including fields never reached.
@@ -60,7 +63,7 @@ export function ProfileForm({
     event.preventDefault();
     setSubmitted(true);
     if (Object.keys(errors).length > 0) return;
-    onSubmit(formToPatch(values), values);
+    onSubmit(formToMemberPatch(values, withNames), values);
   }
 
   /** Inline rules win; a server message fills in anything they missed. */
@@ -78,6 +81,7 @@ export function ProfileForm({
         dartsLoading={darts.isPending}
         markRequired
         verification={verification}
+        withNames={withNames}
         onFieldBlur={(key) => setTouched((left) => ({ ...left, [key]: true }))}
       />
 

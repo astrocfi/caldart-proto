@@ -13,6 +13,7 @@ import type {
   PhotoIdType,
   PilotCertificateType,
   Profile,
+  ProfileNameKey,
   ProfilePatch,
   Rating,
   UsState,
@@ -35,6 +36,9 @@ export function saveErrorMessage(error: unknown): string {
 }
 
 export interface ProfileFormValues {
+  /* the account's names, shown only on the member's own profile */
+  first_name: string;
+  last_name: string;
   /* contact */
   phone: string;
   phone_extension: string;
@@ -49,6 +53,8 @@ export interface ProfileFormValues {
   emergency_contact_name: string;
   emergency_contact_phone: string;
   emergency_contact_phone_extension: string;
+  /* amateur radio */
+  ham_callsign: string;
   /* aviation */
   home_airport_identifier: string;
   secondary_airport_identifier: string;
@@ -78,6 +84,8 @@ export interface ProfileFormValues {
 export type ProfileFormErrors = Partial<Record<keyof ProfileFormValues, string>>;
 
 export const EMPTY_PROFILE_FORM: ProfileFormValues = {
+  first_name: '',
+  last_name: '',
   phone: '',
   phone_extension: '',
   phone_alt: '',
@@ -91,6 +99,7 @@ export const EMPTY_PROFILE_FORM: ProfileFormValues = {
   emergency_contact_name: '',
   emergency_contact_phone: '',
   emergency_contact_phone_extension: '',
+  ham_callsign: '',
   home_airport_identifier: '',
   secondary_airport_identifier: '',
   dart_id: '',
@@ -113,10 +122,18 @@ export const EMPTY_PROFILE_FORM: ProfileFormValues = {
   vol_newsletter: false,
 };
 
-/** Turn the API's profile into editable form values. */
-export function profileToForm(profile: Profile): ProfileFormValues {
+/**
+ * A profile as either API answers it: the member's own carries the names, the member
+ * record's nested profile does not.
+ */
+export type ProfileSource = Omit<Profile, ProfileNameKey> & Partial<Pick<Profile, ProfileNameKey>>;
+
+/** Turn the API's profile into editable form values; absent names read as blank. */
+export function profileToForm(profile: ProfileSource): ProfileFormValues {
   const { photo_id_type } = profile;
   return {
+    first_name: profile.first_name ?? '',
+    last_name: profile.last_name ?? '',
     phone: profile.phone,
     phone_extension: profile.phone_extension,
     phone_alt: profile.phone_alt,
@@ -130,6 +147,7 @@ export function profileToForm(profile: Profile): ProfileFormValues {
     emergency_contact_name: profile.emergency_contact_name,
     emergency_contact_phone: profile.emergency_contact_phone,
     emergency_contact_phone_extension: profile.emergency_contact_phone_extension,
+    ham_callsign: profile.ham_callsign,
     home_airport_identifier: profile.home_airport_identifier,
     secondary_airport_identifier: profile.secondary_airport_identifier,
     dart_id: profile.dart ? String(profile.dart.id) : '',
@@ -153,8 +171,11 @@ export function profileToForm(profile: Profile): ProfileFormValues {
   };
 }
 
-/** The body of a `PUT /me/profile`: every writable field, blanks included. */
-export function formToPatch(values: ProfileFormValues): ProfilePatch {
+/**
+ * The profile fields of a write: every writable field, blanks included, and never the
+ * names, which the member record writes as account fields of its own.
+ */
+export function formToPatch(values: ProfileFormValues): Omit<ProfilePatch, ProfileNameKey> {
   const hours = values.total_hours.trim();
   return {
     phone: normalizePhone(values.phone),
@@ -170,6 +191,7 @@ export function formToPatch(values: ProfileFormValues): ProfilePatch {
     emergency_contact_name: values.emergency_contact_name.trim(),
     emergency_contact_phone: normalizePhone(values.emergency_contact_phone),
     emergency_contact_phone_extension: values.emergency_contact_phone_extension.trim(),
+    ham_callsign: maskCallsign(values.ham_callsign),
     home_airport_identifier: values.home_airport_identifier.trim().toUpperCase(),
     secondary_airport_identifier: values.secondary_airport_identifier.trim().toUpperCase(),
     dart_id: values.dart_id === '' ? null : Number(values.dart_id),
@@ -192,6 +214,40 @@ export function formToPatch(values: ProfileFormValues): ProfilePatch {
     vol_newsletter: values.vol_newsletter,
   };
 }
+
+/**
+ * The body of the member's own `PUT /me/profile`: `formToPatch`, plus the names when the
+ * form showed them.
+ */
+export function formToMemberPatch(values: ProfileFormValues, withNames: boolean): ProfilePatch {
+  const patch = formToPatch(values);
+  if (!withNames) return patch;
+  return { ...patch, first_name: values.first_name.trim(), last_name: values.last_name.trim() };
+}
+
+/** The longest US callsign: a two-letter prefix, a digit, and a three-letter suffix. */
+const CALLSIGN_LENGTH = 6;
+
+/**
+ * A callsign as it is typed and stored: letters and digits only, upper case, at most
+ * six characters.
+ */
+export function maskCallsign(raw: string): string {
+  return raw
+    .replace(/[^A-Za-z0-9]/g, '')
+    .toUpperCase()
+    .slice(0, CALLSIGN_LENGTH);
+}
+
+/** A US amateur radio callsign, matching `HAM_CALLSIGN_RE` on the server. */
+const CALLSIGN_RE = /^(?:[KNW][A-Z]?|A[A-L])[0-9][A-Z]{1,3}$/;
+
+const CALLSIGN_MESSAGE = 'Enter a US amateur radio callsign, such as W6ABC.';
+
+const NAME_MESSAGES: Record<ProfileNameKey, string> = {
+  first_name: 'Your first name is required.',
+  last_name: 'Your last name is required.',
+};
 
 const POSTAL_RE = /^\d{5}$/;
 const PHONE_RE = /^\d{3}-\d{3}-\d{4}$/;
@@ -256,11 +312,21 @@ const REQUIRED_MESSAGES: Record<(typeof REQUIRED_PROFILE_FIELDS)[number], string
  * Inline validation.
  *
  * The required fields are exactly what makes a profile "complete" for the join
- * wizard and the onboarding guard; the rest of the rules are the server's,
- * checked here so the member sees them without a round trip.
+ * wizard and the onboarding guard, plus the two names when the form shows them
+ * (`withNames`); the rest of the rules are the server's, checked here so the
+ * member sees them without a round trip.
  */
-export function validateProfileForm(values: ProfileFormValues): ProfileFormErrors {
+export function validateProfileForm(
+  values: ProfileFormValues,
+  withNames = false,
+): ProfileFormErrors {
   const errors: ProfileFormErrors = {};
+
+  if (withNames) {
+    for (const field of ['first_name', 'last_name'] as const) {
+      if (values[field].trim() === '') errors[field] = NAME_MESSAGES[field];
+    }
+  }
 
   for (const field of REQUIRED_PROFILE_FIELDS) {
     if (!String(values[field] ?? '').trim()) errors[field] = REQUIRED_MESSAGES[field];
@@ -285,6 +351,9 @@ export function validateProfileForm(values: ProfileFormValues): ProfileFormError
     const airport = values[field].trim().toUpperCase();
     if (airport && !AIRPORT_RE.test(airport)) errors[field] = AIRPORT_MESSAGE;
   }
+
+  const callsign = maskCallsign(values.ham_callsign);
+  if (callsign && !CALLSIGN_RE.test(callsign)) errors.ham_callsign = CALLSIGN_MESSAGE;
 
   const postal = values.postal_code.trim();
   if (postal && !POSTAL_RE.test(postal)) {

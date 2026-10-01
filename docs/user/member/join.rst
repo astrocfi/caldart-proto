@@ -108,7 +108,7 @@ Step 3: Profile
 
 The step is headed **About you**: *CalDART needs a way to reach you during an
 activation.* It is the same form you later keep up to date on :doc:`profile`, which
-describes every field, and it is as wide as that screen, so on a computer each
+describes every field, less your name, which you gave a step ago, and it is as wide as that screen, so on a computer each
 phone number sits on one line with its extension. Only these are required now: **Phone**, **Address**,
 **City**, **State**, and **ZIP code**. **Pilot certificate** always holds a value;
 leave it at *Not a pilot* if that is what you are. Everything else can wait.

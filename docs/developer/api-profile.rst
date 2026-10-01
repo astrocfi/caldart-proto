@@ -45,12 +45,15 @@ may empty their profile but not remove it.
 ``GET /me/profile``
 ===================
 
-Returns every ``MemberProfile`` field except the admin-only ``notes`` and
-``how_heard``, creating an empty profile row first if the account has none.
+Returns the account's ``first_name`` and ``last_name`` and every ``MemberProfile``
+field except the admin-only ``notes`` and ``how_heard``, creating an empty profile
+row first if the account has none.
 
 .. code-block:: json
 
    {
+     "first_name": "Marta",
+     "last_name": "Reyes",
      "phone": "650-555-0101",
      "phone_extension": "",
      "phone_alt": "",
@@ -64,6 +67,7 @@ Returns every ``MemberProfile`` field except the admin-only ``notes`` and
      "emergency_contact_name": "Dana Lee",
      "emergency_contact_phone": "650-555-0199",
      "emergency_contact_phone_extension": "",
+     "ham_callsign": "W6ABC",
      "home_airport_identifier": "SQL",
      "secondary_airport_identifier": "PAO",
      "dart": {"id": 9, "name": "San Carlos"},
@@ -139,9 +143,11 @@ Statuses:
 ``PUT /me/profile``
 ===================
 
-A **genuine full update**: any writable field left out of the body is reset to
-its model default, so a cleared text box really is cleared, an unticked
-checkbox really is unticked, and an omitted ``dart_id`` clears the DART.
+A **genuine full update**: any writable profile field left out of the body is
+reset to its model default, so a cleared text box really is cleared, an unticked
+checkbox really is unticked, and an omitted ``dart_id`` clears the DART.  The two
+names are the exception: they belong to the account, not the profile, so a body
+without them leaves them as they are.
 
 .. code-block:: json
 
@@ -198,8 +204,8 @@ all.  The same holds for ``PUT``.  The clearing raises no event of its own;
 The write that makes an incomplete profile complete is the join wizard's
 profile step finishing: it raises the ``signed_up`` event with the account and
 the chosen DART, and nothing else.  Any other ``PUT`` or ``PATCH`` to a complete
-profile that moves a field's value raises the ``profile_changed`` event with the
-labels of those fields and no actor (:doc:`notification-events`).  One that
+profile that moves a field's value, a name included, raises the
+``profile_changed`` event with the labels of those fields and no actor (:doc:`notification-events`).  One that
 resends what is stored, or leaves an incomplete profile incomplete, raises
 nothing.
 
@@ -220,6 +226,14 @@ Validation
 ===========================  ===========================================================
 Field                        Rule
 ===========================  ===========================================================
+``first_name``,              Optional on ``PUT`` and ``PATCH``, never blank: a value of
+``last_name``                spaces only is refused with DRF's "This field may not be
+                             blank.", as registration refuses it.  Up to 150
+                             characters, written to the account and stored through
+                             ``caldart.casing.person_name``: trimmed, and title-cased
+                             when typed entirely in one case (``SMITH`` is stored
+                             ``Smith``; ``DeAnna`` stays ``DeAnna``).  The rule is
+                             in :doc:`data-model`.
 ``phone``                    Required on ``PUT``; never blank on ``PATCH``.  Stored
                              as ``XXX-XXX-XXXX``: ``+1``, spaces, dots and brackets
                              are accepted and none of them are kept, and anything
@@ -247,6 +261,13 @@ Field                        Rule
                              KLS."
 ``secondary_airport_``       The same rule, through the same validator, and it may
 ``identifier``               be blank too.
+``ham_callsign``             A US amateur radio callsign if given, stored upper case
+                             with every space removed: a prefix of ``K``, ``N``, or
+                             ``W`` alone, one of them and a letter, or ``A`` and a
+                             letter from ``A`` to ``L``; one digit; and a suffix of one
+                             to three letters (``W6ABC``, ``KD6AB``, ``AA6A``).
+                             Anything else, such as ``X1ABC``, is refused with
+                             "Enter a US amateur radio callsign, such as W6ABC."
 ``state``                    One of the two-letter codes, and required: the fifty
                              states, DC, and the territories with USPS codes.
 ``postal_code``              Five digits if given.  ZIP+4 is refused: five reach
@@ -276,8 +297,9 @@ cross-field complaints are raised together when both apply:
 
 The field-level sentences are "Use a ten-digit number like 415-555-0100." for
 each of the three phone fields, "An extension is digits only, for example
-4021.", "Use a five-digit ZIP code like 95035.", and "Use a three-character
-identifier like PAO, E16, or KLS."  ``state`` and ``county``
+4021.", "Use a five-digit ZIP code like 95035.", "Use a three-character
+identifier like PAO, E16, or KLS.", and "Enter a US amateur radio callsign, such
+as W6ABC."  ``state`` and ``county``
 are choice fields, so an unknown value is DRF's own "is not a valid choice".
 
 The portal's form applies the same rules before it sends anything, and on top

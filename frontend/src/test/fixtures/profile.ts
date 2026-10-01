@@ -54,6 +54,8 @@ export const TEST_AIRCRAFT: AircraftSummary = {
 /** A complete `Profile` fixture, with `overrides` merged over the defaults. */
 export function makeProfile(overrides: Partial<Profile> = {}): Profile {
   return {
+    first_name: 'Marta',
+    last_name: 'Reyes',
     phone: '650-555-0101',
     phone_extension: '',
     phone_alt_extension: '',
@@ -67,6 +69,7 @@ export function makeProfile(overrides: Partial<Profile> = {}): Profile {
     county: 'San Mateo',
     emergency_contact_name: '',
     emergency_contact_phone: '',
+    ham_callsign: '',
     member_since: null,
     home_airport_identifier: 'SQL',
     secondary_airport_identifier: 'PAO',
