@@ -1300,6 +1300,10 @@ and ``PermissionsMixin`` classes it builds on.
      - ``DateField``
      - null; default ``NULL``
      - the day a member who asked to become a friend becomes one; null when no change is pending
+   * - ``reactivation_blocked``
+     - ``BooleanField``
+     - not null; default ``False``
+     - set by a user administrator to keep a deactivated account deactivated: while it is true, sign-in, reactivation, a password reset and registering again with the address are all refused (:ref:`api-reactivation-block`); setting it deactivates an active account first, so a blocked account is never active
    * - ``groups``
      - ``ManyToManyField`` to ``auth.Group``
      - not null; empty by default
@@ -1477,16 +1481,16 @@ descriptions live in ``apps/accounts/roles.py``:
        aircraft insurance currency; read the full member list, filterable by
        DART or county, and download its report
    * - ``user_admin``
-     - \+ list users, assign roles, activate or deactivate accounts, trigger
-       password resets
+     - \+ list users, assign roles, activate or deactivate accounts, block an
+       account from reactivating, trigger password resets
    * - ``treasurer``
      - \+ see every payment, fee, refund, and renewal; issue refunds, record
        payments taken by hand, reconcile periods, and run the financial
        reports
    * - ``account_admin``
-     - \+ create, edit, and delete members and profiles, grant or extend
-       memberships manually, manage aircraft, and run payment, membership and
-       aircraft reports
+     - \+ create, edit, and delete members and profiles, make a member a friend,
+       deactivate or reactivate accounts, grant or extend memberships manually,
+       manage aircraft, and run payment, membership and aircraft reports
    * - ``website_admin``
      - \+ the Wagtail admin: create, edit, delete, and publish pages, images,
        documents, redirects, and site settings
@@ -1511,8 +1515,8 @@ Rules:
   the role group, so the two are one kind of account to the member delete guard,
   to the guard on moving the ``system_admin`` role, and to the account-edit
   guard (:ref:`account-edit-guard`), which lets an administrator change another
-  account's ``email`` or ``is_active`` only while holding every role that account
-  holds.
+  account's ``email``, deactivate, reactivate, or block it only while holding
+  every role that account holds.
 - ``STAFF_ROLE_SLUGS`` is every slug except ``member``, and is what
   ``can_access_members_content`` tests.
 - ``manage.py seed_plans`` creates or updates the annual and life plans from
@@ -2133,12 +2137,12 @@ Newest first.
 ``covers(on_date=None)`` is the row-level test: the term is ``active``, it has
 started, and either it is lifetime or it has not run out.
 
-A ``suspended`` term belongs to an account its holder deactivated
-(:ref:`api-deactivation`).  Deactivating suspends every ``active`` term that is
-lifetime or ends on or after that day (the covering term and any renewal
-already paid for), and reactivating, by the person or by an administrator
-ticking the account active again, turns each back to ``active``, or to
-``expired`` if its end passed in the meantime.  While suspended, a term counts
+A ``suspended`` term belongs to a deactivated account (:ref:`api-deactivation`).
+Deactivating, by the person or by an administrator, suspends every ``active``
+term that is lifetime or ends on or after that day (the covering term and any
+renewal already paid for), and reactivating, by the person or by an
+administrator, turns each back to ``active``, or to ``expired`` if its end passed
+in the meantime.  While suspended, a term counts
 for nothing: it never covers a day and is never the past term an expired member
 is reported from, and the renewal reminders skip it.
 

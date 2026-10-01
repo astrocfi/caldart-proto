@@ -359,11 +359,9 @@ def test_a_deactivation_is_its_own_action(
     target_member: UserModel,
     audit_log: pytest.LogCaptureFixture,
 ) -> None:
-    """Setting ``is_active`` to ``False`` logs ``account.deactivate``, not an update."""
+    """Deactivating logs ``account.deactivate``, not an update."""
     api_client.force_login(user_admin)
-    response = api_client.patch(
-        f"{USERS_URL}/{target_member.pk}", {"is_active": False}, format="json"
-    )
+    response = api_client.post(f"{USERS_URL}/{target_member.pk}/deactivate")
     assert response.status_code == 200
     assert one_message(audit_log) == (
         f"action=account.deactivate actor={user_admin.pk} target={target_member.pk}"
@@ -376,13 +374,11 @@ def test_an_activation_is_its_own_action(
     target_member: UserModel,
     audit_log: pytest.LogCaptureFixture,
 ) -> None:
-    """Setting ``is_active`` to ``True`` logs ``account.activate``, not a plain update."""
+    """Reactivating logs ``account.activate``, not a plain update."""
     target_member.is_active = False
     target_member.save(update_fields=["is_active"])
     api_client.force_login(user_admin)
-    response = api_client.patch(
-        f"{USERS_URL}/{target_member.pk}", {"is_active": True}, format="json"
-    )
+    response = api_client.post(f"{USERS_URL}/{target_member.pk}/reactivate")
     assert response.status_code == 200
     assert one_message(audit_log) == (
         f"action=account.activate actor={user_admin.pk} target={target_member.pk}"
@@ -442,11 +438,11 @@ def test_a_self_deactivation_is_refused_and_recorded(
 ) -> None:
     """An administrator deactivating their own account is refused and logged."""
     api_client.force_login(user_admin)
-    response = api_client.patch(f"{USERS_URL}/{user_admin.pk}", {"is_active": False}, format="json")
+    response = api_client.post(f"{USERS_URL}/{user_admin.pk}/deactivate")
     assert response.status_code == 400
     assert one_message(audit_log, logging.WARNING) == (
         f"action=account.deactivate actor={user_admin.pk} target={user_admin.pk} "
-        f"fields=is_active reason=self_deactivation"
+        "reason=self_deactivation"
     )
 
 

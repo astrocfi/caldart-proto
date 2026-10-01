@@ -1,4 +1,4 @@
-"""``accounts.services``: creating an account and the rules on editing one."""
+"""``accounts.services`` and ``accounts.status``: creating, editing, and deactivating."""
 
 from __future__ import annotations
 
@@ -17,12 +17,15 @@ from apps.accounts.roles import (
 from apps.accounts.services import (
     EMAIL_CHANGE_REFUSED,
     ROLE_CHANGE_REFUSED,
-    SELF_DEACTIVATION_REFUSED,
-    STATUS_CHANGE_REFUSED,
     create_account,
     update_account,
 )
-from caldart.exceptions import DomainValidationError
+from apps.accounts.status import (
+    SELF_DEACTIVATION_REFUSED,
+    STATUS_CHANGE_REFUSED,
+    deactivate_account,
+)
+from caldart.exceptions import DomainError, DomainValidationError
 from tests.factories import UserFactory
 
 pytestmark = pytest.mark.django_db
@@ -80,43 +83,43 @@ def test_update_account_writes_the_email(user_admin: User) -> None:
     assert target.email == "moved@example.test"
 
 
-def test_update_account_deactivates_another_account(user_admin: User) -> None:
+def test_deactivate_account_deactivates_another_account(user_admin: User) -> None:
     """Deactivating an unprotected account succeeds."""
     target = UserFactory(email="target@example.test", roles=[MEMBER])
-    update_account(user_admin, target, {"is_active": False})
+    deactivate_account(user_admin, target)
     target.refresh_from_db()
     assert target.is_active is False
 
 
+def test_update_account_never_writes_the_active_flag(user_admin: User) -> None:
+    """The active flag is not an edit: a caller passing it is ignored."""
+    target = UserFactory(email="target@example.test", roles=[MEMBER])
+    # "is_active" is deliberately outside AccountChanges: the test proves the service
+    # ignores it, since only the status actions deactivate an account.
+    update_account(
+        user_admin,
+        target,
+        {"is_active": False, "first_name": "Ada"},  # type: ignore[typeddict-unknown-key]
+    )
+    target.refresh_from_db()
+    assert target.is_active is True
+
+
 # --------------------------------------------------------------------------
-# update_account rejects self-deactivation
+# deactivate_account rejects self-deactivation
 # --------------------------------------------------------------------------
 def test_deactivating_your_own_account_is_refused(system_admin: User) -> None:
     """Deactivating your own account raises the self-deactivation refusal."""
-    with pytest.raises(DomainValidationError, match=re.escape(SELF_DEACTIVATION_REFUSED)):
-        update_account(system_admin, system_admin, {"is_active": False})
-
-
-def test_the_self_deactivation_refusal_names_the_is_active_field(system_admin: User) -> None:
-    """The self-deactivation refusal names ``is_active`` as the offending field."""
-    with pytest.raises(DomainValidationError) as refusal:
-        update_account(system_admin, system_admin, {"is_active": False})
-    assert refusal.value.field == "is_active"
+    with pytest.raises(DomainError, match=re.escape(SELF_DEACTIVATION_REFUSED)):
+        deactivate_account(system_admin, system_admin)
 
 
 def test_a_refused_self_deactivation_writes_nothing(system_admin: User) -> None:
-    """A refused self-deactivation writes none of the fields in the same request."""
-    with pytest.raises(DomainValidationError, match=re.escape(SELF_DEACTIVATION_REFUSED)):
-        update_account(system_admin, system_admin, {"is_active": False, "first_name": "Ada"})
+    """A refused self-deactivation leaves the account active."""
+    with pytest.raises(DomainError, match=re.escape(SELF_DEACTIVATION_REFUSED)):
+        deactivate_account(system_admin, system_admin)
     system_admin.refresh_from_db()
     assert system_admin.is_active is True
-
-
-def test_resending_your_own_active_flag_is_not_a_deactivation(user_admin: User) -> None:
-    """The administration form posts every field, so an unmoved flag is no change."""
-    update_account(user_admin, user_admin, {"is_active": True, "first_name": "Ada"})
-    user_admin.refresh_from_db()
-    assert user_admin.first_name == "Ada"
 
 
 # --------------------------------------------------------------------------
@@ -222,8 +225,8 @@ def test_a_user_admin_cannot_deactivate_an_account_admin(
     user_admin: User, account_admin: User
 ) -> None:
     """A user administrator cannot deactivate an account administrator."""
-    with pytest.raises(DomainValidationError, match=re.escape(STATUS_CHANGE_REFUSED)):
-        update_account(user_admin, account_admin, {"is_active": False})
+    with pytest.raises(DomainError, match=re.escape(STATUS_CHANGE_REFUSED)):
+        deactivate_account(user_admin, account_admin)
 
 
 def test_a_system_admin_may_change_anybodys_email(system_admin: User, account_admin: User) -> None:
@@ -317,5 +320,5 @@ def test_a_user_admin_cannot_take_over_a_system_admin_account(
 
 def test_a_user_admin_cannot_lock_a_system_admin_out(user_admin: User, system_admin: User) -> None:
     """A user administrator cannot deactivate a system administrator."""
-    with pytest.raises(DomainValidationError, match=re.escape(STATUS_CHANGE_REFUSED)):
-        update_account(user_admin, system_admin, {"is_active": False})
+    with pytest.raises(DomainError, match=re.escape(STATUS_CHANGE_REFUSED)):
+        deactivate_account(user_admin, system_admin)

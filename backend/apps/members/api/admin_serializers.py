@@ -264,7 +264,9 @@ class MemberDetailSerializer(serializers.Serializer[User]):
     last_name = serializers.CharField(read_only=True)
     name = serializers.CharField(source="display_name", read_only=True)
     is_active = serializers.BooleanField(read_only=True)
+    reactivation_blocked = serializers.BooleanField(read_only=True)
     kind = serializers.ChoiceField(choices=AccountKind.choices, read_only=True)
+    friend_on = serializers.DateField(read_only=True, allow_null=True)
     roles = serializers.SerializerMethodField()
     created_at = serializers.DateTimeField(read_only=True)
     email_verified_at = serializers.DateTimeField(read_only=True, allow_null=True)
@@ -385,9 +387,10 @@ class MemberUpdateSerializer(serializers.Serializer[User]):
     """``PATCH /admin/members/{id}`` -- account fields and nested profile.
 
     The account half goes through the same service as ``/admin/users/{id}``, so it
-    obeys the same edit guard: changing the email address or the active flag of an
-    account that holds roles the caller does not hold is a field-keyed 400, and so is
-    deactivating yourself.  It therefore needs the request in its context.
+    obeys the same edit guard: changing the email address of an account that holds
+    roles the caller does not hold is a 400 against ``email``.  It therefore needs the
+    request in its context.  The active flag is not part of an edit: the member
+    record's danger zone deactivates and reactivates an account.
 
     ``kind`` (``member`` or ``friend``) makes the account that kind at once and clears
     any pending ``friend_on`` date; a donor's kind is never changed by hand, which is
@@ -397,7 +400,6 @@ class MemberUpdateSerializer(serializers.Serializer[User]):
     email = serializers.EmailField(required=False)
     first_name = serializers.CharField(max_length=150, allow_blank=True, required=False)
     last_name = serializers.CharField(max_length=150, allow_blank=True, required=False)
-    is_active = serializers.BooleanField(required=False)
     kind = serializers.ChoiceField(choices=PERSON_KIND_CHOICES, required=False)
     profile = AdminProfileSerializer(required=False, partial=True)
 
@@ -451,8 +453,6 @@ class MemberUpdateSerializer(serializers.Serializer[User]):
             account["first_name"] = validated_data["first_name"]
         if "last_name" in validated_data:
             account["last_name"] = validated_data["last_name"]
-        if "is_active" in validated_data:
-            account["is_active"] = validated_data["is_active"]
         if "kind" in validated_data:
             account["kind"] = AccountKind(validated_data["kind"])
         return update_member(

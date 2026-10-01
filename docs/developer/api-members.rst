@@ -64,6 +64,9 @@ Endpoints
   PATCH  /api/v1/admin/members/{user_id}
   DELETE /api/v1/admin/members/{user_id}
   POST   /api/v1/admin/members/{user_id}/memberships
+  POST   /api/v1/admin/members/{user_id}/friend
+  POST   /api/v1/admin/members/{user_id}/deactivate
+  POST   /api/v1/admin/members/{user_id}/reactivate
   PATCH  /api/v1/admin/memberships/{id}
 
 ``{user_id}`` is the **user's** id, not a profile id.  The list holds every
@@ -380,7 +383,9 @@ to it, and ``null`` while it is unverified.
      "last_name": "Bracco",
      "name": "Ana Bracco",
      "is_active": true,
+     "reactivation_blocked": false,
      "kind": "member",
+     "friend_on": null,
      "roles": ["member"],
      "created_at": "2024-07-01T16:04:11.318204-07:00",
      "email_verified_at": "2024-07-01T16:09:52.004117-07:00",
@@ -506,12 +511,12 @@ however few fields the request carried.
 
    {
      "email": "ana.bracco@example.org",
-     "is_active": true,
      "profile": {"medical_type": "basicmed", "notes": "Moved to BasicMed."}
    }
 
-The body takes ``email``, ``first_name``, ``last_name``, ``is_active``,
-``kind``, and a partial ``profile`` object.  A profile is created if the account
+The body takes ``email``, ``first_name``, ``last_name``, ``kind``, and a partial
+``profile`` object; an ``is_active`` in it is ignored, since the account's status
+changes only through ``/deactivate`` and ``/reactivate`` below.  A profile is created if the account
 somehow has none.  ``PUT`` is not offered.
 
 ``first_name`` and ``last_name`` are stored as every write stores a name
@@ -539,25 +544,22 @@ read-only here too, and an item is verified only through the member check.
 
 ``profile_updated_at`` is stamped when the body carries ``profile``, or an
 ``email``, ``first_name`` or ``last_name`` -- the fields a member record shows
-alongside the rest of the profile.  A request that only flips ``is_active``
-leaves the stamp alone, and so does one for a target with no profile row to
-stamp.
+alongside the rest of the profile.  A request that only changes ``kind`` leaves
+the stamp alone, and so does one for a target with no profile row to stamp.
 
 A write that really changes ``email`` — compared stripped and
 case-insensitively — clears ``email_verified_at`` and, once it commits, mails
 the new address a verification link.
 
-``email`` and ``is_active`` go through the same account-edit guard as
-``PATCH /admin/users/{id}`` — see :ref:`account-edit-guard`.  An account
-administrator may move a plain member's address, but not the address or the
-active flag of an account holding a role they do not hold themselves, and may
-not deactivate their own account.  A refusal is a **400** keyed on ``email`` or
-``is_active``, and nothing is written at all — the profile half of the same
-request included.
+``email`` goes through the same account-edit guard as ``PATCH
+/admin/users/{id}`` — see :ref:`account-edit-guard`.  An account administrator
+may move a plain member's address, but not the address of an account holding a
+role they do not hold themselves.  A refusal is a **400** keyed on ``email``, and
+nothing is written at all — the profile half of the same request included.
 
-Deactivation — ``PATCH`` with ``is_active`` false — is the tool for a member
-who has left.  The hard delete below is for duplicates, spam, test accounts,
-and a person who asks to be removed; their payments stay in the books.
+Deactivation (``POST /admin/members/{user_id}/deactivate`` below) is the tool for
+a member who has left.  The hard delete below is for duplicates, spam, test
+accounts, and a person who asks to be removed; their payments stay in the books.
 
 Statuses:
 
@@ -628,6 +630,70 @@ Statuses:
   delete your own account." or "Only a system administrator can delete a
   system administrator."
 * **404** — no account has that id.
+
+
+The danger zone's account actions
+=================================
+
+Three endpoints behind ``account_admin`` do for a member what the member does for
+themselves.  Each answers 200 with the whole record, in the detail shape above;
+``friend_on`` and ``reactivation_blocked`` there tell the portal what to offer.
+An unknown ``user_id`` is a **404**.  A refusal changes nothing.
+
+``POST /admin/members/{user_id}/friend``
+----------------------------------------
+
+What the member's own ``POST /me/kind/friend`` does (:ref:`api-kind-switch`),
+with the caller recorded as the actor: ``payments.renewals.switch_to_friend``
+with ``actor=<caller>`` keeps a current membership to its end and sets
+``friend_on`` to the day after, or makes the account a friend at once; the
+automatic renewal is canceled with the caller as ``canceled_by``; the
+``account.kind`` audit line names the caller; and an immediate change raises
+``became_friend`` with ``how="administrator"``.
+
+.. code-block:: json
+
+   {"keep_contribution": true}
+
+The body is the member's: ``keep_contribution`` is required only when the
+automatic renewal is active and takes a contribution, and true keeps it as a
+yearly recurring donation.
+
+* **400** ``{"keep_contribution": ["This field is required."]}`` — the renewal
+  takes a contribution and the body did not say what becomes of it.
+* **400** ``{"keep_contribution": ["They already have a recurring donation, so
+  the contribution cannot be kept as one."]}`` — true while the member holds an
+  active or paused recurring donation.
+* **400** ``{"detail": "..."}`` — a friend ("You are already a friend of
+  CalDART."), a current life member ("A lifetime member stays a member."), or a
+  donor.
+
+``POST /admin/members/{user_id}/deactivate``
+--------------------------------------------
+
+What ``POST /admin/users/{id}/deactivate`` does (:ref:`api-account-status`): the
+account is deactivated and signed out everywhere, its mandates are canceled, and
+every term with time left is suspended, all under the caller.  No body.
+
+``POST /admin/members/{user_id}/reactivate``
+--------------------------------------------
+
+What ``POST /admin/users/{id}/reactivate`` does: the account is active again and
+its suspended terms restored, under the caller.  No body.  An account a user
+administrator has blocked from reactivating (:ref:`api-reactivation-block`) is
+refused.
+
+Both answer a refusal with **400** ``{"detail": "..."}``, in the sentences listed
+under :ref:`account-edit-guard`: your own account, a donor, an account holding a
+role you do not hold (a system administrator's included, unless you are one), a
+blocked account, and an account already in the state asked for.
+
+Statuses:
+
+* **200** — the record, in the detail shape above.
+* **400** — a refusal above.
+* **401** when anonymous; **403** without ``account_admin``; **404** — no
+  account has that id.
 
 
 ``POST /admin/members/{user_id}/memberships``
@@ -778,8 +844,19 @@ Tests
    ``members.services`` on its own: atomic registration, the invitation sent
    only without a password and only on commit, the two halves of an update, and
    each delete guard.
+``backend/tests/test_admin_account_actions.py``
+   The danger zone's account actions and the user record's deactivation and
+   reactivation: the role matrix, what each does to the account, its sessions,
+   its mandates and its terms, the audit lines and events under the
+   administrator, every refusal, and ``is_active`` ignored by both edits.
+``backend/tests/test_reactivation_block.py``
+   Blocking and unblocking: the role matrix, the deactivation a block brings,
+   the refusals, and the closed account at sign-in, reactivation, reset, and
+   registration.
 
 On the front end, ``frontend/src/portal/features/admin-members/`` holds a test
 per page: filters to query parameters, export hrefs, the grant-term form, the
-typed delete confirmation, and the Danger zone's explanation for a member whose
-payments keep the account.
+typed delete confirmation, the Danger zone's explanation for a member whose
+payments keep the account, and the account actions in
+``MemberAccountActions.test.tsx``: what each offers, the contribution question,
+and every refusal drawn.

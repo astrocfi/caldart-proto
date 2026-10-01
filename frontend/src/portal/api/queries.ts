@@ -18,6 +18,11 @@ export const PLANS_KEY = ['plans'] as const;
 export const SITE_CONFIG_KEY = ['site', 'config'] as const;
 export const RENEWAL_KEY = ['me', 'renewal'] as const;
 export const DONATION_KEY = ['me', 'donation'] as const;
+/**
+ * The users-admin queries. Declared here because the member record's account actions
+ * refresh them too, and the users admin already reads the member queries' key.
+ */
+export const ADMIN_USERS_KEY = ['admin', 'users'] as const;
 
 /** Public: the join wizard reads it before the visitor has an account. */
 export function useDarts(): UseQueryResult<Dart[]> {

@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
 
 import { api } from '@/portal/api/client';
+import { ADMIN_USERS_KEY } from '@/portal/api/queries';
 import type {
   AccountKind,
   AdminUser,
@@ -14,6 +15,8 @@ import type {
   VerificationSentResult,
 } from '@/portal/api/types';
 import { AUTH_ME_KEY } from '@/portal/auth/useAuth';
+import { MEMBERS_KEY } from '@/portal/features/admin-members/api';
+import { FINANCE_KEY } from '@/portal/features/admin-payments/api';
 
 export interface AdminUserFilters {
   search?: string;
@@ -25,7 +28,7 @@ export interface AdminUserFilters {
   page?: number;
 }
 
-export const ADMIN_USERS_KEY = ['admin', 'users'] as const;
+export { ADMIN_USERS_KEY };
 
 /** The query key for a filtered users list. */
 export function adminUsersKey(
@@ -68,7 +71,7 @@ export function useAdminUser(id: string | number): UseQueryResult<AdminUser> {
 }
 
 /**
- * Patches one account's names, email, roles, or status.
+ * Patches one account's names, email, or roles.
  *
  * Also invalidates the signed-in caller's own `auth/me` query, since editing
  * your own roles changes what the nav may show.
@@ -113,6 +116,34 @@ export function useSendEmailVerification(
       api.post<VerificationSentResult>(`/admin/users/${id}/send-email-verification`),
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: adminUserKey(id) });
+    },
+  });
+}
+
+/** The status actions on the user record, by the path segment each posts to. */
+export type AccountStatusAction = 'deactivate' | 'reactivate' | 'block' | 'unblock';
+
+/**
+ * One of the user record's status actions: `POST /admin/users/{id}/{action}`.
+ *
+ * The answer is the record as it stands afterwards, which replaces the cached one; the
+ * list, the member records, and the finance area are refreshed too, since deactivating
+ * cancels renewals and suspends the membership.
+ */
+export function useAccountStatusAction(
+  id: string | number,
+): UseMutationResult<AdminUser, Error, AccountStatusAction> {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (action: AccountStatusAction) =>
+      api.post<AdminUser>(`/admin/users/${id}/${action}`),
+    onSuccess: (user) => {
+      queryClient.setQueryData(adminUserKey(id), user);
+      return Promise.all([
+        queryClient.invalidateQueries({ queryKey: ADMIN_USERS_KEY }),
+        queryClient.invalidateQueries({ queryKey: MEMBERS_KEY }),
+        queryClient.invalidateQueries({ queryKey: FINANCE_KEY }),
+      ]);
     },
   });
 }

@@ -129,6 +129,7 @@ def test_list_returns_the_user_payload(
         "kind",
         "friend_on",
         "email_verified_at",
+        "reactivation_blocked",
     }
     assert row["roles"] == [MEMBER]
     assert row["membership"]["status"] == "current"
@@ -280,12 +281,12 @@ def test_patch_can_keep_the_same_email(
     assert api_client.patch(detail(member), {"email": member.email}).status_code == 200
 
 
-def test_patch_deactivates_another_account(
+def test_deactivate_deactivates_another_account(
     api_client: APIClient, user_admin: User, member: User
 ) -> None:
-    """A ``PATCH`` can deactivate an account other than the caller's own."""
+    """``POST .../deactivate`` deactivates an account other than the caller's own."""
     api_client.force_login(user_admin)
-    response = api_client.patch(detail(member), {"is_active": False})
+    response = api_client.post(f"{detail(member)}/deactivate")
 
     assert response.status_code == 200
     assert response.json()["is_active"] is False
@@ -293,13 +294,21 @@ def test_patch_deactivates_another_account(
     assert member.is_active is False
 
 
+def test_a_patch_does_not_deactivate(api_client: APIClient, user_admin: User, member: User) -> None:
+    """``is_active`` is read-only on a ``PATCH``: the flag stays as it was."""
+    api_client.force_login(user_admin)
+    response = api_client.patch(detail(member), {"is_active": False})
+
+    assert (response.status_code, response.json()["is_active"]) == (200, True)
+
+
 def test_a_user_cannot_deactivate_themselves(api_client: APIClient, user_admin: User) -> None:
     """A user administrator cannot deactivate their own account."""
     api_client.force_login(user_admin)
-    response = api_client.patch(detail(user_admin), {"is_active": False})
+    response = api_client.post(f"{detail(user_admin)}/deactivate")
 
     assert response.status_code == 400
-    assert "is_active" in response.json()
+    assert response.json() == {"detail": "You cannot deactivate your own account."}
     user_admin.refresh_from_db()
     assert user_admin.is_active is True
 
@@ -309,7 +318,7 @@ def test_a_system_admin_cannot_deactivate_themselves_either(
 ) -> None:
     """The self-deactivation guard applies to a system administrator too."""
     api_client.force_login(system_admin)
-    response = api_client.patch(detail(system_admin), {"is_active": False})
+    response = api_client.post(f"{detail(system_admin)}/deactivate")
     assert response.status_code == 400
     system_admin.refresh_from_db()
     assert system_admin.is_active is True

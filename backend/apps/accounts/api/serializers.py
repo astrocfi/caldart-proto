@@ -17,10 +17,12 @@ from apps.accounts.services import (
     AccountChanges,
     is_donor,
     normalized_email,
+    update_account,
     user_from_uid,
 )
+from apps.accounts.status import closed_account_message
 from apps.members.api.serializers import MembershipStatusSerializer
-from apps.members.services import apply_account_changes, membership_of
+from apps.members.services import membership_of
 
 
 class UserSerializer(serializers.ModelSerializer[User]):
@@ -146,15 +148,19 @@ class RegisterSerializer(serializers.Serializer[None]):
         """The address, stripped, provided no active member or friend already uses it.
 
         An address belonging to an active donor passes: registering upgrades the
-        donor in place.  An address belonging to a deactivated account, of any kind,
-        raises ``DeactivatedAccountError``.  Any other taken address, compared
-        case-insensitively, is rejected with "An account already uses that email
-        address. Sign in, or reset your password."
+        donor in place.  An address belonging to an account a user administrator has
+        blocked from reactivating is rejected with "This account has been closed.
+        Contact <organization name> to reopen it."; one belonging to any other
+        deactivated account, of any kind, raises ``DeactivatedAccountError``.  Any
+        other taken address, compared case-insensitively, is rejected with "An account
+        already uses that email address. Sign in, or reset your password."
         """
         value = value.strip()
         existing = User.objects.filter(email__iexact=value).first()
         if existing is None:
             return value
+        if existing.reactivation_blocked:
+            raise serializers.ValidationError(closed_account_message())
         if not existing.is_active:
             raise DeactivatedAccountError
         if is_donor(existing):
@@ -241,14 +247,19 @@ class PasswordResetConfirmSerializer(serializers.Serializer[None]):
         password), and a ``token`` the default generator refuses all raise
         ``serializers.ValidationError`` under the ``token`` key carrying
         ``INVALID_LINK``, so a caller cannot tell them apart.  A deactivated account's
-        link is accepted: completing the reset reactivates it.  A password Django's
-        validators reject is raised under ``new_password``.
+        link is accepted: completing the reset reactivates it.  A good link for an
+        account a user administrator has blocked from reactivating is refused under
+        ``token`` with "This account has been closed. Contact <organization name> to
+        reopen it.", and no password is set.  A password Django's validators reject is
+        raised under ``new_password``.
         """
         user = user_from_uid(attrs["uid"])
         if user is None or is_donor(user):
             raise serializers.ValidationError({"token": [self.INVALID_LINK]})
         if not default_token_generator.check_token(user, attrs["token"]):
             raise serializers.ValidationError({"token": [self.INVALID_LINK]})
+        if user.reactivation_blocked:
+            raise serializers.ValidationError({"token": [closed_account_message()]})
         run_password_validators(attrs["new_password"], user=user, field="new_password")
         attrs["user"] = user
         return attrs
@@ -327,8 +338,10 @@ class AdminUserSerializer(UserSerializer):
     The serializer validates the input -- the field formats, the role slugs against
     ``accounts.roles``, and that the address is free -- and ``accounts.services``
     owns the rules that need both the caller and the target: only a ``system_admin``
-    may move ``system_admin``, and the email address and active flag of an account
-    holding roles the caller lacks are untouchable.
+    may move ``system_admin``, and the email address of an account holding roles the
+    caller lacks is untouchable.  The active flag and ``reactivation_blocked`` are read
+    here and changed only through the record's own actions (deactivate, reactivate,
+    block, unblock).
     """
 
     # djangorestframework-stubs types SerializerMethodField as a bare Field, so
@@ -341,17 +354,16 @@ class AdminUserSerializer(UserSerializer):
     email_verified_at = serializers.DateTimeField(read_only=True, allow_null=True)
 
     class Meta(UserSerializer.Meta):
-        fields = [*UserSerializer.Meta.fields, "email_verified_at"]
+        fields = [*UserSerializer.Meta.fields, "email_verified_at", "reactivation_blocked"]
         # `membership`, `profile_complete`, `email_verified`, `email_verified_at`,
         # and `roles` are declared fields, so only the model columns need listing here.
         # The kind is the account administrator's to change, never the user
         # administrator's.
-        read_only_fields = ["id", "kind", "friend_on"]
+        read_only_fields = ["id", "kind", "friend_on", "is_active", "reactivation_blocked"]
         extra_kwargs = {
             "email": {"required": False},
             "first_name": {"required": False},
             "last_name": {"required": False},
-            "is_active": {"required": False},
         }
 
     @property
@@ -379,8 +391,6 @@ class AdminUserSerializer(UserSerializer):
         """Hand the change to ``accounts.services.update_account`` and return the account.
 
         That is where the rules needing both accounts live, so a refusal surfaces as the
-        ``DomainValidationError`` it raises rather than as a serializer error.  It goes
-        through ``members.services.apply_account_changes``, so ticking the active flag
-        on a deactivated account also brings back its suspended membership terms.
+        ``DomainValidationError`` it raises rather than as a serializer error.
         """
-        return apply_account_changes(self._actor, instance, validated_data)
+        return update_account(self._actor, instance, validated_data)

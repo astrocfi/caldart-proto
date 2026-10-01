@@ -69,6 +69,13 @@ If the screen says something else
   typed the right password, so to a stranger a deactivated account looks the same
   as one that does not exist.
 
+*This account has been closed. Contact CalDART to reopen it.*
+  Your account is deactivated, and an administrator has closed it so that it
+  cannot be reactivated from here, by a password reset, or by joining again with
+  the same address. The sentence names your organization in place of CalDART.
+  Write to them if you think it should be reopened. Like the deactivated message,
+  it appears only once you have typed the right password.
+
 *Request was throttled. Expected available in ... seconds.*
   There have been too many sign-in attempts from your network in a short time.
   Wait the number of seconds it gives and try again.
@@ -92,7 +99,8 @@ address and password you just typed.
   (see :doc:`verify-email`).
 
 Resetting your password reactivates a deactivated account too: follow the link,
-choose a password, and the account is active again.
+choose a password, and the account is active again. None of this works on an
+account that has been closed: see *This account has been closed* above.
 
 
 If something looks wrong

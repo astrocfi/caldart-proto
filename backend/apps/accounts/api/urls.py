@@ -38,5 +38,21 @@ urlpatterns = [
         views.AdminUserSendEmailVerificationView.as_view(),
         name="admin-user-send-email-verification",
     ),
+    path(
+        "admin/users/<int:pk>/deactivate",
+        views.AdminUserDeactivateView.as_view(),
+        name="admin-user-deactivate",
+    ),
+    path(
+        "admin/users/<int:pk>/reactivate",
+        views.AdminUserReactivateView.as_view(),
+        name="admin-user-reactivate",
+    ),
+    path("admin/users/<int:pk>/block", views.AdminUserBlockView.as_view(), name="admin-user-block"),
+    path(
+        "admin/users/<int:pk>/unblock",
+        views.AdminUserUnblockView.as_view(),
+        name="admin-user-unblock",
+    ),
     path("roles", views.RolesView.as_view(), name="roles"),
 ]

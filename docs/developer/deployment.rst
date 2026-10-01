@@ -1706,8 +1706,13 @@ Action                        Fields beyond actor and target
 ============================= ===============================================
 ``account.update``            ``fields`` -- the account columns changed
 ``account.roles``             ``added``, ``removed`` -- role slugs
-``account.activate``          --
-``account.deactivate``        --
+``account.activate``          ``self_service`` -- on the owner's own
+                              reactivation
+``account.deactivate``        ``self_service`` -- on the owner's own
+                              deactivation
+``account.block``             -- (a user administrator blocked the account
+                              from reactivating)
+``account.unblock``           --
 ``member.create``             ``invited`` -- whether an invitation was mailed
 ``member.delete``             ``payments``, ``owner`` -- when the member had
                               paid, how many payments moved and the
@@ -1767,8 +1772,10 @@ names the columns that moved, and ``fields=-`` when none did.
 A privileged attempt a rule turns away is logged at WARNING under the same
 action, with a ``reason`` slug saying which rule refused it: ``self_deactivation``,
 ``roles_not_held``, ``system_admin_role``, ``self_delete``,
-``system_admin_target``, ``inactive_account``, ``no_such_backup``, or ``import_running`` (a **Run now** pressed while an
-import is under way).
+``system_admin_target``, ``inactive_account``, ``donor_account``,
+``donor_kind``, ``reactivation_blocked`` (a reactivation of an account a user
+administrator has blocked), ``no_such_backup``, or ``import_running`` (a **Run
+now** pressed while an import is under way).
 
 A record carries ids, counts, flags, and slugs and nothing else.  Email
 addresses, names, passwords, tokens, and database contents are not values the

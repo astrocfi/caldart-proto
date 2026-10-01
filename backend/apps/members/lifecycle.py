@@ -98,17 +98,18 @@ def check_can_become_friend(user: User, today: date) -> None:
         raise DomainError(LIFETIME_STAYS_MEMBER)
 
 
-def become_friend(user: User, today: date | None = None) -> User:
+def become_friend(user: User, today: date | None = None, *, actor: User | None = None) -> User:
     """Make ``user`` a friend when their membership runs out, or at once, and return them.
 
     A membership current on ``today`` (the local date by default) is kept: ``friend_on``
     becomes the day after the unbroken coverage ends and the stored kind stays
     ``member`` until then.  Anybody else is stored as a friend at once, which raises
-    the ``became_friend`` event with ``how="chose"``; a change that waits raises it
-    from :func:`convert_due_friends` on the day.  One
-    ``account.kind`` record, under the account itself, names ``to=friend`` and the day
-    the change takes effect as ``on``.  Raises what :func:`check_can_become_friend`
-    raises, before writing anything.  The automatic renewal is the caller's to end.
+    the ``became_friend`` event with ``how="chose"``, or ``how="administrator"`` when
+    ``actor`` is somebody other than ``user``; a change that waits raises it from
+    :func:`convert_due_friends` on the day.  One ``account.kind`` record, under
+    ``actor`` (the account itself by default), names ``to=friend`` and the day the
+    change takes effect as ``on``.  Raises what :func:`check_can_become_friend` raises,
+    before writing anything.  The automatic renewal is the caller's to end.
     """
     today = today or timezone.localdate()
     check_can_become_friend(user, today)
@@ -118,11 +119,13 @@ def become_friend(user: User, today: date | None = None) -> User:
     else:
         user.kind, user.friend_on, effective_on = AccountKind.FRIEND, None, today
     user.save(update_fields=["kind", "friend_on", "updated_at"])
+    actor = actor or user
     audit.record(
-        audit.ACCOUNT_KIND, actor=user, target=user, to=AccountKind.FRIEND, on=str(effective_on)
+        audit.ACCOUNT_KIND, actor=actor, target=user, to=AccountKind.FRIEND, on=str(effective_on)
     )
     if user.kind == AccountKind.FRIEND:
-        events.emit("became_friend", user=user, how="chose")
+        how = "chose" if actor.pk == user.pk else "administrator"
+        events.emit("became_friend", user=user, how=how)
     return user
 
 

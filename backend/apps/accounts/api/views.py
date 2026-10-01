@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib.auth.models import AnonymousUser
 from django.db import transaction
@@ -19,6 +21,12 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.accounts.api.account_actions import (
+    block_for,
+    deactivate_for,
+    reactivate_for,
+    unblock_for,
+)
 from apps.accounts.api.filters import UserFilter
 from apps.accounts.api.serializers import (
     AdminUserSerializer,
@@ -42,13 +50,16 @@ from apps.accounts.roles import ROLE_DESCRIPTIONS
 from apps.accounts.services import (
     change_own_email,
     confirm_email_address,
-    deactivate_own_account,
-    deactivated_account,
     is_donor,
-    reactivate_own_account,
     send_email_verification,
     send_password_reset_email,
     verify_email,
+)
+from apps.accounts.status import (
+    closed_account_message,
+    deactivate_own_account,
+    deactivated_account,
+    reactivate_own_account,
 )
 from apps.accounts.throttling import (
     EmailVerifyResendThrottle,
@@ -175,8 +186,12 @@ class LoginView(APIView):
         case it is a 403 ``{"detail": "This account is deactivated. You can reactivate
         it.", "code": "deactivated"}`` -- so only somebody who already knows the password
         learns that the address belongs to a deactivated account, and can then post the
-        same credentials to ``/auth/reactivate``.  A donor cannot sign in at all:
-        whatever the password, the answer is the same 400 as wrong credentials.
+        same credentials to ``/auth/reactivate``.  An account a user administrator has
+        blocked from reactivating is instead a 403 ``{"detail": "This account has been
+        closed. Contact <organization name> to reopen it."}``, again only once the
+        password has matched, and carries no ``code``, so nothing offers reactivation.
+        A donor cannot sign in at all: whatever the password, the answer is the same
+        400 as wrong credentials.
         """
         serializer = LoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -191,7 +206,10 @@ class LoginView(APIView):
         if user is None:
             # `authenticate` also returns None for a deactivated account, so look
             # one up; its password still has to match before we say so.
-            if deactivated_account(email, password) is not None:
+            deactivated = deactivated_account(email, password)
+            if deactivated is not None and deactivated.reactivation_blocked:
+                return _closed()
+            if deactivated is not None:
                 return Response(
                     {"detail": DEACTIVATED_MESSAGE, "code": DEACTIVATED_CODE},
                     status=status.HTTP_403_FORBIDDEN,
@@ -283,9 +301,10 @@ class PasswordResetView(APIView):
         """Mail a reset link to the posted ``email`` and answer 204.
 
         Open to anonymous callers and throttled under the ``auth_password_reset`` scope.
-        An unregistered address, or a donor's, is answered 204 with no mail sent, so the
-        endpoint cannot be used to enumerate members.  A deactivated account is mailed
-        the link, since completing the reset reactivates it.  An account
+        An unregistered address, a donor's, or one a user administrator has blocked from
+        reactivating is answered 204 with no mail sent, so the endpoint cannot be used to
+        enumerate members.  A deactivated account is mailed the link, since completing
+        the reset reactivates it.  An account
         that has never set a password is mailed the link like any other.  A malformed
         address is a 400.
         """
@@ -317,30 +336,44 @@ class PasswordResetConfirmView(APIView):
         using it also marks an unverified address verified.  A deactivated account is
         reactivated exactly as ``/auth/reactivate`` does it -- the person proved the
         address and chose to come back -- though nobody is signed in: the new password
-        does that.
+        does that.  A link for an account a user administrator has blocked from
+        reactivating is a 400 under ``token`` with "This account has been closed. Contact
+        <organization name> to reopen it.", and nothing changes.
         """
         serializer = PasswordResetConfirmSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data["user"]
-        with transaction.atomic():
-            user.set_password(serializer.validated_data["new_password"])
-            user.save(update_fields=["password", "updated_at"])
-            confirm_email_address(user)
-            if not user.is_active:
-                reactivate(user)
+        try:
+            with transaction.atomic():
+                user.set_password(serializer.validated_data["new_password"])
+                user.save(update_fields=["password", "updated_at"])
+                confirm_email_address(user)
+                if not user.is_active:
+                    reactivate(user)
+        except DomainError:
+            # Blocked after the link was checked: the whole reset is rolled back.
+            return Response(
+                {"token": [closed_account_message()]}, status=status.HTTP_400_BAD_REQUEST
+            )
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 # --------------------------------------------------------------------------
 # Deactivating and reactivating your own account
 # --------------------------------------------------------------------------
-def _locked_is_active(user: User) -> bool:
-    """Lock ``user``'s row until the transaction ends, and read its stored active flag.
+def _closed() -> Response:
+    """The 403 the owner of an account blocked from reactivating is answered with."""
+    return Response({"detail": closed_account_message()}, status=status.HTTP_403_FORBIDDEN)
+
+
+def _locked(user: User) -> User:
+    """Lock ``user``'s row until the transaction ends, and read the whole of it afresh.
 
     Two requests racing to deactivate or reactivate one account run one after the
-    other, and the second sees what the first wrote.
+    other, and the second sees what the first wrote -- the active flag and the
+    reactivation block alike, so a block set after ``user`` was read still holds.
     """
-    return User.objects.select_for_update().values_list("is_active", flat=True).get(pk=user.pk)
+    return User.objects.select_for_update().get(pk=user.pk)
 
 
 @transaction.atomic
@@ -352,11 +385,12 @@ def deactivate(user: User) -> None:
     term with time left is suspended.  Raises the ``DomainError`` a refusal raises.
     An account already inactive when its row is locked is left alone.
     """
-    if not _locked_is_active(user):
+    locked = _locked(user)
+    if not locked.is_active:
         return
-    deactivate_own_account(user)
-    cancel_all_mandates(user)
-    suspend_terms(user)
+    deactivate_own_account(locked)
+    cancel_all_mandates(locked)
+    suspend_terms(locked)
 
 
 @transaction.atomic
@@ -366,12 +400,16 @@ def reactivate(user: User) -> bool:
     Kind and roles are untouched; each suspended term is active again, or expired if
     it ran out meanwhile.  Canceled mandates stay canceled.  ``False``, changing
     nothing, when the account is already active once its row is locked; ``True``
-    otherwise.
+    otherwise, when ``user`` is read again so the caller holds the account as stored.
+    The block is read from the locked row, so an account blocked after ``user`` was
+    loaded is refused: raises the ``DomainError`` ``reactivate_own_account`` raises.
     """
-    if _locked_is_active(user):
+    locked = _locked(user)
+    if locked.is_active:
         return False
-    reactivate_own_account(user)
-    restore_terms(user)
+    reactivate_own_account(locked)
+    restore_terms(locked)
+    user.refresh_from_db()
     return True
 
 
@@ -420,16 +458,26 @@ class ReactivateView(APIView):
         kind and roles are as they were, each suspended membership term is active
         again (or expired, if it ran out meanwhile), the change is recorded as
         ``account.activate`` with ``self_service=true``, and an unverified address is
-        mailed a verification link.  The answer is the ``user`` payload.  Anything else
-        -- a wrong password, an active account, an unknown address, a donor -- is the
-        400 "Incorrect email address or password." a sign-in gives.
+        mailed a verification link.  The answer is the ``user`` payload.  An account a
+        user administrator has blocked from reactivating, whose password matched, is a
+        403 ``{"detail": "This account has been closed. Contact <organization name> to
+        reopen it."}`` and stays deactivated.  Anything else -- a wrong password, an
+        active account, an unknown address, a donor -- is the 400 "Incorrect email
+        address or password." a sign-in gives.
         """
         serializer = LoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = deactivated_account(
             serializer.validated_data["email"], serializer.validated_data["password"]
         )
-        if user is None or not reactivate(user):
+        if user is not None and user.reactivation_blocked:
+            return _closed()
+        try:
+            is_reactivated = user is not None and reactivate(user)
+        except DomainError:
+            # Blocked between the read above and the row lock.
+            return _closed()
+        if user is None or not is_reactivated:
             return Response(
                 {"detail": WRONG_CREDENTIALS_MESSAGE},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -659,3 +707,100 @@ class AdminUserSendEmailVerificationView(APIView):
             )
         audit.record(audit.EMAIL_VERIFICATION_ADMIN_SENT, actor=actor, target=user)
         return _verification_sent(user)
+
+
+# --------------------------------------------------------------------------
+# Users admin -- the account's status
+# --------------------------------------------------------------------------
+#: One of the account actions in ``apps.accounts.api.account_actions``.
+type AccountAction = Callable[[User, User], User]
+
+
+def _admin_user_action(request: Request, pk: int, action: AccountAction) -> Response:
+    """Run ``action`` by the signed-in user on the account ``pk``, answering the record.
+
+    200 with the ``/admin/users/{id}`` payload as it stands afterwards; a refusal is a
+    400 ``{"detail": <sentence>}`` and changes nothing; an unknown ``pk`` is a 404.
+    """
+    actor = signed_in_user(request)
+    target = generics.get_object_or_404(User, pk=pk)
+    try:
+        action(actor, target)
+    except DomainError as error:
+        return Response({"detail": error.message}, status=status.HTTP_400_BAD_REQUEST)
+    record = admin_user_queryset().get(pk=pk)
+    return Response(AdminUserSerializer(record, context={"request": request}).data)
+
+
+class AdminUserDeactivateView(APIView):
+    """``POST /admin/users/{id}/deactivate``."""
+
+    permission_classes = [IsUserAdmin]
+
+    @extend_schema(request=None, responses={200: AdminUserSerializer})
+    def post(self, request: Request, pk: int) -> Response:
+        """Deactivate the account ``pk`` as its owner would deactivate it, answering 200.
+
+        Every automatic renewal and recurring donation is canceled, every membership
+        term with time left is suspended, every session signed in to the account is
+        ended, and the change is recorded as ``account.deactivate`` under the caller.
+        Your own account, a donor, an account holding roles you do not hold, and one
+        already deactivated are each a 400 ``{"detail": ...}``.  Restricted to
+        ``user_admin``, and to ``system_admin`` by implication.
+        """
+        return _admin_user_action(request, pk, deactivate_for)
+
+
+class AdminUserReactivateView(APIView):
+    """``POST /admin/users/{id}/reactivate``."""
+
+    permission_classes = [IsUserAdmin]
+
+    @extend_schema(request=None, responses={200: AdminUserSerializer})
+    def post(self, request: Request, pk: int) -> Response:
+        """Reactivate the account ``pk`` as its owner would reactivate it, answering 200.
+
+        Each suspended membership term is active again, or expired if it ran out
+        meanwhile; the change is recorded as ``account.activate`` under the caller.  A
+        donor, an account holding roles you do not hold, an account blocked from
+        reactivating, and one already active are each a 400 ``{"detail": ...}``.
+        Restricted to ``user_admin``, and to ``system_admin`` by implication.
+        """
+        return _admin_user_action(request, pk, reactivate_for)
+
+
+class AdminUserBlockView(APIView):
+    """``POST /admin/users/{id}/block``."""
+
+    permission_classes = [IsUserAdmin]
+
+    @extend_schema(request=None, responses={200: AdminUserSerializer})
+    def post(self, request: Request, pk: int) -> Response:
+        """Block the account ``pk`` from reactivating, answering 200.
+
+        An active account is deactivated first, exactly as ``/deactivate`` does it.
+        While the block is set, sign-in, ``/auth/reactivate``, a password reset, and
+        registering with the address all refuse with "This account has been closed.
+        Contact <organization name> to reopen it.", and no administrator reactivates it.
+        Recorded as ``account.block``.  Your own account, a donor, and an account
+        holding roles you do not hold are each a 400 ``{"detail": ...}``.  Restricted to
+        ``user_admin``, and to ``system_admin`` by implication.
+        """
+        return _admin_user_action(request, pk, block_for)
+
+
+class AdminUserUnblockView(APIView):
+    """``POST /admin/users/{id}/unblock``."""
+
+    permission_classes = [IsUserAdmin]
+
+    @extend_schema(request=None, responses={200: AdminUserSerializer})
+    def post(self, request: Request, pk: int) -> Response:
+        """Lift the account ``pk``'s block, answering 200; it stays deactivated.
+
+        Its owner may then reactivate it by signing in or resetting their password, and
+        an administrator may reactivate it.  Recorded as ``account.unblock``.  The same
+        refusals as ``/block`` apply.  Restricted to ``user_admin``, and to
+        ``system_admin`` by implication.
+        """
+        return _admin_user_action(request, pk, unblock_for)

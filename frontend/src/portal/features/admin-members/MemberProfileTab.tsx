@@ -1,7 +1,7 @@
 /**
- * The Profile tab of a member record: the same fields as "New member", plus
- * the account's active switch and the administrator-only notes, under a
- * Verification card for the pilot certificate, the medical, and the photo ID.
+ * The Profile tab of a member record: the same fields as "New member", plus the
+ * administrator-only notes, under a Verification card for the pilot certificate, the
+ * medical, and the photo ID. Deactivating the account is the Danger zone tab's.
  */
 import { useState } from 'react';
 import type { JSX } from 'react';
@@ -33,7 +33,6 @@ function accountDraftFrom(member: MemberDetail): AccountDraft {
     first_name: member.first_name,
     last_name: member.last_name,
     password: '',
-    is_active: member.is_active,
     kind: member.kind,
   };
 }
@@ -72,7 +71,6 @@ export function MemberProfileTab({ member }: { member: MemberDetail }): JSX.Elem
         email: account.email.trim(),
         first_name: account.first_name,
         last_name: account.last_name,
-        is_active: account.is_active,
         // An unchanged kind is left out: resending it would cancel a pending conversion.
         ...(account.kind === member.kind ? {} : kindPayload(account)),
         profile: adminProfilePayload(formToPatch(profile), adminOnly),
@@ -103,7 +101,6 @@ export function MemberProfileTab({ member }: { member: MemberDetail }): JSX.Elem
             value={account}
             onChange={(next) => setAccount(next)}
             errors={errors.account}
-            withActive
             emailHint={<EmailVerifiedText verifiedAt={member.email_verified_at} />}
           />
           <ProfileFieldsets

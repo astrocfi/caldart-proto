@@ -25,6 +25,7 @@ from apps.accounts.services import (
     update_account,
     verify_email,
 )
+from apps.accounts.status import deactivate_account, reactivate_account
 from apps.aircraft.models import Aircraft
 from apps.darts.models import Dart
 from apps.members.labels import profile_field_label
@@ -751,8 +752,8 @@ def test_deactivating_your_own_account_raises_account_deactivated_with_no_actor(
 def test_an_administrator_deactivating_raises_account_deactivated(
     user_admin: User, member: User, recorded: Recorded
 ) -> None:
-    """An administrator clearing **Account is active** is named as the actor."""
-    update_account(user_admin, member, {"is_active": False})
+    """An administrator's **Deactivate account** is named as the actor."""
+    deactivate_account(user_admin, member)
 
     assert raised(recorded, "account_deactivated") == [{"user": member, "actor": user_admin}]
 
@@ -775,11 +776,11 @@ def test_reactivating_your_own_account_raises_account_reactivated_with_no_actor(
 def test_an_administrator_reactivating_raises_account_reactivated(
     user_admin: User, member: User, recorded: Recorded
 ) -> None:
-    """An administrator ticking **Account is active** is named as the actor."""
+    """An administrator's **Reactivate account** is named as the actor."""
     member.is_active = False
     member.save(update_fields=["is_active"])
 
-    update_account(user_admin, member, {"is_active": True})
+    reactivate_account(user_admin, member)
 
     assert raised(recorded, "account_reactivated") == [{"user": member, "actor": user_admin}]
 
@@ -983,11 +984,11 @@ def test_an_administrator_editing_a_profile_raises_profile_changed(
     ]
 
 
-def test_an_administrator_changing_only_the_active_flag_raises_no_profile_change(
+def test_an_administrator_changing_only_the_kind_raises_no_profile_change(
     account_admin: User, member: User, profile: MemberProfile, recorded: Recorded
 ) -> None:
-    """The active flag has its own events; the profile is untouched."""
-    update_member(account_admin, member, account={"is_active": False})
+    """The kind has its own events; the profile is untouched."""
+    update_member(account_admin, member, account={"kind": AccountKind.FRIEND})
 
     assert raised(recorded, "profile_changed") == []
 

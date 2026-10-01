@@ -23,6 +23,7 @@ from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
 from rest_framework.views import APIView
 
+from apps.accounts.api.account_actions import deactivate_for, make_friend_for, reactivate_for
 from apps.accounts.models import User
 from apps.accounts.permissions import HasAnyRole, IsAccountAdmin
 from apps.accounts.roles import ACCOUNT_ADMIN, DART_LEADER
@@ -35,6 +36,7 @@ from apps.members.api.admin_serializers import (
     MembershipGrantSerializer,
     MemberUpdateSerializer,
 )
+from apps.members.api.profile_serializers import BecomeFriendSerializer
 from apps.members.filters import (
     MemberAdminFilterSet,
     MemberOrderingFilter,
@@ -43,6 +45,7 @@ from apps.members.filters import (
 from apps.members.models import Membership
 from apps.members.services import delete_member, grant_term
 from caldart import audit
+from caldart.exceptions import DomainError, DomainValidationError
 
 if TYPE_CHECKING:
     from apps.members.services import MemberRow
@@ -207,3 +210,97 @@ class MembershipAdminDetailView(generics.UpdateAPIView[Membership]):
             term=term.pk,
             fields=changed,
         )
+
+
+# --------------------------------------------------------------------------
+# The danger zone's account actions
+# --------------------------------------------------------------------------
+def _member_record(request: Request, pk: int) -> Response:
+    """200 with the member record ``pk`` as it stands now."""
+    return Response(
+        MemberDetailSerializer(member_admin_queryset(include_donors=True).get(pk=pk)).data
+    )
+
+
+class MemberMakeFriendView(APIView):
+    """``POST /admin/members/{user_id}/friend`` -- make the member a friend."""
+
+    permission_classes = [IsAccountAdmin]
+
+    @extend_schema(request=BecomeFriendSerializer, responses={200: MemberDetailSerializer})
+    def post(self, request: Request, pk: int) -> Response:
+        """200 with the member record once the member is, or will become, a friend.
+
+        This is what the member's own ``POST /me/kind/friend`` does, with the caller
+        recorded as the actor: a current membership is kept to its end and the account
+        becomes a friend the day after, or at once; the automatic renewal is canceled.
+        When that renewal is active and takes a contribution the body must carry
+        ``keep_contribution`` (true keeps it as a yearly recurring donation), or the
+        answer is 400 ``{"keep_contribution": ["This field is required."]}``; true while
+        the member already holds a recurring donation is 400 ``{"keep_contribution":
+        ["They already have a recurring donation, so the contribution cannot be kept as
+        one."]}``.  A friend, a life member, and a donor are each a 400 ``{"detail":
+        ...}``.  An unknown member is a 404.  Nothing changes on any refusal.
+        """
+        member = get_object_or_404(User, pk=pk)
+        serializer = BecomeFriendSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        keep = serializer.validated_data.get("keep_contribution")
+        try:
+            make_friend_for(acting_user(request), member, keep_contribution=keep)
+        except DomainValidationError:
+            raise
+        except DomainError as error:
+            return Response({"detail": error.message}, status=status.HTTP_400_BAD_REQUEST)
+        return _member_record(request, pk)
+
+
+class MemberDeactivateView(APIView):
+    """``POST /admin/members/{user_id}/deactivate`` -- deactivate the account."""
+
+    permission_classes = [IsAccountAdmin]
+
+    @extend_schema(request=None, responses={200: MemberDetailSerializer})
+    def post(self, request: Request, pk: int) -> Response:
+        """200 with the member record once the account is deactivated.
+
+        Everything the person's own deactivation does: every automatic renewal and
+        recurring donation is canceled, every membership term with time left is
+        suspended, every session signed in to the account is ended, and the change is
+        recorded as ``account.deactivate`` under the caller and raised as
+        ``account_deactivated`` naming the caller.  Your own account, a donor, an
+        account holding roles you do not hold (a system administrator's, unless you
+        are one), and one already deactivated are each a 400 ``{"detail": ...}``.  An
+        unknown member is a 404.
+        """
+        member = get_object_or_404(User, pk=pk)
+        try:
+            deactivate_for(acting_user(request), member)
+        except DomainError as error:
+            return Response({"detail": error.message}, status=status.HTTP_400_BAD_REQUEST)
+        return _member_record(request, pk)
+
+
+class MemberReactivateView(APIView):
+    """``POST /admin/members/{user_id}/reactivate`` -- reactivate the account."""
+
+    permission_classes = [IsAccountAdmin]
+
+    @extend_schema(request=None, responses={200: MemberDetailSerializer})
+    def post(self, request: Request, pk: int) -> Response:
+        """200 with the member record once the account is active again.
+
+        What the person's own reactivation does: each suspended membership term is
+        active again, or expired if it ran out meanwhile; canceled mandates stay
+        canceled.  Recorded as ``account.activate`` under the caller and raised as
+        ``account_reactivated`` naming the caller.  A donor, an account holding roles
+        you do not hold, an account a user administrator has blocked from reactivating,
+        and one already active are each a 400 ``{"detail": ...}``.  An unknown member is
+        a 404.
+        """
+        member = get_object_or_404(User, pk=pk)
+        try:
+            reactivate_for(acting_user(request), member)
+        except DomainError as error:
+            return Response({"detail": error.message}, status=status.HTTP_400_BAD_REQUEST)
+        return _member_record(request, pk)

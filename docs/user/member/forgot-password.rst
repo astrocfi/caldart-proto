@@ -43,8 +43,9 @@ link. Two things to know about it:
 Following the link also confirms that the address is yours, so an unverified
 address becomes verified when you set the new password.
 
-A deactivated account gets no email from this screen. A user administrator who
-tries to send one is told so.
+A deactivated account is sent the link like any other, and setting the new
+password reactivates it. An account an administrator has closed is sent nothing,
+though the screen reads the same.
 
 
 Nothing arrived?

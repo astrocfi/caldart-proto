@@ -332,4 +332,16 @@ describe('LoginPage reactivation', () => {
     await screen.findByText('Incorrect email address or password.');
     expect(screen.queryByRole('button', { name: 'Reactivate my account' })).not.toBeInTheDocument();
   });
+
+  it('tells the owner of a blocked account it is closed, with no reactivation', async () => {
+    const closed = 'This account has been closed. Contact CalDART to reopen it.';
+    server.use(
+      http.post(`${API}/auth/login`, () => HttpResponse.json({ detail: closed }, { status: 403 })),
+    );
+    renderLogin();
+    await signInToDeactivated();
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(closed);
+    expect(screen.queryByRole('button', { name: 'Reactivate my account' })).not.toBeInTheDocument();
+  });
 });

@@ -11,10 +11,12 @@ import { expect, test } from '@playwright/test';
 import type { Locator, Page } from '@playwright/test';
 
 import {
+  DEMO,
   completeOnboarding,
   completeProfileStep,
   followVerificationLink,
   registerAccount,
+  signIn,
   uniqueEmail,
 } from './helpers';
 
@@ -125,4 +127,32 @@ test('a joiner who chooses to be a friend can give in the same card, then finish
 
   await expect(page).toHaveURL(/\/portal\/join\/done/);
   await expect(page.getByText('You are a friend of CalDART.', { exact: true })).toBeVisible();
+});
+
+test('an account administrator makes a current member a friend', async ({ page }) => {
+  const email = uniqueEmail('handed');
+  await completeOnboarding(page, email, { as: 'member', firstName: 'Bea' });
+  await page.context().clearCookies();
+
+  await signIn(page, DEMO.accountadmin);
+  const found = (await (
+    await page.request.get(`api/v1/admin/members?search=${encodeURIComponent(email)}`)
+  ).json()) as { results: { user_id: number }[] };
+  await page.goto(`portal/admin/members/${found.results[0]?.user_id ?? 0}`);
+  await page.getByRole('tab', { name: 'Danger zone' }).click();
+
+  const account = page.locator('section.card', {
+    has: page.getByRole('heading', { name: 'Account', exact: true }),
+  });
+  await account.getByRole('button', { name: 'Make a friend' }).click();
+  const panel = account.getByRole('region', { name: 'Make a friend' });
+  await expect(
+    panel.getByText(/membership stays current through \d{2}\/\d{2}\/\d{4}/),
+  ).toBeVisible();
+  await panel.getByRole('button', { name: 'Make a friend' }).click();
+
+  // The membership runs to its end, and the record shows the day of the change.
+  await expect(
+    account.getByText(/^Bea Okafor becomes a friend of CalDART on \d{2}\/\d{2}\/\d{4}\.$/),
+  ).toBeVisible();
 });

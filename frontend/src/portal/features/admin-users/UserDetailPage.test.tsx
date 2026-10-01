@@ -124,14 +124,127 @@ describe('UserDetailPage', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(/only a system administrator/i);
   });
 
-  it('will not let an admin deactivate their own account', async () => {
+  it('offers no action on your own account', async () => {
     const me = makeUser({ id: 7, roles: ['member', 'user_admin'] });
     stubDetail({ me });
     renderDetail();
     await screen.findByRole('heading', { name: 'Priya Raman' });
 
-    expect(screen.getByRole('checkbox', { name: /active/i })).toBeDisabled();
-    expect(screen.getByText(/cannot deactivate your own account/i)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Deactivate account' })).not.toBeInTheDocument();
+    expect(screen.getByText('You cannot deactivate or block your own account.')).toBeVisible();
+  });
+
+  it('has no Active box in the form', async () => {
+    stubDetail();
+    renderDetail();
+    await screen.findByRole('heading', { name: 'Priya Raman' });
+
+    expect(screen.queryByRole('checkbox', { name: /active/i })).not.toBeInTheDocument();
+  });
+
+  it('never sends the active flag with a save', async () => {
+    const patched = stubDetail();
+    renderDetail();
+    await screen.findByRole('heading', { name: 'Priya Raman' });
+
+    await userEvent.click(screen.getByRole('button', { name: /save changes/i }));
+
+    await waitFor(() => expect(patched).toHaveLength(1));
+    expect(patched[0]).not.toHaveProperty('is_active');
+  });
+
+  describe('account status', () => {
+    /**
+     * Answer `POST .../{action}` with `answer`, and from then on serve `answer` as the
+     * record too, as the server would once the action has gone through.
+     */
+    function stubAction(action: string, answer: AdminUser | { detail: string }, status = 200) {
+      const calls: string[] = [];
+      server.use(
+        http.post(`${API}/admin/users/${TARGET.id}/${action}`, () => {
+          calls.push(action);
+          if (status === 200) {
+            server.use(
+              http.get(`${API}/admin/users/${TARGET.id}`, () => HttpResponse.json(answer)),
+            );
+          }
+          return HttpResponse.json(answer, { status });
+        }),
+      );
+      return calls;
+    }
+
+    it('deactivates once confirmed, and then offers reactivation', async () => {
+      stubDetail();
+      const calls = stubAction('deactivate', { ...TARGET, is_active: false });
+      renderDetail();
+      await screen.findByRole('heading', { name: 'Priya Raman' });
+
+      await userEvent.click(screen.getByRole('button', { name: 'Deactivate account' }));
+      await userEvent.click(screen.getByRole('button', { name: 'Deactivate account' }));
+
+      expect(await screen.findByRole('button', { name: 'Reactivate account' })).toBeVisible();
+      expect(calls).toEqual(['deactivate']);
+    });
+
+    it('draws a refused deactivation', async () => {
+      stubDetail();
+      stubAction(
+        'deactivate',
+        {
+          detail: 'You cannot activate or deactivate an account that holds roles you do not hold.',
+        },
+        400,
+      );
+      renderDetail();
+      await screen.findByRole('heading', { name: 'Priya Raman' });
+
+      await userEvent.click(screen.getByRole('button', { name: 'Deactivate account' }));
+      await userEvent.click(screen.getByRole('button', { name: 'Deactivate account' }));
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'You cannot activate or deactivate an account that holds roles you do not hold.',
+      );
+    });
+
+    it('blocks reactivation once confirmed', async () => {
+      stubDetail();
+      const calls = stubAction('block', {
+        ...TARGET,
+        is_active: false,
+        reactivation_blocked: true,
+      });
+      renderDetail();
+      await screen.findByRole('heading', { name: 'Priya Raman' });
+
+      await userEvent.click(screen.getByRole('button', { name: 'Block reactivation' }));
+      expect(screen.getByText(/The account is deactivated first/)).toBeVisible();
+      await userEvent.click(screen.getByRole('button', { name: 'Block reactivation' }));
+
+      expect(await screen.findByRole('button', { name: 'Allow reactivation' })).toBeVisible();
+      expect(calls).toEqual(['block']);
+    });
+
+    it('offers no reactivation while the account is blocked', async () => {
+      stubDetail({ target: { ...TARGET, is_active: false, reactivation_blocked: true } });
+      renderDetail();
+      await screen.findByRole('heading', { name: 'Priya Raman' });
+
+      expect(screen.getByRole('button', { name: 'Reactivate account' })).toBeDisabled();
+    });
+
+    it('allows reactivation once confirmed', async () => {
+      stubDetail({ target: { ...TARGET, is_active: false, reactivation_blocked: true } });
+      const calls = stubAction('unblock', { ...TARGET, is_active: false });
+      renderDetail();
+      await screen.findByRole('heading', { name: 'Priya Raman' });
+
+      await userEvent.click(screen.getByRole('button', { name: 'Allow reactivation' }));
+      await userEvent.click(screen.getByRole('button', { name: 'Allow reactivation' }));
+
+      expect(await screen.findByRole('button', { name: 'Block reactivation' })).toBeVisible();
+      expect(calls).toEqual(['unblock']);
+    });
   });
 
   it('sends a password reset and reports what the API said', async () => {

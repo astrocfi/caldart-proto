@@ -9,7 +9,9 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
 
 import { api } from '@/portal/api/client';
+import { ADMIN_USERS_KEY } from '@/portal/api/queries';
 import type {
+  BecomeFriendPayload,
   GrantTermPayload,
   MemberCreatePayload,
   MemberDetail,
@@ -19,6 +21,7 @@ import type {
   Paginated,
   TermUpdatePayload,
 } from '@/portal/api/types';
+import { FINANCE_KEY } from '@/portal/features/admin-payments/api';
 import type { FilterValues } from '@/portal/reports/types';
 
 export const MEMBERS_KEY = ['admin-members'] as const;
@@ -119,4 +122,44 @@ export function useUpdateTerm(): UseMutationResult<
       api.patch<MemberTerm>(`/admin/memberships/${termId}`, payload),
     onSuccess: () => invalidate(),
   });
+}
+
+/**
+ * One of the danger zone's account actions: `POST /admin/members/{id}/{action}`.
+ *
+ * The answer is the member record as it stands afterwards. Every member query is
+ * invalidated, and so are the users list and the finance area, since deactivating or making a friend
+ * cancels the automatic renewal and may start a recurring donation.
+ */
+function useMemberAction<Body>(
+  id: number,
+  action: 'friend' | 'deactivate' | 'reactivate',
+): UseMutationResult<MemberDetail, Error, Body> {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Body) => api.post<MemberDetail>(`/admin/members/${id}/${action}`, body),
+    onSuccess: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: MEMBERS_KEY }),
+        queryClient.invalidateQueries({ queryKey: FINANCE_KEY }),
+        queryClient.invalidateQueries({ queryKey: ADMIN_USERS_KEY }),
+      ]),
+  });
+}
+
+/** Makes the member a friend, as their own switch would; may carry `keep_contribution`. */
+export function useMakeFriend(
+  id: number,
+): UseMutationResult<MemberDetail, Error, BecomeFriendPayload> {
+  return useMemberAction<BecomeFriendPayload>(id, 'friend');
+}
+
+/** Deactivates the member's account, as their own deactivation would. */
+export function useDeactivateMember(id: number): UseMutationResult<MemberDetail, Error, void> {
+  return useMemberAction<void>(id, 'deactivate');
+}
+
+/** Reactivates the member's account, as their own reactivation would. */
+export function useReactivateMember(id: number): UseMutationResult<MemberDetail, Error, void> {
+  return useMemberAction<void>(id, 'reactivate');
 }
