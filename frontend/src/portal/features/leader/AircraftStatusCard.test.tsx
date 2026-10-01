@@ -91,7 +91,12 @@ describe('aircraftVerdict', () => {
   it('reads an aircraft the policy excludes as NOT COVERED, with the reason', () => {
     const reason = "Not covered: helicopters are excluded by CalDART's policy";
     const verdict = aircraftVerdict({ ...insured, coverage: { excluded: true, reason } }, TODAY);
-    expect(verdict).toEqual({ word: 'NOT COVERED', why: reason, mark: 'Not covered', go: false });
+    expect(verdict).toEqual({
+      word: 'NOT COVERED',
+      why: "helicopters are excluded by CalDART's policy",
+      mark: 'Not covered',
+      go: false,
+    });
   });
 
   it('reads a covered aircraft by its insurance', () => {

@@ -41,8 +41,8 @@ survives a reload and you can send it to another leader.
 
 The band across the top gives one of four verdicts:
 
-- **NOT COVERED**, with the reason, such as *Not covered: helicopters are excluded by
-  CalDART's policy*: the coverage policy an account administrator keeps on the
+- **NOT COVERED**, with the reason, such as *helicopters are excluded by CalDART's
+  policy*: the coverage policy an account administrator keeps on the
   :doc:`aircraft-register` leaves out the airplane's category or its airworthiness
   category. This is a no-go whatever its insurance.
 
@@ -57,9 +57,10 @@ the airplane out of service, and the make, model, year, and seats. Then come fiv
 
 **Category**
    The aircraft category and the airworthiness category, such as *Helicopter · Standard*,
-   and a red **Not covered** chip when the coverage policy leaves the airplane out. With
-   neither recorded it reads *Category not recorded*: the policy cannot tell whether the
-   airplane is covered, so ask the pilot, and have the category recorded on **My aircraft**
+   and a red **Not covered** chip when the coverage policy leaves the airplane out. With no
+   category recorded it reads *Category not recorded*, followed by the airworthiness category
+   when there is one, such as *Category not recorded · Standard*: the policy cannot tell
+   whether the airplane's category is covered, so ask the pilot, and have the category recorded on **My aircraft**
    or the :doc:`aircraft-record`.
 
 **Insurance**

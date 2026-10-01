@@ -189,7 +189,7 @@ test('a helicopter is filled from the registry and the aircraft check calls it n
   await page.goto(`portal/leader/aircraft?aircraft=${FIXTURE_HELICOPTER}`);
   await expect(page.getByText('NOT COVERED', { exact: true })).toBeVisible();
   await expect(
-    page.getByText("Not covered: helicopters are excluded by CalDART's policy", { exact: true }),
+    page.getByText("helicopters are excluded by CalDART's policy", { exact: true }),
   ).toBeVisible();
 });
 

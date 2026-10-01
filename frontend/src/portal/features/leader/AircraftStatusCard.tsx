@@ -65,14 +65,19 @@ export function insuranceVerdict(aircraft: InsuranceFacts, today?: Date): Verdic
 
 type CheckFacts = InsuranceFacts & Pick<Aircraft, 'coverage'>;
 
+/** The prefix the server's exclusion reason starts with, which the band's word already says. */
+const NOT_COVERED_PREFIX = 'Not covered: ';
+
 /**
- * The aircraft check's verdict: NOT COVERED, with the policy's reason, for an
- * aircraft the coverage policy excludes, whatever its insurance; otherwise the
- * insurance verdict.  The results list and the card read the same answer.
+ * The aircraft check's verdict: NOT COVERED, with the policy's reason (less its
+ * `Not covered: ` prefix, which the word already says), for an aircraft the
+ * coverage policy excludes, whatever its insurance; otherwise the insurance
+ * verdict.  The results list and the card read the same answer.
  */
 export function aircraftVerdict(aircraft: CheckFacts, today?: Date): Verdict {
   if (aircraft.coverage.excluded) {
-    return { word: 'NOT COVERED', why: aircraft.coverage.reason, mark: 'Not covered', go: false };
+    const why = aircraft.coverage.reason.replace(NOT_COVERED_PREFIX, '');
+    return { word: 'NOT COVERED', why, mark: 'Not covered', go: false };
   }
   return insuranceVerdict(aircraft, today);
 }

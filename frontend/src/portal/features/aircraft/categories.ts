@@ -33,12 +33,16 @@ export const AIRWORTHINESS_LABELS: Record<Airworthiness, string> = {
 
 export const AIRWORTHINESS_VALUES = Object.keys(AIRWORTHINESS_LABELS) as Airworthiness[];
 
+/** What the aircraft check says of an aircraft with no category. */
+const CATEGORY_NOT_RECORDED = 'Category not recorded';
+
 /** What a blank category or airworthiness reads as. */
 export const NOT_RECORDED = 'Not recorded';
 
 /**
- * The category and airworthiness as one line, e.g. `Helicopter · Standard`, or
- * `Category not recorded` when neither is.  A blank half is left out.
+ * The category and airworthiness as one line, e.g. `Helicopter · Standard`.  A
+ * blank category reads `Category not recorded`, as the coverage check says it
+ * (`Category not recorded · Standard`); a blank airworthiness is left out.
  */
 export function categoryLine({
   category,
@@ -47,9 +51,8 @@ export function categoryLine({
   category: AircraftCategory | '';
   airworthiness: Airworthiness | '';
 }): string {
-  const parts = [
-    category === '' ? '' : CATEGORY_LABELS[category],
-    airworthiness === '' ? '' : AIRWORTHINESS_LABELS[airworthiness],
-  ].filter((part) => part !== '');
-  return parts.length === 0 ? 'Category not recorded' : parts.join(' · ');
+  const categoryPart = category === '' ? CATEGORY_NOT_RECORDED : CATEGORY_LABELS[category];
+  return airworthiness === ''
+    ? categoryPart
+    : `${categoryPart} · ${AIRWORTHINESS_LABELS[airworthiness]}`;
 }

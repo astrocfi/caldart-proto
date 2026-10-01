@@ -937,7 +937,7 @@ The insurance card for one airplane, keyed by normalized registration.  The
 shape is ``GET /aircraft/{id}``'s, and ``pilots`` is always present here
 because the endpoint is role-gated already.  The portal reads ``coverage``
 before the insurance: an excluded aircraft is a no-go, *NOT COVERED* with the
-reason, whatever its insurance.
+reason (less its ``Not covered:`` prefix), whatever its insurance.
 
 Statuses:
 

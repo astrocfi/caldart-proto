@@ -269,7 +269,26 @@ describe('LeaderAircraftPage card', () => {
     renderWithProviders(<LeaderAircraftPage />, { route: '/leader/aircraft?aircraft=N172SP' });
 
     expect(await screen.findByText('NOT COVERED')).toBeInTheDocument();
-    expect(screen.getByText(reason)).toHaveClass('leader-verdict__why');
+    expect(screen.getByText("helicopters are excluded by CalDART's policy")).toHaveClass(
+      'leader-verdict__why',
+    );
+  });
+
+  it('says the category is not recorded beside a recorded airworthiness', async () => {
+    server.use(
+      http.get(`${API}/leader/aircraft`, () =>
+        HttpResponse.json(
+          makeVerifiedAircraft({
+            category: '',
+            airworthiness: 'standard',
+            coverage: { excluded: false, reason: 'Category not recorded' },
+          }),
+        ),
+      ),
+    );
+    renderWithProviders(<LeaderAircraftPage />, { route: '/leader/aircraft?aircraft=N172SP' });
+
+    expect(await screen.findByText('Category not recorded · Standard')).toBeInTheDocument();
   });
 
   it('says when no category is recorded', async () => {

@@ -81,11 +81,12 @@ and press **Save policy**; *Coverage policy saved.* appears. **Cancel** puts the
 as it was. The note takes at most 1,000 characters.
 
 The policy takes effect at once. The aircraft check shows an airplane it leaves out as
-**NOT COVERED**, a no-go, with the reason, such as *Not covered: helicopters are excluded by
-CalDART's policy*, whatever its insurance; the member check marks the airplane **Not
-covered** on the pilot's card; and **My aircraft** marks it for its pilot. An airplane with
-no category recorded is never left out by its category: the aircraft check says *Category
-not recorded* instead, so record it on the :doc:`aircraft-record`.
+**NOT COVERED**, a no-go, with the reason, such as *helicopters are excluded by CalDART's
+policy*, whatever its insurance; the member check marks the airplane **Not covered** on the
+pilot's card; and **My aircraft** marks it for its pilot. An airplane with no **Category**
+recorded is never left out by its category, whatever its airworthiness says: the aircraft
+check says *Category not recorded* instead, so record the category on the
+:doc:`aircraft-record`.
 
 
 Filtering

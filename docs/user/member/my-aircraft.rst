@@ -87,8 +87,9 @@ register**, the whole record, with every box the record has when you edit it lat
 * **Seats**. Picking a type with **Seats** empty fills in its seats.
 * **Category**, such as Airplane, Helicopter, Gyroplane, Glider, or Balloon, and
   **Airworthiness**, the category on the airworthiness certificate, such as Standard,
-  Experimental, or Light sport. Either may stay **Not recorded**, but a DART leader's
-  aircraft check then says *Category not recorded*. Picking a type the registry knows the
+  Experimental, or Light sport. Either may stay **Not recorded**, but with no **Category**
+  recorded a DART leader's aircraft check says *Category not recorded*, whatever the
+  airworthiness. Picking a type the registry knows the
   category of fills in **Category**.
 * **Owner type** (Individual, FBO, or Flying club), **Owner name**, and **Owner
   contact**, an email address or a phone number.
