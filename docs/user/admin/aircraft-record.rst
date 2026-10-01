@@ -31,13 +31,14 @@ the date of the last change and the account behind it. A record nobody has chang
 was loaded gives the date alone. The form has four parts.
 
 **Aircraft**
-   **N-number**, **Year**, **Aircraft type**, and **Seats**. The N-number is a US
+   **N-number**, **Year**, **Aircraft type**, **Seats**, **Category**, and
+   **Airworthiness**. The N-number is a US
    registration: the box writes the N, then takes digits first and at most two letters,
    never I or O. As you type, up to eight airplanes from the FAA registry whose N-number
    starts with what you typed are listed under the box, each with its N-number, aircraft
    type, year, and registrant; click one, or reach it with the arrow keys and press Enter,
    and Escape closes the list. Picking one writes its N-number into the box and fills the
-   type, year, and seats; it fills **Owner name** from the registration and guesses **Owner
+   type, year, seats, category, and airworthiness; it fills **Owner name** from the registration and guesses **Owner
    type** from the kind of registrant it is (a person or co-owners become Individual, a
    partnership becomes Flying club, a company becomes FBO; a government registrant, or one
    that fits none of those, leaves Owner type as it was). The line under the box then reads
@@ -45,8 +46,13 @@ was loaded gives the date alone. The form has four parts.
    airplane the registry lacks is simply not listed; type its whole N-number. The aircraft type is picked from a list: type the make, the
    model, or a designator (cessna 172, c172, skyhawk) in **Aircraft type** and pick the
    entry, which shows its seats. The make and model come from the type, and picking one
-   with **Seats** empty fills in its seats. A type the list lacks can be added with
-   **Add a type**, as the :doc:`aircraft-register` describes.
+   with **Seats** empty fills in its seats and, when the registry knows it, the
+   **Category**. A type the list lacks can be added with **Add a type**, as the
+   :doc:`aircraft-register` describes. **Category** (Airplane, Helicopter, Gyroplane,
+   Glider, Balloon, Airship, Powered lift, Weight-shift control, Powered parachute, or
+   Other) and **Airworthiness** (Standard, Limited, Restricted, Experimental, Provisional,
+   Multiple, Primary, Special flight permit, or Light sport) may stay **Not recorded**;
+   the :ref:`coverage-policy` is judged against them.
 
 **Owner**
    **Owner type** (Individual, FBO, or Flying club), **Owner name**, and **Owner contact**,

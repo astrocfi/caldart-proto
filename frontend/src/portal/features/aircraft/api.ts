@@ -11,11 +11,14 @@ import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
 import { ApiError, api } from '@/portal/api/client';
 import type {
   Aircraft,
+  AircraftCategory,
   AircraftChange,
+  AircraftCoveragePolicy,
   AircraftDetail,
   AircraftPatch,
   AircraftType,
   AircraftTypeCreatePayload,
+  Airworthiness,
   OwnerType,
   Paginated,
   Registration,
@@ -27,6 +30,8 @@ export type InsuranceState = 'current' | 'expired' | 'missing';
 export interface AircraftFilters {
   search?: string;
   make?: string;
+  category?: AircraftCategory | '';
+  airworthiness?: Airworthiness | '';
   owner_type?: OwnerType | '';
   insurance?: InsuranceState | '';
   expiring_within?: string;
@@ -208,6 +213,35 @@ export function useDeleteAircraft(id: number): UseMutationResult<null, Error, vo
   const invalidate = useInvalidateAircraft();
   return useMutation({
     mutationFn: () => api.delete<null>(`/aircraft/${id}`),
+    onSuccess: () => invalidate(),
+  });
+}
+
+/** The coverage policy's query key, under `aircraft` so a register write refreshes it too. */
+export const COVERAGE_POLICY_KEY = [AIRCRAFT_KEY, 'coverage-policy'] as const;
+
+/** The coverage policy, `GET /aircraft/coverage-policy`; any signed-in member reads it. */
+export function useCoveragePolicy(): UseQueryResult<AircraftCoveragePolicy> {
+  return useQuery({
+    queryKey: COVERAGE_POLICY_KEY,
+    queryFn: () => api.get<AircraftCoveragePolicy>('/aircraft/coverage-policy'),
+  });
+}
+
+/**
+ * Replaces the coverage policy, `PUT /aircraft/coverage-policy` (account
+ * administrators only).  Every aircraft query is dropped afterwards, since each
+ * aircraft's coverage follows the policy.
+ */
+export function useSaveCoveragePolicy(): UseMutationResult<
+  AircraftCoveragePolicy,
+  Error,
+  AircraftCoveragePolicy
+> {
+  const invalidate = useInvalidateAircraft();
+  return useMutation({
+    mutationFn: (payload: AircraftCoveragePolicy) =>
+      api.put<AircraftCoveragePolicy>('/aircraft/coverage-policy', payload),
     onSuccess: () => invalidate(),
   });
 }

@@ -81,3 +81,42 @@ describe('withPickedType', () => {
     expect([cleared.type, cleared.seats]).toEqual([null, '4']);
   });
 });
+
+describe('the category and airworthiness', () => {
+  it('fill from a registration', () => {
+    const filled = withRegistration(
+      emptyAircraftValues('N781SH'),
+      makeRegistration({
+        type: makeAircraftType({ category: 'helicopter' }),
+        airworthiness: 'standard',
+      }),
+    );
+    expect([filled.category, filled.airworthiness]).toEqual(['helicopter', 'standard']);
+  });
+
+  it('keep what the form held when the registry records neither', () => {
+    const before = {
+      ...emptyAircraftValues('N739TA'),
+      category: 'glider' as const,
+      airworthiness: 'experimental' as const,
+    };
+    const filled = withRegistration(
+      before,
+      makeRegistration({ type: makeAircraftType({ category: '' }), airworthiness: '' }),
+    );
+    expect([filled.category, filled.airworthiness]).toEqual(['glider', 'experimental']);
+  });
+
+  it('take the category of a picked type', () => {
+    const picked = withPickedType(
+      emptyAircraftValues(),
+      makeAircraftType({ category: 'gyroplane' }),
+    );
+    expect(picked.category).toBe('gyroplane');
+  });
+
+  it('keep the category when the picked type records none', () => {
+    const before = { ...emptyAircraftValues(), category: 'balloon' as const };
+    expect(withPickedType(before, makeAircraftType({ category: '' })).category).toBe('balloon');
+  });
+});

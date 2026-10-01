@@ -57,6 +57,38 @@ When no airplane matches, the table says *No aircraft match these filters* and s
 clearing a filter or adding the aircraft to the register.
 
 
+.. _coverage-policy:
+
+Coverage policy
+===============
+
+The **Coverage policy** card, above the table, says which airplanes CalDART's insurance
+does not cover, so a DART leader is not surprised on the ramp. It reads three lines:
+
+**Excluded categories**
+   The aircraft categories the policy leaves out, such as **Helicopter**, or *None*.
+
+**Excluded airworthiness**
+   The airworthiness categories it leaves out, such as **Experimental**, or *None*.
+
+**Note to members**
+   A short statement of the limitation in your own words, or *None*. Every member reads it
+   above the list on **My aircraft**.
+
+To change it, press **Edit policy**. Tick the categories and the airworthiness categories
+to leave out in the two drop-downs (**Clear** in either unticks them all), write the note,
+and press **Save policy**; *Coverage policy saved.* appears. **Cancel** puts the card back
+as it was. The note takes at most 1,000 characters.
+
+The policy takes effect at once. The aircraft check shows an airplane it leaves out as
+**NOT COVERED**, a no-go, with the reason, such as *helicopters are excluded by CalDART's
+policy*, whatever its insurance; the member check marks the airplane **Not covered** on the
+pilot's card; and **My aircraft** marks it for its pilot. An airplane with no **Category**
+recorded is never left out by its category, whatever its airworthiness says: the aircraft
+check says *Category not recorded* instead, so record the category on the
+:doc:`aircraft-record`.
+
+
 Filtering
 =========
 
@@ -71,6 +103,12 @@ browser's back button steps back through them.
 
 **Make**
    Any part of the make.
+
+**Category**
+   One aircraft category, such as **Airplane**, **Helicopter**, or **Glider**.
+
+**Airworthiness**
+   One airworthiness category, such as **Standard**, **Experimental**, or **Light sport**.
 
 **Owner type**
    **Individual**, **FBO**, or **Flying club**.
@@ -91,7 +129,8 @@ button reads **Close** while the form is open. The form is the whole record, the
 :doc:`aircraft-record`, so everything can be filled in at once. Only the N-number and the
 aircraft type are required. Type the start of the N-number, such as N17, and the FAA
 registry's airplanes whose N-number starts with it are listed under the box; pick one to
-fill the type, year, seats, and owner from the registry, then check them. Press **Add
+fill the type, year, seats, category, airworthiness, and owner from the registry, then
+check them. Press **Add
 aircraft**. The message reads that the airplane was
 *added to the register*, and its record opens.
 
@@ -128,9 +167,9 @@ occurrence**, **Hull**, **Expires**, and **Current**. The CSV gives money as pla
 for a spreadsheet. The PDF is a landscape letter table with the filters printed under the
 title.
 
-**Columns** chooses what the downloads carry. Three more are on offer: **Owner type**,
-**Liability / person**, and **Pilots**, the members who list the airplane on their profile.
-They are off until you tick them. **Reset to the default columns** ticks the nine again.
+**Columns** chooses what the downloads carry. Five more are on offer: **Category**,
+**Airworthiness**, **Owner type**, **Liability / person**, and **Pilots**, the members who
+list the airplane on their profile. They are off until you tick them. **Reset to the default columns** ticks the nine again.
 Your choice changes the downloads only; the register on screen keeps its five columns.
 **Load columns** and **Save columns** keep a set of columns under a name, as
 :ref:`saved-column-sets` describes.

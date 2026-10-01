@@ -286,6 +286,7 @@ def test_a_created_aircraft_answers_with_its_type(api_client: APIClient, member:
             "model": "SR22",
             "seats": 4,
             "engines": 1,
+            "category": "",
             "is_custom": False,
         },
     )

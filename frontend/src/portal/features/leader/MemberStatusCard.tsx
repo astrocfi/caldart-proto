@@ -221,7 +221,11 @@ export function MemberStatusCard({ userId, status, today }: MemberStatusCardProp
               <span className="leader-aircraft__name">
                 {aircraft.make} {aircraft.model}
               </span>
-              <InsuranceChip aircraft={aircraft} today={today} />
+              {aircraft.coverage.excluded ? (
+                <StatusChip tone="expired" label="Not covered" title={aircraft.coverage.reason} />
+              ) : (
+                <InsuranceChip aircraft={aircraft} today={today} />
+              )}
               <span className="leader-aircraft__expiry muted">
                 {aircraft.insurance_expiration ? (
                   <>
@@ -232,6 +236,7 @@ export function MemberStatusCard({ userId, status, today }: MemberStatusCardProp
                   'no policy on file'
                 )}
                 {aircraft.insurance_verified ? '' : ' · not verified'}
+                {aircraft.coverage.reason === '' ? '' : ` · ${aircraft.coverage.reason}`}
               </span>
             </li>
           ))}

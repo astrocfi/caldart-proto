@@ -162,6 +162,16 @@ The insurance expiry on the aircraft's record has passed, or there is none on fi
 If you added the airplane, correct it with **Edit** on **My aircraft**; otherwise ask
 an account administrator. See :doc:`member/my-aircraft`.
 
+Which aircraft does CalDART's insurance cover?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The coverage policy says which aircraft categories, such as helicopters, and which
+airworthiness categories, such as experimental, CalDART's insurance leaves out. Its note
+to members stands at the top of **My aircraft**, and an airplane on your list that it
+leaves out is marked **Not covered**. A DART leader's aircraft check shows such an
+airplane as a no-go, so talk to your DART leader before offering it for a mission. See
+:doc:`member/my-aircraft`.
+
 Somebody already added the airplane I fly. Should I add another?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

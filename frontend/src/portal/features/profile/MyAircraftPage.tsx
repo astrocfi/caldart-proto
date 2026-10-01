@@ -4,9 +4,11 @@
  * The search half is `<AircraftPicker/>` from `@/portal/features/aircraft`;
  * this page attaches and detaches what it hands back, opens `<AircraftEditor/>`
  * on an attached aircraft, and shows the insurance currency a DART leader will
- * check and whether an authority has verified the policy.
+ * check and whether an authority has verified the policy.  The coverage
+ * policy's note to members stands above the list, and an aircraft the policy
+ * excludes is marked with the reason.
  */
-import { AircraftPicker } from '@/portal/features/aircraft';
+import { AircraftPicker, useCoveragePolicy } from '@/portal/features/aircraft';
 import { useState } from 'react';
 import type { JSX } from 'react';
 
@@ -16,7 +18,7 @@ import { Card } from '@/portal/components/Card';
 import { DeleteButton } from '@/portal/components/DeleteButton';
 import { EmptyState } from '@/portal/components/EmptyState';
 import { Page } from '@/portal/components/Page';
-import { CurrencyChip } from '@/portal/components/StatusChip';
+import { CurrencyChip, StatusChip } from '@/portal/components/StatusChip';
 import { useToast } from '@/portal/components/Toast';
 import { VerifiedMark } from '@/portal/components/VerifiedMark';
 import { useAuth } from '@/portal/auth/useAuth';
@@ -29,6 +31,7 @@ export function MyAircraftPage(): JSX.Element {
   const profile = useProfile();
   const attach = useAttachAircraft();
   const detach = useDetachAircraft();
+  const policy = useCoveragePolicy();
   const toast = useToast();
   const { user } = useAuth();
   // The record open for editing, if any.  A member may correct an airplane
@@ -36,6 +39,7 @@ export function MyAircraftPage(): JSX.Element {
   const [editing, setEditing] = useState<number | null>(null);
 
   const aircraft = profile.data?.aircraft ?? [];
+  const policyNote = policy.data?.note ?? '';
   const busy = attach.isPending || detach.isPending;
 
   function fail(error: unknown, fallback: string) {
@@ -54,6 +58,11 @@ export function MyAircraftPage(): JSX.Element {
       }
     >
       <Card title="Attached aircraft">
+        {policyNote === '' ? null : (
+          <p className="aircraft-coverage-note" role="note" aria-label="Coverage policy">
+            {policyNote}
+          </p>
+        )}
         {profile.isPending ? (
           <p className="muted" role="status">
             Loading your aircraft…
@@ -74,7 +83,12 @@ export function MyAircraftPage(): JSX.Element {
                   missing={plane.insurance_expiration === null}
                 />
                 <VerifiedMark verification={{ verified: plane.insurance_verified }} pending />
-                <p className="aircraft-list__meta">{plane.insurance_summary}</p>
+                {plane.coverage.excluded ? <StatusChip tone="expired" label="Not covered" /> : null}
+                <p className="aircraft-list__meta">
+                  {plane.coverage.excluded
+                    ? `${plane.insurance_summary} · ${plane.coverage.reason}`
+                    : plane.insurance_summary}
+                </p>
                 <span className="aircraft-list__actions">
                   <Button
                     variant="quiet"

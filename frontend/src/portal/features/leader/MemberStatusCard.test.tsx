@@ -218,6 +218,25 @@ describe('MemberStatusCard', () => {
     expect(within(rows[3]!).getByText('Expiring soon')).toBeInTheDocument();
   });
 
+  it('marks an aircraft the coverage policy excludes, with the reason', () => {
+    const reason = "Not covered: helicopters are excluded by CalDART's policy";
+    renderWithProviders(
+      <MemberStatusCard
+        userId={7}
+        status={makeStatus({
+          aircraft: [
+            makeAircraft({ category: 'helicopter', coverage: { excluded: true, reason } }),
+          ],
+        })}
+        today={TODAY}
+      />,
+    );
+
+    const row = screen.getByRole('listitem');
+    expect(within(row).getByText('Not covered')).toHaveAttribute('title', reason);
+    expect(within(row).getByText(new RegExp(reason))).toBeInTheDocument();
+  });
+
   it('says so when the member has no aircraft', () => {
     renderWithProviders(
       <MemberStatusCard userId={7} status={makeStatus({ aircraft: [] })} today={TODAY} />,

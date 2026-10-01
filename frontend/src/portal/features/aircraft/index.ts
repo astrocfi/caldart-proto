@@ -13,11 +13,21 @@ export {
   useAircraft,
   useAircraftList,
   useAircraftSearch,
+  useCoveragePolicy,
   useCreateAircraft,
   useDeleteAircraft,
+  useSaveCoveragePolicy,
   useUpdateAircraft,
 } from './api';
 export type { AircraftFilters, AircraftSearchResult, InsuranceState } from './api';
+export {
+  AIRWORTHINESS_LABELS,
+  AIRWORTHINESS_VALUES,
+  CATEGORIES,
+  CATEGORY_LABELS,
+  NOT_RECORDED,
+  categoryLine,
+} from './categories';
 export {
   centsToDollars,
   dollarsToCents,

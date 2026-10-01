@@ -27,8 +27,10 @@ from pytest_django import Settings
 from apps.aircraft import registry
 from apps.aircraft.aliases import ALIASES
 from apps.aircraft.models import (
+    AircraftCategory,
     AircraftType,
     AircraftTypeAlias,
+    Airworthiness,
     RegistrantType,
     Registration,
     RegistrationStatus,
@@ -52,8 +54,8 @@ from tests.factories import AircraftFactory, AircraftTypeFactory
 pytestmark = pytest.mark.django_db
 
 #: The reference and master rows the fixture holds.
-FIXTURE_TYPES = 330
-FIXTURE_REGISTRATIONS = 210
+FIXTURE_TYPES = 338
+FIXTURE_REGISTRATIONS = 218
 
 #: The header rows of the two files, as the FAA writes them.
 REF_HEADER = (
@@ -224,10 +226,10 @@ def test_a_registry_date_reads_as_a_date_or_nothing(value: str, expected: date |
 
 
 def test_the_reference_file_reads_as_stripped_types(small_registry: Path) -> None:
-    """Each reference row is its code, the stripped FAA names, and the counts."""
+    """Each reference row: its code, stripped FAA names, counts, and category."""
     with (small_registry / "ACFTREF.txt").open("rb") as stream:
         rows = list(read_types(stream))
-    assert rows[0] == ("2072439", "CESSNA", "172S", 4, 1)
+    assert rows[0] == ("2072439", "CESSNA", "172S", 4, 1, AircraftCategory.AIRPLANE)
 
 
 def test_the_master_file_reads_as_normalized_registrations(small_registry: Path) -> None:
@@ -243,6 +245,7 @@ def test_the_master_file_reads_as_normalized_registrations(small_registry: Path)
         RegistrationStatus.VALID,
         date(2020, 1, 15),
         date(2027, 1, 31),
+        Airworthiness.STANDARD,
     )
 
 
@@ -256,7 +259,9 @@ def test_a_blank_year_reads_as_none(small_registry: Path) -> None:
 def test_a_file_missing_a_column_is_refused(tmp_path: Path) -> None:
     """A reference file without ``NO-SEATS`` names the missing column."""
     path = tmp_path / "ACFTREF.txt"
-    path.write_text("CODE,MFR,MODEL,NO-ENG\r\n2072439,CESSNA,172S,01\r\n", encoding="utf-8")
+    path.write_text(
+        "CODE,MFR,MODEL,TYPE-ACFT,NO-ENG\r\n2072439,CESSNA,172S,4,01\r\n", encoding="utf-8"
+    )
     with (
         path.open("rb") as stream,
         pytest.raises(RegistryFormatError, match=r"ACFTREF\.txt has no NO-SEATS column\."),
@@ -268,7 +273,7 @@ def test_a_file_missing_a_column_is_refused(tmp_path: Path) -> None:
 
 
 def test_the_fixture_imports_every_type_and_registration() -> None:
-    """The fixture's 330 reference rows and 210 master rows all land."""
+    """The fixture's 338 reference rows and 218 master rows all land."""
     run = import_registry(str(FIXTURE_DIR))
     assert (run.types_written, run.registrations_written) == (
         FIXTURE_TYPES,

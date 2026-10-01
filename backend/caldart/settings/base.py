@@ -344,6 +344,8 @@ SPECTACULAR_SETTINGS = {
         "ManualMethodEnum": "apps.payments.manual.MANUAL_METHOD_CHOICES",
         "AccountKindEnum": "apps.accounts.models.AccountKind.choices",
         "PersonKindEnum": "apps.accounts.models.PERSON_KIND_CHOICES",
+        "AircraftCategoryEnum": "apps.aircraft.models.AircraftCategory.choices",
+        "AirworthinessEnum": "apps.aircraft.models.Airworthiness.choices",
         # The portal's and the public donation page's mock completions share one set.
         "MockCompleteOutcomeEnum": "apps.payments.api.serializers.MOCK_OUTCOMES",
     },

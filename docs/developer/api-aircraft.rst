@@ -74,6 +74,7 @@ The register, open to any authenticated user, paginated with ``?page=`` and
            "model": "172S Skyhawk",
            "seats": 4,
            "engines": 1,
+           "category": "airplane",
            "is_custom": false
          },
          "year": 2008,
@@ -81,6 +82,9 @@ The register, open to any authenticated user, paginated with ``?page=`` and
          "owner_name": "Palo Alto Flying Club",
          "owner_contact": "ops@example.org",
          "seats": 4,
+         "category": "airplane",
+         "airworthiness": "standard",
+         "coverage": {"excluded": false, "reason": ""},
          "insurance_carrier": "Avemco",
          "insurance_policy_number": "AV-00012345",
          "insurance_liability_per_occurrence_cents": 100000000,
@@ -104,7 +108,8 @@ The register, open to any authenticated user, paginated with ``?page=`` and
 
 ``type`` is the aircraft's entry in the aircraft types (:doc:`data-model`):
 its id, display make and model, ``seats`` and ``engines`` (``null`` when the
-registry does not say), and ``is_custom``, true for a type an account
+registry does not say), ``category`` (blank when the registry does not say,
+always for a hand-added type), and ``is_custom``, true for a type an account
 administrator added by hand.  ``make`` and ``model`` repeat the type's display
 names, so every screen that prints them reads one spelling.  The type is
 joined to the page's query, so it costs nothing per row.
@@ -120,6 +125,24 @@ verifier is joined to the page's query, so naming one costs nothing per row.  ``
 who added the record, or ``null`` for an airframe the seed created.
 ``updated_at`` is when the record was last written, by anybody.
 
+``category`` is one of ``airplane``, ``helicopter``, ``gyroplane``, ``glider``,
+``balloon``, ``airship``, ``powered_lift``, ``weight_shift``,
+``powered_parachute``, and ``other``; ``airworthiness`` one of ``standard``,
+``limited``, ``restricted``, ``experimental``, ``provisional``, ``multiple``,
+``primary``, ``special_flight_permit``, and ``light_sport``.  Either is blank
+(``""``) until somebody records it (:doc:`data-model`).
+
+``coverage`` is whether the coverage policy (:ref:`api-coverage-policy`)
+excludes the aircraft: ``excluded``, and ``reason``, the words the aircraft
+check prints.  An excluded aircraft's reason reads ``Not covered: helicopters
+are excluded by CalDART's policy``, naming the category that matched (or the
+airworthiness, when only that matched) and the organization from the site
+settings.  An aircraft with no category that is not otherwise excluded reads
+``Category not recorded``, and every other reason is blank.  The policy is read
+once per response, however many aircraft it carries.  The short form embedded
+in profiles and the member check's status card carries ``category``,
+``airworthiness``, and ``coverage`` too.
+
 ===================  ============================================================
 Parameter            Meaning
 ===================  ============================================================
@@ -129,6 +152,10 @@ Parameter            Meaning
 ``make``             ``icontains`` on the type's ``make``
 ``model``            ``icontains`` on the type's ``model``
 ``type``             The id of one aircraft type
+``category``         One category, matched exactly; an unknown value is a
+                     ``400``
+``airworthiness``    One airworthiness classification, matched exactly; an
+                     unknown value is a ``400``
 ``owner_type``       ``individual`` | ``fbo`` | ``club``
 ``insurance``        ``current`` (expiry ≥ today) | ``expired`` (expiry <
                      today) | ``missing`` (no expiry recorded)
@@ -180,6 +207,9 @@ register is filled in by the members who fly the airplanes.
      "owner_type": "club",
      "owner_name": "Palo Alto Flying Club",
      "seats": 4,
+     "category": "airplane",
+     "airworthiness": "standard",
+     "coverage": {"excluded": false, "reason": ""},
      "insurance_carrier": "Avemco",
      "insurance_liability_per_occurrence_cents": 100000000,
      "insurance_liability_per_person_cents": 10000000,
@@ -190,8 +220,9 @@ register is filled in by the members who fly the airplanes.
 by the client, and ``updated_at`` is the clock's.
 ``n_number`` is required and stored normalized.  ``type_id`` is required: the
 id of an entry of the aircraft types, which ``GET /aircraft/types`` finds.
-``make``, ``model``, and ``type`` are read-only and a body naming them changes
-nothing.  The three money fields are integer cents and must be ``>= 0``, and
+``make``, ``model``, ``type``, and ``coverage`` are read-only and a body naming
+them changes nothing.  ``category`` and ``airworthiness`` are optional choices
+and may be blank.  The three money fields are integer cents and must be ``>= 0``, and
 everything else is optional.
 
 Statuses:
@@ -225,6 +256,7 @@ verifying role (``verifier``, ``dart_leader``, ``user_admin``, or
        "model": "172S Skyhawk",
        "seats": 4,
        "engines": 1,
+       "category": "airplane",
        "is_custom": false
      },
      "year": 2008,
@@ -232,6 +264,9 @@ verifying role (``verifier``, ``dart_leader``, ``user_admin``, or
      "owner_name": "Palo Alto Flying Club",
      "owner_contact": "ops@example.org",
      "seats": 4,
+     "category": "airplane",
+     "airworthiness": "standard",
+     "coverage": {"excluded": false, "reason": ""},
      "insurance_carrier": "Avemco",
      "insurance_policy_number": "AV-00012345",
      "insurance_liability_per_occurrence_cents": 100000000,
@@ -452,6 +487,7 @@ authenticated user.  This is what the aircraft forms search to pick a type.
        "model": "172S",
        "seats": 4,
        "engines": 1,
+       "category": "airplane",
        "is_custom": false
      }
    ]
@@ -516,6 +552,10 @@ the data and the import.  All three endpoints are open to any authenticated
 user.  Starting an import by hand is
 ``POST /admin/system/registry-import`` (:doc:`api-system`).
 
+The aircraft forms prefill the category from the registration's type, or from
+a type picked in the type picker, and the airworthiness from the registration;
+the person filling the form may change either.
+
 ``GET /aircraft/registry/{n_number}``
 -------------------------------------
 
@@ -529,13 +569,15 @@ by its N-number; the aircraft form's N-number box searches with
    {
      "n_number": "N128SC",
      "type": {"id": 41, "make": "Cessna", "model": "172S", "seats": 4,
-              "engines": 1, "is_custom": false},
+              "engines": 1, "category": "airplane",
+              "is_custom": false},
      "year": 1999,
      "registrant_name": "EXAMPLE FLYING CLUB INC",
      "registrant_type": "corporation",
      "status": "valid",
      "certificate_issued_on": "2021-03-02",
      "expires_on": "2028-03-31",
+     "airworthiness": "standard",
      "imported_at": "2026-09-27T04:31:12Z"
    }
 
@@ -543,7 +585,8 @@ by its N-number; the aircraft form's N-number box searches with
 ``corporation``, ``co_owned``, ``government``, ``llc``,
 ``non_citizen_corporation``, ``non_citizen_co_owned``, and ``unknown``;
 ``status`` is one of ``valid``, ``pending``, ``revoked``, ``expired``, and
-``other``.  ``year``, ``certificate_issued_on``, and ``expires_on`` are null
+``other``; ``airworthiness`` is a classification as on the register, blank when
+the registry records no certificate.  ``year``, ``certificate_issued_on``, and ``expires_on`` are null
 when the registry leaves them blank.  ``imported_at`` is when the import that
 wrote the row ran.
 
@@ -575,13 +618,15 @@ At most eight registrations come back, in N-number order, each in the shape
      {
        "n_number": "N128SC",
        "type": {"id": 41, "make": "Cessna", "model": "172S", "seats": 4,
-                "engines": 1, "is_custom": false},
+                "engines": 1, "category": "airplane",
+              "is_custom": false},
        "year": 1999,
        "registrant_name": "EXAMPLE FLYING CLUB INC",
        "registrant_type": "corporation",
        "status": "valid",
        "certificate_issued_on": "2021-03-02",
        "expires_on": "2028-03-31",
+       "airworthiness": "standard",
        "imported_at": "2026-09-27T04:31:12Z"
      }
    ]
@@ -757,8 +802,12 @@ The pre-flight status card for one member.
            "model": "172S Skyhawk",
            "seats": 4,
            "engines": 1,
+           "category": "airplane",
            "is_custom": false
          },
+         "category": "airplane",
+         "airworthiness": "standard",
+         "coverage": {"excluded": false, "reason": ""},
          "insurance_is_current": true,
          "insurance_expiration": "2027-03-01",
          "insurance_summary": "$1,000,000 / $100,000 · exp 2027-03-01",
@@ -886,7 +935,9 @@ Statuses:
 
 The insurance card for one airplane, keyed by normalized registration.  The
 shape is ``GET /aircraft/{id}``'s, and ``pilots`` is always present here
-because the endpoint is role-gated already.
+because the endpoint is role-gated already.  The portal reads ``coverage``
+before the insurance: an excluded aircraft is a no-go, *NOT COVERED* with the
+reason (less its ``Not covered:`` prefix), whatever its insurance.
 
 Statuses:
 
@@ -931,6 +982,52 @@ Statuses:
 * **404** — no aircraft has that id.
 
 
+.. _api-coverage-policy:
+
+Coverage policy
+===============
+
+``GET /aircraft/coverage-policy``
+---------------------------------
+
+The one policy saying which aircraft CalDART's insurance does not cover, open to
+any authenticated user; My aircraft reads its ``note``.
+
+.. code-block:: json
+
+   {
+     "excluded_categories": ["helicopter"],
+     "excluded_airworthiness": [],
+     "note": "Helicopters are not covered; talk to your DART leader before offering one."
+   }
+
+Before an account administrator has written one, the policy excludes nothing
+and its note is blank.
+
+Statuses:
+
+* **200** — the policy.
+
+``PUT /aircraft/coverage-policy``
+---------------------------------
+
+Replaces the policy; ``account_admin`` (and ``system_admin``) only.  The body
+carries all three fields.  Each list takes values of its choice set (the
+categories and airworthiness classifications above) and is stored in the
+order of that set, without repeats; ``note`` is plain text of at most 1,000
+characters, stripped, and may be blank.  The caller is recorded as the
+policy's ``updated_by``.  Every aircraft's ``coverage`` follows the new policy at
+once.
+
+Statuses:
+
+* **200** — the stored policy, in the ``GET`` shape.
+* **400** — a list value outside its choices, such as
+  ``{"excluded_categories": {"0": ["\"spaceship\" is not a valid choice."]}}``,
+  or a note over 1,000 characters.  Nothing is written.
+* **403** — the caller is not an account administrator.
+
+
 Where the code lives
 ====================
 
@@ -942,7 +1039,12 @@ File                                   Contents
                                        ``AircraftTypeAlias``,
                                        ``Registration``,
                                        ``RegistryImport``,
+                                       ``AircraftCoveragePolicy``,
+                                       ``AircraftCategory``,
+                                       ``Airworthiness``,
                                        ``normalize_n_number``
+``apps/aircraft/coverage.py``          ``CoverageRule``, ``current_rule``:
+                                       the coverage rule
 ``apps/aircraft/naming.py``            ``display_make``, ``display_model``,
                                        ``MAKE_NAMES``
 ``apps/aircraft/aliases.py``           ``ALIASES``, ``write_aliases``
@@ -977,7 +1079,10 @@ type search against the fixture, Add a type, the lookup, and the status),
 ``test_registry_search.py`` (the N-number prefix search and its index), ``test_aircraft_history.py`` (the change rows the
 register's writes leave and the history endpoint),
 ``test_aircraft_exports.py`` (the aircraft report: CSV content, PDF
-validity, subtitle), ``test_leader_api.py`` (search, the membership ×
+validity, subtitle), ``test_aircraft_categories.py`` (the category and
+airworthiness: the import's codes, the record, filters, and exports),
+``test_aircraft_coverage_policy.py`` (the policy endpoint, the rule, and where
+it is shown), ``test_leader_api.py`` (search, the membership ×
 medical × insurance truth table), ``test_verification.py``,
 ``test_verification_api.py``, and ``test_verifier_role.py`` (verification:
 see :doc:`verification`), and ``test_aircraft_models.py`` from the

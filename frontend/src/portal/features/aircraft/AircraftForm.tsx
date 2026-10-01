@@ -4,7 +4,8 @@
  *
  * The same form adds a record and edits one.  The N-number box offers the FAA
  * registry's registrations as it is typed into, and picking one fills the airframe
- * and its owner; the aircraft type is picked from the aircraft types.
+ * (its category and airworthiness among it) and its owner; the aircraft type is
+ * picked from the aircraft types, and fills the category when the type knows it.
  */
 import { useState } from 'react';
 import type { JSX } from 'react';
@@ -16,6 +17,13 @@ import { MaskedInput } from '@/portal/components/MaskedInput';
 import { maskDigits, maskDollars } from '@/portal/masks';
 import { AircraftTypePicker } from './AircraftTypePicker';
 import './aircraft.css';
+import {
+  AIRWORTHINESS_LABELS,
+  AIRWORTHINESS_VALUES,
+  CATEGORIES,
+  CATEGORY_LABELS,
+  NOT_RECORDED,
+} from './categories';
 import type { AircraftFormValues } from './form';
 import { OWNER_TYPES, OWNER_TYPE_LABELS, aircraftPayload, validateAircraft } from './form';
 import { NNumberField } from './NNumberField';
@@ -121,6 +129,42 @@ export function AircraftForm({
                 onValueChange={(next) => set('seats', next)}
                 onBlur={handleBlur('seats')}
               />
+            )}
+          </Field>
+          <Field label="Category" error={shown.category}>
+            {(field) => (
+              <select
+                {...field}
+                value={values.category}
+                onChange={(event) =>
+                  set('category', event.target.value as AircraftFormValues['category'])
+                }
+              >
+                <option value="">{NOT_RECORDED}</option>
+                {CATEGORIES.map((category) => (
+                  <option key={category} value={category}>
+                    {CATEGORY_LABELS[category]}
+                  </option>
+                ))}
+              </select>
+            )}
+          </Field>
+          <Field label="Airworthiness" error={shown.airworthiness}>
+            {(field) => (
+              <select
+                {...field}
+                value={values.airworthiness}
+                onChange={(event) =>
+                  set('airworthiness', event.target.value as AircraftFormValues['airworthiness'])
+                }
+              >
+                <option value="">{NOT_RECORDED}</option>
+                {AIRWORTHINESS_VALUES.map((airworthiness) => (
+                  <option key={airworthiness} value={airworthiness}>
+                    {AIRWORTHINESS_LABELS[airworthiness]}
+                  </option>
+                ))}
+              </select>
             )}
           </Field>
         </div>

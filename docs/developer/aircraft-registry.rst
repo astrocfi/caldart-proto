@@ -37,6 +37,7 @@ Column              Becomes
                     registration points at
 ``MFR``             ``faa_make``, and through ``display_make`` the ``make``
 ``MODEL``           ``faa_model``, and through ``display_model`` the ``model``
+``TYPE-ACFT``       ``category`` (below; blank or unknown is blank)
 ``NO-SEATS``        ``seats`` (``004`` is 4; blank is null)
 ``NO-ENG``          ``engines``
 ==================  =============================================================
@@ -55,6 +56,7 @@ Column                Becomes
 ``NAME``              ``registrant_name``
 ``STATUS CODE``       ``status`` (below)
 ``CERT ISSUE DATE``   ``certificate_issued_on`` (``YYYYMMDD``; blank is null)
+``CERTIFICATION``     ``airworthiness``, from its first character (below)
 ``EXPIRATION DATE``   ``expires_on``
 ====================  ===========================================================
 
@@ -83,8 +85,21 @@ Status        FAA codes
               reserved N-number, and the rest
 ============  ===================================================================
 
-``REGISTRANT_TYPES`` and ``STATUSES`` in ``apps/aircraft/registry.py`` hold the
-two tables.
+The ``TYPE-ACFT`` codes map to ``AircraftCategory``: ``1`` glider, ``2`` balloon,
+``3`` airship (the FAA's blimp or dirigible), ``4`` and ``5`` airplane (fixed wing,
+single- and multi-engine), ``6`` helicopter (the FAA's rotorcraft), ``7``
+weight-shift control, ``8`` powered parachute, ``9`` gyroplane, ``H`` powered lift
+(the FAA's hybrid lift), and ``O`` other; a blank or any other code leaves the
+category blank.
+
+The first character of ``CERTIFICATION`` is the airworthiness classification and
+maps to ``Airworthiness``: ``1`` standard, ``2`` limited, ``3`` restricted, ``4``
+experimental, ``5`` provisional, ``6`` multiple, ``7`` primary, ``8`` special
+flight permit, ``9`` light sport.  The characters after it, the operations the
+certificate allows, are not kept, and a blank leaves ``airworthiness`` blank.
+
+``REGISTRANT_TYPES``, ``STATUSES``, ``CATEGORIES``, and ``AIRWORTHINESS`` in
+``apps/aircraft/registry.py`` hold the four tables.
 
 
 The import
@@ -278,8 +293,8 @@ work as they do in the address and aircraft type boxes.
 
 Picking a row writes its N-number into the box and fills the form through
 ``withRegistration`` in ``features/aircraft/registry.ts``: the aircraft type, the
-year, the seats (from the type), the owner name (the registrant), and the owner
-type the registrant maps to — an individual or co-owners are an individual, a
+year, the seats and the category (from the type), the airworthiness, the owner
+name (the registrant), and the owner type the registrant maps to — an individual or co-owners are an individual, a
 partnership a flying club, and a company an FBO; a government or unknown
 registrant leaves the owner type be.  Anything the registration leaves blank
 keeps what the form held.  The line under the box then reads *From the FAA
@@ -323,7 +338,10 @@ The fixture
 ``MASTER.txt`` cut from one real download: 330 reference rows and 210 master
 rows, byte for byte as the FAA wrote them except that the address columns
 (street, city, state, ZIP code, region, county, and country) and the other-names
-columns of the master rows are blanked to spaces of the same width.  ``make seed``
+columns of the master rows are blanked to spaces of the same width.  Eight
+reference rows and eight master rows follow them, written by hand in the same
+layout, so that every aircraft category and every airworthiness classification
+appears at least once: 338 reference rows and 218 master rows in all.  ``make seed``
 imports it (``apps/aircraft/seed.py``), and so do the tests and the end-to-end
 run, whose server has ``FAA_REGISTRY_URL`` set to the fixture directory, so
 **Run now** there imports the fixture.  Nothing in a test or an end-to-end run

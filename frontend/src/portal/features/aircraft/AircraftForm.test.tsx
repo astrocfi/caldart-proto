@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { makeAircraftType } from '@test/fixtures/profile';
 import { makeRegistration } from '@test/fixtures/registry';
 import { API } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
@@ -103,6 +104,32 @@ describe('<AircraftForm/> N-number typeahead', () => {
     expect(filledBoxes()).toEqual(['Cessna 172S', '2004', '4', 'PALO ALTO FLYING CLUB', 'fbo']);
   });
 
+  it('fills the category and airworthiness from the registration picked', async () => {
+    server.use(
+      registryAnswers(
+        [],
+        [
+          makeRegistration({
+            type: makeAircraftType({
+              id: 9,
+              make: 'Robinson',
+              model: 'R44',
+              category: 'helicopter',
+            }),
+            airworthiness: 'standard',
+          }),
+        ],
+      ),
+    );
+    const { user } = renderForm();
+    await typeNNumber(user, '739');
+    await user.click(await screen.findByRole('option', { name: /^N739TA/ }));
+    expect([screen.getByLabelText('Category'), screen.getByLabelText('Airworthiness')]).toEqual([
+      expect.objectContaining({ value: 'helicopter' }),
+      expect.objectContaining({ value: 'standard' }),
+    ]);
+  });
+
   it('sets the box to the N-number picked', async () => {
     server.use(registryAnswers());
     const { user } = renderForm();
@@ -188,6 +215,20 @@ describe('<AircraftForm/> aircraft type', () => {
     await act(() => vi.advanceTimersByTimeAsync(SEARCH_DEBOUNCE_MS));
     await user.click(await screen.findByRole('option', { name: /^Cirrus SR22/ }));
     expect(screen.getByLabelText('Seats')).toHaveValue('4');
+  });
+
+  it('sends the category and airworthiness chosen', async () => {
+    const { user, submitted } = renderForm({
+      ...emptyAircraftValues('N739TA'),
+      type: makeAircraftType(),
+    });
+    await user.selectOptions(screen.getByLabelText('Category'), 'Glider');
+    await user.selectOptions(screen.getByLabelText('Airworthiness'), 'Experimental');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    expect([submitted[0]?.category, submitted[0]?.airworthiness]).toEqual([
+      'glider',
+      'experimental',
+    ]);
   });
 
   it('sends the picked type as its id', async () => {

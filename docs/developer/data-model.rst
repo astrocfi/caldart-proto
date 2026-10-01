@@ -29,7 +29,8 @@ House rules that apply throughout:
   The registry's tables carry the dates the import needs instead:
   ``AircraftType.created_at``, ``Registration.imported_at``, and
   ``RegistryImport.started_at`` and ``finished_at``; ``AircraftTypeAlias``
-  carries none.
+  carries none.  ``aircraft.AircraftCoveragePolicy`` is a single row and keeps
+  ``updated_at`` and ``updated_by`` alone.
 - **``DEFAULT_AUTO_FIELD`` is ``BigAutoField``**, so every ``id`` below is a
   ``BigAutoField`` except the page models', which Wagtail keys on its own
   ``AutoField``.
@@ -117,6 +118,7 @@ Accounts, members, DARTs, and aircraft
           Alias [label="aircraft.AircraftTypeAlias"];
           Registration [label="aircraft.Registration"];
           Import [label="aircraft.RegistryImport"];
+          Policy [label="aircraft.AircraftCoveragePolicy"];
           Payment [label="payments.Payment\n(see payments)", style="rounded,dotted"];
 
           User -> AbstractUser [arrowhead=empty];
@@ -137,6 +139,7 @@ Accounts, members, DARTs, and aircraft
           Alias -> Type [label="type\nCASCADE"];
           Registration -> Type [label="type\nPROTECT"];
           Import -> User [label="started_by\nSET_NULL"];
+          Policy -> User [label="updated_by\nSET_NULL"];
       }
 
 .. only:: not graphviz
@@ -162,6 +165,7 @@ Accounts, members, DARTs, and aircraft
       aircraft.AircraftTypeAlias  a name an aircraft type is searched by
       aircraft.Registration     one N-number as the FAA registry holds it
       aircraft.RegistryImport   one run of the FAA registry import
+      aircraft.AircraftCoveragePolicy  which aircraft the insurance does not cover
 
       Drawn with another area
       -----------------------
@@ -192,6 +196,7 @@ Accounts, members, DARTs, and aircraft
       aircraft.AircraftTypeAlias.type   -> aircraft.AircraftType   FK, CASCADE
       aircraft.Registration.type        -> aircraft.AircraftType   FK, PROTECT
       aircraft.RegistryImport.started_by -> accounts.User          FK, SET_NULL, nullable
+      aircraft.AircraftCoveragePolicy.updated_by -> accounts.User  FK, SET_NULL, nullable
 
 Payments and renewals
 ---------------------
@@ -676,6 +681,76 @@ name (``Contra Costa``), so the column holds the name as a person reads it.
      - FBO
    * - ``club``
      - Flying club
+
+.. _choices-aircraft-category:
+
+``AircraftCategory`` (``apps/aircraft/models.py``)
+--------------------------------------------------
+
+``Aircraft.category`` and ``AircraftType.category``: what kind of aircraft an
+airframe is, as the FAA registry classes it (:doc:`aircraft-registry`).  Both
+columns may be blank, for a category nobody has recorded.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 70
+
+   * - Value
+     - Label
+   * - ``airplane``
+     - Airplane
+   * - ``helicopter``
+     - Helicopter
+   * - ``gyroplane``
+     - Gyroplane
+   * - ``glider``
+     - Glider
+   * - ``balloon``
+     - Balloon
+   * - ``airship``
+     - Airship
+   * - ``powered_lift``
+     - Powered lift
+   * - ``weight_shift``
+     - Weight-shift control
+   * - ``powered_parachute``
+     - Powered parachute
+   * - ``other``
+     - Other
+
+.. _choices-airworthiness:
+
+``Airworthiness`` (``apps/aircraft/models.py``)
+-----------------------------------------------
+
+``Aircraft.airworthiness`` and ``Registration.airworthiness``: the
+classification of the airframe's airworthiness certificate.  Both columns may be
+blank.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 70
+
+   * - Value
+     - Label
+   * - ``standard``
+     - Standard
+   * - ``limited``
+     - Limited
+   * - ``restricted``
+     - Restricted
+   * - ``experimental``
+     - Experimental
+   * - ``provisional``
+     - Provisional
+   * - ``multiple``
+     - Multiple
+   * - ``primary``
+     - Primary
+   * - ``special_flight_permit``
+     - Special flight permit
+   * - ``light_sport``
+     - Light sport
 
 .. _choices-aircraft-change-kind:
 
@@ -1262,7 +1337,7 @@ to the rows already stored (:doc:`setup`).
 
 - ``groups``: many-to-many to ``auth.Group``; the reverse accessor is ``user_set``.
 - ``user_permissions``: many-to-many to ``auth.Permission``; the reverse accessor is ``user_set``.
-- Referenced by ``aircraft.Aircraft.created_by``, ``aircraft.Aircraft.insurance_verified_by``, ``aircraft.Aircraft.updated_by``, ``aircraft.AircraftChange.changed_by``, ``aircraft.RegistryImport.started_by``, ``mail.EmailLog.user``, ``members.MemberProfile.certificate_verified_by``, ``members.MemberProfile.medical_verified_by``, ``members.MemberProfile.photo_id_verified_by``, ``members.MemberProfile.user``, ``members.Membership.granted_by``, ``members.Membership.user``, ``payments.Payment.reconciled_by``, ``payments.Payment.recorded_by``, ``payments.Payment.user``, ``payments.Refund.requested_by``, ``payments.RenewalMandate.canceled_by``, ``payments.RenewalMandate.user``, ``payments.YearStatement.user``, ``reminders.ReminderLog.user``, ``reports.ReportSubscription.created_by``, ``reports.ReportSubscription.recipient_user``, ``reports.SavedColumnSet.user``.
+- Referenced by ``aircraft.Aircraft.created_by``, ``aircraft.Aircraft.insurance_verified_by``, ``aircraft.Aircraft.updated_by``, ``aircraft.AircraftChange.changed_by``, ``aircraft.AircraftCoveragePolicy.updated_by``, ``aircraft.RegistryImport.started_by``, ``mail.EmailLog.user``, ``members.MemberProfile.certificate_verified_by``, ``members.MemberProfile.medical_verified_by``, ``members.MemberProfile.photo_id_verified_by``, ``members.MemberProfile.user``, ``members.Membership.granted_by``, ``members.Membership.user``, ``payments.Payment.reconciled_by``, ``payments.Payment.recorded_by``, ``payments.Payment.user``, ``payments.Refund.requested_by``, ``payments.RenewalMandate.canceled_by``, ``payments.RenewalMandate.user``, ``payments.YearStatement.user``, ``reminders.ReminderLog.user``, ``reports.ReportSubscription.created_by``, ``reports.ReportSubscription.recipient_user``, ``reports.SavedColumnSet.user``.
 
 **Invariants.**
 
@@ -2318,6 +2393,14 @@ than copying it, so an insurance renewal entered once is right for everybody.
      - ``PositiveSmallIntegerField``
      - null; default ``NULL``
      - seats aboard
+   * - ``category``
+     - ``CharField(24)``, choices :ref:`AircraftCategory <choices-aircraft-category>`
+     - not null; default ``""``
+     - the aircraft category; blank until somebody records it
+   * - ``airworthiness``
+     - ``CharField(24)``, choices :ref:`Airworthiness <choices-airworthiness>`
+     - not null; default ``""``
+     - the airworthiness classification; blank until somebody records it
    * - ``insurance_carrier``
      - ``CharField(120)``
      - not null; default ``""``
@@ -2416,6 +2499,11 @@ normalizes the query term the same way.
     neither a liability limit nor an expiry.
 ``display_name``
     ``"N12345 — Cessna 172S"``.
+
+**Coverage.**  Whether CalDART's insurance covers an aircraft is judged from its
+``category`` and ``airworthiness`` against ``AircraftCoveragePolicy`` (below) by
+``apps.aircraft.coverage``; every aircraft the API returns carries the answer as
+``coverage`` (:doc:`api-aircraft`).
 
 **Who may change one.**  Any signed-in member may create an aircraft, and
 ``created_by`` is set from the session.  The member who created it may edit it;
@@ -2535,6 +2623,11 @@ does not inherit ``TimestampedModel``: ``created_at`` is its only date.
      - ``PositiveSmallIntegerField``
      - null; default ``NULL``
      - number of engines, when the registry says
+   * - ``category``
+     - ``CharField(24)``, choices :ref:`AircraftCategory <choices-aircraft-category>`
+     - not null; default ``""``
+     - the category the registry's ``TYPE-ACFT`` code names; blank for a type added
+       by hand
    * - ``is_custom``
      - ``BooleanField``
      - not null; default ``False``
@@ -2678,6 +2771,11 @@ holds the registration.  No address is kept.  It does not inherit
      - ``DateField``
      - null; default ``NULL``
      - when the registration expires
+   * - ``airworthiness``
+     - ``CharField(24)``, choices :ref:`Airworthiness <choices-airworthiness>`
+     - not null; default ``""``
+     - the classification the first character of the registry's ``CERTIFICATION``
+       names; blank when the registry records none
    * - ``imported_at``
      - ``DateTimeField``
      - not null; default now
@@ -2756,6 +2854,64 @@ successful row is the date the registry is current as of.
 **Relationships.**
 
 - ``started_by``: foreign key to ``accounts.User``, ``SET_NULL``, nullable; the reverse accessor is ``registry_imports``.
+
+``AircraftCoveragePolicy``
+--------------------------
+
+Which aircraft CalDART's insurance policy does not cover.  There is only ever
+one row, primary key 1: ``save()`` forces the key, and ``load()`` reads the row,
+answering an unsaved empty policy (excluding nothing) before one is stored.  An
+account administrator writes it from the aircraft register's **Coverage policy**
+card through ``PUT /aircraft/coverage-policy`` (:doc:`api-aircraft`); the seed
+excludes helicopters.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 22 26 18 34
+
+   * - Field
+     - Type
+     - Null, default
+     - Meaning
+   * - ``id``
+     - ``BigAutoField``
+     - not null; always ``1``
+     - primary key
+   * - ``excluded_categories``
+     - ``JSONField``
+     - not null; default ``[]``
+     - the :ref:`AircraftCategory <choices-aircraft-category>` values the policy
+       does not cover, in choice order
+   * - ``excluded_airworthiness``
+     - ``JSONField``
+     - not null; default ``[]``
+     - the :ref:`Airworthiness <choices-airworthiness>` values the policy does not
+       cover, in choice order
+   * - ``note``
+     - ``TextField``
+     - not null; default ``""``
+     - a short plain-text statement of the limitation, shown to members on My
+       aircraft
+   * - ``updated_at``
+     - ``DateTimeField``
+     - not null; set on every save
+     - when the policy was last written
+   * - ``updated_by``
+     - ``ForeignKey`` to ``accounts.User``, ``SET_NULL``
+     - null; default ``NULL``
+     - who last wrote the policy; no related name
+
+**Relationships.**
+
+- ``updated_by``: foreign key to ``accounts.User``, ``SET_NULL``, nullable; no reverse accessor.
+
+**The rule.**  ``apps.aircraft.coverage.CoverageRule.judge()`` excludes an
+aircraft whose ``category`` is in ``excluded_categories`` or whose
+``airworthiness`` is in ``excluded_airworthiness``; the reason names the category
+when both match, as *Not covered: helicopters are excluded by CalDART's policy*,
+with the organization's name from the site settings.  A blank value is never
+listed, so an aircraft with nothing recorded is never excluded; one with no
+category that its airworthiness does not exclude reads *Category not recorded*.
 
 payments
 ========

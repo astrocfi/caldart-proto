@@ -34,6 +34,8 @@ EXPORT_FILTER_PARAMS: tuple[str, ...] = (
     "make",
     "model",
     "type",
+    "category",
+    "airworthiness",
     "owner_type",
     "insurance",
     "expiring_within",
@@ -55,16 +57,24 @@ def _money(aircraft: Aircraft, field: str) -> Money | None:
 #: what ``?columns=`` names and what ``GET /reports/aircraft/columns`` answers
 #: with, ``label`` is the header both exports print, ``default`` says whether
 #: the column appears when the caller chooses none, and ``width`` is the share
-#: of the page the PDF gives it.  The three that are off by default -- the
-#: owner's kind, the per-person liability limit and the pilots who fly the plane
-#: -- are there for an insurance review or a roster rather than for the everyday
-#: register, which is sized so no default cell has to wrap; the pilot list is as
-#: long as the number of members who fly the aircraft, so it is asked for rather
-#: than assumed.
+#: of the page the PDF gives it.  The ones that are off by default -- the
+#: category, the airworthiness, the owner's kind, the per-person liability limit and
+#: the pilots who fly the plane -- are there for an insurance review or a roster
+#: rather than for the everyday register, which is sized so no default cell has to
+#: wrap; the pilot list is as long as the number of members who fly the aircraft, so
+#: it is asked for rather than assumed.
 AIRCRAFT_REPORT_COLUMNS: tuple[ReportColumn[Aircraft], ...] = (
     ReportColumn("n_number", "N-number", True, lambda row: row.n_number, width=2.0),
     ReportColumn("make", "Make", True, lambda row: row.make, width=3.0),
     ReportColumn("model", "Model", True, lambda row: row.model, width=3.4),
+    ReportColumn("category", "Category", False, lambda row: row.get_category_display(), width=2.6),
+    ReportColumn(
+        "airworthiness",
+        "Airworthiness",
+        False,
+        lambda row: row.get_airworthiness_display(),
+        width=2.6,
+    ),
     ReportColumn("owner_name", "Owner", True, lambda row: row.owner_name, width=6.8),
     ReportColumn(
         "owner_type",

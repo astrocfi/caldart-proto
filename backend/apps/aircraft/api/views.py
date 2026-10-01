@@ -31,6 +31,7 @@ from apps.aircraft.api.serializers import (
     AircraftSerializer,
     AircraftTypeCreateSerializer,
     AircraftTypeSerializer,
+    CoveragePolicySerializer,
     InsuranceVerificationSerializer,
     LeaderSearchResultSerializer,
     LeaderStatusSerializer,
@@ -48,6 +49,7 @@ from apps.aircraft.filters import (
 from apps.aircraft.models import (
     Aircraft,
     AircraftChange,
+    AircraftCoveragePolicy,
     Registration,
     RegistryImport,
     normalize_n_number,
@@ -239,6 +241,36 @@ class AircraftTypeSearchView(APIView):
         serializer.is_valid(raise_exception=True)
         created = serializer.save()
         return Response(AircraftTypeSerializer(created).data, status=status.HTTP_201_CREATED)
+
+
+class CoveragePolicyView(APIView):
+    """``GET /aircraft/coverage-policy`` (any member) and ``PUT`` (account administrator).
+
+    The one policy saying which aircraft categories and airworthiness classifications
+    CalDART's insurance does not cover, and the note members read on My aircraft.
+    """
+
+    def get_permissions(self) -> list[BasePermission]:
+        """Any signed-in user reads the policy; only an account administrator writes."""
+        if self.request.method == "PUT":
+            return [IsAccountAdmin()]
+        return [IsAuthenticated()]
+
+    @extend_schema(responses={200: CoveragePolicySerializer})
+    def get(self, request: Request) -> Response:
+        """Return the policy, an empty one (excluding nothing) before any is written."""
+        return Response(CoveragePolicySerializer(AircraftCoveragePolicy.load()).data)
+
+    @extend_schema(request=CoveragePolicySerializer, responses={200: CoveragePolicySerializer})
+    def put(self, request: Request) -> Response:
+        """Replace the policy with the body, recording the caller, and return it.
+
+        Answers 400 for a body ``CoveragePolicySerializer`` refuses.
+        """
+        serializer = CoveragePolicySerializer(AircraftCoveragePolicy.load(), data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(updated_by=acting_user(request))
+        return Response(serializer.data)
 
 
 class RegistryStatusView(APIView):

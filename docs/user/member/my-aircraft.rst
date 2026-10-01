@@ -15,6 +15,11 @@ of :doc:`profile`, or from **Add the planes I fly** at the end of :doc:`join`.
 What you see
 ============
 
+When CalDART's coverage policy has a note to members, such as *Helicopters are not
+covered*, it stands at the top of the **Attached aircraft** card. It says which
+airplanes CalDART's insurance leaves out; a DART leader treats an airplane it leaves out
+as a no-go.
+
 The **Attached aircraft** card lists each airplane on your profile: its N-number,
 make, and model, an insurance chip, and the liability limits and expiry date on
 file, for example *$1,000,000 / $100,000 · exp 03/01/2027*. The chip reads:
@@ -26,6 +31,10 @@ file, for example *$1,000,000 / $100,000 · exp 03/01/2027*. The chip reads:
 After the chip comes the insurance's mark: **Verified** once a DART leader or a
 verifier has checked the policy against its documents, or **Not yet verified**. A DART
 leader treats an airplane whose insurance is not verified as a no-go.
+
+An airplane the coverage policy leaves out carries a red **Not covered** chip, and the
+reason follows the limits, such as *Not covered: helicopters are excluded by CalDART's
+policy*.
 
 A record with no insurance reads *No insurance on file* in place of the limits.
 With nothing attached, the card says **No aircraft attached yet**.
@@ -76,6 +85,12 @@ register**, the whole record, with every box the record has when you edit it lat
   is the only way to set the type, so one type always reads the same way, however it
   was typed. A search that finds nothing says *No aircraft type matches that.*
 * **Seats**. Picking a type with **Seats** empty fills in its seats.
+* **Category**, such as Airplane, Helicopter, Gyroplane, Glider, or Balloon, and
+  **Airworthiness**, the category on the airworthiness certificate, such as Standard,
+  Experimental, or Light sport. Either may stay **Not recorded**, but with no **Category**
+  recorded a DART leader's aircraft check says *Category not recorded*, whatever the
+  airworthiness. Picking a type the registry knows the
+  category of fills in **Category**.
 * **Owner type** (Individual, FBO, or Flying club), **Owner name**, and **Owner
   contact**, an email address or a phone number.
 * **Carrier**, **Policy number**, **Liability per occurrence**, **Liability per
@@ -98,7 +113,7 @@ N-number, aircraft type, year, and registrant. Keep typing to narrow the list. C
 one, or move to it with the arrow keys and press Enter; Escape closes the list.
 
 Picking an airplane writes its N-number into the box and fills in its aircraft type,
-year, and seats; **Owner name** takes the registrant's name, and **Owner type**
+year, seats, category, and airworthiness; **Owner name** takes the registrant's name, and **Owner type**
 takes a guess from the kind of registrant it is: a person or co-owners become
 **Individual**, a partnership becomes **Flying club**, and a company becomes
 **FBO**. A government registrant, or one the registry does not sort into any of
@@ -115,8 +130,8 @@ Editing an airplane
 ===================
 
 Press **Edit** beside an airplane. For one you added yourself, the form opens with
-every detail, as it was added: **N-number**, **Year**, **Aircraft type**, and
-**Seats**; **Owner type** (Individual, FBO, or Flying club), **Owner name**, and
+every detail, as it was added: **N-number**, **Year**, **Aircraft type**, **Seats**,
+**Category**, and **Airworthiness**; **Owner type** (Individual, FBO, or Flying club), **Owner name**, and
 **Owner contact**; and **Carrier**, **Policy number**, **Liability per occurrence**,
 **Liability per person**, **Hull**, and **Insurance expires**. Money is in whole
 dollars, and the commas write themselves. To change the type, type in **Aircraft

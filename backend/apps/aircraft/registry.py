@@ -1,8 +1,10 @@
 """The FAA registry: reading the Releasable Aircraft Database and importing it.
 
 The FAA publishes the whole US civil registry as one zip.  Two of its files matter:
-``ACFTREF.txt``, the aircraft reference, whose rows become the aircraft types, and
-``MASTER.txt``, one row per N-number, whose rows become the registrations.  Both are
+``ACFTREF.txt``, the aircraft reference, whose rows become the aircraft types (each with
+the aircraft category its ``TYPE-ACFT`` code names), and ``MASTER.txt``, one row per
+N-number, whose rows become the registrations (each with the airworthiness
+classification the first character of its ``CERTIFICATION`` names).  Both are
 comma-separated with a header row, fixed-width, and space-padded; every value is
 stripped as it is read.  No address is kept.
 
@@ -40,8 +42,10 @@ from apps.accounts.models import User
 from apps.aircraft.aliases import write_aliases
 from apps.aircraft.models import (
     Aircraft,
+    AircraftCategory,
     AircraftType,
     AircraftTypeAlias,
+    Airworthiness,
     RegistrantType,
     Registration,
     RegistrationStatus,
@@ -61,7 +65,7 @@ REFERENCE_FILE = "ACFTREF.txt"
 MASTER_FILE = "MASTER.txt"
 
 #: The reference columns the import reads.
-REFERENCE_COLUMNS: tuple[str, ...] = ("CODE", "MFR", "MODEL", "NO-ENG", "NO-SEATS")
+REFERENCE_COLUMNS: tuple[str, ...] = ("CODE", "MFR", "MODEL", "TYPE-ACFT", "NO-ENG", "NO-SEATS")
 
 #: The master columns the import reads.  The address columns are never read.
 MASTER_COLUMNS: tuple[str, ...] = (
@@ -72,6 +76,7 @@ MASTER_COLUMNS: tuple[str, ...] = (
     "NAME",
     "STATUS CODE",
     "CERT ISSUE DATE",
+    "CERTIFICATION",
     "EXPIRATION DATE",
 )
 
@@ -121,6 +126,39 @@ STATUSES: dict[str, str] = {
     **dict.fromkeys(("D", "13", "16", "23", "27", "29"), RegistrationStatus.EXPIRED),
 }
 
+#: The ``TYPE-ACFT`` codes of the aircraft reference; a blank or any other code is
+#: no category.  The FAA's rotorcraft are helicopters (its gyroplanes have their own
+#: code), its two fixed-wing codes (single- and multi-engine) are airplanes, and its
+#: hybrid lift is powered lift.
+CATEGORIES: dict[str, str] = {
+    "1": AircraftCategory.GLIDER,
+    "2": AircraftCategory.BALLOON,
+    "3": AircraftCategory.AIRSHIP,
+    "4": AircraftCategory.AIRPLANE,
+    "5": AircraftCategory.AIRPLANE,
+    "6": AircraftCategory.HELICOPTER,
+    "7": AircraftCategory.WEIGHT_SHIFT,
+    "8": AircraftCategory.POWERED_PARACHUTE,
+    "9": AircraftCategory.GYROPLANE,
+    "H": AircraftCategory.POWERED_LIFT,
+    "O": AircraftCategory.OTHER,
+}
+
+#: The airworthiness classification codes, the first character of ``CERTIFICATION``;
+#: a blank or any other character is no classification.  The characters after it
+#: (the operations a certificate allows) are not kept.
+AIRWORTHINESS: dict[str, str] = {
+    "1": Airworthiness.STANDARD,
+    "2": Airworthiness.LIMITED,
+    "3": Airworthiness.RESTRICTED,
+    "4": Airworthiness.EXPERIMENTAL,
+    "5": Airworthiness.PROVISIONAL,
+    "6": Airworthiness.MULTIPLE,
+    "7": Airworthiness.PRIMARY,
+    "8": Airworthiness.SPECIAL_FLIGHT_PERMIT,
+    "9": Airworthiness.LIGHT_SPORT,
+}
+
 #: The length of a registry date, ``YYYYMMDD``.
 DATE_LENGTH = 8
 
@@ -134,13 +172,14 @@ class ImportAlreadyRunningError(Exception):
 
 
 class TypeRow(NamedTuple):
-    """One aircraft reference row: the code, the FAA's names, seats, and engines."""
+    """One aircraft reference row: the code, the FAA's names, seats, engines, category."""
 
     faa_code: str
     faa_make: str
     faa_model: str
     seats: int | None
     engines: int | None
+    category: str
 
 
 class RegistrationRow(NamedTuple):
@@ -154,6 +193,7 @@ class RegistrationRow(NamedTuple):
     status: str
     certificate_issued_on: date | None
     expires_on: date | None
+    airworthiness: str
 
 
 class ImportCounts(NamedTuple):
@@ -179,6 +219,16 @@ def registrant_type_for(code: str) -> str:
 def status_for(code: str) -> str:
     """The registration status the FAA's ``STATUS CODE`` means, else ``other``."""
     return STATUSES.get(code.strip(), RegistrationStatus.OTHER)
+
+
+def category_for(code: str) -> str:
+    """The aircraft category the FAA's ``TYPE-ACFT`` code means, else ``""``."""
+    return CATEGORIES.get(code.strip().upper(), "")
+
+
+def airworthiness_for(certification: str) -> str:
+    """The airworthiness a ``CERTIFICATION`` value starts with, else ``""``."""
+    return AIRWORTHINESS.get(certification.strip()[:1], "")
 
 
 def parse_date(value: str) -> date | None:
@@ -228,7 +278,8 @@ def _rows(stream: IO[bytes], name: str, columns: tuple[str, ...]) -> Iterator[di
 def read_types(stream: IO[bytes]) -> Iterator[TypeRow]:
     """Each row of an ``ACFTREF.txt`` in ``stream``, as a :class:`TypeRow`.
 
-    Seats and engines are ``None`` when the row leaves them blank.
+    Seats and engines are ``None`` when the row leaves them blank; the category is
+    :func:`category_for` the ``TYPE-ACFT`` code.
     """
     for row in _rows(stream, REFERENCE_FILE, REFERENCE_COLUMNS):
         yield TypeRow(
@@ -237,6 +288,7 @@ def read_types(stream: IO[bytes]) -> Iterator[TypeRow]:
             faa_model=row["MODEL"],
             seats=_parse_int(row["NO-SEATS"]),
             engines=_parse_int(row["NO-ENG"]),
+            category=category_for(row["TYPE-ACFT"]),
         )
 
 
@@ -244,8 +296,9 @@ def read_registrations(stream: IO[bytes]) -> Iterator[RegistrationRow]:
     """Each row of a ``MASTER.txt`` in ``stream``, as a :class:`RegistrationRow`.
 
     The N-number gains its leading ``N`` (``172SP`` is ``N172SP``); the registrant type
-    and status are mapped by :func:`registrant_type_for` and :func:`status_for`; the
-    year and the two dates are ``None`` when blank.  A row without an N-number is
+    and status are mapped by :func:`registrant_type_for` and :func:`status_for`, and the
+    airworthiness by :func:`airworthiness_for`; the year and the two dates are ``None``
+    when blank.  A row without an N-number is
     skipped.
     """
     for row in _rows(stream, MASTER_FILE, MASTER_COLUMNS):
@@ -261,6 +314,7 @@ def read_registrations(stream: IO[bytes]) -> Iterator[RegistrationRow]:
             status=status_for(row["STATUS CODE"]),
             certificate_issued_on=parse_date(row["CERT ISSUE DATE"]),
             expires_on=parse_date(row["EXPIRATION DATE"]),
+            airworthiness=airworthiness_for(row["CERTIFICATION"]),
         )
 
 
@@ -436,6 +490,7 @@ def _write_types(rows: Iterator[TypeRow]) -> int:
             model=display_model(row.faa_model)[:60],
             seats=row.seats,
             engines=row.engines,
+            category=row.category,
             is_custom=False,
         )
     AircraftType.objects.bulk_create(
@@ -443,7 +498,16 @@ def _write_types(rows: Iterator[TypeRow]) -> int:
         batch_size=BATCH_SIZE,
         update_conflicts=True,
         unique_fields=["faa_code"],
-        update_fields=["faa_make", "faa_model", "make", "model", "seats", "engines", "is_custom"],
+        update_fields=[
+            "faa_make",
+            "faa_model",
+            "make",
+            "model",
+            "seats",
+            "engines",
+            "category",
+            "is_custom",
+        ],
     )
     return len(entries)
 
@@ -497,6 +561,7 @@ def _write_registrations(rows: Iterator[RegistrationRow]) -> int:
             status=row.status,
             certificate_issued_on=row.certificate_issued_on,
             expires_on=row.expires_on,
+            airworthiness=row.airworthiness,
             imported_at=stamp,
         )
         if len(batch) >= BATCH_SIZE:
@@ -523,6 +588,7 @@ def _flush_registrations(batch: dict[str, Registration]) -> int:
             "status",
             "certificate_issued_on",
             "expires_on",
+            "airworthiness",
             "imported_at",
         ],
     )

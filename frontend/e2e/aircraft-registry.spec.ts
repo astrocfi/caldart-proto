@@ -12,6 +12,11 @@
  * `cesna 172` still finds the Cessna 172.  An account
  * administrator adds an aircraft type the FAA has never registered from the
  * register's New aircraft form.  The system administrator runs the import.
+ *
+ * The seed's coverage policy excludes helicopters.  An account administrator adds
+ * a registered helicopter, sees its category and airworthiness filled from the
+ * registry, filters the register by category, and finds the aircraft check calling
+ * it not covered; a member reads the policy's note on My aircraft.
  */
 import { expect, test } from '@playwright/test';
 import type { Locator, Page } from '@playwright/test';
@@ -19,6 +24,12 @@ import type { Locator, Page } from '@playwright/test';
 import { DEMO, SEED, signIn } from './helpers';
 
 const REGISTRY = SEED.registry;
+
+/**
+ * A Robinson R44 II the registry fixture holds with a standard airworthiness
+ * certificate, and the seed never puts on the register (its aircraft are airplanes).
+ */
+const FIXTURE_HELICOPTER = 'N781SH';
 
 /** The status Health & Database and the register read, as `GET /aircraft/registry` answers it. */
 interface RegistryStatus {
@@ -144,6 +155,50 @@ test('an account administrator adds a type the FAA has never registered', async 
   await page.getByRole('button', { name: 'Add aircraft' }).click();
   await expect(page).toHaveURL(/\/portal\/admin\/aircraft\/\d+$/);
   await expect(typeBox(page)).toHaveValue(`Quillfeather ${model}`);
+});
+
+test('a helicopter is filled from the registry and the aircraft check calls it not covered', async ({
+  page,
+}) => {
+  await signIn(page, DEMO.accountadmin);
+  await page.goto('portal/admin/aircraft');
+  await page.getByRole('button', { name: 'New aircraft' }).click();
+
+  await page
+    .getByRole('combobox', { name: /^N-number/ })
+    .pressSequentially(FIXTURE_HELICOPTER.slice(0, -1));
+  await page
+    .getByRole('listbox', { name: 'FAA registrations' })
+    .getByRole('option', { name: new RegExp(`^${FIXTURE_HELICOPTER} `) })
+    .click();
+  const airframe = page.getByRole('group', { name: 'Aircraft' });
+  await expect(airframe.getByLabel('Category', { exact: true })).toHaveValue('helicopter');
+  await expect(airframe.getByLabel('Airworthiness', { exact: true })).toHaveValue('standard');
+
+  await page.getByRole('button', { name: 'Add aircraft' }).click();
+  await expect(page).toHaveURL(/\/portal\/admin\/aircraft\/\d+$/);
+
+  await page.goto('portal/admin/aircraft');
+  await page
+    .getByRole('search', { name: 'Filter aircraft' })
+    .getByLabel('Category', { exact: true })
+    .selectOption('Helicopter');
+  await expect(page.getByRole('link', { name: FIXTURE_HELICOPTER })).toBeVisible();
+  await expect(page.getByText('1 aircraft', { exact: true })).toBeVisible();
+
+  await page.goto(`portal/leader/aircraft?aircraft=${FIXTURE_HELICOPTER}`);
+  await expect(page.getByText('NOT COVERED', { exact: true })).toBeVisible();
+  await expect(
+    page.getByText("helicopters are excluded by CalDART's policy", { exact: true }),
+  ).toBeVisible();
+});
+
+test('a member reads the coverage policy on My aircraft', async ({ page }) => {
+  await signIn(page, DEMO.member);
+  await page.goto('portal/profile/aircraft');
+  await expect(page.getByRole('note', { name: 'Coverage policy' })).toContainText(
+    'Helicopters are not covered',
+  );
 });
 
 test('the system administrator runs the FAA registry import', async ({ page }) => {

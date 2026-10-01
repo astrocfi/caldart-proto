@@ -164,6 +164,10 @@ export const handlers = [
   // The register's header and the Health & Database page read the registry's state as
   // they mount: by default, one successful import and none running.
   http.get(`${API}/aircraft/registry`, () => HttpResponse.json(makeRegistryStatus())),
+  // My aircraft and the register read the coverage policy; by default it excludes nothing.
+  http.get(`${API}/aircraft/coverage-policy`, () =>
+    HttpResponse.json({ excluded_categories: [], excluded_airworthiness: [], note: '' }),
+  ),
   // The N-number typeahead on the aircraft form asks this as the box is typed into;
   // by default no registration starts with what was typed, so no list opens.
   http.get(`${API}/aircraft/registrations`, () => HttpResponse.json([])),
@@ -675,6 +679,9 @@ export function makeVerifiedAircraftSummary(
     make: 'Cessna',
     model: '172S Skyhawk',
     type: makeAircraftType({ id: 1, model: '172S Skyhawk' }),
+    category: 'airplane',
+    airworthiness: 'standard',
+    coverage: { excluded: false, reason: '' },
     insurance_is_current: true,
     insurance_expiration: '2027-03-01',
     insurance_summary: '$1,000,000 / $100,000 · exp 2027-03-01',

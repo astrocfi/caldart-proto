@@ -112,6 +112,12 @@ and expiry date:
 When nobody has verified an airplane's insurance, *not verified* follows its expiry date.
 The :doc:`aircraft-check` verifies it.
 
+An airplane CalDART's coverage policy leaves out, such as a helicopter while helicopters
+are excluded, carries a red **Not covered** chip in place of its insurance chip, and the
+reason follows its expiry date, such as *Not covered: helicopters are excluded by
+CalDART's policy*. An airplane with no category recorded reads *Category not recorded*
+there instead.
+
 With no airplanes on the profile the card says *No aircraft on this member's profile.*
 
 

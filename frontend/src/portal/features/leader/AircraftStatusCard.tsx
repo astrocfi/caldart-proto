@@ -1,7 +1,8 @@
 /**
- * The aircraft half of the leader check: is the insurance on this tail number
- * current and verified, who flies it, and how fresh is the record?  A verifier
- * corrects and verifies the insurance from the card's head.
+ * The aircraft half of the leader check: does CalDART's coverage policy cover
+ * this tail number, is its insurance current and verified, who flies it, and how
+ * fresh is the record?  A verifier corrects and verifies the insurance from the
+ * card's head.
  */
 import { useState } from 'react';
 import type { JSX } from 'react';
@@ -15,6 +16,7 @@ import type { StatusTone } from '@/portal/components/StatusChip';
 import { VerifiedMark } from '@/portal/components/VerifiedMark';
 import { InsuranceChip } from '@/portal/features/aircraft/InsuranceChip';
 import { ServiceChip } from '@/portal/features/aircraft/ServiceChip';
+import { categoryLine } from '@/portal/features/aircraft/categories';
 import { OWNER_TYPE_LABELS } from '@/portal/features/aircraft/form';
 import { insuranceTone } from '@/portal/features/aircraft/insurance';
 import { InsuranceVerificationPanel } from '@/portal/features/verification/InsuranceVerificationPanel';
@@ -61,6 +63,25 @@ export function insuranceVerdict(aircraft: InsuranceFacts, today?: Date): Verdic
   return verdict.go && !aircraft.insurance_verification.verified ? NOT_VERIFIED : verdict;
 }
 
+type CheckFacts = InsuranceFacts & Pick<Aircraft, 'coverage'>;
+
+/** The prefix the server's exclusion reason starts with, which the band's word already says. */
+const NOT_COVERED_PREFIX = 'Not covered: ';
+
+/**
+ * The aircraft check's verdict: NOT COVERED, with the policy's reason (less its
+ * `Not covered: ` prefix, which the word already says), for an aircraft the
+ * coverage policy excludes, whatever its insurance; otherwise the insurance
+ * verdict.  The results list and the card read the same answer.
+ */
+export function aircraftVerdict(aircraft: CheckFacts, today?: Date): Verdict {
+  if (aircraft.coverage.excluded) {
+    const why = aircraft.coverage.reason.replace(NOT_COVERED_PREFIX, '');
+    return { word: 'NOT COVERED', why, mark: 'Not covered', go: false };
+  }
+  return insuranceVerdict(aircraft, today);
+}
+
 /** Whether an aircraft's insurance lets it fly: current and verified. */
 export function isInsured(aircraft: InsuranceFacts, today?: Date): boolean {
   return insuranceVerdict(aircraft, today).go;
@@ -73,7 +94,7 @@ export interface AircraftStatusCardProps {
 
 /** The aircraft half of the leader check: insurance status and the pilots who fly it. */
 export function AircraftStatusCard({ aircraft, today }: AircraftStatusCardProps): JSX.Element {
-  const verdict = insuranceVerdict(aircraft, today);
+  const verdict = aircraftVerdict(aircraft, today);
   const canVerify = useCanVerify();
   const [verifying, setVerifying] = useState(false);
   // Only a leader or administrator is sent the pilot list.
@@ -111,6 +132,16 @@ export function AircraftStatusCard({ aircraft, today }: AircraftStatusCardProps)
       ) : null}
 
       <dl className="leader-rows">
+        <div className="leader-row">
+          <dt>Category</dt>
+          <dd>
+            <span className="leader-row__detail">{categoryLine(aircraft)}</span>
+            {aircraft.coverage.excluded ? (
+              <StatusChip tone="expired" label="Not covered" title={aircraft.coverage.reason} />
+            ) : null}
+          </dd>
+        </div>
+
         <div className="leader-row">
           <dt>Insurance</dt>
           <dd>
