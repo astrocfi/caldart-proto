@@ -255,13 +255,6 @@ def test_a_page_without_roles_is_served_to_a_member(reader: Client, gated_guide:
     assert guide_body(response) == MEMBER_HTML.encode()
 
 
-def test_the_roles_file_is_served_to_a_member(reader: Client, gated_guide: Path) -> None:
-    """``roles.json`` is served to every reader, so the sidebar script can read it."""
-    response = reader.get(f"/docs/{GUIDE_ROLES}")
-    assert response.status_code == 200
-    assert json.loads(guide_body(response))["admin/members"] == MEMBERS_PAGE_ROLES
-
-
 def test_a_guide_without_a_roles_file_serves_every_page(reader: Client, gated_guide: Path) -> None:
     """With no ``roles.json`` (a build without the extension), every page is served."""
     (gated_guide / GUIDE_ROLES).unlink()

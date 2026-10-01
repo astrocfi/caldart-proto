@@ -58,9 +58,9 @@ _HAS_DOT = shutil.which("dot") is not None
 
 # ``guide_roles`` is the one local extension, in ``docs/_ext``: pure Python, it reads
 # each user page's ``:roles:`` field, fails the build on a slug that is not a role,
-# and writes ``roles.json`` beside the built pages for the site's ``user_guide`` view
-# and ``_static/guide-roles.js``.  The path is taken from this file, so the guide
-# build, whose source tree is ``docs/user``, finds it too.
+# writes ``roles.json`` beside the built pages for the site's ``user_guide`` view, and
+# keeps every table of contents out of the search index.  The path is taken from this
+# file, so the guide build, whose source tree is ``docs/user``, finds it too.
 sys.path.insert(0, str(Path(__file__).resolve().parent / "_ext"))
 
 extensions: list[str] = ["guide_roles", *(["sphinx.ext.graphviz"] if _HAS_DOT else [])]
@@ -150,21 +150,13 @@ html_title = "CalDART user guide" if tags.has("guide") else "CalDART"  # noqa: F
 # exist would raise a warning, and warnings are errors.
 html_static_path = ["_static"]
 html_css_files = ["figure-zoom.css"]
-html_js_files: list[tuple[str | None, dict[str, str]]] = [("figure-zoom.js", {"defer": "defer"})]
+html_js_files: list[tuple[str, dict[str, str]]] = [("figure-zoom.js", {"defer": "defer"})]
 templates_path: list[str] = []
 
-# The guide the site serves takes out of its sidebar and its tables of contents
-# every page the reader's roles do not reach.  ``guide-roles.js`` does it, reading
-# ``roles.json`` and the reader's roles; until it has, the inline script marks the
-# page ``guide-roles-pending`` and ``guide-roles.css`` keeps the trees hidden, so a
-# reader never sees an entry appear and then vanish.  The inline script runs in the
-# head, before the trees exist; the guide's ``script-src`` allows inline scripts.
+# The guide the site serves is trimmed to each reader by the site's ``user_guide``
+# view, which reads ``roles.json``: a page's navigation and the search index leave out
+# the pages the reader's roles do not reach.
 if tags.has("guide"):  # noqa: F821 - Sphinx injects ``tags``
     # No ``_sources/`` copy of each page: the site serves the guide's files as they
     # are, and a restricted page's text would otherwise be one address away.
     html_copy_source = False
-    html_css_files.append("guide-roles.css")
-    html_js_files += [
-        (None, {"body": "document.documentElement.classList.add('guide-roles-pending');"}),
-        ("guide-roles.js", {"defer": "defer"}),
-    ]

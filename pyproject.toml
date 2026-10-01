@@ -20,6 +20,7 @@ dependencies = [
     "faker>=30.0",
     "django-csp>=4.0",
     "drf-spectacular>=0.28",
+    "beautifulsoup4>=4.13",
 ]
 
 [dependency-groups]

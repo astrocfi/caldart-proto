@@ -61,8 +61,7 @@ first:
    the ``user_guide`` view streams these files at ``/docs/`` to anyone signed
    in, from ``USER_GUIDE_ROOT`` (:doc:`configuration`), holds back the pages
    the reader's roles do not reach (:ref:`documentation-role-gated-pages`),
-   and sends a visitor to the portal's login page first.  Only this build
-   ships ``guide-roles.css`` and ``guide-roles.js``.
+   and sends a visitor to the portal's login page first.
 
 ``make docs``
    ``sphinx-build -n -W -b html docs docs/_build/html``: the whole tree,
@@ -90,9 +89,8 @@ Static assets and the figure toolbar
 
 ``docs/_static/`` holds the only custom assets, all hand-written and
 dependency-free, and ``conf.py`` ships them through ``html_static_path``,
-``html_css_files``, and ``html_js_files``: the figure toolbar's two files in
-both builds, and ``guide-roles.css`` and ``guide-roles.js``
-(:ref:`documentation-role-gated-pages`) in the guide build alone.  The path is
+``html_css_files``, and ``html_js_files``: the figure toolbar's two files, in
+both builds.  The path is
 relative to ``conf.py``, so the guide build, whose source tree is
 ``docs/user``, finds the same directory.  There are no custom templates.
 
@@ -139,8 +137,9 @@ Role-gated pages
 
 The guide shows each reader the screens their roles reach, and nothing else:
 a plain member's sidebar lists the pages under **Start here**, their own
-screens, and **Reference**, while the system administrator's lists every page.
-Five pieces do it.
+screens, and **Reference**, and their search finds only those pages, while the
+system administrator's lists and finds every page.  Five pieces do it, and the
+server does all of the hiding: no script in the browser takes anything out.
 
 **The field.**  A page only some roles may read opens with a ``:roles:``
 field, before its title::
@@ -171,7 +170,11 @@ since it cannot import the Django project, and a test holds its list equal to
 ``ROLE_SLUGS``.  A page with no field of its own that lists others in a
 toctree takes the union of their roles, so ``admin/index`` is readable by
 every role that reaches any administrator screen, and it is open to everyone
-when any page it lists is.
+when any page it lists is.  As each page is read, the extension also gives
+every table of contents the ``no-search`` class, which Sphinx's indexer skips:
+otherwise the titles a table of contents lists would be indexed as words of
+the page holding it, and the front page would match a word from a restricted
+page's title.  Each page's words are indexed under that page alone.
 
 **The JSON.**  At the end of a successful HTML build the extension writes
 ``roles.json`` into the output directory, beside the front page: each
@@ -193,34 +196,58 @@ served only to a reader for whom ``User.has_any_role`` is true of its slugs;
 anyone else is redirected to the guide's front page.  The page is named by the
 file the request resolves to, so ``admin/members/``,
 ``admin/members/index.html``, and a path that reaches it through ``..`` are
-judged alike.  ``roles.json`` itself and the static assets are served to every
-reader, and a guide built without ``roles.json`` serves every page.  A
-``roles.json`` that is not valid JSON is logged as an error and serves every
-page too, rather than failing every request.  The guide build sets
-``html_copy_source`` off, so no page's reStructuredText is published under
-``_sources/``.  This is the enforcement; the script below only tidies the
-navigation.
+judged alike.  The static assets and every page the file does not name are
+served to every reader, and a guide built without ``roles.json`` serves every
+file as built.  A ``roles.json`` that is not valid JSON is logged as an error
+and serves every file as built too, rather than failing every request.
 
-**The script.**  ``docs/_static/guide-roles.js``, deferred, reads
-``roles.json`` and the reader's roles from ``/api/v1/auth/me``, both beside
-the guide's root, which it takes from the ``data-content_root`` attribute
-Sphinx writes on ``<html>``, so it works under a ``URL_PREFIX``.  It removes
-from the sidebar (``.sidebar-tree``), from every table of contents
-(``.toctree-wrapper``), and from the next and previous links at the foot of the
-page every entry whose link leads to a page the reader may not read, then any
-caption or table whose entries are all gone.  An inline script in the page's
-head marks ``<html>`` with ``guide-roles-pending`` before the page draws, and
-``guide-roles.css`` keeps the trees hidden while the mark is there; the script
-clears it once both reads have settled, and removes nothing when either
-fails.  On the search page it trims ``#search-results`` the same way, as
-Sphinx adds each result, and rewrites the closing count to the results left;
-the results stay hidden while the mark is there.  The search index itself,
-``searchindex.js``, still names every page's title and words, so a reader can
-learn that a restricted page exists, though not open it.  Both reads are
-same-origin, which the site's ``connect-src`` of ``'self'`` allows, and the
-guide's ``script-src`` already allows its own inline scripts
-(:ref:`configuration-csp`).  A link in a page's prose is left alone: following
-one to a restricted page lands on the front page.
+The view never serves a file that names the restricted pages and that no
+reader needs: ``roles.json`` itself, Sphinx's ``objects.inv`` inventory, and
+any path with a part that starts with a dot, such as the ``.doctrees``
+directory the build leaves in its output (it holds every page's whole text)
+and ``.buildinfo``, all answer 404.  The guide build sets ``html_copy_source``
+off, so no page's reStructuredText is published under ``_sources/``.
+
+**The trimming.**  Every page and ``searchindex.js`` reach a reader with the
+pages they may not open taken out, by ``caldart/guide_search.py``:
+
+- *A page.*  Every sidebar (``.sidebar-tree``) and table-of-contents
+  (``.toctree-wrapper``) entry whose link leads to a hidden page goes, with
+  everything nested under it; so does every next or previous link at the
+  foot of the page (``.related-pages``) and every ``<link rel="next">`` or
+  ``<link rel="prev">`` in its head, which carries the page's title.  Then
+  every list left with no entries goes, with the caption before it, and a
+  table of contents left with no list.  Any other link to a hidden page,
+  such as a ``:doc:`` reference in a page's prose, loses its anchor and keeps
+  its text, so no link leads the reader to a page they cannot open; the
+  words stay, since a screen's name is no secret.  A link is resolved
+  against the page's own address and judged by the same rule as a request,
+  and a link that leaves the guide is left alone.  A page that loses
+  nothing is served byte for byte as built.  The page is parsed with
+  Beautiful Soup's ``html.parser``.
+- *The search index.*  The hidden pages leave ``docnames``, ``filenames``,
+  and ``titles``, and the pages left are numbered afresh in the order they
+  had.  Each word in ``terms`` and ``titleterms`` keeps only the pages left,
+  written as one number when one page is left, as Sphinx writes it, and goes
+  when none is; each entry in ``alltitles``, ``indexentries``, and
+  ``objects`` on a hidden page goes, and a name with no entry left goes with
+  it.  Every other field passes through.  An index that is not the
+  ``Search.setIndex(...)`` call Sphinx writes, in the shapes above, is
+  logged as an error and answers 404, so a format change never sends every
+  page's words to a member.  A member's search therefore finds nothing on a
+  restricted page, and Sphinx's own results and count need no correction.
+
+The view reads the reader's roles once per request, and only for a file it
+gates or trims, so a stylesheet or an image costs no query beyond the
+session's.  A reader's reach is the set of restricted docnames they may not
+open.  Both
+trims are cached in memory per file, modification time, and reach, so readers
+with the same reach share one copy, and a rebuilt guide is trimmed afresh; a
+system administrator, from whom nothing is hidden, is served every file as
+built.  A page and the index carry an ``ETag`` made of the file's modification
+time and a digest of the reach, beside the ``Last-Modified`` every file
+carries, so a reader whose roles change is sent the file again instead of a
+304 for the copy trimmed for their old roles.
 
 To restrict a new page, give it the field and run ``make guide``; to change
 who reads a screen, change its menu entry and its page's field together.
@@ -384,9 +411,20 @@ the refusal of paths that leave the guide, the content type of each
 asset the figure toolbar depends on, and ``roles.json``: a restricted page
 redirects a reader without its roles and is served to one with them, a page
 it does not name is served to a member, and a guide without it serves every
-page.  ``frontend/e2e/user-guide.spec.ts`` checks the same in a browser: a
-member typing an administrator page's address lands on the front page, a
-member's sidebar has no administrator, treasurer, or website entries, and the
-system administrator's has all three.
+page.  ``backend/tests/test_user_guide_search.py`` checks the trimming: on a
+stand-in guide, each field of a member's and a DART leader's search index,
+each piece of navigation a member's page loses or keeps, a prose link to a
+restricted page reduced to its text, the queries a page and a stylesheet cost, the system
+administrator's untouched files, the ``ETag`` that changes with the reader's
+reach, the refusal of the build files that name restricted pages, and an
+index that cannot be trimmed; and, on a guide built by Sphinx with the
+site's ``conf.py`` in a temporary directory, that no page a member is served
+and not their index carries a word found only on a restricted page.
+``frontend/e2e/user-guide.spec.ts`` checks the same in a browser: a member
+typing an administrator page's address lands on the front page, a member's
+sidebar has no administrator, treasurer, or website entries, and the system
+administrator's has all three; a member's search index names no
+administrator, treasurer, or website page, and a word the system
+administrator's search finds only on such pages finds nothing for a member.
 
 :doc:`testing` describes how the suites run.
