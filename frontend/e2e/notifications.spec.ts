@@ -180,11 +180,14 @@ test('an outside address hears of a sign-up, and stops once sign-ups are dropped
   const name = (await link.textContent()) ?? '';
   await link.click();
   await expect(page.getByRole('heading', { name, exact: true })).toBeVisible();
-  const status = page.getByRole('checkbox', { name: /^Active/ });
+  const status = page.locator('section.card', {
+    has: page.getByRole('heading', { name: 'Account status' }),
+  });
 
-  await status.uncheck();
-  await page.getByRole('button', { name: 'Save changes' }).click();
-  await expect(page.getByText('Account saved.')).toBeVisible();
+  // Each action asks first: the button opens the panel holding the one that acts.
+  await status.getByRole('button', { name: 'Deactivate account' }).click();
+  await status.getByRole('button', { name: 'Deactivate account' }).click();
+  await expect(page.getByText('Account deactivated.')).toBeVisible();
 
   // The seeded account administrator hears of it, which proves the event went out,
   // and the outside address, no longer subscribed to anything it covers, does not.
@@ -194,9 +197,9 @@ test('an outside address hears of a sign-up, and stops once sign-ups are dropped
   expect(emailCountTo(outside)).toBe(1);
 
   // Leave the member as the seed made them, for the specs that follow.
-  await status.check();
-  await page.getByRole('button', { name: 'Save changes' }).click();
-  await expect(status).toBeChecked();
+  await status.getByRole('button', { name: 'Reactivate account' }).click();
+  await status.getByRole('button', { name: 'Reactivate account' }).click();
+  await expect(status.getByRole('button', { name: 'Deactivate account' })).toBeVisible();
   await expect
     .poll(() => latestEmailTo(DEMO.accountadmin))
     .toContain(`${name}'s account was reactivated`);
