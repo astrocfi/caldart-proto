@@ -128,6 +128,8 @@ describe('REPORTS', () => {
     expect(keysOf('aircraft')).toEqual([
       'search',
       'make',
+      'category',
+      'airworthiness',
       'owner_type',
       'insurance',
       'expiring_within',

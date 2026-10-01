@@ -24,7 +24,7 @@ class AircraftAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
         "insurance_expiration",
         "insurance_is_current",
     ]
-    list_filter = ["owner_type", "is_active", "type__make"]
+    list_filter = ["owner_type", "category", "airworthiness", "is_active", "type__make"]
     list_select_related = ["type"]
     search_fields = ["n_number", "type__make", "type__model", "owner_name", "insurance_carrier"]
     autocomplete_fields = ["type", "created_by", "updated_by"]

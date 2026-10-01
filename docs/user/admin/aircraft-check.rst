@@ -4,8 +4,8 @@
 Aircraft check
 ==============
 
-The **Aircraft check** tells you whether the insurance on an airplane is current and
-verified, who flies it, and how old the record is. Use it when the airplane in front of you
+The **Aircraft check** tells you whether CalDART's insurance covers an airplane at all,
+whether its insurance is current and verified, who flies it, and how old the record is. Use it when the airplane in front of you
 is missing from the pilot's profile: a club airplane, or one they have just started flying.
 It is also where an airplane's insurance is verified against the policy documents.
 
@@ -21,8 +21,9 @@ a make, a model, or an owner's name all match, so a half-remembered tail number 
 The leading N is optional, and spaces, dashes, and capitals are ignored.
 
 Each result is one line: the N-number, the make and model, and **GO** or **NO-GO** at the
-far end for its insurance. **GO** means a current, verified policy, including one about to
-expire. A screen reader reads the mark as *Insured*, *Not verified*, or *Not insured*.
+far end. **GO** means an airplane the coverage policy covers, with a current, verified
+policy, including one about to expire. A screen reader reads the mark as *Insured*, *Not
+verified*, *Not insured*, or *Not covered*.
 You see at most eight results. There is no button to press. Tap a result to open its card.
 
 An airplane taken out of service is left out of the results until you type its whole
@@ -38,7 +39,12 @@ Reading the card
 **Back to search** returns you to the list. The card's address ends with the N-number, so it
 survives a reload and you can send it to another leader.
 
-The band across the top gives one of three verdicts:
+The band across the top gives one of four verdicts:
+
+- **NOT COVERED**, with the reason, such as *Not covered: helicopters are excluded by
+  CalDART's policy*: the coverage policy an account administrator keeps on the
+  :doc:`aircraft-register` leaves out the airplane's category or its airworthiness
+  category. This is a no-go whatever its insurance.
 
 - **INSURED**, with *Coverage is current* or *Coverage expires soon*: a current policy
   that somebody has verified. This is a go.
@@ -47,7 +53,14 @@ The band across the top gives one of three verdicts:
 - **NOT INSURED**, with *Coverage has expired* or *No policy on file*.
 
 Under the band are the N-number, an **Out of service** chip when an administrator has taken
-the airplane out of service, and the make, model, year, and seats. Then come four rows:
+the airplane out of service, and the make, model, year, and seats. Then come five rows:
+
+**Category**
+   The aircraft category and the airworthiness category, such as *Helicopter · Standard*,
+   and a red **Not covered** chip when the coverage policy leaves the airplane out. With
+   neither recorded it reads *Category not recorded*: the policy cannot tell whether the
+   airplane is covered, so ask the pilot, and have the category recorded on **My aircraft**
+   or the :doc:`aircraft-record`.
 
 **Insurance**
    The insurance chip (**Insured**, **Expiring soon**, **Insurance expired**, or **No

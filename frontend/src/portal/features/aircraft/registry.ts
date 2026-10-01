@@ -28,32 +28,43 @@ export function ownerTypeForRegistrant(registrant: RegistrantType): OwnerType | 
 }
 
 /**
- * The form with `type` picked: the type set, and the seats filled from it when
- * the seats box is blank and the type knows its seats.  A null `type` clears the
- * type and leaves the seats as they are.
+ * The form with `type` picked: the type set, the seats filled from it when the
+ * seats box is blank and the type knows its seats, and the category set to the
+ * type's when the type has one.  A null `type` clears the type and leaves the
+ * seats and the category as they are.
  */
 export function withPickedType(
   values: AircraftFormValues,
   type: AircraftType | null,
 ): AircraftFormValues {
   const fillSeats = type !== null && type.seats !== null && values.seats.trim() === '';
-  return { ...values, type, seats: fillSeats ? String(type.seats) : values.seats };
+  const category = type === null || type.category === '' ? values.category : type.category;
+  return { ...values, type, category, seats: fillSeats ? String(type.seats) : values.seats };
 }
 
 /**
- * The form filled from `registration`: the type, the year, the seats, the owner's
- * name, and the owner type.  Anything the registry does not say (no year, no
- * seats on the type, a registrant with no matching owner type) keeps what the
- * form held.  The other fields are untouched.
+ * The form filled from `registration`: the type, the year, the seats, the
+ * category, the airworthiness, the owner's name, and the owner type.  Anything
+ * the registry does not say (no year, no seats or category on the type, no
+ * airworthiness certificate, a registrant with no matching owner type) keeps
+ * what the form held.  The other fields are untouched.
  */
 export function withRegistration(
   values: AircraftFormValues,
   registration: Registration,
 ): AircraftFormValues {
-  const { type, year, registrant_name: ownerName, registrant_type: registrant } = registration;
+  const {
+    type,
+    year,
+    airworthiness,
+    registrant_name: ownerName,
+    registrant_type: registrant,
+  } = registration;
   return {
     ...values,
     type,
+    category: type.category === '' ? values.category : type.category,
+    airworthiness: airworthiness === '' ? values.airworthiness : airworthiness,
     year: year === null ? values.year : String(year),
     seats: type.seats === null ? values.seats : String(type.seats),
     owner_name: ownerName.trim() === '' ? values.owner_name : ownerName,

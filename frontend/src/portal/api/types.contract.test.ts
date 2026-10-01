@@ -29,7 +29,10 @@ import type {
   Aircraft,
   AircraftActor,
   AircraftChange,
+  AircraftCategory,
   AircraftChangeKind,
+  AircraftCoverage,
+  AircraftCoveragePolicy,
   AircraftDetail,
   AircraftPatch,
   AircraftPilot,
@@ -37,6 +40,7 @@ import type {
   AircraftType,
   AircraftTypeCreatePayload,
   AttachedAircraft,
+  Airworthiness,
   Backup,
   BecomeFriendPayload,
   CheckoutRequest,
@@ -198,6 +202,8 @@ const certificateType: Matches<PilotCertificateType, Schemas['PilotCertificateTy
 const rating: Matches<Rating, Schemas['RatingsEnum']> = true;
 const medicalType: Matches<MedicalType, Schemas['MedicalTypeEnum']> = true;
 const ownerType: Matches<OwnerType, Schemas['OwnerTypeEnum']> = true;
+const aircraftCategory: Matches<AircraftCategory, Schemas['AircraftCategoryEnum']> = true;
+const airworthiness: Matches<Airworthiness, Schemas['AirworthinessEnum']> = true;
 const aircraftChangeKind: Matches<AircraftChangeKind, Schemas['AircraftChangeKindEnum']> = true;
 const paymentProvider: Matches<PaymentProvider, Schemas['PaymentProviderEnum']> = true;
 const paymentWallet: Matches<PaymentWallet, Schemas['WalletEnum']> = true;
@@ -267,6 +273,8 @@ const aircraftActor: Matches<AircraftActor, Schemas['AircraftActor']> = true;
 const aircraftChange: Matches<AircraftChange, Schemas['AircraftChange']> = true;
 const aircraftDetail: Matches<AircraftDetail, Schemas['AircraftDetail']> = true;
 const aircraftType: Matches<AircraftType, Schemas['AircraftType']> = true;
+const aircraftCoverage: Matches<AircraftCoverage, Schemas['Coverage']> = true;
+const aircraftCoveragePolicy: Matches<AircraftCoveragePolicy, Schemas['CoveragePolicy']> = true;
 const aircraftTypeCreate: Matches<AircraftTypeCreatePayload, Schemas['AircraftTypeCreateRequest']> =
   true;
 const registrantType: Matches<RegistrantType, Schemas['RegistrantTypeEnum']> = true;
@@ -414,6 +422,8 @@ const assertions: readonly true[] = [
   rating,
   medicalType,
   ownerType,
+  aircraftCategory,
+  airworthiness,
   aircraftChangeKind,
   paymentProvider,
   paymentKind,
@@ -468,6 +478,8 @@ const assertions: readonly true[] = [
   aircraftChange,
   aircraftDetail,
   aircraftType,
+  aircraftCoverage,
+  aircraftCoveragePolicy,
   aircraftTypeCreate,
   registrantType,
   registrationStatus,
@@ -569,6 +581,8 @@ const MAPPED_COMPONENTS: readonly (keyof Schemas)[] = [
   'RatingsEnum',
   'MedicalTypeEnum',
   'OwnerTypeEnum',
+  'AircraftCategoryEnum',
+  'AirworthinessEnum',
   'AircraftChangeKindEnum',
   'PaymentProviderEnum',
   'WalletEnum',
@@ -623,6 +637,8 @@ const MAPPED_COMPONENTS: readonly (keyof Schemas)[] = [
   'AircraftChange',
   'AircraftDetail',
   'AircraftType',
+  'Coverage',
+  'CoveragePolicy',
   'AircraftTypeCreateRequest',
   'RegistrantTypeEnum',
   'RegistrationStatusEnum',

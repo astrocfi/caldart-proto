@@ -190,3 +190,32 @@
 .aircraft-registry-date {
   font-size: var(--text-sm);
 }
+
+/* The coverage policy card on the register: three labeled lines, then Edit. */
+.aircraft-policy {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-4);
+}
+
+.aircraft-policy > div {
+  display: grid;
+  grid-template-columns: minmax(10rem, max-content) 1fr;
+  gap: var(--space-3);
+}
+
+.aircraft-policy dt {
+  color: var(--color-muted);
+}
+
+.aircraft-policy dd {
+  margin: 0;
+  white-space: pre-line;
+}
+
+@media (max-width: 40rem) {
+  .aircraft-policy > div {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+}

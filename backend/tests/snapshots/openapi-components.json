@@ -198,6 +198,9 @@
   },
   "Aircraft": {
     "properties": {
+      "airworthiness": "unknown",
+      "category": "unknown",
+      "coverage": "ref:Coverage",
       "created_by": "integer|null",
       "id": "integer",
       "insurance_carrier": "string",
@@ -223,6 +226,7 @@
       "year": "integer|null"
     },
     "required": [
+      "coverage",
       "created_by",
       "id",
       "insurance_is_current",
@@ -253,6 +257,20 @@
       "aircraft_id"
     ]
   },
+  "AircraftCategoryEnum": {
+    "enum": [
+      "airplane",
+      "helicopter",
+      "gyroplane",
+      "glider",
+      "balloon",
+      "airship",
+      "powered_lift",
+      "weight_shift",
+      "powered_parachute",
+      "other"
+    ]
+  },
   "AircraftChange": {
     "properties": {
       "changed_at": "string(date-time)",
@@ -277,6 +295,9 @@
   },
   "AircraftDetail": {
     "properties": {
+      "airworthiness": "unknown",
+      "category": "unknown",
+      "coverage": "ref:Coverage",
       "created_by": "integer|null",
       "id": "integer",
       "insurance_carrier": "string",
@@ -304,6 +325,7 @@
       "year": "integer|null"
     },
     "required": [
+      "coverage",
       "created_by",
       "id",
       "insurance_is_current",
@@ -336,6 +358,8 @@
   },
   "AircraftRequest": {
     "properties": {
+      "airworthiness": "unknown",
+      "category": "unknown",
       "insurance_carrier": "string",
       "insurance_expiration": "string(date)|null",
       "insurance_hull_cents": "integer|null",
@@ -359,6 +383,9 @@
   },
   "AircraftSummary": {
     "properties": {
+      "airworthiness": "unknown",
+      "category": "unknown",
+      "coverage": "ref:Coverage",
       "id": "integer",
       "insurance_expiration": "string(date)|null",
       "insurance_is_current": "boolean",
@@ -370,6 +397,9 @@
       "type": "ref:AircraftType"
     },
     "required": [
+      "airworthiness",
+      "category",
+      "coverage",
       "id",
       "insurance_expiration",
       "insurance_is_current",
@@ -383,6 +413,7 @@
   },
   "AircraftType": {
     "properties": {
+      "category": "unknown",
       "engines": "integer|null",
       "id": "integer",
       "is_custom": "boolean",
@@ -391,6 +422,7 @@
       "seats": "integer|null"
     },
     "required": [
+      "category",
       "engines",
       "id",
       "is_custom",
@@ -409,6 +441,19 @@
     "required": [
       "make",
       "model"
+    ]
+  },
+  "AirworthinessEnum": {
+    "enum": [
+      "standard",
+      "limited",
+      "restricted",
+      "experimental",
+      "provisional",
+      "multiple",
+      "primary",
+      "special_flight_permit",
+      "light_sport"
     ]
   },
   "AttachedAircraft": {
@@ -562,6 +607,40 @@
       "Ventura",
       "Yolo",
       "Yuba"
+    ]
+  },
+  "Coverage": {
+    "properties": {
+      "excluded": "boolean",
+      "reason": "string"
+    },
+    "required": [
+      "excluded",
+      "reason"
+    ]
+  },
+  "CoveragePolicy": {
+    "properties": {
+      "excluded_airworthiness": "array<ref:AirworthinessEnum>",
+      "excluded_categories": "array<ref:AircraftCategoryEnum>",
+      "note": "string"
+    },
+    "required": [
+      "excluded_airworthiness",
+      "excluded_categories",
+      "note"
+    ]
+  },
+  "CoveragePolicyRequest": {
+    "properties": {
+      "excluded_airworthiness": "array<ref:AirworthinessEnum>",
+      "excluded_categories": "array<ref:AircraftCategoryEnum>",
+      "note": "string"
+    },
+    "required": [
+      "excluded_airworthiness",
+      "excluded_categories",
+      "note"
     ]
   },
   "Dart": {
@@ -1810,6 +1889,8 @@
   },
   "PatchedAircraftRequest": {
     "properties": {
+      "airworthiness": "unknown",
+      "category": "unknown",
       "insurance_carrier": "string",
       "insurance_expiration": "string(date)|null",
       "insurance_hull_cents": "integer|null",
@@ -2450,6 +2531,7 @@
   },
   "Registration": {
     "properties": {
+      "airworthiness": "unknown",
       "certificate_issued_on": "string(date)|null",
       "expires_on": "string(date)|null",
       "imported_at": "string(date-time)",
@@ -2461,6 +2543,7 @@
       "year": "integer|null"
     },
     "required": [
+      "airworthiness",
       "certificate_issued_on",
       "expires_on",
       "imported_at",

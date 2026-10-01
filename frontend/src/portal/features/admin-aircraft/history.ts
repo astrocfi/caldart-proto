@@ -19,6 +19,8 @@ const FIELD_LABELS: Record<string, string> = {
   type: 'aircraft type',
   year: 'year',
   seats: 'seats',
+  category: 'category',
+  airworthiness: 'airworthiness',
   owner_type: 'owner type',
   owner_name: 'owner name',
   owner_contact: 'owner contact',

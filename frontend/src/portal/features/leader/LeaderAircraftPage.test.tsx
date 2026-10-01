@@ -117,6 +117,24 @@ describe('LeaderAircraftPage search', () => {
     expect(row).toHaveTextContent(/Not verifiedNO-GO$/);
   });
 
+  it('marks an aircraft the coverage policy excludes NO-GO, read out as not covered', async () => {
+    const user = setupUser();
+    server.use(
+      ...registerFinds([
+        makeVerifiedAircraft({
+          category: 'helicopter',
+          coverage: { excluded: true, reason: 'Not covered: helicopters are excluded' },
+        }),
+      ]),
+    );
+
+    renderPage();
+    await search(user, 'cessna');
+
+    const row = await screen.findByRole('button', { name: /N172SP/ });
+    expect(row).toHaveTextContent(/Not coveredNO-GO$/);
+  });
+
   it('marks an aircraft whose policy is about to expire GO in the list', async () => {
     const user = setupUser();
     server.use(
@@ -237,6 +255,38 @@ describe('LeaderAircraftPage card', () => {
 
     expect(await screen.findByText('NOT INSURED')).toBeInTheDocument();
     expect(screen.getByText('No policy on file')).toBeInTheDocument();
+  });
+
+  it('says NOT COVERED, with the reason, for an aircraft the policy excludes', async () => {
+    const reason = "Not covered: helicopters are excluded by CalDART's policy";
+    server.use(
+      http.get(`${API}/leader/aircraft`, () =>
+        HttpResponse.json(
+          makeVerifiedAircraft({ category: 'helicopter', coverage: { excluded: true, reason } }),
+        ),
+      ),
+    );
+    renderWithProviders(<LeaderAircraftPage />, { route: '/leader/aircraft?aircraft=N172SP' });
+
+    expect(await screen.findByText('NOT COVERED')).toBeInTheDocument();
+    expect(screen.getByText(reason)).toHaveClass('leader-verdict__why');
+  });
+
+  it('says when no category is recorded', async () => {
+    server.use(
+      http.get(`${API}/leader/aircraft`, () =>
+        HttpResponse.json(
+          makeVerifiedAircraft({
+            category: '',
+            airworthiness: '',
+            coverage: { excluded: false, reason: 'Category not recorded' },
+          }),
+        ),
+      ),
+    );
+    renderWithProviders(<LeaderAircraftPage />, { route: '/leader/aircraft?aircraft=N172SP' });
+
+    expect(await screen.findByText('Category not recorded')).toBeInTheDocument();
   });
 
   it('lists the members who fly it with their own currency', async () => {

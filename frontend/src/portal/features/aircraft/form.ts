@@ -5,7 +5,14 @@
  * edit form render different subsets of the same fields, so they share the
  * conversion between form strings and the API's integer cents.
  */
-import type { Aircraft, AircraftPatch, AircraftType, OwnerType } from '@/portal/api/types';
+import type {
+  Aircraft,
+  AircraftCategory,
+  AircraftPatch,
+  AircraftType,
+  Airworthiness,
+  OwnerType,
+} from '@/portal/api/types';
 import { centsToDollars, dollarsToCents, normalizeNNumber } from './insurance';
 
 export interface AircraftFormValues {
@@ -17,6 +24,10 @@ export interface AircraftFormValues {
   owner_name: string;
   owner_contact: string;
   seats: string;
+  /** Blank until somebody records it. */
+  category: AircraftCategory | '';
+  /** Blank until somebody records it. */
+  airworthiness: Airworthiness | '';
   insurance_carrier: string;
   insurance_policy_number: string;
   liability_per_occurrence: string;
@@ -45,6 +56,8 @@ export function emptyAircraftValues(nNumber = ''): AircraftFormValues {
     owner_name: '',
     owner_contact: '',
     seats: '',
+    category: '',
+    airworthiness: '',
     insurance_carrier: '',
     insurance_policy_number: '',
     liability_per_occurrence: '',
@@ -66,6 +79,8 @@ export function aircraftToValues(aircraft: Aircraft): AircraftFormValues {
     owner_name: aircraft.owner_name,
     owner_contact: aircraft.owner_contact,
     seats: aircraft.seats === null ? '' : String(aircraft.seats),
+    category: aircraft.category,
+    airworthiness: aircraft.airworthiness,
     insurance_carrier: aircraft.insurance_carrier,
     insurance_policy_number: aircraft.insurance_policy_number,
     liability_per_occurrence: centsToDollars(aircraft.insurance_liability_per_occurrence_cents),
@@ -132,6 +147,8 @@ export function aircraftPayload(values: AircraftFormValues): AircraftPatch {
     owner_name: values.owner_name.trim(),
     owner_contact: values.owner_contact.trim(),
     seats: optionalNumber(values.seats),
+    category: values.category,
+    airworthiness: values.airworthiness,
     insurance_carrier: values.insurance_carrier.trim(),
     insurance_policy_number: values.insurance_policy_number.trim(),
     insurance_liability_per_occurrence_cents: dollarsToCents(values.liability_per_occurrence) ?? 0,

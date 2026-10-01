@@ -8,7 +8,14 @@ from typing import TYPE_CHECKING, Any
 from django.utils import timezone
 
 from apps.accounts.models import User
-from apps.aircraft.models import Aircraft, OwnerType, Registration, RegistrationStatus
+from apps.aircraft.models import (
+    Aircraft,
+    AircraftCategory,
+    AircraftCoveragePolicy,
+    OwnerType,
+    Registration,
+    RegistrationStatus,
+)
 from apps.aircraft.registry import FIXTURE_DIR, import_registry
 
 if TYPE_CHECKING:
@@ -59,6 +66,22 @@ INSURANCE_MIX: tuple[tuple[str, int], ...] = (
 #: Of every ten seeded aircraft, the positions (counting from zero, in seeding order)
 #: whose insurance the seeded DART leader has not verified; the other seven are.
 UNVERIFIED_POSITIONS = frozenset({2, 5, 8})
+
+#: The statement the seeded coverage policy publishes beside its exclusion of helicopters.
+COVERAGE_NOTE = (
+    "CalDART's insurance covers airplanes flown on DART missions. Helicopters are not "
+    "covered; talk to your DART leader before offering one."
+)
+
+
+def seed_coverage_policy() -> AircraftCoveragePolicy:
+    """Write the coverage policy: helicopters excluded, with :data:`COVERAGE_NOTE`."""
+    policy = AircraftCoveragePolicy.load()
+    policy.excluded_categories = [AircraftCategory.HELICOPTER.value]
+    policy.excluded_airworthiness = []
+    policy.note = COVERAGE_NOTE
+    policy.save()
+    return policy
 
 
 def _seed_registrations() -> list[Registration]:
@@ -112,7 +135,9 @@ def run(ctx: dict[str, Any], stdout: TextIOBase | None = None) -> dict[str, Any]
     The registry is imported from ``apps/aircraft/fixtures/faa`` through
     :func:`apps.aircraft.registry.import_registry`, and each aircraft takes its
     N-number, type, and year from one of its registrations (see
-    :func:`_seed_registrations`), so a registry lookup on a seeded aircraft answers.
+    :func:`_seed_registrations`), so a registry lookup on a seeded aircraft answers; its
+    category and airworthiness are the registration's.  The coverage policy is written
+    by :func:`seed_coverage_policy`.
     Reads ``rng``, ``faker``, and ``today`` from ``ctx``, and ``profiles`` when present.
     Adds the created ``Aircraft`` list to ``ctx`` under ``aircraft`` and returns
     ``ctx``. Writes a one-line summary to ``stdout`` when given.  The seeded DART
@@ -165,6 +190,8 @@ def run(ctx: dict[str, Any], stdout: TextIOBase | None = None) -> dict[str, Any]
                 if rng.random() < 0.6
                 else faker.numerify("###-###-####"),
                 "seats": registration.type.seats,
+                "category": registration.type.category,
+                "airworthiness": registration.airworthiness,
                 "insurance_carrier": rng.choice(CARRIERS) if expiration else "",
                 "insurance_policy_number": (faker.numerify("AV-########") if expiration else ""),
                 "insurance_liability_per_occurrence_cents": per_occurrence if expiration else 0,
@@ -182,6 +209,7 @@ def run(ctx: dict[str, Any], stdout: TextIOBase | None = None) -> dict[str, Any]
         created.append(aircraft)
 
     _seed_verification(created, ctx.get("demo_users", {}).get("leader"))
+    seed_coverage_policy()
 
     # Attach aircraft to the pilots who fly them: at most two each, which is as many
     # registrations as the member report's Aircraft column holds on one line.

@@ -44,6 +44,39 @@ def normalize_n_number(value: str | None) -> str:
     return cleaned
 
 
+class AircraftCategory(models.TextChoices):
+    """What kind of aircraft an airframe is, as the FAA registry classes it."""
+
+    AIRPLANE = "airplane", "Airplane"
+    HELICOPTER = "helicopter", "Helicopter"
+    GYROPLANE = "gyroplane", "Gyroplane"
+    GLIDER = "glider", "Glider"
+    BALLOON = "balloon", "Balloon"
+    AIRSHIP = "airship", "Airship"
+    POWERED_LIFT = "powered_lift", "Powered lift"
+    WEIGHT_SHIFT = "weight_shift", "Weight-shift control"
+    POWERED_PARACHUTE = "powered_parachute", "Powered parachute"
+    OTHER = "other", "Other"
+
+
+class Airworthiness(models.TextChoices):
+    """The classification of an airframe's airworthiness certificate."""
+
+    STANDARD = "standard", "Standard"
+    LIMITED = "limited", "Limited"
+    RESTRICTED = "restricted", "Restricted"
+    EXPERIMENTAL = "experimental", "Experimental"
+    PROVISIONAL = "provisional", "Provisional"
+    MULTIPLE = "multiple", "Multiple"
+    PRIMARY = "primary", "Primary"
+    SPECIAL_FLIGHT_PERMIT = "special_flight_permit", "Special flight permit"
+    LIGHT_SPORT = "light_sport", "Light sport"
+
+
+#: The longest value of either choice list, which sizes both columns.
+CATEGORY_MAX_LENGTH = 24
+
+
 class OwnerType(models.TextChoices):
     """Who holds title to an aircraft on the register."""
 
@@ -67,8 +100,9 @@ class AircraftType(models.Model):
     The entries come from the FAA registry's aircraft reference file, one per
     manufacturer-model code (``faa_code``), keeping the FAA's own spellings in
     ``faa_make`` and ``faa_model`` beside the display names every screen prints in
-    ``make`` and ``model``.  An entry an account administrator adds by hand, for a type
-    the FAA has never registered, has ``is_custom`` set.
+    ``make`` and ``model``.  ``category`` is the FAA's aircraft type for the code
+    (blank for a hand-added type).  An entry an account administrator adds by hand, for
+    a type the FAA has never registered, has ``is_custom`` set.
     """
 
     faa_code = models.CharField("FAA code", max_length=16, unique=True)
@@ -78,6 +112,9 @@ class AircraftType(models.Model):
     model = models.CharField(max_length=60)
     seats = models.PositiveSmallIntegerField(null=True, blank=True)
     engines = models.PositiveSmallIntegerField(null=True, blank=True)
+    category = models.CharField(
+        max_length=CATEGORY_MAX_LENGTH, choices=AircraftCategory.choices, blank=True
+    )
     is_custom = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -152,7 +189,8 @@ class Registration(models.Model):
     ``n_number`` is stored normalized as ``Aircraft.n_number`` is, with the leading
     ``N``.  Its uniqueness gives it, on Postgres, a second index built with
     ``varchar_pattern_ops``, which is what serves the N-number typeahead's prefix
-    match.  No address is kept.
+    match.  ``airworthiness`` is the classification of the airworthiness certificate,
+    blank when the registry gives none.  No address is kept.
     """
 
     n_number = models.CharField("N-number", max_length=6, unique=True)
@@ -168,6 +206,9 @@ class Registration(models.Model):
     )
     certificate_issued_on = models.DateField(null=True, blank=True)
     expires_on = models.DateField(null=True, blank=True)
+    airworthiness = models.CharField(
+        max_length=CATEGORY_MAX_LENGTH, choices=Airworthiness.choices, blank=True
+    )
     imported_at = models.DateTimeField(default=timezone.now)
 
     class Meta:
@@ -217,7 +258,11 @@ class RegistryImport(models.Model):
 
 
 class Aircraft(TimestampedModel):
-    """One airframe, with the insurance a DART leader needs to check."""
+    """One airframe, with the insurance a DART leader needs to check.
+
+    ``category`` and ``airworthiness`` are blank until somebody records them; the
+    coverage policy (``AircraftCoveragePolicy``) is judged against them.
+    """
 
     n_number = models.CharField("N-number", max_length=12, unique=True)
     type = models.ForeignKey(AircraftType, on_delete=models.PROTECT, related_name="aircraft")
@@ -230,6 +275,12 @@ class Aircraft(TimestampedModel):
         max_length=200, blank=True, help_text="Email or phone, free text."
     )
     seats = models.PositiveSmallIntegerField(null=True, blank=True)
+    category = models.CharField(
+        max_length=CATEGORY_MAX_LENGTH, choices=AircraftCategory.choices, blank=True
+    )
+    airworthiness = models.CharField(
+        max_length=CATEGORY_MAX_LENGTH, choices=Airworthiness.choices, blank=True
+    )
 
     insurance_carrier = models.CharField(max_length=120, blank=True)
     insurance_policy_number = models.CharField(max_length=60, blank=True)
@@ -374,3 +425,48 @@ class AircraftChange(models.Model):
     def __str__(self) -> str:
         """Return the registration and the kind, e.g. ``N172SP updated``."""
         return f"{self.aircraft.n_number} {self.kind}"
+
+
+class AircraftCoveragePolicy(models.Model):
+    """The one record of which aircraft CalDART's insurance policy does not cover.
+
+    ``excluded_categories`` holds ``AircraftCategory`` values and
+    ``excluded_airworthiness`` ``Airworthiness`` values; an aircraft whose recorded
+    category or airworthiness is listed is not covered.  ``note`` is a short plain-text
+    statement of the limitation, published to members on My aircraft.  There is only
+    ever one row, with primary key 1: :meth:`load` reads it.
+    """
+
+    excluded_categories = models.JSONField(default=list, blank=True)
+    excluded_airworthiness = models.JSONField(default=list, blank=True)
+    note = models.TextField(blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+
+    class Meta:
+        verbose_name = "aircraft coverage policy"
+        verbose_name_plural = "aircraft coverage policy"
+
+    def __str__(self) -> str:
+        """Return what the policy excludes, e.g. ``excludes helicopter``."""
+        excluded = [*self.excluded_categories, *self.excluded_airworthiness]
+        return f"excludes {', '.join(excluded)}" if excluded else "excludes nothing"
+
+    def save(self, *args: Any, **kwargs: Any) -> None:
+        """Save the policy as the one row, primary key 1."""
+        self.pk = 1
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def load(cls) -> AircraftCoveragePolicy:
+        """The stored policy, or an unsaved empty one (excluding nothing) before any is.
+
+        Reading never writes: the row first appears when the empty policy is saved.
+        """
+        return cls.objects.filter(pk=1).first() or cls()

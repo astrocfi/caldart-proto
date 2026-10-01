@@ -74,9 +74,9 @@ def test_eurofox_finds_the_aeropro_eurofox(
 def test_a_search_answers_the_documented_fields(
     registry: RegistryImport, member_client: APIClient
 ) -> None:
-    """Each result is ``{id, make, model, seats, engines, is_custom}``."""
+    """Each result is ``{id, make, model, seats, engines, category, is_custom}``."""
     first = member_client.get(TYPES_URL, {"q": "eurofox"}).json()[0]
-    assert set(first) == {"id", "make", "model", "seats", "engines", "is_custom"}
+    assert set(first) == {"id", "make", "model", "seats", "engines", "category", "is_custom"}
 
 
 def test_a_blank_search_answers_an_empty_list(member_client: APIClient) -> None:
@@ -192,6 +192,7 @@ def test_a_lookup_answers_the_documented_fields(
         "status",
         "certificate_issued_on",
         "expires_on",
+        "airworthiness",
         "imported_at",
     }
 
@@ -270,7 +271,7 @@ def test_the_status_carries_the_last_runs_counts(
         last["registrations_written"],
         last["types_folded"],
         last["source"],
-    ) == (330, 210, 0, str(FIXTURE_DIR))
+    ) == (338, 218, 0, str(FIXTURE_DIR))
 
 
 def test_the_status_reads_running_while_an_import_is_under_way(

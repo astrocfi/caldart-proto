@@ -844,6 +844,22 @@ not (see :ref:`api-csrf-bootstrap`).
      - ·
      - ✓
      - adds a type the FAA has never registered
+   * - ``GET /aircraft/coverage-policy``
+     - ·
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+     - which aircraft the insurance does not cover
+   * - ``PUT /aircraft/coverage-policy``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ✓
+     - account administrators write the policy
    * - ``GET /aircraft/registry``
      - ·
      - ✓

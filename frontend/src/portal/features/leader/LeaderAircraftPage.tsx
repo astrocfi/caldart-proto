@@ -13,7 +13,7 @@ import { Button } from '@/portal/components/Button';
 import { EmptyState } from '@/portal/components/EmptyState';
 import { useAircraftSearch } from '@/portal/features/aircraft/api';
 import { normalizeNNumber } from '@/portal/features/aircraft/insurance';
-import { AircraftStatusCard, insuranceVerdict } from './AircraftStatusCard';
+import { AircraftStatusCard, aircraftVerdict } from './AircraftStatusCard';
 import { GoMark, LeaderLookup } from './LeaderLookup';
 import type { LookupResults } from './LeaderLookup';
 import { useLeaderAircraft } from './api';
@@ -40,7 +40,7 @@ export function LeaderAircraftPage(): JSX.Element {
   return (
     <LeaderLookup<Aircraft>
       title="Aircraft check"
-      lede="Look up the aircraft in front of you to see whether its insurance is current and verified."
+      lede="Look up the aircraft in front of you to see whether CalDART's policy covers it and its insurance is current and verified."
       param="aircraft"
       parse={parseRegistration}
       label="Search by N-number"
@@ -52,7 +52,7 @@ export function LeaderAircraftPage(): JSX.Element {
       rowKey={(aircraft) => aircraft.id}
       rowValue={(aircraft) => aircraft.n_number}
       renderRow={(aircraft) => {
-        const verdict = insuranceVerdict(aircraft);
+        const verdict = aircraftVerdict(aircraft);
         return (
           <>
             <span className="leader-search__aircraft">

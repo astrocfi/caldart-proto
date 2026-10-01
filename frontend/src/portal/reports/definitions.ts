@@ -22,6 +22,12 @@ import {
   MEDICAL_FILTER_CHOICES,
   STATUS_CHOICES,
 } from '@/portal/features/admin-members/choices';
+import {
+  AIRWORTHINESS_LABELS,
+  AIRWORTHINESS_VALUES,
+  CATEGORIES,
+  CATEGORY_LABELS,
+} from '@/portal/features/aircraft/categories';
 import { OWNER_TYPE_LABELS, OWNER_TYPES } from '@/portal/features/aircraft/form';
 import type { FilterField, Option, ReportDefinition, ReportSlug } from './types';
 
@@ -140,6 +146,20 @@ const VERIFICATION_FILTERS: FilterField[] = [
 const AIRCRAFT_FILTERS: FilterField[] = [
   { key: 'search', label: 'Search', kind: 'search', hint: 'N-number, make, model, or owner.' },
   { key: 'make', label: 'Make', kind: 'search' },
+  {
+    key: 'category',
+    label: 'Category',
+    kind: 'select',
+    placeholder: 'Any category',
+    options: optionsFor(CATEGORIES, CATEGORY_LABELS),
+  },
+  {
+    key: 'airworthiness',
+    label: 'Airworthiness',
+    kind: 'select',
+    placeholder: 'Any airworthiness',
+    options: optionsFor(AIRWORTHINESS_VALUES, AIRWORTHINESS_LABELS),
+  },
   {
     key: 'owner_type',
     label: 'Owner type',

@@ -76,24 +76,26 @@ def test_csv_content(api_client: APIClient, account_admin: User, register: Regis
     by_number = {row[0]: row for row in rows[1:]}
 
     current = by_number["N172SP"]
-    assert current[1:6] == [
+    assert current[1:8] == [
         "Cessna",
         "172S Skyhawk",
+        "",
+        "",
         "Palo Alto Flying Club",
         "Flying club",
         "Avemco",
     ]
-    assert current[6:9] == ["1000000.00", "100000.00", "145000.00"]
+    assert current[8:11] == ["1000000.00", "100000.00", "145000.00"]
     expiration = register["current"].insurance_expiration
     assert expiration is not None
-    assert current[9] == expiration.isoformat()
-    assert current[10] == "yes"
+    assert current[11] == expiration.isoformat()
+    assert current[12] == "yes"
 
-    assert by_number["N33MM"][10] == "no"
+    assert by_number["N33MM"][12] == "no"
     missing = by_number["N44BE"]
-    assert missing[8] == ""
-    assert missing[9] == ""
-    assert missing[10] == "no"
+    assert missing[10] == ""
+    assert missing[11] == ""
+    assert missing[12] == "no"
 
 
 def test_csv_pilots_column_lists_attached_members(
@@ -107,7 +109,7 @@ def test_csv_pilots_column_lists_attached_members(
 
     api_client.force_login(account_admin)
     rows = read_csv(api_client.get(CSV_URL, ALL_COLUMNS))
-    pilots = {row[0]: row[11] for row in rows[1:]}
+    pilots = {row[0]: row[13] for row in rows[1:]}
     assert set(pilots["N172SP"].split("; ")) == {"Marta Reyes", "Owen Delgado"}
     assert pilots["N33MM"] == ""
 
@@ -273,6 +275,8 @@ def test_the_export_subtitle_covers_every_filter_the_list_applies() -> None:
         "make",
         "model",
         "type",
+        "category",
+        "airworthiness",
         "owner_type",
         "insurance",
         "expiring_within",

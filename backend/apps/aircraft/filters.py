@@ -15,7 +15,13 @@ import django_filters
 from django.db.models import F, Model, Q, QuerySet
 from rest_framework.filters import OrderingFilter
 
-from apps.aircraft.models import Aircraft, OwnerType, normalize_n_number
+from apps.aircraft.models import (
+    Aircraft,
+    AircraftCategory,
+    Airworthiness,
+    OwnerType,
+    normalize_n_number,
+)
 from apps.aircraft.services import expiring_within, insurance_queryset
 from caldart.reports import ordering_terms
 
@@ -43,16 +49,21 @@ INSURANCE_CHOICES = (
 
 
 class AircraftFilter(django_filters.FilterSet):
-    """``?search=&make=&model=&type=&owner_type=&insurance=&expiring_within=``.
+    """``?search=&make=&model=&type=&category=&airworthiness=&owner_type=&insurance=...``.
 
     ``make`` and ``model`` match the display names of the aircraft's type,
-    case-insensitively and anywhere in the name; ``type`` is the id of one aircraft type.
+    case-insensitively and anywhere in the name; ``type`` is the id of one aircraft type;
+    ``category`` and ``airworthiness`` are one choice each, matched exactly.
     """
 
     search = django_filters.CharFilter(method="filter_search", label="Search")
     make = django_filters.CharFilter(field_name="type__make", lookup_expr="icontains")
     model = django_filters.CharFilter(field_name="type__model", lookup_expr="icontains")
     type = django_filters.NumberFilter(field_name="type_id", label="Aircraft type")
+    category = django_filters.ChoiceFilter(choices=AircraftCategory.choices, label="Category")
+    airworthiness = django_filters.ChoiceFilter(
+        choices=Airworthiness.choices, label="Airworthiness"
+    )
     owner_type = django_filters.ChoiceFilter(choices=OwnerType.choices)
     insurance = django_filters.ChoiceFilter(
         choices=INSURANCE_CHOICES, method="filter_insurance", label="Insurance"
@@ -69,6 +80,8 @@ class AircraftFilter(django_filters.FilterSet):
             "make",
             "model",
             "type",
+            "category",
+            "airworthiness",
             "owner_type",
             "insurance",
             "expiring_within",

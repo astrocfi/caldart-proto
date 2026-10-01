@@ -718,7 +718,7 @@ def test_seed_facts_name_the_verifier_account() -> None:
 def test_seed_demo_imports_the_registry_fixture() -> None:
     """The seed loads the fixture registry: every reference entry and every master row."""
     _seed()
-    assert (AircraftType.objects.count(), Registration.objects.count()) == (330, 210)
+    assert (AircraftType.objects.count(), Registration.objects.count()) == (338, 218)
 
 
 def test_seed_demo_records_the_registry_import() -> None:
@@ -758,7 +758,7 @@ def test_seed_demo_twice_keeps_one_registry() -> None:
         AircraftType.objects.count(),
         Registration.objects.count(),
         RegistryImport.objects.count(),
-    ) == (330, 210, 2)
+    ) == (338, 218, 2)
 
 
 def test_seed_demo_completes_every_seeded_profile() -> None:

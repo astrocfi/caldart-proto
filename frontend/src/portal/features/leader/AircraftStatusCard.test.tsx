@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { NOT_VERIFIED, VERIFIED } from '@test/handlers';
-import { insuranceVerdict, isInsured } from './AircraftStatusCard';
+import { aircraftVerdict, insuranceVerdict, isInsured } from './AircraftStatusCard';
 
 const TODAY = new Date('2026-09-24T12:00:00Z');
 
@@ -78,5 +78,27 @@ describe('insuranceVerdict', () => {
       TODAY,
     );
     expect({ word: verdict.word, mark: verdict.mark }).toEqual({ word, mark });
+  });
+});
+
+describe('aircraftVerdict', () => {
+  const insured = {
+    insurance_is_current: true,
+    insurance_expiration: '2027-03-01',
+    insurance_verification: VERIFIED,
+  };
+
+  it('reads an aircraft the policy excludes as NOT COVERED, with the reason', () => {
+    const reason = "Not covered: helicopters are excluded by CalDART's policy";
+    const verdict = aircraftVerdict({ ...insured, coverage: { excluded: true, reason } }, TODAY);
+    expect(verdict).toEqual({ word: 'NOT COVERED', why: reason, mark: 'Not covered', go: false });
+  });
+
+  it('reads a covered aircraft by its insurance', () => {
+    const verdict = aircraftVerdict(
+      { ...insured, coverage: { excluded: false, reason: 'Category not recorded' } },
+      TODAY,
+    );
+    expect(verdict.word).toBe('INSURED');
   });
 });

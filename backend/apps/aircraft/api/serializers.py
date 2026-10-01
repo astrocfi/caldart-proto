@@ -11,13 +11,17 @@ from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 
 from apps.accounts.models import User
+from apps.aircraft.coverage import CoverageRule, current_rule
 from apps.aircraft.models import (
     N_NUMBER_MESSAGE,
     N_NUMBER_RE,
     Aircraft,
+    AircraftCategory,
     AircraftChange,
     AircraftChangeKind,
+    AircraftCoveragePolicy,
     AircraftType,
+    Airworthiness,
     RegistrantType,
     Registration,
     RegistrationStatus,
@@ -45,6 +49,13 @@ NEGATIVE_MONEY_MESSAGE = "Enter an amount of $0 or more."
 
 #: What a write without a usable aircraft type is answered with.
 TYPE_MESSAGE = "Pick the aircraft type from the list."
+
+#: The attribute the root serializer keeps one response's coverage rule under, so a
+#: page of aircraft reads the policy once rather than once a row.
+COVERAGE_RULE_ATTRIBUTE = "_coverage_rule"
+
+#: The longest coverage note the policy takes.
+COVERAGE_NOTE_MAX_LENGTH = 1000
 
 
 def _actor_payload(user: User | None) -> dict[str, Any] | None:
@@ -96,16 +107,54 @@ class VerificationSerializer(serializers.Serializer[VerificationState]):
     verified_at = serializers.DateTimeField(allow_null=True)
 
 
-class AircraftTypeSerializer(serializers.ModelSerializer[AircraftType]):
-    """One aircraft type: its display make and model, seats, engines, and whether custom.
+def _read_only_choice(choices: list[tuple[str, str]]) -> serializers.ChoiceField:
+    """A read-only choice that may be blank, as the schema must describe it."""
+    return serializers.ChoiceField(choices=choices, allow_blank=True, read_only=True)
 
-    ``seats`` and ``engines`` are null when the registry does not say; ``is_custom`` is
-    true for a type an account administrator added by hand.
+
+class CoverageSerializer(serializers.Serializer[Any]):
+    """Whether the coverage policy excludes an aircraft, and what the check says of it.
+
+    ``reason`` is blank when there is nothing to say, ``Category not recorded`` for an
+    aircraft with no category the policy does not otherwise exclude, and ``Not covered:
+    <what> are excluded by <organization>'s policy`` for an excluded one.
     """
+
+    excluded = serializers.BooleanField()
+    reason = serializers.CharField(allow_blank=True)
+
+
+def coverage_payload(
+    serializer: serializers.Field[Any, Any, Any, Any], aircraft: Aircraft
+) -> dict[str, Any]:
+    """``aircraft``'s :class:`CoverageSerializer` payload, judged by the stored policy.
+
+    The rule is read on the first call and kept on ``serializer``'s root serializer, so
+    every later call under the same root (the rows of one page, the aircraft on one
+    status card) reuses it.
+    """
+    root = serializer.root
+    rule = getattr(root, COVERAGE_RULE_ATTRIBUTE, None)
+    if not isinstance(rule, CoverageRule):
+        rule = current_rule()
+        setattr(root, COVERAGE_RULE_ATTRIBUTE, rule)
+    judged = rule.judge(category=aircraft.category, airworthiness=aircraft.airworthiness)
+    return {"excluded": judged.excluded, "reason": judged.reason}
+
+
+class AircraftTypeSerializer(serializers.ModelSerializer[AircraftType]):
+    """One aircraft type: display make and model, seats, engines, category, custom.
+
+    ``seats`` and ``engines`` are null when the registry does not say, and ``category``
+    is blank when it does not (always, for a hand-added type); ``is_custom`` is true
+    for a type an account administrator added by hand.
+    """
+
+    category = _read_only_choice(AircraftCategory.choices)
 
     class Meta:
         model = AircraftType
-        fields = ["id", "make", "model", "seats", "engines", "is_custom"]
+        fields = ["id", "make", "model", "seats", "engines", "category", "is_custom"]
         read_only_fields = fields
 
 
@@ -178,11 +227,15 @@ class AircraftTypeCreateSerializer(serializers.Serializer[AircraftType]):
 
 
 class RegistrationSerializer(serializers.ModelSerializer[Registration]):
-    """``GET /aircraft/registry/{n_number}``: one N-number as the registry holds it."""
+    """``GET /aircraft/registry/{n_number}``: one N-number as the registry holds it.
+
+    ``airworthiness`` is blank when the registry records no certificate.
+    """
 
     type = AircraftTypeSerializer(read_only=True)
     registrant_type = serializers.ChoiceField(choices=RegistrantType.choices, read_only=True)
     status = serializers.ChoiceField(choices=RegistrationStatus.choices, read_only=True)
+    airworthiness = _read_only_choice(Airworthiness.choices)
 
     class Meta:
         model = Registration
@@ -195,6 +248,7 @@ class RegistrationSerializer(serializers.ModelSerializer[Registration]):
             "status",
             "certificate_issued_on",
             "expires_on",
+            "airworthiness",
             "imported_at",
         ]
         read_only_fields = fields
@@ -239,7 +293,9 @@ class RegistryStatusSerializer(serializers.Serializer[dict[str, Any]]):
 class AircraftSummarySerializer(serializers.ModelSerializer[Aircraft]):
     """The short form embedded in profiles, leader cards and pickers.
 
-    ``make`` and ``model`` are the display names of the aircraft's ``type``.
+    ``make`` and ``model`` are the display names of the aircraft's ``type``;
+    ``coverage`` is whether the coverage policy excludes the aircraft (see
+    :func:`coverage_payload`).
     """
 
     make = serializers.CharField(read_only=True)
@@ -248,6 +304,9 @@ class AircraftSummarySerializer(serializers.ModelSerializer[Aircraft]):
     insurance_is_current = serializers.BooleanField(read_only=True)
     insurance_summary = serializers.CharField(read_only=True)
     insurance_verified = serializers.BooleanField(source="insurance_is_verified", read_only=True)
+    category = _read_only_choice(AircraftCategory.choices)
+    airworthiness = _read_only_choice(Airworthiness.choices)
+    coverage = serializers.SerializerMethodField()
 
     class Meta:
         model = Aircraft
@@ -257,12 +316,20 @@ class AircraftSummarySerializer(serializers.ModelSerializer[Aircraft]):
             "make",
             "model",
             "type",
+            "category",
+            "airworthiness",
+            "coverage",
             "insurance_is_current",
             "insurance_expiration",
             "insurance_summary",
             "insurance_verified",
         ]
         read_only_fields = fields
+
+    @extend_schema_field(CoverageSerializer)
+    def get_coverage(self, obj: Aircraft) -> dict[str, Any]:
+        """Whether the coverage policy excludes ``obj``, and the reason to print."""
+        return coverage_payload(self, obj)
 
 
 class AircraftSerializer(serializers.ModelSerializer[Aircraft]):
@@ -271,7 +338,9 @@ class AircraftSerializer(serializers.ModelSerializer[Aircraft]):
     The aircraft type is written as ``type_id``, the id of an ``AircraftType`` (required
     on create, refused with :data:`TYPE_MESSAGE` when missing, null, or unknown), and read
     back as the nested ``type`` with its display ``make`` and ``model`` beside it; neither
-    ``make`` nor ``model`` is written.
+    ``make`` nor ``model`` is written.  ``category`` and ``airworthiness`` are optional
+    choices, blank when not recorded; ``coverage`` is read-only (see
+    :func:`coverage_payload`).
     """
 
     n_number = NNumberField(
@@ -312,6 +381,7 @@ class AircraftSerializer(serializers.ModelSerializer[Aircraft]):
     insurance_is_current = serializers.BooleanField(read_only=True)
     insurance_summary = serializers.CharField(read_only=True)
     insurance_verification = serializers.SerializerMethodField()
+    coverage = serializers.SerializerMethodField()
 
     class Meta:
         model = Aircraft
@@ -327,6 +397,9 @@ class AircraftSerializer(serializers.ModelSerializer[Aircraft]):
             "owner_name",
             "owner_contact",
             "seats",
+            "category",
+            "airworthiness",
+            "coverage",
             "insurance_carrier",
             "insurance_policy_number",
             "insurance_liability_per_occurrence_cents",
@@ -357,6 +430,42 @@ class AircraftSerializer(serializers.ModelSerializer[Aircraft]):
         """Whether ``obj``'s insurance is verified, by whom, and when."""
         state = verification_state(obj.insurance_verified_at, obj.insurance_verified_by)
         return cast("VerificationState", VerificationSerializer(state).data)
+
+    @extend_schema_field(CoverageSerializer)
+    def get_coverage(self, obj: Aircraft) -> dict[str, Any]:
+        """Whether the coverage policy excludes ``obj``, and the reason to print."""
+        return coverage_payload(self, obj)
+
+
+class CoveragePolicySerializer(serializers.ModelSerializer[AircraftCoveragePolicy]):
+    """``GET``/``PUT /aircraft/coverage-policy``: what CalDART's insurance does not cover.
+
+    ``excluded_categories`` lists aircraft category values and ``excluded_airworthiness``
+    airworthiness values; each list is answered in the order of its choices, without
+    repeats, and a value outside its choices is refused.  ``note`` is a plain-text
+    statement of at most 1,000 characters, stripped of surrounding space, and may be
+    blank.  A ``PUT`` sends all three.
+    """
+
+    excluded_categories = serializers.ListField(
+        child=serializers.ChoiceField(choices=AircraftCategory.choices), allow_empty=True
+    )
+    excluded_airworthiness = serializers.ListField(
+        child=serializers.ChoiceField(choices=Airworthiness.choices), allow_empty=True
+    )
+    note = serializers.CharField(max_length=COVERAGE_NOTE_MAX_LENGTH, allow_blank=True)
+
+    class Meta:
+        model = AircraftCoveragePolicy
+        fields = ["excluded_categories", "excluded_airworthiness", "note"]
+
+    def validate_excluded_categories(self, value: list[str]) -> list[str]:
+        """The categories in ``value``, in choice order and without repeats."""
+        return [choice for choice in AircraftCategory.values if choice in value]
+
+    def validate_excluded_airworthiness(self, value: list[str]) -> list[str]:
+        """The classifications in ``value``, in choice order and without repeats."""
+        return [choice for choice in Airworthiness.values if choice in value]
 
 
 class InsuranceVerificationSerializer(AircraftSerializer):

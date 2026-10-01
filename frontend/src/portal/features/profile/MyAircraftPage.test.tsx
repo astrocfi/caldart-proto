@@ -24,6 +24,9 @@ const PICKED: Aircraft = {
   make: 'Piper',
   model: 'Archer',
   type: makeAircraftType({ id: 4, make: 'Piper', model: 'Archer' }),
+  category: 'airplane',
+  airworthiness: 'standard',
+  coverage: { excluded: false, reason: '' },
   year: null,
   owner_type: 'individual',
   owner_name: '',
@@ -123,6 +126,58 @@ describe('<MyAircraftPage/>', () => {
     renderWithProviders(<MyAircraftPage />, { route: '/profile/aircraft' });
 
     expect(await screen.findByText('Not on file')).toBeInTheDocument();
+  });
+
+  it('states the coverage policy note above the list', async () => {
+    server.use(
+      http.get(`${API}/me/profile`, () => HttpResponse.json(makeProfile())),
+      http.get(`${API}/aircraft/coverage-policy`, () =>
+        HttpResponse.json({
+          excluded_categories: ['helicopter'],
+          excluded_airworthiness: [],
+          note: 'Helicopters are not covered.',
+        }),
+      ),
+    );
+
+    renderWithProviders(<MyAircraftPage />, { route: '/profile/aircraft' });
+
+    expect(await screen.findByRole('note', { name: 'Coverage policy' })).toHaveTextContent(
+      'Helicopters are not covered.',
+    );
+  });
+
+  it('shows no note while the policy has none', async () => {
+    server.use(
+      http.get(`${API}/me/profile`, () =>
+        HttpResponse.json(makeProfile({ aircraft: [TEST_AIRCRAFT] })),
+      ),
+    );
+
+    renderWithProviders(<MyAircraftPage />, { route: '/profile/aircraft' });
+
+    await screen.findByText('N12345');
+    expect(screen.queryByRole('note', { name: 'Coverage policy' })).not.toBeInTheDocument();
+  });
+
+  it('marks an aircraft the policy excludes, with the reason', async () => {
+    const reason = "Not covered: helicopters are excluded by CalDART's policy";
+    server.use(
+      http.get(`${API}/me/profile`, () =>
+        HttpResponse.json(
+          makeProfile({
+            aircraft: [
+              { ...TEST_AIRCRAFT, category: 'helicopter', coverage: { excluded: true, reason } },
+            ],
+          }),
+        ),
+      ),
+    );
+
+    renderWithProviders(<MyAircraftPage />, { route: '/profile/aircraft' });
+
+    expect(await screen.findByText('Not covered')).toHaveAttribute('data-tone', 'expired');
+    expect(screen.getByText(new RegExp(reason))).toBeInTheDocument();
   });
 
   it('shows an empty state when nothing is attached', async () => {

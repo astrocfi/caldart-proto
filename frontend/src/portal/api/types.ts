@@ -618,6 +618,51 @@ export interface TermUpdatePayload {
 /* ---------------------------------------------------------------- aircraft */
 export type OwnerType = 'individual' | 'fbo' | 'club';
 
+/** What kind of aircraft an airframe is, as the FAA registry classes it. */
+export type AircraftCategory =
+  | 'airplane'
+  | 'helicopter'
+  | 'gyroplane'
+  | 'glider'
+  | 'balloon'
+  | 'airship'
+  | 'powered_lift'
+  | 'weight_shift'
+  | 'powered_parachute'
+  | 'other';
+
+/** The classification of an airframe's airworthiness certificate. */
+export type Airworthiness =
+  | 'standard'
+  | 'limited'
+  | 'restricted'
+  | 'experimental'
+  | 'provisional'
+  | 'multiple'
+  | 'primary'
+  | 'special_flight_permit'
+  | 'light_sport';
+
+/**
+ * Whether the coverage policy excludes an aircraft.  `reason` is blank when there
+ * is nothing to say, `Category not recorded` for an aircraft with no category the
+ * policy does not otherwise exclude, and `Not covered: …` for an excluded one.
+ */
+export interface AircraftCoverage {
+  excluded: boolean;
+  reason: string;
+}
+
+/**
+ * `GET`/`PUT /aircraft/coverage-policy`: the aircraft categories and airworthiness
+ * classifications CalDART's insurance does not cover, and the note members read.
+ */
+export interface AircraftCoveragePolicy {
+  excluded_categories: AircraftCategory[];
+  excluded_airworthiness: Airworthiness[];
+  note: string;
+}
+
 /**
  * One entry of the aircraft types, from `GET /aircraft/types?q=`.
  *
@@ -630,6 +675,8 @@ export interface AircraftType {
   model: string;
   seats: number | null;
   engines: number | null;
+  /** Blank when the registry does not say, as for a hand-added type. */
+  category: AircraftCategory | '';
   is_custom: boolean;
 }
 
@@ -669,6 +716,8 @@ export interface Registration {
   status: RegistrationStatus;
   certificate_issued_on: IsoDate | null;
   expires_on: IsoDate | null;
+  /** Blank when the registry records no airworthiness certificate. */
+  airworthiness: Airworthiness | '';
   imported_at: IsoDateTime;
 }
 
@@ -701,6 +750,11 @@ export interface AircraftSummary {
   make: string;
   model: string;
   type: AircraftType;
+  /** Blank until somebody records it. */
+  category: AircraftCategory | '';
+  /** Blank until somebody records it. */
+  airworthiness: Airworthiness | '';
+  coverage: AircraftCoverage;
   insurance_is_current: boolean;
   insurance_expiration: IsoDate | null;
   insurance_summary: string;
@@ -729,7 +783,7 @@ export interface Aircraft extends Omit<AircraftSummary, 'insurance_verified'> {
 
 /**
  * The write body of `POST /aircraft` and `PATCH /aircraft/{id}`.  The type is
- * written as `type_id`; `make`, `model`, and `type` are read-only.
+ * written as `type_id`; `make`, `model`, `type`, and `coverage` are read-only.
  */
 export type AircraftPatch = Partial<
   Omit<
@@ -738,6 +792,7 @@ export type AircraftPatch = Partial<
     | 'make'
     | 'model'
     | 'type'
+    | 'coverage'
     | 'insurance_is_current'
     | 'insurance_summary'
     | 'insurance_verified'

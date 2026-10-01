@@ -13,6 +13,7 @@ export function makeRegistration(overrides: Partial<Registration> = {}): Registr
     status: 'valid',
     certificate_issued_on: '2019-05-02',
     expires_on: '2026-05-31',
+    airworthiness: 'standard',
     imported_at: '2026-09-20T11:30:00Z',
     ...overrides,
   };

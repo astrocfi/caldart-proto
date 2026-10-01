@@ -1,6 +1,7 @@
 /**
  * `/admin/aircraft` — the register an account administrator maintains:
- * filter, sort, export, and add a record.  The header says which day the FAA
+ * filter, sort, export, and add a record, and the coverage policy that says
+ * which aircraft CalDART's insurance does not cover.  The header says which day the FAA
  * registry behind the N-number box and the aircraft types was imported.
  *
  * The exports carry more columns than the five the table shows, so the column
@@ -12,7 +13,13 @@ import type { JSX } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 import { ApiError } from '@/portal/api/client';
-import type { Aircraft, AircraftPatch, OwnerType } from '@/portal/api/types';
+import type {
+  Aircraft,
+  AircraftCategory,
+  AircraftPatch,
+  Airworthiness,
+  OwnerType,
+} from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { ColumnChooser, defaultColumnKeys } from '@/portal/components/ColumnChooser';
@@ -38,6 +45,7 @@ import { OWNER_TYPE_LABELS, emptyAircraftValues } from '@/portal/features/aircra
 import { reportExportUrl, useReportColumns } from '@/portal/reports/api';
 import { REPORTS, listFilters } from '@/portal/reports/definitions';
 import '@/portal/features/aircraft/aircraft.css';
+import { CoveragePolicyCard } from './CoveragePolicyCard';
 
 const PAGE_SIZE = 25;
 
@@ -65,6 +73,8 @@ export function AircraftRegisterPage(): JSX.Element {
   const query: AircraftFilters = {
     search: filters.search,
     make: filters.make,
+    category: filters.category as AircraftCategory | '',
+    airworthiness: filters.airworthiness as Airworthiness | '',
     owner_type: filters.owner_type as OwnerType | '',
     insurance: filters.insurance as InsuranceState | '',
     expiring_within: filters.expiring_within,
@@ -180,6 +190,8 @@ export function AircraftRegisterPage(): JSX.Element {
           />
         </Card>
       ) : null}
+
+      <CoveragePolicyCard />
 
       <DataTable
         singleLine
