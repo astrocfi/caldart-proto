@@ -172,6 +172,9 @@ role adds:
   backups, and the aircraft database loaded from the FAA registry, with a way to load
   it now.
 * **Sent Emails** (:doc:`admin/sent-emails`): the log of every email CalDART has sent.
+* **Coverage policy** on the **Aircraft register** (:doc:`admin/aircraft-register`):
+  which aircraft categories and airworthiness categories CalDART's insurance does not
+  cover, and the note members read on **My aircraft**.
 * **Scheduled** (:doc:`admin/scheduled`): the four jobs that run on a schedule (the
   renewal reminder emails, the automatic renewal charges, the scheduled reports, and
   the year-end contribution statements), with a way to run each now.

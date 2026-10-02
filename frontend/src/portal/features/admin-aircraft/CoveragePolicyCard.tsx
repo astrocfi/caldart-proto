@@ -1,8 +1,8 @@
 /**
  * The **Coverage policy** card on the aircraft register: which aircraft
  * categories and airworthiness classifications CalDART's insurance does not
- * cover, and the note members read on My aircraft.  An account administrator
- * reads it and edits it in place.
+ * cover, and the note members read on My aircraft.  Only a system administrator
+ * sees it, on the aircraft register, and edits it in place.
  */
 import { useState } from 'react';
 import type { JSX } from 'react';
@@ -40,7 +40,7 @@ function listed<Code extends string>(
   return values.length === 0 ? 'None' : values.map((value) => labels[value]).join(', ');
 }
 
-/** The coverage policy, read and edited by an account administrator. */
+/** The coverage policy, read and edited by a system administrator. */
 export function CoveragePolicyCard(): JSX.Element {
   const policy = useCoveragePolicy();
   const [draft, setDraft] = useState<AircraftCoveragePolicy | null>(null);

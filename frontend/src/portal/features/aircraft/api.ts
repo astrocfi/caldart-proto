@@ -229,7 +229,7 @@ export function useCoveragePolicy(): UseQueryResult<AircraftCoveragePolicy> {
 }
 
 /**
- * Replaces the coverage policy, `PUT /aircraft/coverage-policy` (account
+ * Replaces the coverage policy, `PUT /aircraft/coverage-policy` (system
  * administrators only).  Every aircraft query is dropped afterwards, since each
  * aircraft's coverage follows the policy.
  */

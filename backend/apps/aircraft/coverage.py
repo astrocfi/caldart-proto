@@ -1,6 +1,6 @@
 """Which aircraft CalDART's insurance policy covers, judged from the coverage policy.
 
-An account administrator records, in the one ``AircraftCoveragePolicy`` row, the
+A system administrator records, in the one ``AircraftCoveragePolicy`` row, the
 aircraft categories and airworthiness classifications the policy excludes.
 :func:`current_rule` reads that row once, with the organization's name, and
 :meth:`CoverageRule.judge` answers for one aircraft: excluded, with the reason a DART

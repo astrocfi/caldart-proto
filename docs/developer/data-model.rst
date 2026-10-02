@@ -2867,8 +2867,8 @@ successful row is the date the registry is current as of.
 
 Which aircraft CalDART's insurance policy does not cover.  There is only ever
 one row, primary key 1: ``save()`` forces the key, and ``load()`` reads the row,
-answering an unsaved empty policy (excluding nothing) before one is stored.  An
-account administrator writes it from the aircraft register's **Coverage policy**
+answering an unsaved empty policy (excluding nothing) before one is stored.  A
+system administrator writes it from the aircraft register's **Coverage policy**
 card through ``PUT /aircraft/coverage-policy`` (:doc:`api-aircraft`); the seed
 excludes helicopters.
 

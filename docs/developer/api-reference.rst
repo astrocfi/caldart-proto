@@ -890,8 +890,8 @@ not (see :ref:`api-csrf-bootstrap`).
      - ·
      - ·
      - ·
-     - ✓
-     - account administrators write the policy
+     - ·
+     - ``system_admin`` only
    * - ``GET /aircraft/registry``
      - ·
      - ✓
