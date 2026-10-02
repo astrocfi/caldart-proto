@@ -49,6 +49,7 @@ from apps.accounts.permissions import IsUserAdmin
 from apps.accounts.roles import ROLE_DESCRIPTIONS
 from apps.accounts.services import (
     change_own_email,
+    clear_email_bounce,
     confirm_email_address,
     is_donor,
     send_email_verification,
@@ -599,7 +600,7 @@ def admin_user_queryset() -> QuerySet[User]:
 
 
 class AdminUserListView(generics.ListAPIView[User]):
-    """``GET /admin/users?search=&role=&is_active=&kind=`` -- paginated ``[user]``."""
+    """``GET /admin/users?search=&role=&is_active=&kind=&email_bounced=`` -- paginated."""
 
     permission_classes = [IsUserAdmin]
     serializer_class = AdminUserSerializer
@@ -804,3 +805,22 @@ class AdminUserUnblockView(APIView):
         ``system_admin`` by implication.
         """
         return _admin_user_action(request, pk, unblock_for)
+
+
+class AdminUserClearBounceView(APIView):
+    """``POST /admin/users/{id}/clear-bounce``."""
+
+    permission_classes = [IsUserAdmin]
+
+    @extend_schema(request=None, responses={200: AdminUserSerializer})
+    def post(self, request: Request, pk: int) -> Response:
+        """Clear the bounce recorded against the account ``pk``'s address, answering 200.
+
+        For an address the user administrator has checked is good: ``email_bounced_at``
+        and ``email_bounce_detail`` are emptied and the change is recorded as
+        ``account.bounce_cleared`` under the caller.  An account with no bounce recorded
+        is answered as it stands and nothing is recorded.  The answer is the
+        ``/admin/users/{id}`` payload afterwards; an unknown ``pk`` is a 404.
+        Restricted to ``user_admin``, and to ``system_admin`` by implication.
+        """
+        return _admin_user_action(request, pk, clear_email_bounce)

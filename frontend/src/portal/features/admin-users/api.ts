@@ -25,6 +25,8 @@ export interface AdminUserFilters {
   is_active?: 'true' | 'false' | '';
   /** `''` means any kind of account. */
   kind?: AccountKind | '';
+  /** `'true'` for bounced addresses only, `'false'` for the rest, `''` for any. */
+  email_bounced?: 'true' | 'false' | '';
   page?: number;
 }
 
@@ -55,6 +57,7 @@ export function useAdminUsers(filters: AdminUserFilters): UseQueryResult<Paginat
           role: filters.role,
           is_active: filters.is_active,
           kind: filters.kind,
+          email_bounced: filters.email_bounced,
           page: filters.page && filters.page > 1 ? filters.page : undefined,
         },
       }),
@@ -116,6 +119,25 @@ export function useSendEmailVerification(
       api.post<VerificationSentResult>(`/admin/users/${id}/send-email-verification`),
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: adminUserKey(id) });
+    },
+  });
+}
+
+/**
+ * Clears the bounce recorded against the account's address:
+ * `POST /admin/users/{id}/clear-bounce`. The answer replaces the cached record, and the
+ * list and the member records are read again, since both show the flag.
+ */
+export function useClearBounce(id: string | number): UseMutationResult<AdminUser, Error, void> {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.post<AdminUser>(`/admin/users/${id}/clear-bounce`),
+    onSuccess: (user) => {
+      queryClient.setQueryData(adminUserKey(id), user);
+      return Promise.all([
+        queryClient.invalidateQueries({ queryKey: ADMIN_USERS_KEY }),
+        queryClient.invalidateQueries({ queryKey: MEMBERS_KEY }),
+      ]);
     },
   });
 }

@@ -22,8 +22,9 @@ it. Four cards follow.
 
 **Account**
    **First name**, **Last name**, and **Email address**, with the hint *This is also how
-   they sign in.* and **Verified** with a date, or **Unverified**. Then **Roles**, a box
-   for each role with a line saying what it grants.
+   they sign in.* and **Verified** with a date, or **Unverified**, and a **Bounced** chip
+   when the address bounces. Then **Roles**, a box for each role with a line saying what it
+   grants.
 
 **Account status**
    Whether the account can sign in, and the actions that change it: **Deactivate account**
@@ -55,6 +56,24 @@ On an unverified address a **Resend verification message** button sends a fresh 
 the message at the top of the screen names the address it went to. It is disabled on a
 deactivated account. Clicking the link a second time does no harm, so send another whenever
 somebody says the first never came.
+
+
+An address that bounces
+=======================
+
+When another mail server refuses an email to this address for good, because the address does
+not exist or no longer takes mail, the hint under **Email address** carries a red chip,
+**Bounced** with the date (MM/DD/YYYY), followed by the reason that server gave, such as
+*5.1.1 550 User unknown*. The bounce check finds these every hour (:doc:`scheduled`), and
+:doc:`users` lists every bounced account under **Email**.
+
+Ask the person for an address that works and enter it: a new address clears the flag. So
+does the person following a verification or password reset link sent to the address, since
+that proves mail reaches it. When you know the address works without changing it (the
+person's mailbox was full and they have emptied it, say), press **Clear bounce** under the
+address. It asks first; press **Clear bounce** again to confirm, or **Cancel**. The message
+*Bounce cleared.* confirms it. If the next email to the address bounces too, the flag comes
+back.
 
 
 Granting and removing roles

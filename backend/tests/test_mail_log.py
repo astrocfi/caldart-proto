@@ -376,10 +376,10 @@ def test_the_status_filter_selects_the_failures(api_client: APIClient, system_ad
 
 
 def test_an_unknown_status_is_refused(api_client: APIClient, system_admin: User) -> None:
-    """``?status=`` takes ``sent`` or ``failed``; anything else is a 400 on ``status``."""
+    """``?status=`` takes ``sent``, ``failed`` or ``bounced``; anything else is a 400."""
     api_client.force_login(system_admin)
 
-    response = api_client.get(f"{EMAILS_URL}?status=bounced")
+    response = api_client.get(f"{EMAILS_URL}?status=delivered")
 
     assert response.status_code == 400
     assert "status" in response.json()

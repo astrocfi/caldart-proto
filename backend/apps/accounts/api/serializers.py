@@ -341,7 +341,10 @@ class AdminUserSerializer(UserSerializer):
     may move ``system_admin``, and the email address of an account holding roles the
     caller lacks is untouchable.  The active flag and ``reactivation_blocked`` are read
     here and changed only through the record's own actions (deactivate, reactivate,
-    block, unblock).
+    block, unblock).  ``email_bounced_at`` and ``email_bounce_detail`` say when and why
+    the bounce check last found the address bouncing, null and blank with no bounce
+    known; they are changed only by the bounce check, a new or verified address, and
+    the record's **Clear bounce** action.
     """
 
     # djangorestframework-stubs types SerializerMethodField as a bare Field, so
@@ -352,14 +355,28 @@ class AdminUserSerializer(UserSerializer):
         required=False,
     )
     email_verified_at = serializers.DateTimeField(read_only=True, allow_null=True)
+    email_bounced_at = serializers.DateTimeField(read_only=True, allow_null=True)
 
     class Meta(UserSerializer.Meta):
-        fields = [*UserSerializer.Meta.fields, "email_verified_at", "reactivation_blocked"]
+        fields = [
+            *UserSerializer.Meta.fields,
+            "email_verified_at",
+            "email_bounced_at",
+            "email_bounce_detail",
+            "reactivation_blocked",
+        ]
         # `membership`, `profile_complete`, `email_verified`, `email_verified_at`,
-        # and `roles` are declared fields, so only the model columns need listing here.
-        # The kind is the account administrator's to change, never the user
-        # administrator's.
-        read_only_fields = ["id", "kind", "friend_on", "is_active", "reactivation_blocked"]
+        # `email_bounced_at`, and `roles` are declared fields, so only the model columns
+        # need listing here.  The kind is the account administrator's to change, never
+        # the user administrator's.
+        read_only_fields = [
+            "id",
+            "kind",
+            "friend_on",
+            "is_active",
+            "reactivation_blocked",
+            "email_bounce_detail",
+        ]
         extra_kwargs = {
             "email": {"required": False},
             "first_name": {"required": False},

@@ -2,10 +2,11 @@
 Email
 =====
 
-CalDART sends email and receives none.  This page covers how a message leaves
-the application, what a production domain needs so that message is
-delivered, the backends development and the tests use instead, what is
-recorded about every send, and what happens to replies and bounces.
+CalDART sends email, and reads one mailbox: the one undeliverable mail is
+returned to.  This page covers how a message leaves the application, what a
+production domain needs so that message is delivered, the backends development
+and the tests use instead, what is recorded about every send, how bounces are
+detected, and what happens to replies.
 
 
 What the site sends
@@ -62,8 +63,9 @@ from the stored reminder schedule, so the mail app never imports it:
      - the service that raised the event, once its transaction commits
        (:doc:`notifications`)
 
-Every message comes from ``DEFAULT_FROM_EMAIL``.  None sets a ``Reply-To``
-header: where a template tells the reader how to get in touch, it prints the
+Every message comes from ``DEFAULT_FROM_EMAIL`` and carries a ``Message-ID``
+generated on that address's domain, which its email log row records.  None sets
+a ``Reply-To`` header: where a template tells the reader how to get in touch, it prints the
 contact address from the website's site settings, which a website
 administrator edits in the Wagtail admin (:doc:`cms`).
 
@@ -141,11 +143,21 @@ The sender address
 ------------------
 
 ``DEFAULT_FROM_EMAIL`` is the ``From`` of every message and, as
-``SERVER_EMAIL``, of the error mail Django sends to ``ADMIN_EMAILS``.  Its
-address is also the envelope sender, so it is where a receiving server returns
-a message it cannot deliver.  Pick an address on the organization's own domain
-whose mailbox exists and that somebody reads now and then; ``noreply@`` works
-as long as the mailbox behind it does (see `Receiving`_).
+``SERVER_EMAIL``, of the error mail Django sends to ``ADMIN_EMAILS``.  Pick an
+address on the organization's own domain whose mailbox exists and that somebody
+reads now and then; ``noreply@`` works as long as the mailbox behind it does (see
+`Receiving`_).
+
+The envelope sender (the ``MAIL FROM`` of the SMTP conversation, which the
+receiving server records as ``Return-Path``) is where a server returns a message
+it cannot deliver.  It is ``BOUNCE_ADDRESS`` when that is set, and
+``DEFAULT_FROM_EMAIL``'s address otherwise.  ``send_templated`` passes the
+envelope sender to Django as the message's ``from_email`` and
+``DEFAULT_FROM_EMAIL`` as an explicit ``From`` header, which is how Django 6's
+mailer lets the two differ; the reader sees ``DEFAULT_FROM_EMAIL`` either way, and
+replies go there.  Put ``BOUNCE_ADDRESS`` on the same domain as
+``DEFAULT_FROM_EMAIL``, so the SPF record that covers one covers both (see
+`Bounces`_).
 
 What the domain needs
 ---------------------
@@ -279,15 +291,132 @@ exports what it shows; the same rows come from
 Django admin.
 
 **Sent** means the relay accepted the message.  It does not mean the message
-reached an inbox.
+reached an inbox.  A message the recipient's server later refuses for good turns
+**Bounced** once the bounce check has read the report (`Bounces`_).  The Sent
+Emails page filters on that status and shows when each message bounced and why.
+
+
+.. _email-bounces:
+
+Bounces
+=======
+
+A relay that accepts a message has not delivered it: the recipient's server can
+still refuse it, a minute or a day later, and say so in a delivery-status report
+(RFC 3464) mailed back to the envelope sender.  CalDART reads those reports from
+a mailbox of their own and marks what they report.
+
+How it works
+------------
+
+1. Every message ``send_templated`` sends carries a fresh ``Message-ID``, stored
+   on its ``EmailLog`` row (``message_id``), and goes out with ``BOUNCE_ADDRESS``
+   as its envelope sender.
+2. ``manage.py check_bounces`` (``apps.mail.bounces.check_bounces``), run hourly by
+   ``caldart-bounces.timer`` (:ref:`deploy-bounces`), signs in to the mailbox
+   ``BOUNCE_IMAP_URL`` names over IMAPS with the standard library's ``imaplib``,
+   verifying the server's certificate and host name
+   (``ssl.create_default_context()``), and fetches every unseen message of at most
+   1 MB without marking it.  A delivery report is a few kilobytes; a larger message,
+   and one the server will not hand over, is *skipped*: logged, counted, and left
+   unread.
+3. Each message is read as a delivery-status report: a ``multipart/report`` with
+   a ``message/delivery-status`` part.  Only a recipient block with ``Action:
+   failed`` and a ``5.x.x`` ``Status`` counts.  A delay (``Action: delayed``), a
+   transient ``4.x.x`` failure, a delivery notice, an auto-reply, and anything else
+   that is not a report are *ignored*.
+4. A permanent failure is matched to the row whose ``message_id`` is the
+   original's ``Message-ID``, read from the report's ``text/rfc822-headers`` part
+   or its returned ``message/rfc822`` copy.  A report that carries neither, or an
+   id no row has, falls back to the latest row sent to the ``Final-Recipient``
+   address (ignoring case) in the last seven days that the relay did not refuse.
+   A failure neither finds is *unmatched*.  The fallback trusts the report: any
+   message in the mailbox that is shaped as a delivery report and names an address
+   CalDART mailed in the last seven days marks that send bounced and flags the
+   address.  That is why the bounce mailbox must be one of its own, receiving
+   nothing but the reports returned to ``BOUNCE_ADDRESS``: an address that anyone can
+   write to is an address anyone can use to flag a member's email as bad.
+5. A match turns the row's ``status`` to ``bounced`` with ``bounced_at`` and
+   ``bounce_detail`` (the status code and the diagnostic text, cut to 255
+   characters), and flags the account whose *current* address is the one the
+   row was sent to: ``User.email_bounced_at`` and ``email_bounce_detail``.  An
+   account that has moved to another address since is not flagged.
+6. Each message's writes are one database savepoint.  Header values have every
+   control character, a NUL included, turned into a space before anything is
+   stored, and a report whose writes the database still refuses is rolled back,
+   logged by its message number alone, and counted as *ignored*, so one bad message
+   cannot stop the run.
+7. Each message read, ignored and unmatched ones included, is then marked seen, so
+   the next run reads only what has arrived since.
+
+A dry run (``--dry-run``, or the box on the Scheduled page) opens the mailbox
+read-only (IMAP ``EXAMINE``), reads and matches exactly as a live one, and writes
+nothing and marks nothing seen.  Every run prints, and ``POST /system/bounces/run``
+answers, the counts ``bounced``, ``unmatched``, ``ignored`` and ``skipped`` with one
+action per failure (:ref:`api-email-log`), and records a ``bounces.run`` audit
+line.  A malformed ``BOUNCE_IMAP_URL``, or a mailbox that cannot be reached, signed
+in to, opened, or read, stops the run with a sentence naming the host, never the
+password: the command exits non-zero, so the unit shows ``failed``, and no audit
+line is written, though rows a live run marked before the failure stay marked and
+their messages stay seen.  With ``BOUNCE_IMAP_URL`` empty the run says bounce
+checking is off and reads nothing.
+
+``BOUNCE_IMAP_URL`` carries the mailbox password.  Error reports mailed to
+``ADMIN_EMAILS`` mask the password in any URL a setting holds
+(``DEFAULT_EXCEPTION_REPORTER_FILTER``, :doc:`configuration`), the parsed address
+leaves the password out of its ``repr``, and the check's own frames are marked
+sensitive, so a traceback shows none of their variables.
+
+The flag on the account shows as a **Bounced** chip beside the address on the
+member record and the user record, and Users and roles filters on it
+(``?email_bounced=``).  It clears when the address changes, when a verification,
+password reset, or invitation link sent to it is followed, and when a user
+administrator presses **Clear bounce** on the user record
+(:ref:`api-clear-bounce`).  Nothing stops mail going to a flagged address: the flag
+tells an administrator the address needs correcting.
+
+Setting up the mailbox
+----------------------
+
+1. Create a mailbox for bounces alone on the organization's mail provider, on the
+   same domain as ``DEFAULT_FROM_EMAIL``: ``bounces@caldart.example.org``, say.
+   Nothing else may be delivered there: the check marks every message it reads as
+   read, and, through the recipient fallback above, any delivery report that
+   reaches it can mark a recent send bounced.  Do not reuse a role address the
+   public writes to, and turn off forwarding into it.
+2. Make sure the provider offers IMAP over TLS (port 993) and, where it wants
+   one, create an app password for the mailbox.
+3. Set ``BOUNCE_ADDRESS`` to the mailbox's address and ``BOUNCE_IMAP_URL`` to it as
+   an ``imaps://`` URL, with the user name and password percent-encoded:
+
+   .. code-block:: text
+
+      BOUNCE_ADDRESS=bounces@caldart.example.org
+      BOUNCE_IMAP_URL=imaps://bounces%40caldart.example.org:app-password@imap.example.org/INBOX
+
+   ``install.sh --bounce-address`` and ``--bounce-imap-url`` write both on a first
+   install (:doc:`deployment`); on a running server, add them with ``sudoedit
+   /etc/caldart/caldart.env`` and restart ``caldart-web``, since the web service
+   sends the mail.
+4. Rehearse a run: ``sudo deploy/manage.sh check_bounces --dry-run`` prints what
+   the mailbox holds and what a live run would mark, and ``journalctl -u
+   caldart-bounces`` shows the hourly runs.
+
+Send a message to an address that cannot exist on a domain you control, such as
+``no-such-person@caldart.example.org``, from a password reset or an invitation;
+within the hour its row on the Sent Emails page reads **Bounced**.  A relay that
+rewrites the envelope sender, as some transactional services do, returns the
+reports to its own address instead: point ``BOUNCE_ADDRESS`` at an address the
+relay forwards bounces to, or read the relay's own bounce list, since such a
+report never reaches the mailbox.
 
 
 Receiving
 =========
 
-The site receives no email.  It runs no mail server, has no inbound address,
-and reads no mailbox.  Three consequences follow, and each is worth telling
-the organization before go-live.
+The site runs no mail server and has no inbound address; the one mailbox it reads
+is the bounce mailbox (`Bounces`_).  Two consequences follow, and each is worth
+telling the organization before go-live.
 
 Replies go to the sender address.
    A member who presses **Reply** writes to ``DEFAULT_FROM_EMAIL``.  Whatever
@@ -296,23 +425,20 @@ Replies go to the sender address.
    reads, or make sure the contact address in the site settings is printed in
    the messages people reply to.
 
-Bounces are not detected.
-   A message the relay accepted and the recipient's server later refused
-   comes back as a bounce notice to the envelope sender, the
-   ``DEFAULT_FROM_EMAIL`` mailbox.  CalDART does not read it, so the email log
-   still says **Sent**, and the member's record carries no warning that the
-   address is bad.  Somebody who reads that mailbox has to correct the address
-   by hand, on the member's record or the user screen.  Most relays also list
-   bounces and complaints in their own dashboards.  Detecting bounces is
-   tracked as issue #266.
+Bounces go to the envelope sender.
+   With ``BOUNCE_ADDRESS`` set, the reports land in the bounce mailbox and the
+   hourly check marks them.  Without it they land in the ``DEFAULT_FROM_EMAIL``
+   mailbox, which CalDART does not read: the email log keeps saying **Sent**, and
+   somebody who reads that mailbox corrects the address by hand, on the member's
+   record or the user screen.  Most relays also list bounces and complaints in
+   their own dashboards.
 
-Nobody is told when someone signs up.
-   A person who joins as a member or a friend is sent a verification email,
-   and a donor account made by a first gift is sent the gift's receipt;
-   nothing goes to the organization in either case.  The account
-   administrator finds new sign-ups on the member list.  A
-   notification to a configurable list of people and to the DART's roster
-   leaders is tracked as issue #268.
+Sign-ups reach the organization as notifications.
+   A person who joins as a member or a friend is sent a verification email, and a
+   donor account made by a first gift is sent the gift's receipt.  The
+   organization hears of a sign-up through the ``signed_up`` notification, sent
+   to every address subscribed to it and to the roster contacts of the DART the
+   person chose (:doc:`notifications`).
 
 Troubleshooting
 ===============
@@ -334,4 +460,18 @@ message.
 **The log says Sent, but the member saw nothing.**  Ask them to look in spam.
 Then read the ``Authentication-Results`` of a test message as above: a
 ``fail`` on SPF, DKIM, or DMARC is the usual cause.  Finally look for a bounce
-in the ``DEFAULT_FROM_EMAIL`` mailbox or the relay's dashboard.
+in the bounce mailbox (or, without ``BOUNCE_ADDRESS``, the ``DEFAULT_FROM_EMAIL``
+mailbox) or the relay's dashboard.
+
+**A bounce never shows up.**  Run ``sudo deploy/manage.sh check_bounces --dry-run``:
+it says when ``BOUNCE_IMAP_URL`` is empty, names the host it could not reach or
+sign in to, and counts what the mailbox holds.  A report counted as *unmatched*
+carried no ``Message-ID`` CalDART sent and named an address CalDART has not
+mailed in the last seven days: the send was older, or there was never a CalDART
+send to that address at all (a report about some other mail, or one sent to the
+mailbox by hand).  A report counted as *ignored* was a delay, a temporary failure,
+not a delivery report at all, or one the database refused (the journal names its
+message number).  A message counted as *skipped* is still unread in the mailbox:
+the server would not hand it over, or it is larger than 1 MB.  Nothing counted means the
+reports go elsewhere: check the ``Return-Path`` of a message in a mailbox you
+control, which should be ``BOUNCE_ADDRESS``.

@@ -256,7 +256,11 @@ class MemberListSerializer(serializers.Serializer["MemberRow"]):
 
 
 class MemberDetailSerializer(serializers.Serializer[User]):
-    """``GET /admin/members/{id}`` -- user, profile, memberships, and payments."""
+    """``GET /admin/members/{id}`` -- user, profile, memberships, and payments.
+
+    ``email_bounced_at`` and ``email_bounce_detail`` say when and why the bounce check
+    last found the member's address bouncing; null and blank with no bounce known.
+    """
 
     id = serializers.IntegerField(read_only=True)
     email = serializers.EmailField(read_only=True)
@@ -270,6 +274,8 @@ class MemberDetailSerializer(serializers.Serializer[User]):
     roles = serializers.SerializerMethodField()
     created_at = serializers.DateTimeField(read_only=True)
     email_verified_at = serializers.DateTimeField(read_only=True, allow_null=True)
+    email_bounced_at = serializers.DateTimeField(read_only=True, allow_null=True)
+    email_bounce_detail = serializers.CharField(read_only=True)
     joined_on = serializers.SerializerMethodField()
     profile_updated_at = serializers.SerializerMethodField()
     membership = serializers.SerializerMethodField()

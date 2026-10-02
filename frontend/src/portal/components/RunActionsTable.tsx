@@ -2,9 +2,9 @@
  * The block every scheduled run shows for its result: the heading, the
  * caller's summary of what happened, and the table of every action behind
  * it — one row per email sent or charge taken, so "who did this actually
- * reach?" never needs a shell.  The renewals, reminders and scheduled-reports
- * panels of the Scheduled page (`/portal/system/scheduled`) use it, and so does
- * the DART rosters card of `/admin/reports`.
+ * reach?" never needs a shell.  The renewals, reminders, scheduled-reports,
+ * statements and bounces panels of the Scheduled page (`/portal/system/scheduled`)
+ * use it, and so does the DART rosters card of `/admin/reports`.
  */
 import type { JSX, ReactNode } from 'react';
 
@@ -55,12 +55,17 @@ export function RunActionsTable({
     {
       key: 'member',
       header: 'Who',
-      render: (row) => (
-        <>
-          {row.member}
-          <span className="muted"> · {row.email}</span>
-        </>
-      ),
+      // An action about an address nobody is named for, such as a bounce no sent
+      // email matched, shows the address alone.
+      render: (row) =>
+        row.member === '' ? (
+          row.email
+        ) : (
+          <>
+            {row.member}
+            <span className="muted"> · {row.email}</span>
+          </>
+        ),
     },
     ...detail,
     { key: 'on', header: 'When', render: (row) => <DateText value={row.on} /> },

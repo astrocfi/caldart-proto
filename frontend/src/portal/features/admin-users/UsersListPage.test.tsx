@@ -325,6 +325,27 @@ describe('UsersListPage', () => {
     expect(screen.queryByRole('link', { name: 'Marta Reyes' })).not.toBeInTheDocument();
   });
 
+  it('filters by a bounced address', async () => {
+    const seen = stubList();
+    renderWithProviders(<UsersListPage />);
+    await screen.findByRole('link', { name: 'Marta Reyes' });
+
+    await userEvent.selectOptions(screen.getByLabelText('Email'), 'Email bounced');
+
+    await waitFor(() => expect(seen.at(-1)?.get('email_bounced')).toBe('true'));
+  });
+
+  it('carries the bounce filter into the exports', async () => {
+    stubList();
+    renderWithProviders(<UsersListPage />);
+    await screen.findByRole('link', { name: 'Marta Reyes' });
+
+    await userEvent.selectOptions(screen.getByLabelText('Email'), 'Email bounced');
+
+    const href = screen.getByRole('link', { name: /csv/i }).getAttribute('href') ?? '';
+    expect(new URL(href, 'http://localhost').searchParams.get('email_bounced')).toBe('true');
+  });
+
   it('names the kind of each account', async () => {
     stubList([MARTA, GIL]);
     renderWithProviders(<UsersListPage />);

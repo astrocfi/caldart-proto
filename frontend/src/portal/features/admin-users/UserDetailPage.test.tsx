@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { Route, Routes } from 'react-router-dom';
@@ -22,6 +22,13 @@ const TARGET = makeAdminUser({
   first_name: 'Priya',
   last_name: 'Raman',
   roles: ['member'],
+});
+
+/** `TARGET` with an address the bounce check found bouncing at noon UTC, October 1st. */
+const BOUNCED = makeAdminUser({
+  ...TARGET,
+  email_bounced_at: '2026-10-01T12:00:00Z',
+  email_bounce_detail: '5.1.1 550 User unknown',
 });
 
 interface StubOptions {
@@ -284,6 +291,61 @@ describe('UserDetailPage', () => {
     renderDetail('404');
 
     expect(await screen.findByText(/could not be loaded/i)).toBeInTheDocument();
+  });
+
+  it('marks a bounced address with the date and the report', async () => {
+    stubDetail({ target: BOUNCED });
+    renderDetail();
+
+    expect(await screen.findByText('Bounced 10/01/2026')).toBeInTheDocument();
+    expect(screen.getByText('5.1.1 550 User unknown')).toBeInTheDocument();
+  });
+
+  it('offers no Clear bounce for an address that has not bounced', async () => {
+    stubDetail();
+    renderDetail();
+
+    await screen.findByLabelText('Email address');
+    expect(screen.queryByRole('button', { name: 'Clear bounce' })).not.toBeInTheDocument();
+  });
+
+  it('clears a bounce only once the confirmation is pressed', async () => {
+    stubDetail({ target: BOUNCED });
+    const cleared: string[] = [];
+    let stored = BOUNCED;
+    server.use(
+      http.get(`${API}/admin/users/${BOUNCED.id}`, () => HttpResponse.json(stored)),
+      http.post(`${API}/admin/users/${BOUNCED.id}/clear-bounce`, ({ request }) => {
+        cleared.push(request.url);
+        stored = { ...BOUNCED, email_bounced_at: null, email_bounce_detail: '' };
+        return HttpResponse.json(stored);
+      }),
+    );
+    renderDetail();
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Clear bounce' }));
+    expect(cleared).toEqual([]);
+    const panel = screen.getByRole('region', { name: 'Clear bounce' });
+    await userEvent.click(within(panel).getByRole('button', { name: 'Clear bounce' }));
+
+    await waitFor(() => expect(screen.queryByText('Bounced 10/01/2026')).not.toBeInTheDocument());
+    expect(cleared).toHaveLength(1);
+  });
+
+  it('reports a Clear bounce the server refused', async () => {
+    stubDetail({ target: BOUNCED });
+    server.use(
+      http.post(`${API}/admin/users/${BOUNCED.id}/clear-bounce`, () =>
+        HttpResponse.json({ detail: 'Not allowed.' }, { status: 403 }),
+      ),
+    );
+    renderDetail();
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Clear bounce' }));
+    const panel = screen.getByRole('region', { name: 'Clear bounce' });
+    await userEvent.click(within(panel).getByRole('button', { name: 'Clear bounce' }));
+
+    expect(await screen.findByText('Not allowed.')).toBeInTheDocument();
   });
 
   it('shows when the email address was verified, with no resend button', async () => {

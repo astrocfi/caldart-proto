@@ -16,9 +16,9 @@
 # --gunicorn-port given to a later run moves gunicorn: the run writes the port
 # into the environment file, rewrites the vhost or snippet, restarts gunicorn,
 # and reloads the web server, in that order.
-# --email-url, --email, --from-email, --admin-email, --seed-demo, and
-# --seed-content are used by the run that writes the environment file or
-# creates the administrator, and are not recorded.
+# --email-url, --email, --from-email, --bounce-imap-url, --bounce-address,
+# --admin-email, --seed-demo, and --seed-content are used by the run that writes
+# the environment file or creates the administrator, and are not recorded.
 #
 # Usage:
 #   sudo deploy/install.sh [options]
@@ -48,6 +48,11 @@
 #   --email local              send mail through the postfix on this machine
 #                              (EMAIL_URL=smtp://localhost:25) instead of --email-url
 #   --from-email ADDRESS       DEFAULT_FROM_EMAIL (default CalDART <noreply@HOST>)
+#   --bounce-imap-url URL      BOUNCE_IMAP_URL, the mailbox the hourly bounce check reads,
+#                              as imaps://user:password@host[:port]/MAILBOX with the
+#                              credentials URL-encoded (default: bounce checking off)
+#   --bounce-address ADDRESS   BOUNCE_ADDRESS, the envelope sender a refused message is
+#                              returned to (default: DEFAULT_FROM_EMAIL)
 #   --admin-email ADDRESS      create the first administrator with this address
 #   --seed-demo                load the demo accounts (the shared password README.rst
 #                              documents; a server seeded with them is a demonstration
@@ -140,6 +145,14 @@ parse_flags() {
                 ;;
             --from-email)
                 FROM_EMAIL="$(option_value "$1" "${2:-}")"
+                shift
+                ;;
+            --bounce-imap-url)
+                BOUNCE_IMAP_URL="$(option_value "$1" "${2:-}")"
+                shift
+                ;;
+            --bounce-address)
+                BOUNCE_ADDRESS="$(option_value "$1" "${2:-}")"
                 shift
                 ;;
             --admin-email)

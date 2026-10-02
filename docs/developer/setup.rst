@@ -394,6 +394,9 @@ list, in full:
      - ``db_restore`` — ``make restore FILE=backups/caldart-….sql.gz [YES=1]``
    * - ``reminders``
      - ``send_renewal_reminders`` — ``make reminders [TODAY=2027-01-01] [DRY_RUN=1]``
+   * - ``bounces``
+     - ``check_bounces`` — ``make bounces [DRY_RUN=1]``; with ``BOUNCE_IMAP_URL``
+       empty, as ``.env.example`` leaves it, it says bounce checking is off
    * - ``sandbox-check``
      - ``payments_sandbox_check`` — the Stripe and PayPal credentials in
        ``.env``, checked without moving money (:doc:`payments-setup`)
@@ -419,7 +422,7 @@ database from ``E2E_DB``.
 Switch variables
 ================
 
-``YES`` on ``make restore``, ``DRY_RUN`` on ``make reminders``, and
+``YES`` on ``make restore``, ``DRY_RUN`` on ``make reminders`` and ``make bounces``, and
 ``REHEARSE_KEEP`` on ``make rehearse-deploy`` are switches:
 ``1``, ``yes``, or ``true`` turns the option on; ``0``, ``no``, ``false``, an
 empty value or leaving the variable unset leaves it off; any other value stops
@@ -480,6 +483,9 @@ Beyond Django's and Wagtail's own, this project adds:
        (:doc:`scheduled-reports`)
    * - ``send_year_statements [--year YEAR] [--dry-run] [--today YYYY-MM-DD]``
      - email the previous year's contribution statements (:doc:`statements`)
+   * - ``check_bounces [--dry-run]``
+     - read the bounce mailbox and mark every email that bounced
+       (:ref:`email-bounces`)
    * - ``payments_sandbox_check``
      - check the configured Stripe and PayPal credentials without moving money
    * - ``import_faa_registry [--source URL|PATH] [--types-only] [--import-id ID]``

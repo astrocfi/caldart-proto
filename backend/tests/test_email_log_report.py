@@ -76,10 +76,10 @@ def test_the_email_log_download_needs_a_session(api_client: APIClient) -> None:
     assert api_client.get(CSV_URL).status_code == 401
 
 
-def test_the_columns_are_choosable_with_error_and_attachments_off(
+def test_the_columns_are_choosable_with_error_attachments_and_bounce_off(
     system_admin_client: APIClient,
 ) -> None:
-    """Eight columns, the error and the attachments off by default."""
+    """Ten columns, the error, the attachments and the bounce off by default."""
     assert system_admin_client.get(COLUMNS_URL).json() == [
         {"key": "sent_at", "label": "Sent", "default": True},
         {"key": "purpose", "label": "Purpose", "default": True},
@@ -89,6 +89,8 @@ def test_the_columns_are_choosable_with_error_and_attachments_off(
         {"key": "status", "label": "Status", "default": True},
         {"key": "error", "label": "Error", "default": False},
         {"key": "attachments", "label": "Attachments", "default": False},
+        {"key": "bounced_at", "label": "Bounced", "default": False},
+        {"key": "bounce_detail", "label": "Bounce detail", "default": False},
     ]
 
 
@@ -268,7 +270,7 @@ def test_the_status_filter_keeps_the_failures(system_admin_client: APIClient) ->
 
 def test_an_unknown_status_is_a_400_keyed_status(system_admin_client: APIClient) -> None:
     """A status the log does not use is refused as the list refuses it."""
-    response = system_admin_client.get(CSV_URL, {"status": "bounced"})
+    response = system_admin_client.get(CSV_URL, {"status": "delivered"})
 
     assert response.status_code == 400
     assert list(response.json()) == ["status"]

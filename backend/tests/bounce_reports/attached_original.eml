@@ -1,0 +1,56 @@
+Return-Path: <>
+From: Mail Delivery Subsystem <mailer-daemon@googlemail.com>
+To: bounces@caldart.example.org
+Subject: Delivery Status Notification (Failure)
+Date: Thu, 01 Oct 2026 10:00:09 -0700
+Auto-Submitted: auto-replied
+MIME-Version: 1.0
+Content-Type: multipart/report; boundary="000000000000a1b2c3"; report-type=delivery-status
+Message-ID: <5f9e1c2d.0a1b2c3d@mx.google.com>
+
+--000000000000a1b2c3
+Content-Type: multipart/related; boundary="000000000000a1b2c4"
+
+--000000000000a1b2c4
+Content-Type: multipart/alternative; boundary="000000000000a1b2c5"
+
+--000000000000a1b2c5
+Content-Type: text/plain; charset="UTF-8"
+
+Address not found
+
+Your message wasn't delivered to {recipient} because the address couldn't
+be found, or is unable to receive mail.
+
+--000000000000a1b2c5--
+
+--000000000000a1b2c4--
+
+--000000000000a1b2c3
+Content-Type: message/delivery-status
+
+Reporting-MTA: dns; googlemail.com
+Received-From-MTA: dns; caldart.example.org
+Arrival-Date: Thu, 01 Oct 2026 10:00:08 -0700 (PDT)
+
+Final-Recipient: rfc822; {recipient}
+Action: {action}
+Status: {status}
+Diagnostic-Code: smtp; The email account that you tried to reach does not exist.
+Last-Attempt-Date: Thu, 01 Oct 2026 10:00:09 -0700 (PDT)
+
+--000000000000a1b2c3
+Content-Type: message/rfc822
+
+Return-Path: <bounces@caldart.example.org>
+MIME-Version: 1.0
+Subject: CalDART: your receipt
+From: CalDART <noreply@caldart.example.org>
+To: {recipient}
+Date: Thu, 01 Oct 2026 17:00:07 -0000
+Message-ID: {message_id}
+Content-Type: text/plain; charset="utf-8"
+
+Dear member, thank you for your payment.
+
+--000000000000a1b2c3--

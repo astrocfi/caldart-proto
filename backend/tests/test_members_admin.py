@@ -689,6 +689,8 @@ def test_detail_returns_the_whole_record(
         "payments",
         "joined_on",
         "email_verified_at",
+        "email_bounced_at",
+        "email_bounce_detail",
         "reactivation_blocked",
         "friend_on",
     }

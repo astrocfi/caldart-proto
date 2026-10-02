@@ -1,0 +1,47 @@
+Return-Path: <>
+Date: Thu,  1 Oct 2026 14:00:05 -0700 (PDT)
+From: MAILER-DAEMON@mx.caldart.example.org (Mail Delivery System)
+Subject: Delayed Mail (still being retried)
+To: bounces@caldart.example.org
+Auto-Submitted: auto-replied
+MIME-Version: 1.0
+Content-Type: multipart/report; report-type=delivery-status;
+	boundary="6A7B8C9D0E.1759352405/mx.caldart.example.org"
+
+--6A7B8C9D0E.1759352405/mx.caldart.example.org
+Content-Description: Notification
+Content-Type: text/plain; charset=us-ascii
+
+This is the mail system at host mx.caldart.example.org.
+
+####################################################################
+# THIS IS A WARNING ONLY.  YOU DO NOT NEED TO RESEND YOUR MESSAGE. #
+####################################################################
+
+Your message could not be delivered for more than 4 hour(s).
+It will be retried until it is 5 day(s) old.
+
+--6A7B8C9D0E.1759352405/mx.caldart.example.org
+Content-Description: Delivery report
+Content-Type: message/delivery-status
+
+Reporting-MTA: dns; mx.caldart.example.org
+Arrival-Date: Thu,  1 Oct 2026 10:00:01 -0700 (PDT)
+
+Final-Recipient: rfc822; {recipient}
+Action: delayed
+Status: 4.4.1
+Diagnostic-Code: X-Postfix; connect to mail.example.com[203.0.113.25]:25:
+    Connection timed out
+Will-Retry-Until: Tue,  6 Oct 2026 10:00:01 -0700 (PDT)
+
+--6A7B8C9D0E.1759352405/mx.caldart.example.org
+Content-Description: Undelivered Message Headers
+Content-Type: text/rfc822-headers
+
+Subject: CalDART: your membership renews soon
+From: CalDART <noreply@caldart.example.org>
+To: {recipient}
+Message-ID: {message_id}
+
+--6A7B8C9D0E.1759352405/mx.caldart.example.org--

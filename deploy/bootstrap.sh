@@ -37,7 +37,7 @@ readonly DEPLOY_ROOT="${CALDART_ROOT:-/opt/caldart}"
 # The checkout, inside the deploy root.
 readonly CHECKOUT="$DEPLOY_ROOT/caldart"
 # The install options that take a value, so their values are passed through too.
-readonly VALUE_OPTIONS=" --hostname --web-server --tls --certbot-email --db-port --gunicorn-port --url-prefix --attach-to --email-url --email --from-email --admin-email "
+readonly VALUE_OPTIONS=" --hostname --web-server --tls --certbot-email --db-port --gunicorn-port --url-prefix --attach-to --email-url --email --from-email --bounce-imap-url --bounce-address --admin-email "
 
 REPO="$DEFAULT_REPO"
 REF="$DEFAULT_REF"
@@ -84,19 +84,22 @@ shell_quote() {
     fi
 }
 
-# Print a command shell-quoted, one line, with the value of --email-url, which
-# can carry the mail relay's password, masked.
+# Print a command shell-quoted, one line, with the values of --email-url and
+# --bounce-imap-url, which can carry the mail relay's and the bounce mailbox's
+# passwords, masked as <email-url> and <bounce-imap-url>.
 quote_command() {
-    local word first=1 masked=0
+    local word first=1 mask=""
     for word in "$@"; do
         [[ $first == 1 ]] || printf ' '
-        if [[ $masked == 1 ]]; then
-            word='<email-url>'
+        if [[ -n "$mask" ]]; then
+            word="<$mask>"
         fi
         shell_quote "$word"
         first=0
-        masked=0
-        [[ "$word" != --email-url ]] || masked=1
+        mask=""
+        case "$word" in
+            --email-url | --bounce-imap-url) mask="${word#--}" ;;
+        esac
     done
 }
 

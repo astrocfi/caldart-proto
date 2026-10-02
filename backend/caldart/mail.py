@@ -9,16 +9,21 @@ two pieces of the letterhead almost every template asks for.
 
 Because every email goes through :func:`send_templated`, it is also the one
 place that records what went out: each send writes an ``apps.mail.EmailLog``
-row, successful or refused, which is what the email log screen reads.
+row, successful or refused, which is what the email log screen reads.  Each
+message carries a ``Message-ID`` stored on that row, and goes out with
+``BOUNCE_ADDRESS`` as its envelope sender when that is set, which is how the
+bounce check (``apps.mail.bounces``) matches a returned report to its row.
 """
 
 from __future__ import annotations
 
 from collections.abc import Sequence
+from email.utils import make_msgid, parseaddr
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.mail import EmailMultiAlternatives
+from django.core.mail.utils import DNS_NAME
 from django.template.loader import render_to_string
 from django.utils import timezone
 
@@ -59,8 +64,12 @@ def send_templated(
     ``subject`` is sent as given: the house prefix and the organization's name
     belong to the caller, which knows what the email is about.  ``context``
     renders both bodies.  Each entry of ``attachments`` is attached by filename,
-    bytes and media type, which is how a receipt PDF rides along.  The message
-    comes from ``DEFAULT_FROM_EMAIL``.
+    bytes and media type, which is how a receipt PDF rides along.  The message's
+    ``From`` is ``DEFAULT_FROM_EMAIL``, and so is its envelope sender unless
+    ``BOUNCE_ADDRESS`` is set, when that address is the envelope sender instead and a
+    receiving server returns an undeliverable message there.  The message carries a
+    fresh ``Message-ID`` on the domain of ``DEFAULT_FROM_EMAIL``, recorded on its email
+    log row.
 
     Every send is recorded in the email log: ``purpose`` names what the message
     was for and defaults to ``template``, which is the right answer wherever one
@@ -77,11 +86,19 @@ def send_templated(
     caller that must survive a refusal catches it and says so in its own log.
     """
     rendered = context or {}
+    message_id = make_msgid(domain=_message_id_domain())
+    headers = {"Message-ID": message_id}
+    envelope_sender = settings.BOUNCE_ADDRESS or settings.DEFAULT_FROM_EMAIL
+    if settings.BOUNCE_ADDRESS:
+        # Django sends the envelope from ``from_email`` and writes the header from a
+        # ``From`` given in ``headers``, which is how the two addresses differ.
+        headers["From"] = settings.DEFAULT_FROM_EMAIL
     message = EmailMultiAlternatives(
         subject=subject,
         body=render_to_string(f"emails/{template}.txt", rendered),
-        from_email=settings.DEFAULT_FROM_EMAIL,
+        from_email=envelope_sender,
         to=[to],
+        headers=headers,
     )
     message.attach_alternative(render_to_string(f"emails/{template}.html", rendered), "text/html")
     for filename, content, mimetype in attachments:
@@ -101,6 +118,7 @@ def send_templated(
             attachments=filenames,
             error=type(exc).__name__,
             to_name=to_name,
+            message_id=message_id,
         )
         raise
     _record(
@@ -111,8 +129,16 @@ def send_templated(
         attachments=filenames,
         error="",
         to_name=to_name,
+        message_id=message_id,
     )
     return message
+
+
+def _message_id_domain() -> str:
+    """The domain of ``DEFAULT_FROM_EMAIL``'s address, or the host's name without one."""
+    _name, address = parseaddr(settings.DEFAULT_FROM_EMAIL)
+    domain = address.rpartition("@")[2]
+    return domain or str(DNS_NAME)
 
 
 def _record(
@@ -124,8 +150,11 @@ def _record(
     attachments: str,
     error: str,
     to_name: str = "",
+    message_id: str = "",
 ) -> None:
     """Write one email log row.  A blank ``error`` records a send that went out.
+
+    ``message_id`` is the ``Message-ID`` header the message carried.
 
     A blank ``to_name`` with a ``user_id`` is filled in from that account's current
     ``display_name`` before the row is written, so the log keeps the name the
@@ -163,4 +192,5 @@ def _record(
         status=EmailStatus.FAILED if error else EmailStatus.SENT,
         error=error,
         attachments=attachments,
+        message_id=message_id,
     )

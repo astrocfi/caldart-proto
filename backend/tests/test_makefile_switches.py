@@ -1,8 +1,9 @@
 """Tests for the on/off switches the Makefile passes to management commands.
 
-``YES`` on ``make restore`` and ``DRY_RUN`` on ``make reminders`` are switches:
-``1``, ``yes`` and ``true`` turn the option on, ``0``, ``no``, ``false``, an empty
-value and an unset variable leave it off, and any other value stops ``make``.  Each
+``YES`` on ``make restore`` and ``DRY_RUN`` on ``make reminders`` and ``make bounces``
+are switches: ``1``, ``yes`` and ``true`` turn the option on, ``0``, ``no``,
+``false``, an empty value and an unset variable leave it off, and any other value
+stops ``make``.  Each
 test runs ``make -n``, which prints the recipe without running it, so nothing here
 touches the database, the mail server or a backup file.
 """
@@ -41,6 +42,7 @@ SWITCH_CASES = (
     pytest.param(
         "reminders", [], "DRY_RUN", "send_renewal_reminders", "--dry-run", id="reminders-dry-run"
     ),
+    pytest.param("bounces", [], "DRY_RUN", "check_bounces", "--dry-run", id="bounces-dry-run"),
 )
 
 

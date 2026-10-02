@@ -1,0 +1,61 @@
+Return-Path: <>
+Received: by mx.caldart.example.org (Postfix) id 4F1A2B3C4D; Thu,  1 Oct 2026 10:00:05 -0700 (PDT)
+Date: Thu,  1 Oct 2026 10:00:05 -0700 (PDT)
+From: MAILER-DAEMON@mx.caldart.example.org (Mail Delivery System)
+Subject: Undelivered Mail Returned to Sender
+To: bounces@caldart.example.org
+Auto-Submitted: auto-replied
+MIME-Version: 1.0
+Content-Type: multipart/report; report-type=delivery-status;
+	boundary="4F1A2B3C4D.1759338005/mx.caldart.example.org"
+Message-Id: <20261001170005.4F1A2B3C4D@mx.caldart.example.org>
+
+This is a MIME-encapsulated message.
+
+--4F1A2B3C4D.1759338005/mx.caldart.example.org
+Content-Description: Notification
+Content-Type: text/plain; charset=us-ascii
+
+This is the mail system at host mx.caldart.example.org.
+
+I'm sorry to have to inform you that your message could not
+be delivered to one or more recipients. It's attached below.
+
+<{recipient}>: host mail.example.com[203.0.113.25] said: 550 5.1.1
+    <{recipient}>: Recipient address rejected: User unknown in virtual
+    mailbox table (in reply to RCPT TO command)
+
+--4F1A2B3C4D.1759338005/mx.caldart.example.org
+Content-Description: Delivery report
+Content-Type: message/delivery-status
+
+Reporting-MTA: dns; mx.caldart.example.org
+X-Postfix-Queue-ID: 4F1A2B3C4D
+X-Postfix-Sender: rfc822; bounces@caldart.example.org
+Arrival-Date: Thu,  1 Oct 2026 10:00:01 -0700 (PDT)
+
+Final-Recipient: rfc822; {recipient}
+Original-Recipient: rfc822;{recipient}
+Action: {action}
+Status: {status}
+Remote-MTA: dns; mail.example.com
+Diagnostic-Code: smtp; 550 5.1.1 <{recipient}>: Recipient address
+    rejected: User unknown in virtual mailbox table
+
+--4F1A2B3C4D.1759338005/mx.caldart.example.org
+Content-Description: Undelivered Message Headers
+Content-Type: text/rfc822-headers
+
+Return-Path: <bounces@caldart.example.org>
+Received: from caldart.example.org (localhost [127.0.0.1])
+	by mx.caldart.example.org (Postfix) with ESMTP id 4F1A2B3C4D
+	for <{recipient}>; Thu,  1 Oct 2026 10:00:01 -0700 (PDT)
+Content-Type: multipart/alternative; boundary="===============1234567890=="
+MIME-Version: 1.0
+Subject: CalDART: your membership renews soon
+From: CalDART <noreply@caldart.example.org>
+To: {recipient}
+Date: Thu, 01 Oct 2026 17:00:01 -0000
+Message-ID: {message_id}
+
+--4F1A2B3C4D.1759338005/mx.caldart.example.org--

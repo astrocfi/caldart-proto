@@ -9,7 +9,8 @@ before it has a user: ``GET /admin/reminders/log``,
 ``GET``/``PUT /admin/reminders/schedule`` and ``POST /system/reminders/run`` from
 ``apps.reminders``,
 ``POST /system/reports/run`` from ``apps.reports``,
-``GET /system/emails`` and ``GET /system/emails/purposes`` from ``apps.mail``, the health, backup,
+``GET /system/emails``, ``GET /system/emails/purposes`` and ``POST /system/bounces/run``
+from ``apps.mail``, the health, backup,
 renewal-scan and year-end-statement routes under ``/system/`` and
 ``POST /admin/system/registry-import`` from ``apps.sysadmin``, and
 ``GET /site/config`` from ``apps.cms``.  :doc:`api-reference` covers the conventions they share —
@@ -260,7 +261,8 @@ reminder run's ``failed`` count reports it as well.
         "user_name": "Marta Reyes", "purpose": "receipt", "purpose_label": "Receipt",
         "subject": "CalDART: your receipt for $95.00",
         "sent_at": "2026-01-08T09:00:02-08:00", "status": "sent", "error": "",
-        "attachments": "receipt-2026-0041.pdf"}
+        "attachments": "receipt-2026-0041.pdf", "bounced_at": null,
+        "bounce_detail": ""}
      ]
    }
 
@@ -291,7 +293,14 @@ reminder run's ``failed`` count reports it as well.
 ``status``, ``error``
    ``sent`` for a message the mail server took, and ``failed`` with the
    exception class in ``error`` for one it refused.  ``error`` is blank on a
-   send that went out.
+   send that went out.  ``bounced`` for a message the server took that the bounce
+   check has since found refused for good by the recipient's server
+   (:ref:`email-bounces`).
+
+``bounced_at``, ``bounce_detail``
+   When the bounce check read the permanent-failure report for a ``bounced``
+   message, and that report's status code and diagnostic text, such as
+   ``5.1.1 550 5.1.1 User unknown``.  ``null`` and blank on every other row.
 
 ``attachments``
    The filenames that rode along, comma-separated, and blank when none did.
@@ -302,8 +311,8 @@ Parameter          Effect
 ``purpose``        An exact purpose, as listed above.  An unknown value answers
                    an empty page rather than a 400: the purposes are the
                    template names, not a fixed enumeration.
-``status``         ``sent`` or ``failed``.  Anything else is a 400 on
-                   ``status``.
+``status``         ``sent``, ``failed``, or ``bounced``.  Anything else is a 400
+                   on ``status``.
 ``from``, ``to``   ``YYYY-MM-DD``, compared against the date part of
                    ``sent_at``: ``from`` is on or after, ``to`` on or before.
 ``q``              Case-insensitive match on the address written to, the name
@@ -318,7 +327,8 @@ Parameter          Effect
 =================  ============================================================
 
 The log records the message, not the delivery: a mail server that accepts a
-message and bounces it later is a ``sent`` row.  ``ReminderLog`` is not replaced
+message and bounces it later is a ``sent`` row until the bounce check reads the
+report and marks it ``bounced``.  ``ReminderLog`` is not replaced
 by any of this -- it is the key that keeps a reminder stage from repeating, and
 ``GET /admin/reminders/log`` still answers "was this member ever told?" for an
 account administrator, who does not hold ``system_admin``.
@@ -351,6 +361,60 @@ from the stored reminder schedule, then every entry of ``PURPOSE_LABELS``.  Unpa
 for it, the same ``purpose_label`` a row carries.
 
 Statuses: **200**; **401** when anonymous; **403** for every other role.
+
+``POST /system/bounces/run``
+----------------------------
+
+Runs the bounce check immediately instead of waiting for the hourly timer: it
+reads the unseen messages in the bounce mailbox ``BOUNCE_IMAP_URL`` names, marks
+every email a permanent-failure report matches as ``bounced``, flags the address on
+the account that holds it, and marks each message read (:ref:`email-bounces`).
+``system_admin`` only.  The body is optional; ``dry_run`` defaults to ``false``.
+
+.. code-block:: json
+
+   {"dry_run": true}
+
+.. code-block:: json
+
+   {
+     "enabled": true,
+     "bounced": 1,
+     "unmatched": 1,
+     "ignored": 2,
+     "skipped": 0,
+     "actions": [
+       {"kind": "bounced", "member": "Dana Doe", "email": "gone@example.com",
+        "on": "2026-10-01", "amount_cents": null,
+        "detail": "5.1.1 550 5.1.1 User unknown"},
+       {"kind": "unmatched", "member": "", "email": "stranger@example.net",
+        "on": null, "amount_cents": null,
+        "detail": "5.1.10 550 5.1.10 Recipient not found"}
+     ]
+   }
+
+``enabled`` is ``false`` when ``BOUNCE_IMAP_URL`` is empty: nothing is read and
+every count is zero.  ``bounced`` counts the permanent failures matched to a sent
+email, each an action of kind ``bounced`` naming the recipient as the row
+recorded them, ``on`` the day the email was sent; ``unmatched`` counts those no
+sent email could be found for, each an action of kind ``unmatched`` with an empty
+``member`` and a null ``on``; ``ignored`` counts the messages read that reported
+no permanent failure at all (delays, temporary failures, auto-replies) or whose
+writes the database refused; ``skipped`` counts the messages left unread in the
+mailbox, one the server would not hand over or one larger than 1 MB.  ``detail``
+is the report's status code and diagnostic.  A dry run reads and matches exactly
+as a live one, with the mailbox opened read-only, but marks no email, flags no
+account and leaves every message unread.  The run is recorded in the audit log as ``bounces.run`` under the
+caller.
+
+A malformed ``BOUNCE_IMAP_URL``, or a mailbox that cannot be reached, signed in
+to, or read, answers ``400 {"detail": "<sentence>"}``: ``BOUNCE_IMAP_URL must be
+imaps://user:password@host[:port]/MAILBOX``, ``Could not reach the bounce mailbox
+at <host>: <reason>`` (or ``read``), or ``Could not open the mailbox <mailbox> at
+<host>``.  The sentence never carries the password.
+
+Statuses: **200**; **400** when ``dry_run`` is not a boolean or the mailbox could
+not be read; **401** when anonymous; **403** for any other role.
 
 
 System

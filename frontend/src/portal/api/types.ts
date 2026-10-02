@@ -144,11 +144,16 @@ export interface VerificationSentResult {
 
 /* ------------------------------------------------------ user administration */
 /**
- * `/admin/users`: the user payload, plus when the address was verified and whether a
- * user administrator has blocked the account from reactivating.
+ * `/admin/users`: the user payload, plus when the address was verified, when and why it
+ * last bounced, and whether a user administrator has blocked the account from
+ * reactivating.
  */
 export interface AdminUser extends User {
   email_verified_at: IsoDateTime | null;
+  /** When the bounce check last found the address bouncing; null with no bounce known. */
+  email_bounced_at: IsoDateTime | null;
+  /** That report's status code and diagnostic, or `''`. */
+  email_bounce_detail: string;
   reactivation_blocked: boolean;
 }
 
@@ -573,6 +578,10 @@ export interface MemberDetail {
   roles: RoleSlug[];
   created_at: IsoDateTime;
   email_verified_at: IsoDateTime | null;
+  /** When the bounce check last found the address bouncing; null with no bounce known. */
+  email_bounced_at: IsoDateTime | null;
+  /** That report's status code and diagnostic, or `''`. */
+  email_bounce_detail: string;
   joined_on: IsoDate | null;
   profile_updated_at: IsoDateTime | null;
   membership: MembershipStatus;
@@ -1432,13 +1441,15 @@ export interface LeaderStatus {
 }
 
 /* --------------------------------------------------------------- email log */
-export type EmailStatus = 'sent' | 'failed';
+export type EmailStatus = 'sent' | 'failed' | 'bounced';
 
 /**
  * One email the system tried to send, as `GET /system/emails` returns it.
  *
  * `purpose` is the template's name and `purpose_label` the words a reader sees
  * for it, the name itself when the server has no label for the template.
+ * `bounced_at` and `bounce_detail` are set only on a `bounced` row: when the bounce
+ * check read the report, and its status code and diagnostic.
  */
 export interface EmailLogEntry {
   id: number;
@@ -1452,6 +1463,24 @@ export interface EmailLogEntry {
   status: EmailStatus;
   error: string;
   attachments: string;
+  bounced_at: IsoDateTime | null;
+  bounce_detail: string;
+}
+
+/**
+ * What one bounce check found, from `POST /system/bounces/run`. `enabled` is false
+ * when no bounce mailbox is configured. `skipped` counts the messages left unread: one
+ * the mail server would not hand over, or one too large to be a report. Each action's
+ * `kind` is `bounced` or `unmatched`, and its `detail` the report's status code and
+ * diagnostic.
+ */
+export interface BounceRunResult {
+  enabled: boolean;
+  bounced: number;
+  unmatched: number;
+  ignored: number;
+  skipped: number;
+  actions: RunAction[];
 }
 
 /** One purpose the email log's filter offers, from `GET /system/emails/purposes`. */

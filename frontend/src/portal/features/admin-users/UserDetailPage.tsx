@@ -1,6 +1,8 @@
 /**
  * `/admin/users/:id` — edit one account's names, email, and roles, and change its
  * status: deactivate or reactivate it, and block it from reactivating or lift the block.
+ * An address the bounce check found bouncing carries a **Bounced** chip beside it and a
+ * **Clear bounce** action that asks first.
  */
 import { useEffect, useState } from 'react';
 import type { JSX } from 'react';
@@ -9,8 +11,10 @@ import { Link, useParams } from 'react-router-dom';
 import type { AdminUser, RoleSlug } from '@/portal/api/types';
 import { useAuth, useRoles } from '@/portal/auth/useAuth';
 import { ACCOUNT_KIND_LABELS, roleLabel } from '@/portal/choices';
+import { BouncedChip } from '@/portal/components/BouncedChip';
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
+import { ConfirmButton } from '@/portal/components/ConfirmButton';
 import { EmailVerifiedText } from '@/portal/components/EmailVerifiedText';
 import { EmptyState } from '@/portal/components/EmptyState';
 import { Field } from '@/portal/components/Field';
@@ -24,6 +28,7 @@ import { FormAlert, fieldError } from '@/portal/features/auth/form';
 import { AccountStatusCard } from './AccountStatusCard';
 import {
   useAdminUser,
+  useClearBounce,
   useSendEmailVerification,
   useSendPasswordReset,
   useUpdateAdminUser,
@@ -57,6 +62,7 @@ export function UserDetailPage(): JSX.Element {
   const update = useUpdateAdminUser(id);
   const sendReset = useSendPasswordReset(id);
   const sendVerification = useSendEmailVerification(id);
+  const clearBounce = useClearBounce(id);
   const toast = useToast();
   const { user: me } = useAuth();
 
@@ -178,7 +184,8 @@ export function UserDetailPage(): JSX.Element {
             hint={
               <>
                 This is also how they sign in.{' '}
-                <EmailVerifiedText verifiedAt={user.email_verified_at} />
+                <EmailVerifiedText verifiedAt={user.email_verified_at} />{' '}
+                <BouncedChip bouncedAt={user.email_bounced_at} detail={user.email_bounce_detail} />
               </>
             }
           >
@@ -201,6 +208,30 @@ export function UserDetailPage(): JSX.Element {
                 disabled={!user.is_active}
                 mutation={sendVerification}
               />
+            </div>
+          )}
+          {user.email_bounced_at === null ? null : (
+            <div className="stack">
+              <div className="cluster">
+                <ConfirmButton
+                  label="Clear bounce"
+                  choices={[
+                    {
+                      label: 'Clear bounce',
+                      onChoose: () =>
+                        clearBounce
+                          .mutateAsync()
+                          .then(() => toast.show('Bounce cleared.', 'success')),
+                    },
+                  ]}
+                >
+                  <p>
+                    Clear this only once you know the address works, for instance after confirming
+                    it with them. The flag comes back if the next email to it bounces too.
+                  </p>
+                </ConfirmButton>
+              </div>
+              <FormAlert error={clearBounce.error} />
             </div>
           )}
 

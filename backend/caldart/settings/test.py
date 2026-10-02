@@ -38,6 +38,12 @@ PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
 
 MAILERS = {"default": {"BACKEND": "django.core.mail.backends.locmem.EmailBackend"}}
 
+# Bounce handling is off unless a test turns it on, and the bounce mailbox is reached
+# only through the fake ``conftest.py`` installs, so a developer's ``.env`` never
+# changes an envelope sender or opens a real mailbox from the suite.
+BOUNCE_ADDRESS = ""
+BOUNCE_IMAP_URL = ""
+
 PAYMENTS_MOCK_ENABLED = True
 
 VITE_DEV_MODE = False

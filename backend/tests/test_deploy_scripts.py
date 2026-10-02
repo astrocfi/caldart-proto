@@ -422,6 +422,22 @@ def test_the_dry_run_prints_no_secret(root: Path, etc: Path, tmp_path: Path) -> 
     assert "PASSWORD '\\''<generated>'\\''" in alter
 
 
+def test_the_install_takes_the_bounce_flags_without_printing_the_password(
+    root: Path, etc: Path, tmp_path: Path
+) -> None:
+    """``--bounce-imap-url`` and ``--bounce-address`` are taken; no line shows the URL."""
+    result = _install_dry_run(
+        root,
+        etc,
+        tmp_path,
+        "--bounce-imap-url",
+        "imaps://bounces:imapsecret@imap.caldart.test/INBOX",
+        "--bounce-address",
+        "bounces@caldart.test",
+    )
+    assert (result.returncode, "imapsecret" in result.stdout + result.stderr) == (0, False)
+
+
 def test_every_shipped_unit_is_installed(root: Path, etc: Path, tmp_path: Path) -> None:
     """Each unit under ``deploy/systemd/`` is rendered into ``/etc/systemd/system/``."""
     output = _install_dry_run(root, etc, tmp_path).stdout
@@ -890,6 +906,17 @@ def test_bootstrap_masks_the_email_url(tmp_path: Path) -> None:
     )
 
 
+def test_bootstrap_masks_the_bounce_imap_url(tmp_path: Path) -> None:
+    """The bounce mailbox's password is never printed in the installer line."""
+    result = _bootstrap_dry_run(
+        tmp_path, "--bounce-imap-url", "imaps://b:imapsecret@x.org/INBOX", "--email", "local"
+    )
+    assert _commands(result)[-1] == (
+        f"bash {tmp_path}/srv/caldart/deploy/install.sh --dry-run "
+        "--bounce-imap-url '<bounce-imap-url>' --email local"
+    )
+
+
 def test_bootstrap_quotes_what_it_prints(tmp_path: Path) -> None:
     """An argument with spaces is printed shell-quoted, so the line runs as printed."""
     result = _bootstrap_dry_run(tmp_path, "--from-email", "CalDART <ops@x.org>")
@@ -1001,6 +1028,40 @@ def test_configure_reports_ignored_flags(env_file: Path, root: Path, etc: Path) 
     """A second run leaves the file alone and says ``--email-url`` is ignored."""
     result = _configure(root, etc, "--email-url", "smtp://elsewhere:25")
     assert "--email-url is ignored" in result.stdout
+
+
+def test_configure_leaves_bounce_checking_off_by_default(env_file: Path) -> None:
+    """Without ``--bounce-imap-url``, ``BOUNCE_IMAP_URL`` stays blank: checking is off."""
+    assert _variables(env_file)["BOUNCE_IMAP_URL"] == ""
+
+
+@pytest.mark.parametrize(
+    ("flag", "variable", "value"),
+    [
+        (
+            "--bounce-imap-url",
+            "BOUNCE_IMAP_URL",
+            "imaps://bounces%40caldart.test:pw@imap.caldart.test/INBOX",
+        ),
+        ("--bounce-address", "BOUNCE_ADDRESS", "bounces@caldart.test"),
+    ],
+    ids=["imap-url", "address"],
+)
+def test_configure_writes_the_bounce_settings(
+    flag: str, variable: str, value: str, root: Path, etc: Path
+) -> None:
+    """``--bounce-imap-url`` and ``--bounce-address`` are written into the new file."""
+    _configure(root, etc, "--hostname", "caldart.test", "--email-url", "smtp://x:25", flag, value)
+    assert _variables(etc / "caldart.env")[variable] == value
+
+
+@pytest.mark.parametrize("flag", ["--bounce-imap-url", "--bounce-address"])
+def test_configure_reports_ignored_bounce_flags(
+    flag: str, env_file: Path, root: Path, etc: Path
+) -> None:
+    """Once the file exists, a bounce flag is ignored and the step says so."""
+    result = _configure(root, etc, flag, "x")
+    assert f"{flag} is ignored" in result.stdout
 
 
 def test_configure_without_www_names_one_host(root: Path, etc: Path) -> None:
@@ -1379,7 +1440,7 @@ def test_reset_database_stops_every_timer_and_job(root: Path, etc: Path) -> None
     """No scheduled job can write while the database is emptied."""
     commands = _commands(_reset_dry_run(root, etc))
     stop = commands[_position(commands, "systemctl stop")].split()[2:]
-    jobs = ("registry", "reports", "renewals", "reminders", "statements", "backup")
+    jobs = ("registry", "reports", "renewals", "reminders", "statements", "bounces", "backup")
     expected = [
         "caldart-web.service",
         *(f"caldart-{job}.timer" for job in jobs),
@@ -1413,7 +1474,7 @@ def test_reset_database_starts_the_site_and_the_registry_import_last(root: Path,
     assert commands[-2:] == [
         "systemctl start caldart-web.service caldart-registry.timer caldart-reports.timer "
         "caldart-renewals.timer caldart-reminders.timer caldart-statements.timer "
-        "caldart-backup.timer",
+        "caldart-bounces.timer caldart-backup.timer",
         "systemctl start --no-block caldart-registry.service",
     ]
 

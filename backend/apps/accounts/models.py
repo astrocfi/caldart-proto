@@ -115,6 +115,13 @@ class User(AbstractUser):
     #: When the account's owner last proved the address is theirs, by following a
     #: verification or password link sent to it; ``None`` while it is unverified.
     email_verified_at = models.DateTimeField(null=True, blank=True)
+    #: When the bounce check last read a permanent-failure report for a message sent to
+    #: the current address; ``None`` while no bounce is known.  Cleared, with
+    #: ``email_bounce_detail``, when the address changes, when it is verified, and by a
+    #: user administrator's **Clear bounce**.
+    email_bounced_at = models.DateTimeField(null=True, blank=True)
+    #: That report's status code and diagnostic text, or ``""`` with no bounce known.
+    email_bounce_detail = models.CharField(max_length=255, blank=True)
     #: The kind of person the account belongs to, as stored: what they asked for.  A
     #: member with a ``friend_on`` date that has arrived, or who has not yet paid,
     #: already counts as a friend: see ``apps.members.services.account_kind``.

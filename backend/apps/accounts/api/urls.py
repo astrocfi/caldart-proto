@@ -54,5 +54,10 @@ urlpatterns = [
         views.AdminUserUnblockView.as_view(),
         name="admin-user-unblock",
     ),
+    path(
+        "admin/users/<int:pk>/clear-bounce",
+        views.AdminUserClearBounceView.as_view(),
+        name="admin-user-clear-bounce",
+    ),
     path("roles", views.RolesView.as_view(), name="roles"),
 ]

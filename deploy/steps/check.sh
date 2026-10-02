@@ -33,9 +33,9 @@ source "$CHECKOUT/deploy/lib.sh"
 readonly SITE_PATHS=(/ /portal/login)
 # The sign-in page, whose shell names the portal's script.
 readonly LOGIN_PATH=/portal/login
-# The settings a site takes payments and suggests addresses with, left for the
-# operator to fill in.
-readonly OPTIONAL_KEYS_PATTERN='^(STRIPE_[A-Z_]*|PAYPAL_[A-Z_]*|GEOAPIFY_API_KEY)=$'
+# The settings a site takes payments, suggests addresses, and detects bounces
+# with, left for the operator to fill in.
+readonly OPTIONAL_KEYS_PATTERN='^(STRIPE_[A-Z_]*|PAYPAL_[A-Z_]*|GEOAPIFY_API_KEY|BOUNCE_IMAP_URL)=$'
 readonly HEALTH_CHECK='
 import json, sys
 report = json.load(sys.stdin)
