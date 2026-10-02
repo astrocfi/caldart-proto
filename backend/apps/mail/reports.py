@@ -9,12 +9,14 @@ and which rows the report holds.
 
 from __future__ import annotations
 
+from collections.abc import Iterable, Iterator
+
 from django.db.models import QuerySet
 
 from apps.accounts.roles import SYSTEM_ADMIN
 from apps.mail.filters import EmailLogFilterSet
 from apps.mail.models import EmailLog
-from apps.mail.purposes import purpose_label
+from apps.mail.purposes import purpose_label, purpose_labels
 from caldart.dates import format_display_datetime
 from caldart.reports import (
     Params,
@@ -51,7 +53,7 @@ def _user_name(row: EmailLog) -> str:
 #: and the other on most, so the everyday file leaves them to be asked for.
 EMAIL_LOG_REPORT_COLUMNS: tuple[ReportColumn[EmailLog], ...] = (
     ReportColumn("sent_at", "Sent", True, _sent_at, width=2.4),
-    ReportColumn("purpose", "Purpose", True, lambda row: purpose_label(row.purpose), width=3.6),
+    ReportColumn("purpose", "Purpose", True, lambda row: row.purpose, width=3.6),
     ReportColumn("to_email", "To", True, lambda row: row.to_email, width=4.6),
     ReportColumn("user_name", "Name", True, _user_name, width=3.2),
     ReportColumn("subject", "Subject", True, lambda row: row.subject, width=6.0),
@@ -74,19 +76,34 @@ def order_email_log[R](queryset: QuerySet[EmailLog, R], raw: str) -> QuerySet[Em
     return queryset.order_by(*terms, tiebreak)
 
 
+def _labeled(rows: Iterable[EmailLog]) -> Iterator[EmailLog]:
+    """``rows`` with each ``purpose`` replaced, in memory, by its label.
+
+    The report reads its rows and never saves them, so the words can stand in for the
+    template name the purpose column prints.  The labels, which name the stored
+    reminder schedule's days, are read once for the whole report rather than once per
+    row.
+    """
+    labels = purpose_labels()
+    for row in rows:
+        row.purpose = purpose_label(row.purpose, labels=labels)
+        yield row
+
+
 def email_log_report_query(params: Params) -> ReportQuery[EmailLog]:
     """The email log rows for ``params``, in the list's order.
 
     ``params`` are the list's own query parameters: the filters of
     :class:`~apps.mail.filters.EmailLogFilterSet` and ``ordering``.  A value the
     filter set refuses raises DRF's ``ValidationError`` keyed by that filter.  The
-    recipient accounts are fetched with the rows, and the applied filters are those
+    recipient accounts are fetched with the rows, each row's ``purpose`` is its label
+    (:func:`~apps.mail.purposes.purpose_labels`), and the applied filters are those
     of :data:`EXPORT_FILTER_PARAMS` given a value.
     """
     narrowed = apply_filterset(EmailLogFilterSet, params, EmailLog.objects.select_related("user"))
     ordered = order_email_log(narrowed, params.get("ordering", ""))
     return ReportQuery(
-        rows=ordered.iterator(chunk_size=500),
+        rows=_labeled(ordered.iterator(chunk_size=500)),
         filters=given_params(params, EXPORT_FILTER_PARAMS),
     )
 

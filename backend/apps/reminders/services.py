@@ -30,7 +30,7 @@ from apps.members.lifecycle import convert_due_friends, expire_lapsed_membership
 from apps.members.models import Membership, MembershipState, MembershipStatusChoices
 from apps.members.services import membership_status
 from apps.payments.models import MandateStatus, RenewalMandate, RenewalOutcome
-from apps.reminders.models import REMINDER_OFFSETS, ReminderKind, ReminderLog
+from apps.reminders.models import ReminderKind, ReminderLog, ReminderSchedule
 from caldart import audit
 from caldart.mail import contact_email, org_name, send_templated
 from caldart.runs import RunAction, action_lines
@@ -43,11 +43,11 @@ log = logging.getLogger(__name__)
 #: day inside the stage's span -- and ``{plural}`` the "s" that a count of one
 #: drops.
 SUBJECTS: dict[str, str] = {
-    ReminderKind.T60: "{org}: your membership expires in {days} day{plural}",
-    ReminderKind.T30: "{org}: your membership expires in {days} day{plural}",
-    ReminderKind.T7: "{org}: your membership expires in {days} day{plural}",
+    ReminderKind.FIRST: "{org}: your membership expires in {days} day{plural}",
+    ReminderKind.SECOND: "{org}: your membership expires in {days} day{plural}",
+    ReminderKind.FINAL: "{org}: your membership expires in {days} day{plural}",
     ReminderKind.EXPIRED: "{org}: your membership expires today",
-    ReminderKind.POST30: "{org}: your membership lapsed {days} day{plural} ago",
+    ReminderKind.LAPSED: "{org}: your membership lapsed {days} day{plural} ago",
 }
 
 #: The ``expired`` subject for a term that ran out earlier in the stage's span.
@@ -57,11 +57,11 @@ EXPIRED_SUBJECT_DAYS_AGO: str = "{org}: your membership expired {days} day{plura
 
 #: The order kinds are scanned and reported in.
 KIND_ORDER: tuple[str, ...] = (
-    ReminderKind.T60,
-    ReminderKind.T30,
-    ReminderKind.T7,
+    ReminderKind.FIRST,
+    ReminderKind.SECOND,
+    ReminderKind.FINAL,
     ReminderKind.EXPIRED,
-    ReminderKind.POST30,
+    ReminderKind.LAPSED,
 )
 
 #: Why a candidate membership did not produce an email.
@@ -76,13 +76,14 @@ SKIP_REASONS: tuple[str, ...] = (
 
 #: How many days of expiry dates each stage at or after expiry reaches back
 #: from its own date.  ``expired`` keeps to the week in which a term that has
-#: just run out is still recent news, and ``post30`` covers the month from
-#: thirty to sixty days after expiry, after which membership says nothing more.
-#: The stages before expiry need no entry: each reaches back to the day after
-#: the stage nearer expiry, so those spans meet without touching.
+#: just run out is still recent news, and ``lapsed`` covers the month up to its
+#: own day (thirty to sixty days after expiry on the default schedule), after which
+#: membership says nothing more.  The stages before expiry need no entry: each
+#: reaches back to the day after the stage nearer expiry, so those spans meet
+#: without touching.
 POST_EXPIRY_REACH_DAYS: dict[str, int] = {
     ReminderKind.EXPIRED: 6,
-    ReminderKind.POST30: 30,
+    ReminderKind.LAPSED: 30,
 }
 
 
@@ -185,7 +186,7 @@ def send_reminder_email(user: User, membership: Membership, kind: str, today: da
     """Render ``emails/reminder_<kind>.{txt,html}`` for one member and send them.
 
     ``days`` is counted from the dates rather than from the middle of the stage,
-    so a ``t30`` email to a member whose term ends in 28 days says 28 days.
+    so a ``second`` email to a member whose term ends in 28 days says 28 days.
     ``days_ago`` counts the days since the term ran out, negative while it is
     still running, which is what lets the ``expired`` bodies say "today" on the
     expiry day and "N days ago" later in the stage.  The ``expired`` subject
@@ -240,7 +241,7 @@ def _skip_reason(user: User, membership: Membership, kind: str, today: date) -> 
     if _renews_itself(user):
         return "auto_renew"
 
-    if kind == ReminderKind.POST30:
+    if kind == ReminderKind.LAPSED:
         # Nothing to nag about once they are covered again.
         return "renewed" if status["status"] == MembershipState.CURRENT else None
 
@@ -270,39 +271,50 @@ def _renews_itself(user: User) -> bool:
     return mandate.attempts.filter(outcome=RenewalOutcome.SCHEDULED).exists()
 
 
-def stage_span(kind: str, today: date) -> tuple[date, date]:
+def stage_span(
+    kind: str, today: date, *, schedule: ReminderSchedule | None = None
+) -> tuple[date, date]:
     """The first and last expiry date in ``kind``'s stage for a scan on ``today``.
 
-    Both ends are inclusive.  The latest date is the kind's own date,
-    ``today - REMINDER_OFFSETS[kind]``.  How far back the stage reaches from
-    there depends on which side of expiry it sits:
+    Both ends are inclusive.  The days come from ``schedule``, the stored
+    :class:`~apps.reminders.models.ReminderSchedule` when none is given.  The latest
+    date is the kind's own date, ``today`` minus its entry in
+    :meth:`~apps.reminders.models.ReminderSchedule.offsets`.  How far back the stage
+    reaches from there depends on which side of expiry it sits:
 
     A stage before expiry reaches back to the day after the date of the stage
-    nearer expiry, so the three of them tile the two months before a term runs
-    out without overlapping: for a scan on day D, ``t60`` covers terms ending
-    D+31 to D+60, ``t30`` covers D+8 to D+30, and ``t7`` covers D+1 to D+7.  A
-    member who joins the register 23 days out is therefore in ``t30`` that day,
-    rather than falling between two exact dates and hearing nothing.
+    nearer expiry, so the three of them tile the time before a term runs out
+    without overlapping.  On the default schedule (60, 30, 7, 30), for a scan on
+    day D, ``first`` covers terms ending D+31 to D+60, ``second`` covers D+8 to
+    D+30, and ``final`` covers D+1 to D+7.  A member who joins the register 23
+    days out is therefore in ``second`` that day, rather than falling between two
+    exact dates and hearing nothing.
 
     A stage at or after expiry reaches back by its entry in
     :data:`POST_EXPIRY_REACH_DAYS`: ``expired`` covers terms that ran out on any
-    of the last seven days up to and including D, and ``post30`` those that ran
-    out between D-60 and D-30.  Nothing covers the three weeks between them, or
-    anything older than sixty days.
+    of the last seven days up to and including D, and ``lapsed`` those that ran
+    out between ``lapsed_days_after + 30`` and ``lapsed_days_after`` days before D
+    (D-60 to D-30 on the default schedule).  Nothing covers the days between them,
+    or anything older.
 
-    Spans never overlap, so one scan sends a member at most one reminder.
+    Spans never overlap, so one scan sends a member at most one reminder: the
+    schedule's rules keep the lapsed stage at least seven days after expiry, clear
+    of the ``expired`` stage's six-day reach.
     """
-    offset = REMINDER_OFFSETS[kind]
+    if schedule is None:
+        schedule = ReminderSchedule.load()
+    offsets = schedule.offsets()
+    offset = offsets[kind]
     latest = today - timedelta(days=offset)
     if kind in POST_EXPIRY_REACH_DAYS:
         reach = POST_EXPIRY_REACH_DAYS[kind]
     else:
-        nearer = min(other for other in REMINDER_OFFSETS.values() if other > offset)
+        nearer = min(other for other in offsets.values() if other > offset)
         reach = nearer - offset - 1
     return latest - timedelta(days=reach), latest
 
 
-def _candidates(kind: str, today: date) -> QuerySet[Membership]:
+def _candidates(kind: str, today: date, schedule: ReminderSchedule) -> QuerySet[Membership]:
     """Memberships inside this stage's span of expiry dates on ``today``.
 
     The span comes from :func:`stage_span`, so every term running out in that
@@ -314,7 +326,7 @@ def _candidates(kind: str, today: date) -> QuerySet[Membership]:
     to renew, and neither is a member who has asked to become one, so the terms of
     an account stored as a friend or carrying a ``friend_on`` date are left out too.
     """
-    earliest, latest = stage_span(kind, today)
+    earliest, latest = stage_span(kind, today, schedule=schedule)
     return (
         Membership.objects.select_related("user", "plan")
         .filter(ends_on__gte=earliest, ends_on__lte=latest)
@@ -335,10 +347,12 @@ def send_renewal_reminders(
 
     Flips memberships whose ``ends_on`` has passed to ``expired`` and writes down
     every conversion to friend whose day has come
-    (:func:`~apps.members.lifecycle.convert_due_friends`) first, so the ``post30``
+    (:func:`~apps.members.lifecycle.convert_due_friends`) first, so the ``lapsed``
     stage is honestly labeled, then walks the five stages in order,
-    each covering the span of expiry dates :func:`stage_span` gives it.  A
-    member is in at most one stage on any day, and gets each stage once.  A dry
+    each covering the span of expiry dates :func:`stage_span` gives it from the
+    stored :class:`~apps.reminders.models.ReminderSchedule`, read once per run.  A
+    member is in at most one stage on any day, and gets each stage once, however
+    the schedule is edited between runs.  A dry
     run writes nothing at all: no email, no log rows, no status flips.
 
     A member whose membership renews itself is skipped for every stage, because
@@ -370,8 +384,9 @@ def send_renewal_reminders(
     if not dry_run:
         convert_due_friends(today)
 
+    schedule = ReminderSchedule.load()
     for kind in KIND_ORDER:
-        for membership in _candidates(kind, today):
+        for membership in _candidates(kind, today, schedule):
             user = membership.user
             reason = _skip_reason(user, membership, kind, today)
             if reason is not None:

@@ -33,7 +33,7 @@ RUN_URL = "/api/v1/system/reminders/run"
 def log_entries(db: None, annual_plan: MembershipPlan) -> list[ReminderLog]:
     """Three entries by three members, on three days and of three kinds."""
     entries: list[ReminderLog] = []
-    for offset, kind in enumerate([ReminderKind.T60, ReminderKind.T30, ReminderKind.T7]):
+    for offset, kind in enumerate([ReminderKind.FIRST, ReminderKind.SECOND, ReminderKind.FINAL]):
         user = UserFactory(email=f"{kind}@example.test", first_name="Ada", last_name="Byron")
         membership = MembershipFactory(user=user, plan=annual_plan)
         entries.append(
@@ -113,7 +113,7 @@ def test_log_is_newest_first(
 
     kinds = [row["kind"] for row in api_client.get(LOG_URL).json()["results"]]
 
-    assert kinds == [ReminderKind.T60, ReminderKind.T30, ReminderKind.T7]
+    assert kinds == [ReminderKind.FIRST, ReminderKind.SECOND, ReminderKind.FINAL]
 
 
 def test_log_filters_by_kind(
@@ -122,10 +122,10 @@ def test_log_filters_by_kind(
     """``?kind=`` narrows the log to entries of that kind."""
     api_client.force_login(system_admin)
 
-    body = api_client.get(LOG_URL, {"kind": ReminderKind.T30}).json()
+    body = api_client.get(LOG_URL, {"kind": ReminderKind.SECOND}).json()
 
     assert body["count"] == 1
-    assert body["results"][0]["kind"] == ReminderKind.T30
+    assert body["results"][0]["kind"] == ReminderKind.SECOND
 
 
 def test_log_rejects_an_unknown_kind(
@@ -156,7 +156,7 @@ def test_log_searches_by_email(
     """``?search=`` narrows the log to entries whose recipient address matches."""
     api_client.force_login(system_admin)
 
-    body = api_client.get(LOG_URL, {"search": "t7@example.test"}).json()
+    body = api_client.get(LOG_URL, {"search": "final@example.test"}).json()
 
     assert body["count"] == 1
 
@@ -187,7 +187,7 @@ def test_run_dry_run_reports_without_writing(
         "skipped_by_reason": {},
         "actions": [
             {
-                "kind": ReminderKind.T30,
+                "kind": ReminderKind.SECOND,
                 "member": user.display_name,
                 "email": user.email,
                 "on": (timezone.localdate() + timedelta(days=30)).isoformat(),
@@ -225,7 +225,7 @@ def test_run_sends_for_real(
         "skipped_by_reason": {},
         "actions": [
             {
-                "kind": ReminderKind.T7,
+                "kind": ReminderKind.FINAL,
                 "member": user.display_name,
                 "email": user.email,
                 "on": (timezone.localdate() + timedelta(days=7)).isoformat(),
@@ -235,7 +235,7 @@ def test_run_sends_for_real(
         ],
     }
     assert len(mailoutbox) == 1
-    assert ReminderLog.objects.get().kind == ReminderKind.T7
+    assert ReminderLog.objects.get().kind == ReminderKind.FINAL
 
 
 def test_run_is_idempotent(

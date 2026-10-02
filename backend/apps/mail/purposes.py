@@ -1,21 +1,31 @@
 """What each email the installation sends is for, in words a reader understands.
 
 An email log row records its ``purpose`` as the template the body came from --
-``reminder_t30``, ``receipt``, ``password_reset`` -- which is exact but not
-readable.  :data:`PURPOSE_LABELS` is the one place those names become words: the
+``reminder_second``, ``receipt``, ``password_reset`` -- which is exact but not
+readable.  :func:`purpose_labels` is the one place those names become words: the
 email log's rows carry the label, the report prints it, and the portal's purpose
 filter offers the labels in this order.
+
+:data:`PURPOSE_LABELS` holds the labels that never change.  An app above mail whose
+labels depend on stored data registers a source of them with
+:func:`register_purpose_labels` when it starts: the reminders app registers its five
+reminder labels, worded from the stored reminder schedule, so they name the days the
+scanner uses.  The mail app therefore never imports the apps that send through it.
 """
 
 from __future__ import annotations
 
-#: Every email template's label, in the order the purpose filter offers them.
+from collections.abc import Callable
+
+#: A function answering labels by purpose, read afresh each time the labels are.
+LabelSource = Callable[[], dict[str, str]]
+
+#: The registered sources, in the order :func:`purpose_labels` merges them.
+_label_sources: list[LabelSource] = []
+
+#: The label of every email template whose label never changes, in the order the
+#: purpose filter offers them after the registered sources' labels.
 PURPOSE_LABELS: dict[str, str] = {
-    "reminder_t60": "Renewal reminder (60 days)",
-    "reminder_t30": "Renewal reminder (30 days)",
-    "reminder_t7": "Renewal reminder (7 days)",
-    "reminder_expired": "Renewal reminder (expired)",
-    "reminder_post30": "Renewal reminder (30 days after)",
     "renewal_enabled": "Renewal turned on",
     "renewal_notice": "Renewal notice",
     "renewal_card_expiring": "Card expiring",
@@ -57,10 +67,39 @@ PURPOSE_LABELS: dict[str, str] = {
 }
 
 
-def purpose_label(purpose: str) -> str:
-    """The label of ``purpose``, or ``purpose`` itself when no label names it.
+def register_purpose_labels(source: LabelSource) -> None:
+    """Add ``source`` to the functions :func:`purpose_labels` reads labels from.
 
-    The purposes are template names rather than a fixed enumeration, so a template
-    added without a label still reads, by its own name, instead of vanishing.
+    Sources are merged in the order they were registered, ahead of
+    :data:`PURPOSE_LABELS`.  Registering the same source twice registers it once.
     """
-    return PURPOSE_LABELS.get(purpose, purpose)
+    if source not in _label_sources:
+        _label_sources.append(source)
+
+
+def purpose_labels() -> dict[str, str]:
+    """Every purpose's label, in the order the purpose filter offers them.
+
+    Each registered source's labels come first, read afresh in registration order --
+    the five renewal reminders, worded from the stored reminder schedule
+    (``"Renewal reminder (60 days)"`` on the default one) -- then
+    :data:`PURPOSE_LABELS`.  A source may read the database, so a caller labeling
+    many rows asks for the labels once and looks each row up with
+    :func:`purpose_label`.
+    """
+    labels: dict[str, str] = {}
+    for source in _label_sources:
+        labels.update(source())
+    return {**labels, **PURPOSE_LABELS}
+
+
+def purpose_label(purpose: str, *, labels: dict[str, str] | None = None) -> str:
+    """The label of ``purpose`` in ``labels``, or ``purpose`` itself when none names it.
+
+    ``labels`` defaults to :func:`purpose_labels`, read afresh.  The purposes are
+    template names rather than a fixed enumeration, so a template added without a
+    label still reads, by its own name, instead of vanishing.
+    """
+    if labels is None:
+        labels = purpose_labels()
+    return labels.get(purpose, purpose)

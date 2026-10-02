@@ -10,24 +10,25 @@ import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { RunActionsTable } from '@/portal/components/RunActionsTable';
 import { runSummary, skippedBreakdown } from '@/portal/components/runSummary';
-import { useRunReminders } from './api';
+import { useReminderSchedule, useRunReminders } from './api';
 import { SKIPPED_REASON_LABELS } from './labels';
-import { KIND_LABELS as REMINDER_KIND_LABELS, ReminderLog } from './ReminderLog';
+import { ReminderLog } from './ReminderLog';
+import { kindLabels, REMINDER_KINDS, schedulePhrase } from './reminderSchedule';
 
-/** Whether `kind` is one of the reminder kinds `REMINDER_KIND_LABELS` names. */
+/** Whether `kind` is one of the reminder kinds. */
 function isReminderKind(kind: string): kind is ReminderKind {
-  return kind in REMINDER_KIND_LABELS;
-}
-
-/** A reminder run's own kind vocabulary, for the shared actions table. */
-function reminderKindLabel(kind: string): string {
-  return isReminderKind(kind) ? REMINDER_KIND_LABELS[kind] : kind;
+  return (REMINDER_KINDS as readonly string[]).includes(kind);
 }
 
 /** Runs the renewal reminder scan on demand and shows its log. */
 export function RemindersPanel(): JSX.Element {
   const [dryRun, setDryRun] = useState(true);
   const [lastRunWasDry, setLastRunWasDry] = useState(true);
+
+  const schedule = useReminderSchedule();
+  const labels = kindLabels(schedule.data);
+  // A reminder run's own kind vocabulary, for the shared actions table.
+  const reminderKindLabel = (kind: string): string => (isReminderKind(kind) ? labels[kind] : kind);
 
   const run = useRunReminders();
   const breakdown = run.data
@@ -60,10 +61,10 @@ export function RemindersPanel(): JSX.Element {
       }
     >
       <p className="muted">
-        Emails members whose membership is about to expire or has just expired: 60, 30, and 7 days
-        before, on the day, and 30 days after. It sends email only and never charges anyone. A
-        member whose automatic renewal is on is skipped. It runs every morning; running it again is
-        harmless, because each member gets each reminder once per membership.
+        Emails members whose membership is about to expire or has just expired
+        {schedule.data ? `: ${schedulePhrase(schedule.data)}` : ''}. It sends email only and never
+        charges anyone. A member whose automatic renewal is on is skipped. It runs every morning;
+        running it again is harmless, because each member gets each reminder once per membership.
       </p>
 
       {run.isSuccess ? (

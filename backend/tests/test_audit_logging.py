@@ -24,7 +24,7 @@ from rest_framework.test import APIClient
 from apps.accounts.roles import DART_LEADER, MEMBER, SYSTEM_ADMIN
 from apps.members.models import MembershipSource, MembershipStatusChoices
 from apps.members.services import activate_term
-from apps.reminders.models import REMINDER_OFFSETS, ReminderKind
+from apps.reminders.models import ReminderKind, ReminderSchedule
 from apps.reminders.services import send_renewal_reminders
 from apps.sysadmin import services as sysadmin_services
 from apps.sysadmin.management.commands import db_reset as db_reset_command
@@ -850,7 +850,7 @@ def test_a_reminder_run_counts_what_it_sent(
         user=target_member,
         plan=annual_plan,
         starts_on=today - timedelta(days=305),
-        ends_on=today - timedelta(days=REMINDER_OFFSETS[ReminderKind.T60]),
+        ends_on=today - timedelta(days=ReminderSchedule().offsets()[ReminderKind.FIRST]),
     )
     api_client.force_login(system_admin)
     response = api_client.post(REMINDER_RUN_URL, {"dry_run": False}, format="json")

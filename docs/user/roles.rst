@@ -140,7 +140,8 @@ An account administrator looks after the membership records. The role adds:
 * **DARTs** (:doc:`admin/darts`): the teams, their airports, and their leaders.
 * **Payments**: the finance area as the treasurer sees it, without **Donors**
   (:doc:`finance/index`).
-* **Reminders** (:doc:`admin/reminders`): every renewal reminder CalDART has sent.
+* **Reminders** (:doc:`admin/reminders`): every renewal reminder CalDART has sent, and the
+  reminder schedule that dates them.
 * **Subscriptions** (:doc:`admin/subscriptions`): reports by email, the CalDART roles report
   among them, and sending each DART its roster.
 * **Notifications** (:doc:`admin/notifications`): who hears about what by email,
@@ -177,6 +178,7 @@ role adds:
   cover, and the note members read on **My aircraft**.
 * **Scheduled** (:doc:`admin/scheduled`): the four jobs that run on a schedule (the
   renewal reminder emails, the automatic renewal charges, the scheduled reports, and
-  the year-end contribution statements), with a way to run each now.
+  the year-end contribution statements), with a way to run each now, and the reminder
+  schedule, which only a system administrator changes.
 
 A system administrator cannot deactivate their own account.

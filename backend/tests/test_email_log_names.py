@@ -181,5 +181,5 @@ def test_a_reminder_logs_the_users_display_name_without_the_caller_passing_one(
 
     send_renewal_reminders(today=today)
 
-    row = EmailLog.objects.get(purpose="reminder_t30")
+    row = EmailLog.objects.get(purpose="reminder_second")
     assert row.to_name == "Marta Reyes"

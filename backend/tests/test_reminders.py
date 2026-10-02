@@ -25,7 +25,7 @@ from apps.accounts.models import User
 from apps.cms.models import SiteSettings, get_site_settings
 from apps.members.models import Membership, MembershipPlan, MembershipStatusChoices
 from apps.payments.models import MandateStatus
-from apps.reminders.models import REMINDER_OFFSETS, ReminderKind, ReminderLog
+from apps.reminders.models import ReminderKind, ReminderLog, ReminderSchedule
 from apps.reminders.services import (
     ReminderRun,
     renew_url,
@@ -46,17 +46,17 @@ pytestmark = pytest.mark.django_db
 TODAY = date(2026, 6, 15)
 
 ALL_KINDS = [
-    ReminderKind.T60,
-    ReminderKind.T30,
-    ReminderKind.T7,
+    ReminderKind.FIRST,
+    ReminderKind.SECOND,
+    ReminderKind.FINAL,
     ReminderKind.EXPIRED,
-    ReminderKind.POST30,
+    ReminderKind.LAPSED,
 ]
 
 
 def ends_on_for(kind: str, today: date = TODAY) -> date:
-    """The expiry date that puts a member in ``kind``'s cohort."""
-    return today - timedelta(days=REMINDER_OFFSETS[kind])
+    """The expiry date that puts a member in ``kind``'s cohort on the default schedule."""
+    return today - timedelta(days=ReminderSchedule().offsets()[kind])
 
 
 def make_member(
@@ -97,7 +97,7 @@ def test_each_kind_fires_on_its_own_offset(
 def test_nothing_fires_outside_the_stages(
     annual_plan: MembershipPlan, mailoutbox: list[EmailMessage], days_out: int
 ) -> None:
-    """A term further out than ``t60``, or older than ``post30``, hears nothing."""
+    """A term further out than ``first``, or older than ``lapsed``, hears nothing."""
     make_member(annual_plan, TODAY + timedelta(days=days_out))
 
     run = send_renewal_reminders(today=TODAY)
@@ -125,7 +125,7 @@ def test_a_second_run_the_same_day_sends_nothing(
     annual_plan: MembershipPlan, mailoutbox: list[EmailMessage]
 ) -> None:
     """A reminder already logged for ``(user, membership, kind)`` is never sent again."""
-    make_member(annual_plan, ends_on_for(ReminderKind.T30))
+    make_member(annual_plan, ends_on_for(ReminderKind.SECOND))
 
     send_renewal_reminders(today=TODAY)
     again = send_renewal_reminders(today=TODAY)
@@ -140,13 +140,13 @@ def test_a_later_kind_still_fires_after_an_earlier_one(
     annual_plan: MembershipPlan, mailoutbox: list[EmailMessage]
 ) -> None:
     """The same term earns a second, different-kind email as it gets closer to expiry."""
-    _user, _membership = make_member(annual_plan, ends_on_for(ReminderKind.T30))
+    _user, _membership = make_member(annual_plan, ends_on_for(ReminderKind.SECOND))
 
     send_renewal_reminders(today=TODAY)
     # 23 days later the same term is a week from expiry.
     send_renewal_reminders(today=TODAY + timedelta(days=23))
 
-    assert sorted(ReminderLog.objects.values_list("kind", flat=True)) == ["t30", "t7"]
+    assert sorted(ReminderLog.objects.values_list("kind", flat=True)) == ["final", "second"]
     assert len(mailoutbox) == 2
 
 
@@ -179,13 +179,13 @@ def test_dry_run_writes_nothing(
     annual_plan: MembershipPlan, mailoutbox: list[EmailMessage]
 ) -> None:
     """A dry run sends no mail, writes no log row, and flips no membership status."""
-    make_member(annual_plan, ends_on_for(ReminderKind.T7), email="soon@example.test")
+    make_member(annual_plan, ends_on_for(ReminderKind.FINAL), email="soon@example.test")
     _user, lapsed = make_member(annual_plan, TODAY - timedelta(days=1), email="gone@example.test")
 
     run = send_renewal_reminders(today=TODAY, dry_run=True)
 
     assert run.dry_run is True
-    # The term that ran out yesterday is in the ``expired`` stage beside the ``t7`` one.
+    # The term that ran out yesterday is in the ``expired`` stage beside ``final``.
     assert run.sent == 2
     assert run.expired_flipped == 1
     assert mailoutbox == []
@@ -198,7 +198,7 @@ def test_a_dry_run_does_not_suppress_the_real_one(
     annual_plan: MembershipPlan, mailoutbox: list[EmailMessage]
 ) -> None:
     """A dry run leaves no log row behind to block the live run that follows it."""
-    make_member(annual_plan, ends_on_for(ReminderKind.T60))
+    make_member(annual_plan, ends_on_for(ReminderKind.FIRST))
 
     send_renewal_reminders(today=TODAY, dry_run=True)
     run = send_renewal_reminders(today=TODAY)
@@ -212,7 +212,7 @@ def test_lifetime_members_are_skipped(
     annual_plan: MembershipPlan, life_plan: MembershipPlan, mailoutbox: list[EmailMessage]
 ) -> None:
     """A member due for an annual reminder who also holds a lifetime term is skipped."""
-    user, _annual = make_member(annual_plan, ends_on_for(ReminderKind.T30))
+    user, _annual = make_member(annual_plan, ends_on_for(ReminderKind.SECOND))
     MembershipFactory(user=user, plan=life_plan, starts_on=TODAY, ends_on=None)
 
     run = send_renewal_reminders(today=TODAY)
@@ -237,7 +237,7 @@ def test_a_member_whose_membership_renews_itself_is_skipped(
     skipped: bool,
 ) -> None:
     """An active mandate covers the term; a paused or canceled one covers nothing."""
-    user, _membership = make_member(annual_plan, ends_on_for(ReminderKind.T30))
+    user, _membership = make_member(annual_plan, ends_on_for(ReminderKind.SECOND))
     RenewalMandateFactory(user=user, plan=annual_plan, status=status)
 
     run = send_renewal_reminders(today=TODAY)
@@ -249,7 +249,7 @@ def test_a_pending_mandate_with_a_charge_waiting_also_silences_the_reminders(
     annual_plan: MembershipPlan, mailoutbox: list[EmailMessage]
 ) -> None:
     """A mandate still being set up but already scheduled to charge covers the term."""
-    user, membership = make_member(annual_plan, ends_on_for(ReminderKind.T30))
+    user, membership = make_member(annual_plan, ends_on_for(ReminderKind.SECOND))
     mandate = RenewalMandateFactory(user=user, plan=annual_plan, status=MandateStatus.PENDING)
     RenewalAttemptFactory(mandate=mandate, membership=membership, scheduled_on=TODAY)
 
@@ -262,7 +262,7 @@ def test_a_pending_mandate_with_no_charge_waiting_silences_nothing(
     annual_plan: MembershipPlan, mailoutbox: list[EmailMessage]
 ) -> None:
     """A member who began setting renewal up and stopped still gets their reminder."""
-    user, _membership = make_member(annual_plan, ends_on_for(ReminderKind.T30))
+    user, _membership = make_member(annual_plan, ends_on_for(ReminderKind.SECOND))
     RenewalMandateFactory(user=user, plan=annual_plan, status=MandateStatus.PENDING)
 
     run = send_renewal_reminders(today=TODAY)
@@ -274,7 +274,7 @@ def test_deactivated_users_are_skipped(
     annual_plan: MembershipPlan, mailoutbox: list[EmailMessage]
 ) -> None:
     """A due term belonging to a deactivated user is skipped."""
-    make_member(annual_plan, ends_on_for(ReminderKind.T7), is_active=False)
+    make_member(annual_plan, ends_on_for(ReminderKind.FINAL), is_active=False)
 
     run = send_renewal_reminders(today=TODAY)
 
@@ -286,7 +286,7 @@ def test_a_suspended_term_is_left_out_altogether(
     annual_plan: MembershipPlan, mailoutbox: list[EmailMessage]
 ) -> None:
     """A term suspended when its holder deactivated is no candidate, so counts nowhere."""
-    _user, membership = make_member(annual_plan, ends_on_for(ReminderKind.T7), is_active=False)
+    _user, membership = make_member(annual_plan, ends_on_for(ReminderKind.FINAL), is_active=False)
     membership.status = MembershipStatusChoices.SUSPENDED
     membership.save(update_fields=["status"])
 
@@ -299,7 +299,7 @@ def test_a_user_without_an_email_address_is_skipped(
     annual_plan: MembershipPlan, mailoutbox: list[EmailMessage]
 ) -> None:
     """A due term belonging to a user with no email address is skipped."""
-    make_member(annual_plan, ends_on_for(ReminderKind.T7), email="")
+    make_member(annual_plan, ends_on_for(ReminderKind.FINAL), email="")
 
     run = send_renewal_reminders(today=TODAY)
 
@@ -311,7 +311,7 @@ def test_a_member_who_renewed_early_is_skipped(
     annual_plan: MembershipPlan, mailoutbox: list[EmailMessage]
 ) -> None:
     """Back-to-back terms mean coverage runs past this term's ``ends_on``."""
-    expiring = ends_on_for(ReminderKind.T30)
+    expiring = ends_on_for(ReminderKind.SECOND)
     user, _term = make_member(annual_plan, expiring)
     MembershipFactory(
         user=user,
@@ -327,11 +327,11 @@ def test_a_member_who_renewed_early_is_skipped(
     assert mailoutbox == []
 
 
-def test_post30_is_skipped_once_the_member_has_rejoined(
+def test_lapsed_is_skipped_once_the_member_has_rejoined(
     annual_plan: MembershipPlan, mailoutbox: list[EmailMessage]
 ) -> None:
-    """A lapsed member who started a fresh term is not sent a ``post30`` nudge."""
-    user, _lapsed = make_member(annual_plan, ends_on_for(ReminderKind.POST30))
+    """A lapsed member who started a fresh term is not sent a ``lapsed`` nudge."""
+    user, _lapsed = make_member(annual_plan, ends_on_for(ReminderKind.LAPSED))
     MembershipFactory(
         user=user, plan=annual_plan, starts_on=TODAY, ends_on=TODAY + timedelta(days=364)
     )
@@ -346,7 +346,7 @@ def test_canceled_terms_are_ignored_entirely(
     annual_plan: MembershipPlan, mailoutbox: list[EmailMessage]
 ) -> None:
     """A canceled term produces no send, no skip count, and no email."""
-    _user, membership = make_member(annual_plan, ends_on_for(ReminderKind.T30))
+    _user, membership = make_member(annual_plan, ends_on_for(ReminderKind.SECOND))
     membership.status = MembershipStatusChoices.CANCELED
     membership.save(update_fields=["status"])
 
@@ -368,7 +368,7 @@ def test_email_content(
     site_settings.contact_email = "info@caldart.example.org"
     site_settings.save()
 
-    user, _membership = make_member(annual_plan, ends_on_for(ReminderKind.T30))
+    user, _membership = make_member(annual_plan, ends_on_for(ReminderKind.SECOND))
     user.first_name = "Marta"
     user.save(update_fields=["first_name"])
 
@@ -453,7 +453,7 @@ def test_the_scan_defaults_to_today(
     annual_plan: MembershipPlan, mailoutbox: list[EmailMessage]
 ) -> None:
     """Calling ``send_renewal_reminders`` with no ``today`` uses the local date."""
-    make_member(annual_plan, ends_on_for(ReminderKind.T7))
+    make_member(annual_plan, ends_on_for(ReminderKind.FINAL))
 
     run = send_renewal_reminders()
 
@@ -465,7 +465,7 @@ def test_command_sends_and_reports(
     annual_plan: MembershipPlan, mailoutbox: list[EmailMessage]
 ) -> None:
     """The management command sends live mail and reports the date, mode and totals."""
-    make_member(annual_plan, ends_on_for(ReminderKind.T30, date(2026, 6, 15)))
+    make_member(annual_plan, ends_on_for(ReminderKind.SECOND, date(2026, 6, 15)))
     out = StringIO()
 
     call_command("send_renewal_reminders", "--today=2026-06-15", stdout=out)
@@ -481,7 +481,7 @@ def test_command_dry_run_says_so(
     annual_plan: MembershipPlan, mailoutbox: list[EmailMessage]
 ) -> None:
     """``--dry-run`` sends no mail and reports what it would have sent."""
-    make_member(annual_plan, ends_on_for(ReminderKind.T30, date(2026, 6, 15)))
+    make_member(annual_plan, ends_on_for(ReminderKind.SECOND, date(2026, 6, 15)))
     out = StringIO()
 
     call_command("send_renewal_reminders", "--today=2026-06-15", "--dry-run", stdout=out)
@@ -499,9 +499,9 @@ def test_command_rejects_a_bad_date(annual_plan: MembershipPlan) -> None:
 
 def test_summary_lines_cover_every_kind(annual_plan: MembershipPlan) -> None:
     """``as_lines`` lists every kind and each non-zero reason; ``as_dict`` sums both."""
-    user, membership = make_member(annual_plan, ends_on_for(ReminderKind.T7))
+    user, membership = make_member(annual_plan, ends_on_for(ReminderKind.FINAL))
     run = ReminderRun(today=TODAY, dry_run=False)
-    run.record_sent(ReminderKind.T7, user, membership)
+    run.record_sent(ReminderKind.FINAL, user, membership)
     run.record_skipped("lifetime")
 
     lines = "\n".join(run.as_lines())
@@ -517,14 +517,14 @@ def test_summary_lines_cover_every_kind(annual_plan: MembershipPlan) -> None:
 
 def test_a_dry_run_names_every_member_it_would_write_to(annual_plan: MembershipPlan) -> None:
     """A rehearsal's actions carry the member, the address and the expiry date."""
-    ends_on = ends_on_for(ReminderKind.T30)
+    ends_on = ends_on_for(ReminderKind.SECOND)
     user, _term = make_member(annual_plan, ends_on)
 
     run = send_renewal_reminders(today=TODAY, dry_run=True)
 
     assert [action.as_dict() for action in run.actions] == [
         {
-            "kind": ReminderKind.T30,
+            "kind": ReminderKind.SECOND,
             "member": user.display_name,
             "email": user.email,
             "on": ends_on.isoformat(),
@@ -538,7 +538,7 @@ def test_a_dry_run_names_the_same_members_a_live_run_then_writes_to(
     annual_plan: MembershipPlan, mailoutbox: list[EmailMessage]
 ) -> None:
     """The rehearsal's actions and the live run's actions agree, member for member."""
-    make_member(annual_plan, ends_on_for(ReminderKind.T30))
+    make_member(annual_plan, ends_on_for(ReminderKind.SECOND))
 
     rehearsed = send_renewal_reminders(today=TODAY, dry_run=True)
     live = send_renewal_reminders(today=TODAY, dry_run=False)
@@ -548,12 +548,12 @@ def test_a_dry_run_names_the_same_members_a_live_run_then_writes_to(
 
 def test_a_dry_run_prints_who_would_be_written_to(annual_plan: MembershipPlan) -> None:
     """``send_renewal_reminders --dry-run`` names each member under the counts."""
-    user, _term = make_member(annual_plan, ends_on_for(ReminderKind.T30))
+    user, _term = make_member(annual_plan, ends_on_for(ReminderKind.SECOND))
     out = StringIO()
 
     call_command("send_renewal_reminders", "--dry-run", f"--today={TODAY.isoformat()}", stdout=out)
 
-    assert f"would email t30 to {user.display_name} <{user.email}>" in out.getvalue()
+    assert f"would email second to {user.display_name} <{user.email}>" in out.getvalue()
 
 
 def test_reminder_email_takes_its_name_from_site_settings(
@@ -575,7 +575,7 @@ def test_reminder_email_takes_its_name_from_site_settings(
         user=profile.user, ends_on=timezone.localdate() + timedelta(days=30)
     )
 
-    send_reminder_email(profile.user, membership, "t30", timezone.localdate())
+    send_reminder_email(profile.user, membership, "second", timezone.localdate())
 
     assert "Example DART Network" in mailoutbox[0].subject
     assert "Example DART Network" in mailoutbox[0].body

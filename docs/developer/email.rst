@@ -17,7 +17,12 @@ Every message is rendered from a pair of templates in
 *purpose*, except for the notifications, which share the ``notification``
 template and each carry the purpose ``notification_<slug>`` of their event.
 ``apps/mail/purposes.py`` gives each purpose the label the portal's email log
-shows:
+shows.  ``PURPOSE_LABELS`` holds the labels that never change.  A label that
+depends on stored data comes from a source an app above mail registers with
+``register_purpose_labels()`` from its ``AppConfig.ready()``;
+``purpose_labels()`` merges the sources, in registration order, ahead of
+``PURPOSE_LABELS``.  The reminders app registers the five reminder labels, worded
+from the stored reminder schedule, so the mail app never imports it:
 
 .. list-table::
    :header-rows: 1
@@ -26,10 +31,11 @@ shows:
    * - Purpose
      - Label
      - Sent by
-   * - ``reminder_t60``, ``reminder_t30``, ``reminder_t7``,
-       ``reminder_expired``, ``reminder_post30``
+   * - ``reminder_first``, ``reminder_second``, ``reminder_final``,
+       ``reminder_expired``, ``reminder_lapsed``
      - Renewal reminder (60 days), (30 days), (7 days), (expired), (30 days
-       after)
+       after) on the default schedule; the days follow the stored reminder
+       schedule (:ref:`reminders-schedule`)
      - the daily reminder scan (:doc:`reminders`)
    * - ``renewal_enabled``, ``renewal_notice``, ``renewal_card_expiring``,
        ``renewal_charged``, ``renewal_failed``, ``renewal_canceled``

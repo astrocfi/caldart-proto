@@ -34,6 +34,7 @@ import type {
 import type { ReportSlug } from '../portal/reports/types';
 import { TEST_AIRCRAFT_TYPES, makeAircraftType, makeProfile } from './fixtures/profile';
 import { makeRegistryStatus } from './fixtures/registry';
+import { makeReminderSchedule } from './fixtures/reminders';
 
 /**
  * The API base the handlers answer under, whatever URL prefix is in front of it: a
@@ -165,6 +166,8 @@ export const handlers = [
   // The register's header and the Health & Database page read the registry's state as
   // they mount: by default, one successful import and none running.
   http.get(`${API}/aircraft/registry`, () => HttpResponse.json(makeRegistryStatus())),
+  // Both reminder screens read the reminder schedule; by default nobody has changed it.
+  http.get(`${API}/admin/reminders/schedule`, () => HttpResponse.json(makeReminderSchedule())),
   // My aircraft and the register read the coverage policy; by default it excludes nothing.
   http.get(`${API}/aircraft/coverage-policy`, () =>
     HttpResponse.json({ excluded_categories: [], excluded_airworthiness: [], note: '' }),

@@ -1,12 +1,12 @@
 /**
- * Queries and mutations behind the System pages under `/portal/system/`, and the reminder log an
- * account administrator reads at `/admin/reminders`.
+ * Queries and mutations behind the System pages under `/portal/system/`, and the reminder log and
+ * schedule an account administrator reads at `/admin/reminders`.
  *
- * `useReminderLog` is the one hook `account_admin` reaches: its endpoint,
- * `GET /admin/reminders/log`, is readable by account and system
- * administrators alike, and both screens mount it. Every other hook here
- * calls a `system_admin`-only endpoint, and the route guard on the System
- * pages keeps anyone else from mounting it.
+ * `useReminderLog` and `useReminderSchedule` are the hooks `account_admin` reaches: their
+ * endpoints, `GET /admin/reminders/log` and `GET /admin/reminders/schedule`, are readable by
+ * account and system administrators alike, and both screens mount them. Every other hook here
+ * calls a `system_admin`-only endpoint, and the route guard on the System pages keeps anyone else
+ * from mounting it.
  */
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
@@ -22,6 +22,8 @@ import type {
   ReminderKind,
   ReminderLogEntry,
   ReminderRunResult,
+  ReminderSchedule,
+  ReminderSchedulePayload,
   RenewalRunResult,
   ReportRunResult,
   RegistryImport,
@@ -40,6 +42,9 @@ export function reminderLogKey(
 ): readonly ['system', 'reminders', 'log', ReminderKind | 'all'] {
   return ['system', 'reminders', 'log', kind] as const;
 }
+
+/** The reminder schedule, read by both reminder screens. */
+export const REMINDER_SCHEDULE_KEY = ['system', 'reminders', 'schedule'] as const;
 
 /** How many recent reminders the panel shows. */
 export const REMINDER_LOG_PAGE_SIZE = 20;
@@ -86,6 +91,35 @@ export function useReminderLog(
           page_size: REMINDER_LOG_PAGE_SIZE,
         },
       }),
+  });
+}
+
+/** When each reminder stage falls, via `GET /admin/reminders/schedule`. */
+export function useReminderSchedule(): UseQueryResult<ReminderSchedule> {
+  return useQuery({
+    queryKey: REMINDER_SCHEDULE_KEY,
+    queryFn: () => api.get<ReminderSchedule>('/admin/reminders/schedule'),
+  });
+}
+
+/**
+ * Saves the reminder schedule via `PUT /admin/reminders/schedule` (system administrators).
+ *
+ * The email log's purpose labels name the schedule's days, so they are read again too.
+ */
+export function useSaveReminderSchedule(): UseMutationResult<
+  ReminderSchedule,
+  Error,
+  ReminderSchedulePayload
+> {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: ReminderSchedulePayload) =>
+      api.put<ReminderSchedule>('/admin/reminders/schedule', payload),
+    onSuccess: (saved) => {
+      queryClient.setQueryData(REMINDER_SCHEDULE_KEY, saved);
+      void queryClient.invalidateQueries({ queryKey: ['system', 'emails'] });
+    },
   });
 }
 
@@ -199,7 +233,10 @@ export function backupDownloadUrl(name: string): string {
  */
 export const EMAIL_LOG_PAGE_SIZE = 25;
 
-/** The purposes the email log's filter offers are the server's, and never change. */
+/**
+ * The purposes the email log's filter offers are the server's. They change only when the
+ * reminder schedule is saved, which drops them along with the rest of the email log.
+ */
 export const EMAIL_PURPOSES_KEY = ['system', 'emails', 'purposes'] as const;
 
 /** What one page of the email log is asked for: the filters, the order and the page. */

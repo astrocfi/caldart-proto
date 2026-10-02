@@ -2605,11 +2605,11 @@
   },
   "ReminderKindEnum": {
     "enum": [
-      "t60",
-      "t30",
-      "t7",
+      "first",
+      "second",
+      "final",
       "expired",
-      "post30"
+      "lapsed"
     ]
   },
   "ReminderLog": {
@@ -2652,6 +2652,38 @@
       "sent",
       "skipped",
       "skipped_by_reason"
+    ]
+  },
+  "ReminderSchedule": {
+    "properties": {
+      "final_days_before": "integer",
+      "first_days_before": "integer",
+      "lapsed_days_after": "integer",
+      "second_days_before": "integer",
+      "updated_at": "string(date-time)|null",
+      "updated_by": "string|null"
+    },
+    "required": [
+      "final_days_before",
+      "first_days_before",
+      "lapsed_days_after",
+      "second_days_before",
+      "updated_at",
+      "updated_by"
+    ]
+  },
+  "ReminderScheduleRequest": {
+    "properties": {
+      "final_days_before": "integer",
+      "first_days_before": "integer",
+      "lapsed_days_after": "integer",
+      "second_days_before": "integer"
+    },
+    "required": [
+      "final_days_before",
+      "first_days_before",
+      "lapsed_days_after",
+      "second_days_before"
     ]
   },
   "RenewalAttempt": {

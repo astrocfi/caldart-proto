@@ -1436,6 +1436,22 @@ not (see :ref:`api-csrf-bootstrap`).
      - ·
      - ✓
      - also ``system_admin``
+   * - ``GET /admin/reminders/schedule``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ✓
+     - also ``system_admin``
+   * - ``PUT /admin/reminders/schedule``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ``system_admin`` only
    * - ``GET /system/emails``
      - ·
      - ·

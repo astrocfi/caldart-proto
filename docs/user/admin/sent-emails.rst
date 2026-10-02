@@ -50,7 +50,10 @@ The filters narrow the whole log, every page of it:
    *Notification: Roles changed*, *Notification: Email address changed*,
    *Notification: Profile changed*, *Notification: Verification recorded*,
    *Notification: Aircraft added*, *Notification: Aircraft changed*, or *Notification:
-   Aircraft removed*.
+   Aircraft removed*. The renewal reminders are named here as the default schedule dates
+   them. Once a system administrator changes the **Reminder schedule** on
+   :doc:`scheduled`, they carry its days instead, such as *Renewal reminder (45 days)*, in
+   the list, in the table, and in the downloads.
 **Status**
    **Sent** or **Failed**.
 **From** and **To**

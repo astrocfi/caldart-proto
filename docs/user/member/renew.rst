@@ -65,7 +65,8 @@ Renewal reminders
 
 CalDART emails you five times as your term runs out. Each covers a stretch of the
 calendar, so you get every one whichever day you joined: a membership bought three
-weeks before it expires still brings the last four.
+weeks before it expires still brings the last four. On the default schedule they
+arrive as the table shows.
 
 .. list-table::
    :header-rows: 1
@@ -84,6 +85,23 @@ weeks before it expires still brings the last four.
        expired 2 days ago*
    * - 30 to 60 days after
      - *CalDART: your membership lapsed 30 days ago*
+
+A system administrator can change the number of days for the first, second, and
+final reminders and for the last one. Whatever the numbers, each reminder arrives in
+these stretches:
+
+- The first: from its number of days before your end date until one day more than
+  the second's number. On the default schedule, 60 to 31 days before.
+- The second: from its number of days before until one day more than the final
+  one's number. On the default schedule, 30 to 8 days before.
+- The final one: from its number of days before until 1 day before. On the default
+  schedule, 7 to 1 days before.
+- The one at expiry: from your end date through 6 days after it. This one never
+  moves.
+- The last one: from its number of days after your end date, for 30 days. On the
+  default schedule, 30 to 60 days after.
+
+Every subject states the real number of days.
 
 Every reminder links straight to this screen. You are still current on your end
 date itself; the membership reads as expired the next morning.

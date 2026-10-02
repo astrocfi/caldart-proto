@@ -26,7 +26,7 @@ from apps.accounts.roles import SYSTEM_ADMIN
 from apps.accounts.services import send_password_invitation, send_password_reset_email
 from apps.mail.admin import EmailLogAdmin
 from apps.mail.models import EmailLog, EmailStatus
-from apps.mail.purposes import PURPOSE_LABELS
+from apps.mail.purposes import purpose_labels
 from apps.members.models import MembershipPlan
 from apps.payments import receipts, refunds
 from apps.payments.models import PaymentStatus, RefundReason
@@ -81,10 +81,10 @@ def test_a_caller_may_name_the_purpose_itself(email_template: str) -> None:
         to="marta@example.org",
         subject="CalDART: hello",
         template=email_template,
-        purpose="reminder_t30",
+        purpose="reminder_second",
     )
 
-    assert EmailLog.objects.get().purpose == "reminder_t30"
+    assert EmailLog.objects.get().purpose == "reminder_second"
 
 
 def test_a_successful_send_is_recorded_as_sent_with_no_error(email_template: str) -> None:
@@ -195,7 +195,7 @@ def test_a_renewal_reminder_is_logged_under_its_stage(
     send_renewal_reminders(today=today)
 
     row = EmailLog.objects.get()
-    assert row.purpose == "reminder_t30"
+    assert row.purpose == "reminder_second"
     assert row.user == member
 
 
@@ -343,7 +343,7 @@ def test_a_failed_row_carries_its_error(api_client: APIClient, system_admin: Use
 def test_the_purpose_filter_selects_one_kind(api_client: APIClient, system_admin: User) -> None:
     """``?purpose=`` answers only the rows of that purpose."""
     EmailLogFactory(purpose="receipt")
-    EmailLogFactory(purpose="reminder_t30")
+    EmailLogFactory(purpose="reminder_second")
     api_client.force_login(system_admin)
 
     body = api_client.get(f"{EMAILS_URL}?purpose=receipt").json()
@@ -468,7 +468,7 @@ def test_the_log_can_be_read_oldest_first(api_client: APIClient, system_admin: U
 # --------------------------------------------------------------------------
 def test_a_row_carries_its_purpose_label(api_client: APIClient, system_admin: User) -> None:
     """``purpose_label`` is the words a reader sees for the template."""
-    EmailLogFactory(purpose="reminder_t30")
+    EmailLogFactory(purpose="reminder_second")
     api_client.force_login(system_admin)
 
     row = api_client.get(EMAILS_URL).json()["results"][0]
@@ -509,7 +509,7 @@ def test_the_purposes_are_every_labeled_template_in_order(
 
     body = api_client.get(PURPOSES_URL).json()
 
-    assert body == [{"value": value, "label": label} for value, label in PURPOSE_LABELS.items()]
+    assert body == [{"value": value, "label": label} for value, label in purpose_labels().items()]
 
 
 def test_the_purposes_name_every_template_the_application_sends() -> None:
@@ -520,7 +520,7 @@ def test_the_purposes_name_every_template_the_application_sends() -> None:
     """
     templates = {path.stem for path in (settings.BASE_DIR / "templates" / "emails").glob("*.txt")}
 
-    assert sorted(templates - set(PURPOSE_LABELS) - {"notification"}) == []
+    assert sorted(templates - set(purpose_labels()) - {"notification"}) == []
 
 
 # --------------------------------------------------------------------------

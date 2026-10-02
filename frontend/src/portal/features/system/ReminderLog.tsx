@@ -1,5 +1,6 @@
 /**
- * The renewal-reminder log: what went out, to whom and when, filtered by kind.
+ * The renewal-reminder log: what went out, to whom and when, filtered by kind.  Each kind
+ * reads as the stored reminder schedule dates it, such as "60 days before".
  *
  * Read-only, and the same table on both screens that show it — the account
  * administrator's Reminders screen and the renewal reminder emails panel of
@@ -13,32 +14,11 @@ import type { ReminderKind, ReminderLogEntry } from '@/portal/api/types';
 import { DataTable } from '@/portal/components/DataTable';
 import type { Column } from '@/portal/components/DataTable';
 import { DateText } from '@/portal/components/DateText';
-import { useReminderLog } from './api';
+import { useReminderLog, useReminderSchedule } from './api';
+import { kindLabels, REMINDER_KINDS, schedulePhrase } from './reminderSchedule';
 
-/** Kind slug -> what the email actually says. */
-export const KIND_LABELS: Record<ReminderKind, string> = {
-  t60: '60 days before',
-  t30: '30 days before',
-  t7: '7 days before',
-  expired: 'Expired',
-  post30: '30 days after',
-};
-
-const KIND_OPTIONS: (ReminderKind | 'all')[] = ['all', 't60', 't30', 't7', 'expired', 'post30'];
-
-const COLUMNS: Column<ReminderLogEntry>[] = [
-  {
-    key: 'sent_at',
-    header: 'Sent',
-    render: (row) => <DateText value={row.sent_at} withTime />,
-    sortValue: (row) => row.sent_at,
-  },
-  {
-    key: 'kind',
-    header: 'Reminder',
-    render: (row) => KIND_LABELS[row.kind] ?? row.kind,
-    sortValue: (row) => row.kind,
-  },
+/** The columns after the kind: who the reminder went to. */
+const PERSON_COLUMNS: Column<ReminderLogEntry>[] = [
   {
     key: 'user_name',
     header: 'Member',
@@ -53,10 +33,31 @@ const COLUMNS: Column<ReminderLogEntry>[] = [
   },
 ];
 
+/** The log's columns, the kind read through `labels`. */
+function logColumns(labels: Record<ReminderKind, string>): Column<ReminderLogEntry>[] {
+  return [
+    {
+      key: 'sent_at',
+      header: 'Sent',
+      render: (row) => <DateText value={row.sent_at} withTime />,
+      sortValue: (row) => row.sent_at,
+    },
+    {
+      key: 'kind',
+      header: 'Reminder',
+      render: (row) => labels[row.kind] ?? row.kind,
+      sortValue: (row) => row.kind,
+    },
+    ...PERSON_COLUMNS,
+  ];
+}
+
 /** The most recent reminder emails, newest first, with a filter by kind. */
 export function ReminderLog(): JSX.Element {
   const [kind, setKind] = useState<ReminderKind | 'all'>('all');
   const log = useReminderLog(kind);
+  const schedule = useReminderSchedule();
+  const labels = kindLabels(schedule.data);
 
   const handleKindChange = (event: ChangeEvent<HTMLSelectElement>): void => {
     setKind(event.target.value as ReminderKind | 'all');
@@ -64,7 +65,7 @@ export function ReminderLog(): JSX.Element {
 
   return (
     <DataTable
-      columns={COLUMNS}
+      columns={logColumns(labels)}
       rows={log.data?.results ?? []}
       rowKey={(row) => row.id}
       isLoading={log.isPending}
@@ -72,14 +73,19 @@ export function ReminderLog(): JSX.Element {
         log.data ? `${log.data.count} reminder${log.data.count === 1 ? '' : 's'} sent` : undefined
       }
       emptyTitle="No reminders sent yet"
-      emptyDescription="Nothing has matched the 60/30/7-day, expiry, or lapsed windows."
+      emptyDescription={
+        schedule.data
+          ? `No member has reached a reminder yet. They go ${schedulePhrase(schedule.data)} expiry.`
+          : 'No member has reached a reminder yet.'
+      }
       filters={
         <label className="field">
           <span className="field__label">Reminder</span>
           <select value={kind} onChange={handleKindChange}>
-            {KIND_OPTIONS.map((option) => (
+            <option value="all">All kinds</option>
+            {REMINDER_KINDS.map((option) => (
               <option key={option} value={option}>
-                {option === 'all' ? 'All kinds' : KIND_LABELS[option]}
+                {labels[option]}
               </option>
             ))}
           </select>

@@ -689,8 +689,8 @@ NEWS_POSTS: tuple[NewsPostSpec, ...] = (
                     "and medical, the aircraft they commonly fly, and the volunteer roles they "
                     "are willing to take on. Aircraft owners record their liability limits and "
                     "policy expiry once, and every pilot attached to that aircraft benefits.</p>"
-                    "<p>Renewal reminders go out at sixty, thirty, and seven days. Nobody has to "
-                    "chase a lapsed medical by hand any more.</p>"
+                    "<p>Renewal reminders go out ahead of your end date, on the day, and after "
+                    "it. Nobody has to chase a lapsed medical by hand any more.</p>"
                 ),
             ),
         ),

@@ -25,15 +25,17 @@ describe('ScheduledPage', () => {
     ).toBeInTheDocument();
   });
 
-  it('puts the reminder emails and renewal charges first, then reports and statements', async () => {
+  it('puts the reminder emails, their schedule, and renewal charges first, then the rest', async () => {
     renderPage();
 
     await screen.findByText('No reminders sent yet');
+    await screen.findByRole('button', { name: 'Save' });
     const titles = screen
       .getAllByRole('heading', { level: 2 })
       .map((heading) => heading.textContent);
     expect(titles).toEqual([
       'Renewal reminder emails',
+      'Reminder schedule',
       'Automatic renewal charges',
       'Scheduled reports',
       'Year-end statements',

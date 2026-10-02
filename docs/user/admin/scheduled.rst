@@ -30,8 +30,9 @@ Renewal reminder emails
 =======================
 
 Every morning at 07:00 CalDART emails members whose membership is about to expire or has
-just expired: 60, 30, and 7 days before, on the day, and 30 days after. It sends email only
-and never charges anyone. A member whose automatic renewal is on is skipped. The
+just expired: 60, 30, and 7 days before, on the day, and 30 days after, on the default
+schedule. The panel names the days the stored schedule uses. It sends email only and never
+charges anyone. A member whose automatic renewal is on is skipped. The
 :doc:`reminders` page describes the stages and the subject line of each email.
 
 The box reads **Dry run (send nothing)**. The result reads, for example, *Would send 4
@@ -45,6 +46,35 @@ reminder, **Who** it went to with their address, **When** their membership ends,
 
 Each member gets each reminder once per membership. Under the panel sits the same record of
 recent reminders an account administrator reads on :doc:`reminders`.
+
+
+Reminder schedule
+=================
+
+Beside the reminder emails, the **Reminder schedule** card sets when they go. It has four
+number fields:
+
+- **First reminder**, **Second reminder**, and **Final reminder**: days before a membership
+  ends. The defaults are 60, 30, and 7.
+- **Lapsed reminder**: days after a membership ends. The default is 30.
+
+The expired reminder has no number: it goes from the day a membership ends through the six
+days after. Change a number and press **Save**; *Reminder schedule saved.* confirms it, and
+the line under the card reads **Last saved** with the date and your name. The next morning's
+run uses the new days, and the reminder record, the **Purpose** filter on
+:doc:`sent-emails`, and the stage names on :doc:`reminders` all read with them. A member
+already sent a reminder is never sent the same one again for the same membership. The first
+reminder goes at most 180 days ahead, so a member who has just paid for a year is never told
+their membership is running out.
+
+The numbers have to keep their order. A field left empty reads *Enter a number of days.*,
+and a refused number shows the rule under its field:
+
+- *The first reminder can be at most 180 days before expiry.*
+- *The first reminder must be more days before expiry than the second.*
+- *The second reminder must be more days before expiry than the final one.*
+- *The final reminder must be at least 1 day before expiry.*
+- *The lapsed reminder must be 7 to 365 days after expiry.*
 
 
 Automatic renewal charges

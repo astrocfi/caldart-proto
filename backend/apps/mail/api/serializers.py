@@ -5,7 +5,7 @@ from __future__ import annotations
 from rest_framework import serializers
 
 from apps.mail.models import EmailLog
-from apps.mail.purposes import purpose_label
+from apps.mail.purposes import purpose_label, purpose_labels
 
 
 class EmailLogSerializer(serializers.ModelSerializer[EmailLog]):
@@ -46,8 +46,14 @@ class EmailLogSerializer(serializers.ModelSerializer[EmailLog]):
         return obj.recipient_name
 
     def get_purpose_label(self, obj: EmailLog) -> str:
-        """Return the words for the row's purpose, or its template name when unlabeled."""
-        return purpose_label(obj.purpose)
+        """Return the words for the row's purpose, or its template name when unlabeled.
+
+        The labels come from the context's ``purpose_labels`` when the caller read them
+        once for a whole page, since the reminders' labels come from the stored
+        reminder schedule, and are read afresh otherwise.
+        """
+        labels = self.context.get("purpose_labels")
+        return purpose_label(obj.purpose, labels=labels if labels is not None else purpose_labels())
 
 
 class EmailPurposeSerializer(serializers.Serializer[dict[str, str]]):

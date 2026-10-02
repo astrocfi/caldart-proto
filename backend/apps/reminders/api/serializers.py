@@ -6,7 +6,7 @@ from typing import Any
 
 from rest_framework import serializers
 
-from apps.reminders.models import ReminderLog
+from apps.reminders.models import SCHEDULE_FIELDS, ReminderLog, ReminderSchedule, schedule_errors
 from caldart.runs import RunActionSerializer
 
 
@@ -49,3 +49,45 @@ class ReminderRunResultSerializer(serializers.Serializer[dict[str, Any]]):
     failed = serializers.IntegerField()
     skipped_by_reason = serializers.DictField(child=serializers.IntegerField())
     actions = RunActionSerializer(many=True)
+
+
+class ReminderScheduleSerializer(serializers.ModelSerializer[ReminderSchedule]):
+    """``GET``/``PUT /admin/reminders/schedule``: when each reminder stage falls.
+
+    ``first_days_before``, ``second_days_before`` and ``final_days_before`` are whole
+    days before expiry and ``lapsed_days_after`` whole days after it.  A ``PUT`` sends
+    all four, and a schedule breaking a rule of
+    :func:`~apps.reminders.models.schedule_errors` is refused with a 400 naming each
+    field it breaks.  ``updated_by`` is the display name of the system administrator
+    who saved the schedule last and ``updated_at`` when; both are null before anyone
+    has, while the defaults (60, 30, 7, 30) apply.
+    """
+
+    first_days_before = serializers.IntegerField()
+    second_days_before = serializers.IntegerField()
+    final_days_before = serializers.IntegerField()
+    lapsed_days_after = serializers.IntegerField()
+    updated_by = serializers.CharField(
+        source="updated_by.display_name", read_only=True, allow_null=True
+    )
+    updated_at = serializers.DateTimeField(read_only=True, allow_null=True)
+
+    class Meta:
+        model = ReminderSchedule
+        fields = [*SCHEDULE_FIELDS, "updated_by", "updated_at"]
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        """Return ``attrs`` when the four days keep the schedule's rules.
+
+        Raises ``ValidationError`` keyed by every field that breaks one, each with the
+        sentence :func:`~apps.reminders.models.schedule_errors` gives it.
+        """
+        errors = schedule_errors(
+            attrs["first_days_before"],
+            attrs["second_days_before"],
+            attrs["final_days_before"],
+            attrs["lapsed_days_after"],
+        )
+        if errors:
+            raise serializers.ValidationError(errors)
+        return attrs

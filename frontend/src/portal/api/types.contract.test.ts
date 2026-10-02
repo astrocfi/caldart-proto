@@ -147,6 +147,8 @@ import type {
   ReminderKind,
   ReminderLogEntry,
   ReminderRunResult,
+  ReminderSchedule,
+  ReminderSchedulePayload,
   ReportCadence,
   ReportColumn,
   ReportFormats,
@@ -378,6 +380,11 @@ const emailPurpose: Matches<EmailPurpose, Schemas['EmailPurpose']> = true;
 /* -------------------------------------------------- reminders and system */
 const reminderLog: Matches<ReminderLogEntry, Schemas['ReminderLog']> = true;
 const reminderRun: Matches<ReminderRunResult, Schemas['ReminderRunResult']> = true;
+const reminderSchedule: Matches<ReminderSchedule, Schemas['ReminderSchedule']> = true;
+const reminderSchedulePayload: Matches<
+  ReminderSchedulePayload,
+  Schemas['ReminderScheduleRequest']
+> = true;
 const health: Matches<Health, Schemas['Health']> = true;
 const backup: Matches<Backup, Schemas['Backup']> = true;
 
@@ -554,6 +561,8 @@ const assertions: readonly true[] = [
   emailPurpose,
   reminderLog,
   reminderRun,
+  reminderSchedule,
+  reminderSchedulePayload,
   health,
   backup,
   navEntry,
@@ -713,6 +722,8 @@ const MAPPED_COMPONENTS: readonly (keyof Schemas)[] = [
   'EmailPurpose',
   'ReminderLog',
   'ReminderRunResult',
+  'ReminderSchedule',
+  'ReminderScheduleRequest',
   'Health',
   'Backup',
   'NavEntry',

@@ -29,8 +29,9 @@ House rules that apply throughout:
   The registry's tables carry the dates the import needs instead:
   ``AircraftType.created_at``, ``Registration.imported_at``, and
   ``RegistryImport.started_at`` and ``finished_at``; ``AircraftTypeAlias``
-  carries none.  ``aircraft.AircraftCoveragePolicy`` is a single row and keeps
-  ``updated_at`` and ``updated_by`` alone.
+  carries none.  ``aircraft.AircraftCoveragePolicy`` and
+  ``reminders.ReminderSchedule`` are single rows and keep ``updated_at`` and
+  ``updated_by`` alone.
 - **``DEFAULT_AUTO_FIELD`` is ``BigAutoField``**, so every ``id`` below is a
   ``BigAutoField`` except the page models', which Wagtail keys on its own
   ``AutoField``.
@@ -296,7 +297,7 @@ Mail, reminders, reports, notifications, and the CMS pages
 
    .. graphviz::
       :caption: Mail, reminders, reports, notifications, and the CMS pages.  The
-                five records at the top point at the account and the term they
+                six records at the top point at the account and the term they
                 concern.
                 Below them, every page type inherits the abstract
                 ``cms.BasePage``, and ``StandardPage`` and ``NewsPage`` also
@@ -315,6 +316,7 @@ Mail, reminders, reports, notifications, and the CMS pages
           Membership [label="members.Membership", style="rounded,dotted"];
           Email [label="mail.EmailLog"];
           Reminder [label="reminders.ReminderLog"];
+          Schedule [label="reminders.ReminderSchedule"];
           ColumnSet [label="reports.SavedColumnSet"];
           Subscription [label="reports.\nReportSubscription"];
           Notification [label="notifications.\nNotificationSubscription"];
@@ -322,6 +324,7 @@ Mail, reminders, reports, notifications, and the CMS pages
           Email -> User [label="user\nSET_NULL"];
           Reminder -> User [label="user\nCASCADE"];
           Reminder -> Membership [label="membership\nCASCADE"];
+          Schedule -> User [label="updated_by\nSET_NULL"];
           ColumnSet -> User [label="user\nCASCADE"];
           Subscription -> User [label="recipient_user,\ncreated_by\nSET_NULL"];
           Notification -> User [label="recipient_user,\ncreated_by\nSET_NULL"];
@@ -383,6 +386,7 @@ Mail, reminders, reports, notifications, and the CMS pages
       -------------------
       mail.EmailLog               one email the installation tried to send
       reminders.ReminderLog       one renewal reminder sent
+      reminders.ReminderSchedule  when each reminder stage falls (one row)
       reports.SavedColumnSet      a named choice of one report's columns
       reports.ReportSubscription  one report, emailed on a schedule
       notifications.NotificationSubscription
@@ -409,6 +413,7 @@ Mail, reminders, reports, notifications, and the CMS pages
       mail.EmailLog.user                   -> accounts.User       FK, SET_NULL, nullable
       reminders.ReminderLog.user           -> accounts.User       FK, CASCADE
       reminders.ReminderLog.membership     -> members.Membership  FK, CASCADE
+      reminders.ReminderSchedule.updated_by -> accounts.User      FK, SET_NULL, nullable
       reports.SavedColumnSet.user          -> accounts.User       FK, CASCADE
       reports.ReportSubscription.recipient_user -> accounts.User  FK, SET_NULL, nullable
       reports.ReportSubscription.created_by     -> accounts.User  FK, SET_NULL, nullable
@@ -1091,8 +1096,9 @@ What a mandate charges for, which is what every renewal email says.
 ``ReminderKind`` (``apps/reminders/models.py``)
 -----------------------------------------------
 
-``ReminderLog.kind``: the five reminder stages.  ``REMINDER_OFFSETS`` gives each
-one's offset in days from the term's ``ends_on`` (see ``ReminderLog`` below).
+``ReminderLog.kind``: the five reminder stages, in the order a term reaches them.
+``ReminderSchedule`` (below) dates each one, and builds the words a screen prints
+for it, such as "60 days before expiry"; the labels here only name the stages.
 
 .. list-table::
    :header-rows: 1
@@ -1100,16 +1106,16 @@ one's offset in days from the term's ``ends_on`` (see ``ReminderLog`` below).
 
    * - Value
      - Label
-   * - ``t60``
-     - 60 days before expiry
-   * - ``t30``
-     - 30 days before expiry
-   * - ``t7``
-     - 7 days before expiry
+   * - ``first``
+     - First reminder
+   * - ``second``
+     - Second reminder
+   * - ``final``
+     - Final reminder
    * - ``expired``
      - Expired
-   * - ``post30``
-     - 30 days after expiry
+   * - ``lapsed``
+     - Lapsed
 
 .. _choices-email-status:
 
@@ -1341,7 +1347,7 @@ to the rows already stored (:doc:`setup`).
 
 - ``groups``: many-to-many to ``auth.Group``; the reverse accessor is ``user_set``.
 - ``user_permissions``: many-to-many to ``auth.Permission``; the reverse accessor is ``user_set``.
-- Referenced by ``aircraft.Aircraft.created_by``, ``aircraft.Aircraft.insurance_verified_by``, ``aircraft.Aircraft.updated_by``, ``aircraft.AircraftChange.changed_by``, ``aircraft.AircraftCoveragePolicy.updated_by``, ``aircraft.RegistryImport.started_by``, ``mail.EmailLog.user``, ``members.MemberProfile.certificate_verified_by``, ``members.MemberProfile.medical_verified_by``, ``members.MemberProfile.photo_id_verified_by``, ``members.MemberProfile.user``, ``members.Membership.granted_by``, ``members.Membership.user``, ``payments.Payment.reconciled_by``, ``payments.Payment.recorded_by``, ``payments.Payment.user``, ``payments.Refund.requested_by``, ``payments.RenewalMandate.canceled_by``, ``payments.RenewalMandate.user``, ``payments.YearStatement.user``, ``reminders.ReminderLog.user``, ``reports.ReportSubscription.created_by``, ``reports.ReportSubscription.recipient_user``, ``reports.SavedColumnSet.user``.
+- Referenced by ``aircraft.Aircraft.created_by``, ``aircraft.Aircraft.insurance_verified_by``, ``aircraft.Aircraft.updated_by``, ``aircraft.AircraftChange.changed_by``, ``aircraft.AircraftCoveragePolicy.updated_by``, ``aircraft.RegistryImport.started_by``, ``mail.EmailLog.user``, ``members.MemberProfile.certificate_verified_by``, ``members.MemberProfile.medical_verified_by``, ``members.MemberProfile.photo_id_verified_by``, ``members.MemberProfile.user``, ``members.Membership.granted_by``, ``members.Membership.user``, ``payments.Payment.reconciled_by``, ``payments.Payment.recorded_by``, ``payments.Payment.user``, ``payments.Refund.requested_by``, ``payments.RenewalMandate.canceled_by``, ``payments.RenewalMandate.user``, ``payments.YearStatement.user``, ``reminders.ReminderLog.user``, ``reminders.ReminderSchedule.updated_by``, ``reports.ReportSubscription.created_by``, ``reports.ReportSubscription.recipient_user``, ``reports.SavedColumnSet.user``.
 
 **Invariants.**
 
@@ -3561,8 +3567,8 @@ then still due, and a later run retries it for as long as the term stays in
 that stage's span.
 
 ``kind`` and its offset in days from the membership's ``ends_on``
-(``REMINDER_OFFSETS``), with the span of expiry dates it covers on a scan run
-on day D:
+(``ReminderSchedule.offsets()``) on the default schedule, with the span of expiry
+dates it covers on a scan run on day D:
 
 .. list-table::
    :header-rows: 1
@@ -3571,19 +3577,19 @@ on day D:
    * - Kind
      - Offset
      - Sent when
-   * - ``t60``
+   * - ``first``
      - -60
      - the term ends between D+31 and D+60
-   * - ``t30``
+   * - ``second``
      - -30
      - the term ends between D+8 and D+30
-   * - ``t7``
+   * - ``final``
      - -7
      - the term ends between D+1 and D+7
    * - ``expired``
      - 0
      - the term ended between D-6 and D
-   * - ``post30``
+   * - ``lapsed``
      - +30
      - the term ended between D-60 and D-30
 
@@ -3595,6 +3601,67 @@ twice (:ref:`reminders-stages`).  Lifetime members are skipped, as are
 deactivated accounts, accounts with no email address, and members whose
 unbroken coverage runs past the term in question, which is what stops an
 early renewal being nagged about the term it replaced.  See :doc:`reminders`.
+
+``ReminderSchedule``
+--------------------
+
+When each reminder stage falls.  There is only ever one row, primary key 1:
+``save()`` forces the key, and ``load()`` reads the row, answering an unsaved
+default schedule (60, 30, 7, 30) before one is stored; reading never writes.  A
+system administrator writes it from the Scheduled page's **Reminder schedule**
+card through ``PUT /admin/reminders/schedule`` (:ref:`api-reminder-schedule`).
+The ``expired`` stage spans the expiry day and the six days after it, so it has
+no field.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 22 26 18 34
+
+   * - Field
+     - Type
+     - Null, default
+     - Meaning
+   * - ``id``
+     - ``BigAutoField``
+     - not null; always ``1``
+     - primary key
+   * - ``first_days_before``
+     - ``PositiveSmallIntegerField``
+     - not null; default ``60``
+     - whole days before ``ends_on`` that the ``first`` stage first goes out
+   * - ``second_days_before``
+     - ``PositiveSmallIntegerField``
+     - not null; default ``30``
+     - whole days before ``ends_on`` that the ``second`` stage first goes out
+   * - ``final_days_before``
+     - ``PositiveSmallIntegerField``
+     - not null; default ``7``
+     - whole days before ``ends_on`` that the ``final`` stage first goes out
+   * - ``lapsed_days_after``
+     - ``PositiveSmallIntegerField``
+     - not null; default ``30``
+     - whole days after ``ends_on`` that the ``lapsed`` stage first goes out
+   * - ``updated_at``
+     - ``DateTimeField``
+     - not null; set on every save
+     - when the schedule was last written
+   * - ``updated_by``
+     - ``ForeignKey`` to ``accounts.User``, ``SET_NULL``
+     - null; default ``NULL``
+     - who last wrote the schedule; no related name
+
+**Relationships.**
+
+- ``updated_by``: foreign key to ``accounts.User``, ``SET_NULL``, nullable; no reverse accessor.
+
+**Invariants.**  ``apps.reminders.models.schedule_errors`` holds every write
+through the API to ``180 >= first_days_before > second_days_before >
+final_days_before >= 1`` and ``7 <= lapsed_days_after <= 365``.  The cap keeps a
+member who has just bought an annual term from being told it is running out.  The ordering is
+what lets the three stages before expiry tile without overlapping, and the lapsed
+floor keeps the ``lapsed`` span clear of the ``expired`` stage's six-day reach.
+The rules live in the serializer's validation rather than in database
+constraints, the same as the coverage policy's.
 
 .. _data-model-email-log:
 
@@ -3644,7 +3711,7 @@ system said to whom, which is what ``GET /system/emails`` reads
    * - ``purpose``
      - ``SlugField(64)``
      - not null; required
-     - the template the body came from: ``reminder_t30``, ``receipt``, ``password_reset`` and the rest
+     - the template the body came from: ``reminder_second``, ``receipt``, ``password_reset`` and the rest
    * - ``subject``
      - ``CharField(255)``
      - not null; required

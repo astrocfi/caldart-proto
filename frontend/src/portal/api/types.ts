@@ -1461,7 +1461,7 @@ export interface EmailPurpose {
 }
 
 /* --------------------------------------------------------------- reminders */
-export type ReminderKind = 't60' | 't30' | 't7' | 'expired' | 'post30';
+export type ReminderKind = 'first' | 'second' | 'final' | 'expired' | 'lapsed';
 
 export interface ReminderLogEntry {
   id: number;
@@ -1486,6 +1486,27 @@ export interface ReminderRunResult {
   failed: number;
   skipped_by_reason: Record<string, number>;
   actions: RunAction[];
+}
+
+/**
+ * The body of `PUT /admin/reminders/schedule` (system administrators): whole days
+ * before expiry for the first, second, and final reminders, and after it for the
+ * lapsed one.
+ */
+export interface ReminderSchedulePayload {
+  first_days_before: number;
+  second_days_before: number;
+  final_days_before: number;
+  lapsed_days_after: number;
+}
+
+/**
+ * `GET /admin/reminders/schedule`: when each reminder stage falls, and who saved the
+ * schedule last and when. Both are null while the defaults (60, 30, 7, 30) apply.
+ */
+export interface ReminderSchedule extends ReminderSchedulePayload {
+  updated_by: string | null;
+  updated_at: IsoDateTime | null;
 }
 
 /* ------------------------------------------------------------------ system */
