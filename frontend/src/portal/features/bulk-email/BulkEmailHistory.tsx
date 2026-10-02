@@ -20,8 +20,15 @@ function historyColumns(onOpen: (id: number) => void): Column<BulkEmail>[] {
     {
       key: 'created_at',
       header: 'Date',
-      width: '7rem',
-      render: (row) => <DateText value={row.created_at} />,
+      width: '12rem',
+      render: (row) =>
+        row.sent_at === null ? (
+          <span title="This send stopped before every copy was tried; open its results.">
+            <DateText value={row.created_at} /> <strong>Interrupted</strong>
+          </span>
+        ) : (
+          <DateText value={row.created_at} />
+        ),
       sortValue: (row) => row.created_at,
     },
     { key: 'subject', header: 'Subject', render: (row) => row.subject },

@@ -8,7 +8,7 @@ import type { BulkEmailDetail } from '@/portal/api/types';
 import { formatDate } from '@/portal/components/DateText';
 import { RunActionsTable } from '@/portal/components/RunActionsTable';
 import { recipientsCsvUrl } from './api';
-import { resultActions, resultLabel, sentSummary } from './results';
+import { peopleCaption, resultActions, resultLabel, sentSummary } from './results';
 
 interface BulkEmailResultsProps {
   sent: BulkEmailDetail;
@@ -25,6 +25,7 @@ export function BulkEmailResults({ sent }: BulkEmailResultsProps): JSX.Element {
         kindLabel={resultLabel}
         detailHeader="Reason"
         hasWhenAndAmount={false}
+        caption={peopleCaption(sent.recipients.length)}
         summary={
           <>
             <p>

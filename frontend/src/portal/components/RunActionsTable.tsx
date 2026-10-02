@@ -45,6 +45,12 @@ interface RunActionsTableProps {
   hasWhenAndAmount?: boolean;
   /** The heading over the table, in place of `actionsHeading`'s. */
   heading?: string;
+  /** The table's caption, in place of the count of actions. */
+  caption?: string;
+  /** What an empty table says, in place of *Nothing was due*. */
+  emptyTitle?: string;
+  /** A line under an empty table's title. */
+  emptyDescription?: string;
 }
 
 /** A run's heading, its caller-supplied summary, and the actions behind it. */
@@ -56,6 +62,9 @@ export function RunActionsTable({
   summary,
   hasWhenAndAmount = true,
   heading,
+  caption,
+  emptyTitle = 'Nothing was due',
+  emptyDescription,
 }: RunActionsTableProps): JSX.Element {
   const detail: Column<RunAction>[] =
     detailHeader === undefined
@@ -101,8 +110,9 @@ export function RunActionsTable({
         columns={columns}
         rows={actions}
         rowKey={(row) => `${row.kind}-${row.member}-${row.email}-${row.on ?? ''}-${row.detail}`}
-        caption={`${actions.length} action${actions.length === 1 ? '' : 's'}`}
-        emptyTitle="Nothing was due"
+        caption={caption ?? `${actions.length} action${actions.length === 1 ? '' : 's'}`}
+        emptyTitle={emptyTitle}
+        emptyDescription={emptyDescription}
       />
     </div>
   );

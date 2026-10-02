@@ -30,7 +30,8 @@ import type { FilterValues } from '@/portal/reports/types';
 import { givenFilters, previewCsvUrl, usePreviewBulkEmail, useSendBulkEmail } from './api';
 import { BulkEmailHistory } from './BulkEmailHistory';
 import { BulkEmailResults } from './BulkEmailResults';
-import { previewActions, previewSummary, resultLabel, sendLabel } from './results';
+import './bulk-email.css';
+import { peopleCaption, previewActions, previewSummary, resultLabel, sendLabel } from './results';
 
 /** The member list's filters, less any only a subscription offers. */
 const FILTER_FIELDS = listFilters(REPORTS.members);
@@ -52,14 +53,32 @@ interface FormErrors {
 }
 
 /**
+ * The first complaint the server made about one filter, named by the filter's
+ * label, from a refusal such as `{"filters": {"expiring_within": ["Enter a
+ * number."]}}`; null when the refusal names no filter that way.
+ */
+function filterComplaint(body: unknown): string | null {
+  if (body === null || typeof body !== 'object' || !('filters' in body)) return null;
+  const filters: unknown = body.filters;
+  if (filters === null || typeof filters !== 'object' || Array.isArray(filters)) return null;
+  for (const [key, messages] of Object.entries(filters as Record<string, unknown>)) {
+    if (!Array.isArray(messages) || typeof messages[0] !== 'string') continue;
+    const label = FILTER_FIELDS.find((field) => field.key === key)?.label ?? key;
+    return `${label}: ${messages[0]}`;
+  }
+  return null;
+}
+
+/**
  * A refusal's messages, by field.  A complaint about the filters, such as
- * *Nobody matches these filters.*, is the form's own message.
+ * *Nobody matches these filters.* or one filter's own message, is the form's own.
  */
 function formErrors(error: unknown): FormErrors {
   if (!(error instanceof ApiError)) return { general: FALLBACK_ERROR };
   const fields = error.fieldErrors;
   const isFieldError = fields.subject !== undefined || fields.body !== undefined;
-  const general = fields.filters ?? (isFieldError ? undefined : error.message);
+  const general =
+    fields.filters ?? filterComplaint(error.body) ?? (isFieldError ? undefined : error.message);
   return { subject: fields.subject, body: fields.body, general };
 }
 
@@ -106,47 +125,50 @@ export function BulkEmailPage(): JSX.Element {
       lede="Write to every member and friend a filter selects. Preview the list, then send."
     >
       <Card eyebrow="Compose" title="Who and what">
-        <FilterBar
-          fields={FILTER_FIELDS}
-          values={filters}
-          onChange={handleFilterChange}
-          options={dartOptions}
-          label="Choose the recipients"
-        />
-        <form className="stack" onSubmit={handlePreview} noValidate>
-          <Field label="Subject" error={errors.subject} required>
-            {(field) => (
-              <input
-                {...field}
-                type="text"
-                maxLength={SUBJECT_MAX_LENGTH}
-                value={subject}
-                onChange={(event) => setSubject(event.target.value)}
-              />
-            )}
-          </Field>
-          <Field
-            label="Message"
-            hint="Plain text. Leave a blank line between paragraphs."
-            error={errors.body}
-            required
-          >
-            {(field) => (
-              <textarea
-                {...field}
-                rows={10}
-                maxLength={BODY_MAX_LENGTH}
-                value={body}
-                onChange={(event) => setBody(event.target.value)}
-              />
-            )}
-          </Field>
-          <div className="cluster">
-            <Button type="submit" disabled={preview.isPending}>
-              {preview.isPending ? 'Previewing…' : 'Preview recipients'}
-            </Button>
-          </div>
-        </form>
+        {/* A send in flight holds every input still, so what goes is what was confirmed. */}
+        <fieldset className="bulk-email__compose stack" disabled={send.isPending}>
+          <FilterBar
+            fields={FILTER_FIELDS}
+            values={filters}
+            onChange={handleFilterChange}
+            options={dartOptions}
+            label="Choose the recipients"
+          />
+          <form className="stack" onSubmit={handlePreview} noValidate>
+            <Field label="Subject" error={errors.subject} required>
+              {(field) => (
+                <input
+                  {...field}
+                  type="text"
+                  maxLength={SUBJECT_MAX_LENGTH}
+                  value={subject}
+                  onChange={(event) => setSubject(event.target.value)}
+                />
+              )}
+            </Field>
+            <Field
+              label="Message"
+              hint="Plain text. Leave a blank line between paragraphs."
+              error={errors.body}
+              required
+            >
+              {(field) => (
+                <textarea
+                  {...field}
+                  rows={10}
+                  maxLength={BODY_MAX_LENGTH}
+                  value={body}
+                  onChange={(event) => setBody(event.target.value)}
+                />
+              )}
+            </Field>
+            <div className="cluster">
+              <Button type="submit" disabled={preview.isPending || send.isPending}>
+                {preview.isPending ? 'Previewing…' : 'Preview recipients'}
+              </Button>
+            </div>
+          </form>
+        </fieldset>
 
         {errors.general === undefined ? null : (
           <p className="field__error" role="alert">
@@ -162,6 +184,9 @@ export function BulkEmailPage(): JSX.Element {
             kindLabel={resultLabel}
             detailHeader="Reason"
             hasWhenAndAmount={false}
+            caption={peopleCaption(preview.data.count + preview.data.skipped_count)}
+            emptyTitle="Nobody matches these filters"
+            emptyDescription="Widen the filters, or press Reset to Defaults to write to everybody."
             summary={
               <>
                 <p role="status">{previewSummary(preview.data)}</p>

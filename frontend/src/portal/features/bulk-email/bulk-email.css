@@ -1,0 +1,11 @@
+/*
+ * The Bulk Email screen.  The compose fieldset only groups the filters and the
+ * message so a send in flight can disable them all at once; it draws nothing.
+ */
+
+.bulk-email__compose {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}

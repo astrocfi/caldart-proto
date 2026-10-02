@@ -1794,11 +1794,12 @@ export interface BulkEmailPreview {
 }
 
 /** What became of one person's copy of a bulk email. */
-export type BulkEmailRecipientStatus = 'sent' | 'failed' | 'skipped';
+export type BulkEmailRecipientStatus = 'pending' | 'sent' | 'failed' | 'skipped';
 
 /**
  * One person a sent bulk email selected. `user_id` is null once the account is
- * deleted; `reason` is blank for a copy that went.
+ * deleted; `reason` is blank for a copy that went. `pending` is a copy never
+ * tried, which only an interrupted send still holds.
  */
 export interface BulkEmailRecipient {
   user_id: number | null;
@@ -1811,7 +1812,7 @@ export interface BulkEmailRecipient {
 /**
  * One sent bulk email, from `GET /bulk-email`. `filters` are the member list
  * filters given a value; `sender` is blank once the account is deleted, and
- * `sent_at` null for a send that never finished.
+ * `sent_at` null for an interrupted send, whose counts say how far it got.
  */
 export interface BulkEmail {
   id: number;

@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
-import type { BulkEmailPreview } from '@/portal/api/types';
-import { previewActions, previewSummary, resultLabel, sendLabel } from './results';
+import type { BulkEmailDetail, BulkEmailPreview } from '@/portal/api/types';
+import {
+  peopleCaption,
+  previewActions,
+  previewSummary,
+  resultLabel,
+  sendLabel,
+  sentSummary,
+} from './results';
 
 const PREVIEW: BulkEmailPreview = {
   count: 1,
@@ -24,6 +31,7 @@ describe('previewActions', () => {
 describe('resultLabel', () => {
   it.each([
     ['to_send', 'To send'],
+    ['pending', 'Not sent'],
     ['sent', 'Sent'],
     ['failed', 'Failed'],
     ['skipped', 'Skipped'],
@@ -51,5 +59,44 @@ describe('sendLabel', () => {
     [40, 'Send to 40 people'],
   ])('names %i as %s', (count, label) => {
     expect(sendLabel(count)).toBe(label);
+  });
+});
+
+const SENT: BulkEmailDetail = {
+  id: 7,
+  subject: 'Spring seminar',
+  body: 'Join us.',
+  filters: {},
+  sender: 'Grace Holloway',
+  created_at: '2026-10-02T17:00:00Z',
+  sent_at: '2026-10-02T17:00:05Z',
+  sent_count: 1,
+  failed_count: 0,
+  skipped_count: 0,
+  recipients: [
+    { user_id: 1, name: 'Ann Able', email: 'ann@example.org', status: 'sent', reason: '' },
+    { user_id: 2, name: 'Bea Bell', email: 'bea@example.org', status: 'pending', reason: '' },
+  ],
+};
+
+describe('sentSummary', () => {
+  it('counts a finished send', () => {
+    expect(sentSummary(SENT)).toBe('Sent 1, failed 0, skipped 0.');
+  });
+
+  it('says an unfinished send was interrupted and counts the copies never sent', () => {
+    expect(sentSummary({ ...SENT, sent_at: null })).toBe(
+      'Interrupted: Sent 1, failed 0, skipped 0. Not sent 1.',
+    );
+  });
+});
+
+describe('peopleCaption', () => {
+  it.each([
+    [1, '1 person'],
+    [0, '0 people'],
+    [3, '3 people'],
+  ])('captions %i as %s', (count, caption) => {
+    expect(peopleCaption(count)).toBe(caption);
   });
 });

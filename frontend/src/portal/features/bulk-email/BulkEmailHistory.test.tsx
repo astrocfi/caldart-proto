@@ -76,4 +76,14 @@ describe('BulkEmailHistory', () => {
 
     expect(await screen.findByText('No bulk email has been sent')).toBeInTheDocument();
   });
+
+  it('marks a send that stopped part way as interrupted', async () => {
+    answerHistory([{ ...SEND, sent_at: null }]);
+    renderWithProviders(<BulkEmailHistory />);
+
+    const table = await screen.findByRole('table', { name: '1 bulk email sent' });
+    expect(within(table).getByRole('row', { name: /Spring seminar/ })).toHaveTextContent(
+      '10/02/2026 InterruptedSpring seminar',
+    );
+  });
 });

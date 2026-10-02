@@ -125,7 +125,7 @@ describe('BulkEmailPage', () => {
 
     await composeAndPreview(user);
 
-    const table = await screen.findByRole('table', { name: '3 actions' });
+    const table = await screen.findByRole('table', { name: '3 people' });
     expect(within(table).getByRole('row', { name: /Gil Gone/ })).toHaveTextContent(
       'SkippedGil Gone · gil@example.orgAccount deactivated',
     );
@@ -262,5 +262,64 @@ describe('BulkEmailPage', () => {
     await user.click(screen.getByRole('button', { name: 'Send now' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Nobody matches these filters.');
+  });
+
+  it('says nobody matches when the preview finds nobody at all', async () => {
+    answerBulkEmail({ preview: { count: 0, skipped_count: 0, recipients: [], skipped: [] } });
+    const user = userEvent.setup();
+    renderWithProviders(<BulkEmailPage />);
+
+    await composeAndPreview(user);
+
+    expect(await screen.findByText('Nobody matches these filters')).toBeInTheDocument();
+  });
+
+  it('names the filter the server refused, with its message', async () => {
+    answerBulkEmail();
+    server.use(
+      http.post(`${API}/bulk-email/preview`, () =>
+        HttpResponse.json({ filters: { expiring_within: ['Enter a number.'] } }, { status: 400 }),
+      ),
+    );
+    const user = userEvent.setup();
+    renderWithProviders(<BulkEmailPage />);
+
+    await user.click(await screen.findByRole('button', { name: 'Preview recipients' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Expiring within (days): Enter a number.',
+    );
+  });
+
+  it('holds every input still while a send is in flight', async () => {
+    answerBulkEmail();
+    let release: () => void = () => undefined;
+    server.use(
+      http.post(`${API}/bulk-email/send`, async () => {
+        await new Promise<void>((resolve) => {
+          release = resolve;
+        });
+        return HttpResponse.json(SENT, { status: 201 });
+      }),
+    );
+    const user = userEvent.setup();
+    renderWithProviders(<BulkEmailPage />);
+
+    await composeAndPreview(user);
+    await user.click(await screen.findByRole('button', { name: 'Send to 2 people' }));
+    await user.click(screen.getByRole('button', { name: 'Send now' }));
+
+    await waitFor(() =>
+      expect(
+        [
+          screen.getByRole('textbox', { name: /Subject/ }),
+          screen.getByRole('textbox', { name: /Message/ }),
+          screen.getByRole('combobox', { name: 'Kind' }),
+          screen.getByRole('button', { name: 'Preview recipients' }),
+        ].map((element) => element.matches(':disabled')),
+      ).toEqual([true, true, true, true]),
+    );
+    release();
+    await screen.findByRole('region', { name: 'Results of Spring seminar' });
   });
 });

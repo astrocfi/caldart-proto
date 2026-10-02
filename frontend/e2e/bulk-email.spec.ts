@@ -43,7 +43,7 @@ test('CalDART management previews and sends a bulk email to a filtered list', as
   await expect(page.getByRole('status')).toHaveText(
     /^1 person will be sent this email; \d+ (is|are) skipped\.$/,
   );
-  const preview = page.getByRole('table', { name: /actions?$/ });
+  const preview = page.getByRole('table', { name: /^\d+ (person|people)$/ });
   await expect(preview.getByRole('row').filter({ hasText: DEMO.friend })).toContainText('To send');
   await expect(page.getByRole('link', { name: 'Download list' })).toHaveAttribute(
     'href',

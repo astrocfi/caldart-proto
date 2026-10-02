@@ -145,4 +145,30 @@ describe('RunActionsTable', () => {
 
     expect(screen.getByRole('heading')).toHaveTextContent('Who this email would reach');
   });
+
+  it('takes a caption of the caller’s own', () => {
+    render(
+      <RunActionsTable
+        actions={ACTIONS}
+        dryRun={true}
+        kindLabel={(kind) => kind}
+        caption="1 person"
+      />,
+    );
+
+    expect(screen.getByRole('table', { name: '1 person' })).toBeInTheDocument();
+  });
+
+  it('takes an empty state of the caller’s own', () => {
+    render(
+      <RunActionsTable
+        actions={[]}
+        dryRun={true}
+        kindLabel={(kind) => kind}
+        emptyTitle="Nobody matches these filters"
+      />,
+    );
+
+    expect(screen.getByText('Nobody matches these filters')).toBeInTheDocument();
+  });
 });

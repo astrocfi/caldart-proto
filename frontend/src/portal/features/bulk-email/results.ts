@@ -20,6 +20,7 @@ const TO_SEND = 'to_send';
 /** What each row's kind reads as. */
 const RESULT_LABELS: Record<BulkEmailRecipientStatus | typeof TO_SEND, string> = {
   to_send: 'To send',
+  pending: 'Not sent',
   sent: 'Sent',
   failed: 'Failed',
   skipped: 'Skipped',
@@ -53,9 +54,20 @@ export function resultActions(sent: BulkEmailDetail): RunAction[] {
   );
 }
 
-/** `Sent 12, failed 1, skipped 2.`: what one send came to. */
+/**
+ * `Sent 12, failed 1, skipped 2.`: what one send came to.  A send that stopped
+ * part way says so first, and how many copies were never sent.
+ */
 export function sentSummary(sent: BulkEmailDetail): string {
-  return `Sent ${sent.sent_count}, failed ${sent.failed_count}, skipped ${sent.skipped_count}.`;
+  const counts = `Sent ${sent.sent_count}, failed ${sent.failed_count}, skipped ${sent.skipped_count}.`;
+  if (sent.sent_at !== null) return counts;
+  const unsent = sent.recipients.filter((person) => person.status === 'pending').length;
+  return `Interrupted: ${counts} Not sent ${unsent}.`;
+}
+
+/** `3 people`: a list's caption. */
+export function peopleCaption(count: number): string {
+  return count === 1 ? '1 person' : `${count} people`;
 }
 
 /** `12 people will be sent this email; 2 are skipped.`: what a preview found. */
