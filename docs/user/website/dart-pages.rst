@@ -29,7 +29,9 @@ A DART page has three things you fill in, and one it reads for itself:
 * **Dart**, the team this page belongs to, chosen from the teams the membership records
   hold. The list shows each team's name with its airport identifiers.
 * **Leader name** and **Leader contact**, under **DART leader**. The contact is an email
-  address or a phone number, and visitors can click it to write or call.
+  address or a phone number, and visitors can click it to write or call. A leader's
+  name typed all in capitals or all in lower case is saved in title case, *SMITH* as
+  **Smith**; one typed with both is kept as typed.
 * **Body**, the page's own words, built from blocks (see :doc:`pages-and-blocks`).
 
 The airport shown on the page and in the directory comes from the team chosen under

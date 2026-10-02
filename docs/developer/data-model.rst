@@ -1642,7 +1642,7 @@ One named volunteer who runs a DART, and how to reach them.
    * - ``name``
      - ``CharField(120)``
      - not null; required
-     - the person's name
+     - the person's name, stored through ``caldart.casing.person_name`` (see ``User``)
    * - ``title``
      - ``CharField(80)``
      - not null; required
@@ -1757,7 +1757,8 @@ administrators see.  Deleting the account deletes the profile.
    * - ``emergency_contact_name``
      - ``CharField(160)``
      - not null; default ``""``
-     - who to call in an emergency
+     - who to call in an emergency; stored through ``caldart.casing.person_name``
+       (see ``User``)
    * - ``emergency_contact_phone``
      - ``CharField(12)``
      - not null; default ``""``
@@ -1921,8 +1922,9 @@ and capitalizes after an apostrophe only past a lone letter (``O'Brien``, but
 the serializers refuse anything that does not then match ``HAM_CALLSIGN_RE``: a
 prefix of ``K``, ``N``, or ``W`` alone, one of them and a letter, or ``A`` and a
 letter from ``A`` to ``L``; one digit; and a suffix of one to three letters.
-``manage.py normalize_casing`` title-cases the street and city of the rows already
-stored.  The aviation fields follow, then the seven
+``save()`` also stores ``emergency_contact_name`` (``PERSON_NAME_FIELDS``) through
+``caldart.casing.person_name``, the rule an account's names follow.  ``manage.py
+normalize_casing`` applies both rules to the rows already stored.  The aviation fields follow, then the seven
 ``vol_*`` volunteer interests, then the verification columns, then
 ``member_since`` and ``profile_updated_at``.  ``notes`` and ``how_heard`` are
 administrator-only: neither is in the member-facing serializer, and both appear
@@ -2388,7 +2390,8 @@ than copying it, so an insurance renewal entered once is right for everybody.
    * - ``owner_name``
      - ``CharField(160)``
      - not null; default ``""``
-     - the owner's name
+     - the owner's name; an individual's is stored through ``caldart.casing.person_name``
+       (see ``User``), an FBO's or a club's as typed
    * - ``owner_contact``
      - ``CharField(200)``
      - not null; default ``""``
@@ -4306,7 +4309,8 @@ A ``DartPage`` may only live under a ``DartIndexPage`` and takes no children.
    * - ``leader_name``
      - ``CharField(120)``
      - not null; default ``""``
-     - the leader named on the page
+     - the leader named on the page; stored through ``caldart.casing.person_name``
+       (see ``User``) when the editor validates the page and on every save
    * - ``leader_contact``
      - ``CharField(200)``
      - not null; default ``""``

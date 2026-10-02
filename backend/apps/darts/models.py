@@ -13,6 +13,7 @@ from typing import Any
 
 from django.db import models
 
+from caldart.casing import person_name
 from caldart.models import TimestampedModel
 from caldart.phone import normalize_phone
 
@@ -166,7 +167,11 @@ class DartContact(TimestampedModel):
         verbose_name_plural = "DART contacts"
 
     def save(self, *args: Any, **kwargs: Any) -> None:
-        """Save the contact with the phone number in ``XXX-XXX-XXXX`` form."""
+        """Save the contact with the phone number in ``XXX-XXX-XXXX`` form.
+
+        The name is stored through :func:`caldart.casing.person_name`.
+        """
+        self.name = person_name(self.name)
         self.phone = normalize_phone(self.phone)
         super().save(*args, **kwargs)
 

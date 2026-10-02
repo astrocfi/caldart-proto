@@ -57,7 +57,9 @@ The people who run it
 =====================
 
 **DART management** holds as many people as the team needs, each with a **Name** and a
-**Title**, and optionally a **Phone** and an **Email**.
+**Title**, and optionally a **Phone** and an **Email**. A name typed all in capitals or
+all in lower case is saved in title case, *SMITH* as **Smith**; one typed with both is
+kept as typed.
 
 - **Add a person** adds a row. It is grayed out while the last row has no name, so give the
   person above a name first.

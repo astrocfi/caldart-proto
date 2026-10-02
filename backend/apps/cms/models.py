@@ -42,6 +42,7 @@ from apps.cms.forms import RestrictedBlocksPageForm
 from apps.darts.models import Dart
 from apps.members.models import MembershipPlan, MembershipState
 from apps.members.services import MembershipStatusDict
+from caldart.casing import person_name
 
 if TYPE_CHECKING:
     from rest_framework.request import Request
@@ -750,6 +751,20 @@ class DartPage(BasePage):
 
     class Meta:
         verbose_name = "DART page"
+
+    def clean(self) -> None:
+        """Validate the page, storing the leader's name through ``person_name``.
+
+        Wagtail's editor validates the page before it saves a draft or publishes, so
+        the casing applies to both; :meth:`save` applies it to a page built in code.
+        """
+        super().clean()
+        self.leader_name = person_name(self.leader_name)
+
+    def save(self, *args: Any, **kwargs: Any) -> None:
+        """Save the page with the leader's name through ``person_name``."""
+        self.leader_name = person_name(self.leader_name)
+        super().save(*args, **kwargs)
 
     @property
     def airport_identifiers(self) -> str:
