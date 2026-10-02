@@ -21,6 +21,7 @@ from apps.accounts.permissions import HasAnyRole, HasRole, IsFinance, user_has_a
 from apps.accounts.roles import (
     ACCOUNT_ADMIN,
     DART_LEADER,
+    MANAGEMENT,
     MEMBER,
     ROLE_SLUGS,
     STAFF_ROLE_SLUGS,
@@ -36,8 +37,8 @@ from tests.factories import MembershipFactory, UserFactory
 pytestmark = pytest.mark.django_db
 
 
-def test_role_slugs_are_the_eight_documented_roles() -> None:
-    """``ROLE_SLUGS`` lists the eight roles least privileged first."""
+def test_role_slugs_are_the_nine_documented_roles() -> None:
+    """``ROLE_SLUGS`` lists the nine roles least privileged first."""
     assert ROLE_SLUGS == (
         MEMBER,
         VERIFIER,
@@ -45,6 +46,7 @@ def test_role_slugs_are_the_eight_documented_roles() -> None:
         USER_ADMIN,
         TREASURER,
         ACCOUNT_ADMIN,
+        MANAGEMENT,
         WEBSITE_ADMIN,
         SYSTEM_ADMIN,
     )

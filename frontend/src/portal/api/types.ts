@@ -18,6 +18,7 @@ export type RoleSlug =
   | 'user_admin'
   | 'treasurer'
   | 'account_admin'
+  | 'management'
   | 'website_admin'
   | 'system_admin';
 
@@ -1763,3 +1764,70 @@ export interface NotificationSubscriptionCreate {
 export type NotificationSubscriptionPatch = Partial<
   Pick<NotificationSubscription, 'events' | 'is_active'>
 >;
+
+/* --------------------------------------------------------------- bulk email */
+
+/**
+ * The body of `POST /bulk-email/preview` and `POST /bulk-email/send`: the
+ * message, and the member list filters that choose who it goes to.
+ */
+export interface BulkEmailMessage {
+  subject: string;
+  body: string;
+  filters?: Record<string, string>;
+}
+
+/** One person a preview lists; `reason` is blank for one who will be sent a copy. */
+export interface BulkEmailPreviewRecipient {
+  user_id: number;
+  name: string;
+  email: string;
+  reason: string;
+}
+
+/** `POST /bulk-email/preview`'s answer: who would receive the email, and who is skipped. */
+export interface BulkEmailPreview {
+  count: number;
+  skipped_count: number;
+  recipients: BulkEmailPreviewRecipient[];
+  skipped: BulkEmailPreviewRecipient[];
+}
+
+/** What became of one person's copy of a bulk email. */
+export type BulkEmailRecipientStatus = 'pending' | 'sent' | 'failed' | 'skipped';
+
+/**
+ * One person a sent bulk email selected. `user_id` is null once the account is
+ * deleted; `reason` is blank for a copy that went. `pending` is a copy never
+ * tried, which only an interrupted send still holds.
+ */
+export interface BulkEmailRecipient {
+  user_id: number | null;
+  name: string;
+  email: string;
+  status: BulkEmailRecipientStatus;
+  reason: string;
+}
+
+/**
+ * One sent bulk email, from `GET /bulk-email`. `filters` are the member list
+ * filters given a value; `sender` is blank once the account is deleted, and
+ * `sent_at` null for an interrupted send, whose counts say how far it got.
+ */
+export interface BulkEmail {
+  id: number;
+  subject: string;
+  body: string;
+  filters: Record<string, string>;
+  sender: string;
+  created_at: IsoDateTime;
+  sent_at: IsoDateTime | null;
+  sent_count: number;
+  failed_count: number;
+  skipped_count: number;
+}
+
+/** One sent bulk email with every person's result, from `GET /bulk-email/{id}`. */
+export interface BulkEmailDetail extends BulkEmail {
+  recipients: BulkEmailRecipient[];
+}

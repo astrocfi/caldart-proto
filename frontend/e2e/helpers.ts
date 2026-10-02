@@ -10,11 +10,13 @@ import type { Page } from '@playwright/test';
 export type DemoAccount =
   | 'member'
   | 'expired'
+  | 'friend'
   | 'leader'
   | 'verifier'
   | 'useradmin'
   | 'treasurer'
   | 'accountadmin'
+  | 'management'
   | 'webadmin'
   | 'sysadmin';
 
@@ -22,11 +24,13 @@ export type DemoAccount =
 const DEMO_ACCOUNT_KEYS: readonly DemoAccount[] = [
   'member',
   'expired',
+  'friend',
   'leader',
   'verifier',
   'useradmin',
   'treasurer',
   'accountadmin',
+  'management',
   'webadmin',
   'sysadmin',
 ];

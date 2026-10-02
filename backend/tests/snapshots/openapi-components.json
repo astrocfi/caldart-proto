@@ -518,6 +518,123 @@
       "unmatched"
     ]
   },
+  "BulkEmail": {
+    "properties": {
+      "body": "string",
+      "created_at": "string(date-time)",
+      "failed_count": "integer",
+      "filters": "map<string>",
+      "id": "integer",
+      "sender": "string",
+      "sent_at": "string(date-time)|null",
+      "sent_count": "integer",
+      "skipped_count": "integer",
+      "subject": "string"
+    },
+    "required": [
+      "body",
+      "created_at",
+      "failed_count",
+      "filters",
+      "id",
+      "sender",
+      "sent_at",
+      "sent_count",
+      "skipped_count",
+      "subject"
+    ]
+  },
+  "BulkEmailDetail": {
+    "properties": {
+      "body": "string",
+      "created_at": "string(date-time)",
+      "failed_count": "integer",
+      "filters": "map<string>",
+      "id": "integer",
+      "recipients": "array<ref:BulkEmailRecipient>",
+      "sender": "string",
+      "sent_at": "string(date-time)|null",
+      "sent_count": "integer",
+      "skipped_count": "integer",
+      "subject": "string"
+    },
+    "required": [
+      "body",
+      "created_at",
+      "failed_count",
+      "filters",
+      "id",
+      "recipients",
+      "sender",
+      "sent_at",
+      "sent_count",
+      "skipped_count",
+      "subject"
+    ]
+  },
+  "BulkEmailMessageRequest": {
+    "properties": {
+      "body": "string",
+      "filters": "map<string>",
+      "subject": "string"
+    },
+    "required": [
+      "body",
+      "subject"
+    ]
+  },
+  "BulkEmailPreview": {
+    "properties": {
+      "count": "integer",
+      "recipients": "array<ref:BulkEmailPreviewRecipient>",
+      "skipped": "array<ref:BulkEmailPreviewRecipient>",
+      "skipped_count": "integer"
+    },
+    "required": [
+      "count",
+      "recipients",
+      "skipped",
+      "skipped_count"
+    ]
+  },
+  "BulkEmailPreviewRecipient": {
+    "properties": {
+      "email": "string",
+      "name": "string",
+      "reason": "string",
+      "user_id": "integer"
+    },
+    "required": [
+      "email",
+      "name",
+      "reason",
+      "user_id"
+    ]
+  },
+  "BulkEmailRecipient": {
+    "properties": {
+      "email": "string",
+      "name": "string",
+      "reason": "string",
+      "status": "ref:BulkEmailRecipientStatusEnum",
+      "user_id": "integer|null"
+    },
+    "required": [
+      "email",
+      "name",
+      "reason",
+      "status",
+      "user_id"
+    ]
+  },
+  "BulkEmailRecipientStatusEnum": {
+    "enum": [
+      "pending",
+      "sent",
+      "failed",
+      "skipped"
+    ]
+  },
   "CadenceEnum": {
     "enum": [
       "weekly",
@@ -3013,6 +3130,7 @@
       "user_admin",
       "treasurer",
       "account_admin",
+      "management",
       "website_admin",
       "system_admin"
     ]

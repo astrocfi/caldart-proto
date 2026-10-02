@@ -26,6 +26,7 @@ from sphinx.cmd.build import build_main
 from apps.accounts.roles import (
     ACCOUNT_ADMIN,
     DART_LEADER,
+    MANAGEMENT,
     ROLE_SLUGS,
     SYSTEM_ADMIN,
     TREASURER,
@@ -289,6 +290,7 @@ ADMIN_PAGE_ROLES: dict[str, frozenset[str]] = {
     "admin/darts": frozenset({ACCOUNT_ADMIN}),
     "admin/reminders": frozenset({ACCOUNT_ADMIN}),
     "admin/notifications": frozenset({ACCOUNT_ADMIN}),
+    "admin/bulk-email": frozenset({MANAGEMENT}),
     "admin/subscriptions": frozenset({ACCOUNT_ADMIN, TREASURER}),
     "admin/users": frozenset({USER_ADMIN}),
     "admin/user-record": frozenset({USER_ADMIN}),

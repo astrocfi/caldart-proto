@@ -11,6 +11,7 @@ DART_LEADER = "dart_leader"
 USER_ADMIN = "user_admin"
 TREASURER = "treasurer"
 ACCOUNT_ADMIN = "account_admin"
+MANAGEMENT = "management"
 WEBSITE_ADMIN = "website_admin"
 SYSTEM_ADMIN = "system_admin"
 
@@ -38,6 +39,10 @@ ROLE_DESCRIPTIONS: dict[str, str] = {
         "memberships manually, manage aircraft, and run payment, membership "
         "and aircraft reports."
     ),
+    MANAGEMENT: (
+        "Send an email to every member and friend a filter selects, after "
+        "previewing the list of recipients."
+    ),
     WEBSITE_ADMIN: (
         "Wagtail admin: create, edit, delete, and publish pages, images, "
         "documents, redirects, and site settings."
@@ -62,6 +67,7 @@ ROLE_LABELS: dict[str, str] = {
     USER_ADMIN: "User administrator",
     TREASURER: "Treasurer",
     ACCOUNT_ADMIN: "Account administrator",
+    MANAGEMENT: "CalDART management",
     WEBSITE_ADMIN: "Website administrator",
     SYSTEM_ADMIN: "System administrator",
 }

@@ -296,14 +296,14 @@ Mail, reminders, reports, notifications, and the CMS pages
 .. only:: graphviz
 
    .. graphviz::
-      :caption: Mail, reminders, reports, notifications, and the CMS pages.  The
-                six records at the top point at the account and the term they
-                concern.
+      :caption: Mail, reminders, reports, notifications, bulk email, and the CMS
+                pages.  The records at the top point at the account and the
+                term they concern.
                 Below them, every page type inherits the abstract
                 ``cms.BasePage``, and ``StandardPage`` and ``NewsPage`` also
                 inherit ``cms.MembersOnlyMixin``.  Which page may live under
                 which is in :doc:`cms`, not in this diagram.
-      :alt: Entity-relationship diagram of the mail, reminder, report, notification, and CMS page models
+      :alt: Entity-relationship diagram of the mail, reminder, report, notification, bulk email, and CMS page models
 
       digraph caldart_records_and_pages {
           rankdir=TB;
@@ -320,6 +320,8 @@ Mail, reminders, reports, notifications, and the CMS pages
           ColumnSet [label="reports.SavedColumnSet"];
           Subscription [label="reports.\nReportSubscription"];
           Notification [label="notifications.\nNotificationSubscription"];
+          Bulk [label="bulk_email.BulkEmail"];
+          BulkRecipient [label="bulk_email.\nBulkEmailRecipient"];
       
           Email -> User [label="user\nSET_NULL"];
           Reminder -> User [label="user\nCASCADE"];
@@ -328,6 +330,9 @@ Mail, reminders, reports, notifications, and the CMS pages
           ColumnSet -> User [label="user\nCASCADE"];
           Subscription -> User [label="recipient_user,\ncreated_by\nSET_NULL"];
           Notification -> User [label="recipient_user,\ncreated_by\nSET_NULL"];
+          Bulk -> User [label="sender\nSET_NULL"];
+          BulkRecipient -> Bulk [label="bulk_email\nCASCADE"];
+          BulkRecipient -> User [label="user\nSET_NULL"];
       
           User -> Page [style=invis];
           Membership -> Page [style=invis];
@@ -391,6 +396,9 @@ Mail, reminders, reports, notifications, and the CMS pages
       reports.ReportSubscription  one report, emailed on a schedule
       notifications.NotificationSubscription
                                   one address, and the events it is emailed about
+      bulk_email.BulkEmail        one email sent to a filtered list
+      bulk_email.BulkEmailRecipient
+                                  one person that email selected, and the result
       cms.HomePage, cms.StandardPage, cms.NewsIndexPage, cms.NewsPage,
       cms.EventIndexPage, cms.EventPage, cms.DartIndexPage, cms.DartPage,
       cms.ContactPage, cms.DonatePage
@@ -421,6 +429,10 @@ Mail, reminders, reports, notifications, and the CMS pages
                                            -> accounts.User       FK, SET_NULL, nullable
       notifications.NotificationSubscription.created_by
                                            -> accounts.User       FK, SET_NULL, nullable
+      bulk_email.BulkEmail.sender          -> accounts.User       FK, SET_NULL, nullable
+      bulk_email.BulkEmailRecipient.bulk_email
+                                           -> bulk_email.BulkEmail FK, CASCADE
+      bulk_email.BulkEmailRecipient.user   -> accounts.User       FK, SET_NULL, nullable
       cms.BasePage                         inherits wagtailcore.Page
       cms.<every page type>                inherits cms.BasePage
       cms.StandardPage, cms.NewsPage       also inherit cms.MembersOnlyMixin
@@ -1139,6 +1151,30 @@ permanent-failure report for a message the server took (:ref:`email-bounces`).
    * - ``bounced``
      - Bounced
 
+.. _choices-bulk-email-recipient-status:
+
+``RecipientStatus`` (``apps/bulk_email/models.py``)
+---------------------------------------------------
+
+``BulkEmailRecipient.status``: what became of one person's copy of a bulk email.
+Every recipient starts ``pending``; one still ``pending`` once the send has
+stopped was never tried.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 70
+
+   * - Value
+     - Label
+   * - ``pending``
+     - Not sent
+   * - ``sent``
+     - Sent
+   * - ``failed``
+     - Failed
+   * - ``skipped``
+     - Skipped
+
 .. _choices-report-formats:
 
 ``ReportFormats`` (``apps/reports/models.py``)
@@ -1383,7 +1419,8 @@ to the rows already stored (:doc:`setup`).
   following a verification, password reset, or invitation link sent to the
   address (whether or not it was verified already), and by a user
   administrator's ``POST /admin/users/{id}/clear-bounce``
-  (:ref:`api-clear-bounce`).
+  (:ref:`api-clear-bounce`).  While it is set, a bulk email skips the account
+  as *Address bounced* (:doc:`api-bulk-email`).
 
 .. _account-kinds:
 
@@ -1499,6 +1536,9 @@ descriptions live in ``apps/accounts/roles.py``:
      - a member or a friend with a portal account: own profile, own payments
        and membership, join and renew, and members-only content while the
        membership is current
+   * - ``verifier``
+     - verify a member's pilot certificate, medical, and photo ID, and an
+       aircraft's insurance, from the member check and the aircraft check
    * - ``dart_leader``
      - \+ look up any member and see membership, medical, certificate, and
        aircraft insurance currency; read the full member list, filterable by
@@ -1514,6 +1554,9 @@ descriptions live in ``apps/accounts/roles.py``:
      - \+ create, edit, and delete members and profiles, make a member a friend,
        deactivate or reactivate accounts, grant or extend memberships manually,
        manage aircraft, and run payment, membership and aircraft reports
+   * - ``management``
+     - send a bulk email to every member and friend a filter selects, after
+       previewing the recipients (``BulkEmail``, below); nothing else
    * - ``website_admin``
      - \+ the Wagtail admin: create, edit, delete, and publish pages, images,
        documents, redirects, and site settings
@@ -4019,6 +4062,151 @@ unique index compares addresses without regard to case.  Whether a bound
 account may still be sent an event is checked at send time, not stored: an
 account that loses the role, or is deactivated, is skipped and its
 subscription is left as it is.
+
+.. _data-model-bulk-email:
+
+bulk_email
+==========
+
+What CalDART management sent to a filtered list (:doc:`api-bulk-email`).  A
+preview stores nothing; only a send writes these rows.
+
+``BulkEmail``
+-------------
+
+One email sent to everybody the member list's filters selected.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 22 26 18 34
+
+   * - Field
+     - Type
+     - Null, default
+     - Meaning
+   * - ``id``
+     - ``BigAutoField``
+     - not null; assigned by the database
+     - primary key
+   * - ``created_at``
+     - ``DateTimeField``
+     - not null; set on insert
+     - when the send began
+   * - ``updated_at``
+     - ``DateTimeField``
+     - not null; set on every save
+     - when the row was last saved
+   * - ``subject``
+     - ``CharField(200)``
+     - not null; required
+     - the subject every copy carried, one line
+   * - ``body``
+     - ``TextField``
+     - not null; required
+     - the message as plain text; a blank line separates paragraphs
+   * - ``filters``
+     - ``JSONField``
+     - not null; default ``{}``
+     - JSON object of the member list's query parameters that chose the recipients, those given a value only, as ``ReportSubscription.filters`` stores a report's
+   * - ``sender``
+     - ``ForeignKey`` to ``accounts.User``, ``SET_NULL``
+     - null; default ``NULL``
+     - who sent it; null once that account is deleted; related name ``bulk_emails_sent``
+   * - ``sent_at``
+     - ``DateTimeField``
+     - null; default ``NULL``
+     - when every copy had been tried; null for an interrupted send
+   * - ``sent_count``
+     - ``PositiveIntegerField``
+     - not null; default ``0``
+     - how many copies the mail server took, kept up to date as each goes
+   * - ``failed_count``
+     - ``PositiveIntegerField``
+     - not null; default ``0``
+     - how many copies it refused, kept up to date as each is tried
+   * - ``skipped_count``
+     - ``PositiveIntegerField``
+     - not null; default ``0``
+     - how many people the filters chose were sent no copy
+
+**Constraints, indexes, and ordering.**
+
+- Ordering: ``-created_at``, then ``-id``.
+
+**Relationships.**
+
+- ``sender``: foreign key to ``accounts.User``, ``SET_NULL``, nullable; the reverse accessor is ``bulk_emails_sent``.
+- ``recipients``: the reverse of ``BulkEmailRecipient.bulk_email``.
+
+``bulk_email.services.send_bulk_email`` is the one writer.  It builds the list
+when it sends and writes the ``BulkEmail`` with its ``skipped_count``, then a
+``BulkEmailRecipient`` for every recipient, ``pending``, and one for every skip,
+before any copy goes.  As each copy is tried, its row's status and the send's
+``sent_count`` or ``failed_count`` are saved at once, outside any transaction;
+``sent_at`` is set last.  So a finished send's counts add up to its rows, and a
+send whose worker was killed part way (*interrupted*: ``sent_at`` null) holds
+exactly the copies that went, the ones refused, and the ones still ``pending``,
+which were never sent.
+
+``BulkEmailRecipient``
+----------------------
+
+One person a bulk email's filters selected, and what became of their copy.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 22 26 18 34
+
+   * - Field
+     - Type
+     - Null, default
+     - Meaning
+   * - ``id``
+     - ``BigAutoField``
+     - not null; assigned by the database
+     - primary key
+   * - ``created_at``
+     - ``DateTimeField``
+     - not null; set on insert
+     - when the row was inserted
+   * - ``updated_at``
+     - ``DateTimeField``
+     - not null; set on every save
+     - when the row was last saved
+   * - ``bulk_email``
+     - ``ForeignKey`` to ``bulk_email.BulkEmail``, ``CASCADE``
+     - not null; required
+     - the send; related name ``recipients``
+   * - ``user``
+     - ``ForeignKey`` to ``accounts.User``, ``SET_NULL``
+     - null; default ``NULL``
+     - the account; null once it is deleted; related name ``bulk_emails_received``
+   * - ``name``
+     - ``CharField(301)``
+     - not null; default ``""``
+     - the account's display name at send time, whole: a 150-character first name, a space, and a 150-character last name fit
+   * - ``email``
+     - ``CharField(254)``
+     - not null; default ``""``
+     - the address at send time, kept as stored: an invalid one is recorded as the reason it was skipped, so it is not an ``EmailField``
+   * - ``status``
+     - ``CharField(7)``, :ref:`choices <choices-bulk-email-recipient-status>`
+     - not null; required
+     - ``pending``, ``sent``, ``failed``, or ``skipped``
+   * - ``reason``
+     - ``CharField(200)``
+     - not null; default ``""``
+     - why a copy was skipped (*Account deactivated*, *No email address*, *Invalid email address*, *Address bounced*, *Duplicate address*) or failed (*Refused by the mail server*); blank for one that went or was never tried
+
+**Constraints, indexes, and ordering.**
+
+- Ordering: ``id``, which is the order the send wrote them: every recipient in
+  surname order, then every skip in surname order.
+
+**Relationships.**
+
+- ``bulk_email``: foreign key to ``bulk_email.BulkEmail``, ``CASCADE``; the reverse accessor is ``recipients``.
+- ``user``: foreign key to ``accounts.User``, ``SET_NULL``, nullable; the reverse accessor is ``bulk_emails_received``.
 
 cms
 ===

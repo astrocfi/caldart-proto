@@ -44,6 +44,13 @@ import type {
   Backup,
   BecomeFriendPayload,
   BounceRunResult,
+  BulkEmail,
+  BulkEmailDetail,
+  BulkEmailMessage,
+  BulkEmailPreview,
+  BulkEmailPreviewRecipient,
+  BulkEmailRecipient,
+  BulkEmailRecipientStatus,
   CheckoutRequest,
   CheckoutResponse,
   ContributionRow,
@@ -219,6 +226,10 @@ const mandateProvider: Matches<MandateProvider, Schemas['MandateProviderEnum']> 
 const mandateStatus: Matches<MandateStatus, Schemas['MandateStatusEnum']> = true;
 const renewalOutcome: Matches<RenewalOutcome, Schemas['RenewalOutcomeEnum']> = true;
 const manualMethod: Matches<ManualMethod, Schemas['ManualMethodEnum']> = true;
+const bulkEmailRecipientStatus: Matches<
+  BulkEmailRecipientStatus,
+  Schemas['BulkEmailRecipientStatusEnum']
+> = true;
 
 /* ------------------------------------------------------------------- auth */
 const user: Matches<User, Schemas['User']> = true;
@@ -421,6 +432,17 @@ const notificationSubscriptionPatch: Matches<
   Schemas['PatchedNotificationSubscriptionRequest']
 > = true;
 
+/* ------------------------------------------------------------- bulk email */
+const bulkEmailMessage: Matches<BulkEmailMessage, Schemas['BulkEmailMessageRequest']> = true;
+const bulkEmailPreviewRecipient: Matches<
+  BulkEmailPreviewRecipient,
+  Schemas['BulkEmailPreviewRecipient']
+> = true;
+const bulkEmailPreview: Matches<BulkEmailPreview, Schemas['BulkEmailPreview']> = true;
+const bulkEmailRecipient: Matches<BulkEmailRecipient, Schemas['BulkEmailRecipient']> = true;
+const bulkEmail: Matches<BulkEmail, Schemas['BulkEmail']> = true;
+const bulkEmailDetail: Matches<BulkEmailDetail, Schemas['BulkEmailDetail']> = true;
+
 /** Every pair above, so `noUnusedLocals` keeps each assertion referenced. */
 const assertions: readonly true[] = [
   roleSlug,
@@ -440,6 +462,7 @@ const assertions: readonly true[] = [
   mandateStatus,
   renewalOutcome,
   manualMethod,
+  bulkEmailRecipientStatus,
   paymentWallet,
   paymentState,
   emailStatus,
@@ -581,6 +604,12 @@ const assertions: readonly true[] = [
   notificationSubscription,
   notificationSubscriptionCreate,
   notificationSubscriptionPatch,
+  bulkEmailMessage,
+  bulkEmailPreviewRecipient,
+  bulkEmailPreview,
+  bulkEmailRecipient,
+  bulkEmail,
+  bulkEmailDetail,
 ];
 
 /** The schema component each assertion above names, in the same order. */
@@ -607,6 +636,7 @@ const MAPPED_COMPONENTS: readonly (keyof Schemas)[] = [
   'MandateStatusEnum',
   'RenewalOutcomeEnum',
   'ManualMethodEnum',
+  'BulkEmailRecipientStatusEnum',
   'User',
   'Role',
   'LoginRequest',
@@ -743,6 +773,12 @@ const MAPPED_COMPONENTS: readonly (keyof Schemas)[] = [
   'NotificationSubscription',
   'NotificationSubscriptionCreateRequest',
   'PatchedNotificationSubscriptionRequest',
+  'BulkEmailMessageRequest',
+  'BulkEmailPreviewRecipient',
+  'BulkEmailPreview',
+  'BulkEmailRecipient',
+  'BulkEmail',
+  'BulkEmailDetail',
 ];
 
 /** Vitest runs with `frontend/` as its root, so the repository root is one level up. */

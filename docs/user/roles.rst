@@ -151,6 +151,20 @@ An account administrator looks after the membership records. The role adds:
   administrator also verifies from each member record and aircraft record.
 
 
+CalDART management
+==================
+
+CalDART management writes to the membership as a whole. The role adds one entry of
+**Administration**:
+
+* **Bulk Email** (:doc:`admin/bulk-email`): choose who should hear from CalDART with
+  the same filters the member list uses, write the message, preview the recipients,
+  and send. Every send is kept with the result for each person, and its list
+  downloads as a CSV.
+
+The role opens no member record and no payment. A user administrator grants it.
+
+
 Website administrator
 =====================
 

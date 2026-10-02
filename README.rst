@@ -16,7 +16,7 @@ disagree, one of them is wrong — fix it in the same pull request.
 Features
 ========
 
-- **Accounts and roles.** Email-and-password sign-in, eight roles held as
+- **Accounts and roles.** Email-and-password sign-in, nine roles held as
   Django groups, and self-service password reset.
 - **Membership.** Two plans — Annual at $45 for 365 days and Life at $650 —
   bought online and activated the instant the payment clears.
@@ -38,6 +38,8 @@ Features
 - **Reports.** Membership and aircraft exports as CSV and PDF, payment
   exports as CSV, all with the same filters as the screen you exported them
   from.
+- **Bulk email.** One email to every member and friend the member list's
+  filters select, previewed before it is sent, with each person's result kept.
 - **Content.** Wagtail page types, StreamField blocks, four themes, and a
   members-only wall that only current members and staff get past.
 - **Operations.** Health checks, database backups, restore, and reset, from
@@ -95,6 +97,7 @@ verifier@example.org           member, verifier (no membership term)
 useradmin@example.org          member, user_admin
 treasurer@example.org          member, treasurer
 accountadmin@example.org       member, account_admin
+management@example.org         member, management (no membership term)
 webadmin@example.org           member, website_admin
 sysadmin@example.org           member, system_admin (superuser)
 =============================  ====================================

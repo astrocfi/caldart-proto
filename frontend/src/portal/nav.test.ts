@@ -145,6 +145,21 @@ describe('visibleNavItems', () => {
     expect(visible).not.toContain('Members');
   });
 
+  it('gives CalDART management the Bulk Email screen and nothing else on top of membership', () => {
+    expect(labels(['member', 'management'])).toEqual([...labels(['member']), 'Bulk Email']);
+  });
+
+  it('files Bulk Email under Administration', () => {
+    expect(NAV_ITEMS.find((item) => item.to === '/admin/bulk-email')?.group).toBe('Administration');
+  });
+
+  it.each([['account_admin'], ['user_admin'], ['treasurer']] as const)(
+    'keeps the Bulk Email screen away from %s',
+    (role) => {
+      expect(labels(['member', role])).not.toContain('Bulk Email');
+    },
+  );
+
   it('shows website_admin nothing extra (Wagtail lives outside the portal)', () => {
     expect(labels(['member', 'website_admin'])).toEqual(labels(['member']));
   });

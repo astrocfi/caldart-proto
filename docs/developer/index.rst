@@ -31,6 +31,7 @@ New to the codebase?  :doc:`setup` gets it running, the
    api-system
    api-renewals
    api-notifications
+   api-bulk-email
 
 .. toctree::
    :maxdepth: 1

@@ -208,6 +208,7 @@ export const ROLE_LABELS: Record<RoleSlug, string> = {
   user_admin: 'User administrator',
   treasurer: 'Treasurer',
   account_admin: 'Account administrator',
+  management: 'CalDART management',
   website_admin: 'Website administrator',
   system_admin: 'System administrator',
 };

@@ -39,6 +39,8 @@ do, then read the guide for what you do:
      - :doc:`user/finance/index`
    * - An account administrator
      - :doc:`user/admin/index`
+   * - CalDART management
+     - :doc:`user/admin/bulk-email`
    * - A website administrator
      - :doc:`user/website/index`
    * - A system administrator
@@ -56,7 +58,7 @@ flows the system exists for, end to end, on seeded demo data.
 What it does
 ============
 
-- **Accounts and roles.**  Email-and-password sign-in, seven roles held as
+- **Accounts and roles.**  Email-and-password sign-in, nine roles held as
   Django groups, and self-service password reset.  See
   :doc:`developer/data-model` for the role table.
 - **Membership.**  Two plans — Annual at $45 for 365 days and Life at $650 —
@@ -76,6 +78,9 @@ What it does
 - **Reports.**  Membership and aircraft exports as CSV and PDF, payment
   exports as CSV, all with the same filters as the screen you exported them
   from.
+- **Bulk email.**  One email to every member and friend the member list's
+  filters select, previewed before it is sent, with each person's result
+  kept.
 - **Content.**  Wagtail page types, StreamField blocks, fourteen themes, and a
   members-only wall that only current members and staff get past.
 - **Operations.**  Health checks, database backups, restore, and reset, from

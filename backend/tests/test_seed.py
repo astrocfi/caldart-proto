@@ -19,7 +19,7 @@ from pytest_django.fixtures import DjangoCaptureOnCommitCallbacks
 from wagtail.models import Site
 
 from apps.accounts.models import AccountKind
-from apps.accounts.roles import MEMBER, ROLE_SLUGS, SYSTEM_ADMIN, VERIFIER
+from apps.accounts.roles import MANAGEMENT, MEMBER, ROLE_SLUGS, SYSTEM_ADMIN, VERIFIER
 from apps.accounts.seed import DEMO_ACCOUNTS, DEMO_PASSWORD, GENERATED_MEMBER_COUNT
 from apps.aircraft.models import Aircraft, AircraftType, Registration, RegistryImport
 from apps.aircraft.seed import AIRFRAMES
@@ -56,8 +56,8 @@ User = get_user_model()
 SEEDED_FRIEND_GIFTS = 1
 
 #: The accounts ``seed_demo`` stores as friends: the demo friend, the treasurer, the
-#: verifier, and the four generated friends.
-SEEDED_STORED_FRIENDS = 7
+#: verifier, the management account, and the four generated friends.
+SEEDED_STORED_FRIENDS = 8
 
 #: The accounts whose membership reads ``friend``: the stored friends and the four
 #: generated joiners who chose member and never paid.
@@ -240,7 +240,7 @@ def test_seed_demo_has_expiring_and_mixed_medicals() -> None:
 
     profiles = MemberProfile.objects.exclude(medical_type="none")
     assert sum(1 for p in profiles if not p.medical_is_current) == 13
-    assert sum(1 for p in profiles if p.medical_is_current) == 34
+    assert sum(1 for p in profiles if p.medical_is_current) == 35
     assert {p.pilot_certificate_type for p in MemberProfile.objects.all()} == {
         "none",
         "student",
@@ -710,6 +710,22 @@ def test_seed_facts_name_an_insured_pilot_who_is_verified_on_every_count() -> No
 def test_seed_facts_name_the_verifier_account() -> None:
     """``accounts.verifier`` is the seeded verifier's address."""
     assert seed_facts()["accounts"]["verifier"] == "verifier@example.org"
+
+
+def test_seed_demo_makes_the_management_account() -> None:
+    """``management@example.org`` is Grace Holloway, a friend with CalDART management."""
+    _seed()
+    account = User.objects.get(email="management@example.org")
+    assert (account.display_name, account.roles, account.kind) == (
+        "Grace Holloway",
+        [MEMBER, MANAGEMENT],
+        AccountKind.FRIEND,
+    )
+
+
+def test_seed_facts_name_the_management_account() -> None:
+    """``accounts.management`` is the seeded management account's address."""
+    assert seed_facts()["accounts"]["management"] == "management@example.org"
 
 
 # -- the registry ---------------------------------------------------------------------

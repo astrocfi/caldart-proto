@@ -76,6 +76,8 @@ NO_ROLE_DENIED_GETS = [
     "/api/v1/system/emails/purposes",
     "/api/v1/reports/emails/export.csv",
     "/api/v1/system/health",
+    "/api/v1/bulk-email",
+    "/api/v1/bulk-email/preview.csv",
 ]
 
 
@@ -414,6 +416,8 @@ TREASURER_DENIED_GETS = [
     "/api/v1/system/emails/purposes",
     "/api/v1/reports/emails/export.csv",
     "/api/v1/system/health",
+    "/api/v1/bulk-email",
+    "/api/v1/bulk-email/preview.csv",
 ]
 
 
@@ -455,3 +459,38 @@ def test_a_member_is_offered_no_report(api_client: APIClient, member: User) -> N
 def test_treasurer_manages_the_report_subscriptions(treasurer_client: APIClient) -> None:
     """The subscription list is finance's own, so the treasurer reads it."""
     assert treasurer_client.get("/api/v1/reports/subscriptions").status_code == 200
+
+
+# --------------------------------------------------------------------------
+# CalDART management: bulk email, and nothing else
+# --------------------------------------------------------------------------
+#: Role-gated endpoints outside bulk email, which CalDART management may not reach.
+MANAGEMENT_DENIED_GETS = [
+    MEMBERS_LIST_URL,
+    USERS_LIST_URL,
+    "/api/v1/reports/members/export.csv",
+    "/api/v1/reports/members/columns",
+    "/api/v1/reports/subscriptions",
+    "/api/v1/admin/darts",
+    "/api/v1/admin/payments",
+    "/api/v1/admin/reminders/log",
+    "/api/v1/leader/search",
+    "/api/v1/system/emails",
+    "/api/v1/system/health",
+]
+
+
+@pytest.mark.parametrize("url", MANAGEMENT_DENIED_GETS)
+def test_management_is_refused_every_endpoint_outside_bulk_email(
+    api_client: APIClient, management: User, url: str
+) -> None:
+    """CalDART management reaches no member record, payment, or report: each is a 403."""
+    api_client.force_login(management)
+    assert api_client.get(url).status_code == 403
+
+
+@pytest.mark.parametrize("url", ["/api/v1/bulk-email", "/api/v1/bulk-email/preview.csv"])
+def test_management_reaches_bulk_email(api_client: APIClient, management: User, url: str) -> None:
+    """The bulk email history and the preview list are CalDART management's own."""
+    api_client.force_login(management)
+    assert api_client.get(url).status_code == 200

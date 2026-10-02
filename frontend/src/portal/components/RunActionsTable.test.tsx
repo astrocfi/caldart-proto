@@ -100,4 +100,75 @@ describe('RunActionsTable', () => {
 
     expect(screen.getByText('Nothing was due')).toBeInTheDocument();
   });
+
+  it('heads a When and an Amount column by default', () => {
+    render(<RunActionsTable actions={ACTIONS} dryRun={true} kindLabel={() => 'Notice'} />);
+
+    const headers = screen.getAllByRole('columnheader').map((header) => header.textContent);
+    expect(headers).toEqual(['What', 'Who', 'When', 'Amount']);
+  });
+
+  it('leaves the When and Amount columns out for actions that carry neither', () => {
+    render(
+      <RunActionsTable
+        actions={ACTIONS}
+        dryRun={true}
+        kindLabel={() => 'Sent'}
+        detailHeader="Reason"
+        hasWhenAndAmount={false}
+      />,
+    );
+
+    const headers = screen.getAllByRole('columnheader').map((header) => header.textContent);
+    expect(headers).toEqual(['What', 'Who', 'Reason']);
+  });
+
+  it('keeps two actions apart that differ only by the person', () => {
+    const twins: RunAction[] = [
+      { ...ACTIONS[0]!, member: 'Dana Lee', detail: 'Duplicate address' },
+      { ...ACTIONS[0]!, member: 'Dan Lee', detail: 'Duplicate address' },
+    ];
+    render(<RunActionsTable actions={twins} dryRun={true} kindLabel={() => 'Skipped'} />);
+
+    expect(screen.getByRole('table', { name: '2 actions' })).toHaveTextContent('Dan Lee');
+  });
+
+  it('takes a heading of the caller’s own', () => {
+    render(
+      <RunActionsTable
+        actions={ACTIONS}
+        dryRun={true}
+        kindLabel={() => 'To send'}
+        heading="Who this email would reach"
+      />,
+    );
+
+    expect(screen.getByRole('heading')).toHaveTextContent('Who this email would reach');
+  });
+
+  it('takes a caption of the caller’s own', () => {
+    render(
+      <RunActionsTable
+        actions={ACTIONS}
+        dryRun={true}
+        kindLabel={(kind) => kind}
+        caption="1 person"
+      />,
+    );
+
+    expect(screen.getByRole('table', { name: '1 person' })).toBeInTheDocument();
+  });
+
+  it('takes an empty state of the caller’s own', () => {
+    render(
+      <RunActionsTable
+        actions={[]}
+        dryRun={true}
+        kindLabel={(kind) => kind}
+        emptyTitle="Nobody matches these filters"
+      />,
+    );
+
+    expect(screen.getByText('Nobody matches these filters')).toBeInTheDocument();
+  });
 });

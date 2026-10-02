@@ -410,9 +410,9 @@ report" and saved as ``caldart-roles-<YYYY-MM-DD>``.  ``ROLES_REPORT`` in
 ``backend/apps/members/roles_report.py`` declares it; it sits in the members app
 because its rows read the membership state, which the accounts app sits below.
 It is the sectioned report: one section per staff role, every role but
-``member``, in the privilege order of ``ROLE_SLUGS`` (DART leader, User
-administrator, Treasurer, Account administrator, Website administrator, System
-administrator), each drawn even when nobody holds that role, with the line
+``member``, in the privilege order of ``ROLE_SLUGS`` (Verifier, DART leader, User
+administrator, Treasurer, Account administrator, CalDART management, Website
+administrator, System administrator), each drawn even when nobody holds that role, with the line
 "Nobody holds this role." under an empty one.  ``ROLE_LABELS`` and
 ``STAFF_ROLE_LABELS`` in ``apps/accounts/roles.py`` name the roles, and the
 section titles are those names.

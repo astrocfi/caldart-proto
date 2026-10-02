@@ -219,6 +219,10 @@ your roles open. :doc:`roles` lists every screen each one reaches.
   the DARTs, the reminder log, and the reports and rosters sent by email. Can check
   members as a DART leader does.
 
+**CalDART management**
+  Writes to the membership as a whole: one email to everybody a filter selects,
+  after previewing who it reaches.
+
 **Website administrator**
   Writes and publishes the public site's pages, news, and events.
 

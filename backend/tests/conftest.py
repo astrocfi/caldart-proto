@@ -42,6 +42,7 @@ from apps.accounts.models import AccountKind
 from apps.accounts.roles import (
     ACCOUNT_ADMIN,
     DART_LEADER,
+    MANAGEMENT,
     MEMBER,
     ROLE_SLUGS,
     SYSTEM_ADMIN,
@@ -364,6 +365,7 @@ dart_leader = _role_fixture(DART_LEADER, "leader@example.test", ("Jordan", "Keel
 user_admin = _role_fixture(USER_ADMIN, "useradmin@example.test", ("Sam", "Pryor"))
 treasurer = _role_fixture(TREASURER, "treasurer@example.test", ("Casey", "Lund"))
 account_admin = _role_fixture(ACCOUNT_ADMIN, "accountadmin@example.test", ("Zoe", "Yeager"))
+management = _role_fixture(MANAGEMENT, "management@example.test", ("Hollis", "Grant"))
 website_admin = _role_fixture(WEBSITE_ADMIN, "webadmin@example.test", ("Morgan", "Tate"))
 system_admin = _role_fixture(SYSTEM_ADMIN, "sysadmin@example.test", ("Avery", "Stroud"))
 
@@ -401,7 +403,7 @@ def role_matrix(*allowed: str) -> list[tuple[str, bool]]:
     order, so ``role_matrix(ACCOUNT_ADMIN, SYSTEM_ADMIN)`` is
     ``[("member", False), ("verifier", False), ("dart_leader", False),
     ("user_admin", False), ("treasurer", False), ("account_admin", True),
-    ("website_admin", False), ("system_admin", True)]``
+    ("management", False), ("website_admin", False), ("system_admin", True)]``
     and collects as ``[member-False]`` ... ``[system_admin-True]``.  Pair it with the
     ``all_role_users`` fixture to sign the matching user in.
     """
@@ -416,6 +418,7 @@ def all_role_users(
     user_admin: UserModel,
     treasurer: UserModel,
     account_admin: UserModel,
+    management: UserModel,
     website_admin: UserModel,
     system_admin: UserModel,
 ) -> dict[str, UserModel]:
@@ -427,6 +430,7 @@ def all_role_users(
         USER_ADMIN: user_admin,
         TREASURER: treasurer,
         ACCOUNT_ADMIN: account_admin,
+        MANAGEMENT: management,
         WEBSITE_ADMIN: website_admin,
         SYSTEM_ADMIN: system_admin,
     }

@@ -4,7 +4,8 @@
  * it — one row per email sent or charge taken, so "who did this actually
  * reach?" never needs a shell.  The renewals, reminders, scheduled-reports,
  * statements and bounces panels of the Scheduled page (`/portal/system/scheduled`)
- * use it, and so does the DART rosters card of `/admin/reports`.
+ * use it, and so do the DART rosters card of `/admin/reports` and the Bulk Email
+ * screen.
  */
 import type { JSX, ReactNode } from 'react';
 
@@ -36,6 +37,20 @@ interface RunActionsTableProps {
    * to report yet.
    */
   summary?: ReactNode;
+  /**
+   * Whether the actions carry a date and an amount.  A run that only sends
+   * emails about no particular day, such as a bulk email, passes false to
+   * leave the When and Amount columns out.
+   */
+  hasWhenAndAmount?: boolean;
+  /** The heading over the table, in place of `actionsHeading`'s. */
+  heading?: string;
+  /** The table's caption, in place of the count of actions. */
+  caption?: string;
+  /** What an empty table says, in place of *Nothing was due*. */
+  emptyTitle?: string;
+  /** A line under an empty table's title. */
+  emptyDescription?: string;
 }
 
 /** A run's heading, its caller-supplied summary, and the actions behind it. */
@@ -45,11 +60,27 @@ export function RunActionsTable({
   kindLabel,
   detailHeader,
   summary,
+  hasWhenAndAmount = true,
+  heading,
+  caption,
+  emptyTitle = 'Nothing was due',
+  emptyDescription,
 }: RunActionsTableProps): JSX.Element {
   const detail: Column<RunAction>[] =
     detailHeader === undefined
       ? []
       : [{ key: 'detail', header: detailHeader, render: (row) => row.detail }];
+  const whenAndAmount: Column<RunAction>[] = hasWhenAndAmount
+    ? [
+        { key: 'on', header: 'When', render: (row) => <DateText value={row.on} /> },
+        {
+          key: 'amount_cents',
+          header: 'Amount',
+          numeric: true,
+          render: (row) => <Money cents={row.amount_cents} />,
+        },
+      ]
+    : [];
   const columns: Column<RunAction>[] = [
     { key: 'kind', header: 'What', render: (row) => kindLabel(row.kind) },
     {
@@ -68,25 +99,20 @@ export function RunActionsTable({
         ),
     },
     ...detail,
-    { key: 'on', header: 'When', render: (row) => <DateText value={row.on} /> },
-    {
-      key: 'amount_cents',
-      header: 'Amount',
-      numeric: true,
-      render: (row) => <Money cents={row.amount_cents} />,
-    },
+    ...whenAndAmount,
   ];
 
   return (
     <div className="run-actions stack-tight">
-      <h3>{actionsHeading(dryRun)}</h3>
+      <h3>{heading ?? actionsHeading(dryRun)}</h3>
       {summary}
       <DataTable
         columns={columns}
         rows={actions}
-        rowKey={(row) => `${row.kind}-${row.email}-${row.on ?? ''}-${row.detail}`}
-        caption={`${actions.length} action${actions.length === 1 ? '' : 's'}`}
-        emptyTitle="Nothing was due"
+        rowKey={(row) => `${row.kind}-${row.member}-${row.email}-${row.on ?? ''}-${row.detail}`}
+        caption={caption ?? `${actions.length} action${actions.length === 1 ? '' : 's'}`}
+        emptyTitle={emptyTitle}
+        emptyDescription={emptyDescription}
       />
     </div>
   );

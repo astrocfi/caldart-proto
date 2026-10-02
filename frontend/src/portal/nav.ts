@@ -98,6 +98,7 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ['account_admin'],
     group: 'Administration',
   },
+  { to: '/admin/bulk-email', label: 'Bulk Email', roles: ['management'], group: 'Administration' },
 
   { to: '/system/health', label: 'Health & Database', roles: ['system_admin'], group: 'System' },
   { to: '/system/emails', label: 'Sent Emails', roles: ['system_admin'], group: 'System' },

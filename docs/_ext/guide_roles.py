@@ -50,6 +50,7 @@ ROLE_SLUGS: tuple[str, ...] = (
     "user_admin",
     "treasurer",
     "account_admin",
+    "management",
     "website_admin",
     "system_admin",
 )

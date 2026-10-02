@@ -102,6 +102,9 @@ vi.mock('../features/admin-reports/AdminReportsPage', () => ({
 vi.mock('../features/admin-notifications/AdminNotificationsPage', () => ({
   AdminNotificationsPage: pageStub('Notifications'),
 }));
+vi.mock('../features/bulk-email/BulkEmailPage', () => ({
+  BulkEmailPage: pageStub('Bulk Email'),
+}));
 vi.mock('../features/admin-users/UsersListPage', () => ({
   UsersListPage: pageStub('Users and roles'),
 }));
@@ -135,6 +138,7 @@ const IDENTITIES: Identity[] = [
   { name: 'user_admin', roles: ['member', 'user_admin'] },
   { name: 'treasurer', roles: ['member', 'treasurer'] },
   { name: 'account_admin', roles: ['member', 'account_admin'] },
+  { name: 'management', roles: ['member', 'management'] },
   { name: 'website_admin', roles: ['member', 'website_admin'] },
   { name: 'system_admin', roles: ['member', 'system_admin'] },
 ];
@@ -148,6 +152,7 @@ const ANY_SIGNED_IN = [
   'user_admin',
   'treasurer',
   'account_admin',
+  'management',
   'website_admin',
   'system_admin',
 ];
@@ -258,6 +263,11 @@ const GUARDED_PATHS: GuardedPath[] = [
     path: '/admin/notifications',
     heading: 'Notifications',
     allowed: ['account_admin', 'system_admin'],
+  },
+  {
+    path: '/admin/bulk-email',
+    heading: 'Bulk Email',
+    allowed: ['management', 'system_admin'],
   },
   { path: '/admin/users', heading: 'Users and roles', allowed: ['user_admin', 'system_admin'] },
   { path: '/admin/users/1', heading: 'User record', allowed: ['user_admin', 'system_admin'] },
