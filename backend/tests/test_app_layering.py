@@ -85,6 +85,7 @@ SANCTIONED_INLINE_IMPORTS: frozenset[tuple[str, str]] = frozenset(
         ("apps.accounts.models", "apps.members.models"),
         ("apps.accounts.models", "apps.members.services"),
         ("apps.accounts.services", "apps.cms.models"),
+        ("apps.mail.purposes", "apps.reminders.models"),
         ("apps.members.services", "apps.payments.models"),
         ("apps.members.services", "apps.payments.renewals"),
     }

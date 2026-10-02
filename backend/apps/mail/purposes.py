@@ -11,8 +11,6 @@ from the stored reminder schedule so their days are the ones the scanner uses;
 
 from __future__ import annotations
 
-from apps.reminders.models import ReminderSchedule
-
 #: The label of every email template but the renewal reminders', in the order the
 #: purpose filter offers them after the reminders.
 PURPOSE_LABELS: dict[str, str] = {
@@ -65,6 +63,10 @@ def purpose_labels() -> dict[str, str]:
     :data:`PURPOSE_LABELS`.  Reads the schedule once, so a caller labeling many rows
     asks for the labels once and looks each row up with :func:`purpose_label`.
     """
+    # Inline: reminders sits above mail in the app order, since it sends email, so
+    # this module may not import it at the top.
+    from apps.reminders.models import ReminderSchedule
+
     return {**ReminderSchedule.load().purpose_labels(), **PURPOSE_LABELS}
 
 
