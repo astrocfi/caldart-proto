@@ -9,6 +9,7 @@ from rest_framework.exceptions import ValidationError
 
 from apps.bulk_email.models import BulkEmail, BulkEmailRecipient
 from apps.bulk_email.services import (
+    Recipient,
     RecipientList,
     given_filters,
     selected_accounts,
@@ -113,19 +114,20 @@ class BulkEmailPreviewSerializer(serializers.Serializer[PreviewDict]):
 
 def preview_payload(chosen: RecipientList) -> PreviewDict:
     """``chosen`` as ``POST /bulk-email/preview`` answers it."""
-
-    def rows(entries: list[Any]) -> list[RecipientDict]:
-        return [
-            {"user_id": r.user_id, "name": r.name, "email": r.email, "reason": r.reason}
-            for r in entries
-        ]
-
     return {
         "count": len(chosen.recipients),
         "skipped_count": len(chosen.skipped),
-        "recipients": rows(chosen.recipients),
-        "skipped": rows(chosen.skipped),
+        "recipients": _recipient_rows(chosen.recipients),
+        "skipped": _recipient_rows(chosen.skipped),
     }
+
+
+def _recipient_rows(entries: list[Recipient]) -> list[RecipientDict]:
+    """Each of ``entries`` as one row of a preview's list."""
+    return [
+        {"user_id": r.user_id, "name": r.name, "email": r.email, "reason": r.reason}
+        for r in entries
+    ]
 
 
 class BulkEmailRecipientSerializer(serializers.ModelSerializer[BulkEmailRecipient]):
