@@ -1123,7 +1123,8 @@ for it, such as "60 days before expiry"; the labels here only name the stages.
 -----------------------------------------
 
 ``EmailLog.status``: ``sent`` when the mail server took the message,
-``failed`` when it refused it.
+``failed`` when it refused it, and ``bounced`` once the bounce check has read a
+permanent-failure report for a message the server took (:ref:`email-bounces`).
 
 .. list-table::
    :header-rows: 1
@@ -1135,6 +1136,8 @@ for it, such as "60 days before expiry"; the labels here only name the stages.
      - Sent
    * - ``failed``
      - Failed
+   * - ``bounced``
+     - Bounced
 
 .. _choices-report-formats:
 
@@ -1298,6 +1301,14 @@ and ``PermissionsMixin`` classes it builds on.
      - ``DateTimeField``
      - null; default ``NULL``
      - when the owner last proved the address by following a verification or password link sent to it; null while the address is unverified
+   * - ``email_bounced_at``
+     - ``DateTimeField``
+     - null; default ``NULL``
+     - when the bounce check last read a permanent-failure report for a message sent to the current address (:ref:`email-bounces`); null while no bounce is known
+   * - ``email_bounce_detail``
+     - ``CharField(255)``
+     - not null; default ``""``
+     - that report's status code and diagnostic text, such as ``5.1.1 550 User unknown``; blank while no bounce is known
    * - ``kind``
      - ``CharField(8)``, choices :ref:`AccountKind <choices-account-kind>`
      - not null; default ``"member"``
@@ -1367,6 +1378,12 @@ to the rows already stored (:doc:`setup`).
   that link, or a password reset or invitation link, sets it again.
   ``seed_demo`` stamps every seeded account but a donor verified as of its
   ``created_at``.
+- ``email_bounced_at`` and ``email_bounce_detail`` are set together by the bounce
+  check and cleared together: by an edit that really changes the address, by
+  following a verification, password reset, or invitation link sent to the
+  address (whether or not it was verified already), and by a user
+  administrator's ``POST /admin/users/{id}/clear-bounce``
+  (:ref:`api-clear-bounce`).
 
 .. _account-kinds:
 
@@ -3721,9 +3738,9 @@ system said to whom, which is what ``GET /system/emails`` reads
      - not null; required
      - when the send was attempted
    * - ``status``
-     - ``CharField(6)``, choices :ref:`EmailStatus <choices-email-status>`
+     - ``CharField(7)``, choices :ref:`EmailStatus <choices-email-status>`
      - not null; default ``"sent"``
-     - whether the mail server took the message
+     - whether the mail server took the message, and whether it later bounced
    * - ``error``
      - ``CharField(100)``
      - not null; default ``""``
@@ -3732,11 +3749,24 @@ system said to whom, which is what ``GET /system/emails`` reads
      - ``CharField(255)``
      - not null; default ``""``
      - the filenames that rode along, comma-separated; blank when none did
+   * - ``message_id``
+     - ``CharField(255)``, indexed
+     - not null; default ``""``
+     - the ``Message-ID`` header the message went out with, angle brackets included, which the bounce check matches a report by
+   * - ``bounced_at``
+     - ``DateTimeField``
+     - null; default ``NULL``
+     - when the bounce check read a permanent-failure report for the message; null unless ``status`` is ``bounced``
+   * - ``bounce_detail``
+     - ``CharField(255)``
+     - not null; default ``""``
+     - that report's status code and diagnostic text; blank unless ``status`` is ``bounced``
 
 **Constraints, indexes, and ordering.**
 
 - Index ``mail_purpose_sent_idx`` on (``purpose``, ``-sent_at``).
 - Index ``mail_user_sent_idx`` on (``user``, ``-sent_at``).
+- Index on ``message_id``.
 - Ordering: ``-sent_at``, ``-id``.
 
 Nothing reads the table to decide what to do next, so it carries no

@@ -4,12 +4,12 @@
 Scheduled
 =========
 
-**Scheduled** lists the four jobs the server runs on a schedule. Each one can be run by hand
+**Scheduled** lists the five jobs the server runs on a schedule. Each one can be run by hand
 here, and a dry run shows what it would do. Only a system administrator sees it, under
 **System** in the menu. In normal running you never need to touch it.
 
-The page has four panels, top to bottom: **Renewal reminder emails**, **Automatic renewal
-charges**, **Scheduled reports**, and **Year-end statements**. The first two are a pair that
+The page has five panels, top to bottom: **Renewal reminder emails**, **Automatic renewal
+charges**, **Scheduled reports**, **Year-end statements**, and **Bounces**. The first two are a pair that
 are easy to confuse. The reminder emails only ever send email. The renewal charges take the
 money from members who asked to be renewed automatically, and they run first each morning,
 so a member they renew is not also reminded.
@@ -145,11 +145,38 @@ organization's name.
 The table names each *Statement*, the account and its address, and the year's total.
 
 
+Bounces
+=======
+
+Every hour CalDART reads the mailbox that undeliverable email comes back to. When another
+mail server has refused one of its emails for good, because the address does not exist or
+no longer takes mail, CalDART marks that email *Bounced* on :doc:`sent-emails` and puts a
+**Bounced** flag beside the address on the person's member record and user record. Delays
+and temporary failures, which the other server is still retrying, are ignored. The flag stays
+until the address is changed, until the person follows a verification or password reset link
+sent to it, or until a user administrator clears it on :doc:`user-record`.
+
+#. Leave **Dry run (change nothing)** ticked the first time. Nothing is marked, and every
+   message stays in the mailbox for the next run.
+#. Press **Run now**. The result reads, for example, *Would mark 1 bounced, leave 1
+   unmatched, and ignore 2.* *Bounced* counts the emails matched to a bounce, *unmatched* the
+   bounces CalDART could not tie to an email it sent in the last week, and *ignored* the
+   messages that were not a refusal for good.
+#. Clear the box and press **Run now** again to mark them for real.
+
+The table names each one: **What** (*Bounced*, or *No matching email*), **Who** the email
+went to, the **Report** the other mail server gave, and **When** the email was sent.
+
+If the server has no bounce mailbox set up, the panel says *Bounce checking is off*, and the
+person who runs the server can set one up.
+
+
 If something looks wrong
 ========================
 
 If a job's emails or charges stop happening (no reminders on :doc:`reminders` for days, no
-scheduled reports, no automatic renewals taken, or no statements in January), the server may
+scheduled reports, no automatic renewals taken, no statements in January, or no bounces
+marked for weeks), the server may
 have stopped starting that job; the person who runs the server can check it. Meanwhile **Run
 now** does the same work by hand. A reminder run that skips everyone is normal on most days,
 because members were written to the first morning they reached each stage. A run that sends

@@ -27,7 +27,10 @@ the name carries:
   not change the date, so it tells you how current the details are;
 - a **Donor** chip for somebody who has only given through the public site, and an
   **Account deactivated** chip for an account that cannot sign in;
-- their email address, and the roles the account holds.
+- their email address, and the roles the account holds. When another mail server has
+  refused an email to the address for good, a red **Bounced** chip with the date and the
+  reason that server gave follows it. A user administrator corrects the address or clears
+  the flag on the :doc:`user-record`.
 
 Below the strip are four tabs: **Profile**, **Memberships**, **Payments**, and **Danger
 zone**. The arrow keys move between them. The tab you are on is part of the page's address,

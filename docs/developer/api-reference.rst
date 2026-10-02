@@ -652,6 +652,14 @@ not (see :ref:`api-csrf-bootstrap`).
      - ·
      - ·
      - blocking deactivates an active account
+   * - ``POST /admin/users/{id}/clear-bounce``
+     - ·
+     - ·
+     - ·
+     - ✓
+     - ·
+     - ·
+     - audited as ``account.bounce_cleared``
    * - ``GET /darts``, ``GET /plans``
      - ✓
      - ✓
@@ -1468,6 +1476,14 @@ not (see :ref:`api-csrf-bootstrap`).
      - ·
      - ·
      - ``system_admin`` only
+   * - ``POST /system/bounces/run``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ``system_admin`` only; 400 when the mailbox cannot be read
    * - ``POST /system/renewals/run``
      - ·
      - ·

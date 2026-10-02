@@ -355,7 +355,8 @@ The endpoint does not sign the user in; the portal sends them to ``/login``.
 The link could only have reached the owner of the address, so spending it also
 marks an unverified address verified (``email_verified_at`` is set to now, and
 an ``account.email_verified`` audit line is written); an address already
-verified keeps its original time.
+verified keeps its original time.  Either way, any bounce recorded against the
+address is cleared.
 
 A link for a deactivated account is accepted, and spending it reactivates the
 account exactly as ``POST /auth/reactivate`` does — the person proved the address
@@ -516,7 +517,8 @@ records it under the purpose ``email_verification``.
 whenever an edit really changes ``email`` — compared stripped and
 case-insensitively — it clears ``email_verified_at`` and mails the new address
 once the transaction commits, with the address it replaced signed into the
-link.  That covers
+link.  The same edit clears any bounce recorded against the old address
+(``email_bounced_at`` and ``email_bounce_detail``).  That covers
 ``PATCH /admin/users/{id}``, ``PATCH /admin/members/{user_id}``, and
 ``POST /auth/email/change`` alike.
 
@@ -535,7 +537,8 @@ client may open the link in a browser that has no session.
    {"email": "marta.reyes@example.org"}
 
 The account the token names is stamped verified and an
-``account.email_verified`` audit line is written.  A link mailed when somebody
+``account.email_verified`` audit line is written; any bounce recorded against the
+address is cleared, since mail to it has just arrived.  A link mailed when somebody
 registered with a donor's address first upgrades the donor to the member or
 friend that registration asked for (see `POST /auth/register`_); a donor's
 link that carries no upgrade is refused like a forged one.  A link mailed after a
@@ -653,7 +656,7 @@ Statuses: **200**; **401** when anonymous.
 Users admin
 ===========
 
-All nine endpoints require the ``user_admin`` role.  ``system_admin`` passes
+All ten endpoints require the ``user_admin`` role.  ``system_admin`` passes
 every role check, so system administrators have them too; every other role gets
 403.
 
@@ -664,7 +667,10 @@ Paginated list of user payloads, ordered by last name, first name, email.
 Each row also carries ``email_verified_at``: when the owner last proved the
 address, as an ISO datetime, or ``null`` while it is unverified; and
 ``reactivation_blocked``, true while a user administrator has blocked the account
-from reactivating (:ref:`api-reactivation-block`).
+from reactivating (:ref:`api-reactivation-block`).  ``email_bounced_at`` is when
+the bounce check last found the address bouncing, as an ISO datetime, or ``null``
+while no bounce is known, and ``email_bounce_detail`` that report's status code and
+diagnostic, or ``""`` (:ref:`email-bounces`).
 
 .. code-block:: json
 
@@ -681,6 +687,7 @@ from reactivating (:ref:`api-reactivation-block`).
         "profile_complete": true, "email_verified": true, "kind": "member",
         "friend_on": null,
         "email_verified_at": "2026-09-01T10:14:02.100522-07:00",
+        "email_bounced_at": null, "email_bounce_detail": "",
         "reactivation_blocked": false}
      ]
    }
@@ -695,6 +702,8 @@ Parameter          Effect
 ``kind``           ``member``, ``friend``, or ``donor``, as stored.  An
                    unknown kind is a 400.  This list is where a donor's
                    account is found; donors appear in no member list.
+``email_bounced``  ``true`` keeps the accounts whose address has a bounce
+                   recorded, ``false`` the rest.
 ``ordering``       One of ``last_name``, ``first_name``, ``email``,
                    ``is_active``, ``created_at``; prefix with ``-`` to reverse.
                    Unlike ``role``, an unrecognized field is *ignored* rather
@@ -739,15 +748,17 @@ is ``DELETE /admin/members/{user_id}``, behind ``account_admin`` — see
     "profile_complete": true, "email_verified": true, "kind": "member",
     "friend_on": null,
     "email_verified_at": "2026-09-01T10:14:02.100522-07:00",
+    "email_bounced_at": null, "email_bounce_detail": "",
     "reactivation_blocked": false}
 
-``email_verified_at``, ``kind``, ``friend_on``, ``is_active`` and
-``reactivation_blocked`` are read-only here: an ``is_active`` sent in the body is
-ignored.  The kind is the account administrator's to change (:doc:`api-members`),
+``email_verified_at``, ``email_bounced_at``, ``email_bounce_detail``, ``kind``,
+``friend_on``, ``is_active`` and ``reactivation_blocked`` are read-only here: an
+``is_active`` sent in the body is ignored.  The kind is the account administrator's to change (:doc:`api-members`),
 never the user administrator's, and the two flags change only through the
 account status actions (:ref:`api-account-status`).  A write that really changes ``email``
-clears it and mails the new address a verification link (see `Email
-verification`_); a change of capitalization alone leaves it alone.
+clears ``email_verified_at`` and mails the new address a verification link (see
+`Email verification`_), and clears any bounce recorded against the old address; a
+change of capitalization alone leaves all of them alone.
 
 Three rules are enforced in ``AdminUserSerializer``:
 
@@ -843,6 +854,22 @@ The send is recorded in the audit log as
 Statuses: **202** when the mail went out; **400** for a donor, a verified
 address, or a deactivated account; **401** when anonymous; **403** without ``user_admin``;
 **404** for an unknown id.  Not throttled.
+
+.. _api-clear-bounce:
+
+``POST /admin/users/{id}/clear-bounce``
+---------------------------------------
+
+Clears the bounce the bounce check recorded against the account's address
+(:ref:`email-bounces`), for an address the administrator has confirmed works.  No
+body.  ``email_bounced_at`` and ``email_bounce_detail`` are emptied, the change is
+recorded in the audit log as ``action=account.bounce_cleared actor=<admin>
+target=<id>``, and the answer is the user payload as it stands afterwards.  An
+account with no bounce recorded is answered unchanged, and nothing is recorded.
+The flag comes back if the next message to the address bounces too.
+
+Statuses: **200** with the user payload; **401** when anonymous; **403** without
+``user_admin``; **404** for an unknown id.
 
 
 .. _api-account-status:

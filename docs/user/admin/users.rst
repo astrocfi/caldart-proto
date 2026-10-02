@@ -56,6 +56,11 @@ Finding an account
    **Active only**, so choose **Active and deactivated** or **Deactivated only** to find an
    account that has been deactivated.
 
+**Email**
+   **Any address**, the first choice, **Email bounced**, or **Not bounced**. **Email
+   bounced** lists the accounts whose address another mail server has refused for good, so
+   you can find each one and correct the address (:doc:`user-record`).
+
 Changing a filter takes you back to the first page. With nothing to show the table reads *No
 accounts match those filters*.
 
@@ -68,7 +73,8 @@ the people who hold each role other than member, with a section per role from Ve
 System administrator. A section nobody holds still appears, and the PDF says *Nobody holds
 this role.* under it. A person holding two such roles is listed in both sections.
 
-The report lists active accounts only, whatever **Account status** shows. It follows the
+The report lists active accounts only, whatever **Account status** shows, and ignores the
+**Email** filter. It follows the
 screen's **Search**, the role chosen under **Filter by role**, which leaves that one
 section, and **Member** or **Friend** under **Kind of account**. The report's Kind follows
 the membership it shows for today: an account given the kind member reads as a friend there

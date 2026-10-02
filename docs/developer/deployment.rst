@@ -139,6 +139,13 @@ The flags:
    * - ``--from-email ADDRESS``
      - ``DEFAULT_FROM_EMAIL``
      - ``CalDART <noreply@HOST>``
+   * - ``--bounce-imap-url URL``
+     - ``BOUNCE_IMAP_URL``: the mailbox the hourly bounce check reads, as
+       ``imaps://user:password@host[:port]/MAILBOX`` (:ref:`email-bounces`)
+     - empty: bounce checking off
+   * - ``--bounce-address ADDRESS``
+     - ``BOUNCE_ADDRESS``: the envelope sender a refused message is returned to
+     - empty: ``DEFAULT_FROM_EMAIL``
    * - ``--admin-email ADDRESS``
      - create the first administrator
      - none
@@ -174,9 +181,12 @@ hostname, ``www``, the web server, the TLS mode, the certbot address, staging,
 the database port, the gunicorn port, the URL prefix, and the attached vhost file) are written to ``/etc/caldart/install.conf``,
 ``root:root``, mode ``0644``, holding no secret.  Every step reads it, so a
 later run needs no flags, and a flag given on a later run updates the record.
-``--email-url``, ``--email``, ``--from-email``, ``--admin-email``,
-``--seed-demo``, and ``--seed-content`` are used by the run that writes the
-environment file or creates the administrator, and are not recorded.  The
+``--email-url``, ``--email``, ``--from-email``, ``--bounce-imap-url``,
+``--bounce-address``, ``--admin-email``, ``--seed-demo``, and ``--seed-content``
+are used by the run that writes the environment file or creates the
+administrator, and are not recorded.  ``bootstrap.sh`` prints the installer line
+with the values of ``--email-url`` and ``--bounce-imap-url`` masked, since both can
+carry a password.  The
 first run stops with a
 usage error naming ``--hostname`` when no record exists, ``--email-url`` and
 ``--email local`` while no environment file exists, and ``--certbot-email``
@@ -278,17 +288,18 @@ What you are deploying
       }
 
    .. graphviz::
-      :caption: The same server's six scheduled jobs.  Each timer starts its
+      :caption: The same server's seven scheduled jobs.  Each timer starts its
                 service, which runs a management command and exits.  A
                 **solid arrow** is the job reading and writing the database; a
                 **dashed arrow** is an outbound call; a **dotted arrow** is a
                 file written to disk.  Every job service reads its settings
                 from the same environment file as ``caldart-web.service``, so
-                the server runs seven services in all.
-      :alt: The six CalDART timers and their services, each using
+                the server runs eight services in all.
+      :alt: The seven CalDART timers and their services, each using
             Postgres; four send mail, the renewals job also charges through
             Stripe and PayPal, the registry job downloads the FAA registry,
-            and the backup job writes dumps to the backup directory
+            the bounce job reads the bounce mailbox over IMAPS, and the
+            backup job writes dumps to the backup directory
 
       digraph caldart_jobs {
           rankdir=LR;
@@ -303,6 +314,7 @@ What you are deploying
           Renewals [label="caldart-renewals.timer\l  daily 06:30 ->\l  caldart-renewals.service\l  manage.py run_auto_renewals\l"];
           Reminders [label="caldart-reminders.timer\l  daily 07:00 ->\l  caldart-reminders.service\l  manage.py send_renewal_reminders\l"];
           Statements [label="caldart-statements.timer\l  yearly Jan 15, 06:45 ->\l  caldart-statements.service\l  manage.py send_year_statements\l"];
+          Bounces [label="caldart-bounces.timer\l  hourly at :20 ->\l  caldart-bounces.service\l  manage.py check_bounces\l"];
           Registry [label="caldart-registry.timer\l  daily 04:30 ->\l  caldart-registry.service\l  manage.py import_faa_registry\l"];
           Backup [label="caldart-backup.timer\l  daily 03:30 ->\l  caldart-backup.service\l  manage.py db_backup,\l  then prunes old dumps\l"];
           Dumps [label="/opt/caldart/backups/\l  BACKUP_DIR, kept for\l  BACKUP_RETENTION_DAYS\l", shape=folder, style=""];
@@ -310,13 +322,14 @@ What you are deploying
           Stripe [label="Stripe and PayPal\l  off-session charges\l"];
           Postgres [label="Postgres in Docker\l  :CALDART_DB_PORT, 5432 by default\l"];
           Smtp [label="SMTP server\l  from EMAIL_URL\l"];
+          Imap [label="bounce mailbox\l  IMAPS, from BOUNCE_IMAP_URL\l"];
 
-          {rank=same; Dumps; Faa; Stripe; Postgres; Smtp;}
-          {rank=same; Backup; Registry; Reports; Renewals; Reminders; Statements;}
-          Dumps -> Faa -> Stripe -> Postgres -> Smtp [style=invis];
-          Backup -> Registry -> Reports -> Renewals -> Reminders -> Statements [style=invis];
+          {rank=same; Dumps; Faa; Stripe; Postgres; Smtp; Imap;}
+          {rank=same; Backup; Registry; Reports; Renewals; Reminders; Statements; Bounces;}
+          Dumps -> Faa -> Stripe -> Postgres -> Smtp -> Imap [style=invis];
+          Backup -> Registry -> Reports -> Renewals -> Reminders -> Statements -> Bounces [style=invis];
 
-          Env -> {Backup Registry Reports Renewals Reminders Statements} [style=dashed, arrowhead=none];
+          Env -> {Backup Registry Reports Renewals Reminders Statements Bounces} [style=dashed, arrowhead=none];
           Backup -> Postgres;
           Backup -> Dumps [style=dotted];
           Registry -> Faa [style=dashed];
@@ -330,6 +343,8 @@ What you are deploying
           Renewals -> Smtp [style=dashed];
           Reminders -> Smtp [style=dashed];
           Statements -> Smtp [style=dashed];
+          Bounces -> Postgres;
+          Bounces -> Imap [style=dashed];
       }
 
 .. only:: not graphviz
@@ -387,25 +402,32 @@ What you are deploying
                                                       |
       caldart-statements.timer, yearly Jan 15, 06:45  |
         -> caldart-statements.service                 |
-           manage.py send_year_statements ------------'
-           -> the SMTP server, for the contribution statements
+           manage.py send_year_statements ------------|
+           -> the SMTP server, for the contribution   |
+              statements                              |
+                                                      |
+      caldart-bounces.timer, hourly at :20            |
+        -> caldart-bounces.service                    |
+           manage.py check_bounces -------------------'
+           -> the bounce mailbox over IMAPS, from BOUNCE_IMAP_URL
 
-   Apache, gunicorn, Postgres, and the six timers run on one Linux server with
+   Apache, gunicorn, Postgres, and the seven timers run on one Linux server with
    the deploy root ``/opt/caldart`` and the checkout in
-   ``/opt/caldart/caldart``, and all seven services (``caldart-web`` and
-   the six job services) read their settings from ``/etc/caldart/caldart.env``
+   ``/opt/caldart/caldart``, and all eight services (``caldart-web`` and
+   the seven job services) read their settings from ``/etc/caldart/caldart.env``
    (``root:caldart``, mode ``0640``).  Django calls out to ``api.stripe.com``
    and ``api-m.paypal.com`` during a checkout, and to the same SMTP server for
    password resets and invitations.  ``nginx`` (``deploy/nginx/caldart.conf``)
    takes Apache's place unchanged when you deploy it instead.
 
 Three things run continuously: the Docker Postgres container, the
-``caldart-web`` gunicorn unit, and Apache.  Six jobs run on a schedule: the
+``caldart-web`` gunicorn unit, and Apache.  Seven jobs run on a schedule: the
 ``caldart-backup`` timer daily at 03:30, the ``caldart-registry`` timer daily at
 04:30, the ``caldart-reports`` timer daily
 at 06:00, the ``caldart-renewals`` timer daily at 06:30, the
-``caldart-reminders`` timer daily at 07:00, and the ``caldart-statements`` timer
-yearly at 06:45 on January 15th.
+``caldart-reminders`` timer daily at 07:00, the ``caldart-statements`` timer
+yearly at 06:45 on January 15th, and the ``caldart-bounces`` timer every hour at
+twenty past.
 
 The application is a **Django 6** project with Wagtail 8 on top, and step 6
 (``deploy/steps/build.sh``) installs it with ``uv sync --frozen``, so the box runs the exact versions
@@ -725,7 +747,8 @@ root's ``backups`` and ``media`` (beside the checkout, :ref:`deploy-layout`),
 ``CALDART_GUNICORN_PORT`` to the gunicorn port the record names (8001 unless
 ``--gunicorn-port`` says otherwise), printing that one line under its stage
 line, a dry run included; with ``--url-prefix``, ``URL_PREFIX`` (``SITE_URL`` must end in it, and
-``prod.py`` refuses a file where it does not); with ``--tls self-signed``,
+``prod.py`` refuses a file where it does not); with ``--bounce-imap-url`` and
+``--bounce-address``, ``BOUNCE_IMAP_URL`` and ``BOUNCE_ADDRESS``; with ``--tls self-signed``,
 ``SECURE_HSTS_SECONDS=0`` too.  With ``--tls existing`` the HSTS default is
 left as the template has it: the existing site owns HSTS for its host.
 
@@ -747,7 +770,8 @@ When the file exists the step leaves it alone but for one line: when
 no such line, it sets the line to the recorded port and writes the file back
 with the same owner and mode, every other line as it was.  Otherwise it says it
 is leaving the file alone.  Either way it reports any ``--email-url``,
-``--email local``, or ``--from-email`` given on that run as ignored.  Change
+``--email local``, ``--from-email``, ``--bounce-imap-url``, or ``--bounce-address``
+given on that run as ignored.  Change
 anything else in the file by hand, then restart the web unit::
 
   sudoedit /etc/caldart/caldart.env
@@ -1386,8 +1410,8 @@ a deployment this project supports.
 10. Renewal reminders (``steps/timers.sh``)
 ===========================================
 
-Steps 10 to 14, and the backup timer of step 15, are one script:
-``steps/timers.sh`` copies the six service and timer pairs into
+Steps 10 to 15, and the backup timer of step 16, are one script:
+``steps/timers.sh`` copies the seven service and timer pairs into
 ``/etc/systemd/system`` with ``/opt/caldart/caldart`` replaced by the checkout
 and ``/opt/caldart`` by the deploy root, runs
 ``systemctl daemon-reload`` once, enables and starts every timer, and starts
@@ -1500,7 +1524,33 @@ starts another.  See :doc:`aircraft-registry` for what the import reads and
 writes.
 
 
-15. Backups (``steps/timers.sh``, ``steps/backup.sh``)
+.. _deploy-bounces:
+
+15. The bounce check (``steps/timers.sh``)
+==========================================
+
+::
+
+  sudo install -m 0644 deploy/systemd/caldart-bounces.service \
+      deploy/systemd/caldart-bounces.timer /etc/systemd/system/
+  sudo systemctl daemon-reload
+  sudo systemctl enable --now caldart-bounces.timer
+  systemctl list-timers caldart-bounces.timer
+
+Every hour at twenty past, with catch-up if the machine was off: each report it
+reads is marked read in the mailbox, so a late run reads what has arrived since
+and nothing twice.  It reads the bounce mailbox ``BOUNCE_IMAP_URL`` names over
+IMAPS, marks every email a permanent-failure report matches as bounced, and
+flags the address on its account; it needs the database and an outbound
+connection to the mailbox's IMAP server, from the same
+``/etc/caldart/caldart.env``.  With ``BOUNCE_IMAP_URL`` empty, as the installer
+leaves it without ``--bounce-imap-url``, each run says bounce checking is off and
+exits cleanly; a mailbox it cannot reach or sign in to fails the unit.  Rehearse
+it any time with ``sudo deploy/manage.sh check_bounces --dry-run``.  See
+:ref:`email-bounces` for setting up the mailbox and what a run marks.
+
+
+16. Backups (``steps/timers.sh``, ``steps/backup.sh``)
 ======================================================
 
 The backup timer is installed with the other scheduled jobs::
@@ -1533,7 +1583,7 @@ missed.  For a site at the root of its host it runs::
 
   systemctl is-active caldart-web.service caldart-backup.timer \
       caldart-registry.timer caldart-reports.timer caldart-renewals.timer \
-      caldart-reminders.timer caldart-statements.timer
+      caldart-reminders.timer caldart-statements.timer caldart-bounces.timer
   sudo deploy/compose.sh ps --format '{{.Health}}' db     # healthy
   curl -sI -H 'Host: caldart.example.org' -H 'X-Forwarded-Proto: https' \
       http://127.0.0.1:$PORT/
@@ -1657,6 +1707,7 @@ Reminder runs                ``journalctl -u caldart-reminders -n 50``
 Renewal runs                 ``journalctl -u caldart-renewals -n 50``
 Scheduled report runs        ``journalctl -u caldart-reports -n 50``
 Year-end statement runs      ``journalctl -u caldart-statements -n 50``
+Bounce checks                ``journalctl -u caldart-bounces -n 50``
 Nightly backups              ``journalctl -u caldart-backup -n 20``
 FAA registry imports         ``journalctl -u caldart-registry -n 50``; an
                              import started with **Run now** logs to
@@ -1691,6 +1742,7 @@ The lines go to the journal with everything else, so a filter picks them out::
   journalctl -u caldart-renewals | grep 'action=renewals.run'
   journalctl -u caldart-reports | grep 'action=reports.run'
   journalctl -u caldart-statements | grep 'action=statements.run'
+  journalctl -u caldart-bounces | grep 'action=bounces.run'
   journalctl -u caldart-web | grep 'action=system.registry_import'
 
 Each line is ``key=value`` pairs in a fixed order::
@@ -1713,6 +1765,8 @@ Action                        Fields beyond actor and target
 ``account.block``             -- (a user administrator blocked the account
                               from reactivating)
 ``account.unblock``           --
+``account.bounce_cleared``    -- (a user administrator cleared the bounce
+                              recorded against the account's address)
 ``member.create``             ``invited`` -- whether an invitation was mailed
 ``member.delete``             ``payments``, ``owner`` -- when the member had
                               paid, how many payments moved and the
@@ -1753,6 +1807,8 @@ Action                        Fields beyond actor and target
 ``renewals.run``              ``dry_run``, ``noticed``, ``charged``,
                               ``failed``, ``paused``, ``skipped``
 ``reports.run``               ``dry_run``, ``sent``, ``skipped``, ``failed``
+``bounces.run``               ``dry_run``, ``enabled``, ``bounced``,
+                              ``unmatched``, ``ignored``
 ``report.send``               ``kind`` -- ``subscription`` (the target is the
                               subscription) or ``roster`` (the target is the
                               DART), then ``dry_run``, ``sent``, ``skipped``,

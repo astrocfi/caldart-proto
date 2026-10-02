@@ -21,7 +21,10 @@ Each row is one email:
 - **Purpose**: what the email was for.
 - **To**: the recipient's name, when CalDART knows it, and the address. A DART contact on a
   roster has a name and no account.
-- **Status**: *Sent*, or *Failed:* and the reason the mail server gave.
+- **Status**: *Sent*; *Failed:* and the reason the mail server gave; or *Bounced*, for an
+  email the mail server took that the recipient's mail server later refused for good.
+- **Bounce**: for a bounced email, the date the bounce came back and the reason the
+  recipient's mail server gave, such as *5.1.1 550 User unknown*.
 - **Attachments**: the names of any files attached, such as a report or a statement.
 
 When there are more than 25 emails, the foot reads, for example, *Showing 1–25 of 412*, with
@@ -55,7 +58,7 @@ The filters narrow the whole log, every page of it:
    :doc:`scheduled`, they carry its days instead, such as *Renewal reminder (45 days)*, in
    the list, in the table, and in the downloads.
 **Status**
-   **Sent** or **Failed**.
+   **Sent**, **Failed**, or **Bounced**.
 **From** and **To**
    A range of days, both included.
 **Search**
@@ -71,8 +74,8 @@ Downloading the log
 
 **Export CSV** and **Export PDF** download every email the filters match, in the table's
 order. They carry **Sent**, **Purpose**, **To**, **Name**, **Subject**, and **Status**
-unless you choose others with **Columns**; **Error** and **Attachments** are off until you
-tick them. **Load columns** and **Save columns** keep a set of columns under a name, as
+unless you choose others with **Columns**; **Error**, **Attachments**, **Bounced**, and
+**Bounce detail** are off until you tick them. **Load columns** and **Save columns** keep a set of columns under a name, as
 :ref:`saved-column-sets` describes.
 
 
@@ -80,7 +83,10 @@ If something looks wrong
 ========================
 
 The log does not prove delivery: a mail server that accepts an email and bounces it an hour
-later leaves a row marked *Sent*. If the log shows many *Failed:* rows, the site cannot reach
+later leaves a row marked *Sent* until the hourly bounce check reads the bounce, when the row
+turns *Bounced* and the address is flagged on the person's records (:doc:`scheduled`). On a
+server with no bounce mailbox set up, bounces are never read and every such row stays
+*Sent*. If the log shows many *Failed:* rows, the site cannot reach
 its mail server; tell whoever runs the server, and once it is fixed, a password reset to your
 own address is a quick test. If an email you expected is missing altogether, the job that
 sends it may not have run; :doc:`scheduled` runs each one by hand.

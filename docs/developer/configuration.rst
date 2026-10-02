@@ -58,10 +58,11 @@ Where settings are read
    ``EMAIL_URL``.  A ``SECRET_KEY`` equal to the published development key is a
    start-up error too, and so is a ``SITE_URL`` whose path is not the
    ``URL_PREFIX``.  Selected by
-   ``Environment=DJANGO_SETTINGS_MODULE=caldart.settings.prod`` in all five
-   systemd services: ``caldart-web`` and the four scheduled jobs
-   (``caldart-reminders``, ``caldart-renewals``, ``caldart-reports``, and
-   ``caldart-statements``).
+   ``Environment=DJANGO_SETTINGS_MODULE=caldart.settings.prod`` in all eight
+   systemd services: ``caldart-web`` and the seven scheduled jobs
+   (``caldart-registry``, ``caldart-reports``, ``caldart-renewals``,
+   ``caldart-reminders``, ``caldart-statements``, ``caldart-bounces``, and
+   ``caldart-backup``).
 
 ``test.py``
    ``DEBUG`` off, MD5 password hashing, in-memory email and file storage, mock
@@ -384,6 +385,26 @@ Email
    :Both: ``CalDART <noreply@caldart.example.org>``.  In production it must be
       a domain the SMTP relay is allowed to send as, or SPF and DMARC will
       bounce it.
+
+``BOUNCE_ADDRESS``
+   The envelope sender (the ``Return-Path``) of every message, which is where a
+   receiving server returns a message it cannot deliver; the ``From`` stays
+   ``DEFAULT_FROM_EMAIL``.  Set it to the address of the bounce mailbox
+   ``BOUNCE_IMAP_URL`` reads (:ref:`email-bounces`).
+
+   :Both: empty, which sends the envelope from ``DEFAULT_FROM_EMAIL`` as well.
+   :Production: ``bounces@caldart.example.org``, on the same domain as
+      ``DEFAULT_FROM_EMAIL`` so the relay's SPF covers it.
+
+``BOUNCE_IMAP_URL``
+   The mailbox ``manage.py check_bounces`` reads the returned reports from, as
+   ``imaps://user:password@host[:port]/MAILBOX``, with the user name and password
+   percent-encoded (an ``@`` becomes ``%40``).  The port defaults to 993 and the
+   mailbox to ``INBOX``.  Only IMAP over TLS is accepted.
+
+   :Both: empty, which turns bounce checking off: the hourly run and **Run now**
+      on the Scheduled page say so and read nothing.
+   :Production: ``imaps://bounces%40caldart.example.org:app-password@imap.example.org/INBOX``.
 
 ``EMAIL_TIMEOUT`` *(prod only)*
    Seconds to wait on the SMTP server.  Default ``20``.  Keeps a wedged relay

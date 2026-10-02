@@ -1067,9 +1067,10 @@ systemd runs as it does on a server, and drives the scripts of
    entry script under exactly the name ``frontend/dist/.vite/manifest.json``
    gives it, the name every lazy chunk imports it by, so the production static
    storage has not renamed Vite's output (:doc:`architecture`);
-2. ``systemctl start`` of the backup, reports, renewals, reminders, and
-   statements services, each of which must finish without an error, so every
-   unit's hardening is honored as well as the web unit's (the install has
+2. ``systemctl start`` of the backup, reports, renewals, reminders, statements,
+   and bounces services, each of which must finish without an error, so every
+   unit's hardening is honored as well as the web unit's (the bounce check finds
+   ``BOUNCE_IMAP_URL`` empty and says checking is off; the install has
    already started the registry import, which downloads the FAA's file);
 3. ``deploy/reset-database.sh --yes --admin-email admin@caldart.test``, after
    which the administrator's must be the only account, ``manage.sh health

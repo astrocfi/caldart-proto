@@ -372,7 +372,11 @@ The whole record: the account, its roles, the computed membership, the profile
 *including* ``notes`` and ``how_heard``, every membership term newest first,
 and every payment newest first.  ``email_verified_at`` is when the member last
 proved the address by following a verification, reset, or invitation link sent
-to it, and ``null`` while it is unverified.
+to it, and ``null`` while it is unverified.  ``email_bounced_at`` is when the
+bounce check last found the address bouncing, and ``null`` while no bounce is
+known; ``email_bounce_detail`` is that report's status code and diagnostic, or
+``""`` (:ref:`email-bounces`).  Both are read-only: a user administrator clears
+them from the user record (:ref:`api-clear-bounce`).
 
 .. code-block:: json
 
@@ -389,6 +393,8 @@ to it, and ``null`` while it is unverified.
      "roles": ["member"],
      "created_at": "2024-07-01T16:04:11.318204-07:00",
      "email_verified_at": "2024-07-01T16:09:52.004117-07:00",
+     "email_bounced_at": null,
+     "email_bounce_detail": "",
      "joined_on": "2024-07-01",
      "profile_updated_at": "2026-08-11T09:14:02.100522-07:00",
      "membership": {
