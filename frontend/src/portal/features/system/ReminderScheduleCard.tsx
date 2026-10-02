@@ -25,6 +25,9 @@ const EYEBROW = 'Membership';
 /** The form's values: each day field as typed. */
 type Draft = Record<keyof ReminderSchedulePayload, string>;
 
+/** What a field left empty reads, without asking the server. */
+const BLANK_MESSAGE = 'Enter a number of days.';
+
 interface ReminderScheduleCardProps {
   /** Show the schedule without the form, for a reader who cannot change it. */
   readOnly?: boolean;
@@ -93,9 +96,11 @@ function ScheduleFacts({ stored }: StoredProps): JSX.Element {
 /** The schedule's four day fields and Save. */
 function ScheduleForm({ stored }: StoredProps): JSX.Element {
   const [draft, setDraft] = useState<Draft>(() => draftOf(stored));
+  const [blankErrors, setBlankErrors] = useState<Record<string, string>>({});
   const save = useSaveReminderSchedule();
   const toast = useToast();
-  const errors = save.error instanceof ApiError ? save.error.fieldErrors : {};
+  const serverErrors = save.error instanceof ApiError ? save.error.fieldErrors : {};
+  const errors = { ...serverErrors, ...blankErrors };
 
   const handleChange =
     (name: keyof ReminderSchedulePayload) =>
@@ -106,6 +111,9 @@ function ScheduleForm({ stored }: StoredProps): JSX.Element {
 
   const handleSubmit = (event: FormEvent): void => {
     event.preventDefault();
+    const blanks = blankErrorsOf(draft);
+    setBlankErrors(blanks);
+    if (Object.keys(blanks).length > 0) return;
     save.mutate(payloadOf(draft), {
       onSuccess: () => toast.show('Reminder schedule saved.', 'success'),
     });
@@ -114,19 +122,20 @@ function ScheduleForm({ stored }: StoredProps): JSX.Element {
   return (
     <form onSubmit={handleSubmit} noValidate className="stack">
       <p className="muted">
-        The expired reminder always goes on the day a membership ends. A change applies from the
-        next morning&rsquo;s scan, and never sends a member a reminder they already had.
+        The expired reminder goes from the day a membership ends through the six days after, and has
+        no number. A change applies from the next morning&rsquo;s scan, and never sends a member a
+        reminder they already had.
       </p>
       <div className="reminder-schedule__fields">
-        {SCHEDULE_FIELDS.map(({ name, label, side }) => (
+        {SCHEDULE_FIELDS.map(({ name, label, side, min, max }) => (
           <Field key={name} label={label} hint={`Days ${side} expiry`} error={errors[name]}>
             {(field) => (
               <input
                 {...field}
                 type="number"
                 inputMode="numeric"
-                min={1}
-                max={365}
+                min={min}
+                max={max}
                 className="mono"
                 value={draft[name]}
                 onChange={handleChange(name)}
@@ -154,7 +163,17 @@ function draftOf(stored: ReminderSchedulePayload): Draft {
   };
 }
 
-/** The form's values as the `PUT` body; a blank field is sent as 0, which the rules refuse. */
+/** `BLANK_MESSAGE` for every field left empty, keyed by field. */
+function blankErrorsOf(draft: Draft): Record<string, string> {
+  return Object.fromEntries(
+    SCHEDULE_FIELDS.filter(({ name }) => draft[name].trim() === '').map(({ name }) => [
+      name,
+      BLANK_MESSAGE,
+    ]),
+  );
+}
+
+/** The form's values as the `PUT` body, once `blankErrorsOf` has found no field empty. */
 function payloadOf(draft: Draft): ReminderSchedulePayload {
   return {
     first_days_before: Number(draft.first_days_before),

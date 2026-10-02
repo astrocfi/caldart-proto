@@ -22,19 +22,24 @@ const KIND_NAMES: Record<ReminderKind, string> = {
   lapsed: 'Lapsed',
 };
 
-/** One of the schedule's day fields: its name, its label, and which side of expiry it counts. */
+/**
+ * One of the schedule's day fields: its name, its label, which side of expiry it counts,
+ * and the outer bounds the server holds it to.
+ */
 export interface ScheduleField {
   name: keyof ReminderSchedulePayload;
   label: string;
   side: 'before' | 'after';
+  min: number;
+  max: number;
 }
 
 /** The schedule's four day fields, in the order a term reaches them. */
 export const SCHEDULE_FIELDS: readonly ScheduleField[] = [
-  { name: 'first_days_before', label: 'First reminder', side: 'before' },
-  { name: 'second_days_before', label: 'Second reminder', side: 'before' },
-  { name: 'final_days_before', label: 'Final reminder', side: 'before' },
-  { name: 'lapsed_days_after', label: 'Lapsed reminder', side: 'after' },
+  { name: 'first_days_before', label: 'First reminder', side: 'before', min: 1, max: 180 },
+  { name: 'second_days_before', label: 'Second reminder', side: 'before', min: 1, max: 180 },
+  { name: 'final_days_before', label: 'Final reminder', side: 'before', min: 1, max: 180 },
+  { name: 'lapsed_days_after', label: 'Lapsed reminder', side: 'after', min: 7, max: 365 },
 ];
 
 /** `count` with "day" or "days". */
@@ -61,14 +66,30 @@ export function kindLabels(
   };
 }
 
+/** How a schedule phrase names the days before expiry, and the day itself. */
+export interface PhraseWording {
+  /** Follows the three counts before expiry, such as "before". */
+  before: string;
+  /** Names the expiry day, such as "on the day". */
+  onTheDay: string;
+}
+
+const DEFAULT_WORDING: PhraseWording = { before: 'before', onTheDay: 'on the day' };
+
 /**
  * The whole schedule as one phrase: "60, 30, and 7 days before, on the day, and 30 days
  * after" on the defaults.
+ *
+ * @param wording replaces "before" and "on the day", such as "before their membership
+ *   ends" and "on the day it ends".
  */
-export function schedulePhrase(schedule: ReminderSchedulePayload): string {
+export function schedulePhrase(
+  schedule: ReminderSchedulePayload,
+  wording: PhraseWording = DEFAULT_WORDING,
+): string {
   const { first_days_before: first, second_days_before: second } = schedule;
   return (
-    `${first}, ${second}, and ${days(schedule.final_days_before)} before, on the day, ` +
-    `and ${days(schedule.lapsed_days_after)} after`
+    `${first}, ${second}, and ${days(schedule.final_days_before)} ${wording.before}, ` +
+    `${wording.onTheDay}, and ${days(schedule.lapsed_days_after)} after`
   );
 }

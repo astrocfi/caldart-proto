@@ -106,6 +106,34 @@ describe('<ReminderScheduleCard/>', () => {
     expect(lapsed).toHaveAttribute('aria-invalid', 'true');
   });
 
+  it('asks for a number in a field left empty, and sends nothing', async () => {
+    const bodies: unknown[] = [];
+    server.use(
+      http.put(`${API}/admin/reminders/schedule`, async ({ request }) => {
+        bodies.push(await request.json());
+        return HttpResponse.json(SAVED);
+      }),
+    );
+    renderWithProviders(<ReminderScheduleCard />);
+
+    const second = await screen.findByLabelText('Second reminder');
+    await userEvent.clear(second);
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(await screen.findByText('Enter a number of days.')).toBeInTheDocument();
+    expect(bodies).toEqual([]);
+  });
+
+  it.each([
+    ['First reminder', '1', '180'],
+    ['Lapsed reminder', '7', '365'],
+  ])('bounds the %s field from %s to %s', async (label, min, max) => {
+    renderWithProviders(<ReminderScheduleCard />);
+
+    const field = await screen.findByLabelText(label);
+    expect([field.getAttribute('min'), field.getAttribute('max')]).toEqual([min, max]);
+  });
+
   it('reads the schedule out without a form when read-only', async () => {
     serveSchedule(SAVED);
     renderWithProviders(<ReminderScheduleCard readOnly />);

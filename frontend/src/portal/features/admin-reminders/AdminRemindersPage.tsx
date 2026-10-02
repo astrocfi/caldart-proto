@@ -13,7 +13,7 @@ import { Page } from '@/portal/components/Page';
 import { useReminderSchedule } from '@/portal/features/system/api';
 import { ReminderLog } from '@/portal/features/system/ReminderLog';
 import { ReminderScheduleCard } from '@/portal/features/system/ReminderScheduleCard';
-import { days } from '@/portal/features/system/reminderSchedule';
+import { schedulePhrase } from '@/portal/features/system/reminderSchedule';
 
 /** Renders the reminder log and schedule for an account administrator. */
 export function AdminRemindersPage(): JSX.Element {
@@ -21,9 +21,10 @@ export function AdminRemindersPage(): JSX.Element {
   const when =
     schedule.data === undefined
       ? 'as their membership runs out'
-      : `${schedule.data.first_days_before}, ${schedule.data.second_days_before}, and ` +
-        `${days(schedule.data.final_days_before)} before their membership ends, on the day ` +
-        `it ends, and ${days(schedule.data.lapsed_days_after)} after`;
+      : schedulePhrase(schedule.data, {
+          before: 'before their membership ends',
+          onTheDay: 'on the day it ends',
+        });
 
   return (
     <Page

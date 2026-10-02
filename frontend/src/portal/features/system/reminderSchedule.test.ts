@@ -37,6 +37,19 @@ describe('schedulePhrase', () => {
   });
 });
 
+describe('schedulePhrase with its own wording', () => {
+  it('replaces "before" and "on the day"', () => {
+    expect(
+      schedulePhrase(makeReminderSchedule(), {
+        before: 'before their membership ends',
+        onTheDay: 'on the day it ends',
+      }),
+    ).toBe(
+      '60, 30, and 7 days before their membership ends, on the day it ends, and 30 days after',
+    );
+  });
+});
+
 describe('days', () => {
   it.each([
     [1, '1 day'],
