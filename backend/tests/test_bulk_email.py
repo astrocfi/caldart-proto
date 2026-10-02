@@ -19,6 +19,7 @@ from django.core import mail
 from django.core.mail import EmailMessage, EmailMultiAlternatives
 from django.core.mail.backends.locmem import EmailBackend
 from freezegun import freeze_time
+from pytest_django import Settings
 
 from apps.accounts.models import AccountKind
 from apps.accounts.roles import MEMBER, TREASURER
@@ -504,3 +505,21 @@ def test_a_send_writes_one_audit_line(sender: User, audit_log: pytest.LogCapture
     assert audit_messages(audit_log) == [
         f"action=bulk_email.send actor={sender.pk} target={bulk.pk} sent=1 skipped=0 failed=0"
     ]
+
+
+def test_every_copy_carries_its_own_message_id_on_its_log_row(sender: User) -> None:
+    """Each copy's ``Message-ID`` is the one its email log row records."""
+    person("one@example.test", kind=AccountKind.FRIEND)
+    person("two@example.test", kind=AccountKind.FRIEND)
+    send_bulk_email(subject=SUBJECT, body=BODY, filters={"kind": "friend"}, sender=sender)
+    sent_ids = sorted(message.message()["Message-ID"] for message in mail.outbox)
+    logged_ids = sorted(EmailLog.objects.values_list("message_id", flat=True))
+    assert (logged_ids, len(set(sent_ids))) == (sent_ids, 2)
+
+
+def test_every_copy_goes_out_from_the_bounce_address(sender: User, settings: Settings) -> None:
+    """With ``BOUNCE_ADDRESS`` set, each copy's envelope sender is that address."""
+    settings.BOUNCE_ADDRESS = "bounces@caldart.example.org"
+    person("one@example.test", kind=AccountKind.FRIEND)
+    send_bulk_email(subject=SUBJECT, body=BODY, filters={"kind": "friend"}, sender=sender)
+    assert [message.from_email for message in mail.outbox] == ["bounces@caldart.example.org"]
