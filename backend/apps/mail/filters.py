@@ -16,10 +16,10 @@ class EmailLogFilterSet(django_filters.FilterSet):
     """``?purpose=&status=&from=&to=&q=``, where the dates bound ``sent_at``.
 
     ``purpose`` is an exact template name; one no row carries matches nothing.
-    ``status`` is ``sent`` or ``failed``, and anything else is refused.  ``from`` and
-    ``to`` are ``YYYY-MM-DD`` and compare with the local date part of ``sent_at``,
-    inclusively.  ``q`` matches the address written to, the name recorded at send
-    time, and the recipient account's first and last name, case-insensitively.
+    ``status`` is ``sent``, ``failed`` or ``bounced``, and anything else is refused.
+    ``from`` and ``to`` are ``YYYY-MM-DD`` and compare with the local date part of
+    ``sent_at``, inclusively.  ``q`` matches the address written to, the name recorded
+    at send time, and the recipient account's first and last name, case-insensitively.
     """
 
     purpose = django_filters.CharFilter()

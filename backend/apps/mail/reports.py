@@ -48,9 +48,14 @@ def _user_name(row: EmailLog) -> str:
     return row.recipient_name
 
 
-#: Every column the email log can carry, in export order.  The error and the
-#: attachments are off by default: the one is blank on every message that went out
-#: and the other on most, so the everyday file leaves them to be asked for.
+def _bounced_at(row: EmailLog) -> str:
+    """When the bounce check found ``row`` bounced, as ``MM/DD/YYYY HH:MM``, or ``""``."""
+    return format_display_datetime(row.bounced_at) if row.bounced_at is not None else ""
+
+
+#: Every column the email log can carry, in export order.  The error, the attachments
+#: and the bounce are off by default: each is blank on most messages, so the everyday
+#: file leaves them to be asked for.
 EMAIL_LOG_REPORT_COLUMNS: tuple[ReportColumn[EmailLog], ...] = (
     ReportColumn("sent_at", "Sent", True, _sent_at, width=2.4),
     ReportColumn("purpose", "Purpose", True, lambda row: row.purpose, width=3.6),
@@ -60,6 +65,8 @@ EMAIL_LOG_REPORT_COLUMNS: tuple[ReportColumn[EmailLog], ...] = (
     ReportColumn("status", "Status", True, lambda row: row.get_status_display(), width=1.4),
     ReportColumn("error", "Error", False, lambda row: row.error, width=3.2),
     ReportColumn("attachments", "Attachments", False, lambda row: row.attachments, width=4.0),
+    ReportColumn("bounced_at", "Bounced", False, _bounced_at, width=2.4),
+    ReportColumn("bounce_detail", "Bounce detail", False, lambda row: row.bounce_detail, width=5.0),
 )
 
 

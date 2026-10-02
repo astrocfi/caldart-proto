@@ -6,6 +6,7 @@ from rest_framework import serializers
 
 from apps.mail.models import EmailLog
 from apps.mail.purposes import purpose_label, purpose_labels
+from caldart.runs import RunActionSerializer
 
 
 class EmailLogSerializer(serializers.ModelSerializer[EmailLog]):
@@ -18,6 +19,9 @@ class EmailLogSerializer(serializers.ModelSerializer[EmailLog]):
     ``failed``, and ``attachments`` is a comma-separated list of filenames,
     blank when the message carried none.  ``purpose_label`` is the purpose in words,
     from ``apps.mail.purposes``, or the purpose itself when no label names it.
+    ``bounced_at`` is when the bounce check read a permanent-failure report for the
+    message and ``bounce_detail`` that report's status code and diagnostic; they are
+    null and blank unless ``status`` is ``bounced``.
     """
 
     user_id = serializers.IntegerField(read_only=True, allow_null=True)
@@ -38,6 +42,8 @@ class EmailLogSerializer(serializers.ModelSerializer[EmailLog]):
             "status",
             "error",
             "attachments",
+            "bounced_at",
+            "bounce_detail",
         ]
         read_only_fields = fields
 
@@ -63,3 +69,25 @@ class EmailPurposeSerializer(serializers.Serializer[dict[str, str]]):
     # DRF's Field.label is a different thing from this serializer's own `label`
     # field, so the stubs see the declaration as a narrowing of the attribute.
     label = serializers.CharField()  # type: ignore[assignment]
+
+
+class BounceRunRequestSerializer(serializers.Serializer[dict[str, bool]]):
+    """``POST /system/bounces/run`` body: ``dry_run``, defaulting to ``False``."""
+
+    dry_run = serializers.BooleanField(default=False)
+
+
+class BounceRunResultSerializer(serializers.Serializer[dict[str, object]]):
+    """What one bounce check found, and who each failure was about.
+
+    ``enabled`` is false when ``BOUNCE_IMAP_URL`` is empty and nothing was read; the
+    counts are then zero.  Each action's ``kind`` is ``bounced`` (``on`` is the day the
+    message was sent) or ``unmatched`` (``member`` is empty and ``on`` null), and its
+    ``detail`` is the report's status code and diagnostic.
+    """
+
+    enabled = serializers.BooleanField()
+    bounced = serializers.IntegerField()
+    unmatched = serializers.IntegerField()
+    ignored = serializers.IntegerField()
+    actions = RunActionSerializer(many=True)

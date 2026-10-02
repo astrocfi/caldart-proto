@@ -1,9 +1,9 @@
-"""The email log endpoints.
+"""The email log endpoints, and the bounce check run by hand.
 
-``GET /system/emails`` and ``GET /system/emails/purposes`` are ``system_admin``
-only: the log carries every address the installation has written to, which is
-operations work rather than membership work.  The filters live in
-``apps.mail.filters``, which the ``emails`` report shares.
+``GET /system/emails``, ``GET /system/emails/purposes`` and ``POST
+/system/bounces/run`` are ``system_admin`` only: the log carries every address the
+installation has written to, which is operations work rather than membership work.
+The filters live in ``apps.mail.filters``, which the ``emails`` report shares.
 """
 
 from __future__ import annotations
@@ -11,14 +11,22 @@ from __future__ import annotations
 from typing import Any
 
 from django.db.models import QuerySet
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiResponse, extend_schema
+from rest_framework import status
 from rest_framework.generics import ListAPIView
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.accounts.api.views import signed_in_user
 from apps.accounts.permissions import IsSystemAdmin
-from apps.mail.api.serializers import EmailLogSerializer, EmailPurposeSerializer
+from apps.mail.api.serializers import (
+    BounceRunRequestSerializer,
+    BounceRunResultSerializer,
+    EmailLogSerializer,
+    EmailPurposeSerializer,
+)
+from apps.mail.bounces import BounceCheckError, check_bounces
 from apps.mail.filters import EmailLogFilterSet
 from apps.mail.models import EmailLog
 from apps.mail.purposes import purpose_labels
@@ -76,3 +84,37 @@ class EmailPurposeListView(APIView):
         # they do not widen it to a list when ``many`` is set.
         serializer = EmailPurposeSerializer(rows, many=True)  # type: ignore[arg-type]
         return Response(serializer.data)
+
+
+class BounceRunView(APIView):
+    """``POST /system/bounces/run`` -- run the bounce check now."""
+
+    permission_classes = [IsSystemAdmin]
+
+    @extend_schema(
+        request=BounceRunRequestSerializer,
+        responses={
+            200: BounceRunResultSerializer,
+            400: OpenApiResponse(description="The bounce mailbox could not be read."),
+        },
+    )
+    def post(self, request: Request) -> Response:
+        """Run the check and return what it found with status 200.
+
+        The body takes ``dry_run``, defaulting to ``False``; a dry run marks no email
+        and no account and leaves every message in the mailbox unseen, and reports
+        exactly what a live run would find.  The answer is ``{enabled, bounced,
+        unmatched, ignored, actions}``; ``enabled`` is false when ``BOUNCE_IMAP_URL`` is
+        empty.  The caller is recorded as the actor on the ``bounces.run`` audit record.
+        A malformed ``BOUNCE_IMAP_URL``, or a mailbox that cannot be reached or read, is
+        a 400 ``{"detail": <sentence>}`` naming the host and never the password.
+        """
+        payload = BounceRunRequestSerializer(data=request.data)
+        payload.is_valid(raise_exception=True)
+        try:
+            run = check_bounces(
+                dry_run=payload.validated_data["dry_run"], actor=signed_in_user(request)
+            )
+        except BounceCheckError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(BounceRunResultSerializer(run.as_dict()).data)
