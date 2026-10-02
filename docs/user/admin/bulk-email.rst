@@ -57,6 +57,9 @@ reach** names each person: **To send** for everyone who will be sent a copy, the
 - *Account deactivated*: the account has been deactivated.
 - *No email address*: there is no address on the account.
 - *Invalid email address*: the address on file could never be delivered.
+- *Address bounced*: an earlier email to this address came back undelivered, and the
+  account shows a **Bounced** chip. Once the person's address is corrected, or a user
+  administrator presses **Clear bounce** on their account, they are sent a copy again.
 - *Duplicate address*: somebody earlier on the list has the same address, so it gets one
   copy.
 

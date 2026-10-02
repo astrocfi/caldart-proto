@@ -1419,7 +1419,8 @@ to the rows already stored (:doc:`setup`).
   following a verification, password reset, or invitation link sent to the
   address (whether or not it was verified already), and by a user
   administrator's ``POST /admin/users/{id}/clear-bounce``
-  (:ref:`api-clear-bounce`).
+  (:ref:`api-clear-bounce`).  While it is set, a bulk email skips the account
+  as *Address bounced* (:doc:`api-bulk-email`).
 
 .. _account-kinds:
 
@@ -4195,7 +4196,7 @@ One person a bulk email's filters selected, and what became of their copy.
    * - ``reason``
      - ``CharField(200)``
      - not null; default ``""``
-     - why a copy was skipped (*Account deactivated*, *No email address*, *Invalid email address*, *Duplicate address*) or failed (*Refused by the mail server*); blank for one that went or was never tried
+     - why a copy was skipped (*Account deactivated*, *No email address*, *Invalid email address*, *Address bounced*, *Duplicate address*) or failed (*Refused by the mail server*); blank for one that went or was never tried
 
 **Constraints, indexes, and ordering.**
 

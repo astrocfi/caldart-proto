@@ -22,8 +22,10 @@ from freezegun import freeze_time
 
 from apps.accounts.models import AccountKind
 from apps.accounts.roles import MEMBER, TREASURER
+from apps.accounts.services import clear_email_bounce
 from apps.bulk_email.models import BulkEmail, BulkEmailRecipient, RecipientStatus
 from apps.bulk_email.services import (
+    SKIP_BOUNCED,
     SKIP_DEACTIVATED,
     SKIP_DUPLICATE,
     SKIP_INVALID,
@@ -197,6 +199,58 @@ def test_a_blank_address_is_skipped() -> None:
     account = person("blank@example.test")
     type(account).objects.filter(pk=account.pk).update(email="")
     assert [r.reason for r in build_recipients({}).skipped] == [SKIP_NO_ADDRESS]
+
+
+def bounced(email: str, **user: Any) -> User:
+    """A member whose address the bounce check has marked as bounced."""
+    return person(
+        email,
+        email_bounced_at=datetime(2026, 9, 30, 12, 0, tzinfo=UTC),
+        email_bounce_detail="5.1.1 user unknown",
+        **user,
+    )
+
+
+def test_a_bounced_address_is_skipped_with_its_reason() -> None:
+    """An address the bounce check marked is listed among the skips."""
+    bounced("gone@example.test")
+    assert [(r.email, r.reason) for r in build_recipients({}).skipped] == [
+        ("gone@example.test", SKIP_BOUNCED)
+    ]
+
+
+def test_a_bounced_address_is_not_a_recipient() -> None:
+    """Nobody is sent a copy at an address that bounced."""
+    bounced("gone@example.test")
+    assert build_recipients({}).recipients == []
+
+
+def test_clearing_the_bounce_makes_the_address_a_recipient_again() -> None:
+    """Once a user administrator clears the bounce, the address is sent a copy again."""
+    account = bounced("back@example.test")
+    clear_email_bounce(UserFactory(email="useradmin@example.test"), account)
+    assert addresses(build_recipients({}).recipients) == [
+        "back@example.test",
+        "useradmin@example.test",
+    ]
+
+
+def test_a_send_skips_a_bounced_address(sender: User) -> None:
+    """A send records the bounced address as skipped and mails nobody there."""
+    bounced("gone@example.test", kind=AccountKind.FRIEND)
+    person("ok@example.test", kind=AccountKind.FRIEND)
+    bulk = send_bulk_email(subject=SUBJECT, body=BODY, filters={"kind": "friend"}, sender=sender)
+    rows = bulk.recipients.order_by("id")
+    assert (
+        [(r.email, r.status, r.reason) for r in rows],
+        [message.to[0] for message in mail.outbox],
+    ) == (
+        [
+            ("ok@example.test", RecipientStatus.SENT, ""),
+            ("gone@example.test", RecipientStatus.SKIPPED, SKIP_BOUNCED),
+        ],
+        ["ok@example.test"],
+    )
 
 
 def test_an_invalid_address_is_skipped() -> None:

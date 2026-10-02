@@ -5,8 +5,8 @@ The recipients are chosen by the member list's own filters
 member list chooses the same people here, friends included through ``kind``.
 :func:`build_recipients` walks those accounts in surname order and sets aside
 anybody who cannot be sent a copy, with the reason: a deactivated account, a blank
-address, an invalid one, and an address already on the list in another case.  A
-preview is that list and nothing else.
+address, an invalid one, one that bounced, and an address already on the list in
+another case.  A preview is that list and nothing else.
 
 :func:`send_bulk_email` rebuilds the list at the moment it sends, sends each
 person their own copy through ``caldart.mail.send_templated`` under the purpose
@@ -59,6 +59,7 @@ PURPOSE = "bulk_email"
 SKIP_DEACTIVATED = "Account deactivated"
 SKIP_NO_ADDRESS = "No email address"
 SKIP_INVALID = "Invalid email address"
+SKIP_BOUNCED = "Address bounced"
 SKIP_DUPLICATE = "Duplicate address"
 
 #: Why a copy the mail server would not take failed.
@@ -133,7 +134,9 @@ def build_recipients(filters: Mapping[str, str]) -> RecipientList:
     Each account the filters select is one entry, in surname order.  It is skipped
     with :data:`SKIP_DEACTIVATED` when the account is deactivated,
     :data:`SKIP_NO_ADDRESS` when its address is blank, :data:`SKIP_INVALID` when
-    the address is not one a mail server could take, and :data:`SKIP_DUPLICATE`
+    the address is not one a mail server could take, :data:`SKIP_BOUNCED` when the
+    bounce check has marked the address (``email_bounced_at`` is set, until a user
+    administrator clears it or the address changes), and :data:`SKIP_DUPLICATE`
     when an earlier entry is already sent to the same address in any case.
     Everybody else is a recipient.  Nothing is sent or stored.
     """
@@ -167,6 +170,8 @@ def _skip_reason(account: User, seen: set[str]) -> str:
         validate_email(address)
     except DjangoValidationError:
         return SKIP_INVALID
+    if account.email_bounced_at is not None:
+        return SKIP_BOUNCED
     if address.casefold() in seen:
         return SKIP_DUPLICATE
     return ""

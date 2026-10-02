@@ -8,6 +8,7 @@ send rebuilds that list, sends, and answers with the stored result.
 from __future__ import annotations
 
 from collections.abc import Callable
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 import pytest
@@ -18,7 +19,7 @@ from rest_framework.test import APIClient
 from apps.accounts.models import AccountKind
 from apps.accounts.roles import MANAGEMENT, MEMBER, SYSTEM_ADMIN
 from apps.bulk_email.models import BulkEmail, BulkEmailRecipient, RecipientStatus
-from apps.bulk_email.services import SKIP_DEACTIVATED
+from apps.bulk_email.services import SKIP_BOUNCED, SKIP_DEACTIVATED
 from apps.mail.purposes import purpose_label
 from tests.conftest import read_csv, role_matrix
 from tests.factories import MemberProfileFactory, UserFactory
@@ -468,4 +469,47 @@ def test_an_unfinished_send_s_csv_reads_not_sent(
         "ann@example.test",
         "Not sent",
         "",
+    ]
+
+
+def test_a_preview_skips_a_bounced_address(management_client: APIClient) -> None:
+    """The preview lists a bounced address among the skips, with the reason."""
+    friend_of(
+        "gone@example.test",
+        "Gus",
+        "Gone",
+        email_bounced_at=datetime(2026, 9, 30, 12, 0, tzinfo=UTC),
+    )
+    body = management_client.post(PREVIEW_URL, message(), format="json").json()
+    assert [(r["email"], r["reason"]) for r in body["skipped"]] == [
+        ("gone@example.test", SKIP_BOUNCED)
+    ]
+
+
+def test_the_preview_csv_marks_a_bounced_address_skipped(management_client: APIClient) -> None:
+    """The preview's download gives the bounce as the reason."""
+    friend_of(
+        "gone@example.test",
+        "Gus",
+        "Gone",
+        email_bounced_at=datetime(2026, 9, 30, 12, 0, tzinfo=UTC),
+    )
+    assert read_csv(management_client.get(PREVIEW_CSV_URL, FRIENDS))[1:] == [
+        ["Gus Gone", "gone@example.test", "Skipped", SKIP_BOUNCED]
+    ]
+
+
+def test_a_send_s_csv_marks_a_bounced_address_skipped(management_client: APIClient) -> None:
+    """A sent email's download gives the bounce as the reason for the skip."""
+    friend_of("ann@example.test", "Ann", "Able")
+    friend_of(
+        "gone@example.test",
+        "Gus",
+        "Gone",
+        email_bounced_at=datetime(2026, 9, 30, 12, 0, tzinfo=UTC),
+    )
+    bulk_id = management_client.post(SEND_URL, message(), format="json").json()["id"]
+    assert read_csv(management_client.get(f"{LIST_URL}/{bulk_id}/recipients.csv"))[1:] == [
+        ["Ann Able", "ann@example.test", "Sent", ""],
+        ["Gus Gone", "gone@example.test", "Skipped", SKIP_BOUNCED],
     ]

@@ -39,6 +39,10 @@ Reason                     When
 ``Account deactivated``    ``is_active`` is false
 ``No email address``       the address is blank
 ``Invalid email address``  Django's ``validate_email`` refuses the address
+``Address bounced``        ``email_bounced_at`` is set: the bounce check
+                           matched a permanent failure to the address
+                           (:doc:`email`); it is cleared when the address
+                           changes or is verified, or by **Clear bounce**
 ``Duplicate address``      an earlier account on the list has the same
                            address once trimmed and case-folded
 =========================  ==================================================
