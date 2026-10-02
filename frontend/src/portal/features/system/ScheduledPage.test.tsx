@@ -39,6 +39,7 @@ describe('ScheduledPage', () => {
       'Automatic renewal charges',
       'Scheduled reports',
       'Year-end statements',
+      'Bounces',
     ]);
   });
 
