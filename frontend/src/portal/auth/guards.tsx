@@ -77,12 +77,18 @@ export function RequireAuth({ children }: { children?: ReactNode }): JSX.Element
  * A signed-in reader whose address is unverified, whose profile is incomplete, or who
  * chose membership and has not yet paid is sent to that step of the join wizard
  * (`/join/verify`, `/join/profile`, or `/join/pay`), which is also where they left
- * it, since a step is left only by finishing it.  Nobody signed in, or a check still
- * in flight, is left to `RequireAuth`, which this guard sits inside.
+ * it, since a step is left only by finishing it.  While `/auth/me` is being
+ * refetched, such a reader sees the loading state instead, since the answer may
+ * already say they have finished (a payment that has just settled, say).  Nobody
+ * signed in, or a check still in flight, is left to `RequireAuth`, which this guard
+ * sits inside.
  */
 export function RequireOnboarded({ children }: { children?: ReactNode }): JSX.Element {
-  const { user } = useAuth();
+  const { user, isRefetching } = useAuth();
   if (user !== null && !isOnboarded(user)) {
+    // A payment or a verification refetches `/auth/me`; until it answers, the cached
+    // reader is the one from before it, so wait rather than send them back a step.
+    if (isRefetching) return <Loading />;
     return <Navigate to={`/join/${furthestJoinStep(user)}`} replace />;
   }
   return <>{children ?? <Outlet />}</>;

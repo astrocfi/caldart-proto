@@ -1,12 +1,13 @@
 import { act, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import type { QueryClient } from '@tanstack/react-query';
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it } from 'vitest';
 import { Route, Routes, useLocation, useSearchParams } from 'react-router-dom';
 
 import type { MembershipStatus, RoleSlug, User } from '../api/types';
 import { API, makeUser, signedInAs } from '@test/handlers';
-import { renderWithProviders } from '@test/render';
+import { makeTestQueryClient, renderWithProviders } from '@test/render';
 import { server } from '@test/server';
 import { RequireAuth, RequireOnboarded, RequireRole, loginRedirect } from './guards';
 import { AUTH_ME_KEY } from './useAuth';
@@ -253,7 +254,7 @@ describe('RequireOnboarded', () => {
   }
 
   /** Render the guard around a secret page for `user`, with a stub wizard to land on. */
-  function renderGate(user: User) {
+  function renderGate(user: User, client?: QueryClient) {
     server.use(signedInAs(user));
     return renderWithProviders(
       <Routes>
@@ -275,7 +276,7 @@ describe('RequireOnboarded', () => {
           }
         />
       </Routes>,
-      { route: '/secret' },
+      { route: '/secret', client },
     );
   }
 
@@ -303,5 +304,14 @@ describe('RequireOnboarded', () => {
   it('lets an onboarded member through', async () => {
     renderGate(makeUser());
     expect(await screen.findByText('secret content')).toBeInTheDocument();
+  });
+
+  it('waits for a refetch rather than sending back a member whose payment just settled', async () => {
+    const client = makeTestQueryClient();
+    client.setQueryData(AUTH_ME_KEY, makeUser({ kind: 'member', membership: UNPAID }));
+    void client.invalidateQueries({ queryKey: AUTH_ME_KEY });
+    renderGate(makeUser(), client);
+    expect(await screen.findByText('secret content')).toBeInTheDocument();
+    expect(screen.queryByText('join wizard')).not.toBeInTheDocument();
   });
 });

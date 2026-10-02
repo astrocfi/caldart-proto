@@ -1130,6 +1130,9 @@ except ``/change-email``, sends a reader who has not finished joining
 draws no rail for them (see :doc:`architecture`).
 The guards wait for ``GET /auth/me`` to settle first, so a slow answer never
 flashes the sign-in page at somebody who is in fact signed in.
+``RequireOnboarded`` also waits while ``GET /auth/me`` is being refetched, since
+the cached reader predates the change that set it off: a joiner whose payment
+has just settled would otherwise be sent back to ``/join/pay``.
 
 A check that fails outright is a third outcome, separate from both.  ``useMe``
 takes the portal's retry policy, so a 5xx or a dropped connection is retried
