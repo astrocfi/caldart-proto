@@ -94,22 +94,29 @@ The days are data, not code.  ``ReminderSchedule`` is a single row
 system administrator saves another schedule:
 
 =======================  =======  ==============================================
-Field                    Default  Moves
+Field                    Default  Sets
 =======================  =======  ==============================================
-``first_days_before``    60       the far end of ``first``
-``second_days_before``   30       the far end of ``second``, and so the near
-                                  end of ``first``
-``final_days_before``    7        the far end of ``final``, and so the near
-                                  end of ``second``
-``lapsed_days_after``    30       the near end of ``lapsed``, whose span still
-                                  reaches back 30 days
+``first_days_before``    60       how many days before ``ends_on`` ``first``
+                                  first goes out
+``second_days_before``   30       how many days before ``ends_on`` ``second``
+                                  first goes out; ``first`` stops one day
+                                  earlier
+``final_days_before``    7        how many days before ``ends_on`` ``final``
+                                  first goes out; ``second`` stops one day
+                                  earlier, and ``final`` runs to the day before
+                                  ``ends_on``
+``lapsed_days_after``    30       how many days after ``ends_on`` ``lapsed``
+                                  first goes out; it keeps going out for 30
+                                  days more
 =======================  =======  ==============================================
 
-``expired`` has no field: it falls on the expiry day and reaches six days past
-it.  ``schedule_errors`` in ``models.py`` holds a schedule to
-``365 >= first > second > final >= 1`` and ``7 <= lapsed <= 365``, naming the
+``expired`` has no field: its span is the expiry day and the six days after it.
+``schedule_errors`` in ``models.py`` holds a schedule to
+``180 >= first > second > final >= 1`` and ``7 <= lapsed <= 365``, naming the
 field and the rule for each one broken; ``ReminderScheduleSerializer`` raises
-them as a 400 keyed by field.
+them as a 400 keyed by field.  The first reminder is capped at half a year
+because an annual term ends 364 days after it starts: a longer lead would email
+a member who had only just paid.
 
 A system administrator edits the schedule on the **Reminder schedule** card of
 ``/portal/system/scheduled`` (``PUT /admin/reminders/schedule``), and an account
@@ -123,8 +130,10 @@ once, and its subject states the real number of days.
 
 The words the screens print for a stage come from the schedule too:
 ``ReminderSchedule.kind_labels()`` ("60 days before expiry") and
-``purpose_labels()`` ("Renewal reminder (60 days)"), which
-``apps.mail.purposes.purpose_labels`` puts ahead of the other purposes.  The
+``purpose_labels()`` ("Renewal reminder (60 days)").  ``RemindersConfig.ready()``
+registers ``reminder_purpose_labels`` with ``apps.mail.purposes``, whose
+``purpose_labels()`` puts them ahead of the other purposes; the mail app sits
+below reminders and never imports it (:doc:`email`).  The
 email log, its purpose filter, and its report read them once per response; the
 portal builds the same words from ``GET /admin/reminders/schedule`` in
 ``frontend/src/portal/features/system/reminderSchedule.ts``.
@@ -248,9 +257,9 @@ The command prints a structured summary::
   mode             dry run (nothing written)
   expired flipped  3
   sent             12
-    first            4
-    second            5
-    final             2
+    first          4
+    second         5
+    final          2
     expired        1
     lapsed         0
   skipped          2

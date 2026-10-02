@@ -86,13 +86,22 @@ arrive as the table shows.
    * - 30 to 60 days after
      - *CalDART: your membership lapsed 30 days ago*
 
-A system administrator can move the first three reminders and the last one to other
-days. The first then arrives between its own number of days before your term ends and
-the day after the second's, the second between its number and the day after the final
-one's, and the final one in the last days before the end date. The last reminder
-arrives between its own number of days after the end date and 30 days later. The
-reminder on the day the term ends never moves, and every subject states the real
-number of days.
+A system administrator can change the number of days for the first, second, and
+final reminders and for the last one. Whatever the numbers, each reminder arrives in
+these stretches:
+
+- The first: from its number of days before your end date until one day more than
+  the second's number. On the default schedule, 60 to 31 days before.
+- The second: from its number of days before until one day more than the final
+  one's number. On the default schedule, 30 to 8 days before.
+- The final one: from its number of days before until 1 day before. On the default
+  schedule, 7 to 1 days before.
+- The one at expiry: from your end date through 6 days after it. This one never
+  moves.
+- The last one: from its number of days after your end date, for 30 days. On the
+  default schedule, 30 to 60 days after.
+
+Every subject states the real number of days.
 
 Every reminder links straight to this screen. You are still current on your end
 date itself; the membership reads as expired the next morning.

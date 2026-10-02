@@ -17,7 +17,12 @@ Every message is rendered from a pair of templates in
 *purpose*, except for the notifications, which share the ``notification``
 template and each carry the purpose ``notification_<slug>`` of their event.
 ``apps/mail/purposes.py`` gives each purpose the label the portal's email log
-shows:
+shows.  ``PURPOSE_LABELS`` holds the labels that never change.  A label that
+depends on stored data comes from a source an app above mail registers with
+``register_purpose_labels()`` from its ``AppConfig.ready()``;
+``purpose_labels()`` merges the sources, in registration order, ahead of
+``PURPOSE_LABELS``.  The reminders app registers the five reminder labels, worded
+from the stored reminder schedule, so the mail app never imports it:
 
 .. list-table::
    :header-rows: 1

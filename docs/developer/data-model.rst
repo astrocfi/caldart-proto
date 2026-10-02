@@ -3610,7 +3610,8 @@ When each reminder stage falls.  There is only ever one row, primary key 1:
 default schedule (60, 30, 7, 30) before one is stored; reading never writes.  A
 system administrator writes it from the Scheduled page's **Reminder schedule**
 card through ``PUT /admin/reminders/schedule`` (:ref:`api-reminder-schedule`).
-The ``expired`` stage always falls on the expiry day itself, so it has no field.
+The ``expired`` stage spans the expiry day and the six days after it, so it has
+no field.
 
 .. list-table::
    :header-rows: 1
@@ -3627,19 +3628,19 @@ The ``expired`` stage always falls on the expiry day itself, so it has no field.
    * - ``first_days_before``
      - ``PositiveSmallIntegerField``
      - not null; default ``60``
-     - whole days before ``ends_on`` that the ``first`` stage's span starts
+     - whole days before ``ends_on`` that the ``first`` stage first goes out
    * - ``second_days_before``
      - ``PositiveSmallIntegerField``
      - not null; default ``30``
-     - whole days before ``ends_on`` that the ``second`` stage's span starts
+     - whole days before ``ends_on`` that the ``second`` stage first goes out
    * - ``final_days_before``
      - ``PositiveSmallIntegerField``
      - not null; default ``7``
-     - whole days before ``ends_on`` that the ``final`` stage's span starts
+     - whole days before ``ends_on`` that the ``final`` stage first goes out
    * - ``lapsed_days_after``
      - ``PositiveSmallIntegerField``
      - not null; default ``30``
-     - whole days after ``ends_on`` that the ``lapsed`` stage's span ends
+     - whole days after ``ends_on`` that the ``lapsed`` stage first goes out
    * - ``updated_at``
      - ``DateTimeField``
      - not null; set on every save
@@ -3654,8 +3655,9 @@ The ``expired`` stage always falls on the expiry day itself, so it has no field.
 - ``updated_by``: foreign key to ``accounts.User``, ``SET_NULL``, nullable; no reverse accessor.
 
 **Invariants.**  ``apps.reminders.models.schedule_errors`` holds every write
-through the API to ``365 >= first_days_before > second_days_before >
-final_days_before >= 1`` and ``7 <= lapsed_days_after <= 365``.  The ordering is
+through the API to ``180 >= first_days_before > second_days_before >
+final_days_before >= 1`` and ``7 <= lapsed_days_after <= 365``.  The cap keeps a
+member who has just bought an annual term from being told it is running out.  The ordering is
 what lets the three stages before expiry tile without overlapping, and the lapsed
 floor keeps the ``lapsed`` span clear of the ``expired`` stage's six-day reach.
 The rules live in the serializer's validation rather than in database

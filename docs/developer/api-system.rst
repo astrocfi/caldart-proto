@@ -111,7 +111,7 @@ cannot change it.  The body carries all four days as whole numbers:
    {"first_days_before": 45, "second_days_before": 20,
     "final_days_before": 3, "lapsed_days_after": 14}
 
-The days must keep ``365 >= first_days_before > second_days_before >
+The days must keep ``180 >= first_days_before > second_days_before >
 final_days_before >= 1`` and ``7 <= lapsed_days_after <= 365``.  A schedule
 breaking a rule is refused whole, with every broken rule keyed by the field it
 constrains:

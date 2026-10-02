@@ -29,9 +29,11 @@ it even if a morning is missed. On the default schedule the stages are:
   *CalDART: your membership lapsed* and the number of days *ago*.
 
 A system administrator can change the number of days for the first three stages and the last
-one on the :doc:`scheduled` page. The stages then read with the new numbers everywhere on
-this screen, each stage reaching back to the day after the next one, and the last stage
-still covering 30 days. The expired stage always falls on the day a membership ends.
+one on the :doc:`scheduled` page, and the stages then read with the new numbers everywhere on
+this screen. The first stage runs from its number of days before the end date until one day
+more than the second's number, the second until one day more than the final one's, and the
+final one until 1 day before. The last stage runs from its number of days after the end date
+for 30 days. The expired stage never moves: it runs from the end date through 6 days after.
 
 Each subject begins with your organization's name in place of CalDART. Each member gets one
 email per membership at each stage. Nobody is sent a reminder whose membership renews itself
