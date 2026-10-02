@@ -56,6 +56,10 @@ from the stored reminder schedule, so the mail app never imports it:
    * - ``scheduled_report``, ``dart_roster``
      - Scheduled report, DART roster
      - the daily report run (:doc:`scheduled-reports`)
+   * - ``bulk_email``
+     - Bulk email
+     - CalDART management's send to a filtered list, one copy per person
+       (:doc:`api-bulk-email`)
    * - ``notification_<slug>``, one per event, from ``notification_signed_up``
        to ``notification_aircraft_removed``
      - Notification: and the event's label, from Notification: Sign-up to

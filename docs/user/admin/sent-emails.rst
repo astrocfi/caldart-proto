@@ -42,7 +42,7 @@ The filters narrow the whole log, every page of it:
    *Renewal turned on*, *Renewal notice*, *Card expiring*, *Renewal charged*, *Renewal
    declined*, *Renewal turned off*, *Receipt*, *Refund*, *Contribution statement*,
    *Invitation*, *Password reset*, *Email verification*, *Scheduled report*, *DART
-   roster*, or one of the notifications: *Notification: Sign-up*, *Notification: Member
+   roster*, *Bulk email*, or one of the notifications: *Notification: Sign-up*, *Notification: Member
    added by an administrator*, *Notification: Member became a friend*, *Notification:
    Friend became a member*, *Notification: Membership paid*, *Notification: Membership
    granted by an administrator*, *Notification: Membership expired*, *Notification:

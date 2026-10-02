@@ -38,7 +38,8 @@ backend/                Django 6 + Wagtail 8
                         api_urls.py, models.py, reports.py, pagination.py,
                         exceptions.py
   apps/<app>/           accounts, darts, mail, members, aircraft, payments,
-                        reminders, reports, notifications, cms, sysadmin —
+                        reminders, reports, notifications, bulk_email, cms,
+                        sysadmin —
                         each with
                         models.py, admin.py, api/urls.py, seed.py,
                         management/commands/

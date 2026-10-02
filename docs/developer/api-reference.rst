@@ -21,6 +21,7 @@ to document each app's endpoints in detail, request body by response body.
    api-renewals
    api-reports
    api-notifications
+   api-bulk-email
    api-system
 
 Every endpoint the project serves is on one of those pages, and every one
@@ -1346,6 +1347,54 @@ not (see :ref:`api-csrf-bootstrap`).
      - ·
      - ✓
      - ``PATCH`` takes ``events`` and ``is_active``
+   * - ``POST /bulk-email/preview``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ``management``; sends nothing (see :doc:`api-bulk-email`)
+   * - ``GET /bulk-email/preview.csv``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ``management``; the preview's list
+   * - ``POST /bulk-email/send``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ``management``; one copy per recipient
+   * - ``GET /bulk-email``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ``management``; every send
+   * - ``GET /bulk-email/{id}``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ``management``; each person's result
+   * - ``GET /bulk-email/{id}/recipients.csv``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ``management``; one send's results
    * - ``GET | PATCH /admin/payments/{id}``
      - ·
      - ·

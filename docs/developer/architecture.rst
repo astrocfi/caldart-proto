@@ -124,8 +124,8 @@ Repository layout
         audit.py                the audit log: one record per privileged
                                 action, ids, and slugs only
       apps/                     one Django app per domain area
-        accounts/  darts/  mail/  members/  aircraft/
-        payments/  reminders/  reports/  notifications/  cms/  sysadmin/
+        accounts/  darts/  mail/  members/  aircraft/  payments/
+        reminders/  reports/  notifications/  bulk_email/  cms/  sysadmin/
       templates/
         base.html               the public-site shell
         portal.html             the SPA mount point
@@ -176,8 +176,8 @@ Path                  Served by
 ====================  ========================================================
 ``/admin/``           the Wagtail admin
 ``/django-admin/``    Django's model admin, for the accounts, darts,
-                      members, aircraft, payments, reminders, mail, and
-                      reports models
+                      members, aircraft, payments, reminders, mail,
+                      reports, and bulk email models
 ``/documents/``       Wagtail's document downloads
 ``/api/v1/``          the JSON API
 ``/.well-known/``     only ``apple-developer-merchantid-domain-association``,
@@ -272,7 +272,7 @@ Wagtail admins', the site's own images) is hashed as usual.
 The backend apps
 ================
 
-Ten apps under ``backend/apps/``, one per domain area.  The usual files
+Twelve apps under ``backend/apps/``, one per domain area.  The usual files
 are ``models.py``, ``services.py``, ``filters.py``, an ``api/`` package
 (``urls.py``, ``views.py``, ``serializers.py``), ``admin.py``,
 ``reports.py``, ``seed.py``, ``management/commands/``, and ``migrations/``;
@@ -340,6 +340,14 @@ report, a domain module, can read it.
     ``/notifications/``; the portal's *Notifications* screen at
     ``/admin/notifications`` is the account administrator's.  It reads the apps
     below it, so it sits beside ``reports``.
+``bulk_email``
+    ``BulkEmail`` and ``BulkEmailRecipient``: one email CalDART management sent
+    to everybody the member list's filters selected, and what became of each
+    person's copy.  The recipients are chosen with ``members.filters`` and each
+    copy goes through ``caldart.mail.send_templated``.  Endpoints under
+    ``/bulk-email`` (:doc:`api-bulk-email`); the portal's *Bulk Email* screen at
+    ``/admin/bulk-email`` is the ``management`` role's.  It reads ``members``,
+    so it sits beside ``reports``.
 ``cms``
     The Wagtail page types, the StreamField blocks, ``SiteSettings``, the
     members-only wall, the ``site_chrome`` context processor and the
@@ -392,8 +400,9 @@ Layer                                       Apps
 4                                           ``aircraft`` and ``payments``,
                                             siblings that never import each
                                             other
-5                                           ``reminders``, ``reports``, and
-                                            ``notifications``, siblings that
+5                                           ``reminders``, ``reports``,
+                                            ``notifications``, and
+                                            ``bulk_email``, siblings that
                                             never import each other
 6                                           ``cms`` and ``sysadmin``
 ==========================================  ==================================

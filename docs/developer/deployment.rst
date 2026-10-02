@@ -1814,6 +1814,8 @@ Action                        Fields beyond actor and target
                               DART), then ``dry_run``, ``sent``, ``skipped``,
                               ``failed``; one line per **Send now**, and per
                               DART when the rosters are sent by hand
+``bulk_email.send``           ``sent``, ``skipped``, ``failed`` (the target
+                              is the ``BulkEmail``); one line per bulk email
 ``system.registry_import``    -- (the target is the ``RegistryImport`` row);
                               one line per **Run now** on Health & Database
 ============================= ===============================================
