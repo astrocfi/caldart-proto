@@ -43,6 +43,8 @@ interface RunActionsTableProps {
    * leave the When and Amount columns out.
    */
   hasWhenAndAmount?: boolean;
+  /** The heading over the table, in place of `actionsHeading`'s. */
+  heading?: string;
 }
 
 /** A run's heading, its caller-supplied summary, and the actions behind it. */
@@ -53,6 +55,7 @@ export function RunActionsTable({
   detailHeader,
   summary,
   hasWhenAndAmount = true,
+  heading,
 }: RunActionsTableProps): JSX.Element {
   const detail: Column<RunAction>[] =
     detailHeader === undefined
@@ -92,7 +95,7 @@ export function RunActionsTable({
 
   return (
     <div className="run-actions stack-tight">
-      <h3>{actionsHeading(dryRun)}</h3>
+      <h3>{heading ?? actionsHeading(dryRun)}</h3>
       {summary}
       <DataTable
         columns={columns}

@@ -158,6 +158,7 @@ export function BulkEmailPage(): JSX.Element {
           <RunActionsTable
             actions={previewActions(preview.data)}
             dryRun={true}
+            heading="Who this email would reach"
             kindLabel={resultLabel}
             detailHeader="Reason"
             hasWhenAndAmount={false}

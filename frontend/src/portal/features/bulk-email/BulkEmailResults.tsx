@@ -21,6 +21,7 @@ export function BulkEmailResults({ sent }: BulkEmailResultsProps): JSX.Element {
       <RunActionsTable
         actions={resultActions(sent)}
         dryRun={false}
+        heading="What became of each copy"
         kindLabel={resultLabel}
         detailHeader="Reason"
         hasWhenAndAmount={false}

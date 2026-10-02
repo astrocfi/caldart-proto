@@ -132,4 +132,17 @@ describe('RunActionsTable', () => {
 
     expect(screen.getByRole('table', { name: '2 actions' })).toHaveTextContent('Dan Lee');
   });
+
+  it('takes a heading of the caller’s own', () => {
+    render(
+      <RunActionsTable
+        actions={ACTIONS}
+        dryRun={true}
+        kindLabel={() => 'To send'}
+        heading="Who this email would reach"
+      />,
+    );
+
+    expect(screen.getByRole('heading')).toHaveTextContent('Who this email would reach');
+  });
 });
