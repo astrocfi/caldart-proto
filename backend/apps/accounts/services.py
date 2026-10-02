@@ -247,8 +247,10 @@ def update_account(actor: User | str, target: User, changes: AccountChanges) -> 
 
     An edit that really alters the email address -- compared as the unique
     constraint compares it, so a change of case is not one -- clears
-    ``email_verified_at`` and, once the transaction commits, mails the new address a
-    verification link through :func:`send_email_verification`.
+    ``email_verified_at`` and any bounce recorded against the old address
+    (``email_bounced_at`` and ``email_bounce_detail``) and, once the transaction
+    commits, mails the new address a verification link through
+    :func:`send_email_verification`.
 
     Each change the save really makes raises its notification event through
     :func:`caldart.events.emit`, after the save and inside the transaction:
@@ -280,6 +282,8 @@ def update_account(actor: User | str, target: User, changes: AccountChanges) -> 
             setattr(target, field, fields[field])
     if is_new_address:
         target.email_verified_at = None
+        target.email_bounced_at = None
+        target.email_bounce_detail = ""
     if roles is not None and _writes_roles(target, set(roles)):
         target.set_roles(roles)
         sync_django_flags(target)
@@ -810,23 +814,51 @@ def confirm_email_address(user: User) -> bool:
     """Record that ``user``'s owner has proved the address, unless that is known already.
 
     Following a verification link and following a password link both prove it, for the
-    address ``user`` held when the caller checked the link.  The stored account is
-    stamped verified now, in one conditional update, only while it is unverified and
-    still holds that address (ignoring case); the stamp is copied onto ``user``,
-    recorded in the audit log as ``account.email_verified`` with the account as actor
-    and target, and the return is True.  An account already verified, or moved to
-    another address since ``user`` was read, is left alone and the return is False.
+    address ``user`` held when the caller checked the link.  While the stored account
+    still holds that address (ignoring case), any bounce recorded against it is cleared,
+    verified or not, since mail to it has just arrived; ``email_bounced_at`` and
+    ``email_bounce_detail`` are cleared on ``user`` too.  Then the account is stamped
+    verified now, in one conditional update, only while it is unverified; the stamp is
+    copied onto ``user``, recorded in the audit log as ``account.email_verified`` with
+    the account as actor and target, and the return is True.  An account already
+    verified, or moved to another address since ``user`` was read, is not stamped and
+    the return is False.
     """
     now = timezone.now()
-    stamped = User.objects.filter(
-        pk=user.pk, email__iexact=user.email, email_verified_at__isnull=True
-    ).update(email_verified_at=now, updated_at=now)
+    same_address = User.objects.filter(pk=user.pk, email__iexact=user.email)
+    if same_address.filter(email_bounced_at__isnull=False).update(
+        email_bounced_at=None, email_bounce_detail="", updated_at=now
+    ):
+        user.email_bounced_at = None
+        user.email_bounce_detail = ""
+        user.updated_at = now
+    stamped = same_address.filter(email_verified_at__isnull=True).update(
+        email_verified_at=now, updated_at=now
+    )
     if stamped == 0:
         return False
     user.email_verified_at = now
     user.updated_at = now
     audit.record(audit.ACCOUNT_EMAIL_VERIFIED, actor=user, target=user)
     return True
+
+
+def clear_email_bounce(actor: User, target: User) -> User:
+    """Clear the bounce recorded against ``target``'s address on ``actor``'s word.
+
+    For a user administrator who has checked the address is good: ``email_bounced_at``
+    and ``email_bounce_detail`` are emptied and the change is recorded as
+    ``account.bounce_cleared`` under ``actor``.  An account with no bounce recorded is
+    left alone and nothing is recorded.  Who may call this is the endpoint's rule, not
+    this function's.  Returns the account.
+    """
+    if target.email_bounced_at is None:
+        return target
+    target.email_bounced_at = None
+    target.email_bounce_detail = ""
+    target.save(update_fields=["email_bounced_at", "email_bounce_detail", "updated_at"])
+    audit.record(audit.ACCOUNT_BOUNCE_CLEARED, actor=actor, target=target)
+    return target
 
 
 def change_own_email(user: User, *, email: str) -> User:
