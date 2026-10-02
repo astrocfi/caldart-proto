@@ -9,6 +9,7 @@ from __future__ import annotations
 import base64
 import copy
 import csv
+import imaplib
 import io
 import json
 import logging
@@ -885,3 +886,136 @@ def recorded_events() -> Iterator[RecordedEvents]:
         yield seen
     finally:
         events.unsubscribe(record)
+
+
+#: The directory of real-shaped delivery reports ``bounce_report`` reads.
+BOUNCE_REPORTS_DIR = Path(__file__).resolve().parent / "bounce_reports"
+
+#: What a report's placeholders read when a test names none: a hard bounce.
+_BOUNCE_REPORT_DEFAULTS: dict[str, str] = {
+    "recipient": "gone@example.com",
+    "message_id": "<original.1@caldart.example.org>",
+    "action": "failed",
+    "status": "5.1.1",
+}
+
+#: The ``imaps://`` address the fake mailbox answers to.
+FAKE_BOUNCE_IMAP_URL = "imaps://bounces%40caldart.example.org:s3cret@imap.example.org/Bounces"
+
+
+class BounceReport(Protocol):
+    """Render one report under ``backend/tests/bounce_reports/`` as raw message bytes."""
+
+    def __call__(self, name: str, **fields: str) -> bytes:
+        """Answer the report ``name`` with ``fields`` written over its defaults."""
+
+
+@pytest.fixture
+def bounce_report() -> BounceReport:
+    """Read ``bounce_reports/<name>.eml`` with its placeholders filled in.
+
+    The reports are shaped as Postfix, Gmail and Exchange send them:
+    ``hard_bounce`` (the original's headers as ``text/rfc822-headers``),
+    ``attached_original`` (the whole original as ``message/rfc822``), ``no_original``
+    (no copy of the original at all), ``delay`` (a warning that delivery is still being
+    retried) and ``auto_reply`` (an out-of-office answer, no report at all).  Each of
+    ``recipient``, ``message_id``, ``action`` and ``status`` defaults to a permanent
+    failure for ``gone@example.com`` of ``<original.1@caldart.example.org>``.
+    """
+
+    def render(name: str, **fields: str) -> bytes:
+        template = (BOUNCE_REPORTS_DIR / f"{name}.eml").read_text(encoding="utf-8")
+        return template.format_map({**_BOUNCE_REPORT_DEFAULTS, **fields}).encode()
+
+    return render
+
+
+class FakeImap:
+    r"""An IMAP server held in memory, standing in for ``imaplib.IMAP4_SSL``.
+
+    It holds ``messages`` numbered from 1, all unseen to begin with, and answers
+    ``login``, ``select``, ``search(None, "UNSEEN")``, ``fetch(num, "(BODY.PEEK[])")``,
+    ``store(num, "+FLAGS", "\\Seen")`` and ``logout`` as a server would, recording
+    what it was asked: the address it was opened on, the credentials, the mailbox,
+    and which messages were marked seen.  ``refuse`` makes opening it raise that
+    exception instead, as an unreachable server does.
+    """
+
+    def __init__(self, messages: list[bytes], refuse: Exception | None = None) -> None:
+        """Hold ``messages``, every one unseen."""
+        self.messages = {str(number): raw for number, raw in enumerate(messages, 1)}
+        self.refuse = refuse
+        self.opened: tuple[str, int] | None = None
+        self.credentials: tuple[str, str] | None = None
+        self.mailbox: str | None = None
+        self.seen: set[str] = set()
+        self.logged_out = False
+        #: The mailboxes ``select`` opens; any other is answered ``NO``, as a server does.
+        self.mailboxes = {"INBOX", "Bounces"}
+
+    def __call__(self, host: str, port: int, *, timeout: float | None = None) -> FakeImap:
+        """Open the connection, as ``imaplib.IMAP4_SSL(host, port, timeout=...)`` does."""
+        if self.refuse is not None:
+            raise self.refuse
+        self.opened = (host, port)
+        return self
+
+    def login(self, user: str, password: str) -> tuple[str, list[bytes]]:
+        """Accept any credentials and remember them."""
+        self.credentials = (user, password)
+        return "OK", [b"Logged in"]
+
+    def select(self, mailbox: str) -> tuple[str, list[bytes]]:
+        """Open ``mailbox`` and answer its message count, or ``NO`` for no such box."""
+        self.mailbox = mailbox
+        if mailbox not in self.mailboxes:
+            return "NO", [b"[NONEXISTENT] Unknown Mailbox"]
+        return "OK", [str(len(self.messages)).encode()]
+
+    def search(self, charset: str | None, criterion: str) -> tuple[str, list[bytes]]:
+        """Answer the numbers of the messages not yet marked seen."""
+        assert criterion == "UNSEEN"
+        unseen = [number for number in self.messages if number not in self.seen]
+        return "OK", [" ".join(unseen).encode()]
+
+    def fetch(self, number: str, parts: str) -> tuple[str, list[tuple[bytes, bytes] | bytes]]:
+        """Answer message ``number`` whole, leaving it unseen, as ``BODY.PEEK[]`` does."""
+        assert parts == "(BODY.PEEK[])"
+        raw = self.messages[number]
+        return "OK", [(f"{number} (BODY[] {{{len(raw)}}}".encode(), raw), b")"]
+
+    def store(self, number: str, command: str, flags: str) -> tuple[str, list[bytes]]:
+        """Mark message ``number`` seen."""
+        assert (command, flags) == ("+FLAGS", "\\Seen")
+        self.seen.add(number)
+        return "OK", [f"{number} (FLAGS (\\Seen))".encode()]
+
+    def logout(self) -> tuple[str, list[bytes]]:
+        """Close the connection."""
+        self.logged_out = True
+        return "BYE", [b"Logging out"]
+
+
+class FakeMailbox(Protocol):
+    """Install a :class:`FakeImap` holding ``messages`` as the bounce mailbox."""
+
+    def __call__(self, *messages: bytes, refuse: Exception | None = None) -> FakeImap:
+        """Answer the installed fake, holding ``messages`` or refusing with ``refuse``."""
+
+
+@pytest.fixture
+def fake_mailbox(monkeypatch: pytest.MonkeyPatch, settings: Settings) -> FakeMailbox:
+    """Point ``BOUNCE_IMAP_URL`` at a :class:`FakeImap` holding the messages given.
+
+    ``imaplib.IMAP4_SSL`` is replaced for the one test, so the bounce check opens the
+    fake rather than the network, and ``BOUNCE_IMAP_URL`` is
+    :data:`FAKE_BOUNCE_IMAP_URL`.  Returns the fake, to read back what the check did.
+    """
+
+    def install(*messages: bytes, refuse: Exception | None = None) -> FakeImap:
+        fake = FakeImap(list(messages), refuse=refuse)
+        monkeypatch.setattr(imaplib, "IMAP4_SSL", fake)
+        settings.BOUNCE_IMAP_URL = FAKE_BOUNCE_IMAP_URL
+        return fake
+
+    return install
