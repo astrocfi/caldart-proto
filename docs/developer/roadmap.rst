@@ -101,6 +101,18 @@ change: it already separates "who should be told" from "how they are told".
 The larger prize behind it is broadcast messaging — telling a DART's members
 about a callout — which is a different feature with the same plumbing.
 
+Bulk email in a background job
+------------------------------
+
+A bulk email (:doc:`api-bulk-email`) sends every copy inside the request, so a
+send is bounded by the 60-second worker and proxy timeouts, and each SMTP
+conversation may take up to ``EMAIL_TIMEOUT``.  A send that outlives its worker
+leaves an *interrupted* record: every copy that went, and every one still
+``pending``.  Moving the loop into a job (the send answers at once, a worker
+sends the ``pending`` rows, the screen polls ``GET /bulk-email/{id}``, and a
+**Send the rest** action resumes an interrupted send) removes the limit; the
+rows already carry everything such a worker needs.
+
 .. _roadmap-i18n:
 
 Internationalization

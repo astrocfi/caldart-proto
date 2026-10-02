@@ -34,7 +34,8 @@ selects every member and friend. Donors are never on the list.
 Writing the message
 ===================
 
-**Subject** is one line, and every recipient sees it exactly as you type it. **Message** is
+**Subject** is one line with no tabs, and every recipient sees it exactly as you type
+it. **Message** is
 plain text: leave a blank line between paragraphs and each becomes a paragraph of the
 email. Both are required.
 
@@ -46,7 +47,9 @@ receive this email as a member or a friend of* your organization.
 Previewing the recipients
 =========================
 
-Press **Preview recipients**. Nothing is sent. Under the form a line counts the list, such
+Press **Preview recipients**. Nothing is sent. While the filters choose nobody, the
+preview reads *Nobody matches these filters*. Otherwise a line under the form counts the
+list, such
 as *42 people will be sent this email; 3 are skipped.*, and the table **Who this email would
 reach** names each person: **To send** for everyone who will be sent a copy, then
 **Skipped** for everyone the filters chose who will not be, with the reason:
@@ -69,7 +72,8 @@ Sending
 
 Under the preview, **Send to 42 people** (with the count from the preview) asks first: *This
 sends* the subject *to 42 people now. A sent email cannot be called back.* Press **Send
-now** to send, or **Cancel** to go back.
+now** to send, or **Cancel** to go back. The filters, the subject, and the message are
+held still until the send finishes.
 
 The list is built again at the moment you send, so somebody who started matching the
 filters after the preview is sent a copy too. A send that would reach nobody is refused
@@ -87,7 +91,8 @@ Past sends
 
 **Sent bulk emails**, below, lists every send, the most recent first, one line each:
 
-- **Date**: the day it was sent.
+- **Date**: the day it was sent, followed by **Interrupted** for a send that stopped
+  before every copy was tried.
 - **Subject** and **From**: what it said, and who sent it.
 - **Sent**, **Failed**, and **Skipped**: how many copies went, were refused, and were
   skipped.
@@ -95,6 +100,13 @@ Past sends
   **CSV** downloads them, with each person's name, address, result, and reason.
 
 Before the first send the table reads *No bulk email has been sent*.
+
+A large send can take longer than the site lets one page wait. When it does, the page
+reports an error and the send stops part way. It is marked **Interrupted** in the list.
+Its results read *Interrupted:* with the counts so far, and each person never sent a copy
+reads **Not sent**. Everybody marked **Sent** already has the email, so download the
+list with **CSV** and write to the people marked **Not sent**. Sending again would reach
+everyone a second time.
 
 
 If something looks wrong

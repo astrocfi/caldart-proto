@@ -1157,6 +1157,8 @@ permanent-failure report for a message the server took (:ref:`email-bounces`).
 ---------------------------------------------------
 
 ``BulkEmailRecipient.status``: what became of one person's copy of a bulk email.
+Every recipient starts ``pending``; one still ``pending`` once the send has
+stopped was never tried.
 
 .. list-table::
    :header-rows: 1
@@ -1164,6 +1166,8 @@ permanent-failure report for a message the server took (:ref:`email-bounces`).
 
    * - Value
      - Label
+   * - ``pending``
+     - Not sent
    * - ``sent``
      - Sent
    * - ``failed``
@@ -4110,15 +4114,15 @@ One email sent to everybody the member list's filters selected.
    * - ``sent_at``
      - ``DateTimeField``
      - null; default ``NULL``
-     - when every copy had been tried; null for a send that never finished
+     - when every copy had been tried; null for an interrupted send
    * - ``sent_count``
      - ``PositiveIntegerField``
      - not null; default ``0``
-     - how many copies the mail server took
+     - how many copies the mail server took, kept up to date as each goes
    * - ``failed_count``
      - ``PositiveIntegerField``
      - not null; default ``0``
-     - how many copies it refused
+     - how many copies it refused, kept up to date as each is tried
    * - ``skipped_count``
      - ``PositiveIntegerField``
      - not null; default ``0``
@@ -4134,10 +4138,14 @@ One email sent to everybody the member list's filters selected.
 - ``recipients``: the reverse of ``BulkEmailRecipient.bulk_email``.
 
 ``bulk_email.services.send_bulk_email`` is the one writer.  It builds the list
-when it sends, writes the ``BulkEmail``, sends each copy, writes a
-``BulkEmailRecipient`` per copy as it goes, then one per skip, and last sets
-the three counts and ``sent_at``.  The counts always add up to the recipient
-rows.
+when it sends and writes the ``BulkEmail`` with its ``skipped_count``, then a
+``BulkEmailRecipient`` for every recipient, ``pending``, and one for every skip,
+before any copy goes.  As each copy is tried, its row's status and the send's
+``sent_count`` or ``failed_count`` are saved at once, outside any transaction;
+``sent_at`` is set last.  So a finished send's counts add up to its rows, and a
+send whose worker was killed part way (*interrupted*: ``sent_at`` null) holds
+exactly the copies that went, the ones refused, and the ones still ``pending``,
+which were never sent.
 
 ``BulkEmailRecipient``
 ----------------------
@@ -4173,9 +4181,9 @@ One person a bulk email's filters selected, and what became of their copy.
      - null; default ``NULL``
      - the account; null once it is deleted; related name ``bulk_emails_received``
    * - ``name``
-     - ``CharField(200)``
+     - ``CharField(301)``
      - not null; default ``""``
-     - the account's display name at send time
+     - the account's display name at send time, whole: a 150-character first name, a space, and a 150-character last name fit
    * - ``email``
      - ``CharField(254)``
      - not null; default ``""``
@@ -4183,16 +4191,16 @@ One person a bulk email's filters selected, and what became of their copy.
    * - ``status``
      - ``CharField(7)``, :ref:`choices <choices-bulk-email-recipient-status>`
      - not null; required
-     - ``sent``, ``failed``, or ``skipped``
+     - ``pending``, ``sent``, ``failed``, or ``skipped``
    * - ``reason``
      - ``CharField(200)``
      - not null; default ``""``
-     - why a copy was skipped (*Account deactivated*, *No email address*, *Invalid email address*, *Duplicate address*) or failed (*Refused by the mail server*); blank for one that went
+     - why a copy was skipped (*Account deactivated*, *No email address*, *Invalid email address*, *Duplicate address*) or failed (*Refused by the mail server*); blank for one that went or was never tried
 
 **Constraints, indexes, and ordering.**
 
-- Ordering: ``id``, which is the order the send wrote them: every copy sent or
-  failed in surname order, then every skip in surname order.
+- Ordering: ``id``, which is the order the send wrote them: every recipient in
+  surname order, then every skip in surname order.
 
 **Relationships.**
 
