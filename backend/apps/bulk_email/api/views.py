@@ -22,8 +22,8 @@ from apps.accounts.permissions import IsManagement
 from apps.bulk_email.api.serializers import (
     BulkEmailDetailSerializer,
     BulkEmailMessageSerializer,
+    BulkEmailPreviewSerializer,
     BulkEmailSerializer,
-    PreviewSerializer,
     checked_filters,
     preview_payload,
 )
@@ -43,7 +43,7 @@ class PreviewView(APIView):
 
     permission_classes = [IsManagement]
 
-    @extend_schema(request=BulkEmailMessageSerializer, responses={200: PreviewSerializer})
+    @extend_schema(request=BulkEmailMessageSerializer, responses={200: BulkEmailPreviewSerializer})
     def post(self, request: Request) -> Response:
         """200 with the recipients and the skips the filters select, now.
 
@@ -53,7 +53,7 @@ class PreviewView(APIView):
         payload = BulkEmailMessageSerializer(data=request.data)
         payload.is_valid(raise_exception=True)
         chosen = build_recipients(payload.validated_data["filters"])
-        return Response(PreviewSerializer(preview_payload(chosen)).data)
+        return Response(BulkEmailPreviewSerializer(preview_payload(chosen)).data)
 
 
 class PreviewCsvView(APIView):

@@ -88,7 +88,7 @@ class PreviewDict(TypedDict):
     skipped: list[RecipientDict]
 
 
-class PreviewRecipientSerializer(serializers.Serializer[RecipientDict]):
+class BulkEmailPreviewRecipientSerializer(serializers.Serializer[RecipientDict]):
     """One person a preview lists; ``reason`` is blank for one who will be sent a copy."""
 
     user_id = serializers.IntegerField()
@@ -97,7 +97,7 @@ class PreviewRecipientSerializer(serializers.Serializer[RecipientDict]):
     reason = serializers.CharField(allow_blank=True)
 
 
-class PreviewSerializer(serializers.Serializer[PreviewDict]):
+class BulkEmailPreviewSerializer(serializers.Serializer[PreviewDict]):
     """``POST /bulk-email/preview``'s answer.
 
     ``count`` is how many people would be sent a copy, and ``skipped_count`` how
@@ -107,8 +107,8 @@ class PreviewSerializer(serializers.Serializer[PreviewDict]):
 
     count = serializers.IntegerField()
     skipped_count = serializers.IntegerField()
-    recipients = PreviewRecipientSerializer(many=True)
-    skipped = PreviewRecipientSerializer(many=True)
+    recipients = BulkEmailPreviewRecipientSerializer(many=True)
+    skipped = BulkEmailPreviewRecipientSerializer(many=True)
 
 
 def preview_payload(chosen: RecipientList) -> PreviewDict:
@@ -152,6 +152,7 @@ class BulkEmailSerializer(serializers.ModelSerializer[BulkEmail]):
     is deleted.  ``sent_at`` is null for a send that never finished.
     """
 
+    filters = serializers.DictField(child=serializers.CharField(), read_only=True)
     sender = serializers.SerializerMethodField()
 
     class Meta:

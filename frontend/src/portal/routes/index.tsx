@@ -30,6 +30,7 @@ import { adminRemindersRoutes } from './admin-reminders';
 import { adminReportsRoutes } from './admin-reports';
 import { adminUsersRoutes } from './admin-users';
 import { authRoutes } from './auth';
+import { bulkEmailRoutes } from './bulk-email';
 import { dashboardRoutes } from './dashboard';
 import { donateRoutes } from './donate';
 import { joinRoutes, renewRoutes } from './join';
@@ -59,6 +60,7 @@ export const privateRoutes: RouteObject[] = [
   ...adminReportsRoutes,
   ...adminNotificationsRoutes,
   ...adminUsersRoutes,
+  ...bulkEmailRoutes,
   ...systemRoutes,
 ];
 

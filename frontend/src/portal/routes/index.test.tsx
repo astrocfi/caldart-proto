@@ -102,6 +102,9 @@ vi.mock('../features/admin-reports/AdminReportsPage', () => ({
 vi.mock('../features/admin-notifications/AdminNotificationsPage', () => ({
   AdminNotificationsPage: pageStub('Notifications'),
 }));
+vi.mock('../features/bulk-email/BulkEmailPage', () => ({
+  BulkEmailPage: pageStub('Bulk Email'),
+}));
 vi.mock('../features/admin-users/UsersListPage', () => ({
   UsersListPage: pageStub('Users and roles'),
 }));
@@ -260,6 +263,11 @@ const GUARDED_PATHS: GuardedPath[] = [
     path: '/admin/notifications',
     heading: 'Notifications',
     allowed: ['account_admin', 'system_admin'],
+  },
+  {
+    path: '/admin/bulk-email',
+    heading: 'Bulk Email',
+    allowed: ['management', 'system_admin'],
   },
   { path: '/admin/users', heading: 'Users and roles', allowed: ['user_admin', 'system_admin'] },
   { path: '/admin/users/1', heading: 'User record', allowed: ['user_admin', 'system_admin'] },
