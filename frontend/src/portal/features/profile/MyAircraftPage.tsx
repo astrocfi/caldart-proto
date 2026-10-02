@@ -4,7 +4,8 @@
  * The search half is `<AircraftPicker/>` from `@/portal/features/aircraft`;
  * this page attaches and detaches what it hands back, opens `<AircraftEditor/>`
  * on an attached aircraft, and shows the insurance currency a DART leader will
- * check and whether an authority has verified the policy.  The coverage
+ * check and whether an authority has verified the policy (no mark while no policy
+ * is on file, since there is nothing to verify).  The coverage
  * policy's note to members stands above the list, and an aircraft the policy
  * excludes is marked with the reason.
  */
@@ -82,7 +83,10 @@ export function MyAircraftPage(): JSX.Element {
                   isCurrent={plane.insurance_is_current}
                   missing={plane.insurance_expiration === null}
                 />
-                <VerifiedMark verification={{ verified: plane.insurance_verified }} pending />
+                {plane.insurance_expiration === null && !plane.insurance_verified ? null : (
+                  // With no policy on file there is nothing to verify yet, so no mark.
+                  <VerifiedMark verification={{ verified: plane.insurance_verified }} pending />
+                )}
                 {plane.coverage.excluded ? <StatusChip tone="expired" label="Not covered" /> : null}
                 <p className="aircraft-list__meta">
                   {plane.coverage.excluded

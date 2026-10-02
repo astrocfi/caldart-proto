@@ -364,6 +364,31 @@ describe('<MyAircraftPage/> editing', () => {
     expect(within(row).getByText(mark)).toBeInTheDocument();
   });
 
+  it('leaves an aircraft with no insurance on file without a verification mark', async () => {
+    server.use(
+      http.get(`${API}/me/profile`, () =>
+        HttpResponse.json(
+          makeProfile({
+            aircraft: [
+              makeVerifiedAircraftSummary({
+                insurance_verified: false,
+                insurance_is_current: false,
+                insurance_expiration: null,
+                insurance_summary: 'No insurance on file',
+              }),
+            ],
+          }),
+        ),
+      ),
+    );
+
+    renderWithProviders(<MyAircraftPage />, { route: '/profile/aircraft' });
+
+    const row = (await screen.findByText('N172SP')).closest('li') as HTMLElement;
+    expect(within(row).getByText('Not on file')).toBeInTheDocument();
+    expect(within(row).queryByText('Not yet verified')).not.toBeInTheDocument();
+  });
+
   it('reads the insurance as not yet verified once the member edits it', async () => {
     let edited = false;
     server.use(
