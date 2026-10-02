@@ -12,9 +12,10 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
 
 import { api } from '@/portal/api/client';
-import { REGISTRY_KEY } from '@/portal/api/queries';
+import { ADMIN_USERS_KEY, REGISTRY_KEY } from '@/portal/api/queries';
 import type {
   Backup,
+  BounceRunResult,
   EmailLogEntry,
   EmailPurpose,
   Health,
@@ -29,6 +30,7 @@ import type {
   RegistryImport,
   StatementsRunResult,
 } from '@/portal/api/types';
+import { MEMBERS_KEY } from '@/portal/features/admin-members/api';
 import { ROSTERS_KEY, SUBSCRIPTIONS_KEY } from '@/portal/reports/api';
 import type { FilterValues } from '@/portal/reports/types';
 import { API_BASE } from '@/portal/urlPrefix';
@@ -204,6 +206,27 @@ export function useRunStatements(): UseMutationResult<
     onSuccess: (_result, { dryRun }) => {
       if (dryRun) return;
       void queryClient.invalidateQueries({ queryKey: ['system', 'emails'] });
+    },
+  });
+}
+
+/**
+ * Runs the bounce check (or a rehearsal) via `POST /system/bounces/run`: reads the
+ * bounce mailbox and marks every email that bounced.
+ *
+ * A real run changes email log rows and flags accounts, so the log and the user and
+ * member records are read again; a dry run changes nothing.
+ */
+export function useRunBounces(): UseMutationResult<BounceRunResult, unknown, boolean> {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (dryRun: boolean) =>
+      api.post<BounceRunResult>('/system/bounces/run', { dry_run: dryRun }),
+    onSuccess: (_result, dryRun) => {
+      if (dryRun) return;
+      void queryClient.invalidateQueries({ queryKey: ['system', 'emails'] });
+      void queryClient.invalidateQueries({ queryKey: ADMIN_USERS_KEY });
+      void queryClient.invalidateQueries({ queryKey: MEMBERS_KEY });
     },
   });
 }

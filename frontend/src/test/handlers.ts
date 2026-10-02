@@ -89,14 +89,21 @@ export function makeUser(overrides: Partial<User> = {}): User {
 /**
  * Build an `/admin/users/{id}` payload: `makeUser`, plus when the address was
  * verified, keeping `email_verified` in step with `email_verified_at` the way
- * the server does.
+ * the server does, and no bounce unless `email_bounced_at` names one.
  */
 export function makeAdminUser(overrides: Partial<AdminUser> = {}): AdminUser {
-  const { email_verified_at = '2024-07-01T12:05:00Z', ...userOverrides } = overrides;
+  const {
+    email_verified_at = '2024-07-01T12:05:00Z',
+    email_bounced_at = null,
+    email_bounce_detail = '',
+    ...userOverrides
+  } = overrides;
   return {
     ...makeUser(userOverrides),
     email_verified: email_verified_at !== null,
     email_verified_at,
+    email_bounced_at,
+    email_bounce_detail,
     reactivation_blocked: false,
   };
 }

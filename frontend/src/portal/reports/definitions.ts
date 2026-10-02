@@ -323,6 +323,7 @@ const EMAIL_LOG_FILTERS: FilterField[] = [
     options: [
       { value: 'sent', label: 'Sent' },
       { value: 'failed', label: 'Failed' },
+      { value: 'bounced', label: 'Bounced' },
     ],
   },
   { key: 'from', label: 'From', kind: 'date' },

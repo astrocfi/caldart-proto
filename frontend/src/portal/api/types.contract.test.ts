@@ -43,6 +43,7 @@ import type {
   Airworthiness,
   Backup,
   BecomeFriendPayload,
+  BounceRunResult,
   CheckoutRequest,
   CheckoutResponse,
   ContributionRow,
@@ -376,6 +377,7 @@ const verifierGrant: Matches<VerifierGrantPayload, Schemas['VerifierGrantRequest
 /* -------------------------------------------------------------- email log */
 const emailLog: Matches<EmailLogEntry, Schemas['EmailLog']> = true;
 const emailPurpose: Matches<EmailPurpose, Schemas['EmailPurpose']> = true;
+const bounceRun: Matches<BounceRunResult, Schemas['BounceRunResult']> = true;
 
 /* -------------------------------------------------- reminders and system */
 const reminderLog: Matches<ReminderLogEntry, Schemas['ReminderLog']> = true;
@@ -559,6 +561,7 @@ const assertions: readonly true[] = [
   verifierGrant,
   emailLog,
   emailPurpose,
+  bounceRun,
   reminderLog,
   reminderRun,
   reminderSchedule,
@@ -720,6 +723,7 @@ const MAPPED_COMPONENTS: readonly (keyof Schemas)[] = [
   'VerifierGrantRequest',
   'EmailLog',
   'EmailPurpose',
+  'BounceRunResult',
   'ReminderLog',
   'ReminderRunResult',
   'ReminderSchedule',

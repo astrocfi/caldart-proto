@@ -29,6 +29,8 @@ const ENTRIES: EmailLogEntry[] = [
     status: 'sent',
     error: '',
     attachments: 'receipt-2026-0041.pdf',
+    bounced_at: null,
+    bounce_detail: '',
   },
   {
     id: 902,
@@ -42,8 +44,27 @@ const ENTRIES: EmailLogEntry[] = [
     status: 'failed',
     error: 'SMTPRecipientsRefused',
     attachments: '',
+    bounced_at: null,
+    bounce_detail: '',
   },
 ];
+
+/** A reminder the bounce check found bouncing, at noon UTC on October 1st, 2026. */
+const BOUNCED: EmailLogEntry = {
+  id: 904,
+  to_email: 'gone@example.com',
+  user_id: 41,
+  user_name: 'Dana Doe',
+  purpose: 'reminder_t30',
+  purpose_label: 'Renewal reminder (30 days)',
+  subject: 'CalDART: your membership expires in 30 days',
+  sent_at: '2026-10-01T08:00:00-07:00',
+  status: 'bounced',
+  error: '',
+  attachments: '',
+  bounced_at: '2026-10-01T12:00:00Z',
+  bounce_detail: '5.1.1 550 User unknown',
+};
 
 function page(
   rows: EmailLogEntry[],
@@ -111,6 +132,26 @@ describe('EmailLogPanel', () => {
     expect(await screen.findByText('Failed: SMTPRecipientsRefused')).toBeInTheDocument();
   });
 
+  it('reads a bounced message as Bounced', async () => {
+    server.use(emailsHandler([BOUNCED]));
+    renderWithProviders(<EmailLogPanel />);
+
+    const row = await screen.findByRole('row', { name: /Dana Doe/ });
+    expect(
+      within(row)
+        .getAllByRole('cell')
+        .map((cell) => cell.textContent),
+    ).toContain('Bounced');
+  });
+
+  it('shows when a message bounced and the report beside it', async () => {
+    server.use(emailsHandler([BOUNCED]));
+    renderWithProviders(<EmailLogPanel />);
+
+    const row = await screen.findByRole('row', { name: /Dana Doe/ });
+    expect(row).toHaveTextContent('10/01/2026 · 5.1.1 550 User unknown');
+  });
+
   it('says nothing has gone out yet when the log is empty', async () => {
     server.use(emailsHandler([]));
     renderWithProviders(<EmailLogPanel />);
@@ -175,6 +216,20 @@ describe('EmailLogPanel', () => {
 
     await waitFor(() => {
       expect(captured.map((params) => params.get('status'))).toContain('failed');
+    });
+  });
+
+  it('offers the bounced messages as a status', async () => {
+    server.use(emailsHandler(ENTRIES));
+    renderWithProviders(<EmailLogPanel />);
+    await screen.findByText('Marta Reyes');
+    const captured: URLSearchParams[] = [];
+    server.use(capturingHandler(captured, page([BOUNCED])));
+
+    await userEvent.selectOptions(screen.getByLabelText('Status'), 'Bounced');
+
+    await waitFor(() => {
+      expect(captured.map((params) => params.get('status'))).toContain('bounced');
     });
   });
 

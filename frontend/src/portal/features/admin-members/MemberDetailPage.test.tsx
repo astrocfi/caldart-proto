@@ -98,6 +98,29 @@ describe('MemberDetailPage', () => {
     expect(header).toHaveTextContent('never edited');
   });
 
+  it('marks a bounced address beside it in the header, with the report', async () => {
+    server.use(
+      ...detailHandlers(
+        makeDetail({
+          email_bounced_at: '2026-10-01T12:00:00Z',
+          email_bounce_detail: '5.1.1 550 User unknown',
+        }),
+      ),
+    );
+    renderDetail();
+
+    const address = await screen.findByRole('link', { name: 'ana@example.org' });
+    expect(address.closest('p')).toHaveTextContent('Bounced 10/01/2026 5.1.1 550 User unknown');
+  });
+
+  it('shows no bounce for an address that has not bounced', async () => {
+    server.use(...detailHandlers());
+    renderDetail();
+
+    await screen.findByRole('link', { name: 'ana@example.org' });
+    expect(screen.queryByText(/^Bounced/)).not.toBeInTheDocument();
+  });
+
   it('opens on the profile tab with the admin-only notes filled in', async () => {
     server.use(...detailHandlers());
     renderDetail();

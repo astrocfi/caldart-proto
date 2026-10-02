@@ -10,6 +10,7 @@
 import type { JSX } from 'react';
 
 import { Page } from '@/portal/components/Page';
+import { BouncesPanel } from './BouncesPanel';
 import { ReminderScheduleCard } from './ReminderScheduleCard';
 import { RemindersPanel } from './RemindersPanel';
 import { RenewalsPanel } from './RenewalsPanel';
@@ -18,8 +19,8 @@ import { StatementsPanel } from './StatementsPanel';
 
 /**
  * Renders the Scheduled page: the renewal reminder emails and their schedule, the
- * automatic renewal charges, the scheduled reports, and the year-end statements, in
- * that order.
+ * automatic renewal charges, the scheduled reports, the year-end statements, and the
+ * bounce check, in that order.
  */
 export function ScheduledPage(): JSX.Element {
   return (
@@ -33,6 +34,7 @@ export function ScheduledPage(): JSX.Element {
       <RenewalsPanel />
       <ReportsPanel />
       <StatementsPanel />
+      <BouncesPanel />
     </Page>
   );
 }

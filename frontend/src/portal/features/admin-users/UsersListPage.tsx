@@ -8,7 +8,9 @@
  * account status.  The report cannot follow two of the screen's choices, Donor
  * under Kind of account (a donor holds no role) and the Member role (the report
  * has no section for it), so while either is chosen the exports and the column
- * chooser are disabled and say why.
+ * chooser are disabled and say why.  Nor does the report follow the **Email** filter,
+ * which keeps the accounts whose address bounced: the exports carry it no more than
+ * the account status.
  */
 import { useEffect, useMemo, useState } from 'react';
 import type { JSX } from 'react';
@@ -31,6 +33,9 @@ import { useAdminUsers } from './api';
 const PAGE_SIZE = 25;
 
 type AccountStatus = 'true' | 'false' | '';
+
+/** Whether the list keeps bounced addresses, the others, or both. */
+type BounceFilter = 'true' | 'false' | '';
 
 /** The status the list opens on: active accounts only. */
 const INITIAL_STATUS: AccountStatus = 'true';
@@ -106,14 +111,22 @@ export function UsersListPage(): JSX.Element {
   const [role, setRole] = useState<RoleSlug | ''>('');
   const [isActive, setIsActive] = useState<AccountStatus>(INITIAL_STATUS);
   const [kind, setKind] = useState<AccountKind | ''>('');
+  const [bounced, setBounced] = useState<BounceFilter>('');
   const [page, setPage] = useState(1);
 
   const debouncedSearch = useDebounced(search);
   const roles = useRoles();
-  const query = useAdminUsers({ search: debouncedSearch, role, is_active: isActive, kind, page });
+  const query = useAdminUsers({
+    search: debouncedSearch,
+    role,
+    is_active: isActive,
+    kind,
+    email_bounced: bounced,
+    page,
+  });
 
   // Any change to the filters puts us back on the first page.
-  useEffect(() => setPage(1), [debouncedSearch, role, isActive, kind]);
+  useEffect(() => setPage(1), [debouncedSearch, role, isActive, kind, bounced]);
 
   const rows = query.data?.results ?? [];
   const count = query.data?.count ?? 0;
@@ -192,6 +205,20 @@ export function UsersListPage(): JSX.Element {
             <option value="">Active and deactivated</option>
             <option value="true">Active only</option>
             <option value="false">Deactivated only</option>
+          </select>
+        )}
+      </Field>
+      <Field label="Email">
+        {(props) => (
+          <select
+            {...props}
+            name="email_bounced"
+            value={bounced}
+            onChange={(event) => setBounced(event.target.value as BounceFilter)}
+          >
+            <option value="">Any address</option>
+            <option value="true">Email bounced</option>
+            <option value="false">Not bounced</option>
           </select>
         )}
       </Field>

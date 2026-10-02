@@ -11,6 +11,7 @@ import { useParams, useSearchParams } from 'react-router-dom';
 
 import type { MemberDetail } from '@/portal/api/types';
 import { ACCOUNT_KIND_LABELS, roleLabel } from '@/portal/choices';
+import { BouncedChip } from '@/portal/components/BouncedChip';
 import { ButtonLink } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { DateText } from '@/portal/components/DateText';
@@ -141,9 +142,12 @@ function MemberHeader({ member }: { member: MemberDetail }) {
         ) : null}
         {member.is_active ? null : <span className="chip chip--bad">Account deactivated</span>}
       </div>
-      <p className="muted">
-        <a href={`mailto:${member.email}`}>{member.email}</a> ·{' '}
-        {member.roles.map(roleLabel).join(', ')}
+      <p className="muted cluster">
+        <span>
+          <a href={`mailto:${member.email}`}>{member.email}</a> ·{' '}
+          {member.roles.map(roleLabel).join(', ')}
+        </span>
+        <BouncedChip bouncedAt={member.email_bounced_at} detail={member.email_bounce_detail} />
       </p>
     </Card>
   );

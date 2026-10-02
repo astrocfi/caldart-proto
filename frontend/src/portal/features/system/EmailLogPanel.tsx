@@ -11,7 +11,7 @@
 import { useMemo, useState } from 'react';
 import type { JSX } from 'react';
 
-import type { EmailLogEntry } from '@/portal/api/types';
+import type { EmailLogEntry, EmailStatus } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { ColumnChooser, defaultColumnKeys } from '@/portal/components/ColumnChooser';
@@ -35,6 +35,13 @@ const FILTER_KEYS = FILTER_FIELDS.map((field) => field.key);
 
 /** The most recent send first, as the server orders the log by default. */
 const DEFAULT_ORDERING = '-sent_at';
+
+/** What the Status column reads for each status: a refusal carries its error. */
+const STATUS_TEXT: Record<EmailStatus, (row: EmailLogEntry) => string> = {
+  sent: () => 'Sent',
+  failed: (row) => `Failed: ${row.error}`,
+  bounced: () => 'Bounced',
+};
 
 const COLUMNS: Column<EmailLogEntry>[] = [
   {
@@ -68,7 +75,21 @@ const COLUMNS: Column<EmailLogEntry>[] = [
     key: 'status',
     header: 'Status',
     sortable: false,
-    render: (row) => (row.status === 'sent' ? 'Sent' : `Failed: ${row.error}`),
+    render: (row) => STATUS_TEXT[row.status](row),
+  },
+  {
+    key: 'bounce',
+    header: 'Bounce',
+    sortable: false,
+    render: (row) =>
+      row.bounced_at === null ? (
+        <span className="muted">—</span>
+      ) : (
+        <>
+          <DateText value={row.bounced_at} />
+          <span className="muted"> · {row.bounce_detail}</span>
+        </>
+      ),
   },
   {
     key: 'attachments',
