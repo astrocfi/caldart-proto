@@ -1,0 +1,77 @@
+# CalDART bounce check.
+#
+# Deploy root: /opt/caldart, with the checkout in caldart/.
+# Triggered by caldart-bounces.timer, which runs
+# it every hour; it is a oneshot, so it is not enabled directly.
+# deploy/steps/timers.sh installs it and enables the timer.
+#
+# Run it by hand (safe to repeat -- each message read is marked seen):
+#   sudo systemctl start caldart-bounces.service
+#   journalctl -u caldart-bounces -n 50
+
+[Unit]
+Description=CalDART bounce check
+Documentation=file:///opt/caldart/caldart/docs/developer/deployment.rst
+# Needs the database and the bounce mailbox's IMAP server.
+After=network.target docker.service caldart-web.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+
+User=caldart
+Group=caldart
+UMask=0027
+
+WorkingDirectory=/opt/caldart/caldart/backend
+
+# Same configuration as the web service: DATABASE_URL and BOUNCE_IMAP_URL are
+# the ones this command actually uses.  With BOUNCE_IMAP_URL empty the command
+# says bounce checking is off and exits cleanly.
+EnvironmentFile=/etc/caldart/caldart.env
+
+Environment=DJANGO_SETTINGS_MODULE=caldart.settings.prod
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONDONTWRITEBYTECODE=1
+
+# Reads the unseen delivery reports in the bounce mailbox, marks every email
+# that permanently failed as bounced, flags the address on its account, and
+# marks each report seen. Add --dry-run to rehearse without changing anything.
+ExecStart=/opt/caldart/caldart/.venv/bin/python /opt/caldart/caldart/backend/manage.py check_bounces
+
+# An IMAP server that stops answering should not leave this hanging into the
+# next hour's run.
+TimeoutStartSec=600
+
+# --- Hardening --------------------------------------------------------------
+# Same profile as caldart-web, minus the writable media/staticfiles paths --
+# this command only reads the mailbox over IMAPS and writes the database.
+
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectHome=true
+ProtectSystem=strict
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+ProtectProc=invisible
+RestrictSUIDSGID=true
+RestrictRealtime=true
+RestrictNamespaces=true
+LockPersonality=true
+RemoveIPC=true
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+CapabilityBoundingSet=
+AmbientCapabilities=
+
+[Install]
+# Present so "systemctl enable caldart-bounces.service" is not an error,
+# but the timer is what should normally be enabled.
+WantedBy=multi-user.target

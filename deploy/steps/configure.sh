@@ -15,7 +15,8 @@
 # DB_BACKUP_VIA_DOCKER=false,
 # BACKUP_RETENTION_DAYS=30, CALDART_GUNICORN_PORT from the install record (8001
 # unless install.sh --gunicorn-port says otherwise), URL_PREFIX when the site
-# has one, and, with self-signed TLS, SECURE_HSTS_SECONDS=0.  It prints the
+# has one, BOUNCE_IMAP_URL and BOUNCE_ADDRESS from --bounce-imap-url and
+# --bounce-address when given, and, with self-signed TLS, SECURE_HSTS_SECONDS=0.  It prints the
 # CALDART_GUNICORN_PORT line, the one line of the file a dry run shows.  Behind an existing site the HSTS
 # default is left alone: that site owns HSTS for the host.
 # Everything else, comments included, stays as the template has it.  With
@@ -43,6 +44,11 @@
 #                          file does not exist
 #   --email local          send mail through the postfix on this machine
 #   --from-email ADDRESS   DEFAULT_FROM_EMAIL (default: CalDART <noreply@HOST>)
+#   --bounce-imap-url URL  BOUNCE_IMAP_URL, the mailbox the bounce check reads
+#                          (imaps://user:password@host[:port]/MAILBOX); default: off
+#   --bounce-address ADDRESS
+#                          BOUNCE_ADDRESS, the envelope sender bounces return to
+#                          (default: DEFAULT_FROM_EMAIL)
 #   --dry-run              print every state-changing command instead of running it
 #   --help                 show this help
 #
@@ -64,6 +70,8 @@ EMAIL_URL="${EMAIL_URL:-}"
 # local when --email local was given, which stands for LOCAL_EMAIL_URL.
 EMAIL_MODE="${EMAIL_MODE:-}"
 FROM_EMAIL="${FROM_EMAIL:-}"
+BOUNCE_IMAP_URL="${BOUNCE_IMAP_URL:-}"
+BOUNCE_ADDRESS="${BOUNCE_ADDRESS:-}"
 DB_PASSWORD="${DB_PASSWORD:-}"
 
 # Join the remaining arguments with the separator $1.
@@ -179,6 +187,8 @@ configure_step() {
             printf '    --email-url is ignored: edit the file with sudoedit\n'
         fi
         [[ -z "$FROM_EMAIL" ]] || printf '    --from-email is ignored: edit the file with sudoedit\n'
+        [[ -z "$BOUNCE_IMAP_URL" ]] || printf '    --bounce-imap-url is ignored: edit the file with sudoedit\n'
+        [[ -z "$BOUNCE_ADDRESS" ]] || printf '    --bounce-address is ignored: edit the file with sudoedit\n'
         return 0
     fi
     [[ -n "$CALDART_HOSTNAME" ]] || usage_error "--hostname is required to write $ENV_FILE"
@@ -215,6 +225,12 @@ configure_step() {
     )
     if [[ -n "$CALDART_URL_PREFIX" ]]; then
         values+=("URL_PREFIX=$CALDART_URL_PREFIX")
+    fi
+    if [[ -n "$BOUNCE_IMAP_URL" ]]; then
+        values+=("BOUNCE_IMAP_URL=$BOUNCE_IMAP_URL")
+    fi
+    if [[ -n "$BOUNCE_ADDRESS" ]]; then
+        values+=("BOUNCE_ADDRESS=$BOUNCE_ADDRESS")
     fi
     # A browser must not remember HSTS for a hostname the box does not own.
     if [[ "$CALDART_TLS" == self-signed ]]; then
@@ -258,6 +274,14 @@ configure_main() {
                 ;;
             --from-email)
                 FROM_EMAIL="$(option_value "$1" "${2:-}")"
+                shift
+                ;;
+            --bounce-imap-url)
+                BOUNCE_IMAP_URL="$(option_value "$1" "${2:-}")"
+                shift
+                ;;
+            --bounce-address)
+                BOUNCE_ADDRESS="$(option_value "$1" "${2:-}")"
                 shift
                 ;;
             --dry-run) enable_dry_run ;;

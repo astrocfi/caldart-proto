@@ -1,0 +1,32 @@
+# Hourly trigger for the CalDART bounce check.
+#
+# Deploy root: /opt/caldart, with the checkout in caldart/.
+# deploy/steps/timers.sh installs and enables it.
+# Inspect with:
+#   systemctl list-timers caldart-bounces.timer
+
+[Unit]
+Description=Check the CalDART bounce mailbox every hour
+Documentation=file:///opt/caldart/caldart/docs/developer/deployment.rst
+
+[Timer]
+Unit=caldart-bounces.service
+
+# At 20 minutes past every hour, in the system timezone -- a minute no daily
+# job starts at.
+OnCalendar=*-*-* *:20:00
+
+# If the machine was off or suspended at the trigger, run as soon as it comes
+# back rather than waiting for the next hour.
+Persistent=true
+
+# A bounce marked a few minutes later changes nothing; letting systemd
+# coalesce the wakeup is cheaper.
+AccuracySec=1min
+
+# Spread the start over five minutes so the run does not land at the same
+# instant as every other job on the host.
+RandomizedDelaySec=5min
+
+[Install]
+WantedBy=timers.target

@@ -197,7 +197,8 @@ REHEARSE_KEEP_FLAG = $(call flag,REHEARSE_KEEP,keep)
         coverage-frontend e2e rehearse-deploy \
         lint lint-backend lint-shell \
         lint-frontend lint-spelling format check check-backend check-deploy check-frontend \
-        audit audit-backend audit-frontend backup restore reminders sandbox-check docs guide shell \
+        audit audit-backend audit-frontend backup restore reminders bounces sandbox-check \
+        docs guide shell \
         superuser read-docs collectstatic clean
 
 help: ## Show this help
@@ -528,7 +529,8 @@ rehearse-deploy: ## Rehearse the server install in a throwaway systemd container
 	  : "The install started the registry import itself; it downloads the FAA file."; \
 	  echo "==> Running every other scheduled job once, hardening and all"; \
 	  inside systemctl start caldart-backup.service caldart-reports.service \
-	    caldart-renewals.service caldart-reminders.service caldart-statements.service; \
+	    caldart-renewals.service caldart-reminders.service caldart-statements.service \
+	    caldart-bounces.service; \
 	  echo "==> Rehearsing a database reset"; \
 	  inside /opt/caldart/caldart/deploy/reset-database.sh --yes --admin-email admin@caldart.test; \
 	  inside /opt/caldart/caldart/deploy/manage.sh shell -c \
@@ -664,6 +666,9 @@ reminders: ## Send renewal reminders (make reminders TODAY=2027-01-01 DRY_RUN=1)
 	$(MANAGE) send_renewal_reminders \
 	  $(if $(TODAY),--today=$(TODAY),) \
 	  $(call flag,DRY_RUN,--dry-run)
+
+bounces: ## Read the bounce mailbox and mark what bounced (make bounces DRY_RUN=1)
+	$(MANAGE) check_bounces $(call flag,DRY_RUN,--dry-run)
 
 sandbox-check: ## Verify Stripe and PayPal sandbox credentials without moving money
 	$(MANAGE) payments_sandbox_check

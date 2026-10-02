@@ -246,6 +246,15 @@ These are every option ``install.sh`` accepts (``sudo deploy/install.sh
 ``--from-email ADDRESS``
    ``DEFAULT_FROM_EMAIL``, the ``From`` of every message.  Default
    ``CalDART <noreply@HOST>``.  Quote it when it has a display name.
+``--bounce-imap-url URL``
+   The bounce mailbox the hourly bounce check reads, written as
+   ``BOUNCE_IMAP_URL``: ``imaps://user:password@host[:port]/MAILBOX``, with the
+   credentials URL-encoded.  Quote it: it holds a password.  Without it bounce
+   checking stays off (``docs/developer/email.rst``, *Bounces*).
+``--bounce-address ADDRESS``
+   ``BOUNCE_ADDRESS``, the envelope sender a refused message is returned to:
+   the bounce mailbox's own address.  Default empty, which returns bounces to
+   ``DEFAULT_FROM_EMAIL``.
 ``--admin-email ADDRESS``
    Create the first administrator with this address (or give an existing
    account with that address the administrator's roles).
@@ -267,8 +276,8 @@ The hostname, ``www``, the web server, the TLS mode, the certbot address and
 staging switch, the database port, the gunicorn port, the URL prefix, and the
 attached vhost file are kept in the install record (see `What the installer
 writes`_), so a later run needs no flags, and a flag given later updates the
-record.  The mail flags, ``--from-email``, ``--admin-email``, ``--seed-demo``,
-and ``--seed-content`` are used by the run that writes the environment file or
+record.  The mail flags, ``--from-email``, the two bounce flags, ``--admin-email``,
+``--seed-demo``, and ``--seed-content`` are used by the run that writes the environment file or
 creates the administrator, and are not recorded.
 
 Step 3: try it with a dry run
@@ -494,6 +503,8 @@ secret key, and the payment keys.  The first run writes it from
   there is one;
 - ``EMAIL_URL``, from ``--email-url`` or ``--email local``;
 - ``DEFAULT_FROM_EMAIL``, from ``--from-email``;
+- ``BOUNCE_IMAP_URL`` and ``BOUNCE_ADDRESS``, from ``--bounce-imap-url`` and
+  ``--bounce-address`` when given;
 - ``DATABASE_URL``, with the generated database password and the recorded
   port;
 - ``BACKUP_DIR`` (the deploy root's ``backups``), ``MEDIA_ROOT`` (the deploy
@@ -504,7 +515,8 @@ secret key, and the payment keys.  The first run writes it from
 
 Everything else, comments included, stays as the template has it, so the file
 explains itself.  Once it exists no script rewrites it: a later
-``--email-url``, ``--email local``, or ``--from-email`` is reported as ignored.
+``--email-url``, ``--email local``, ``--from-email``, ``--bounce-imap-url``, or
+``--bounce-address`` is reported as ignored.
 Change it by hand, then restart the web service::
 
   sudoedit /etc/caldart/caldart.env
@@ -548,6 +560,10 @@ sandbox (``ProtectSystem=strict``, no capabilities).
    * - ``caldart-statements.timer``
      - ``manage.py send_year_statements``
      - yearly, January 15 at 06:45
+   * - ``caldart-bounces.timer``
+     - ``manage.py check_bounces``; says bounce checking is off while
+       ``BOUNCE_IMAP_URL`` is empty
+     - hourly, at twenty past
 
 Each timer starts the service of the same name (``caldart-backup.service``
 and so on), which runs its command and exits.  Every timer has
@@ -764,7 +780,7 @@ Everything goes to the journal:
 - the site: ``journalctl -u caldart-web -f``;
 - a job: ``journalctl -u caldart-backup -n 20`` (or ``caldart-registry``,
   ``caldart-reports``, ``caldart-renewals``, ``caldart-reminders``,
-  ``caldart-statements``);
+  ``caldart-statements``, ``caldart-bounces``);
 - Apache: ``/var/log/apache2/caldart-access.log`` and ``caldart-error.log``
   (the port-80 host logs to ``caldart-http-access.log`` and
   ``caldart-http-error.log``);
@@ -926,7 +942,8 @@ A restore replaces the whole database with the dump.  Stop the site and the
 jobs that write, restore, and migrate::
 
   sudo systemctl stop caldart-web caldart-renewals.timer caldart-reminders.timer \
-      caldart-reports.timer caldart-statements.timer caldart-backup.timer
+      caldart-reports.timer caldart-statements.timer caldart-bounces.timer \
+      caldart-backup.timer
   sudo /opt/caldart/caldart/deploy/manage.sh db_restore /opt/caldart/backups/caldart-20260601-033000.sql.gz
   sudo /opt/caldart/caldart/deploy/manage.sh migrate
 
@@ -943,7 +960,8 @@ so check what the renewal job would charge before restarting the timers::
 
   sudo /opt/caldart/caldart/deploy/manage.sh run_auto_renewals --dry-run
   sudo systemctl start caldart-web caldart-renewals.timer caldart-reminders.timer \
-      caldart-reports.timer caldart-statements.timer caldart-backup.timer
+      caldart-reports.timer caldart-statements.timer caldart-bounces.timer \
+      caldart-backup.timer
 
 The registrations table is empty after a restore until the next registry
 import; start one as above.  ``docs/developer/backup-restore.rst`` covers

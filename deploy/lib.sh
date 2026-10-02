@@ -66,6 +66,7 @@ readonly JOB_UNITS=(
     caldart-renewals
     caldart-reminders
     caldart-statements
+    caldart-bounces
     caldart-backup
 )
 # The keys install.conf holds, none of them secret.
