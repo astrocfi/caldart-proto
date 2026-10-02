@@ -1,8 +1,9 @@
-"""Reminder log and manual run endpoints.
+"""Reminder log, schedule and manual run endpoints.
 
-``GET /admin/reminders/log`` is readable by ``account_admin`` (they answer the
-"did the member ever get told?" question) as well as ``system_admin``; kicking
-off a scan by hand is ``system_admin`` only.
+``GET /admin/reminders/log`` and ``GET /admin/reminders/schedule`` are readable by
+``account_admin`` (they answer the "did the member ever get told, and when?"
+question) as well as ``system_admin``; changing the schedule and kicking off a scan
+by hand are ``system_admin`` only.
 """
 
 from __future__ import annotations
@@ -13,18 +14,21 @@ from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.generics import ListAPIView
+from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.accounts.permissions import HasAnyRole, IsSystemAdmin
 from apps.accounts.roles import ACCOUNT_ADMIN, SYSTEM_ADMIN
+from apps.members.api.actors import acting_user
 from apps.reminders.api.serializers import (
     ReminderLogSerializer,
     ReminderRunRequestSerializer,
     ReminderRunResultSerializer,
+    ReminderScheduleSerializer,
 )
-from apps.reminders.models import ReminderKind, ReminderLog
+from apps.reminders.models import ReminderKind, ReminderLog, ReminderSchedule
 from apps.reminders.services import send_renewal_reminders
 
 
@@ -61,6 +65,39 @@ class ReminderLogListView(ListAPIView[ReminderLog]):
         first, unless the request asks for another ``ordering``.
         """
         return ReminderLog.objects.select_related("user").all()
+
+
+class ReminderScheduleView(APIView):
+    """``GET /admin/reminders/schedule`` (account and system administrators) and ``PUT``.
+
+    The one schedule saying how many days before expiry the first, second and final
+    reminders go and how many days after it the lapsed one does.  Only a system
+    administrator changes it.
+    """
+
+    def get_permissions(self) -> list[BasePermission]:
+        """Account and system administrators read the schedule; only the latter write."""
+        if self.request.method == "PUT":
+            return [IsSystemAdmin()]
+        return [HasAnyRole(ACCOUNT_ADMIN, SYSTEM_ADMIN)()]
+
+    @extend_schema(responses={200: ReminderScheduleSerializer})
+    def get(self, request: Request) -> Response:
+        """Return the schedule, the defaults (60, 30, 7, 30) before any is saved."""
+        return Response(ReminderScheduleSerializer(ReminderSchedule.load()).data)
+
+    @extend_schema(request=ReminderScheduleSerializer, responses={200: ReminderScheduleSerializer})
+    def put(self, request: Request) -> Response:
+        """Replace the schedule with the body, recording the caller, and return it.
+
+        Answers 400, keyed by field, for a body ``ReminderScheduleSerializer``
+        refuses, and changes nothing then.  The new days apply from the next scan; a
+        stage a member was already sent is never sent again for the same term.
+        """
+        serializer = ReminderScheduleSerializer(ReminderSchedule.load(), data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(updated_by=acting_user(request))
+        return Response(serializer.data)
 
 
 class ReminderRunView(APIView):

@@ -34,7 +34,7 @@ Environment=DJANGO_SETTINGS_MODULE=caldart.settings.prod
 Environment=PYTHONUNBUFFERED=1
 Environment=PYTHONDONTWRITEBYTECODE=1
 
-# Sends the t60 / t30 / t7 / expired / post30 emails and flips memberships
+# Sends the first / second / final / expired / lapsed emails and flips memberships
 # whose ends_on has passed to "expired". Add --dry-run to rehearse, or
 # --today=YYYY-MM-DD to scan as of another date.
 ExecStart=/opt/caldart/caldart/.venv/bin/python /opt/caldart/caldart/backend/manage.py send_renewal_reminders

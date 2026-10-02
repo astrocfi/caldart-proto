@@ -24,7 +24,7 @@ class EmailStatus(models.TextChoices):
 class EmailLog(TimestampedModel):
     """One email the system tried to send, successfully or not.
 
-    ``purpose`` is the template the body came from -- ``reminder_t30``,
+    ``purpose`` is the template the body came from -- ``reminder_second``,
     ``renewal_notice``, ``receipt``, ``refund``, ``member_invitation``,
     ``password_reset`` and the rest -- so a row says what kind of message it
     was without reading the subject.  ``user`` is the account the email

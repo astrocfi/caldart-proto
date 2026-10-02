@@ -31,7 +31,7 @@ from apps.members.services import (
     touch_profile,
     update_member,
 )
-from apps.reminders.models import REMINDER_OFFSETS, ReminderKind
+from apps.reminders.models import ReminderKind, ReminderSchedule
 from apps.reminders.services import send_renewal_reminders
 from tests.factories import MemberProfileFactory, MembershipFactory, UserFactory
 
@@ -197,7 +197,7 @@ def test_a_reminder_leaves_the_stamp_alone(
     """Sending a renewal reminder about a member never stamps their profile."""
     touch_profile(profile)
     stamp = profile.profile_updated_at
-    ends_on = today - timedelta(days=REMINDER_OFFSETS[ReminderKind.T30])
+    ends_on = today - timedelta(days=ReminderSchedule().offsets()[ReminderKind.SECOND])
     MembershipFactory(
         user=member, plan=annual_plan, starts_on=ends_on - timedelta(days=364), ends_on=ends_on
     )

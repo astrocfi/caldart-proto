@@ -34,6 +34,7 @@ from apps.accounts.roles import (
     WEBSITE_ADMIN,
 )
 from apps.mail.purposes import PURPOSE_LABELS
+from apps.reminders.models import ReminderSchedule
 from tests.conftest import REPO_ROOT
 
 #: The documentation tree, the full build's source root.
@@ -240,9 +241,15 @@ def _guide_text() -> str:
     return " ".join(" ".join(page.read_text(encoding="utf-8").split()) for page in USER_PAGES)
 
 
-@pytest.mark.parametrize("label", PURPOSE_LABELS.values())
+@pytest.mark.parametrize(
+    "label", [*ReminderSchedule().purpose_labels().values(), *PURPOSE_LABELS.values()]
+)
 def test_every_email_purpose_is_described_in_the_guide(label: str) -> None:
-    """Each email purpose label, as the email log shows it, appears in the user guide."""
+    """Each email purpose label, as the email log shows it, appears in the user guide.
+
+    The renewal reminders are labeled from the reminder schedule, so the guide names
+    them as the default schedule words them.
+    """
     assert label in _guide_text()
 
 

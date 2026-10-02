@@ -83,8 +83,8 @@ def test_one_failing_recipient_does_not_stop_the_scan(
     annual_plan: MembershipPlan, failing_smtp: list[EmailMessage]
 ) -> None:
     """One address refusing delivery still lets the scan send to everyone else."""
-    make_member(annual_plan, ends_on_for(ReminderKind.T30), email=FAILING_ADDRESS)
-    make_member(annual_plan, ends_on_for(ReminderKind.T30), email="reachable@example.test")
+    make_member(annual_plan, ends_on_for(ReminderKind.SECOND), email=FAILING_ADDRESS)
+    make_member(annual_plan, ends_on_for(ReminderKind.SECOND), email="reachable@example.test")
 
     run = send_renewal_reminders(today=TODAY)
 
@@ -97,11 +97,11 @@ def test_a_failure_is_counted_against_its_kind(
     annual_plan: MembershipPlan, failing_smtp: list[EmailMessage]
 ) -> None:
     """A failed send is tallied under the kind that failed, not as a send."""
-    make_member(annual_plan, ends_on_for(ReminderKind.T7), email=FAILING_ADDRESS)
+    make_member(annual_plan, ends_on_for(ReminderKind.FINAL), email=FAILING_ADDRESS)
 
     run = send_renewal_reminders(today=TODAY)
 
-    assert run.failed_by_kind == {ReminderKind.T7: 1}
+    assert run.failed_by_kind == {ReminderKind.FINAL: 1}
     assert run.sent == 0
 
 
@@ -109,7 +109,7 @@ def test_a_failed_send_leaves_no_log_row(
     annual_plan: MembershipPlan, failing_smtp: list[EmailMessage]
 ) -> None:
     """A failed send writes no ``ReminderLog`` row, so a later run can retry it."""
-    make_member(annual_plan, ends_on_for(ReminderKind.T30), email=FAILING_ADDRESS)
+    make_member(annual_plan, ends_on_for(ReminderKind.SECOND), email=FAILING_ADDRESS)
 
     send_renewal_reminders(today=TODAY)
 
@@ -120,20 +120,20 @@ def test_a_failed_send_still_leaves_a_failed_email_log_row(
     annual_plan: MembershipPlan, failing_smtp: list[EmailMessage]
 ) -> None:
     """Deleting the ``ReminderLog`` row does not take the email log row with it."""
-    make_member(annual_plan, ends_on_for(ReminderKind.T30), email=FAILING_ADDRESS)
+    make_member(annual_plan, ends_on_for(ReminderKind.SECOND), email=FAILING_ADDRESS)
 
     send_renewal_reminders(today=TODAY)
 
     row = EmailLog.objects.get(to_email=FAILING_ADDRESS)
     assert row.status == EmailStatus.FAILED
-    assert row.purpose == f"reminder_{ReminderKind.T30}"
+    assert row.purpose == f"reminder_{ReminderKind.SECOND}"
 
 
 def test_an_abort_between_the_log_and_the_send_still_frees_the_reminder(
     annual_plan: MembershipPlan, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """A ``KeyboardInterrupt`` before the send still deletes the log row."""
-    make_member(annual_plan, ends_on_for(ReminderKind.T30))
+    make_member(annual_plan, ends_on_for(ReminderKind.SECOND))
 
     def raise_keyboard_interrupt(*args: object, **kwargs: object) -> None:
         raise KeyboardInterrupt
@@ -150,8 +150,8 @@ def test_a_failed_delete_does_not_replace_the_mail_failure_or_stop_the_scan(
     annual_plan: MembershipPlan, failing_smtp: list[EmailMessage], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """A ``DatabaseError`` deleting the log row masks neither the failure nor the scan."""
-    make_member(annual_plan, ends_on_for(ReminderKind.T30), email=FAILING_ADDRESS)
-    make_member(annual_plan, ends_on_for(ReminderKind.T30), email="reachable@example.test")
+    make_member(annual_plan, ends_on_for(ReminderKind.SECOND), email=FAILING_ADDRESS)
+    make_member(annual_plan, ends_on_for(ReminderKind.SECOND), email="reachable@example.test")
 
     def raise_database_error(self: ReminderLog, *args: object, **kwargs: object) -> None:
         raise DatabaseError("connection reset")
@@ -169,7 +169,7 @@ def test_the_failure_log_names_the_ids_but_no_address(
 ) -> None:
     """A failed send logs one error naming the user and membership ids, no address."""
     user, membership = make_member(
-        annual_plan, ends_on_for(ReminderKind.T30), email=FAILING_ADDRESS
+        annual_plan, ends_on_for(ReminderKind.SECOND), email=FAILING_ADDRESS
     )
 
     with caplog.at_level(logging.ERROR, logger="apps.reminders.services"):
@@ -188,7 +188,7 @@ def test_a_failed_send_is_retried_the_next_day(
     annual_plan: MembershipPlan, failing_smtp: list[EmailMessage], settings: Settings
 ) -> None:
     """A term whose reminder failed is still in the catch-up window the next day."""
-    make_member(annual_plan, ends_on_for(ReminderKind.T30), email=FAILING_ADDRESS)
+    make_member(annual_plan, ends_on_for(ReminderKind.SECOND), email=FAILING_ADDRESS)
 
     send_renewal_reminders(today=TODAY)
     settings.MAILERS = mailers_using("django.core.mail.backends.locmem.EmailBackend")
@@ -215,7 +215,7 @@ def test_a_failed_expired_send_is_retried_the_next_day(
 def test_a_failed_send_is_given_up_on_once_the_term_leaves_the_stage(
     annual_plan: MembershipPlan, failing_smtp: list[EmailMessage], settings: Settings
 ) -> None:
-    """A week after the expiry day the term is past every stage but ``post30``."""
+    """A week after the expiry day the term is past every stage but ``lapsed``."""
     make_member(annual_plan, ends_on_for(ReminderKind.EXPIRED), email=FAILING_ADDRESS)
 
     send_renewal_reminders(today=TODAY)
@@ -230,11 +230,11 @@ def test_a_racing_run_counts_as_already_sent(
     annual_plan: MembershipPlan, mailoutbox: list[EmailMessage], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """A log row written between the skip check and the insert is not a failure."""
-    user, membership = make_member(annual_plan, ends_on_for(ReminderKind.T30))
+    user, membership = make_member(annual_plan, ends_on_for(ReminderKind.SECOND))
     ReminderLog.objects.create(
         user=user,
         membership=membership,
-        kind=ReminderKind.T30,
+        kind=ReminderKind.SECOND,
         sent_at=timezone.now(),
         to_email=user.email,
     )
@@ -251,20 +251,20 @@ def test_the_scan_carries_on_after_a_race(
     annual_plan: MembershipPlan, mailoutbox: list[EmailMessage], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """A race on one membership does not stop the scan from sending to the next one."""
-    racing, membership = make_member(annual_plan, ends_on_for(ReminderKind.T30))
+    racing, membership = make_member(annual_plan, ends_on_for(ReminderKind.SECOND))
     ReminderLog.objects.create(
         user=racing,
         membership=membership,
-        kind=ReminderKind.T30,
+        kind=ReminderKind.SECOND,
         sent_at=timezone.now(),
         to_email=racing.email,
     )
-    make_member(annual_plan, ends_on_for(ReminderKind.T7), email="week@example.test")
+    make_member(annual_plan, ends_on_for(ReminderKind.FINAL), email="week@example.test")
     monkeypatch.setattr(services, "_skip_reason", lambda *args, **kwargs: None)
 
     run = send_renewal_reminders(today=TODAY)
 
-    assert run.sent_by_kind == {ReminderKind.T7: 1}
+    assert run.sent_by_kind == {ReminderKind.FINAL: 1}
     assert [m.to[0] for m in mailoutbox] == ["week@example.test"]
 
 
@@ -286,10 +286,10 @@ def test_a_run_up_to_two_days_late_still_sends(
 @pytest.mark.parametrize(
     ("kind", "days_late", "sent_kind"),
     [
-        (ReminderKind.T60, 30, ReminderKind.T30),
-        (ReminderKind.T30, 23, ReminderKind.T7),
-        (ReminderKind.T7, 7, ReminderKind.EXPIRED),
-        (ReminderKind.EXPIRED, 30, ReminderKind.POST30),
+        (ReminderKind.FIRST, 30, ReminderKind.SECOND),
+        (ReminderKind.SECOND, 23, ReminderKind.FINAL),
+        (ReminderKind.FINAL, 7, ReminderKind.EXPIRED),
+        (ReminderKind.EXPIRED, 30, ReminderKind.LAPSED),
     ],
 )
 def test_a_run_late_enough_to_miss_a_stage_sends_the_next_one(
@@ -311,7 +311,7 @@ def test_a_run_a_month_after_the_last_stage_sends_nothing(
     annual_plan: MembershipPlan, mailoutbox: list[EmailMessage]
 ) -> None:
     """A term that lapsed more than sixty days ago is past every stage."""
-    make_member(annual_plan, late_by(ReminderKind.POST30, 31))
+    make_member(annual_plan, late_by(ReminderKind.LAPSED, 31))
 
     run = send_renewal_reminders(today=TODAY)
 
@@ -335,11 +335,11 @@ def test_a_missed_day_is_caught_up_the_next_day(
     annual_plan: MembershipPlan, mailoutbox: list[EmailMessage]
 ) -> None:
     """The scan does not run on the day the cohort is due; the next one covers it."""
-    make_member(annual_plan, ends_on_for(ReminderKind.T30))
+    make_member(annual_plan, ends_on_for(ReminderKind.SECOND))
 
     run = send_renewal_reminders(today=TODAY + timedelta(days=1))
 
-    assert run.sent_by_kind == {ReminderKind.T30: 1}
+    assert run.sent_by_kind == {ReminderKind.SECOND: 1}
     assert len(mailoutbox) == 1
 
 
@@ -347,12 +347,12 @@ def test_a_caught_up_reminder_is_logged_once(
     annual_plan: MembershipPlan, mailoutbox: list[EmailMessage]
 ) -> None:
     """A cohort caught up a day late is not sent again by the next day's run."""
-    make_member(annual_plan, ends_on_for(ReminderKind.T30))
+    make_member(annual_plan, ends_on_for(ReminderKind.SECOND))
 
     send_renewal_reminders(today=TODAY + timedelta(days=1))
     again = send_renewal_reminders(today=TODAY + timedelta(days=2))
 
-    assert ReminderLog.objects.filter(kind=ReminderKind.T30).count() == 1
+    assert ReminderLog.objects.filter(kind=ReminderKind.SECOND).count() == 1
     assert again.skipped_by_reason == {"already_sent": 1}
 
 
@@ -360,8 +360,8 @@ def test_a_caught_up_reminder_is_logged_once(
 def test_a_late_subject_states_the_real_day_count(
     annual_plan: MembershipPlan, mailoutbox: list[EmailMessage]
 ) -> None:
-    """A ``t30`` reminder sent two days late states 28 days, not the nominal 30."""
-    make_member(annual_plan, late_by(ReminderKind.T30, 2))
+    """A ``second`` reminder sent two days late states 28 days, not the nominal 30."""
+    make_member(annual_plan, late_by(ReminderKind.SECOND, 2))
 
     send_renewal_reminders(today=TODAY)
 
@@ -372,18 +372,18 @@ def test_a_late_body_states_the_real_day_count(
     annual_plan: MembershipPlan, mailoutbox: list[EmailMessage]
 ) -> None:
     """A late reminder's body states the real day count, matching its subject."""
-    make_member(annual_plan, late_by(ReminderKind.T30, 2))
+    make_member(annual_plan, late_by(ReminderKind.SECOND, 2))
 
     send_renewal_reminders(today=TODAY)
 
     assert "28 days" in mailoutbox[0].body
 
 
-def test_a_late_post30_subject_states_the_real_day_count(
+def test_a_late_lapsed_subject_states_the_real_day_count(
     annual_plan: MembershipPlan, mailoutbox: list[EmailMessage]
 ) -> None:
-    """A ``post30`` reminder sent a day late states 31 days lapsed, not the nominal 30."""
-    make_member(annual_plan, late_by(ReminderKind.POST30, 1))
+    """A ``lapsed`` reminder sent a day late states 31 days lapsed, not the nominal 30."""
+    make_member(annual_plan, late_by(ReminderKind.LAPSED, 1))
 
     send_renewal_reminders(today=TODAY)
 
@@ -394,7 +394,7 @@ def test_an_on_time_subject_states_the_nominal_day_count(
     annual_plan: MembershipPlan, mailoutbox: list[EmailMessage]
 ) -> None:
     """A reminder sent exactly on its cohort's date states the kind's nominal offset."""
-    make_member(annual_plan, ends_on_for(ReminderKind.T7))
+    make_member(annual_plan, ends_on_for(ReminderKind.FINAL))
 
     send_renewal_reminders(today=TODAY)
 
@@ -407,7 +407,7 @@ def test_the_command_reports_failures_and_exits_non_zero(
 ) -> None:
     """The command raises ``CommandError`` and reports the count of failed sends."""
     make_member(
-        annual_plan, ends_on_for(ReminderKind.T30, date(2026, 6, 15)), email=FAILING_ADDRESS
+        annual_plan, ends_on_for(ReminderKind.SECOND, date(2026, 6, 15)), email=FAILING_ADDRESS
     )
     out = StringIO()
 
@@ -421,7 +421,7 @@ def test_the_command_still_succeeds_when_nothing_fails(
     annual_plan: MembershipPlan, mailoutbox: list[EmailMessage]
 ) -> None:
     """The command reports zero failures and does not raise when every send succeeds."""
-    make_member(annual_plan, ends_on_for(ReminderKind.T30, date(2026, 6, 15)))
+    make_member(annual_plan, ends_on_for(ReminderKind.SECOND, date(2026, 6, 15)))
     out = StringIO()
 
     call_command("send_renewal_reminders", "--today=2026-06-15", stdout=out)

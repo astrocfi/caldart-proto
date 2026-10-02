@@ -58,15 +58,15 @@ def stage_of(days_from_today: int) -> str | None:
 def expected_stage(days_from_today: int) -> str | None:
     """The stage a term ending ``days_from_today`` days from the scan belongs in."""
     if 31 <= days_from_today <= 60:
-        return ReminderKind.T60
+        return ReminderKind.FIRST
     if 8 <= days_from_today <= 30:
-        return ReminderKind.T30
+        return ReminderKind.SECOND
     if 1 <= days_from_today <= 7:
-        return ReminderKind.T7
+        return ReminderKind.FINAL
     if -6 <= days_from_today <= 0:
         return ReminderKind.EXPIRED
     if -60 <= days_from_today <= -30:
-        return ReminderKind.POST30
+        return ReminderKind.LAPSED
     return None
 
 
@@ -80,11 +80,11 @@ def test_every_expiry_date_is_in_exactly_the_stage_it_belongs_to(days_from_today
 @pytest.mark.parametrize(
     ("kind", "first", "last"),
     [
-        (ReminderKind.T60, 31, 60),
-        (ReminderKind.T30, 8, 30),
-        (ReminderKind.T7, 1, 7),
+        (ReminderKind.FIRST, 31, 60),
+        (ReminderKind.SECOND, 8, 30),
+        (ReminderKind.FINAL, 1, 7),
         (ReminderKind.EXPIRED, -6, 0),
-        (ReminderKind.POST30, -60, -30),
+        (ReminderKind.LAPSED, -60, -30),
     ],
 )
 def test_each_stage_spans_the_days_it_covers(kind: str, first: int, last: int) -> None:
@@ -99,21 +99,21 @@ def test_each_stage_spans_the_days_it_covers(kind: str, first: int, last: int) -
 @pytest.mark.parametrize(
     ("days_from_today", "kind"),
     [
-        (60, ReminderKind.T60),
-        (45, ReminderKind.T60),
-        (31, ReminderKind.T60),
-        (30, ReminderKind.T30),
-        (23, ReminderKind.T30),
-        (8, ReminderKind.T30),
-        (7, ReminderKind.T7),
-        (3, ReminderKind.T7),
-        (1, ReminderKind.T7),
+        (60, ReminderKind.FIRST),
+        (45, ReminderKind.FIRST),
+        (31, ReminderKind.FIRST),
+        (30, ReminderKind.SECOND),
+        (23, ReminderKind.SECOND),
+        (8, ReminderKind.SECOND),
+        (7, ReminderKind.FINAL),
+        (3, ReminderKind.FINAL),
+        (1, ReminderKind.FINAL),
         (0, ReminderKind.EXPIRED),
         (-3, ReminderKind.EXPIRED),
         (-6, ReminderKind.EXPIRED),
-        (-30, ReminderKind.POST30),
-        (-45, ReminderKind.POST30),
-        (-60, ReminderKind.POST30),
+        (-30, ReminderKind.LAPSED),
+        (-45, ReminderKind.LAPSED),
+        (-60, ReminderKind.LAPSED),
     ],
 )
 def test_the_scan_sends_the_stage_the_span_names(
@@ -145,25 +145,25 @@ def test_the_scan_sends_nothing_between_the_stages(
 def test_a_member_twenty_three_days_out_gets_this_stage_and_the_next(
     annual_plan: MembershipPlan, mailoutbox: list[EmailMessage]
 ) -> None:
-    """A term 23 days out is in ``t30`` today and in ``t7`` sixteen days later."""
+    """A term 23 days out is in ``second`` today and in ``final`` sixteen days later."""
     term_ending(annual_plan, 23)
 
     first = send_renewal_reminders(today=TODAY)
     second = send_renewal_reminders(today=TODAY + timedelta(days=16))
 
-    assert first.sent_by_kind == {ReminderKind.T30: 1}
-    assert second.sent_by_kind == {ReminderKind.T7: 1}
+    assert first.sent_by_kind == {ReminderKind.SECOND: 1}
+    assert second.sent_by_kind == {ReminderKind.FINAL: 1}
 
 
 def test_a_member_three_days_out_gets_only_the_last_call(
     annual_plan: MembershipPlan, mailoutbox: list[EmailMessage]
 ) -> None:
-    """A term three days from expiry is past ``t60`` and ``t30``, so only ``t7`` goes."""
+    """A term three days out is past ``first`` and ``second``, so only ``final`` goes."""
     term_ending(annual_plan, 3)
 
     run = send_renewal_reminders(today=TODAY)
 
-    assert run.sent_by_kind == {ReminderKind.T7: 1}
+    assert run.sent_by_kind == {ReminderKind.FINAL: 1}
 
 
 def test_a_stage_is_sent_once_however_long_the_term_sits_in_it(
@@ -181,13 +181,13 @@ def test_a_stage_is_sent_once_however_long_the_term_sits_in_it(
 def test_one_scan_reaches_a_whole_stage_of_members(
     annual_plan: MembershipPlan, mailoutbox: list[EmailMessage]
 ) -> None:
-    """Every member inside ``t30``'s span is written to by the same scan."""
+    """Every member inside ``second``'s span is written to by the same scan."""
     for days in range(8, 31):
         term_ending(annual_plan, days, email=f"in{days}@example.test")
 
     run = send_renewal_reminders(today=TODAY)
 
-    assert run.sent_by_kind == {ReminderKind.T30: 23}
+    assert run.sent_by_kind == {ReminderKind.SECOND: 23}
 
 
 # ------------------------------------------------------- the expired wording
@@ -289,7 +289,7 @@ def test_the_expired_html_alternative_follows_the_text_body(
 def test_a_term_ending_tomorrow_is_told_one_day_in_the_singular(
     annual_plan: MembershipPlan, mailoutbox: list[EmailMessage]
 ) -> None:
-    """The first day of the ``t7`` stage reads "1 day", not "1 days"."""
+    """The first day of the ``final`` stage reads "1 day", not "1 days"."""
     term_ending(annual_plan, 1)
 
     send_renewal_reminders(today=TODAY)
@@ -300,7 +300,7 @@ def test_a_term_ending_tomorrow_is_told_one_day_in_the_singular(
 def test_a_term_ending_tomorrow_says_one_day_in_its_body(
     annual_plan: MembershipPlan, mailoutbox: list[EmailMessage]
 ) -> None:
-    """The ``t7`` body pluralizes its day count the same way its subject does."""
+    """The ``final`` body pluralizes its day count the same way its subject does."""
     term_ending(annual_plan, 1)
 
     send_renewal_reminders(today=TODAY)

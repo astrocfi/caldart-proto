@@ -22,7 +22,7 @@ from apps.reminders.services import send_renewal_reminders
 class Command(BaseCommand):
     """Runs the renewal reminder scan and reports its results to stdout."""
 
-    help = "Send the t60/t30/t7/expired/post30 renewal stages and expire lapsed terms."
+    help = "Send the first/second/final/expired/lapsed renewal stages and expire lapsed terms."
 
     def add_arguments(self, parser: argparse.ArgumentParser) -> None:
         """Register ``--dry-run`` and ``--today`` on the command's argument parser."""

@@ -8,6 +8,8 @@ operations work rather than membership work.  The filters live in
 
 from __future__ import annotations
 
+from typing import Any
+
 from django.db.models import QuerySet
 from drf_spectacular.utils import extend_schema
 from rest_framework.generics import ListAPIView
@@ -19,7 +21,7 @@ from apps.accounts.permissions import IsSystemAdmin
 from apps.mail.api.serializers import EmailLogSerializer, EmailPurposeSerializer
 from apps.mail.filters import EmailLogFilterSet
 from apps.mail.models import EmailLog
-from apps.mail.purposes import PURPOSE_LABELS
+from apps.mail.purposes import purpose_labels
 from apps.mail.reports import order_email_log
 from caldart.pagination import StandardPagination
 
@@ -36,6 +38,10 @@ class EmailLogListView(ListAPIView[EmailLog]):
     def get_queryset(self) -> QuerySet[EmailLog]:
         """Return every email log row with its recipient account preloaded."""
         return EmailLog.objects.select_related("user").all()
+
+    def get_serializer_context(self) -> dict[str, Any]:
+        """The standard context plus ``purpose_labels``, read once for the whole page."""
+        return {**super().get_serializer_context(), "purpose_labels": purpose_labels()}
 
     def filter_queryset[R](self, queryset: QuerySet[EmailLog, R]) -> QuerySet[EmailLog, R]:
         """Narrow ``queryset`` by the filters and put it in the download's order.
@@ -62,9 +68,10 @@ class EmailPurposeListView(APIView):
         """200 with one ``{value, label}`` per labeled purpose, in the filter's order.
 
         Unpaginated.  ``value`` is what ``?purpose=`` takes and ``label`` the words
-        the portal shows for it.
+        the portal shows for it; the renewal reminders' labels name the days of the
+        stored reminder schedule.
         """
-        rows = [{"value": value, "label": label} for value, label in PURPOSE_LABELS.items()]
+        rows = [{"value": value, "label": label} for value, label in purpose_labels().items()]
         # The stubs take the instance type from the single-object parameter, so
         # they do not widen it to a list when ``many`` is set.
         serializer = EmailPurposeSerializer(rows, many=True)  # type: ignore[arg-type]

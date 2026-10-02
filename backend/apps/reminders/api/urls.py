@@ -8,5 +8,6 @@ app_name = "reminders"
 
 urlpatterns = [
     path("admin/reminders/log", views.ReminderLogListView.as_view(), name="log"),
+    path("admin/reminders/schedule", views.ReminderScheduleView.as_view(), name="schedule"),
     path("system/reminders/run", views.ReminderRunView.as_view(), name="run"),
 ]
