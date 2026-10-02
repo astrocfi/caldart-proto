@@ -36,6 +36,9 @@ APP_LAYERS: dict[str, int] = {
     "reports": 5,
     # Notifications hears every app's events and sends them, so it sits beside reports.
     "notifications": 5,
+    # Bulk email chooses its recipients with the member list's filters and sends
+    # through the shared sender, so it sits beside reports.
+    "bulk_email": 5,
     "cms": 6,
     "sysadmin": 6,
 }

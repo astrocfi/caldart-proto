@@ -1,0 +1,7 @@
+{% autoescape off %}{{ body }}
+
+--
+{{ org_name }} is a volunteer disaster air transportation network.
+{% if contact_email %}Questions? Write to {{ contact_email }}.
+{% endif %}You receive this email as a member or a friend of {{ org_name }}.
+{% endautoescape %}

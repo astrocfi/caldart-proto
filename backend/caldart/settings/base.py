@@ -140,6 +140,7 @@ LOCAL_APPS = [
     "apps.reminders",
     "apps.reports",
     "apps.notifications",
+    "apps.bulk_email",
     "apps.cms",
     "apps.sysadmin",
 ]
@@ -356,6 +357,7 @@ SPECTACULAR_SETTINGS = {
         "PersonKindEnum": "apps.accounts.models.PERSON_KIND_CHOICES",
         "AircraftCategoryEnum": "apps.aircraft.models.AircraftCategory.choices",
         "AirworthinessEnum": "apps.aircraft.models.Airworthiness.choices",
+        "BulkEmailRecipientStatusEnum": "apps.bulk_email.models.RecipientStatus.choices",
         # The portal's and the public donation page's mock completions share one set.
         "MockCompleteOutcomeEnum": "apps.payments.api.serializers.MOCK_OUTCOMES",
     },

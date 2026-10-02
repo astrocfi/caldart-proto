@@ -73,6 +73,7 @@ urlpatterns = [
     path("", include("apps.reminders.api.urls")),
     path("", include("apps.reports.api.urls")),
     path("", include("apps.notifications.api.urls")),
+    path("", include("apps.bulk_email.api.urls")),
     path("", include("apps.cms.api.urls")),
     path("", include("apps.sysadmin.api.urls")),
 ]
