@@ -52,6 +52,13 @@ import type { Choice } from './constants';
 import type { ProfileFormErrors, ProfileFormValues } from './form';
 import './profile.css';
 
+/** Each verified item's coded field, and the value that means the member has none. */
+const ITEM_FIELDS = {
+  certificate: { key: 'pilot_certificate_type', none: 'none' },
+  medical: { key: 'medical_type', none: 'none' },
+  photo_id: { key: 'photo_id_type', none: 'not_provided' },
+} as const satisfies Record<VerificationItem, { key: keyof ProfileFormValues; none: string }>;
+
 /** The form keys holding free text, which is every key a plain input can edit. */
 type TextKey = {
   [Key in keyof ProfileFormValues]: string extends ProfileFormValues[Key] ? Key : never;
@@ -169,12 +176,18 @@ export function ProfileFieldsets({
 }: ProfileFieldsetsProps): JSX.Element {
   const extensionIds = useId();
 
-  /** The mark under an item's field, with the hint under the first; nothing without marks. */
+  /**
+   * The mark under an item's field, with the hint under the first; nothing without marks.
+   * An item the member does not hold (no certificate, no medical, no photo ID) has nothing
+   * to verify, so it carries no *Not yet verified* chip.
+   */
   const mark = (item: VerificationItem): ReactNode => {
     if (verification === undefined) return undefined;
+    const isUnverifiedNone =
+      !verification[item].verified && value[ITEM_FIELDS[item].key] === ITEM_FIELDS[item].none;
     return (
       <>
-        <VerifiedMark verification={verification[item]} pending />
+        {isUnverifiedNone ? null : <VerifiedMark verification={verification[item]} pending />}
         {item === 'certificate' ? (
           <span className="verified-mark__hint">{VERIFICATION_HINT}</span>
         ) : null}
