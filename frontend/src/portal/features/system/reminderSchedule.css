@@ -1,0 +1,37 @@
+/* The reminder schedule card: four day fields side by side, or four labeled lines. */
+.reminder-schedule__fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: var(--space-3);
+}
+
+.reminder-schedule__fields input {
+  width: 100%;
+}
+
+.reminder-schedule__facts {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.reminder-schedule__facts > div {
+  display: grid;
+  grid-template-columns: minmax(10rem, max-content) 1fr;
+  gap: var(--space-3);
+}
+
+.reminder-schedule__facts dt {
+  color: var(--color-muted);
+}
+
+.reminder-schedule__facts dd {
+  margin: 0;
+}
+
+@media (max-width: 40rem) {
+  .reminder-schedule__facts > div {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+}

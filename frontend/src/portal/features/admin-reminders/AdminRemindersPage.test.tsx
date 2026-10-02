@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it } from 'vitest';
 
+import { makeReminderSchedule } from '@test/fixtures/reminders';
 import { API } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
@@ -15,7 +16,7 @@ const ENTRIES: ReminderLogEntry[] = [
     user_id: 7,
     user_name: 'Marta Reyes',
     membership_id: 12,
-    kind: 't30',
+    kind: 'second',
     sent_at: '2026-06-15T14:02:00Z',
     to_email: 'marta@example.org',
   },
@@ -24,7 +25,7 @@ const ENTRIES: ReminderLogEntry[] = [
     user_id: 8,
     user_name: 'Owen Delgado',
     membership_id: 13,
-    kind: 'post30',
+    kind: 'lapsed',
     sent_at: '2026-06-14T14:02:00Z',
     to_email: 'owen@example.org',
   },
@@ -63,7 +64,7 @@ describe('AdminRemindersPage', () => {
     renderWithProviders(<AdminRemindersPage />);
     await screen.findByText('Owen Delgado');
 
-    await userEvent.selectOptions(screen.getByLabelText('Reminder'), 'post30');
+    await userEvent.selectOptions(screen.getByLabelText('Reminder'), 'lapsed');
 
     expect(await screen.findByText('1 reminder sent')).toBeInTheDocument();
     expect(screen.queryByText('Marta Reyes')).not.toBeInTheDocument();
@@ -84,7 +85,7 @@ describe('AdminRemindersPage', () => {
     await screen.findByText('Marta Reyes');
 
     expect(
-      screen.getByText(
+      await screen.findByText(
         (_text, element) =>
           element?.tagName.toLowerCase() === 'p' &&
           element.textContent ===
@@ -94,5 +95,35 @@ describe('AdminRemindersPage', () => {
               'were sent to each member.',
       ),
     ).toBeInTheDocument();
+  });
+
+  it('dates the reminders by the stored schedule', async () => {
+    server.use(
+      logHandler(ENTRIES),
+      http.get(`${API}/admin/reminders/schedule`, () =>
+        HttpResponse.json(makeReminderSchedule({ first_days_before: 90, final_days_before: 1 })),
+      ),
+    );
+    renderWithProviders(<AdminRemindersPage />);
+
+    expect(
+      await screen.findByText(
+        (_text, element) =>
+          element?.tagName.toLowerCase() === 'p' &&
+          (element.textContent ?? '').startsWith(
+            'The scan runs every morning at 07:00 and mails a member 90, 30, and 1 day before ' +
+              'their membership ends,',
+          ),
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('shows the reminder schedule without a way to change it', async () => {
+    server.use(logHandler(ENTRIES));
+    renderWithProviders(<AdminRemindersPage />);
+
+    expect(await screen.findByText('60 days before expiry')).toBeInTheDocument();
+    expect(screen.queryByRole('spinbutton')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument();
   });
 });

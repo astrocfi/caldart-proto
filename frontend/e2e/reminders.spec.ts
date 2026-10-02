@@ -1,7 +1,8 @@
 /**
  * The renewal reminder log as each role sees it: an account administrator
  * reads and filters it, a DART leader cannot reach it, and only a system
- * administrator can start a scan or read the Sent Emails log behind it.
+ * administrator can start a scan, change the reminder schedule, or read the
+ * Sent Emails log behind it.
  */
 import { expect, test } from '@playwright/test';
 
@@ -23,11 +24,11 @@ test('an account administrator reads the reminder log and filters it by kind', a
   // the response status is what proves the account admin may read the log.
   const filtered = page.waitForResponse(
     (response) =>
-      response.url().includes('/admin/reminders/log') && response.url().includes('kind=t30'),
+      response.url().includes('/admin/reminders/log') && response.url().includes('kind=second'),
   );
-  await page.getByLabel('Reminder').selectOption('t30');
+  await page.getByLabel('Reminder').selectOption('second');
   expect((await filtered).status()).toBe(200);
-  await expect(page.getByLabel('Reminder')).toHaveValue('t30');
+  await expect(page.getByLabel('Reminder')).toHaveValue('second');
   await expect(page.getByText('No reminders sent yet')).toBeVisible();
 });
 
@@ -38,6 +39,20 @@ test('the account administrator has no way to start a scan', async ({ page }) =>
 
   await expect(page.getByRole('button', { name: 'Run now' })).toHaveCount(0);
   await expect(page.getByLabel('Dry run (send nothing)')).toHaveCount(0);
+});
+
+test('the account administrator reads the reminder schedule without changing it', async ({
+  page,
+}) => {
+  await signIn(page, DEMO.accountadmin);
+  await page.goto('portal/admin/reminders');
+
+  const card = page
+    .locator('section.card')
+    .filter({ has: page.getByRole('heading', { name: 'Reminder schedule' }) });
+  await expect(card.getByText('First reminder')).toBeVisible();
+  await expect(card.getByRole('spinbutton')).toHaveCount(0);
+  await expect(card.getByRole('button', { name: 'Save' })).toHaveCount(0);
 });
 
 test('a DART leader cannot reach the reminder log', async ({ page }) => {
@@ -76,6 +91,26 @@ test('a system administrator keeps the run controls on the Scheduled page', asyn
   // The fresh seed always leaves at least one member inside a reminder stage
   // with no mandate covering them, so the rehearsal's table is never empty.
   await expect(panel.getByRole('table', { name: /^[1-9]\d* actions?$/ })).toBeVisible();
+});
+
+test('a system administrator saves the reminder schedule', async ({ page }) => {
+  await signIn(page, DEMO.sysadmin);
+  await page.goto('portal/system/scheduled');
+
+  const card = page
+    .locator('section.card')
+    .filter({ has: page.getByRole('heading', { name: 'Reminder schedule' }) });
+  await expect(card.getByLabel('First reminder')).toHaveValue(/^\d+$/);
+
+  // Saving the stored days as they stand records who saved them, and leaves the
+  // schedule the other specs rely on unchanged.
+  const saved = page.waitForResponse(
+    (response) =>
+      response.url().includes('/admin/reminders/schedule') && response.request().method() === 'PUT',
+  );
+  await card.getByRole('button', { name: 'Save' }).click();
+  expect((await saved).status()).toBe(200);
+  await expect(card.getByText(/^Last saved \d{2}\/\d{2}\/\d{4} by /)).toBeVisible();
 });
 
 test('a system administrator filters the email log and downloads it', async ({ page }) => {

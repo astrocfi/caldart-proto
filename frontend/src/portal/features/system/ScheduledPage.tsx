@@ -4,19 +4,22 @@
  *
  * The renewal reminder emails and the automatic renewal charges come first
  * because they are the pair readers confuse: one only emails, the other takes
- * the money, and the charges run before the emails each morning.
+ * the money, and the charges run before the emails each morning.  The reminder
+ * schedule sits beside the reminder emails it dates.
  */
 import type { JSX } from 'react';
 
 import { Page } from '@/portal/components/Page';
+import { ReminderScheduleCard } from './ReminderScheduleCard';
 import { RemindersPanel } from './RemindersPanel';
 import { RenewalsPanel } from './RenewalsPanel';
 import { ReportsPanel } from './ReportsPanel';
 import { StatementsPanel } from './StatementsPanel';
 
 /**
- * Renders the Scheduled page: the renewal reminder emails, the automatic renewal
- * charges, the scheduled reports, and the year-end statements, in that order.
+ * Renders the Scheduled page: the renewal reminder emails and their schedule, the
+ * automatic renewal charges, the scheduled reports, and the year-end statements, in
+ * that order.
  */
 export function ScheduledPage(): JSX.Element {
   return (
@@ -26,6 +29,7 @@ export function ScheduledPage(): JSX.Element {
       lede="The jobs the server runs on a schedule. Each one can be run by hand here, and a dry run shows what it would do."
     >
       <RemindersPanel />
+      <ReminderScheduleCard />
       <RenewalsPanel />
       <ReportsPanel />
       <StatementsPanel />

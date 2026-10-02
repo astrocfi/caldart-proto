@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it } from 'vitest';
 
+import { makeReminderSchedule } from '@test/fixtures/reminders';
 import { API } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
@@ -16,7 +17,7 @@ const ENTRIES: ReminderLogEntry[] = [
     user_id: 7,
     user_name: 'Marta Reyes',
     membership_id: 12,
-    kind: 't30',
+    kind: 'second',
     sent_at: '2026-06-15T14:02:00Z',
     to_email: 'marta@example.org',
   },
@@ -33,7 +34,7 @@ function logHandler(rows: ReminderLogEntry[]) {
 
 const ACTIONS = [
   {
-    kind: 't30' as const,
+    kind: 'second' as const,
     member: 'Marta Reyes',
     email: 'marta@example.org',
     on: '2026-07-15',
@@ -43,6 +44,22 @@ const ACTIONS = [
 ];
 
 describe('RemindersPanel', () => {
+  it('names the days of the stored schedule', async () => {
+    server.use(
+      logHandler(ENTRIES),
+      http.get(`${API}/admin/reminders/schedule`, () =>
+        HttpResponse.json(makeReminderSchedule({ first_days_before: 90, lapsed_days_after: 14 })),
+      ),
+    );
+    renderWithProviders(<RemindersPanel />);
+
+    expect(
+      await screen.findByText(
+        /has just expired: 90, 30, and 7 days before, on the day, and 14 days after\./,
+      ),
+    ).toBeInTheDocument();
+  });
+
   it('shows the reminder log under the run controls', async () => {
     server.use(logHandler(ENTRIES));
     renderWithProviders(<RemindersPanel />);
