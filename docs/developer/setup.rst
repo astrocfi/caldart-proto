@@ -486,9 +486,12 @@ Beyond Django's and Wagtail's own, this project adds:
      - import the aircraft types and the registrations from the FAA registry
        (:doc:`aircraft-registry`)
    * - ``normalize_casing [--dry-run]``
-     - put every stored first and last name, street, and city in the casing a save
-       gives it (the ``User`` and ``MemberProfile`` entries of :doc:`data-model`), writing only the fields that change and
-       printing each as ``<email>: last_name "SMITH" -> "Smith"``, then a count;
+     - put every stored person's name (an account's first and last name, an emergency
+       contact, a DART contact, an individual aircraft owner, a DART page's leader),
+       street, and city in the casing a save gives it (:doc:`data-model`), writing only
+       the fields that change and printing each as ``<email>: last_name "SMITH" ->
+       "Smith"`` (``DART contact <id>``, ``aircraft <N-number>``, or ``DART page <id>``
+       in place of the email for those rows), then a count;
        ``--dry-run`` lists the changes without writing them.  Run it once after
        an upgrade that changes a casing rule.
 

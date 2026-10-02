@@ -34,6 +34,7 @@ Contact
   lower case, such as **DeAnna**, **MacArthur**, or **van Dyke**, is saved exactly as
   you typed it, so type yours that way if the rule gets it wrong. Spaces before,
   after, and doubled between words are dropped either way.
+* **Emergency contact** is a person's name too, and is saved by the same rule.
 * Each phone number has its own **ext.** box beside it for an extension.
 * A phone box takes digits only and writes the dashes for you as you type, so a
   number reads 415-555-0100. An eleventh digit is refused.

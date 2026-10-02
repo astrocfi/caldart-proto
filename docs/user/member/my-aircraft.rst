@@ -92,7 +92,9 @@ register**, the whole record, with every box the record has when you edit it lat
   airworthiness. Picking a type the registry knows the
   category of fills in **Category**.
 * **Owner type** (Individual, FBO, or Flying club), **Owner name**, and **Owner
-  contact**, an email address or a phone number.
+  contact**, an email address or a phone number. An individual's name typed all in
+  capitals or all in lower case is saved in title case, as your own name is
+  (:doc:`profile`); an FBO's or a club's name is saved as typed.
 * **Carrier**, **Policy number**, **Liability per occurrence**, **Liability per
   person**, **Hull**, and **Insurance expires**. Money is in whole dollars, and the
   commas write themselves. **Insurance expires** is the most useful box on the form,

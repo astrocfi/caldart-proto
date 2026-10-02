@@ -97,13 +97,13 @@ def test_saving_a_profile_title_cases_the_street_and_the_city() -> None:
 
 
 def test_saving_a_profile_leaves_other_free_text_fields_uncased() -> None:
-    """The emergency contact, outside ``TITLE_CASE_FIELDS``, is left exactly as typed."""
+    """``how_heard``, outside ``TITLE_CASE_FIELDS``, is left exactly as typed."""
     profile = MemberProfile.objects.create(
         user=UserFactory(),
         phone="415-555-0100",
-        emergency_contact_name="dana lee",
+        how_heard="a friend at the airport",
     )
-    assert profile.emergency_contact_name == "dana lee"
+    assert profile.how_heard == "a friend at the airport"
 
 
 # --------------------------------------------------------------------------
