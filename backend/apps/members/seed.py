@@ -143,17 +143,22 @@ UNVERIFIED_POSITIONS = frozenset({3, 6, 9})
 FIXED_MEDICAL_DAYS = 400
 
 
-def _fixed_profile(darts: list[Dart], towns: Faker, today: date) -> dict[str, Any]:
+def _fixed_profile(
+    darts: list[Dart], towns: Faker, today: date, *, index: int = 0
+) -> dict[str, Any]:
     """The fixed profile of a demo account left out of the shared random draws.
 
-    A private pilot with a third-class medical good for :data:`FIXED_MEDICAL_DAYS`, a
-    driver's license, the first DART in :data:`DARTS` as home, and no secondary
-    airport.  Its town is the next one from ``towns``, the generator every seeded
-    profile's town comes from.
+    A private pilot with a third-class medical good for :data:`FIXED_MEDICAL_DAYS`, the
+    first DART in :data:`DARTS` as home, and no secondary airport.  Its town is the next
+    one from ``towns``, the generator every seeded profile's town comes from.
+    ``index`` is the account's place in ``fixed_users``: it is added to the phone
+    number and the certificate number so no two fixed profiles share either, and the
+    first (the verifier) shows a driver's license while the rest, friends like most
+    seeded friends, have shown no photo ID.
     """
     dart = darts[0]
     return {
-        "phone": "408-555-0142",
+        "phone": f"408-555-{142 + index:04d}",
         "address_line1": "42 Hangar Row",
         "city": towns.city(),
         "state": "CA",
@@ -162,11 +167,11 @@ def _fixed_profile(darts: list[Dart], towns: Faker, today: date) -> dict[str, An
         "home_airport_identifier": dart.home_airport,
         "dart": dart,
         "pilot_certificate_type": PilotCertificateType.PRIVATE,
-        "certificate_number": "4207311",
+        "certificate_number": str(4207311 + index),
         "ratings": ["asel", "instrument"],
         "medical_type": MedicalType.THIRD,
         "medical_expiration": today + timedelta(days=FIXED_MEDICAL_DAYS),
-        "photo_id_type": PhotoIdType.DRIVERS_LICENSE,
+        "photo_id_type": PhotoIdType.DRIVERS_LICENSE if index == 0 else PhotoIdType.NOT_PROVIDED,
         "vol_ground_team": True,
     }
 
@@ -495,9 +500,9 @@ def run(ctx: dict[str, Any], stdout: OutputWrapper | None = None) -> dict[str, A
             profile.save()
         profiles.append(profile)
 
-    for user in ctx.get("fixed_users", []):
+    for index, user in enumerate(ctx.get("fixed_users", [])):
         MemberProfile.objects.update_or_create(
-            user=user, defaults=_fixed_profile(darts, towns, today)
+            user=user, defaults=_fixed_profile(darts, towns, today, index=index)
         )
 
     ctx["profiles"] = profiles

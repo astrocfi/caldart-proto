@@ -15,6 +15,7 @@ from apps.accounts.models import AccountKind, User
 from apps.accounts.roles import (
     ACCOUNT_ADMIN,
     DART_LEADER,
+    MANAGEMENT,
     MEMBER,
     SYSTEM_ADMIN,
     TREASURER,
@@ -42,6 +43,14 @@ DEMO_ACCOUNTS: tuple[tuple[str, str, str, str, tuple[str, ...], bool], ...] = (
         (MEMBER, ACCOUNT_ADMIN),
         False,
     ),
+    (
+        "management",
+        "management@example.org",
+        "Grace",
+        "Holloway",
+        (MEMBER, MANAGEMENT),
+        False,
+    ),
     ("webadmin", "webadmin@example.org", "Ada", "Lindqvist", (MEMBER, WEBSITE_ADMIN), False),
     (
         "sysadmin",
@@ -54,19 +63,21 @@ DEMO_ACCOUNTS: tuple[tuple[str, str, str, str, tuple[str, ...], bool], ...] = (
 )
 
 #: The demo accounts that are not members, keyed as in ``DEMO_ACCOUNTS``: every
-#: other one is a member.  The treasurer and the verifier hold no term, so are stored
-#: as friends: a member who has never paid is held at the join wizard's pay step.
+#: other one is a member.  The treasurer, the verifier, and the management account
+#: hold no term, so are stored as friends: a member who has never paid is held at the
+#: join wizard's pay step.
 DEMO_KINDS: dict[str, AccountKind] = {
     "friend": AccountKind.FRIEND,
     "treasurer": AccountKind.FRIEND,
     "verifier": AccountKind.FRIEND,
+    "management": AccountKind.FRIEND,
 }
 
 #: The demo accounts whose profile the seed writes from fixed values rather than from
 #: the shared random draws, keyed as in ``DEMO_ACCOUNTS``.  They are left out of
 #: ``users``, so adding one never moves the names, profiles, aircraft, and payments
 #: every other account is dealt.  ``apps.members.seed`` gives each its profile.
-FIXED_DEMO_KEYS: tuple[str, ...] = ("verifier",)
+FIXED_DEMO_KEYS: tuple[str, ...] = ("verifier", "management")
 
 #: How many synthetic members to generate on top of the named demo accounts.
 GENERATED_MEMBER_COUNT = 40

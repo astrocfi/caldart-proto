@@ -18,6 +18,7 @@ export type RoleSlug =
   | 'user_admin'
   | 'treasurer'
   | 'account_admin'
+  | 'management'
   | 'website_admin'
   | 'system_admin';
 

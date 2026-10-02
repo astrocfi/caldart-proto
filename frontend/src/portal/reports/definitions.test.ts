@@ -93,7 +93,7 @@ describe('REPORTS', () => {
     expect([search?.kind, search?.placeholder]).toEqual(['search', 'Name or email']);
   });
 
-  it('offers the seven staff roles on the roles report, every role by default', () => {
+  it('offers the eight staff roles on the roles report, every role by default', () => {
     const role = REPORTS.roles.filters.find((field) => field.key === 'role');
     expect([role?.placeholder, role?.options?.map((option) => option.label)]).toEqual([
       'Every role',
@@ -103,6 +103,7 @@ describe('REPORTS', () => {
         ROLE_LABELS.user_admin,
         ROLE_LABELS.treasurer,
         ROLE_LABELS.account_admin,
+        ROLE_LABELS.management,
         ROLE_LABELS.website_admin,
         ROLE_LABELS.system_admin,
       ],

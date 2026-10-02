@@ -31,9 +31,9 @@ of 9*. **Previous** and **Next** under the table step through the pages.
 - **Membership**: the membership chip, such as **Current**, **Expired**, or **Friend**.
 - **Account**: **Active**, or **Deactivated** for an account that cannot sign in.
 
-Every screen names a role the way a person says it: Member, DART leader, User
-administrator, Treasurer, Account administrator, Website administrator, and System
-administrator.
+Every screen names a role the way a person says it: Member, Verifier, DART leader, User
+administrator, Treasurer, Account administrator, CalDART management, Website administrator,
+and System administrator.
 
 
 Finding an account
@@ -121,6 +121,8 @@ What each role opens
 - **Account administrator**: the member list and records, the aircraft register, the DARTs,
   the payments, the reminders, and the reports, and verifying from the checks and the
   records.
+- **CalDART management**: :doc:`bulk-email`, to email everybody a filter selects, and
+  nothing that shows a member's record.
 - **Website administrator**: the website's editor, for pages, images, documents, redirects,
   and site settings.
 - **System administrator**: everything above, plus the :doc:`health-database`,

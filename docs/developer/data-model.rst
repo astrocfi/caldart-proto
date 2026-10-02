@@ -1499,6 +1499,9 @@ descriptions live in ``apps/accounts/roles.py``:
      - a member or a friend with a portal account: own profile, own payments
        and membership, join and renew, and members-only content while the
        membership is current
+   * - ``verifier``
+     - verify a member's pilot certificate, medical, and photo ID, and an
+       aircraft's insurance, from the member check and the aircraft check
    * - ``dart_leader``
      - \+ look up any member and see membership, medical, certificate, and
        aircraft insurance currency; read the full member list, filterable by
@@ -1514,6 +1517,9 @@ descriptions live in ``apps/accounts/roles.py``:
      - \+ create, edit, and delete members and profiles, make a member a friend,
        deactivate or reactivate accounts, grant or extend memberships manually,
        manage aircraft, and run payment, membership and aircraft reports
+   * - ``management``
+     - send a bulk email to every member and friend a filter selects, after
+       previewing the recipients (``BulkEmail``, below); nothing else
    * - ``website_admin``
      - \+ the Wagtail admin: create, edit, delete, and publish pages, images,
        documents, redirects, and site settings

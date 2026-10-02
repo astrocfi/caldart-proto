@@ -170,6 +170,8 @@ Sign in with any of the demo accounts, all of which use the password
      - ``member``, ``treasurer`` — a friend of CalDART, no membership term
    * - ``accountadmin@example.org``
      - ``member``, ``account_admin``
+   * - ``management@example.org``
+     - ``member``, ``management`` — a friend of CalDART, no membership term
    * - ``webadmin@example.org``
      - ``member``, ``website_admin``
    * - ``sysadmin@example.org``
@@ -180,9 +182,9 @@ The list, the names attached to it and the password all live in
 pilot certificate, medical, and photo ID of about seven in ten members, the
 demo member among them, and the insurance of about seven in ten aircraft; the
 rest are unverified, so the member check and the aircraft check show both
-states (see :doc:`verification`).  The verifier's profile is written from
-fixed values rather than the seed's random draws, so the rest of the demo
-data is the same with or without that account.
+states (see :doc:`verification`).  The verifier's and the management
+account's profiles are written from fixed values rather than the seed's random
+draws, so the rest of the demo data is the same with or without those accounts.
 
 Smoke test
 ==========

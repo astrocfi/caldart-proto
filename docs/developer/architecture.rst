@@ -281,7 +281,7 @@ filter set in the app's own ``filters.py`` rather than under ``api/``, so the
 report, a domain module, can read it.
 
 ``accounts``
-    The custom ``User``, whose login is the email address; the eight roles,
+    The custom ``User``, whose login is the email address; the nine roles,
     stored as Django ``Group`` rows (``roles.py``); the permission classes
     (``permissions.py``); and the auth rate limits (``throttling.py``).
     Endpoints ``/auth/...``, ``/admin/users`` and ``/roles``; commands

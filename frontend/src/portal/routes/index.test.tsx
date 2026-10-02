@@ -135,6 +135,7 @@ const IDENTITIES: Identity[] = [
   { name: 'user_admin', roles: ['member', 'user_admin'] },
   { name: 'treasurer', roles: ['member', 'treasurer'] },
   { name: 'account_admin', roles: ['member', 'account_admin'] },
+  { name: 'management', roles: ['member', 'management'] },
   { name: 'website_admin', roles: ['member', 'website_admin'] },
   { name: 'system_admin', roles: ['member', 'system_admin'] },
 ];
@@ -148,6 +149,7 @@ const ANY_SIGNED_IN = [
   'user_admin',
   'treasurer',
   'account_admin',
+  'management',
   'website_admin',
   'system_admin',
 ];

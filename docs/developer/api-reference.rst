@@ -456,6 +456,11 @@ reads the website's members-only pages whatever their own membership says.
 ID, and an aircraft's insurance, and reaches no member list or member record.
 Like every staff slug it opens the website's members-only pages.
 
+``management``, labeled *CalDART management*, grants the bulk email endpoints
+under ``/bulk-email`` (:doc:`api-bulk-email`) and nothing else: no member list,
+no member record, no payment.  It sits after ``account_admin`` in privilege
+order.  Like every staff slug it opens the website's members-only pages.
+
 ``website_admin`` grants **no API endpoint at all**.  It exists to give its
 holder Wagtail admin permissions, which are enforced by Wagtail, not by DRF.
 
@@ -473,7 +478,8 @@ Who may call what.  ``·`` means no access, ✓ means access.  ``system_admin``
 is omitted from the columns because it passes every row except the three
 payment-confirmation rows, which are owner-only for everybody.  ``verifier`` is
 omitted too: it reaches every row a ``member`` does, plus the leader-check rows
-whose notes name it.
+whose notes name it.  So is ``management``, which reaches every row a ``member``
+does plus the ``/bulk-email`` rows, whose notes name it.
 
 *Anonymous* means no session at all; anything it cannot reach answers **401**,
 provided the request carried a CSRF token.  An unsafe method without one never

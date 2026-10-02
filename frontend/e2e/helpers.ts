@@ -15,6 +15,7 @@ export type DemoAccount =
   | 'useradmin'
   | 'treasurer'
   | 'accountadmin'
+  | 'management'
   | 'webadmin'
   | 'sysadmin';
 
@@ -27,6 +28,7 @@ const DEMO_ACCOUNT_KEYS: readonly DemoAccount[] = [
   'useradmin',
   'treasurer',
   'accountadmin',
+  'management',
   'webadmin',
   'sysadmin',
 ];

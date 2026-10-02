@@ -19,6 +19,7 @@ from apps.accounts.models import AccountKind, User
 from apps.accounts.roles import (
     ACCOUNT_ADMIN,
     DART_LEADER,
+    MANAGEMENT,
     MEMBER,
     ROLE_LABELS,
     ROLE_SLUGS,
@@ -43,13 +44,14 @@ CSV_URL = "/api/v1/reports/roles/export.csv"
 PDF_URL = "/api/v1/reports/roles/export.pdf"
 SUBSCRIPTIONS_URL = "/api/v1/reports/subscriptions"
 
-#: The seven staff roles' section titles, in the order the report draws them.
+#: The eight staff roles' section titles, in the order the report draws them.
 SECTION_TITLES = [
     "Verifier",
     "DART leader",
     "User administrator",
     "Treasurer",
     "Account administrator",
+    "CalDART management",
     "Website administrator",
     "System administrator",
 ]
@@ -81,7 +83,7 @@ def section_titles(params: Params | None = None) -> list[str]:
 # The role labels
 # --------------------------------------------------------------------------
 def test_every_role_is_labeled_as_the_screens_name_it() -> None:
-    """``ROLE_LABELS`` names the eight roles in privilege order."""
+    """``ROLE_LABELS`` names the nine roles in privilege order."""
     assert list(ROLE_LABELS.items()) == [
         (MEMBER, "Member"),
         (VERIFIER, "Verifier"),
@@ -89,6 +91,7 @@ def test_every_role_is_labeled_as_the_screens_name_it() -> None:
         (USER_ADMIN, "User administrator"),
         (TREASURER, "Treasurer"),
         (ACCOUNT_ADMIN, "Account administrator"),
+        (MANAGEMENT, "CalDART management"),
         (WEBSITE_ADMIN, "Website administrator"),
         (SYSTEM_ADMIN, "System administrator"),
     ]
@@ -147,7 +150,7 @@ def test_every_column_is_registered_in_export_order() -> None:
 # Rows and sections
 # --------------------------------------------------------------------------
 def test_every_staff_role_is_a_section_even_when_nobody_holds_it() -> None:
-    """The seven staff roles are the sections, in privilege order, with no rows at all."""
+    """The eight staff roles are the sections, in privilege order, with no rows at all."""
     assert section_titles() == SECTION_TITLES
 
 

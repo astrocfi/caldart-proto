@@ -70,6 +70,9 @@ The demo accounts all use the password ``caldart-demo``:
    * - ``accountadmin@example.org``
      - Curtis Whitfield
      - ``member``, ``account_admin``; lifetime
+   * - ``management@example.org``
+     - Grace Holloway
+     - ``member``, ``management``; a friend of CalDART, no membership term
    * - ``webadmin@example.org``
      - Ada Lindqvist
      - ``member``, ``website_admin``; current

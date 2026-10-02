@@ -634,7 +634,7 @@ Roles
 --------------
 
 The role catalog, in privilege order, for any authenticated caller.  It is a
-bare array rather than a paginated envelope: there are eight roles and there
+bare array rather than a paginated envelope: there are nine roles and there
 will not be many more.
 
 .. code-block:: json
