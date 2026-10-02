@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import unicodedata
 from typing import Any, TypedDict
 
 from rest_framework import serializers
@@ -18,6 +19,15 @@ from apps.bulk_email.services import (
 
 #: What a filter the member list does not have is refused with.
 UNKNOWN_FILTER_MESSAGE = "Not a filter of the member list."
+
+#: What a subject that breaks a line is refused with.
+ONE_LINE_MESSAGE = "A subject is one line."
+
+#: What a subject carrying a control character, such as a tab, is refused with.
+CONTROL_MESSAGE = "A subject cannot carry control characters such as tabs."
+
+#: Unicode's category of control characters.
+CONTROL_CATEGORY = "Cc"
 
 #: The longest message a bulk email carries, in characters.
 MAX_BODY_LENGTH = 20000
@@ -61,9 +71,16 @@ class BulkEmailMessageSerializer(serializers.Serializer[dict[str, Any]]):
     )
 
     def validate_subject(self, value: str) -> str:
-        """Refuse a subject that runs over more than one line."""
-        if "\n" in value or "\r" in value:
-            raise ValidationError("A subject is one line.")
+        """Refuse a subject that breaks a line, or carries any other control character.
+
+        A line break is any character ``str.splitlines`` splits on, the Unicode line
+        and paragraph separators among them; a control character is one in Unicode's
+        ``Cc`` category.  The mail library refuses both in a header.
+        """
+        if value.splitlines() != [value]:
+            raise ValidationError(ONE_LINE_MESSAGE)
+        if any(unicodedata.category(character) == CONTROL_CATEGORY for character in value):
+            raise ValidationError(CONTROL_MESSAGE)
         return value
 
     def validate_filters(self, value: dict[str, str]) -> dict[str, str]:

@@ -14,10 +14,19 @@ from django.db import models
 
 from caldart.models import TimestampedModel
 
+#: The longest name a recipient row keeps: a display name is a 150-character first
+#: name, a space, and a 150-character last name, or an address of at most 254.
+NAME_MAX_LENGTH = 301
+
 
 class RecipientStatus(models.TextChoices):
-    """What became of one person's copy of a bulk email."""
+    """What became of one person's copy of a bulk email.
 
+    ``pending`` is a copy not yet tried: every recipient starts there, and one
+    still there once the send has stopped was never sent.
+    """
+
+    PENDING = "pending", "Not sent"
     SENT = "sent", "Sent"
     FAILED = "failed", "Failed"
     SKIPPED = "skipped", "Skipped"
@@ -31,8 +40,8 @@ class BulkEmail(TimestampedModel):
     value only, as ``ReportSubscription.filters`` stores a report's.  ``sender`` is
     the account that sent it, null once that account is deleted.  ``created_at`` is
     when the send began and ``sent_at`` when every copy had been tried; ``sent_at``
-    stays null for a send that never finished.  The three counts add up to the
-    recipient rows.
+    stays null for a send that never finished, an interrupted one.  The counts are
+    kept as each copy is tried, so an interrupted send's say how far it got.
     """
 
     subject = models.CharField(max_length=200)
@@ -65,7 +74,7 @@ class BulkEmailRecipient(TimestampedModel):
     the account's name and address at send time, kept whatever happens to the
     account later.  ``email`` is not validated, since an invalid address is
     recorded as the reason it was skipped.  ``reason`` says why a copy was skipped
-    or failed, and is blank for one that went.
+    or failed, and is blank for one that went or was never tried.
     """
 
     bulk_email = models.ForeignKey(BulkEmail, on_delete=models.CASCADE, related_name="recipients")
@@ -76,7 +85,7 @@ class BulkEmailRecipient(TimestampedModel):
         blank=True,
         related_name="bulk_emails_received",
     )
-    name = models.CharField(max_length=200, blank=True)
+    name = models.CharField(max_length=NAME_MAX_LENGTH, blank=True)
     email = models.CharField(max_length=254, blank=True)
     status = models.CharField(max_length=7, choices=RecipientStatus.choices)
     reason = models.CharField(max_length=200, blank=True)

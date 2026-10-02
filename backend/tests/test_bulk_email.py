@@ -11,14 +11,14 @@ from __future__ import annotations
 
 import smtplib
 from collections.abc import Callable
-from datetime import timedelta
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
 import pytest
 from django.core import mail
 from django.core.mail import EmailMessage, EmailMultiAlternatives
 from django.core.mail.backends.locmem import EmailBackend
-from django.utils import timezone
+from freezegun import freeze_time
 
 from apps.accounts.models import AccountKind
 from apps.accounts.roles import MEMBER, TREASURER
@@ -325,10 +325,84 @@ def test_a_send_stores_the_message_its_filters_and_its_counts(sender: User) -> N
 
 def test_a_send_is_stamped_when_it_finishes(sender: User) -> None:
     """``sent_at`` is set once every message has been tried."""
-    before = timezone.now()
-    bulk = send_bulk_email(subject=SUBJECT, body=BODY, filters={}, sender=sender)
-    assert bulk.sent_at is not None
-    assert bulk.sent_at - before < timedelta(minutes=1)
+    with freeze_time("2026-10-02 17:00:00"):
+        bulk = send_bulk_email(subject=SUBJECT, body=BODY, filters={}, sender=sender)
+    assert bulk.sent_at == datetime(2026, 10, 2, 17, 0, tzinfo=UTC)
+
+
+def test_every_copy_goes_over_one_connection(sender: User, monkeypatch: pytest.MonkeyPatch) -> None:
+    """The send opens one mail connection and sends every copy through it."""
+    person("one@example.test", kind=AccountKind.FRIEND)
+    person("two@example.test", kind=AccountKind.FRIEND)
+    person("three@example.test", kind=AccountKind.FRIEND)
+    original = EmailBackend.send_messages
+    backends: list[int] = []
+
+    def send(self: EmailBackend, messages: list[EmailMessage]) -> int:
+        backends.append(id(self))
+        return original(self, messages)
+
+    monkeypatch.setattr(EmailBackend, "send_messages", send)
+    send_bulk_email(subject=SUBJECT, body=BODY, filters={"kind": "friend"}, sender=sender)
+    assert (len(backends), len(set(backends))) == (3, 1)
+
+
+def test_a_long_name_is_kept_whole(sender: User) -> None:
+    """A 150-character first name and a 150-character last name fit the recipient row."""
+    account = person("long@example.test", "A" * 150, "B" * 150, kind=AccountKind.FRIEND)
+    bulk = send_bulk_email(subject=SUBJECT, body=BODY, filters={"kind": "friend"}, sender=sender)
+    stored = bulk.recipients.get().name
+    assert (len(stored), stored) == (301, account.display_name)
+
+
+def break_on_second_copy(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Make the second copy raise what a killed worker would: the send stops there."""
+    original = EmailBackend.send_messages
+    calls: list[int] = []
+
+    def send(self: EmailBackend, messages: list[EmailMessage]) -> int:
+        calls.append(1)
+        if len(calls) == 2:
+            raise RuntimeError("worker timeout")
+        return original(self, messages)
+
+    monkeypatch.setattr(EmailBackend, "send_messages", send)
+
+
+@pytest.fixture
+def interrupted(sender: User, monkeypatch: pytest.MonkeyPatch) -> BulkEmail:
+    """A send that stopped on its second of three copies, with one friend skipped."""
+    person("ann@example.test", "Ann", "Able", kind=AccountKind.FRIEND)
+    person("bea@example.test", "Bea", "Bell", kind=AccountKind.FRIEND)
+    person("cal@example.test", "Cal", "Cole", kind=AccountKind.FRIEND)
+    person("gil@example.test", "Gil", "Gone", kind=AccountKind.FRIEND, is_active=False)
+    break_on_second_copy(monkeypatch)
+    with pytest.raises(RuntimeError, match="worker timeout"):
+        send_bulk_email(subject=SUBJECT, body=BODY, filters={"kind": "friend"}, sender=sender)
+    return BulkEmail.objects.get()
+
+
+def test_an_interrupted_send_keeps_who_was_reached_and_who_was_not(
+    interrupted: BulkEmail,
+) -> None:
+    """Every row is there: the copy that went, the copies never tried, and the skip."""
+    rows = interrupted.recipients.order_by("id")
+    assert [(r.email, r.status) for r in rows] == [
+        ("ann@example.test", RecipientStatus.SENT),
+        ("bea@example.test", RecipientStatus.PENDING),
+        ("cal@example.test", RecipientStatus.PENDING),
+        ("gil@example.test", RecipientStatus.SKIPPED),
+    ]
+
+
+def test_an_interrupted_send_keeps_its_counts_so_far(interrupted: BulkEmail) -> None:
+    """The counts say one went and one was skipped, and the send never finished."""
+    assert (
+        interrupted.sent_count,
+        interrupted.failed_count,
+        interrupted.skipped_count,
+        interrupted.sent_at,
+    ) == (1, 0, 1, None)
 
 
 def test_a_send_records_every_recipient_and_every_skip(sender: User) -> None:

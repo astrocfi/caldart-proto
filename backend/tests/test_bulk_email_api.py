@@ -195,6 +195,10 @@ def test_a_preview_stores_nothing(management_client: APIClient) -> None:
             {"filters": {"wingspan": ["Not a filter of the member list."]}},
         ),
         (
+            {"filters": {"ordering": "name"}},
+            {"filters": {"ordering": ["Not a filter of the member list."]}},
+        ),
+        (
             {"filters": {"kind": "donor"}},
             {
                 "filters": {
@@ -209,6 +213,7 @@ def test_a_preview_stores_nothing(management_client: APIClient) -> None:
         "two-line-subject",
         "long-subject",
         "unknown-filter",
+        "ordering",
         "bad-kind",
     ],
 )
@@ -395,3 +400,72 @@ def test_the_preview_csv_refuses_an_unknown_filter(management_client: APIClient)
         400,
         {"filters": {"wingspan": ["Not a filter of the member list."]}},
     )
+
+
+#: Every character that breaks a line, and a sample of the other control characters.
+SUBJECT_BREAKERS = {
+    "carriage-return": ("\r", "A subject is one line."),
+    "vertical-tab": ("\x0b", "A subject is one line."),
+    "form-feed": ("\x0c", "A subject is one line."),
+    "file-separator": ("\x1c", "A subject is one line."),
+    "next-line": ("\x85", "A subject is one line."),
+    "line-separator": ("\u2028", "A subject is one line."),
+    "paragraph-separator": ("\u2029", "A subject is one line."),
+    "tab": ("\t", "A subject cannot carry control characters such as tabs."),
+    "escape": ("\x1b", "A subject cannot carry control characters such as tabs."),
+    "bell": ("\x07", "A subject cannot carry control characters such as tabs."),
+    "delete": ("\x7f", "A subject cannot carry control characters such as tabs."),
+}
+
+
+@pytest.mark.parametrize(
+    ("character", "error"), list(SUBJECT_BREAKERS.values()), ids=list(SUBJECT_BREAKERS)
+)
+def test_a_subject_refuses_a_line_break_or_control_character(
+    management_client: APIClient, character: str, error: str
+) -> None:
+    """A character the mail library would refuse in a header is a 400, never a 500."""
+    friend_of("ann@example.test")
+    response = management_client.post(
+        SEND_URL, message(subject=f"Spring{character}seminar"), format="json"
+    )
+    assert (response.status_code, response.json(), BulkEmail.objects.count()) == (
+        400,
+        {"subject": [error]},
+        0,
+    )
+
+
+def test_the_preview_csv_refuses_ordering(management_client: APIClient) -> None:
+    """``ordering`` sorts the member list and chooses nobody, so it is no filter here."""
+    response = management_client.get(PREVIEW_CSV_URL, {"ordering": "name"})
+    assert (response.status_code, response.json()) == (
+        400,
+        {"filters": {"ordering": ["Not a filter of the member list."]}},
+    )
+
+
+def test_an_unfinished_send_lists_who_was_never_sent_a_copy(
+    management_client: APIClient, sent: BulkEmail
+) -> None:
+    """A send that stopped part way reads its pending copies as never sent."""
+    BulkEmail.objects.filter(pk=sent.pk).update(sent_at=None)
+    BulkEmailRecipient.objects.filter(email="ann@example.test").update(status="pending")
+    body = management_client.get(detail_url(sent)).json()
+    assert (body["sent_at"], [(r["email"], r["status"]) for r in body["recipients"]]) == (
+        None,
+        [("ann@example.test", "pending"), ("gil@example.test", "skipped")],
+    )
+
+
+def test_an_unfinished_send_s_csv_reads_not_sent(
+    management_client: APIClient, sent: BulkEmail
+) -> None:
+    """The results CSV names a copy never tried as Not sent."""
+    BulkEmailRecipient.objects.filter(email="ann@example.test").update(status="pending")
+    assert read_csv(management_client.get(csv_url(sent)))[1] == [
+        "Ann Able",
+        "ann@example.test",
+        "Not sent",
+        "",
+    ]

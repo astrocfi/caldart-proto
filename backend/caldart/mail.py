@@ -23,6 +23,7 @@ from email.utils import make_msgid, parseaddr
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.mail import EmailMultiAlternatives
+from django.core.mail.backends.base import BaseEmailBackend
 from django.core.mail.utils import DNS_NAME
 from django.template.loader import render_to_string
 from django.utils import timezone
@@ -58,6 +59,7 @@ def send_templated(
     purpose: str | None = None,
     user_id: int | None = None,
     to_name: str = "",
+    mailer: BaseEmailBackend | None = None,
 ) -> EmailMultiAlternatives:
     """Render ``emails/<template>.{txt,html}`` and send them to one address.
 
@@ -79,6 +81,11 @@ def send_templated(
     name; a caller that leaves it blank while naming ``user_id`` has the account's
     own ``display_name`` recorded instead, so an account-linked row always carries
     the name it had when the email went.
+
+    ``mailer`` is a mail connection to send through (one from
+    ``django.core.mail.mailers``), so a caller sending many messages opens one
+    connection for all of them; left out, the default mailer sends this message on
+    a connection of its own.
 
     The sent message is returned, so a caller can record what went out.  A mail
     server that refuses the message is logged as a failed send, carrying the
@@ -105,7 +112,10 @@ def send_templated(
         message.attach(filename, content, mimetype)
     filenames = ", ".join(filename for filename, _content, _mimetype in attachments)
     try:
-        message.send()
+        if mailer is None:
+            message.send()
+        else:
+            mailer.send_messages([message])
     except Exception as exc:
         # Every failure is recorded before it travels on, whatever it is: the log
         # exists to answer "did this member hear from us?", and a refusal nobody

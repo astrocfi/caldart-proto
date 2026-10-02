@@ -22,6 +22,8 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.core.mail import mailers
+from django.core.mail.backends.base import BaseEmailBackend
 from django.core.validators import validate_email
 from django.db.models import QuerySet
 from django.utils import timezone
@@ -44,8 +46,9 @@ log = logging.getLogger(__name__)
 
 #: The member list's filters a bulk email may be aimed with, in the order the list
 #: names them.  The list's own **Include deactivated** switch is not one: a
-#: deactivated account is always listed among the skips.
-FILTER_KEYS: tuple[str, ...] = EXPORT_FILTER_PARAMS
+#: deactivated account is always listed among the skips.  Nor is ``ordering``, which
+#: sorts the list and chooses nobody: the recipients always come in surname order.
+FILTER_KEYS: tuple[str, ...] = tuple(key for key in EXPORT_FILTER_PARAMS if key != "ordering")
 
 #: The email template pair, ``emails/bulk_email.{txt,html}``, and the email log's
 #: purpose for every copy.
@@ -175,14 +178,19 @@ def send_bulk_email(
     """Send ``subject`` and ``body`` to everybody ``filters`` select; return the record.
 
     The list is rebuilt now (:func:`build_recipients`), so it is whoever the filters
-    select at the moment of sending.  Each recipient is sent a copy of their own,
-    from ``emails/bulk_email.{txt,html}``, logged in the email log under the purpose
-    ``bulk_email``.  A copy the mail server refuses is recorded as failed with
-    :data:`FAILED_REASON`, and the rest still go.  The returned :class:`BulkEmail`
-    stores the message, the given filters, ``sender``, a :class:`BulkEmailRecipient`
-    for every recipient (sent or failed) and then for every skip, the three counts,
-    and ``sent_at``.  One ``bulk_email.send`` audit line names ``sender``, the send,
-    and the counts.
+    select at the moment of sending.  Before anything is sent, the :class:`BulkEmail`
+    is stored with the message, the given filters, ``sender``, and the skipped count,
+    and so is a :class:`BulkEmailRecipient` for every recipient, ``pending``, and then
+    for every skip.  Each recipient is then sent a copy of their own, from
+    ``emails/bulk_email.{txt,html}``, through one mail connection opened for the
+    whole send, and logged in the email log under the purpose ``bulk_email``.  Each
+    copy's row and the send's counts are saved as soon as that copy is tried, outside
+    any transaction, so a send stopped part way (a worker killed at its time limit)
+    leaves a record of exactly who was sent a copy and who is still ``pending``, and
+    no ``sent_at``.  A copy the mail server refuses is recorded as ``failed`` with
+    :data:`FAILED_REASON`, and the rest still go.  ``sent_at`` is set once every copy
+    has been tried, and one ``bulk_email.send`` audit line then names ``sender``, the
+    send, and the counts.
 
     Raises ``DomainValidationError`` on ``filters`` when the filters select nobody
     who can be sent a copy; nothing is stored then.
@@ -191,44 +199,35 @@ def send_bulk_email(
     if len(chosen.recipients) == 0:
         raise DomainValidationError("filters", NOBODY_MESSAGE)
     bulk = BulkEmail.objects.create(
-        subject=subject, body=body, filters=given_filters(filters), sender=sender
+        subject=subject,
+        body=body,
+        filters=given_filters(filters),
+        sender=sender,
+        skipped_count=len(chosen.skipped),
     )
+    pending = BulkEmailRecipient.objects.bulk_create(
+        [
+            *(_row(bulk, recipient, RecipientStatus.PENDING) for recipient in chosen.recipients),
+            *(_row(bulk, skip, RecipientStatus.SKIPPED) for skip in chosen.skipped),
+        ]
+    )[: len(chosen.recipients)]
     context: dict[str, object] = {
         "org_name": org_name(),
         "contact_email": contact_email(),
         "subject": subject,
         "body": body,
     }
-    for recipient in chosen.recipients:
-        status, reason = _send_one(recipient, subject=subject, context=context, bulk=bulk)
-        BulkEmailRecipient.objects.create(
-            bulk_email=bulk,
-            user_id=recipient.user_id,
-            name=recipient.name,
-            email=recipient.email,
-            status=status,
-            reason=reason,
-        )
-        if status == RecipientStatus.SENT:
-            bulk.sent_count += 1
-        else:
-            bulk.failed_count += 1
-    BulkEmailRecipient.objects.bulk_create(
-        BulkEmailRecipient(
-            bulk_email=bulk,
-            user_id=skip.user_id,
-            name=skip.name,
-            email=skip.email,
-            status=RecipientStatus.SKIPPED,
-            reason=skip.reason,
-        )
-        for skip in chosen.skipped
-    )
-    bulk.skipped_count = len(chosen.skipped)
+    connection = _open_connection(bulk)
+    try:
+        for recipient, row in zip(chosen.recipients, pending, strict=True):
+            status, reason = _send_one(
+                recipient, subject=subject, context=context, bulk=bulk, connection=connection
+            )
+            _record_attempt(bulk, row, status, reason)
+    finally:
+        connection.close()
     bulk.sent_at = timezone.now()
-    bulk.save(
-        update_fields=["sent_count", "failed_count", "skipped_count", "sent_at", "updated_at"]
-    )
+    bulk.save(update_fields=["sent_at", "updated_at"])
     audit.record(
         audit.BULK_EMAIL_SEND,
         actor=sender,
@@ -240,10 +239,64 @@ def send_bulk_email(
     return bulk
 
 
+def _open_connection(bulk: BulkEmail) -> BaseEmailBackend:
+    """One mail connection for every copy of ``bulk``, opened now when the server answers.
+
+    A server that refuses the connection is logged and the connection is handed back
+    unopened: each copy then tries to reach the server on its own and is recorded as
+    failed if it cannot.
+    """
+    connection = mailers.default
+    try:
+        connection.open()
+    except SEND_ERRORS as exc:
+        log.error(
+            "bulk email connection refused: bulk_email=%s error=%s",
+            bulk.pk,
+            type(exc).__name__,
+        )
+    return connection
+
+
+def _row(bulk: BulkEmail, person: Recipient, status: RecipientStatus) -> BulkEmailRecipient:
+    """An unsaved row for ``person`` on ``bulk``, with ``status`` and their reason."""
+    return BulkEmailRecipient(
+        bulk_email=bulk,
+        user_id=person.user_id,
+        name=person.name,
+        email=person.email,
+        status=status,
+        reason=person.reason,
+    )
+
+
+def _record_attempt(
+    bulk: BulkEmail, row: BulkEmailRecipient, status: RecipientStatus, reason: str
+) -> None:
+    """Save what became of one copy: its row's status and reason, and the send's count."""
+    row.status = status
+    row.reason = reason
+    row.save(update_fields=["status", "reason", "updated_at"])
+    if status == RecipientStatus.SENT:
+        bulk.sent_count += 1
+    else:
+        bulk.failed_count += 1
+    bulk.save(update_fields=["sent_count", "failed_count", "updated_at"])
+
+
 def _send_one(
-    recipient: Recipient, *, subject: str, context: dict[str, object], bulk: BulkEmail
+    recipient: Recipient,
+    *,
+    subject: str,
+    context: dict[str, object],
+    bulk: BulkEmail,
+    connection: BaseEmailBackend,
 ) -> tuple[RecipientStatus, str]:
-    """Send ``recipient`` their copy, and say whether it went and, if not, why."""
+    """Send ``recipient`` their copy over ``connection``; say whether it went and why not.
+
+    After a refusal the connection is closed, so the next copy opens a fresh one
+    rather than writing to a session the server may have dropped.
+    """
     try:
         send_templated(
             to=recipient.email,
@@ -253,6 +306,7 @@ def _send_one(
             purpose=PURPOSE,
             user_id=recipient.user_id,
             to_name=recipient.name,
+            mailer=connection,
         )
     except SEND_ERRORS as exc:
         log.error(
@@ -261,6 +315,7 @@ def _send_one(
             recipient.user_id,
             type(exc).__name__,
         )
+        connection.close()
         return RecipientStatus.FAILED, FAILED_REASON
     return RecipientStatus.SENT, ""
 
