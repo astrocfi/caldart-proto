@@ -38,9 +38,9 @@ PURPOSE_LABELS: dict[str, str] = {
     "member_invitation": "Invitation",
     "password_reset": "Password reset",
     "email_verification": "Email verification",
+    "bulk_email": "Bulk email",
     "scheduled_report": "Scheduled report",
     "dart_roster": "DART roster",
-    "bulk_email": "Bulk email",
     # notifications: one per event, in the catalog's order.  The mail app sits below
     # the notifications app, so the labels are written out rather than read from it.
     "notification_signed_up": "Notification: Sign-up",
