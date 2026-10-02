@@ -1001,7 +1001,7 @@ any authenticated user; My aircraft reads its ``note``.
      "note": "Helicopters are not covered; talk to your DART leader before offering one."
    }
 
-Before an account administrator has written one, the policy excludes nothing
+Before a system administrator has written one, the policy excludes nothing
 and its note is blank.
 
 Statuses:
@@ -1011,7 +1011,7 @@ Statuses:
 ``PUT /aircraft/coverage-policy``
 ---------------------------------
 
-Replaces the policy; ``account_admin`` (and ``system_admin``) only.  The body
+Replaces the policy; ``system_admin`` (or a Django superuser) only.  The body
 carries all three fields.  Each list takes values of its choice set (the
 categories and airworthiness classifications above) and is stored in the
 order of that set, without repeats; ``note`` is plain text of at most 1,000
@@ -1025,7 +1025,8 @@ Statuses:
 * **400** — a list value outside its choices, such as
   ``{"excluded_categories": {"0": ["\"spaceship\" is not a valid choice."]}}``,
   or a note over 1,000 characters.  Nothing is written.
-* **403** — the caller is not an account administrator.
+* **403** — the caller is not a system administrator, an account administrator
+  included.
 
 
 Where the code lives

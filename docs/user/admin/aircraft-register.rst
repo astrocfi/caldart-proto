@@ -10,7 +10,8 @@ insurance a DART leader checks before a mission. Members add the airplanes they 
 downloads ready for an insurance review.
 
 Only an account administrator finds it, as **Aircraft** under **Administration** in the
-menu. A system administrator can open it too.
+menu. A system administrator can open it too, and also keeps the :ref:`coverage-policy`
+there.
 
 
 N-numbers
@@ -63,7 +64,9 @@ Coverage policy
 ===============
 
 The **Coverage policy** card, above the table, says which airplanes CalDART's insurance
-does not cover, so a DART leader is not surprised on the ramp. It reads three lines:
+does not cover, so a DART leader is not surprised on the ramp. Only a system
+administrator sees the card and changes the policy; an account administrator sees the
+register without it. It reads three lines:
 
 **Excluded categories**
    The aircraft categories the policy leaves out, such as **Helicopter**, or *None*.

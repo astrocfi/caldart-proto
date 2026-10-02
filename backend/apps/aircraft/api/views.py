@@ -20,7 +20,13 @@ if TYPE_CHECKING:
     from rest_framework.request import Request
     from rest_framework.serializers import BaseSerializer
 
-from apps.accounts.permissions import HasAnyRole, IsAccountAdmin, IsVerifier, user_has_any_role
+from apps.accounts.permissions import (
+    HasAnyRole,
+    IsAccountAdmin,
+    IsSystemAdmin,
+    IsVerifier,
+    user_has_any_role,
+)
 from apps.accounts.roles import DART_LEADER, USER_ADMIN, VERIFY_ROLES
 from apps.accounts.services import set_verifier
 from apps.aircraft import registry, services
@@ -244,16 +250,16 @@ class AircraftTypeSearchView(APIView):
 
 
 class CoveragePolicyView(APIView):
-    """``GET /aircraft/coverage-policy`` (any member) and ``PUT`` (account administrator).
+    """``GET /aircraft/coverage-policy`` (any member) and ``PUT`` (system administrator).
 
     The one policy saying which aircraft categories and airworthiness classifications
     CalDART's insurance does not cover, and the note members read on My aircraft.
     """
 
     def get_permissions(self) -> list[BasePermission]:
-        """Any signed-in user reads the policy; only an account administrator writes."""
+        """Any signed-in user reads the policy; only a system administrator writes."""
         if self.request.method == "PUT":
-            return [IsAccountAdmin()]
+            return [IsSystemAdmin()]
         return [IsAuthenticated()]
 
     @extend_schema(responses={200: CoveragePolicySerializer})

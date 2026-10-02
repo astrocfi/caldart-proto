@@ -42,7 +42,7 @@ survives a reload and you can send it to another leader.
 The band across the top gives one of four verdicts:
 
 - **NOT COVERED**, with the reason, such as *helicopters are excluded by CalDART's
-  policy*: the coverage policy an account administrator keeps on the
+  policy*: the coverage policy a system administrator keeps on the
   :doc:`aircraft-register` leaves out the airplane's category or its airworthiness
   category. This is a no-go whatever its insurance.
 

@@ -83,19 +83,28 @@ def test_a_policy_never_written_excludes_nothing(api_client: APIClient, member: 
     }
 
 
-@pytest.mark.parametrize(("role", "allowed"), role_matrix("account_admin", "system_admin"))
-def test_only_an_account_administrator_writes_the_policy(
+@pytest.mark.parametrize("role", [slug for slug, _ in role_matrix()])
+def test_every_signed_in_role_reads_the_policy(
+    api_client: APIClient, all_role_users: dict[str, User], role: str
+) -> None:
+    """Every signed-in role, account administrator included, is answered 200."""
+    api_client.force_login(all_role_users[role])
+    assert api_client.get(POLICY_URL).status_code == 200
+
+
+@pytest.mark.parametrize(("role", "allowed"), role_matrix("system_admin"))
+def test_only_a_system_administrator_writes_the_policy(
     api_client: APIClient, all_role_users: dict[str, User], role: str, allowed: bool
 ) -> None:
-    """Every signed-in role reads the policy; only an account administrator writes it."""
+    """Only a system administrator writes the policy; every other role is a 403."""
     api_client.force_login(all_role_users[role])
     response = api_client.put(POLICY_URL, _body(), format="json")
     assert response.status_code == (200 if allowed else 403)
 
 
-def test_a_written_policy_is_stored_and_answered(admin_client: APIClient) -> None:
+def test_a_written_policy_is_stored_and_answered(system_admin_client: APIClient) -> None:
     """The ``PUT`` answers the stored policy, with the lists in choice order."""
-    response = admin_client.put(
+    response = system_admin_client.put(
         POLICY_URL,
         _body(
             excluded_categories=["gyroplane", "helicopter"],
@@ -112,30 +121,36 @@ def test_a_written_policy_is_stored_and_answered(admin_client: APIClient) -> Non
 
 
 def test_a_written_policy_records_who_wrote_it(
-    admin_client: APIClient, account_admin: User
+    system_admin_client: APIClient, system_admin: User
 ) -> None:
     """The row keeps the account that last wrote it."""
-    admin_client.put(POLICY_URL, _body(), format="json")
-    assert AircraftCoveragePolicy.load().updated_by == account_admin
+    system_admin_client.put(POLICY_URL, _body(), format="json")
+    assert AircraftCoveragePolicy.load().updated_by == system_admin
+
+
+def test_a_django_superuser_writes_the_policy(api_client: APIClient, superuser: User) -> None:
+    """A Django superuser passes the system-administrator check."""
+    api_client.force_login(superuser)
+    assert api_client.put(POLICY_URL, _body(), format="json").status_code == 200
 
 
 @pytest.mark.parametrize("field", ["excluded_categories", "excluded_airworthiness"])
-def test_an_unknown_value_in_a_list_is_refused(admin_client: APIClient, field: str) -> None:
+def test_an_unknown_value_in_a_list_is_refused(system_admin_client: APIClient, field: str) -> None:
     """A value outside the choice list is a 400 naming the list."""
-    response = admin_client.put(POLICY_URL, _body(**{field: ["spaceship"]}), format="json")
+    response = system_admin_client.put(POLICY_URL, _body(**{field: ["spaceship"]}), format="json")
     assert (response.status_code, list(response.json())) == (400, [field])
 
 
-def test_a_note_longer_than_the_limit_is_refused(admin_client: APIClient) -> None:
+def test_a_note_longer_than_the_limit_is_refused(system_admin_client: APIClient) -> None:
     """The note is a short statement: more than 1,000 characters is a 400."""
-    response = admin_client.put(POLICY_URL, _body(note="x" * 1001), format="json")
+    response = system_admin_client.put(POLICY_URL, _body(note="x" * 1001), format="json")
     assert (response.status_code, list(response.json())) == (400, ["note"])
 
 
-def test_there_is_only_ever_one_policy(admin_client: APIClient) -> None:
+def test_there_is_only_ever_one_policy(system_admin_client: APIClient) -> None:
     """Writing twice updates the one row rather than adding a second."""
-    admin_client.put(POLICY_URL, _body(), format="json")
-    admin_client.put(POLICY_URL, _body(note="Changed."), format="json")
+    system_admin_client.put(POLICY_URL, _body(), format="json")
+    system_admin_client.put(POLICY_URL, _body(note="Changed."), format="json")
     assert AircraftCoveragePolicy.objects.count() == 1
 
 

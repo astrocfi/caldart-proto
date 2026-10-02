@@ -5,10 +5,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { makeAircraftType } from '@test/fixtures/profile';
 import { makeRegistryStatus } from '@test/fixtures/registry';
-import { API } from '@test/handlers';
+import { API, makeUser, signedInAs } from '@test/handlers';
 import { renderRoutes, renderWithProviders } from '@test/render';
 import { server } from '@test/server';
-import type { Aircraft, ReportColumn } from '@/portal/api/types';
+import type { Aircraft, ReportColumn, RoleSlug } from '@/portal/api/types';
 import { SEARCH_DEBOUNCE_MS } from '@/portal/components/useDebounced';
 import { AircraftRegisterPage } from './AircraftRegisterPage';
 
@@ -65,6 +65,11 @@ function listReturns(results: Aircraft[], seen: URLSearchParams[], count = resul
   });
 }
 
+/** Sign in as somebody holding `roles` on top of membership. */
+function signIn(...roles: RoleSlug[]) {
+  server.use(signedInAs(makeUser({ roles: ['member', ...roles] })));
+}
+
 describe('AircraftRegisterPage', () => {
   beforeEach(() => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
@@ -72,6 +77,25 @@ describe('AircraftRegisterPage', () => {
 
   afterEach(() => {
     vi.useRealTimers();
+  });
+
+  it('shows a system administrator the coverage policy card', async () => {
+    signIn('system_admin');
+    server.use(listReturns([makeAircraft()], []));
+
+    renderWithProviders(<AircraftRegisterPage />, { route: '/admin/aircraft' });
+
+    expect(await screen.findByRole('heading', { name: 'Coverage policy' })).toBeInTheDocument();
+  });
+
+  it('leaves the coverage policy card off for an account administrator', async () => {
+    signIn('account_admin');
+    server.use(listReturns([makeAircraft()], []));
+
+    renderWithProviders(<AircraftRegisterPage />, { route: '/admin/aircraft' });
+
+    expect(await screen.findByRole('link', { name: 'N172SP' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Coverage policy' })).not.toBeInTheDocument();
   });
 
   it('lists the register with its insurance state', async () => {

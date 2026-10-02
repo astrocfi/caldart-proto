@@ -1,7 +1,7 @@
 /**
  * `/admin/aircraft` — the register an account administrator maintains:
- * filter, sort, export, and add a record, and the coverage policy that says
- * which aircraft CalDART's insurance does not cover.  The header says which day the FAA
+ * filter, sort, export, and add a record.  A system administrator also sees the
+ * coverage policy that says which aircraft CalDART's insurance does not cover.  The header says which day the FAA
  * registry behind the N-number box and the aircraft types was imported.
  *
  * The exports carry more columns than the five the table shows, so the column
@@ -35,6 +35,7 @@ import {
   useUrlListPosition,
 } from '@/portal/components/useUrlListPosition';
 import { useRegistryStatus } from '@/portal/api/queries';
+import { useAuth } from '@/portal/auth/useAuth';
 import type { RegistryStatus } from '@/portal/api/types';
 import { AircraftForm } from '@/portal/features/aircraft/AircraftForm';
 import { InsuranceDot } from '@/portal/features/aircraft/InsuranceChip';
@@ -42,6 +43,7 @@ import { ServiceChip } from '@/portal/features/aircraft/ServiceChip';
 import type { AircraftFilters, InsuranceState } from '@/portal/features/aircraft/api';
 import { useAircraftList, useCreateAircraft } from '@/portal/features/aircraft/api';
 import { OWNER_TYPE_LABELS, emptyAircraftValues } from '@/portal/features/aircraft/form';
+import { hasAnyRole } from '@/portal/nav';
 import { reportExportUrl, useReportColumns } from '@/portal/reports/api';
 import { REPORTS, listFilters } from '@/portal/reports/definitions';
 import '@/portal/features/aircraft/aircraft.css';
@@ -63,6 +65,8 @@ function registryLine({ as_of: asOf }: RegistryStatus): string {
 export function AircraftRegisterPage(): JSX.Element {
   const navigate = useNavigate();
   const toast = useToast();
+  const { roles } = useAuth();
+  const isSystemAdmin = hasAnyRole(roles, ['system_admin']);
 
   const [filters, setFilters] = useUrlFilters(FILTER_KEYS);
   // The order and the page live in the address beside the filters.
@@ -191,7 +195,7 @@ export function AircraftRegisterPage(): JSX.Element {
         </Card>
       ) : null}
 
-      <CoveragePolicyCard />
+      {isSystemAdmin ? <CoveragePolicyCard /> : null}
 
       <DataTable
         singleLine
