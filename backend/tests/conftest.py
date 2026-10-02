@@ -17,6 +17,7 @@ import os
 import re
 import shutil
 import smtplib
+import ssl
 import tempfile
 import zlib
 from collections.abc import Callable, Iterator, Mapping
@@ -934,11 +935,15 @@ class FakeImap:
     r"""An IMAP server held in memory, standing in for ``imaplib.IMAP4_SSL``.
 
     It holds ``messages`` numbered from 1, all unseen to begin with, and answers
-    ``login``, ``select``, ``search(None, "UNSEEN")``, ``fetch(num, "(BODY.PEEK[])")``,
-    ``store(num, "+FLAGS", "\\Seen")`` and ``logout`` as a server would, recording
-    what it was asked: the address it was opened on, the credentials, the mailbox,
-    and which messages were marked seen.  ``refuse`` makes opening it raise that
-    exception instead, as an unreachable server does.
+    ``login``, ``select`` (``readonly`` for ``EXAMINE``), ``search(None, "UNSEEN",
+    "SMALLER <n>" | "LARGER <n>")`` by each message's size in bytes, ``fetch(num,
+    "(BODY.PEEK[])")``, ``store(num, "+FLAGS", "\Seen")`` and ``logout`` as a server
+    would, recording what it was asked: the address it was opened on and the TLS
+    context, the credentials, the mailbox and whether it was opened read-only, and which
+    messages were marked seen.  A ``store`` on a mailbox opened read-only fails the
+    test, as a server refuses it.  ``refuse`` makes opening it raise that exception
+    instead, as an unreachable server does; a message number in ``unfetchable`` is
+    answered ``NO``.
     """
 
     def __init__(self, messages: list[bytes], refuse: Exception | None = None) -> None:
@@ -946,18 +951,30 @@ class FakeImap:
         self.messages = {str(number): raw for number, raw in enumerate(messages, 1)}
         self.refuse = refuse
         self.opened: tuple[str, int] | None = None
+        self.ssl_context: ssl.SSLContext | None = None
         self.credentials: tuple[str, str] | None = None
         self.mailbox: str | None = None
+        self.readonly: bool | None = None
         self.seen: set[str] = set()
         self.logged_out = False
         #: The mailboxes ``select`` opens; any other is answered ``NO``, as a server does.
         self.mailboxes = {"INBOX", "Bounces"}
+        #: The message numbers ``fetch`` refuses with ``NO``.
+        self.unfetchable: set[str] = set()
 
-    def __call__(self, host: str, port: int, *, timeout: float | None = None) -> FakeImap:
-        """Open the connection, as ``imaplib.IMAP4_SSL(host, port, timeout=...)`` does."""
+    def __call__(
+        self,
+        host: str,
+        port: int,
+        *,
+        ssl_context: ssl.SSLContext | None = None,
+        timeout: float | None = None,
+    ) -> FakeImap:
+        """Open the connection, as ``imaplib.IMAP4_SSL(host, port, ...)`` does."""
         if self.refuse is not None:
             raise self.refuse
         self.opened = (host, port)
+        self.ssl_context = ssl_context
         return self
 
     def login(self, user: str, password: str) -> tuple[str, list[bytes]]:
@@ -965,28 +982,38 @@ class FakeImap:
         self.credentials = (user, password)
         return "OK", [b"Logged in"]
 
-    def select(self, mailbox: str) -> tuple[str, list[bytes]]:
+    def select(self, mailbox: str, readonly: bool = False) -> tuple[str, list[bytes]]:
         """Open ``mailbox`` and answer its message count, or ``NO`` for no such box."""
         self.mailbox = mailbox
+        self.readonly = readonly
         if mailbox not in self.mailboxes:
             return "NO", [b"[NONEXISTENT] Unknown Mailbox"]
         return "OK", [str(len(self.messages)).encode()]
 
-    def search(self, charset: str | None, criterion: str) -> tuple[str, list[bytes]]:
-        """Answer the numbers of the messages not yet marked seen."""
-        assert criterion == "UNSEEN"
-        unseen = [number for number in self.messages if number not in self.seen]
-        return "OK", [" ".join(unseen).encode()]
+    def search(self, charset: str | None, *criteria: str) -> tuple[str, list[bytes]]:
+        """Answer the numbers of the unseen messages smaller or larger than a size."""
+        assert criteria[0] == "UNSEEN"
+        key, limit = criteria[1].split()
+        matched = [
+            number
+            for number, raw in self.messages.items()
+            if number not in self.seen
+            and (len(raw) < int(limit) if key == "SMALLER" else len(raw) > int(limit))
+        ]
+        return "OK", [" ".join(matched).encode()]
 
     def fetch(self, number: str, parts: str) -> tuple[str, list[tuple[bytes, bytes] | bytes]]:
         """Answer message ``number`` whole, leaving it unseen, as ``BODY.PEEK[]`` does."""
         assert parts == "(BODY.PEEK[])"
+        if number in self.unfetchable:
+            return "NO", [b"Message unavailable"]
         raw = self.messages[number]
         return "OK", [(f"{number} (BODY[] {{{len(raw)}}}".encode(), raw), b")"]
 
     def store(self, number: str, command: str, flags: str) -> tuple[str, list[bytes]]:
         """Mark message ``number`` seen."""
         assert (command, flags) == ("+FLAGS", "\\Seen")
+        assert not self.readonly, "STORE on a mailbox opened with EXAMINE"
         self.seen.add(number)
         return "OK", [f"{number} (FLAGS (\\Seen))".encode()]
 

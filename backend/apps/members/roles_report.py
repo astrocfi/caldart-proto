@@ -36,7 +36,7 @@ if TYPE_CHECKING:
     from apps.members.services import MemberRow
 
 #: The filters the PDF subtitle and the email name, in order, when given a value.
-EXPORT_FILTER_PARAMS: tuple[str, ...] = ("search", "role", "kind")
+EXPORT_FILTER_PARAMS: tuple[str, ...] = ("search", "role", "kind", "email_bounced")
 
 #: The line the PDF draws under a role nobody holds.
 EMPTY_SECTION = "Nobody holds this role."
@@ -49,15 +49,16 @@ ROLE_HOLDER_KINDS: list[tuple[str, str]] = [
 
 
 class RolesReportFilterSet(django_filters.FilterSet):
-    """``?search=&role=&kind=`` on the roles report.
+    """``?search=&role=&kind=&email_bounced=`` on the roles report.
 
     ``search`` splits on whitespace and keeps the accounts every word of which matches
     part of the first name, the last name, or the address, case-insensitively, which
     is how the users list searches.  ``role`` is one staff role's slug and keeps its
     holders; the member role, or any other slug, is refused.  ``kind`` is ``member``
     or ``friend``, matched against the effective kind the queryset is annotated with,
-    and anything else is refused.  A parameter the set does not name is ignored, as
-    the users list ignores it.
+    and anything else is refused.  ``email_bounced`` is ``true`` for the accounts whose
+    address has a bounce recorded and ``false`` for the rest, as on the users list.  A
+    parameter the set does not name is ignored, as the users list ignores it.
     """
 
     search = django_filters.CharFilter(method="filter_search", label="Name or email")
@@ -68,6 +69,10 @@ class RolesReportFilterSet(django_filters.FilterSet):
     )
     kind = django_filters.ChoiceFilter(
         choices=ROLE_HOLDER_KINDS, field_name="effective_kind", label="Member or friend"
+    )
+    # ``isnull`` excluded: true leaves the rows whose bounce time is set.
+    email_bounced = django_filters.BooleanFilter(
+        field_name="email_bounced_at", lookup_expr="isnull", exclude=True, label="Email bounced"
     )
 
     class Meta:

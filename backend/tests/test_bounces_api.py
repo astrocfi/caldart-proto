@@ -81,6 +81,7 @@ def test_the_run_answers_its_counts_and_actions(
         "bounced": 1,
         "unmatched": 0,
         "ignored": 1,
+        "skipped": 0,
         "actions": [
             {
                 "kind": "bounced",
@@ -125,7 +126,7 @@ def test_the_run_records_the_caller_as_its_actor(
 
     assert audit_messages(audit_log) == [
         f"action=bounces.run actor={system_admin.pk} target=- dry_run=false enabled=true "
-        "bounced=0 unmatched=0 ignored=0"
+        "bounced=0 unmatched=0 ignored=0 skipped=0"
     ]
 
 
@@ -137,7 +138,14 @@ def test_with_checking_off_the_run_says_so(
 
     body = system_admin_client.post(RUN_URL, {}, format="json").json()
 
-    assert body == {"enabled": False, "bounced": 0, "unmatched": 0, "ignored": 0, "actions": []}
+    assert body == {
+        "enabled": False,
+        "bounced": 0,
+        "unmatched": 0,
+        "ignored": 0,
+        "skipped": 0,
+        "actions": [],
+    }
 
 
 def test_an_unreachable_mailbox_is_a_400_naming_the_host(

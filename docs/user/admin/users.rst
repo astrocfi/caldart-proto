@@ -73,8 +73,8 @@ the people who hold each role other than member, with a section per role from Ve
 System administrator. A section nobody holds still appears, and the PDF says *Nobody holds
 this role.* under it. A person holding two such roles is listed in both sections.
 
-The report lists active accounts only, whatever **Account status** shows, and ignores the
-**Email** filter. It follows the
+The report lists active accounts only, whatever **Account status** shows, and follows
+the **Email** filter. It follows the
 screen's **Search**, the role chosen under **Filter by role**, which leaves that one
 section, and **Member** or **Friend** under **Kind of account**. The report's Kind follows
 the membership it shows for today: an account given the kind member reads as a friend there

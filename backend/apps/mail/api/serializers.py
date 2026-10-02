@@ -81,13 +81,16 @@ class BounceRunResultSerializer(serializers.Serializer[dict[str, object]]):
     """What one bounce check found, and who each failure was about.
 
     ``enabled`` is false when ``BOUNCE_IMAP_URL`` is empty and nothing was read; the
-    counts are then zero.  Each action's ``kind`` is ``bounced`` (``on`` is the day the
-    message was sent) or ``unmatched`` (``member`` is empty and ``on`` null), and its
-    ``detail`` is the report's status code and diagnostic.
+    counts are then zero.  ``skipped`` counts the messages left unread in the mailbox:
+    one the server would not hand over, and one too large to be a report.  Each
+    action's ``kind`` is ``bounced`` (``on`` is the day the message was sent) or
+    ``unmatched`` (``member`` is empty and ``on`` null), and its ``detail`` is the
+    report's status code and diagnostic.
     """
 
     enabled = serializers.BooleanField()
     bounced = serializers.IntegerField()
     unmatched = serializers.IntegerField()
     ignored = serializers.IntegerField()
+    skipped = serializers.IntegerField()
     actions = RunActionSerializer(many=True)

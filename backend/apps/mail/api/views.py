@@ -104,10 +104,11 @@ class BounceRunView(APIView):
         The body takes ``dry_run``, defaulting to ``False``; a dry run marks no email
         and no account and leaves every message in the mailbox unseen, and reports
         exactly what a live run would find.  The answer is ``{enabled, bounced,
-        unmatched, ignored, actions}``; ``enabled`` is false when ``BOUNCE_IMAP_URL`` is
-        empty.  The caller is recorded as the actor on the ``bounces.run`` audit record.
-        A malformed ``BOUNCE_IMAP_URL``, or a mailbox that cannot be reached or read, is
-        a 400 ``{"detail": <sentence>}`` naming the host and never the password.
+        unmatched, ignored, skipped, actions}``; ``enabled`` is false when
+        ``BOUNCE_IMAP_URL`` is empty.  The caller is recorded as the actor on the
+        ``bounces.run`` audit record.  A malformed ``BOUNCE_IMAP_URL``, or a mailbox that
+        cannot be reached, opened or read, is a 400 ``{"detail": <sentence>}`` naming the
+        host and never the password.
         """
         payload = BounceRunRequestSerializer(data=request.data)
         payload.is_valid(raise_exception=True)

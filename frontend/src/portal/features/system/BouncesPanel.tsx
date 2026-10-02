@@ -22,11 +22,17 @@ export const BOUNCES_OFF =
 
 /** The sentence shown after a run, in the past tense or the conditional. */
 export function bounceRunSummary(result: BounceRunResult, dryRun: boolean): string {
-  const { bounced, unmatched, ignored } = result;
+  const { bounced, unmatched, ignored, skipped } = result;
   if (dryRun) {
-    return `Would mark ${bounced} bounced, leave ${unmatched} unmatched, and ignore ${ignored}.`;
+    return (
+      `Would mark ${bounced} bounced, leave ${unmatched} unmatched, ignore ${ignored}, ` +
+      `and skip ${skipped}.`
+    );
   }
-  return `Marked ${bounced} bounced, left ${unmatched} unmatched, and ignored ${ignored}.`;
+  return (
+    `Marked ${bounced} bounced, left ${unmatched} unmatched, ignored ${ignored}, ` +
+    `and skipped ${skipped}.`
+  );
 }
 
 /** What each kind of action reads as in the actions table. */

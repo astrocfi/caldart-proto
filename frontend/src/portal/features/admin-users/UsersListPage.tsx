@@ -4,13 +4,11 @@
  * The list opens on active accounts, since a deactivated one is rarely what
  * anybody is looking for.  Its two export links download the CalDART roles
  * report, which has a section for every role but member and lists active
- * accounts only: the links carry the screen's search, role, and kind, never its
- * account status.  The report cannot follow two of the screen's choices, Donor
- * under Kind of account (a donor holds no role) and the Member role (the report
- * has no section for it), so while either is chosen the exports and the column
- * chooser are disabled and say why.  Nor does the report follow the **Email** filter,
- * which keeps the accounts whose address bounced: the exports carry it no more than
- * the account status.
+ * accounts only: the links carry the screen's search, role, kind, and Email
+ * (bounced or not) filter, never its account status.  The report cannot follow two
+ * of the screen's choices, Donor under Kind of account (a donor holds no role) and
+ * the Member role (the report has no section for it), so while either is chosen the
+ * exports and the column chooser are disabled and say why.
  */
 import { useEffect, useMemo, useState } from 'react';
 import type { JSX } from 'react';
@@ -139,7 +137,13 @@ export function UsersListPage(): JSX.Element {
   const [chosen, setChosen] = useState<string[] | null>(null);
   const chosenKeys = chosen ?? defaultColumnKeys(reportColumns);
   const disabledReason = exportDisabledReason(role, kind);
-  const exportParams = { search: debouncedSearch, role, kind, columns: chosenKeys };
+  const exportParams = {
+    search: debouncedSearch,
+    role,
+    kind,
+    email_bounced: bounced,
+    columns: chosenKeys,
+  };
 
   const handleColumnChange = (next: string[]) => {
     setChosen(next);

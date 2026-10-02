@@ -116,6 +116,18 @@ def test_a_status_with_a_comment_is_read_by_its_code(bounce_report: BounceReport
     assert [failure.status for failure in report.failures] == ["5.0.0"]
 
 
+def test_control_characters_are_read_as_spaces(bounce_report: BounceReport) -> None:
+    """A NUL or other control character in a field reads as a space, never as itself."""
+    raw = bounce_report("no_original").replace(b"Recipient not", b"Recipient\x00\x07not")
+
+    report = parse_report(raw)
+
+    assert report is not None
+    assert report.failures[0].diagnostic.startswith(
+        "550 5.1.10 RESOLVER.ADR.RecipientNotFound; Recipient not found"
+    )
+
+
 def test_an_auto_reply_is_not_a_report(bounce_report: BounceReport) -> None:
     """An out-of-office answer carries no delivery-status part, so it is not a report."""
     assert parse_report(bounce_report("auto_reply")) is None

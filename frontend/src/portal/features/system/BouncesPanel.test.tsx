@@ -14,6 +14,7 @@ const RESULT: BounceRunResult = {
   bounced: 1,
   unmatched: 1,
   ignored: 2,
+  skipped: 0,
   actions: [
     {
       kind: 'bounced',
@@ -48,13 +49,13 @@ function answerRuns(body: BounceRunResult, bodies: unknown[] = []): unknown[] {
 describe('bounceRunSummary', () => {
   it('says what a rehearsal would have done', () => {
     expect(bounceRunSummary(RESULT, true)).toBe(
-      'Would mark 1 bounced, leave 1 unmatched, and ignore 2.',
+      'Would mark 1 bounced, leave 1 unmatched, ignore 2, and skip 0.',
     );
   });
 
   it('says what a real run did', () => {
     expect(bounceRunSummary(RESULT, false)).toBe(
-      'Marked 1 bounced, left 1 unmatched, and ignored 2.',
+      'Marked 1 bounced, left 1 unmatched, ignored 2, and skipped 0.',
     );
   });
 });
@@ -67,7 +68,7 @@ describe('BouncesPanel', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Run now' }));
 
     expect(
-      await screen.findByText('Would mark 1 bounced, leave 1 unmatched, and ignore 2.'),
+      await screen.findByText('Would mark 1 bounced, leave 1 unmatched, ignore 2, and skip 0.'),
     ).toBeInTheDocument();
     expect(bodies).toEqual([{ dry_run: true }]);
   });
@@ -80,7 +81,7 @@ describe('BouncesPanel', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Run now' }));
 
     expect(
-      await screen.findByText('Marked 1 bounced, left 1 unmatched, and ignored 2.'),
+      await screen.findByText('Marked 1 bounced, left 1 unmatched, ignored 2, and skipped 0.'),
     ).toBeInTheDocument();
     expect(bodies).toEqual([{ dry_run: false }]);
   });
@@ -108,7 +109,7 @@ describe('BouncesPanel', () => {
   });
 
   it('says so when no bounce mailbox is configured', async () => {
-    answerRuns({ enabled: false, bounced: 0, unmatched: 0, ignored: 0, actions: [] });
+    answerRuns({ enabled: false, bounced: 0, unmatched: 0, ignored: 0, skipped: 0, actions: [] });
     renderWithProviders(<BouncesPanel />);
 
     await userEvent.click(screen.getByRole('button', { name: 'Run now' }));

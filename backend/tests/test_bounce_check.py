@@ -9,10 +9,13 @@ failure to the email log row it reports on, and marks the row and its account.  
 from __future__ import annotations
 
 import imaplib
+import ssl
 from collections.abc import Iterator
 from datetime import date, timedelta
+from typing import Any
 
 import pytest
+from django.db import DataError
 from django.utils import timezone
 from freezegun import freeze_time
 from pytest_django import Settings
@@ -20,6 +23,7 @@ from pytest_django import Settings
 from apps.accounts.models import User
 from apps.mail.bounces import (
     DISABLED_MESSAGE,
+    MAX_MESSAGE_BYTES,
     BounceCheckError,
     check_bounces,
 )
@@ -433,7 +437,7 @@ def test_a_run_writes_one_audit_record(
 
     assert audit_messages(audit_log) == [
         "action=bounces.run actor=command target=- dry_run=true enabled=true "
-        "bounced=1 unmatched=0 ignored=1"
+        "bounced=1 unmatched=0 ignored=1 skipped=0"
     ]
 
 
@@ -447,4 +451,144 @@ def test_the_summary_names_each_bounce(
 
     assert lines[-1] == (
         f"would mark bounced Dana Doe <gone@example.com> sent 2026-10-01 ({POSTFIX_DETAIL})"
+    )
+
+
+def test_the_mailbox_is_opened_with_the_certificate_verified(fake_mailbox: FakeMailbox) -> None:
+    """The TLS context requires a valid certificate for the server's own host name."""
+    fake = fake_mailbox()
+
+    check_bounces()
+
+    assert fake.ssl_context is not None
+    assert (fake.ssl_context.verify_mode, fake.ssl_context.check_hostname) == (
+        ssl.CERT_REQUIRED,
+        True,
+    )
+
+
+@pytest.mark.parametrize(("dry_run", "readonly"), [(True, True), (False, False)])
+def test_a_dry_run_opens_the_mailbox_read_only(
+    dry_run: bool, readonly: bool, fake_mailbox: FakeMailbox
+) -> None:
+    """A rehearsal opens the mailbox with ``EXAMINE``; a live run with ``SELECT``."""
+    fake = fake_mailbox()
+
+    check_bounces(dry_run=dry_run)
+
+    assert fake.readonly is readonly
+
+
+def test_a_message_the_server_will_not_hand_over_is_skipped_and_left_unseen(
+    sent: EmailLog, fake_mailbox: FakeMailbox, bounce_report: BounceReport
+) -> None:
+    """A ``NO`` to the fetch is counted as skipped and the message stays unread."""
+    fake = fake_mailbox(bounce_report("hard_bounce"), bounce_report("delay"))
+    fake.unfetchable = {"1"}
+
+    run = check_bounces()
+
+    assert (run.skipped, run.ignored, fake.seen) == (1, 1, {"2"})
+
+
+def test_a_message_too_large_to_be_a_report_is_skipped_unread(
+    sent: EmailLog, fake_mailbox: FakeMailbox, bounce_report: BounceReport
+) -> None:
+    """A message over a megabyte is never fetched, counted as skipped, and left unseen."""
+    huge = bounce_report("hard_bounce") + b"x" * (MAX_MESSAGE_BYTES + 1)
+    fake = fake_mailbox(huge)
+
+    run = check_bounces()
+
+    sent.refresh_from_db()
+    assert (run.skipped, fake.seen, sent.status) == (1, set(), EmailStatus.SENT)
+
+
+def test_control_characters_never_reach_the_database(
+    sent: EmailLog, fake_mailbox: FakeMailbox, bounce_report: BounceReport
+) -> None:
+    """A NUL in the diagnostic is stored as a space, so the row is still marked."""
+    raw = bounce_report("hard_bounce").replace(b"550 5.1.1 <gone", b"550\x005.1.1 <gone")
+    fake_mailbox(raw)
+
+    check_bounces()
+
+    sent.refresh_from_db()
+    assert sent.bounce_detail == POSTFIX_DETAIL
+
+
+def test_a_nul_in_the_recipient_is_no_error(
+    fake_mailbox: FakeMailbox, bounce_report: BounceReport
+) -> None:
+    """A report naming an address with a NUL in it is read, left unmatched, and seen."""
+    fake = fake_mailbox(bounce_report("no_original", recipient="gone\x00@example.com"))
+
+    run = check_bounces()
+
+    assert (run.unmatched, fake.seen) == (1, {"1"})
+
+
+def test_a_report_the_database_refuses_is_ignored_and_the_run_carries_on(
+    sent: EmailLog,
+    fake_mailbox: FakeMailbox,
+    bounce_report: BounceReport,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """One failing write is rolled back and counted as ignored; the next one is read."""
+    later = EmailLogFactory(user=None, to_email="later@example.com")
+    calls: list[EmailLog] = []
+    original_save = EmailLog.save
+
+    def failing_once(self: EmailLog, *args: Any, **kwargs: Any) -> None:
+        calls.append(self)
+        if len(calls) == 1:
+            raise DataError("invalid byte sequence")
+        original_save(self, *args, **kwargs)
+
+    monkeypatch.setattr(EmailLog, "save", failing_once)
+    fake = fake_mailbox(
+        bounce_report("hard_bounce"), bounce_report("no_original", recipient="later@example.com")
+    )
+
+    run = check_bounces()
+
+    later.refresh_from_db()
+    assert (run.ignored, run.bounced, later.status, fake.seen) == (
+        1,
+        1,
+        EmailStatus.BOUNCED,
+        {"1", "2"},
+    )
+
+
+class _RefusingManager:
+    """A manager whose every update the database refuses."""
+
+    def filter(self, **lookups: object) -> _RefusingManager:
+        """Answer itself, so ``update`` is what refuses."""
+        return self
+
+    def update(self, **values: object) -> int:
+        """Refuse, as Postgres refuses text it cannot store."""
+        raise DataError("invalid byte sequence")
+
+
+def test_a_refused_report_keeps_nothing_it_wrote(
+    sent: EmailLog,
+    fake_mailbox: FakeMailbox,
+    bounce_report: BounceReport,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The flag's write fails, so the row's own write rolls back with it, uncounted."""
+    monkeypatch.setattr(User, "objects", _RefusingManager())
+    fake_mailbox(bounce_report("hard_bounce"))
+
+    run = check_bounces()
+
+    sent.refresh_from_db()
+    assert (run.bounced, run.ignored, run.actions, sent.status) == (
+        0,
+        1,
+        [],
+        EmailStatus.SENT,
     )

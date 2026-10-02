@@ -159,9 +159,11 @@ sent to it, or until a user administrator clears it on :doc:`user-record`.
 #. Leave **Dry run (change nothing)** ticked the first time. Nothing is marked, and every
    message stays in the mailbox for the next run.
 #. Press **Run now**. The result reads, for example, *Would mark 1 bounced, leave 1
-   unmatched, and ignore 2.* *Bounced* counts the emails matched to a bounce, *unmatched* the
-   bounces CalDART could not tie to an email it sent in the last week, and *ignored* the
-   messages that were not a refusal for good.
+   unmatched, ignore 2, and skip 0.* *Bounced* counts the emails matched to a bounce,
+   *unmatched* the bounces CalDART could not tie to an email it sent in the last week,
+   *ignored* the messages that were not a refusal for good, and *skip* the messages left
+   unread because the mail server would not hand them over or they were too large to be a
+   bounce.
 #. Clear the box and press **Run now** again to mark them for real.
 
 The table names each one: **What** (*Bounced*, or *No matching email*), **Who** the email

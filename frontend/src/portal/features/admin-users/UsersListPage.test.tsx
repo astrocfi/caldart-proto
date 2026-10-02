@@ -335,7 +335,7 @@ describe('UsersListPage', () => {
     await waitFor(() => expect(seen.at(-1)?.get('email_bounced')).toBe('true'));
   });
 
-  it('leaves the bounce filter out of the exports', async () => {
+  it('carries the bounce filter into the exports', async () => {
     stubList();
     renderWithProviders(<UsersListPage />);
     await screen.findByRole('link', { name: 'Marta Reyes' });
@@ -343,7 +343,7 @@ describe('UsersListPage', () => {
     await userEvent.selectOptions(screen.getByLabelText('Email'), 'Email bounced');
 
     const href = screen.getByRole('link', { name: /csv/i }).getAttribute('href') ?? '';
-    expect(new URL(href, 'http://localhost').searchParams.has('email_bounced')).toBe(false);
+    expect(new URL(href, 'http://localhost').searchParams.get('email_bounced')).toBe('true');
   });
 
   it('names the kind of each account', async () => {

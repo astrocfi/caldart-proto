@@ -506,6 +506,7 @@
       "bounced": "integer",
       "enabled": "boolean",
       "ignored": "integer",
+      "skipped": "integer",
       "unmatched": "integer"
     },
     "required": [
@@ -513,6 +514,7 @@
       "bounced",
       "enabled",
       "ignored",
+      "skipped",
       "unmatched"
     ]
   },

@@ -314,8 +314,12 @@ How it works
    as its envelope sender.
 2. ``manage.py check_bounces`` (``apps.mail.bounces.check_bounces``), run hourly by
    ``caldart-bounces.timer`` (:ref:`deploy-bounces`), signs in to the mailbox
-   ``BOUNCE_IMAP_URL`` names over IMAPS with the standard library's ``imaplib``
-   and fetches every unseen message without marking it.
+   ``BOUNCE_IMAP_URL`` names over IMAPS with the standard library's ``imaplib``,
+   verifying the server's certificate and host name
+   (``ssl.create_default_context()``), and fetches every unseen message of at most
+   1 MB without marking it.  A delivery report is a few kilobytes; a larger message,
+   and one the server will not hand over, is *skipped*: logged, counted, and left
+   unread.
 3. Each message is read as a delivery-status report: a ``multipart/report`` with
    a ``message/delivery-status`` part.  Only a recipient block with ``Action:
    failed`` and a ``5.x.x`` ``Status`` counts.  A delay (``Action: delayed``), a
@@ -326,24 +330,42 @@ How it works
    or its returned ``message/rfc822`` copy.  A report that carries neither, or an
    id no row has, falls back to the latest row sent to the ``Final-Recipient``
    address (ignoring case) in the last seven days that the relay did not refuse.
-   A failure neither finds is *unmatched*.
+   A failure neither finds is *unmatched*.  The fallback trusts the report: any
+   message in the mailbox that is shaped as a delivery report and names an address
+   CalDART mailed in the last seven days marks that send bounced and flags the
+   address.  That is why the bounce mailbox must be one of its own, receiving
+   nothing but the reports returned to ``BOUNCE_ADDRESS``: an address that anyone can
+   write to is an address anyone can use to flag a member's email as bad.
 5. A match turns the row's ``status`` to ``bounced`` with ``bounced_at`` and
    ``bounce_detail`` (the status code and the diagnostic text, cut to 255
    characters), and flags the account whose *current* address is the one the
    row was sent to: ``User.email_bounced_at`` and ``email_bounce_detail``.  An
    account that has moved to another address since is not flagged.
-6. Each message processed, ignored and unmatched ones included, is then marked
-   seen, so the next run reads only what has arrived since.
+6. Each message's writes are one database savepoint.  Header values have every
+   control character, a NUL included, turned into a space before anything is
+   stored, and a report whose writes the database still refuses is rolled back,
+   logged by its message number alone, and counted as *ignored*, so one bad message
+   cannot stop the run.
+7. Each message read, ignored and unmatched ones included, is then marked seen, so
+   the next run reads only what has arrived since.
 
-A dry run (``--dry-run``, or the box on the Scheduled page) reads and matches
-exactly as a live one but writes nothing and marks nothing seen.  Every run
-prints, and ``POST /system/bounces/run`` answers, the counts ``bounced``,
-``unmatched`` and ``ignored`` with one action per failure
-(:ref:`api-email-log`), and records a ``bounces.run`` audit line.  A malformed
-``BOUNCE_IMAP_URL``, or a mailbox that cannot be reached, signed in to, or read,
-stops the run with a sentence naming the host, never the password: the command
-exits non-zero, so the unit shows ``failed``.  With ``BOUNCE_IMAP_URL`` empty the
-run says bounce checking is off and reads nothing.
+A dry run (``--dry-run``, or the box on the Scheduled page) opens the mailbox
+read-only (IMAP ``EXAMINE``), reads and matches exactly as a live one, and writes
+nothing and marks nothing seen.  Every run prints, and ``POST /system/bounces/run``
+answers, the counts ``bounced``, ``unmatched``, ``ignored`` and ``skipped`` with one
+action per failure (:ref:`api-email-log`), and records a ``bounces.run`` audit
+line.  A malformed ``BOUNCE_IMAP_URL``, or a mailbox that cannot be reached, signed
+in to, opened, or read, stops the run with a sentence naming the host, never the
+password: the command exits non-zero, so the unit shows ``failed``, and no audit
+line is written, though rows a live run marked before the failure stay marked and
+their messages stay seen.  With ``BOUNCE_IMAP_URL`` empty the run says bounce
+checking is off and reads nothing.
+
+``BOUNCE_IMAP_URL`` carries the mailbox password.  Error reports mailed to
+``ADMIN_EMAILS`` mask the password in any URL a setting holds
+(``DEFAULT_EXCEPTION_REPORTER_FILTER``, :doc:`configuration`), the parsed address
+leaves the password out of its ``repr``, and the check's own frames are marked
+sensitive, so a traceback shows none of their variables.
 
 The flag on the account shows as a **Bounced** chip beside the address on the
 member record and the user record, and Users and roles filters on it
@@ -358,8 +380,10 @@ Setting up the mailbox
 
 1. Create a mailbox for bounces alone on the organization's mail provider, on the
    same domain as ``DEFAULT_FROM_EMAIL``: ``bounces@caldart.example.org``, say.
-   Nothing else should be delivered there, since the check marks every message it
-   reads as read.
+   Nothing else may be delivered there: the check marks every message it reads as
+   read, and, through the recipient fallback above, any delivery report that
+   reaches it can mark a recent send bounced.  Do not reuse a role address the
+   public writes to, and turn off forwarding into it.
 2. Make sure the provider offers IMAP over TLS (port 993) and, where it wants
    one, create an app password for the mailbox.
 3. Set ``BOUNCE_ADDRESS`` to the mailbox's address and ``BOUNCE_IMAP_URL`` to it as
@@ -441,9 +465,13 @@ mailbox) or the relay's dashboard.
 
 **A bounce never shows up.**  Run ``sudo deploy/manage.sh check_bounces --dry-run``:
 it says when ``BOUNCE_IMAP_URL`` is empty, names the host it could not reach or
-sign in to, and counts what the mailbox holds.  A report counted as
-*unmatched* reached the mailbox without a ``Message-ID`` CalDART sent, more than
-seven days after the send; a report counted as *ignored* was a delay, a
-temporary failure, or not a delivery report at all.  Nothing counted means the
+sign in to, and counts what the mailbox holds.  A report counted as *unmatched*
+carried no ``Message-ID`` CalDART sent and named an address CalDART has not
+mailed in the last seven days: the send was older, or there was never a CalDART
+send to that address at all (a report about some other mail, or one sent to the
+mailbox by hand).  A report counted as *ignored* was a delay, a temporary failure,
+not a delivery report at all, or one the database refused (the journal names its
+message number).  A message counted as *skipped* is still unread in the mailbox:
+the server would not hand it over, or it is larger than 1 MB.  Nothing counted means the
 reports go elsewhere: check the ``Return-Path`` of a message in a mailbox you
 control, which should be ``BOUNCE_ADDRESS``.

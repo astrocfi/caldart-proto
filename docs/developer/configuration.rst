@@ -412,7 +412,11 @@ Email
 
 ``ADMIN_EMAILS`` *(prod only)*
    Comma-separated addresses that receive unhandled-500 mail.  Default empty,
-   which is fine — the traceback is in the journal either way.
+   which is fine — the traceback is in the journal either way.  The report lists
+   the settings through ``DEFAULT_EXCEPTION_REPORTER_FILTER``, set in ``base.py`` to
+   ``caldart.error_reports.CredentialSafeExceptionReporterFilter``: Django's own
+   masking of the settings whose names look secret, plus the password of every URL a
+   setting holds, so ``BOUNCE_IMAP_URL`` reads ``imaps://user:********************@host/INBOX``.
 
 
 Payments

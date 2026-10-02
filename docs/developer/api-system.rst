@@ -382,6 +382,7 @@ the account that holds it, and marks each message read (:ref:`email-bounces`).
      "bounced": 1,
      "unmatched": 1,
      "ignored": 2,
+     "skipped": 0,
      "actions": [
        {"kind": "bounced", "member": "Dana Doe", "email": "gone@example.com",
         "on": "2026-10-01", "amount_cents": null,
@@ -397,17 +398,20 @@ every count is zero.  ``bounced`` counts the permanent failures matched to a sen
 email, each an action of kind ``bounced`` naming the recipient as the row
 recorded them, ``on`` the day the email was sent; ``unmatched`` counts those no
 sent email could be found for, each an action of kind ``unmatched`` with an empty
-``member`` and a null ``on``; ``ignored`` counts the messages that reported no
-permanent failure at all (delays, temporary failures, auto-replies).  ``detail``
+``member`` and a null ``on``; ``ignored`` counts the messages read that reported
+no permanent failure at all (delays, temporary failures, auto-replies) or whose
+writes the database refused; ``skipped`` counts the messages left unread in the
+mailbox, one the server would not hand over or one larger than 1 MB.  ``detail``
 is the report's status code and diagnostic.  A dry run reads and matches exactly
-as a live one but marks no email, flags no account and leaves every message
-unread.  The run is recorded in the audit log as ``bounces.run`` under the
+as a live one, with the mailbox opened read-only, but marks no email, flags no
+account and leaves every message unread.  The run is recorded in the audit log as ``bounces.run`` under the
 caller.
 
 A malformed ``BOUNCE_IMAP_URL``, or a mailbox that cannot be reached, signed in
 to, or read, answers ``400 {"detail": "<sentence>"}``: ``BOUNCE_IMAP_URL must be
-imaps://user:password@host[:port]/MAILBOX``, or ``Could not reach the bounce mailbox
-at <host>: <reason>`` (or ``read``).  The sentence never carries the password.
+imaps://user:password@host[:port]/MAILBOX``, ``Could not reach the bounce mailbox
+at <host>: <reason>`` (or ``read``), or ``Could not open the mailbox <mailbox> at
+<host>``.  The sentence never carries the password.
 
 Statuses: **200**; **400** when ``dry_run`` is not a boolean or the mailbox could
 not be read; **401** when anonymous; **403** for any other role.

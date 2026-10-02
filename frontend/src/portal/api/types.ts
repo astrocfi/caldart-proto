@@ -1469,14 +1469,17 @@ export interface EmailLogEntry {
 
 /**
  * What one bounce check found, from `POST /system/bounces/run`. `enabled` is false
- * when no bounce mailbox is configured. Each action's `kind` is `bounced` or
- * `unmatched`, and its `detail` the report's status code and diagnostic.
+ * when no bounce mailbox is configured. `skipped` counts the messages left unread: one
+ * the mail server would not hand over, or one too large to be a report. Each action's
+ * `kind` is `bounced` or `unmatched`, and its `detail` the report's status code and
+ * diagnostic.
  */
 export interface BounceRunResult {
   enabled: boolean;
   bounced: number;
   unmatched: number;
   ignored: number;
+  skipped: number;
   actions: RunAction[];
 }
 

@@ -17,7 +17,7 @@ import pytest
 from rest_framework.test import APIClient
 
 from apps.accounts.models import User
-from apps.accounts.roles import ACCOUNT_ADMIN, SYSTEM_ADMIN, USER_ADMIN
+from apps.accounts.roles import ACCOUNT_ADMIN, DART_LEADER, SYSTEM_ADMIN, USER_ADMIN
 from apps.accounts.services import (
     clear_email_bounce,
     make_email_verification_token,
@@ -25,6 +25,7 @@ from apps.accounts.services import (
     update_account,
     verify_email,
 )
+from apps.members.roles_report import ROLES_REPORT
 from tests.conftest import GOOD_PASSWORD, RESET_CONFIRM_URL, audit_messages, role_matrix
 from tests.factories import UserFactory
 
@@ -238,3 +239,20 @@ def test_the_users_list_filters_on_a_bounced_address(
     listed = _listed(user_admin_client, email_bounced=value, search="example.com")
 
     assert listed == expected
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [("true", ["gone@example.com"]), ("false", ["fine@example.com"])],
+    ids=["bounced", "not-bounced"],
+)
+def test_the_roles_report_filters_on_a_bounced_address(
+    bounced: User, value: str, expected: list[str]
+) -> None:
+    """The roles report's ``email_bounced`` keeps the same accounts the list does."""
+    bounced.add_role(DART_LEADER)
+    UserFactory(email="fine@example.com", roles=[DART_LEADER])
+
+    rows = ROLES_REPORT.query({"email_bounced": value, "role": DART_LEADER}).rows
+
+    assert [row.user.email for row in rows] == expected

@@ -1808,7 +1808,7 @@ Action                        Fields beyond actor and target
                               ``failed``, ``paused``, ``skipped``
 ``reports.run``               ``dry_run``, ``sent``, ``skipped``, ``failed``
 ``bounces.run``               ``dry_run``, ``enabled``, ``bounced``,
-                              ``unmatched``, ``ignored``
+                              ``unmatched``, ``ignored``, ``skipped``
 ``report.send``               ``kind`` -- ``subscription`` (the target is the
                               subscription) or ``roster`` (the target is the
                               DART), then ``dry_run``, ``sent``, ``skipped``,

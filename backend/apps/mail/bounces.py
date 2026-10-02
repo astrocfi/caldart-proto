@@ -22,6 +22,8 @@ import email.errors
 import email.policy
 import imaplib
 import logging
+import re
+import ssl
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from email.message import Message
@@ -30,9 +32,10 @@ from typing import Any
 from urllib.parse import unquote, urlsplit
 
 from django.conf import settings
-from django.db import transaction
+from django.db import DatabaseError, transaction
 from django.db.models import Model
 from django.utils import timezone
+from django.views.decorators.debug import sensitive_variables
 
 from apps.accounts.models import User
 from apps.mail.models import EmailLog, EmailStatus
@@ -56,6 +59,14 @@ IMAP_TIMEOUT_SECONDS = 30
 #: What a malformed ``BOUNCE_IMAP_URL`` is told; it never repeats the URL itself,
 #: which carries the mailbox password.
 IMAP_URL_FORM = "BOUNCE_IMAP_URL must be imaps://user:password@host[:port]/MAILBOX"
+
+#: The largest message the check fetches, in bytes.  A delivery report is a few
+#: kilobytes even with the original's headers; anything bigger is left unread.
+MAX_MESSAGE_BYTES = 1_048_576
+
+#: Every control character, NUL included, which no header value the check stores may
+#: carry: Postgres refuses a NUL in text outright.
+CONTROL_CHARACTERS = re.compile(r"[\x00-\x1f\x7f]")
 
 #: How far back a report with no usable ``Message-ID`` is matched by its recipient.
 FALLBACK_WINDOW = timedelta(days=7)
@@ -91,12 +102,16 @@ class BounceCheckError(Exception):
 
 @dataclass(frozen=True)
 class ImapAddress:
-    """Where the bounce mailbox is: server, port, account, password and mailbox."""
+    """Where the bounce mailbox is: server, port, account, password and mailbox.
+
+    The password is left out of the dataclass's ``repr``, so a traceback or a log line
+    that prints the address never carries it.
+    """
 
     host: str
     port: int
     user: str
-    password: str
+    password: str = field(repr=False)
     mailbox: str
 
 
@@ -134,6 +149,7 @@ class DeliveryReport:
     failures: tuple[FailedRecipient, ...]
 
 
+@sensitive_variables()
 def parse_imap_url(url: str) -> ImapAddress:
     """Read ``url``, of the form ``imaps://user:password@host[:port]/MAILBOX``.
 
@@ -245,16 +261,21 @@ def _address_field(value: str) -> str:
     The value after the first ``;`` is kept, with any surrounding angle brackets taken
     off an address; a value with no ``;`` is kept whole.
     """
-    _kind, separator, rest = _unfolded(value).partition(";")
-    text = rest.strip() if separator else _kind.strip()
+    kind, separator, rest = _unfolded(value).partition(";")
+    text = rest.strip() if separator else kind.strip()
     if text.startswith("<") and text.endswith(">"):
         return text[1:-1]
     return text
 
 
 def _unfolded(value: object) -> str:
-    """A header value with its folding and runs of whitespace collapsed to one space."""
-    return " ".join(str(value).split())
+    """A header value with control characters gone and whitespace collapsed to one space.
+
+    Each control character, a NUL included, becomes a space before the runs of
+    whitespace (the header's folding among them) collapse, so no value read from a
+    report can carry one into the database.
+    """
+    return " ".join(CONTROL_CHARACTERS.sub(" ", str(value)).split())
 
 
 @dataclass
@@ -262,12 +283,15 @@ class BounceRun:
     """Structured summary of one bounce check.
 
     Printed by ``manage.py check_bounces`` and answered by ``POST /system/bounces/run``
-    as ``{enabled, bounced, unmatched, ignored, actions}``.  ``enabled`` is false when
-    ``BOUNCE_IMAP_URL`` is empty and nothing was read.  ``bounced`` counts the permanent
-    failures matched to a sent message, ``unmatched`` those no sent message could be
-    found for, and ``ignored`` the messages that reported no permanent failure at all:
-    delays, transient failures, auto-replies and anything else.  ``actions`` holds one
-    :class:`~caldart.runs.RunAction` per failure, ``bounced`` or ``unmatched``.
+    as ``{enabled, bounced, unmatched, ignored, skipped, actions}``.  ``enabled`` is
+    false when ``BOUNCE_IMAP_URL`` is empty and nothing was read.  ``bounced`` counts the
+    permanent failures matched to a sent message, ``unmatched`` those no sent message
+    could be found for, and ``ignored`` the messages read that reported no permanent
+    failure (delays, transient failures, auto-replies, anything else) or that could not
+    be recorded.  ``skipped`` counts the messages left unread in the mailbox: one the
+    server would not hand over, and one larger than :data:`MAX_MESSAGE_BYTES`.
+    ``actions`` holds one :class:`~caldart.runs.RunAction` per failure, ``bounced`` or
+    ``unmatched``.
     """
 
     today: date
@@ -276,6 +300,7 @@ class BounceRun:
     bounced: int = 0
     unmatched: int = 0
     ignored: int = 0
+    skipped: int = 0
     actions: list[RunAction] = field(default_factory=list)
 
     def as_dict(self) -> dict[str, Any]:
@@ -285,6 +310,7 @@ class BounceRun:
             "bounced": self.bounced,
             "unmatched": self.unmatched,
             "ignored": self.ignored,
+            "skipped": self.skipped,
             "actions": [action.as_dict() for action in self.actions],
         }
 
@@ -301,6 +327,7 @@ class BounceRun:
             f"bounced          {self.bounced}",
             f"unmatched        {self.unmatched}",
             f"ignored          {self.ignored}",
+            f"skipped          {self.skipped}",
         ]
         return lines + [self._action_line(action) for action in self.actions]
 
@@ -317,25 +344,34 @@ def check_bounces(*, dry_run: bool = False, actor: Model | str = audit.COMMAND_A
     """Read the unseen messages in the bounce mailbox and mark what bounced.
 
     With ``BOUNCE_IMAP_URL`` empty, nothing is read and the run answers ``enabled``
-    false.  Otherwise every unseen message is fetched without marking it, read by
-    :func:`parse_report`, and each permanent failure is matched to an email log row:
-    the row whose ``message_id`` is the original's ``Message-ID``, or, when the report
-    carries none that matches, the latest row sent to the failed address (ignoring
-    case) in the last seven days that the mail server did not refuse.  A message with a
-    ``Message-ID`` match counts as one bounce whatever its failures say.
+    false.  Otherwise the mailbox is opened over TLS with the server's certificate and
+    host name verified, and every unseen message of at most :data:`MAX_MESSAGE_BYTES` is
+    fetched without marking it, read by :func:`parse_report`, and each permanent failure
+    is matched to an email log row: the row whose ``message_id`` is the original's
+    ``Message-ID``, or, when the report carries none that matches, the latest row sent
+    to the failed address (ignoring case) in the last seven days that the mail server
+    did not refuse.  A message with a ``Message-ID`` match counts as one bounce whatever
+    its failures say.
 
     A match marks the row ``bounced`` with ``bounced_at`` now and the failure's
     ``bounce_detail``, and flags the account whose current address is the one the row
     was sent to, ignoring case, by setting its ``email_bounced_at`` and
     ``email_bounce_detail``; an account that has moved to another address since is not
-    flagged.  Each message is then marked seen, so the next run skips it.
+    flagged.  Each message's writes are one savepoint: one that fails in the database is
+    rolled back, logged by its message number alone, and counted as ignored, and the run
+    carries on.  Each message read, recorded or not, is then marked seen, so the next
+    run skips it.  A message the server will not hand over, or one too large to be a
+    report, is counted as skipped and left unseen.
 
-    A dry run fetches and matches exactly as a live one but writes nothing and marks
-    nothing seen.  Every run that read the mailbox, and every run with checking off,
-    ends with one ``bounces.run`` audit record carrying the mode and the counts.
+    A dry run opens the mailbox read-only (IMAP ``EXAMINE``), fetches and matches
+    exactly as a live one, and writes nothing and marks nothing seen.  Every run that
+    finished reading the mailbox, and every run with checking off, ends with one
+    ``bounces.run`` audit record carrying the mode and the counts.
 
     Raises :class:`BounceCheckError` when ``BOUNCE_IMAP_URL`` is malformed or the
-    mailbox cannot be reached, signed in to, opened, or read; nothing is recorded then.
+    mailbox cannot be reached, signed in to, opened, or read.  The audit record is then
+    not written, but rows a live run marked before the failure stay marked, and their
+    messages stay seen.
     """
     run = BounceRun(today=timezone.localdate(), dry_run=dry_run, enabled=False)
     if settings.BOUNCE_IMAP_URL:
@@ -349,34 +385,56 @@ def check_bounces(*, dry_run: bool = False, actor: Model | str = audit.COMMAND_A
         bounced=run.bounced,
         unmatched=run.unmatched,
         ignored=run.ignored,
+        skipped=run.skipped,
     )
     return run
 
 
+# The frames below this one hold the mailbox password (the address, and imaplib's
+# own login frame), so an error report shows none of their variables.
+@sensitive_variables()
 def _read_mailbox(address: ImapAddress, run: BounceRun) -> None:
     """Process every unseen message at ``address`` into ``run``, then sign out."""
     try:
-        connection = imaplib.IMAP4_SSL(address.host, address.port, timeout=IMAP_TIMEOUT_SECONDS)
+        connection = imaplib.IMAP4_SSL(
+            address.host,
+            address.port,
+            ssl_context=ssl.create_default_context(),
+            timeout=IMAP_TIMEOUT_SECONDS,
+        )
     except (OSError, imaplib.IMAP4.error) as exc:
         raise BounceCheckError(
             f"Could not reach the bounce mailbox at {address.host}: {exc}"
         ) from exc
     try:
         connection.login(address.user, address.password)
-        status, _count = connection.select(_quoted_mailbox(address.mailbox))
+        status, _count = connection.select(_quoted_mailbox(address.mailbox), readonly=run.dry_run)
         if status != "OK":
             raise BounceCheckError(
                 f"Could not open the mailbox {address.mailbox} at {address.host}"
             )
-        _status, found = connection.search(None, "UNSEEN")
-        for number in (found[0] or b"").decode("ascii").split():
+        for number in _unseen(connection, f"SMALLER {MAX_MESSAGE_BYTES + 1}"):
             _process(connection, number, run)
+        oversized = _unseen(connection, f"LARGER {MAX_MESSAGE_BYTES}")
+        if len(oversized) > 0:
+            log.warning(
+                "Left %d message(s) larger than %d bytes unread in the bounce mailbox",
+                len(oversized),
+                MAX_MESSAGE_BYTES,
+            )
+        run.skipped += len(oversized)
     except (OSError, imaplib.IMAP4.error) as exc:
         raise BounceCheckError(
             f"Could not read the bounce mailbox at {address.host}: {exc}"
         ) from exc
     finally:
         _sign_out(connection)
+
+
+def _unseen(connection: imaplib.IMAP4, size: str) -> list[str]:
+    """The numbers of the unseen messages matching the IMAP ``size`` criterion."""
+    _status, found = connection.search(None, "UNSEEN", size)
+    return (found[0] or b"").decode("ascii").split()
 
 
 def _quoted_mailbox(mailbox: str) -> str:
@@ -393,17 +451,47 @@ def _sign_out(connection: imaplib.IMAP4) -> None:
 
 
 def _process(connection: imaplib.IMAP4, number: str, run: BounceRun) -> None:
-    """Fetch message ``number``, record its report, and mark it seen unless rehearsing."""
-    _status, data = connection.fetch(number, "(BODY.PEEK[])")
-    raw = next((item[1] for item in data if isinstance(item, tuple)), b"")
+    """Fetch message ``number``, record its report, and mark it seen unless rehearsing.
+
+    A fetch the server refuses leaves the message unseen and counts it as skipped.  A
+    report whose writes fail in the database is rolled back to its savepoint, counted
+    as ignored, and still marked seen, so one bad message cannot stop every later run.
+    """
+    status, data = connection.fetch(number, "(BODY.PEEK[])")
+    raw = next((item[1] for item in data if isinstance(item, tuple)), None)
+    if status != "OK" or raw is None:
+        log.warning("The bounce mailbox would not hand over message %s; left unread", number)
+        run.skipped += 1
+        return
     report = parse_report(raw)
     if report is None or len(report.failures) == 0:
         run.ignored += 1
     else:
-        with transaction.atomic():
-            _record_report(report, run)
+        _record_isolated(report, number, run)
     if not run.dry_run:
         connection.store(number, "+FLAGS", "\\Seen")
+
+
+def _record_isolated(report: DeliveryReport, number: str, run: BounceRun) -> None:
+    """Record ``report`` in a savepoint, counting it as ignored when the database refuses.
+
+    The run's counts and actions are put back as they were before the report, so a
+    failed report adds nothing but its one ``ignored``.  The log line names the message
+    number and the error class alone: the report carries addresses.
+    """
+    before = (run.bounced, run.unmatched, len(run.actions))
+    try:
+        with transaction.atomic():
+            _record_report(report, run)
+    except DatabaseError as exc:
+        log.warning(
+            "Could not record bounce report %s in the bounce mailbox: %s",
+            number,
+            type(exc).__name__,
+        )
+        run.bounced, run.unmatched = before[0], before[1]
+        del run.actions[before[2] :]
+        run.ignored += 1
 
 
 def _record_report(report: DeliveryReport, run: BounceRun) -> None:

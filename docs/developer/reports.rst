@@ -424,7 +424,7 @@ an account administrator is listed in both sections, and a deactivated account i
 none, whatever roles it still holds.  Within a section the rows are ordered by
 last name, first name, then address.
 
-``RolesReportFilterSet``, in the same module, reads three filters, which the PDF
+``RolesReportFilterSet``, in the same module, reads four filters, which the PDF
 subtitle names when given a value:
 
 ``search``
@@ -439,6 +439,10 @@ subtitle names when given a value:
    matches the stored kind: an account stored as ``member`` with no started term is
    a member there and a friend here.  A donor never holds a role, so ``donor`` is
    refused with a 400 keyed by ``kind``.
+``email_bounced``
+   ``true`` keeps the accounts whose address has a bounce recorded
+   (:ref:`email-bounces`), ``false`` the rest, as the users list's filter of the
+   same name does; the users list's export links carry it.
 
 Any other parameter is ignored, as the users list ignores it, apart from
 ``columns``.  The columns, in order:

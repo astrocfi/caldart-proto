@@ -282,6 +282,9 @@ BOUNCE_ADDRESS = env("BOUNCE_ADDRESS", default="")
 # The mailbox ``manage.py check_bounces`` reads the returned reports from, as
 # ``imaps://user:password@host[:port]/MAILBOX``.  Blank turns bounce checking off.
 BOUNCE_IMAP_URL = env("BOUNCE_IMAP_URL", default="")
+# Error reports mask the password in any URL a setting holds, ``BOUNCE_IMAP_URL``
+# among them, as well as the settings whose names Django already treats as secret.
+DEFAULT_EXCEPTION_REPORTER_FILTER = "caldart.error_reports.CredentialSafeExceptionReporterFilter"
 
 # --------------------------------------------------------------------------
 # Django REST Framework
