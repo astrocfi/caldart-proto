@@ -5,8 +5,9 @@ API: reminders, system, and site
 ================================
 
 The endpoints that keep the installation running and the one the portal calls
-before it has a user: ``GET /admin/reminders/log`` and
-``POST /system/reminders/run`` from ``apps.reminders``,
+before it has a user: ``GET /admin/reminders/log``,
+``GET``/``PUT /admin/reminders/schedule`` and ``POST /system/reminders/run`` from
+``apps.reminders``,
 ``POST /system/reports/run`` from ``apps.reports``,
 ``GET /system/emails`` and ``GET /system/emails/purposes`` from ``apps.mail``, the health, backup,
 renewal-scan and year-end-statement routes under ``/system/`` and
@@ -43,7 +44,7 @@ mail the server handed to the mail server successfully.
      "previous": null,
      "results": [
        {"id": 88, "user_id": 37, "user_name": "Marta Reyes", "membership_id": 51,
-        "kind": "t30", "sent_at": "2026-01-08T09:00:00-08:00",
+        "kind": "second", "sent_at": "2026-01-08T09:00:00-08:00",
         "to_email": "marta.reyes@example.org"}
      ]
    }
@@ -51,8 +52,8 @@ mail the server handed to the mail server successfully.
 =================  ============================================================
 Parameter          Effect
 =================  ============================================================
-``kind``           One of the five stages ``t60``, ``t30``, ``t7``,
-                   ``expired``, ``post30``.  Anything else is a 400 on
+``kind``           One of the five stages ``first``, ``second``, ``final``,
+                   ``expired``, ``lapsed``.  Anything else is a 400 on
                    ``kind``.
 ``from``, ``to``   ``YYYY-MM-DD``, compared against the date part of
                    ``sent_at``: ``from`` is on or after, ``to`` on or before.
@@ -71,6 +72,61 @@ which is why it behaves exactly like ``to`` despite being declared elsewhere.
 
 Statuses: **200**; **400** for an unknown ``kind`` or an unparseable date;
 **401** when anonymous; **403** for a signed-in caller holding neither role.
+
+.. _api-reminder-schedule:
+
+``GET /admin/reminders/schedule``
+---------------------------------
+
+When each reminder stage falls (:ref:`reminders-schedule`): whole days before
+expiry for ``first``, ``second`` and ``final``, and after it for ``lapsed``.
+``account_admin`` and ``system_admin`` both read it, as they read the log.
+``updated_by`` is the display name of whoever saved the schedule last and
+``updated_at`` when; both are ``null`` while the defaults apply, and reading
+never stores a row.
+
+.. code-block:: json
+
+   {
+     "first_days_before": 60,
+     "second_days_before": 30,
+     "final_days_before": 7,
+     "lapsed_days_after": 30,
+     "updated_by": "Dana Fiske",
+     "updated_at": "2026-09-30T12:00:00-07:00"
+   }
+
+Statuses: **200**; **401** when anonymous; **403** for a signed-in caller holding
+neither role.
+
+``PUT /admin/reminders/schedule``
+---------------------------------
+
+Replaces the schedule and answers it as ``GET`` does, ``updated_by`` naming the
+caller.  ``system_admin`` only: an account administrator reads the schedule but
+cannot change it.  The body carries all four days as whole numbers:
+
+.. code-block:: json
+
+   {"first_days_before": 45, "second_days_before": 20,
+    "final_days_before": 3, "lapsed_days_after": 14}
+
+The days must keep ``365 >= first_days_before > second_days_before >
+final_days_before >= 1`` and ``7 <= lapsed_days_after <= 365``.  A schedule
+breaking a rule is refused whole, with every broken rule keyed by the field it
+constrains:
+
+.. code-block:: json
+
+   {"lapsed_days_after": ["The lapsed reminder must be 7 to 365 days after expiry."]}
+
+The next scan uses the new days.  A stage a member was already sent for a term
+is never sent again for it, since ``ReminderLog`` still allows one row per
+``(user, membership, kind)``.  The reminder log's stage names, the email log's
+reminder purpose labels and the ``emails`` report follow the stored days.
+
+Statuses: **200**; **400** for a missing, non-integer, or out-of-rule day;
+**401** when anonymous; **403** for any other role.
 
 ``POST /system/reminders/run``
 ------------------------------
@@ -91,9 +147,9 @@ and answers with what it did.  ``system_admin`` only.  The body is optional;
      "failed": 0,
      "skipped_by_reason": {"already_sent": 10, "auto_renew": 2},
      "actions": [
-       {"kind": "t30", "member": "Maria Alvarez", "email": "maria@example.org",
+       {"kind": "second", "member": "Maria Alvarez", "email": "maria@example.org",
         "on": "2026-10-14", "amount_cents": null, "detail": ""},
-       {"kind": "t7", "member": "Sam Ochoa", "email": "sam@example.org",
+       {"kind": "final", "member": "Sam Ochoa", "email": "sam@example.org",
         "on": "2026-09-21", "amount_cents": null, "detail": ""}
      ]
    }
@@ -210,17 +266,19 @@ reminder run's ``failed`` count reports it as well.
 
 ``purpose``
    The template the body came from, which is what the message was for:
-   ``reminder_t60``, ``reminder_t30``, ``reminder_t7``, ``reminder_expired``,
-   ``reminder_post30``, ``renewal_enabled``, ``renewal_notice``,
+   ``reminder_first``, ``reminder_second``, ``reminder_final``, ``reminder_expired``,
+   ``reminder_lapsed``, ``renewal_enabled``, ``renewal_notice``,
    ``renewal_card_expiring``, ``renewal_charged``, ``renewal_failed``,
    ``renewal_canceled``, ``receipt``, ``refund``, ``member_invitation``,
    ``password_reset``, ``scheduled_report`` or ``dart_roster``.
 
 ``purpose_label``
    The purpose in words, such as ``Renewal reminder (30 days)`` for
-   ``reminder_t30``, from ``PURPOSE_LABELS`` in ``apps/mail/purposes.py``.  A
-   purpose that dictionary does not name reads as the purpose itself, so a
-   template added without a label still shows up.
+   ``reminder_second``, from ``purpose_labels()`` in ``apps/mail/purposes.py``:
+   the five reminders worded from the stored reminder schedule
+   (:ref:`api-reminder-schedule`), read once per page, then ``PURPOSE_LABELS``.  A
+   purpose the labels do not name reads as the purpose itself, so a template
+   added without a label still shows up.
 
 ``user_id``, ``user_name``
    ``user_id`` is the account the email concerned, ``null`` for a message sent
@@ -277,14 +335,15 @@ Statuses: **200**; **400** for an unknown ``status`` or an unparseable date;
 -------------------------------
 
 The purposes the portal's purpose filter offers, one ``{value, label}`` per
-entry of ``PURPOSE_LABELS``, in that dictionary's order.  Unpaginated;
+entry of ``purpose_labels()``, in its order: the five renewal reminders, worded
+from the stored reminder schedule, then every entry of ``PURPOSE_LABELS``.  Unpaginated;
 ``system_admin`` only, as the log is.
 
 .. code-block:: json
 
    [
-     {"value": "reminder_t60", "label": "Renewal reminder (60 days)"},
-     {"value": "reminder_t30", "label": "Renewal reminder (30 days)"},
+     {"value": "reminder_first", "label": "Renewal reminder (60 days)"},
+     {"value": "reminder_second", "label": "Renewal reminder (30 days)"},
      {"value": "receipt", "label": "Receipt"}
    ]
 

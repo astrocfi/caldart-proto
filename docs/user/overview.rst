@@ -94,21 +94,21 @@ first thing a DART leader checks before letting you fly a mission.
           Expired -> Friend [label=" becomes a friend", constraint=false];
 
           subgraph cluster_reminders {
-              label="Renewal emails, one per term and stage";
+              label="Renewal emails, one per term and stage, on the default schedule";
               fontname="Helvetica";
               fontsize=11;
               style=dashed;
               color="gray";
               node [fontsize=11];
-              T60 [label="31 to 60 days before"];
-              T30 [label="8 to 30 days before"];
-              T7 [label="1 to 7 days before"];
-              TEnd [label="the day it ends,\nor up to 6 days after"];
-              TPost [label="30 to 60 days after"];
-              T60 -> T30 -> T7 -> TEnd -> TPost;
+              First [label="31 to 60 days before"];
+              Second [label="8 to 30 days before"];
+              Final [label="1 to 7 days before"];
+              OnTheDay [label="the day it ends,\nor up to 6 days after"];
+              Lapsed [label="30 to 60 days after"];
+              First -> Second -> Final -> OnTheDay -> Lapsed;
           }
 
-          Expired -> T60 [style=invis];
+          Expired -> First [style=invis];
       }
 
 .. only:: not graphviz
@@ -144,7 +144,8 @@ first thing a DART leader checks before letting you fly a mission.
       ends and is a friend from the next day. An expired member who becomes a
       friend is one at once.
 
-      Renewal emails, one per term and stage, each linking to the renewal page:
+      Renewal emails, one per term and stage, each linking to the renewal page,
+      on the default schedule:
 
         31 to 60 days before
         8 to 30 days before
@@ -184,7 +185,9 @@ What CalDART does about expiry
 Each night CalDART marks terms whose end date has passed as expired, makes a friend
 of every member whose day to become one has come, and sends the renewal reminders.
 There are five, each covering a stretch of the calendar, so you receive every one
-whichever day you joined. Each is sent once per term, and renewing stops the rest.
+whichever day you joined. On the default schedule they go 60, 30, and 7 days before the
+end date, on the day, and 30 days after; a system administrator can change those days.
+Each is sent once per term, and renewing stops the rest.
 Life members, friends, deactivated accounts, and members whose automatic renewal
 covers the term are not sent them. :doc:`member/renew` lists the subject lines.
 

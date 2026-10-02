@@ -17,7 +17,7 @@ How the reminders work
 
 Every morning at 07:00 CalDART looks for memberships near their end and emails each member
 at five stages. Each stage covers a stretch of the calendar, so every member passes through
-it even if a morning is missed:
+it even if a morning is missed. On the default schedule the stages are:
 
 - **60 days before**: anyone whose membership ends in 31 to 60 days. The subject reads
   *CalDART: your membership expires in* and the number of days.
@@ -27,6 +27,11 @@ it even if a morning is missed:
   *CalDART: your membership expires today*, or *expired* and the number of days *ago*.
 - **30 days after**: anyone whose membership ran out 30 to 60 days ago. The subject reads
   *CalDART: your membership lapsed* and the number of days *ago*.
+
+A system administrator can change the number of days for the first three stages and the last
+one on the :doc:`scheduled` page. The stages then read with the new numbers everywhere on
+this screen, each stage reaching back to the day after the next one, and the last stage
+still covering 30 days. The expired stage always falls on the day a membership ends.
 
 Each subject begins with your organization's name in place of CalDART. Each member gets one
 email per membership at each stage. Nobody is sent a reminder whose membership renews itself
@@ -38,8 +43,8 @@ button for it on this screen.
 What you see
 ============
 
-One card, **Renewal reminders**, with a line explaining the schedule, then a table of the
-twenty most recent reminders. The caption counts every reminder ever sent, such as *418
+Two cards. The first, **Renewal reminders**, has a line explaining the schedule, then a table
+of the twenty most recent reminders. The caption counts every reminder ever sent, such as *418
 reminders sent*.
 
 - **Sent**: the date and time it went out.
@@ -48,11 +53,17 @@ reminders sent*.
 - **To**: the address it was sent to.
 
 The **Reminder** list above the table narrows it to one stage: **60 days before**, **30 days
-before**, **7 days before**, **Expired**, or **30 days after**. **All kinds** puts them back.
-Click a column heading to sort the rows shown.
+before**, **7 days before**, **Expired**, or **30 days after** on the default schedule. **All
+kinds** puts them back. Click a column heading to sort the rows shown.
 
 An empty table reads *No reminders sent yet*: no membership has reached a stage, which is
 normal on a new site or when every member renewed early.
+
+The second card, **Reminder schedule**, lists the four numbers the stages are dated by:
+**First reminder**, **Second reminder**, and **Final reminder** in days before expiry, and
+**Lapsed reminder** in days after it. A line under them says who last saved the schedule and
+when, or reads *The default schedule: nobody has changed it.* You can read the schedule here
+but not change it.
 
 
 If something looks wrong

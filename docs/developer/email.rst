@@ -26,10 +26,11 @@ shows:
    * - Purpose
      - Label
      - Sent by
-   * - ``reminder_t60``, ``reminder_t30``, ``reminder_t7``,
-       ``reminder_expired``, ``reminder_post30``
+   * - ``reminder_first``, ``reminder_second``, ``reminder_final``,
+       ``reminder_expired``, ``reminder_lapsed``
      - Renewal reminder (60 days), (30 days), (7 days), (expired), (30 days
-       after)
+       after) on the default schedule; the days follow the stored reminder
+       schedule (:ref:`reminders-schedule`)
      - the daily reminder scan (:doc:`reminders`)
    * - ``renewal_enabled``, ``renewal_notice``, ``renewal_card_expiring``,
        ``renewal_charged``, ``renewal_failed``, ``renewal_canceled``

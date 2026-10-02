@@ -72,7 +72,7 @@ What it does
   mock provider for demonstrations and tests, with optional donations at
   checkout and month-by-month reporting.
 - **Reminders.**  Scheduled renewal email at 60, 30, and 7 days before expiry,
-  on the day, and 30 days after.
+  on the day, and 30 days after, on a schedule a system administrator can change.
 - **Reports.**  Membership and aircraft exports as CSV and PDF, payment
   exports as CSV, all with the same filters as the screen you exported them
   from.
