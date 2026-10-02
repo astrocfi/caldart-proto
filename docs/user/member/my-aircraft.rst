@@ -29,8 +29,11 @@ file, for example *$1,000,000 / $100,000 · exp 03/01/2027*. The chip reads:
 * **Not on file**: the record has no insurance expiry date at all.
 
 After the chip comes the insurance's mark: **Verified** once a DART leader or a
-verifier has checked the policy against its documents, or **Not yet verified**. A DART
-leader treats an airplane whose insurance is not verified as a no-go.
+verifier has checked the policy against its documents, or **Not yet verified**. An
+airplane whose chip reads **Not on file** carries no mark, since there is no policy to
+verify yet; a DART leader still treats it as a no-go, and a verifier still sees its
+insurance as not verified. A DART leader treats an airplane whose insurance is not
+verified as a no-go.
 
 An airplane the coverage policy leaves out carries a red **Not covered** chip, and the
 reason follows the limits, such as *Not covered: helicopters are excluded by CalDART's
