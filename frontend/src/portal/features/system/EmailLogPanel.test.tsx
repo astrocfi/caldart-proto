@@ -55,7 +55,7 @@ const BOUNCED: EmailLogEntry = {
   to_email: 'gone@example.com',
   user_id: 41,
   user_name: 'Dana Doe',
-  purpose: 'reminder_t30',
+  purpose: 'reminder_second',
   purpose_label: 'Renewal reminder (30 days)',
   subject: 'CalDART: your membership expires in 30 days',
   sent_at: '2026-10-01T08:00:00-07:00',
