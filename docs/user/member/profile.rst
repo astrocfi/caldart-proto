@@ -83,6 +83,8 @@ Alliance number**, **Pilot certificate**, **Certificate number**, **Medical**,
   its dates.
 * Under **Pilot certificate**, **Medical expires**, and **Photo ID** is each item's
   mark: **Verified** with who verified it and on which day, or **Not yet verified**.
+  An item you have marked as not held (**Not a pilot**, a medical of **None**, or a
+  photo ID of **Not provided**) has nothing to verify and shows no mark.
   The medical's mark sits under its expiration date, the date a verifier checks
   against the certificate. Under the first
   is *A DART leader or verifier checks these against the documents.* You cannot

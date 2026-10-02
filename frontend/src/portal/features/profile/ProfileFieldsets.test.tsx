@@ -64,6 +64,14 @@ const VOLUNTEER_LABELS = [
   'Newsletter',
 ];
 
+/** A profile holding a certificate, a medical, and a photo ID, each with something to verify. */
+const HELD_ITEMS: ProfileFormValues = {
+  ...EMPTY_PROFILE_FORM,
+  pilot_certificate_type: 'private',
+  medical_type: 'third',
+  photo_id_type: 'passport',
+};
+
 function renderFieldsets(overrides: Partial<ProfileFieldsetsProps> = {}) {
   const handleChange = vi.fn();
   renderWithProviders(
@@ -407,6 +415,7 @@ describe('<ProfileFieldsets/>', () => {
 
   it('marks each verified item in the member’s own wording', () => {
     renderFieldsets({
+      value: HELD_ITEMS,
       verification: { ...ALL_VERIFIED, medical: NOT_VERIFIED },
     });
     expect(screen.getByLabelText('Medical expires')).toHaveAccessibleDescription(
@@ -418,12 +427,15 @@ describe('<ProfileFieldsets/>', () => {
   });
 
   it('leaves the medical class without a mark, since the expiration carries it', () => {
-    renderFieldsets({ verification: NONE_VERIFIED });
+    renderFieldsets({ value: HELD_ITEMS, verification: NONE_VERIFIED });
     expect(screen.getByLabelText('Medical')).not.toHaveAccessibleDescription();
   });
 
   it('renders the medical mark after the expiration control', () => {
-    renderFieldsets({ verification: { ...ALL_VERIFIED, medical: NOT_VERIFIED } });
+    renderFieldsets({
+      value: HELD_ITEMS,
+      verification: { ...ALL_VERIFIED, medical: NOT_VERIFIED },
+    });
     const expiration = screen.getByLabelText('Medical expires');
     const medicalMark = screen.getByText('Not yet verified');
     expect(
@@ -432,12 +444,24 @@ describe('<ProfileFieldsets/>', () => {
   });
 
   it('says who checks the items once, under the pilot certificate', () => {
-    renderFieldsets({ verification: NONE_VERIFIED });
+    renderFieldsets({ value: HELD_ITEMS, verification: NONE_VERIFIED });
     expect(
       screen.getAllByText('A DART leader or verifier checks these against the documents.'),
     ).toHaveLength(1);
     expect(screen.getByLabelText('Pilot certificate')).toHaveAccessibleDescription(
       'Not yet verified A DART leader or verifier checks these against the documents.',
+    );
+  });
+
+  it('leaves an item the member does not hold unmarked while nobody has verified it', () => {
+    renderFieldsets({ verification: NONE_VERIFIED });
+    expect(screen.queryByText('Not yet verified')).not.toBeInTheDocument();
+  });
+
+  it('still shows the verified stamp on an item the member does not hold', () => {
+    renderFieldsets({ verification: ALL_VERIFIED });
+    expect(screen.getByLabelText('Photo ID')).toHaveAccessibleDescription(
+      'Verified by Dana Leader on 05/01/2026',
     );
   });
 });
