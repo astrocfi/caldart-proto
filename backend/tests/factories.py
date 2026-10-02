@@ -379,7 +379,8 @@ class EmailLogFactory(ModelFactory[EmailLog]):
     ``to_name=""`` with a ``user`` to build a row that names nobody of its own,
     which falls back to the account's current name when read.  Pass
     ``status=EmailStatus.FAILED`` with an ``error`` to record a send the mail server
-    refused.
+    refused.  Each row carries its own ``message_id``,
+    ``<factory.<n>@caldart.example.org>``, as every message ``send_templated`` sends does.
     """
 
     class Meta:
@@ -396,6 +397,7 @@ class EmailLogFactory(ModelFactory[EmailLog]):
     status = EmailStatus.SENT
     error = ""
     attachments = ""
+    message_id = factory.Sequence(lambda n: f"<factory.{n}@caldart.example.org>")
 
 
 def make_home_page() -> HomePage:

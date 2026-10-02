@@ -15,10 +15,16 @@ from caldart.models import TimestampedModel
 
 
 class EmailStatus(models.TextChoices):
-    """Whether the mail server took the message or refused it."""
+    """Whether the mail server took the message, refused it, or later bounced it.
+
+    ``bounced`` replaces ``sent`` when the bounce check reads a permanent-failure report
+    for the message from the bounce mailbox: the relay took it, but the recipient's
+    server refused it afterwards.
+    """
 
     SENT = "sent", "Sent"
     FAILED = "failed", "Failed"
+    BOUNCED = "bounced", "Bounced"
 
 
 class EmailLog(TimestampedModel):
@@ -35,6 +41,12 @@ class EmailLog(TimestampedModel):
     address nobody named.  ``error`` carries the exception class of a refusal
     and is blank on a successful send; ``attachments`` lists the filenames
     that rode along, comma-separated, and is blank when none did.
+
+    ``message_id`` is the ``Message-ID`` header the message went out with, angle
+    brackets included, which is how a bounce report is matched back to its row.
+    ``bounced_at`` is when the bounce check read a permanent-failure report for the
+    message, and ``bounce_detail`` that report's status code and diagnostic text; both
+    are empty unless ``status`` is ``bounced``.
     """
 
     to_email = models.EmailField()
@@ -49,9 +61,12 @@ class EmailLog(TimestampedModel):
     purpose = models.SlugField(max_length=64)
     subject = models.CharField(max_length=255)
     sent_at = models.DateTimeField()
-    status = models.CharField(max_length=6, choices=EmailStatus.choices, default=EmailStatus.SENT)
+    status = models.CharField(max_length=7, choices=EmailStatus.choices, default=EmailStatus.SENT)
     error = models.CharField(max_length=100, blank=True)
     attachments = models.CharField(max_length=255, blank=True)
+    message_id = models.CharField(max_length=255, blank=True, db_index=True)
+    bounced_at = models.DateTimeField(null=True, blank=True)
+    bounce_detail = models.CharField(max_length=255, blank=True)
 
     class Meta:
         ordering = ["-sent_at", "-id"]
