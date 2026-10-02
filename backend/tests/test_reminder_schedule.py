@@ -18,10 +18,16 @@ from rest_framework.test import APIClient
 
 from apps.accounts.models import User
 from apps.accounts.roles import ACCOUNT_ADMIN, SYSTEM_ADMIN
-from apps.mail.purposes import purpose_label
+from apps.mail import purposes
+from apps.mail.purposes import (
+    PURPOSE_LABELS,
+    purpose_label,
+    purpose_labels,
+    register_purpose_labels,
+)
 from apps.members.models import Membership, MembershipPlan
 from apps.reminders.models import ReminderKind, ReminderLog, ReminderSchedule, schedule_errors
-from apps.reminders.services import send_renewal_reminders, stage_span
+from apps.reminders.services import ReminderRun, send_renewal_reminders, stage_span
 from tests.conftest import read_csv, role_matrix
 from tests.factories import EmailLogFactory, MembershipFactory, UserFactory
 
@@ -81,9 +87,9 @@ def term_ending(plan: MembershipPlan, days_from_today: int) -> Membership:
     ("overrides", "field", "message"),
     [
         (
-            {"first_days_before": 366},
+            {"first_days_before": 181},
             "first_days_before",
-            "The first reminder can be at most 365 days before expiry.",
+            "The first reminder can be at most 180 days before expiry.",
         ),
         (
             {"first_days_before": 30},
@@ -112,7 +118,7 @@ def term_ending(plan: MembershipPlan, days_from_today: int) -> Membership:
         ),
     ],
     ids=[
-        "first-over-365",
+        "first-over-180",
         "first-not-above-second",
         "second-not-above-final",
         "final-under-1",
@@ -130,7 +136,7 @@ def test_a_schedule_outside_a_bound_is_refused_naming_the_field_and_the_rule(
 @pytest.mark.parametrize(
     "overrides",
     [
-        {"first_days_before": 365},
+        {"first_days_before": 180},
         {"first_days_before": 31},
         {"second_days_before": 8},
         {"final_days_before": 1},
@@ -138,7 +144,7 @@ def test_a_schedule_outside_a_bound_is_refused_naming_the_field_and_the_rule(
         {"lapsed_days_after": 365},
     ],
     ids=[
-        "first-at-365",
+        "first-at-180",
         "first-one-above-second",
         "second-one-above-final",
         "final-at-1",
@@ -154,7 +160,7 @@ def test_a_schedule_on_a_bound_is_accepted(overrides: dict[str, int]) -> None:
 def test_every_broken_rule_is_reported_at_once() -> None:
     """A schedule breaking three rules hears about all three."""
     errors = schedule_errors(
-        first_days_before=400, second_days_before=5, final_days_before=5, lapsed_days_after=1
+        first_days_before=200, second_days_before=5, final_days_before=5, lapsed_days_after=1
     )
 
     assert set(errors) == {"first_days_before", "second_days_before", "lapsed_days_after"}
@@ -307,25 +313,77 @@ def test_the_scan_sends_the_stage_the_edited_schedule_names(
     assert run.sent_by_kind == {ReminderKind.FIRST: 1}
 
 
-def test_editing_the_schedule_never_resends_a_stage(annual_plan: MembershipPlan) -> None:
-    """A member sent ``second`` is not sent it again when its span widens over them."""
-    term_ending(annual_plan, 23)
-    send_renewal_reminders(today=TODAY)
-    store(body(second_days_before=25))
+def send_first_then_second_then_restore(plan: MembershipPlan) -> ReminderRun:
+    """Walk one term back into a stage it already had, and return the last scan.
 
-    run = send_renewal_reminders(today=TODAY + timedelta(days=1))
+    The term ends 35 days out, in ``first`` on the defaults, and is sent ``first``.
+    A second reminder moved out to 40 days puts it in ``second`` the next day, and it
+    is sent ``second``.  Moving the second reminder back to 30 days the day after puts
+    the term, 33 days out, back in ``first``'s span.
+    """
+    term_ending(plan, 35)
+    send_renewal_reminders(today=TODAY)
+    store(body(second_days_before=40))
+    send_renewal_reminders(today=TODAY + timedelta(days=1))
+    store(body())
+    return send_renewal_reminders(today=TODAY + timedelta(days=2))
+
+
+def test_a_schedule_edit_that_moves_a_member_back_sends_nothing(
+    annual_plan: MembershipPlan,
+) -> None:
+    """A member put back into ``first`` after having it is skipped as already sent."""
+    run = send_first_then_second_then_restore(annual_plan)
 
     assert run.skipped_by_reason == {"already_sent": 1}
 
 
-def test_a_resent_stage_leaves_one_log_row(annual_plan: MembershipPlan) -> None:
-    """The member's reminder log still holds the one ``second`` row."""
-    term_ending(annual_plan, 23)
-    send_renewal_reminders(today=TODAY)
-    store(body(second_days_before=25))
-    send_renewal_reminders(today=TODAY + timedelta(days=1))
+def test_a_schedule_edit_that_moves_a_member_back_writes_no_log_row(
+    annual_plan: MembershipPlan,
+) -> None:
+    """The member's log holds one ``first`` row and one ``second`` row, and no more."""
+    send_first_then_second_then_restore(annual_plan)
 
-    assert list(ReminderLog.objects.values_list("kind", flat=True)) == [ReminderKind.SECOND]
+    kinds = sorted(ReminderLog.objects.values_list("kind", flat=True))
+    assert kinds == [ReminderKind.FIRST, ReminderKind.SECOND]
+
+
+@pytest.mark.parametrize(
+    ("first", "second", "final", "lapsed"),
+    [(3, 2, 1, 7), (180, 179, 178, 365), (180, 2, 1, 7), (100, 99, 1, 8), (60, 30, 7, 30)],
+    ids=["tightest", "widest-before", "long-first", "long-second", "defaults"],
+)
+def test_the_spans_tile_without_a_gap_or_an_overlap(
+    first: int, second: int, final: int, lapsed: int
+) -> None:
+    """Every expiry date is in exactly the one stage the schedule puts it in, or none."""
+    schedule = ReminderSchedule(
+        first_days_before=first,
+        second_days_before=second,
+        final_days_before=final,
+        lapsed_days_after=lapsed,
+    )
+    expected_spans = {
+        ReminderKind.FIRST: (second + 1, first),
+        ReminderKind.SECOND: (final + 1, second),
+        ReminderKind.FINAL: (1, final),
+        ReminderKind.EXPIRED: (-6, 0),
+        ReminderKind.LAPSED: (-(lapsed + 30), -lapsed),
+    }
+    mismatches = []
+    for days_out in range(-(lapsed + 40), first + 10):
+        ends_on = TODAY + timedelta(days=days_out)
+        covering = [
+            kind
+            for kind in ReminderKind
+            if stage_span(kind, TODAY, schedule=schedule)[0]
+            <= ends_on
+            <= stage_span(kind, TODAY, schedule=schedule)[1]
+        ]
+        expected = [kind for kind, (low, high) in expected_spans.items() if low <= days_out <= high]
+        if covering != expected:
+            mismatches.append((days_out, covering, expected))
+    assert mismatches == []
 
 
 # --------------------------------------------------------------------------
@@ -400,3 +458,25 @@ def test_the_email_log_report_names_the_stored_days(system_admin_client: APIClie
     rows = read_csv(system_admin_client.get(EMAILS_CSV_URL))
 
     assert rows[1][rows[0].index("Purpose")] == "Renewal reminder (14 days after)"
+
+
+def test_a_registered_source_leads_the_purpose_labels(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Labels from a registered source come before the fixed ones."""
+    monkeypatch.setattr(purposes, "_label_sources", [])
+    register_purpose_labels(lambda: {"board_minutes": "Board minutes"})
+
+    assert list(purpose_labels()) == ["board_minutes", *PURPOSE_LABELS]
+
+
+def test_registering_a_source_twice_registers_it_once(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The same source is read once however often it is registered."""
+    monkeypatch.setattr(purposes, "_label_sources", [])
+
+    def source() -> dict[str, str]:
+        """One label."""
+        return {"board_minutes": "Board minutes"}
+
+    register_purpose_labels(source)
+    register_purpose_labels(source)
+
+    assert purposes._label_sources == [source]

@@ -86,7 +86,7 @@ def _labeled(rows: Iterable[EmailLog]) -> Iterator[EmailLog]:
     """
     labels = purpose_labels()
     for row in rows:
-        row.purpose = purpose_label(row.purpose, labels)
+        row.purpose = purpose_label(row.purpose, labels=labels)
         yield row
 
 

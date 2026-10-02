@@ -53,7 +53,7 @@ class EmailLogSerializer(serializers.ModelSerializer[EmailLog]):
         reminder schedule, and are read afresh otherwise.
         """
         labels = self.context.get("purpose_labels")
-        return purpose_label(obj.purpose, labels if labels is not None else purpose_labels())
+        return purpose_label(obj.purpose, labels=labels if labels is not None else purpose_labels())
 
 
 class EmailPurposeSerializer(serializers.Serializer[dict[str, str]]):

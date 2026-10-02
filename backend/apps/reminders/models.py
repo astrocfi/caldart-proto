@@ -32,10 +32,11 @@ DEFAULT_FINAL_DAYS_BEFORE = 7
 DEFAULT_LAPSED_DAYS_AFTER = 30
 
 #: The bounds :func:`schedule_errors` holds a schedule to.  The first reminder goes at
-#: most a year ahead, the final one at least a day ahead, and the lapsed one between
-#: a week and a year after expiry: the expired stage reaches six days past expiry,
-#: so a lapsed stage a week out never meets it.
-MAX_DAYS_BEFORE = 365
+#: most half a year ahead, so a member who has just bought an annual term is never
+#: told it is running out; the final one goes at least a day ahead, and the lapsed
+#: one between a week and a year after expiry: the expired stage reaches six days
+#: past expiry, so a lapsed stage a week out never meets it.
+MAX_FIRST_DAYS_BEFORE = 180
 MIN_FINAL_DAYS_BEFORE = 1
 MIN_LAPSED_DAYS_AFTER = 7
 MAX_LAPSED_DAYS_AFTER = 365
@@ -57,17 +58,17 @@ def schedule_errors(
 ) -> dict[str, str]:
     """What is wrong with a schedule, keyed by field, or an empty dict when nothing is.
 
-    The rules are ``365 >= first > second > final >= 1`` and ``7 <= lapsed <= 365``.
+    The rules are ``180 >= first > second > final >= 1`` and ``7 <= lapsed <= 365``.
     Each broken rule is reported against the field it constrains, in a sentence naming
-    the reminder and the rule: ``first_days_before`` above 365 or not above
+    the reminder and the rule: ``first_days_before`` above 180 or not above
     ``second_days_before``, ``second_days_before`` not above ``final_days_before``,
     ``final_days_before`` below 1, and ``lapsed_days_after`` outside 7 to 365.  A field
     breaking two rules carries the first of them in that order.
     """
     errors: dict[str, str] = {}
-    if first_days_before > MAX_DAYS_BEFORE:
+    if first_days_before > MAX_FIRST_DAYS_BEFORE:
         errors["first_days_before"] = (
-            f"The first reminder can be at most {MAX_DAYS_BEFORE} days before expiry."
+            f"The first reminder can be at most {MAX_FIRST_DAYS_BEFORE} days before expiry."
         )
     elif first_days_before <= second_days_before:
         errors["first_days_before"] = (
@@ -191,6 +192,15 @@ class ReminderSchedule(models.Model):
                 f"Renewal reminder ({_days(self.lapsed_days_after)} after)"
             ),
         }
+
+
+def reminder_purpose_labels() -> dict[str, str]:
+    """The five reminder purposes in words, from the stored schedule.
+
+    The source the reminders app registers with ``apps.mail.purposes``, so the email
+    log, its purpose filter, and its report name the stored days.
+    """
+    return ReminderSchedule.load().purpose_labels()
 
 
 class ReminderLog(TimestampedModel):
