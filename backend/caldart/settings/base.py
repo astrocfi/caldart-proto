@@ -460,6 +460,12 @@ WAGTAILDOCS_EXTENSIONS = ["csv", "docx", "key", "odt", "pdf", "pptx", "rtf", "tx
 WAGTAILDOCS_SERVE_METHOD = "serve_view"
 WAGTAILIMAGES_EXTENSIONS = ["gif", "jpg", "jpeg", "png", "webp", "svg"]
 WAGTAIL_APPEND_SLASH = True
+# Accounts are managed in the portal alone, so Wagtail changes no password or
+# address: caldart.urls closes its account screens, and these keep its forms and
+# login page from offering what those screens did.
+WAGTAIL_PASSWORD_MANAGEMENT_ENABLED = False
+WAGTAIL_PASSWORD_RESET_ENABLED = False
+WAGTAIL_EMAIL_MANAGEMENT_ENABLED = False
 SITE_ID = 1
 
 # --------------------------------------------------------------------------

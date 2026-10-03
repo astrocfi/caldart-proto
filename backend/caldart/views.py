@@ -62,6 +62,25 @@ GUIDE_PRIVATE_FILES = frozenset({GUIDE_ROLES, "objects.inv"})
 PAGE_SUFFIX = ".html"
 
 
+def wagtail_account_screen_closed(request: HttpRequest) -> HttpResponse:
+    """Answer 404 for a Wagtail screen that would manage accounts or roles.
+
+    Wagtail's users, groups, bulk account actions, and password reset would each
+    change an account outside the portal's rules, so they are not served; the
+    portal's Users and roles screen is where accounts are managed.
+    """
+    raise Http404("Accounts are managed in the portal.")
+
+
+def wagtail_account_page(request: HttpRequest) -> HttpResponse:
+    """Redirect Wagtail's account page to the reader's portal profile.
+
+    The Wagtail sidebar still links its account page; the portal's My profile is
+    where a person edits their own name, address, and password.
+    """
+    return HttpResponseRedirect(reverse("portal", kwargs={"path": "profile"}))
+
+
 def portal_shell(request: HttpRequest, path: str = "") -> HttpResponse:
     """Serve the React portal for every ``/portal/...`` URL.
 

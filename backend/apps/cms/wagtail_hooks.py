@@ -1,4 +1,7 @@
-"""Wagtail hooks for the public site.
+"""Wagtail hooks for the public site and the Wagtail admin's menu.
+
+The settings menu drops Wagtail's Users and Groups entries: accounts and roles are
+managed in the portal alone, and ``caldart.urls`` closes those screens.
 
 The members-only wall covers page rendering; this covers the files those pages
 link to.  Wagtail runs every ``before_serve_document`` hook before it hands a
@@ -17,6 +20,7 @@ from __future__ import annotations
 from django.http import HttpRequest, HttpResponse
 from django.template.response import TemplateResponse
 from wagtail import hooks
+from wagtail.admin.menu import MenuItem
 from wagtail.documents.models import Document
 
 from apps.cms.models import (
@@ -46,3 +50,14 @@ def guard_members_only_documents(document: Document, request: HttpRequest) -> Ht
     # exists is not the secret, its contents are.
     context = {"page": {"title": document.title}, **members_wall_context(request.user)}
     return TemplateResponse(request, "cms/members_only_wall.html", context, status=403)
+
+
+#: The settings-menu entries that would open Wagtail's account and role screens.
+ACCOUNT_MENU_ITEMS: frozenset[str] = frozenset({"users", "groups"})
+
+
+# Wagtail ships no type information, so its hook registry is untyped.
+@hooks.register("construct_settings_menu")  # type: ignore[untyped-decorator]
+def hide_account_menu_items(request: HttpRequest, menu_items: list[MenuItem]) -> None:
+    """Remove the Users and Groups entries from the Wagtail settings menu, in place."""
+    menu_items[:] = [item for item in menu_items if item.name not in ACCOUNT_MENU_ITEMS]
