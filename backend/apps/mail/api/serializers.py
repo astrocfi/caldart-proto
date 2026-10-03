@@ -5,6 +5,7 @@ from __future__ import annotations
 from rest_framework import serializers
 
 from apps.mail.dns_check import DnsStatus
+from apps.mail.links import log_links
 from apps.mail.models import EmailLog
 from apps.mail.purposes import purpose_label, purpose_labels
 from caldart.runs import RunActionSerializer
@@ -22,12 +23,15 @@ class EmailLogSerializer(serializers.ModelSerializer[EmailLog]):
     from ``apps.mail.purposes``, or the purpose itself when no label names it.
     ``bounced_at`` is when the bounce check read a permanent-failure report for the
     message and ``bounce_detail`` that report's status code and diagnostic; they are
-    null and blank unless ``status`` is ``bounced``.
+    null and blank unless ``status`` is ``bounced``.  ``link`` is the portal page the
+    message belongs to, such as ``/bulk-email/sent/9`` for a copy of a bulk email
+    (``apps.mail.links``), and blank for a message that stands alone.
     """
 
     user_id = serializers.IntegerField(read_only=True, allow_null=True)
     user_name = serializers.SerializerMethodField()
     purpose_label = serializers.SerializerMethodField()
+    link = serializers.SerializerMethodField()
 
     class Meta:
         model = EmailLog
@@ -45,6 +49,7 @@ class EmailLogSerializer(serializers.ModelSerializer[EmailLog]):
             "attachments",
             "bounced_at",
             "bounce_detail",
+            "link",
         ]
         read_only_fields = fields
 
@@ -61,6 +66,16 @@ class EmailLogSerializer(serializers.ModelSerializer[EmailLog]):
         """
         labels = self.context.get("purpose_labels")
         return purpose_label(obj.purpose, labels=labels if labels is not None else purpose_labels())
+
+    def get_link(self, obj: EmailLog) -> str:
+        """Return the portal page the message belongs to, or ``""`` for none.
+
+        The links come from the context's ``log_links`` when the caller read them once
+        for a whole page, and are read for this row alone otherwise.
+        """
+        links = self.context.get("log_links")
+        found = links if links is not None else log_links([obj])
+        return found.get(obj.pk, "")
 
 
 class EmailPurposeSerializer(serializers.Serializer[dict[str, str]]):

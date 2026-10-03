@@ -10,7 +10,8 @@ recipient's values are filled into it HTML-escaped; the plain-text body is deriv
 from the filled-in message (``html_to_text``), so it reads each value as it is.  The
 bodies come from ``emails/bulk_email.{txt,html}``: the plain-text body is the message
 followed by the house footer, and the HTML one puts the message inside the house email
-layout.  The sender hands the finished bodies to
+layout, and every copy's footer links to the message on the recipient's **Messages**
+page (:func:`browser_url`).  The sender hands the finished bodies to
 ``caldart.mail.send_templated`` through the pass-through pair
 ``emails/bulk_email_copy.{txt,html}`` (:data:`COPY_TEMPLATE`), so the email log
 records the copy like any other message.  The email's type decides the footer line
@@ -62,6 +63,9 @@ PURPOSE = "bulk_email"
 #: link reads as a copy's does, but unsubscribes nobody.
 PREVIEW_STAND_IN = "preview"
 
+#: Where the portal shows a sent bulk email to the people who received it.
+MESSAGES_PATH = "/portal/messages/"
+
 #: The longest preheader, the line a mail program shows beside the subject.
 PREHEADER_LENGTH = 90
 
@@ -104,12 +108,17 @@ def render_copy(bulk: BulkEmail, recipient: BulkEmailRecipient) -> RenderedCopy:
     whose value the row does not hold is filled in as empty, so its fallback stands.
     The footer and the headers are :func:`render_for`'s for the row's account.
     """
-    values = {name: recipient.values.get(name, "") for name in message_tokens(bulk)}
+    values = stored_values(bulk, recipient)
     return render_for(bulk, recipient.user, values)
 
 
 def render_for(
-    bulk: BulkEmail, user: User | None, values: Mapping[str, str], *, inert: bool = False
+    bulk: BulkEmail,
+    user: User | None,
+    values: Mapping[str, str],
+    *,
+    inert: bool = False,
+    view_url: str | None = None,
 ) -> RenderedCopy:
     """``user``'s copy of ``bulk``, filled in with ``values``: one person's whole copy.
 
@@ -125,6 +134,9 @@ def render_for(
     receive it and there is no header.  A copy of an email with no type, or for an
     account that is gone (``None``), carries no header and the general line *You
     receive this email as a member or a friend of <organization>.*
+    Above the footer the copy links to the email on the reader's **Messages** page,
+    :func:`browser_url`; ``view_url`` given replaces that link, and ``""`` leaves it
+    out, as a test copy does.
     """
     footer: Footer | None = None
     headers: dict[str, str] = {}
@@ -140,6 +152,7 @@ def render_for(
         values,
         footer=footer,
         type_name=bulk.email_type.name if bulk.email_type is not None else "",
+        view_url=browser_url(bulk) if view_url is None else view_url,
     )
     return replace(copy, headers=headers)
 
@@ -149,6 +162,16 @@ def inert_unsubscribe_url() -> str:
     return f"{settings.SITE_URL.rstrip('/')}{UNSUBSCRIBE_PATH}{PREVIEW_STAND_IN}"
 
 
+def browser_url(bulk: BulkEmail) -> str:
+    """Where ``bulk`` reads in the browser: its page under the portal's **Messages**.
+
+    Built on ``SITE_URL``, which carries the path the site is served under:
+    ``<SITE_URL>/portal/messages/<id>``.  The page asks the reader to sign in and shows
+    their own copy (``apps.bulk_email.archive``).
+    """
+    return f"{settings.SITE_URL.rstrip('/')}{MESSAGES_PATH}{bulk.pk}"
+
+
 def render_message(
     subject: str,
     body: str,
@@ -156,6 +179,7 @@ def render_message(
     *,
     footer: Footer | None = None,
     type_name: str = "",
+    view_url: str = "",
 ) -> RenderedCopy:
     """A copy of the message ``subject`` and ``body`` with ``values`` filled in.
 
@@ -168,12 +192,12 @@ def render_message(
     which is how the history shows a message.  Both bodies carry the organization's
     name and contact address as they are now, and end with ``footer`` (its line, and
     its link to unsubscribe from ``type_name`` email when it has one), or the general
-    line when it is ``None``.  The copy carries no header.
+    line when it is ``None``.  A ``view_url`` puts a line linking to the message in the
+    browser above the footer's own lines.  The copy carries no header.
     """
     clean = sanitize(body)
     if values is not None:
-        flat = {name: " ".join(value.splitlines()) for name, value in values.items()}
-        subject = substitute(subject, flat, escape=False)
+        subject = fill_subject(subject, values)
         clean = substitute(clean, values, escape=True)
     # Derived from the filled-in HTML, so a value reads as itself in the text and a
     # link's address carries it percent-encoded, exactly as the HTML's link does.
@@ -189,12 +213,28 @@ def render_message(
         "type_name": type_name,
         "footer_text": footer.text if footer is not None else "",
         "footer_url": footer.url if footer is not None else "",
+        "view_url": view_url,
     }
     return RenderedCopy(
         subject=subject,
         text=render_to_string(f"emails/{TEMPLATE}.txt", context),
         html=render_to_string(f"emails/{TEMPLATE}.html", context),
     )
+
+
+def stored_values(bulk: BulkEmail, recipient: BulkEmailRecipient) -> dict[str, str]:
+    """The values ``recipient``'s copy of ``bulk`` went out with, for each field it uses.
+
+    Read from the row's ``values``, stored when the copy was tried; a field the row does
+    not hold is empty, so its token's fallback stands.
+    """
+    return {name: recipient.values.get(name, "") for name in message_tokens(bulk)}
+
+
+def fill_subject(subject: str, values: Mapping[str, str]) -> str:
+    """``subject`` with ``values`` filled in as they are, a line break read as a space."""
+    flat = {name: " ".join(value.splitlines()) for name, value in values.items()}
+    return substitute(subject, flat, escape=False)
 
 
 def message_tokens(bulk: BulkEmail) -> list[str]:

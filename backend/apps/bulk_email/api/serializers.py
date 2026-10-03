@@ -23,11 +23,13 @@ from apps.bulk_email.batch import (
     selected_accounts,
     unknown_filters,
 )
+from apps.bulk_email.delivery import retried_count
 from apps.bulk_email.drafts import NOT_SENDABLE_MESSAGE
 from apps.bulk_email.job import estimated_finish
 from apps.bulk_email.models import (
     BatchAdd,
     BulkEmail,
+    BulkEmailRetry,
     BulkEmailStatus,
     RecipientStatus,
 )
@@ -165,6 +167,24 @@ class BulkEmailSendSerializer(serializers.Serializer[dict[str, Any]]):
     start_at = serializers.DateTimeField(required=False, allow_null=True)
 
 
+class BulkEmailRetrySerializer(serializers.ModelSerializer[BulkEmailRetry]):
+    """One press of **Retry failed**: when, by whom, and how many copies it queued.
+
+    ``requested_by`` is the display name, blank once the account is deleted.
+    """
+
+    requested_by = serializers.SerializerMethodField()
+
+    class Meta:
+        model = BulkEmailRetry
+        fields = ["id", "requested_at", "requested_by", "count"]
+        read_only_fields = fields
+
+    def get_requested_by(self, retry: BulkEmailRetry) -> str:
+        """Who pressed **Retry failed**, or ``""`` once the account is gone."""
+        return retry.requested_by.display_name if retry.requested_by is not None else ""
+
+
 class BulkEmailDetailSerializer(serializers.ModelSerializer[BulkEmail]):
     """One bulk email with everything the compose and detail screens show.
 
@@ -187,12 +207,19 @@ class BulkEmailDetailSerializer(serializers.ModelSerializer[BulkEmail]):
     (``apps.bulk_email.senders.sender_notice``).  ``reply_to`` is the address replies
     go to, blank for the default, and ``default_reply_to`` that default for the email's
     sender; once the email is queued ``reply_to`` is the address its copies carry.
+    ``bounced_count`` counts the copies the bounce check later found refused, which
+    ``sent_count`` no longer counts; ``retries`` lists each press of **Retry failed**,
+    oldest first, and ``retried_count`` adds up the copies they queued again.
+    ``hidden_from_archive`` is true while the email is kept off the recipients'
+    **Messages** page.
     """
 
     email_type_name = serializers.SerializerMethodField()
     dart_name = serializers.SerializerMethodField()
     sender_notice = serializers.SerializerMethodField()
     default_reply_to = serializers.SerializerMethodField()
+    retries = BulkEmailRetrySerializer(many=True, read_only=True)
+    retried_count = serializers.SerializerMethodField()
 
     sender = serializers.SerializerMethodField()
     stopped_by = serializers.SerializerMethodField()
@@ -239,6 +266,10 @@ class BulkEmailDetailSerializer(serializers.ModelSerializer[BulkEmail]):
             "sent_count",
             "failed_count",
             "skipped_count",
+            "bounced_count",
+            "retried_count",
+            "retries",
+            "hidden_from_archive",
             "can_edit",
             "batch_count",
             "receiving_count",
@@ -276,6 +307,10 @@ class BulkEmailDetailSerializer(serializers.ModelSerializer[BulkEmail]):
     def get_default_reply_to(self, bulk: BulkEmail) -> str:
         """Where replies go when ``reply_to`` is blank, for the email's sender."""
         return default_reply_to(bulk.sender)
+
+    def get_retried_count(self, bulk: BulkEmail) -> int:
+        """How many copies **Retry failed** has queued again, over every retry."""
+        return retried_count(bulk)
 
     def get_stopped_by(self, bulk: BulkEmail) -> str:
         """Who pressed **Stop**, or ``""`` when nobody did or the account is gone."""

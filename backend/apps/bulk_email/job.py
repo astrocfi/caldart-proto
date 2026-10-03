@@ -47,6 +47,7 @@ from django.conf import settings
 from django.core.mail import mailers
 from django.core.mail.backends.base import BaseEmailBackend
 from django.db import connection, transaction
+from django.db.models import F
 from django.utils import timezone
 
 from apps.accounts.models import User
@@ -632,20 +633,25 @@ def _record(bulk: BulkEmail, row: BulkEmailRecipient, attempt: _Attempt, run: Se
 
     The row is saved first, with its status and ``Message-ID``, before the counts or
     anything else, so a run that dies after the hand-over leaves a copy that went
-    marked ``sent``, and the next run does not send it again.
+    marked ``sent``, and the next run does not send it again.  The count is added to in
+    the database, not written from ``bulk`` in memory, so a bounce the bounce check
+    moves off ``sent_count`` meanwhile (``apps.bulk_email.delivery``) is not undone.
     """
     row.status = attempt.status
     row.reason = attempt.reason
     row.message_id = attempt.message_id
     row.tried_at = timezone.now()
     row.save(update_fields=["status", "reason", "message_id", "tried_at", "values", "updated_at"])
-    if attempt.status == RecipientStatus.SENT:
-        bulk.sent_count += 1
+    is_sent = attempt.status == RecipientStatus.SENT
+    counter = "sent_count" if is_sent else "failed_count"
+    BulkEmail.objects.filter(pk=bulk.pk).update(
+        **{counter: F(counter) + 1, "updated_at": timezone.now()}
+    )
+    bulk.refresh_from_db(fields=["sent_count", "failed_count", "updated_at"])
+    if is_sent:
         run.sent += 1
     else:
-        bulk.failed_count += 1
         run.failed += 1
-    bulk.save(update_fields=["sent_count", "failed_count", "updated_at"])
     tally = run.tallies.setdefault(bulk.pk, [0, 0])
     tally[0 if attempt.status == RecipientStatus.SENT else 1] += 1
     run.actions.append(

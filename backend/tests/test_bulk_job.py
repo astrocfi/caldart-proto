@@ -10,13 +10,14 @@ import smtplib
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import pytest
 from django.core import mail
 from django.core.mail import EmailMessage, EmailMultiAlternatives
 from django.core.mail.backends.locmem import EmailBackend
 from django.db import connection
+from django.db.models import QuerySet
 from freezegun import freeze_time
 from pytest_django import Settings
 from rest_framework.test import APIClient
@@ -713,17 +714,16 @@ def test_a_copy_that_went_is_marked_sent_before_anything_else(
     three: BulkEmail, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """A run that dies saving the counts leaves the copy sent, never to be resent."""
-    original = BulkEmail.save
+    original = QuerySet.update
     crashed: list[bool] = []
 
-    def crash_on_counts(self: BulkEmail, *args: object, **kwargs: object) -> None:
-        fields = kwargs.get("update_fields")
-        if not crashed and isinstance(fields, list) and "sent_count" in fields:
+    def crash_on_counts(self: QuerySet[Any], **kwargs: Any) -> int:
+        if not crashed and "sent_count" in kwargs:
             crashed.append(True)
             raise KeyboardInterrupt
-        original(self, *args, **kwargs)  # type: ignore[arg-type]
+        return original(self, **kwargs)
 
-    monkeypatch.setattr(BulkEmail, "save", crash_on_counts)
+    monkeypatch.setattr(QuerySet, "update", crash_on_counts)
     with pytest.raises(KeyboardInterrupt):
         job.run_sender(now=NOW)
     job.run_sender(now=NOW)

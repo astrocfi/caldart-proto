@@ -8,8 +8,10 @@ and ``sent`` or ``stopped`` at the end.  Its people are a batch: every press of
 :class:`BulkEmailRecipient` row, ``batched`` while the email is a draft.  When the
 sender starts the email it freezes the batch: each row becomes ``pending``, or
 ``skipped`` with the reason, and each pending row then becomes ``sent``, ``failed``,
-or ``stopped`` as the send goes on.  A :class:`BulkEmailImage` is one image a sender
-put into a message, stored where every copy links to it.
+or ``stopped`` as the send goes on; a sent copy the bounce check later finds refused
+becomes ``bounced``.  A :class:`BulkEmailRetry` is one press of **Retry failed**.  A
+:class:`BulkEmailImage` is one image a sender put into a message, stored where every
+copy links to it.
 """
 
 from __future__ import annotations
@@ -100,7 +102,11 @@ class BulkEmail(TimestampedModel):
     ``started_at`` is when the background sender began, ``sent_at`` when the last copy
     had been tried, and ``stopped_at`` and ``stopped_by`` when and by whom a send was
     stopped part way.  ``stop_requested`` is how **Stop** reaches the sender, which
-    reads it between copies.  The counts are kept as each copy is tried.
+    reads it between copies.  The counts are kept as each copy is tried, and each
+    counts the rows of that status: a copy the bounce check later finds refused moves
+    from ``sent_count`` to ``bounced_count``, and **Retry failed** takes the copies it
+    queues again out of ``failed_count``.  ``hidden_from_archive`` keeps a sent email
+    off every recipient's **Messages** page without changing its history.
     """
 
     subject = models.CharField(max_length=200, blank=True)
@@ -148,6 +154,8 @@ class BulkEmail(TimestampedModel):
     sent_count = models.PositiveIntegerField(default=0)
     failed_count = models.PositiveIntegerField(default=0)
     skipped_count = models.PositiveIntegerField(default=0)
+    bounced_count = models.PositiveIntegerField(default=0)
+    hidden_from_archive = models.BooleanField(default=False)
 
     class Meta:
         ordering = ["-created_at", "-id"]
@@ -231,7 +239,7 @@ class BulkEmailRecipient(TimestampedModel):
         max_length=7, choices=RecipientStatus.choices, default=RecipientStatus.BATCHED
     )
     reason = models.CharField(max_length=200, blank=True)
-    message_id = models.CharField(max_length=255, blank=True)
+    message_id = models.CharField(max_length=255, blank=True, db_index=True)
     tried_at = models.DateTimeField(null=True, blank=True)
     values = models.JSONField(default=dict, blank=True)
 
@@ -251,6 +259,33 @@ class BulkEmailRecipient(TimestampedModel):
     def __str__(self) -> str:
         """Return ``"<email>: <status>"``."""
         return f"{self.email}: {self.status}"
+
+
+class BulkEmailRetry(models.Model):
+    """One press of **Retry failed**: who asked, when, and how many copies it queued.
+
+    Every ``failed`` copy of ``bulk_email`` went back to ``pending`` then, for the
+    background sender to try again.  ``requested_by`` is null once that account is
+    deleted.
+    """
+
+    bulk_email = models.ForeignKey(BulkEmail, on_delete=models.CASCADE, related_name="retries")
+    requested_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="bulk_email_retries",
+    )
+    requested_at = models.DateTimeField()
+    count = models.PositiveIntegerField()
+
+    class Meta:
+        ordering = ["requested_at", "id"]
+
+    def __str__(self) -> str:
+        """Return ``"Retry of <count> copies of <bulk email id>"``."""
+        return f"Retry of {self.count} copies of {self.bulk_email_id}"
 
 
 #: The directory under ``MEDIA_ROOT`` a bulk email's images are stored in.
