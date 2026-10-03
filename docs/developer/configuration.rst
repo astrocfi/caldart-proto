@@ -417,6 +417,14 @@ Email
    :Production: the selector the relay or the local mail server was set up with, such
       as ``mail``.
 
+``UNSUBSCRIBE_TOKEN_MAX_AGE``
+   How long the unsubscribe link in a bulk email keeps working, in seconds.  The
+   link carries the recipient and the email type, signed with ``SECRET_KEY``, and
+   turns that one type off without signing in (:ref:`email-unsubscribe`).  An
+   older link opens a page saying it has expired and pointing to Email preferences.
+
+   :Both: ``15552000`` (180 days), so an email read months later still unsubscribes.
+
 ``EMAIL_TIMEOUT`` *(prod only)*
    Seconds to wait on the SMTP server.  Default ``20``.  Keeps a wedged relay
    from hanging a request.

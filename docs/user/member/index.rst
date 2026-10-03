@@ -24,5 +24,6 @@ your home page, and the menu down its left leads to the rest.
    become-a-member
    change-email
    change-password
+   email-preferences
    members-only-content
    public-website

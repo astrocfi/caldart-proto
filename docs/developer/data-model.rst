@@ -315,6 +315,8 @@ Mail, reminders, reports, notifications, and the CMS pages
           User [label="accounts.User", style="rounded,dotted"];
           Membership [label="members.Membership", style="rounded,dotted"];
           Email [label="mail.EmailLog"];
+          EmailType [label="mail.EmailType"];
+          OptOut [label="mail.EmailOptOut"];
           Reminder [label="reminders.ReminderLog"];
           Schedule [label="reminders.ReminderSchedule"];
           ColumnSet [label="reports.SavedColumnSet"];
@@ -326,6 +328,8 @@ Mail, reminders, reports, notifications, and the CMS pages
           BulkImage [label="bulk_email.\nBulkEmailImage"];
       
           Email -> User [label="user\nSET_NULL"];
+          OptOut -> User [label="user\nCASCADE"];
+          OptOut -> EmailType [label="email_type\nCASCADE"];
           Reminder -> User [label="user\nCASCADE"];
           Reminder -> Membership [label="membership\nCASCADE"];
           Schedule -> User [label="updated_by\nSET_NULL"];
@@ -395,6 +399,8 @@ Mail, reminders, reports, notifications, and the CMS pages
       Models in this area
       -------------------
       mail.EmailLog               one email the installation tried to send
+      mail.EmailType              a kind of bulk email, and who may send it
+      mail.EmailOptOut            one person's choice not to receive one kind
       reminders.ReminderLog       one renewal reminder sent
       reminders.ReminderSchedule  when each reminder stage falls (one row)
       reports.SavedColumnSet      a named choice of one report's columns
@@ -426,6 +432,8 @@ Mail, reminders, reports, notifications, and the CMS pages
       Edges
       -----
       mail.EmailLog.user                   -> accounts.User       FK, SET_NULL, nullable
+      mail.EmailOptOut.user                -> accounts.User       FK, CASCADE
+      mail.EmailOptOut.email_type          -> mail.EmailType      FK, CASCADE
       reminders.ReminderLog.user           -> accounts.User       FK, CASCADE
       reminders.ReminderLog.membership     -> members.Membership  FK, CASCADE
       reminders.ReminderSchedule.updated_by -> accounts.User      FK, SET_NULL, nullable
@@ -1164,6 +1172,27 @@ permanent-failure report for a message the server took (:ref:`email-bounces`).
    * - ``bounced``
      - Bounced
 
+.. _choices-opt-out-source:
+
+``OptOutSource`` (``apps/mail/models.py``)
+------------------------------------------
+
+``EmailOptOut.source``: where a person's choice not to receive a kind of bulk email
+was made.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 70
+
+   * - Value
+     - Label
+   * - ``profile``
+     - Email preferences (the person's own screen)
+   * - ``unsubscribe``
+     - Unsubscribe link (in an email, or a mail program's own unsubscribe button)
+   * - ``admin``
+     - Account administrator (on the member record)
+
 .. _choices-bulk-email-status:
 
 ``BulkEmailStatus`` (``apps/bulk_email/models.py``)
@@ -1441,7 +1470,7 @@ to the rows already stored (:doc:`setup`).
 
 - ``groups``: many-to-many to ``auth.Group``; the reverse accessor is ``user_set``.
 - ``user_permissions``: many-to-many to ``auth.Permission``; the reverse accessor is ``user_set``.
-- Referenced by ``aircraft.Aircraft.created_by``, ``aircraft.Aircraft.insurance_verified_by``, ``aircraft.Aircraft.updated_by``, ``aircraft.AircraftChange.changed_by``, ``aircraft.AircraftCoveragePolicy.updated_by``, ``aircraft.RegistryImport.started_by``, ``mail.EmailLog.user``, ``members.MemberProfile.certificate_verified_by``, ``members.MemberProfile.medical_verified_by``, ``members.MemberProfile.photo_id_verified_by``, ``members.MemberProfile.user``, ``members.Membership.granted_by``, ``members.Membership.user``, ``payments.Payment.reconciled_by``, ``payments.Payment.recorded_by``, ``payments.Payment.user``, ``payments.Refund.requested_by``, ``payments.RenewalMandate.canceled_by``, ``payments.RenewalMandate.user``, ``payments.YearStatement.user``, ``reminders.ReminderLog.user``, ``reminders.ReminderSchedule.updated_by``, ``reports.ReportSubscription.created_by``, ``reports.ReportSubscription.recipient_user``, ``reports.SavedColumnSet.user``.
+- Referenced by ``aircraft.Aircraft.created_by``, ``aircraft.Aircraft.insurance_verified_by``, ``aircraft.Aircraft.updated_by``, ``aircraft.AircraftChange.changed_by``, ``aircraft.AircraftCoveragePolicy.updated_by``, ``aircraft.RegistryImport.started_by``, ``mail.EmailLog.user``, ``mail.EmailOptOut.user``, ``members.MemberProfile.certificate_verified_by``, ``members.MemberProfile.medical_verified_by``, ``members.MemberProfile.photo_id_verified_by``, ``members.MemberProfile.user``, ``members.Membership.granted_by``, ``members.Membership.user``, ``payments.Payment.reconciled_by``, ``payments.Payment.recorded_by``, ``payments.Payment.user``, ``payments.Refund.requested_by``, ``payments.RenewalMandate.canceled_by``, ``payments.RenewalMandate.user``, ``payments.YearStatement.user``, ``reminders.ReminderLog.user``, ``reminders.ReminderSchedule.updated_by``, ``reports.ReportSubscription.created_by``, ``reports.ReportSubscription.recipient_user``, ``reports.SavedColumnSet.user``.
 
 **Invariants.**
 
@@ -3873,6 +3902,137 @@ falling back to the linked account's current ``display_name`` when ``to_name``
 is blank, and to ``""`` when there is no account either; it is what
 ``GET /system/emails``' ``user_name`` (:ref:`api-email-log`) and the email log
 report's ``Name`` column read.
+
+.. _data-model-email-type:
+
+``EmailType``
+-------------
+
+A kind of bulk email, such as Operational, Fundraising, or Mission, which a system
+administrator keeps on the Email types screen (:doc:`api-email-types`).  The demo
+seed creates those three; a fresh installation has none until a system
+administrator adds one.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 22 26 18 34
+
+   * - Field
+     - Type
+     - Null, default
+     - Meaning
+   * - ``id``
+     - ``BigAutoField``
+     - not null; assigned by the database
+     - primary key
+   * - ``created_at``
+     - ``DateTimeField``
+     - not null; set on insert
+     - when the type was added
+   * - ``updated_at``
+     - ``DateTimeField``
+     - not null; set on every save
+     - when the type was last changed
+   * - ``name``
+     - ``CharField(60)``, unique
+     - not null; required
+     - what every screen and every email calls the type
+   * - ``slug``
+     - ``SlugField(60)``, unique
+     - not null; set on every save
+     - ``name`` slugified, rewritten whenever the name changes
+   * - ``description``
+     - ``TextField``
+     - not null; required
+     - one sentence saying what the type is for, which a member reads beside the switch that turns it off
+   * - ``allow_opt_out``
+     - ``BooleanField``
+     - not null; default ``True``
+     - whether a recipient may turn the type off; a type that allows it carries the unsubscribe headers and footer link
+   * - ``sender_roles``
+     - ``JSONField``
+     - not null; default ``[]``
+     - the role slugs that may send the type, from ``dart_leader`` and ``management``, once each in that order; a system administrator sends every type
+   * - ``position``
+     - ``PositiveIntegerField``
+     - not null; default ``0``
+     - where the type comes in every list; a type added without one goes after every other
+
+**Constraints, indexes, and ordering.**
+
+- Unique: ``name`` and ``slug``.
+- Ordering: ``position``, ``name``.
+
+**Relationships.**
+
+- Referenced by ``mail.EmailOptOut.email_type`` (``CASCADE``; reverse accessor
+  ``opt_outs``).
+
+The code refuses a name another type holds ignoring case, and a name whose slug
+another type's already is (*Mission!* beside *Mission*), with *Another email type
+already has this name.*; a name with no letter or digit has no slug and is refused
+too.  ``sender_roles`` is checked against ``apps.mail.types.SENDER_ROLES``.  A type
+that a bulk email names cannot be deleted: the bulk email's foreign key protects it,
+and the screen says to take every role off the type instead.
+
+.. _data-model-email-opt-out:
+
+``EmailOptOut``
+---------------
+
+One person's choice not to receive one kind of bulk email.  A row means opted out;
+no row means opted in, so a new account starts opted in to every type.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 22 26 18 34
+
+   * - Field
+     - Type
+     - Null, default
+     - Meaning
+   * - ``id``
+     - ``BigAutoField``
+     - not null; assigned by the database
+     - primary key
+   * - ``created_at``
+     - ``DateTimeField``
+     - not null; set on insert
+     - when the person turned the type off
+   * - ``updated_at``
+     - ``DateTimeField``
+     - not null; set on every save
+     - when the row was last saved
+   * - ``user``
+     - ``ForeignKey`` to ``accounts.User``, ``CASCADE``
+     - not null; required
+     - the person; related name ``email_opt_outs``
+   * - ``email_type``
+     - ``ForeignKey`` to ``mail.EmailType``, ``CASCADE``
+     - not null; required
+     - the type they turned off; related name ``opt_outs``
+   * - ``source``
+     - ``CharField(11)``, choices :ref:`OptOutSource <choices-opt-out-source>`
+     - not null; required
+     - where the choice was made: the person's Email preferences, an unsubscribe link, or the member record
+
+**Constraints, indexes, and ordering.**
+
+- Unique ``mail_opt_out_unique`` on (``user``, ``email_type``).
+- Ordering: the type's ``position``, then its ``name``.
+
+**Relationships.**
+
+- ``user``: foreign key to ``accounts.User``, ``CASCADE``; the reverse accessor is
+  ``email_opt_outs``.
+- ``email_type``: foreign key to ``mail.EmailType``, ``CASCADE``; the reverse
+  accessor is ``opt_outs``.
+
+A row for a type whose ``allow_opt_out`` is off stays in place and does not apply
+(``apps.mail.types.is_opted_out`` answers false); it applies again once the type
+allows opting out.  Every change is written through
+``apps.mail.types.set_opt_out``, which audits it as ``email.opt_out`` or
+``email.opt_in`` with the source.
 
 .. _data-model-reports:
 

@@ -22,6 +22,7 @@ to document each app's endpoints in detail, request body by response body.
    api-reports
    api-notifications
    api-bulk-email
+   api-email-types
    api-system
 
 Every endpoint the project serves is on one of those pages, and every one
@@ -1358,6 +1359,46 @@ not (see :ref:`api-csrf-bootstrap`).
      - ·
      - ✓
      - ``PATCH`` takes ``events`` and ``is_active``
+   * - ``GET | POST /email-types``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ``system_admin`` only (see :doc:`api-email-types`)
+   * - ``PUT | DELETE /email-types/{id}``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ``system_admin`` only; ``DELETE`` is 400 for a type a bulk email used
+   * - ``GET /email-types/sendable``
+     - ·
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+     - the types the caller may send
+   * - ``GET | PUT /me/email-preferences``
+     - ·
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+     - the caller's own opt-outs
+   * - ``GET | PUT /admin/members/{id}/email-preferences``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ✓
+     - a member's opt-outs, source ``admin``
    * - ``GET | POST /bulk-email/drafts``
      - ·
      - ·
@@ -1728,7 +1769,8 @@ That is what stops the register from being a way around the leader-check gate.
 ``/admin/members/{id}``, ``/admin/darts/{id}``, ``/reports/subscriptions/{id}``,
 and ``/notifications/subscriptions/{id}`` accept ``GET``, ``PATCH``, and
 ``DELETE``;
-``/admin/memberships/{id}`` accepts ``PATCH`` only.  Everything else on those
+``/admin/memberships/{id}`` accepts ``PATCH`` only, and ``/email-types/{id}``
+``PUT`` and ``DELETE`` only.  Everything else on those
 paths is 405.
 
 Testing the API

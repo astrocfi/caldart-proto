@@ -37,6 +37,9 @@ Every member and every friend of CalDART holds the member role. It opens the
 * **Change password** (:doc:`member/change-password`) and **Change email**
   (:doc:`member/change-email`).
 
+Every signed-in person also has **Email preferences** (:doc:`member/email-preferences`),
+under **Bulk Email** in the menu: which kinds of bulk email CalDART sends them.
+
 A friend also reaches **Become a member** (:doc:`member/become-a-member`). While
 your membership is current, the members-only pages of the public site open to you
 (:doc:`member/members-only-content`). A donor holds no role and has no portal at
@@ -192,6 +195,8 @@ role adds:
   backups, and the aircraft database loaded from the FAA registry, with a way to load
   it now.
 * **Sent Emails** (:doc:`admin/sent-emails`): the log of every email CalDART has sent.
+* **Email types** (:doc:`bulk-email/email-types`), under **Bulk Email**: the kinds of
+  bulk email, who may send each, and whether members may turn each off.
 * **Coverage policy** on the **Aircraft register** (:doc:`admin/aircraft-register`):
   which aircraft categories and airworthiness categories CalDART's insurance does not
   cover, and the note members read on **My aircraft**.
