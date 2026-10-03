@@ -383,8 +383,10 @@ class BulkEmailRunResultSerializer(serializers.Serializer[dict[str, object]]):
 
     ``busy`` is true when another run was working and this one did nothing.  ``emails``
     counts the bulk emails worked on; ``sent`` and ``failed`` the copies tried, and
-    ``skipped`` the people set aside as each email started.  Each action is one copy:
-    ``kind`` is ``sent`` or ``failed``, and ``detail`` the subject or the reason.
+    ``skipped`` the people set aside as each email started.  ``out_of_time`` is true
+    when the run's time budget ran out with copies still to send, and ``remaining``
+    counts them; the next run carries on with them.  Each action is one copy: ``kind``
+    is ``sent`` or ``failed``, and ``detail`` the subject or the reason.
     """
 
     busy = serializers.BooleanField()
@@ -392,4 +394,6 @@ class BulkEmailRunResultSerializer(serializers.Serializer[dict[str, object]]):
     sent = serializers.IntegerField()
     failed = serializers.IntegerField()
     skipped = serializers.IntegerField()
+    out_of_time = serializers.BooleanField()
+    remaining = serializers.IntegerField()
     actions = RunActionSerializer(many=True)

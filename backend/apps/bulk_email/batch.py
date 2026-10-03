@@ -15,7 +15,9 @@ more when it starts the send, and stores the answer (``apps.bulk_email.job``).
 
 Every change to the batch takes the email's row lock first (:func:`locked_for_edit`), so
 a change and the sender's start never overlap, and a change to an email that has started
-sending is refused.
+sending is refused.  A change to the batch of a queued email takes it back to a draft
+(:func:`back_to_draft`): the count the sender confirmed no longer holds, so the email
+must be sent again.
 """
 
 from __future__ import annotations
@@ -35,6 +37,7 @@ from apps.bulk_email.models import (
     BatchAdd,
     BulkEmail,
     BulkEmailRecipient,
+    BulkEmailStatus,
     RecipientKind,
     RecipientStatus,
 )
@@ -42,6 +45,7 @@ from apps.darts.models import Dart
 from apps.members.filters import EXPORT_FILTER_PARAMS, MemberAdminFilterSet, member_admin_queryset
 from apps.members.models import MemberProfile, MembershipState
 from apps.members.services import membership_of, with_membership
+from caldart import audit
 from caldart.exceptions import DomainError
 from caldart.reports import (
     CSV_DOCUMENT_TYPE,
@@ -176,7 +180,7 @@ def locked_for_edit(bulk: BulkEmail) -> BulkEmail:
     Call it inside a transaction: the lock is held until that commits, so the
     background sender cannot start the email half way through a change.  Raises
     ``DomainError`` with :data:`NOT_EDITABLE_MESSAGE` once the email is no longer a
-    draft or queued.
+    draft or queued, or has ever started sending (:attr:`BulkEmail.can_edit`).
     """
     locked = BulkEmail.objects.select_for_update().get(pk=bulk.pk)
     if not locked.can_edit:
@@ -193,7 +197,7 @@ def add_filters(bulk: BulkEmail, filters: Mapping[str, str], *, actor: User) -> 
     now, and one :class:`~apps.bulk_email.models.BatchAdd` records the given filters
     and the two counts.  Accounts already in the batch are counted and left alone.
     ``actor`` is the account pressing **Add to batch**; the batch belongs to the email,
-    whoever builds it.
+    whoever builds it.  A queued email goes back to a draft (:func:`back_to_draft`).
 
     Raises ``DomainError`` when the email has started sending, and DRF's
     ``ValidationError`` for a filter value the member list refuses; nothing is stored
@@ -215,7 +219,7 @@ def add_filters(bulk: BulkEmail, filters: Mapping[str, str], *, actor: User) -> 
         BulkEmailRecipient.objects.bulk_create(
             [_new_row(locked, account, add) for account in joining]
         )
-        locked.save(update_fields=["updated_at"])
+        back_to_draft(locked, actor=actor)
     return AddResult(
         added=add.added_count,
         already_present=add.already_count,
@@ -223,30 +227,52 @@ def add_filters(bulk: BulkEmail, filters: Mapping[str, str], *, actor: User) -> 
     )
 
 
-def remove(bulk: BulkEmail, recipient_id: int) -> None:
-    """Take one person out of ``bulk``'s batch.
+def remove(bulk: BulkEmail, recipient_id: int, *, actor: User) -> None:
+    """Take one person out of ``bulk``'s batch, as ``actor``.
 
-    Raises ``BulkEmailRecipient.DoesNotExist`` when ``recipient_id`` is not a row of
-    this batch, and ``DomainError`` when the email has started sending.
+    A queued email goes back to a draft (:func:`back_to_draft`).  Raises
+    ``BulkEmailRecipient.DoesNotExist`` when ``recipient_id`` is not a row of this
+    batch, and ``DomainError`` when the email has started sending.
     """
     with transaction.atomic():
         locked = locked_for_edit(bulk)
         row = batch_queryset(locked).get(pk=recipient_id)
         row.delete()
-        locked.save(update_fields=["updated_at"])
+        back_to_draft(locked, actor=actor)
 
 
-def clear(bulk: BulkEmail) -> int:
+def clear(bulk: BulkEmail, *, actor: User) -> int:
     """Empty ``bulk``'s batch, its adds included; return how many people were in it.
 
-    Raises ``DomainError`` when the email has started sending.
+    A queued email goes back to a draft (:func:`back_to_draft`).  Raises
+    ``DomainError`` when the email has started sending.
     """
     with transaction.atomic():
         locked = locked_for_edit(bulk)
         removed, _by_model = batch_queryset(locked).delete()
         locked.adds.all().delete()
-        locked.save(update_fields=["updated_at"])
+        back_to_draft(locked, actor=actor)
     return removed
+
+
+def back_to_draft(locked: BulkEmail, *, actor: User) -> None:
+    """Save a change to ``locked``'s batch; a queued email goes back to a draft.
+
+    ``locked`` is the email :func:`locked_for_edit` gave, inside the same transaction.
+    Its ``updated_at`` moves on.  A queued email loses its ``start_at``, ``scheduled``,
+    and ``confirm_count``, since the people the sender confirmed are no longer the
+    batch, and one ``bulk_email.cancel`` audit line with the reason
+    ``batch_changed`` names ``actor``.
+    """
+    if locked.status != BulkEmailStatus.QUEUED:
+        locked.save(update_fields=["updated_at"])
+        return
+    locked.status = BulkEmailStatus.DRAFT
+    locked.start_at = None
+    locked.scheduled = False
+    locked.confirm_count = None
+    locked.save(update_fields=["status", "start_at", "scheduled", "confirm_count", "updated_at"])
+    audit.record(audit.BULK_EMAIL_CANCEL, actor=actor, target=locked, reason="batch_changed")
 
 
 def batch_queryset(bulk: BulkEmail) -> QuerySet[BulkEmailRecipient]:

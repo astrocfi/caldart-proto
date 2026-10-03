@@ -14,13 +14,13 @@ from apps.bulk_email.api.drafts import summary_queryset
 from apps.bulk_email.api.serializers import BulkEmailSummarySerializer
 from apps.bulk_email.batch import results_document
 from apps.bulk_email.drafts import visible_to
-from apps.bulk_email.models import BulkEmail, BulkEmailStatus
+from apps.bulk_email.models import BulkEmail
 from apps.members.api.actors import acting_user
 from caldart.reports import CSV_MEDIA_TYPE, download_responses, report_response
 
 
 class SentListView(generics.ListAPIView[BulkEmail]):
-    """``GET /bulk-email/sent`` -- every email sending, sent, or stopped, newest first."""
+    """``GET /bulk-email/sent`` -- every email that has started sending, newest first."""
 
     permission_classes = BULK_EMAIL_PERMISSIONS
     serializer_class = BulkEmailSummarySerializer
@@ -30,10 +30,11 @@ class SentListView(generics.ListAPIView[BulkEmail]):
     pagination_class = None
 
     def get_queryset(self) -> QuerySet[BulkEmail]:
-        """Every started email the caller may open, the most recently started first."""
-        emails = visible_to(acting_user(self.request)).filter(
-            status__in=[BulkEmailStatus.SENDING, BulkEmailStatus.SENT, BulkEmailStatus.STOPPED]
-        )
+        """Every email the caller may open that has started sending, latest first.
+
+        That includes one **Send the rest** queued again.
+        """
+        emails = visible_to(acting_user(self.request)).filter(started_at__isnull=False)
         return summary_queryset(emails).order_by(F("started_at").desc(nulls_last=True), "-id")
 
 

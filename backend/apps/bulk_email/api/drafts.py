@@ -61,9 +61,9 @@ class DraftListCreateView(generics.ListAPIView[BulkEmail]):
     pagination_class = None
 
     def get_queryset(self) -> QuerySet[BulkEmail]:
-        """Every draft and queued email the caller may open, the latest edited first."""
+        """Every draft and unstarted queued email the caller may open, latest first."""
         emails = drafts.visible_to(acting_user(self.request)).filter(
-            status__in=[BulkEmailStatus.DRAFT, BulkEmailStatus.QUEUED]
+            status__in=[BulkEmailStatus.DRAFT, BulkEmailStatus.QUEUED], started_at__isnull=True
         )
         return summary_queryset(emails).order_by("-updated_at", "-id")
 

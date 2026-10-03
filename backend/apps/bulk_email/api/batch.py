@@ -41,10 +41,13 @@ class BatchView(APIView):
 
     @extend_schema(responses={200: BulkEmailBatchSerializer, 409: CONFLICT})
     def delete(self, request: Request, pk: int) -> Response:
-        """200 with the empty batch once everybody and every add is gone."""
+        """200 with the empty batch once everybody and every add is gone.
+
+        A queued email goes back to a draft.
+        """
         bulk = email_for(request, pk)
         try:
-            batch.clear(bulk)
+            batch.clear(bulk, actor=acting_user(request))
         except DomainError as error:
             return refused(error)
         return Response(BulkEmailBatchSerializer(batch_payload(bulk)).data)
@@ -63,7 +66,7 @@ class BatchAddView(APIView):
         """200 with how many joined, how many were there already, and the batch's size.
 
         A filter the member list does not have, or a value it refuses, is a 400 keyed
-        ``filters``.
+        ``filters``.  A queued email goes back to a draft.
         """
         bulk = email_for(request, pk)
         payload = BulkEmailAddSerializer(data=request.data)
@@ -86,10 +89,13 @@ class BatchRowView(APIView):
         operation_id="bulk_email_batch_row_destroy", responses={204: None, 409: CONFLICT}
     )
     def delete(self, request: Request, pk: int, rid: int) -> Response:
-        """204 once the person is out of the batch; 404 for a row not in it."""
+        """204 once the person is out of the batch; 404 for a row not in it.
+
+        A queued email goes back to a draft.
+        """
         bulk = email_for(request, pk)
         try:
-            batch.remove(bulk, rid)
+            batch.remove(bulk, rid, actor=acting_user(request))
         except BulkEmailRecipient.DoesNotExist as missing:
             raise Http404 from missing
         except DomainError as error:

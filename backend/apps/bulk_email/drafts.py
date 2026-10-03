@@ -28,6 +28,7 @@ from apps.accounts.models import User
 from apps.accounts.permissions import user_has_any_role
 from apps.accounts.roles import MANAGEMENT
 from apps.bulk_email.batch import batch_counts, batch_rows, locked_for_edit
+from apps.bulk_email.job import apply_stop
 from apps.bulk_email.models import BulkEmail, BulkEmailStatus, RecipientStatus
 from caldart import audit
 from caldart.exceptions import DomainError, DomainValidationError
@@ -183,11 +184,14 @@ def cancel(bulk: BulkEmail, *, actor: User) -> BulkEmail:
     """Take the queued ``bulk`` back to a draft, its batch and content intact.
 
     A draft is handed back unchanged.  Raises ``DomainError`` with
-    :data:`STARTED_MESSAGE` once the background sender has started it.  One
+    :data:`STARTED_MESSAGE` once the background sender has ever started it, which
+    includes an email **Send the rest** queued again: it holds copies that went.  One
     ``bulk_email.cancel`` audit line names ``actor``.
     """
     with transaction.atomic():
         locked = BulkEmail.objects.select_for_update().get(pk=bulk.pk)
+        if locked.started_at is not None:
+            raise DomainError(STARTED_MESSAGE)
         if locked.status == BulkEmailStatus.DRAFT:
             return locked
         if locked.status != BulkEmailStatus.QUEUED:
@@ -206,19 +210,25 @@ def cancel(bulk: BulkEmail, *, actor: User) -> BulkEmail:
 def stop(bulk: BulkEmail, *, actor: User) -> BulkEmail:
     """Ask the send of ``bulk`` in progress to stop; return the email.
 
-    The background sender reads the request between copies: every copy not yet sent is
-    then marked ``stopped``, naming ``actor``, and the email becomes ``stopped``.
-    Raises ``DomainError`` when the email is not sending.  One ``bulk_email.stop``
-    audit line names ``actor``.
+    For a ``sending`` email the background sender reads the request between copies:
+    every copy not yet sent is then marked ``stopped``, naming ``actor``, and the email
+    becomes ``stopped``.  An email **Send the rest** queued again, which the sender has
+    not picked up yet, stops at once the same way.  The ``bulk_email.stop`` audit line
+    is written when the stop takes effect (:func:`apps.bulk_email.job.apply_stop`).
+    Raises ``DomainError`` when the email is neither.
     """
     with transaction.atomic():
         locked = BulkEmail.objects.select_for_update().get(pk=bulk.pk)
-        if locked.status != BulkEmailStatus.SENDING:
+        is_resumed = locked.status == BulkEmailStatus.QUEUED and locked.started_at is not None
+        if locked.status != BulkEmailStatus.SENDING and not is_resumed:
             raise DomainError(NOT_SENDING_MESSAGE)
-        locked.stop_requested = True
         locked.stopped_by = actor
+        if is_resumed:
+            locked.save(update_fields=["stopped_by", "updated_at"])
+            apply_stop(locked)
+            return locked
+        locked.stop_requested = True
         locked.save(update_fields=["stop_requested", "stopped_by", "updated_at"])
-    audit.record(audit.BULK_EMAIL_STOP, actor=actor, target=locked)
     return locked
 
 
@@ -227,7 +237,9 @@ def resume(bulk: BulkEmail, *, actor: User, now: datetime | None = None) -> Bulk
 
     Every ``stopped`` row goes back to ``pending`` and the email is queued with
     ``start_at`` at ``now``, with no undo window; the background sender sends those
-    copies alone, and nobody already sent a copy is sent another.  Raises
+    copies alone, and nobody already sent a copy is sent another.  The email keeps its
+    ``started_at``, so it stays read-only and cannot be cancelled back to a draft;
+    **Stop** stops it again.  Raises
     ``DomainError`` unless the email is ``stopped``.  One ``bulk_email.resume`` audit
     line names ``actor``.
     """

@@ -20,11 +20,12 @@ from apps.bulk_email.drafts import visible_to
 from apps.bulk_email.job import run_sender
 from apps.bulk_email.models import BatchAdd, BulkEmail, BulkEmailStatus, RecipientStatus
 from caldart.exceptions import DomainError
-from tests.conftest import read_csv, role_matrix
+from tests.conftest import audit_messages, read_csv, role_matrix
 from tests.factories import (
     BulkEmailFactory,
     DartFactory,
     UserFactory,
+    add_to_batch,
     grant_membership,
     make_person,
 )
@@ -253,7 +254,7 @@ def test_removing_one_person_leaves_the_rest(bulk: BulkEmail, management: User) 
     make_person("amy@example.test", "Amy", "Abbott")
     make_person("zed@example.test", "Zed", "Young")
     batch.add_filters(bulk, MARIN, actor=management)
-    batch.remove(bulk, bulk.recipients.get(email="amy@example.test").pk)
+    batch.remove(bulk, bulk.recipients.get(email="amy@example.test").pk, actor=management)
     assert receiving(bulk) == ["zed@example.test"]
 
 
@@ -261,7 +262,7 @@ def test_clearing_empties_the_batch_and_its_adds(bulk: BulkEmail, management: Us
     """Nobody and no add is left."""
     make_person("amy@example.test")
     batch.add_filters(bulk, MARIN, actor=management)
-    batch.clear(bulk)
+    batch.clear(bulk, actor=management)
     assert (bulk.recipients.count(), bulk.adds.count()) == (0, 0)
 
 
@@ -269,7 +270,7 @@ def test_a_person_removed_can_be_added_again(bulk: BulkEmail, management: User) 
     """A later add brings back somebody removed."""
     make_person("amy@example.test")
     batch.add_filters(bulk, MARIN, actor=management)
-    batch.remove(bulk, bulk.recipients.get().pk)
+    batch.remove(bulk, bulk.recipients.get().pk, actor=management)
     assert batch.add_filters(bulk, MARIN, actor=management).added == 1
 
 
@@ -290,6 +291,57 @@ def test_a_queued_email_s_batch_can_still_change(bulk: BulkEmail, management: Us
     make_person("amy@example.test")
     BulkEmail.objects.filter(pk=bulk.pk).update(status=BulkEmailStatus.QUEUED)
     assert batch.add_filters(bulk, MARIN, actor=management).added == 1
+
+
+@pytest.mark.parametrize("change", ["add", "remove", "clear"])
+def test_a_batch_change_takes_a_queued_email_back_to_a_draft(
+    bulk: BulkEmail, management: User, change: str
+) -> None:
+    """The count the sender confirmed no longer holds, so the schedule is cleared."""
+    make_person("amy@example.test")
+    batch.add_filters(bulk, MARIN, actor=management)
+    BulkEmail.objects.filter(pk=bulk.pk).update(
+        status=BulkEmailStatus.QUEUED,
+        start_at=datetime(2027, 1, 1, tzinfo=UTC),
+        scheduled=True,
+        confirm_count=1,
+    )
+    if change == "add":
+        batch.add_filters(bulk, MARIN, actor=management)
+    elif change == "remove":
+        batch.remove(bulk, bulk.recipients.get().pk, actor=management)
+    else:
+        batch.clear(bulk, actor=management)
+    bulk.refresh_from_db()
+    assert (bulk.status, bulk.start_at, bulk.scheduled, bulk.confirm_count) == (
+        BulkEmailStatus.DRAFT,
+        None,
+        False,
+        None,
+    )
+
+
+def test_a_batch_change_on_a_queued_email_is_audited_as_a_cancel(
+    bulk: BulkEmail, management: User, audit_log: pytest.LogCaptureFixture
+) -> None:
+    """One ``bulk_email.cancel`` line names the reason."""
+    make_person("amy@example.test")
+    BulkEmail.objects.filter(pk=bulk.pk).update(status=BulkEmailStatus.QUEUED)
+    batch.add_filters(bulk, MARIN, actor=management)
+    assert audit_messages(audit_log) == [
+        f"action=bulk_email.cancel actor={management.pk} target={bulk.pk} reason=batch_changed"
+    ]
+
+
+def test_a_started_email_queued_again_cannot_change_its_batch(
+    bulk: BulkEmail, management: User
+) -> None:
+    """Send the rest queues an email that has copies out; its batch stays as it was."""
+    BulkEmail.objects.filter(pk=bulk.pk).update(
+        status=BulkEmailStatus.QUEUED, started_at=datetime(2026, 1, 1, tzinfo=UTC)
+    )
+    with pytest.raises(DomainError, match="has been sent and cannot be changed"):
+        batch.add_filters(bulk, MARIN, actor=management)
 
 
 # --------------------------------------------------------------------------
@@ -536,6 +588,7 @@ def test_changing_a_sent_email_s_batch_is_a_conflict(
         ("get", "/batch.csv", 200),
         ("post", "/batch/add", 200),
         ("delete", "/batch", 200),
+        ("delete", "/batch/{rid}", 204),
     ],
 )
 def test_only_management_reaches_the_batch(
@@ -549,6 +602,9 @@ def test_only_management_reaches_the_batch(
     code: int,
 ) -> None:
     """Every batch endpoint is CalDART management's and the system administrator's."""
+    row = add_to_batch(bulk, make_person("amy@example.test"))[0]
     api_client.force_login(all_role_users[role])
-    response = getattr(api_client, method)(f"{base_url(bulk)}{path}", {}, format="json")
+    response = getattr(api_client, method)(
+        f"{base_url(bulk)}{path.format(rid=row.pk)}", {}, format="json"
+    )
     assert response.status_code == (code if allowed else 403)

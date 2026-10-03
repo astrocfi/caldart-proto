@@ -16,6 +16,7 @@ import pytest
 from django.core import mail
 from django.core.management import call_command
 from django.db import connection
+from pytest_django import Settings
 from rest_framework.test import APIClient
 
 from apps.accounts.roles import SYSTEM_ADMIN
@@ -87,15 +88,15 @@ def test_the_command_sends_every_due_email(due: BulkEmail) -> None:
     )
 
 
-def test_the_command_prints_its_counts_and_each_copy(due: BulkEmail) -> None:
-    """The summary counts the run and names each copy with its subject."""
+def test_the_command_prints_its_counts_and_each_email_by_id(due: BulkEmail) -> None:
+    """The summary counts the run and names each email by its id, and nobody by name."""
     lines = run_command().splitlines()
     assert lines == [
         "emails           1",
         "sent             1",
         "failed           0",
         "skipped          0",
-        "sent Ann Able <ann@example.test> (Hangar day)",
+        f"bulk_email {due.pk}: sent 1, failed 0",
         "sent 1, failed 0, skipped 0 across 1 bulk email(s)",
     ]
 
@@ -132,6 +133,8 @@ def test_run_now_answers_what_the_run_did(system_admin_client: APIClient, due: B
         "sent": 1,
         "failed": 0,
         "skipped": 0,
+        "out_of_time": False,
+        "remaining": 0,
         "actions": [
             {
                 "kind": "sent",
@@ -193,3 +196,37 @@ def test_the_timer_fires_every_minute_on_the_minute() -> None:
     assert "OnCalendar=*-*-* *:*:00" in timer
     assert "AccuracySec=1s" in timer
     assert "RandomizedDelaySec" not in timer
+
+
+def test_run_now_stops_within_its_budget_and_leaves_the_rest_for_the_timer(
+    system_admin_client: APIClient,
+    management: User,
+    settings: Settings,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """At 30 a minute, a budget of three seconds sends two copies and leaves the third."""
+    settings.BULK_EMAIL_RATE_PER_MINUTE = 30
+    clock = [0.0]
+
+    def pause(seconds: float) -> None:
+        clock[0] += seconds
+
+    monkeypatch.setattr(job, "sleep", pause)
+    monkeypatch.setattr(job, "monotonic", lambda: clock[0])
+    monkeypatch.setattr(job, "REQUEST_BUDGET_SECONDS", 3)
+    monkeypatch.setattr("apps.bulk_email.api.sender.REQUEST_BUDGET_SECONDS", 3)
+    bulk = BulkEmailFactory(sender=management, status=BulkEmailStatus.QUEUED, start_at=PAST)
+    add_to_batch(
+        bulk,
+        make_person("ann@example.test", "Ann", "Able"),
+        make_person("bea@example.test", "Bea", "Bell"),
+        make_person("cy@example.test", "Cy", "Cole"),
+    )
+    body = system_admin_client.post(RUN_URL).json()
+    bulk.refresh_from_db()
+    assert (body["sent"], body["out_of_time"], body["remaining"], bulk.status) == (
+        2,
+        True,
+        1,
+        BulkEmailStatus.SENDING,
+    )

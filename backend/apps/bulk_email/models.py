@@ -41,7 +41,8 @@ class BulkEmailStatus(models.TextChoices):
     STOPPED = "stopped", "Stopped"
 
 
-#: The statuses in which an email's content, batch, and schedule can still change.
+#: The statuses in which an email's content, batch, and schedule can still change,
+#: as long as it has never started sending (:attr:`BulkEmail.can_edit`).
 EDITABLE_STATUSES: frozenset[str] = frozenset({BulkEmailStatus.DRAFT, BulkEmailStatus.QUEUED})
 
 
@@ -127,8 +128,13 @@ class BulkEmail(TimestampedModel):
 
     @property
     def can_edit(self) -> bool:
-        """True while the content, batch, and schedule can still change."""
-        return self.status in EDITABLE_STATUSES
+        """True while the content, batch, and schedule can still change.
+
+        That is a draft or a queued email the sender has never started.  Once
+        ``started_at`` is set the email holds copies that went, so it never becomes
+        editable again, not even while **Send the rest** has it queued.
+        """
+        return self.status in EDITABLE_STATUSES and self.started_at is None
 
 
 class BatchAdd(TimestampedModel):

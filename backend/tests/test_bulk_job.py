@@ -23,6 +23,7 @@ from rest_framework.test import APIClient
 
 from apps.bulk_email import drafts, job
 from apps.bulk_email.models import BulkEmail, BulkEmailStatus, RecipientStatus
+from apps.bulk_email.render import render_copy
 from apps.mail.models import EmailLog
 from tests.conftest import audit_messages
 from tests.factories import BulkEmailFactory, add_to_batch, make_person
@@ -562,3 +563,197 @@ def test_no_finish_is_estimated_once_the_send_is_over(
         management_client.get(f"/api/v1/bulk-email/{three.pk}").json()["estimated_finish_at"]
         is None
     )
+
+
+# --------------------------------------------------------------------------
+# A stop that comes too late, and a stop during the pause
+# --------------------------------------------------------------------------
+def test_a_stop_on_the_last_copy_leaves_a_sent_email_with_no_stop(
+    management: User,
+    clock: FakeClock,
+    monkeypatch: pytest.MonkeyPatch,
+    audit_log: pytest.LogCaptureFixture,
+) -> None:
+    """Stop pressed while the only copy goes: the email is sent, and nobody stopped it."""
+    bulk = queued_email(management, make_person("ann@example.test"))
+    original = EmailBackend.send_messages
+
+    def send(self: EmailBackend, messages: list[EmailMessage]) -> int:
+        drafts.stop(bulk, actor=management)
+        return original(self, messages)
+
+    monkeypatch.setattr(EmailBackend, "send_messages", send)
+    job.run_sender(now=NOW)
+    bulk.refresh_from_db()
+    assert (bulk.status, bulk.stopped_by, bulk.stop_requested) == (
+        BulkEmailStatus.SENT,
+        None,
+        False,
+    )
+    assert [line for line in audit_messages(audit_log) if "bulk_email.stop" in line] == []
+
+
+def test_a_stop_pressed_during_the_pause_keeps_the_next_copy_back(
+    three: BulkEmail, management: User, clock: FakeClock, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The flag is read after the pause as well as before it."""
+
+    def pause_and_stop(seconds: float) -> None:
+        clock.sleep(seconds)
+        drafts.stop(three, actor=management)
+
+    monkeypatch.setattr(job, "sleep", pause_and_stop)
+    job.run_sender(now=NOW)
+    assert [message.to[0] for message in mail.outbox] == ["ann@example.test"]
+
+
+def test_a_stop_that_takes_effect_is_audited_once(
+    three: BulkEmail, stop_after_first: None, management: User, audit_log: pytest.LogCaptureFixture
+) -> None:
+    """``bulk_email.stop`` names who pressed it and the copies kept back."""
+    job.run_sender(now=NOW)
+    assert [line for line in audit_messages(audit_log) if "bulk_email.stop" in line] == [
+        f"action=bulk_email.stop actor={management.pk} target={three.pk} recipients=2"
+    ]
+
+
+# --------------------------------------------------------------------------
+# Send the rest keeps the email read-only
+# --------------------------------------------------------------------------
+@pytest.fixture
+def resumed(three: BulkEmail, management: User, stop_after_first: None) -> BulkEmail:
+    """``three`` stopped after Ann's copy, then queued again with Send the rest."""
+    job.run_sender(now=NOW)
+    return drafts.resume(three, actor=management, now=NOW)
+
+
+def test_an_email_queued_again_cannot_be_edited(resumed: BulkEmail) -> None:
+    """It has copies out, so it is never editable again."""
+    assert resumed.can_edit is False
+
+
+def test_an_email_queued_again_cannot_be_canceled_to_a_draft(
+    management_client: APIClient, resumed: BulkEmail
+) -> None:
+    """Cancel is refused: a draft holding sent copies could be changed or deleted."""
+    response = management_client.post(f"/api/v1/bulk-email/{resumed.pk}/cancel")
+    assert (response.status_code, response.json()) == (409, {"detail": drafts.STARTED_MESSAGE})
+
+
+@pytest.mark.parametrize(
+    ("method", "path"),
+    [("patch", ""), ("delete", ""), ("post", "/batch/add"), ("delete", "/batch")],
+    ids=["edit", "delete", "add", "clear"],
+)
+def test_an_email_queued_again_refuses_every_change(
+    management_client: APIClient, resumed: BulkEmail, method: str, path: str
+) -> None:
+    """Every change answers 409 once the email has started."""
+    response = getattr(management_client, method)(
+        f"/api/v1/bulk-email/{resumed.pk}{path}", {"subject": "Changed"}, format="json"
+    )
+    assert response.status_code == 409
+
+
+def test_stop_on_an_email_queued_again_stops_it_at_once(
+    management_client: APIClient, resumed: BulkEmail
+) -> None:
+    """The sender has not picked it up yet, so the stop needs no run to take effect."""
+    management_client.post(f"/api/v1/bulk-email/{resumed.pk}/stop")
+    resumed.refresh_from_db()
+    assert (
+        resumed.status,
+        resumed.recipients.filter(status=RecipientStatus.STOPPED).count(),
+    ) == (BulkEmailStatus.STOPPED, 2)
+
+
+# --------------------------------------------------------------------------
+# Pacing across emails, the time budget, and the order of saves
+# --------------------------------------------------------------------------
+def test_the_pace_holds_across_several_emails_in_one_run(
+    management: User, clock: FakeClock, settings: Settings
+) -> None:
+    """Two small emails in one run are paced as one stream of copies."""
+    settings.BULK_EMAIL_RATE_PER_MINUTE = 30
+    queued_email(management, make_person("ann@example.test", "Ann", "Able"))
+    queued_email(management, make_person("bea@example.test", "Bea", "Bell"))
+    job.run_sender(now=NOW)
+    assert clock.pauses == [2.0]
+
+
+def test_a_run_out_of_time_leaves_the_email_sending_for_the_next_run(
+    three: BulkEmail, clock: FakeClock, settings: Settings
+) -> None:
+    """A three-second budget at 30 a minute sends two copies; the next run sends one."""
+    settings.BULK_EMAIL_RATE_PER_MINUTE = 30
+    first = job.run_sender(now=NOW, budget_seconds=3)
+    status_between = refreshed(three).status
+    job.run_sender(now=NOW)
+    assert (first.sent, first.out_of_time, first.remaining, status_between) == (
+        2,
+        True,
+        1,
+        BulkEmailStatus.SENDING,
+    )
+    assert refreshed(three).status == BulkEmailStatus.SENT
+
+
+def test_a_retry_that_would_overrun_the_budget_leaves_the_copy_pending(
+    three: BulkEmail, script: list[Outcome], clock: FakeClock, settings: Settings
+) -> None:
+    """A temporary refusal is not waited out past the budget; the copy is not failed."""
+    settings.BULK_EMAIL_RATE_PER_MINUTE = 6000
+    script.append(temporary(451))
+    run = job.run_sender(now=NOW, budget_seconds=4)
+    assert (statuses(three)[0][1], run.out_of_time) == (RecipientStatus.PENDING, True)
+
+
+def test_a_copy_that_went_is_marked_sent_before_anything_else(
+    three: BulkEmail, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A run that dies saving the counts leaves the copy sent, never to be resent."""
+    original = BulkEmail.save
+    crashed: list[bool] = []
+
+    def crash_on_counts(self: BulkEmail, *args: object, **kwargs: object) -> None:
+        fields = kwargs.get("update_fields")
+        if not crashed and isinstance(fields, list) and "sent_count" in fields:
+            crashed.append(True)
+            raise KeyboardInterrupt
+        original(self, *args, **kwargs)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(BulkEmail, "save", crash_on_counts)
+    with pytest.raises(KeyboardInterrupt):
+        job.run_sender(now=NOW)
+    job.run_sender(now=NOW)
+    assert [message.to[0] for message in mail.outbox] == [
+        "ann@example.test",
+        "bea@example.test",
+        "cy@example.test",
+    ]
+
+
+# --------------------------------------------------------------------------
+# An unexpected error
+# --------------------------------------------------------------------------
+def test_an_unexpected_error_fails_that_copy_and_the_run_moves_on(
+    three: BulkEmail,
+    management: User,
+    clock: FakeClock,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """The copy fails with the reason and a traceback in the log; a later email goes."""
+    later = queued_email(management, make_person("dee@example.test", "Dee", "Dunn"), start_at=NOW)
+    original = render_copy
+
+    def broken(bulk: BulkEmail, recipient: object) -> object:
+        if bulk.pk == three.pk:
+            raise ValueError("a bug")
+        return original(bulk, recipient)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(job, "render_copy", broken)
+    job.run_sender(now=NOW)
+    assert statuses(three)[0] == ("ann@example.test", RecipientStatus.FAILED, job.UNEXPECTED_REASON)
+    assert refreshed(later).status == BulkEmailStatus.SENT
+    assert any(record.exc_info is not None for record in caplog.records)
