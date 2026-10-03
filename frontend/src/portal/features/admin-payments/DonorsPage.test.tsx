@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import type { DonorRow, ReportColumn } from '@/portal/api/types';
 import { API, makeDonorRow } from '@test/handlers';
-import { renderWithProviders } from '@test/render';
+import { renderWithProviders, signedInClient } from '@test/render';
 import { server } from '@test/server';
 import { API_BASE } from '@/portal/urlPrefix';
 import { DonorsPage } from './DonorsPage';
@@ -27,6 +27,14 @@ const DONOR_COLUMNS: ReportColumn[] = [
   { key: 'net', label: 'Net', default: true },
   { key: 'active', label: 'Active', default: false },
 ];
+
+/** The row that keeps a deleted donor's gifts, whose record cannot be changed. */
+const TOMBSTONE_ROW = makeDonorRow({
+  user_id: 77,
+  name: 'Deleted member 41',
+  email: 'deleted-41@deleted.invalid',
+  is_tombstone: true,
+});
 
 const DANA = makeDonorRow({
   user_id: 41,
@@ -132,6 +140,44 @@ describe('DonorsPage', () => {
       'href',
       expect.stringContaining('county'),
     );
+  });
+
+  it("links a donor's name to their record for a treasurer who is an account administrator", async () => {
+    server.use(...donorsHandlers([DANA]));
+    renderWithProviders(<DonorsPage />, { client: signedInClient('treasurer', 'account_admin') });
+
+    expect(await screen.findByRole('link', { name: 'Dana Doe' })).toHaveAttribute(
+      'href',
+      '/admin/members/41',
+    );
+  });
+
+  it("links a donor's name to their record for a system administrator", async () => {
+    server.use(...donorsHandlers([DANA]));
+    renderWithProviders(<DonorsPage />, { client: signedInClient('system_admin') });
+
+    expect(await screen.findByRole('link', { name: 'Dana Doe' })).toHaveAttribute(
+      'href',
+      '/admin/members/41',
+    );
+  });
+
+  it('shows a treasurer who cannot open member records the name without a link', async () => {
+    server.use(...donorsHandlers([DANA]));
+    renderWithProviders(<DonorsPage />, { client: signedInClient('treasurer') });
+
+    await screen.findByRole('row', { name: /Dana Doe/ });
+
+    expect(screen.queryByRole('link', { name: 'Dana Doe' })).not.toBeInTheDocument();
+  });
+
+  it("leaves the row of a deleted donor's gifts unlinked", async () => {
+    server.use(...donorsHandlers([DANA, TOMBSTONE_ROW]));
+    renderWithProviders(<DonorsPage />, { client: signedInClient('treasurer', 'account_admin') });
+
+    await screen.findByRole('link', { name: 'Dana Doe' });
+
+    expect(screen.queryByRole('link', { name: 'Deleted member 41' })).not.toBeInTheDocument();
   });
 
   it('says so when no donor matches the filters', async () => {

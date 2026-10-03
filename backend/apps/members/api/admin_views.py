@@ -43,9 +43,9 @@ from apps.members.filters import (
     member_admin_queryset,
 )
 from apps.members.models import Membership
-from apps.members.services import delete_member, grant_term
+from apps.members.services import delete_member, grant_term, refuse_tombstone_change
 from caldart import audit
-from caldart.exceptions import DomainError, DomainValidationError
+from caldart.exceptions import DomainError, DomainPermissionError, DomainValidationError
 
 if TYPE_CHECKING:
     from apps.members.services import MemberRow
@@ -132,9 +132,16 @@ class MemberAdminDetailView(
         """200 with the whole member record, however few fields the PATCH carried.
 
         The edit is always partial, and a refused one is a field-keyed 400 that
-        leaves both the account and the profile as they were.
+        leaves both the account and the profile as they were.  A tombstone's record is
+        refused whatever the body holds: 400 ``{"detail": "This record keeps a deleted
+        member's payments in the books and cannot be changed."}``, audited as
+        ``account.update`` with the reason ``tombstone``.
         """
         instance = self.get_object()
+        try:
+            refuse_tombstone_change(acting_user(request), instance, audit.ACCOUNT_UPDATE)
+        except DomainError as error:
+            return _refused(error)
         serializer = MemberUpdateSerializer(
             instance, data=request.data, partial=True, context=self.get_serializer_context()
         )
@@ -142,12 +149,21 @@ class MemberAdminDetailView(
         serializer.save()
         return Response(MemberDetailSerializer(self.get_queryset().get(pk=instance.pk)).data)
 
-    def perform_destroy(self, instance: MemberRow) -> None:
-        """Hard delete, refused three ways by ``members.services.delete_member``.
+    def destroy(self, request: Request, *args: Any, **kwargs: Any) -> Response:
+        """204 once the account is gone, refused three ways by ``delete_member``.
 
-        Each refusal is a 403 carrying the sentence the service raised.
+        Deleting yourself, or a system administrator unless you are one, is a 403
+        carrying the sentence the service raised; deleting a tombstone is a 400
+        ``{"detail": "This record keeps a deleted member's payments in the books and
+        cannot be changed."}``.
         """
-        delete_member(acting_user(self.request), instance)
+        try:
+            delete_member(acting_user(request), self.get_object())
+        except DomainPermissionError:
+            raise
+        except DomainError as error:
+            return _refused(error)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class MemberMembershipGrantView(APIView):
@@ -163,18 +179,24 @@ class MemberMembershipGrantView(APIView):
         ``plan`` is a plan slug and must be an active plan; ``starts_on`` and
         ``note`` are optional, and a missing start date lets the service place
         the term after any coverage the member already has.  An unknown member
-        is a 404 and a body the serializer refuses a field-keyed 400.
+        is a 404 and a body the serializer refuses a field-keyed 400.  A donor is a
+        400 ``{"detail": "A donor holds no membership, and becomes a member only by
+        registering."}`` and a tombstone a 400 with the sentence a tombstone's record
+        refuses every change with; neither writes a term or raises an event.
         """
         member = get_object_or_404(User, pk=pk)
         serializer = MembershipGrantSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        term = grant_term(
-            acting_user(request),
-            member,
-            serializer.validated_data["plan"],
-            starts_on=serializer.validated_data.get("starts_on") or None,
-            note=serializer.validated_data.get("note", ""),
-        )
+        try:
+            term = grant_term(
+                acting_user(request),
+                member,
+                serializer.validated_data["plan"],
+                starts_on=serializer.validated_data.get("starts_on") or None,
+                note=serializer.validated_data.get("note", ""),
+            )
+        except DomainError as error:
+            return _refused(error)
         return Response(AdminMembershipSerializer(term).data, status=status.HTTP_201_CREATED)
 
 
@@ -210,6 +232,11 @@ class MembershipAdminDetailView(generics.UpdateAPIView[Membership]):
             term=term.pk,
             fields=changed,
         )
+
+
+def _refused(error: DomainError) -> Response:
+    """400 ``{"detail": <the sentence error carries>}``, for a change a rule refused."""
+    return Response({"detail": error.message}, status=status.HTTP_400_BAD_REQUEST)
 
 
 # --------------------------------------------------------------------------

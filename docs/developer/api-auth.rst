@@ -804,6 +804,12 @@ clears ``email_verified_at`` and mails the new address a verification link (see
 `Email verification`_), and clears any bounce recorded against the old address; a
 change of capitalization alone leaves all of them alone.
 
+A **Deleted member <id>** tombstone, which keeps a deleted account's payments,
+takes no edit at all: the view refuses any body with **400** ``{"detail": "This
+record keeps a deleted member's payments in the books and cannot be changed."}``
+before the serializer runs, as the member record does
+(:ref:`api-members-tombstone`).
+
 Three rules are enforced in ``AdminUserSerializer``:
 
 **Role slugs are validated.**  Anything outside ``ROLE_SLUGS`` is a 400 on

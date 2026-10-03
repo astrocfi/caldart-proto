@@ -1,4 +1,5 @@
 import { screen, within } from '@testing-library/react';
+import type { QueryClient } from '@tanstack/react-query';
 import { HttpResponse, http } from 'msw';
 import { Route, Routes } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
@@ -6,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 import type { MemberLedger } from '@/portal/api/types';
 import { makeContributionMandate, makeLedger, makeMandate } from '@test/fixtures/finance';
 import { API } from '@test/handlers';
-import { renderWithProviders } from '@test/render';
+import { renderWithProviders, signedInClient } from '@test/render';
 import { server } from '@test/server';
 import { MemberLedgerPage } from './MemberLedgerPage';
 
@@ -15,16 +16,49 @@ function serveLedger(ledger: MemberLedger = makeLedger()) {
   server.use(http.get(`${API}/admin/payments/ledger/37`, () => HttpResponse.json(ledger)));
 }
 
-function renderLedger() {
+/** Render the ledger of user 37, under `client` if given. */
+function renderLedger(client?: QueryClient) {
   return renderWithProviders(
     <Routes>
       <Route path="/admin/payments/members/:userId" element={<MemberLedgerPage />} />
     </Routes>,
-    { route: '/admin/payments/members/37' },
+    { route: '/admin/payments/members/37', client },
   );
 }
 
 describe('MemberLedgerPage', () => {
+  it('links the member record for an account administrator', async () => {
+    serveLedger();
+    renderLedger(signedInClient('account_admin'));
+
+    expect(await screen.findByRole('link', { name: 'Member record' })).toHaveAttribute(
+      'href',
+      '/admin/members/37',
+    );
+  });
+
+  it('offers a treasurer no link to the member record', async () => {
+    serveLedger();
+    renderLedger(signedInClient('treasurer'));
+
+    await screen.findByRole('heading', { name: 'Marta Reyes' });
+
+    expect(screen.queryByRole('link', { name: 'Member record' })).not.toBeInTheDocument();
+  });
+
+  it('offers no member record on the ledger of a deleted member', async () => {
+    const ledger = makeLedger();
+    serveLedger({
+      ...ledger,
+      user: { ...ledger.user, name: 'Deleted member 9', is_tombstone: true },
+    });
+    renderLedger(signedInClient('account_admin'));
+
+    await screen.findByRole('heading', { name: 'Deleted member 9' });
+
+    expect(screen.queryByRole('link', { name: 'Member record' })).not.toBeInTheDocument();
+  });
+
   it('names the member the ledger is about', async () => {
     serveLedger();
     renderLedger();

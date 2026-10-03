@@ -1,7 +1,8 @@
 /**
  * The Profile tab of a member record: the same fields as "New member", plus the
  * administrator-only notes, under a Verification card for the pilot certificate, the
- * medical, and the photo ID. Deactivating the account is the Danger zone tab's.
+ * medical, and the photo ID. Deactivating the account is the Danger zone tab's. A
+ * "Deleted member N" record shows no form: the server refuses every edit to one.
  */
 import { useState } from 'react';
 import type { JSX } from 'react';
@@ -26,6 +27,7 @@ import {
 import type { AccountDraft } from './MemberFormFields';
 import { useUpdateMember } from './api';
 import { splitErrors } from './errors';
+import { TOMBSTONE_NOTE } from './tombstone';
 
 function accountDraftFrom(member: MemberDetail): AccountDraft {
   return {
@@ -89,53 +91,59 @@ export function MemberProfileTab({ member }: { member: MemberDetail }): JSX.Elem
           onSaved={handleVerified}
         />
       ) : null}
-      <Card>
-        <form onSubmit={handleSubmit} noValidate>
-          {errors.detail ? (
-            <p role="alert" className="field__error">
-              {errors.detail}
-            </p>
-          ) : null}
-
-          <AccountFields
-            value={account}
-            onChange={(next) => setAccount(next)}
-            errors={errors.account}
-            emailHint={<EmailVerifiedText verifiedAt={member.email_verified_at} />}
-          />
-          <ProfileFieldsets
-            value={profile}
-            onChange={(next) => setProfile(next)}
-            errors={errors.profile}
-            darts={darts.data ?? []}
-            dartsLoading={darts.isPending}
-          />
-          <AdminOnlyFields
-            value={adminOnly}
-            onChange={(next) => setAdminOnly(next)}
-            errors={errors.profile}
-          />
-
-          <div className="cluster">
-            <Button type="submit" disabled={update.isPending}>
-              {update.isPending ? 'Saving…' : 'Save changes'}
-            </Button>
-            {member.profile?.aircraft.length ? (
-              <p className="muted">
-                Aircraft on file:{' '}
-                {member.profile.aircraft.map((one, index) => (
-                  <span key={one.id}>
-                    {index > 0 ? ', ' : ''}
-                    <Link className="mono" to={`/admin/aircraft/${one.id}`}>
-                      {one.n_number}
-                    </Link>
-                  </span>
-                ))}
+      {member.is_tombstone ? (
+        <Card>
+          <p className="muted">{TOMBSTONE_NOTE}</p>
+        </Card>
+      ) : (
+        <Card>
+          <form onSubmit={handleSubmit} noValidate>
+            {errors.detail ? (
+              <p role="alert" className="field__error">
+                {errors.detail}
               </p>
             ) : null}
-          </div>
-        </form>
-      </Card>
+
+            <AccountFields
+              value={account}
+              onChange={(next) => setAccount(next)}
+              errors={errors.account}
+              emailHint={<EmailVerifiedText verifiedAt={member.email_verified_at} />}
+            />
+            <ProfileFieldsets
+              value={profile}
+              onChange={(next) => setProfile(next)}
+              errors={errors.profile}
+              darts={darts.data ?? []}
+              dartsLoading={darts.isPending}
+            />
+            <AdminOnlyFields
+              value={adminOnly}
+              onChange={(next) => setAdminOnly(next)}
+              errors={errors.profile}
+            />
+
+            <div className="cluster">
+              <Button type="submit" disabled={update.isPending}>
+                {update.isPending ? 'Saving…' : 'Save changes'}
+              </Button>
+              {member.profile?.aircraft.length ? (
+                <p className="muted">
+                  Aircraft on file:{' '}
+                  {member.profile.aircraft.map((one, index) => (
+                    <span key={one.id}>
+                      {index > 0 ? ', ' : ''}
+                      <Link className="mono" to={`/admin/aircraft/${one.id}`}>
+                        {one.n_number}
+                      </Link>
+                    </span>
+                  ))}
+                </p>
+              ) : null}
+            </div>
+          </form>
+        </Card>
+      )}
     </>
   );
 }

@@ -1,5 +1,6 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import type { QueryClient } from '@tanstack/react-query';
 import { HttpResponse, http } from 'msw';
 import { Route, Routes } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
@@ -7,7 +8,7 @@ import { describe, expect, it } from 'vitest';
 import type { PaymentDetail } from '@/portal/api/types';
 import { makeDetail, makeRefund } from '@test/fixtures/finance';
 import { API } from '@test/handlers';
-import { renderWithProviders } from '@test/render';
+import { renderWithProviders, signedInClient } from '@test/render';
 import { server } from '@test/server';
 import { PaymentDetailPage } from './PaymentDetailPage';
 
@@ -45,17 +46,45 @@ function servePayment(payment: PaymentDetail = makeDetail()): Record<string, unk
   return bodies;
 }
 
-/** Render the detail screen at the route that gives it its id. */
-function renderDetail() {
+/** Render the detail screen at the route that gives it its id, under `client` if given. */
+function renderDetail(client?: QueryClient) {
   return renderWithProviders(
     <Routes>
       <Route path="/admin/payments/:id" element={<PaymentDetailPage />} />
     </Routes>,
-    { route: '/admin/payments/412' },
+    { route: '/admin/payments/412', client },
   );
 }
 
 describe('PaymentDetailPage', () => {
+  it("links the payer's member record for an account administrator", async () => {
+    servePayment();
+    renderDetail(signedInClient('account_admin'));
+
+    expect(await screen.findByRole('link', { name: 'Member record' })).toHaveAttribute(
+      'href',
+      '/admin/members/37',
+    );
+  });
+
+  it("offers a treasurer no link to the payer's member record", async () => {
+    servePayment();
+    renderDetail(signedInClient('treasurer'));
+
+    await screen.findByRole('heading', { name: 'Payment CALDART-000412' });
+
+    expect(screen.queryByRole('link', { name: 'Member record' })).not.toBeInTheDocument();
+  });
+
+  it('offers no member record for a payment a deleted member left behind', async () => {
+    servePayment(makeDetail({ user_name: 'Deleted member 9', user_is_tombstone: true }));
+    renderDetail(signedInClient('account_admin'));
+
+    await screen.findByRole('heading', { name: 'Payment CALDART-000412' });
+
+    expect(screen.queryByRole('link', { name: 'Member record' })).not.toBeInTheDocument();
+  });
+
   it('names the payment by its receipt number', async () => {
     servePayment();
     renderDetail();

@@ -11,6 +11,7 @@ from rest_framework import serializers
 
 from apps.members.api.serializers import MembershipStatusSerializer, PlanSerializer
 from apps.members.models import Membership
+from apps.members.services import is_tombstone
 from apps.payments.dates import is_in_the_future
 from apps.payments.manual import MANUAL_METHOD_CHOICES
 from apps.payments.models import (
@@ -715,6 +716,7 @@ class FinancePaymentSerializer(serializers.ModelSerializer[Payment]):
     user_id = serializers.IntegerField(read_only=True)
     user_name = serializers.SerializerMethodField()
     user_email = serializers.EmailField(source="user.email", read_only=True)
+    user_is_tombstone = serializers.SerializerMethodField()
     plan = serializers.SerializerMethodField()
     kind = serializers.ChoiceField(choices=PaymentKind.choices, read_only=True)
     paid_on = serializers.DateField(read_only=True, allow_null=True)
@@ -732,6 +734,7 @@ class FinancePaymentSerializer(serializers.ModelSerializer[Payment]):
             "user_id",
             "user_name",
             "user_email",
+            "user_is_tombstone",
             "plan",
             "kind",
             "amount_cents",
@@ -764,6 +767,10 @@ class FinancePaymentSerializer(serializers.ModelSerializer[Payment]):
         """The member's full name, or their email address when they have no name."""
         full = f"{obj.user.first_name} {obj.user.last_name}".strip()
         return full or obj.user.email
+
+    def get_user_is_tombstone(self, obj: Payment) -> bool:
+        """Whether the payer is the **Deleted member <id>** account of a deleted one."""
+        return is_tombstone(obj.user)
 
     def get_plan(self, obj: Payment) -> str | None:
         """The plan's name, or ``None`` for a payment that bought no plan."""
@@ -871,7 +878,11 @@ class ContributionRowSerializer(serializers.Serializer[ContributionRow]):
 
 
 class DonorRowSerializer(serializers.Serializer[DonorRow]):
-    """One row of ``GET /admin/payments/donors``."""
+    """One row of ``GET /admin/payments/donors``.
+
+    ``is_tombstone`` is true for the **Deleted member <id>** account that keeps a deleted
+    account's payments, whose record cannot be changed.
+    """
 
     user_id = serializers.IntegerField()
     name = serializers.CharField()
@@ -888,6 +899,7 @@ class DonorRowSerializer(serializers.Serializer[DonorRow]):
     refunded_cents = serializers.IntegerField()
     net_cents = serializers.IntegerField()
     active = serializers.BooleanField()
+    is_tombstone = serializers.BooleanField()
 
 
 class StatementsRunRequestSerializer(serializers.Serializer[dict[str, Any]]):
@@ -921,11 +933,12 @@ class StatementsRunResultSerializer(serializers.Serializer[dict[str, Any]]):
 
 
 class LedgerMemberSerializer(serializers.Serializer[dict[str, Any]]):
-    """Who the ledger is about."""
+    """Who the ledger is about; ``is_tombstone`` marks a deleted account's stand-in."""
 
     id = serializers.IntegerField()
     name = serializers.CharField()
     email = serializers.EmailField()
+    is_tombstone = serializers.BooleanField()
     membership = MembershipStatusSerializer()
 
 

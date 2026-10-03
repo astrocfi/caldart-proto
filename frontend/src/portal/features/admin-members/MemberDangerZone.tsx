@@ -7,12 +7,15 @@
  * back.  A payment is a financial record and is kept whatever happens to the
  * account: the server hands a member's payments to a "Deleted member {id}"
  * account, and the tab says so before the delete.  The server refuses to delete
- * you, or a system administrator unless you are one, and says so here.
+ * you, or a system administrator unless you are one, and says so here.  A deleted
+ * donor's reader lands back on the donors report, where the gifts show under the
+ * tombstone's name; everybody else on the member list.
  */
 import { useState } from 'react';
 import type { JSX } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import { useAuth } from '@/portal/auth/useAuth';
 import { Card } from '@/portal/components/Card';
 import { DeleteButton } from '@/portal/components/DeleteButton';
 import { Field } from '@/portal/components/Field';
@@ -20,6 +23,8 @@ import { useToast } from '@/portal/components/Toast';
 import { MemberAccountActions } from './MemberAccountActions';
 import { useDeleteMember } from './api';
 import { splitErrors } from './errors';
+import { recordHome } from './recordHome';
+import { TOMBSTONE_NOTE } from './tombstone';
 import type { MemberDetail } from '@/portal/api/types';
 
 function PaymentsNote({ member }: { member: MemberDetail }) {
@@ -36,12 +41,25 @@ function PaymentsNote({ member }: { member: MemberDetail }) {
 
 /**
  * The Danger zone tab: the account actions, then the delete, which keeps the member's
- * payments in the books.
+ * payments in the books. A "Deleted member N" record offers neither, only the reason.
  */
 export function MemberDangerZone({ member }: { member: MemberDetail }): JSX.Element {
+  if (member.is_tombstone) {
+    return (
+      <Card title="Kept for the books" eyebrow="Danger zone">
+        <p>{TOMBSTONE_NOTE}</p>
+      </Card>
+    );
+  }
+  return <DeleteZone member={member} />;
+}
+
+/** The account actions and the delete form, for any record but a tombstone's. */
+function DeleteZone({ member }: { member: MemberDetail }): JSX.Element {
   const navigate = useNavigate();
   const toast = useToast();
   const remove = useDeleteMember(member.id);
+  const { roles } = useAuth();
   const [confirmation, setConfirmation] = useState('');
 
   const confirmed = confirmation.trim().toLowerCase() === member.email.toLowerCase();
@@ -53,7 +71,7 @@ export function MemberDangerZone({ member }: { member: MemberDetail }): JSX.Elem
     remove.mutate(undefined, {
       onSuccess: () => {
         toast.show(`${member.name} has been deleted.`, 'success');
-        void navigate('/admin/members');
+        void navigate(recordHome(member, roles).to);
       },
     });
   };

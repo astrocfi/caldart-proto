@@ -1,6 +1,9 @@
 /**
  * `/admin/members/:id` — one member record, in four tabs.
  *
+ * A donor's record is reached from the donors report rather than the member list,
+ * and leads back to it for a reader who opens that report (see `recordHome`).
+ *
  * The tab is held in the query string so a colleague can be sent straight to
  * the memberships table, and the tab strip follows the WAI-ARIA tabs pattern:
  * arrow keys move between tabs, Home and End jump to the ends.
@@ -10,6 +13,7 @@ import type { JSX } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 
 import type { MemberDetail } from '@/portal/api/types';
+import { useAuth } from '@/portal/auth/useAuth';
 import { ACCOUNT_KIND_LABELS, roleLabel } from '@/portal/choices';
 import { BouncedChip } from '@/portal/components/BouncedChip';
 import { ButtonLink } from '@/portal/components/Button';
@@ -23,6 +27,7 @@ import { MemberMembershipsTab } from './MemberMembershipsTab';
 import { MemberPaymentsTab } from './MemberPaymentsTab';
 import { MemberProfileTab } from './MemberProfileTab';
 import { useMember } from './api';
+import { recordHome } from './recordHome';
 
 const TABS = [
   { id: 'profile', label: 'Profile' },
@@ -162,6 +167,7 @@ export function MemberDetailPage(): JSX.Element {
   const active: TabId = isTabId(requested) ? requested : 'profile';
 
   const member = useMember(Number.isFinite(memberId) ? memberId : null);
+  const { roles } = useAuth();
 
   const handleSelectTab = (tab: TabId) => {
     const next = new URLSearchParams(params);
@@ -191,14 +197,15 @@ export function MemberDetailPage(): JSX.Element {
   }
 
   const record = member.data;
+  const home = recordHome(record, roles);
 
   return (
     <Page
       title={record.name}
       eyebrow="Member record"
       actions={
-        <ButtonLink to="/admin/members" variant="quiet">
-          Back to members
+        <ButtonLink to={home.to} variant="quiet">
+          {home.label}
         </ButtonLink>
       }
     >

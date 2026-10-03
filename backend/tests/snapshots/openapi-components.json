@@ -1011,6 +1011,7 @@
       "first_gift": "string(date)|null",
       "gifts": "integer",
       "given_cents": "integer",
+      "is_tombstone": "boolean",
       "last_gift": "string(date)|null",
       "name": "string",
       "net_cents": "integer",
@@ -1028,6 +1029,7 @@
       "first_gift",
       "gifts",
       "given_cents",
+      "is_tombstone",
       "last_gift",
       "name",
       "net_cents",
@@ -1155,6 +1157,7 @@
       "status": "ref:PaymentStatusEnum",
       "user_email": "string(email)",
       "user_id": "integer",
+      "user_is_tombstone": "boolean",
       "user_name": "string",
       "wallet": "ref:WalletEnum"
     },
@@ -1186,6 +1189,7 @@
       "status",
       "user_email",
       "user_id",
+      "user_is_tombstone",
       "user_name",
       "wallet"
     ]
@@ -1220,6 +1224,7 @@
       "status": "ref:PaymentStatusEnum",
       "user_email": "string(email)",
       "user_id": "integer",
+      "user_is_tombstone": "boolean",
       "user_name": "string",
       "wallet": "ref:WalletEnum"
     },
@@ -1252,6 +1257,7 @@
       "status",
       "user_email",
       "user_id",
+      "user_is_tombstone",
       "user_name",
       "wallet"
     ]
@@ -1421,12 +1427,14 @@
     "properties": {
       "email": "string(email)",
       "id": "integer",
+      "is_tombstone": "boolean",
       "membership": "ref:MembershipStatus",
       "name": "string"
     },
     "required": [
       "email",
       "id",
+      "is_tombstone",
       "membership",
       "name"
     ]
@@ -1534,6 +1542,7 @@
       "friend_on": "string(date)|null",
       "id": "integer",
       "is_active": "boolean",
+      "is_tombstone": "boolean",
       "joined_on": "string(date)|null",
       "kind": "ref:AccountKindEnum",
       "last_name": "string",
@@ -1556,6 +1565,7 @@
       "friend_on",
       "id",
       "is_active",
+      "is_tombstone",
       "joined_on",
       "kind",
       "last_name",

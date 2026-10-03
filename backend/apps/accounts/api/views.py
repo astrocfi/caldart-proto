@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from typing import Any
 
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib.auth.models import AnonymousUser
@@ -69,7 +70,13 @@ from apps.accounts.throttling import (
     PasswordResetThrottle,
     RegisterThrottle,
 )
-from apps.members.services import register_member, restore_terms, suspend_terms, with_membership
+from apps.members.services import (
+    refuse_tombstone_change,
+    register_member,
+    restore_terms,
+    suspend_terms,
+    with_membership,
+)
 from apps.payments.renewals.mandates import cancel_all_mandates
 from caldart import audit
 from caldart.exceptions import DomainError
@@ -643,6 +650,23 @@ class AdminUserDetailView(generics.RetrieveUpdateAPIView[User]):
     def get_queryset(self) -> QuerySet[User]:
         """Every account, annotated for this request's date."""
         return admin_user_queryset()
+
+    def update(self, request: Request, *args: Any, **kwargs: Any) -> Response:
+        """200 with the account as saved, or 400 for a tombstone whatever the body holds.
+
+        A tombstone keeps a deleted member's payments under its own name, address, and
+        lack of roles, so ``PATCH`` on one is 400 ``{"detail": "This record keeps a
+        deleted member's payments in the books and cannot be changed."}``, audited as
+        ``account.update`` with the reason ``tombstone``.  Any other account is DRF's
+        partial update through ``AdminUserSerializer``.
+        """
+        try:
+            refuse_tombstone_change(
+                signed_in_user(request), self.get_object(), audit.ACCOUNT_UPDATE
+            )
+        except DomainError as error:
+            return Response({"detail": error.message}, status=status.HTTP_400_BAD_REQUEST)
+        return super().update(request, *args, **kwargs)
 
 
 def _mail_refused(what: str, refusal: MailRefusedError) -> Response:

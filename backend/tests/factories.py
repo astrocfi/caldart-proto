@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 import factory
@@ -519,6 +519,25 @@ def expire_membership(user: UserModel, plan: MembershipPlan, *, days_ago: int = 
         starts_on=today - timedelta(days=days_ago + 365),
         ends_on=today - timedelta(days=days_ago),
         status=MembershipStatusChoices.EXPIRED,
+    )
+
+
+def settled_gift(
+    user: UserModel, *, cents: int, on: date, status: str = PaymentStatus.SUCCEEDED
+) -> Payment:
+    """A contribution-only gift of ``cents`` from ``user`` on ``on``, settled by default.
+
+    It buys no plan, so the whole amount is the contribution, and it completed at noon
+    UTC on ``on``, the ledger date the donors and contributions reports count it by.
+    """
+    return PaymentFactory(
+        user=user,
+        plan=None,
+        status=status,
+        contribution_cents=cents,
+        plan_amount_cents=0,
+        amount_cents=cents,
+        completed_at=datetime(on.year, on.month, on.day, 12, 0, tzinfo=UTC),
     )
 
 

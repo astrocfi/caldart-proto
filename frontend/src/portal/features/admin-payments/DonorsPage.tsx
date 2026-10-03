@@ -5,15 +5,20 @@
  * One row per donor, aggregated over the range the filter bar narrows to:
  * how much they have given, how much of it came back, and when they last
  * gave.  An account administrator does not reach this screen; the route
- * guard and `FinanceTabs` both key off the treasurer role.  The column
+ * guard and `FinanceTabs` both key off the treasurer role.  A donor is on no
+ * member list, so for a reader who also opens member records (an account
+ * administrator, or a system administrator) each name links to the donor's
+ * record, where the donor can be deleted; a "Deleted member N" row is not linked.  The column
  * chooser drives the table and both exports at once, so what a treasurer
  * sees is what the downloaded file holds, as `PaymentsListPage` does.
  */
 import { useMemo, useState } from 'react';
 import type { JSX } from 'react';
+import { Link } from 'react-router-dom';
 
 import type { DonorRow, ReportColumn } from '@/portal/api/types';
 import { useDarts } from '@/portal/api/queries';
+import { useAuth } from '@/portal/auth/useAuth';
 import { ColumnChooser, defaultColumnKeys } from '@/portal/components/ColumnChooser';
 import type { Column } from '@/portal/components/DataTable';
 import { DataTable } from '@/portal/components/DataTable';
@@ -23,6 +28,7 @@ import { Money } from '@/portal/components/Money';
 import { Page } from '@/portal/components/Page';
 import { StatusChip } from '@/portal/components/StatusChip';
 import { useUrlFilters } from '@/portal/components/useUrlFilters';
+import { hasAnyRole } from '@/portal/nav';
 import { reportExportUrl, useReportColumns } from '@/portal/reports/api';
 import { REPORTS, listFilters } from '@/portal/reports/definitions';
 import { useDonors } from './api';
@@ -85,12 +91,32 @@ const CELLS: Record<string, Omit<Column<DonorRow>, 'key' | 'header'>> = {
   },
 };
 
-/** The table's columns for the chosen keys, in registry order. */
-function tableColumns(registry: ReportColumn[], chosen: string[]): Column<DonorRow>[] {
+/**
+ * The name cell for a reader who opens member records: a link to the donor's record, but
+ * plain text for a "Deleted member N" row, whose record cannot be changed.
+ */
+const RECORD_NAME_CELL: Omit<Column<DonorRow>, 'key' | 'header'> = {
+  render: (row) =>
+    row.is_tombstone ? row.name : <Link to={`/admin/members/${row.user_id}`}>{row.name}</Link>,
+  sortValue: (row) => row.name,
+};
+
+/**
+ * The table's columns for the chosen keys, in registry order, with each name a link
+ * to the donor's record when `canOpenRecords`.
+ */
+function tableColumns(
+  registry: ReportColumn[],
+  chosen: string[],
+  canOpenRecords: boolean,
+): Column<DonorRow>[] {
   return registry
     .filter((column) => chosen.includes(column.key))
     .map((column) => {
-      const cell = CELLS[column.key] ?? { render: () => '—' };
+      const cell =
+        column.key === 'name' && canOpenRecords
+          ? RECORD_NAME_CELL
+          : (CELLS[column.key] ?? { render: () => '—' });
       return { ...cell, key: column.key, header: column.label };
     });
 }
@@ -106,13 +132,20 @@ export function DonorsPage(): JSX.Element {
     [darts.data],
   );
   const [chosen, setChosen] = useState<string[] | null>(null);
+  // The member record is the account administrator's, so only a reader holding that
+  // role as well as the treasurer's gets a link they can follow.
+  const { roles } = useAuth();
+  const canOpenRecords = hasAnyRole(roles, ['account_admin']);
 
   const registry = useReportColumns('donors');
   const columns = useMemo(() => registry.data ?? [], [registry.data]);
   const chosenKeys = chosen ?? defaultColumnKeys(columns);
 
   const rows = useDonors(filters);
-  const tableCells = useMemo(() => tableColumns(columns, chosenKeys), [columns, chosenKeys]);
+  const tableCells = useMemo(
+    () => tableColumns(columns, chosenKeys, canOpenRecords),
+    [columns, chosenKeys, canOpenRecords],
+  );
   const exportParams = { ...filters, columns: chosenKeys };
 
   function handleColumnChange(next: string[]) {

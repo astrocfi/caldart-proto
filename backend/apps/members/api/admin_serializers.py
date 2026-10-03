@@ -32,7 +32,13 @@ from apps.members.models import (
     MembershipPlan,
     PilotCertificateType,
 )
-from apps.members.services import create_member, membership_of, membership_payload, update_member
+from apps.members.services import (
+    create_member,
+    is_tombstone,
+    membership_of,
+    membership_payload,
+    update_member,
+)
 from caldart.casing import person_name
 
 if TYPE_CHECKING:
@@ -260,6 +266,8 @@ class MemberDetailSerializer(serializers.Serializer[User]):
 
     ``email_bounced_at`` and ``email_bounce_detail`` say when and why the bounce check
     last found the member's address bouncing; null and blank with no bounce known.
+    ``is_tombstone`` is true for the **Deleted member <id>** account that keeps a
+    deleted account's payments, whose record refuses every change.
     """
 
     id = serializers.IntegerField(read_only=True)
@@ -270,6 +278,7 @@ class MemberDetailSerializer(serializers.Serializer[User]):
     is_active = serializers.BooleanField(read_only=True)
     reactivation_blocked = serializers.BooleanField(read_only=True)
     kind = serializers.ChoiceField(choices=AccountKind.choices, read_only=True)
+    is_tombstone = serializers.SerializerMethodField()
     friend_on = serializers.DateField(read_only=True, allow_null=True)
     roles = serializers.SerializerMethodField()
     created_at = serializers.DateTimeField(read_only=True)
@@ -287,6 +296,10 @@ class MemberDetailSerializer(serializers.Serializer[User]):
     def get_roles(self, obj: User) -> list[str]:
         """The role slugs the account holds, in the order the roles are declared."""
         return obj.roles
+
+    def get_is_tombstone(self, obj: User) -> bool:
+        """Whether the account is a deleted account's stand-in (see ``is_tombstone``)."""
+        return is_tombstone(obj)
 
     def get_joined_on(self, obj: User) -> date | None:
         """The start of the member's earliest term, or ``None`` if they have none.

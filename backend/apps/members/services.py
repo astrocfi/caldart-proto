@@ -91,7 +91,7 @@ from apps.members.models import (
     MembershipStatusChoices,
 )
 from caldart import audit, events
-from caldart.exceptions import DomainPermissionError
+from caldart.exceptions import DomainError, DomainPermissionError
 from caldart.mail import send_on_commit
 
 if TYPE_CHECKING:
@@ -136,6 +136,12 @@ type ProfileChanges = dict[str, Any]
 
 SELF_DELETE_REFUSED = "You cannot delete your own account."
 SYSTEM_ADMIN_DELETE_REFUSED = "Only a system administrator can delete a system administrator."
+#: Why a tombstone's record refuses an edit, a membership term, or a delete.
+TOMBSTONE_CHANGE_REFUSED = (
+    "This record keeps a deleted member's payments in the books and cannot be changed."
+)
+#: Why a donor is refused a membership term granted by hand.
+DONOR_GRANT_REFUSED = "A donor holds no membership, and becomes a member only by registering."
 
 #: Account columns whose edit counts as a profile write: a name or an email
 #: is what a member record shows alongside the rest of the profile.
@@ -391,6 +397,21 @@ def is_tombstone(user: User) -> bool:
     )
 
 
+def refuse_tombstone_change(actor: User, target: User, action: str) -> None:
+    """Refuse ``action`` on ``target`` when it is a tombstone; pass any other account.
+
+    A tombstone holds a deleted member's payments under a name that must not change: a
+    real name or address on it would make :func:`is_tombstone` false, and a payment
+    settling afterwards would then buy a term and mail a receipt.  On a tombstone the
+    refusal is audited at WARNING under ``action`` with the reason ``tombstone`` and
+    raised as ``DomainError`` carrying :data:`TOMBSTONE_CHANGE_REFUSED`; any other
+    account passes.
+    """
+    if is_tombstone(target):
+        audit.refuse(action, actor=actor, target=target, reason=audit.REASON_TOMBSTONE)
+        raise DomainError(TOMBSTONE_CHANGE_REFUSED)
+
+
 @transaction.atomic
 def hand_over_payments(actor: User, target: User) -> dict[str, int]:
     """Clear ``target``'s money out of the way of deleting the account, which stays.
@@ -430,17 +451,21 @@ def hand_over_payments(actor: User, target: User) -> dict[str, int]:
 
 @transaction.atomic
 def delete_member(actor: User, target: User) -> None:
-    """Delete ``target``'s account and everything hanging off it, refused two ways.
+    """Delete ``target``'s account and everything hanging off it, refused three ways.
 
-    Nobody may delete themselves; only a system administrator may delete one, judged
-    on effective roles, so a Django superuser counts as one.  A refusal raises
-    ``DomainPermissionError``, writes nothing, and is audited at WARNING with a reason.
+    A tombstone is never deleted, since it holds a deleted member's payments: that
+    refusal is :func:`refuse_tombstone_change`'s ``DomainError``.  Nobody may delete
+    themselves; only a system administrator may delete one, judged on effective roles,
+    so a Django superuser counts as one; each of those raises
+    ``DomainPermissionError``.  A refusal writes nothing and is audited at WARNING with a
+    reason.
 
     Payments outlive the account: :func:`hand_over_payments` moves them to a tombstone
     first.  The profile, terms, automatic payments and statements go with the account.
     The delete is audited at INFO as ``member.delete``, with ``payments=<n>
     owner=<tombstone id>`` when payments moved.
     """
+    refuse_tombstone_change(actor, target, audit.MEMBER_DELETE)
     if target.pk == actor.pk:
         _refuse_delete(actor, target, audit.REASON_SELF_DELETE, SELF_DELETE_REFUSED)
     target_is_system_admin = SYSTEM_ADMIN in effective_roles(target)
@@ -899,7 +924,18 @@ def grant_term(
     ``membership.grant`` with the plan's slug and the term's id, and raised as the
     ``membership_granted`` event with the account, the term and ``actor``.  A friend
     granted a term also becomes a member, as :func:`activate_term` describes.
+
+    Two accounts are refused with ``DomainError``, writing nothing, emitting nothing,
+    and auditing ``membership.grant`` at WARNING: a tombstone, with
+    :func:`refuse_tombstone_change`'s sentence and the reason ``tombstone``; and any
+    other donor, with :data:`DONOR_GRANT_REFUSED` and the reason ``donor_account``.
     """
+    refuse_tombstone_change(actor, user, audit.MEMBERSHIP_GRANT)
+    if is_donor(user):
+        audit.refuse(
+            audit.MEMBERSHIP_GRANT, actor=actor, target=user, reason=audit.REASON_DONOR_ACCOUNT
+        )
+        raise DomainError(DONOR_GRANT_REFUSED)
     term = activate_term(
         user,
         plan,

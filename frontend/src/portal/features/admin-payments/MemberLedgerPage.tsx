@@ -17,6 +17,7 @@ import { DataTable } from '@/portal/components/DataTable';
 import { DateText } from '@/portal/components/DateText';
 import { EmptyState } from '@/portal/components/EmptyState';
 import { Loading } from '@/portal/components/Loading';
+import { MemberRecordLink } from '@/portal/components/MemberRecordLink';
 import { Money, formatCents } from '@/portal/components/Money';
 import { Page } from '@/portal/components/Page';
 import { MembershipChip, StatusChip } from '@/portal/components/StatusChip';
@@ -195,7 +196,12 @@ export function MemberLedgerPage(): JSX.Element {
       title={ledger.user.name}
       eyebrow="Member ledger"
       lede={ledger.user.email}
-      actions={<MembershipChip membership={ledger.user.membership} />}
+      actions={
+        <>
+          <MembershipChip membership={ledger.user.membership} />
+          <MemberRecordLink userId={ledger.user.id} isTombstone={ledger.user.is_tombstone} />
+        </>
+      }
     >
       <FinanceTabs current="/admin/payments/list" />
       <LedgerBody ledger={ledger} />

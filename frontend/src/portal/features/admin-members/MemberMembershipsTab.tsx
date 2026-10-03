@@ -4,7 +4,8 @@
  *
  * Granting goes through the server's `activate_term`, so leaving the start date
  * blank does the right thing: a current member's new term begins the day after
- * their present one ends, and a lapsed member's begins today.
+ * their present one ends, and a lapsed member's begins today.  A donor, a "Deleted
+ * member N" record included, is offered no grant: the server refuses one.
  */
 import { useState } from 'react';
 import type { JSX } from 'react';
@@ -22,6 +23,9 @@ import { TERM_STATUS_CHOICES } from './choices';
 import { useGrantTerm, useUpdateTerm } from './api';
 import { splitErrors } from './errors';
 
+/** Why a donor's history is empty and offers no grant. */
+const DONOR_NO_TERMS = 'A donor holds no membership, and becomes a member only by registering.';
+
 interface TermEdit {
   ends_on: string;
   status: string;
@@ -34,6 +38,7 @@ function editFrom(term: MemberTerm): TermEdit {
 
 /** The Memberships tab: term history, an inline correction form, and granting a term. */
 export function MemberMembershipsTab({ member }: { member: MemberDetail }): JSX.Element {
+  const isDonor = member.kind === 'donor';
   const toast = useToast();
   const plans = usePlans();
   const grant = useGrantTerm(member.id);
@@ -182,70 +187,74 @@ export function MemberMembershipsTab({ member }: { member: MemberDetail }): JSX.
           rows={member.memberships}
           rowKey={(term) => term.id}
           emptyTitle="No membership terms yet"
-          emptyDescription="Grant one below, or wait for the member to pay online."
+          emptyDescription={
+            isDonor ? DONOR_NO_TERMS : 'Grant one below, or wait for the member to pay online.'
+          }
         />
       </Card>
 
-      <Card title="Grant a term" eyebrow="Manual grant">
-        <form onSubmit={handleSubmitGrant} noValidate>
-          {grantErrors.detail ? (
-            <p role="alert" className="field__error">
-              {grantErrors.detail}
-            </p>
-          ) : null}
-          <div className="grid">
-            <div className="col-half">
-              <Field label="Plan" required error={grantErrors.account.plan}>
-                {(props) => (
-                  <select
-                    {...props}
-                    required
-                    value={plan}
-                    onChange={(event) => setPlan(event.target.value)}
-                  >
-                    <option value="">Choose a plan</option>
-                    {(plans.data ?? []).map((option) => (
-                      <option key={option.slug} value={option.slug}>
-                        {option.name}
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </Field>
+      {isDonor ? null : (
+        <Card title="Grant a term" eyebrow="Manual grant">
+          <form onSubmit={handleSubmitGrant} noValidate>
+            {grantErrors.detail ? (
+              <p role="alert" className="field__error">
+                {grantErrors.detail}
+              </p>
+            ) : null}
+            <div className="grid">
+              <div className="col-half">
+                <Field label="Plan" required error={grantErrors.account.plan}>
+                  {(props) => (
+                    <select
+                      {...props}
+                      required
+                      value={plan}
+                      onChange={(event) => setPlan(event.target.value)}
+                    >
+                      <option value="">Choose a plan</option>
+                      {(plans.data ?? []).map((option) => (
+                        <option key={option.slug} value={option.slug}>
+                          {option.name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </Field>
+              </div>
+              <div className="col-half">
+                <Field
+                  label="Start date"
+                  hint="Leave blank to follow on from the current term."
+                  error={grantErrors.account.starts_on}
+                >
+                  {(props) => (
+                    <input
+                      {...props}
+                      type="date"
+                      value={startsOn}
+                      onChange={(event) => setStartsOn(event.target.value)}
+                    />
+                  )}
+                </Field>
+              </div>
             </div>
-            <div className="col-half">
-              <Field
-                label="Start date"
-                hint="Leave blank to follow on from the current term."
-                error={grantErrors.account.starts_on}
-              >
-                {(props) => (
-                  <input
-                    {...props}
-                    type="date"
-                    value={startsOn}
-                    onChange={(event) => setStartsOn(event.target.value)}
-                  />
-                )}
-              </Field>
-            </div>
-          </div>
-          <Field label="Note" error={grantErrors.account.note}>
-            {(props) => (
-              <input
-                {...props}
-                type="text"
-                placeholder="Why this term was granted"
-                value={note}
-                onChange={(event) => setNote(event.target.value)}
-              />
-            )}
-          </Field>
-          <Button type="submit" disabled={!plan || grant.isPending}>
-            {grant.isPending ? 'Granting…' : 'Grant term'}
-          </Button>
-        </form>
-      </Card>
+            <Field label="Note" error={grantErrors.account.note}>
+              {(props) => (
+                <input
+                  {...props}
+                  type="text"
+                  placeholder="Why this term was granted"
+                  value={note}
+                  onChange={(event) => setNote(event.target.value)}
+                />
+              )}
+            </Field>
+            <Button type="submit" disabled={!plan || grant.isPending}>
+              {grant.isPending ? 'Granting…' : 'Grant term'}
+            </Button>
+          </form>
+        </Card>
+      )}
     </>
   );
 }

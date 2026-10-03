@@ -7,7 +7,11 @@ import { MemoryRouter, RouterProvider, createMemoryRouter } from 'react-router-d
 import type { RouteObject } from 'react-router-dom';
 import { vi } from 'vitest';
 
+import type { RoleSlug } from '../portal/api/types';
+import { AUTH_ME_KEY } from '../portal/auth/useAuth';
 import { ToastProvider } from '../portal/components/Toast';
+import { makeUser, signedInAs } from './handlers';
+import { server } from './server';
 
 /** A TanStack Query client with retries and caching turned off, for deterministic tests. */
 export function makeTestQueryClient(): QueryClient {
@@ -17,6 +21,22 @@ export function makeTestQueryClient(): QueryClient {
       mutations: { retry: false },
     },
   });
+}
+
+/**
+ * A test query client already holding a signed-in user with the member role and `roles`,
+ * with `/auth/me` answering the same user.
+ *
+ * The user is in the cache before the first render, so a screen reads its roles at once
+ * and a test asserting that a control is absent for those roles cannot pass merely
+ * because `/auth/me` had not answered yet.
+ */
+export function signedInClient(...roles: RoleSlug[]): QueryClient {
+  const user = makeUser({ roles: ['member', ...roles] });
+  server.use(signedInAs(user));
+  const client = makeTestQueryClient();
+  client.setQueryData(AUTH_ME_KEY, user);
+  return client;
 }
 
 export interface RenderWithProvidersOptions extends Omit<RenderOptions, 'wrapper'> {

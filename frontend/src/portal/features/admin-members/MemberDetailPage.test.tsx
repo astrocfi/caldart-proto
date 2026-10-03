@@ -1,11 +1,12 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import type { QueryClient } from '@tanstack/react-query';
 import { HttpResponse, http } from 'msw';
 import { Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { API } from '@test/handlers';
-import { renderWithProviders } from '@test/render';
+import { renderWithProviders, signedInClient } from '@test/render';
 import { server } from '@test/server';
 import { MemberDetailPage } from './MemberDetailPage';
 import { makeDetail } from '@test/fixtures/members';
@@ -58,15 +59,27 @@ function detailHandlers(member = makeDetail()) {
   ];
 }
 
-function renderDetail(route = '/admin/members/1') {
+function renderDetail(route = '/admin/members/1', client?: QueryClient) {
   return renderWithProviders(
     <Routes>
       <Route path="/admin/members/:id" element={<MemberDetailPage />} />
       <Route path="/admin/members" element={<p>member list</p>} />
+      <Route path="/admin/payments/donors" element={<p>donors report</p>} />
     </Routes>,
-    { route },
+    { route, client },
   );
 }
+
+/** A donor: no role, no membership term, and one gift through the public site. */
+const DONOR = makeDetail({
+  email: 'rosa@example.org',
+  first_name: 'Rosa',
+  last_name: 'Delgado',
+  name: 'Rosa Delgado',
+  kind: 'donor',
+  roles: [],
+  memberships: [],
+});
 
 beforeEach(() => {
   captured = { patchedMember: null, grantedTerm: null, patchedTerm: null, deleted: false };
@@ -416,5 +429,182 @@ describe('MemberDetailPage', () => {
     const header = (await screen.findByText('Current')).closest('.cluster');
     expect(header).toHaveTextContent('Donor');
     expect(screen.queryByLabelText('Kind of account')).not.toBeInTheDocument();
+  });
+
+  it('leads a treasurer back to the members from a record that is not a donor', async () => {
+    server.use(...detailHandlers());
+    renderDetail('/admin/members/1', signedInClient('treasurer', 'account_admin'));
+
+    expect(await screen.findByRole('link', { name: 'Back to members' })).toHaveAttribute(
+      'href',
+      '/admin/members',
+    );
+  });
+
+  it('does not fetch the record again once it is deleted', async () => {
+    const user = userEvent.setup();
+    let reads = 0;
+    // Registered first, so it answers the record's reads ahead of `detailHandlers`.
+    server.use(
+      http.get(`${API}/admin/members/1`, () => {
+        reads += 1;
+        return HttpResponse.json(makeDetail({ payments: [] }));
+      }),
+      ...detailHandlers(makeDetail({ payments: [] })),
+    );
+    renderDetail('/admin/members/1?tab=danger');
+
+    await user.type(
+      await screen.findByLabelText(/Type ana@example.org to confirm/),
+      'ana@example.org',
+    );
+    const before = reads;
+    await user.click(screen.getByRole('button', { name: 'Delete member' }));
+    await screen.findByText('member list');
+
+    expect(reads).toBe(before);
+  });
+
+  describe('for a donor', () => {
+    it('keeps the delete disabled until the address is typed', async () => {
+      server.use(...detailHandlers(DONOR));
+      renderDetail('/admin/members/1?tab=danger');
+
+      expect(await screen.findByRole('button', { name: 'Delete member' })).toBeDisabled();
+    });
+
+    it('deletes the donor once the address is typed', async () => {
+      const user = userEvent.setup();
+      server.use(...detailHandlers(DONOR));
+      renderDetail('/admin/members/1?tab=danger');
+
+      await user.type(
+        await screen.findByLabelText(/Type rosa@example.org to confirm/),
+        'rosa@example.org',
+      );
+      await user.click(screen.getByRole('button', { name: 'Delete member' }));
+
+      await waitFor(() => expect(captured.deleted).toBe(true));
+    });
+
+    it('says the gifts stay in the books under the tombstone', async () => {
+      server.use(...detailHandlers(DONOR));
+      renderDetail('/admin/members/1?tab=danger');
+
+      expect(
+        await screen.findByText(
+          'Rosa Delgado has 1 payment record. It stays in the books under the name Deleted member 1.',
+        ),
+      ).toBeInTheDocument();
+    });
+
+    it('returns a treasurer to the donors report after the delete', async () => {
+      const user = userEvent.setup();
+      server.use(...detailHandlers(DONOR));
+      renderDetail('/admin/members/1?tab=danger', signedInClient('treasurer', 'account_admin'));
+
+      await user.type(
+        await screen.findByLabelText(/Type rosa@example.org to confirm/),
+        'rosa@example.org',
+      );
+      await user.click(screen.getByRole('button', { name: 'Delete member' }));
+
+      expect(await screen.findByText('donors report')).toBeInTheDocument();
+    });
+
+    it('returns an administrator without the donors report to the members', async () => {
+      const user = userEvent.setup();
+      server.use(...detailHandlers(DONOR));
+      renderDetail('/admin/members/1?tab=danger', signedInClient('account_admin'));
+
+      await user.type(
+        await screen.findByLabelText(/Type rosa@example.org to confirm/),
+        'rosa@example.org',
+      );
+      await user.click(screen.getByRole('button', { name: 'Delete member' }));
+
+      expect(await screen.findByText('member list')).toBeInTheDocument();
+    });
+
+    it('leads a treasurer back to the donors report', async () => {
+      server.use(...detailHandlers(DONOR));
+      renderDetail('/admin/members/1', signedInClient('treasurer', 'account_admin'));
+
+      expect(await screen.findByRole('link', { name: 'Back to donors' })).toHaveAttribute(
+        'href',
+        '/admin/payments/donors',
+      );
+    });
+
+    it('leads an administrator without the donors report back to the members', async () => {
+      server.use(...detailHandlers(DONOR));
+      renderDetail('/admin/members/1', signedInClient('account_admin'));
+
+      expect(await screen.findByRole('link', { name: 'Back to members' })).toBeInTheDocument();
+    });
+
+    it('offers no term to grant', async () => {
+      server.use(...detailHandlers(DONOR));
+      renderDetail('/admin/members/1?tab=memberships');
+
+      await screen.findByRole('heading', { name: 'Membership history' });
+
+      expect(screen.queryByRole('button', { name: 'Grant term' })).not.toBeInTheDocument();
+    });
+
+    it('says why a donor holds no term', async () => {
+      server.use(...detailHandlers(DONOR));
+      renderDetail('/admin/members/1?tab=memberships');
+
+      expect(
+        await screen.findByText(
+          'A donor holds no membership, and becomes a member only by registering.',
+        ),
+      ).toBeInTheDocument();
+    });
+  });
+
+  describe('for a deleted member', () => {
+    const TOMBSTONE = makeDetail({
+      id: 1,
+      email: 'deleted-41@deleted.invalid',
+      first_name: 'Deleted member',
+      last_name: '41',
+      name: 'Deleted member 41',
+      kind: 'donor',
+      is_tombstone: true,
+      is_active: false,
+      roles: [],
+      memberships: [],
+    });
+    const NOTE =
+      "This record keeps a deleted member's payments in the books and cannot be changed.";
+
+    it('offers no profile form to save', async () => {
+      server.use(...detailHandlers(TOMBSTONE));
+      renderDetail();
+
+      await screen.findByText(NOTE);
+
+      expect(screen.queryByRole('button', { name: 'Save changes' })).not.toBeInTheDocument();
+    });
+
+    it('offers no term to grant', async () => {
+      server.use(...detailHandlers(TOMBSTONE));
+      renderDetail('/admin/members/1?tab=memberships');
+
+      await screen.findByRole('heading', { name: 'Membership history' });
+
+      expect(screen.queryByRole('button', { name: 'Grant term' })).not.toBeInTheDocument();
+    });
+
+    it('offers no delete', async () => {
+      server.use(...detailHandlers(TOMBSTONE));
+      renderDetail('/admin/members/1?tab=danger');
+
+      await screen.findByText(NOTE);
+
+      expect(screen.queryByRole('button', { name: 'Delete member' })).not.toBeInTheDocument();
+    });
   });
 });

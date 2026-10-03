@@ -22,7 +22,10 @@ This payment
 The **This payment** card lists the facts:
 
 * **Member**, the member's name (which opens their money history, see
-  :doc:`member-ledger`) and email address.
+  :doc:`member-ledger`) and email address. An account administrator also sees **Member
+  record**, which opens the person's :doc:`../admin/member-record`, a donor's included.
+  A payment kept under **Deleted member** and a number has no **Member record**: that
+  record cannot be changed.
 * **Receipt**, the receipt number.
 * **For**, what the payment bought (**Membership**, **Contribution**, or **Membership and
   contribution**) and the plan's name.
