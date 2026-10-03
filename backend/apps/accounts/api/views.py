@@ -73,7 +73,7 @@ from apps.members.services import register_member, restore_terms, suspend_terms,
 from apps.payments.renewals import cancel_all_mandates
 from caldart import audit
 from caldart.exceptions import DomainError
-from caldart.mail import SEND_ERRORS, log_refusal, send_logging_refusal
+from caldart.mail import MailRefusedError, log_refusal, send_logging_refusal
 
 #: What every refused login says.  It names neither half of the credentials, and
 #: a deactivated account whose password was wrong is answered with it too, so a
@@ -645,14 +645,13 @@ class AdminUserDetailView(generics.RetrieveUpdateAPIView[User]):
         return admin_user_queryset()
 
 
-def _mail_refused(what: str) -> Response:
-    """Log the send refusal being handled, naming ``what``, and answer 503.
+def _mail_refused(what: str, refusal: MailRefusedError) -> Response:
+    """Log ``refusal``, naming ``what``, and answer 503.
 
     The answer, ``{"detail": MAIL_REFUSED}``, is for a send the user administrator asked
-    for, who must know it did not go.  Call it from the ``except`` clause that caught one
-    of ``SEND_ERRORS``.
+    for, who must know it did not go.
     """
-    log_refusal(what)
+    log_refusal(what, refusal)
     return Response({"detail": MAIL_REFUSED}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
 
@@ -688,8 +687,8 @@ class AdminUserSendPasswordResetView(APIView):
         # to make: the administrator's send stays refused for one.
         try:
             sent = user.is_active and send_password_reset_email(user, request=request)
-        except SEND_ERRORS:
-            return _mail_refused(f"the password reset for account {user.pk}")
+        except MailRefusedError as refusal:
+            return _mail_refused(f"the password reset for account {user.pk}", refusal)
         if not sent:
             audit.refuse(
                 audit.PASSWORD_RESET_ADMIN_SENT,
@@ -744,8 +743,8 @@ class AdminUserSendEmailVerificationView(APIView):
             )
         try:
             send_email_verification(user)
-        except SEND_ERRORS:
-            return _mail_refused(f"the email verification for account {user.pk}")
+        except MailRefusedError as refusal:
+            return _mail_refused(f"the email verification for account {user.pk}", refusal)
         audit.record(audit.EMAIL_VERIFICATION_ADMIN_SENT, actor=actor, target=user)
         return _verification_sent(user)
 

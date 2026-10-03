@@ -18,6 +18,8 @@ from dataclasses import dataclass
 
 import pytest
 from django.core import mail
+from django.core.mail import EmailMessage
+from django.core.mail.backends.locmem import EmailBackend
 from django.template import TemplateDoesNotExist
 from pytest_django import Settings
 from pytest_django.fixtures import DjangoCaptureOnCommitCallbacks
@@ -28,7 +30,7 @@ from apps.accounts.models import AccountKind, User
 from apps.accounts.roles import ACCOUNT_ADMIN, MEMBER, SYSTEM_ADMIN, USER_ADMIN
 from apps.mail.models import EmailLog, EmailStatus
 from caldart.error_reports import QuietAdminEmailHandler
-from caldart.mail import send_logging_refusal, send_templated
+from caldart.mail import MailRefusedError, error_name, send_logging_refusal, send_templated
 from tests.conftest import (
     ME_URL,
     REGISTER_URL,
@@ -337,17 +339,105 @@ def mail_errors(caplog: pytest.LogCaptureFixture) -> pytest.LogCaptureFixture:
     return caplog
 
 
+def mail_records(caplog: pytest.LogCaptureFixture) -> list[logging.LogRecord]:
+    """The ``caldart.mail`` records the request fixture's setup logged."""
+    return [record for record in caplog.get_records("setup") if record.name == "caldart.mail"]
+
+
 @pytest.mark.usefixtures("refusing_mail_server")
 @pytest.mark.parametrize("exchange", FLOWS, ids=FLOW_IDS, indirect=True)
-def test_a_refusal_is_logged_with_its_traceback(
+def test_a_refusal_is_logged_by_its_class(
     mail_errors: pytest.LogCaptureFixture, exchange: Exchange
 ) -> None:
-    """One ERROR record on ``caldart.mail`` carries the refusal, for the error mail."""
-    records = [
-        record for record in mail_errors.get_records("setup") if record.name == "caldart.mail"
+    """One ERROR record on ``caldart.mail`` names the refusal's class, for error mail."""
+    assert [
+        record.getMessage().endswith("(SMTPException)") for record in mail_records(mail_errors)
+    ] == [True]
+
+
+@pytest.mark.usefixtures("refusing_mail_server")
+@pytest.mark.parametrize("exchange", FLOWS, ids=FLOW_IDS, indirect=True)
+def test_a_refusal_is_logged_without_a_traceback(
+    mail_errors: pytest.LogCaptureFixture, exchange: Exchange
+) -> None:
+    """The record carries no traceback, whose exception text can name an address."""
+    assert [record.exc_info for record in mail_records(mail_errors)] == [None]
+
+
+#: An address the refused recipient's server named in its reply.
+REFUSED_ADDRESS = "pat.reset@example.test"
+
+
+@pytest.fixture
+def recipient_refusing_mail_server(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Make every send raise ``SMTPRecipientsRefused``, whose text names the address."""
+
+    def refuse(self: EmailBackend, email_messages: list[EmailMessage]) -> int:
+        reply = (550, f"5.1.1 <{REFUSED_ADDRESS}>: Recipient address rejected".encode())
+        raise smtplib.SMTPRecipientsRefused({REFUSED_ADDRESS: reply})
+
+    monkeypatch.setattr(EmailBackend, "send_messages", refuse)
+
+
+@pytest.mark.usefixtures("recipient_refusing_mail_server")
+def test_a_refused_recipient_leaves_no_address_in_the_log(
+    caplog: pytest.LogCaptureFixture, api_client: APIClient
+) -> None:
+    """The record names the class and the SMTP code, and no address."""
+    caplog.set_level(logging.ERROR, logger="caldart.mail")
+    UserFactory(email=REFUSED_ADDRESS, roles=[MEMBER])
+
+    api_client.post(RESET_URL, {"email": REFUSED_ADDRESS})
+
+    assert [record.getMessage() for record in caplog.records] == [
+        "Could not send the password reset for account "
+        f"{User.objects.get(email=REFUSED_ADDRESS).pk}: the mail server refused it or "
+        "could not be reached (SMTPRecipientsRefused (550))"
     ]
 
-    assert [record.exc_info[0] for record in records if record.exc_info] == [smtplib.SMTPException]
+
+@pytest.mark.usefixtures("recipient_refusing_mail_server")
+def test_a_refused_recipient_leaves_no_traceback_in_the_log(
+    caplog: pytest.LogCaptureFixture, api_client: APIClient
+) -> None:
+    """No record carries the exception, whose text names the address."""
+    caplog.set_level(logging.ERROR, logger="caldart.mail")
+    UserFactory(email=REFUSED_ADDRESS, roles=[MEMBER])
+
+    api_client.post(RESET_URL, {"email": REFUSED_ADDRESS})
+
+    assert [record.exc_info for record in caplog.records] == [None]
+
+
+@pytest.fixture
+def unrenderable_templates(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Make rendering any email fail with ``PermissionError``, an ``OSError``."""
+
+    def unreadable(template_name: str, context: object = None) -> str:
+        raise PermissionError(f"cannot read {template_name}")
+
+    monkeypatch.setattr("caldart.mail.render_to_string", unreadable)
+
+
+@pytest.mark.usefixtures("unrenderable_templates")
+@pytest.mark.parametrize(
+    ("role", "path"),
+    [(MEMBER, None), (USER_ADMIN, "send-password-reset"), (USER_ADMIN, "send-email-verification")],
+    ids=["self-service reset", "admin reset", "admin verification"],
+)
+def test_a_template_that_does_not_render_answers_500(
+    api_client: APIClient, role: str, path: str | None
+) -> None:
+    """An ``OSError`` while rendering is a bug, not a refusal, so the request fails."""
+    api_client.raise_request_exception = False
+    account = UserFactory(email="ren.der@example.test", roles=[MEMBER], email_verified_at=None)
+    if path is None:
+        response = api_client.post(RESET_URL, {"email": account.email})
+    else:
+        signed_in_admin(api_client, role)
+        response = api_client.post(f"{USERS_URL}/{account.pk}/{path}")
+
+    assert response.status_code == 500
 
 
 @pytest.mark.usefixtures("refusing_mail_server")
@@ -358,7 +448,8 @@ def test_a_refused_reset_reads_as_a_reset_for_an_unknown_address(api_client: API
     known = api_client.post(RESET_URL, {"email": "pat.reset@example.test"})
     unknown = api_client.post(RESET_URL, {"email": "nobody.here@example.test"})
 
-    assert (known.status_code, known.content) == (unknown.status_code, unknown.content)
+    assert known.status_code == unknown.status_code
+    assert known.content == unknown.content
 
 
 # --------------------------------------------------------------------------
@@ -434,15 +525,14 @@ def test_a_refused_admin_send_is_not_audited_as_sent(
 @pytest.mark.usefixtures("refusing_mail_server")
 @pytest.mark.parametrize("role", [USER_ADMIN])
 @pytest.mark.parametrize("admin_send", list(ADMIN_SENDS), indirect=True)
-def test_a_refused_admin_send_is_logged_with_its_traceback(
+def test_a_refused_admin_send_is_logged_by_its_class(
     mail_errors: pytest.LogCaptureFixture, admin_send: tuple[int, object, User]
 ) -> None:
-    """The refusal also reaches the operators through ``caldart.mail``."""
-    records = [
-        record for record in mail_errors.get_records("setup") if record.name == "caldart.mail"
-    ]
+    """The refusal reaches the operators through ``caldart.mail``, with no traceback."""
+    records = mail_records(mail_errors)
 
-    assert len([record for record in records if record.exc_info]) == 1
+    assert [record.getMessage().endswith("(SMTPException)") for record in records] == [True]
+    assert [record.exc_info for record in records] == [None]
 
 
 # --------------------------------------------------------------------------
@@ -476,6 +566,35 @@ def test_send_logging_refusal_lets_any_other_error_through() -> None:
             lambda: send_templated(to="ops@example.org", subject="Hi", template="no_such_template"),
             what="a test message",
         )
+
+
+@pytest.mark.parametrize(
+    ("transport", "message"),
+    [
+        (
+            smtplib.SMTPAuthenticationError(535, b"5.7.8 authentication failed"),
+            "SMTPAuthenticationError (535)",
+        ),
+        (
+            smtplib.SMTPRecipientsRefused(
+                {"pat@example.test": (550, b"<pat@example.test> unknown")}
+            ),
+            "SMTPRecipientsRefused (550)",
+        ),
+        (ConnectionRefusedError(111, "Connection refused"), "ConnectionRefusedError"),
+    ],
+    ids=["authentication", "recipient", "connection"],
+)
+def test_a_refusal_reads_as_its_class_and_code(transport: OSError, message: str) -> None:
+    """``MailRefusedError`` says the transport's class and SMTP code, and nothing else."""
+    assert str(MailRefusedError.from_transport(transport)) == message
+
+
+def test_a_job_logs_a_refusal_under_the_transport_class() -> None:
+    """``error_name`` gives the class the email log records, not ``MailRefusedError``."""
+    refusal = MailRefusedError.from_transport(smtplib.SMTPServerDisconnected("gone"))
+
+    assert error_name(refusal) == "SMTPServerDisconnected"
 
 
 def error_record() -> logging.LogRecord:

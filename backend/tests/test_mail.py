@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-import smtplib
-
 import pytest
 from django.core.mail import EmailMessage
 from pytest_django import Settings
 
-from caldart.mail import contact_email, org_name, send_templated
+from caldart.mail import MailRefusedError, contact_email, org_name, send_templated
 from caldart.org import org_details
 from tests.factories import make_site_settings
 
@@ -127,7 +125,7 @@ def test_send_templated_raises_when_the_mail_server_refuses_the_message(
     email_template: str, refusing_mail_server: None
 ) -> None:
     """A refusal reaches the caller, which is how a receipt knows it was not sent."""
-    with pytest.raises(smtplib.SMTPException, match="Mailbox unavailable"):
+    with pytest.raises(MailRefusedError, match=r"^SMTPException$"):
         send_templated(
             to="marta@example.org",
             subject="CalDART: your receipt",

@@ -47,8 +47,9 @@ usual ``{count, next, previous, results}`` envelope.
 **When the mail server refuses.**  Several endpoints on this page send email
 before they answer.  When the mail server refuses the message, or cannot be
 reached, the attempt is recorded as a failed send in the email log
-(:doc:`email`), and the refusal is logged with its traceback on the
-``caldart.mail`` logger, which production mails to ``ADMIN_EMAILS``
+(:doc:`email`), and the refusal is logged on the ``caldart.mail`` logger, by the
+transport's class and SMTP code with no traceback or address, which production
+mails to ``ADMIN_EMAILS``
 (:doc:`configuration`).  What the caller is told depends on who asked:
 
 * A request people make for themselves answers exactly as it does when the
@@ -70,12 +71,13 @@ reached, the attempt is recorded as a failed send in the email log
 
      {"detail": "The mail server did not accept the message. A system administrator can see the attempt on the Sent Emails page."}
 
-A refusal is what ``caldart.mail.SEND_ERRORS`` names: ``smtplib.SMTPException``
-and ``OSError``, which covers a connection refused, a host that does not
-resolve, a TLS failure, and a timeout.  Anything else, such as a template that
-does not render, is a bug and answers 500.  The quiet answers go through
-``caldart.mail.send_logging_refusal``, or ``send_on_commit`` for a send queued
-for the commit.
+A refusal is ``caldart.mail.MailRefusedError``, which ``send_templated`` raises
+only from an ``smtplib.SMTPException`` or an ``OSError`` (a connection refused, a
+host that does not resolve, a TLS failure, a timeout) raised while the message is
+handed to the mail server (:ref:`email-refused`).  Anything else, such as a
+template that does not render, is a bug and answers 500.  The quiet answers go
+through ``caldart.mail.send_logging_refusal``, or ``send_on_commit`` for a send
+queued for the commit.
 
 
 The user payload
@@ -1221,8 +1223,9 @@ Tests
    Every request that sends mail, against a mail server that takes the message
    and one that refuses it: the same answer either way for the self-service and
    side-effect sends, the 503 on the two user-record sends, the failed email log
-   row, the ``caldart.mail`` error record, and the error-mail handler that cannot
-   raise.
+   row, the ``caldart.mail`` error record and the address it leaves out, a
+   template that does not render answering 500, and the error-mail handler that
+   cannot raise.
 
 ``backend/tests/test_auth_api.py``
    The minimal surface the portal shell needs — CSRF, login, logout, me.

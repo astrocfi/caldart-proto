@@ -17,6 +17,7 @@ server that refuses one copy fails that copy alone.
 from __future__ import annotations
 
 import logging
+import smtplib
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 
@@ -32,7 +33,7 @@ from apps.bulk_email.models import BulkEmail, BulkEmailRecipient, RecipientStatu
 from apps.members.filters import EXPORT_FILTER_PARAMS, MemberAdminFilterSet, member_admin_queryset
 from caldart import audit
 from caldart.exceptions import DomainValidationError
-from caldart.mail import SEND_ERRORS, contact_email, org_name, send_templated
+from caldart.mail import contact_email, error_name, org_name, send_templated
 from caldart.reports import (
     CSV_DOCUMENT_TYPE,
     ReportDocument,
@@ -63,6 +64,9 @@ SKIP_DUPLICATE = "Duplicate address"
 
 #: Why a copy the mail server would not take failed.
 FAILED_REASON = "Refused by the mail server"
+
+#: What a mail server that refuses a copy raises.
+SEND_ERRORS: tuple[type[Exception], ...] = (smtplib.SMTPException, OSError)
 
 #: What the refusal of a send with nobody to receive it says.
 NOBODY_MESSAGE = "Nobody matches these filters."
@@ -314,7 +318,7 @@ def _send_one(
             "bulk email copy refused: bulk_email=%s user=%s error=%s",
             bulk.pk,
             recipient.user_id,
-            type(exc).__name__,
+            error_name(exc),
         )
         connection.close()
         return RecipientStatus.FAILED, FAILED_REASON

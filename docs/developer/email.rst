@@ -302,13 +302,19 @@ Emails page filters on that status and shows when each message bounced and why.
 When the mail server refuses
 ----------------------------
 
-A refusal is what ``caldart.mail.SEND_ERRORS`` names: ``smtplib.SMTPException``,
-for a message the server answers with an error (credentials it will not accept, a
-sender or a recipient it will not take), and ``OSError``, for a server that
-cannot be reached at all (a connection refused, a host that does not resolve, a
-TLS failure, a timeout).  Anything else a send raises, such as a template that
-does not render, is a bug and fails loudly.  Every caller catches a refusal and
-carries on:
+A refusal is an ``smtplib.SMTPException``, for a message the server answers with
+an error (credentials it will not accept, a sender or a recipient it will not
+take), or an ``OSError``, for a server that cannot be reached at all (a connection
+refused, a host that does not resolve, a TLS failure, a timeout), raised while
+``send_templated`` hands the message over.  ``send_templated`` records the failed
+row and raises ``caldart.mail.MailRefusedError`` from it.  That error's message is
+the transport's class name and the SMTP reply code, such as
+``SMTPRecipientsRefused (550)``, and never the transport's own text, which can
+name an address.  It is an ``OSError``, so a job that catches the transport's
+errors catches it unchanged, and ``caldart.mail.error_name`` gives a log line the
+transport's class rather than ``MailRefusedError``.  An error rendering the
+templates comes before the hand-over and is never a refusal: it is a bug and
+fails loudly.  Every caller catches a refusal and carries on:
 
 * Each scheduled job, and each send to many people (bulk email, notifications,
   rosters), catches the refusal for that one recipient, logs it to the journal,
@@ -327,10 +333,13 @@ carries on:
   pointing at the Sent Emails page, so the administrator knows it did not go.
 
 The request answers are listed endpoint by endpoint under
-:ref:`refused sends <api-refused-send>`.  Whatever the answer, a refusal during a request is logged at ERROR with its
-traceback on the ``caldart.mail`` logger.  Production writes that logger to the
-journal and mails it to ``ADMIN_EMAILS`` (:doc:`configuration`), as it does an
-unhandled 500.  That error mail goes through the same mail server, so it is
+:ref:`refused sends <api-refused-send>`.  A refusal during one of those account
+requests, or during a member record change that mails somebody, is logged at
+ERROR on the ``caldart.mail`` logger by ``caldart.mail.log_refusal``, naming the
+message and the account id, the transport's class, and the SMTP code, with no
+traceback.  Production writes that logger to the journal and mails it to
+``ADMIN_EMAILS`` (:doc:`configuration`), as it does an unhandled 500.  The other
+senders above log a refusal on their own module's logger, to the journal only.  That error mail goes through the same mail server, so it is
 often refused as well: the ``mail_admins`` handler
 (``caldart.error_reports.QuietAdminEmailHandler``) then writes the failure to
 standard error, which the journal keeps, instead of raising it into the request.

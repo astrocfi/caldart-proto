@@ -199,8 +199,8 @@ and reactivate it first. *That account is already deactivated.* and *That accoun
 already active.* mean somebody changed it while the page was open; reload the page. *The mail
 server did not accept the message. A system administrator can see the attempt on the Sent
 Emails page.* after **Send password reset** or **Resend verification message** means nothing
-was sent: the site could not hand the email to its mail server. The attempt is listed as
-*Failed:* on :doc:`sent-emails`, with the reason; tell whoever runs the server, and press the
-button again once it is fixed. If somebody still cannot see a page after you ticked its role, ask
+was sent: the site could not hand the email to its mail server. A system administrator sees
+the attempt marked *Failed:* on **Sent Emails**, with the reason; tell whoever runs the
+server, and press the button again once it is fixed. If somebody still cannot see a page after you ticked its role, ask
 them to reload the portal, and check that you pressed **Save changes**. Profiles,
 memberships, and payments are not on this screen; they belong to an account administrator.

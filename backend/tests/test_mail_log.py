@@ -11,7 +11,6 @@ and the Django admin's three refusals are checked as well.
 from __future__ import annotations
 
 import datetime as dt
-import smtplib
 
 import pytest
 from django.conf import settings
@@ -32,7 +31,7 @@ from apps.payments import receipts, refunds
 from apps.payments.models import PaymentStatus, RefundReason
 from apps.payments.renewals import send_mandate_email
 from apps.reminders.services import send_renewal_reminders
-from caldart.mail import send_templated
+from caldart.mail import MailRefusedError, send_templated
 from tests.conftest import role_matrix
 from tests.factories import (
     EmailLogFactory,
@@ -152,8 +151,8 @@ def test_a_send_without_attachments_lists_none(email_template: str) -> None:
 # A refusal is recorded and re-raised
 # --------------------------------------------------------------------------
 def test_a_refused_send_reaches_the_caller(email_template: str, refusing_mail_server: None) -> None:
-    """The refusal still propagates: the funnel records it, it does not swallow it."""
-    with pytest.raises(smtplib.SMTPException, match="Mailbox unavailable"):
+    """The refusal reaches the caller as ``MailRefusedError``, naming the class."""
+    with pytest.raises(MailRefusedError, match=r"^SMTPException$"):
         send_templated(to="marta@example.org", subject="CalDART: hello", template=email_template)
 
 
@@ -161,7 +160,7 @@ def test_a_refused_send_is_recorded_as_failed(
     email_template: str, refusing_mail_server: None
 ) -> None:
     """The row reads ``failed`` and names the exception class the server raised."""
-    with pytest.raises(smtplib.SMTPException):
+    with pytest.raises(MailRefusedError):
         send_templated(to="marta@example.org", subject="CalDART: hello", template=email_template)
 
     row = EmailLog.objects.get()
@@ -173,7 +172,7 @@ def test_a_refused_send_still_records_what_was_attempted(
     email_template: str, refusing_mail_server: None
 ) -> None:
     """A failed row carries the address and the subject, so the operator can retry."""
-    with pytest.raises(smtplib.SMTPException):
+    with pytest.raises(MailRefusedError):
         send_templated(to="marta@example.org", subject="CalDART: hello", template=email_template)
 
     row = EmailLog.objects.get()

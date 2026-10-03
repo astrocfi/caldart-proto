@@ -7,14 +7,12 @@ the ``From`` header stays ``DEFAULT_FROM_EMAIL``.  See ``docs/developer/email.rs
 
 from __future__ import annotations
 
-import smtplib
-
 import pytest
 from django.core.mail import EmailMessage
 from pytest_django import Settings
 
 from apps.mail.models import EmailLog
-from caldart.mail import send_templated
+from caldart.mail import MailRefusedError, send_templated
 
 pytestmark = pytest.mark.django_db
 
@@ -64,7 +62,7 @@ def test_two_messages_carry_different_message_ids(sender: Settings, email_templa
 @pytest.mark.usefixtures("refusing_mail_server")
 def test_a_refused_message_records_its_message_id(sender: Settings, email_template: str) -> None:
     """A send the server refuses still leaves the id it was given on its failed row."""
-    with pytest.raises(smtplib.SMTPException, match="Mailbox unavailable"):
+    with pytest.raises(MailRefusedError, match=r"^SMTPException$"):
         _send(email_template)
 
     assert EmailLog.objects.get().message_id.endswith("@caldart.example.org>")

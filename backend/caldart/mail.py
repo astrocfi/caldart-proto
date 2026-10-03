@@ -14,12 +14,12 @@ message carries a ``Message-ID`` stored on that row, and goes out with
 ``BOUNCE_ADDRESS`` as its envelope sender when that is set, which is how the
 bounce check (``apps.mail.bounces``) matches a returned report to its row.
 
-A send raises when the mail server refuses the message or cannot be reached.  A
-caller that must answer whatever the server does -- a request whose answer must not
-depend on the mail, or a change already committed -- sends through
-:func:`send_logging_refusal` or :func:`send_on_commit`, which log the refusal on this
-module's logger instead of raising it.  Production routes that logger to the error
-mail ``ADMIN_EMAILS`` receives.
+A send raises :class:`MailRefusedError` when the mail server refuses the message or
+cannot be reached.  A caller that must answer whatever the server does -- a request
+whose answer must not depend on the mail, or a change already committed -- sends
+through :func:`send_logging_refusal` or :func:`send_on_commit`, which log the refusal
+on this module's logger instead of raising it.  Production routes that logger to the
+error mail ``ADMIN_EMAILS`` receives.
 """
 
 from __future__ import annotations
@@ -45,13 +45,46 @@ log = logging.getLogger(__name__)
 #: One attachment: its filename, its bytes, and its media type.
 type Attachment = tuple[str, bytes, str]
 
-#: What a send raises when the mail server refuses the message or cannot be reached.
-#: ``smtplib.SMTPException`` covers a refusal the server states (credentials it will
-#: not accept, a sender or recipient it will not take), and ``OSError`` a connection
-#: refused, a host that does not resolve, a TLS failure, or a timeout.  The first is a
-#: subclass of the second and is named for the reader.  A template that does not render,
-#: or any other bug, is neither, so it fails loudly.
-SEND_ERRORS: tuple[type[Exception], ...] = (smtplib.SMTPException, OSError)
+#: What the transport raises when the mail server refuses the message or cannot be
+#: reached.  ``smtplib.SMTPException`` covers a refusal the server states (credentials
+#: it will not accept, a sender or recipient it will not take), and ``OSError`` a
+#: connection refused, a host that does not resolve, a TLS failure, or a timeout.  The
+#: first is a subclass of the second and is named for the reader.  Only an error raised
+#: while the message is handed over counts, so a template that does not render is never
+#: taken for a refusal.
+_TRANSPORT_ERRORS: tuple[type[Exception], ...] = (smtplib.SMTPException, OSError)
+
+
+class MailRefusedError(OSError):
+    """The mail server refused a message, or could not be reached, as it was handed over.
+
+    ``error`` is the class name of what the transport raised, such as
+    ``SMTPAuthenticationError``, and ``code`` the SMTP reply code when the server gave
+    one, else ``None``.  The message is those two alone, ``"SMTPRecipientsRefused
+    (550)"``, because the transport's own message can carry an email address.  It is an
+    ``OSError``, so a job that catches the transport's own errors catches it unchanged.
+    """
+
+    def __init__(self, error: str, code: int | None = None) -> None:
+        """Store ``error`` and ``code``; the message is ``error``, then the code."""
+        super().__init__(error if code is None else f"{error} ({code})")
+        self.error = error
+        self.code = code
+
+    @classmethod
+    def from_transport(cls, exc: BaseException) -> MailRefusedError:
+        """The refusal ``exc``, one of the transport's errors, stands for.
+
+        ``code`` is the reply code of an ``smtplib.SMTPResponseException``, or the first
+        recipient's code of an ``smtplib.SMTPRecipientsRefused``, and ``None`` for
+        anything else, such as a connection that was never made.
+        """
+        code: int | None = None
+        if isinstance(exc, smtplib.SMTPResponseException):
+            code = exc.smtp_code
+        elif isinstance(exc, smtplib.SMTPRecipientsRefused):
+            code = next((reply for reply, _text in exc.recipients.values()), None)
+        return cls(type(exc).__name__, code)
 
 
 def org_name() -> str:
@@ -108,10 +141,13 @@ def send_templated(
     a connection of its own.
 
     The sent message is returned, so a caller can record what went out.  A mail
-    server that refuses the message is logged as a failed send, carrying the
-    exception class, and the exception then raises as Django's ``send`` does; a
-    caller that must survive a refusal catches :data:`SEND_ERRORS` and says so in its
-    own log, or sends through :func:`send_logging_refusal`.
+    server that refuses the message, or cannot be reached, while it is handed over is
+    logged as a failed send carrying the exception class, and raises
+    :class:`MailRefusedError` from the transport's exception; a caller that must
+    survive a refusal catches that and says so in its own log, or sends through
+    :func:`send_logging_refusal`.  Anything else the hand-over raises is logged as a
+    failed send too and raises unchanged, and an error rendering the templates raises
+    before anything is sent or logged.
     """
     rendered = context or {}
     message_id = make_msgid(domain=_message_id_domain())
@@ -151,6 +187,8 @@ def send_templated(
             to_name=to_name,
             message_id=message_id,
         )
+        if isinstance(exc, _TRANSPORT_ERRORS):
+            raise MailRefusedError.from_transport(exc) from exc
         raise
     _record(
         to=to,
@@ -165,28 +203,46 @@ def send_templated(
     return message
 
 
-def log_refusal(what: str) -> None:
-    """Log the send refusal being handled at ERROR, with its traceback, naming ``what``.
+def error_name(exc: BaseException) -> str:
+    """The class name a log line gives for ``exc``.
 
-    Call it from the ``except`` clause that caught one of :data:`SEND_ERRORS`.  The
-    record goes to the ``caldart.mail`` logger; ``what`` names the message and the
-    account by id, such as ``"the password reset for account 12"``, never an address.
+    For a :class:`MailRefusedError` it is the class of what the transport raised, such
+    as ``SMTPAuthenticationError``, as the email log records it; for anything else, the
+    class of ``exc`` itself.
     """
-    log.exception("Could not send %s: the mail server refused it or could not be reached", what)
+    if isinstance(exc, MailRefusedError):
+        return exc.error
+    return type(exc).__name__
+
+
+def log_refusal(what: str, refusal: MailRefusedError) -> None:
+    """Log ``refusal`` at ERROR on the ``caldart.mail`` logger, naming ``what``.
+
+    The record carries the exception class and the SMTP code, if any, and neither the
+    transport's message nor a traceback, since either can carry an email address.
+    ``what`` names the message and the account by id, such as ``"the password reset
+    for account 12"``, never an address.
+    """
+    log.error(
+        "Could not send %s: the mail server refused it or could not be reached (%s)",
+        what,
+        refusal,
+    )
 
 
 def send_logging_refusal(send: Callable[[], object], *, what: str) -> bool:
     """Call ``send``; True once it returns, False when the mail server refused it.
 
-    A refusal is one of :data:`SEND_ERRORS`.  The failed send is already in the email
+    A refusal is a :class:`MailRefusedError`.  The failed send is already in the email
     log, written by :func:`send_templated`, and the refusal is logged by
     :func:`log_refusal` naming ``what`` rather than raised, so the caller answers as it
-    would had the message gone out.  Anything else ``send`` raises propagates.
+    would had the message gone out.  Anything else ``send`` raises propagates, a
+    template that does not render included.
     """
     try:
         send()
-    except SEND_ERRORS:
-        log_refusal(what)
+    except MailRefusedError as refusal:
+        log_refusal(what, refusal)
         return False
     return True
 
