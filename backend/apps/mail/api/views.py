@@ -65,14 +65,17 @@ class EmailLogListView(ListAPIView[EmailLog]):
         Each row of a page links to the record it belongs to (``apps.mail.links``); the
         links of the whole page are read in one pass rather than row by row.
         """
+        # A caller that hands its own context, as drf-spectacular does while it builds
+        # the schema with no database, gets the serializer without one being read.
+        if "context" in kwargs:
+            return self.get_serializer_class()(*args, **kwargs)
         context = self.get_serializer_context()
         if kwargs.get("many") is True and len(args) > 0:
             rows = list(args[0])
             context["log_links"] = log_links(rows)
             args = (rows, *args[1:])
-        kwargs.setdefault("context", context)
         # Not ``super()``: it reads the context afresh, and with it the purpose labels.
-        return self.get_serializer_class()(*args, **kwargs)
+        return self.get_serializer_class()(*args, context=context, **kwargs)
 
     def filter_queryset[R](self, queryset: QuerySet[EmailLog, R]) -> QuerySet[EmailLog, R]:
         """Narrow ``queryset`` by the filters and put it in the download's order.
