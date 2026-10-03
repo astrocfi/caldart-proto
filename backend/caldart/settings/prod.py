@@ -237,5 +237,7 @@ LOGGING["loggers"]["django.security"] = {
 
 # Unhandled-500 mail, and a refused send a request survived, go here.  Empty is fine:
 # AdminEmailHandler then does nothing, and the traceback is still in the journal.
-ADMINS = [("CalDART operations", address) for address in env.list("ADMIN_EMAILS", default=[])]
+# Django takes a plain list of address strings: it deprecates (name, address) pairs,
+# and warns of them only when it sends.
+ADMINS = env.list("ADMIN_EMAILS", default=[])
 MANAGERS = ADMINS

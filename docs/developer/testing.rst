@@ -1352,6 +1352,11 @@ tag Django's deployment-only checks carry — ``security``, ``caches``
 ``frontend/dist`` this gate never builds. :doc:`deployment` covers the two
 warnings ``caldart.settings.prod`` silences deliberately.
 
+``check-deploy`` sends no mail, and Django warns of a deprecated ``ADMINS`` or
+``MANAGERS`` shape only when it sends to one, so ``test_sysadmin_settings.py``
+covers that half: it loads ``caldart.settings.prod`` through Django's own settings
+loader, then mails through both settings, each with warnings as errors.
+
 ``make audit`` fails on any known vulnerability in a locked dependency,
 development tooling included. Fix a finding by upgrading the affected package.
 Do not run ``npm audit fix --force`` blindly: it can resolve an advisory by

@@ -413,7 +413,12 @@ Email
 ``ADMIN_EMAILS`` *(prod only)*
    Comma-separated addresses that receive unhandled-500 mail, and the report of a
    message the mail server refused while a request answered anyway
-   (:ref:`email-refused`).  Default empty, which is fine — the traceback is in the
+   (:ref:`email-refused`).  ``prod.py`` sets both ``ADMINS`` and ``MANAGERS`` to
+   this list of address strings, the shape Django expects.  Django deprecates
+   ``(name, address)`` pairs there and warns of them only when it sends, so
+   ``backend/tests/test_sysadmin_settings.py`` sends through both settings, and loads
+   ``caldart.settings.prod`` through Django's own settings loader, with warnings as
+   errors.  Default empty, which is fine — the traceback is in the
    journal either way.  A report the mail server refuses too is written to the
    journal and never fails the request.  The report lists
    the settings through ``DEFAULT_EXCEPTION_REPORTER_FILTER``, set in ``base.py`` to
