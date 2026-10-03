@@ -401,3 +401,146 @@ copies tried, and ``skipped`` the people set aside as each email started.
 ``remaining`` counts them.  Each action is one copy: ``kind`` is ``sent`` or ``failed``, and ``detail`` the subject
 or the reason.  One ``bulk_email.run`` audit line names the caller
 and the counts.
+
+
+.. _api-bulk-email-rich-text:
+
+Rich text and recipient fields
+==============================
+
+The portal's editor writes a message as HTML (:ref:`the editor <architecture-rich-text>`),
+and the server trusts none of it.  ``bulk_email.richtext`` and
+``bulk_email.fields`` hold what the server does with that HTML, and the two
+endpoints below serve the editor.
+
+**Sanitizing.**  ``richtext.sanitize`` reduces any HTML to what an email may
+carry, with nh3:
+
+- the tags kept are ``p``, ``br``, ``strong``, ``em``, ``b``, ``i``, ``u``,
+  ``s``, ``h1``, ``h2``, ``h3``, ``ul``, ``ol``, ``li``, ``a``, ``img``,
+  ``blockquote``, and ``hr``.  ``script`` and ``style`` go with everything
+  inside them; any other tag goes and the text inside it stays;
+- a link keeps ``href`` and ``title``, and an image ``src``, ``alt``, ``width``,
+  and ``height``.  Every other attribute goes: ``style``, ``class``, ``id``,
+  ``target``, ``rel``, and every event handler such as ``onclick``;
+- a link's ``href`` must be an absolute ``http``, ``https``, or ``mailto``
+  address, and an image's ``src`` an absolute ``http`` or ``https`` one.  Any
+  other address, ``javascript:``, ``data:``, or a relative path among them, is
+  removed and leaves the tag without it, since a relative address means nothing
+  in a mail program;
+- ``width`` and ``height`` must be whole numbers of pixels, and comments are
+  removed.
+
+The answer is well formed, and sanitizing it again changes nothing.
+
+**The plain-text part.**  ``richtext.html_to_text`` writes the same message as
+plain text: each paragraph and heading a block of its own, blocks separated by
+a blank line, a line break a new line; each item of a bulleted list starting
+``-`` and of a numbered list its number (``1.``), one to a line, a nested list
+indented two spaces; a quotation's lines starting ``>``; a horizontal rule as
+``----``; a link as ``text (url)``, or the address alone when the text is the
+address; and an image as its description (``alt``).
+
+**Recipient fields.**  A subject or a message can carry a token that each
+person's copy fills in with that person's own value.  The catalog,
+``fields.FIELDS``, is fixed in the code:
+
+=======================  ===================  =========================================
+Token                    Label                Value
+=======================  ===================  =========================================
+``{first_name}``         First name           the account's first name
+``{last_name}``          Last name            the account's last name
+``{full_name}``          Full name            first and last name, joined by a space
+``{email}``              Email address        the account's address
+``{dart_name}``          DART                 the name of the DART on the profile
+``{plan}``               Membership plan      the plan behind the membership status
+``{membership_status}``  Membership status    ``Current``, ``Expired``, ``Friend``, or
+                                              ``Donor``, as the member list shows it
+``{expiration}``         Expiration date      when the membership runs out,
+                                              ``MM/DD/YYYY``; empty for a lifetime
+                                              member, a friend, and a donor
+``{home_airport}``       Home airport         the home airport identifier on the
+                                              profile, such as ``LVK``
+=======================  ===================  =========================================
+
+The status, plan, and expiration are ``members.services.membership_of``'s.
+A person with no value for a field, such as an account with no profile and so
+no DART, gets an empty value.  A token may name a fallback for an empty value,
+``{first_name|friend}``.  A token's name is lower-case letters, digits, and
+underscores, starting with a letter, and its fallback is plain text with no
+brace, bar, angle bracket, or line break.  Anything else in braces is not a
+token and arrives as written, including Django's template syntax: ``{{ x }}``,
+``{{x}}``, and ``{% y %}`` are never evaluated, because filling in a token is a
+lookup in the catalog (``fields.substitute``), never template rendering.  A
+token naming a field the catalog does not have is unknown, and
+``fields.unknown_tokens`` lists each one by name, in the order first written.
+``fields.values_for`` reads one person's value for each token a message uses,
+and ``fields.substitute`` puts them in, HTML-escaping each value for the HTML
+part, so a name holding ``<b>`` arrives as text, and replacing an empty value
+by the token's fallback.
+
+
+``GET /bulk-email/fields``
+--------------------------
+
+The recipient fields, in the order the **Insert field** menu lists them.
+Unpaginated.  **200**:
+
+.. code-block:: json
+
+   [{"token": "first_name", "label": "First name",
+     "description": "The person's first name."},
+    {"token": "dart_name", "label": "DART",
+     "description": "The name of the person's DART."}]
+
+``token`` is the field's name without its braces.
+
+
+``POST /bulk-email/images``
+---------------------------
+
+Stores one image for a message.  The body is multipart form data with the file
+under ``image``; any other content type is **415**.  ``bulk_email.images.store``
+checks it and keeps it:
+
+- the file must be at most ``BULK_EMAIL_IMAGE_MAX_BYTES`` long (5 MB unless
+  :doc:`configuration` says otherwise), or it is refused with *This image is
+  larger than 5 MB. Choose a smaller one.*, the limit named in MB;
+- it must be a PNG, JPEG, GIF, or WebP image by its content, whatever its name
+  says, read with Pillow, or it is refused with *Choose a PNG, JPEG, GIF, or
+  WebP image.*, which is also the answer for a file cut short;
+- it must hold at most 40 million pixels, or it is refused with *This image is
+  too big to use in an email. Choose a smaller one.*, before its pixels are
+  read;
+- an image wider than ``BULK_EMAIL_IMAGE_MAX_WIDTH`` (1200 pixels) is scaled
+  down to that width with its proportions kept, an animated one frame by frame;
+  a photo is turned upright by its orientation tag; and every image is saved
+  afresh in its own format, which drops its metadata, a photo's location among
+  it;
+- the file is stored as ``bulk-email/<uuid>.<ext>`` under ``MEDIA_ROOT``, its
+  name a fresh random UUID, with a ``BulkEmailImage`` row naming the caller as
+  the uploader (:ref:`data-model-bulk-email`).
+
+**201**:
+
+.. code-block:: json
+
+   {"id": 4,
+    "url": "https://caldart.example.org/media/bulk-email/3f2c9e0b8d6a4f7e9a1b2c3d4e5f6a7b.png",
+    "width": 1200,
+    "height": 600}
+
+``url`` is absolute: ``SITE_URL``'s scheme and host followed by the file's
+``MEDIA_URL`` path, which carries any ``URL_PREFIX``.  ``width`` and ``height``
+are the stored image's size in pixels.  A missing file is **400**
+``{"image": ["No file was submitted."]}``, and a refused one **400** with the
+reason under ``image``.
+
+Every copy of an email links to its images by that URL rather than carrying
+them, so a send to hundreds of people stays small, and the image must stay
+reachable without signing in for as long as a sent email may be read: a mail
+program fetches it with no session.  The web server serves ``/media/`` straight
+off disk to anybody, and only ``/media/documents/`` is refused
+(:doc:`deployment`), so ``/media/bulk-email/`` needs nothing of its own.  In
+development Django serves ``/media/`` while ``DEBUG`` is on, which it is under
+``make run``.  An image is never deleted by the site.

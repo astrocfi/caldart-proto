@@ -204,7 +204,7 @@ Backing up the media files
 A database dump carries every row and none of the uploaded files.  Those live
 in ``MEDIA_ROOT``: ``backend/media/`` in development, and ``/opt/caldart/media``
 in production, in the deploy root beside the checkout.  Wagtail writes three
-directories there:
+directories there, and bulk email a fourth:
 
 ``original_images/``
    every image an editor uploaded, as uploaded;
@@ -212,7 +212,11 @@ directories there:
    the resized copies (renditions) Wagtail makes of them for pages.  The
    database lists each one, so a restored database expects these files too;
 ``documents/``
-   every uploaded document, including the members-only ones.
+   every uploaded document, including the members-only ones;
+``bulk-email/``
+   every image put into a bulk email's message.  The database lists each one
+   (``BulkEmailImage``), and every email already sent links to it, so a copy
+   read after a restore without these files shows a broken image.
 
 Back up the whole directory, alongside each dump.  ``rsync`` keeps a mirror
 on another machine up to date and copies only what changed::

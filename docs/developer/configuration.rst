@@ -582,15 +582,36 @@ Uploads
 
 ``MEDIA_ROOT``
    The directory Wagtail writes image and document uploads into, and the one
-   Django's document view reads a members-only document from.  The web server
-   serves ``/media/`` straight from it, except ``media/documents/``, which only
-   Django serves.
+   Django's document view reads a members-only document from.  The bulk email
+   editor's images go in its ``bulk-email/`` directory (:doc:`api-bulk-email`).
+   The web server serves ``/media/`` straight from it to anybody, signed in or
+   not, except ``media/documents/``, which only Django serves; a bulk email's
+   images must stay that way, since a mail program fetches them with no session.
+   In development Django serves ``/media/`` itself while ``DEBUG`` is on.
 
    :Development: unset: ``backend/media`` in the checkout, gitignored.
    :Production: ``/opt/caldart/media``, the deploy root's ``media`` beside the
       checkout, as the installer writes it: owned by the service user, listed
       in ``ReadWritePaths`` in ``caldart-web.service``, and named by the
       vhost's ``/media/`` alias.  Moving it means changing all three.
+
+``BULK_EMAIL_IMAGE_MAX_BYTES``
+   The largest image file, in bytes, a bulk email's sender may upload into a
+   message (``POST /bulk-email/images``); a larger one is refused with the limit
+   named in MB.  Keep it well under the web server's request limit (25 MB in the
+   shipped vhosts).
+
+   :Development: unset: ``5242880``, 5 MB.
+   :Production: unset, the same.
+
+``BULK_EMAIL_IMAGE_MAX_WIDTH``
+   The widest, in pixels, a bulk email's image is stored; a wider upload is
+   scaled down to it, its proportions kept.  The editor shows an image at most
+   600 pixels wide in the message, so the default leaves room for a screen that
+   draws two pixels to each one.
+
+   :Development: unset: ``1200``.
+   :Production: unset, the same.
 
 
 Backups
