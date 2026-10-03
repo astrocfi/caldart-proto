@@ -598,6 +598,14 @@
       "will_receive"
     ]
   },
+  "BulkEmailChecksRefusal": {
+    "properties": {
+      "checks": "array<ref:BulkEmailFinding>"
+    },
+    "required": [
+      "checks"
+    ]
+  },
   "BulkEmailDetail": {
     "properties": {
       "batch_count": "integer",
@@ -608,6 +616,7 @@
       "confirm_count": "integer|null",
       "created_at": "string(date-time)",
       "dart_name": "string",
+      "default_reply_to": "string",
       "email_type": "integer|null",
       "email_type_name": "string",
       "estimated_finish_at": "string(date-time)|null",
@@ -617,6 +626,7 @@
       "not_sent_reason": "string",
       "receiving_count": "integer",
       "remaining": "integer",
+      "reply_to": "string(email)",
       "scheduled": "boolean",
       "sender": "string",
       "sender_id": "integer|null",
@@ -643,6 +653,7 @@
       "confirm_count",
       "created_at",
       "dart_name",
+      "default_reply_to",
       "email_type",
       "email_type_name",
       "estimated_finish_at",
@@ -652,6 +663,7 @@
       "not_sent_reason",
       "receiving_count",
       "remaining",
+      "reply_to",
       "scheduled",
       "sender",
       "sender_id",
@@ -680,6 +692,24 @@
       "description",
       "label",
       "token"
+    ]
+  },
+  "BulkEmailFinding": {
+    "properties": {
+      "code": "string",
+      "level": "ref:BulkEmailFindingLevelEnum",
+      "message": "string"
+    },
+    "required": [
+      "code",
+      "level",
+      "message"
+    ]
+  },
+  "BulkEmailFindingLevelEnum": {
+    "enum": [
+      "error",
+      "warning"
     ]
   },
   "BulkEmailImage": {
@@ -853,6 +883,14 @@
       "stopped_at",
       "subject",
       "updated_at"
+    ]
+  },
+  "BulkEmailTestResult": {
+    "properties": {
+      "to": "string(email)"
+    },
+    "required": [
+      "to"
     ]
   },
   "CadenceEnum": {
@@ -2392,6 +2430,7 @@
     "properties": {
       "body": "string",
       "email_type": "integer",
+      "reply_to": "unknown",
       "subject": "string"
     },
     "required": []

@@ -1,8 +1,10 @@
 """One recipient's copy of a bulk email: its subject, its two bodies, and its headers.
 
 :func:`render_copy` is the one place a copy is built, for the background sender and for
-anything that shows a copy as it went; :func:`render_message` builds one from a subject,
-a message, and the field values to fill in, for the preview too.  The message is HTML,
+anything that shows a copy as it went, through :func:`render_for`, which builds one
+person's whole copy, footer and headers included, for the preview and a test copy too;
+:func:`render_message` builds one from a subject, a message, and the field values to
+fill in.  The message is HTML,
 sanitized afresh every time (``apps.bulk_email.richtext.sanitize``), and each
 recipient's values are filled into it HTML-escaped; the plain-text body is derived
 from the filled-in message (``html_to_text``), so it reads each value as it is.  The
@@ -26,6 +28,7 @@ import re
 from collections.abc import Mapping
 from dataclasses import dataclass, field, replace
 
+from django.conf import settings
 from django.template.loader import render_to_string
 from django.utils.safestring import mark_safe
 
@@ -42,7 +45,7 @@ from apps.bulk_email.fields import (
 )
 from apps.bulk_email.models import BulkEmail, BulkEmailRecipient
 from apps.bulk_email.richtext import MAX_NESTING_DEPTH, html_to_text, nesting_depth, sanitize
-from apps.mail.unsubscribe import Footer, footer_for, headers_for
+from apps.mail.unsubscribe import UNSUBSCRIBE_PATH, Footer, footer_for, headers_for
 from caldart.mail import contact_email, org_name
 
 #: The template pair a copy is built from.
@@ -54,6 +57,10 @@ COPY_TEMPLATE = "bulk_email_copy"
 
 #: The email log's purpose for every copy.
 PURPOSE = "bulk_email"
+
+#: What stands in a preview's unsubscribe link where a copy's signed token goes: the
+#: link reads as a copy's does, but unsubscribes nobody.
+PREVIEW_STAND_IN = "preview"
 
 #: The longest preheader, the line a mail program shows beside the subject.
 PREHEADER_LENGTH = 90
@@ -95,21 +102,38 @@ def render_copy(bulk: BulkEmail, recipient: BulkEmailRecipient) -> RenderedCopy:
     The row's ``values`` are the ones the copy went out with (:func:`fill_values`), so
     a copy rebuilt after the person's profile changed reads as it was sent.  A token
     whose value the row does not hold is filled in as empty, so its fallback stands.
-
-    The footer and the headers follow the email's type (``apps.mail.unsubscribe``):
-    for a type recipients may turn off, the footer says so with the recipient's own
-    unsubscribe link and the copy carries the ``List-Unsubscribe`` and
-    ``List-Unsubscribe-Post`` headers; for one they may not, the footer says why they
-    receive it and there is no header.  A copy of an email with no type, or for a row
-    whose account is gone, carries no header and the general line *You receive this
-    email as a member or a friend of <organization>.*
+    The footer and the headers are :func:`render_for`'s for the row's account.
     """
     values = {name: recipient.values.get(name, "") for name in message_tokens(bulk)}
+    return render_for(bulk, recipient.user, values)
+
+
+def render_for(
+    bulk: BulkEmail, user: User | None, values: Mapping[str, str], *, inert: bool = False
+) -> RenderedCopy:
+    """``user``'s copy of ``bulk``, filled in with ``values``: one person's whole copy.
+
+    This is the copy the sender sends, the preview shows, and a test copy carries.
+    With ``inert`` (the preview) the footer reads as the copy's does, but its
+    unsubscribe link carries :data:`PREVIEW_STAND_IN` instead of a signed token, and the
+    copy carries no header, so showing a person's copy to a sender never hands over
+    a link that turns that person's email off.
+    The footer and the headers follow the email's type (``apps.mail.unsubscribe``):
+    for a type recipients may turn off, the footer says so with ``user``'s own
+    unsubscribe link and the copy carries the ``List-Unsubscribe`` and
+    ``List-Unsubscribe-Post`` headers; for one they may not, the footer says why they
+    receive it and there is no header.  A copy of an email with no type, or for an
+    account that is gone (``None``), carries no header and the general line *You
+    receive this email as a member or a friend of <organization>.*
+    """
     footer: Footer | None = None
     headers: dict[str, str] = {}
-    if bulk.email_type is not None and recipient.user is not None:
-        footer = footer_for(recipient.user, bulk.email_type)
-        headers = headers_for(recipient.user, bulk.email_type)
+    if bulk.email_type is not None and user is not None:
+        footer = footer_for(user, bulk.email_type)
+        headers = headers_for(user, bulk.email_type)
+    if inert and footer is not None:
+        footer = Footer(text=footer.text, url=inert_unsubscribe_url() if footer.url else "")
+        headers = {}
     copy = render_message(
         bulk.subject,
         bulk.body,
@@ -118,6 +142,11 @@ def render_copy(bulk: BulkEmail, recipient: BulkEmailRecipient) -> RenderedCopy:
         type_name=bulk.email_type.name if bulk.email_type is not None else "",
     )
     return replace(copy, headers=headers)
+
+
+def inert_unsubscribe_url() -> str:
+    """The unsubscribe link a preview shows: the page's address with no signed token."""
+    return f"{settings.SITE_URL.rstrip('/')}{UNSUBSCRIBE_PATH}{PREVIEW_STAND_IN}"
 
 
 def render_message(

@@ -1,6 +1,7 @@
 /**
- * Card 2 of the compose screen, **What it says**: the type, the subject, and the
- * message. The type saves the moment it is chosen (`EmailTypeChoice`).
+ * Card 2 of the compose screen, **What it says**: the type, the subject, the
+ * Reply-To address, and the message, with **Send me a test** at the bottom. The
+ * type saves the moment it is chosen (`EmailTypeChoice`).
  *
  * Both save themselves as they are typed; a quiet note under the message says
  * whether the latest words are saved. The compose screen owns the values and the
@@ -17,7 +18,9 @@ import { RichTextEditor } from '@/portal/components/RichTextEditor';
 import type { RichTextEditorHandle } from '@/portal/components/RichTextEditor';
 import { EmailTypeChoice } from './EmailTypeChoice';
 import { InsertFieldMenu } from './InsertFieldMenu';
+import { ReplyToField } from './ReplyToField';
 import { uploadBulkEmailImage } from './richTextApi';
+import { TestSendButton } from './TestSendButton';
 import type { SaveState } from './useAutosave';
 
 /** The longest subject the server accepts. */
@@ -43,8 +46,13 @@ interface MessageCardProps {
   emailTypeName: string;
   subject: string;
   body: string;
+  /** The Reply-To address as saved, blank for `defaultReplyTo`; it saves itself. */
+  replyTo: string;
+  defaultReplyTo: string;
   onSubjectChange: (subject: string) => void;
   onBodyChange: (body: string) => void;
+  /** Save what is typed before a test goes; resolves true once it is saved. */
+  onBeforeTest: () => Promise<boolean>;
   saveState: SaveState;
   /** The server's complaint about each field, if it refused one. */
   errors: { subject?: string; body?: string };
@@ -59,8 +67,11 @@ export function MessageCard({
   emailTypeName,
   subject,
   body,
+  replyTo,
+  defaultReplyTo,
   onSubjectChange: handleSubjectChange,
   onBodyChange: handleBodyChange,
+  onBeforeTest: handleBeforeTest,
   saveState,
   errors,
   isEditable,
@@ -102,6 +113,7 @@ export function MessageCard({
             />
           )}
         </Field>
+        <ReplyToField emailId={emailId} saved={replyTo} defaultReplyTo={defaultReplyTo} />
         <div className="field">
           {/* The editing area names itself "Message"; this is the label a reader sees. */}
           <span className="field__label" aria-hidden="true">
@@ -146,6 +158,7 @@ export function MessageCard({
           {SAVE_NOTES[saveState]}
         </p>
       ) : null}
+      {isEditable ? <TestSendButton emailId={emailId} onBeforeSend={handleBeforeTest} /> : null}
     </Card>
   );
 }

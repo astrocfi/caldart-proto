@@ -33,9 +33,22 @@ added later lands in a file of its own rather than growing one:
     The background sender: claim, freeze, the paced send loop, the retries, and
     the progress estimate.
 ``render.py``
-    ``render_copy`` and ``render_message``: one recipient's copy, its subject, its
-    two bodies, and its headers; ``check_message``, what a token-bearing message
-    is refused for; ``fill_values``, a person's values for the fields it uses.
+    ``render_copy``, ``render_for``, and ``render_message``: one recipient's copy,
+    its subject, its two bodies, and its headers; ``check_message``, what a
+    token-bearing message is refused for; ``fill_values``, a person's values for the
+    fields it uses.
+``reply_to.py``
+    Where replies go: the default ``Reply-To`` for a sender, the address an email's
+    copies carry, and why an address cannot be one.
+``checks.py``
+    The checks before a send: the errors that stop it and the warnings that do not.
+``links.py``
+    The link check, held to its deadlines, that never reaches into a private network
+    or this server.
+``throttling.py``
+    The per-account limit on running the checks.
+``tests_send.py``
+    **Send me a test**: one copy of an email to its sender alone.
 ``richtext.py``
     ``sanitize``, the allow-list a message's HTML is reduced to, and
     ``html_to_text``, the plain-text part derived from it.
@@ -53,8 +66,9 @@ added later lands in a file of its own rather than growing one:
 ``api/``
     The endpoints: ``drafts.py``, ``batch.py``, ``history.py``, ``sender.py``
     (**Run now**), ``sender_context.py`` (``GET /bulk-email/sender``),
-    ``richtext.py`` (the field catalog and image uploads), and ``preview.py``, with
-    the serializers in ``serializers.py``.
+    ``richtext.py`` (the field catalog and image uploads), ``preview.py``, and
+    ``checks.py`` (the checks and the test copy), with the serializers in
+    ``serializers.py``.
 ``management/commands/send_bulk_emails.py``
     One run of the sender.
 
@@ -75,7 +89,8 @@ States
     draft (no subject, no message, nobody in the batch) or a fresh one, so pressing
     Compose twice does not leave two empty drafts behind.
 ``queued``
-    **Send** checks the email can go and sets ``start_at``: now plus
+    **Send** checks the email can go (:ref:`bulk-email-checks`), stores the
+    ``Reply-To`` its copies will carry, and sets ``start_at``: now plus
     ``BULK_EMAIL_UNDO_SECONDS``, the undo window, or the time the sender chose
     (``scheduled``).  Above ``BULK_EMAIL_CONFIRM_ABOVE`` recipients the sender must
     type the count, and the server counts the batch again, so a batch that grew
@@ -311,7 +326,15 @@ the finished bodies to ``send_templated`` through the pass-through pair
 are given unchanged, and passes the copy's ``headers`` through
 ``send_templated``'s ``headers`` argument.
 
-The footer and the headers follow the email's type (:ref:`email-unsubscribe`).  For
+``render.render_for(bulk, user, values)`` is one person's whole copy, footer and
+headers included: ``render_copy`` builds a row's copy through it with the row's
+stored values, the preview builds each person's with their values as they are
+now, and a test copy the sender's own, so all three read alike.  The preview's is
+inert (``inert=True``): its footer reads as the copy's, but its unsubscribe link
+carries ``render.PREVIEW_STAND_IN`` where a signed token goes and it has no headers,
+so showing a person's copy to a sender never hands over a link that would turn that
+person's email off.  The test copy carries the sender's own real link.  The footer and the
+headers follow the email's type (:ref:`email-unsubscribe`).  For
 a type recipients may turn off, both bodies end with ``unsubscribe.footer_for``'s line
 and the recipient's own unsubscribe link, and the copy carries
 ``unsubscribe.headers_for``'s ``List-Unsubscribe`` and ``List-Unsubscribe-Post``
@@ -319,6 +342,122 @@ headers.  For a type they may not, the footer says why the recipient receives it
 there is no header.  A row whose account is gone gets neither, nor does an email with
 no type, which cannot be sent; both fall back to the general line *You receive this
 email as a member or a friend of <organization>.*
+
+
+.. _bulk-email-reply-to:
+
+Where replies go
+----------------
+
+Every copy comes ``From`` ``DEFAULT_FROM_EMAIL``, an address nobody reads, so that
+SPF, DKIM, and DMARC align; a reply reaches a person only through the ``Reply-To``
+header, which ``send_templated``'s ``reply_to`` argument sets.  ``BulkEmail.reply_to``
+is the address the sender chose, and blank means the default,
+``reply_to.default_reply_to``: ``BULK_EMAIL_REPLY_TO`` (:doc:`configuration`), or
+the sender's own address when that setting is blank.  A fresh draft starts with the
+default filled in, which the compose screen's **Reply-To** field shows for the
+sender to keep or change.  ``reply_to.reply_to_for`` is the address an email's
+copies carry; **Send** stores it on the email.  A queued email can still be changed,
+its ``Reply-To`` blanked among it, so the sender resolves and checks it once more
+as it claims the email (``reply_to.claimed_reply_to``): when nothing usable
+resolves, the copies fall back to ``DEFAULT_FROM_EMAIL``'s address and a WARNING
+names the email.  The address settled on is stored on the email, so the Sent detail
+shows what the copies went with whatever the setting says later.  An address that is blank or not valid is an error of the
+checks, below, so **Send** and a test both refuse it.
+
+
+.. _bulk-email-checks:
+
+The checks
+==========
+
+``checks.run_checks(bulk)`` lists what is wrong with an email as it is saved, each
+finding a ``Finding(code, level, message)``.  The compose screen's **Check and
+send** card runs them when it opens, again on **Check again**, and again just
+before it opens the confirmation, and keeps **Send** off while one is an error.
+The codes and their wording are in :ref:`api-bulk-email-checks`.
+
+An **error** stops the send: a blank subject, a message that reads as no text, a
+token that cannot be filled in (``render.check_message``), and a ``Reply-To`` that
+is blank or not valid.  ``checks.error_findings`` gives those alone, and
+``checks.refuse_on_errors`` raises ``ChecksFailedError`` with them, which
+``drafts.queue`` calls once the fields it names itself have passed, and the test
+copy calls first.  The send endpoint answers that error as a 400 with the findings
+under ``checks``.
+
+A **warning** is worth a look, and the sender may send past it: a recipient field
+empty for more than half the people who receive the email (counted with
+``fields.values_for`` over ``batch.batch_rows``, and only for a field written at
+least once without a fallback), placeholder text left in, pictures without a
+description or wider than ``BULK_EMAIL_IMAGE_MAX_WIDTH``, and links.  Only the
+warnings read the network, so the send, which needs only the errors, never fetches
+a link.
+
+Checking a link
+---------------
+
+``apps.bulk_email.links`` checks the links: each distinct ``http`` or ``https`` link,
+at most 20 a run, is fetched from the server with ``httpx``'s async client, 10 at once,
+on an event loop of its own: a ``HEAD``, and a ``GET`` when that answers 400 or more,
+since some sites refuse ``HEAD`` alone; the body is never read.  A link to this site
+itself, or whose address holds a recipient field, is not fetched.
+
+Every deadline is a real one.  Each request has 5 seconds to connect and for each
+read, and each link's whole check, its name lookups, redirects, and second try
+included, is canceled at 12 seconds (``asyncio.wait_for``), however slowly a server
+drips its answer: *This link timed out.*  The whole run is held to 30 seconds, after
+which every link still out reads *This link was not checked in time*.  A name lookup
+cannot be canceled, so lookups run in a thread pool the run abandons rather than
+waits for.  ``POST /bulk-email/{id}/checks`` is throttled per account,
+``BULK_EMAIL_CHECKS_THROTTLE_RATE`` (:doc:`configuration`), so nobody can have the
+server fetch addresses without end.
+
+The check must never become a way into the server's own network, so it does its
+own name resolution and connects only where it checked:
+
+* ``links.resolve`` asks for every address the host resolves to, and the link is
+  refused, *Links into a private network are not checked*, when any of them is not
+  on the public internet (``links.is_public``: private, loopback, link-local,
+  multicast, reserved, unspecified, shared, IPv6 site-local ``fec0::/10``, or an
+  IPv6 address mapping such an IPv4 one), or is one of this server's own addresses
+  (``links.own_addresses``: those of ``SITE_URL``'s host and of the machine's own
+  names).  A host that answers with one public and one private address is refused,
+  since a connection could reach either.
+* Only ports 80 and 443 are fetched; a link to any other port reads *Links to a port
+  other than 80 or 443 are not checked*.
+* The request then goes to the first address checked, with the link's host in the
+  ``Host`` header and, for ``https``, as the name TLS sends and verifies the
+  certificate against (``httpx``'s ``sni_hostname`` extension).  The host is never
+  resolved a second time, so a name whose answer changes between the check and the
+  connection cannot lead the request inside.
+* Redirects are followed by hand, at most 5, and each hop is resolved and checked
+  the same way, its port included, before anything connects to it.
+* The client reads no proxy from the environment (``trust_env=False``), which would
+  otherwise carry the request past the pinned address.
+
+What a check reports is coarse on purpose, so it cannot serve to probe a host: a
+link *does not load*, *timed out*, or was answered with a 4xx or a 5xx error, never
+the exact code.  A link that fails is a warning, never an error: a site that is down
+for a minute should not stop a newsletter.  For the same reason the compose screen
+opens the confirmation even when the checks fail or have not answered within a few
+seconds, saying *The checks could not run. You can still send.*: the send refuses
+an error on its own.
+
+.. _bulk-email-test-copy:
+
+The test copy
+=============
+
+``tests_send.send_test(bulk, actor=...)`` is **Send me a test**.  It refuses an
+email the checks find errors in, then mails the actor one copy of the email as it
+is saved, built with ``render.render_for`` from the actor's own field values, so it
+carries the actor's footer and unsubscribe link, the type's headers, and the
+email's ``Reply-To``, exactly as a copy to the actor would; only the subject
+differs, starting ``[Test]``.  The copy goes through ``send_templated`` under the
+purpose ``bulk_email_test`` (:doc:`email`), so Sent Emails lists it, and touches
+nothing of the send: no row joins the batch, and no count moves.  Every call sends
+one more copy.  A mail server that refuses it raises ``MailRefusedError``, which the
+endpoint answers with a 503.
 
 
 Extending
@@ -329,13 +468,19 @@ The pieces a feature added to bulk email changes, and where:
 * A new **skip reason** goes in ``batch.skip_reason``, as the type's opt-out and
   the DART limit do, which both the batch screen and the freeze read, so the reason
   shows in the batch the moment it applies and is stored when the send starts.
-* A new **field of the email**, such as a ``Reply-To``, is a model
-  field, a field of ``BulkEmailUpdateSerializer`` (``PATCH`` saves whatever that
-  serializer validates through ``drafts.update``), and a check in ``drafts.queue``
-  when **Send** must refuse without it, as ``email_type`` has.
-* Anything that changes **what a copy says**, such as a Reply-To, goes in
-  ``render_message`` (``render_copy`` passes it the type's footer and adds the
-  type's headers) and in the arguments the sender passes to ``send_templated``.  A
+* A new **field of the email**, as ``reply_to`` is, is a model field, a field of
+  ``BulkEmailUpdateSerializer`` (``PATCH`` saves whatever that serializer validates
+  through ``drafts.update``), and a check in ``drafts.queue`` when **Send** must
+  refuse without it, as ``email_type`` has, or an error in ``checks.error_findings``
+  when the reason belongs on the compose screen's checks too, as the ``Reply-To``'s
+  has.
+* A new **check** is a function in ``checks.py`` answering findings, called from
+  ``run_checks``; an error belongs in ``error_findings``, so the send and the test
+  refuse it as well, and anything that reads the network must stay a warning.
+* Anything that changes **what a copy says** goes in ``render_message``
+  (``render_for`` passes it the type's footer and adds the type's headers) and in
+  the arguments the sender and the test copy pass to ``send_templated``, as the
+  ``Reply-To`` is.  A
   new **recipient field** is one more ``Field`` in ``fields.FIELDS``, which the
   **Insert field** menu, the checks, and the copies all read.
 * A new **screen** joins the Bulk Email group of the portal's menu

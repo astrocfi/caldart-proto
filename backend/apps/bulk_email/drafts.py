@@ -28,9 +28,13 @@ from apps.accounts.models import User
 from apps.accounts.permissions import user_has_any_role
 from apps.accounts.roles import MANAGEMENT
 from apps.bulk_email.batch import batch_counts, batch_rows, locked_for_edit
+from apps.bulk_email.checks import NO_BODY_MESSAGE as NO_BODY_MESSAGE
+from apps.bulk_email.checks import NO_SUBJECT_MESSAGE as NO_SUBJECT_MESSAGE
+from apps.bulk_email.checks import refuse_on_errors
 from apps.bulk_email.job import apply_stop
 from apps.bulk_email.models import BulkEmail, BulkEmailStatus, RecipientStatus
 from apps.bulk_email.render import check_message
+from apps.bulk_email.reply_to import default_reply_to, reply_to_for
 from apps.bulk_email.richtext import html_to_text, sanitize
 from apps.bulk_email.senders import dart_limit, limit_dart, sender_context, sender_notice
 from apps.mail.types import sendable_types
@@ -40,11 +44,10 @@ from caldart.exceptions import DomainError, DomainPermissionError, DomainValidat
 #: The furthest ahead a send may be scheduled.
 MAX_SCHEDULE_AHEAD = timedelta(days=365)
 
-#: Why **Send** is refused.
+#: Why **Send** is refused.  A blank subject or message is refused with the checks' own
+#: words, ``NO_SUBJECT_MESSAGE`` and ``NO_BODY_MESSAGE``, imported above.
 NO_TYPE_MESSAGE = "Choose a type."
 NOT_SENDABLE_MESSAGE = "You cannot send {type} email. Choose another type."
-NO_SUBJECT_MESSAGE = "Write a subject."
-NO_BODY_MESSAGE = "Write the message."
 NOBODY_MESSAGE = "Nobody in the batch can receive this email. Add people to the batch."
 CONFIRM_MISSING_MESSAGE = "Type the number of people this email goes to."
 PAST_MESSAGE = "Choose a time in the future."
@@ -87,6 +90,9 @@ def open_draft(sender: User) -> OpenedDraft:
     leader's profile DART, or none for CalDART management.  Raises
     ``DomainPermissionError`` with ``NO_DART_MESSAGE`` for a sender who may send to
     nobody, such as a DART leader whose profile names no DART.
+    A fresh draft's ``reply_to`` is the default
+    (``apps.bulk_email.reply_to.default_reply_to``), which the compose screen shows for
+    the sender to keep or change.
     """
     context = sender_context(sender)
     if not context.can_send:
@@ -103,9 +109,10 @@ def open_draft(sender: User) -> OpenedDraft:
             empty.dart = context.dart
             empty.save(update_fields=["dart", "updated_at"])
         return OpenedDraft(bulk=empty, created=False)
-    return OpenedDraft(
-        bulk=BulkEmail.objects.create(sender=sender, dart=context.dart), created=True
+    fresh = BulkEmail.objects.create(
+        sender=sender, dart=context.dart, reply_to=default_reply_to(sender)
     )
+    return OpenedDraft(bulk=fresh, created=True)
 
 
 def update(bulk: BulkEmail, changes: dict[str, object]) -> BulkEmail:
@@ -150,8 +157,10 @@ def queue(
 ) -> BulkEmail:
     """**Send**: queue ``bulk`` to start at ``start_at``, or once the undo window ends.
 
-    The email must have a type that ``actor`` may send, a subject and a message, and
-    somebody in its batch who can receive a copy.  A DART leader's email must have a
+    The email must have a type that ``actor`` may send, a subject and a message, no
+    error among its checks (``apps.bulk_email.checks.error_findings``, a ``Reply-To``
+    address that is not valid among them), and somebody in its batch who can receive
+    a copy.  A DART leader's email must have a
     DART to go to (``apps.bulk_email.senders.dart_limit``), and records it.  When more
     than ``BULK_EMAIL_CONFIRM_ABOVE`` people would receive it, ``confirm_count`` must be
     that number, the count the sender typed; a batch that changed after the sender typed
@@ -160,22 +169,27 @@ def queue(
 
     The email becomes ``queued`` with ``start_at`` set to the time given, or to ``now``
     plus ``BULK_EMAIL_UNDO_SECONDS``; ``scheduled`` says which, and ``confirm_count``
-    keeps the typed count (null below the threshold), and any ``not_sent_reason`` left by
-    the background sender is cleared.  Queuing an email that is queued already
-    reschedules it.  Nothing is sent: the background sender starts the email once
-    ``start_at`` arrives.  One ``bulk_email.queue`` audit line names ``actor``.
+    keeps the typed count (null below the threshold), ``reply_to`` keeps the address the
+    copies will carry (``apps.bulk_email.reply_to.reply_to_for``), and any
+    ``not_sent_reason`` left by the background sender is cleared.  Queuing an email
+    that is queued already reschedules it.  Nothing is sent: the background sender
+    starts the email once ``start_at`` arrives.  One ``bulk_email.queue`` audit line
+    names ``actor``.
 
     Raises ``DomainValidationError`` keyed ``subject``, ``body``, ``email_type``
     (:data:`NO_TYPE_MESSAGE`, or :data:`NOT_SENDABLE_MESSAGE` naming the type),
     ``batch`` (``apps.bulk_email.senders.sender_notice`` for an email limited to no
     DART, else :data:`NOBODY_MESSAGE`), ``confirm_count``, or ``start_at``, and
-    ``DomainError`` once the email has started sending; nothing changes then.
+    ``DomainError`` once the email has started sending; nothing changes then.  An
+    error among the checks that the fields above do not already refuse raises
+    ``apps.bulk_email.checks.ChecksFailedError`` with every error.
     """
     moment = now if now is not None else timezone.now()
     with transaction.atomic():
         locked = locked_for_edit(bulk)
         _check_content(locked)
         _check_type(locked, actor)
+        refuse_on_errors(locked)
         notice = sender_notice(locked)
         if notice != "":
             raise DomainValidationError("batch", notice)
@@ -197,6 +211,7 @@ def queue(
         )
         locked.confirm_count = confirm_count if needs_count else None
         locked.not_sent_reason = ""
+        locked.reply_to = reply_to_for(locked)
         locked.save(
             update_fields=[
                 "status",
@@ -205,6 +220,7 @@ def queue(
                 "confirm_count",
                 "not_sent_reason",
                 "dart",
+                "reply_to",
                 "updated_at",
             ]
         )

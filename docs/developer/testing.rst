@@ -152,6 +152,10 @@ What ``caldart.settings.test`` changes
   ``None``, so address suggestions are off and unthrottled whatever ``.env``
   says.  ``test_address_suggestions.py`` sets a key with the ``settings``
   fixture and answers Geoapify with ``respx``, so no test reaches the network.
+- ``BULK_EMAIL_CHECKS_THROTTLE_RATE`` is ``None``, so a bulk email's checks are
+  unthrottled; ``test_bulk_checks.py`` turns it on with the ``settings`` fixture,
+  answers every link with ``respx``, and fakes name lookups, so no check reaches the
+  network.
 - ``STATIC_ROOT`` is a temporary directory the settings module creates on
   import, because WhiteNoise warns about a ``STATIC_ROOT`` that is not on disk
   and the suite never runs ``collectstatic``.  ``conftest.py``'s

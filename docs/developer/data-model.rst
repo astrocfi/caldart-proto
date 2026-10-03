@@ -4332,6 +4332,10 @@ it.
      - ``ForeignKey`` to ``darts.Dart``, ``SET_NULL``
      - null; default ``NULL``
      - the DART a DART leader's email goes to (:ref:`bulk-email-dart-limit`), recorded when the draft is made, at each add and **Send**, and when the send starts; null for CalDART management's email and once that DART is deleted; related name ``bulk_emails``
+   * - ``reply_to``
+     - ``EmailField(254)``
+     - not null; default ``""``
+     - the address a recipient's reply goes to, every copy's ``Reply-To``; blank for the default, ``BULK_EMAIL_REPLY_TO`` or the sender's own address (``apps.bulk_email.reply_to``), and the address the copies carry once **Send** has queued the email
    * - ``start_at``
      - ``DateTimeField``
      - null; default ``NULL``

@@ -32,6 +32,7 @@ from apps.bulk_email.models import (
     RecipientStatus,
 )
 from apps.bulk_email.render import body_problem, render_message, subject_problem
+from apps.bulk_email.reply_to import default_reply_to
 from apps.bulk_email.richtext import sanitize
 from apps.bulk_email.senders import email_dart_name, sender_notice
 from apps.mail.models import EmailType
@@ -84,8 +85,10 @@ class BulkEmailUpdateSerializer(serializers.Serializer[dict[str, Any]]):
     both are trimmed.  Either is refused when a recipient field token in it cannot be
     filled in (``apps.bulk_email.render.check_message``).  ``email_type`` is the id of
     a type the caller may send (``GET /email-types/sendable``); any other is refused
-    with :data:`apps.bulk_email.drafts.NOT_SENDABLE_MESSAGE`.  The caller is the
-    context's ``user``.
+    with :data:`apps.bulk_email.drafts.NOT_SENDABLE_MESSAGE`.  ``reply_to`` is a valid
+    email address, trimmed, or blank for the default
+    (``apps.bulk_email.reply_to.default_reply_to``).  The caller is the context's
+    ``user``.
     """
 
     subject = serializers.CharField(max_length=200, allow_blank=True, required=False)
@@ -93,6 +96,7 @@ class BulkEmailUpdateSerializer(serializers.Serializer[dict[str, Any]]):
     email_type = serializers.PrimaryKeyRelatedField(
         queryset=EmailType.objects.all(), required=False
     )
+    reply_to = serializers.EmailField(max_length=254, allow_blank=True, required=False)
 
     def validate_email_type(self, value: EmailType) -> EmailType:
         """Refuse a type the caller may not send."""
@@ -180,12 +184,15 @@ class BulkEmailDetailSerializer(serializers.ModelSerializer[BulkEmail]):
     CalDART management's (``apps.bulk_email.senders.email_dart_name``).
     ``sender_notice`` says why nobody can be added to the email, naming its sender, while
     it is limited to no DART, and is blank otherwise
-    (``apps.bulk_email.senders.sender_notice``).
+    (``apps.bulk_email.senders.sender_notice``).  ``reply_to`` is the address replies
+    go to, blank for the default, and ``default_reply_to`` that default for the email's
+    sender; once the email is queued ``reply_to`` is the address its copies carry.
     """
 
     email_type_name = serializers.SerializerMethodField()
     dart_name = serializers.SerializerMethodField()
     sender_notice = serializers.SerializerMethodField()
+    default_reply_to = serializers.SerializerMethodField()
 
     sender = serializers.SerializerMethodField()
     stopped_by = serializers.SerializerMethodField()
@@ -212,6 +219,8 @@ class BulkEmailDetailSerializer(serializers.ModelSerializer[BulkEmail]):
             "email_type",
             "email_type_name",
             "not_sent_reason",
+            "reply_to",
+            "default_reply_to",
             "status",
             "sender",
             "sender_id",
@@ -263,6 +272,10 @@ class BulkEmailDetailSerializer(serializers.ModelSerializer[BulkEmail]):
     def get_sender_notice(self, bulk: BulkEmail) -> str:
         """Why nobody can be added to the email, or ``""`` when somebody can."""
         return sender_notice(bulk)
+
+    def get_default_reply_to(self, bulk: BulkEmail) -> str:
+        """Where replies go when ``reply_to`` is blank, for the email's sender."""
+        return default_reply_to(bulk.sender)
 
     def get_stopped_by(self, bulk: BulkEmail) -> str:
         """Who pressed **Stop**, or ``""`` when nobody did or the account is gone."""

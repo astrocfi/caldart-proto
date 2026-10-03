@@ -105,6 +105,8 @@ One email, with everything the compose and Sent screens show:
     "email_type": 1,
     "email_type_name": "Operational",
     "not_sent_reason": "",
+    "reply_to": "operations@caldart.org",
+    "default_reply_to": "operations@caldart.org",
     "status": "sending",
     "sender": "Grace Holloway",
     "sender_id": 3,
@@ -140,7 +142,11 @@ is the sender's DART as it is now, and once it has started sending the DART it w
 to.  ``sender_notice`` is blank unless the email can still change and its sender is
 a DART leader whose profile names no DART, when it reads *This email belongs to
 <name>, whose profile names no DART, so nobody can be added.*, naming the sender, for
-whoever opens it; the compose screen shows it in place of the filters.  ``body`` is the message as sanitized HTML, its recipient field tokens as written
+whoever opens it; the compose screen shows it in place of the filters.  ``reply_to``
+is where replies to the email go, blank for ``default_reply_to``, the default for
+its sender (:ref:`bulk-email-reply-to`): a fresh draft starts with the default filled
+in, and once **Send** has queued the email ``reply_to`` is the address its copies
+carry.  ``body`` is the message as sanitized HTML, its recipient field tokens as written
 (:ref:`api-bulk-email-rich-text`).  ``message_html`` is the whole HTML email as the
 history shows it: the message inside the house email layout, with its tokens as
 written rather than filled in.  ``status`` is ``draft``, ``queued``, ``sending``, ``sent``, or ``stopped``
@@ -165,7 +171,12 @@ Saves the fields given; any may be left out.
 
    {"email_type": 1,
     "subject": "Spring newsletter for {first_name}",
+    "reply_to": "marin-dart@example.org",
     "body": "<p>Dear {first_name|friend},</p><p>Join us at <strong>Livermore</strong>.</p>"}
+
+``reply_to`` is any valid email address, trimmed, or blank for the default; an
+address Django's ``validate_email`` refuses is **400** ``{"reply_to": ["Enter a
+valid email address."]}``.
 
 ``email_type`` is the id of a type the caller may send (``GET
 /email-types/sendable``); any other is **400** *You cannot send <type> email. Choose
@@ -386,6 +397,22 @@ reschedules it.  A refusal is **400** keyed by the field:
   count.* when it does not match.
 - ``start_at``: *Choose a time in the future.* or *Choose a time within a year.*
 
+Past those, an error the checks find (:ref:`api-bulk-email-checks`) that the fields
+above do not already name, such as a ``Reply-To`` address that is not valid, is
+**400** with every error under ``checks``, in the shape ``POST
+/bulk-email/{id}/checks`` answers:
+
+.. code-block:: json
+
+   {"checks": [{"code": "reply_to", "level": "error",
+                "message": "Replies would go to operations, which is not a valid email address. Change the Reply-To address under What it says."}]}
+
+Warnings never stop a send, and the send fetches no link.  A queued email keeps
+the ``Reply-To`` its copies will carry in ``reply_to``: the one it names, or the
+default as it is at that moment.  The background sender resolves it once more as
+the send starts, and falls back to ``DEFAULT_FROM_EMAIL``'s address when nothing
+usable resolves (:ref:`bulk-email-reply-to`).
+
 An email that has started sending is **409**.  One ``bulk_email.queue`` audit line
 names the caller, the email, the number of recipients, and whether it was
 scheduled.
@@ -516,6 +543,91 @@ a leader whose profile names no DART, and ``reason`` then says *Your profile nam
 DART, so there is nobody to send to. Set your DART on My profile.*; it is blank
 otherwise.  The compose screen shows that sentence in place of the form, and names a
 leader's DART as a fixed value in place of the DART filter.
+
+
+.. _api-bulk-email-checks:
+
+Checking before sending
+=======================
+
+The compose screen's **Check and send** card lists what the checks find in an email
+before it goes, and **Send me a test** mails the sender a copy of it
+(:ref:`bulk-email-checks`).
+
+``POST /bulk-email/{id}/checks``
+--------------------------------
+
+What the checks find in the email as it is saved.  No body is taken.  **200** with
+every finding, the errors first; an empty list when there is nothing to say:
+
+.. code-block:: json
+
+   [{"code": "empty_field", "level": "warning",
+     "message": "{dart_name} is empty for 41 of 120 people who receive this email, so their copies show nothing there. Add words to show instead, as in {dart_name|other words}, or take it out."},
+    {"code": "link_broken", "level": "warning",
+     "message": "This link does not load (the site answered with a 4xx error): https://caldart.org/old-page"}]
+
+``level`` is ``error`` for a finding that stops the send and ``warning`` for one
+the sender may send past.  ``code`` names the kind:
+
+==================  ========  ========================================================
+Code                Level     When
+==================  ========  ========================================================
+``no_subject``      error     the subject is blank: *Write a subject.*
+``no_body``         error     the message reads as no text: *Write the message.*
+``unfillable``      error     a token in the subject or the message cannot be filled
+                              in, worded as a save refuses it
+``reply_to``        error     the ``Reply-To`` the copies would carry is blank or not
+                              a valid address
+``empty_field``     warning   a recipient field, written without a fallback at least
+                              once, is empty for more than half the people who
+                              receive the email, counted with their values now
+``placeholder``     warning   the subject or the message still says ``TODO``,
+                              ``XXX``, ``lorem ipsum``, or ``[insert``, case ignored
+``image_alt``       warning   pictures with no description (``alt``), counted
+``image_wide``      warning   pictures wider than ``BULK_EMAIL_IMAGE_MAX_WIDTH``, by
+                              the ``width`` the message gives them or the width an
+                              upload was stored at, counted
+``link_insecure``   warning   a link that does not use ``https``
+``link_broken``     warning   a link answered with a 4xx or a 5xx error, named by
+                              that class alone, one that times out, and one that
+                              cannot be reached or keeps redirecting: *does not load*
+``link_private``    warning   a link into a private network or to this server: *Links
+                              into a private network are not checked*
+``link_unchecked``  warning   a link to a port other than 80 or 443, and one not
+                              answered before the run's 30 seconds ran out
+``links_skipped``   warning   more than 20 links: only the first 20 were checked
+==================  ========  ========================================================
+
+The empty-field check is skipped while a token cannot be filled in.  The links are
+the message's distinct ``http`` and ``https`` links, in the order written, less any
+to this site itself (``SITE_URL``'s host and port) and any whose address holds a
+recipient field; ``mailto:`` links are not checked.  Each is fetched from the
+server, so the answer can take several seconds, and at most about 30
+(:ref:`bulk-email-checks`).  The endpoint is throttled per account under
+``BULK_EMAIL_CHECKS_THROTTLE_RATE`` (30 a minute unless :doc:`configuration` says
+otherwise); past it the answer is **429**.
+
+``POST /bulk-email/{id}/test``
+------------------------------
+
+**Send me a test**: mails the caller one copy of the email as it is saved, filled in
+with the caller's own field values, and built as the background sender builds a
+copy, its footer, unsubscribe headers, and ``Reply-To`` included; only the subject
+differs, starting ``[Test]``.  No body is taken.  **200**:
+
+.. code-block:: json
+
+   {"to": "pat@example.org"}
+
+``to`` is the caller's own address, the only one a test goes to.  Every call sends
+one more copy.  A test adds nobody to the batch and counts toward nothing; it is in
+the email log under the purpose ``bulk_email_test`` (:doc:`email`), naming the
+caller's account.  An email the checks find errors in is **400** with the errors
+under ``checks``, as ``send`` answers it, and nothing is sent.  A mail server that
+refuses the copy is **503** ``{"detail": "The mail server refused the test. Try
+again in a minute."}``; the failed send is in the email log, and the refusal is
+logged on ``caldart.mail``.
 
 
 .. _api-bulk-email-rich-text:
@@ -739,8 +851,11 @@ through are those who receive a copy, in the order the send goes.  **200**:
     "previous_id": null,
     "next_id": 13}
 
-``html`` is the whole HTML email and ``text`` the plain-text one.  ``position`` is
-the person's place, from 1, among the ``count`` people who receive a copy, and
+``html`` is the whole HTML email and ``text`` the plain-text one, each ending with
+the footer as the person's copy reads; for a type recipients may turn off, its
+unsubscribe link is inert, the page's address with no signed token
+(``render.inert_unsubscribe_url``), so a preview never unsubscribes anyone.  ``position`` is the person's
+place, from 1, among the ``count`` people who receive a copy, and
 ``previous_id`` and ``next_id`` are the rows either side, null at either end.
 A copy already tried is filled in with the ``values`` it went out with; any other
 with the account's values as they are now.  While nobody in the batch receives a

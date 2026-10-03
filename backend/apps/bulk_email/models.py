@@ -90,7 +90,9 @@ class BulkEmail(TimestampedModel):
     draft is made, at each add and **Send**, and when the send starts; it is null for
     CalDART management's email, and once that DART is deleted.  ``not_sent_reason``
     says why the background sender returned a queued email unsent, blank otherwise and
-    once it is queued again.  ``start_at`` is when the send begins: the end of the undo
+    once it is queued again.  ``reply_to`` is the address a recipient's reply goes to,
+    blank for the default (``apps.bulk_email.reply_to``); **Send** stores the address
+    the copies carry.  ``start_at`` is when the send begins: the end of the undo
     window or the time the sender chose, which ``scheduled`` says.
     ``confirm_count`` is the number of people the sender typed to confirm a large
     send, null when the batch was small enough to need none.
@@ -127,6 +129,7 @@ class BulkEmail(TimestampedModel):
         blank=True,
         related_name="bulk_emails",
     )
+    reply_to = models.EmailField(max_length=254, blank=True)
     start_at = models.DateTimeField(null=True, blank=True)
     scheduled = models.BooleanField(default=False)
     not_sent_reason = models.CharField(max_length=200, blank=True)

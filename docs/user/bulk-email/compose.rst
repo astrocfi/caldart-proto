@@ -76,6 +76,16 @@ each, are kept on :doc:`email-types`.
 Then write the **Subject**, one line, and the **Message**. Once you start typing, a quiet note
 under the message reads *Saving…* and then *Saved*.
 
+**Reply-To** is where a reader's reply goes. Every copy comes from the site's own address,
+which nobody reads, so without it a reply would reach nobody. It starts filled in with the
+address your organization chose for replies, or with your own address. Change it to any
+address that should get the replies, such as a DART leader's or a shared operations
+mailbox; empty it to go back to the starting address, which the hint under it names. The
+address saves when you leave the field or press Enter, and *Reply-To saved.* says so. An
+address that is not one, such as *ops@*, reads *Enter a valid email address.* and the
+address saved before stays until you fix it; the subject and the message keep saving
+meanwhile.
+
 The buttons over the message format it: **Bold** and **Italic** for the words you have
 selected, **Heading** for a line that heads a section, and **Bulleted list** and **Numbered
 list**. A button stays pressed while the words at the cursor have its style; press it again
@@ -105,23 +115,72 @@ not saved until it is fixed. A web address that needs braces of its own writes t
 *%7B* and *%7D*, as the message says. A field with bold or another style on only part of it
 is refused too: delete it and put it in again with **Insert field**.
 
-Each copy comes from the site's own address. Under the message it carries a short footer
+Each copy comes from the site's own address, with replies going to the **Reply-To**
+address. Under the message it carries a short footer
 with your organization's name and the contact address when one is set. For a kind people may
 turn off, the footer says *You receive Mission email from CalDART because you have not turned
 it off. To stop it, unsubscribe here:* with a link for that person, and their mail program
 can offer its own **Unsubscribe** button. For a kind nobody may turn off, it says why they
 receive it instead.
 
+**Send me a test**, at the bottom of the card, sends the email to you alone, so you can see it
+in your own mail program as the people in the batch will: the same layout, pictures, links,
+footer, and Reply-To, with your own details in its fields. Its subject starts *[Test]*. What
+you have typed is saved first. Each press sends one more test and says where it went, such as
+*A test went to pat@example.org.* A test is not part of the send: it is not counted and
+nobody else receives it, though it is listed in the log of sent emails as *Bulk email test*.
+If the email has a problem marked **Must fix** (see below), the test is not sent and the
+problems are listed instead. If the mail server turns the test away, the card says *The mail
+server refused the test. Try again in a minute.*
+
 
 3. Check and send
 =================
 
-At the top of the card is a preview: the email as the first person in the batch will
+At the top of the card are the **Checks**: mistakes the site looks for in the saved email,
+each on a line of its own with a dot. They run when the card opens, again when you press
+**Check again**, and again when you press **Send** or **Schedule for later**. While they run
+the card reads *Checking the email for mistakes, such as links that do not work…*, which can
+take a few seconds, since each link is tried. *No problems found.* means there is nothing to
+say.
+
+A red dot and **Must fix:** mark a problem the email cannot go with, such as a **Reply-To**
+that is not an email address, or a field that cannot be filled in. **Send** stays off until it
+is fixed and you press **Check again**. An amber dot and **Worth a look:** mark something
+that may be a mistake, and *You can still send.* says you may go ahead anyway:
+
+- *{dart_name} is empty for 41 of 120 people who receive this email, so their copies show
+  nothing there.* Most people have no value for that field: add words to show instead, as
+  in *{dart_name|your DART}*, or take it out.
+- *The email still says "TODO".* Placeholder text, such as *TODO*, *XXX*, *lorem ipsum*, or
+  *[insert*, is still in the subject or the message.
+- *1 picture has no description for people who cannot see pictures.* A picture pasted in
+  from somewhere else can arrive without one. Delete it and put it in again with **Image**,
+  which asks for a description.
+- *1 picture is wider than 1200 pixels, too wide for many mail programs.*
+- *This link does not load*, sometimes with the kind of error the site answered, or *This
+  link timed out*: the page may be gone or the address mistyped. Open it yourself to be
+  sure.
+- *This link does not use https, so it is not secure.*
+- *Links into a private network are not checked.* The link points inside a private
+  network or at the site's own server, which it does not try, for safety.
+- *Links to a port other than 80 or 443 are not checked.* The address names an unusual
+  port, such as *:8080*; open it yourself to be sure.
+- *This link was not checked in time.* The checks stop after about half a minute.
+
+Links to this site's own pages, links holding a field, and email address links are not
+tried. If the checks cannot run at all, or take more than a few seconds when you press
+**Send**, the card says *The checks could not run. You can still send.* and lets you go
+on: an email with a problem marked **Must fix** is still refused when you send it.
+
+Below the checks is a preview: the email as the first person in the batch will
 receive it, their own details filled in. *Previewing as Ann Able (1 of 38)* says whose copy
 it is; **Next person** and **Previous person** step through everybody who receives it. The
 preview shows what has been saved, so it catches up a moment after you stop typing. While
-nobody in the batch receives the email, the preview is your own copy. When a field in the
-message cannot be filled in, the preview says why instead.
+nobody in the batch receives the email, the preview is your own copy. The footer reads as
+it will in the email, but its unsubscribe link in the preview leads nowhere, so nobody is
+unsubscribed by a click there. When a field in the message cannot be filled in, the
+preview says why instead.
 
 Until the email can go, the card lists what is missing, such as *Choose a type.*, *Write a
 subject.*, or *Add people to the batch.* Then it offers two buttons:
