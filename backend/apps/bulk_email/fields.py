@@ -17,6 +17,7 @@ import html
 import re
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
+from urllib.parse import quote
 
 from apps.accounts.models import User
 from apps.members.models import MemberProfile, MembershipState
@@ -28,6 +29,22 @@ from caldart.dates import format_display_date
 #: brace, bar, angle bracket, or line break.  A brace doubled on either side is not a
 #: token, so ``{{x}}`` stays as written.
 TOKEN_RE = re.compile(r"(?<!\{)\{([a-z][a-z0-9_]*)(?:\|([^{}|<>\n]*))?\}(?!\})")
+
+#: One tag of sanitized HTML, its attribute values in double quotes as nh3 writes them.
+TAG_RE = re.compile(r'<[a-z][a-z0-9]*(?:\s+[a-z-]+(?:="[^"]*")?)*\s*/?>')
+
+#: A link's or an image's address within a tag: the value is group 1.
+URL_ATTRIBUTE_RE = re.compile(r'\s(?:href|src)="([^"]*)"')
+
+#: The characters a value keeps as they are inside an address: ``@`` reads better
+#: than ``%40`` in a ``mailto:`` link and means the same.
+URL_SAFE = "@"
+
+#: How an unknown token is refused: what it is, and the two ways out.
+UNKNOWN_FIELD_MESSAGE = (
+    "{token} is not a recipient field. Choose a field from Insert field, or, if "
+    "the braces belong in a web address, write them as %7B and %7D: {encoded}."
+)
 
 
 @dataclass(frozen=True)
@@ -158,6 +175,17 @@ def unknown_tokens(text: str) -> list[str]:
     return list(dict.fromkeys(names))
 
 
+def unknown_token_message(name: str) -> str:
+    """Return why the token ``{name}`` is refused, for a sender to read.
+
+    The message names the token and says how to avoid it: pick a field from the
+    menu, or, where braces belong in a web address, percent-encode them, since a
+    doubled brace (``{{`` or ``}}``) is left exactly as written and never stands
+    for one.
+    """
+    return UNKNOWN_FIELD_MESSAGE.format(token=f"{{{name}}}", encoded=f"%7B{name}%7D")
+
+
 def values_for(user: User, tokens: Iterable[str]) -> dict[str, str]:
     """Return ``user``'s value for each field named in ``tokens``, token to value.
 
@@ -176,12 +204,15 @@ def substitute(text: str, values: Mapping[str, str], *, escape: bool) -> str:
 
     A token whose value is empty is replaced by its fallback, which is ``""`` when
     it names none.  With ``escape`` true, for the HTML part, each value is
-    HTML-escaped, so a name holding ``<b>`` arrives as text; the fallback is part
-    of the message and is put in as written either way.  A token whose name is not
-    in ``values`` is left as written.  Nothing else in ``text`` is touched:
-    substitution is a lookup, so template syntax such as ``{{ x }}`` is never
-    evaluated.
+    HTML-escaped, so a name holding ``<b>`` arrives as text, and a value inside a
+    link's ``href`` or an image's ``src`` is percent-encoded as well (all but
+    ``@``), so ``{dart_name}`` holding a space or ``{email}`` holding a ``+`` makes
+    a working address.  The fallback is part of the message and is put in as
+    written either way.  A token whose name is not in ``values`` is left as
+    written.  Nothing else in ``text`` is touched: substitution is a lookup, so
+    template syntax such as ``{{ x }}`` is never evaluated.
     """
+    in_address = _address_spans(text) if escape else []
 
     def replace(match: re.Match[str]) -> str:
         """Return the value, or the fallback, that stands in for one token."""
@@ -191,6 +222,23 @@ def substitute(text: str, values: Mapping[str, str], *, escape: bool) -> str:
         value = values[name]
         if value == "":
             return match.group(2) or ""
-        return html.escape(value) if escape else value
+        if not escape:
+            return value
+        if any(start <= match.start() < end for start, end in in_address):
+            value = quote(value, safe=URL_SAFE)
+        return html.escape(value)
 
     return TOKEN_RE.sub(replace, text)
+
+
+def _address_spans(html_text: str) -> list[tuple[int, int]]:
+    """Return where each ``href`` and ``src`` value sits in ``html_text``, start to end.
+
+    Only attributes inside a tag count: text that merely reads ``href="..."`` is
+    escaped by the sanitizer and never inside one.
+    """
+    return [
+        (tag.start() + address.start(1), tag.start() + address.end(1))
+        for tag in TAG_RE.finditer(html_text)
+        for address in URL_ATTRIBUTE_RE.finditer(tag.group(0))
+    ]

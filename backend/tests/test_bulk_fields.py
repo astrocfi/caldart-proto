@@ -21,6 +21,7 @@ from apps.bulk_email.fields import (
     Token,
     find_tokens,
     substitute,
+    unknown_token_message,
     unknown_tokens,
     values_for,
 )
@@ -296,3 +297,53 @@ def test_a_value_that_looks_like_a_token_is_not_filled_in_again() -> None:
     """Filling in is one pass: a value holding a token is put in literally."""
     values = {"first_name": "{email}", "email": "pat@example.test"}
     assert substitute("{first_name}", values, escape=False) == "{email}"
+
+
+@pytest.mark.parametrize(
+    ("html", "values", "expected"),
+    [
+        (
+            '<p><a href="https://caldart.org/darts?name={dart_name}">{dart_name}</a></p>',
+            {"dart_name": "Marin & Napa"},
+            '<p><a href="https://caldart.org/darts?name=Marin%20%26%20Napa">'
+            "Marin &amp; Napa</a></p>",
+        ),
+        (
+            '<p><a href="mailto:{email}">Write</a></p>',
+            {"email": "pat+dart@example.test"},
+            '<p><a href="mailto:pat%2Bdart@example.test">Write</a></p>',
+        ),
+        (
+            '<img src="https://caldart.org/badge/{first_name}.png" alt="{first_name}">',
+            {"first_name": 'Pat "Ace"'},
+            '<img src="https://caldart.org/badge/Pat%20%22Ace%22.png" alt="Pat &quot;Ace&quot;">',
+        ),
+    ],
+    ids=["href-query", "mailto", "img-src-but-not-alt"],
+)
+def test_a_value_inside_an_address_is_percent_encoded(
+    html: str, values: dict[str, str], expected: str
+) -> None:
+    """In an ``href`` or ``src`` a value is URL-encoded; elsewhere only HTML-escaped."""
+    assert substitute(html, values, escape=True) == expected
+
+
+def test_text_that_reads_like_an_address_is_not_percent_encoded() -> None:
+    """Outside a tag, ``href="..."`` is plain text and its value is only escaped."""
+    assert substitute('<p>href="{first_name}"</p>', {"first_name": "A B"}, escape=True) == (
+        '<p>href="A B"</p>'
+    )
+
+
+def test_doubled_braces_in_an_address_are_left_as_written() -> None:
+    """``{{`` and ``}}`` are never tokens, inside an address or out."""
+    html = '<p><a href="https://example.org/{{id}}">x</a></p>'
+    assert (unknown_tokens(html), substitute(html, {}, escape=True)) == ([], html)
+
+
+def test_the_unknown_token_message_says_how_to_avoid_it() -> None:
+    """The refusal names the token and offers the menu or percent-encoded braces."""
+    assert unknown_token_message("id") == (
+        "{id} is not a recipient field. Choose a field from Insert field, or, if the "
+        "braces belong in a web address, write them as %7B and %7D: %7Bid%7D."
+    )
