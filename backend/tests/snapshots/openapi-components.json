@@ -1463,6 +1463,39 @@
       "password"
     ]
   },
+  "MailDeliveryCheck": {
+    "properties": {
+      "checked_at": "string(date-time)",
+      "domain": "string",
+      "findings": "array<ref:MailDeliveryFinding>"
+    },
+    "required": [
+      "checked_at",
+      "domain",
+      "findings"
+    ]
+  },
+  "MailDeliveryFinding": {
+    "properties": {
+      "detail": "string",
+      "fix": "string",
+      "name": "string",
+      "status": "ref:MailDeliveryFindingStatusEnum"
+    },
+    "required": [
+      "detail",
+      "fix",
+      "name",
+      "status"
+    ]
+  },
+  "MailDeliveryFindingStatusEnum": {
+    "enum": [
+      "pass",
+      "warn",
+      "fail"
+    ]
+  },
   "MandateCadenceEnum": {
     "enum": [
       "monthly",
