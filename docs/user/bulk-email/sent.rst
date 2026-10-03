@@ -22,6 +22,7 @@ One line per email, the most recently started first:
 - **Sent**, **Failed**, and **Skipped**: how many copies went, were refused by the mail
   server, and were never sent because the person could not receive them.
 - **Download results** saves the email's results as a spreadsheet file.
+- **Duplicate** starts a new draft from the email, below.
 
 Before the first send the table reads *No bulk email has been sent*. The list keeps itself up
 to date while an email is sending. On a narrow screen the table scrolls sideways.
@@ -66,11 +67,30 @@ Each **Result** reads:
 Each copy also appears in the log of sent emails as *Bulk email*.
 
 
+Duplicate
+=========
+
+**Duplicate**, on each line of the list and on the email's own page under **Where it stands**,
+starts a new draft of your own from the email. It asks how:
+
+- **Copy the message**: the new draft has the email's subject, message (pictures included),
+  and type, and an empty batch.
+- **Copy the message and the people**: the batch holds everybody the email was for too, as
+  their accounts are now. Whether each receives the new email is worked out afresh, so
+  somebody who has since turned that kind of email off, or whose address bounced, shows as
+  skipped. The batch's **Chosen by** reads *Copied from* and the subject. Accounts deleted
+  since are left out.
+
+The new draft opens on :doc:`compose`, ready to change and send. The email you copied stays as
+it was. **Cancel** closes the question without copying anything.
+
+
 If something looks wrong
 ========================
 
 If somebody says the email never arrived, find their row. *Sent* means CalDART handed the
 copy to the mail server, so ask them to check their spam folder. *Failed* or *Skipped* gives
 the reason. An address that needs correcting is corrected on the person's account by a user
-administrator or an account administrator. To write to the people a failure left out, download
-the results and add them to a new email.
+administrator or an account administrator. To write to everybody again, use **Duplicate**
+with the people; to write to only the people a failure left out, download the results and add
+them to a new email.

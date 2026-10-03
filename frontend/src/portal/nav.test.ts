@@ -152,6 +152,8 @@ describe('visibleNavItems', () => {
       'Compose',
       'Drafts & scheduled',
       'Sent',
+      'Templates',
+      'Recipient groups',
       'Mail delivery',
     ]);
   });
@@ -182,6 +184,8 @@ describe('visibleNavItems', () => {
       '/bulk-email/compose',
       '/bulk-email/drafts',
       '/bulk-email/sent',
+      '/bulk-email/templates',
+      '/bulk-email/groups',
       '/bulk-email/mail-delivery',
       '/email-preferences',
     ]);
@@ -263,6 +267,8 @@ describe('the Bulk Email group', () => {
       'Compose',
       'Drafts & scheduled',
       'Sent',
+      'Templates',
+      'Recipient groups',
       'Email types',
       'Mail delivery',
       'Email preferences',

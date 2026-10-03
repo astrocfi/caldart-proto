@@ -19,6 +19,7 @@ import { Page } from '@/portal/components/Page';
 import { StatusDot } from '@/portal/components/StatusChip';
 import { recipientsCsvUrl, useSentEmails } from './api';
 import './bulk-email.css';
+import { DuplicateButton } from './DuplicateButton';
 import { statusLabel, statusTone } from './status';
 
 /** Every started send, one line each. */
@@ -105,6 +106,12 @@ export const SENT_COLUMNS: Column<BulkEmailSummary>[] = [
     render: (row) => row.skipped_count,
   },
   { key: 'actions', header: 'Actions', width: '9rem', render: (row) => <RowAction row={row} /> },
+  {
+    key: 'duplicate',
+    header: 'Reuse',
+    width: '8rem',
+    render: (row) => <DuplicateButton emailId={row.id} subject={row.subject} />,
+  },
 ];
 
 /**
