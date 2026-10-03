@@ -239,6 +239,11 @@ MEDIA_ROOT = Path(env("MEDIA_ROOT", default=str(BASE_DIR / "media")))
 # which would otherwise leave a new directory ``0750`` and the web server refused).
 FILE_UPLOAD_PERMISSIONS = 0o644
 FILE_UPLOAD_DIRECTORY_PERMISSIONS = 0o755
+# A bulk email's images (``apps.bulk_email.images``), stored under ``MEDIA_ROOT`` in
+# ``bulk-email/``: the largest file a sender may upload, in bytes (5 MB), and the
+# widest an image is stored, in pixels; a wider one is scaled down to it.
+BULK_EMAIL_IMAGE_MAX_BYTES = env.int("BULK_EMAIL_IMAGE_MAX_BYTES", default=5 * 1024 * 1024)
+BULK_EMAIL_IMAGE_MAX_WIDTH = env.int("BULK_EMAIL_IMAGE_MAX_WIDTH", default=1200)
 
 # The built user guide, which ``caldart.views.user_guide`` serves at ``/docs/``
 # to signed-in users.  ``make guide`` writes it here; a deployment that builds

@@ -1,0 +1,156 @@
+"""The images a sender puts into a bulk email: checked, scaled, and stored.
+
+An email links to each image by its absolute URL rather than carrying it, so a send
+to hundreds of people stays small.  :func:`store` checks an upload's type by its
+content and its size, scales it to fit an email, and keeps it under ``MEDIA_ROOT``
+in ``bulk-email/``, which the web server serves to anybody, signed in or not: a
+mail program fetching the image carries no session.  :func:`image_url` is the
+address every copy uses.
+"""
+
+from __future__ import annotations
+
+import io
+import logging
+from dataclasses import dataclass
+from urllib.parse import urljoin
+
+from django.conf import settings
+from django.core.files.base import ContentFile
+from django.core.files.uploadedfile import UploadedFile
+from PIL import Image, ImageOps, ImageSequence, UnidentifiedImageError
+
+from apps.accounts.models import User
+from apps.bulk_email.models import BulkEmailImage
+
+log = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class ImageFormat:
+    """One image format a bulk email accepts: its file extension and save options."""
+
+    extension: str
+    save_options: dict[str, object]
+
+
+#: The formats an upload may be, by Pillow's name for each, read from the content.
+FORMATS: dict[str, ImageFormat] = {
+    "PNG": ImageFormat("png", {"optimize": True}),
+    "JPEG": ImageFormat("jpg", {"quality": 85, "optimize": True}),
+    "GIF": ImageFormat("gif", {}),
+    "WEBP": ImageFormat("webp", {"quality": 85}),
+}
+
+#: The most pixels an upload may hold, whatever its file size: a small file can
+#: unpack into an enormous picture, and scaling one would exhaust the server.
+MAX_PIXELS = 40_000_000
+
+#: Why an upload that is not an accepted image is refused.
+WRONG_TYPE_MESSAGE = "Choose a PNG, JPEG, GIF, or WebP image."
+
+#: Why an upload with too many pixels is refused.
+TOO_MANY_PIXELS_MESSAGE = "This image is too big to use in an email. Choose a smaller one."
+
+#: The JPEG modes saved as they are; any other mode, such as CMYK, is saved as RGB.
+_JPEG_MODES = frozenset({"RGB", "L"})
+
+
+class ImageRefusedError(Exception):
+    """An upload :func:`store` will not keep; the message says why, for the sender."""
+
+
+def too_large_message(max_bytes: int) -> str:
+    """Return why a file over ``max_bytes`` is refused, naming the limit in MB."""
+    megabytes = max_bytes / (1024 * 1024)
+    return f"This image is larger than {megabytes:g} MB. Choose a smaller one."
+
+
+def store(upload: UploadedFile[bytes], *, actor: User) -> BulkEmailImage:
+    """Check, scale, and keep one uploaded image; return the stored row.
+
+    The upload must be at most ``BULK_EMAIL_IMAGE_MAX_BYTES`` long and be a PNG,
+    JPEG, GIF, or WebP image by its content, whatever its name says, holding at most
+    :data:`MAX_PIXELS` pixels; anything else raises :class:`ImageRefusedError` with
+    the reason in words.  An image wider than ``BULK_EMAIL_IMAGE_MAX_WIDTH`` is
+    scaled down to that width, keeping its proportions; an animated one keeps every
+    frame.  A photo is turned upright by its orientation tag.  Every image is saved
+    afresh in its own format, which drops its metadata (a photo's location among
+    it), as ``bulk-email/<uuid>.<ext>`` under ``MEDIA_ROOT``.  ``actor`` is recorded
+    as the uploader.
+    """
+    max_bytes = settings.BULK_EMAIL_IMAGE_MAX_BYTES
+    if upload.size is None or upload.size > max_bytes:
+        raise ImageRefusedError(too_large_message(max_bytes))
+    data, image_format, width, height = _processed(upload.read())
+    image = BulkEmailImage(uploaded_by=actor, width=width, height=height)
+    image.file.save(f"image.{image_format.extension}", ContentFile(data), save=False)
+    image.save()
+    log.info("Stored bulk email image %s (%dx%d)", image.pk, width, height)
+    return image
+
+
+def image_url(image: BulkEmailImage) -> str:
+    """Return the absolute address of ``image``'s file, on ``SITE_URL``'s host.
+
+    ``MEDIA_URL`` already carries any ``URL_PREFIX``, so the path is joined to the
+    site's scheme and host alone: ``https://caldart.example.org/media/bulk-email/
+    <uuid>.png``.
+    """
+    site_url: str = settings.SITE_URL
+    return urljoin(site_url, image.file.url)
+
+
+def _processed(content: bytes) -> tuple[bytes, ImageFormat, int, int]:
+    """Return ``content`` as stored: the bytes, the format, and the width and height.
+
+    Raises :class:`ImageRefusedError` for content that is not an accepted image or
+    holds too many pixels.
+    """
+    try:
+        source = Image.open(io.BytesIO(content))
+    except (UnidentifiedImageError, Image.DecompressionBombError) as exc:
+        raise ImageRefusedError(WRONG_TYPE_MESSAGE) from exc
+    if source.format not in FORMATS:
+        raise ImageRefusedError(WRONG_TYPE_MESSAGE)
+    image_format = FORMATS[source.format]
+    if source.width * source.height > MAX_PIXELS:
+        raise ImageRefusedError(TOO_MANY_PIXELS_MESSAGE)
+    try:
+        frames = _scaled_frames(source)
+    except OSError as exc:
+        # A truncated or corrupt file fails only once its pixels are read.
+        raise ImageRefusedError(WRONG_TYPE_MESSAGE) from exc
+    first = frames[0]
+    buffer = io.BytesIO()
+    options = dict(image_format.save_options)
+    if len(frames) > 1:
+        options.update(
+            save_all=True,
+            append_images=frames[1:],
+            loop=source.info.get("loop", 0),
+            duration=[frame.info.get("duration", 100) for frame in frames],
+        )
+    first.save(buffer, format=source.format, **options)
+    return buffer.getvalue(), image_format, first.width, first.height
+
+
+def _scaled_frames(source: Image.Image) -> list[Image.Image]:
+    """Return every frame of ``source``, upright and no wider than the limit.
+
+    A still image is one frame.  A JPEG not in RGB or grayscale, such as a CMYK
+    one, is converted to RGB, which every mail program shows.
+    """
+    max_width = settings.BULK_EMAIL_IMAGE_MAX_WIDTH
+    frames: list[Image.Image] = []
+    for frame in ImageSequence.Iterator(source):
+        upright = ImageOps.exif_transpose(frame)
+        if upright.width > max_width:
+            height = max(1, round(upright.height * max_width / upright.width))
+            scaled = upright.resize((max_width, height), Image.Resampling.LANCZOS)
+            scaled.info = dict(frame.info)
+            upright = scaled
+        if source.format == "JPEG" and upright.mode not in _JPEG_MODES:
+            upright = upright.convert("RGB")
+        frames.append(upright)
+    return frames

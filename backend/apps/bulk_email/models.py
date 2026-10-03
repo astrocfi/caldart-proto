@@ -8,10 +8,14 @@ and ``sent`` or ``stopped`` at the end.  Its people are a batch: every press of
 :class:`BulkEmailRecipient` row, ``batched`` while the email is a draft.  When the
 sender starts the email it freezes the batch: each row becomes ``pending``, or
 ``skipped`` with the reason, and each pending row then becomes ``sent``, ``failed``,
-or ``stopped`` as the send goes on.
+or ``stopped`` as the send goes on.  A :class:`BulkEmailImage` is one image a sender
+put into a message, stored where every copy links to it.
 """
 
 from __future__ import annotations
+
+import uuid
+from pathlib import PurePosixPath
 
 from django.conf import settings
 from django.db import models
@@ -216,3 +220,48 @@ class BulkEmailRecipient(TimestampedModel):
     def __str__(self) -> str:
         """Return ``"<email>: <status>"``."""
         return f"{self.email}: {self.status}"
+
+
+#: The directory under ``MEDIA_ROOT`` a bulk email's images are stored in.
+IMAGE_DIRECTORY = "bulk-email"
+
+
+def bulk_email_image_path(instance: BulkEmailImage, filename: str) -> str:
+    """Return where an image is stored: ``bulk-email/<uuid>.<ext>`` under ``MEDIA_ROOT``.
+
+    The name is a fresh random UUID, so nobody can guess one image's address from
+    another's and no upload ever replaces one already sent.  The extension is
+    ``filename``'s, lower-cased.
+    """
+    suffix = PurePosixPath(filename).suffix.lower()
+    return f"{IMAGE_DIRECTORY}/{uuid.uuid4().hex}{suffix}"
+
+
+class BulkEmailImage(TimestampedModel):
+    """One image a sender uploaded into a bulk email's message.
+
+    ``file`` is the image as stored, after its type and size were checked and it was
+    scaled to fit an email (``apps.bulk_email.images``); ``width`` and ``height`` are
+    its stored size in pixels.  Every copy of the email links to the file by its
+    absolute URL rather than carrying it, so the file stays where it is for as long
+    as a sent copy may be read.  ``uploaded_by`` is the sender, null once that
+    account is deleted.
+    """
+
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="bulk_email_images",
+    )
+    file = models.FileField(upload_to=bulk_email_image_path, max_length=100)
+    width = models.PositiveIntegerField()
+    height = models.PositiveIntegerField()
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+
+    def __str__(self) -> str:
+        """Return the stored file's name, ``bulk-email/<uuid>.<ext>``."""
+        return self.file.name or ""
