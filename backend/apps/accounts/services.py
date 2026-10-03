@@ -32,7 +32,7 @@ from apps.accounts.models import PERSON_KINDS, AccountKind, User
 from apps.accounts.roles import MEMBER, ROLE_SLUGS, SYSTEM_ADMIN, VERIFIER, WEBSITE_ADMIN
 from caldart import audit, events
 from caldart.exceptions import DomainValidationError
-from caldart.mail import contact_email, org_name, send_templated
+from caldart.mail import contact_email, org_name, send_on_commit, send_templated
 
 #: Where the SPA serves the reset form (``routes/auth.tsx``).
 RESET_PATH = "/portal/reset-password"
@@ -250,7 +250,8 @@ def update_account(actor: User | str, target: User, changes: AccountChanges) -> 
     ``email_verified_at`` and any bounce recorded against the old address
     (``email_bounced_at`` and ``email_bounce_detail``) and, once the transaction
     commits, mails the new address a verification link through
-    :func:`send_email_verification`.
+    :func:`send_email_verification`; a mail server that refuses it is logged
+    (``caldart.mail.send_on_commit``) and the edit stands.
 
     Each change the save really makes raises its notification event through
     :func:`caldart.events.emit`, after the save and inside the transaction:
@@ -292,7 +293,10 @@ def update_account(actor: User | str, target: User, changes: AccountChanges) -> 
         became = "became_friend" if kind == AccountKind.FRIEND else "became_member"
         events.emit(became, user=target, how="administrator")
     if is_new_address:
-        transaction.on_commit(lambda: send_email_verification(target, previous_email=old_email))
+        send_on_commit(
+            lambda: send_email_verification(target, previous_email=old_email),
+            what=f"the email verification for account {target.pk}",
+        )
 
     for action, logged in records:
         audit.record(action, actor=actor, target=target, **logged)

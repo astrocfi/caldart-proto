@@ -73,6 +73,7 @@ from apps.members.services import register_member, restore_terms, suspend_terms,
 from apps.payments.renewals import cancel_all_mandates
 from caldart import audit
 from caldart.exceptions import DomainError
+from caldart.mail import MailRefusedError, log_refusal, send_logging_refusal
 
 #: What every refused login says.  It names neither half of the credentials, and
 #: a deactivated account whose password was wrong is answered with it too, so a
@@ -90,6 +91,13 @@ DEACTIVATED_CODE = "deactivated"
 #: verification link: a donor cannot sign in, so neither link would lead anywhere.
 DONOR_RESET_REFUSED = "A donor cannot sign in, so no reset email was sent."
 DONOR_VERIFICATION_REFUSED = "A donor cannot sign in, so no verification message was sent."
+
+#: What the user administrator is told when the mail server refuses a message they
+#: asked to send, so they know it did not go and where to see the attempt.
+MAIL_REFUSED = (
+    "The mail server did not accept the message. "
+    "A system administrator can see the attempt on the Sent Emails page."
+)
 
 
 def signed_in_user(request: Request) -> User:
@@ -307,13 +315,18 @@ class PasswordResetView(APIView):
         enumerate members.  A deactivated account is mailed the link, since completing
         the reset reactivates it.  An account
         that has never set a password is mailed the link like any other.  A malformed
-        address is a 400.
+        address is a 400.  A mail server that refuses the message changes nothing in
+        the answer: the failed send is in the email log, and the refusal is logged
+        (``caldart.mail.send_logging_refusal``).
         """
         serializer = PasswordResetSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = User.objects.filter(email__iexact=serializer.validated_data["email"]).first()
         if user is not None:
-            send_password_reset_email(user, request=request)
+            send_logging_refusal(
+                lambda: send_password_reset_email(user, request=request),
+                what=f"the password reset for account {user.pk}",
+            )
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -491,8 +504,7 @@ class ReactivateView(APIView):
 # Email verification and change
 # --------------------------------------------------------------------------
 def _verification_sent(user: User) -> Response:
-    """Mail ``user`` a verification link and answer 202 naming the address."""
-    send_email_verification(user)
+    """The 202 naming ``user``'s address that a verification link was mailed to."""
     return Response(
         {"detail": f"Verification message sent to {user.email}."},
         status=status.HTTP_202_ACCEPTED,
@@ -534,8 +546,10 @@ class EmailVerifyResendView(APIView):
 
         The answer is ``{"detail": "Verification message sent to <address>."}``.  An
         address that is already verified is a 400 with "Your email address is already
-        verified." and nothing is mailed.  Throttled under the ``auth_verify_resend``
-        scope; an anonymous caller gets 401.
+        verified." and nothing is mailed.  A mail server that refuses the message
+        changes nothing in the answer: the failed send is in the email log, and the
+        refusal is logged.  Throttled under the ``auth_verify_resend`` scope; an
+        anonymous caller gets 401.
         """
         user = signed_in_user(request)
         if user.email_verified:
@@ -543,6 +557,10 @@ class EmailVerifyResendView(APIView):
                 {"detail": "Your email address is already verified."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        send_logging_refusal(
+            lambda: send_email_verification(user),
+            what=f"the email verification for account {user.pk}",
+        )
         return _verification_sent(user)
 
 
@@ -627,6 +645,16 @@ class AdminUserDetailView(generics.RetrieveUpdateAPIView[User]):
         return admin_user_queryset()
 
 
+def _mail_refused(what: str, refusal: MailRefusedError) -> Response:
+    """Log ``refusal``, naming ``what``, and answer 503.
+
+    The answer, ``{"detail": MAIL_REFUSED}``, is for a send the user administrator asked
+    for, who must know it did not go.
+    """
+    log_refusal(what, refusal)
+    return Response({"detail": MAIL_REFUSED}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+
 class AdminUserSendPasswordResetView(APIView):
     """``POST /admin/users/{id}/send-password-reset``."""
 
@@ -641,7 +669,9 @@ class AdminUserSendPasswordResetView(APIView):
         a deactivated one, or one with no email address -- is a 400 with "That account
         is deactivated, so no reset email was sent."  A donor, who cannot sign in, is a
         400 with "A donor cannot sign in, so no reset email was sent."  Both the send and
-        the refusals are recorded in the audit log.
+        the refusals are recorded in the audit log.  A mail server that refuses the
+        message is a 503 with ``MAIL_REFUSED``: the failed send is in the email log, the
+        refusal is logged, and nothing is recorded in the audit log.
         """
         actor = signed_in_user(request)
         user = generics.get_object_or_404(User, pk=pk)
@@ -655,7 +685,10 @@ class AdminUserSendPasswordResetView(APIView):
             return Response({"detail": DONOR_RESET_REFUSED}, status=status.HTTP_400_BAD_REQUEST)
         # A reset reactivates a deactivated account, which is the person's own choice
         # to make: the administrator's send stays refused for one.
-        sent = user.is_active and send_password_reset_email(user, request=request)
+        try:
+            sent = user.is_active and send_password_reset_email(user, request=request)
+        except MailRefusedError as refusal:
+            return _mail_refused(f"the password reset for account {user.pk}", refusal)
         if not sent:
             audit.refuse(
                 audit.PASSWORD_RESET_ADMIN_SENT,
@@ -688,7 +721,9 @@ class AdminUserSendEmailVerificationView(APIView):
         account, whose link could never be used, a 400 with "That account is
         deactivated, so no verification message was sent."; a donor, who cannot sign
         in, a 400 with "A donor cannot sign in, so no verification message was sent.";
-        none of them mails anything.
+        none of them mails anything.  A mail server that refuses the message is a 503
+        with ``MAIL_REFUSED``: the failed send is in the email log, the refusal is
+        logged, and nothing is recorded in the audit log.
         """
         actor = signed_in_user(request)
         user = generics.get_object_or_404(User, pk=pk)
@@ -706,6 +741,10 @@ class AdminUserSendEmailVerificationView(APIView):
                 {"detail": "That account is deactivated, so no verification message was sent."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        try:
+            send_email_verification(user)
+        except MailRefusedError as refusal:
+            return _mail_refused(f"the email verification for account {user.pk}", refusal)
         audit.record(audit.EMAIL_VERIFICATION_ADMIN_SENT, actor=actor, target=user)
         return _verification_sent(user)
 

@@ -353,7 +353,10 @@ and a test has to use ``django_capture_on_commit_callbacks`` to see it.
 Following the invitation's link proves the address, so it also marks the account
 verified.  With a ``password`` no invitation is sent; the address is mailed a
 verification link instead, on commit in the same way (see the email
-verification section of :doc:`api-auth`).
+verification section of :doc:`api-auth`).  A mail server that refuses either
+message leaves the member created and the answer a 201: the failed send is on
+the Sent Emails page and the refusal is logged
+(:ref:`refused sends <api-refused-send>`).
 
 Statuses:
 
@@ -555,7 +558,8 @@ the stamp alone, and so does one for a target with no profile row to stamp.
 
 A write that really changes ``email`` — compared stripped and
 case-insensitively — clears ``email_verified_at`` and, once it commits, mails
-the new address a verification link.
+the new address a verification link.  A refused link leaves the edit standing
+and the answer unchanged (:ref:`refused sends <api-refused-send>`).
 
 ``email`` goes through the same account-edit guard as ``PATCH
 /admin/users/{id}`` — see :ref:`account-edit-guard`.  An account administrator
@@ -684,7 +688,9 @@ every term with time left is suspended, all under the caller.  No body.
 --------------------------------------------
 
 What ``POST /admin/users/{id}/reactivate`` does: the account is active again and
-its suspended terms restored, under the caller.  No body.  An account a user
+its suspended terms restored, under the caller, and an unverified address is
+mailed a verification link, whose refusal leaves the answer unchanged
+(:ref:`refused sends <api-refused-send>`).  No body.  An account a user
 administrator has blocked from reactivating (:ref:`api-reactivation-block`) is
 refused.
 

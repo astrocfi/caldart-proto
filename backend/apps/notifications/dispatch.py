@@ -25,7 +25,7 @@ from apps.notifications.messages import Message, build_message
 from apps.notifications.models import NotificationSubscription
 from apps.notifications.services import recipient_may_receive, refresh_recipient
 from caldart import events
-from caldart.mail import contact_email, org_name, send_templated
+from caldart.mail import contact_email, error_name, org_name, send_templated
 
 log = logging.getLogger(__name__)
 
@@ -169,7 +169,7 @@ def send(slug: str, message: Message, extra: list[Recipient]) -> None:
         except Exception as exc:
             # The event and the exception class only: the email log already names
             # the refused address, and this log is no place to collect addresses.
-            log.error("notification send failed: event=%s error=%s", slug, type(exc).__name__)
+            log.error("notification send failed: event=%s error=%s", slug, error_name(exc))
 
 
 def _save_recipient(subscription: NotificationSubscription) -> None:

@@ -248,6 +248,19 @@ def test_logging_goes_to_the_console(prod: ModuleType) -> None:
     assert "mail_admins" in prod.LOGGING["loggers"]["django.request"]["handlers"]
 
 
+def test_a_refused_send_a_request_survived_is_mailed_to_the_admins(prod: ModuleType) -> None:
+    """``caldart.mail``, which logs a refusal a request answered through, mails admins."""
+    assert "mail_admins" in prod.LOGGING["loggers"]["caldart.mail"]["handlers"]
+
+
+def test_the_error_mail_cannot_fail_what_logged_it(prod: ModuleType) -> None:
+    """The ``mail_admins`` handler is the one that never raises a refused report."""
+    assert (
+        prod.LOGGING["handlers"]["mail_admins"]["class"]
+        == "caldart.error_reports.QuietAdminEmailHandler"
+    )
+
+
 def test_database_connections_are_reused(prod: ModuleType) -> None:
     """Database connections persist for 60 seconds and are health-checked before reuse."""
     assert prod.DATABASES["default"]["CONN_MAX_AGE"] == 60

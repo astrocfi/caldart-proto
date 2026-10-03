@@ -72,7 +72,7 @@ from apps.payments.services import create_checkout, mark_failed
 from caldart import audit, events
 from caldart.dates import format_display_date
 from caldart.exceptions import DomainError, DomainValidationError
-from caldart.mail import Attachment, contact_email, org_name, send_templated
+from caldart.mail import Attachment, contact_email, error_name, org_name, send_templated
 from caldart.reports import PDF_MEDIA_TYPE, money_label
 from caldart.runs import CHARGE_KIND, RunAction, action_lines
 
@@ -498,7 +498,7 @@ def send_mandate_email(
             "renewal email failed: template=%s mandate=%s error=%s",
             template,
             mandate.pk,
-            type(exc).__name__,
+            error_name(exc),
         )
         return False
     return True

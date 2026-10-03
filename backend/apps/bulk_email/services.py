@@ -33,7 +33,7 @@ from apps.bulk_email.models import BulkEmail, BulkEmailRecipient, RecipientStatu
 from apps.members.filters import EXPORT_FILTER_PARAMS, MemberAdminFilterSet, member_admin_queryset
 from caldart import audit
 from caldart.exceptions import DomainValidationError
-from caldart.mail import contact_email, org_name, send_templated
+from caldart.mail import contact_email, error_name, org_name, send_templated
 from caldart.reports import (
     CSV_DOCUMENT_TYPE,
     ReportDocument,
@@ -318,7 +318,7 @@ def _send_one(
             "bulk email copy refused: bulk_email=%s user=%s error=%s",
             bulk.pk,
             recipient.user_id,
-            type(exc).__name__,
+            error_name(exc),
         )
         connection.close()
         return RecipientStatus.FAILED, FAILED_REASON

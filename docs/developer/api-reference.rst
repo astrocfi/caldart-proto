@@ -298,7 +298,10 @@ view builds as a plain 400 response rather than raising; the rest are DRF
 ``ValidationError`` instances and reach the same handler as everything else.
 Two views outside the table build a plain response too, but with a ``detail``
 string rather than a field key: ``POST /auth/login`` for a wrong password and
-``POST /admin/users/{id}/send-password-reset`` when there is nobody to mail.
+``POST /admin/users/{id}/send-password-reset`` when there is nobody to mail.  That
+endpoint and ``POST /admin/users/{id}/send-email-verification`` also build a 503
+``{"detail": ...}`` when the mail server refuses the message
+(:ref:`refused sends <api-refused-send>`).
 
 Both shapes have two sources, one on each side of the layering.  A serializer
 validates the request — field formats, choices, uniqueness — and refuses it with
@@ -324,7 +327,9 @@ subclasses into the shapes above:
      - ``{"detail": message}``
 
 An exception the handler does not recognize is left to Django, so a bug stays a
-500 rather than becoming a misleading 400.
+500 rather than becoming a misleading 400.  A mail server that refuses a message
+is not a bug: each endpoint that sends mail catches the refusal, and
+:ref:`refused sends <api-refused-send>` says what the account endpoints answer.
 
 Throttling
 ----------

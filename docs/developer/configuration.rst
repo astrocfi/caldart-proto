@@ -411,8 +411,11 @@ Email
    from hanging a request.
 
 ``ADMIN_EMAILS`` *(prod only)*
-   Comma-separated addresses that receive unhandled-500 mail.  Default empty,
-   which is fine — the traceback is in the journal either way.  The report lists
+   Comma-separated addresses that receive unhandled-500 mail, and the report of a
+   message the mail server refused while a request answered anyway
+   (:ref:`email-refused`).  Default empty, which is fine — the traceback is in the
+   journal either way.  A report the mail server refuses too is written to the
+   journal and never fails the request.  The report lists
    the settings through ``DEFAULT_EXCEPTION_REPORTER_FILTER``, set in ``base.py`` to
    ``caldart.error_reports.CredentialSafeExceptionReporterFilter``: Django's own
    masking of the settings whose names look secret, plus the password of every URL a

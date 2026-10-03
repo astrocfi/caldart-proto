@@ -32,7 +32,7 @@ from apps.members.services import membership_status
 from apps.payments.models import MandateStatus, RenewalMandate, RenewalOutcome
 from apps.reminders.models import ReminderKind, ReminderLog, ReminderSchedule
 from caldart import audit
-from caldart.mail import contact_email, org_name, send_templated
+from caldart.mail import contact_email, error_name, org_name, send_templated
 from caldart.runs import RunAction, action_lines
 
 log = logging.getLogger(__name__)
@@ -415,7 +415,7 @@ def send_renewal_reminders(
                     kind,
                     user.pk,
                     membership.pk,
-                    type(exc).__name__,
+                    error_name(exc),
                 )
                 run.record_failed(kind)
             else:

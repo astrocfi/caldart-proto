@@ -37,7 +37,7 @@ from apps.reports.registry import REPORTS
 from apps.reports.schedule import next_due_after, schedule_label
 from caldart import audit
 from caldart.dates import format_display_date
-from caldart.mail import Attachment, contact_email, org_name, send_templated
+from caldart.mail import Attachment, contact_email, error_name, org_name, send_templated
 from caldart.reports import (
     Params,
     Report,
@@ -334,7 +334,7 @@ def send_subscription(
         log.error(
             "report subscription send failed: subscription=%s error=%s",
             subscription.pk,
-            type(exc).__name__,
+            error_name(exc),
         )
         run.record_failed()
         return
@@ -505,7 +505,7 @@ def send_roster(run: ReportRun, dart: Dart, *, today: date, dry_run: bool) -> No
                 "roster send failed: dart=%s contact=%s error=%s",
                 dart.pk,
                 contact.pk,
-                type(exc).__name__,
+                error_name(exc),
             )
             run.record_failed()
             every_one_sent = False
