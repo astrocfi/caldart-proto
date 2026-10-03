@@ -23,7 +23,7 @@ describe('hasAnyRole', () => {
 });
 
 describe('visibleNavItems', () => {
-  it('shows a plain member the membership entries and their email preferences', () => {
+  it('shows a plain member the membership entries, their messages, and their preferences', () => {
     expect(labels(['member'])).toEqual([
       'Dashboard',
       'My profile',
@@ -33,6 +33,7 @@ describe('visibleNavItems', () => {
       'Renew',
       'Change password',
       'Change email',
+      'Messages',
       'Email preferences',
     ]);
   });
@@ -183,6 +184,7 @@ describe('visibleNavItems', () => {
       '/bulk-email/drafts',
       '/bulk-email/sent',
       '/bulk-email/mail-delivery',
+      '/messages',
       '/email-preferences',
     ]);
   });
@@ -195,17 +197,18 @@ describe('visibleNavItems', () => {
       '/bulk-email/compose',
       '/bulk-email/drafts',
       '/bulk-email/sent',
+      '/messages',
       '/email-preferences',
     ]);
   });
 
   it.each([['account_admin'], ['user_admin'], ['treasurer']] as const)(
-    'keeps the bulk email screens away from %s, who has only their email preferences',
+    'keeps the bulk email screens away from %s, who has only their messages and preferences',
     (role) => {
       const bulk = groupedNavItems(['member', role]).find(
         (bucket) => bucket.group === 'Bulk Email',
       );
-      expect(bulk?.items.map((item) => item.to)).toEqual(['/email-preferences']);
+      expect(bulk?.items.map((item) => item.to)).toEqual(['/messages', '/email-preferences']);
     },
   );
 
@@ -235,6 +238,7 @@ describe('visibleNavItems', () => {
       'Donate',
       'Change password',
       'Change email',
+      'Messages',
       'Email preferences',
     ]);
   });
@@ -277,13 +281,14 @@ describe('the Bulk Email group', () => {
       'Sent',
       'Email types',
       'Mail delivery',
+      'Messages',
       'Email preferences',
     ]);
   });
 
-  it('gives every signed-in person their email preferences', () => {
+  it('gives every signed-in person their messages and email preferences', () => {
     const bulk = groupedNavItems(['member']).find((bucket) => bucket.group === 'Bulk Email');
-    expect(bulk?.items.map((item) => item.to)).toEqual(['/email-preferences']);
+    expect(bulk?.items.map((item) => item.to)).toEqual(['/messages', '/email-preferences']);
   });
 
   it.each([['management'], ['account_admin'], ['dart_leader']] as const)(
