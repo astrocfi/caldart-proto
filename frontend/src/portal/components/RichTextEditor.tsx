@@ -72,6 +72,8 @@ export interface RichTextEditorProps {
   toolbarExtra?: ReactNode;
   /** Ids of the hint or error that describe the editing area. */
   describedBy?: string;
+  /** Marks the editing area invalid, for a message the server refused. */
+  invalid?: boolean;
   /** When true the toolbar is off and the text cannot be changed. */
   readOnly?: boolean;
   ref?: Ref<RichTextEditorHandle>;
@@ -82,6 +84,22 @@ type OpenPanel =
   | { kind: 'none' }
   | { kind: 'link'; href: string; isEditing: boolean }
   | { kind: 'image'; fileName: string; upload: UploadState };
+
+/** The editing area's own attributes: its role, its name, and how it is described. */
+function areaAttributes(
+  label: string,
+  describedBy: string | undefined,
+  invalid: boolean,
+): Record<string, string> {
+  return {
+    class: 'rich-text__area',
+    role: 'textbox',
+    'aria-multiline': 'true',
+    'aria-label': label,
+    ...(describedBy === undefined ? {} : { 'aria-describedby': describedBy }),
+    ...(invalid ? { 'aria-invalid': 'true' } : {}),
+  };
+}
 
 /** The editor's HTML as `onChange` reports it: `''` for an empty document. */
 function htmlOf(editor: Editor): string {
@@ -105,12 +123,13 @@ export function RichTextEditor({
   onUploadImage,
   toolbarExtra,
   describedBy,
+  invalid = false,
   readOnly = false,
   ref,
 }: RichTextEditorProps): JSX.Element {
   const [panel, setPanel] = useState<OpenPanel>({ kind: 'none' });
   const fileInputRef = useRef<HTMLInputElement>(null);
-  // The latest callbacks, read by the editor's handlers, which TipTap binds once.
+  // The latest `onChange`, read by the editor's update handler, which TipTap binds once.
   const onChangeRef = useRef(onChange);
   useEffect(() => {
     onChangeRef.current = onChange;
@@ -135,15 +154,7 @@ export function RichTextEditor({
     ],
     content: value,
     editable: !readOnly,
-    editorProps: {
-      attributes: {
-        class: 'rich-text__area',
-        role: 'textbox',
-        'aria-multiline': 'true',
-        'aria-label': label,
-        ...(describedBy === undefined ? {} : { 'aria-describedby': describedBy }),
-      },
-    },
+    editorProps: { attributes: areaAttributes(label, describedBy, invalid) },
     onUpdate: ({ editor: updated }) => onChangeRef.current(htmlOf(updated)),
   });
 
@@ -166,6 +177,10 @@ export function RichTextEditor({
   useEffect(() => {
     editor.setEditable(!readOnly, false);
   }, [editor, readOnly]);
+
+  useEffect(() => {
+    editor.setOptions({ editorProps: { attributes: areaAttributes(label, describedBy, invalid) } });
+  }, [editor, label, describedBy, invalid]);
 
   useImperativeHandle(
     ref,

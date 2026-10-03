@@ -171,6 +171,33 @@ describe('RichTextEditor', () => {
     expect([area().textContent, handleChange.mock.calls.length]).toEqual(['Two', 0]);
   });
 
+  it('describes the editing area and marks it invalid when told to', () => {
+    const { rerender } = render(
+      <RichTextEditor
+        label="Message"
+        value=""
+        onChange={() => undefined}
+        onUploadImage={() => Promise.resolve(STORED)}
+      />,
+    );
+
+    rerender(
+      <RichTextEditor
+        label="Message"
+        value=""
+        onChange={() => undefined}
+        onUploadImage={() => Promise.resolve(STORED)}
+        describedBy="message-error"
+        invalid
+      />,
+    );
+
+    expect([area().getAttribute('aria-describedby'), area().getAttribute('aria-invalid')]).toEqual([
+      'message-error',
+      'true',
+    ]);
+  });
+
   it('turns the toolbar off and the text read-only when read-only', () => {
     render(<Harness initial="<p>Hello</p>" readOnly />);
 

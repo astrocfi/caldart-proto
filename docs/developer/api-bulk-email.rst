@@ -431,6 +431,11 @@ carry, with nh3:
 - ``width`` and ``height`` must be whole numbers of pixels, and comments are
   removed.
 
+A recipient field's token (below) is plain text to the sanitizer, so it survives
+anywhere, a link's address included once the address is absolute:
+``https://caldart.org/join?dart={dart_name}`` keeps its token, while a link
+whose whole address is ``{email}`` is relative and loses it.
+
 The answer is well formed, and sanitizing it again changes nothing.
 
 **The plain-text part.**  ``richtext.html_to_text`` writes the same message as
