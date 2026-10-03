@@ -4,6 +4,7 @@ import { HttpResponse, http } from 'msw';
 import { describe, expect, it } from 'vitest';
 
 import type { BulkEmailCopy, BulkEmailDetail } from '@/portal/api/types';
+import { formatDateTime } from '@/portal/components/DateText';
 import { EMAIL_FRAME_SANDBOX, withNewTabLinks } from '@/portal/components/EmailFrame';
 import { answerBulkEmail, makeBatch, makeBulkEmail, makeRow } from '@test/fixtures/bulkEmail';
 import { API } from '@test/handlers';
@@ -94,7 +95,10 @@ describe('DeliveryReport', () => {
   it('lists every person with their result, reason, and time tried', async () => {
     renderReport();
     const row = (await screen.findByText('cy@example.org')).closest('tr');
-    expect(row).toHaveTextContent('Bounced5.1.1 User unknown04/06/2026 10:00');
+    // Formatted as the table formats it, so the test reads alike in every time zone.
+    expect(row).toHaveTextContent(
+      `Bounced5.1.1 User unknown${formatDateTime('2026-04-06T17:00:06Z')}`,
+    );
   });
 
   it('narrows the table to one result', async () => {
@@ -222,7 +226,9 @@ describe('DeliveryReport', () => {
       }),
     );
     const retries = screen.getByRole('region', { name: 'Retries' });
-    expect(retries).toHaveTextContent('04/07/2026 08:00: Hollis Grant sent 1 person a fresh copy.');
+    expect(retries).toHaveTextContent(
+      `${formatDateTime('2026-04-07T15:00:00Z')}: Hollis Grant sent 1 person a fresh copy.`,
+    );
   });
 
   it('offers the results as a download', () => {
