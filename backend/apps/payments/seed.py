@@ -28,7 +28,7 @@ Those pinned renewals, the paused one's declining card, and the two recurring
 donations use the mock payment provider, so they are seeded only while it is
 on (``PAYMENTS_MOCK_ENABLED``).  With it off, as the production settings leave
 it, the pinned members and the two givers are seeded without them and the paused
-renewal keeps an ordinary saved card, so the daily renewal job on a demo server
+renewal holds a Stripe Visa card instead, so the daily renewal job on a demo server
 finds nothing to charge through the mock provider.
 
 Six donors -- people who gave through the public donation page and hold no
@@ -120,12 +120,14 @@ RECONCILED_AFTER_DAYS = 60
 #: How long after the money arrives the treasurer gets to the statement.
 RECONCILED_LAG_DAYS = 5
 
-#: How many members hold a standing automatic-renewal authority: ten active, one
-#: paused after every retry was refused, and one the member turned off.  The
-#: account administrator's yearly recurring donation is seeded on top of these.
-#: Among the active ones, ``ctx["renewal_due_today_users"]`` and
-#: ``ctx["catch_up_user"]`` (:func:`apps.members.seed._renewal_seed_subjects`)
+#: How many members hold a standing automatic-renewal authority while the mock
+#: provider is on: ten active, one paused after every retry was refused, and one
+#: the member turned off.  The account administrator's yearly recurring donation is
+#: seeded on top of these.  Among the active ones, ``ctx["renewal_due_today_users"]``
+#: and ``ctx["catch_up_user"]`` (:func:`apps.members.seed._renewal_seed_subjects`)
 #: are pinned to a renewal already due; the rest spread across the coming year.
+#: With the mock provider off the three pinned ones are left out, so seven are
+#: active.
 ACTIVE_MANDATES = 10
 PAUSED_MANDATES = 1
 CANCELED_MANDATES = 1
@@ -853,8 +855,9 @@ def _seed_catch_up_mandate(user: User, plan: MembershipPlan, today: dt.date) -> 
 def _seed_mandates(ctx: dict[str, Any], *, mock_on: bool) -> int:
     """Create the demo mandates and their attempts, and return how many there are.
 
-    Ten members renew automatically.  Two of them (``ctx["renewal_due_today_users"]``)
-    have a term ending today and a renewal already due; one more
+    With ``mock_on``, ten members renew automatically.  Two of them
+    (``ctx["renewal_due_today_users"]``) have a term ending today and a renewal
+    already due; one more
     (``ctx["catch_up_user"]``), if the seed named one, has no term left to renew
     and a stored charge date :data:`CATCH_UP_MANDATE_DAYS_AGO` days back, so the
     scan takes the catch-up path instead (:func:`_seed_due_today_mandates`,
@@ -869,9 +872,10 @@ def _seed_mandates(ctx: dict[str, Any], *, mock_on: bool) -> int:
 
     The pinned renewals, the paused renewal's declining card, and both recurring
     donations use the mock provider's test card.  Unless ``mock_on`` is true they
-    are left out, and the paused renewal takes an ordinary card from
-    :data:`SEED_CARDS` instead.  Running it twice over the same database changes
-    nothing.
+    are left out, so seven members renew automatically and nobody gives on a
+    schedule, and the paused renewal holds the first card in :data:`SEED_CARDS`,
+    a Stripe Visa ending 4242, instead.  Running it twice over the same database
+    changes nothing.
     """
     rng: random.Random = ctx["rng"]
     today: dt.date = ctx["today"]
@@ -903,6 +907,8 @@ def _seed_mandates(ctx: dict[str, Any], *, mock_on: bool) -> int:
         contribution = _contribution(rng)
         fields = _card(index)
         if index == generic_active:
+            # A card, so the declines its failed attempts quote are a card's.
+            fields = _card(0)
             if mock_on:
                 fields |= {
                     "provider": MandateProvider.MOCK,

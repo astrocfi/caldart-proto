@@ -610,6 +610,12 @@ def site_settings(db: None) -> SiteSettings:
 
 
 @pytest.fixture
+def mock_payments_off(settings: Settings) -> None:
+    """Turn the mock payment provider off, as the production settings leave it."""
+    settings.PAYMENTS_MOCK_ENABLED = False
+
+
+@pytest.fixture
 def today() -> Iterator[date]:
     """Freeze the clock at the current local date, and return that date.
 

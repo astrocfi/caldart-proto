@@ -763,21 +763,26 @@ want its values back:
 documented in this repository's ``README.rst``, so a server seeded with them
 is a demonstration server, never one holding real member data.
 
-In development, ``seed_demo`` gives three demo members an automatic renewal due
-the day it runs, its paused renewal a card that always declines, and two more
-members a recurring donation, all on the mock payment provider's test card, so
+In development, ``seed_demo`` gives two generated members an automatic renewal
+due the day it runs and a third an overdue one, its paused renewal a card
+that always declines, and the account administrator and one generated member a
+recurring donation, all on the mock payment provider's test card, so
 ``caldart-renewals`` has something to charge.  Production leaves that provider
 off, so on a server ``seed_demo`` seeds those members without automatic renewal
-or recurring giving, gives the paused renewal an ordinary saved card, and says
-so in one line of its output::
+or recurring giving, gives the paused renewal a Stripe Visa card instead, and
+says so in one line of its output::
 
   payments: the mock payment provider is off, so no renewal due today, no catch-up renewal, and no recurring donation was seeded
 
-``caldart-renewals`` then runs cleanly on the seeded server with the mock
-provider off.  Leave it off: turning it on with ``PAYMENTS_MOCK_ENABLED_IN_PRODUCTION``
-shows every visitor a **Test payment** tab with *Succeed* and *Fail*
-buttons, a way for anyone to grant themselves a membership with no money
-changing hands (``docs/developer/payments-setup.rst``).
+The seed's other renewals carry made-up Stripe and PayPal references.  With no
+payment keys configured, ``caldart-renewals`` puts their charges off and runs
+cleanly on the seeded server; with real or sandbox keys, the provider can refuse
+a seeded charge, and the job then exits with an error counting the refusals.  A
+mock-provider renewal left from a seed run while that provider was on is put off
+too, never refused.  Leave the mock provider off: turning it on with
+``PAYMENTS_MOCK_ENABLED_IN_PRODUCTION`` shows every visitor a **Test payment**
+tab with *Succeed* and *Fail* buttons, a way for anyone to grant themselves a
+membership with no money changing hands (``docs/developer/payments-setup.rst``).
 
 Logs
 ----

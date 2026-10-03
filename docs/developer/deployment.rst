@@ -911,22 +911,28 @@ the order above::
 ``README.rst`` documents, so a server seeded with them is a demonstration
 server, never one holding real member data.
 
-In development, ``seed_demo`` gives three demo members an automatic renewal due
-the day it runs, its paused renewal a card that always declines, and two more
-members a recurring donation, all on the mock payment provider's test card
+In development, ``seed_demo`` gives two generated members an automatic renewal
+due the day it runs and a third an overdue one, its paused renewal a card
+that always declines, and the account administrator and one generated member a
+recurring donation, all on the mock payment provider's test card
 (:ref:`renewals-providers`), so ``caldart-renewals`` has something to charge.
 Production leaves that provider off (``prod.py`` turns ``PAYMENTS_MOCK_ENABLED``
 on only from ``PAYMENTS_MOCK_ENABLED_IN_PRODUCTION``), so on a server
 ``seed_demo`` seeds those members without automatic renewal or recurring giving,
-gives the paused renewal an ordinary saved card, and writes one line saying so::
+gives the paused renewal a Stripe Visa card instead, and writes one line saying
+so::
 
   payments: the mock payment provider is off, so no renewal due today, no catch-up renewal, and no recurring donation was seeded
 
-``caldart-renewals`` then runs cleanly against the seeded data with the mock
-provider off.  Leave it off: turning it on shows every visitor a **Test
-payment** tab with *Succeed* and *Fail* buttons, a way for anyone to grant
-themselves a membership with no money changing hands, as :doc:`payments-setup`
-describes.
+The seed's other renewals carry made-up Stripe and PayPal references.  With no
+payment keys configured, ``caldart-renewals`` puts their charges off and runs
+cleanly against the seeded data; with real or sandbox keys, the provider can
+refuse a seeded charge, and the job then exits with an error counting the
+refusals.  A mock-provider renewal left from a seed run while that provider was
+on is put off too, never refused (:ref:`renewals-scanner`).  Leave the mock
+provider off: turning it on shows every visitor a **Test payment** tab with
+*Succeed* and *Fail* buttons, a way for anyone to grant themselves a membership
+with no money changing hands, as :doc:`payments-setup` describes.
 
 With ``--admin-email`` the step creates the first real administrator::
 

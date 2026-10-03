@@ -15,7 +15,6 @@ from django.core.mail import EmailMessage
 from django.core.management import call_command
 from django.utils import timezone
 from faker import Faker
-from pytest_django import Settings
 from pytest_django.fixtures import DjangoCaptureOnCommitCallbacks
 from wagtail.models import Site
 
@@ -39,7 +38,13 @@ from apps.members.services import membership_status
 from apps.members.verification import verified_items
 from apps.notifications.events import EVENTS
 from apps.notifications.models import NotificationSubscription
-from apps.payments.models import MandateProvider, Payment, PaymentStatus, RenewalMandate
+from apps.payments.models import (
+    MandateProvider,
+    MandateStatus,
+    Payment,
+    PaymentStatus,
+    RenewalMandate,
+)
 from apps.payments.renewals import _due_attempts, lapsed_term_to_renew, run_auto_renewals
 from apps.payments.seed import (
     CATCH_UP_MANDATE_DAYS_AGO,
@@ -434,12 +439,6 @@ def test_run_auto_renewals_charges_the_three_seeded_renewals() -> None:
     assert run.failed == 0
 
 
-@pytest.fixture
-def mock_payments_off(settings: Settings) -> None:
-    """Turn the mock payment provider off, as the production settings leave it."""
-    settings.PAYMENTS_MOCK_ENABLED = False
-
-
 def _seed_output() -> list[str]:
     """Run ``seed_demo`` and return the lines it wrote to stdout."""
     out = StringIO()
@@ -464,6 +463,17 @@ def test_seed_demo_seeds_no_recurring_donation_while_the_mock_provider_is_off() 
     """The recurring donations ride on the mock provider, so none is seeded."""
     _seed()
     assert RenewalMandate.objects.filter(plan__isnull=True).count() == 0
+
+
+@pytest.mark.usefixtures("mock_payments_off")
+def test_seed_demo_puts_the_paused_renewal_on_a_stripe_card_with_the_mock_off() -> None:
+    """The paused renewal's declined attempts stand against a card, the seed's first."""
+    _seed()
+    paused = RenewalMandate.objects.get(status=MandateStatus.PAUSED)
+    assert (paused.provider, paused.method_label) == (
+        MandateProvider.STRIPE,
+        "Visa ending 4242, expires 03/2028",
+    )
 
 
 @pytest.mark.usefixtures("mock_payments_off")
