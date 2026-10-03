@@ -16,6 +16,7 @@ import type {
   BulkEmailBatch,
   BulkEmailDetail,
   BulkEmailPatch,
+  BulkEmailSender,
   BulkEmailSendRequest,
   BulkEmailStatus,
   BulkEmailSummary,
@@ -61,6 +62,20 @@ export function useSendableEmailTypes(): UseQueryResult<SendableEmailType[]> {
   return useQuery({
     queryKey: SENDABLE_TYPES_KEY,
     queryFn: () => api.get<SendableEmailType[]>('/email-types/sendable'),
+  });
+}
+
+/** The cache key of who the signed-in sender may send to. */
+const SENDER_KEY = [...BULK_EMAIL_KEY, 'sender'] as const;
+
+/**
+ * Who the signed-in sender may send to, via `GET /bulk-email/sender`: everyone for
+ * CalDART management, the DART on their profile for a DART leader.
+ */
+export function useBulkSender(): UseQueryResult<BulkEmailSender> {
+  return useQuery({
+    queryKey: SENDER_KEY,
+    queryFn: () => api.get<BulkEmailSender>('/bulk-email/sender'),
   });
 }
 

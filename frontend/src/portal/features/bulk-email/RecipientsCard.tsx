@@ -8,7 +8,9 @@
  * or why not; it shows the first ten until **Show all** is pressed. One person can be
  * taken out with the trashcan, or everybody with **Clear batch**; both ask first.
  * **Download list** saves the batch as a spreadsheet. A change to the batch of a
- * scheduled email takes it back to the drafts, and the screen says so.
+ * scheduled email takes it back to the drafts, and the screen says so. A DART
+ * leader's email goes to one DART only: the DART filter gives way to that DART,
+ * named as a fixed value.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ChangeEvent, JSX } from 'react';
@@ -36,6 +38,9 @@ const FILTER_FIELDS = listFilters(REPORTS.members).map((field) =>
   field.key === 'search' ? { ...field, placeholder: 'Name or email' } : field,
 );
 
+/** The filters of an email limited to one DART: every one but the DART's own. */
+const DART_LIMITED_FIELDS = FILTER_FIELDS.filter((field) => field.key !== 'dart');
+
 /**
  * How long Add to batch waits before it reads the filters: longer than the filter
  * bar's pause, so words typed just before the press have been applied.
@@ -58,6 +63,8 @@ interface RecipientsCardProps {
   isEditable: boolean;
   /** True while the email waits to send, when any change to the batch unqueues it. */
   isQueued: boolean;
+  /** The one DART a DART leader's email goes to; blank when it may go to anybody. */
+  dartName: string;
 }
 
 /** The batch: build it with the filters, read it, and change it. */
@@ -65,6 +72,7 @@ export function RecipientsCard({
   emailId,
   isEditable,
   isQueued,
+  dartName,
 }: RecipientsCardProps): JSX.Element {
   const [filters, setFilters] = useState<FilterValues>({});
   const [lastAdd, setLastAdd] = useState<BulkEmailAddResult | null>(null);
@@ -148,8 +156,14 @@ export function RecipientsCard({
       ) : null}
       {isEditable ? (
         <div className="stack">
+          {dartName === '' ? null : (
+            <p>
+              Sending to the <strong>{dartName} DART</strong>. The filters choose people in that
+              DART only.
+            </p>
+          )}
           <FilterBar
-            fields={FILTER_FIELDS}
+            fields={dartName === '' ? FILTER_FIELDS : DART_LIMITED_FIELDS}
             values={filters}
             onChange={handleFilterChange}
             options={dartOptions}
@@ -161,7 +175,11 @@ export function RecipientsCard({
                 {add.isPending || isSettling ? 'Adding…' : 'Add to batch'}
               </Button>
             </div>
-            <p className="muted">With no filters chosen, this adds every member and friend.</p>
+            <p className="muted">
+              {dartName === ''
+                ? 'With no filters chosen, this adds every member and friend.'
+                : `With no filters chosen, this adds every member and friend of the ${dartName} DART.`}
+            </p>
           </div>
           {lastAdd === null ? null : <p role="status">{addSentence(lastAdd)}</p>}
         </div>
