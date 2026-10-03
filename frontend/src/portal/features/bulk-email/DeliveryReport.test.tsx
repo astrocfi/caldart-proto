@@ -4,6 +4,7 @@ import { HttpResponse, http } from 'msw';
 import { describe, expect, it } from 'vitest';
 
 import type { BulkEmailCopy, BulkEmailDetail } from '@/portal/api/types';
+import { EMAIL_FRAME_SANDBOX, withNewTabLinks } from '@/portal/components/EmailFrame';
 import { answerBulkEmail, makeBatch, makeBulkEmail, makeRow } from '@test/fixtures/bulkEmail';
 import { API } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
@@ -86,7 +87,7 @@ describe('DeliveryReport', () => {
   it('counts the copies by result', () => {
     renderReport(finished({ retried_count: 2 }));
     expect(screen.getByLabelText('Copies by result')).toHaveTextContent(
-      'Sent1Failed1Skipped1Bounced1Retried2',
+      'Delivered1Failed1Skipped1Bounced1Retried2',
     );
   });
 
@@ -130,8 +131,8 @@ describe('DeliveryReport', () => {
     );
     const frame = await screen.findByTitle('The email as Ann Able received it');
     expect([frame.getAttribute('sandbox'), frame.getAttribute('srcdoc')]).toEqual([
-      '',
-      ANN_COPY.html,
+      EMAIL_FRAME_SANDBOX,
+      withNewTabLinks(ANN_COPY.html),
     ]);
   });
 
@@ -162,6 +163,17 @@ describe('DeliveryReport', () => {
     await screen.findByRole('dialog');
     await userEvent.keyboard('{Escape}');
     expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('leaves the copy open on Escape pressed outside it', async () => {
+    renderReport();
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'View the copy sent to Ann Able' }),
+    );
+    await screen.findByRole('dialog');
+    await userEvent.click(screen.getByRole('searchbox'));
+    await userEvent.keyboard('{Escape}');
+    expect(screen.getByRole('dialog')).toBeVisible();
   });
 
   it('retries the failed copies after asking', async () => {

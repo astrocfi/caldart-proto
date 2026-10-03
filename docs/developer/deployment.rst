@@ -1950,8 +1950,12 @@ Action                        Fields beyond actor and target
 ``bulk_email.stop``           ``recipients`` -- the copies kept back; written
                               when the stop takes effect
 ``bulk_email.resume``         ``recipients`` -- the copies queued again
-``bulk_email.retry``          ``recipients`` -- the failed copies **Retry
-                              failed** queued again
+``bulk_email.retry``          ``recipients``, ``skipped`` -- the failed copies
+                              **Retry failed** queued again, and those it
+                              found skipped
+``bulk_email.retry_finished`` ``recipients``, ``sent``, ``failed`` -- a
+                              retry's copies, once all were tried (the actor
+                              is who pressed **Retry failed**)
 ``bulk_email.hide``           ``hidden`` -- ``true`` when the email was taken
                               off the recipients' Messages, ``false`` when it
                               was put back

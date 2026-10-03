@@ -667,9 +667,14 @@ the email is still sending is not undone by the next copy's count.
 ``POST /bulk-email/{id}/retry``
 -------------------------------
 
-**Retry failed**: every ``failed`` copy goes back to ``pending``, with its reason
-cleared and out of ``failed_count``, and the email is queued to start now, with no
-undo window, as **Send the rest** queues it.  No body is taken.  **200** with the
+**Retry failed**.  Each ``failed`` copy first takes its account's name and address
+as they are now, so an address corrected since is the one used, and is asked
+``batch.skip_reason`` afresh: a deleted account (*Account deleted*), a deactivated
+one, a missing, invalid, or bounced address, an opt-out of the type, or an address
+already sent this email makes the row ``skipped`` with that reason and adds to
+``skipped_count``.  Every other failed copy goes back to ``pending`` with its reason
+cleared.  All of them leave ``failed_count``.  The email is queued to start now, with
+no undo window, as **Send the rest** queues it.  No body is taken.  **200** with the
 email, ``queued`` with the retry in ``retries``.  The background sender then sends
 those copies alone, each filled in with the person's values as they are then, and
 checks once more that the sender may send the type and that nobody has turned it
@@ -684,9 +689,15 @@ read-only, and **Stop** stops the retry as it stops **Send the rest**.  A refusa
 - *This email is still sending. Retry the failed copies once it has finished.* for
   one ``queued`` or ``sending``;
 - *No copy failed, so there is nothing to retry.*
+- *Nobody whose copy failed can be sent one now. Each is marked skipped, with the reason
+  on their line.* when every failed copy was skipped; the skips are kept, and nothing is
+  queued.
 
-Each retry is kept as a ``BulkEmailRetry`` (:ref:`data-model-bulk-email`), and one
-``bulk_email.retry`` audit line names the caller and the number of copies.
+Each retry that queued a copy is kept as a ``BulkEmailRetry``
+(:ref:`data-model-bulk-email`).  One ``bulk_email.retry`` audit line names the caller,
+the copies queued, and the people skipped.  When the retried copies have all been
+tried the email is ``sent`` again with its first ``sent_at`` kept, and one
+``bulk_email.retry_finished`` line takes the place of a second ``bulk_email.send``.
 
 ``GET /bulk-email/{id}/recipients/{rid}/copy``
 ----------------------------------------------
@@ -706,8 +717,13 @@ stored on the row when the copy was last tried, never from the account as it is 
     "html": "<!doctype html>\n<html lang=\"en\">...",
     "text": "Dear Ann,\n\nJoin us at Livermore.\n\n--\n..."}
 
-A row of another email is **404**, and a row whose copy was never tried (skipped,
-stopped, or not sent yet) **409** *This person was not sent a copy.*
+The copy is for the caller, not its recipient, so its unsubscribe link is inert:
+the footer keeps its words, the HTML link has no address, the plain text reads
+*(the recipient's own unsubscribe link)*, and no token that could turn the
+recipient's email off is in either.  The message ``GET /bulk-email/{id}`` answers as
+``message_html`` carries nobody's link either.  A row of another email is **404**, and a
+row whose copy was never tried (skipped, stopped, or not sent yet) **409** *This person
+was not sent a copy.*
 
 ``POST /bulk-email/{id}/hide``
 ------------------------------
@@ -772,7 +788,11 @@ the email's type.
 
 One email, as the caller's own copy: the fields above, plus ``html``, the whole HTML
 email, and ``text``, the plain-text one, as ``render.render_copy`` rebuilds them from
-the caller's row.  An email the caller did not receive, and one hidden from Messages,
+the caller's row, with the caller's own live unsubscribe link, as their email had it.
+The portal draws ``html`` in a frame sandboxed to popups that leave the sandbox, with
+no scripts, no forms, and no same-origin access, and puts ``<base target="_blank">``
+at its head, so the email's links open in a new tab; the Sent page's message and a
+copy on the delivery report are drawn the same way.  An email the caller did not receive, and one hidden from Messages,
 is **404**.
 
 

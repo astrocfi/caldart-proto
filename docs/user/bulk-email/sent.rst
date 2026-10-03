@@ -60,8 +60,10 @@ The delivery report
 **Who received it** shows what became of every copy, including what happened after it
 left CalDART.
 
-At its top are the counts: **Sent**, **Failed**, **Skipped**, **Bounced**, and **Retried**.
-Under them is **Retry failed** (below).
+At its top are the counts: **Delivered**, **Failed**, **Skipped**, **Bounced**, and
+**Retried**. **Delivered** counts the copies that went and have not come back, so
+**Delivered** and **Bounced** together are the people the line above calls *Sent to*. Under
+the counts is **Retry failed** (below).
 
 Then one line per person in the batch, with **Name**, **Email**, **Result**, **Reason**,
 **Tried at**, **Kind**, **DART**, and **Copy**. **Result** narrows the table to one result,
@@ -91,18 +93,25 @@ Seeing one person's copy
 **View copy**, on the line of anybody whose copy was tried, opens that person's copy
 exactly as it went, under the table: who it went to and when, its subject, and the email
 itself, with the details that were filled in for them at the time, even if they have
-changed their profile since. This answers "what did I get?" **Close**, or the Escape key,
-shuts it and returns you to the line you opened it from. Somebody who was skipped, or not
-sent a copy yet, has no copy to view.
+changed their profile since. This answers "what did I get?" Its links open in a new tab.
+The unsubscribe link at its foot is shown but does nothing here, since it belongs to the
+person the copy went to. **Close**, or the Escape key while you are in the copy, shuts it and
+returns you to the line you opened it from. Somebody who was skipped, or not sent a copy
+yet, has no copy to view.
 
 Retry failed
 ------------
 
 When the mail server refused some copies, **Retry failed** sends a fresh copy to those
 people only, once you press **Retry now**. Nobody already sent a copy gets another, and
-nobody whose copy bounced (their address is bad) or who was skipped is sent one. The copies
-start going within a minute, and the page shows their progress as for any send. The
-message reads *The failed copies will be sent again within a minute.*
+nobody whose copy bounced (their address is bad) or who was skipped is sent one. Each person
+is checked again first, as for any send: one whose account has since been deleted or
+deactivated, whose address has bounced, or who has turned this kind of email off is marked
+*Skipped* with the reason, and an address a user administrator has corrected since is the
+one the fresh copy goes to. The copies start going within a minute, and the page shows their
+progress as for any send. The message reads *The failed copies will be sent again within a
+minute.* If everybody whose copy failed is skipped this way, nothing is sent and the page
+says *Nobody whose copy failed can be sent one now.*
 
 **Retry failed** cannot be pressed when no copy failed, and says so. On a stopped email it
 says to send the rest first: press **Send the rest**, and once that has finished, retry the

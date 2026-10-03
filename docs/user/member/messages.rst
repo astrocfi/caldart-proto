@@ -24,8 +24,9 @@ table scrolls sideways.
 
 Only the bulk emails sent to you are listed, never anybody else's. Email about your own
 account, such as receipts, renewal reminders, and password links, is not bulk email and is
-not listed here. An email that could not be delivered to you, for example because your
-address was wrong at the time, is not listed either.
+not listed here. An email whose copy the mail server refused when CalDART sent it, for
+example because your address was wrong at the time, is not listed either. One that went out
+but came back from your own mail server as undeliverable is listed, so you can read it here.
 
 
 Reading an email
@@ -38,8 +39,8 @@ DART, it shows them as they were when it was sent, even if you have changed them
 
 **See all your messages** takes you back to the list.
 
-Pictures in the email show as they do in your mail program, but its links cannot be followed
-from this page. To open a link, use the email in your own mail program.
+Pictures in the email show as they do in your mail program, and its links open in a new tab,
+so the email stays where it is.
 
 
 View this email in your browser

@@ -3,6 +3,7 @@ import { HttpResponse, http } from 'msw';
 import { describe, expect, it } from 'vitest';
 
 import type { BulkEmailMessageDetail } from '@/portal/api/types';
+import { EMAIL_FRAME_SANDBOX, withNewTabLinks } from '@/portal/components/EmailFrame';
 import { API } from '@test/handlers';
 import { renderRoutes } from '@test/render';
 import { server } from '@test/server';
@@ -29,8 +30,8 @@ describe('MessagePage', () => {
     renderMessage(() => HttpResponse.json(SPRING));
     const frame = await screen.findByTitle('The email: Spring newsletter for Ann');
     expect([frame.getAttribute('sandbox'), frame.getAttribute('srcdoc')]).toEqual([
-      '',
-      SPRING.html,
+      EMAIL_FRAME_SANDBOX,
+      withNewTabLinks(SPRING.html),
     ]);
   });
 

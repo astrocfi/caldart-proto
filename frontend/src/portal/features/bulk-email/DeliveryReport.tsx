@@ -99,10 +99,14 @@ export function DeliveryReport({ email }: { email: BulkEmailDetail }): JSX.Eleme
   );
 }
 
-/** `Sent 37 · Failed 1 · Skipped 4 · Bounced 1 · Retried 1`, as a list of terms. */
+/**
+ * `Delivered 36 · Failed 1 · Skipped 4 · Bounced 1 · Retried 1`, as a list of terms.
+ * Delivered counts the copies sent that have not come back, so Delivered and Bounced
+ * together are the copies the result line calls sent.
+ */
 export function DeliveryCounts({ email }: { email: BulkEmailDetail }): JSX.Element {
   const counts: [string, number][] = [
-    ['Sent', email.sent_count],
+    ['Delivered', email.sent_count],
     ['Failed', email.failed_count],
     ['Skipped', email.skipped_count],
     ['Bounced', email.bounced_count],

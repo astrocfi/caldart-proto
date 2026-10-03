@@ -4,7 +4,7 @@
  *
  * The **View this email in your browser** link in every bulk email opens this page.
  * The email is drawn in a sandboxed frame, so nothing in it can run or reach the
- * portal. An email the person did not receive, or one CalDART management has taken
+ * portal, and its links open in a new tab. An email the person did not receive, or one CalDART management has taken
  * off Messages, reads as not available.
  */
 import type { JSX } from 'react';
@@ -14,9 +14,9 @@ import { ApiError } from '@/portal/api/client';
 import type { BulkEmailMessageDetail } from '@/portal/api/types';
 import { Card } from '@/portal/components/Card';
 import { formatDate } from '@/portal/components/DateText';
+import { EmailFrame } from '@/portal/components/EmailFrame';
 import { Loading } from '@/portal/components/Loading';
 import { Page } from '@/portal/components/Page';
-import '@/portal/features/bulk-email/preview.css';
 import { useMessage } from './api';
 
 /** What the page says for an email that is not the reader's to read. */
@@ -48,12 +48,7 @@ export function MessagePage(): JSX.Element {
   return (
     <Page title={shown.subject || 'Message'} eyebrow="Bulk Email" lede={fromLine(shown)}>
       <Card>
-        <iframe
-          className="bulk-email__preview-frame"
-          title={`The email: ${shown.subject}`}
-          sandbox=""
-          srcDoc={shown.html}
-        />
+        <EmailFrame title={`The email: ${shown.subject}`} html={shown.html} />
         <p>
           <Link to="/messages">See all your messages</Link>
         </p>

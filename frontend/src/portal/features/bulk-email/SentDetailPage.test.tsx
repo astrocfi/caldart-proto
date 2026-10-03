@@ -2,6 +2,7 @@ import { screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
 import type { BulkEmailDetail } from '@/portal/api/types';
+import { EMAIL_FRAME_SANDBOX, withNewTabLinks } from '@/portal/components/EmailFrame';
 import { answerBulkEmail, makeBatch, makeBulkEmail, makeRow } from '@test/fixtures/bulkEmail';
 import { renderRoutes } from '@test/render';
 import { SentDetailPage } from './SentDetailPage';
@@ -53,8 +54,8 @@ describe('SentDetailPage', () => {
     renderSent();
     const frame = await screen.findByTitle('The message as it was sent');
     expect([frame.getAttribute('sandbox'), frame.getAttribute('srcdoc')]).toEqual([
-      '',
-      '<html><body><h1>Hangar day</h1><p>Bring gloves.</p></body></html>',
+      EMAIL_FRAME_SANDBOX,
+      withNewTabLinks('<html><body><h1>Hangar day</h1><p>Bring gloves.</p></body></html>'),
     ]);
   });
 

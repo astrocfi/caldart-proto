@@ -490,17 +490,24 @@ receiver lives here, and so does the link each copy's row on the Sent Emails pag
 carries to its bulk email, which ``ready`` registers with ``apps.mail.links``.
 
 **Retry failed.**  ``delivery.retry_failed`` takes a ``sent`` email whose copies
-include ``failed`` ones, puts those back to ``pending`` and out of
-``failed_count``, records a ``BulkEmailRetry``, and queues the email to start now,
-the path **Send the rest** takes.  The email keeps its ``started_at``, so it stays
+include ``failed`` ones.  Each failed row takes its account's name and address as they
+are now and is asked ``batch.skip_reason`` again, as the freeze asks it, so a deleted
+or deactivated account, a bounced address, or an opt-out makes it ``skipped`` and a
+corrected address is the one used.  The rest go back to ``pending``; all leave
+``failed_count``.  A ``BulkEmailRetry`` is recorded and the email queued to start now,
+the path **Send the rest** takes.  When the retried copies have all been tried,
+``job._finish`` keeps the email's first ``sent_at`` and writes
+``bulk_email.retry_finished`` with the retry's counts instead of a second
+``bulk_email.send``.  The email keeps its ``started_at``, so it stays
 read-only (:ref:`the edit rule <bulk-email-edit-rule>`), and the sender's own checks
 apply to the retried copies as to any: the sender's right to send the type at the
 claim, and each person's opt-out before their copy.  A stopped email sends the rest
 first; its failed copies can be retried once it has finished.
 
 **A copy as it went.**  ``delivery.recipient_copy`` rebuilds one tried copy with
-``render.render_copy`` from the row's stored ``values``.  So does the archive, for
-the reader's own row.  Neither ever reads the account's values as they are now.
+``render.render_copy`` from the row's stored ``values``, with ``live_unsubscribe``
+false: the sender reads it, so its unsubscribe link is inert and carries no token.  The
+archive rebuilds the reader's own row the same way, with their live link.  Neither ever reads the account's values as they are now.
 
 **Messages.**  ``archive.messages_for`` lists the emails with a row naming the reader
 that reads ``sent`` or ``bounced``, not hidden from the archive, newest copy first;

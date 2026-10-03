@@ -14,13 +14,13 @@ import { Link, useParams } from 'react-router-dom';
 import type { BulkEmailDetail } from '@/portal/api/types';
 import { Card } from '@/portal/components/Card';
 import { formatDateTime } from '@/portal/components/DateText';
+import { EmailFrame } from '@/portal/components/EmailFrame';
 import { Loading } from '@/portal/components/Loading';
 import { Page } from '@/portal/components/Page';
 import { useBulkEmail } from './api';
 import './bulk-email.css';
 import { DeliveryReport } from './DeliveryReport';
 import { MessagesVisibility } from './MessagesVisibility';
-import './preview.css';
 import { SendStatus } from './SendStatus';
 import { people } from './status';
 
@@ -63,12 +63,7 @@ export function SentDetailPage(): JSX.Element {
             own details filled in.
           </p>
         ) : null}
-        <iframe
-          className="bulk-email__preview-frame"
-          title="The message as it was sent"
-          sandbox=""
-          srcDoc={sent.message_html}
-        />
+        <EmailFrame title="The message as it was sent" html={sent.message_html} />
         {sent.started_at === null ? null : <MessagesVisibility email={sent} />}
       </Card>
 
