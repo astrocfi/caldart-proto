@@ -1,0 +1,178 @@
+import { screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { HttpResponse, http } from 'msw';
+import { describe, expect, it } from 'vitest';
+
+import { makeGroup, makeGroupPerson } from '@test/fixtures/bulkEmailReuse';
+import { API } from '@test/handlers';
+import { renderRoutes } from '@test/render';
+import { server } from '@test/server';
+import type { GroupPerson, RecipientGroup } from '@/portal/api/types';
+import { GroupDetailPage } from './GroupDetailPage';
+
+/** What the fake server was asked to do to the group. */
+interface GroupCalls {
+  renamed: unknown[];
+  added: unknown[];
+  removed: number[];
+  filtersAdded: unknown[];
+  filtersRemoved: number[];
+}
+
+/** Answer one group's endpoints, with `people` in it now, recording each write. */
+function answerGroup(group: RecipientGroup, people: GroupPerson[]): GroupCalls {
+  const calls: GroupCalls = {
+    renamed: [],
+    added: [],
+    removed: [],
+    filtersAdded: [],
+    filtersRemoved: [],
+  };
+  const base = `${API}/bulk-email/groups/${group.id}`;
+  server.use(
+    http.get(`${API}/darts`, () => HttpResponse.json([])),
+    http.get(base, () => HttpResponse.json(group)),
+    http.patch(base, async ({ request }) => {
+      const body = (await request.json()) as Partial<RecipientGroup>;
+      calls.renamed.push(body);
+      return HttpResponse.json({ ...group, ...body });
+    }),
+    http.get(`${base}/members`, () => HttpResponse.json({ count: people.length, people })),
+    http.post(`${base}/members`, async ({ request }) => {
+      calls.added.push(await request.json());
+      return HttpResponse.json(makeGroupPerson({ user_id: 30, name: 'Cal Cole' }), {
+        status: 201,
+      });
+    }),
+    http.delete(`${base}/members/:user`, ({ params }) => {
+      calls.removed.push(Number(params.user));
+      return new HttpResponse(null, { status: 204 });
+    }),
+    http.post(`${base}/filters`, async ({ request }) => {
+      calls.filtersAdded.push(await request.json());
+      return HttpResponse.json(
+        { id: 9, label: 'Everybody', filters: {}, position: 1 },
+        { status: 201 },
+      );
+    }),
+    http.delete(`${base}/filters/:fid`, ({ params }) => {
+      calls.filtersRemoved.push(Number(params.fid));
+      return new HttpResponse(null, { status: 204 });
+    }),
+    http.get(`${API}/bulk-email/groups/people`, () =>
+      HttpResponse.json([{ id: 30, name: 'Cal Cole', email: 'cal@example.org' }]),
+    ),
+  );
+  return calls;
+}
+
+/** The page of group `id`. */
+function renderGroup(id: number): void {
+  renderRoutes([{ path: '/bulk-email/groups/:id', element: <GroupDetailPage /> }], {
+    route: `/bulk-email/groups/${id}`,
+  });
+}
+
+const MARIN = makeGroup({
+  id: 6,
+  name: 'Marin friends',
+  kind: 'live',
+  count: 1,
+  filter_sets: [
+    {
+      id: 8,
+      label: 'Kind: Friends only, County: Marin',
+      filters: { kind: 'friend', county: 'Marin' },
+      position: 0,
+    },
+  ],
+});
+
+describe('GroupDetailPage, a fixed group', () => {
+  it('lists its people with their DART', async () => {
+    answerGroup(makeGroup(), [makeGroupPerson()]);
+    renderGroup(5);
+    const row = (await screen.findByRole('cell', { name: 'Ann Able' })).closest('tr');
+    expect(row).toHaveTextContent('Marin DART');
+  });
+
+  it('marks a deactivated person', async () => {
+    answerGroup(makeGroup(), [makeGroupPerson({ is_active: false })]);
+    renderGroup(5);
+    expect(await screen.findByRole('cell', { name: 'Ann Able (deactivated)' })).toBeVisible();
+  });
+
+  it('adds the person picked from the search', async () => {
+    const calls = answerGroup(makeGroup(), [makeGroupPerson()]);
+    const user = userEvent.setup();
+    renderGroup(5);
+    await user.type(await screen.findByRole('combobox', { name: /Add a person/ }), 'Cole');
+    await user.click(await screen.findByRole('option', { name: /Cal Cole/ }));
+    expect(await screen.findByText('Cal Cole added.')).toBeVisible();
+    expect(calls.added).toEqual([{ user: 30 }]);
+  });
+
+  it('removes a person only once the trashcan is confirmed', async () => {
+    const calls = answerGroup(makeGroup(), [makeGroupPerson()]);
+    const user = userEvent.setup();
+    renderGroup(5);
+    await user.click(await screen.findByRole('button', { name: 'Remove Ann Able from the group' }));
+    expect(calls.removed).toEqual([]);
+    await user.click(screen.getByRole('button', { name: 'Remove' }));
+    await waitFor(() => expect(calls.removed).toEqual([12]));
+  });
+
+  it('renames the group', async () => {
+    const calls = answerGroup(makeGroup(), []);
+    const user = userEvent.setup();
+    renderGroup(5);
+    const name = await screen.findByRole('textbox', { name: /Group name/ });
+    await user.clear(name);
+    await user.type(name, 'Directors');
+    await user.click(screen.getByRole('button', { name: 'Save name' }));
+    await waitFor(() => expect(calls.renamed).toEqual([{ name: 'Directors' }]));
+  });
+
+  it('has no filters to change', async () => {
+    answerGroup(makeGroup(), []);
+    renderGroup(5);
+    await screen.findByRole('heading', { name: 'People' });
+    expect(screen.queryByRole('button', { name: 'Add these filters' })).toBeNull();
+  });
+});
+
+describe('GroupDetailPage, a live group', () => {
+  it('lists its filters in words', async () => {
+    answerGroup(MARIN, [makeGroupPerson()]);
+    renderGroup(6);
+    expect(await screen.findByText('Kind: Friends only, County: Marin')).toBeVisible();
+  });
+
+  it('adds the filters chosen in the bar', async () => {
+    const calls = answerGroup(MARIN, [makeGroupPerson()]);
+    const user = userEvent.setup();
+    renderGroup(6);
+    await user.click(await screen.findByRole('button', { name: 'Add these filters' }));
+    await waitFor(() => expect(calls.filtersAdded).toEqual([{ filters: {} }]));
+  });
+
+  it('takes a filter set out only once the trashcan is confirmed', async () => {
+    const calls = answerGroup(MARIN, []);
+    const user = userEvent.setup();
+    renderGroup(6);
+    await user.click(
+      await screen.findByRole('button', {
+        name: 'Remove the filters Kind: Friends only, County: Marin',
+      }),
+    );
+    await user.click(screen.getByRole('button', { name: 'Remove' }));
+    await waitFor(() => expect(calls.filtersRemoved).toEqual([8]));
+  });
+
+  it('lists whoever its filters find now, with no way to add one person', async () => {
+    answerGroup(MARIN, [makeGroupPerson()]);
+    renderGroup(6);
+    expect(await screen.findByRole('heading', { name: 'Who it finds now' })).toBeVisible();
+    expect(screen.queryByRole('combobox', { name: /Add a person/ })).toBeNull();
+  });
+});

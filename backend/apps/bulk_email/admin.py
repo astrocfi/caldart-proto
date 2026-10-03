@@ -23,7 +23,7 @@ class BatchAddInline(_AddInlineBase):
 
     model = BatchAdd
     fields = ["label", "filters", "group", "added_count", "already_count", "created_at"]
-    readonly_fields = fields
+    readonly_fields = ["label", "filters", "group", "added_count", "already_count", "created_at"]
     extra = 0
     can_delete = False
 

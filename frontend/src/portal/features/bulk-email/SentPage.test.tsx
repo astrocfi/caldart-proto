@@ -60,6 +60,15 @@ describe('SentPage', () => {
     expect(await screen.findByRole('link', { name: 'Stop sending Hangar day' })).toBeVisible();
   });
 
+  it('offers Duplicate on each send', async () => {
+    answerSent([makeSummary({ status: 'sent' })]);
+    renderWithProviders(<SentPage />);
+    const row = (await screen.findByRole('link', { name: 'Hangar day' })).closest('tr');
+    expect(
+      within(row as HTMLElement).getByRole('button', { name: 'Duplicate' }),
+    ).toBeInTheDocument();
+  });
+
   it('offers each finished send results as a download', async () => {
     answerSent([makeSummary({ status: 'sent' })]);
     renderWithProviders(<SentPage />);
