@@ -3,9 +3,9 @@
  * caller's summary of what happened, and the table of every action behind
  * it — one row per email sent or charge taken, so "who did this actually
  * reach?" never needs a shell.  The renewals, reminders, scheduled-reports,
- * statements and bounces panels of the Scheduled page (`/portal/system/scheduled`)
- * use it, and so do the DART rosters card of `/admin/reports` and the Bulk Email
- * screen.
+ * statements, bounces, and bulk email sender panels of the Scheduled page
+ * (`/portal/system/scheduled`) use it, and so does the DART rosters card of
+ * `/admin/reports`.
  */
 import type { JSX, ReactNode } from 'react';
 
@@ -39,7 +39,7 @@ interface RunActionsTableProps {
   summary?: ReactNode;
   /**
    * Whether the actions carry a date and an amount.  A run that only sends
-   * emails about no particular day, such as a bulk email, passes false to
+   * emails about no particular day, such as the bulk email sender, passes false to
    * leave the When and Amount columns out.
    */
   hasWhenAndAmount?: boolean;

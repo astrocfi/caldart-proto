@@ -154,16 +154,18 @@ An account administrator looks after the membership records. The role adds:
 CalDART management
 ==================
 
-CalDART management writes to the membership as a whole. The role adds one entry of
-**Administration** and one of **Bulk Email**:
+CalDART management writes to the membership as a whole. The role adds the **Bulk Email**
+group of the menu:
 
-* **Bulk Email** (:doc:`admin/bulk-email`): choose who should hear from CalDART with
-  the same filters the member list uses, write the message, preview the recipients,
-  and send. Every send is kept with the result for each person, and its list
-  downloads as a CSV.
-* **Mail delivery** (:doc:`bulk-email/mail-delivery`), under **Bulk Email**: check that
-  other mail systems will trust and deliver the email CalDART sends, and what to ask for
-  when they will not.
+* **Compose** (:doc:`bulk-email/compose`): build a batch of people with the same filters the
+  member list uses, write the message, and send it now or schedule it, with two minutes to
+  cancel.
+* **Drafts & scheduled** (:doc:`bulk-email/drafts`): every email not yet sent, to open,
+  cancel, or delete.
+* **Sent** (:doc:`bulk-email/sent`): every email sent, with the result for each person, to
+  stop or finish a send, and to download as a CSV.
+* **Mail delivery** (:doc:`bulk-email/mail-delivery`): check that other mail systems will
+  trust and deliver the email CalDART sends, and what to ask for when they will not.
 
 The role opens no member record and no payment. A user administrator grants it.
 

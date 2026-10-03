@@ -24,6 +24,8 @@ class SentListView(generics.ListAPIView[BulkEmail]):
 
     permission_classes = BULK_EMAIL_PERMISSIONS
     serializer_class = BulkEmailSummarySerializer
+    # Names the model for the schema, which reads it without a signed-in caller.
+    queryset = BulkEmail.objects.none()
     # A handful of sends a month: the whole history is one short list.
     pagination_class = None
 

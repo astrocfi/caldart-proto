@@ -58,11 +58,11 @@ Where settings are read
    ``EMAIL_URL``.  A ``SECRET_KEY`` equal to the published development key is a
    start-up error too, and so is a ``SITE_URL`` whose path is not the
    ``URL_PREFIX``.  Selected by
-   ``Environment=DJANGO_SETTINGS_MODULE=caldart.settings.prod`` in all eight
-   systemd services: ``caldart-web`` and the seven scheduled jobs
+   ``Environment=DJANGO_SETTINGS_MODULE=caldart.settings.prod`` in all nine
+   systemd services: ``caldart-web`` and the eight scheduled jobs
    (``caldart-registry``, ``caldart-reports``, ``caldart-renewals``,
-   ``caldart-reminders``, ``caldart-statements``, ``caldart-bounces``, and
-   ``caldart-backup``).
+   ``caldart-reminders``, ``caldart-statements``, ``caldart-bounces``,
+   ``caldart-bulk-email``, and ``caldart-backup``).
 
 ``test.py``
    ``DEBUG`` off, MD5 password hashing, in-memory email and file storage, mock
@@ -436,6 +436,38 @@ Email
    ``caldart.error_reports.CredentialSafeExceptionReporterFilter``: Django's own
    masking of the settings whose names look secret, plus the password of every URL a
    setting holds, so ``BOUNCE_IMAP_URL`` reads ``imaps://user:********************@host/INBOX``.
+
+
+Bulk email
+==========
+
+The background sender and the compose screen read these (:doc:`bulk-email`).
+
+``BULK_EMAIL_RATE_PER_MINUTE``
+   The most copies the bulk email sender sends a minute.  It sleeps out the rest of
+   each 60 / rate seconds after a copy begins, so the mail provider's own limit is
+   never reached.  Keep it under that limit, with room for the site's other mail.
+
+   :Both: ``30``.
+
+``BULK_EMAIL_BATCH_SIZE``
+   The copies sent over one mail connection before the sender closes it and opens a
+   fresh one.
+
+   :Both: ``50``.
+
+``BULK_EMAIL_UNDO_SECONDS``
+   The undo window: the seconds between pressing **Send** and the first copy, during
+   which the send can be canceled.  ``0`` makes a send ready for the sender's next
+   run at once, which is what ``make e2e`` sets.
+
+   :Both: ``120``.
+
+``BULK_EMAIL_CONFIRM_ABOVE``
+   Above this many recipients, **Send** asks the sender to type the count before it
+   sends, and the server checks the count again.
+
+   :Both: ``50``.
 
 
 Payments

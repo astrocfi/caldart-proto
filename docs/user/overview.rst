@@ -220,8 +220,8 @@ your roles open. :doc:`roles` lists every screen each one reaches.
   members as a DART leader does.
 
 **CalDART management**
-  Writes to the membership as a whole: one email to everybody a filter selects,
-  after previewing who it reaches.
+  Writes to the membership as a whole: one email to a batch of members and friends,
+  sent now or at a time chosen ahead.
 
 **Website administrator**
   Writes and publishes the public site's pages, news, and events.

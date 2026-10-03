@@ -55,6 +55,8 @@ class DraftListCreateView(generics.ListAPIView[BulkEmail]):
 
     permission_classes = BULK_EMAIL_PERMISSIONS
     serializer_class = BulkEmailSummarySerializer
+    # Names the model for the schema, which reads it without a signed-in caller.
+    queryset = BulkEmail.objects.none()
     # A sender keeps a handful of drafts: the whole list is one short page.
     pagination_class = None
 

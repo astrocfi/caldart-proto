@@ -44,13 +44,18 @@ import type {
   Backup,
   BecomeFriendPayload,
   BounceRunResult,
-  BulkEmail,
+  BulkEmailAddRequest,
+  BulkEmailAddResult,
+  BulkEmailBatch,
+  BulkEmailBatchAdd,
+  BulkEmailBatchRow,
   BulkEmailDetail,
-  BulkEmailMessage,
-  BulkEmailPreview,
-  BulkEmailPreviewRecipient,
-  BulkEmailRecipient,
+  BulkEmailPatch,
   BulkEmailRecipientStatus,
+  BulkEmailRunResult,
+  BulkEmailSendRequest,
+  BulkEmailStatus,
+  BulkEmailSummary,
   CheckoutRequest,
   CheckoutResponse,
   ContributionRow,
@@ -437,15 +442,17 @@ const notificationSubscriptionPatch: Matches<
 > = true;
 
 /* ------------------------------------------------------------- bulk email */
-const bulkEmailMessage: Matches<BulkEmailMessage, Schemas['BulkEmailMessageRequest']> = true;
-const bulkEmailPreviewRecipient: Matches<
-  BulkEmailPreviewRecipient,
-  Schemas['BulkEmailPreviewRecipient']
-> = true;
-const bulkEmailPreview: Matches<BulkEmailPreview, Schemas['BulkEmailPreview']> = true;
-const bulkEmailRecipient: Matches<BulkEmailRecipient, Schemas['BulkEmailRecipient']> = true;
-const bulkEmail: Matches<BulkEmail, Schemas['BulkEmail']> = true;
+const bulkEmailStatus: Matches<BulkEmailStatus, Schemas['BulkEmailStatusEnum']> = true;
 const bulkEmailDetail: Matches<BulkEmailDetail, Schemas['BulkEmailDetail']> = true;
+const bulkEmailSummary: Matches<BulkEmailSummary, Schemas['BulkEmailSummary']> = true;
+const bulkEmailPatch: Matches<BulkEmailPatch, Schemas['PatchedBulkEmailUpdateRequest']> = true;
+const bulkEmailSendRequest: Matches<BulkEmailSendRequest, Schemas['BulkEmailSendRequest']> = true;
+const bulkEmailAddRequest: Matches<BulkEmailAddRequest, Schemas['BulkEmailAddRequest']> = true;
+const bulkEmailAddResult: Matches<BulkEmailAddResult, Schemas['BulkEmailAddResult']> = true;
+const bulkEmailBatchAdd: Matches<BulkEmailBatchAdd, Schemas['BulkEmailBatchAdd']> = true;
+const bulkEmailBatchRow: Matches<BulkEmailBatchRow, Schemas['BulkEmailBatchRow']> = true;
+const bulkEmailBatch: Matches<BulkEmailBatch, Schemas['BulkEmailBatch']> = true;
+const bulkEmailRunResult: Matches<BulkEmailRunResult, Schemas['BulkEmailRunResult']> = true;
 
 /** Every pair above, so `noUnusedLocals` keeps each assertion referenced. */
 const assertions: readonly true[] = [
@@ -610,12 +617,17 @@ const assertions: readonly true[] = [
   notificationSubscription,
   notificationSubscriptionCreate,
   notificationSubscriptionPatch,
-  bulkEmailMessage,
-  bulkEmailPreviewRecipient,
-  bulkEmailPreview,
-  bulkEmailRecipient,
-  bulkEmail,
+  bulkEmailStatus,
   bulkEmailDetail,
+  bulkEmailSummary,
+  bulkEmailPatch,
+  bulkEmailSendRequest,
+  bulkEmailAddRequest,
+  bulkEmailAddResult,
+  bulkEmailBatchAdd,
+  bulkEmailBatchRow,
+  bulkEmailBatch,
+  bulkEmailRunResult,
 ];
 
 /** The schema component each assertion above names, in the same order. */
@@ -643,6 +655,7 @@ const MAPPED_COMPONENTS: readonly (keyof Schemas)[] = [
   'RenewalOutcomeEnum',
   'ManualMethodEnum',
   'BulkEmailRecipientStatusEnum',
+  'BulkEmailStatusEnum',
   'User',
   'Role',
   'LoginRequest',
@@ -781,12 +794,16 @@ const MAPPED_COMPONENTS: readonly (keyof Schemas)[] = [
   'NotificationSubscription',
   'NotificationSubscriptionCreateRequest',
   'PatchedNotificationSubscriptionRequest',
-  'BulkEmailMessageRequest',
-  'BulkEmailPreviewRecipient',
-  'BulkEmailPreview',
-  'BulkEmailRecipient',
-  'BulkEmail',
   'BulkEmailDetail',
+  'BulkEmailSummary',
+  'PatchedBulkEmailUpdateRequest',
+  'BulkEmailSendRequest',
+  'BulkEmailAddRequest',
+  'BulkEmailAddResult',
+  'BulkEmailBatchAdd',
+  'BulkEmailBatchRow',
+  'BulkEmailBatch',
+  'BulkEmailRunResult',
 ];
 
 /** Vitest runs with `frontend/` as its root, so the repository root is one level up. */

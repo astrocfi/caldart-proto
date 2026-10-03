@@ -9,6 +9,7 @@ from __future__ import annotations
 from collections.abc import Iterator
 from datetime import UTC, datetime
 from io import StringIO
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
@@ -29,6 +30,9 @@ if TYPE_CHECKING:
 pytestmark = pytest.mark.django_db
 
 RUN_URL = "/api/v1/system/bulk-email/run"
+
+#: The systemd units under ``deploy/systemd/``.
+SYSTEMD_DIR = Path(__file__).resolve().parents[2] / "deploy" / "systemd"
 
 #: A start time long past, so every queued email in these tests is due.
 PAST = datetime(2026, 1, 1, tzinfo=UTC)
@@ -170,3 +174,22 @@ def test_only_a_system_administrator_runs_the_sender(
     """**Run now** is the system administrator's alone."""
     api_client.force_login(all_role_users[role])
     assert api_client.post(RUN_URL).status_code == (200 if allowed else 403)
+
+
+# --------------------------------------------------------------------------
+# The timer
+# --------------------------------------------------------------------------
+def test_the_service_runs_the_command_with_no_time_limit() -> None:
+    """The oneshot runs ``send_bulk_emails``, and a long send is never cut short."""
+    service = (SYSTEMD_DIR / "caldart-bulk-email.service").read_text()
+    assert "manage.py send_bulk_emails" in service
+    assert "Type=oneshot" in service
+    assert "TimeoutStartSec=0" in service
+
+
+def test_the_timer_fires_every_minute_on_the_minute() -> None:
+    """Every minute, to the second, with no randomized delay to spread it."""
+    timer = (SYSTEMD_DIR / "caldart-bulk-email.timer").read_text()
+    assert "OnCalendar=*-*-* *:*:00" in timer
+    assert "AccuracySec=1s" in timer
+    assert "RandomizedDelaySec" not in timer

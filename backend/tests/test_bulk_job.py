@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 from django.core import mail
-from django.core.mail import EmailMessage
+from django.core.mail import EmailMessage, EmailMultiAlternatives
 from django.core.mail.backends.locmem import EmailBackend
 from django.db import connection
 from freezegun import freeze_time
@@ -237,8 +237,10 @@ def test_a_copy_carries_the_subject_and_the_message(three: BulkEmail) -> None:
 def test_the_html_body_makes_each_paragraph_a_paragraph(three: BulkEmail) -> None:
     """Each blank-line paragraph of the message is a ``<p>`` in the HTML body."""
     job.run_sender(now=NOW)
-    html = str(mail.outbox[0].alternatives[0].content)  # type: ignore[attr-defined]
-    assert "<p>Join us at Livermore on Saturday.</p>" in html
+    message = mail.outbox[0]
+    assert isinstance(message, EmailMultiAlternatives)
+    html, _mimetype = message.alternatives[0]
+    assert "<p>Join us at Livermore on Saturday.</p>" in str(html)
 
 
 def test_each_row_keeps_the_message_id_of_its_copy(three: BulkEmail) -> None:
@@ -431,7 +433,7 @@ def test_a_stopped_email_records_who_and_when(
 def test_stop_is_refused_when_the_email_is_not_sending(
     management_client: APIClient, three: BulkEmail
 ) -> None:
-    """A queued email is cancelled, not stopped: a 409 says it is not sending."""
+    """A queued email is canceled, not stopped: a 409 says it is not sending."""
     response = management_client.post(f"/api/v1/bulk-email/{three.pk}/stop")
     assert (response.status_code, response.json()) == (409, {"detail": drafts.NOT_SENDING_MESSAGE})
 

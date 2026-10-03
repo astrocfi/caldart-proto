@@ -399,6 +399,9 @@ list, in full:
    * - ``bounces``
      - ``check_bounces`` — ``make bounces [DRY_RUN=1]``; with ``BOUNCE_IMAP_URL``
        empty, as ``.env.example`` leaves it, it says bounce checking is off
+   * - ``bulk-email``
+     - ``send_bulk_emails`` — one run of the bulk email sender, which sends every
+       bulk email whose start time has come (:doc:`bulk-email`)
    * - ``sandbox-check``
      - ``payments_sandbox_check`` — the Stripe and PayPal credentials in
        ``.env``, checked without moving money (:doc:`payments-setup`)
@@ -492,6 +495,9 @@ Beyond Django's and Wagtail's own, this project adds:
      - check the SPF, DKIM, and DMARC records for ``DEFAULT_FROM_EMAIL``'s domain
        and print one line per finding; exits non-zero on any failure
        (:ref:`deploy-mail-dns`)
+   * - ``send_bulk_emails``
+     - start and send every bulk email whose start time has come; a run while
+       another works does nothing (:doc:`bulk-email`)
    * - ``payments_sandbox_check``
      - check the configured Stripe and PayPal credentials without moving money
    * - ``import_faa_registry [--source URL|PATH] [--types-only] [--import-id ID]``

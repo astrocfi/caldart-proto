@@ -19,6 +19,7 @@ from apps.bulk_email import batch
 from apps.bulk_email.drafts import visible_to
 from apps.bulk_email.job import run_sender
 from apps.bulk_email.models import BatchAdd, BulkEmail, BulkEmailStatus, RecipientStatus
+from caldart.exceptions import DomainError
 from tests.conftest import read_csv, role_matrix
 from tests.factories import (
     BulkEmailFactory,
@@ -84,7 +85,7 @@ def test_two_overlapping_adds_make_their_union_without_duplicates(
     """Somebody both adds choose is in the batch once."""
     make_person("member@example.test", "Max", "Able")
     make_person("friend@example.test", "Fay", "Moss", kind=AccountKind.FRIEND)
-    make_person("napa@example.test", "Ned", "Cole", county="Napa", kind=AccountKind.FRIEND)
+    make_person("napa@example.test", "Neil", "Cole", county="Napa", kind=AccountKind.FRIEND)
     batch.add_filters(bulk, MARIN, actor=management)
     batch.add_filters(bulk, FRIENDS_IN_MARIN_AND_NAPA, actor=management)
     assert [row.recipient.email for row in batch.batch_rows(bulk)] == [
@@ -280,7 +281,7 @@ def test_a_started_email_s_batch_cannot_change(
 ) -> None:
     """Once the send has started, an add is refused with the edit rule's sentence."""
     BulkEmail.objects.filter(pk=bulk.pk).update(status=status)
-    with pytest.raises(batch.DomainError, match="has been sent and cannot be changed"):
+    with pytest.raises(DomainError, match="has been sent and cannot be changed"):
         batch.add_filters(bulk, MARIN, actor=management)
 
 

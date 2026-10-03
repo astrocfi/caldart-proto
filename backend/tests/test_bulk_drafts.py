@@ -2,7 +2,7 @@
 
 **Send** queues the email to start once the undo window ends, or at the time chosen;
 nothing is sent in the request.  A queued email can still change until the background
-sender starts it, and can be cancelled back to a draft.
+sender starts it, and can be canceled back to a draft.
 """
 
 from __future__ import annotations
@@ -21,6 +21,7 @@ from apps.accounts.roles import MANAGEMENT, MEMBER, SYSTEM_ADMIN
 from apps.bulk_email import drafts
 from apps.bulk_email.job import run_sender
 from apps.bulk_email.models import BulkEmail, BulkEmailStatus
+from caldart.exceptions import DomainValidationError
 from tests.conftest import audit_messages, role_matrix
 from tests.factories import BulkEmailFactory, UserFactory, add_to_batch, make_person
 
@@ -193,7 +194,7 @@ def test_a_draft_can_be_deleted(management_client: APIClient, ready: BulkEmail) 
 def test_a_queued_email_cannot_be_deleted(
     management_client: APIClient, ready: BulkEmail, management: User
 ) -> None:
-    """A queued email must be cancelled before it can be deleted."""
+    """A queued email must be canceled before it can be deleted."""
     drafts.queue(ready, confirm_count=None, start_at=None, actor=management)
     response = management_client.delete(url(ready))
     assert (response.status_code, response.json()) == (409, {"detail": drafts.NOT_A_DRAFT_MESSAGE})
@@ -258,7 +259,7 @@ def test_a_schedule_in_the_past_or_too_far_ahead_is_refused(
     ready: BulkEmail, management: User, start_at: datetime, message: str
 ) -> None:
     """The time must be after now and within a year."""
-    with pytest.raises(drafts.DomainValidationError, match=message):
+    with pytest.raises(DomainValidationError, match=message):
         drafts.queue(ready, confirm_count=None, start_at=start_at, actor=management, now=NOW)
 
 
@@ -347,7 +348,7 @@ def test_above_the_threshold_a_missing_count_is_refused(
 ) -> None:
     """Above the threshold the typed count is required."""
     settings.BULK_EMAIL_CONFIRM_ABOVE = 2
-    with pytest.raises(drafts.DomainValidationError, match=drafts.CONFIRM_MISSING_MESSAGE):
+    with pytest.raises(DomainValidationError, match=drafts.CONFIRM_MISSING_MESSAGE):
         drafts.queue(three_people, confirm_count=None, start_at=None, actor=management)
 
 
@@ -377,7 +378,7 @@ def test_a_batch_that_changed_since_the_count_was_typed_is_refused(
 
 
 # --------------------------------------------------------------------------
-# Cancelling
+# Canceling
 # --------------------------------------------------------------------------
 def test_cancel_before_the_start_returns_the_email_to_a_draft(
     ready: BulkEmail, management: User
@@ -393,7 +394,7 @@ def test_cancel_before_the_start_returns_the_email_to_a_draft(
     ) == (BulkEmailStatus.DRAFT, None, "Spring safety seminar", 1)
 
 
-def test_a_cancelled_email_sends_nothing(ready: BulkEmail, management: User) -> None:
+def test_a_canceled_email_sends_nothing(ready: BulkEmail, management: User) -> None:
     """The sender finds nothing to start once the email is a draft again."""
     with freeze_time(NOW):
         drafts.queue(ready, confirm_count=None, start_at=None, actor=management)

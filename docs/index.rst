@@ -40,7 +40,7 @@ do, then read the guide for what you do:
    * - An account administrator
      - :doc:`user/admin/index`
    * - CalDART management
-     - :doc:`user/admin/bulk-email`
+     - :doc:`user/bulk-email/index`
    * - A website administrator
      - :doc:`user/website/index`
    * - A system administrator
@@ -78,9 +78,9 @@ What it does
 - **Reports.**  Membership and aircraft exports as CSV and PDF, payment
   exports as CSV, all with the same filters as the screen you exported them
   from.
-- **Bulk email.**  One email to every member and friend the member list's
-  filters select, previewed before it is sent, with each person's result
-  kept.
+- **Bulk email.**  One email to a batch of members and friends built from the
+  member list's filters, sent in the background at a pace the mail provider
+  accepts, with an undo window, scheduling, and each person's result kept.
 - **Content.**  Wagtail page types, StreamField blocks, fourteen themes, and a
   members-only wall that only current members and staff get past.
 - **Operations.**  Health checks, database backups, restore, and reset, from

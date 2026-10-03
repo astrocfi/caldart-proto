@@ -300,7 +300,7 @@ BULK_EMAIL_RATE_PER_MINUTE = env.int("BULK_EMAIL_RATE_PER_MINUTE", default=30)
 # The copies sent over one mail connection before the sender opens a fresh one.
 BULK_EMAIL_BATCH_SIZE = env.int("BULK_EMAIL_BATCH_SIZE", default=50)
 # The undo window: seconds between pressing Send and the first copy, during which the
-# send can be cancelled.  0 makes a send ready for the sender's next run at once.
+# send can be canceled.  0 makes a send ready for the sender's next run at once.
 BULK_EMAIL_UNDO_SECONDS = env.int("BULK_EMAIL_UNDO_SECONDS", default=120)
 # Above this many recipients, Send asks the sender to type the count to confirm it.
 BULK_EMAIL_CONFIRM_ABOVE = env.int("BULK_EMAIL_CONFIRM_ABOVE", default=50)

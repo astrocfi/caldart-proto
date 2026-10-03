@@ -121,8 +121,9 @@ What each role opens
 - **Account administrator**: the member list and records, the aircraft register, the DARTs,
   the payments, the reminders, and the reports, and verifying from the checks and the
   records.
-- **CalDART management**: :doc:`bulk-email`, to email everybody a filter selects, and
-  nothing that shows a member's record.
+- **CalDART management**: the Bulk Email screens, starting with
+  :doc:`../bulk-email/compose`, to email a batch of members and friends, and nothing that
+  shows a member's record.
 - **Website administrator**: the website's editor, for pages, images, documents, redirects,
   and site settings.
 - **System administrator**: everything above, plus the :doc:`health-database`,

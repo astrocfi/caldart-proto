@@ -82,7 +82,9 @@ class BatchRowView(APIView):
 
     permission_classes = BULK_EMAIL_PERMISSIONS
 
-    @extend_schema(responses={204: None, 409: CONFLICT})
+    @extend_schema(
+        operation_id="bulk_email_batch_row_destroy", responses={204: None, 409: CONFLICT}
+    )
     def delete(self, request: Request, pk: int, rid: int) -> Response:
         """204 once the person is out of the batch; 404 for a row not in it."""
         bulk = email_for(request, pk)

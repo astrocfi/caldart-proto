@@ -102,8 +102,18 @@ vi.mock('../features/admin-reports/AdminReportsPage', () => ({
 vi.mock('../features/admin-notifications/AdminNotificationsPage', () => ({
   AdminNotificationsPage: pageStub('Notifications'),
 }));
-vi.mock('../features/bulk-email/BulkEmailPage', () => ({
-  BulkEmailPage: pageStub('Bulk Email'),
+vi.mock('../features/bulk-email/ComposeStart', () => ({
+  ComposeStart: pageStub('Compose'),
+}));
+vi.mock('../features/bulk-email/ComposePage', () => ({
+  ComposePage: pageStub('Compose a bulk email'),
+}));
+vi.mock('../features/bulk-email/DraftsPage', () => ({
+  DraftsPage: pageStub('Drafts & scheduled'),
+}));
+vi.mock('../features/bulk-email/SentPage', () => ({ SentPage: pageStub('Sent') }));
+vi.mock('../features/bulk-email/SentDetailPage', () => ({
+  SentDetailPage: pageStub('Sent bulk email'),
 }));
 vi.mock('../features/mail-delivery/MailDeliveryPage', () => ({
   MailDeliveryPage: pageStub('Mail delivery'),
@@ -267,9 +277,21 @@ const GUARDED_PATHS: GuardedPath[] = [
     heading: 'Notifications',
     allowed: ['account_admin', 'system_admin'],
   },
+  { path: '/bulk-email/compose', heading: 'Compose', allowed: ['management', 'system_admin'] },
   {
-    path: '/admin/bulk-email',
-    heading: 'Bulk Email',
+    path: '/bulk-email/drafts',
+    heading: 'Drafts & scheduled',
+    allowed: ['management', 'system_admin'],
+  },
+  {
+    path: '/bulk-email/drafts/1',
+    heading: 'Compose a bulk email',
+    allowed: ['management', 'system_admin'],
+  },
+  { path: '/bulk-email/sent', heading: 'Sent', allowed: ['management', 'system_admin'] },
+  {
+    path: '/bulk-email/sent/1',
+    heading: 'Sent bulk email',
     allowed: ['management', 'system_admin'],
   },
   {

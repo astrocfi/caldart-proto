@@ -321,6 +321,7 @@ Mail, reminders, reports, notifications, and the CMS pages
           Subscription [label="reports.\nReportSubscription"];
           Notification [label="notifications.\nNotificationSubscription"];
           Bulk [label="bulk_email.BulkEmail"];
+          BulkAdd [label="bulk_email.BatchAdd"];
           BulkRecipient [label="bulk_email.\nBulkEmailRecipient"];
       
           Email -> User [label="user\nSET_NULL"];
@@ -330,8 +331,10 @@ Mail, reminders, reports, notifications, and the CMS pages
           ColumnSet -> User [label="user\nCASCADE"];
           Subscription -> User [label="recipient_user,\ncreated_by\nSET_NULL"];
           Notification -> User [label="recipient_user,\ncreated_by\nSET_NULL"];
-          Bulk -> User [label="sender\nSET_NULL"];
+          Bulk -> User [label="sender,\nstopped_by\nSET_NULL"];
+          BulkAdd -> Bulk [label="bulk_email\nCASCADE"];
           BulkRecipient -> Bulk [label="bulk_email\nCASCADE"];
+          BulkRecipient -> BulkAdd [label="added_by\nSET_NULL"];
           BulkRecipient -> User [label="user\nSET_NULL"];
       
           User -> Page [style=invis];
@@ -396,9 +399,10 @@ Mail, reminders, reports, notifications, and the CMS pages
       reports.ReportSubscription  one report, emailed on a schedule
       notifications.NotificationSubscription
                                   one address, and the events it is emailed about
-      bulk_email.BulkEmail        one email sent to a filtered list
+      bulk_email.BulkEmail        one email to a batch, from its draft to its last copy
+      bulk_email.BatchAdd         one press of Add to batch: its filters and counts
       bulk_email.BulkEmailRecipient
-                                  one person that email selected, and the result
+                                  one person in the batch, and what became of the copy
       cms.HomePage, cms.StandardPage, cms.NewsIndexPage, cms.NewsPage,
       cms.EventIndexPage, cms.EventPage, cms.DartIndexPage, cms.DartPage,
       cms.ContactPage, cms.DonatePage
@@ -430,8 +434,12 @@ Mail, reminders, reports, notifications, and the CMS pages
       notifications.NotificationSubscription.created_by
                                            -> accounts.User       FK, SET_NULL, nullable
       bulk_email.BulkEmail.sender          -> accounts.User       FK, SET_NULL, nullable
+      bulk_email.BulkEmail.stopped_by      -> accounts.User       FK, SET_NULL, nullable
+      bulk_email.BatchAdd.bulk_email       -> bulk_email.BulkEmail FK, CASCADE
       bulk_email.BulkEmailRecipient.bulk_email
                                            -> bulk_email.BulkEmail FK, CASCADE
+      bulk_email.BulkEmailRecipient.added_by
+                                           -> bulk_email.BatchAdd FK, SET_NULL, nullable
       bulk_email.BulkEmailRecipient.user   -> accounts.User       FK, SET_NULL, nullable
       cms.BasePage                         inherits wagtailcore.Page
       cms.<every page type>                inherits cms.BasePage
@@ -1151,14 +1159,15 @@ permanent-failure report for a message the server took (:ref:`email-bounces`).
    * - ``bounced``
      - Bounced
 
-.. _choices-bulk-email-recipient-status:
+.. _choices-bulk-email-status:
 
-``RecipientStatus`` (``apps/bulk_email/models.py``)
+``BulkEmailStatus`` (``apps/bulk_email/models.py``)
 ---------------------------------------------------
 
-``BulkEmailRecipient.status``: what became of one person's copy of a bulk email.
-Every recipient starts ``pending``; one still ``pending`` once the send has
-stopped was never tried.
+``BulkEmail.status``: where a bulk email stands.  ``draft`` and ``queued`` can
+still change; ``queued`` waits for ``start_at``; ``sending`` is the background
+sender at work, and ``sent`` and ``stopped`` are the two ways a send ends
+(:doc:`bulk-email`).
 
 .. list-table::
    :header-rows: 1
@@ -1166,14 +1175,47 @@ stopped was never tried.
 
    * - Value
      - Label
+   * - ``draft``
+     - Draft
+   * - ``queued``
+     - Waiting to send
+   * - ``sending``
+     - Sending
+   * - ``sent``
+     - Sent
+   * - ``stopped``
+     - Stopped
+
+.. _choices-bulk-email-recipient-status:
+
+``RecipientStatus`` (``apps/bulk_email/models.py``)
+---------------------------------------------------
+
+``BulkEmailRecipient.status``: where one person's copy of a bulk email stands.
+A row is ``batched`` while the email has not started; starting the send makes
+each ``pending`` or ``skipped``, each pending row then becomes ``sent`` or
+``failed``, and a stop makes the rest ``stopped``.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 70
+
+   * - Value
+     - Label
+   * - ``batched``
+     - In the batch
    * - ``pending``
-     - Not sent
+     - Not sent yet
    * - ``sent``
      - Sent
    * - ``failed``
      - Failed
    * - ``skipped``
      - Skipped
+   * - ``stopped``
+     - Not sent (stopped)
+   * - ``bounced``
+     - Bounced
 
 .. _choices-report-formats:
 
@@ -1555,8 +1597,9 @@ descriptions live in ``apps/accounts/roles.py``:
        deactivate or reactivate accounts, grant or extend memberships manually,
        manage aircraft, and run payment, membership and aircraft reports
    * - ``management``
-     - send a bulk email to every member and friend a filter selects, after
-       previewing the recipients (``BulkEmail``, below); nothing else
+     - write a bulk email to a batch built from the member list's filters,
+       and send, schedule, cancel, or stop it (``BulkEmail``, below); nothing
+       else
    * - ``website_admin``
      - \+ the Wagtail admin: create, edit, delete, and publish pages, images,
        documents, redirects, and site settings
@@ -4058,13 +4101,14 @@ subscription is left as it is.
 bulk_email
 ==========
 
-What CalDART management sent to a filtered list (:doc:`api-bulk-email`).  A
-preview stores nothing; only a send writes these rows.
+A bulk email from its draft to its last copy, and the batch of people it goes to
+(:doc:`bulk-email` explains the life of one, and :doc:`api-bulk-email` the
+endpoints).
 
 ``BulkEmail``
 -------------
 
-One email sent to everybody the member list's filters selected.
+One email CalDART management writes, from the moment Compose opens it.
 
 .. list-table::
    :header-rows: 1
@@ -4081,31 +4125,59 @@ One email sent to everybody the member list's filters selected.
    * - ``created_at``
      - ``DateTimeField``
      - not null; set on insert
-     - when the send began
+     - when the draft was opened
    * - ``updated_at``
      - ``DateTimeField``
      - not null; set on every save
-     - when the row was last saved
+     - when the email or its batch was last changed; the Drafts & scheduled list calls it *Last edited*
    * - ``subject``
      - ``CharField(200)``
-     - not null; required
-     - the subject every copy carried, one line
+     - not null; default ``""``
+     - the subject every copy carries, one line; blank while a draft is being written
    * - ``body``
      - ``TextField``
-     - not null; required
-     - the message as plain text; a blank line separates paragraphs
-   * - ``filters``
-     - ``JSONField``
-     - not null; default ``{}``
-     - JSON object of the member list's query parameters that chose the recipients, those given a value only, as ``ReportSubscription.filters`` stores a report's
+     - not null; default ``""``
+     - the message as plain text, a blank line separating paragraphs; blank while a draft is being written
+   * - ``status``
+     - ``CharField(7)``, :ref:`choices <choices-bulk-email-status>`
+     - not null; default ``draft``
+     - where the email stands: ``draft``, ``queued``, ``sending``, ``sent``, or ``stopped``
    * - ``sender``
      - ``ForeignKey`` to ``accounts.User``, ``SET_NULL``
      - null; default ``NULL``
-     - who sent it; null once that account is deleted; related name ``bulk_emails_sent``
+     - who owns the draft and sends it; null once that account is deleted; related name ``bulk_emails_sent``
+   * - ``start_at``
+     - ``DateTimeField``
+     - null; default ``NULL``
+     - when the send begins: the end of the undo window or the time the sender chose; null for a draft
+   * - ``scheduled``
+     - ``BooleanField``
+     - not null; default ``False``
+     - true when the sender chose ``start_at``, false for the undo window
+   * - ``confirm_count``
+     - ``PositiveIntegerField``
+     - null; default ``NULL``
+     - the number of people the sender typed to confirm a send above ``BULK_EMAIL_CONFIRM_ABOVE``; null below it
+   * - ``started_at``
+     - ``DateTimeField``
+     - null; default ``NULL``
+     - when the background sender started the email
    * - ``sent_at``
      - ``DateTimeField``
      - null; default ``NULL``
-     - when every copy had been tried; null for an interrupted send
+     - when the last copy had been tried
+   * - ``stopped_at``
+     - ``DateTimeField``
+     - null; default ``NULL``
+     - when a send was stopped part way
+   * - ``stopped_by``
+     - ``ForeignKey`` to ``accounts.User``, ``SET_NULL``
+     - null; default ``NULL``
+     - who pressed **Stop**; related name ``bulk_emails_stopped``
+   * - ``stop_requested``
+     - ``BooleanField``
+     - not null; default ``False``
+     - set by **Stop**; the sender reads it between copies
    * - ``sent_count``
      - ``PositiveIntegerField``
      - not null; default ``0``
@@ -4117,31 +4189,86 @@ One email sent to everybody the member list's filters selected.
    * - ``skipped_count``
      - ``PositiveIntegerField``
      - not null; default ``0``
-     - how many people the filters chose were sent no copy
+     - how many people in the batch were set aside when the send started
 
 **Constraints, indexes, and ordering.**
 
+- An index on ``status`` and ``start_at``, which the background sender's claim
+  reads.
 - Ordering: ``-created_at``, then ``-id``.
 
 **Relationships.**
 
 - ``sender``: foreign key to ``accounts.User``, ``SET_NULL``, nullable; the reverse accessor is ``bulk_emails_sent``.
+- ``stopped_by``: foreign key to ``accounts.User``, ``SET_NULL``, nullable; the reverse accessor is ``bulk_emails_stopped``.
+- ``adds``: the reverse of ``BatchAdd.bulk_email``.
 - ``recipients``: the reverse of ``BulkEmailRecipient.bulk_email``.
 
-``bulk_email.services.send_bulk_email`` is the one writer.  It builds the list
-when it sends and writes the ``BulkEmail`` with its ``skipped_count``, then a
-``BulkEmailRecipient`` for every recipient, ``pending``, and one for every skip,
-before any copy goes.  As each copy is tried, its row's status and the send's
-``sent_count`` or ``failed_count`` are saved at once, outside any transaction;
-``sent_at`` is set last.  So a finished send's counts add up to its rows, and a
-send whose worker was killed part way (*interrupted*: ``sent_at`` null) holds
-exactly the copies that went, the ones refused, and the ones still ``pending``,
-which were never sent.
+The content, the batch, and ``start_at`` change only while ``status`` is
+``draft`` or ``queued``; ``apps.bulk_email.batch.locked_for_edit`` takes the
+row's lock and refuses anything later.  ``apps.bulk_email.job`` is the one
+writer of the counts, ``started_at``, ``sent_at``, and ``stopped_at``: it saves
+each copy's row and the counts as soon as that copy has been tried, so the counts
+always add up to the rows.
+
+``BatchAdd``
+------------
+
+One press of **Add to batch**: the filters it ran and what it added.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 22 26 18 34
+
+   * - Field
+     - Type
+     - Null, default
+     - Meaning
+   * - ``id``
+     - ``BigAutoField``
+     - not null; assigned by the database
+     - primary key
+   * - ``created_at``
+     - ``DateTimeField``
+     - not null; set on insert
+     - when **Add to batch** was pressed
+   * - ``updated_at``
+     - ``DateTimeField``
+     - not null; set on every save
+     - when the row was last saved
+   * - ``bulk_email``
+     - ``ForeignKey`` to ``bulk_email.BulkEmail``, ``CASCADE``
+     - not null; required
+     - the email; related name ``adds``
+   * - ``filters``
+     - ``JSONField``
+     - not null; default ``{}``
+     - JSON object of the member list's query parameters the add ran, those given a value only, as ``ReportSubscription.filters`` stores a report's
+   * - ``added_count``
+     - ``PositiveIntegerField``
+     - not null; default ``0``
+     - how many people the add put in the batch
+   * - ``already_count``
+     - ``PositiveIntegerField``
+     - not null; default ``0``
+     - how many people the filters chose who were in the batch already
+
+**Constraints, indexes, and ordering.**
+
+- Ordering: ``id``, the order the adds were pressed.
+
+**Relationships.**
+
+- ``bulk_email``: foreign key to ``bulk_email.BulkEmail``, ``CASCADE``; the reverse accessor is ``adds``.
+- ``recipients``: the reverse of ``BulkEmailRecipient.added_by``.
 
 ``BulkEmailRecipient``
 ----------------------
 
-One person a bulk email's filters selected, and what became of their copy.
+One person in a bulk email's batch, and what became of their copy.  ``name``,
+``email``, ``kind``, and ``dart_name`` are the account's when the person joined
+the batch, brought up to date when the send starts, so the history keeps what
+each copy went to whatever happens to the account later.
 
 .. list-table::
    :header-rows: 1
@@ -4166,7 +4293,7 @@ One person a bulk email's filters selected, and what became of their copy.
    * - ``bulk_email``
      - ``ForeignKey`` to ``bulk_email.BulkEmail``, ``CASCADE``
      - not null; required
-     - the send; related name ``recipients``
+     - the email; related name ``recipients``
    * - ``user``
      - ``ForeignKey`` to ``accounts.User``, ``SET_NULL``
      - null; default ``NULL``
@@ -4174,29 +4301,57 @@ One person a bulk email's filters selected, and what became of their copy.
    * - ``name``
      - ``CharField(301)``
      - not null; default ``""``
-     - the account's display name at send time, whole: a 150-character first name, a space, and a 150-character last name fit
+     - the account's display name, whole: a 150-character first name, a space, and a 150-character last name fit
    * - ``email``
      - ``CharField(254)``
      - not null; default ``""``
-     - the address at send time, kept as stored: an invalid one is recorded as the reason it was skipped, so it is not an ``EmailField``
+     - the address, kept as stored: an invalid one is the reason it is skipped, so it is not an ``EmailField``
+   * - ``kind``
+     - ``CharField(6)``
+     - not null; default ``""``
+     - ``member`` or ``friend``: the account's kind as worked out for that day
+   * - ``dart_name``
+     - ``CharField(60)``
+     - not null; default ``""``
+     - the name of the DART on the account's profile, blank without one
+   * - ``added_by``
+     - ``ForeignKey`` to ``bulk_email.BatchAdd``, ``SET_NULL``
+     - null; default ``NULL``
+     - the add that brought the person in; related name ``recipients``
+   * - ``round``
+     - ``PositiveSmallIntegerField``
+     - not null; default ``0``
+     - 0 for the original copies; a later round is a second copy of the same email
    * - ``status``
      - ``CharField(7)``, :ref:`choices <choices-bulk-email-recipient-status>`
-     - not null; required
-     - ``pending``, ``sent``, ``failed``, or ``skipped``
+     - not null; default ``batched``
+     - where the copy stands
    * - ``reason``
      - ``CharField(200)``
      - not null; default ``""``
-     - why a copy was skipped (*Account deactivated*, *No email address*, *Invalid email address*, *Address bounced*, *Duplicate address*) or failed (*Refused by the mail server*); blank for one that went or was never tried
+     - why a copy was skipped (*Account deleted*, *Account deactivated*, *No email address*, *Invalid email address*, *Address bounced*, *Duplicate address*), failed (*Refused by the mail server*, *Temporarily refused, gave up after 3 retries*), or not sent (*Stopped by* the account that pressed **Stop**); blank otherwise
+   * - ``message_id``
+     - ``CharField(255)``
+     - not null; default ``""``
+     - the ``Message-ID`` the copy went out with, the same as its email log row's; blank until it is sent
+   * - ``tried_at``
+     - ``DateTimeField``
+     - null; default ``NULL``
+     - when the copy was last tried
 
 **Constraints, indexes, and ordering.**
 
-- Ordering: ``id``, which is the order the send wrote them: every recipient in
-  surname order, then every skip in surname order.
+- ``bulk_email_recipient_once_per_round``: unique on ``bulk_email``, ``user``,
+  and ``round`` where ``user`` is not null, so an account is in a batch once.
+- An index on ``bulk_email`` and ``status``, which the sender and the counts read.
+- Ordering: ``id``.  The screens and the CSV files list the rows in surname order
+  instead, the order the send goes in.
 
 **Relationships.**
 
 - ``bulk_email``: foreign key to ``bulk_email.BulkEmail``, ``CASCADE``; the reverse accessor is ``recipients``.
 - ``user``: foreign key to ``accounts.User``, ``SET_NULL``, nullable; the reverse accessor is ``bulk_emails_received``.
+- ``added_by``: foreign key to ``bulk_email.BatchAdd``, ``SET_NULL``, nullable; the reverse accessor is ``recipients``.
 
 cms
 ===

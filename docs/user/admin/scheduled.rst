@@ -4,17 +4,18 @@
 Scheduled
 =========
 
-**Scheduled** lists the five jobs the server runs on a schedule. Each one can be run by hand
-here, and a dry run shows what it would do. Only a system administrator sees it, under
+**Scheduled** lists the six jobs the server runs on a schedule. Each one can be run by hand
+here, and all but the bulk email sender have a dry run that shows what they would do. Only a system administrator sees it, under
 **System** in the menu. In normal running you never need to touch it.
 
-The page has five panels, top to bottom: **Renewal reminder emails**, **Automatic renewal
-charges**, **Scheduled reports**, **Year-end statements**, and **Bounces**. The first two are a pair that
+The page has six panels, top to bottom: **Renewal reminder emails**, **Automatic renewal
+charges**, **Scheduled reports**, **Year-end statements**, **Bounces**, and **Bulk email
+sender**. The first two are a pair that
 are easy to confuse. The reminder emails only ever send email. The renewal charges take the
 money from members who asked to be renewed automatically, and they run first each morning,
 so a member they renew is not also reminded.
 
-Every panel works the same way:
+Every panel but the bulk email sender's works the same way:
 
 #. Leave the **Dry run** box ticked the first time. A dry run sends, charges, and records
    nothing.
@@ -173,12 +174,29 @@ If the server has no bounce mailbox set up, the panel says *Bounce checking is o
 person who runs the server can set one up.
 
 
+Bulk email sender
+=================
+
+Every minute CalDART starts each bulk email whose time has come, either at the end of its two
+minutes to cancel or at the time it was scheduled for, and sends its copies a few at a time,
+so the mail provider never turns them away. CalDART management writes and sends those emails
+on the Bulk Email screens (:doc:`../bulk-email/compose`).
+
+The panel has no dry run, because the sender only sends what CalDART management has already
+pressed **Send** on. Press **Run now** to run it at once. A large email takes a while, and the
+page waits for it. The result reads, for example, *Worked on 1 bulk email: sent 37, failed 1,
+and skipped 4.*, above a table naming each copy: **What** (*Sent* or *Failed*), **Who** it
+went to, and the **Subject or reason**. When nothing was due the table reads *Nothing was
+due*. If the sender was already running, the panel says *The sender is already running, so
+this run did nothing. Try again in a minute.*
+
+
 If something looks wrong
 ========================
 
 If a job's emails or charges stop happening (no reminders on :doc:`reminders` for days, no
-scheduled reports, no automatic renewals taken, no statements in January, or no bounces
-marked for weeks), the server may
+scheduled reports, no automatic renewals taken, no statements in January, no bounces
+marked for weeks, or bulk emails that stay *Waiting to send*), the server may
 have stopped starting that job; the person who runs the server can check it. Meanwhile **Run
 now** does the same work by hand. A reminder run that skips everyone is normal on most days,
 because members were written to the first morning they reached each stage. A run that sends

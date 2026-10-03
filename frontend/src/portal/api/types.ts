@@ -1800,66 +1800,152 @@ export type NotificationSubscriptionPatch = Partial<
 /* --------------------------------------------------------------- bulk email */
 
 /**
- * The body of `POST /bulk-email/preview` and `POST /bulk-email/send`: the
- * message, and the member list filters that choose who it goes to.
+ * Where a bulk email stands: a `draft` and a `queued` email (waiting for its
+ * start time) can still change; `sending` is the background sender at work, and
+ * `sent` and `stopped` are the two ways it ends.
  */
-export interface BulkEmailMessage {
-  subject: string;
-  body: string;
-  filters?: Record<string, string>;
-}
-
-/** One person a preview lists; `reason` is blank for one who will be sent a copy. */
-export interface BulkEmailPreviewRecipient {
-  user_id: number;
-  name: string;
-  email: string;
-  reason: string;
-}
-
-/** `POST /bulk-email/preview`'s answer: who would receive the email, and who is skipped. */
-export interface BulkEmailPreview {
-  count: number;
-  skipped_count: number;
-  recipients: BulkEmailPreviewRecipient[];
-  skipped: BulkEmailPreviewRecipient[];
-}
-
-/** What became of one person's copy of a bulk email. */
-export type BulkEmailRecipientStatus = 'pending' | 'sent' | 'failed' | 'skipped';
+export type BulkEmailStatus = 'draft' | 'queued' | 'sending' | 'sent' | 'stopped';
 
 /**
- * One person a sent bulk email selected. `user_id` is null once the account is
- * deleted; `reason` is blank for a copy that went. `pending` is a copy never
- * tried, which only an interrupted send still holds.
+ * Where one person's copy stands. `batched` is a row of an email not yet started;
+ * starting the send makes each `pending` or `skipped`, and each pending row then
+ * becomes `sent`, `failed`, or `stopped`. `bounced` is a copy that came back.
  */
-export interface BulkEmailRecipient {
-  user_id: number | null;
-  name: string;
-  email: string;
-  status: BulkEmailRecipientStatus;
-  reason: string;
-}
+export type BulkEmailRecipientStatus =
+  'batched' | 'pending' | 'sent' | 'failed' | 'skipped' | 'stopped' | 'bounced';
 
 /**
- * One sent bulk email, from `GET /bulk-email`. `filters` are the member list
- * filters given a value; `sender` is blank once the account is deleted, and
- * `sent_at` null for an interrupted send, whose counts say how far it got.
+ * One bulk email, from `GET /bulk-email/{id}`: the message, where it stands, its
+ * batch counts, and its progress. `sender` and `stopped_by` are display names,
+ * blank when there is none. `remaining` counts the copies waiting to go, and
+ * `estimated_finish_at` is set while it is sending. `confirm_above` is the batch
+ * size above which Send asks for the count to be typed, and `undo_seconds` the
+ * undo window the countdown runs over.
  */
-export interface BulkEmail {
+export interface BulkEmailDetail {
   id: number;
   subject: string;
   body: string;
-  filters: Record<string, string>;
+  status: BulkEmailStatus;
   sender: string;
+  sender_id: number | null;
   created_at: IsoDateTime;
+  updated_at: IsoDateTime;
+  start_at: IsoDateTime | null;
+  scheduled: boolean;
+  confirm_count: number | null;
+  started_at: IsoDateTime | null;
   sent_at: IsoDateTime | null;
+  stopped_at: IsoDateTime | null;
+  stopped_by: string;
+  stop_requested: boolean;
   sent_count: number;
   failed_count: number;
   skipped_count: number;
+  can_edit: boolean;
+  batch_count: number;
+  receiving_count: number;
+  batch_skipped_count: number;
+  remaining: number;
+  estimated_finish_at: IsoDateTime | null;
+  confirm_above: number;
+  undo_seconds: number;
 }
 
-/** One sent bulk email with every person's result, from `GET /bulk-email/{id}`. */
-export interface BulkEmailDetail extends BulkEmail {
-  recipients: BulkEmailRecipient[];
+/** One row of `GET /bulk-email/drafts` or `GET /bulk-email/sent`. */
+export interface BulkEmailSummary {
+  id: number;
+  subject: string;
+  status: BulkEmailStatus;
+  sender: string;
+  created_at: IsoDateTime;
+  updated_at: IsoDateTime;
+  start_at: IsoDateTime | null;
+  scheduled: boolean;
+  started_at: IsoDateTime | null;
+  sent_at: IsoDateTime | null;
+  stopped_at: IsoDateTime | null;
+  stop_requested: boolean;
+  sent_count: number;
+  failed_count: number;
+  skipped_count: number;
+  batch_count: number;
+  remaining: number;
+}
+
+/** The fields `PATCH /bulk-email/{id}` may change. */
+export interface BulkEmailPatch {
+  subject?: string;
+  body?: string;
+}
+
+/**
+ * The body of `POST /bulk-email/{id}/send`: the count the sender typed, and the
+ * time to start, a site-time `YYYY-MM-DDTHH:MM` or null to start after the undo window.
+ */
+export interface BulkEmailSendRequest {
+  confirm_count?: number | null;
+  start_at?: string | null;
+}
+
+/** The body of `POST /bulk-email/{id}/batch/add`: the member list filters to add by. */
+export interface BulkEmailAddRequest {
+  filters?: Record<string, string>;
+}
+
+/** What one add did: who joined, who was there already, and the batch's size. */
+export interface BulkEmailAddResult {
+  added: number;
+  already_present: number;
+  count: number;
+}
+
+/** One press of Add to batch: its filters in words and as given, and its counts. */
+export interface BulkEmailBatchAdd {
+  id: number;
+  label: string;
+  filters: Record<string, string>;
+  added_count: number;
+  already_count: number;
+  created_at: IsoDateTime;
+}
+
+/**
+ * One person in the batch. `added_by` is the id of the add that brought them in;
+ * `will_receive` and `reason` say whether a copy goes and why not.
+ */
+export interface BulkEmailBatchRow {
+  id: number;
+  user_id: number | null;
+  name: string;
+  email: string;
+  kind: string;
+  dart_name: string;
+  added_by: number | null;
+  status: BulkEmailRecipientStatus;
+  will_receive: boolean;
+  reason: string;
+  tried_at: IsoDateTime | null;
+}
+
+/** `GET /bulk-email/{id}/batch`: the counts, the adds, and every person. */
+export interface BulkEmailBatch {
+  count: number;
+  receiving: number;
+  skipped: number;
+  adds: BulkEmailBatchAdd[];
+  rows: BulkEmailBatchRow[];
+}
+
+/**
+ * What one run of the bulk email sender did, from `POST /system/bulk-email/run`.
+ * `busy` is true when another run was working and this one did nothing.
+ */
+export interface BulkEmailRunResult {
+  busy: boolean;
+  emails: number;
+  sent: number;
+  failed: number;
+  skipped: number;
+  actions: RunAction[];
 }
