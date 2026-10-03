@@ -1523,6 +1523,22 @@ not (see :ref:`api-csrf-bootstrap`).
      - ·
      - ·
      - ``management``, a ``dart_leader`` on their own emails (404 on any other); one person's copy, filled in; sends nothing
+   * - ``POST /bulk-email/{id}/checks``
+     - ·
+     - ·
+     - ✓
+     - ·
+     - ·
+     - ·
+     - ``management``, a ``dart_leader`` on their own emails (404 on any other); what the checks find in the saved email; fetches its links; ``BULK_EMAIL_CHECKS_THROTTLE_RATE`` (``30/min``), per account
+   * - ``POST /bulk-email/{id}/test``
+     - ·
+     - ·
+     - ✓
+     - ·
+     - ·
+     - ·
+     - ``management``, a ``dart_leader`` on their own emails (404 on any other); a test copy to the caller alone; 503 when the mail server refuses it
    * - ``POST /bulk-email/images``
      - ·
      - ·

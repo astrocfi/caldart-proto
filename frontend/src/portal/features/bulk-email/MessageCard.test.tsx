@@ -32,7 +32,10 @@ function Card({
       emailTypeName="Operational"
       subject={subject}
       body={body}
+      replyTo="grace@example.org"
+      defaultReplyTo="grace@example.org"
       onSubjectChange={(next) => setSubject(next)}
+      onBeforeTest={() => Promise.resolve(true)}
       onBodyChange={(next) => {
         setBody(next);
         handleBody(next);
@@ -84,5 +87,23 @@ describe('MessageCard', () => {
       screen.getByRole('textbox', { name: 'Message' }).getAttribute('contenteditable'),
       screen.queryByRole('button', { name: 'Insert field' }),
     ]).toEqual(['false', null]);
+  });
+
+  it('asks where replies go, between the subject and the message', () => {
+    answerFields();
+    renderWithProviders(<Card />);
+    expect(screen.getByRole('textbox', { name: 'Reply-To' })).toHaveValue('grace@example.org');
+  });
+
+  it('offers Send me a test while the email can change', () => {
+    answerFields();
+    renderWithProviders(<Card />);
+    expect(screen.getByRole('button', { name: 'Send me a test' })).toBeEnabled();
+  });
+
+  it('offers no test once the email cannot change', () => {
+    answerFields();
+    renderWithProviders(<Card isEditable={false} />);
+    expect(screen.queryByRole('button', { name: 'Send me a test' })).toBeNull();
   });
 });

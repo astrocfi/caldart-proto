@@ -45,7 +45,8 @@ The page of one sent email has three cards:
   everybody the stop kept it from once you press **Send them now**. Nobody gets it twice, it
   starts within a minute, and the email reads *Waiting to send the rest* until then, with
   **Stop sending**.
-- **The message**: the email as it was sent, with the subject at its head and its type above it. Fields such as
+- **The message**: the email as it was sent, with the subject at its head, and above it its
+  type and *Replies go to:* with the Reply-To address its copies carried. Fields such as
   *{first_name}* show as written, because each person's copy had their own details filled
   in.
 - **Who received it**: one line per person in the batch, with **Name**, **Email**,

@@ -312,6 +312,10 @@ BULK_EMAIL_BATCH_SIZE = env.int("BULK_EMAIL_BATCH_SIZE", default=50)
 BULK_EMAIL_UNDO_SECONDS = env.int("BULK_EMAIL_UNDO_SECONDS", default=120)
 # Above this many recipients, Send asks the sender to type the count to confirm it.
 BULK_EMAIL_CONFIRM_ABOVE = env.int("BULK_EMAIL_CONFIRM_ABOVE", default=50)
+# The address a bulk email's replies go to unless its sender chooses another: the
+# compose screen fills it in on a fresh draft.  Blank means the sender's own address.
+# ``From`` stays ``DEFAULT_FROM_EMAIL`` either way, so SPF, DKIM, and DMARC still align.
+BULK_EMAIL_REPLY_TO = env("BULK_EMAIL_REPLY_TO", default="")
 
 # --------------------------------------------------------------------------
 # Django REST Framework
@@ -385,6 +389,7 @@ SPECTACULAR_SETTINGS = {
         "AirworthinessEnum": "apps.aircraft.models.Airworthiness.choices",
         "BulkEmailRecipientStatusEnum": "apps.bulk_email.models.RecipientStatus.choices",
         "BulkEmailStatusEnum": "apps.bulk_email.models.BulkEmailStatus.choices",
+        "BulkEmailFindingLevelEnum": "apps.bulk_email.checks.Level.choices",
         # The portal's and the public donation page's mock completions share one set.
         "MockCompleteOutcomeEnum": "apps.payments.api.serializers.MOCK_OUTCOMES",
     },
@@ -442,6 +447,11 @@ AUTH_THROTTLE_RATES = {
     # Starting a gift on the public donation page, which may make a donor account.
     "donate": _throttle_rate("AUTH_THROTTLE_DONATE", "10/hour"),
 }
+
+# How often one account may run a bulk email's checks, read by
+# ``apps.bulk_email.throttling``: each run fetches every link in the message.
+# Empty is off.
+BULK_EMAIL_CHECKS_THROTTLE_RATE = _throttle_rate("BULK_EMAIL_CHECKS_THROTTLE_RATE", "30/min")
 
 # --------------------------------------------------------------------------
 # Address suggestions (Geoapify)

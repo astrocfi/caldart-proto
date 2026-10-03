@@ -61,6 +61,11 @@ from the stored reminder schedule, so the mail app never imports it:
      - the background bulk email sender, one copy per person in the batch, each
        built by ``apps.bulk_email.render`` and sent through the pass-through
        templates ``bulk_email_copy.{txt,html}`` (:doc:`bulk-email`)
+   * - ``bulk_email_test``
+     - Bulk email test
+     - **Send me a test** on the compose screen: one copy of a bulk email to the
+       sender alone, built as the background sender builds a copy, its subject
+       starting ``[Test]`` (:ref:`bulk-email-test-copy`)
    * - ``notification_<slug>``, one per event, from ``notification_signed_up``
        to ``notification_aircraft_removed``
      - Notification: and the event's label, from Notification: Sign-up to
@@ -69,10 +74,13 @@ from the stored reminder schedule, so the mail app never imports it:
        (:doc:`notifications`)
 
 Every message comes from ``DEFAULT_FROM_EMAIL`` and carries a ``Message-ID``
-generated on that address's domain, which its email log row records.  No message
-sets a ``Reply-To`` header today: where a template tells the reader how to get in
-touch, it prints the contact address from the website's site settings, which a
-website administrator edits in the Wagtail admin (:doc:`cms`).
+generated on that address's domain, which its email log row records.  Only a bulk
+email, and its test copy, sets a ``Reply-To`` header: the address its sender chose,
+or ``BULK_EMAIL_REPLY_TO``, or the sender's own address
+(:ref:`bulk-email-reply-to`).  ``From`` stays ``DEFAULT_FROM_EMAIL`` there too, so
+SPF, DKIM, and DMARC still align.  Where any other template tells the reader how to
+get in touch, it prints the contact address from the website's site settings, which
+a website administrator edits in the Wagtail admin (:doc:`cms`).
 ``send_templated`` takes two keyword arguments for a sender that needs more:
 ``headers``, extra headers merged into the message (they cannot replace its
 ``Message-ID`` or ``From``), and ``reply_to``, the message's ``Reply-To`` address.

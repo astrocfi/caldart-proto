@@ -86,8 +86,11 @@ function ComposeForm({ email }: { email: BulkEmailDetail }): JSX.Element {
         emailTypeName={email.email_type_name}
         subject={values.subject}
         body={values.body}
+        replyTo={email.reply_to}
+        defaultReplyTo={email.default_reply_to}
         onSubjectChange={handleSubjectChange}
         onBodyChange={handleBodyChange}
+        onBeforeTest={handleBeforeSend}
         saveState={saveState}
         errors={errors}
         isEditable={email.can_edit}

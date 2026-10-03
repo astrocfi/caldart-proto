@@ -17,6 +17,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.bulk_email import drafts
+from apps.bulk_email.api.checks import CHECKS_REFUSED, checks_refused
 from apps.bulk_email.api.common import BULK_EMAIL_PERMISSIONS, email_for, refused
 from apps.bulk_email.api.serializers import (
     BulkEmailDetailSerializer,
@@ -24,6 +25,7 @@ from apps.bulk_email.api.serializers import (
     BulkEmailSummarySerializer,
     BulkEmailUpdateSerializer,
 )
+from apps.bulk_email.checks import ChecksFailedError
 from apps.bulk_email.models import BulkEmail, BulkEmailStatus, RecipientStatus
 from apps.members.api.actors import acting_user
 from caldart.exceptions import DomainError, DomainValidationError
@@ -133,13 +135,15 @@ class SendView(APIView):
 
     @extend_schema(
         request=BulkEmailSendSerializer,
-        responses={200: BulkEmailDetailSerializer, 409: CONFLICT},
+        responses={200: BulkEmailDetailSerializer, 400: CHECKS_REFUSED, 409: CONFLICT},
     )
     def post(self, request: Request, pk: int) -> Response:
         """200 with the queued email; nothing is sent in the request.
 
         A 400 keyed ``subject``, ``body``, ``batch``, ``confirm_count``, or ``start_at``
-        says why it cannot go; a 409 says it has started sending already.
+        says why it cannot go, and a 400 ``{"checks": [...]}`` lists any other error the
+        checks find (``apps.bulk_email.checks``); a 409 says it has started sending
+        already.
         """
         bulk = email_for(request, pk)
         payload = BulkEmailSendSerializer(data=request.data)
@@ -153,6 +157,8 @@ class SendView(APIView):
             )
         except DomainValidationError:
             raise
+        except ChecksFailedError as error:
+            return checks_refused(error)
         except DomainError as error:
             return refused(error)
         return _detail(queued)

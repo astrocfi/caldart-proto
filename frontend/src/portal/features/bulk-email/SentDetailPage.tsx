@@ -60,6 +60,7 @@ export function SentDetailPage(): JSX.Element {
 
       <Card title="The message">
         <p className="muted">Type: {sent.email_type_name || 'None'}</p>
+        <p className="muted">Replies go to: {sent.reply_to || sent.default_reply_to}</p>
         {hasFields(sent) ? (
           <p className="muted">
             Fields such as {'{first_name}'} show as written here; each person&apos;s copy had their

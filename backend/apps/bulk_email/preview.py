@@ -2,8 +2,9 @@
 
 The **Check and send** card shows the message filled in for one person in the batch at
 a time, starting with the first, and steps through the rest.  :func:`preview` builds
-that copy with :func:`apps.bulk_email.render.render_message`, and says where the
-person stands among the people who receive it.
+that copy with :func:`apps.bulk_email.render.render_for`, the person's whole copy with
+its footer as it will read, its unsubscribe link inert, and says where the person
+stands among the people who receive it.
 """
 
 from __future__ import annotations
@@ -18,7 +19,7 @@ from apps.bulk_email.render import (
     check_message,
     fill_values,
     message_tokens,
-    render_message,
+    render_for,
 )
 from caldart.exceptions import DomainValidationError
 
@@ -56,8 +57,10 @@ def preview(bulk: BulkEmail, *, recipient_id: int | None, viewer: User) -> Previ
     Left out, the copy is the first receiving person's, or, when nobody receives one,
     ``viewer``'s own.  A copy already tried is filled in with the values it went out
     with; any other with the account's values as they are now, or empty ones for an
-    account since deleted.  A message that cannot be filled in raises
-    ``DomainValidationError`` keyed ``subject`` or ``body``, as a send would.
+    account since deleted.  The copy ends with the person's own footer, its unsubscribe
+    link inert (``render_for``'s ``inert``), so a preview never unsubscribes anyone.  A
+    message that cannot be filled in raises ``DomainValidationError`` keyed
+    ``subject`` or ``body``, as a send would.
     """
     problems = check_message(bulk.subject, bulk.body)
     if len(problems) > 0:
@@ -67,7 +70,7 @@ def preview(bulk: BulkEmail, *, recipient_id: int | None, viewer: User) -> Previ
     receiving = [row for row in rows if row.will_receive]
     if recipient_id is None and len(receiving) == 0:
         return Preview(
-            copy=render_message(bulk.subject, bulk.body, fill_values(bulk, viewer)),
+            copy=render_for(bulk, viewer, fill_values(bulk, viewer), inert=True),
             recipient_id=None,
             name=viewer.display_name,
             email=viewer.email,
@@ -80,7 +83,7 @@ def preview(bulk: BulkEmail, *, recipient_id: int | None, viewer: User) -> Previ
     ids = [row.recipient.pk for row in receiving]
     place = ids.index(chosen.recipient.pk) if chosen.recipient.pk in ids else -1
     return Preview(
-        copy=render_message(bulk.subject, bulk.body, _values(bulk, chosen)),
+        copy=render_for(bulk, chosen.account, _values(bulk, chosen), inert=True),
         recipient_id=chosen.recipient.pk,
         name=chosen.recipient.name,
         email=chosen.recipient.email,

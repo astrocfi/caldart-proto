@@ -41,22 +41,21 @@ The filters narrow the whole log, every page of it:
    reminder (7 days)*, *Renewal reminder (expired)*, *Renewal reminder (30 days after)*,
    *Renewal turned on*, *Renewal notice*, *Card expiring*, *Renewal charged*, *Renewal
    declined*, *Renewal turned off*, *Receipt*, *Refund*, *Contribution statement*,
-   *Invitation*, *Password reset*, *Email verification*, *Bulk email*, *Scheduled report*,
-   *DART roster*, or one of the notifications: *Notification: Sign-up*, *Notification: Member
-   added by an administrator*, *Notification: Member became a friend*, *Notification:
-   Friend became a member*, *Notification: Membership paid*, *Notification: Membership
-   granted by an administrator*, *Notification: Membership expired*, *Notification:
-   Automatic payment turned on*, *Notification: Automatic payment turned off*,
-   *Notification: Automatic payment declined*, *Notification: Donation received*,
+   *Invitation*, *Password reset*, *Email verification*, *Bulk email*, *Bulk email test*,
+   *Scheduled report*, *DART roster*, or one of the notifications: *Notification: Sign-up*,
+   *Notification: Member added by an administrator*, *Notification: Member became a friend*,
+   *Notification: Friend became a member*, *Notification: Membership paid*, *Notification:
+   Membership granted by an administrator*, *Notification: Membership expired*,
+   *Notification: Automatic payment turned on*, *Notification: Automatic payment turned
+   off*, *Notification: Automatic payment declined*, *Notification: Donation received*,
    *Notification: Payment recorded by hand*, *Notification: Payment refunded*,
-   *Notification: Account deactivated*, *Notification: Account reactivated*,
-   *Notification: Roles changed*, *Notification: Email address changed*,
-   *Notification: Profile changed*, *Notification: Verification recorded*,
-   *Notification: Aircraft added*, *Notification: Aircraft changed*, or *Notification:
-   Aircraft removed*. The renewal reminders are named here as the default schedule dates
-   them. Once a system administrator changes the **Reminder schedule** on
-   :doc:`scheduled`, they carry its days instead, such as *Renewal reminder (45 days)*, in
-   the list, in the table, and in the downloads.
+   *Notification: Account deactivated*, *Notification: Account reactivated*, *Notification:
+   Roles changed*, *Notification: Email address changed*, *Notification: Profile changed*,
+   *Notification: Verification recorded*, *Notification: Aircraft added*, *Notification:
+   Aircraft changed*, or *Notification: Aircraft removed*. The renewal reminders are named
+   here as the default schedule dates them. Once a system administrator changes the
+   **Reminder schedule** on :doc:`scheduled`, they carry its days instead, such as *Renewal
+   reminder (45 days)*, in the list, in the table, and in the downloads.
 **Status**
    **Sent**, **Failed**, or **Bounced**.
 **From** and **To**

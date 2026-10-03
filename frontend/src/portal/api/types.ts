@@ -1886,6 +1886,8 @@ export type BulkEmailRecipientStatus =
  * DART leader's email goes to, blank for CalDART management's. `sender_notice` says why
  * nobody can be added to the email, naming its sender, while that sender's profile names
  * no DART; it is blank otherwise.
+ * `reply_to` is where replies go, blank for `default_reply_to`; once the email is
+ * queued it is the address its copies carry.
  */
 export interface BulkEmailDetail {
   id: number;
@@ -1894,6 +1896,8 @@ export interface BulkEmailDetail {
   email_type: number | null;
   email_type_name: string;
   not_sent_reason: string;
+  reply_to: string;
+  default_reply_to: string;
   status: BulkEmailStatus;
   sender: string;
   sender_id: number | null;
@@ -1971,6 +1975,8 @@ export interface BulkEmailPatch {
   body?: string;
   /** The id of a type the sender may send (`GET /email-types/sendable`). */
   email_type?: number;
+  /** Where replies go: a valid address, or blank for the default. */
+  reply_to?: string;
 }
 
 /**
@@ -2069,6 +2075,31 @@ export interface BulkEmailImage {
   url: string;
   width: number;
   height: number;
+}
+
+/* ---------------------------------------------- bulk email: checks and tests */
+
+/** How much a finding matters: an `error` stops the send, a `warning` does not. */
+export type BulkEmailFindingLevel = 'error' | 'warning';
+
+/**
+ * One finding of `POST /bulk-email/{id}/checks`: a `code` the screen may key on,
+ * its `level`, and a `message` for the sender to read.
+ */
+export interface BulkEmailFinding {
+  code: string;
+  level: BulkEmailFindingLevel;
+  message: string;
+}
+
+/** The 400 of a send or a test the checks found errors in: the errors under `checks`. */
+export interface BulkEmailChecksRefusal {
+  checks: BulkEmailFinding[];
+}
+
+/** `POST /bulk-email/{id}/test`'s answer: the address the test copy went to. */
+export interface BulkEmailTestResult {
+  to: string;
 }
 
 /** The body of `POST /bulk-email/{id}/preview`: the batch row to preview, null for the first. */

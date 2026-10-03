@@ -4,6 +4,7 @@ from django.urls import path
 
 from apps.bulk_email.api import (
     batch,
+    checks,
     drafts,
     history,
     preview,
@@ -26,6 +27,8 @@ urlpatterns = [
     path("bulk-email/<int:pk>/stop", drafts.StopView.as_view(), name="stop"),
     path("bulk-email/<int:pk>/resume", drafts.ResumeView.as_view(), name="resume"),
     path("bulk-email/<int:pk>/preview", preview.PreviewView.as_view(), name="preview"),
+    path("bulk-email/<int:pk>/checks", checks.ChecksView.as_view(), name="checks"),
+    path("bulk-email/<int:pk>/test", checks.TestSendView.as_view(), name="test"),
     path("bulk-email/<int:pk>/batch", batch.BatchView.as_view(), name="batch"),
     path("bulk-email/<int:pk>/batch.csv", batch.BatchCsvView.as_view(), name="batch-csv"),
     path("bulk-email/<int:pk>/batch/add", batch.BatchAddView.as_view(), name="batch-add"),

@@ -58,6 +58,7 @@ from apps.bulk_email.models import (
     RecipientStatus,
 )
 from apps.bulk_email.render import COPY_TEMPLATE, PURPOSE, fill_values, render_copy
+from apps.bulk_email.reply_to import claimed_reply_to
 from apps.bulk_email.senders import SKIP_NOT_IN_DART, DartLimit, dart_limit, limit_dart
 from apps.mail.types import is_opted_out, sendable_types
 from apps.members.models import MemberProfile
@@ -268,7 +269,9 @@ def _claim(now: datetime, run: SenderRun) -> BulkEmail | None:
     Returns ``None`` when no queued email is due.  An email another transaction holds,
     such as one whose batch is being changed this instant, is left for the next run.
     An email its sender may no longer send (:func:`_sender_refusal`) is returned unsent
-    (:func:`_refuse`), and the next due email is taken instead.
+    (:func:`_refuse`), and the next due email is taken instead.  A claimed email's
+    ``reply_to`` becomes the address its copies carry
+    (``apps.bulk_email.reply_to.claimed_reply_to``).
     """
     while True:
         with transaction.atomic():
@@ -289,8 +292,18 @@ def _claim(now: datetime, run: SenderRun) -> BulkEmail | None:
                 bulk.started_at = timezone.now()
                 # The DART the batch is frozen against; a resumed send keeps its own.
                 bulk.dart = limit_dart(dart_limit(bulk))
+            bulk.reply_to = claimed_reply_to(bulk)
             run.skipped += _freeze(bulk)
-            bulk.save(update_fields=["status", "started_at", "dart", "skipped_count", "updated_at"])
+            bulk.save(
+                update_fields=[
+                    "status",
+                    "started_at",
+                    "dart",
+                    "reply_to",
+                    "skipped_count",
+                    "updated_at",
+                ]
+            )
         return bulk
 
 
@@ -574,7 +587,8 @@ def _try_copy(
     later run, when the next retry's wait would take the run past its budget.
 
     The copy is filled in with the account's values as they are now, which are kept on
-    ``row`` (unsaved; :func:`_record` saves them) so it can be rebuilt as it went.
+    ``row`` (unsaved; :func:`_record` saves them) so it can be rebuilt as it went.  It
+    carries the ``Reply-To`` the claim settled on.
     """
     row.values = fill_values(bulk, row.user)
     copy = render_copy(bulk, row)
@@ -595,6 +609,7 @@ def _try_copy(
                 to_name=row.name,
                 mailer=mailer,
                 headers=copy.headers,
+                reply_to=bulk.reply_to,
             )
         except MailRefusedError as refusal:
             log.error(

@@ -10,6 +10,7 @@ import type {
   BulkEmailBatchRow,
   BulkEmailDetail,
   BulkEmailField,
+  BulkEmailFinding,
   BulkEmailPreview,
   BulkEmailPatch,
   BulkEmailSender,
@@ -27,6 +28,8 @@ export function makeBulkEmail(overrides: Partial<BulkEmailDetail> = {}): BulkEma
     email_type: 1,
     email_type_name: 'Operational',
     not_sent_reason: '',
+    reply_to: 'grace@example.org',
+    default_reply_to: 'grace@example.org',
     status: 'draft',
     sender: 'Grace Holloway',
     sender_id: 3,
@@ -154,18 +157,23 @@ export interface BulkEmailCalls {
   sends: unknown[];
   actions: string[];
   previews: unknown[];
+  checks: number;
+  tests: number;
 }
 
 /** The fake server's state: the email and its batch, which the handlers change. */
 export interface BulkEmailState {
   email: BulkEmailDetail;
   batch: BulkEmailBatch;
+  /** What the checks find; none when left out. */
+  findings?: BulkEmailFinding[];
 }
 
 /**
  * Answer the endpoints one email's screens call, from `state`, recording each
  * request in the answer. An add puts Bea Bell in the batch; a removal and a clear
- * take rows out; a send queues the email; cancel, stop, and resume move it.
+ * take rows out; a send queues the email; cancel, stop, and resume move it. The
+ * checks answer `state.findings`, and a test copy goes to Grace.
  */
 export function answerBulkEmail(state: BulkEmailState): BulkEmailCalls {
   const calls: BulkEmailCalls = {
@@ -176,6 +184,8 @@ export function answerBulkEmail(state: BulkEmailState): BulkEmailCalls {
     sends: [],
     actions: [],
     previews: [],
+    checks: 0,
+    tests: 0,
   };
   const base = `${API}/bulk-email/${state.email.id}`;
   const recount = (rows: BulkEmailBatchRow[]): void => {
@@ -264,6 +274,14 @@ export function answerBulkEmail(state: BulkEmailState): BulkEmailCalls {
           next_id: receiving[index + 1]?.id ?? null,
         }),
       );
+    }),
+    http.post(`${base}/checks`, () => {
+      calls.checks += 1;
+      return HttpResponse.json(state.findings ?? []);
+    }),
+    http.post(`${base}/test`, () => {
+      calls.tests += 1;
+      return HttpResponse.json({ to: 'grace@example.org' });
     }),
     http.post(`${base}/:action`, ({ params }) => {
       const action = String(params.action);

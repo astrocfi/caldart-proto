@@ -704,6 +704,13 @@ def make_person(
     return account
 
 
+def make_dart_leader(email: str, dart: Dart, first: str = "Lane", last: str = "Lead") -> UserModel:
+    """A DART leader whose member profile names ``dart``, the DART they send to."""
+    leader = UserFactory(email=email, first_name=first, last_name=last, roles=[MEMBER, DART_LEADER])
+    MemberProfileFactory(user=leader, dart=dart)
+    return leader
+
+
 def add_to_batch(bulk: BulkEmail, *accounts: UserModel) -> list[BulkEmailRecipient]:
     """Put ``accounts`` in ``bulk``'s batch as ``batched`` rows, with no add behind them.
 

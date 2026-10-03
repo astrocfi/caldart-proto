@@ -324,6 +324,17 @@ Content-Security-Policy needs no Geoapify origin.
    :Development: ``60/min``
    :Production: ``60/min``
 
+``BULK_EMAIL_CHECKS_THROTTLE_RATE``
+   How often one signed-in account may run a bulk email's checks
+   (``POST /bulk-email/{id}/checks``), as a DRF rate read and checked like the ones
+   above: empty turns the limit off.  Each run fetches every link in the message
+   from the server, so the limit keeps a sender, or a script with a session, from
+   having it fetch addresses without end.  Read by ``apps.bulk_email.throttling``;
+   ``caldart.settings.test`` sets it to ``None``.
+
+   :Development: ``30/min``
+   :Production: ``30/min``
+
 
 The FAA registry
 ================
@@ -476,6 +487,17 @@ The background sender and the compose screen read these (:doc:`bulk-email`).
    sends, and the server checks the count again.
 
    :Both: ``50``.
+
+``BULK_EMAIL_REPLY_TO``
+   Where replies to a bulk email go unless its sender chooses another address: the
+   compose screen fills it into a fresh draft's **Reply-To**.  Blank means each
+   sender's own address.  Every copy still comes ``From`` ``DEFAULT_FROM_EMAIL``, so
+   SPF, DKIM, and DMARC are unaffected; an address here that is not valid stops
+   every send that relies on it, with the reason on the compose screen's checks.
+
+   :Development: unset: blank, the sender's own address.
+   :Production: a mailbox someone reads, such as a shared operations address, or
+      blank for each sender's own.
 
 
 Payments
