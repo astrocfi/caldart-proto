@@ -25,9 +25,9 @@ class BulkEmailConfig(AppConfig):
         """Connect the bounce receiver and register the email log's links."""
         # Imported here: the models are not loaded when this module is imported.
         from apps.bulk_email.delivery import email_log_links, on_email_log_saved
-        from apps.mail.models import EmailLog
 
+        # The sender named by its label, which Django resolves once the model is loaded.
         post_save.connect(
-            on_email_log_saved, sender=EmailLog, dispatch_uid="bulk_email.on_email_log_saved"
+            on_email_log_saved, sender="mail.EmailLog", dispatch_uid="bulk_email.on_email_log_saved"
         )
         register_log_links(email_log_links)

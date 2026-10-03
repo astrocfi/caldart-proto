@@ -40,7 +40,8 @@ The page of one sent email has three cards:
 - **Where it stands**: while it sends, *Sending… 12 of 38 sent, about 1 minute left.* with a
   bar and **Stop sending**, which stops it after the copy going out now, once you press
   **Stop now**; copies already sent cannot be called back. When it is finished, a line such
-  as *Sent to 37 people. 1 failed and 4 were skipped.*, or *Everyone was sent a copy.* A
+  as *Sent to 37 people. 1 failed and 4 were skipped.*, or *Everyone was sent a copy.*,
+  followed by *2 came back undelivered.* once copies have bounced (`The delivery report`_). A
   stopped email reads *Stopped by* who stopped it, with **Send the rest**, which sends it to
   everybody the stop kept it from once you press **Send them now**. Nobody gets it twice, it
   starts within a minute, and the email reads *Waiting to send the rest* until then, with

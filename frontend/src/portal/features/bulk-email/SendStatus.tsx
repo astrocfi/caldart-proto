@@ -18,7 +18,7 @@ import { useToast } from '@/portal/components/Toast';
 import { useBulkEmailAction } from './api';
 import { formatCountdown, useSecondsUntil } from './countdown';
 import { scheduledWords } from './schedule';
-import { people, progressSentence, resultSentence } from './status';
+import { people, progressSentence, resultSentence, wentCount } from './status';
 
 /** What the screen says once a queued email is a draft again. */
 export const CANCELED_MESSAGE = 'Sending was canceled. The email is a draft again.';
@@ -119,7 +119,8 @@ function WaitingForTheRest({ email }: StatusProps): JSX.Element {
 
 /** A send in progress: *Sending… 12 of 38 sent, about 1 minute left.*, a bar, and Stop. */
 export function SendingStatus({ email }: StatusProps): JSX.Element {
-  const total = email.sent_count + email.failed_count + email.remaining;
+  const tried = wentCount(email) + email.failed_count;
+  const total = tried + email.remaining;
 
   return (
     <div className="stack-tight bulk-email__status">
@@ -130,7 +131,7 @@ export function SendingStatus({ email }: StatusProps): JSX.Element {
         className="bulk-email__progress"
         aria-label="Copies sent so far"
         max={Math.max(total, 1)}
-        value={email.sent_count + email.failed_count}
+        value={tried}
       />
       {email.stop_requested ? null : <StopButton email={email} />}
     </div>
@@ -186,7 +187,7 @@ export function FinishedStatus({
 }: FinishedStatusProps): JSX.Element {
   const resume = useBulkEmailAction('resume');
   const toast = useToast();
-  const unsent = email.batch_count - email.sent_count - email.failed_count - email.skipped_count;
+  const unsent = email.batch_count - wentCount(email) - email.failed_count - email.skipped_count;
 
   return (
     <div className="stack-tight bulk-email__status">

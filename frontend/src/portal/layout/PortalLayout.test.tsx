@@ -81,7 +81,7 @@ describe('PortalLayout', () => {
     expect(screen.getByRole('main')).toHaveAttribute('id', 'portal-main');
   });
 
-  it('shows a plain member the Membership group and their email preferences', async () => {
+  it('shows a plain member the Membership group, their messages, and their preferences', async () => {
     server.use(signedInAs(makeUser({ roles: ['member'] })));
     renderWithProviders(tree(), { route: '/' });
 
@@ -95,6 +95,7 @@ describe('PortalLayout', () => {
       'Renew',
       'Change password',
       'Change email',
+      'Messages',
       'Email preferences',
       'User guide',
       'Back to caldart.org',
