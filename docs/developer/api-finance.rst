@@ -278,6 +278,11 @@ Parameter          Effect
 ``from``, ``to``   ``YYYY-MM-DD``, bounding the ledger date a gift counts by.
 =================  ============================================================
 
+``user_id`` is the donor's account id.  A donor is on no member list, so the
+Donors tab links each name to the member record, ``/admin/members/{user_id}``
+(:doc:`api-members`), for a reader who also holds ``account_admin``; that record's
+``DELETE`` is the one way to delete a donor.
+
 Rows are largest net giver first, ties broken by name.  The donors report,
 ``GET /reports/donors/export.{csv,pdf}``, carries the same rows for the same
 parameters, or for the dates a ``?period=`` resolves to, with ``county``,

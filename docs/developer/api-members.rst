@@ -74,7 +74,10 @@ member and every friend: a donor is never listed, and a deactivated account
 only on request (``include_inactive``).  The single record,
 ``GET /admin/members/{user_id}``, answers for any account, a donor's and a
 deactivated one's included, so an administrator can reactivate an account and
-an edit to a donor is refused with its reason rather than a 404.
+an edit to a donor is refused with its reason rather than a 404.  The portal
+opens a donor's record from the donors report (:doc:`api-finance`), and its
+``DELETE`` removes a donor as it removes any account, handing the gifts to the
+tombstone :ref:`described below <api-members-delete>`.
 
 
 ``GET /admin/members``
@@ -580,6 +583,8 @@ Statuses:
 * **404** — no account has that id.
 * **405** — the request used ``PUT``.
 
+
+.. _api-members-delete:
 
 ``DELETE /admin/members/{user_id}``
 ===================================

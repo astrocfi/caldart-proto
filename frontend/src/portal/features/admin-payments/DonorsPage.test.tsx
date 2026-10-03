@@ -3,8 +3,8 @@ import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import type { DonorRow, ReportColumn } from '@/portal/api/types';
-import { API, makeDonorRow } from '@test/handlers';
+import type { DonorRow, ReportColumn, RoleSlug } from '@/portal/api/types';
+import { API, makeDonorRow, makeUser, signedInAs } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
 import { API_BASE } from '@/portal/urlPrefix';
@@ -46,6 +46,11 @@ function donorsHandlers(rows: DonorRow[], seen: URLSearchParams[] = []) {
     }),
     http.get(`${API}/reports/donors/columns`, () => HttpResponse.json(DONOR_COLUMNS)),
   ];
+}
+
+/** Sign in as somebody holding `roles` on top of the member role. */
+function signIn(...roles: RoleSlug[]) {
+  server.use(signedInAs(makeUser({ roles: ['member', ...roles] })));
 }
 
 /** The page also reads the DART list for its filter's options; empty by default. */
@@ -132,6 +137,38 @@ describe('DonorsPage', () => {
       'href',
       expect.stringContaining('county'),
     );
+  });
+
+  it("links a donor's name to their record for a treasurer who is an account administrator", async () => {
+    signIn('treasurer', 'account_admin');
+    server.use(...donorsHandlers([DANA]));
+    renderWithProviders(<DonorsPage />);
+
+    expect(await screen.findByRole('link', { name: 'Dana Doe' })).toHaveAttribute(
+      'href',
+      '/admin/members/41',
+    );
+  });
+
+  it("links a donor's name to their record for a system administrator", async () => {
+    signIn('system_admin');
+    server.use(...donorsHandlers([DANA]));
+    renderWithProviders(<DonorsPage />);
+
+    expect(await screen.findByRole('link', { name: 'Dana Doe' })).toHaveAttribute(
+      'href',
+      '/admin/members/41',
+    );
+  });
+
+  it('shows a treasurer who cannot open member records the name without a link', async () => {
+    signIn('treasurer');
+    server.use(...donorsHandlers([DANA]));
+    renderWithProviders(<DonorsPage />);
+
+    await screen.findByRole('row', { name: /Dana Doe/ });
+
+    expect(screen.queryByRole('link', { name: 'Dana Doe' })).not.toBeInTheDocument();
   });
 
   it('says so when no donor matches the filters', async () => {

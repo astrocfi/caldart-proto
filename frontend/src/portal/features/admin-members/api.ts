@@ -70,6 +70,21 @@ function useInvalidateMembers(): () => Promise<void> {
   return () => queryClient.invalidateQueries({ queryKey: MEMBERS_KEY });
 }
 
+/**
+ * Invalidates every member query, the users list, and the finance area, for a change
+ * that reaches an account's money as well as its record.
+ */
+function useInvalidateAccounts(): () => Promise<void> {
+  const queryClient = useQueryClient();
+  return async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: MEMBERS_KEY }),
+      queryClient.invalidateQueries({ queryKey: FINANCE_KEY }),
+      queryClient.invalidateQueries({ queryKey: ADMIN_USERS_KEY }),
+    ]);
+  };
+}
+
 /** Creates a member account and profile; invalidates `admin-members` on success. */
 export function useCreateMember(): UseMutationResult<MemberDetail, Error, MemberCreatePayload> {
   const invalidate = useInvalidateMembers();
@@ -91,9 +106,12 @@ export function useUpdateMember(
   });
 }
 
-/** Deletes a member with no payment history; invalidates `admin-members` on success. */
+/**
+ * Deletes a member, friend, or donor. Their payments move to the "Deleted member {id}"
+ * account, so the finance area and the users list are invalidated with the members.
+ */
 export function useDeleteMember(id: number): UseMutationResult<null, Error, void> {
-  const invalidate = useInvalidateMembers();
+  const invalidate = useInvalidateAccounts();
   return useMutation({
     mutationFn: () => api.delete<null>(`/admin/members/${id}`),
     onSuccess: () => invalidate(),
@@ -135,15 +153,10 @@ function useMemberAction<Body>(
   id: number,
   action: 'friend' | 'deactivate' | 'reactivate',
 ): UseMutationResult<MemberDetail, Error, Body> {
-  const queryClient = useQueryClient();
+  const invalidate = useInvalidateAccounts();
   return useMutation({
     mutationFn: (body: Body) => api.post<MemberDetail>(`/admin/members/${id}/${action}`, body),
-    onSuccess: () =>
-      Promise.all([
-        queryClient.invalidateQueries({ queryKey: MEMBERS_KEY }),
-        queryClient.invalidateQueries({ queryKey: FINANCE_KEY }),
-        queryClient.invalidateQueries({ queryKey: ADMIN_USERS_KEY }),
-      ]),
+    onSuccess: () => invalidate(),
   });
 }
 

@@ -6,7 +6,7 @@ Donors
 
 The **Donors** tab lists everyone who has given through the public donation page without
 joining, and what each of them has given. Only the treasurer has this tab; an account
-administrator does not see it.
+administrator who is not also the treasurer does not see it.
 
 Who donors are
 ==============
@@ -76,6 +76,25 @@ list (see :doc:`payment-list`). **Export CSV** gives a file for a mailing list a
 The **Subscriptions** screen can send this list on a schedule. There, a **Period** choice of
 **This month**, **Last month**, **This year**, or **Last year** picks the dates each
 emailed copy covers.
+
+Open a donor's record and delete a donor
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If you are an account administrator as well as the treasurer, or a system administrator,
+each donor's name is a link to their :doc:`../admin/member-record`. The record tells you
+who the donor is: the name, address, and phone on **Profile**, and every gift on
+**Payments**. It is also the one place a donor is deleted, for somebody who asks to be
+removed or a record made by a test gift. On **Danger zone**, type the donor's email address
+and press **Delete member**. **Back to donors** brings you back here without deleting
+anybody, and so does the delete itself.
+
+The gifts are the organization's financial record, so the delete keeps them. This list
+then shows **Deleted member** and the deleted account's number, such as **Deleted member
+41**, in the donor's place, with the same gifts and the same amounts, and the year's
+totals do not change. The payment list names the same **Deleted member** on each gift.
+
+A treasurer who is not an account administrator sees the names without links: the member
+record is the account administrator's screen.
 
 Other things about donors
 ~~~~~~~~~~~~~~~~~~~~~~~~~

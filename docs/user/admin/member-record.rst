@@ -4,17 +4,22 @@
 Member record
 =============
 
-The **member record** is everything CalDART holds about one member or friend: their account
-and profile, their membership terms, their payments, and the controls to remove the record.
-Only an account administrator can open it, by clicking a name on :doc:`members` or on any
-other screen that lists people. A system administrator can open it too.
+The **member record** is everything CalDART holds about one member, friend, or donor: their
+account and profile, their membership terms, their payments, and the controls to remove the
+record. Only an account administrator can open it, by clicking a name on :doc:`members` or
+on any other screen that lists people. A system administrator can open it too.
+
+A donor, somebody who has only given through the public site, is on no member list. Their
+record opens from a name on the treasurer's **Donors** tab (:doc:`../finance/donors`), for
+an account administrator who is also the treasurer, or a system administrator.
 
 
 What you see
 ============
 
-The person's name heads the page, with **Back to members** beside it. A summary strip under
-the name carries:
+The person's name heads the page, with **Back to members** beside it. A donor's record has
+**Back to donors** there instead, which returns to the **Donors** tab, when you have that
+tab. A summary strip under the name carries:
 
 - their membership chip: **Current**, **Expiring soon**, **Expired**, **Friend**, or
   **Never expires** for a life member. Somebody who joined as a member and has no term that
@@ -204,6 +209,10 @@ subscribed to **Automatic payment turned off** (:doc:`notifications`) is told to
 link in that notification no longer opens, because the record is gone. A payment the person
 started but had not finished can still go through afterwards: it joins the books under
 **Deleted member** and buys no membership, and nobody is emailed a receipt.
+
+After the delete you are back on the member list. A donor's delete brings you back to the
+**Donors** tab instead, when you have it, where the donor's row reads **Deleted member** and
+the number with the same gifts and amounts, and the year's totals are as they were.
 
 
 If something looks wrong
