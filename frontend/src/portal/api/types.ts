@@ -1820,7 +1820,8 @@ export type BulkEmailRecipientStatus =
  * blank when there is none. `remaining` counts the copies waiting to go, and
  * `estimated_finish_at` is set while it is sending. `confirm_above` is the batch
  * size above which Send asks for the count to be typed, and `undo_seconds` the
- * undo window the countdown runs over.
+ * undo window the countdown runs over. `body` is the message as sanitized HTML,
+ * and `message_html` the whole HTML email with its field tokens as written.
  */
 export interface BulkEmailDetail {
   id: number;
@@ -1850,6 +1851,7 @@ export interface BulkEmailDetail {
   estimated_finish_at: IsoDateTime | null;
   confirm_above: number;
   undo_seconds: number;
+  message_html: string;
 }
 
 /** One row of `GET /bulk-email/drafts` or `GET /bulk-email/sent`. */
@@ -1952,4 +1954,56 @@ export interface BulkEmailRunResult {
   out_of_time: boolean;
   remaining: number;
   actions: RunAction[];
+}
+
+/* ------------------------------------------------- bulk email: rich text */
+
+/**
+ * One recipient field from `GET /bulk-email/fields`: the `token` a message writes
+ * in braces, `{first_name}`, the menu's `label`, and a `description` of what it holds.
+ */
+export interface BulkEmailField {
+  token: string;
+  label: string;
+  description: string;
+}
+
+/**
+ * One image stored by `POST /bulk-email/images`: `url` is absolute, the address
+ * every copy links to, and `width` and `height` are its stored size in pixels.
+ */
+export interface BulkEmailImage {
+  id: number;
+  url: string;
+  width: number;
+  height: number;
+}
+
+/** The body of `POST /bulk-email/{id}/preview`: the batch row to preview, null for the first. */
+export interface BulkEmailPreviewRequest {
+  recipient_id?: number | null;
+}
+
+/** Whose copy a preview is: the batch row, null for the sender's own, and the person. */
+export interface BulkEmailPreviewRecipient {
+  id: number | null;
+  name: string;
+  email: string;
+}
+
+/**
+ * `POST /bulk-email/{id}/preview`'s answer: one person's copy, filled in. `html` is
+ * the whole HTML email and `text` the plain-text one. `position` is the person's
+ * place, from 1, among the `count` who receive a copy (0 for the sender's own), and
+ * `previous_id` and `next_id` the rows either side.
+ */
+export interface BulkEmailPreview {
+  subject: string;
+  html: string;
+  text: string;
+  recipient: BulkEmailPreviewRecipient;
+  position: number;
+  count: number;
+  previous_id: number | null;
+  next_id: number | null;
 }

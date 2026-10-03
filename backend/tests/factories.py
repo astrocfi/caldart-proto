@@ -627,7 +627,7 @@ class BulkEmailFactory(ModelFactory[BulkEmail]):
         model = BulkEmail
 
     subject = "Spring safety seminar"
-    body = "Join us at Livermore on Saturday.\n\nBring your logbook."
+    body = "<p>Join us at Livermore on Saturday.</p><p>Bring your logbook.</p>"
     sender = factory.SubFactory(
         UserFactory,
         email="sender@example.test",

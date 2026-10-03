@@ -8,10 +8,14 @@ and ``sent`` or ``stopped`` at the end.  Its people are a batch: every press of
 :class:`BulkEmailRecipient` row, ``batched`` while the email is a draft.  When the
 sender starts the email it freezes the batch: each row becomes ``pending``, or
 ``skipped`` with the reason, and each pending row then becomes ``sent``, ``failed``,
-or ``stopped`` as the send goes on.
+or ``stopped`` as the send goes on.  A :class:`BulkEmailImage` is one image a sender
+put into a message, stored where every copy links to it.
 """
 
 from __future__ import annotations
+
+import uuid
+from pathlib import PurePosixPath
 
 from django.conf import settings
 from django.db import models
@@ -75,9 +79,11 @@ class RecipientKind(models.TextChoices):
 class BulkEmail(TimestampedModel):
     """One email to a batch of members and friends, from its draft to its last copy.
 
-    ``subject`` and ``body`` may be blank while it is a draft; ``body`` is plain text
-    whose blank lines separate paragraphs.  ``sender`` owns the draft and sends it,
-    null once that account is deleted.  ``start_at`` is when the send begins: the end
+    ``subject`` and ``body`` may be blank while it is a draft; ``body`` is HTML,
+    sanitized on every save (``apps.bulk_email.richtext.sanitize``), and both may
+    carry recipient field tokens such as ``{first_name}``
+    (``apps.bulk_email.fields``).  ``sender`` owns the draft and sends it, null once
+    that account is deleted.  ``start_at`` is when the send begins: the end
     of the undo window or the time the sender chose, which ``scheduled`` says.
     ``confirm_count`` is the number of people the sender typed to confirm a large
     send, null when the batch was small enough to need none.
@@ -170,7 +176,10 @@ class BulkEmailRecipient(TimestampedModel):
     ``added_by`` is the add that brought the person in.  ``round`` is 0 for the
     original copies.  ``reason`` says why a copy was skipped, failed, or not sent, and
     is blank otherwise.  ``message_id`` is the ``Message-ID`` the copy went out with,
-    and ``tried_at`` when it was last tried.
+    and ``tried_at`` when it was last tried.  ``values`` are the recipient field values
+    the copy was filled in with, token to value, for the fields the message uses only;
+    they are stored when the copy is tried, so the copy can be rebuilt as it went
+    whatever happens to the account later.
     """
 
     bulk_email = models.ForeignKey(BulkEmail, on_delete=models.CASCADE, related_name="recipients")
@@ -199,6 +208,7 @@ class BulkEmailRecipient(TimestampedModel):
     reason = models.CharField(max_length=200, blank=True)
     message_id = models.CharField(max_length=255, blank=True)
     tried_at = models.DateTimeField(null=True, blank=True)
+    values = models.JSONField(default=dict, blank=True)
 
     class Meta:
         ordering = ["id"]
@@ -216,3 +226,48 @@ class BulkEmailRecipient(TimestampedModel):
     def __str__(self) -> str:
         """Return ``"<email>: <status>"``."""
         return f"{self.email}: {self.status}"
+
+
+#: The directory under ``MEDIA_ROOT`` a bulk email's images are stored in.
+IMAGE_DIRECTORY = "bulk-email"
+
+
+def bulk_email_image_path(instance: BulkEmailImage, filename: str) -> str:
+    """Return where an image is stored: ``bulk-email/<uuid>.<ext>`` under ``MEDIA_ROOT``.
+
+    The name is a fresh random UUID, so nobody can guess one image's address from
+    another's and no upload ever replaces one already sent.  The extension is
+    ``filename``'s, lower-cased.
+    """
+    suffix = PurePosixPath(filename).suffix.lower()
+    return f"{IMAGE_DIRECTORY}/{uuid.uuid4().hex}{suffix}"
+
+
+class BulkEmailImage(TimestampedModel):
+    """One image a sender uploaded into a bulk email's message.
+
+    ``file`` is the image as stored, after its type and size were checked and it was
+    scaled to fit an email (``apps.bulk_email.images``); ``width`` and ``height`` are
+    its stored size in pixels.  Every copy of the email links to the file by its
+    absolute URL rather than carrying it, so the file stays where it is for as long
+    as a sent copy may be read.  ``uploaded_by`` is the sender, null once that
+    account is deleted.
+    """
+
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="bulk_email_images",
+    )
+    file = models.FileField(upload_to=bulk_email_image_path, max_length=100)
+    width = models.PositiveIntegerField()
+    height = models.PositiveIntegerField()
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+
+    def __str__(self) -> str:
+        """Return the stored file's name, ``bulk-email/<uuid>.<ext>``."""
+        return self.file.name or ""

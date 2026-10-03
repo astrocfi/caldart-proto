@@ -45,8 +45,8 @@ the code, so a dump or an upload is never inside the git checkout:
    * - ``/opt/caldart/backups``
      - the database dumps (``BACKUP_DIR``), owned by the service user
    * - ``/opt/caldart/media``
-     - Wagtail's image and document uploads (``MEDIA_ROOT``), owned by the
-       service user
+     - Wagtail's image and document uploads and the bulk email images
+       (``MEDIA_ROOT``), owned by the service user
 
 Every script finds the checkout from its own location, and the deploy root as
 the checkout's parent, so a clone anywhere else works as well: every unit,
@@ -455,8 +455,10 @@ except Vite's build output under ``assets/``, which Vite has hashed already
 at ``/docs/`` is not aliased either: Django serves it from ``USER_GUIDE_ROOT``
 and asks the reader to sign in first, so it stays behind the same login as the
 portal and needs nothing from the web server (:doc:`configuration`).  Only
-``/media/`` — Wagtail's user uploads, which keep their filenames — is served
-straight off disk, and ``/media/documents/`` is carved back out of it: a
+``/media/`` — Wagtail's user uploads, which keep their filenames, and the bulk
+email images in ``/media/bulk-email/``, which a mail program fetches with no
+session (:doc:`api-bulk-email`) — is served straight off disk, to anybody, and
+``/media/documents/`` is carved back out of it: a
 document may belong to the members-only collection, and Django's document view
 is what enforces that (:doc:`cms`).  Both vhosts refuse that prefix, so a
 document is only ever reachable at ``/documents/<id>/<filename>``.

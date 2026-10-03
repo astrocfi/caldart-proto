@@ -29,6 +29,8 @@ from apps.bulk_email.models import (
     BulkEmailStatus,
     RecipientStatus,
 )
+from apps.bulk_email.render import body_problem, render_message, subject_problem
+from apps.bulk_email.richtext import sanitize
 from caldart.runs import RunActionSerializer
 
 #: What a filter the member list does not have is refused with.
@@ -43,8 +45,8 @@ CONTROL_MESSAGE = "A subject cannot carry control characters such as tabs."
 #: Unicode's category of control characters.
 CONTROL_CATEGORY = "Cc"
 
-#: The longest message a bulk email carries, in characters.
-MAX_BODY_LENGTH = 20000
+#: The longest message a bulk email carries, in characters of HTML.
+MAX_BODY_LENGTH = 100_000
 
 
 def checked_filters(filters: dict[str, str]) -> dict[str, str]:
@@ -72,9 +74,10 @@ class BulkEmailUpdateSerializer(serializers.Serializer[dict[str, Any]]):
     """``PATCH /bulk-email/{id}``'s body: the fields of the message to change.
 
     Every field may be left out.  ``subject`` is one line of at most 200 characters,
-    free of control characters, and ``body`` plain text of at most
-    :data:`MAX_BODY_LENGTH` characters; both may be blank while the email is a draft,
-    and both are trimmed.
+    free of control characters, and ``body`` HTML of at most :data:`MAX_BODY_LENGTH`
+    characters, saved sanitized; both may be blank while the email is a draft, and
+    both are trimmed.  Either is refused when a recipient field token in it cannot be
+    filled in (``apps.bulk_email.render.check_message``).
     """
 
     subject = serializers.CharField(max_length=200, allow_blank=True, required=False)
@@ -91,7 +94,17 @@ class BulkEmailUpdateSerializer(serializers.Serializer[dict[str, Any]]):
             raise ValidationError(ONE_LINE_MESSAGE)
         if any(unicodedata.category(character) == CONTROL_CATEGORY for character in value):
             raise ValidationError(CONTROL_MESSAGE)
+        problem = subject_problem(value)
+        if problem is not None:
+            raise ValidationError(problem)
         return value
+
+    def validate_body(self, value: str) -> str:
+        """Sanitize the message, and refuse one with a token that cannot be filled in."""
+        problem = body_problem(value)
+        if problem is not None:
+            raise ValidationError(problem)
+        return sanitize(value)
 
 
 class BulkEmailAddSerializer(serializers.Serializer[dict[str, Any]]):
@@ -139,7 +152,9 @@ class BulkEmailDetailSerializer(serializers.ModelSerializer[BulkEmail]):
     ``receiving_count`` how many of them receive a copy, and ``batch_skipped_count``
     how many do not.  ``remaining`` counts the copies waiting to be sent, and
     ``estimated_finish_at`` is when the last will have gone while the email is
-    sending, else null.  ``can_edit`` is true while it is a draft or queued,
+    sending, else null.  ``message_html`` is the whole HTML email as the history
+    shows it: the message inside the house layout, its tokens as written.
+    ``can_edit`` is true while it is a draft or queued,
     ``confirm_above`` is the batch size above which **Send** asks for the count, and
     ``undo_seconds`` is the undo window the countdown runs over.
     """
@@ -154,6 +169,7 @@ class BulkEmailDetailSerializer(serializers.ModelSerializer[BulkEmail]):
     estimated_finish_at = serializers.SerializerMethodField()
     confirm_above = serializers.SerializerMethodField()
     undo_seconds = serializers.SerializerMethodField()
+    message_html = serializers.SerializerMethodField()
 
     # The email whose batch was last counted, and its counts: the three count fields
     # read one batch, so it is read once.
@@ -189,6 +205,7 @@ class BulkEmailDetailSerializer(serializers.ModelSerializer[BulkEmail]):
             "estimated_finish_at",
             "confirm_above",
             "undo_seconds",
+            "message_html",
         ]
         read_only_fields = fields
 
@@ -235,6 +252,10 @@ class BulkEmailDetailSerializer(serializers.ModelSerializer[BulkEmail]):
     def get_undo_seconds(self, bulk: BulkEmail) -> int:
         """The undo window: the seconds between **Send** and the first copy."""
         return int(settings.BULK_EMAIL_UNDO_SECONDS)
+
+    def get_message_html(self, bulk: BulkEmail) -> str:
+        """The whole HTML email, its recipient field tokens as written."""
+        return render_message(bulk.subject, bulk.body, None).html
 
 
 class BulkEmailSummarySerializer(serializers.ModelSerializer[BulkEmail]):

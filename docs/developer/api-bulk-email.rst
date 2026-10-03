@@ -86,7 +86,7 @@ One email, with everything the compose and Sent screens show:
 
    {"id": 9,
     "subject": "Spring newsletter",
-    "body": "Join us at Livermore on Saturday.\n\nBring your logbook.",
+    "body": "<p>Dear {first_name|friend},</p><p>Join us at <strong>Livermore</strong>.</p>",
     "status": "sending",
     "sender": "Grace Holloway",
     "sender_id": 3,
@@ -110,9 +110,13 @@ One email, with everything the compose and Sent screens show:
     "remaining": 28,
     "estimated_finish_at": "2026-04-07T08:01:37-07:00",
     "confirm_above": 50,
-    "undo_seconds": 120}
+    "undo_seconds": 120,
+    "message_html": "<!doctype html>\n<html lang=\"en\">..."}
 
-``status`` is ``draft``, ``queued``, ``sending``, ``sent``, or ``stopped``
+``body`` is the message as sanitized HTML, its recipient field tokens as written
+(:ref:`api-bulk-email-rich-text`).  ``message_html`` is the whole HTML email as the
+history shows it: the message inside the house email layout, with its tokens as
+written rather than filled in.  ``status`` is ``draft``, ``queued``, ``sending``, ``sent``, or ``stopped``
 (:ref:`choices-bulk-email-status`); ``can_edit`` is true for a draft or a queued
 email that has never started sending (:ref:`the edit rule <bulk-email-edit-rule>`).
 ``start_at`` is when a queued email starts and ``scheduled`` whether the sender
@@ -132,17 +136,24 @@ Saves the fields given; any may be left out.
 
 .. code-block:: json
 
-   {"subject": "Spring newsletter",
-    "body": "Join us at Livermore on Saturday.\n\nBring your logbook."}
+   {"subject": "Spring newsletter for {first_name}",
+    "body": "<p>Dear {first_name|friend},</p><p>Join us at <strong>Livermore</strong>.</p>"}
 
 ``subject`` is at most 200 characters, one line, and free of control characters,
-since the mail library refuses them in a header; ``body`` is plain text of at most
-20,000 characters, a blank line separating paragraphs.  Both may be blank while
-the email is a draft, and both are trimmed.  **200** with the email.  A refused
-field is **400**: ``subject`` reads *A subject is one line.* (for any character
-``str.splitlines`` breaks on, from a carriage return to U+2028), *A subject cannot
-carry control characters such as tabs.* (for any other character in Unicode's
-``Cc`` category), or DRF's length message; ``body`` reads DRF's length message.
+since the mail library refuses them in a header; ``body`` is HTML of at most
+100,000 characters, as the editor writes it, and is stored sanitized
+(:ref:`api-bulk-email-rich-text`), so what ``GET`` answers may differ from what was
+sent.  Both may be blank while the email is a draft, and both are trimmed.  **200**
+with the email.  A refused field is **400**: ``subject`` reads *A subject is one
+line.* (for any character ``str.splitlines`` breaks on, from a carriage return to
+U+2028), *A subject cannot carry control characters such as tabs.* (for any other
+character in Unicode's ``Cc`` category), DRF's length message, or the refusal of a
+token that cannot be filled in; ``body`` reads DRF's length message or the refusal
+of a token that cannot be filled in: an unknown one, *{nickname} is not a recipient
+field. ...* (``fields.unknown_token_message``), or one split by formatting, *{first_name}
+has formatting or an angle bracket inside its braces, so it cannot be filled in.
+Delete it and put it in again with Insert field.*  The words already saved stay
+saved.
 A queued email can still be changed, and keeps its ``start_at``, but it cannot be
 left without a subject or a message: blanking one is **400** *Write a subject.* or
 *Write the message.*, as **Send** refuses it.  Once the email has started sending
@@ -301,8 +312,9 @@ request.
 
    {"confirm_count": 52, "start_at": null}
 
-The email must have a subject and a message, and somebody in its batch who
-receives a copy.  When more than ``BULK_EMAIL_CONFIRM_ABOVE`` people receive it,
+The email must have a subject and a message whose sanitized HTML reads as some
+text, every recipient field token in both must be one that can be filled in (as a
+save checks it), and somebody in its batch must receive a copy.  When more than ``BULK_EMAIL_CONFIRM_ABOVE`` people receive it,
 ``confirm_count`` must be that number, the count the sender typed; at or below
 the threshold it may be left out.  ``start_at`` is when to start: left out or null
 for the end of the undo window, now plus ``BULK_EMAIL_UNDO_SECONDS``, or a time
@@ -313,8 +325,9 @@ after now and within a year.  A time given without an offset, such as
 ``confirm_count`` (null below the threshold).  Sending a queued email again
 reschedules it.  A refusal is **400** keyed by the field:
 
-- ``subject``: *Write a subject.*
-- ``body``: *Write the message.*
+- ``subject``: *Write a subject.*, or the refusal of a token, as a save words it.
+- ``body``: *Write the message.*, also for a message of empty paragraphs, or the
+  refusal of a token, as a save words it.
 - ``batch``: *Nobody in the batch can receive this email. Add people to the
   batch.*
 - ``confirm_count``: *Type the number of people this email goes to.* when it is
@@ -401,3 +414,235 @@ copies tried, and ``skipped`` the people set aside as each email started.
 ``remaining`` counts them.  Each action is one copy: ``kind`` is ``sent`` or ``failed``, and ``detail`` the subject
 or the reason.  One ``bulk_email.run`` audit line names the caller
 and the counts.
+
+
+.. _api-bulk-email-rich-text:
+
+Rich text and recipient fields
+==============================
+
+The portal's editor writes a message as HTML (:ref:`the editor <architecture-rich-text>`),
+and the server trusts none of it: the message is sanitized when it is saved, and
+again whenever a copy is built, for a preview or a send.  ``bulk_email.richtext``
+and ``bulk_email.fields`` hold what the server does with that HTML,
+``bulk_email.render`` builds each copy, and the endpoints below serve the editor and
+the preview.
+
+**Sanitizing.**  ``richtext.sanitize`` reduces any HTML to what an email may
+carry, with nh3:
+
+- the tags kept are ``p``, ``br``, ``strong``, ``em``, ``b``, ``i``, ``u``,
+  ``s``, ``h1``, ``h2``, ``h3``, ``ul``, ``ol``, ``li``, ``a``, ``img``,
+  ``blockquote``, and ``hr``.  ``script`` and ``style`` go with everything
+  inside them; any other tag goes and the text inside it stays;
+- a link keeps ``href`` and ``title``, and an image ``src``, ``alt``, ``width``,
+  and ``height``.  Every other attribute goes: ``style``, ``class``, ``id``,
+  ``target``, ``rel``, and every event handler such as ``onclick``;
+- a link's ``href`` must be an absolute ``http``, ``https``, or ``mailto``
+  address, and an image's ``src`` an absolute ``http`` or ``https`` one.  Any
+  other address, ``javascript:``, ``data:``, or a relative path among them, is
+  removed and leaves the tag without it, since a relative address means nothing
+  in a mail program;
+- ``width`` and ``height`` must be whole numbers of pixels, and comments are
+  removed.
+
+A recipient field's token (below) is plain text to the sanitizer, so it survives
+anywhere, a link's address included once the address is absolute:
+``https://caldart.org/join?dart={dart_name}`` keeps its token, while a link
+whose whole address is ``{email}`` is relative and loses it.
+
+The answer is well formed, and sanitizing it again changes nothing.
+
+**The plain-text part.**  ``richtext.html_to_text`` writes the same message as
+plain text: each paragraph and heading a block of its own, blocks separated by
+a blank line, a line break a new line; each item of a bulleted list starting
+``-`` and of a numbered list its number (``1.``), one to a line, a nested list
+indented two spaces; a quotation's lines starting ``>``; a horizontal rule as
+``----``; a link as ``text (url)``, or the address alone when the text is the
+address; and an image as its description (``alt``).
+
+**Recipient fields.**  A subject or a message can carry a token that each
+person's copy fills in with that person's own value.  The catalog,
+``fields.FIELDS``, is fixed in the code:
+
+=======================  ===================  =========================================
+Token                    Label                Value
+=======================  ===================  =========================================
+``{first_name}``         First name           the account's first name
+``{last_name}``          Last name            the account's last name
+``{full_name}``          Full name            first and last name, joined by a space
+``{email}``              Email address        the account's address
+``{dart_name}``          DART                 the name of the DART on the profile
+``{plan}``               Membership plan      the plan behind the membership status
+``{membership_status}``  Membership status    ``Current``, ``Expired``, ``Friend``, or
+                                              ``Donor``, as the member list shows it
+``{expiration}``         Expiration date      when the membership runs out,
+                                              ``MM/DD/YYYY``; empty for a lifetime
+                                              member, a friend, and a donor
+``{home_airport}``       Home airport         the home airport identifier on the
+                                              profile, such as ``LVK``
+=======================  ===================  =========================================
+
+The status, plan, and expiration are ``members.services.membership_of``'s.
+A person with no value for a field, such as an account with no profile and so
+no DART, gets an empty value.  A token may name a fallback for an empty value,
+``{first_name|friend}``.  A token's name is lower-case letters, digits, and
+underscores, starting with a letter, and its fallback is plain text with no
+brace, bar, angle bracket, or line break.  Anything else in braces is not a
+token and arrives as written, including Django's template syntax: ``{{ x }}``,
+``{{x}}``, and ``{% y %}`` are never evaluated, because filling in a token is a
+lookup in the catalog (``fields.substitute``), never template rendering.  A
+token naming a field the catalog does not have is unknown, and
+``fields.unknown_tokens`` lists each one by name, in the order first written.
+``fields.values_for`` reads one person's value for each token a message uses,
+and ``fields.substitute`` puts them in, HTML-escaping each value for the HTML
+part, so a name holding ``<b>`` arrives as text, and replacing an empty value
+by the token's fallback.  A value that lands inside a link's ``href`` or an
+image's ``src`` is percent-encoded as well, everything but ``@``, and so is a
+fallback that stands in for an empty one there, so
+``https://caldart.org/darts?name={dart_name}`` works for *Marin & Napa* and
+``mailto:{email}`` for an address holding a ``+``.
+
+``{{`` and ``}}`` are never part of a token and are left exactly as written,
+inside an address or out; they never stand for a single brace.  A web address
+that needs a brace of its own writes it percent-encoded, ``%7B`` and ``%7D``,
+and ``fields.unknown_token_message`` says so when a sender writes one bare:
+*{id} is not a recipient field. Choose a field from Insert field, or, if the
+braces belong in a web address, write them as %7B and %7D: %7Bid%7D.*
+
+
+**Checking a message.**  ``render.check_message`` is what a save, a preview, and a
+send refuse, by field.  The subject is refused for its first unknown token.  The
+message is sanitized, then refused with *This message has formatting nested too
+deeply to send. Take out some of the lists, quotations, or styles inside one
+another.* when its tags nest more than 32 deep (``richtext.MAX_NESTING_DEPTH``,
+far beyond any real message; ``html_to_text`` reads the tags recursively), and
+otherwise for its first unknown token in the HTML or in
+the plain text derived from it, and for a token the two would not fill in alike:
+one the plain text holds but the HTML does not, because formatting splits it
+(``<strong>{first</strong>_name}``, which reads ``{first_name}`` as text), or one
+in the HTML's text the plain text does not hold, because its fallback holds an
+angle bracket.  That one is refused with *{first_name} has formatting or an angle
+bracket inside its braces, so it cannot be filled in. Delete it and put it in again
+with Insert field.*
+
+**Filling in each copy.**  ``render.render_message(subject, body, values)`` builds
+one copy: the message sanitized; the HTML body with each value escaped, and each
+value or fallback percent-encoded inside a link's or an image's address, inside
+``emails/bulk_email.html``, the house email layout; the plain-text body derived from
+that filled-in HTML, so it reads each value as it is and writes a link's address as
+the link has it, percent-encoded (``Go (https://e.com/?d=Marin%20County)``), followed
+by the house footer from ``emails/bulk_email.txt``; and the subject with each value
+as it is, a line break in a value read as a space.  The
+preheader is the start of the plain text.  When the sender tries a copy it reads the
+person's values for the fields the message uses, as they are at that moment
+(``render.fill_values``), and stores them on the row as ``values``, token to value,
+such as ``{"first_name": "Pat", "expiration": "04/30/2026"}``; a message that fills
+in nothing stores ``{}``, and a deleted account fills every field in empty.
+``render.render_copy(bulk, recipient)`` builds a copy from those stored values, so
+a copy rebuilt later reads as it went, whatever happened to the profile since.
+
+
+``GET /bulk-email/fields``
+--------------------------
+
+The recipient fields, in the order the **Insert field** menu lists them.
+Unpaginated.  **200**:
+
+.. code-block:: json
+
+   [{"token": "first_name", "label": "First name",
+     "description": "The person's first name."},
+    {"token": "dart_name", "label": "DART",
+     "description": "The name of the person's DART."}]
+
+``token`` is the field's name without its braces.
+
+
+``POST /bulk-email/images``
+---------------------------
+
+Stores one image for a message.  The body is multipart form data with the file
+under ``image``; any other content type is **415**.  ``bulk_email.images.store``
+checks it and keeps it:
+
+- the file must be at most ``BULK_EMAIL_IMAGE_MAX_BYTES`` long (5 MB unless
+  :doc:`configuration` says otherwise), or it is refused with *This image is
+  larger than 5 MB. Choose a smaller one.*, the limit named in MB;
+- it must be a PNG, JPEG, GIF, or WebP image by its content, whatever its name
+  says, read with Pillow, or it is refused with *Choose a PNG, JPEG, GIF, or
+  WebP image.*, which is also the answer for a file cut short;
+- it must hold at most 200 frames, and at most 40 million pixels counted across
+  every frame (the canvas times the frame count), or it is refused with *This
+  image is too big to use in an email. Choose a smaller one.*.  Both are checked
+  from the file's headers before any pixel is decoded, so a few kilobytes of GIF
+  holding hundreds of one-pixel frames on a huge canvas costs nothing to refuse.
+  A canvas Pillow itself treats as a decompression bomb (over about 89 million
+  pixels) gets the same answer;
+- an image wider than ``BULK_EMAIL_IMAGE_MAX_WIDTH`` (1200 pixels) is scaled
+  down to that width with its proportions kept, an animated one frame by frame;
+  a photo is turned upright by its orientation tag; and every image is saved
+  afresh in its own format without its comment, EXIF block, XMP, or color
+  profile, so a photo's location never reaches a reader;
+- the file is stored as ``bulk-email/<uuid>.<ext>`` under ``MEDIA_ROOT``, its
+  name a fresh random UUID, with a ``BulkEmailImage`` row naming the caller as
+  the uploader (:ref:`data-model-bulk-email`).
+
+**201**:
+
+.. code-block:: json
+
+   {"id": 4,
+    "url": "https://caldart.example.org/media/bulk-email/3f2c9e0b8d6a4f7e9a1b2c3d4e5f6a7b.png",
+    "width": 1200,
+    "height": 600}
+
+``url`` is absolute: ``SITE_URL``'s scheme and host followed by the file's
+``MEDIA_URL`` path, which carries any ``URL_PREFIX``.  ``width`` and ``height``
+are the stored image's size in pixels.  A missing file is **400**
+``{"image": ["No file was submitted."]}``, and a refused one **400** with the
+reason under ``image``.
+
+Every copy of an email links to its images by that URL rather than carrying
+them, so a send to hundreds of people stays small, and the image must stay
+reachable without signing in for as long as a sent email may be read: a mail
+program fetches it with no session.  The web server serves ``/media/`` straight
+off disk to anybody, and only ``/media/documents/`` is refused
+(:doc:`deployment`), so ``/media/bulk-email/`` needs nothing of its own.  In
+development Django serves ``/media/`` while ``DEBUG`` is on, which it is under
+``make run``.  An image is never deleted by the site.
+
+
+``POST /bulk-email/{id}/preview``
+---------------------------------
+
+One person's copy of the saved message, as it will go.  Nothing is sent or stored.
+
+.. code-block:: json
+
+   {"recipient_id": 12}
+
+``recipient_id`` is a row of the batch, any row, a skipped one included; left out
+or null, the copy is the first person's who receives one.  The people stepped
+through are those who receive a copy, in the order the send goes.  **200**:
+
+.. code-block:: json
+
+   {"subject": "Spring newsletter for Ann",
+    "html": "<!doctype html>\n<html lang=\"en\">...",
+    "text": "Dear Ann,\n\nJoin us at Livermore.\n\n--\n...",
+    "recipient": {"id": 12, "name": "Ann Able", "email": "ann@example.org"},
+    "position": 1,
+    "count": 40,
+    "previous_id": null,
+    "next_id": 13}
+
+``html`` is the whole HTML email and ``text`` the plain-text one.  ``position`` is
+the person's place, from 1, among the ``count`` people who receive a copy, and
+``previous_id`` and ``next_id`` are the rows either side, null at either end.
+A copy already tried is filled in with the ``values`` it went out with; any other
+with the account's values as they are now.  While nobody in the batch receives a
+copy, the preview is the caller's own copy, with ``recipient.id`` null and
+``position`` and ``count`` 0.  A token that cannot be filled in is **400** keyed
+``subject`` or ``body``, worded as a save words it; a row that is not in the batch
+is **400** ``{"recipient_id": ["That person is not in the batch."]}``.

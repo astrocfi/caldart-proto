@@ -38,12 +38,13 @@ async function addRole(page: Page, role: string): Promise<void> {
   await expect(page.getByText(/^Added \d+ (person|people)[.;]/)).toBeVisible();
 }
 
-/** Write the subject and the message. */
+/** Write the subject and the message, two paragraphs typed into the editor. */
 async function write(page: Page, subject: string): Promise<void> {
   await page.getByRole('textbox', { name: /^Subject/ }).fill(subject);
-  await page
-    .getByRole('textbox', { name: /^Message/ })
-    .fill('The hangar opens at nine.\n\nBring gloves.');
+  await page.getByRole('textbox', { name: 'Message' }).click();
+  await page.keyboard.type('The hangar opens at nine.');
+  await page.keyboard.press('Enter');
+  await page.keyboard.type('Bring gloves.');
 }
 
 test('CalDART management builds a batch from two filter sets and sends it', async ({ page }) => {

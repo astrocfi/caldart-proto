@@ -3,19 +3,23 @@
  *
  * Both save themselves as they are typed; a quiet note under the message says
  * whether the latest words are saved. The compose screen owns the values and the
- * saving, so Send can make sure the last words are saved before it goes.
+ * saving, so Send can make sure the last words are saved before it goes. The
+ * message is written in the rich text editor, and **Insert field** puts a
+ * recipient's detail, such as their first name, into the subject or the message.
  */
+import { useId, useRef } from 'react';
 import type { JSX } from 'react';
 
 import { Card } from '@/portal/components/Card';
 import { Field } from '@/portal/components/Field';
+import { RichTextEditor } from '@/portal/components/RichTextEditor';
+import type { RichTextEditorHandle } from '@/portal/components/RichTextEditor';
+import { InsertFieldMenu } from './InsertFieldMenu';
+import { uploadBulkEmailImage } from './richTextApi';
 import type { SaveState } from './useAutosave';
 
 /** The longest subject the server accepts. */
 const SUBJECT_MAX_LENGTH = 200;
-
-/** The longest message the server accepts. */
-const BODY_MAX_LENGTH = 20000;
 
 /** What the note under the message says for each save state. */
 const SAVE_NOTES: Record<SaveState, string> = {
@@ -24,6 +28,11 @@ const SAVE_NOTES: Record<SaveState, string> = {
   saving: 'Saving…',
   failed: 'Not saved yet. Your words are kept here, and saving tries again as you type.',
 };
+
+/** What the message's hint says while it can be written. */
+const MESSAGE_HINT =
+  'Use the buttons for bold, headings, lists, links, and pictures. Insert field puts in ' +
+  "each person's own details, such as their first name.";
 
 interface MessageCardProps {
   subject: string;
@@ -47,6 +56,15 @@ export function MessageCard({
   errors,
   isEditable,
 }: MessageCardProps): JSX.Element {
+  const subjectRef = useRef<HTMLInputElement>(null);
+  const editorRef = useRef<RichTextEditorHandle>(null);
+  const messageId = useId();
+  const hintId = `${messageId}-hint`;
+  const errorId = `${messageId}-error`;
+  const describedBy = [errors.body === undefined ? null : errorId, isEditable ? hintId : null]
+    .filter((id) => id !== null)
+    .join(' ');
+
   return (
     <Card title="2. What it says" className="bulk-email__card">
       {isEditable ? (
@@ -61,6 +79,7 @@ export function MessageCard({
           {(field) => (
             <input
               {...field}
+              ref={subjectRef}
               type="text"
               maxLength={SUBJECT_MAX_LENGTH}
               value={subject}
@@ -68,21 +87,41 @@ export function MessageCard({
             />
           )}
         </Field>
-        <Field
-          label="Message"
-          error={errors.body}
-          hint="Plain text. Leave a blank line between paragraphs."
-        >
-          {(field) => (
-            <textarea
-              {...field}
-              rows={12}
-              maxLength={BODY_MAX_LENGTH}
-              value={body}
-              onChange={(event) => handleBodyChange(event.target.value)}
-            />
+        <div className="field">
+          {/* The editing area names itself "Message"; this is the label a reader sees. */}
+          <span className="field__label" aria-hidden="true">
+            Message
+          </span>
+          <RichTextEditor
+            ref={editorRef}
+            label="Message"
+            value={body}
+            onChange={handleBodyChange}
+            onUploadImage={(file) => uploadBulkEmailImage(file)}
+            describedBy={describedBy === '' ? undefined : describedBy}
+            invalid={errors.body !== undefined}
+            readOnly={!isEditable}
+            toolbarExtra={
+              isEditable ? (
+                <InsertFieldMenu
+                  subjectRef={subjectRef}
+                  onSubjectChange={handleSubjectChange}
+                  editorRef={editorRef}
+                />
+              ) : null
+            }
+          />
+          {errors.body === undefined ? null : (
+            <span className="field__error" id={errorId} role="alert">
+              {errors.body}
+            </span>
           )}
-        </Field>
+          {isEditable ? (
+            <span className="field__hint" id={hintId}>
+              {MESSAGE_HINT}
+            </span>
+          ) : null}
+        </div>
       </fieldset>
       {isEditable && saveState !== 'idle' ? (
         <p

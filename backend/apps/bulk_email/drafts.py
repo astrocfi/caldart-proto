@@ -30,6 +30,8 @@ from apps.accounts.roles import MANAGEMENT
 from apps.bulk_email.batch import batch_counts, batch_rows, locked_for_edit
 from apps.bulk_email.job import apply_stop
 from apps.bulk_email.models import BulkEmail, BulkEmailStatus, RecipientStatus
+from apps.bulk_email.render import check_message
+from apps.bulk_email.richtext import html_to_text, sanitize
 from caldart import audit
 from caldart.exceptions import DomainError, DomainValidationError
 
@@ -279,11 +281,20 @@ def confirm_message(receiving: int) -> str:
 
 
 def _check_content(bulk: BulkEmail) -> None:
-    """Refuse an email without a subject or a message, keyed by the one missing."""
+    """Refuse an email without a subject or a message, or one that cannot be filled in.
+
+    A message is missing when its sanitized HTML reads as no text at all (an empty
+    paragraph, say).  A token that cannot be filled in is refused as
+    ``apps.bulk_email.render.check_message`` says, keyed by its field.
+    """
     if bulk.subject.strip() == "":
         raise DomainValidationError("subject", NO_SUBJECT_MESSAGE)
-    if bulk.body.strip() == "":
+    if html_to_text(sanitize(bulk.body)).strip() == "":
         raise DomainValidationError("body", NO_BODY_MESSAGE)
+    problems = check_message(bulk.subject, bulk.body)
+    if len(problems) > 0:
+        name, problem = next(iter(problems.items()))
+        raise DomainValidationError(name, problem)
 
 
 def _check_confirm_count(confirm_count: int | None, receiving: int) -> None:

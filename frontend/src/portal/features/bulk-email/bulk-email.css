@@ -58,10 +58,3 @@
 .bulk-email__schedule .field {
   min-width: 10rem;
 }
-
-/* The message as sent: plain text, its line breaks kept. */
-.bulk-email__body {
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  max-width: var(--measure);
-}

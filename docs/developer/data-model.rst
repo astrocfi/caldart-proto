@@ -323,6 +323,7 @@ Mail, reminders, reports, notifications, and the CMS pages
           Bulk [label="bulk_email.BulkEmail"];
           BulkAdd [label="bulk_email.BatchAdd"];
           BulkRecipient [label="bulk_email.\nBulkEmailRecipient"];
+          BulkImage [label="bulk_email.\nBulkEmailImage"];
       
           Email -> User [label="user\nSET_NULL"];
           Reminder -> User [label="user\nCASCADE"];
@@ -336,6 +337,7 @@ Mail, reminders, reports, notifications, and the CMS pages
           BulkRecipient -> Bulk [label="bulk_email\nCASCADE"];
           BulkRecipient -> BulkAdd [label="added_by\nSET_NULL"];
           BulkRecipient -> User [label="user\nSET_NULL"];
+          BulkImage -> User [label="uploaded_by\nSET_NULL"];
       
           User -> Page [style=invis];
           Membership -> Page [style=invis];
@@ -403,6 +405,7 @@ Mail, reminders, reports, notifications, and the CMS pages
       bulk_email.BatchAdd         one press of Add to batch: its filters and counts
       bulk_email.BulkEmailRecipient
                                   one person in the batch, and what became of the copy
+      bulk_email.BulkEmailImage   one image put into a bulk email's message
       cms.HomePage, cms.StandardPage, cms.NewsIndexPage, cms.NewsPage,
       cms.EventIndexPage, cms.EventPage, cms.DartIndexPage, cms.DartPage,
       cms.ContactPage, cms.DonatePage
@@ -441,6 +444,8 @@ Mail, reminders, reports, notifications, and the CMS pages
       bulk_email.BulkEmailRecipient.added_by
                                            -> bulk_email.BatchAdd FK, SET_NULL, nullable
       bulk_email.BulkEmailRecipient.user   -> accounts.User       FK, SET_NULL, nullable
+      bulk_email.BulkEmailImage.uploaded_by
+                                           -> accounts.User       FK, SET_NULL, nullable
       cms.BasePage                         inherits wagtailcore.Page
       cms.<every page type>                inherits cms.BasePage
       cms.StandardPage, cms.NewsPage       also inherit cms.MembersOnlyMixin
@@ -4103,7 +4108,8 @@ bulk_email
 
 A bulk email from its draft to its last copy, and the batch of people it goes to
 (:doc:`bulk-email` explains the life of one, and :doc:`api-bulk-email` the
-endpoints).
+endpoints).  A ``BulkEmailImage`` is written by an image
+upload alone.
 
 ``BulkEmail``
 -------------
@@ -4137,7 +4143,7 @@ One email CalDART management writes, from the moment Compose opens it.
    * - ``body``
      - ``TextField``
      - not null; default ``""``
-     - the message as plain text, a blank line separating paragraphs; blank while a draft is being written
+     - the message as HTML, sanitized on every save (:ref:`api-bulk-email-rich-text`), its recipient field tokens such as ``{first_name}`` as written; blank while a draft is being written
    * - ``status``
      - ``CharField(7)``, :ref:`choices <choices-bulk-email-status>`
      - not null; default ``draft``
@@ -4338,6 +4344,10 @@ each copy went to whatever happens to the account later.
      - ``DateTimeField``
      - null; default ``NULL``
      - when the copy was last tried
+   * - ``values``
+     - ``JSONField``
+     - not null; default ``{}``
+     - JSON object of the recipient field values the copy was filled in with, token to value, such as ``{"first_name": "Pat"}``, for the fields the message uses only; stored when the copy is tried, so the copy can be rebuilt as it went
 
 **Constraints, indexes, and ordering.**
 
@@ -4352,6 +4362,62 @@ each copy went to whatever happens to the account later.
 - ``bulk_email``: foreign key to ``bulk_email.BulkEmail``, ``CASCADE``; the reverse accessor is ``recipients``.
 - ``user``: foreign key to ``accounts.User``, ``SET_NULL``, nullable; the reverse accessor is ``bulk_emails_received``.
 - ``added_by``: foreign key to ``bulk_email.BatchAdd``, ``SET_NULL``, nullable; the reverse accessor is ``recipients``.
+
+``BulkEmailImage``
+------------------
+
+One image a sender uploaded into a bulk email's message through
+``POST /bulk-email/images`` (:doc:`api-bulk-email`).  Every copy of the email
+links to the file by its absolute URL rather than carrying it.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 22 26 18 34
+
+   * - Field
+     - Type
+     - Null, default
+     - Meaning
+   * - ``id``
+     - ``BigAutoField``
+     - not null; assigned by the database
+     - primary key
+   * - ``created_at``
+     - ``DateTimeField``
+     - not null; set on insert
+     - when the image was uploaded
+   * - ``updated_at``
+     - ``DateTimeField``
+     - not null; set on every save
+     - when the row was last saved
+   * - ``uploaded_by``
+     - ``ForeignKey`` to ``accounts.User``, ``SET_NULL``
+     - null; default ``NULL``
+     - who uploaded it; null once that account is deleted; related name ``bulk_email_images``
+   * - ``file``
+     - ``FileField(100)``
+     - not null; required
+     - the stored image, ``bulk-email/<uuid>.<ext>`` under ``MEDIA_ROOT``: a fresh random UUID, and ``png``, ``jpg``, ``gif``, or ``webp`` by the image's own format (``bulk_email_image_path``)
+   * - ``width``
+     - ``PositiveIntegerField``
+     - not null; required
+     - the stored image's width in pixels, at most ``BULK_EMAIL_IMAGE_MAX_WIDTH``
+   * - ``height``
+     - ``PositiveIntegerField``
+     - not null; required
+     - the stored image's height in pixels
+
+**Constraints, indexes, and ordering.**
+
+- Ordering: ``-created_at``, then ``-id``.
+
+**Relationships.**
+
+- ``uploaded_by``: foreign key to ``accounts.User``, ``SET_NULL``, nullable; the reverse accessor is ``bulk_email_images``.
+
+``bulk_email.images.store`` is the one writer: it checks, scales, and saves the
+file before it writes the row.  Nothing deletes a row or its file, since a sent
+email may be read at any time after.
 
 cms
 ===

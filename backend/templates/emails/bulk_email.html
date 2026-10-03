@@ -1,9 +1,9 @@
 {% extends "emails/report_base.html" %}
-{% comment %}A bulk email from CalDART management; the plain-text body is bulk_email.txt.{% endcomment %}
+{% comment %}A bulk email from CalDART management; the plain-text body is bulk_email.txt.  body_html is the sanitized message with the recipient's values filled in (apps.bulk_email.render).{% endcomment %}
 {% block title %}{{ subject }}{% endblock %}
-{% block preheader %}{{ body|truncatechars:90 }}{% endblock %}
+{% block preheader %}{{ preheader }}{% endblock %}
 {% block heading %}{{ subject }}{% endblock %}
 {% block body %}
-                {{ body|linebreaks }}
+                {{ body_html }}
 {% endblock %}
 {% block why %}You receive this email as a member or a friend of {{ org_name }}.{% endblock %}

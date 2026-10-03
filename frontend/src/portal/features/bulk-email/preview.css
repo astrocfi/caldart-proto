@@ -1,0 +1,25 @@
+/* The email as one person receives it, drawn in a frame of its own, and the
+ * sent message on its detail page.  The frame is tall enough for a short email
+ * and scrolls for a long one; it is never wider than the screen. */
+.bulk-email__preview {
+  border: var(--hairline) solid var(--color-rule);
+  border-radius: var(--radius);
+  padding: var(--space-3);
+  background: var(--color-bg-sunken);
+}
+
+.bulk-email__preview-bar {
+  justify-content: space-between;
+}
+
+.bulk-email__preview-bar p {
+  margin: 0;
+}
+
+.bulk-email__preview-frame {
+  display: block;
+  width: 100%;
+  min-height: 28rem;
+  border: var(--hairline) solid var(--color-rule-strong);
+  border-radius: var(--radius);
+}

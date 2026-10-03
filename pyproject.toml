@@ -22,6 +22,7 @@ dependencies = [
     "drf-spectacular>=0.28",
     "beautifulsoup4>=4.13",
     "dnspython>=2.8.0",
+    "nh3>=0.3.7",
 ]
 
 [dependency-groups]

@@ -1,4 +1,4 @@
-{% autoescape off %}{{ body }}
+{% autoescape off %}{{ body_text }}
 
 --
 {{ org_name }} is a volunteer disaster air transportation network.

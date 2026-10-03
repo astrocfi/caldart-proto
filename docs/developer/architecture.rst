@@ -79,6 +79,9 @@ Payments        Stripe: the ``stripe`` library on the server, Stripe.js, and
 Reports, email  reportlab for PDF and the standard library's ``csv`` for CSV;
                 Django's email framework, with Mailpit in development (SMTP
                 on port 1025, web interface on 8025)
+Rich text       TipTap 3, on ProseMirror, for the bulk email editor; nh3
+                sanitizes its HTML on the server, and Pillow checks and scales
+                the images put into it
 Operations      gunicorn behind Apache 2.4 or nginx; a management command
                 run daily by a systemd timer
 Tooling         uv and npm; ruff and mypy; tsc, ESLint 9 and Prettier; pytest,
@@ -132,7 +135,8 @@ Repository layout
         cms/                    page, block, and include templates
         emails/                 password, invitation, and reminder mail
       tests/                    every backend test, one test_<feature>.py each
-      media/                    Wagtail uploads (gitignored)
+      media/                    Wagtail uploads and bulk email images
+                                (gitignored)
       staticfiles/              collectstatic output (gitignored)
     frontend/
       vite.config.ts            three entry points: site, donate, and portal
@@ -163,8 +167,9 @@ How a request is served
 =======================
 
 In production Apache (or nginx) terminates TLS, serves uploads under
-``/media/`` from disk — except ``/media/documents/``, which it refuses so that
-Wagtail's document view can apply the members-only guard (:doc:`cms`) — and
+``/media/`` from disk to anybody, signed in or not — except
+``/media/documents/``, which it refuses so that Wagtail's document view can
+apply the members-only guard (:doc:`cms`) — and
 proxies everything else to gunicorn on ``127.0.0.1`` at the gunicorn port,
 8001 unless ``install.sh --gunicorn-port`` says otherwise (:doc:`deployment`); in development ``make run`` serves
 the same URLs on port 8000.  Inside Django, WhiteNoise answers ``/static/``
@@ -189,7 +194,9 @@ Path                  Served by
 ``/docs/<path>``      ``caldart.views.user_guide``: the built user guide,
                       served to signed-in users from ``USER_GUIDE_ROOT``
 ``/portal/<path>``    ``caldart.views.portal_shell``, the page the SPA runs in
-``/media/``           uploaded files, while ``DEBUG`` is on
+``/media/``           uploaded files, to anybody, while ``DEBUG`` is on;
+                      ``make run`` serves them so, and ``make e2e``, which
+                      runs with ``DEBUG`` off, does not
 anything else         Wagtail's page serving: a catch-all, so it stays last
 ====================  ========================================================
 
@@ -347,8 +354,11 @@ report, a domain module, can read it.
     The background sender (``send_bulk_emails``, every minute) sends each copy
     through ``caldart.mail.send_templated`` (:doc:`bulk-email`).  Endpoints under
     ``/bulk-email`` (:doc:`api-bulk-email`); the portal's Bulk Email screens under
-    ``/bulk-email/`` are the ``management`` role's.  It reads ``members``, so it
-    sits beside ``reports``.
+    ``/bulk-email/`` are the ``management`` role's.  ``richtext.py`` sanitizes a
+    message's HTML and derives its plain text, ``fields.py`` holds the recipient
+    fields a message can fill in, and ``images.py`` stores the images put into
+    one as ``BulkEmailImage`` rows.  It reads ``members``, so it sits beside
+    ``reports``.
 ``cms``
     The Wagtail page types, the StreamField blocks, ``SiteSettings``, the
     members-only wall, the ``site_chrome`` context processor and the
@@ -704,7 +714,8 @@ every screen uses (``Page``, ``Card``, ``Field``, ``FixedValue``, ``Button``,
 ``choices.ts`` holds the one set of labels for certificate, medical,
 rating, photo ID, and role codes, and the list of California counties.
 ``components/icons.tsx`` holds the inline SVG icons -- ``TrashcanIcon``,
-``ArrowUpIcon``, and ``ArrowDownIcon`` -- each ``aria-hidden``, drawn in
+``ArrowUpIcon``, ``ArrowDownIcon``, and the rich text toolbar's seven, from
+``BoldIcon`` to ``ImageIcon`` -- each ``aria-hidden``, drawn in
 ``currentColor``, square, and ``1.25em`` on a side unless the caller asks for
 another size, so the portal ships no icon dependency.
 ``IconButton`` is a control that shows one of those icons and nothing else: a
@@ -838,10 +849,51 @@ converts a moment to ``TIME_ZONE`` first.  Everything that writes a date into
 text a screen or a download shows uses it: the verification report, the
 notification emails, and the renewal, scheduled-report, and DART-roster email
 subjects that the Sent Emails page lists, the email log report's ``Sent``
-column, the PDF report footer, and ``seed_facts``.  Three kinds of date keep their own form: ISO-8601 dates in a
+column, the bulk email ``{expiration}`` field, the PDF report footer, and
+``seed_facts``.  Three kinds of date keep their own form: ISO-8601 dates in a
 CSV data column, which a spreadsheet sorts (:doc:`reports`); dates in the
 prose of an email body or a public-site page, written ``F j, Y``; and the
 dates on a receipt PDF, a financial record.
+
+.. _architecture-rich-text:
+
+**Rich text.**  ``components/RichTextEditor.tsx`` is the portal's one rich
+text editor, written for a bulk email's message.  It is built on TipTap 3
+(``@tiptap/react``, ``@tiptap/starter-kit``, ``@tiptap/extension-link``, and
+``@tiptap/extension-image``).  TipTap was chosen over Lexical, the other
+maintained React editor considered, because it keeps the document in
+ProseMirror's schema and writes HTML directly: its output is always the
+handful of tags its extensions define, which is close to what an email can
+carry, and ``getHTML()`` is the value the form stores, with no conversion
+layer.  It is headless, so its toolbar is the portal's own buttons and
+styles, and its extensions are plain configuration.  Lexical keeps its own
+JSON model and needs an HTML serializer on top, which is more code for the
+same result.  The editor is never trusted: the server sanitizes whatever HTML
+it receives against its own allow-list (:doc:`api-bulk-email`), and the
+toolbar offers no more than that list allows.
+
+The compose screen's **What it says** card (``features/bulk-email/MessageCard.tsx``)
+writes the message in it, and the **Check and send** card's preview
+(``MessagePreview.tsx``) and the Sent page show the email in a sandboxed
+``<iframe srcdoc>``, so nothing in a message can run in the portal.
+``RichTextEditor`` takes ``value`` and reports ``onChange`` as HTML, ``''``
+when the message is empty.  Its toolbar is Bold, Italic, Heading, Bulleted
+list, Numbered list, Link, and Image, each an icon with its name beside it,
+and a ``toolbarExtra`` slot after them.  **Link** opens a panel under the
+toolbar that asks for the address and reads it with ``linkAddress`` from
+``components/richText.ts``: ``caldart.org/events`` gains ``https://``, an email
+address gains ``mailto:``, and any other scheme is refused.  **Image** opens
+the file picker, uploads the file through the ``onUploadImage`` prop, and asks
+for a description, which is required, before it puts the image in at the
+width and height it is shown at in an email (at most 496 pixels wide, the house
+layout's message column; ``emailImageSize``), since some mail programs honor only
+those attributes.  A
+block that ends the message is followed by an empty paragraph, so the sender
+can always click below a list or an image and carry on writing.  Its ``ref``
+exposes ``insertText``, ``focus``, and ``contains``, which is how the bulk
+email screen's **Insert field** menu
+(``features/bulk-email/InsertFieldMenu.tsx``) puts a recipient field's token
+into the message, or into the subject when that had the focus last.
 
 
 Background work

@@ -53,7 +53,7 @@ from apps.bulk_email.models import (
     BulkEmailStatus,
     RecipientStatus,
 )
-from apps.bulk_email.render import COPY_TEMPLATE, PURPOSE, render_copy
+from apps.bulk_email.render import COPY_TEMPLATE, PURPOSE, fill_values, render_copy
 from caldart import audit
 from caldart.mail import MailRefusedError, error_name, send_templated
 from caldart.runs import RunAction
@@ -405,7 +405,11 @@ def _try_copy(
     connection, so the next try opens a fresh one rather than writing to a session
     the server may have dropped.  Returns ``None``, leaving the copy ``pending`` for a
     later run, when the next retry's wait would take the run past its budget.
+
+    The copy is filled in with the account's values as they are now, which are kept on
+    ``row`` (unsaved; :func:`_record` saves them) so it can be rebuilt as it went.
     """
+    row.values = fill_values(bulk, row.user)
     copy = render_copy(bulk, row)
     for delay in (0, *RETRY_DELAYS):
         if delay > 0 and run.would_overrun(delay):
@@ -452,7 +456,7 @@ def _record(bulk: BulkEmail, row: BulkEmailRecipient, attempt: _Attempt, run: Se
     row.reason = attempt.reason
     row.message_id = attempt.message_id
     row.tried_at = timezone.now()
-    row.save(update_fields=["status", "reason", "message_id", "tried_at", "updated_at"])
+    row.save(update_fields=["status", "reason", "message_id", "tried_at", "values", "updated_at"])
     if attempt.status == RecipientStatus.SENT:
         bulk.sent_count += 1
         run.sent += 1
