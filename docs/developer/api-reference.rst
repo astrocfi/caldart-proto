@@ -473,6 +473,10 @@ under ``/bulk-email`` (:doc:`api-bulk-email`) and the mail delivery check
 ``GET /mail/delivery-check`` (:ref:`api-mail-delivery`) and nothing else: no member
 list, no member record, no payment.  It sits after ``account_admin`` in privilege
 order.  Like every staff slug it opens the website's members-only pages.
+``IsBulkSender``, ``HasAnyRole(MANAGEMENT, DART_LEADER)``, guards every
+``/bulk-email`` endpoint: a ``dart_leader`` sends bulk email too, but only to the DART
+on their own profile, and reaches only the emails they are the sender of
+(``apps.bulk_email.senders``).
 
 ``website_admin`` grants **no API endpoint at all**.  It exists to give its
 holder Wagtail admin permissions, which are enforced by Wagtail, not by DRF.
@@ -1402,123 +1406,131 @@ not (see :ref:`api-csrf-bootstrap`).
    * - ``GET | POST /bulk-email/drafts``
      - ·
      - ·
+     - ✓
      - ·
      - ·
      - ·
-     - ·
-     - ``management``; the drafts and queued emails; ``POST`` opens the caller's empty draft or a fresh one
+     - ``management``, ``dart_leader``; a leader's own drafts and queued emails; ``POST`` opens the caller's empty draft or a fresh one, 403 for a leader whose profile names no DART
    * - ``GET /bulk-email/sent``
      - ·
      - ·
+     - ✓
      - ·
      - ·
      - ·
+     - ``management``, ``dart_leader``; every email sending, sent, or stopped, a leader's own alone
+   * - ``GET /bulk-email/sender``
      - ·
-     - ``management``; every email sending, sent, or stopped
+     - ·
+     - ✓
+     - ·
+     - ·
+     - ·
+     - ``management``, ``dart_leader``; who the caller may send to: everyone, or one DART
    * - ``GET | PATCH | DELETE /bulk-email/{id}``
      - ·
      - ·
+     - ✓
      - ·
      - ·
      - ·
-     - ·
-     - ``management``; 409 once the email has started sending (see :doc:`api-bulk-email`)
+     - ``management``, a ``dart_leader`` on their own emails (404 on any other); 409 once the email has started sending (see :doc:`api-bulk-email`)
    * - ``GET | DELETE /bulk-email/{id}/batch``
      - ·
      - ·
+     - ✓
      - ·
      - ·
      - ·
-     - ·
-     - ``management``; the batch, or clear it
+     - ``management``, a ``dart_leader`` on their own emails (404 on any other); the batch, or clear it
    * - ``GET /bulk-email/{id}/batch.csv``
      - ·
      - ·
+     - ✓
      - ·
      - ·
      - ·
-     - ·
-     - ``management``; the batch as a CSV
+     - ``management``, a ``dart_leader`` on their own emails (404 on any other); the batch as a CSV
    * - ``POST /bulk-email/{id}/batch/add``
      - ·
      - ·
+     - ✓
      - ·
      - ·
      - ·
-     - ·
-     - ``management``; adds everybody the filters choose
+     - ``management``, a ``dart_leader`` on their own emails (404 on any other); adds everybody the filters choose
    * - ``DELETE /bulk-email/{id}/batch/{rid}``
      - ·
      - ·
+     - ✓
      - ·
      - ·
      - ·
-     - ·
-     - ``management``; takes one person out
+     - ``management``, a ``dart_leader`` on their own emails (404 on any other); takes one person out
    * - ``POST /bulk-email/{id}/send``
      - ·
      - ·
+     - ✓
      - ·
      - ·
      - ·
-     - ·
-     - ``management``; queues the email, sends nothing
+     - ``management``, a ``dart_leader`` on their own emails (404 on any other); queues the email, sends nothing
    * - ``POST /bulk-email/{id}/cancel``
      - ·
      - ·
+     - ✓
      - ·
      - ·
      - ·
-     - ·
-     - ``management``; a queued email back to a draft
+     - ``management``, a ``dart_leader`` on their own emails (404 on any other); a queued email back to a draft
    * - ``POST /bulk-email/{id}/stop``
      - ·
      - ·
+     - ✓
      - ·
      - ·
      - ·
-     - ·
-     - ``management``; stops a send between copies
+     - ``management``, a ``dart_leader`` on their own emails (404 on any other); stops a send between copies
    * - ``POST /bulk-email/{id}/resume``
      - ·
      - ·
+     - ✓
      - ·
      - ·
      - ·
-     - ·
-     - ``management``; queues what a stop left unsent
+     - ``management``, a ``dart_leader`` on their own emails (404 on any other); queues what a stop left unsent
    * - ``GET /bulk-email/{id}/recipients.csv``
      - ·
      - ·
+     - ✓
      - ·
      - ·
      - ·
-     - ·
-     - ``management``; one send's results
+     - ``management``, a ``dart_leader`` on their own emails (404 on any other); one send's results
    * - ``GET /bulk-email/fields``
      - ·
      - ·
+     - ✓
      - ·
      - ·
      - ·
-     - ·
-     - ``management``; the recipient fields a message can fill in
+     - ``management``, ``dart_leader``; the recipient fields a message can fill in
    * - ``POST /bulk-email/{id}/preview``
      - ·
      - ·
+     - ✓
      - ·
      - ·
      - ·
-     - ·
-     - ``management``; one person's copy, filled in; sends nothing
+     - ``management``, a ``dart_leader`` on their own emails (404 on any other); one person's copy, filled in; sends nothing
    * - ``POST /bulk-email/images``
      - ·
      - ·
+     - ✓
      - ·
      - ·
      - ·
-     - ·
-     - ``management``; one image for a message, multipart
+     - ``management``, ``dart_leader``; one image for a message, multipart
    * - ``GET | PATCH /admin/payments/{id}``
      - ·
      - ·

@@ -17,7 +17,7 @@ from freezegun import freeze_time
 from pytest_django import Settings
 from rest_framework.test import APIClient
 
-from apps.accounts.roles import MANAGEMENT, MEMBER, SYSTEM_ADMIN
+from apps.accounts.roles import DART_LEADER, MANAGEMENT, MEMBER, SYSTEM_ADMIN
 from apps.bulk_email import drafts
 from apps.bulk_email.job import run_sender
 from apps.bulk_email.models import BulkEmail, BulkEmailStatus
@@ -483,7 +483,7 @@ def test_a_draft_row_carries_its_batch_count(
     ],
     ids=["read", "edit", "send", "cancel", "delete"],
 )
-def test_only_management_reaches_a_draft(
+def test_only_management_reaches_a_management_draft(
     api_client: APIClient,
     all_role_users: dict[str, User],
     ready: BulkEmail,
@@ -493,15 +493,19 @@ def test_only_management_reaches_a_draft(
     action: str,
     code: int,
 ) -> None:
-    """Every draft endpoint is CalDART management's and the system administrator's."""
+    """A manager's draft answers CalDART management and the system administrator.
+
+    A DART leader reaches the endpoints but not another sender's email, a 404; every
+    other role is a 403.
+    """
     api_client.force_login(all_role_users[role])
     response = getattr(api_client, method)(url(ready, action), {}, format="json")
-    assert response.status_code == (code if allowed else 403)
+    assert response.status_code == (code if allowed else (404 if role == DART_LEADER else 403))
 
 
-@pytest.mark.parametrize(("role", "allowed"), role_matrix(MANAGEMENT, SYSTEM_ADMIN))
+@pytest.mark.parametrize(("role", "allowed"), role_matrix(DART_LEADER, MANAGEMENT, SYSTEM_ADMIN))
 @pytest.mark.parametrize(("method", "code"), [("get", 200), ("post", 201)])
-def test_only_management_lists_and_opens_drafts(
+def test_only_bulk_senders_list_and_open_drafts(
     api_client: APIClient,
     all_role_users: dict[str, User],
     role: str,
@@ -509,10 +513,15 @@ def test_only_management_lists_and_opens_drafts(
     method: str,
     code: int,
 ) -> None:
-    """``/bulk-email/drafts`` answers CalDART management alone."""
+    """``/bulk-email/drafts`` answers CalDART management and DART leaders.
+
+    The DART leader here has no DART on a profile, so opening a draft is a 403 with the
+    reason; ``test_bulk_leaders.py`` opens one for a leader with a DART.
+    """
     api_client.force_login(all_role_users[role])
     response = getattr(api_client, method)(DRAFTS_URL)
-    assert response.status_code == (code if allowed else 403)
+    no_dart = role == DART_LEADER and method == "post"
+    assert response.status_code == (code if allowed and not no_dart else 403)
 
 
 @pytest.mark.parametrize(

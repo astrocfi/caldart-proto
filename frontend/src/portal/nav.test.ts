@@ -187,7 +187,19 @@ describe('visibleNavItems', () => {
     ]);
   });
 
-  it.each([['account_admin'], ['user_admin'], ['treasurer'], ['dart_leader']] as const)(
+  it('gives a DART leader Compose, Drafts & scheduled, and Sent, for their own DART', () => {
+    const bulk = groupedNavItems(['member', 'dart_leader']).find(
+      (bucket) => bucket.group === 'Bulk Email',
+    );
+    expect(bulk?.items.map((item) => item.to)).toEqual([
+      '/bulk-email/compose',
+      '/bulk-email/drafts',
+      '/bulk-email/sent',
+      '/email-preferences',
+    ]);
+  });
+
+  it.each([['account_admin'], ['user_admin'], ['treasurer']] as const)(
     'keeps the bulk email screens away from %s, who has only their email preferences',
     (role) => {
       const bulk = groupedNavItems(['member', role]).find(

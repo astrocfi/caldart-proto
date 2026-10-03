@@ -27,6 +27,7 @@ import type {
   Verification,
   AircraftDetail,
   AircraftSummary,
+  BulkEmailSender,
   LeaderStatus,
   Profile,
   SendableEmailType,
@@ -149,6 +150,15 @@ export const SENDABLE_TYPES: SendableEmailType[] = [
   },
 ];
 
+/** Who the default handler says the signed-in sender may send to: CalDART management. */
+export const MANAGEMENT_SENDER: BulkEmailSender = {
+  is_management: true,
+  can_send: true,
+  reason: '',
+  dart: null,
+  dart_name: '',
+};
+
 export const handlers = [
   http.get(
     `${API}/auth/csrf`,
@@ -224,6 +234,8 @@ export const handlers = [
   ),
   // The compose screen's type choice reads the types the sender may send.
   http.get(`${API}/email-types/sendable`, () => HttpResponse.json(SENDABLE_TYPES)),
+  // The bulk email screens read who the sender may send to.
+  http.get(`${API}/bulk-email/sender`, () => HttpResponse.json(MANAGEMENT_SENDER)),
   // The member record's Email preferences card reads these as the record opens.
   http.get(`${API}/admin/members/:id/email-preferences`, () => HttpResponse.json([])),
 ];

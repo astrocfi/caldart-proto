@@ -1,4 +1,4 @@
-:roles: management
+:roles: management, dart_leader
 
 ==================
 Drafts & scheduled
@@ -7,7 +7,8 @@ Drafts & scheduled
 **Drafts & scheduled** lists every bulk email not yet sent: the ones still being written, the
 ones in their two minutes before sending, and the scheduled ones. CalDART management opens it
 as **Drafts & scheduled** under **Bulk Email** in the menu. A system administrator can open it
-too. Every member of CalDART management sees every draft.
+too. Every member of CalDART management sees every draft, whoever wrote it. A DART leader
+opens it too, and sees only their own (:doc:`dart-leaders`).
 
 
 What you see
@@ -18,6 +19,8 @@ One line per email, the most recently changed first:
 - **Subject**: the subject so far, or *(no subject yet)*. Press it to open the email in
   :doc:`compose`.
 - **Type**: the kind of email chosen, or a dash before one is.
+- **From** and **DART**, for CalDART management only: who is writing it, and the DART a DART
+  leader's email goes to, or a dash for an email that may go to anybody.
 - **Status**: a dot and *Draft*, *Scheduled*, or *Waiting to send* for an email in its two
   minutes before sending.
 - **When (Pacific time)**: the date and time a scheduled email goes out, such as *10/04/2026

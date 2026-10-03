@@ -1882,7 +1882,10 @@ export type BulkEmailRecipientStatus =
  * and `message_html` the whole HTML email with its field tokens as written.
  * `email_type` is the chosen type's id, null while none is chosen, and
  * `email_type_name` its name, blank then. `not_sent_reason` says why the background
- * sender returned the email unsent, and is blank otherwise.
+ * sender returned the email unsent, and is blank otherwise. `dart_name` is the DART a
+ * DART leader's email goes to, blank for CalDART management's. `sender_notice` says why
+ * nobody can be added to the email, naming its sender, while that sender's profile names
+ * no DART; it is blank otherwise.
  */
 export interface BulkEmailDetail {
   id: number;
@@ -1894,6 +1897,8 @@ export interface BulkEmailDetail {
   status: BulkEmailStatus;
   sender: string;
   sender_id: number | null;
+  dart_name: string;
+  sender_notice: string;
   created_at: IsoDateTime;
   updated_at: IsoDateTime;
   start_at: IsoDateTime | null;
@@ -1921,7 +1926,8 @@ export interface BulkEmailDetail {
 /**
  * One row of `GET /bulk-email/drafts` or `GET /bulk-email/sent`. `email_type_name` is
  * blank while no type is chosen; `not_sent_reason` says why the background sender
- * returned the email unsent, blank otherwise.
+ * returned the email unsent, blank otherwise. `dart_name` is the DART a DART leader's
+ * email goes to, blank for CalDART management's.
  */
 export interface BulkEmailSummary {
   id: number;
@@ -1930,6 +1936,7 @@ export interface BulkEmailSummary {
   not_sent_reason: string;
   status: BulkEmailStatus;
   sender: string;
+  dart_name: string;
   created_at: IsoDateTime;
   updated_at: IsoDateTime;
   start_at: IsoDateTime | null;
@@ -1943,6 +1950,19 @@ export interface BulkEmailSummary {
   skipped_count: number;
   batch_count: number;
   remaining: number;
+}
+
+/**
+ * `GET /bulk-email/sender`: who the signed-in sender may send to. CalDART management
+ * sends to everyone (`is_management`); a DART leader to `dart`, the DART on their
+ * profile. `can_send` is false when there is nobody to send to, and `reason` says why.
+ */
+export interface BulkEmailSender {
+  is_management: boolean;
+  can_send: boolean;
+  reason: string;
+  dart: number | null;
+  dart_name: string;
 }
 
 /** The fields `PATCH /bulk-email/{id}` may change. */

@@ -1990,7 +1990,8 @@ the **Deleted member** account that keeps a deleted account's payments),
 ``no_such_backup``, ``import_running`` (a **Run now** pressed while an import
 is under way), or, for ``bulk_email.refused``, ``sender_deleted``,
 ``type_not_sendable``, or ``no_type`` (the sender may no longer send the email's
-type).
+type), or ``no_dart`` and ``dart_changed`` (the sender is a DART leader whose profile
+names no DART any more, or names another DART than the one the batch was built in).
 
 A record carries ids, counts, flags, and slugs and nothing else.  Email
 addresses, names, passwords, tokens, and database contents are not values the

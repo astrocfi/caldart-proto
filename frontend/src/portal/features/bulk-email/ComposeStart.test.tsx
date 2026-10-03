@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it } from 'vitest';
 
-import { makeBulkEmail } from '@test/fixtures/bulkEmail';
+import { answerSender, makeBulkEmail, NO_DART_SENDER } from '@test/fixtures/bulkEmail';
 import { API } from '@test/handlers';
 import { renderRoutes } from '@test/render';
 import { server } from '@test/server';
@@ -32,6 +32,20 @@ describe('ComposeStart', () => {
     const { router } = renderStart();
     await screen.findByRole('heading', { name: 'Draft screen' });
     expect([router.state.location.pathname, opens]).toEqual(['/bulk-email/compose/12', 1]);
+  });
+
+  it('tells a DART leader with no DART why, instead of opening a draft', async () => {
+    let opens = 0;
+    answerSender(NO_DART_SENDER);
+    server.use(
+      http.post(`${API}/bulk-email/drafts`, () => {
+        opens += 1;
+        return HttpResponse.json(makeBulkEmail(), { status: 201 });
+      }),
+    );
+    renderStart();
+    expect(await screen.findByText(NO_DART_SENDER.reason, { exact: false })).toBeVisible();
+    expect(opens).toBe(0);
   });
 
   it('says so plainly and offers to try again when the draft cannot be opened', async () => {

@@ -1,9 +1,10 @@
 """What every bulk email view shares: finding the email, and answering a refusal.
 
-Every endpoint is CalDART management's (``management``); a system administrator passes
-as for every role.  An anonymous caller is a 401, from ``caldart.exceptions``.  A caller
-reaches only the bulk emails ``apps.bulk_email.drafts.visible_to`` gives them, and any
-other id is a 404.
+Every endpoint is CalDART management's (``management``) and a DART leader's
+(``dart_leader``); a system administrator passes as for every role.  An anonymous caller
+is a 401, from ``caldart.exceptions``.  A caller reaches only the bulk emails
+``apps.bulk_email.drafts.visible_to`` gives them, every one for CalDART management and
+their own for a DART leader, and any other id is a 404.
 """
 
 from __future__ import annotations
@@ -13,14 +14,14 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from apps.accounts.permissions import IsManagement
+from apps.accounts.permissions import IsBulkSender
 from apps.bulk_email.drafts import visible_to
 from apps.bulk_email.models import BulkEmail
 from apps.members.api.actors import acting_user
 from caldart.exceptions import DomainError
 
 #: The permission every bulk email endpoint carries.
-BULK_EMAIL_PERMISSIONS = [IsManagement]
+BULK_EMAIL_PERMISSIONS = [IsBulkSender]
 
 
 def email_for(request: Request, pk: int) -> BulkEmail:

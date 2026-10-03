@@ -3,7 +3,8 @@ Bulk email
 ==========
 
 CalDART management writes one email to many members and friends at once: a
-newsletter, a seminar notice, a call for volunteers.  The email is a draft on the
+newsletter, a seminar notice, a call for volunteers.  A DART leader does the same
+for the members and friends of their own DART (:ref:`bulk-email-dart-limit`).  The email is a draft on the
 server from the moment Compose opens it, its people are a *batch* built from the
 member list's own filters, and **Send** only queues it.  A background sender,
 started every minute by a systemd timer like the other scheduled jobs, sends the
@@ -46,10 +47,14 @@ added later lands in a file of its own rather than growing one:
     ``BulkEmailImage`` rows under ``MEDIA_ROOT``.
 ``preview.py``
     One person's copy for the **Check and send** card's preview.
+``senders.py``
+    Who may send to whom: ``sender_context``, everyone for CalDART management and
+    one DART for a DART leader, and ``dart_limit``, the DART one email may go to.
 ``api/``
     The endpoints: ``drafts.py``, ``batch.py``, ``history.py``, ``sender.py``
-    (**Run now**), ``richtext.py`` (the field catalog and image uploads), and
-    ``preview.py``, with the serializers in ``serializers.py``.
+    (**Run now**), ``sender_context.py`` (``GET /bulk-email/sender``),
+    ``richtext.py`` (the field catalog and image uploads), and ``preview.py``, with
+    the serializers in ``serializers.py``.
 ``management/commands/send_bulk_emails.py``
     One run of the sender.
 
@@ -141,6 +146,33 @@ Every email has a type before it is sent (``BulkEmail.email_type``, see
 or with one whose senders no longer include the caller's roles.
 
 
+.. _bulk-email-dart-limit:
+
+One DART
+--------
+
+A DART leader's email goes to one DART: the one on the sender's member profile, read
+as it is at that moment, never stored as the rule.  ``senders.dart_limit(bulk)`` is
+``None`` for CalDART management's email (and for one whose sender's account is
+gone, which the sender refuses anyway) and a ``DartLimit`` for anybody else's, whose
+``dart`` is ``None`` when the sender's profile names no DART or the sender holds
+neither bulk email role any more.  The limit is the email's, not the caller's, so
+CalDART management changing a leader's email stays inside the leader's DART.
+
+It applies in three places, each reading the same function.  ``batch.add_filters``
+forces the add's ``dart`` filter to the DART's id and refuses any other value; an
+email limited to no DART refuses every add.  ``batch.skip_reason`` takes the limit
+and skips anybody whose profile is not in the DART with *Not in your DART*, right
+after a deleted account, so the batch screen shows it at once and the freeze stores
+it.  And ``drafts.queue`` refuses an email limited to no DART, as the background
+sender's claim does; the claim also returns unsent an email whose batch the limit
+leaves nobody in, and the send loop checks the limit again before every copy (both
+under *The sender*, below).  ``senders.sender_notice`` names
+the sender of an email limited to no DART, for the compose screen and the refusals.  ``BulkEmail.dart`` records the DART the email goes to when the
+draft is made, at each add and **Send**, and when the send starts; the lists show
+it, and once the email has started it is the DART it went to.
+
+
 The sender
 ==========
 
@@ -178,20 +210,29 @@ type, with the sender's roles as they are now against the type's ``sender_roles`
 (``apps.mail.types.sendable_types``): **Send** checked them, but a role can be taken
 away, or the type's senders changed, while a send is scheduled.  An email whose
 sender's account has been deleted, or who may no longer send the type, is not sent.
+So is the email of a DART leader whose profile names no DART any more
+(:ref:`bulk-email-dart-limit`), with *This email was not sent: your profile names no
+DART, so there is nobody to send to. Set your DART on My profile and send again.*, and
+one that has never started whose leader's DART changed so that nobody in the batch is
+in it, with *Your DART changed, so this email was not sent. Add the people again and
+send when it is ready.*, rather than a send that ends with no copy and no word why.
 One that never started goes back to a draft, its batch and content intact and its
 schedule cleared; one **Send the rest** queued again goes back to ``stopped``, its
 queued copies with it.  Either way ``not_sent_reason`` keeps the sentence the Drafts
 screen and the compose screen show, such as *This email was not sent: you can no
 longer send Mission email. Choose another type and send again.*, a WARNING
 ``bulk_email.refused`` audit line names the email under the ``command`` actor with
-the reason ``type_not_sendable``, ``sender_deleted``, or ``no_type``, and the claim
-moves on to the next due email.  Queuing the email again clears ``not_sent_reason``.
+the reason ``type_not_sendable``, ``sender_deleted``, ``no_type``, ``no_dart``, or
+``dart_changed``, and the claim moves on to the next due email.  Queuing the email again clears ``not_sent_reason``.
 
 The pending rows are then sent in surname order, one copy each.  Right before each
-copy goes, after its pause, the run reads the person's opt-out of the email's type
-afresh (``apps.mail.types.is_opted_out``): one made during a long paced send, or
-between **Stop** and **Send the rest**, is honored, the row becomes ``skipped`` with
-*Opted out of <type>*, and ``skipped_count`` grows.  After a copy is
+copy goes, after its pause, the run reads afresh whether the person is still in the
+DART a DART leader's email is limited to (the person's profile and the sender's, as
+they are then) and the person's opt-out of the email's type
+(``apps.mail.types.is_opted_out``): a change made during a long paced send, between
+**Stop** and **Send the rest**, or before a run that died is resumed, is honored, the
+row becomes ``skipped`` with *Not in your DART* or *Opted out of <type>*, and
+``skipped_count`` grows.  After a copy is
 handed to the mail server its row is saved first, ``sent`` with its
 ``Message-ID``, and only then the email's counts, all outside any transaction, so a
 run that dies after the hand-over leaves the copy marked sent and the next run does
@@ -285,10 +326,9 @@ Extending
 
 The pieces a feature added to bulk email changes, and where:
 
-* A new **skip reason**, such as a limit to one DART, goes in
-  ``batch.skip_reason``, as the type's opt-out does, which both the batch screen and the freeze
-  read, so the reason shows in the batch the moment it applies and is stored
-  when the send starts.
+* A new **skip reason** goes in ``batch.skip_reason``, as the type's opt-out and
+  the DART limit do, which both the batch screen and the freeze read, so the reason
+  shows in the batch the moment it applies and is stored when the send starts.
 * A new **field of the email**, such as a ``Reply-To``, is a model
   field, a field of ``BulkEmailUpdateSerializer`` (``PATCH`` saves whatever that
   serializer validates through ``drafts.update``), and a check in ``drafts.queue``

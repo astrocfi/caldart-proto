@@ -84,6 +84,13 @@ CalDART. The role adds the **Operations** group and one entry of
   and downloads. The member record behind each name stays the account
   administrator's.
 
+The role also adds three entries of the **Bulk Email** group, for writing to the members and
+friends of the DART on the leader's own profile (:doc:`bulk-email/dart-leaders`):
+**Compose** (:doc:`bulk-email/compose`), **Drafts & scheduled**
+(:doc:`bulk-email/drafts`), and **Sent** (:doc:`bulk-email/sent`). A leader sees only the
+emails they wrote. Which kinds of email a leader may send is set on **Email types**; as the
+site starts, those are Operational and Mission email.
+
 Every role beyond member also opens the members-only pages, whatever the holder's
 own membership.
 
@@ -170,7 +177,9 @@ group of the menu:
 * **Mail delivery** (:doc:`bulk-email/mail-delivery`): check that other mail systems will
   trust and deliver the email CalDART sends, and what to ask for when they will not.
 
-The role opens no member record and no payment. A user administrator grants it.
+CalDART management writes to anybody, and sees every bulk email, its sender, and, for a DART
+leader's email, its DART. The role opens no member record and no payment. A user
+administrator grants it.
 
 
 Website administrator

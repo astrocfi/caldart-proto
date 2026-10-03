@@ -296,9 +296,10 @@ ADMIN_PAGE_ROLES: dict[str, frozenset[str]] = {
     "admin/health-database": frozenset({SYSTEM_ADMIN}),
     "admin/sent-emails": frozenset({SYSTEM_ADMIN}),
     "admin/scheduled": frozenset({SYSTEM_ADMIN}),
-    "bulk-email/compose": frozenset({MANAGEMENT}),
-    "bulk-email/drafts": frozenset({MANAGEMENT}),
-    "bulk-email/sent": frozenset({MANAGEMENT}),
+    "bulk-email/compose": frozenset({MANAGEMENT, DART_LEADER}),
+    "bulk-email/drafts": frozenset({MANAGEMENT, DART_LEADER}),
+    "bulk-email/sent": frozenset({MANAGEMENT, DART_LEADER}),
+    "bulk-email/dart-leaders": frozenset({DART_LEADER}),
     "bulk-email/mail-delivery": frozenset({MANAGEMENT}),
     "bulk-email/email-types": frozenset({SYSTEM_ADMIN}),
 }

@@ -6,6 +6,8 @@
  * a stopped one **Send the rest…**, each of which opens that page, where the
  * action asks first and the progress shows; every other line offers **Download
  * results**. The list is read again every few seconds while a send is in progress.
+ * CalDART management, who sees every sender's sends, also sees who sent each and the
+ * DART a DART leader's send went to.
  */
 import type { JSX } from 'react';
 import { Link } from 'react-router-dom';
@@ -17,13 +19,15 @@ import { DataTable } from '@/portal/components/DataTable';
 import { DateText } from '@/portal/components/DateText';
 import { Page } from '@/portal/components/Page';
 import { StatusDot } from '@/portal/components/StatusChip';
-import { recipientsCsvUrl, useSentEmails } from './api';
+import { recipientsCsvUrl, useBulkSender, useSentEmails } from './api';
 import './bulk-email.css';
+import { withSenderColumns } from './senderColumns';
 import { statusLabel, statusTone } from './status';
 
 /** Every started send, one line each. */
 export function SentPage(): JSX.Element {
   const sent = useSentEmails();
+  const sender = useBulkSender();
   const rows = sent.data ?? [];
 
   return (
@@ -40,7 +44,7 @@ export function SentPage(): JSX.Element {
         ) : (
           <DataTable
             singleLine
-            columns={SENT_COLUMNS}
+            columns={withSenderColumns(SENT_COLUMNS, sender.data?.is_management === true)}
             rows={rows}
             rowKey={(row) => row.id}
             caption={`${rows.length} bulk ${rows.length === 1 ? 'email' : 'emails'} sent`}
@@ -76,7 +80,6 @@ export const SENT_COLUMNS: Column<BulkEmailSummary>[] = [
     render: (row) => row.email_type_name || '—',
     sortValue: (row) => row.email_type_name,
   },
-  { key: 'sender', header: 'From', width: '6.25rem', render: (row) => row.sender || '—' },
   {
     key: 'status',
     header: 'Status',

@@ -14,7 +14,7 @@ import pytest
 from rest_framework.test import APIClient
 
 from apps.accounts.models import AccountKind
-from apps.accounts.roles import MANAGEMENT, MEMBER, SYSTEM_ADMIN
+from apps.accounts.roles import DART_LEADER, MANAGEMENT, MEMBER, SYSTEM_ADMIN
 from apps.bulk_email import batch
 from apps.bulk_email.drafts import visible_to
 from apps.bulk_email.job import run_sender
@@ -603,10 +603,13 @@ def test_only_management_reaches_the_batch(
     path: str,
     code: int,
 ) -> None:
-    """Every batch endpoint is CalDART management's and the system administrator's."""
+    """A manager's batch answers CalDART management and the system administrator.
+
+    A DART leader reaches the endpoints but not another sender's email, a 404.
+    """
     row = add_to_batch(bulk, make_person("amy@example.test"))[0]
     api_client.force_login(all_role_users[role])
     response = getattr(api_client, method)(
         f"{base_url(bulk)}{path.format(rid=row.pk)}", {}, format="json"
     )
-    assert response.status_code == (code if allowed else 403)
+    assert response.status_code == (code if allowed else (404 if role == DART_LEADER else 403))

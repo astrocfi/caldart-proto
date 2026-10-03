@@ -49,6 +49,7 @@ from django.core.mail.backends.base import BaseEmailBackend
 from django.db import connection, transaction
 from django.utils import timezone
 
+from apps.accounts.models import User
 from apps.bulk_email.batch import SKIP_OPTED_OUT, batch_rows, snapshot, surname_order
 from apps.bulk_email.models import (
     BulkEmail,
@@ -57,7 +58,9 @@ from apps.bulk_email.models import (
     RecipientStatus,
 )
 from apps.bulk_email.render import COPY_TEMPLATE, PURPOSE, fill_values, render_copy
+from apps.bulk_email.senders import SKIP_NOT_IN_DART, DartLimit, dart_limit, limit_dart
 from apps.mail.types import is_opted_out, sendable_types
+from apps.members.models import MemberProfile
 from caldart import audit
 from caldart.mail import MailRefusedError, error_name, send_templated
 from caldart.runs import RunAction
@@ -104,6 +107,13 @@ NOT_SENT_SENDER_DELETED = (
     "from your own account."
 )
 NOT_SENT_NO_TYPE = "This email was not sent: it has no type. Choose a type and send again."
+NOT_SENT_DART_CHANGED = (
+    "Your DART changed, so this email was not sent. Add the people again and send when it is ready."
+)
+NOT_SENT_NO_DART = (
+    "This email was not sent: your profile names no DART, so there is nobody to send to. "
+    "Set your DART on My profile and send again."
+)
 
 #: The longest reason a recipient row holds.
 REASON_MAX_LENGTH = 200
@@ -277,8 +287,10 @@ def _claim(now: datetime, run: SenderRun) -> BulkEmail | None:
             bulk.status = BulkEmailStatus.SENDING
             if bulk.started_at is None:
                 bulk.started_at = timezone.now()
+                # The DART the batch is frozen against; a resumed send keeps its own.
+                bulk.dart = limit_dart(dart_limit(bulk))
             run.skipped += _freeze(bulk)
-            bulk.save(update_fields=["status", "started_at", "skipped_count", "updated_at"])
+            bulk.save(update_fields=["status", "started_at", "dart", "skipped_count", "updated_at"])
         return bulk
 
 
@@ -295,7 +307,10 @@ def _sender_refusal(bulk: BulkEmail) -> _Refusal | None:
 
     The sender's roles as they are now are checked against the type's
     ``sender_roles``, as **Send** checked them: an account deleted since, a role taken
-    away, or a type changed to name other roles all refuse it.
+    away, or a type changed to name other roles all refuse it.  So does a DART
+    leader's profile that names no DART any more (``apps.bulk_email.senders``), and,
+    for an email that has not started, one whose DART changed so that nobody in the
+    batch is in it.
     """
     if bulk.email_type is None:
         return _Refusal(reason=audit.REASON_NO_TYPE, message=NOT_SENT_NO_TYPE)
@@ -306,7 +321,23 @@ def _sender_refusal(bulk: BulkEmail) -> _Refusal | None:
             reason=audit.REASON_TYPE_NOT_SENDABLE,
             message=NOT_SENT_TYPE.format(type=bulk.email_type.name),
         )
+    limit = dart_limit(bulk)
+    if limit is not None and limit.dart is None:
+        return _Refusal(reason=audit.REASON_NO_DART, message=NOT_SENT_NO_DART)
+    if limit is not None and bulk.started_at is None and _limit_leaves_nobody(bulk, limit):
+        return _Refusal(reason=audit.REASON_DART_CHANGED, message=NOT_SENT_DART_CHANGED)
     return None
+
+
+def _limit_leaves_nobody(bulk: BulkEmail, limit: DartLimit) -> bool:
+    """True when ``bulk`` has people in its batch and its DART limit allows none of them.
+
+    That happens when a DART leader's profile names another DART after **Send**: the
+    batch was built in the old DART, and sending it would skip everybody.  Rows of
+    deleted accounts are left out of the question.
+    """
+    accounts = [row.account for row in batch_rows(bulk) if row.account is not None]
+    return len(accounts) > 0 and not any(limit.allows(account) for account in accounts)
 
 
 def _refuse(bulk: BulkEmail, refusal: _Refusal) -> None:
@@ -409,9 +440,9 @@ def _send(bulk: BulkEmail, run: SenderRun) -> None:
             if _is_stop_requested(bulk):
                 apply_stop(bulk)
                 return
-            # Read last, right before the copy goes, so an opt-out made during the
-            # pause is honored too.
-            if _skip_if_opted_out(bulk, row, run):
+            # Read last, right before the copy goes, so an opt-out or a DART change made
+            # during the pause is honored too.
+            if _skip_if_unsendable(bulk, row, run):
                 continue
             if on_connection is None or on_connection >= settings.BULK_EMAIL_BATCH_SIZE:
                 mailer.close()
@@ -445,25 +476,46 @@ def _send(bulk: BulkEmail, run: SenderRun) -> None:
     _finish(bulk)
 
 
-def _skip_if_opted_out(bulk: BulkEmail, row: BulkEmailRecipient, run: SenderRun) -> bool:
-    """Skip ``row`` when its person has turned ``bulk``'s type off since the freeze.
+def _skip_if_unsendable(bulk: BulkEmail, row: BulkEmailRecipient, run: SenderRun) -> bool:
+    """Skip ``row`` when its person may no longer be sent ``bulk``, as of now.
 
-    The opt-out is read afresh for every copy, so one made during a long paced send,
-    or between **Stop** and **Send the rest**, is honored: the row becomes ``skipped``
-    with the batch's *Opted out of <type>* reason, and ``skipped_count`` grows.
-    Returns whether the row was skipped.
+    Both are read afresh for every copy, so a change made during a long paced send,
+    between **Stop** and **Send the rest**, or before a run that died is resumed, is
+    honored.  A person outside the DART a DART leader's email is limited to
+    (``apps.bulk_email.senders.dart_limit``, the sender's DART as it is now) is skipped
+    with *Not in your DART*, and one who has turned the email's type off with the
+    batch's *Opted out of <type>*; ``skipped_count`` grows by one.  Returns whether the
+    row was skipped.
     """
-    if bulk.email_type is None or row.user is None:
+    if row.user is None:
         return False
-    if not is_opted_out(row.user, bulk.email_type):
+    reason = _unsendable_reason(bulk, row.user)
+    if reason == "":
         return False
     row.status = RecipientStatus.SKIPPED
-    row.reason = SKIP_OPTED_OUT.format(type=bulk.email_type.name)
+    row.reason = reason
     row.save(update_fields=["status", "reason", "updated_at"])
     bulk.skipped_count += 1
     bulk.save(update_fields=["skipped_count", "updated_at"])
     run.skipped += 1
     return True
+
+
+def _unsendable_reason(bulk: BulkEmail, account: User) -> str:
+    """Why ``account`` may not be sent ``bulk`` now, or ``""`` when it may.
+
+    The account's profile is read afresh, so a DART changed since the row was loaded
+    counts.
+    """
+    limit = dart_limit(bulk)
+    if limit is not None:
+        profile = MemberProfile.objects.filter(user=account).only("dart_id").first()
+        dart_id = profile.dart_id if profile is not None else None
+        if limit.dart is None or dart_id != limit.dart.pk:
+            return SKIP_NOT_IN_DART
+    if bulk.email_type is not None and is_opted_out(account, bulk.email_type):
+        return SKIP_OPTED_OUT.format(type=bulk.email_type.name)
+    return ""
 
 
 def _pace(run: SenderRun) -> None:

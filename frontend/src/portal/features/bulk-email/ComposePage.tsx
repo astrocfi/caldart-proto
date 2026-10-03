@@ -77,6 +77,8 @@ function ComposeForm({ email }: { email: BulkEmailDetail }): JSX.Element {
         emailId={email.id}
         isEditable={email.can_edit}
         isQueued={email.status === 'queued'}
+        dartName={email.dart_name}
+        senderNotice={email.sender_notice}
       />
       <MessageCard
         emailId={email.id}

@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it } from 'vitest';
 
-import { makeSummary } from '@test/fixtures/bulkEmail';
+import { answerSender, LEADER_SENDER, makeSummary } from '@test/fixtures/bulkEmail';
 import { API } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
@@ -125,5 +125,30 @@ describe('DraftsPage', () => {
       'data-table__text',
       true,
     ]);
+  });
+
+  it('shows CalDART management who wrote each email and its DART', async () => {
+    answerDrafts([makeSummary({ sender: 'Lane Lead', dart_name: 'Marin' })]);
+    renderWithProviders(<DraftsPage />);
+    const row = (await screen.findByRole('link', { name: 'Hangar day' })).closest('tr');
+    const headers = within(screen.getByRole('table'))
+      .getAllByRole('columnheader')
+      .map((header) => header.textContent);
+    const cells = within(row as HTMLElement)
+      .getAllByRole('cell')
+      .map((cell) => cell.textContent);
+    const at = headers.indexOf('From');
+    expect([headers[at + 1], cells[at], cells[at + 1]]).toEqual(['DART', 'Lane Lead', 'Marin']);
+  });
+
+  it('leaves the From and DART columns out for a DART leader, whose emails are their own', async () => {
+    answerSender(LEADER_SENDER);
+    answerDrafts([makeSummary({})]);
+    renderWithProviders(<DraftsPage />);
+    await screen.findByRole('link', { name: 'Hangar day' });
+    const headers = within(screen.getByRole('table'))
+      .getAllByRole('columnheader')
+      .map((header) => header.textContent);
+    expect(headers.filter((header) => header === 'From' || header === 'DART')).toEqual([]);
   });
 });

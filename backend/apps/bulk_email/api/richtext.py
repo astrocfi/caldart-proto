@@ -2,9 +2,9 @@
 
 ``GET /bulk-email/fields`` lists the recipient fields the **Insert field** menu
 offers, and ``POST /bulk-email/images`` stores one image the editor puts into a
-message.  Both are CalDART management's (``management``); a system administrator
-passes as for every role.  An anonymous caller is a 401, from
-``caldart.exceptions``.
+message.  Both are CalDART management's (``management``) and a DART leader's
+(``dart_leader``); a system administrator passes as for every role.  An anonymous
+caller is a 401, from ``caldart.exceptions``.
 """
 
 from __future__ import annotations
@@ -19,7 +19,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.accounts.permissions import IsManagement
+from apps.accounts.permissions import IsBulkSender
 from apps.bulk_email.fields import FIELDS, Field
 from apps.bulk_email.images import ImageRefusedError, image_url, store
 from apps.bulk_email.models import BulkEmailImage
@@ -59,7 +59,7 @@ class BulkEmailImageSerializer(serializers.ModelSerializer[BulkEmailImage]):
 class FieldsView(APIView):
     """``GET /bulk-email/fields`` -- the recipient fields a message can fill in."""
 
-    permission_classes = [IsManagement]
+    permission_classes = [IsBulkSender]
 
     @extend_schema(responses={200: BulkEmailFieldSerializer(many=True)})
     def get(self, request: Request) -> Response:
@@ -72,7 +72,7 @@ class FieldsView(APIView):
 class ImageUploadView(APIView):
     """``POST /bulk-email/images`` -- store one image for a message."""
 
-    permission_classes = [IsManagement]
+    permission_classes = [IsBulkSender]
     parser_classes = [MultiPartParser]
 
     @extend_schema(

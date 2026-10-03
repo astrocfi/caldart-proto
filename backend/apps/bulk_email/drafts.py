@@ -32,9 +32,10 @@ from apps.bulk_email.job import apply_stop
 from apps.bulk_email.models import BulkEmail, BulkEmailStatus, RecipientStatus
 from apps.bulk_email.render import check_message
 from apps.bulk_email.richtext import html_to_text, sanitize
+from apps.bulk_email.senders import dart_limit, limit_dart, sender_context, sender_notice
 from apps.mail.types import sendable_types
 from caldart import audit
-from caldart.exceptions import DomainError, DomainValidationError
+from caldart.exceptions import DomainError, DomainPermissionError, DomainValidationError
 
 #: The furthest ahead a send may be scheduled.
 MAX_SCHEDULE_AHEAD = timedelta(days=365)
@@ -68,9 +69,10 @@ def visible_to(user: User) -> QuerySet[BulkEmail]:
     """The bulk emails ``user`` may open: everyone's for CalDART management.
 
     CalDART management and a system administrator see every bulk email, with its
-    sender; anybody else sees only the ones they are the sender of.
+    sender; anybody else, a DART leader among them, sees only the ones they are the
+    sender of.
     """
-    emails = BulkEmail.objects.select_related("sender", "stopped_by", "email_type")
+    emails = BulkEmail.objects.select_related("sender", "stopped_by", "email_type", "dart")
     if user_has_any_role(user, (MANAGEMENT,)):
         return emails
     return emails.filter(sender=user)
@@ -80,8 +82,15 @@ def open_draft(sender: User) -> OpenedDraft:
     """``sender``'s empty draft, or a fresh one when they have none.
 
     An empty draft has no subject, no message, and nobody in its batch.  When the
-    sender has several, the oldest is handed back.
+    sender has several, the oldest is handed back.  Either way the draft records the
+    DART the sender may send to (``apps.bulk_email.senders.sender_context``): a DART
+    leader's profile DART, or none for CalDART management.  Raises
+    ``DomainPermissionError`` with ``NO_DART_MESSAGE`` for a sender who may send to
+    nobody, such as a DART leader whose profile names no DART.
     """
+    context = sender_context(sender)
+    if not context.can_send:
+        raise DomainPermissionError(context.reason)
     empty = (
         BulkEmail.objects.filter(sender=sender, status=BulkEmailStatus.DRAFT, subject="", body="")
         .annotate(people=Count("recipients"))
@@ -90,8 +99,13 @@ def open_draft(sender: User) -> OpenedDraft:
         .first()
     )
     if empty is not None:
+        if empty.dart_id != (context.dart.pk if context.dart is not None else None):
+            empty.dart = context.dart
+            empty.save(update_fields=["dart", "updated_at"])
         return OpenedDraft(bulk=empty, created=False)
-    return OpenedDraft(bulk=BulkEmail.objects.create(sender=sender), created=True)
+    return OpenedDraft(
+        bulk=BulkEmail.objects.create(sender=sender, dart=context.dart), created=True
+    )
 
 
 def update(bulk: BulkEmail, changes: dict[str, object]) -> BulkEmail:
@@ -137,11 +151,12 @@ def queue(
     """**Send**: queue ``bulk`` to start at ``start_at``, or once the undo window ends.
 
     The email must have a type that ``actor`` may send, a subject and a message, and
-    somebody in its batch who can receive a copy.  When more than
-    ``BULK_EMAIL_CONFIRM_ABOVE`` people would receive it, ``confirm_count`` must be that
-    number, the count the sender typed; a batch that changed after the sender typed it
-    is refused with the number it holds now.  A ``start_at`` must be after ``now`` and
-    within a year of it.
+    somebody in its batch who can receive a copy.  A DART leader's email must have a
+    DART to go to (``apps.bulk_email.senders.dart_limit``), and records it.  When more
+    than ``BULK_EMAIL_CONFIRM_ABOVE`` people would receive it, ``confirm_count`` must be
+    that number, the count the sender typed; a batch that changed after the sender typed
+    it is refused with the number it holds now.  A ``start_at`` must be after ``now``
+    and within a year of it.
 
     The email becomes ``queued`` with ``start_at`` set to the time given, or to ``now``
     plus ``BULK_EMAIL_UNDO_SECONDS``; ``scheduled`` says which, and ``confirm_count``
@@ -152,14 +167,19 @@ def queue(
 
     Raises ``DomainValidationError`` keyed ``subject``, ``body``, ``email_type``
     (:data:`NO_TYPE_MESSAGE`, or :data:`NOT_SENDABLE_MESSAGE` naming the type),
-    ``batch``, ``confirm_count``, or ``start_at``, and ``DomainError`` once the email
-    has started sending; nothing changes then.
+    ``batch`` (``apps.bulk_email.senders.sender_notice`` for an email limited to no
+    DART, else :data:`NOBODY_MESSAGE`), ``confirm_count``, or ``start_at``, and
+    ``DomainError`` once the email has started sending; nothing changes then.
     """
     moment = now if now is not None else timezone.now()
     with transaction.atomic():
         locked = locked_for_edit(bulk)
         _check_content(locked)
         _check_type(locked, actor)
+        notice = sender_notice(locked)
+        if notice != "":
+            raise DomainValidationError("batch", notice)
+        locked.dart = limit_dart(dart_limit(locked))
         receiving = batch_counts(batch_rows(locked)).receiving
         if receiving == 0:
             raise DomainValidationError("batch", NOBODY_MESSAGE)
@@ -184,6 +204,7 @@ def queue(
                 "start_at",
                 "confirm_count",
                 "not_sent_reason",
+                "dart",
                 "updated_at",
             ]
         )

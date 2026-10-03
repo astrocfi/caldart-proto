@@ -67,6 +67,28 @@ describe('ComposePage', () => {
     expect(await screen.findByText(reason)).toBeVisible();
   });
 
+  it("names a DART leader's DART as a fixed value in place of the DART filter", async () => {
+    answerBulkEmail(draftState({ dart_name: 'Marin' }));
+    renderCompose(draftState({ dart_name: 'Marin' }));
+    expect(await screen.findByText('Marin DART')).toBeVisible();
+    expect(screen.queryByLabelText('DART')).not.toBeInTheDocument();
+  });
+
+  it('offers the DART filter on an email that may go to anybody', async () => {
+    answerBulkEmail(draftState());
+    renderCompose(draftState());
+    expect(await screen.findByLabelText('DART')).toBeVisible();
+  });
+
+  it("says whose email it is when its sender's profile names no DART, in place of the filters", async () => {
+    const notice =
+      'This email belongs to Lane Lead, whose profile names no DART, so nobody can be added.';
+    answerBulkEmail(draftState({ sender_notice: notice }));
+    renderCompose(draftState({ sender_notice: notice }));
+    expect(await screen.findByText(notice)).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Add to batch' })).not.toBeInTheDocument();
+  });
+
   it('explains the batch the first time it is named', async () => {
     answerBulkEmail(draftState());
     renderCompose(draftState());
