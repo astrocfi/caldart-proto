@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% comment %}
+  The page a bulk email's unsubscribe link opens.  `state` is one of `confirm`,
+  `already`, `done`, `not_allowed`, or `expired` (see `apps.mail.views.unsubscribe`).
+  The button posts back to this same address; it carries no CSRF token because the
+  signed token in the address is the authorization.
+{% endcomment %}
+
+{% block title %}Unsubscribe{% endblock %}
+{% block body_class %}unsubscribe{% endblock %}
+{% block extra_head %}<meta name="robots" content="noindex" />{% endblock %}
+
+{% block content %}
+  {% firstof site_settings.org_name "CalDART" as org %}
+  {% url 'portal' 'email-preferences' as preferences_url %}
+  <section class="box">
+    <div class="box__head box__head--titled">
+      <p class="box__parent">Email preferences</p>
+      <h1>
+        {% if state == "done" %}You are unsubscribed
+        {% elif state == "expired" %}This link no longer works
+        {% elif state == "not_allowed" %}{{ email_type.name }} email cannot be turned off
+        {% else %}Unsubscribe from {{ email_type.name }} email
+        {% endif %}
+      </h1>
+    </div>
+    <div class="box__body">
+      {% if state == "confirm" %}
+        <p class="lede">
+          Press the button to stop receiving {{ email_type.name }} email from {{ org }}.
+          Other kinds of email from {{ org }} are not affected.
+        </p>
+        <form method="post">
+          <button type="submit" class="button">Unsubscribe</button>
+        </form>
+      {% elif state == "already" %}
+        <p class="lede">
+          You already receive no {{ email_type.name }} email from {{ org }}.
+        </p>
+      {% elif state == "done" %}
+        <p class="lede">
+          You will no longer receive {{ email_type.name }} email from {{ org }}.
+        </p>
+      {% elif state == "not_allowed" %}
+        <p class="lede">
+          {{ org }} sends {{ email_type.name }} email to everyone it writes to, so this link
+          changes nothing.
+        </p>
+      {% else %}
+        <p class="lede">
+          The unsubscribe link has expired or was copied incompletely, so nothing was changed.
+        </p>
+      {% endif %}
+      {% if state != "confirm" %}
+        <p>
+          To choose which kinds of email you receive, sign in and open
+          <a href="{{ preferences_url }}">Email preferences</a>.
+        </p>
+      {% else %}
+        <p class="small">
+          You can turn it back on at any time: sign in and open
+          <a href="{{ preferences_url }}">Email preferences</a>.
+        </p>
+      {% endif %}
+    </div>
+  </section>
+{% endblock %}

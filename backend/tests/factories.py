@@ -36,7 +36,7 @@ from apps.cms.models import (
     StandardPage,
 )
 from apps.darts.models import Dart, DartContact
-from apps.mail.models import EmailLog, EmailStatus
+from apps.mail.models import EmailLog, EmailOptOut, EmailStatus, EmailType, OptOutSource
 from apps.members.models import (
     MedicalType,
     MemberProfile,
@@ -399,6 +399,33 @@ class EmailLogFactory(ModelFactory[EmailLog]):
     error = ""
     attachments = ""
     message_id = factory.Sequence(lambda n: f"<factory.{n}@caldart.example.org>")
+
+
+class EmailTypeFactory(ModelFactory[EmailType]):
+    """Builds an ``EmailType`` that allows opting out and that CalDART management sends.
+
+    Each one has its own name, ``Type <n>``, and its own position after the last.
+    """
+
+    class Meta:
+        model = EmailType
+
+    name = factory.Sequence(lambda n: f"Type {n}")
+    description = factory.LazyAttribute(lambda o: f"What {o.name} email is for.")
+    allow_opt_out = True
+    sender_roles = factory.LazyFunction(lambda: ["management"])
+    position = factory.Sequence(lambda n: n + 1)
+
+
+class EmailOptOutFactory(ModelFactory[EmailOptOut]):
+    """Builds an ``EmailOptOut``: a fresh account has turned a fresh type off itself."""
+
+    class Meta:
+        model = EmailOptOut
+
+    user = factory.SubFactory(UserFactory)
+    email_type = factory.SubFactory(EmailTypeFactory)
+    source = OptOutSource.PROFILE
 
 
 def make_home_page() -> HomePage:
