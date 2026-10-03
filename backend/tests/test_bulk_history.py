@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING
 import pytest
 from rest_framework.test import APIClient
 
-from apps.accounts.roles import MANAGEMENT, SYSTEM_ADMIN
+from apps.accounts.roles import DART_LEADER, MANAGEMENT, SYSTEM_ADMIN
 from apps.bulk_email import job
 from apps.bulk_email.models import BulkEmail, BulkEmailStatus, RecipientStatus
 from apps.mail.purposes import purpose_label
@@ -180,10 +180,15 @@ def test_only_management_reads_the_history(
     allowed: bool,
     path: str,
 ) -> None:
-    """The Sent list, one send, and its CSV answer CalDART management alone."""
+    """The Sent list, one send, and its CSV answer CalDART management.
+
+    A DART leader reads the Sent list, which holds only their own, and gets a 404 for
+    another sender's send; every other role is a 403.
+    """
     api_client.force_login(all_role_users[role])
     response = api_client.get("/api/v1/bulk-email" + path.format(id=sent.pk))
-    assert response.status_code == (200 if allowed else 403)
+    leader = 200 if path == "/sent" else 404
+    assert response.status_code == (200 if allowed else (leader if role == DART_LEADER else 403))
 
 
 @pytest.mark.parametrize(("role", "allowed"), role_matrix(MANAGEMENT, SYSTEM_ADMIN))
@@ -196,7 +201,10 @@ def test_only_management_stops_and_resumes(
     allowed: bool,
     action: str,
 ) -> None:
-    """Stop and Send the rest are CalDART management's; a finished send answers 409."""
+    """Stop and Send the rest are CalDART management's; a finished send answers 409.
+
+    A DART leader gets a 404 for another sender's send.
+    """
     api_client.force_login(all_role_users[role])
     response = api_client.post(f"/api/v1/bulk-email/{sent.pk}/{action}")
-    assert response.status_code == (409 if allowed else 403)
+    assert response.status_code == (409 if allowed else (404 if role == DART_LEADER else 403))

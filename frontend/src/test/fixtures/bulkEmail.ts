@@ -12,6 +12,7 @@ import type {
   BulkEmailField,
   BulkEmailPreview,
   BulkEmailPatch,
+  BulkEmailSender,
   BulkEmailSummary,
 } from '@/portal/api/types';
 import { API, SENDABLE_TYPES } from '../handlers';
@@ -29,6 +30,7 @@ export function makeBulkEmail(overrides: Partial<BulkEmailDetail> = {}): BulkEma
     status: 'draft',
     sender: 'Grace Holloway',
     sender_id: 3,
+    dart_name: '',
     created_at: '2026-04-06T16:00:00Z',
     updated_at: '2026-04-06T16:30:00Z',
     start_at: null,
@@ -85,6 +87,7 @@ export function makeSummary(overrides: Partial<BulkEmailSummary> = {}): BulkEmai
     not_sent_reason: '',
     status: 'draft',
     sender: 'Grace Holloway',
+    dart_name: '',
     created_at: '2026-04-06T16:00:00Z',
     updated_at: '2026-04-06T16:30:00Z',
     start_at: null,
@@ -270,4 +273,27 @@ export function answerBulkEmail(state: BulkEmailState): BulkEmailCalls {
     }),
   );
   return calls;
+}
+
+/** Who a DART leader of the Marin DART may send to. */
+export const LEADER_SENDER: BulkEmailSender = {
+  is_management: false,
+  can_send: true,
+  reason: '',
+  dart: 4,
+  dart_name: 'Marin',
+};
+
+/** Who a DART leader whose profile names no DART may send to: nobody. */
+export const NO_DART_SENDER: BulkEmailSender = {
+  is_management: false,
+  can_send: false,
+  reason: 'Your profile names no DART, so there is nobody to send to. Set your DART on My profile.',
+  dart: null,
+  dart_name: '',
+};
+
+/** Answer `GET /bulk-email/sender` with `sender` for the rest of the test. */
+export function answerSender(sender: BulkEmailSender): void {
+  server.use(http.get(`${API}/bulk-email/sender`, () => HttpResponse.json(sender)));
 }

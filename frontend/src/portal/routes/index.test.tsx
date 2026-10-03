@@ -277,22 +277,30 @@ const GUARDED_PATHS: GuardedPath[] = [
     heading: 'Notifications',
     allowed: ['account_admin', 'system_admin'],
   },
-  { path: '/bulk-email/compose', heading: 'Compose', allowed: ['management', 'system_admin'] },
+  {
+    path: '/bulk-email/compose',
+    heading: 'Compose',
+    allowed: ['dart_leader', 'management', 'system_admin'],
+  },
   {
     path: '/bulk-email/drafts',
     heading: 'Drafts & scheduled',
-    allowed: ['management', 'system_admin'],
+    allowed: ['dart_leader', 'management', 'system_admin'],
   },
   {
     path: '/bulk-email/compose/1',
     heading: 'Compose a bulk email',
-    allowed: ['management', 'system_admin'],
+    allowed: ['dart_leader', 'management', 'system_admin'],
   },
-  { path: '/bulk-email/sent', heading: 'Sent', allowed: ['management', 'system_admin'] },
+  {
+    path: '/bulk-email/sent',
+    heading: 'Sent',
+    allowed: ['dart_leader', 'management', 'system_admin'],
+  },
   {
     path: '/bulk-email/sent/1',
     heading: 'Sent bulk email',
-    allowed: ['management', 'system_admin'],
+    allowed: ['dart_leader', 'management', 'system_admin'],
   },
   {
     path: '/bulk-email/mail-delivery',

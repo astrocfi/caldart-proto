@@ -58,6 +58,7 @@ import type {
   BulkEmailPreviewRequest,
   BulkEmailRecipientStatus,
   BulkEmailRunResult,
+  BulkEmailSender,
   BulkEmailSendRequest,
   BulkEmailStatus,
   BulkEmailSummary,
@@ -486,6 +487,7 @@ const bulkEmailPreviewRecipient: Matches<
   Schemas['BulkEmailPreviewRecipient']
 > = true;
 const bulkEmailPreview: Matches<BulkEmailPreview, Schemas['BulkEmailPreview']> = true;
+const bulkEmailSender: Matches<BulkEmailSender, Schemas['BulkEmailSender']> = true;
 
 /** Every pair above, so `noUnusedLocals` keeps each assertion referenced. */
 const assertions: readonly true[] = [
@@ -672,6 +674,7 @@ const assertions: readonly true[] = [
   bulkEmailPreviewRequest,
   bulkEmailPreviewRecipient,
   bulkEmailPreview,
+  bulkEmailSender,
 ];
 
 /** The schema component each assertion above names, in the same order. */
@@ -859,6 +862,7 @@ const MAPPED_COMPONENTS: readonly (keyof Schemas)[] = [
   'BulkEmailPreviewRequestRequest',
   'BulkEmailPreviewRecipient',
   'BulkEmailPreview',
+  'BulkEmailSender',
 ];
 
 /** Vitest runs with `frontend/` as its root, so the repository root is one level up. */

@@ -1,4 +1,4 @@
-:roles: management
+:roles: management, dart_leader
 
 =======
 Compose
@@ -6,8 +6,9 @@ Compose
 
 **Compose** is where you write one email to many members and friends of CalDART at once: a
 newsletter, a seminar notice, or a call for volunteers. Each person gets a copy of their own.
-CalDART management opens it as **Compose** under **Bulk Email** in the menu. A system
-administrator can open it too.
+CalDART management opens it as **Compose** under **Bulk Email** in the menu, and so does a
+DART leader, who writes to their own DART (:doc:`dart-leaders`). A system administrator can
+open it too.
 
 Pressing **Compose** opens a fresh email, or the empty one you started earlier. The screen
 reads top to bottom as three numbered cards. There is no Save button: everything you do is
@@ -45,6 +46,8 @@ reasons are:
 
 - *Account deactivated*: the account has been deactivated.
 - *Account deleted*: the account no longer exists.
+- *Not in your DART*: on a DART leader's email, the person's profile names another DART, or
+  none (:doc:`dart-leaders`).
 - *No email address* or *Invalid email address*: there is nowhere to send it.
 - *Address bounced*: an earlier email to this address came back undelivered. Once the
   address is corrected, or a user administrator presses **Clear bounce** on the account, the

@@ -57,6 +57,7 @@ from apps.bulk_email.models import (
     RecipientStatus,
 )
 from apps.bulk_email.render import COPY_TEMPLATE, PURPOSE, fill_values, render_copy
+from apps.bulk_email.senders import dart_limit, limit_dart
 from apps.mail.types import is_opted_out, sendable_types
 from caldart import audit
 from caldart.mail import MailRefusedError, error_name, send_templated
@@ -104,6 +105,10 @@ NOT_SENT_SENDER_DELETED = (
     "from your own account."
 )
 NOT_SENT_NO_TYPE = "This email was not sent: it has no type. Choose a type and send again."
+NOT_SENT_NO_DART = (
+    "This email was not sent: your profile names no DART, so there is nobody to send to. "
+    "Set your DART on My profile and send again."
+)
 
 #: The longest reason a recipient row holds.
 REASON_MAX_LENGTH = 200
@@ -277,8 +282,10 @@ def _claim(now: datetime, run: SenderRun) -> BulkEmail | None:
             bulk.status = BulkEmailStatus.SENDING
             if bulk.started_at is None:
                 bulk.started_at = timezone.now()
+                # The DART the batch is frozen against; a resumed send keeps its own.
+                bulk.dart = limit_dart(dart_limit(bulk))
             run.skipped += _freeze(bulk)
-            bulk.save(update_fields=["status", "started_at", "skipped_count", "updated_at"])
+            bulk.save(update_fields=["status", "started_at", "dart", "skipped_count", "updated_at"])
         return bulk
 
 
@@ -295,7 +302,8 @@ def _sender_refusal(bulk: BulkEmail) -> _Refusal | None:
 
     The sender's roles as they are now are checked against the type's
     ``sender_roles``, as **Send** checked them: an account deleted since, a role taken
-    away, or a type changed to name other roles all refuse it.
+    away, or a type changed to name other roles all refuse it.  So does a DART
+    leader's profile that names no DART any more (``apps.bulk_email.senders``).
     """
     if bulk.email_type is None:
         return _Refusal(reason=audit.REASON_NO_TYPE, message=NOT_SENT_NO_TYPE)
@@ -306,6 +314,9 @@ def _sender_refusal(bulk: BulkEmail) -> _Refusal | None:
             reason=audit.REASON_TYPE_NOT_SENDABLE,
             message=NOT_SENT_TYPE.format(type=bulk.email_type.name),
         )
+    limit = dart_limit(bulk)
+    if limit is not None and limit.dart is None:
+        return _Refusal(reason=audit.REASON_NO_DART, message=NOT_SENT_NO_DART)
     return None
 
 

@@ -33,6 +33,7 @@ from apps.bulk_email.models import (
 )
 from apps.bulk_email.render import body_problem, render_message, subject_problem
 from apps.bulk_email.richtext import sanitize
+from apps.bulk_email.senders import email_dart_name
 from apps.mail.models import EmailType
 from apps.mail.types import sendable_types
 from caldart.runs import RunActionSerializer
@@ -175,10 +176,12 @@ class BulkEmailDetailSerializer(serializers.ModelSerializer[BulkEmail]):
     ``undo_seconds`` is the undo window the countdown runs over.  ``email_type`` is the
     type's id, null while none is chosen, and ``email_type_name`` its name, blank then.
     ``not_sent_reason`` is why the background sender returned the email unsent, blank
-    otherwise.
+    otherwise.  ``dart_name`` is the DART a DART leader's email goes to, blank for
+    CalDART management's (``apps.bulk_email.senders.email_dart_name``).
     """
 
     email_type_name = serializers.SerializerMethodField()
+    dart_name = serializers.SerializerMethodField()
 
     sender = serializers.SerializerMethodField()
     stopped_by = serializers.SerializerMethodField()
@@ -208,6 +211,7 @@ class BulkEmailDetailSerializer(serializers.ModelSerializer[BulkEmail]):
             "status",
             "sender",
             "sender_id",
+            "dart_name",
             "created_at",
             "updated_at",
             "start_at",
@@ -246,6 +250,10 @@ class BulkEmailDetailSerializer(serializers.ModelSerializer[BulkEmail]):
     def get_email_type_name(self, bulk: BulkEmail) -> str:
         """The type's name, or ``""`` while none is chosen."""
         return email_type_name(bulk)
+
+    def get_dart_name(self, bulk: BulkEmail) -> str:
+        """The DART a DART leader's email goes to, or ``""`` for anybody."""
+        return email_dart_name(bulk)
 
     def get_stopped_by(self, bulk: BulkEmail) -> str:
         """Who pressed **Stop**, or ``""`` when nobody did or the account is gone."""
@@ -293,11 +301,13 @@ class BulkEmailSummarySerializer(serializers.ModelSerializer[BulkEmail]):
     copies are waiting to be sent; both come from the list's own annotations.
     ``email_type_name`` is the type's name, blank while none is chosen, and
     ``not_sent_reason`` why the background sender returned the email unsent, blank
-    otherwise.
+    otherwise.  ``dart_name`` is the DART recorded as the one a DART leader's email
+    goes to, blank for CalDART management's.
     """
 
     sender = serializers.SerializerMethodField()
     email_type_name = serializers.SerializerMethodField()
+    dart_name = serializers.SerializerMethodField()
     batch_count = serializers.IntegerField(read_only=True)
     remaining = serializers.IntegerField(read_only=True)
 
@@ -310,6 +320,7 @@ class BulkEmailSummarySerializer(serializers.ModelSerializer[BulkEmail]):
             "not_sent_reason",
             "status",
             "sender",
+            "dart_name",
             "created_at",
             "updated_at",
             "start_at",
@@ -333,6 +344,10 @@ class BulkEmailSummarySerializer(serializers.ModelSerializer[BulkEmail]):
     def get_email_type_name(self, bulk: BulkEmail) -> str:
         """The type's name, or ``""`` while none is chosen."""
         return email_type_name(bulk)
+
+    def get_dart_name(self, bulk: BulkEmail) -> str:
+        """The recorded DART's name, or ``""`` for none."""
+        return str(bulk.dart.name) if bulk.dart is not None else ""
 
 
 class BulkEmailBatchAddSerializer(serializers.ModelSerializer[BatchAdd]):

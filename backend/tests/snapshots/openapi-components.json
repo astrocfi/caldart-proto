@@ -607,6 +607,7 @@
       "confirm_above": "integer",
       "confirm_count": "integer|null",
       "created_at": "string(date-time)",
+      "dart_name": "string",
       "email_type": "integer|null",
       "email_type_name": "string",
       "estimated_finish_at": "string(date-time)|null",
@@ -640,6 +641,7 @@
       "confirm_above",
       "confirm_count",
       "created_at",
+      "dart_name",
       "email_type",
       "email_type_name",
       "estimated_finish_at",
@@ -780,6 +782,22 @@
     },
     "required": []
   },
+  "BulkEmailSender": {
+    "properties": {
+      "can_send": "boolean",
+      "dart": "integer|null",
+      "dart_name": "string",
+      "is_management": "boolean",
+      "reason": "string"
+    },
+    "required": [
+      "can_send",
+      "dart",
+      "dart_name",
+      "is_management",
+      "reason"
+    ]
+  },
   "BulkEmailStatusEnum": {
     "enum": [
       "draft",
@@ -793,6 +811,7 @@
     "properties": {
       "batch_count": "integer",
       "created_at": "string(date-time)",
+      "dart_name": "string",
       "email_type_name": "string",
       "failed_count": "integer",
       "id": "integer",
@@ -814,6 +833,7 @@
     "required": [
       "batch_count",
       "created_at",
+      "dart_name",
       "email_type_name",
       "failed_count",
       "id",

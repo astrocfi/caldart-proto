@@ -17,11 +17,12 @@ import { Link, useParams } from 'react-router-dom';
 import type { BulkEmailDetail } from '@/portal/api/types';
 import { Loading } from '@/portal/components/Loading';
 import { Page } from '@/portal/components/Page';
-import { useBulkEmail } from './api';
+import { useBulkEmail, useBulkSender } from './api';
 import './bulk-email.css';
 import { MessageCard } from './MessageCard';
 import { RecipientsCard } from './RecipientsCard';
 import { SendCard } from './SendCard';
+import { SenderNotice } from './SenderNotice';
 import { SendStatus } from './SendStatus';
 import { useAutosave } from './useAutosave';
 
@@ -56,6 +57,7 @@ function ComposeForm({ email }: { email: BulkEmailDetail }): JSX.Element {
     errors,
   } = useAutosave(email, email.can_edit);
   const isSendable = email.status === 'draft' || (email.can_edit && email.status === 'queued');
+  const sender = useBulkSender();
 
   return (
     <Page
@@ -72,11 +74,13 @@ function ComposeForm({ email }: { email: BulkEmailDetail }): JSX.Element {
           {email.not_sent_reason}
         </p>
       )}
+      {email.can_edit && sender.data !== undefined ? <SenderNotice sender={sender.data} /> : null}
       <Banner email={email} />
       <RecipientsCard
         emailId={email.id}
         isEditable={email.can_edit}
         isQueued={email.status === 'queued'}
+        dartName={email.dart_name}
       />
       <MessageCard
         emailId={email.id}

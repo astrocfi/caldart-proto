@@ -7,7 +7,8 @@
  * schedule**, which turns it back into a draft, and a draft has a trashcan,
  * which asks before it deletes. An email the background sender returned unsent,
  * because its sender may no longer send its type, is named above the table with
- * the reason.
+ * the reason. CalDART management, who sees every sender's emails, also sees who
+ * wrote each and the DART a DART leader's email goes to.
  */
 import type { JSX } from 'react';
 import { Link } from 'react-router-dom';
@@ -22,10 +23,11 @@ import { DeleteButton } from '@/portal/components/DeleteButton';
 import { Page } from '@/portal/components/Page';
 import { StatusDot } from '@/portal/components/StatusChip';
 import { useToast } from '@/portal/components/Toast';
-import { useBulkEmailAction, useDeleteDraft, useDrafts } from './api';
+import { useBulkEmailAction, useBulkSender, useDeleteDraft, useDrafts } from './api';
 import './bulk-email.css';
 import { formatCountdown, useSecondsUntil } from './countdown';
 import { SITE_TIME_ZONE, SITE_TIME_ZONE_NAME } from './schedule';
+import { withSenderColumns } from './senderColumns';
 import { actionError, CANCELED_MESSAGE } from './SendStatus';
 import { statusLabel, statusTone } from './status';
 
@@ -35,6 +37,7 @@ export const NO_SUBJECT = '(no subject yet)';
 /** The drafts and queued emails, each opened by its subject, with Cancel and the trashcan. */
 export function DraftsPage(): JSX.Element {
   const drafts = useDrafts();
+  const sender = useBulkSender();
   const cancel = useBulkEmailAction('cancel');
   const remove = useDeleteDraft();
   const toast = useToast();
@@ -80,7 +83,10 @@ export function DraftsPage(): JSX.Element {
         ) : (
           <DataTable
             singleLine
-            columns={draftColumns(handleCancel, handleDelete)}
+            columns={withSenderColumns(
+              draftColumns(handleCancel, handleDelete),
+              sender.data?.is_management === true,
+            )}
             rows={rows}
             rowKey={(row) => row.id}
             caption={`${rows.length} ${rows.length === 1 ? 'email' : 'emails'} not sent yet`}

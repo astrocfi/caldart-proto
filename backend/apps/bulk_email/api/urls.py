@@ -2,7 +2,15 @@
 
 from django.urls import path
 
-from apps.bulk_email.api import batch, drafts, history, preview, richtext, sender
+from apps.bulk_email.api import (
+    batch,
+    drafts,
+    history,
+    preview,
+    richtext,
+    sender,
+    sender_context,
+)
 
 app_name = "bulk_email"
 
@@ -11,6 +19,7 @@ urlpatterns = [
     path("bulk-email/images", richtext.ImageUploadView.as_view(), name="images"),
     path("bulk-email/drafts", drafts.DraftListCreateView.as_view(), name="drafts"),
     path("bulk-email/sent", history.SentListView.as_view(), name="sent"),
+    path("bulk-email/sender", sender_context.SenderContextView.as_view(), name="sender"),
     path("bulk-email/<int:pk>", drafts.BulkEmailDetailView.as_view(), name="detail"),
     path("bulk-email/<int:pk>/send", drafts.SendView.as_view(), name="send"),
     path("bulk-email/<int:pk>/cancel", drafts.CancelView.as_view(), name="cancel"),

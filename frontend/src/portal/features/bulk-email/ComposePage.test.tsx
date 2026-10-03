@@ -2,7 +2,15 @@ import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { answerBulkEmail, makeBatch, makeBulkEmail, makeRow } from '@test/fixtures/bulkEmail';
+import {
+  answerBulkEmail,
+  answerSender,
+  LEADER_SENDER,
+  makeBatch,
+  makeBulkEmail,
+  makeRow,
+  NO_DART_SENDER,
+} from '@test/fixtures/bulkEmail';
 import type { BulkEmailState } from '@test/fixtures/bulkEmail';
 import { renderRoutes } from '@test/render';
 import { ComposePage } from './ComposePage';
@@ -65,6 +73,27 @@ describe('ComposePage', () => {
     answerBulkEmail(draftState({ not_sent_reason: reason }));
     renderCompose(draftState({ not_sent_reason: reason }));
     expect(await screen.findByText(reason)).toBeVisible();
+  });
+
+  it("names a DART leader's DART as a fixed value in place of the DART filter", async () => {
+    answerSender(LEADER_SENDER);
+    answerBulkEmail(draftState({ dart_name: 'Marin' }));
+    renderCompose(draftState({ dart_name: 'Marin' }));
+    expect(await screen.findByText('Marin DART')).toBeVisible();
+    expect(screen.queryByLabelText('DART')).not.toBeInTheDocument();
+  });
+
+  it('offers the DART filter on an email that may go to anybody', async () => {
+    answerBulkEmail(draftState());
+    renderCompose(draftState());
+    expect(await screen.findByLabelText('DART')).toBeVisible();
+  });
+
+  it('tells a DART leader whose profile lost its DART why the email cannot go', async () => {
+    answerSender(NO_DART_SENDER);
+    answerBulkEmail(draftState());
+    renderCompose(draftState());
+    expect(await screen.findByText(NO_DART_SENDER.reason, { exact: false })).toBeVisible();
   });
 
   it('explains the batch the first time it is named', async () => {

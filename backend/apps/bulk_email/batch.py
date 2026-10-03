@@ -30,6 +30,7 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.validators import validate_email
 from django.db import transaction
 from django.db.models import F, QuerySet
+from rest_framework.exceptions import ValidationError
 
 from apps.accounts.models import User
 from apps.accounts.roles import ROLE_LABELS
@@ -40,6 +41,14 @@ from apps.bulk_email.models import (
     BulkEmailStatus,
     RecipientKind,
     RecipientStatus,
+)
+from apps.bulk_email.senders import (
+    NO_DART_MESSAGE,
+    SKIP_NOT_IN_DART,
+    DartLimit,
+    dart_limit,
+    limit_dart,
+    limited_filters,
 )
 from apps.darts.models import Dart
 from apps.mail.types import opted_out_user_ids
@@ -226,12 +235,19 @@ def add_filters(bulk: BulkEmail, filters: Mapping[str, str], *, actor: User) -> 
     ``actor`` is the account pressing **Add to batch**; the batch belongs to the email,
     whoever builds it.  A queued email goes back to a draft (:func:`back_to_draft`).
 
-    Raises ``DomainError`` when the email has started sending, and DRF's
-    ``ValidationError`` for a filter value the member list refuses; nothing is stored
-    then.
+    A DART leader's email is limited to the sender's DART
+    (``apps.bulk_email.senders.dart_limit``), whoever adds to it: the ``dart`` filter is
+    forced to that DART, and the email records it as its ``dart``.
+
+    Raises ``DomainError`` when the email has started sending, DRF's
+    ``ValidationError`` for a filter value the member list refuses and, keyed
+    ``filters`` then ``dart``, for a limited email's add naming another DART (by id or
+    by name), and ``DomainError`` with ``NO_DART_MESSAGE`` when the email is limited to
+    no DART at all; nothing is stored then.
     """
     with transaction.atomic():
         locked = locked_for_edit(bulk)
+        filters = _within_limit(locked, filters)
         present = set(
             locked.recipients.filter(round=0, user__isnull=False).values_list("user_id", flat=True)
         )
@@ -252,6 +268,28 @@ def add_filters(bulk: BulkEmail, filters: Mapping[str, str], *, actor: User) -> 
         already_present=add.already_count,
         count=batch_queryset(bulk).count(),
     )
+
+
+def _within_limit(locked: BulkEmail, filters: Mapping[str, str]) -> dict[str, str]:
+    """``filters`` forced to ``locked``'s DART limit, which ``locked`` records.
+
+    An email with no limit takes the filters as they are.  Raises ``DomainError`` for an
+    email limited to no DART, and DRF's
+    ``ValidationError`` keyed ``filters`` then ``dart`` for an add naming another DART.
+    """
+    limit = dart_limit(locked)
+    if limit is None:
+        return dict(filters)
+    if limit.dart is None:
+        raise DomainError(NO_DART_MESSAGE)
+    try:
+        forced = limited_filters(limit.dart, filters)
+    except ValueError as refused:
+        raise ValidationError({"filters": {"dart": [str(refused)]}}) from refused
+    if locked.dart_id != limit.dart.pk:
+        locked.dart = limit_dart(limit)
+        locked.save(update_fields=["dart"])
+    return forced
 
 
 def remove(bulk: BulkEmail, recipient_id: int, *, actor: User) -> None:
@@ -330,17 +368,20 @@ def batch_rows(bulk: BulkEmail) -> list[BatchRow]:
     now, with the opt-outs of the email's type as they are now, so an address that
     bounced or a person who opted out since being added is skipped, and two
     accounts sharing an address are sent one copy, to the first in that order.  A
-    row the send has frozen keeps its stored status and reason.
+    DART leader's email skips anybody whose profile is not in the sender's DART as it
+    is now (``apps.bulk_email.senders.dart_limit``).  A row the send has frozen keeps
+    its stored status and reason.
     """
     rows = list(surname_order(batch_queryset(bulk)).select_related("added_by"))
     accounts = _accounts_by_id(row.user_id for row in rows)
     opt_outs = type_opt_outs(bulk)
+    limit = dart_limit(bulk)
     seen: set[str] = set()
     answered: list[BatchRow] = []
     for row in rows:
         account = accounts.get(row.user_id) if row.user_id is not None else None
         if row.status == RecipientStatus.BATCHED:
-            reason = skip_reason(account, seen, opt_outs=opt_outs)
+            reason = skip_reason(account, seen, opt_outs=opt_outs, limit=limit)
             if reason == "" and account is not None:
                 seen.add(_folded(account.email))
         else:
@@ -363,22 +404,31 @@ def type_opt_outs(bulk: BulkEmail) -> TypeOptOuts | None:
 
 
 def skip_reason(
-    account: User | None, seen: set[str], *, opt_outs: TypeOptOuts | None = None
+    account: User | None,
+    seen: set[str],
+    *,
+    opt_outs: TypeOptOuts | None = None,
+    limit: DartLimit | None = None,
 ) -> str:
     """Why ``account`` is sent no copy, or ``""`` when it is sent one.
 
     The reasons are asked in this order: :data:`SKIP_DELETED` when there is no
-    account any more, :data:`SKIP_DEACTIVATED` when it is deactivated,
-    :data:`SKIP_NO_ADDRESS` when its address is blank, :data:`SKIP_INVALID` when the
-    address is not one a mail server could take, :data:`SKIP_BOUNCED` when the bounce
-    check has marked the address (``email_bounced_at`` is set, until a user
-    administrator clears it or the address changes), :data:`SKIP_OPTED_OUT` naming the
-    type when ``opt_outs`` holds the account, and :data:`SKIP_DUPLICATE` when ``seen``,
-    the trimmed and case-folded addresses already sent a copy, holds it.  Without
-    ``opt_outs``, as for an email with no type yet, nobody is skipped as opted out.
+    account any more, ``apps.bulk_email.senders.SKIP_NOT_IN_DART`` when ``limit`` is
+    given and the account's profile is not in its DART, :data:`SKIP_DEACTIVATED` when
+    it is deactivated, :data:`SKIP_NO_ADDRESS` when its address is blank,
+    :data:`SKIP_INVALID` when the address is not one a mail server could take,
+    :data:`SKIP_BOUNCED` when the bounce check has marked the address
+    (``email_bounced_at`` is set, until a user administrator clears it or the address
+    changes), :data:`SKIP_OPTED_OUT` naming the type when ``opt_outs`` holds the
+    account, and :data:`SKIP_DUPLICATE` when ``seen``, the trimmed and case-folded
+    addresses already sent a copy, holds it.  Without ``opt_outs``, as for an email
+    with no type yet, nobody is skipped as opted out; without ``limit``, as for CalDART
+    management's email, nobody is skipped for their DART.
     """
     if account is None:
         return SKIP_DELETED
+    if limit is not None and not limit.allows(account):
+        return SKIP_NOT_IN_DART
     if not account.is_active:
         return SKIP_DEACTIVATED
     address = account.email.strip()

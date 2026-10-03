@@ -1,7 +1,7 @@
 /**
- * The bulk email screens: CalDART management's Compose, the compose screen of one
- * draft, Drafts & scheduled, Sent, one send's detail, and Mail delivery; and the
- * system administrator's Email types.
+ * The bulk email screens: Compose, the compose screen of one draft, Drafts &
+ * scheduled, Sent, and one send's detail, for CalDART management and DART leaders;
+ * management's Mail delivery; and the system administrator's Email types.
  */
 import type { RouteObject } from 'react-router-dom';
 
@@ -9,7 +9,7 @@ import { RequireRole } from '../auth/guards';
 
 export const bulkEmailRoutes: RouteObject[] = [
   {
-    element: <RequireRole roles={['management']} />,
+    element: <RequireRole roles={['management', 'dart_leader']} />,
     children: [
       {
         path: 'bulk-email/compose',

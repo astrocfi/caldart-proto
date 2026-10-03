@@ -17,6 +17,7 @@ from rest_framework.views import APIView
 from apps.accounts.models import User
 from apps.accounts.roles import (
     ACCOUNT_ADMIN,
+    DART_LEADER,
     MANAGEMENT,
     SYSTEM_ADMIN,
     TREASURER,
@@ -75,8 +76,13 @@ IsUserAdmin = HasRole(USER_ADMIN)
 IsAccountAdmin = HasRole(ACCOUNT_ADMIN)
 IsSystemAdmin = HasRole(SYSTEM_ADMIN)
 
-#: Bulk email: CalDART management's, and nobody else's but the system administrator's.
+#: CalDART management's screens, such as the mail delivery check, and nobody else's but
+#: the system administrator's.
 IsManagement = HasRole(MANAGEMENT)
+
+#: Bulk email: CalDART management, who send to everyone, and DART leaders, who send to
+#: their own DART (``apps.bulk_email.senders``).
+IsBulkSender = HasAnyRole(MANAGEMENT, DART_LEADER)
 
 #: The finance area: every ``/admin/payments*`` and ``/admin/renewals*`` endpoint.
 #: A treasurer sees the money but not the medical and certificate data on

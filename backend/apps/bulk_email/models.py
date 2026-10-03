@@ -85,7 +85,10 @@ class BulkEmail(TimestampedModel):
     (``apps.bulk_email.fields``).  ``sender`` owns the draft and sends it, null once
     that account is deleted.  ``email_type`` is the kind of email it is
     (``apps.mail.models.EmailType``): null while a draft, required to send, and
-    protected, so a type a bulk email names cannot be deleted.  ``not_sent_reason``
+    protected, so a type a bulk email names cannot be deleted.  ``dart`` is the DART a
+    DART leader's email is limited to (``apps.bulk_email.senders``), recorded when the
+    draft is made, at each add and **Send**, and when the send starts; it is null for
+    CalDART management's email, and once that DART is deleted.  ``not_sent_reason``
     says why the background sender returned a queued email unsent, blank otherwise and
     once it is queued again.  ``start_at`` is when the send begins: the end of the undo
     window or the time the sender chose, which ``scheduled`` says.
@@ -113,6 +116,13 @@ class BulkEmail(TimestampedModel):
     email_type = models.ForeignKey(
         "mail.EmailType",
         on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="bulk_emails",
+    )
+    dart = models.ForeignKey(
+        "darts.Dart",
+        on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name="bulk_emails",

@@ -1,12 +1,13 @@
-:roles: management
+:roles: management, dart_leader
 
 ====
 Sent
 ====
 
 **Sent** lists every bulk email that has gone out, or is going out now, and what became of
-each copy. CalDART management opens it as **Sent** under **Bulk Email** in the menu. A system
-administrator can open it too.
+each copy. CalDART management opens it as **Sent** under **Bulk Email** in the menu, and sees
+every sender's emails. A DART leader opens it too, and sees only their own
+(:doc:`dart-leaders`). A system administrator can open it as well.
 
 
 The list
@@ -17,7 +18,8 @@ One line per email, the most recently started first:
 - **Subject**: what it said. It opens the email's own page, below.
 - **Type**: the kind of email it was, such as *Operational*.
 - **Date**: the day it started sending.
-- **From**: who sent it.
+- **From** and **DART**, for CalDART management only: who sent it, and the DART a DART
+  leader's email went to, or a dash for an email that could go to anybody.
 - **Status**: a dot and *Sending*, *Sent*, *Stopped*, or *Waiting to send the rest*.
 - **Sent**, **Failed**, and **Skipped**: how many copies went, were refused by the mail
   server, and were never sent because the person could not receive them.
