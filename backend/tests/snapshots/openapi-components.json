@@ -675,6 +675,8 @@
       "busy": "boolean",
       "emails": "integer",
       "failed": "integer",
+      "out_of_time": "boolean",
+      "remaining": "integer",
       "sent": "integer",
       "skipped": "integer"
     },
@@ -683,6 +685,8 @@
       "busy",
       "emails",
       "failed",
+      "out_of_time",
+      "remaining",
       "sent",
       "skipped"
     ]
