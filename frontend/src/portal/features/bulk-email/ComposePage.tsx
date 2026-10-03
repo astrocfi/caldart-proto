@@ -67,6 +67,11 @@ function ComposeForm({ email }: { email: BulkEmailDetail }): JSX.Element {
           : undefined
       }
     >
+      {email.not_sent_reason === '' ? null : (
+        <p className="bulk-email__notice" role="status">
+          {email.not_sent_reason}
+        </p>
+      )}
       <Banner email={email} />
       <RecipientsCard
         emailId={email.id}
@@ -74,6 +79,9 @@ function ComposeForm({ email }: { email: BulkEmailDetail }): JSX.Element {
         isQueued={email.status === 'queued'}
       />
       <MessageCard
+        emailId={email.id}
+        emailType={email.email_type}
+        emailTypeName={email.email_type_name}
         subject={values.subject}
         body={values.body}
         onSubjectChange={handleSubjectChange}

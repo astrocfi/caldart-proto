@@ -1,5 +1,6 @@
 /**
- * Card 2 of the compose screen, **What it says**: the subject and the message.
+ * Card 2 of the compose screen, **What it says**: the type, the subject, and the
+ * message. The type saves the moment it is chosen (`EmailTypeChoice`).
  *
  * Both save themselves as they are typed; a quiet note under the message says
  * whether the latest words are saved. The compose screen owns the values and the
@@ -14,6 +15,7 @@ import { Card } from '@/portal/components/Card';
 import { Field } from '@/portal/components/Field';
 import { RichTextEditor } from '@/portal/components/RichTextEditor';
 import type { RichTextEditorHandle } from '@/portal/components/RichTextEditor';
+import { EmailTypeChoice } from './EmailTypeChoice';
 import { InsertFieldMenu } from './InsertFieldMenu';
 import { uploadBulkEmailImage } from './richTextApi';
 import type { SaveState } from './useAutosave';
@@ -35,6 +37,10 @@ const MESSAGE_HINT =
   "each person's own details, such as their first name.";
 
 interface MessageCardProps {
+  emailId: number;
+  /** The chosen type's id, or null while none is chosen. */
+  emailType: number | null;
+  emailTypeName: string;
   subject: string;
   body: string;
   onSubjectChange: (subject: string) => void;
@@ -48,6 +54,9 @@ interface MessageCardProps {
 
 /** The subject and message fields, with the save note. */
 export function MessageCard({
+  emailId,
+  emailType,
+  emailTypeName,
   subject,
   body,
   onSubjectChange: handleSubjectChange,
@@ -69,10 +78,16 @@ export function MessageCard({
     <Card title="2. What it says" className="bulk-email__card">
       {isEditable ? (
         <p className="muted">
-          Write the subject and the message. Everything saves itself as you type, so you can leave
-          and come back later.
+          Choose the type, then write the subject and the message. Everything saves itself as you
+          type, so you can leave and come back later.
         </p>
       ) : null}
+      <EmailTypeChoice
+        emailId={emailId}
+        emailType={emailType}
+        emailTypeName={emailTypeName}
+        isEditable={isEditable}
+      />
       <fieldset className="bulk-email__fieldset stack" disabled={!isEditable}>
         <legend className="visually-hidden">The message</legend>
         <Field label="Subject" error={errors.subject} hint="One line that says what it is about.">

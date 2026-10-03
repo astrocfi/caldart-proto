@@ -1,0 +1,123 @@
+/**
+ * The type choice at the top of **What it says**: what kind of email this is.
+ *
+ * One radio button per type the sender may send, each with the sentence saying what
+ * the type is for. Choosing one saves it at once, and the batch is read again, since
+ * whoever turned that type off is now skipped. While a choice saves the buttons stay
+ * enabled, so the keyboard focus stays on them, and a further choice is ignored. Until a type is chosen the choice says
+ * *Choose what kind of email this is*, and Send is refused with *Choose a type.*
+ */
+import { useId, useState } from 'react';
+import type { JSX } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+
+import { ApiError } from '@/portal/api/client';
+import { batchKey, useSendableEmailTypes, useUpdateBulkEmail } from './api';
+
+/** The hint shown until a type is chosen. */
+export const NO_TYPE_HINT = 'Choose what kind of email this is.';
+
+interface EmailTypeChoiceProps {
+  emailId: number;
+  /** The chosen type's id, or null while none is chosen. */
+  emailType: number | null;
+  /** The chosen type's name, shown as it is once the email can no longer change. */
+  emailTypeName: string;
+  isEditable: boolean;
+}
+
+/** The radio list of sendable types, saving the choice the moment it is made. */
+export function EmailTypeChoice({
+  emailId,
+  emailType,
+  emailTypeName,
+  isEditable,
+}: EmailTypeChoiceProps): JSX.Element {
+  const types = useSendableEmailTypes();
+  const update = useUpdateBulkEmail(emailId);
+  const queryClient = useQueryClient();
+  const hintId = useId();
+  // The type being saved, shown as chosen until the server answers; a refusal puts
+  // the choice back to the saved one.
+  const [saving, setSaving] = useState<number | null>(null);
+  const chosen = saving ?? emailType;
+
+  const handleChoose = (id: number): void => {
+    // The radios stay enabled while a choice saves, so the keyboard focus stays on
+    // them; a second choice made before the first is saved is ignored.
+    if (update.isPending) return;
+    setSaving(id);
+    update.mutate(
+      { email_type: id },
+      {
+        onSuccess: () => void queryClient.invalidateQueries({ queryKey: batchKey(emailId) }),
+        onSettled: () => setSaving(null),
+      },
+    );
+  };
+
+  if (!isEditable) {
+    return (
+      <p>
+        <strong>Type:</strong> {emailTypeName === '' ? 'None' : emailTypeName}
+      </p>
+    );
+  }
+
+  const options = types.data ?? [];
+  const error = update.error instanceof ApiError ? update.error.message : null;
+
+  return (
+    <fieldset
+      className="stack-tight bulk-email__types"
+      aria-describedby={chosen === null ? hintId : undefined}
+    >
+      <legend>Type of email</legend>
+      {chosen === null ? (
+        <p id={hintId} className="field__hint">
+          {NO_TYPE_HINT} People who have turned that kind of email off are skipped.
+        </p>
+      ) : null}
+      {types.isPending ? <p role="status">Loading the types…</p> : null}
+      {types.isError ? (
+        <p className="field__error" role="alert">
+          The types of email could not be loaded.
+        </p>
+      ) : null}
+      {types.isSuccess && options.length === 0 ? (
+        <p className="field__error" role="alert">
+          There is no type of email you may send. Ask a system administrator.
+        </p>
+      ) : null}
+      {options.map((option) => (
+        <div key={option.id} className="bulk-email__type">
+          <input
+            id={`${hintId}-${option.id}`}
+            type="radio"
+            name={`email-type-${emailId}`}
+            value={option.id}
+            checked={chosen === option.id}
+            aria-describedby={`${hintId}-${option.id}-description`}
+            onChange={() => handleChoose(option.id)}
+          />
+          <div>
+            <label htmlFor={`${hintId}-${option.id}`} className="bulk-email__type-name">
+              {option.name}
+            </label>
+            <p
+              id={`${hintId}-${option.id}-description`}
+              className="muted bulk-email__type-description"
+            >
+              {option.description}
+            </p>
+          </div>
+        </div>
+      ))}
+      {error === null ? null : (
+        <p className="field__error" role="alert">
+          {error}
+        </p>
+      )}
+    </fieldset>
+  );
+}

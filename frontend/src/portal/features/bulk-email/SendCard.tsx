@@ -57,11 +57,12 @@ interface SendCardProps {
 
 /** What is still missing before the email can go, as short instructions. */
 export function missingSteps(
-  email: Pick<BulkEmailDetail, 'receiving_count'>,
+  email: Pick<BulkEmailDetail, 'receiving_count' | 'email_type'>,
   subject: string,
   body: string,
 ): string[] {
   return [
+    ...(email.email_type === null ? ['Choose a type.'] : []),
     ...(subject.trim() === '' ? ['Write a subject.'] : []),
     ...(body.trim() === '' ? ['Write the message.'] : []),
     ...(email.receiving_count === 0 ? ['Add people to the batch.'] : []),

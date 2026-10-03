@@ -44,6 +44,41 @@ describe('DraftsPage', () => {
     expect(screen.getByText('Newsletter').closest('tr')).toHaveTextContent('04/07/2027 at 8:00 AM');
   });
 
+  it('names the type of each draft, or a dash before one is chosen', async () => {
+    answerDrafts([
+      makeSummary({ email_type_name: '' }),
+      { ...SCHEDULED, email_type_name: 'Mission' },
+    ]);
+    renderWithProviders(<DraftsPage />);
+    const draft = (await screen.findByRole('link', { name: 'Hangar day' })).closest('tr');
+    // The type is the column after the subject.
+    expect(within(draft as HTMLElement).getAllByRole('cell')[1]).toHaveTextContent(/^—$/);
+    const scheduled = screen.getByText('Newsletter').closest('tr');
+    expect(
+      within(scheduled as HTMLElement).getByRole('cell', { name: 'Mission' }),
+    ).toBeInTheDocument();
+  });
+
+  it('names an email the sender returned unsent, with the reason', async () => {
+    const reason =
+      'This email was not sent: you can no longer send Mission email. Choose another type and send again.';
+    answerDrafts([makeSummary({ not_sent_reason: reason })]);
+    renderWithProviders(<DraftsPage />);
+    const notice = await screen.findByRole('list', { name: 'Emails that were not sent' });
+    expect(notice).toHaveTextContent(`Hangar day: ${reason}`);
+    expect(within(notice).getByRole('link', { name: 'Hangar day' })).toHaveAttribute(
+      'href',
+      '/bulk-email/compose/7',
+    );
+  });
+
+  it('shows no notice when every email is as its sender left it', async () => {
+    answerDrafts([makeSummary()]);
+    renderWithProviders(<DraftsPage />);
+    await screen.findByRole('link', { name: 'Hangar day' });
+    expect(screen.queryByRole('list', { name: 'Emails that were not sent' })).toBeNull();
+  });
+
   it('opens a draft on its compose screen', async () => {
     answerDrafts([makeSummary()]);
     renderWithProviders(<DraftsPage />);

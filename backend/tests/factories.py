@@ -14,7 +14,7 @@ from factory.django import DjangoModelFactory
 from wagtail.models import Page, Site
 
 from apps.accounts.models import AccountKind
-from apps.accounts.roles import MANAGEMENT, MEMBER
+from apps.accounts.roles import DART_LEADER, MANAGEMENT, MEMBER
 from apps.aircraft.models import (
     Aircraft,
     AircraftChange,
@@ -36,7 +36,7 @@ from apps.cms.models import (
     StandardPage,
 )
 from apps.darts.models import Dart, DartContact
-from apps.mail.models import EmailLog, EmailStatus
+from apps.mail.models import EmailLog, EmailOptOut, EmailStatus, EmailType, OptOutSource
 from apps.members.models import (
     MedicalType,
     MemberProfile,
@@ -401,6 +401,33 @@ class EmailLogFactory(ModelFactory[EmailLog]):
     message_id = factory.Sequence(lambda n: f"<factory.{n}@caldart.example.org>")
 
 
+class EmailTypeFactory(ModelFactory[EmailType]):
+    """Builds an ``EmailType`` that allows opting out and that CalDART management sends.
+
+    Each one has its own name, ``Type <n>``, and its own position after the last.
+    """
+
+    class Meta:
+        model = EmailType
+
+    name = factory.Sequence(lambda n: f"Type {n}")
+    description = factory.LazyAttribute(lambda o: f"What {o.name} email is for.")
+    allow_opt_out = True
+    sender_roles = factory.LazyFunction(lambda: ["management"])
+    position = factory.Sequence(lambda n: n + 1)
+
+
+class EmailOptOutFactory(ModelFactory[EmailOptOut]):
+    """Builds an ``EmailOptOut``: a fresh account has turned a fresh type off itself."""
+
+    class Meta:
+        model = EmailOptOut
+
+    user = factory.SubFactory(UserFactory)
+    email_type = factory.SubFactory(EmailTypeFactory)
+    source = OptOutSource.PROFILE
+
+
 def make_home_page() -> HomePage:
     """Return the site's Wagtail ``HomePage``, the one the CMS migrations publish.
 
@@ -620,7 +647,9 @@ class ReportSubscriptionFactory(ModelFactory[ReportSubscription]):
 class BulkEmailFactory(ModelFactory[BulkEmail]):
     """Builds a draft bulk email with a subject and a message, from a CalDART manager.
 
-    Its batch is empty; :func:`add_to_batch` puts people in it.
+    Its type is Operational, which every database starts with (and which is made again
+    when a test has deleted it).  Its batch is empty; :func:`add_to_batch` puts people
+    in it.
     """
 
     class Meta:
@@ -635,6 +664,21 @@ class BulkEmailFactory(ModelFactory[BulkEmail]):
         last_name="Holloway",
         roles=[MEMBER, MANAGEMENT],
     )
+    email_type = factory.LazyFunction(lambda: operational_type())
+
+
+def operational_type() -> EmailType:
+    """The Operational email type, made as the migration makes it when it is missing."""
+    email_type, _created = EmailType.objects.get_or_create(
+        slug="operational",
+        defaults={
+            "name": "Operational",
+            "description": "News about how CalDART runs.",
+            "sender_roles": [DART_LEADER, MANAGEMENT],
+            "position": 1,
+        },
+    )
+    return email_type
 
 
 def make_person(

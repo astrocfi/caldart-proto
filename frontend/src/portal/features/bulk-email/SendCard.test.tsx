@@ -29,7 +29,8 @@ function renderCard(email: BulkEmailDetail) {
 
 describe('missingSteps', () => {
   it('lists what is still needed before sending', () => {
-    expect(missingSteps({ receiving_count: 0 }, ' ', '')).toEqual([
+    expect(missingSteps({ receiving_count: 0, email_type: null }, ' ', '')).toEqual([
+      'Choose a type.',
       'Write a subject.',
       'Write the message.',
       'Add people to the batch.',
@@ -38,10 +39,20 @@ describe('missingSteps', () => {
 });
 
 describe('SendCard', () => {
-  it('names what is missing instead of offering Send', () => {
-    renderCard(makeBulkEmail({ body: '' }));
+  // Each waits for the preview the card asks for as it opens, so that request is
+  // answered before the test ends and cannot reach the next test's server.
+  it('asks for a type before offering Send', async () => {
+    const calls = renderCard(makeBulkEmail({ email_type: null, email_type_name: '' }));
+    expect(screen.getByText('Choose a type.')).toBeVisible();
+    expect(screen.queryByRole('button', { name: /^Send to/ })).toBeNull();
+    await waitFor(() => expect(calls.previews).toHaveLength(1));
+  });
+
+  it('names what is missing instead of offering Send', async () => {
+    const calls = renderCard(makeBulkEmail({ body: '' }));
     expect(screen.getByText('Write the message.')).toBeVisible();
     expect(screen.queryByRole('button', { name: /^Send to/ })).toBeNull();
+    await waitFor(() => expect(calls.previews).toHaveLength(1));
   });
 
   it('confirms a small send without asking for the count, saying when it starts', async () => {

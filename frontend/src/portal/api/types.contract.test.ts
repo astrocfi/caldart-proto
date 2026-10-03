@@ -74,8 +74,13 @@ import type {
   EmailLogEntry,
   EmailVerifyPayload,
   EmailVerifyResult,
+  EmailPreference,
+  EmailPreferenceChange,
   EmailPurpose,
   EmailStatus,
+  EmailType,
+  EmailTypeInput,
+  EmailTypeSenderRole,
   FinanceMember,
   FinancePaymentTerm,
   GrantTermPayload,
@@ -182,6 +187,7 @@ import type {
   SavedColumnSetWrite,
   Role,
   RoleSlug,
+  SendableEmailType,
   SendPasswordResetResult,
   SiteConfig,
   StateChoice,
@@ -404,6 +410,17 @@ const bounceRun: Matches<BounceRunResult, Schemas['BounceRunResult']> = true;
 const mailDeliveryCheck: Matches<MailDeliveryCheck, Schemas['MailDeliveryCheck']> = true;
 const mailDeliveryFinding: Matches<MailDeliveryFinding, Schemas['MailDeliveryFinding']> = true;
 
+/* ------------------------------------------- email types and preferences */
+const emailTypeSenderRole: Matches<EmailTypeSenderRole, Schemas['SenderRolesEnum']> = true;
+const emailType: Matches<EmailType, Schemas['EmailType']> = true;
+const emailTypeInput: Matches<EmailTypeInput, Schemas['EmailTypeRequest']> = true;
+const sendableEmailType: Matches<SendableEmailType, Schemas['SendableEmailType']> = true;
+const emailPreference: Matches<EmailPreference, Schemas['EmailPreference']> = true;
+const emailPreferenceChange: Matches<
+  EmailPreferenceChange,
+  Schemas['EmailPreferenceChangeRequest']
+> = true;
+
 /* -------------------------------------------------- reminders and system */
 const reminderLog: Matches<ReminderLogEntry, Schemas['ReminderLog']> = true;
 const reminderRun: Matches<ReminderRunResult, Schemas['ReminderRunResult']> = true;
@@ -614,6 +631,12 @@ const assertions: readonly true[] = [
   bounceRun,
   mailDeliveryCheck,
   mailDeliveryFinding,
+  emailTypeSenderRole,
+  emailType,
+  emailTypeInput,
+  sendableEmailType,
+  emailPreference,
+  emailPreferenceChange,
   reminderLog,
   reminderRun,
   reminderSchedule,
@@ -796,6 +819,12 @@ const MAPPED_COMPONENTS: readonly (keyof Schemas)[] = [
   'BounceRunResult',
   'MailDeliveryCheck',
   'MailDeliveryFinding',
+  'SenderRolesEnum',
+  'EmailType',
+  'EmailTypeRequest',
+  'SendableEmailType',
+  'EmailPreference',
+  'EmailPreferenceChangeRequest',
   'ReminderLog',
   'ReminderRunResult',
   'ReminderSchedule',

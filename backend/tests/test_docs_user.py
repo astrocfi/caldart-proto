@@ -300,6 +300,7 @@ ADMIN_PAGE_ROLES: dict[str, frozenset[str]] = {
     "bulk-email/drafts": frozenset({MANAGEMENT}),
     "bulk-email/sent": frozenset({MANAGEMENT}),
     "bulk-email/mail-delivery": frozenset({MANAGEMENT}),
+    "bulk-email/email-types": frozenset({SYSTEM_ADMIN}),
 }
 
 #: The roles that reach every page of a group other than ``admin/``.

@@ -474,6 +474,70 @@ relay forwards bounces to, or read the relay's own bounce list, since such a
 report never reaches the mailbox.
 
 
+.. _email-unsubscribe:
+
+Unsubscribe links
+=================
+
+Bulk email comes in kinds, the email types a system administrator keeps
+(:doc:`api-email-types`), and each person may turn off any type whose
+``allow_opt_out`` is set.  Every copy of a bulk email of such a type carries a way
+to do that without signing in; transactional mail (a receipt, a reminder, a
+password link) carries none, because it is about the person's own account.
+
+The token.
+   ``apps/mail/unsubscribe.py`` signs the recipient's account id and the type's id
+   with ``django.core.signing``, salt ``mail.unsubscribe``, timestamped.
+   ``read_token`` refuses a token whose signature does not match, one older than
+   ``UNSUBSCRIBE_TOKEN_MAX_AGE`` (180 days by default, :doc:`configuration`), one
+   whose payload is not the shape it writes, and one naming an account or a type
+   since deleted.  The link is ``<SITE_URL>/mail/unsubscribe/<token>``, built on
+   ``SITE_URL`` so a site served under a path keeps it.
+
+The headers.
+   ``headers_for(user, email_type)`` answers, for a type that allows opting out,
+
+   .. code-block:: text
+
+      List-Unsubscribe: <https://caldart.example.org/mail/unsubscribe/<token>>, <mailto:contact@caldart.example.org?subject=unsubscribe>
+      List-Unsubscribe-Post: List-Unsubscribe=One-Click
+
+   which is what Gmail, Yahoo, and other mail programs read to show their own
+   **Unsubscribe** button (RFC 2369 and RFC 8058).  A signed link is longer than a
+   mail line, and the mail library's standard folding would write it as RFC 2047
+   encoded words, which those programs do not read; ``caldart.mail`` writes every
+   message with a header class that keeps ``List-Unsubscribe`` as itself, one URI to
+   a folded line, whichever policy the mail backend uses.  The ``mailto:`` goes to the
+   contact address in the site settings and is left out when there is none; the
+   site reads no mailbox for it, so whoever reads the contact address acts on such a
+   message by hand.  For a type that does not allow opting out the answer is empty.
+
+The footer.
+   ``footer_for(user, email_type)`` answers the line the copy's footer shows: for a
+   type that allows opting out, *You receive <type> email from <organization>
+   because you have not turned it off. To stop it, unsubscribe here:* followed by
+   the same link; for one that does not, *<organization> sends <type> email to
+   everyone it writes to, so it cannot be turned off.* with no link.
+
+The page.
+   ``GET /mail/unsubscribe/<token>`` renders a small page in the public site's shell
+   naming the type, with one **Unsubscribe** button, and records nothing: a mail
+   scanner that follows every link in a message must not unsubscribe anybody.  The
+   button posts back to the same address, and so does a mail program's one-click
+   unsubscribe; the ``POST`` records the opt-out with the source ``unsubscribe`` and
+   answers **200** with *You will no longer receive <type> email from
+   <organization>.*  The view is CSRF-exempt: a one-click ``POST`` arrives from the
+   mail provider with no session and no token, and the signed address is the
+   authorization.  A token that does not read is a **400** page saying the link has
+   expired, and a type that no longer allows opting out records nothing and says
+   so.  Every page links to the portal's Email preferences, where the person can
+   turn the type back on after signing in.
+
+An opt-out is audited as ``email.opt_out`` with the person as both actor and
+target.  A recorded opt-out of a type that later stops allowing one stays in place,
+unapplied, until the type allows it again.
+
+
 Receiving
 =========
 

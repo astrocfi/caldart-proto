@@ -18,10 +18,12 @@ from apps.bulk_email.batch import (
     add_label,
     batch_counts,
     batch_rows,
+    email_type_name,
     given_filters,
     selected_accounts,
     unknown_filters,
 )
+from apps.bulk_email.drafts import NOT_SENDABLE_MESSAGE
 from apps.bulk_email.job import estimated_finish
 from apps.bulk_email.models import (
     BatchAdd,
@@ -31,6 +33,8 @@ from apps.bulk_email.models import (
 )
 from apps.bulk_email.render import body_problem, render_message, subject_problem
 from apps.bulk_email.richtext import sanitize
+from apps.mail.models import EmailType
+from apps.mail.types import sendable_types
 from caldart.runs import RunActionSerializer
 
 #: What a filter the member list does not have is refused with.
@@ -77,11 +81,23 @@ class BulkEmailUpdateSerializer(serializers.Serializer[dict[str, Any]]):
     free of control characters, and ``body`` HTML of at most :data:`MAX_BODY_LENGTH`
     characters, saved sanitized; both may be blank while the email is a draft, and
     both are trimmed.  Either is refused when a recipient field token in it cannot be
-    filled in (``apps.bulk_email.render.check_message``).
+    filled in (``apps.bulk_email.render.check_message``).  ``email_type`` is the id of
+    a type the caller may send (``GET /email-types/sendable``); any other is refused
+    with :data:`apps.bulk_email.drafts.NOT_SENDABLE_MESSAGE`.  The caller is the
+    context's ``user``.
     """
 
     subject = serializers.CharField(max_length=200, allow_blank=True, required=False)
     body = serializers.CharField(max_length=MAX_BODY_LENGTH, allow_blank=True, required=False)
+    email_type = serializers.PrimaryKeyRelatedField(
+        queryset=EmailType.objects.all(), required=False
+    )
+
+    def validate_email_type(self, value: EmailType) -> EmailType:
+        """Refuse a type the caller may not send."""
+        if value not in sendable_types(self.context["user"]):
+            raise ValidationError(NOT_SENDABLE_MESSAGE.format(type=value.name))
+        return value
 
     def validate_subject(self, value: str) -> str:
         """Refuse a subject that breaks a line, or carries any other control character.
@@ -156,8 +172,13 @@ class BulkEmailDetailSerializer(serializers.ModelSerializer[BulkEmail]):
     shows it: the message inside the house layout, its tokens as written.
     ``can_edit`` is true while it is a draft or queued,
     ``confirm_above`` is the batch size above which **Send** asks for the count, and
-    ``undo_seconds`` is the undo window the countdown runs over.
+    ``undo_seconds`` is the undo window the countdown runs over.  ``email_type`` is the
+    type's id, null while none is chosen, and ``email_type_name`` its name, blank then.
+    ``not_sent_reason`` is why the background sender returned the email unsent, blank
+    otherwise.
     """
+
+    email_type_name = serializers.SerializerMethodField()
 
     sender = serializers.SerializerMethodField()
     stopped_by = serializers.SerializerMethodField()
@@ -181,6 +202,9 @@ class BulkEmailDetailSerializer(serializers.ModelSerializer[BulkEmail]):
             "id",
             "subject",
             "body",
+            "email_type",
+            "email_type_name",
+            "not_sent_reason",
             "status",
             "sender",
             "sender_id",
@@ -218,6 +242,10 @@ class BulkEmailDetailSerializer(serializers.ModelSerializer[BulkEmail]):
     def get_sender(self, bulk: BulkEmail) -> str:
         """The sender's display name, or ``""`` once the account is gone."""
         return sender_name(bulk)
+
+    def get_email_type_name(self, bulk: BulkEmail) -> str:
+        """The type's name, or ``""`` while none is chosen."""
+        return email_type_name(bulk)
 
     def get_stopped_by(self, bulk: BulkEmail) -> str:
         """Who pressed **Stop**, or ``""`` when nobody did or the account is gone."""
@@ -263,9 +291,13 @@ class BulkEmailSummarySerializer(serializers.ModelSerializer[BulkEmail]):
 
     ``batch_count`` is how many people are in the batch and ``remaining`` how many
     copies are waiting to be sent; both come from the list's own annotations.
+    ``email_type_name`` is the type's name, blank while none is chosen, and
+    ``not_sent_reason`` why the background sender returned the email unsent, blank
+    otherwise.
     """
 
     sender = serializers.SerializerMethodField()
+    email_type_name = serializers.SerializerMethodField()
     batch_count = serializers.IntegerField(read_only=True)
     remaining = serializers.IntegerField(read_only=True)
 
@@ -274,6 +306,8 @@ class BulkEmailSummarySerializer(serializers.ModelSerializer[BulkEmail]):
         fields = [
             "id",
             "subject",
+            "email_type_name",
+            "not_sent_reason",
             "status",
             "sender",
             "created_at",
@@ -295,6 +329,10 @@ class BulkEmailSummarySerializer(serializers.ModelSerializer[BulkEmail]):
     def get_sender(self, bulk: BulkEmail) -> str:
         """The sender's display name, or ``""`` once the account is gone."""
         return sender_name(bulk)
+
+    def get_email_type_name(self, bulk: BulkEmail) -> str:
+        """The type's name, or ``""`` while none is chosen."""
+        return email_type_name(bulk)
 
 
 class BulkEmailBatchAddSerializer(serializers.ModelSerializer[BatchAdd]):

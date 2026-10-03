@@ -17,6 +17,7 @@ One line per email, the most recently changed first:
 
 - **Subject**: the subject so far, or *(no subject yet)*. Press it to open the email in
   :doc:`compose`.
+- **Type**: the kind of email chosen, or a dash before one is.
 - **Status**: a dot and *Draft*, *Scheduled*, or *Waiting to send* for an email in its two
   minutes before sending.
 - **When (Pacific time)**: the date and time a scheduled email goes out, such as *10/04/2026
@@ -26,6 +27,13 @@ One line per email, the most recently changed first:
 
 **Write a new email** at the top opens :doc:`compose`. Before the first draft the table reads
 *No drafts*. On a narrow screen the table scrolls sideways.
+
+An email that came due but was not sent is named above the table with the reason, such as
+*This email was not sent: you can no longer send Mission email. Choose another type and send
+again.* This happens when the person who pressed **Send** has since lost the role that sends
+that kind of email, or their account was deleted. The email is a draft again with nothing
+lost; open it, choose a type you may send, and send it again. The same line shows at the top
+of its compose screen until you do.
 
 
 What you can do

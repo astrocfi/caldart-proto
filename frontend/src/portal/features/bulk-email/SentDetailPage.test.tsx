@@ -69,6 +69,11 @@ describe('SentDetailPage', () => {
     expect(screen.queryByText(/Fields such as/)).toBeNull();
   });
 
+  it('names the type it was sent as', async () => {
+    renderSent();
+    expect(await screen.findByText('Type: Operational')).toBeVisible();
+  });
+
   it('offers the results as a download', async () => {
     renderSent();
     expect(await screen.findByRole('link', { name: 'Download results' })).toHaveAttribute(

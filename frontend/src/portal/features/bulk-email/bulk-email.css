@@ -58,3 +58,32 @@
 .bulk-email__schedule .field {
   min-width: 10rem;
 }
+
+/* The emails the background sender returned unsent, above the drafts table. */
+.bulk-email__not-sent {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* The type choice: one radio button per type, its description beside its name. */
+.bulk-email__type {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  padding-block: var(--space-1);
+}
+
+.bulk-email__type-name {
+  font-weight: var(--weight-semibold);
+  cursor: pointer;
+}
+
+.bulk-email__type-description {
+  margin: 0;
+}
+
+.bulk-email__type input {
+  width: auto;
+  accent-color: var(--color-primary);
+}

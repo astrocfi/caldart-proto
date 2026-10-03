@@ -42,6 +42,7 @@ from apps.bulk_email.models import (
     RecipientStatus,
 )
 from apps.darts.models import Dart
+from apps.mail.types import opted_out_user_ids
 from apps.members.filters import EXPORT_FILTER_PARAMS, MemberAdminFilterSet, member_admin_queryset
 from apps.members.models import MemberProfile, MembershipState
 from apps.members.services import membership_of, with_membership
@@ -87,12 +88,23 @@ SKIP_NO_ADDRESS = "No email address"
 SKIP_INVALID = "Invalid email address"
 SKIP_BOUNCED = "Address bounced"
 SKIP_DUPLICATE = "Duplicate address"
+#: Why a person who has turned the email's type off is sent no copy; ``{type}`` is the
+#: type's name.
+SKIP_OPTED_OUT = "Opted out of {type}"
 
 #: The refusal of any change to an email that has started sending.
 NOT_EDITABLE_MESSAGE = "This email has been sent and cannot be changed."
 
 #: The columns of a send's results CSV.
-RESULTS_CSV_HEADER: tuple[str, ...] = ("Name", "Email", "Kind", "DART", "Result", "Reason")
+RESULTS_CSV_HEADER: tuple[str, ...] = (
+    "Name",
+    "Email",
+    "Kind",
+    "DART",
+    "Result",
+    "Reason",
+    "Email type",
+)
 
 #: The columns of the batch CSV.
 BATCH_CSV_HEADER: tuple[str, ...] = (
@@ -104,6 +116,7 @@ BATCH_CSV_HEADER: tuple[str, ...] = (
     "Chosen by",
     "Will receive",
     "Reason",
+    "Email type",
 )
 
 
@@ -118,6 +131,17 @@ class AddResult:
     added: int
     already_present: int
     count: int
+
+
+@dataclass(frozen=True)
+class TypeOptOuts:
+    """Who has turned a bulk email's type off: the type's ``name`` and their account ids.
+
+    ``user_ids`` is empty for a type that does not allow opting out.
+    """
+
+    name: str
+    user_ids: frozenset[int]
 
 
 @dataclass(frozen=True)
@@ -303,18 +327,20 @@ def batch_rows(bulk: BulkEmail) -> list[BatchRow]:
     The rows come in the account's surname order, then first name, then address,
     with the rows of deleted accounts last in name order: the order the send goes
     in.  A ``batched`` row's reason is :func:`skip_reason` for its account as it is
-    now, so an address that bounced since the person was added is skipped, and two
+    now, with the opt-outs of the email's type as they are now, so an address that
+    bounced or a person who opted out since being added is skipped, and two
     accounts sharing an address are sent one copy, to the first in that order.  A
     row the send has frozen keeps its stored status and reason.
     """
     rows = list(surname_order(batch_queryset(bulk)).select_related("added_by"))
     accounts = _accounts_by_id(row.user_id for row in rows)
+    opt_outs = type_opt_outs(bulk)
     seen: set[str] = set()
     answered: list[BatchRow] = []
     for row in rows:
         account = accounts.get(row.user_id) if row.user_id is not None else None
         if row.status == RecipientStatus.BATCHED:
-            reason = skip_reason(account, seen)
+            reason = skip_reason(account, seen, opt_outs=opt_outs)
             if reason == "" and account is not None:
                 seen.add(_folded(account.email))
         else:
@@ -329,7 +355,16 @@ def batch_counts(rows: list[BatchRow]) -> BatchCounts:
     return BatchCounts(count=len(rows), receiving=receiving, skipped=len(rows) - receiving)
 
 
-def skip_reason(account: User | None, seen: set[str]) -> str:
+def type_opt_outs(bulk: BulkEmail) -> TypeOptOuts | None:
+    """Who has turned ``bulk``'s type off, or ``None`` while it has no type."""
+    if bulk.email_type is None:
+        return None
+    return TypeOptOuts(name=bulk.email_type.name, user_ids=opted_out_user_ids(bulk.email_type))
+
+
+def skip_reason(
+    account: User | None, seen: set[str], *, opt_outs: TypeOptOuts | None = None
+) -> str:
     """Why ``account`` is sent no copy, or ``""`` when it is sent one.
 
     The reasons are asked in this order: :data:`SKIP_DELETED` when there is no
@@ -337,8 +372,10 @@ def skip_reason(account: User | None, seen: set[str]) -> str:
     :data:`SKIP_NO_ADDRESS` when its address is blank, :data:`SKIP_INVALID` when the
     address is not one a mail server could take, :data:`SKIP_BOUNCED` when the bounce
     check has marked the address (``email_bounced_at`` is set, until a user
-    administrator clears it or the address changes), and :data:`SKIP_DUPLICATE` when
-    ``seen``, the trimmed and case-folded addresses already sent a copy, holds it.
+    administrator clears it or the address changes), :data:`SKIP_OPTED_OUT` naming the
+    type when ``opt_outs`` holds the account, and :data:`SKIP_DUPLICATE` when ``seen``,
+    the trimmed and case-folded addresses already sent a copy, holds it.  Without
+    ``opt_outs``, as for an email with no type yet, nobody is skipped as opted out.
     """
     if account is None:
         return SKIP_DELETED
@@ -353,6 +390,8 @@ def skip_reason(account: User | None, seen: set[str]) -> str:
         return SKIP_INVALID
     if account.email_bounced_at is not None:
         return SKIP_BOUNCED
+    if opt_outs is not None and account.pk in opt_outs.user_ids:
+        return SKIP_OPTED_OUT.format(type=opt_outs.name)
     if _folded(address) in seen:
         return SKIP_DUPLICATE
     return ""
@@ -380,10 +419,12 @@ def batch_document(bulk: BulkEmail) -> ReportDocument:
 
     The columns are :data:`BATCH_CSV_HEADER`: the name, address, kind, and DART the row
     holds, the account's membership status now (blank once it is deleted), the label
-    of the add that chose the person, ``Yes`` or ``No``, and the reason.  The file
-    is named ``caldart-bulk-email-<id>-batch.csv``.
+    of the add that chose the person, ``Yes`` or ``No``, the reason, and the email's
+    type (blank while it has none).  The file is named
+    ``caldart-bulk-email-<id>-batch.csv``.
     """
     labels = {add.pk: add_label(add.filters) for add in bulk.adds.all()}
+    type_name = email_type_name(bulk)
     rows = [
         (
             row.recipient.name,
@@ -394,6 +435,7 @@ def batch_document(bulk: BulkEmail) -> ReportDocument:
             labels.get(row.recipient.added_by_id or 0, ""),
             "Yes" if row.will_receive else "No",
             row.reason,
+            type_name,
         )
         for row in batch_rows(bulk)
     ]
@@ -410,9 +452,10 @@ def results_document(bulk: BulkEmail) -> ReportDocument:
 
     The columns are :data:`RESULTS_CSV_HEADER`: the name, address, kind, and DART the
     copy went to, the result in words (such as ``Sent``, ``Failed``, ``Skipped``, or
-    ``Not sent (stopped)``), and the reason.  The file is named
+    ``Not sent (stopped)``), the reason, and the email's type.  The file is named
     ``caldart-bulk-email-<id>-recipients.csv``.
     """
+    type_name = email_type_name(bulk)
     rows = [
         (
             row.name,
@@ -421,6 +464,7 @@ def results_document(bulk: BulkEmail) -> ReportDocument:
             row.dart_name,
             RecipientStatus(row.status).label,
             row.reason,
+            type_name,
         )
         for row in surname_order(batch_queryset(bulk))
     ]
@@ -430,6 +474,11 @@ def results_document(bulk: BulkEmail) -> ReportDocument:
         media_type=CSV_DOCUMENT_TYPE,
         content=content,
     )
+
+
+def email_type_name(bulk: BulkEmail) -> str:
+    """The name of ``bulk``'s type, or ``""`` while it has none."""
+    return bulk.email_type.name if bulk.email_type is not None else ""
 
 
 def snapshot(row: BulkEmailRecipient, account: User) -> None:

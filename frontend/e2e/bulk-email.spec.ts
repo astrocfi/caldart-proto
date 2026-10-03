@@ -38,8 +38,10 @@ async function addRole(page: Page, role: string): Promise<void> {
   await expect(page.getByText(/^Added \d+ (person|people)[.;]/)).toBeVisible();
 }
 
-/** Write the subject and the message, two paragraphs typed into the editor. */
+/** Choose the Operational type, then write the subject and two paragraphs into the editor. */
 async function write(page: Page, subject: string): Promise<void> {
+  await page.getByRole('radio', { name: 'Operational' }).click();
+  await expect(page.getByRole('radio', { name: 'Operational' })).toBeChecked();
   await page.getByRole('textbox', { name: /^Subject/ }).fill(subject);
   await page.getByRole('textbox', { name: 'Message' }).click();
   await page.keyboard.type('The hangar opens at nine.');
@@ -103,7 +105,28 @@ test('CalDART management builds a batch from two filter sets and sends it', asyn
   const results = page.getByRole('table', { name: /^Results: / });
   await expect(results.getByRole('row').filter({ hasText: DEMO.sysadmin })).toContainText('Sent');
 
-  expect(await latestEmailTo(DEMO.management)).toContain(subject);
+  const copy = await latestEmailTo(DEMO.management);
+  expect(copy).toContain(subject);
+  expect(copy).toContain('List-Unsubscribe-Post: List-Unsubscribe=One-Click');
+
+  // The copy's unsubscribe link opens a page that records nothing until its button is
+  // pressed, then turns Operational off; the manager turns it back on afterwards.
+  const link = /<(https?:\/\/[^>\s]+\/mail\/unsubscribe\/[^>\s]+)>/.exec(copy);
+  expect(link).not.toBeNull();
+  await page.context().clearCookies();
+  await page.goto(link?.[1] ?? '');
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Unsubscribe from Operational email' }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Unsubscribe' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'You are unsubscribed' })).toBeVisible();
+
+  await signIn(page, DEMO.management);
+  await page.goto('portal/email-preferences');
+  const operational = page.getByRole('switch', { name: 'Operational' });
+  await expect(operational).not.toBeChecked();
+  await operational.click();
+  await expect(operational).toBeChecked();
 });
 
 test('a scheduled bulk email is canceled back to a draft', async ({ page }) => {

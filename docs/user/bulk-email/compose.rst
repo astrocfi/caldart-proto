@@ -34,8 +34,8 @@ filters chosen, **Add to batch** adds every member and friend. Donors are never 
 
 Once somebody is in the batch, a line counts it, such as *38 people will receive this email;
 4 are skipped.* Under it, **Download list** saves the batch as a spreadsheet file (CSV) with
-each person's membership status, the filters that chose them, and whether they will receive
-the email. **Clear batch** takes everybody out after you press **Clear the batch**.
+each person's membership status, the filters that chose them, whether they will receive
+the email, and its type. **Clear batch** takes everybody out after you press **Clear the batch**.
 
 The table lists the batch in surname order, ten at a time until you press **Show all**. Each
 row has the person's **Name**, **Email**, and **Will receive?**, which reads *Yes* or the
@@ -49,6 +49,9 @@ reasons are:
 - *Address bounced*: an earlier email to this address came back undelivered. Once the
   address is corrected, or a user administrator presses **Clear bounce** on the account, the
   person receives copies again.
+- *Opted out of Mission* (with the email's type): the person has turned that kind of email
+  off on their :doc:`../member/email-preferences` or with an unsubscribe link. Nobody is
+  skipped for this until you choose the type.
 - *Duplicate address*: somebody earlier in the batch has the same address, so it gets one
   copy.
 
@@ -61,7 +64,13 @@ the batch** to find one person. The trashcan on a row takes that person out afte
 2. What it says
 ===============
 
-Write the **Subject**, one line, and the **Message**. Once you start typing, a quiet note
+First choose the **Type of email**: one button for each kind you may send, such as
+**Operational** or **Mission**, with a sentence saying what it is for. Until you choose,
+the card reads *Choose what kind of email this is.* The choice saves at once. Everybody who
+has turned that kind off is then skipped in the batch above. The kinds, and who may send
+each, are kept on :doc:`email-types`.
+
+Then write the **Subject**, one line, and the **Message**. Once you start typing, a quiet note
 under the message reads *Saving…* and then *Saved*.
 
 The buttons over the message format it: **Bold** and **Italic** for the words you have
@@ -94,8 +103,11 @@ not saved until it is fixed. A web address that needs braces of its own writes t
 is refused too: delete it and put it in again with **Insert field**.
 
 Each copy comes from the site's own address. Under the message it carries a short footer
-with your organization's name, the contact address when one is set, and the line *You receive
-this email as a member or a friend of* your organization.
+with your organization's name and the contact address when one is set. For a kind people may
+turn off, the footer says *You receive Mission email from CalDART because you have not turned
+it off. To stop it, unsubscribe here:* with a link for that person, and their mail program
+can offer its own **Unsubscribe** button. For a kind nobody may turn off, it says why they
+receive it instead.
 
 
 3. Check and send
@@ -108,8 +120,8 @@ preview shows what has been saved, so it catches up a moment after you stop typi
 nobody in the batch receives the email, the preview is your own copy. When a field in the
 message cannot be filled in, the preview says why instead.
 
-Until the email can go, the card lists what is missing, such as *Write a subject.* or *Add
-people to the batch.* Then it offers two buttons:
+Until the email can go, the card lists what is missing, such as *Choose a type.*, *Write a
+subject.*, or *Add people to the batch.* Then it offers two buttons:
 
 - **Send to 38 people** (with the number who will receive it) sends it now.
 - **Schedule for later** asks for a **Date** and a **Time**, in Pacific time, such as *8:00

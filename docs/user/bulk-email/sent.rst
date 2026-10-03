@@ -15,6 +15,7 @@ The list
 One line per email, the most recently started first:
 
 - **Subject**: what it said. It opens the email's own page, below.
+- **Type**: the kind of email it was, such as *Operational*.
 - **Date**: the day it started sending.
 - **From**: who sent it.
 - **Status**: a dot and *Sending*, *Sent*, *Stopped*, or *Waiting to send the rest*.
@@ -42,7 +43,7 @@ The page of one sent email has three cards:
   everybody the stop kept it from once you press **Send them now**. Nobody gets it twice, it
   starts within a minute, and the email reads *Waiting to send the rest* until then, with
   **Stop sending**.
-- **The message**: the email as it was sent, with the subject at its head. Fields such as
+- **The message**: the email as it was sent, with the subject at its head and its type above it. Fields such as
   *{first_name}* show as written, because each person's copy had their own details filled
   in.
 - **Who received it**: one line per person in the batch, with **Name**, **Email**,

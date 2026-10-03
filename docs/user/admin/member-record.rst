@@ -89,8 +89,11 @@ enough to take an account over. You can change it only on an account whose roles
 yourself. As an account administrator you can change it on an ordinary member's record and
 on another account administrator's, and on nobody else's with a role you lack, such as a
 DART leader or a treasurer. Names, the DART, the phones, and every profile field stay
-editable on any record you can open. Deactivating the account is not part of this form: it
-is on the **Danger zone** tab.
+editable on any record you can open. Deactivating the account is on the **Danger zone** tab.
+
+Below the form, **Email preferences** shows the switches the person sees on their own
+:doc:`../member/email-preferences`, one per kind of bulk email. A switch saves at once,
+*Saved.* confirms it, and the change is recorded as yours. A donor's record has none.
 
 
 Memberships
@@ -230,7 +233,7 @@ A deleted member's record
 **Payments**, and in place of the form, **Grant a term**, and **Delete this member** says
 *This record keeps a deleted member's payments in the books and cannot be changed.* A name
 or address on it would let a late payment buy a membership and mail a receipt, and deleting
-it would only move the payments to another one, so the site refuses all three, as does the
+it would only move the payments to another one, so the site refuses all of it, as does the
 :doc:`user-record`.
 
 

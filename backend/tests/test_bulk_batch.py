@@ -419,7 +419,7 @@ def test_the_batch_csv_holds_exactly_the_batch(
     management: User,
     annual_plan: MembershipPlan,
 ) -> None:
-    """One line per person, with the add's label, whether they receive it, and why not."""
+    """One line per person: the add's label, who gets it, why not, and the type."""
     team = DartFactory(name="Marin DART")
     grant_membership(make_person("amy@example.test", "Amy", "Abbott", dart=team), annual_plan)
     make_person(
@@ -439,6 +439,7 @@ def test_the_batch_csv_holds_exactly_the_batch(
             "County: Marin",
             "Yes",
             "",
+            "Operational",
         ],
         [
             "Gil Gone",
@@ -449,6 +450,7 @@ def test_the_batch_csv_holds_exactly_the_batch(
             "County: Marin",
             "No",
             batch.SKIP_DEACTIVATED,
+            "Operational",
         ],
     ]
 

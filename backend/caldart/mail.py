@@ -12,7 +12,9 @@ place that records what went out: each send writes an ``apps.mail.EmailLog``
 row, successful or refused, which is what the email log screen reads.  Each
 message carries a ``Message-ID`` stored on that row, and goes out with
 ``BOUNCE_ADDRESS`` as its envelope sender when that is set, which is how the
-bounce check (``apps.mail.bounces``) matches a returned report to its row.
+bounce check (``apps.mail.bounces``) matches a returned report to its row.  A
+``List-Unsubscribe`` header a caller passes is written as itself, never as encoded
+words, so mail programs can read its links.
 
 A send raises :class:`MailRefusedError` when the mail server refuses the message or
 cannot be reached.  A caller that must answer whatever the server does -- a request
@@ -24,9 +26,12 @@ error mail ``ADMIN_EMAILS`` receives.
 
 from __future__ import annotations
 
+import email.policy
 import logging
 import smtplib
 from collections.abc import Callable, Mapping, Sequence
+from email.headerregistry import BaseHeader, HeaderRegistry, UnstructuredHeader
+from email.policy import EmailPolicy, Policy
 from email.utils import make_msgid, parseaddr
 
 from django.conf import settings
@@ -85,6 +90,48 @@ class MailRefusedError(OSError):
         elif isinstance(exc, smtplib.SMTPRecipientsRefused):
             code = next((reply for reply, _text in exc.recipients.values()), None)
         return cls(type(exc).__name__, code)
+
+
+class _AddressListHeader(UnstructuredHeader, BaseHeader):
+    """A header that is a comma-separated list of angle-bracketed URIs.
+
+    ``List-Unsubscribe`` is one (RFC 2369).  The standard folding writes a word longer
+    than a mail line, such as a long signed link, as RFC 2047 encoded words, which hides
+    the URIs from the mail programs that read them; this header is instead written
+    as itself, one URI to a line.
+    """
+
+    def fold(self, *, policy: Policy) -> str:
+        """``Name: <uri>,`` then each further URI on a folded line of its own."""
+        uris = [uri.strip() for uri in str(self).split(",")]
+        return f"{self.name}: " + f",{policy.linesep} ".join(uris) + policy.linesep
+
+
+def _header_registry() -> HeaderRegistry:
+    """The standard header classes, with ``List-Unsubscribe`` as a URI list."""
+    registry = HeaderRegistry()
+    registry.map_to_type("list-unsubscribe", _AddressListHeader)
+    return registry
+
+
+class _Message(EmailMultiAlternatives):
+    """A message whose ``List-Unsubscribe`` stays readable however long its links are.
+
+    Whatever policy a mail backend writes the message with (the SMTP backend names
+    ``email.policy.SMTP``, the others the default), it is used with
+    :class:`_AddressListHeader` for that header.
+    """
+
+    def message(self, *, policy: Policy | None = None) -> email.message.EmailMessage:
+        """The message as the mail library builds it, under ``policy`` or the default.
+
+        A policy of the modern API (every one Django names) is used with
+        :class:`_AddressListHeader` for ``List-Unsubscribe``; any other is used as given.
+        """
+        chosen = policy if policy is not None else email.policy.default
+        if isinstance(chosen, EmailPolicy):
+            chosen = chosen.clone(header_factory=_header_registry())
+        return super().message(policy=chosen)
 
 
 def org_name() -> str:
@@ -165,7 +212,7 @@ def send_templated(
         message_headers["From"] = settings.DEFAULT_FROM_EMAIL
     else:
         message_headers.pop("From", None)
-    message = EmailMultiAlternatives(
+    message = _Message(
         subject=subject,
         body=render_to_string(f"emails/{template}.txt", rendered),
         from_email=envelope_sender,

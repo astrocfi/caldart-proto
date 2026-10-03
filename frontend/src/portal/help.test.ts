@@ -54,6 +54,8 @@ const HELP_ROUTE_PATTERNS: readonly string[] = [
   '/bulk-email/sent',
   '/bulk-email/sent/:id',
   '/bulk-email/mail-delivery',
+  '/bulk-email/types',
+  '/email-preferences',
   '/admin/users',
   '/admin/users/:id',
   '/system',

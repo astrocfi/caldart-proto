@@ -83,8 +83,12 @@ class BulkEmail(TimestampedModel):
     sanitized on every save (``apps.bulk_email.richtext.sanitize``), and both may
     carry recipient field tokens such as ``{first_name}``
     (``apps.bulk_email.fields``).  ``sender`` owns the draft and sends it, null once
-    that account is deleted.  ``start_at`` is when the send begins: the end
-    of the undo window or the time the sender chose, which ``scheduled`` says.
+    that account is deleted.  ``email_type`` is the kind of email it is
+    (``apps.mail.models.EmailType``): null while a draft, required to send, and
+    protected, so a type a bulk email names cannot be deleted.  ``not_sent_reason``
+    says why the background sender returned a queued email unsent, blank otherwise and
+    once it is queued again.  ``start_at`` is when the send begins: the end of the undo
+    window or the time the sender chose, which ``scheduled`` says.
     ``confirm_count`` is the number of people the sender typed to confirm a large
     send, null when the batch was small enough to need none.
 
@@ -106,8 +110,16 @@ class BulkEmail(TimestampedModel):
         blank=True,
         related_name="bulk_emails_sent",
     )
+    email_type = models.ForeignKey(
+        "mail.EmailType",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="bulk_emails",
+    )
     start_at = models.DateTimeField(null=True, blank=True)
     scheduled = models.BooleanField(default=False)
+    not_sent_reason = models.CharField(max_length=200, blank=True)
     confirm_count = models.PositiveIntegerField(null=True, blank=True)
     started_at = models.DateTimeField(null=True, blank=True)
     sent_at = models.DateTimeField(null=True, blank=True)

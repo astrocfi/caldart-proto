@@ -11,7 +11,8 @@ followed by the house footer, and the HTML one puts the message inside the house
 layout.  The sender hands the finished bodies to
 ``caldart.mail.send_templated`` through the pass-through pair
 ``emails/bulk_email_copy.{txt,html}`` (:data:`COPY_TEMPLATE`), so the email log
-records the copy like any other message.
+records the copy like any other message.  The email's type decides the footer line
+and the unsubscribe headers (``apps.mail.unsubscribe``).
 
 :func:`check_message` is what a save, a preview, and a send refuse a message for: a
 token the field catalog does not have, one whose HTML and plain text would not be
@@ -23,7 +24,7 @@ from __future__ import annotations
 import html as html_lib
 import re
 from collections.abc import Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 from django.template.loader import render_to_string
 from django.utils.safestring import mark_safe
@@ -41,6 +42,7 @@ from apps.bulk_email.fields import (
 )
 from apps.bulk_email.models import BulkEmail, BulkEmailRecipient
 from apps.bulk_email.richtext import MAX_NESTING_DEPTH, html_to_text, nesting_depth, sanitize
+from apps.mail.unsubscribe import Footer, footer_for, headers_for
 from caldart.mail import contact_email, org_name
 
 #: The template pair a copy is built from.
@@ -93,12 +95,39 @@ def render_copy(bulk: BulkEmail, recipient: BulkEmailRecipient) -> RenderedCopy:
     The row's ``values`` are the ones the copy went out with (:func:`fill_values`), so
     a copy rebuilt after the person's profile changed reads as it was sent.  A token
     whose value the row does not hold is filled in as empty, so its fallback stands.
+
+    The footer and the headers follow the email's type (``apps.mail.unsubscribe``):
+    for a type recipients may turn off, the footer says so with the recipient's own
+    unsubscribe link and the copy carries the ``List-Unsubscribe`` and
+    ``List-Unsubscribe-Post`` headers; for one they may not, the footer says why they
+    receive it and there is no header.  A copy of an email with no type, or for a row
+    whose account is gone, carries no header and the general line *You receive this
+    email as a member or a friend of <organization>.*
     """
     values = {name: recipient.values.get(name, "") for name in message_tokens(bulk)}
-    return render_message(bulk.subject, bulk.body, values)
+    footer: Footer | None = None
+    headers: dict[str, str] = {}
+    if bulk.email_type is not None and recipient.user is not None:
+        footer = footer_for(recipient.user, bulk.email_type)
+        headers = headers_for(recipient.user, bulk.email_type)
+    copy = render_message(
+        bulk.subject,
+        bulk.body,
+        values,
+        footer=footer,
+        type_name=bulk.email_type.name if bulk.email_type is not None else "",
+    )
+    return replace(copy, headers=headers)
 
 
-def render_message(subject: str, body: str, values: Mapping[str, str] | None) -> RenderedCopy:
+def render_message(
+    subject: str,
+    body: str,
+    values: Mapping[str, str] | None,
+    *,
+    footer: Footer | None = None,
+    type_name: str = "",
+) -> RenderedCopy:
     """A copy of the message ``subject`` and ``body`` with ``values`` filled in.
 
     ``body`` is sanitized first.  The HTML body takes each value HTML-escaped, and
@@ -108,7 +137,9 @@ def render_message(subject: str, body: str, values: Mapping[str, str] | None) ->
     as the link does.  The subject takes each value as it is, with a line break in a
     value read as a space.  ``values`` of ``None`` leaves every token as written,
     which is how the history shows a message.  Both bodies carry the organization's
-    name and contact address as they are now.
+    name and contact address as they are now, and end with ``footer`` (its line, and
+    its link to unsubscribe from ``type_name`` email when it has one), or the general
+    line when it is ``None``.  The copy carries no header.
     """
     clean = sanitize(body)
     if values is not None:
@@ -126,6 +157,9 @@ def render_message(subject: str, body: str, values: Mapping[str, str] | None) ->
         # Sanitized above, and every value in it escaped: safe to put in as it is.
         "body_html": mark_safe(clean),  # noqa: S308 - sanitized by nh3 just above
         "preheader": " ".join(text.split())[:PREHEADER_LENGTH],
+        "type_name": type_name,
+        "footer_text": footer.text if footer is not None else "",
+        "footer_url": footer.url if footer is not None else "",
     }
     return RenderedCopy(
         subject=subject,

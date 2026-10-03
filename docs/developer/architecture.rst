@@ -302,8 +302,14 @@ report, a domain module, can read it.
 ``mail``
     ``EmailLog``: one row per email the installation tried to send, written by
     ``caldart.mail.send_templated`` after every send, successful or refused.
-    Endpoint ``GET /system/emails``.  The app holds no sender of its own, so it
-    sits below everything that mails anybody.
+    ``EmailType`` and ``EmailOptOut``: the kinds of bulk email, who may send
+    each, and who has turned each off (``types.py``), with the signed unsubscribe
+    link, its headers, and its public page (``unsubscribe.py``, ``views.py``).
+    Endpoints ``GET /system/emails``, ``/email-types``, ``/me/email-preferences``
+    and ``/admin/members/{id}/email-preferences``; the page
+    ``/mail/unsubscribe/<token>``.  The app holds no sender of its own, so it
+    sits below everything that mails anybody; it reads the account roles and
+    models from ``accounts``.
 ``members``
     ``MemberProfile``, ``MembershipPlan``, and ``Membership``, and the rules
     for whether a membership is current.  Endpoints: the member's own

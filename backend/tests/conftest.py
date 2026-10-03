@@ -51,6 +51,7 @@ from apps.accounts.roles import (
     VERIFIER,
     WEBSITE_ADMIN,
 )
+from apps.mail.models import EmailType
 from apps.sysadmin import services
 from caldart import audit, events
 from caldart.settings.test import STATIC_ROOT_PREFIX
@@ -1045,6 +1046,16 @@ class FakeMailbox(Protocol):
 
     def __call__(self, *messages: bytes, refuse: Exception | None = None) -> FakeImap:
         """Answer the installed fake, holding ``messages`` or refusing with ``refuse``."""
+
+
+@pytest.fixture
+def no_email_types(db: None) -> None:
+    """Delete the email types the migrations create, so a test builds exactly its own.
+
+    Every database starts with Operational, Fundraising, and Mission; a test that lists
+    the types, or names one of its own Mission, starts from none instead.
+    """
+    EmailType.objects.all().delete()
 
 
 @pytest.fixture

@@ -40,6 +40,8 @@ test('CalDART management writes a formatted email with an image, previews it, an
   await page.getByRole('button', { name: 'Add to batch' }).click();
   await expect(page.getByText(/^Added \d+ (person|people)[.;]/)).toBeVisible();
 
+  await page.getByRole('radio', { name: 'Operational' }).click();
+  await expect(page.getByRole('radio', { name: 'Operational' })).toBeChecked();
   await page.getByRole('textbox', { name: /^Subject/ }).fill(subject);
   const toolbar = page.getByRole('group', { name: 'Message formatting' });
   const message = page.getByRole('textbox', { name: 'Message' });

@@ -48,6 +48,8 @@ sending, the most recently edited first.  Unpaginated: a sender keeps a handful.
 
    [{"id": 9,
      "subject": "Spring newsletter",
+     "email_type_name": "Operational",
+     "not_sent_reason": "",
      "status": "queued",
      "sender": "Grace Holloway",
      "created_at": "2026-04-05T09:00:00-07:00",
@@ -65,6 +67,10 @@ sending, the most recently edited first.  Unpaginated: a sender keeps a handful.
      "remaining": 0}]
 
 ``sender`` is the sender's display name, blank once the account is deleted.
+``email_type_name`` is the name of the email's type (:doc:`api-email-types`), blank
+while none is chosen.  ``not_sent_reason`` is the sentence the background sender
+left on an email it returned unsent because its sender may no longer send its type
+(:doc:`bulk-email`), blank otherwise and once the email is queued again.
 ``batch_count`` is how many people are in the batch, and ``remaining`` how many
 copies are waiting to be sent.
 
@@ -87,6 +93,9 @@ One email, with everything the compose and Sent screens show:
    {"id": 9,
     "subject": "Spring newsletter",
     "body": "<p>Dear {first_name|friend},</p><p>Join us at <strong>Livermore</strong>.</p>",
+    "email_type": 1,
+    "email_type_name": "Operational",
+    "not_sent_reason": "",
     "status": "sending",
     "sender": "Grace Holloway",
     "sender_id": 3,
@@ -113,7 +122,8 @@ One email, with everything the compose and Sent screens show:
     "undo_seconds": 120,
     "message_html": "<!doctype html>\n<html lang=\"en\">..."}
 
-``body`` is the message as sanitized HTML, its recipient field tokens as written
+``email_type`` is the id of the email's type and ``email_type_name`` its name; a
+fresh draft has none, ``null`` and blank.  ``body`` is the message as sanitized HTML, its recipient field tokens as written
 (:ref:`api-bulk-email-rich-text`).  ``message_html`` is the whole HTML email as the
 history shows it: the message inside the house email layout, with its tokens as
 written rather than filled in.  ``status`` is ``draft``, ``queued``, ``sending``, ``sent``, or ``stopped``
@@ -136,8 +146,14 @@ Saves the fields given; any may be left out.
 
 .. code-block:: json
 
-   {"subject": "Spring newsletter for {first_name}",
+   {"email_type": 1,
+    "subject": "Spring newsletter for {first_name}",
     "body": "<p>Dear {first_name|friend},</p><p>Join us at <strong>Livermore</strong>.</p>"}
+
+``email_type`` is the id of a type the caller may send (``GET
+/email-types/sendable``); any other is **400** *You cannot send <type> email. Choose
+another type.*, and an id no type carries is DRF's *Invalid pk* message.  Choosing
+a type changes who the batch skips, since everybody who has turned it off is.
 
 ``subject`` is at most 200 characters, one line, and free of control characters,
 since the mail library refuses them in a header; ``body`` is HTML of at most
@@ -207,6 +223,10 @@ Reason                     When
                            matched a permanent failure to the address
                            (:doc:`email`); it is cleared when the address
                            changes or is verified, or by **Clear bounce**
+``Opted out of <type>``    the person has turned the email's type off and
+                           the type allows that (:doc:`api-email-types`);
+                           nobody is skipped for this before a type is
+                           chosen
 ``Duplicate address``      an earlier person in that order has the same
                            address once trimmed and case-folded
 =========================  ==================================================
@@ -296,7 +316,8 @@ Empties the batch, its adds included: **200** with the empty batch, as
 The batch as a CSV download, ``caldart-bulk-email-<id>-batch.csv``, in the order
 above, with the columns ``Name``, ``Email``, ``Kind``, ``DART``, ``Membership
 status`` (the account's now, blank once it is deleted), ``Chosen by`` (the add's
-label), ``Will receive`` (``Yes`` or ``No``), and ``Reason``.
+label), ``Will receive`` (``Yes`` or ``No``), ``Reason``, and ``Email type`` (the
+email's type, blank while none is chosen).
 
 
 Sending
@@ -312,7 +333,7 @@ request.
 
    {"confirm_count": 52, "start_at": null}
 
-The email must have a subject and a message whose sanitized HTML reads as some
+The email must have a type the caller may send, a subject, and a message whose sanitized HTML reads as some
 text, every recipient field token in both must be one that can be filled in (as a
 save checks it), and somebody in its batch must receive a copy.  When more than ``BULK_EMAIL_CONFIRM_ABOVE`` people receive it,
 ``confirm_count`` must be that number, the count the sender typed; at or below
@@ -328,6 +349,9 @@ reschedules it.  A refusal is **400** keyed by the field:
 - ``subject``: *Write a subject.*, or the refusal of a token, as a save words it.
 - ``body``: *Write the message.*, also for a message of empty paragraphs, or the
   refusal of a token, as a save words it.
+- ``email_type``: *Choose a type.* when none is chosen, or *You cannot send <type>
+  email. Choose another type.* when the type's senders no longer include the
+  caller's roles.
 - ``batch``: *Nobody in the batch can receive this email. Add people to the
   batch.*
 - ``confirm_count``: *Type the number of people this email goes to.* when it is
@@ -379,7 +403,7 @@ One send's results as a CSV download, ``caldart-bulk-email-<id>-recipients.csv``
 in the order the send went, with the columns ``Name``, ``Email``, ``Kind``,
 ``DART``, ``Result`` (the row's status in words: ``Sent``, ``Failed``,
 ``Skipped``, ``Not sent (stopped)``, ``Not sent yet``, ``In the batch``, or
-``Bounced``), and ``Reason``.
+``Bounced``), ``Reason``, and ``Email type``.
 
 ``POST /system/bulk-email/run``
 -------------------------------

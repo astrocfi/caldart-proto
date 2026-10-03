@@ -1,6 +1,7 @@
 /**
- * CalDART management's bulk email screens: Compose, the compose screen of one
- * draft, Drafts & scheduled, Sent, and one send's detail.
+ * The bulk email screens: CalDART management's Compose, the compose screen of one
+ * draft, Drafts & scheduled, Sent, one send's detail, and Mail delivery; and the
+ * system administrator's Email types.
  */
 import type { RouteObject } from 'react-router-dom';
 
@@ -49,6 +50,17 @@ export const bulkEmailRoutes: RouteObject[] = [
         path: 'bulk-email/mail-delivery',
         lazy: async () => ({
           Component: (await import('../features/mail-delivery/MailDeliveryPage')).MailDeliveryPage,
+        }),
+      },
+    ],
+  },
+  {
+    element: <RequireRole roles={['system_admin']} />,
+    children: [
+      {
+        path: 'bulk-email/types',
+        lazy: async () => ({
+          Component: (await import('../features/email-types/EmailTypesPage')).EmailTypesPage,
         }),
       },
     ],

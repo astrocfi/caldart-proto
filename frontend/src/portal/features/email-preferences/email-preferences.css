@@ -1,0 +1,81 @@
+/* The email preference switches: one row per kind of bulk email. */
+.email-switches {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-4);
+  max-width: var(--measure);
+}
+
+.email-switch {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.email-switch__name {
+  font-weight: var(--weight-semibold);
+  cursor: pointer;
+}
+
+.email-switch__state {
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+}
+
+.email-switch__description {
+  margin: 0;
+}
+
+.email-switches__notice:empty {
+  display: none;
+}
+
+/* A checkbox drawn as a switch: a pill with a knob that slides right when on. */
+.email-switch input[role='switch'] {
+  appearance: none;
+  flex: none;
+  position: relative;
+  width: 2.75rem;
+  height: 1.5rem;
+  margin: 0;
+  padding: 0;
+  border: var(--hairline) solid var(--color-rule-strong);
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-sunken);
+  cursor: pointer;
+  transition: background var(--duration) var(--ease);
+}
+
+.email-switch input[role='switch']::before {
+  content: '';
+  position: absolute;
+  top: 0.125rem;
+  left: 0.125rem;
+  width: 1.125rem;
+  height: 1.125rem;
+  border-radius: 50%;
+  background: var(--color-muted);
+  transition: transform var(--duration) var(--ease);
+}
+
+.email-switch input[role='switch']:checked {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+}
+
+.email-switch input[role='switch']:checked::before {
+  background: var(--color-primary-fg);
+  transform: translateX(1.25rem);
+}
+
+.email-switch input[role='switch']:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.email-switch input[role='switch']:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}

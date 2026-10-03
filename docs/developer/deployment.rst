@@ -1958,6 +1958,17 @@ Action                        Fields beyond actor and target
                               ``skipped``; one line per **Run now** on the
                               Scheduled page, which works for at most 45
                               seconds and leaves the rest to the timer
+``bulk_email.refused``        -- (WARNING; the target is the ``BulkEmail``, the
+                              actor ``command``): the sender returned a due
+                              email unsent, with the ``reason`` below
+``email_type.create``         -- (the target is the ``EmailType``)
+``email_type.update``         --
+``email_type.delete``         --
+``email.opt_out``             ``email_type``, ``source`` -- the type turned
+                              off and where: ``profile``, ``unsubscribe``,
+                              or ``admin`` (the target is the person)
+``email.opt_in``              ``email_type``, ``source`` -- the type turned
+                              back on
 ``system.registry_import``    -- (the target is the ``RegistryImport`` row);
                               one line per **Run now** on Health & Database
 ============================= ===============================================
@@ -1974,10 +1985,12 @@ action, with a ``reason`` slug saying which rule refused it: ``self_deactivation
 ``roles_not_held``, ``system_admin_role``, ``self_delete``,
 ``system_admin_target``, ``inactive_account``, ``donor_account``,
 ``donor_kind``, ``reactivation_blocked`` (a reactivation of an account a user
-administrator has blocked), ``tombstone`` (an edit, a delete, or a term grant on
+administrator has blocked), ``tombstone`` (an edit, a delete, a term grant, or an email preference change on
 the **Deleted member** account that keeps a deleted account's payments),
-``no_such_backup``, or ``import_running`` (a **Run now** pressed while an import
-is under way).
+``no_such_backup``, ``import_running`` (a **Run now** pressed while an import
+is under way), or, for ``bulk_email.refused``, ``sender_deleted``,
+``type_not_sendable``, or ``no_type`` (the sender may no longer send the email's
+type).
 
 A record carries ids, counts, flags, and slugs and nothing else.  Email
 addresses, names, passwords, tokens, and database contents are not values the

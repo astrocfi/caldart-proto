@@ -295,6 +295,9 @@ DKIM_SELECTOR = env("DKIM_SELECTOR", default="")
 # Error reports mask the password in any URL a setting holds, ``BOUNCE_IMAP_URL``
 # among them, as well as the settings whose names Django already treats as secret.
 DEFAULT_EXCEPTION_REPORTER_FILTER = "caldart.error_reports.CredentialSafeExceptionReporterFilter"
+# How long the unsubscribe link in a bulk email keeps working, in seconds: 180 days,
+# so a message read months later still turns its type off without signing in.
+UNSUBSCRIBE_TOKEN_MAX_AGE = env.int("UNSUBSCRIBE_TOKEN_MAX_AGE", default=15_552_000)
 
 # --------------------------------------------------------------------------
 # Bulk email (``apps.bulk_email``)

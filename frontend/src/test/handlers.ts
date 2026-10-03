@@ -29,6 +29,7 @@ import type {
   AircraftSummary,
   LeaderStatus,
   Profile,
+  SendableEmailType,
   VerifierGrantPayload,
 } from '@/portal/api/types';
 import type { ReportSlug } from '../portal/reports/types';
@@ -132,6 +133,22 @@ export function makeDonorRow(overrides: Partial<DonorRow> = {}): DonorRow {
 }
 
 /** Default handlers: CSRF works, nobody is signed in, renewal and donation are off. */
+/** The email types the default handler says the signed-in sender may send. */
+export const SENDABLE_TYPES: SendableEmailType[] = [
+  {
+    id: 1,
+    name: 'Operational',
+    description: 'News about how CalDART runs.',
+    allow_opt_out: true,
+  },
+  {
+    id: 3,
+    name: 'Mission',
+    description: 'Requests for pilots and aircraft.',
+    allow_opt_out: true,
+  },
+];
+
 export const handlers = [
   http.get(
     `${API}/auth/csrf`,
@@ -205,6 +222,10 @@ export const handlers = [
       { value: 'password_reset', label: 'Password reset' },
     ]),
   ),
+  // The compose screen's type choice reads the types the sender may send.
+  http.get(`${API}/email-types/sendable`, () => HttpResponse.json(SENDABLE_TYPES)),
+  // The member record's Email preferences card reads these as the record opens.
+  http.get(`${API}/admin/members/:id/email-preferences`, () => HttpResponse.json([])),
 ];
 
 /** What `POST /auth/login` answers for a deactivated account whose password matched. */

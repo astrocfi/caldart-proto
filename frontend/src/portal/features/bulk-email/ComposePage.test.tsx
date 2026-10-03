@@ -53,6 +53,20 @@ describe('ComposePage', () => {
     ]);
   });
 
+  it('asks for the type at the top of What it says', async () => {
+    answerBulkEmail(draftState({ email_type: null, email_type_name: '' }));
+    renderCompose(draftState({ email_type: null, email_type_name: '' }));
+    const types = await screen.findByRole('group', { name: 'Type of email' });
+    expect(within(types).getByRole('radio', { name: 'Operational' })).not.toBeChecked();
+  });
+
+  it('says why an email came back unsent', async () => {
+    const reason = 'This email was not sent: you can no longer send Mission email.';
+    answerBulkEmail(draftState({ not_sent_reason: reason }));
+    renderCompose(draftState({ not_sent_reason: reason }));
+    expect(await screen.findByText(reason)).toBeVisible();
+  });
+
   it('explains the batch the first time it is named', async () => {
     answerBulkEmail(draftState());
     renderCompose(draftState());
