@@ -338,6 +338,7 @@ Mail, reminders, reports, notifications, and the CMS pages
           Notification -> User [label="recipient_user,\ncreated_by\nSET_NULL"];
           Bulk -> User [label="sender,\nstopped_by\nSET_NULL"];
           Bulk -> EmailType [label="email_type\nPROTECT"];
+          Bulk -> Dart [label="dart\nSET_NULL"];
           BulkAdd -> Bulk [label="bulk_email\nCASCADE"];
           BulkRecipient -> Bulk [label="bulk_email\nCASCADE"];
           BulkRecipient -> BulkAdd [label="added_by\nSET_NULL"];
@@ -447,6 +448,7 @@ Mail, reminders, reports, notifications, and the CMS pages
                                            -> accounts.User       FK, SET_NULL, nullable
       bulk_email.BulkEmail.sender          -> accounts.User       FK, SET_NULL, nullable
       bulk_email.BulkEmail.email_type      -> mail.EmailType      FK, PROTECT, nullable
+      bulk_email.BulkEmail.dart            -> darts.Dart          FK, SET_NULL, nullable
       bulk_email.BulkEmail.stopped_by      -> accounts.User       FK, SET_NULL, nullable
       bulk_email.BatchAdd.bulk_email       -> bulk_email.BulkEmail FK, CASCADE
       bulk_email.BulkEmailRecipient.bulk_email
@@ -1731,7 +1733,7 @@ its name, and no hand-kept ordering can go stale.
 
 **Relationships.**
 
-- Referenced by ``cms.DartPage.dart``, ``darts.DartContact.dart``, ``members.MemberProfile.dart``.
+- Referenced by ``bulk_email.BulkEmail.dart``, ``cms.DartPage.dart``, ``darts.DartContact.dart``, ``members.MemberProfile.dart``.
 
 **Airports.**  ``airport_identifiers`` is every field the team flies from,
 comma-separated and stored in the canonical ``"CCR, C83"`` form that ``save()``
@@ -4283,7 +4285,8 @@ upload alone.
 ``BulkEmail``
 -------------
 
-One email CalDART management writes, from the moment Compose opens it.
+One email CalDART management or a DART leader writes, from the moment Compose opens
+it.
 
 .. list-table::
    :header-rows: 1
@@ -4325,6 +4328,10 @@ One email CalDART management writes, from the moment Compose opens it.
      - ``ForeignKey`` to ``mail.EmailType``, ``PROTECT``
      - null; default ``NULL``
      - the kind of email it is; null while a draft has none, required to send; related name ``bulk_emails``
+   * - ``dart``
+     - ``ForeignKey`` to ``darts.Dart``, ``SET_NULL``
+     - null; default ``NULL``
+     - the DART a DART leader's email goes to (:ref:`bulk-email-dart-limit`), recorded when the draft is made, at each add and **Send**, and when the send starts; null for CalDART management's email and once that DART is deleted; related name ``bulk_emails``
    * - ``start_at``
      - ``DateTimeField``
      - null; default ``NULL``
@@ -4384,6 +4391,7 @@ One email CalDART management writes, from the moment Compose opens it.
 
 - ``sender``: foreign key to ``accounts.User``, ``SET_NULL``, nullable; the reverse accessor is ``bulk_emails_sent``.
 - ``email_type``: foreign key to ``mail.EmailType``, ``PROTECT``, nullable; the reverse accessor is ``bulk_emails``.  A type a bulk email names cannot be deleted.
+- ``dart``: foreign key to ``darts.Dart``, ``SET_NULL``, nullable; the reverse accessor is ``bulk_emails``.
 - ``stopped_by``: foreign key to ``accounts.User``, ``SET_NULL``, nullable; the reverse accessor is ``bulk_emails_stopped``.
 - ``adds``: the reverse of ``BatchAdd.bulk_email``.
 - ``recipients``: the reverse of ``BulkEmailRecipient.bulk_email``.

@@ -1,0 +1,68 @@
+:roles: dart_leader
+
+=======================
+Bulk email for a DART
+=======================
+
+A DART leader can write one email to every member and friend of their own DART (Disaster
+Airlift Response Team, one of CalDART's local groups) at once: a training night, a call for
+pilots, a change of meeting place. You use the same three screens CalDART management uses,
+**Compose** (:doc:`compose`), **Drafts & scheduled** (:doc:`drafts`), and **Sent**
+(:doc:`sent`), under **Bulk Email** in the menu. This page covers what is different for a
+DART leader.
+
+
+Your DART
+=========
+
+Your DART is the one named on your own profile, on **My profile**
+(:doc:`../member/profile`). Every email you write goes to people in that DART and nobody
+else. If your profile names a different DART later, the emails you write reach the new DART
+from then on.
+
+If your profile names no DART, **Compose** shows *Your profile names no DART, so there is
+nobody to send to. Set your DART on My profile.* in place of the email, with a link to **My
+profile**. Choose your DART there and press **Compose** again.
+
+
+Choosing who gets it
+====================
+
+On **Compose**, card **1. Who gets it** says *Sending to the Marin DART* (with your DART's
+name) where CalDART management sees a **DART** filter. Every other filter works as it does
+for management, inside your DART: **Kind**, **Search**, **Membership**, **Certificate**,
+**Medical**, **County**, **Role**, and **Expiring within (days)**. With no filters chosen,
+**Add to batch** adds every member and friend of your DART, you among them.
+
+Anybody in the batch whose profile no longer names your DART, such as a member who moved to
+another DART after you added them, shows *Not in your DART* under **Will receive?** and is
+sent nothing.
+
+
+The kind of email
+=================
+
+Card **2. What it says** offers the kinds of email a DART leader may send. As the site
+starts these are Operational and Mission email; a system administrator decides which kinds
+each role may send on **Email types** (:doc:`email-types`). Everything else on the screen,
+from the message to **Send** and **Schedule for later**, works as :doc:`compose` describes.
+
+
+Your drafts and your sent email
+===============================
+
+**Drafts & scheduled** and **Sent** list only the emails you wrote. Nobody else's drafts
+appear there, and other DART leaders do not see yours. CalDART management sees every bulk
+email, with who wrote it and the DART it went to.
+
+
+If something looks wrong
+========================
+
+If an email you scheduled went back to your drafts with *This email was not sent: your
+profile names no DART, so there is nobody to send to. Set your DART on My profile and send
+again.*, your profile lost its DART before the email started. Set your DART on **My
+profile**, open the email from **Drafts & scheduled**, check the batch, and send it again.
+If somebody you expected is missing from the batch, check their DART: only people whose
+profile names your DART can be added. A member's DART is on their profile, which an account
+administrator can change.
