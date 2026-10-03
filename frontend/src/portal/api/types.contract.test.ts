@@ -77,6 +77,8 @@ import type {
   LedgerMember,
   LedgerTotals,
   LoginPayload,
+  MailDeliveryCheck,
+  MailDeliveryFinding,
   MandateProvider,
   MandateStatus,
   ManualMethod,
@@ -389,6 +391,8 @@ const verifierGrant: Matches<VerifierGrantPayload, Schemas['VerifierGrantRequest
 const emailLog: Matches<EmailLogEntry, Schemas['EmailLog']> = true;
 const emailPurpose: Matches<EmailPurpose, Schemas['EmailPurpose']> = true;
 const bounceRun: Matches<BounceRunResult, Schemas['BounceRunResult']> = true;
+const mailDeliveryCheck: Matches<MailDeliveryCheck, Schemas['MailDeliveryCheck']> = true;
+const mailDeliveryFinding: Matches<MailDeliveryFinding, Schemas['MailDeliveryFinding']> = true;
 
 /* -------------------------------------------------- reminders and system */
 const reminderLog: Matches<ReminderLogEntry, Schemas['ReminderLog']> = true;
@@ -585,6 +589,8 @@ const assertions: readonly true[] = [
   emailLog,
   emailPurpose,
   bounceRun,
+  mailDeliveryCheck,
+  mailDeliveryFinding,
   reminderLog,
   reminderRun,
   reminderSchedule,
@@ -754,6 +760,8 @@ const MAPPED_COMPONENTS: readonly (keyof Schemas)[] = [
   'EmailLog',
   'EmailPurpose',
   'BounceRunResult',
+  'MailDeliveryCheck',
+  'MailDeliveryFinding',
   'ReminderLog',
   'ReminderRunResult',
   'ReminderSchedule',

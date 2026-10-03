@@ -15,4 +15,15 @@ export const bulkEmailRoutes: RouteObject[] = [
       },
     ],
   },
+  {
+    element: <RequireRole roles={['management']} />,
+    children: [
+      {
+        path: 'bulk-email/mail-delivery',
+        lazy: async () => ({
+          Component: (await import('../features/mail-delivery/MailDeliveryPage')).MailDeliveryPage,
+        }),
+      },
+    ],
+  },
 ];

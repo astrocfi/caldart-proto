@@ -488,6 +488,10 @@ Beyond Django's and Wagtail's own, this project adds:
    * - ``check_bounces [--dry-run]``
      - read the bounce mailbox and mark every email that bounced
        (:ref:`email-bounces`)
+   * - ``check_mail_dns``
+     - check the SPF, DKIM, and DMARC records for ``DEFAULT_FROM_EMAIL``'s domain
+       and print one line per finding; exits non-zero on any failure
+       (:ref:`deploy-mail-dns`)
    * - ``payments_sandbox_check``
      - check the configured Stripe and PayPal credentials without moving money
    * - ``import_faa_registry [--source URL|PATH] [--types-only] [--import-id ID]``
