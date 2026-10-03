@@ -32,7 +32,7 @@ from apps.bulk_email.job import apply_stop
 from apps.bulk_email.models import BulkEmail, BulkEmailStatus, RecipientStatus
 from apps.bulk_email.render import check_message
 from apps.bulk_email.richtext import html_to_text, sanitize
-from apps.bulk_email.senders import NO_DART_MESSAGE, dart_limit, limit_dart, sender_context
+from apps.bulk_email.senders import dart_limit, limit_dart, sender_context, sender_notice
 from apps.mail.types import sendable_types
 from caldart import audit
 from caldart.exceptions import DomainError, DomainPermissionError, DomainValidationError
@@ -167,19 +167,19 @@ def queue(
 
     Raises ``DomainValidationError`` keyed ``subject``, ``body``, ``email_type``
     (:data:`NO_TYPE_MESSAGE`, or :data:`NOT_SENDABLE_MESSAGE` naming the type),
-    ``batch`` (``NO_DART_MESSAGE`` for an email limited to no DART, else
-    :data:`NOBODY_MESSAGE`), ``confirm_count``, or ``start_at``, and ``DomainError``
-    once the email has started sending; nothing changes then.
+    ``batch`` (``apps.bulk_email.senders.sender_notice`` for an email limited to no
+    DART, else :data:`NOBODY_MESSAGE`), ``confirm_count``, or ``start_at``, and
+    ``DomainError`` once the email has started sending; nothing changes then.
     """
     moment = now if now is not None else timezone.now()
     with transaction.atomic():
         locked = locked_for_edit(bulk)
         _check_content(locked)
         _check_type(locked, actor)
-        limit = dart_limit(locked)
-        if limit is not None and limit.dart is None:
-            raise DomainValidationError("batch", NO_DART_MESSAGE)
-        locked.dart = limit_dart(limit)
+        notice = sender_notice(locked)
+        if notice != "":
+            raise DomainValidationError("batch", notice)
+        locked.dart = limit_dart(dart_limit(locked))
         receiving = batch_counts(batch_rows(locked)).receiving
         if receiving == 0:
             raise DomainValidationError("batch", NOBODY_MESSAGE)

@@ -10,7 +10,8 @@
  * **Download list** saves the batch as a spreadsheet. A change to the batch of a
  * scheduled email takes it back to the drafts, and the screen says so. A DART
  * leader's email goes to one DART only: the DART filter gives way to that DART,
- * named as a fixed value.
+ * named as a fixed value. While that leader's profile names no DART, nobody can be
+ * added, and the card says so, naming the leader, in place of the filters.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ChangeEvent, JSX } from 'react';
@@ -65,6 +66,8 @@ interface RecipientsCardProps {
   isQueued: boolean;
   /** The one DART a DART leader's email goes to; blank when it may go to anybody. */
   dartName: string;
+  /** Why nobody can be added, naming the email's sender; blank when somebody can. */
+  senderNotice: string;
 }
 
 /** The batch: build it with the filters, read it, and change it. */
@@ -73,6 +76,7 @@ export function RecipientsCard({
   isEditable,
   isQueued,
   dartName,
+  senderNotice,
 }: RecipientsCardProps): JSX.Element {
   const [filters, setFilters] = useState<FilterValues>({});
   const [lastAdd, setLastAdd] = useState<BulkEmailAddResult | null>(null);
@@ -154,7 +158,12 @@ export function RecipientsCard({
           is added twice.
         </p>
       ) : null}
-      {isEditable ? (
+      {isEditable && senderNotice !== '' ? (
+        <p className="bulk-email__notice" role="status">
+          {senderNotice}
+        </p>
+      ) : null}
+      {isEditable && senderNotice === '' ? (
         <div className="stack">
           {dartName === '' ? null : (
             <p>

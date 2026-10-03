@@ -31,6 +31,7 @@ export function makeBulkEmail(overrides: Partial<BulkEmailDetail> = {}): BulkEma
     sender: 'Grace Holloway',
     sender_id: 3,
     dart_name: '',
+    sender_notice: '',
     created_at: '2026-04-06T16:00:00Z',
     updated_at: '2026-04-06T16:30:00Z',
     start_at: null,

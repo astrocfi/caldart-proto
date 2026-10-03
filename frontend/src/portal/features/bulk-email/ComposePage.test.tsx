@@ -2,15 +2,7 @@ import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import {
-  answerBulkEmail,
-  answerSender,
-  LEADER_SENDER,
-  makeBatch,
-  makeBulkEmail,
-  makeRow,
-  NO_DART_SENDER,
-} from '@test/fixtures/bulkEmail';
+import { answerBulkEmail, makeBatch, makeBulkEmail, makeRow } from '@test/fixtures/bulkEmail';
 import type { BulkEmailState } from '@test/fixtures/bulkEmail';
 import { renderRoutes } from '@test/render';
 import { ComposePage } from './ComposePage';
@@ -76,7 +68,6 @@ describe('ComposePage', () => {
   });
 
   it("names a DART leader's DART as a fixed value in place of the DART filter", async () => {
-    answerSender(LEADER_SENDER);
     answerBulkEmail(draftState({ dart_name: 'Marin' }));
     renderCompose(draftState({ dart_name: 'Marin' }));
     expect(await screen.findByText('Marin DART')).toBeVisible();
@@ -89,11 +80,13 @@ describe('ComposePage', () => {
     expect(await screen.findByLabelText('DART')).toBeVisible();
   });
 
-  it('tells a DART leader whose profile lost its DART why the email cannot go', async () => {
-    answerSender(NO_DART_SENDER);
-    answerBulkEmail(draftState());
-    renderCompose(draftState());
-    expect(await screen.findByText(NO_DART_SENDER.reason, { exact: false })).toBeVisible();
+  it("says whose email it is when its sender's profile names no DART, in place of the filters", async () => {
+    const notice =
+      'This email belongs to Lane Lead, whose profile names no DART, so nobody can be added.';
+    answerBulkEmail(draftState({ sender_notice: notice }));
+    renderCompose(draftState({ sender_notice: notice }));
+    expect(await screen.findByText(notice)).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Add to batch' })).not.toBeInTheDocument();
   });
 
   it('explains the batch the first time it is named', async () => {

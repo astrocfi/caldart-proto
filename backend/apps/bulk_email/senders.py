@@ -36,6 +36,12 @@ NOT_YOUR_DART_MESSAGE = "You can only send to your own DART."
 #: Why a person outside a DART leader's DART is sent no copy.
 SKIP_NOT_IN_DART = "Not in your DART"
 
+#: Why nobody can be added to an email whose sender may send to nobody; ``{name}`` is
+#: the sender's name.
+OWNER_NO_DART_MESSAGE = (
+    "This email belongs to {name}, whose profile names no DART, so nobody can be added."
+)
+
 
 @dataclass(frozen=True)
 class SenderContext:
@@ -132,6 +138,22 @@ def limited_filters(dart: Dart, filters: Mapping[str, str]) -> dict[str, str]:
 def limit_dart(limit: DartLimit | None) -> Dart | None:
     """The DART an email with ``limit`` is recorded as going to: ``None`` without one."""
     return limit.dart if limit is not None else None
+
+
+def sender_notice(bulk: BulkEmail) -> str:
+    """Why nobody can be added to ``bulk`` or sent it, or ``""`` when somebody can.
+
+    That is :data:`OWNER_NO_DART_MESSAGE` naming the sender when the email is limited to
+    no DART (:func:`dart_limit`), as a DART leader's is once their profile names none,
+    so a manager who opens the email reads whose it is.  Blank for any other email,
+    including one that has started sending, which nobody can change.
+    """
+    if not bulk.can_edit or bulk.sender is None:
+        return ""
+    limit = dart_limit(bulk)
+    if limit is None or limit.dart is not None:
+        return ""
+    return OWNER_NO_DART_MESSAGE.format(name=bulk.sender.display_name)
 
 
 def email_dart_name(bulk: BulkEmail) -> str:

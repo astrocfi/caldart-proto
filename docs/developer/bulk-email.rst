@@ -165,7 +165,10 @@ email limited to no DART refuses every add.  ``batch.skip_reason`` takes the lim
 and skips anybody whose profile is not in the DART with *Not in your DART*, right
 after a deleted account, so the batch screen shows it at once and the freeze stores
 it.  And ``drafts.queue`` refuses an email limited to no DART, as the background
-sender's claim does.  ``BulkEmail.dart`` records the DART the email goes to when the
+sender's claim does; the claim also returns unsent an email whose batch the limit
+leaves nobody in, and the send loop checks the limit again before every copy (both
+under *The sender*, below).  ``senders.sender_notice`` names
+the sender of an email limited to no DART, for the compose screen and the refusals.  ``BulkEmail.dart`` records the DART the email goes to when the
 draft is made, at each add and **Send**, and when the send starts; the lists show
 it, and once the email has started it is the DART it went to.
 
@@ -209,21 +212,27 @@ away, or the type's senders changed, while a send is scheduled.  An email whose
 sender's account has been deleted, or who may no longer send the type, is not sent.
 So is the email of a DART leader whose profile names no DART any more
 (:ref:`bulk-email-dart-limit`), with *This email was not sent: your profile names no
-DART, so there is nobody to send to. Set your DART on My profile and send again.*
+DART, so there is nobody to send to. Set your DART on My profile and send again.*, and
+one that has never started whose leader's DART changed so that nobody in the batch is
+in it, with *Your DART changed, so this email was not sent. Add the people again and
+send when it is ready.*, rather than a send that ends with no copy and no word why.
 One that never started goes back to a draft, its batch and content intact and its
 schedule cleared; one **Send the rest** queued again goes back to ``stopped``, its
 queued copies with it.  Either way ``not_sent_reason`` keeps the sentence the Drafts
 screen and the compose screen show, such as *This email was not sent: you can no
 longer send Mission email. Choose another type and send again.*, a WARNING
 ``bulk_email.refused`` audit line names the email under the ``command`` actor with
-the reason ``type_not_sendable``, ``sender_deleted``, ``no_type``, or ``no_dart``,
-and the claim moves on to the next due email.  Queuing the email again clears ``not_sent_reason``.
+the reason ``type_not_sendable``, ``sender_deleted``, ``no_type``, ``no_dart``, or
+``dart_changed``, and the claim moves on to the next due email.  Queuing the email again clears ``not_sent_reason``.
 
 The pending rows are then sent in surname order, one copy each.  Right before each
-copy goes, after its pause, the run reads the person's opt-out of the email's type
-afresh (``apps.mail.types.is_opted_out``): one made during a long paced send, or
-between **Stop** and **Send the rest**, is honored, the row becomes ``skipped`` with
-*Opted out of <type>*, and ``skipped_count`` grows.  After a copy is
+copy goes, after its pause, the run reads afresh whether the person is still in the
+DART a DART leader's email is limited to (the person's profile and the sender's, as
+they are then) and the person's opt-out of the email's type
+(``apps.mail.types.is_opted_out``): a change made during a long paced send, between
+**Stop** and **Send the rest**, or before a run that died is resumed, is honored, the
+row becomes ``skipped`` with *Not in your DART* or *Opted out of <type>*, and
+``skipped_count`` grows.  After a copy is
 handed to the mail server its row is saved first, ``sent`` with its
 ``Message-ID``, and only then the email's counts, all outside any transaction, so a
 run that dies after the hand-over leaves the copy marked sent and the next run does

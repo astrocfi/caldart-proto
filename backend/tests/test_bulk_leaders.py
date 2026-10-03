@@ -9,16 +9,17 @@ with the sender and the DART.
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
 
 import pytest
 from django.core import mail
+from freezegun import freeze_time
 from pytest_django import Settings
 from rest_framework.test import APIClient
 
 from apps.accounts.roles import DART_LEADER, MANAGEMENT, MEMBER, SYSTEM_ADMIN
-from apps.bulk_email import job
+from apps.bulk_email import drafts, job
 from apps.bulk_email.models import BatchAdd, BulkEmail, BulkEmailStatus, RecipientStatus
 from apps.bulk_email.senders import (
     NO_DART_MESSAGE,
@@ -47,6 +48,11 @@ pytestmark = pytest.mark.django_db
 API = "/api/v1/bulk-email"
 NOW = datetime(2026, 4, 6, 17, 0, tzinfo=UTC)
 
+#: Why nobody can be added to the Marin leader's email once their profile names no DART.
+OWNER_NOTICE = (
+    "This email belongs to Lane Lead, whose profile names no DART, so nobody can be added."
+)
+
 #: Everybody in the Marin DART: Ann, Bea, and their leader, Lane.
 MARIN_ADDRESSES = {"ann@example.test", "bea@example.test", "lane@example.test"}
 
@@ -55,6 +61,12 @@ def url(bulk: BulkEmail, action: str = "") -> str:
     """``/api/v1/bulk-email/{id}`` for ``bulk``, then ``/<action>`` when one is given."""
     base = f"{API}/{bulk.pk}"
     return f"{base}/{action}" if action else base
+
+
+def refreshed(bulk: BulkEmail) -> BulkEmail:
+    """``bulk`` read afresh."""
+    bulk.refresh_from_db()
+    return bulk
 
 
 def make_leader(email: str, dart: Dart | None, first: str = "Lane", last: str = "Lead") -> User:
@@ -347,7 +359,42 @@ def test_a_leader_who_loses_their_dart_cannot_add(
     leader.profile.dart = None
     leader.profile.save()
     response = leader_client.post(url(leader_draft, "batch/add"), {"filters": {}}, format="json")
-    assert (response.status_code, response.json()) == (409, {"detail": NO_DART_MESSAGE})
+    assert (response.status_code, response.json()) == (409, {"detail": OWNER_NOTICE})
+
+
+@pytest.mark.parametrize("viewer", ["leader", "management"])
+def test_an_email_whose_sender_has_no_dart_says_whose_it_is(
+    api_client: APIClient,
+    leader: User,
+    management: User,
+    leader_draft: BulkEmail,
+    viewer: str,
+) -> None:
+    """The leader and a manager both read why nobody can be added, naming the leader."""
+    leader.profile.dart = None
+    leader.profile.save()
+    api_client.force_login(leader if viewer == "leader" else management)
+    body = api_client.get(url(leader_draft)).json()
+    assert (body["sender_notice"], body["dart_name"]) == (OWNER_NOTICE, "")
+
+
+def test_an_email_whose_sender_has_a_dart_has_no_notice(
+    leader_client: APIClient, leader_draft: BulkEmail
+) -> None:
+    """A leader with a DART can add people: the notice is blank."""
+    assert leader_client.get(url(leader_draft)).json()["sender_notice"] == ""
+
+
+def test_a_manager_adding_to_a_no_dart_leader_s_email_reads_whose_it_is(
+    management_client: APIClient, leader: User, leader_draft: BulkEmail
+) -> None:
+    """The refusal names the email's sender, not the manager's own profile."""
+    leader.profile.dart = None
+    leader.profile.save()
+    response = management_client.post(
+        url(leader_draft, "batch/add"), {"filters": {}}, format="json"
+    )
+    assert response.json() == {"detail": OWNER_NOTICE}
 
 
 # --------------------------------------------------------------------------
@@ -361,7 +408,7 @@ def test_a_leader_who_loses_their_dart_cannot_send(
     leader.profile.dart = None
     leader.profile.save()
     response = leader_client.post(url(leader_draft, "send"), {}, format="json")
-    assert (response.status_code, response.json()) == (400, {"batch": [NO_DART_MESSAGE]})
+    assert (response.status_code, response.json()) == (400, {"batch": [OWNER_NOTICE]})
 
 
 def test_a_batch_only_outside_the_dart_cannot_be_sent(
@@ -463,6 +510,83 @@ def test_the_refusal_is_audited_as_no_dart(
     refused = [line for line in audit_messages(audit_log) if audit.BULK_EMAIL_REFUSED in line]
     assert len(refused) == 1
     assert f"reason={audit.REASON_NO_DART}" in refused[0]
+
+
+def test_send_the_rest_skips_someone_who_left_the_dart_after_stop(
+    leader: User, people: dict[str, User], napa: Dart, no_pause: None
+) -> None:
+    """A copy stopped, then sent the rest after its person moved DART, is skipped."""
+    bulk = BulkEmailFactory(sender=leader, status=BulkEmailStatus.QUEUED, start_at=NOW)
+    add_to_batch(bulk, people["ann"], people["bea"])
+    BulkEmail.objects.filter(pk=bulk.pk).update(stop_requested=True, stopped_by=leader)
+    job.run_sender(now=NOW)
+    people["bea"].profile.dart = napa
+    people["bea"].profile.save()
+    drafts.resume(refreshed(bulk), actor=leader, now=NOW)
+    job.run_sender(now=NOW)
+    rows = {row.email: (row.status, row.reason) for row in bulk.recipients.all()}
+    assert (rows, refreshed(bulk).skipped_count, len(mail.outbox)) == (
+        {
+            "ann@example.test": (RecipientStatus.SENT, ""),
+            "bea@example.test": (RecipientStatus.SKIPPED, SKIP_NOT_IN_DART),
+        },
+        1,
+        1,
+    )
+
+
+def test_a_resumed_run_skips_everyone_once_the_leader_s_dart_changed(
+    leader: User, people: dict[str, User], napa: Dart, no_pause: None
+) -> None:
+    """A send left part way and resumed after the leader's DART changed sends no more."""
+    bulk = BulkEmailFactory(
+        sender=leader, status=BulkEmailStatus.SENDING, start_at=NOW, started_at=NOW
+    )
+    for row in add_to_batch(bulk, people["ann"], people["bea"]):
+        row.status = RecipientStatus.PENDING
+        row.save()
+    leader.profile.dart = napa
+    leader.profile.save()
+    job.run_sender(now=NOW)
+    assert (len(mail.outbox), refreshed(bulk).skipped_count) == (0, 2)
+
+
+@pytest.mark.parametrize(
+    ("moment", "scheduled"),
+    [(NOW, False), (NOW + timedelta(days=2), True)],
+    ids=["send", "schedule"],
+)
+def test_an_email_whose_leader_changed_dart_after_send_is_not_sent(
+    leader_client: APIClient,
+    leader: User,
+    leader_draft: BulkEmail,
+    people: dict[str, User],
+    napa: Dart,
+    settings: Settings,
+    audit_log: pytest.LogCaptureFixture,
+    moment: datetime,
+    scheduled: bool,
+) -> None:
+    """The sender returns it to the drafts with the reason and audits ``dart_changed``."""
+    settings.BULK_EMAIL_UNDO_SECONDS = 0
+    add_to_batch(leader_draft, people["ann"], people["bea"])
+    with freeze_time(NOW - timedelta(minutes=5)):
+        payload = {"start_at": moment.isoformat()} if scheduled else {}
+        response = leader_client.post(url(leader_draft, "send"), payload, format="json")
+    assert response.status_code == 200
+    leader.profile.dart = napa
+    leader.profile.save()
+    with freeze_time(moment):
+        job.run_sender()
+    bulk = refreshed(leader_draft)
+    refused = [line for line in audit_messages(audit_log) if audit.BULK_EMAIL_REFUSED in line]
+    assert (bulk.status, bulk.not_sent_reason, len(mail.outbox), len(refused)) == (
+        BulkEmailStatus.DRAFT,
+        job.NOT_SENT_DART_CHANGED,
+        0,
+        1,
+    )
+    assert f"reason={audit.REASON_DART_CHANGED}" in refused[0]
 
 
 # --------------------------------------------------------------------------

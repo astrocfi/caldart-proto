@@ -124,6 +124,7 @@ REASON_SENDER_DELETED = "sender_deleted"
 REASON_TYPE_NOT_SENDABLE = "type_not_sendable"
 REASON_NO_TYPE = "no_type"
 REASON_NO_DART = "no_dart"
+REASON_DART_CHANGED = "dart_changed"
 
 log = logging.getLogger(LOGGER_NAME)
 

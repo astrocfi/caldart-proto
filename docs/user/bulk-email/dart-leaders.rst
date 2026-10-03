@@ -22,7 +22,9 @@ from then on.
 
 If your profile names no DART, **Compose** shows *Your profile names no DART, so there is
 nobody to send to. Set your DART on My profile.* in place of the email, with a link to **My
-profile**. Choose your DART there and press **Compose** again.
+profile**. Choose your DART there and press **Compose** again. An email you started earlier
+says, in place of the filters, that it belongs to you and that your profile names no DART,
+so nobody can be added; CalDART management reads the same line if they open it.
 
 
 Choosing who gets it
@@ -66,3 +68,9 @@ profile**, open the email from **Drafts & scheduled**, check the batch, and send
 If somebody you expected is missing from the batch, check their DART: only people whose
 profile names your DART can be added. A member's DART is on their profile, which an account
 administrator can change.
+
+If an email went back to your drafts with *Your DART changed, so this email was not sent.
+Add the people again and send when it is ready.*, your profile names a different DART than
+the one you built the batch in. Open it from **Drafts & scheduled**, press **Clear batch**,
+add the people of your DART, and send it again. A send you stopped and then finished with
+**Send the rest** also skips anybody who has left your DART since, with *Not in your DART*.

@@ -43,7 +43,7 @@ from apps.bulk_email.models import (
     RecipientStatus,
 )
 from apps.bulk_email.senders import (
-    NO_DART_MESSAGE,
+    OWNER_NO_DART_MESSAGE,
     SKIP_NOT_IN_DART,
     DartLimit,
     dart_limit,
@@ -242,8 +242,8 @@ def add_filters(bulk: BulkEmail, filters: Mapping[str, str], *, actor: User) -> 
     Raises ``DomainError`` when the email has started sending, DRF's
     ``ValidationError`` for a filter value the member list refuses and, keyed
     ``filters`` then ``dart``, for a limited email's add naming another DART (by id or
-    by name), and ``DomainError`` with ``NO_DART_MESSAGE`` when the email is limited to
-    no DART at all; nothing is stored then.
+    by name), and ``DomainError`` with ``OWNER_NO_DART_MESSAGE`` naming the sender when
+    the email is limited to no DART at all; nothing is stored then.
     """
     with transaction.atomic():
         locked = locked_for_edit(bulk)
@@ -281,7 +281,7 @@ def _within_limit(locked: BulkEmail, filters: Mapping[str, str]) -> dict[str, st
     if limit is None:
         return dict(filters)
     if limit.dart is None:
-        raise DomainError(NO_DART_MESSAGE)
+        raise DomainError(OWNER_NO_DART_MESSAGE.format(name=_sender_name(locked)))
     try:
         forced = limited_filters(limit.dart, filters)
     except ValueError as refused:
@@ -290,6 +290,11 @@ def _within_limit(locked: BulkEmail, filters: Mapping[str, str]) -> dict[str, st
         locked.dart = limit_dart(limit)
         locked.save(update_fields=["dart"])
     return forced
+
+
+def _sender_name(bulk: BulkEmail) -> str:
+    """The display name of ``bulk``'s sender, or ``""`` once the account is gone."""
+    return bulk.sender.display_name if bulk.sender is not None else ""
 
 
 def remove(bulk: BulkEmail, recipient_id: int, *, actor: User) -> None:

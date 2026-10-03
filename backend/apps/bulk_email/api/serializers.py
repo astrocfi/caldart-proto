@@ -33,7 +33,7 @@ from apps.bulk_email.models import (
 )
 from apps.bulk_email.render import body_problem, render_message, subject_problem
 from apps.bulk_email.richtext import sanitize
-from apps.bulk_email.senders import email_dart_name
+from apps.bulk_email.senders import email_dart_name, sender_notice
 from apps.mail.models import EmailType
 from apps.mail.types import sendable_types
 from caldart.runs import RunActionSerializer
@@ -178,10 +178,14 @@ class BulkEmailDetailSerializer(serializers.ModelSerializer[BulkEmail]):
     ``not_sent_reason`` is why the background sender returned the email unsent, blank
     otherwise.  ``dart_name`` is the DART a DART leader's email goes to, blank for
     CalDART management's (``apps.bulk_email.senders.email_dart_name``).
+    ``sender_notice`` says why nobody can be added to the email, naming its sender, while
+    it is limited to no DART, and is blank otherwise
+    (``apps.bulk_email.senders.sender_notice``).
     """
 
     email_type_name = serializers.SerializerMethodField()
     dart_name = serializers.SerializerMethodField()
+    sender_notice = serializers.SerializerMethodField()
 
     sender = serializers.SerializerMethodField()
     stopped_by = serializers.SerializerMethodField()
@@ -212,6 +216,7 @@ class BulkEmailDetailSerializer(serializers.ModelSerializer[BulkEmail]):
             "sender",
             "sender_id",
             "dart_name",
+            "sender_notice",
             "created_at",
             "updated_at",
             "start_at",
@@ -254,6 +259,10 @@ class BulkEmailDetailSerializer(serializers.ModelSerializer[BulkEmail]):
     def get_dart_name(self, bulk: BulkEmail) -> str:
         """The DART a DART leader's email goes to, or ``""`` for anybody."""
         return email_dart_name(bulk)
+
+    def get_sender_notice(self, bulk: BulkEmail) -> str:
+        """Why nobody can be added to the email, or ``""`` when somebody can."""
+        return sender_notice(bulk)
 
     def get_stopped_by(self, bulk: BulkEmail) -> str:
         """Who pressed **Stop**, or ``""`` when nobody did or the account is gone."""

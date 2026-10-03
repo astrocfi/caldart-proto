@@ -109,6 +109,7 @@ One email, with everything the compose and Sent screens show:
     "sender": "Grace Holloway",
     "sender_id": 3,
     "dart_name": "",
+    "sender_notice": "",
     "created_at": "2026-04-05T09:00:00-07:00",
     "updated_at": "2026-04-07T08:00:41-07:00",
     "start_at": "2026-04-07T08:00:00-07:00",
@@ -136,7 +137,10 @@ One email, with everything the compose and Sent screens show:
 fresh draft has none, ``null`` and blank.  ``dart_name`` is the DART a DART leader's
 email goes to, blank for CalDART management's: while the email can still change it
 is the sender's DART as it is now, and once it has started sending the DART it went
-to.  ``body`` is the message as sanitized HTML, its recipient field tokens as written
+to.  ``sender_notice`` is blank unless the email can still change and its sender is
+a DART leader whose profile names no DART, when it reads *This email belongs to
+<name>, whose profile names no DART, so nobody can be added.*, naming the sender, for
+whoever opens it; the compose screen shows it in place of the filters.  ``body`` is the message as sanitized HTML, its recipient field tokens as written
 (:ref:`api-bulk-email-rich-text`).  ``message_html`` is the whole HTML email as the
 history shows it: the message inside the house email layout, with its tokens as
 written rather than filled in.  ``status`` is ``draft``, ``queued``, ``sending``, ``sent``, or ``stopped``
@@ -316,8 +320,7 @@ is not one of the available choices."]}}``.  For a DART leader's email, a ``dart
 other than the sender's DART's id, a DART's name included, is **400**
 ``{"filters": {"dart": ["You can only send to your own DART."]}}``.  Once the email
 has started sending the answer is **409**, and so is an add to the email of a DART
-leader whose profile names no DART, with the sentence ``POST /bulk-email/drafts``
-refuses that leader with.
+leader whose profile names no DART, with the sentence ``sender_notice`` carries.
 
 ``DELETE /bulk-email/{id}/batch/{rid}``
 ---------------------------------------
@@ -376,8 +379,8 @@ reschedules it.  A refusal is **400** keyed by the field:
   caller's roles.
 - ``batch``: *Nobody in the batch can receive this email. Add people to the
   batch.*, or, for a DART leader's email whose sender's profile names no DART,
-  *Your profile names no DART, so there is nobody to send to. Set your DART on My
-  profile.*
+  *This email belongs to <name>, whose profile names no DART, so nobody can be
+  added.*, naming the sender.
 - ``confirm_count``: *Type the number of people this email goes to.* when it is
   missing, or *The batch has changed: it now holds 52 people. Type the new
   count.* when it does not match.
@@ -484,7 +487,10 @@ inside that DART too.  The server keeps the limit whatever the client sends:
   *Not in your DART*, so a person who moves to another DART after being added, or a
   row that reached the batch any other way, receives nothing;
 - **Send** refuses the email of a leader whose profile names no DART, and the
-  background sender checks again when it starts the send (:doc:`bulk-email`);
+  background sender checks again when it starts the send, returning the email unsent
+  when the leader's DART has changed so that nobody in the batch is in it, and again
+  before every copy, so **Send the rest** and a resumed run skip anybody outside the
+  DART as it is then (:doc:`bulk-email`);
 - a leader reaches only their own emails, by any id.
 
 The types a leader may send are the ones whose senders name ``dart_leader``

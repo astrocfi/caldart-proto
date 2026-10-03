@@ -37,9 +37,9 @@ test('a DART leader sends bulk email to their own DART', async ({ page }) => {
   );
 
   // A leader may send Operational email, and Fundraising is not offered.
-  await expect(page.getByRole('radio', { name: 'Fundraising' })).toHaveCount(0);
   await page.getByRole('radio', { name: 'Operational' }).click();
   await expect(page.getByRole('radio', { name: 'Operational' })).toBeChecked();
+  await expect(page.getByRole('radio', { name: 'Fundraising' })).toHaveCount(0);
   await page.getByRole('textbox', { name: /^Subject/ }).fill(subject);
   await page.getByRole('textbox', { name: 'Message' }).click();
   await page.keyboard.type('We meet at the hangar on Thursday.');
