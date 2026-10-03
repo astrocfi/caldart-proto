@@ -482,7 +482,17 @@ token naming a field the catalog does not have is unknown, and
 ``fields.values_for`` reads one person's value for each token a message uses,
 and ``fields.substitute`` puts them in, HTML-escaping each value for the HTML
 part, so a name holding ``<b>`` arrives as text, and replacing an empty value
-by the token's fallback.
+by the token's fallback.  A value that lands inside a link's ``href`` or an
+image's ``src`` is percent-encoded as well, everything but ``@``, so
+``https://caldart.org/darts?name={dart_name}`` works for *Marin & Napa* and
+``mailto:{email}`` for an address holding a ``+``.
+
+``{{`` and ``}}`` are never part of a token and are left exactly as written,
+inside an address or out; they never stand for a single brace.  A web address
+that needs a brace of its own writes it percent-encoded, ``%7B`` and ``%7D``,
+and ``fields.unknown_token_message`` says so when a sender writes one bare:
+*{id} is not a recipient field. Choose a field from Insert field, or, if the
+braces belong in a web address, write them as %7B and %7D: %7Bid%7D.*
 
 
 ``GET /bulk-email/fields``
@@ -514,14 +524,18 @@ checks it and keeps it:
 - it must be a PNG, JPEG, GIF, or WebP image by its content, whatever its name
   says, read with Pillow, or it is refused with *Choose a PNG, JPEG, GIF, or
   WebP image.*, which is also the answer for a file cut short;
-- it must hold at most 40 million pixels, or it is refused with *This image is
-  too big to use in an email. Choose a smaller one.*, before its pixels are
-  read;
+- it must hold at most 200 frames, and at most 40 million pixels counted across
+  every frame (the canvas times the frame count), or it is refused with *This
+  image is too big to use in an email. Choose a smaller one.*.  Both are checked
+  from the file's headers before any pixel is decoded, so a few kilobytes of GIF
+  holding hundreds of one-pixel frames on a huge canvas costs nothing to refuse.
+  A canvas Pillow itself treats as a decompression bomb (over about 89 million
+  pixels) gets the same answer;
 - an image wider than ``BULK_EMAIL_IMAGE_MAX_WIDTH`` (1200 pixels) is scaled
   down to that width with its proportions kept, an animated one frame by frame;
   a photo is turned upright by its orientation tag; and every image is saved
-  afresh in its own format, which drops its metadata, a photo's location among
-  it;
+  afresh in its own format without its comment, EXIF block, XMP, or color
+  profile, so a photo's location never reaches a reader;
 - the file is stored as ``bulk-email/<uuid>.<ext>`` under ``MEDIA_ROOT``, its
   name a fresh random UUID, with a ``BulkEmailImage`` row naming the caller as
   the uploader (:ref:`data-model-bulk-email`).

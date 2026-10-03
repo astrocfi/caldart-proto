@@ -291,6 +291,16 @@ describe('RichTextEditor links', () => {
     expect(lastChange(handleChange)).toBe('<p>Hello</p>');
   });
 
+  it('closes the link panel on Escape from one of its buttons', async () => {
+    render(<Harness initial="<p>Hello</p>" />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Link' }));
+    screen.getByRole('button', { name: 'Add link' }).focus();
+    await userEvent.keyboard('{Escape}');
+
+    expect(screen.queryByRole('region', { name: 'Link' })).toBeNull();
+  });
+
   it('closes the panel on Escape without changing anything', async () => {
     const handleChange = vi.fn();
     render(<Harness initial="<p>Hello</p>" onChange={handleChange} />);
@@ -380,6 +390,24 @@ describe('RichTextEditor images', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Choose a PNG, JPEG, GIF, or WebP image.',
     );
+  });
+
+  it('moves the focus to Cancel when an upload fails', async () => {
+    render(<Harness onUploadImage={() => Promise.reject(new Error('Too big.'))} />);
+
+    await userEvent.upload(screen.getByLabelText('Choose an image'), png);
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Cancel' })).toHaveFocus());
+  });
+
+  it('closes the image panel on Escape after a failed upload', async () => {
+    render(<Harness onUploadImage={() => Promise.reject(new Error('Too big.'))} />);
+
+    await userEvent.upload(screen.getByLabelText('Choose an image'), png);
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Cancel' })).toHaveFocus());
+    await userEvent.keyboard('{Escape}');
+
+    expect(screen.queryByRole('region', { name: 'Image' })).toBeNull();
   });
 
   it('keeps a small image at its own size', async () => {

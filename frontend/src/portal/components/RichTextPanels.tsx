@@ -2,9 +2,8 @@
  * The two small panels `RichTextEditor` opens under its toolbar: one asks for a
  * link's address, the other for an uploaded image's description.
  *
- * Each panel takes the focus when it opens, closes on **Cancel** or on Escape in
- * its text box, and
- * says what is wrong in words when it cannot finish.
+ * Each panel takes the focus when it opens, closes on **Cancel** or on Escape
+ * anywhere inside it, and says what is wrong in words when it cannot finish.
  */
 import { useEffect, useRef, useState } from 'react';
 import type { JSX, KeyboardEvent, ReactNode, RefObject } from 'react';
@@ -23,35 +22,52 @@ export const IMAGE_ALT_ERROR = 'Describe the image before putting it in.';
 interface PanelProps {
   /** The panel's accessible name. */
   label: string;
+  /** Closes the panel, on Escape anywhere inside it. */
+  onCancel: () => void;
   children: ReactNode;
 }
 
-/** The frame both panels share: a labeled section under the toolbar. */
-function Panel({ label, children }: PanelProps): JSX.Element {
+/**
+ * The frame both panels share: a labeled section under the toolbar that closes on
+ * Escape wherever the focus is inside it, a text box or a button alike.
+ */
+function Panel({ label, onCancel, children }: PanelProps): JSX.Element {
+  const sectionRef = useRef<HTMLElement>(null);
+  const cancelRef = useRef(onCancel);
+  useEffect(() => {
+    cancelRef.current = onCancel;
+  }, [onCancel]);
+
+  // A native listener: the section is not itself a control, so it carries no
+  // React key handler, but a key pressed on any control inside bubbles to it.
+  useEffect(() => {
+    const section = sectionRef.current;
+    if (section === null) return undefined;
+    const handleKeyDown = (event: globalThis.KeyboardEvent): void => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      cancelRef.current();
+    };
+    section.addEventListener('keydown', handleKeyDown);
+    return () => section.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   return (
-    <section className="rich-text__panel stack-tight" aria-label={label}>
+    <section ref={sectionRef} className="rich-text__panel stack-tight" aria-label={label}>
       {children}
     </section>
   );
 }
 
 /**
- * The key handler for a panel's text box: Enter does `onEnter` and Escape
- * `onEscape`.  The editor usually sits in a form, and Enter here must never
- * submit it.
+ * The key handler for a panel's text box: Enter does `onEnter`.  The editor
+ * usually sits in a form, and Enter here must never submit it.
  */
-function panelKeys(
-  onEnter: () => void,
-  onEscape: () => void,
-): (event: KeyboardEvent<HTMLInputElement>) => void {
+function enterKey(onEnter: () => void): (event: KeyboardEvent<HTMLInputElement>) => void {
   return (event) => {
-    if (event.key === 'Enter') {
-      event.preventDefault();
-      onEnter();
-    } else if (event.key === 'Escape') {
-      event.preventDefault();
-      onEscape();
-    }
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    onEnter();
   };
 }
 
@@ -103,10 +119,10 @@ export function LinkPanel({
     onApply(href);
   };
 
-  const handleKeyDown = panelKeys(handleApply, handleCancel);
+  const handleKeyDown = enterKey(handleApply);
 
   return (
-    <Panel label="Link">
+    <Panel label="Link" onCancel={handleCancel}>
       <Field
         label="Web or email address"
         hint="Where the link goes, such as caldart.org/events."
@@ -162,7 +178,8 @@ export interface ImagePanelProps {
  *
  * The description is required: many mail programs hide images until the reader
  * allows them, and the description is what stands in.  **Put image in** waits for
- * the upload; a failed upload says why and offers only **Cancel**.
+ * the upload; a failed upload says why, offers only **Cancel**, and moves the focus
+ * to it, since the description box that held the focus is gone.
  */
 export function ImagePanel({
   fileName,
@@ -173,6 +190,12 @@ export function ImagePanel({
   const [alt, setAlt] = useState('');
   const [error, setError] = useState<string | null>(null);
   const inputRef = useFocusOnMount<HTMLInputElement>();
+  const cancelRef = useRef<HTMLButtonElement>(null);
+  const hasFailed = upload.status === 'failed';
+
+  useEffect(() => {
+    if (hasFailed) cancelRef.current?.focus();
+  }, [hasFailed]);
 
   const handleInsert = (): void => {
     if (alt.trim() === '') {
@@ -182,12 +205,12 @@ export function ImagePanel({
     onInsert(alt.trim());
   };
 
-  const handleKeyDown = panelKeys(() => {
+  const handleKeyDown = enterKey(() => {
     if (upload.status === 'ready') handleInsert();
-  }, handleCancel);
+  });
 
   return (
-    <Panel label="Image">
+    <Panel label="Image" onCancel={handleCancel}>
       <p className="rich-text__status" role="status">
         {upload.status === 'uploading' ? `Uploading ${fileName}…` : null}
         {upload.status === 'ready' ? `${fileName} is uploaded.` : null}
@@ -221,7 +244,7 @@ export function ImagePanel({
             Put image in
           </Button>
         )}
-        <Button small variant="quiet" onClick={handleCancel}>
+        <Button ref={cancelRef} small variant="quiet" onClick={handleCancel}>
           Cancel
         </Button>
       </div>
