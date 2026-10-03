@@ -17,7 +17,7 @@ from apps.mail.unsubscribe import UNSUBSCRIBE_SALT, make_token, unsubscribe_url
 from tests.conftest import audit_messages
 from tests.factories import EmailOptOutFactory, EmailTypeFactory
 
-pytestmark = pytest.mark.django_db
+pytestmark = [pytest.mark.django_db, pytest.mark.usefixtures("no_email_types")]
 
 #: What a mail program posts for a one-click unsubscribe (RFC 8058).
 ONE_CLICK_BODY = "List-Unsubscribe=One-Click"
@@ -29,7 +29,7 @@ def page_url(token: str) -> str:
 
 
 @pytest.fixture
-def mission() -> EmailType:
+def mission(no_email_types: None) -> EmailType:
     """Mission email, which a person may turn off."""
     return EmailTypeFactory(name="Mission")
 

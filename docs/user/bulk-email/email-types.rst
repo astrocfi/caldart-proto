@@ -29,9 +29,9 @@ A table with one row per kind, in the order every screen lists them:
 - **Can be turned off**: **Yes** or **No**, with a colored dot.
 - **Edit** and a trashcan.
 
-A new site has no kinds at all until you add one. The demo site starts with three:
-**Operational** and **Mission**, sent by CalDART management and DART leaders, and
-**Fundraising**, sent by CalDART management alone. All three can be turned off.
+Every site starts with three kinds: **Operational** and **Mission**, sent by CalDART
+management and DART leaders, and **Fundraising**, sent by CalDART management alone. All
+three can be turned off. They are ordinary kinds: edit them, delete them, or add more.
 
 
 Adding or changing a kind

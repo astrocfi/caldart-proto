@@ -17,7 +17,7 @@ from apps.mail.models import EmailOptOut, EmailType
 from tests.conftest import audit_messages, role_matrix
 from tests.factories import EmailOptOutFactory, EmailTypeFactory, UserFactory
 
-pytestmark = pytest.mark.django_db
+pytestmark = [pytest.mark.django_db, pytest.mark.usefixtures("no_email_types")]
 
 LIST_URL = "/api/v1/email-types"
 SENDABLE_URL = "/api/v1/email-types/sendable"
@@ -41,7 +41,7 @@ def payload(**overrides: Any) -> dict[str, Any]:
 
 
 @pytest.fixture
-def seeded_types() -> dict[str, EmailType]:
+def seeded_types(no_email_types: None) -> dict[str, EmailType]:
     """Operational, Fundraising, and Mission, with the seed's senders, by name."""
     return {
         "Operational": EmailTypeFactory(

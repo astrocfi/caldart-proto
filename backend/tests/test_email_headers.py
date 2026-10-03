@@ -17,7 +17,7 @@ from apps.mail.unsubscribe import Footer, footer_for, headers_for, read_token
 from caldart.mail import send_templated
 from tests.factories import EmailTypeFactory, make_site_settings
 
-pytestmark = pytest.mark.django_db
+pytestmark = [pytest.mark.django_db, pytest.mark.usefixtures("no_email_types")]
 
 #: ``List-Unsubscribe`` with the HTTPS link and a ``mailto:``, capturing the token.
 LIST_UNSUBSCRIBE_RE = re.compile(
@@ -34,13 +34,13 @@ def site(settings: Settings) -> None:
 
 
 @pytest.fixture
-def mission() -> EmailType:
+def mission(no_email_types: None) -> EmailType:
     """Mission email, which a person may turn off."""
     return EmailTypeFactory(name="Mission")
 
 
 @pytest.fixture
-def operational() -> EmailType:
+def operational(no_email_types: None) -> EmailType:
     """Operational email, which nobody may turn off."""
     return EmailTypeFactory(name="Operational", allow_opt_out=False)
 

@@ -18,7 +18,7 @@ from apps.members.services import TOMBSTONE_CHANGE_REFUSED, tombstone_for
 from tests.conftest import audit_messages, role_matrix
 from tests.factories import EmailOptOutFactory, EmailTypeFactory
 
-pytestmark = pytest.mark.django_db
+pytestmark = [pytest.mark.django_db, pytest.mark.usefixtures("no_email_types")]
 
 ME_URL = "/api/v1/me/email-preferences"
 
@@ -30,13 +30,13 @@ def member_url(user: User | int) -> str:
 
 
 @pytest.fixture
-def mission() -> EmailType:
+def mission(no_email_types: None) -> EmailType:
     """Mission email, which a person may turn off."""
     return EmailTypeFactory(name="Mission", description="Pilots wanted.", position=1)
 
 
 @pytest.fixture
-def operational() -> EmailType:
+def operational(no_email_types: None) -> EmailType:
     """Operational email, which nobody may turn off."""
     return EmailTypeFactory(name="Operational", allow_opt_out=False, position=2)
 
