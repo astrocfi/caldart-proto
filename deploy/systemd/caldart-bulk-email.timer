@@ -1,0 +1,27 @@
+# Every-minute trigger for the CalDART bulk email sender.
+#
+# Deploy root: /opt/caldart, with the checkout in caldart/.
+# deploy/steps/timers.sh installs and enables it.
+# Inspect with:
+#   systemctl list-timers caldart-bulk-email.timer
+
+[Unit]
+Description=Run the CalDART bulk email sender every minute
+Documentation=file:///opt/caldart/caldart/docs/developer/deployment.rst
+
+[Timer]
+Unit=caldart-bulk-email.service
+
+# At the start of every minute, so a send queued with its undo window starts
+# within a minute of the window closing.
+OnCalendar=*-*-* *:*:00
+
+# A run missed while the machine was off is simply the next minute's run.
+Persistent=false
+
+# The undo window and a scheduled time are promises to the minute, so systemd
+# does not coalesce or spread this wakeup.
+AccuracySec=1s
+
+[Install]
+WantedBy=timers.target

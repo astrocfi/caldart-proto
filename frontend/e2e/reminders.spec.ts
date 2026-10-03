@@ -71,7 +71,7 @@ test('a system administrator keeps the run controls on the Scheduled page', asyn
   await signIn(page, DEMO.sysadmin);
   await page
     .getByRole('navigation', { name: 'Portal sections' })
-    .getByRole('link', { name: 'Scheduled' })
+    .getByRole('link', { name: 'Scheduled', exact: true })
     .click();
   await expect(page).toHaveURL(/\/portal\/system\/scheduled$/);
 

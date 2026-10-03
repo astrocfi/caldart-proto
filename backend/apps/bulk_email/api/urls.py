@@ -2,19 +2,26 @@
 
 from django.urls import path
 
-from apps.bulk_email.api import views
+from apps.bulk_email.api import batch, drafts, history, sender
 
 app_name = "bulk_email"
 
 urlpatterns = [
-    path("bulk-email", views.BulkEmailListView.as_view(), name="list"),
-    path("bulk-email/preview", views.PreviewView.as_view(), name="preview"),
-    path("bulk-email/preview.csv", views.PreviewCsvView.as_view(), name="preview-csv"),
-    path("bulk-email/send", views.SendView.as_view(), name="send"),
-    path("bulk-email/<int:pk>", views.BulkEmailDetailView.as_view(), name="detail"),
+    path("bulk-email/drafts", drafts.DraftListCreateView.as_view(), name="drafts"),
+    path("bulk-email/sent", history.SentListView.as_view(), name="sent"),
+    path("bulk-email/<int:pk>", drafts.BulkEmailDetailView.as_view(), name="detail"),
+    path("bulk-email/<int:pk>/send", drafts.SendView.as_view(), name="send"),
+    path("bulk-email/<int:pk>/cancel", drafts.CancelView.as_view(), name="cancel"),
+    path("bulk-email/<int:pk>/stop", drafts.StopView.as_view(), name="stop"),
+    path("bulk-email/<int:pk>/resume", drafts.ResumeView.as_view(), name="resume"),
+    path("bulk-email/<int:pk>/batch", batch.BatchView.as_view(), name="batch"),
+    path("bulk-email/<int:pk>/batch.csv", batch.BatchCsvView.as_view(), name="batch-csv"),
+    path("bulk-email/<int:pk>/batch/add", batch.BatchAddView.as_view(), name="batch-add"),
+    path("bulk-email/<int:pk>/batch/<int:rid>", batch.BatchRowView.as_view(), name="batch-row"),
     path(
         "bulk-email/<int:pk>/recipients.csv",
-        views.RecipientsCsvView.as_view(),
+        history.RecipientsCsvView.as_view(),
         name="recipients-csv",
     ),
+    path("system/bulk-email/run", sender.SenderRunView.as_view(), name="sender-run"),
 ]

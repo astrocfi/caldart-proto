@@ -1358,46 +1358,94 @@ not (see :ref:`api-csrf-bootstrap`).
      - ·
      - ✓
      - ``PATCH`` takes ``events`` and ``is_active``
-   * - ``POST /bulk-email/preview``
+   * - ``GET | POST /bulk-email/drafts``
      - ·
      - ·
      - ·
      - ·
      - ·
      - ·
-     - ``management``; sends nothing (see :doc:`api-bulk-email`)
-   * - ``GET /bulk-email/preview.csv``
+     - ``management``; the drafts and queued emails; ``POST`` opens the caller's empty draft or a fresh one
+   * - ``GET /bulk-email/sent``
      - ·
      - ·
      - ·
      - ·
      - ·
      - ·
-     - ``management``; the preview's list
-   * - ``POST /bulk-email/send``
+     - ``management``; every email sending, sent, or stopped
+   * - ``GET | PATCH | DELETE /bulk-email/{id}``
      - ·
      - ·
      - ·
      - ·
      - ·
      - ·
-     - ``management``; one copy per recipient
-   * - ``GET /bulk-email``
+     - ``management``; 409 once the email has started sending (see :doc:`api-bulk-email`)
+   * - ``GET | DELETE /bulk-email/{id}/batch``
      - ·
      - ·
      - ·
      - ·
      - ·
      - ·
-     - ``management``; every send
-   * - ``GET /bulk-email/{id}``
+     - ``management``; the batch, or clear it
+   * - ``GET /bulk-email/{id}/batch.csv``
      - ·
      - ·
      - ·
      - ·
      - ·
      - ·
-     - ``management``; each person's result
+     - ``management``; the batch as a CSV
+   * - ``POST /bulk-email/{id}/batch/add``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ``management``; adds everybody the filters choose
+   * - ``DELETE /bulk-email/{id}/batch/{rid}``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ``management``; takes one person out
+   * - ``POST /bulk-email/{id}/send``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ``management``; queues the email, sends nothing
+   * - ``POST /bulk-email/{id}/cancel``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ``management``; a queued email back to a draft
+   * - ``POST /bulk-email/{id}/stop``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ``management``; stops a send between copies
+   * - ``POST /bulk-email/{id}/resume``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ``management``; queues what a stop left unsent
    * - ``GET /bulk-email/{id}/recipients.csv``
      - ·
      - ·
@@ -1558,6 +1606,14 @@ not (see :ref:`api-csrf-bootstrap`).
      - ·
      - ·
      - ``management``; the DNS check (see :ref:`api-mail-delivery`)
+   * - ``POST /system/bulk-email/run``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ``system_admin`` only; runs the bulk email sender once (see :doc:`api-bulk-email`)
    * - ``POST /system/renewals/run``
      - ·
      - ·

@@ -459,6 +459,13 @@ def treasurer_client(api_client: APIClient, treasurer: UserModel) -> APIClient:
 
 
 @pytest.fixture
+def management_client(api_client: APIClient, management: UserModel) -> APIClient:
+    """Return a DRF client already signed in as CalDART management."""
+    api_client.force_login(management)
+    return api_client
+
+
+@pytest.fixture
 def system_admin_client(api_client: APIClient, system_admin: UserModel) -> APIClient:
     """Return a DRF client already signed in as a system administrator."""
     api_client.force_login(system_admin)

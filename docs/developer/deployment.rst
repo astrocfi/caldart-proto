@@ -272,7 +272,7 @@ What you are deploying
               Django [label="Django 6 + Wagtail 8\l  caldart.settings.prod\l  /static/ via whitenoise\l"];
               Postgres [label="Postgres in Docker\l  :CALDART_DB_PORT, 5432 by default\l  compose service db\l"];
               Media [label="/opt/caldart/media/\l  MEDIA_ROOT, Wagtail uploads;\l  documents/ denied to\l  the web server\l", shape=folder, style=""];
-              Env [label="/etc/caldart/caldart.env\l  root:caldart 0640\l  EnvironmentFile for\l  all seven services\l", shape=note, style=""];
+              Env [label="/etc/caldart/caldart.env\l  root:caldart 0640\l  EnvironmentFile for\l  all nine services\l", shape=note, style=""];
 
               Apache -> Gunicorn [label="HTTP 127.0.0.1:CALDART_GUNICORN_PORT\lX-Forwarded-Proto: https\l"];
               Gunicorn -> Django [label="WSGI\lcaldart.wsgi:application\l", arrowhead=none];
@@ -289,15 +289,15 @@ What you are deploying
       }
 
    .. graphviz::
-      :caption: The same server's seven scheduled jobs.  Each timer starts its
+      :caption: The same server's eight scheduled jobs.  Each timer starts its
                 service, which runs a management command and exits.  A
                 **solid arrow** is the job reading and writing the database; a
                 **dashed arrow** is an outbound call; a **dotted arrow** is a
                 file written to disk.  Every job service reads its settings
                 from the same environment file as ``caldart-web.service``, so
-                the server runs eight services in all.
-      :alt: The seven CalDART timers and their services, each using
-            Postgres; four send mail, the renewals job also charges through
+                the server runs nine services in all.
+      :alt: The eight CalDART timers and their services, each using
+            Postgres; five send mail, the renewals job also charges through
             Stripe and PayPal, the registry job downloads the FAA registry,
             the bounce job reads the bounce mailbox over IMAPS, and the
             backup job writes dumps to the backup directory
@@ -316,6 +316,7 @@ What you are deploying
           Reminders [label="caldart-reminders.timer\l  daily 07:00 ->\l  caldart-reminders.service\l  manage.py send_renewal_reminders\l"];
           Statements [label="caldart-statements.timer\l  yearly Jan 15, 06:45 ->\l  caldart-statements.service\l  manage.py send_year_statements\l"];
           Bounces [label="caldart-bounces.timer\l  hourly at :20 ->\l  caldart-bounces.service\l  manage.py check_bounces\l"];
+          BulkEmail [label="caldart-bulk-email.timer\l  every minute ->\l  caldart-bulk-email.service\l  manage.py send_bulk_emails\l"];
           Registry [label="caldart-registry.timer\l  daily 04:30 ->\l  caldart-registry.service\l  manage.py import_faa_registry\l"];
           Backup [label="caldart-backup.timer\l  daily 03:30 ->\l  caldart-backup.service\l  manage.py db_backup,\l  then prunes old dumps\l"];
           Dumps [label="/opt/caldart/backups/\l  BACKUP_DIR, kept for\l  BACKUP_RETENTION_DAYS\l", shape=folder, style=""];
@@ -326,11 +327,11 @@ What you are deploying
           Imap [label="bounce mailbox\l  IMAPS, from BOUNCE_IMAP_URL\l"];
 
           {rank=same; Dumps; Faa; Stripe; Postgres; Smtp; Imap;}
-          {rank=same; Backup; Registry; Reports; Renewals; Reminders; Statements; Bounces;}
+          {rank=same; Backup; Registry; Reports; Renewals; Reminders; Statements; Bounces; BulkEmail;}
           Dumps -> Faa -> Stripe -> Postgres -> Smtp -> Imap [style=invis];
-          Backup -> Registry -> Reports -> Renewals -> Reminders -> Statements -> Bounces [style=invis];
+          Backup -> Registry -> Reports -> Renewals -> Reminders -> Statements -> Bounces -> BulkEmail [style=invis];
 
-          Env -> {Backup Registry Reports Renewals Reminders Statements Bounces} [style=dashed, arrowhead=none];
+          Env -> {Backup Registry Reports Renewals Reminders Statements Bounces BulkEmail} [style=dashed, arrowhead=none];
           Backup -> Postgres;
           Backup -> Dumps [style=dotted];
           Registry -> Faa [style=dashed];
@@ -346,6 +347,8 @@ What you are deploying
           Statements -> Smtp [style=dashed];
           Bounces -> Postgres;
           Bounces -> Imap [style=dashed];
+          BulkEmail -> Postgres;
+          BulkEmail -> Smtp [style=dashed];
       }
 
 .. only:: not graphviz
@@ -409,26 +412,33 @@ What you are deploying
                                                       |
       caldart-bounces.timer, hourly at :20            |
         -> caldart-bounces.service                    |
-           manage.py check_bounces -------------------'
-           -> the bounce mailbox over IMAPS, from BOUNCE_IMAP_URL
+           manage.py check_bounces -------------------|
+           -> the bounce mailbox over IMAPS, from     |
+              BOUNCE_IMAP_URL                         |
+                                                      |
+      caldart-bulk-email.timer, every minute          |
+        -> caldart-bulk-email.service                 |
+           manage.py send_bulk_emails ----------------'
+           -> the SMTP server, for each bulk email
+              whose start time has come
 
-   Apache, gunicorn, Postgres, and the seven timers run on one Linux server with
+   Apache, gunicorn, Postgres, and the eight timers run on one Linux server with
    the deploy root ``/opt/caldart`` and the checkout in
-   ``/opt/caldart/caldart``, and all eight services (``caldart-web`` and
-   the seven job services) read their settings from ``/etc/caldart/caldart.env``
+   ``/opt/caldart/caldart``, and all nine services (``caldart-web`` and
+   the eight job services) read their settings from ``/etc/caldart/caldart.env``
    (``root:caldart``, mode ``0640``).  Django calls out to ``api.stripe.com``
    and ``api-m.paypal.com`` during a checkout, and to the same SMTP server for
    password resets and invitations.  ``nginx`` (``deploy/nginx/caldart.conf``)
    takes Apache's place unchanged when you deploy it instead.
 
 Three things run continuously: the Docker Postgres container, the
-``caldart-web`` gunicorn unit, and Apache.  Seven jobs run on a schedule: the
+``caldart-web`` gunicorn unit, and Apache.  Eight jobs run on a schedule: the
 ``caldart-backup`` timer daily at 03:30, the ``caldart-registry`` timer daily at
 04:30, the ``caldart-reports`` timer daily
 at 06:00, the ``caldart-renewals`` timer daily at 06:30, the
 ``caldart-reminders`` timer daily at 07:00, the ``caldart-statements`` timer
-yearly at 06:45 on January 15th, and the ``caldart-bounces`` timer every hour at
-twenty past.
+yearly at 06:45 on January 15th, the ``caldart-bounces`` timer every hour at
+twenty past, and the ``caldart-bulk-email`` timer every minute.
 
 The application is a **Django 6** project with Wagtail 8 on top, and step 6
 (``deploy/steps/build.sh``) installs it with ``uv sync --frozen``, so the box runs the exact versions
@@ -1426,8 +1436,8 @@ a deployment this project supports.
 10. Renewal reminders (``steps/timers.sh``)
 ===========================================
 
-Steps 10 to 15, and the backup timer of step 16, are one script:
-``steps/timers.sh`` copies the seven service and timer pairs into
+Steps 10 to 16, and the backup timer of step 17, are one script:
+``steps/timers.sh`` copies the eight service and timer pairs into
 ``/etc/systemd/system`` with ``/opt/caldart/caldart`` replaced by the checkout
 and ``/opt/caldart`` by the deploy root, runs
 ``systemctl daemon-reload`` once, enables and starts every timer, and starts
@@ -1566,7 +1576,34 @@ it any time with ``sudo deploy/manage.sh check_bounces --dry-run``.  See
 :ref:`email-bounces` for setting up the mailbox and what a run marks.
 
 
-16. Backups (``steps/timers.sh``, ``steps/backup.sh``)
+.. _deploy-bulk-email:
+
+16. The bulk email sender (``steps/timers.sh``)
+===============================================
+
+::
+
+  sudo install -m 0644 deploy/systemd/caldart-bulk-email.service \
+      deploy/systemd/caldart-bulk-email.timer /etc/systemd/system/
+  sudo systemctl daemon-reload
+  sudo systemctl enable --now caldart-bulk-email.timer
+  systemctl list-timers caldart-bulk-email.timer
+
+Every minute, on the minute, with ``AccuracySec=1s`` and no randomized delay,
+because the undo window and a scheduled time are promises to the minute.  A run
+starts every bulk email whose start time has come and sends its copies at
+``BULK_EMAIL_RATE_PER_MINUTE``, so a large send keeps the unit running for as
+long as that takes: ``TimeoutStartSec=0`` never cuts it short, and systemd starts
+no second run while it works.  A run with nothing due exits at once.  A missed
+minute is not caught up (``Persistent=false``); the next minute's run sends
+whatever is due by then.  It needs the database and the SMTP server, from the
+same ``/etc/caldart/caldart.env``.  Run it by hand with ``sudo deploy/manage.sh
+send_bulk_emails``, or with **Run the bulk email sender now** on the Scheduled
+page, which works for at most 45 seconds and leaves the rest to the timer.  See
+:doc:`bulk-email` for the states, the pacing, and the retries.
+
+
+17. Backups (``steps/timers.sh``, ``steps/backup.sh``)
 ======================================================
 
 The backup timer is installed with the other scheduled jobs::
@@ -1599,7 +1636,8 @@ missed.  For a site at the root of its host it runs::
 
   systemctl is-active caldart-web.service caldart-backup.timer \
       caldart-registry.timer caldart-reports.timer caldart-renewals.timer \
-      caldart-reminders.timer caldart-statements.timer caldart-bounces.timer
+      caldart-reminders.timer caldart-statements.timer caldart-bounces.timer \
+      caldart-bulk-email.timer
   sudo deploy/compose.sh ps --format '{{.Health}}' db     # healthy
   curl -sI -H 'Host: caldart.example.org' -H 'X-Forwarded-Proto: https' \
       http://127.0.0.1:$PORT/
@@ -1794,6 +1832,7 @@ Renewal runs                 ``journalctl -u caldart-renewals -n 50``
 Scheduled report runs        ``journalctl -u caldart-reports -n 50``
 Year-end statement runs      ``journalctl -u caldart-statements -n 50``
 Bounce checks                ``journalctl -u caldart-bounces -n 50``
+Bulk email sends             ``journalctl -u caldart-bulk-email -n 50``
 Nightly backups              ``journalctl -u caldart-backup -n 20``
 FAA registry imports         ``journalctl -u caldart-registry -n 50``; an
                              import started with **Run now** logs to
@@ -1829,6 +1868,7 @@ The lines go to the journal with everything else, so a filter picks them out::
   journalctl -u caldart-reports | grep 'action=reports.run'
   journalctl -u caldart-statements | grep 'action=statements.run'
   journalctl -u caldart-bounces | grep 'action=bounces.run'
+  journalctl -u caldart-bulk-email | grep 'action=bulk_email.send'
   journalctl -u caldart-web | grep 'action=system.registry_import'
 
 Each line is ``key=value`` pairs in a fixed order::
@@ -1899,8 +1939,23 @@ Action                        Fields beyond actor and target
                               DART), then ``dry_run``, ``sent``, ``skipped``,
                               ``failed``; one line per **Send now**, and per
                               DART when the rosters are sent by hand
+``bulk_email.queue``          ``recipients``, ``scheduled`` (the target is
+                              the ``BulkEmail``); one line per **Send** or
+                              **Schedule**
+``bulk_email.cancel``         -- (the target is the ``BulkEmail``); ``reason``
+                              ``batch_changed`` when a change to its batch
+                              took a queued email back to a draft
+``bulk_email.stop``           ``recipients`` -- the copies kept back; written
+                              when the stop takes effect
+``bulk_email.resume``         ``recipients`` -- the copies queued again
 ``bulk_email.send``           ``sent``, ``skipped``, ``failed`` (the target
-                              is the ``BulkEmail``); one line per bulk email
+                              is the ``BulkEmail``, the actor its sender);
+                              one line per bulk email, when its last copy
+                              has been tried
+``bulk_email.run``            ``busy``, ``emails``, ``sent``, ``failed``,
+                              ``skipped``; one line per **Run now** on the
+                              Scheduled page, which works for at most 45
+                              seconds and leaves the rest to the timer
 ``system.registry_import``    -- (the target is the ``RegistryImport`` row);
                               one line per **Run now** on Health & Database
 ============================= ===============================================

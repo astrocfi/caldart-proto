@@ -13,7 +13,9 @@ before it has a user: ``GET /admin/reminders/log``,
 and ``GET /mail/delivery-check`` from ``apps.mail``, the health, backup,
 renewal-scan and year-end-statement routes under ``/system/`` and
 ``POST /admin/system/registry-import`` from ``apps.sysadmin``, and
-``GET /site/config`` from ``apps.cms``.  :doc:`api-reference` covers the conventions they share —
+``GET /site/config`` from ``apps.cms``.  ``POST /system/bulk-email/run``, which runs
+the bulk email sender by hand, is on :doc:`api-bulk-email` with the rest of bulk
+email.  :doc:`api-reference` covers the conventions they share —
 session authentication, the CSRF header, pagination, and the error shapes.
 
 The subsystem chapters behind them are :doc:`reminders` (what the scan sends

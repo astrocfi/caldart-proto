@@ -1,0 +1,1 @@
+{% comment %}One bulk email copy as apps.bulk_email.render built it; the message proper is bulk_email.txt.{% endcomment %}{% autoescape off %}{{ text }}{% endautoescape %}

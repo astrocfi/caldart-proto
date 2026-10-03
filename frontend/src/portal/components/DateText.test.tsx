@@ -7,6 +7,7 @@ import { renderWithProviders } from '@test/render';
 import {
   DateText,
   formatDate,
+  formatDateAt,
   formatDateTime,
   formatMonth,
   formatTime,
@@ -90,5 +91,21 @@ describe('DateText', () => {
   it('renders the placeholder for a missing value', () => {
     renderWithProviders(<DateText value={null} placeholder="Lifetime" />);
     expect(screen.getByText('Lifetime')).toBeInTheDocument();
+  });
+});
+
+describe('formatDateAt', () => {
+  it('reads a moment in a named time zone as a date and a twelve-hour time', () => {
+    expect(formatDateAt('2026-04-07T15:00:00Z', 'America/Los_Angeles')).toBe(
+      '04/07/2026 at 8:00 AM',
+    );
+  });
+
+  it('reads an afternoon time with PM', () => {
+    expect(formatDateAt('2026-10-04T13:30', undefined)).toBe('10/04/2026 at 1:30 PM');
+  });
+
+  it('shows the placeholder for nothing', () => {
+    expect(formatDateAt(null)).toBe('—');
   });
 });

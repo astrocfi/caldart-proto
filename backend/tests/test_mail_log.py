@@ -515,11 +515,12 @@ def test_the_purposes_name_every_template_the_application_sends() -> None:
     """Every email template on disk has a label, so no purpose reads as a bare slug.
 
     The ``notification`` template is shared by every event, and each send carries its
-    event's own ``notification_<slug>`` purpose, labeled in turn.
+    event's own ``notification_<slug>`` purpose, labeled in turn.  ``bulk_email_copy``
+    carries a bulk email copy already built from ``bulk_email``, under that purpose.
     """
     templates = {path.stem for path in (settings.BASE_DIR / "templates" / "emails").glob("*.txt")}
 
-    assert sorted(templates - set(purpose_labels()) - {"notification"}) == []
+    assert sorted(templates - set(purpose_labels()) - {"notification", "bulk_email_copy"}) == []
 
 
 # --------------------------------------------------------------------------

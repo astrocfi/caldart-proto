@@ -26,7 +26,7 @@ from __future__ import annotations
 
 import logging
 import smtplib
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from email.utils import make_msgid, parseaddr
 
 from django.conf import settings
@@ -113,6 +113,8 @@ def send_templated(
     user_id: int | None = None,
     to_name: str = "",
     mailer: BaseEmailBackend | None = None,
+    headers: Mapping[str, str] | None = None,
+    reply_to: str = "",
 ) -> EmailMultiAlternatives:
     """Render ``emails/<template>.{txt,html}`` and send them to one address.
 
@@ -140,6 +142,10 @@ def send_templated(
     connection for all of them; left out, the default mailer sends this message on
     a connection of its own.
 
+    ``headers`` are extra headers the message carries, such as a bulk email's
+    ``List-Unsubscribe``; they cannot replace the ``Message-ID`` or the ``From`` this
+    function sets.  ``reply_to``, when given, is the message's ``Reply-To`` address.
+
     The sent message is returned, so a caller can record what went out.  A mail
     server that refuses the message, or cannot be reached, while it is handed over is
     logged as a failed send carrying the exception class, and raises
@@ -151,18 +157,21 @@ def send_templated(
     """
     rendered = context or {}
     message_id = make_msgid(domain=_message_id_domain())
-    headers = {"Message-ID": message_id}
+    message_headers = {**(headers or {}), "Message-ID": message_id}
     envelope_sender = settings.BOUNCE_ADDRESS or settings.DEFAULT_FROM_EMAIL
     if settings.BOUNCE_ADDRESS:
         # Django sends the envelope from ``from_email`` and writes the header from a
         # ``From`` given in ``headers``, which is how the two addresses differ.
-        headers["From"] = settings.DEFAULT_FROM_EMAIL
+        message_headers["From"] = settings.DEFAULT_FROM_EMAIL
+    else:
+        message_headers.pop("From", None)
     message = EmailMultiAlternatives(
         subject=subject,
         body=render_to_string(f"emails/{template}.txt", rendered),
         from_email=envelope_sender,
         to=[to],
-        headers=headers,
+        headers=message_headers,
+        reply_to=[reply_to] if reply_to else None,
     )
     message.attach_alternative(render_to_string(f"emails/{template}.html", rendered), "text/html")
     for filename, content, mimetype in attachments:

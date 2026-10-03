@@ -16,6 +16,7 @@ import { ADMIN_USERS_KEY, REGISTRY_KEY } from '@/portal/api/queries';
 import type {
   Backup,
   BounceRunResult,
+  BulkEmailRunResult,
   EmailLogEntry,
   EmailPurpose,
   Health,
@@ -227,6 +228,23 @@ export function useRunBounces(): UseMutationResult<BounceRunResult, unknown, boo
       void queryClient.invalidateQueries({ queryKey: ['system', 'emails'] });
       void queryClient.invalidateQueries({ queryKey: ADMIN_USERS_KEY });
       void queryClient.invalidateQueries({ queryKey: MEMBERS_KEY });
+    },
+  });
+}
+
+/**
+ * Runs the bulk email sender once via `POST /system/bulk-email/run`: every queued bulk
+ * email whose start time has come is started and sent.
+ *
+ * A run changes the bulk emails and writes to the email log, so both are read again.
+ */
+export function useRunBulkEmailSender(): UseMutationResult<BulkEmailRunResult, unknown, void> {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.post<BulkEmailRunResult>('/system/bulk-email/run'),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['bulk-email'] });
+      void queryClient.invalidateQueries({ queryKey: ['system', 'emails'] });
     },
   });
 }

@@ -38,8 +38,9 @@ Features
 - **Reports.** Membership and aircraft exports as CSV and PDF, payment
   exports as CSV, all with the same filters as the screen you exported them
   from.
-- **Bulk email.** One email to every member and friend the member list's
-  filters select, previewed before it is sent, with each person's result kept.
+- **Bulk email.** One email to a batch of members and friends built from the
+  member list's filters, sent in the background at a pace the mail provider
+  accepts, with an undo window, scheduling, and each person's result kept.
 - **Content.** Wagtail page types, StreamField blocks, four themes, and a
   members-only wall that only current members and staff get past.
 - **Operations.** Health checks, database backups, restore, and reset, from

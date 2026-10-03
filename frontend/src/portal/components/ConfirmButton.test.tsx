@@ -67,4 +67,32 @@ describe('ConfirmButton', () => {
 
     expect(onChoose).not.toHaveBeenCalled();
   });
+
+  it('moves the focus to the first choice when it opens', async () => {
+    renderButton(vi.fn(() => Promise.resolve()));
+
+    await userEvent.click(screen.getByRole('button', { name: 'Deactivate account' }));
+
+    expect(screen.getByRole('button', { name: 'Go ahead' })).toHaveFocus();
+  });
+
+  it('closes on Escape and gives the focus back to its button', async () => {
+    const onChoose = vi.fn(() => Promise.resolve());
+    renderButton(onChoose);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Deactivate account' }));
+    await userEvent.keyboard('{Escape}');
+
+    expect(screen.getByRole('button', { name: 'Deactivate account' })).toHaveFocus();
+    expect(onChoose).not.toHaveBeenCalled();
+  });
+
+  it('gives the focus back to its button after Cancel', async () => {
+    renderButton(vi.fn(() => Promise.resolve()));
+
+    await userEvent.click(screen.getByRole('button', { name: 'Deactivate account' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    expect(screen.getByRole('button', { name: 'Deactivate account' })).toHaveFocus();
+  });
 });

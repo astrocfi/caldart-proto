@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { Column } from './DataTable';
-import { DataTable, sortRows } from './DataTable';
+import { DataTable, sortRows, tableMinWidth } from './DataTable';
 
 interface Row {
   id: number;
@@ -219,5 +219,35 @@ describe('DataTable', () => {
       />,
     );
     expect(screen.getByLabelText('Search')).toBeInTheDocument();
+  });
+});
+
+describe('the minimum widths of a single-line table', () => {
+  const columns: Column<{ id: number; name: string }>[] = [
+    { key: 'name', header: 'Name', minWidth: '16rem', render: (row) => row.name },
+    { key: 'when', header: 'When', width: '9rem', render: () => '' },
+    { key: 'other', header: 'Other', render: () => '' },
+  ];
+
+  it('adds every fixed width and minimum into the table least width', () => {
+    expect(tableMinWidth(columns)).toBe('calc(16rem + 9rem + 6rem)');
+  });
+
+  it('sets no least width on a table whose columns name no minimum', () => {
+    expect(tableMinWidth([{ key: 'a', header: 'A', render: () => '' }])).toBeUndefined();
+  });
+
+  it('starts a column with a minimum at the left edge', () => {
+    render(
+      <DataTable
+        singleLine
+        columns={columns}
+        rows={[{ id: 1, name: 'Ann' }]}
+        rowKey={(r) => r.id}
+      />,
+    );
+    expect(screen.getByRole('columnheader', { name: 'Name' })).toHaveClass('data-table__text');
+    expect(screen.getByRole('table')).toHaveStyle({ minWidth: 'calc(16rem + 9rem + 6rem)' });
+    expect(screen.getByRole('columnheader', { name: 'Name' })).toHaveStyle({ width: '16rem' });
   });
 });

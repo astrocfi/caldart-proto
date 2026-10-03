@@ -1,0 +1,77 @@
+# CalDART bulk email sender.
+#
+# Deploy root: /opt/caldart, with the checkout in caldart/.
+# Triggered by caldart-bulk-email.timer, which runs
+# it every minute; it is a oneshot, so it is not enabled directly.
+# deploy/steps/timers.sh installs it and enables the timer.
+#
+# Run it by hand (safe to repeat -- it sends only what is due, and a second
+# run while one is working does nothing):
+#   sudo systemctl start caldart-bulk-email.service
+#   journalctl -u caldart-bulk-email -n 50
+
+[Unit]
+Description=CalDART bulk email sender
+Documentation=file:///opt/caldart/caldart/docs/developer/deployment.rst
+# Needs the database and the SMTP server.
+After=network.target docker.service caldart-web.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+
+User=caldart
+Group=caldart
+UMask=0027
+
+WorkingDirectory=/opt/caldart/caldart/backend
+
+# Same configuration as the web service: DATABASE_URL, EMAIL_URL, and the
+# BULK_EMAIL_* pacing settings are the ones this command actually uses.
+EnvironmentFile=/etc/caldart/caldart.env
+
+Environment=DJANGO_SETTINGS_MODULE=caldart.settings.prod
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONDONTWRITEBYTECODE=1
+
+# Starts every queued bulk email whose time has come and sends its copies,
+# paced to BULK_EMAIL_RATE_PER_MINUTE, then exits.
+ExecStart=/opt/caldart/caldart/.venv/bin/python /opt/caldart/caldart/backend/manage.py send_bulk_emails
+
+# A large send runs for as long as its copies take at the configured rate, so
+# no time limit cuts it short.  systemd starts no second run while this one
+# works: the timer's next tick finds the unit still active and waits.
+TimeoutStartSec=0
+
+# --- Hardening --------------------------------------------------------------
+# Same profile as caldart-web, minus the writable media/staticfiles paths --
+# this command only writes the database and talks to the SMTP server.
+
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectHome=true
+ProtectSystem=strict
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+ProtectProc=invisible
+RestrictSUIDSGID=true
+RestrictRealtime=true
+RestrictNamespaces=true
+LockPersonality=true
+RemoveIPC=true
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+CapabilityBoundingSet=
+AmbientCapabilities=
+
+[Install]
+# Present so "systemctl enable caldart-bulk-email.service" is not an error,
+# but the timer is what should normally be enabled.
+WantedBy=multi-user.target

@@ -40,6 +40,7 @@ describe('ScheduledPage', () => {
       'Scheduled reports',
       'Year-end statements',
       'Bounces',
+      'Bulk email sender',
     ]);
   });
 

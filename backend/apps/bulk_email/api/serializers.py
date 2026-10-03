@@ -3,19 +3,33 @@
 from __future__ import annotations
 
 import unicodedata
+from datetime import datetime
 from typing import Any, TypedDict
 
+from django.conf import settings
+from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
-from apps.bulk_email.models import BulkEmail, BulkEmailRecipient
-from apps.bulk_email.services import (
-    Recipient,
-    RecipientList,
+from apps.bulk_email.batch import (
+    AddResult,
+    BatchCounts,
+    BatchRow,
+    add_label,
+    batch_counts,
+    batch_rows,
     given_filters,
     selected_accounts,
     unknown_filters,
 )
+from apps.bulk_email.job import estimated_finish
+from apps.bulk_email.models import (
+    BatchAdd,
+    BulkEmail,
+    BulkEmailStatus,
+    RecipientStatus,
+)
+from caldart.runs import RunActionSerializer
 
 #: What a filter the member list does not have is refused with.
 UNKNOWN_FILTER_MESSAGE = "Not a filter of the member list."
@@ -34,12 +48,12 @@ MAX_BODY_LENGTH = 20000
 
 
 def checked_filters(filters: dict[str, str]) -> dict[str, str]:
-    """``filters`` as a bulk email stores them, once the member list accepts them.
+    """``filters`` as an add stores them, once the member list accepts them.
 
     Raises ``ValidationError`` keyed by each filter the member list does not have,
-    with :data:`UNKNOWN_FILTER_MESSAGE`, and then keyed by each filter whose value
-    the member list refuses, with the list's own message.  Blank filters are
-    dropped from the answer.
+    with :data:`UNKNOWN_FILTER_MESSAGE`, and then keyed by each filter whose value the
+    member list refuses, with the list's own message.  Blank filters are dropped from
+    the answer.
     """
     unknown = unknown_filters(filters)
     if len(unknown) > 0:
@@ -49,26 +63,22 @@ def checked_filters(filters: dict[str, str]) -> dict[str, str]:
     return given_filters(filters)
 
 
-class BulkEmailMessageSerializer(serializers.Serializer[dict[str, Any]]):
-    """The body of a preview and of a send: the message, and who it is aimed at.
+def sender_name(bulk: BulkEmail) -> str:
+    """The sender's display name, or ``""`` once the account is gone."""
+    return bulk.sender.display_name if bulk.sender is not None else ""
 
-    ``subject`` is one line of at most 200 characters and ``body`` plain text, its
-    blank lines separating paragraphs; both are required and trimmed.  ``filters``
-    are the member list's query parameters, blank ones ignored; it may be left out
-    to aim at every member and friend.
+
+class BulkEmailUpdateSerializer(serializers.Serializer[dict[str, Any]]):
+    """``PATCH /bulk-email/{id}``'s body: the fields of the message to change.
+
+    Every field may be left out.  ``subject`` is one line of at most 200 characters,
+    free of control characters, and ``body`` plain text of at most
+    :data:`MAX_BODY_LENGTH` characters; both may be blank while the email is a draft,
+    and both are trimmed.
     """
 
-    subject = serializers.CharField(
-        max_length=200,
-        error_messages={"blank": "Write a subject.", "required": "Write a subject."},
-    )
-    body = serializers.CharField(
-        max_length=MAX_BODY_LENGTH,
-        error_messages={"blank": "Write the message.", "required": "Write the message."},
-    )
-    filters = serializers.DictField(
-        child=serializers.CharField(allow_blank=True), required=False, default=dict
-    )
+    subject = serializers.CharField(max_length=200, allow_blank=True, required=False)
+    body = serializers.CharField(max_length=MAX_BODY_LENGTH, allow_blank=True, required=False)
 
     def validate_subject(self, value: str) -> str:
         """Refuse a subject that breaks a line, or carries any other control character.
@@ -77,102 +87,77 @@ class BulkEmailMessageSerializer(serializers.Serializer[dict[str, Any]]):
         and paragraph separators among them; a control character is one in Unicode's
         ``Cc`` category.  The mail library refuses both in a header.
         """
-        if value.splitlines() != [value]:
+        if value != "" and value.splitlines() != [value]:
             raise ValidationError(ONE_LINE_MESSAGE)
         if any(unicodedata.category(character) == CONTROL_CATEGORY for character in value):
             raise ValidationError(CONTROL_MESSAGE)
         return value
+
+
+class BulkEmailAddSerializer(serializers.Serializer[dict[str, Any]]):
+    """``POST /bulk-email/{id}/batch/add``'s body: the member list filters to add by.
+
+    ``filters`` are the member list's query parameters, blank ones ignored; left out,
+    or empty, it adds every member and friend.
+    """
+
+    filters = serializers.DictField(
+        child=serializers.CharField(allow_blank=True), required=False, default=dict
+    )
 
     def validate_filters(self, value: dict[str, str]) -> dict[str, str]:
         """Refuse a filter the member list does not have, or a value it refuses."""
         return checked_filters(value)
 
 
-class RecipientDict(TypedDict):
-    """One person a preview lists."""
+class BulkEmailAddResultSerializer(serializers.Serializer[AddResult]):
+    """What one add did: who joined, who was there already, and the batch's size."""
 
-    user_id: int
-    name: str
-    email: str
-    reason: str
-
-
-class PreviewDict(TypedDict):
-    """A preview: who would receive the email, who is skipped, and the two counts."""
-
-    count: int
-    skipped_count: int
-    recipients: list[RecipientDict]
-    skipped: list[RecipientDict]
-
-
-class BulkEmailPreviewRecipientSerializer(serializers.Serializer[RecipientDict]):
-    """One person a preview lists; ``reason`` is blank for one who will be sent a copy."""
-
-    user_id = serializers.IntegerField()
-    name = serializers.CharField()
-    email = serializers.CharField(allow_blank=True)
-    reason = serializers.CharField(allow_blank=True)
-
-
-class BulkEmailPreviewSerializer(serializers.Serializer[PreviewDict]):
-    """``POST /bulk-email/preview``'s answer.
-
-    ``count`` is how many people would be sent a copy, and ``skipped_count`` how
-    many the filters select but would be skipped.  ``recipients`` and ``skipped``
-    list them, each in surname order.
-    """
-
+    added = serializers.IntegerField()
+    already_present = serializers.IntegerField()
     count = serializers.IntegerField()
-    skipped_count = serializers.IntegerField()
-    recipients = BulkEmailPreviewRecipientSerializer(many=True)
-    skipped = BulkEmailPreviewRecipientSerializer(many=True)
 
 
-def preview_payload(chosen: RecipientList) -> PreviewDict:
-    """``chosen`` as ``POST /bulk-email/preview`` answers it."""
-    return {
-        "count": len(chosen.recipients),
-        "skipped_count": len(chosen.skipped),
-        "recipients": _recipient_rows(chosen.recipients),
-        "skipped": _recipient_rows(chosen.skipped),
-    }
+class BulkEmailSendSerializer(serializers.Serializer[dict[str, Any]]):
+    """``POST /bulk-email/{id}/send``'s body.
 
-
-def _recipient_rows(entries: list[Recipient]) -> list[RecipientDict]:
-    """Each of ``entries`` as one row of a preview's list."""
-    return [
-        {"user_id": r.user_id, "name": r.name, "email": r.email, "reason": r.reason}
-        for r in entries
-    ]
-
-
-class BulkEmailRecipientSerializer(serializers.ModelSerializer[BulkEmailRecipient]):
-    """One person a sent bulk email selected, and what became of their copy.
-
-    ``user_id`` is null once the account is deleted; ``name`` and ``email`` are as
-    they were at send time.  ``status`` is ``sent``, ``failed`` or ``skipped``, and
-    ``reason`` is blank for a copy that went.
+    ``confirm_count`` is the number of people the sender typed, needed only above
+    ``BULK_EMAIL_CONFIRM_ABOVE``.  ``start_at`` is when to send, null or left out to
+    send once the undo window ends; a time given without an offset is read in the
+    site's time zone.
     """
 
-    user_id = serializers.IntegerField(read_only=True, allow_null=True)
-
-    class Meta:
-        model = BulkEmailRecipient
-        fields = ["user_id", "name", "email", "status", "reason"]
-        read_only_fields = fields
+    confirm_count = serializers.IntegerField(min_value=0, required=False, allow_null=True)
+    start_at = serializers.DateTimeField(required=False, allow_null=True)
 
 
-class BulkEmailSerializer(serializers.ModelSerializer[BulkEmail]):
-    """One sent bulk email, as ``GET /bulk-email`` lists it.
+class BulkEmailDetailSerializer(serializers.ModelSerializer[BulkEmail]):
+    """One bulk email with everything the compose and detail screens show.
 
-    ``filters`` are the member list filters that chose the recipients, those given
-    a value only.  ``sender`` is the sender's display name, blank once the account
-    is deleted.  ``sent_at`` is null for a send that never finished.
+    ``sender`` and ``stopped_by`` are display names, blank when there is none or the
+    account is gone.  ``batch_count`` is how many people are in the batch,
+    ``receiving_count`` how many of them receive a copy, and ``batch_skipped_count``
+    how many do not.  ``remaining`` counts the copies waiting to be sent, and
+    ``estimated_finish_at`` is when the last will have gone while the email is
+    sending, else null.  ``can_edit`` is true while it is a draft or queued,
+    ``confirm_above`` is the batch size above which **Send** asks for the count, and
+    ``undo_seconds`` is the undo window the countdown runs over.
     """
 
-    filters = serializers.DictField(child=serializers.CharField(), read_only=True)
     sender = serializers.SerializerMethodField()
+    stopped_by = serializers.SerializerMethodField()
+    can_edit = serializers.BooleanField(read_only=True)
+    batch_count = serializers.SerializerMethodField()
+    receiving_count = serializers.SerializerMethodField()
+    batch_skipped_count = serializers.SerializerMethodField()
+    remaining = serializers.SerializerMethodField()
+    estimated_finish_at = serializers.SerializerMethodField()
+    confirm_above = serializers.SerializerMethodField()
+    undo_seconds = serializers.SerializerMethodField()
+
+    # The email whose batch was last counted, and its counts: the three count fields
+    # read one batch, so it is read once.
+    _counted: tuple[int, BatchCounts] | None = None
 
     class Meta:
         model = BulkEmail
@@ -180,26 +165,235 @@ class BulkEmailSerializer(serializers.ModelSerializer[BulkEmail]):
             "id",
             "subject",
             "body",
-            "filters",
+            "status",
             "sender",
+            "sender_id",
             "created_at",
+            "updated_at",
+            "start_at",
+            "scheduled",
+            "confirm_count",
+            "started_at",
             "sent_at",
+            "stopped_at",
+            "stopped_by",
+            "stop_requested",
             "sent_count",
             "failed_count",
             "skipped_count",
+            "can_edit",
+            "batch_count",
+            "receiving_count",
+            "batch_skipped_count",
+            "remaining",
+            "estimated_finish_at",
+            "confirm_above",
+            "undo_seconds",
+        ]
+        read_only_fields = fields
+
+    def _counts(self, bulk: BulkEmail) -> BatchCounts:
+        """The batch's counts, worked out once per email this serializer renders."""
+        if self._counted is None or self._counted[0] != bulk.pk:
+            self._counted = (bulk.pk, batch_counts(batch_rows(bulk)))
+        return self._counted[1]
+
+    def get_sender(self, bulk: BulkEmail) -> str:
+        """The sender's display name, or ``""`` once the account is gone."""
+        return sender_name(bulk)
+
+    def get_stopped_by(self, bulk: BulkEmail) -> str:
+        """Who pressed **Stop**, or ``""`` when nobody did or the account is gone."""
+        return bulk.stopped_by.display_name if bulk.stopped_by is not None else ""
+
+    def get_batch_count(self, bulk: BulkEmail) -> int:
+        """How many people are in the batch."""
+        return self._counts(bulk).count
+
+    def get_receiving_count(self, bulk: BulkEmail) -> int:
+        """How many people in the batch receive a copy."""
+        return self._counts(bulk).receiving
+
+    def get_batch_skipped_count(self, bulk: BulkEmail) -> int:
+        """How many people in the batch receive no copy."""
+        return self._counts(bulk).skipped
+
+    def get_remaining(self, bulk: BulkEmail) -> int:
+        """How many copies are waiting to be sent."""
+        return bulk.recipients.filter(status=RecipientStatus.PENDING).count()
+
+    def get_estimated_finish_at(self, bulk: BulkEmail) -> datetime | None:
+        """When the last copy will have gone, while the email is sending; else null."""
+        if bulk.status != BulkEmailStatus.SENDING:
+            return None
+        return timezone.localtime(estimated_finish(self.get_remaining(bulk), timezone.now()))
+
+    def get_confirm_above(self, bulk: BulkEmail) -> int:
+        """The batch size above which **Send** asks for the count to be typed."""
+        return int(settings.BULK_EMAIL_CONFIRM_ABOVE)
+
+    def get_undo_seconds(self, bulk: BulkEmail) -> int:
+        """The undo window: the seconds between **Send** and the first copy."""
+        return int(settings.BULK_EMAIL_UNDO_SECONDS)
+
+
+class BulkEmailSummarySerializer(serializers.ModelSerializer[BulkEmail]):
+    """One bulk email as the Drafts & scheduled and the Sent lists show it.
+
+    ``batch_count`` is how many people are in the batch and ``remaining`` how many
+    copies are waiting to be sent; both come from the list's own annotations.
+    """
+
+    sender = serializers.SerializerMethodField()
+    batch_count = serializers.IntegerField(read_only=True)
+    remaining = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = BulkEmail
+        fields = [
+            "id",
+            "subject",
+            "status",
+            "sender",
+            "created_at",
+            "updated_at",
+            "start_at",
+            "scheduled",
+            "started_at",
+            "sent_at",
+            "stopped_at",
+            "stop_requested",
+            "sent_count",
+            "failed_count",
+            "skipped_count",
+            "batch_count",
+            "remaining",
         ]
         read_only_fields = fields
 
     def get_sender(self, bulk: BulkEmail) -> str:
         """The sender's display name, or ``""`` once the account is gone."""
-        return bulk.sender.display_name if bulk.sender is not None else ""
+        return sender_name(bulk)
 
 
-class BulkEmailDetailSerializer(BulkEmailSerializer):
-    """One sent bulk email with every person's result, in the order stored."""
+class BulkEmailBatchAddSerializer(serializers.ModelSerializer[BatchAdd]):
+    """One **Add to batch**: its filters in words and as given, and its counts."""
 
-    recipients = BulkEmailRecipientSerializer(many=True, read_only=True)
+    # ``Field`` has a ``label`` attribute of its own, which a field of that name shadows.
+    label = serializers.SerializerMethodField()  # type: ignore[assignment]
+    filters = serializers.DictField(child=serializers.CharField(), read_only=True)
 
-    class Meta(BulkEmailSerializer.Meta):
-        fields = [*BulkEmailSerializer.Meta.fields, "recipients"]
+    class Meta:
+        model = BatchAdd
+        fields = ["id", "label", "filters", "added_count", "already_count", "created_at"]
         read_only_fields = fields
+
+    def get_label(self, add: BatchAdd) -> str:
+        """The add's filters in words, such as ``"Kind: Friends only, County: Marin"``."""
+        return add_label(add.filters)
+
+
+class BulkEmailBatchRowDict(TypedDict):
+    """One person in the batch, as ``GET /bulk-email/{id}/batch`` lists them."""
+
+    id: int
+    user_id: int | None
+    name: str
+    email: str
+    kind: str
+    dart_name: str
+    added_by: int | None
+    status: str
+    will_receive: bool
+    reason: str
+    tried_at: datetime | None
+
+
+class BulkEmailBatchRowSerializer(serializers.Serializer[BulkEmailBatchRowDict]):
+    """One person in the batch.
+
+    ``user_id`` is null once the account is deleted; ``name``, ``email``, ``kind``,
+    and ``dart_name`` are the row's own.  ``added_by`` is the id of the add that
+    brought the person in, null for none.  ``status`` is the row's; ``will_receive``
+    and ``reason`` say whether a copy goes and why not.  ``tried_at`` is when the copy
+    was last tried.
+    """
+
+    id = serializers.IntegerField()
+    user_id = serializers.IntegerField(allow_null=True)
+    name = serializers.CharField(allow_blank=True)
+    email = serializers.CharField(allow_blank=True)
+    kind = serializers.CharField(allow_blank=True)
+    dart_name = serializers.CharField(allow_blank=True)
+    added_by = serializers.IntegerField(allow_null=True)
+    status = serializers.ChoiceField(choices=RecipientStatus.choices)
+    will_receive = serializers.BooleanField()
+    reason = serializers.CharField(allow_blank=True)
+    tried_at = serializers.DateTimeField(allow_null=True)
+
+
+def batch_row_payload(row: BatchRow) -> BulkEmailBatchRowDict:
+    """``row`` as ``GET /bulk-email/{id}/batch`` lists it."""
+    recipient = row.recipient
+    return {
+        "id": recipient.pk,
+        "user_id": recipient.user_id,
+        "name": recipient.name,
+        "email": recipient.email,
+        "kind": recipient.kind,
+        "dart_name": recipient.dart_name,
+        "added_by": recipient.added_by_id,
+        "status": recipient.status,
+        "will_receive": row.will_receive,
+        "reason": row.reason,
+        "tried_at": recipient.tried_at,
+    }
+
+
+class BulkEmailBatchSerializer(serializers.Serializer[dict[str, Any]]):
+    """``GET /bulk-email/{id}/batch``: the counts, the adds, and every person.
+
+    ``count`` is the batch's size, ``receiving`` how many receive a copy, and
+    ``skipped`` how many do not.  ``adds`` are in the order they were pressed, and
+    ``rows`` in the order the send goes.
+    """
+
+    count = serializers.IntegerField()
+    receiving = serializers.IntegerField()
+    skipped = serializers.IntegerField()
+    adds = BulkEmailBatchAddSerializer(many=True)
+    rows = BulkEmailBatchRowSerializer(many=True)
+
+
+def batch_payload(bulk: BulkEmail) -> dict[str, Any]:
+    """``bulk``'s batch as ``GET /bulk-email/{id}/batch`` answers it."""
+    rows = batch_rows(bulk)
+    counts = batch_counts(rows)
+    return {
+        "count": counts.count,
+        "receiving": counts.receiving,
+        "skipped": counts.skipped,
+        "adds": list(bulk.adds.all()),
+        "rows": [batch_row_payload(row) for row in rows],
+    }
+
+
+class BulkEmailRunResultSerializer(serializers.Serializer[dict[str, object]]):
+    """What one run of the bulk email sender did.
+
+    ``busy`` is true when another run was working and this one did nothing.  ``emails``
+    counts the bulk emails worked on; ``sent`` and ``failed`` the copies tried, and
+    ``skipped`` the people set aside as each email started.  ``out_of_time`` is true
+    when the run's time budget ran out with copies still to send, and ``remaining``
+    counts them; the next run carries on with them.  Each action is one copy: ``kind``
+    is ``sent`` or ``failed``, and ``detail`` the subject or the reason.
+    """
+
+    busy = serializers.BooleanField()
+    emails = serializers.IntegerField()
+    sent = serializers.IntegerField()
+    failed = serializers.IntegerField()
+    skipped = serializers.IntegerField()
+    out_of_time = serializers.BooleanField()
+    remaining = serializers.IntegerField()
+    actions = RunActionSerializer(many=True)

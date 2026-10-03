@@ -58,8 +58,9 @@ from the stored reminder schedule, so the mail app never imports it:
      - the daily report run (:doc:`scheduled-reports`)
    * - ``bulk_email``
      - Bulk email
-     - CalDART management's send to a filtered list, one copy per person
-       (:doc:`api-bulk-email`)
+     - the background bulk email sender, one copy per person in the batch, each
+       built by ``apps.bulk_email.render`` and sent through the pass-through
+       templates ``bulk_email_copy.{txt,html}`` (:doc:`bulk-email`)
    * - ``notification_<slug>``, one per event, from ``notification_signed_up``
        to ``notification_aircraft_removed``
      - Notification: and the event's label, from Notification: Sign-up to
@@ -68,10 +69,13 @@ from the stored reminder schedule, so the mail app never imports it:
        (:doc:`notifications`)
 
 Every message comes from ``DEFAULT_FROM_EMAIL`` and carries a ``Message-ID``
-generated on that address's domain, which its email log row records.  None sets
-a ``Reply-To`` header: where a template tells the reader how to get in touch, it prints the
-contact address from the website's site settings, which a website
-administrator edits in the Wagtail admin (:doc:`cms`).
+generated on that address's domain, which its email log row records.  No message
+sets a ``Reply-To`` header today: where a template tells the reader how to get in
+touch, it prints the contact address from the website's site settings, which a
+website administrator edits in the Wagtail admin (:doc:`cms`).
+``send_templated`` takes two keyword arguments for a sender that needs more:
+``headers``, extra headers merged into the message (they cannot replace its
+``Message-ID`` or ``From``), and ``reply_to``, the message's ``Reply-To`` address.
 
 
 Sending
@@ -324,7 +328,9 @@ fails loudly.  Every caller catches a refusal and carries on:
 
 * Each scheduled job, and each send to many people (bulk email, notifications,
   rosters), catches the refusal for that one recipient, logs it to the journal,
-  counts it among its failures, and carries on with the next.
+  counts it among its failures, and carries on with the next.  The bulk email
+  sender alone tries a temporary refusal again before it gives up
+  (:ref:`bulk-email-pacing`).
 * A payment's email (a receipt, a refund notice, a renewal notice) is caught and
   logged, and the payment stands.
 * A request a person makes for themselves (a password reset, a registration,

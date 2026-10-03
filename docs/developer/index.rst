@@ -49,6 +49,7 @@ New to the codebase?  :doc:`setup` gets it running, the
    notification-events
    renewals
    statements
+   bulk-email
 
 .. toctree::
    :maxdepth: 1

@@ -618,6 +618,9 @@ legend {
 
 /* -------------------------------------------------------------- tables */
 .table-wrap {
+  /* Positioned, so a visually hidden label inside a scrolled-off cell is clipped
+   * with the table instead of widening the page. */
+  position: relative;
   overflow-x: auto;
   border-top: var(--hairline) solid var(--color-rule);
 }

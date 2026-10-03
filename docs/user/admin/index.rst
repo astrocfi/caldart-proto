@@ -2,8 +2,8 @@
 Leader and administrator screens
 ================================
 
-The screens a DART leader, an account administrator, a user administrator, CalDART
-management, or a system administrator uses.
+The screens a DART leader, an account administrator, a user administrator, or a system
+administrator uses.
 
 .. toctree::
    :maxdepth: 1
@@ -19,7 +19,6 @@ management, or a system administrator uses.
    reminders
    subscriptions
    notifications
-   bulk-email
    users
    user-record
    health-database

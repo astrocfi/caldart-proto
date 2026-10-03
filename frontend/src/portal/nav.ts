@@ -59,6 +59,24 @@ export const NAV_ITEMS: NavItem[] = [
     group: 'Operations',
   },
 
+  // Bulk email has a group of its own. Compose opens a draft at
+  // `/bulk-email/drafts/:id`, so Drafts & scheduled is current while one is written.
+  { to: '/bulk-email/compose', label: 'Compose', roles: ['management'], group: 'Bulk Email' },
+  {
+    to: '/bulk-email/drafts',
+    label: 'Drafts & scheduled',
+    roles: ['management'],
+    group: 'Bulk Email',
+  },
+  { to: '/bulk-email/sent', label: 'Sent', roles: ['management'], group: 'Bulk Email' },
+  // The DNS check is visible to management and (as for every entry) a system administrator.
+  {
+    to: '/bulk-email/mail-delivery',
+    label: 'Mail delivery',
+    roles: ['management'],
+    group: 'Bulk Email',
+  },
+
   // A DART leader reads the member list and its report too; the member record
   // behind each name stays the account administrator's.
   {
@@ -97,15 +115,6 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Notifications',
     roles: ['account_admin'],
     group: 'Administration',
-  },
-  { to: '/admin/bulk-email', label: 'Bulk Email', roles: ['management'], group: 'Administration' },
-
-  // The DNS check is visible to management and (as for every entry) a system administrator.
-  {
-    to: '/bulk-email/mail-delivery',
-    label: 'Mail delivery',
-    roles: ['management'],
-    group: 'Bulk Email',
   },
 
   { to: '/system/health', label: 'Health & Database', roles: ['system_admin'], group: 'System' },

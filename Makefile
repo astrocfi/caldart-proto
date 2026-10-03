@@ -83,6 +83,10 @@ E2E_PROXY := frontend/e2e/prefix_proxy.py
 #   URL_PREFIX         E2E_URL_PREFIX, empty unless the run is under a prefix;
 #                      SITE_URL carries it too, since a prefixed site's links
 #                      and emails name it.
+#   BULK_EMAIL_UNDO_SECONDS
+#                      0, so a bulk email sent in a spec is ready for the
+#                      sender's next run at once, which the spec starts with
+#                      Run now on the Scheduled page.
 E2E_ENV := DJANGO_SETTINGS_MODULE=caldart.settings.dev \
            DATABASE_URL="$(E2E_DATABASE_URL)" \
            SECRET_KEY=e2e-insecure-secret-key \
@@ -103,7 +107,8 @@ E2E_ENV := DJANGO_SETTINGS_MODULE=caldart.settings.dev \
            GEOAPIFY_API_KEY=e2e-stub-key \
            GEOAPIFY_URL="http://127.0.0.1:$(E2E_GEOAPIFY_PORT)/autocomplete.json" \
            ADDRESS_SUGGEST_THROTTLE_RATE=1000/min \
-           FAA_REGISTRY_URL="$(abspath backend/apps/aircraft/fixtures/faa)"
+           FAA_REGISTRY_URL="$(abspath backend/apps/aircraft/fixtures/faa)" \
+           BULK_EMAIL_UNDO_SECONDS=0
 
 # `make rehearse-deploy` runs the real installer in a throwaway systemd
 # container: deploy/bootstrap.sh, with every scheduled job started once after
@@ -196,7 +201,7 @@ REHEARSE_KEEP_FLAG = $(call flag,REHEARSE_KEEP,keep)
         coverage-frontend e2e rehearse-deploy \
         lint lint-backend lint-shell \
         lint-frontend lint-spelling format check check-backend check-deploy check-frontend \
-        audit audit-backend audit-frontend backup restore reminders bounces sandbox-check \
+        audit audit-backend audit-frontend backup restore reminders bounces bulk-email sandbox-check \
         docs guide shell \
         superuser read-docs collectstatic clean
 
@@ -524,7 +529,7 @@ rehearse-deploy: ## Rehearse the server install in a throwaway systemd container
 	  echo "==> Running every other scheduled job once, hardening and all"; \
 	  inside systemctl start caldart-backup.service caldart-reports.service \
 	    caldart-renewals.service caldart-reminders.service caldart-statements.service \
-	    caldart-bounces.service; \
+	    caldart-bounces.service caldart-bulk-email.service; \
 	  echo "==> Rehearsing a database reset"; \
 	  inside /opt/caldart/caldart/deploy/reset-database.sh --yes --admin-email admin@caldart.test; \
 	  inside /opt/caldart/caldart/deploy/manage.sh shell -c \
@@ -663,6 +668,9 @@ reminders: ## Send renewal reminders (make reminders TODAY=2027-01-01 DRY_RUN=1)
 
 bounces: ## Read the bounce mailbox and mark what bounced (make bounces DRY_RUN=1)
 	$(MANAGE) check_bounces $(call flag,DRY_RUN,--dry-run)
+
+bulk-email: ## Send every bulk email whose start time has come, as the timer does
+	$(MANAGE) send_bulk_emails
 
 sandbox-check: ## Verify Stripe and PayPal sandbox credentials without moving money
 	$(MANAGE) payments_sandbox_check

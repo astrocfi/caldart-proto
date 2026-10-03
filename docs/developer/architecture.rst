@@ -341,13 +341,14 @@ report, a domain module, can read it.
     ``/admin/notifications`` is the account administrator's.  It reads the apps
     below it, so it sits beside ``reports``.
 ``bulk_email``
-    ``BulkEmail`` and ``BulkEmailRecipient``: one email CalDART management sent
-    to everybody the member list's filters selected, and what became of each
-    person's copy.  The recipients are chosen with ``members.filters`` and each
-    copy goes through ``caldart.mail.send_templated``.  Endpoints under
-    ``/bulk-email`` (:doc:`api-bulk-email`); the portal's *Bulk Email* screen at
-    ``/admin/bulk-email`` is the ``management`` role's.  It reads ``members``,
-    so it sits beside ``reports``.
+    ``BulkEmail``, ``BatchAdd``, and ``BulkEmailRecipient``: one email CalDART
+    management writes, the batch of people it goes to, built from the member
+    list's filters (``members.filters``), and what became of each person's copy.
+    The background sender (``send_bulk_emails``, every minute) sends each copy
+    through ``caldart.mail.send_templated`` (:doc:`bulk-email`).  Endpoints under
+    ``/bulk-email`` (:doc:`api-bulk-email`); the portal's Bulk Email screens under
+    ``/bulk-email/`` are the ``management`` role's.  It reads ``members``, so it
+    sits beside ``reports``.
 ``cms``
     The Wagtail page types, the StreamField blocks, ``SiteSettings``, the
     members-only wall, the ``site_chrome`` context processor and the

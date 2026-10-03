@@ -518,121 +518,233 @@
       "unmatched"
     ]
   },
-  "BulkEmail": {
+  "BulkEmailAddRequest": {
     "properties": {
-      "body": "string",
-      "created_at": "string(date-time)",
-      "failed_count": "integer",
-      "filters": "map<string>",
-      "id": "integer",
-      "sender": "string",
-      "sent_at": "string(date-time)|null",
-      "sent_count": "integer",
-      "skipped_count": "integer",
-      "subject": "string"
+      "filters": "map<string>"
+    },
+    "required": []
+  },
+  "BulkEmailAddResult": {
+    "properties": {
+      "added": "integer",
+      "already_present": "integer",
+      "count": "integer"
     },
     "required": [
-      "body",
+      "added",
+      "already_present",
+      "count"
+    ]
+  },
+  "BulkEmailBatch": {
+    "properties": {
+      "adds": "array<ref:BulkEmailBatchAdd>",
+      "count": "integer",
+      "receiving": "integer",
+      "rows": "array<ref:BulkEmailBatchRow>",
+      "skipped": "integer"
+    },
+    "required": [
+      "adds",
+      "count",
+      "receiving",
+      "rows",
+      "skipped"
+    ]
+  },
+  "BulkEmailBatchAdd": {
+    "properties": {
+      "added_count": "integer",
+      "already_count": "integer",
+      "created_at": "string(date-time)",
+      "filters": "map<string>",
+      "id": "integer",
+      "label": "string"
+    },
+    "required": [
+      "added_count",
+      "already_count",
       "created_at",
-      "failed_count",
       "filters",
       "id",
-      "sender",
-      "sent_at",
-      "sent_count",
-      "skipped_count",
-      "subject"
+      "label"
+    ]
+  },
+  "BulkEmailBatchRow": {
+    "properties": {
+      "added_by": "integer|null",
+      "dart_name": "string",
+      "email": "string",
+      "id": "integer",
+      "kind": "string",
+      "name": "string",
+      "reason": "string",
+      "status": "ref:BulkEmailRecipientStatusEnum",
+      "tried_at": "string(date-time)|null",
+      "user_id": "integer|null",
+      "will_receive": "boolean"
+    },
+    "required": [
+      "added_by",
+      "dart_name",
+      "email",
+      "id",
+      "kind",
+      "name",
+      "reason",
+      "status",
+      "tried_at",
+      "user_id",
+      "will_receive"
     ]
   },
   "BulkEmailDetail": {
     "properties": {
+      "batch_count": "integer",
+      "batch_skipped_count": "integer",
       "body": "string",
+      "can_edit": "boolean",
+      "confirm_above": "integer",
+      "confirm_count": "integer|null",
       "created_at": "string(date-time)",
+      "estimated_finish_at": "string(date-time)|null",
       "failed_count": "integer",
-      "filters": "map<string>",
       "id": "integer",
-      "recipients": "array<ref:BulkEmailRecipient>",
+      "receiving_count": "integer",
+      "remaining": "integer",
+      "scheduled": "boolean",
       "sender": "string",
+      "sender_id": "integer|null",
       "sent_at": "string(date-time)|null",
       "sent_count": "integer",
       "skipped_count": "integer",
-      "subject": "string"
+      "start_at": "string(date-time)|null",
+      "started_at": "string(date-time)|null",
+      "status": "ref:BulkEmailStatusEnum",
+      "stop_requested": "boolean",
+      "stopped_at": "string(date-time)|null",
+      "stopped_by": "string",
+      "subject": "string",
+      "undo_seconds": "integer",
+      "updated_at": "string(date-time)"
     },
     "required": [
+      "batch_count",
+      "batch_skipped_count",
       "body",
+      "can_edit",
+      "confirm_above",
+      "confirm_count",
       "created_at",
+      "estimated_finish_at",
       "failed_count",
-      "filters",
       "id",
-      "recipients",
+      "receiving_count",
+      "remaining",
+      "scheduled",
       "sender",
+      "sender_id",
       "sent_at",
       "sent_count",
       "skipped_count",
-      "subject"
-    ]
-  },
-  "BulkEmailMessageRequest": {
-    "properties": {
-      "body": "string",
-      "filters": "map<string>",
-      "subject": "string"
-    },
-    "required": [
-      "body",
-      "subject"
-    ]
-  },
-  "BulkEmailPreview": {
-    "properties": {
-      "count": "integer",
-      "recipients": "array<ref:BulkEmailPreviewRecipient>",
-      "skipped": "array<ref:BulkEmailPreviewRecipient>",
-      "skipped_count": "integer"
-    },
-    "required": [
-      "count",
-      "recipients",
-      "skipped",
-      "skipped_count"
-    ]
-  },
-  "BulkEmailPreviewRecipient": {
-    "properties": {
-      "email": "string",
-      "name": "string",
-      "reason": "string",
-      "user_id": "integer"
-    },
-    "required": [
-      "email",
-      "name",
-      "reason",
-      "user_id"
-    ]
-  },
-  "BulkEmailRecipient": {
-    "properties": {
-      "email": "string",
-      "name": "string",
-      "reason": "string",
-      "status": "ref:BulkEmailRecipientStatusEnum",
-      "user_id": "integer|null"
-    },
-    "required": [
-      "email",
-      "name",
-      "reason",
+      "start_at",
+      "started_at",
       "status",
-      "user_id"
+      "stop_requested",
+      "stopped_at",
+      "stopped_by",
+      "subject",
+      "undo_seconds",
+      "updated_at"
     ]
   },
   "BulkEmailRecipientStatusEnum": {
     "enum": [
+      "batched",
       "pending",
       "sent",
       "failed",
+      "skipped",
+      "stopped",
+      "bounced"
+    ]
+  },
+  "BulkEmailRunResult": {
+    "properties": {
+      "actions": "array<ref:RunAction>",
+      "busy": "boolean",
+      "emails": "integer",
+      "failed": "integer",
+      "out_of_time": "boolean",
+      "remaining": "integer",
+      "sent": "integer",
+      "skipped": "integer"
+    },
+    "required": [
+      "actions",
+      "busy",
+      "emails",
+      "failed",
+      "out_of_time",
+      "remaining",
+      "sent",
       "skipped"
+    ]
+  },
+  "BulkEmailSendRequest": {
+    "properties": {
+      "confirm_count": "integer|null",
+      "start_at": "string(date-time)|null"
+    },
+    "required": []
+  },
+  "BulkEmailStatusEnum": {
+    "enum": [
+      "draft",
+      "queued",
+      "sending",
+      "sent",
+      "stopped"
+    ]
+  },
+  "BulkEmailSummary": {
+    "properties": {
+      "batch_count": "integer",
+      "created_at": "string(date-time)",
+      "failed_count": "integer",
+      "id": "integer",
+      "remaining": "integer",
+      "scheduled": "boolean",
+      "sender": "string",
+      "sent_at": "string(date-time)|null",
+      "sent_count": "integer",
+      "skipped_count": "integer",
+      "start_at": "string(date-time)|null",
+      "started_at": "string(date-time)|null",
+      "status": "ref:BulkEmailStatusEnum",
+      "stop_requested": "boolean",
+      "stopped_at": "string(date-time)|null",
+      "subject": "string",
+      "updated_at": "string(date-time)"
+    },
+    "required": [
+      "batch_count",
+      "created_at",
+      "failed_count",
+      "id",
+      "remaining",
+      "scheduled",
+      "sender",
+      "sent_at",
+      "sent_count",
+      "skipped_count",
+      "start_at",
+      "started_at",
+      "status",
+      "stop_requested",
+      "stopped_at",
+      "subject",
+      "updated_at"
     ]
   },
   "CadenceEnum": {
@@ -2109,6 +2221,13 @@
       "seats": "integer|null",
       "type_id": "integer",
       "year": "integer|null"
+    },
+    "required": []
+  },
+  "PatchedBulkEmailUpdateRequest": {
+    "properties": {
+      "body": "string",
+      "subject": "string"
     },
     "required": []
   },

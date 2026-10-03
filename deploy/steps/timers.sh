@@ -2,10 +2,10 @@
 #
 # CalDART install step - the scheduled jobs.
 #
-# Installs the seven service and timer pairs under deploy/systemd/ (the FAA
+# Installs the eight service and timer pairs under deploy/systemd/ (the FAA
 # registry import, the scheduled reports, the automatic renewals, the renewal
-# reminders, the year-end statements, the hourly bounce check, and the nightly
-# backup) into
+# reminders, the year-end statements, the hourly bounce check, the bulk email
+# sender that runs every minute, and the nightly backup) into
 # /etc/systemd/system with the checkout and the deploy root written in, enables and starts each
 # timer, and starts one registry import at once so the aircraft type picker
 # has its vocabulary before anybody opens it.  Reinstalling the units is how

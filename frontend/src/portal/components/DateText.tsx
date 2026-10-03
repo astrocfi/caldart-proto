@@ -72,6 +72,55 @@ export function formatTime(iso: string | null | undefined, placeholder = '—'):
   return value ? timeParts(value) : placeholder;
 }
 
+/**
+ * Formats a datetime as `04/07/2026 at 8:00 AM`, in `timeZone` when one is given and
+ * on the reader's own clock otherwise, or `placeholder` when it is unparseable.  A
+ * schedule a person chose reads this way, in the words they would say it.
+ */
+export function formatDateAt(
+  iso: string | null | undefined,
+  timeZone?: string,
+  placeholder = '—',
+): string {
+  if (!iso) return placeholder;
+  const value = parse(iso);
+  if (value === null) return placeholder;
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  }).formatToParts(value);
+  const part = (type: Intl.DateTimeFormatPartTypes): string =>
+    parts.find((piece) => piece.type === type)?.value ?? '';
+  return `${part('month')}/${part('day')}/${part('year')} at ${part('hour')}:${part('minute')} ${part('dayPeriod')}`;
+}
+
+/**
+ * The `YYYY-MM-DD` date and the `HH:MM` 24-hour time a moment falls on in
+ * `timeZone`, for a date box and a time box to start from.
+ */
+export function datePartsIn(iso: string, timeZone: string): { date: string; time: string } {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(new Date(iso));
+  const part = (type: Intl.DateTimeFormatPartTypes): string =>
+    parts.find((piece) => piece.type === type)?.value ?? '';
+  return {
+    date: `${part('year')}-${part('month')}-${part('day')}`,
+    time: `${part('hour')}:${part('minute')}`,
+  };
+}
+
 /** Formats a `YYYY-MM` month as `Mar 2026`; any other value comes back unchanged. */
 export function formatMonth(yyyyMm: string): string {
   const match = /^(\d{4})-(\d{2})$/.exec(yyyyMm);

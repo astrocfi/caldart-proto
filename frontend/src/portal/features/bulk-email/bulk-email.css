@@ -1,11 +1,67 @@
 /*
- * The Bulk Email screen.  The compose fieldset only groups the filters and the
- * message so a send in flight can disable them all at once; it draws nothing.
+ * The bulk email screens.  The message fieldset only groups the subject and the
+ * message so a started send can hold them still at once; it draws nothing.
  */
 
-.bulk-email__compose {
+.bulk-email__fieldset {
   border: 0;
   padding: 0;
   margin: 0;
   min-width: 0;
+}
+
+/* A dot and its words, side by side in a table cell. */
+.bulk-email__will-receive {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* The banner over the compose screen's cards: a queued email's countdown, or a notice. */
+.bulk-email__notice {
+  border: var(--hairline) solid var(--color-rule-strong);
+  border-left-width: var(--space-1);
+  border-radius: var(--radius);
+  background: var(--color-bg-raised);
+  padding: var(--space-3) var(--space-4);
+}
+
+.bulk-email__notice p {
+  margin: 0;
+}
+
+.bulk-email__status p {
+  margin: 0;
+}
+
+.bulk-email__progress {
+  width: 100%;
+  max-width: 32rem;
+  height: var(--space-2);
+  accent-color: var(--color-primary);
+}
+
+.bulk-email__save-note {
+  font-size: var(--text-sm);
+  margin: 0;
+}
+
+.bulk-email__confirm {
+  border-top: var(--hairline) solid var(--color-rule);
+  padding-top: var(--space-3);
+}
+
+.bulk-email__count {
+  max-width: 8rem;
+}
+
+.bulk-email__schedule .field {
+  min-width: 10rem;
+}
+
+/* The message as sent: plain text, its line breaks kept. */
+.bulk-email__body {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-width: var(--measure);
 }

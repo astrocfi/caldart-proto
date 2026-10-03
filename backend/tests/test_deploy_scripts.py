@@ -1440,7 +1440,16 @@ def test_reset_database_stops_every_timer_and_job(root: Path, etc: Path) -> None
     """No scheduled job can write while the database is emptied."""
     commands = _commands(_reset_dry_run(root, etc))
     stop = commands[_position(commands, "systemctl stop")].split()[2:]
-    jobs = ("registry", "reports", "renewals", "reminders", "statements", "bounces", "backup")
+    jobs = (
+        "registry",
+        "reports",
+        "renewals",
+        "reminders",
+        "statements",
+        "bounces",
+        "bulk-email",
+        "backup",
+    )
     expected = [
         "caldart-web.service",
         *(f"caldart-{job}.timer" for job in jobs),
@@ -1474,7 +1483,7 @@ def test_reset_database_starts_the_site_and_the_registry_import_last(root: Path,
     assert commands[-2:] == [
         "systemctl start caldart-web.service caldart-registry.timer caldart-reports.timer "
         "caldart-renewals.timer caldart-reminders.timer caldart-statements.timer "
-        "caldart-bounces.timer caldart-backup.timer",
+        "caldart-bounces.timer caldart-bulk-email.timer caldart-backup.timer",
         "systemctl start --no-block caldart-registry.service",
     ]
 

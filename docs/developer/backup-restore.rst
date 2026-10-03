@@ -275,7 +275,7 @@ bookkeeping before you have checked it (:ref:`backup-after-restore`)::
 
   sudo systemctl stop caldart-web caldart-renewals.timer caldart-reminders.timer \
       caldart-reports.timer caldart-statements.timer caldart-bounces.timer \
-      caldart-backup.timer
+      caldart-bulk-email.timer caldart-backup.timer
   sudo deploy/manage.sh db_restore /opt/caldart/backups/caldart-....sql.gz --yes
   sudo deploy/manage.sh migrate
 
@@ -408,7 +408,7 @@ them.  Run it again to confirm, then start the timers::
 
   sudo systemctl start caldart-renewals.timer caldart-reminders.timer \
       caldart-reports.timer caldart-statements.timer caldart-bounces.timer \
-      caldart-backup.timer
+      caldart-bulk-email.timer caldart-backup.timer
 
 A payment recorded by hand carries no link to the provider's charge, so a
 refund issued from the portal against it sends nothing to Stripe or PayPal.  To

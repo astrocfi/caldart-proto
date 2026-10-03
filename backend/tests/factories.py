@@ -14,7 +14,7 @@ from factory.django import DjangoModelFactory
 from wagtail.models import Page, Site
 
 from apps.accounts.models import AccountKind
-from apps.accounts.roles import MEMBER
+from apps.accounts.roles import MANAGEMENT, MEMBER
 from apps.aircraft.models import (
     Aircraft,
     AircraftChange,
@@ -22,6 +22,7 @@ from apps.aircraft.models import (
     AircraftType,
     OwnerType,
 )
+from apps.bulk_email.models import BulkEmail, BulkEmailRecipient, RecipientKind
 from apps.cms.models import (
     ContactPage,
     DartIndexPage,
@@ -614,3 +615,65 @@ class ReportSubscriptionFactory(ModelFactory[ReportSubscription]):
     weekday = 0
     is_active = True
     next_due_on = factory.LazyFunction(timezone.localdate)
+
+
+class BulkEmailFactory(ModelFactory[BulkEmail]):
+    """Builds a draft bulk email with a subject and a message, from a CalDART manager.
+
+    Its batch is empty; :func:`add_to_batch` puts people in it.
+    """
+
+    class Meta:
+        model = BulkEmail
+
+    subject = "Spring safety seminar"
+    body = "Join us at Livermore on Saturday.\n\nBring your logbook."
+    sender = factory.SubFactory(
+        UserFactory,
+        email="sender@example.test",
+        first_name="Grace",
+        last_name="Holloway",
+        roles=[MEMBER, MANAGEMENT],
+    )
+
+
+def make_person(
+    email: str,
+    first: str = "Pat",
+    last: str = "Doe",
+    *,
+    county: str = "Marin",
+    dart: Dart | None = None,
+    **user: Any,
+) -> UserModel:
+    """A member or friend with the member role and a profile in ``county``.
+
+    The role fixtures have no profile, so a filter on ``county`` chooses the people a
+    bulk email test makes and nobody else.  ``dart`` is the profile's DART, a fresh one
+    unless given; ``user`` sets any other account field, such as ``kind``.
+    """
+    account = UserFactory(email=email, first_name=first, last_name=last, roles=[MEMBER], **user)
+    if dart is None:
+        MemberProfileFactory(user=account, county=county)
+    else:
+        MemberProfileFactory(user=account, county=county, dart=dart)
+    return account
+
+
+def add_to_batch(bulk: BulkEmail, *accounts: UserModel) -> list[BulkEmailRecipient]:
+    """Put ``accounts`` in ``bulk``'s batch as ``batched`` rows, with no add behind them.
+
+    Each row carries the account's name and address as they are now.
+    """
+    return [
+        BulkEmailRecipient.objects.create(
+            bulk_email=bulk,
+            user=account,
+            name=account.display_name,
+            email=account.email,
+            kind=RecipientKind.FRIEND
+            if account.kind == AccountKind.FRIEND
+            else RecipientKind.MEMBER,
+        )
+        for account in accounts
+    ]

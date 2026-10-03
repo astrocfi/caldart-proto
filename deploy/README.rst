@@ -564,11 +564,17 @@ sandbox (``ProtectSystem=strict``, no capabilities).
      - ``manage.py check_bounces``; says bounce checking is off while
        ``BOUNCE_IMAP_URL`` is empty
      - hourly, at twenty past
+   * - ``caldart-bulk-email.timer``
+     - ``manage.py send_bulk_emails``; sends each bulk email whose start time
+       has come, and exits at once when none is due
+     - every minute
 
 Each timer starts the service of the same name (``caldart-backup.service``
-and so on), which runs its command and exits.  Every timer has
-``Persistent=true``, so a run missed while the machine was off happens when it
-comes back, and up to five minutes of random delay.  See them all with::
+and so on), which runs its command and exits.  Every timer but the bulk email
+sender's has ``Persistent=true``, so a run missed while the machine was off
+happens when it comes back, and up to five minutes of random delay.  The bulk
+email sender runs on the minute instead, since a scheduled send is a promise to
+the minute, and a missed minute is simply the next one.  See them all with::
 
   systemctl list-timers 'caldart-*'
 
@@ -792,7 +798,7 @@ Everything goes to the journal:
 - the site: ``journalctl -u caldart-web -f``;
 - a job: ``journalctl -u caldart-backup -n 20`` (or ``caldart-registry``,
   ``caldart-reports``, ``caldart-renewals``, ``caldart-reminders``,
-  ``caldart-statements``, ``caldart-bounces``);
+  ``caldart-statements``, ``caldart-bounces``, ``caldart-bulk-email``);
 - Apache: ``/var/log/apache2/caldart-access.log`` and ``caldart-error.log``
   (the port-80 host logs to ``caldart-http-access.log`` and
   ``caldart-http-error.log``);
@@ -955,7 +961,7 @@ jobs that write, restore, and migrate::
 
   sudo systemctl stop caldart-web caldart-renewals.timer caldart-reminders.timer \
       caldart-reports.timer caldart-statements.timer caldart-bounces.timer \
-      caldart-backup.timer
+      caldart-bulk-email.timer caldart-backup.timer
   sudo /opt/caldart/caldart/deploy/manage.sh db_restore /opt/caldart/backups/caldart-20260601-033000.sql.gz
   sudo /opt/caldart/caldart/deploy/manage.sh migrate
 
@@ -973,7 +979,7 @@ so check what the renewal job would charge before restarting the timers::
   sudo /opt/caldart/caldart/deploy/manage.sh run_auto_renewals --dry-run
   sudo systemctl start caldart-web caldart-renewals.timer caldart-reminders.timer \
       caldart-reports.timer caldart-statements.timer caldart-bounces.timer \
-      caldart-backup.timer
+      caldart-bulk-email.timer caldart-backup.timer
 
 The registrations table is empty after a restore until the next registry
 import; start one as above.  ``docs/developer/backup-restore.rst`` covers
