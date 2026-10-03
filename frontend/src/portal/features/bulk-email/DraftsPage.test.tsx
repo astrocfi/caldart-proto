@@ -41,7 +41,7 @@ describe('DraftsPage', () => {
     renderWithProviders(<DraftsPage />);
     const draft = (await screen.findByText(NO_SUBJECT)).closest('tr');
     expect(draft).toHaveTextContent('Draft');
-    expect(screen.getByText('Newsletter').closest('tr')).toHaveTextContent('Scheduled for');
+    expect(screen.getByText('Newsletter').closest('tr')).toHaveTextContent('04/07/2027 at 8:00 AM');
   });
 
   it('opens a draft on its compose screen', async () => {
@@ -49,7 +49,7 @@ describe('DraftsPage', () => {
     renderWithProviders(<DraftsPage />);
     expect(await screen.findByRole('link', { name: 'Hangar day' })).toHaveAttribute(
       'href',
-      '/bulk-email/drafts/7',
+      '/bulk-email/compose/7',
     );
   });
 
@@ -78,5 +78,17 @@ describe('DraftsPage', () => {
     answerDrafts([]);
     renderWithProviders(<DraftsPage />);
     expect(await screen.findByText('No drafts')).toBeVisible();
+  });
+
+  it('puts the subject first, with a real width', async () => {
+    answerDrafts([makeSummary()]);
+    renderWithProviders(<DraftsPage />);
+    const table = await screen.findByRole('table');
+    const first = within(table).getAllByRole('columnheader')[0];
+    expect([first?.textContent, first?.className, table.style.minWidth.includes('16rem')]).toEqual([
+      'Subject',
+      'data-table__text',
+      true,
+    ]);
   });
 });

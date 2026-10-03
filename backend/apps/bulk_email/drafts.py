@@ -238,7 +238,7 @@ def resume(bulk: BulkEmail, *, actor: User, now: datetime | None = None) -> Bulk
     Every ``stopped`` row goes back to ``pending`` and the email is queued with
     ``start_at`` at ``now``, with no undo window; the background sender sends those
     copies alone, and nobody already sent a copy is sent another.  The email keeps its
-    ``started_at``, so it stays read-only and cannot be cancelled back to a draft;
+    ``started_at``, so it stays read-only and cannot be canceled back to a draft;
     **Stop** stops it again.  Raises
     ``DomainError`` unless the email is ``stopped``.  One ``bulk_email.resume`` audit
     line names ``actor``.

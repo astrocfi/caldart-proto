@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
 import { answerBulkEmail, makeBatch, makeBulkEmail, makeRow } from '@test/fixtures/bulkEmail';
@@ -58,5 +58,20 @@ describe('SentDetailPage', () => {
       'href',
       '/api/v1/bulk-email/7/recipients.csv',
     );
+  });
+
+  it('says who sent it and to how many people', async () => {
+    renderSent();
+    expect(await screen.findByText(/^Sent by Grace Holloway on .* to 2 people\.$/)).toBeVisible();
+  });
+
+  it('puts the name first in the results, with a real width', async () => {
+    renderSent();
+    const table = await screen.findByRole('table');
+    const first = within(table).getAllByRole('columnheader')[0];
+    expect([first?.textContent, table.style.minWidth.includes('16rem + 14rem')]).toEqual([
+      'Name',
+      true,
+    ]);
   });
 });

@@ -1598,7 +1598,8 @@ no second run while it works.  A run with nothing due exits at once.  A missed
 minute is not caught up (``Persistent=false``); the next minute's run sends
 whatever is due by then.  It needs the database and the SMTP server, from the
 same ``/etc/caldart/caldart.env``.  Run it by hand with ``sudo deploy/manage.sh
-send_bulk_emails``, or with **Run now** on the Scheduled page.  See
+send_bulk_emails``, or with **Run the bulk email sender now** on the Scheduled
+page, which works for at most 45 seconds and leaves the rest to the timer.  See
 :doc:`bulk-email` for the states, the pacing, and the retries.
 
 
@@ -1941,8 +1942,11 @@ Action                        Fields beyond actor and target
 ``bulk_email.queue``          ``recipients``, ``scheduled`` (the target is
                               the ``BulkEmail``); one line per **Send** or
                               **Schedule**
-``bulk_email.cancel``         -- (the target is the ``BulkEmail``)
-``bulk_email.stop``           -- (the target is the ``BulkEmail``)
+``bulk_email.cancel``         -- (the target is the ``BulkEmail``); ``reason``
+                              ``batch_changed`` when a change to its batch
+                              took a queued email back to a draft
+``bulk_email.stop``           ``recipients`` -- the copies kept back; written
+                              when the stop takes effect
 ``bulk_email.resume``         ``recipients`` -- the copies queued again
 ``bulk_email.send``           ``sent``, ``skipped``, ``failed`` (the target
                               is the ``BulkEmail``, the actor its sender);
@@ -1950,7 +1954,8 @@ Action                        Fields beyond actor and target
                               has been tried
 ``bulk_email.run``            ``busy``, ``emails``, ``sent``, ``failed``,
                               ``skipped``; one line per **Run now** on the
-                              Scheduled page
+                              Scheduled page, which works for at most 45
+                              seconds and leaves the rest to the timer
 ``system.registry_import``    -- (the target is the ``RegistryImport`` row);
                               one line per **Run now** on Health & Database
 ============================= ===============================================

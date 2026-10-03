@@ -1,17 +1,28 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { formatCountdown, secondsUntil, useSecondsUntil } from './countdown';
+import { formatCountdown, formatDuration, secondsUntil, useSecondsUntil } from './countdown';
 
 describe('formatCountdown', () => {
   it.each([
-    [0, '0:00'],
-    [9, '0:09'],
-    [118, '1:58'],
-    [600, '10:00'],
-    [3725, '1:02:05'],
+    [0, '0 s'],
+    [9, '9 s'],
+    [118, '1 min 58 s'],
+    [120, '2 min'],
+    [3725, '62 min 5 s'],
   ])('reads %i seconds as %s', (seconds, label) => {
     expect(formatCountdown(seconds)).toBe(label);
+  });
+});
+
+describe('formatDuration', () => {
+  it.each([
+    [120, '2 minutes'],
+    [60, '1 minute'],
+    [90, '1 minute 30 seconds'],
+    [45, '45 seconds'],
+  ])('reads %i seconds as %s', (seconds, words) => {
+    expect(formatDuration(seconds)).toBe(words);
   });
 });
 

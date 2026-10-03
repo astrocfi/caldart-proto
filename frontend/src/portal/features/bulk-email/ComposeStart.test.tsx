@@ -14,7 +14,7 @@ function renderStart() {
   return renderRoutes(
     [
       { path: '/bulk-email/compose', element: <ComposeStart /> },
-      { path: '/bulk-email/drafts/:id', element: <h1>Draft screen</h1> },
+      { path: '/bulk-email/compose/:id', element: <h1>Draft screen</h1> },
     ],
     { route: '/bulk-email/compose' },
   );
@@ -31,7 +31,7 @@ describe('ComposeStart', () => {
     );
     const { router } = renderStart();
     await screen.findByRole('heading', { name: 'Draft screen' });
-    expect([router.state.location.pathname, opens]).toEqual(['/bulk-email/drafts/12', 1]);
+    expect([router.state.location.pathname, opens]).toEqual(['/bulk-email/compose/12', 1]);
   });
 
   it('says so plainly and offers to try again when the draft cannot be opened', async () => {

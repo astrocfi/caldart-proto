@@ -3,17 +3,18 @@
  * when. Above the size `confirmAbove` it asks the sender to type the number of
  * people, and the button that sends stays off until the number matches; the
  * server checks the number again, in case the batch changed meanwhile.
+ *
+ * The focus starts in the number box, or on the button that sends when there is
+ * none, and the Escape key goes back, as **Go back** does.
  */
-import { useState } from 'react';
-import type { JSX } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import type { JSX, KeyboardEvent } from 'react';
 
 import { Button } from '@/portal/components/Button';
 import { Field } from '@/portal/components/Field';
-import { formatCountdown } from './countdown';
+import { formatDuration } from './countdown';
+import { chosenWords } from './schedule';
 import { people } from './status';
-
-/** What the scheduled time's zone is called: the site's own, where CalDART flies. */
-export const SITE_TIME_ZONE_NAME = 'Pacific time';
 
 interface SendConfirmProps {
   subject: string;
@@ -27,23 +28,16 @@ interface SendConfirmProps {
   onBack: () => void;
 }
 
-/**
- * `04/07/2026 at 08:00`: a chosen start as the confirmation reads it.
- *
- * @param startAt `YYYY-MM-DDTHH:MM`.
- */
-export function scheduledWords(startAt: string): string {
-  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}:\d{2})/.exec(startAt);
-  if (match === null) return startAt;
-  const [, year, month, day, time] = match;
-  return `${month}/${day}/${year} at ${time}`;
-}
-
 /** When the send starts, in words, for the confirmation. */
 function whenWords(startAt: string | null, undoSeconds: number): string {
-  if (startAt !== null) return `It goes out on ${scheduledWords(startAt)} ${SITE_TIME_ZONE_NAME}.`;
+  if (startAt !== null) return `It goes out on ${chosenWords(startAt)}.`;
   if (undoSeconds <= 0) return 'Sending starts within a minute.';
-  return `Sending starts in ${formatCountdown(undoSeconds)}, and until then you can cancel it.`;
+  return `Sending starts in ${formatDuration(undoSeconds)}, and until then you can cancel it.`;
+}
+
+/** The sentence a typed number that is not the count shows. */
+export function mismatchMessage(count: number): string {
+  return `That number does not match. Type ${count}, the number of people who will receive it.`;
 }
 
 /** The confirmation panel, with the typed count when the batch is large. */
@@ -58,15 +52,29 @@ export function SendConfirm({
 }: SendConfirmProps): JSX.Element {
   const [typed, setTyped] = useState('');
   const [isPending, setIsPending] = useState(false);
+  const countRef = useRef<HTMLInputElement>(null);
+  const confirmRef = useRef<HTMLButtonElement>(null);
   const needsCount = count > confirmAbove;
-  const isConfirmed = !needsCount || Number(typed.trim()) === count;
+  const typedNumber = typed.trim();
+  const isConfirmed = !needsCount || Number(typedNumber) === count;
+  const isMismatch = needsCount && typedNumber !== '' && !isConfirmed;
   const label = startAt === null ? 'Send now' : 'Schedule it';
+
+  useEffect(() => {
+    (needsCount ? countRef.current : confirmRef.current)?.focus();
+  }, [needsCount]);
 
   const handleConfirm = (): void => {
     setIsPending(true);
-    void onConfirm(needsCount ? Number(typed.trim()) : null)
+    void onConfirm(needsCount ? Number(typedNumber) : null)
       .catch(() => undefined)
       .finally(() => setIsPending(false));
+  };
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLElement>): void => {
+    if (event.key !== 'Escape' || isPending) return;
+    event.stopPropagation();
+    handleBack();
   };
 
   return (
@@ -78,25 +86,33 @@ export function SendConfirm({
         <Field
           label={`Type ${count} to confirm`}
           hint="A large send asks for its number, so the wrong batch is never sent by accident."
+          error={isMismatch ? mismatchMessage(count) : null}
         >
           {(field) => (
             <input
               {...field}
+              ref={countRef}
               type="text"
               inputMode="numeric"
               autoComplete="off"
-              className="mono bulk-email__count"
+              className="bulk-email__count"
               value={typed}
               onChange={(event) => setTyped(event.target.value)}
+              onKeyDown={handleKeyDown}
             />
           )}
         </Field>
       ) : null}
       <div className="cluster">
-        <Button onClick={handleConfirm} disabled={!isConfirmed || isPending}>
+        <Button
+          ref={confirmRef}
+          onClick={handleConfirm}
+          onKeyDown={handleKeyDown}
+          disabled={!isConfirmed || isPending}
+        >
           {isPending ? 'Sending…' : label}
         </Button>
-        <Button variant="quiet" onClick={handleBack} disabled={isPending}>
+        <Button variant="quiet" onClick={handleBack} onKeyDown={handleKeyDown} disabled={isPending}>
           Go back
         </Button>
       </div>

@@ -26,7 +26,7 @@ async function openCompose(page: Page): Promise<void> {
     .getByRole('navigation', { name: 'Portal sections' })
     .getByRole('link', { name: 'Compose' })
     .click();
-  await expect(page).toHaveURL(/\/portal\/bulk-email\/drafts\/\d+$/);
+  await expect(page).toHaveURL(/\/portal\/bulk-email\/compose\/\d+$/);
   await expect(page.getByRole('heading', { name: '1. Who gets it' })).toBeVisible();
 }
 
@@ -35,7 +35,7 @@ async function addRole(page: Page, role: string): Promise<void> {
   const filters = page.getByRole('search', { name: 'Choose people to add' });
   await filters.getByLabel('Role').selectOption(role);
   await page.getByRole('button', { name: 'Add to batch' }).click();
-  await expect(page.getByText(/^Added \d+ (person|people); \d+ (was|were) already/)).toBeVisible();
+  await expect(page.getByText(/^Added \d+ (person|people)[.;]/)).toBeVisible();
 }
 
 /** Write the subject and the message. */
@@ -75,7 +75,7 @@ test('CalDART management builds a batch from two filter sets and sends it', asyn
   await expect(confirm).toContainText(subject);
   await confirm.getByRole('button', { name: 'Send now' }).click();
   await expect(
-    page.getByRole('region', { name: 'Waiting to send' }).getByText('Starting to send'),
+    page.getByRole('region', { name: 'Waiting to send' }).getByText(/^Starting to send/),
   ).toBeVisible();
 
   // The system administrator runs the background sender by hand.
@@ -85,7 +85,7 @@ test('CalDART management builds a batch from two filter sets and sends it', asyn
   const sender = page
     .locator('section')
     .filter({ has: page.getByRole('heading', { name: 'Bulk email sender' }) });
-  await sender.getByRole('button', { name: 'Run now' }).click();
+  await sender.getByRole('button', { name: 'Run the bulk email sender now' }).click();
   await expect(sender.getByRole('status')).toHaveText(
     /^Worked on \d+ bulk emails?: sent \d+, failed 0, and skipped \d+\.$/,
   );

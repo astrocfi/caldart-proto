@@ -183,9 +183,11 @@ so the mail provider never turns them away. CalDART management writes and sends 
 on the Bulk Email screens (:doc:`../bulk-email/compose`).
 
 The panel has no dry run, because the sender only sends what CalDART management has already
-pressed **Send** on. Press **Run now** to run it at once. A large email takes a while, and the
-page waits for it. The result reads, for example, *Worked on 1 bulk email: sent 37, failed 1,
-and skipped 4.*, above a table naming each copy: **What** (*Sent* or *Failed*), **Who** it
+pressed **Send** on. Press **Run the bulk email sender now** to run it at once. The page waits
+up to 45 seconds; a larger email carries on in the background after that. The result reads,
+for example, *Worked on 1 bulk email: sent 37, failed 1, and skipped 4.*, and when the time
+ran out it adds how many copies are still to go and that the server's sender carries on with
+them within a minute. A table names each copy: **What** (*Sent* or *Failed*), **Who** it
 went to, and the **Subject or reason**. When nothing was due the table reads *Nothing was
 due*. If the sender was already running, the panel says *The sender is already running, so
 this run did nothing. Try again in a minute.*

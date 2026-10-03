@@ -315,6 +315,14 @@
   text-align: center;
 }
 
+/* A column of text with a minimum width (a name, an address) starts at the
+ * left edge, whatever position it holds; the rule above is for a glyph. */
+.data-table--single-line th.data-table__text,
+.data-table--single-line td.data-table__text {
+  padding-right: var(--space-3);
+  text-align: start;
+}
+
 .data-table__sort {
   display: inline-flex;
   align-items: center;

@@ -23,7 +23,7 @@ export const bulkEmailRoutes: RouteObject[] = [
         }),
       },
       {
-        path: 'bulk-email/drafts/:id',
+        path: 'bulk-email/compose/:id',
         lazy: async () => ({
           Component: (await import('../features/bulk-email/ComposePage')).ComposePage,
         }),

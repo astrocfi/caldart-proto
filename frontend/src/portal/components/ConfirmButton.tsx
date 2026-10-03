@@ -6,8 +6,8 @@
  * actions offer one way to go ahead; making somebody a friend whose renewal carries a
  * contribution offers two (keep it, or stop it), which is why `choices` is a list.
  */
-import { useState } from 'react';
-import type { JSX, ReactNode } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import type { JSX, KeyboardEvent, ReactNode } from 'react';
 
 import { Button } from './Button';
 import type { ButtonVariant } from './Button';
@@ -41,7 +41,9 @@ export interface ConfirmButtonProps {
  * A button that opens a confirmation panel, and acts only from the panel.
  *
  * Every button in the panel is disabled while a choice is in flight. **Cancel** closes
- * the panel without calling anything.
+ * the panel without calling anything.  Opening the panel moves the focus to its first
+ * choice; **Cancel** and the Escape key close it and put the focus back on the button
+ * that opened it, so a keyboard reader never loses their place.
  */
 export function ConfirmButton({
   label,
@@ -52,10 +54,42 @@ export function ConfirmButton({
 }: ConfirmButtonProps): JSX.Element {
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, setIsPending] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const firstChoiceRef = useRef<HTMLButtonElement>(null);
+  // Set when the panel is closed without acting, so the focus goes back to the trigger.
+  const shouldRefocusTriggerRef = useRef(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      firstChoiceRef.current?.focus();
+      return;
+    }
+    if (shouldRefocusTriggerRef.current) {
+      shouldRefocusTriggerRef.current = false;
+      triggerRef.current?.focus();
+    }
+  }, [isOpen]);
+
+  const handleClose = (): void => {
+    shouldRefocusTriggerRef.current = true;
+    setIsOpen(false);
+  };
+
+  // The Escape key is a shortcut for Cancel from any button in the panel.
+  const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>): void => {
+    if (event.key !== 'Escape' || isPending) return;
+    event.stopPropagation();
+    handleClose();
+  };
 
   if (!isOpen) {
     return (
-      <Button variant={variant} disabled={disabled} onClick={() => setIsOpen(true)}>
+      <Button
+        ref={triggerRef}
+        variant={variant}
+        disabled={disabled}
+        onClick={() => setIsOpen(true)}
+      >
         {label}
       </Button>
     );
@@ -76,9 +110,11 @@ export function ConfirmButton({
     <section className="stack-tight" aria-label={label}>
       {children}
       <div className="cluster">
-        {choices.map((choice) => (
+        {choices.map((choice, index) => (
           <Button
+            ref={index === 0 ? firstChoiceRef : undefined}
             key={choice.label}
+            onKeyDown={handleKeyDown}
             variant={choice.variant ?? 'primary'}
             disabled={isPending}
             onClick={() => handleChoose(choice)}
@@ -86,7 +122,12 @@ export function ConfirmButton({
             {choice.label}
           </Button>
         ))}
-        <Button variant="quiet" disabled={isPending} onClick={() => setIsOpen(false)}>
+        <Button
+          variant="quiet"
+          disabled={isPending}
+          onClick={handleClose}
+          onKeyDown={handleKeyDown}
+        >
           Cancel
         </Button>
       </div>

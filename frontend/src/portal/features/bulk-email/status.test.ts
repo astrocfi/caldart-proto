@@ -13,11 +13,19 @@ import { makeBulkEmail } from '@test/fixtures/bulkEmail';
 
 describe('statusLabel', () => {
   it('reads a scheduled email as Scheduled', () => {
-    expect(statusLabel({ status: 'queued', scheduled: true })).toBe('Scheduled');
+    expect(statusLabel({ status: 'queued', scheduled: true, started_at: null })).toBe('Scheduled');
   });
 
   it('reads an email in its undo window as Waiting to send', () => {
-    expect(statusLabel({ status: 'queued', scheduled: false })).toBe('Waiting to send');
+    expect(statusLabel({ status: 'queued', scheduled: false, started_at: null })).toBe(
+      'Waiting to send',
+    );
+  });
+
+  it('reads an email queued again by Send the rest as waiting to send the rest', () => {
+    expect(
+      statusLabel({ status: 'queued', scheduled: false, started_at: '2026-04-06T17:00:00Z' }),
+    ).toBe('Waiting to send the rest');
   });
 });
 
@@ -28,6 +36,10 @@ describe('the counting sentences', () => {
 
   it('speaks of one person in the singular', () => {
     expect(batchSentence(1, 1)).toBe('1 person will receive this email; 1 is skipped.');
+  });
+
+  it('leaves out a count of nobody already there', () => {
+    expect(addSentence({ added: 12, already_present: 0, count: 12 })).toBe('Added 12 people.');
   });
 
   it('says what an add did', () => {
@@ -69,6 +81,12 @@ describe('resultSentence', () => {
     expect(
       resultSentence({ status: 'sent', sent_count: 37, failed_count: 1, skipped_count: 4 }),
     ).toBe('Sent to 37 people. 1 failed and 4 were skipped.');
+  });
+
+  it('says everyone was sent a copy when nothing failed or was skipped', () => {
+    expect(
+      resultSentence({ status: 'sent', sent_count: 51, failed_count: 0, skipped_count: 0 }),
+    ).toBe('Sent to 51 people. Everyone was sent a copy.');
   });
 
   it('names who stopped a stopped send', () => {

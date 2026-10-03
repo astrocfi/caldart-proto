@@ -1,10 +1,11 @@
 /**
  * Where a bulk email stands once Send has been pressed, with the one action that
- * fits: the countdown or the scheduled time with **Cancel**, the progress of a
- * send with **Stop**, or the result, with **Send the rest** after a stop.
+ * fits: the countdown or the scheduled time with **Cancel**, the copies waiting
+ * after Send the rest with **Stop sending**, the progress of a send with **Stop
+ * sending**, or the result, with **Send the rest** after a stop.
  *
- * The compose screen shows it in its Check and send card (and the countdown as a
- * banner at the top), and the Sent detail page under its heading.
+ * The compose screen shows it as the banner over its cards, and the Sent detail page
+ * under its heading.
  */
 import type { JSX } from 'react';
 import { Link } from 'react-router-dom';
@@ -13,10 +14,10 @@ import { ApiError } from '@/portal/api/client';
 import type { BulkEmailDetail } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { ConfirmButton } from '@/portal/components/ConfirmButton';
-import { DateText } from '@/portal/components/DateText';
 import { useToast } from '@/portal/components/Toast';
 import { useBulkEmailAction } from './api';
 import { formatCountdown, useSecondsUntil } from './countdown';
+import { scheduledWords } from './schedule';
 import { people, progressSentence, resultSentence } from './status';
 
 /** What the screen says once a queued email is a draft again. */
@@ -41,10 +42,17 @@ interface StatusProps {
 }
 
 /**
- * A queued email: *Sending in 1:58* with the undo window's bar and **Cancel**, or
- * *Scheduled for 04/07/2026 08:00* with **Cancel the schedule**.
+ * A queued email: *Sending in 1 min 58 s* with the undo window's bar and **Cancel**,
+ * *Scheduled for 10/04/2026 at 8:00 AM Pacific time* with **Cancel the schedule**, or,
+ * after Send the rest, the copies waiting with **Stop sending**.
  */
 export function QueuedStatus({ email }: StatusProps): JSX.Element {
+  if (email.started_at !== null) return <WaitingForTheRest email={email} />;
+  return <Countdown email={email} />;
+}
+
+/** An email that has never started, waiting out its undo window or its scheduled time. */
+function Countdown({ email }: StatusProps): JSX.Element {
   const seconds = useSecondsUntil(email.start_at) ?? 0;
   const cancel = useBulkEmailAction('cancel');
   const toast = useToast();
@@ -60,33 +68,27 @@ export function QueuedStatus({ email }: StatusProps): JSX.Element {
     <div className="stack-tight bulk-email__status">
       {email.scheduled ? (
         <p>
-          <strong>
-            Scheduled for <DateText value={email.start_at} withTime />.
-          </strong>{' '}
-          You can still change it until then.
+          <strong>Scheduled for {scheduledWords(email.start_at)}.</strong> You can still change it
+          until then.
         </p>
-      ) : (
+      ) : seconds > 0 ? (
         <>
           <p>
-            <strong>
-              {seconds > 0 ? `Sending in ${formatCountdown(seconds)}` : 'Starting to send'}
-            </strong>{' '}
-            to {people(email.receiving_count)}.{' '}
-            {seconds > 0
-              ? 'Until then you can cancel it, and nothing is sent.'
-              : 'The first copies go out within a minute.'}
+            <strong>Sending in {formatCountdown(seconds)}</strong> to{' '}
+            {people(email.receiving_count)}. Until then you can cancel it, and nothing is sent.
           </p>
           <progress
             className="bulk-email__progress"
             aria-label="Time left before sending starts"
             max={Math.max(email.undo_seconds, 1)}
-            value={
-              seconds > 0
-                ? Math.max(0, email.undo_seconds - seconds)
-                : Math.max(email.undo_seconds, 1)
-            }
+            value={Math.max(0, email.undo_seconds - seconds)}
           />
         </>
+      ) : (
+        <p>
+          <strong>Starting to send.</strong> Nothing has been sent yet. You can still cancel until
+          the first copy goes out.
+        </p>
       )}
       <div className="cluster">
         <Button variant="secondary" onClick={handleCancel} disabled={cancel.isPending}>
@@ -102,10 +104,21 @@ export function QueuedStatus({ email }: StatusProps): JSX.Element {
   );
 }
 
-/** A send in progress: *Sending… 12 of 38 sent, about 1 minute left.*, a bar, and **Stop**. */
+/** An email Send the rest queued again: it goes within a minute, and can be stopped. */
+function WaitingForTheRest({ email }: StatusProps): JSX.Element {
+  return (
+    <div className="stack-tight bulk-email__status">
+      <p>
+        <strong>Waiting to send the rest.</strong> The {people(email.remaining)} not sent a copy yet
+        will be sent one within a minute.
+      </p>
+      <StopButton email={email} />
+    </div>
+  );
+}
+
+/** A send in progress: *Sending… 12 of 38 sent, about 1 minute left.*, a bar, and Stop. */
 export function SendingStatus({ email }: StatusProps): JSX.Element {
-  const stop = useBulkEmailAction('stop');
-  const toast = useToast();
   const total = email.sent_count + email.failed_count + email.remaining;
 
   return (
@@ -119,32 +132,42 @@ export function SendingStatus({ email }: StatusProps): JSX.Element {
         max={Math.max(total, 1)}
         value={email.sent_count + email.failed_count}
       />
-      {email.stop_requested ? null : (
-        <div className="cluster">
-          <ConfirmButton
-            label="Stop sending"
-            choices={[
-              {
-                label: 'Stop now',
-                variant: 'danger',
-                onChoose: () =>
-                  stop.mutateAsync(email.id).then(() => toast.show(STOPPING_MESSAGE, 'success')),
-              },
-            ]}
-          >
-            <p>
-              Copies already sent cannot be called back. Everyone who has not been sent a copy yet
-              is marked <em>Not sent (stopped)</em>, and you can send them the rest later.
-            </p>
-          </ConfirmButton>
-        </div>
-      )}
+      {email.stop_requested ? null : <StopButton email={email} />}
+    </div>
+  );
+}
+
+/** **Stop sending**, behind a confirmation, with what happens after. */
+function StopButton({ email }: StatusProps): JSX.Element {
+  const stop = useBulkEmailAction('stop');
+  const toast = useToast();
+
+  return (
+    <>
+      <div className="cluster">
+        <ConfirmButton
+          label="Stop sending"
+          choices={[
+            {
+              label: 'Stop now',
+              variant: 'danger',
+              onChoose: () =>
+                stop.mutateAsync(email.id).then(() => toast.show(STOPPING_MESSAGE, 'success')),
+            },
+          ]}
+        >
+          <p>
+            Copies already sent cannot be called back. Everyone who has not been sent a copy yet is
+            marked <em>Not sent (stopped)</em>, and you can send them the rest later.
+          </p>
+        </ConfirmButton>
+      </div>
       {stop.isError ? (
         <p className="field__error" role="alert">
           {actionError(stop.error)}
         </p>
       ) : null}
-    </div>
+    </>
   );
 }
 

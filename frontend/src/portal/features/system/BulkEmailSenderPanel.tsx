@@ -20,11 +20,14 @@ import { useRunBulkEmailSender } from './api';
 export const SENDER_BUSY =
   'The sender is already running, so this run did nothing. Try again in a minute.';
 
-/** The sentence shown after a run. */
+/** The sentence shown after a run; one that ran out of time says the rest carries on. */
 export function senderRunSummary(result: BulkEmailRunResult): string {
   const { emails, sent, failed, skipped } = result;
   const worked = emails === 1 ? '1 bulk email' : `${emails} bulk emails`;
-  return `Worked on ${worked}: sent ${sent}, failed ${failed}, and skipped ${skipped}.`;
+  const counts = `Worked on ${worked}: sent ${sent}, failed ${failed}, and skipped ${skipped}.`;
+  if (!result.out_of_time) return counts;
+  const rest = result.remaining === 1 ? '1 copy is' : `${result.remaining} copies are`;
+  return `${counts} Sending takes longer than a page can wait, so this run stopped there. ${rest} still to go, and the server's sender carries on with them within a minute.`;
 }
 
 /** What each kind of action reads as in the actions table. */
@@ -44,14 +47,14 @@ export function BulkEmailSenderPanel(): JSX.Element {
       title="Bulk email sender"
       footer={
         <Button onClick={() => run.mutate()} disabled={run.isPending}>
-          {run.isPending ? 'Running…' : 'Run now'}
+          {run.isPending ? 'Running…' : 'Run the bulk email sender now'}
         </Button>
       }
     >
       <p className="muted">
         Every minute the server starts each bulk email whose time has come and sends its copies a
-        few at a time, so the mail provider never turns them away. Run it here to send at once. A
-        large send takes a while, and the page waits for it.
+        few at a time, so the mail provider never turns them away. Run it here to start at once. The
+        page waits up to 45 seconds; a larger send carries on in the background after that.
       </p>
 
       {run.isSuccess && run.data.busy ? <p role="status">{SENDER_BUSY}</p> : null}

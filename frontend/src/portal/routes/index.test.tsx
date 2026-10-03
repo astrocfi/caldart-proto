@@ -284,7 +284,7 @@ const GUARDED_PATHS: GuardedPath[] = [
     allowed: ['management', 'system_admin'],
   },
   {
-    path: '/bulk-email/drafts/1',
+    path: '/bulk-email/compose/1',
     heading: 'Compose a bulk email',
     allowed: ['management', 'system_admin'],
   },

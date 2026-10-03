@@ -1939,7 +1939,9 @@ export interface BulkEmailBatch {
 
 /**
  * What one run of the bulk email sender did, from `POST /system/bulk-email/run`.
- * `busy` is true when another run was working and this one did nothing.
+ * `busy` is true when another run was working and this one did nothing;
+ * `out_of_time` is true when the run's time ran out with `remaining` copies left
+ * for the next run.
  */
 export interface BulkEmailRunResult {
   busy: boolean;
@@ -1947,5 +1949,7 @@ export interface BulkEmailRunResult {
   sent: number;
   failed: number;
   skipped: number;
+  out_of_time: boolean;
+  remaining: number;
   actions: RunAction[];
 }

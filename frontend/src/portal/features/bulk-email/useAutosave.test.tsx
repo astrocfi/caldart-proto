@@ -1,10 +1,13 @@
-import { act, renderHook, waitFor } from '@testing-library/react';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { act, renderHook } from '@testing-library/react';
+import { delay, HttpResponse, http } from 'msw';
 import type { ReactNode } from 'react';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { answerBulkEmail, makeBatch, makeBulkEmail } from '@test/fixtures/bulkEmail';
+import { API } from '@test/handlers';
 import { makeTestQueryClient } from '@test/render';
-import { QueryClientProvider } from '@tanstack/react-query';
+import { server } from '@test/server';
 import { AUTOSAVE_MS, changedFields, useAutosave } from './useAutosave';
 
 /** Render the hook for a blank draft, answering its saves. */
@@ -19,6 +22,21 @@ function renderAutosave() {
   return { ...hook, calls };
 }
 
+/** Let the clock run `ms` and every request and promise it set going settle. */
+async function pass(ms: number): Promise<void> {
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(ms);
+  });
+}
+
+beforeEach(() => {
+  vi.useFakeTimers({ shouldAdvanceTime: true });
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+});
+
 describe('changedFields', () => {
   it('names only the fields that differ', () => {
     expect(changedFields({ subject: 'a', body: 'b' }, { subject: 'a', body: 'c' })).toEqual({
@@ -28,12 +46,16 @@ describe('changedFields', () => {
 });
 
 describe('useAutosave', () => {
+  it('says nothing about saving before anything is typed', () => {
+    const { result } = renderAutosave();
+    expect(result.current.saveState).toBe('idle');
+  });
+
   it('saves the words once the typing pauses', async () => {
     const { result, calls } = renderAutosave();
     act(() => result.current.setSubject('Fly-in'));
-    await waitFor(() => expect(calls.patches).toEqual([{ subject: 'Fly-in' }]), {
-      timeout: AUTOSAVE_MS * 3,
-    });
+    await pass(AUTOSAVE_MS + 50);
+    expect(calls.patches).toEqual([{ subject: 'Fly-in' }]);
   });
 
   it('never sends older words over a save made at once', async () => {
@@ -45,7 +67,34 @@ describe('useAutosave', () => {
     await act(async () => {
       await result.current.flush();
     });
-    await new Promise((settle) => setTimeout(settle, AUTOSAVE_MS * 2));
+    await pass(AUTOSAVE_MS * 2);
     expect(calls.patches).toEqual([{ subject: 'Fly-in', body: 'Bring gloves.' }]);
+  });
+
+  it('never has two saves on their way at once, and the newest words land last', async () => {
+    const { result, calls } = renderAutosave();
+    let inFlight = 0;
+    let most = 0;
+    server.use(
+      http.patch(`${API}/bulk-email/7`, async ({ request }) => {
+        inFlight += 1;
+        most = Math.max(most, inFlight);
+        calls.patches.push(await request.json());
+        await delay(500);
+        inFlight -= 1;
+        return HttpResponse.json(makeBulkEmail());
+      }),
+    );
+    act(() => result.current.setSubject('Fly'));
+    await pass(AUTOSAVE_MS + 50);
+    act(() => result.current.setSubject('Fly-in'));
+    let flushed = false;
+    act(() => {
+      void result.current.flush().then(() => {
+        flushed = true;
+      });
+    });
+    await pass(2000);
+    expect([most, flushed, calls.patches.at(-1)]).toEqual([1, true, { subject: 'Fly-in' }]);
   });
 });

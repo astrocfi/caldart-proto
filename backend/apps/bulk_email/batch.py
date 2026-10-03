@@ -74,6 +74,9 @@ FILTER_LABELS: dict[str, str] = {
     "expiring_within": "Expiring within (days)",
 }
 
+#: What the member list's filter bar calls each kind, which an add's label repeats.
+KIND_FILTER_LABELS: dict[str, str] = {"member": "Members only", "friend": "Friends only"}
+
 #: An add with no filter chose every member and friend.
 EVERYBODY_LABEL = "Everybody"
 
@@ -98,7 +101,7 @@ BATCH_CSV_HEADER: tuple[str, ...] = (
     "Kind",
     "DART",
     "Membership status",
-    "Added by",
+    "Chosen by",
     "Will receive",
     "Reason",
 )
@@ -359,8 +362,9 @@ def add_label(filters: Mapping[str, str]) -> str:
     """An add's filters in words, as the compose screen and the CSV name the add.
 
     Each filter reads as its name on the member list's filter bar and its value in
-    words, such as ``"Kind: Friend, County: Marin, Napa"``: a DART by its name, a role
-    by its label, and a choice by the label the filter gives it.  An add with no filter
+    words, such as ``"Kind: Friends only, County: Marin, Napa"``: a kind as the filter
+    bar offers it, a DART by its name, a role by its label, and any other choice by the
+    label the filter gives it.  An add with no filter
     reads :data:`EVERYBODY_LABEL`.
     """
     if len(filters) == 0:
@@ -376,7 +380,7 @@ def batch_document(bulk: BulkEmail) -> ReportDocument:
 
     The columns are :data:`BATCH_CSV_HEADER`: the name, address, kind, and DART the row
     holds, the account's membership status now (blank once it is deleted), the label
-    of the add that brought the person in, ``Yes`` or ``No``, and the reason.  The file
+    of the add that chose the person, ``Yes`` or ``No``, and the reason.  The file
     is named ``caldart-bulk-email-<id>-batch.csv``.
     """
     labels = {add.pk: add_label(add.filters) for add in bulk.adds.all()}
@@ -505,6 +509,8 @@ def _value_label(key: str, value: str) -> str:
     if key == "dart" and value.isdigit():
         name = Dart.objects.filter(pk=int(value)).values_list("name", flat=True).first()
         return name if name is not None else value
+    if key == "kind":
+        return KIND_FILTER_LABELS.get(value, value)
     if key == "role":
         return ROLE_LABELS.get(value, value)
     if key == "county":

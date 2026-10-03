@@ -3,7 +3,7 @@
  * started: every draft, every email waiting out its undo window, and every
  * scheduled one, the most recently edited first.
  *
- * **Open** goes to the email's compose screen. A queued email has **Cancel
+ * The subject opens the email's compose screen. A queued email has **Cancel
  * schedule**, which turns it back into a draft, and a draft has a trashcan,
  * which asks before it deletes.
  */
@@ -15,7 +15,7 @@ import { Button, ButtonLink } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import type { Column } from '@/portal/components/DataTable';
 import { DataTable } from '@/portal/components/DataTable';
-import { DateText } from '@/portal/components/DateText';
+import { DateText, formatDateAt } from '@/portal/components/DateText';
 import { DeleteButton } from '@/portal/components/DeleteButton';
 import { Page } from '@/portal/components/Page';
 import { StatusDot } from '@/portal/components/StatusChip';
@@ -23,13 +23,14 @@ import { useToast } from '@/portal/components/Toast';
 import { useBulkEmailAction, useDeleteDraft, useDrafts } from './api';
 import './bulk-email.css';
 import { formatCountdown, useSecondsUntil } from './countdown';
+import { SITE_TIME_ZONE, SITE_TIME_ZONE_NAME } from './schedule';
 import { actionError, CANCELED_MESSAGE } from './SendStatus';
 import { statusLabel, statusTone } from './status';
 
 /** What a draft with no subject yet is listed as. */
 export const NO_SUBJECT = '(no subject yet)';
 
-/** The drafts and queued emails, with Open, Cancel schedule, and the trashcan. */
+/** The drafts and queued emails, each opened by its subject, with Cancel and the trashcan. */
 export function DraftsPage(): JSX.Element {
   const drafts = useDrafts();
   const cancel = useBulkEmailAction('cancel');
@@ -89,13 +90,16 @@ function draftColumns(
     {
       key: 'subject',
       header: 'Subject',
-      render: (row) => <Link to={`/bulk-email/drafts/${row.id}`}>{row.subject || NO_SUBJECT}</Link>,
+      minWidth: '16rem',
+      render: (row) => (
+        <Link to={`/bulk-email/compose/${row.id}`}>{row.subject || NO_SUBJECT}</Link>
+      ),
       sortValue: (row) => row.subject,
     },
     {
       key: 'status',
       header: 'Status',
-      width: '10rem',
+      width: '8rem',
       render: (row) => (
         <span className="bulk-email__will-receive">
           <StatusDot tone={statusTone(row.status)} label={statusLabel(row)} />
@@ -104,32 +108,33 @@ function draftColumns(
       ),
       sortValue: (row) => statusLabel(row),
     },
-    { key: 'when', header: 'When', width: '13rem', render: (row) => <When row={row} /> },
+    {
+      key: 'when',
+      header: `When (${SITE_TIME_ZONE_NAME})`,
+      width: '11.5rem',
+      render: (row) => <When row={row} />,
+    },
     {
       key: 'batch_count',
       header: 'People',
       numeric: true,
-      width: '6rem',
+      width: '5.5rem',
       render: (row) => row.batch_count,
       sortValue: (row) => row.batch_count,
     },
-    { key: 'sender', header: 'From', render: (row) => row.sender || '—' },
     {
       key: 'updated_at',
       header: 'Last edited',
-      width: '11rem',
-      render: (row) => <DateText value={row.updated_at} withTime />,
+      width: '6.5rem',
+      render: (row) => <DateText value={row.updated_at} />,
       sortValue: (row) => row.updated_at,
     },
     {
       key: 'actions',
       header: 'Actions',
-      width: '14rem',
+      width: '9rem',
       render: (row) => (
         <span className="cluster">
-          <ButtonLink to={`/bulk-email/drafts/${row.id}`} variant="quiet" small>
-            Open
-          </ButtonLink>
           {row.status === 'queued' ? (
             <Button
               variant="quiet"
@@ -156,11 +161,7 @@ function When({ row }: { row: BulkEmailSummary }): JSX.Element {
   const seconds = useSecondsUntil(row.status === 'queued' ? row.start_at : null);
   if (row.status !== 'queued' || seconds === null) return <span className="muted">—</span>;
   if (row.scheduled) {
-    return (
-      <span>
-        Scheduled for <DateText value={row.start_at} withTime />
-      </span>
-    );
+    return <span>{formatDateAt(row.start_at, SITE_TIME_ZONE)}</span>;
   }
   return <span>{seconds > 0 ? `Starts in ${formatCountdown(seconds)}` : 'Starting now'}</span>;
 }

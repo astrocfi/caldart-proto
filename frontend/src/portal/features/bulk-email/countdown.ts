@@ -1,5 +1,5 @@
 /**
- * The undo window's countdown: how long until a queued email starts, as `m:ss`.
+ * The undo window's countdown, and how long things take, in words.
  *
  * The time comes from the email's `start_at` and the reader's own clock, ticking
  * once a second, so the label moves smoothly between the screen's reads of the
@@ -23,17 +23,33 @@ export function secondsUntil(iso: string, now: Date): number {
 }
 
 /**
- * `seconds` as `m:ss`, such as `1:58`; an hour or more reads `h:mm:ss`.
+ * `seconds` as a countdown, such as `1 min 58 s`, `45 s`, or `2 min`.
  *
  * @param seconds a whole number of seconds, zero or more.
  */
 export function formatCountdown(seconds: number): string {
   const whole = Math.max(0, Math.floor(seconds));
-  const hours = Math.floor(whole / 3600);
-  const minutes = Math.floor((whole % 3600) / 60);
-  const rest = String(whole % 60).padStart(2, '0');
-  if (hours > 0) return `${hours}:${String(minutes).padStart(2, '0')}:${rest}`;
-  return `${minutes}:${rest}`;
+  const minutes = Math.floor(whole / 60);
+  const rest = whole % 60;
+  if (minutes === 0) return `${rest} s`;
+  if (rest === 0) return `${minutes} min`;
+  return `${minutes} min ${rest} s`;
+}
+
+/**
+ * `seconds` as a length of time in words, such as `2 minutes` or `1 minute 30 seconds`.
+ *
+ * @param seconds a whole number of seconds, zero or more.
+ */
+export function formatDuration(seconds: number): string {
+  const whole = Math.max(0, Math.floor(seconds));
+  const minutes = Math.floor(whole / 60);
+  const rest = whole % 60;
+  const minuteWords = minutes === 1 ? '1 minute' : `${minutes} minutes`;
+  const secondWords = rest === 1 ? '1 second' : `${rest} seconds`;
+  if (minutes === 0) return secondWords;
+  if (rest === 0) return minuteWords;
+  return `${minuteWords} ${secondWords}`;
 }
 
 /**

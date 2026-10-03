@@ -61,9 +61,13 @@ States
     ``BULK_EMAIL_UNDO_SECONDS``, the undo window, or the time the sender chose
     (``scheduled``).  Above ``BULK_EMAIL_CONFIRM_ABOVE`` recipients the sender must
     type the count, and the server counts the batch again, so a batch that grew
-    after the count was typed is refused with its new size.  A queued email can
-    still be changed, its content and its batch, and keeps its ``start_at``;
-    sending it again reschedules it.  **Cancel** takes it back to a draft.
+    after the count was typed is refused with its new size.  A queued email's
+    content can still be changed, and it keeps its ``start_at``, but not left
+    without a subject or a message; sending it again reschedules it.  Any change to
+    its batch (an add, a removal, a clear) takes it back to a draft with its
+    schedule cleared, since the count the sender confirmed no longer holds; one
+    ``bulk_email.cancel`` audit line with the reason ``batch_changed`` says so.
+    **Cancel** takes it back to a draft too.
 ``sending``
     The sender has claimed it and frozen its batch.  Nothing about it can change
     any more, except that **Stop** asks the sender to stop.
@@ -74,13 +78,23 @@ States
     **Stop** reached the sender between copies.  Every copy not yet sent is
     ``stopped``, with *Stopped by* and the name of whoever pressed it.  **Send the
     rest** turns those rows back to ``pending`` and queues the email to start at
-    once, with no undo window.
+    once, with no undo window.  **Stop** on that queued email stops it again at once,
+    without waiting for the sender.
+
+.. _bulk-email-edit-rule:
 
 The edit rule is one function, ``batch.locked_for_edit``: it reads the email under
 its row lock (``select_for_update``) and refuses with *This email has been sent and
-cannot be changed.* unless the email is a ``draft`` or ``queued``.  Every change to
-the content or the batch, and **Send** itself, goes through it inside a
-transaction, so a change and the sender's claim of the same email never overlap.
+cannot be changed.* unless ``BulkEmail.can_edit`` holds: the email is a ``draft``
+or ``queued`` **and its** ``started_at`` **is not set**.  An email that has ever
+started sending holds copies that went, so it never becomes editable again, not
+even while **Send the rest** has it ``queued``: its content, its batch, and its
+schedule stay as they were, **Cancel** refuses it with *This email has started
+sending.*, and ``DELETE`` refuses it.  Anything that queues a started email again
+(**Send the rest** here, a retry of failed copies later) relies on this rule to
+keep the record of what went intact.  Every change to the content or the batch,
+and **Send** itself, goes through the function inside a transaction, so a change
+and the sender's claim of the same email never overlap.
 
 
 The batch
@@ -111,6 +125,14 @@ The sender
 it every minute, from ``caldart-bulk-email.timer`` (:ref:`deploy-bulk-email`),
 and ``POST /system/bulk-email/run`` calls it from the Scheduled page's **Run now**.
 
+A run may be given a time budget.  **Run now** gives it
+``REQUEST_BUDGET_SECONDS`` (45), inside the web server's and the proxy's 60-second
+limit on a request: once the budget is spent the run claims nothing more and
+stops before its next copy, leaving that email ``sending`` for the next timer run
+to finish, and a retry wait that would take it past the budget leaves the copy
+``pending`` rather than failing it.  The result says how many copies are left.
+The timer's runs have no budget.
+
 Only one run works at a time.  A run takes a PostgreSQL advisory lock for as long
 as it works, and a run that cannot take it returns at once with ``busy`` set; the
 lock belongs to the database session, so it is released however the run ends.
@@ -128,11 +150,26 @@ with the reason ``batch_rows`` gives it then, which ``skipped_count`` counts.  A
 email whose row another transaction holds, such as one whose batch is being
 changed that instant, is left for the next run.
 
-The pending rows are then sent in surname order, one copy each.  Each row and the
-email's counts are saved as soon as its copy has been tried, outside any
-transaction, so the record is exact however the run ends.  Between copies the run
-reads ``stop_requested`` afresh.  When no row is pending, the email is ``sent``
-and ``sent_at`` set.
+The pending rows are then sent in surname order, one copy each.  After a copy is
+handed to the mail server its row is saved first, ``sent`` with its
+``Message-ID``, and only then the email's counts, all outside any transaction, so a
+run that dies after the hand-over leaves the copy marked sent and the next run does
+not send it again.  The run reads ``stop_requested`` afresh before each copy's
+pause and again after it.  A **Stop** takes effect there: every copy not yet sent
+becomes ``stopped``, and one ``bulk_email.stop`` audit line names who pressed it.
+A stop that arrives after the last copy has nothing to keep back: the email is
+``sent``, its ``stopped_by`` is cleared, and no stop is recorded.  When no row is
+pending, the email is ``sent`` and ``sent_at`` set.
+
+A copy that fails in a way the mail server did not report, an exception other than
+a refusal, is a bug: it is logged with its traceback, the copy becomes ``failed``
+with *Unexpected error*, and the run leaves that email ``sending`` and moves on to
+the next one, so one bad email cannot hold every later one back.  The next run
+resumes the email from its next copy.
+
+``manage.py send_bulk_emails`` prints the run's counts and one line per email by its
+id, such as ``bulk_email 7: sent 37, failed 1``, and never a name or an address,
+since the lines go to the journal.
 
 .. _bulk-email-pacing:
 
@@ -141,7 +178,9 @@ Pacing and refusals
 
 The sender sends at most ``BULK_EMAIL_RATE_PER_MINUTE`` copies a minute: after a
 copy begins it sleeps out whatever is left of 60 / rate seconds before the next,
-so the rate is a ceiling however fast the mail server answers.  It opens one mail
+so the rate is a ceiling however fast the mail server answers.  The pace is the
+run's, carried from one email to the next, so several small emails due together
+are paced as one stream.  It opens one mail
 connection, and a fresh one every ``BULK_EMAIL_BATCH_SIZE`` copies and after any
 refused copy, rather than writing to a session the server may have dropped.
 
@@ -181,8 +220,8 @@ the message a ``<p>`` inside the shared report frame.  The sender hands the
 finished bodies to ``send_templated`` through the pass-through pair
 ``emails/bulk_email_copy.{txt,html}``, which print the ``text`` and ``html`` they
 are given unchanged, and passes the copy's ``headers`` through
-``send_templated``'s ``headers`` argument.  Every copy of one email reads the same
-today, and carries no extra header.
+``send_templated``'s ``headers`` argument.  As built here, every copy of one email
+reads the same and carries no extra header; the extension points below change that.
 
 
 Extending

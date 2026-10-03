@@ -1,7 +1,7 @@
 /**
  * `/bulk-email/compose`: Compose in the menu. It opens the sender's one empty
  * draft, or makes a fresh one, and moves on to that draft's compose screen at
- * `/bulk-email/drafts/:id`, so a sender who presses Compose twice is not left
+ * `/bulk-email/compose/:id`, so a sender who presses Compose twice is not left
  * with two empty drafts.
  */
 import { useCallback, useEffect, useRef } from 'react';
@@ -24,7 +24,7 @@ export function ComposeStart(): JSX.Element {
   const handleOpen = useCallback((): void => {
     mutate(undefined, {
       onSuccess: (draft) => {
-        void navigate(`/bulk-email/drafts/${draft.id}`, { replace: true });
+        void navigate(`/bulk-email/compose/${draft.id}`, { replace: true });
       },
     });
   }, [mutate, navigate]);

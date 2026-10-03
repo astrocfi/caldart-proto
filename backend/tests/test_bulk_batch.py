@@ -161,7 +161,7 @@ def test_a_donor_is_never_added(bulk: BulkEmail, management: User) -> None:
     ("filters", "label"),
     [
         ({}, "Everybody"),
-        ({"kind": "friend"}, "Kind: Friend"),
+        ({"kind": "friend"}, "Kind: Friends only"),
         ({"county": "Marin,Napa"}, "County: Marin, Napa"),
         ({"role": "treasurer", "search": "ann"}, 'Search: "ann", Role: Treasurer'),
     ],

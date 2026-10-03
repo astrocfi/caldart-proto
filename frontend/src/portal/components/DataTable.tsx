@@ -27,6 +27,43 @@ export interface Column<Row> {
   numeric?: boolean;
   /** Column width, used when the table is in single-line mode. */
   width?: string;
+  /**
+   * The least a column of text takes in single-line mode, for a column that
+   * shares out the room the fixed widths leave, such as a name or an email
+   * address. The table never grows narrower than its fixed widths and these
+   * minimums together, so on a narrow screen it scrolls inside its card instead
+   * of squeezing these columns to nothing. Its cells start at the left edge.
+   */
+  minWidth?: string;
+}
+
+/** What a column without a width or a minimum is reckoned at, for the table's minimum. */
+const DEFAULT_COLUMN_WIDTH = '6rem';
+
+/**
+ * The least width a single-line table takes: every fixed width and every minimum
+ * added up, or `undefined` when no column names a minimum.
+ */
+export function tableMinWidth<Row>(columns: readonly Column<Row>[]): string | undefined {
+  if (!columns.some((column) => column.minWidth !== undefined)) return undefined;
+  const parts = columns.map((column) => column.width ?? column.minWidth ?? DEFAULT_COLUMN_WIDTH);
+  return `calc(${parts.join(' + ')})`;
+}
+
+/**
+ * A single-line column's width: its fixed width, or its minimum, which a table with
+ * room to spare widens in proportion with the others.
+ */
+function columnStyle<Row>(column: Column<Row>): { width: string } | undefined {
+  const width = column.width ?? column.minWidth;
+  return width === undefined ? undefined : { width };
+}
+
+/** The class a cell of `column` carries: numeric, text, or none. */
+function cellClass<Row>(column: Column<Row>): string | undefined {
+  if (column.numeric) return 'numeric';
+  if (column.minWidth !== undefined) return 'data-table__text';
+  return undefined;
 }
 
 export interface DataTableProps<Row> {
@@ -181,7 +218,7 @@ export function DataTable<Row>({
         // `.table-wrap` scrolls a table that is wider than its container,
         // rather than widening the page around it.
         <div className="table-wrap">
-          <table>
+          <table style={singleLine ? { minWidth: tableMinWidth(columns) } : undefined}>
             {caption ? <caption>{caption}</caption> : null}
             <thead>
               <tr>
@@ -194,8 +231,8 @@ export function DataTable<Row>({
                     <th
                       key={column.key}
                       scope="col"
-                      className={column.numeric ? 'numeric' : undefined}
-                      style={singleLine && column.width ? { width: column.width } : undefined}
+                      className={cellClass(column)}
+                      style={singleLine ? columnStyle(column) : undefined}
                       aria-sort={
                         isSorted ? (direction === 'asc' ? 'ascending' : 'descending') : 'none'
                       }
@@ -227,7 +264,7 @@ export function DataTable<Row>({
                     return (
                       <td
                         key={column.key}
-                        className={column.numeric ? 'numeric' : undefined}
+                        className={cellClass(column)}
                         title={typeof content === 'string' ? content : undefined}
                       >
                         {content}

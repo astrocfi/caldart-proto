@@ -62,7 +62,7 @@ export const HELP_PAGES: readonly HelpPage[] = [
   { pattern: '/admin/notifications', slug: 'admin/notifications' },
   { pattern: '/bulk-email/compose', slug: 'bulk-email/compose' },
   { pattern: '/bulk-email/drafts', slug: 'bulk-email/drafts' },
-  { pattern: '/bulk-email/drafts/:id', slug: 'bulk-email/compose' },
+  { pattern: '/bulk-email/compose/:id', slug: 'bulk-email/compose' },
   { pattern: '/bulk-email/sent', slug: 'bulk-email/sent' },
   { pattern: '/bulk-email/sent/:id', slug: 'bulk-email/sent' },
   { pattern: '/bulk-email/mail-delivery', slug: 'bulk-email/mail-delivery' },

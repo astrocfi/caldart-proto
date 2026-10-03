@@ -15,6 +15,8 @@ const RESULT: BulkEmailRunResult = {
   sent: 1,
   failed: 1,
   skipped: 2,
+  out_of_time: false,
+  remaining: 0,
   actions: [
     {
       kind: 'sent',
@@ -53,13 +55,19 @@ describe('senderRunSummary', () => {
       'Worked on 1 bulk email: sent 1, failed 1, and skipped 2.',
     );
   });
+
+  it('says a run that ran out of time leaves the rest to the server', () => {
+    expect(senderRunSummary({ ...RESULT, out_of_time: true, remaining: 30 })).toContain(
+      "30 copies are still to go, and the server's sender carries on with them within a minute.",
+    );
+  });
 });
 
 describe('BulkEmailSenderPanel', () => {
   it('runs the sender when Run now is pressed', async () => {
     const calls = answerRuns(RESULT);
     renderWithProviders(<BulkEmailSenderPanel />);
-    await userEvent.click(screen.getByRole('button', { name: 'Run now' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Run the bulk email sender now' }));
     expect(await screen.findByRole('status')).toHaveTextContent(senderRunSummary(RESULT));
     expect(calls.runs).toBe(1);
   });
@@ -67,7 +75,7 @@ describe('BulkEmailSenderPanel', () => {
   it('lists each copy the run tried with its result', async () => {
     answerRuns(RESULT);
     renderWithProviders(<BulkEmailSenderPanel />);
-    await userEvent.click(screen.getByRole('button', { name: 'Run now' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Run the bulk email sender now' }));
     const row = (await screen.findByText(/bea@example\.org/)).closest('tr');
     expect(row).toHaveTextContent('Failed');
   });
@@ -75,7 +83,7 @@ describe('BulkEmailSenderPanel', () => {
   it('says so when another run was already sending', async () => {
     answerRuns({ ...RESULT, busy: true, emails: 0, sent: 0, failed: 0, skipped: 0, actions: [] });
     renderWithProviders(<BulkEmailSenderPanel />);
-    await userEvent.click(screen.getByRole('button', { name: 'Run now' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Run the bulk email sender now' }));
     expect(await screen.findByRole('status')).toHaveTextContent(SENDER_BUSY);
   });
 });

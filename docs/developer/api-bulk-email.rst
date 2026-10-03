@@ -10,7 +10,7 @@ of people built from the member list's filters, the send that queues it, and its
 results.  Nothing is sent in a request: the background sender sends
 (:doc:`bulk-email`).  The portal's Bulk Email screens read them: Compose at
 ``/bulk-email/compose``, the compose screen of one email at
-``/bulk-email/drafts/{id}``, **Drafts & scheduled**, and **Sent**.
+``/bulk-email/compose/{id}``, **Drafts & scheduled**, and **Sent**.
 :doc:`api-reference` covers the conventions these endpoints share: session
 authentication, the CSRF header, and the error shapes.
 
@@ -41,8 +41,8 @@ taken.
 ``GET /bulk-email/drafts``
 --------------------------
 
-Every ``draft`` and ``queued`` email the caller may open, the most recently
-edited first.  Unpaginated: a sender keeps a handful.
+Every ``draft`` and ``queued`` email the caller may open that has never started
+sending, the most recently edited first.  Unpaginated: a sender keeps a handful.
 
 .. code-block:: json
 
@@ -71,8 +71,10 @@ copies are waiting to be sent.
 ``GET /bulk-email/sent``
 ------------------------
 
-Every ``sending``, ``sent``, and ``stopped`` email the caller may open, the most
-recently started first, in the shape ``GET /bulk-email/drafts`` answers.
+Every email the caller may open that has started sending, the most recently
+started first, in the shape ``GET /bulk-email/drafts`` answers: ``sending``,
+``sent``, and ``stopped`` emails, and a ``queued`` one **Send the rest** queued
+again.
 Unpaginated: a handful are sent a month.
 
 ``GET /bulk-email/{id}``
@@ -111,7 +113,8 @@ One email, with everything the compose and Sent screens show:
     "undo_seconds": 120}
 
 ``status`` is ``draft``, ``queued``, ``sending``, ``sent``, or ``stopped``
-(:ref:`choices-bulk-email-status`); ``can_edit`` is true for the first two.
+(:ref:`choices-bulk-email-status`); ``can_edit`` is true for a draft or a queued
+email that has never started sending (:ref:`the edit rule <bulk-email-edit-rule>`).
 ``start_at`` is when a queued email starts and ``scheduled`` whether the sender
 chose it.  ``batch_count``, ``receiving_count``, and ``batch_skipped_count`` count
 the batch as ``GET /bulk-email/{id}/batch`` does.  ``remaining`` counts the copies
@@ -211,7 +214,7 @@ in the order above:
    {"count": 2,
     "receiving": 1,
     "skipped": 1,
-    "adds": [{"id": 4, "label": "Kind: Friend, County: Marin, Napa",
+    "adds": [{"id": 4, "label": "Kind: Friends only, County: Marin, Napa",
               "filters": {"kind": "friend", "county": "Marin,Napa"},
               "added_count": 2, "already_count": 0,
               "created_at": "2026-04-05T09:10:00-07:00"}],
@@ -226,7 +229,8 @@ in the order above:
               "tried_at": null}]}
 
 An add's ``label`` is its filters in words, as the member list's filter bar names
-them: a DART by its name, a role by its label, a choice by the filter's label for
+them: a kind as the filter bar offers it (*Members only*, *Friends only*), a DART by
+its name, a role by its label, a choice by the filter's label for
 it, and ``Everybody`` for an add with no filter.  A row's ``name``, ``email``,
 ``kind``, and ``dart_name`` are its own, taken when the person joined the batch
 and brought up to date when the send starts; ``user_id`` is null once the account
@@ -254,7 +258,9 @@ with what the add did:
 
 ``added`` people joined the batch, ``already_present`` were in it already, and the
 batch now holds ``count``.  Each add is kept as a ``BatchAdd`` with the filters that
-carried a value.  A refused filter is **400** under ``filters``: *Not a filter of
+carried a value.  An add to a ``queued`` email takes it back to a draft, its
+``start_at``, ``scheduled``, and ``confirm_count`` cleared, since the count the
+sender confirmed no longer holds; so does a removal or a clear.  A refused filter is **400** under ``filters``: *Not a filter of
 the member list.* for a name the list does not have, or the list's own message for
 a value it refuses, such as ``{"filters": {"kind": ["Select a valid choice. donor
 is not one of the available choices."]}}``.  Once the email has started sending
@@ -278,7 +284,7 @@ Empties the batch, its adds included: **200** with the empty batch, as
 
 The batch as a CSV download, ``caldart-bulk-email-<id>-batch.csv``, in the order
 above, with the columns ``Name``, ``Email``, ``Kind``, ``DART``, ``Membership
-status`` (the account's now, blank once it is deleted), ``Added by`` (the add's
+status`` (the account's now, blank once it is deleted), ``Chosen by`` (the add's
 label), ``Will receive`` (``Yes`` or ``No``), and ``Reason``.
 
 
@@ -325,8 +331,9 @@ scheduled.
 
 Takes a queued email back to a draft, its batch and content intact, with no
 ``start_at``: **200** with the email.  A draft is answered unchanged.  Once the
-sender has started it, **409** *This email has started sending.*  Any CalDART
-management member may cancel, not only the sender.  One ``bulk_email.cancel``
+sender has ever started it, **409** *This email has started sending.*, which
+includes an email **Send the rest** queued again.  Any CalDART management member
+may cancel, not only the sender.  One ``bulk_email.cancel``
 audit line names the caller.
 
 ``POST /bulk-email/{id}/stop``
@@ -335,15 +342,19 @@ audit line names the caller.
 Asks a send in progress to stop: **200** with the email, ``stop_requested`` true
 and ``stopped_by`` the caller.  The sender stops before its next copy: every copy
 not yet sent becomes ``stopped`` with the reason *Stopped by* and the caller's
-name, and the email ``stopped``.  An email that is not ``sending`` is **409** *This
-email is not sending.*  One ``bulk_email.stop`` audit line names the caller.
+name, and the email ``stopped``.  A ``queued`` email **Send the rest** queued
+again stops at once the same way.  Any other email is **409** *This email is not
+sending.*  One ``bulk_email.stop`` audit line names the caller and the copies kept
+back, written when the stop takes effect; a stop that arrived after the last copy
+had gone records nothing, and the email reads ``sent``.
 
 ``POST /bulk-email/{id}/resume``
 --------------------------------
 
 **Send the rest** of a stopped send: every ``stopped`` row goes back to
 ``pending`` and the email is queued to start now, with no undo window.  **200**
-with the email.  Nobody already sent a copy is sent another.  An email that is not
+with the email.  Nobody already sent a copy is sent another.  The email keeps its
+``started_at``, so it stays read-only (:ref:`the edit rule <bulk-email-edit-rule>`).  An email that is not
 ``stopped`` is **409** *Only a stopped email can send the rest.*  One
 ``bulk_email.resume`` audit line names the caller and the number of copies
 queued again.
@@ -360,9 +371,11 @@ in the order the send went, with the columns ``Name``, ``Email``, ``Kind``,
 ``POST /system/bulk-email/run``
 -------------------------------
 
-Runs the bulk email sender once, in the request, as one run of the timer does:
-it finishes any email left ``sending``, then starts and sends every queued email
-whose ``start_at`` has come (:doc:`bulk-email`).  ``system_admin`` only.  No body
+Runs the bulk email sender once, in the request, as one run of the timer does: it
+finishes any email left ``sending``, then starts and sends every queued email whose
+``start_at`` has come (:doc:`bulk-email`), but for at most 45 seconds, inside the
+proxy's limit on a request.  An email still going then is left ``sending`` for the
+timer's next run.  ``system_admin`` only.  No body
 is taken; there is no dry run, because the sender sends only what CalDART
 management has already pressed **Send** on.
 
@@ -373,6 +386,8 @@ management has already pressed **Send** on.
     "sent": 1,
     "failed": 1,
     "skipped": 2,
+    "out_of_time": false,
+    "remaining": 0,
     "actions": [
       {"kind": "sent", "member": "Ann Able", "email": "ann@example.org",
        "on": null, "amount_cents": null, "detail": "Spring newsletter"},
@@ -381,8 +396,8 @@ management has already pressed **Send** on.
 
 ``busy`` is true when another run of the sender was working, and this one then
 did nothing.  ``emails`` counts the emails worked on, ``sent`` and ``failed`` the
-copies tried, and ``skipped`` the people set aside as each email started.  Each
-action is one copy: ``kind`` is ``sent`` or ``failed``, and ``detail`` the subject
-or the reason.  The run is paced like any other, so a large send keeps the request
-open for as long as it takes.  One ``bulk_email.run`` audit line names the caller
+copies tried, and ``skipped`` the people set aside as each email started.
+``out_of_time`` is true when the 45 seconds ran out with copies still to send, and
+``remaining`` counts them.  Each action is one copy: ``kind`` is ``sent`` or ``failed``, and ``detail`` the subject
+or the reason.  One ``bulk_email.run`` audit line names the caller
 and the counts.

@@ -1,7 +1,7 @@
-import { act, screen, waitFor, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import { answerBulkEmail, makeBatch, makeBulkEmail, makeRow } from '@test/fixtures/bulkEmail';
 import type { BulkEmailState } from '@test/fixtures/bulkEmail';
@@ -10,6 +10,7 @@ import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
 import type { BulkEmailDetail } from '@/portal/api/types';
 import { missingSteps, SendCard } from './SendCard';
+import { mismatchMessage } from './SendConfirm';
 
 /** Render the card for `email`, with the subject and message it holds, saved. */
 function renderCard(email: BulkEmailDetail) {
@@ -25,10 +26,6 @@ function renderCard(email: BulkEmailDetail) {
   );
   return calls;
 }
-
-afterEach(() => {
-  vi.useRealTimers();
-});
 
 describe('missingSteps', () => {
   it('lists what is still needed before sending', () => {
@@ -47,28 +44,40 @@ describe('SendCard', () => {
     expect(screen.queryByRole('button', { name: /^Send to/ })).toBeNull();
   });
 
-  it('confirms a small send without asking for the count', async () => {
+  it('confirms a small send without asking for the count, saying when it starts', async () => {
     const calls = renderCard(makeBulkEmail({ receiving_count: 3 }));
     await userEvent.click(screen.getByRole('button', { name: 'Send to 3 people' }));
     const confirm = screen.getByRole('region', { name: 'Confirm sending' });
-    expect(confirm).toHaveTextContent('This sends Hangar day to 3 people.');
+    expect(confirm).toHaveTextContent(
+      'This sends Hangar day to 3 people. Sending starts in 2 minutes, and until then you can cancel it.',
+    );
+    expect(within(confirm).getByRole('button', { name: 'Send now' })).toHaveFocus();
     await userEvent.click(within(confirm).getByRole('button', { name: 'Send now' }));
     await waitFor(() => expect(calls.sends).toEqual([{ confirm_count: null, start_at: null }]));
   });
 
-  it('keeps a large send off until the right count is typed', async () => {
+  it('keeps a large send off until the right count is typed, and says when it is wrong', async () => {
     const calls = renderCard(makeBulkEmail({ receiving_count: 52, confirm_above: 50 }));
     await userEvent.click(screen.getByRole('button', { name: 'Send to 52 people' }));
     const send = screen.getByRole('button', { name: 'Send now' });
-    expect(send).toBeDisabled();
     const count = screen.getByRole('textbox', { name: 'Type 52 to confirm' });
+    expect(count).toHaveFocus();
     await userEvent.type(count, '51');
     expect(send).toBeDisabled();
+    expect(screen.getByRole('alert')).toHaveTextContent(mismatchMessage(52));
     await userEvent.clear(count);
     await userEvent.type(count, '52');
     expect(send).toBeEnabled();
     await userEvent.click(send);
     await waitFor(() => expect(calls.sends).toEqual([{ confirm_count: 52, start_at: null }]));
+  });
+
+  it('closes the confirmation on Escape and puts the focus back on Send', async () => {
+    renderCard(makeBulkEmail({ receiving_count: 3 }));
+    await userEvent.click(screen.getByRole('button', { name: 'Send to 3 people' }));
+    await userEvent.keyboard('{Escape}');
+    expect(screen.queryByRole('region', { name: 'Confirm sending' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Send to 3 people' })).toHaveFocus();
   });
 
   it('shows the server refusing a batch that changed meanwhile', async () => {
@@ -89,71 +98,46 @@ describe('SendCard', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('it now holds 53 people');
   });
 
-  it('schedules for a chosen date and time after confirming it', async () => {
+  it('schedules for a chosen date and time, in twelve-hour words', async () => {
     const calls = renderCard(makeBulkEmail());
     await userEvent.click(screen.getByRole('button', { name: 'Schedule for later' }));
     const date = screen.getByLabelText('Date');
+    expect(date).toHaveFocus();
     await userEvent.clear(date);
-    await userEvent.type(date, '2026-04-08');
+    await userEvent.type(date, '2026-10-04');
+    await userEvent.selectOptions(screen.getByLabelText('Time'), '1:30 PM');
     await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
     expect(screen.getByRole('region', { name: 'Confirm sending' })).toHaveTextContent(
-      'It goes out on 04/08/2026 at 08:00 Pacific time.',
+      'It goes out on 10/04/2026 at 1:30 PM Pacific time.',
     );
     await userEvent.click(screen.getByRole('button', { name: 'Schedule it' }));
     await waitFor(() =>
-      expect(calls.sends).toEqual([{ confirm_count: null, start_at: '2026-04-08T08:00' }]),
+      expect(calls.sends).toEqual([{ confirm_count: null, start_at: '2026-10-04T13:30' }]),
     );
   });
 
-  it('counts down the undo window with Cancel at hand', () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true });
-    vi.setSystemTime(new Date('2026-04-06T17:00:00Z'));
-    renderCard(makeBulkEmail({ status: 'queued', start_at: '2026-04-06T17:01:58Z' }));
-    expect(screen.getByText('Sending in 1:58')).toBeVisible();
-    act(() => {
-      vi.advanceTimersByTime(2000);
-    });
-    expect(screen.getByText('Sending in 1:56')).toBeVisible();
-    expect(screen.getByRole('button', { name: 'Cancel' })).toBeEnabled();
+  it('closes the schedule on Escape and puts the focus back on its button', async () => {
+    renderCard(makeBulkEmail());
+    await userEvent.click(screen.getByRole('button', { name: 'Schedule for later' }));
+    await userEvent.keyboard('{Escape}');
+    expect(screen.getByRole('button', { name: 'Schedule for later' })).toHaveFocus();
   });
 
-  it('cancels a queued send at once, with no second question', async () => {
+  it('opens Change the time at the time already chosen', async () => {
+    renderCard(
+      makeBulkEmail({ status: 'queued', scheduled: true, start_at: '2026-10-04T15:00:00Z' }),
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Change the time' }));
+    expect(screen.getByLabelText('Date')).toHaveValue('2026-10-04');
+    expect(screen.getByLabelText('Time')).toHaveValue('08:00');
+  });
+
+  it('sends a scheduled email now instead, with the undo window', async () => {
     const calls = renderCard(
-      makeBulkEmail({ status: 'queued', start_at: new Date(Date.now() + 60_000).toISOString() }),
+      makeBulkEmail({ status: 'queued', scheduled: true, start_at: '2026-10-04T15:00:00Z' }),
     );
-    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
-    await waitFor(() => expect(calls.actions).toEqual(['cancel']));
-  });
-
-  it('shows the progress of a send with Stop behind a confirmation', async () => {
-    const calls = renderCard(
-      makeBulkEmail({
-        status: 'sending',
-        can_edit: false,
-        sent_count: 12,
-        remaining: 26,
-        estimated_finish_at: new Date(Date.now() + 60_000).toISOString(),
-      }),
-    );
-    expect(screen.getByText('Sending… 12 of 38 sent, about 1 minute left.')).toBeVisible();
-    await userEvent.click(screen.getByRole('button', { name: 'Stop sending' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Stop now' }));
-    await waitFor(() => expect(calls.actions).toEqual(['stop']));
-  });
-
-  it('offers Send the rest after a stop', async () => {
-    const calls = renderCard(
-      makeBulkEmail({
-        status: 'stopped',
-        can_edit: false,
-        batch_count: 3,
-        sent_count: 1,
-        stopped_by: 'Grace Holloway',
-      }),
-    );
-    expect(screen.getByText(/^Stopped by Grace Holloway\./)).toBeVisible();
-    await userEvent.click(screen.getByRole('button', { name: 'Send the rest' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Send them now' }));
-    await waitFor(() => expect(calls.actions).toEqual(['resume']));
+    await userEvent.click(screen.getByRole('button', { name: 'Send now instead' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Send now' }));
+    await waitFor(() => expect(calls.sends).toEqual([{ confirm_count: null, start_at: null }]));
   });
 });

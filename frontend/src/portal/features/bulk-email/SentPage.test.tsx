@@ -1,5 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { screen, within } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it } from 'vitest';
 
@@ -10,17 +9,9 @@ import { server } from '@test/server';
 import type { BulkEmailSummary } from '@/portal/api/types';
 import { SentPage } from './SentPage';
 
-/** Answer the list with `rows`, recording each action posted. */
-function answerSent(rows: BulkEmailSummary[]): string[] {
-  const actions: string[] = [];
-  server.use(
-    http.get(`${API}/bulk-email/sent`, () => HttpResponse.json(rows)),
-    http.post(`${API}/bulk-email/:id/:action`, ({ params }) => {
-      actions.push(`${String(params.action)} ${String(params.id)}`);
-      return HttpResponse.json(makeSummary({ id: Number(params.id) }));
-    }),
-  );
-  return actions;
+/** Answer the list with `rows`. */
+function answerSent(rows: BulkEmailSummary[]): void {
+  server.use(http.get(`${API}/bulk-email/sent`, () => HttpResponse.json(rows)));
 }
 
 describe('SentPage', () => {
@@ -39,27 +30,48 @@ describe('SentPage', () => {
     expect(row).toHaveTextContent('Sent37');
   });
 
-  it('stops a send in progress once confirmed', async () => {
-    const actions = answerSent([makeSummary({ status: 'sending' })]);
+  it('opens a send in progress to stop it there', async () => {
+    answerSent([makeSummary({ status: 'sending' })]);
     renderWithProviders(<SentPage />);
-    await userEvent.click(await screen.findByRole('button', { name: 'Stop' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Stop now' }));
-    await waitFor(() => expect(actions).toEqual(['stop 7']));
+    expect(await screen.findByRole('link', { name: 'Stop sending Hangar day' })).toHaveAttribute(
+      'href',
+      '/bulk-email/sent/7',
+    );
   });
 
-  it('sends the rest of a stopped send once confirmed', async () => {
-    const actions = answerSent([makeSummary({ status: 'stopped' })]);
-    renderWithProviders(<SentPage />);
-    await userEvent.click(await screen.findByRole('button', { name: 'Send the rest' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Send them now' }));
-    await waitFor(() => expect(actions).toEqual(['resume 7']));
-  });
-
-  it('offers each send results as a download', async () => {
-    answerSent([makeSummary({ status: 'sent' })]);
+  it('opens a stopped send to send the rest there', async () => {
+    answerSent([makeSummary({ status: 'stopped' })]);
     renderWithProviders(<SentPage />);
     expect(
-      await screen.findByRole('link', { name: 'Download the results of Hangar day' }),
-    ).toHaveAttribute('href', '/api/v1/bulk-email/7/recipients.csv');
+      await screen.findByRole('link', { name: 'Send the rest of Hangar day' }),
+    ).toHaveAttribute('href', '/bulk-email/sent/7');
+  });
+
+  it('offers Stop on an email waiting to send the rest', async () => {
+    answerSent([makeSummary({ status: 'queued', started_at: '2026-04-06T17:00:00Z' })]);
+    renderWithProviders(<SentPage />);
+    expect(await screen.findByRole('link', { name: 'Stop sending Hangar day' })).toBeVisible();
+  });
+
+  it('offers each finished send results as a download', async () => {
+    answerSent([makeSummary({ status: 'sent' })]);
+    renderWithProviders(<SentPage />);
+    const link = await screen.findByRole('link', { name: 'Download the results of Hangar day' });
+    expect([link.textContent, link.getAttribute('href')]).toEqual([
+      'Download results',
+      '/api/v1/bulk-email/7/recipients.csv',
+    ]);
+  });
+
+  it('puts the subject first, with a real width', async () => {
+    answerSent([makeSummary({ status: 'sent' })]);
+    renderWithProviders(<SentPage />);
+    const table = await screen.findByRole('table');
+    const first = within(table).getAllByRole('columnheader')[0];
+    expect([first?.textContent, first?.className, table.style.minWidth.includes('16rem')]).toEqual([
+      'Subject',
+      'data-table__text',
+      true,
+    ]);
   });
 });

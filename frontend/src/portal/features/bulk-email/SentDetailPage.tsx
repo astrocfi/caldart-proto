@@ -46,10 +46,10 @@ export function SentDetailPage(): JSX.Element {
   return (
     <Page title={sent.subject || 'Sent bulk email'} eyebrow="Bulk Email" lede={sentLede(sent)}>
       <Card title="Where it stands">
-        {sent.status === 'draft' || sent.status === 'queued' ? (
+        {sent.started_at === null ? (
           <p>
             This email has not started sending.{' '}
-            <Link to={`/bulk-email/drafts/${sent.id}`}>Open it</Link>.
+            <Link to={`/bulk-email/compose/${sent.id}`}>Open it</Link>.
           </p>
         ) : (
           <SendStatus email={sent} />
@@ -81,11 +81,11 @@ export function SentDetailPage(): JSX.Element {
   );
 }
 
-/** `Sent by Grace Holloway on 04/06/2026 10:00 to a batch of 41 people.` */
+/** `Sent by Grace Holloway on 04/06/2026 10:00 to 41 people.` */
 function sentLede(email: BulkEmailDetail): string {
   const from = email.sender ? `Sent by ${email.sender}` : 'Sent';
   const when = email.started_at === null ? '' : ` on ${formatDateTime(email.started_at)}`;
-  return `${from}${when} to a batch of ${people(email.batch_count)}.`;
+  return `${from}${when} to ${people(email.batch_count - email.skipped_count)}.`;
 }
 
 /** A search box and one line per person with their result. */
@@ -122,16 +122,29 @@ function Results({ rows, isLoading }: { rows: BulkEmailBatchRow[]; isLoading: bo
   );
 }
 
-/** The results table's columns. */
-const RESULT_COLUMNS: Column<BulkEmailBatchRow>[] = [
-  { key: 'name', header: 'Name', render: (row) => row.name, sortValue: (row) => row.name },
-  { key: 'email', header: 'Email', render: (row) => row.email, sortValue: (row) => row.email },
-  { key: 'kind', header: 'Kind', width: '6rem', render: (row) => kindLabel(row.kind) },
-  { key: 'dart', header: 'DART', render: (row) => row.dart_name || '—' },
+/**
+ * The results table's columns: the person's name first, then what became of their
+ * copy, then what a narrow screen scrolls to.
+ */
+export const RESULT_COLUMNS: Column<BulkEmailBatchRow>[] = [
+  {
+    key: 'name',
+    header: 'Name',
+    minWidth: '16rem',
+    render: (row) => row.name,
+    sortValue: (row) => row.name,
+  },
+  {
+    key: 'email',
+    header: 'Email',
+    minWidth: '14rem',
+    render: (row) => row.email,
+    sortValue: (row) => row.email,
+  },
   {
     key: 'status',
     header: 'Result',
-    width: '11rem',
+    width: '10rem',
     render: (row) => (
       <span className="bulk-email__will-receive">
         <StatusDot tone={resultTone(row.status)} label={resultLabel(row.status)} />
@@ -140,12 +153,14 @@ const RESULT_COLUMNS: Column<BulkEmailBatchRow>[] = [
     ),
     sortValue: (row) => row.status,
   },
-  { key: 'reason', header: 'Reason', render: (row) => row.reason || '—' },
+  { key: 'reason', header: 'Reason', minWidth: '12rem', render: (row) => row.reason || '—' },
   {
     key: 'tried_at',
     header: 'Tried at',
-    width: '11rem',
+    width: '9.5rem',
     render: (row) => <DateText value={row.tried_at} withTime />,
     sortValue: (row) => row.tried_at,
   },
+  { key: 'kind', header: 'Kind', width: '5.5rem', render: (row) => kindLabel(row.kind) },
+  { key: 'dart', header: 'DART', width: '8rem', render: (row) => row.dart_name || '—' },
 ];

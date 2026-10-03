@@ -289,7 +289,7 @@ class BulkEmailBatchAddSerializer(serializers.ModelSerializer[BatchAdd]):
         read_only_fields = fields
 
     def get_label(self, add: BatchAdd) -> str:
-        """The add's filters in words, such as ``"Kind: Friend, County: Marin"``."""
+        """The add's filters in words, such as ``"Kind: Friends only, County: Marin"``."""
         return add_label(add.filters)
 
 

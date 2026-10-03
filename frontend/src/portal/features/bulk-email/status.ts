@@ -54,8 +54,14 @@ const RESULT_TONES: Record<BulkEmailRecipientStatus, StatusTone> = {
 /** What a person's kind reads as. */
 const KIND_LABELS: Record<string, string> = { member: 'Member', friend: 'Friend' };
 
-/** An email's status in words: a queued email the sender scheduled is *Scheduled*. */
-export function statusLabel(email: Pick<BulkEmailSummary, 'status' | 'scheduled'>): string {
+/**
+ * An email's status in words: a queued email the sender scheduled is *Scheduled*,
+ * and one queued again by Send the rest is *Waiting to send the rest*.
+ */
+export function statusLabel(
+  email: Pick<BulkEmailSummary, 'status' | 'scheduled' | 'started_at'>,
+): string {
+  if (email.status === 'queued' && email.started_at !== null) return 'Waiting to send the rest';
   if (email.status === 'queued' && email.scheduled) return 'Scheduled';
   return STATUS_LABELS[email.status];
 }
@@ -91,8 +97,12 @@ export function batchSentence(receiving: number, skipped: number): string {
   return `${people(receiving)} will receive this email; ${skips}.`;
 }
 
-/** `Added 12 people; 3 were already in the batch.`: what one add did. */
+/**
+ * `Added 12 people; 3 were already in the batch.`: what one add did.  With nobody
+ * there already it is `Added 12 people.`
+ */
 export function addSentence(result: BulkEmailAddResult): string {
+  if (result.already_present === 0) return `Added ${people(result.added)}.`;
   const already =
     result.already_present === 1
       ? '1 was already in the batch'
@@ -124,7 +134,8 @@ export function progressSentence(email: BulkEmailDetail, now: Date = new Date())
 
 /**
  * `Sent to 37 people. 1 failed and 4 were skipped.`: what a finished or stopped
- * send came to.
+ * send came to.  With nothing failed or skipped it is `Sent to 51 people. Everyone
+ * was sent a copy.`
  */
 export function resultSentence(
   email: Pick<BulkEmailDetail, 'status' | 'sent_count' | 'failed_count' | 'skipped_count'> & {
@@ -134,7 +145,10 @@ export function resultSentence(
   const sent = `Sent to ${people(email.sent_count)}.`;
   const failed = `${email.failed_count} failed`;
   const skipped = `${email.skipped_count} ${email.skipped_count === 1 ? 'was' : 'were'} skipped`;
-  const counts = `${sent} ${failed} and ${skipped}.`;
+  const isEveryone = email.failed_count === 0 && email.skipped_count === 0;
+  const counts = isEveryone
+    ? `${sent} Everyone was sent a copy.`
+    : `${sent} ${failed} and ${skipped}.`;
   if (email.status !== 'stopped') return counts;
   const who = email.stopped_by ? ` by ${email.stopped_by}` : '';
   return `Stopped${who}. ${counts}`;

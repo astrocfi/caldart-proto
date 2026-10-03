@@ -19,6 +19,7 @@ const BODY_MAX_LENGTH = 20000;
 
 /** What the note under the message says for each save state. */
 const SAVE_NOTES: Record<SaveState, string> = {
+  idle: '',
   saved: 'Saved',
   saving: 'Saving…',
   failed: 'Not saved yet. Your words are kept here, and saving tries again as you type.',
@@ -48,10 +49,12 @@ export function MessageCard({
 }: MessageCardProps): JSX.Element {
   return (
     <Card title="2. What it says" className="bulk-email__card">
-      <p className="muted">
-        Write the subject and the message. Everything saves itself as you type, so you can leave and
-        come back later.
-      </p>
+      {isEditable ? (
+        <p className="muted">
+          Write the subject and the message. Everything saves itself as you type, so you can leave
+          and come back later.
+        </p>
+      ) : null}
       <fieldset className="bulk-email__fieldset stack" disabled={!isEditable}>
         <legend className="visually-hidden">The message</legend>
         <Field label="Subject" error={errors.subject} hint="One line that says what it is about.">
@@ -81,7 +84,7 @@ export function MessageCard({
           )}
         </Field>
       </fieldset>
-      {isEditable ? (
+      {isEditable && saveState !== 'idle' ? (
         <p
           className={saveState === 'failed' ? 'field__error' : 'muted bulk-email__save-note'}
           role="status"
