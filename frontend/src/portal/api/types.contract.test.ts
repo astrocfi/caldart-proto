@@ -50,6 +50,8 @@ import type {
   BulkEmailBatchAdd,
   BulkEmailBatchRow,
   BulkEmailDetail,
+  BulkEmailField,
+  BulkEmailImage,
   BulkEmailPatch,
   BulkEmailRecipientStatus,
   BulkEmailRunResult,
@@ -453,6 +455,8 @@ const bulkEmailBatchAdd: Matches<BulkEmailBatchAdd, Schemas['BulkEmailBatchAdd']
 const bulkEmailBatchRow: Matches<BulkEmailBatchRow, Schemas['BulkEmailBatchRow']> = true;
 const bulkEmailBatch: Matches<BulkEmailBatch, Schemas['BulkEmailBatch']> = true;
 const bulkEmailRunResult: Matches<BulkEmailRunResult, Schemas['BulkEmailRunResult']> = true;
+const bulkEmailField: Matches<BulkEmailField, Schemas['BulkEmailField']> = true;
+const bulkEmailImage: Matches<BulkEmailImage, Schemas['BulkEmailImage']> = true;
 
 /** Every pair above, so `noUnusedLocals` keeps each assertion referenced. */
 const assertions: readonly true[] = [
@@ -628,6 +632,8 @@ const assertions: readonly true[] = [
   bulkEmailBatchRow,
   bulkEmailBatch,
   bulkEmailRunResult,
+  bulkEmailField,
+  bulkEmailImage,
 ];
 
 /** The schema component each assertion above names, in the same order. */
@@ -804,6 +810,8 @@ const MAPPED_COMPONENTS: readonly (keyof Schemas)[] = [
   'BulkEmailBatchRow',
   'BulkEmailBatch',
   'BulkEmailRunResult',
+  'BulkEmailField',
+  'BulkEmailImage',
 ];
 
 /** Vitest runs with `frontend/` as its root, so the repository root is one level up. */

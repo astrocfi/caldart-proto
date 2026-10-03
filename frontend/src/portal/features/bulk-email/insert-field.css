@@ -1,0 +1,42 @@
+/* The Insert field menu's choices: each field's label over its description,
+ * the whole row one button. */
+.insert-field__list {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.insert-field__choice {
+  display: grid;
+  gap: 0.1rem;
+  width: 100%;
+  padding: var(--space-2);
+  border: var(--hairline) solid transparent;
+  border-radius: var(--radius);
+  background: none;
+  color: var(--color-fg);
+  text-align: left;
+  cursor: pointer;
+}
+
+.insert-field__choice:hover,
+.insert-field__choice:focus-visible {
+  border-color: var(--color-rule-strong);
+  background: var(--color-bg-sunken);
+}
+
+.insert-field__choice:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 1px;
+}
+
+.insert-field__label {
+  font-weight: var(--weight-semibold);
+}
+
+.insert-field__description {
+  font-size: var(--text-xs);
+  color: var(--color-muted);
+}

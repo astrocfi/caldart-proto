@@ -1953,3 +1953,26 @@ export interface BulkEmailRunResult {
   remaining: number;
   actions: RunAction[];
 }
+
+/* ------------------------------------------------- bulk email: rich text */
+
+/**
+ * One recipient field from `GET /bulk-email/fields`: the `token` a message writes
+ * in braces, `{first_name}`, the menu's `label`, and a `description` of what it holds.
+ */
+export interface BulkEmailField {
+  token: string;
+  label: string;
+  description: string;
+}
+
+/**
+ * One image stored by `POST /bulk-email/images`: `url` is absolute, the address
+ * every copy links to, and `width` and `height` are its stored size in pixels.
+ */
+export interface BulkEmailImage {
+  id: number;
+  url: string;
+  width: number;
+  height: number;
+}

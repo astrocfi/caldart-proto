@@ -840,6 +840,109 @@ th.numeric {
   color: var(--color-muted);
 }
 
+/* ---------------------------------------------------- rich text editor */
+/* A toolbar over an editing area framed like a text box.  Each toolbar button
+ * is an icon with its name, and the row wraps on a phone rather than scroll. */
+.rich-text {
+  border: var(--hairline) solid var(--color-rule-strong);
+  border-radius: var(--radius);
+  background: var(--color-bg-raised);
+}
+
+.rich-text:focus-within {
+  border-color: var(--color-focus);
+}
+
+.rich-text__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-2);
+  border-bottom: var(--hairline) solid var(--color-rule);
+  background: var(--color-bg-sunken);
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+
+.rich-text__button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 2rem;
+  padding: var(--space-1) var(--space-2);
+  border: var(--hairline) solid transparent;
+  border-radius: var(--radius);
+  background: none;
+  color: var(--color-fg);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  transition:
+    background-color var(--duration) var(--ease),
+    border-color var(--duration) var(--ease);
+}
+
+.rich-text__button:hover:not(:disabled) {
+  border-color: var(--color-rule-strong);
+}
+
+.rich-text__button[aria-pressed='true'] {
+  background: var(--color-bg-raised);
+  border-color: var(--color-rule-strong);
+  font-weight: var(--weight-semibold);
+}
+
+.rich-text__button:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 1px;
+}
+
+.rich-text__button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.rich-text__panel {
+  padding: var(--space-3);
+  border-bottom: var(--hairline) solid var(--color-rule);
+}
+
+.rich-text__panel .field {
+  margin-bottom: 0;
+}
+
+.rich-text__status:empty {
+  display: none;
+}
+
+.rich-text__area {
+  min-height: 12rem;
+  padding: var(--space-3);
+  max-width: none;
+  overflow-wrap: anywhere;
+}
+
+.rich-text__area:focus {
+  outline: none;
+}
+
+.rich-text__area > :first-child {
+  margin-top: 0;
+}
+
+.rich-text__area img {
+  max-width: 100%;
+  height: auto;
+}
+
+.rich-text__area img.ProseMirror-selectednode {
+  outline: 2px solid var(--color-focus);
+}
+
+.rich-text__area[contenteditable='false'] {
+  background: var(--color-bg-sunken);
+  color: var(--color-muted);
+}
+
 /* ------------------------------------------------------------- motion */
 @media (prefers-reduced-motion: reduce) {
   html {
