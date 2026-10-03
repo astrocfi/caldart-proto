@@ -27,6 +27,9 @@ function Card({
   const [body, setBody] = useState('<p>Dear </p>');
   return (
     <MessageCard
+      emailId={7}
+      emailType={1}
+      emailTypeName="Operational"
       subject={subject}
       body={body}
       onSubjectChange={(next) => setSubject(next)}

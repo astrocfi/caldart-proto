@@ -607,10 +607,13 @@
       "confirm_above": "integer",
       "confirm_count": "integer|null",
       "created_at": "string(date-time)",
+      "email_type": "integer|null",
+      "email_type_name": "string",
       "estimated_finish_at": "string(date-time)|null",
       "failed_count": "integer",
       "id": "integer",
       "message_html": "string",
+      "not_sent_reason": "string",
       "receiving_count": "integer",
       "remaining": "integer",
       "scheduled": "boolean",
@@ -637,10 +640,13 @@
       "confirm_above",
       "confirm_count",
       "created_at",
+      "email_type",
+      "email_type_name",
       "estimated_finish_at",
       "failed_count",
       "id",
       "message_html",
+      "not_sent_reason",
       "receiving_count",
       "remaining",
       "scheduled",
@@ -787,8 +793,10 @@
     "properties": {
       "batch_count": "integer",
       "created_at": "string(date-time)",
+      "email_type_name": "string",
       "failed_count": "integer",
       "id": "integer",
+      "not_sent_reason": "string",
       "remaining": "integer",
       "scheduled": "boolean",
       "sender": "string",
@@ -806,8 +814,10 @@
     "required": [
       "batch_count",
       "created_at",
+      "email_type_name",
       "failed_count",
       "id",
+      "not_sent_reason",
       "remaining",
       "scheduled",
       "sender",
@@ -1276,6 +1286,30 @@
       "bounced"
     ]
   },
+  "EmailPreference": {
+    "properties": {
+      "description": "string",
+      "email_type": "integer",
+      "name": "string",
+      "opted_out": "boolean"
+    },
+    "required": [
+      "description",
+      "email_type",
+      "name",
+      "opted_out"
+    ]
+  },
+  "EmailPreferenceChangeRequest": {
+    "properties": {
+      "email_type": "integer",
+      "opted_out": "boolean"
+    },
+    "required": [
+      "email_type",
+      "opted_out"
+    ]
+  },
   "EmailPurpose": {
     "properties": {
       "label": "string",
@@ -1284,6 +1318,38 @@
     "required": [
       "label",
       "value"
+    ]
+  },
+  "EmailType": {
+    "properties": {
+      "allow_opt_out": "boolean",
+      "description": "string",
+      "id": "integer",
+      "name": "string",
+      "position": "integer",
+      "sender_roles": "array<ref:SenderRolesEnum>",
+      "slug": "string"
+    },
+    "required": [
+      "description",
+      "id",
+      "name",
+      "sender_roles",
+      "slug"
+    ]
+  },
+  "EmailTypeRequest": {
+    "properties": {
+      "allow_opt_out": "boolean",
+      "description": "string",
+      "name": "string",
+      "position": "integer",
+      "sender_roles": "array<ref:SenderRolesEnum>"
+    },
+    "required": [
+      "description",
+      "name",
+      "sender_roles"
     ]
   },
   "EmailVerified": {
@@ -2303,6 +2369,7 @@
   "PatchedBulkEmailUpdateRequest": {
     "properties": {
       "body": "string",
+      "email_type": "integer",
       "subject": "string"
     },
     "required": []
@@ -3433,6 +3500,26 @@
     },
     "required": [
       "detail"
+    ]
+  },
+  "SendableEmailType": {
+    "properties": {
+      "allow_opt_out": "boolean",
+      "description": "string",
+      "id": "integer",
+      "name": "string"
+    },
+    "required": [
+      "allow_opt_out",
+      "description",
+      "id",
+      "name"
+    ]
+  },
+  "SenderRolesEnum": {
+    "enum": [
+      "dart_leader",
+      "management"
     ]
   },
   "SiteConfig": {
