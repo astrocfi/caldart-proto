@@ -13,7 +13,6 @@ import re
 import smtplib
 from collections.abc import Callable
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING
 
 import pytest
 from django.core import mail
@@ -23,6 +22,7 @@ from django.utils import timezone
 from freezegun import freeze_time
 from rest_framework.test import APIClient
 
+from apps.accounts.models import User
 from apps.accounts.roles import MANAGEMENT, SYSTEM_ADMIN
 from apps.bulk_email import delivery, job
 from apps.bulk_email.models import (
@@ -32,14 +32,12 @@ from apps.bulk_email.models import (
     BulkEmailStatus,
     RecipientStatus,
 )
+from apps.bulk_email.render import PREVIEW_STAND_IN, inert_unsubscribe_url
 from apps.mail.bounces import check_bounces
 from apps.mail.models import EmailLog, EmailStatus
 from caldart.exceptions import DomainError
 from tests.conftest import BounceReport, FakeMailbox, audit_messages, read_csv, role_matrix
 from tests.factories import BulkEmailFactory, EmailLogFactory, add_to_batch, make_person
-
-if TYPE_CHECKING:
-    from apps.accounts.models import User
 
 pytestmark = pytest.mark.django_db
 
@@ -234,6 +232,95 @@ def test_retry_failed_leaves_bounced_and_skipped_copies_alone(
     }
 
 
+def test_retry_failed_skips_a_deactivated_account(mixed: BulkEmail, management: User) -> None:
+    """Bea's account was deactivated after her copy failed: skipped, not retried."""
+    User.objects.filter(email="bea@example.test").update(is_active=False)
+    with pytest.raises(DomainError, match=re.escape(delivery.NOBODY_TO_RETRY_MESSAGE)):
+        delivery.retry_failed(mixed, actor=management)
+    bea = row_of(mixed, "bea@example.test")
+    assert (bea.status, bea.reason) == (RecipientStatus.SKIPPED, "Account deactivated")
+
+
+def test_retry_failed_skips_a_deleted_account(mixed: BulkEmail, management: User) -> None:
+    """Bea's account was deleted: her row reads *Account deleted*."""
+    User.objects.filter(email="bea@example.test").delete()
+    with pytest.raises(DomainError, match=re.escape(delivery.NOBODY_TO_RETRY_MESSAGE)):
+        delivery.retry_failed(mixed, actor=management)
+    bea = row_of(mixed, "bea@example.test")
+    assert (bea.status, bea.reason) == (RecipientStatus.SKIPPED, "Account deleted")
+
+
+def test_retry_failed_skips_a_bounced_address(mixed: BulkEmail, management: User) -> None:
+    """Bea's address bounced elsewhere since: it is not tried again."""
+    User.objects.filter(email="bea@example.test").update(email_bounced_at=timezone.now())
+    with pytest.raises(DomainError, match=re.escape(delivery.NOBODY_TO_RETRY_MESSAGE)):
+        delivery.retry_failed(mixed, actor=management)
+    bea = row_of(mixed, "bea@example.test")
+    assert (bea.status, bea.reason) == (RecipientStatus.SKIPPED, "Address bounced")
+
+
+def test_retry_failed_sends_to_a_corrected_address(mixed: BulkEmail, management: User) -> None:
+    """Bea's address was corrected: the fresh copy goes to it, not to the old one."""
+    User.objects.filter(email="bea@example.test").update(email="bea.bell@example.test")
+    delivery.retry_failed(mixed, actor=management)
+    send_now(mixed)
+    assert [message.to for message in mail.outbox] == [["bea.bell@example.test"]]
+
+
+def test_retry_failed_records_the_corrected_address_on_the_row(
+    mixed: BulkEmail, management: User
+) -> None:
+    """The row reads the address the fresh copy went to."""
+    User.objects.filter(email="bea@example.test").update(email="bea.bell@example.test")
+    delivery.retry_failed(mixed, actor=management)
+    assert mixed.recipients.filter(email="bea.bell@example.test").count() == 1
+
+
+def test_a_skip_at_retry_moves_the_counts(mixed: BulkEmail, management: User) -> None:
+    """A failed copy that is skipped leaves the failed count and joins the skipped."""
+    User.objects.filter(email="bea@example.test").update(is_active=False)
+    with pytest.raises(DomainError, match=re.escape(delivery.NOBODY_TO_RETRY_MESSAGE)):
+        delivery.retry_failed(mixed, actor=management)
+    mixed.refresh_from_db()
+    assert (mixed.status, mixed.failed_count, mixed.skipped_count) == (
+        BulkEmailStatus.SENT,
+        0,
+        2,
+    )
+
+
+def test_a_retry_with_nobody_left_records_no_retry(mixed: BulkEmail, management: User) -> None:
+    """When everybody is skipped, nothing is queued and no retry is listed."""
+    User.objects.filter(email="bea@example.test").update(is_active=False)
+    with pytest.raises(DomainError, match=re.escape(delivery.NOBODY_TO_RETRY_MESSAGE)):
+        delivery.retry_failed(mixed, actor=management)
+    assert BulkEmailRetry.objects.filter(bulk_email=mixed).count() == 0
+
+
+def test_a_finished_retry_keeps_the_first_sent_time(mixed: BulkEmail, management: User) -> None:
+    """The email's ``sent_at`` stays the time its first send finished."""
+    first = mixed.sent_at
+    with freeze_time("2026-04-07T15:00:00Z"):
+        delivery.retry_failed(mixed, actor=management)
+        sent = send_now(mixed)
+    assert sent.sent_at == first
+
+
+def test_a_finished_retry_is_audited_as_a_retry(
+    mixed: BulkEmail, management: User, caplog: pytest.LogCaptureFixture
+) -> None:
+    """A ``bulk_email.retry_finished`` line with the retry's counts; no second send."""
+    caplog.set_level("INFO", logger="caldart.audit")
+    delivery.retry_failed(mixed, actor=management)
+    send_now(mixed)
+    lines = [line for line in audit_messages(caplog) if "action=bulk_email.send" in line]
+    assert (
+        lines,
+        f"action=bulk_email.retry_finished actor={management.pk} target={mixed.pk} "
+        "recipients=1 sent=1 failed=0" in audit_messages(caplog),
+    ) == ([], True)
+
+
 def test_retry_failed_records_who_when_and_how_many(mixed: BulkEmail, management: User) -> None:
     """Each retry is kept on the email with its time."""
     with freeze_time("2026-04-07T15:00:00Z"):
@@ -294,7 +381,7 @@ def test_retry_failed_is_audited(
     caplog.set_level("INFO", logger="caldart.audit")
     delivery.retry_failed(mixed, actor=management)
     assert (
-        f"action=bulk_email.retry actor={management.pk} target={mixed.pk} recipients=1"
+        f"action=bulk_email.retry actor={management.pk} target={mixed.pk} recipients=1 skipped=0"
         in audit_messages(caplog)
     )
 
@@ -431,6 +518,35 @@ def test_a_copy_shows_the_values_it_went_out_with(
         True,
         False,
     )
+
+
+def unsubscribe_tokens(body: str) -> set[str]:
+    """What follows ``/mail/unsubscribe/`` in each unsubscribe link ``body`` carries."""
+    return set(re.findall(r"/mail/unsubscribe/([^\s\"<>]+)", body))
+
+
+def test_a_copy_shown_to_the_sender_holds_no_unsubscribe_token(
+    management_client: APIClient, mixed: BulkEmail
+) -> None:
+    """The sender's view of Ann's copy links to the stand-in, never to a signed token."""
+    body = management_client.get(copy_url(mixed, row_of(mixed, "ann@example.test"))).json()
+    assert unsubscribe_tokens(body["html"] + body["text"]) == {PREVIEW_STAND_IN}
+
+
+def test_a_copy_shown_to_the_sender_keeps_the_footer_s_words(
+    management_client: APIClient, mixed: BulkEmail
+) -> None:
+    """The footer still says how the recipient unsubscribes, with the inert link."""
+    body = management_client.get(copy_url(mixed, row_of(mixed, "ann@example.test"))).json()
+    assert f"unsubscribe here: {inert_unsubscribe_url()}" in body["text"]
+
+
+def test_the_sent_page_message_holds_no_unsubscribe_token(
+    management_client: APIClient, mixed: BulkEmail
+) -> None:
+    """The message as the Sent page shows it carries nobody's unsubscribe link."""
+    body = management_client.get(f"/api/v1/bulk-email/{mixed.pk}").json()
+    assert "/mail/unsubscribe/" not in body["message_html"]
 
 
 def test_a_copy_carries_who_it_went_to_and_its_result(

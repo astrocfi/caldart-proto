@@ -202,6 +202,14 @@ def test_a_reader_never_sees_another_recipient_s_values(
     )
 
 
+def test_the_reader_s_own_copy_keeps_their_unsubscribe_link(
+    ann_client: APIClient, ann: User
+) -> None:
+    """Ann's own copy on Messages carries her live unsubscribe link, as her email did."""
+    body = ann_client.get(message_url(sent_to(ann))).json()
+    assert "/mail/unsubscribe/" in body["html"]
+
+
 # --------------------------------------------------------------------------
 # Hiding
 # --------------------------------------------------------------------------

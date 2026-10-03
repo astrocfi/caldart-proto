@@ -100,16 +100,20 @@ class RenderedCopy:
     headers: dict[str, str] = field(default_factory=dict)
 
 
-def render_copy(bulk: BulkEmail, recipient: BulkEmailRecipient) -> RenderedCopy:
+def render_copy(
+    bulk: BulkEmail, recipient: BulkEmailRecipient, *, inert: bool = False
+) -> RenderedCopy:
     """``recipient``'s copy of ``bulk``, filled in with the values stored on the row.
 
     The row's ``values`` are the ones the copy went out with (:func:`fill_values`), so
     a copy rebuilt after the person's profile changed reads as it was sent.  A token
     whose value the row does not hold is filled in as empty, so its fallback stands.
-    The footer and the headers are :func:`render_for`'s for the row's account.
+    The footer and the headers are :func:`render_for`'s for the row's account; with
+    ``inert``, for a copy shown to somebody other than its recipient, such as the sender
+    on the delivery report, the unsubscribe link carries no token and there is no header.
     """
     values = stored_values(bulk, recipient)
-    return render_for(bulk, recipient.user, values)
+    return render_for(bulk, recipient.user, values, inert=inert)
 
 
 def render_for(

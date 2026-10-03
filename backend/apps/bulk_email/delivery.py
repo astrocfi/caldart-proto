@@ -33,6 +33,7 @@ from django.db.models.functions import Greatest
 from django.utils import timezone
 
 from apps.accounts.models import User
+from apps.bulk_email.batch import skip_reason, surname_order, type_opt_outs
 from apps.bulk_email.models import (
     BulkEmail,
     BulkEmailRecipient,
@@ -58,6 +59,10 @@ NOT_STARTED_MESSAGE = "This email has not been sent."
 STILL_SENDING_MESSAGE = "This email is still sending. Retry the failed copies once it has finished."
 STOPPED_MESSAGE = "This email was stopped. Send the rest first, then retry the failed copies."
 NOTHING_FAILED_MESSAGE = "No copy failed, so there is nothing to retry."
+NOBODY_TO_RETRY_MESSAGE = (
+    "Nobody whose copy failed can be sent one now. Each is marked skipped, with the "
+    "reason on their line."
+)
 
 #: Why a recipient's copy cannot be shown.
 NOT_TRIED_MESSAGE = "This person was not sent a copy."
@@ -129,43 +134,104 @@ def mark_bounced(entry: EmailLog) -> BulkEmailRecipient | None:
 
 
 def retry_failed(bulk: BulkEmail, *, actor: User, now: datetime | None = None) -> BulkEmailRetry:
-    """**Retry failed**: queue every failed copy of the sent ``bulk`` to go again, now.
+    """**Retry failed**: queue the failed copies of the sent ``bulk`` to go again, now.
 
-    Every ``failed`` row goes back to ``pending`` with its reason cleared, and leaves
-    ``failed_count``; the email is queued with ``start_at`` at ``now`` and no undo
-    window, and the background sender sends those copies alone, each filled in with the
-    person's values as they are then.  Bounced and skipped copies are not retried, nor
-    is anyone already sent a copy.  The email keeps its ``started_at``, so it stays
-    read-only (``BulkEmail.can_edit``), and **Stop** stops the retry as it stops
-    **Send the rest**.  Like any send, the sender checks once more that ``bulk``'s
-    sender may send its type, and skips anybody who has turned the type off since.
+    Each ``failed`` row first takes its account's name and address as they are now, so
+    an address an administrator has corrected since is the one used, and is asked
+    ``apps.bulk_email.batch.skip_reason`` afresh, as a send asks it: a deleted account
+    (*Account deleted*), a deactivated one, an address that is missing, invalid, or
+    bounced, an opt-out of the type, and an address already sent this email all make
+    the row ``skipped`` with that reason, and ``skipped_count`` grows.  Every other
+    failed row goes back to ``pending`` with its reason cleared.  Every failed row
+    leaves ``failed_count``.  When any row went back to ``pending`` the email is queued
+    with ``start_at`` at ``now`` and no undo window, and the background sender sends
+    those copies alone, each filled in with the person's values as they are then.
+    Bounced and skipped copies are not retried, nor is anyone already sent a copy.  The
+    email keeps its ``started_at``, so it stays read-only (``BulkEmail.can_edit``), and
+    **Stop** stops the retry as it stops **Send the rest**.
 
     Returns the :class:`~apps.bulk_email.models.BulkEmailRetry` recorded, naming
     ``actor``, the time, and the number of copies queued.  Raises ``DomainError`` with
     :data:`NOT_STARTED_MESSAGE` for an email that never started, :data:`STOPPED_MESSAGE`
     for a stopped one, :data:`STILL_SENDING_MESSAGE` for one queued or sending, and
-    :data:`NOTHING_FAILED_MESSAGE` when no copy failed; nothing changes then.  One
-    ``bulk_email.retry`` audit line names ``actor`` and the number of copies.
+    :data:`NOTHING_FAILED_MESSAGE` when no copy failed; nothing changes then.  When every
+    failed row is skipped the skips are kept, nothing is queued or recorded as a retry,
+    and ``DomainError`` with :data:`NOBODY_TO_RETRY_MESSAGE` says so.  One
+    ``bulk_email.retry`` audit line names ``actor``, the copies queued, and the people
+    skipped.
     """
     moment = now if now is not None else timezone.now()
+    retry: BulkEmailRetry | None = None
     with transaction.atomic():
         locked = BulkEmail.objects.select_for_update().get(pk=bulk.pk)
         _check_retry(locked)
-        count = locked.recipients.filter(status=RecipientStatus.FAILED).update(
-            status=RecipientStatus.PENDING, reason="", updated_at=moment
+        failed = list(
+            surname_order(locked.recipients.filter(status=RecipientStatus.FAILED)).select_related(
+                "user"
+            )
         )
-        if count == 0:
+        if len(failed) == 0:
             raise DomainError(NOTHING_FAILED_MESSAGE)
-        retry = BulkEmailRetry.objects.create(
-            bulk_email=locked, requested_by=actor, requested_at=moment, count=count
+        retried, skipped = _sort_failed(locked, failed, moment)
+        BulkEmailRecipient.objects.bulk_update(
+            failed, ["status", "reason", "name", "email", "updated_at"]
         )
-        locked.status = BulkEmailStatus.QUEUED
-        locked.start_at = moment
-        locked.scheduled = False
-        locked.failed_count = max(locked.failed_count - count, 0)
-        locked.save(update_fields=["status", "start_at", "scheduled", "failed_count", "updated_at"])
-    audit.record(audit.BULK_EMAIL_RETRY, actor=actor, target=locked, recipients=count)
+        locked.failed_count = max(locked.failed_count - len(failed), 0)
+        locked.skipped_count += skipped
+        fields = ["failed_count", "skipped_count", "updated_at"]
+        if retried > 0:
+            retry = BulkEmailRetry.objects.create(
+                bulk_email=locked, requested_by=actor, requested_at=moment, count=retried
+            )
+            locked.status = BulkEmailStatus.QUEUED
+            locked.start_at = moment
+            locked.scheduled = False
+            fields += ["status", "start_at", "scheduled"]
+        locked.save(update_fields=fields)
+    audit.record(
+        audit.BULK_EMAIL_RETRY, actor=actor, target=locked, recipients=retried, skipped=skipped
+    )
+    if retry is None:
+        raise DomainError(NOBODY_TO_RETRY_MESSAGE)
     return retry
+
+
+def _sort_failed(
+    bulk: BulkEmail, failed: list[BulkEmailRecipient], moment: datetime
+) -> tuple[int, int]:
+    """Set each of ``failed`` to ``pending`` or ``skipped``; answer how many of each.
+
+    Each row takes its account's name and address as they are now, then
+    ``batch.skip_reason`` decides, with the type's opt-outs and the addresses already
+    sent this email (or queued in this pass), trimmed and case-folded.  The rows are
+    changed in memory; the caller saves them.
+    """
+    opt_outs = type_opt_outs(bulk)
+    went = bulk.recipients.filter(
+        status__in=[RecipientStatus.SENT, RecipientStatus.BOUNCED, RecipientStatus.PENDING]
+    ).values_list("email", flat=True)
+    seen = {_folded(address) for address in went}
+    retried = 0
+    for row in failed:
+        account = row.user
+        reason = skip_reason(account, seen, opt_outs=opt_outs)
+        if account is not None:
+            row.name = account.display_name
+            row.email = account.email
+        row.updated_at = moment
+        row.reason = reason[:REASON_MAX_LENGTH]
+        if reason == "":
+            row.status = RecipientStatus.PENDING
+            seen.add(_folded(row.email))
+            retried += 1
+        else:
+            row.status = RecipientStatus.SKIPPED
+    return retried, len(failed) - retried
+
+
+def _folded(address: str) -> str:
+    """``address`` trimmed and case-folded, as the batch compares addresses."""
+    return address.strip().casefold()
 
 
 @dataclass(frozen=True)
@@ -184,12 +250,14 @@ def recipient_copy(bulk: BulkEmail, recipient_id: int) -> RecipientCopy:
     now, so it reads as it was sent whatever has changed since.  The row may be of any
     round.  Raises ``BulkEmailRecipient.DoesNotExist`` for a row of another email, and
     ``DomainError`` with :data:`NOT_TRIED_MESSAGE` for a row whose copy was never tried
-    (skipped, stopped, or not sent yet).
+    (skipped, stopped, or not sent yet).  The copy is for the sender, not its
+    recipient, so its unsubscribe link is inert: it carries no token that could turn
+    the recipient's email off.
     """
     row = BulkEmailRecipient.objects.select_related("user").get(bulk_email=bulk, pk=recipient_id)
     if row.tried_at is None:
         raise DomainError(NOT_TRIED_MESSAGE)
-    return RecipientCopy(recipient=row, copy=render_copy(bulk, row))
+    return RecipientCopy(recipient=row, copy=render_copy(bulk, row, inert=True))
 
 
 def retried_count(bulk: BulkEmail) -> int:

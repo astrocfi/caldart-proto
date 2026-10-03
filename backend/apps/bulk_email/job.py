@@ -702,15 +702,23 @@ def _finish(bulk: BulkEmail) -> None:
     """Mark ``bulk`` sent once no copy is pending, and write its audit line.
 
     A stop that arrived after the last copy has nothing left to stop: its request and
-    its ``stopped_by`` are cleared, and no stop is recorded.
+    its ``stopped_by`` are cleared, and no stop is recorded.  The first time an email
+    finishes, ``sent_at`` is set and one ``bulk_email.send`` line written.  An email
+    finishing again after **Retry failed** keeps its first ``sent_at`` and writes
+    :func:`_retry_finished`'s line instead.
     """
     if bulk.recipients.filter(status=RecipientStatus.PENDING).exists():
         return
+    is_retry = bulk.sent_at is not None
     bulk.status = BulkEmailStatus.SENT
-    bulk.sent_at = timezone.now()
+    if not is_retry:
+        bulk.sent_at = timezone.now()
     bulk.stop_requested = False
     bulk.stopped_by = None
     bulk.save(update_fields=["status", "sent_at", "stop_requested", "stopped_by", "updated_at"])
+    if is_retry:
+        _retry_finished(bulk)
+        return
     audit.record(
         audit.BULK_EMAIL_SEND,
         actor=bulk.sender if bulk.sender is not None else audit.COMMAND_ACTOR,
@@ -718,4 +726,25 @@ def _finish(bulk: BulkEmail) -> None:
         sent=bulk.sent_count,
         skipped=bulk.skipped_count,
         failed=bulk.failed_count,
+    )
+
+
+def _retry_finished(bulk: BulkEmail) -> None:
+    """Write the ``bulk_email.retry_finished`` line of ``bulk``'s latest retry.
+
+    It names who pressed **Retry failed** (or the ``command`` actor once that account
+    is gone), the copies the retry queued, and how many of the copies tried since it was
+    pressed went and failed.
+    """
+    retry = bulk.retries.order_by("-requested_at", "-pk").select_related("requested_by").first()
+    if retry is None:
+        return
+    tried = bulk.recipients.filter(tried_at__gte=retry.requested_at)
+    audit.record(
+        audit.BULK_EMAIL_RETRY_FINISHED,
+        actor=retry.requested_by if retry.requested_by is not None else audit.COMMAND_ACTOR,
+        target=bulk,
+        recipients=retry.count,
+        sent=tried.filter(status__in=[RecipientStatus.SENT, RecipientStatus.BOUNCED]).count(),
+        failed=tried.filter(status=RecipientStatus.FAILED).count(),
     )
