@@ -229,7 +229,8 @@ def test_a_bounced_address_is_not_a_recipient() -> None:
 def test_clearing_the_bounce_makes_the_address_a_recipient_again() -> None:
     """Once a user administrator clears the bounce, the address is sent a copy again."""
     account = bounced("back@example.test")
-    clear_email_bounce(UserFactory(email="useradmin@example.test"), account)
+    # Recipients sort by last name, so the administrator's is pinned after ``Doe``.
+    clear_email_bounce(UserFactory(email="useradmin@example.test", last_name="Zed"), account)
     assert addresses(build_recipients({}).recipients) == [
         "back@example.test",
         "useradmin@example.test",

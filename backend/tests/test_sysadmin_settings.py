@@ -15,11 +15,14 @@ import multiprocessing
 import re
 import runpy
 import sys
-from collections.abc import Generator
+import warnings
+from collections.abc import Callable, Generator
 from pathlib import Path
 from types import ModuleType
 
 import pytest
+from django.conf import Settings as DjangoSettings
+from django.core import mail
 from django.core.exceptions import ImproperlyConfigured
 from pytest_django import Settings
 
@@ -259,6 +262,65 @@ def test_the_error_mail_cannot_fail_what_logged_it(prod: ModuleType) -> None:
         prod.LOGGING["handlers"]["mail_admins"]["class"]
         == "caldart.error_reports.QuietAdminEmailHandler"
     )
+
+
+#: Two operators, as an ``ADMIN_EMAILS`` that lists more than one address reads.
+OPERATORS = ["ops@caldart.example.org", "oncall@caldart.example.org"]
+
+
+@pytest.fixture
+def operators(prod_env: None, monkeypatch: pytest.MonkeyPatch) -> None:
+    """The production environment with ``ADMIN_EMAILS`` naming ``OPERATORS``."""
+    monkeypatch.setenv("ADMIN_EMAILS", ",".join(OPERATORS))
+
+
+@pytest.mark.usefixtures("operators")
+@pytest.mark.parametrize("setting", ["ADMINS", "MANAGERS"])
+def test_the_error_mail_recipients_are_the_admin_email_addresses(setting: str) -> None:
+    """``ADMINS`` and ``MANAGERS`` are ``ADMIN_EMAILS`` as plain address strings."""
+    assert getattr(import_prod(), setting) == OPERATORS
+
+
+@pytest.mark.usefixtures("operators")
+@pytest.mark.parametrize(
+    ("setting", "send"),
+    [("ADMINS", mail.mail_admins), ("MANAGERS", mail.mail_managers)],
+    ids=["admins", "managers"],
+)
+def test_mail_to_the_production_recipients_raises_no_deprecation_warning(
+    settings: Settings, setting: str, send: Callable[[str, str], None]
+) -> None:
+    """Django reads the recipient setting only when it sends, so send through it.
+
+    Django deprecates any recipient shape but a list of address strings, and warns
+    only from inside ``mail_admins`` and ``mail_managers``; with warnings as errors,
+    a deprecated shape fails here rather than in the production journal.
+    """
+    setattr(settings, setting, getattr(import_prod(), setting))
+
+    with warnings.catch_warnings(action="error"):
+        send("Subject", "Body")
+
+    assert [message.to for message in mail.outbox] == [OPERATORS]
+
+
+@pytest.mark.usefixtures("operators")
+def test_django_loads_the_production_settings_without_a_deprecation_warning(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Django's own settings loader, which warns of a deprecated setting, stays quiet.
+
+    ``django.conf.Settings`` is what reads ``DJANGO_SETTINGS_MODULE`` at start-up.  It
+    exports ``TIME_ZONE`` to the ``TZ`` variable, so ``monkeypatch`` records that
+    variable first and restores it after.
+    """
+    monkeypatch.delenv("TZ", raising=False)
+    sys.modules.pop("caldart.settings.prod", None)
+
+    with warnings.catch_warnings(action="error"):
+        loaded = DjangoSettings("caldart.settings.prod")
+
+    assert vars(loaded)["ADMINS"] == OPERATORS
 
 
 def test_database_connections_are_reused(prod: ModuleType) -> None:
