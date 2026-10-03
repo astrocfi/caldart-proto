@@ -50,16 +50,21 @@ import type {
   BulkEmailBatchAdd,
   BulkEmailBatchRow,
   BulkEmailChecksRefusal,
+  BulkEmailCopy,
   BulkEmailDetail,
   BulkEmailField,
   BulkEmailFinding,
   BulkEmailFindingLevel,
+  BulkEmailHideRequest,
   BulkEmailImage,
+  BulkEmailMessage,
+  BulkEmailMessageDetail,
   BulkEmailPatch,
   BulkEmailPreview,
   BulkEmailPreviewRecipient,
   BulkEmailPreviewRequest,
   BulkEmailRecipientStatus,
+  BulkEmailRetry,
   BulkEmailRunResult,
   BulkEmailSender,
   BulkEmailSendRequest,
@@ -496,8 +501,12 @@ const bulkEmailFindingLevel: Matches<BulkEmailFindingLevel, Schemas['BulkEmailFi
   true;
 const bulkEmailFinding: Matches<BulkEmailFinding, Schemas['BulkEmailFinding']> = true;
 const bulkEmailChecksRefusal: Matches<BulkEmailChecksRefusal, Schemas['BulkEmailChecksRefusal']> =
-  true;
 const bulkEmailTestResult: Matches<BulkEmailTestResult, Schemas['BulkEmailTestResult']> = true;
+const bulkEmailRetry: Matches<BulkEmailRetry, Schemas['BulkEmailRetry']> = true;
+const bulkEmailCopy: Matches<BulkEmailCopy, Schemas['BulkEmailCopy']> = true;
+const bulkEmailHideRequest: Matches<BulkEmailHideRequest, Schemas['BulkEmailHideRequest']> = true;
+const bulkEmailMessage: Matches<BulkEmailMessage, Schemas['BulkEmailMessage']> = true;
+const bulkEmailMessageDetail: Matches<BulkEmailMessageDetail, Schemas['BulkEmailMessageDetail']> =
 
 /** Every pair above, so `noUnusedLocals` keeps each assertion referenced. */
 const assertions: readonly true[] = [
@@ -689,6 +698,11 @@ const assertions: readonly true[] = [
   bulkEmailFinding,
   bulkEmailChecksRefusal,
   bulkEmailTestResult,
+  bulkEmailRetry,
+  bulkEmailCopy,
+  bulkEmailHideRequest,
+  bulkEmailMessage,
+  bulkEmailMessageDetail,
 ];
 
 /** The schema component each assertion above names, in the same order. */
@@ -881,6 +895,11 @@ const MAPPED_COMPONENTS: readonly (keyof Schemas)[] = [
   'BulkEmailFinding',
   'BulkEmailChecksRefusal',
   'BulkEmailTestResult',
+  'BulkEmailRetry',
+  'BulkEmailCopy',
+  'BulkEmailHideRequest',
+  'BulkEmailMessage',
+  'BulkEmailMessageDetail',
 ];
 
 /** Vitest runs with `frontend/` as its root, so the repository root is one level up. */

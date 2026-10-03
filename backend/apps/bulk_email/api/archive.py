@@ -20,7 +20,7 @@ from apps.bulk_email.models import BulkEmailRecipient
 from apps.members.api.actors import acting_user
 
 
-class MessageSerializer(serializers.Serializer[Message]):
+class BulkEmailMessageSerializer(serializers.Serializer[Message]):
     """One message the reader received, as the Messages list shows it.
 
     ``id`` is the bulk email's.  ``subject`` is the subject as the reader's copy had it,
@@ -40,7 +40,7 @@ class MessageSerializer(serializers.Serializer[Message]):
         return email_type_name(message.bulk)
 
 
-class MessageDetailSerializer(serializers.Serializer[OpenedMessage]):
+class BulkEmailMessageDetailSerializer(serializers.Serializer[OpenedMessage]):
     """One message as the reader received it: the list's fields and the copy itself.
 
     ``html`` is the whole HTML email and ``text`` the plain-text one, filled in from the
@@ -65,12 +65,12 @@ class MessageListView(APIView):
 
     permission_classes = [IsAuthenticated]
 
-    @extend_schema(responses={200: MessageSerializer(many=True)})
+    @extend_schema(responses={200: BulkEmailMessageSerializer(many=True)})
     def get(self, request: Request) -> Response:
         """200 with the caller's messages; unpaginated, since a few go out a month."""
         messages = messages_for(acting_user(request))
         # The stubs type a plain Serializer's instance as one object, even with many=True.
-        return Response(MessageSerializer(messages, many=True).data)  # type: ignore[arg-type]
+        return Response(BulkEmailMessageSerializer(messages, many=True).data)  # type: ignore[arg-type]
 
 
 class MessageDetailView(APIView):
@@ -78,11 +78,11 @@ class MessageDetailView(APIView):
 
     permission_classes = [IsAuthenticated]
 
-    @extend_schema(responses={200: MessageDetailSerializer})
+    @extend_schema(responses={200: BulkEmailMessageDetailSerializer})
     def get(self, request: Request, pk: int) -> Response:
         """200 with the caller's copy; 404 for one they did not receive, or one hidden."""
         try:
             opened = message_for(acting_user(request), pk)
         except BulkEmailRecipient.DoesNotExist as missing:
             raise Http404 from missing
-        return Response(MessageDetailSerializer(opened).data)
+        return Response(BulkEmailMessageDetailSerializer(opened).data)

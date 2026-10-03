@@ -1474,6 +1474,8 @@ export interface EmailLogEntry {
   attachments: string;
   bounced_at: IsoDateTime | null;
   bounce_detail: string;
+  /** The portal page the message belongs to, such as `/bulk-email/sent/9`; blank for none. */
+  link: string;
 }
 
 /**
@@ -1887,7 +1889,11 @@ export type BulkEmailRecipientStatus =
  * nobody can be added to the email, naming its sender, while that sender's profile names
  * no DART; it is blank otherwise.
  * `reply_to` is where replies go, blank for `default_reply_to`; once the email is
- * queued it is the address its copies carry.
+ * queued it is the address its copies carry. `bounced_count` counts the
+ * copies the bounce check later found refused, which `sent_count` no longer counts;
+ * `retries` lists each press of Retry failed, oldest first, and `retried_count` adds
+ * up the copies they queued again. `hidden_from_archive` is true while the email is
+ * kept off the recipients' Messages page.
  */
 export interface BulkEmailDetail {
   id: number;
@@ -1916,6 +1922,10 @@ export interface BulkEmailDetail {
   sent_count: number;
   failed_count: number;
   skipped_count: number;
+  bounced_count: number;
+  retried_count: number;
+  retries: BulkEmailRetry[];
+  hidden_from_archive: boolean;
   can_edit: boolean;
   batch_count: number;
   receiving_count: number;
@@ -1925,6 +1935,57 @@ export interface BulkEmailDetail {
   confirm_above: number;
   undo_seconds: number;
   message_html: string;
+}
+
+/** One press of Retry failed: when, by whom (blank once that account is gone), and how many. */
+export interface BulkEmailRetry {
+  id: number;
+  requested_at: IsoDateTime;
+  requested_by: string;
+  count: number;
+}
+
+/**
+ * One person's copy as it went, from `GET /bulk-email/{id}/recipients/{rid}/copy`:
+ * who it went to, its result, and the copy filled in with the values stored when it
+ * was sent. `html` is the whole HTML email and `text` the plain-text one.
+ */
+export interface BulkEmailCopy {
+  id: number;
+  name: string;
+  email: string;
+  status: BulkEmailRecipientStatus;
+  tried_at: IsoDateTime;
+  subject: string;
+  html: string;
+  text: string;
+}
+
+/** The body of `POST /bulk-email/{id}/hide`: true to hide it from Messages, false to show it. */
+export interface BulkEmailHideRequest {
+  hidden: boolean;
+}
+
+/**
+ * One bulk email the signed-in person received, from `GET /messages`: the subject as
+ * their copy had it, when it went to them, who sent it (the organization's name once
+ * the sender's account is gone), and its type, blank for none.
+ */
+export interface BulkEmailMessage {
+  id: number;
+  subject: string;
+  sent_at: IsoDateTime;
+  from_name: string;
+  email_type_name: string;
+}
+
+/**
+ * One message as the reader received it, from `GET /messages/{id}`: the list's fields
+ * and the reader's own copy, `html` and `text`, as it went.
+ */
+export interface BulkEmailMessageDetail extends BulkEmailMessage {
+  html: string;
+  text: string;
 }
 
 /**
