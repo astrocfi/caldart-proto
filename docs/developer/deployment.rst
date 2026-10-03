@@ -215,7 +215,8 @@ output and an ``error:`` line naming the stage and the command; and at the end t
 site's address, the environment file, the administrator's one-time link when
 ``--admin-email`` created one, the Stripe, PayPal, and Geoapify settings still
 empty in the environment file, a caution naming the shared demo password when
-``--seed-demo`` ran, and, with a self-signed certificate, the browser warning.
+``--seed-demo`` ran, with a self-signed certificate, the browser warning, and last the
+command that checks the mail DNS records (:ref:`deploy-mail-dns`).
 Open the administrator's link to set a password; it lasts as long as any
 password-reset link (``PASSWORD_RESET_TIMEOUT``).
 
@@ -226,7 +227,7 @@ they are set.  Add them with ``sudoedit /etc/caldart/caldart.env``, then
 :doc:`payments-setup` describes, and ``GEOAPIFY_API_KEY`` (:doc:`configuration`).
 A changed SMTP relay is edited the same way.  No script ever rewrites the
 environment file once it exists.  Point the mail domain's SPF, DKIM, and DMARC
-records at the relay before relying on the mail (:doc:`email`).
+records at the relay before relying on the mail (:ref:`deploy-mail-dns`).
 
 
 What you are deploying
@@ -1639,6 +1640,76 @@ Then, in a browser: the public site loads and is styled, ``/portal/`` signs you
 in, ``/admin/`` opens Wagtail, every check on the health panel of
 ``/portal/system/health`` is green, and the **User guide** link at the foot of the
 portal's menu opens the user guide.
+
+
+.. _deploy-mail-dns:
+.. _email-delivery-check:
+
+Mail DNS records
+================
+
+A message from CalDART is trusted, or sent to spam, on the strength of three
+``TXT`` records on the domain of ``DEFAULT_FROM_EMAIL``.  The installer cannot
+publish them, because the domain's DNS is somebody else's, so publish them before
+sending bulk email:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 14 30 56
+
+   * - Record
+     - Where it lives
+     - What it says
+   * - SPF
+     - ``TXT`` on the domain of ``BOUNCE_ADDRESS`` when that is set, since a
+       receiving server checks SPF against the envelope sender, and on the
+       domain of ``DEFAULT_FROM_EMAIL``, such as ``caldart.example.org``,
+       otherwise
+     - the servers allowed to send for the domain: one record starting
+       ``v=spf1``, naming the relay (``include:``) or this machine (``ip4:``,
+       ``a``), and ending ``~all`` or ``-all``
+   * - DKIM
+     - ``TXT`` at ``<selector>._domainkey.<domain>``
+     - the public half of the key the mail server signs messages with, as
+       ``v=DKIM1; k=rsa; p=...``; the selector is the name the relay or the
+       local mail server (``opendkim``, for instance) chose, and goes in
+       ``DKIM_SELECTOR`` (:doc:`configuration`)
+   * - DMARC
+     - ``TXT`` at ``_dmarc.<domain>``
+     - what a receiver does with a message that fails both: ``v=DMARC1;
+       p=none`` to watch, ``p=quarantine`` or ``p=reject`` to act, and an
+       ``rua=mailto:`` address for the reports
+
+:doc:`email` gives an example of each and how to read a message's headers once
+one arrives.  To see what the world sees, ask the DNS directly::
+
+  dig +short TXT caldart.example.org
+  dig +short TXT mail._domainkey.caldart.example.org
+  dig +short TXT _dmarc.caldart.example.org
+
+or run the check CalDART itself makes::
+
+  sudo deploy/manage.sh check_mail_dns
+
+It looks up the same three records, tests that the SPF record authorizes the mail
+host ``EMAIL_URL`` names (evaluating the record's entries in order, the first match
+deciding, as RFC 7208 does), and that ``BOUNCE_ADDRESS`` is on the From address's
+domain or a subdomain of it, then prints one line per finding: ``[PASS]``,
+``[WARN]``, or ``[FAIL]``, what it found, and what to ask for.  It always queries
+afresh, never reads the cache, and exits non-zero when any line is ``[FAIL]``, so
+it can sit in a script; a ``[WARN]`` leaves the exit status at zero.  The same
+report is on the portal's **Mail delivery** screen, for CalDART management and
+system administrators, which reads a copy cached for five minutes
+(``GET /mail/delivery-check``, :ref:`api-mail-delivery`).
+
+Four limits to know.  The DKIM and DMARC records are looked up at the From address's
+domain exactly, not at a parent domain.  The whole check gives up after about 15
+seconds, and a lookup it did not reach is a ``[FAIL]`` that says the check took
+too long.  A mail server on the same machine
+(``--email local``) is reported as a warning rather than judged, because the
+name ``localhost`` says nothing about the public address mail leaves from.  And
+DNS changes take time to spread: a record published a minute ago may not show
+until its old value's time to live runs out.
 
 
 Deployment checks

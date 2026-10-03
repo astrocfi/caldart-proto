@@ -1557,6 +1557,30 @@ export interface Health {
   debug: boolean;
 }
 
+/** How one line of the mail delivery check turned out. */
+export type MailDeliveryStatus = 'pass' | 'warn' | 'fail';
+
+/**
+ * One line of `GET /mail/delivery-check`: `detail` says what the record is for and what
+ * was found, and `fix` what to ask for (blank when `status` is `pass`).
+ */
+export interface MailDeliveryFinding {
+  name: string;
+  status: MailDeliveryStatus;
+  detail: string;
+  fix: string;
+}
+
+/**
+ * `GET /mail/delivery-check`: the domain of the site's From address (blank when it has
+ * none), when the lookups were made, and one finding per line.
+ */
+export interface MailDeliveryCheck {
+  domain: string;
+  checked_at: IsoDateTime;
+  findings: MailDeliveryFinding[];
+}
+
 export interface Backup {
   name: string;
   size_bytes: number;

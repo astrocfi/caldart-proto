@@ -406,6 +406,17 @@ Email
       on the Scheduled page say so and read nothing.
    :Production: ``imaps://bounces%40caldart.example.org:app-password@imap.example.org/INBOX``.
 
+``DKIM_SELECTOR``
+   The selector the mail server signs messages with (DKIM), the first label of the
+   DNS name that holds the signing key's public half:
+   ``<selector>._domainkey.<domain of DEFAULT_FROM_EMAIL>``.  The mail delivery check
+   (:ref:`email-delivery-check`) looks the record up there.  The site itself never
+   signs anything; the mail server or relay does.
+
+   :Both: empty, which makes the check warn that no selector is configured.
+   :Production: the selector the relay or the local mail server was set up with, such
+      as ``mail``.
+
 ``EMAIL_TIMEOUT`` *(prod only)*
    Seconds to wait on the SMTP server.  Default ``20``.  Keeps a wedged relay
    from hanging a request.

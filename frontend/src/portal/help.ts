@@ -61,6 +61,7 @@ export const HELP_PAGES: readonly HelpPage[] = [
   { pattern: '/admin/reports', slug: 'admin/subscriptions' },
   { pattern: '/admin/notifications', slug: 'admin/notifications' },
   { pattern: '/admin/bulk-email', slug: 'admin/bulk-email' },
+  { pattern: '/bulk-email/mail-delivery', slug: 'bulk-email/mail-delivery' },
   { pattern: '/admin/users', slug: 'admin/users' },
   { pattern: '/admin/users/:id', slug: 'admin/user-record' },
   { pattern: '/system', slug: 'admin/health-database' },

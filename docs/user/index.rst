@@ -27,6 +27,7 @@ New to CalDART? Read :doc:`quick-start`, then :doc:`overview`.
 
    member/index
    admin/index
+   bulk-email/index
    finance/index
    website/index
 

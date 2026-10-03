@@ -468,8 +468,9 @@ ID, and an aircraft's insurance, and reaches no member list or member record.
 Like every staff slug it opens the website's members-only pages.
 
 ``management``, labeled *CalDART management*, grants the bulk email endpoints
-under ``/bulk-email`` (:doc:`api-bulk-email`) and nothing else: no member list,
-no member record, no payment.  It sits after ``account_admin`` in privilege
+under ``/bulk-email`` (:doc:`api-bulk-email`) and the mail delivery check
+``GET /mail/delivery-check`` (:ref:`api-mail-delivery`) and nothing else: no member
+list, no member record, no payment.  It sits after ``account_admin`` in privilege
 order.  Like every staff slug it opens the website's members-only pages.
 
 ``website_admin`` grants **no API endpoint at all**.  It exists to give its
@@ -490,7 +491,7 @@ is omitted from the columns because it passes every row except the three
 payment-confirmation rows, which are owner-only for everybody.  ``verifier`` is
 omitted too: it reaches every row a ``member`` does, plus the leader-check rows
 whose notes name it.  So is ``management``, which reaches every row a ``member``
-does plus the ``/bulk-email`` rows, whose notes name it.
+does plus the ``/bulk-email`` rows and the ``/mail`` row, whose notes name it.
 
 *Anonymous* means no session at all; anything it cannot reach answers **401**,
 provided the request carried a CSRF token.  An unsafe method without one never
@@ -1549,6 +1550,14 @@ not (see :ref:`api-csrf-bootstrap`).
      - ·
      - ·
      - ``system_admin`` only; 400 when the mailbox cannot be read
+   * - ``GET /mail/delivery-check``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ``management``; the DNS check (see :ref:`api-mail-delivery`)
    * - ``POST /system/renewals/run``
      - ·
      - ·

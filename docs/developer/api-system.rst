@@ -9,8 +9,8 @@ before it has a user: ``GET /admin/reminders/log``,
 ``GET``/``PUT /admin/reminders/schedule`` and ``POST /system/reminders/run`` from
 ``apps.reminders``,
 ``POST /system/reports/run`` from ``apps.reports``,
-``GET /system/emails``, ``GET /system/emails/purposes`` and ``POST /system/bounces/run``
-from ``apps.mail``, the health, backup,
+``GET /system/emails``, ``GET /system/emails/purposes``, ``POST /system/bounces/run``
+and ``GET /mail/delivery-check`` from ``apps.mail``, the health, backup,
 renewal-scan and year-end-statement routes under ``/system/`` and
 ``POST /admin/system/registry-import`` from ``apps.sysadmin``, and
 ``GET /site/config`` from ``apps.cms``.  :doc:`api-reference` covers the conventions they share —
@@ -415,6 +415,55 @@ at <host>: <reason>`` (or ``read``), or ``Could not open the mailbox <mailbox> a
 
 Statuses: **200**; **400** when ``dry_run`` is not a boolean or the mailbox could
 not be read; **401** when anonymous; **403** for any other role.
+
+
+.. _api-mail-delivery:
+
+``GET /mail/delivery-check``
+----------------------------
+
+Checks the DNS records that make receiving servers trust and deliver the site's
+mail: the SPF list of approved senders, the DKIM signing key, the DMARC policy, and
+whether ``BOUNCE_ADDRESS`` is on the From address's domain.  Open to ``management``
+(and, like every endpoint, ``system_admin``); the portal's **Mail delivery** screen
+and ``manage.py check_mail_dns`` show the same report (:ref:`deploy-mail-dns`).
+
+.. code-block:: json
+
+   {
+     "domain": "caldart.example.org",
+     "checked_at": "2026-10-03T08:00:00-07:00",
+     "findings": [
+       {"name": "Approved senders (SPF)", "status": "pass",
+        "detail": "SPF is a list, kept with your domain name, ... The list for caldart.example.org includes the mail server (smtp.relay.example) and tells receivers to treat mail from anywhere else as suspect.",
+        "fix": ""},
+       {"name": "Message signature (DKIM)", "status": "warn",
+        "detail": "DKIM is a digital signature ... No DKIM selector is configured, so this check has no signature record to look for.",
+        "fix": "Ask the person who runs the server for the name (the selector) the mail server signs with, and have them set it as DKIM_SELECTOR."},
+       {"name": "Handling of forged mail (DMARC)", "status": "fail", "detail": "...", "fix": "..."},
+       {"name": "Bounce address", "status": "pass", "detail": "...", "fix": ""}
+     ]
+   }
+
+``findings`` always lists the four lines in this order.  ``status`` is ``pass``,
+``warn`` (it works but is weak or could not be judged), or ``fail``.  ``detail`` says
+in plain words what the record is for and what was found, and ``fix`` what to ask
+whoever manages the domain's DNS or the server for; ``fix`` is blank on a ``pass``.
+``domain`` is the domain of ``DEFAULT_FROM_EMAIL``, blank when that address has none,
+in which case ``findings`` holds the one failing line that says so.
+
+The lookups run inside the request and wait at most three seconds each, and the
+whole check at most about 15.  A lookup that times out, is refused, cannot be made, or
+is not reached in time is a ``fail`` finding that says so in words
+(``Looking up example.org did not get an answer in time.``); the endpoint never
+answers an error for it.  The SPF record is judged at the domain of
+``BOUNCE_ADDRESS`` when that is set, and the finding's ``detail`` says so.  The report is cached for five minutes per combination of
+``DEFAULT_FROM_EMAIL``, ``DKIM_SELECTOR``, ``BOUNCE_ADDRESS``, and the mail host, and
+a cached report keeps its original ``checked_at``.  ``?refresh=true`` looks every
+record up again and replaces the cached report.  What each finding judges, and its
+limits, are in :ref:`deploy-mail-dns`.
+
+Statuses: **200**; **401** when anonymous; **403** for any other role.
 
 
 System

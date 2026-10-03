@@ -275,7 +275,7 @@ GUIDE_ROLES_EXTENSION = DOCS / "_ext" / "guide_roles.py"
 ROLES_FIELD = re.compile(r"\A:roles:[ \t]*(.*)$", re.MULTILINE)
 
 #: The directories whose pages each need a role.
-RESTRICTED_DIRECTORIES = ("admin", "finance", "website")
+RESTRICTED_DIRECTORIES = ("admin", "bulk-email", "finance", "website")
 
 #: The roles that reach each leader and administrator screen, as the portal's menu grants
 #: them.
@@ -297,6 +297,7 @@ ADMIN_PAGE_ROLES: dict[str, frozenset[str]] = {
     "admin/health-database": frozenset({SYSTEM_ADMIN}),
     "admin/sent-emails": frozenset({SYSTEM_ADMIN}),
     "admin/scheduled": frozenset({SYSTEM_ADMIN}),
+    "bulk-email/mail-delivery": frozenset({MANAGEMENT}),
 }
 
 #: The roles that reach every page of a group other than ``admin/``.
@@ -363,7 +364,7 @@ def test_the_guide_has_restricted_pages_to_check() -> None:
 
 @pytest.mark.parametrize("page", RESTRICTED_PAGES, ids=_page_id)
 def test_every_administrator_page_names_the_roles_that_reach_it(page: Path) -> None:
-    """Each page under ``admin/``, ``finance/``, and ``website/`` names its roles.
+    """Each restricted page of the guide names the roles that reach it.
 
     The field is the page's first line, so Sphinx reads it as the page's metadata, and
     it names exactly the roles the portal's menu gives the screen.

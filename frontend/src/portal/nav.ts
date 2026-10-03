@@ -13,7 +13,7 @@ export interface NavItem {
   /** Any one of these roles grants the entry. Empty = any authenticated user. */
   roles: RoleSlug[];
   /** Grouping shown as a small-caps heading in the rail. */
-  group: 'Membership' | 'Operations' | 'Administration' | 'System';
+  group: 'Membership' | 'Operations' | 'Bulk Email' | 'Administration' | 'System';
   /**
    * Match the route exactly rather than by prefix.
    *
@@ -100,6 +100,14 @@ export const NAV_ITEMS: NavItem[] = [
   },
   { to: '/admin/bulk-email', label: 'Bulk Email', roles: ['management'], group: 'Administration' },
 
+  // The DNS check is visible to management and (as for every entry) a system administrator.
+  {
+    to: '/bulk-email/mail-delivery',
+    label: 'Mail delivery',
+    roles: ['management'],
+    group: 'Bulk Email',
+  },
+
   { to: '/system/health', label: 'Health & Database', roles: ['system_admin'], group: 'System' },
   { to: '/system/emails', label: 'Sent Emails', roles: ['system_admin'], group: 'System' },
   { to: '/system/scheduled', label: 'Scheduled', roles: ['system_admin'], group: 'System' },
@@ -109,6 +117,7 @@ export const NAV_ITEMS: NavItem[] = [
 export const NAV_GROUPS: NavItem['group'][] = [
   'Membership',
   'Operations',
+  'Bulk Email',
   'Administration',
   'System',
 ];

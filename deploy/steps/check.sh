@@ -14,7 +14,8 @@
 # the Stripe, PayPal, and Geoapify settings the environment file still leaves
 # empty, a caution when this run's database step seeded the demo accounts, and,
 # with a self-signed certificate, that browsers warn until a real
-# certificate replaces it.  A dry run prints the checks instead of running them.
+# certificate replaces it.  The summary ends by naming the command that checks the
+# mail DNS records (SPF, DKIM, DMARC).  A dry run prints the checks instead of running them.
 #
 # Usage:
 #   sudo deploy/steps/check.sh [--dry-run]
@@ -157,6 +158,8 @@ print_summary() {
     if [[ "$CALDART_TLS" == self-signed ]]; then
         printf 'The certificate is self-signed: browsers warn until a real one replaces it.\n'
     fi
+    printf 'Check the DNS records that keep your mail out of spam (SPF, DKIM, DMARC): sudo %s check_mail_dns\n' \
+        "$CHECKOUT/deploy/manage.sh"
 }
 
 check_step() {

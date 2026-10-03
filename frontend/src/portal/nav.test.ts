@@ -145,8 +145,30 @@ describe('visibleNavItems', () => {
     expect(visible).not.toContain('Members');
   });
 
-  it('gives CalDART management the Bulk Email screen and nothing else on top of membership', () => {
-    expect(labels(['member', 'management'])).toEqual([...labels(['member']), 'Bulk Email']);
+  it('gives CalDART management the Bulk Email screens and nothing else on top of membership', () => {
+    expect(labels(['member', 'management'])).toEqual([
+      ...labels(['member']),
+      'Bulk Email',
+      'Mail delivery',
+    ]);
+  });
+
+  it('files Mail delivery in the Bulk Email group, for management', () => {
+    expect(NAV_ITEMS.find((item) => item.to === '/bulk-email/mail-delivery')).toMatchObject({
+      group: 'Bulk Email',
+      roles: ['management'],
+    });
+  });
+
+  it.each([['account_admin'], ['user_admin'], ['treasurer'], ['dart_leader']] as const)(
+    'keeps Mail delivery away from %s',
+    (role) => {
+      expect(labels(['member', role])).not.toContain('Mail delivery');
+    },
+  );
+
+  it('shows Mail delivery to a system administrator', () => {
+    expect(labels(['member', 'system_admin'])).toContain('Mail delivery');
   });
 
   it('files Bulk Email under Administration', () => {
@@ -224,7 +246,7 @@ describe('groupedNavItems', () => {
 
   it('orders groups consistently for a system admin', () => {
     const groups = groupedNavItems(['system_admin']).map((bucket) => bucket.group);
-    expect(groups).toEqual(['Membership', 'Operations', 'Administration', 'System']);
+    expect(groups).toEqual(['Membership', 'Operations', 'Bulk Email', 'Administration', 'System']);
   });
 });
 

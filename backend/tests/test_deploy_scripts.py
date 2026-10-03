@@ -2568,6 +2568,15 @@ def test_the_summary_names_the_prefixed_address(root: Path, etc: Path, tmp_path:
     assert f"CalDART is running at https://caldart.test{PREFIX}/" in output.splitlines()
 
 
+def test_the_summary_names_the_mail_dns_check(root: Path, etc: Path, tmp_path: Path) -> None:
+    """The last lines say how to check the SPF, DKIM, and DMARC records."""
+    output = _install_dry_run(root, etc, tmp_path, flags=EXISTING_INSTALL).stdout
+    assert (
+        "Check the DNS records that keep your mail out of spam (SPF, DKIM, DMARC): "
+        f"sudo {_checkout(root)}/deploy/manage.sh check_mail_dns"
+    ) in output.splitlines()
+
+
 def test_bootstrap_passes_the_prefix_and_attach_flags_through(tmp_path: Path) -> None:
     """``--url-prefix`` and ``--attach-to`` take values that reach ``install.sh``."""
     result = _bootstrap_dry_run(tmp_path, "--url-prefix", PREFIX, "--attach-to", "/etc/a.conf")
