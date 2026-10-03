@@ -763,14 +763,21 @@ want its values back:
 documented in this repository's ``README.rst``, so a server seeded with them
 is a demonstration server, never one holding real member data.
 
-``seed_demo``'s renewal mandates use the mock payment provider, so the
-scheduled ``caldart-renewals`` job has real work to do; production leaves
-that provider off, so on a server seeded with the demo data it fails against
-the seeded mandates until the operator sets
-``PAYMENTS_MOCK_ENABLED_IN_PRODUCTION=true`` in the environment file.  That
-switch also shows every visitor a **Test payment** tab with *Succeed* and
-*Fail* buttons, a way for anyone to grant themselves a membership with no
-money changing hands (``docs/developer/payments-setup.rst``).
+In development, ``seed_demo`` gives three demo members an automatic renewal due
+the day it runs, its paused renewal a card that always declines, and two more
+members a recurring donation, all on the mock payment provider's test card, so
+``caldart-renewals`` has something to charge.  Production leaves that provider
+off, so on a server ``seed_demo`` seeds those members without automatic renewal
+or recurring giving, gives the paused renewal an ordinary saved card, and says
+so in one line of its output::
+
+  payments: the mock payment provider is off, so no renewal due today, no catch-up renewal, and no recurring donation was seeded
+
+``caldart-renewals`` then runs cleanly on the seeded server with the mock
+provider off.  Leave it off: turning it on with ``PAYMENTS_MOCK_ENABLED_IN_PRODUCTION``
+shows every visitor a **Test payment** tab with *Succeed* and *Fail*
+buttons, a way for anyone to grant themselves a membership with no money
+changing hands (``docs/developer/payments-setup.rst``).
 
 Logs
 ----

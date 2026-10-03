@@ -24,6 +24,13 @@ has an ordinary charge and a catch-up one waiting the day the seed runs.  Two
 more give on a schedule of their own: the account administrator a yearly
 recurring donation, and one generated member a monthly one.
 
+Those pinned renewals, the paused one's declining card, and the two recurring
+donations use the mock payment provider, so they are seeded only while it is
+on (``PAYMENTS_MOCK_ENABLED``).  With it off, as the production settings leave
+it, the pinned members and the two givers are seeded without them and the paused
+renewal keeps an ordinary saved card, so the daily renewal job on a demo server
+finds nothing to charge through the mock provider.
+
 Six donors -- people who gave through the public donation page and hold no
 portal account -- close the set, each with one to three settled contributions.
 """
@@ -71,7 +78,7 @@ from apps.payments.models import (
     RenewalMandate,
     RenewalOutcome,
 )
-from apps.payments.providers.mock import DECLINED_LAST4, DECLINED_MESSAGE
+from apps.payments.providers.mock import DECLINED_LAST4, DECLINED_MESSAGE, MockProvider
 from apps.payments.refunds import apply_refund_totals
 from apps.payments.renewals import (
     NOTICE_DAYS,
@@ -141,6 +148,13 @@ MONTHLY_DONATION_CENTS = 2_500
 #: How far out that donation's next charge falls: inside the month, but not today,
 #: so the scan run on the day of the seed takes nothing.
 MONTHLY_DONATION_DUE_DAYS = 9
+
+#: The line the seed writes when the mock payment provider is off, and so leaves out
+#: every mandate that would charge it.
+MOCK_PROVIDER_OFF_NOTE = (
+    "  payments: the mock payment provider is off, so no renewal due today, "
+    "no catch-up renewal, and no recurring donation was seeded"
+)
 
 #: What the demo friend gave: one contribution by card, with no plan behind it.
 FRIEND_CONTRIBUTION_CENTS = 5_000
@@ -496,8 +510,11 @@ def run(ctx: dict[str, Any], stdout: OutputWrapper | None = None) -> dict[str, A
     one contribution is recorded (:func:`_seed_friend_contribution`) and one
     expiring member is left waiting to become a friend (:func:`_seed_pending_friend`).
     ``ctx["payment_count"]`` is set to the number of payments, and a one-line summary
-    is written to ``stdout`` when one is given.
-    Running it twice over the same database changes nothing.
+    is written to ``stdout`` when one is given, followed by
+    :data:`MOCK_PROVIDER_OFF_NOTE` when the mock payment provider is off
+    (``PAYMENTS_MOCK_ENABLED``), since :func:`_seed_mandates` then leaves out every
+    mandate that would charge it.  Running it twice over the same database changes
+    nothing.
     """
     rng = ctx["rng"]
     today = ctx["today"]
@@ -534,7 +551,8 @@ def run(ctx: dict[str, Any], stdout: OutputWrapper | None = None) -> dict[str, A
     manual = _manual_payments(ctx)
     reconciled = _reconcile_settled_payments(ctx)
     refunds = _seed_refunds(today, ctx["generated_users"], set(forced_ends))
-    mandates = _seed_mandates(ctx)
+    mock_on = MockProvider.is_configured()
+    mandates = _seed_mandates(ctx, mock_on=mock_on)
     friend_gifts = _seed_friend_contribution(ctx)
     _seed_pending_friend(ctx)
     donor_gifts = _seed_donors(ctx)
@@ -550,6 +568,8 @@ def run(ctx: dict[str, Any], stdout: OutputWrapper | None = None) -> dict[str, A
             f"{reconciled} reconciled, {refunds} refunds, "
             f"{mandates} mandates, {donor_gifts} gifts from {len(DONOR_GIFT_COUNTS)} donors"
         )
+        if not mock_on:
+            stdout.write(MOCK_PROVIDER_OFF_NOTE)
     return ctx
 
 
@@ -830,7 +850,7 @@ def _seed_catch_up_mandate(user: User, plan: MembershipPlan, today: dt.date) -> 
     return 1
 
 
-def _seed_mandates(ctx: dict[str, Any]) -> int:
+def _seed_mandates(ctx: dict[str, Any], *, mock_on: bool) -> int:
     """Create the demo mandates and their attempts, and return how many there are.
 
     Ten members renew automatically.  Two of them (``ctx["renewal_due_today_users"]``)
@@ -845,8 +865,13 @@ def _seed_mandates(ctx: dict[str, Any]) -> int:
     on top of those, and one generated member a monthly one
     (:func:`_seed_donation_mandates`).  Each spread active mandate whose charge falls
     inside the notice window already carries a scheduled attempt with its
-    warning sent, which is what the daily scan would have left behind.  Running
-    it twice over the same database changes nothing.
+    warning sent, which is what the daily scan would have left behind.
+
+    The pinned renewals, the paused renewal's declining card, and both recurring
+    donations use the mock provider's test card.  Unless ``mock_on`` is true they
+    are left out, and the paused renewal takes an ordinary card from
+    :data:`SEED_CARDS` instead.  Running it twice over the same database changes
+    nothing.
     """
     rng: random.Random = ctx["rng"]
     today: dt.date = ctx["today"]
@@ -854,9 +879,11 @@ def _seed_mandates(ctx: dict[str, Any]) -> int:
     due_today_users: list[User] = ctx["renewal_due_today_users"]
     catch_up_user: User | None = ctx["catch_up_user"]
 
-    written = _seed_due_today_mandates(due_today_users, annual, today)
-    if catch_up_user is not None:
-        written += _seed_catch_up_mandate(catch_up_user, annual, today)
+    written = 0
+    if mock_on:
+        written += _seed_due_today_mandates(due_today_users, annual, today)
+        if catch_up_user is not None:
+            written += _seed_catch_up_mandate(catch_up_user, annual, today)
 
     # The renewal-seed subjects are handled above, on their own pinned dates;
     # excluding them here keeps the spread's step selection from landing a
@@ -876,18 +903,18 @@ def _seed_mandates(ctx: dict[str, Any]) -> int:
         contribution = _contribution(rng)
         fields = _card(index)
         if index == generic_active:
-            fields |= {
-                "provider": MandateProvider.MOCK,
-                "customer_ref": "",
-                "method_ref": "mock",
-                "method_brand": "visa",
-                "method_last4": DECLINED_LAST4,
-                "method_exp_month": 12,
-                "method_exp_year": 2030,
-                "method_label": f"Test card ending {DECLINED_LAST4}, expires 12/2030",
-                "status": MandateStatus.PAUSED,
-                "failure_count": len(RETRY_OFFSETS) + 1,
-            }
+            if mock_on:
+                fields |= {
+                    "provider": MandateProvider.MOCK,
+                    "customer_ref": "",
+                    "method_ref": "mock",
+                    "method_brand": "visa",
+                    "method_last4": DECLINED_LAST4,
+                    "method_exp_month": 12,
+                    "method_exp_year": 2030,
+                    "method_label": f"Test card ending {DECLINED_LAST4}, expires 12/2030",
+                }
+            fields |= {"status": MandateStatus.PAUSED, "failure_count": len(RETRY_OFFSETS) + 1}
         elif index == generic_active + PAUSED_MANDATES:
             fields |= {
                 "status": MandateStatus.CANCELED,
@@ -914,7 +941,8 @@ def _seed_mandates(ctx: dict[str, Any]) -> int:
         elif mandate.status == MandateStatus.ACTIVE:
             _seed_scheduled_attempt(mandate, term, today)
 
-    return written + len(candidates) + _seed_donation_mandates(ctx)
+    donations = _seed_donation_mandates(ctx) if mock_on else 0
+    return written + len(candidates) + donations
 
 
 def _seed_donation_mandates(ctx: dict[str, Any]) -> int:

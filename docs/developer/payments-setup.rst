@@ -642,7 +642,10 @@ The end-to-end tests use this provider, which is why the five headline flows
 run with no payment keys at all.  ``seed_demo`` does not: its two years of
 history is dealt out between ``stripe`` and ``paypal`` in a 70 / 30 split with
 plausible wallets, so the payment reports have something realistic to group
-by.
+by.  Only its renewals due the day it runs, its paused renewal, and its
+recurring donations use the mock provider's test card, and only while the
+provider is on; with it off, as on a server, ``seed_demo`` leaves them out
+(:ref:`deploy-database`).
 
 
 Testing against the sandboxes
