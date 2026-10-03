@@ -1770,8 +1770,7 @@ Action                        Fields beyond actor and target
 ``member.create``             ``invited`` -- whether an invitation was mailed
 ``member.delete``             ``payments``, ``owner`` -- when the member had
                               paid, how many payments moved and the
-                              tombstone account that holds them; from the
-                              API and from the Wagtail users admin
+                              tombstone account that holds them
 ``dart.create``               --
 ``dart.update``               --
 ``dart.delete``               ``members``, ``pages`` -- the members the

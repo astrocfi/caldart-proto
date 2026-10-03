@@ -5,22 +5,19 @@
 the payments move, in the same transaction, to a new *tombstone* account named
 **Deleted member <id>**, a deactivated donor that cannot sign in.  The member's
 automatic payments are canceled first, and the accounts read the same afterwards.
-The Wagtail users admin does the same, one account at a time or in bulk.  An
+An
 account that never paid is deleted with no tombstone.
 """
 
 from __future__ import annotations
 
 import re
-from collections.abc import Iterable
 
 import pytest
 from django.core import mail
 from django.db.models import ProtectedError
-from django.test import Client
 from pytest_django.fixtures import DjangoCaptureOnCommitCallbacks
 from rest_framework.test import APIClient
-from wagtail.actions.delete import DeleteAction
 
 from apps.accounts.models import AccountKind, User
 from apps.accounts.roles import ACCOUNT_ADMIN, MEMBER, SYSTEM_ADMIN
@@ -44,19 +41,11 @@ pytestmark = pytest.mark.django_db
 LIST_URL = "/api/v1/admin/members"
 PAYMENTS_URL = "/api/v1/admin/payments"
 SUMMARY_URL = "/api/v1/admin/payments/summary"
-WAGTAIL_DELETE_URL = "/admin/users/delete/{pk}/"
-WAGTAIL_BULK_DELETE_URL = "/admin/bulk/accounts/user/delete/"
 
 
 def detail_url(user: User) -> str:
     """Return the members-admin detail URL for ``user``."""
     return f"{LIST_URL}/{user.pk}"
-
-
-def bulk_delete_url(users: Iterable[User]) -> str:
-    """The Wagtail users listing's bulk ``Delete`` URL, selecting ``users``."""
-    selection = "&".join(f"id={user.pk}" for user in users)
-    return f"{WAGTAIL_BULK_DELETE_URL}?{selection}"
 
 
 def tombstone_of(target_id: int) -> User:
@@ -80,13 +69,6 @@ def payer(db: None, annual_plan: MembershipPlan) -> User:
     MemberProfileFactory(user=user, phone="415-555-0100")
     MembershipFactory(user=user, plan=annual_plan)
     return user
-
-
-@pytest.fixture
-def wagtail_client(client: Client, superuser: User) -> Client:
-    """The Wagtail admin as a superuser, the only role that may delete a user there."""
-    client.force_login(superuser)
-    return client
 
 
 # --------------------------------------------------------------------------
@@ -542,143 +524,3 @@ def test_the_member_list_does_not_show_the_tombstone(
 
     emails = [row["email"] for row in account_admin_client.get(LIST_URL).json()["results"]]
     assert tombstone_of(target_id).email not in emails
-
-
-# --------------------------------------------------------------------------
-# The Wagtail admin
-# --------------------------------------------------------------------------
-def test_the_wagtail_admin_deletes_an_account_with_payments(
-    wagtail_client: Client, payer: User, annual_plan: MembershipPlan
-) -> None:
-    """The users admin deletes the account rather than turning the delete back."""
-    PaymentFactory(user=payer, plan=annual_plan)
-    target_id = payer.pk
-
-    assert wagtail_client.post(WAGTAIL_DELETE_URL.format(pk=target_id)).status_code == 302
-    assert not User.objects.filter(pk=target_id).exists()
-
-
-def test_the_wagtail_admin_hands_the_payments_to_the_tombstone(
-    wagtail_client: Client, payer: User, annual_plan: MembershipPlan
-) -> None:
-    """The same tombstone the API makes keeps the payments."""
-    payment = PaymentFactory(user=payer, plan=annual_plan)
-    target_id = payer.pk
-
-    wagtail_client.post(WAGTAIL_DELETE_URL.format(pk=target_id))
-
-    payment.refresh_from_db()
-    assert payment.user_id == tombstone_of(target_id).pk
-
-
-def test_the_wagtail_confirmation_page_moves_nothing(
-    wagtail_client: Client, payer: User, annual_plan: MembershipPlan
-) -> None:
-    """Only the confirmed delete moves the payments; opening the page does not."""
-    payment = PaymentFactory(user=payer, plan=annual_plan)
-
-    response = wagtail_client.get(WAGTAIL_DELETE_URL.format(pk=payer.pk))
-
-    payment.refresh_from_db()
-    assert response.status_code == 200
-    assert payment.user_id == payer.pk
-
-
-def test_the_wagtail_delete_is_recorded_with_the_owner(
-    wagtail_client: Client,
-    superuser: User,
-    payer: User,
-    annual_plan: MembershipPlan,
-    audit_log: pytest.LogCaptureFixture,
-) -> None:
-    """The users admin writes the same ``member.delete`` line the API writes."""
-    PaymentFactory(user=payer, plan=annual_plan)
-    target_id = payer.pk
-
-    wagtail_client.post(WAGTAIL_DELETE_URL.format(pk=target_id))
-
-    assert audit_lines(audit_log, "member.delete") == [
-        f"action=member.delete actor={superuser.pk} target={target_id} "
-        f"payments=1 owner={tombstone_of(target_id).pk}"
-    ]
-
-
-def test_a_wagtail_delete_that_fails_writes_no_delete_line(
-    wagtail_client: Client,
-    payer: User,
-    annual_plan: MembershipPlan,
-    audit_log: pytest.LogCaptureFixture,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """The ``member.delete`` line is written only once the account is really gone."""
-    PaymentFactory(user=payer, plan=annual_plan)
-
-    def refuse(*_args: object, **_kwargs: object) -> None:
-        raise RuntimeError("delete refused")
-
-    monkeypatch.setattr(DeleteAction, "execute", refuse)
-
-    with pytest.raises(RuntimeError, match="delete refused"):
-        wagtail_client.post(WAGTAIL_DELETE_URL.format(pk=payer.pk))
-    assert audit_lines(audit_log, "member.delete") == []
-
-
-def test_the_wagtail_admin_deletes_an_account_that_never_paid(
-    wagtail_client: Client, payer: User
-) -> None:
-    """An account the ledger does not hold goes with no tombstone."""
-    target_id = payer.pk
-
-    assert wagtail_client.post(WAGTAIL_DELETE_URL.format(pk=target_id)).status_code == 302
-    assert not User.objects.filter(email=f"deleted-{target_id}@deleted.invalid").exists()
-
-
-def test_the_wagtail_bulk_delete_deletes_every_account(
-    wagtail_client: Client, payer: User, annual_plan: MembershipPlan
-) -> None:
-    """A batch holding a payer goes through whole."""
-    PaymentFactory(user=payer, plan=annual_plan)
-    bystander = UserFactory(email="bystander@example.test")
-    ids = [payer.pk, bystander.pk]
-
-    assert wagtail_client.post(bulk_delete_url([payer, bystander])).status_code == 302
-    assert not User.objects.filter(pk__in=ids).exists()
-
-
-def test_the_wagtail_bulk_delete_gives_each_payer_a_tombstone(
-    wagtail_client: Client, annual_plan: MembershipPlan
-) -> None:
-    """Every payer in the batch gets their own tombstone, named for their own id."""
-    first = UserFactory(email="first@example.test")
-    second = UserFactory(email="second@example.test")
-    PaymentFactory(user=first, plan=annual_plan, provider_ref="first")
-    PaymentFactory(user=second, plan=annual_plan, provider_ref="second")
-    ids = [first.pk, second.pk]
-
-    wagtail_client.post(bulk_delete_url([first, second]))
-
-    owners = sorted(Payment.objects.values_list("user__last_name", flat=True))
-    assert owners == sorted(str(pk) for pk in ids)
-
-
-def test_the_wagtail_bulk_delete_is_recorded_per_account(
-    wagtail_client: Client,
-    superuser: User,
-    payer: User,
-    annual_plan: MembershipPlan,
-    audit_log: pytest.LogCaptureFixture,
-) -> None:
-    """One ``member.delete`` line per account; only a payer's line names an owner."""
-    PaymentFactory(user=payer, plan=annual_plan)
-    bystander = UserFactory(email="bystander@example.test")
-    payer_id, bystander_id = payer.pk, bystander.pk
-
-    wagtail_client.post(bulk_delete_url([payer, bystander]))
-
-    assert sorted(audit_lines(audit_log, "member.delete")) == sorted(
-        [
-            f"action=member.delete actor={superuser.pk} target={payer_id} "
-            f"payments=1 owner={tombstone_of(payer_id).pk}",
-            f"action=member.delete actor={superuser.pk} target={bystander_id}",
-        ]
-    )

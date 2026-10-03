@@ -3158,19 +3158,9 @@ the contribution, or both, for the provider's own record of the charge.
   alone does not make one), and
   ``mark_succeeded`` settles a payment it holds without fulfilling it: no giver's
   details, no term, no event, and no receipt.
-- The two ways the Wagtail admin deletes an account, the delete view at
-  ``/admin/users/delete/<id>/`` and the ``Delete`` bulk action on the users
-  listing, hand payments over the same way, through the ``before_delete_user``
-  and ``before_bulk_action`` hooks in ``apps/payments/wagtail_hooks.py``: the
-  delete view only when the delete is confirmed, and the bulk action with a
-  tombstone for each account in the batch that paid.  Each writes the
-  ``member.delete`` audit line: the bulk action with the handover, inside the
-  transaction that deletes the batch, and the delete view from the
-  ``after_delete_user`` hook, once the account is gone.  The delete view's
-  handover commits on its own, before Wagtail's delete runs in a transaction of
-  its own: a delete that then fails leaves the payments on the tombstone and the
-  account in place, with no ``member.delete`` line.  Deleting the account again
-  finishes the job, and finds no payments left to move.
+- ``DELETE /admin/members/{user_id}`` is the only way to delete an account: the
+  Wagtail admin's account screens are closed (:ref:`cms-no-account-screens`), so
+  no delete can skip the handover.
 - ``partially_refunded`` and ``refunded`` say how much of the payment has been
   given back; the ``Refund`` rows beneath it carry the amounts, and
   ``refunded_cents`` adds the succeeded ones up.  The refund service writes

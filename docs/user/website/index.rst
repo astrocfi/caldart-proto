@@ -11,7 +11,9 @@ editor opens without asking again. Your account needs the website administrator 
 a user administrator can add it.
 
 Everything the member portal holds, such as members, payments, and reports, belongs to
-other roles and is edited in the portal.
+other roles and is edited in the portal. That includes accounts and roles: the editor has no
+Users or Groups screens, and its Account link opens your portal profile. A user
+administrator adds or removes roles on the portal's :doc:`../admin/users` screen.
 
 .. toctree::
    :maxdepth: 1

@@ -20,7 +20,8 @@ Layout
     blocks.py            StreamField blocks and the body stream
     forms.py             the page form that hides restricted blocks
     permissions.py       the website_admin Wagtail grant
-    wagtail_hooks.py     the members-only guard on document downloads
+    wagtail_hooks.py     the members-only guard on document downloads, and a
+                         settings menu without Users or Groups
     context_processors.py   site_settings / theme / nav for every template
     seed.py              site root + settings row (called by seed_demo)
     seed_content_data.py the example site's copy, as page specs
@@ -181,6 +182,33 @@ its panel::
             MultiFieldPanel(MembersOnlyMixin.members_only_panels, heading="Access"),
         ]
 
+
+.. _cms-no-account-screens:
+
+No account screens
+------------------
+
+Accounts and roles are managed in the portal alone: **Users & roles** for an
+administrator, **My profile**, **Change password**, and **Change email** for the
+person themselves.  Those screens apply the rules an account change needs
+(roles, deactivation and the reactivation block, address verification, and the
+payment handover when an account is deleted), which Wagtail's own user admin
+knows nothing of.  So the Wagtail admin manages no account:
+
+- ``caldart/urls.py`` answers 404 for ``/admin/users/``, ``/admin/groups/``,
+  ``/admin/bulk/accounts/``, ``/admin/bulk/auth/``, and
+  ``/admin/password_reset/``, ahead of the Wagtail admin it shadows, and sends
+  ``/admin/account/`` (the account page the Wagtail sidebar links) to
+  ``/portal/profile``.
+- ``wagtail_hooks.hide_account_menu_items``, a ``construct_settings_menu`` hook,
+  drops the **Users** and **Groups** entries from the settings menu.
+- ``base.py`` sets ``WAGTAIL_PASSWORD_MANAGEMENT_ENABLED``,
+  ``WAGTAIL_PASSWORD_RESET_ENABLED``, and ``WAGTAIL_EMAIL_MANAGEMENT_ENABLED`` to
+  ``False``, so the Wagtail sign-in page offers no password reset.
+
+A website administrator signs in to the editor with their portal account; only
+the screens that would change an account are closed.  The Django admin at
+``/django-admin/``, open to superusers alone, lists accounts.
 
 Members-only documents
 ----------------------

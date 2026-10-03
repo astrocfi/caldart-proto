@@ -624,10 +624,9 @@ payer; the member list and **Users & roles**, which show active accounts, do
 not list it.  A member who never paid leaves no tombstone.
 
 The delete is recorded as ``member.delete``, with ``payments=<n>
-owner=<tombstone id>`` when payments moved.  The Wagtail users admin's delete
-view and its **Delete** bulk action hand payments over the same way and write
-the same line (:doc:`data-model`); the delete view writes it only once the account
-is gone.
+owner=<tombstone id>`` when payments moved.  This endpoint is the only way to
+delete an account: the Wagtail admin's account screens are closed
+(:ref:`cms-no-account-screens`).
 
 Statuses:
 

@@ -1,7 +1,8 @@
 """Root URLconf.
 
 Order matters: the Wagtail page serving view is a catch-all and must come
-last.  ``/portal/`` is itself a catch-all for the SPA's client-side routes, and
+last, and the closed Wagtail account screens must come before the Wagtail admin
+they shadow.  ``/portal/`` is itself a catch-all for the SPA's client-side routes, and
 ``/docs/`` serves the built user guide to signed-in users.
 """
 
@@ -15,9 +16,21 @@ from wagtail.documents import urls as wagtaildocs_urls
 
 from apps.cms.views import find_dart
 from apps.payments.views import apple_pay_domain_association
-from caldart.views import portal_shell, user_guide
+from caldart.views import (
+    portal_shell,
+    user_guide,
+    wagtail_account_page,
+    wagtail_account_screen_closed,
+)
 
 urlpatterns = [
+    # Accounts and roles are managed in the portal alone (Users and roles, My
+    # profile), so Wagtail's own screens for them are closed.
+    re_path(
+        r"^admin/(?:users|groups|bulk/accounts|bulk/auth|password_reset)/",
+        wagtail_account_screen_closed,
+    ),
+    path("admin/account/", wagtail_account_page),
     path("admin/", include(wagtailadmin_urls)),
     path("django-admin/", django_admin.site.urls),
     path("documents/", include(wagtaildocs_urls)),
