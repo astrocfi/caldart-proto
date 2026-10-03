@@ -12,10 +12,13 @@
 # alone), and --demo resets the demo accounts' names, roles, and password.  The
 # site keeps running throughout.
 #
-# The demo accounts share the password README.rst documents, and their renewal
-# mandates need the mock payment provider, which production leaves off: a
-# server seeded with them is a demonstration server, never one holding real
-# member data.
+# The demo accounts share the password README.rst documents: a server seeded
+# with them is a demonstration server, never one holding real member data.
+# With the mock payment provider off, as production leaves it, --demo seeds no
+# automatic renewal or recurring donation on that provider's test card.  Its
+# other renewals carry made-up Stripe and PayPal references, which the renewals
+# job puts off while no payment keys are configured; with real or sandbox keys
+# the provider can refuse them.
 #
 # Usage:
 #   sudo deploy/seed.sh [--roles] [--plans] [--demo] [--content] [--all] [--dry-run]

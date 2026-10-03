@@ -67,6 +67,7 @@ from apps.payments.providers.base import (
     ProviderUnavailableError,
     get_provider,
 )
+from apps.payments.providers.mock import MockPaymentsDisabledError
 from apps.payments.receipts import receipt_filename, render_receipt_pdf
 from apps.payments.services import create_checkout, mark_failed
 from caldart import audit, events
@@ -1149,8 +1150,10 @@ def run_auto_renewals(
     scan would produce, and is itself recorded in the audit log.
 
     Nothing one member's mandate does stops the scan: a provider that declines,
-    a provider that cannot be reached and a mail server that refuses a message
-    are each recorded against that member's attempt and the walk carries on.
+    a provider that cannot be reached, is not configured, or is switched off, and
+    a mail server that refuses a message are each recorded against that member's
+    attempt and the walk carries on; a charge the provider was never asked to take
+    is put off for the next scan rather than counted as refused.
     Every run ends with one ``renewals.run`` audit record carrying the mode and
     the counts, and returns them as a :class:`RenewalRun`, whose ``actions`` name
     every member the run emailed or charged -- or, in a rehearsal, would have.
@@ -1521,7 +1524,7 @@ def _charge(attempt: RenewalAttempt, today: date, run: RenewalRun, *, dry_run: b
 
     try:
         get_provider(mandate.provider).charge_mandate(mandate, payment)
-    except (ProviderUnavailableError, ProviderNotConfiguredError) as exc:
+    except (ProviderUnavailableError, ProviderNotConfiguredError, MockPaymentsDisabledError) as exc:
         _postpone(attempt, payment, str(exc), run)
         return
     except PaymentError as exc:
@@ -1585,13 +1588,16 @@ def _claim(attempt: RenewalAttempt) -> bool:
 def _postpone(attempt: RenewalAttempt, payment: Payment, reason: str, run: RenewalRun) -> None:
     """Put a charge back that the provider could not be asked to take.
 
-    A provider that cannot be reached, or that is not configured, says nothing
+    A provider that cannot be reached, that is not configured, or that is switched
+    off -- the mock provider with ``PAYMENTS_MOCK_ENABLED`` off -- says nothing
     about the member's card, so it costs no rung of the retry ladder, sends no
     decline notice and does not pause the mandate.  The pending payment is thrown
     away and the attempt is released, still scheduled for the same day, so the
     next scan tries it again.
     """
-    log.error("renewal attempt %s could not reach %s: %s", attempt.pk, payment.provider, reason)
+    log.error(
+        "renewal attempt %s could not charge through %s: %s", attempt.pk, payment.provider, reason
+    )
     attempt.payment = None
     attempt.attempted_at = None
     attempt.save(update_fields=["payment", "attempted_at", "updated_at"])

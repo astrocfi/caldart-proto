@@ -1141,15 +1141,13 @@ npm, and Docker Hub.
    postfix, so ``caldart-reminders``, ``caldart-reports`` and
    ``caldart-statements`` (step 2) can send mail.  With the website seeded, the
    target checks that a seeded page answers and that a website-only install
-   holds no account but the administrator's.  With the demo accounts seeded:
-   the demo mandates use the mock payment provider, which production leaves
-   off, so the target also sets ``PAYMENTS_MOCK_ENABLED_IN_PRODUCTION=true`` in
-   the environment file, the same switch :doc:`payments-setup` describes for
-   demonstrating checkout with no payment keys, so ``caldart-renewals`` (step
-   2) has a provider to charge against, and asserts that ``manage.sh health
-   --json`` still passes and that the sign-in page still answers.  Neither
-   postfix nor the switch is something the container's package scripts or a
-   plain install does on its own.  The container's name gains
+   holds no account but the administrator's.  With the demo accounts seeded,
+   the mock payment provider stays off, as production leaves it, so
+   ``caldart-renewals`` (step 2) shows that ``seed_demo`` left it nothing that
+   provider must charge (:ref:`deploy-database`), and the target asserts that
+   ``manage.sh health --json`` still passes and that the sign-in page still
+   answers.  Postfix is not something the container's package scripts or a
+   plain install sets up on its own.  The container's name gains
    ``-seed-<value>``.
 ``REHEARSE_KEEP``
    Keep the container and its volumes after the run.

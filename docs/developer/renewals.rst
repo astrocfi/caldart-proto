@@ -308,8 +308,9 @@ it, and it does three things in order.
    retries left gets the next attempt from ``RETRY_OFFSETS``; one whose retries
    are exhausted is paused.
 
-   A provider that cannot be reached, or that is not configured, says nothing
-   about the member's card: the pending payment is deleted, the claim is released,
+   A provider that cannot be reached, that is not configured, or that is
+   switched off (the mock provider with ``PAYMENTS_MOCK_ENABLED`` off) says
+   nothing about the member's card: the pending payment is deleted, the claim is released,
    the attempt stays ``scheduled`` for the next scan, and the run counts it as
    ``provider_down``.  No retry rung is spent, no email goes out and the mandate
    stays ``active``.
@@ -358,8 +359,9 @@ names every charge the live run of that date then takes.
 
 Every email is keyed on a timestamp of the attempt it belongs to, so a scan run
 twice in one day sends nothing twice.  One member's problem never stops the scan:
-a decline, a provider that cannot be reached and a mail server that refuses a
-message are each recorded against that member and the walk carries on.
+a decline, a provider that cannot be reached or is switched off, and a mail
+server that refuses a message are each recorded against that member and the
+walk carries on.
 
 .. _renewals-providers:
 
@@ -406,7 +408,14 @@ and the pause are demonstrated and tested; the seed uses it for its paused
 mandate.  The succeeding card seeds the three mandates the daily scan always
 has work on -- two due for an ordinary renewal today, and one due for a catch-up
 renewal -- and the two recurring donations: the account administrator's yearly
-one, a month out, and one generated member's monthly one, nine days out.
+one, a month out, and one generated member's monthly one, nine days out.  The
+seed creates these mock mandates only while ``PAYMENTS_MOCK_ENABLED`` is on.
+With it off, as the production settings leave it, those members get no
+automatic renewal or recurring donation, the paused mandate carries the seed's
+Stripe Visa ending 4242, and ``seed_demo`` says so in its output
+(:ref:`deploy-database`).  A mock mandate that is already there when the
+provider is off, from a seed run while it was on, is put off at each charge
+like any other provider that is switched off, so it never fails the scan.
 
 .. _renewals-emails:
 
@@ -541,7 +550,8 @@ The demo seed leaves both paths ready to exercise the day it runs: two
 generated members have a term ending today with an ordinary renewal already
 due, and one more has a term that lapsed ten days ago with no attempt against
 it yet, so ``run_auto_renewals`` takes the catch-up path for that member and
-charges all three.
+charges all three.  These three use the mock provider, so the seed leaves them
+out when it is off (:ref:`renewals-providers`).
 
 Members whose records were imported from CiviCRM with automatic renewal switched
 on have no mandate here: the payment method was never handed to CalDART, and

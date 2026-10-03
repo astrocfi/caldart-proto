@@ -38,17 +38,26 @@ from apps.members.services import membership_status
 from apps.members.verification import verified_items
 from apps.notifications.events import EVENTS
 from apps.notifications.models import NotificationSubscription
-from apps.payments.models import Payment, PaymentStatus, RenewalMandate
+from apps.payments.models import (
+    MandateProvider,
+    MandateStatus,
+    Payment,
+    PaymentStatus,
+    RenewalMandate,
+)
 from apps.payments.renewals import _due_attempts, lapsed_term_to_renew, run_auto_renewals
 from apps.payments.seed import (
     CATCH_UP_MANDATE_DAYS_AGO,
     DONOR_GIFT_COUNTS,
     HISTORY_MONTHS,
     MANUAL_PAYMENT_COUNT,
+    MOCK_PROVIDER_OFF_NOTE,
 )
 from apps.reports.models import ReportSubscription
 from apps.reports.services import due_subscriptions, run_scheduled_reports
 from apps.sysadmin.management.commands.seed_facts import seed_facts
+from caldart import audit
+from tests.conftest import audit_messages
 
 User = get_user_model()
 
@@ -86,6 +95,11 @@ SEEDED_VERIFIED_MEMBERS = 31
 #: Of the seeded aircraft register, how many the seed leaves with verified insurance,
 #: by the same seven-in-ten rule.
 SEEDED_VERIFIED_AIRCRAFT = 18
+
+#: The mandates ``seed_demo`` puts on the mock provider's test card while it is on:
+#: two renewals due today, the catch-up renewal, the paused renewal, and the two
+#: recurring donations.
+SEEDED_MOCK_MANDATES = 6
 
 #: Every test here runs `seed_demo`, which seeds the whole demo data set.
 pytestmark = [pytest.mark.django_db, pytest.mark.slow]
@@ -423,6 +437,83 @@ def test_run_auto_renewals_charges_the_three_seeded_renewals() -> None:
     run = run_auto_renewals()
     assert run.charged == 3
     assert run.failed == 0
+
+
+def _seed_output() -> list[str]:
+    """Run ``seed_demo`` and return the lines it wrote to stdout."""
+    out = StringIO()
+    call_command("seed_demo", stdout=out)
+    return out.getvalue().splitlines()
+
+
+def _mock_mandate_count() -> int:
+    """How many renewal and donation mandates charge the mock provider."""
+    return RenewalMandate.objects.filter(provider=MandateProvider.MOCK).count()
+
+
+@pytest.mark.usefixtures("mock_payments_off")
+def test_seed_demo_seeds_no_mock_mandate_while_the_mock_provider_is_off() -> None:
+    """With the mock provider off, no seeded mandate charges it."""
+    _seed()
+    assert _mock_mandate_count() == 0
+
+
+@pytest.mark.usefixtures("mock_payments_off")
+def test_seed_demo_seeds_no_recurring_donation_while_the_mock_provider_is_off() -> None:
+    """The recurring donations ride on the mock provider, so none is seeded."""
+    _seed()
+    assert RenewalMandate.objects.filter(plan__isnull=True).count() == 0
+
+
+@pytest.mark.usefixtures("mock_payments_off")
+def test_seed_demo_puts_the_paused_renewal_on_a_stripe_card_with_the_mock_off() -> None:
+    """The paused renewal's declined attempts stand against a card, the seed's first."""
+    _seed()
+    paused = RenewalMandate.objects.get(status=MandateStatus.PAUSED)
+    assert (paused.provider, paused.method_label) == (
+        MandateProvider.STRIPE,
+        "Visa ending 4242, expires 03/2028",
+    )
+
+
+@pytest.mark.usefixtures("mock_payments_off")
+def test_seed_demo_says_why_while_the_mock_provider_is_off() -> None:
+    """The output carries one line saying what the disabled mock provider left out."""
+    assert _seed_output().count(MOCK_PROVIDER_OFF_NOTE) == 1
+
+
+@pytest.mark.usefixtures("mock_payments_off")
+def test_the_renewals_job_refuses_no_charge_on_a_demo_seeded_with_the_mock_provider_off(
+    audit_log: pytest.LogCaptureFixture,
+) -> None:
+    """``run_auto_renewals`` completes on the seeded data and records no failure."""
+    _seed()
+    audit_log.clear()
+
+    call_command("run_auto_renewals", stdout=StringIO())
+
+    (line,) = [
+        message
+        for message in audit_messages(audit_log)
+        if message.startswith(f"action={audit.RENEWALS_RUN} ")
+    ]
+    fields = dict(pair.split("=", 1) for pair in line.split())
+    assert fields["failed"] == "0"
+
+
+def test_seed_demo_seeds_the_mock_mandates_while_the_mock_provider_is_on() -> None:
+    """With the mock provider on, the six mandates on its test card are seeded.
+
+    The two renewals due today, the catch-up renewal, the paused renewal on the card
+    that always declines, and the two recurring donations.
+    """
+    _seed()
+    assert _mock_mandate_count() == SEEDED_MOCK_MANDATES
+
+
+def test_seed_demo_leaves_out_the_note_while_the_mock_provider_is_on() -> None:
+    """With the mock provider on, the output says nothing about it."""
+    assert MOCK_PROVIDER_OFF_NOTE not in _seed_output()
 
 
 def test_seed_demo_never_gives_a_member_overlapping_terms() -> None:

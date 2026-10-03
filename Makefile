@@ -148,14 +148,13 @@ E2E_ENV := DJANGO_SETTINGS_MODULE=caldart.settings.dev \
 # rerun that dropped a recorded port fails.  With REHEARSE_SEED=content
 # the install loads the example website alone, and the recipe checks that a
 # seeded page answers.  With REHEARSE_SEED=demo it loads the demo accounts alone
-# (all loads both); since the demo mandates use the mock payment provider and
-# production leaves it off, the recipe also turns it on, so caldart-renewals
-# (step 2) has a provider to charge against, and asserts that manage.sh health
-# --json still passes and that the sign-in page still answers.  Either seed gives
-# the jobs mail to send (the website seed creates the DARTs whose rosters
+# (all loads both) with the mock payment provider off, as production leaves it,
+# so caldart-renewals (step 2) shows the seed left it nothing that provider must
+# charge, and the recipe asserts that manage.sh health --json still passes and
+# that the sign-in page still answers, so seeding disturbed neither.  Either seed
+# gives the jobs mail to send (the website seed creates the DARTs whose rosters
 # caldart-reports mails) and the container has no mail transport of its own, so
-# with any seed the recipe installs postfix too, so
-# seeding disturbed neither.
+# with any seed the recipe installs postfix too.
 #
 # After every install the portal page must load its entry script under exactly the
 # name in Vite's manifest: the lazy chunks import it by that name, and a second name
@@ -496,11 +495,6 @@ rehearse-deploy: ## Rehearse the server install in a throwaway systemd container
 	    inside systemctl start postfix; \
 	  fi; \
 	  if [ "$$seed" = demo ] || [ "$$seed" = all ]; then \
-	    echo "==> Enabling mock payments, so the seeded renewals can run for real"; \
-	    : "seed_demo's renewal mandates use the mock provider so the scheduled jobs"; \
-	    : "have something to do; production leaves it off, so the demo needs it named"; \
-	    : "here, the same way an operator demonstrating checkout would."; \
-	    inside sh -c 'echo PAYMENTS_MOCK_ENABLED_IN_PRODUCTION=true >> /etc/caldart/caldart.env'; \
 	    echo "==> Checking that the demo accounts did not disturb health or sign-in"; \
 	    inside /opt/caldart/caldart/deploy/manage.sh health --json >/dev/null \
 	      || { echo "error: manage.sh health --json failed after seeding" >&2; exit 1; }; \
