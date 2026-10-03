@@ -74,10 +74,14 @@ member and every friend: a donor is never listed, and a deactivated account
 only on request (``include_inactive``).  The single record,
 ``GET /admin/members/{user_id}``, answers for any account, a donor's and a
 deactivated one's included, so an administrator can reactivate an account and
-an edit to a donor is refused with its reason rather than a 404.  The portal
-opens a donor's record from the donors report (:doc:`api-finance`), and its
-``DELETE`` removes a donor as it removes any account, handing the gifts to the
-tombstone :ref:`described below <api-members-delete>`.
+an edit to a donor is refused with its reason rather than a 404.  A donor is on
+no member list, so the portal opens a donor's record from the donors report, and
+any account's from the **Member record** link on a payment, a member's ledger
+(:doc:`api-finance`), and the user record, each shown to a reader holding
+``account_admin``.  The record's ``DELETE`` removes a donor as it removes any
+account, handing the gifts to the tombstone :ref:`described below
+<api-members-delete>`; a donor is refused a granted term.  A tombstone's record
+refuses every change (:ref:`api-members-tombstone`).
 
 
 ``GET /admin/members``
@@ -395,6 +399,7 @@ them from the user record (:ref:`api-clear-bounce`).
      "is_active": true,
      "reactivation_blocked": false,
      "kind": "member",
+     "is_tombstone": false,
      "friend_on": null,
      "roles": ["member"],
      "created_at": "2024-07-01T16:04:11.318204-07:00",
@@ -497,6 +502,9 @@ them from the user record (:ref:`api-clear-bounce`).
      ]
    }
 
+``is_tombstone`` is true for a **Deleted member <id>** account
+(:ref:`api-members-tombstone`), whose record the portal shows with no form, no
+grant, and no delete.
 ``profile`` is ``null`` for an account that has no ``MemberProfile`` row.
 Its ``photo_id_type`` and read-only ``verification`` are the ones
 ``GET /me/profile`` describes (:doc:`api-profile`).
@@ -579,7 +587,9 @@ Statuses:
 * **200** — the updated record, in the detail shape above.
 * **400** — an email address another account already holds, a profile rule the
   nested serializer refused, an edit the account-edit guard refused, or a
-  ``kind`` for a donor.  Nothing is written.
+  ``kind`` for a donor.  Any body at all for a tombstone is a **400**
+  ``{"detail": "This record keeps a deleted member's payments in the books and
+  cannot be changed."}`` (:ref:`api-members-tombstone`).  Nothing is written.
 * **404** — no account has that id.
 * **405** — the request used ``PUT``.
 
@@ -595,6 +605,8 @@ response body.
 
 The delete is refused when
 
+* the target is a tombstone, which holds a deleted account's payments
+  (:ref:`api-members-tombstone`);
 * the target is the caller — you cannot delete your own account, whatever roles
   you hold; or
 * the target is a ``system_admin``, unless the caller is a ``system_admin``.
@@ -640,10 +652,36 @@ delete an account: the Wagtail admin's account screens are closed
 Statuses:
 
 * **204** — the account is gone, with an empty body.
-* **403** — one of the two refusals, as ``{"detail": "..."}``: "You cannot
+* **400** — the target is a tombstone: ``{"detail": "This record keeps a deleted
+  member's payments in the books and cannot be changed."}``.
+* **403** — one of the two other refusals, as ``{"detail": "..."}``: "You cannot
   delete your own account." or "Only a system administrator can delete a
   system administrator."
 * **404** — no account has that id.
+
+.. _api-members-tombstone:
+
+A tombstone's record
+--------------------
+
+``members.services.is_tombstone`` recognizes a tombstone: a deactivated donor
+named **Deleted member** on the ``deleted.invalid`` domain.  Its name and address
+are what keep a late-settling payment from buying a term or mailing a receipt,
+so ``members.services.refuse_tombstone_change`` refuses every change to one,
+with a **400** ``{"detail": "This record keeps a deleted member's payments in the
+books and cannot be changed."}`` and nothing written:
+
+* ``PATCH /admin/members/{user_id}`` and ``PATCH /admin/users/{id}``, whatever the
+  body holds, audited as ``account.update``;
+* ``DELETE /admin/members/{user_id}``, which would only move the payments to a
+  second tombstone, audited as ``member.delete``;
+* ``POST /admin/members/{user_id}/memberships``, audited as ``membership.grant``.
+
+Each refusal is audited at WARNING with ``reason=tombstone``.  The deactivation,
+reactivation, and make-a-friend actions refuse a tombstone already, as a donor.
+The record (``is_tombstone``), the donors report, the payment list, and the
+ledger flag a tombstone, so the portal links to its record from none of them and
+shows the record without its controls.
 
 
 The danger zone's account actions
@@ -771,10 +809,18 @@ reactivated.
      "created_at": "2026-09-21T19:40:02.750311-07:00"
    }
 
+A donor holds no membership and becomes a member only by registering, so a
+grant to a donor is refused before anything is written or raised: **400**
+``{"detail": "A donor holds no membership, and becomes a member only by
+registering."}``, audited as ``membership.grant`` with ``reason=donor_account``.
+A tombstone, which is a donor too, is refused with its own sentence and
+``reason=tombstone`` (:ref:`api-members-tombstone`).
+
 Statuses:
 
 * **201** — the granted term, in the shape above.
-* **400** — ``plan`` missing, unknown, or naming a plan that is not active.
+* **400** — ``plan`` missing, unknown, or naming a plan that is not active; or
+  the account is a donor or a tombstone, as ``{"detail": "..."}``.
 * **404** — no account has that ``user_id``.
 
 
@@ -844,6 +890,15 @@ Tests
    pending plan payment settling after the delete, the audit line, the
    payment list and member list afterwards, the Wagtail single and bulk paths,
    and the ``ProtectedError`` the model still raises on its own.
+``backend/tests/test_donor_record.py``
+   A donor's record as the donors report reaches it: the row's id, the kind,
+   address, and gifts on the record, the gifts moving to the tombstone on a
+   delete with the donors report's row and year totals unchanged, and the
+   refused term grant with its audit line.
+``backend/tests/test_tombstone_guard.py``
+   A tombstone's record: the refused ``PATCH`` on both edit endpoints, the
+   refused ``DELETE`` and grant, their audit lines, and the ``is_tombstone``
+   flags on the record, the donors report, the payment list, and the ledger.
 ``backend/tests/test_members_admin_status.py``
    The SQL annotations against ``membership_status``, and ``membership_of``
    answering the same either way.

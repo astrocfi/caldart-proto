@@ -1846,8 +1846,10 @@ action, with a ``reason`` slug saying which rule refused it: ``self_deactivation
 ``roles_not_held``, ``system_admin_role``, ``self_delete``,
 ``system_admin_target``, ``inactive_account``, ``donor_account``,
 ``donor_kind``, ``reactivation_blocked`` (a reactivation of an account a user
-administrator has blocked), ``no_such_backup``, or ``import_running`` (a **Run
-now** pressed while an import is under way).
+administrator has blocked), ``tombstone`` (an edit, a delete, or a term grant on
+the **Deleted member** account that keeps a deleted account's payments),
+``no_such_backup``, or ``import_running`` (a **Run now** pressed while an import
+is under way).
 
 A record carries ids, counts, flags, and slugs and nothing else.  Email
 addresses, names, passwords, tokens, and database contents are not values the

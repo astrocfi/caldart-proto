@@ -24,6 +24,7 @@ import { MemberAccountActions } from './MemberAccountActions';
 import { useDeleteMember } from './api';
 import { splitErrors } from './errors';
 import { recordHome } from './recordHome';
+import { TOMBSTONE_NOTE } from './tombstone';
 import type { MemberDetail } from '@/portal/api/types';
 
 function PaymentsNote({ member }: { member: MemberDetail }) {
@@ -40,9 +41,21 @@ function PaymentsNote({ member }: { member: MemberDetail }) {
 
 /**
  * The Danger zone tab: the account actions, then the delete, which keeps the member's
- * payments in the books.
+ * payments in the books. A "Deleted member N" record offers neither, only the reason.
  */
 export function MemberDangerZone({ member }: { member: MemberDetail }): JSX.Element {
+  if (member.is_tombstone) {
+    return (
+      <Card title="Kept for the books" eyebrow="Danger zone">
+        <p>{TOMBSTONE_NOTE}</p>
+      </Card>
+    );
+  }
+  return <DeleteZone member={member} />;
+}
+
+/** The account actions and the delete form, for any record but a tombstone's. */
+function DeleteZone({ member }: { member: MemberDetail }): JSX.Element {
   const navigate = useNavigate();
   const toast = useToast();
   const remove = useDeleteMember(member.id);

@@ -126,6 +126,7 @@ export function makeDonorRow(overrides: Partial<DonorRow> = {}): DonorRow {
     refunded_cents: 0,
     net_cents: 5000,
     active: true,
+    is_tombstone: false,
     ...overrides,
   };
 }

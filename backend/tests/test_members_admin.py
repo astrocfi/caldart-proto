@@ -681,6 +681,7 @@ def test_detail_returns_the_whole_record(
         "name",
         "is_active",
         "kind",
+        "is_tombstone",
         "roles",
         "profile_updated_at",
         "membership",

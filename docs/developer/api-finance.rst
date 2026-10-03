@@ -86,7 +86,8 @@ Paginated (``?page=&page_size=``, default 25, max 200), newest money first.
      "previous": null,
      "results": [
        {"id": 412, "user_id": 37, "user_name": "Marta Reyes",
-        "user_email": "marta@example.org", "plan": "Annual", "kind": "both",
+        "user_email": "marta@example.org", "user_is_tombstone": false,
+        "plan": "Annual", "kind": "both",
         "amount_cents": 14500, "plan_amount_cents": 4500,
         "contribution_cents": 10000, "fee_cents": 450, "net_cents": 14050,
         "refunded_cents": 0, "currency": "usd", "provider": "stripe",
@@ -110,7 +111,12 @@ it does the two at once.  ``paid_on`` is the ledger date — ``received_on`` for
 a payment recorded by hand, the local date of ``completed_at`` for every other
 provider, and ``null`` while the payment has not completed.  ``membership`` is
 the term the payment bought, or ``null``; ``renewal_attempt`` is the automatic
-charge it came from, or ``null`` when a person paid it.  ``raw``, the
+charge it came from, or ``null`` when a person paid it.  ``user_is_tombstone``
+is true when the payer is the **Deleted member <id>** account that keeps a
+deleted account's payments (:ref:`api-members-delete`): the portal offers a
+**Member record** link to the payer's ``/admin/members/{user_id}`` for a
+reader holding ``account_admin``, and none for such an account, whose record
+refuses every change.  ``raw``, the
 provider's own payload, is never in the API.
 
 Datetimes carry the site's own offset rather than ``Z``: DRF renders them in
@@ -262,7 +268,7 @@ endpoint on this page, is refused here.
       "county": "Contra Costa", "dart": "East Bay DART",
       "first_gift": "2026-01-10", "last_gift": "2026-06-20", "gifts": 2,
       "given_cents": 5000, "refunded_cents": 1000, "net_cents": 4000,
-      "active": true}
+      "active": true, "is_tombstone": false}
    ]
 
 =================  ============================================================
@@ -280,8 +286,10 @@ Parameter          Effect
 
 ``user_id`` is the donor's account id.  A donor is on no member list, so the
 Donors tab links each name to the member record, ``/admin/members/{user_id}``
-(:doc:`api-members`), for a reader who also holds ``account_admin``; that record's
-``DELETE`` is the one way to delete a donor.
+(:doc:`api-members`), for a reader who also holds ``account_admin``; that
+record's ``DELETE`` deletes a donor.  ``is_tombstone`` is true for the
+**Deleted member <id>** row of a deleted account's gifts, which the screen
+leaves unlinked, since that record refuses every change.
 
 Rows are largest net giver first, ties broken by name.  The donors report,
 ``GET /reports/donors/export.{csv,pdf}``, carries the same rows for the same
@@ -302,6 +310,7 @@ member screen and for the Payments tab of the member record.
 
    {
      "user": {"id": 37, "name": "Marta Reyes", "email": "marta@example.org",
+              "is_tombstone": false,
               "membership": {"status": "current", "expires_on": "2027-01-08",
                              "plan": "Annual", "is_lifetime": false}},
      "totals": {"paid_cents": 43500, "contribution_cents": 11000,
@@ -330,7 +339,9 @@ described in :doc:`api-renewals`: the member's most recently created standing
 authority, an automatic renewal or a recurring donation, and ``null`` for a
 member with neither.  ``statement_years`` names the years the member can download a
 contribution statement for — a year qualifies when at least one payment
-carrying a contribution arrived in it — newest first.
+carrying a contribution arrived in it — newest first.  ``user.is_tombstone`` is
+true for a **Deleted member <id>** account, whose ledger the portal heads with no
+**Member record** link.
 
 Statuses: **200**; **401** when anonymous; **403** without a finance role;
 **404** for an unknown member.

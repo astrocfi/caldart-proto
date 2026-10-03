@@ -108,6 +108,7 @@ REASON_DONOR_KIND = "donor_kind"
 REASON_DONOR_ACCOUNT = "donor_account"
 REASON_IMPORT_RUNNING = "import_running"
 REASON_REACTIVATION_BLOCKED = "reactivation_blocked"
+REASON_TOMBSTONE = "tombstone"
 
 log = logging.getLogger(LOGGER_NAME)
 

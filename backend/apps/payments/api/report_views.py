@@ -30,7 +30,7 @@ from rest_framework.views import APIView
 from apps.accounts.models import User
 from apps.accounts.permissions import HasRole, IsFinance
 from apps.accounts.roles import TREASURER
-from apps.members.services import membership_status
+from apps.members.services import is_tombstone, membership_status
 from apps.payments import reconciliation, reports
 from apps.payments.api.serializers import (
     ContributionRowSerializer,
@@ -325,6 +325,7 @@ class AdminMemberLedgerView(APIView):
                 "id": member.pk,
                 "name": member.display_name,
                 "email": member.email,
+                "is_tombstone": is_tombstone(member),
                 "membership": membership_status(member),
             },
             "totals": ledger_totals(payments),

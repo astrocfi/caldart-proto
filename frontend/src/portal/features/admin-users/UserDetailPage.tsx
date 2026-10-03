@@ -19,6 +19,7 @@ import { EmailVerifiedText } from '@/portal/components/EmailVerifiedText';
 import { EmptyState } from '@/portal/components/EmptyState';
 import { Field } from '@/portal/components/Field';
 import { MaskedInput } from '@/portal/components/MaskedInput';
+import { MemberRecordLink } from '@/portal/components/MemberRecordLink';
 import { MembershipChip } from '@/portal/components/StatusChip';
 import { Page } from '@/portal/components/Page';
 import { ResendVerificationButton } from '@/portal/components/ResendVerificationButton';
@@ -130,6 +131,7 @@ export function UserDetailPage(): JSX.Element {
           <span className="muted">
             {user.profile_complete ? 'Profile complete' : 'Profile incomplete'}
           </span>
+          <MemberRecordLink userId={user.id} />
         </div>
         {isDonor ? (
           <p className="muted">

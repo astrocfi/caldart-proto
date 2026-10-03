@@ -37,6 +37,7 @@ from rest_framework.exceptions import ValidationError
 from apps.accounts.models import AccountKind
 from apps.accounts.roles import ACCOUNT_ADMIN, TREASURER
 from apps.members.models import CALIFORNIA_COUNTIES, MemberProfile, Membership
+from apps.members.services import is_tombstone
 from apps.payments.models import (
     Payment,
     PaymentKind,
@@ -776,6 +777,7 @@ class DonorRow(TypedDict):
     refunded_cents: int
     net_cents: int
     active: bool
+    is_tombstone: bool
 
 
 #: The California counties the donor report's ``county`` filter accepts.
@@ -905,6 +907,7 @@ def donor_rows(filters: DonorFilters) -> list[DonorRow]:
                 "refunded_cents": 0,
                 "net_cents": 0,
                 "active": payment.user.is_active,
+                "is_tombstone": is_tombstone(payment.user),
             },
         )
         row["gifts"] += 1

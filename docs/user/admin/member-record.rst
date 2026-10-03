@@ -9,9 +9,13 @@ account and profile, their membership terms, their payments, and the controls to
 record. Only an account administrator can open it, by clicking a name on :doc:`members` or
 on any other screen that lists people. A system administrator can open it too.
 
-A donor, somebody who has only given through the public site, is on no member list. Their
-record opens from a name on the treasurer's **Donors** tab (:doc:`../finance/donors`), for
-an account administrator who is also the treasurer, or a system administrator.
+A donor, somebody who has only given through the public site, is on no member list. Open a
+donor's record from **Member record** on one of their payments (search the
+:doc:`../finance/payment-list` for their name, then see :doc:`../finance/payment-record`) or
+on their :doc:`../finance/member-ledger`; from their :doc:`user-record` if you are a user
+administrator too; or from their name on the **Donors** tab (:doc:`../finance/donors`) if
+you are the treasurer too. None of these opens a **Deleted member** record (see `A deleted
+member's record`_).
 
 
 What you see
@@ -102,6 +106,10 @@ goodwill extension, or a term entered wrongly. Press **Save** or **Cancel**; *Te
 confirms a save. A term set to **Canceled** no longer counts toward the membership, and its
 row stays in the history. The plan and the start date cannot be changed: cancel a wrong
 term and grant the right one, with a note saying why.
+
+A donor's record has no **Grant a term**: a donor holds no membership, and the history
+reads *A donor holds no membership, and becomes a member only by registering.* A donor
+becomes a member by registering on the site with the same address.
 
 **Grant a term** gives somebody a membership by hand, for a check or cash, or as a gift.
 Choose the **Plan**, and optionally a **Start date** and a **Note** (*Why this term was
@@ -213,6 +221,17 @@ started but had not finished can still go through afterwards: it joins the books
 After the delete you are back on the member list. A donor's delete brings you back to the
 **Donors** tab instead, when you have it, where the donor's row reads **Deleted member** and
 the number with the same gifts and amounts, and the year's totals are as they were.
+
+
+A deleted member's record
+=========================
+
+**Deleted member** and a number keeps a deleted person's payments. Its record shows them on
+**Payments**, and in place of the form, **Grant a term**, and **Delete this member** says
+*This record keeps a deleted member's payments in the books and cannot be changed.* A name
+or address on it would let a late payment buy a membership and mail a receipt, and deleting
+it would only move the payments to another one, so the site refuses all three, as does the
+:doc:`user-record`.
 
 
 If something looks wrong

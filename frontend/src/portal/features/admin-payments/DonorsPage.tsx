@@ -8,7 +8,7 @@
  * guard and `FinanceTabs` both key off the treasurer role.  A donor is on no
  * member list, so for a reader who also opens member records (an account
  * administrator, or a system administrator) each name links to the donor's
- * record, where the donor can be deleted.  The column
+ * record, where the donor can be deleted; a "Deleted member N" row is not linked.  The column
  * chooser drives the table and both exports at once, so what a treasurer
  * sees is what the downloaded file holds, as `PaymentsListPage` does.
  */
@@ -91,9 +91,13 @@ const CELLS: Record<string, Omit<Column<DonorRow>, 'key' | 'header'>> = {
   },
 };
 
-/** The name cell for a reader who opens member records: a link to the donor's record. */
+/**
+ * The name cell for a reader who opens member records: a link to the donor's record, but
+ * plain text for a "Deleted member N" row, whose record cannot be changed.
+ */
 const RECORD_NAME_CELL: Omit<Column<DonorRow>, 'key' | 'header'> = {
-  render: (row) => <Link to={`/admin/members/${row.user_id}`}>{row.name}</Link>,
+  render: (row) =>
+    row.is_tombstone ? row.name : <Link to={`/admin/members/${row.user_id}`}>{row.name}</Link>,
   sortValue: (row) => row.name,
 };
 

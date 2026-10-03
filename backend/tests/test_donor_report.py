@@ -28,6 +28,7 @@ from tests.factories import (
     PaymentFactory,
     RefundFactory,
     UserFactory,
+    settled_gift,
 )
 
 pytestmark = pytest.mark.django_db
@@ -42,27 +43,12 @@ def _donor(
     )
 
 
-def _settled_gift(
-    user: User, *, cents: int, on: date, status: str = PaymentStatus.SUCCEEDED
-) -> None:
-    """A settled contribution-only payment from ``user``, completed on ``on``."""
-    PaymentFactory(
-        user=user,
-        plan=None,
-        status=status,
-        contribution_cents=cents,
-        plan_amount_cents=0,
-        amount_cents=cents,
-        completed_at=datetime(on.year, on.month, on.day, 12, 0, tzinfo=UTC),
-    )
-
-
 def test_donor_rows_include_only_donor_accounts_who_gave() -> None:
     """A member's contribution never appears in the donors report."""
     donor = _donor(email="donor@example.test")
     member = UserFactory(email="member@example.test", kind=AccountKind.MEMBER)
-    _settled_gift(donor, cents=5_000, on=date(2026, 3, 1))
-    _settled_gift(member, cents=5_000, on=date(2026, 3, 1))
+    settled_gift(donor, cents=5_000, on=date(2026, 3, 1))
+    settled_gift(member, cents=5_000, on=date(2026, 3, 1))
 
     rows = donor_rows(DonorFilters())
 
@@ -72,7 +58,7 @@ def test_donor_rows_include_only_donor_accounts_who_gave() -> None:
 def test_donor_rows_ignore_a_gift_that_never_settled() -> None:
     """A pending or failed payment is not giving, so it never appears."""
     donor = _donor()
-    _settled_gift(donor, cents=5_000, on=date(2026, 3, 1), status=PaymentStatus.PENDING)
+    settled_gift(donor, cents=5_000, on=date(2026, 3, 1), status=PaymentStatus.PENDING)
 
     assert donor_rows(DonorFilters()) == []
 
@@ -80,8 +66,8 @@ def test_donor_rows_ignore_a_gift_that_never_settled() -> None:
 def test_donor_rows_aggregate_a_donors_gifts() -> None:
     """``gifts``, ``given_cents``, and the first and last gift dates all add up."""
     donor = _donor()
-    _settled_gift(donor, cents=2_000, on=date(2026, 1, 10))
-    _settled_gift(donor, cents=3_000, on=date(2026, 6, 20))
+    settled_gift(donor, cents=2_000, on=date(2026, 1, 10))
+    settled_gift(donor, cents=3_000, on=date(2026, 6, 20))
 
     [row] = donor_rows(DonorFilters())
 
@@ -119,7 +105,7 @@ def test_donor_rows_read_contact_and_dart_from_the_profile(dart: Dart) -> None:
         county="Contra Costa",
         dart=dart,
     )
-    _settled_gift(donor, cents=1_000, on=date(2026, 2, 1))
+    settled_gift(donor, cents=1_000, on=date(2026, 2, 1))
 
     [row] = donor_rows(DonorFilters())
 
@@ -136,7 +122,7 @@ def test_donor_rows_read_a_blank_profile_gracefully() -> None:
     """A donor with no profile row at all reports blank contact fields, not an error."""
     donor = _donor()
     MemberProfile.objects.filter(user=donor).delete()
-    _settled_gift(donor, cents=1_000, on=date(2026, 2, 1))
+    settled_gift(donor, cents=1_000, on=date(2026, 2, 1))
 
     [row] = donor_rows(DonorFilters())
 
@@ -147,8 +133,8 @@ def test_donor_rows_are_ordered_by_net_giving_then_name() -> None:
     """The largest net giver leads; ties break on name."""
     big = _donor(email="big@example.test", first_name="Big", last_name="Giver")
     small = _donor(email="small@example.test", first_name="Small", last_name="Giver")
-    _settled_gift(small, cents=1_000, on=date(2026, 1, 1))
-    _settled_gift(big, cents=9_000, on=date(2026, 1, 1))
+    settled_gift(small, cents=1_000, on=date(2026, 1, 1))
+    settled_gift(big, cents=9_000, on=date(2026, 1, 1))
 
     rows = donor_rows(DonorFilters())
 
@@ -159,8 +145,8 @@ def test_donor_rows_filter_by_search() -> None:
     """``search`` matches a donor's name or email address."""
     match = _donor(email="wanted@example.test", first_name="Wanda", last_name="Nedry")
     other = _donor(email="other@example.test", first_name="Otto", last_name="Osgood")
-    _settled_gift(match, cents=1_000, on=date(2026, 1, 1))
-    _settled_gift(other, cents=1_000, on=date(2026, 1, 1))
+    settled_gift(match, cents=1_000, on=date(2026, 1, 1))
+    settled_gift(other, cents=1_000, on=date(2026, 1, 1))
 
     rows = donor_rows(DonorFilters(search="Wanda"))
 
@@ -174,7 +160,7 @@ def test_donor_rows_filter_by_several_counties() -> None:
     napa = _donor(email="napa@example.test")
     for user, county in [(alameda, "Alameda"), (marin, "Marin"), (napa, "Napa")]:
         MemberProfileFactory(user=user, county=county)
-        _settled_gift(user, cents=1_000, on=date(2026, 1, 1))
+        settled_gift(user, cents=1_000, on=date(2026, 1, 1))
 
     rows = donor_rows(DonorFilters(county=("Alameda", "Marin")))
 
@@ -188,8 +174,8 @@ def test_donor_rows_filter_by_dart_id() -> None:
     MemberProfileFactory(user=donor, dart=napa)
     other = _donor(email="elsewhere@example.test")
     MemberProfileFactory(user=other, dart=DartFactory(name="Solano County DART"))
-    _settled_gift(donor, cents=1_000, on=date(2026, 1, 1))
-    _settled_gift(other, cents=1_000, on=date(2026, 1, 1))
+    settled_gift(donor, cents=1_000, on=date(2026, 1, 1))
+    settled_gift(other, cents=1_000, on=date(2026, 1, 1))
 
     rows = donor_rows(DonorFilters(dart=str(napa.pk)))
 
@@ -201,7 +187,7 @@ def test_donor_rows_filter_by_dart_name_fragment() -> None:
     napa = DartFactory(name="Napa County DART")
     donor = _donor()
     MemberProfileFactory(user=donor, dart=napa)
-    _settled_gift(donor, cents=1_000, on=date(2026, 1, 1))
+    settled_gift(donor, cents=1_000, on=date(2026, 1, 1))
 
     rows = donor_rows(DonorFilters(dart="napa"))
 
@@ -212,8 +198,8 @@ def test_donor_rows_filter_by_given_cents_bounds() -> None:
     """``min_cents`` and ``max_cents`` bound a donor's total giving, not one gift."""
     small = _donor(email="small@example.test")
     big = _donor(email="big@example.test")
-    _settled_gift(small, cents=1_000, on=date(2026, 1, 1))
-    _settled_gift(big, cents=50_000, on=date(2026, 1, 1))
+    settled_gift(small, cents=1_000, on=date(2026, 1, 1))
+    settled_gift(big, cents=50_000, on=date(2026, 1, 1))
 
     rows = donor_rows(DonorFilters(min_cents=10_000))
 
@@ -223,8 +209,8 @@ def test_donor_rows_filter_by_given_cents_bounds() -> None:
 def test_donor_rows_filter_by_date_range() -> None:
     """``date_from``/``date_to`` bound the range gifts are counted in."""
     donor = _donor()
-    _settled_gift(donor, cents=1_000, on=date(2025, 1, 1))
-    _settled_gift(donor, cents=2_000, on=date(2026, 6, 1))
+    settled_gift(donor, cents=1_000, on=date(2025, 1, 1))
+    settled_gift(donor, cents=2_000, on=date(2026, 6, 1))
 
     rows = donor_rows(DonorFilters(date_from=date(2026, 1, 1)))
 
@@ -254,7 +240,7 @@ def test_donor_report_query_joins_several_counties_in_the_subtitle() -> None:
 def test_treasurer_reads_the_donors_screen(treasurer_client: APIClient) -> None:
     """``GET /admin/payments/donors`` answers a treasurer with the aggregated rows."""
     donor = _donor(email="giver@example.test", first_name="Gil", last_name="Giver")
-    _settled_gift(donor, cents=2_500, on=date(2026, 3, 1))
+    settled_gift(donor, cents=2_500, on=date(2026, 3, 1))
 
     response = treasurer_client.get("/api/v1/admin/payments/donors")
 

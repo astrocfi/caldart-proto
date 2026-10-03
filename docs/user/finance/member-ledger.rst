@@ -17,7 +17,10 @@ What you see
 ============
 
 The heading is the member's name, with their email address beneath it and a chip on the
-right showing where their membership stands.
+right showing where their membership stands. Beside the chip, an account administrator
+sees **Member record**, which opens the person's :doc:`../admin/member-record`, a donor's
+included. The history of a **Deleted member** has no such link: that record cannot be
+changed.
 
 Totals
 ~~~~~~

@@ -1,12 +1,13 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import type { QueryClient } from '@tanstack/react-query';
 import { HttpResponse, http } from 'msw';
 import { Route, Routes } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 
 import type { AdminUser, User } from '@/portal/api/types';
 import { API, makeAdminUser, makeUser, signedInAs } from '@test/handlers';
-import { renderWithProviders } from '@test/render';
+import { renderWithProviders, signedInClient } from '@test/render';
 import { server } from '@test/server';
 import { UserDetailPage } from './UserDetailPage';
 
@@ -56,16 +57,37 @@ function stubDetail({ target = TARGET, me, patch }: StubOptions = {}) {
   return patched;
 }
 
-function renderDetail(id = String(TARGET.id)) {
+function renderDetail(id = String(TARGET.id), client?: QueryClient) {
   return renderWithProviders(
     <Routes>
       <Route path="/admin/users/:id" element={<UserDetailPage />} />
     </Routes>,
-    { route: `/admin/users/${id}` },
+    { route: `/admin/users/${id}`, client },
   );
 }
 
 describe('UserDetailPage', () => {
+  it('links the member record for a user administrator who is an account administrator', async () => {
+    const client = signedInClient('user_admin', 'account_admin');
+    stubDetail({ me: makeUser({ id: 1, roles: ['member', 'user_admin', 'account_admin'] }) });
+    renderDetail(String(TARGET.id), client);
+
+    expect(await screen.findByRole('link', { name: 'Member record' })).toHaveAttribute(
+      'href',
+      '/admin/members/7',
+    );
+  });
+
+  it('offers a user administrator alone no link to the member record', async () => {
+    const client = signedInClient('user_admin');
+    stubDetail();
+    renderDetail(String(TARGET.id), client);
+
+    await screen.findByRole('heading', { name: 'Priya Raman' });
+
+    expect(screen.queryByRole('link', { name: 'Member record' })).not.toBeInTheDocument();
+  });
+
   it('shows the account and every role with its description', async () => {
     stubDetail();
     renderDetail();

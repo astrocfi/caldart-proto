@@ -83,15 +83,22 @@ Open a donor's record and delete a donor
 If you are an account administrator as well as the treasurer, or a system administrator,
 each donor's name is a link to their :doc:`../admin/member-record`. The record tells you
 who the donor is: the name, address, and phone on **Profile**, and every gift on
-**Payments**. It is also the one place a donor is deleted, for somebody who asks to be
-removed or a record made by a test gift. On **Danger zone**, type the donor's email address
-and press **Delete member**. **Back to donors** brings you back here without deleting
-anybody, and so does the delete itself.
+**Payments**. It is where a donor is deleted, for somebody who asks to be removed or a
+record made by a test gift. On **Danger zone**, type the donor's email address and press
+**Delete member**. **Back to donors** brings you back here without deleting anybody, and so
+does the delete itself. An account administrator who is not the treasurer reaches the same
+record from **Member record** on one of the donor's payments; the member record page lists
+every way in.
 
 The gifts are the organization's financial record, so the delete keeps them. This list
 then shows **Deleted member** and the deleted account's number, such as **Deleted member
 41**, in the donor's place, with the same gifts and the same amounts, and the year's
 totals do not change. The payment list names the same **Deleted member** on each gift.
+A **Deleted member** row is never a link: that record keeps the payments in the books and
+cannot be changed or deleted.
+
+A donor's record offers no **Grant a term**: a donor holds no membership, and becomes a
+member only by registering on the site with the same address.
 
 A treasurer who is not an account administrator sees the names without links: the member
 record is the account administrator's screen.

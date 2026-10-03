@@ -56,10 +56,15 @@ export function useMembers(query: MemberListQuery): UseQueryResult<Paginated<Mem
   });
 }
 
+/** The query key of the member record `id`. */
+function memberKey(id: number | null) {
+  return [...MEMBERS_KEY, 'detail', id] as const;
+}
+
 /** One member's detail record, or disabled while `id` is null or not a number. */
 export function useMember(id: number | null): UseQueryResult<MemberDetail> {
   return useQuery({
-    queryKey: [...MEMBERS_KEY, 'detail', id],
+    queryKey: memberKey(id),
     queryFn: () => api.get<MemberDetail>(`/admin/members/${id}`),
     enabled: id !== null && Number.isFinite(id),
   });
@@ -70,18 +75,23 @@ function useInvalidateMembers(): () => Promise<void> {
   return () => queryClient.invalidateQueries({ queryKey: MEMBERS_KEY });
 }
 
+/** The finance reports and the renewals lists, keyed apart from the finance area. */
+const PAYMENT_REPORTS_KEY = ['admin', 'payments'] as const;
+const RENEWALS_KEY = ['admin', 'renewals'] as const;
+
 /**
- * Invalidates every member query, the users list, and the finance area, for a change
- * that reaches an account's money as well as its record.
+ * Invalidates every member query, the users list, the finance area, its reports, and
+ * the renewals lists, for a change that reaches an account's money as well as its
+ * record.
  */
 function useInvalidateAccounts(): () => Promise<void> {
   const queryClient = useQueryClient();
   return async () => {
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: MEMBERS_KEY }),
-      queryClient.invalidateQueries({ queryKey: FINANCE_KEY }),
-      queryClient.invalidateQueries({ queryKey: ADMIN_USERS_KEY }),
-    ]);
+    await Promise.all(
+      [MEMBERS_KEY, FINANCE_KEY, ADMIN_USERS_KEY, PAYMENT_REPORTS_KEY, RENEWALS_KEY].map(
+        (queryKey) => queryClient.invalidateQueries({ queryKey }),
+      ),
+    );
   };
 }
 
@@ -108,13 +118,20 @@ export function useUpdateMember(
 
 /**
  * Deletes a member, friend, or donor. Their payments move to the "Deleted member {id}"
- * account, so the finance area and the users list are invalidated with the members.
+ * account, so the finance area, its reports, the renewals, and the users list are
+ * invalidated with the members, and the deleted record's own query is dropped.
  */
 export function useDeleteMember(id: number): UseMutationResult<null, Error, void> {
+  const queryClient = useQueryClient();
   const invalidate = useInvalidateAccounts();
   return useMutation({
     mutationFn: () => api.delete<null>(`/admin/members/${id}`),
-    onSuccess: () => invalidate(),
+    // The record is gone: dropping its query, rather than refetching it, keeps the
+    // record from flashing "could not be loaded" before the page moves on.
+    onSuccess: () => {
+      queryClient.removeQueries({ queryKey: memberKey(id), exact: true });
+      return invalidate();
+    },
   });
 }
 

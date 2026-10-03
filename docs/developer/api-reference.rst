@@ -453,7 +453,12 @@ as who may edit an aircraft record, are separate classes in the owning app
 ``treasurer`` grants the finance area and nothing else.  It is deliberately
 kept away from ``/admin/members/*``, which carries medical and certificate
 data, so a volunteer who keeps the books reads the money without reading
-anybody's medical currency.  An ``account_admin`` holds both.  Like every slug
+anybody's medical currency.  An ``account_admin`` holds both, except the
+donors report, ``GET /admin/payments/donors``, which is the treasurer's alone.
+A donor appears on no member list, so the portal reaches a donor's record
+from the donors report for a reader holding both roles, and from the
+**Member record** link on a payment, a ledger, or a user record for any
+reader holding ``account_admin``; no role reaches anything more for it.  Like every slug
 in ``STAFF_ROLE_SLUGS`` it does widen one thing outside the API: the holder
 reads the website's members-only pages whatever their own membership says.
 
@@ -631,7 +636,7 @@ not (see :ref:`api-csrf-bootstrap`).
      - ✓
      - ·
      - ·
-     - ``PUT`` → 405
+     - ``PUT`` → 405; a tombstone refuses ``PATCH`` with 400
    * - ``POST /admin/users/{id}/send-password-reset``
      - ·
      - ·
@@ -815,7 +820,7 @@ not (see :ref:`api-csrf-bootstrap`).
      - ·
      - ·
      - ✓
-     - ``PUT`` → 405; delete is a hard delete
+     - ``PUT`` → 405; delete is a hard delete; a tombstone refuses ``PATCH`` and ``DELETE`` with 400
    * - ``GET | POST /admin/darts``
      - ·
      - ·
@@ -839,7 +844,7 @@ not (see :ref:`api-csrf-bootstrap`).
      - ·
      - ·
      - ✓
-     - grants a term
+     - grants a term; a donor or a tombstone is refused with 400
    * - ``POST /admin/members/{id}/friend``
      - ·
      - ·

@@ -45,6 +45,7 @@ export function makePayment(overrides: Partial<Payment> = {}): Payment {
     user_id: 37,
     user_name: 'Marta Reyes',
     user_email: 'marta@example.org',
+    user_is_tombstone: false,
     plan: 'Annual',
     kind: 'both',
     amount_cents: 14_500,
@@ -148,6 +149,7 @@ export function makeLedger(overrides: Partial<MemberLedger> = {}): MemberLedger 
       id: 37,
       name: 'Marta Reyes',
       email: 'marta@example.org',
+      is_tombstone: false,
       membership: {
         status: 'current',
         expires_on: '2027-01-08',

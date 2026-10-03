@@ -22,6 +22,7 @@ import { DateText } from '@/portal/components/DateText';
 import { EmptyState } from '@/portal/components/EmptyState';
 import { Field } from '@/portal/components/Field';
 import { Loading } from '@/portal/components/Loading';
+import { MemberRecordLink } from '@/portal/components/MemberRecordLink';
 import { Money } from '@/portal/components/Money';
 import { Page } from '@/portal/components/Page';
 import { StatusChip } from '@/portal/components/StatusChip';
@@ -82,7 +83,8 @@ function Facts({ payment }: FactsProps): JSX.Element {
         <dt>Member</dt>
         <dd>
           <Link to={`/admin/payments/members/${payment.user_id}`}>{payment.user_name}</Link>{' '}
-          <span className="muted">{payment.user_email}</span>
+          <span className="muted">{payment.user_email}</span>{' '}
+          <MemberRecordLink userId={payment.user_id} isTombstone={payment.user_is_tombstone} />
         </dd>
       </div>
       <div>

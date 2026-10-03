@@ -18,7 +18,9 @@ it. Four cards follow.
 **Where this account stands**
    The kind of account (**Member**, **Friend**, or **Donor**), the membership chip, and
    *Profile complete* or *Profile incomplete*. A donor's card adds *A donor gave through the
-   public site and cannot sign in. Fix the email address here if a receipt went astray.*
+   public site and cannot sign in. Fix the email address here if a receipt went astray.* If
+   you are an account administrator too, **Member record** opens the person's
+   :doc:`member-record`, where a donor can be deleted.
 
 **Account**
    **First name**, **Last name**, and **Email address**, with the hint *This is also how
@@ -146,7 +148,9 @@ the owner to reset the password once they are back in. Deleting an account is an
 administrator's job, on the **Danger zone** tab of the :doc:`member-record`; the person's
 payments stay in the books under the name **Deleted member** and the account's number.
 That name belongs to a deactivated account, so the :doc:`users` list shows it only when
-**Account status** includes deactivated accounts.
+**Account status** includes deactivated accounts. Its record cannot be changed: pressing
+**Save changes** on it is answered *This record keeps a deleted member's payments in the
+books and cannot be changed.*
 
 
 Blocking reactivation

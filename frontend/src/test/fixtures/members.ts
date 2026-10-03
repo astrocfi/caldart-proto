@@ -110,6 +110,7 @@ export function makeDetail(overrides: Partial<MemberDetail> = {}): MemberDetail 
     reactivation_blocked: false,
     friend_on: null,
     kind: 'member',
+    is_tombstone: false,
     roles: ['member'],
     created_at: '2024-07-01T12:00:00Z',
     email_verified_at: '2024-07-01T12:05:00Z',

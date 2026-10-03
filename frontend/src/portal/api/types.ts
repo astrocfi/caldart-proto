@@ -574,6 +574,8 @@ export interface MemberDetail {
   /** Set by a user administrator: the account stays deactivated until it is lifted. */
   reactivation_blocked: boolean;
   kind: AccountKind;
+  /** True for a "Deleted member N" account, which keeps a deleted account's payments. */
+  is_tombstone: boolean;
   /** The day a member who is to become a friend becomes one; null when none is pending. */
   friend_on: IsoDate | null;
   roles: RoleSlug[];
@@ -909,6 +911,8 @@ export interface Payment {
   user_id: number;
   user_name: string;
   user_email: string;
+  /** True when the payer is a "Deleted member N" account, whose record cannot be changed. */
+  user_is_tombstone: boolean;
   plan: string | null;
   kind: PaymentKind;
   amount_cents: number;
@@ -1323,6 +1327,8 @@ export interface DonorRow {
   refunded_cents: number;
   net_cents: number;
   active: boolean;
+  /** True for the "Deleted member N" row of a deleted account's gifts. */
+  is_tombstone: boolean;
 }
 
 /** The counts one year-end statement run reports, and who they were about. */
@@ -1347,6 +1353,8 @@ export interface LedgerMember {
   id: number;
   name: string;
   email: string;
+  /** True for a "Deleted member N" account, which keeps a deleted account's payments. */
+  is_tombstone: boolean;
   membership: MembershipStatus;
 }
 
