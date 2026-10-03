@@ -63,11 +63,19 @@ added later lands in a file of its own rather than growing one:
 ``senders.py``
     Who may send to whom: ``sender_context``, everyone for CalDART management and
     one DART for a DART leader, and ``dart_limit``, the DART one email may go to.
+``delivery.py``
+    What became of the copies after they went: a later bounce tied back to its
+    copy, **Retry failed**, one person's copy as it went, and hiding an email
+    from **Messages**.
+``archive.py``
+    The **Messages** page: the bulk emails a person received, each as their own
+    copy.
 ``api/``
     The endpoints: ``drafts.py``, ``batch.py``, ``history.py``, ``sender.py``
     (**Run now**), ``sender_context.py`` (``GET /bulk-email/sender``),
-    ``richtext.py`` (the field catalog and image uploads), ``preview.py``, and
-    ``checks.py`` (the checks and the test copy), with the serializers in
+    ``richtext.py`` (the field catalog and image uploads), ``preview.py``,
+    ``checks.py`` (the checks and the test copy), ``delivery.py`` (retry, a copy,
+    hide), and ``archive.py`` (``/messages``), with the shared serializers in
     ``serializers.py``.
 ``management/commands/send_bulk_emails.py``
     One run of the sender.
@@ -251,7 +259,9 @@ row becomes ``skipped`` with *Not in your DART* or *Opted out of <type>*, and
 handed to the mail server its row is saved first, ``sent`` with its
 ``Message-ID``, and only then the email's counts, all outside any transaction, so a
 run that dies after the hand-over leaves the copy marked sent and the next run does
-not send it again.  The run reads ``stop_requested`` afresh before each copy's
+not send it again.  The counts are added to in the database (``F() + 1``) rather
+than written from the email held in memory, so a bounce moved off ``sent_count``
+while the email sends (`After the send`_) stays moved.  The run reads ``stop_requested`` afresh before each copy's
 pause and again after it.  A **Stop** takes effect there: every copy not yet sent
 becomes ``stopped``, and one ``bulk_email.stop`` audit line names who pressed it.
 A stop that arrives after the last copy has nothing to keep back: the email is
@@ -333,8 +343,11 @@ now, and a test copy the sender's own, so all three read alike.  The preview's i
 inert (``inert=True``): its footer reads as the copy's, but its unsubscribe link
 carries ``render.PREVIEW_STAND_IN`` where a signed token goes and it has no headers,
 so showing a person's copy to a sender never hands over a link that would turn that
-person's email off.  The test copy carries the sender's own real link.  The footer and the
-headers follow the email's type (:ref:`email-unsubscribe`).  For
+person's email off.  The test copy carries the sender's own real link.  Above the footer
+every copy but a test copy carries *View this email in your browser*, a link to the
+email on the recipient's **Messages** page, ``<SITE_URL>/portal/messages/<id>``
+(``render.browser_url``; `After the send`_).  The footer and the headers follow the
+email's type (:ref:`email-unsubscribe`).  For
 a type recipients may turn off, both bodies end with ``unsubscribe.footer_for``'s line
 and the recipient's own unsubscribe link, and the copy carries
 ``unsubscribe.headers_for``'s ``List-Unsubscribe`` and ``List-Unsubscribe-Post``
@@ -458,6 +471,43 @@ purpose ``bulk_email_test`` (:doc:`email`), so Sent Emails lists it, and touches
 nothing of the send: no row joins the batch, and no count moves.  Every call sends
 one more copy.  A mail server that refuses it raises ``MailRefusedError``, which the
 endpoint answers with a 503.
+
+
+After the send
+==============
+
+The sender records each copy's immediate answer.  ``delivery.py`` joins the later
+picture to it, and ``archive.py`` lets every recipient read the email again; the
+endpoints are under :ref:`api-bulk-email-delivery` and :ref:`api-bulk-email-messages`.
+
+**Bounces.**  ``BulkEmailConfig.ready`` connects ``delivery.on_email_log_saved`` to
+every save of a ``mail.EmailLog``.  When the bounce check (:ref:`email-bounces`)
+marks a row of the ``bulk_email`` purpose ``bounced``, the receiver finds the
+recipient row with the same ``message_id`` (indexed) that still reads ``sent``,
+marks it ``bounced`` with the report's detail as its reason, and moves one from
+``sent_count`` to ``bounced_count``.  The mail app never imports this one: the
+receiver lives here, and so does the link each copy's row on the Sent Emails page
+carries to its bulk email, which ``ready`` registers with ``apps.mail.links``.
+
+**Retry failed.**  ``delivery.retry_failed`` takes a ``sent`` email whose copies
+include ``failed`` ones, puts those back to ``pending`` and out of
+``failed_count``, records a ``BulkEmailRetry``, and queues the email to start now,
+the path **Send the rest** takes.  The email keeps its ``started_at``, so it stays
+read-only (:ref:`the edit rule <bulk-email-edit-rule>`), and the sender's own checks
+apply to the retried copies as to any: the sender's right to send the type at the
+claim, and each person's opt-out before their copy.  A stopped email sends the rest
+first; its failed copies can be retried once it has finished.
+
+**A copy as it went.**  ``delivery.recipient_copy`` rebuilds one tried copy with
+``render.render_copy`` from the row's stored ``values``.  So does the archive, for
+the reader's own row.  Neither ever reads the account's values as they are now.
+
+**Messages.**  ``archive.messages_for`` lists the emails with a row naming the reader
+that reads ``sent`` or ``bounced``, not hidden from the archive, newest copy first;
+``archive.message_for`` opens one, and anything else is a 404.  Every copy links to
+its page there (``render.view_url``, on ``SITE_URL``), and CalDART management can
+hide an email from every recipient's list (``delivery.set_hidden``) without changing
+its history.
 
 
 Extending

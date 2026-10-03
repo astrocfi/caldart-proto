@@ -264,7 +264,7 @@ reminder run's ``failed`` count reports it as well.
         "subject": "CalDART: your receipt for $95.00",
         "sent_at": "2026-01-08T09:00:02-08:00", "status": "sent", "error": "",
         "attachments": "receipt-2026-0041.pdf", "bounced_at": null,
-        "bounce_detail": ""}
+        "bounce_detail": "", "link": ""}
      ]
    }
 
@@ -306,6 +306,13 @@ reminder run's ``failed`` count reports it as well.
 
 ``attachments``
    The filenames that rode along, comma-separated, and blank when none did.
+
+``link``
+   The portal page the message belongs to, relative to the portal, and blank for a
+   message that stands alone.  A copy of a bulk email links to that email's page on
+   **Sent**, ``/bulk-email/sent/<id>`` (:ref:`api-bulk-email-delivery`).  The mail app
+   asks every source an app registered with ``apps.mail.links.register_log_links``,
+   once per page.
 
 =================  ============================================================
 Parameter          Effect

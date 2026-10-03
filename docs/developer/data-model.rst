@@ -326,6 +326,7 @@ Mail, reminders, reports, notifications, and the CMS pages
           BulkAdd [label="bulk_email.BatchAdd"];
           BulkRecipient [label="bulk_email.\nBulkEmailRecipient"];
           BulkImage [label="bulk_email.\nBulkEmailImage"];
+          BulkRetry [label="bulk_email.\nBulkEmailRetry"];
       
           Email -> User [label="user\nSET_NULL"];
           OptOut -> User [label="user\nCASCADE"];
@@ -344,6 +345,8 @@ Mail, reminders, reports, notifications, and the CMS pages
           BulkRecipient -> BulkAdd [label="added_by\nSET_NULL"];
           BulkRecipient -> User [label="user\nSET_NULL"];
           BulkImage -> User [label="uploaded_by\nSET_NULL"];
+          BulkRetry -> Bulk [label="bulk_email\nCASCADE"];
+          BulkRetry -> User [label="requested_by\nSET_NULL"];
       
           User -> Page [style=invis];
           Membership -> Page [style=invis];
@@ -414,6 +417,7 @@ Mail, reminders, reports, notifications, and the CMS pages
       bulk_email.BulkEmailRecipient
                                   one person in the batch, and what became of the copy
       bulk_email.BulkEmailImage   one image put into a bulk email's message
+      bulk_email.BulkEmailRetry   one press of Retry failed: when, by whom, how many
       cms.HomePage, cms.StandardPage, cms.NewsIndexPage, cms.NewsPage,
       cms.EventIndexPage, cms.EventPage, cms.DartIndexPage, cms.DartPage,
       cms.ContactPage, cms.DonatePage
@@ -457,6 +461,9 @@ Mail, reminders, reports, notifications, and the CMS pages
                                            -> bulk_email.BatchAdd FK, SET_NULL, nullable
       bulk_email.BulkEmailRecipient.user   -> accounts.User       FK, SET_NULL, nullable
       bulk_email.BulkEmailImage.uploaded_by
+                                           -> accounts.User       FK, SET_NULL, nullable
+      bulk_email.BulkEmailRetry.bulk_email -> bulk_email.BulkEmail FK, CASCADE
+      bulk_email.BulkEmailRetry.requested_by
                                            -> accounts.User       FK, SET_NULL, nullable
       cms.BasePage                         inherits wagtailcore.Page
       cms.<every page type>                inherits cms.BasePage
@@ -1232,7 +1239,9 @@ sender at work, and ``sent`` and ``stopped`` are the two ways a send ends
 ``BulkEmailRecipient.status``: where one person's copy of a bulk email stands.
 A row is ``batched`` while the email has not started; starting the send makes
 each ``pending`` or ``skipped``, each pending row then becomes ``sent`` or
-``failed``, and a stop makes the rest ``stopped``.
+``failed``, and a stop makes the rest ``stopped``.  A ``sent`` copy the bounce check
+later finds refused becomes ``bounced``, and **Retry failed** turns each ``failed``
+copy back to ``pending``.
 
 .. list-table::
    :header-rows: 1
@@ -1636,8 +1645,8 @@ descriptions live in ``apps/accounts/roles.py``:
        manage aircraft, and run payment, membership and aircraft reports
    * - ``management``
      - write a bulk email to a batch built from the member list's filters,
-       and send, schedule, cancel, or stop it (``BulkEmail``, below); nothing
-       else
+       send, schedule, cancel, or stop it, retry its failed copies, and hide it
+       from the recipients' Messages (``BulkEmail``, below); nothing else
    * - ``website_admin``
      - \+ the Wagtail admin: create, edit, delete, and publish pages, images,
        documents, redirects, and site settings
@@ -4375,15 +4384,23 @@ it.
    * - ``sent_count``
      - ``PositiveIntegerField``
      - not null; default ``0``
-     - how many copies the mail server took, kept up to date as each goes
+     - how many copies the mail server took, kept up to date as each goes; a copy that later bounces leaves it
    * - ``failed_count``
      - ``PositiveIntegerField``
      - not null; default ``0``
-     - how many copies it refused, kept up to date as each is tried
+     - how many copies it refused, kept up to date as each is tried; a copy **Retry failed** queues again leaves it
    * - ``skipped_count``
      - ``PositiveIntegerField``
      - not null; default ``0``
      - how many people in the batch were set aside when the send started
+   * - ``bounced_count``
+     - ``PositiveIntegerField``
+     - not null; default ``0``
+     - how many copies the bounce check later found refused by the recipient's server
+   * - ``hidden_from_archive``
+     - ``BooleanField``
+     - not null; default ``False``
+     - true while CalDART management keeps the email off its recipients' **Messages** page; changes nothing else
 
 **Constraints, indexes, and ordering.**
 
@@ -4399,13 +4416,15 @@ it.
 - ``stopped_by``: foreign key to ``accounts.User``, ``SET_NULL``, nullable; the reverse accessor is ``bulk_emails_stopped``.
 - ``adds``: the reverse of ``BatchAdd.bulk_email``.
 - ``recipients``: the reverse of ``BulkEmailRecipient.bulk_email``.
+- ``retries``: the reverse of ``BulkEmailRetry.bulk_email``.
 
 The content, the batch, and ``start_at`` change only while ``status`` is
 ``draft`` or ``queued``; ``apps.bulk_email.batch.locked_for_edit`` takes the
 row's lock and refuses anything later.  ``apps.bulk_email.job`` is the one
-writer of the counts, ``started_at``, ``sent_at``, and ``stopped_at``: it saves
-each copy's row and the counts as soon as that copy has been tried, so the counts
-always add up to the rows.
+writer of ``started_at``, ``sent_at``, and ``stopped_at``, and adds to the counts
+in the database as soon as each copy has been tried; ``apps.bulk_email.delivery``
+moves a bounced copy from ``sent_count`` to ``bounced_count`` and a retried one out
+of ``failed_count``, so each count always matches the rows of its status.
 
 ``BatchAdd``
 ------------
@@ -4525,11 +4544,11 @@ each copy went to whatever happens to the account later.
    * - ``reason``
      - ``CharField(200)``
      - not null; default ``""``
-     - why a copy was skipped (*Account deleted*, *Account deactivated*, *No email address*, *Invalid email address*, *Address bounced*, *Duplicate address*), failed (*Refused by the mail server*, *Temporarily refused, gave up after 3 retries*), or not sent (*Stopped by* the account that pressed **Stop**); blank otherwise
+     - why a copy was skipped (*Account deleted*, *Account deactivated*, *No email address*, *Invalid email address*, *Address bounced*, *Duplicate address*), failed (*Refused by the mail server*, *Temporarily refused, gave up after 3 retries*), bounced (the bounce report's status code and diagnostic), or not sent (*Stopped by* the account that pressed **Stop**); blank otherwise
    * - ``message_id``
      - ``CharField(255)``
      - not null; default ``""``
-     - the ``Message-ID`` the copy went out with, the same as its email log row's; blank until it is sent
+     - the ``Message-ID`` the copy went out with, the same as its email log row's, which is how a later bounce finds the copy; blank until it is sent
    * - ``tried_at``
      - ``DateTimeField``
      - null; default ``NULL``
@@ -4544,6 +4563,7 @@ each copy went to whatever happens to the account later.
 - ``bulk_email_recipient_once_per_round``: unique on ``bulk_email``, ``user``,
   and ``round`` where ``user`` is not null, so an account is in a batch once.
 - An index on ``bulk_email`` and ``status``, which the sender and the counts read.
+- An index on ``message_id``, which a bounce is matched by.
 - Ordering: ``id``.  The screens and the CSV files list the rows in surname order
   instead, the order the send goes in.
 
@@ -4552,6 +4572,51 @@ each copy went to whatever happens to the account later.
 - ``bulk_email``: foreign key to ``bulk_email.BulkEmail``, ``CASCADE``; the reverse accessor is ``recipients``.
 - ``user``: foreign key to ``accounts.User``, ``SET_NULL``, nullable; the reverse accessor is ``bulk_emails_received``.
 - ``added_by``: foreign key to ``bulk_email.BatchAdd``, ``SET_NULL``, nullable; the reverse accessor is ``recipients``.
+
+``BulkEmailRetry``
+------------------
+
+One press of **Retry failed** on a sent bulk email (:ref:`api-bulk-email-delivery`):
+every ``failed`` copy went back to ``pending`` then, for the background sender to try
+again.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 22 26 18 34
+
+   * - Field
+     - Type
+     - Null, default
+     - Meaning
+   * - ``id``
+     - ``BigAutoField``
+     - not null; assigned by the database
+     - primary key
+   * - ``bulk_email``
+     - ``ForeignKey`` to ``bulk_email.BulkEmail``, ``CASCADE``
+     - not null; required
+     - the email; related name ``retries``
+   * - ``requested_by``
+     - ``ForeignKey`` to ``accounts.User``, ``SET_NULL``
+     - null; default ``NULL``
+     - who pressed **Retry failed**; null once that account is deleted; related name ``bulk_email_retries``
+   * - ``requested_at``
+     - ``DateTimeField``
+     - not null; required
+     - when it was pressed
+   * - ``count``
+     - ``PositiveIntegerField``
+     - not null; required
+     - how many failed copies it queued again
+
+**Constraints, indexes, and ordering.**
+
+- Ordering: ``requested_at``, then ``id``, the order the retries were pressed.
+
+**Relationships.**
+
+- ``bulk_email``: foreign key to ``bulk_email.BulkEmail``, ``CASCADE``; the reverse accessor is ``retries``.
+- ``requested_by``: foreign key to ``accounts.User``, ``SET_NULL``, nullable; the reverse accessor is ``bulk_email_retries``.
 
 ``BulkEmailImage``
 ------------------

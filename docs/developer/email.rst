@@ -313,7 +313,9 @@ Django admin.
 **Sent** means the relay accepted the message.  It does not mean the message
 reached an inbox.  A message the recipient's server later refuses for good turns
 **Bounced** once the bounce check has read the report (`Bounces`_).  The Sent
-Emails page filters on that status and shows when each message bounced and why.
+Emails page filters on that status and shows when each message bounced and why.  A copy of a bulk email links from its row to that email's page on **Sent**
+(``link`` in ``GET /system/emails``): the mail app knows nothing of bulk email, so
+the bulk email app registers the link with ``apps.mail.links.register_log_links``.
 
 .. _email-refused:
 
@@ -411,7 +413,11 @@ How it works
    ``bounce_detail`` (the status code and the diagnostic text, cut to 255
    characters), and flags the account whose *current* address is the one the
    row was sent to: ``User.email_bounced_at`` and ``email_bounce_detail``.  An
-   account that has moved to another address since is not flagged.
+   account that has moved to another address since is not flagged.  A row
+   that is a copy of a bulk email (the purpose ``bulk_email``) is tied back to that
+   copy as it is saved: the bulk email's recipient row with the same ``Message-ID``
+   reads ``bounced`` with the same detail, and the bulk email's delivery report counts
+   it as bounced (:ref:`api-bulk-email-delivery`).
 6. Each message's writes are one database savepoint.  Header values have every
    control character, a NUL included, turned into a space before anything is
    stored, and a report whose writes the database still refuses is rolled back,
