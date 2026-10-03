@@ -79,8 +79,12 @@ export function QueuedStatus({ email }: StatusProps): JSX.Element {
           <progress
             className="bulk-email__progress"
             aria-label="Time left before sending starts"
-            max={email.undo_seconds}
-            value={Math.max(0, email.undo_seconds - seconds)}
+            max={Math.max(email.undo_seconds, 1)}
+            value={
+              seconds > 0
+                ? Math.max(0, email.undo_seconds - seconds)
+                : Math.max(email.undo_seconds, 1)
+            }
           />
         </>
       )}

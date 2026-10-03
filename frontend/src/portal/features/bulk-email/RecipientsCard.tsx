@@ -8,7 +8,7 @@
  * One person can be taken out with the trashcan, or everybody with **Clear
  * batch**; both ask first. **Download list** saves the batch as a spreadsheet.
  */
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ChangeEvent, JSX } from 'react';
 
 import { ApiError } from '@/portal/api/client';
@@ -22,6 +22,7 @@ import { DataTable } from '@/portal/components/DataTable';
 import { DeleteButton } from '@/portal/components/DeleteButton';
 import { FilterBar } from '@/portal/components/FilterBar';
 import { StatusDot } from '@/portal/components/StatusChip';
+import { SEARCH_DEBOUNCE_MS } from '@/portal/components/useDebounced';
 import { listFilters, REPORTS } from '@/portal/reports/definitions';
 import type { FilterValues } from '@/portal/reports/types';
 import { batchCsvUrl, useAddToBatch, useBatch, useClearBatch, useRemoveFromBatch } from './api';
@@ -29,6 +30,12 @@ import { addSentence, batchSentence, kindLabel, people } from './status';
 
 /** The member list's filters, less any only a subscription offers. */
 const FILTER_FIELDS = listFilters(REPORTS.members);
+
+/**
+ * How long Add to batch waits before it reads the filters: longer than the filter
+ * bar's pause, so words typed just before the press have been applied.
+ */
+const ADD_SETTLE_MS = SEARCH_DEBOUNCE_MS + 100;
 
 /** What the card says when a request fails without a message of its own. */
 const FALLBACK_ERROR = 'That did not work. Try again.';
@@ -44,6 +51,7 @@ export function RecipientsCard({ emailId, isEditable }: RecipientsCardProps): JS
   const [filters, setFilters] = useState<FilterValues>({});
   const [lastAdd, setLastAdd] = useState<BulkEmailAddResult | null>(null);
   const [search, setSearch] = useState('');
+  const [isSettling, setIsSettling] = useState(false);
 
   const darts = useDarts();
   const dartOptions = useMemo(
@@ -58,7 +66,18 @@ export function RecipientsCard({ emailId, isEditable }: RecipientsCardProps): JS
   const remove = useRemoveFromBatch(emailId);
   const clear = useClearBatch(emailId);
 
+  // The filters as last applied, read by an add once the bar has settled.
+  const filtersRef = useRef(filters);
+  const addTimer = useRef<number | null>(null);
+  useEffect(
+    () => () => {
+      if (addTimer.current !== null) window.clearTimeout(addTimer.current);
+    },
+    [],
+  );
+
   const handleFilterChange = (next: FilterValues): void => {
+    filtersRef.current = next;
     setFilters(next);
   };
 
@@ -66,9 +85,16 @@ export function RecipientsCard({ emailId, isEditable }: RecipientsCardProps): JS
     ? (rowId: number): Promise<unknown> => remove.mutateAsync(rowId)
     : undefined;
 
+  // A search typed just before the press applies after a short pause, so the add
+  // waits out that pause; otherwise it would add whoever the old filters chose.
   const handleAdd = (): void => {
     setLastAdd(null);
-    add.mutate(filters, { onSuccess: (result) => setLastAdd(result) });
+    setIsSettling(true);
+    addTimer.current = window.setTimeout(() => {
+      addTimer.current = null;
+      setIsSettling(false);
+      add.mutate(filtersRef.current, { onSuccess: (result) => setLastAdd(result) });
+    }, ADD_SETTLE_MS);
   };
 
   const handleSearchChange = (event: ChangeEvent<HTMLInputElement>): void => {
@@ -93,8 +119,8 @@ export function RecipientsCard({ emailId, isEditable }: RecipientsCardProps): JS
             label="Choose people to add"
           />
           <div className="cluster">
-            <Button onClick={handleAdd} disabled={add.isPending}>
-              {add.isPending ? 'Adding…' : 'Add to batch'}
+            <Button onClick={handleAdd} disabled={add.isPending || isSettling}>
+              {add.isPending || isSettling ? 'Adding…' : 'Add to batch'}
             </Button>
           </div>
           {lastAdd === null ? null : <p role="status">{addSentence(lastAdd)}</p>}

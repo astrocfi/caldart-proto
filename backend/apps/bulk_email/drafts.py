@@ -92,13 +92,17 @@ def update(bulk: BulkEmail, changes: dict[str, object]) -> BulkEmail:
     """Save ``changes``, field name to value, onto ``bulk``; return it as saved.
 
     The values are taken as given: the API's serializer has checked them.  Editing a
-    queued email leaves its start time alone.  Raises ``DomainError`` once the email
-    has started sending.
+    queued email leaves its start time alone, but cannot leave it without a subject
+    or a message, which it is about to be sent with.  Raises ``DomainValidationError``
+    keyed ``subject`` or ``body`` for that, and ``DomainError`` once the email has
+    started sending.
     """
     with transaction.atomic():
         locked = locked_for_edit(bulk)
         for name, value in changes.items():
             setattr(locked, name, value)
+        if locked.status == BulkEmailStatus.QUEUED:
+            _check_content(locked)
         locked.save(update_fields=[*changes, "updated_at"])
     return locked
 
@@ -145,10 +149,7 @@ def queue(
     moment = now if now is not None else timezone.now()
     with transaction.atomic():
         locked = locked_for_edit(bulk)
-        if locked.subject.strip() == "":
-            raise DomainValidationError("subject", NO_SUBJECT_MESSAGE)
-        if locked.body.strip() == "":
-            raise DomainValidationError("body", NO_BODY_MESSAGE)
+        _check_content(locked)
         receiving = batch_counts(batch_rows(locked)).receiving
         if receiving == 0:
             raise DomainValidationError("batch", NOBODY_MESSAGE)
@@ -263,6 +264,14 @@ def confirm_message(receiving: int) -> str:
     """The refusal of a typed count that no longer matches: the batch's count now."""
     people = "1 person" if receiving == 1 else f"{receiving} people"
     return f"The batch has changed: it now holds {people}. Type the new count."
+
+
+def _check_content(bulk: BulkEmail) -> None:
+    """Refuse an email without a subject or a message, keyed by the one missing."""
+    if bulk.subject.strip() == "":
+        raise DomainValidationError("subject", NO_SUBJECT_MESSAGE)
+    if bulk.body.strip() == "":
+        raise DomainValidationError("body", NO_BODY_MESSAGE)
 
 
 def _check_confirm_count(confirm_count: int | None, receiving: int) -> None:

@@ -85,10 +85,14 @@ export function useAutosave(email: BulkEmailDetail, isEditable: boolean): Autosa
     [isEditable, lastSaved, mutateAsync],
   );
 
+  // Only words that have held still and are still on the screen are saved: a save
+  // that `flush` made moves `lastSaved` on before the pause has caught up, and the
+  // older words the pause still holds must not overwrite it.
   const settled = useDebounced(values, AUTOSAVE_MS);
+  const isSettled = settled.subject === values.subject && settled.body === values.body;
   useEffect(() => {
-    void save(settled);
-  }, [settled, save]);
+    if (isSettled) void save(settled);
+  }, [isSettled, settled, save]);
 
   const isDirty = values.subject !== lastSaved.subject || values.body !== lastSaved.body;
   const saveState: SaveState = hasFailed ? 'failed' : isDirty || isPending ? 'saving' : 'saved';

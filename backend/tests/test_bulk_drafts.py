@@ -154,6 +154,19 @@ def test_editing_a_queued_email_keeps_its_start(ready: BulkEmail, management: Us
 
 
 @pytest.mark.parametrize(
+    ("field", "message"),
+    [("subject", drafts.NO_SUBJECT_MESSAGE), ("body", drafts.NO_BODY_MESSAGE)],
+)
+def test_a_queued_email_cannot_be_left_blank(
+    management_client: APIClient, ready: BulkEmail, management: User, field: str, message: str
+) -> None:
+    """An email about to go keeps its subject and message: blanking one is refused."""
+    drafts.queue(ready, confirm_count=None, start_at=None, actor=management)
+    response = management_client.patch(url(ready), {field: ""}, format="json")
+    assert response.json() == {field: [message]}
+
+
+@pytest.mark.parametrize(
     "status", [BulkEmailStatus.SENDING, BulkEmailStatus.SENT, BulkEmailStatus.STOPPED]
 )
 def test_a_started_email_cannot_be_edited(

@@ -95,7 +95,7 @@ test('CalDART management builds a batch from two filter sets and sends it', asyn
     .getByRole('navigation', { name: 'Portal sections' })
     .getByRole('link', { name: 'Sent', exact: true })
     .click();
-  await page.getByRole('link', { name: subject }).click();
+  await page.getByRole('link', { name: subject, exact: true }).click();
   await expect(page.getByText(/^Sent to \d+ (person|people)\. 0 failed/)).toBeVisible();
   const results = page.getByRole('table', { name: /^Results: / });
   await expect(results.getByRole('row').filter({ hasText: DEMO.sysadmin })).toContainText('Sent');

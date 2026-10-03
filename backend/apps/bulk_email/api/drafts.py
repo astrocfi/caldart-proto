@@ -96,7 +96,8 @@ class BulkEmailDetailView(APIView):
     def patch(self, request: Request, pk: int) -> Response:
         """200 with the email once the given fields are saved.
 
-        A queued email keeps its start time.  409 once it has started sending.
+        A queued email keeps its start time, and a blank subject or message for it is a
+        400 keyed by the field.  409 once it has started sending.
         """
         bulk = email_for(request, pk)
         payload = BulkEmailUpdateSerializer(data=request.data, partial=True)
@@ -104,6 +105,8 @@ class BulkEmailDetailView(APIView):
         changes: dict[str, Any] = dict(payload.validated_data)
         try:
             saved = drafts.update(bulk, changes)
+        except DomainValidationError:
+            raise
         except DomainError as error:
             return refused(error)
         return _detail(saved)

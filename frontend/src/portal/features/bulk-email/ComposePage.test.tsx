@@ -40,6 +40,15 @@ describe('ComposePage', () => {
     expect(calls.adds).toEqual([{ filters: {} }]);
   });
 
+  it('adds by a search typed just before the press', async () => {
+    const calls = answerBulkEmail(draftState());
+    renderCompose(draftState());
+    const filters = await screen.findByRole('search', { name: 'Choose people to add' });
+    await userEvent.type(within(filters).getByLabelText('Search'), 'bea');
+    await userEvent.click(screen.getByRole('button', { name: 'Add to batch' }));
+    await waitFor(() => expect(calls.adds).toEqual([{ filters: { search: 'bea' } }]));
+  });
+
   it('counts who will receive the email and who is skipped', async () => {
     const state = draftState({ batch_count: 2, receiving_count: 1, batch_skipped_count: 1 });
     state.batch = makeBatch([

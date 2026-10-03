@@ -140,9 +140,10 @@ field is **400**: ``subject`` reads *A subject is one line.* (for any character
 ``str.splitlines`` breaks on, from a carriage return to U+2028), *A subject cannot
 carry control characters such as tabs.* (for any other character in Unicode's
 ``Cc`` category), or DRF's length message; ``body`` reads DRF's length message.
-A queued email can still be changed, and keeps its ``start_at``.  Once the email
-has started sending the answer is **409** *This email has been sent and cannot be
-changed.*
+A queued email can still be changed, and keeps its ``start_at``, but it cannot be
+left without a subject or a message: blanking one is **400** *Write a subject.* or
+*Write the message.*, as **Send** refuses it.  Once the email has started sending
+the answer is **409** *This email has been sent and cannot be changed.*
 
 ``DELETE /bulk-email/{id}``
 ---------------------------
