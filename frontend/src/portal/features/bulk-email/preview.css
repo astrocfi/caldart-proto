@@ -1,6 +1,6 @@
-/* The email as one person receives it, drawn in a frame of its own, and the
- * sent message on its detail page.  The frame is tall enough for a short email
- * and scrolls for a long one; it is never wider than the screen. */
+/* The email as one person will receive it, in the compose preview, drawn in a
+ * frame of its own.  The frame is tall enough for a short email and scrolls for
+ * a long one; it is never wider than the screen. */
 .bulk-email__preview {
   border: var(--hairline) solid var(--color-rule);
   border-radius: var(--radius);

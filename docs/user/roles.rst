@@ -37,8 +37,9 @@ Every member and every friend of CalDART holds the member role. It opens the
 * **Change password** (:doc:`member/change-password`) and **Change email**
   (:doc:`member/change-email`).
 
-Every signed-in person also has **Email preferences** (:doc:`member/email-preferences`),
-under **Bulk Email** in the menu: which kinds of bulk email CalDART sends them.
+Every signed-in person also has **Messages** (:doc:`member/messages`) and **Email
+preferences** (:doc:`member/email-preferences`), under **Bulk Email** in the menu: the bulk
+emails CalDART has sent them, to read again, and which kinds of bulk email it sends them.
 
 A friend also reaches **Become a member** (:doc:`member/become-a-member`). While
 your membership is current, the members-only pages of the public site open to you

@@ -309,7 +309,9 @@ report, a domain module, can read it.
     and ``/admin/members/{id}/email-preferences``; the page
     ``/mail/unsubscribe/<token>``.  The app holds no sender of its own, so it
     sits below everything that mails anybody; it reads the account roles and
-    models from ``accounts``.
+    models from ``accounts``.  An app above it registers what it adds to the log:
+    labels for its purposes (``purposes.py``) and links from its messages to its
+    records (``links.py``).
 ``members``
     ``MemberProfile``, ``MembershipPlan``, and ``Membership``, and the rules
     for whether a membership is current.  Endpoints: the member's own
@@ -363,8 +365,11 @@ report, a domain module, can read it.
     ``/bulk-email/`` are the ``management`` role's.  ``richtext.py`` sanitizes a
     message's HTML and derives its plain text, ``fields.py`` holds the recipient
     fields a message can fill in, and ``images.py`` stores the images put into
-    one as ``BulkEmailImage`` rows.  It reads ``members``, so it sits beside
-    ``reports``.
+    one as ``BulkEmailImage`` rows.  ``delivery.py`` ties a later bounce back to
+    its copy (a ``post_save`` receiver on ``mail.EmailLog``) and retries the failed
+    copies, each retry a ``BulkEmailRetry``; ``archive.py`` is the **Messages**
+    page every signed-in person reads, ``/messages``.  It reads ``members``, so it
+    sits beside ``reports``.
 ``cms``
     The Wagtail page types, the StreamField blocks, ``SiteSettings``, the
     members-only wall, the ``site_chrome`` context processor and the

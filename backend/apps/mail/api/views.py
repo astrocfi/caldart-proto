@@ -20,6 +20,7 @@ from rest_framework import status
 from rest_framework.generics import ListAPIView
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.serializers import BaseSerializer
 from rest_framework.views import APIView
 
 from apps.accounts.api.views import signed_in_user
@@ -34,6 +35,7 @@ from apps.mail.api.serializers import (
 from apps.mail.bounces import BounceCheckError, check_bounces
 from apps.mail.dns_check import check_mail_dns
 from apps.mail.filters import EmailLogFilterSet
+from apps.mail.links import log_links
 from apps.mail.models import EmailLog
 from apps.mail.purposes import purpose_labels
 from apps.mail.reports import order_email_log
@@ -56,6 +58,24 @@ class EmailLogListView(ListAPIView[EmailLog]):
     def get_serializer_context(self) -> dict[str, Any]:
         """The standard context plus ``purpose_labels``, read once for the whole page."""
         return {**super().get_serializer_context(), "purpose_labels": purpose_labels()}
+
+    def get_serializer(self, *args: Any, **kwargs: Any) -> BaseSerializer[EmailLog]:
+        """The serializer, with the page's ``log_links`` read once when it lists rows.
+
+        Each row of a page links to the record it belongs to (``apps.mail.links``); the
+        links of the whole page are read in one pass rather than row by row.
+        """
+        # A caller that hands its own context, as drf-spectacular does while it builds
+        # the schema with no database, gets the serializer without one being read.
+        if "context" in kwargs:
+            return self.get_serializer_class()(*args, **kwargs)
+        context = self.get_serializer_context()
+        if kwargs.get("many") is True and len(args) > 0:
+            rows = list(args[0])
+            context["log_links"] = log_links(rows)
+            args = (rows, *args[1:])
+        # Not ``super()``: it reads the context afresh, and with it the purpose labels.
+        return self.get_serializer_class()(*args, context=context, **kwargs)
 
     def filter_queryset[R](self, queryset: QuerySet[EmailLog, R]) -> QuerySet[EmailLog, R]:
         """Narrow ``queryset`` by the filters and put it in the download's order.

@@ -126,29 +126,44 @@ export function timeLeft(iso: string | null, now: Date = new Date()): string {
   return minutes === 1 ? 'about 1 minute' : `about ${minutes} minutes`;
 }
 
+/**
+ * How many copies the mail server took: those still counted sent, and those that went
+ * and came back later, which the server counts as bounced instead.
+ */
+export function wentCount(
+  email: Pick<BulkEmailDetail, 'sent_count'> & { bounced_count?: number },
+): number {
+  return email.sent_count + (email.bounced_count ?? 0);
+}
+
 /** `Sending… 12 of 38 sent, about 1 minute left.`: a send in progress. */
 export function progressSentence(email: BulkEmailDetail, now: Date = new Date()): string {
-  const total = email.sent_count + email.failed_count + email.remaining;
-  return `Sending… ${email.sent_count} of ${total} sent, ${timeLeft(email.estimated_finish_at, now)} left.`;
+  const went = wentCount(email);
+  const total = went + email.failed_count + email.remaining;
+  return `Sending… ${went} of ${total} sent, ${timeLeft(email.estimated_finish_at, now)} left.`;
 }
 
 /**
  * `Sent to 37 people. 1 failed and 4 were skipped.`: what a finished or stopped
  * send came to.  With nothing failed or skipped it is `Sent to 51 people. Everyone
- * was sent a copy.`
+ * was sent a copy.`  Copies that came back undelivered later are counted as sent and
+ * then named: `2 came back undelivered.`
  */
 export function resultSentence(
   email: Pick<BulkEmailDetail, 'status' | 'sent_count' | 'failed_count' | 'skipped_count'> & {
     stopped_by?: string;
+    bounced_count?: number;
   },
 ): string {
-  const sent = `Sent to ${people(email.sent_count)}.`;
+  const bounced = email.bounced_count ?? 0;
+  const returned = bounced === 0 ? '' : ` ${bounced} came back undelivered.`;
+  const sent = `Sent to ${people(wentCount(email))}.`;
   const failed = `${email.failed_count} failed`;
   const skipped = `${email.skipped_count} ${email.skipped_count === 1 ? 'was' : 'were'} skipped`;
   const isEveryone = email.failed_count === 0 && email.skipped_count === 0;
   const counts = isEveryone
-    ? `${sent} Everyone was sent a copy.`
-    : `${sent} ${failed} and ${skipped}.`;
+    ? `${sent} Everyone was sent a copy.${returned}`
+    : `${sent} ${failed} and ${skipped}.${returned}`;
   if (email.status !== 'stopped') return counts;
   const who = email.stopped_by ? ` by ${email.stopped_by}` : '';
   return `Stopped${who}. ${counts}`;

@@ -56,6 +56,7 @@ from apps.members.filters import EXPORT_FILTER_PARAMS, MemberAdminFilterSet, mem
 from apps.members.models import MemberProfile, MembershipState
 from apps.members.services import membership_of, with_membership
 from caldart import audit
+from caldart.dates import format_display_datetime
 from caldart.exceptions import DomainError
 from caldart.reports import (
     CSV_DOCUMENT_TYPE,
@@ -112,6 +113,7 @@ RESULTS_CSV_HEADER: tuple[str, ...] = (
     "DART",
     "Result",
     "Reason",
+    "Tried at",
     "Email type",
 )
 
@@ -506,9 +508,10 @@ def results_document(bulk: BulkEmail) -> ReportDocument:
     """A send's results as a CSV, one row per person in the order the send went.
 
     The columns are :data:`RESULTS_CSV_HEADER`: the name, address, kind, and DART the
-    copy went to, the result in words (such as ``Sent``, ``Failed``, ``Skipped``, or
-    ``Not sent (stopped)``), the reason, and the email's type.  The file is named
-    ``caldart-bulk-email-<id>-recipients.csv``.
+    copy went to, the result in words (such as ``Sent``, ``Failed``, ``Skipped``,
+    ``Bounced``, or ``Not sent (stopped)``), the reason, when the copy was last tried
+    (``MM/DD/YYYY HH:MM`` in the site's time zone, blank when never), and the email's
+    type.  The file is named ``caldart-bulk-email-<id>-recipients.csv``.
     """
     type_name = email_type_name(bulk)
     rows = [
@@ -519,6 +522,7 @@ def results_document(bulk: BulkEmail) -> ReportDocument:
             row.dart_name,
             RecipientStatus(row.status).label,
             row.reason,
+            format_display_datetime(row.tried_at) if row.tried_at is not None else "",
             type_name,
         )
         for row in surname_order(batch_queryset(bulk))

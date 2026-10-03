@@ -3,8 +3,10 @@
 from django.urls import path
 
 from apps.bulk_email.api import (
+    archive,
     batch,
     checks,
+    delivery,
     drafts,
     history,
     preview,
@@ -38,5 +40,14 @@ urlpatterns = [
         history.RecipientsCsvView.as_view(),
         name="recipients-csv",
     ),
+    path("bulk-email/<int:pk>/retry", delivery.RetryView.as_view(), name="retry"),
+    path("bulk-email/<int:pk>/hide", delivery.HideView.as_view(), name="hide"),
+    path(
+        "bulk-email/<int:pk>/recipients/<int:rid>/copy",
+        delivery.RecipientCopyView.as_view(),
+        name="recipient-copy",
+    ),
+    path("messages", archive.MessageListView.as_view(), name="messages"),
+    path("messages/<int:pk>", archive.MessageDetailView.as_view(), name="message"),
     path("system/bulk-email/run", sender.SenderRunView.as_view(), name="sender-run"),
 ]

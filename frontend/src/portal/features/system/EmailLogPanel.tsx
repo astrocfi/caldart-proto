@@ -7,9 +7,11 @@
  * page, so a filtered view of the log is a link.  The export links download the
  * same rows as the `emails` report, carrying the filters, the order and the
  * columns chosen for the export, but every page rather than the one on screen.
+ * A message that belongs to a record, such as a copy of a bulk email, links to it.
  */
 import { useMemo, useState } from 'react';
 import type { JSX } from 'react';
+import { Link } from 'react-router-dom';
 
 import type { EmailLogEntry, EmailStatus } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
@@ -53,7 +55,9 @@ const COLUMNS: Column<EmailLogEntry>[] = [
     key: 'purpose',
     header: 'Purpose',
     sortable: false,
-    render: (row) => row.purpose_label,
+    // A copy of a bulk email leads to that email's page on Sent.
+    render: (row) =>
+      row.link === '' ? row.purpose_label : <Link to={row.link}>{row.purpose_label}</Link>,
   },
   {
     key: 'to',

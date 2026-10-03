@@ -18,7 +18,9 @@ What you see
 Each row is one email:
 
 - **Sent**: the date and time. Click the heading to turn the order round.
-- **Purpose**: what the email was for.
+- **Purpose**: what the email was for. For a copy of a bulk email, *Bulk email* is a link
+  to that email's page on :doc:`../bulk-email/sent`, where its delivery report shows every
+  copy.
 - **To**: the recipient's name, when CalDART knows it, and the address. A DART contact on a
   roster has a name and no account.
 - **Status**: *Sent*; *Failed:* and the reason the mail server gave; or *Bounced*, for an

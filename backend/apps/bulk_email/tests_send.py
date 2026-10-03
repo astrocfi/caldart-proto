@@ -37,7 +37,7 @@ def send_test(bulk: BulkEmail, *, actor: User) -> str:
     in the email log).
     """
     refuse_on_errors(bulk)
-    copy = render_for(bulk, actor, fill_values(bulk, actor))
+    copy = render_for(bulk, actor, fill_values(bulk, actor), view_url="")
     send_templated(
         to=actor.email,
         subject=f"{SUBJECT_PREFIX}{copy.subject}",

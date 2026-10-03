@@ -470,6 +470,17 @@ legend {
   cursor: not-allowed;
 }
 
+/* ---------------------------------------------------------- email frame */
+/* An email in a sandboxed frame (EmailFrame): tall enough for a short email, scrolling
+ * for a long one, and never wider than the screen. */
+.email-frame {
+  display: block;
+  width: 100%;
+  min-height: 28rem;
+  border: var(--hairline) solid var(--color-rule-strong);
+  border-radius: var(--radius);
+}
+
 /* ------------------------------------------------------ column chooser */
 /* A button with a small panel under it: the column chooser's Columns, Load
  * columns and Save columns each open one.  The panel's width suits a list of

@@ -47,6 +47,7 @@ from django.conf import settings
 from django.core.mail import mailers
 from django.core.mail.backends.base import BaseEmailBackend
 from django.db import connection, transaction
+from django.db.models import F
 from django.utils import timezone
 
 from apps.accounts.models import User
@@ -632,20 +633,25 @@ def _record(bulk: BulkEmail, row: BulkEmailRecipient, attempt: _Attempt, run: Se
 
     The row is saved first, with its status and ``Message-ID``, before the counts or
     anything else, so a run that dies after the hand-over leaves a copy that went
-    marked ``sent``, and the next run does not send it again.
+    marked ``sent``, and the next run does not send it again.  The count is added to in
+    the database, not written from ``bulk`` in memory, so a bounce the bounce check
+    moves off ``sent_count`` meanwhile (``apps.bulk_email.delivery``) is not undone.
     """
     row.status = attempt.status
     row.reason = attempt.reason
     row.message_id = attempt.message_id
     row.tried_at = timezone.now()
     row.save(update_fields=["status", "reason", "message_id", "tried_at", "values", "updated_at"])
-    if attempt.status == RecipientStatus.SENT:
-        bulk.sent_count += 1
+    is_sent = attempt.status == RecipientStatus.SENT
+    counter = "sent_count" if is_sent else "failed_count"
+    BulkEmail.objects.filter(pk=bulk.pk).update(
+        **{counter: F(counter) + 1, "updated_at": timezone.now()}
+    )
+    bulk.refresh_from_db(fields=["sent_count", "failed_count", "updated_at"])
+    if is_sent:
         run.sent += 1
     else:
-        bulk.failed_count += 1
         run.failed += 1
-    bulk.save(update_fields=["sent_count", "failed_count", "updated_at"])
     tally = run.tallies.setdefault(bulk.pk, [0, 0])
     tally[0 if attempt.status == RecipientStatus.SENT else 1] += 1
     run.actions.append(
@@ -696,15 +702,23 @@ def _finish(bulk: BulkEmail) -> None:
     """Mark ``bulk`` sent once no copy is pending, and write its audit line.
 
     A stop that arrived after the last copy has nothing left to stop: its request and
-    its ``stopped_by`` are cleared, and no stop is recorded.
+    its ``stopped_by`` are cleared, and no stop is recorded.  The first time an email
+    finishes, ``sent_at`` is set and one ``bulk_email.send`` line written.  An email
+    finishing again after **Retry failed** keeps its first ``sent_at`` and writes
+    :func:`_retry_finished`'s line instead.
     """
     if bulk.recipients.filter(status=RecipientStatus.PENDING).exists():
         return
+    is_retry = bulk.sent_at is not None
     bulk.status = BulkEmailStatus.SENT
-    bulk.sent_at = timezone.now()
+    if not is_retry:
+        bulk.sent_at = timezone.now()
     bulk.stop_requested = False
     bulk.stopped_by = None
     bulk.save(update_fields=["status", "sent_at", "stop_requested", "stopped_by", "updated_at"])
+    if is_retry:
+        _retry_finished(bulk)
+        return
     audit.record(
         audit.BULK_EMAIL_SEND,
         actor=bulk.sender if bulk.sender is not None else audit.COMMAND_ACTOR,
@@ -712,4 +726,25 @@ def _finish(bulk: BulkEmail) -> None:
         sent=bulk.sent_count,
         skipped=bulk.skipped_count,
         failed=bulk.failed_count,
+    )
+
+
+def _retry_finished(bulk: BulkEmail) -> None:
+    """Write the ``bulk_email.retry_finished`` line of ``bulk``'s latest retry.
+
+    It names who pressed **Retry failed** (or the ``command`` actor once that account
+    is gone), the copies the retry queued, and how many of the copies tried since it was
+    pressed went and failed.
+    """
+    retry = bulk.retries.order_by("-requested_at", "-pk").select_related("requested_by").first()
+    if retry is None:
+        return
+    tried = bulk.recipients.filter(tried_at__gte=retry.requested_at)
+    audit.record(
+        audit.BULK_EMAIL_RETRY_FINISHED,
+        actor=retry.requested_by if retry.requested_by is not None else audit.COMMAND_ACTOR,
+        target=bulk,
+        recipients=retry.count,
+        sent=tried.filter(status__in=[RecipientStatus.SENT, RecipientStatus.BOUNCED]).count(),
+        failed=tried.filter(status=RecipientStatus.FAILED).count(),
     )

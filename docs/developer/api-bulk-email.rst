@@ -10,17 +10,23 @@ of people built from the member list's filters, the send that queues it, and its
 results.  Nothing is sent in a request: the background sender sends
 (:doc:`bulk-email`).  The portal's Bulk Email screens read them: Compose at
 ``/bulk-email/compose``, the compose screen of one email at
-``/bulk-email/compose/{id}``, **Drafts & scheduled**, and **Sent**.
+``/bulk-email/compose/{id}``, **Drafts & scheduled**, and **Sent**.  The
+``/messages`` endpoints, under :ref:`api-bulk-email-messages`, are every signed-in
+person's own: the bulk emails they received, read on the portal's **Messages** page.
 :doc:`api-reference` covers the conventions these endpoints share: session
 authentication, the CSRF header, and the error shapes.
 
 Every endpoint here is the ``management`` role's (*CalDART management*) and the
 ``dart_leader`` role's (``IsBulkSender``), and a ``system_admin`` passes as always.
 Any other role is refused with **403**, and an anonymous caller with **401**.
-``POST /system/bulk-email/run`` is the system administrator's alone.  A caller
+``POST /system/bulk-email/run`` is the system administrator's alone, and ``POST
+/bulk-email/{id}/hide`` CalDART management's alone; ``GET /messages`` and ``GET
+/messages/{id}`` answer every signed-in caller.  A caller
 reaches the emails ``apps.bulk_email.drafts.visible_to`` gives them, which for
 CalDART management is every email, whoever its sender, and for a DART leader the
-emails they are the sender of; any other id is **404**.
+emails they are the sender of; any other id is **404**.  So a DART leader retries the
+failed copies of, and reads the copies on the delivery report of, their own emails
+alone.
 
 CalDART management sends to any member or friend.  A DART leader sends only to the
 DART on their own member profile (:ref:`api-bulk-email-dart-leaders`).
@@ -125,6 +131,10 @@ One email, with everything the compose and Sent screens show:
     "sent_count": 12,
     "failed_count": 0,
     "skipped_count": 1,
+    "bounced_count": 0,
+    "retried_count": 0,
+    "retries": [],
+    "hidden_from_archive": false,
     "can_edit": false,
     "batch_count": 41,
     "receiving_count": 40,
@@ -157,7 +167,14 @@ chose it.  ``batch_count``, ``receiving_count``, and ``batch_skipped_count`` cou
 the batch as ``GET /bulk-email/{id}/batch`` does.  ``remaining`` counts the copies
 waiting to be sent, and ``estimated_finish_at`` is now plus ``remaining`` at
 ``BULK_EMAIL_RATE_PER_MINUTE``, while the email is ``sending``, and null
-otherwise.  ``stopped_by`` is who pressed **Stop**.  ``confirm_above`` is
+otherwise.  ``stopped_by`` is who pressed **Stop**.  Each count counts the rows
+of that result: ``bounced_count`` the copies the bounce check later found refused,
+which ``sent_count`` then no longer counts (:ref:`api-bulk-email-delivery`).
+``retries`` lists each press of **Retry failed**, oldest first, as
+``{"id", "requested_at", "requested_by", "count"}`` (``requested_by`` a display name,
+blank once the account is deleted), and ``retried_count`` adds up their counts.
+``hidden_from_archive`` is true while the email is kept off its recipients'
+**Messages** page.  ``confirm_above`` is
 ``BULK_EMAIL_CONFIRM_ABOVE`` and ``undo_seconds`` is ``BULK_EMAIL_UNDO_SECONDS``,
 which the screen's confirmation and countdown read.  The portal reads this every
 three seconds while the email is ``queued`` or ``sending``.
@@ -457,7 +474,9 @@ One send's results as a CSV download, ``caldart-bulk-email-<id>-recipients.csv``
 in the order the send went, with the columns ``Name``, ``Email``, ``Kind``,
 ``DART``, ``Result`` (the row's status in words: ``Sent``, ``Failed``,
 ``Skipped``, ``Not sent (stopped)``, ``Not sent yet``, ``In the batch``, or
-``Bounced``), ``Reason``, and ``Email type``.
+``Bounced``), ``Reason``, ``Tried at`` (when the copy was last tried,
+``MM/DD/YYYY HH:MM`` in the site's time zone, blank when it never was), and
+``Email type``.  This is the delivery report the Sent page shows.
 
 ``POST /system/bulk-email/run``
 -------------------------------
@@ -630,6 +649,155 @@ again in a minute."}``; the failed send is in the email log, and the refusal is
 logged on ``caldart.mail``.
 
 
+.. _api-bulk-email-delivery:
+
+The delivery report
+===================
+
+A copy the relay accepted can still come back: the bounce check reads delivery
+reports hours or days later (:ref:`email-bounces`).  ``apps.bulk_email.delivery``
+joins that later picture to the send.  Every save of an email log row of the
+``bulk_email`` purpose reaches a ``post_save`` receiver, and a row that reads
+``bounced`` marks the recipient row that went out with the same ``Message-ID``, if it
+still reads ``sent``, as ``bounced``, its ``reason`` the report's ``bounce_detail``
+(or *The receiving mail server refused it* when the report gave none), and moves the
+email's count from ``sent_count`` to ``bounced_count``.  A row already ``bounced`` is
+left alone, so a report read twice counts once.  The counts are moved in the
+database, and the sender adds to its own counts there too, so a bounce read while
+the email is still sending is not undone by the next copy's count.
+
+``POST /bulk-email/{id}/retry``
+-------------------------------
+
+**Retry failed**.  Each ``failed`` copy first takes its account's name and address
+as they are now, so an address corrected since is the one used, and is asked
+``batch.skip_reason`` afresh: a deleted account (*Account deleted*), a deactivated
+one, a missing, invalid, or bounced address, an opt-out of the type, or an address
+already sent this email makes the row ``skipped`` with that reason and adds to
+``skipped_count``.  Every other failed copy goes back to ``pending`` with its reason
+cleared.  All of them leave ``failed_count``.  The email is queued to start now, with
+no undo window, as **Send the rest** queues it.  No body is taken.  **200** with the
+email, ``queued`` with the retry in ``retries``.  The background sender then sends
+those copies alone, each filled in with the person's values as they are then, and
+checks once more that the sender may send the type and that nobody has turned it
+off.  A bounced copy is not retried, since its address is bad, nor a skipped one,
+nor anybody already sent a copy.  The email keeps its ``started_at``, so it stays
+read-only, and **Stop** stops the retry as it stops **Send the rest**.  A refusal is
+**409**:
+
+- *This email has not been sent.* for an email that never started;
+- *This email was stopped. Send the rest first, then retry the failed copies.* for a
+  ``stopped`` one;
+- *This email is still sending. Retry the failed copies once it has finished.* for
+  one ``queued`` or ``sending``;
+- *No copy failed, so there is nothing to retry.*
+- *Nobody whose copy failed can be sent one now. Each is marked skipped, with the reason
+  on their line.* when every failed copy was skipped; the skips are kept, and nothing is
+  queued.
+
+Each retry that queued a copy is kept as a ``BulkEmailRetry``
+(:ref:`data-model-bulk-email`).  One ``bulk_email.retry`` audit line names the caller,
+the copies queued, and the people skipped.  When the retried copies have all been
+tried the email is ``sent`` again with its first ``sent_at`` kept, and one
+``bulk_email.retry_finished`` line takes the place of a second ``bulk_email.send``.
+
+``GET /bulk-email/{id}/recipients/{rid}/copy``
+----------------------------------------------
+
+One person's copy as it went, rebuilt by ``render.render_copy`` from the ``values``
+stored on the row when the copy was last tried, never from the account as it is now.
+``rid`` is a row of the email, of any round.  **200**:
+
+.. code-block:: json
+
+   {"id": 31,
+    "name": "Ann Able",
+    "email": "ann@example.org",
+    "status": "sent",
+    "tried_at": "2026-04-07T08:00:02-07:00",
+    "subject": "Spring newsletter for Ann",
+    "html": "<!doctype html>\n<html lang=\"en\">...",
+    "text": "Dear Ann,\n\nJoin us at Livermore.\n\n--\n..."}
+
+The copy is for the caller, not its recipient, so it is inert as the preview is
+(``render_copy``'s ``inert``): the footer keeps its words, but its unsubscribe link
+carries ``render.PREVIEW_STAND_IN`` where a signed token goes, and no token that could
+turn the recipient's email off is in either body.  The message ``GET /bulk-email/{id}`` answers as
+``message_html`` carries nobody's link either.  A row of another email is **404**, and a
+row whose copy was never tried (skipped, stopped, or not sent yet) **409** *This person
+was not sent a copy.*
+
+``POST /bulk-email/{id}/hide``
+------------------------------
+
+**Hide from Messages** and **Show in Messages**: keeps the email off every
+recipient's **Messages** page (:ref:`api-bulk-email-messages`), or puts it back.
+
+.. code-block:: json
+
+   {"hidden": true}
+
+**200** with the email, ``hidden_from_archive`` as asked.  Nothing else changes: the
+copies, the counts, and the Sent page read as before.  ``hidden`` is required; left
+out it is **400** keyed ``hidden``.  An email that never started is **409** *This
+email has not been sent.*  CalDART management's alone, whoever sent the email.  One
+``bulk_email.hide`` audit line names the caller and the choice, written when it
+changes.
+
+
+.. _api-bulk-email-messages:
+
+Messages
+========
+
+Every signed-in person can read again the bulk emails they were sent, on the
+portal's **Messages** page (``/messages``).  ``apps.bulk_email.archive`` answers it.
+An email is the reader's when one of its recipient rows names their account and reads
+``sent`` or ``bounced``: a skipped, failed, stopped, or unsent copy is not one they
+received.  Each is shown as the reader's own copy, filled in from the values stored
+on their own row when it went, never from their profile as it is now and never from
+anybody else's row.  Only bulk email is here, never a receipt, a reminder, or any
+other mail about the person's own account, and there is no way to show an email to
+anybody it was not sent to.  An email CalDART management has hidden is neither
+listed nor opened.
+
+Every copy's footer links here, *View this email in your browser*, to
+``<SITE_URL>/portal/messages/<id>``: ``SITE_URL`` carries any ``URL_PREFIX``, so the
+link reaches the portal under it (``render.browser_url``).  The plain-text copy writes
+the line *View this email in your browser:* and the address above its footer.
+
+``GET /messages``
+-----------------
+
+Every email the caller received, the copy most recently sent to them first, one per
+email.  Unpaginated: a few go out a month.
+
+.. code-block:: json
+
+   [{"id": 9,
+     "subject": "Spring newsletter for Ann",
+     "sent_at": "2026-04-07T08:00:02-07:00",
+     "from_name": "Grace Holloway",
+     "email_type_name": "Operational"}]
+
+``id`` is the bulk email's.  ``subject`` is the subject as the caller's copy had it,
+``sent_at`` when their copy went, ``from_name`` the sender's display name, or the
+organization's name once the sender's account is deleted, and ``email_type_name``
+the email's type.
+
+``GET /messages/{id}``
+----------------------
+
+One email, as the caller's own copy: the fields above, plus ``html``, the whole HTML
+email, and ``text``, the plain-text one, as ``render.render_copy`` rebuilds them from
+the caller's row, with the caller's own live unsubscribe link, as their email had it.
+The portal draws ``html`` in a frame sandboxed to popups that leave the sandbox, with
+no scripts, no forms, and no same-origin access, and puts ``<base target="_blank">``
+at its head, so the email's links open in a new tab; the Sent page's message and a
+copy on the delivery report are drawn the same way.  An email the caller did not receive, and one hidden from Messages,
+is **404**.
+
+
 .. _api-bulk-email-rich-text:
 
 Rich text and recipient fields
@@ -754,7 +922,10 @@ person's values for the fields the message uses, as they are at that moment
 such as ``{"first_name": "Pat", "expiration": "04/30/2026"}``; a message that fills
 in nothing stores ``{}``, and a deleted account fills every field in empty.
 ``render.render_copy(bulk, recipient)`` builds a copy from those stored values, so
-a copy rebuilt later reads as it went, whatever happened to the profile since.
+a copy rebuilt later reads as it went, whatever happened to the profile since, and
+puts the link to the email on the recipient's **Messages** page above its footer
+(:ref:`api-bulk-email-messages`).  The preview carries that link too, as the copy
+will; a test copy carries none, since it is nobody's message.
 
 
 ``GET /bulk-email/fields``

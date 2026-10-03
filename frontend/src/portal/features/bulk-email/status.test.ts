@@ -77,6 +77,18 @@ describe('progressSentence', () => {
 });
 
 describe('resultSentence', () => {
+  it('counts a copy that came back as sent, then names it', () => {
+    expect(
+      resultSentence({
+        status: 'sent',
+        sent_count: 36,
+        failed_count: 0,
+        skipped_count: 0,
+        bounced_count: 1,
+      }),
+    ).toBe('Sent to 37 people. Everyone was sent a copy. 1 came back undelivered.');
+  });
+
   it('counts a finished send', () => {
     expect(
       resultSentence({ status: 'sent', sent_count: 37, failed_count: 1, skipped_count: 4 }),

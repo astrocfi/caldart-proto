@@ -88,6 +88,7 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ['management'],
     group: 'Bulk Email',
   },
+  { to: '/messages', label: 'Messages', roles: [], group: 'Bulk Email' },
   { to: '/email-preferences', label: 'Email preferences', roles: [], group: 'Bulk Email' },
 
   // A DART leader reads the member list and its report too; the member record

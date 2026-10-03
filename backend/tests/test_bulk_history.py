@@ -17,6 +17,7 @@ from apps.accounts.roles import DART_LEADER, MANAGEMENT, SYSTEM_ADMIN
 from apps.bulk_email import job
 from apps.bulk_email.models import BulkEmail, BulkEmailStatus, RecipientStatus
 from apps.mail.purposes import purpose_label
+from caldart.dates import format_display_datetime
 from tests.conftest import read_csv, role_matrix
 from tests.factories import BulkEmailFactory, DartFactory, add_to_batch, make_person
 
@@ -129,11 +130,14 @@ def test_a_recipient_whose_account_is_gone_keeps_their_row(
 
 
 def test_a_send_s_results_download_as_a_csv(management_client: APIClient, sent: BulkEmail) -> None:
-    """One line per person: name, address, kind, DART, result, reason, and email type."""
+    """One line per person: name, address, kind, DART, result, reason, tried, and type."""
     response = management_client.get(f"/api/v1/bulk-email/{sent.pk}/recipients.csv")
+    tried_at = sent.recipients.get(email="ann@example.test").tried_at
+    assert tried_at is not None
+    tried = format_display_datetime(tried_at)
     assert read_csv(response) == [
-        ["Name", "Email", "Kind", "DART", "Result", "Reason", "Email type"],
-        ["Ann Able", "ann@example.test", "Friend", "Marin DART", "Sent", "", "Operational"],
+        ["Name", "Email", "Kind", "DART", "Result", "Reason", "Tried at", "Email type"],
+        ["Ann Able", "ann@example.test", "Friend", "Marin DART", "Sent", "", tried, "Operational"],
         [
             "Gil Gone",
             "gil@example.test",
@@ -141,6 +145,7 @@ def test_a_send_s_results_download_as_a_csv(management_client: APIClient, sent: 
             "Marin DART",
             "Skipped",
             "Account deactivated",
+            "",
             "Operational",
         ],
     ]
@@ -162,7 +167,11 @@ def test_a_stopped_copy_reads_not_sent_in_the_csv(
         status=RecipientStatus.STOPPED, reason="Stopped by Hollis Grant"
     )
     rows = read_csv(management_client.get(f"/api/v1/bulk-email/{sent.pk}/recipients.csv"))
-    assert rows[1][4:] == ["Not sent (stopped)", "Stopped by Hollis Grant", "Operational"]
+    assert [rows[1][4], rows[1][5], rows[1][7]] == [
+        "Not sent (stopped)",
+        "Stopped by Hollis Grant",
+        "Operational",
+    ]
 
 
 def test_the_bulk_email_purpose_has_a_label() -> None:

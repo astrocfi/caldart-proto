@@ -31,6 +31,7 @@ const ENTRIES: EmailLogEntry[] = [
     attachments: 'receipt-2026-0041.pdf',
     bounced_at: null,
     bounce_detail: '',
+    link: '',
   },
   {
     id: 902,
@@ -46,6 +47,7 @@ const ENTRIES: EmailLogEntry[] = [
     attachments: '',
     bounced_at: null,
     bounce_detail: '',
+    link: '',
   },
 ];
 
@@ -64,6 +66,7 @@ const BOUNCED: EmailLogEntry = {
   attachments: '',
   bounced_at: '2026-10-01T12:00:00Z',
   bounce_detail: '5.1.1 550 User unknown',
+  link: '',
 };
 
 function page(
@@ -114,6 +117,35 @@ describe('EmailLogPanel', () => {
 
     const row = await screen.findByRole('row', { name: /Marta Reyes/ });
     expect(row).toHaveTextContent('Minutes');
+  });
+
+  it("links a bulk email's copy to the bulk email", async () => {
+    const [first] = ENTRIES;
+    if (first === undefined) throw new Error('ENTRIES is empty');
+    server.use(
+      emailsHandler([
+        {
+          ...first,
+          purpose: 'bulk_email',
+          purpose_label: 'Bulk email',
+          link: '/bulk-email/sent/9',
+        },
+      ]),
+    );
+    renderWithProviders(<EmailLogPanel />);
+
+    expect(await screen.findByRole('link', { name: 'Bulk email' })).toHaveAttribute(
+      'href',
+      '/bulk-email/sent/9',
+    );
+  });
+
+  it('links no message that belongs to no record', async () => {
+    server.use(emailsHandler(ENTRIES));
+    renderWithProviders(<EmailLogPanel />);
+
+    await screen.findByRole('row', { name: /Marta Reyes/ });
+    expect(screen.queryByRole('link', { name: 'Receipt' })).toBeNull();
   });
 
   it('reads a message with no account behind it by its address alone', async () => {

@@ -1507,6 +1507,46 @@ not (see :ref:`api-csrf-bootstrap`).
      - ·
      - ·
      - ``management``, a ``dart_leader`` on their own emails (404 on any other); one send's results
+   * - ``POST /bulk-email/{id}/retry``
+     - ·
+     - ·
+     - ✓
+     - ·
+     - ·
+     - ·
+     - ``management``, a ``dart_leader`` on their own emails (404 on any other); queues the failed copies of a sent email again (see :doc:`api-bulk-email`)
+   * - ``GET /bulk-email/{id}/recipients/{rid}/copy``
+     - ·
+     - ·
+     - ✓
+     - ·
+     - ·
+     - ·
+     - ``management``, a ``dart_leader`` on their own emails (404 on any other); one person's copy as it went
+   * - ``POST /bulk-email/{id}/hide``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ``management``; hides a sent email from Messages, or shows it again
+   * - ``GET /messages``
+     - ·
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+     - the bulk emails the caller received
+   * - ``GET /messages/{id}``
+     - ·
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+     - the caller's own copy; 404 for one they did not receive
    * - ``GET /bulk-email/fields``
      - ·
      - ·
