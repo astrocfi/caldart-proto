@@ -69,6 +69,18 @@ export const NAV_ITEMS: NavItem[] = [
     group: 'Bulk Email',
   },
   { to: '/bulk-email/sent', label: 'Sent', roles: ['management'], group: 'Bulk Email' },
+  {
+    to: '/bulk-email/templates',
+    label: 'Templates',
+    roles: ['management'],
+    group: 'Bulk Email',
+  },
+  {
+    to: '/bulk-email/groups',
+    label: 'Recipient groups',
+    roles: ['management'],
+    group: 'Bulk Email',
+  },
   { to: '/bulk-email/types', label: 'Email types', roles: ['system_admin'], group: 'Bulk Email' },
   // The DNS check is visible to management and (as for every entry) a system administrator.
   {

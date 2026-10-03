@@ -1519,6 +1519,118 @@ not (see :ref:`api-csrf-bootstrap`).
      - ·
      - ·
      - ``management``; one image for a message, multipart
+   * - ``GET | POST /bulk-email/templates``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ``management``; the saved templates; ``POST`` saves one
+   * - ``GET | PATCH | DELETE /bulk-email/templates/{id}``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ``management``; one template: read, rename or edit, delete
+   * - ``POST /bulk-email/{id}/apply-template``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ``management``; fills a draft from a template
+   * - ``POST /bulk-email/{id}/duplicate``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ``management``; a fresh draft copied from an email, its people too when asked
+   * - ``GET | POST /bulk-email/groups``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ``management``; the saved recipient groups with their counts; ``POST`` makes an empty one
+   * - ``GET /bulk-email/groups/people``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ``management``; members and friends to add to a fixed group, by search
+   * - ``GET | PATCH | DELETE /bulk-email/groups/{id}``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ``management``; one group: read, rename, delete
+   * - ``GET | POST /bulk-email/groups/{id}/members``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ``management``; a group's people now; ``POST`` adds one to a fixed group
+   * - ``GET /bulk-email/groups/{id}/members.csv``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ``management``; a group's people as a CSV
+   * - ``DELETE /bulk-email/groups/{id}/members/{user_id}``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ``management``; takes one person out of a fixed group
+   * - ``POST /bulk-email/groups/{id}/filters``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ``management``; adds a filter set to a live group
+   * - ``DELETE /bulk-email/groups/{id}/filters/{fid}``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ``management``; takes a filter set out of a live group
+   * - ``POST /bulk-email/{id}/batch/add-group``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ``management``; adds a saved group's people to the batch
+   * - ``POST /bulk-email/{id}/save-group``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ``management``; saves the batch as a fixed or live group
    * - ``GET | PATCH /admin/payments/{id}``
      - ·
      - ·

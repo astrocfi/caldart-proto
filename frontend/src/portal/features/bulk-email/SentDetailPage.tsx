@@ -23,6 +23,7 @@ import { Page } from '@/portal/components/Page';
 import { StatusDot } from '@/portal/components/StatusChip';
 import { isMoving, recipientsCsvUrl, useBatch, useBulkEmail } from './api';
 import './bulk-email.css';
+import { DuplicateButton } from './DuplicateButton';
 import './preview.css';
 import { SendStatus } from './SendStatus';
 import { kindLabel, people, resultLabel, resultTone } from './status';
@@ -56,6 +57,7 @@ export function SentDetailPage(): JSX.Element {
         ) : (
           <SendStatus email={sent} />
         )}
+        <DuplicateButton emailId={sent.id} subject={sent.subject} />
       </Card>
 
       <Card title="The message">

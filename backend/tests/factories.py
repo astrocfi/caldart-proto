@@ -22,7 +22,16 @@ from apps.aircraft.models import (
     AircraftType,
     OwnerType,
 )
-from apps.bulk_email.models import BulkEmail, BulkEmailRecipient, RecipientKind
+from apps.bulk_email.models import (
+    BulkEmail,
+    BulkEmailRecipient,
+    EmailTemplate,
+    GroupKind,
+    RecipientGroup,
+    RecipientGroupFilter,
+    RecipientGroupMember,
+    RecipientKind,
+)
 from apps.cms.models import (
     ContactPage,
     DartIndexPage,
@@ -721,3 +730,43 @@ def add_to_batch(bulk: BulkEmail, *accounts: UserModel) -> list[BulkEmailRecipie
         )
         for account in accounts
     ]
+
+
+class EmailTemplateFactory(ModelFactory[EmailTemplate]):
+    """Builds a saved bulk email template with a subject, a message, and no type."""
+
+    class Meta:
+        model = EmailTemplate
+
+    name = factory.Sequence(lambda n: f"Template {n}")
+    subject = "Monthly newsletter for {first_name}"
+    body = "<p>Dear {first_name|friend},</p><p>Here is the news.</p>"
+
+
+class RecipientGroupFactory(ModelFactory[RecipientGroup]):
+    """Builds an empty fixed recipient group; :func:`make_group` fills one."""
+
+    class Meta:
+        model = RecipientGroup
+
+    name = factory.Sequence(lambda n: f"Group {n}")
+    kind = GroupKind.FIXED
+
+
+def make_group(
+    name: str,
+    *,
+    people: tuple[UserModel, ...] = (),
+    filter_sets: tuple[dict[str, str], ...] = (),
+) -> RecipientGroup:
+    """A recipient group ``name``: fixed with ``people``, or live with ``filter_sets``.
+
+    The group is live exactly when ``filter_sets`` are given.
+    """
+    kind = GroupKind.LIVE if len(filter_sets) > 0 else GroupKind.FIXED
+    group = RecipientGroupFactory(name=name, kind=kind)
+    for account in people:
+        RecipientGroupMember.objects.create(group=group, user=account)
+    for position, filters in enumerate(filter_sets):
+        RecipientGroupFilter.objects.create(group=group, filters=filters, position=position)
+    return group

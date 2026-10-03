@@ -1974,11 +1974,17 @@ export interface BulkEmailAddResult {
   count: number;
 }
 
-/** One press of Add to batch: its filters in words and as given, and its counts. */
+/**
+ * One add to the batch: its name (its filters in words, or `Group: <name>` and
+ * `Copied from "<subject>"` for an add made otherwise), its filters as given, and its
+ * counts. `group` is the saved group it brought in, null for any other add and once
+ * that group is deleted.
+ */
 export interface BulkEmailBatchAdd {
   id: number;
   label: string;
   filters: Record<string, string>;
+  group: number | null;
   added_count: number;
   already_count: number;
   created_at: IsoDateTime;
@@ -2078,4 +2084,132 @@ export interface BulkEmailPreview {
   count: number;
   previous_id: number | null;
   next_id: number | null;
+}
+
+/* ------------------------------------------- bulk email: templates and groups */
+
+/**
+ * One saved template from `/bulk-email/templates`: a message a draft can start from.
+ * `email_type` is null and `email_type_name` blank for none; `reply_to` is blank for
+ * the default. `created_by` is who saved it, blank once that account is gone.
+ */
+export interface EmailTemplate {
+  id: number;
+  name: string;
+  subject: string;
+  body: string;
+  email_type: number | null;
+  email_type_name: string;
+  reply_to: string;
+  created_by: string;
+  created_at: IsoDateTime;
+  updated_at: IsoDateTime;
+}
+
+/** The body of `POST /bulk-email/templates`: the name, and the message to keep. */
+export interface EmailTemplateWrite {
+  name: string;
+  subject?: string;
+  body?: string;
+  email_type?: number | null;
+  reply_to?: string;
+}
+
+/** The body of `PATCH /bulk-email/templates/{id}`: the fields to change. */
+export type EmailTemplatePatch = Partial<EmailTemplateWrite>;
+
+/** The body of `POST /bulk-email/{id}/apply-template`: the template to fill the draft from. */
+export interface ApplyTemplateRequest {
+  template: number;
+}
+
+/** The body of `POST /bulk-email/{id}/duplicate`: whether the batch is copied too. */
+export interface DuplicateRequest {
+  copy_recipients?: boolean;
+}
+
+/**
+ * How a saved recipient group holds its people: `fixed`, a list of accounts, or
+ * `live`, a list of filter sets run afresh on each use.
+ */
+export type RecipientGroupKind = 'fixed' | 'live';
+
+/** One filter set of a live group: its filters in words and as given. */
+export interface RecipientGroupFilter {
+  id: number;
+  label: string;
+  filters: Record<string, string>;
+  position: number;
+}
+
+/**
+ * One saved recipient group from `/bulk-email/groups`. `count` is how many people it
+ * holds now; `filter_sets` are a live group's, empty for a fixed one. `created_by` is
+ * who made it, blank once that account is gone.
+ */
+export interface RecipientGroup {
+  id: number;
+  name: string;
+  kind: RecipientGroupKind;
+  count: number;
+  filter_sets: RecipientGroupFilter[];
+  created_by: string;
+  created_at: IsoDateTime;
+  updated_at: IsoDateTime;
+}
+
+/** The body of `POST /bulk-email/groups`: an empty group's name and kind. */
+export interface RecipientGroupWrite {
+  name: string;
+  kind: RecipientGroupKind;
+}
+
+/** The body of `PATCH /bulk-email/groups/{id}`: a group's name; its kind never changes. */
+export type RecipientGroupPatch = Partial<RecipientGroupWrite>;
+
+/**
+ * One person in a group now. `kind` is `member` or `friend`; `is_active` is false
+ * for a deactivated account, which a send skips.
+ */
+export interface GroupPerson {
+  user_id: number;
+  name: string;
+  email: string;
+  kind: string;
+  dart_name: string;
+  is_active: boolean;
+}
+
+/** `GET /bulk-email/groups/{id}/members`: how many people a group holds now, and each. */
+export interface GroupPeople {
+  count: number;
+  people: GroupPerson[];
+}
+
+/** One member or friend from `GET /bulk-email/groups/people`, to add to a fixed group. */
+export interface PersonMatch {
+  id: number;
+  name: string;
+  email: string;
+}
+
+/** The body of `POST /bulk-email/groups/{id}/members`: the account to add. */
+export interface GroupMemberAddRequest {
+  user: number;
+}
+
+/** The body of `POST /bulk-email/groups/{id}/filters`: one set of member list filters. */
+export interface GroupFilterAddRequest {
+  filters?: Record<string, string>;
+}
+
+/** The body of `POST /bulk-email/{id}/batch/add-group`: the group to add. */
+export interface AddGroupRequest {
+  group: number;
+}
+
+/** The body of `POST /bulk-email/{id}/save-group`: the batch's name and kind as a group. */
+export interface SaveGroupRequest {
+  name: string;
+  kind: RecipientGroupKind;
 }

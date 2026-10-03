@@ -385,6 +385,7 @@ SPECTACULAR_SETTINGS = {
         "AirworthinessEnum": "apps.aircraft.models.Airworthiness.choices",
         "BulkEmailRecipientStatusEnum": "apps.bulk_email.models.RecipientStatus.choices",
         "BulkEmailStatusEnum": "apps.bulk_email.models.BulkEmailStatus.choices",
+        "RecipientGroupKindEnum": "apps.bulk_email.models.GroupKind.choices",
         # The portal's and the public donation page's mock completions share one set.
         "MockCompleteOutcomeEnum": "apps.payments.api.serializers.MOCK_OUTCOMES",
     },

@@ -22,8 +22,8 @@ class BatchAddInline(_AddInlineBase):
     """Each press of Add to batch, under the email."""
 
     model = BatchAdd
-    fields = ["filters", "added_count", "already_count", "created_at"]
-    readonly_fields = ["filters", "added_count", "already_count", "created_at"]
+    fields = ["label", "filters", "group", "added_count", "already_count", "created_at"]
+    readonly_fields = ["label", "filters", "group", "added_count", "already_count", "created_at"]
     extra = 0
     can_delete = False
 

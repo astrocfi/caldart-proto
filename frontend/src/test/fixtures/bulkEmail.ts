@@ -132,6 +132,7 @@ export function makeBatch(rows: BulkEmailBatchRow[] = [makeRow()]): BulkEmailBat
         id: 1,
         label: 'County: Marin',
         filters: { county: 'Marin' },
+        group: null,
         added_count: rows.length,
         already_count: 0,
         created_at: '2026-04-06T16:10:00Z',

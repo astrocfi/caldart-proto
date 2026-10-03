@@ -44,7 +44,7 @@ def summary_queryset(emails: QuerySet[BulkEmail]) -> QuerySet[BulkEmail]:
     )
 
 
-def _detail(bulk: BulkEmail, *, code: int = status.HTTP_200_OK) -> Response:
+def detail_response(bulk: BulkEmail, *, code: int = status.HTTP_200_OK) -> Response:
     """``bulk`` read afresh, as ``GET /bulk-email/{id}`` answers it."""
     fresh = BulkEmail.objects.select_related("sender", "stopped_by", "email_type").get(pk=bulk.pk)
     return Response(BulkEmailDetailSerializer(fresh).data, status=code)
@@ -74,7 +74,7 @@ class DraftListCreateView(generics.ListAPIView[BulkEmail]):
     def post(self, request: Request) -> Response:
         """The caller's empty draft (200), or a fresh one when they have none (201)."""
         opened = drafts.open_draft(acting_user(request))
-        return _detail(
+        return detail_response(
             opened.bulk, code=status.HTTP_201_CREATED if opened.created else status.HTTP_200_OK
         )
 
@@ -87,7 +87,7 @@ class BulkEmailDetailView(APIView):
     @extend_schema(responses={200: BulkEmailDetailSerializer})
     def get(self, request: Request, pk: int) -> Response:
         """200 with the email, its batch counts, and its progress; 404 if unknown."""
-        return _detail(email_for(request, pk))
+        return detail_response(email_for(request, pk))
 
     @extend_schema(
         request=BulkEmailUpdateSerializer,
@@ -111,7 +111,7 @@ class BulkEmailDetailView(APIView):
             raise
         except DomainError as error:
             return refused(error)
-        return _detail(saved)
+        return detail_response(saved)
 
     @extend_schema(responses={204: None, 409: CONFLICT})
     def delete(self, request: Request, pk: int) -> Response:
@@ -153,7 +153,7 @@ class SendView(APIView):
             raise
         except DomainError as error:
             return refused(error)
-        return _detail(queued)
+        return detail_response(queued)
 
 
 class CancelView(APIView):
@@ -168,7 +168,7 @@ class CancelView(APIView):
             canceled = drafts.cancel(email_for(request, pk), actor=acting_user(request))
         except DomainError as error:
             return refused(error)
-        return _detail(canceled)
+        return detail_response(canceled)
 
 
 class StopView(APIView):
@@ -186,7 +186,7 @@ class StopView(APIView):
             stopping = drafts.stop(email_for(request, pk), actor=acting_user(request))
         except DomainError as error:
             return refused(error)
-        return _detail(stopping)
+        return detail_response(stopping)
 
 
 class ResumeView(APIView):
@@ -201,4 +201,4 @@ class ResumeView(APIView):
             resumed = drafts.resume(email_for(request, pk), actor=acting_user(request))
         except DomainError as error:
             return refused(error)
-        return _detail(resumed)
+        return detail_response(resumed)

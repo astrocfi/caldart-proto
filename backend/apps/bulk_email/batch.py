@@ -38,6 +38,7 @@ from apps.bulk_email.models import (
     BulkEmail,
     BulkEmailRecipient,
     BulkEmailStatus,
+    RecipientGroup,
     RecipientKind,
     RecipientStatus,
 )
@@ -230,16 +231,44 @@ def add_filters(bulk: BulkEmail, filters: Mapping[str, str], *, actor: User) -> 
     ``ValidationError`` for a filter value the member list refuses; nothing is stored
     then.
     """
+    return add_accounts(
+        bulk, selected_accounts(filters), actor=actor, filters=given_filters(filters)
+    )
+
+
+def add_accounts(
+    bulk: BulkEmail,
+    accounts: Iterable[User],
+    *,
+    actor: User,
+    filters: Mapping[str, str] | None = None,
+    group: RecipientGroup | None = None,
+    label: str = "",
+) -> AddResult:
+    """Add ``accounts`` to ``bulk``'s batch as one add; say how many joined.
+
+    Every account not in the batch yet (by account) joins it as a ``batched`` row
+    carrying the account's name, address, kind, and DART as they are now; the others
+    are counted and left alone.  One :class:`~apps.bulk_email.models.BatchAdd` records
+    the two counts with ``filters`` (the member list filters behind it, empty for
+    none), ``group`` (the saved group it brought in, if any), and ``label`` (its name
+    when it was not made with filters).  ``accounts`` is read inside the email's row
+    lock.  A queued email goes back to a draft (:func:`back_to_draft`), naming
+    ``actor``.  Raises ``DomainError`` when the email has started sending; nothing is
+    stored then.
+    """
     with transaction.atomic():
         locked = locked_for_edit(bulk)
         present = set(
             locked.recipients.filter(round=0, user__isnull=False).values_list("user_id", flat=True)
         )
-        chosen = list(selected_accounts(filters))
+        chosen = list(accounts)
         joining = [account for account in chosen if account.pk not in present]
         add = BatchAdd.objects.create(
             bulk_email=locked,
-            filters=given_filters(filters),
+            filters=dict(filters) if filters is not None else {},
+            group=group,
+            label=label,
             added_count=len(joining),
             already_count=len(chosen) - len(joining),
         )
@@ -414,6 +443,15 @@ def add_label(filters: Mapping[str, str]) -> str:
     )
 
 
+def add_name(add: BatchAdd) -> str:
+    """What the compose screen and the CSV call ``add``: its own label, or its filters.
+
+    An add made with filters is named by them (:func:`add_label`); one that was not,
+    such as a saved group's, keeps the label it was given when it was made.
+    """
+    return add.label if add.label != "" else add_label(add.filters)
+
+
 def batch_document(bulk: BulkEmail) -> ReportDocument:
     """The batch as a CSV, one row per person in the order :func:`batch_rows` gives.
 
@@ -423,7 +461,7 @@ def batch_document(bulk: BulkEmail) -> ReportDocument:
     type (blank while it has none).  The file is named
     ``caldart-bulk-email-<id>-batch.csv``.
     """
-    labels = {add.pk: add_label(add.filters) for add in bulk.adds.all()}
+    labels = {add.pk: add_name(add) for add in bulk.adds.all()}
     type_name = email_type_name(bulk)
     rows = [
         (
