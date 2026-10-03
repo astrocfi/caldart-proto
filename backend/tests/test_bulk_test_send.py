@@ -169,7 +169,11 @@ def test_the_subject_says_it_is_a_test_and_is_filled_in_for_the_caller(
 def test_the_body_is_the_copy_the_send_would_give_the_caller(
     management: User, greeting: BulkEmail
 ) -> None:
-    """Both parts match the copy the background sender sends the same person."""
+    """Both parts match the copy the background sender sends the same person.
+
+    All but the real copy's *View this email in your browser* line: a test is nobody's
+    message on Messages, so it carries no such link.
+    """
     add_to_batch(greeting, management)
     with freeze_time(NOW):
         send_test(greeting, actor=management)
@@ -179,7 +183,13 @@ def test_the_body_is_the_copy_the_send_would_give_the_caller(
         mail.outbox[0],
         next(message for message in mail.outbox[1:] if message.to == [management.email]),
     )
-    assert (test_copy.body, html_of(test_copy)) == (real_copy.body, html_of(real_copy))
+    real_text = re.sub(r"View this email in your browser: \S+\n", "", str(real_copy.body))
+    real_html = re.sub(
+        r'<a href="[^"]*/portal/messages/\d+"[^>]*>View this email in your browser</a>\.<br />',
+        "",
+        html_of(real_copy),
+    )
+    assert (test_copy.body, html_of(test_copy)) == (real_text, real_html)
 
 
 def test_the_test_carries_the_caller_s_own_unsubscribe_link(
