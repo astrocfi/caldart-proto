@@ -66,6 +66,8 @@ export const HELP_PAGES: readonly HelpPage[] = [
   { pattern: '/bulk-email/sent', slug: 'bulk-email/sent' },
   { pattern: '/bulk-email/sent/:id', slug: 'bulk-email/sent' },
   { pattern: '/bulk-email/mail-delivery', slug: 'bulk-email/mail-delivery' },
+  { pattern: '/bulk-email/types', slug: 'bulk-email/email-types' },
+  { pattern: '/email-preferences', slug: 'member/email-preferences' },
   { pattern: '/admin/users', slug: 'admin/users' },
   { pattern: '/admin/users/:id', slug: 'admin/user-record' },
   { pattern: '/system', slug: 'admin/health-database' },

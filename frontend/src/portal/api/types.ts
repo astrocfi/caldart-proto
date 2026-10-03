@@ -1492,6 +1492,64 @@ export interface BounceRunResult {
   actions: RunAction[];
 }
 
+/** A role an email type may name as one that sends it. */
+export type EmailTypeSenderRole = 'dart_leader' | 'management';
+
+/**
+ * A kind of bulk email, from `GET /email-types` (system administrators only).
+ * `slug` follows `name`. `sender_roles` lists the roles that may send the type, once
+ * each in the order above; an empty list leaves it to system administrators.
+ * `allow_opt_out` says whether a recipient may turn it off. `position` orders the
+ * types on every screen, then `name`.
+ */
+export interface EmailType {
+  id: number;
+  name: string;
+  slug: string;
+  description: string;
+  allow_opt_out: boolean;
+  sender_roles: EmailTypeSenderRole[];
+  position: number;
+}
+
+/**
+ * The body of `POST /email-types` and `PUT /email-types/{id}`. Without `position` a
+ * new type goes after every other and an edited one keeps its place.
+ */
+export interface EmailTypeInput {
+  name: string;
+  description: string;
+  allow_opt_out: boolean;
+  sender_roles: EmailTypeSenderRole[];
+  position?: number;
+}
+
+/** A type the caller may send, from `GET /email-types/sendable`. */
+export interface SendableEmailType {
+  id: number;
+  name: string;
+  description: string;
+  allow_opt_out: boolean;
+}
+
+/**
+ * One type a person may turn off, and whether they have, from `GET
+ * /me/email-preferences` or `GET /admin/members/{id}/email-preferences`.
+ * `email_type` is the type's id. Types nobody may turn off are not listed.
+ */
+export interface EmailPreference {
+  email_type: number;
+  name: string;
+  description: string;
+  opted_out: boolean;
+}
+
+/** One entry of the list a `PUT` of email preferences takes. */
+export interface EmailPreferenceChange {
+  email_type: number;
+  opted_out: boolean;
+}
+
 /** One purpose the email log's filter offers, from `GET /system/emails/purposes`. */
 export interface EmailPurpose {
   value: string;

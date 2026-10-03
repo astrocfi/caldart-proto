@@ -23,6 +23,7 @@ import { EmptyState } from '@/portal/components/EmptyState';
 import { Page } from '@/portal/components/Page';
 import { MembershipChip } from '@/portal/components/StatusChip';
 import { MemberDangerZone } from './MemberDangerZone';
+import { MemberEmailPreferences, showsEmailPreferences } from './MemberEmailPreferences';
 import { MemberMembershipsTab } from './MemberMembershipsTab';
 import { MemberPaymentsTab } from './MemberPaymentsTab';
 import { MemberProfileTab } from './MemberProfileTab';
@@ -214,6 +215,7 @@ export function MemberDetailPage(): JSX.Element {
 
       <TabPanel id="profile" active={active}>
         <MemberProfileTab member={record} key={`profile-${record.id}`} />
+        {showsEmailPreferences(record) ? <MemberEmailPreferences member={record} /> : null}
       </TabPanel>
       <TabPanel id="memberships" active={active}>
         <MemberMembershipsTab member={record} />

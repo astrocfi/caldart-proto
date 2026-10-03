@@ -23,7 +23,7 @@ describe('hasAnyRole', () => {
 });
 
 describe('visibleNavItems', () => {
-  it('shows a plain member only the membership entries', () => {
+  it('shows a plain member the membership entries and their email preferences', () => {
     expect(labels(['member'])).toEqual([
       'Dashboard',
       'My profile',
@@ -33,6 +33,7 @@ describe('visibleNavItems', () => {
       'Renew',
       'Change password',
       'Change email',
+      'Email preferences',
     ]);
   });
 
@@ -146,8 +147,8 @@ describe('visibleNavItems', () => {
   });
 
   it('gives CalDART management the bulk email screens and nothing else on top of membership', () => {
-    expect(labels(['member', 'management'])).toEqual([
-      ...labels(['member']),
+    const member = labels(['member']);
+    expect(labels(['member', 'management']).filter((label) => !member.includes(label))).toEqual([
       'Compose',
       'Drafts & scheduled',
       'Sent',
@@ -182,15 +183,17 @@ describe('visibleNavItems', () => {
       '/bulk-email/drafts',
       '/bulk-email/sent',
       '/bulk-email/mail-delivery',
+      '/email-preferences',
     ]);
   });
 
   it.each([['account_admin'], ['user_admin'], ['treasurer'], ['dart_leader']] as const)(
-    'keeps the bulk email screens away from %s',
+    'keeps the bulk email screens away from %s, who has only their email preferences',
     (role) => {
-      expect(groupedNavItems(['member', role]).map((bucket) => bucket.group)).not.toContain(
-        'Bulk Email',
+      const bulk = groupedNavItems(['member', role]).find(
+        (bucket) => bucket.group === 'Bulk Email',
       );
+      expect(bulk?.items.map((item) => item.to)).toEqual(['/email-preferences']);
     },
   );
 
@@ -220,6 +223,7 @@ describe('visibleNavItems', () => {
       'Donate',
       'Change password',
       'Change email',
+      'Email preferences',
     ]);
   });
 
@@ -250,10 +254,38 @@ describe('the System group', () => {
   });
 });
 
+describe('the Bulk Email group', () => {
+  it('lists every entry in the sidebar order for a system admin', () => {
+    const bulk = groupedNavItems(['member', 'system_admin']).find(
+      (bucket) => bucket.group === 'Bulk Email',
+    );
+    expect(bulk?.items.map((item) => item.label)).toEqual([
+      'Compose',
+      'Drafts & scheduled',
+      'Sent',
+      'Email types',
+      'Mail delivery',
+      'Email preferences',
+    ]);
+  });
+
+  it('gives every signed-in person their email preferences', () => {
+    const bulk = groupedNavItems(['member']).find((bucket) => bucket.group === 'Bulk Email');
+    expect(bulk?.items.map((item) => item.to)).toEqual(['/email-preferences']);
+  });
+
+  it.each([['management'], ['account_admin'], ['dart_leader']] as const)(
+    'keeps the email types away from %s',
+    (role) => {
+      expect(labels(['member', role])).not.toContain('Email types');
+    },
+  );
+});
+
 describe('groupedNavItems', () => {
   it('drops groups with nothing in them', () => {
     const groups = groupedNavItems(['member']).map((bucket) => bucket.group);
-    expect(groups).toEqual(['Membership']);
+    expect(groups).toEqual(['Membership', 'Bulk Email']);
   });
 
   it('orders groups consistently for a system admin', () => {

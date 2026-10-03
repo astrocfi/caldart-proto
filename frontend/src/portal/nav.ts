@@ -69,6 +69,7 @@ export const NAV_ITEMS: NavItem[] = [
     group: 'Bulk Email',
   },
   { to: '/bulk-email/sent', label: 'Sent', roles: ['management'], group: 'Bulk Email' },
+  { to: '/bulk-email/types', label: 'Email types', roles: ['system_admin'], group: 'Bulk Email' },
   // The DNS check is visible to management and (as for every entry) a system administrator.
   {
     to: '/bulk-email/mail-delivery',
@@ -76,6 +77,7 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ['management'],
     group: 'Bulk Email',
   },
+  { to: '/email-preferences', label: 'Email preferences', roles: [], group: 'Bulk Email' },
 
   // A DART leader reads the member list and its report too; the member record
   // behind each name stays the account administrator's.

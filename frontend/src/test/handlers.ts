@@ -205,6 +205,8 @@ export const handlers = [
       { value: 'password_reset', label: 'Password reset' },
     ]),
   ),
+  // The member record's Email preferences card reads these as the record opens.
+  http.get(`${API}/admin/members/:id/email-preferences`, () => HttpResponse.json([])),
 ];
 
 /** What `POST /auth/login` answers for a deactivated account whose password matched. */
