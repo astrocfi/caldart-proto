@@ -371,6 +371,9 @@ function ToolbarButton({
       className="rich-text__button"
       aria-pressed={isPressed}
       disabled={disabled}
+      // A press keeps the focus, and with it the cursor, in the editing area, so the
+      // style applies to the words typed next; the keyboard still reaches the button.
+      onMouseDown={(event) => event.preventDefault()}
       onClick={handleClick}
     >
       <Icon />

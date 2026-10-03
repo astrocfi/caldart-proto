@@ -42,19 +42,27 @@ test('CalDART management writes a formatted email with an image, previews it, an
 
   await page.getByRole('textbox', { name: /^Subject/ }).fill(subject);
   const toolbar = page.getByRole('group', { name: 'Message formatting' });
-  await page.getByRole('textbox', { name: 'Message' }).click();
+  const message = page.getByRole('textbox', { name: 'Message' });
+  // Each keystroke waits for the editor to hold the focus: a toolbar command hands it
+  // back on the next frame, after a panel closes.
+  const typeInMessage = async (keys: string): Promise<void> => {
+    await expect(message).toBeFocused();
+    await page.keyboard.type(keys);
+  };
+  await message.click();
   await toolbar.getByRole('button', { name: 'Bold' }).click();
-  await page.keyboard.type('Fly-in on Saturday');
+  await typeInMessage('Fly-in on Saturday');
   await toolbar.getByRole('button', { name: 'Bold' }).click();
-  await page.keyboard.type(' at Livermore. Details: ');
+  await typeInMessage(' at Livermore. Details: ');
   await toolbar.getByRole('button', { name: 'Link' }).click();
   await page.getByLabel('Web or email address').fill('caldart.org/events');
   await page.getByRole('button', { name: 'Add link' }).click();
+  await expect(message).toBeFocused();
   await page.keyboard.press('Enter');
-  await page.keyboard.type('This copy went to ');
+  await typeInMessage('This copy went to ');
   await toolbar.getByRole('button', { name: 'Insert field' }).click();
   await page.getByRole('button', { name: /^Email address/ }).click();
-  await page.keyboard.type('.');
+  await typeInMessage('.');
 
   await page.getByLabel('Choose an image').setInputFiles({
     name: 'square.png',
