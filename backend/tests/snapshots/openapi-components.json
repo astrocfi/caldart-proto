@@ -1395,6 +1395,47 @@
       "email"
     ]
   },
+  "EmailLog": {
+    "properties": {
+      "attachments": "string",
+      "bounce_detail": "string",
+      "bounced_at": "string(date-time)|null",
+      "error": "string",
+      "id": "integer",
+      "link": "string",
+      "purpose": "string",
+      "purpose_label": "string",
+      "sent_at": "string(date-time)",
+      "status": "ref:EmailLogStatusEnum",
+      "subject": "string",
+      "to_email": "string(email)",
+      "user_id": "integer|null",
+      "user_name": "string"
+    },
+    "required": [
+      "attachments",
+      "bounce_detail",
+      "bounced_at",
+      "error",
+      "id",
+      "link",
+      "purpose",
+      "purpose_label",
+      "sent_at",
+      "status",
+      "subject",
+      "to_email",
+      "user_id",
+      "user_name"
+    ]
+  },
+  "EmailLogStatusEnum": {
+    "enum": [
+      "sent",
+      "failed",
+      "bounced"
+    ]
+  },
   "EmailPreference": {
     "properties": {
       "description": "string",
@@ -2286,6 +2327,18 @@
       "next": "string(uri)|null",
       "previous": "string(uri)|null",
       "results": "array<ref:Aircraft>"
+    },
+    "required": [
+      "count",
+      "results"
+    ]
+  },
+  "PaginatedEmailLogList": {
+    "properties": {
+      "count": "integer",
+      "next": "string(uri)|null",
+      "previous": "string(uri)|null",
+      "results": "array<ref:EmailLog>"
     },
     "required": [
       "count",
