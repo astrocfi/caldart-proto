@@ -1661,7 +1661,10 @@ sending bulk email:
      - Where it lives
      - What it says
    * - SPF
-     - ``TXT`` on the domain itself, such as ``caldart.example.org``
+     - ``TXT`` on the domain of ``BOUNCE_ADDRESS`` when that is set, since a
+       receiving server checks SPF against the envelope sender, and on the
+       domain of ``DEFAULT_FROM_EMAIL``, such as ``caldart.example.org``,
+       otherwise
      - the servers allowed to send for the domain: one record starting
        ``v=spf1``, naming the relay (``include:``) or this machine (``ip4:``,
        ``a``), and ending ``~all`` or ``-all``
@@ -1689,7 +1692,8 @@ or run the check CalDART itself makes::
   sudo deploy/manage.sh check_mail_dns
 
 It looks up the same three records, tests that the SPF record authorizes the mail
-host ``EMAIL_URL`` names, and that ``BOUNCE_ADDRESS`` is on the From address's
+host ``EMAIL_URL`` names (evaluating the record's entries in order, the first match
+deciding, as RFC 7208 does), and that ``BOUNCE_ADDRESS`` is on the From address's
 domain or a subdomain of it, then prints one line per finding: ``[PASS]``,
 ``[WARN]``, or ``[FAIL]``, what it found, and what to ask for.  It always queries
 afresh, never reads the cache, and exits non-zero when any line is ``[FAIL]``, so
@@ -1698,8 +1702,10 @@ report is on the portal's **Mail delivery** screen, for CalDART management and
 system administrators, which reads a copy cached for five minutes
 (``GET /mail/delivery-check``, :ref:`api-mail-delivery`).
 
-Three limits to know.  The records are looked up at the From address's domain
-exactly, not at a parent domain.  A mail server on the same machine
+Four limits to know.  The DKIM and DMARC records are looked up at the From address's
+domain exactly, not at a parent domain.  The whole check gives up after about 15
+seconds, and a lookup it did not reach is a ``[FAIL]`` that says the check took
+too long.  A mail server on the same machine
 (``--email local``) is reported as a warning rather than judged, because the
 name ``localhost`` says nothing about the public address mail leaves from.  And
 DNS changes take time to spread: a record published a minute ago may not show

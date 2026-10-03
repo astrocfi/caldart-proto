@@ -25,6 +25,7 @@ from rest_framework.test import APIClient
 
 from apps.accounts.models import User
 from apps.accounts.roles import MANAGEMENT, SYSTEM_ADMIN
+from apps.mail import dns_check
 from apps.mail.dns_check import (
     ALIGNMENT_NAME,
     DKIM_NAME,
@@ -308,11 +309,12 @@ def test_a_negated_term_does_not_authorize(dns_zone: Zone) -> None:
 @pytest.mark.parametrize(
     ("record", "words"),
     [
-        ("v=spf1 ip4:192.0.2.25 +all", "accepting mail from any server"),
+        ("v=spf1 +all", "accepting mail from any server"),
+        ("v=spf1 all", "accepting mail from any server"),
         ("v=spf1 ip4:192.0.2.25 ?all", "accepting mail from any server"),
         ("v=spf1 ip4:192.0.2.25", "does not say what to do"),
     ],
-    ids=["plus-all", "neutral-all", "no-all"],
+    ids=["plus-all", "bare-all", "neutral-all", "no-all"],
 )
 def test_an_spf_record_that_does_not_turn_strangers_away_warns(
     dns_zone: Zone, record: str, words: str
@@ -325,6 +327,170 @@ def test_an_spf_record_that_does_not_turn_strangers_away_warns(
     assert result.status == DnsStatus.WARN
     assert words in result.detail
     assert result.fix == "Ask whoever manages the DNS to end the v=spf1 record with ~all (or -all)."
+
+
+@pytest.mark.parametrize(
+    "record",
+    [
+        "v=spf1 a/33 -all",
+        "v=spf1 mx/40 -all",
+        "v=spf1 a//129 -all",
+        "v=spf1 include:inc.example.net -all",
+    ],
+    ids=["a-v4", "mx-v4", "a-v6", "include-with-a-v4"],
+)
+def test_an_out_of_range_prefix_length_is_a_malformed_record_not_an_error(
+    dns_zone: Zone, record: str
+) -> None:
+    """``a/33``, ``mx/40``, and an included record carrying one fail the line cleanly."""
+    dns_zone[("example.org", "TXT")] = [record]
+    dns_zone[("inc.example.net", "TXT")] = ["v=spf1 a/33 -all"]
+    dns_zone[("example.org", "MX")] = ["10 smtp.relay.net."]
+
+    result = finding(run(), SPF_NAME)
+
+    assert result.status == DnsStatus.FAIL
+    assert "is malformed" in result.detail
+
+
+def test_the_endpoint_answers_200_for_an_out_of_range_prefix_length(
+    management_client: APIClient, dns_zone: Zone
+) -> None:
+    """A bad prefix length in the domain's record is a finding, never a 500."""
+    dns_zone[("example.org", "TXT")] = ["v=spf1 a/33 -all"]
+
+    response = management_client.get(URL)
+
+    assert response.status_code == 200
+    assert response.json()["findings"][0]["status"] == "fail"
+
+
+@pytest.mark.parametrize(
+    ("record", "status", "words"),
+    [
+        ("v=spf1 -ip4:192.0.2.25 ip4:192.0.2.0/24 -all", DnsStatus.FAIL, "reject mail from it"),
+        ("v=spf1 ~ip4:192.0.2.25 ip4:192.0.2.25 -all", DnsStatus.WARN, "does not fully approve"),
+        ("v=spf1 ?ip4:192.0.2.25 ip4:192.0.2.25 -all", DnsStatus.WARN, "does not fully approve"),
+        ("v=spf1 ip4:198.51.100.1 ~all", DnsStatus.FAIL, "does not include the mail server"),
+    ],
+    ids=["minus-first", "softfail-first", "neutral-first", "all-last"],
+)
+def test_the_first_term_that_matches_decides_whatever_its_qualifier(
+    dns_zone: Zone, record: str, status: DnsStatus, words: str
+) -> None:
+    """A negated or softfail entry that names the host stops the evaluation."""
+    dns_zone[("example.org", "TXT")] = [record]
+
+    result = finding(run(), SPF_NAME)
+
+    assert (result.status, words in result.detail) == (status, True)
+
+
+def test_an_included_list_that_allows_everything_authorizes_the_host(dns_zone: Zone) -> None:
+    """``include:`` matches when the included record's first match is a plus."""
+    dns_zone[("example.org", "TXT")] = ["v=spf1 include:open.example.net -all"]
+    dns_zone[("open.example.net", "TXT")] = ["v=spf1 +all"]
+
+    assert finding(run(), SPF_NAME).status == DnsStatus.PASS
+
+
+def test_an_included_list_that_refuses_the_host_does_not_match(dns_zone: Zone) -> None:
+    """A fail inside the included record is no match, so the outer ``all`` decides."""
+    dns_zone[("example.org", "TXT")] = ["v=spf1 include:inc.example.net -all"]
+    dns_zone[("inc.example.net", "TXT")] = ["v=spf1 -ip4:192.0.2.25 +all"]
+
+    assert finding(run(), SPF_NAME).status == DnsStatus.FAIL
+
+
+def test_an_ipv4_only_prefix_does_not_widen_an_ipv6_address(
+    dns_zone: Zone,
+) -> None:
+    """``a:other.net/24`` covers IPv6 addresses of ``other.net`` exactly, not as a /24."""
+    dns_zone[("smtp.relay.net", "A")] = []
+    dns_zone[("smtp.relay.net", "AAAA")] = ["2001:db8::25"]
+    dns_zone[("other.net", "AAAA")] = ["2001:db8:ffff::1"]
+    dns_zone[("example.org", "TXT")] = ["v=spf1 a:other.net/24 -all"]
+
+    assert finding(run(), SPF_NAME).status == DnsStatus.FAIL
+
+
+@pytest.mark.parametrize("term", ["a//64", "mx//64", "a/24//64"])
+def test_an_ipv6_prefix_length_is_valid_and_widens_an_ipv6_host(dns_zone: Zone, term: str) -> None:
+    """``a//64``, ``mx//64``, and ``a/24//64`` parse, and the /64 covers the host."""
+    dns_zone[("smtp.relay.net", "A")] = []
+    dns_zone[("smtp.relay.net", "AAAA")] = ["2001:db8::25"]
+    dns_zone[("example.org", "AAAA")] = ["2001:db8::1"]
+    dns_zone[("example.org", "MX")] = ["10 example.org."]
+    dns_zone[("example.org", "TXT")] = [f"v=spf1 {term} -all"]
+
+    assert finding(run(), SPF_NAME).status == DnsStatus.PASS
+
+
+def test_an_mx_term_naming_more_than_ten_servers_fails(dns_zone: Zone) -> None:
+    """Receivers refuse an ``mx`` that names more than ten mail servers."""
+    dns_zone[("example.org", "MX")] = [f"10 h{n}.example.org." for n in range(11)]
+    dns_zone[("example.org", "TXT")] = ["v=spf1 mx ip4:192.0.2.25 -all"]
+
+    result = finding(run(), SPF_NAME)
+
+    assert result.status == DnsStatus.FAIL
+    assert "more than 10 mail servers" in result.detail
+
+
+def test_every_lookup_causing_term_counts_toward_the_limit_whatever_its_qualifier(
+    dns_zone: Zone,
+) -> None:
+    """Eleven negated ``a`` terms that match nothing still cost eleven lookups."""
+    terms = " ".join(f"-a:h{n}.example.net" for n in range(11))
+    dns_zone[("example.org", "TXT")] = [f"v=spf1 {terms} ip4:192.0.2.25 -all"]
+
+    result = finding(run(), SPF_NAME)
+
+    assert result.status == DnsStatus.FAIL
+    assert "more than 10 lookups" in result.detail
+
+
+def test_spf_is_judged_at_the_bounce_addresss_domain_and_says_so(
+    dns_zone: Zone, settings: Settings
+) -> None:
+    """Receivers check SPF at the envelope sender's domain, so that is where we look."""
+    settings.BOUNCE_ADDRESS = "bounces@mail.example.org"
+    dns_zone[("mail.example.org", "TXT")] = ["v=spf1 ip4:192.0.2.25 -all"]
+    del dns_zone[("example.org", "TXT")]
+
+    result = finding(run(), SPF_NAME)
+
+    assert result.status == DnsStatus.PASS
+    assert (
+        "Receivers check this list at mail.example.org, the domain of the bounce" in result.detail
+    )
+    assert ("example.org", "TXT") not in FakeResolver.queries
+
+
+def test_a_missing_spf_record_names_the_bounce_domain_when_that_is_where_it_belongs(
+    dns_zone: Zone, settings: Settings
+) -> None:
+    """The failure and its fix both name the domain the record must be published at."""
+    settings.BOUNCE_ADDRESS = "bounces@mail.example.org"
+
+    result = finding(run(), SPF_NAME)
+
+    assert result.status == DnsStatus.FAIL
+    assert "No approved-sender list was found for mail.example.org." in result.detail
+    assert result.fix.startswith("Ask whoever manages the DNS for mail.example.org to add")
+
+
+def test_a_bounce_address_without_a_domain_fails_as_not_valid(
+    dns_zone: Zone, settings: Settings
+) -> None:
+    """The line says the address is not valid, and SPF falls back to the From domain."""
+    settings.BOUNCE_ADDRESS = "bounces"
+
+    report = run()
+
+    assert finding(report, ALIGNMENT_NAME).status == DnsStatus.FAIL
+    assert "is not a valid address: it has no domain." in finding(report, ALIGNMENT_NAME).detail
+    assert finding(report, SPF_NAME).status == DnsStatus.PASS
 
 
 def test_an_spf_record_needing_more_than_ten_lookups_fails(dns_zone: Zone) -> None:
@@ -385,16 +551,50 @@ def test_a_mail_server_that_does_not_resolve_fails(dns_zone: Zone) -> None:
     ],
     ids=["spf-record", "spf-host", "dkim", "dmarc"],
 )
-def test_a_lookup_that_errors_fails_the_line_with_the_error_name(
+def test_a_lookup_that_times_out_fails_the_line_in_plain_words(
     dns_zone: Zone, name: tuple[str, str], label: str
 ) -> None:
-    """A timeout is a failing line that names the error, and never an exception."""
+    """A timeout is a failing line saying no answer came in time, never an exception."""
     dns_zone[name] = dns.exception.Timeout()  # type: ignore[no-untyped-call]  # dnspython
 
     result = finding(run(), label)
 
     assert result.status == DnsStatus.FAIL
-    assert f"Looking up {name[0]} failed (Timeout)." in result.detail
+    assert f"Looking up {name[0]} did not get an answer in time." in result.detail
+    assert "Timeout" not in result.detail
+
+
+def test_a_lookup_no_name_server_can_answer_points_at_the_domains_dns(dns_zone: Zone) -> None:
+    """``NoNameservers`` is a problem with the domain's DNS; the fix says who to ask."""
+    no_servers = dns.resolver.NoNameservers()  # type: ignore[no-untyped-call]  # dnspython
+    dns_zone[("_dmarc.example.org", "TXT")] = no_servers
+
+    result = finding(run(), DMARC_NAME)
+
+    assert result.status == DnsStatus.FAIL
+    assert (
+        "No name server could answer a lookup of _dmarc.example.org, which points to a "
+        "problem with the DNS setup of the domain."
+    ) in result.detail
+    assert "NoNameservers" not in result.detail
+    assert result.fix.startswith("Ask whoever manages the DNS for the domain to check")
+
+
+def test_a_check_that_runs_out_of_time_fails_the_lookups_left(
+    dns_zone: Zone, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Once the time budget is spent each later lookup is a failing line that says so."""
+    monkeypatch.setattr(dns_check, "CHECK_BUDGET_SECONDS", 0.0)
+
+    report = run()
+
+    assert [(f.name, f.status) for f in report.findings if f.name != ALIGNMENT_NAME] == [
+        (SPF_NAME, DnsStatus.FAIL),
+        (DKIM_NAME, DnsStatus.FAIL),
+        (DMARC_NAME, DnsStatus.FAIL),
+    ]
+    assert "The check took too long" in finding(report, DKIM_NAME).detail
+    assert FakeResolver.queries == []
 
 
 # --------------------------------------------------------------------------

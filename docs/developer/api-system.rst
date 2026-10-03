@@ -452,10 +452,12 @@ whoever manages the domain's DNS or the server for; ``fix`` is blank on a ``pass
 ``domain`` is the domain of ``DEFAULT_FROM_EMAIL``, blank when that address has none,
 in which case ``findings`` holds the one failing line that says so.
 
-The lookups run inside the request and wait at most three seconds each.  A lookup
-that times out, is refused, or cannot be made is a ``fail`` finding naming the error
-(``Looking up example.org failed (Timeout).``); the endpoint never answers an
-error for it.  The report is cached for five minutes per combination of
+The lookups run inside the request and wait at most three seconds each, and the
+whole check at most about 15.  A lookup that times out, is refused, cannot be made, or
+is not reached in time is a ``fail`` finding that says so in words
+(``Looking up example.org did not get an answer in time.``); the endpoint never
+answers an error for it.  The SPF record is judged at the domain of
+``BOUNCE_ADDRESS`` when that is set, and the finding's ``detail`` says so.  The report is cached for five minutes per combination of
 ``DEFAULT_FROM_EMAIL``, ``DKIM_SELECTOR``, ``BOUNCE_ADDRESS``, and the mail host, and
 a cached report keeps its original ``checked_at``.  ``?refresh=true`` looks every
 record up again and replaces the cached report.  What each finding judges, and its

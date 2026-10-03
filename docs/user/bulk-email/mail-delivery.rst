@@ -41,7 +41,9 @@ in the last five minutes.
 The four checks
 ===============
 
-**Approved senders (SPF).** A public list, kept with the CalDART domain name, of the
+**Approved senders (SPF).** A public list, kept with the CalDART domain name (or, when
+bounces return to a different address, the domain of that address, which the block names),
+of the
 servers allowed to send email that claims to come from CalDART. Receiving systems read
 it to catch forgeries. The check is good when the list exists, names the server the
 website sends through, and tells receivers to be suspicious of anything else. It is a
@@ -80,6 +82,8 @@ domain name (often whoever registered it) or who runs the website's server. They
 the records by name. Changes to a domain name can take a few hours to reach everyone, so
 **Check again** may still show the old answer for a while.
 
-If a block says that a lookup *failed* with a name such as ``Timeout``, the page could
-not reach the domain name system at that moment. That says nothing about your records:
-press **Check again** in a minute or two.
+If a block says that a lookup *did not get an answer in time*, or that the check *took too
+long*, the page could not reach the domain name system at that moment. That says nothing
+about your records: press **Check again** in a minute or two. If it says that *no name
+server could answer*, the domain's own name servers are not working, and whoever manages
+the domain name needs to look at them.

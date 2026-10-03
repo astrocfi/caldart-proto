@@ -23,7 +23,13 @@ a parent domain is made.  The SPF check authorizes the host named by the default
 host that resolves only to a loopback address (a mail server on the same machine) cannot
 be matched to the address mail really leaves from, so the check warns instead.
 
-Every lookup waits at most ``DNS_TIMEOUT_SECONDS``.  A report is cached for
+The SPF record is judged at the domain of ``BOUNCE_ADDRESS`` when that is set, because a
+receiving server checks SPF against the envelope sender, and at the From domain
+otherwise.  Terms are evaluated in order and the first one that matches decides, as
+RFC 7208 says.
+
+Every lookup waits at most ``DNS_TIMEOUT_SECONDS``, and the whole check at most
+``CHECK_BUDGET_SECONDS``.  A report is cached for
 ``CACHE_SECONDS`` per combination of the settings it reads, so opening the page again
 does not query anybody; ``refresh=True`` skips the cache.  Tests patch
 ``dns.resolver.Resolver``: the suite never makes a real query.
@@ -35,6 +41,7 @@ import hashlib
 import ipaddress
 import logging
 import re
+import time
 from dataclasses import dataclass
 from datetime import datetime
 from email.utils import parseaddr
@@ -55,6 +62,12 @@ log = logging.getLogger(__name__)
 
 #: How long one lookup may take, in seconds.
 DNS_TIMEOUT_SECONDS = 3.0
+
+#: How long the whole check may take, in seconds; later lookups fail once it is spent.
+CHECK_BUDGET_SECONDS = 15.0
+
+#: The most mail servers one SPF ``mx`` term may name before receivers refuse it.
+SPF_MX_LIMIT = 10
 
 #: How long a report stays in the cache, in seconds.
 CACHE_SECONDS = 300
@@ -77,9 +90,13 @@ DMARC_POLICIES = ("none", "quarantine", "reject")
 #: ``:argument`` or ``=argument``, and an optional ``/prefix`` length.
 SPF_TERM = re.compile(
     r"^(?P<qualifier>[+\-~?])?(?P<name>[a-z0-9]+)"
-    r"(?:[:=](?P<argument>[^/]+))?(?P<prefix>/\d{1,3}(?://\d{1,3})?)?$",
+    r"(?:[:=](?P<argument>[^/]+))?(?P<prefix>(?:/\d{1,3})?(?://\d{1,3})?)$",
     re.IGNORECASE,
 )
+
+#: The widest prefix length each address family allows.
+MAX_PREFIX_V4 = 32
+MAX_PREFIX_V6 = 128
 
 #: The SPF mechanisms and modifiers this check understands.
 SPF_MECHANISMS = frozenset({"all", "include", "a", "mx", "ip4", "ip6", "ptr", "exists"})
@@ -91,10 +108,15 @@ DKIM_NAME = "Message signature (DKIM)"
 DMARC_NAME = "Handling of forged mail (DMARC)"
 ALIGNMENT_NAME = "Bounce address"
 
-#: What to do when a lookup itself failed rather than finding nothing.
+#: What to do when a lookup timed out, or did not finish within the check's time budget.
 _FIX_RETRY = (
-    "The name servers did not answer in time. Check again in a few minutes; if it "
-    "keeps failing, ask whoever manages the domain's DNS."
+    "Check again in a few minutes; if it keeps failing, ask whoever manages the domain's DNS."
+)
+
+#: What to do when every name server refused or could not answer.
+_FIX_NAME_SERVERS = (
+    "Ask whoever manages the DNS for the domain to check that its name servers are "
+    "running and answer for it."
 )
 
 #: One sentence on what each record does, which opens every finding's detail.
@@ -159,15 +181,37 @@ class DnsReport:
 
 
 class DnsLookupError(Exception):
-    """A lookup that could not be answered: a timeout, a refusal, or a bad name.
+    """A lookup that could not be answered, with a sentence and a fix for the reader.
 
-    ``str()`` reads ``Looking up <name> failed (<error class>).``; an answer of "no such
-    record" is not an error and comes back as an empty list instead.
+    ``str()`` is the sentence: that the name servers did not answer in time, could not
+    answer at all, or that the check ran out of time.  ``fix`` is what to do about it.
+    An answer of "no such record" is not an error and comes back as an empty list.
     """
 
-    def __init__(self, name: str, error: Exception) -> None:
-        """Record the name that was looked up and the resolver error it raised."""
-        super().__init__(f"Looking up {name} failed ({type(error).__name__}).")
+    def __init__(self, message: str, fix: str) -> None:
+        """Record the sentence and the fix."""
+        super().__init__(message)
+        self.fix = fix
+
+    @classmethod
+    def from_resolver(cls, name: str, error: dns.exception.DNSException) -> DnsLookupError:
+        """The error for a lookup of ``name`` that raised the resolver's ``error``."""
+        if isinstance(error, dns.exception.Timeout):
+            return cls(f"Looking up {name} did not get an answer in time.", _FIX_RETRY)
+        if isinstance(error, dns.resolver.NoNameservers):
+            return cls(
+                f"No name server could answer a lookup of {name}, which points to a problem "
+                "with the DNS setup of the domain.",
+                _FIX_NAME_SERVERS,
+            )
+        return cls(f"Looking up {name} failed.", _FIX_RETRY)
+
+    @classmethod
+    def out_of_time(cls) -> DnsLookupError:
+        """The error for a lookup attempted after the check's time budget was spent."""
+        return cls(
+            "The check took too long and was stopped before this lookup finished.", _FIX_RETRY
+        )
 
 
 class SpfSyntaxError(Exception):
@@ -200,6 +244,11 @@ class _Inputs:
     host: str
     selector: str
     bounce_domain: str
+
+    @property
+    def spf_domain(self) -> str:
+        """The domain the SPF record is judged at: the bounce address's, else From's."""
+        return self.bounce_domain if self.bounce_domain != "" else self.from_domain
 
     def cache_key(self) -> str:
         """The cache key for a report made from these inputs."""
@@ -258,9 +307,7 @@ def _build_report(inputs: _Inputs, now: datetime) -> DnsReport:
             "full address such as noreply@yourdomain.org.",
         )
         return DnsReport(domain="", findings=(finding,), checked_at=now)
-    resolver = dns.resolver.Resolver()
-    resolver.timeout = DNS_TIMEOUT_SECONDS
-    resolver.lifetime = DNS_TIMEOUT_SECONDS
+    resolver = _Resolver()
     findings = (
         _check_spf(resolver, inputs),
         _check_dkim(resolver, inputs),
@@ -273,30 +320,43 @@ def _build_report(inputs: _Inputs, now: datetime) -> DnsReport:
 # --------------------------------------------------------------------------
 # Lookups
 # --------------------------------------------------------------------------
-def _query(resolver: dns.resolver.Resolver, name: str, rdtype: str) -> list[dns.rdata.Rdata]:
-    """Every record of type ``rdtype`` at ``name``; none at all is an empty list.
+class _Resolver:
+    """The real resolver, held to the per-lookup timeout and the whole check's budget."""
 
-    Raises ``DnsLookupError`` for a timeout, a refusal, or any other resolver error.
-    """
-    try:
-        return list(resolver.resolve(name, rdtype))
-    except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer):
-        return []
-    except dns.exception.DNSException as exc:
-        log.warning("DNS lookup of %s %s failed: %s", rdtype, name, type(exc).__name__)
-        raise DnsLookupError(name, exc) from exc
+    def __init__(self) -> None:
+        """Start the clock and make the resolver the lookups go through."""
+        self._deadline = time.monotonic() + CHECK_BUDGET_SECONDS
+        self._resolver = dns.resolver.Resolver()
+        self._resolver.timeout = DNS_TIMEOUT_SECONDS
+        self._resolver.lifetime = DNS_TIMEOUT_SECONDS
+
+    def query(self, name: str, rdtype: str) -> list[dns.rdata.Rdata]:
+        """Every record of type ``rdtype`` at ``name``; none at all is an empty list.
+
+        Raises ``DnsLookupError`` for a timeout, a refusal, any other resolver error, or
+        a lookup begun after the check's time budget was spent.
+        """
+        if time.monotonic() >= self._deadline:
+            raise DnsLookupError.out_of_time()
+        try:
+            return list(self._resolver.resolve(name, rdtype))
+        except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer):
+            return []
+        except dns.exception.DNSException as exc:
+            log.warning("DNS lookup of %s %s failed: %s", rdtype, name, type(exc).__name__)
+            raise DnsLookupError.from_resolver(name, exc) from exc
 
 
-def _txt_records(resolver: dns.resolver.Resolver, name: str) -> list[str]:
+def _txt_records(resolver: _Resolver, name: str) -> list[str]:
     """The TXT records at ``name``, each with its strings joined into one."""
     return [
         b"".join(record.strings).decode("utf-8", errors="replace")
-        for record in _query(resolver, name, "TXT")
+        for record in resolver.query(name, "TXT")
         if isinstance(record, dns.rdtypes.txtbase.TXTBase)
     ]
 
 
-def _spf_records(resolver: dns.resolver.Resolver, domain: str) -> list[str]:
+def _spf_records(resolver: _Resolver, domain: str) -> list[str]:
     """The TXT records at ``domain`` that are SPF records (they start with ``v=spf1``)."""
     return [
         text
@@ -305,14 +365,14 @@ def _spf_records(resolver: dns.resolver.Resolver, domain: str) -> list[str]:
     ]
 
 
-def _addresses(resolver: dns.resolver.Resolver, name: str) -> list[str]:
+def _addresses(resolver: _Resolver, name: str) -> list[str]:
     """The IPv4 and IPv6 addresses of ``name``, or ``name`` itself if it is an address."""
     if _is_ip(name):
         return [name]
     return [
         record.address
         for rdtype in ("A", "AAAA")
-        for record in _query(resolver, name, rdtype)
+        for record in resolver.query(name, rdtype)
         if isinstance(record, (dns.rdtypes.IN.A.A, dns.rdtypes.IN.AAAA.AAAA))
     ]
 
@@ -329,21 +389,23 @@ def _is_ip(text: str) -> bool:
 # --------------------------------------------------------------------------
 # SPF
 # --------------------------------------------------------------------------
-def _check_spf(resolver: dns.resolver.Resolver, inputs: _Inputs) -> DnsFinding:
+def _check_spf(resolver: _Resolver, inputs: _Inputs) -> DnsFinding:
     """The SPF finding: a record exists, parses, lists the mail host, ends strictly."""
-    domain = inputs.from_domain
+    domain = inputs.spf_domain
     try:
         records = _spf_records(resolver, domain)
     except DnsLookupError as exc:
-        return _spf_finding(DnsStatus.FAIL, str(exc), _FIX_RETRY)
+        return _spf_finding(inputs, DnsStatus.FAIL, str(exc), exc.fix)
     if len(records) == 0:
         return _spf_finding(
+            inputs,
             DnsStatus.FAIL,
             f"No approved-sender list was found for {domain}.",
             _spf_fix_publish(resolver, inputs),
         )
     if len(records) > 1:
         return _spf_finding(
+            inputs,
             DnsStatus.FAIL,
             f"{domain} publishes {len(records)} approved-sender lists; receiving servers "
             "ignore all of them when there is more than one.",
@@ -353,47 +415,57 @@ def _check_spf(resolver: dns.resolver.Resolver, inputs: _Inputs) -> DnsFinding:
     return _spf_judge(resolver, inputs, records[0])
 
 
-def _spf_judge(resolver: dns.resolver.Resolver, inputs: _Inputs, record: str) -> DnsFinding:
+def _spf_judge(resolver: _Resolver, inputs: _Inputs, record: str) -> DnsFinding:
     """Judge the one SPF ``record``: its syntax, the host, then its closing policy."""
-    domain = inputs.from_domain
+    domain = inputs.spf_domain
     try:
         terms = _parse_spf(record)
         host_problem = _spf_host_problem(resolver, inputs, terms)
     except DnsLookupError as exc:
-        return _spf_finding(DnsStatus.FAIL, str(exc), _FIX_RETRY)
-    except SpfSyntaxError as exc:
+        return _spf_finding(inputs, DnsStatus.FAIL, str(exc), exc.fix)
+    except (SpfSyntaxError, ValueError) as exc:
+        reason = str(exc) if isinstance(exc, SpfSyntaxError) else "an entry cannot be read."
         return _spf_finding(
+            inputs,
             DnsStatus.FAIL,
-            f"The approved-sender list for {domain} is malformed: {exc}",
+            f"The approved-sender list for {domain} is malformed: {reason}",
             f"Ask whoever manages the DNS for {domain} to correct the TXT record that "
             "starts with v=spf1.",
         )
     if host_problem is not None and host_problem.status == DnsStatus.FAIL:
-        return _spf_finding(*host_problem)
+        return _spf_finding(inputs, *host_problem)
     problems = [
         problem for problem in (host_problem, _spf_policy_problem(terms)) if problem is not None
     ]
     if len(problems) > 0:
         return _spf_finding(
+            inputs,
             DnsStatus.WARN,
             " ".join(problem.result for problem in problems),
             " ".join(problem.fix for problem in problems),
         )
     return _spf_finding(
+        inputs,
         DnsStatus.PASS,
         f"The list for {domain} includes the mail server ({inputs.host}) and "
         "tells receivers to treat mail from anywhere else as suspect.",
     )
 
 
-def _spf_finding(status: DnsStatus, result: str, fix: str = "") -> DnsFinding:
-    """An SPF finding whose detail is the SPF explanation followed by ``result``."""
-    return DnsFinding(SPF_NAME, status, f"{SPF_PURPOSE} {result}", fix)
+def _spf_finding(inputs: _Inputs, status: DnsStatus, result: str, fix: str = "") -> DnsFinding:
+    """An SPF finding: the SPF explanation, where receivers look, then ``result``."""
+    where = ""
+    if inputs.spf_domain != inputs.from_domain:
+        where = (
+            f"Receivers check this list at {inputs.spf_domain}, the domain of the bounce "
+            "address, because that is the address a message is sent from on the wire. "
+        )
+    return DnsFinding(SPF_NAME, status, f"{SPF_PURPOSE} {where}{result}", fix)
 
 
-def _spf_fix_publish(resolver: dns.resolver.Resolver, inputs: _Inputs) -> str:
+def _spf_fix_publish(resolver: _Resolver, inputs: _Inputs) -> str:
     """What to publish when there is no SPF record, naming the host's address if known."""
-    where = f"Ask whoever manages the DNS for {inputs.from_domain} to add a TXT record "
+    where = f"Ask whoever manages the DNS for {inputs.spf_domain} to add a TXT record "
     try:
         addresses = [a for a in _addresses(resolver, inputs.host) if _is_public_candidate(a)]
     except DnsLookupError:
@@ -434,7 +506,7 @@ def _parse_spf(record: str) -> list[_SpfTerm]:
 
 
 def _validate_term(term: _SpfTerm, text: str) -> None:
-    """Raise ``SpfSyntaxError`` when ``term`` lacks an argument its mechanism needs."""
+    """Raise ``SpfSyntaxError`` when ``term`` lacks or mangles what it needs."""
     if term.name in {"include", "redirect", "exists"} and term.argument == "":
         raise SpfSyntaxError(f"{text!r} needs a domain name.")
     if term.name in {"ip4", "ip6"}:
@@ -444,10 +516,25 @@ def _validate_term(term: _SpfTerm, text: str) -> None:
             raise SpfSyntaxError(f"{text!r} is not a valid address.") from exc
         if network.version != (4 if term.name == "ip4" else 6):
             raise SpfSyntaxError(f"{text!r} is not a valid address.")
+    if term.name in {"a", "mx"}:
+        lengths = _prefix_lengths(term.prefix)
+        if lengths[0] > MAX_PREFIX_V4 or lengths[1] > MAX_PREFIX_V6:
+            raise SpfSyntaxError(f"{text!r} has a prefix length that is too large.")
+
+
+def _prefix_lengths(prefix: str) -> tuple[int, int]:
+    """The IPv4 and IPv6 prefix lengths of an ``a`` or ``mx`` prefix such as ``/24//64``.
+
+    A length the prefix leaves out is the full address: 32 for IPv4 and 128 for IPv6.
+    """
+    v4_text, _, v6_text = prefix.partition("//")
+    v4 = int(v4_text.lstrip("/")) if v4_text != "" else MAX_PREFIX_V4
+    v6 = int(v6_text) if v6_text != "" else MAX_PREFIX_V6
+    return v4, v6
 
 
 def _spf_host_problem(
-    resolver: dns.resolver.Resolver, inputs: _Inputs, terms: list[_SpfTerm]
+    resolver: _Resolver, inputs: _Inputs, terms: list[_SpfTerm]
 ) -> _Problem | None:
     """What is wrong with the list's coverage of the mail host, or ``None`` when nothing.
 
@@ -477,14 +564,46 @@ def _spf_host_problem(
             "Ask the person who runs the server to confirm the list names the server's "
             "public address.",
         )
-    if _SpfEvaluator(resolver, addresses).authorizes(inputs.from_domain, terms):
+    match = _SpfEvaluator(resolver, addresses).evaluate(inputs.spf_domain, terms)
+    return _verdict_problem(inputs, match, addresses[0])
+
+
+def _verdict_problem(
+    inputs: _Inputs,
+    match: _Match | None,
+    address: ipaddress.IPv4Address | ipaddress.IPv6Address,
+) -> _Problem | None:
+    """What the first matching SPF term says about the mail host, or ``None`` if fine.
+
+    A ``+`` match is fine.  An entry that names the host with ``-`` refuses it, and one
+    with ``~`` or ``?`` only half approves it.  The closing ``all`` (or no match at all)
+    means the host is not listed.
+    """
+    domain, host = inputs.spf_domain, inputs.host
+    if match is not None and match.qualifier == "+":
         return None
+    if match is not None and not match.via_all and match.qualifier == "-":
+        return _Problem(
+            DnsStatus.FAIL,
+            f"The list for {domain} names the mail server ({host}) and tells receivers to "
+            "reject mail from it.",
+            f"Ask whoever manages the DNS for {domain} to change the minus sign in front "
+            f"of the entry for {host} (or {address}) to a plus, or remove the entry.",
+        )
+    if match is not None and not match.via_all:
+        return _Problem(
+            DnsStatus.WARN,
+            f"The list for {domain} names the mail server ({host}) but does not fully "
+            "approve it, so receivers may mark CalDART mail as suspicious.",
+            f"Ask whoever manages the DNS for {domain} to remove the ~ or ? in front of the "
+            f"entry for {host} (or {address}).",
+        )
     return _Problem(
         DnsStatus.FAIL,
-        f"The list for {inputs.from_domain} does not include the mail server "
-        f"({inputs.host}), so receivers may treat CalDART mail as forged.",
-        f"Ask whoever manages the DNS for {inputs.from_domain} to add "
-        f"{inputs.host} (or its address, {addresses[0]}) to the TXT record that starts "
+        f"The list for {domain} does not include the mail server "
+        f"({host}), so receivers may treat CalDART mail as forged.",
+        f"Ask whoever manages the DNS for {domain} to add "
+        f"{host} (or its address, {address}) to the TXT record that starts "
         "with v=spf1.",
     )
 
@@ -511,12 +630,19 @@ def _spf_policy_problem(terms: list[_SpfTerm]) -> _Problem | None:
     )
 
 
+class _Match(NamedTuple):
+    """The first SPF term that matched: its qualifier, and whether it was ``all``."""
+
+    qualifier: str
+    via_all: bool
+
+
 class _SpfEvaluator:
-    """Decides whether any of a set of IP addresses is allowed by an SPF record."""
+    """Evaluates an SPF record for a set of IP addresses, as RFC 7208 orders it."""
 
     def __init__(
         self,
-        resolver: dns.resolver.Resolver,
+        resolver: _Resolver,
         addresses: list[ipaddress.IPv4Address | ipaddress.IPv6Address],
     ) -> None:
         """Hold the ``resolver`` and the ``addresses`` to look for."""
@@ -524,35 +650,46 @@ class _SpfEvaluator:
         self._addresses = addresses
         self._lookups = 0
 
-    def authorizes(self, domain: str, terms: list[_SpfTerm]) -> bool:
-        """True when a term of ``terms`` (the record of ``domain``) allows an address.
+    def evaluate(self, domain: str, terms: list[_SpfTerm]) -> _Match | None:
+        """The first term of ``terms`` (``domain``'s record) that matches, or ``None``.
 
-        Raises ``SpfSyntaxError`` past ``SPF_LOOKUP_LIMIT`` lookups or for a malformed
-        included record, and ``DnsLookupError`` when a lookup fails outright.
+        Terms are tried in order and the first match decides, whatever its qualifier;
+        ``all`` always matches.  With no match, a ``redirect`` modifier hands the
+        decision to the record it names.  An ``include`` matches only when the included
+        record's own first match carries ``+``.
+
+        Raises ``SpfSyntaxError`` past ``SPF_LOOKUP_LIMIT`` lookups, for an ``mx`` naming
+        more than ``SPF_MX_LIMIT`` servers, or for a malformed included record, and
+        ``DnsLookupError`` when a lookup fails outright.
         """
         for term in terms:
-            if term.name == "all":
-                return False
-            if term.qualifier == "+" and self._matches(domain, term):
-                return True
+            if term.name not in SPF_MODIFIERS and self._matches(domain, term):
+                return _Match(term.qualifier, term.name == "all")
         redirect = next((term for term in terms if term.name == "redirect"), None)
         if redirect is None:
-            return False
+            return None
         return self._follow(redirect.argument)
 
     def _matches(self, domain: str, term: _SpfTerm) -> bool:
         """True when the mechanism ``term`` covers one of the addresses."""
         match term.name:
+            case "all":
+                return True
             case "ip4" | "ip6":
                 network = ipaddress.ip_network(term.argument + term.prefix, strict=False)
                 return self._in_network(network)
             case "a":
+                self._count_lookup()
                 return self._hosts_cover(term, [term.argument or domain])
             case "mx":
+                self._count_lookup()
                 return self._hosts_cover(term, self._mail_exchangers(term.argument or domain))
             case "include":
-                return self._follow(term.argument)
+                inner = self._follow(term.argument)
+                return inner is not None and inner.qualifier == "+"
             case _:
+                # ``ptr`` and ``exists`` cost a lookup each but are not evaluated.
+                self._count_lookup()
                 return False
 
     def _count_lookup(self) -> None:
@@ -563,46 +700,42 @@ class _SpfEvaluator:
                 f"it needs more than {SPF_LOOKUP_LIMIT} lookups, which receivers refuse."
             )
 
-    def _follow(self, domain: str) -> bool:
-        """True when the SPF record published at ``domain`` allows an address."""
+    def _follow(self, domain: str) -> _Match | None:
+        """The first match of the SPF record published at ``domain``, or ``None``."""
         self._count_lookup()
         records = _spf_records(self._resolver, domain)
         if len(records) != 1:
-            return False
-        return self.authorizes(domain, _parse_spf(records[0]))
+            return None
+        return self.evaluate(domain, _parse_spf(records[0]))
 
     def _mail_exchangers(self, domain: str) -> list[str]:
-        """The mail exchanger host names of ``domain``."""
-        self._count_lookup()
-        return [
+        """The mail exchanger host names of ``domain``; at most ``SPF_MX_LIMIT``."""
+        hosts = [
             record.exchange.to_text().rstrip(".")
-            for record in _query(self._resolver, domain, "MX")
+            for record in self._resolver.query(domain, "MX")
             if isinstance(record, dns.rdtypes.mxbase.MXBase)
         ]
+        if len(hosts) > SPF_MX_LIMIT:
+            raise SpfSyntaxError(
+                f"an mx entry names more than {SPF_MX_LIMIT} mail servers, which receivers refuse."
+            )
+        return hosts
 
     def _hosts_cover(self, term: _SpfTerm, hosts: list[str]) -> bool:
         """True when an address of one of ``hosts``, widened by the prefix, is covered."""
-        if term.name == "a":
-            self._count_lookup()
+        lengths = _prefix_lengths(term.prefix)
         return any(
-            self._in_network(self._widen(ipaddress.ip_address(text), term.prefix))
+            self._in_network(self._widen(ipaddress.ip_address(text), lengths))
             for host in hosts
             for text in _addresses(self._resolver, host)
         )
 
     @staticmethod
     def _widen(
-        address: ipaddress.IPv4Address | ipaddress.IPv6Address, prefix: str
+        address: ipaddress.IPv4Address | ipaddress.IPv6Address, lengths: tuple[int, int]
     ) -> ipaddress.IPv4Network | ipaddress.IPv6Network:
-        """The network ``address`` belongs to under a ``/n`` or ``/n//m`` prefix.
-
-        A prefix of ``/n//m`` gives ``n`` to IPv4 addresses and ``m`` to IPv6; no prefix
-        gives the single address.
-        """
-        if prefix == "":
-            return ipaddress.ip_network(address)
-        lengths = prefix.lstrip("/").split("//")
-        length = int(lengths[0]) if address.version == 4 else int(lengths[-1])
+        """The network ``address`` belongs to under the term's IPv4 and IPv6 lengths."""
+        length = lengths[0] if address.version == 4 else lengths[1]
         return ipaddress.ip_network(f"{address}/{length}", strict=False)
 
     def _in_network(self, network: ipaddress.IPv4Network | ipaddress.IPv6Network) -> bool:
@@ -615,7 +748,7 @@ class _SpfEvaluator:
 # --------------------------------------------------------------------------
 # DKIM
 # --------------------------------------------------------------------------
-def _check_dkim(resolver: dns.resolver.Resolver, inputs: _Inputs) -> DnsFinding:
+def _check_dkim(resolver: _Resolver, inputs: _Inputs) -> DnsFinding:
     """The DKIM finding: a selector is set and its public key is published."""
     if inputs.selector == "":
         return DnsFinding(
@@ -630,7 +763,7 @@ def _check_dkim(resolver: dns.resolver.Resolver, inputs: _Inputs) -> DnsFinding:
     try:
         records = _txt_records(resolver, name)
     except DnsLookupError as exc:
-        return DnsFinding(DKIM_NAME, DnsStatus.FAIL, f"{DKIM_PURPOSE} {exc}", _FIX_RETRY)
+        return DnsFinding(DKIM_NAME, DnsStatus.FAIL, f"{DKIM_PURPOSE} {exc}", exc.fix)
     if len(records) == 0:
         return DnsFinding(
             DKIM_NAME,
@@ -668,7 +801,7 @@ def _dkim_key(record: str) -> str:
 # --------------------------------------------------------------------------
 # DMARC
 # --------------------------------------------------------------------------
-def _check_dmarc(resolver: dns.resolver.Resolver, inputs: _Inputs) -> DnsFinding:
+def _check_dmarc(resolver: _Resolver, inputs: _Inputs) -> DnsFinding:
     """The DMARC finding: a policy is published, and it does something about forgeries."""
     name = f"_dmarc.{inputs.from_domain}"
     try:
@@ -678,7 +811,7 @@ def _check_dmarc(resolver: dns.resolver.Resolver, inputs: _Inputs) -> DnsFinding
             if text.strip().lower().startswith(DMARC_VERSION)
         ]
     except DnsLookupError as exc:
-        return DnsFinding(DMARC_NAME, DnsStatus.FAIL, f"{DMARC_PURPOSE} {exc}", _FIX_RETRY)
+        return DnsFinding(DMARC_NAME, DnsStatus.FAIL, f"{DMARC_PURPOSE} {exc}", exc.fix)
     if len(records) == 0:
         return DnsFinding(
             DMARC_NAME,
@@ -742,6 +875,15 @@ def _dmarc_reports(tags: dict[str, str]) -> str:
 def _check_alignment(inputs: _Inputs) -> DnsFinding:
     """The bounce-address finding: it is on the From domain or a subdomain of it."""
     bounce, origin = inputs.bounce_domain, inputs.from_domain
+    if bounce == "":
+        return DnsFinding(
+            ALIGNMENT_NAME,
+            DnsStatus.FAIL,
+            f"{ALIGNMENT_PURPOSE} The bounce address the site is set to use is not a valid "
+            "address: it has no domain.",
+            f"Ask the person who runs the server to set the bounce address to a full "
+            f"address such as bounces@{origin}.",
+        )
     if bounce == origin:
         return DnsFinding(
             ALIGNMENT_NAME,
