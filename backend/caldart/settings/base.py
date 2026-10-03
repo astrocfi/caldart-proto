@@ -292,6 +292,20 @@ DKIM_SELECTOR = env("DKIM_SELECTOR", default="")
 DEFAULT_EXCEPTION_REPORTER_FILTER = "caldart.error_reports.CredentialSafeExceptionReporterFilter"
 
 # --------------------------------------------------------------------------
+# Bulk email (``apps.bulk_email``)
+# --------------------------------------------------------------------------
+# The background sender sends at most this many copies a minute, sleeping out the
+# rest of each 60 / rate seconds, so a mail provider's rate limit is never reached.
+BULK_EMAIL_RATE_PER_MINUTE = env.int("BULK_EMAIL_RATE_PER_MINUTE", default=30)
+# The copies sent over one mail connection before the sender opens a fresh one.
+BULK_EMAIL_BATCH_SIZE = env.int("BULK_EMAIL_BATCH_SIZE", default=50)
+# The undo window: seconds between pressing Send and the first copy, during which the
+# send can be cancelled.  0 makes a send ready for the sender's next run at once.
+BULK_EMAIL_UNDO_SECONDS = env.int("BULK_EMAIL_UNDO_SECONDS", default=120)
+# Above this many recipients, Send asks the sender to type the count to confirm it.
+BULK_EMAIL_CONFIRM_ABOVE = env.int("BULK_EMAIL_CONFIRM_ABOVE", default=50)
+
+# --------------------------------------------------------------------------
 # Django REST Framework
 # --------------------------------------------------------------------------
 REST_FRAMEWORK = {
@@ -362,6 +376,7 @@ SPECTACULAR_SETTINGS = {
         "AircraftCategoryEnum": "apps.aircraft.models.AircraftCategory.choices",
         "AirworthinessEnum": "apps.aircraft.models.Airworthiness.choices",
         "BulkEmailRecipientStatusEnum": "apps.bulk_email.models.RecipientStatus.choices",
+        "BulkEmailStatusEnum": "apps.bulk_email.models.BulkEmailStatus.choices",
         # The portal's and the public donation page's mock completions share one set.
         "MockCompleteOutcomeEnum": "apps.payments.api.serializers.MOCK_OUTCOMES",
     },

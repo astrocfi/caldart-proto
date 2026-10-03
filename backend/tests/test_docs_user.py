@@ -290,13 +290,15 @@ ADMIN_PAGE_ROLES: dict[str, frozenset[str]] = {
     "admin/darts": frozenset({ACCOUNT_ADMIN}),
     "admin/reminders": frozenset({ACCOUNT_ADMIN}),
     "admin/notifications": frozenset({ACCOUNT_ADMIN}),
-    "admin/bulk-email": frozenset({MANAGEMENT}),
     "admin/subscriptions": frozenset({ACCOUNT_ADMIN, TREASURER}),
     "admin/users": frozenset({USER_ADMIN}),
     "admin/user-record": frozenset({USER_ADMIN}),
     "admin/health-database": frozenset({SYSTEM_ADMIN}),
     "admin/sent-emails": frozenset({SYSTEM_ADMIN}),
     "admin/scheduled": frozenset({SYSTEM_ADMIN}),
+    "bulk-email/compose": frozenset({MANAGEMENT}),
+    "bulk-email/drafts": frozenset({MANAGEMENT}),
+    "bulk-email/sent": frozenset({MANAGEMENT}),
     "bulk-email/mail-delivery": frozenset({MANAGEMENT}),
 }
 
@@ -358,7 +360,7 @@ def guide_roles() -> ModuleType:
 
 
 def test_the_guide_has_restricted_pages_to_check() -> None:
-    """The scan finds the administrator, treasurer, and website pages."""
+    """The scan finds the administrator, bulk email, treasurer, and website pages."""
     assert len(RESTRICTED_PAGES) > 0
 
 
@@ -366,6 +368,7 @@ def test_the_guide_has_restricted_pages_to_check() -> None:
 def test_every_administrator_page_names_the_roles_that_reach_it(page: Path) -> None:
     """Each restricted page of the guide names the roles that reach it.
 
+    The groups are ``admin/``, ``bulk-email/``, ``finance/``, and ``website/``.
     The field is the page's first line, so Sphinx reads it as the page's metadata, and
     it names exactly the roles the portal's menu gives the screen.
     """

@@ -76,8 +76,8 @@ NO_ROLE_DENIED_GETS = [
     "/api/v1/system/emails/purposes",
     "/api/v1/reports/emails/export.csv",
     "/api/v1/system/health",
-    "/api/v1/bulk-email",
-    "/api/v1/bulk-email/preview.csv",
+    "/api/v1/bulk-email/drafts",
+    "/api/v1/bulk-email/sent",
 ]
 
 
@@ -416,8 +416,8 @@ TREASURER_DENIED_GETS = [
     "/api/v1/system/emails/purposes",
     "/api/v1/reports/emails/export.csv",
     "/api/v1/system/health",
-    "/api/v1/bulk-email",
-    "/api/v1/bulk-email/preview.csv",
+    "/api/v1/bulk-email/drafts",
+    "/api/v1/bulk-email/sent",
 ]
 
 
@@ -489,8 +489,8 @@ def test_management_is_refused_every_endpoint_outside_bulk_email(
     assert api_client.get(url).status_code == 403
 
 
-@pytest.mark.parametrize("url", ["/api/v1/bulk-email", "/api/v1/bulk-email/preview.csv"])
+@pytest.mark.parametrize("url", ["/api/v1/bulk-email/drafts", "/api/v1/bulk-email/sent"])
 def test_management_reaches_bulk_email(api_client: APIClient, management: User, url: str) -> None:
-    """The bulk email history and the preview list are CalDART management's own."""
+    """The drafts and the sent bulk emails are CalDART management's own."""
     api_client.force_login(management)
     assert api_client.get(url).status_code == 200
