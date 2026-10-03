@@ -145,7 +145,7 @@ def test_editing_a_queued_email_keeps_its_start(ready: BulkEmail, management: Us
     """A scheduled email can be fixed without moving its start time."""
     start = NOW + timedelta(days=1)
     drafts.queue(ready, confirm_count=None, start_at=start, actor=management, now=NOW)
-    edited = drafts.update(ready, {"subject": "Fixed"})
+    edited = drafts.update(ready, {"subject": "Fixed"}, actor=management)
     assert (edited.subject, edited.status, edited.start_at) == (
         "Fixed",
         BulkEmailStatus.QUEUED,

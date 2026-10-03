@@ -22,7 +22,9 @@ The modules
 added later lands in a file of its own rather than growing one:
 
 ``models.py``
-    ``BulkEmail``, ``BatchAdd``, ``BulkEmailRecipient``, and their choices.
+    ``BulkEmail``, ``BatchAdd``, ``BulkEmailRecipient``, ``BulkEmailImage``, ``BulkEmailRetry``,
+    ``EmailTemplate``, ``RecipientGroup`` with its ``RecipientGroupMember`` and
+    ``RecipientGroupFilter`` rows, and their choices.
 ``batch.py``
     The batch: adding by filters, the skip reasons, the batch as rows and as a
     CSV, and a send's results as a CSV.  ``locked_for_edit`` is the edit rule.
@@ -70,13 +72,19 @@ added later lands in a file of its own rather than growing one:
 ``archive.py``
     The **Messages** page: the bulk emails a person received, each as their own
     copy.
+``templates.py``
+    Reusing a message: filling a draft from a saved template, and **Duplicate**.
+``groups.py``
+    Saved recipient groups: who a group holds now, adding one to a batch, saving
+    a batch as one, and changing a group's people or filters.
 ``api/``
     The endpoints: ``drafts.py``, ``batch.py``, ``history.py``, ``sender.py``
     (**Run now**), ``sender_context.py`` (``GET /bulk-email/sender``),
     ``richtext.py`` (the field catalog and image uploads), ``preview.py``,
     ``checks.py`` (the checks and the test copy), ``delivery.py`` (retry, a copy,
-    hide), and ``archive.py`` (``/messages``), with the shared serializers in
-    ``serializers.py``.
+    hide), ``archive.py`` (``/messages``), ``templates.py`` (templates and
+    **Duplicate**), and ``groups.py`` (recipient groups), with the shared serializers
+    in ``serializers.py``.
 ``management/commands/send_bulk_emails.py``
     One run of the sender.
 
@@ -107,7 +115,10 @@ States
     without a subject or a message; sending it again reschedules it.  Any change to
     its batch (an add, a removal, a clear) takes it back to a draft with its
     schedule cleared, since the count the sender confirmed no longer holds; one
-    ``bulk_email.cancel`` audit line with the reason ``batch_changed`` says so.
+    ``bulk_email.cancel`` audit line with the reason ``batch_changed`` says so.  So
+    does a change of its type, by ``PATCH`` or by a template, since who is skipped as
+    opted out follows the type (``drafts.update`` calls ``batch.back_to_draft`` with
+    the reason ``type_changed``).
     **Cancel** takes it back to a draft too.
 ``sending``
     The sender has claimed it and frozen its batch.  Nothing about it can change
@@ -162,6 +173,14 @@ no type, which skips nobody for that reason; an opt-out of a type that no longer
 allows one does not apply.  So an address that bounced, or an opt-out made, after
 somebody was added shows as skipped at once, and two accounts sharing one address
 get one copy, the first in surname order.
+
+Every add goes through ``batch.add_accounts``, which takes the people as a list of
+accounts and records one ``BatchAdd``: ``add_filters`` gives it the accounts the
+filters choose, a saved group's add the group's people, and **Duplicate** the
+people it copies.  An add not made with filters keeps a ``label`` of its own, such
+as ``Group: Board``, which ``batch.add_name`` prefers to the filters' words, so the
+batch says which group brought each person in even after the group is renamed or
+deleted.
 
 Every email has a type before it is sent (``BulkEmail.email_type``, see
 :doc:`api-email-types`): ``PATCH`` takes one the caller may send
@@ -382,8 +401,7 @@ checks, below, so **Send** and a test both refuse it.
 .. _bulk-email-checks:
 
 The checks
-==========
-
+===
 ``checks.run_checks(bulk)`` lists what is wrong with an email as it is saved, each
 finding a ``Finding(code, level, message)``.  The compose screen's **Check and
 send** card runs them when it opens, again on **Check again**, and again just
@@ -517,6 +535,42 @@ its page there (``render.browser_url``, on ``SITE_URL``), and CalDART management
 hide an email from every recipient's list (``delivery.set_hidden``) without changing
 its history.
 
+=======
+Reusing what was written
+========================
+
+CalDART management keeps two things to use again, both shared by every manager and
+both outside any one email, so deleting one changes no email.
+
+**Templates.**  ``EmailTemplate`` holds a message: a subject, a message (sanitized as
+a draft's is, by the same ``checked_subject`` and ``checked_body`` checks the
+draft's serializer uses), and optionally a type and a Reply-To address.
+``templates.apply_template`` copies it into a draft through ``drafts.update``, so the
+edit rule and a queued email's checks apply; the type comes too only when the
+caller may send it.  **Save as a template** on the compose screen is a plain
+``POST /bulk-email/templates`` of the draft's words, once its autosave has caught up.
+
+**Recipient groups.**  ``RecipientGroup`` is ``fixed`` (``RecipientGroupMember``
+rows) or ``live`` (``RecipientGroupFilter`` rows).  ``groups.group_accounts`` is the
+one answer to who a group holds now: a fixed group's accounts, or everybody a live
+group's sets choose through ``batch.selected_accounts``, as an add would, combined
+in one query.  ``groups.add_group`` hands that to ``batch.add_accounts``, so
+duplicates, the row lock, and a queued email going back to a draft work as for any
+add.  ``groups.save_group`` turns a batch into a group: the accounts, or the filters
+of its adds (a live group added contributes its own sets), refusing a live group
+when an add has no filters behind it, and saying so separately for a group since
+deleted.  A live group's stored filters can stop being ones the member list
+accepts, such as a DART that has been deleted: ``groups.group_accounts`` then raises
+``GroupFiltersError`` (*This group's filters need fixing.*), which the list answers
+as an unknown count, the group's people as a 409, and an add of that group as a
+400, so one such group never breaks the others.
+
+**Duplicate.**  ``templates.duplicate`` makes a fresh ``BulkEmail`` for the caller
+with the subject, message, and type, and with ``copy_recipients`` passes the
+original's accounts to ``batch.add_accounts`` as one add labeled
+``Copied from "<subject>"``.  The rows are fresh and ``batched``, so the skip
+reasons are worked out as they are now; the original's rows and counts are not
+read for anything else.
 
 Extending
 =========

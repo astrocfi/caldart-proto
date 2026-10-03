@@ -183,7 +183,7 @@ def test_an_edit_before_the_start_is_what_goes_out(management: User, clock: Fake
     drafts.queue(
         bulk, confirm_count=None, start_at=NOW + timedelta(days=1), actor=management, now=NOW
     )
-    drafts.update(bulk, {"subject": "Corrected subject"})
+    drafts.update(bulk, {"subject": "Corrected subject"}, actor=management)
     job.run_sender(now=NOW + timedelta(days=1))
     assert mail.outbox[0].subject == "Corrected subject"
 

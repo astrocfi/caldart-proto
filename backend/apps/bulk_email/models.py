@@ -12,6 +12,11 @@ or ``stopped`` as the send goes on; a sent copy the bounce check later finds ref
 becomes ``bounced``.  A :class:`BulkEmailRetry` is one press of **Retry failed**.  A
 :class:`BulkEmailImage` is one image a sender put into a message, stored where every
 copy links to it.
+
+What CalDART management keeps to use again: an :class:`EmailTemplate` is a saved
+message a draft can start from, and a :class:`RecipientGroup` a saved set of people a
+batch can add, either the accounts themselves (:class:`RecipientGroupMember`, a fixed
+group) or the filters that find them (:class:`RecipientGroupFilter`, a live group).
 """
 
 from __future__ import annotations
@@ -21,6 +26,7 @@ from pathlib import PurePosixPath
 
 from django.conf import settings
 from django.db import models
+from django.db.models.functions import Lower
 
 from caldart.models import TimestampedModel
 
@@ -30,6 +36,13 @@ NAME_MAX_LENGTH = 301
 
 #: The longest DART name a recipient row keeps, as long as ``Dart.name`` itself.
 DART_NAME_MAX_LENGTH = 60
+
+#: The longest name a saved template or a saved recipient group may have.
+SAVED_NAME_MAX_LENGTH = 80
+
+#: The longest label an add keeps: ``Copied from "<subject>"`` with a 200-character
+#: subject fits.
+ADD_LABEL_MAX_LENGTH = 220
 
 
 class BulkEmailStatus(models.TextChoices):
@@ -181,11 +194,23 @@ class BatchAdd(TimestampedModel):
 
     ``filters`` are the member list filters that carried a value.  ``added_count`` is
     how many people joined the batch and ``already_count`` how many the filters chose
-    who were in it already.
+    who were in it already.  ``group`` is the saved recipient group an add brought in,
+    null for an add by filters and once the group is deleted.  ``label`` names an add
+    that was not made with filters, such as ``Group: Board`` or ``Copied from
+    "Spring newsletter"``, as it read when the add was made; it is blank for an add by
+    filters, which is named by its filters.
     """
 
     bulk_email = models.ForeignKey(BulkEmail, on_delete=models.CASCADE, related_name="adds")
     filters = models.JSONField(default=dict, blank=True)
+    group = models.ForeignKey(
+        "RecipientGroup",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="adds",
+    )
+    label = models.CharField(max_length=ADD_LABEL_MAX_LENGTH, blank=True)
     added_count = models.PositiveIntegerField(default=0)
     already_count = models.PositiveIntegerField(default=0)
 
@@ -331,3 +356,127 @@ class BulkEmailImage(TimestampedModel):
     def __str__(self) -> str:
         """Return the stored file's name, ``bulk-email/<uuid>.<ext>``."""
         return self.file.name or ""
+
+
+class EmailTemplate(TimestampedModel):
+    """A saved message that a draft can start from, shared by all CalDART management.
+
+    ``name`` is unique, ignoring case.  ``subject`` and ``body`` are a message as a
+    draft holds them: the body is sanitized HTML and both may carry recipient field
+    tokens.  ``email_type`` is the type a draft started from it takes, null for none
+    and once that type is deleted; ``reply_to`` is the Reply-To address it takes, blank
+    for the default.  ``created_by`` is who saved it, null once that account is
+    deleted, and ``updated_at`` when it last changed.
+    """
+
+    name = models.CharField(max_length=SAVED_NAME_MAX_LENGTH)
+    subject = models.CharField(max_length=200, blank=True)
+    body = models.TextField(blank=True)
+    email_type = models.ForeignKey(
+        "mail.EmailType",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="bulk_email_templates",
+    )
+    reply_to = models.EmailField(max_length=254, blank=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="bulk_email_templates",
+    )
+
+    class Meta:
+        ordering = [Lower("name"), "id"]
+        constraints = [
+            models.UniqueConstraint(Lower("name"), name="bulk_email_template_name_unique"),
+        ]
+
+    def __str__(self) -> str:
+        """Return the template's name."""
+        return self.name
+
+
+class GroupKind(models.TextChoices):
+    """How a saved recipient group holds its people.
+
+    A ``fixed`` group is a list of accounts, which changes only when somebody adds or
+    removes one.  A ``live`` group is a list of member list filter sets, run afresh
+    each time the group is used, so it follows the membership as it changes.
+    """
+
+    FIXED = "fixed", "Fixed"
+    LIVE = "live", "Live"
+
+
+class RecipientGroup(TimestampedModel):
+    """A saved set of people a bulk email's batch can add, shared by CalDART management.
+
+    ``name`` is unique, ignoring case.  ``kind`` says whether the group holds accounts
+    (``fixed``, :class:`RecipientGroupMember`) or filter sets (``live``,
+    :class:`RecipientGroupFilter`); it does not change after the group is made.
+    ``created_by`` is who saved it, null once that account is deleted, and
+    ``updated_at`` when it, its people, or its filters last changed.
+    """
+
+    name = models.CharField(max_length=SAVED_NAME_MAX_LENGTH)
+    kind = models.CharField(max_length=5, choices=GroupKind.choices)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="bulk_email_groups",
+    )
+
+    class Meta:
+        ordering = [Lower("name"), "id"]
+        constraints = [
+            models.UniqueConstraint(Lower("name"), name="bulk_email_group_name_unique"),
+        ]
+
+    def __str__(self) -> str:
+        """Return the group's name."""
+        return self.name
+
+
+class RecipientGroupMember(TimestampedModel):
+    """One account in a fixed recipient group; deleting the account takes it out."""
+
+    group = models.ForeignKey(RecipientGroup, on_delete=models.CASCADE, related_name="members")
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="bulk_email_group_memberships",
+    )
+
+    class Meta:
+        ordering = ["id"]
+        constraints = [
+            models.UniqueConstraint(fields=["group", "user"], name="bulk_email_group_member_once"),
+        ]
+
+    def __str__(self) -> str:
+        """Return ``"<account id> in <group>"``."""
+        return f"{self.user_id} in {self.group_id}"
+
+
+class RecipientGroupFilter(TimestampedModel):
+    """One filter set of a live recipient group: member list filters as an add takes them.
+
+    ``filters`` are the member list filters that carried a value; an empty set chooses
+    every member and friend.  ``position`` orders the sets on the group's page.
+    """
+
+    group = models.ForeignKey(RecipientGroup, on_delete=models.CASCADE, related_name="filter_sets")
+    filters = models.JSONField(default=dict, blank=True)
+    position = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["position", "id"]
+
+    def __str__(self) -> str:
+        """Return ``"Filters <id> of <group>"``."""
+        return f"Filters {self.pk} of {self.group_id}"

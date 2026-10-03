@@ -327,6 +327,10 @@ Mail, reminders, reports, notifications, and the CMS pages
           BulkRecipient [label="bulk_email.\nBulkEmailRecipient"];
           BulkImage [label="bulk_email.\nBulkEmailImage"];
           BulkRetry [label="bulk_email.\nBulkEmailRetry"];
+          BulkTemplate [label="bulk_email.\nEmailTemplate"];
+          BulkGroup [label="bulk_email.\nRecipientGroup"];
+          BulkGroupMember [label="bulk_email.\nRecipientGroupMember"];
+          BulkGroupFilter [label="bulk_email.\nRecipientGroupFilter"];
       
           Email -> User [label="user\nSET_NULL"];
           OptOut -> User [label="user\nCASCADE"];
@@ -347,6 +351,13 @@ Mail, reminders, reports, notifications, and the CMS pages
           BulkImage -> User [label="uploaded_by\nSET_NULL"];
           BulkRetry -> Bulk [label="bulk_email\nCASCADE"];
           BulkRetry -> User [label="requested_by\nSET_NULL"];
+          BulkAdd -> BulkGroup [label="group\nSET_NULL"];
+          BulkTemplate -> EmailType [label="email_type\nSET_NULL"];
+          BulkTemplate -> User [label="created_by\nSET_NULL"];
+          BulkGroup -> User [label="created_by\nSET_NULL"];
+          BulkGroupMember -> BulkGroup [label="group\nCASCADE"];
+          BulkGroupMember -> User [label="user\nCASCADE"];
+          BulkGroupFilter -> BulkGroup [label="group\nCASCADE"];
       
           User -> Page [style=invis];
           Membership -> Page [style=invis];
@@ -418,6 +429,12 @@ Mail, reminders, reports, notifications, and the CMS pages
                                   one person in the batch, and what became of the copy
       bulk_email.BulkEmailImage   one image put into a bulk email's message
       bulk_email.BulkEmailRetry   one press of Retry failed: when, by whom, how many
+      bulk_email.EmailTemplate    a saved message a draft can start from
+      bulk_email.RecipientGroup   a saved set of people a batch can add
+      bulk_email.RecipientGroupMember
+                                  one account in a fixed group
+      bulk_email.RecipientGroupFilter
+                                  one filter set of a live group
       cms.HomePage, cms.StandardPage, cms.NewsIndexPage, cms.NewsPage,
       cms.EventIndexPage, cms.EventPage, cms.DartIndexPage, cms.DartPage,
       cms.ContactPage, cms.DonatePage
@@ -455,6 +472,8 @@ Mail, reminders, reports, notifications, and the CMS pages
       bulk_email.BulkEmail.dart            -> darts.Dart          FK, SET_NULL, nullable
       bulk_email.BulkEmail.stopped_by      -> accounts.User       FK, SET_NULL, nullable
       bulk_email.BatchAdd.bulk_email       -> bulk_email.BulkEmail FK, CASCADE
+      bulk_email.BatchAdd.group            -> bulk_email.RecipientGroup
+                                                                  FK, SET_NULL, nullable
       bulk_email.BulkEmailRecipient.bulk_email
                                            -> bulk_email.BulkEmail FK, CASCADE
       bulk_email.BulkEmailRecipient.added_by
@@ -465,6 +484,14 @@ Mail, reminders, reports, notifications, and the CMS pages
       bulk_email.BulkEmailRetry.bulk_email -> bulk_email.BulkEmail FK, CASCADE
       bulk_email.BulkEmailRetry.requested_by
                                            -> accounts.User       FK, SET_NULL, nullable
+      bulk_email.EmailTemplate.email_type  -> mail.EmailType      FK, SET_NULL, nullable
+      bulk_email.EmailTemplate.created_by  -> accounts.User       FK, SET_NULL, nullable
+      bulk_email.RecipientGroup.created_by -> accounts.User       FK, SET_NULL, nullable
+      bulk_email.RecipientGroupMember.group
+                                           -> bulk_email.RecipientGroup FK, CASCADE
+      bulk_email.RecipientGroupMember.user -> accounts.User       FK, CASCADE
+      bulk_email.RecipientGroupFilter.group
+                                           -> bulk_email.RecipientGroup FK, CASCADE
       cms.BasePage                         inherits wagtailcore.Page
       cms.<every page type>                inherits cms.BasePage
       cms.StandardPage, cms.NewsPage       also inherit cms.MembersOnlyMixin
@@ -1263,6 +1290,26 @@ copy back to ``pending``.
      - Not sent (stopped)
    * - ``bounced``
      - Bounced
+
+.. _choices-group-kind:
+
+``GroupKind`` (``apps/bulk_email/models.py``)
+---------------------------------------------
+
+``RecipientGroup.kind``: how a saved recipient group holds its people
+(:doc:`bulk-email`).  A ``fixed`` group is a list of accounts, changed only by
+hand; a ``live`` one is a list of filter sets, run afresh on each use.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 70
+
+   * - Value
+     - Label
+   * - ``fixed``
+     - Fixed
+   * - ``live``
+     - Live
 
 .. _choices-report-formats:
 
@@ -4429,7 +4476,8 @@ of ``failed_count``, so each count always matches the rows of its status.
 ``BatchAdd``
 ------------
 
-One press of **Add to batch**: the filters it ran and what it added.
+One press of **Add to batch** or **Add a saved group**, or the people **Duplicate**
+copied: what it ran and what it added.
 
 .. list-table::
    :header-rows: 1
@@ -4458,7 +4506,15 @@ One press of **Add to batch**: the filters it ran and what it added.
    * - ``filters``
      - ``JSONField``
      - not null; default ``{}``
-     - JSON object of the member list's query parameters the add ran, those given a value only, as ``ReportSubscription.filters`` stores a report's
+     - JSON object of the member list's query parameters the add ran, those given a value only, as ``ReportSubscription.filters`` stores a report's; ``{}`` for an add of a saved group or of copied people
+   * - ``group``
+     - ``ForeignKey`` to ``bulk_email.RecipientGroup``, ``SET_NULL``
+     - null; default ``NULL``
+     - the saved recipient group the add brought in; null for any other add and once the group is deleted; related name ``adds``
+   * - ``label``
+     - ``CharField(220)``
+     - not null; default ``""``
+     - the add's name when it was not made with filters, as it read then: ``Group: <name>`` for a saved group, ``Copied from "<subject>"`` for **Duplicate**'s people; blank for an add by filters, which its filters name
    * - ``added_count``
      - ``PositiveIntegerField``
      - not null; default ``0``
@@ -4475,6 +4531,7 @@ One press of **Add to batch**: the filters it ran and what it added.
 **Relationships.**
 
 - ``bulk_email``: foreign key to ``bulk_email.BulkEmail``, ``CASCADE``; the reverse accessor is ``adds``.
+- ``group``: foreign key to ``bulk_email.RecipientGroup``, ``SET_NULL``, nullable; the reverse accessor is ``adds``.  Deleting a group leaves its adds, their ``label``, and the people they brought in.
 - ``recipients``: the reverse of ``BulkEmailRecipient.added_by``.
 
 ``BulkEmailRecipient``
@@ -4673,6 +4730,211 @@ links to the file by its absolute URL rather than carrying it.
 ``bulk_email.images.store`` is the one writer: it checks, scales, and saves the
 file before it writes the row.  Nothing deletes a row or its file, since a sent
 email may be read at any time after.
+
+``EmailTemplate``
+-----------------
+
+A saved message that a draft can start from, shared by all CalDART management
+(:ref:`api-bulk-email-templates`).
+
+.. list-table::
+   :header-rows: 1
+   :widths: 22 26 18 34
+
+   * - Field
+     - Type
+     - Null, default
+     - Meaning
+   * - ``id``
+     - ``BigAutoField``
+     - not null; assigned by the database
+     - primary key
+   * - ``created_at``
+     - ``DateTimeField``
+     - not null; set on insert
+     - when the template was saved
+   * - ``updated_at``
+     - ``DateTimeField``
+     - not null; set on every save
+     - when it last changed; the Templates screen calls it *Last edited*
+   * - ``name``
+     - ``CharField(80)``
+     - not null; required
+     - what the Templates screen and the picker call it; unique ignoring case
+   * - ``subject``
+     - ``CharField(200)``
+     - not null; default ``""``
+     - the subject a draft started from it takes, as ``BulkEmail.subject``
+   * - ``body``
+     - ``TextField``
+     - not null; default ``""``
+     - the message a draft started from it takes, sanitized HTML as ``BulkEmail.body``
+   * - ``email_type``
+     - ``ForeignKey`` to ``mail.EmailType``, ``SET_NULL``
+     - null; default ``NULL``
+     - the type a draft started from it takes; null for none and once the type is deleted; related name ``bulk_email_templates``
+   * - ``reply_to``
+     - ``EmailField(254)``
+     - not null; default ``""``
+     - the Reply-To address a draft started from it takes; blank for the default
+   * - ``created_by``
+     - ``ForeignKey`` to ``accounts.User``, ``SET_NULL``
+     - null; default ``NULL``
+     - who saved it; null once that account is deleted; related name ``bulk_email_templates``
+
+**Constraints, indexes, and ordering.**
+
+- ``bulk_email_template_name_unique``: unique on ``Lower(name)``, so two
+  templates cannot share a name in any mix of cases.
+- Ordering: ``Lower(name)``, then ``id``.
+
+**Relationships.**
+
+- ``email_type``: foreign key to ``mail.EmailType``, ``SET_NULL``, nullable; the reverse accessor is ``bulk_email_templates``.  Unlike a bulk email's, a template's type does not keep the type from being deleted.
+- ``created_by``: foreign key to ``accounts.User``, ``SET_NULL``, nullable; the reverse accessor is ``bulk_email_templates``.
+
+``RecipientGroup``
+------------------
+
+A saved set of people a bulk email's batch can add, shared by all CalDART
+management (:ref:`api-bulk-email-groups`).  A ``fixed`` group holds accounts
+(``RecipientGroupMember``), a ``live`` one filter sets (``RecipientGroupFilter``)
+run afresh on each use.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 22 26 18 34
+
+   * - Field
+     - Type
+     - Null, default
+     - Meaning
+   * - ``id``
+     - ``BigAutoField``
+     - not null; assigned by the database
+     - primary key
+   * - ``created_at``
+     - ``DateTimeField``
+     - not null; set on insert
+     - when the group was saved
+   * - ``updated_at``
+     - ``DateTimeField``
+     - not null; set on every save
+     - when it, its people, or its filters last changed; the Recipient groups screen calls it *Last edited*
+   * - ``name``
+     - ``CharField(80)``
+     - not null; required
+     - what the screens and the batch call it; unique ignoring case
+   * - ``kind``
+     - ``CharField(5)``, :ref:`choices <choices-group-kind>`
+     - not null; required
+     - ``fixed`` or ``live``; set when the group is made and never changed
+   * - ``created_by``
+     - ``ForeignKey`` to ``accounts.User``, ``SET_NULL``
+     - null; default ``NULL``
+     - who saved it; null once that account is deleted; related name ``bulk_email_groups``
+
+**Constraints, indexes, and ordering.**
+
+- ``bulk_email_group_name_unique``: unique on ``Lower(name)``.
+- Ordering: ``Lower(name)``, then ``id``.
+
+**Relationships.**
+
+- ``created_by``: foreign key to ``accounts.User``, ``SET_NULL``, nullable; the reverse accessor is ``bulk_email_groups``.
+- ``members``: the reverse of ``RecipientGroupMember.group``.
+- ``filter_sets``: the reverse of ``RecipientGroupFilter.group``.
+- ``adds``: the reverse of ``BatchAdd.group``.
+
+``RecipientGroupMember``
+------------------------
+
+One account in a fixed recipient group.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 22 26 18 34
+
+   * - Field
+     - Type
+     - Null, default
+     - Meaning
+   * - ``id``
+     - ``BigAutoField``
+     - not null; assigned by the database
+     - primary key
+   * - ``created_at``
+     - ``DateTimeField``
+     - not null; set on insert
+     - when the account joined the group
+   * - ``updated_at``
+     - ``DateTimeField``
+     - not null; set on every save
+     - when the row was last saved
+   * - ``group``
+     - ``ForeignKey`` to ``bulk_email.RecipientGroup``, ``CASCADE``
+     - not null; required
+     - the group; related name ``members``
+   * - ``user``
+     - ``ForeignKey`` to ``accounts.User``, ``CASCADE``
+     - not null; required
+     - the account; deleting it takes it out of the group; related name ``bulk_email_group_memberships``
+
+**Constraints, indexes, and ordering.**
+
+- ``bulk_email_group_member_once``: unique on ``group`` and ``user``.
+- Ordering: ``id``.  The screens list the people in surname order instead.
+
+**Relationships.**
+
+- ``group``: foreign key to ``bulk_email.RecipientGroup``, ``CASCADE``; the reverse accessor is ``members``.
+- ``user``: foreign key to ``accounts.User``, ``CASCADE``; the reverse accessor is ``bulk_email_group_memberships``.
+
+``RecipientGroupFilter``
+------------------------
+
+One filter set of a live recipient group.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 22 26 18 34
+
+   * - Field
+     - Type
+     - Null, default
+     - Meaning
+   * - ``id``
+     - ``BigAutoField``
+     - not null; assigned by the database
+     - primary key
+   * - ``created_at``
+     - ``DateTimeField``
+     - not null; set on insert
+     - when the set was added
+   * - ``updated_at``
+     - ``DateTimeField``
+     - not null; set on every save
+     - when the row was last saved
+   * - ``group``
+     - ``ForeignKey`` to ``bulk_email.RecipientGroup``, ``CASCADE``
+     - not null; required
+     - the group; related name ``filter_sets``
+   * - ``filters``
+     - ``JSONField``
+     - not null; default ``{}``
+     - JSON object of member list query parameters, as ``BatchAdd.filters`` keeps an add's; ``{}`` chooses every member and friend
+   * - ``position``
+     - ``PositiveIntegerField``
+     - not null; default ``0``
+     - the set's place on the group's page
+
+**Constraints, indexes, and ordering.**
+
+- Ordering: ``position``, then ``id``.
+
+**Relationships.**
+
+- ``group``: foreign key to ``bulk_email.RecipientGroup``, ``CASCADE``; the reverse accessor is ``filter_sets``.
 
 cms
 ===

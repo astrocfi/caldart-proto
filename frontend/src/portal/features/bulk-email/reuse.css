@@ -1,0 +1,29 @@
+/*
+ * The reuse controls of the bulk email screens: the lists of templates and groups in
+ * a panel, and the two kinds of group on the Recipient groups screen.
+ */
+
+/* A list of choices, one button or line to a row, without bullets. */
+.bulk-email__choices {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-1);
+}
+
+/* What a fixed and a live group keep, as a term and its sentence. */
+.bulk-email__kinds {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+}
+
+.bulk-email__kinds dt {
+  font-weight: var(--weight-semibold);
+}
+
+.bulk-email__kinds dd {
+  margin: 0;
+}

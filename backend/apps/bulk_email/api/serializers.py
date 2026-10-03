@@ -15,7 +15,7 @@ from apps.bulk_email.batch import (
     AddResult,
     BatchCounts,
     BatchRow,
-    add_label,
+    add_name,
     batch_counts,
     batch_rows,
     email_type_name,
@@ -73,6 +73,37 @@ def checked_filters(filters: dict[str, str]) -> dict[str, str]:
     return given_filters(filters)
 
 
+def checked_subject(value: str) -> str:
+    """``value`` as a subject, once it is one line that can be filled in.
+
+    Raises ``ValidationError`` with :data:`ONE_LINE_MESSAGE` for a line break (any
+    character ``str.splitlines`` splits on, the Unicode line and paragraph separators
+    among them), with :data:`CONTROL_MESSAGE` for any other character in Unicode's
+    ``Cc`` category, since the mail library refuses both in a header, and with the
+    refusal of a recipient field token that cannot be filled in.
+    """
+    if value != "" and value.splitlines() != [value]:
+        raise ValidationError(ONE_LINE_MESSAGE)
+    if any(unicodedata.category(character) == CONTROL_CATEGORY for character in value):
+        raise ValidationError(CONTROL_MESSAGE)
+    problem = subject_problem(value)
+    if problem is not None:
+        raise ValidationError(problem)
+    return value
+
+
+def checked_body(value: str) -> str:
+    """``value`` as a message, sanitized, once every recipient field token in it fills in.
+
+    Raises ``ValidationError`` with the refusal of a token that cannot be filled in
+    (``apps.bulk_email.render.body_problem``).
+    """
+    problem = body_problem(value)
+    if problem is not None:
+        raise ValidationError(problem)
+    return sanitize(value)
+
+
 def sender_name(bulk: BulkEmail) -> str:
     """The sender's display name, or ``""`` once the account is gone."""
     return bulk.sender.display_name if bulk.sender is not None else ""
@@ -107,27 +138,12 @@ class BulkEmailUpdateSerializer(serializers.Serializer[dict[str, Any]]):
         return value
 
     def validate_subject(self, value: str) -> str:
-        """Refuse a subject that breaks a line, or carries any other control character.
-
-        A line break is any character ``str.splitlines`` splits on, the Unicode line
-        and paragraph separators among them; a control character is one in Unicode's
-        ``Cc`` category.  The mail library refuses both in a header.
-        """
-        if value != "" and value.splitlines() != [value]:
-            raise ValidationError(ONE_LINE_MESSAGE)
-        if any(unicodedata.category(character) == CONTROL_CATEGORY for character in value):
-            raise ValidationError(CONTROL_MESSAGE)
-        problem = subject_problem(value)
-        if problem is not None:
-            raise ValidationError(problem)
-        return value
+        """Refuse a subject that breaks a line or cannot be filled in."""
+        return checked_subject(value)
 
     def validate_body(self, value: str) -> str:
-        """Sanitize the message, and refuse one with a token that cannot be filled in."""
-        problem = body_problem(value)
-        if problem is not None:
-            raise ValidationError(problem)
-        return sanitize(value)
+        """Sanitize the message, refusing one that cannot be filled in."""
+        return checked_body(value)
 
 
 class BulkEmailAddSerializer(serializers.Serializer[dict[str, Any]]):
@@ -408,7 +424,11 @@ class BulkEmailSummarySerializer(serializers.ModelSerializer[BulkEmail]):
 
 
 class BulkEmailBatchAddSerializer(serializers.ModelSerializer[BatchAdd]):
-    """One **Add to batch**: its filters in words and as given, and its counts."""
+    """One **Add to batch**: its name, its filters as given, and its counts.
+
+    ``group`` is the id of the saved recipient group it brought in, null for an add by
+    filters and once the group is deleted.
+    """
 
     # ``Field`` has a ``label`` attribute of its own, which a field of that name shadows.
     label = serializers.SerializerMethodField()  # type: ignore[assignment]
@@ -416,12 +436,20 @@ class BulkEmailBatchAddSerializer(serializers.ModelSerializer[BatchAdd]):
 
     class Meta:
         model = BatchAdd
-        fields = ["id", "label", "filters", "added_count", "already_count", "created_at"]
+        fields = [
+            "id",
+            "label",
+            "filters",
+            "group",
+            "added_count",
+            "already_count",
+            "created_at",
+        ]
         read_only_fields = fields
 
     def get_label(self, add: BatchAdd) -> str:
-        """The add's filters in words, such as ``"Kind: Friends only, County: Marin"``."""
-        return add_label(add.filters)
+        """The add's name: its filters in words, or the label a group's add was given."""
+        return add_name(add)
 
 
 class BulkEmailBatchRowDict(TypedDict):

@@ -43,7 +43,11 @@ What you can do
 ===============
 
 - Press the subject to carry on writing, change the batch, or send it. A scheduled email can
-  still be changed there until it starts.
+  still be changed there until it starts. Changing who gets it, or its type, takes it back
+  to a draft, since the number of people it goes to may change: a line says *The type
+  changed, so this email is back in your drafts. Press Send or Schedule again when it is
+  ready.*, or the same about the recipients. Changing the words leaves the schedule as it
+  is.
 - **Cancel schedule** on a scheduled email, or **Cancel** on one waiting to send, turns it
   back into a draft. Nothing in it is lost, and a line confirms *Sending was canceled. The
   email is a draft again.*

@@ -6,13 +6,26 @@
  * whoever turned that type off is now skipped. While a choice saves the buttons stay
  * enabled, so the keyboard focus stays on them, and a further choice is ignored. Until a type is chosen the choice says
  * *Choose what kind of email this is*, and Send is refused with *Choose a type.*
+ * Changing the type of a scheduled email takes it back to the drafts, since who has
+ * turned the type off changes the count that was confirmed, and the screen says so.
  */
 import { useId, useState } from 'react';
 import type { JSX } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
 import { ApiError } from '@/portal/api/client';
-import { batchKey, useSendableEmailTypes, useUpdateBulkEmail } from './api';
+import type { BulkEmailDetail } from '@/portal/api/types';
+import { useToast } from '@/portal/components/Toast';
+import { batchKey, emailKey, useSendableEmailTypes, useUpdateBulkEmail } from './api';
+
+/** What the screen says when a change of type took a scheduled email back to the drafts. */
+export const TYPE_CHANGED_MESSAGE =
+  'The type changed, so this email is back in your drafts. Press Send or Schedule again when it is ready.';
+
+/** True when an email that was queued came back from a change as a draft. */
+export function wasUnqueued(before: BulkEmailDetail | undefined, after: BulkEmailDetail): boolean {
+  return before?.status === 'queued' && after.status === 'draft';
+}
 
 /** The hint shown until a type is chosen. */
 export const NO_TYPE_HINT = 'Choose what kind of email this is.';
@@ -36,6 +49,7 @@ export function EmailTypeChoice({
   const types = useSendableEmailTypes();
   const update = useUpdateBulkEmail(emailId);
   const queryClient = useQueryClient();
+  const toast = useToast();
   const hintId = useId();
   // The type being saved, shown as chosen until the server answers; a refusal puts
   // the choice back to the saved one.
@@ -47,10 +61,14 @@ export function EmailTypeChoice({
     // them; a second choice made before the first is saved is ignored.
     if (update.isPending) return;
     setSaving(id);
+    const before = queryClient.getQueryData<BulkEmailDetail>(emailKey(emailId));
     update.mutate(
       { email_type: id },
       {
-        onSuccess: () => void queryClient.invalidateQueries({ queryKey: batchKey(emailId) }),
+        onSuccess: (saved) => {
+          if (wasUnqueued(before, saved)) toast.show(TYPE_CHANGED_MESSAGE, 'info');
+          void queryClient.invalidateQueries({ queryKey: batchKey(emailId) });
+        },
         onSettled: () => setSaving(null),
       },
     );

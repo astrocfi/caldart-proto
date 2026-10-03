@@ -60,6 +60,16 @@ describe('SentPage', () => {
     expect(await screen.findByRole('link', { name: 'Stop sending Hangar day' })).toBeVisible();
   });
 
+  it("opens a send's own page to duplicate it there", async () => {
+    answerSent([makeSummary({ status: 'sent' })]);
+    renderWithProviders(<SentPage />);
+    const link = await screen.findByRole('link', { name: 'Duplicate Hangar day' });
+    expect([link.textContent, link.getAttribute('href')]).toEqual([
+      'Duplicate…',
+      '/bulk-email/sent/7',
+    ]);
+  });
+
   it('offers each finished send results as a download', async () => {
     answerSent([makeSummary({ status: 'sent' })]);
     renderWithProviders(<SentPage />);

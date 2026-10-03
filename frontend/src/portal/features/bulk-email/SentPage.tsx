@@ -5,7 +5,9 @@
  * The subject opens the send's own page. A send in progress offers **Stop…** and
  * a stopped one **Send the rest…**, each of which opens that page, where the
  * action asks first and the progress shows; every other line offers **Download
- * results**. The list is read again every few seconds while a send is in progress.
+ * results**. **Duplicate…** on every line opens that page too, where Duplicate asks
+ * how to copy the email. The list is read again every few seconds while a send is in
+ * progress.
  * CalDART management, who sees every sender's sends, also sees who sent each and the
  * DART a DART leader's send went to.
  */
@@ -108,6 +110,20 @@ export const SENT_COLUMNS: Column<BulkEmailSummary>[] = [
     render: (row) => row.skipped_count,
   },
   { key: 'actions', header: 'Actions', width: '9rem', render: (row) => <RowAction row={row} /> },
+  {
+    key: 'duplicate',
+    header: 'Reuse',
+    width: '8rem',
+    render: (row) => (
+      <Link
+        className="button button--quiet button--small"
+        to={`/bulk-email/sent/${row.id}`}
+        aria-label={`Duplicate ${row.subject}`}
+      >
+        Duplicate…
+      </Link>
+    ),
+  },
 ];
 
 /**

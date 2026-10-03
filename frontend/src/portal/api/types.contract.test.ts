@@ -44,6 +44,8 @@ import type {
   Backup,
   BecomeFriendPayload,
   BounceRunResult,
+  AddGroupRequest,
+  ApplyTemplateRequest,
   BulkEmailAddRequest,
   BulkEmailAddResult,
   BulkEmailBatch,
@@ -72,6 +74,14 @@ import type {
   BulkEmailSummary,
   BulkEmailTestResult,
   CheckoutRequest,
+  DuplicateRequest,
+  EmailTemplate,
+  EmailTemplatePatch,
+  EmailTemplateWrite,
+  GroupFilterAddRequest,
+  GroupMemberAddRequest,
+  GroupPeople,
+  GroupPerson,
   CheckoutResponse,
   ContributionRow,
   ContributionTier,
@@ -187,6 +197,12 @@ import type {
   ReportCadence,
   ReportColumn,
   ReportFormats,
+  PersonMatch,
+  RecipientGroup,
+  RecipientGroupFilter,
+  RecipientGroupKind,
+  RecipientGroupPatch,
+  RecipientGroupWrite,
   ReportRunResult,
   ReportSubscription,
   ReportSubscriptionCreate,
@@ -197,6 +213,7 @@ import type {
   SavedColumnSetWrite,
   Role,
   RoleSlug,
+  SaveGroupRequest,
   SendableEmailType,
   SendPasswordResetResult,
   SiteConfig,
@@ -509,6 +526,27 @@ const bulkEmailHideRequest: Matches<BulkEmailHideRequest, Schemas['BulkEmailHide
 const bulkEmailMessage: Matches<BulkEmailMessage, Schemas['BulkEmailMessage']> = true;
 const bulkEmailMessageDetail: Matches<BulkEmailMessageDetail, Schemas['BulkEmailMessageDetail']> =
   true;
+const emailTemplate: Matches<EmailTemplate, Schemas['EmailTemplate']> = true;
+const emailTemplateWrite: Matches<EmailTemplateWrite, Schemas['EmailTemplateRequest']> = true;
+const emailTemplatePatch: Matches<EmailTemplatePatch, Schemas['PatchedEmailTemplateRequest']> =
+  true;
+const applyTemplateRequest: Matches<ApplyTemplateRequest, Schemas['ApplyTemplateRequest']> = true;
+const duplicateRequest: Matches<DuplicateRequest, Schemas['DuplicateRequest']> = true;
+const recipientGroupKind: Matches<RecipientGroupKind, Schemas['RecipientGroupKindEnum']> = true;
+const recipientGroupFilter: Matches<RecipientGroupFilter, Schemas['RecipientGroupFilter']> = true;
+const recipientGroup: Matches<RecipientGroup, Schemas['RecipientGroup']> = true;
+const recipientGroupWrite: Matches<RecipientGroupWrite, Schemas['RecipientGroupRequest']> = true;
+const recipientGroupPatch: Matches<RecipientGroupPatch, Schemas['PatchedRecipientGroupRequest']> =
+  true;
+const groupPerson: Matches<GroupPerson, Schemas['GroupPerson']> = true;
+const groupPeople: Matches<GroupPeople, Schemas['GroupPeople']> = true;
+const personMatch: Matches<PersonMatch, Schemas['PersonMatch']> = true;
+const groupMemberAddRequest: Matches<GroupMemberAddRequest, Schemas['GroupMemberAddRequest']> =
+  true;
+const groupFilterAddRequest: Matches<GroupFilterAddRequest, Schemas['GroupFilterAddRequest']> =
+  true;
+const addGroupRequest: Matches<AddGroupRequest, Schemas['AddGroupRequest']> = true;
+const saveGroupRequest: Matches<SaveGroupRequest, Schemas['SaveGroupRequest']> = true;
 
 /** Every pair above, so `noUnusedLocals` keeps each assertion referenced. */
 const assertions: readonly true[] = [
@@ -705,6 +743,23 @@ const assertions: readonly true[] = [
   bulkEmailHideRequest,
   bulkEmailMessage,
   bulkEmailMessageDetail,
+  emailTemplate,
+  emailTemplateWrite,
+  emailTemplatePatch,
+  applyTemplateRequest,
+  duplicateRequest,
+  recipientGroupKind,
+  recipientGroupFilter,
+  recipientGroup,
+  recipientGroupWrite,
+  recipientGroupPatch,
+  groupPerson,
+  groupPeople,
+  personMatch,
+  groupMemberAddRequest,
+  groupFilterAddRequest,
+  addGroupRequest,
+  saveGroupRequest,
 ];
 
 /** The schema component each assertion above names, in the same order. */
@@ -902,6 +957,23 @@ const MAPPED_COMPONENTS: readonly (keyof Schemas)[] = [
   'BulkEmailHideRequest',
   'BulkEmailMessage',
   'BulkEmailMessageDetail',
+  'EmailTemplate',
+  'EmailTemplateRequest',
+  'PatchedEmailTemplateRequest',
+  'ApplyTemplateRequest',
+  'DuplicateRequest',
+  'RecipientGroupKindEnum',
+  'RecipientGroupFilter',
+  'RecipientGroup',
+  'RecipientGroupRequest',
+  'PatchedRecipientGroupRequest',
+  'GroupPerson',
+  'GroupPeople',
+  'PersonMatch',
+  'GroupMemberAddRequest',
+  'GroupFilterAddRequest',
+  'AddGroupRequest',
+  'SaveGroupRequest',
 ];
 
 /** Vitest runs with `frontend/` as its root, so the repository root is one level up. */

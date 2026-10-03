@@ -6,6 +6,14 @@
       "donor"
     ]
   },
+  "AddGroupRequest": {
+    "properties": {
+      "group": "integer"
+    },
+    "required": [
+      "group"
+    ]
+  },
   "AddressSuggestion": {
     "properties": {
       "address_line1": "string",
@@ -463,6 +471,14 @@
       "light_sport"
     ]
   },
+  "ApplyTemplateRequest": {
+    "properties": {
+      "template": "integer"
+    },
+    "required": [
+      "template"
+    ]
+  },
   "AttachedAircraft": {
     "properties": {
       "aircraft": "array<ref:AircraftSummary>"
@@ -558,6 +574,7 @@
       "already_count": "integer",
       "created_at": "string(date-time)",
       "filters": "map<string>",
+      "group": "integer|null",
       "id": "integer",
       "label": "string"
     },
@@ -566,6 +583,7 @@
       "already_count",
       "created_at",
       "filters",
+      "group",
       "id",
       "label"
     ]
@@ -1385,6 +1403,12 @@
       "user_id"
     ]
   },
+  "DuplicateRequest": {
+    "properties": {
+      "copy_recipients": "boolean"
+    },
+    "required": []
+  },
   "EmailChangeRequest": {
     "properties": {
       "current_password": "string",
@@ -1468,6 +1492,40 @@
     "required": [
       "label",
       "value"
+    ]
+  },
+  "EmailTemplate": {
+    "properties": {
+      "body": "string",
+      "created_at": "string(date-time)",
+      "created_by": "string",
+      "email_type": "integer|null",
+      "email_type_name": "string",
+      "id": "integer",
+      "name": "string",
+      "reply_to": "unknown",
+      "subject": "string",
+      "updated_at": "string(date-time)"
+    },
+    "required": [
+      "created_at",
+      "created_by",
+      "email_type_name",
+      "id",
+      "name",
+      "updated_at"
+    ]
+  },
+  "EmailTemplateRequest": {
+    "properties": {
+      "body": "string",
+      "email_type": "integer|null",
+      "name": "string",
+      "reply_to": "unknown",
+      "subject": "string"
+    },
+    "required": [
+      "name"
     ]
   },
   "EmailType": {
@@ -1685,6 +1743,48 @@
       "csv",
       "pdf",
       "both"
+    ]
+  },
+  "GroupFilterAddRequest": {
+    "properties": {
+      "filters": "map<string>"
+    },
+    "required": []
+  },
+  "GroupMemberAddRequest": {
+    "properties": {
+      "user": "integer"
+    },
+    "required": [
+      "user"
+    ]
+  },
+  "GroupPeople": {
+    "properties": {
+      "count": "integer",
+      "people": "array<ref:GroupPerson>"
+    },
+    "required": [
+      "count",
+      "people"
+    ]
+  },
+  "GroupPerson": {
+    "properties": {
+      "dart_name": "string",
+      "email": "string",
+      "is_active": "boolean",
+      "kind": "string",
+      "name": "string",
+      "user_id": "integer"
+    },
+    "required": [
+      "dart_name",
+      "email",
+      "is_active",
+      "kind",
+      "name",
+      "user_id"
     ]
   },
   "Health": {
@@ -2535,6 +2635,16 @@
     },
     "required": []
   },
+  "PatchedEmailTemplateRequest": {
+    "properties": {
+      "body": "string",
+      "email_type": "integer|null",
+      "name": "string",
+      "reply_to": "unknown",
+      "subject": "string"
+    },
+    "required": []
+  },
   "PatchedMemberUpdateRequest": {
     "properties": {
       "email": "string(email)",
@@ -2597,6 +2707,13 @@
       "vol_mission_pilot": "boolean",
       "vol_newsletter": "boolean",
       "vol_social_media": "boolean"
+    },
+    "required": []
+  },
+  "PatchedRecipientGroupRequest": {
+    "properties": {
+      "kind": "ref:RecipientGroupKindEnum",
+      "name": "string"
     },
     "required": []
   },
@@ -2821,6 +2938,18 @@
       "friend"
     ]
   },
+  "PersonMatch": {
+    "properties": {
+      "email": "string(email)",
+      "id": "integer",
+      "name": "string"
+    },
+    "required": [
+      "email",
+      "id",
+      "name"
+    ]
+  },
   "PhotoIdTypeEnum": {
     "enum": [
       "not_provided",
@@ -3021,6 +3150,62 @@
     "required": [
       "receipt_sent_at",
       "sent"
+    ]
+  },
+  "RecipientGroup": {
+    "properties": {
+      "count": "integer|null",
+      "created_at": "string(date-time)",
+      "created_by": "string",
+      "filter_sets": "array<ref:RecipientGroupFilter>",
+      "id": "integer",
+      "kind": "ref:RecipientGroupKindEnum",
+      "name": "string",
+      "needs_fixing": "boolean",
+      "updated_at": "string(date-time)"
+    },
+    "required": [
+      "count",
+      "created_at",
+      "created_by",
+      "filter_sets",
+      "id",
+      "kind",
+      "name",
+      "needs_fixing",
+      "updated_at"
+    ]
+  },
+  "RecipientGroupFilter": {
+    "properties": {
+      "filters": "map<string>",
+      "id": "integer",
+      "label": "string",
+      "needs_fixing": "boolean",
+      "position": "integer"
+    },
+    "required": [
+      "filters",
+      "id",
+      "label",
+      "needs_fixing",
+      "position"
+    ]
+  },
+  "RecipientGroupKindEnum": {
+    "enum": [
+      "fixed",
+      "live"
+    ]
+  },
+  "RecipientGroupRequest": {
+    "properties": {
+      "kind": "ref:RecipientGroupKindEnum",
+      "name": "string"
+    },
+    "required": [
+      "kind",
+      "name"
     ]
   },
   "ReconciliationRow": {
@@ -3621,6 +3806,16 @@
       "kind",
       "member",
       "on"
+    ]
+  },
+  "SaveGroupRequest": {
+    "properties": {
+      "kind": "ref:RecipientGroupKindEnum",
+      "name": "string"
+    },
+    "required": [
+      "kind",
+      "name"
     ]
   },
   "SavedColumnSet": {

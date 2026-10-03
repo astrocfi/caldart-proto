@@ -8,6 +8,8 @@
  * saving, so Send can make sure the last words are saved before it goes. The
  * message is written in the rich text editor, and **Insert field** puts a
  * recipient's detail, such as their first name, into the subject or the message.
+ * **Start from a template** and **Save as a template** sit at the top
+ * (`TemplateControls`).
  */
 import { useId, useRef } from 'react';
 import type { JSX } from 'react';
@@ -20,6 +22,7 @@ import { EmailTypeChoice } from './EmailTypeChoice';
 import { InsertFieldMenu } from './InsertFieldMenu';
 import { ReplyToField } from './ReplyToField';
 import { uploadBulkEmailImage } from './richTextApi';
+import { TemplateControls } from './StartFromTemplate';
 import { TestSendButton } from './TestSendButton';
 import type { SaveState } from './useAutosave';
 
@@ -58,6 +61,10 @@ interface MessageCardProps {
   errors: { subject?: string; body?: string };
   /** False once the email has started sending: the fields are then shown, not changed. */
   isEditable: boolean;
+  /** Save the words on the screen; resolves true once they are saved. */
+  onBeforeReplace: () => Promise<boolean>;
+  /** Called once a template's words are saved in the email, to show them. */
+  onReplaced: () => void;
 }
 
 /** The subject and message fields, with the save note. */
@@ -75,6 +82,8 @@ export function MessageCard({
   saveState,
   errors,
   isEditable,
+  onBeforeReplace: handleBeforeReplace,
+  onReplaced: handleReplaced,
 }: MessageCardProps): JSX.Element {
   const subjectRef = useRef<HTMLInputElement>(null);
   const editorRef = useRef<RichTextEditorHandle>(null);
@@ -92,6 +101,16 @@ export function MessageCard({
           Choose the type, then write the subject and the message. Everything saves itself as you
           type, so you can leave and come back later.
         </p>
+      ) : null}
+      {isEditable ? (
+        <TemplateControls
+          emailId={emailId}
+          subject={subject}
+          body={body}
+          emailType={emailType}
+          onBeforeReplace={handleBeforeReplace}
+          onReplaced={handleReplaced}
+        />
       ) : null}
       <EmailTypeChoice
         emailId={emailId}
