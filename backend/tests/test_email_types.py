@@ -8,14 +8,13 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
-from django.db.models import ProtectedError
 from rest_framework.test import APIClient
 
 from apps.accounts.models import User
 from apps.accounts.roles import DART_LEADER, MANAGEMENT, MEMBER, ROLE_SLUGS, SYSTEM_ADMIN
 from apps.mail.models import EmailOptOut, EmailType
 from tests.conftest import audit_messages, role_matrix
-from tests.factories import EmailOptOutFactory, EmailTypeFactory, UserFactory
+from tests.factories import BulkEmailFactory, EmailOptOutFactory, EmailTypeFactory, UserFactory
 
 pytestmark = [pytest.mark.django_db, pytest.mark.usefixtures("no_email_types")]
 
@@ -292,34 +291,43 @@ def test_deleting_a_type_is_audited(
     ]
 
 
-@pytest.fixture
-def protected_delete(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Make every type delete raise ``ProtectedError``, as one a bulk email names does."""
-
-    def refuse(self: EmailType, *args: object, **kwargs: object) -> None:
-        """Raise what Django raises for a row a ``PROTECT`` key still points at."""
-        raise ProtectedError("A bulk email names this type.", set())
-
-    monkeypatch.setattr(EmailType, "delete", refuse)
-
-
-@pytest.mark.usefixtures("protected_delete")
 def test_a_type_in_use_cannot_be_deleted(
     system_admin_client: APIClient, audit_log: pytest.LogCaptureFixture
 ) -> None:
     """The refusal names the type and says what to do instead, and nothing is audited."""
     email_type = EmailTypeFactory(name="Fundraising")
+    BulkEmailFactory(email_type=email_type)
 
     response = system_admin_client.delete(detail_url(email_type))
 
     assert response.status_code == 400
     assert response.json() == {
         "detail": (
-            "Fundraising has been used for a bulk email, so it cannot be deleted. To stop "
-            "anyone sending it, take every role off it instead."
+            "Fundraising has been used for a bulk email, so it cannot be deleted. To keep "
+            "DART leaders and CalDART management from sending it, take their roles off it "
+            "instead."
         )
     }
     assert audit_messages(audit_log) == []
+
+
+def test_a_type_in_use_is_kept(system_admin_client: APIClient) -> None:
+    """The refused delete leaves the type and the bulk email that names it."""
+    email_type = EmailTypeFactory(name="Fundraising")
+    bulk = BulkEmailFactory(email_type=email_type)
+
+    system_admin_client.delete(detail_url(email_type))
+
+    bulk.refresh_from_db()
+    assert bulk.email_type == email_type
+
+
+def test_a_position_beyond_the_column_is_refused(system_admin_client: APIClient) -> None:
+    """A position larger than the database can hold is a 400 on ``position``."""
+    response = system_admin_client.post(LIST_URL, payload(position=2_147_483_648), format="json")
+
+    assert response.status_code == 400
+    assert list(response.json()) == ["position"]
 
 
 def test_deleting_an_unknown_type_is_a_404(system_admin_client: APIClient) -> None:

@@ -113,8 +113,9 @@ A refusal is a **400** keyed by the field.  An unknown ``{id}`` is a **404**.
 **204** once the type is gone, with every opt-out of it, audited as
 ``email_type.delete``.  A type a bulk email names is protected by that email's
 foreign key: the answer is **400** ``{"detail": "<name> has been used for a bulk
-email, so it cannot be deleted. To stop anyone sending it, take every role off it
-instead."}`` and nothing changes or is audited.  An unknown ``{id}`` is a **404**.
+email, so it cannot be deleted. To keep DART leaders and CalDART management from
+sending it, take their roles off it instead."}`` and nothing changes or is audited.
+A system administrator can still send such a type.  An unknown ``{id}`` is a **404**.
 
 
 ``GET /email-types/sendable``
@@ -171,9 +172,10 @@ Each real change is recorded with the source ``profile`` and audited as
 ``email.opt_out`` or ``email.opt_in``, naming the caller as the actor and the
 target, the type as ``email_type``, and the ``source``.  Asking for the state the
 caller is already in changes nothing and writes no audit line.  A type that does
-not exist or does not allow opting out is a **400** ``{"email_type": ["There is no
-email type <id> that can be turned off."]}``, and none of the list's changes is
-made.  A body that is not a list is a **400**.
+not exist or does not allow opting out is a **400** ``{"email_type": ["That email
+type does not exist, or cannot be turned off."]}``, a list that names one type twice
+is a **400** ``{"email_type": ["Name each email type once."]}``, and in both cases
+none of the list's changes is made.  A body that is not a list is a **400**.
 
 
 ``GET | PUT /admin/members/{id}/email-preferences``
@@ -183,5 +185,7 @@ The same rows and the same body for member ``{id}``, for the account
 administrator's member record.  A change is recorded with the source ``admin`` and
 audited with the caller as the actor and the member as the target.  A **Deleted
 member** record (the account that keeps a deleted member's payments) refuses a
-``PUT`` with **400** ``{"detail": ...}``, audited at WARNING with the reason
-``tombstone``.  An unknown ``{id}`` is a **404**.
+``PUT`` with **400** ``{"detail": ...}``; each change the body asked for is audited
+at WARNING as the ``email.opt_out`` or ``email.opt_in`` it would have been, naming the
+type as ``email_type``, with the reason ``tombstone``.  An unknown ``{id}`` is a
+**404**.

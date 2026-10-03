@@ -42,12 +42,15 @@ from apps.mail.types import (
     set_opt_out,
     update_type,
 )
-from apps.members.services import refuse_tombstone_change
+from apps.members.services import TOMBSTONE_CHANGE_REFUSED, is_tombstone
 from caldart import audit
 from caldart.exceptions import DomainError
 
 #: The refusal for a change naming a type that does not exist, or cannot be turned off.
-UNKNOWN_PREFERENCE = "There is no email type {id} that can be turned off."
+UNKNOWN_PREFERENCE = "That email type does not exist, or cannot be turned off."
+
+#: The refusal for a change list that names one type twice.
+REPEATED_PREFERENCE = "Name each email type once."
 
 
 class EmailTypeListView(APIView):
@@ -107,9 +110,9 @@ class EmailTypeDetailView(APIView):
         """204 once the type and every opt-out of it are gone, audited.
 
         A type a bulk email names cannot be deleted: the answer is 400 ``{"detail":
-        "<name> has been used for a bulk email, so it cannot be deleted. To stop anyone
-        sending it, take every role off it instead."}`` and nothing changes.  An unknown
-        id is a 404.
+        "<name> has been used for a bulk email, so it cannot be deleted. To keep DART
+        leaders and CalDART management from sending it, take their roles off it
+        instead."}`` and nothing changes.  An unknown id is a 404.
         """
         email_type = get_object_or_404(EmailType, pk=pk)
         try:
@@ -158,11 +161,12 @@ class MyEmailPreferencesView(APIView):
         The body is a list of ``{"email_type": <id>, "opted_out": <bool>}``; a type it
         leaves out is left alone.  Each real change is audited as ``email.opt_out`` or
         ``email.opt_in`` with the source ``profile``.  A type that does not exist or
-        cannot be turned off is a 400 ``{"email_type": ["There is no email type <id>
-        that can be turned off."]}`` and nothing changes.
+        cannot be turned off is a 400 ``{"email_type": ["That email type does not
+        exist, or cannot be turned off."]}``, a list naming one type twice a 400
+        ``{"email_type": ["Name each email type once."]}``, and nothing changes.
         """
         user = signed_in_user(request)
-        _apply(user, request.data, source=OptOutSource.PROFILE, actor=user)
+        _apply(user, _resolve(request.data), source=OptOutSource.PROFILE, actor=user)
         return _preferences(user)
 
 
@@ -189,15 +193,26 @@ class MemberEmailPreferencesView(APIView):
         The body and its refusals are ``PUT /me/email-preferences``'s; each change is
         audited with the caller as the actor and the source ``admin``.  A deleted
         member's record is a 400 ``{"detail": ...}`` with the sentence it refuses every
-        change with, audited at WARNING.  An unknown member is a 404.
+        change with, and each change asked for is audited at WARNING as the
+        ``email.opt_out`` or ``email.opt_in`` it would have been, with the reason
+        ``tombstone``.  An unknown member is a 404.
         """
         member = get_object_or_404(User, pk=pk)
         actor = signed_in_user(request)
-        try:
-            refuse_tombstone_change(actor, member, audit.EMAIL_OPT_OUT)
-        except DomainError as error:
-            return Response({"detail": error.message}, status=status.HTTP_400_BAD_REQUEST)
-        _apply(member, request.data, source=OptOutSource.ADMIN, actor=actor)
+        resolved = _resolve(request.data)
+        if is_tombstone(member):
+            for email_type, opted_out in resolved:
+                audit.refuse(
+                    audit.EMAIL_OPT_OUT if opted_out else audit.EMAIL_OPT_IN,
+                    actor=actor,
+                    target=member,
+                    reason=audit.REASON_TOMBSTONE,
+                    email_type=email_type.pk,
+                )
+            return Response(
+                {"detail": TOMBSTONE_CHANGE_REFUSED}, status=status.HTTP_400_BAD_REQUEST
+            )
+        _apply(member, resolved, source=OptOutSource.ADMIN, actor=actor)
         return _preferences(member)
 
 
@@ -219,23 +234,34 @@ def _preferences(user: User) -> Response:
     return Response(serializer.data)
 
 
-@transaction.atomic
-def _apply(user: User, data: object, *, source: OptOutSource, actor: User) -> None:
-    """Make each change ``data`` lists to ``user``'s opt-outs, or none of them.
+def _resolve(data: object) -> list[tuple[EmailType, bool]]:
+    """The changes the request body ``data`` lists, each as a type and the choice.
 
-    ``data`` is the request body, validated here as a list of changes.  Every type it
-    names is checked before anything changes: one that does not exist or cannot be
-    turned off raises a 400 ``ValidationError`` on ``email_type``.
+    Raises a 400 ``ValidationError`` for a body that is not a list of changes, on
+    ``email_type`` with :data:`UNKNOWN_PREFERENCE` for a type that does not exist or
+    cannot be turned off, and with :data:`REPEATED_PREFERENCE` for a type named twice.
     """
     serializer = EmailPreferenceChangeSerializer(data=data, many=True)
     serializer.is_valid(raise_exception=True)
     changes: Iterable[Mapping[str, object]] = serializer.validated_data
     allowed = {email_type.pk: email_type for email_type in opt_out_types()}
     resolved: list[tuple[EmailType, bool]] = []
+    named: set[int] = set()
     for change in changes:
         type_id = change["email_type"]
         if not isinstance(type_id, int) or type_id not in allowed:
-            raise ValidationError({"email_type": [UNKNOWN_PREFERENCE.format(id=type_id)]})
+            raise ValidationError({"email_type": [UNKNOWN_PREFERENCE]})
+        if type_id in named:
+            raise ValidationError({"email_type": [REPEATED_PREFERENCE]})
+        named.add(type_id)
         resolved.append((allowed[type_id], bool(change["opted_out"])))
+    return resolved
+
+
+@transaction.atomic
+def _apply(
+    user: User, resolved: list[tuple[EmailType, bool]], *, source: OptOutSource, actor: User
+) -> None:
+    """Make each of the ``resolved`` changes to ``user``'s opt-outs, or none of them."""
     for email_type, opted_out in resolved:
         set_opt_out(user, email_type, opted_out=opted_out, source=source, actor=actor)

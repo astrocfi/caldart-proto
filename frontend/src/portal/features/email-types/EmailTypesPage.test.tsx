@@ -177,8 +177,8 @@ describe('EmailTypesPage', () => {
 
   it('says plainly why a type in use cannot be deleted', async () => {
     const refusal =
-      'Operational has been used for a bulk email, so it cannot be deleted. To stop anyone ' +
-      'sending it, take every role off it instead.';
+      'Operational has been used for a bulk email, so it cannot be deleted. To keep DART ' +
+      'leaders and CalDART management from sending it, take their roles off it instead.';
     stubTypes();
     server.use(
       http.delete(`${API}/email-types/:id`, () =>

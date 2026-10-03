@@ -9,14 +9,18 @@ from rest_framework import serializers
 from apps.mail.models import EmailType
 from apps.mail.types import SENDER_ROLES, EmailTypeFields
 
+#: The highest ``position`` a type may take: the largest value its column holds.
+MAX_POSITION = 2_147_483_647
+
 
 class EmailTypeSerializer(serializers.ModelSerializer[EmailType]):
     """One email type as the system administrator's screen reads and writes it.
 
     ``slug`` is read-only and follows ``name``.  ``sender_roles`` lists role slugs from
     ``dart_leader`` and ``management``, in that order, once each; an empty list means
-    only a system administrator may send the type.  ``position`` is optional on input:
-    left out, a new type goes after every other and an edited one keeps its place.
+    only a system administrator may send the type.  ``position`` is optional on input,
+    from 0 to :data:`MAX_POSITION`: left out, a new type goes after every other and an
+    edited one keeps its place.
     """
 
     # Declared rather than generated so it carries no unique validator: the service
@@ -26,7 +30,7 @@ class EmailTypeSerializer(serializers.ModelSerializer[EmailType]):
     sender_roles = serializers.ListField(
         child=serializers.ChoiceField(choices=list(SENDER_ROLES)), allow_empty=True
     )
-    position = serializers.IntegerField(min_value=0, required=False)
+    position = serializers.IntegerField(min_value=0, max_value=MAX_POSITION, required=False)
 
     class Meta:
         model = EmailType

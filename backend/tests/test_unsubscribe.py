@@ -15,7 +15,7 @@ from apps.accounts.models import User
 from apps.mail.models import EmailOptOut, EmailType, OptOutSource
 from apps.mail.unsubscribe import UNSUBSCRIBE_SALT, make_token, unsubscribe_url
 from tests.conftest import audit_messages
-from tests.factories import EmailOptOutFactory, EmailTypeFactory
+from tests.factories import EmailOptOutFactory, EmailTypeFactory, UserFactory
 
 pytestmark = [pytest.mark.django_db, pytest.mark.usefixtures("no_email_types")]
 
@@ -66,6 +66,7 @@ def test_the_page_says_when_the_type_is_already_off(
     response = client.get(link)
 
     assert response.context["state"] == "already"
+    assert "You have already unsubscribed from Mission email." in response.content.decode()
 
 
 def test_pressing_the_button_records_the_opt_out(
@@ -208,6 +209,22 @@ def test_a_token_for_a_deleted_type_is_refused(
     mission.delete()
 
     assert client.post(page_url(token)).status_code == 400
+
+
+def test_a_token_for_a_deleted_account_is_refused(
+    client: Client, mission: EmailType, audit_log: pytest.LogCaptureFixture
+) -> None:
+    """A link for an account since deleted records nothing and answers 400."""
+    person = UserFactory(email="gone@example.test")
+    token = make_token(person, mission)
+    person.delete()
+
+    response = client.post(page_url(token))
+
+    assert response.status_code == 400
+    assert response.context["state"] == "expired"
+    assert EmailOptOut.objects.count() == 0
+    assert audit_messages(audit_log) == []
 
 
 # -- the link itself -----------------------------------------------------------

@@ -54,5 +54,5 @@ If something looks wrong
 If the unsubscribe page says **This link no longer works**, the link is too old (links last
 about six months) or was copied incompletely. Sign in and turn the kind off here instead.
 If you turned a kind off and still receive it, check this screen: a kind that is no longer
-listed is one CalDART now sends to everyone. Ask an account administrator if you think that
+listed is one CalDART sends to everyone. Ask an account administrator if you think that
 is a mistake.

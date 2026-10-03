@@ -6,8 +6,8 @@ import { expect, test } from '@playwright/test';
 
 import { DEMO, signIn } from './helpers';
 
-test('a person turns a kind of email off, and it stays off', async ({ page }) => {
-  await signIn(page, DEMO.verifier);
+test('a member turns a kind of email off, and it stays off', async ({ page }) => {
+  await signIn(page, DEMO.member);
   await page
     .getByRole('navigation', { name: 'Portal sections' })
     .getByRole('link', { name: 'Email preferences' })

@@ -159,7 +159,7 @@ def test_a_type_that_cannot_be_turned_off_is_refused(
 
     assert response.status_code == 400
     assert response.json() == {
-        "email_type": [f"There is no email type {operational.pk} that can be turned off."]
+        "email_type": ["That email type does not exist, or cannot be turned off."]
     }
     assert not EmailOptOut.objects.filter(user=member).exists()
 
@@ -172,8 +172,21 @@ def test_an_unknown_type_is_refused(member_client: APIClient) -> None:
 
     assert response.status_code == 400
     assert response.json() == {
-        "email_type": ["There is no email type 999999 that can be turned off."]
+        "email_type": ["That email type does not exist, or cannot be turned off."]
     }
+
+
+def test_a_type_named_twice_is_refused(
+    member_client: APIClient, member: User, mission: EmailType
+) -> None:
+    """A list naming one type twice is refused, and nothing changes."""
+    body = [*change(mission, opted_out=True), *change(mission, opted_out=False)]
+
+    response = member_client.put(ME_URL, body, format="json")
+
+    assert response.status_code == 400
+    assert response.json() == {"email_type": ["Name each email type once."]}
+    assert not EmailOptOut.objects.filter(user=member).exists()
 
 
 def test_a_body_that_is_not_a_list_is_refused(member_client: APIClient) -> None:
@@ -260,7 +273,28 @@ def test_a_deleted_members_record_refuses_a_change(
     assert response.status_code == 400
     assert response.json() == {"detail": TOMBSTONE_CHANGE_REFUSED}
     assert not EmailOptOut.objects.filter(user=tombstone).exists()
-    assert len(audit_messages(audit_log, logging.WARNING)) == 1
+
+
+def test_a_refusal_on_a_deleted_member_is_audited_as_each_change(
+    account_admin_client: APIClient,
+    account_admin: User,
+    member: User,
+    mission: EmailType,
+    audit_log: pytest.LogCaptureFixture,
+) -> None:
+    """Each change asked for is a WARNING line under its own action, naming the type."""
+    tombstone = tombstone_for(member)
+    other = EmailTypeFactory(name="Board")
+    body = [*change(mission, opted_out=True), *change(other, opted_out=False)]
+
+    account_admin_client.put(member_url(tombstone), body, format="json")
+
+    assert audit_messages(audit_log, logging.WARNING) == [
+        f"action=email.opt_out actor={account_admin.pk} target={tombstone.pk} "
+        f"email_type={mission.pk} reason=tombstone",
+        f"action=email.opt_in actor={account_admin.pk} target={tombstone.pk} "
+        f"email_type={other.pk} reason=tombstone",
+    ]
 
 
 def test_an_unknown_member_is_a_404(account_admin_client: APIClient) -> None:

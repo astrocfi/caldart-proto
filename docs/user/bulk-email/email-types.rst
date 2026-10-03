@@ -68,8 +68,9 @@ with it.
 
 A kind that a bulk email has already used cannot be deleted, because the record of that
 email names it. The screen says so: *Operational has been used for a bulk email, so it
-cannot be deleted. To stop anyone sending it, take every role off it instead.* Edit the kind,
-clear both boxes under **Who may send it**, and save.
+cannot be deleted. To keep DART leaders and CalDART management from sending it, take their
+roles off it instead.* Edit the kind, clear both boxes under **Who may send it**, and save.
+After that only a system administrator can send it.
 
 
 If something looks wrong

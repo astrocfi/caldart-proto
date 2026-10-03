@@ -35,10 +35,10 @@ from caldart.exceptions import DomainError, DomainValidationError
 #: screens.  A system administrator sends every type and is never named.
 SENDER_ROLES: tuple[str, ...] = (DART_LEADER, MANAGEMENT)
 
-#: Why a type nobody may send is still worth keeping, for the delete refusal.
+#: The refusal to delete a type a bulk email names, and what to do instead.
 TYPE_IN_USE = (
-    "{name} has been used for a bulk email, so it cannot be deleted. To stop anyone "
-    "sending it, take every role off it instead."
+    "{name} has been used for a bulk email, so it cannot be deleted. To keep DART "
+    "leaders and CalDART management from sending it, take their roles off it instead."
 )
 
 #: The refusal for a second type whose name, or whose slug, another type holds.
@@ -165,6 +165,19 @@ def is_opted_out(user: User, email_type: EmailType) -> bool:
     if not email_type.allow_opt_out:
         return False
     return EmailOptOut.objects.filter(user=user, email_type=email_type).exists()
+
+
+def opted_out_user_ids(email_type: EmailType) -> frozenset[int]:
+    """The ids of every account whose opt-out of ``email_type`` applies now.
+
+    Empty for a type that does not allow opting out, whatever was recorded while it
+    did.  One query, so a batch of any size asks once.
+    """
+    if not email_type.allow_opt_out:
+        return frozenset()
+    return frozenset(
+        EmailOptOut.objects.filter(email_type=email_type).values_list("user_id", flat=True)
+    )
 
 
 def opt_out_types() -> list[EmailType]:

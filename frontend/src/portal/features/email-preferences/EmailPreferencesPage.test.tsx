@@ -102,7 +102,7 @@ describe('EmailPreferencesPage', () => {
       http.get(`${API}/me/email-preferences`, () => HttpResponse.json([MISSION])),
       http.put(`${API}/me/email-preferences`, () =>
         HttpResponse.json(
-          { email_type: ['There is no email type 3 that can be turned off.'] },
+          { email_type: ['That email type does not exist, or cannot be turned off.'] },
           { status: 400 },
         ),
       ),
@@ -112,7 +112,7 @@ describe('EmailPreferencesPage', () => {
     await userEvent.click(await screen.findByRole('switch', { name: 'Mission' }));
 
     expect(
-      await screen.findByText('There is no email type 3 that can be turned off.'),
+      await screen.findByText('That email type does not exist, or cannot be turned off.'),
     ).toBeInTheDocument();
     expect(screen.getByRole('switch', { name: 'Mission' })).toBeChecked();
   });
