@@ -20,9 +20,15 @@ from rest_framework.test import APIClient
 from apps.accounts.roles import MANAGEMENT, SYSTEM_ADMIN
 from apps.bulk_email import job
 from apps.bulk_email.fields import unknown_token_message
-from apps.bulk_email.models import BulkEmail, BulkEmailRecipient, BulkEmailStatus
+from apps.bulk_email.models import (
+    BulkEmail,
+    BulkEmailRecipient,
+    BulkEmailStatus,
+    RecipientStatus,
+)
 from apps.bulk_email.preview import NOT_IN_BATCH_MESSAGE
 from apps.bulk_email.render import (
+    TOO_DEEP_MESSAGE,
     check_message,
     render_copy,
     render_message,
@@ -161,6 +167,32 @@ def test_each_recipients_values_are_stored_at_send_time(greeting: BulkEmail) -> 
     assert row.values == {"first_name": "Ann", "dart_name": "Marin"}
 
 
+def test_a_field_used_only_in_the_subject_is_stored_too(management: User, ann: User) -> None:
+    """A field the subject alone uses is stored with the ones the message uses."""
+    bulk = BulkEmailFactory(sender=management, subject="For {last_name}", body=GREETING)
+    add_to_batch(bulk, ann)
+    send_now(bulk)
+    assert bulk.recipients.get().values == {
+        "first_name": "Ann",
+        "last_name": "Able",
+        "dart_name": "Marin",
+    }
+
+
+def test_the_text_part_writes_a_filled_in_address_percent_encoded() -> None:
+    """A link's address reads in the text part as the HTML's link has it."""
+    body = '<p><a href="https://e.com/?d={dart_name}">Go</a></p>'
+    copy = render_message("x", body, {"dart_name": "Marin County"})
+    assert copy.text.startswith("Go (https://e.com/?d=Marin%20County)\n")
+
+
+def test_a_fallback_inside_an_address_is_percent_encoded() -> None:
+    """An empty value's fallback is percent-encoded inside a link's address too."""
+    body = '<p><a href="https://e.com/?d={dart_name|Bay Area &amp; Delta}">Go</a></p>'
+    copy = render_message("x", body, {"dart_name": ""})
+    assert 'href="https://e.com/?d=Bay%20Area%20%26%20Delta"' in copy.html
+
+
 def test_a_rebuilt_copy_reads_as_sent_after_the_profile_changed(
     greeting: BulkEmail, ann: User
 ) -> None:
@@ -180,11 +212,33 @@ def test_a_message_without_fields_stores_no_values(management: User, ann: User) 
     assert bulk.recipients.get().values == {}
 
 
+def test_a_copy_for_a_deleted_account_is_filled_in_empty(management: User) -> None:
+    """A pending row whose account was deleted stores every field empty when sent."""
+    row = _sending_to_a_deleted_account(management)
+    job.run_sender(now=NOW)
+    row.refresh_from_db()
+    assert row.values == {"first_name": "", "dart_name": ""}
+
+
 def test_a_copy_for_a_deleted_account_takes_the_fallback(management: User) -> None:
-    """A row whose account is gone fills every field in empty: the fallback stands."""
-    bulk = BulkEmailFactory(sender=management, body=GREETING)
-    row = BulkEmailRecipient(bulk_email=bulk, user=None, values={})
-    assert "Dear friend," in render_copy(bulk, row).html
+    """That copy reads the fallback where the first name would go."""
+    _sending_to_a_deleted_account(management)
+    job.run_sender(now=NOW)
+    assert "Dear friend," in html_of(mail.outbox[0])
+
+
+def _sending_to_a_deleted_account(sender: User) -> BulkEmailRecipient:
+    """A greeting already sending, whose one pending row's account has been deleted."""
+    bulk = BulkEmailFactory(
+        sender=sender, body=GREETING, status=BulkEmailStatus.SENDING, started_at=NOW
+    )
+    return BulkEmailRecipient.objects.create(
+        bulk_email=bulk,
+        user=None,
+        name="Gil Gone",
+        email="gil@example.test",
+        status=RecipientStatus.PENDING,
+    )
 
 
 # --------------------------------------------------------------------------
@@ -214,6 +268,9 @@ def test_a_copy_for_a_deleted_account_takes_the_fallback(management: User) -> No
         ("x", '<p><a href="https://caldart.org/?d={dart_name}">site</a></p>', {}),
         ("x", '<img src="https://x.example/a.png" alt="{first_name}">', {}),
         ("x", "<p>{{ first_name }} and {{id}}</p>", {}),
+        ("x", "<b>" * 400 + "deep", {"body": TOO_DEEP_MESSAGE}),
+        ("x", "<ul><li>" * 400 + "deep", {"body": TOO_DEEP_MESSAGE}),
+        ("x", "<blockquote>" * 400 + "deep", {"body": TOO_DEEP_MESSAGE}),
     ],
     ids=[
         "unknown-in-subject",
@@ -225,6 +282,9 @@ def test_a_copy_for_a_deleted_account_takes_the_fallback(management: User) -> No
         "field-in-a-link",
         "field-in-an-alt",
         "doubled-braces",
+        "nested-bold",
+        "nested-lists",
+        "nested-quotations",
     ],
 )
 def test_check_message(subject: str, body: str, expected: dict[str, str]) -> None:
@@ -365,10 +425,25 @@ def test_the_preview_of_an_empty_batch_is_the_senders_own(
     )
 
 
-def test_the_preview_refuses_a_row_not_in_the_batch(
+def test_the_preview_refuses_a_row_of_another_email(
+    management_client: APIClient, greeting: BulkEmail, management: User, ann: User
+) -> None:
+    """A row that belongs to another email's batch is a 400 under ``recipient_id``."""
+    other = BulkEmailFactory(sender=management)
+    [elsewhere] = add_to_batch(other, ann)
+    response = management_client.post(
+        detail_url(greeting, "preview"), {"recipient_id": elsewhere.pk}, format="json"
+    )
+    assert (response.status_code, response.json()) == (
+        400,
+        {"recipient_id": [NOT_IN_BATCH_MESSAGE]},
+    )
+
+
+def test_the_preview_refuses_a_row_that_does_not_exist(
     management_client: APIClient, greeting: BulkEmail
 ) -> None:
-    """A row of another email, or none, is a 400 under ``recipient_id``."""
+    """An id no row has is a 400 under ``recipient_id``."""
     response = management_client.post(
         detail_url(greeting, "preview"), {"recipient_id": 999_999}, format="json"
     )
@@ -402,3 +477,16 @@ def test_the_preview_of_a_sent_copy_reads_as_it_went(
         detail_url(greeting, "preview"), {"recipient_id": row.pk}, format="json"
     ).json()
     assert body["subject"] == "Hello Ann"
+
+
+@pytest.mark.parametrize(
+    "body",
+    ["<b>" * 400 + "x", "<ul><li>" * 400 + "x", "<blockquote>" * 400 + "x"],
+    ids=["bold", "lists", "quotations"],
+)
+def test_saving_refuses_formatting_nested_too_deeply(
+    management_client: APIClient, greeting: BulkEmail, body: str
+) -> None:
+    """A message nested 400 deep is a 400 in words, never a server error."""
+    response = management_client.patch(detail_url(greeting), {"body": body}, format="json")
+    assert (response.status_code, response.json()) == (400, {"body": [TOO_DEEP_MESSAGE]})

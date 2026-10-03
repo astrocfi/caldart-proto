@@ -103,3 +103,42 @@ describe('MessagePreview', () => {
     );
   });
 });
+
+describe('MessagePreview when the batch changes', () => {
+  it('goes back to the first person once the batch changes', async () => {
+    const email = makeBulkEmail({ batch_count: 2, receiving_count: 2 });
+    answerBulkEmail({ email, batch: makeBatch(TWO) });
+    const { rerender } = renderWithProviders(<MessagePreview email={email} />);
+    await screen.findByText('Previewing as Ann Able (1 of 2)');
+    await userEvent.click(screen.getByRole('button', { name: 'Next person' }));
+    await screen.findByText('Previewing as Bea Bell (2 of 2)');
+
+    const after = answerBulkEmail({ email, batch: makeBatch([makeRow()]) });
+    rerender(<MessagePreview email={{ ...email, batch_count: 1, receiving_count: 1 }} />);
+
+    expect(await screen.findByText('Previewing as Ann Able (1 of 1)')).toBeVisible();
+    expect(after.previews).toEqual([{ recipient_id: null }]);
+  });
+
+  it('goes back to the first person when the one shown is no longer in the batch', async () => {
+    const calls = renderPreview();
+    await screen.findByText('Previewing as Ann Able (1 of 2)');
+    server.use(
+      http.post(`${API}/bulk-email/7/preview`, async ({ request }) => {
+        const body = (await request.json()) as { recipient_id?: number | null };
+        calls.previews.push(body);
+        return body.recipient_id === 2
+          ? HttpResponse.json(
+              { recipient_id: ['That person is not in the batch.'] },
+              { status: 400 },
+            )
+          : HttpResponse.json(makePreview());
+      }),
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Next person' }));
+
+    await waitFor(() => expect(calls.previews.at(-1)).toEqual({ recipient_id: null }));
+    expect(await screen.findByText('Previewing as Ann Able (1 of 1)')).toBeVisible();
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+});

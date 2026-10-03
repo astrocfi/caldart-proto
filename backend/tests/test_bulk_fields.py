@@ -347,3 +347,11 @@ def test_the_unknown_token_message_says_how_to_avoid_it() -> None:
         "{id} is not a recipient field. Choose a field from Insert field, or, if the "
         "braces belong in a web address, write them as %7B and %7D: %7Bid%7D."
     )
+
+
+def test_a_fallback_inside_an_address_is_percent_encoded() -> None:
+    """With an empty value, the fallback inside an ``href`` is percent-encoded."""
+    html = '<p><a href="https://e.org/?d={dart_name|Bay Area}">{dart_name|Bay Area}</a></p>'
+    assert substitute(html, {"dart_name": ""}, escape=True) == (
+        '<p><a href="https://e.org/?d=Bay%20Area">Bay Area</a></p>'
+    )

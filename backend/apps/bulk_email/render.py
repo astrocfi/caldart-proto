@@ -5,17 +5,17 @@ anything that shows a copy as it went; :func:`render_message` builds one from a 
 a message, and the field values to fill in, for the preview too.  The message is HTML,
 sanitized afresh every time (``apps.bulk_email.richtext.sanitize``), and each
 recipient's values are filled into it HTML-escaped; the plain-text body is derived
-from the same sanitized message (``html_to_text``) with the values filled in as they
-are.  The bodies come from ``emails/bulk_email.{txt,html}``: the plain-text body is
-the message followed by the house footer, and the HTML one puts the message inside
-the house email layout.  The sender hands the finished bodies to
+from the filled-in message (``html_to_text``), so it reads each value as it is.  The
+bodies come from ``emails/bulk_email.{txt,html}``: the plain-text body is the message
+followed by the house footer, and the HTML one puts the message inside the house email
+layout.  The sender hands the finished bodies to
 ``caldart.mail.send_templated`` through the pass-through pair
 ``emails/bulk_email_copy.{txt,html}`` (:data:`COPY_TEMPLATE`), so the email log
 records the copy like any other message.
 
 :func:`check_message` is what a save, a preview, and a send refuse a message for: a
-token the field catalog does not have, or one whose HTML and plain text would not be
-filled in alike.
+token the field catalog does not have, one whose HTML and plain text would not be
+filled in alike, or tags nested too deeply to read.
 """
 
 from __future__ import annotations
@@ -40,7 +40,7 @@ from apps.bulk_email.fields import (
     values_for,
 )
 from apps.bulk_email.models import BulkEmail, BulkEmailRecipient
-from apps.bulk_email.richtext import html_to_text, sanitize
+from apps.bulk_email.richtext import MAX_NESTING_DEPTH, html_to_text, nesting_depth, sanitize
 from caldart.mail import contact_email, org_name
 
 #: The template pair a copy is built from.
@@ -61,6 +61,12 @@ PREHEADER_LENGTH = 90
 RETYPE_MESSAGE = (
     "{written} has formatting or an angle bracket inside its braces, so it cannot be "
     "filled in. Delete it and put it in again with Insert field."
+)
+
+#: Why a message whose tags nest too deeply is refused.
+TOO_DEEP_MESSAGE = (
+    "This message has formatting nested too deeply to send. Take out some of the "
+    "lists, quotations, or styles inside one another."
 )
 
 #: One tag of the sanitized message, so the text between tags can be told apart.
@@ -96,19 +102,22 @@ def render_message(subject: str, body: str, values: Mapping[str, str] | None) ->
     """A copy of the message ``subject`` and ``body`` with ``values`` filled in.
 
     ``body`` is sanitized first.  The HTML body takes each value HTML-escaped, and
-    percent-encoded inside a link's or an image's address; the plain-text body and the
-    subject take each value as it is, with a line break in a subject value read as a
-    space.  ``values`` of ``None`` leaves every token as written, which is how the
-    history shows a message.  Both bodies carry the organization's name and contact
-    address as they are now.
+    each value and fallback percent-encoded inside a link's or an image's address.  The
+    plain-text body is derived from that filled-in HTML, so it reads each value as it
+    is, and a link's address in it, ``text (url)``, carries the value percent-encoded
+    as the link does.  The subject takes each value as it is, with a line break in a
+    value read as a space.  ``values`` of ``None`` leaves every token as written,
+    which is how the history shows a message.  Both bodies carry the organization's
+    name and contact address as they are now.
     """
     clean = sanitize(body)
-    text = html_to_text(clean)
     if values is not None:
         flat = {name: " ".join(value.splitlines()) for name, value in values.items()}
         subject = substitute(subject, flat, escape=False)
-        text = substitute(text, values, escape=False)
         clean = substitute(clean, values, escape=True)
+    # Derived from the filled-in HTML, so a value reads as itself in the text and a
+    # link's address carries it percent-encoded, exactly as the HTML's link does.
+    text = html_to_text(clean)
     context: dict[str, object] = {
         "org_name": org_name(),
         "contact_email": contact_email(),
@@ -168,7 +177,9 @@ def subject_problem(subject: str) -> str | None:
 def body_problem(body: str) -> str | None:
     """Why the message ``body`` cannot be filled in, or ``None`` when it can.
 
-    ``body`` is sanitized first.  It is refused for its first token the catalog does
+    ``body`` is sanitized first.  It is refused with :data:`TOO_DEEP_MESSAGE` when its
+    tags nest deeper than ``richtext.MAX_NESTING_DEPTH``.  It is refused for its first
+    token the catalog does
     not have, in the HTML or in the plain text derived from it, with
     :func:`apps.bulk_email.fields.unknown_token_message`; and for a token the two
     parts would not fill in alike, with :func:`retype_message`: a token the plain
@@ -177,6 +188,8 @@ def body_problem(body: str) -> str | None:
     does not hold, because its fallback holds an angle bracket.
     """
     clean = sanitize(body)
+    if nesting_depth(clean) > MAX_NESTING_DEPTH:
+        return TOO_DEEP_MESSAGE
     text = html_to_text(clean)
     unknown = unknown_tokens(clean) or unknown_tokens(text)
     if len(unknown) > 0:

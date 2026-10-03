@@ -10,6 +10,7 @@ from the same HTML, so the two parts always say the same thing.
 from __future__ import annotations
 
 import re
+from html.parser import HTMLParser
 
 import nh3
 from bs4 import BeautifulSoup
@@ -60,6 +61,14 @@ PIXELS_RE = re.compile(r"\d{1,5}")
 
 #: A URL's scheme, as :func:`_scheme` reads it.
 SCHEME_RE = re.compile(r"([A-Za-z][A-Za-z0-9+.-]*):")
+
+#: The deepest a message's tags may nest, such as a list in a list in a quotation:
+#: far more than any message needs, and few enough that :func:`html_to_text`, which
+#: walks the tags recursively, never runs out of stack.
+MAX_NESTING_DEPTH = 32
+
+#: The tags that hold nothing, so they never deepen the nesting.
+_VOID_TAGS = frozenset({"br", "hr", "img"})
 
 #: How a horizontal rule reads in the plain-text part.
 TEXT_RULE = "----"
@@ -130,6 +139,40 @@ def sanitize(html: str) -> str:
     return _CLEANER.clean(html)
 
 
+class _DepthCounter(HTMLParser):
+    """Measures how deeply the tags of an HTML fragment nest, without building a tree."""
+
+    def __init__(self) -> None:
+        """Start at depth 0, with no tag seen."""
+        super().__init__(convert_charrefs=True)
+        self.depth = 0
+        self.deepest = 0
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        """Go one level deeper for every tag that can hold something."""
+        if tag in _VOID_TAGS:
+            return
+        self.depth += 1
+        self.deepest = max(self.deepest, self.depth)
+
+    def handle_endtag(self, tag: str) -> None:
+        """Come back up a level for every closing tag of one that held something."""
+        if tag not in _VOID_TAGS:
+            self.depth = max(0, self.depth - 1)
+
+
+def nesting_depth(html: str) -> int:
+    """Return how deeply the tags of ``html`` nest: 0 for plain text, 1 for ``<p>x</p>``.
+
+    ``br``, ``hr``, and ``img`` hold nothing and count for nothing.  The fragment is
+    read in one pass, however deep it goes, so it is safe to measure any input.
+    """
+    counter = _DepthCounter()
+    counter.feed(html)
+    counter.close()
+    return counter.deepest
+
+
 def html_to_text(html: str) -> str:
     """Return the plain-text part of the message ``html``.
 
@@ -141,7 +184,10 @@ def html_to_text(html: str) -> str:
     ``----``.  A link reads ``text (url)``, or the address alone when the text is
     the address (with ``mailto:`` ignored); an image reads as its alt text.  Bold,
     italic, and the other inline styles leave plain text.  Runs of whitespace read as
-    one space, as in HTML, and the answer has no blank lines at either end.
+    one space, as in HTML, and the answer has no blank lines at either end.  It walks
+    the tags recursively, so the message must nest no deeper than
+    :data:`MAX_NESTING_DEPTH`, which ``apps.bulk_email.render.body_problem`` checks
+    before anything calls it on a sender's message.
     """
     soup = BeautifulSoup(html, "html.parser")
     return "\n\n".join(_blocks(soup))

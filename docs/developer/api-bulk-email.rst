@@ -498,7 +498,8 @@ token naming a field the catalog does not have is unknown, and
 and ``fields.substitute`` puts them in, HTML-escaping each value for the HTML
 part, so a name holding ``<b>`` arrives as text, and replacing an empty value
 by the token's fallback.  A value that lands inside a link's ``href`` or an
-image's ``src`` is percent-encoded as well, everything but ``@``, so
+image's ``src`` is percent-encoded as well, everything but ``@``, and so is a
+fallback that stands in for an empty one there, so
 ``https://caldart.org/darts?name={dart_name}`` works for *Marin & Napa* and
 ``mailto:{email}`` for an address holding a ``+``.
 
@@ -512,7 +513,11 @@ braces belong in a web address, write them as %7B and %7D: %7Bid%7D.*
 
 **Checking a message.**  ``render.check_message`` is what a save, a preview, and a
 send refuse, by field.  The subject is refused for its first unknown token.  The
-message is sanitized, then refused for its first unknown token in the HTML or in
+message is sanitized, then refused with *This message has formatting nested too
+deeply to send. Take out some of the lists, quotations, or styles inside one
+another.* when its tags nest more than 32 deep (``richtext.MAX_NESTING_DEPTH``,
+far beyond any real message; ``html_to_text`` reads the tags recursively), and
+otherwise for its first unknown token in the HTML or in
 the plain text derived from it, and for a token the two would not fill in alike:
 one the plain text holds but the HTML does not, because formatting splits it
 (``<strong>{first</strong>_name}``, which reads ``{first_name}`` as text), or one
@@ -522,11 +527,13 @@ bracket inside its braces, so it cannot be filled in. Delete it and put it in ag
 with Insert field.*
 
 **Filling in each copy.**  ``render.render_message(subject, body, values)`` builds
-one copy: the message sanitized; the HTML body with each value escaped (and
-percent-encoded in an address) inside ``emails/bulk_email.html``, the house email
-layout; the plain-text body derived from the same sanitized message with each value
-as it is, followed by the house footer from ``emails/bulk_email.txt``; and the
-subject with each value as it is, a line break in a value read as a space.  The
+one copy: the message sanitized; the HTML body with each value escaped, and each
+value or fallback percent-encoded inside a link's or an image's address, inside
+``emails/bulk_email.html``, the house email layout; the plain-text body derived from
+that filled-in HTML, so it reads each value as it is and writes a link's address as
+the link has it, percent-encoded (``Go (https://e.com/?d=Marin%20County)``), followed
+by the house footer from ``emails/bulk_email.txt``; and the subject with each value
+as it is, a line break in a value read as a space.  The
 preheader is the start of the plain text.  When the sender tries a copy it reads the
 person's values for the fields the message uses, as they are at that moment
 (``render.fill_values``), and stores them on the row as ``values``, token to value,

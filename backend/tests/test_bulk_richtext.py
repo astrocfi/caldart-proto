@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import pytest
 
-from apps.bulk_email.richtext import html_to_text, sanitize
+from apps.bulk_email.richtext import MAX_NESTING_DEPTH, html_to_text, nesting_depth, sanitize
 
 
 # --------------------------------------------------------------------------
@@ -254,3 +254,25 @@ def test_the_text_part_keeps_tokens_for_substitution() -> None:
     assert html_to_text("<p>Dear <strong>{first_name|friend}</strong>,</p>") == (
         "Dear {first_name|friend},"
     )
+
+
+@pytest.mark.parametrize(
+    ("html", "expected"),
+    [
+        ("plain words", 0),
+        ("<p>One</p><p>Two</p>", 1),
+        ("<ul><li><p>a<br>b</p></li></ul>", 3),
+        ('<p>x<img src="https://x.example/a.png" alt="A"><hr></p>', 1),
+        ("<b>" * 400 + "x", 400),
+    ],
+    ids=["text", "paragraphs", "list", "empty-tags", "deep"],
+)
+def test_nesting_depth(html: str, expected: int) -> None:
+    """The depth counts tags that hold something, however deep they go."""
+    assert nesting_depth(html) == expected
+
+
+def test_the_text_part_reads_any_message_within_the_depth_limit() -> None:
+    """A message nested close to the limit is read without running out of stack."""
+    html = "<blockquote><ul><li>" * (MAX_NESTING_DEPTH // 3) + "deep"
+    assert html_to_text(sanitize(html)).endswith("deep")

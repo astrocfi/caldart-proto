@@ -208,9 +208,10 @@ def substitute(text: str, values: Mapping[str, str], *, escape: bool) -> str:
     link's ``href`` or an image's ``src`` is percent-encoded as well (all but
     ``@``), so ``{dart_name}`` holding a space or ``{email}`` holding a ``+`` makes
     a working address.  The fallback is part of the message and is put in as
-    written either way.  A token whose name is not in ``values`` is left as
-    written.  Nothing else in ``text`` is touched: substitution is a lookup, so
-    template syntax such as ``{{ x }}`` is never evaluated.
+    written, except that inside such an address it is percent-encoded too.  A token
+    whose name is not in ``values`` is left as written.  Nothing else in ``text`` is
+    touched: substitution is a lookup, so template syntax such as ``{{ x }}`` is never
+    evaluated.
     """
     in_address = _address_spans(text) if escape else []
 
@@ -220,13 +221,16 @@ def substitute(text: str, values: Mapping[str, str], *, escape: bool) -> str:
         if name not in values:
             return match.group(0)
         value = values[name]
+        in_url = escape and any(start <= match.start() < end for start, end in in_address)
         if value == "":
-            return match.group(2) or ""
+            fallback = match.group(2) or ""
+            # The fallback is the message's own HTML, entities and all.
+            return (
+                html.escape(quote(html.unescape(fallback), safe=URL_SAFE)) if in_url else fallback
+            )
         if not escape:
             return value
-        if any(start <= match.start() < end for start, end in in_address):
-            value = quote(value, safe=URL_SAFE)
-        return html.escape(value)
+        return html.escape(quote(value, safe=URL_SAFE) if in_url else value)
 
     return TOKEN_RE.sub(replace, text)
 

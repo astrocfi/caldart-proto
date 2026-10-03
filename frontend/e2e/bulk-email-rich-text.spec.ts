@@ -79,13 +79,12 @@ test('CalDART management writes a formatted email with an image, previews it, an
   await expect(preview.getByText(/^Previewing as .+ \(1 of \d+\)$/)).toBeVisible();
   const frame = preview.locator('iframe');
   await expect(frame).toHaveAttribute('sandbox', '');
-  await expect
-    .poll(async () => (await frame.getAttribute('srcdoc')) ?? '')
-    .toContain(`This copy went to ${DEMO.management}.`);
+  // The image went in last, so a preview that shows it shows every earlier change.
+  await expect.poll(async () => (await frame.getAttribute('srcdoc')) ?? '').toMatch(IMAGE_SRC);
   const html = (await frame.getAttribute('srcdoc')) ?? '';
+  expect(html).toContain(`This copy went to ${DEMO.management}.`);
   expect(html).toContain('<strong>Fly-in on Saturday</strong>');
   expect(html).toContain('<a href="https://caldart.org/events">https://caldart.org/events</a>');
-  expect(html).toMatch(IMAGE_SRC);
 
   await page.getByRole('button', { name: /^Send to \d+ (person|people)$/ }).click();
   const confirm = page.getByRole('region', { name: 'Confirm sending' });
