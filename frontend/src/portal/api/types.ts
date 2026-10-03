@@ -1880,11 +1880,17 @@ export type BulkEmailRecipientStatus =
  * size above which Send asks for the count to be typed, and `undo_seconds` the
  * undo window the countdown runs over. `body` is the message as sanitized HTML,
  * and `message_html` the whole HTML email with its field tokens as written.
+ * `email_type` is the chosen type's id, null while none is chosen, and
+ * `email_type_name` its name, blank then. `not_sent_reason` says why the background
+ * sender returned the email unsent, and is blank otherwise.
  */
 export interface BulkEmailDetail {
   id: number;
   subject: string;
   body: string;
+  email_type: number | null;
+  email_type_name: string;
+  not_sent_reason: string;
   status: BulkEmailStatus;
   sender: string;
   sender_id: number | null;
@@ -1912,10 +1918,16 @@ export interface BulkEmailDetail {
   message_html: string;
 }
 
-/** One row of `GET /bulk-email/drafts` or `GET /bulk-email/sent`. */
+/**
+ * One row of `GET /bulk-email/drafts` or `GET /bulk-email/sent`. `email_type_name` is
+ * blank while no type is chosen; `not_sent_reason` says why the background sender
+ * returned the email unsent, blank otherwise.
+ */
 export interface BulkEmailSummary {
   id: number;
   subject: string;
+  email_type_name: string;
+  not_sent_reason: string;
   status: BulkEmailStatus;
   sender: string;
   created_at: IsoDateTime;
@@ -1937,6 +1949,8 @@ export interface BulkEmailSummary {
 export interface BulkEmailPatch {
   subject?: string;
   body?: string;
+  /** The id of a type the sender may send (`GET /email-types/sendable`). */
+  email_type?: number;
 }
 
 /**

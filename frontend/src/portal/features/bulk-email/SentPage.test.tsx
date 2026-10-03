@@ -30,6 +30,13 @@ describe('SentPage', () => {
     expect(row).toHaveTextContent('Sent37');
   });
 
+  it('names the type of each send', async () => {
+    answerSent([makeSummary({ status: 'sent', email_type_name: 'Mission' })]);
+    renderWithProviders(<SentPage />);
+    const row = (await screen.findByRole('link', { name: 'Hangar day' })).closest('tr');
+    expect(within(row as HTMLElement).getByRole('cell', { name: 'Mission' })).toBeInTheDocument();
+  });
+
   it('opens a send in progress to stop it there', async () => {
     answerSent([makeSummary({ status: 'sending' })]);
     renderWithProviders(<SentPage />);

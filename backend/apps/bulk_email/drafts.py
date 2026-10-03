@@ -32,6 +32,7 @@ from apps.bulk_email.job import apply_stop
 from apps.bulk_email.models import BulkEmail, BulkEmailStatus, RecipientStatus
 from apps.bulk_email.render import check_message
 from apps.bulk_email.richtext import html_to_text, sanitize
+from apps.mail.types import sendable_types
 from caldart import audit
 from caldart.exceptions import DomainError, DomainValidationError
 
@@ -39,6 +40,8 @@ from caldart.exceptions import DomainError, DomainValidationError
 MAX_SCHEDULE_AHEAD = timedelta(days=365)
 
 #: Why **Send** is refused.
+NO_TYPE_MESSAGE = "Choose a type."
+NOT_SENDABLE_MESSAGE = "You cannot send {type} email. Choose another type."
 NO_SUBJECT_MESSAGE = "Write a subject."
 NO_BODY_MESSAGE = "Write the message."
 NOBODY_MESSAGE = "Nobody in the batch can receive this email. Add people to the batch."
@@ -67,7 +70,7 @@ def visible_to(user: User) -> QuerySet[BulkEmail]:
     CalDART management and a system administrator see every bulk email, with its
     sender; anybody else sees only the ones they are the sender of.
     """
-    emails = BulkEmail.objects.select_related("sender", "stopped_by")
+    emails = BulkEmail.objects.select_related("sender", "stopped_by", "email_type")
     if user_has_any_role(user, (MANAGEMENT,)):
         return emails
     return emails.filter(sender=user)
@@ -133,26 +136,30 @@ def queue(
 ) -> BulkEmail:
     """**Send**: queue ``bulk`` to start at ``start_at``, or once the undo window ends.
 
-    The email must have a subject and a message, and somebody in its batch who can
-    receive a copy.  When more than ``BULK_EMAIL_CONFIRM_ABOVE`` people would receive
-    it, ``confirm_count`` must be that number, the count the sender typed; a batch that
-    changed after the sender typed it is refused with the number it holds now.  A
-    ``start_at`` must be after ``now`` and within a year of it.
+    The email must have a type that ``actor`` may send, a subject and a message, and
+    somebody in its batch who can receive a copy.  When more than
+    ``BULK_EMAIL_CONFIRM_ABOVE`` people would receive it, ``confirm_count`` must be that
+    number, the count the sender typed; a batch that changed after the sender typed it
+    is refused with the number it holds now.  A ``start_at`` must be after ``now`` and
+    within a year of it.
 
     The email becomes ``queued`` with ``start_at`` set to the time given, or to ``now``
     plus ``BULK_EMAIL_UNDO_SECONDS``; ``scheduled`` says which, and ``confirm_count``
-    keeps the typed count (null below the threshold).  Queuing an email that is queued
-    already reschedules it.  Nothing is sent: the background sender starts the email
-    once ``start_at`` arrives.  One ``bulk_email.queue`` audit line names ``actor``.
+    keeps the typed count (null below the threshold), and any ``not_sent_reason`` left by
+    the background sender is cleared.  Queuing an email that is queued already
+    reschedules it.  Nothing is sent: the background sender starts the email once
+    ``start_at`` arrives.  One ``bulk_email.queue`` audit line names ``actor``.
 
-    Raises ``DomainValidationError`` keyed ``subject``, ``body``, ``batch``,
-    ``confirm_count``, or ``start_at``, and ``DomainError`` once the email has started
-    sending; nothing changes then.
+    Raises ``DomainValidationError`` keyed ``subject``, ``body``, ``email_type``
+    (:data:`NO_TYPE_MESSAGE`, or :data:`NOT_SENDABLE_MESSAGE` naming the type),
+    ``batch``, ``confirm_count``, or ``start_at``, and ``DomainError`` once the email
+    has started sending; nothing changes then.
     """
     moment = now if now is not None else timezone.now()
     with transaction.atomic():
         locked = locked_for_edit(bulk)
         _check_content(locked)
+        _check_type(locked, actor)
         receiving = batch_counts(batch_rows(locked)).receiving
         if receiving == 0:
             raise DomainValidationError("batch", NOBODY_MESSAGE)
@@ -169,8 +176,16 @@ def queue(
             else moment + timedelta(seconds=settings.BULK_EMAIL_UNDO_SECONDS)
         )
         locked.confirm_count = confirm_count if needs_count else None
+        locked.not_sent_reason = ""
         locked.save(
-            update_fields=["status", "scheduled", "start_at", "confirm_count", "updated_at"]
+            update_fields=[
+                "status",
+                "scheduled",
+                "start_at",
+                "confirm_count",
+                "not_sent_reason",
+                "updated_at",
+            ]
         )
     audit.record(
         audit.BULK_EMAIL_QUEUE,
@@ -295,6 +310,16 @@ def _check_content(bulk: BulkEmail) -> None:
     if len(problems) > 0:
         name, problem = next(iter(problems.items()))
         raise DomainValidationError(name, problem)
+
+
+def _check_type(bulk: BulkEmail, actor: User) -> None:
+    """Refuse an email with no type, or one whose type ``actor`` may not send."""
+    if bulk.email_type is None:
+        raise DomainValidationError("email_type", NO_TYPE_MESSAGE)
+    if bulk.email_type not in sendable_types(actor):
+        raise DomainValidationError(
+            "email_type", NOT_SENDABLE_MESSAGE.format(type=bulk.email_type.name)
+        )
 
 
 def _check_confirm_count(confirm_count: int | None, receiving: int) -> None:

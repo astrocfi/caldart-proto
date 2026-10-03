@@ -129,12 +129,20 @@ def test_a_recipient_whose_account_is_gone_keeps_their_row(
 
 
 def test_a_send_s_results_download_as_a_csv(management_client: APIClient, sent: BulkEmail) -> None:
-    """One line per person: name, address, kind, DART, result, and reason."""
+    """One line per person: name, address, kind, DART, result, reason, and email type."""
     response = management_client.get(f"/api/v1/bulk-email/{sent.pk}/recipients.csv")
     assert read_csv(response) == [
-        ["Name", "Email", "Kind", "DART", "Result", "Reason"],
-        ["Ann Able", "ann@example.test", "Friend", "Marin DART", "Sent", ""],
-        ["Gil Gone", "gil@example.test", "Friend", "Marin DART", "Skipped", "Account deactivated"],
+        ["Name", "Email", "Kind", "DART", "Result", "Reason", "Email type"],
+        ["Ann Able", "ann@example.test", "Friend", "Marin DART", "Sent", "", "Operational"],
+        [
+            "Gil Gone",
+            "gil@example.test",
+            "Friend",
+            "Marin DART",
+            "Skipped",
+            "Account deactivated",
+            "Operational",
+        ],
     ]
 
 
@@ -154,7 +162,7 @@ def test_a_stopped_copy_reads_not_sent_in_the_csv(
         status=RecipientStatus.STOPPED, reason="Stopped by Hollis Grant"
     )
     rows = read_csv(management_client.get(f"/api/v1/bulk-email/{sent.pk}/recipients.csv"))
-    assert rows[1][4:] == ["Not sent (stopped)", "Stopped by Hollis Grant"]
+    assert rows[1][4:] == ["Not sent (stopped)", "Stopped by Hollis Grant", "Operational"]
 
 
 def test_the_bulk_email_purpose_has_a_label() -> None:

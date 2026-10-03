@@ -19,6 +19,7 @@ import type {
   BulkEmailSendRequest,
   BulkEmailStatus,
   BulkEmailSummary,
+  SendableEmailType,
 } from '@/portal/api/types';
 import type { FilterValues } from '@/portal/reports/types';
 import { API_BASE } from '@/portal/urlPrefix';
@@ -48,6 +49,20 @@ export function batchKey(id: number): readonly unknown[] {
 
 const DRAFTS_KEY = [...BULK_EMAIL_KEY, 'drafts'] as const;
 const SENT_KEY = [...BULK_EMAIL_KEY, 'sent'] as const;
+
+/**
+ * The cache key of the types the signed-in sender may send. It sits under the Email
+ * types screen's key, so a change made there reaches the compose screen too.
+ */
+const SENDABLE_TYPES_KEY = ['email-types', 'sendable'] as const;
+
+/** The types the signed-in sender may send, via `GET /email-types/sendable`. */
+export function useSendableEmailTypes(): UseQueryResult<SendableEmailType[]> {
+  return useQuery({
+    queryKey: SENDABLE_TYPES_KEY,
+    queryFn: () => api.get<SendableEmailType[]>('/email-types/sendable'),
+  });
+}
 
 /** Every draft and queued email, the most recently edited first. */
 export function useDrafts(): UseQueryResult<BulkEmailSummary[]> {

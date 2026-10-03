@@ -337,6 +337,7 @@ Mail, reminders, reports, notifications, and the CMS pages
           Subscription -> User [label="recipient_user,\ncreated_by\nSET_NULL"];
           Notification -> User [label="recipient_user,\ncreated_by\nSET_NULL"];
           Bulk -> User [label="sender,\nstopped_by\nSET_NULL"];
+          Bulk -> EmailType [label="email_type\nPROTECT"];
           BulkAdd -> Bulk [label="bulk_email\nCASCADE"];
           BulkRecipient -> Bulk [label="bulk_email\nCASCADE"];
           BulkRecipient -> BulkAdd [label="added_by\nSET_NULL"];
@@ -445,6 +446,7 @@ Mail, reminders, reports, notifications, and the CMS pages
       notifications.NotificationSubscription.created_by
                                            -> accounts.User       FK, SET_NULL, nullable
       bulk_email.BulkEmail.sender          -> accounts.User       FK, SET_NULL, nullable
+      bulk_email.BulkEmail.email_type      -> mail.EmailType      FK, PROTECT, nullable
       bulk_email.BulkEmail.stopped_by      -> accounts.User       FK, SET_NULL, nullable
       bulk_email.BatchAdd.bulk_email       -> bulk_email.BulkEmail FK, CASCADE
       bulk_email.BulkEmailRecipient.bulk_email
@@ -3971,14 +3973,16 @@ demo friend.
 **Relationships.**
 
 - Referenced by ``mail.EmailOptOut.email_type`` (``CASCADE``; reverse accessor
-  ``opt_outs``).
+  ``opt_outs``) and ``bulk_email.BulkEmail.email_type`` (``PROTECT``; reverse
+  accessor ``bulk_emails``).
 
 The code refuses a name another type holds ignoring case, and a name whose slug
 another type's already is (*Mission!* beside *Mission*), with *Another email type
 already has this name.*; a name with no letter or digit has no slug and is refused
 too.  ``sender_roles`` is checked against ``apps.mail.types.SENDER_ROLES``.  A type
 that a bulk email names cannot be deleted: the bulk email's foreign key protects it,
-and the screen says to take every role off the type instead.
+and the screen says to take the sending roles off the type instead, which leaves it
+to system administrators.
 
 .. _data-model-email-opt-out:
 
@@ -4317,6 +4321,10 @@ One email CalDART management writes, from the moment Compose opens it.
      - ``ForeignKey`` to ``accounts.User``, ``SET_NULL``
      - null; default ``NULL``
      - who owns the draft and sends it; null once that account is deleted; related name ``bulk_emails_sent``
+   * - ``email_type``
+     - ``ForeignKey`` to ``mail.EmailType``, ``PROTECT``
+     - null; default ``NULL``
+     - the kind of email it is; null while a draft has none, required to send; related name ``bulk_emails``
    * - ``start_at``
      - ``DateTimeField``
      - null; default ``NULL``
@@ -4325,6 +4333,10 @@ One email CalDART management writes, from the moment Compose opens it.
      - ``BooleanField``
      - not null; default ``False``
      - true when the sender chose ``start_at``, false for the undo window
+   * - ``not_sent_reason``
+     - ``CharField(200)``
+     - not null; default ``""``
+     - why the background sender returned the email unsent when it came due, because its sender may no longer send its type; blank otherwise and once it is queued again
    * - ``confirm_count``
      - ``PositiveIntegerField``
      - null; default ``NULL``
@@ -4371,6 +4383,7 @@ One email CalDART management writes, from the moment Compose opens it.
 **Relationships.**
 
 - ``sender``: foreign key to ``accounts.User``, ``SET_NULL``, nullable; the reverse accessor is ``bulk_emails_sent``.
+- ``email_type``: foreign key to ``mail.EmailType``, ``PROTECT``, nullable; the reverse accessor is ``bulk_emails``.  A type a bulk email names cannot be deleted.
 - ``stopped_by``: foreign key to ``accounts.User``, ``SET_NULL``, nullable; the reverse accessor is ``bulk_emails_stopped``.
 - ``adds``: the reverse of ``BatchAdd.bulk_email``.
 - ``recipients``: the reverse of ``BulkEmailRecipient.bulk_email``.

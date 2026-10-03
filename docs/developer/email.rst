@@ -503,7 +503,11 @@ The headers.
       List-Unsubscribe-Post: List-Unsubscribe=One-Click
 
    which is what Gmail, Yahoo, and other mail programs read to show their own
-   **Unsubscribe** button (RFC 2369 and RFC 8058).  The ``mailto:`` goes to the
+   **Unsubscribe** button (RFC 2369 and RFC 8058).  A signed link is longer than a
+   mail line, and the mail library's standard folding would write it as RFC 2047
+   encoded words, which those programs do not read; ``caldart.mail`` writes every
+   message with a header class that keeps ``List-Unsubscribe`` as itself, one URI to
+   a folded line, whichever policy the mail backend uses.  The ``mailto:`` goes to the
    contact address in the site settings and is left out when there is none; the
    site reads no mailbox for it, so whoever reads the contact address acts on such a
    message by hand.  For a type that does not allow opting out the answer is empty.

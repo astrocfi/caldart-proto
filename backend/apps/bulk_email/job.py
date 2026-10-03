@@ -10,9 +10,12 @@ Claiming an email takes its row with ``select_for_update(skip_locked=True)`` in 
 short transaction that sets it ``sending`` and freezes its batch: each ``batched`` row
 becomes ``pending``, or ``skipped`` with the reason
 (:func:`apps.bulk_email.batch.skip_reason`) as of that moment, and takes the account's
-name and address as they are then.  The pending rows are then sent in surname order,
+name and address as they are then.  An email whose sender may no longer send its type
+(a deleted account, or a role taken away) is returned unsent instead, with a
+``bulk_email.refused`` audit line.  The pending rows are then sent in surname order,
 one copy each, through ``caldart.mail.send_templated``, saving each row and the email's
-counts as soon as that copy has been tried.  When no row is pending the email is
+counts as soon as that copy has been tried; a person who turned the type off since
+the freeze is skipped then.  When no row is pending the email is
 ``sent``, and one ``bulk_email.send`` audit line is written.
 
 The sender paces itself to ``BULK_EMAIL_RATE_PER_MINUTE`` copies a minute and opens a
@@ -46,7 +49,7 @@ from django.core.mail.backends.base import BaseEmailBackend
 from django.db import connection, transaction
 from django.utils import timezone
 
-from apps.bulk_email.batch import batch_rows, snapshot, surname_order
+from apps.bulk_email.batch import SKIP_OPTED_OUT, batch_rows, snapshot, surname_order
 from apps.bulk_email.models import (
     BulkEmail,
     BulkEmailRecipient,
@@ -54,6 +57,7 @@ from apps.bulk_email.models import (
     RecipientStatus,
 )
 from apps.bulk_email.render import COPY_TEMPLATE, PURPOSE, fill_values, render_copy
+from apps.mail.types import is_opted_out, sendable_types
 from caldart import audit
 from caldart.mail import MailRefusedError, error_name, send_templated
 from caldart.runs import RunAction
@@ -89,6 +93,17 @@ SENDER_LOCK_KEY = 0x0B01_E3A1
 
 #: What a run that found another run working says.
 BUSY_MESSAGE = "Another run of the bulk email sender is working; this one did nothing."
+
+#: Why a due email went back unsent, kept on the email for the Drafts screen.
+NOT_SENT_TYPE = (
+    "This email was not sent: you can no longer send {type} email. Choose another type "
+    "and send again."
+)
+NOT_SENT_SENDER_DELETED = (
+    "This email was not sent: the account that sent it has been deleted. Send it again "
+    "from your own account."
+)
+NOT_SENT_NO_TYPE = "This email was not sent: it has no type. Choose a type and send again."
 
 #: The longest reason a recipient row holds.
 REASON_MAX_LENGTH = 200
@@ -242,22 +257,97 @@ def _claim(now: datetime, run: SenderRun) -> BulkEmail | None:
 
     Returns ``None`` when no queued email is due.  An email another transaction holds,
     such as one whose batch is being changed this instant, is left for the next run.
+    An email its sender may no longer send (:func:`_sender_refusal`) is returned unsent
+    (:func:`_refuse`), and the next due email is taken instead.
     """
-    with transaction.atomic():
-        bulk = (
-            BulkEmail.objects.select_for_update(skip_locked=True)
-            .filter(status=BulkEmailStatus.QUEUED, start_at__lte=now)
-            .order_by("start_at", "pk")
-            .first()
+    while True:
+        with transaction.atomic():
+            bulk = (
+                BulkEmail.objects.select_for_update(skip_locked=True)
+                .filter(status=BulkEmailStatus.QUEUED, start_at__lte=now)
+                .order_by("start_at", "pk")
+                .first()
+            )
+            if bulk is None:
+                return None
+            refusal = _sender_refusal(bulk)
+            if refusal is not None:
+                _refuse(bulk, refusal)
+                continue
+            bulk.status = BulkEmailStatus.SENDING
+            if bulk.started_at is None:
+                bulk.started_at = timezone.now()
+            run.skipped += _freeze(bulk)
+            bulk.save(update_fields=["status", "started_at", "skipped_count", "updated_at"])
+        return bulk
+
+
+@dataclass(frozen=True)
+class _Refusal:
+    """Why a due email is not sent: the audit reason slug and the sentence it keeps."""
+
+    reason: str
+    message: str
+
+
+def _sender_refusal(bulk: BulkEmail) -> _Refusal | None:
+    """Why ``bulk``'s sender may no longer send it, or ``None`` when they may.
+
+    The sender's roles as they are now are checked against the type's
+    ``sender_roles``, as **Send** checked them: an account deleted since, a role taken
+    away, or a type changed to name other roles all refuse it.
+    """
+    if bulk.email_type is None:
+        return _Refusal(reason=audit.REASON_NO_TYPE, message=NOT_SENT_NO_TYPE)
+    if bulk.sender is None:
+        return _Refusal(reason=audit.REASON_SENDER_DELETED, message=NOT_SENT_SENDER_DELETED)
+    if bulk.email_type not in sendable_types(bulk.sender):
+        return _Refusal(
+            reason=audit.REASON_TYPE_NOT_SENDABLE,
+            message=NOT_SENT_TYPE.format(type=bulk.email_type.name),
         )
-        if bulk is None:
-            return None
-        bulk.status = BulkEmailStatus.SENDING
-        if bulk.started_at is None:
-            bulk.started_at = timezone.now()
-        run.skipped += _freeze(bulk)
-        bulk.save(update_fields=["status", "started_at", "skipped_count", "updated_at"])
-    return bulk
+    return None
+
+
+def _refuse(bulk: BulkEmail, refusal: _Refusal) -> None:
+    """Return ``bulk`` unsent, keeping ``refusal``'s sentence, and audit it.
+
+    An email that never started goes back to a draft, its batch and content intact and
+    its schedule cleared, with ``not_sent_reason`` set for the Drafts screen.  One
+    **Send the rest** queued again goes back to ``stopped``, its queued copies with it,
+    each naming the sentence.  Either way a WARNING ``bulk_email.refused`` audit line
+    names the email and the reason, under the ``command`` actor.
+    """
+    moment = timezone.now()
+    if bulk.started_at is None:
+        bulk.status = BulkEmailStatus.DRAFT
+        bulk.start_at = None
+        bulk.scheduled = False
+        bulk.confirm_count = None
+    else:
+        bulk.status = BulkEmailStatus.STOPPED
+        bulk.stopped_at = moment
+        bulk.recipients.filter(status=RecipientStatus.PENDING).update(
+            status=RecipientStatus.STOPPED,
+            reason=refusal.message[:REASON_MAX_LENGTH],
+            updated_at=moment,
+        )
+    bulk.not_sent_reason = refusal.message
+    bulk.save(
+        update_fields=[
+            "status",
+            "start_at",
+            "scheduled",
+            "confirm_count",
+            "stopped_at",
+            "not_sent_reason",
+            "updated_at",
+        ]
+    )
+    log.warning("bulk email not sent: bulk_email=%s reason=%s", bulk.pk, refusal.reason)
+    audit.refuse(
+        audit.BULK_EMAIL_REFUSED, actor=audit.COMMAND_ACTOR, target=bulk, reason=refusal.reason
+    )
 
 
 def _freeze(bulk: BulkEmail) -> int:
@@ -319,6 +409,10 @@ def _send(bulk: BulkEmail, run: SenderRun) -> None:
             if _is_stop_requested(bulk):
                 apply_stop(bulk)
                 return
+            # Read last, right before the copy goes, so an opt-out made during the
+            # pause is honored too.
+            if _skip_if_opted_out(bulk, row, run):
+                continue
             if on_connection is None or on_connection >= settings.BULK_EMAIL_BATCH_SIZE:
                 mailer.close()
                 _open(mailer, bulk)
@@ -349,6 +443,27 @@ def _send(bulk: BulkEmail, run: SenderRun) -> None:
     finally:
         mailer.close()
     _finish(bulk)
+
+
+def _skip_if_opted_out(bulk: BulkEmail, row: BulkEmailRecipient, run: SenderRun) -> bool:
+    """Skip ``row`` when its person has turned ``bulk``'s type off since the freeze.
+
+    The opt-out is read afresh for every copy, so one made during a long paced send,
+    or between **Stop** and **Send the rest**, is honored: the row becomes ``skipped``
+    with the batch's *Opted out of <type>* reason, and ``skipped_count`` grows.
+    Returns whether the row was skipped.
+    """
+    if bulk.email_type is None or row.user is None:
+        return False
+    if not is_opted_out(row.user, bulk.email_type):
+        return False
+    row.status = RecipientStatus.SKIPPED
+    row.reason = SKIP_OPTED_OUT.format(type=bulk.email_type.name)
+    row.save(update_fields=["status", "reason", "updated_at"])
+    bulk.skipped_count += 1
+    bulk.save(update_fields=["skipped_count", "updated_at"])
+    run.skipped += 1
+    return True
 
 
 def _pace(run: SenderRun) -> None:

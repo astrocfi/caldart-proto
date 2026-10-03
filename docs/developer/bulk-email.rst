@@ -123,12 +123,22 @@ lapsed medical, plus all friends" is three adds and nobody hears twice.
 
 Whether a person receives a copy is never stored while the email is a draft.
 ``batch.batch_rows`` works it out whenever the batch is read, from each account as
-it is then, walking the batch in surname order: ``skip_reason(account, seen)``
-asks, in order, whether the account is deleted, deactivated, without an address,
-with an address no mail server would take, or with an address that bounced, and
-then whether ``seen`` already holds the address, trimmed and case-folded.  So an
-address that bounced after somebody was added shows as skipped at once, and two
-accounts sharing one address get one copy, the first in surname order.
+it is then, walking the batch in surname order: ``skip_reason(account, seen,
+opt_outs=...)`` asks, in order, whether the account is deleted, deactivated,
+without an address, with an address no mail server would take, or with an address
+that bounced, whether the person has turned the email's type off (*Opted out of
+<type>*), and then whether ``seen`` already holds the address, trimmed and
+case-folded.  ``batch.type_opt_outs`` reads the type's opt-outs once for the whole
+batch (``apps.mail.types.opted_out_user_ids``), and is ``None`` while the email has
+no type, which skips nobody for that reason; an opt-out of a type that no longer
+allows one does not apply.  So an address that bounced, or an opt-out made, after
+somebody was added shows as skipped at once, and two accounts sharing one address
+get one copy, the first in surname order.
+
+Every email has a type before it is sent (``BulkEmail.email_type``, see
+:doc:`api-email-types`): ``PATCH`` takes one the caller may send
+(``apps.mail.types.sendable_types``), and ``drafts.queue`` refuses an email with none,
+or with one whose senders no longer include the caller's roles.
 
 
 The sender
@@ -163,7 +173,25 @@ with the reason ``batch_rows`` gives it then, which ``skipped_count`` counts.  A
 email whose row another transaction holds, such as one whose batch is being
 changed that instant, is left for the next run.
 
-The pending rows are then sent in surname order, one copy each.  After a copy is
+Before it starts an email the claim checks once more that the sender may send its
+type, with the sender's roles as they are now against the type's ``sender_roles``
+(``apps.mail.types.sendable_types``): **Send** checked them, but a role can be taken
+away, or the type's senders changed, while a send is scheduled.  An email whose
+sender's account has been deleted, or who may no longer send the type, is not sent.
+One that never started goes back to a draft, its batch and content intact and its
+schedule cleared; one **Send the rest** queued again goes back to ``stopped``, its
+queued copies with it.  Either way ``not_sent_reason`` keeps the sentence the Drafts
+screen and the compose screen show, such as *This email was not sent: you can no
+longer send Mission email. Choose another type and send again.*, a WARNING
+``bulk_email.refused`` audit line names the email under the ``command`` actor with
+the reason ``type_not_sendable``, ``sender_deleted``, or ``no_type``, and the claim
+moves on to the next due email.  Queuing the email again clears ``not_sent_reason``.
+
+The pending rows are then sent in surname order, one copy each.  Right before each
+copy goes, after its pause, the run reads the person's opt-out of the email's type
+afresh (``apps.mail.types.is_opted_out``): one made during a long paced send, or
+between **Stop** and **Send the rest**, is honored, the row becomes ``skipped`` with
+*Opted out of <type>*, and ``skipped_count`` grows.  After a copy is
 handed to the mail server its row is saved first, ``sent`` with its
 ``Message-ID``, and only then the email's counts, all outside any transaction, so a
 run that dies after the hand-over leaves the copy marked sent and the next run does
@@ -240,8 +268,16 @@ it went.  The sender hands
 the finished bodies to ``send_templated`` through the pass-through pair
 ``emails/bulk_email_copy.{txt,html}``, which print the ``text`` and ``html`` they
 are given unchanged, and passes the copy's ``headers`` through
-``send_templated``'s ``headers`` argument.  As built here, a copy carries no extra
-header; the extension points below change that.
+``send_templated``'s ``headers`` argument.
+
+The footer and the headers follow the email's type (:ref:`email-unsubscribe`).  For
+a type recipients may turn off, both bodies end with ``unsubscribe.footer_for``'s line
+and the recipient's own unsubscribe link, and the copy carries
+``unsubscribe.headers_for``'s ``List-Unsubscribe`` and ``List-Unsubscribe-Post``
+headers.  For a type they may not, the footer says why the recipient receives it and
+there is no header.  A row whose account is gone gets neither, nor does an email with
+no type, which cannot be sent; both fall back to the general line *You receive this
+email as a member or a friend of <organization>.*
 
 
 Extending
@@ -249,19 +285,19 @@ Extending
 
 The pieces a feature added to bulk email changes, and where:
 
-* A new **skip reason**, such as an opt-out from a type of email or a limit to one
-  DART, goes in ``batch.skip_reason``, which both the batch screen and the freeze
+* A new **skip reason**, such as a limit to one DART, goes in
+  ``batch.skip_reason``, as the type's opt-out does, which both the batch screen and the freeze
   read, so the reason shows in the batch the moment it applies and is stored
   when the send starts.
-* A new **field of the email**, such as its type or a ``Reply-To``, is a model
+* A new **field of the email**, such as a ``Reply-To``, is a model
   field, a field of ``BulkEmailUpdateSerializer`` (``PATCH`` saves whatever that
   serializer validates through ``drafts.update``), and a check in ``drafts.queue``
-  when **Send** must refuse without it.
-* Anything that changes **what a copy says**, such as an unsubscribe link and its
-  headers, or a Reply-To, goes in ``render_message`` and in the arguments the
-  sender passes to ``send_templated``.  A new **recipient field** is one more
-  ``Field`` in ``fields.FIELDS``, which the **Insert field** menu, the checks, and
-  the copies all read.
+  when **Send** must refuse without it, as ``email_type`` has.
+* Anything that changes **what a copy says**, such as a Reply-To, goes in
+  ``render_message`` (``render_copy`` passes it the type's footer and adds the
+  type's headers) and in the arguments the sender passes to ``send_templated``.  A
+  new **recipient field** is one more ``Field`` in ``fields.FIELDS``, which the
+  **Insert field** menu, the checks, and the copies all read.
 * A new **screen** joins the Bulk Email group of the portal's menu
   (``frontend/src/portal/nav.ts``), its route goes in
   ``frontend/src/portal/routes/bulk-email.tsx``, and its guide page under

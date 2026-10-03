@@ -46,7 +46,7 @@ def summary_queryset(emails: QuerySet[BulkEmail]) -> QuerySet[BulkEmail]:
 
 def _detail(bulk: BulkEmail, *, code: int = status.HTTP_200_OK) -> Response:
     """``bulk`` read afresh, as ``GET /bulk-email/{id}`` answers it."""
-    fresh = BulkEmail.objects.select_related("sender", "stopped_by").get(pk=bulk.pk)
+    fresh = BulkEmail.objects.select_related("sender", "stopped_by", "email_type").get(pk=bulk.pk)
     return Response(BulkEmailDetailSerializer(fresh).data, status=code)
 
 
@@ -100,7 +100,9 @@ class BulkEmailDetailView(APIView):
         400 keyed by the field.  409 once it has started sending.
         """
         bulk = email_for(request, pk)
-        payload = BulkEmailUpdateSerializer(data=request.data, partial=True)
+        payload = BulkEmailUpdateSerializer(
+            data=request.data, partial=True, context={"user": acting_user(request)}
+        )
         payload.is_valid(raise_exception=True)
         changes: dict[str, Any] = dict(payload.validated_data)
         try:

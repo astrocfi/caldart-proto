@@ -1958,6 +1958,9 @@ Action                        Fields beyond actor and target
                               ``skipped``; one line per **Run now** on the
                               Scheduled page, which works for at most 45
                               seconds and leaves the rest to the timer
+``bulk_email.refused``        -- (WARNING; the target is the ``BulkEmail``, the
+                              actor ``command``): the sender returned a due
+                              email unsent, with the ``reason`` below
 ``email_type.create``         -- (the target is the ``EmailType``)
 ``email_type.update``         --
 ``email_type.delete``         --
@@ -1984,8 +1987,10 @@ action, with a ``reason`` slug saying which rule refused it: ``self_deactivation
 ``donor_kind``, ``reactivation_blocked`` (a reactivation of an account a user
 administrator has blocked), ``tombstone`` (an edit, a delete, a term grant, or an email preference change on
 the **Deleted member** account that keeps a deleted account's payments),
-``no_such_backup``, or ``import_running`` (a **Run now** pressed while an import
-is under way).
+``no_such_backup``, ``import_running`` (a **Run now** pressed while an import
+is under way), or, for ``bulk_email.refused``, ``sender_deleted``,
+``type_not_sendable``, or ``no_type`` (the sender may no longer send the email's
+type).
 
 A record carries ids, counts, flags, and slugs and nothing else.  Email
 addresses, names, passwords, tokens, and database contents are not values the

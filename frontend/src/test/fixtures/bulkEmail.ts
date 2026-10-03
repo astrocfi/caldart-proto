@@ -11,9 +11,10 @@ import type {
   BulkEmailDetail,
   BulkEmailField,
   BulkEmailPreview,
+  BulkEmailPatch,
   BulkEmailSummary,
 } from '@/portal/api/types';
-import { API } from '../handlers';
+import { API, SENDABLE_TYPES } from '../handlers';
 import { server } from '../server';
 
 /** A draft with a subject, a message, and one person who will receive it. */
@@ -22,6 +23,9 @@ export function makeBulkEmail(overrides: Partial<BulkEmailDetail> = {}): BulkEma
     id: 7,
     subject: 'Hangar day',
     body: '<p>Bring gloves.</p>',
+    email_type: 1,
+    email_type_name: 'Operational',
+    not_sent_reason: '',
     status: 'draft',
     sender: 'Grace Holloway',
     sender_id: 3,
@@ -77,6 +81,8 @@ export function makeSummary(overrides: Partial<BulkEmailSummary> = {}): BulkEmai
   return {
     id: 7,
     subject: 'Hangar day',
+    email_type_name: 'Operational',
+    not_sent_reason: '',
     status: 'draft',
     sender: 'Grace Holloway',
     created_at: '2026-04-06T16:00:00Z',
@@ -181,9 +187,14 @@ export function answerBulkEmail(state: BulkEmailState): BulkEmailCalls {
     http.get(`${API}/darts`, () => HttpResponse.json([])),
     http.get(base, () => HttpResponse.json(state.email)),
     http.patch(base, async ({ request }) => {
-      const patch = (await request.json()) as Record<string, string>;
+      const patch = (await request.json()) as BulkEmailPatch;
       calls.patches.push(patch);
-      state.email = { ...state.email, ...patch };
+      const chosen = SENDABLE_TYPES.find((type) => type.id === patch.email_type);
+      state.email = {
+        ...state.email,
+        ...patch,
+        ...(chosen === undefined ? {} : { email_type_name: chosen.name }),
+      };
       return HttpResponse.json(state.email);
     }),
     http.get(`${base}/batch`, () => HttpResponse.json(state.batch)),

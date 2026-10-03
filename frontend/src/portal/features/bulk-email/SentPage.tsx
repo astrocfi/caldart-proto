@@ -69,6 +69,13 @@ export const SENT_COLUMNS: Column<BulkEmailSummary>[] = [
     render: (row) => <DateText value={row.started_at} />,
     sortValue: (row) => row.started_at,
   },
+  {
+    key: 'email_type_name',
+    header: 'Type',
+    width: '7rem',
+    render: (row) => row.email_type_name || '—',
+    sortValue: (row) => row.email_type_name,
+  },
   { key: 'sender', header: 'From', width: '6.25rem', render: (row) => row.sender || '—' },
   {
     key: 'status',

@@ -5,7 +5,9 @@
  *
  * The subject opens the email's compose screen. A queued email has **Cancel
  * schedule**, which turns it back into a draft, and a draft has a trashcan,
- * which asks before it deletes.
+ * which asks before it deletes. An email the background sender returned unsent,
+ * because its sender may no longer send its type, is named above the table with
+ * the reason.
  */
 import type { JSX } from 'react';
 import { Link } from 'react-router-dom';
@@ -46,6 +48,7 @@ export function DraftsPage(): JSX.Element {
     remove.mutateAsync(id).then(() => toast.show('The draft was deleted.', 'success'));
 
   const failure = cancel.error ?? remove.error;
+  const notSent = rows.filter((row) => row.not_sent_reason !== '');
 
   return (
     <Page
@@ -59,6 +62,16 @@ export function DraftsPage(): JSX.Element {
           <p className="field__error" role="alert">
             {actionError(failure)}
           </p>
+        )}
+        {notSent.length === 0 ? null : (
+          <ul className="bulk-email__not-sent stack-tight" aria-label="Emails that were not sent">
+            {notSent.map((row) => (
+              <li key={row.id} className="bulk-email__notice">
+                <Link to={`/bulk-email/compose/${row.id}`}>{row.subject || NO_SUBJECT}</Link>:{' '}
+                {row.not_sent_reason}
+              </li>
+            ))}
+          </ul>
         )}
         {drafts.isError ? (
           <p className="field__error" role="alert">
@@ -95,6 +108,13 @@ function draftColumns(
         <Link to={`/bulk-email/compose/${row.id}`}>{row.subject || NO_SUBJECT}</Link>
       ),
       sortValue: (row) => row.subject,
+    },
+    {
+      key: 'email_type_name',
+      header: 'Type',
+      width: '7rem',
+      render: (row) => row.email_type_name || '—',
+      sortValue: (row) => row.email_type_name,
     },
     {
       key: 'status',
