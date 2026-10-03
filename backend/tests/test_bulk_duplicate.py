@@ -13,14 +13,18 @@ from typing import TYPE_CHECKING
 import pytest
 from rest_framework.test import APIClient
 
-from apps.accounts.roles import MANAGEMENT, MEMBER, SYSTEM_ADMIN
+from apps.accounts.roles import DART_LEADER, MANAGEMENT, MEMBER, SYSTEM_ADMIN
 from apps.bulk_email import batch, job
 from apps.bulk_email.models import BulkEmail, BulkEmailStatus, RecipientStatus
+from apps.bulk_email.senders import NO_DART_MESSAGE, SKIP_NOT_IN_DART
 from apps.bulk_email.templates import duplicate
+from apps.members.models import MemberProfile
 from tests.conftest import role_matrix
 from tests.factories import (
     BulkEmailFactory,
+    DartFactory,
     EmailTypeFactory,
+    MemberProfileFactory,
     UserFactory,
     add_to_batch,
     make_person,
@@ -28,6 +32,7 @@ from tests.factories import (
 
 if TYPE_CHECKING:
     from apps.accounts.models import User
+    from apps.darts.models import Dart
 
 pytestmark = pytest.mark.django_db
 
@@ -198,15 +203,106 @@ def test_duplicating_an_unknown_email_is_not_found(management_client: APIClient)
     assert management_client.post("/api/v1/bulk-email/9999/duplicate", {}).status_code == 404
 
 
-@pytest.mark.parametrize(("role", "allowed"), role_matrix(MANAGEMENT, SYSTEM_ADMIN))
+def test_a_duplicate_copies_the_reply_to(management: User, other_manager: User) -> None:
+    """The Reply-To the original carried is the copy's."""
+    original = BulkEmailFactory(sender=other_manager, reply_to="hangar@example.test")
+    assert duplicate(original, actor=management, copy_recipients=False).reply_to == (
+        "hangar@example.test"
+    )
+
+
+@pytest.mark.parametrize(
+    ("role", "code"),
+    [
+        (role, 201 if allowed else 404 if role == DART_LEADER else 403)
+        for role, allowed in role_matrix(MANAGEMENT, SYSTEM_ADMIN)
+    ],
+)
 def test_only_a_bulk_email_sender_may_duplicate(
     api_client: APIClient,
     all_role_users: dict[str, User],
     sent: BulkEmail,
     role: str,
-    allowed: bool,
+    code: int,
 ) -> None:
-    """**Duplicate** is CalDART management's and the system administrator's."""
+    """**Duplicate** is a bulk email sender's; a leader cannot reach another's email."""
     api_client.force_login(all_role_users[role])
     response = api_client.post(duplicate_url(sent), {"copy_recipients": True}, format="json")
-    assert response.status_code == (201 if allowed else 403)
+    assert response.status_code == code
+
+
+# --------------------------------------------------------------------------
+# A DART leader
+# --------------------------------------------------------------------------
+@pytest.fixture
+def marin() -> Dart:
+    """The Marin DART."""
+    return DartFactory(name="Marin DART")
+
+
+@pytest.fixture
+def leader(marin: Dart) -> User:
+    """A DART leader whose profile names the Marin DART."""
+    account = UserFactory(email="lane@example.test", roles=[MEMBER, DART_LEADER])
+    MemberProfileFactory(user=account, dart=marin)
+    return account
+
+
+@pytest.fixture
+def leader_send(leader: User, marin: Dart) -> BulkEmail:
+    """The Marin leader's email to Ann, in Marin, and Nat, since moved to another DART."""
+    bulk = BulkEmailFactory(sender=leader, dart=marin)
+    nat = make_person("nat@example.test", "Nat", "Napa", dart=marin)
+    add_to_batch(bulk, make_person("ann@example.test", "Ann", "Able", dart=marin), nat)
+    nat.profile.dart = DartFactory(name="Napa DART")
+    nat.profile.save()
+    return bulk
+
+
+def test_a_leaders_duplicate_goes_to_their_dart(
+    api_client: APIClient, leader: User, leader_send: BulkEmail, marin: Dart
+) -> None:
+    """The copy records the leader's DART."""
+    api_client.force_login(leader)
+    copy_id = api_client.post(
+        duplicate_url(leader_send), {"copy_recipients": True}, format="json"
+    ).json()["id"]
+    assert BulkEmail.objects.get(pk=copy_id).dart == marin
+
+
+def test_a_leaders_duplicate_skips_people_outside_their_dart(
+    api_client: APIClient, leader: User, leader_send: BulkEmail
+) -> None:
+    """Somebody no longer in the leader's DART is copied, and skipped."""
+    api_client.force_login(leader)
+    copy_id = api_client.post(
+        duplicate_url(leader_send), {"copy_recipients": True}, format="json"
+    ).json()["id"]
+    rows = api_client.get(f"/api/v1/bulk-email/{copy_id}/batch").json()["rows"]
+    assert {row["email"]: row["reason"] for row in rows} == {
+        "ann@example.test": "",
+        "nat@example.test": SKIP_NOT_IN_DART,
+    }
+
+
+def test_a_leader_cannot_duplicate_anothers_email(
+    api_client: APIClient, leader: User, sent: BulkEmail
+) -> None:
+    """Another sender's email is not there for a leader: 404."""
+    api_client.force_login(leader)
+    assert api_client.post(duplicate_url(sent), {}, format="json").status_code == 404
+
+
+def test_a_leader_whose_profile_names_no_dart_cannot_duplicate(
+    api_client: APIClient, leader: User, leader_send: BulkEmail
+) -> None:
+    """There is nobody to send to: 403 with the sender's reason, and no draft is made."""
+    MemberProfile.objects.filter(user=leader).update(dart=None)
+    api_client.force_login(leader)
+    before = BulkEmail.objects.count()
+    response = api_client.post(duplicate_url(leader_send), {}, format="json")
+    assert (response.status_code, response.json(), BulkEmail.objects.count()) == (
+        403,
+        {"detail": NO_DART_MESSAGE},
+        before,
+    )

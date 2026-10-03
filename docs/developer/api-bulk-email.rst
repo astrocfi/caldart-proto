@@ -238,12 +238,18 @@ is.
    {"copy_recipients": true}
 
 The draft is the caller's own, made afresh even when the caller has an empty draft
-already, with the email's ``subject`` and ``body`` (its images are links, so they
-come too) and its ``email_type`` when the caller may send that type, else none.
+already, with the email's ``subject``, ``body`` (its images are links, so they come
+too), and ``reply_to``, and its ``email_type`` when the caller may send that type, else
+none.  It records the DART the caller may send to, as ``POST /bulk-email/drafts``
+does: a DART leader duplicates only their own emails (any other id is **404**), their
+copy goes to their own DART alone, and one whose profile names no DART is **403**
+with *Your profile names no DART, so there is nobody to send to. Set your DART on My
+profile.*
 ``copy_recipients`` may be left out, and is false then: the batch starts empty.
 True copies everybody in the email's batch whose account still exists as one add
 labeled ``Copied from "<subject>"``, each a fresh ``batched`` row with the account's
-details as they are now, so who is skipped is worked out afresh.  **201** with the
+details as they are now, so who is skipped is worked out afresh; in a DART leader's
+copy everybody outside their DART is skipped as ``Not in your DART``.  **201** with the
 draft, as ``GET /bulk-email/{id}`` answers it.
 
 ``DELETE /bulk-email/{id}``
@@ -1145,9 +1151,10 @@ Deletes the template: **204**.  Drafts already started from it keep their words.
 
    {"template": 3}
 
-The email's ``subject`` and ``body`` become the template's, and its ``email_type``
-too when the template has one the caller may send; otherwise the email keeps its
-type.  The batch is not touched.  **200** with the email.  An unknown template is
+The email's ``subject`` and ``body`` become the template's, its ``reply_to`` the
+template's or, when the template leaves it blank, the sender's default
+(:ref:`bulk-email-reply-to`), and its ``email_type`` the template's when the template
+has one the caller may send; otherwise the email keeps its type.  The batch is not touched.  **200** with the email.  An unknown template is
 **400** under ``template``.  The change goes through the edit rule, as ``PATCH``
 does: an email that has started sending is **409**; a template that changes a queued
 email's type takes it back to a draft; and one that would leave a queued email of the

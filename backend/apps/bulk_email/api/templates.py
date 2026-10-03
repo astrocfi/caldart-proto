@@ -193,7 +193,11 @@ class DuplicateView(APIView):
 
     @extend_schema(request=DuplicateSerializer, responses={201: BulkEmailDetailSerializer})
     def post(self, request: Request, pk: int) -> Response:
-        """201 with the fresh draft, the caller's own; the original is not changed."""
+        """201 with the fresh draft, the caller's own; the original is not changed.
+
+        A DART leader reaches only their own emails (404 for any other), and one whose
+        profile names no DART is a 403 saying so.
+        """
         bulk = email_for(request, pk)
         payload = DuplicateSerializer(data=request.data)
         payload.is_valid(raise_exception=True)

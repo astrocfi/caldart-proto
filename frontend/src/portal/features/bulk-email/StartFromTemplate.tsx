@@ -48,8 +48,9 @@ export interface TemplateControlsProps {
   /** The words on the screen now, which may be ahead of the saved ones. */
   subject: string;
   body: string;
-  /** The draft's type and Reply-To, which **Save as a template** keeps too. */
+  /** The draft's type and Reply-To as saved, which **Save as a template** keeps too. */
   emailType: number | null;
+  replyTo: string;
   /** Save the words on the screen first; resolves true once they are saved. */
   onBeforeReplace: () => Promise<boolean>;
   /** Called once the template's words are saved in the draft, to show them. */
@@ -178,6 +179,7 @@ function SaveAsTemplate({
   subject,
   body,
   emailType,
+  replyTo,
   onBeforeReplace,
   onSaved,
 }: TemplateControlsProps & { onSaved: (name: string) => void }): JSX.Element {
@@ -189,7 +191,7 @@ function SaveAsTemplate({
     void onBeforeReplace().then((isSaved) => {
       if (!isSaved) return;
       create.mutate(
-        { name, subject, body, email_type: emailType },
+        { name, subject, body, email_type: emailType, reply_to: replyTo },
         {
           onSuccess: (template) => onSaved(template.name),
         },

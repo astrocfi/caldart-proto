@@ -27,9 +27,6 @@ from django.utils import timezone
 from apps.accounts.models import User
 from apps.accounts.permissions import user_has_any_role
 from apps.accounts.roles import MANAGEMENT
-from apps.bulk_email.checks import NO_BODY_MESSAGE as NO_BODY_MESSAGE
-from apps.bulk_email.checks import NO_SUBJECT_MESSAGE as NO_SUBJECT_MESSAGE
-from apps.bulk_email.checks import refuse_on_errors
 from apps.bulk_email.batch import (
     TYPE_CHANGED,
     back_to_draft,
@@ -37,6 +34,9 @@ from apps.bulk_email.batch import (
     batch_rows,
     locked_for_edit,
 )
+from apps.bulk_email.checks import NO_BODY_MESSAGE as NO_BODY_MESSAGE
+from apps.bulk_email.checks import NO_SUBJECT_MESSAGE as NO_SUBJECT_MESSAGE
+from apps.bulk_email.checks import refuse_on_errors
 from apps.bulk_email.job import apply_stop
 from apps.bulk_email.models import BulkEmail, BulkEmailStatus, RecipientStatus
 from apps.bulk_email.render import check_message

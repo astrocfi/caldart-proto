@@ -48,8 +48,10 @@ you rename it. The form is the compose screen's **What it says** card with a nam
 **Save template** keeps it, and a line such as *Monthly newsletter saved.* says so; **Cancel**
 closes the form without saving. A refused field says why under it, as on the compose screen.
 
-A quicker way to make a template is **Save as a template** on the compose screen, which keeps
-the message you are writing under the name you give it.
+A quicker way to make a template is **Save as a template** at the top of **What it says** on
+the compose screen. It asks for a **Template name** and keeps the subject, message, type, and
+Reply-To address you have there; a line such as *Saved as the template Monthly newsletter.
+Find it under Templates.* says so.
 
 
 Using a template
@@ -57,7 +59,9 @@ Using a template
 
 On :doc:`compose`, **Start from a template** at the top of **What it says** lists the
 templates. Choose one and press **Use this template**: the email takes the template's subject,
-message, and type. The people in the batch stay. When you have already written something, it
+message, type, and Reply-To address (the usual address when the template leaves it blank).
+The people in the batch stay. On a scheduled email, a different type takes it back to your
+drafts, as :doc:`drafts` explains. When you have already written something, it
 asks first, saying the template replaces the subject and the message you have written, and
 goes ahead only once you press **Replace my words**.
 

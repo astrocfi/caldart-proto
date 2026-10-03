@@ -118,8 +118,11 @@ describe('Start from a template', () => {
     ]);
   });
 
-  it('saves the draft words as a template under the name given', async () => {
-    const state: BulkEmailState = { email: makeBulkEmail(), batch: makeBatch([]) };
+  it('saves the draft words and Reply-To as a template under the name given', async () => {
+    const state: BulkEmailState = {
+      email: makeBulkEmail({ reply_to: 'hangar@example.org' }),
+      batch: makeBatch([]),
+    };
     const calls = answerCompose(state);
     const user = userEvent.setup();
     renderCompose(state, 'management');
@@ -129,7 +132,13 @@ describe('Start from a template', () => {
     await user.click(within(form).getByRole('button', { name: 'Save template' }));
     expect(await screen.findByText(/Saved as the template Hangar\./)).toBeVisible();
     expect(calls.saved).toEqual([
-      { name: 'Hangar', subject: 'Hangar day', body: '<p>Bring gloves.</p>', email_type: 1 },
+      {
+        name: 'Hangar',
+        subject: 'Hangar day',
+        body: '<p>Bring gloves.</p>',
+        email_type: 1,
+        reply_to: 'hangar@example.org',
+      },
     ]);
   });
 

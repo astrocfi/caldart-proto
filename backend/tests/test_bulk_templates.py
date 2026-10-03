@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import pytest
+from pytest_django import Settings
 from rest_framework.test import APIClient
 
 from apps.accounts.roles import MANAGEMENT, SYSTEM_ADMIN
@@ -282,6 +283,27 @@ def test_starting_from_a_template_fills_the_draft(
         "<p>Dear {first_name|friend},</p><p>The hangar is open.</p>",
         "Operational",
     )
+
+
+def test_starting_from_a_template_sets_its_reply_to(
+    management_client: APIClient, newsletter: EmailTemplate, draft: BulkEmail
+) -> None:
+    """The draft takes the template's Reply-To."""
+    management_client.post(apply_url(draft), {"template": newsletter.pk}, format="json")
+    draft.refresh_from_db()
+    assert draft.reply_to == "news@example.test"
+
+
+def test_a_template_without_a_reply_to_gives_the_default(
+    management_client: APIClient, management: User, settings: Settings
+) -> None:
+    """A blank Reply-To in the template is the sender's default, not the draft's own."""
+    settings.BULK_EMAIL_REPLY_TO = "office@example.test"
+    bulk = BulkEmailFactory(sender=management, reply_to="someone@example.test")
+    template = EmailTemplateFactory(reply_to="")
+    management_client.post(apply_url(bulk), {"template": template.pk}, format="json")
+    bulk.refresh_from_db()
+    assert bulk.reply_to == "office@example.test"
 
 
 def test_starting_from_a_template_leaves_the_batch(

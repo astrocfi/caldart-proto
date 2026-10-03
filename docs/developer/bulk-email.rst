@@ -547,7 +547,8 @@ a draft's is, by the same ``checked_subject`` and ``checked_body`` checks the
 draft's serializer uses), and optionally a type and a Reply-To address.
 ``templates.apply_template`` copies it into a draft through ``drafts.update``, so the
 edit rule and a queued email's checks apply; the type comes too only when the
-caller may send it.  **Save as a template** on the compose screen is a plain
+caller may send it, and a blank Reply-To becomes the sender's default.  Templates and
+groups are CalDART management's alone (``IsManagement``), never a DART leader's.  **Save as a template** on the compose screen is a plain
 ``POST /bulk-email/templates`` of the draft's words, once its autosave has caught up.
 
 **Recipient groups.**  ``RecipientGroup`` is ``fixed`` (``RecipientGroupMember``
@@ -566,9 +567,12 @@ as an unknown count, the group's people as a 409, and an add of that group as a
 400, so one such group never breaks the others.
 
 **Duplicate.**  ``templates.duplicate`` makes a fresh ``BulkEmail`` for the caller
-with the subject, message, and type, and with ``copy_recipients`` passes the
+with the subject, message, Reply-To, and type, recording the DART
+``senders.sender_context`` gives the caller, and with ``copy_recipients`` passes the
 original's accounts to ``batch.add_accounts`` as one add labeled
-``Copied from "<subject>"``.  The rows are fresh and ``batched``, so the skip
+``Copied from "<subject>"``.  ``add_accounts`` holds every add to the email's DART
+limit, as ``add_filters`` does: a DART leader's copy records their DART, and
+``batch_rows`` skips everybody outside it as ``Not in your DART``.  The rows are fresh and ``batched``, so the skip
 reasons are worked out as they are now; the original's rows and counts are not
 read for anything else.
 

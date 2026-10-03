@@ -33,9 +33,8 @@ line says what happened, such as *Added 12 people; 3 were already in the batch.*
 filters and press **Add to batch** again as often as you like: nobody is added twice. With no
 filters chosen, **Add to batch** adds every member and friend. Donors are never added.
 
-**Add a saved group**, beside **Add to batch**, lists the groups kept on :doc:`groups`, each
-with how many people it holds. Choosing one adds everybody in it now, with the same line and
-the same rule: nobody is added twice.
+**Add a saved group**, beside **Add to batch**, adds everybody in a group kept on
+:doc:`groups` the same way: nobody is added twice.
 
 Once somebody is in the batch, a line counts it, such as *38 people will receive this email;
 4 are skipped.* Under it, **Download list** saves the batch as a spreadsheet file (CSV) with
@@ -74,13 +73,9 @@ the batch** to find one person. The trashcan on a row takes that person out afte
 2. What it says
 ===============
 
-To start from a message kept on :doc:`templates`, press **Start from a template**, choose one,
-and press **Use this template**. The email takes the template's subject, message, and type;
-the batch stays. When you have already written something, it asks first and replaces your
-words only once you press **Replace my words**. Changing the email afterward leaves the
-template as it was. **Save as a template** asks for a **Template name** and keeps the subject,
-message, and type you have written as a template, for this email and the next; a line such
-as *Saved as the template Monthly newsletter.* says so.
+CalDART management can start from a message kept on :doc:`templates` with **Start from a
+template**, which asks before it replaces words already written, and keep this message as one
+with **Save as a template**; that page explains both.
 
 First choose the **Type of email**: one button for each kind you may send, such as
 **Operational** or **Mission**, with a sentence saying what it is for. Until you choose,

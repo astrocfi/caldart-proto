@@ -108,6 +108,7 @@ export function MessageCard({
           subject={subject}
           body={body}
           emailType={emailType}
+          replyTo={replyTo}
           onBeforeReplace={handleBeforeReplace}
           onReplaced={handleReplaced}
         />

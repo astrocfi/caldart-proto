@@ -253,9 +253,12 @@ def add_filters(bulk: BulkEmail, filters: Mapping[str, str], *, actor: User) -> 
     by name), and ``DomainError`` with ``OWNER_NO_DART_MESSAGE`` naming the sender when
     the email is limited to no DART at all; nothing is stored then.
     """
-    return add_accounts(
-        bulk, selected_accounts(filters), actor=actor, filters=given_filters(filters)
-    )
+    with transaction.atomic():
+        locked = locked_for_edit(bulk)
+        forced = _within_limit(locked, filters)
+        return add_accounts(
+            locked, selected_accounts(forced), actor=actor, filters=given_filters(forced)
+        )
 
 
 def add_accounts(
@@ -276,12 +279,18 @@ def add_accounts(
     none), ``group`` (the saved group it brought in, if any), and ``label`` (its name
     when it was not made with filters).  ``accounts`` is read inside the email's row
     lock.  A queued email goes back to a draft (:func:`back_to_draft`), naming
-    ``actor``.  Raises ``DomainError`` when the email has started sending; nothing is
-    stored then.
+    ``actor``.
+
+    A DART leader's email (``apps.bulk_email.senders.dart_limit``) records its DART,
+    as an add by filters does; anybody added from outside it is skipped as
+    ``Not in your DART`` whenever the batch is read (:func:`skip_reason`).  Raises
+    ``DomainError`` when the email has started sending, and with
+    ``OWNER_NO_DART_MESSAGE`` naming the sender when the email is limited to no DART at
+    all; nothing is stored then.
     """
     with transaction.atomic():
         locked = locked_for_edit(bulk)
-        filters = _within_limit(locked, filters)
+        _record_limit(locked)
         present = set(
             locked.recipients.filter(round=0, user__isnull=False).values_list("user_id", flat=True)
         )
@@ -313,19 +322,30 @@ def _within_limit(locked: BulkEmail, filters: Mapping[str, str]) -> dict[str, st
     email limited to no DART, and DRF's
     ``ValidationError`` keyed ``filters`` then ``dart`` for an add naming another DART.
     """
-    limit = dart_limit(locked)
-    if limit is None:
+    limit = _record_limit(locked)
+    if limit is None or limit.dart is None:
         return dict(filters)
-    if limit.dart is None:
-        raise DomainError(OWNER_NO_DART_MESSAGE.format(name=_sender_name(locked)))
     try:
-        forced = limited_filters(limit.dart, filters)
+        return limited_filters(limit.dart, filters)
     except ValueError as refused:
         raise ValidationError({"filters": {"dart": [str(refused)]}}) from refused
+
+
+def _record_limit(locked: BulkEmail) -> DartLimit | None:
+    """``locked``'s DART limit, recorded as its ``dart``; ``None`` for no limit.
+
+    Raises ``DomainError`` with ``OWNER_NO_DART_MESSAGE`` for an email limited to no
+    DART, to which nobody may be added.
+    """
+    limit = dart_limit(locked)
+    if limit is None:
+        return None
+    if limit.dart is None:
+        raise DomainError(OWNER_NO_DART_MESSAGE.format(name=_sender_name(locked)))
     if locked.dart_id != limit.dart.pk:
         locked.dart = limit_dart(limit)
         locked.save(update_fields=["dart"])
-    return forced
+    return limit
 
 
 def _sender_name(bulk: BulkEmail) -> str:
