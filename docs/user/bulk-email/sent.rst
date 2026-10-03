@@ -106,7 +106,8 @@ When the mail server refused some copies, **Retry failed** sends a fresh copy to
 people only, once you press **Retry now**. Nobody already sent a copy gets another, and
 nobody whose copy bounced (their address is bad) or who was skipped is sent one. Each person
 is checked again first, as for any send: one whose account has since been deleted or
-deactivated, whose address has bounced, or who has turned this kind of email off is marked
+deactivated, whose address has bounced, who has turned this kind of email off, or, for a
+DART leader's email, who is no longer in the leader's DART is marked
 *Skipped* with the reason, and an address a user administrator has corrected since is the
 one the fresh copy goes to. The copies start going within a minute, and the page shows their
 progress as for any send. The message reads *The failed copies will be sent again within a

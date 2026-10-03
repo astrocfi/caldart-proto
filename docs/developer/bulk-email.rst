@@ -491,9 +491,10 @@ carries to its bulk email, which ``ready`` registers with ``apps.mail.links``.
 
 **Retry failed.**  ``delivery.retry_failed`` takes a ``sent`` email whose copies
 include ``failed`` ones.  Each failed row takes its account's name and address as they
-are now and is asked ``batch.skip_reason`` again, as the freeze asks it, so a deleted
-or deactivated account, a bounced address, or an opt-out makes it ``skipped`` and a
-corrected address is the one used.  The rest go back to ``pending``; all leave
+are now and is asked ``batch.skip_reason`` again, as the freeze asks it, with the
+DART limit of a DART leader's email (``senders.dart_limit``), so a deleted or
+deactivated account, a person no longer in the leader's DART, a bounced address, or an
+opt-out makes it ``skipped`` and a corrected address is the one used.  The rest go back to ``pending``; all leave
 ``failed_count``.  A ``BulkEmailRetry`` is recorded and the email queued to start now,
 the path **Send the rest** takes.  When the retried copies have all been tried,
 ``job._finish`` keeps the email's first ``sent_at`` and writes
@@ -512,7 +513,7 @@ archive rebuilds the reader's own row the same way, with their live link.  Neith
 **Messages.**  ``archive.messages_for`` lists the emails with a row naming the reader
 that reads ``sent`` or ``bounced``, not hidden from the archive, newest copy first;
 ``archive.message_for`` opens one, and anything else is a 404.  Every copy links to
-its page there (``render.view_url``, on ``SITE_URL``), and CalDART management can
+its page there (``render.browser_url``, on ``SITE_URL``), and CalDART management can
 hide an email from every recipient's list (``delivery.set_hidden``) without changing
 its history.
 

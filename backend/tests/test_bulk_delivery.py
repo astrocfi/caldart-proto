@@ -23,7 +23,7 @@ from freezegun import freeze_time
 from rest_framework.test import APIClient
 
 from apps.accounts.models import User
-from apps.accounts.roles import MANAGEMENT, SYSTEM_ADMIN
+from apps.accounts.roles import DART_LEADER, MANAGEMENT, MEMBER, SYSTEM_ADMIN
 from apps.bulk_email import delivery, job
 from apps.bulk_email.models import (
     BulkEmail,
@@ -33,11 +33,22 @@ from apps.bulk_email.models import (
     RecipientStatus,
 )
 from apps.bulk_email.render import PREVIEW_STAND_IN, inert_unsubscribe_url
+from apps.bulk_email.senders import SKIP_NOT_IN_DART
+from apps.darts.models import Dart
 from apps.mail.bounces import check_bounces
 from apps.mail.models import EmailLog, EmailStatus
+from apps.members.models import MemberProfile
 from caldart.exceptions import DomainError
 from tests.conftest import BounceReport, FakeMailbox, audit_messages, read_csv, role_matrix
-from tests.factories import BulkEmailFactory, EmailLogFactory, add_to_batch, make_person
+from tests.factories import (
+    BulkEmailFactory,
+    DartFactory,
+    EmailLogFactory,
+    MemberProfileFactory,
+    UserFactory,
+    add_to_batch,
+    make_person,
+)
 
 pytestmark = pytest.mark.django_db
 
@@ -609,6 +620,16 @@ def test_the_email_log_links_no_other_message(system_admin_client: APIClient) ->
 # --------------------------------------------------------------------------
 # Who may
 # --------------------------------------------------------------------------
+def leader_answer(role: str, allowed: bool, code: int) -> int:
+    """What ``role`` gets for management's email: ``code``, 404 for a leader, else 403.
+
+    A DART leader reaches the bulk email endpoints, but only for their own emails.
+    """
+    if allowed:
+        return code
+    return 404 if role == DART_LEADER else 403
+
+
 @pytest.mark.parametrize(("role", "allowed"), role_matrix(MANAGEMENT, SYSTEM_ADMIN))
 def test_only_management_retries(
     api_client: APIClient,
@@ -617,10 +638,10 @@ def test_only_management_retries(
     role: str,
     allowed: bool,
 ) -> None:
-    """**Retry failed** is CalDART management's."""
+    """**Retry failed** on management's email is management's; a leader gets a 404."""
     api_client.force_login(all_role_users[role])
     response = api_client.post(f"/api/v1/bulk-email/{mixed.pk}/retry")
-    assert response.status_code == (200 if allowed else 403)
+    assert response.status_code == leader_answer(role, allowed, 200)
 
 
 @pytest.mark.parametrize(("role", "allowed"), role_matrix(MANAGEMENT, SYSTEM_ADMIN))
@@ -631,10 +652,10 @@ def test_only_management_reads_a_copy(
     role: str,
     allowed: bool,
 ) -> None:
-    """A recipient's copy is CalDART management's to read."""
+    """A copy of management's email is management's to read; a leader gets a 404."""
     api_client.force_login(all_role_users[role])
     response = api_client.get(copy_url(mixed, row_of(mixed, "ann@example.test")))
-    assert response.status_code == (200 if allowed else 403)
+    assert response.status_code == leader_answer(role, allowed, 200)
 
 
 @pytest.mark.parametrize("path", ["/{id}/retry", "/{id}/recipients/{rid}/copy"])
@@ -645,3 +666,89 @@ def test_an_anonymous_caller_reaches_no_delivery_endpoint(
     url = "/api/v1/bulk-email" + path.format(id=mixed.pk, rid=row_of(mixed, "ann@example.test").pk)
     response = api_client.post(url) if path.endswith("retry") else api_client.get(url)
     assert response.status_code == 401
+
+
+# --------------------------------------------------------------------------
+# A DART leader's own email
+# --------------------------------------------------------------------------
+@pytest.fixture
+def marin(db: None) -> Dart:
+    """The Marin DART."""
+    return DartFactory(name="Marin DART")
+
+
+@pytest.fixture
+def leader(marin: Dart) -> User:
+    """A DART leader whose profile names the Marin DART."""
+    account = UserFactory(
+        email="lane@example.test", first_name="Lane", last_name="Lead", roles=[MEMBER, DART_LEADER]
+    )
+    MemberProfileFactory(user=account, dart=marin)
+    return account
+
+
+@pytest.fixture
+def leader_sent(leader: User, marin: Dart, refuse: Refuse) -> BulkEmail:
+    """The Marin leader's sent email: Ann's copy went and Bea's was refused."""
+    bulk = BulkEmailFactory(sender=leader, dart=marin, status=BulkEmailStatus.QUEUED, start_at=PAST)
+    add_to_batch(
+        bulk,
+        make_person("ann@example.test", "Ann", "Able", dart=marin),
+        make_person("bea@example.test", "Bea", "Bell", dart=marin),
+    )
+    refuse("bea@example.test")
+    sent = send_now(bulk)
+    refuse()
+    mail.outbox.clear()
+    return sent
+
+
+def test_a_leader_retries_their_own_email(
+    api_client: APIClient, leader: User, leader_sent: BulkEmail
+) -> None:
+    """The Marin leader's Retry failed queues Bea's copy again."""
+    api_client.force_login(leader)
+    response = api_client.post(f"/api/v1/bulk-email/{leader_sent.pk}/retry")
+    assert (response.status_code, response.json()["retried_count"]) == (200, 1)
+
+
+def test_a_leader_reads_a_copy_of_their_own_email(
+    api_client: APIClient, leader: User, leader_sent: BulkEmail
+) -> None:
+    """The leader opens Ann's copy of their own email."""
+    api_client.force_login(leader)
+    response = api_client.get(copy_url(leader_sent, row_of(leader_sent, "ann@example.test")))
+    assert response.status_code == 200
+
+
+def test_a_leader_cannot_hide_their_own_email(
+    api_client: APIClient, leader: User, leader_sent: BulkEmail
+) -> None:
+    """Hiding an email from Messages stays CalDART management's."""
+    api_client.force_login(leader)
+    response = api_client.post(
+        f"/api/v1/bulk-email/{leader_sent.pk}/hide", {"hidden": True}, format="json"
+    )
+    assert response.status_code == 403
+
+
+def test_a_retry_skips_a_person_who_left_the_leader_s_dart(
+    leader: User, leader_sent: BulkEmail
+) -> None:
+    """Bea moved to the Napa DART since: the Marin leader's retry skips her."""
+    MemberProfile.objects.filter(user__email="bea@example.test").update(
+        dart=DartFactory(name="Napa DART")
+    )
+    with pytest.raises(DomainError, match=re.escape(delivery.NOBODY_TO_RETRY_MESSAGE)):
+        delivery.retry_failed(leader_sent, actor=leader)
+    bea = row_of(leader_sent, "bea@example.test")
+    assert (bea.status, bea.reason) == (RecipientStatus.SKIPPED, SKIP_NOT_IN_DART)
+
+
+def test_a_leader_s_retry_reaches_a_person_still_in_the_dart(
+    leader: User, leader_sent: BulkEmail
+) -> None:
+    """Bea is still in the Marin DART: her fresh copy goes."""
+    delivery.retry_failed(leader_sent, actor=leader)
+    send_now(leader_sent)
+    assert [message.to for message in mail.outbox] == [["bea@example.test"]]

@@ -606,11 +606,34 @@
       "checks"
     ]
   },
+  "BulkEmailCopy": {
+    "properties": {
+      "email": "string",
+      "html": "string",
+      "id": "integer",
+      "name": "string",
+      "status": "ref:BulkEmailRecipientStatusEnum",
+      "subject": "string",
+      "text": "string",
+      "tried_at": "string(date-time)"
+    },
+    "required": [
+      "email",
+      "html",
+      "id",
+      "name",
+      "status",
+      "subject",
+      "text",
+      "tried_at"
+    ]
+  },
   "BulkEmailDetail": {
     "properties": {
       "batch_count": "integer",
       "batch_skipped_count": "integer",
       "body": "string",
+      "bounced_count": "integer",
       "can_edit": "boolean",
       "confirm_above": "integer",
       "confirm_count": "integer|null",
@@ -621,12 +644,15 @@
       "email_type_name": "string",
       "estimated_finish_at": "string(date-time)|null",
       "failed_count": "integer",
+      "hidden_from_archive": "boolean",
       "id": "integer",
       "message_html": "string",
       "not_sent_reason": "string",
       "receiving_count": "integer",
       "remaining": "integer",
       "reply_to": "string(email)",
+      "retried_count": "integer",
+      "retries": "array<ref:BulkEmailRetry>",
       "scheduled": "boolean",
       "sender": "string",
       "sender_id": "integer|null",
@@ -648,6 +674,7 @@
       "batch_count",
       "batch_skipped_count",
       "body",
+      "bounced_count",
       "can_edit",
       "confirm_above",
       "confirm_count",
@@ -658,12 +685,15 @@
       "email_type_name",
       "estimated_finish_at",
       "failed_count",
+      "hidden_from_archive",
       "id",
       "message_html",
       "not_sent_reason",
       "receiving_count",
       "remaining",
       "reply_to",
+      "retried_count",
+      "retries",
       "scheduled",
       "sender",
       "sender_id",
@@ -712,6 +742,14 @@
       "warning"
     ]
   },
+  "BulkEmailHideRequest": {
+    "properties": {
+      "hidden": "boolean"
+    },
+    "required": [
+      "hidden"
+    ]
+  },
   "BulkEmailImage": {
     "properties": {
       "height": "integer",
@@ -732,6 +770,42 @@
     },
     "required": [
       "image"
+    ]
+  },
+  "BulkEmailMessage": {
+    "properties": {
+      "email_type_name": "string",
+      "from_name": "string",
+      "id": "integer",
+      "sent_at": "string(date-time)",
+      "subject": "string"
+    },
+    "required": [
+      "email_type_name",
+      "from_name",
+      "id",
+      "sent_at",
+      "subject"
+    ]
+  },
+  "BulkEmailMessageDetail": {
+    "properties": {
+      "email_type_name": "string",
+      "from_name": "string",
+      "html": "string",
+      "id": "integer",
+      "sent_at": "string(date-time)",
+      "subject": "string",
+      "text": "string"
+    },
+    "required": [
+      "email_type_name",
+      "from_name",
+      "html",
+      "id",
+      "sent_at",
+      "subject",
+      "text"
     ]
   },
   "BulkEmailPreview": {
@@ -783,6 +857,20 @@
       "skipped",
       "stopped",
       "bounced"
+    ]
+  },
+  "BulkEmailRetry": {
+    "properties": {
+      "count": "integer",
+      "id": "integer",
+      "requested_at": "string(date-time)",
+      "requested_by": "string"
+    },
+    "required": [
+      "count",
+      "id",
+      "requested_at",
+      "requested_by"
     ]
   },
   "BulkEmailRunResult": {
@@ -1305,45 +1393,6 @@
     "required": [
       "current_password",
       "email"
-    ]
-  },
-  "EmailLog": {
-    "properties": {
-      "attachments": "string",
-      "bounce_detail": "string",
-      "bounced_at": "string(date-time)|null",
-      "error": "string",
-      "id": "integer",
-      "purpose": "string",
-      "purpose_label": "string",
-      "sent_at": "string(date-time)",
-      "status": "ref:EmailLogStatusEnum",
-      "subject": "string",
-      "to_email": "string(email)",
-      "user_id": "integer|null",
-      "user_name": "string"
-    },
-    "required": [
-      "attachments",
-      "bounce_detail",
-      "bounced_at",
-      "error",
-      "id",
-      "purpose",
-      "purpose_label",
-      "sent_at",
-      "status",
-      "subject",
-      "to_email",
-      "user_id",
-      "user_name"
-    ]
-  },
-  "EmailLogStatusEnum": {
-    "enum": [
-      "sent",
-      "failed",
-      "bounced"
     ]
   },
   "EmailPreference": {
@@ -2237,18 +2286,6 @@
       "next": "string(uri)|null",
       "previous": "string(uri)|null",
       "results": "array<ref:Aircraft>"
-    },
-    "required": [
-      "count",
-      "results"
-    ]
-  },
-  "PaginatedEmailLogList": {
-    "properties": {
-      "count": "integer",
-      "next": "string(uri)|null",
-      "previous": "string(uri)|null",
-      "results": "array<ref:EmailLog>"
     },
     "required": [
       "count",

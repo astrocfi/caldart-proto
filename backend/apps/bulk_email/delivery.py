@@ -42,6 +42,7 @@ from apps.bulk_email.models import (
     RecipientStatus,
 )
 from apps.bulk_email.render import PURPOSE, RenderedCopy, render_copy
+from apps.bulk_email.senders import dart_limit
 from apps.mail.models import EmailLog, EmailStatus
 from caldart import audit
 from caldart.exceptions import DomainError
@@ -139,7 +140,8 @@ def retry_failed(bulk: BulkEmail, *, actor: User, now: datetime | None = None) -
     Each ``failed`` row first takes its account's name and address as they are now, so
     an address an administrator has corrected since is the one used, and is asked
     ``apps.bulk_email.batch.skip_reason`` afresh, as a send asks it: a deleted account
-    (*Account deleted*), a deactivated one, an address that is missing, invalid, or
+    (*Account deleted*), one no longer in the DART a DART leader's email is limited to
+    (*Not in your DART*), a deactivated one, an address that is missing, invalid, or
     bounced, an opt-out of the type, and an address already sent this email all make
     the row ``skipped`` with that reason, and ``skipped_count`` grows.  Every other
     failed row goes back to ``pending`` with its reason cleared.  Every failed row
@@ -167,7 +169,7 @@ def retry_failed(bulk: BulkEmail, *, actor: User, now: datetime | None = None) -
         _check_retry(locked)
         failed = list(
             surname_order(locked.recipients.filter(status=RecipientStatus.FAILED)).select_related(
-                "user"
+                "user", "user__profile"
             )
         )
         if len(failed) == 0:
@@ -202,11 +204,13 @@ def _sort_failed(
     """Set each of ``failed`` to ``pending`` or ``skipped``; answer how many of each.
 
     Each row takes its account's name and address as they are now, then
-    ``batch.skip_reason`` decides, with the type's opt-outs and the addresses already
+    ``batch.skip_reason`` decides, with the DART a DART leader's email is limited to
+    (``senders.dart_limit``, as it is now), the type's opt-outs, and the addresses already
     sent this email (or queued in this pass), trimmed and case-folded.  The rows are
     changed in memory; the caller saves them.
     """
     opt_outs = type_opt_outs(bulk)
+    limit = dart_limit(bulk)
     went = bulk.recipients.filter(
         status__in=[RecipientStatus.SENT, RecipientStatus.BOUNCED, RecipientStatus.PENDING]
     ).values_list("email", flat=True)
@@ -214,7 +218,7 @@ def _sort_failed(
     retried = 0
     for row in failed:
         account = row.user
-        reason = skip_reason(account, seen, opt_outs=opt_outs)
+        reason = skip_reason(account, seen, opt_outs=opt_outs, limit=limit)
         if account is not None:
             row.name = account.display_name
             row.email = account.email

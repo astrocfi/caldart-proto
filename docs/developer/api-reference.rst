@@ -1510,19 +1510,19 @@ not (see :ref:`api-csrf-bootstrap`).
    * - ``POST /bulk-email/{id}/retry``
      - ·
      - ·
+     - ✓
      - ·
      - ·
      - ·
-     - ·
-     - ``management``; queues the failed copies of a sent email again (see :doc:`api-bulk-email`)
+     - ``management``, a ``dart_leader`` on their own emails (404 on any other); queues the failed copies of a sent email again (see :doc:`api-bulk-email`)
    * - ``GET /bulk-email/{id}/recipients/{rid}/copy``
      - ·
      - ·
+     - ✓
      - ·
      - ·
      - ·
-     - ·
-     - ``management``; one person's copy as it went
+     - ``management``, a ``dart_leader`` on their own emails (404 on any other); one person's copy as it went
    * - ``POST /bulk-email/{id}/hide``
      - ·
      - ·

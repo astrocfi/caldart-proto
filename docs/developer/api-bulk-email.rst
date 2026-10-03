@@ -24,7 +24,9 @@ Any other role is refused with **403**, and an anonymous caller with **401**.
 /messages/{id}`` answer every signed-in caller.  A caller
 reaches the emails ``apps.bulk_email.drafts.visible_to`` gives them, which for
 CalDART management is every email, whoever its sender, and for a DART leader the
-emails they are the sender of; any other id is **404**.
+emails they are the sender of; any other id is **404**.  So a DART leader retries the
+failed copies of, and reads the copies on the delivery report of, their own emails
+alone.
 
 CalDART management sends to any member or friend.  A DART leader sends only to the
 DART on their own member profile (:ref:`api-bulk-email-dart-leaders`).
@@ -717,10 +719,10 @@ stored on the row when the copy was last tried, never from the account as it is 
     "html": "<!doctype html>\n<html lang=\"en\">...",
     "text": "Dear Ann,\n\nJoin us at Livermore.\n\n--\n..."}
 
-The copy is for the caller, not its recipient, so its unsubscribe link is inert:
-the footer keeps its words, the HTML link has no address, the plain text reads
-*(the recipient's own unsubscribe link)*, and no token that could turn the
-recipient's email off is in either.  The message ``GET /bulk-email/{id}`` answers as
+The copy is for the caller, not its recipient, so it is inert as the preview is
+(``render_copy``'s ``inert``): the footer keeps its words, but its unsubscribe link
+carries ``render.PREVIEW_STAND_IN`` where a signed token goes, and no token that could
+turn the recipient's email off is in either body.  The message ``GET /bulk-email/{id}`` answers as
 ``message_html`` carries nobody's link either.  A row of another email is **404**, and a
 row whose copy was never tried (skipped, stopped, or not sent yet) **409** *This person
 was not sent a copy.*
@@ -761,7 +763,7 @@ listed nor opened.
 
 Every copy's footer links here, *View this email in your browser*, to
 ``<SITE_URL>/portal/messages/<id>``: ``SITE_URL`` carries any ``URL_PREFIX``, so the
-link reaches the portal under it (``render.view_url``).  The plain-text copy writes
+link reaches the portal under it (``render.browser_url``).  The plain-text copy writes
 the line *View this email in your browser:* and the address above its footer.
 
 ``GET /messages``
@@ -922,8 +924,8 @@ in nothing stores ``{}``, and a deleted account fills every field in empty.
 ``render.render_copy(bulk, recipient)`` builds a copy from those stored values, so
 a copy rebuilt later reads as it went, whatever happened to the profile since, and
 puts the link to the email on the recipient's **Messages** page above its footer
-(:ref:`api-bulk-email-messages`).  The preview builds its copy with
-``render_message`` and carries neither that link nor the unsubscribe footer.
+(:ref:`api-bulk-email-messages`).  The preview carries that link too, as the copy
+will; a test copy carries none, since it is nobody's message.
 
 
 ``GET /bulk-email/fields``

@@ -501,12 +501,14 @@ const bulkEmailFindingLevel: Matches<BulkEmailFindingLevel, Schemas['BulkEmailFi
   true;
 const bulkEmailFinding: Matches<BulkEmailFinding, Schemas['BulkEmailFinding']> = true;
 const bulkEmailChecksRefusal: Matches<BulkEmailChecksRefusal, Schemas['BulkEmailChecksRefusal']> =
+  true;
 const bulkEmailTestResult: Matches<BulkEmailTestResult, Schemas['BulkEmailTestResult']> = true;
 const bulkEmailRetry: Matches<BulkEmailRetry, Schemas['BulkEmailRetry']> = true;
 const bulkEmailCopy: Matches<BulkEmailCopy, Schemas['BulkEmailCopy']> = true;
 const bulkEmailHideRequest: Matches<BulkEmailHideRequest, Schemas['BulkEmailHideRequest']> = true;
 const bulkEmailMessage: Matches<BulkEmailMessage, Schemas['BulkEmailMessage']> = true;
 const bulkEmailMessageDetail: Matches<BulkEmailMessageDetail, Schemas['BulkEmailMessageDetail']> =
+  true;
 
 /** Every pair above, so `noUnusedLocals` keeps each assertion referenced. */
 const assertions: readonly true[] = [

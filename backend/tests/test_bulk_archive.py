@@ -22,6 +22,7 @@ from rest_framework.test import APIClient
 from apps.accounts.roles import MANAGEMENT, ROLE_SLUGS, SYSTEM_ADMIN
 from apps.bulk_email import delivery, job
 from apps.bulk_email.models import BulkEmail, BulkEmailStatus, RecipientStatus
+from apps.bulk_email.tests_send import send_test
 from caldart.exceptions import DomainError
 from tests.conftest import audit_messages, role_matrix
 from tests.factories import BulkEmailFactory, EmailLogFactory, add_to_batch, make_person
@@ -321,6 +322,13 @@ def test_the_link_carries_the_site_s_url_prefix(ann: User, settings: Settings) -
     assert f"https://caldart.example.org/caldart/portal/messages/{bulk.pk}\n" in str(
         only_copy().body
     )
+
+
+def test_a_test_copy_carries_no_link_to_messages(management: User, settings: Settings) -> None:
+    """A ``[Test]`` copy is nobody's message, so it has no View in browser line."""
+    settings.SITE_URL = "https://caldart.example.org"
+    send_test(BulkEmailFactory(sender=management), actor=management)
+    assert "/portal/messages/" not in str(only_copy().body)
 
 
 # --------------------------------------------------------------------------
