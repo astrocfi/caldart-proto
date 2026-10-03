@@ -80,11 +80,8 @@ from apps.payments.models import (
 )
 from apps.payments.providers.mock import DECLINED_LAST4, DECLINED_MESSAGE, MockProvider
 from apps.payments.refunds import apply_refund_totals
-from apps.payments.renewals import (
-    NOTICE_DAYS,
-    RETRY_OFFSETS,
-    term_to_renew,
-)
+from apps.payments.renewals.scan import NOTICE_DAYS, RETRY_OFFSETS
+from apps.payments.renewals.schedule import term_to_renew
 
 #: How many gifts each seeded donor made, in the order of their addresses:
 #: ``donor1@example.org`` made the first count's worth, and so on.
@@ -133,7 +130,7 @@ PAUSED_MANDATES = 1
 CANCELED_MANDATES = 1
 
 #: How many days before today the catch-up mandate's stored charge date falls:
-#: well inside ``apps.payments.renewals.CATCH_UP_DAYS``, so the daily scan
+#: well inside ``apps.payments.renewals.scan.CATCH_UP_DAYS``, so the daily scan
 #: renews it instead of pausing the mandate.
 CATCH_UP_MANDATE_DAYS_AGO = 10
 

@@ -16,7 +16,6 @@ from django.utils import timezone
 
 from apps.accounts.models import User
 from apps.members.models import Membership, MembershipPlan, MembershipStatusChoices
-from apps.payments import renewals
 from apps.payments.models import (
     MandateStatus,
     Payment,
@@ -28,15 +27,10 @@ from apps.payments.models import (
 from apps.payments.providers.base import ProviderUnavailableError
 from apps.payments.providers.mock import DECLINED_LAST4, MockProvider, mock_method
 from apps.payments.receipts import receipt_filename
-from apps.payments.renewals import (
-    NOTICE_DAYS,
-    RETRY_OFFSETS,
-    card_expires_on,
-    charge_date,
-    run_auto_renewals,
-    save_method,
-    term_to_renew,
-)
+from apps.payments.renewals import emails as renewal_emails
+from apps.payments.renewals.mandates import save_method
+from apps.payments.renewals.scan import NOTICE_DAYS, RETRY_OFFSETS, run_auto_renewals
+from apps.payments.renewals.schedule import card_expires_on, charge_date, term_to_renew
 from caldart.reports import PDF_MEDIA_TYPE
 from tests.conftest import Golden
 from tests.factories import MembershipFactory, RenewalAttemptFactory, RenewalMandateFactory
@@ -805,9 +799,10 @@ def test_a_notice_the_mail_server_refused_is_sent_again_next_run(
 ) -> None:
     """A member whose mail bounced once still gets their fourteen days' warning."""
     make_mandate(member, annual_plan, ends_on=today + timedelta(days=NOTICE_DAYS))
-    monkeypatch.setattr(renewals, "send_templated", refusing_mailer)
+    monkeypatch.setattr(renewal_emails, "send_templated", refusing_mailer)
     run_auto_renewals(today=today)
     monkeypatch.undo()
+    assert len(mailoutbox) == 0, "the patch never ran, so no send was refused"
 
     run_auto_renewals(today=today)
 
@@ -946,7 +941,7 @@ def test_a_scan_forty_days_late_points_the_member_at_renewing_by_hand(
 
     run_auto_renewals(today=today)
 
-    assert renewals.payments_url() in str(mailoutbox[-1].body)
+    assert renewal_emails.payments_url() in str(mailoutbox[-1].body)
 
 
 def test_a_scan_forty_days_late_counts_the_pause_in_its_summary(

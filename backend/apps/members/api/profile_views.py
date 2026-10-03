@@ -37,7 +37,7 @@ from apps.members.api.serializers import PlanSerializer
 from apps.members.lifecycle import undo_become_friend
 from apps.members.models import MemberProfile, MembershipPlan
 from apps.members.services import membership_status, touch_profile
-from apps.payments.renewals import switch_to_friend
+from apps.payments.renewals.mandates import switch_to_friend
 from caldart.exceptions import DomainError, DomainValidationError
 
 

@@ -15,7 +15,7 @@ from typing import Any
 
 from django.core.management.base import BaseCommand, CommandError
 
-from apps.payments.renewals import run_auto_renewals
+from apps.payments.renewals.scan import run_auto_renewals
 
 
 class Command(BaseCommand):

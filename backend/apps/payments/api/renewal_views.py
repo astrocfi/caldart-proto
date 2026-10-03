@@ -8,8 +8,8 @@ served by the same views, told which kind they serve by their ``donation`` flag.
 The finance roles read every mandate of either kind and every attempt through
 ``/admin/renewals``, and can turn one off on a member's behalf.
 
-Nothing here charges anybody: the scan in ``apps.payments.renewals`` is what
-takes the money, and these endpoints only change what it will find.
+Nothing here charges anybody: the scan in ``apps.payments.renewals.scan`` is
+what takes the money, and these endpoints only change what it will find.
 """
 
 from __future__ import annotations
@@ -43,9 +43,8 @@ from apps.payments.api.serializers import (
 )
 from apps.payments.models import RenewalAttempt, RenewalMandate, RenewalOutcome
 from apps.payments.providers.base import PaymentError, get_provider
-from apps.payments.renewals import (
+from apps.payments.renewals.mandates import (
     RENEWAL_CONTRIBUTION_CODE,
-    MandateKind,
     RenewalContributionError,
     begin_mandate,
     cancel_mandate,
@@ -53,6 +52,7 @@ from apps.payments.renewals import (
     refuse_renewal_contribution,
     save_method,
 )
+from apps.payments.renewals.schedule import MandateKind
 
 #: What ``DELETE /me/renewal``, ``/me/donation`` and ``/admin/renewals/{id}`` answer with.
 DELETE_RESPONSE_DESCRIPTION = "The authority is off.  The body is empty."

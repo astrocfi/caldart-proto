@@ -645,7 +645,7 @@ Module                                                      Holds
 ``backend/tests/test_friend_switching.py``                  ``/me/kind/friend``
 ``backend/apps/members/lifecycle.py``                       ``become_friend``,
                                                             ``undo_become_friend``
-``backend/apps/payments/renewals.py``                       ``switch_to_friend``,
+``backend/apps/payments/renewals/mandates.py``              ``switch_to_friend``,
                                                             ``keep_renewal_contribution``
 ``backend/apps/members/addresses.py``                       the Geoapify client and
                                                             the county mapping

@@ -70,7 +70,7 @@ from apps.accounts.throttling import (
     RegisterThrottle,
 )
 from apps.members.services import register_member, restore_terms, suspend_terms, with_membership
-from apps.payments.renewals import cancel_all_mandates
+from apps.payments.renewals.mandates import cancel_all_mandates
 from caldart import audit
 from caldart.exceptions import DomainError
 from caldart.mail import MailRefusedError, log_refusal, send_logging_refusal

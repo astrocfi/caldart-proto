@@ -1063,8 +1063,8 @@ charges in a row make it ``paused``.
 
 .. _choices-mandate-kind:
 
-``MandateKind`` (``apps/payments/renewals.py``, computed)
----------------------------------------------------------
+``MandateKind`` (``apps/payments/renewals/schedule.py``, computed)
+------------------------------------------------------------------
 
 What a mandate charges for, which is what every renewal email says.
 
@@ -1489,7 +1489,7 @@ the day after a current membership's unbroken coverage ends, or makes a member
 with nothing current a friend at once, and ``undo_become_friend`` clears a date
 still ahead.  ``become_friend`` refuses a donor, a current life member, and a
 friend; ``undo_become_friend`` refuses anybody with nothing pending, a donor
-included.  ``payments.renewals.switch_to_friend`` wraps
+included.  ``payments.renewals.mandates.switch_to_friend`` wraps
 ``become_friend`` with the end of the automatic renewal (see
 :ref:`renewals-friend-switch`).
 

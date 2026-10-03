@@ -780,7 +780,7 @@ def paypal_source(payment: Payment) -> dict[str, Any]:
     """
     # Inline: renewals reads this package, so a top-level import would close the
     # cycle between the two.
-    from apps.payments.renewals import pending_mandate_for
+    from apps.payments.renewals.mandates import pending_mandate_for
 
     source: dict[str, Any] = {"experience_context": dict(EXPERIENCE_CONTEXT)}
     if pending_mandate_for(payment) is not None:

@@ -653,7 +653,7 @@ An unknown ``user_id`` is a **404**.  A refusal changes nothing.
 ----------------------------------------
 
 What the member's own ``POST /me/kind/friend`` does (:ref:`api-kind-switch`),
-with the caller recorded as the actor: ``payments.renewals.switch_to_friend``
+with the caller recorded as the actor: ``payments.renewals.mandates.switch_to_friend``
 with ``actor=<caller>`` keeps a current membership to its end and sets
 ``friend_on`` to the day after, or makes the account a friend at once; the
 automatic renewal is canceled with the caller as ``canceled_by``; the

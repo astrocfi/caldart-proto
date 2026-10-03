@@ -26,17 +26,9 @@ from apps.payments.models import (
     RenewalMandate,
     RenewalOutcome,
 )
-from apps.payments.renewals import (
-    CATCH_UP_DAYS,
-    NOTICE_DAYS,
-    PAST_CHARGE_DATE_MESSAGE,
-    RETRY_OFFSETS,
-    advance_by_cadence,
-    begin_mandate,
-    charge_date,
-    default_charge_date,
-    run_auto_renewals,
-)
+from apps.payments.renewals.mandates import PAST_CHARGE_DATE_MESSAGE, begin_mandate
+from apps.payments.renewals.scan import CATCH_UP_DAYS, NOTICE_DAYS, RETRY_OFFSETS, run_auto_renewals
+from apps.payments.renewals.schedule import advance_by_cadence, charge_date, default_charge_date
 from tests.factories import MembershipFactory, RenewalAttemptFactory, RenewalMandateFactory
 
 pytestmark = pytest.mark.django_db

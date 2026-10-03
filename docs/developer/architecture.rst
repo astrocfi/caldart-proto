@@ -418,7 +418,7 @@ Two further rules complete it:
   ``User.can_access_members_content`` reaching ``members``,
   ``accounts.services`` reaching the Wagtail site settings, and
   ``members.services.hand_over_payments`` reaching ``payments.models`` and
-  ``payments.renewals`` to cancel a deleted member's automatic payments and
+  ``payments.renewals.mandates`` to cancel a deleted member's automatic payments and
   move their payments to a tombstone account.
   Three more are in the project package, which sits below every app:
   ``caldart.org`` and ``caldart.views`` read the Wagtail site settings, and

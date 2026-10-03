@@ -37,7 +37,7 @@ from apps.payments.providers.base import (
 )
 from apps.payments.providers.mock import DECLINED_LAST4, MOCK_CARD_LABEL
 from apps.payments.providers.paypal import paypal_label
-from apps.payments.renewals import begin_mandate
+from apps.payments.renewals.mandates import begin_mandate
 from apps.payments.services import create_checkout
 from tests.factories import RenewalMandateFactory
 
@@ -624,7 +624,7 @@ def test_a_paypal_checkout_order_asks_to_vault_when_a_mandate_is_pending(
     paypal_configured: None, member: User, annual_plan: MembershipPlan
 ) -> None:
     """The checkout order carries the vault instruction, or nothing is ever saved."""
-    from apps.payments.renewals import begin_mandate
+    from apps.payments.renewals.mandates import begin_mandate
 
     payment = create_checkout(member, "annual", 0, PaymentProvider.PAYPAL)
     begin_mandate(member, plan=annual_plan, contribution_cents=0, provider=MandateProvider.PAYPAL)
