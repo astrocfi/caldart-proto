@@ -54,7 +54,7 @@ from apps.payments.models import (
 )
 from apps.payments.providers import available_providers, get_provider
 from apps.payments.providers.base import PaymentError
-from apps.payments.renewals import (
+from apps.payments.renewals.mandates import (
     RenewalContributionError,
     begin_mandate,
     discard_pending_mandate,

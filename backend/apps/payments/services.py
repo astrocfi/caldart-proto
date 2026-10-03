@@ -248,11 +248,8 @@ def _complete(
 
     # Inline: renewals reads this module for create_checkout and mark_failed, so a
     # top-level import here would close the cycle.
-    from apps.payments.renewals import (
-        activate_pending_mandate,
-        roll_charge_date_past,
-        term_to_renew,
-    )
+    from apps.payments.renewals.mandates import activate_pending_mandate, roll_charge_date_past
+    from apps.payments.renewals.schedule import term_to_renew
 
     if payment.plan is not None:
         covered = term_to_renew(payment.user, timezone.localdate())

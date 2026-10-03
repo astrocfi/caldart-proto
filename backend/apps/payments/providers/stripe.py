@@ -775,7 +775,7 @@ def pending_mandate(payment: Payment) -> RenewalMandate | None:
     """
     # Inline: renewals reads this package, so a top-level import would close the
     # cycle between the two.
-    from apps.payments.renewals import pending_mandate_for
+    from apps.payments.renewals.mandates import pending_mandate_for
 
     return pending_mandate_for(payment)
 

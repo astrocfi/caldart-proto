@@ -12,6 +12,14 @@ interacts with the renewal reminders, and how to operate it.
 :doc:`api-renewals` is the endpoint reference, and :doc:`/user/member/payments` is what
 the member and the treasurer see.
 
+The code is the ``apps/payments/renewals/`` package, one module per concern:
+``schedule.py`` holds what a mandate is and when it charges (its kind, its amount,
+the term it renews, and its charge dates), ``emails.py`` the subjects and the one
+function every renewal email goes out through, ``mandates.py`` setting a mandate
+up, changing it, and turning it off, and ``scan.py`` the daily scan.  Each module
+imports only from the ones before it in that list, and the package's
+``__init__.py`` re-exports nothing: import a name from the module that defines it.
+
 .. _renewals-mechanism:
 
 The mechanism
@@ -212,7 +220,7 @@ on the finance screens and in the emails that report a charge.
 The schedule
 ============
 
-Four constants in ``apps/payments/renewals.py`` set the timing around the day
+Four constants in ``apps/payments/renewals/scan.py`` set the timing around the day
 the member chose:
 
 ====================================  =========  =============================
@@ -559,6 +567,7 @@ there is nothing to charge.  They re-authorize from the portal's Payments screen
 and until they do the ordinary renewal reminders cover them.
 
 Changing the timing means changing the four constants in
-``apps/payments/renewals.py`` and this page together; the months each cadence
-adds are ``CADENCE_MONTHS`` beside them.  The day of the charge
-itself is not a constant: it is stored on the mandate, and the member owns it.
+``apps/payments/renewals/scan.py`` and this page together; the months each cadence
+adds are ``CADENCE_MONTHS`` in ``apps/payments/renewals/schedule.py``.  The day of
+the charge itself is not a constant: it is stored on the mandate, and the member
+owns it.

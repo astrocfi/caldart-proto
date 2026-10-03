@@ -21,7 +21,7 @@ from apps.accounts.status import (
     set_reactivation_blocked,
 )
 from apps.members.services import restore_terms, suspend_terms
-from apps.payments.renewals import cancel_all_mandates, switch_to_friend
+from apps.payments.renewals.mandates import cancel_all_mandates, switch_to_friend
 
 
 def _locked(target: User) -> User:
@@ -65,11 +65,11 @@ def reactivate_for(actor: User, target: User) -> User:
 def make_friend_for(actor: User, target: User, *, keep_contribution: bool | None) -> User:
     """Make ``target`` a friend on ``actor``'s behalf, as their own switch would.
 
-    This is :func:`apps.payments.renewals.switch_to_friend` with ``actor`` recorded on
-    the canceled renewal and the ``account.kind`` audit line: a current membership is
-    kept to its end and the account becomes a friend the day after, or at once, and
-    ``keep_contribution`` answers whether a renewal's contribution carries on as a
-    recurring donation.  Raises what that function raises.  Returns the account.
+    This is :func:`apps.payments.renewals.mandates.switch_to_friend` with ``actor``
+    recorded on the canceled renewal and the ``account.kind`` audit line: a current
+    membership is kept to its end and the account becomes a friend the day after, or at
+    once, and ``keep_contribution`` answers whether a renewal's contribution carries on
+    as a recurring donation.  Raises what that function raises.  Returns the account.
     """
     return switch_to_friend(target, keep_contribution=keep_contribution, actor=actor)
 

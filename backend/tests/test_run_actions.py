@@ -16,11 +16,7 @@ from rest_framework.test import APIClient
 
 from apps.accounts.models import User
 from apps.members.models import MembershipPlan, MembershipStatusChoices
-from apps.payments.renewals import (
-    CATCH_UP_DAYS,
-    NOTICE_DAYS,
-    run_auto_renewals,
-)
+from apps.payments.renewals.scan import CATCH_UP_DAYS, NOTICE_DAYS, run_auto_renewals
 from caldart.runs import CHARGE_KIND, RunAction, action_lines
 from tests.factories import MembershipFactory, RenewalMandateFactory
 

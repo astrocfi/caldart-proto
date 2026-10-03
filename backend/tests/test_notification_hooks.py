@@ -61,7 +61,8 @@ from apps.payments.providers.mock import (
     MockProvider,
     mock_method,
 )
-from apps.payments.renewals import RETRY_OFFSETS, cancel_mandate, run_auto_renewals, save_method
+from apps.payments.renewals.mandates import cancel_mandate, save_method
+from apps.payments.renewals.scan import RETRY_OFFSETS, run_auto_renewals
 from apps.payments.services import mark_succeeded
 from apps.reminders.services import send_renewal_reminders
 from caldart import events

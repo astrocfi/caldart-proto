@@ -29,7 +29,7 @@ from apps.mail.purposes import purpose_labels
 from apps.members.models import MembershipPlan
 from apps.payments import receipts, refunds
 from apps.payments.models import PaymentStatus, RefundReason
-from apps.payments.renewals import send_mandate_email
+from apps.payments.renewals.emails import send_mandate_email
 from apps.reminders.services import send_renewal_reminders
 from caldart.mail import MailRefusedError, send_templated
 from tests.conftest import role_matrix

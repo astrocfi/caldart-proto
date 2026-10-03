@@ -24,7 +24,7 @@ from apps.payments.models import (
     RenewalMandate,
     RenewalOutcome,
 )
-from apps.payments.renewals import run_auto_renewals
+from apps.payments.renewals.scan import run_auto_renewals
 from caldart import audit
 from tests.conftest import audit_messages
 from tests.factories import MembershipFactory, RenewalMandateFactory

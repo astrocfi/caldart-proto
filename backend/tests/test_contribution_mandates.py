@@ -30,17 +30,14 @@ from apps.payments.models import (
     RenewalOutcome,
 )
 from apps.payments.providers.mock import DECLINED_LAST4, mock_method
-from apps.payments.renewals import (
-    NOTICE_DAYS,
-    RETRY_OFFSETS,
+from apps.payments.renewals.mandates import check_renewable, save_method
+from apps.payments.renewals.scan import NOTICE_DAYS, RETRY_OFFSETS, run_auto_renewals
+from apps.payments.renewals.schedule import (
     MandateKind,
     advance_by_cadence,
     charge_date,
-    check_renewable,
     kind_label,
     mandate_kind,
-    run_auto_renewals,
-    save_method,
 )
 from caldart.exceptions import DomainValidationError
 from tests.factories import MembershipFactory, RenewalMandateFactory

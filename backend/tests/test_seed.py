@@ -45,7 +45,8 @@ from apps.payments.models import (
     PaymentStatus,
     RenewalMandate,
 )
-from apps.payments.renewals import _due_attempts, lapsed_term_to_renew, run_auto_renewals
+from apps.payments.renewals.scan import _due_attempts, run_auto_renewals
+from apps.payments.renewals.schedule import lapsed_term_to_renew
 from apps.payments.seed import (
     CATCH_UP_MANDATE_DAYS_AGO,
     DONOR_GIFT_COUNTS,

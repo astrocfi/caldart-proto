@@ -24,7 +24,6 @@ from rest_framework.test import APIClient
 
 from apps.accounts.models import User
 from apps.members.models import MembershipPlan, MembershipStatusChoices
-from apps.payments import renewals
 from apps.payments.models import (
     MandateCadence,
     MandateProvider,
@@ -36,12 +35,10 @@ from apps.payments.models import (
 )
 from apps.payments.providers.base import PaymentError
 from apps.payments.providers.mock import DECLINED_LAST4, MockProvider
-from apps.payments.renewals import (
-    NOTICE_DAYS,
-    advance_by_cadence,
-    check_renewable,
-    run_auto_renewals,
-)
+from apps.payments.renewals import scan as renewal_scan
+from apps.payments.renewals.mandates import check_renewable
+from apps.payments.renewals.scan import NOTICE_DAYS, run_auto_renewals
+from apps.payments.renewals.schedule import advance_by_cadence, charge_date
 from apps.reminders.services import send_renewal_reminders
 from caldart.exceptions import DomainValidationError
 from tests.conftest import audit_messages
@@ -888,7 +885,6 @@ def test_a_scan_that_loses_the_race_to_schedule_a_charge_takes_it_once(
 ) -> None:
     """Another scan writes the attempt between this one's look and write: one charge."""
     donation(friend, next_charge_on=today)
-    charge_date = renewals.charge_date
 
     def racing_charge_date(mandate: RenewalMandate, day: date | None = None) -> date | None:
         """Write the attempt as a concurrent scan would, then answer as usual."""
@@ -896,7 +892,7 @@ def test_a_scan_that_loses_the_race_to_schedule_a_charge_takes_it_once(
             RenewalAttempt.objects.create(mandate=mandate, scheduled_on=today)
         return charge_date(mandate, day)
 
-    monkeypatch.setattr(renewals, "charge_date", racing_charge_date)
+    monkeypatch.setattr(renewal_scan, "charge_date", racing_charge_date)
 
     run_auto_renewals(today=today)
 

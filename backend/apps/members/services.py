@@ -410,7 +410,7 @@ def hand_over_payments(actor: User, target: User) -> dict[str, int]:
     from apps.payments.models import MandateStatus, Payment
 
     # Inline: renewals imports this module, so a top-level import would close a cycle.
-    from apps.payments.renewals import cancel_mandate, discard_pending_mandate
+    from apps.payments.renewals.mandates import cancel_mandate, discard_pending_mandate
 
     # Locking the account holds back a payment being written for it until this
     # transaction ends, so none can arrive between the move and the delete.

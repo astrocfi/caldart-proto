@@ -446,11 +446,11 @@ nothing:
    ``self_service=true``, and the ``account_deactivated`` event is raised with no
    actor (``accounts.status.deactivate_own_account``);
 #. every active or paused renewal mandate — automatic renewal or recurring
-   donation — is canceled by ``payments.renewals.cancel_mandate`` with the account
-   as its own actor (a self-service ``renewal.cancel``, the ``auto_renewal_off``
-   event with ``how="deactivated"``, and the usual "automatic renewal is off" email
-   once the transaction commits), and a pending one is discarded
-   (``payments.renewals.cancel_all_mandates``);
+   donation — is canceled by ``payments.renewals.mandates.cancel_mandate`` with the
+   account as its own actor (a self-service ``renewal.cancel``, the
+   ``auto_renewal_off`` event with ``how="deactivated"``, and the usual "automatic
+   renewal is off" email once the transaction commits), and a pending one is discarded
+   (``payments.renewals.mandates.cancel_all_mandates``);
 #. every active term that is lifetime or ends on or after today — the covering
    term and any renewal already paid for that starts later — is set to
    ``suspended``, each recorded as ``membership.correct`` with

@@ -29,10 +29,12 @@ from apps.payments.models import (
     RenewalOutcome,
 )
 from apps.payments.reconciliation import ReconciliationRow
-from apps.payments.renewals import (
+from apps.payments.renewals.mandates import (
     PAST_CHARGE_DATE_MESSAGE,
     RENEWAL_PLAN_MESSAGE,
     YEARLY_ONLY_MESSAGE,
+)
+from apps.payments.renewals.schedule import (
     MandateKind,
     charge_date,
     mandate_kind,

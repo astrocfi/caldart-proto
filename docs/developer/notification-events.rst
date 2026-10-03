@@ -116,21 +116,21 @@ Money
      - Raised in
      - Payload
    * - ``auto_renewal_on``
-     - ``payments.renewals.save_method`` when the mandate was not already active:
-       a checkout that saves its card, a card saved from the portal, and a
+     - ``payments.renewals.mandates.save_method`` when the mandate was not already
+       active: a checkout that saves its card, a card saved from the portal, and a
        renewal's contribution kept as a recurring donation
      - ``mandate``
    * - ``auto_renewal_off``
-     - ``payments.renewals.cancel_mandate`` for a mandate that was active (``how``
-       is ``member`` when the actor is the mandate's own member, ``administrator``
-       for anybody else, and
+     - ``payments.renewals.mandates.cancel_mandate`` for a mandate that was active
+       (``how`` is ``member`` when the actor is the mandate's own member,
+       ``administrator`` for anybody else, and
        ``deactivated`` from ``cancel_all_mandates`` when the member deactivates
        their account, and ``deleted`` from ``members.services.hand_over_payments``
        when their account is deleted); the scanner's ``_abandon`` when it pauses a mandate whose
        member lapsed too long ago (``how="lapsed"``)
      - ``mandate``, ``how``
    * - ``auto_renewal_declined``
-     - ``payments.renewals._record_failure``, for every declined charge
+     - ``payments.renewals.scan._record_failure``, for every declined charge
      - ``mandate``; ``reason``, the provider's words; ``next_on``, the day of the
        retry, or ``None`` when the retries are exhausted and the mandate is paused
    * - ``donation_received``

@@ -27,7 +27,7 @@ from apps.payments.api.serializers import (
     StatementsRunRequestSerializer,
     StatementsRunResultSerializer,
 )
-from apps.payments.renewals import run_auto_renewals
+from apps.payments.renewals.scan import run_auto_renewals
 from apps.payments.statements import send_year_statements
 from apps.sysadmin import services
 from apps.sysadmin.api.serializers import BackupSerializer, HealthSerializer
