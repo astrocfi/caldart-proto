@@ -9,9 +9,12 @@ from __future__ import annotations
 
 import io
 import re
+import struct
+import time
 from typing import TYPE_CHECKING
 
 import pytest
+from django.conf import settings as django_settings
 from django.core.files.uploadedfile import SimpleUploadedFile
 from PIL import Image, ImageSequence
 from pytest_django import Settings
@@ -19,7 +22,7 @@ from rest_framework.test import APIClient
 
 from apps.accounts.roles import MANAGEMENT, SYSTEM_ADMIN
 from apps.bulk_email import images
-from apps.bulk_email.images import TOO_MANY_PIXELS_MESSAGE, WRONG_TYPE_MESSAGE
+from apps.bulk_email.images import MAX_FRAMES, TOO_MANY_PIXELS_MESSAGE, WRONG_TYPE_MESSAGE
 from apps.bulk_email.models import BulkEmailImage
 from tests.conftest import role_matrix
 
@@ -56,6 +59,24 @@ def animated_gif(size: tuple[int, int], frames: int = 3) -> bytes:
         buffer, format="GIF", save_all=True, append_images=pictures[1:], duration=200, loop=0
     )
     return buffer.getvalue()
+
+
+def tiny_frame_gif(canvas: tuple[int, int], frames: int) -> bytes:
+    """Return a GIF built by hand: a ``canvas`` and ``frames`` frames of one pixel each.
+
+    The file stays a few kilobytes however large the canvas, which is what makes it
+    dangerous: every frame Pillow decodes is the whole canvas.
+    """
+    width, height = canvas
+    header = b"GIF89a" + struct.pack("<HHBBB", width, height, 0x80, 0, 0)
+    palette = b"\x00\x00\x00\xff\xff\xff"
+    frame = (
+        b"\x21\xf9\x04\x00\x0a\x00\x00\x00"  # graphic control: 0.1 s
+        + b"\x2c"
+        + struct.pack("<HHHHB", 0, 0, 1, 1, 0)  # one pixel at the top left
+        + b"\x02\x02\x44\x01\x00"  # its LZW data
+    )
+    return header + palette + frame * frames + b"\x3b"
 
 
 def upload(content: bytes, name: str = "photo.png") -> SimpleUploadedFile:
@@ -254,8 +275,13 @@ def test_a_file_at_the_limit_is_accepted(management_client: APIClient, settings:
 
 
 def test_the_default_limit_is_five_megabytes() -> None:
-    """Out of the box, the refusal names 5 MB."""
-    assert images.too_large_message(5 * 1024 * 1024) == (
+    """Out of the box, ``BULK_EMAIL_IMAGE_MAX_BYTES`` is 5 MB."""
+    assert django_settings.BULK_EMAIL_IMAGE_MAX_BYTES == 5 * 1024 * 1024
+
+
+def test_the_default_limit_is_named_in_megabytes() -> None:
+    """The refusal for the default limit names 5 MB."""
+    assert images.too_large_message(django_settings.BULK_EMAIL_IMAGE_MAX_BYTES) == (
         "This image is larger than 5 MB. Choose a smaller one."
     )
 
@@ -333,3 +359,68 @@ def test_a_cmyk_jpeg_is_stored_as_rgb(management_client: APIClient) -> None:
     Image.new("CMYK", (100, 100), (0, 50, 100, 0)).save(buffer, format="JPEG")
     management_client.post(IMAGES_URL, {"image": upload(buffer.getvalue())}, format="multipart")
     assert stored(BulkEmailImage.objects.get()).mode == "RGB"
+
+
+@pytest.mark.parametrize(
+    ("canvas", "frames"),
+    [((6000, 6000), 200), ((2000, 2000), 11), ((10, 10), MAX_FRAMES + 1)],
+    ids=["large-canvas-many-frames", "frames-times-canvas-over-the-cap", "too-many-frames"],
+)
+def test_an_animation_with_too_many_pixels_or_frames_is_refused_before_decoding(
+    management_client: APIClient, canvas: tuple[int, int], frames: int
+) -> None:
+    """A small GIF of many tiny frames on a large canvas is refused, at once."""
+    content = tiny_frame_gif(canvas, frames)
+    started = time.monotonic()
+    response = management_client.post(
+        IMAGES_URL, {"image": upload(content, "spin.gif")}, format="multipart"
+    )
+    assert (response.status_code, response.json()) == (
+        400,
+        {"image": [TOO_MANY_PIXELS_MESSAGE]},
+    )
+    assert time.monotonic() - started < 5
+
+
+def test_an_animation_within_the_caps_is_accepted(management_client: APIClient) -> None:
+    """The hand-built GIF itself is a valid image when its canvas and frames are small."""
+    response = management_client.post(
+        IMAGES_URL, {"image": upload(tiny_frame_gif((100, 100), 5), "spin.gif")}, format="multipart"
+    )
+    assert response.status_code == 201
+
+
+@pytest.mark.parametrize(
+    "canvas",
+    [(10_000, 10_000), (20_000, 20_000)],
+    ids=["pillow-would-warn", "pillow-refuses"],
+)
+def test_a_canvas_pillow_calls_a_bomb_is_too_big(
+    management_client: APIClient, canvas: tuple[int, int]
+) -> None:
+    """Past Pillow's own decompression-bomb limits, the refusal is the "too big" one."""
+    response = management_client.post(
+        IMAGES_URL, {"image": upload(tiny_frame_gif(canvas, 1), "huge.gif")}, format="multipart"
+    )
+    assert (response.status_code, response.json()) == (
+        400,
+        {"image": [TOO_MANY_PIXELS_MESSAGE]},
+    )
+
+
+@pytest.mark.parametrize("image_format", ["JPEG", "GIF"])
+def test_a_comment_does_not_survive(management_client: APIClient, image_format: str) -> None:
+    """The comment an image carries is not written back into the stored file."""
+    content = picture(image_format, comment=b"taken at 37.7N 122.4W")
+    management_client.post(IMAGES_URL, {"image": upload(content)}, format="multipart")
+    assert "comment" not in stored(BulkEmailImage.objects.get()).info
+
+
+def test_the_exif_block_does_not_survive(management_client: APIClient) -> None:
+    """A photo's EXIF block, where a camera writes the location, is not stored."""
+    exif = Image.Exif()
+    exif[0x010F] = "Cessna camera"  # Make
+    management_client.post(
+        IMAGES_URL, {"image": upload(picture("JPEG", exif=exif.tobytes()))}, format="multipart"
+    )
+    assert "exif" not in stored(BulkEmailImage.objects.get()).info

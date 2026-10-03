@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import io
 import logging
+import warnings
 from dataclasses import dataclass
 from urllib.parse import urljoin
 
@@ -42,14 +43,22 @@ FORMATS: dict[str, ImageFormat] = {
     "WEBP": ImageFormat("webp", {"quality": 85}),
 }
 
-#: The most pixels an upload may hold, whatever its file size: a small file can
-#: unpack into an enormous picture, and scaling one would exhaust the server.
+#: The most pixels an upload may hold across all its frames, whatever its file
+#: size: a small file can unpack into an enormous picture, or into hundreds of
+#: frames on a large canvas, and scaling one would exhaust the server.
 MAX_PIXELS = 40_000_000
+
+#: The most frames an animated upload may hold.
+MAX_FRAMES = 200
+
+#: What a saved image may not carry from the upload: a comment, the camera's EXIF
+#: block (a photo's location among it), XMP, and an embedded color profile.
+METADATA_KEYS = ("comment", "exif", "xmp", "icc_profile")
 
 #: Why an upload that is not an accepted image is refused.
 WRONG_TYPE_MESSAGE = "Choose a PNG, JPEG, GIF, or WebP image."
 
-#: Why an upload with too many pixels is refused.
+#: Why an upload with too many pixels or frames is refused.
 TOO_MANY_PIXELS_MESSAGE = "This image is too big to use in an email. Choose a smaller one."
 
 #: The JPEG modes saved as they are; any other mode, such as CMYK, is saved as RGB.
@@ -71,13 +80,15 @@ def store(upload: UploadedFile[bytes], *, actor: User) -> BulkEmailImage:
 
     The upload must be at most ``BULK_EMAIL_IMAGE_MAX_BYTES`` long and be a PNG,
     JPEG, GIF, or WebP image by its content, whatever its name says, holding at most
-    :data:`MAX_PIXELS` pixels; anything else raises :class:`ImageRefusedError` with
-    the reason in words.  An image wider than ``BULK_EMAIL_IMAGE_MAX_WIDTH`` is
-    scaled down to that width, keeping its proportions; an animated one keeps every
-    frame.  A photo is turned upright by its orientation tag.  Every image is saved
-    afresh in its own format, which drops its metadata (a photo's location among
-    it), as ``bulk-email/<uuid>.<ext>`` under ``MEDIA_ROOT``.  ``actor`` is recorded
-    as the uploader.
+    :data:`MAX_FRAMES` frames and :data:`MAX_PIXELS` pixels across all of them (the
+    canvas times the frame count), checked before any pixel is decoded; anything
+    else raises :class:`ImageRefusedError` with the reason in words.  An image wider
+    than ``BULK_EMAIL_IMAGE_MAX_WIDTH`` is scaled down to that width, keeping its
+    proportions; an animated one keeps every frame.  A photo is turned upright by
+    its orientation tag.  Every image is saved afresh in its own format without its
+    comment, EXIF, XMP, or color profile (:data:`METADATA_KEYS`; a photo's location
+    among them), as ``bulk-email/<uuid>.<ext>`` under ``MEDIA_ROOT``.  ``actor`` is
+    recorded as the uploader.
     """
     max_bytes = settings.BULK_EMAIL_IMAGE_MAX_BYTES
     if upload.size is None or upload.size > max_bytes:
@@ -105,16 +116,15 @@ def _processed(content: bytes) -> tuple[bytes, ImageFormat, int, int]:
     """Return ``content`` as stored: the bytes, the format, and the width and height.
 
     Raises :class:`ImageRefusedError` for content that is not an accepted image or
-    holds too many pixels.
+    holds too many pixels or frames.
     """
-    try:
-        source = Image.open(io.BytesIO(content))
-    except (UnidentifiedImageError, Image.DecompressionBombError) as exc:
-        raise ImageRefusedError(WRONG_TYPE_MESSAGE) from exc
+    source = _opened(content)
     if source.format not in FORMATS:
         raise ImageRefusedError(WRONG_TYPE_MESSAGE)
     image_format = FORMATS[source.format]
-    if source.width * source.height > MAX_PIXELS:
+    # Counting a GIF's frames reads their headers alone, never their pixels.
+    frame_count: int = getattr(source, "n_frames", 1)
+    if frame_count > MAX_FRAMES or source.width * source.height * frame_count > MAX_PIXELS:
         raise ImageRefusedError(TOO_MANY_PIXELS_MESSAGE)
     try:
         frames = _scaled_frames(source)
@@ -135,11 +145,32 @@ def _processed(content: bytes) -> tuple[bytes, ImageFormat, int, int]:
     return buffer.getvalue(), image_format, first.width, first.height
 
 
+def _opened(content: bytes) -> Image.Image:
+    """Return ``content`` opened by Pillow, its header read and no pixel decoded.
+
+    Raises :class:`ImageRefusedError` with :data:`WRONG_TYPE_MESSAGE` for content
+    Pillow cannot identify, and with :data:`TOO_MANY_PIXELS_MESSAGE` for a canvas
+    Pillow itself judges a decompression bomb, whether it would only warn (over
+    about 89 million pixels) or refuse (over about 179 million).  Either is far
+    past :data:`MAX_PIXELS`, so the warning is raised as an error here rather than
+    left to reach the log.
+    """
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", Image.DecompressionBombWarning)
+        try:
+            return Image.open(io.BytesIO(content))
+        except UnidentifiedImageError as exc:
+            raise ImageRefusedError(WRONG_TYPE_MESSAGE) from exc
+        except (Image.DecompressionBombError, Image.DecompressionBombWarning) as exc:
+            raise ImageRefusedError(TOO_MANY_PIXELS_MESSAGE) from exc
+
+
 def _scaled_frames(source: Image.Image) -> list[Image.Image]:
     """Return every frame of ``source``, upright and no wider than the limit.
 
     A still image is one frame.  A JPEG not in RGB or grayscale, such as a CMYK
-    one, is converted to RGB, which every mail program shows.
+    one, is converted to RGB, which every mail program shows.  Each frame loses
+    the metadata in :data:`METADATA_KEYS`, which Pillow would otherwise write back.
     """
     max_width = settings.BULK_EMAIL_IMAGE_MAX_WIDTH
     frames: list[Image.Image] = []
@@ -152,5 +183,7 @@ def _scaled_frames(source: Image.Image) -> list[Image.Image]:
             upright = scaled
         if source.format == "JPEG" and upright.mode not in _JPEG_MODES:
             upright = upright.convert("RGB")
+        for key in METADATA_KEYS:
+            upright.info.pop(key, None)
         frames.append(upright)
     return frames
