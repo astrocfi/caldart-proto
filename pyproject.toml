@@ -21,6 +21,7 @@ dependencies = [
     "django-csp>=4.0",
     "drf-spectacular>=0.28",
     "beautifulsoup4>=4.13",
+    "dnspython>=2.8.0",
 ]
 
 [dependency-groups]

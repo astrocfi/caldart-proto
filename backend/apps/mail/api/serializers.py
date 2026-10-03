@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from rest_framework import serializers
 
+from apps.mail.dns_check import DnsStatus
 from apps.mail.models import EmailLog
 from apps.mail.purposes import purpose_label, purpose_labels
 from caldart.runs import RunActionSerializer
@@ -94,3 +95,30 @@ class BounceRunResultSerializer(serializers.Serializer[dict[str, object]]):
     ignored = serializers.IntegerField()
     skipped = serializers.IntegerField()
     actions = RunActionSerializer(many=True)
+
+
+class MailDeliveryFindingSerializer(serializers.Serializer[dict[str, object]]):
+    """One line of the mail delivery check.
+
+    ``name`` is the line's title, ``status`` is ``pass``, ``warn``, or ``fail``,
+    ``detail`` says what the record is for and what was found, and ``fix`` says what to
+    ask for; ``fix`` is blank when ``status`` is ``pass``.
+    """
+
+    name = serializers.CharField()
+    status = serializers.ChoiceField(choices=[status.value for status in DnsStatus])
+    detail = serializers.CharField()
+    fix = serializers.CharField()
+
+
+class MailDeliveryCheckSerializer(serializers.Serializer[dict[str, object]]):
+    """The mail delivery check: the ``domain`` it ran for, its findings, and when.
+
+    ``domain`` is the domain of the site's From address, blank when the From address
+    has none.  ``checked_at`` is when the lookups were made; a cached report keeps the
+    time it was made.
+    """
+
+    domain = serializers.CharField()
+    checked_at = serializers.DateTimeField()
+    findings = MailDeliveryFindingSerializer(many=True)

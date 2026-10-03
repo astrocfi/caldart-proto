@@ -4,14 +4,18 @@
 /system/bounces/run`` are ``system_admin`` only: the log carries every address the
 installation has written to, which is operations work rather than membership work.
 The filters live in ``apps.mail.filters``, which the ``emails`` report shares.
+``GET /mail/delivery-check`` is the DNS check CalDART management reads before a bulk
+send; it is open to ``management`` and ``system_admin``.
 """
 
 from __future__ import annotations
 
+from dataclasses import asdict
 from typing import Any
 
 from django.db.models import QuerySet
-from drf_spectacular.utils import OpenApiResponse, extend_schema
+from django.utils import timezone
+from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
 from rest_framework import status
 from rest_framework.generics import ListAPIView
 from rest_framework.request import Request
@@ -19,14 +23,16 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.accounts.api.views import signed_in_user
-from apps.accounts.permissions import IsSystemAdmin
+from apps.accounts.permissions import IsManagement, IsSystemAdmin
 from apps.mail.api.serializers import (
     BounceRunRequestSerializer,
     BounceRunResultSerializer,
     EmailLogSerializer,
     EmailPurposeSerializer,
+    MailDeliveryCheckSerializer,
 )
 from apps.mail.bounces import BounceCheckError, check_bounces
+from apps.mail.dns_check import check_mail_dns
 from apps.mail.filters import EmailLogFilterSet
 from apps.mail.models import EmailLog
 from apps.mail.purposes import purpose_labels
@@ -119,3 +125,42 @@ class BounceRunView(APIView):
         except BounceCheckError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         return Response(BounceRunResultSerializer(run.as_dict()).data)
+
+
+class MailDeliveryCheckView(APIView):
+    """``GET /mail/delivery-check`` -- do the DNS records mail receivers trust exist?"""
+
+    permission_classes = [IsManagement]
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "refresh",
+                bool,
+                description="True to look the records up again instead of reading the cache.",
+            )
+        ],
+        responses={200: MailDeliveryCheckSerializer},
+    )
+    def get(self, request: Request) -> Response:
+        """200 with the report: ``{domain, checked_at, findings}``.
+
+        ``findings`` holds one ``{name, status, detail, fix}`` per line in page order:
+        the approved-sender list (SPF), the message signature (DKIM), the handling of
+        forged mail (DMARC), and the bounce address.  A report made in the last five
+        minutes is answered from the cache with its original ``checked_at``;
+        ``?refresh=true`` runs the lookups again.  The lookups run in the request and
+        wait at most three seconds each; a lookup that fails is a ``fail`` finding, never
+        an error response.
+        """
+        refresh = request.query_params.get("refresh", "").lower() == "true"
+        report = check_mail_dns(now=timezone.now(), refresh=refresh)
+        return Response(
+            MailDeliveryCheckSerializer(
+                {
+                    "domain": report.domain,
+                    "checked_at": report.checked_at,
+                    "findings": [asdict(finding) for finding in report.findings],
+                }
+            ).data
+        )
