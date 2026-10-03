@@ -140,9 +140,9 @@ def test_a_live_group_drops_somebody_who_stops_matching(
 
 def test_a_live_group_is_the_union_of_its_filter_sets(ann: User) -> None:
     """Each filter set adds the people it chooses; nobody is there twice."""
-    make_person("ned@example.test", "Ned", "Noble", county="Napa")
+    make_person("nora@example.test", "Nora", "Noble", county="Napa")
     group = make_group("Two counties", filter_sets=(FRIENDS_IN_MARIN, NAPA, FRIENDS_IN_MARIN))
-    assert emails(groups.group_accounts(group)) == ["ann@example.test", "ned@example.test"]
+    assert emails(groups.group_accounts(group)) == ["ann@example.test", "nora@example.test"]
 
 
 def test_a_live_group_without_filters_holds_nobody(ann: User) -> None:
@@ -528,10 +528,10 @@ def test_a_filter_the_member_list_refuses_is_refused(
 ) -> None:
     """A filter that is not the member list's is a 400 keyed ``filters``."""
     response = management_client.post(
-        group_url(marin_friends, "/filters"), {"filters": {"colour": "red"}}, format="json"
+        group_url(marin_friends, "/filters"), {"filters": {"wingspan": "long"}}, format="json"
     )
     assert response.status_code == 400
-    assert response.json() == {"filters": {"colour": ["Not a filter of the member list."]}}
+    assert response.json() == {"filters": {"wingspan": ["Not a filter of the member list."]}}
 
 
 def test_removing_a_filter_set_from_a_live_group(
