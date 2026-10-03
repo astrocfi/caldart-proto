@@ -1462,6 +1462,14 @@ not (see :ref:`api-csrf-bootstrap`).
      - ·
      - ·
      - ``management``; the recipient fields a message can fill in
+   * - ``POST /bulk-email/{id}/preview``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ``management``; one person's copy, filled in; sends nothing
    * - ``POST /bulk-email/images``
      - ·
      - ·

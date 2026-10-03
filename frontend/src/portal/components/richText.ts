@@ -3,8 +3,11 @@
  * link, and the size an inserted image is shown at in an email.
  */
 
-/** The widest an image is shown in an email, in pixels: the width of the message. */
-export const EMAIL_IMAGE_WIDTH = 600;
+/**
+ * The widest an image is shown in an email, in pixels: the width of the message
+ * column in the house email layout (560 less its 32-pixel margins).
+ */
+export const EMAIL_IMAGE_WIDTH = 496;
 
 /** A leading URL scheme such as `https:` or `mailto:`. */
 const SCHEME = /^([a-z][a-z\d+.-]*):/i;

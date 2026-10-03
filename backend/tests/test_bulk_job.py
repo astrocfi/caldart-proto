@@ -229,14 +229,15 @@ def test_every_copy_goes_in_surname_order(three: BulkEmail) -> None:
 
 
 def test_a_copy_carries_the_subject_and_the_message(three: BulkEmail) -> None:
-    """The plain-text body is the message followed by the footer."""
+    """The plain-text body is the message as plain text, followed by the footer."""
     job.run_sender(now=NOW)
     message = mail.outbox[0]
-    assert (message.subject, str(message.body).startswith(three.body)) == (three.subject, True)
+    text = "Join us at Livermore on Saturday.\n\nBring your logbook."
+    assert (message.subject, str(message.body).startswith(text)) == (three.subject, True)
 
 
-def test_the_html_body_makes_each_paragraph_a_paragraph(three: BulkEmail) -> None:
-    """Each blank-line paragraph of the message is a ``<p>`` in the HTML body."""
+def test_the_html_body_carries_the_message_as_html(three: BulkEmail) -> None:
+    """Each paragraph of the HTML message is a ``<p>`` in the HTML body."""
     job.run_sender(now=NOW)
     message = mail.outbox[0]
     assert isinstance(message, EmailMultiAlternatives)

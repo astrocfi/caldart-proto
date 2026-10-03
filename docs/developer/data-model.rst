@@ -4143,7 +4143,7 @@ One email CalDART management writes, from the moment Compose opens it.
    * - ``body``
      - ``TextField``
      - not null; default ``""``
-     - the message as plain text, a blank line separating paragraphs; blank while a draft is being written
+     - the message as HTML, sanitized on every save (:ref:`api-bulk-email-rich-text`), its recipient field tokens such as ``{first_name}`` as written; blank while a draft is being written
    * - ``status``
      - ``CharField(7)``, :ref:`choices <choices-bulk-email-status>`
      - not null; default ``draft``
@@ -4344,6 +4344,10 @@ each copy went to whatever happens to the account later.
      - ``DateTimeField``
      - null; default ``NULL``
      - when the copy was last tried
+   * - ``values``
+     - ``JSONField``
+     - not null; default ``{}``
+     - JSON object of the recipient field values the copy was filled in with, token to value, such as ``{"first_name": "Pat"}``, for the fields the message uses only; stored when the copy is tried, so the copy can be rebuilt as it went
 
 **Constraints, indexes, and ordering.**
 

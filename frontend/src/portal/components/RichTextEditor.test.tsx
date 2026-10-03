@@ -2,7 +2,7 @@ import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createRef, useState } from 'react';
 import type { JSX } from 'react';
-import { beforeAll, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { RichTextEditor } from './RichTextEditor';
 import type { RichTextEditorHandle, UploadedImage } from './RichTextEditor';
@@ -13,16 +13,6 @@ const STORED: UploadedImage = {
   width: 1200,
   height: 600,
 };
-
-// jsdom lays nothing out, and ProseMirror measures the selection to scroll it into
-// view whenever a command focuses the editor.
-beforeAll(() => {
-  const empty = (): DOMRectList => [] as unknown as DOMRectList;
-  const rect = (): DOMRect => new DOMRect(0, 0, 0, 0);
-  Range.prototype.getClientRects = empty;
-  Range.prototype.getBoundingClientRect = rect;
-  document.elementFromPoint = () => null;
-});
 
 interface HarnessProps {
   initial?: string;
@@ -330,7 +320,7 @@ describe('RichTextEditor images', () => {
     expect([handleUploadImage.mock.calls, lastChange(handleChange)]).toEqual([
       [[png]],
       '<img src="https://caldart.example.org/media/bulk-email/abc.png" ' +
-        'alt="A Cessna on the ramp" width="600" height="300"><p></p>',
+        'alt="A Cessna on the ramp" width="496" height="248"><p></p>',
     ]);
   });
 

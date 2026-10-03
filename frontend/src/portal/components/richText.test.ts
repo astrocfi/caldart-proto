@@ -27,14 +27,14 @@ describe('linkAddress', () => {
 
 describe('emailImageSize', () => {
   it('keeps an image no wider than an email at its own size', () => {
-    expect(emailImageSize(EMAIL_IMAGE_WIDTH, 200)).toEqual({ width: 600, height: 200 });
+    expect(emailImageSize(EMAIL_IMAGE_WIDTH, 200)).toEqual({ width: 496, height: 200 });
   });
 
   it('scales a wider image to the email width, keeping its proportions', () => {
-    expect(emailImageSize(1200, 601)).toEqual({ width: 600, height: 301 });
+    expect(emailImageSize(992, 401)).toEqual({ width: 496, height: 201 });
   });
 
   it('never makes an image less than one pixel high', () => {
-    expect(emailImageSize(1200, 1)).toEqual({ width: 600, height: 1 });
+    expect(emailImageSize(1200, 1)).toEqual({ width: 496, height: 1 });
   });
 });

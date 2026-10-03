@@ -86,7 +86,7 @@ One email, with everything the compose and Sent screens show:
 
    {"id": 9,
     "subject": "Spring newsletter",
-    "body": "Join us at Livermore on Saturday.\n\nBring your logbook.",
+    "body": "<p>Dear {first_name|friend},</p><p>Join us at <strong>Livermore</strong>.</p>",
     "status": "sending",
     "sender": "Grace Holloway",
     "sender_id": 3,
@@ -110,9 +110,13 @@ One email, with everything the compose and Sent screens show:
     "remaining": 28,
     "estimated_finish_at": "2026-04-07T08:01:37-07:00",
     "confirm_above": 50,
-    "undo_seconds": 120}
+    "undo_seconds": 120,
+    "message_html": "<!doctype html>\n<html lang=\"en\">..."}
 
-``status`` is ``draft``, ``queued``, ``sending``, ``sent``, or ``stopped``
+``body`` is the message as sanitized HTML, its recipient field tokens as written
+(:ref:`api-bulk-email-rich-text`).  ``message_html`` is the whole HTML email as the
+history shows it: the message inside the house email layout, with its tokens as
+written rather than filled in.  ``status`` is ``draft``, ``queued``, ``sending``, ``sent``, or ``stopped``
 (:ref:`choices-bulk-email-status`); ``can_edit`` is true for a draft or a queued
 email that has never started sending (:ref:`the edit rule <bulk-email-edit-rule>`).
 ``start_at`` is when a queued email starts and ``scheduled`` whether the sender
@@ -132,17 +136,24 @@ Saves the fields given; any may be left out.
 
 .. code-block:: json
 
-   {"subject": "Spring newsletter",
-    "body": "Join us at Livermore on Saturday.\n\nBring your logbook."}
+   {"subject": "Spring newsletter for {first_name}",
+    "body": "<p>Dear {first_name|friend},</p><p>Join us at <strong>Livermore</strong>.</p>"}
 
 ``subject`` is at most 200 characters, one line, and free of control characters,
-since the mail library refuses them in a header; ``body`` is plain text of at most
-20,000 characters, a blank line separating paragraphs.  Both may be blank while
-the email is a draft, and both are trimmed.  **200** with the email.  A refused
-field is **400**: ``subject`` reads *A subject is one line.* (for any character
-``str.splitlines`` breaks on, from a carriage return to U+2028), *A subject cannot
-carry control characters such as tabs.* (for any other character in Unicode's
-``Cc`` category), or DRF's length message; ``body`` reads DRF's length message.
+since the mail library refuses them in a header; ``body`` is HTML of at most
+100,000 characters, as the editor writes it, and is stored sanitized
+(:ref:`api-bulk-email-rich-text`), so what ``GET`` answers may differ from what was
+sent.  Both may be blank while the email is a draft, and both are trimmed.  **200**
+with the email.  A refused field is **400**: ``subject`` reads *A subject is one
+line.* (for any character ``str.splitlines`` breaks on, from a carriage return to
+U+2028), *A subject cannot carry control characters such as tabs.* (for any other
+character in Unicode's ``Cc`` category), DRF's length message, or the refusal of a
+token that cannot be filled in; ``body`` reads DRF's length message or the refusal
+of a token that cannot be filled in: an unknown one, *{nickname} is not a recipient
+field. ...* (``fields.unknown_token_message``), or one split by formatting, *{first_name}
+has formatting or an angle bracket inside its braces, so it cannot be filled in.
+Delete it and put it in again with Insert field.*  The words already saved stay
+saved.
 A queued email can still be changed, and keeps its ``start_at``, but it cannot be
 left without a subject or a message: blanking one is **400** *Write a subject.* or
 *Write the message.*, as **Send** refuses it.  Once the email has started sending
@@ -301,8 +312,9 @@ request.
 
    {"confirm_count": 52, "start_at": null}
 
-The email must have a subject and a message, and somebody in its batch who
-receives a copy.  When more than ``BULK_EMAIL_CONFIRM_ABOVE`` people receive it,
+The email must have a subject and a message whose sanitized HTML reads as some
+text, every recipient field token in both must be one that can be filled in (as a
+save checks it), and somebody in its batch must receive a copy.  When more than ``BULK_EMAIL_CONFIRM_ABOVE`` people receive it,
 ``confirm_count`` must be that number, the count the sender typed; at or below
 the threshold it may be left out.  ``start_at`` is when to start: left out or null
 for the end of the undo window, now plus ``BULK_EMAIL_UNDO_SECONDS``, or a time
@@ -313,8 +325,9 @@ after now and within a year.  A time given without an offset, such as
 ``confirm_count`` (null below the threshold).  Sending a queued email again
 reschedules it.  A refusal is **400** keyed by the field:
 
-- ``subject``: *Write a subject.*
-- ``body``: *Write the message.*
+- ``subject``: *Write a subject.*, or the refusal of a token, as a save words it.
+- ``body``: *Write the message.*, also for a message of empty paragraphs, or the
+  refusal of a token, as a save words it.
 - ``batch``: *Nobody in the batch can receive this email. Add people to the
   batch.*
 - ``confirm_count``: *Type the number of people this email goes to.* when it is
@@ -409,9 +422,11 @@ Rich text and recipient fields
 ==============================
 
 The portal's editor writes a message as HTML (:ref:`the editor <architecture-rich-text>`),
-and the server trusts none of it.  ``bulk_email.richtext`` and
-``bulk_email.fields`` hold what the server does with that HTML, and the two
-endpoints below serve the editor.
+and the server trusts none of it: the message is sanitized when it is saved, and
+again whenever a copy is built, for a preview or a send.  ``bulk_email.richtext``
+and ``bulk_email.fields`` hold what the server does with that HTML,
+``bulk_email.render`` builds each copy, and the endpoints below serve the editor and
+the preview.
 
 **Sanitizing.**  ``richtext.sanitize`` reduces any HTML to what an email may
 carry, with nh3:
@@ -495,6 +510,32 @@ and ``fields.unknown_token_message`` says so when a sender writes one bare:
 braces belong in a web address, write them as %7B and %7D: %7Bid%7D.*
 
 
+**Checking a message.**  ``render.check_message`` is what a save, a preview, and a
+send refuse, by field.  The subject is refused for its first unknown token.  The
+message is sanitized, then refused for its first unknown token in the HTML or in
+the plain text derived from it, and for a token the two would not fill in alike:
+one the plain text holds but the HTML does not, because formatting splits it
+(``<strong>{first</strong>_name}``, which reads ``{first_name}`` as text), or one
+in the HTML's text the plain text does not hold, because its fallback holds an
+angle bracket.  That one is refused with *{first_name} has formatting or an angle
+bracket inside its braces, so it cannot be filled in. Delete it and put it in again
+with Insert field.*
+
+**Filling in each copy.**  ``render.render_message(subject, body, values)`` builds
+one copy: the message sanitized; the HTML body with each value escaped (and
+percent-encoded in an address) inside ``emails/bulk_email.html``, the house email
+layout; the plain-text body derived from the same sanitized message with each value
+as it is, followed by the house footer from ``emails/bulk_email.txt``; and the
+subject with each value as it is, a line break in a value read as a space.  The
+preheader is the start of the plain text.  When the sender tries a copy it reads the
+person's values for the fields the message uses, as they are at that moment
+(``render.fill_values``), and stores them on the row as ``values``, token to value,
+such as ``{"first_name": "Pat", "expiration": "04/30/2026"}``; a message that fills
+in nothing stores ``{}``, and a deleted account fills every field in empty.
+``render.render_copy(bulk, recipient)`` builds a copy from those stored values, so
+a copy rebuilt later reads as it went, whatever happened to the profile since.
+
+
 ``GET /bulk-email/fields``
 --------------------------
 
@@ -563,3 +604,38 @@ off disk to anybody, and only ``/media/documents/`` is refused
 (:doc:`deployment`), so ``/media/bulk-email/`` needs nothing of its own.  In
 development Django serves ``/media/`` while ``DEBUG`` is on, which it is under
 ``make run``.  An image is never deleted by the site.
+
+
+``POST /bulk-email/{id}/preview``
+---------------------------------
+
+One person's copy of the saved message, as it will go.  Nothing is sent or stored.
+
+.. code-block:: json
+
+   {"recipient_id": 12}
+
+``recipient_id`` is a row of the batch, any row, a skipped one included; left out
+or null, the copy is the first person's who receives one.  The people stepped
+through are those who receive a copy, in the order the send goes.  **200**:
+
+.. code-block:: json
+
+   {"subject": "Spring newsletter for Ann",
+    "html": "<!doctype html>\n<html lang=\"en\">...",
+    "text": "Dear Ann,\n\nJoin us at Livermore.\n\n--\n...",
+    "recipient": {"id": 12, "name": "Ann Able", "email": "ann@example.org"},
+    "position": 1,
+    "count": 40,
+    "previous_id": null,
+    "next_id": 13}
+
+``html`` is the whole HTML email and ``text`` the plain-text one.  ``position`` is
+the person's place, from 1, among the ``count`` people who receive a copy, and
+``previous_id`` and ``next_id`` are the rows either side, null at either end.
+A copy already tried is filled in with the ``values`` it went out with; any other
+with the account's values as they are now.  While nobody in the batch receives a
+copy, the preview is the caller's own copy, with ``recipient.id`` null and
+``position`` and ``count`` 0.  A token that cannot be filled in is **400** keyed
+``subject`` or ``body``, worded as a save words it; a row that is not in the batch
+is **400** ``{"recipient_id": ["That person is not in the batch."]}``.

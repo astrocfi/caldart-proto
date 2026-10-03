@@ -61,9 +61,37 @@ the batch** to find one person. The trashcan on a row takes that person out afte
 2. What it says
 ===============
 
-Write the **Subject**, one line, and the **Message**. The message is plain text: leave a
-blank line between paragraphs and each becomes a paragraph of the email. Once you start
-typing, a quiet note under the message reads *Saving…* and then *Saved*.
+Write the **Subject**, one line, and the **Message**. Once you start typing, a quiet note
+under the message reads *Saving…* and then *Saved*.
+
+The buttons over the message format it: **Bold** and **Italic** for the words you have
+selected, **Heading** for a line that heads a section, and **Bulleted list** and **Numbered
+list**. A button stays pressed while the words at the cursor have its style; press it again
+to take the style off.
+
+- **Link** asks for the **Web or email address** the selected words go to, such as
+  *caldart.org/events* or an email address, then **Add link**. With nothing selected, the
+  address itself is put in as the link. On a link, the button offers **Save link** and
+  **Remove link**.
+- **Image** opens your computer's file picker. Choose a PNG, JPEG, GIF, or WebP picture of
+  at most 5 MB. While it uploads the box reads *Uploading* and the file's name; then
+  **Describe the image** in a few words, such as *Volunteers loading a Cessna*, and press
+  **Put image in**. The description is required: many mail programs hide pictures until the
+  reader allows them, and the description is what they see instead. A large picture is made
+  smaller to suit an email, and any location the camera recorded in it is removed.
+- **Insert field** lists details each person's copy fills in for them: **First name**,
+  **Last name**, **Full name**, **Email address**, **DART**, **Membership plan**,
+  **Membership status**, **Expiration date**, and **Home airport**. Choose one and it goes in
+  where the cursor was last, in the subject or the message, written in braces, such as
+  *{first_name}*. Somebody with no value for a field gets nothing there; to put in a word
+  instead, add it after a bar, as in *{first_name|friend}*, which reads *friend* for a person
+  with no first name.
+
+A field can only be one of those in the list. Anything else written in braces, such as
+*{nickname}*, is refused with *{nickname} is not a recipient field.*, and the message is
+not saved until it is fixed. A web address that needs braces of its own writes them as
+*%7B* and *%7D*, as the message says. A field with bold or another style on only part of it
+is refused too: delete it and put it in again with **Insert field**.
 
 Each copy comes from the site's own address. Under the message it carries a short footer
 with your organization's name, the contact address when one is set, and the line *You receive
@@ -72,6 +100,13 @@ this email as a member or a friend of* your organization.
 
 3. Check and send
 =================
+
+At the top of the card is a preview: the email as the first person in the batch will
+receive it, their own details filled in. *Previewing as Ann Able (1 of 38)* says whose copy
+it is; **Next person** and **Previous person** step through everybody who receives it. The
+preview shows what has been saved, so it catches up a moment after you stop typing. While
+nobody in the batch receives the email, the preview is your own copy. When a field in the
+message cannot be filled in, the preview says why instead.
 
 Until the email can go, the card lists what is missing, such as *Write a subject.* or *Add
 people to the batch.* Then it offers two buttons:

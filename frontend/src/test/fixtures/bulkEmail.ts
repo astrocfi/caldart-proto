@@ -9,6 +9,8 @@ import type {
   BulkEmailBatch,
   BulkEmailBatchRow,
   BulkEmailDetail,
+  BulkEmailField,
+  BulkEmailPreview,
   BulkEmailSummary,
 } from '@/portal/api/types';
 import { API } from '../handlers';
@@ -19,7 +21,7 @@ export function makeBulkEmail(overrides: Partial<BulkEmailDetail> = {}): BulkEma
   return {
     id: 7,
     subject: 'Hangar day',
-    body: 'Bring gloves.',
+    body: '<p>Bring gloves.</p>',
     status: 'draft',
     sender: 'Grace Holloway',
     sender_id: 3,
@@ -44,6 +46,28 @@ export function makeBulkEmail(overrides: Partial<BulkEmailDetail> = {}): BulkEma
     estimated_finish_at: null,
     confirm_above: 50,
     undo_seconds: 120,
+    message_html: '<html><body><h1>Hangar day</h1><p>Bring gloves.</p></body></html>',
+    ...overrides,
+  };
+}
+
+/** The recipient fields the Insert field menu lists. */
+export const FIELDS: BulkEmailField[] = [
+  { token: 'first_name', label: 'First name', description: "The person's first name." },
+  { token: 'dart_name', label: 'DART', description: "The name of the person's DART." },
+];
+
+/** One person's copy of an email, as the preview answers it. */
+export function makePreview(overrides: Partial<BulkEmailPreview> = {}): BulkEmailPreview {
+  return {
+    subject: 'Hangar day',
+    html: '<html><body><p>Dear Ann,</p></body></html>',
+    text: 'Dear Ann,',
+    recipient: { id: 1, name: 'Ann Able', email: 'ann@example.org' },
+    position: 1,
+    count: 1,
+    previous_id: null,
+    next_id: null,
     ...overrides,
   };
 }
@@ -119,6 +143,7 @@ export interface BulkEmailCalls {
   clears: number;
   sends: unknown[];
   actions: string[];
+  previews: unknown[];
 }
 
 /** The fake server's state: the email and its batch, which the handlers change. */
@@ -140,6 +165,7 @@ export function answerBulkEmail(state: BulkEmailState): BulkEmailCalls {
     clears: 0,
     sends: [],
     actions: [],
+    previews: [],
   };
   const base = `${API}/bulk-email/${state.email.id}`;
   const recount = (rows: BulkEmailBatchRow[]): void => {
@@ -190,6 +216,39 @@ export function answerBulkEmail(state: BulkEmailState): BulkEmailCalls {
         start_at: body.start_at ?? new Date(Date.now() + 120_000).toISOString(),
       };
       return HttpResponse.json(state.email);
+    }),
+    http.get(`${API}/bulk-email/fields`, () => HttpResponse.json(FIELDS)),
+    http.post(`${base}/preview`, async ({ request }) => {
+      const body = (await request.json()) as { recipient_id?: number | null };
+      calls.previews.push(body);
+      const receiving = state.batch.rows.filter((row) => row.will_receive);
+      const index = Math.max(
+        0,
+        receiving.findIndex((row) => row.id === body.recipient_id),
+      );
+      const row = receiving[index];
+      if (row === undefined) {
+        return HttpResponse.json(
+          makePreview({
+            recipient: { id: null, name: state.email.sender, email: 'grace@example.org' },
+            position: 0,
+            count: 0,
+          }),
+        );
+      }
+      const first = row.name.split(' ')[0] ?? '';
+      return HttpResponse.json(
+        makePreview({
+          subject: state.email.subject,
+          html: `<html><body><p>Dear ${first},</p></body></html>`,
+          text: `Dear ${first},`,
+          recipient: { id: row.id, name: row.name, email: row.email },
+          position: index + 1,
+          count: receiving.length,
+          previous_id: receiving[index - 1]?.id ?? null,
+          next_id: receiving[index + 1]?.id ?? null,
+        }),
+      );
     }),
     http.post(`${base}/:action`, ({ params }) => {
       const action = String(params.action);

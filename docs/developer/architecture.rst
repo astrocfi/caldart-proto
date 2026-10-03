@@ -872,6 +872,10 @@ same result.  The editor is never trusted: the server sanitizes whatever HTML
 it receives against its own allow-list (:doc:`api-bulk-email`), and the
 toolbar offers no more than that list allows.
 
+The compose screen's **What it says** card (``features/bulk-email/MessageCard.tsx``)
+writes the message in it, and the **Check and send** card's preview
+(``MessagePreview.tsx``) and the Sent page show the email in a sandboxed
+``<iframe srcdoc>``, so nothing in a message can run in the portal.
 ``RichTextEditor`` takes ``value`` and reports ``onChange`` as HTML, ``''``
 when the message is empty.  Its toolbar is Bold, Italic, Heading, Bulleted
 list, Numbered list, Link, and Image, each an icon with its name beside it,
@@ -881,8 +885,9 @@ toolbar that asks for the address and reads it with ``linkAddress`` from
 address gains ``mailto:``, and any other scheme is refused.  **Image** opens
 the file picker, uploads the file through the ``onUploadImage`` prop, and asks
 for a description, which is required, before it puts the image in at the
-width and height it is shown at in an email (at most 600 pixels wide,
-``emailImageSize``), since some mail programs honor only those attributes.  A
+width and height it is shown at in an email (at most 496 pixels wide, the house
+layout's message column; ``emailImageSize``), since some mail programs honor only
+those attributes.  A
 block that ends the message is followed by an empty paragraph, so the sender
 can always click below a list or an image and carry on writing.  Its ``ref``
 exposes ``insertText``, ``focus``, and ``contains``, which is how the bulk

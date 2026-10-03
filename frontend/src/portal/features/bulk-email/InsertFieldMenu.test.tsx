@@ -3,29 +3,16 @@ import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { useRef, useState } from 'react';
 import type { JSX } from 'react';
-import { beforeAll, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
-import type { BulkEmailField } from '@/portal/api/types';
 import { RichTextEditor } from '@/portal/components/RichTextEditor';
 import type { RichTextEditorHandle } from '@/portal/components/RichTextEditor';
+import { FIELDS } from '@test/fixtures/bulkEmail';
 import { API } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
 
 import { InsertFieldMenu } from './InsertFieldMenu';
-
-const FIELDS: BulkEmailField[] = [
-  { token: 'first_name', label: 'First name', description: "The person's first name." },
-  { token: 'dart_name', label: 'DART', description: "The name of the person's DART." },
-];
-
-// jsdom lays nothing out, and ProseMirror measures the selection to scroll it into
-// view whenever a command focuses the editor.
-beforeAll(() => {
-  Range.prototype.getClientRects = () => [] as unknown as DOMRectList;
-  Range.prototype.getBoundingClientRect = () => new DOMRect(0, 0, 0, 0);
-  document.elementFromPoint = () => null;
-});
 
 /** A subject input and a message editor, with the menu between them. */
 function Compose(): JSX.Element {

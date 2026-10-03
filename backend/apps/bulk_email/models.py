@@ -79,9 +79,11 @@ class RecipientKind(models.TextChoices):
 class BulkEmail(TimestampedModel):
     """One email to a batch of members and friends, from its draft to its last copy.
 
-    ``subject`` and ``body`` may be blank while it is a draft; ``body`` is plain text
-    whose blank lines separate paragraphs.  ``sender`` owns the draft and sends it,
-    null once that account is deleted.  ``start_at`` is when the send begins: the end
+    ``subject`` and ``body`` may be blank while it is a draft; ``body`` is HTML,
+    sanitized on every save (``apps.bulk_email.richtext.sanitize``), and both may
+    carry recipient field tokens such as ``{first_name}``
+    (``apps.bulk_email.fields``).  ``sender`` owns the draft and sends it, null once
+    that account is deleted.  ``start_at`` is when the send begins: the end
     of the undo window or the time the sender chose, which ``scheduled`` says.
     ``confirm_count`` is the number of people the sender typed to confirm a large
     send, null when the batch was small enough to need none.
@@ -174,7 +176,10 @@ class BulkEmailRecipient(TimestampedModel):
     ``added_by`` is the add that brought the person in.  ``round`` is 0 for the
     original copies.  ``reason`` says why a copy was skipped, failed, or not sent, and
     is blank otherwise.  ``message_id`` is the ``Message-ID`` the copy went out with,
-    and ``tried_at`` when it was last tried.
+    and ``tried_at`` when it was last tried.  ``values`` are the recipient field values
+    the copy was filled in with, token to value, for the fields the message uses only;
+    they are stored when the copy is tried, so the copy can be rebuilt as it went
+    whatever happens to the account later.
     """
 
     bulk_email = models.ForeignKey(BulkEmail, on_delete=models.CASCADE, related_name="recipients")
@@ -203,6 +208,7 @@ class BulkEmailRecipient(TimestampedModel):
     reason = models.CharField(max_length=200, blank=True)
     message_id = models.CharField(max_length=255, blank=True)
     tried_at = models.DateTimeField(null=True, blank=True)
+    values = models.JSONField(default=dict, blank=True)
 
     class Meta:
         ordering = ["id"]

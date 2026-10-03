@@ -610,6 +610,7 @@
       "estimated_finish_at": "string(date-time)|null",
       "failed_count": "integer",
       "id": "integer",
+      "message_html": "string",
       "receiving_count": "integer",
       "remaining": "integer",
       "scheduled": "boolean",
@@ -639,6 +640,7 @@
       "estimated_finish_at",
       "failed_count",
       "id",
+      "message_html",
       "receiving_count",
       "remaining",
       "scheduled",
@@ -657,6 +659,80 @@
       "undo_seconds",
       "updated_at"
     ]
+  },
+  "BulkEmailField": {
+    "properties": {
+      "description": "string",
+      "label": "string",
+      "token": "string"
+    },
+    "required": [
+      "description",
+      "label",
+      "token"
+    ]
+  },
+  "BulkEmailImage": {
+    "properties": {
+      "height": "integer",
+      "id": "integer",
+      "url": "string",
+      "width": "integer"
+    },
+    "required": [
+      "height",
+      "id",
+      "url",
+      "width"
+    ]
+  },
+  "BulkEmailImageUploadRequest": {
+    "properties": {
+      "image": "string(binary)"
+    },
+    "required": [
+      "image"
+    ]
+  },
+  "BulkEmailPreview": {
+    "properties": {
+      "count": "integer",
+      "html": "string",
+      "next_id": "integer|null",
+      "position": "integer",
+      "previous_id": "integer|null",
+      "recipient": "ref:BulkEmailPreviewRecipient",
+      "subject": "string",
+      "text": "string"
+    },
+    "required": [
+      "count",
+      "html",
+      "next_id",
+      "position",
+      "previous_id",
+      "recipient",
+      "subject",
+      "text"
+    ]
+  },
+  "BulkEmailPreviewRecipient": {
+    "properties": {
+      "email": "string",
+      "id": "integer|null",
+      "name": "string"
+    },
+    "required": [
+      "email",
+      "id",
+      "name"
+    ]
+  },
+  "BulkEmailPreviewRequestRequest": {
+    "properties": {
+      "recipient_id": "integer|null"
+    },
+    "required": []
   },
   "BulkEmailRecipientStatusEnum": {
     "enum": [

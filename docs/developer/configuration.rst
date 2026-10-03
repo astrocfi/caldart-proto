@@ -607,7 +607,7 @@ Uploads
 ``BULK_EMAIL_IMAGE_MAX_WIDTH``
    The widest, in pixels, a bulk email's image is stored; a wider upload is
    scaled down to it, its proportions kept.  The editor shows an image at most
-   600 pixels wide in the message, so the default leaves room for a screen that
+   496 pixels wide in the message, so the default leaves room for a screen that
    draws two pixels to each one.
 
    :Development: unset: ``1200``.

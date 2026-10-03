@@ -13,6 +13,15 @@ configure({ reactStrictMode: true });
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 
+// jsdom lays nothing out, and has no way to measure a text selection: the rich text
+// editor (ProseMirror) measures one to scroll it into view whenever a command
+// focuses the editor, so each measure answers an empty box.
+beforeAll(() => {
+  Range.prototype.getClientRects = () => [] as unknown as DOMRectList;
+  Range.prototype.getBoundingClientRect = () => new DOMRect(0, 0, 0, 0);
+  document.elementFromPoint = () => null;
+});
+
 // `restoreMocks` restores every spy before each test, so the guard is installed
 // afterwards rather than once for the whole run.  `scrollTo` is stubbed in the
 // same place: jsdom has no layout, so its own implementation only logs "Not

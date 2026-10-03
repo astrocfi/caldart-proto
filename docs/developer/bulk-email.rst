@@ -32,11 +32,24 @@ added later lands in a file of its own rather than growing one:
     The background sender: claim, freeze, the paced send loop, the retries, and
     the progress estimate.
 ``render.py``
-    ``render_copy``: one recipient's copy, its subject, its two bodies, and its
-    headers.
+    ``render_copy`` and ``render_message``: one recipient's copy, its subject, its
+    two bodies, and its headers; ``check_message``, what a token-bearing message
+    is refused for; ``fill_values``, a person's values for the fields it uses.
+``richtext.py``
+    ``sanitize``, the allow-list a message's HTML is reduced to, and
+    ``html_to_text``, the plain-text part derived from it.
+``fields.py``
+    The recipient fields a message can fill in, such as ``{first_name}``: the
+    catalog, finding tokens, each person's values, and filling them in.
+``images.py``
+    The images put into a message: checked, scaled, and stored as
+    ``BulkEmailImage`` rows under ``MEDIA_ROOT``.
+``preview.py``
+    One person's copy for the **Check and send** card's preview.
 ``api/``
-    The endpoints: ``drafts.py``, ``batch.py``, ``history.py``, and
-    ``sender.py`` (**Run now**), with the serializers in ``serializers.py``.
+    The endpoints: ``drafts.py``, ``batch.py``, ``history.py``, ``sender.py``
+    (**Run now**), ``richtext.py`` (the field catalog and image uploads), and
+    ``preview.py``, with the serializers in ``serializers.py``.
 ``management/commands/send_bulk_emails.py``
     One run of the sender.
 
@@ -212,16 +225,23 @@ compose screen and the Sent page read it every three seconds while the email is
 Rendering a copy
 ================
 
-``render.render_copy(bulk, recipient)`` returns a ``RenderedCopy``: the subject,
-the plain-text and HTML bodies, and a dictionary of extra headers.  The bodies are
-rendered from ``emails/bulk_email.{txt,html}``: the plain-text body is the
-message followed by the house footer, and the HTML one makes each paragraph of
-the message a ``<p>`` inside the shared report frame.  The sender hands the
-finished bodies to ``send_templated`` through the pass-through pair
+The message is HTML from the portal's rich text editor, sanitized on every save
+and again whenever a copy is built.  ``render.render_copy(bulk, recipient)``
+returns a ``RenderedCopy``: the subject, the plain-text and HTML bodies, and a
+dictionary of extra headers, with the recipient's field values filled in
+(:ref:`api-bulk-email-rich-text`).  The bodies are rendered from
+``emails/bulk_email.{txt,html}``: the plain-text body is the message as plain text
+(``richtext.html_to_text``) followed by the house footer, and the HTML one puts the
+sanitized message inside the shared report frame.  Just before it tries a copy the
+sender reads the person's values for the fields the message uses
+(``render.fill_values``) and stores them on the row as ``values``, and
+``render_copy`` builds the copy from those, so any copy can be rebuilt exactly as
+it went.  The sender hands
+the finished bodies to ``send_templated`` through the pass-through pair
 ``emails/bulk_email_copy.{txt,html}``, which print the ``text`` and ``html`` they
 are given unchanged, and passes the copy's ``headers`` through
-``send_templated``'s ``headers`` argument.  As built here, every copy of one email
-reads the same and carries no extra header; the extension points below change that.
+``send_templated``'s ``headers`` argument.  As built here, a copy carries no extra
+header; the extension points below change that.
 
 
 Extending
@@ -237,9 +257,11 @@ The pieces a feature added to bulk email changes, and where:
   field, a field of ``BulkEmailUpdateSerializer`` (``PATCH`` saves whatever that
   serializer validates through ``drafts.update``), and a check in ``drafts.queue``
   when **Send** must refuse without it.
-* Anything that changes **what a copy says**, such as per-recipient fields, an
-  unsubscribe link and its headers, or a Reply-To, goes in ``render_copy`` and in
-  the arguments the sender passes to ``send_templated``.
+* Anything that changes **what a copy says**, such as an unsubscribe link and its
+  headers, or a Reply-To, goes in ``render_message`` and in the arguments the
+  sender passes to ``send_templated``.  A new **recipient field** is one more
+  ``Field`` in ``fields.FIELDS``, which the **Insert field** menu, the checks, and
+  the copies all read.
 * A new **screen** joins the Bulk Email group of the portal's menu
   (``frontend/src/portal/nav.ts``), its route goes in
   ``frontend/src/portal/routes/bulk-email.tsx``, and its guide page under

@@ -93,13 +93,6 @@ def stored(image: BulkEmailImage) -> Image.Image:
 
 
 @pytest.fixture
-def management_client(api_client: APIClient, management: User) -> APIClient:
-    """A DRF client signed in as CalDART management."""
-    api_client.force_login(management)
-    return api_client
-
-
-@pytest.fixture
 def site(settings: Settings) -> None:
     """Serve the site from ``https://caldart.example.org`` with no URL prefix."""
     settings.SITE_URL = "https://caldart.example.org"

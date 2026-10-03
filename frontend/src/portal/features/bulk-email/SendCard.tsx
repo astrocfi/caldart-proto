@@ -21,6 +21,7 @@ import type { BulkEmailDetail } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { useSendBulkEmail } from './api';
+import { MessagePreview } from './MessagePreview';
 import { ScheduleFields } from './ScheduleFields';
 import { sitePartsOf } from './schedule';
 import { SendConfirm } from './SendConfirm';
@@ -176,6 +177,7 @@ export function SendCard({
           ? 'Change when it goes out, or send it now instead. Cancel the schedule at the top of the screen.'
           : 'Read the email through, then send it now or choose a time. You can cancel a send for a short while after you press Send.'}
       </p>
+      <MessagePreview email={email} />
       {controls()}
     </Card>
   );

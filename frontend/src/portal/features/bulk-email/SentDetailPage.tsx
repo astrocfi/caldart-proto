@@ -3,7 +3,8 @@
  *
  * At the top are the subject, who sent it and when, and where it stands: the
  * progress with **Stop** while it sends, or the counts, with **Send the rest**
- * after a stop. Then the message as it was sent, and one line per person in the
+ * after a stop. Then the message as it was sent, in a sandboxed frame with its
+ * recipient field tokens as written, and one line per person in the
  * batch with what became of their copy and why, which **Download results**
  * saves as a spreadsheet. The page is read again every few seconds while the
  * email is sending.
@@ -22,6 +23,7 @@ import { Page } from '@/portal/components/Page';
 import { StatusDot } from '@/portal/components/StatusChip';
 import { isMoving, recipientsCsvUrl, useBatch, useBulkEmail } from './api';
 import './bulk-email.css';
+import './preview.css';
 import { SendStatus } from './SendStatus';
 import { kindLabel, people, resultLabel, resultTone } from './status';
 
@@ -57,10 +59,18 @@ export function SentDetailPage(): JSX.Element {
       </Card>
 
       <Card title="The message">
-        <p>
-          <strong>{sent.subject}</strong>
-        </p>
-        <div className="bulk-email__body">{sent.body}</div>
+        {hasFields(sent) ? (
+          <p className="muted">
+            Fields such as {'{first_name}'} show as written here; each person&apos;s copy had their
+            own details filled in.
+          </p>
+        ) : null}
+        <iframe
+          className="bulk-email__preview-frame"
+          title="The message as it was sent"
+          sandbox=""
+          srcDoc={sent.message_html}
+        />
       </Card>
 
       <Card title="Who received it">
@@ -79,6 +89,14 @@ export function SentDetailPage(): JSX.Element {
       </Card>
     </Page>
   );
+}
+
+/** A recipient field token, `{first_name}` or `{first_name|friend}`, as the server reads one. */
+const TOKEN = /(?<!\{)\{[a-z][a-z0-9_]*(?:\|[^{}|<>\n]*)?\}(?!\})/;
+
+/** Whether `email`'s subject or message fills in a recipient field. */
+export function hasFields(email: Pick<BulkEmailDetail, 'subject' | 'body'>): boolean {
+  return TOKEN.test(email.subject) || TOKEN.test(email.body);
 }
 
 /** `Sent by Grace Holloway on 04/06/2026 10:00 to 41 people.` */

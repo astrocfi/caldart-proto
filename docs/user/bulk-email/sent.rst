@@ -42,7 +42,9 @@ The page of one sent email has three cards:
   everybody the stop kept it from once you press **Send them now**. Nobody gets it twice, it
   starts within a minute, and the email reads *Waiting to send the rest* until then, with
   **Stop sending**.
-- **The message**: the subject and the message as they were sent.
+- **The message**: the email as it was sent, with the subject at its head. Fields such as
+  *{first_name}* show as written, because each person's copy had their own details filled
+  in.
 - **Who received it**: one line per person in the batch, with **Name**, **Email**,
   **Result**, **Reason**, **Tried at**, **Kind**, and **DART**. **Find a person** narrows it
   to a name or address, and **Download results** saves it as a spreadsheet file with each

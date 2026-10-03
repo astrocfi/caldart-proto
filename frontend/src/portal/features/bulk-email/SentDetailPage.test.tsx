@@ -1,14 +1,16 @@
 import { screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
+import type { BulkEmailDetail } from '@/portal/api/types';
 import { answerBulkEmail, makeBatch, makeBulkEmail, makeRow } from '@test/fixtures/bulkEmail';
 import { renderRoutes } from '@test/render';
 import { SentDetailPage } from './SentDetailPage';
 
 /** Render the Sent page of a finished send to Ann, with Bea's copy refused. */
-function renderSent() {
+function renderSent(overrides: Partial<BulkEmailDetail> = {}) {
   answerBulkEmail({
     email: makeBulkEmail({
+      ...overrides,
       status: 'sent',
       can_edit: false,
       batch_count: 2,
@@ -47,9 +49,24 @@ describe('SentDetailPage', () => {
     expect(row).toHaveTextContent('Refused by the mail server');
   });
 
-  it('shows the message as it was sent', async () => {
+  it('shows the message as it was sent, in a sandboxed frame', async () => {
     renderSent();
-    expect(await screen.findByText('Bring gloves.')).toBeVisible();
+    const frame = await screen.findByTitle('The message as it was sent');
+    expect([frame.getAttribute('sandbox'), frame.getAttribute('srcdoc')]).toEqual([
+      '',
+      '<html><body><h1>Hangar day</h1><p>Bring gloves.</p></body></html>',
+    ]);
+  });
+
+  it('says the fields show as written when the message fills any in', async () => {
+    renderSent({ body: '<p>Dear {first_name|friend},</p>' });
+    expect(await screen.findByText(/Fields such as \{first_name\} show as written/)).toBeVisible();
+  });
+
+  it('says nothing of fields when the message fills none in', async () => {
+    renderSent();
+    await screen.findByTitle('The message as it was sent');
+    expect(screen.queryByText(/Fields such as/)).toBeNull();
   });
 
   it('offers the results as a download', async () => {
