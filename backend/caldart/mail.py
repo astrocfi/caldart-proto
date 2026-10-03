@@ -13,11 +13,20 @@ row, successful or refused, which is what the email log screen reads.  Each
 message carries a ``Message-ID`` stored on that row, and goes out with
 ``BOUNCE_ADDRESS`` as its envelope sender when that is set, which is how the
 bounce check (``apps.mail.bounces``) matches a returned report to its row.
+
+A send raises when the mail server refuses the message or cannot be reached.  A
+caller that must answer whatever the server does -- a request whose answer must not
+depend on the mail, or a change already committed -- sends through
+:func:`send_logging_refusal` or :func:`send_on_commit`, which log the refusal on this
+module's logger instead of raising it.  Production routes that logger to the error
+mail ``ADMIN_EMAILS`` receives.
 """
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+import logging
+import smtplib
+from collections.abc import Callable, Sequence
 from email.utils import make_msgid, parseaddr
 
 from django.conf import settings
@@ -25,13 +34,24 @@ from django.contrib.auth import get_user_model
 from django.core.mail import EmailMultiAlternatives
 from django.core.mail.backends.base import BaseEmailBackend
 from django.core.mail.utils import DNS_NAME
+from django.db import transaction
 from django.template.loader import render_to_string
 from django.utils import timezone
 
 from caldart.org import org_details
 
+log = logging.getLogger(__name__)
+
 #: One attachment: its filename, its bytes, and its media type.
 type Attachment = tuple[str, bytes, str]
+
+#: What a send raises when the mail server refuses the message or cannot be reached.
+#: ``smtplib.SMTPException`` covers a refusal the server states (credentials it will
+#: not accept, a sender or recipient it will not take), and ``OSError`` a connection
+#: refused, a host that does not resolve, a TLS failure, or a timeout.  The first is a
+#: subclass of the second and is named for the reader.  A template that does not render,
+#: or any other bug, is neither, so it fails loudly.
+SEND_ERRORS: tuple[type[Exception], ...] = (smtplib.SMTPException, OSError)
 
 
 def org_name() -> str:
@@ -90,7 +110,8 @@ def send_templated(
     The sent message is returned, so a caller can record what went out.  A mail
     server that refuses the message is logged as a failed send, carrying the
     exception class, and the exception then raises as Django's ``send`` does; a
-    caller that must survive a refusal catches it and says so in its own log.
+    caller that must survive a refusal catches :data:`SEND_ERRORS` and says so in its
+    own log, or sends through :func:`send_logging_refusal`.
     """
     rendered = context or {}
     message_id = make_msgid(domain=_message_id_domain())
@@ -142,6 +163,43 @@ def send_templated(
         message_id=message_id,
     )
     return message
+
+
+def log_refusal(what: str) -> None:
+    """Log the send refusal being handled at ERROR, with its traceback, naming ``what``.
+
+    Call it from the ``except`` clause that caught one of :data:`SEND_ERRORS`.  The
+    record goes to the ``caldart.mail`` logger; ``what`` names the message and the
+    account by id, such as ``"the password reset for account 12"``, never an address.
+    """
+    log.exception("Could not send %s: the mail server refused it or could not be reached", what)
+
+
+def send_logging_refusal(send: Callable[[], object], *, what: str) -> bool:
+    """Call ``send``; True once it returns, False when the mail server refused it.
+
+    A refusal is one of :data:`SEND_ERRORS`.  The failed send is already in the email
+    log, written by :func:`send_templated`, and the refusal is logged by
+    :func:`log_refusal` naming ``what`` rather than raised, so the caller answers as it
+    would had the message gone out.  Anything else ``send`` raises propagates.
+    """
+    try:
+        send()
+    except SEND_ERRORS:
+        log_refusal(what)
+        return False
+    return True
+
+
+def send_on_commit(send: Callable[[], object], *, what: str) -> None:
+    """Call ``send`` once the current transaction commits, logging a refusal.
+
+    The send runs through :func:`send_logging_refusal`, so a mail server that refuses
+    the message cannot fail the request or job whose change has already committed;
+    outside a transaction the send runs at once.  A transaction that rolls back sends
+    nothing.
+    """
+    transaction.on_commit(lambda: send_logging_refusal(send, what=what))
 
 
 def _message_id_domain() -> str:

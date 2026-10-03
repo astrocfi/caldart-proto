@@ -92,6 +92,7 @@ from apps.members.models import (
 )
 from caldart import audit, events
 from caldart.exceptions import DomainPermissionError
+from caldart.mail import send_on_commit
 
 if TYPE_CHECKING:
     from django_stubs_ext import WithAnnotations
@@ -175,9 +176,10 @@ def register_member(
     than a create.  Account and profile are written together, so a failure leaves no
     half-made member.  The profile's ``profile_updated_at`` is stamped as the moment
     it was written.  The account starts unverified, and once the transaction commits
-    its address is mailed a verification link.  Nothing is raised yet: the join
-    wizard asks for the DART at the profile step, and the save that completes the
-    profile raises ``signed_up``
+    its address is mailed a verification link; a mail server that refuses it is logged
+    (``caldart.mail.send_on_commit``) and the account stands.  Nothing is raised yet:
+    the join wizard asks for the DART at the profile step, and the save that completes
+    the profile raises ``signed_up``
     (:meth:`apps.members.api.profile_serializers.ProfileSerializer.update`).
 
     An address that belongs to a donor is not a new account, and the donor is
@@ -197,7 +199,10 @@ def register_member(
             "kind": kind.value,
         }
         MemberProfile.objects.get_or_create(user=donor)
-        transaction.on_commit(lambda: send_email_verification(donor, upgrade=upgrade))
+        send_on_commit(
+            lambda: send_email_verification(donor, upgrade=upgrade),
+            what=f"the email verification for account {donor.pk}",
+        )
         return donor
     user = create_account(
         email=email,
@@ -208,7 +213,10 @@ def register_member(
     )
     profile, _ = MemberProfile.objects.get_or_create(user=user)
     touch_profile(profile)
-    transaction.on_commit(lambda: send_email_verification(user))
+    send_on_commit(
+        lambda: send_email_verification(user),
+        what=f"the email verification for account {user.pk}",
+    )
     return user
 
 
@@ -231,7 +239,9 @@ def create_member(
     at an airshow may be none of them.  Without a password the account holds an
     unusable one and is mailed an invitation to set the first, whose link also
     proves the address; with one it is mailed a verification link instead.  Either
-    mail is queued past the commit, so a create that rolls back mails nobody.
+    mail is queued past the commit, so a create that rolls back mails nobody, and a
+    mail server that refuses it is logged (``caldart.mail.send_on_commit``) rather than
+    failing the committed create.
     ``request`` only tells the invitation which site's name and contact address to
     use.  The new
     profile's ``profile_updated_at`` is stamped as the moment it was created.  The
@@ -243,9 +253,15 @@ def create_member(
     row = MemberProfile.objects.create(user=user, **(profile or {}))
     touch_profile(row)
     if password:
-        transaction.on_commit(lambda: send_email_verification(user))
+        send_on_commit(
+            lambda: send_email_verification(user),
+            what=f"the email verification for account {user.pk}",
+        )
     else:
-        transaction.on_commit(lambda: send_password_invitation(user, request=request))
+        send_on_commit(
+            lambda: send_password_invitation(user, request=request),
+            what=f"the invitation for account {user.pk}",
+        )
     audit.record(audit.MEMBER_CREATE, actor=actor, target=user, invited=not password)
     events.emit("member_added", user=user, actor=actor)
     return user

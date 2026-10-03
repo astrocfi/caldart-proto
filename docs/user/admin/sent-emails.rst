@@ -88,5 +88,7 @@ turns *Bounced* and the address is flagged on the person's records (:doc:`schedu
 server with no bounce mailbox set up, bounces are never read and every such row stays
 *Sent*. If the log shows many *Failed:* rows, the site cannot reach
 its mail server; tell whoever runs the server, and once it is fixed, a password reset to your
-own address is a quick test. If an email you expected is missing altogether, the job that
+own address is a quick test. Somebody who asks for a password reset or a fresh verification
+link is told the same thing whether or not it went, so a reset never gives away whether an
+address has an account: a *Failed:* row here is how you learn their email never left. If an email you expected is missing altogether, the job that
 sends it may not have run; :doc:`scheduled` runs each one by hand.

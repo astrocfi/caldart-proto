@@ -271,6 +271,31 @@ describe('UserDetailPage', () => {
     ).toBeInTheDocument();
   });
 
+  it.each([
+    ['send-password-reset', /send password reset/i, {}],
+    [
+      'send-email-verification',
+      /resend verification message/i,
+      { email_verified: false, email_verified_at: null },
+    ],
+  ])('reports a mail server that refused the %s message', async (action, button, overrides) => {
+    const refused =
+      'The mail server did not accept the message. ' +
+      'A system administrator can see the attempt on the Sent Emails page.';
+    stubDetail({ target: { ...TARGET, ...overrides } });
+    server.use(
+      http.post(`${API}/admin/users/${TARGET.id}/${action}`, () =>
+        HttpResponse.json({ detail: refused }, { status: 503 }),
+      ),
+    );
+    renderDetail();
+    await screen.findByRole('heading', { name: 'Priya Raman' });
+
+    await userEvent.click(screen.getByRole('button', { name: button }));
+
+    expect(await screen.findByText(refused)).toBeInTheDocument();
+  });
+
   it('will not offer a reset for a deactivated account', async () => {
     stubDetail({ target: { ...TARGET, is_active: false } });
     renderDetail();

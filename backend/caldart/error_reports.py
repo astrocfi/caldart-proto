@@ -1,4 +1,4 @@
-"""What an error report may show of the settings: no password, wherever it sits.
+"""Error reports: what they may show of the settings, and a mailer that cannot fail.
 
 Django's error reports (the mail ``AdminEmailHandler`` sends to ``ADMIN_EMAILS``, and
 the debug page) list the settings, masking those whose name looks secret: ``KEY``,
@@ -7,12 +7,19 @@ under a name that looks like nothing of the kind, ``BOUNCE_IMAP_URL`` for one, s
 :class:`CredentialSafeExceptionReporterFilter` also masks the password part of every
 URL in a setting's value, keeping the scheme, the user name and the host readable.
 ``DEFAULT_EXCEPTION_REPORTER_FILTER`` names it.
+
+The error mail goes through the same mail server as everything else, so when that
+server refuses a message it refuses the report too.  :class:`QuietAdminEmailHandler`
+is the production ``mail_admins`` handler: a report it cannot send is written to
+standard error, which the journal keeps, rather than raised into whatever logged it.
 """
 
 from __future__ import annotations
 
+import logging
 import re
 
+from django.utils.log import AdminEmailHandler
 from django.views.debug import SafeExceptionReporterFilter
 
 #: The ``password`` of a ``scheme://user:password@host`` URL anywhere in a string.
@@ -33,3 +40,26 @@ class CredentialSafeExceptionReporterFilter(SafeExceptionReporterFilter):
         if isinstance(cleansed, str):
             return URL_PASSWORD.sub(rf"\g<head>{self.cleansed_substitute}", cleansed)
         return cleansed
+
+
+class QuietAdminEmailHandler(AdminEmailHandler):
+    """Django's ``AdminEmailHandler``, except that a report it cannot send never raises.
+
+    With ``MAILERS`` configured, Django's handler sends the report without
+    ``fail_silently``, so a refusing or unreachable mail server raises out of the
+    ``log`` call that produced the report, failing a request that set out to survive
+    the very same refusal.
+    """
+
+    def emit(self, record: logging.LogRecord) -> None:
+        """Mail ``record`` to ``ADMINS``; on any failure, hand it to ``handleError``.
+
+        ``handleError`` writes the failure's traceback to standard error and returns, so
+        the caller that logged ``record`` carries on as if the mail had gone.
+        """
+        try:
+            super().emit(record)
+        # Broad on purpose: this is the ``logging.Handler`` contract every standard
+        # handler follows, since a handler that raises fails the code that logged.
+        except Exception:
+            self.handleError(record)

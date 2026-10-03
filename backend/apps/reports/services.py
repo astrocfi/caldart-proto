@@ -18,7 +18,6 @@ timer and a system administrator's run, say) never send one of them twice.
 from __future__ import annotations
 
 import logging
-import smtplib
 from dataclasses import dataclass, field
 from datetime import date, datetime, time
 from typing import Any
@@ -37,7 +36,7 @@ from apps.reports.registry import REPORTS
 from apps.reports.schedule import next_due_after, schedule_label
 from caldart import audit
 from caldart.dates import format_display_date
-from caldart.mail import Attachment, contact_email, org_name, send_templated
+from caldart.mail import SEND_ERRORS, Attachment, contact_email, org_name, send_templated
 from caldart.reports import (
     Params,
     Report,
@@ -90,9 +89,6 @@ FORMAT_LABELS: dict[str, str] = {
     ReportFormats.PDF: "PDF",
     ReportFormats.BOTH: "CSV and PDF",
 }
-
-#: What a refused send raises: the mail server's refusal, or a dropped connection.
-SEND_ERRORS: tuple[type[Exception], ...] = (smtplib.SMTPException, OSError)
 
 #: What a subscription's send can fail with: a refused send, or a report the stored
 #: params no longer build.

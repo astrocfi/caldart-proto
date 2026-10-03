@@ -42,6 +42,41 @@ the field they concern (``password``, ``new_password``) rather than in
 **Pagination** is ``?page=&page_size=`` (25 by default, 200 maximum) with the
 usual ``{count, next, previous, results}`` envelope.
 
+.. _api-refused-send:
+
+**When the mail server refuses.**  Several endpoints on this page send email
+before they answer.  When the mail server refuses the message, or cannot be
+reached, the attempt is recorded as a failed send in the email log
+(:doc:`email`), and the refusal is logged with its traceback on the
+``caldart.mail`` logger, which production mails to ``ADMIN_EMAILS``
+(:doc:`configuration`).  What the caller is told depends on who asked:
+
+* A request people make for themselves answers exactly as it does when the
+  message goes out: ``POST /auth/password/reset``, ``POST /auth/register``,
+  ``POST /auth/email/resend``, ``POST /auth/email/change``, and
+  ``POST /auth/reactivate``.  A reset in particular must not tell the caller
+  anything about the address, and any other answer would.
+* A change an administrator saves that mails somebody along the way answers as
+  it does when the message goes out too, because the change has committed: an
+  edit of the address (``PATCH /admin/users/{id}``), a reactivation, and the
+  member record's create, edit, and reactivation (:doc:`api-members`).
+* A send the user administrator asks for by name,
+  ``POST /admin/users/{id}/send-password-reset`` or
+  ``POST /admin/users/{id}/send-email-verification``, answers **503** and
+  records nothing in the audit log, so the administrator knows the message did
+  not go:
+
+  .. code-block:: json
+
+     {"detail": "The mail server did not accept the message. A system administrator can see the attempt on the Sent Emails page."}
+
+A refusal is what ``caldart.mail.SEND_ERRORS`` names: ``smtplib.SMTPException``
+and ``OSError``, which covers a connection refused, a host that does not
+resolve, a TLS failure, and a timeout.  Anything else, such as a template that
+does not render, is a bug and answers 500.  The quiet answers go through
+``caldart.mail.send_logging_refusal``, or ``send_on_commit`` for a send queued
+for the commit.
+
 
 The user payload
 ================
@@ -210,7 +245,8 @@ Rejections, all 400:
 
 Statuses: **201** with the user payload; **202** for a donor's address; **400**
 for any rejection above; **429** when the ``auth_register`` throttle is
-exhausted.
+exhausted.  A refused verification message changes neither answer
+(:ref:`refused sends <api-refused-send>`).
 
 ``POST /auth/login``
 --------------------
@@ -332,9 +368,10 @@ trailing slash from ``SITE_URL``, and the invitation an administrator-created
 account receives (:doc:`api-members`) uses the same function, so both links are
 spent at the confirm endpoint below.
 
-Statuses: **204**, registered address or not; **400** for a missing or
-malformed address; **429** when the ``auth_password_reset`` throttle is
-exhausted.
+Statuses: **204**, registered address or not, and whether or not the mail
+server took the message (:ref:`refused sends <api-refused-send>`); **400** for a
+missing or malformed address; **429** when the ``auth_password_reset`` throttle
+is exhausted.
 
 ``POST /auth/password/reset/confirm``
 -------------------------------------
@@ -489,8 +526,9 @@ same way, each ``membership.correct`` recorded under the administrator.
   deactivated, and ``accounts.status.reactivate_own_account`` refuses it the same
   way, recorded as ``action=account.activate ... reason=reactivation_blocked``.
 
-Statuses: **200** with the user payload and a session cookie; **400** as above
-or for a missing field; **403** for a closed account; **429** when the ``auth_login`` throttle is exhausted.
+Statuses: **200** with the user payload and a session cookie, also when the mail
+server refuses the verification link (:ref:`refused sends <api-refused-send>`);
+**400** as above or for a missing field; **403** for a closed account; **429** when the ``auth_login`` throttle is exhausted.
 
 
 Email verification
@@ -520,7 +558,9 @@ once the transaction commits, with the address it replaced signed into the
 link.  The same edit clears any bounce recorded against the old address
 (``email_bounced_at`` and ``email_bounce_detail``).  That covers
 ``PATCH /admin/users/{id}``, ``PATCH /admin/members/{user_id}``, and
-``POST /auth/email/change`` alike.
+``POST /auth/email/change`` alike.  A mail server that refuses the link leaves
+the edit standing and the answer unchanged
+(:ref:`refused sends <api-refused-send>`).
 
 ``POST /auth/email/verify``
 ---------------------------
@@ -566,8 +606,9 @@ An address that is already verified is refused, and nothing is mailed::
 
     400 {"detail": "Your email address is already verified."}
 
-Statuses: **202**; **400** for a verified address; **401** when anonymous;
-**429** when the ``auth_verify_resend`` throttle is exhausted.
+Statuses: **202**, also when the mail server refuses the message
+(:ref:`refused sends <api-refused-send>`); **400** for a verified address;
+**401** when anonymous; **429** when the ``auth_verify_resend`` throttle is exhausted.
 
 ``POST /auth/email/change``
 ---------------------------
@@ -595,8 +636,9 @@ The change goes through ``accounts.services.change_own_email``, which is
 is mailed a verification link on commit.  The session survives, so the caller
 stays signed in.
 
-Statuses: **200**; **400** for any rejection above or a missing field;
-**401** when anonymous.
+Statuses: **200**, also when the mail server refuses the verification link
+(:ref:`refused sends <api-refused-send>`); **400** for any rejection above or a
+missing field; **401** when anonymous.
 
 
 Unverified sessions
@@ -824,11 +866,14 @@ donor, who cannot sign in, is refused with a sentence of its own::
     400 {"detail": "A donor cannot sign in, so no reset email was sent."}
 
 Both the send and the refusal are recorded in the audit log
-(:ref:`deploy-audit-log`).
+(:ref:`deploy-audit-log`).  A mail server that refuses the message is a 503
+naming the Sent Emails page, and nothing is recorded in the audit log
+(:ref:`refused sends <api-refused-send>`).
 
 Statuses: **200** when the mail went out; **400** for an account that is
 deactivated, holds no email address, or is a donor's; **401** when anonymous;
-**403** without ``user_admin``; **404** for an unknown id.  This endpoint is not
+**403** without ``user_admin``; **404** for an unknown id; **503** when the mail
+server refused the message.  This endpoint is not
 throttled —
 the throttles guard the anonymous routes.
 
@@ -849,11 +894,14 @@ Three accounts are refused, and none is mailed::
     400 {"detail": "That account is deactivated, so no verification message was sent."}
 
 The send is recorded in the audit log as
-``action=email_verification.admin_sent actor=<admin> target=<id>``.
+``action=email_verification.admin_sent actor=<admin> target=<id>``.  A mail
+server that refuses the message is a 503 naming the Sent Emails page, and
+nothing is recorded in the audit log (:ref:`refused sends <api-refused-send>`).
 
 Statuses: **202** when the mail went out; **400** for a donor, a verified
 address, or a deactivated account; **401** when anonymous; **403** without ``user_admin``;
-**404** for an unknown id.  Not throttled.
+**404** for an unknown id; **503** when the mail server refused the message.  Not
+throttled.
 
 .. _api-clear-bounce:
 
@@ -900,7 +948,9 @@ sentences are listed under :ref:`account-edit-guard`.
    Everything ``POST /auth/reactivate`` does, under the administrator
    (``accounts.status.reactivate_account``), except signing anybody in:
    ``account.activate`` and ``account_reactivated`` name the administrator, each
-   suspended term is restored, and an unverified address is mailed a link.
+   suspended term is restored, and an unverified address is mailed a link (a
+   refused link leaves the answer unchanged,
+   :ref:`refused sends <api-refused-send>`).
    Refused for a donor, an account holding roles you do not hold, an account
    blocked from reactivating, and an account already active.
 
@@ -1166,6 +1216,13 @@ Tests
    The verification token and each way it is refused, the message, every path
    that sends one, and the verify, resend, change, and administrator resend
    endpoints.
+
+``backend/tests/test_mail_failure_answers.py``
+   Every request that sends mail, against a mail server that takes the message
+   and one that refuses it: the same answer either way for the self-service and
+   side-effect sends, the 503 on the two user-record sends, the failed email log
+   row, the ``caldart.mail`` error record, and the error-mail handler that cannot
+   raise.
 
 ``backend/tests/test_auth_api.py``
    The minimal surface the portal shell needs — CSRF, login, logout, me.

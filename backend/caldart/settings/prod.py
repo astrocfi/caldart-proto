@@ -213,11 +213,18 @@ PAYMENTS_MOCK_ENABLED = env.bool("PAYMENTS_MOCK_ENABLED_IN_PRODUCTION", default=
 LOG_LEVEL = env("LOG_LEVEL", default="INFO")
 LOGGING["root"]["level"] = LOG_LEVEL
 LOGGING["handlers"]["mail_admins"] = {
-    "class": "django.utils.log.AdminEmailHandler",
+    "class": "caldart.error_reports.QuietAdminEmailHandler",
     "level": "ERROR",
     "include_html": False,
 }
 LOGGING["loggers"]["django.request"] = {
+    "handlers": ["console", "mail_admins"],
+    "level": "ERROR",
+    "propagate": False,
+}
+# A message the mail server refused during a request that answered anyway
+# (caldart.mail.log_refusal) is reported like an unhandled 500.
+LOGGING["loggers"]["caldart.mail"] = {
     "handlers": ["console", "mail_admins"],
     "level": "ERROR",
     "propagate": False,
@@ -228,7 +235,7 @@ LOGGING["loggers"]["django.security"] = {
     "propagate": False,
 }
 
-# Unhandled-500 mail goes here.  Empty is fine: AdminEmailHandler then does
-# nothing, and the traceback is still in the journal.
+# Unhandled-500 mail, and a refused send a request survived, go here.  Empty is fine:
+# AdminEmailHandler then does nothing, and the traceback is still in the journal.
 ADMINS = [("CalDART operations", address) for address in env.list("ADMIN_EMAILS", default=[])]
 MANAGERS = ADMINS

@@ -283,10 +283,8 @@ Every message ``send_templated`` sends leaves one ``EmailLog`` row
 account it concerned, the purpose, the subject, when it went, whether the
 mail server took it, and the names of any attachments.  A server that refuses
 the message is recorded as **failed** with the exception's class name, and the
-error then travels on to the caller.  A request fails as it would without the
-log, and each scheduled job catches the error for that one recipient, logs it
-to the journal, counts it among its failures, and carries on with the next.
-The body itself is not stored.
+error then travels on to the caller, which decides what the refusal means
+(`When the mail server refuses`_).  The body itself is not stored.
 
 A system administrator reads the log in the portal, on the **Sent Emails**
 page, which filters by date, purpose, recipient, status, and attachments and
@@ -298,6 +296,46 @@ Django admin.
 reached an inbox.  A message the recipient's server later refuses for good turns
 **Bounced** once the bounce check has read the report (`Bounces`_).  The Sent
 Emails page filters on that status and shows when each message bounced and why.
+
+.. _email-refused:
+
+When the mail server refuses
+----------------------------
+
+A refusal is what ``caldart.mail.SEND_ERRORS`` names: ``smtplib.SMTPException``,
+for a message the server answers with an error (credentials it will not accept, a
+sender or a recipient it will not take), and ``OSError``, for a server that
+cannot be reached at all (a connection refused, a host that does not resolve, a
+TLS failure, a timeout).  Anything else a send raises, such as a template that
+does not render, is a bug and fails loudly.  Every caller catches a refusal and
+carries on:
+
+* Each scheduled job, and each send to many people (bulk email, notifications,
+  rosters), catches the refusal for that one recipient, logs it to the journal,
+  counts it among its failures, and carries on with the next.
+* A payment's email (a receipt, a refund notice, a renewal notice) is caught and
+  logged, and the payment stands.
+* A request a person makes for themselves (a password reset, a registration,
+  a fresh verification link, a change of address, a reactivation) answers
+  exactly as it does when the message goes out.  So does a change an
+  administrator saves that mails somebody along the way, such as the invitation
+  a member added on the member record receives, since the change has committed.
+  These sends go through ``caldart.mail.send_logging_refusal``, or
+  ``caldart.mail.send_on_commit`` for a send queued for the commit.
+* A send a user administrator asks for by name, the user record's **Send password
+  reset** and **Resend verification message**, answers 503 with a sentence
+  pointing at the Sent Emails page, so the administrator knows it did not go.
+
+The request answers are listed endpoint by endpoint under
+:ref:`refused sends <api-refused-send>`.  Whatever the answer, a refusal during a request is logged at ERROR with its
+traceback on the ``caldart.mail`` logger.  Production writes that logger to the
+journal and mails it to ``ADMIN_EMAILS`` (:doc:`configuration`), as it does an
+unhandled 500.  That error mail goes through the same mail server, so it is
+often refused as well: the ``mail_admins`` handler
+(``caldart.error_reports.QuietAdminEmailHandler``) then writes the failure to
+standard error, which the journal keeps, instead of raising it into the request.
+An unreachable server is waited on twice, once for the message and once for the
+report, each bounded by ``EMAIL_TIMEOUT``.
 
 
 .. _email-bounces:
@@ -458,8 +496,8 @@ is a ``DEFAULT_FROM_EMAIL`` the relay will not send as; ``TimeoutError`` or
 ``ConnectionRefusedError`` is the wrong host or port, or a firewall between
 the server and the relay; with ``smtp://localhost:25`` it means postfix is not
 running or not listening on localhost (``ss -ltn 'sport = :25'`` shows what
-is).  ``journalctl -u caldart-web`` has the full
-message.
+is).  ``journalctl -u caldart-web`` has the full message, and so does the error
+mail to ``ADMIN_EMAILS`` when the server takes that one.
 
 **The log says Sent, but the member saw nothing.**  Ask them to look in spam.
 Then read the ``Authentication-Results`` of a test message as above: a

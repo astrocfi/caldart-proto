@@ -19,7 +19,6 @@ from __future__ import annotations
 
 from django.contrib.auth import SESSION_KEY
 from django.contrib.sessions.models import Session
-from django.db import transaction
 from django.utils import timezone
 
 from apps.accounts.models import User
@@ -32,7 +31,7 @@ from apps.accounts.services import (
 )
 from caldart import audit, events
 from caldart.exceptions import DomainError
-from caldart.mail import org_name
+from caldart.mail import org_name, send_on_commit
 
 SELF_DEACTIVATION_REFUSED = "You cannot deactivate your own account."
 STATUS_CHANGE_REFUSED = (
@@ -292,6 +291,13 @@ def _refuse(action: str, actor: User, target: User, reason: str) -> None:
 
 
 def _verify_on_commit(user: User) -> None:
-    """Mail ``user`` a verification link once the transaction commits, if unverified."""
+    """Mail ``user`` a verification link once the transaction commits, if unverified.
+
+    A mail server that refuses it is logged (``caldart.mail.send_on_commit``), and the
+    reactivation stands.
+    """
     if user.email_verified_at is None:
-        transaction.on_commit(lambda: send_email_verification(user))
+        send_on_commit(
+            lambda: send_email_verification(user),
+            what=f"the email verification for account {user.pk}",
+        )

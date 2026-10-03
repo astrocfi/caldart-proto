@@ -196,6 +196,11 @@ record, save, and try again. If the address will not save, another account
 already uses it, and you have probably found a duplicate. *That account is deactivated, so
 no reset email was sent.* means the account was deactivated while the page was open; reload
 and reactivate it first. *That account is already deactivated.* and *That account is
-already active.* mean somebody changed it while the page was open; reload the page. If somebody still cannot see a page after you ticked its role, ask
+already active.* mean somebody changed it while the page was open; reload the page. *The mail
+server did not accept the message. A system administrator can see the attempt on the Sent
+Emails page.* after **Send password reset** or **Resend verification message** means nothing
+was sent: the site could not hand the email to its mail server. The attempt is listed as
+*Failed:* on :doc:`sent-emails`, with the reason; tell whoever runs the server, and press the
+button again once it is fixed. If somebody still cannot see a page after you ticked its role, ask
 them to reload the portal, and check that you pressed **Save changes**. Profiles,
 memberships, and payments are not on this screen; they belong to an account administrator.
