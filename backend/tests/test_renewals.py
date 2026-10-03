@@ -802,6 +802,7 @@ def test_a_notice_the_mail_server_refused_is_sent_again_next_run(
     monkeypatch.setattr(renewal_emails, "send_templated", refusing_mailer)
     run_auto_renewals(today=today)
     monkeypatch.undo()
+    assert len(mailoutbox) == 0, "the patch never ran, so no send was refused"
 
     run_auto_renewals(today=today)
 

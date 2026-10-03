@@ -885,17 +885,20 @@ def test_a_scan_that_loses_the_race_to_schedule_a_charge_takes_it_once(
 ) -> None:
     """Another scan writes the attempt between this one's look and write: one charge."""
     donation(friend, next_charge_on=today)
+    raced: list[RenewalMandate] = []
 
     def racing_charge_date(mandate: RenewalMandate, day: date | None = None) -> date | None:
         """Write the attempt as a concurrent scan would, then answer as usual."""
         if not RenewalAttempt.objects.exists():
             RenewalAttempt.objects.create(mandate=mandate, scheduled_on=today)
+            raced.append(mandate)
         return charge_date(mandate, day)
 
     monkeypatch.setattr(renewal_scan, "charge_date", racing_charge_date)
 
     run_auto_renewals(today=today)
 
+    assert len(raced) == 1, "the patch never ran, so no race was staged"
     assert Payment.objects.filter(user=friend).count() == 1
 
 
