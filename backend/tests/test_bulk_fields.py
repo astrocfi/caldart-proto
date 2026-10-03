@@ -15,7 +15,7 @@ import pytest
 from rest_framework.test import APIClient
 
 from apps.accounts.models import AccountKind
-from apps.accounts.roles import MANAGEMENT, SYSTEM_ADMIN
+from apps.accounts.roles import DART_LEADER, MANAGEMENT, SYSTEM_ADMIN
 from apps.bulk_email.fields import (
     FIELDS,
     Token,
@@ -81,11 +81,11 @@ def test_the_catalog_offers_every_field_in_order() -> None:
     assert [field.token for field in FIELDS] == CATALOG
 
 
-@pytest.mark.parametrize(("role", "allowed"), role_matrix(MANAGEMENT, SYSTEM_ADMIN))
-def test_only_management_reads_the_fields(
+@pytest.mark.parametrize(("role", "allowed"), role_matrix(DART_LEADER, MANAGEMENT, SYSTEM_ADMIN))
+def test_only_bulk_senders_read_the_fields(
     api_client: APIClient, all_role_users: dict[str, User], role: str, allowed: bool
 ) -> None:
-    """``GET /bulk-email/fields`` is for CalDART management and system administrators."""
+    """``GET /bulk-email/fields`` is for DART leaders, CalDART management, and admins."""
     api_client.force_login(all_role_users[role])
     assert api_client.get(FIELDS_URL).status_code == (200 if allowed else 403)
 

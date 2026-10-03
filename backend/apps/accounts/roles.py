@@ -25,7 +25,8 @@ ROLE_DESCRIPTIONS: dict[str, str] = {
     ),
     DART_LEADER: (
         "Look up any member and see membership, medical, certificate, and "
-        "aircraft insurance currency."
+        "aircraft insurance currency, and send bulk email to the members and "
+        "friends of the DART on their own profile."
     ),
     USER_ADMIN: (
         "List users, assign roles, activate or deactivate accounts, and trigger password resets."
@@ -40,8 +41,8 @@ ROLE_DESCRIPTIONS: dict[str, str] = {
         "and aircraft reports."
     ),
     MANAGEMENT: (
-        "Send an email to every member and friend a filter selects, after "
-        "previewing the list of recipients."
+        "Send bulk email to any members and friends the filters choose, and see "
+        "every bulk email any sender has written, with its sender and its DART."
     ),
     WEBSITE_ADMIN: (
         "Wagtail admin: create, edit, delete, and publish pages, images, "

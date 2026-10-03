@@ -17,7 +17,7 @@ from django.core import mail
 from django.core.mail import EmailMultiAlternatives
 from rest_framework.test import APIClient
 
-from apps.accounts.roles import MANAGEMENT, SYSTEM_ADMIN
+from apps.accounts.roles import DART_LEADER, MANAGEMENT, SYSTEM_ADMIN
 from apps.bulk_email import job
 from apps.bulk_email.fields import unknown_token_message
 from apps.bulk_email.models import (
@@ -360,11 +360,14 @@ def test_only_management_previews(
     role: str,
     allowed: bool,
 ) -> None:
-    """``POST /bulk-email/{id}/preview`` is for CalDART management and system admins."""
+    """``POST /bulk-email/{id}/preview`` of a manager's email is for CalDART management.
+
+    A DART leader gets a 404 for another sender's email.
+    """
     bulk = BulkEmailFactory(sender=management)
     api_client.force_login(all_role_users[role])
     response = api_client.post(detail_url(bulk, "preview"), {}, format="json")
-    assert response.status_code == (200 if allowed else 403)
+    assert response.status_code == (200 if allowed else (404 if role == DART_LEADER else 403))
 
 
 def test_the_preview_starts_with_the_first_person(

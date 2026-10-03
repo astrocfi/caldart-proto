@@ -20,7 +20,7 @@ from PIL import Image, ImageSequence
 from pytest_django import Settings
 from rest_framework.test import APIClient
 
-from apps.accounts.roles import MANAGEMENT, SYSTEM_ADMIN
+from apps.accounts.roles import DART_LEADER, MANAGEMENT, SYSTEM_ADMIN
 from apps.bulk_email import images
 from apps.bulk_email.images import MAX_FRAMES, TOO_MANY_PIXELS_MESSAGE, WRONG_TYPE_MESSAGE
 from apps.bulk_email.models import BulkEmailImage
@@ -102,11 +102,11 @@ def site(settings: Settings) -> None:
 # --------------------------------------------------------------------------
 # Who may upload
 # --------------------------------------------------------------------------
-@pytest.mark.parametrize(("role", "allowed"), role_matrix(MANAGEMENT, SYSTEM_ADMIN))
-def test_only_management_uploads_images(
+@pytest.mark.parametrize(("role", "allowed"), role_matrix(DART_LEADER, MANAGEMENT, SYSTEM_ADMIN))
+def test_only_bulk_senders_upload_images(
     api_client: APIClient, all_role_users: dict[str, User], role: str, allowed: bool
 ) -> None:
-    """``POST /bulk-email/images`` is for CalDART management and system administrators."""
+    """``POST /bulk-email/images`` is for DART leaders, CalDART management, and admins."""
     api_client.force_login(all_role_users[role])
     response = api_client.post(IMAGES_URL, {"image": upload(picture())}, format="multipart")
     assert response.status_code == (201 if allowed else 403)

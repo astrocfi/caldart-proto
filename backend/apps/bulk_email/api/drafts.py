@@ -46,7 +46,9 @@ def summary_queryset(emails: QuerySet[BulkEmail]) -> QuerySet[BulkEmail]:
 
 def _detail(bulk: BulkEmail, *, code: int = status.HTTP_200_OK) -> Response:
     """``bulk`` read afresh, as ``GET /bulk-email/{id}`` answers it."""
-    fresh = BulkEmail.objects.select_related("sender", "stopped_by", "email_type").get(pk=bulk.pk)
+    fresh = BulkEmail.objects.select_related("sender", "stopped_by", "email_type", "dart").get(
+        pk=bulk.pk
+    )
     return Response(BulkEmailDetailSerializer(fresh).data, status=code)
 
 

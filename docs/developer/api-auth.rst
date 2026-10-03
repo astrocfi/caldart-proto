@@ -688,7 +688,7 @@ will not be many more.
     {"slug": "verifier",
      "description": "Verify a member's pilot certificate, medical, and photo ID, and an aircraft's insurance, from the member check and the aircraft check."},
     {"slug": "dart_leader",
-     "description": "Look up any member and see membership, medical, certificate, and aircraft insurance currency."}]
+     "description": "Look up any member and see membership, medical, certificate, and aircraft insurance currency, and send bulk email to the members and friends of the DART on their own profile."}]
 
 Descriptions live in ``apps.accounts.roles.ROLE_DESCRIPTIONS``, which is also
 what ``manage.py seed_roles`` iterates, so the API, the seed and the portal's
