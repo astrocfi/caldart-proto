@@ -174,11 +174,6 @@ class DnsReport:
     findings: tuple[DnsFinding, ...]
     checked_at: datetime
 
-    @property
-    def has_failures(self) -> bool:
-        """True when at least one finding is a ``fail``."""
-        return any(finding.status == DnsStatus.FAIL for finding in self.findings)
-
 
 class DnsLookupError(Exception):
     """A lookup that could not be answered, with a sentence and a fix for the reader.
@@ -621,6 +616,11 @@ def _spf_policy_problem(terms: list[_SpfTerm]) -> _Problem | None:
             "The list does not say what to do with mail from servers that are not on it, "
             "so a forger is not turned away."
         )
+    elif closing.qualifier == "?":
+        result = (
+            "The list ends with ?all, which tells receivers to make no judgment about "
+            "mail from servers that are not on it, so it does not stop a forger."
+        )
     else:
         result = "The list ends by accepting mail from any server, so it does not stop a forger."
     return _Problem(
@@ -821,6 +821,15 @@ def _check_dmarc(resolver: _Resolver, inputs: _Inputs) -> DnsFinding:
             f"named {name} that reads: v=DMARC1; p=quarantine; rua=mailto:"
             f"dmarc-reports@{inputs.from_domain}",
         )
+    if len(records) > 1:
+        return DnsFinding(
+            DMARC_NAME,
+            DnsStatus.FAIL,
+            f"{DMARC_PURPOSE} {name} publishes {len(records)} policies; receiving servers "
+            "apply none of them when there is more than one.",
+            f"Ask whoever manages the DNS for {inputs.from_domain} to keep one TXT record "
+            f"at {name} that starts with v=DMARC1 and remove the others.",
+        )
     tags = _dmarc_tags(records[0])
     policy = tags.get("p", "").lower()
     if policy not in DMARC_POLICIES:
@@ -860,13 +869,36 @@ def _dmarc_tags(record: str) -> dict[str, str]:
 
 
 def _dmarc_reports(tags: dict[str, str]) -> str:
-    """A sentence listing where the DMARC reports go, or blank when they go nowhere."""
+    """A sentence listing where the DMARC reports go, or blank when they go nowhere.
+
+    Each ``rua`` and ``ruf`` value is a comma-separated list of report addresses; each is
+    shown as the bare address, without its ``mailto:`` scheme or a ``!`` size limit, and
+    several read as a list joined with "and".
+    """
     parts = [
-        f"{label} {tags[tag]}"
+        f"{label} {_dmarc_addresses(tags[tag])}"
         for tag, label in (("rua", "Summary reports go to"), ("ruf", "Failure reports go to"))
         if tag in tags
     ]
     return "" if len(parts) == 0 else " " + " ".join(f"{part}." for part in parts)
+
+
+def _dmarc_addresses(value: str) -> str:
+    """The report addresses in one ``rua`` or ``ruf`` ``value``, as a person writes them.
+
+    ``mailto:a@example.org!10m, mailto:b@example.org`` reads as
+    ``a@example.org and b@example.org``; a URI that is not ``mailto:`` is kept as given.
+    """
+    addresses = []
+    for uri in value.split(","):
+        address = uri.strip().partition("!")[0]
+        if address.lower().startswith("mailto:"):
+            address = address[len("mailto:") :]
+        if address != "":
+            addresses.append(address)
+    if len(addresses) <= 2:
+        return " and ".join(addresses)
+    return f"{', '.join(addresses[:-1])}, and {addresses[-1]}"
 
 
 # --------------------------------------------------------------------------

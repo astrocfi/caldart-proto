@@ -63,7 +63,8 @@ just cannot check.
 **Handling of forged mail (DMARC).** A short public instruction that tells receiving
 systems what to do with a message that claims to come from CalDART but fails the other
 checks, and where to send reports about such messages. It is a problem when none is
-published. It is a warning while the instruction only says to watch (``p=none``) and
+published, or when more than one is, because receiving systems then follow none of them.
+It is a warning while the instruction only says to watch (``p=none``) and
 asks receivers to do nothing about forgeries. It is good when it says to send forgeries
 to spam (``quarantine``) or refuse them (``reject``). When the instruction names an address for
 reports, the page lists it.
