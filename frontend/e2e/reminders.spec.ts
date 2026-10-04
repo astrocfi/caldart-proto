@@ -29,7 +29,7 @@ test('an account administrator reads the reminder log and filters it by kind', a
   await page.getByLabel('Reminder', { exact: true }).selectOption('second');
   expect((await filtered).status()).toBe(200);
   await expect(page.getByLabel('Reminder', { exact: true })).toHaveValue('second');
-  await expect(page.getByText('No reminders sent yet')).toBeVisible();
+  await expect(page.getByText('No reminders of this kind')).toBeVisible();
 });
 
 test('the account administrator has no way to start a scan', async ({ page }) => {

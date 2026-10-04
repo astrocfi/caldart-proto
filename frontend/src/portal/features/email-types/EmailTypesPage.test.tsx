@@ -210,7 +210,7 @@ describe('EmailTypesPage', () => {
     renderPage();
     await rowOf('Operational');
     expect(screen.getByRole('columnheader', { name: 'What it is for' })).toHaveStyle({
-      width: '14rem',
+      width: '13rem',
     });
   });
 

@@ -147,14 +147,14 @@ export function EmailTypesPage(): JSX.Element {
     {
       key: 'description',
       header: 'What it is for',
-      minWidth: '14rem',
+      minWidth: '13rem',
       wrap: true,
       render: (emailType) => emailType.description,
     },
     {
       key: 'senders',
       header: 'Who may send it',
-      width: '16rem',
+      width: '12rem',
       wrap: true,
       dropOrder: 2,
       render: (emailType) => sendersText(emailType),
@@ -162,7 +162,7 @@ export function EmailTypesPage(): JSX.Element {
     {
       key: 'allow_opt_out',
       header: 'Can be turned off',
-      width: '9rem',
+      width: '7rem',
       wrap: true,
       dropOrder: 1,
       // The word says it; the dot, hidden from a screen reader, only colors it.

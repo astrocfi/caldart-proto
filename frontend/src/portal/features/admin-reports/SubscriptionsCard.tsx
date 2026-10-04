@@ -112,7 +112,7 @@ export function SubscriptionsCard(): JSX.Element {
     {
       key: 'report',
       header: 'Report',
-      minWidth: '10rem',
+      minWidth: '9.5rem',
       isIdentity: true,
       render: (row) => row.report_title,
       sortValue: (row) => row.report_title,
@@ -128,14 +128,14 @@ export function SubscriptionsCard(): JSX.Element {
     {
       key: 'schedule',
       header: 'Schedule',
-      minWidth: '9rem',
+      minWidth: '8rem',
       dropOrder: 4,
       render: (row) => scheduleLabel(row.cadence, row.weekday),
     },
     {
       key: 'formats',
       header: 'Formats',
-      width: '7rem',
+      width: '5.5rem',
       dropOrder: 3,
       render: (row) => FORMAT_LABELS[row.formats],
     },
