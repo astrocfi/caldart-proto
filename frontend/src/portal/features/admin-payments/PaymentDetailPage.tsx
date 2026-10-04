@@ -297,7 +297,7 @@ export function PaymentDetailPage(): JSX.Element {
   if (query.isPending) return <Loading />;
   if (query.error || !query.data) {
     return (
-      <Page title="Payment" eyebrow="Finance">
+      <Page title="Payment">
         <FinanceTabs current="/admin/payments/list" />
         <EmptyState
           title="That payment could not be loaded"
@@ -326,7 +326,6 @@ export function PaymentDetailPage(): JSX.Element {
   return (
     <Page
       title={`Payment ${payment.receipt_number}`}
-      eyebrow="Finance"
       lede={`${payment.user_name} · ${STATUS_LABELS[payment.status]}`}
       actions={
         <StatusChip tone={statusTone(payment.status)} label={STATUS_LABELS[payment.status]} />

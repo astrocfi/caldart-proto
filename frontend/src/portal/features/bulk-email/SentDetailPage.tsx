@@ -35,7 +35,7 @@ export function SentDetailPage(): JSX.Element {
 
   if (email.isError) {
     return (
-      <Page title="Sent bulk email" eyebrow="Bulk Email">
+      <Page title="Sent bulk email">
         <p className="field__error" role="alert">
           This email could not be loaded. <Link to="/bulk-email/sent">See every sent email</Link>.
         </p>
@@ -50,7 +50,7 @@ export function SentDetailPage(): JSX.Element {
   const canStop = canAct || sent.is_callout;
 
   return (
-    <Page title={sent.subject || 'Sent bulk email'} eyebrow="Bulk Email" lede={sentLede(sent)}>
+    <Page title={sent.subject || 'Sent bulk email'} lede={sentLede(sent)}>
       <Card title="Where it stands">
         {sent.started_at === null ? (
           <p>

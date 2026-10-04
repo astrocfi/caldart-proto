@@ -1,13 +1,13 @@
 /**
- * The portal chrome: a left rail on desktop, a hamburger drawer on
- * mobile, filtered by the signed-in user's roles and, for Renew, their kind.
+ * The portal chrome: a left rail on desktop, a drawer opened from **Menu** on a
+ * narrow screen, filtered by the signed-in user's roles and, for Renew, their kind.
  *
  * A reader who has not finished the join wizard (`isOnboarded`) gets neither the
  * rail nor the **Menu** toggle: the wizard is the whole portal until it is done, so
- * the header keeps only **Help**, the address, and **Sign out**.
+ * the header keeps only **Help**, the reader's name, and **Sign out**.
  */
-import { useEffect, useState } from 'react';
-import type { JSX } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import type { JSX, RefObject } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 
 import { useAuth, useSignOut } from '../auth/useAuth';
@@ -15,8 +15,60 @@ import { isOnboarded } from '../features/join/steps';
 import { Button } from '../components/Button';
 import { GUIDE_PREFIX } from '../guide';
 import { helpPath } from '../help';
+import type { User } from '../api/types';
 import { groupedNavItems } from '../nav';
 import { sitePath } from '../urlPrefix';
+
+/** The reader's name for the header, or their address when no name is on file. */
+export function headerName(user: Pick<User, 'first_name' | 'last_name' | 'email'>): string {
+  return `${user.first_name} ${user.last_name}`.trim() || user.email;
+}
+
+/**
+ * Keeps the rail's current entry in view, and says whether more entries lie below
+ * the rail's visible part.
+ *
+ * On a desktop the rail scrolls on its own when the reader's menu is taller than
+ * the window, so on every page it is scrolled, by itself alone and never the page,
+ * until the current entry shows.  `hasMoreBelow` drives the shadow at its foot.
+ */
+function useRailScroll(
+  pathname: string,
+  hasRail: boolean,
+): {
+  railRef: RefObject<HTMLElement | null>;
+  hasMoreBelow: boolean;
+  handleRailScroll: () => void;
+} {
+  const railRef = useRef<HTMLElement | null>(null);
+  const [hasMoreBelow, setHasMoreBelow] = useState(false);
+
+  const handleRailScroll = useCallback(() => {
+    const rail = railRef.current;
+    if (rail === null) return;
+    setHasMoreBelow(rail.scrollTop + rail.clientHeight < rail.scrollHeight - 1);
+  }, []);
+
+  useEffect(() => {
+    const rail = railRef.current;
+    const current = rail?.querySelector<HTMLElement>('.portal__nav-link.is-active');
+    if (rail && current) {
+      const top = current.offsetTop - rail.offsetTop;
+      const bottom = top + current.offsetHeight;
+      if (top < rail.scrollTop || bottom > rail.scrollTop + rail.clientHeight) {
+        rail.scrollTop = Math.max(0, top - rail.clientHeight / 2);
+      }
+    }
+    handleRailScroll();
+  }, [pathname, hasRail, handleRailScroll]);
+
+  useEffect(() => {
+    window.addEventListener('resize', handleRailScroll);
+    return () => window.removeEventListener('resize', handleRailScroll);
+  }, [handleRailScroll]);
+
+  return { railRef, hasMoreBelow, handleRailScroll };
+}
 
 /** The portal chrome: header, role-filtered navigation, and the routed page outlet. */
 export function PortalLayout(): JSX.Element {
@@ -24,6 +76,7 @@ export function PortalLayout(): JSX.Element {
   const { signOut, isPending: isSigningOut } = useSignOut();
   const location = useLocation();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const toggleRef = useRef<HTMLButtonElement | null>(null);
 
   // Any navigation closes the mobile drawer and puts the page back at the top:
   // a screen opened from halfway down the last one starts mid-content
@@ -33,9 +86,26 @@ export function PortalLayout(): JSX.Element {
     window.scrollTo({ top: 0, left: 0 });
   }, [location.pathname]);
 
-  const isEffectiveFriend = user?.membership.status === 'friend';
-  const groups = isOnboarded(user) ? groupedNavItems(roles, isEffectiveFriend) : [];
+  // Escape closes an open drawer and hands focus back to the Menu button.
+  useEffect(() => {
+    if (!drawerOpen) return undefined;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      setDrawerOpen(false);
+      toggleRef.current?.focus();
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [drawerOpen]);
+
+  const groups = isOnboarded(user)
+    ? groupedNavItems(roles, {
+        isEffectiveFriend: user?.membership.status === 'friend',
+        isLifetime: user?.membership.is_lifetime === true,
+      })
+    : [];
   const hasRail = groups.length > 0;
+  const { railRef, hasMoreBelow, handleRailScroll } = useRailScroll(location.pathname, hasRail);
 
   return (
     <div className="portal" data-drawer-open={drawerOpen ? 'true' : 'false'}>
@@ -47,6 +117,7 @@ export function PortalLayout(): JSX.Element {
         <div className="portal__bar-inner">
           {hasRail ? (
             <button
+              ref={toggleRef}
               type="button"
               className="button button--quiet button--small portal__drawer-toggle"
               aria-expanded={drawerOpen}
@@ -76,7 +147,9 @@ export function PortalLayout(): JSX.Element {
             </a>
             {isAuthenticated && user ? (
               <>
-                <span className="muted portal__email">{user.email}</span>
+                <span className="muted portal__name" title={user.email}>
+                  {headerName(user)}
+                </span>
                 <Button variant="quiet" small onClick={() => signOut()} disabled={isSigningOut}>
                   Sign out
                 </Button>
@@ -92,7 +165,14 @@ export function PortalLayout(): JSX.Element {
 
       <div className={hasRail ? 'portal__frame' : 'portal__frame portal__frame--no-rail'}>
         {hasRail ? (
-          <nav className="portal__rail" id="portal-nav" aria-label="Portal sections">
+          <nav
+            ref={railRef}
+            className="portal__rail"
+            id="portal-nav"
+            aria-label="Portal sections"
+            data-more-below={hasMoreBelow ? 'true' : 'false'}
+            onScroll={handleRailScroll}
+          >
             {groups.map((bucket) => (
               <div key={bucket.group} className="portal__nav-group">
                 <p className="eyebrow">{bucket.group}</p>

@@ -206,7 +206,6 @@ export function RecordPaymentPage(): JSX.Element {
   return (
     <Page
       title="Record a payment"
-      eyebrow="Finance"
       lede="A check, cash or a bank transfer: the term is activated and the receipt emailed."
     >
       <FinanceTabs current="/admin/payments/list" />

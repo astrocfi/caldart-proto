@@ -1,4 +1,4 @@
-/* The sign-in, password, and email screens (AuthShell.tsx). */
+/* The screens on the way in: sign in, forgot and reset password, verify email (AuthShell.tsx). */
 
 .auth {
   display: flex;

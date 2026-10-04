@@ -202,7 +202,6 @@ export function DonorsPage(): JSX.Element {
   return (
     <Page
       title="Donors"
-      eyebrow="Payments"
       lede="Everyone who has given through the public donation page, and what each of them has given."
     >
       <FinanceTabs />

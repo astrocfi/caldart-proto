@@ -52,7 +52,6 @@ export function RenewPage(): JSX.Element {
   return (
     <Page
       title={isLifetime ? 'Contribute to CalDART' : 'Renew your membership'}
-      eyebrow="Membership"
       lede={
         isLifetime
           ? 'As a life member you have nothing to renew. A contribution keeps the DARTs flying.'

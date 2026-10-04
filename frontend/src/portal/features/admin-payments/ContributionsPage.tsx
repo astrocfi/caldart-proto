@@ -124,7 +124,6 @@ export function ContributionsPage(): JSX.Element {
   return (
     <Page
       title="Contributions"
-      eyebrow="Payments"
       lede="Everyone who gave in one calendar year, and what each of them gave."
     >
       <FinanceTabs />

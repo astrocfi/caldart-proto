@@ -40,7 +40,6 @@ export function SentPage(): JSX.Element {
   return (
     <Page
       title="Sent"
-      eyebrow="Bulk Email"
       lede={
         isLeader
           ? 'The emails you have sent, or are sending now, and what became of each.'

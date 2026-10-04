@@ -213,7 +213,7 @@ export function MemberLedgerPage(): JSX.Element {
   if (query.isPending) return <Loading />;
   if (query.error || !query.data) {
     return (
-      <Page title="Member ledger" eyebrow="Finance">
+      <Page title="Member ledger">
         <FinanceTabs current="/admin/payments/list" />
         <EmptyState
           title="That ledger could not be loaded"
@@ -228,7 +228,6 @@ export function MemberLedgerPage(): JSX.Element {
   return (
     <Page
       title={ledger.user.name}
-      eyebrow="Member ledger"
       lede={ledger.user.email}
       actions={
         <>

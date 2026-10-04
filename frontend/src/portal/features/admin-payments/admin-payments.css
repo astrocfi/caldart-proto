@@ -106,34 +106,6 @@
   font-size: var(--text-sm);
 }
 
-/* ------------------------------------------------------------- tab bar */
-.finance-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-1);
-  border-bottom: var(--hairline) solid var(--color-rule);
-  margin-bottom: var(--space-4);
-}
-
-.finance-tabs__tab {
-  padding: var(--space-2) var(--space-3);
-  font-size: var(--text-sm);
-  color: var(--color-muted);
-  text-decoration: none;
-  border-bottom: 2px solid transparent;
-  margin-bottom: calc(-1 * var(--hairline));
-}
-
-.finance-tabs__tab:hover {
-  color: var(--color-fg);
-}
-
-.finance-tabs__tab[aria-current='page'] {
-  color: var(--color-fg);
-  font-weight: var(--weight-medium);
-  border-bottom-color: var(--color-primary);
-}
-
 /* --------------------------------------------------- tile breakdowns */
 .stat-tile__breakdown {
   display: grid;

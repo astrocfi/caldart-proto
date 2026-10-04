@@ -36,7 +36,7 @@ export function ProfilePage(): JSX.Element {
 
   if (profile.isPending) {
     return (
-      <Page title="My profile" eyebrow="Membership">
+      <Page title="My profile">
         <p className="muted" role="status">
           Loading your profile…
         </p>
@@ -46,7 +46,7 @@ export function ProfilePage(): JSX.Element {
 
   if (profile.isError || !profile.data) {
     return (
-      <Page title="My profile" eyebrow="Membership">
+      <Page title="My profile">
         <EmptyState
           title="We could not load your profile"
           description={
@@ -65,7 +65,6 @@ export function ProfilePage(): JSX.Element {
   return (
     <Page
       title="My profile"
-      eyebrow="Membership"
       lede="CalDART uses these details to reach you during an activation and to check you are current to fly."
       actions={
         <ButtonLink to="/profile/aircraft" variant="secondary">

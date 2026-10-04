@@ -165,9 +165,12 @@ describe('PortalLayout', () => {
 
   it.each<[RoleSlug, string[]]>([
     ['dart_leader', ['Member check', 'Aircraft check']],
-    ['account_admin', ['Member check', 'Aircraft check', 'Members', 'Aircraft', 'Payments']],
-    ['user_admin', ['Users & roles']],
-    ['system_admin', ['Health & Database', 'Sent Emails', 'Scheduled']],
+    [
+      'account_admin',
+      ['Member check', 'Aircraft check', 'Members', 'Aircraft register', 'Finance'],
+    ],
+    ['user_admin', ['Users and roles']],
+    ['system_admin', ['Health and database', 'Sent emails', 'Scheduled']],
   ])('adds the %s entries to the rail', async (role, expected) => {
     server.use(signedInAs(makeUser({ roles: ['member', role] })));
     renderWithProviders(tree(), { route: '/' });
@@ -184,7 +187,7 @@ describe('PortalLayout', () => {
     renderWithProviders(tree(), { route: '/' });
 
     await screen.findByRole('navigation', { name: 'Portal sections' });
-    expect(railLinkNames()).not.toContain('Users & roles');
+    expect(railLinkNames()).not.toContain('Users and roles');
   });
 
   it('gives an anonymous visitor no rail at all', async () => {
@@ -218,7 +221,7 @@ describe('PortalLayout', () => {
       server.use(signedInAs(user));
       renderWithProviders(tree(), { route: '/' });
 
-      expect(await screen.findByText(user.email)).toBeInTheDocument();
+      expect(await screen.findByText(`${user.first_name} ${user.last_name}`)).toBeInTheDocument();
       expect(screen.queryByRole('navigation', { name: 'Portal sections' })).not.toBeInTheDocument();
     });
 
@@ -226,7 +229,7 @@ describe('PortalLayout', () => {
       server.use(signedInAs(user));
       const { container } = renderWithProviders(tree(), { route: '/' });
 
-      await screen.findByText(user.email);
+      await screen.findByText(`${user.first_name} ${user.last_name}`);
       expect(container.querySelector('.portal__frame')).toHaveClass('portal__frame--no-rail');
     });
 
@@ -234,7 +237,7 @@ describe('PortalLayout', () => {
       server.use(signedInAs(user));
       renderWithProviders(tree(), { route: '/' });
 
-      await screen.findByText(user.email);
+      await screen.findByText(`${user.first_name} ${user.last_name}`);
       expect(screen.queryByRole('button', { name: 'Menu' })).not.toBeInTheDocument();
     });
 
@@ -254,10 +257,74 @@ describe('PortalLayout', () => {
   });
 
   it('names the signed-in user in the header', async () => {
-    server.use(signedInAs(makeUser({ email: 'marta@example.org' })));
+    server.use(signedInAs(makeUser({ first_name: 'Marta', last_name: 'Reyes' })));
+    renderWithProviders(tree(), { route: '/' });
+
+    expect(await screen.findByText('Marta Reyes')).toBeInTheDocument();
+  });
+
+  it('keeps the address on the name, for hovering', async () => {
+    server.use(
+      signedInAs(makeUser({ first_name: 'Marta', last_name: 'Reyes', email: 'marta@example.org' })),
+    );
+    renderWithProviders(tree(), { route: '/' });
+
+    expect(await screen.findByText('Marta Reyes')).toHaveAttribute('title', 'marta@example.org');
+  });
+
+  it('shows the address when no name is on file', async () => {
+    server.use(signedInAs(makeUser({ first_name: '', last_name: '', email: 'marta@example.org' })));
     renderWithProviders(tree(), { route: '/' });
 
     expect(await screen.findByText('marta@example.org')).toBeInTheDocument();
+  });
+
+  it('closes the drawer when Escape is pressed', async () => {
+    server.use(signedInAs(makeUser()));
+    const user = userEvent.setup();
+    renderWithProviders(tree(), { route: '/' });
+
+    const toggle = await screen.findByRole('button', { name: 'Menu' });
+    await user.click(toggle);
+    await user.keyboard('{Escape}');
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('hands focus back to Menu when Escape closes the drawer', async () => {
+    server.use(signedInAs(makeUser()));
+    const user = userEvent.setup();
+    renderWithProviders(tree(), { route: '/' });
+
+    const toggle = await screen.findByRole('button', { name: 'Menu' });
+    await user.click(toggle);
+    await user.tab();
+    await user.keyboard('{Escape}');
+    expect(toggle).toHaveFocus();
+  });
+
+  it('says the rail has more entries below when it overflows', async () => {
+    server.use(signedInAs(makeUser({ roles: ['member', 'system_admin'] })));
+    vi.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockReturnValue(1300);
+    vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(900);
+    renderWithProviders(tree(), { route: '/' });
+
+    const rail = await screen.findByRole('navigation', { name: 'Portal sections' });
+    await waitFor(() => expect(rail).toHaveAttribute('data-more-below', 'true'));
+  });
+
+  it('scrolls the rail, not the page, to the current entry', async () => {
+    server.use(signedInAs(makeUser({ roles: ['member', 'system_admin'] })));
+    vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(400);
+    vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(30);
+    vi.spyOn(HTMLElement.prototype, 'offsetTop', 'get').mockImplementation(function offsetTop(
+      this: HTMLElement,
+    ) {
+      return this.classList.contains('is-active') ? 1000 : 0;
+    });
+    renderWithProviders(tree(), { route: '/profile/aircraft' });
+
+    const rail = await screen.findByRole('navigation', { name: 'Portal sections' });
+    await waitFor(() => expect(rail.scrollTop).toBe(800));
   });
 
   it('opens and closes the mobile drawer from the Menu button', async () => {
@@ -426,12 +493,12 @@ describe('<PortalLayout/> sign out', () => {
     await waitFor(() => expect(client.getQueryData(['admin', 'members'])).toBeUndefined());
   });
 
-  it('shows the signed-in address beside the button', async () => {
-    server.use(signedInAs(makeUser({ email: 'marta@example.org' })));
+  it('shows the signed-in name beside the button', async () => {
+    server.use(signedInAs(makeUser({ first_name: 'Marta', last_name: 'Reyes' })));
 
     renderRoutes(routes);
 
-    expect(await screen.findByText('marta@example.org')).toBeInTheDocument();
+    expect(await screen.findByText('Marta Reyes')).toBeInTheDocument();
   });
 
   it('offers sign in instead when nobody is signed in', async () => {

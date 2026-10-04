@@ -30,7 +30,6 @@ export function CalloutsPage(): JSX.Element {
   return (
     <Page
       title="Callouts"
-      eyebrow="Bulk Email"
       lede="Mission callouts ask who can fly. Open one to see each person's answer."
     >
       <Card>

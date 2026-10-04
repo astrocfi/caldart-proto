@@ -228,7 +228,6 @@ export function AircraftRegisterPage(): JSX.Element {
   return (
     <Page
       title="Aircraft register"
-      eyebrow="Administration"
       lede="Every airframe CalDART members fly, with the insurance a DART leader checks before a mission."
       actions={
         <>

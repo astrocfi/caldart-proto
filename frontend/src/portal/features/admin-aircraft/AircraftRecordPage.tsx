@@ -51,7 +51,7 @@ export function AircraftRecordPage(): JSX.Element {
 
   if (knownId && record.isPending) {
     return (
-      <Page title="Aircraft" eyebrow="Administration">
+      <Page title="Aircraft">
         <p className="muted" role="status">
           Loading…
         </p>
@@ -62,7 +62,7 @@ export function AircraftRecordPage(): JSX.Element {
   if (!knownId || record.isError || !record.data) {
     const missing = !knownId || (record.error instanceof ApiError && record.error.status === 404);
     return (
-      <Page title="Aircraft" eyebrow="Administration">
+      <Page title="Aircraft">
         <EmptyState
           title={missing ? 'No such aircraft' : 'That record could not be loaded'}
           description={
@@ -129,7 +129,6 @@ export function AircraftRecordPage(): JSX.Element {
   return (
     <Page
       title={aircraft.n_number}
-      eyebrow="Aircraft record"
       lede={`${aircraft.make} ${aircraft.model}`.trim()}
       actions={
         <>

@@ -25,7 +25,7 @@ export interface FinanceTab {
 
 /** The finance area's screens, in the order the bar shows them. */
 export const FINANCE_TABS: FinanceTab[] = [
-  { to: '/admin/payments', label: 'Overview', end: true },
+  { to: '/admin/payments', label: 'Money overview', end: true },
   { to: '/admin/payments/list', label: 'Payments' },
   { to: '/admin/payments/renewals', label: 'Renewals' },
   { to: '/admin/payments/reconciliation', label: 'Reconciliation' },
@@ -53,12 +53,12 @@ export function FinanceTabs({ current }: FinanceTabsProps): JSX.Element {
   const tabs = FINANCE_TABS.filter((tab) => hasAnyRole(roles, tab.roles ?? []));
 
   return (
-    <nav className="finance-tabs" aria-label="Finance sections">
+    <nav className="tab-bar" aria-label="Finance sections">
       {tabs.map((tab) => (
         <Link
           key={tab.to}
           to={tab.to}
-          className="finance-tabs__tab"
+          className="tab-bar__tab"
           aria-current={isTabCurrent(tab, path) ? 'page' : undefined}
         >
           {tab.label}

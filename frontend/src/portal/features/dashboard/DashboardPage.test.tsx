@@ -307,6 +307,20 @@ describe('<DashboardPage/>', () => {
     expect(await screen.findByText('Nothing published yet')).toBeInTheDocument();
   });
 
+  it('tells a lapsed member that renewing opens the members-only pages again', async () => {
+    mount({ user: makeUser({ membership: EXPIRED }), status: EXPIRED });
+
+    const link = await screen.findByRole('link', { name: 'Renew to read them again.' });
+    expect(link).toHaveAttribute('href', '/renew');
+  });
+
+  it('does not tell a lapsed member that nothing is published', async () => {
+    mount({ user: makeUser({ membership: EXPIRED }), status: EXPIRED });
+
+    await screen.findByRole('link', { name: 'Renew to read them again.' });
+    expect(screen.queryByText('Nothing published yet')).not.toBeInTheDocument();
+  });
+
   it('shows recent payments newest first, capped at five', async () => {
     const payments: PaymentSummary[] = Array.from({ length: 7 }, (_, index) => ({
       id: 100 - index,

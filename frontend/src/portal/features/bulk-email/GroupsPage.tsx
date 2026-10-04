@@ -138,7 +138,6 @@ export function GroupsPage(): JSX.Element {
   return (
     <Page
       title="Recipient groups"
-      eyebrow="Bulk Email"
       lede="People you email again and again, such as the board. Add a group to a batch on the compose screen with Add a saved group."
       actions={
         isAdding ? null : (

@@ -81,7 +81,7 @@ export function CalloutDetailPage(): JSX.Element {
 
   if (callout.isError) {
     return (
-      <Page title="Callout" eyebrow="Bulk Email">
+      <Page title="Callout">
         <p className="field__error" role="alert">
           This callout could not be loaded. <Link to="/bulk-email/callouts">See every callout</Link>
           .
@@ -93,7 +93,7 @@ export function CalloutDetailPage(): JSX.Element {
   const shown = callout.data;
 
   return (
-    <Page title={shown.subject || 'Callout'} eyebrow="Bulk Email" lede={calloutLede(shown)}>
+    <Page title={shown.subject || 'Callout'} lede={calloutLede(shown)}>
       <Card title="Answers">
         <div className="stack">
           {shown.closed_skipped === 0 ? null : (

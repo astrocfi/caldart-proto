@@ -9,7 +9,6 @@
 import { useMemo, useState } from 'react';
 import type { JSX } from 'react';
 
-import { ButtonLink } from '@/portal/components/Button';
 import { clearedValues, FilterBar } from '@/portal/components/FilterBar';
 import { Page } from '@/portal/components/Page';
 import { useUrlFilters } from '@/portal/components/useUrlFilters';
@@ -45,10 +44,8 @@ export function AdminPaymentsPage(): JSX.Element {
 
   return (
     <Page
-      title="Payments"
-      eyebrow="Finance"
+      title="Money overview"
       lede="What CalDART took, what the providers kept, and what reached the bank."
-      actions={<ButtonLink to="/admin/payments/list">All payments</ButtonLink>}
     >
       <FinanceTabs />
 

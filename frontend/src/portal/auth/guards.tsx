@@ -17,7 +17,6 @@ import type { Location } from 'react-router-dom';
 import type { RoleSlug } from '../api/types';
 import { roleLabel } from '../choices';
 import { Button, ButtonLink } from '../components/Button';
-import { EmptyState } from '../components/EmptyState';
 import { Loading } from '../components/Loading';
 import { Page } from '../components/Page';
 import { furthestJoinStep, isOnboarded } from '../features/join/steps';
@@ -41,17 +40,17 @@ interface AuthUnavailableProps {
  */
 function AuthUnavailable({ onRetry: handleRetry, isRetrying }: AuthUnavailableProps): ReactNode {
   return (
-    <Page title="Sign-in check failed" eyebrow="Error">
-      <div role="alert">
-        <EmptyState
-          title="We could not check your sign-in"
-          description="The server did not answer. You are probably still signed in, so try again in a moment."
-          action={
-            <Button onClick={handleRetry} disabled={isRetrying}>
-              Try again
-            </Button>
-          }
-        />
+    <Page title="Sign-in check failed" noEyebrow>
+      <div role="alert" className="stack">
+        <p>
+          We could not check your sign-in: the server did not answer. You are probably still signed
+          in, so try again in a moment.
+        </p>
+        <div className="cluster">
+          <Button onClick={handleRetry} disabled={isRetrying}>
+            Try again
+          </Button>
+        </div>
       </div>
     </Page>
   );
@@ -123,16 +122,18 @@ export function RequireRole({ roles, children }: RequireRoleProps): JSX.Element 
 export function Forbidden({ roles = [] }: { roles?: RoleSlug[] }): JSX.Element {
   const needed = roles.map(roleLabel).join(' or ');
   return (
-    <Page title="Not allowed" eyebrow="403">
-      <EmptyState
-        title="You do not have access to this page"
-        description={
-          needed
-            ? `It is open to the ${needed} role. Ask a CalDART administrator if you should have it — your other pages are in the menu.`
-            : 'Ask a CalDART administrator if you think you should. Your other pages are in the menu.'
-        }
-        action={<ButtonLink to="/">Go to the dashboard</ButtonLink>}
-      />
+    <Page
+      title="Not allowed"
+      noEyebrow
+      lede={
+        needed
+          ? `You do not have access to this page. It is open to the ${needed} role. Ask a CalDART administrator if you should have it — your other pages are in the menu.`
+          : 'You do not have access to this page. Ask a CalDART administrator if you think you should. Your other pages are in the menu.'
+      }
+    >
+      <div className="cluster">
+        <ButtonLink to="/">Go to the dashboard</ButtonLink>
+      </div>
     </Page>
   );
 }

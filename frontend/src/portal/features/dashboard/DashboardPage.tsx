@@ -93,7 +93,10 @@ export function DashboardPage(): JSX.Element {
   const isWalledOut = isFriend && roles.every((slug) => slug === 'member');
   const greeting = user?.first_name ? `Welcome, ${user.first_name}` : 'Welcome';
 
-  const linkGroups = groupedNavItems(roles, isFriend).map((bucket) => ({
+  const linkGroups = groupedNavItems(roles, {
+    isEffectiveFriend: isFriend,
+    isLifetime: status?.is_lifetime === true,
+  }).map((bucket) => ({
     ...bucket,
     items: bucket.items.filter((item) => item.to !== '/'),
   }));
@@ -102,7 +105,7 @@ export function DashboardPage(): JSX.Element {
   const recent = (payments.data ?? []).slice(0, RECENT_PAYMENTS);
 
   return (
-    <Page title={greeting} eyebrow="Member portal">
+    <Page title={greeting}>
       <div className="grid">
         <div className="col-text stack-loose">
           <Card
@@ -151,6 +154,11 @@ export function DashboardPage(): JSX.Element {
               {siteConfig.isPending ? (
                 <p className="muted" role="status">
                   Loading…
+                </p>
+              ) : membersPages.length === 0 && status?.status === 'expired' ? (
+                <p>
+                  Members-only pages are open to current members.{' '}
+                  <Link to="/renew">Renew to read them again.</Link>
                 </p>
               ) : membersPages.length === 0 ? (
                 <EmptyState

@@ -308,7 +308,6 @@ export function MembersListPage(): JSX.Element {
   return (
     <Page
       title="Members"
-      eyebrow="Administration"
       lede="Every member and friend of CalDART, with their membership, certificate, and medical currency."
       actions={
         isAccountAdmin ? <ButtonLink to="/admin/members/new">New member</ButtonLink> : undefined

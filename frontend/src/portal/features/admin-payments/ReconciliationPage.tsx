@@ -146,7 +146,6 @@ export function ReconciliationPage(): JSX.Element {
   return (
     <Page
       title="Reconciliation"
-      eyebrow="Payments"
       lede="What the books say arrived, period by period, for matching against a statement."
     >
       <FinanceTabs />

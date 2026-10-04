@@ -105,7 +105,7 @@ export function JoinWizard(): JSX.Element {
   if (isLoading) {
     return (
       <div className="join-shell">
-        <Page title="Join CalDART" eyebrow="Membership">
+        <Page title="Join CalDART">
           <p className="muted" role="status">
             Loading…
           </p>
@@ -143,7 +143,7 @@ export function JoinWizard(): JSX.Element {
 
   return (
     <div className={current === 'profile' ? 'join-shell join-shell--wide' : 'join-shell'}>
-      <Page title="Join CalDART" eyebrow="Membership" lede={lede}>
+      <Page title="Join CalDART" lede={lede}>
         <StepIndicator current={current} />
         {current === 'account' ? <AccountStep onDone={() => advance('account')} /> : null}
         {current === 'verify' ? <VerifyStep onDone={() => advance('verify')} /> : null}

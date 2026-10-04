@@ -329,7 +329,6 @@ export function RenewalsPage(): JSX.Element {
   return (
     <Page
       title="Renewals"
-      eyebrow="Payments"
       lede="Who has asked CalDART to renew their membership, to give on a schedule, or both, and how those charges went."
     >
       <FinanceTabs />

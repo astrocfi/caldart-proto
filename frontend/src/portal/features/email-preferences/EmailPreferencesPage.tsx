@@ -20,7 +20,6 @@ export function EmailPreferencesPage(): JSX.Element {
   return (
     <Page
       title="Email preferences"
-      eyebrow="Your email"
       lede="CalDART writes to its members and friends about a few different things. Turn off any type of email you would rather not receive; each change is saved at once."
     >
       <Card>

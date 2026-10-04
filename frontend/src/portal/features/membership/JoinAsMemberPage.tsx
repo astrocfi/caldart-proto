@@ -31,7 +31,6 @@ export function JoinAsMemberPage(): JSX.Element {
   return (
     <Page
       title="Become a member"
-      eyebrow="Membership"
       lede="Choose a plan and pay your dues: you are a member of CalDART as soon as the payment goes through. Nothing changes if you leave this page."
     >
       <Checkout mode="join" onSuccess={handleSuccess} />

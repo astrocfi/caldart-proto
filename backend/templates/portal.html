@@ -9,9 +9,11 @@
   nothing unless `dev_mode` is on, so the built assets are unaffected.
 
   `data-url-prefix` is the path the site is served under (empty at the root of
-  a host): the portal builds its API and router base from it.
+  a host): the portal builds its API and router base from it.  `data-org-name`
+  is the organization's name, which every screen's document title ends with;
+  the title below stands until the first screen sets its own.
 {% endcomment %}
-<html lang="en" data-url-prefix="{{ url_prefix }}" data-theme="{{ theme|default:'duty' }}">
+<html lang="en" data-url-prefix="{{ url_prefix }}" data-org-name="{{ site_settings.org_name|default:'CalDART' }}" data-theme="{{ theme|default:'duty' }}">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />

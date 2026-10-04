@@ -188,12 +188,31 @@ describe('password page layout', () => {
       '/reset-password?uid=MQ&token=abc-123',
       'Save new password',
     ],
-    ['change password', <ChangePasswordPage key="c" />, '/change-password', 'Change password'],
   ])('renders the %s form in the auth card', (_name, page, route, submit) => {
     const { container } = renderWithProviders(page, { route });
 
     const actions = container.querySelector('.auth-card .auth__actions');
     expect(actions).toContainElement(screen.getByRole('button', { name: submit }));
+  });
+
+  it('draws change password as a portal page, not in the sign-in card', () => {
+    const { container } = renderWithProviders(<ChangePasswordPage />, {
+      route: '/change-password',
+    });
+
+    expect(container.querySelector('.auth-card')).toBeNull();
+  });
+
+  it('heads change password with the portal page title', () => {
+    renderWithProviders(<ChangePasswordPage />, { route: '/change-password' });
+
+    expect(screen.getByRole('heading', { level: 1 })).toHaveClass('page__title');
+  });
+
+  it('names the browser tab after change password', () => {
+    renderWithProviders(<ChangePasswordPage />, { route: '/change-password' });
+
+    expect(document.title).toBe('Change password · CalDART');
   });
 
   it('shows an incomplete reset link in the auth card too', () => {

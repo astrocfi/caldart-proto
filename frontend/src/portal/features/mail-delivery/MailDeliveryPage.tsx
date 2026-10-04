@@ -96,7 +96,6 @@ export function MailDeliveryPage(): JSX.Element {
   return (
     <Page
       title="Mail delivery"
-      eyebrow="Bulk Email"
       lede="Whether other mail systems will trust and deliver the email CalDART sends. Do this check before a large send, and again after anyone changes the website's email settings."
     >
       <Card

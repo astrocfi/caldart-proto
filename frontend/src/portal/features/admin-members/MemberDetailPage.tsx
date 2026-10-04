@@ -73,7 +73,7 @@ function Tabs({ active, onSelect }: TabsProps) {
   };
 
   return (
-    <div className="cluster" role="tablist" aria-label="Member record sections">
+    <div className="tab-bar" role="tablist" aria-label="Member record sections">
       {TABS.map((tab) => (
         <button
           key={tab.id}
@@ -86,7 +86,7 @@ function Tabs({ active, onSelect }: TabsProps) {
           aria-selected={active === tab.id}
           aria-controls={`panel-${tab.id}`}
           tabIndex={active === tab.id ? 0 : -1}
-          className={`button button--small ${active === tab.id ? 'button--secondary' : 'button--quiet'}`}
+          className="tab-bar__tab"
           onClick={() => onSelect(tab.id)}
           onKeyDown={handleKeyDown}
         >
@@ -179,7 +179,7 @@ export function MemberDetailPage(): JSX.Element {
 
   if (member.isPending) {
     return (
-      <Page title="Member" eyebrow="Administration">
+      <Page title="Member">
         <p role="status">Loading…</p>
       </Page>
     );
@@ -187,7 +187,7 @@ export function MemberDetailPage(): JSX.Element {
 
   if (member.isError || !member.data) {
     return (
-      <Page title="Member" eyebrow="Administration">
+      <Page title="Member">
         <EmptyState
           title="That member could not be loaded"
           description="They may have been deleted."
@@ -203,7 +203,6 @@ export function MemberDetailPage(): JSX.Element {
   return (
     <Page
       title={record.name}
-      eyebrow="Member record"
       actions={
         <ButtonLink to={home.to} variant="quiet">
           {home.label}

@@ -13,8 +13,7 @@ import { RegistryPanel } from './RegistryPanel';
 export function HealthDatabasePage(): JSX.Element {
   return (
     <Page
-      title="Health & Database"
-      eyebrow="System"
+      title="Health and database"
       lede="How the server is doing, the database dumps it holds, and the aircraft database it loads."
     >
       <HealthPanel />

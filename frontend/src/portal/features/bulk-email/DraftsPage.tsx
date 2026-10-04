@@ -61,8 +61,7 @@ export function DraftsPage(): JSX.Element {
 
   return (
     <Page
-      title="Drafts & scheduled"
-      eyebrow="Bulk Email"
+      title="Drafts and scheduled"
       lede="Emails still being written, and emails waiting for their time to send."
       actions={
         cannotSend ? null : <ButtonLink to="/bulk-email/compose">Write a new email</ButtonLink>

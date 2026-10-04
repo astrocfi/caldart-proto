@@ -27,7 +27,6 @@ export function ScheduledPage(): JSX.Element {
   return (
     <Page
       title="Scheduled"
-      eyebrow="System"
       lede="The jobs the server runs on a schedule. Each one can be run by hand here, and a dry run shows what it would do."
     >
       <RemindersPanel />

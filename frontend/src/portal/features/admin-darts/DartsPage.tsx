@@ -242,7 +242,6 @@ export function DartsPage(): JSX.Element {
   return (
     <Page
       title="DARTs"
-      eyebrow="Administration"
       lede="The teams a member can join. Everything here shows up in the list on the join form and on a member's profile."
       actions={
         editing === null ? (

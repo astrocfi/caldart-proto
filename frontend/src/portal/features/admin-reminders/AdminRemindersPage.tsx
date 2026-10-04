@@ -27,11 +27,7 @@ export function AdminRemindersPage(): JSX.Element {
         });
 
   return (
-    <Page
-      title="Reminders"
-      eyebrow="Administration"
-      lede="The renewal emails CalDART has sent, newest first."
-    >
+    <Page title="Reminders" lede="The renewal emails CalDART has sent, newest first.">
       <Card eyebrow="Membership" title="Renewal reminders">
         <p className="muted">
           The scan runs every morning at 07:00 and mails a member {when}. Each member gets one email

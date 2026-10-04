@@ -27,7 +27,6 @@ export function MessagesPage(): JSX.Element {
   return (
     <Page
       title="Messages"
-      eyebrow="Your email"
       lede="The emails CalDART has sent you along with other members and friends, to read again here."
     >
       <Card>

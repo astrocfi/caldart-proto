@@ -223,7 +223,6 @@ export function PaymentsListPage(): JSX.Element {
   return (
     <Page
       title="Payments"
-      eyebrow="Finance"
       lede="Every payment CalDART has taken, however it arrived."
       actions={<ButtonLink to="/admin/payments/record">Record a payment</ButtonLink>}
     >

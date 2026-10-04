@@ -95,7 +95,7 @@ export function UserDetailPage(): JSX.Element {
 
   if (query.isPending) {
     return (
-      <Page title="User record" eyebrow="Administration">
+      <Page title="User record">
         <p className="muted" role="status">
           Loading…
         </p>
@@ -105,7 +105,7 @@ export function UserDetailPage(): JSX.Element {
 
   if (query.isError || !user || !form) {
     return (
-      <Page title="User record" eyebrow="Administration">
+      <Page title="User record">
         <EmptyState
           title="That account could not be loaded"
           description="It may have been deleted. Go back to the list and search again."
@@ -136,7 +136,6 @@ export function UserDetailPage(): JSX.Element {
   return (
     <Page
       title={displayName(user)}
-      eyebrow="Users and roles"
       lede={user.email}
       actions={<Link to="/admin/users">Back to users</Link>}
     >

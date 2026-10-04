@@ -65,7 +65,6 @@ export function MyAircraftPage(): JSX.Element {
   return (
     <Page
       title="My aircraft"
-      eyebrow="Membership"
       lede="The planes you commonly fly."
       actions={
         <ButtonLink to="/profile" variant="secondary">

@@ -155,7 +155,7 @@ vi.mock('../features/system/SentEmailsPage', () => ({ SentEmailsPage: pageStub('
 vi.mock('../features/system/ScheduledPage', () => ({ ScheduledPage: pageStub('Scheduled') }));
 
 /** The 403 page's headline, from `auth/guards.tsx`. */
-const FORBIDDEN = 'You do not have access to this page';
+const FORBIDDEN = /^You do not have access to this page\./;
 
 interface Identity {
   /** How the case is named, and the key the `allowed` lists use. */
@@ -458,6 +458,31 @@ describe('the paths outside the session', () => {
     renderRoutes(routes, { route: '/no-such-screen' });
 
     expect(await screen.findByRole('heading', { name: 'Page not found' })).toBeInTheDocument();
+  });
+
+  it('sends a signed-out visitor from the not-found page to the CalDART home page', async () => {
+    renderRoutes(routes, { route: '/no-such-screen' });
+
+    expect(
+      await screen.findByRole('link', { name: 'Go to the CalDART home page' }),
+    ).toHaveAttribute('href', '/');
+  });
+
+  it('offers a signed-out visitor no dashboard from the not-found page', async () => {
+    renderRoutes(routes, { route: '/no-such-screen' });
+
+    await screen.findByRole('link', { name: 'Go to the CalDART home page' });
+    expect(screen.queryByRole('link', { name: 'Go to the dashboard' })).not.toBeInTheDocument();
+  });
+
+  it('sends a signed-in member from the not-found page to their dashboard', async () => {
+    server.use(signedInAs(makeUser()));
+    renderRoutes(routes, { route: '/no-such-screen' });
+
+    expect(await screen.findByRole('link', { name: 'Go to the dashboard' })).toHaveAttribute(
+      'href',
+      '/',
+    );
   });
 
   it('has no address that ends a session: /logout is not a route', async () => {

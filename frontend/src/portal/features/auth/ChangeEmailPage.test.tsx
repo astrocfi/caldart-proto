@@ -130,4 +130,16 @@ describe('<ChangeEmailPage/>', () => {
       /Another account already uses that email address\./,
     );
   });
+
+  it('is a portal page under the Membership eyebrow, not a sign-in card', () => {
+    const { container } = renderPage();
+
+    expect(container.querySelector('.page__header .eyebrow')).toHaveTextContent('Membership');
+  });
+
+  it('is titled as its menu entry is', () => {
+    renderPage();
+
+    expect(screen.getByRole('heading', { level: 1, name: 'Change email' })).toBeInTheDocument();
+  });
 });

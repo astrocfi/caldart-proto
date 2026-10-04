@@ -103,7 +103,7 @@ export function LeaderLookup<T>({
 
   if (selected !== null) {
     return (
-      <Page title={title} eyebrow="DART leader">
+      <Page title={title}>
         <div className="leader-back">
           <Button variant="quiet" small onClick={handleBack}>
             ← Back to search
@@ -120,7 +120,7 @@ export function LeaderLookup<T>({
   const searched = debounced.length > 0 && search.isSuccess;
 
   return (
-    <Page title={title} eyebrow="DART leader" lede={lede}>
+    <Page title={title} lede={lede}>
       {aboveSearch}
       <Card>
         <Field label={label} hint={hint}>
