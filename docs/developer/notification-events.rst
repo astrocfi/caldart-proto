@@ -240,3 +240,28 @@ Aircraft
      - ``aircraft.services.delete_aircraft``, which ``DELETE /aircraft/{id}`` calls
      - ``n_number`` and ``owner`` (the owner's name as the record gave it), since
        the record is gone; ``actor``
+
+Callouts
+--------
+
+.. list-table::
+   :header-rows: 1
+   :widths: 18 42 40
+
+   * - Slug
+     - Raised in
+     - Payload
+   * - ``callout_answer``
+     - ``bulk_email.callouts.record_answer``, which the answer page's **Send answer**
+       calls (:ref:`bulk-email-callouts`), for a new answer and for one whose answer
+       or note changed; the same answer sent again raises nothing
+     - ``callout``, the ``Callout``; ``user``, who answered; ``answer``,
+       ``available``, ``limited``, or ``unavailable``; ``note``, as recorded
+
+``callout_answer`` is for CalDART management and DART leaders.  Its email reads *Ann
+Able answered Available with limits to a mission callout*, with the lines
+``Callout`` (the subject as written), ``Answer``, ``Note`` (or ``None``), and
+``DART``, the person's, and links the callout's page on the Callouts screen.  A
+subscription bound to a DART leader's account is sent it only for a callout that
+leader may open, one they sent or one that went to their own DART
+(``notifications.dispatch.audience_for``); CalDART management hears of every one.

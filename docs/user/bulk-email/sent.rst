@@ -47,7 +47,8 @@ The page of one sent email has three cards:
   stopped email reads *Stopped by* who stopped it, with **Send the rest**, which sends it to
   everybody the stop kept it from once you press **Send them now**. Nobody gets it twice, it
   starts within a minute, and the email reads *Waiting to send the rest* until then, with
-  **Stop sending**.
+  **Stop sending**. A mission callout adds *This is a mission callout.* with **See who can
+  fly**, which opens its answers on :doc:`callouts`.
 - **The message**: the email as it was sent, with the subject at its head, and above it its
   type and *Replies go to:* with the Reply-To address its copies carried. Fields such as
   *{first_name}* show as written, because each person's copy had their own details filled

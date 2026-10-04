@@ -15,7 +15,8 @@ What you see
 One line for each bulk email CalDART sent you, the newest first:
 
 - **Date**: the day it was sent to you.
-- **Subject**: what it was about, as your copy had it. It opens the email.
+- **Subject**: what it was about, as your copy had it. It opens the email, or, for a
+  mission callout, the page where you answer it (:doc:`callouts`).
 - **From**: who at CalDART sent it.
 - **Kind**: the kind of email, such as *Operational*.
 
@@ -48,7 +49,8 @@ View this email in your browser
 
 Every bulk email ends with a link, *View this email in your browser*, just above the lines
 about why you receive it. It opens the same page for that email here. If you are not signed
-in, the site asks you to sign in first, then shows the email.
+in, the site asks you to sign in first, then shows the email. A mission callout's link opens
+the page where you answer it instead (:doc:`callouts`).
 
 
 If something looks wrong

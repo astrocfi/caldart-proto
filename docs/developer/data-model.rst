@@ -331,6 +331,8 @@ Mail, reminders, reports, notifications, and the CMS pages
           BulkGroup [label="bulk_email.\nRecipientGroup"];
           BulkGroupMember [label="bulk_email.\nRecipientGroupMember"];
           BulkGroupFilter [label="bulk_email.\nRecipientGroupFilter"];
+          Callout [label="bulk_email.Callout"];
+          CalloutAnswer [label="bulk_email.\nCalloutAnswer"];
       
           Email -> User [label="user\nSET_NULL"];
           OptOut -> User [label="user\nCASCADE"];
@@ -358,6 +360,10 @@ Mail, reminders, reports, notifications, and the CMS pages
           BulkGroupMember -> BulkGroup [label="group\nCASCADE"];
           BulkGroupMember -> User [label="user\nCASCADE"];
           BulkGroupFilter -> BulkGroup [label="group\nCASCADE"];
+          Callout -> Bulk [label="bulk_email 1--1\nCASCADE", arrowhead=none];
+          Callout -> User [label="closed_by\nSET_NULL"];
+          CalloutAnswer -> Callout [label="callout\nCASCADE"];
+          CalloutAnswer -> User [label="user\nCASCADE"];
       
           User -> Page [style=invis];
           Membership -> Page [style=invis];
@@ -435,6 +441,8 @@ Mail, reminders, reports, notifications, and the CMS pages
                                   one account in a fixed group
       bulk_email.RecipientGroupFilter
                                   one filter set of a live group
+      bulk_email.Callout          a mission callout's answers side: when they close
+      bulk_email.CalloutAnswer    one person's answer to a mission callout
       cms.HomePage, cms.StandardPage, cms.NewsIndexPage, cms.NewsPage,
       cms.EventIndexPage, cms.EventPage, cms.DartIndexPage, cms.DartPage,
       cms.ContactPage, cms.DonatePage
@@ -492,6 +500,10 @@ Mail, reminders, reports, notifications, and the CMS pages
       bulk_email.RecipientGroupMember.user -> accounts.User       FK, CASCADE
       bulk_email.RecipientGroupFilter.group
                                            -> bulk_email.RecipientGroup FK, CASCADE
+      bulk_email.Callout.bulk_email        -> bulk_email.BulkEmail 1--1, CASCADE
+      bulk_email.Callout.closed_by         -> accounts.User       FK, SET_NULL, nullable
+      bulk_email.CalloutAnswer.callout     -> bulk_email.Callout  FK, CASCADE
+      bulk_email.CalloutAnswer.user        -> accounts.User       FK, CASCADE
       cms.BasePage                         inherits wagtailcore.Page
       cms.<every page type>                inherits cms.BasePage
       cms.StandardPage, cms.NewsPage       also inherit cms.MembersOnlyMixin
@@ -1310,6 +1322,27 @@ hand; a ``live`` one is a list of filter sets, run afresh on each use.
      - Fixed
    * - ``live``
      - Live
+
+.. _choices-callout-answer-kind:
+
+``CalloutAnswerKind`` (``apps/bulk_email/models.py``)
+-----------------------------------------------------
+
+``CalloutAnswer.answer``: what a recipient answered a mission callout, as the three
+buttons in their copy word it (:ref:`bulk-email-callouts`).
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 70
+
+   * - Value
+     - Label
+   * - ``available``
+     - Available
+   * - ``limited``
+     - Available with limits
+   * - ``unavailable``
+     - Not available
 
 .. _choices-report-formats:
 
@@ -4448,6 +4481,10 @@ it.
      - ``BooleanField``
      - not null; default ``False``
      - true while CalDART management keeps the email off its recipients' **Messages** page; changes nothing else
+   * - ``is_callout``
+     - ``BooleanField``
+     - not null; default ``False``
+     - true for a mission callout, whose copies carry the three answer buttons and whose ``Callout`` row holds when its answers close (:ref:`bulk-email-callouts`)
 
 **Constraints, indexes, and ordering.**
 
@@ -4464,6 +4501,7 @@ it.
 - ``adds``: the reverse of ``BatchAdd.bulk_email``.
 - ``recipients``: the reverse of ``BulkEmailRecipient.bulk_email``.
 - ``retries``: the reverse of ``BulkEmailRetry.bulk_email``.
+- ``callout``: the reverse of ``Callout.bulk_email``, present for a mission callout.
 
 The content, the batch, and ``start_at`` change only while ``status`` is
 ``draft`` or ``queued``; ``apps.bulk_email.batch.locked_for_edit`` takes the
@@ -4593,7 +4631,7 @@ each copy went to whatever happens to the account later.
    * - ``round``
      - ``PositiveSmallIntegerField``
      - not null; default ``0``
-     - 0 for the original copies; a later round is a second copy of the same email
+     - 0 for the original copies; *n* for the *n*-th round of a mission callout's **Remind non-responders**, a second copy of the same email to somebody who has not answered
    * - ``status``
      - ``CharField(7)``, :ref:`choices <choices-bulk-email-recipient-status>`
      - not null; default ``batched``
@@ -4674,6 +4712,106 @@ again.
 
 - ``bulk_email``: foreign key to ``bulk_email.BulkEmail``, ``CASCADE``; the reverse accessor is ``retries``.
 - ``requested_by``: foreign key to ``accounts.User``, ``SET_NULL``, nullable; the reverse accessor is ``bulk_email_retries``.
+
+``Callout``
+-----------
+
+The answers side of a mission callout: one row for each bulk email whose
+``is_callout`` is set, made when the compose screen's switch is turned on and deleted
+when it is turned off again (:ref:`bulk-email-callouts`).
+
+.. list-table::
+   :header-rows: 1
+   :widths: 22 26 18 34
+
+   * - Field
+     - Type
+     - Null, default
+     - Meaning
+   * - ``id``
+     - ``BigAutoField``
+     - not null; assigned by the database
+     - primary key
+   * - ``bulk_email``
+     - ``OneToOneField`` to ``bulk_email.BulkEmail``, ``CASCADE``
+     - not null; required
+     - the email; related name ``callout``
+   * - ``closes_at``
+     - ``DateTimeField``
+     - not null; required
+     - when the answers close; two days after the switch was turned on, rounded up to the half hour, unless the sender chose another time
+   * - ``closed_at``
+     - ``DateTimeField``
+     - null; default ``NULL``
+     - when **Close now** closed the callout sooner; null while nobody has
+   * - ``closed_by``
+     - ``ForeignKey`` to ``accounts.User``, ``SET_NULL``
+     - null; default ``NULL``
+     - who pressed **Close now**; null when nobody did or that account is deleted; related name ``callouts_closed``
+   * - ``reminded_at``
+     - ``DateTimeField``
+     - null; default ``NULL``
+     - when **Remind non-responders** last queued a round; the background sender reads it to tell a finished round of reminders from a finished retry
+
+**Constraints, indexes, and ordering.**
+
+- ``bulk_email`` is unique: one callout per email.
+
+**Relationships.**
+
+- ``bulk_email``: one-to-one with ``bulk_email.BulkEmail``, ``CASCADE``; the reverse accessor is ``callout``.
+- ``closed_by``: foreign key to ``accounts.User``, ``SET_NULL``, nullable; the reverse accessor is ``callouts_closed``.
+- ``answers``: the reverse of ``CalloutAnswer.callout``.
+
+``CalloutAnswer``
+-----------------
+
+One recipient's answer to a mission callout, written by the answer page's **Send
+answer** (``apps.bulk_email.callouts.record_answer``) and replaced by a later one.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 22 26 18 34
+
+   * - Field
+     - Type
+     - Null, default
+     - Meaning
+   * - ``id``
+     - ``BigAutoField``
+     - not null; assigned by the database
+     - primary key
+   * - ``callout``
+     - ``ForeignKey`` to ``bulk_email.Callout``, ``CASCADE``
+     - not null; required
+     - the callout; related name ``answers``
+   * - ``user``
+     - ``ForeignKey`` to ``accounts.User``, ``CASCADE``
+     - not null; required
+     - who answered; their answer goes with their account; related name ``callout_answers``
+   * - ``answer``
+     - ``CharField(11)``, :ref:`choices <choices-callout-answer-kind>`
+     - not null; required
+     - ``available``, ``limited``, or ``unavailable``
+   * - ``note``
+     - ``CharField(500)``
+     - not null; default ``""``
+     - what the person added, such as *can fly Saturday only*, trimmed
+   * - ``answered_at``
+     - ``DateTimeField``
+     - not null; required
+     - when the person last sent an answer that changed it
+
+**Constraints, indexes, and ordering.**
+
+- ``callout_answer_once``: unique on ``callout`` and ``user``, so a person answers a
+  callout once and a later answer replaces it.
+- Ordering: ``answered_at``, then ``id``.
+
+**Relationships.**
+
+- ``callout``: foreign key to ``bulk_email.Callout``, ``CASCADE``; the reverse accessor is ``answers``.
+- ``user``: foreign key to ``accounts.User``, ``CASCADE``; the reverse accessor is ``callout_answers``.
 
 ``BulkEmailImage``
 ------------------

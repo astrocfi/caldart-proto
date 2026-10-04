@@ -13,6 +13,7 @@ check that tells you whether the email will arrive.
    compose
    drafts
    sent
+   callouts
    dart-leaders
    templates
    groups

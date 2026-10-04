@@ -48,8 +48,8 @@ Setting one up
 **New subscription** opens the form under the table:
 
 #. **Recipient email** is where the emails go. Each address has one subscription.
-#. The events come in four groups: **Membership**, **Money**, **Accounts**, and
-   **Aircraft**. Tick each event the address should hear about; rest the pointer on one to
+#. The events come in five groups: **Membership**, **Money**, **Accounts**,
+   **Aircraft**, and **Callouts**. Tick each event the address should hear about; rest the pointer on one to
    read what it covers. **Select all** ticks every event in its group, and **Clear**
    unticks them.
 
@@ -81,6 +81,8 @@ every one:
 - **Money** events go to the treasurer or an account administrator.
 - **Accounts** events go to a user administrator or an account administrator.
 - **Aircraft** events go to an account administrator.
+- **Callouts** events go to CalDART management or a DART leader. A DART leader hears only
+  of the callouts they sent or that went to their own DART.
 
 CalDART checks each time it sends. When an account has lost the role, or has been
 deactivated, it is skipped for that event and hears nothing; its subscription stays as it
@@ -174,6 +176,14 @@ Aircraft
    An aircraft's details change. It names the fields that changed.
 *Notification: Aircraft removed*
    An aircraft is taken off a member's list. This email carries no link.
+
+Callouts
+~~~~~~~~
+
+*Notification: Callout answer*
+   Somebody answers a mission callout, or changes their answer. It names the person, their
+   answer and note, the callout, and their DART, and links the callout's answers on
+   :doc:`../bulk-email/callouts`.
 
 
 If something looks wrong

@@ -3,7 +3,8 @@ Bulk email
 ==========
 
 CalDART management writes one email to many members and friends at once: a
-newsletter, a seminar notice, a call for volunteers.  A DART leader does the same
+newsletter, a seminar notice, a call for volunteers, or a mission callout that asks
+who can fly (:ref:`bulk-email-callouts`).  A DART leader does the same
 for the members and friends of their own DART (:ref:`bulk-email-dart-limit`).  The email is a draft on the
 server from the moment Compose opens it, its people are a *batch* built from the
 member list's own filters, and **Send** only queues it.  A background sender,
@@ -24,7 +25,7 @@ added later lands in a file of its own rather than growing one:
 ``models.py``
     ``BulkEmail``, ``BatchAdd``, ``BulkEmailRecipient``, ``BulkEmailImage``, ``BulkEmailRetry``,
     ``EmailTemplate``, ``RecipientGroup`` with its ``RecipientGroupMember`` and
-    ``RecipientGroupFilter`` rows, and their choices.
+    ``RecipientGroupFilter`` rows, ``Callout``, ``CalloutAnswer``, and their choices.
 ``batch.py``
     The batch: adding by filters, the skip reasons, the batch as rows and as a
     CSV, and a send's results as a CSV.  ``locked_for_edit`` is the edit rule.
@@ -77,14 +78,23 @@ added later lands in a file of its own rather than growing one:
 ``groups.py``
     Saved recipient groups: who a group holds now, adding one to a batch, saving
     a batch as one, and changing a group's people or filters.
+``callouts.py``
+    Mission callouts: the compose switch, answering, **Remind non-responders**,
+    **Close now**, who sees a callout, and its answers as rows and as a CSV.
+``callout_links.py``
+    A callout copy's answer links: the signed token, the three buttons, and the answer
+    page's address.  It reads nothing of the app but its models, so ``render.py`` and
+    ``callouts.py`` both use it.
+``views.py``, ``urls.py``
+    The answer page the buttons open, ``/mail/callout/<token>``, outside the API.
 ``api/``
     The endpoints: ``drafts.py``, ``batch.py``, ``history.py``, ``sender.py``
     (**Run now**), ``sender_context.py`` (``GET /bulk-email/sender``),
     ``richtext.py`` (the field catalog and image uploads), ``preview.py``,
     ``checks.py`` (the checks and the test copy), ``delivery.py`` (retry, a copy,
     hide), ``archive.py`` (``/messages``), ``templates.py`` (templates and
-    **Duplicate**), and ``groups.py`` (recipient groups), with the shared serializers
-    in ``serializers.py``.
+    **Duplicate**), ``groups.py`` (recipient groups), and ``callouts.py`` (the Callouts
+    screens), with the shared serializers in ``serializers.py``.
 ``management/commands/send_bulk_emails.py``
     One run of the sender.
 
@@ -574,6 +584,86 @@ limit, as ``add_filters`` does: a DART leader's copy records their DART, and
 ``batch_rows`` skips everybody outside it as ``Not in your DART``.  The rows are fresh and ``batched``, so the skip
 reasons are worked out as they are now; the original's rows and counts are not
 read for anything else.
+
+.. _bulk-email-callouts:
+
+Mission callouts
+================
+
+When CalDART activates for a mission it needs to know quickly who can fly.  A mission
+callout is a bulk email with ``is_callout`` set and one ``Callout`` row
+(:ref:`data-model-bulk-email`); everything else about it, the batch, the checks,
+**Send**, the background sender, and the delivery report, is a bulk email's.
+
+**The compose switch.**  ``PATCH /bulk-email/{id}`` with ``is_callout`` true calls
+``callouts.apply_settings`` inside the edit rule's lock: it makes the ``Callout`` row,
+with ``closes_at`` two days ahead rounded up to the half hour
+(``callouts.default_closes_at``) unless one is given, and makes the email Mission
+email when the caller may send that type (``callouts.mission_type``).  False deletes
+the row again; a draft holds no answer.  **Send** refuses a callout whose answers would
+close by the time it starts (``callouts.check_for_send``), and so does a change to a
+queued one.
+
+**The buttons.**  ``render.render_for`` gives a callout's copy its three answer links
+above the footer (``render.callout_answers``), and points the copy's *View this email
+in your browser* line at the answer page instead of **Messages**.  Each link is
+``<SITE_URL>/mail/callout/<token>?answer=<kind>``, the token
+``django.core.signing`` with the salt ``bulk_email.callout`` over the callout's id and
+the account's id, with no age limit of its own: the close time decides whether it
+still records anything (``callout_links``).  Only a recipient's own copy carries a
+signed token: ``render_copy`` asks for live links unless it is ``inert``, so the copy
+the sender sends and the copy on the reader's **Messages** page carry the reader's
+token, and the preview, a test copy (which goes to the sender, who is not answering),
+the copy on the delivery report, and ``message_html`` all carry
+``callout_links.STAND_IN`` and answer for nobody.  The reader's **Messages** entry for a
+callout links their own answer page (``archive.Message.answer_url``).
+
+**The answer page.**  ``views.callout_answer`` reads the token
+(``callout_links.read_token``) and renders ``bulk_email/callout.html`` in the public
+site's shell: the subject and the message filled in from the values stored on the
+person's latest copy, the three answers with the button's own chosen (or the person's
+current answer), a note, and **Send answer**.  The ``GET`` records nothing, so a mail
+scanner that follows every link answers for nobody; the ``POST`` calls
+``callouts.record_answer``.  The view is CSRF-exempt: it is opened from an email, often
+in a mail program's own browser with no session, and the signed token is the
+authorization, as the unsubscribe page's is (:ref:`email-unsubscribe`).  Once the
+callout has closed, at ``closes_at`` or sooner by **Close now**, both methods say *This
+callout has closed* and record nothing; a token that does not read is a 400 page.
+
+**An answer.**  ``record_answer`` takes the callout's row lock, refuses a closed
+callout, and creates or replaces the person's ``CalloutAnswer`` (one per person, its
+note trimmed to 500 characters).  An answer that changes nothing, the same answer and
+note sent again, records and raises nothing; any other raises the ``callout_answer``
+event (:doc:`notification-events`) inside the transaction and writes one
+``callout.answer`` audit line naming the person and the answer, never the note.  The
+notifications app sends the event to subscribed CalDART management and to a subscribed
+DART leader only for a callout that leader may open.
+
+**The Callouts screen.**  ``callouts.visible_callouts`` gives CalDART management every
+callout that has started sending, and a DART leader the ones they sent and the ones
+whose ``dart`` is the DART on their own profile now.  ``callouts.callout_rows`` lists
+everybody a copy of any round reached (``sent``, or ``bounced`` afterwards), and anybody
+who answered, in surname order, each with their answer and their account as it is now:
+DART, home airport, aircraft, and the member check's go/no-go, from the same
+``apps.aircraft.services.search_result`` the member check's search reads.
+``callouts.counts_for`` counts the same people by answer without reading profiles, for
+the list.
+
+**Remind non-responders.**  ``callouts.remind`` takes a callout that has finished
+sending and still takes answers, and adds a round of rows, ``round`` one higher than
+any so far, for everybody in the batch with an account and no answer.  Each row is
+refreshed and asked ``batch.skip_reason`` as **Retry failed** asks it: the account's
+name and address as they are now, the DART limit, the type's opt-outs, and, as
+``seen``, the addresses of the round so far and of everybody who has answered.  The
+rows that pass are ``pending`` and the email is queued to start now, the path **Send
+the rest** and a retry take, so the background sender sends the round with the same
+message, each copy filled in with the person's values as they are then, and checks
+the sender's type and each opt-out again.  ``Callout.reminded_at`` is set, and when the
+round has gone ``job._finish`` writes ``callout.remind_finished`` instead of a retry's
+line.  A retry of a failed reminder compares addresses within that round alone
+(``delivery._sort_failed``), so a person the first round reached is not taken for a
+duplicate.  **Close now** (``callouts.close``) sets ``closed_at`` and ``closed_by``.
+
 
 Extending
 =========

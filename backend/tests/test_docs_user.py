@@ -299,6 +299,7 @@ ADMIN_PAGE_ROLES: dict[str, frozenset[str]] = {
     "bulk-email/compose": frozenset({MANAGEMENT, DART_LEADER}),
     "bulk-email/drafts": frozenset({MANAGEMENT, DART_LEADER}),
     "bulk-email/sent": frozenset({MANAGEMENT, DART_LEADER}),
+    "bulk-email/callouts": frozenset({MANAGEMENT, DART_LEADER}),
     "bulk-email/dart-leaders": frozenset({DART_LEADER}),
     "bulk-email/templates": frozenset({MANAGEMENT}),
     "bulk-email/groups": frozenset({MANAGEMENT}),

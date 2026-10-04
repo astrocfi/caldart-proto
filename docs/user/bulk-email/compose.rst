@@ -77,6 +77,11 @@ CalDART management can start from a message kept on :doc:`templates` with **Star
 template**, which asks before it replaces words already written, and keep this message as one
 with **Save as a template**; that page explains both.
 
+To ask who can fly for a mission, switch on **This is a mission callout** first. Every copy
+then carries three answer buttons, the type becomes **Mission** when you may send it, and
+**Answers close** sets when the buttons stop working, two days ahead unless you change it.
+The answers collect on :doc:`callouts`.
+
 First choose the **Type of email**: one button for each kind you may send, such as
 **Operational** or **Mission**, with a sentence saying what it is for. Until you choose,
 the card reads *Choose what kind of email this is.* The choice saves at once. Everybody who

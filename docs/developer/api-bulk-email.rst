@@ -10,10 +10,11 @@ of people built from the member list's filters, the send that queues it, and its
 results.  Nothing is sent in a request: the background sender sends
 (:doc:`bulk-email`).  The portal's Bulk Email screens read them: Compose at
 ``/bulk-email/compose``, the compose screen of one email at
-``/bulk-email/compose/{id}``, **Drafts & scheduled**, **Sent**, **Templates**, and
-**Recipient groups**.  What CalDART management keeps to use again lives here too:
-saved templates (:ref:`api-bulk-email-templates`) and saved recipient groups
-(:ref:`api-bulk-email-groups`).  The
+``/bulk-email/compose/{id}``, **Drafts & scheduled**, **Sent**, **Templates**,
+**Recipient groups**, and **Callouts**.  What CalDART management keeps to use again
+lives here too: saved templates (:ref:`api-bulk-email-templates`) and saved recipient
+groups (:ref:`api-bulk-email-groups`); so do mission callouts
+(:ref:`api-bulk-email-callouts`).  The
 ``/messages`` endpoints, under :ref:`api-bulk-email-messages`, are every signed-in
 person's own: the bulk emails they received, read on the portal's **Messages** page.
 :doc:`api-reference` covers the conventions these endpoints share: session
@@ -138,6 +139,8 @@ One email, with everything the compose and Sent screens show:
     "retried_count": 0,
     "retries": [],
     "hidden_from_archive": false,
+    "is_callout": false,
+    "closes_at": null,
     "can_edit": false,
     "batch_count": 41,
     "receiving_count": 40,
@@ -177,7 +180,9 @@ which ``sent_count`` then no longer counts (:ref:`api-bulk-email-delivery`).
 ``{"id", "requested_at", "requested_by", "count"}`` (``requested_by`` a display name,
 blank once the account is deleted), and ``retried_count`` adds up their counts.
 ``hidden_from_archive`` is true while the email is kept off its recipients'
-**Messages** page.  ``confirm_above`` is
+**Messages** page.  ``is_callout`` is true for a mission callout, whose answers close
+at ``closes_at``, and ``closes_at`` is null for any other email
+(:ref:`api-bulk-email-callouts`).  ``confirm_above`` is
 ``BULK_EMAIL_CONFIRM_ABOVE`` and ``undo_seconds`` is ``BULK_EMAIL_UNDO_SECONDS``,
 which the screen's confirmation and countdown read.  The portal reads this every
 three seconds while the email is ``queued`` or ``sending``.
@@ -197,6 +202,15 @@ Saves the fields given; any may be left out.
 ``reply_to`` is any valid email address, trimmed, or blank for the default; an
 address Django's ``validate_email`` refuses is **400** ``{"reply_to": ["Enter a
 valid email address."]}``.
+
+``is_callout`` true makes the email a mission callout: its answers close two days
+ahead, rounded up to the half hour, unless ``closes_at`` is given too, and its type
+becomes Mission when the caller may send that type.  False makes it an ordinary email
+again.  ``closes_at`` is when a callout's answers close, a time given without an
+offset read in the site's time zone; it is ignored for an email that is not a callout,
+and a time not after now is **400** ``{"closes_at": ["Choose a time in the
+future."]}``.  A queued callout cannot be changed so that its answers would close
+before it starts: **400** keyed ``closes_at``, worded as **Send** words it.
 
 ``email_type`` is the id of a type the caller may send (``GET
 /email-types/sendable``); any other is **400** *You cannot send <type> email. Choose
@@ -448,6 +462,9 @@ reschedules it.  A refusal is **400** keyed by the field:
   missing, or *The batch has changed: it now holds 52 people. Type the new
   count.* when it does not match.
 - ``start_at``: *Choose a time in the future.* or *Choose a time within a year.*
+- ``closes_at``: *Answers would close before the email goes out. Choose a later time
+  under Answers close.* for a mission callout whose answers close by the time it
+  would start.
 
 Past those, an error the checks find (:ref:`api-bulk-email-checks`) that the fields
 above do not already name, such as a ``Reply-To`` address that is not valid, is
@@ -813,12 +830,15 @@ email.  Unpaginated: a few go out a month.
      "subject": "Spring newsletter for Ann",
      "sent_at": "2026-04-07T08:00:02-07:00",
      "from_name": "Grace Holloway",
-     "email_type_name": "Operational"}]
+     "email_type_name": "Operational",
+     "answer_url": ""}]
 
 ``id`` is the bulk email's.  ``subject`` is the subject as the caller's copy had it,
 ``sent_at`` when their copy went, ``from_name`` the sender's display name, or the
 organization's name once the sender's account is deleted, and ``email_type_name``
-the email's type.
+the email's type.  ``answer_url`` is, for a mission callout, the caller's own answer
+page, a link signed for them as the buttons in their copy are, which the portal opens
+in place of the copy; it is blank for any other email.
 
 ``GET /messages/{id}``
 ----------------------
@@ -831,6 +851,153 @@ no scripts, no forms, and no same-origin access, and puts ``<base target="_blank
 at its head, so the email's links open in a new tab; the Sent page's message and a
 copy on the delivery report are drawn the same way.  An email the caller did not receive, and one hidden from Messages,
 is **404**.
+
+
+.. _api-bulk-email-callouts:
+
+Mission callouts
+================
+
+A mission callout asks everybody it goes to whether they can fly, and collects the
+answers (:ref:`bulk-email-callouts`).  It is written on the compose screen like any
+bulk email, with ``is_callout`` set by ``PATCH /bulk-email/{id}``; each recipient's
+copy carries three buttons, each a link to the answer page signed for that person.
+The endpoints below are the **Callouts** screen's.  A caller reaches the callouts
+``apps.bulk_email.callouts.visible_callouts`` gives them: every callout that has
+started sending for CalDART management, and for a DART leader the ones they sent and
+the ones that went to the DART on their own profile.  ``{id}`` is the bulk email's
+id; any other is **404**, a draft callout included.
+
+``GET /bulk-email/callouts``
+----------------------------
+
+Every callout the caller may open, the most recently started first.  Unpaginated: a
+callout goes out a few times a year.
+
+.. code-block:: json
+
+   [{"id": 12,
+     "subject": "Fire near Paradise",
+     "status": "sent",
+     "sender": "Grace Holloway",
+     "dart_name": "",
+     "started_at": "2026-08-06T10:00:02-07:00",
+     "sent_at": "2026-08-06T10:01:40-07:00",
+     "closes_at": "2026-08-08T10:00:00-07:00",
+     "closed_at": null,
+     "is_open": true,
+     "counts": {"reached": 41, "available": 12, "limited": 5,
+                "unavailable": 9, "no_answer": 15}}]
+
+``sender`` is blank once the account is deleted, and ``dart_name`` blank for CalDART
+management's callout.  ``closes_at`` is when the answers close, ``closed_at`` when
+**Close now** closed it sooner, and ``is_open`` whether it takes answers now.
+``counts`` counts the people the callout reached by answer: ``reached`` everybody a
+copy of any round went to (``sent``, or ``bounced`` afterwards) and anybody who
+answered, and ``no_answer`` those of them with no answer.
+
+``GET /bulk-email/callouts/{id}``
+---------------------------------
+
+One callout: the list's fields, ``closed_by`` (who pressed **Close now**, blank when
+nobody did or the account is deleted), ``reminders``, and ``recipients``, one per
+person counted in ``reached``, in surname order:
+
+.. code-block:: json
+
+   {"id": 12,
+    "subject": "Fire near Paradise",
+    "closed_by": "",
+    "reminders": [{"round": 1, "requested_at": "2026-08-07T09:00:00-07:00",
+                   "count": 15}],
+    "recipients": [{"user_id": 31, "name": "Ann Able", "email": "ann@example.org",
+                    "answer": "limited", "note": "Saturday only",
+                    "answered_at": "2026-08-06T11:20:00-07:00",
+                    "dart_name": "Marin DART", "home_airport": "LVK",
+                    "aircraft": ["N123AB"],
+                    "go_no_go": {"membership": true, "medical": true,
+                                 "verified": true}}]}
+
+``answer`` is ``available``, ``limited``, or ``unavailable``
+(:ref:`choices-callout-answer-kind`), null before the person answers, when ``note`` is
+blank and ``answered_at`` null.  ``dart_name``, ``home_airport``, ``aircraft`` (the
+N-numbers on the profile), and ``go_no_go`` read the account as it is now;
+``go_no_go`` is the member check's own three verdicts (:doc:`api-aircraft`), and the
+person is a go when all three hold.  An account since deleted is not listed.  Each of
+``reminders`` is one round of **Remind non-responders**, oldest first: its number, when
+its rows were made, and how many reminders it queued, leaving out the people it
+skipped.  The portal reads this every half minute while the callout is open.
+
+``GET /bulk-email/callouts/{id}/answers.csv``
+---------------------------------------------
+
+The answers as a CSV download, ``caldart-callout-<id>-answers.csv``, one line per
+person in the order above, with the columns ``Name``, ``Email``, ``Answer`` (in words,
+blank for none), ``Note``, ``Answered at`` (``MM/DD/YYYY HH:MM`` in the site's time
+zone, blank for none), ``DART``, ``Home airport``, ``Aircraft`` (the N-numbers,
+separated by commas), and ``Go/no-go`` (``GO`` or ``NO-GO``).
+
+``POST /bulk-email/callouts/{id}/remind``
+-----------------------------------------
+
+**Remind non-responders**: sends the callout again, with the same message, to
+everybody in its batch who has not answered, as a new round of copies.  No body is
+taken.  Each person's row of the round takes their name and address as they are now
+and is asked ``batch.skip_reason`` afresh, as **Retry failed** asks it, with the
+addresses of everybody who has answered counted as already sent: a deleted or
+deactivated account, a missing, invalid, or bounced address, an opt-out of the type,
+somebody outside a DART leader's DART, and an address somebody who answered shares
+are ``skipped`` with that reason.  The rest are queued, and the email is queued to
+start now, with no undo window; the background sender fills each copy in with the
+person's values as they are then.  **200** with the callout, the round in
+``reminders``.  A refusal is **409**, and nothing changes:
+
+- *This callout has not been sent.* for one that never started;
+- *This callout was stopped. Send the rest first, then remind the others.*;
+- *This callout is still sending. Remind the others once it has finished.* for one
+  ``queued`` or ``sending``;
+- *This callout has closed.*;
+- *Everybody has answered, so there is nobody to remind.*;
+- *Nobody who has not answered can be sent a reminder now: each would be skipped, as
+  the delivery report shows why.* when every person left would be skipped.
+
+One ``callout.remind`` audit line names the caller, the round, the reminders queued,
+and the people skipped, and one ``callout.remind_finished`` line follows once the
+round has gone.  A reminder's copies can be read one by one
+(``GET /bulk-email/{id}/recipients/{rid}/copy``), and a failed one is retried by
+**Retry failed** like any other.
+
+``POST /bulk-email/callouts/{id}/close``
+----------------------------------------
+
+**Close now**: the callout takes no more answers from now, and every answer link reads
+*This callout has closed*.  No body is taken.  **200** with the callout, ``is_open``
+false and ``closed_at`` and ``closed_by`` set.  A callout already closed, by **Close
+now** or by its ``closes_at``, is **409** *This callout has closed.*  One
+``callout.close`` audit line names the caller.
+
+The answer page
+---------------
+
+``/mail/callout/<token>`` is outside the API: a page in the public site's shell, which
+needs no sign-in, served by ``apps.bulk_email.views.callout_answer``.  The token names
+the callout and the person, signed with the salt ``bulk_email.callout``, and has no age
+limit of its own.
+
+- ``GET`` shows the callout's subject and message as the person's copy had them, the
+  three answers, the one ``?answer=available``, ``limited``, or ``unavailable`` names
+  chosen (else the person's current answer), a note field, and **Send answer**.  It
+  records nothing.
+- ``POST`` with ``answer`` and ``note`` (form fields) records the answer, or changes
+  the person's earlier one, and answers **200** with the answer as recorded.  No
+  answer, or one that is not a kind, is **400** with the form and *Choose one of the
+  three answers.*  The view is CSRF-exempt: the signed token is the authorization.
+- Once the callout has closed both answer **200** with *This callout has closed.* and
+  record nothing.  A token that was changed, signed for another purpose, or names a
+  callout or an account since deleted is **400** with *This link does not work*.
+
+Each answer that changes something raises the ``callout_answer`` event
+(:doc:`notification-events`) and writes one ``callout.answer`` audit line.
 
 
 .. _api-bulk-email-rich-text:
