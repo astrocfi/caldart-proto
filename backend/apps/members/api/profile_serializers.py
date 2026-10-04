@@ -48,6 +48,11 @@ from caldart.phone import PHONE_EXTENSION_RE, PHONE_RE, normalize_phone
 #: not needed to reach anybody and it is one more thing to keep right.
 POSTAL_RE = re.compile(r"^\d{5}$")
 
+#: What a blank first or last name is refused with, wherever somebody's names are edited:
+#: worded neutrally, since an administrator edits other people's names with them.
+FIRST_NAME_MESSAGE = "Enter a first name."
+LAST_NAME_MESSAGE = "Enter a last name."
+
 #: What every phone field answers when it cannot be read as ten digits.
 PHONE_MESSAGE = "Use a ten-digit number like 415-555-0100."
 
@@ -164,13 +169,13 @@ class ProfileSerializer(serializers.ModelSerializer[MemberProfile]):
         source="user.first_name",
         max_length=150,
         required=False,
-        error_messages=when_missing("Enter a first name."),
+        error_messages=when_missing(FIRST_NAME_MESSAGE),
     )
     last_name = serializers.CharField(
         source="user.last_name",
         max_length=150,
         required=False,
-        error_messages=when_missing("Enter a last name."),
+        error_messages=when_missing(LAST_NAME_MESSAGE),
     )
 
     dart = DartRefSerializer(read_only=True, allow_null=True)
@@ -187,13 +192,14 @@ class ProfileSerializer(serializers.ModelSerializer[MemberProfile]):
     # rather than edited here; an administrator corrects it on the member record.
     member_since = serializers.DateField(read_only=True, allow_null=True)
 
-    # A member has to be reachable: required on PUT, never blank on PATCH.
+    # Every phone number is optional, the member's own included: an email address is how
+    # CalDART reaches a member.
     #
     # The three phone fields take a longer string than the column holds, because
     # what arrives may carry a country code, spaces and brackets.  What is stored
     # is always the canonical twelve characters, and a number too long to be one
     # is answered with `PHONE_MESSAGE` rather than a column-width complaint.
-    phone = serializers.CharField(max_length=RAW_PHONE_LENGTH)
+    phone = serializers.CharField(max_length=RAW_PHONE_LENGTH, required=False, allow_blank=True)
     phone_alt = serializers.CharField(max_length=RAW_PHONE_LENGTH, required=False, allow_blank=True)
     emergency_contact_phone = serializers.CharField(
         max_length=RAW_PHONE_LENGTH, required=False, allow_blank=True
@@ -295,8 +301,8 @@ class ProfileSerializer(serializers.ModelSerializer[MemberProfile]):
         return value
 
     def validate_phone(self, value: str) -> str:
-        """The member's own number, in canonical form and never blank."""
-        return self._phone(value, required=True)
+        """The member's own number, optional, in canonical form."""
+        return self._phone(value, required=False)
 
     def validate_phone_alt(self, value: str) -> str:
         """A second number, optional, in canonical form."""
@@ -396,12 +402,11 @@ class ProfileSerializer(serializers.ModelSerializer[MemberProfile]):
         """Check the two rules that need more than one field, and return ``attrs``.
 
         A medical class other than ``none`` needs an expiration date, refused
-        against ``medical_expiration`` with "Give the expiration date of your
-        medical certificate."  A pilot certificate other than ``none`` needs a
-        number, refused against ``certificate_number`` with "Give your pilot
-        certificate number."  Both are judged on the row a PATCH would leave
-        behind, not on the fields this request happens to carry, and both
-        complaints are raised together when both apply.
+        against ``medical_expiration`` with "Enter the medical's expiration date."  A
+        pilot certificate other than ``none`` needs a number, refused against
+        ``certificate_number`` with "Enter the pilot certificate number."  Both are
+        judged on the row a PATCH would leave behind, not on the fields this request
+        happens to carry, and both complaints are raised together when both apply.
         """
         medical_expiration = self._merged(attrs, "medical_expiration")
         errors = document_errors(

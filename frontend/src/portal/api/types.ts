@@ -1078,7 +1078,8 @@ export interface DonationCheckoutRequest {
   first_name: string;
   last_name: string;
   email: string;
-  phone: string;
+  /** Optional, as on every profile. */
+  phone?: string;
   contribution_cents: number;
   provider: PaymentProvider;
   address_line1?: string;

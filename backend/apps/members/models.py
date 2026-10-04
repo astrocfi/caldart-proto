@@ -393,7 +393,6 @@ class MemberProfile(TimestampedModel):
     #: mirrored -- by the portal's profile form, so the join wizard can never
     #: accept a profile the server then calls incomplete.
     COMPLETE_FIELDS = (
-        "phone",
         "address_line1",
         "city",
         "state",

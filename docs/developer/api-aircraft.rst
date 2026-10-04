@@ -1085,7 +1085,7 @@ Tests: ``backend/tests/test_aircraft_api.py`` (CRUD, permissions,
 normalization, every filter), ``test_aircraft_types.py`` (the aircraft types,
 their display names, aliases, and search), ``test_registry_import.py`` (the
 parser, the import, the fold, and the command), ``test_registry_api.py`` (the
-type search against the fixture, Add a type, the lookup, and the status),
+type search against the fixture, New aircraft type, the lookup, and the status),
 ``test_registry_search.py`` (the N-number prefix search and its index), ``test_aircraft_history.py`` (the change rows the
 register's writes leave and the history endpoint),
 ``test_aircraft_exports.py`` (the aircraft report: CSV content, PDF

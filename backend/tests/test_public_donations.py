@@ -381,15 +381,25 @@ def test_a_refused_gift_writes_nothing(api_client: APIClient, friend: User) -> N
     assert Payment.objects.count() == 0
 
 
-@pytest.mark.parametrize("field", ["first_name", "last_name", "email", "phone"])
+@pytest.mark.parametrize("field", ["first_name", "last_name", "email"])
 def test_each_required_field_is_required(api_client: APIClient, field: str) -> None:
-    """A gift without a name, an email address or a phone number is refused."""
+    """A gift without a name or an email address is refused."""
     body = gift()
     del body[field]
 
     response = api_client.post(CHECKOUT_URL, body, format="json")
 
     assert (response.status_code, list(response.json())) == (400, [field])
+
+
+def test_a_gift_without_a_phone_number_goes_through(api_client: APIClient) -> None:
+    """The phone is optional on a gift, as on every profile."""
+    body = gift()
+    del body["phone"]
+
+    response = api_client.post(CHECKOUT_URL, body, format="json")
+
+    assert response.status_code == 201, response.json()
 
 
 def test_a_gift_of_nothing_is_refused(api_client: APIClient) -> None:

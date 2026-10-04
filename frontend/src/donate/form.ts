@@ -2,8 +2,9 @@
  * The donation form's values, the checks run before a gift is started, and the body
  * those values become.
  *
- * The required four are checked here the way the server checks them, so the giver
- * hears about a typo before anything is paid; the server still has the last word.
+ * The required three, and a phone number when one is typed, are checked here the way
+ * the server checks them, so the giver hears about a typo before anything is paid; the
+ * server still has the last word.
  */
 import { ApiError } from '@/portal/api/client';
 import type { PilotCertificateType } from '@/portal/api/types';
@@ -79,8 +80,9 @@ export const AMOUNT_MESSAGE = 'Choose an amount to give.';
 /**
  * The reasons `values` and `amountCents` cannot start a gift, empty when they can.
  *
- * An amount, both names, an address that reads as one, and a ten-digit phone number
- * are required; nothing optional is checked here.
+ * An amount, both names, and an address that reads as one are required, and a phone
+ * number, which is optional, must have ten digits when one is typed; nothing else
+ * optional is checked here.
  */
 export function validateDonation(
   values: DonationFormValues,
@@ -88,16 +90,19 @@ export function validateDonation(
 ): DonationFormErrors {
   const errors: DonationFormErrors = {};
   if (amountCents <= 0) errors.amount = AMOUNT_MESSAGE;
-  if (values.first_name.trim() === '') errors.first_name = 'Give your first name.';
-  if (values.last_name.trim() === '') errors.last_name = 'Give your last name.';
+  if (values.first_name.trim() === '') errors.first_name = 'Enter your first name.';
+  if (values.last_name.trim() === '') errors.last_name = 'Enter your last name.';
   if (!isEmailAddress(values.email)) errors.email = EMAIL_MESSAGE;
-  if (!/^\d{3}-\d{3}-\d{4}$/.test(normalizePhone(values.phone))) errors.phone = PHONE_MESSAGE;
+  const phone = values.phone.trim();
+  if (phone !== '' && !/^\d{3}-\d{3}-\d{4}$/.test(normalizePhone(phone))) {
+    errors.phone = PHONE_MESSAGE;
+  }
   return errors;
 }
 
 /**
- * The giver's part of the checkout body: the four required fields, then each optional
- * one the giver filled in.
+ * The giver's part of the checkout body: the three required fields, then each optional
+ * one the giver filled in, the phone among them.
  *
  * A blank field, an unchecked box, and a select left on its default are left out, so
  * a returning donor's earlier answers are not cleared by a gift that skips them.
@@ -107,8 +112,8 @@ export function donorBody(values: DonationFormValues): DonorBody {
     first_name: values.first_name.trim(),
     last_name: values.last_name.trim(),
     email: values.email.trim(),
-    phone: normalizePhone(values.phone),
   };
+  if (values.phone.trim() !== '') body.phone = normalizePhone(values.phone);
   for (const key of OPTIONAL_TEXT) {
     const value = values[key].trim();
     if (value !== '') body[key] = value;

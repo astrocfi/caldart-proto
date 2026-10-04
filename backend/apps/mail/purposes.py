@@ -26,12 +26,14 @@ _label_sources: list[LabelSource] = []
 #: The label of every email template whose label never changes, in the order the
 #: purpose filter offers them after the registered sources' labels.
 PURPOSE_LABELS: dict[str, str] = {
-    "renewal_enabled": "Renewal turned on",
+    # The emails a standing authority sends its holder, named as the notification
+    # events for the same moments are, so the purpose filter reads one name for each.
+    "renewal_enabled": "Automatic renewal or recurring donation turned on",
     "renewal_notice": "Renewal notice",
     "renewal_card_expiring": "Card expiring",
     "renewal_charged": "Renewal charged",
-    "renewal_failed": "Renewal declined",
-    "renewal_canceled": "Renewal turned off",
+    "renewal_failed": "Automatic renewal or recurring donation charge failed",
+    "renewal_canceled": "Automatic renewal or recurring donation turned off",
     "receipt": "Receipt",
     "refund": "Refund",
     "contribution_statement": "Contribution statement",

@@ -1445,7 +1445,6 @@
       "email",
       "first_name",
       "last_name",
-      "phone",
       "provider"
     ]
   },
@@ -2218,7 +2217,9 @@
       "profile": "ref:AdminProfileRequest"
     },
     "required": [
-      "email"
+      "email",
+      "first_name",
+      "last_name"
     ]
   },
   "MemberDetail": {
@@ -3215,7 +3216,6 @@
       "dart",
       "medical_is_current",
       "member_since",
-      "phone",
       "state",
       "verification"
     ]
@@ -3260,7 +3260,6 @@
       "vol_social_media": "boolean"
     },
     "required": [
-      "phone",
       "state"
     ]
   },

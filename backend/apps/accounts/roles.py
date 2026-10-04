@@ -37,7 +37,7 @@ ROLE_DESCRIPTIONS: dict[str, str] = {
     ),
     ACCOUNT_ADMIN: (
         "Create, edit, and delete members and profiles, grant or extend "
-        "memberships manually, manage aircraft, and run payment, membership "
+        "memberships manually, manage aircraft, and run payment, membership, "
         "and aircraft reports."
     ),
     MANAGEMENT: (

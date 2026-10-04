@@ -29,8 +29,10 @@ import {
   adminOnlyDraft,
   adminProfilePayload,
   kindPayload,
+  missingNames,
+  withoutEdited,
 } from './MemberFormFields';
-import type { AccountDraft } from './MemberFormFields';
+import type { AccountDraft, FieldErrors } from './MemberFormFields';
 import { useUpdateMember } from './api';
 import { splitErrors } from './errors';
 import { TOMBSTONE_NOTE } from './tombstone';
@@ -59,12 +61,14 @@ export function MemberProfileTab({ member }: { member: MemberDetail }): JSX.Elem
 
   const formRef = useRef<HTMLFormElement>(null);
   const refusal = useRefusedSubmit(formRef, update.error);
+  // The names left blank at the last save, until each is typed in again.
+  const [nameErrors, setNameErrors] = useState<FieldErrors>({});
   useFocusAfterSave(formRef, update.isPending);
   const server = splitErrors(update.error);
   // A server error for a field goes once that field is edited.
   const errors = {
     ...server,
-    account: useFreshErrors(update.error, account, server.account),
+    account: { ...useFreshErrors(update.error, account, server.account), ...nameErrors },
     profile: useFreshErrors(update.error, { ...profile, ...adminOnly }, server.profile),
   };
   const verified = member.profile;
@@ -83,6 +87,12 @@ export function MemberProfileTab({ member }: { member: MemberDetail }): JSX.Elem
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
+    const missing = missingNames(account);
+    setNameErrors(missing);
+    if (Object.keys(missing).length > 0) {
+      refusal.refuse();
+      return;
+    }
     update.mutate(
       {
         email: account.email.trim(),
@@ -121,7 +131,10 @@ export function MemberProfileTab({ member }: { member: MemberDetail }): JSX.Elem
 
             <AccountFields
               value={account}
-              onChange={(next) => setAccount(next)}
+              onChange={(next) => {
+                setNameErrors((current) => withoutEdited(current, account, next));
+                setAccount(next);
+              }}
               errors={errors.account}
               emailStatus={<EmailVerifiedText verifiedAt={member.email_verified_at} />}
             />

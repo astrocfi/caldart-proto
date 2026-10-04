@@ -223,7 +223,11 @@ def admin_user_reactivation(client: APIClient) -> Exchange:
 def admin_member_creation(client: APIClient) -> Exchange:
     """An account administrator adds a member without a password, who is invited."""
     signed_in_admin(client, ACCOUNT_ADMIN)
-    response = client.post(MEMBERS_URL, {"email": "ivy.invited@example.test"}, format="json")
+    response = client.post(
+        MEMBERS_URL,
+        {"email": "ivy.invited@example.test", "first_name": "Ivy", "last_name": "Novak"},
+        format="json",
+    )
     account = User.objects.get(email="ivy.invited@example.test")
     return Exchange(
         response.status_code,

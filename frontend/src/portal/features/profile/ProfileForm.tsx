@@ -76,6 +76,12 @@ export function ProfileForm({
     if (submitted || touched[key]) visible[key] = message;
   }
 
+  // Leaving a box nobody typed in says nothing about it.
+  function handleFieldBlur(key: keyof ProfileFormValues): void {
+    if (values[key] === initialValues[key]) return;
+    setTouched((left) => ({ ...left, [key]: true }));
+  }
+
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitted(true);
@@ -100,7 +106,7 @@ export function ProfileForm({
         markRequired
         verification={verification}
         withNames={withNames}
-        onFieldBlur={(key) => setTouched((left) => ({ ...left, [key]: true }))}
+        onFieldBlur={handleFieldBlur}
       />
 
       <div className="cluster profile-form__actions">

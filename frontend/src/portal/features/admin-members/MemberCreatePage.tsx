@@ -27,7 +27,10 @@ import {
   adminProfilePayload,
   emptyAccountDraft,
   kindPayload,
+  missingNames,
+  withoutEdited,
 } from './MemberFormFields';
+import type { FieldErrors } from './MemberFormFields';
 import { useCreateMember } from './api';
 import { EMAIL_MESSAGE, isEmailAddress } from '@/portal/masks';
 import { splitErrors } from './errors';
@@ -43,7 +46,8 @@ export function MemberCreatePage(): JSX.Element {
   const [profile, setProfile] = useState(EMPTY_PROFILE_FORM);
   const [adminOnly, setAdminOnly] = useState(EMPTY_ADMIN_ONLY);
 
-  const [emailError, setEmailError] = useState<string | null>(null);
+  // The complaints found before sending anything: the address and the names.
+  const [localErrors, setLocalErrors] = useState<FieldErrors>({});
 
   const formRef = useRef<HTMLFormElement>(null);
   const refusal = useRefusedSubmit(formRef, create.error);
@@ -53,18 +57,19 @@ export function MemberCreatePage(): JSX.Element {
   const freshProfile = useFreshErrors(create.error, { ...profile, ...adminOnly }, server.profile);
   const errors = {
     ...server,
-    account: emailError ? { ...freshAccount, email: emailError } : freshAccount,
+    account: { ...freshAccount, ...localErrors },
     profile: freshProfile,
   };
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
-    if (!isEmailAddress(account.email)) {
-      setEmailError(EMAIL_MESSAGE);
+    const found: FieldErrors = missingNames(account);
+    if (!isEmailAddress(account.email)) found.email = EMAIL_MESSAGE;
+    setLocalErrors(found);
+    if (Object.keys(found).length > 0) {
       refusal.refuse();
       return;
     }
-    setEmailError(null);
     create.mutate(
       {
         email: account.email.trim(),
@@ -105,7 +110,7 @@ export function MemberCreatePage(): JSX.Element {
           <AccountFields
             value={account}
             onChange={(next) => {
-              if (next.email !== account.email) setEmailError(null);
+              setLocalErrors((current) => withoutEdited(current, account, next));
               setAccount(next);
             }}
             errors={errors.account}

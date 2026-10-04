@@ -21,6 +21,7 @@ from apps.accounts.services import (
     user_from_uid,
 )
 from apps.accounts.status import closed_account_message
+from apps.members.api.profile_serializers import FIRST_NAME_MESSAGE, LAST_NAME_MESSAGE
 from apps.members.api.serializers import MembershipStatusSerializer
 from apps.members.services import membership_of
 from caldart.messages import email_messages, when_missing
@@ -355,7 +356,9 @@ class AdminUserSerializer(UserSerializer):
     known; they are changed only by the bounce check, a new or verified address, and
     the record's **Clear bounce** action.  ``phone``, ``dart`` (the DART's name),
     ``city``, ``county``, and ``home_airport`` are read from the profile, for the
-    columns the users list can show; blank, and a null DART, without a profile.
+    columns the users list can show; blank, and a null DART, without a profile.  A name
+    left out is left alone, and one sent blank is refused with "Enter a first name." or
+    "Enter a last name."
     """
 
     # djangorestframework-stubs types SerializerMethodField as a bare Field, so
@@ -403,8 +406,16 @@ class AdminUserSerializer(UserSerializer):
                 "required": False,
                 "error_messages": email_messages("Enter the email address."),
             },
-            "first_name": {"required": False},
-            "last_name": {"required": False},
+            "first_name": {
+                "required": False,
+                "allow_blank": False,
+                "error_messages": when_missing(FIRST_NAME_MESSAGE),
+            },
+            "last_name": {
+                "required": False,
+                "allow_blank": False,
+                "error_messages": when_missing(LAST_NAME_MESSAGE),
+            },
         }
 
     @staticmethod

@@ -525,7 +525,11 @@ def test_creating_a_member_records_the_account_and_the_invitation(
 ) -> None:
     """Creating a member records the new account's id and that it was invited."""
     api_client.force_login(account_admin)
-    response = api_client.post(MEMBERS_URL, {"email": "invited@example.test"}, format="json")
+    response = api_client.post(
+        MEMBERS_URL,
+        {"email": "invited@example.test", "first_name": "Ivy", "last_name": "Novak"},
+        format="json",
+    )
     assert response.status_code == 201
     assert one_message(audit_log) == (
         f"action=member.create actor={account_admin.pk} target={response.json()['id']} invited=true"

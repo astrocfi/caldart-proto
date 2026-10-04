@@ -114,8 +114,8 @@ Step 3: Profile
 The step is headed **About you**: *CalDART needs a way to reach you during an
 activation.* It is the same form you later keep up to date on :doc:`profile`, which
 describes every field, less your name, which you gave a step ago, and it is as wide as that screen, so on a computer each
-phone number sits on one line with its extension. Only these are required now: **Phone**, **Address**,
-**City**, **State**, and **ZIP code**. **Pilot certificate** always holds a value;
+phone number sits on one line with its extension. Only these are required now: **Address**,
+**City**, **State**, and **ZIP code**; every phone number is optional. **Pilot certificate** always holds a value;
 leave it at *Not a pilot* if that is what you are. Everything else can wait.
 
 As you type your street into **Address**, matching addresses appear in a list
@@ -130,7 +130,7 @@ Step 4: Pay
 ===========
 
 The step follows the choice you made on the account step, and it offers three
-choices: pay your dues as a member, give a contribution as a friend, or go on as a
+choices: pay your dues as a member, give a donation as a friend, or go on as a
 friend without giving. You can change your mind on this step as often as you
 like.
 
@@ -162,8 +162,8 @@ paying or choosing to be a friend instead.
 #. **How would you like to pay?** Choose a tab and pay. The tabs are described
    below.
 
-A friend's step is headed **Contribute to CalDART** instead: *Friends pay no dues.*
-It offers the contribution alone, paid the same ways, with the option **Make this
+A friend's step is headed **Donate to CalDART** instead: *Friends pay no dues.*
+It offers a donation alone, paid the same ways, with the option **Make this
 a recurring donation** (see :doc:`donate`). **Not now**, at the bottom of the card,
 moves on without paying anything, and you finish as a friend.
 

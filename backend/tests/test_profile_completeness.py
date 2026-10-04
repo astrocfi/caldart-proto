@@ -20,10 +20,9 @@ PROFILE_URL = "/api/v1/me/profile"
 ME_URL = "/api/v1/auth/me"
 
 
-def test_complete_fields_are_the_six_documented_ones() -> None:
-    """These six alone decide ``profile_complete`` (``docs/developer/api-auth.rst``)."""
+def test_complete_fields_are_the_five_documented_ones() -> None:
+    """These five alone decide ``profile_complete``; the phone, optional, is not one."""
     assert MemberProfile.COMPLETE_FIELDS == (
-        "phone",
         "address_line1",
         "city",
         "state",

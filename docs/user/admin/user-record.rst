@@ -23,8 +23,8 @@ it. Four cards follow.
    :doc:`member-record`, where a donor can be deleted.
 
 **Account**
-   **First name**, **Last name**, and **Email address**, with the hint *This is also how
-   they sign in.* and **Verified** with a date, or **Unverified**, and **Bounced**, beside
+   **First name**, **Last name**, and **Email address**, all three required, with the
+   hint *This is also how they sign in.* and **Verified** with a date, or **Unverified**, and **Bounced**, beside
    a red dot, when the address bounces. Then **Roles**, a box for each role with a line saying what it
    grants.
 

@@ -57,6 +57,17 @@ function formFor(user: AdminUser): FormState {
   };
 }
 
+/** The names a save would leave blank, each with what the server refuses it with. */
+type NameErrors = Partial<Record<'first_name' | 'last_name', string>>;
+
+/** The complaints about `form`'s names: each left blank, as the server would refuse it. */
+function blankNames(form: FormState): NameErrors {
+  const errors: NameErrors = {};
+  if (form.first_name.trim() === '') errors.first_name = 'Enter a first name.';
+  if (form.last_name.trim() === '') errors.last_name = 'Enter a last name.';
+  return errors;
+}
+
 function displayName(user: AdminUser): string {
   return `${user.first_name} ${user.last_name}`.trim() || user.email;
 }
@@ -75,6 +86,7 @@ export function UserDetailPage(): JSX.Element {
 
   const [form, setForm] = useState<FormState | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
+  const [nameErrors, setNameErrors] = useState<NameErrors>({});
   const user = query.data;
   const formRef = useRef<HTMLFormElement>(null);
   const refusal = useRefusedSubmit(formRef, update.error);
@@ -163,18 +175,24 @@ export function UserDetailPage(): JSX.Element {
           noValidate
           onSubmit={(event) => {
             event.preventDefault();
-            if (!isEmailAddress(form.email)) {
-              setEmailError(EMAIL_MESSAGE);
+            const missing = blankNames(form);
+            setNameErrors(missing);
+            const isEmailBad = !isEmailAddress(form.email);
+            setEmailError(isEmailBad ? EMAIL_MESSAGE : null);
+            if (isEmailBad || Object.keys(missing).length > 0) {
               refusal.refuse();
               return;
             }
-            setEmailError(null);
             update.mutate(form, {
               onSuccess: () => toast.show('Account saved.', 'success'),
             });
           }}
         >
-          <Field label="First name" error={serverErrors.first_name}>
+          <Field
+            label="First name"
+            required
+            error={nameErrors.first_name ?? serverErrors.first_name}
+          >
             {(props) => (
               <input
                 {...props}
@@ -182,11 +200,14 @@ export function UserDetailPage(): JSX.Element {
                 name="first_name"
                 autoComplete="given-name"
                 value={form.first_name}
-                onChange={(event) => setForm({ ...form, first_name: event.target.value })}
+                onChange={(event) => {
+                  setForm({ ...form, first_name: event.target.value });
+                  setNameErrors(({ first_name: _cleared, ...rest }) => rest);
+                }}
               />
             )}
           </Field>
-          <Field label="Last name" error={serverErrors.last_name}>
+          <Field label="Last name" required error={nameErrors.last_name ?? serverErrors.last_name}>
             {(props) => (
               <input
                 {...props}
@@ -194,7 +215,10 @@ export function UserDetailPage(): JSX.Element {
                 name="last_name"
                 autoComplete="family-name"
                 value={form.last_name}
-                onChange={(event) => setForm({ ...form, last_name: event.target.value })}
+                onChange={(event) => {
+                  setForm({ ...form, last_name: event.target.value });
+                  setNameErrors(({ last_name: _cleared, ...rest }) => rest);
+                }}
               />
             )}
           </Field>

@@ -65,6 +65,21 @@ def test_each_event_has_an_email_log_label(slug: str) -> None:
     assert PURPOSE_LABELS[f"notification_{slug}"] == f"Notification: {EVENTS[slug].label}"
 
 
+@pytest.mark.parametrize(
+    ("purpose", "slug"),
+    [
+        ("renewal_enabled", "auto_renewal_on"),
+        ("renewal_failed", "auto_renewal_declined"),
+        ("renewal_canceled", "auto_renewal_off"),
+    ],
+)
+def test_a_standing_authority_email_reads_as_its_notification_event(
+    purpose: str, slug: str
+) -> None:
+    """The emails a renewal's holder gets are named as the events for the same moments."""
+    assert PURPOSE_LABELS[purpose] == EVENTS[slug].label
+
+
 def test_the_notification_purposes_follow_the_dart_roster_in_catalog_order() -> None:
     """The purpose filter offers the notifications last, in the catalog's order."""
     purposes = list(PURPOSE_LABELS)

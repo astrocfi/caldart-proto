@@ -317,7 +317,7 @@ Hand-added types
 
 A type the FAA has never registered — a homebuilt, or a foreign design no US
 owner has registered yet — cannot be picked from the registry's vocabulary.  An
-account administrator adds one from the type picker's **Add a type**, which
+account administrator adds one from the type picker's **New aircraft type**, which
 calls ``POST /aircraft/types`` (:doc:`api-aircraft`): the names are normalized
 as the registry's are, the type is marked ``is_custom``, and its code is
 ``CUSTOM-<id>``.  A make and model already listed is refused, and so is a name

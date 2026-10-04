@@ -23,6 +23,7 @@ Contact
 
 * **First name** and **Last name** are the name on your account, the one CalDART
   greets you by and lists you under. Both are required.
+* Every phone number is optional, your own included: CalDART reaches you by email.
 * A name typed all in capitals or all in lower case is saved in title case:
   ``SMITH`` is saved as **Smith**, ``mcdonald`` as **McDonald**, ``o'brien`` as
   **O'Brien** (with a curly apostrophe too), ``a.j.`` as **A.J.**, and

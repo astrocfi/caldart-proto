@@ -14,8 +14,10 @@ Only an account administrator can open it, from the **New member** button at the
 What you see
 ============
 
-One form in four parts. Only the email address is required. Everything else can be filled
-in later, by you or by the member.
+One form in four parts. Only the email address and the first and last names are required;
+the phone number never is. Everything else can be filled in later, by you or by the
+member. Left empty, a name reads *Enter a first name.* or *Enter a last name.* when you
+press **Add member**.
 
 **Account**
    **Email address**, **First name**, **Last name**, **Kind of account**, and

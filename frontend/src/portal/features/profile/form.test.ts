@@ -151,7 +151,6 @@ describe('validateProfileForm', () => {
     expect([...REQUIRED_PROFILE_FIELDS].sort()).toEqual([
       'address_line1',
       'city',
-      'phone',
       'pilot_certificate_type',
       'postal_code',
       'state',
@@ -163,7 +162,6 @@ describe('validateProfileForm', () => {
   it('names every missing required field in its own words', () => {
     const errors = validateProfileForm({ ...EMPTY_PROFILE_FORM, postal_code: '' });
     expect(errors).toEqual({
-      phone: 'Enter a phone number.',
       address_line1: 'Enter your street address.',
       city: 'Enter your city.',
       postal_code: 'Enter your ZIP code.',

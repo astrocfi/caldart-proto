@@ -379,7 +379,7 @@ describe('<JoinWizard/> step progression', () => {
   it('stays on the profile step while the form is invalid', async () => {
     server.use(
       signedInAs(makeUser({ profile_complete: false, membership: UNPAID })),
-      http.get(`${API}/me/profile`, () => HttpResponse.json(makeProfile({ phone: '' }))),
+      http.get(`${API}/me/profile`, () => HttpResponse.json(makeProfile({ city: '' }))),
     );
 
     renderWizard('/join');
@@ -387,7 +387,7 @@ describe('<JoinWizard/> step progression', () => {
     await screen.findByRole('heading', { name: 'About you' });
     await userEvent.click(await screen.findByRole('button', { name: 'Save and continue' }));
 
-    expect(await screen.findByText('Enter a phone number.')).toBeInTheDocument();
+    expect(await screen.findByText('Enter your city.')).toBeInTheDocument();
     expect(path()).toBe('/join/profile');
   });
 
@@ -544,9 +544,7 @@ describe('<JoinWizard/> for a friend', () => {
     await screen.findByRole('heading', { name: 'About you' });
     await userEvent.click(await screen.findByRole('button', { name: 'Save and continue' }));
 
-    expect(
-      await screen.findByRole('heading', { name: 'Contribute to CalDART' }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Donate to CalDART' })).toBeInTheDocument();
     expect(path()).toBe('/join/pay');
     // A friend's checkout sells no plan.
     expect(await screen.findByRole('radio', { name: /Participating/ })).toBeInTheDocument();

@@ -86,13 +86,22 @@ function renderFieldsets(overrides: Partial<ProfileFieldsetsProps> = {}) {
 }
 
 describe('<ProfileFieldsets/>', () => {
-  it.each([...CONTACT_LABELS, ...AVIATION_LABELS, ...RATING_LABELS, ...VOLUNTEER_LABELS])(
+  it.each([...CONTACT_LABELS, ...AVIATION_LABELS, ...RATING_LABELS])(
     'renders the %s field',
     (label) => {
       renderFieldsets();
       expect(screen.getByLabelText(label)).toBeInTheDocument();
     },
   );
+
+  // An email type can share a volunteer interest's name on the member record, so each
+  // box says which list it is in.
+  it.each(VOLUNTEER_LABELS)('names the %s box as a volunteer interest', (label) => {
+    renderFieldsets();
+    expect(
+      screen.getByRole('checkbox', { name: `${label} (volunteer interest)` }),
+    ).toBeInTheDocument();
+  });
 
   it.each(['Contact', 'Amateur radio', 'Aviation', 'Ratings', 'Volunteer interests'])(
     'groups the fields under the %s legend',
@@ -288,7 +297,7 @@ describe('<ProfileFieldsets/>', () => {
     const user = userEvent.setup();
     const onChange = renderFieldsets();
 
-    await user.click(screen.getByLabelText('Newsletter'));
+    await user.click(screen.getByLabelText('Newsletter (volunteer interest)'));
 
     expect(onChange).toHaveBeenCalledWith({ ...EMPTY_PROFILE_FORM, vol_newsletter: true });
   });
@@ -386,7 +395,12 @@ describe('<ProfileFieldsets/>', () => {
 
   it('marks the fields a member must fill in when markRequired is set', () => {
     renderFieldsets({ markRequired: true });
-    expect(screen.getByLabelText('Phone*')).toBeInTheDocument();
+    expect(screen.getByLabelText('Address*')).toBeInTheDocument();
+  });
+
+  it('never marks the phone number required, since it is always optional', () => {
+    renderFieldsets({ markRequired: true });
+    expect(screen.getByLabelText('Phone')).toBeInTheDocument();
   });
 
   it('leaves the required markers off by default', () => {

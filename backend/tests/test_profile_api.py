@@ -246,14 +246,14 @@ def test_put_updates_every_writable_section(
     assert profile.total_hours == 1200
 
 
-def test_put_requires_a_phone_number(
+def test_put_saves_a_profile_with_no_phone_number(
     api_client: APIClient, member: User, profile: MemberProfile
 ) -> None:
-    """A ``PUT`` with no phone number is refused, naming ``phone``."""
+    """A ``PUT`` with no phone number saves: every phone number is optional."""
     api_client.force_login(member)
-    response = api_client.put(PROFILE_URL, {"city": "Napa"}, format="json")
-    assert response.status_code == 400
-    assert "phone" in response.json()
+    response = api_client.put(PROFILE_URL, {"state": "CA"}, format="json")
+    assert response.status_code == 200, response.json()
+    assert response.json()["phone"] == ""
 
 
 def test_put_clears_fields_left_out_of_the_body(
@@ -294,14 +294,28 @@ def test_patch_leaves_untouched_fields_alone(
     assert profile.city == original_city
 
 
-def test_patch_rejects_a_blank_phone(
+def test_patch_clears_the_phone_number(
     api_client: APIClient, member: User, profile: MemberProfile
 ) -> None:
-    """A ``PATCH`` clearing the phone number to blank is refused, naming ``phone``."""
+    """A ``PATCH`` may clear the phone number to blank: it is optional."""
     api_client.force_login(member)
     response = api_client.patch(PROFILE_URL, {"phone": ""}, format="json")
+    assert response.status_code == 200, response.json()
+    profile.refresh_from_db()
+    assert profile.phone == ""
+
+
+@pytest.mark.parametrize("field", ["first_name", "last_name"])
+def test_patch_refuses_a_blank_name(
+    api_client: APIClient, member: User, profile: MemberProfile, field: str
+) -> None:
+    """A ``PATCH`` clearing a name is refused, naming the field."""
+    api_client.force_login(member)
+    response = api_client.patch(PROFILE_URL, {field: " "}, format="json")
     assert response.status_code == 400
-    assert "phone" in response.json()
+    assert response.json() == {
+        field: [f"Enter a {'first' if field == 'first_name' else 'last'} name."]
+    }
 
 
 def test_admin_only_fields_are_not_writable(

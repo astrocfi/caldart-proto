@@ -175,7 +175,7 @@ and ``dart`` as its ``{id, name}`` stub.
 Statuses:
 
 * **200** — the updated profile.
-* **400** — ``phone`` missing, or any rule in :ref:`profile-validation`
+* **400** — ``state`` missing, or any rule in :ref:`profile-validation`
   refused.  Nothing is written.
 
 
@@ -212,7 +212,7 @@ nothing.
 Statuses:
 
 * **200** — the updated profile.
-* **400** — a blank ``phone``, or any rule in :ref:`profile-validation`
+* **400** — a blank name, or any rule in :ref:`profile-validation`
   refused.  Nothing is written.
 
 .. _profile-validation:
@@ -226,19 +226,19 @@ Validation
 ===========================  ===========================================================
 Field                        Rule
 ===========================  ===========================================================
-``first_name``,              Optional on ``PUT`` and ``PATCH``, never blank: a value of
-``last_name``                spaces only is refused with DRF's "This field may not be
-                             blank.", as registration refuses it.  Up to 150
+``first_name``,              Optional on ``PUT`` and ``PATCH``, never blank: an empty
+``last_name``                value, or spaces only, is refused with "Enter a first
+                             name." or "Enter a last name.".  Up to 150
                              characters, written to the account and stored through
                              ``caldart.casing.person_name``: trimmed, and title-cased
                              when typed entirely in one case (``SMITH`` is stored
                              ``Smith``; ``DeAnna`` stays ``DeAnna``).  The rule is
                              in :doc:`data-model`.
-``phone``                    Required on ``PUT``; never blank on ``PATCH``.  Stored
-                             as ``XXX-XXX-XXXX``: ``+1``, spaces, dots and brackets
-                             are accepted and none of them are kept, and anything
-                             that is not ten digits is refused.
-``phone_alt``,               The same rule, and both may be blank.
+``phone``                    Optional, and may be blank, on ``PUT`` and ``PATCH``
+                             alike.  Stored as ``XXX-XXX-XXXX``: ``+1``, spaces,
+                             dots and brackets are accepted and none of them are
+                             kept, and anything that is not ten digits is refused.
+``phone_alt``,               The same rule.
 ``emergency_contact_phone``
 ``phone_extension``,         Up to six digits if given.  Each number has an
 ``phone_alt_extension``,     extension of its own, so nobody appends one to a
@@ -303,34 +303,35 @@ as W6ABC."  ``state`` and ``county``
 are choice fields, so an unknown value is DRF's own "is not a valid choice".
 
 The portal's form applies the same rules before it sends anything, and on top
-of them marks as required the six fields that make a profile complete
-(:ref:`profile-completeness`).  The server stays authoritative: only ``phone``
-is required there, so an API client may store a partial profile.
+of them marks as required the five fields that make a profile complete
+(:ref:`profile-completeness`).  The server stays authoritative: only ``state``
+is required there, on a ``PUT``, so an API client may store a partial profile.
 
 .. _profile-completeness:
 
 Profile completeness
 --------------------
 
-A profile is complete when ``phone``, ``address_line1``, ``city``, ``state``,
+A profile is complete when ``address_line1``, ``city``, ``state``,
 ``postal_code``, and ``pilot_certificate_type`` all have a value.  That list is
-``MemberProfile.COMPLETE_FIELDS``.  The certificate box always holds a value,
+``MemberProfile.COMPLETE_FIELDS``.  The phone number is not one of them: every
+phone number is optional.  The certificate box always holds a value,
 and *Not a pilot* counts; ``state`` is a list that defaults to ``CA``.
 
 One list serves every reader of it:
 
 - ``profile_complete`` on the user payload (:doc:`api-auth`) is
-  ``MemberProfile.is_complete`` over those six fields.  It gates the portal:
+  ``MemberProfile.is_complete`` over those five fields.  It gates the portal:
   while it is false, every signed-in screen sends the reader to the join
   wizard's profile step, and the wizard's step order keys off it too.  The
   pay step that follows holds only a ``member`` who has never held a paid
   term (``membership.status`` is ``friend`` and ``friend_on`` is null); a
   member whose term has expired has joined, and renews from the portal.
-- The portal's profile form requires exactly the same six
+- The portal's profile form requires exactly the same five
   (``REQUIRED_PROFILE_FIELDS`` in
   ``frontend/src/portal/features/profile/form.ts``), so a profile the form
   saves is a profile the server calls complete.
-- This endpoint requires only ``phone``, so an API client — or an account
+- This endpoint requires only ``state`` on a ``PUT``, so an API client — or an account
   administrator creating a member through
   :doc:`api-members` — can store a profile that is not yet complete.
 
