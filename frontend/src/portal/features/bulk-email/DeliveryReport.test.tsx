@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { BulkEmailCopy, BulkEmailDetail } from '@/portal/api/types';
 import { formatDateAt } from '@/portal/components/DateText';
-import { EMAIL_FRAME_SANDBOX, withNewTabLinks } from '@/portal/components/EmailFrame';
+import { EMAIL_FRAME_SANDBOX, emailDocument } from '@/portal/components/EmailFrame';
 import { answerBulkEmail, makeBatch, makeBulkEmail, makeRow } from '@test/fixtures/bulkEmail';
 import { API } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
@@ -143,7 +143,7 @@ describe('DeliveryReport', () => {
     const frame = await screen.findByTitle('The email as Ann Able received it');
     expect([frame.getAttribute('sandbox'), frame.getAttribute('srcdoc')]).toEqual([
       EMAIL_FRAME_SANDBOX,
-      withNewTabLinks(ANN_COPY.html),
+      emailDocument(ANN_COPY.html),
     ]);
   });
 

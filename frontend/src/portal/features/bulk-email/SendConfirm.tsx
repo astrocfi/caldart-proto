@@ -4,8 +4,9 @@
  * people, and the button that sends stays off until the number matches; the
  * server checks the number again, in case the batch changed meanwhile.
  *
- * The focus starts in the number box, or on the button that sends when there is
- * none, and the Escape key goes back, as **Go back** does.
+ * The focus starts in the number box, or on **Go back** when there is none, so a
+ * second press of Enter does not send by accident; the Escape key goes back, as
+ * **Go back** does.
  */
 import { useEffect, useRef, useState } from 'react';
 import type { JSX, KeyboardEvent } from 'react';
@@ -53,7 +54,7 @@ export function SendConfirm({
   const [typed, setTyped] = useState('');
   const [isPending, setIsPending] = useState(false);
   const countRef = useRef<HTMLInputElement>(null);
-  const confirmRef = useRef<HTMLButtonElement>(null);
+  const backRef = useRef<HTMLButtonElement>(null);
   const needsCount = count > confirmAbove;
   const typedNumber = typed.trim();
   const isConfirmed = !needsCount || Number(typedNumber) === count;
@@ -61,7 +62,7 @@ export function SendConfirm({
   const label = startAt === null ? 'Send now' : 'Schedule it';
 
   useEffect(() => {
-    (needsCount ? countRef.current : confirmRef.current)?.focus();
+    (needsCount ? countRef.current : backRef.current)?.focus();
   }, [needsCount]);
 
   const handleConfirm = (): void => {
@@ -105,14 +106,19 @@ export function SendConfirm({
       ) : null}
       <div className="cluster">
         <Button
-          ref={confirmRef}
           onClick={handleConfirm}
           onKeyDown={handleKeyDown}
           disabled={!isConfirmed || isPending}
         >
           {isPending ? 'Sending…' : label}
         </Button>
-        <Button variant="quiet" onClick={handleBack} onKeyDown={handleKeyDown} disabled={isPending}>
+        <Button
+          ref={backRef}
+          variant="quiet"
+          onClick={handleBack}
+          onKeyDown={handleKeyDown}
+          disabled={isPending}
+        >
           Go back
         </Button>
       </div>

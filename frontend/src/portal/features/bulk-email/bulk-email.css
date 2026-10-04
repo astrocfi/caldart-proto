@@ -121,3 +121,13 @@
 .bulk-email__test p {
   margin: 0;
 }
+
+/* Download list, Save as a group, and Clear batch, in one row; Clear batch's
+ * confirmation takes a line of its own when it opens. */
+.bulk-email__batch-actions {
+  align-items: flex-start;
+}
+
+.bulk-email__batch-actions > section {
+  flex-basis: 100%;
+}

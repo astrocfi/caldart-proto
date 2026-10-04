@@ -5,12 +5,13 @@
  * The first press asks how: the message alone (its subject, message, and type), or
  * the message and the people, who join the new draft's batch as they are now, so
  * anybody who has since opted out or bounced shows as skipped. The new draft opens on
- * the compose screen.
+ * the compose screen, which says what it is a copy of.
  */
 import type { JSX } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { ConfirmButton } from '@/portal/components/ConfirmButton';
+import type { CopiedFromState } from './ComposePage';
 import { useDuplicate } from './reuseApi';
 
 interface DuplicateButtonProps {
@@ -26,7 +27,8 @@ export function DuplicateButton({ emailId, subject }: DuplicateButtonProps): JSX
 
   const handleDuplicate = async (copyRecipients: boolean): Promise<void> => {
     const copy = await duplicate.mutateAsync({ copyRecipients });
-    void navigate(`/bulk-email/compose/${copy.id}`);
+    const state: CopiedFromState = { copiedFrom: subject };
+    void navigate(`/bulk-email/compose/${copy.id}`, { state });
   };
 
   return (

@@ -27,7 +27,7 @@ export function SaveGroupButton({ emailId }: { emailId: number }): JSX.Element |
   if (!hasAnyRole(roles, ['management'])) return null;
   return (
     <div className="stack-tight">
-      <PanelButton label="Save as a group" legend="Save the batch as a group">
+      <PanelButton label="Save as a group" legend="Save the batch as a group" isForm>
         {(handleClose) => (
           <SaveGroupForm
             emailId={emailId}

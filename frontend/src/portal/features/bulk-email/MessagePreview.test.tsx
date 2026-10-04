@@ -14,7 +14,8 @@ import { API } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
 import type { BulkEmailDetail, BulkEmailPreview } from '@/portal/api/types';
-import { MessagePreview, previewingLine } from './MessagePreview';
+import { withFittedImages } from '@/portal/components/EmailFrame';
+import { LAST_SAVED_NOTE, MessagePreview, NO_MESSAGE_YET, previewingLine } from './MessagePreview';
 
 /** Ann and Bea, who both receive the email. */
 const TWO = [makeRow(), makeRow({ id: 2, name: 'Bea Bell', email: 'bea@example.org' })];
@@ -51,12 +52,24 @@ describe('MessagePreview', () => {
     expect(await screen.findByText('Previewing as Ann Able (1 of 2)')).toBeVisible();
   });
 
+  it('says the preview waits for the message before one is written', () => {
+    renderPreview(TWO, makeBulkEmail({ body: '' }));
+    expect(screen.getByText(NO_MESSAGE_YET)).toBeVisible();
+  });
+
+  it('says it shows the last saved version while the words could not be saved', async () => {
+    const email = makeBulkEmail();
+    answerBulkEmail({ email, batch: makeBatch(TWO) });
+    renderWithProviders(<MessagePreview email={email} isBehind />);
+    expect(await screen.findByText(LAST_SAVED_NOTE)).toBeVisible();
+  });
+
   it('draws the copy in a sandboxed frame', async () => {
     renderPreview();
     const frame = await screen.findByTitle('The email as Ann Able will receive it');
     expect([frame.getAttribute('sandbox'), frame.getAttribute('srcdoc')]).toEqual([
       '',
-      '<html><body><p>Dear Ann,</p></body></html>',
+      withFittedImages('<html><body><p>Dear Ann,</p></body></html>'),
     ]);
   });
 

@@ -30,6 +30,8 @@ export interface ConfirmButtonProps {
   label: string;
   /** The button's look before it is pressed; `secondary` unless given. */
   variant?: ButtonVariant;
+  /** Draw the button before it is pressed at the small size, to sit among small ones. */
+  small?: boolean;
   disabled?: boolean;
   /** What the panel says before the choices: what will happen, and to whom. */
   children: ReactNode;
@@ -48,6 +50,7 @@ export interface ConfirmButtonProps {
 export function ConfirmButton({
   label,
   variant = 'secondary',
+  small = false,
   disabled = false,
   children,
   choices,
@@ -87,6 +90,7 @@ export function ConfirmButton({
       <Button
         ref={triggerRef}
         variant={variant}
+        small={small}
         disabled={disabled}
         onClick={() => setIsOpen(true)}
       >

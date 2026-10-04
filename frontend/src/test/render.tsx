@@ -77,6 +77,8 @@ export type TestRouter = ReturnType<typeof createMemoryRouter>;
 
 export interface RenderRoutesOptions {
   route?: string;
+  /** The history state the first entry carries, as a `navigate` with `state` leaves it. */
+  state?: unknown;
   client?: QueryClient;
 }
 
@@ -90,10 +92,12 @@ export interface RenderRoutesOptions {
  */
 export function renderRoutes(
   routes: RouteObject[],
-  { route = '/', client }: RenderRoutesOptions = {},
+  { route = '/', state, client }: RenderRoutesOptions = {},
 ): RenderResult & { client: QueryClient; router: TestRouter } {
   const queryClient = client ?? makeTestQueryClient();
-  const router = createMemoryRouter(routes, { initialEntries: [route] });
+  const router = createMemoryRouter(routes, {
+    initialEntries: [state === undefined ? route : { pathname: route, state }],
+  });
 
   return {
     ...render(

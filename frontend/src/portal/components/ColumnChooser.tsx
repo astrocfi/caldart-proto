@@ -132,7 +132,7 @@ export function ColumnChooser({
           />
         )}
       </PanelButton>
-      <PanelButton label="Save columns" legend="Save these columns">
+      <PanelButton label="Save columns" legend="Save these columns" isForm>
         {(handleClose) => (
           <SaveColumnSet
             report={report}

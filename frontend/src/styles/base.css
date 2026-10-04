@@ -476,7 +476,8 @@ legend {
 .email-frame {
   display: block;
   width: 100%;
-  min-height: 28rem;
+  height: 75vh;
+  min-height: 20rem;
   border: var(--hairline) solid var(--color-rule-strong);
   border-radius: var(--radius);
 }
@@ -506,6 +507,12 @@ legend {
   border: var(--hairline) solid var(--color-rule-strong);
   background: var(--color-bg-raised);
   font-size: var(--text-sm);
+}
+
+/* A panel that holds a form grows to fit it, so its button is never cut off. */
+.panel-button__panel--form {
+  max-height: none;
+  overflow-y: visible;
 }
 
 /* A drop-down that takes several choices.  The shut box is styled as a select,

@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { BulkEmailDetail } from '@/portal/api/types';
 import { formatDateAt } from '@/portal/components/DateText';
-import { EMAIL_FRAME_SANDBOX, withNewTabLinks } from '@/portal/components/EmailFrame';
+import { EMAIL_FRAME_SANDBOX, emailDocument } from '@/portal/components/EmailFrame';
 import {
   LEADER_SENDER,
   answerBulkEmail,
@@ -84,7 +84,7 @@ describe('SentDetailPage', () => {
     const frame = await screen.findByTitle('The message as it was sent');
     expect([frame.getAttribute('sandbox'), frame.getAttribute('srcdoc')]).toEqual([
       EMAIL_FRAME_SANDBOX,
-      withNewTabLinks('<html><body><h1>Hangar day</h1><p>Bring gloves.</p></body></html>'),
+      emailDocument('<html><body><h1>Hangar day</h1><p>Bring gloves.</p></body></html>'),
     ]);
   });
 

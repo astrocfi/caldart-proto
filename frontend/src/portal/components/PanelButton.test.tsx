@@ -39,6 +39,26 @@ describe('PanelButton', () => {
     expect(screen.getByRole('group', { name: 'Columns to show' })).toBeInTheDocument();
   });
 
+  it('keeps a panel of choices to its fixed height', async () => {
+    renderPanel();
+    await userEvent.click(screen.getByRole('button', { name: 'Columns' }));
+    expect(screen.getByRole('group', { name: 'Columns to show' })).not.toHaveClass(
+      'panel-button__panel--form',
+    );
+  });
+
+  it('lets a panel holding a form grow to the form', async () => {
+    render(
+      <PanelButton label="Save as a group" legend="Save the batch as a group" isForm>
+        {() => <input aria-label="Group name" />}
+      </PanelButton>,
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Save as a group' }));
+    expect(screen.getByRole('group', { name: 'Save the batch as a group' })).toHaveClass(
+      'panel-button__panel--form',
+    );
+  });
+
   it('says whether the panel is open', async () => {
     renderPanel();
 

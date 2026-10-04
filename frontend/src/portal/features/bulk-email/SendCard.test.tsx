@@ -9,7 +9,8 @@ import { API } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
 import type { BulkEmailDetail, BulkEmailFinding } from '@/portal/api/types';
-import { CHECKS_WAIT_MS, missingSteps, SendCard } from './SendCard';
+import { CHECKS_WAIT_MS, missingSteps, SendCard, sendSoonerLabel } from './SendCard';
+import type { Autosave, SaveState } from './useAutosave';
 import { mismatchMessage } from './SendConfirm';
 
 /** A warning the checks may find. */
@@ -30,7 +31,12 @@ const BAD_REPLY_TO: BulkEmailFinding = {
  * Render the card for `email`, with the subject and message it holds, saved, and
  * the checks finding `findings`.
  */
-function renderCard(email: BulkEmailDetail, findings: BulkEmailFinding[] = []) {
+function renderCard(
+  email: BulkEmailDetail,
+  findings: BulkEmailFinding[] = [],
+  saving: { saveState?: SaveState; saveErrors?: Autosave['errors'] } = {},
+  onFixField: (field: 'subject' | 'body') => void = () => undefined,
+) {
   const state: BulkEmailState = { email, batch: makeBatch([makeRow()]), findings };
   const calls = answerBulkEmail(state);
   renderWithProviders(
@@ -39,6 +45,9 @@ function renderCard(email: BulkEmailDetail, findings: BulkEmailFinding[] = []) {
       subject={email.subject}
       body={email.body}
       onBeforeSend={() => Promise.resolve(true)}
+      saveState={saving.saveState ?? 'saved'}
+      saveErrors={saving.saveErrors ?? {}}
+      onFixField={onFixField}
     />,
   );
   return Object.assign(calls, { state });
@@ -66,10 +75,11 @@ describe('SendCard', () => {
   });
 
   it('names what is missing instead of offering Send', async () => {
-    const calls = renderCard(makeBulkEmail({ body: '' }));
+    renderCard(makeBulkEmail({ body: '' }));
     expect(screen.getByText('Write the message.')).toBeVisible();
     expect(screen.queryByRole('button', { name: /^Send to/ })).toBeNull();
-    await waitFor(() => expect(calls.previews).toHaveLength(1));
+    // With no message there is no preview to ask for; the checks still answer.
+    await screen.findByText('Nothing else to fix.');
   });
 
   it('confirms a small send without asking for the count, saying when it starts', async () => {
@@ -79,7 +89,8 @@ describe('SendCard', () => {
     expect(confirm).toHaveTextContent(
       'This sends Hangar day to 3 people. Sending starts in 2 minutes, and until then you can cancel it.',
     );
-    expect(within(confirm).getByRole('button', { name: 'Send now' })).toHaveFocus();
+    // Go back has the focus, so Enter pressed twice does not send by accident.
+    expect(within(confirm).getByRole('button', { name: 'Go back' })).toHaveFocus();
     await userEvent.click(within(confirm).getByRole('button', { name: 'Send now' }));
     await waitFor(() => expect(calls.sends).toEqual([{ confirm_count: null, start_at: null }]));
   });
@@ -161,13 +172,58 @@ describe('SendCard', () => {
     expect(screen.getByLabelText('Time')).toHaveValue('08:00');
   });
 
-  it('sends a scheduled email now instead, with the undo window', async () => {
+  it('sends a scheduled email sooner instead, after the undo window', async () => {
     const calls = renderCard(
       makeBulkEmail({ status: 'queued', scheduled: true, start_at: '2026-10-04T15:00:00Z' }),
     );
-    await userEvent.click(screen.getByRole('button', { name: 'Send now instead' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Send in 2 minutes instead' }));
     await userEvent.click(await screen.findByRole('button', { name: 'Send now' }));
     await waitFor(() => expect(calls.sends).toEqual([{ confirm_count: null, start_at: null }]));
+  });
+
+  it('keeps Send off while the words typed are still saving', async () => {
+    const calls = renderCard(makeBulkEmail({ receiving_count: 3 }), [], { saveState: 'saving' });
+    expect(screen.getByRole('button', { name: 'Send to 3 people' })).toBeDisabled();
+    await waitFor(() => expect(calls.previews).toHaveLength(1));
+  });
+
+  it('lists a refused save as a mistake to fix, and keeps Send off', async () => {
+    const calls = renderCard(makeBulkEmail({ receiving_count: 3 }), [], {
+      saveState: 'failed',
+      saveErrors: { subject: '{nickname} is not one of the fields.' },
+    });
+    const checks = screen.getByRole('region', { name: 'Checks' });
+    expect(within(checks).getByRole('list', { name: 'Not saved' })).toHaveTextContent(
+      'Must fix: Your subject has a mistake: {nickname} is not one of the fields.',
+    );
+    expect(screen.getByRole('button', { name: 'Send to 3 people' })).toBeDisabled();
+    await waitFor(() => expect(calls.previews).toHaveLength(1));
+  });
+
+  it('puts the focus in the field a refused save names, from its link', async () => {
+    const handleFix = vi.fn();
+    const calls = renderCard(
+      makeBulkEmail({ receiving_count: 3 }),
+      [],
+      { saveState: 'failed', saveErrors: { subject: '{nickname} is not one of the fields.' } },
+      handleFix,
+    );
+    await userEvent.click(screen.getByRole('link', { name: 'Fix it under 2. What it says.' }));
+    expect(handleFix).toHaveBeenCalledWith('subject');
+    await waitFor(() => expect(calls.previews).toHaveLength(1));
+  });
+
+  it('says nothing else needs fixing, without a green dot, while steps remain', async () => {
+    renderCard(makeBulkEmail({ body: '' }));
+    expect(await screen.findByText('Nothing else to fix.')).toBeVisible();
+    expect(screen.queryByText('No problems found.')).toBeNull();
+  });
+
+  it('names the undo wait on the button that sends a scheduled email sooner', () => {
+    expect([sendSoonerLabel(120), sendSoonerLabel(0)]).toEqual([
+      'Send in 2 minutes instead',
+      'Send now instead',
+    ]);
   });
 
   it('runs the checks as it opens and lists what they find', async () => {

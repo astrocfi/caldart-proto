@@ -38,8 +38,18 @@ describe('the counting sentences', () => {
     expect(batchSentence(1, 1)).toBe('1 person will receive this email; 1 is skipped.');
   });
 
+  it('leaves the skipped out of the sentence when nobody is skipped', () => {
+    expect(batchSentence(39, 0)).toBe('39 people will receive this email.');
+  });
+
   it('leaves out a count of nobody already there', () => {
     expect(addSentence({ added: 12, already_present: 0, count: 12 })).toBe('Added 12 people.');
+  });
+
+  it('says nobody matches when an add found nobody at all', () => {
+    expect(addSentence({ added: 0, already_present: 0, count: 5 })).toBe(
+      'Nobody matches these filters.',
+    );
   });
 
   it('says what an add did', () => {
@@ -72,6 +82,21 @@ describe('progressSentence', () => {
     });
     expect(progressSentence(email, new Date('2026-04-06T17:00:00Z'))).toBe(
       'Sending… 12 of 38 sent, about 1 minute left.',
+    );
+  });
+
+  it('counts the copy going out at the moment in the whole', () => {
+    // 6 sent and 32 waiting: the 39th is on its way, in neither count yet.
+    const email: BulkEmailDetail = makeBulkEmail({
+      status: 'sending',
+      sent_count: 6,
+      failed_count: 0,
+      remaining: 32,
+      receiving_count: 39,
+      estimated_finish_at: '2026-04-06T17:00:20Z',
+    });
+    expect(progressSentence(email, new Date('2026-04-06T17:00:00Z'))).toBe(
+      'Sending… 6 of 39 sent, less than a minute left.',
     );
   });
 });

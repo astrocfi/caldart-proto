@@ -91,17 +91,23 @@ export function people(count: number): string {
   return count === 1 ? '1 person' : `${count} people`;
 }
 
-/** `38 people will receive this email; 4 are skipped.`: what the batch comes to. */
+/**
+ * `38 people will receive this email; 4 are skipped.`: what the batch comes to; with
+ * nobody skipped, `38 people will receive this email.`
+ */
 export function batchSentence(receiving: number, skipped: number): string {
+  if (skipped === 0) return `${people(receiving)} will receive this email.`;
   const skips = skipped === 1 ? '1 is skipped' : `${skipped} are skipped`;
   return `${people(receiving)} will receive this email; ${skips}.`;
 }
 
 /**
  * `Added 12 people; 3 were already in the batch.`: what one add did.  With nobody
- * there already it is `Added 12 people.`
+ * there already it is `Added 12 people.`, and with nobody found at all `Nobody matches
+ * these filters.`
  */
 export function addSentence(result: BulkEmailAddResult): string {
+  if (result.added === 0 && result.already_present === 0) return 'Nobody matches these filters.';
   if (result.already_present === 0) return `Added ${people(result.added)}.`;
   const already =
     result.already_present === 1
@@ -136,10 +142,24 @@ export function wentCount(
   return email.sent_count + (email.bounced_count ?? 0);
 }
 
+/**
+ * How many copies a send in progress comes to: the batch's count of who receives one.
+ * The copy going out at the moment is neither waiting nor counted as sent yet, so
+ * adding up the sent, the failed, and the waiting can come one short; the batch's
+ * count holds it.
+ */
+export function progressTotal(
+  email: Pick<BulkEmailDetail, 'sent_count' | 'failed_count' | 'remaining' | 'receiving_count'> & {
+    bounced_count?: number;
+  },
+): number {
+  return Math.max(email.receiving_count, wentCount(email) + email.failed_count + email.remaining);
+}
+
 /** `Sending… 12 of 38 sent, about 1 minute left.`: a send in progress. */
 export function progressSentence(email: BulkEmailDetail, now: Date = new Date()): string {
   const went = wentCount(email);
-  const total = went + email.failed_count + email.remaining;
+  const total = progressTotal(email);
   return `Sending… ${went} of ${total} sent, ${timeLeft(email.estimated_finish_at, now)} left.`;
 }
 

@@ -20,6 +20,15 @@ describe('ConfirmButton', () => {
     expect(screen.queryByText('They will be signed out.')).not.toBeInTheDocument();
   });
 
+  it('draws its button small when asked, to sit among small buttons', () => {
+    renderWithProviders(
+      <ConfirmButton label="Clear batch" small choices={[]}>
+        <p>Everybody goes.</p>
+      </ConfirmButton>,
+    );
+    expect(screen.getByRole('button', { name: 'Clear batch' })).toHaveClass('button--small');
+  });
+
   it('opens a panel naming the action, with the explanation', async () => {
     renderButton(vi.fn(() => Promise.resolve()));
 

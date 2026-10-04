@@ -1,18 +1,22 @@
 import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { HttpResponse, http } from 'msw';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { answerBulkEmail, makeBatch, makeBulkEmail, makeRow } from '@test/fixtures/bulkEmail';
 import type { BulkEmailState } from '@test/fixtures/bulkEmail';
+import { API } from '@test/handlers';
 import { renderRoutes } from '@test/render';
+import { server } from '@test/server';
 import { ComposePage } from './ComposePage';
 import { BACK_TO_DRAFT_MESSAGE, SHORT_LIST_LENGTH } from './RecipientsCard';
 import { AUTOSAVE_MS } from './useAutosave';
 
-/** Render the compose screen of the email in `state`. */
-function renderCompose(state: BulkEmailState) {
+/** Render the compose screen of the email in `state`, with `history` as the entry's state. */
+function renderCompose(state: BulkEmailState, history?: unknown) {
   return renderRoutes([{ path: '/bulk-email/compose/:id', element: <ComposePage /> }], {
     route: `/bulk-email/compose/${state.email.id}`,
+    state: history,
   });
 }
 
@@ -99,7 +103,7 @@ describe('ComposePage', () => {
     ).toBeVisible();
   });
 
-  it('adds the filtered people to the batch, says how many joined, and keeps the focus', async () => {
+  it('adds the filtered people to the batch and says how many joined', async () => {
     const calls = answerBulkEmail(draftState());
     renderCompose(draftState());
     const user = typist();
@@ -107,7 +111,40 @@ describe('ComposePage', () => {
     await pass(500);
     expect(await screen.findByText('Added 1 person; 1 was already in the batch.')).toBeVisible();
     expect(calls.adds).toEqual([{ filters: {} }]);
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Add to batch' })).toHaveFocus());
+  });
+
+  it('moves the focus to the line saying what an add did', async () => {
+    answerBulkEmail(draftState());
+    renderCompose(draftState());
+    const user = typist();
+    await user.click(await screen.findByRole('button', { name: 'Add to batch' }));
+    await pass(500);
+    const result = await screen.findByText('Added 1 person; 1 was already in the batch.');
+    await waitFor(() => expect(result).toHaveFocus());
+  });
+
+  it('says what no filters add only until a filter is chosen', async () => {
+    answerBulkEmail(draftState());
+    renderCompose(draftState());
+    const user = typist();
+    const hint = 'With no filters chosen, this adds every member and friend.';
+    expect(await screen.findByText(hint)).toBeVisible();
+    const filters = screen.getByRole('search', { name: 'Choose people to add' });
+    await user.type(within(filters).getByLabelText('Search'), 'bea');
+    await pass(400);
+    expect(screen.queryByText(hint)).toBeNull();
+  });
+
+  it('puts Download list and Clear batch in one row of small buttons', async () => {
+    answerBulkEmail(draftState());
+    renderCompose(draftState());
+    const download = await screen.findByRole('link', { name: 'Download list' });
+    const row = download.parentElement as HTMLElement;
+    const buttons = [download, within(row).getByRole('button', { name: 'Clear batch' })];
+    expect(buttons.map((button) => button.classList.contains('button--small'))).toEqual([
+      true,
+      true,
+    ]);
   });
 
   it('adds by a search typed just before the press', async () => {
@@ -200,13 +237,13 @@ describe('ComposePage', () => {
       'Name',
       'Email',
       'Will receive?',
-      'Remove',
       'Kind',
       'DART',
       'Chosen by',
+      'Remove',
     ]);
     expect(headers[0]).toHaveClass('data-table__text');
-    expect(table.style.minWidth).toContain('16rem + 14rem');
+    expect(table.style.minWidth).toContain('12rem + 13rem');
   });
 
   it('takes one person out once the trashcan is confirmed', async () => {
@@ -294,6 +331,53 @@ describe('ComposePage', () => {
     const banner = await screen.findByRole('region', { name: 'Waiting to send' });
     expect(within(banner).getByText(/^Sending in /)).toBeVisible();
     expect(screen.getAllByRole('button', { name: 'Cancel' })).toHaveLength(1);
+  });
+
+  it('shows only the banner during the undo wait, without Check and send', async () => {
+    const state = draftState({
+      status: 'queued',
+      start_at: new Date(Date.now() + 60_000).toISOString(),
+    });
+    answerBulkEmail(state);
+    renderCompose(state);
+    await screen.findByRole('region', { name: 'Waiting to send' });
+    expect(screen.queryByRole('heading', { name: '3. Check and send' })).toBeNull();
+  });
+
+  it('keeps the heading Compose once the email is waiting or sending', async () => {
+    const state = draftState({
+      status: 'sending',
+      can_edit: false,
+      started_at: '2026-04-06T17:00:00Z',
+      remaining: 2,
+    });
+    answerBulkEmail(state);
+    renderCompose(state);
+    await screen.findByRole('region', { name: 'Sending' });
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Compose');
+  });
+
+  it('says which email a draft made by Duplicate is a copy of', async () => {
+    answerBulkEmail(draftState());
+    renderCompose(draftState(), { copiedFrom: 'Fly-in at Livermore' });
+    expect(await screen.findByText('This is a copy of "Fly-in at Livermore".')).toBeVisible();
+  });
+
+  it('moves the focus to the subject from the link beside its refused save', async () => {
+    const state = draftState({ receiving_count: 1 });
+    answerBulkEmail(state);
+    server.use(
+      http.patch(`${API}/bulk-email/7`, () =>
+        HttpResponse.json({ subject: ['{nickname} is not one of the fields.'] }, { status: 400 }),
+      ),
+    );
+    renderCompose(state);
+    const user = typist();
+    const subject = await screen.findByRole('textbox', { name: /^Subject/ });
+    await user.type(subject, ' {{nickname}');
+    await pass(1000);
+    await user.click(await screen.findByRole('link', { name: 'Fix it under 2. What it says.' }));
+    expect(subject).toHaveFocus();
   });
 
   it('shows a scheduled email under a banner that can cancel the schedule', async () => {

@@ -131,6 +131,10 @@ describe('Start from a template', () => {
     await user.type(within(form).getByRole('textbox', { name: /Template name/ }), 'Hangar');
     await user.click(within(form).getByRole('button', { name: 'Save template' }));
     expect(await screen.findByText(/Saved as the template Hangar\./)).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Templates' })).toHaveAttribute(
+      'href',
+      '/bulk-email/templates',
+    );
     expect(calls.saved).toEqual([
       {
         name: 'Hangar',

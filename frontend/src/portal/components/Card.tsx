@@ -5,13 +5,22 @@ export interface CardProps {
   eyebrow?: string;
   footer?: ReactNode;
   className?: string;
+  /** The section's `id`, for a link to it. */
+  id?: string;
   children?: ReactNode;
 }
 
 /** A flat panel with a hairline border — no shadow, near-square corners. */
-export function Card({ title, eyebrow, footer, className, children }: CardProps): JSX.Element {
+export function Card({
+  title,
+  eyebrow,
+  footer,
+  className,
+  id,
+  children,
+}: CardProps): JSX.Element {
   return (
-    <section className={className ? `card ${className}` : 'card'}>
+    <section id={id} className={className ? `card ${className}` : 'card'}>
       {eyebrow ? <p className="eyebrow">{eyebrow}</p> : null}
       {title ? <h2 className="card__title">{title}</h2> : null}
       {children}

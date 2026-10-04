@@ -7,7 +7,9 @@
  * surname order, which filters chose them, and whether they will receive the email
  * or why not; it shows the first ten until **Show all** is pressed. One person can be
  * taken out with the trashcan, or everybody with **Clear batch**; both ask first.
- * **Download list** saves the batch as a spreadsheet. A change to the batch of a
+ * **Download list** saves the batch as a spreadsheet. **Download list**, **Save as a
+ * group**, and **Clear batch** sit in one row. After an add the focus moves to the
+ * line saying what it did. A change to the batch of a
  * scheduled email takes it back to the drafts, and the screen says so. A DART
  * leader's email goes to one DART only: the DART filter gives way to that DART,
  * named as a fixed value. While that leader's profile names no DART, nobody can be
@@ -32,7 +34,14 @@ import { SEARCH_DEBOUNCE_MS } from '@/portal/components/useDebounced';
 import { listFilters, REPORTS } from '@/portal/reports/definitions';
 import type { FilterValues, Option } from '@/portal/reports/types';
 import { AddGroupButton } from './AddGroupButton';
-import { batchCsvUrl, useAddToBatch, useBatch, useClearBatch, useRemoveFromBatch } from './api';
+import {
+  batchCsvUrl,
+  givenFilters,
+  useAddToBatch,
+  useBatch,
+  useClearBatch,
+  useRemoveFromBatch,
+} from './api';
 import { SaveGroupButton } from './SaveGroupButton';
 import { addSentence, batchSentence, kindLabel, people } from './status';
 
@@ -105,6 +114,13 @@ export function RecipientsCard({
   const remove = useRemoveFromBatch(emailId);
   const clear = useClearBatch(emailId);
   const addRef = useRef<HTMLButtonElement>(null);
+  const resultRef = useRef<HTMLParagraphElement>(null);
+
+  // The line saying what an add did takes the focus, so a keyboard or screen reader
+  // user hears it and carries on from it, rather than from the top of the page.
+  useEffect(() => {
+    if (lastAdd !== null) resultRef.current?.focus();
+  }, [lastAdd]);
 
   // The filters as last applied, read by an add once the bar has settled.
   const filtersRef = useRef(filters);
@@ -139,8 +155,9 @@ export function RecipientsCard({
           setLastAdd(result);
           afterChange();
         },
-        // The button was off while it worked, which took the focus away from it.
-        onSettled: () => window.setTimeout(() => addRef.current?.focus(), 0),
+        // The button was off while it worked, which took the focus away from it; a
+        // refused add puts it back there, beside the reason.
+        onError: () => window.setTimeout(() => addRef.current?.focus(), 0),
       });
     }, ADD_SETTLE_MS);
   };
@@ -198,13 +215,19 @@ export function RecipientsCard({
                 }}
               />
             </div>
-            <p className="muted">
-              {dartName === ''
-                ? 'With no filters chosen, this adds every member and friend.'
-                : `With no filters chosen, this adds every member and friend of the ${dartName} DART.`}
-            </p>
+            {Object.keys(givenFilters(filters)).length > 0 ? null : (
+              <p className="muted">
+                {dartName === ''
+                  ? 'With no filters chosen, this adds every member and friend.'
+                  : `With no filters chosen, this adds every member and friend of the ${dartName} DART.`}
+              </p>
+            )}
           </div>
-          {lastAdd === null ? null : <p role="status">{addSentence(lastAdd)}</p>}
+          {lastAdd === null ? null : (
+            <p ref={resultRef} role="status" tabIndex={-1}>
+              {addSentence(lastAdd)}
+            </p>
+          )}
         </div>
       ) : null}
 
@@ -221,28 +244,26 @@ export function RecipientsCard({
       ) : null}
 
       {count > 0 ? (
-        <div className="stack-tight">
-          <div className="cluster">
-            <a className="button button--quiet" href={batchCsvUrl(emailId)} download>
-              Download list
-            </a>
-          </div>
+        <div className="cluster bulk-email__batch-actions">
+          <a className="button button--quiet button--small" href={batchCsvUrl(emailId)} download>
+            Download list
+          </a>
           <SaveGroupButton emailId={emailId} />
           {isEditable ? (
-            <div>
-              <ConfirmButton
-                label="Clear batch"
-                choices={[
-                  {
-                    label: 'Clear the batch',
-                    variant: 'danger',
-                    onChoose: () => clear.mutateAsync().then(afterChange),
-                  },
-                ]}
-              >
-                <p>This takes all {people(count)} out of the batch. The message is kept.</p>
-              </ConfirmButton>
-            </div>
+            <ConfirmButton
+              label="Clear batch"
+              variant="quiet"
+              small
+              choices={[
+                {
+                  label: 'Clear the batch',
+                  variant: 'danger',
+                  onChoose: () => clear.mutateAsync().then(afterChange),
+                },
+              ]}
+            >
+              <p>This takes all {people(count)} out of the batch. The message is kept.</p>
+            </ConfirmButton>
           ) : null}
         </div>
       ) : null}
@@ -334,8 +355,10 @@ function matching(rows: BulkEmailBatchRow[], search: string): BulkEmailBatchRow[
 }
 
 /**
- * The batch table's columns; the trashcan column only while the batch can change.
- * The rows come in surname order from the server, and the columns sort on a press.
+ * The batch table's columns; the trashcan column, last, only while the batch can
+ * change. The rows come in surname order from the server, and the columns sort on a
+ * press. *Will receive?* wraps, so a skip reason is read whole, and the DART and
+ * *Chosen by* give way first when the table would not fit its card.
  */
 export function batchColumns(
   labels: Map<number, string>,
@@ -345,27 +368,26 @@ export function batchColumns(
     {
       key: 'name',
       header: 'Name',
-      minWidth: '16rem',
+      minWidth: '12rem',
       render: (row) => row.name,
       sortValue: (row) => row.name,
     },
     {
       key: 'email',
       header: 'Email',
-      minWidth: '14rem',
+      minWidth: '13rem',
       render: (row) => row.email,
       sortValue: (row) => row.email,
     },
     {
       key: 'will_receive',
       header: 'Will receive?',
-      width: '9rem',
+      width: '11rem',
+      wrap: true,
       render: (row) => <WillReceive row={row} />,
       sortValue: (row) => (row.will_receive ? '' : row.reason),
     },
   ];
-  // The trashcan sits beside the answer it acts on, ahead of the columns that only
-  // describe the person, which a narrow screen scrolls to.
   const remove: Column<BulkEmailBatchRow>[] =
     onRemove === undefined
       ? []
@@ -395,6 +417,7 @@ export function batchColumns(
       key: 'dart',
       header: 'DART',
       width: '8rem',
+      wideOnly: true,
       render: (row) => row.dart_name || '—',
       sortValue: (row) => row.dart_name,
     },
@@ -402,10 +425,11 @@ export function batchColumns(
       key: 'chosen_by',
       header: 'Chosen by',
       minWidth: '10rem',
+      wideOnly: true,
       render: (row) => (row.added_by === null ? '—' : (labels.get(row.added_by) ?? '—')),
     },
   ];
-  return [...identity, ...remove, ...details];
+  return [...identity, ...details, ...remove];
 }
 
 /** A dot and *Yes*, or a dot and the reason the person is skipped. */
