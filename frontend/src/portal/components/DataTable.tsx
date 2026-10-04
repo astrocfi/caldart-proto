@@ -340,6 +340,37 @@ function Cell({ isRowHeader, className, title, children }: CellProps): JSX.Eleme
   );
 }
 
+/** Names joined as a sentence lists them: "A", "A and B", "A, B, and C". */
+function listNames(names: readonly string[]): string {
+  if (names.length <= 2) return names.join(' and ');
+  return `${names.slice(0, -1).join(', ')}, and ${names.at(-1) ?? ''}`;
+}
+
+/**
+ * The line that names the columns the table left out to fit its container, or null
+ * when it left none out.  With a column chooser beside the table it also offers
+ * choosing fewer columns; the downloads keep the hidden columns either way.
+ *
+ * @param all every column the table would draw with room enough.
+ * @param shown the columns it draws.
+ * @param hasChooser whether the table's tools include a column chooser.
+ * @returns the sentence, or null.
+ */
+export function hiddenColumnsNote<Row>(
+  all: readonly Column<Row>[],
+  shown: readonly Column<Row>[],
+  hasChooser: boolean,
+): string | null {
+  const shownKeys = new Set(shown.map((column) => column.key));
+  const hidden = all.filter((column) => !shownKeys.has(column.key)).map((column) => column.header);
+  if (hidden.length === 0) return null;
+  const verb = hidden.length === 1 ? 'is' : 'are';
+  const advice = hasChooser
+    ? 'Widen it, or choose fewer columns.'
+    : 'Widen it to show every column.';
+  return `${listNames(hidden)} ${verb} hidden to fit the window. ${advice}`;
+}
+
 /** The class of the box that holds the scroll box: whether it scrolls, and which way. */
 function scrollClass(scroll: ReturnType<typeof useTableScroll>): string {
   return [
@@ -379,6 +410,7 @@ export function DataTable<Row>({
   const allColumns = useMemo(() => arrangeColumns(givenColumns), [givenColumns]);
   const availableRem = useWidthRem(rootRef, singleLine && needsFitting(allColumns));
   const columns = fitColumns(allColumns, availableRem);
+  const hiddenNote = hiddenColumnsNote(allColumns, columns, Boolean(tools));
   const [ownKey, setSortKey] = useState<string | null>(initialSort?.key ?? null);
   const [ownDirection, setDirection] = useState<SortDirection>(initialSort?.direction ?? 'asc');
   const sortKey = sort ? sort.key : ownKey;
@@ -447,6 +479,9 @@ export function DataTable<Row>({
           {scroll.isOverflowing ? (
             <p className="muted data-table__scroll-hint">Scroll sideways to see every column.</p>
           ) : null}
+          {hiddenNote === null ? null : (
+            <p className="muted data-table__scroll-hint">{hiddenNote}</p>
+          )}
           <div className={scrollClass(scroll)}>
             {/* The box scrolls a table wider than its card rather than widening the page.
               Once it does, a keyboard can reach it, and a screen reader hears its name. */}

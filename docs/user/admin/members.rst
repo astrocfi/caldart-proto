@@ -70,7 +70,8 @@ On a narrower screen the table leaves default columns out, one at a time, until 
 fit: **Email**, then **DART**, then **Phone**, **Kind**, and **Aircraft**, so a laptop keeps
 the pilot columns; then **Medical**, **Certificate**, and **Medical expires**. **Name**,
 **Status**, and **Expires** always stay, and so does any column you tick beyond the
-defaults. On a phone the table can still be wider than the screen: a line over it says
+defaults. A line over the table names any column it hid; the downloads still carry it.
+On a phone the table can still be wider than the screen: a line over it says
 *Scroll sideways to see every column*, a shadow marks the edge with more beyond it, and the
 names stay pinned at the left while you scroll. With a keyboard, Tab to the table and use
 the arrow keys.

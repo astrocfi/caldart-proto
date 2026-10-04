@@ -747,7 +747,9 @@ receipt number, a phone number, a month) never breaks.  A table still wider than
 its card scrolls sideways inside it (``components/useTableScroll.ts`` measures
 it): a line above the table says so, a shadow lies along each edge that hides
 more, and the scroll box becomes a ``role="region"`` named by the caption with
-``tabindex="0"``, so a keyboard can scroll it.  A sortable heading is a button
+``tabindex="0"``, so a keyboard can scroll it.  When the fit leaves columns out, a
+line in the same place names them (``hiddenColumnsNote``), and beside a column
+chooser offers choosing fewer columns; the downloads keep them.  A sortable heading is a button
 with an arrow: up or down on the sorted column, which alone carries
 ``aria-sort``, and a faint both-ways arrow on the others, so a heading that does
 not sort looks different; on a right-aligned heading the arrow comes first, so

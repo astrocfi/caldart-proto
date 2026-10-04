@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { Column } from './DataTable';
-import { DataTable, sortRows, tableMinWidth } from './DataTable';
+import { DataTable, hiddenColumnsNote, sortRows, tableMinWidth } from './DataTable';
 
 interface Row {
   id: number;
@@ -297,6 +297,39 @@ describe('a table fitted to a narrow container', () => {
     ]).toEqual([['Name', 'Actions', 'Reason'], '8rem']);
   });
 
+  it('names the column it left out, under the scroll cue', () => {
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        observe(): void {}
+        disconnect(): void {}
+      },
+    );
+    render(
+      <DataTable
+        singleLine
+        columns={columns}
+        rows={[{ id: 1, name: 'Ann' }]}
+        rowKey={(r) => r.id}
+      />,
+    );
+    expect(
+      screen.getByText('Type is hidden to fit the window. Widen it to show every column.'),
+    ).toBeInTheDocument();
+  });
+
+  it('says nothing is hidden where every column shows', () => {
+    render(
+      <DataTable
+        singleLine
+        columns={columns}
+        rows={[{ id: 1, name: 'Ann' }]}
+        rowKey={(r) => r.id}
+      />,
+    );
+    expect(screen.queryByText(/hidden to fit the window/)).not.toBeInTheDocument();
+  });
+
   it('shows every column where nothing is measured', () => {
     render(
       <DataTable
@@ -540,5 +573,29 @@ describe('an empty table', () => {
         name: 'Export CSV',
       }),
     ).toBeInTheDocument();
+  });
+});
+
+describe('hiddenColumnsNote', () => {
+  const all: Column<object>[] = ['Name', 'Email', 'DART', 'Phone'].map((header) => ({
+    key: header.toLowerCase(),
+    header,
+    render: () => '',
+  }));
+
+  it('names two hidden columns and offers choosing fewer beside a chooser', () => {
+    expect(hiddenColumnsNote(all, all.slice(0, 1).concat(all.slice(3)), true)).toBe(
+      'Email and DART are hidden to fit the window. Widen it, or choose fewer columns.',
+    );
+  });
+
+  it('lists three hidden columns with a serial comma', () => {
+    expect(hiddenColumnsNote(all, all.slice(0, 1), true)).toBe(
+      'Email, DART, and Phone are hidden to fit the window. Widen it, or choose fewer columns.',
+    );
+  });
+
+  it('is null when every column shows', () => {
+    expect(hiddenColumnsNote(all, all, true)).toBeNull();
   });
 });
