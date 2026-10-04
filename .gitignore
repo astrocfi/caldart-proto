@@ -227,6 +227,7 @@ frontend/coverage/
 frontend/dist/
 frontend/e2e/seed-facts.json
 frontend/e2e/.mail/
+frontend/screenshots/
 frontend/node_modules/
 node_modules/
 .env

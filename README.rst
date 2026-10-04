@@ -120,6 +120,7 @@ Everyday commands:
 
    $ make test      # pytest + vitest
    $ make e2e       # Playwright, end to end (see below)
+   $ make screenshots  # every screen for each demo role, with an axe check
    $ make lint      # ruff + mypy + shellcheck + tsc + eslint + prettier + codespell
    $ make check     # system checks, migrations, deployment checks, build
    $ make docs      # Sphinx, nitpicky, warnings are errors
