@@ -679,20 +679,6 @@ class BulkEmailFactory(ModelFactory[BulkEmail]):
     email_type = factory.LazyFunction(lambda: operational_type())
 
 
-class CalloutFactory(ModelFactory[Callout]):
-    """Builds a mission callout: a bulk email marked as one, its answers closing in a day.
-
-    The email is :class:`BulkEmailFactory`'s, with ``is_callout`` set; its batch is
-    empty.
-    """
-
-    class Meta:
-        model = Callout
-
-    bulk_email = factory.SubFactory(BulkEmailFactory, is_callout=True)
-    closes_at = factory.LazyFunction(lambda: timezone.now() + timedelta(days=1))
-
-
 def operational_type() -> EmailType:
     """The Operational email type, made as the migration makes it when it is missing."""
     email_type, _created = EmailType.objects.get_or_create(

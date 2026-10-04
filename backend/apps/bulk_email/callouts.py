@@ -316,9 +316,9 @@ def record_answer(
     ``answer`` is one of :class:`~apps.bulk_email.models.CalloutAnswerKind`'s values and
     ``note`` is trimmed and cut to :data:`NOTE_MAX_LENGTH`.  A person's earlier answer is
     replaced, and ``answered_at`` set to ``now``.  A new answer, or one whose answer or
-    note changed, raises the :data:`ANSWER_EVENT` event with the ``callout``, the
-    ``user``, the ``answer``, and the ``note``, and writes one ``callout.answer`` audit
-    line; the same answer sent again changes nothing.  Raises ``DomainError`` with
+    note changed, raises the :data:`ANSWER_EVENT` event (:func:`_raise_answer`) and
+    writes one ``callout.answer`` audit line; the same answer sent again changes
+    nothing.  Raises ``DomainError`` with
     :data:`CLOSED_MESSAGE` once the callout has closed, and ``ValueError`` for an answer
     that is not one of the kinds; nothing is recorded then.
     """
@@ -339,8 +339,28 @@ def record_answer(
             defaults={"answer": answer, "note": clean_note, "answered_at": moment},
         )
         audit.record(audit.CALLOUT_ANSWER, actor=user, target=locked.bulk_email, answer=answer)
-        events.emit(ANSWER_EVENT, callout=locked, user=user, answer=answer, note=clean_note)
+        _raise_answer(locked.bulk_email, user, answer=answer, note=clean_note)
     return saved
+
+
+def _raise_answer(bulk: BulkEmail, user: User, *, answer: str, note: str) -> None:
+    """Raise :data:`ANSWER_EVENT` for ``user``'s ``answer`` to the callout ``bulk``.
+
+    The payload carries plain values, so the notifications app, which sits beside this
+    one, needs nothing of it: ``user``; ``answer``, the answer in words; ``note``;
+    ``subject``, the callout's subject as written; ``callout_id``, the bulk email's id;
+    and ``audience``, a function that answers whether an account may open the callout
+    (:func:`can_see`), so a DART leader hears only of the callouts they may read.
+    """
+    events.emit(
+        ANSWER_EVENT,
+        user=user,
+        answer=CalloutAnswerKind(answer).label,
+        note=note,
+        subject=bulk.subject,
+        callout_id=bulk.pk,
+        audience=lambda account: can_see(account, bulk),
+    )
 
 
 # -- the sender's actions --------------------------------------------------------------

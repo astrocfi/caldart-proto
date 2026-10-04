@@ -480,15 +480,31 @@ def test_the_answer_page_is_served_under_the_site_address(management: User, ann:
 def test_an_answer_raises_the_callout_answer_event(
     management: User, ann: User, recorded_events: RecordedEvents
 ) -> None:
-    """A new answer raises ``callout_answer``: the callout, person, answer, and note."""
+    """A new answer raises ``callout_answer`` with plain values: who, what, and where."""
     bulk = sent_callout(management, ann)
     record_answer(bulk.callout, ann, answer="available", note="KSQL")
-    assert recorded_events == [
-        (
-            "callout_answer",
-            {"callout": bulk.callout, "user": ann, "answer": "available", "note": "KSQL"},
-        )
-    ]
+    ((slug, payload),) = recorded_events
+    assert (slug, {key: value for key, value in payload.items() if key != "audience"}) == (
+        "callout_answer",
+        {
+            "user": ann,
+            "answer": "Available",
+            "note": "KSQL",
+            "subject": "Fire near Paradise for {first_name}",
+            "callout_id": bulk.pk,
+        },
+    )
+
+
+def test_the_events_audience_is_who_may_open_the_callout(
+    management: User, ann: User, recorded_events: RecordedEvents
+) -> None:
+    """The payload's ``audience`` admits management and turns away a member."""
+    bulk = sent_callout(management, ann)
+    record_answer(bulk.callout, ann, answer="available", note="")
+    audience = recorded_events[0][1]["audience"]
+    assert callable(audience)
+    assert (audience(management), audience(ann)) == (True, False)
 
 
 def test_the_same_answer_again_raises_nothing(

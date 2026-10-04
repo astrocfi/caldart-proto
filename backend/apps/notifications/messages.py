@@ -20,7 +20,6 @@ from django.conf import settings
 from apps.accounts.models import AccountKind, User
 from apps.accounts.roles import ROLE_LABELS
 from apps.aircraft.models import Aircraft
-from apps.bulk_email.models import Callout, CalloutAnswerKind
 from apps.darts.models import Dart
 from apps.members.models import MemberProfile, Membership
 from apps.members.services import account_kind
@@ -532,23 +531,22 @@ def _aircraft_event(verb: str) -> Callable[[Mapping[str, object]], Built]:
 def _callout_answer(payload: Mapping[str, object]) -> Built:
     """``callout_answer``: who answered which mission callout, and what they said.
 
-    The payload names the ``callout``, the ``user`` who answered, their ``answer`` (one
-    of ``CalloutAnswerKind``'s values), and their ``note``.  The email links the
-    callout's page on the Callouts screen.
+    The payload names the ``user`` who answered, their ``answer`` in words, their
+    ``note``, the callout's ``subject``, and its ``callout_id``, plain values the bulk
+    email app raises.  The email links the callout's page on the Callouts screen.
     """
-    callout = _required(payload, "callout", Callout)
     user = _required(payload, "user", User)
-    answer = CalloutAnswerKind(_required(payload, "answer", str)).label
+    answer = _required(payload, "answer", str)
     note = _optional(payload, "note", str) or ""
-    bulk = callout.bulk_email
+    callout_id = _required(payload, "callout_id", int)
     lines: list[Line] = [
-        ("Callout", bulk.subject),
+        ("Callout", _required(payload, "subject", str)),
         ("Answer", answer),
         ("Note", note or NONE),
         ("DART", _dart_of(user)),
     ]
     headline = f"{user.display_name} answered {answer} to a mission callout"
-    return headline, lines, _portal(f"/bulk-email/callouts/{bulk.pk}")
+    return headline, lines, _portal(f"/bulk-email/callouts/{callout_id}")
 
 
 _BUILDERS: dict[str, Callable[[Mapping[str, object]], Built]] = {

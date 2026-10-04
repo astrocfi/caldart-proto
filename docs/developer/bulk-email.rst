@@ -636,8 +636,10 @@ note trimmed to 500 characters).  An answer that changes nothing, the same answe
 note sent again, records and raises nothing; any other raises the ``callout_answer``
 event (:doc:`notification-events`) inside the transaction and writes one
 ``callout.answer`` audit line naming the person and the answer, never the note.  The
-notifications app sends the event to subscribed CalDART management and to a subscribed
-DART leader only for a callout that leader may open.
+event carries plain values and an ``audience`` function (``callouts.can_see``), since
+the notifications app sits beside this one and imports none of it; the notifications
+app sends the event to subscribed CalDART management, and to a subscribed DART leader
+only for a callout that leader may open.
 
 **The Callouts screen.**  ``callouts.visible_callouts`` gives CalDART management every
 callout that has started sending, and a DART leader the ones they sent and the ones

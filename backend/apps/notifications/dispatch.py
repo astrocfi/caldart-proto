@@ -20,8 +20,6 @@ from dataclasses import dataclass
 from django.db import IntegrityError, transaction
 
 from apps.accounts.models import User
-from apps.bulk_email.callouts import can_see
-from apps.bulk_email.models import Callout
 from apps.darts.models import Dart
 from apps.notifications.events import EVENTS
 from apps.notifications.messages import Message, build_message
@@ -37,9 +35,6 @@ TEMPLATE = "notification"
 
 #: The event whose email also goes to the chosen DART's roster contacts.
 SIGNED_UP = "signed_up"
-
-#: The event whose email reaches an account only when it may open the callout.
-CALLOUT_ANSWER = "callout_answer"
 
 #: Whether one bound account may be sent one raised event, beyond its roles.
 type Audience = Callable[[User], bool]
@@ -74,7 +69,7 @@ def handle(slug: str, payload: Mapping[str, object]) -> None:
     try:
         message = build_message(slug, payload)
         extra = roster_recipients(payload.get("dart")) if slug == SIGNED_UP else []
-        audience = audience_for(slug, payload)
+        audience = audience_for(payload)
     # Broad on purpose: whatever went wrong, the service that raised the event has
     # already done its work, and a notification must never undo or fail it.
     except Exception:
@@ -83,18 +78,17 @@ def handle(slug: str, payload: Mapping[str, object]) -> None:
     transaction.on_commit(lambda: send(slug, message, extra, audience), robust=True)
 
 
-def audience_for(slug: str, payload: Mapping[str, object]) -> Audience | None:
+def audience_for(payload: Mapping[str, object]) -> Audience | None:
     """Who among the bound accounts the event may reach, beyond its roles; ``None``: all.
 
-    A ``callout_answer`` reaches an account only when it may open the callout
-    (``apps.bulk_email.callouts.can_see``): CalDART management every callout, and a DART
-    leader the ones they sent or that went to their own DART.
+    An event whose payload carries ``audience``, a function of an account, reaches a
+    bound account only when that function answers true for it.  ``callout_answer``
+    carries one, so a DART leader hears only of the callouts they may open.
     """
-    callout = payload.get("callout")
-    if slug != CALLOUT_ANSWER or not isinstance(callout, Callout):
+    audience = payload.get("audience")
+    if not callable(audience):
         return None
-    bulk = callout.bulk_email
-    return lambda user: can_see(user, bulk)
+    return lambda user: bool(audience(user))
 
 
 @contextmanager
