@@ -14,7 +14,7 @@ import { API } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
 import type { BulkEmailDetail, BulkEmailPreview } from '@/portal/api/types';
-import { withFittedImages } from '@/portal/components/EmailFrame';
+import { EMAIL_FRAME_SANDBOX, emailDocument } from '@/portal/components/EmailFrame';
 import { LAST_SAVED_NOTE, MessagePreview, NO_MESSAGE_YET, previewingLine } from './MessagePreview';
 
 /** Ann and Bea, who both receive the email. */
@@ -64,12 +64,12 @@ describe('MessagePreview', () => {
     expect(await screen.findByText(LAST_SAVED_NOTE)).toBeVisible();
   });
 
-  it('draws the copy in a sandboxed frame', async () => {
+  it('draws the copy in the email frame, its links opening in a new tab', async () => {
     renderPreview();
     const frame = await screen.findByTitle('The email as Ann Able will receive it');
     expect([frame.getAttribute('sandbox'), frame.getAttribute('srcdoc')]).toEqual([
-      '',
-      withFittedImages('<html><body><p>Dear Ann,</p></body></html>'),
+      EMAIL_FRAME_SANDBOX,
+      emailDocument('<html><body><p>Dear Ann,</p></body></html>'),
     ]);
   });
 

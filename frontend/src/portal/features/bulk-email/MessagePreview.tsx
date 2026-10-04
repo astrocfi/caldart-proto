@@ -3,8 +3,9 @@
  * batch will receive it, their details filled in, with **Previous** and **Next**
  * to step through everybody who receives a copy.
  *
- * The email is drawn in a sandboxed frame, so nothing in it can run or reach the
- * portal. The preview shows the saved message, and is read again each time the
+ * The email is drawn in the shared `EmailFrame`, as the archive and the delivery
+ * report draw it: nothing in it can run or reach the portal, and its links open in a
+ * new tab. The preview shows the saved message, and is read again each time the
  * message or the batch is saved. A change to the batch starts it again from the
  * first person, since the person shown may have left it, and so does the server
  * saying the person shown is no longer in the batch. Before the message is written
@@ -17,7 +18,7 @@ import type { JSX } from 'react';
 import { ApiError } from '@/portal/api/client';
 import type { BulkEmailDetail, BulkEmailPreview } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
-import { withFittedImages } from '@/portal/components/EmailFrame';
+import { EmailFrame } from '@/portal/components/EmailFrame';
 import { useBulkEmailPreview } from './richTextApi';
 import './preview.css';
 
@@ -139,11 +140,9 @@ function PersonPreview({ email, isBehind }: Required<MessagePreviewProps>): JSX.
       <p>
         <strong>Subject:</strong> {shown.subject}
       </p>
-      <iframe
-        className="bulk-email__preview-frame"
+      <EmailFrame
         title={`The email as ${shown.recipient.name} will receive it`}
-        sandbox=""
-        srcDoc={withFittedImages(shown.html)}
+        html={shown.html}
       />
     </section>
   );

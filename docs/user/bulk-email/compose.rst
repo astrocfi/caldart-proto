@@ -193,8 +193,8 @@ Able (1 of 38)* says whose copy it is; **Next person** and **Previous person** s
 everybody who receives it. The preview shows what has been saved, and says so while your
 latest words cannot be saved. While
 nobody in the batch receives the email, the preview is your own copy. The footer reads as
-it will in the email, but its unsubscribe link in the preview leads nowhere, so nobody is
-unsubscribed by a click there. When a field in the message cannot be filled in, the
+it will in the email, but its unsubscribe link in the preview unsubscribes nobody. Every
+link in the preview opens in a new tab, so you can try them without leaving the email. When a field in the message cannot be filled in, the
 preview says why instead.
 
 Until the email can go, the card lists what is missing, such as *Choose a type.*, *Write a
