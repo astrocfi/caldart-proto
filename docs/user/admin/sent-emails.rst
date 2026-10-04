@@ -37,9 +37,10 @@ send failed, the names of any files attached, the date a bounce came back, and t
 the recipient's mail server gave, such as *5.1.1 550 User unknown*.
 
 On a narrow screen the table leaves out the default columns that matter least, **Purpose**,
-**Name**, and **To** in turn, and keeps **Subject**, **Sent**, **Status**, and any column you
-checked beyond the defaults. If it is still too wide it scrolls sideways inside its card, says so above the
-table, and keeps **Subject** pinned at the left.
+**Name**, **Subject**, and on a phone **Sent**, in turn, and keeps **To**, **Status**, and
+any column you checked beyond the defaults; a line above the table names what it left out.
+If it is still too wide it scrolls sideways inside its card, says so in that line, and
+keeps **To** pinned at the left.
 
 When there are more than 25 emails, the foot reads, for example, *Showing 1–25 of 412*, with
 **Previous** and **Next**; moving to another page brings the top of the table back into
@@ -55,8 +56,9 @@ The filters narrow the whole log, every page of it:
    One kind of email: *First reminder (60 days before)*, *Second reminder (30 days before)*,
    *Final reminder (7 days before)*, *Expired reminder (up to 6 days after)*, *Lapsed reminder (30
    days after)*,
-   *Renewal turned on*, *Renewal notice*, *Card expiring*, *Renewal charged*, *Renewal
-   declined*, *Renewal turned off*, *Receipt*, *Refund*, *Contribution statement*,
+   *Automatic renewal or recurring donation turned on*, *Renewal notice*, *Card expiring*,
+   *Renewal charged*, *Automatic renewal or recurring donation charge failed*, *Automatic
+   renewal or recurring donation turned off*, *Receipt*, *Refund*, *Contribution statement*,
    *Invitation*, *Password reset*, *Email verification*, *Bulk email*, *Bulk email test*,
    *Scheduled report*, *DART roster*, or one of the notifications: *Notification: Sign-up*,
    *Notification: Member added by an administrator*, *Notification: Member became a friend*,

@@ -11,27 +11,40 @@
   margin-block: var(--space-3);
 }
 
-/* The Verification card on the member and aircraft records: one line per item. */
+/* The Verification card on the member and aircraft records: one line per item, in three
+ * columns shared by every row (the item, what the record holds, and its marks), so each
+ * row's marks sit beside its value at the same place.  On a phone the marks go under. */
 .verification-items {
   list-style: none;
   margin: 0 0 var(--space-3);
   padding: 0;
+  display: grid;
+  grid-template-columns: 10rem minmax(12rem, 22rem) 1fr;
+  column-gap: var(--space-3);
 }
 
 .verification-items__row {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
   align-items: baseline;
-  gap: var(--space-2) var(--space-3);
+  row-gap: var(--space-1);
+  max-width: none;
   padding-block: var(--space-2);
   border-bottom: var(--hairline) solid var(--color-rule);
 }
 
+/* The card's footer rule, or its edge, closes the list, so the last row draws none. */
+.verification-items__row:last-child {
+  border-bottom: 0;
+}
+
 .verification-items__label {
-  flex: 0 0 10rem;
   font-weight: var(--weight-medium);
 }
 
-.verification-items__detail {
-  flex: 1 1 12ch;
+@media (max-width: 40rem) {
+  .verification-items {
+    grid-template-columns: 1fr;
+  }
 }

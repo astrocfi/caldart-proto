@@ -271,3 +271,15 @@ describe('NotificationSubscriptionsCard', () => {
     expect(screen.queryByRole('form', { name: 'Edit notifications' })).not.toBeInTheDocument();
   });
 });
+
+describe('NotificationSubscriptionsCard events', () => {
+  it('wraps the events in their cell, so every one reads without hovering', async () => {
+    const table = await renderCard();
+
+    expect(
+      within(row(table, /Ada Admin/)).getByRole('cell', {
+        name: 'Sign-up, Friend became a member',
+      }),
+    ).toHaveClass('data-table__wrap');
+  });
+});

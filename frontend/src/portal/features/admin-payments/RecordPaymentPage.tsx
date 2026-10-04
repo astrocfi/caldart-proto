@@ -221,7 +221,7 @@ export function RecordPaymentPage(): JSX.Element {
 
           <Field
             label="Plan"
-            hint="Choose No membership for a donation on its own"
+            hint="Choose No membership to record a contribution on its own."
             error={errors.plan}
           >
             {(props) => (

@@ -21,9 +21,8 @@ member's record`_).
 What you see
 ============
 
-The person's name heads the page, with **Back to members** beside it. A donor's record has
-**Back to donors** there instead, which returns to the **Donors** tab, when you have that
-tab. A summary strip under the name carries:
+The person's name heads the page, with **Back to members** beside it (**Back to donors**
+on a donor's record, when you have that tab). A summary strip under the name carries:
 
 - their membership status: **Current**, **Expiring soon**, **Expired**, **Friend**, or
   **Never expires** for a life member. Somebody who joined as a member and has no term that
@@ -41,9 +40,10 @@ tab. A summary strip under the name carries:
   the reason that server gave, follows it. A user administrator corrects the address or clears
   the flag on the :doc:`user-record`.
 
-Below the strip are four tabs: **Profile**, **Memberships**, **Payments**, and **Danger
-zone**. The arrow keys move between them. The tab you are on is part of the page's address,
-so you can send a colleague straight to somebody's payments.
+Below the strip are four tabs: **Profile**, **Memberships**, **Payments**, and **Delete or
+deactivate**; on a phone the row scrolls sideways, the current tab in view. The arrow keys
+move between them. The tab you are on is part of the page's address, so you can send a
+colleague straight to somebody's payments.
 
 
 Profile
@@ -59,8 +59,9 @@ below too. A record with no profile yet has no Verification card, and one for a
 donor or a deactivated account has the card but no **Verify**: there is nothing to check
 against, since neither can fly.
 
-Below the card are the same fields as :doc:`new-member`, less the password, with **Photo
-ID** (the kind of photo ID only) among the aviation fields, plus:
+Below the card are the same fields as :doc:`new-member`, less the password, both names
+required as there, with **Photo ID** (the kind of photo ID only) among the aviation fields,
+plus:
 
 - **Kind of account**, **Member** or **Friend**. Saving a change of kind makes it at once: a
   member made a friend reads **Friend** from that moment, and any change to friend they had
@@ -221,9 +222,8 @@ link in that notification no longer opens, because the record is gone. A payment
 started but had not finished can still go through afterwards: it joins the books under
 **Deleted member** and buys no membership, and nobody is emailed a receipt.
 
-After the delete you are back on the member list. A donor's delete brings you back to the
-**Donors** tab instead, when you have it, where the donor's row reads **Deleted member** and
-the number with the same gifts and amounts, and the year's totals are as they were.
+After the delete you are back on the member list, or on the **Donors** tab after a donor's,
+where the row reads **Deleted member** and the number with the same gifts and totals.
 
 
 A deleted member's record

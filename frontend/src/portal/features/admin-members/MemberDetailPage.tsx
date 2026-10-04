@@ -21,6 +21,7 @@ import { DateText } from '@/portal/components/DateText';
 import { EmptyState } from '@/portal/components/EmptyState';
 import { Page } from '@/portal/components/Page';
 import { MembershipDot, StatusDot } from '@/portal/components/StatusDot';
+import { useTabBar } from '@/portal/components/useTabBar';
 import { MemberDangerZone } from './MemberDangerZone';
 import { MemberEmailPreferences, showsEmailPreferences } from './MemberEmailPreferences';
 import { MemberMembershipsTab } from './MemberMembershipsTab';
@@ -61,6 +62,8 @@ function Tabs({ active, onSelect }: TabsProps) {
     refs.current[id]?.focus();
   };
 
+  const bar = useTabBar<HTMLDivElement>(active);
+
   const handleKeyDown = (event: React.KeyboardEvent) => {
     const index = TABS.findIndex((tab) => tab.id === active);
     if (event.key === 'ArrowRight') go(tabAt(index + 1));
@@ -72,7 +75,13 @@ function Tabs({ active, onSelect }: TabsProps) {
   };
 
   return (
-    <div className="tab-bar" role="tablist" aria-label="Member record sections">
+    <div
+      ref={bar.ref}
+      className="tab-bar"
+      role="tablist"
+      aria-label="Member record sections"
+      {...bar.attributes}
+    >
       {TABS.map((tab) => (
         <button
           key={tab.id}

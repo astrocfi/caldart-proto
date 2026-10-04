@@ -210,7 +210,7 @@ function ReconcileCard({ payment }: ReconcileCardProps): JSX.Element {
       error: patch.error
         ? patch.error instanceof ApiError
           ? patch.error.message
-          : 'Something went wrong. Try again.'
+          : "The reconciliation wasn't saved. Try again in a moment."
         : null,
     },
   );

@@ -125,7 +125,7 @@ describe('UsersListPage', () => {
       '/admin/users/1',
     );
     const priyaRow = (await screen.findByRole('link', { name: 'Priya Raman' })).closest('tr')!;
-    expect(within(priyaRow).getByText('Member, DART leader')).toBeInTheDocument();
+    expect(within(priyaRow).getByText('DART leader')).toBeInTheDocument();
     expect(within(priyaRow).getByText(/account deactivated/)).toBeInTheDocument();
     expect(screen.getByText('2 accounts')).toBeInTheDocument();
   });
@@ -195,17 +195,28 @@ describe('UsersListPage', () => {
     );
   });
 
-  it("shows the report's default columns, in the report's order", async () => {
+  it("shows the report's default columns with the name first, since it heads each row", async () => {
     stubList();
     renderWithProviders(<UsersListPage />);
     await screen.findByRole('link', { name: 'Marta Reyes' });
 
     expect(screen.getAllByRole('columnheader').map(headingText)).toEqual([
-      'Role',
       'Name',
+      'Role',
       'Email',
       'Kind',
     ]);
+  });
+
+  it('shows the widest role and how many more, naming them all to a screen reader', async () => {
+    stubList();
+    renderWithProviders(<UsersListPage />);
+    await userEvent.selectOptions(await screen.findByLabelText(/account status/i), 'all');
+
+    const priyaRow = (await screen.findByRole('link', { name: 'Priya Raman' })).closest('tr')!;
+    expect(within(priyaRow).getByRole('cell', { name: /^DART leader/ })).toHaveTextContent(
+      'DART leader +1, also Member',
+    );
   });
 
   it('shows a column checked in the chooser in the table as well as the downloads', async () => {

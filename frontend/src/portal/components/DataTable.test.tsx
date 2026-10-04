@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { Column } from './DataTable';
-import { DataTable, hiddenColumnsNote, sortRows, tableMinWidth } from './DataTable';
+import { DataTable, sortRows, tableCue, tableMinWidth } from './DataTable';
 
 interface Row {
   id: number;
@@ -313,9 +313,7 @@ describe('a table fitted to a narrow container', () => {
         rowKey={(r) => r.id}
       />,
     );
-    expect(
-      screen.getByText('Type is hidden to fit the window. Widen it to show every column.'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Type is not shown at this width.')).toBeInTheDocument();
   });
 
   it('says nothing is hidden where every column shows', () => {
@@ -327,7 +325,7 @@ describe('a table fitted to a narrow container', () => {
         rowKey={(r) => r.id}
       />,
     );
-    expect(screen.queryByText(/hidden to fit the window/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/not shown at this width/)).not.toBeInTheDocument();
   });
 
   it('shows every column where nothing is measured', () => {
@@ -576,26 +574,42 @@ describe('an empty table', () => {
   });
 });
 
-describe('hiddenColumnsNote', () => {
+describe('tableCue', () => {
   const all: Column<object>[] = ['Name', 'Email', 'DART', 'Phone'].map((header) => ({
     key: header.toLowerCase(),
     header,
     render: () => '',
   }));
+  const phone = { hasChooser: false, isScrolling: true, canWiden: false };
 
-  it('names two hidden columns and offers choosing fewer beside a chooser', () => {
-    expect(hiddenColumnsNote(all, all.slice(0, 1).concat(all.slice(3)), true)).toBe(
-      'Email and DART are hidden to fit the window. Widen it, or choose fewer columns.',
+  it('says only that a table scrolls when it hides nothing', () => {
+    expect(tableCue(all, all, phone)).toBe('Scroll sideways to see every column.');
+  });
+
+  it('gives a phone one line that scrolls and names what is not shown', () => {
+    expect(tableCue(all, all.slice(0, 1).concat(all.slice(3)), phone)).toBe(
+      'Scroll sideways for more. Email and DART are not shown at this width.',
     );
   });
 
-  it('lists three hidden columns with a serial comma', () => {
-    expect(hiddenColumnsNote(all, all.slice(0, 1), true)).toBe(
-      'Email, DART, and Phone are hidden to fit the window. Widen it, or choose fewer columns.',
+  it('never tells a window that cannot widen to widen', () => {
+    expect(tableCue(all, all.slice(0, 2), phone)).not.toMatch(/Widen/);
+  });
+
+  it('offers choosing fewer columns where a chooser sits beside the table', () => {
+    expect(tableCue(all, all.slice(0, 1), { ...phone, hasChooser: true })).toBe(
+      'Scroll sideways for more. Email, DART, and Phone are not shown at this width. ' +
+        'Choose fewer columns to make room for them.',
     );
   });
 
-  it('is null when every column shows', () => {
-    expect(hiddenColumnsNote(all, all, true)).toBeNull();
+  it('asks a window short of its screen to widen, or to choose fewer columns', () => {
+    expect(
+      tableCue(all, all.slice(0, 3), { hasChooser: true, isScrolling: false, canWiden: true }),
+    ).toBe('Phone is not shown at this width. Widen the window, or choose fewer columns.');
+  });
+
+  it('is null when every column shows and nothing scrolls', () => {
+    expect(tableCue(all, all, { ...phone, isScrolling: false })).toBeNull();
   });
 });

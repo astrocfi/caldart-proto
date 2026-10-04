@@ -12,6 +12,7 @@ import { Link, useLocation } from 'react-router-dom';
 
 import type { RoleSlug } from '@/portal/api/types';
 import { useAuth } from '@/portal/auth/useAuth';
+import { useTabBar } from '@/portal/components/useTabBar';
 import { hasAnyRole } from '@/portal/nav';
 
 export interface FinanceTab {
@@ -51,9 +52,10 @@ export function FinanceTabs({ current }: FinanceTabsProps): JSX.Element {
   const path = current ?? location.pathname;
   const { roles } = useAuth();
   const tabs = FINANCE_TABS.filter((tab) => hasAnyRole(roles, tab.roles ?? []));
+  const bar = useTabBar<HTMLElement>(path);
 
   return (
-    <nav className="tab-bar" aria-label="Finance sections">
+    <nav ref={bar.ref} className="tab-bar" aria-label="Finance sections" {...bar.attributes}>
       {tabs.map((tab) => (
         <Link
           key={tab.to}

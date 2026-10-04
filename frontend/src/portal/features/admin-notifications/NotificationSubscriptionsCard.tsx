@@ -90,7 +90,7 @@ export function NotificationSubscriptionsCard(): JSX.Element {
   };
 
   // The recipient tells the rows apart and starts at the left; the events never narrow
-  // below a readable width; the actions come last, headed for a screen reader, with room
+  // below a readable width and wrap to show every one; the actions come last, headed for a screen reader, with room
   // for Edit, Pause, and an open delete confirmation side by side.
   const columns: Column<NotificationSubscription>[] = [
     {
@@ -105,8 +105,8 @@ export function NotificationSubscriptionsCard(): JSX.Element {
       key: 'events',
       header: 'Events',
       minWidth: '14rem',
-      // A plain-text cell: the single-line table cuts it with an ellipsis and
-      // keeps the whole list in the cell's title.
+      // The list is what the row is for, so it wraps in the cell to be read whole.
+      wrap: true,
       render: (row) => eventLabels(row.events, events),
     },
     {

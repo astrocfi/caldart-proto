@@ -330,6 +330,12 @@ a:hover {
   color: var(--color-bad);
 }
 
+/* While an error shows, a hint in one column gives its line up to the error, so no
+ * blank band opens between the label and the box.  A two-column grid keeps it below. */
+.field__hint--hidden {
+  display: none;
+}
+
 /* A field with no hint draws an empty slot in the hint's place.  It takes no room; in a
  * two-column form grid it holds the field's box in the box row, so the boxes of one row
  * line up without any space set aside where neither field has a hint. */
@@ -357,6 +363,12 @@ a:hover {
     grid-template-rows: subgrid;
     row-gap: 0;
     align-content: start;
+  }
+
+  /* A hidden hint keeps its row here, so the box stays level with its neighbor's. */
+  .form-grid > .field > .field__hint--hidden,
+  .aircraft-form__grid > .field > .field__hint--hidden {
+    display: block;
   }
 }
 
@@ -904,6 +916,15 @@ th.numeric {
   font-weight: var(--weight-semibold);
   line-height: var(--leading-snug);
   margin-bottom: var(--space-1);
+}
+
+/* One step of space parts a card's introduction from its first control, and a table
+ * from whatever comes before or after it inside the card, so no button or form heading
+ * sits on a table's rule. */
+.card > :not(.eyebrow, .card__title) + :is(.button, .data-table),
+.card > .button + div,
+.card > .data-table + :not(.card__footer) {
+  margin-top: var(--space-4);
 }
 
 .card__footer {
