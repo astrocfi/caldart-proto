@@ -7,6 +7,7 @@ import type { EmailType, EmailTypeInput } from '@/portal/api/types';
 import { API, makeUser, signedInAs } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
+import { headerWords } from '@test/table';
 import { EmailTypesPage, inUseReason, sendersText } from './EmailTypesPage';
 
 function makeType(overrides: Partial<EmailType> = {}): EmailType {
@@ -71,7 +72,7 @@ function renderPage() {
 
 /** The table row holding `name`. */
 async function rowOf(name: string): Promise<HTMLElement> {
-  const cell = await screen.findByRole('cell', { name });
+  const cell = await screen.findByRole('rowheader', { name });
   return cell.closest('tr') as HTMLElement;
 }
 
@@ -193,19 +194,31 @@ describe('EmailTypesPage', () => {
     stubTypes();
     renderPage();
     await rowOf('Operational');
-    expect(screen.getByRole('columnheader', { name: 'Name' })).toHaveClass('data-table__wrap');
+    expect(screen.getByRole('columnheader', { name: 'Name' })).toHaveClass('data-table__identity');
   });
 
-  it('puts Edit and the trashcan right after the name, so a phone shows them', async () => {
+  it('puts the name first and Edit and the trashcan last', async () => {
     stubTypes();
     renderPage();
     await rowOf('Operational');
-    expect(
-      screen
-        .getAllByRole('columnheader')
-        .slice(0, 2)
-        .map((header) => header.textContent),
-    ).toEqual(['Name', 'Actions']);
+    const headers = screen.getAllByRole('columnheader').map(headerWords);
+    expect([headers[0], headers.at(-1)]).toEqual(['Name', 'Actions']);
+  });
+
+  it('never lets the description narrow below a readable width', async () => {
+    stubTypes();
+    renderPage();
+    await rowOf('Operational');
+    expect(screen.getByRole('columnheader', { name: 'What it is for' })).toHaveStyle({
+      width: '13rem',
+    });
+  });
+
+  it('makes the actions wide enough for Edit beside an open delete confirmation', async () => {
+    stubTypes();
+    renderPage();
+    await rowOf('Operational');
+    expect(screen.getByRole('columnheader', { name: 'Actions' })).toHaveStyle({ width: '12rem' });
   });
 
   it('says plainly why a type in use cannot be deleted', async () => {

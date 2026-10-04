@@ -81,6 +81,23 @@ describe('NotificationSubscriptionsCard', () => {
     expect(within(row(table, /Ada Admin/)).getByTitle('Active')).toBeInTheDocument();
   });
 
+  it('heads the actions column for a screen reader', async () => {
+    await renderCard();
+    expect(screen.getByRole('columnheader', { name: 'Actions' })).toBeInTheDocument();
+  });
+
+  it('starts the recipient at the left edge, like every other table', async () => {
+    await renderCard();
+    expect(screen.getByRole('columnheader', { name: /Recipient/ })).toHaveClass(
+      'data-table__identity',
+    );
+  });
+
+  it('never lets the events narrow below a readable width', async () => {
+    await renderCard();
+    expect(screen.getByRole('columnheader', { name: /Events/ })).toHaveStyle({ width: '14rem' });
+  });
+
   it('gives each row Edit, Pause or Resume, and the trashcan, in that order', async () => {
     const table = await renderCard();
 

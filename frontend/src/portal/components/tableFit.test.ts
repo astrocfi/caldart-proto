@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
 import type { Column } from './DataTable';
-import { fitColumns, LEAD_FLOOR_REM, needsFitting } from './tableFit';
+import {
+  ACTIONS_MIN_WIDTH,
+  arrangeColumns,
+  fitColumns,
+  LEAD_FLOOR_REM,
+  needsFitting,
+} from './tableFit';
 
 /** A column of `width` rem, with any other settings given. */
 function column(key: string, settings: Partial<Column<object>> = {}): Column<object> {
@@ -60,5 +66,61 @@ describe('fitColumns', () => {
 describe('needsFitting', () => {
   it('needs no measuring for a table with nothing to drop or keep in sight', () => {
     expect(needsFitting([column('a'), column('b')])).toBe(false);
+  });
+});
+
+describe('fitColumns on a phone', () => {
+  const members: Column<object>[] = [
+    column('pilot', { width: '4.25rem' }),
+    column('name', { width: undefined, minWidth: '14rem', isIdentity: true }),
+    column('dart', { width: undefined, minWidth: '10rem', dropOrder: 2 }),
+    column('expires', { width: '10rem', keepInSight: true }),
+    column('email', { width: undefined, minWidth: '14rem', dropOrder: 1 }),
+  ];
+
+  it('drops Email, then DART, before anything else', () => {
+    expect(fitColumns(members, 30).map((shown) => shown.key)).toEqual(['pilot', 'name', 'expires']);
+  });
+
+  it('never narrows the name below the readable floor', () => {
+    const name = fitColumns(members, 18).find((shown) => shown.key === 'name');
+    expect(name?.minWidth).toBe(`${LEAD_FLOOR_REM}rem`);
+  });
+
+  it('narrows the identifying column rather than the first text column', () => {
+    const fitted = fitColumns(
+      [
+        column('note', { width: undefined, minWidth: '12rem' }),
+        column('name', { width: undefined, minWidth: '14rem', isIdentity: true }),
+        column('actions', { width: '6rem', isActions: true }),
+      ],
+      30,
+    );
+    expect(fitted.map((shown) => shown.minWidth ?? shown.width)).toEqual([
+      '12rem',
+      '12rem',
+      '6rem',
+    ]);
+  });
+});
+
+describe('arrangeColumns', () => {
+  it('moves the actions column to the end', () => {
+    const arranged = arrangeColumns([
+      column('actions', { isActions: true }),
+      column('name'),
+      column('date'),
+    ]);
+    expect(arranged.map((shown) => shown.key)).toEqual(['name', 'date', 'actions']);
+  });
+
+  it('widens an actions column too narrow for an open confirmation', () => {
+    const [actions] = arrangeColumns([column('actions', { isActions: true, width: '4rem' })]);
+    expect(actions?.width).toBe(ACTIONS_MIN_WIDTH);
+  });
+
+  it('keeps an actions column already wide enough', () => {
+    const [actions] = arrangeColumns([column('actions', { isActions: true, width: '14rem' })]);
+    expect(actions?.width).toBe('14rem');
   });
 });

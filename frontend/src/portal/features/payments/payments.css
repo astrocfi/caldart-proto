@@ -57,10 +57,6 @@
   color: var(--color-muted);
 }
 
-.payments__table {
-  width: 100%;
-}
-
 .payments__statements {
   display: flex;
   flex-wrap: wrap;

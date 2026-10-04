@@ -3,7 +3,7 @@ Reports
 =======
 
 CalDART exports data as CSV, for a spreadsheet, and as PDF, for a board pack.
-There are nine reports, and every one of them is built by the same code: each
+There are ten reports, and every one of them is built by the same code: each
 app declares what its report is — its columns, who may read it, and the query
 that finds its rows — as a ``ReportSpec``, and ``build_report`` in
 ``backend/caldart/reports.py`` turns any spec into either file.  The endpoints
@@ -39,6 +39,10 @@ documents them.
      - Payment list
      - ``apps/payments/reports.py``
      - ``treasurer``, ``account_admin``
+   * - ``renewals``
+     - Renewals list
+     - ``apps/payments/renewals_report.py``
+     - ``treasurer``, ``account_admin``
    * - ``reconciliation``
      - Reconciliation table
      - ``apps/payments/reconciliation.py``
@@ -57,7 +61,7 @@ documents them.
      - ``system_admin``
 
 A ``system_admin`` and a Django superuser read every report.
-``apps/reports/registry.py`` gathers the nine specs into ``REPORTS``, keyed by
+``apps/reports/registry.py`` gathers the ten specs into ``REPORTS``, keyed by
 slug, and ``apps/reports/permissions.py`` decides who may read one with
 ``can_read_report(user, spec)``, which is ``user_has_any_role`` over the spec's
 roles.
@@ -667,8 +671,9 @@ PDF subtitle names every one given a value, from ``EXPORT_FILTER_PARAMS`` in
 The payments reports
 ====================
 
-Four reports come out of ``backend/apps/payments/``, all of them for the
-finance roles, with the tables they download documented in :doc:`api-finance`.
+Five reports come out of ``backend/apps/payments/``, all of them for the
+finance roles, with the tables they download documented in :doc:`api-finance` and,
+for the renewals list, :doc:`api-renewals`.
 
 The payment list
 ----------------
@@ -694,6 +699,26 @@ reconciliation rows and the contributions list all key off it — which is what
 stops them answering "when was this paid?" differently from the ``Date`` column.
 A second annotation, ``paid_at``, keeps the moment the payment settled, for
 ``?ordering=paid_at`` and for breaking ties within one ledger day.
+
+The default columns are the date, the name, the email address, the plan, the total,
+the fee, the net and the status, which are what the everyday list is read for; the
+kind, the split into dues and contribution, the refund, the provider, the method, the
+provider's reference, the reconciled date, the receipt number, the received date, the
+note and the term's two dates are there to be asked for.
+
+The renewals list
+-----------------
+
+``renewals``, declared in ``backend/apps/payments/renewals_report.py``: the Renewals
+tab's table of standing authorities, automatic renewals and recurring donations alike.
+``mandate_queryset`` narrows by ``status``, ``kind`` (``renewal``, ``both`` or
+``contribution``) and ``search`` (every word in the member's email address, first name,
+last name or the method label), newest first, and ``GET /admin/renewals`` narrows
+through the same function, so the list and the download never disagree.  The default
+columns are the tab's own: Member, Email, Kind, Plan, Next charge, Due, Method and
+Status, the status in the tab's words (On, Awaiting a method, Paused, Off).  Cadence,
+Failed charges and Started are off by default.  The subtitle names the filters given a
+value.
 
 The reconciliation table
 ------------------------

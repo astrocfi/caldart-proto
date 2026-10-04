@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { API } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
-import type { EmailLogEntry, Paginated } from '@/portal/api/types';
+import type { EmailLogEntry, Paginated, ReportColumn } from '@/portal/api/types';
 import { SEARCH_DEBOUNCE_MS } from '@/portal/components/useDebounced';
 import { API_BASE } from '@/portal/urlPrefix';
 import { EmailLogPanel } from './EmailLogPanel';
@@ -76,6 +76,31 @@ function page(
   return { count, next, previous, results: rows };
 }
 
+/** The email log report's registry, as the server answers it, with `extra` ticked too. */
+function registry(...extra: string[]): ReportColumn[] {
+  const columns: [string, string, boolean][] = [
+    ['sent_at', 'Sent', true],
+    ['purpose', 'Purpose', true],
+    ['to_email', 'To', true],
+    ['user_name', 'Name', true],
+    ['subject', 'Subject', true],
+    ['status', 'Status', true],
+    ['error', 'Error', false],
+    ['attachments', 'Attachments', false],
+    ['bounced_at', 'Bounced', false],
+    ['bounce_detail', 'Bounce detail', false],
+  ];
+  return columns.map(([key, label, isDefault]) => ({
+    key,
+    label,
+    default: isDefault || extra.includes(key),
+  }));
+}
+
+function registryHandler(columns: ReportColumn[]) {
+  return http.get(`${API}/reports/emails/columns`, () => HttpResponse.json(columns));
+}
+
 function emailsHandler(rows: EmailLogEntry[]) {
   return http.get(`${API}/system/emails`, () => HttpResponse.json(page(rows)));
 }
@@ -106,7 +131,49 @@ describe('EmailLogPanel', () => {
     expect(row).toHaveTextContent('marta.reyes@example.org');
     expect(row).toHaveTextContent('Receipt');
     expect(row).toHaveTextContent('Sent');
-    expect(row).toHaveTextContent('receipt-2026-0041.pdf');
+    expect(row).toHaveTextContent('CalDART: your receipt for $95.00');
+  });
+
+  it('shows the columns ticked in the chooser, such as the attachments', async () => {
+    server.use(emailsHandler(ENTRIES), registryHandler(registry('attachments')));
+    renderWithProviders(<EmailLogPanel />);
+
+    const row = await screen.findByRole('row', { name: /receipt-2026-0041\.pdf/ });
+    expect(row).toHaveTextContent('Marta Reyes');
+  });
+
+  it('adds a column to the table when it is ticked in the chooser', async () => {
+    server.use(emailsHandler(ENTRIES), registryHandler(registry()));
+    renderWithProviders(<EmailLogPanel />);
+
+    await screen.findByRole('columnheader', { name: 'Subject' });
+    await userEvent.click(screen.getByRole('button', { name: 'Columns' }));
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Error' }));
+
+    expect(screen.getByRole('columnheader', { name: 'Error' })).toBeInTheDocument();
+  });
+
+  it('carries a ticked column into the downloads', async () => {
+    server.use(emailsHandler(ENTRIES), registryHandler(registry()));
+    renderWithProviders(<EmailLogPanel />);
+
+    await screen.findByRole('columnheader', { name: 'Subject' });
+    await userEvent.click(screen.getByRole('button', { name: 'Columns' }));
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Error' }));
+
+    expect(screen.getByRole('link', { name: 'Export CSV' }).getAttribute('href')).toContain(
+      'columns=sent_at%2Cpurpose%2Cto_email%2Cuser_name%2Csubject%2Cstatus%2Cerror',
+    );
+  });
+
+  it('shows the newest first with the arrow on Sent', async () => {
+    server.use(emailsHandler(ENTRIES));
+    renderWithProviders(<EmailLogPanel />);
+
+    expect(await screen.findByRole('columnheader', { name: /Sent/ })).toHaveAttribute(
+      'aria-sort',
+      'descending',
+    );
   });
 
   it("reads the purpose from the server's label", async () => {
@@ -176,12 +243,12 @@ describe('EmailLogPanel', () => {
     ).toContain('Bounced');
   });
 
-  it('shows when a message bounced and the report beside it', async () => {
-    server.use(emailsHandler([BOUNCED]));
+  it('shows when a message bounced and the report, once those columns are ticked', async () => {
+    server.use(emailsHandler([BOUNCED]), registryHandler(registry('bounced_at', 'bounce_detail')));
     renderWithProviders(<EmailLogPanel />);
 
-    const row = await screen.findByRole('row', { name: /Dana Doe/ });
-    expect(row).toHaveTextContent('10/01/2026 · 5.1.1 550 User unknown');
+    const row = await screen.findByRole('row', { name: /5\.1\.1 550 User unknown/ });
+    expect(row).toHaveTextContent('10/01/2026');
   });
 
   it('says nothing has gone out yet when the log is empty', async () => {
@@ -189,6 +256,16 @@ describe('EmailLogPanel', () => {
     renderWithProviders(<EmailLogPanel />);
 
     expect(await screen.findByText('No emails sent yet')).toBeInTheDocument();
+  });
+
+  it('offers to reset the filters when nothing matches them', async () => {
+    server.use(emailsHandler([]));
+    renderWithProviders(<EmailLogPanel />, { route: '/system?status=failed' });
+
+    await screen.findByText('No emails match these filters');
+    await userEvent.click(screen.getAllByRole('button', { name: 'Reset filters' }).at(-1)!);
+
+    expect(await screen.findByLabelText('Status')).toHaveValue('');
   });
 
   it('reports a failed fetch instead of reading silently as an empty log', async () => {

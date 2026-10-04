@@ -244,6 +244,13 @@
   border-top: var(--hairline) solid var(--color-rule);
 }
 
+/* An empty table's card draws no rule above its empty state: there is no table
+ * for the rule to head. */
+.data-table .empty-state {
+  border-top: 0;
+  padding-top: var(--space-4);
+}
+
 .empty-state__title {
   font-family: var(--font-display);
   font-size: var(--text-lg);
@@ -260,18 +267,23 @@
 }
 
 /* ------------------------------------------------------------ data table */
+/* The filters fill the bar's first rows; the tools (the column chooser and the
+ * exports) share one row at the right under them. */
 .data-table__bar {
   display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  justify-content: space-between;
+  flex-direction: column;
   gap: var(--space-3);
   padding-bottom: var(--space-3);
 }
 
-/* Every control in the bar sits on one baseline: the items align to their
- * bottom edge, and a field's hint is its control's title rather than a line
- * under it, so no field stands taller than its neighbors. */
+.data-table__tools {
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+/* Every control in the bar is one height and sits on one line along the bottom: a
+ * field's hint is its control's title rather than a line under it, so no field
+ * stands taller than its neighbors. */
 .data-table__filters {
   display: flex;
   flex-wrap: wrap;
@@ -281,6 +293,27 @@
 
 .data-table__filters .field {
   margin-bottom: 0;
+}
+
+.data-table__filters input:not([type='checkbox']):not([type='radio']),
+.data-table__filters select,
+.data-table__filters .multi-select__toggle,
+.data-table__filters .button {
+  height: var(--control-height, 2.5rem);
+  min-height: var(--control-height, 2.5rem);
+  padding-block: 0;
+  font-size: var(--text-sm);
+}
+
+/* A search box is wide enough to show its whole placeholder. */
+.data-table__filters input[type='search'] {
+  width: 16rem;
+  max-width: 100%;
+}
+
+.data-table__filters .data-table__toggle {
+  height: var(--control-height, 2.5rem);
+  font-size: var(--text-sm);
 }
 
 /* A dense list reads better as a grid of one-line rows: a wrapped cell makes
@@ -299,7 +332,9 @@
 }
 
 .data-table--single-line td > a,
-.data-table--single-line td > time {
+.data-table--single-line td > time,
+.data-table--single-line tbody th > a,
+.data-table--single-line tbody th > time {
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -307,18 +342,12 @@
   display: inline-block;
 }
 
-/* The pilot mark is a glyph, not a word: give it just enough room and let the
- * name sit next to it rather than across a gap. */
-.data-table--single-line th:first-child,
-.data-table--single-line td:first-child {
-  padding-right: 0;
-  text-align: center;
-}
-
 /* A column of text with a minimum width (a name, an address) starts at the
- * left edge, whatever position it holds; the rule above is for a glyph. */
+ * left edge, whatever position it holds. */
 .data-table--single-line th.data-table__text,
-.data-table--single-line td.data-table__text {
+.data-table--single-line td.data-table__text,
+.data-table--single-line th.data-table__identity,
+.data-table--single-line td.data-table__identity {
   padding-right: var(--space-3);
   text-align: start;
 }
@@ -329,7 +358,7 @@
 .data-table--single-line th.data-table__wrap,
 .data-table--single-line td.data-table__wrap {
   white-space: normal;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
   text-overflow: clip;
   padding-right: var(--space-3);
   text-align: start;
@@ -337,6 +366,25 @@
 
 .data-table--single-line td.data-table__wrap .cluster.cluster--nowrap {
   flex-wrap: wrap;
+}
+
+/* A name, a receipt number, a phone number or a month reads wrongly broken. */
+.data-table .data-table__nowrap {
+  white-space: nowrap;
+}
+
+/* The identifying cell heads its row for a screen reader, but reads as an ordinary
+ * cell on screen. */
+.data-table tbody th {
+  font-weight: inherit;
+}
+
+/* The actions sit last, left-aligned, and never clip an open confirmation. */
+.data-table th.data-table__actions,
+.data-table td.data-table__actions {
+  text-align: start;
+  overflow: visible;
+  white-space: nowrap;
 }
 
 .data-table__sort {
@@ -358,12 +406,103 @@
 }
 
 .data-table__caret {
+  display: inline-block;
   width: 0.75em;
+  text-align: center;
+}
+
+/* A sortable column other than the sorted one carries a faint arrow both ways, so a heading
+ * that sorts looks different from one that does not. */
+.data-table__caret--idle {
+  opacity: 0.45;
+}
+
+.data-table__sort:hover .data-table__caret--idle {
+  opacity: 1;
 }
 
 .data-table__loading {
   font-size: var(--text-sm);
   padding-top: var(--space-2);
+}
+
+/* A table wider than its card scrolls sideways inside it.  A line above says so,
+ * a shadow lies along each edge that hides more, and the identifying column stays
+ * pinned at the left with the card's own background, so every row can still be
+ * told apart. */
+.table-scroll {
+  position: relative;
+}
+
+.data-table__scroll-hint {
+  font-size: var(--text-xs);
+  margin: 0 0 var(--space-2);
+}
+
+.table-scroll::before,
+.table-scroll::after {
+  content: '';
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  bottom: 0;
+  width: 1.5rem;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--duration) var(--ease);
+}
+
+.table-scroll::before {
+  left: 0;
+  background: linear-gradient(to right, var(--color-shadow, rgb(0 0 0 / 0.18)), transparent);
+}
+
+.table-scroll::after {
+  right: 0;
+  background: linear-gradient(to left, var(--color-shadow, rgb(0 0 0 / 0.18)), transparent);
+}
+
+.table-scroll--more-right::after {
+  opacity: 1;
+}
+
+.table-scroll--more-left::before {
+  opacity: 1;
+}
+
+.table-scroll--overflowing .table-wrap:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.table-scroll--overflowing .data-table__identity {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--color-bg-raised);
+  box-shadow: inset -1px 0 0 var(--color-rule);
+}
+
+/* ------------------------------------------------------------ pagination */
+.pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  padding-top: var(--space-3);
+}
+
+.pagination__status {
+  font-size: var(--text-sm);
+}
+
+/* A page button with nowhere to go reads as plainly unavailable: a dashed frame and
+ * muted words, rather than a faded copy of the live one. */
+.pagination .button:disabled {
+  opacity: 1;
+  border-style: dashed;
+  color: var(--color-muted);
+  background: transparent;
 }
 
 /* A row-actions cluster with several buttons (the Subscriptions table's Edit,

@@ -1,42 +1,96 @@
 /**
  * `/admin/users` — find an account and see what it may do.
  *
- * The list opens on active accounts, since a deactivated one is rarely what
- * anybody is looking for.  Its two export links download the CalDART roles
- * report, which has a section for every role but member and lists active
- * accounts only: the links carry the screen's search, role, kind, and Email
- * (bounced or not) filter, never its account status.  The report cannot follow two
- * of the screen's choices, Donor under Kind of account (a donor holds no role) and
- * the Member role (the report has no section for it), so while either is chosen the
- * exports and the column chooser are disabled and say why.
+ * The filters are the shared `FilterBar`, held in the address like every other list:
+ * a search, a role, the kind of account, the account status, and whether the address
+ * bounces.  The list opens on active accounts, since a deactivated one is rarely what
+ * anybody is looking for: the status's blank choice is **Active only**, so **Reset
+ * filters** returns to it.
+ *
+ * The column chooser governs the table and the two downloads together.  The
+ * downloads are the CalDART roles report, which has a section for every role but
+ * member and lists active accounts only: the links carry the screen's search, role,
+ * kind, and Email (bounced or not) filter, never its account status.  On screen a row
+ * is an account, so the Role column lists every role it holds.  The report cannot
+ * follow two of the screen's choices, Donor under Kind of account (a donor holds no
+ * role) and the Member role (the report has no section for it), so while either is
+ * chosen the exports and the column chooser are disabled and say why.  Name and Email
+ * sort on the server; the other headings do not sort.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import type { JSX } from 'react';
 import { Link } from 'react-router-dom';
 
-import type { AccountKind, RoleSlug, User } from '@/portal/api/types';
-import { useRoles } from '@/portal/auth/useAuth';
-import { ACCOUNT_KIND_LABELS, roleLabel } from '@/portal/choices';
+import type { AccountKind, AdminUser, ReportColumn, RoleSlug } from '@/portal/api/types';
+import {
+  ACCOUNT_KIND_LABELS,
+  MEMBERSHIP_STATUS_LABELS,
+  ROLE_CHOICES,
+  roleLabel,
+} from '@/portal/choices';
 import { Button } from '@/portal/components/Button';
-import { ColumnChooser, defaultColumnKeys } from '@/portal/components/ColumnChooser';
-import type { Column } from '@/portal/components/DataTable';
 import { DataTable } from '@/portal/components/DataTable';
-import { Field } from '@/portal/components/Field';
-import { MembershipChip, StatusChip } from '@/portal/components/StatusChip';
+import { FilterBar, clearedValues } from '@/portal/components/FilterBar';
 import { Page } from '@/portal/components/Page';
-import { useDebounced } from '@/portal/components/useDebounced';
-import { reportExportUrl, useReportColumns } from '@/portal/reports/api';
+import type { ReportCell } from '@/portal/components/reportTable';
+import { ColumnTools, reportTableColumns, useColumnChoice } from '@/portal/components/reportTable';
+import { MembershipDot } from '@/portal/components/StatusChip';
+import { useUrlFilters } from '@/portal/components/useUrlFilters';
+import {
+  useFirstPageWhenMissing,
+  useUrlListPosition,
+} from '@/portal/components/useUrlListPosition';
+import { reportExportUrl } from '@/portal/reports/api';
+import type { FilterField, Option } from '@/portal/reports/types';
 import { useAdminUsers } from './api';
 
 const PAGE_SIZE = 25;
 
-type AccountStatus = 'true' | 'false' | '';
+/** The order the list opens on, by surname. */
+const DEFAULT_ORDERING = 'last_name';
 
-/** Whether the list keeps bounced addresses, the others, or both. */
-type BounceFilter = 'true' | 'false' | '';
+/** The account status that lists deactivated accounts beside the active ones. */
+const ANY_STATUS = 'all';
 
-/** The status the list opens on: active accounts only. */
-const INITIAL_STATUS: AccountStatus = 'true';
+const KIND_OPTIONS: Option[] = (Object.keys(ACCOUNT_KIND_LABELS) as AccountKind[]).map((kind) => ({
+  value: kind,
+  label: ACCOUNT_KIND_LABELS[kind],
+}));
+
+/** The list's filters, each a query parameter the address keeps. */
+const FILTER_FIELDS: FilterField[] = [
+  { key: 'search', label: 'Search', kind: 'search', placeholder: 'Name or email' },
+  { key: 'role', label: 'Role', kind: 'select', placeholder: 'Any role', options: ROLE_CHOICES },
+  {
+    key: 'kind',
+    label: 'Kind of account',
+    kind: 'select',
+    placeholder: 'Any kind',
+    options: KIND_OPTIONS,
+  },
+  // Blank is the status the list opens on, so Reset filters comes back to it.
+  {
+    key: 'is_active',
+    label: 'Account status',
+    kind: 'select',
+    placeholder: 'Active only',
+    options: [
+      { value: ANY_STATUS, label: 'Active and deactivated' },
+      { value: 'false', label: 'Deactivated only' },
+    ],
+  },
+  {
+    key: 'email_bounced',
+    label: 'Email',
+    kind: 'select',
+    placeholder: 'Any address',
+    options: [
+      { value: 'true', label: 'Email bounced' },
+      { value: 'false', label: 'Not bounced' },
+    ],
+  },
+];
+const FILTER_KEYS = FILTER_FIELDS.map((field) => field.key);
 
 const DONOR_EXPORT_REASON = 'A donor holds no role, so the roles report lists nobody.';
 const MEMBER_EXPORT_REASON = 'The roles report has no section for Member, so it lists nobody.';
@@ -44,191 +98,125 @@ const MEMBER_EXPORT_REASON = 'The roles report has no section for Member, so it 
 /**
  * Why the roles report cannot follow the screen's filters, or `undefined` when it can.
  */
-function exportDisabledReason(role: RoleSlug | '', kind: AccountKind | ''): string | undefined {
+function exportDisabledReason(role: string, kind: string): string | undefined {
   if (kind === 'donor') return DONOR_EXPORT_REASON;
   if (role === 'member') return MEMBER_EXPORT_REASON;
   return undefined;
 }
 
-function displayName(user: User): string {
+/** The API's `is_active` for the status chosen: blank means active only. */
+function activeParam(status: string): 'true' | 'false' | '' {
+  if (status === ANY_STATUS) return '';
+  return status === 'false' ? 'false' : 'true';
+}
+
+function displayName(user: AdminUser): string {
   return `${user.first_name} ${user.last_name}`.trim() || user.email;
 }
 
-const columns: Column<User>[] = [
-  {
-    key: 'last_name',
-    header: 'Name',
-    render: (user) => <Link to={`/admin/users/${user.id}`}>{displayName(user)}</Link>,
-  },
-  {
-    key: 'email',
-    header: 'Email',
-    render: (user) => <span className="mono">{user.email}</span>,
-  },
-  {
-    key: 'roles',
-    header: 'Roles',
+/** How each roles report column draws for one account. */
+const CELLS: Record<string, ReportCell<AdminUser>> = {
+  role: {
+    minWidth: '10rem',
+    dropOrder: 15,
     render: (user) =>
       user.roles.length > 0 ? (
-        <span className="cluster">
-          {user.roles.map((role) => (
-            <span key={role} className="chip chip--neutral">
-              {roleLabel(role)}
-            </span>
-          ))}
-        </span>
+        user.roles.map(roleLabel).join(', ')
       ) : (
-        <span className="muted">—</span>
+        <span className="muted">No role</span>
       ),
   },
-  {
-    key: 'kind',
-    header: 'Kind',
-    render: (user) => ACCOUNT_KIND_LABELS[user.kind],
+  name: {
+    ordering: 'last_name',
+    isIdentity: true,
+    minWidth: '12rem',
+    render: (user) => (
+      <>
+        <Link to={`/admin/users/${user.id}`}>{displayName(user)}</Link>
+        {user.is_active ? null : <small className="muted"> · account deactivated</small>}
+      </>
+    ),
   },
-  {
-    key: 'membership',
-    header: 'Membership',
-    render: (user) => <MembershipChip membership={user.membership} />,
+  email: {
+    ordering: 'email',
+    minWidth: '14rem',
+    dropOrder: 20,
+    render: (user) => user.email,
   },
-  {
-    key: 'is_active',
-    header: 'Account',
-    render: (user) =>
-      user.is_active ? (
-        <StatusChip tone="current" label="Active" />
-      ) : (
-        <StatusChip tone="expired" label="Deactivated" />
-      ),
+  phone: { width: '8.5rem', noWrap: true, dropOrder: 5, render: (user) => user.phone },
+  dart: { minWidth: '9rem', dropOrder: 10, render: (user) => user.dart ?? '' },
+  kind: { width: '6rem', dropOrder: 4, render: (user) => ACCOUNT_KIND_LABELS[user.kind] },
+  membership: {
+    width: '8rem',
+    keepInSight: true,
+    render: (user) => (
+      <>
+        <span aria-hidden="true">
+          <MembershipDot membership={user.membership} />
+        </span>{' '}
+        {MEMBERSHIP_STATUS_LABELS[user.membership.status]}
+      </>
+    ),
   },
+  city: { minWidth: '7rem', render: (user) => user.city },
+  county: { minWidth: '8rem', render: (user) => user.county },
+  home_airport: { width: '6.5rem', render: (user) => user.home_airport },
+};
+
+/**
+ * The report's default columns, which the table shows while the registry loads or if it
+ * cannot be read, so the table and the downloads still agree.
+ */
+const FALLBACK_COLUMNS: ReportColumn[] = [
+  { key: 'role', label: 'Role', default: true },
+  { key: 'name', label: 'Name', default: true },
+  { key: 'email', label: 'Email', default: true },
+  { key: 'phone', label: 'Phone', default: true },
+  { key: 'dart', label: 'DART', default: true },
+  { key: 'kind', label: 'Kind', default: true },
+  { key: 'membership', label: 'Membership', default: true },
 ];
 
 /** `/admin/users` page: search accounts and see what each one may do. */
 export function UsersListPage(): JSX.Element {
-  const [search, setSearch] = useState('');
-  const [role, setRole] = useState<RoleSlug | ''>('');
-  const [isActive, setIsActive] = useState<AccountStatus>(INITIAL_STATUS);
-  const [kind, setKind] = useState<AccountKind | ''>('');
-  const [bounced, setBounced] = useState<BounceFilter>('');
-  const [page, setPage] = useState(1);
+  const [filters, setFilters] = useUrlFilters(FILTER_KEYS);
+  // The order and the page live in the address beside the filters.
+  const position = useUrlListPosition(DEFAULT_ORDERING);
+  const { ordering, page, setPage, sort, setSort: handleSortChange } = position;
+  const role = filters.role ?? '';
+  const kind = filters.kind ?? '';
 
-  const debouncedSearch = useDebounced(search);
-  const roles = useRoles();
   const query = useAdminUsers({
-    search: debouncedSearch,
-    role,
-    is_active: isActive,
-    kind,
-    email_bounced: bounced,
+    search: filters.search ?? '',
+    role: role as RoleSlug | '',
+    is_active: activeParam(filters.is_active ?? ''),
+    kind: kind as AccountKind | '',
+    email_bounced: (filters.email_bounced ?? '') as 'true' | 'false' | '',
+    ordering,
     page,
   });
-
-  // Any change to the filters puts us back on the first page.
-  useEffect(() => setPage(1), [debouncedSearch, role, isActive, kind, bounced]);
+  useFirstPageWhenMissing(position, query.error);
 
   const rows = query.data?.results ?? [];
   const count = query.data?.count ?? 0;
-  const lastPage = Math.max(1, Math.ceil(count / PAGE_SIZE));
 
-  const registry = useReportColumns('roles');
-  const reportColumns = useMemo(() => registry.data ?? [], [registry.data]);
-  // Null means "whatever the registry calls default": the chooser has not been
-  // touched, so it must follow a registry that is still loading.
-  const [chosen, setChosen] = useState<string[] | null>(null);
-  const chosenKeys = chosen ?? defaultColumnKeys(reportColumns);
+  const choice = useColumnChoice('roles', FALLBACK_COLUMNS);
+  const columns = useMemo(
+    () => reportTableColumns(choice.tableColumns, choice.tableChosen, CELLS, true),
+    [choice.tableColumns, choice.tableChosen],
+  );
   const disabledReason = exportDisabledReason(role, kind);
   const exportParams = {
-    search: debouncedSearch,
+    search: filters.search ?? '',
     role,
     kind,
-    email_bounced: bounced,
-    columns: chosenKeys,
+    email_bounced: filters.email_bounced ?? '',
+    columns: choice.chosen,
   };
 
-  const handleColumnChange = (next: string[]) => {
-    setChosen(next);
+  const handleReset = (): void => {
+    setFilters(clearedValues(FILTER_FIELDS, filters));
   };
-
-  const columnChooser = registry.isError ? (
-    <p className="muted">
-      The columns could not be loaded; the downloads carry the default columns.
-    </p>
-  ) : reportColumns.length === 0 ? null : disabledReason !== undefined ? (
-    <Button variant="quiet" small disabled title={disabledReason}>
-      Columns
-    </Button>
-  ) : (
-    <ColumnChooser
-      report="roles"
-      columns={reportColumns}
-      chosen={chosenKeys}
-      onChange={handleColumnChange}
-      legend="Columns to export"
-    />
-  );
-
-  const filters = (
-    <>
-      <Field label="Search">
-        {(props) => (
-          <input
-            {...props}
-            type="search"
-            name="search"
-            placeholder="Name or email"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-          />
-        )}
-      </Field>
-      <Field label="Kind of account">
-        {(props) => (
-          <select
-            {...props}
-            name="kind"
-            value={kind}
-            onChange={(event) => setKind(event.target.value as AccountKind | '')}
-          >
-            <option value="">Every kind</option>
-            {(Object.keys(ACCOUNT_KIND_LABELS) as AccountKind[]).map((value) => (
-              <option key={value} value={value}>
-                {ACCOUNT_KIND_LABELS[value]}
-              </option>
-            ))}
-          </select>
-        )}
-      </Field>
-      <Field label="Account status">
-        {(props) => (
-          <select
-            {...props}
-            name="is_active"
-            value={isActive}
-            onChange={(event) => setIsActive(event.target.value as AccountStatus)}
-          >
-            <option value="">Active and deactivated</option>
-            <option value="true">Active only</option>
-            <option value="false">Deactivated only</option>
-          </select>
-        )}
-      </Field>
-      <Field label="Email">
-        {(props) => (
-          <select
-            {...props}
-            name="email_bounced"
-            value={bounced}
-            onChange={(event) => setBounced(event.target.value as BounceFilter)}
-          >
-            <option value="">Any address</option>
-            <option value="true">Email bounced</option>
-            <option value="false">Not bounced</option>
-          </select>
-        )}
-      </Field>
-      {columnChooser}
-    </>
-  );
 
   return (
     <Page
@@ -236,73 +224,43 @@ export function UsersListPage(): JSX.Element {
       eyebrow="Administration"
       lede="Search accounts, grant, or remove roles, and send a password reset."
     >
-      <fieldset>
-        <legend>Filter by role</legend>
-        <div className="cluster">
-          <Button
-            variant={role === '' ? 'secondary' : 'quiet'}
-            small
-            aria-pressed={role === ''}
-            onClick={() => setRole('')}
-          >
-            Any role
-          </Button>
-          {(roles.data ?? []).map((entry) => (
-            <Button
-              key={entry.slug}
-              variant={role === entry.slug ? 'secondary' : 'quiet'}
-              small
-              aria-pressed={role === entry.slug}
-              title={entry.description}
-              onClick={() => setRole(role === entry.slug ? '' : entry.slug)}
-            >
-              {roleLabel(entry.slug)}
-            </Button>
-          ))}
-        </div>
-      </fieldset>
-
       <DataTable
+        singleLine
         columns={columns}
         rows={rows}
         rowKey={(user) => user.id}
-        caption={
-          query.isSuccess
-            ? `${count} account${count === 1 ? '' : 's'}${count > PAGE_SIZE ? ` · page ${page} of ${lastPage}` : ''}`
-            : undefined
+        caption={query.isSuccess ? `${count} account${count === 1 ? '' : 's'}` : undefined}
+        label="Accounts"
+        filters={
+          <FilterBar
+            fields={FILTER_FIELDS}
+            values={filters}
+            onChange={(next) => setFilters(next)}
+            label="Filter accounts"
+          />
         }
-        filters={filters}
+        tools={<ColumnTools choice={choice} disabledReason={disabledReason} />}
         exportCsvUrl={reportExportUrl('roles', 'csv', exportParams)}
         exportPdfUrl={reportExportUrl('roles', 'pdf', exportParams)}
         exportDisabledReason={disabledReason}
         isLoading={query.isPending}
+        onSortChange={handleSortChange}
+        sort={sort}
         emptyTitle="No accounts match those filters"
-        emptyDescription="Try a shorter search, or clear the role filter."
+        emptyDescription="Try a shorter search, or reset the filters."
+        emptyAction={
+          <Button variant="quiet" onClick={handleReset}>
+            Reset filters
+          </Button>
+        }
+        pagination={{
+          page,
+          pageSize: PAGE_SIZE,
+          count,
+          onPageChange: setPage,
+          label: 'Account pages',
+        }}
       />
-
-      {lastPage > 1 ? (
-        <nav className="cluster" aria-label="Pagination">
-          <Button
-            variant="quiet"
-            small
-            disabled={!query.data?.previous}
-            onClick={() => setPage((current) => Math.max(1, current - 1))}
-          >
-            Previous
-          </Button>
-          <span className="muted">
-            Page {page} of {lastPage}
-          </span>
-          <Button
-            variant="quiet"
-            small
-            disabled={!query.data?.next}
-            onClick={() => setPage((current) => current + 1)}
-          >
-            Next
-          </Button>
-        </nav>
-      ) : null}
     </Page>
   );
 }

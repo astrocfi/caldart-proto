@@ -9,7 +9,7 @@
  * spreadsheet file, and the retries are listed with their times.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { ChangeEvent, JSX, MouseEvent } from 'react';
+import type { JSX, MouseEvent } from 'react';
 
 import type {
   BulkEmailBatchRow,
@@ -21,8 +21,10 @@ import { ConfirmButton } from '@/portal/components/ConfirmButton';
 import type { Column } from '@/portal/components/DataTable';
 import { DataTable } from '@/portal/components/DataTable';
 import { DateText } from '@/portal/components/DateText';
+import { clearedValues, FilterBar } from '@/portal/components/FilterBar';
 import { StatusDot } from '@/portal/components/StatusChip';
 import { useToast } from '@/portal/components/Toast';
+import type { FilterField, FilterValues } from '@/portal/reports/types';
 import { DROP_ORDER } from './dropOrder';
 import { isMoving, recipientsCsvUrl, useBatch } from './api';
 import { CopyDialog } from './CopyDialog';
@@ -44,8 +46,22 @@ const RESULT_CHOICES: readonly BulkEmailRecipientStatus[] = [
   'pending',
 ];
 
-/** The menu's value for every result. */
-const ALL_RESULTS = 'all';
+/**
+ * The results table's filters: the result, blank for any, and a search over names and
+ * addresses.  They narrow the rows on screen; every copy's result arrives at once.
+ */
+const RESULT_FILTERS: readonly FilterField[] = [
+  {
+    key: 'result',
+    label: 'Result',
+    kind: 'select',
+    placeholder: 'Any result',
+    options: RESULT_CHOICES.map((choice) => ({ value: choice, label: resultLabel(choice) })),
+  },
+  { key: 'search', label: 'Find a person', kind: 'search', placeholder: 'Name or email' },
+];
+
+const NO_FILTERS: FilterValues = { result: '', search: '' };
 
 /** The person whose copy is open, and the button that opened it. */
 interface Viewing {
@@ -197,55 +213,54 @@ interface ResultsProps {
 
 /** The result menu, a search box, and one line per person with their result. */
 function Results({ rows, columns, isLoading }: ResultsProps): JSX.Element {
-  const [search, setSearch] = useState('');
-  const [result, setResult] = useState<string>(ALL_RESULTS);
+  const [filters, setFilters] = useState<FilterValues>(NO_FILTERS);
+  const result = filters.result ?? '';
+  const search = filters.search ?? '';
   const shown = useMemo(() => {
     const needle = search.trim().toLowerCase();
     return rows.filter(
       (row) =>
-        (result === ALL_RESULTS || row.status === result) &&
+        (result === '' || row.status === result) &&
         (needle === '' ||
           row.name.toLowerCase().includes(needle) ||
           row.email.toLowerCase().includes(needle)),
     );
   }, [rows, search, result]);
 
-  const handleSearchChange = (event: ChangeEvent<HTMLInputElement>): void => {
-    setSearch(event.target.value);
+  const handleFilterChange = (next: FilterValues): void => {
+    setFilters(next);
   };
-  const handleResultChange = (event: ChangeEvent<HTMLSelectElement>): void => {
-    setResult(event.target.value);
-  };
+  const isFiltered = result !== '' || search.trim() !== '';
 
   return (
-    <div className="stack-tight">
-      <div className="cluster">
-        <label className="cluster">
-          Result
-          <select value={result} onChange={handleResultChange}>
-            <option value={ALL_RESULTS}>Every result</option>
-            {RESULT_CHOICES.map((choice) => (
-              <option key={choice} value={choice}>
-                {resultLabel(choice)}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="cluster">
-          Find a person
-          <input type="search" value={search} onChange={handleSearchChange} />
-        </label>
-      </div>
-      <DataTable
-        singleLine
-        columns={columns}
-        rows={shown}
-        rowKey={(row) => row.id}
-        caption={resultsCaption(shown.length, rows.length)}
-        emptyTitle="Nobody to show"
-        isLoading={isLoading}
-      />
-    </div>
+    <DataTable
+      singleLine
+      columns={columns}
+      rows={shown}
+      rowKey={(row) => row.id}
+      caption={resultsCaption(shown.length, rows.length)}
+      filters={
+        <FilterBar
+          fields={RESULT_FILTERS}
+          values={filters}
+          onChange={handleFilterChange}
+          label="Filter the results"
+        />
+      }
+      emptyTitle="Nobody to show"
+      emptyDescription={isFiltered ? 'Nobody matches these filters.' : undefined}
+      emptyAction={
+        isFiltered ? (
+          <Button
+            variant="secondary"
+            onClick={() => setFilters(clearedValues(RESULT_FILTERS, filters))}
+          >
+            Reset filters
+          </Button>
+        ) : undefined
+      }
+      isLoading={isLoading}
+    />
   );
 }
 
@@ -280,11 +295,12 @@ function Retries({ email }: { email: BulkEmailDetail }): JSX.Element | null {
 }
 
 /**
- * The results table's columns: the person's name, what became of their copy, and
- * **View copy** for every copy that was tried, so all three stay in sight on a phone;
- * then the address and the reason, which wraps. Their DART, their kind, and when it was
- * tried give way, in that order, when the table would not fit its card; on a phone the
- * result wraps and the name narrows so the copy stays in sight.
+ * The results table's columns: the person's name, which tells the rows apart, what
+ * became of their copy, the address, the reason, which wraps, and last **View copy**
+ * for every copy that was tried, which stays in sight with the name and the result.
+ * Their DART, their kind, when it was tried, then the address give way, in that order,
+ * when the table would not fit its card; on a phone the result wraps and the name
+ * narrows so the copy stays in sight.
  *
  * @param onView opens a person's copy, given the row and the button pressed.
  */
@@ -296,6 +312,7 @@ export function resultColumns(
       key: 'name',
       header: 'Name',
       minWidth: '11rem',
+      isIdentity: true,
       render: (row) => row.name,
       sortValue: (row) => row.name,
     },
@@ -316,8 +333,7 @@ export function resultColumns(
     {
       key: 'copy',
       header: 'Copy',
-      width: '7rem',
-      keepInSight: true,
+      isActions: true,
       render: (row) =>
         row.tried_at === null ? (
           '—'
@@ -336,6 +352,7 @@ export function resultColumns(
       key: 'email',
       header: 'Email',
       minWidth: '13rem',
+      dropOrder: DROP_ORDER.address,
       render: (row) => row.email,
       sortValue: (row) => row.email,
     },

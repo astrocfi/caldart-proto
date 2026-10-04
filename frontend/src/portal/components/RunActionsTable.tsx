@@ -6,6 +6,11 @@
  * statements, bounces, and bulk email sender panels of the Scheduled page
  * (`/portal/system/scheduled`) use it, and so does the DART rosters card of
  * `/admin/reports`.
+ *
+ * The table keeps each row on one line.  Who an action reached tells the rows apart
+ * and stays pinned while a phone scrolls the table; the detail, such as the report or
+ * the DART, wraps and stays in sight; the date, the amount, then what was done give
+ * way on a narrow screen.
  */
 import type { JSX, ReactNode } from 'react';
 
@@ -69,23 +74,50 @@ export function RunActionsTable({
   const detail: Column<RunAction>[] =
     detailHeader === undefined
       ? []
-      : [{ key: 'detail', header: detailHeader, render: (row) => row.detail }];
+      : [
+          {
+            key: 'detail',
+            header: detailHeader,
+            minWidth: '10rem',
+            wrap: true,
+            keepInSight: true,
+            narrowWidth: '8rem',
+            render: (row) => row.detail,
+          },
+        ];
   const whenAndAmount: Column<RunAction>[] = hasWhenAndAmount
     ? [
-        { key: 'on', header: 'When', render: (row) => <DateText value={row.on} /> },
+        {
+          key: 'on',
+          header: 'When',
+          width: '7rem',
+          noWrap: true,
+          dropOrder: 1,
+          render: (row) => <DateText value={row.on} />,
+        },
         {
           key: 'amount_cents',
           header: 'Amount',
+          width: '6rem',
+          dropOrder: 2,
           numeric: true,
           render: (row) => <Money cents={row.amount_cents} />,
         },
       ]
     : [];
   const columns: Column<RunAction>[] = [
-    { key: 'kind', header: 'What', render: (row) => kindLabel(row.kind) },
+    {
+      key: 'kind',
+      header: 'What',
+      minWidth: '9rem',
+      dropOrder: 3,
+      render: (row) => kindLabel(row.kind),
+    },
     {
       key: 'member',
       header: 'Who',
+      minWidth: '12rem',
+      isIdentity: true,
       // An action about an address nobody is named for, such as a bounce no sent
       // email matched, shows the address alone.
       render: (row) =>
@@ -107,6 +139,7 @@ export function RunActionsTable({
       <h3>{heading ?? actionsHeading(dryRun)}</h3>
       {summary}
       <DataTable
+        singleLine
         columns={columns}
         rows={actions}
         rowKey={(row) => `${row.kind}-${row.member}-${row.email}-${row.on ?? ''}-${row.detail}`}

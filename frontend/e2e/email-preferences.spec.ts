@@ -37,7 +37,7 @@ test('a system administrator adds, edits, and deletes an email type', async ({ p
     .getByRole('link', { name: 'Email types' })
     .click();
   await expect(page).toHaveURL(/\/portal\/bulk-email\/types/);
-  await expect(page.getByRole('cell', { name: 'Fundraising', exact: true })).toBeVisible();
+  await expect(page.getByRole('rowheader', { name: 'Fundraising', exact: true })).toBeVisible();
 
   await page.getByRole('button', { name: 'Add an email type' }).click();
   await page.getByLabel('Name*').fill(name);

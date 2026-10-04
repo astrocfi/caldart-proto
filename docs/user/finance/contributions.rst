@@ -18,6 +18,11 @@ their **Email**, how many **Payments** carried a contribution, the amount **Give
 was **Refunded** against those payments, and the **Net**. The net is the figure an
 acknowledgment letter quotes: what was given, less anything refunded against it.
 
+On a narrower screen the table leaves out the **Email**, the count of **Payments**,
+**Refunded**, and **Given**, in that order, so the **Net** and the **Statement** button stay
+beside the name. On a phone the table scrolls sideways inside the page, a line above it says
+so, and the name stays pinned at the left.
+
 A payment counts in the year its money arrived, so a check received in December counts
 in December's year even if you recorded it in January.
 
@@ -45,7 +50,8 @@ Download the list
 
 **Export CSV** gives a file for a mail merge, and **Export PDF** a copy for the board.
 Each file is named for the day it was made. Click a column heading to sort the table by
-it. The **Subscriptions** screen can also send this list on a schedule, for **This year** or
+it, and click it again to reverse the order; the table opens sorted by **Net**, largest
+first, and every heading but **Statement** sorts. The **Subscriptions** screen can also send this list on a schedule, for **This year** or
 **Last year**.
 
 If something looks wrong

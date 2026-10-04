@@ -19,6 +19,7 @@ from apps.members.models import MembershipPlan
 from apps.members.reports import MEMBER_REPORT_COLUMNS
 from apps.payments.models import Payment, PaymentProvider, PaymentStatus
 from apps.payments.reconciliation import RECONCILIATION_COLUMNS
+from apps.payments.renewals_report import RENEWAL_REPORT_COLUMNS
 from apps.payments.reports import CONTRIBUTION_COLUMNS, PAYMENT_REPORT_COLUMNS
 from apps.reports.registry import REPORTS
 from caldart.reports import FIXED_COLUMNS_MESSAGE, ReportColumn
@@ -34,6 +35,7 @@ READERS: dict[str, tuple[str, ...]] = {
     "members": (DART_LEADER, ACCOUNT_ADMIN, SYSTEM_ADMIN),
     "aircraft": (ACCOUNT_ADMIN, SYSTEM_ADMIN),
     "payments": (TREASURER, ACCOUNT_ADMIN, SYSTEM_ADMIN),
+    "renewals": (TREASURER, ACCOUNT_ADMIN, SYSTEM_ADMIN),
     "reconciliation": (TREASURER, ACCOUNT_ADMIN, SYSTEM_ADMIN),
     "contributions": (TREASURER, ACCOUNT_ADMIN, SYSTEM_ADMIN),
     "emails": (SYSTEM_ADMIN,),
@@ -69,6 +71,7 @@ COLUMN_PAYLOADS: dict[str, list[dict[str, str | bool]]] = {
     "members": column_payload(MEMBER_REPORT_COLUMNS),
     "aircraft": column_payload(AIRCRAFT_REPORT_COLUMNS),
     "payments": column_payload(PAYMENT_REPORT_COLUMNS),
+    "renewals": column_payload(RENEWAL_REPORT_COLUMNS),
     "reconciliation": column_payload(RECONCILIATION_COLUMNS),
     "contributions": column_payload(CONTRIBUTION_COLUMNS),
 }
@@ -94,7 +97,7 @@ def test_the_report_list_refuses_an_anonymous_caller(api_client: APIClient) -> N
         ("verifier", ["verification"]),
         ("dart_leader", ["members", "verification"]),
         ("user_admin", ["roles", "verification"]),
-        ("treasurer", ["payments", "reconciliation", "contributions", "donors"]),
+        ("treasurer", ["payments", "renewals", "reconciliation", "contributions", "donors"]),
         (
             "account_admin",
             [
@@ -103,6 +106,7 @@ def test_the_report_list_refuses_an_anonymous_caller(api_client: APIClient) -> N
                 "verification",
                 "aircraft",
                 "payments",
+                "renewals",
                 "reconciliation",
                 "contributions",
             ],
@@ -116,6 +120,7 @@ def test_the_report_list_refuses_an_anonymous_caller(api_client: APIClient) -> N
                 "verification",
                 "aircraft",
                 "payments",
+                "renewals",
                 "reconciliation",
                 "contributions",
                 "donors",
@@ -155,6 +160,7 @@ def test_the_report_list_describes_each_report(account_admin_client: APIClient) 
             "periods": False,
         },
         {"slug": "payments", "title": "CalDART payments", "choosable": True, "periods": True},
+        {"slug": "renewals", "title": "CalDART renewals", "choosable": True, "periods": False},
         {
             "slug": "reconciliation",
             "title": "CalDART reconciliation",

@@ -15,22 +15,34 @@ The page is the log itself: the filters, then the table of emails.
 What you see
 ============
 
-Each row is one email:
+Each row is one email. The table shows the columns ticked under **Columns** (see
+`Downloading the log`_), which are these unless you choose others:
 
-- **Sent**: the date and time. Click the heading to turn the order round.
+- **Sent**: the date and time. The arrow on the heading shows the order, newest first; click
+  the heading to turn it round. The other headings carry no arrow: the log sorts by **Sent**
+  alone.
 - **Purpose**: what the email was for. For a copy of a bulk email, *Bulk email* is a link
   to that email's page on :doc:`../bulk-email/sent`, where its delivery report shows every
   copy.
-- **To**: the recipient's name, when CalDART knows it, and the address. A DART contact on a
-  roster has a name and no account.
+- **To**: the address it went to.
+- **Name**: the recipient's name, when CalDART knows it. A DART contact on a roster has a
+  name and no account.
+- **Subject**: the email's subject line.
 - **Status**: *Sent*; *Failed:* and the reason the mail server gave; or *Bounced*, for an
   email the mail server took that the recipient's mail server later refused for good.
-- **Bounce**: for a bounced email, the date the bounce came back and the reason the
-  recipient's mail server gave, such as *5.1.1 550 User unknown*.
-- **Attachments**: the names of any files attached, such as a report or a statement.
+
+Tick **Error**, **Attachments**, **Bounced**, or **Bounce detail** to add them: the reason a
+send failed, the names of any files attached, the date a bounce came back, and the reason
+the recipient's mail server gave, such as *5.1.1 550 User unknown*.
+
+On a narrow screen the table leaves out the default columns that matter least, **Purpose**,
+**Name**, and **To** in turn, and keeps **Subject**, **Sent**, **Status**, and any column you
+ticked beyond the defaults. If it is still too wide it scrolls sideways inside its card, says so above the
+table, and keeps **Subject** pinned at the left.
 
 When there are more than 25 emails, the foot reads, for example, *Showing 1–25 of 412*, with
-**Previous** and **Next**.
+**Previous** and **Next**; moving to another page brings the top of the table back into
+view.
 
 
 Filtering the log
@@ -65,7 +77,8 @@ The filters narrow the whole log, every page of it:
 **Search**
    A name or an address, including somebody with no account.
 
-**Reset to Defaults** clears the filters. The filters, the order, and the page are kept in
+**Reset filters** clears the filters; when nothing matches them, the empty table offers its
+own **Reset filters** button. The filters, the order, and the page are kept in
 the page's address, so a filtered view can be bookmarked or sent to another system
 administrator.
 
@@ -74,9 +87,8 @@ Downloading the log
 ===================
 
 **Export CSV** and **Export PDF** download every email the filters match, in the table's
-order. They carry **Sent**, **Purpose**, **To**, **Name**, **Subject**, and **Status**
-unless you choose others with **Columns**; **Error**, **Attachments**, **Bounced**, and
-**Bounce detail** are off until you tick them. **Load columns** and **Save columns** keep a set of columns under a name, as
+order, with the same columns as the table: **Columns** changes the table and both downloads
+together. **Load columns** and **Save columns** keep a set of columns under a name, as
 :ref:`saved-column-sets` describes.
 
 

@@ -16,6 +16,7 @@ export type ReportSlug =
   | 'verification'
   | 'aircraft'
   | 'payments'
+  | 'renewals'
   | 'reconciliation'
   | 'contributions'
   | 'donors'

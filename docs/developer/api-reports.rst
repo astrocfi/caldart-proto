@@ -5,7 +5,7 @@ API: reports
 ============
 
 Every report the portal downloads — the membership report, the roles report, the
-verification report, the aircraft register, the payment list, the reconciliation table, the contributions list,
+verification report, the aircraft register, the payment list, the renewals list, the reconciliation table, the contributions list,
 the donors report and the email log — is served by the same three endpoints under ``/api/v1/reports/``, from
 ``apps.reports``.  A report is named by its **slug** in the URL; the reports,
 their columns and the code that builds them are described in :doc:`reports`.
@@ -53,6 +53,11 @@ superuser read every one:
      - ``treasurer``, ``account_admin``
      - chosen
      - yes
+   * - ``renewals``
+     - CalDART renewals
+     - ``treasurer``, ``account_admin``
+     - chosen
+     - no
    * - ``reconciliation``
      - CalDART reconciliation
      - ``treasurer``, ``account_admin``
@@ -129,7 +134,9 @@ Parameter          Effect
 The report's       Exactly the filters the report's own list takes, applied the
 filters            same way: :doc:`api-members` for ``members``,
                    :doc:`api-aircraft` for ``aircraft``, :doc:`api-finance`
-                   for the four money reports, and :doc:`api-system` for
+                   for the four money reports, :doc:`api-renewals` for
+                   ``renewals`` (``status``, ``kind`` and ``search`` of
+                   ``GET /admin/renewals``), and :doc:`api-system` for
                    ``emails``.  A value the list refuses is
                    refused here with the same **400**, keyed by the parameter.
                    The verification report, which no list backs, reads its
@@ -159,7 +166,7 @@ filters            same way: :doc:`api-members` for ``members``,
 
 The file is named ``<stem>-<YYYY-MM-DD>.<csv|pdf>``, dated the day it was built:
 ``caldart-members``, ``caldart-aircraft``, ``caldart-payments``,
-``caldart-verification``, ``caldart-reconciliation``, ``caldart-contributions``,
+``caldart-renewals``, ``caldart-verification``, ``caldart-reconciliation``, ``caldart-contributions``,
 ``caldart-donors`` or ``caldart-emails``.
 
 Statuses:
@@ -404,6 +411,10 @@ Tests
    The email log report: its columns and their cells, each filter and the date
    range against the rows downloaded, the order, the refusals, the file name,
    and the ``system_admin``-only role matrix.
+``backend/tests/test_renewals_report.py``
+   The renewals report: its default columns, a row read against the list, a
+   donation's plan and cadence, the ``status``, ``kind`` and ``search`` filters
+   narrowing the download as they narrow the list, and the refused values.
 ``backend/tests/test_verification_report.py``
    The verification report: its four sections and who is listed in each, the
    cells, the ``status`` and ``dart`` filters and the refused status, the file
@@ -415,7 +426,7 @@ Tests
    filenames and media types, and the refusals: a fixed report's columns, an
    unknown column, a refused filter and an unknown period.
 ``backend/tests/test_report_registry.py``
-   The registry's nine reports by slug and, for all but the email log, the
+   The registry's ten reports by slug and, for all but the email log, the
    roles, titles, orientation and periods, and the query against its list: the
    same params give the same rows in the same order.
 ``backend/tests/test_reports.py``

@@ -169,7 +169,7 @@ describe('FilterBar', () => {
     expect(handleChange).toHaveBeenLastCalledWith(expect.objectContaining({ is_active: '' }));
   });
 
-  it('empties every value on Reset to Defaults', async () => {
+  it('empties every value on Reset filters', async () => {
     const handleChange = vi.fn();
     render(
       <Harness
@@ -178,27 +178,27 @@ describe('FilterBar', () => {
       />,
     );
 
-    await userEvent.click(screen.getByRole('button', { name: 'Reset to Defaults' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Reset filters' }));
 
     expect(handleChange).toHaveBeenLastCalledWith(
       Object.fromEntries(FIELDS.map((field) => [field.key, ''])),
     );
   });
 
-  it('empties the typed boxes on Reset to Defaults', async () => {
+  it('empties the typed boxes on Reset filters', async () => {
     render(<Harness initial={{ search: 'dana' }} onChange={handleNothing} />);
 
-    await userEvent.click(screen.getByRole('button', { name: 'Reset to Defaults' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Reset filters' }));
 
     expect(screen.getByLabelText('Search')).toHaveValue('');
   });
 
-  it('does not put back a search that was still settling when Reset to Defaults was pressed', async () => {
+  it('does not put back a search that was still settling when Reset filters was pressed', async () => {
     const handleChange = vi.fn();
     render(<Harness onChange={handleChange} />);
 
     await userEvent.type(screen.getByLabelText('Search'), 'dana');
-    await userEvent.click(screen.getByRole('button', { name: 'Reset to Defaults' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Reset filters' }));
     await new Promise((resolve) => setTimeout(resolve, 400));
 
     expect(handleChange).toHaveBeenLastCalledWith(expect.objectContaining({ search: '' }));
@@ -428,13 +428,13 @@ describe('FilterBar multiselect', () => {
     expect(handleChange).toHaveBeenLastCalledWith({ county: '' });
   });
 
-  it('clears every choice on Reset to Defaults', async () => {
+  it('clears every choice on Reset filters', async () => {
     const handleChange = vi.fn();
     render(
       <Harness fields={COUNTY_FIELDS} initial={{ county: 'Marin,Napa' }} onChange={handleChange} />,
     );
 
-    await userEvent.click(screen.getByRole('button', { name: 'Reset to Defaults' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Reset filters' }));
 
     expect(handleChange).toHaveBeenLastCalledWith({ county: '' });
   });

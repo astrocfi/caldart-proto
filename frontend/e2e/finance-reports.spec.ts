@@ -87,7 +87,7 @@ test('a treasurer turns a stalled renewal off', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Renewals', level: 1 })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Recent charges' })).toBeVisible();
 
-  await page.getByLabel('Auto-renewal status').selectOption('paused');
+  await page.getByLabel('Status', { exact: true }).selectOption('paused');
   const paused = bodyRows(page, /renewals?$/);
   await expect(paused).toHaveCount(1);
   await expect(paused.first()).toContainText('Paused');
@@ -97,7 +97,7 @@ test('a treasurer turns a stalled renewal off', async ({ page }) => {
 
   // The mandate is canceled rather than deleted, so it leaves the paused list.
   await expect(page.getByText('No renewals match')).toBeVisible();
-  await page.getByLabel('Auto-renewal status').selectOption('canceled');
+  await page.getByLabel('Status', { exact: true }).selectOption('canceled');
   await expect(bodyRows(page, /renewals?$/).first()).toContainText('Off');
 });
 

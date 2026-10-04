@@ -179,7 +179,16 @@ class AdminPaymentSerializer(PaymentSummarySerializer):
 # Member list / detail
 # --------------------------------------------------------------------------
 class MemberListSerializer(serializers.Serializer["MemberRow"]):
-    """One row of ``GET /admin/members`` (``MemberRow`` in the portal types)."""
+    """One row of ``GET /admin/members`` (``MemberRow`` in the portal types).
+
+    Beside the fields the list always draws, the row carries every profile value the
+    members report can add as a column, so the table can show whatever the column
+    chooser picks: ``certificate_number``, ``instrument`` (true or false for a pilot by
+    whether the ratings hold one, null for somebody who holds no certificate),
+    ``home_airport``, ``secondary_airport``, ``city``, ``state``, ``county``,
+    ``ham_callsign`` and ``member_since``.  An account with no profile reads blank text,
+    and null for ``instrument`` and ``member_since``.
+    """
 
     user_id = serializers.IntegerField(source="pk", read_only=True)
     name = serializers.CharField(source="display_name", read_only=True)
@@ -196,6 +205,15 @@ class MemberListSerializer(serializers.Serializer["MemberRow"]):
     aircraft = serializers.SerializerMethodField()
     joined_on = serializers.DateField(read_only=True, allow_null=True)
     profile_updated_at = serializers.SerializerMethodField()
+    certificate_number = serializers.SerializerMethodField()
+    instrument = serializers.SerializerMethodField()
+    home_airport = serializers.SerializerMethodField()
+    secondary_airport = serializers.SerializerMethodField()
+    city = serializers.SerializerMethodField()
+    state = serializers.SerializerMethodField()
+    county = serializers.SerializerMethodField()
+    ham_callsign = serializers.SerializerMethodField()
+    member_since = serializers.SerializerMethodField()
 
     @staticmethod
     def _profile(obj: MemberRow) -> MemberProfile | None:
@@ -259,6 +277,56 @@ class MemberListSerializer(serializers.Serializer["MemberRow"]):
         """When the profile was last written, or ``None`` with no profile or no edit."""
         profile = self._profile(obj)
         return profile.profile_updated_at if profile else None
+
+    def _text(self, obj: MemberRow, field: str) -> str:
+        """The profile's ``field``, or a blank string when the account has no profile."""
+        profile = self._profile(obj)
+        text: str = getattr(profile, field) if profile is not None else ""
+        return text
+
+    def get_certificate_number(self, obj: MemberRow) -> str:
+        """The pilot certificate number, blank when none is on file."""
+        return self._text(obj, "certificate_number")
+
+    def get_instrument(self, obj: MemberRow) -> bool | None:
+        """Whether a pilot holds an instrument rating.
+
+        ``None`` for somebody who holds no certificate, and for an account without a
+        profile.
+        """
+        profile = self._profile(obj)
+        if profile is None or profile.pilot_certificate_type == PilotCertificateType.NONE:
+            return None
+        return "instrument" in profile.ratings
+
+    def get_home_airport(self, obj: MemberRow) -> str:
+        """The home airport's identifier, blank when none is on file."""
+        return self._text(obj, "home_airport_identifier")
+
+    def get_secondary_airport(self, obj: MemberRow) -> str:
+        """The secondary airport's identifier, blank when none is on file."""
+        return self._text(obj, "secondary_airport_identifier")
+
+    def get_city(self, obj: MemberRow) -> str:
+        """The member's city, blank when none is on file."""
+        return self._text(obj, "city")
+
+    def get_state(self, obj: MemberRow) -> str:
+        """The member's two-letter state, blank when there is no profile."""
+        return self._text(obj, "state")
+
+    def get_county(self, obj: MemberRow) -> str:
+        """The member's California county, blank when none is on file."""
+        return self._text(obj, "county")
+
+    def get_ham_callsign(self, obj: MemberRow) -> str:
+        """The amateur radio callsign, blank when none is on file."""
+        return self._text(obj, "ham_callsign")
+
+    def get_member_since(self, obj: MemberRow) -> date | None:
+        """The day the member says they joined, or ``None`` when it is not on file."""
+        profile = self._profile(obj)
+        return profile.member_since if profile else None
 
 
 class MemberDetailSerializer(serializers.Serializer[User]):

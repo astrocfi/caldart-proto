@@ -7,6 +7,7 @@ import { makeGroup } from '@test/fixtures/bulkEmailReuse';
 import { API } from '@test/handlers';
 import { renderRoutes } from '@test/render';
 import { server } from '@test/server';
+import { tableHeaders } from '@test/table';
 import type { RecipientGroup } from '@/portal/api/types';
 import { GroupsPage } from './GroupsPage';
 
@@ -106,15 +107,10 @@ describe('GroupsPage', () => {
     expect(screen.queryByRole('link', { name: 'Download the list of Board' })).toBeNull();
   });
 
-  it('puts the actions right after the name', async () => {
+  it('puts the name first and the actions last', async () => {
     renderGroups();
-    const table = await screen.findByRole('table');
-    expect(
-      within(table)
-        .getAllByRole('columnheader')
-        .slice(0, 2)
-        .map((header) => header.textContent),
-    ).toEqual(['Name', 'Actions']);
+    const headers = tableHeaders(await screen.findByRole('table'));
+    expect([headers[0], headers.at(-1)]).toEqual(['Name', 'Actions']);
   });
 
   it('moves the focus into the new group form, and back to New group on Escape', async () => {

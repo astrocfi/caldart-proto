@@ -44,24 +44,27 @@ EXPORT_PDF = "/api/v1/reports/payments/export.pdf"
 COLUMNS = "/api/v1/reports/payments/columns"
 
 #: The header the export prints when the caller chooses no columns.
-DEFAULT_HEADER = [
-    "Date",
-    "Name",
-    "Email",
-    "Plan",
-    "Kind",
-    "Dues",
-    "Contribution",
-    "Total",
-    "Fee",
-    "Net",
-    "Refunded",
-    "Provider",
-    "Method",
-    "Status",
-    "Reference",
-    "Reconciled",
-]
+DEFAULT_HEADER = ["Date", "Name", "Email", "Plan", "Total", "Fee", "Net", "Status"]
+
+#: The columns the recorded export document carries, in registry order.
+RECORDED_COLUMNS = (
+    "paid_on",
+    "name",
+    "email",
+    "plan",
+    "kind",
+    "plan_amount",
+    "contribution",
+    "total",
+    "fee",
+    "net",
+    "refunded",
+    "provider",
+    "wallet",
+    "status",
+    "provider_ref",
+    "reconciled_on",
+)
 
 
 def paid_at(year: int, month: int, day: int = 15) -> dt.datetime:
@@ -389,15 +392,18 @@ def test_the_column_registry_lists_every_export_column(
     ]
 
 
-def test_the_columns_that_are_off_by_default_are_named(treasurer_client: APIClient) -> None:
-    """Five columns are for an audit rather than the everyday list."""
+def test_the_default_columns_are_the_everyday_list(treasurer_client: APIClient) -> None:
+    """The eight defaults: date, name, email, plan, total, fee, net, and status."""
     rows = treasurer_client.get(COLUMNS).json()
-    assert [row["key"] for row in rows if not row["default"]] == [
-        "receipt_number",
-        "received_on",
-        "note",
-        "membership_starts",
-        "membership_ends",
+    assert [row["key"] for row in rows if row["default"]] == [
+        "paid_on",
+        "name",
+        "email",
+        "plan",
+        "total",
+        "fee",
+        "net",
+        "status",
     ]
 
 
@@ -430,7 +436,7 @@ def test_export_returns_a_csv_download_named_for_today(
 def test_export_prints_the_default_columns_when_none_are_chosen(
     treasurer_client: APIClient, history: list[Payment]
 ) -> None:
-    """With no ``columns`` parameter the export carries the default sixteen."""
+    """With no ``columns`` parameter the export carries the default eight."""
     assert read_csv(treasurer_client.get(EXPORT))[0] == DEFAULT_HEADER
 
 
@@ -469,8 +475,13 @@ def test_export_matches_the_recorded_document(
     history: list[Payment],
     golden: Golden,
 ) -> None:
-    """The whole export -- header, every row, every column -- matches its record."""
-    body = csv_body(treasurer_client.get(EXPORT))
+    """The whole export -- header, every row, every everyday column -- matches its record.
+
+    The record carries the default columns and the payment's kind, split, refund,
+    provider, method, reference, and reconciliation, so every cell an export of the
+    list can hold is compared.
+    """
+    body = csv_body(treasurer_client.get(EXPORT, {"columns": ",".join(RECORDED_COLUMNS)}))
 
     # The fixture's names come from Faker and its references carry row ids, so
     # both are replaced by fixed stand-ins before the documents are compared.
@@ -486,14 +497,10 @@ def test_export_formats_money_as_dollars(
     make_payment(
         member, annual_plan, when=paid_at(2026, 3, 9), contribution_cents=10_000, fee_cents=450
     )
-    row = read_csv(treasurer_client.get(EXPORT))[1]
+    columns = "paid_on,plan_amount,contribution,total,fee,net"
+    row = read_csv(treasurer_client.get(EXPORT, {"columns": columns}))[1]
 
-    assert row[0] == "2026-03-09"
-    assert row[5] == "45.00"  # dues
-    assert row[6] == "100.00"  # contribution
-    assert row[7] == "145.00"  # total
-    assert row[8] == "4.50"  # fee
-    assert row[9] == "140.50"  # net
+    assert row == ["2026-03-09", "45.00", "100.00", "145.00", "4.50", "140.50"]
 
 
 def test_export_leaves_the_date_blank_for_a_payment_that_never_arrived(

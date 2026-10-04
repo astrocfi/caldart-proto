@@ -135,6 +135,15 @@ describe('PaymentsPage', () => {
     );
   });
 
+  it('heads each payment by its date, which never gives way on a narrow screen', async () => {
+    mount({ payments: [makePaymentSummary({ plan: 'Annual' })] });
+
+    const [, row] = await screen.findAllByRole('row');
+    expect(within(row as HTMLElement).getByRole('rowheader')).toHaveTextContent(
+      /\d\d\/\d\d\/\d{4}/,
+    );
+  });
+
   it('names a payment that bought nothing but a contribution', async () => {
     mount({ payments: [makePaymentSummary({ plan: null, kind: 'contribution' })] });
 

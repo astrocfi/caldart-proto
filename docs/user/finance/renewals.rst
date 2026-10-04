@@ -17,10 +17,11 @@ What you see
 Automatic renewals and recurring donations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The first table has one row per standing authority, fifty to a page. A person holds at
-most one automatic renewal and one recurring donation. Each row shows:
+The first table has one row per standing authority, newest first, fifty to a page. A
+person holds at most one automatic renewal and one recurring donation. With the columns
+you start with, each row shows:
 
-* **Member**, the person's name and email address.
+* **Member**, the person's name, and **Email**, their address.
 * **Kind**: **Automatic renewal**, **Automatic renewal and contribution**, or **Recurring
   donation** followed by how often it charges, such as *Recurring donation · Monthly*.
 * **Plan**, the membership plan it renews, or a dash for a recurring donation.
@@ -30,6 +31,15 @@ most one automatic renewal and one recurring donation. Each row shows:
   beneath its status, the reason its last charge was declined. That is the wording the
   member was emailed.
 * **Actions**, the **Turn off** button, or *Off* once it is off.
+
+Three more columns start off: **Cadence**, how often it charges; **Failed charges**, how
+many charges in a row have been declined; and **Started**, the day the person gave the
+authority.
+
+On a narrower screen the table leaves out the **Email** and the **Method** first, then the
+other columns, so the amount, the **Status**, and the **Actions** stay in sight. On a phone
+the table scrolls sideways inside the page, a line above it says so, and the **Member**
+stays pinned at the left.
 
 A recurring donation charges monthly, quarterly, or yearly, whatever the giver's
 membership, and only a yearly one sends a warning email before it charges. An automatic
@@ -50,10 +60,25 @@ What you can do
 Filter the tables
 ~~~~~~~~~~~~~~~~~
 
-Above the first table, **Auto-renewal status** narrows it to one status, **Kind** to one
-kind, and **Search** matches a name, an email address, or the saved card or account.
-Above the second table, **Outcome** narrows the charges to one outcome, which is the
-quickest way to read the refusals from a run on their own.
+Above the first table, **Status** narrows it to one status, **Kind** to one kind, and
+**Search** matches a name, an email address, or the saved card or account. **Reset
+filters** clears all three, and appears under an empty table too. The filters and the
+pages of both tables are kept in the page's address, so you can bookmark a view. Above the
+second table, **Outcome** narrows the charges to one outcome, which is the quickest way to
+read the refusals from a run on their own.
+
+Under each table, *Showing 1–50 of 180* says which rows the page holds, and **Previous**
+and **Next** step through the pages. Click a column heading to sort the page on screen by
+it, and click it again to reverse the order.
+
+Choose the columns and download
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Columns**, **Load columns**, and **Save columns**, at the right above the first table,
+choose the columns of the table and of its downloads together, exactly as on the payment
+list (see :doc:`payment-list`). **Export CSV** and **Export PDF** download the standing
+authorities the filters describe, with the columns you chose, newest first. The
+**Subscriptions** screen can also send this list on a schedule.
 
 Turn a standing charge off
 ~~~~~~~~~~~~~~~~~~~~~~~~~~

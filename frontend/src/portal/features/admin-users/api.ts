@@ -11,7 +11,6 @@ import type {
   Paginated,
   RoleSlug,
   SendPasswordResetResult,
-  User,
   VerificationSentResult,
 } from '@/portal/api/types';
 import { AUTH_ME_KEY } from '@/portal/auth/useAuth';
@@ -27,6 +26,8 @@ export interface AdminUserFilters {
   kind?: AccountKind | '';
   /** `'true'` for bounced addresses only, `'false'` for the rest, `''` for any. */
   email_bounced?: 'true' | 'false' | '';
+  /** The `?ordering=` term, such as `last_name` or `-email`. */
+  ordering?: string;
   page?: number;
 }
 
@@ -47,17 +48,18 @@ export function adminUserKey(
 }
 
 /** The paginated account list for `/admin/users`, filtered, and paged. */
-export function useAdminUsers(filters: AdminUserFilters): UseQueryResult<Paginated<User>> {
+export function useAdminUsers(filters: AdminUserFilters): UseQueryResult<Paginated<AdminUser>> {
   return useQuery({
     queryKey: adminUsersKey(filters),
     queryFn: () =>
-      api.get<Paginated<User>>('/admin/users', {
+      api.get<Paginated<AdminUser>>('/admin/users', {
         query: {
           search: filters.search,
           role: filters.role,
           is_active: filters.is_active,
           kind: filters.kind,
           email_bounced: filters.email_bounced,
+          ordering: filters.ordering,
           page: filters.page && filters.page > 1 ? filters.page : undefined,
         },
       }),

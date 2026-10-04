@@ -88,7 +88,7 @@ describe('DonorsPage', () => {
     const table = screen.getByRole('table', { name: 'Donors' });
     const headers = within(table)
       .getAllByRole('columnheader')
-      .map((cell) => cell.textContent?.trim());
+      .map((cell) => cell.textContent?.replace(/[↑↓↕]/g, '').trim());
     expect(headers).toEqual([
       'Name',
       'Email',
@@ -185,6 +185,29 @@ describe('DonorsPage', () => {
     renderWithProviders(<DonorsPage />);
 
     expect(await screen.findByText('No donors match')).toBeInTheDocument();
+  });
+
+  it('offers to reset the filters from an empty list', async () => {
+    const user = userEvent.setup();
+    server.use(...donorsHandlers([]));
+    renderWithProviders(<DonorsPage />, { route: '/admin/payments/donors?search=nobody' });
+
+    await screen.findByText('No donors match');
+    const resets = screen.getAllByRole('button', { name: 'Reset filters' });
+    await user.click(resets[resets.length - 1]!);
+
+    expect(screen.getByLabelText('Search')).toHaveValue('');
+  });
+
+  it('opens on the arrow of the order the list comes in, most given first', async () => {
+    server.use(...donorsHandlers([DANA]));
+    renderWithProviders(<DonorsPage />);
+
+    await screen.findByRole('row', { name: /Dana Doe/ });
+    expect(screen.getByRole('columnheader', { name: /Net/ })).toHaveAttribute(
+      'aria-sort',
+      'descending',
+    );
   });
 
   it('shows a failed call as a failure', async () => {

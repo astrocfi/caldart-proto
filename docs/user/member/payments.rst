@@ -32,7 +32,9 @@ The cards come in the order they matter.
   something has come back), **Status**, and **Receipt**. The status reads
   **Succeeded**, **Pending**, **Failed**, **Partly refunded**, or **Refunded**. The
   **Receipt** link downloads the same PDF the receipt email carried. A payment that
-  failed, or one still pending, has no receipt, because no money arrived.
+  failed, or one still pending, has no receipt, because no money arrived. On a phone
+  what you paid for, then **Refunded**, give way; the **Date** stays pinned at the left,
+  and the table scrolls sideways to the **Amount**, the **Status**, and the **Receipt**.
 
 **Contribution statements**
   One button per calendar year you gave in, such as **2026 statement**.

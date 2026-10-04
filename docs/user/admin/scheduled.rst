@@ -20,7 +20,10 @@ Every panel but the bulk email sender's works the same way:
 #. Leave the **Dry run** box ticked the first time. A dry run sends, charges, and records
    nothing.
 #. Press **Run now**. A heading reads **What this run would do**, or **What this run did**
-   after a real run, above a line of counts and a table naming each email or charge.
+   after a real run, above a line of counts and a table naming each email or charge. On a
+   narrow screen the table leaves out **When**, then **Amount**, then **What**, and keeps
+   **Who** and any **Report or DART** column in sight; on a phone it scrolls sideways, says
+   so above it, and keeps **Who** pinned at the left.
 #. If the numbers look right and you have a reason not to wait for the schedule, clear the
    box and press **Run now** again.
 

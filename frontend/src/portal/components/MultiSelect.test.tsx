@@ -37,6 +37,7 @@ function Harness({ initial = [], onChange: handleReport }: HarnessProps): JSX.El
         onChange={handleChange}
       />
       <p>somewhere else</p>
+      <button type="button">Reset filters</button>
     </>
   );
 }
@@ -150,5 +151,15 @@ describe('MultiSelect', () => {
 
     expect(screen.queryByRole('checkbox')).toBeNull();
     expect(screen.getByLabelText('County')).toHaveFocus();
+  });
+
+  it('shuts the panel when the focus moves on past Clear', async () => {
+    render(<Harness initial={['Napa']} />);
+
+    await userEvent.click(screen.getByLabelText('County'));
+    screen.getByRole('button', { name: 'Clear' }).focus();
+    await userEvent.tab();
+
+    expect(screen.queryByRole('checkbox')).toBeNull();
   });
 });

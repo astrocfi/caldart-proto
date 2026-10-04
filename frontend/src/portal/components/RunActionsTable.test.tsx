@@ -84,6 +84,28 @@ describe('RunActionsTable', () => {
     expect(screen.getByRole('row', { name: /Dana Lee/ })).toHaveTextContent('Bay Area DART');
   });
 
+  it('keeps the detail, such as the DART or the report, in sight on a narrow screen', () => {
+    const roster = { ...ACTIONS[0]!, kind: 'roster', detail: 'Bay Area DART' };
+    render(
+      <RunActionsTable
+        actions={[roster]}
+        dryRun={true}
+        kindLabel={() => 'Roster'}
+        detailHeader="DART or report"
+      />,
+    );
+
+    expect(screen.getByRole('columnheader', { name: 'DART or report' })).toHaveClass(
+      'data-table__wrap',
+    );
+  });
+
+  it('pins who an action reached while the table scrolls', () => {
+    render(<RunActionsTable actions={ACTIONS} dryRun={true} kindLabel={() => 'Notice'} />);
+
+    expect(screen.getByRole('columnheader', { name: 'Who' })).toHaveClass('data-table__identity');
+  });
+
   it('leaves the detail out when no heading is named', () => {
     render(<RunActionsTable actions={ACTIONS} dryRun={true} kindLabel={() => 'Notice'} />);
 

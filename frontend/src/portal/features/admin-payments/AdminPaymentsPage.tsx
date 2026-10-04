@@ -10,7 +10,7 @@ import { useMemo, useState } from 'react';
 import type { JSX } from 'react';
 
 import { ButtonLink } from '@/portal/components/Button';
-import { FilterBar } from '@/portal/components/FilterBar';
+import { clearedValues, FilterBar } from '@/portal/components/FilterBar';
 import { Page } from '@/portal/components/Page';
 import { useUrlFilters } from '@/portal/components/useUrlFilters';
 import { REPORTS, listFilters } from '@/portal/reports/definitions';
@@ -59,6 +59,7 @@ export function AdminPaymentsPage(): JSX.Element {
         group={group}
         onGroupChange={(next) => setGroup(next)}
         isLoading={summary.isPending}
+        onResetFilters={() => setFilters(clearedValues(FILTER_FIELDS, filters))}
         filters={
           <FilterBar
             fields={FILTER_FIELDS}

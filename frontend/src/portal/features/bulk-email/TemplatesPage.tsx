@@ -122,6 +122,7 @@ export function TemplatesPage(): JSX.Element {
       key: 'name',
       header: 'Name',
       minWidth: '12rem',
+      isIdentity: true,
       render: (template) => (
         <Link
           to={{ search: `?edit=${template.id}` }}
@@ -136,8 +137,8 @@ export function TemplatesPage(): JSX.Element {
     {
       key: 'actions',
       header: 'Actions',
-      width: '8.5rem',
-      keepInSight: true,
+      width: '10rem',
+      isActions: true,
       render: (template) => (
         <span className="cluster cluster--nowrap">
           <DeleteButton
@@ -152,6 +153,7 @@ export function TemplatesPage(): JSX.Element {
       key: 'subject',
       header: 'Subject',
       minWidth: '12rem',
+      dropOrder: DROP_ORDER.subject,
       render: (template) => template.subject || '—',
     },
     {
@@ -166,6 +168,8 @@ export function TemplatesPage(): JSX.Element {
       key: 'updated_at',
       header: 'Last edited',
       width: '7rem',
+      noWrap: true,
+      dropOrder: DROP_ORDER.lastEdited,
       render: (template) => <DateText value={template.updated_at} />,
       sortValue: (template) => template.updated_at,
     },
@@ -235,6 +239,13 @@ export function TemplatesPage(): JSX.Element {
             caption={`${rows.length} ${rows.length === 1 ? 'template' : 'templates'}`}
             emptyTitle="No templates yet"
             emptyDescription="Press New template, or save a draft's message with Save as a template."
+            emptyAction={
+              openForm === null ? (
+                <Button variant="secondary" onClick={handleNew}>
+                  New template
+                </Button>
+              ) : undefined
+            }
             isLoading={templates.isLoading}
           />
         )}

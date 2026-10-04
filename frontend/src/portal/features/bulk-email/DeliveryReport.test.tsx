@@ -97,7 +97,7 @@ describe('DeliveryReport', () => {
     const row = (await screen.findByText('cy@example.org')).closest('tr');
     // Formatted as the table formats it, so the test reads alike in every time zone.
     expect(row).toHaveTextContent(
-      `BouncedView copycy@example.org5.1.1 User unknown${formatDateAt('2026-04-06T17:00:06Z')}`,
+      `Bouncedcy@example.org5.1.1 User unknown${formatDateAt('2026-04-06T17:00:06Z')}`,
     );
   });
 
@@ -273,5 +273,21 @@ describe('DeliveryReport', () => {
       'href',
       '/api/v1/bulk-email/7/recipients.csv',
     );
+  });
+
+  it("offers Any result as the result filter's blank choice", async () => {
+    renderReport();
+    await screen.findByText('bea@example.org');
+    expect(within(screen.getByLabelText('Result')).getAllByRole('option')[0]).toHaveTextContent(
+      'Any result',
+    );
+  });
+
+  it('offers to reset the filters when nobody matches them', async () => {
+    renderReport();
+    await screen.findByText('bea@example.org');
+    await userEvent.type(screen.getByRole('searchbox', { name: 'Find a person' }), 'zzz');
+
+    expect(await screen.findByText('Nobody matches these filters.')).toBeInTheDocument();
   });
 });

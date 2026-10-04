@@ -12,76 +12,134 @@
  * chooser drives the table and both exports at once, so what a treasurer
  * sees is what the downloaded file holds, as `PaymentsListPage` does.
  */
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import type { JSX } from 'react';
 import { Link } from 'react-router-dom';
 
 import type { DonorRow, ReportColumn } from '@/portal/api/types';
 import { useDarts } from '@/portal/api/queries';
 import { useAuth } from '@/portal/auth/useAuth';
-import { ColumnChooser, defaultColumnKeys } from '@/portal/components/ColumnChooser';
+import { Button } from '@/portal/components/Button';
 import type { Column } from '@/portal/components/DataTable';
 import { DataTable } from '@/portal/components/DataTable';
 import { DateText } from '@/portal/components/DateText';
-import { FilterBar } from '@/portal/components/FilterBar';
+import { clearedValues, FilterBar } from '@/portal/components/FilterBar';
 import { Money } from '@/portal/components/Money';
 import { Page } from '@/portal/components/Page';
+import type { ReportCell } from '@/portal/components/reportTable';
+import { ColumnTools, reportTableColumns, useColumnChoice } from '@/portal/components/reportTable';
 import { StatusChip } from '@/portal/components/StatusChip';
 import { useUrlFilters } from '@/portal/components/useUrlFilters';
 import { hasAnyRole } from '@/portal/nav';
-import { reportExportUrl, useReportColumns } from '@/portal/reports/api';
+import { reportExportUrl } from '@/portal/reports/api';
 import { REPORTS, listFilters } from '@/portal/reports/definitions';
 import { useDonors } from './api';
 import { FinanceTabs } from './FinanceTabs';
 import './admin-payments.css';
 
+/**
+ * The report's default columns, which the table shows while the registry loads or if it
+ * cannot be read, so the table and the downloads still agree.
+ */
+const FALLBACK_COLUMNS: ReportColumn[] = [
+  { key: 'name', label: 'Name', default: true },
+  { key: 'email', label: 'Email', default: true },
+  { key: 'phone', label: 'Phone', default: true },
+  { key: 'city', label: 'City', default: true },
+  { key: 'state', label: 'State', default: true },
+  { key: 'first_gift', label: 'First gift', default: true },
+  { key: 'last_gift', label: 'Last gift', default: true },
+  { key: 'gifts', label: 'Gifts', default: true },
+  { key: 'given', label: 'Given', default: true },
+  { key: 'net', label: 'Net', default: true },
+];
+
 const FILTER_FIELDS = listFilters(REPORTS.donors);
 const FILTER_KEYS = FILTER_FIELDS.map((field) => field.key);
 
 /**
- * How the table draws each export column.
+ * How the table draws each export column, and its width.
  *
  * The registry names the columns; this names the cells, so a column the
  * server adds shows up in the chooser and in the exports without the table
- * pretending to know how to render it.
+ * pretending to know how to render it.  The name identifies a row and stays pinned
+ * when the table scrolls; Given and Net stay in sight on a phone; the rest drop, the
+ * least needed first, when the table would not fit.
  */
-const CELLS: Record<string, Omit<Column<DonorRow>, 'key' | 'header'>> = {
-  name: { render: (row) => row.name, sortValue: (row) => row.name },
-  email: { render: (row) => row.email, sortValue: (row) => row.email },
-  phone: { render: (row) => row.phone, sortValue: (row) => row.phone },
-  city: { render: (row) => row.city, sortValue: (row) => row.city },
-  state: { render: (row) => row.state, sortValue: (row) => row.state },
-  county: { render: (row) => row.county, sortValue: (row) => row.county },
-  dart: { render: (row) => row.dart, sortValue: (row) => row.dart },
+const CELLS: Record<string, ReportCell<DonorRow>> = {
+  name: {
+    minWidth: '10rem',
+    isIdentity: true,
+    render: (row) => row.name,
+    sortValue: (row) => row.name,
+  },
+  email: {
+    minWidth: '12rem',
+    dropOrder: 2,
+    render: (row) => row.email,
+    sortValue: (row) => row.email,
+  },
+  phone: {
+    width: '8.5rem',
+    noWrap: true,
+    dropOrder: 3,
+    render: (row) => row.phone,
+    sortValue: (row) => row.phone,
+  },
+  city: { minWidth: '7rem', dropOrder: 1, render: (row) => row.city, sortValue: (row) => row.city },
+  state: { width: '4rem', dropOrder: 1, render: (row) => row.state, sortValue: (row) => row.state },
+  county: {
+    minWidth: '7rem',
+    dropOrder: 1,
+    render: (row) => row.county,
+    sortValue: (row) => row.county,
+  },
+  dart: { minWidth: '8rem', dropOrder: 1, render: (row) => row.dart, sortValue: (row) => row.dart },
   first_gift: {
+    width: '7rem',
+    noWrap: true,
+    dropOrder: 4,
     render: (row) => <DateText value={row.first_gift} />,
     sortValue: (row) => row.first_gift ?? '',
   },
   last_gift: {
+    width: '7rem',
+    noWrap: true,
+    dropOrder: 5,
     render: (row) => <DateText value={row.last_gift} />,
     sortValue: (row) => row.last_gift ?? '',
   },
   gifts: {
+    width: '4.5rem',
     numeric: true,
+    dropOrder: 4,
     render: (row) => row.gifts,
     sortValue: (row) => row.gifts,
   },
   given: {
+    width: '6.5rem',
     numeric: true,
+    keepInSight: true,
     render: (row) => <Money cents={row.given_cents} />,
     sortValue: (row) => row.given_cents,
   },
   refunded: {
+    width: '6.5rem',
     numeric: true,
+    dropOrder: 4,
     render: (row) => <Money cents={row.refunded_cents} />,
     sortValue: (row) => row.refunded_cents,
   },
   net: {
+    width: '6.5rem',
     numeric: true,
+    keepInSight: true,
     render: (row) => <Money cents={row.net_cents} />,
     sortValue: (row) => row.net_cents,
   },
   active: {
+    width: '8.5rem',
+    dropOrder: 2,
     render: (row) =>
       row.active ? (
         <StatusChip tone="current" label="Active" />
@@ -95,30 +153,27 @@ const CELLS: Record<string, Omit<Column<DonorRow>, 'key' | 'header'>> = {
  * The name cell for a reader who opens member records: a link to the donor's record, but
  * plain text for a "Deleted member N" row, whose record cannot be changed.
  */
-const RECORD_NAME_CELL: Omit<Column<DonorRow>, 'key' | 'header'> = {
+const RECORD_NAME_CELL: ReportCell<DonorRow> = {
+  ...CELLS.name,
   render: (row) =>
     row.is_tombstone ? row.name : <Link to={`/admin/members/${row.user_id}`}>{row.name}</Link>,
   sortValue: (row) => row.name,
 };
+
+/** The order the server lists donors in, and so the arrow the table opens on: most given. */
+const DEFAULT_SORT = { key: 'net', direction: 'desc' } as const;
 
 /**
  * The table's columns for the chosen keys, in registry order, with each name a link
  * to the donor's record when `canOpenRecords`.
  */
 function tableColumns(
-  registry: ReportColumn[],
-  chosen: string[],
+  registry: readonly ReportColumn[],
+  chosen: readonly string[],
   canOpenRecords: boolean,
 ): Column<DonorRow>[] {
-  return registry
-    .filter((column) => chosen.includes(column.key))
-    .map((column) => {
-      const cell =
-        column.key === 'name' && canOpenRecords
-          ? RECORD_NAME_CELL
-          : (CELLS[column.key] ?? { render: () => '—' });
-      return { ...cell, key: column.key, header: column.label };
-    });
+  const cells = canOpenRecords ? { ...CELLS, name: RECORD_NAME_CELL } : CELLS;
+  return reportTableColumns(registry, chosen, cells, false);
 }
 
 /** The Donors tab of the finance area. */
@@ -131,26 +186,18 @@ export function DonorsPage(): JSX.Element {
     }),
     [darts.data],
   );
-  const [chosen, setChosen] = useState<string[] | null>(null);
+  const choice = useColumnChoice('donors', FALLBACK_COLUMNS);
   // The member record is the account administrator's, so only a reader holding that
   // role as well as the treasurer's gets a link they can follow.
   const { roles } = useAuth();
   const canOpenRecords = hasAnyRole(roles, ['account_admin']);
 
-  const registry = useReportColumns('donors');
-  const columns = useMemo(() => registry.data ?? [], [registry.data]);
-  const chosenKeys = chosen ?? defaultColumnKeys(columns);
-
   const rows = useDonors(filters);
   const tableCells = useMemo(
-    () => tableColumns(columns, chosenKeys, canOpenRecords),
-    [columns, chosenKeys, canOpenRecords],
+    () => tableColumns(choice.tableColumns, choice.tableChosen, canOpenRecords),
+    [choice.tableColumns, choice.tableChosen, canOpenRecords],
   );
-  const exportParams = { ...filters, columns: chosenKeys };
-
-  function handleColumnChange(next: string[]) {
-    setChosen(next);
-  }
+  const exportParams = { ...filters, columns: choice.chosen };
 
   return (
     <Page
@@ -161,38 +208,35 @@ export function DonorsPage(): JSX.Element {
       <FinanceTabs />
 
       <DataTable
+        singleLine
         columns={tableCells}
         rows={rows.data ?? []}
         rowKey={(row) => row.user_id}
         caption="Donors"
+        initialSort={DEFAULT_SORT}
         filters={
-          <>
-            <FilterBar
-              fields={FILTER_FIELDS}
-              values={filters}
-              onChange={(next) => setFilters(next)}
-              options={dartOptions}
-              label="Filter donors"
-            />
-            {registry.isError ? (
-              <p className="muted">
-                The columns could not be loaded; the downloads carry the default columns.
-              </p>
-            ) : columns.length > 0 ? (
-              <ColumnChooser
-                report="donors"
-                columns={columns}
-                chosen={chosenKeys}
-                onChange={handleColumnChange}
-              />
-            ) : null}
-          </>
+          <FilterBar
+            fields={FILTER_FIELDS}
+            values={filters}
+            onChange={(next) => setFilters(next)}
+            options={dartOptions}
+            label="Filter donors"
+          />
         }
+        tools={<ColumnTools choice={choice} />}
         exportCsvUrl={reportExportUrl('donors', 'csv', exportParams)}
         exportPdfUrl={reportExportUrl('donors', 'pdf', exportParams)}
         isLoading={rows.isPending}
         emptyTitle="No donors match"
-        emptyDescription="Try widening the date range or clearing a filter."
+        emptyDescription="Try widening the date range, or reset the filters."
+        emptyAction={
+          <Button
+            variant="secondary"
+            onClick={() => setFilters(clearedValues(FILTER_FIELDS, filters))}
+          >
+            Reset filters
+          </Button>
+        }
       />
 
       {rows.isError ? (

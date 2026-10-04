@@ -32,7 +32,8 @@ in and give from the portal, so their gifts stay on their own record.
 What you see
 ============
 
-One row per donor who gave in the range you choose, largest net giver first. With the
+One row per donor who gave in the range you choose, largest net giver first, so the
+list opens with the down arrow on **Net**. With the
 columns you start with, each row shows the donor's **Name**, **Email**, **Phone**,
 **City**, and **State**, the day of their **First gift** and **Last gift**, how many
 **Gifts**, the total **Given**, and the **Net** once anything refunded is taken
@@ -49,6 +50,11 @@ Four more columns start off: **County**, **DART**, **Refunded**, and **Active**,
 reads **Active** or **Deactivated**. Turn them on from **Columns** when a mailing list or
 an audit needs them.
 
+On a narrower screen the table leaves out the columns that matter least, one at a time,
+so **Given** and **Net** stay in sight: first the place columns, then the **Email**, the
+**Phone**, and the dates. A column you tick beyond the defaults always stays. On a phone the table scrolls sideways inside the page, a line
+above it says so, and the **Name** stays pinned at the left.
+
 What you can do
 ===============
 
@@ -63,14 +69,17 @@ Filter the list
 * **At least** and **At most**, bounds on what a donor gave over the whole range, in
   whole dollars.
 
-Each filter applies as soon as you set it, **Reset to Defaults** clears them all, and the
-filters are kept in the page's address. Click a column heading to sort by it.
+Each filter applies as soon as you set it, **Reset filters** clears them all, and the
+filters are kept in the page's address. When no donor matches, **Reset filters** appears
+under the empty list too. Click a heading with a faint two-way arrow to sort by it, and
+click it again to reverse the order; every heading but **Active** sorts.
 
 Choose the columns and download
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-**Columns**, **Load columns**, and **Save columns** work exactly as they do on the payment
-list (see :doc:`payment-list`). **Export CSV** gives a file for a mailing list and
+**Columns**, **Load columns**, and **Save columns**, at the right above the table beside
+the export buttons, work exactly as they do on the payment list (see :doc:`payment-list`):
+the columns you choose are the table's and the downloads' alike. **Export CSV** gives a file for a mailing list and
 **Export PDF** a copy for the board, each with the columns you chose.
 
 The **Subscriptions** screen can send this list on a schedule. There, a **Period** choice of
@@ -113,9 +122,8 @@ donor's account, flagged **Donor**, and correct a mistyped email address.
 If something looks wrong
 ========================
 
-If the list says *No donors match*, widen the dates or press **Reset to Defaults**. If
+If the list says *No donors match*, widen the dates or press **Reset filters**. If
 somebody you know gave is missing, they may have given while signed in as a member or a
 friend; their gifts are then on their own record, on the payment list and the
-**Contributions** tab. If the screen says *The columns could not be loaded; the downloads
-carry the default columns.*, the list and the downloads still work with the columns you
-start with.
+**Contributions** tab. If the line beside the export buttons says *The columns could not
+be loaded; the list shows the default ones.*, reload the page.

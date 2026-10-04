@@ -3,8 +3,15 @@ import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { ReportColumn, User } from '@/portal/api/types';
-import { API, CURRENT_MEMBERSHIP, NO_MEMBERSHIP, makeUser, signedInAs } from '@test/handlers';
+import type { AdminUser, ReportColumn } from '@/portal/api/types';
+import {
+  API,
+  CURRENT_MEMBERSHIP,
+  NO_MEMBERSHIP,
+  makeAdminUser,
+  makeUser,
+  signedInAs,
+} from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
 import { SEARCH_DEBOUNCE_MS } from '@/portal/components/useDebounced';
@@ -16,7 +23,7 @@ const ROLES = [
   { slug: 'user_admin', description: 'List users and assign roles.' },
 ];
 
-const MARTA = makeUser({
+const MARTA = makeAdminUser({
   id: 1,
   email: 'marta@example.org',
   first_name: 'Marta',
@@ -25,7 +32,7 @@ const MARTA = makeUser({
   membership: CURRENT_MEMBERSHIP,
 });
 
-const PRIYA = makeUser({
+const PRIYA = makeAdminUser({
   id: 2,
   email: 'priya@example.org',
   first_name: 'Priya',
@@ -35,7 +42,7 @@ const PRIYA = makeUser({
   is_active: false,
 });
 
-const GIL = makeUser({
+const GIL = makeAdminUser({
   id: 3,
   email: 'gil@example.org',
   first_name: 'Gil',
@@ -45,13 +52,22 @@ const GIL = makeUser({
   kind: 'donor',
 });
 
-/** The registry `GET /reports/roles/columns` answers with, trimmed to four. */
+/** The registry `GET /reports/roles/columns` answers with, trimmed to five. */
 const COLUMNS: ReportColumn[] = [
   { key: 'role', label: 'Role', default: true },
   { key: 'name', label: 'Name', default: true },
   { key: 'email', label: 'Email', default: true },
+  { key: 'kind', label: 'Kind', default: true },
   { key: 'city', label: 'City', default: false },
 ];
+
+/** The `columns` parameter the exports carry while the defaults stand. */
+const DEFAULT_COLUMNS = 'columns=role%2Cname%2Cemail%2Ckind';
+
+/** A heading's words, without the arrow a sortable heading carries. */
+function headingText(cell: HTMLElement): string {
+  return (cell.textContent ?? '').replace(/[↑↓↕]/g, '');
+}
 
 /** The title the disabled export controls carry while Donor is chosen. */
 const DONOR_TITLE = 'A donor holds no role, so the roles report lists nobody.';
@@ -60,7 +76,7 @@ const DONOR_TITLE = 'A donor holds no role, so the roles report lists nobody.';
 const MEMBER_TITLE = 'The roles report has no section for Member, so it lists nobody.';
 
 /** Records every `/admin/users` query the page issues, and answers from `rows`. */
-function stubList(rows: User[] = [MARTA, PRIYA]) {
+function stubList(rows: AdminUser[] = [MARTA, PRIYA]) {
   const seen: URLSearchParams[] = [];
   server.use(
     signedInAs(makeUser({ roles: ['member', 'user_admin'] })),
@@ -75,7 +91,7 @@ function stubList(rows: User[] = [MARTA, PRIYA]) {
       const search = (url.searchParams.get('search') ?? '').toLowerCase();
       const results = rows.filter(
         (row) =>
-          (!role || row.roles.includes(role as User['roles'][number])) &&
+          (!role || row.roles.includes(role as AdminUser['roles'][number])) &&
           (!isActive || String(row.is_active) === isActive) &&
           (!kind || row.kind === kind) &&
           (!search ||
@@ -101,15 +117,15 @@ describe('UsersListPage', () => {
     renderWithProviders(<UsersListPage />);
     await screen.findByRole('link', { name: 'Marta Reyes' });
 
-    await userEvent.selectOptions(screen.getByLabelText(/account status/i), '');
+    await userEvent.selectOptions(screen.getByLabelText(/account status/i), 'all');
 
     expect(await screen.findByRole('link', { name: 'Marta Reyes' })).toHaveAttribute(
       'href',
       '/admin/users/1',
     );
     const priyaRow = (await screen.findByRole('link', { name: 'Priya Raman' })).closest('tr')!;
-    expect(within(priyaRow).getByText('DART leader')).toBeInTheDocument();
-    expect(within(priyaRow).getByText('Deactivated')).toBeInTheDocument();
+    expect(within(priyaRow).getByText('Member, DART leader')).toBeInTheDocument();
+    expect(within(priyaRow).getByText(/account deactivated/)).toBeInTheDocument();
     expect(screen.getByText('2 accounts')).toBeInTheDocument();
   });
 
@@ -133,8 +149,8 @@ describe('UsersListPage', () => {
 
     const options = within(await screen.findByLabelText(/account status/i)).getAllByRole('option');
     expect(options.map((option) => option.textContent)).toEqual([
-      'Active and deactivated',
       'Active only',
+      'Active and deactivated',
       'Deactivated only',
     ]);
   });
@@ -162,8 +178,53 @@ describe('UsersListPage', () => {
 
     expect(screen.getByRole('link', { name: 'Export CSV' })).toHaveAttribute(
       'href',
-      '/api/v1/reports/roles/export.csv?columns=role%2Cname%2Cemail',
+      `/api/v1/reports/roles/export.csv?${DEFAULT_COLUMNS}`,
     );
+  });
+
+  it("shows the report's default columns, in the report's order", async () => {
+    stubList();
+    renderWithProviders(<UsersListPage />);
+    await screen.findByRole('link', { name: 'Marta Reyes' });
+
+    expect(screen.getAllByRole('columnheader').map(headingText)).toEqual([
+      'Role',
+      'Name',
+      'Email',
+      'Kind',
+    ]);
+  });
+
+  it('shows a column ticked in the chooser in the table as well as the downloads', async () => {
+    stubList([makeAdminUser({ ...MARTA, city: 'Concord' })]);
+    renderWithProviders(<UsersListPage />);
+    await screen.findByRole('link', { name: 'Marta Reyes' });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Columns' }));
+    await userEvent.click(screen.getByRole('checkbox', { name: 'City' }));
+
+    expect(screen.getByRole('cell', { name: 'Concord' })).toBeInTheDocument();
+  });
+
+  it('shows the sort the list opens on, by name', async () => {
+    stubList();
+    renderWithProviders(<UsersListPage />);
+    await screen.findByRole('link', { name: 'Marta Reyes' });
+
+    expect(screen.getByRole('columnheader', { name: /Name/ })).toHaveAttribute(
+      'aria-sort',
+      'ascending',
+    );
+  });
+
+  it('sorts by email on the server', async () => {
+    const seen = stubList();
+    renderWithProviders(<UsersListPage />);
+    await screen.findByRole('link', { name: 'Marta Reyes' });
+
+    await userEvent.click(screen.getByRole('button', { name: /^Email/ }));
+
+    await waitFor(() => expect(seen.at(-1)?.get('ordering')).toBe('email'));
   });
 
   it('carries the search, role, kind, and columns into both export links', async () => {
@@ -174,12 +235,12 @@ describe('UsersListPage', () => {
 
     await user.type(screen.getByLabelText(/search/i), 'reyes');
     await act(() => vi.advanceTimersByTimeAsync(SEARCH_DEBOUNCE_MS));
-    await user.click(screen.getByRole('button', { name: 'DART leader' }));
+    await user.selectOptions(screen.getByLabelText('Role'), 'dart_leader');
     await user.selectOptions(screen.getByLabelText(/kind of account/i), 'friend');
     await user.click(screen.getByRole('button', { name: 'Columns' }));
     await user.click(screen.getByRole('checkbox', { name: 'City' }));
 
-    const query = '?search=reyes&role=dart_leader&kind=friend&columns=role%2Cname%2Cemail%2Ccity';
+    const query = `?search=reyes&role=dart_leader&kind=friend&${DEFAULT_COLUMNS}%2Ccity`;
     await waitFor(() =>
       expect(screen.getByRole('link', { name: 'Export CSV' })).toHaveAttribute(
         'href',
@@ -235,7 +296,7 @@ describe('UsersListPage', () => {
     renderWithProviders(<UsersListPage />);
     await screen.findByRole('button', { name: 'Columns' });
 
-    await userEvent.click(screen.getByRole('button', { name: 'Member' }));
+    await userEvent.selectOptions(screen.getByLabelText('Role'), 'member');
 
     const controls = ['Export CSV', 'Export PDF', 'Columns'].map((name) =>
       screen.getByRole('button', { name }),
@@ -255,9 +316,7 @@ describe('UsersListPage', () => {
     renderWithProviders(<UsersListPage />);
 
     expect(
-      await screen.findByText(
-        'The columns could not be loaded; the downloads carry the default columns.',
-      ),
+      await screen.findByText('The columns could not be loaded; the list shows the default ones.'),
     ).toBeInTheDocument();
   });
 
@@ -280,7 +339,7 @@ describe('UsersListPage', () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     renderWithProviders(<UsersListPage />);
     await screen.findByRole('link', { name: 'Marta Reyes' });
-    await user.selectOptions(screen.getByLabelText(/account status/i), '');
+    await user.selectOptions(screen.getByLabelText(/account status/i), 'all');
 
     await user.type(screen.getByLabelText(/search/i), 'priya');
     await act(() => vi.advanceTimersByTimeAsync(SEARCH_DEBOUNCE_MS));
@@ -292,25 +351,46 @@ describe('UsersListPage', () => {
     expect(seen.at(-1)?.get('search')).toBe('priya');
   });
 
-  it('filters by role from the chips and can clear the filter', async () => {
+  it('filters by role, and Reset filters clears it', async () => {
     const seen = stubList();
     renderWithProviders(<UsersListPage />);
     await screen.findByRole('link', { name: 'Marta Reyes' });
 
-    await userEvent.click(screen.getByRole('button', { name: 'DART leader' }));
-
+    await userEvent.selectOptions(screen.getByLabelText('Role'), 'dart_leader');
     await waitFor(() => expect(seen.at(-1)?.get('role')).toBe('dart_leader'));
-    expect(screen.getByRole('button', { name: 'DART leader' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
-    await waitFor(() =>
-      expect(screen.queryByRole('link', { name: 'Marta Reyes' })).not.toBeInTheDocument(),
-    );
 
-    await userEvent.click(screen.getByRole('button', { name: 'DART leader' }));
+    // The bar's own Reset filters comes first; an empty list offers a second.
+    await userEvent.click(screen.getAllByRole('button', { name: 'Reset filters' })[0]!);
     await waitFor(() => expect(seen.at(-1)?.get('role')).toBeNull());
-    expect(await screen.findByRole('link', { name: 'Marta Reyes' })).toBeInTheDocument();
+  });
+
+  it('opens the role filter on Any role', async () => {
+    stubList();
+    renderWithProviders(<UsersListPage />);
+
+    expect(await screen.findByLabelText('Role')).toHaveDisplayValue('Any role');
+  });
+
+  it('returns to active accounts only when the filters are reset', async () => {
+    const seen = stubList();
+    renderWithProviders(<UsersListPage />);
+    await screen.findByRole('link', { name: 'Marta Reyes' });
+
+    await userEvent.selectOptions(screen.getByLabelText(/account status/i), 'all');
+    await waitFor(() => expect(seen.at(-1)?.get('is_active')).toBeNull());
+    await userEvent.click(screen.getByRole('button', { name: 'Reset filters' }));
+
+    await waitFor(() => expect(seen.at(-1)?.get('is_active')).toBe('true'));
+  });
+
+  it('asks for every account when Active and deactivated is chosen', async () => {
+    const seen = stubList();
+    renderWithProviders(<UsersListPage />);
+    await screen.findByRole('link', { name: 'Marta Reyes' });
+
+    await userEvent.selectOptions(screen.getByLabelText(/account status/i), 'all');
+
+    await waitFor(() => expect(seen.at(-1)?.has('is_active')).toBe(false));
   });
 
   it('filters by account status', async () => {
@@ -373,5 +453,21 @@ describe('UsersListPage', () => {
     renderWithProviders(<UsersListPage />);
 
     expect(await screen.findByText(/no accounts match those filters/i)).toBeInTheDocument();
+  });
+
+  it('pages through a long list', async () => {
+    const seen = stubList();
+    server.use(
+      http.get(`${API}/admin/users`, ({ request }) => {
+        seen.push(new URL(request.url).searchParams);
+        return HttpResponse.json({ count: 60, next: null, previous: null, results: [MARTA] });
+      }),
+    );
+    renderWithProviders(<UsersListPage />);
+    await screen.findByRole('link', { name: 'Marta Reyes' });
+
+    expect(screen.getByText('Showing 1–25 of 60')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Next' }));
+    await waitFor(() => expect(seen.at(-1)?.get('page')).toBe('2'));
   });
 });

@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { answerSender, LEADER_SENDER, makeSummary, NO_DART_SENDER } from '@test/fixtures/bulkEmail';
 import { API } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
+import { headerWords, rowCells, tableHeaders } from '@test/table';
 import { server } from '@test/server';
 import type { BulkEmailSummary } from '@/portal/api/types';
 import { DraftsPage, NO_SUBJECT } from './DraftsPage';
@@ -51,8 +52,8 @@ describe('DraftsPage', () => {
     ]);
     renderWithProviders(<DraftsPage />);
     const draft = (await screen.findByRole('link', { name: 'Hangar day' })).closest('tr');
-    // The type is the column after the subject and its actions.
-    expect(within(draft as HTMLElement).getAllByRole('cell')[2]).toHaveTextContent(/^—$/);
+    // The type is the column after the subject.
+    expect(rowCells(draft as HTMLElement)[1]).toHaveTextContent(/^—$/);
     const scheduled = screen.getByText('Newsletter').closest('tr');
     expect(
       within(scheduled as HTMLElement).getByRole('cell', { name: 'Mission' }),
@@ -115,26 +116,31 @@ describe('DraftsPage', () => {
     expect(await screen.findByText('No drafts')).toBeVisible();
   });
 
+  it('offers a button to write one from the empty table', async () => {
+    answerDrafts([]);
+    renderWithProviders(<DraftsPage />);
+    await screen.findByText('No drafts');
+    // One in the page header, one in the empty table.
+    expect(screen.getAllByRole('link', { name: 'Write a new email' })).toHaveLength(2);
+  });
+
   it('puts the subject first, with a real width', async () => {
     answerDrafts([makeSummary()]);
     renderWithProviders(<DraftsPage />);
     const table = await screen.findByRole('table');
     const first = within(table).getAllByRole('columnheader')[0];
-    expect([first?.textContent, first?.className, table.style.minWidth.includes('14rem')]).toEqual([
-      'Subject',
-      'data-table__text',
-      true,
-    ]);
+    expect([
+      first === undefined ? '' : headerWords(first),
+      first?.classList.contains('data-table__identity'),
+      table.style.minWidth.includes('14rem'),
+    ]).toEqual(['Subject', true, true]);
   });
 
-  it('puts the actions right after the subject, so they stay in sight', async () => {
+  it('puts the actions last, where every table keeps them', async () => {
     answerDrafts([makeSummary()]);
     renderWithProviders(<DraftsPage />);
     const table = await screen.findByRole('table');
-    const headers = within(table)
-      .getAllByRole('columnheader')
-      .map((header) => header.textContent);
-    expect(headers.slice(0, 2)).toEqual(['Subject', 'Actions']);
+    expect(tableHeaders(table).at(-1)).toBe('Actions');
   });
 
   it('tells a DART leader with no DART to set it, rather than to write an email', async () => {
@@ -152,12 +158,8 @@ describe('DraftsPage', () => {
     answerDrafts([makeSummary({ sender: 'Lane Lead', dart_name: 'Marin' })]);
     renderWithProviders(<DraftsPage />);
     const row = (await screen.findByRole('link', { name: 'Hangar day' })).closest('tr');
-    const headers = within(screen.getByRole('table'))
-      .getAllByRole('columnheader')
-      .map((header) => header.textContent);
-    const cells = within(row as HTMLElement)
-      .getAllByRole('cell')
-      .map((cell) => cell.textContent);
+    const headers = tableHeaders(screen.getByRole('table'));
+    const cells = rowCells(row as HTMLElement).map((cell) => cell.textContent);
     const at = headers.indexOf('From');
     expect([headers[at + 1], cells[at], cells[at + 1]]).toEqual(['DART', 'Lane Lead', 'Marin']);
   });
@@ -167,9 +169,7 @@ describe('DraftsPage', () => {
     answerDrafts([makeSummary({})]);
     renderWithProviders(<DraftsPage />);
     await screen.findByRole('link', { name: 'Hangar day' });
-    const headers = within(screen.getByRole('table'))
-      .getAllByRole('columnheader')
-      .map((header) => header.textContent);
+    const headers = tableHeaders(screen.getByRole('table'));
     expect(headers.filter((header) => header === 'From' || header === 'DART')).toEqual([]);
   });
 });

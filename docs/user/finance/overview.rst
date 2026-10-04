@@ -66,7 +66,13 @@ much was **Contributions**, a column for each payment provider that took money i
 range, the **Fees**, the **Net**, what was **Refunded**, and the **Total**.
 
 To compare this year with last year, choose **Year** and read down the **Total**
-column.
+column. Click a column heading to sort the table by it, and click it again to reverse the
+order.
+
+On a narrower screen the table leaves out the provider columns first, then **Dues**,
+**Contributions**, **Payments**, **Refunded**, **Fees**, and **Net**, so the **Total**
+always stays beside the period. If the table is still too wide, it scrolls sideways inside
+the page, a line above it says so, and the period stays pinned at the left.
 
 What you can do
 ===============
@@ -78,8 +84,8 @@ Above the period table, **From**, **To**, **Provider**, **Status**, and **Search
 what the table adds up. They work exactly as they do on the payment list (see
 :doc:`payment-list`). The three tiles ignore them: **This month** is always this month.
 
-Each filter applies as soon as you set it. A typed one applies once you pause. **Reset to
-Defaults** clears them all. The filters are kept in the page's address, so you can
+Each filter applies as soon as you set it. A typed one applies once you pause. **Reset
+filters** clears them all, and appears under an empty table too. The filters are kept in the page's address, so you can
 bookmark a filtered view or send the link to another treasurer.
 
 Go to the list
@@ -103,4 +109,4 @@ attempts too. The tiles show the gross, and a dashboard often shows the net. The
 date a payment by the day it completed, which can fall a day either side of the
 provider's settlement date. The :doc:`reconciliation` screen shows the gross, the fees,
 and the net side by side for exactly this comparison. If the period table says *No
-payments in this range*, widen the dates or press **Reset to Defaults**.
+payments in this range*, widen the dates or press **Reset filters**.

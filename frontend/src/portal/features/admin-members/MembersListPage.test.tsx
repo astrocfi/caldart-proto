@@ -8,19 +8,31 @@ import type { ReportColumn, RoleSlug } from '@/portal/api/types';
 import { AUTH_ME_KEY } from '@/portal/auth/useAuth';
 import { API, makeUser, signedInAs } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
+import { rowCells } from '@test/table';
 import { server } from '@test/server';
 import { MembersListPage } from './MembersListPage';
 import { LIFETIME, makeRow } from '@test/fixtures/members';
 import { API_BASE } from '@/portal/urlPrefix';
 
-/** The registry `GET /reports/members/columns` answers with, trimmed to five. */
+/** The registry `GET /reports/members/columns` answers with, trimmed to eight. */
 const COLUMNS: ReportColumn[] = [
   { key: 'name', label: 'Name', default: true },
   { key: 'email', label: 'Email', default: true },
   { key: 'dart', label: 'DART', default: true },
+  { key: 'status', label: 'Status', default: true },
+  { key: 'expires_on', label: 'Expires', default: true },
   { key: 'certificate_number', label: 'Certificate number', default: false },
+  { key: 'medical_expiration', label: 'Medical expires', default: true },
   { key: 'state', label: 'State', default: false },
 ];
+
+/** The `columns` parameter the exports carry while the defaults stand. */
+const DEFAULT_COLUMNS = 'columns=name%2Cemail%2Cdart%2Cstatus%2Cexpires_on%2Cmedical_expiration';
+
+/** A heading's words, without the arrow a sortable heading carries. */
+function headingText(cell: HTMLElement): string {
+  return (cell.textContent ?? '').replace(/[↑↓↕]/g, '');
+}
 
 const DARTS = [
   { id: 3, name: 'Palo Alto', airport_identifiers: 'PAO', city: 'Palo Alto' },
@@ -92,13 +104,67 @@ beforeEach(() => {
 });
 
 describe('MembersListPage', () => {
-  it('shows five columns: pilot, name, DART, membership expiry, and email', async () => {
+  it("shows the report's default columns, in the report's order", async () => {
     server.use(...listHandlers());
     await renderList();
     await screen.findByRole('link', { name: 'Ana Bracco' });
 
-    const headers = screen.getAllByRole('columnheader').map((cell) => cell.textContent);
-    expect(headers).toEqual(['Pilot', 'Name', 'DART', 'Membership Exp.', 'Email']);
+    const headers = screen.getAllByRole('columnheader').map(headingText);
+    expect(headers).toEqual(['Name', 'Email', 'DART', 'Status', 'Expires', 'Medical expires']);
+  });
+
+  it('shows a column ticked in the chooser in the table as well as the downloads', async () => {
+    const user = userEvent.setup();
+    server.use(...listHandlers([makeRow({ state: 'NV' })]));
+    await renderList();
+    await screen.findByRole('link', { name: 'Ana Bracco' });
+
+    await user.click(screen.getByRole('button', { name: 'Columns' }));
+    await user.click(screen.getByRole('checkbox', { name: 'State' }));
+
+    expect(screen.getByRole('cell', { name: 'NV' })).toBeInTheDocument();
+  });
+
+  it('takes a column unticked in the chooser out of the table', async () => {
+    const user = userEvent.setup();
+    server.use(...listHandlers());
+    await renderList();
+    await screen.findByRole('link', { name: 'Ana Bracco' });
+
+    await user.click(screen.getByRole('button', { name: 'Columns' }));
+    await user.click(screen.getByRole('checkbox', { name: 'DART' }));
+
+    expect(screen.queryByRole('columnheader', { name: /DART/ })).not.toBeInTheDocument();
+  });
+
+  it('shows the sort the list opens on, by name', async () => {
+    server.use(...listHandlers());
+    await renderList();
+    await screen.findByRole('link', { name: 'Ana Bracco' });
+
+    expect(screen.getByRole('columnheader', { name: /Name/ })).toHaveAttribute(
+      'aria-sort',
+      'ascending',
+    );
+  });
+
+  it('draws a column the server cannot sort by as a plain heading', async () => {
+    server.use(...listHandlers());
+    await renderList();
+    await screen.findByRole('link', { name: 'Ana Bracco' });
+
+    expect(screen.queryByRole('button', { name: /^Status/ })).not.toBeInTheDocument();
+  });
+
+  it('offers to reset the filters from an empty list', async () => {
+    const user = userEvent.setup();
+    server.use(...listHandlers([], 0));
+    await renderList('/admin/members?status=expired');
+    await screen.findByText('No members match these filters');
+
+    await user.click(screen.getAllByRole('button', { name: 'Reset filters' }).at(-1)!);
+
+    await waitFor(() => expect(screen.getByTestId('location-search')).toHaveTextContent(''));
   });
 
   it('ticks a pilot whose medical is in date and crosses one whose is not', async () => {
@@ -138,8 +204,8 @@ describe('MembersListPage', () => {
     await screen.findByRole('link', { name: 'Ana Bracco' });
 
     const table = within(screen.getByRole('table'));
-    expect(table.getByText('Current')).toBeInTheDocument();
-    expect(table.getByText('Expired')).toBeInTheDocument();
+    expect(table.getByRole('cell', { name: 'Current' })).toBeInTheDocument();
+    expect(table.getByRole('cell', { name: 'Expired' })).toBeInTheDocument();
     expect(table.queryByText('Expiring soon')).not.toBeInTheDocument();
     // The wordy chip is gone: the dot and the date carry it now.
     expect(table.queryByText('No membership')).not.toBeInTheDocument();
@@ -162,17 +228,14 @@ describe('MembersListPage', () => {
     );
   });
 
-  it('sorts on every column, including Pilot and DART', async () => {
+  it('sorts by DART on the server', async () => {
     const user = userEvent.setup();
     server.use(...listHandlers());
     await renderList();
     await screen.findByRole('link', { name: 'Ana Bracco' });
 
-    await user.click(screen.getByRole('button', { name: 'DART' }));
+    await user.click(screen.getByRole('button', { name: /DART/ }));
     await waitFor(() => expect(lastMemberQuery().get('ordering')).toBe('dart'));
-
-    await user.click(screen.getByRole('button', { name: 'Pilot' }));
-    await waitFor(() => expect(lastMemberQuery().get('ordering')).toBe('pilot'));
   });
 
   it('renders a row per member with its membership chip', async () => {
@@ -278,7 +341,7 @@ describe('MembersListPage', () => {
     await renderList('/admin/members?status=expired&search=bracco');
     await screen.findByRole('link', { name: 'Ana Bracco' });
 
-    await user.click(screen.getByRole('button', { name: 'Reset to Defaults' }));
+    await user.click(screen.getByRole('button', { name: 'Reset filters' }));
     await waitFor(() => expect(screen.getByTestId('location-search')).toHaveTextContent(''));
     expect(lastMemberQuery().get('status')).toBeNull();
   });
@@ -301,10 +364,10 @@ describe('MembersListPage', () => {
     await renderList();
     await screen.findByRole('link', { name: 'Ana Bracco' });
 
-    await user.click(screen.getByRole('button', { name: /Membership/ }));
+    await user.click(screen.getByRole('button', { name: /^Expires/ }));
     await waitFor(() => expect(lastMemberQuery().get('ordering')).toBe('expires_on'));
 
-    await user.click(screen.getByRole('button', { name: /Membership/ }));
+    await user.click(screen.getByRole('button', { name: /^Expires/ }));
     await waitFor(() => expect(lastMemberQuery().get('ordering')).toBe('-expires_on'));
   });
 
@@ -318,7 +381,7 @@ describe('MembersListPage', () => {
     expect(csv).toHaveAttribute(
       'href',
       '/api/v1/reports/members/export.csv?status=current&dart=5&expiring_within=30' +
-        '&columns=name%2Cemail%2Cdart',
+        `&ordering=name&${DEFAULT_COLUMNS}`,
     );
     expect(pdf.getAttribute('href')).toContain('/api/v1/reports/members/export.pdf?');
     expect(pdf.getAttribute('href')).toContain('dart=5');
@@ -330,7 +393,7 @@ describe('MembersListPage', () => {
     await screen.findByRole('link', { name: 'Ana Bracco' });
     expect(screen.getByRole('link', { name: /Export CSV/ })).toHaveAttribute(
       'href',
-      '/api/v1/reports/members/export.csv?columns=name%2Cemail%2Cdart',
+      `/api/v1/reports/members/export.csv?ordering=name&${DEFAULT_COLUMNS}`,
     );
   });
 
@@ -341,7 +404,7 @@ describe('MembersListPage', () => {
     await screen.findByRole('link', { name: 'Ana Bracco' });
 
     await user.click(screen.getByRole('button', { name: 'Columns' }));
-    const panel = screen.getByRole('group', { name: /Columns to export/ });
+    const panel = screen.getByRole('group', { name: 'Columns in the table and the download' });
     expect(within(panel).getByRole('checkbox', { name: 'Name' })).toBeChecked();
     expect(within(panel).getByRole('checkbox', { name: 'State' })).not.toBeChecked();
   });
@@ -354,10 +417,36 @@ describe('MembersListPage', () => {
       ...listHandlers(),
     );
     await renderList();
-    await screen.findByRole('link', { name: 'Ana Bracco' });
 
-    expect(await screen.findByText(/columns could not be loaded/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/columns could not be loaded/i, undefined, { timeout: 5000 }),
+    ).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Columns' })).not.toBeInTheDocument();
+  });
+
+  it("falls back on the report's own default columns when the columns fail to load", async () => {
+    server.use(
+      http.get(`${API}/reports/members/columns`, () =>
+        HttpResponse.json({ detail: 'Server error.' }, { status: 500 }),
+      ),
+      ...listHandlers(),
+    );
+    await renderList();
+    await screen.findByText(/columns could not be loaded/i, undefined, { timeout: 5000 });
+
+    expect(screen.getAllByRole('columnheader').map(headingText)).toEqual([
+      'Name',
+      'Email',
+      'Phone',
+      'DART',
+      'Status',
+      'Kind',
+      'Expires',
+      'Certificate',
+      'Medical',
+      'Medical expires',
+      'Aircraft',
+    ]);
   });
 
   it('carries a chosen column into both export links', async () => {
@@ -371,11 +460,11 @@ describe('MembersListPage', () => {
 
     expect(screen.getByRole('link', { name: /Export CSV/ })).toHaveAttribute(
       'href',
-      '/api/v1/reports/members/export.csv?columns=name%2Cemail%2Cdart%2Cstate',
+      `/api/v1/reports/members/export.csv?ordering=name&${DEFAULT_COLUMNS}%2Cstate`,
     );
     expect(screen.getByRole('link', { name: /Export PDF/ })).toHaveAttribute(
       'href',
-      '/api/v1/reports/members/export.pdf?columns=name%2Cemail%2Cdart%2Cstate',
+      `/api/v1/reports/members/export.pdf?ordering=name&${DEFAULT_COLUMNS}%2Cstate`,
     );
   });
 
@@ -390,7 +479,8 @@ describe('MembersListPage', () => {
 
     expect(screen.getByRole('link', { name: /Export CSV/ })).toHaveAttribute(
       'href',
-      '/api/v1/reports/members/export.csv?columns=name%2Cemail',
+      '/api/v1/reports/members/export.csv?ordering=name' +
+        '&columns=name%2Cemail%2Cstatus%2Cexpires_on%2Cmedical_expiration',
     );
   });
 
@@ -400,7 +490,7 @@ describe('MembersListPage', () => {
     await renderList();
     await screen.findByRole('link', { name: 'Ana Bracco' });
 
-    expect(screen.getByText(/Showing 1–1 of 60/)).toBeInTheDocument();
+    expect(screen.getByText('Showing 1–25 of 60')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Next' }));
     await waitFor(() => expect(lastMemberQuery().get('page')).toBe('2'));
   });
@@ -434,7 +524,7 @@ describe('MembersListPage', () => {
 
     expect(screen.getByRole('link', { name: /Export PDF/ })).toHaveAttribute(
       'href',
-      '/api/v1/reports/members/export.pdf?county=Napa&columns=name%2Cemail%2Cdart',
+      `/api/v1/reports/members/export.pdf?county=Napa&ordering=name&${DEFAULT_COLUMNS}`,
     );
   });
 
@@ -476,18 +566,18 @@ describe('MembersListPage', () => {
 
     expect(screen.getByRole('link', { name: /Export PDF/ })).toHaveAttribute(
       'href',
-      '/api/v1/reports/members/export.pdf?county=Napa&columns=name%2Cemail%2Cdart',
+      `/api/v1/reports/members/export.pdf?county=Napa&ordering=name&${DEFAULT_COLUMNS}`,
     );
   });
 
-  it('draws the Kind selector first, on All', async () => {
+  it('draws the Kind selector first, on Any kind', async () => {
     server.use(...listHandlers());
     await renderList();
     await screen.findByRole('link', { name: 'Ana Bracco' });
 
     const bar = screen.getByRole<HTMLFormElement>('search', { name: 'Filter members' });
     const kind = screen.getByLabelText<HTMLSelectElement>('Kind');
-    expect([bar.elements[0], kind.selectedOptions[0]?.textContent]).toEqual([kind, 'All']);
+    expect([bar.elements[0], kind.selectedOptions[0]?.textContent]).toEqual([kind, 'Any kind']);
   });
 
   it('lists friends only when the Kind selector asks for them', async () => {
@@ -527,8 +617,8 @@ describe('MembersListPage', () => {
     await screen.findByRole('link', { name: 'Ana Bracco' });
 
     const [, row] = screen.getAllByRole('row');
-    const cells = within(row as HTMLElement).getAllByRole('cell');
-    expect(cells[3]).toHaveTextContent(/^Friend Friend$/);
+    const cells = rowCells(row as HTMLElement);
+    expect(cells[4]).toHaveTextContent(/^Friend$/);
   });
 });
 
@@ -570,7 +660,7 @@ describe('MembersListPage for a DART leader', () => {
 
     expect(screen.getByRole('link', { name: /Export CSV/ })).toHaveAttribute(
       'href',
-      '/api/v1/reports/members/export.csv?county=Napa&columns=name%2Cemail%2Cdart',
+      `/api/v1/reports/members/export.csv?county=Napa&ordering=name&${DEFAULT_COLUMNS}`,
     );
   });
 });

@@ -1,12 +1,12 @@
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 import { API } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
-import type { Paginated, RenewalAttempt, RenewalMandate } from '@/portal/api/types';
+import type { Paginated, RenewalAttempt, RenewalMandate, ReportColumn } from '@/portal/api/types';
 import { RenewalsPage } from './RenewalsPage';
 
 const ACTIVE: RenewalMandate = {
@@ -89,6 +89,26 @@ const REFUSED: RenewalAttempt = {
   result_emailed_at: '2026-03-14T06:30:12Z',
   created_at: '2026-02-28T06:30:11Z',
 };
+
+/** The renewals report's registry, as `GET /reports/renewals/columns` answers it. */
+const COLUMNS: ReportColumn[] = [
+  { key: 'name', label: 'Member', default: true },
+  { key: 'email', label: 'Email', default: true },
+  { key: 'kind', label: 'Kind', default: true },
+  { key: 'cadence', label: 'Cadence', default: false },
+  { key: 'plan', label: 'Plan', default: true },
+  { key: 'amount', label: 'Next charge', default: true },
+  { key: 'next_charge_on', label: 'Due', default: true },
+  { key: 'method', label: 'Method', default: true },
+  { key: 'status', label: 'Status', default: true },
+  { key: 'failures', label: 'Failed charges', default: false },
+  { key: 'started_on', label: 'Started', default: false },
+];
+
+/** The registry the table and the chooser read, served for every test. */
+beforeEach(() => {
+  server.use(http.get(`${API}/reports/renewals/columns`, () => HttpResponse.json(COLUMNS)));
+});
 
 function page<Row>(rows: Row[], count = rows.length): Paginated<Row> {
   return { count, next: null, previous: null, results: rows };
@@ -210,7 +230,7 @@ describe('RenewalsPage', () => {
     renderWithProviders(<RenewalsPage />);
     await screen.findByRole('row', { name: /Maria Alvarez/ });
 
-    await userEvent.selectOptions(screen.getByLabelText('Auto-renewal status'), 'paused');
+    await userEvent.selectOptions(screen.getByLabelText('Status'), 'paused');
 
     await expect.poll(() => seen.mandateQueries.at(-1)?.get('status')).toBe('paused');
   });
@@ -255,7 +275,7 @@ describe('RenewalsPage', () => {
     expect(await screen.findByText('180 renewals')).toBeInTheDocument();
 
     const pager = within(screen.getByRole('navigation', { name: 'Renewal pages' }));
-    expect(pager.getByText('Page 1 of 4')).toBeInTheDocument();
+    expect(pager.getByText('Showing 1–50 of 180')).toBeInTheDocument();
     await userEvent.click(pager.getByRole('button', { name: 'Next' }));
 
     await expect.poll(() => seen.mandateQueries.at(-1)?.get('page')).toBe('2');
@@ -288,6 +308,31 @@ describe('RenewalsPage', () => {
     await expect.poll(() => seen.attemptQueries.at(-1)?.get('page')).toBe('2');
   });
 
+  it('keeps the renewals on their page while the charges page on', async () => {
+    const seen = record();
+    server.use(
+      http.get(`${API}/admin/renewals/attempts`, ({ request }) => {
+        seen.attemptQueries.push(new URL(request.url).searchParams);
+        return HttpResponse.json(page([REFUSED], 120));
+      }),
+      http.get(`${API}/admin/renewals`, ({ request }) => {
+        seen.mandateQueries.push(new URL(request.url).searchParams);
+        return HttpResponse.json(page([ACTIVE], 180));
+      }),
+    );
+    renderWithProviders(<RenewalsPage />);
+    expect(await screen.findByText('180 renewals')).toBeInTheDocument();
+
+    const renewals = within(screen.getByRole('navigation', { name: 'Renewal pages' }));
+    await userEvent.click(renewals.getByRole('button', { name: 'Next' }));
+    await expect.poll(() => seen.mandateQueries.at(-1)?.get('page')).toBe('2');
+    const charges = within(screen.getByRole('navigation', { name: 'Renewal charge pages' }));
+    await userEvent.click(charges.getByRole('button', { name: 'Next' }));
+    await expect.poll(() => seen.attemptQueries.at(-1)?.get('page')).toBe('2');
+
+    expect(seen.mandateQueries.at(-1)?.get('page')).toBe('2');
+  });
+
   it('says so when the mandates cannot be loaded', async () => {
     server.use(
       http.get(`${API}/admin/renewals/attempts`, () => HttpResponse.json(page([]))),
@@ -307,5 +352,57 @@ describe('RenewalsPage', () => {
     await userEvent.selectOptions(screen.getByLabelText('Outcome'), 'succeeded');
 
     await expect.poll(() => seen.attemptQueries.at(-1)?.get('outcome')).toBe('succeeded');
+  });
+
+  it('keeps the filters in the address, so a filtered tab can be linked', async () => {
+    const seen = record();
+    server.use(...renewalHandlers([ACTIVE], [], seen));
+    renderWithProviders(<RenewalsPage />, {
+      route: '/admin/payments/renewals?status=paused&search=ortiz',
+    });
+    await screen.findByRole('row', { name: /Maria Alvarez/ });
+
+    await expect
+      .poll(() => [
+        seen.mandateQueries.at(-1)?.get('status'),
+        seen.mandateQueries.at(-1)?.get('search'),
+      ])
+      .toEqual(['paused', 'ortiz']);
+  });
+
+  it('points the exports at the renewals report with the filters and columns chosen', async () => {
+    server.use(...renewalHandlers([ACTIVE], [], record()));
+    renderWithProviders(<RenewalsPage />, { route: '/admin/payments/renewals?kind=both' });
+    await screen.findByRole('row', { name: /Maria Alvarez/ });
+
+    expect(screen.getByRole('link', { name: 'Export CSV' })).toHaveAttribute(
+      'href',
+      '/api/v1/reports/renewals/export.csv?kind=both' +
+        '&columns=name%2Cemail%2Ckind%2Cplan%2Camount%2Cnext_charge_on%2Cmethod%2Cstatus',
+    );
+  });
+
+  it('adds a chosen column to the table', async () => {
+    const user = userEvent.setup();
+    server.use(...renewalHandlers([PAUSED], [], record()));
+    renderWithProviders(<RenewalsPage />);
+    await screen.findByRole('row', { name: /Ben Ortiz/ });
+
+    await user.click(screen.getByRole('button', { name: 'Columns' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Failed charges' }));
+
+    expect(screen.getByRole('columnheader', { name: /Failed charges/ })).toBeInTheDocument();
+  });
+
+  it('offers to reset the filters from an empty list', async () => {
+    const user = userEvent.setup();
+    const seen = record();
+    server.use(...renewalHandlers([], [], seen));
+    renderWithProviders(<RenewalsPage />, { route: '/admin/payments/renewals?status=paused' });
+
+    await screen.findByText('No renewals match');
+    await user.click(screen.getAllByRole('button', { name: 'Reset filters' }).at(-2)!);
+
+    await expect.poll(() => seen.mandateQueries.at(-1)?.get('status')).toBeNull();
   });
 });

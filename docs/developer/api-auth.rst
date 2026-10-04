@@ -714,7 +714,10 @@ address, as an ISO datetime, or ``null`` while it is unverified; and
 from reactivating (:ref:`api-reactivation-block`).  ``email_bounced_at`` is when
 the bounce check last found the address bouncing, as an ISO datetime, or ``null``
 while no bounce is known, and ``email_bounce_detail`` that report's status code and
-diagnostic, or ``""`` (:ref:`email-bounces`).
+diagnostic, or ``""`` (:ref:`email-bounces`).  ``phone``, ``dart`` (the DART's
+name), ``city``, ``county``, and ``home_airport`` (the home airport's identifier) are
+read from the profile for the columns the Users and roles list can show; each is
+``""``, and ``dart`` is ``null``, for an account with no profile or no DART.
 
 .. code-block:: json
 
@@ -732,7 +735,9 @@ diagnostic, or ``""`` (:ref:`email-bounces`).
         "friend_on": null,
         "email_verified_at": "2026-09-01T10:14:02.100522-07:00",
         "email_bounced_at": null, "email_bounce_detail": "",
-        "reactivation_blocked": false}
+        "reactivation_blocked": false, "phone": "415-555-0100",
+        "dart": "Palo Alto", "city": "Palo Alto", "county": "Santa Clara",
+        "home_airport": "PAO"}
      ]
    }
 

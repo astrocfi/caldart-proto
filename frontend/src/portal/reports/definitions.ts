@@ -15,7 +15,8 @@ import {
   PAYMENT_WALLET_LABELS,
   ROLE_CHOICES,
 } from '@/portal/choices';
-import { KIND_LABELS } from '@/portal/features/admin-payments/labels';
+import { KIND_LABELS, MANDATE_KIND_LABELS } from '@/portal/features/admin-payments/labels';
+import { MANDATE_STATUS_LABELS } from '@/portal/features/admin-payments/reports-api';
 import {
   CERTIFICATE_FILTER_CHOICES,
   KIND_FILTER_CHOICES,
@@ -81,12 +82,19 @@ const COUNTY_OPTIONS: Option[] = CA_COUNTIES.map((county) => ({
 }));
 
 const MEMBER_FILTERS: FilterField[] = [
-  { key: 'kind', label: 'Kind', kind: 'select', placeholder: 'All', options: KIND_FILTER_CHOICES },
+  {
+    key: 'kind',
+    label: 'Kind',
+    kind: 'select',
+    placeholder: 'Any kind',
+    options: KIND_FILTER_CHOICES,
+  },
   {
     key: 'search',
     label: 'Search',
     kind: 'search',
-    placeholder: 'Name, email, phone, or certificate',
+    placeholder: 'Name, email, or phone',
+    hint: 'Search by name, email, phone, or certificate number.',
   },
   // "Any" on its own, never "Any status": a filter that is not set takes in
   // the members who answered "none" as well as those who answered.
@@ -114,7 +122,7 @@ const ROLE_FILTERS: FilterField[] = [
     key: 'role',
     label: 'Role',
     kind: 'select',
-    placeholder: 'Every role',
+    placeholder: 'Any role',
     options: ROLE_CHOICES.filter((choice) => choice.value !== 'member'),
   },
   // A donor never holds a role.
@@ -217,7 +225,7 @@ const PAYMENT_FILTERS: FilterField[] = [
     key: 'kind',
     label: 'For',
     kind: 'select',
-    placeholder: 'Dues or gifts',
+    placeholder: 'Any',
     options: optionsFor(['membership', 'contribution', 'both'], KIND_LABELS),
   },
   {
@@ -244,7 +252,7 @@ const PAYMENT_FILTERS: FilterField[] = [
     key: 'reconciled',
     label: 'Reconciled',
     kind: 'select',
-    placeholder: 'Matched or not',
+    placeholder: 'Any',
     options: [
       { value: 'yes', label: 'Matched' },
       { value: 'no', label: 'Not matched' },
@@ -256,9 +264,34 @@ const PAYMENT_FILTERS: FilterField[] = [
     key: 'search',
     label: 'Search',
     kind: 'search',
-    placeholder: 'Name, email, reference, or note',
+    placeholder: 'Name, email, or reference',
+    hint: 'Search by name, email, reference, or note.',
   },
   periodField(PERIOD_OPTIONS, 'Any date'),
+];
+
+const RENEWAL_FILTERS: FilterField[] = [
+  {
+    key: 'status',
+    label: 'Status',
+    kind: 'select',
+    placeholder: 'Any status',
+    options: optionsFor(['active', 'pending', 'paused', 'canceled'], MANDATE_STATUS_LABELS),
+  },
+  {
+    key: 'kind',
+    label: 'Kind',
+    kind: 'select',
+    placeholder: 'Any kind',
+    options: optionsFor(['renewal', 'both', 'contribution'], MANDATE_KIND_LABELS),
+  },
+  {
+    key: 'search',
+    label: 'Search',
+    kind: 'search',
+    placeholder: 'Name or email',
+    hint: 'Search by name, email, or the saved payment method.',
+  },
 ];
 
 const RECONCILIATION_FILTERS: FilterField[] = [
@@ -367,6 +400,13 @@ export const REPORTS: Readonly<Record<ReportSlug, ReportDefinition>> = {
     filters: PAYMENT_FILTERS,
     choosable: true,
     periods: true,
+  },
+  renewals: {
+    slug: 'renewals',
+    label: 'Renewals',
+    filters: RENEWAL_FILTERS,
+    choosable: true,
+    periods: false,
   },
   reconciliation: {
     slug: 'reconciliation',

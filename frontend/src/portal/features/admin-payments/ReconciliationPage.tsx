@@ -9,9 +9,10 @@
 import type { JSX } from 'react';
 
 import type { ReconciliationRow } from '@/portal/api/types';
+import { Button } from '@/portal/components/Button';
 import type { Column } from '@/portal/components/DataTable';
 import { DataTable } from '@/portal/components/DataTable';
-import { FilterBar } from '@/portal/components/FilterBar';
+import { clearedValues, FilterBar } from '@/portal/components/FilterBar';
 import { Money } from '@/portal/components/Money';
 import { Page } from '@/portal/components/Page';
 import { useUrlFilters } from '@/portal/components/useUrlFilters';
@@ -40,19 +41,36 @@ export function matchedLabel(row: ReconciliationRow): string {
   return `${row.reconciled_count} of ${row.count}`;
 }
 
+/**
+ * The table's columns.  The period identifies a row and never wraps; Gross and Net
+ * stay in sight on a phone, and the rest drop, the least needed first, when the
+ * table would not fit.  Every column sorts.
+ */
 function columns(group: ReconciliationGroup): Column<ReconciliationRow>[] {
   return [
     {
       key: 'period',
       header: GROUP_LABELS[group],
+      width: '8rem',
+      isIdentity: true,
       render: (row) => reconciliationPeriodLabel(row.period, group),
       sortValue: (row) => row.period,
     },
-    { key: 'count', header: 'Payments', numeric: true, render: (row) => row.count },
+    {
+      key: 'count',
+      header: 'Payments',
+      numeric: true,
+      width: '6.5rem',
+      dropOrder: 4,
+      render: (row) => row.count,
+      sortValue: (row) => row.count,
+    },
     {
       key: 'gross_cents',
       header: 'Gross',
       numeric: true,
+      width: '7.5rem',
+      keepInSight: true,
       render: (row) => <Money cents={row.gross_cents} />,
       sortValue: (row) => row.gross_cents,
     },
@@ -60,6 +78,8 @@ function columns(group: ReconciliationGroup): Column<ReconciliationRow>[] {
       key: 'fee_cents',
       header: 'Fees',
       numeric: true,
+      width: '6.5rem',
+      dropOrder: 3,
       render: (row) => <Money cents={row.fee_cents} />,
       sortValue: (row) => row.fee_cents,
     },
@@ -67,6 +87,8 @@ function columns(group: ReconciliationGroup): Column<ReconciliationRow>[] {
       key: 'net_cents',
       header: 'Net',
       numeric: true,
+      width: '7.5rem',
+      keepInSight: true,
       render: (row) => <Money cents={row.net_cents} />,
       sortValue: (row) => row.net_cents,
     },
@@ -74,6 +96,8 @@ function columns(group: ReconciliationGroup): Column<ReconciliationRow>[] {
       key: 'refunded_cents',
       header: 'Refunded',
       numeric: true,
+      width: '7rem',
+      dropOrder: 1,
       render: (row) => <Money cents={row.refunded_cents} />,
       sortValue: (row) => row.refunded_cents,
     },
@@ -81,11 +105,30 @@ function columns(group: ReconciliationGroup): Column<ReconciliationRow>[] {
       key: 'net_after_refunds_cents',
       header: 'Net after refunds',
       numeric: true,
+      width: '10rem',
+      dropOrder: 2,
       render: (row) => <Money cents={row.net_after_refunds_cents} />,
       sortValue: (row) => row.net_after_refunds_cents,
     },
-    { key: 'matched', header: 'Matched', numeric: true, render: matchedLabel },
+    {
+      key: 'matched',
+      header: 'Matched',
+      numeric: true,
+      width: '6.5rem',
+      dropOrder: 5,
+      noWrap: true,
+      render: matchedLabel,
+      sortValue: (row) => row.reconciled_count,
+    },
   ];
+}
+
+/**
+ * The order the server lists the rows in, as the arrow the table opens on: oldest
+ * period first, or none for the providers, which come in the server's own order.
+ */
+function defaultSort(group: ReconciliationGroup): { key: string; direction: 'asc' } | undefined {
+  return group === 'provider' ? undefined : { key: 'period', direction: 'asc' };
 }
 
 /** The grouping a `group` value asks for, the server's own when it is blank or unknown. */
@@ -115,7 +158,10 @@ export function ReconciliationPage(): JSX.Element {
       </p>
 
       <DataTable
+        key={group}
+        singleLine
         columns={columns(group)}
+        initialSort={defaultSort(group)}
         rows={rows.data ?? []}
         rowKey={(row) => row.period}
         caption={`Takings by ${GROUP_LABELS[group].toLowerCase()}`}
@@ -131,7 +177,15 @@ export function ReconciliationPage(): JSX.Element {
         exportPdfUrl={reportExportUrl('reconciliation', 'pdf', filters)}
         isLoading={rows.isPending}
         emptyTitle="Nothing was taken in this range"
-        emptyDescription="Widen the dates, or clear the filters to see every period."
+        emptyDescription="Widen the dates, or reset the filters to see every period."
+        emptyAction={
+          <Button
+            variant="secondary"
+            onClick={() => setFilters(clearedValues(FILTER_FIELDS, filters))}
+          >
+            Reset filters
+          </Button>
+        }
       />
 
       {rows.isError ? (

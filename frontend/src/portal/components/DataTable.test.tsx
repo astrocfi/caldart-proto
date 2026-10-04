@@ -1,9 +1,9 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { Column } from './DataTable';
-import { DataTable, sortRows, tableMinWidth } from './DataTable';
+import { DataTable, hiddenColumnsNote, sortRows, tableMinWidth } from './DataTable';
 
 interface Row {
   id: number;
@@ -63,6 +63,19 @@ describe('sortRows', () => {
     ['negative and zero', ACCENTED_ROWS, 'asc', [-5, 0, 0, 1_000_000]],
   ])('sorts numbers numerically (%s)', (_label, rows, direction, expected) => {
     expect(sortRows(rows, COLUMNS[1], direction).map((row) => row.hours)).toEqual(expected);
+  });
+
+  it('keeps rows that tie in the order they arrived when sorting descending', () => {
+    const tied: Row[] = [
+      { id: 1, name: 'first', hours: 5 },
+      { id: 2, name: 'second', hours: 5 },
+      { id: 3, name: 'third', hours: 9 },
+    ];
+    expect(sortRows(tied, COLUMNS[1], 'desc').map((row) => row.name)).toEqual([
+      'third',
+      'first',
+      'second',
+    ]);
   });
 
   it('leaves rows alone for an unsortable column', () => {
@@ -146,10 +159,7 @@ describe('DataTable', () => {
     const { rerender } = render(table({ key: 'hours', direction: 'asc' }));
     rerender(table({ key: 'name', direction: 'asc' }));
 
-    expect(screen.getByRole('columnheader', { name: /Hours/ })).toHaveAttribute(
-      'aria-sort',
-      'none',
-    );
+    expect(screen.getByRole('columnheader', { name: /Hours/ })).not.toHaveAttribute('aria-sort');
     await user.click(screen.getByRole('button', { name: /Name/ }));
     expect(handleSortChange).toHaveBeenCalledWith('name', 'desc');
   });
@@ -284,7 +294,40 @@ describe('a table fitted to a narrow container', () => {
     expect([
       screen.getAllByRole('columnheader').map((header) => header.textContent),
       screen.getByRole('columnheader', { name: 'Name' }).style.width,
-    ]).toEqual([['Name', 'Actions', 'Reason'], '5rem']);
+    ]).toEqual([['Name', 'Actions', 'Reason'], '8rem']);
+  });
+
+  it('names the column it left out, under the scroll cue', () => {
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        observe(): void {}
+        disconnect(): void {}
+      },
+    );
+    render(
+      <DataTable
+        singleLine
+        columns={columns}
+        rows={[{ id: 1, name: 'Ann' }]}
+        rowKey={(r) => r.id}
+      />,
+    );
+    expect(
+      screen.getByText('Type is hidden to fit the window. Widen it to show every column.'),
+    ).toBeInTheDocument();
+  });
+
+  it('says nothing is hidden where every column shows', () => {
+    render(
+      <DataTable
+        singleLine
+        columns={columns}
+        rows={[{ id: 1, name: 'Ann' }]}
+        rowKey={(r) => r.id}
+      />,
+    );
+    expect(screen.queryByText(/hidden to fit the window/)).not.toBeInTheDocument();
   });
 
   it('shows every column where nothing is measured', () => {
@@ -309,5 +352,250 @@ describe('a table fitted to a narrow container', () => {
       />,
     );
     expect(screen.getByRole('cell', { name: 'Opted out' })).toHaveClass('data-table__wrap');
+  });
+});
+
+describe('the least width of a table whose columns are all fixed', () => {
+  it('adds the fixed widths even when no column names a minimum', () => {
+    expect(
+      tableMinWidth([
+        { key: 'a', header: 'A', width: '4rem', render: () => '' },
+        { key: 'b', header: 'B', render: () => '' },
+      ]),
+    ).toBe('calc(4rem + 6rem)');
+  });
+});
+
+describe('the identifying and actions columns', () => {
+  const columns: Column<Row>[] = [
+    { key: 'actions', header: '', isActions: true, render: () => <button>Edit</button> },
+    { key: 'name', header: 'Name', isIdentity: true, minWidth: '12rem', render: (r) => r.name },
+    { key: 'hours', header: 'Hours', numeric: true, width: '5rem', render: (r) => r.hours },
+  ];
+
+  function renderTable(): void {
+    render(<DataTable singleLine columns={columns} rows={ROWS} rowKey={(row) => row.id} />);
+  }
+
+  it('draws the actions column last, wherever the screen lists it', () => {
+    renderTable();
+    expect(screen.getAllByRole('columnheader').map((header) => header.textContent)).toEqual([
+      'Name',
+      'Hours',
+      'Actions',
+    ]);
+  });
+
+  it('heads a blank actions column "Actions" for a screen reader alone', () => {
+    renderTable();
+    expect(screen.getByText('Actions')).toHaveClass('visually-hidden');
+  });
+
+  it('makes the actions column wide enough for an open delete confirmation', () => {
+    renderTable();
+    expect(screen.getByRole('columnheader', { name: 'Actions' })).toHaveStyle({ width: '10rem' });
+  });
+
+  it('marks the identifying column so it is pinned and never wraps', () => {
+    renderTable();
+    expect(screen.getByRole('rowheader', { name: 'Reyes, Marta' })).toHaveClass(
+      'data-table__identity',
+      'data-table__nowrap',
+    );
+  });
+});
+
+describe('a table wider than its container', () => {
+  const widths = { scrollWidth: 0, clientWidth: 0 };
+
+  beforeEach(() => {
+    vi.spyOn(HTMLElement.prototype, 'scrollWidth', 'get').mockImplementation(function (
+      this: HTMLElement,
+    ) {
+      return this.classList.contains('table-wrap') ? widths.scrollWidth : 0;
+    });
+    vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockImplementation(function (
+      this: HTMLElement,
+    ) {
+      return this.classList.contains('table-wrap') ? widths.clientWidth : 0;
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  function renderTable(): void {
+    render(<DataTable columns={COLUMNS} rows={ROWS} rowKey={(row) => row.id} caption="3 pilots" />);
+  }
+
+  it('makes its scroll box a region a keyboard can focus, named by the caption', () => {
+    widths.scrollWidth = 800;
+    widths.clientWidth = 300;
+    renderTable();
+    expect(screen.getByRole('region', { name: '3 pilots' })).toHaveAttribute('tabindex', '0');
+  });
+
+  it('says that it scrolls sideways', () => {
+    widths.scrollWidth = 800;
+    widths.clientWidth = 300;
+    renderTable();
+    expect(screen.getByText('Scroll sideways to see every column.')).toBeInTheDocument();
+  });
+
+  it('adds no tab stop and no cue for a table that fits', () => {
+    widths.scrollWidth = 300;
+    widths.clientWidth = 300;
+    renderTable();
+    expect(screen.queryByRole('region')).not.toBeInTheDocument();
+  });
+});
+
+describe('sorting cues', () => {
+  it('shows the arrow and aria-sort of the sort the table opens on', () => {
+    render(
+      <DataTable
+        columns={COLUMNS}
+        rows={ROWS}
+        rowKey={(row) => row.id}
+        initialSort={{ key: 'name', direction: 'asc' }}
+      />,
+    );
+    const header = screen.getByRole('columnheader', { name: /Name/ });
+    expect([header.getAttribute('aria-sort'), header.textContent]).toEqual(['ascending', 'Name↑']);
+  });
+
+  it('draws an unsortable heading as plain words with no button', () => {
+    render(<DataTable columns={COLUMNS} rows={ROWS} rowKey={(row) => row.id} />);
+    expect(
+      within(screen.getByRole('columnheader', { name: 'Actions' })).queryByRole('button'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('marks a sortable heading that is not the sorted one with a faint arrow', () => {
+    render(<DataTable columns={COLUMNS} rows={ROWS} rowKey={(row) => row.id} />);
+    expect(screen.getByRole('button', { name: /Name/ }).textContent).toBe('Name↕');
+  });
+
+  it('puts the arrow on the left of a right-aligned heading', () => {
+    render(<DataTable columns={COLUMNS} rows={ROWS} rowKey={(row) => row.id} />);
+    expect(screen.getByRole('button', { name: /Hours/ }).textContent).toBe('↕Hours');
+  });
+});
+
+describe('pagination', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('says which rows the page shows', () => {
+    render(
+      <DataTable
+        columns={COLUMNS}
+        rows={ROWS}
+        rowKey={(row) => row.id}
+        pagination={{ page: 1, pageSize: 25, count: 51, onPageChange: () => undefined }}
+      />,
+    );
+    expect(screen.getByText('Showing 1–25 of 51')).toBeInTheDocument();
+  });
+
+  it('disables Previous on the first page', () => {
+    render(
+      <DataTable
+        columns={COLUMNS}
+        rows={ROWS}
+        rowKey={(row) => row.id}
+        pagination={{ page: 1, pageSize: 25, count: 51, onPageChange: () => undefined }}
+      />,
+    );
+    expect(screen.getByRole('button', { name: 'Previous' })).toBeDisabled();
+  });
+
+  it('asks for the next page and brings the top of the table into view', async () => {
+    const user = userEvent.setup();
+    const handlePageChange = vi.fn();
+    const scrollIntoView = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+    render(
+      <DataTable
+        columns={COLUMNS}
+        rows={ROWS}
+        rowKey={(row) => row.id}
+        pagination={{ page: 1, pageSize: 25, count: 51, onPageChange: handlePageChange }}
+      />,
+    );
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    expect([handlePageChange.mock.calls, scrollIntoView.mock.calls]).toEqual([
+      [[2]],
+      [[{ block: 'start' }]],
+    ]);
+  });
+
+  it('draws no pagination while one page holds every row', () => {
+    render(
+      <DataTable
+        columns={COLUMNS}
+        rows={ROWS}
+        rowKey={(row) => row.id}
+        pagination={{ page: 1, pageSize: 25, count: 3, onPageChange: () => undefined }}
+      />,
+    );
+    expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
+  });
+});
+
+describe('an empty table', () => {
+  it('offers the next thing to do as a button', () => {
+    render(
+      <DataTable
+        columns={COLUMNS}
+        rows={[]}
+        rowKey={(row) => row.id}
+        emptyAction={<button type="button">Reset filters</button>}
+      />,
+    );
+    expect(screen.getByRole('button', { name: 'Reset filters' })).toBeInTheDocument();
+  });
+
+  it('draws the tools at the right of the bar, with the exports', () => {
+    render(
+      <DataTable
+        columns={COLUMNS}
+        rows={[]}
+        rowKey={(row) => row.id}
+        tools={<button type="button">Columns</button>}
+        exportCsvUrl="/x.csv"
+      />,
+    );
+    expect(
+      within(screen.getByRole('button', { name: 'Columns' }).parentElement!).getByRole('link', {
+        name: 'Export CSV',
+      }),
+    ).toBeInTheDocument();
+  });
+});
+
+describe('hiddenColumnsNote', () => {
+  const all: Column<object>[] = ['Name', 'Email', 'DART', 'Phone'].map((header) => ({
+    key: header.toLowerCase(),
+    header,
+    render: () => '',
+  }));
+
+  it('names two hidden columns and offers choosing fewer beside a chooser', () => {
+    expect(hiddenColumnsNote(all, all.slice(0, 1).concat(all.slice(3)), true)).toBe(
+      'Email and DART are hidden to fit the window. Widen it, or choose fewer columns.',
+    );
+  });
+
+  it('lists three hidden columns with a serial comma', () => {
+    expect(hiddenColumnsNote(all, all.slice(0, 1), true)).toBe(
+      'Email, DART, and Phone are hidden to fit the window. Widen it, or choose fewer columns.',
+    );
+  });
+
+  it('is null when every column shows', () => {
+    expect(hiddenColumnsNote(all, all, true)).toBeNull();
   });
 });

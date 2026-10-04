@@ -20,8 +20,11 @@ One line for each bulk email CalDART sent you, the newest first:
 - **From**: who at CalDART sent it.
 - **Type**: the type of email, such as *Operational*.
 
-Before CalDART has sent you any, the list reads *No messages yet*. On a narrow screen the
-table scrolls sideways.
+The arrow on **Date** shows the order; click a heading to sort by it. On a narrow screen
+**Type**, then **From** are left out, and on a phone the table scrolls sideways, says so
+above it, and keeps **Subject** pinned at the left. Before CalDART has sent you any, the list
+reads *No messages yet*, with an **Email preferences** button that opens
+:doc:`email-preferences`, where you choose which kinds of email you receive.
 
 Only the bulk emails sent to you are listed, never anybody else's. Email about your own
 account, such as receipts, renewal reminders, and password links, is not bulk email and is

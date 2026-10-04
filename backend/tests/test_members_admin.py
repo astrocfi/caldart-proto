@@ -59,6 +59,19 @@ pytestmark = pytest.mark.django_db
 ONE_DAY = timedelta(days=1)
 LIST_URL = "/api/v1/admin/members"
 
+#: The list row's profile fields that only the members report's optional columns draw.
+PROFILE_COLUMNS = (
+    "certificate_number",
+    "instrument",
+    "home_airport",
+    "secondary_airport",
+    "city",
+    "state",
+    "county",
+    "ham_callsign",
+    "member_since",
+)
+
 #: Roles that may use the members-admin API at all.
 ALLOWED_ROLES = {ACCOUNT_ADMIN, SYSTEM_ADMIN}
 DENIED_ROLES = [MEMBER, DART_LEADER, USER_ADMIN, WEBSITE_ADMIN]
@@ -282,6 +295,15 @@ def test_row_shape_matches_the_portal_member_row(
         "aircraft",
         "joined_on",
         "profile_updated_at",
+        "certificate_number",
+        "instrument",
+        "home_airport",
+        "secondary_airport",
+        "city",
+        "state",
+        "county",
+        "ham_callsign",
+        "member_since",
     }
     assert row["name"] == "Ana Bracco"
     assert row["dart"] == "Palo Alto"
@@ -290,6 +312,62 @@ def test_row_shape_matches_the_portal_member_row(
     assert row["medical_is_current"] is True
     assert row["membership"]["status"] == "current"
     assert row["joined_on"] == (today - timedelta(days=100)).isoformat()
+
+
+def test_a_row_carries_every_profile_column_the_members_report_offers(
+    account_admin_client: APIClient, population: dict[str, User]
+) -> None:
+    """The row holds the profile values the list's optional columns draw."""
+    profile = population["current"].profile
+    profile.ratings = ["instrument"]
+    profile.home_airport_identifier = "PAO"
+    profile.secondary_airport_identifier = "SQL"
+    profile.county = "Santa Clara"
+    profile.ham_callsign = "KK6ABC"
+    profile.member_since = date(2019, 5, 1)
+    profile.save()
+    (row,) = rows(account_admin_client.get(LIST_URL, {"search": "current@example.test"}))
+    assert {key: row[key] for key in PROFILE_COLUMNS} == {
+        "certificate_number": "1234567",
+        "instrument": True,
+        "home_airport": "PAO",
+        "secondary_airport": "SQL",
+        "city": "Palo Alto",
+        "state": "CA",
+        "county": "Santa Clara",
+        "ham_callsign": "KK6ABC",
+        "member_since": "2019-05-01",
+    }
+
+
+def test_a_row_without_a_profile_reads_blank_profile_columns(
+    account_admin_client: APIClient,
+) -> None:
+    """An account with no profile has blank text, and null for the rating and the date."""
+    UserFactory(email="bare@example.test")
+    (row,) = rows(account_admin_client.get(LIST_URL, {"search": "bare@example.test"}))
+    assert {key: row[key] for key in PROFILE_COLUMNS} == {
+        "certificate_number": "",
+        "instrument": None,
+        "home_airport": "",
+        "secondary_airport": "",
+        "city": "",
+        "state": "",
+        "county": "",
+        "ham_callsign": "",
+        "member_since": None,
+    }
+
+
+def test_a_row_reads_no_instrument_rating_for_somebody_who_is_not_a_pilot(
+    account_admin_client: APIClient, population: dict[str, User]
+) -> None:
+    """The instrument rating is null, not false, for a member who holds no certificate."""
+    profile = population["current"].profile
+    profile.pilot_certificate_type = PilotCertificateType.NONE
+    profile.save()
+    (row,) = rows(account_admin_client.get(LIST_URL, {"search": "current@example.test"}))
+    assert row["instrument"] is None
 
 
 def test_list_is_paginated(account_admin_client: APIClient, population: dict[str, User]) -> None:

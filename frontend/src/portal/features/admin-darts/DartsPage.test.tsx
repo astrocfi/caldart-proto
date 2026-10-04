@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 import type { AdminDart, AdminDartContact } from '@/portal/api/types';
 import { API, makeUser, signedInAs } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
+import { rowCells } from '@test/table';
 import { server } from '@test/server';
 import { DartsPage } from './DartsPage';
 
@@ -56,16 +57,41 @@ describe('DartsPage', () => {
     stubList();
     renderPage();
 
-    const cells = await screen.findAllByRole('cell', { name: 'Napa' });
+    const cells = await screen.findAllByRole('rowheader', { name: 'Napa' });
     const row = cells[0]?.closest('tr');
     expect(within(row as HTMLElement).getByText('APC')).toBeInTheDocument();
+  });
+
+  it('pins the name as the column that tells one DART from another', async () => {
+    stubList();
+    renderPage();
+
+    const [cell] = await screen.findAllByRole('rowheader', { name: 'Napa' });
+    expect(cell).toHaveClass('data-table__identity');
+  });
+
+  it('draws the Edit column last', async () => {
+    stubList();
+    renderPage();
+    await screen.findAllByRole('rowheader', { name: 'Napa' });
+
+    const headings = screen.getAllByRole('columnheader');
+    expect(headings.at(-1)).toHaveClass('data-table__actions');
+  });
+
+  it('right-aligns the member count heading over its figures', async () => {
+    stubList();
+    renderPage();
+    await screen.findAllByRole('rowheader', { name: 'Napa' });
+
+    expect(screen.getByRole('columnheader', { name: /Members/ })).toHaveClass('numeric');
   });
 
   it('has no town column', async () => {
     stubList();
     renderPage();
 
-    await screen.findAllByRole('cell', { name: 'Napa' });
+    await screen.findAllByRole('rowheader', { name: 'Napa' });
     expect(screen.queryByRole('columnheader', { name: 'Town' })).not.toBeInTheDocument();
   });
 
@@ -601,11 +627,11 @@ describe('DartsPage', () => {
     stubList([makeDart({ roster_recipients: 3 })]);
     renderPage();
 
-    const cells = await screen.findAllByRole('cell', { name: 'Palo Alto' });
+    const cells = await screen.findAllByRole('rowheader', { name: 'Palo Alto' });
     const headers = screen.getAllByRole('columnheader').map((header) => header.textContent);
-    const column = headers.findIndex((text) => text?.startsWith('Roster'));
+    const column = headers.findIndex((text) => text?.includes('Roster'));
     const row = cells[0]?.closest('tr') as HTMLElement;
-    expect(within(row).getAllByRole('cell')[column]).toHaveTextContent('3');
+    expect(rowCells(row)[column]).toHaveTextContent('3');
   });
 
   it('offers to add a sixth person to a DART of five', async () => {

@@ -44,13 +44,23 @@ function makeAircraft(overrides: Partial<Aircraft> = {}): Aircraft {
   };
 }
 
-/** The registry `GET /reports/aircraft/columns` answers with, trimmed to four. */
+/** The registry `GET /reports/aircraft/columns` answers with, trimmed to six. */
 const COLUMNS: ReportColumn[] = [
   { key: 'n_number', label: 'N-number', default: true },
   { key: 'make', label: 'Make', default: true },
   { key: 'owner_type', label: 'Owner type', default: false },
+  { key: 'hull', label: 'Hull', default: false },
+  { key: 'insurance_expiration', label: 'Expires', default: true },
   { key: 'pilots', label: 'Pilots', default: false },
 ];
+
+/** The `columns` parameter the exports carry while the defaults stand. */
+const DEFAULT_COLUMNS = 'columns=n_number%2Cmake%2Cinsurance_expiration';
+
+/** A heading's words, without the arrow a sortable heading carries. */
+function headingText(cell: HTMLElement): string {
+  return (cell.textContent ?? '').replace(/[↑↓↕]/g, '');
+}
 
 /** The columns endpoint, which every register render reads. */
 function columnsReturn() {
@@ -131,7 +141,43 @@ describe('AircraftRegisterPage', () => {
     // accessible name, so a screen reader still hears it.
     expect(table.getByText('Insured')).toHaveClass('visually-hidden');
     expect(table.getByText('Insurance expired')).toHaveClass('visually-hidden');
-    expect(table.getByText(/Flying club/)).toBeInTheDocument();
+  });
+
+  it("shows the report's default columns, in the report's order", async () => {
+    server.use(columnsReturn(), listReturns([makeAircraft()], []));
+
+    renderWithProviders(<AircraftRegisterPage />, { route: '/admin/aircraft' });
+    await screen.findByRole('link', { name: 'N172SP' });
+
+    expect(screen.getAllByRole('columnheader').map(headingText)).toEqual([
+      'N-number',
+      'Make',
+      'Expires',
+    ]);
+  });
+
+  it('shows a column ticked in the chooser in the table as well as the downloads', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    server.use(columnsReturn(), listReturns([makeAircraft()], []));
+
+    renderWithProviders(<AircraftRegisterPage />, { route: '/admin/aircraft' });
+    await screen.findByRole('link', { name: 'N172SP' });
+    await user.click(screen.getByRole('button', { name: 'Columns' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Owner type' }));
+
+    expect(screen.getByRole('cell', { name: 'Flying club' })).toBeInTheDocument();
+  });
+
+  it('right-aligns a money column', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    server.use(columnsReturn(), listReturns([makeAircraft()], []));
+
+    renderWithProviders(<AircraftRegisterPage />, { route: '/admin/aircraft' });
+    await screen.findByRole('link', { name: 'N172SP' });
+    await user.click(screen.getByRole('button', { name: 'Columns' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Hull' }));
+
+    expect(screen.getByRole('cell', { name: '$145,000' })).toHaveClass('numeric');
   });
 
   it('sends every filter to the API', async () => {
@@ -184,7 +230,7 @@ describe('AircraftRegisterPage', () => {
     await waitFor(() => expect(seen[seen.length - 1]!.get('page')).toBe('1'));
   });
 
-  it('empties every filter with Reset to Defaults', async () => {
+  it('empties every filter with Reset filters', async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     const seen: URLSearchParams[] = [];
     server.use(columnsReturn(), listReturns([makeAircraft()], seen));
@@ -194,7 +240,7 @@ describe('AircraftRegisterPage', () => {
     });
     await screen.findByRole('link', { name: 'N172SP' });
 
-    await user.click(screen.getByRole('button', { name: 'Reset to Defaults' }));
+    await user.click(screen.getByRole('button', { name: 'Reset filters' }));
 
     await waitFor(() => expect(seen[seen.length - 1]!.has('insurance')).toBe(false));
     expect(screen.getByLabelText('Make')).toHaveValue('');
@@ -208,12 +254,12 @@ describe('AircraftRegisterPage', () => {
     renderWithProviders(<AircraftRegisterPage />, { route: '/admin/aircraft' });
     await screen.findByRole('link', { name: 'N172SP' });
 
-    await user.click(screen.getByRole('button', { name: /Insurance/ }));
+    await user.click(screen.getByRole('button', { name: /Expires/ }));
     await waitFor(() =>
       expect(seen[seen.length - 1]!.get('ordering')).toBe('insurance_expiration'),
     );
 
-    await user.click(screen.getByRole('button', { name: /Insurance/ }));
+    await user.click(screen.getByRole('button', { name: /Expires/ }));
     await waitFor(() =>
       expect(seen[seen.length - 1]!.get('ordering')).toBe('-insurance_expiration'),
     );
@@ -239,7 +285,7 @@ describe('AircraftRegisterPage', () => {
       'aria-sort',
       'ascending',
     );
-    expect(screen.getByRole('columnheader', { name: /Make/ })).toHaveAttribute('aria-sort', 'none');
+    expect(screen.getByRole('columnheader', { name: /Make/ })).not.toHaveAttribute('aria-sort');
   });
 
   it('asks for the first page when the address names a page that is not a positive whole number', async () => {
@@ -288,7 +334,7 @@ describe('AircraftRegisterPage', () => {
     await waitFor(() =>
       expect(screen.getByRole('link', { name: 'Export CSV' })).toHaveAttribute(
         'href',
-        '/api/v1/reports/aircraft/export.csv?ordering=n_number&columns=n_number%2Cmake',
+        `/api/v1/reports/aircraft/export.csv?ordering=n_number&${DEFAULT_COLUMNS}`,
       ),
     );
 
@@ -298,7 +344,7 @@ describe('AircraftRegisterPage', () => {
       expect(screen.getByRole('link', { name: 'Export PDF' })).toHaveAttribute(
         'href',
         '/api/v1/reports/aircraft/export.pdf?insurance=missing&ordering=n_number' +
-          '&columns=n_number%2Cmake',
+          `&${DEFAULT_COLUMNS}`,
       ),
     );
   });
@@ -312,7 +358,7 @@ describe('AircraftRegisterPage', () => {
     await screen.findByRole('link', { name: 'N172SP' });
 
     await user.click(screen.getByRole('button', { name: 'Columns' }));
-    const panel = screen.getByRole('group', { name: /Columns to export/ });
+    const panel = screen.getByRole('group', { name: 'Columns in the table and the download' });
     expect(within(panel).getByRole('checkbox', { name: 'N-number' })).toBeChecked();
     expect(within(panel).getByRole('checkbox', { name: 'Pilots' })).not.toBeChecked();
   });
@@ -331,12 +377,14 @@ describe('AircraftRegisterPage', () => {
     await waitFor(() =>
       expect(screen.getByRole('link', { name: 'Export CSV' })).toHaveAttribute(
         'href',
-        '/api/v1/reports/aircraft/export.csv?ordering=n_number&columns=n_number%2Cmake%2Cpilots',
+        '/api/v1/reports/aircraft/export.csv?ordering=n_number' +
+          '&columns=n_number%2Cmake%2Cinsurance_expiration%2Cpilots',
       ),
     );
     expect(screen.getByRole('link', { name: 'Export PDF' })).toHaveAttribute(
       'href',
-      '/api/v1/reports/aircraft/export.pdf?ordering=n_number&columns=n_number%2Cmake%2Cpilots',
+      '/api/v1/reports/aircraft/export.pdf?ordering=n_number' +
+        '&columns=n_number%2Cmake%2Cinsurance_expiration%2Cpilots',
     );
   });
 
@@ -358,11 +406,11 @@ describe('AircraftRegisterPage', () => {
     );
 
     renderWithProviders(<AircraftRegisterPage />, { route: '/admin/aircraft' });
-    expect(await screen.findByText('1–25 of 40')).toBeInTheDocument();
+    expect(await screen.findByText('Showing 1–25 of 40')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: /Next/ }));
+    await user.click(screen.getByRole('button', { name: 'Next' }));
     expect(await screen.findByRole('link', { name: 'N9021K' })).toBeInTheDocument();
-    expect(screen.getByText('26–40 of 40')).toBeInTheDocument();
+    expect(screen.getByText('Showing 26–40 of 40')).toBeInTheDocument();
   });
 
   it('says in its header which day the FAA registry was imported', async () => {

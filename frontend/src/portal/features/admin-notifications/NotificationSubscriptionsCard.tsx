@@ -78,17 +78,22 @@ export function NotificationSubscriptionsCard(): JSX.Element {
     setOpenForm(null);
   };
 
+  // The recipient tells the rows apart and starts at the left; the events never narrow
+  // below a readable width; the actions come last, headed for a screen reader, with room
+  // for Edit, Pause, and an open delete confirmation side by side.
   const columns: Column<NotificationSubscription>[] = [
     {
       key: 'recipient',
       header: 'Recipient',
-      width: '14rem',
+      minWidth: '12rem',
+      isIdentity: true,
       render: (row) => recipientLabel(row),
       sortValue: (row) => recipientLabel(row),
     },
     {
       key: 'events',
       header: 'Events',
+      minWidth: '14rem',
       // A plain-text cell: the single-line table cuts it with an ellipsis and
       // keeps the whole list in the cell's title.
       render: (row) => eventLabels(row.events, events),
@@ -97,6 +102,7 @@ export function NotificationSubscriptionsCard(): JSX.Element {
       key: 'is_active',
       header: 'Active',
       width: '5rem',
+      keepInSight: true,
       render: (row) =>
         row.is_active ? (
           <StatusDot tone="current" label="Active" />
@@ -107,7 +113,9 @@ export function NotificationSubscriptionsCard(): JSX.Element {
     {
       key: 'actions',
       header: '',
-      width: '12rem',
+      width: '16rem',
+      isActions: true,
+      narrowWidth: '8rem',
       render: (row) => (
         <span className="cluster cluster--nowrap">
           <Button variant="quiet" small disabled={isBusy} onClick={() => handleEdit(row)}>

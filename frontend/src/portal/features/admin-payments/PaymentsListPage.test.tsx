@@ -33,7 +33,7 @@ describe('PaymentsListPage', () => {
     const table = await screen.findByRole('table', { name: /1 payment/ });
     const headers = within(table)
       .getAllByRole('columnheader')
-      .map((cell) => cell.textContent?.replace(/[↑↓]/g, '').trim());
+      .map((cell) => cell.textContent?.replace(/[↑↓↕]/g, '').trim());
     expect(headers).toEqual(['Date', 'Name', 'Total', 'Fee', 'Net', 'Refunded', 'Status']);
   });
 
@@ -136,7 +136,7 @@ describe('PaymentsListPage', () => {
 
     await screen.findByRole('table', { name: /1 payment/ });
     await user.selectOptions(screen.getByLabelText('Status'), 'succeeded');
-    await user.click(screen.getByRole('button', { name: 'Reset to Defaults' }));
+    await user.click(screen.getByRole('button', { name: 'Reset filters' }));
 
     expect(screen.getByLabelText('Status')).toHaveValue('');
   });
@@ -148,7 +148,7 @@ describe('PaymentsListPage', () => {
 
     await screen.findByRole('table', { name: /1 payment/ });
     await user.selectOptions(screen.getByLabelText('Status'), 'succeeded');
-    await user.click(screen.getByRole('button', { name: 'Reset to Defaults' }));
+    await user.click(screen.getByRole('button', { name: 'Reset filters' }));
 
     await waitFor(() =>
       expect(screen.getByRole('link', { name: /Export CSV/ })).not.toHaveAttribute(
@@ -227,7 +227,7 @@ describe('PaymentsListPage', () => {
       'aria-sort',
       'descending',
     );
-    expect(screen.getByRole('columnheader', { name: /Name/ })).toHaveAttribute('aria-sort', 'none');
+    expect(screen.getByRole('columnheader', { name: /Name/ })).not.toHaveAttribute('aria-sort');
   });
 
   it('asks for the first page when the address names a page that is not a positive whole number', async () => {
@@ -268,6 +268,61 @@ describe('PaymentsListPage', () => {
     renderWithProviders(<PaymentsListPage />);
 
     expect(await screen.findByText('No payments match these filters')).toBeInTheDocument();
+  });
+
+  it('offers to reset the filters from the empty state', async () => {
+    const user = userEvent.setup();
+    serveList([]);
+    renderWithProviders(<PaymentsListPage />, { route: '/admin/payments/list?status=failed' });
+
+    await screen.findByText('No payments match these filters');
+    const resets = screen.getAllByRole('button', { name: 'Reset filters' });
+    await user.click(resets[resets.length - 1]!);
+
+    expect(screen.getByLabelText('Status')).toHaveValue('');
+  });
+
+  it('shows the arrow of the order it opens on, newest first', async () => {
+    serveList();
+    renderWithProviders(<PaymentsListPage />);
+
+    await screen.findByRole('table', { name: /1 payment/ });
+    expect(screen.getByRole('columnheader', { name: /Date/ })).toHaveAttribute(
+      'aria-sort',
+      'descending',
+    );
+  });
+
+  it('draws a column the server cannot order by as a plain heading', async () => {
+    serveList();
+    renderWithProviders(<PaymentsListPage />);
+
+    const table = await screen.findByRole('table', { name: /1 payment/ });
+    const refunded = within(table).getByRole('columnheader', { name: 'Refunded' });
+    expect(within(refunded).queryByRole('button')).not.toBeInTheDocument();
+  });
+
+  it('pages through a long list', async () => {
+    const user = userEvent.setup();
+    const pages: (string | null)[] = [];
+    serveList();
+    server.use(
+      http.get(`${API}/admin/payments`, ({ request }) => {
+        pages.push(new URL(request.url).searchParams.get('page'));
+        return HttpResponse.json({
+          count: 60,
+          next: null,
+          previous: null,
+          results: [makePayment()],
+        });
+      }),
+    );
+    renderWithProviders(<PaymentsListPage />);
+
+    await screen.findByText('Showing 1–25 of 60');
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+
+    await waitFor(() => expect(pages).toContain('2'));
   });
 
   it('offers the record form', async () => {

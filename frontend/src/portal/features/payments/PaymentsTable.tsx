@@ -3,14 +3,16 @@
  *
  * One row per payment, in the order the API sends them (newest first), with a
  * link to the receipt PDF for every payment whose money arrived.  A refund
- * column appears only when something has come back, so the common case stays
- * four columns wide on a phone.
+ * column appears only when something has come back.  On a phone the date, the
+ * refund, and the receipt give way, so what was bought, the amount, and the status
+ * stay on screen.
  */
 import type { JSX } from 'react';
 
 import type { PaymentSummary } from '@/portal/api/types';
+import type { Column } from '@/portal/components/DataTable';
+import { DataTable } from '@/portal/components/DataTable';
 import { DateText } from '@/portal/components/DateText';
-import { EmptyState } from '@/portal/components/EmptyState';
 import { Money } from '@/portal/components/Money';
 import { PaymentChip } from '@/portal/components/StatusChip';
 import { receiptUrl } from './api';
@@ -25,78 +27,94 @@ export function purchaseLabel(payment: PaymentSummary): string {
   return payment.plan ?? 'Membership';
 }
 
+/**
+ * The history's columns.  The date identifies a payment, never gives way, and stays
+ * pinned when the table scrolls; the amount, the status, and the receipt link, last on
+ * the row, stay in sight, and what the payment bought, then the refund, give way when
+ * the table would not fit.  The Refunded column is there only when something has come
+ * back.
+ */
+function paymentColumns(hasRefunds: boolean): Column<PaymentSummary>[] {
+  const columns: (Column<PaymentSummary> | null)[] = [
+    {
+      key: 'date',
+      header: 'Date',
+      width: '7rem',
+      isIdentity: true,
+      render: (payment) => <DateText value={payment.paid_on ?? payment.completed_at} />,
+    },
+    {
+      key: 'for',
+      header: 'For',
+      minWidth: '8rem',
+      dropOrder: 1,
+      render: (payment) => purchaseLabel(payment),
+    },
+    {
+      key: 'amount',
+      header: 'Amount',
+      width: '6rem',
+      numeric: true,
+      keepInSight: true,
+      render: (payment) => <Money cents={payment.amount_cents} />,
+    },
+    hasRefunds
+      ? {
+          key: 'refunded',
+          header: 'Refunded',
+          width: '6.5rem',
+          numeric: true,
+          dropOrder: 2,
+          render: (payment) =>
+            payment.refunded_cents > 0 ? (
+              <Money cents={payment.refunded_cents} />
+            ) : (
+              <span className="muted">—</span>
+            ),
+        }
+      : null,
+    {
+      key: 'status',
+      header: 'Status',
+      width: '9rem',
+      narrowWidth: '7rem',
+      keepInSight: true,
+      render: (payment) => <PaymentChip status={payment.status} />,
+    },
+    {
+      key: 'receipt',
+      header: 'Receipt',
+      width: '5.5rem',
+      keepInSight: true,
+      render: (payment) =>
+        RECEIPTED.includes(payment.status) ? (
+          <a href={receiptUrl(payment.id)} download>
+            Receipt
+          </a>
+        ) : (
+          <span className="muted">—</span>
+        ),
+    },
+  ];
+  return columns.filter((column) => column !== null);
+}
+
 export interface PaymentsTableProps {
   payments: PaymentSummary[];
 }
 
 /** The payments table, or an empty state when the member has paid nothing yet. */
 export function PaymentsTable({ payments }: PaymentsTableProps): JSX.Element {
-  if (payments.length === 0) {
-    return (
-      <EmptyState
-        title="No payments yet"
-        description="Payments you make to CalDART will be listed here, each with its receipt."
-      />
-    );
-  }
-
   const hasRefunds = payments.some((payment) => payment.refunded_cents > 0);
-
   return (
-    <div className="table-wrap">
-      <table className="payments__table">
-        <caption className="visually-hidden">Everything you have paid CalDART</caption>
-        <thead>
-          <tr>
-            <th scope="col">Date</th>
-            <th scope="col">For</th>
-            <th scope="col" className="numeric">
-              Amount
-            </th>
-            {hasRefunds ? (
-              <th scope="col" className="numeric">
-                Refunded
-              </th>
-            ) : null}
-            <th scope="col">Status</th>
-            <th scope="col">Receipt</th>
-          </tr>
-        </thead>
-        <tbody>
-          {payments.map((payment) => (
-            <tr key={payment.id}>
-              <td>
-                <DateText value={payment.paid_on ?? payment.completed_at} />
-              </td>
-              <td>{purchaseLabel(payment)}</td>
-              <td className="numeric">
-                <Money cents={payment.amount_cents} />
-              </td>
-              {hasRefunds ? (
-                <td className="numeric">
-                  {payment.refunded_cents > 0 ? (
-                    <Money cents={payment.refunded_cents} />
-                  ) : (
-                    <span className="muted">—</span>
-                  )}
-                </td>
-              ) : null}
-              <td>
-                <PaymentChip status={payment.status} />
-              </td>
-              <td>
-                {RECEIPTED.includes(payment.status) ? (
-                  <a href={receiptUrl(payment.id)} download>
-                    Receipt
-                  </a>
-                ) : (
-                  <span className="muted">—</span>
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <DataTable
+      singleLine
+      columns={paymentColumns(hasRefunds)}
+      rows={payments}
+      rowKey={(payment) => payment.id}
+      caption="Everything you have paid CalDART"
+      emptyTitle="No payments yet"
+      emptyDescription="Payments you make to CalDART will be listed here, each with its receipt."
+    />
   );
 }

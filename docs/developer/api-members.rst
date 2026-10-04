@@ -117,7 +117,16 @@ The member table, filtered, ordered, and paginated with the project's standard
          "medical_is_current": true,
          "aircraft": ["N172SP"],
          "joined_on": "2024-07-01",
-         "profile_updated_at": "2026-08-11T09:14:02.100522-07:00"
+         "profile_updated_at": "2026-08-11T09:14:02.100522-07:00",
+         "certificate_number": "1234567",
+         "instrument": true,
+         "home_airport": "PAO",
+         "secondary_airport": "",
+         "city": "Palo Alto",
+         "state": "CA",
+         "county": "Santa Clara",
+         "ham_callsign": "",
+         "member_since": null
        }
      ]
    }
@@ -136,6 +145,15 @@ profile nobody has edited, or for an account with none.  An account with no
 ``medical_expiration`` are ``null``, ``pilot_certificate_type``, and
 ``medical_type`` read ``none``, ``medical_is_current`` is false and
 ``aircraft`` is empty.
+
+The row also carries every profile value the members report can add as a column,
+so the list's table can show whatever its column chooser picks:
+``certificate_number``, ``instrument`` (true or false for a pilot, by whether the
+ratings hold an instrument rating, and ``null`` for somebody who holds no
+certificate), ``home_airport`` and ``secondary_airport`` (identifiers), ``city``,
+``state``, ``county``, ``ham_callsign``, and ``member_since`` (the day the member
+says they joined, or ``null``).  Without a profile the text fields are blank and
+``instrument`` and ``member_since`` are ``null``.
 
 Statuses:
 

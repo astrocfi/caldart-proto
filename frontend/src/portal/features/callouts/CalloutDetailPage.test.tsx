@@ -54,7 +54,8 @@ describe('CalloutDetailPage', () => {
 
     const headers = within(await answersTable())
       .getAllByRole('columnheader')
-      .map((header) => header.textContent);
+      // The sort arrow is drawn beside each heading; it is not part of its words.
+      .map((header) => header.textContent?.replace(/[↕↑↓]/g, ''));
     expect(headers.slice(0, 3)).toEqual(['Name', 'Answer', 'Go/no-go']);
   });
 
@@ -160,5 +161,20 @@ describe('remindBlocked', () => {
 
   it('lets a finished, open callout with people left be reminded', () => {
     expect(remindBlocked(makeCallout())).toBeNull();
+  });
+
+  it("offers Any answer as the answer filter's blank choice", async () => {
+    renderCallout();
+
+    const select = await screen.findByRole('combobox', { name: 'Answer' });
+    expect(within(select).getAllByRole('option')[0]).toHaveTextContent('Any answer');
+  });
+
+  it('offers to reset the filters when nobody matches them', async () => {
+    renderCallout();
+
+    await userEvent.type(await screen.findByRole('searchbox', { name: 'Find a person' }), 'zzz');
+
+    expect(await screen.findByText('Nobody matches these filters.')).toBeInTheDocument();
   });
 });

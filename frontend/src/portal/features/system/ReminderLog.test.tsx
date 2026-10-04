@@ -98,7 +98,7 @@ describe('ReminderLog', () => {
     expect(kinds).toEqual([null, 'second']);
   });
 
-  it('offers every kind plus "All kinds" in the filter', async () => {
+  it('offers every kind plus "Any kind" in the filter', async () => {
     server.use(logHandler(ENTRIES));
     renderWithProviders(<ReminderLog />);
     await screen.findByText('Marta Reyes');
@@ -106,7 +106,7 @@ describe('ReminderLog', () => {
 
     const options = within(screen.getByLabelText('Reminder')).getAllByRole('option');
     expect(options.map((option) => option.textContent)).toEqual([
-      'All kinds',
+      'Any kind',
       '60 days before',
       '30 days before',
       '7 days before',
@@ -121,5 +121,15 @@ describe('ReminderLog', () => {
     await screen.findByText('Marta Reyes');
 
     expect(screen.queryByRole('button', { name: 'Run now' })).not.toBeInTheDocument();
+  });
+
+  it('offers to reset the filter when no reminder of the chosen kind has gone', async () => {
+    server.use(logHandler([]));
+    renderWithProviders(<ReminderLog />);
+    await screen.findByText('No reminders sent yet');
+
+    await userEvent.selectOptions(screen.getByLabelText('Reminder'), 'first');
+
+    expect(await screen.findByText('No reminders of this kind')).toBeInTheDocument();
   });
 });

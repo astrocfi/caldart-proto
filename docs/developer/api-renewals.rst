@@ -233,7 +233,9 @@ Finance.  Every mandate of both kinds, paginated, newest first.
 
 ``?status=`` narrows to ``pending``, ``active``, ``paused`` or ``canceled``;
 ``?kind=`` narrows to ``renewal``, ``both`` or ``contribution`` (the recurring
-donations), the values each row's ``kind`` carries; ``?search=`` matches a name, an email address or the method label; ``?ordering=``
+donations), the values each row's ``kind`` carries; ``?search=`` keeps a mandate when
+every word of it appears in the member's email address, first name or last name, or in
+the method label; ``?ordering=``
 takes ``created_at``, ``status`` or ``last_charged_at``, and a leading ``-``
 reverses.
 
@@ -241,7 +243,8 @@ reverses.
 
    {"count": 12, "next": null, "previous": null, "results": [{"id": 12, "...": "..."}]}
 
-Each row is the mandate object above.
+Each row is the mandate object above.  The same three filters download the list as the
+``renewals`` report (:doc:`api-reports`).
 
 Statuses: **200**; **400** naming ``status`` for a status outside the four, and
 ``kind`` for a kind outside the three (``Unknown kind '<value>'.``); **403** for

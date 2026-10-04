@@ -2,11 +2,11 @@
  * The column chooser behind a report table and its two exports.
  *
  * The registry comes from the server, so the screen and the exports can never
- * offer different columns.  The chosen set always drives the CSV and the PDF; a
- * screen whose table follows it too says so in the panel's legend.  Beside the
- * Columns button, each user keeps named sets of a report's columns: **Load
- * columns** applies one, **Save columns** keeps the boxes as they stand under a
- * name.
+ * offer different columns.  The chosen set drives the table on screen and the CSV
+ * and the PDF together, and the panel's legend says so.  Beside the Columns button,
+ * each user keeps named sets of a report's columns: **Load columns** applies one,
+ * to the table and the downloads alike, and **Save columns** keeps the boxes as
+ * they stand under a name.
  */
 import { useId, useState } from 'react';
 import type { JSX, KeyboardEvent } from 'react';
@@ -30,14 +30,14 @@ export interface ColumnChooserProps {
   chosen: string[];
   onChange: (chosen: string[]) => void;
   /**
-   * The panel's legend.  The default suits a screen whose table follows the
-   * chosen columns; a screen whose table is fixed passes "Columns to export".
+   * The panel's legend.  The default suits a list whose table and downloads follow
+   * the chosen columns; a form that emails a report passes "Columns to send".
    */
   legend?: string;
 }
 
 /** The keys a fresh chooser starts with: the registry's own default columns. */
-export function defaultColumnKeys(columns: ReportColumn[]): string[] {
+export function defaultColumnKeys(columns: readonly ReportColumn[]): string[] {
   return columns.filter((column) => column.default).map((column) => column.key);
 }
 
@@ -75,7 +75,8 @@ export function columnsOfSet(columns: ReportColumn[], saved: readonly string[]):
  * The Columns, Load columns and Save columns buttons, side by side, each opening
  * its own panel under itself.
  *
- * Columns holds the checkboxes and **Reset to the default columns**.  Load
+ * Columns holds the checkboxes, which scroll in a long list, and **Reset to the
+ * default columns** under them, always in sight.  Load
  * columns lists the user's saved sets for this report; picking one applies it
  * and closes the panel.  Save columns keeps the chosen columns under a name.
  */
@@ -84,7 +85,7 @@ export function ColumnChooser({
   columns,
   chosen,
   onChange,
-  legend = 'Columns to show and export',
+  legend = 'Columns in the table and the download',
 }: ColumnChooserProps): JSX.Element {
   // The name box outlives its panel, and a loaded set's name goes into it, so
   // saving after further changes replaces the set that was loaded.
@@ -101,20 +102,22 @@ export function ColumnChooser({
 
   return (
     <div className="column-chooser cluster">
-      <PanelButton label="Columns" legend={legend}>
+      <PanelButton label="Columns" legend={legend} isForm>
         {() => (
           <>
-            {columns.map((column) => (
-              <label key={column.key} className="column-chooser__option">
-                <input
-                  type="checkbox"
-                  checked={chosen.includes(column.key)}
-                  disabled={chosen.length === 1 && chosen.includes(column.key)}
-                  onChange={() => handleToggle(column.key)}
-                />
-                {column.label}
-              </label>
-            ))}
+            <div className="column-chooser__list">
+              {columns.map((column) => (
+                <label key={column.key} className="column-chooser__option">
+                  <input
+                    type="checkbox"
+                    checked={chosen.includes(column.key)}
+                    disabled={chosen.length === 1 && chosen.includes(column.key)}
+                    onChange={() => handleToggle(column.key)}
+                  />
+                  {column.label}
+                </label>
+              ))}
+            </div>
             <Button variant="quiet" small onClick={() => onChange(defaultColumnKeys(columns))}>
               Reset to the default columns
             </Button>

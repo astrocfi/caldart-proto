@@ -7,6 +7,7 @@ import { FIELDS } from '@test/fixtures/bulkEmail';
 import { makeTemplate } from '@test/fixtures/bulkEmailReuse';
 import { API } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
+import { tableHeaders } from '@test/table';
 import { server } from '@test/server';
 import type { EmailTemplate } from '@/portal/api/types';
 import { TemplatesPage } from './TemplatesPage';
@@ -120,15 +121,10 @@ describe('TemplatesPage', () => {
     expect(state.patched).toEqual([expect.objectContaining({ name: 'Spring newsletter' })]);
   });
 
-  it('puts the trashcan right after the name, which opens the edit', async () => {
+  it('puts the name, which opens the edit, first and the trashcan last', async () => {
     renderWithProviders(<TemplatesPage />);
-    const table = await screen.findByRole('table');
-    expect(
-      within(table)
-        .getAllByRole('columnheader')
-        .slice(0, 2)
-        .map((header) => header.textContent),
-    ).toEqual(['Name', 'Actions']);
+    const headers = tableHeaders(await screen.findByRole('table'));
+    expect([headers[0], headers.at(-1)]).toEqual(['Name', 'Actions']);
   });
 
   it('offers the type as the compose screen does, each with what it is for', async () => {

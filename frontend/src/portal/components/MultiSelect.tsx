@@ -6,11 +6,12 @@
  * opens a panel of checkboxes under it.  Each checkbox applies as it is ticked or
  * unticked, so any choice, the last one included, can be taken back on its own,
  * and **Clear** takes them all back at once.  The panel shuts on a click outside
- * it and on Escape, handing the focus back to the box.  A screen reader hears the
+ * it and on Escape, handing the focus back to the box, and when the focus moves on
+ * past it.  A screen reader hears the
  * box by its legend and what it holds, *County: Any*, not by what it holds alone.
  */
 import { useCallback, useId, useRef, useState } from 'react';
-import type { JSX } from 'react';
+import type { FocusEvent, JSX } from 'react';
 
 import type { Option } from '@/portal/reports/types';
 import { Button } from './Button';
@@ -71,6 +72,11 @@ export function MultiSelect({
 
   useClickOutside(rootRef, handleClose, isOpen);
 
+  const handleBlur = (event: FocusEvent<HTMLDivElement>): void => {
+    const next = event.relatedTarget;
+    if (next instanceof Node && !event.currentTarget.contains(next)) setIsOpen(false);
+  };
+
   const handleToggle = (toggled: string): void => {
     const chosen = new Set(value);
     if (chosen.has(toggled)) chosen.delete(toggled);
@@ -82,7 +88,7 @@ export function MultiSelect({
   const shown = summary === '' ? placeholder : summary;
 
   return (
-    <div className="multi-select" ref={rootRef}>
+    <div className="multi-select" ref={rootRef} onBlur={handleBlur}>
       <button
         type="button"
         id={id}

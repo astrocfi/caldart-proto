@@ -2,8 +2,9 @@ import { screen, within } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it } from 'vitest';
 
-import { answerSender, LEADER_SENDER, makeSummary } from '@test/fixtures/bulkEmail';
+import { answerSender, LEADER_SENDER, makeSummary, NO_DART_SENDER } from '@test/fixtures/bulkEmail';
 import { API } from '@test/handlers';
+import { headerWords, rowCells, tableHeaders } from '@test/table';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
 import type { BulkEmailSummary } from '@/portal/api/types';
@@ -85,23 +86,19 @@ describe('SentPage', () => {
     renderWithProviders(<SentPage />);
     const table = await screen.findByRole('table');
     const first = within(table).getAllByRole('columnheader')[0];
-    expect([first?.textContent, first?.className, table.style.minWidth.includes('9rem')]).toEqual([
-      'Subject',
-      'data-table__text',
-      true,
-    ]);
+    expect([
+      first === undefined ? '' : headerWords(first),
+      first?.classList.contains('data-table__identity'),
+      table.style.minWidth.includes('9rem'),
+    ]).toEqual(['Subject', true, true]);
   });
 
   it('shows CalDART management who wrote each email and its DART', async () => {
     answerSent([makeSummary({ status: 'sent', sender: 'Lane Lead', dart_name: 'Marin' })]);
     renderWithProviders(<SentPage />);
     const row = (await screen.findByRole('link', { name: 'Hangar day' })).closest('tr');
-    const headers = within(screen.getByRole('table'))
-      .getAllByRole('columnheader')
-      .map((header) => header.textContent);
-    const cells = within(row as HTMLElement)
-      .getAllByRole('cell')
-      .map((cell) => cell.textContent);
+    const headers = tableHeaders(screen.getByRole('table'));
+    const cells = rowCells(row as HTMLElement).map((cell) => cell.textContent);
     const at = headers.indexOf('From');
     expect([headers[at + 1], cells[at], cells[at + 1]]).toEqual(['DART', 'Lane Lead', 'Marin']);
   });
@@ -111,20 +108,15 @@ describe('SentPage', () => {
     answerSent([makeSummary({ status: 'sent' })]);
     renderWithProviders(<SentPage />);
     await screen.findByRole('link', { name: 'Hangar day' });
-    const headers = within(screen.getByRole('table'))
-      .getAllByRole('columnheader')
-      .map((header) => header.textContent);
+    const headers = tableHeaders(screen.getByRole('table'));
     expect(headers.filter((header) => header === 'From' || header === 'DART')).toEqual([]);
   });
 
-  it('puts the actions right after the subject, so they stay in sight', async () => {
+  it('puts the actions last, where every table keeps them', async () => {
     answerSent([makeSummary({ status: 'sent' })]);
     renderWithProviders(<SentPage />);
     const table = await screen.findByRole('table');
-    const headers = within(table)
-      .getAllByRole('columnheader')
-      .map((header) => header.textContent);
-    expect(headers.slice(0, 2)).toEqual(['Subject', 'Actions']);
+    expect(tableHeaders(table).at(-1)).toBe('Actions');
   });
 
   it('tells a DART leader with nothing sent where their emails will show', async () => {
@@ -132,9 +124,26 @@ describe('SentPage', () => {
     answerSent([]);
     renderWithProviders(<SentPage />);
     expect(await screen.findByText('You have not sent an email yet')).toBeVisible();
-    expect(screen.getByRole('link', { name: 'Compose' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Write an email' })).toHaveAttribute(
       'href',
       '/bulk-email/compose',
     );
+  });
+
+  it('offers CalDART management a way to write one when nothing has been sent', async () => {
+    answerSent([]);
+    renderWithProviders(<SentPage />);
+    expect(await screen.findByRole('link', { name: 'Write an email' })).toHaveAttribute(
+      'href',
+      '/bulk-email/compose',
+    );
+  });
+
+  it('offers no way to write one to a DART leader who has nobody to send to', async () => {
+    answerSender(NO_DART_SENDER);
+    answerSent([]);
+    renderWithProviders(<SentPage />);
+    await screen.findByText('You have not sent an email yet');
+    expect(screen.queryByRole('link', { name: 'Write an email' })).toBeNull();
   });
 });

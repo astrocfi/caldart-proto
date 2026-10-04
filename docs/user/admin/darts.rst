@@ -16,7 +16,8 @@ administrator can open it too.
 What you see
 ============
 
-One row per DART, in name order until you click a column heading to sort:
+One row per DART, in name order until you click a column heading to sort; the arrow beside a
+heading shows the order, and **Website** and **Actions** do not sort:
 
 - **Name**, the name members see.
 - **Airport**, the fields the team flies from.
@@ -27,7 +28,10 @@ One row per DART, in name order until you click a column heading to sort:
 - **Members**, how many members and friends are on the team. Click the number to open the
   member list filtered to that team.
 - **Status**, **Active** or **Inactive**.
-- **Edit**, which opens the team's form.
+- **Actions**, where **Edit** opens the team's form.
+
+On a narrower screen the table leaves out **Website**, then **People**, **Airport**,
+**Roster**, and **Members**, so the name, the status, and **Edit** stay in sight on a phone.
 
 With no teams yet the table says *No DARTs yet*.
 

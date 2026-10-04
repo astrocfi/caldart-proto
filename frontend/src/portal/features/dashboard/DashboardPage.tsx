@@ -2,10 +2,12 @@ import type { JSX } from 'react';
 import { Link } from 'react-router-dom';
 
 import { useDonation, useRenewal, useSiteConfig } from '@/portal/api/queries';
-import type { MembershipStatus, RenewalMandate } from '@/portal/api/types';
+import type { MembershipStatus, PaymentSummary, RenewalMandate } from '@/portal/api/types';
 import { useAuth } from '@/portal/auth/useAuth';
 import { ButtonLink } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
+import type { Column } from '@/portal/components/DataTable';
+import { DataTable } from '@/portal/components/DataTable';
 import { DateText } from '@/portal/components/DateText';
 import { EmptyState } from '@/portal/components/EmptyState';
 import { Money } from '@/portal/components/Money';
@@ -19,6 +21,44 @@ import './dashboard.css';
 
 /** How many payments the dashboard shows before sending you elsewhere. */
 const RECENT_PAYMENTS = 5;
+
+/**
+ * The recent payments' columns.  The date identifies a payment, never gives way, and
+ * stays pinned when the table scrolls; the amount and the status stay in sight on a
+ * phone, where the plan gives way first.
+ */
+const RECENT_PAYMENT_COLUMNS: Column<PaymentSummary>[] = [
+  {
+    key: 'date',
+    header: 'Date',
+    width: '9.5rem',
+    isIdentity: true,
+    render: (payment) => <DateText value={payment.completed_at} withTime />,
+  },
+  {
+    key: 'plan',
+    header: 'Plan',
+    minWidth: '6rem',
+    dropOrder: 1,
+    render: (payment) => payment.plan ?? 'Contribution',
+  },
+  {
+    key: 'amount',
+    header: 'Amount',
+    width: '6rem',
+    numeric: true,
+    keepInSight: true,
+    render: (payment) => <Money cents={payment.amount_cents} />,
+  },
+  {
+    key: 'status',
+    header: 'Status',
+    width: '9rem',
+    narrowWidth: '7rem',
+    keepInSight: true,
+    render: (payment) => <PaymentChip status={payment.status} />,
+  },
+];
 
 /**
  * `/` — the member's home.
@@ -138,48 +178,16 @@ export function DashboardPage(): JSX.Element {
               mandate={(status?.is_lifetime ? donation : renewal).data?.mandate ?? null}
               isLifetime={status?.is_lifetime ?? false}
             />
-            {payments.isPending ? (
-              <p className="muted" role="status">
-                Loading…
-              </p>
-            ) : recent.length === 0 ? (
-              <EmptyState
-                title="No payments yet"
-                description="Payments you make to CalDART will be listed here."
-              />
-            ) : (
-              <div className="table-wrap">
-                <table className="dashboard__payments">
-                  <caption>Your most recent payments</caption>
-                  <thead>
-                    <tr>
-                      <th scope="col">Date</th>
-                      <th scope="col">Plan</th>
-                      <th scope="col" className="numeric">
-                        Amount
-                      </th>
-                      <th scope="col">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {recent.map((payment) => (
-                      <tr key={payment.id}>
-                        <td>
-                          <DateText value={payment.completed_at} withTime />
-                        </td>
-                        <td>{payment.plan ?? 'Contribution'}</td>
-                        <td className="numeric">
-                          <Money cents={payment.amount_cents} />
-                        </td>
-                        <td>
-                          <PaymentChip status={payment.status} />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+            <DataTable
+              singleLine
+              columns={RECENT_PAYMENT_COLUMNS}
+              rows={recent}
+              rowKey={(payment) => payment.id}
+              caption="Your most recent payments"
+              isLoading={payments.isPending}
+              emptyTitle="No payments yet"
+              emptyDescription="Payments you make to CalDART will be listed here."
+            />
           </Card>
         </div>
 

@@ -12,15 +12,21 @@ books.
 What you see
 ============
 
-One row per payment, newest first, twenty-five to a page. **Previous** and **Next** under
-the table step through the pages. The caption above the table says how many payments
-match.
+One row per payment, newest first, twenty-five to a page. Under the table, *Showing 1–25
+of 51* says which payments the page holds, and **Previous** and **Next** step through the
+pages, bringing you back to the top of the table. The caption above the table says how
+many payments match.
 
 With the columns you start with, each row shows the **Date** the money arrived, the
-member's **Name** and **Email**, the **Plan**, what the payment was for (**Kind**), the
-**Dues**, the **Contribution**, the **Total**, the provider's **Fee**, the **Net**, what
-has been **Refunded**, the **Provider**, the **Method**, the **Status**, the provider's own
-**Reference**, and the day you matched it to a statement (**Reconciled**).
+member's **Name** and **Email**, the **Plan**, the **Total**, the provider's **Fee**, the
+**Net**, and the **Status**. More columns are a click away (see `Choose the columns`_).
+
+On a narrower screen the table leaves out the columns that matter least, one at a time,
+so the **Total** and the **Status** stay in sight: first the **Email**, then the **Plan**, the
+**Fee** and **Net**, and the **Date**. A column you tick beyond the defaults always stays. On
+a phone, where even that is too wide, the
+table scrolls sideways inside the page, a line above it says so, and the **Name** stays
+pinned at the left so you always know whose payment a row is.
 
 A payment's name opens that payment's own screen (see :doc:`payment-record`). An email
 address opens a message to the member in your email program.
@@ -57,27 +63,35 @@ The filter bar above the table narrows the list:
   (useful when somebody forwards you a receipt from Stripe or PayPal), or a note you
   wrote on a payment.
 
-Each filter applies as soon as you set it. A typed one applies once you pause. **Reset to
-Defaults** clears them all. The filters, the sort order, and the page you are on are kept
+Each filter applies as soon as you set it. A typed one applies once you pause. **Reset
+filters** clears them all, and the same button appears under an empty list. The filters, the sort order, and the page you are on are kept
 in the page's address, so you can bookmark a filtered list or send it to another
 treasurer, and the browser's back button steps back through the filters you applied.
 
 Sort the list
 ~~~~~~~~~~~~~
 
-Click a column heading to sort by it, and click it again to reverse the order. Sorting and
-paging cover every matching payment, so the first row after sorting by **Total** is the
-largest payment of all.
+A heading with a faint two-way arrow beside it sorts the list: click it to sort by that
+column, and click it again to reverse the order. The arrow of the column the list is sorted
+by points up or down; the list opens sorted by **Date**, newest first. The headings that
+sort are **Date**, **Name**, **Email**, **Plan**, **Contribution**, **Total**, **Fee**,
+**Net**, **Provider**, **Status**, and **Reconciled**. A heading with no arrow, such as
+**Kind** or **Reference**, does not sort. Sorting and paging cover every matching payment,
+so the first row after sorting by **Total** is the largest payment of all.
 
 Choose the columns
 ~~~~~~~~~~~~~~~~~~
 
-**Columns** opens a list of checkboxes that decides both what the table shows and what
-the downloads hold. Twenty-one columns are on offer and sixteen are on to begin with.
-The five that start off are the **Receipt** number, the day a check was **Received**,
-your own **Note**, and the two dates of the membership term a payment bought, **Term
-starts** and **Term ends**. An audit wants those, and an everyday list does not. **Reset
-to the default columns**, under the checkboxes, puts the sixteen back.
+**Columns**, at the right above the table beside the export buttons, opens a list of
+checkboxes, *Columns in the table and the download*, that decides both what the table shows
+and what the downloads hold. Twenty-one columns are on offer and eight are on to begin
+with. The thirteen that start off are for a reconciliation or an audit: what the payment
+was for (**Kind**), the **Dues** and the **Contribution** it split into, what has been
+**Refunded**, the **Provider**, the **Method**, the provider's own **Reference**, the day
+you matched it to a statement (**Reconciled**), the **Receipt** number, the day a check was
+**Received**, your own **Note**, and the two dates of the membership term a payment
+bought, **Term starts** and **Term ends**. **Reset to the default columns**, under the
+checkboxes, puts the eight back.
 
 **Load columns** and **Save columns**, beside **Columns**, keep named sets of columns so
 you can switch between an everyday list and an audit list in one click. They work the
@@ -109,7 +123,7 @@ transfer (see :doc:`record-payment`).
 If something looks wrong
 ========================
 
-If a member says they paid and you cannot find the payment, press **Reset to Defaults**
+If a member says they paid and you cannot find the payment, press **Reset filters**
 first: a date range left over from an earlier search, or carried in a link somebody sent
 you, hides every payment outside it. Then search by the member's email address. If the
 money is on their card statement and there is no row here at all, the provider took it

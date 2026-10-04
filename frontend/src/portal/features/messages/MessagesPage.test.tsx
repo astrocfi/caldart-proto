@@ -65,6 +65,22 @@ describe('MessagesPage', () => {
     expect(await screen.findByText('No messages yet')).toBeVisible();
   });
 
+  it('shows the newest-first order with the arrow on Date', async () => {
+    renderList([SPRING]);
+    expect(await screen.findByRole('columnheader', { name: /Date/ })).toHaveAttribute(
+      'aria-sort',
+      'descending',
+    );
+  });
+
+  it('offers the email preferences from the empty list', async () => {
+    renderList([]);
+    expect(await screen.findByRole('link', { name: 'Email preferences' })).toHaveAttribute(
+      'href',
+      '/email-preferences',
+    );
+  });
+
   it('says mail about the account itself is not listed', async () => {
     renderList([]);
     expect(await screen.findByText(/^Email about your own account/)).toBeVisible();

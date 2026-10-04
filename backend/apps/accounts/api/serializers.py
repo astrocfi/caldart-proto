@@ -344,7 +344,9 @@ class AdminUserSerializer(UserSerializer):
     block, unblock).  ``email_bounced_at`` and ``email_bounce_detail`` say when and why
     the bounce check last found the address bouncing, null and blank with no bounce
     known; they are changed only by the bounce check, a new or verified address, and
-    the record's **Clear bounce** action.
+    the record's **Clear bounce** action.  ``phone``, ``dart`` (the DART's name),
+    ``city``, ``county``, and ``home_airport`` are read from the profile, for the
+    columns the users list can show; blank, and a null DART, without a profile.
     """
 
     # djangorestframework-stubs types SerializerMethodField as a bare Field, so
@@ -356,6 +358,11 @@ class AdminUserSerializer(UserSerializer):
     )
     email_verified_at = serializers.DateTimeField(read_only=True, allow_null=True)
     email_bounced_at = serializers.DateTimeField(read_only=True, allow_null=True)
+    phone = serializers.SerializerMethodField()
+    dart = serializers.SerializerMethodField()
+    city = serializers.SerializerMethodField()
+    county = serializers.SerializerMethodField()
+    home_airport = serializers.SerializerMethodField()
 
     class Meta(UserSerializer.Meta):
         fields = [
@@ -364,6 +371,11 @@ class AdminUserSerializer(UserSerializer):
             "email_bounced_at",
             "email_bounce_detail",
             "reactivation_blocked",
+            "phone",
+            "dart",
+            "city",
+            "county",
+            "home_airport",
         ]
         # `membership`, `profile_complete`, `email_verified`, `email_verified_at`,
         # `email_bounced_at`, and `roles` are declared fields, so only the model columns
@@ -382,6 +394,37 @@ class AdminUserSerializer(UserSerializer):
             "first_name": {"required": False},
             "last_name": {"required": False},
         }
+
+    @staticmethod
+    def _profile_text(obj: User, field: str) -> str:
+        """The profile's ``field``, or a blank string when the account has no profile."""
+        profile = getattr(obj, "profile", None)
+        text: str = getattr(profile, field) if profile is not None else ""
+        return text
+
+    def get_phone(self, obj: User) -> str:
+        """The account's phone number, blank without a profile."""
+        return self._profile_text(obj, "phone")
+
+    def get_dart(self, obj: User) -> str | None:
+        """The name of the account's DART, or ``None`` without one."""
+        profile = getattr(obj, "profile", None)
+        if profile is None or profile.dart is None:
+            return None
+        name: str = profile.dart.name
+        return name
+
+    def get_city(self, obj: User) -> str:
+        """The account's city, blank without a profile."""
+        return self._profile_text(obj, "city")
+
+    def get_county(self, obj: User) -> str:
+        """The account's California county, blank without a profile."""
+        return self._profile_text(obj, "county")
+
+    def get_home_airport(self, obj: User) -> str:
+        """The home airport's identifier, blank without a profile."""
+        return self._profile_text(obj, "home_airport_identifier")
 
     @property
     def _actor(self) -> User:

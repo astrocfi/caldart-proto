@@ -515,6 +515,22 @@ legend {
   overflow-y: visible;
 }
 
+/* The panel's caption is a heading inside its frame, wrapping within it, rather
+ * than a fieldset legend riding on the top border. */
+.panel-button__panel > legend {
+  float: left;
+  width: 100%;
+  padding: 0;
+  margin-bottom: var(--space-1);
+}
+
+/* A panel opened from the tools at a table's right edge opens leftward, so it stays
+ * on the screen. */
+.data-table__tools .panel-button__panel {
+  left: auto;
+  right: 0;
+}
+
 /* A drop-down that takes several choices.  The shut box is styled as a select,
  * one line with a caret, and its panel of checkboxes borrows the panel button's
  * panel, so the two kinds of panel in a filter row look alike. */
@@ -531,6 +547,8 @@ legend {
   min-width: 12rem;
   max-width: 20rem;
   padding: var(--space-2) var(--space-3);
+  font: inherit;
+  line-height: inherit;
   background: var(--color-bg-raised);
   color: var(--color-fg);
   border: var(--hairline) solid var(--color-rule-strong);
@@ -608,6 +626,16 @@ legend {
 
 .column-chooser {
   gap: var(--space-2);
+}
+
+/* The Columns panel's checkboxes scroll in a long list, so the reset under them
+ * stays in sight. */
+.column-chooser__list {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 16rem;
+  max-height: 16rem;
+  overflow-y: auto;
 }
 
 .column-chooser__option {
