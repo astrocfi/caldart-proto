@@ -24,7 +24,7 @@ import { WHAT_IT_SAYS_ID } from './ChecksList';
 import { EmailTypeChoice } from './EmailTypeChoice';
 import { InsertFieldMenu } from './InsertFieldMenu';
 import { ReplyToField } from './ReplyToField';
-import { uploadBulkEmailImage } from './richTextApi';
+import { uploadBulkEmailImage, useBulkEmailFields } from './richTextApi';
 import { TemplateControls } from './StartFromTemplate';
 import { TestSendButton } from './TestSendButton';
 import type { SaveState } from './useAutosave';
@@ -99,6 +99,7 @@ export function MessageCard({
   editorRef,
 }: MessageCardProps): JSX.Element {
   const messageId = useId();
+  const fields = useBulkEmailFields();
   const hintId = `${messageId}-hint`;
   const errorId = `${messageId}-error`;
   const describedBy = [errors.body === undefined ? null : errorId, isEditable ? hintId : null]
@@ -162,6 +163,7 @@ export function MessageCard({
             value={body}
             onChange={handleBodyChange}
             onUploadImage={(file) => uploadBulkEmailImage(file)}
+            fields={fields.data}
             describedBy={describedBy === '' ? undefined : describedBy}
             invalid={errors.body !== undefined}
             readOnly={!isEditable}
