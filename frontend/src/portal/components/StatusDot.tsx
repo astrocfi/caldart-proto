@@ -106,6 +106,17 @@ export function datedWord(tone: StatusTone, lead: string, date: string): string 
   return `${lead} ${date}`;
 }
 
+/**
+ * The word a `MembershipDot` shows for `membership`, for a place that names the state in
+ * text, such as a line of a search's matches.
+ */
+export function membershipWord(
+  membership: Pick<MembershipStatus, 'status' | 'is_lifetime' | 'expires_on'>,
+  today?: Date,
+): string {
+  return membershipLabel(membership, membershipTone(membership, today));
+}
+
 /** The word for a membership's state. */
 function membershipLabel(
   membership: Pick<MembershipStatus, 'status' | 'is_lifetime'>,

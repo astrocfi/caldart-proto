@@ -12,20 +12,21 @@ import { useNavigate } from 'react-router-dom';
 
 import { ApiError } from '@/portal/api/client';
 import { usePlans } from '@/portal/api/queries';
-import type { FinanceMember, ManualMethod } from '@/portal/api/types';
+import type { FinanceMember, ManualMethod, Plan } from '@/portal/api/types';
 import { Button, ButtonLink } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { todayIso } from '@/portal/components/DateText';
 import { Field } from '@/portal/components/Field';
+import { formatCents } from '@/portal/components/Money';
 import { Page } from '@/portal/components/Page';
 import {
   RefusedSubmitNote,
   useFreshErrors,
   useRefusedSubmit,
 } from '@/portal/components/RefusedSubmit';
-import { MembershipDot } from '@/portal/components/StatusDot';
+import { MembershipDot, membershipWord } from '@/portal/components/StatusDot';
 import { useToast } from '@/portal/components/Toast';
-import { useDebounced } from '@/portal/components/useDebounced';
+import { Typeahead } from '@/portal/components/Typeahead';
 import { reportedErrors, useFinanceMemberSearch, useRecordPayment } from './api';
 import { FinanceTabs } from './FinanceTabs';
 import { MANUAL_METHOD_LABELS } from './labels';
@@ -33,11 +34,26 @@ import './admin-payments.css';
 
 const METHODS: ManualMethod[] = ['check', 'cash', 'bank_transfer', 'other'];
 
+/** The id of the line that sums what the form will record. */
+const TOTAL_ID = 'record-payment-total';
+
+/** The fewest characters of a name or address worth searching for. */
+const MEMBER_SEARCH_MIN_LENGTH = 2;
+
 /** Dollars typed into a money box as the integer cents the API takes. */
 export function contributionCents(typed: string): number {
   const dollars = Number(typed.trim());
   if (!Number.isFinite(dollars) || dollars < 0) return 0;
   return Math.round(dollars * 100);
+}
+
+/**
+ * What the form will record, as the treasurer checks it against the check in their
+ * hand: `Dues $45.00 + contribution $0.00 = $45.00`.  No plan is dues of nothing.
+ */
+export function recordedSum(plan: Plan | undefined, contribution: number): string {
+  const dues = plan?.price_cents ?? 0;
+  return `Dues ${formatCents(dues)} + contribution ${formatCents(contribution)} = ${formatCents(dues + contribution)}`;
 }
 
 /** Where the payment page is told it was reached by recording the payment. */
@@ -49,15 +65,16 @@ interface MemberPickerProps {
   chosen: FinanceMember | null;
   onChoose: (member: FinanceMember | null) => void;
   error?: string;
-  /** The search box, which takes the focus back after **Choose somebody else**. */
-  searchRef: RefObject<HTMLInputElement | null>;
+  /** Holds the search box, which takes the focus back after **Choose somebody else**. */
+  pickerRef: RefObject<HTMLDivElement | null>;
 }
 
-/** The member search, or the member chosen from it with the way to choose again. */
-function MemberPicker({ chosen, onChoose, error, searchRef }: MemberPickerProps): JSX.Element {
+/**
+ * The member search, the shared `Typeahead`, or the member chosen from it with the way
+ * to choose again.  Each match names the person's address and membership state.
+ */
+function MemberPicker({ chosen, onChoose, error, pickerRef }: MemberPickerProps): JSX.Element {
   const [term, setTerm] = useState('');
-  const settled = useDebounced(term);
-  const results = useFinanceMemberSearch(settled);
 
   if (chosen !== null) {
     return (
@@ -74,47 +91,30 @@ function MemberPicker({ chosen, onChoose, error, searchRef }: MemberPickerProps)
   }
 
   return (
-    <div className="stack">
-      <Field label="Member" error={error} required>
+    <div ref={pickerRef}>
+      <Field
+        label="Member"
+        hint="Type part of a name or an email address, then choose the person."
+        error={error}
+        required
+      >
         {(props) => (
-          <input
+          <Typeahead
             {...props}
-            ref={searchRef}
-            type="search"
-            placeholder="Search by name or email address"
+            listLabel="Matching members"
+            placeholder="Name or email address"
+            autoComplete="off"
             value={term}
-            onChange={(event) => setTerm(event.target.value)}
+            minLength={MEMBER_SEARCH_MIN_LENGTH}
+            onValueChange={setTerm}
+            onPick={onChoose}
+            useSuggestions={useFinanceMemberSearch}
+            itemKey={(member) => String(member.user_id)}
+            itemLabel={(member) => member.name}
+            itemMeta={(member) => `${member.email} · ${membershipWord(member.membership)}`}
           />
         )}
       </Field>
-      <p className="visually-hidden" role="status">
-        {results.isFetching
-          ? 'Searching'
-          : results.data !== undefined
-            ? `${results.data.length} members found`
-            : ''}
-      </p>
-      {results.isFetching && !results.data ? <p className="muted">Searching…</p> : null}
-      {results.data === undefined || results.data.length === 0 ? null : (
-        <ul className="member-picker__results">
-          {results.data.map((member) => (
-            <li key={member.user_id} className="member-picker__result">
-              <button
-                type="button"
-                className="member-picker__button"
-                onClick={() => onChoose(member)}
-              >
-                <span className="member-picker__name">{member.name}</span>
-                <span className="member-picker__meta">{member.email}</span>
-                <MembershipDot membership={member.membership} />
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-      {settled.length > 0 && results.data?.length === 0 ? (
-        <p className="muted">No member matches that.</p>
-      ) : null}
     </div>
   );
 }
@@ -131,12 +131,13 @@ export function RecordPaymentPage(): JSX.Element {
   const [memberError, setMemberError] = useState<string | null>(null);
 
   const plans = usePlans();
+  const chosenPlan = plans.data?.find((option) => option.slug === plan);
   const record = useRecordPayment();
   const toast = useToast();
   const navigate = useNavigate();
   const formRef = useRef<HTMLFormElement>(null);
   const refusal = useRefusedSubmit(formRef, record.error);
-  const searchRef = useRef<HTMLInputElement>(null);
+  const pickerRef = useRef<HTMLDivElement>(null);
   const planRef = useRef<HTMLSelectElement>(null);
   // Picking a member moves on to the plan; choosing again goes back to the search.
   const [hasPicked, setHasPicked] = useState(false);
@@ -166,7 +167,8 @@ export function RecordPaymentPage(): JSX.Element {
 
   useEffect(() => {
     if (!hasPicked) return;
-    (member === null ? searchRef : planRef).current?.focus();
+    if (member === null) pickerRef.current?.querySelector('input')?.focus();
+    else planRef.current?.focus();
   }, [hasPicked, member]);
 
   function handleChooseMember(chosen: FinanceMember | null) {
@@ -177,6 +179,8 @@ export function RecordPaymentPage(): JSX.Element {
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
+    // Enter in the member search picks a match or does nothing; it never sends the form.
+    if (member === null && pickerRef.current?.contains(document.activeElement) === true) return;
     if (member === null) {
       setMemberError('Choose the member this payment is for.');
       refusal.refuse();
@@ -206,17 +210,17 @@ export function RecordPaymentPage(): JSX.Element {
   return (
     <Page
       title="Record a payment"
-      lede="A check, cash or a bank transfer: the term is activated and the receipt emailed."
+      lede="Record a check, cash, or a bank transfer. The membership starts and the member is emailed a receipt."
     >
       <FinanceTabs current="/admin/payments/list" />
 
       <Card>
-        <form ref={formRef} className="stack" onSubmit={handleSubmit} noValidate>
+        <form ref={formRef} className="stack finance-form" onSubmit={handleSubmit} noValidate>
           <MemberPicker
             chosen={member}
             onChoose={handleChooseMember}
             error={errors.user_id}
-            searchRef={searchRef}
+            pickerRef={pickerRef}
           />
 
           <Field
@@ -241,20 +245,20 @@ export function RecordPaymentPage(): JSX.Element {
             )}
           </Field>
 
-          <Field
-            label="Contribution"
-            hint="In US dollars."
-            error={errors.contribution_cents ?? errors.amount_cents}
-          >
+          <Field label="Contribution" error={errors.contribution_cents ?? errors.amount_cents}>
             {(props) => (
-              <input
-                {...props}
-                type="number"
-                min="0"
-                step="0.01"
-                value={contribution}
-                onChange={(event) => setContribution(event.target.value)}
-              />
+              <span className="money-input">
+                <span aria-hidden="true">$</span>
+                <input
+                  {...props}
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  className="num"
+                  value={contribution}
+                  onChange={(event) => setContribution(event.target.value)}
+                />
+              </span>
             )}
           </Field>
 
@@ -276,7 +280,7 @@ export function RecordPaymentPage(): JSX.Element {
 
           <Field
             label="Reference"
-            hint="The check number, or the transfer's own"
+            hint="Check number or bank transfer reference"
             error={errors.reference}
           >
             {(props) => (
@@ -317,8 +321,13 @@ export function RecordPaymentPage(): JSX.Element {
             </p>
           ) : null}
 
+          {/* Described by the sum, so the button is heard with what it will record. */}
+          <p className="record-payment__total" id={TOTAL_ID}>
+            {recordedSum(chosenPlan, contributionCents(contribution))}
+          </p>
+
           <div className="cluster">
-            <Button type="submit" disabled={record.isPending}>
+            <Button type="submit" disabled={record.isPending} aria-describedby={TOTAL_ID}>
               {record.isPending ? 'Recording…' : 'Record the payment'}
             </Button>
             <RefusedSubmitNote count={refusal.count} />

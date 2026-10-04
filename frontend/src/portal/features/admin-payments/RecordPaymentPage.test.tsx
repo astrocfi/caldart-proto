@@ -36,7 +36,7 @@ function serveRecord(
 /** Search for a member and choose the one that comes back. */
 async function chooseMember(user: ReturnType<typeof userEvent.setup>) {
   await user.type(screen.getByLabelText(/Member/), 'reyes');
-  await user.click(await screen.findByRole('button', { name: /Marta Reyes/ }));
+  await user.click(await screen.findByRole('option', { name: /Marta Reyes/ }));
 }
 
 describe('RecordPaymentPage', () => {
@@ -47,7 +47,58 @@ describe('RecordPaymentPage', () => {
 
     await user.type(screen.getByLabelText(/Member/), 'reyes');
 
-    expect(await screen.findByRole('button', { name: /Marta Reyes/ })).toBeInTheDocument();
+    expect(await screen.findByRole('option', { name: /Marta Reyes/ })).toBeInTheDocument();
+  });
+
+  it('chooses a match with the arrow keys and Enter, and moves on to the plan', async () => {
+    const user = userEvent.setup();
+    serveRecord([]);
+    renderWithProviders(<RecordPaymentPage />);
+
+    await user.type(screen.getByLabelText(/Member/), 'reyes');
+    await screen.findByRole('option', { name: /Marta Reyes/ });
+    await user.keyboard('{ArrowDown}{Enter}');
+
+    expect(screen.getByLabelText(/Plan/)).toHaveFocus();
+  });
+
+  it('sends nothing and refuses nothing when Enter is pressed in the member search', async () => {
+    const user = userEvent.setup();
+    const recorded: Record<string, unknown>[] = [];
+    serveRecord(recorded);
+    renderWithProviders(<RecordPaymentPage />);
+
+    await user.type(screen.getByLabelText(/Member/), 'reyes');
+    await screen.findByRole('option', { name: /Marta Reyes/ });
+    await user.keyboard('{Enter}');
+
+    expect(screen.queryByText('Choose the member this payment is for.')).not.toBeInTheDocument();
+  });
+
+  it('shows the dues, the contribution, and the total before the payment is recorded', async () => {
+    const user = userEvent.setup();
+    serveRecord([]);
+    renderWithProviders(<RecordPaymentPage />);
+
+    await screen.findByRole('option', { name: 'Annual' });
+    await user.selectOptions(screen.getByLabelText(/Plan/), 'annual');
+    await user.clear(screen.getByLabelText(/Contribution/));
+    await user.type(screen.getByLabelText(/Contribution/), '20');
+
+    expect(screen.getByRole('button', { name: 'Record the payment' })).toHaveAccessibleDescription(
+      'Dues $45.00 + contribution $20.00 = $65.00',
+    );
+  });
+
+  it('counts no dues when the payment is a contribution alone', async () => {
+    const user = userEvent.setup();
+    serveRecord([]);
+    renderWithProviders(<RecordPaymentPage />);
+
+    await user.clear(screen.getByLabelText(/Contribution/));
+    await user.type(screen.getByLabelText(/Contribution/), '25');
+
+    expect(screen.getByText('Dues $0.00 + contribution $25.00 = $25.00')).toBeInTheDocument();
   });
 
   it('shows the chosen member instead of the search box', async () => {
