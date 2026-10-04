@@ -51,6 +51,26 @@ describe('ContributionsPage', () => {
     ).toHaveAttribute('href', statementUrl(37, thisYear));
   });
 
+  it("links the giver's name to their money history", async () => {
+    server.use(contributionsHandler([MARTA], []));
+    renderWithProviders(<ContributionsPage />);
+
+    expect(await screen.findByRole('link', { name: 'Marta Reyes' })).toHaveAttribute(
+      'href',
+      '/admin/payments/members/37',
+    );
+  });
+
+  it("links the giver's address to write to them", async () => {
+    server.use(contributionsHandler([MARTA], []));
+    renderWithProviders(<ContributionsPage />);
+
+    expect(await screen.findByRole('link', { name: MARTA.email })).toHaveAttribute(
+      'href',
+      `mailto:${MARTA.email}`,
+    );
+  });
+
   it('heads the statement column Download', async () => {
     server.use(contributionsHandler([MARTA], []));
     renderWithProviders(<ContributionsPage />);

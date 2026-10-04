@@ -13,8 +13,9 @@ What you see
 
 One row per person who made at least one payment carrying a contribution that year,
 members, friends (people with an account who support CalDART without being members), and
-donors alike, largest giver first. Each row shows the **Member**,
-their **Email**, how many **Payments** carried a contribution, the amount **Given**, what
+donors alike, largest giver first. Each row shows the **Member**, whose name opens
+everything they have paid (see :doc:`member-ledger`), their **Email**, which opens a new
+message to them, how many **Payments** carried a contribution, the amount **Given**, what
 was **Refunded** against those payments, and the **Net**. The net is the figure an
 acknowledgment letter quotes: what was given, less anything refunded against it.
 
@@ -60,5 +61,5 @@ If something looks wrong
 
 If the table says *No contributions that year*, choose another year, or check on the
 payment list that the gifts were recorded with a contribution amount. A payment that was
-all dues does not appear here. If a person's net looks low, open their money history
-(see :doc:`member-ledger`) to see which payment was refunded.
+all dues does not appear here. If a person's net looks low, click their name to open
+their money history and see which payment was refunded.

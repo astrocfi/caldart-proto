@@ -2,11 +2,13 @@
  * `/admin/payments/contributions` — the year-end acknowledgment list.
  *
  * One row per member who gave something in the chosen calendar year, largest
- * net giver first, with the statement each of them can be sent.  The net
+ * net giver first, with the statement each of them can be sent.  The name opens the
+ * giver's money history and the address writes to them, as on the payment list.  The net
  * figure is the one an acknowledgment letter quotes, so it is the column the
  * table leads the eye to.
  */
 import type { JSX } from 'react';
+import { Link } from 'react-router-dom';
 
 import type { ContributionRow } from '@/portal/api/types';
 import type { Column } from '@/portal/components/DataTable';
@@ -47,7 +49,7 @@ function columns(year: number): Column<ContributionRow>[] {
       header: 'Member',
       minWidth: '10rem',
       isIdentity: true,
-      render: (row) => row.name,
+      render: (row) => <Link to={`/admin/payments/members/${row.user_id}`}>{row.name}</Link>,
       sortValue: (row) => row.name,
     },
     {
@@ -55,7 +57,7 @@ function columns(year: number): Column<ContributionRow>[] {
       header: 'Email',
       minWidth: '12rem',
       dropOrder: 1,
-      render: (row) => row.email,
+      render: (row) => <a href={`mailto:${row.email}`}>{row.email}</a>,
       sortValue: (row) => row.email,
     },
     {
