@@ -46,7 +46,7 @@ test('an account administrator subscribes somebody to the member report, sends i
     .filter({ has: page.getByRole('heading', { level: 2, name: 'Reports on a schedule' }) });
   const created = subscriptions
     .getByRole('row')
-    .filter({ hasText: /^CalDART membership report/ })
+    .filter({ hasText: /^Members/ })
     .filter({ hasText: 'CSV' });
   await expect(created).toHaveCount(1);
   await created.getByRole('button', { name: /^Send now: / }).click();
@@ -100,7 +100,7 @@ test('an account administrator rehearses the DART rosters', async ({ page }) => 
   await expect(
     card.getByLabel('Practice run: show what would happen, send nothing (DART rosters)'),
   ).toBeChecked();
-  await card.getByRole('button', { name: 'Send rosters now' }).click();
+  await card.getByRole('button', { name: 'Preview rosters' }).click();
   await expect(card.getByRole('status')).toHaveText(/^Would send [1-9]\d* emails?/);
 
   const actions = card.getByRole('table', { name: /^[1-9]\d* actions?$/ });

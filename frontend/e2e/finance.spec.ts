@@ -139,8 +139,8 @@ test('the treasurer records a check and finds it in the list', async ({ page }) 
   await page.goto('portal/admin/payments/record');
 
   const reference = `E2E-${uniqueEmail('check').split('@')[0]}`;
-  await page.getByLabel('Member').fill(SEED.refundedPayment.email);
-  await page.getByRole('button', { name: new RegExp(SEED.refundedPayment.name) }).click();
+  await page.getByRole('combobox', { name: /^Member/ }).fill(SEED.refundedPayment.email);
+  await page.getByRole('option', { name: new RegExp(SEED.refundedPayment.name) }).click();
   await page.getByLabel('Contribution').fill('12.00');
   await page.getByLabel('Reference').fill(reference);
   await page.getByRole('button', { name: 'Record the payment' }).click();
