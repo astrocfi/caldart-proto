@@ -1,4 +1,4 @@
-/* The reminder schedule card: four day fields side by side, or four labeled lines. */
+/* The reminder schedule card: four day fields side by side, or five labeled lines. */
 .reminder-schedule__fields {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));

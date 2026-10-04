@@ -42,6 +42,12 @@ export const SCHEDULE_FIELDS: readonly ScheduleField[] = [
   { name: 'lapsed_days_after', label: 'Lapsed reminder', side: 'after', min: 7, max: 365 },
 ];
 
+/**
+ * How many days after a membership ends the expired reminder can still go: from the day
+ * it ends through this many days after.  The schedule has no field for it.
+ */
+export const EXPIRED_STAGE_DAYS = 6;
+
 /** `count` with "day" or "days". */
 export function days(count: number): string {
   return count === 1 ? '1 day' : `${count} days`;
@@ -63,7 +69,7 @@ export function kindLabels(
     first: `${STAGE_NAMES.first} (${days(schedule.first_days_before)} before)`,
     second: `${STAGE_NAMES.second} (${days(schedule.second_days_before)} before)`,
     final: `${STAGE_NAMES.final} (${days(schedule.final_days_before)} before)`,
-    expired: `${STAGE_NAMES.expired} (up to 6 days after)`,
+    expired: `${STAGE_NAMES.expired} (up to ${days(EXPIRED_STAGE_DAYS)} after)`,
     lapsed: `${STAGE_NAMES.lapsed} (${days(schedule.lapsed_days_after)} after)`,
   };
 }

@@ -64,7 +64,8 @@ Download the rows
 
 **Export CSV** and **Export PDF** carry the rows on screen, grouped the same way. Each
 file is named for the day it was made, and the PDF prints the range it covers under its
-title. The **Emailed reports** screen can also send this report on a schedule.
+title. The **Emailed reports** screen can also send this report on a schedule, for a fixed
+range or for a **Period** such as **Last month**.
 
 If something looks wrong
 ========================

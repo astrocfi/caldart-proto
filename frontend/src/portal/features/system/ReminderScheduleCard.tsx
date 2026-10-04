@@ -16,7 +16,7 @@ import { formatDate } from '@/portal/components/DateText';
 import { Field } from '@/portal/components/Field';
 import { useToast } from '@/portal/components/Toast';
 import { useReminderSchedule, useSaveReminderSchedule } from './api';
-import { days, SCHEDULE_FIELDS } from './reminderSchedule';
+import { days, EXPIRED_STAGE_DAYS, SCHEDULE_FIELDS } from './reminderSchedule';
 import './reminderSchedule.css';
 
 const TITLE = 'Reminder schedule';
@@ -63,14 +63,23 @@ export function ReminderScheduleCard({ readOnly = false }: ReminderScheduleCardP
         // Keyed by the save time, so a save from elsewhere resets the form to what is stored.
         <ScheduleForm key={schedule.data.updated_at ?? 'defaults'} stored={schedule.data} />
       )}
-      <p className="muted">{storedLine(schedule.data)}</p>
+      <p className="muted">{storedLine(schedule.data, readOnly)}</p>
     </Card>
   );
 }
 
-/** Who saved the schedule last and when, or that the defaults apply. */
-function storedLine({ updated_at: updatedAt, updated_by: updatedBy }: ReminderSchedule): string {
-  if (updatedAt === null) return 'The default schedule: nobody has changed it.';
+/**
+ * Who saved the schedule last and when, or that the defaults apply, and, for a reader who
+ * cannot change them, who can.
+ */
+function storedLine(
+  { updated_at: updatedAt, updated_by: updatedBy }: ReminderSchedule,
+  readOnly: boolean,
+): string {
+  if (updatedAt === null) {
+    const line = 'The default schedule: nobody has changed it.';
+    return readOnly ? `${line} A system administrator can change it.` : line;
+  }
   const date = formatDate(updatedAt);
   return updatedBy === null ? `Last saved ${date}` : `Last saved ${date} by ${updatedBy}`;
 }
@@ -79,14 +88,33 @@ interface StoredProps {
   stored: ReminderSchedule;
 }
 
-/** The schedule as four labeled lines. */
+/**
+ * The schedule as five labeled lines, one per stage in the order a membership reaches
+ * them: the three before expiry, the expired one, which has no field of its own, and the
+ * lapsed one.
+ */
 function ScheduleFacts({ stored }: StoredProps): JSX.Element {
+  const facts = SCHEDULE_FIELDS.map(({ name, label, side }) => ({
+    key: name,
+    label,
+    when: `${days(stored[name])} ${side} expiry`,
+  }));
+  const lapsed = facts.length - 1;
+  const stages = [
+    ...facts.slice(0, lapsed),
+    {
+      key: 'expired',
+      label: 'Expired reminder',
+      when: `On the day of expiry, or up to ${days(EXPIRED_STAGE_DAYS)} after`,
+    },
+    ...facts.slice(lapsed),
+  ];
   return (
     <dl className="reminder-schedule__facts">
-      {SCHEDULE_FIELDS.map(({ name, label, side }) => (
-        <div key={name}>
+      {stages.map(({ key, label, when }) => (
+        <div key={key}>
           <dt>{label}</dt>
-          <dd>{`${days(stored[name])} ${side} expiry`}</dd>
+          <dd>{when}</dd>
         </div>
       ))}
     </dl>

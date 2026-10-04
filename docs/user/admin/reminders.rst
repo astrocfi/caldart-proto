@@ -49,8 +49,10 @@ is no button for it on this screen.
 What you see
 ============
 
-Two cards. The first, **Renewal reminders**, has a line explaining the schedule and saying
-that nobody gets the same reminder twice for one membership, then a table
+Two cards. The first, **Renewal reminders**, opens with a line built from the saved
+schedule, such as *Every morning at 7:00 AM, CalDART emails members whose membership is
+ending: 60, 30, and 7 days before it ends, on the day it ends, and 30 days after.*, which
+also says that nobody gets the same reminder twice for one membership. Then comes a table
 of the twenty most recent reminders. The caption counts every reminder ever sent, such as *418
 reminders sent*.
 
@@ -69,11 +71,12 @@ An empty table reads *No reminders have been sent yet*: no membership has reache
 normal on a new site or when every member renewed early. With one stage chosen it reads *No
 reminders of this kind*, with a **Reset filters** button.
 
-The second card, **Reminder schedule**, lists the four numbers the stages are dated by:
-**First reminder**, **Second reminder**, and **Final reminder** in days before expiry, and
-**Lapsed reminder** in days after it. A line under them says who last saved the schedule and
-when, or reads *The default schedule: nobody has changed it.* You can read the schedule here
-but not change it.
+The second card, **Reminder schedule**, lists all five stages in the order a membership
+reaches them: **First reminder**, **Second reminder**, and **Final reminder** in days before
+expiry, **Expired reminder**, *On the day of expiry, or up to 6 days after*, and **Lapsed
+reminder** in days after it. A line under them says who last saved the schedule and when,
+or reads *The default schedule: nobody has changed it. A system administrator can change
+it.* You can read the schedule here but not change it.
 
 
 If something looks wrong
