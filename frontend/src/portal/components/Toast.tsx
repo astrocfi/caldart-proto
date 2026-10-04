@@ -1,6 +1,9 @@
 /**
  * A tiny toast queue.  Wrap the app in `<ToastProvider>` and call
  * `useToast().show(...)` from anywhere.
+ *
+ * The toast is the portal's one way of confirming that a save, a send, or a delete went
+ * through, and of saying that one did not when the screen has no field to show it beside.
  */
 import { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
 import type { JSX, ReactNode } from 'react';
@@ -58,7 +61,10 @@ export function useToast(): ToastApi {
   return context;
 }
 
-/** Renders the queued toasts, or nothing when the queue is empty. */
+/**
+ * Renders the queued toasts, or nothing when the queue is empty: a polite `status`
+ * region, inside which an `error` toast is an `alert` of its own.
+ */
 export function ToastViewport({
   toasts,
   onDismiss,
@@ -70,7 +76,12 @@ export function ToastViewport({
   return (
     <div className="toast-viewport" role="status" aria-live="polite">
       {toasts.map((toast) => (
-        <div key={toast.id} className={`toast toast--${toast.tone}`}>
+        // A failure is announced at once; a success or a note waits its turn.
+        <div
+          key={toast.id}
+          className={`toast toast--${toast.tone}`}
+          role={toast.tone === 'error' ? 'alert' : undefined}
+        >
           <span>{toast.message}</span>
           <button
             type="button"

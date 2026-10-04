@@ -28,10 +28,6 @@
   margin: 0;
 }
 
-.email-switches__notice:empty {
-  display: none;
-}
-
 /* A checkbox drawn as a switch: a pill with a knob that slides right when on. */
 .email-switch input[role='switch'] {
   appearance: none;

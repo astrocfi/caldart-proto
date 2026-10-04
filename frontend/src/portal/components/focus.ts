@@ -13,7 +13,7 @@
  * - `focusRefusal` moves the focus to the first highlighted field of a refused form,
  *   or to the form's own complaint when no field is highlighted.
  * - `useFocusAfterSave` puts the focus back on a button, or a form's submit button,
- *   after a request that leaves it in place, which the button lost while disabled.
+ *   or a switch, after a request that leaves it in place, which it lost while disabled.
  */
 import { useEffect, useRef } from 'react';
 import type { RefObject } from 'react';
@@ -177,9 +177,10 @@ export function usePanelFocus<Panel extends HTMLElement = HTMLDivElement>(
 }
 
 /**
- * Put the focus back on a button once `isPending` ends, when it has nowhere better to be.
+ * Put the focus back on a control once `isPending` ends, when it has nowhere better to be.
  *
- * `ref` is the button itself, or a form whose submit button is meant.  A button is
+ * `ref` is the control itself, such as a button or a switch, or a form whose submit
+ * button is meant.  A button is
  * disabled while its request is in flight, and a disabled button drops the focus to the
  * page body.  When the request ends and the focus is still lost, it returns to the
  * button, so the person carries on from where they pressed; a refusal that has already
@@ -192,9 +193,9 @@ export function useFocusAfterSave(ref: RefObject<HTMLElement | null>, isPending:
     wasPendingRef.current = isPending;
     if (!wasPending || isPending || !isFocusLost()) return;
     const root = ref.current;
-    const button =
-      root?.matches('button') === true ? root : root?.querySelector<HTMLElement>(SUBMIT_BUTTON);
-    button?.focus();
+    const control =
+      root?.matches('form') === true ? root.querySelector<HTMLElement>(SUBMIT_BUTTON) : root;
+    control?.focus();
   }, [ref, isPending]);
 }
 

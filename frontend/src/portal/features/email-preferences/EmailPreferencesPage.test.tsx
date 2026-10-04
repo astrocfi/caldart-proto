@@ -105,13 +105,13 @@ describe('EmailPreferencesPage', () => {
     expect(screen.queryByText(/^Turned off by/)).toBeNull();
   });
 
-  it('says Saved once the change lands', async () => {
+  it('says in a toast what changed once the change lands', async () => {
     stubPreferences([MISSION]);
     renderPage();
 
     await userEvent.click(await screen.findByRole('switch', { name: 'Mission' }));
 
-    expect(await screen.findByText('Saved.')).toBeInTheDocument();
+    expect(await screen.findByText('Mission turned off.')).toBeInTheDocument();
     expect(screen.getByRole('switch', { name: 'Mission' })).not.toBeChecked();
   });
 
