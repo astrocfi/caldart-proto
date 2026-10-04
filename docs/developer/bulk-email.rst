@@ -736,8 +736,11 @@ the callout's actions and **Stop**.
 Rules every bulk email change follows
 =====================================
 
-Four lessons the build of these screens learned the hard way.  Every change to bulk
-email, and every review of one, holds to them.
+Four rules keep a recipient's links, the people an email reaches, the server, and the
+screens safe as bulk email grows: a sender never holds a link that acts for a
+recipient, nobody is sent a copy they can no longer receive, no request waits on the
+network without end, and no table runs off a phone.  Every change to bulk email, and
+every review of one, holds to them.
 
 **A staff view never carries a recipient's live link.**  A copy holds signed links
 that act for the person it went to: the unsubscribe link and, in a callout, the

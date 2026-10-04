@@ -177,7 +177,8 @@ group of the menu:
   cancel, or delete.
 * **Sent** (:doc:`bulk-email/sent`): every email sent, with what became of each person's
   copy, to stop or finish a send, retry the failed copies, view one person's copy, hide it
-  from **Messages**, download the results, and start a new draft from with **Duplicate**.
+  from **Messages**, download the results, and start a new draft from an email with
+  **Duplicate**.
 * **Templates** (:doc:`bulk-email/templates`): the messages kept to start an email from,
   such as the monthly newsletter.
 * **Recipient groups** (:doc:`bulk-email/groups`): the people kept to add to a batch in one
