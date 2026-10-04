@@ -160,7 +160,7 @@ Run now answers.
 Run now
 -------
 
-The Health and database page's *Aircraft database* panel has a **Run now** button, which
+The Health and database page's *FAA aircraft data* panel has a **Run now** button, which
 calls ``POST /admin/system/registry-import`` (:ref:`api-registry-import`).
 ``start_import()`` writes the ``RegistryImport`` row, unfinished, and hands its
 id to ``launch_import()``, which starts ``manage.py import_faa_registry

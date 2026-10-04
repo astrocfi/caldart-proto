@@ -1546,7 +1546,7 @@ the database and an outbound HTTPS connection to ``registry.faa.gov``.  The
 ``systemctl start`` above runs the first import straight away, so the aircraft
 type picker has its vocabulary before anybody opens it.  A system administrator
 can also start an import from the Health and database page (**Run now** on the
-*Aircraft database* panel); that import runs as a child of ``caldart-web``, so
+*FAA aircraft data* panel); that import runs as a child of ``caldart-web``, so
 restarting the web service while one is under way stops it, and the next press
 after ``REGISTRY_IMPORT_STALE_MINUTES`` records it as *Did not finish.* and
 starts another.  See :doc:`aircraft-registry` for what the import reads and

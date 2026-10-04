@@ -416,7 +416,7 @@ Emails page's log files each of these messages under its event, as
 **System** — sign in as ``sysadmin@example.org`` and open ``/portal/system``,
 which lands on Health and database.  Health shows database connectivity, pending
 migrations, free disk and the last backup; Backups lists the dumps in
-``backups/`` and can make a new one.  The *Aircraft database* panel's **Run now**
+``backups/`` and can make a new one.  The *FAA aircraft data* panel's **Run now**
 imports the registry again, from the FAA's download unless
 ``FAA_REGISTRY_URL`` names the fixture directory
 ``backend/apps/aircraft/fixtures/faa`` the seed reads; the panel follows the run

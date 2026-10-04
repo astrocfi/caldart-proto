@@ -931,8 +931,9 @@ roles that may see it (an empty list means any signed-in user) and a group:
 *Membership*, *Your email* (a person's own messages and email preferences),
 *Operations*, *Bulk email* (the sending tools), *Administration*, or *System*.
 Labels are sentence case, use "and" rather than "&", and match the title of the
-page they open; an entry may carry a ``lifetimeLabel`` for a lifetime member
-(Renew reads *Contribute*).  ``layout/PortalLayout.tsx`` shows what the user's roles
+page they open; an entry marked ``hideForFriend`` is left out for an effective friend,
+and one marked ``hideForLifetime`` for a lifetime member (Renew is both: a life member
+gives through Donate).  ``layout/PortalLayout.tsx`` shows what the user's roles
 allow, as a rail on a wide screen and a drawer, opened from **Menu**, under 60rem;
 **Menu** is hidden above that width, and Escape closes the drawer.  The rail scrolls on
 its own when the menu is taller than the window: on every page it is scrolled until the

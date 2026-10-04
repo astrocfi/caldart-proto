@@ -350,8 +350,11 @@ member record ``GET /admin/members/{user_id}`` returns.
      "profile": {"phone": "408-555-0199", "dart_id": 3, "ratings": ["instrument"]}
    }
 
-Only ``email`` is required — an administrator records what they were told,
-which on the day somebody joins at an airshow may be no more than a name.
+Only ``email``, ``first_name``, and ``last_name`` are required — an administrator
+records what they were told, which on the day somebody joins at an airshow may be no
+more than a name and an address.  A missing or blank name is refused with "Enter a
+first name." or "Enter a last name.", and every phone number in ``profile`` is
+optional.
 ``kind`` is ``member`` (the default) or ``friend``; an administrator never
 creates a donor, and ``donor`` is a 400 on ``kind``.
 
@@ -388,7 +391,9 @@ Statuses:
 * **201** — the member record, in the detail shape below.
 * **400** — a duplicate email address (compared case-insensitively, reported as
   ``{"email": ["An account with that email address already exists."]}``), a
-  missing ``email``, a password one of Django's validators refused, an unknown
+  missing ``email``, a missing or blank ``first_name`` or ``last_name``
+  (``{"first_name": ["Enter a first name."]}``), a password one of Django's
+  validators refused, an unknown
   rating, or any profile rule the nested serializer states.  Nothing is
   written.
 
@@ -559,7 +564,9 @@ somehow has none.  ``PUT`` is not offered.
 
 ``first_name`` and ``last_name`` are stored as every write stores a name
 (``caldart.casing.person_name``, :doc:`data-model`), so ``SMITH`` is saved, and
-answered, as ``Smith``.
+answered, as ``Smith``.  A name left out is left alone; one sent blank, or as spaces
+only, is a **400** ``{"first_name": ["Enter a first name."]}`` or
+``{"last_name": ["Enter a last name."]}``, and nothing is written.
 
 ``kind`` is ``member`` or ``friend``.  A kind other than the stored one makes
 the account that kind at once through ``accounts.services.set_kind``: any
