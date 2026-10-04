@@ -20,6 +20,7 @@ import { FormAlert, fieldError } from '@/portal/features/auth/form';
 import { useBulkSender, useSendableEmailTypes } from './api';
 import { TypeRadios } from './EmailTypeChoice';
 import type { TypeOption } from './EmailTypeChoice';
+import { SUBJECT_HINT, messageError } from './fieldText';
 import { InsertFieldMenu } from './InsertFieldMenu';
 import { replyToHint } from './ReplyToField';
 import { uploadBulkEmailImage, useBulkEmailFields } from './richTextApi';
@@ -126,11 +127,7 @@ export function TemplateForm({
           </p>
         )}
       </fieldset>
-      <Field
-        label="Subject"
-        error={fieldError(error, 'subject')}
-        hint="One line that says what it is about."
-      >
+      <Field label="Subject" error={fieldError(error, 'subject')} hint={SUBJECT_HINT}>
         {(props) => (
           <input
             {...props}
@@ -183,7 +180,7 @@ export function TemplateForm({
         />
         {bodyError === null ? null : (
           <span className="field__error" id={`${messageId}-error`} role="alert">
-            {bodyError}
+            {messageError(bodyError)}
           </span>
         )}
       </div>

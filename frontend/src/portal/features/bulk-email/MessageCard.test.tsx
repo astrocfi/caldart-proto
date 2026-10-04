@@ -89,6 +89,22 @@ describe('MessageCard', () => {
     ]);
   });
 
+  it('says how to deal with an unknown field the message shows as a chip', () => {
+    answerFields();
+    renderWithProviders(
+      <Card
+        errors={{
+          body:
+            '{nickname} is not one of the fields. Pick a field from Insert field, or take out ' +
+            'the braces.',
+        }}
+      />,
+    );
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      '{nickname} is not one of the fields. Delete it, or click it to choose a field.',
+    );
+  });
+
   it('holds the message still, without Insert field, once it cannot change', () => {
     answerFields();
     renderWithProviders(<Card isEditable={false} />);
