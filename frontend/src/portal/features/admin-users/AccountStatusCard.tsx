@@ -58,7 +58,7 @@ export function AccountStatusCard({ user, isSelf }: AccountStatusCardProps): JSX
         {isSelf ? (
           <p className="muted">You cannot deactivate or block your own account.</p>
         ) : (
-          <div className="cluster cluster--end">
+          <div className="cluster">
             {user.is_active ? (
               <ConfirmButton
                 key="deactivate"

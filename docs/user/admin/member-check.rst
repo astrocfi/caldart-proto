@@ -56,7 +56,8 @@ single name that line is the whole check.
 Reading the status card
 =======================
 
-Tap a line to open the person's card. **Back to search** returns you to the list. The
+Tap a line to open the person's card, which takes you to its top. **Back to search** returns
+you to the list and the search box. The
 address of the card names the person, so a reload keeps it open and you can send the link
 to another leader.
 
@@ -136,7 +137,8 @@ administrator see **Verify** under the person's name. Press it to open the
    verified, and changing a field unticks its box, so you tick it again only once you
    have checked the new value. Untick a box to clear that verification.
 #. Press **Save**. The toast reads *Verification saved*, and the card shows the new marks
-   and verdict. **Cancel** closes the panel and changes nothing.
+   and verdict. **Cancel**, or Escape, closes the panel and changes nothing. Either way you
+   are back on **Verify**.
 
 A field the record refuses, such as a certificate with no number, shows its message under
 the field and nothing is saved. You may verify your own documents. Each save that

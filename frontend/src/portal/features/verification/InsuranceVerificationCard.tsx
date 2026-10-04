@@ -5,7 +5,7 @@
  * Mirrors `MemberVerificationCard`. **Verify** swaps the list for the verification
  * panel; a save or Cancel swaps it back.
  */
-import { useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import type { JSX } from 'react';
 
 import type { AircraftDetail } from '@/portal/api/types';
@@ -14,6 +14,7 @@ import { Card } from '@/portal/components/Card';
 import { formatDate } from '@/portal/components/DateText';
 import { formatCents } from '@/portal/components/Money';
 import { VerifiedMark } from '@/portal/components/VerifiedMark';
+import { usePanelFocus } from '@/portal/components/focus';
 import { InsuranceVerificationPanel } from './InsuranceVerificationPanel';
 import { useCanVerify } from './useCanVerify';
 import './verification.css';
@@ -51,14 +52,21 @@ export function InsuranceVerificationCard({
 }: InsuranceVerificationCardProps): JSX.Element {
   const canVerify = useCanVerify();
   const [verifying, setVerifying] = useState(false);
+  // The panel takes the card's place, Verify with it, so the button gets the focus back
+  // as the panel closes.
+  const verifyRef = useRef<HTMLButtonElement>(null);
+  const handleCloseVerify = useCallback(() => setVerifying(false), []);
+  const panelRef = usePanelFocus(verifying ? 'verify' : null, handleCloseVerify, verifyRef);
 
   if (verifying) {
     return (
-      <InsuranceVerificationPanel
-        aircraft={aircraft}
-        onSaved={handleSaved}
-        onClose={() => setVerifying(false)}
-      />
+      <div ref={panelRef}>
+        <InsuranceVerificationPanel
+          aircraft={aircraft}
+          onSaved={handleSaved}
+          onClose={handleCloseVerify}
+        />
+      </div>
     );
   }
 
@@ -67,7 +75,7 @@ export function InsuranceVerificationCard({
       title="Verification"
       footer={
         canVerify ? (
-          <Button variant="secondary" small onClick={() => setVerifying(true)}>
+          <Button ref={verifyRef} variant="secondary" small onClick={() => setVerifying(true)}>
             Verify
           </Button>
         ) : null

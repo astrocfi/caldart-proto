@@ -6,17 +6,19 @@
  * are a pair — the charges run first each morning, so a membership they renew
  * is never also reminded about.
  *
- * A rehearsal runs on one press.  A real run asks first, because it charges
- * every member whose renewal is due, and a cleared checkbox is a quiet thing
- * to lean a hundred charges on.
+ * A rehearsal runs on one press.  A real run asks first, through the portal's
+ * confirmation, because it charges every member whose renewal is due, and a cleared
+ * checkbox is a quiet thing to lean a hundred charges on.
  */
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { ChangeEvent, JSX } from 'react';
 
 import type { RenewalRunResult } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
+import { ConfirmButton } from '@/portal/components/ConfirmButton';
 import { RunActionsTable } from '@/portal/components/RunActionsTable';
+import { useFocusAfterSave } from '@/portal/components/focus';
 import { useRunRenewals } from './api';
 
 /** The sentence shown after a run, in the past tense or the conditional. */
@@ -56,35 +58,24 @@ function renewalKindLabel(kind: string): string {
 export function RenewalsPanel(): JSX.Element {
   const [dryRun, setDryRun] = useState(true);
   const [lastRunWasDry, setLastRunWasDry] = useState(true);
-  const [isConfirming, setIsConfirming] = useState(false);
 
   const run = useRunRenewals();
+  // The button is disabled while it runs; it gets the focus back once the run ends.
+  const runRef = useRef<HTMLButtonElement>(null);
+  useFocusAfterSave(runRef, run.isPending);
 
-  const start = (): void => {
-    setLastRunWasDry(dryRun);
-    setIsConfirming(false);
-    run.mutate(dryRun);
+  const handleRehearse = (): void => {
+    setLastRunWasDry(true);
+    run.mutate(true);
   };
 
-  const handleRun = (): void => {
-    if (dryRun) {
-      start();
-      return;
-    }
-    setIsConfirming(true);
-  };
-
-  const handleConfirm = (): void => {
-    start();
-  };
-
-  const handleCancelRun = (): void => {
-    setIsConfirming(false);
+  const handleCharge = (): Promise<unknown> => {
+    setLastRunWasDry(false);
+    return run.mutateAsync(false);
   };
 
   const handleDryRunChange = (event: ChangeEvent<HTMLInputElement>): void => {
     setDryRun(event.target.checked);
-    setIsConfirming(false);
   };
 
   return (
@@ -92,26 +83,29 @@ export function RenewalsPanel(): JSX.Element {
       eyebrow="Membership"
       title="Automatic renewal charges"
       footer={
-        isConfirming ? (
-          <>
-            <Button variant="danger" onClick={handleConfirm} disabled={run.isPending}>
-              Yes, charge what is due
-            </Button>
-            <Button variant="quiet" onClick={handleCancelRun}>
-              Cancel
-            </Button>
-          </>
-        ) : (
-          <>
-            <Button onClick={handleRun} disabled={run.isPending}>
+        <>
+          {dryRun ? (
+            <Button ref={runRef} onClick={handleRehearse} disabled={run.isPending}>
               {run.isPending ? 'Running…' : 'Run now'}
             </Button>
-            <label className="cluster">
-              <input type="checkbox" checked={dryRun} onChange={handleDryRunChange} />
-              Dry run (charge nothing)
-            </label>
-          </>
-        )
+          ) : (
+            <ConfirmButton
+              label="Run now"
+              variant="primary"
+              disabled={run.isPending}
+              choices={[{ label: 'Charge what is due', variant: 'danger', onChoose: handleCharge }]}
+            >
+              <p>
+                This charges every renewal that is due, for real, and emails each member. Rehearse
+                it first if you are not sure what is waiting.
+              </p>
+            </ConfirmButton>
+          )}
+          <label className="cluster">
+            <input type="checkbox" checked={dryRun} onChange={handleDryRunChange} />
+            Dry run (charge nothing)
+          </label>
+        </>
       }
     >
       <p className="muted">
@@ -121,14 +115,7 @@ export function RenewalsPanel(): JSX.Element {
         Running it again is harmless: every scheduled charge records what has already gone out.
       </p>
 
-      {isConfirming ? (
-        <p role="status">
-          This charges every renewal that is due, for real, and emails each member. Rehearse it
-          first if you are not sure what is waiting.
-        </p>
-      ) : null}
-
-      {run.isSuccess && !isConfirming ? (
+      {run.isSuccess ? (
         <RunActionsTable
           actions={run.data.actions}
           dryRun={lastRunWasDry}

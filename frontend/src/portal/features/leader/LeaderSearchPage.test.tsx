@@ -158,6 +158,36 @@ describe('LeaderSearchPage', () => {
     expect(screen.getByLabelText(/Name, email, phone, or N-number/i)).toBeInTheDocument();
   });
 
+  it('moves the focus to the card the leader picks', async () => {
+    const user = setupUser();
+    server.use(
+      searchReturns([MARTA]),
+      http.get(`${API}/leader/members/7/status`, () => HttpResponse.json(STATUS)),
+    );
+
+    renderWithProviders(<LeaderSearchPage />, { route: '/leader' });
+    await search(user, 'reyes');
+    await user.click(await screen.findByRole('button', { name: /Marta Reyes/ }));
+
+    expect(document.activeElement).toContainElement(
+      await screen.findByRole('heading', { name: 'Marta Reyes' }),
+    );
+  });
+
+  it('moves the focus back to the search box from the card', async () => {
+    const user = setupUser();
+    server.use(
+      searchReturns([MARTA]),
+      http.get(`${API}/leader/members/7/status`, () => HttpResponse.json(STATUS)),
+    );
+
+    renderWithProviders(<LeaderSearchPage />, { route: '/leader?member=7' });
+    await screen.findByText('GO');
+    await user.click(screen.getByRole('button', { name: /Back to search/ }));
+
+    expect(screen.getByLabelText(/Name, email, phone, or N-number/i)).toHaveFocus();
+  });
+
   it('reads the member out of the query string, so a card can be linked', async () => {
     server.use(http.get(`${API}/leader/members/7/status`, () => HttpResponse.json(STATUS)));
     renderWithProviders(<LeaderSearchPage />, { route: '/leader?member=7' });

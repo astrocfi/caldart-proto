@@ -285,6 +285,27 @@ describe('MemberDetailPage', () => {
     expect(captured.patchedTerm).toMatchObject({ ends_on: '2027-12-31', status: 'canceled' });
   });
 
+  it("moves the focus into a term's end date as its edit opens", async () => {
+    const user = userEvent.setup();
+    server.use(...detailHandlers());
+    renderDetail('/admin/members/1?tab=memberships');
+
+    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+
+    expect(screen.getByLabelText('End date')).toHaveFocus();
+  });
+
+  it("closes a term's edit on Escape and gives the focus back to its Edit", async () => {
+    const user = userEvent.setup();
+    server.use(...detailHandlers());
+    renderDetail('/admin/members/1?tab=memberships');
+
+    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+    await user.keyboard('{Escape}');
+
+    expect(screen.getByRole('button', { name: 'Edit' })).toHaveFocus();
+  });
+
   it('offers Suspended when editing a term a self-deactivation suspended', async () => {
     const user = userEvent.setup();
     server.use(

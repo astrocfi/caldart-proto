@@ -5,13 +5,18 @@
  * switch that turns it off), the roles that may send it, and whether recipients may
  * turn it off. The server checks the name against every other type.
  */
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { FormEvent, JSX } from 'react';
 
 import type { EmailType, EmailTypeInput, EmailTypeSenderRole } from '@/portal/api/types';
 import { roleLabel } from '@/portal/choices';
 import { Button } from '@/portal/components/Button';
 import { Field } from '@/portal/components/Field';
+import {
+  RefusedSubmitNote,
+  useFreshErrors,
+  useRefusedSubmit,
+} from '@/portal/components/RefusedSubmit';
 import { FormAlert, fieldError } from '@/portal/features/auth/form';
 
 /** The roles a type may name as its senders, in the order the server keeps them. */
@@ -47,6 +52,18 @@ export function EmailTypeForm({
     () => new Set(emailType?.sender_roles ?? []),
   );
   const [allowOptOut, setAllowOptOut] = useState(emailType?.allow_opt_out ?? true);
+  const formRef = useRef<HTMLFormElement>(null);
+  const refusal = useRefusedSubmit(formRef, error);
+  // The server's complaint about a field goes once the field is edited.
+  const shown = useFreshErrors(
+    error,
+    { name, description, sender_roles: senders },
+    {
+      name: fieldError(error, 'name'),
+      description: fieldError(error, 'description'),
+      sender_roles: fieldError(error, 'sender_roles'),
+    },
+  );
 
   const handleSenderChange = (role: EmailTypeSenderRole, isChecked: boolean): void => {
     setSenders((current) => {
@@ -67,11 +84,11 @@ export function EmailTypeForm({
     });
   };
 
-  const sendersError = fieldError(error, 'sender_roles');
+  const sendersError = shown.sender_roles ?? null;
 
   return (
-    <form className="stack" aria-label={submitLabel} onSubmit={handleSubmit}>
-      <Field label="Name" error={fieldError(error, 'name')} required>
+    <form ref={formRef} className="stack" aria-label={submitLabel} onSubmit={handleSubmit}>
+      <Field label="Name" error={shown.name} required>
         {(props) => (
           <input
             {...props}
@@ -84,7 +101,7 @@ export function EmailTypeForm({
       <Field
         label="What it is for"
         hint="One sentence. Members read it beside the switch that turns this email off."
-        error={fieldError(error, 'description')}
+        error={shown.description}
         required
       >
         {(props) => (
@@ -141,6 +158,7 @@ export function EmailTypeForm({
         <Button variant="quiet" onClick={handleCancel}>
           Cancel
         </Button>
+        <RefusedSubmitNote count={refusal.count} />
       </div>
     </form>
   );

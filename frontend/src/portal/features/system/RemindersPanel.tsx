@@ -2,7 +2,7 @@
  * The renewal reminder emails panel of `/portal/system/scheduled`: run the scan
  * by hand — optionally as a rehearsal — and read the log of what went out.
  */
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { ChangeEvent, JSX } from 'react';
 
 import type { ReminderKind } from '@/portal/api/types';
@@ -10,6 +10,7 @@ import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { RunActionsTable } from '@/portal/components/RunActionsTable';
 import { runSummary, skippedBreakdown } from '@/portal/components/runSummary';
+import { useFocusAfterSave } from '@/portal/components/focus';
 import { useReminderSchedule, useRunReminders } from './api';
 import { SKIPPED_REASON_LABELS } from './labels';
 import { ReminderLog } from './ReminderLog';
@@ -31,6 +32,9 @@ export function RemindersPanel(): JSX.Element {
   const reminderKindLabel = (kind: string): string => (isReminderKind(kind) ? labels[kind] : kind);
 
   const run = useRunReminders();
+  // The button is disabled while it runs; it gets the focus back once the run ends.
+  const runRef = useRef<HTMLButtonElement>(null);
+  useFocusAfterSave(runRef, run.isPending);
   const breakdown = run.data
     ? skippedBreakdown(run.data.skipped_by_reason, SKIPPED_REASON_LABELS)
     : '';
@@ -50,7 +54,7 @@ export function RemindersPanel(): JSX.Element {
       title="Renewal reminder emails"
       footer={
         <>
-          <Button onClick={handleRun} disabled={run.isPending}>
+          <Button ref={runRef} onClick={handleRun} disabled={run.isPending}>
             {run.isPending ? 'Running…' : 'Run now'}
           </Button>
           <label className="cluster">

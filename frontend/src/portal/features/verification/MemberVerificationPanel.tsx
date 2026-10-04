@@ -4,7 +4,7 @@
  *
  * Opened by **Verify** on the member check's status card and on the member record.
  */
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { FormEvent, JSX } from 'react';
 
 import type { LeaderStatus } from '@/portal/api/types';
@@ -13,6 +13,7 @@ import type { Choice } from '@/portal/choices';
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { Field } from '@/portal/components/Field';
+import { RefusedSubmitNote, useRefusedSubmit } from '@/portal/components/RefusedSubmit';
 import { useToast } from '@/portal/components/Toast';
 import { useVerifyMember } from './api';
 import { saveErrors } from './errors';
@@ -57,6 +58,8 @@ export function MemberVerificationPanel({
   const [draft, setDraft] = useState(() => initial);
   const verify = useVerifyMember(userId);
   const toast = useToast();
+  const formRef = useRef<HTMLFormElement>(null);
+  const refusal = useRefusedSubmit(formRef, verify.error);
   const errors = saveErrors(verify.error, FORM_FIELDS);
 
   const set = <Key extends MemberField>(field: Key, value: MemberVerificationDraft[Key]): void =>
@@ -97,7 +100,7 @@ export function MemberVerificationPanel({
 
   return (
     <Card title="Verification" className="verification-panel">
-      <form onSubmit={handleSubmit} noValidate>
+      <form ref={formRef} onSubmit={handleSubmit} noValidate>
         {errors.form !== null ? (
           <p role="alert" className="field__error">
             {errors.form}
@@ -153,6 +156,7 @@ export function MemberVerificationPanel({
           <Button variant="quiet" onClick={handleClose}>
             Cancel
           </Button>
+          <RefusedSubmitNote count={refusal.count} />
         </div>
       </form>
     </Card>

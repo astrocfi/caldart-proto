@@ -86,9 +86,10 @@ the day of the charge. A charge already scheduled keeps its own day, so a day yo
 set while one waits is the day of the charge after it. After each charge the day
 moves to the end of the term that charge bought.
 
-**Turn off** asks *Turn automatic renewal off?* **Yes, turn it off** stops it at
-once: nothing further is charged, the saved method is dropped, and your membership
-still runs to the end of the term you paid for. **Keep it on** changes nothing.
+**Turn off** asks *Turn automatic renewal off?* in a panel under the card's buttons.
+**Turn it off** stops it at once: nothing further is charged, the saved method is
+dropped, and your membership still runs to the end of the term you paid for.
+**Cancel**, or Escape, changes nothing.
 CalDART emails *CalDART: automatic renewal is off*, and the ordinary reminders
 resume.
 

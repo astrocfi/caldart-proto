@@ -90,7 +90,12 @@ Token                      Meaning
 ``--color-selection``      ``::selection`` background, at low alpha
 ``--color-ok``             Status foreground: current, paid, in date
 ``--color-warn``           Status foreground: expiring soon
-``--color-bad``            Status foreground: expired, failed
+``--color-bad``            Status foreground: expired, failed; the fill of a
+                           danger button
+``--color-bad-fg``         Text on a danger button: white on a light theme's
+                           red, the dark ground on a dark theme's lighter red
+``--color-bad-hover``      A danger button under the pointer: a darker red on
+                           a light theme, a lighter one on a dark theme
 ``--color-ok-bg``,         The matching status fills, at low alpha
 ``--color-warn-bg``,
 ``--color-bad-bg``
@@ -101,7 +106,7 @@ Token                      Meaning
 ``--color-signal-stop``    the status colors above
 =========================  ==================================================
 
-That is the whole set of color a theme redefines — twenty-one tokens, listed
+That is the whole set of color a theme redefines — twenty-three tokens, listed
 above in the order ``themes/duty.css`` declares them.  A theme may redefine the
 three type tokens below as well.  The three signal colors are optional: a theme
 that leaves them out gets the values in ``tokens.css``, which are chosen to read
@@ -257,8 +262,10 @@ Status colors are close to shared: ok ``#1F7A4D``, warn ``#8F5C00``, bad
     ``#0A58CA``.  Inter Tight / Inter / Geist Mono.
 
 The light themes share one status palette -- ok ``#27693F``, warn ``#825900``,
-bad ``#AB3628`` -- and the two dark ones lift it so the same states stay
-legible on a dark ground.
+bad ``#AB3628`` -- and the dark ones lift it so the same states stay
+legible on a dark ground.  A lifted red is too light for white words, so a dark
+theme's danger button sets its words in the theme's own dark ground
+(``--color-bad-fg``) instead.
 
 .. _theming-contrast-gate:
 
@@ -269,7 +276,8 @@ Contrast is a gate
 resolves each theme's tokens against the ``tokens.css`` defaults and measures
 the pairs ``base.css`` and ``site.css`` actually paint text with: ``--color-fg``
 and ``--color-muted`` over all three grounds, ``--color-primary`` as link text,
-``--color-primary-fg`` on both primary fills, ``--color-accent`` on the ground,
+``--color-primary-fg`` on both primary fills, ``--color-bad-fg`` on the danger
+button's fill at rest and under the pointer, ``--color-accent`` on the ground,
 and each status color both on the ground and on its own translucent fill --
 composited over the ground first, because an ``#rrggbbaa`` value read raw
 reports a contrast no reader ever sees.  It also measures the bulk email
@@ -328,6 +336,8 @@ Adding a theme
          --color-ok: #27693f;
          --color-warn: #825900;
          --color-bad: #ab3628;
+         --color-bad-fg: #ffffff;
+         --color-bad-hover: #8a2b20;
          --color-ok-bg: #27693f1f;
          --color-warn-bg: #8259001f;
          --color-bad-bg: #ab36281f;
@@ -341,7 +351,7 @@ Adding a theme
        }
 
    That is the complete set: every shipped theme redefines exactly these
-   twenty-one color tokens — status colors and their translucent fills
+   twenty-three color tokens — status colors and their translucent fills
    included — plus the three type tokens.  Every stack ends in a real system
    fallback, so the page reads correctly before the webfonts arrive.  A
    token you leave out falls back to the ``duty`` value in ``tokens.css``,

@@ -262,9 +262,13 @@ def test_a_copy_links_its_answer_page_to_read_it_in_the_browser(
     management: User, ann: User
 ) -> None:
     """A callout's View in browser line opens the answer page, not Messages."""
-    bulk = sent_callout(management, ann)
-    body = str(message_to("ann@example.test").body)
-    assert f"View this email in your browser: {answer_url(token_for(bulk, ann))}" in body
+    # The token carries the second it was minted, so the copy and the expected link
+    # must be signed at the same instant.
+    with freeze_time("2026-08-01T15:10:00Z"):
+        bulk = sent_callout(management, ann)
+        body = str(message_to("ann@example.test").body)
+        expected = answer_url(token_for(bulk, ann))
+    assert f"View this email in your browser: {expected}" in body
 
 
 def test_a_copy_on_the_delivery_report_carries_inert_buttons(

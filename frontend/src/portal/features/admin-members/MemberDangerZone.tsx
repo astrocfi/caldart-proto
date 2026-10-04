@@ -11,7 +11,7 @@
  * donor's reader lands back on the donors report, where the gifts show under the
  * tombstone's name; everybody else on the member list.
  */
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { JSX } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -19,7 +19,9 @@ import { useAuth } from '@/portal/auth/useAuth';
 import { Card } from '@/portal/components/Card';
 import { DeleteButton } from '@/portal/components/DeleteButton';
 import { Field } from '@/portal/components/Field';
+import { useRefusedSubmit } from '@/portal/components/RefusedSubmit';
 import { useToast } from '@/portal/components/Toast';
+import { useFocusAfterSave } from '@/portal/components/focus';
 import { MemberAccountActions } from './MemberAccountActions';
 import { useDeleteMember } from './api';
 import { splitErrors } from './errors';
@@ -64,6 +66,10 @@ function DeleteZone({ member }: { member: MemberDetail }): JSX.Element {
 
   const confirmed = confirmation.trim().toLowerCase() === member.email.toLowerCase();
   const errors = splitErrors(remove.error);
+  // A refused delete moves the focus to what the server said, above the box.
+  const formRef = useRef<HTMLFormElement>(null);
+  useRefusedSubmit(formRef, remove.error);
+  useFocusAfterSave(formRef, remove.isPending);
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
@@ -86,7 +92,7 @@ function DeleteZone({ member }: { member: MemberDetail }): JSX.Element {
           {member.memberships.length === 1 ? '' : 's'}. This cannot be undone.
         </p>
         <PaymentsNote member={member} />
-        <form onSubmit={handleSubmit} noValidate>
+        <form ref={formRef} onSubmit={handleSubmit} noValidate>
           {errors.detail ? (
             <p role="alert" className="field__error">
               {errors.detail}

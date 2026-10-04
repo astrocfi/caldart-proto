@@ -8,7 +8,7 @@
  * the card's head, and a DART leader or user administrator makes the person a
  * verifier there.
  */
-import { useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import type { JSX } from 'react';
 
 import type { LeaderStatus, MembershipState } from '@/portal/api/types';
@@ -19,6 +19,7 @@ import { StatusChip } from '@/portal/components/StatusChip';
 import type { StatusTone } from '@/portal/components/StatusChip';
 import { useToast } from '@/portal/components/Toast';
 import { VerifiedMark } from '@/portal/components/VerifiedMark';
+import { useFocusAfterSave, usePanelFocus } from '@/portal/components/focus';
 import { InsuranceChip } from '@/portal/features/aircraft/InsuranceChip';
 import { MemberVerificationPanel } from '@/portal/features/verification/MemberVerificationPanel';
 import { useSetVerifier } from '@/portal/features/verification/api';
@@ -86,6 +87,9 @@ export function MemberStatusCard({ userId, status, today }: MemberStatusCardProp
   const reasons = noGoReasons(status);
   const canVerify = useCanVerify();
   const [verifying, setVerifying] = useState(false);
+  const verifyRef = useRef<HTMLButtonElement>(null);
+  const handleCloseVerify = useCallback(() => setVerifying(false), []);
+  const panelRef = usePanelFocus(verifying ? 'verify' : null, handleCloseVerify, verifyRef);
 
   return (
     <section className="leader-card" aria-label={`Status for ${status.name}`}>
@@ -117,7 +121,7 @@ export function MemberStatusCard({ userId, status, today }: MemberStatusCardProp
         </p>
         <div className="leader-card__actions cluster">
           {canVerify && !verifying ? (
-            <Button variant="secondary" small onClick={() => setVerifying(true)}>
+            <Button ref={verifyRef} variant="secondary" small onClick={() => setVerifying(true)}>
               Verify
             </Button>
           ) : null}
@@ -126,11 +130,13 @@ export function MemberStatusCard({ userId, status, today }: MemberStatusCardProp
       </header>
 
       {verifying ? (
-        <MemberVerificationPanel
-          userId={userId}
-          initial={draftFromStatus(status)}
-          onClose={() => setVerifying(false)}
-        />
+        <div ref={panelRef}>
+          <MemberVerificationPanel
+            userId={userId}
+            initial={draftFromStatus(status)}
+            onClose={handleCloseVerify}
+          />
+        </div>
       ) : null}
 
       <dl className="leader-rows">
@@ -256,6 +262,8 @@ function VerifierButton({ userId, status }: VerifierButtonProps): JSX.Element | 
   const canGrant = useCanGrantVerifier();
   const setVerifier = useSetVerifier(userId);
   const toast = useToast();
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  useFocusAfterSave(buttonRef, setVerifier.isPending);
   if (!canGrant) return null;
 
   const wanted = !status.is_verifier;
@@ -274,7 +282,13 @@ function VerifierButton({ userId, status }: VerifierButtonProps): JSX.Element | 
   };
 
   return (
-    <Button variant="quiet" small disabled={setVerifier.isPending} onClick={handleClick}>
+    <Button
+      ref={buttonRef}
+      variant="quiet"
+      small
+      disabled={setVerifier.isPending}
+      onClick={handleClick}
+    >
       {wanted ? 'Make a verifier' : 'Remove as verifier'}
     </Button>
   );

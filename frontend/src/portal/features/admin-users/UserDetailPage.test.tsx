@@ -153,6 +153,46 @@ describe('UserDetailPage', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(/only a system administrator/i);
   });
 
+  it("clears the server's refusal when the form is reset", async () => {
+    stubDetail({
+      patch: () =>
+        HttpResponse.json(
+          {
+            roles: ['Only a system administrator can grant or revoke the system_admin role.'],
+          },
+          { status: 400 },
+        ),
+    });
+    renderDetail();
+    await screen.findByRole('heading', { name: 'Priya Raman' });
+
+    await userEvent.click(screen.getByRole('checkbox', { name: /system admin/i }));
+    await userEvent.click(screen.getByRole('button', { name: /save changes/i }));
+    await screen.findByText(/only a system administrator/i);
+    await userEvent.click(screen.getByRole('button', { name: 'Reset form' }));
+
+    expect(screen.queryByText(/only a system administrator/i)).toBeNull();
+  });
+
+  it("moves the focus to the server's refusal when no field carries it", async () => {
+    stubDetail({
+      patch: () =>
+        HttpResponse.json(
+          {
+            roles: ['Only a system administrator can grant or revoke the system_admin role.'],
+          },
+          { status: 400 },
+        ),
+    });
+    renderDetail();
+    await screen.findByRole('heading', { name: 'Priya Raman' });
+
+    await userEvent.click(screen.getByRole('checkbox', { name: /system admin/i }));
+    await userEvent.click(screen.getByRole('button', { name: /save changes/i }));
+
+    await waitFor(() => expect(screen.getByText(/only a system administrator/i)).toHaveFocus());
+  });
+
   it('offers no action on your own account', async () => {
     const me = makeUser({ id: 7, roles: ['member', 'user_admin'] });
     stubDetail({ me });
@@ -210,7 +250,11 @@ describe('UserDetailPage', () => {
       await screen.findByRole('heading', { name: 'Priya Raman' });
 
       await userEvent.click(screen.getByRole('button', { name: 'Deactivate account' }));
-      await userEvent.click(screen.getByRole('button', { name: 'Deactivate account' }));
+      await userEvent.click(
+        within(screen.getByRole('region', { name: 'Deactivate account' })).getByRole('button', {
+          name: 'Yes, deactivate account',
+        }),
+      );
 
       expect(await screen.findByRole('button', { name: 'Reactivate account' })).toBeVisible();
       expect(calls).toEqual(['deactivate']);
@@ -229,7 +273,11 @@ describe('UserDetailPage', () => {
       await screen.findByRole('heading', { name: 'Priya Raman' });
 
       await userEvent.click(screen.getByRole('button', { name: 'Deactivate account' }));
-      await userEvent.click(screen.getByRole('button', { name: 'Deactivate account' }));
+      await userEvent.click(
+        within(screen.getByRole('region', { name: 'Deactivate account' })).getByRole('button', {
+          name: 'Yes, deactivate account',
+        }),
+      );
 
       expect(await screen.findByRole('alert')).toHaveTextContent(
         'You cannot activate or deactivate an account that holds roles you do not hold.',
@@ -248,7 +296,11 @@ describe('UserDetailPage', () => {
 
       await userEvent.click(screen.getByRole('button', { name: 'Block reactivation' }));
       expect(screen.getByText(/The account is deactivated first/)).toBeVisible();
-      await userEvent.click(screen.getByRole('button', { name: 'Block reactivation' }));
+      await userEvent.click(
+        within(screen.getByRole('region', { name: 'Block reactivation' })).getByRole('button', {
+          name: 'Yes, block reactivation',
+        }),
+      );
 
       expect(await screen.findByRole('button', { name: 'Allow reactivation' })).toBeVisible();
       expect(calls).toEqual(['block']);
@@ -269,7 +321,11 @@ describe('UserDetailPage', () => {
       await screen.findByRole('heading', { name: 'Priya Raman' });
 
       await userEvent.click(screen.getByRole('button', { name: 'Allow reactivation' }));
-      await userEvent.click(screen.getByRole('button', { name: 'Allow reactivation' }));
+      await userEvent.click(
+        within(screen.getByRole('region', { name: 'Allow reactivation' })).getByRole('button', {
+          name: 'Yes, allow reactivation',
+        }),
+      );
 
       expect(await screen.findByRole('button', { name: 'Block reactivation' })).toBeVisible();
       expect(calls).toEqual(['unblock']);
@@ -373,7 +429,7 @@ describe('UserDetailPage', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Clear bounce' }));
     expect(cleared).toEqual([]);
     const panel = screen.getByRole('region', { name: 'Clear bounce' });
-    await userEvent.click(within(panel).getByRole('button', { name: 'Clear bounce' }));
+    await userEvent.click(within(panel).getByRole('button', { name: 'Yes, clear bounce' }));
 
     await waitFor(() => expect(screen.queryByText('Bounced 10/01/2026')).not.toBeInTheDocument());
     expect(cleared).toHaveLength(1);
@@ -390,7 +446,7 @@ describe('UserDetailPage', () => {
 
     await userEvent.click(await screen.findByRole('button', { name: 'Clear bounce' }));
     const panel = screen.getByRole('region', { name: 'Clear bounce' });
-    await userEvent.click(within(panel).getByRole('button', { name: 'Clear bounce' }));
+    await userEvent.click(within(panel).getByRole('button', { name: 'Yes, clear bounce' }));
 
     expect(await screen.findByText('Not allowed.')).toBeInTheDocument();
   });

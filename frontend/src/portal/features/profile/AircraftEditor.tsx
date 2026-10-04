@@ -97,6 +97,7 @@ export function AircraftEditor({
         submitLabel="Save aircraft"
         pending={update.isPending}
         serverErrors={serverErrors}
+        serverError={update.error}
         onCancel={handleClose}
         onSubmit={(payload: AircraftPatch) =>
           update.mutate(payload, {

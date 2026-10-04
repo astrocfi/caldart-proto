@@ -143,6 +143,40 @@ describe('ChangePasswordPage', () => {
 
     expect(await screen.findByText('That is not your current password.')).toBeInTheDocument();
   });
+
+  it("drops the server's complaint once the box it names is edited", async () => {
+    server.use(
+      signedInAs(makeUser()),
+      http.post(`${API}/auth/password/change`, () =>
+        HttpResponse.json({ current_password: ['This field may not be blank.'] }, { status: 400 }),
+      ),
+    );
+
+    renderWithProviders(<ChangePasswordPage />);
+    await userEvent.click(screen.getByRole('button', { name: /change password/i }));
+    await screen.findByText('This field may not be blank.');
+    await userEvent.type(screen.getByLabelText(/current password/i), 'test-password-123');
+
+    expect(screen.queryByText('This field may not be blank.')).toBeNull();
+  });
+
+  it("drops the server's last complaint when a resubmit is refused for a mismatch", async () => {
+    server.use(
+      signedInAs(makeUser()),
+      http.post(`${API}/auth/password/change`, () =>
+        HttpResponse.json({ new_password: ['This field may not be blank.'] }, { status: 400 }),
+      ),
+    );
+
+    renderWithProviders(<ChangePasswordPage />);
+    await userEvent.click(screen.getByRole('button', { name: /change password/i }));
+    await screen.findByText('This field may not be blank.');
+    await userEvent.type(screen.getByLabelText(/current password/i), 'test-password-123');
+    await userEvent.type(screen.getByLabelText(/repeat new password/i), 'Sierra-Foothills-2027');
+    await userEvent.click(screen.getByRole('button', { name: /change password/i }));
+
+    expect(screen.queryByText('This field may not be blank.')).toBeNull();
+  });
 });
 
 describe('password page layout', () => {

@@ -1,8 +1,31 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { useState } from 'react';
+import type { JSX } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { DeleteButton } from './DeleteButton';
+
+/** A card listing two rows, each with a trashcan that takes its row away. */
+function RowsWithTrashcans(): JSX.Element {
+  const [rows, setRows] = useState(['N1', 'N2']);
+  return (
+    <section className="card">
+      <h2 className="card__title">Aircraft</h2>
+      <ul>
+        {rows.map((row) => (
+          <li key={row}>
+            {row}
+            <DeleteButton
+              label={`Remove ${row}`}
+              onDelete={() => setRows((current) => current.filter((one) => one !== row))}
+            />
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
 
 describe('DeleteButton', () => {
   it('takes its accessible name from the label when it shows no text', () => {
@@ -220,18 +243,18 @@ describe('DeleteButton confirmation', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Delete' }));
 
     expect(screen.getByRole('button', { name: 'Delete' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Keep' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled();
 
     resolveDelete();
     await screen.findByRole('button', { name: 'Remove N12345' });
   });
 
-  it('restores the trashcan when Keep is pressed, without calling onDelete', async () => {
+  it('restores the trashcan when Cancel is pressed, without calling onDelete', async () => {
     const handleDelete = vi.fn();
     render(<DeleteButton label="Remove N12345" onDelete={handleDelete} />);
 
     await userEvent.click(screen.getByRole('button', { name: 'Remove N12345' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Keep' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
 
     expect(screen.getByRole('button', { name: 'Remove N12345' })).toBeInTheDocument();
     expect(handleDelete).not.toHaveBeenCalled();
@@ -248,19 +271,19 @@ describe('DeleteButton confirmation', () => {
     expect(handleDelete).not.toHaveBeenCalled();
   });
 
-  it('moves the focus to Keep when the confirmation opens', async () => {
+  it('moves the focus to Cancel when the confirmation opens', async () => {
     render(<DeleteButton label="Remove N12345" onDelete={() => {}} />);
 
     await userEvent.click(screen.getByRole('button', { name: 'Remove N12345' }));
 
-    expect(screen.getByRole('button', { name: 'Keep' })).toHaveFocus();
+    expect(screen.getByRole('button', { name: 'Cancel' })).toHaveFocus();
   });
 
-  it('hands the focus back to the trashcan on Keep', async () => {
+  it('hands the focus back to the trashcan on Cancel', async () => {
     render(<DeleteButton label="Remove N12345" onDelete={() => {}} />);
 
     await userEvent.click(screen.getByRole('button', { name: 'Remove N12345' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Keep' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
 
     expect(screen.getByRole('button', { name: 'Remove N12345' })).toHaveFocus();
   });
@@ -315,7 +338,7 @@ describe('DeleteButton confirmation', () => {
     );
 
     await userEvent.click(screen.getByRole('button', { name: 'Remove N12345' }));
-    screen.getByRole('button', { name: 'Keep' }).focus();
+    screen.getByRole('button', { name: 'Cancel' }).focus();
     await userEvent.tab();
 
     expect(screen.getByRole('button', { name: 'Remove N12345' })).toBeInTheDocument();
@@ -345,5 +368,33 @@ describe('DeleteButton confirmation', () => {
 
     expect(screen.queryByRole('group', { name: 'Delete member' })).toBeNull();
     expect(handleClick).toHaveBeenCalledOnce();
+  });
+
+  it('says what the delete takes with it before the confirmation buttons', async () => {
+    const handleDelete = vi.fn();
+    render(
+      <DeleteButton
+        label="Delete this aircraft"
+        warning="It will disappear from every member's profile."
+        onDelete={handleDelete}
+      >
+        Delete this aircraft
+      </DeleteButton>,
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'Delete this aircraft' }));
+
+    expect(screen.getByRole('group', { name: 'Delete this aircraft' })).toHaveTextContent(
+      "It will disappear from every member's profile.DeleteCancel",
+    );
+  });
+
+  it('hands the focus to the heading of its card when the delete takes its row away', async () => {
+    render(<RowsWithTrashcans />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Remove N1' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Delete' }));
+
+    expect(screen.getByRole('heading', { name: 'Aircraft' })).toHaveFocus();
   });
 });

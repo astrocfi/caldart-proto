@@ -8,9 +8,9 @@
  * provider for the fee — all answer with the payment as it now stands, so the
  * screen redraws from the answer rather than guessing.
  */
-import { useState } from 'react';
-import type { JSX } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import type { FormEvent, JSX } from 'react';
+import { Link, useLocation, useParams } from 'react-router-dom';
 
 import { ApiError } from '@/portal/api/client';
 import type { PaymentDetail, Refund } from '@/portal/api/types';
@@ -25,8 +25,10 @@ import { Loading } from '@/portal/components/Loading';
 import { MemberRecordLink } from '@/portal/components/MemberRecordLink';
 import { Money } from '@/portal/components/Money';
 import { Page } from '@/portal/components/Page';
+import { useFreshErrors, useRefusedSubmit } from '@/portal/components/RefusedSubmit';
 import { StatusChip } from '@/portal/components/StatusChip';
 import { useToast } from '@/portal/components/Toast';
+import { useFocusAfterSave, usePanelFocus } from '@/portal/components/focus';
 import {
   receiptUrl,
   useFetchFees,
@@ -45,6 +47,7 @@ import {
   WALLET_LABELS,
   statusTone,
 } from './labels';
+import type { RecordedState } from './RecordPaymentPage';
 import { RefundForm } from './RefundForm';
 import './admin-payments.css';
 
@@ -194,56 +197,66 @@ interface ReconcileCardProps {
 function ReconcileCard({ payment }: ReconcileCardProps): JSX.Element {
   const [reconciledOn, setReconciledOn] = useState(payment.reconciled_on ?? '');
   const [note, setNote] = useState(payment.note);
-  const [error, setError] = useState<string | null>(null);
   const patch = usePatchPayment(payment.id);
   const toast = useToast();
+  const formRef = useRef<HTMLFormElement>(null);
+  useRefusedSubmit(formRef, patch.error);
+  useFocusAfterSave(formRef, patch.isPending);
+  // What the server said about the date goes once the date is edited.
+  const { error } = useFreshErrors(
+    patch.error,
+    { error: reconciledOn },
+    {
+      error: patch.error
+        ? patch.error instanceof ApiError
+          ? patch.error.message
+          : 'Something went wrong. Try again.'
+        : null,
+    },
+  );
 
-  function handleSave() {
-    setError(null);
+  function handleSave(event: FormEvent) {
+    event.preventDefault();
     patch.mutate(
       { reconciled_on: reconciledOn === '' ? null : reconciledOn, note },
-      {
-        onSuccess: () => toast.show('Payment updated.', 'success'),
-        onError: (failure) =>
-          setError(
-            failure instanceof ApiError ? failure.message : 'Something went wrong. Try again.',
-          ),
-      },
+      { onSuccess: () => toast.show('Payment updated.', 'success') },
     );
   }
 
   return (
     <Card title="Reconciliation" eyebrow="Treasurer">
-      <Field
-        label="Matched on"
-        hint="The day this payment was found on a statement"
-        error={error ?? undefined}
-      >
-        {(props) => (
-          <input
-            {...props}
-            type="date"
-            value={reconciledOn}
-            onChange={(event) => setReconciledOn(event.target.value)}
-          />
+      <form ref={formRef} onSubmit={handleSave} noValidate>
+        <Field
+          label="Matched on"
+          hint="The day this payment was found on a statement"
+          error={error ?? undefined}
+        >
+          {(props) => (
+            <input
+              {...props}
+              type="date"
+              value={reconciledOn}
+              onChange={(event) => setReconciledOn(event.target.value)}
+            />
+          )}
+        </Field>
+        <Field label="Note" hint="A check number, or why this entry exists">
+          {(props) => (
+            <input
+              {...props}
+              type="text"
+              value={note}
+              onChange={(event) => setNote(event.target.value)}
+            />
+          )}
+        </Field>
+        {payment.reconciled_by === null ? null : (
+          <p className="muted">Matched by {payment.reconciled_by}.</p>
         )}
-      </Field>
-      <Field label="Note" hint="A check number, or why this entry exists">
-        {(props) => (
-          <input
-            {...props}
-            type="text"
-            value={note}
-            onChange={(event) => setNote(event.target.value)}
-          />
-        )}
-      </Field>
-      {payment.reconciled_by === null ? null : (
-        <p className="muted">Matched by {payment.reconciled_by}.</p>
-      )}
-      <Button onClick={handleSave} disabled={patch.isPending}>
-        {patch.isPending ? 'Saving…' : 'Save'}
-      </Button>
+        <Button type="submit" disabled={patch.isPending}>
+          {patch.isPending ? 'Saving…' : 'Save'}
+        </Button>
+      </form>
     </Card>
   );
 }
@@ -254,10 +267,32 @@ export function PaymentDetailPage(): JSX.Element {
   const paymentId = Number(id);
   const query = usePaymentDetail(Number.isFinite(paymentId) ? paymentId : null);
   const [isRefunding, setIsRefunding] = useState(false);
+  const handleStopRefunding = useCallback(() => setIsRefunding(false), []);
+  const refundRef = useRef<HTMLButtonElement>(null);
+  const refundFormRef = usePanelFocus(
+    isRefunding ? 'refund' : null,
+    handleStopRefunding,
+    refundRef,
+  );
+  const resendRef = useRef<HTMLButtonElement>(null);
 
   const resend = useResendReceipt(paymentId);
   const fees = useFetchFees(paymentId);
   const toast = useToast();
+  useFocusAfterSave(resendRef, resend.isPending);
+
+  // Arriving from Record a payment, the focus starts on the payment's own heading
+  // rather than on the page body, so the treasurer hears which payment it is.
+  const location = useLocation();
+  const hasArrived = query.data !== undefined;
+  useEffect(() => {
+    const state = location.state as Partial<RecordedState> | null;
+    if (!hasArrived || state?.recorded !== true) return;
+    const heading = document.querySelector<HTMLElement>('h1');
+    if (heading === null) return;
+    heading.tabIndex = -1;
+    heading.focus();
+  }, [hasArrived, location.state]);
 
   if (query.isPending) return <Loading />;
   if (query.error || !query.data) {
@@ -302,10 +337,19 @@ export function PaymentDetailPage(): JSX.Element {
       <Card title="This payment" eyebrow="Record">
         <Facts payment={payment} />
         <div className="cluster">
-          <Button onClick={() => setIsRefunding(true)} disabled={isRefunding}>
+          <Button
+            ref={refundRef}
+            aria-expanded={isRefunding}
+            onClick={() => setIsRefunding((current) => !current)}
+          >
             Refund
           </Button>
-          <Button variant="secondary" onClick={handleResend} disabled={resend.isPending}>
+          <Button
+            ref={resendRef}
+            variant="secondary"
+            onClick={handleResend}
+            disabled={resend.isPending}
+          >
             {resend.isPending ? 'Sending…' : 'Resend receipt'}
           </Button>
           <a className="button button--quiet" href={receiptUrl(payment.id)}>
@@ -320,13 +364,15 @@ export function PaymentDetailPage(): JSX.Element {
       </Card>
 
       {isRefunding ? (
-        <Card>
-          <RefundForm
-            payment={payment}
-            onDone={() => setIsRefunding(false)}
-            onCancel={() => setIsRefunding(false)}
-          />
-        </Card>
+        <div ref={refundFormRef}>
+          <Card>
+            <RefundForm
+              payment={payment}
+              onDone={handleStopRefunding}
+              onCancel={handleStopRefunding}
+            />
+          </Card>
+        </div>
       ) : null}
 
       <Card title="Refunds" eyebrow="History">

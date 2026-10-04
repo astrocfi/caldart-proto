@@ -68,6 +68,9 @@ const PAIRS = [
   { fg: '--color-primary', bg: '--color-bg-raised', ratio: TEXT_RATIO },
   { fg: '--color-primary-fg', bg: '--color-primary', ratio: TEXT_RATIO },
   { fg: '--color-primary-fg', bg: '--color-primary-hover', ratio: TEXT_RATIO },
+  // The danger button's words, at rest and under the pointer.
+  { fg: '--color-bad-fg', bg: '--color-bad', ratio: TEXT_RATIO },
+  { fg: '--color-bad-fg', bg: '--color-bad-hover', ratio: TEXT_RATIO },
   { fg: '--color-accent', bg: '--color-bg', ratio: TEXT_RATIO },
   { fg: '--color-ok', bg: '--color-bg', ratio: TEXT_RATIO },
   { fg: '--color-warn', bg: '--color-bg', ratio: TEXT_RATIO },

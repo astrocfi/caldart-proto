@@ -145,6 +145,18 @@ describe('PaymentDetailPage', () => {
     expect(screen.getByLabelText(/Amount/)).toHaveValue(120);
   });
 
+  it('moves the focus into the refund form and back to Refund when it is canceled', async () => {
+    const user = userEvent.setup();
+    servePayment();
+    renderDetail();
+
+    await user.click(await screen.findByRole('button', { name: 'Refund' }));
+    expect(screen.getByLabelText(/Amount/)).toHaveFocus();
+    await user.keyboard('{Escape}');
+
+    expect(screen.getByRole('button', { name: 'Refund' })).toHaveFocus();
+  });
+
   it('sends the refund the form was filled in with', async () => {
     const user = userEvent.setup();
     const bodies = servePayment();

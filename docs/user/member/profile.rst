@@ -107,11 +107,13 @@ Saving your changes
 ===================
 
 Change anything and press **Save profile**. *Profile saved.* appears at the foot of
-the screen. Saving replaces the whole profile, so a field you clear is cleared.
+the screen, and you stay on **Save profile**. Saving replaces the whole profile, so a field you clear is cleared.
 Your aircraft are kept on their own screen and are not touched.
 
 The form checks each field as you leave it. A field that is wrong turns red with
-the reason under it, and nothing is saved until you fix it:
+the reason under it, and nothing is saved until you fix it. Pressing **Save profile**
+with a field still wrong takes you to the first such field, and a line beside the
+button says how many fields to check:
 
 * *Your first name is required.* and *Your last name is required.* when either
   name is blank.
@@ -150,7 +152,7 @@ The same buttons appear on the membership card of your :doc:`dashboard`. A life
 member stays a member and is offered neither.
 
 **Make me a friend**
-  Opens a short confirmation. While your membership is current it reads *Your
+  Opens a short confirmation below the card's buttons. While your membership is current it reads *Your
   membership stays current through 03/01/2027. On 03/02/2027 you become a friend of
   CalDART: no dues, no expiry, and no renewal reminders.* You keep what you paid
   for. With nothing current, you become a friend today.
@@ -163,8 +165,8 @@ member stays a member and is offered neither.
   card, first charged on the day your renewal would have been. **Stop it** ends it
   with the renewal. If you already have a recurring donation, **Keep the
   contribution** is refused and you are asked to change that donation on
-  :doc:`donate`. Otherwise the confirmation has one **Make me a friend** button.
-  **Cancel** changes nothing.
+  :doc:`donate`. Otherwise the confirmation has one **Yes, make me a friend** button.
+  **Cancel**, or Escape, changes nothing.
 
 **Undo**
   While the change waits for its day, the card reads *You become a friend on

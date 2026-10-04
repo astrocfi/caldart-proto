@@ -25,9 +25,9 @@ The **Who hears about what** card lists every subscription, one per line:
 - **Active**: a green dot while its emails go out, and a gray one while it is paused.
 
 Each row carries three controls, last on the line under an **Actions** heading a screen
-reader announces. The line above the table says what the last two did. **Events** never
-narrows below a readable width: on a phone the table scrolls sideways, says so above it, and
-keeps **Recipient** pinned at the left.
+reader announces. A message in the corner of the screen says what the last two did.
+**Events** never narrows below a readable width: on a phone the table scrolls sideways, says
+so above it, and keeps **Recipient** pinned at the left.
 
 **Edit**
    Opens the subscription's form under the table, to change its events, as **Changing one**
@@ -36,11 +36,11 @@ keeps **Recipient** pinned at the left.
 **Pause** and **Resume**
    A paused subscription keeps its events and sends nothing until you resume it. Resuming
    one whose account no longer holds a role that may receive one of its events is refused,
-   and the line says why.
+   and the message says why.
 
 **The trashcan**
-   Asks first: press it and it turns into **Delete** and **Keep**. Press **Delete** and
-   the subscription is gone; **Keep**, Escape, or a click elsewhere leaves it as it is.
+   Asks first: press it and it turns into **Delete** and **Cancel**. Press **Delete** and
+   the subscription is gone; **Cancel**, Escape, or a click elsewhere leaves it as it is.
 
 With none set up the table reads *Nobody is subscribed to a notification yet*.
 
@@ -48,7 +48,7 @@ With none set up the table reads *Nobody is subscribed to a notification yet*.
 Setting one up
 ~~~~~~~~~~~~~~
 
-**New subscription** opens the form under the table:
+**New subscription** opens the form under the table and takes you to its first box:
 
 #. **Recipient email** is where the emails go. Each address has one subscription.
 #. The events come in five groups: **Membership**, **Money**, **Accounts**,
@@ -56,8 +56,9 @@ Setting one up
    read what it covers. **Select all** ticks every event in its group, and **Clear**
    unticks them.
 
-Press **Save**, or **Cancel**. An address that already has a subscription is refused with
-*This address already has a subscription.* Edit that one instead. An address that belongs
+Press **Save**, or **Cancel** or Escape. *Subscription added.* confirms a save. An address
+that already has a subscription is refused with *This address already has a subscription.*
+Edit that one instead. An address that belongs
 to a CalDART account is refused when the account holds no role that may receive a ticked
 event, with a line under the events naming the first such event. An address no account
 holds is refused until you tick **This address is outside CalDART and may receive these
@@ -70,8 +71,9 @@ Changing one
 **Edit** on a row opens the same form, headed **Edit subscription**, with the subscription's
 events ticked. The **Recipient** is shown as plain text, since it cannot change: to send the
 notifications somewhere else, delete the subscription and set up another. Change the ticks
-and press **Save**; the form closes and the row shows the change. **Cancel** closes the form
-and changes nothing. One form is open at a time.
+and press **Save**; the form closes, *Subscription saved.* confirms it, and the row shows the
+change. **Cancel**, or Escape, closes the form and changes nothing, and you are back on the
+row's **Edit**. One form is open at a time.
 
 
 Who may receive what

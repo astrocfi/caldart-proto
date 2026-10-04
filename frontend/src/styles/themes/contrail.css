@@ -18,6 +18,8 @@
   --color-ok: #27693f;
   --color-warn: #825900;
   --color-bad: #ab3628;
+  --color-bad-fg: #ffffff;
+  --color-bad-hover: #8a2b20;
   --color-ok-bg: #27693f1f;
   --color-warn-bg: #8259001f;
   --color-bad-bg: #ab36281f;

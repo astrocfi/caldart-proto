@@ -23,13 +23,13 @@ import { DateText } from '@/portal/components/DateText';
 import { DeleteButton } from '@/portal/components/DeleteButton';
 import { Field } from '@/portal/components/Field';
 import { Page } from '@/portal/components/Page';
+import { usePanelFocus } from '@/portal/components/focus';
 import { FormAlert, fieldError } from '@/portal/features/auth/form';
 import { DROP_ORDER } from './dropOrder';
 import './bulk-email.css';
 import './reuse.css';
 import { GroupKindChoice, groupKindLabel } from './GroupKindChoice';
 import { groupCsvUrl, useCreateGroup, useDeleteGroup, useGroups } from './reuseApi';
-import { useFormCard } from './useFormCard';
 
 /** What a live group's row says when the member list refuses one of its stored filters. */
 export const FILTERS_NEED_FIXING = "This group's filters need fixing";
@@ -46,7 +46,7 @@ export function GroupsPage(): JSX.Element {
   const [notice, setNotice] = useState<Notice | null>(null);
   const newRef = useRef<HTMLButtonElement>(null);
   const handleClose = useCallback(() => setIsAdding(false), []);
-  const formRef = useFormCard(isAdding ? 'new' : null, handleClose, newRef);
+  const formRef = usePanelFocus(isAdding ? 'new' : null, handleClose, newRef);
   const groups = useGroups();
   const remove = useDeleteGroup();
   const rows = groups.data ?? [];

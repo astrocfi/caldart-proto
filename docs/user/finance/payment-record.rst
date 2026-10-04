@@ -91,8 +91,9 @@ future.* Clear the date and save to mark the payment as not matched again.
 Refund the payment
 ~~~~~~~~~~~~~~~~~~
 
-**Refund** opens the form **Refund this payment**, which tells you how much of the payment
-is left to refund. It has four fields:
+**Refund** opens the form **Refund this payment** under the card and takes you to its
+**Amount**. The form tells you how much of the payment is left to refund. It has four
+fields:
 
 * **Amount**, in dollars, filled in with everything not yet refunded. Type a smaller
   figure to give back part of it, such as a contribution while the dues stand.
@@ -103,8 +104,9 @@ is left to refund. It has four fields:
   a term. It starts ticked when the amount covers the dues, and unticked when it does
   not. Once you tick or untick it yourself, changing the amount leaves your choice alone.
 
-Press **Refund** to issue it, or **Cancel** to close the form. The screen confirms with
-*Refunded* and the amount.
+Press **Refund** to issue it, or **Cancel** or Escape to close the form and go back to the
+**Refund** that opened it. The screen confirms with *Refunded* and the amount. An amount the
+site refuses is marked under **Amount**, which takes you back to it.
 
 The site asks the provider to send the money back to the card or account the member paid
 with. Their bank decides how quickly it appears, usually a few working days. The member

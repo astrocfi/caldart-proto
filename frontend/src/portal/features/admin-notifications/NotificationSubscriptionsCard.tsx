@@ -3,11 +3,13 @@
  * subscribed to notifications, one per line, with a button to edit its events,
  * pause or resume it, or delete it, and the form that subscribes another.
  *
- * One form is open at a time, under the table: **New subscription** opens it
- * empty and **Edit** opens it for that row, each closing the other.
+ * One form is open at a time, always under the table: **New subscription** opens it
+ * empty and **Edit** opens it for that row, each closing the other.  The focus moves
+ * into the form as it opens, scrolling it into view, and back to the button that
+ * opened it as it closes, Escape included.  What every action did is said in a toast.
  */
-import { useState } from 'react';
-import type { JSX } from 'react';
+import { useCallback, useRef, useState } from 'react';
+import type { JSX, MouseEvent } from 'react';
 
 import type { NotificationSubscription } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
@@ -16,6 +18,8 @@ import type { Column } from '@/portal/components/DataTable';
 import { DataTable } from '@/portal/components/DataTable';
 import { DeleteButton } from '@/portal/components/DeleteButton';
 import { StatusDot } from '@/portal/components/StatusChip';
+import { useToast } from '@/portal/components/Toast';
+import { useFocusAfterSave, usePanelFocus } from '@/portal/components/focus';
 import {
   useDeleteNotificationSubscription,
   useNotificationEvents,
@@ -36,13 +40,24 @@ function errorText(error: unknown, fallback: string): string {
 /** The subscriptions table, its row controls, and the form behind New subscription and Edit. */
 export function NotificationSubscriptionsCard(): JSX.Element {
   const [openForm, setOpenForm] = useState<OpenForm>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const toast = useToast();
+  const newRef = useRef<HTMLButtonElement>(null);
+  const handleFormDone = useCallback((): void => setOpenForm(null), []);
+  const openKey =
+    openForm === null ? null : openForm.mode === 'new' ? 'new' : `edit-${openForm.id}`;
+  const formRef = usePanelFocus(openKey, handleFormDone, newRef);
 
   const list = useNotificationSubscriptions();
   const catalog = useNotificationEvents();
   const update = useUpdateNotificationSubscription();
   const remove = useDeleteNotificationSubscription();
   const isBusy = update.isPending || remove.isPending;
+  // Every row's buttons wait while one acts; the one pressed gets the focus back.
+  const pressedRef = useRef<HTMLElement | null>(null);
+  useFocusAfterSave(pressedRef, isBusy);
+  const handlePress = (event: MouseEvent<HTMLElement>): void => {
+    pressedRef.current = event.currentTarget;
+  };
   const events = catalog.data ?? [];
 
   const handleToggleActive = (row: NotificationSubscription): void => {
@@ -50,32 +65,26 @@ export function NotificationSubscriptionsCard(): JSX.Element {
     update.mutate(
       { id: row.id, patch: { is_active: isActive } },
       {
-        onSuccess: () => setNotice(isActive ? 'Resumed.' : 'Paused.'),
-        onError: (error) => setNotice(errorText(error, 'The change was not saved.')),
+        onSuccess: () => toast.show(isActive ? 'Resumed.' : 'Paused.', 'success'),
+        onError: (error) => toast.show(errorText(error, 'The change was not saved.'), 'error'),
       },
     );
   };
 
   const handleDelete = (row: NotificationSubscription): Promise<void> =>
     remove.mutateAsync(row.id).then(
-      () => setNotice('Deleted.'),
-      (error) => setNotice(errorText(error, 'The subscription was not deleted.')),
+      () => toast.show('Deleted.', 'success'),
+      (error) => toast.show(errorText(error, 'The subscription was not deleted.'), 'error'),
     );
 
   const handleAdd = (): void => {
-    setNotice(null);
     setOpenForm({ mode: 'new' });
   };
 
   const handleEdit = (row: NotificationSubscription): void => {
-    setNotice(null);
     setOpenForm((open) =>
       open?.mode === 'edit' && open.id === row.id ? null : { mode: 'edit', id: row.id },
     );
-  };
-
-  const handleFormDone = (): void => {
-    setOpenForm(null);
   };
 
   // The recipient tells the rows apart and starts at the left; the events never narrow
@@ -121,7 +130,15 @@ export function NotificationSubscriptionsCard(): JSX.Element {
           <Button variant="quiet" small disabled={isBusy} onClick={() => handleEdit(row)}>
             Edit
           </Button>
-          <Button variant="quiet" small disabled={isBusy} onClick={() => handleToggleActive(row)}>
+          <Button
+            variant="quiet"
+            small
+            disabled={isBusy}
+            onClick={(event) => {
+              handlePress(event);
+              handleToggleActive(row);
+            }}
+          >
             {row.is_active ? 'Pause' : 'Resume'}
           </Button>
           <DeleteButton
@@ -146,9 +163,11 @@ export function NotificationSubscriptionsCard(): JSX.Element {
         forgetting the events.
       </p>
 
-      {openForm?.mode === 'new' ? null : <Button onClick={handleAdd}>New subscription</Button>}
-
-      {notice === null ? null : <p role="status">{notice}</p>}
+      {openForm?.mode === 'new' ? null : (
+        <Button ref={newRef} onClick={handleAdd}>
+          New subscription
+        </Button>
+      )}
 
       <DataTable
         singleLine
@@ -160,13 +179,18 @@ export function NotificationSubscriptionsCard(): JSX.Element {
         isLoading={list.isLoading}
       />
 
-      {openForm?.mode === 'new' ? <NotificationSubscriptionForm onDone={handleFormDone} /> : null}
-      {editing === null || editing === undefined ? null : (
-        <NotificationSubscriptionForm
-          key={editing.id}
-          subscription={editing}
-          onDone={handleFormDone}
-        />
+      {openForm === null ? null : (
+        <div ref={formRef}>
+          {openForm.mode === 'new' ? (
+            <NotificationSubscriptionForm onDone={handleFormDone} />
+          ) : editing === null || editing === undefined ? null : (
+            <NotificationSubscriptionForm
+              key={editing.id}
+              subscription={editing}
+              onDone={handleFormDone}
+            />
+          )}
+        </div>
       )}
 
       {list.isError ? (

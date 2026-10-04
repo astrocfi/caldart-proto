@@ -2,6 +2,7 @@
  * The backups panel of `/portal/system/health`: what is on disk, a button
  * that takes a fresh dump, and a download link per file.
  */
+import { useRef } from 'react';
 import type { JSX } from 'react';
 
 import type { Backup } from '@/portal/api/types';
@@ -11,6 +12,7 @@ import { DataTable } from '@/portal/components/DataTable';
 import type { Column } from '@/portal/components/DataTable';
 import { DateText } from '@/portal/components/DateText';
 import { useToast } from '@/portal/components/Toast';
+import { useFocusAfterSave } from '@/portal/components/focus';
 import { backupDownloadUrl, useBackups, useCreateBackup } from './api';
 
 /** Human file size; dumps run from a few hundred kB to a few hundred MB. */
@@ -70,6 +72,9 @@ const COLUMNS: Column<Backup>[] = [
 export function BackupsPanel(): JSX.Element {
   const { data, isPending, isError, error } = useBackups();
   const create = useCreateBackup();
+  // The button is disabled while it runs; it gets the focus back once the run ends.
+  const runRef = useRef<HTMLButtonElement>(null);
+  useFocusAfterSave(runRef, create.isPending);
   const toast = useToast();
 
   const handleCreateBackup = () => {
@@ -86,7 +91,7 @@ export function BackupsPanel(): JSX.Element {
       title="Backups"
       footer={
         <>
-          <Button onClick={handleCreateBackup} disabled={create.isPending}>
+          <Button ref={runRef} onClick={handleCreateBackup} disabled={create.isPending}>
             {create.isPending ? 'Taking a backup…' : 'Create backup'}
           </Button>
           {create.isPending ? (

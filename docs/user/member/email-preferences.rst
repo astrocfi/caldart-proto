@@ -24,7 +24,8 @@ What you can do
 ===============
 
 Press a switch, or move to it with the Tab key and press the space bar or Enter. The change
-is saved at once and the word *Saved.* appears under the switches. Nothing else needs pressing.
+is saved at once, and a message such as *Mission turned off.* confirms it. Nothing else needs
+pressing.
 
 Turning a type back on works the same way. Your earlier choice is kept even if CalDART
 later decides a type cannot be turned off; it applies again if that changes back.

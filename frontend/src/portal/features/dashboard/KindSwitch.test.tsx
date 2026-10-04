@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it } from 'vitest';
@@ -61,7 +61,8 @@ async function openPanel() {
 
 /** The panel's button called `name`, once the renewal has loaded and enabled it. */
 async function readyButton(name: string): Promise<HTMLElement> {
-  const button = await screen.findByRole('button', { name });
+  const panel = await screen.findByRole('region', { name: 'Make me a friend' });
+  const button = await within(panel).findByRole('button', { name });
   await waitFor(() => expect(button).toBeEnabled());
   return button;
 }
@@ -128,7 +129,7 @@ describe('<KindSwitch/>', () => {
     const calls = setUp({ renewal: makeMandate({ contribution_cents: 0, kind: 'renewal' }) });
     renderWithProviders(<KindSwitch />);
     await openPanel();
-    await userEvent.click(await readyButton('Make me a friend'));
+    await userEvent.click(await readyButton('Yes, make me a friend'));
     await screen.findByText('You become a friend on 07/01/2027.');
     expect(calls.bodies).toEqual([{}]);
   });
@@ -138,7 +139,8 @@ describe('<KindSwitch/>', () => {
     server.use(http.get(`${API}/me/renewal`, () => new Promise<never>(() => undefined)));
     renderWithProviders(<KindSwitch />);
     await openPanel();
-    expect(screen.getByRole('button', { name: 'Make me a friend' })).toBeDisabled();
+    const panel = screen.getByRole('region', { name: 'Make me a friend' });
+    expect(within(panel).getByRole('button', { name: 'Yes, make me a friend' })).toBeDisabled();
   });
 
   it('asks whether to keep a contribution the renewal gives', async () => {
@@ -177,7 +179,7 @@ describe('<KindSwitch/>', () => {
       const calls = setUp({ renewal: makeMandate({ contribution_cents: 2500, status }) });
       renderWithProviders(<KindSwitch />);
       await openPanel();
-      await userEvent.click(await readyButton('Make me a friend'));
+      await userEvent.click(await readyButton('Yes, make me a friend'));
       await screen.findByText('You become a friend on 07/01/2027.');
       expect(calls.bodies).toEqual([{}]);
     },
@@ -200,7 +202,7 @@ describe('<KindSwitch/>', () => {
     );
     renderWithProviders(<KindSwitch />);
     await openPanel();
-    await userEvent.click(await readyButton('Make me a friend'));
+    await userEvent.click(await readyButton('Yes, make me a friend'));
     expect(await screen.findByRole('alert')).toHaveTextContent('A lifetime member stays a member.');
   });
 

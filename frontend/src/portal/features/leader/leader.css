@@ -233,6 +233,12 @@
   margin-bottom: var(--space-4);
 }
 
+/* The chosen record's cards take the focus as a whole when a result is picked, so a
+   screen reader reads them from the top; the cards themselves need no ring for it. */
+.leader-selected:focus {
+  outline: none;
+}
+
 /* The aircraft check reuses the verdict band with its own wording. */
 .leader-aircraft-card__limits {
   font-size: var(--text-sm);

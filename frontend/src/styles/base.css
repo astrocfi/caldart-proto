@@ -266,10 +266,30 @@ a:hover {
   align-items: center;
 }
 
-/* A row whose items open in place to different heights, such as a confirmation
-   panel beside a button: the button stays level with the panel's own buttons. */
-.cluster--end {
-  align-items: flex-end;
+/* A confirmation that opens from a button in a row takes a line of its own below the
+   row, at full width, so the buttons around it stay where they were. */
+.confirm-panel {
+  flex-basis: 100%;
+  order: 1;
+}
+
+/* A delete confirmation that says what the delete takes with it. */
+.delete-confirm {
+  display: block;
+}
+
+.delete-confirm__warning {
+  display: block;
+  color: var(--color-bad);
+  font-weight: var(--weight-medium);
+}
+
+/* The line beside a submit button after a refused submit. */
+.form-refusal {
+  margin: 0;
+  color: var(--color-bad);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
 }
 
 /* --------------------------------------------------------- form controls */
@@ -423,7 +443,15 @@ legend {
 .button--danger {
   background: var(--color-bad);
   border-color: var(--color-bad);
-  color: #fff;
+  color: var(--color-bad-fg);
+}
+
+/* Without its own hover rule a danger button would take the primary hover above and
+   turn navy under the pointer, at the moment of the click. */
+.button--danger:hover:not(:disabled) {
+  background: var(--color-bad-hover);
+  border-color: var(--color-bad-hover);
+  color: var(--color-bad-fg);
 }
 
 .button--small {

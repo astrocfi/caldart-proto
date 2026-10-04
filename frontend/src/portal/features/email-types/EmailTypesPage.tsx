@@ -2,12 +2,14 @@
  * `/bulk-email/types` — the types of bulk email, for a system administrator.
  *
  * One table, in a card, and one form: **Add an email type** opens the form empty and
- * each row's **Edit** opens it on that type. Each row's trashcan asks before it
+ * each row's **Edit** opens it on that type, above the table.  The focus moves into the
+ * form as it opens, scrolling it into view, and back to the button that opened it as it
+ * closes, Escape included; a toast says what each save and delete did. Each row's trashcan asks before it
  * deletes. A type a bulk email has used cannot be deleted: its trashcan is grayed, and
  * holding the pointer over it says what to do instead. The description and the
  * senders wrap, so they read in full.
  */
-import { useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import type { JSX } from 'react';
 
 import type { EmailType, EmailTypeInput } from '@/portal/api/types';
@@ -19,17 +21,13 @@ import { DataTable } from '@/portal/components/DataTable';
 import { DeleteButton } from '@/portal/components/DeleteButton';
 import { Page } from '@/portal/components/Page';
 import { StatusDot } from '@/portal/components/StatusChip';
+import { useToast } from '@/portal/components/Toast';
+import { usePanelFocus } from '@/portal/components/focus';
 import { useCreateEmailType, useDeleteEmailType, useEmailTypes, useUpdateEmailType } from './api';
 import { EmailTypeForm } from './EmailTypeForm';
 
 /** Which form is open: a new type, or the edit of one. */
 type OpenForm = { mode: 'new' } | { mode: 'edit'; id: number } | null;
-
-/** A line for the screen's status: what happened, and whether it went wrong. */
-interface Notice {
-  text: string;
-  isError: boolean;
-}
 
 /** Why a type a bulk email has used cannot be deleted, and what to do instead. */
 export function inUseReason(emailType: EmailType): string {
@@ -45,7 +43,7 @@ export function sendersText(emailType: EmailType): string {
 /** The email types table, its row controls, and the add-and-edit form. */
 export function EmailTypesPage(): JSX.Element {
   const [openForm, setOpenForm] = useState<OpenForm>(null);
-  const [notice, setNotice] = useState<Notice | null>(null);
+  const toast = useToast();
 
   const types = useEmailTypes();
   const create = useCreateEmailType();
@@ -55,28 +53,32 @@ export function EmailTypesPage(): JSX.Element {
   const editing =
     openForm?.mode === 'edit' ? rows.find((emailType) => emailType.id === openForm.id) : undefined;
 
-  const handleClose = (): void => {
-    create.reset();
-    update.reset();
+  const resetCreate = create.reset;
+  const resetUpdate = update.reset;
+  const handleClose = useCallback((): void => {
+    resetCreate();
+    resetUpdate();
     setOpenForm(null);
-  };
+  }, [resetCreate, resetUpdate]);
+  const addRef = useRef<HTMLButtonElement>(null);
+  const openKey =
+    openForm === null ? null : openForm.mode === 'new' ? 'new' : `edit-${openForm.id}`;
+  const formRef = usePanelFocus(openKey, handleClose, addRef);
 
   const handleAdd = (): void => {
     create.reset();
-    setNotice(null);
     setOpenForm({ mode: 'new' });
   };
 
   const handleEdit = (emailType: EmailType): void => {
     update.reset();
-    setNotice(null);
     setOpenForm({ mode: 'edit', id: emailType.id });
   };
 
   const handleCreate = (input: EmailTypeInput): void => {
     create.mutate(input, {
       onSuccess: (saved) => {
-        setNotice({ text: `${saved.name} added.`, isError: false });
+        toast.show(`${saved.name} added.`, 'success');
         handleClose();
       },
     });
@@ -87,7 +89,7 @@ export function EmailTypesPage(): JSX.Element {
       { id, input },
       {
         onSuccess: (saved) => {
-          setNotice({ text: `${saved.name} saved.`, isError: false });
+          toast.show(`${saved.name} saved.`, 'success');
           handleClose();
         },
       },
@@ -98,13 +100,13 @@ export function EmailTypesPage(): JSX.Element {
     remove.mutateAsync(emailType.id).then(
       () => {
         if (openForm?.mode === 'edit' && openForm.id === emailType.id) handleClose();
-        setNotice({ text: `${emailType.name} deleted.`, isError: false });
+        toast.show(`${emailType.name} deleted.`, 'success');
       },
       (error: unknown) =>
-        setNotice({
-          text: error instanceof Error ? error.message : `${emailType.name} was not deleted.`,
-          isError: true,
-        }),
+        toast.show(
+          error instanceof Error ? error.message : `${emailType.name} was not deleted.`,
+          'error',
+        ),
     );
 
   // The name tells the rows apart and stays pinned while a phone scrolls the table; the
@@ -185,42 +187,41 @@ export function EmailTypesPage(): JSX.Element {
       title="Email types"
       eyebrow="Bulk Email"
       lede="The types of bulk email CalDART sends. Each one says who may send it and whether members may turn it off on their Email preferences."
-      actions={openForm === null ? <Button onClick={handleAdd}>Add an email type</Button> : null}
+      actions={
+        openForm === null ? (
+          <Button ref={addRef} onClick={handleAdd}>
+            Add an email type
+          </Button>
+        ) : null
+      }
     >
-      {openForm?.mode === 'new' ? (
-        <Card eyebrow="New" title="Add an email type">
-          <EmailTypeForm
-            submitLabel="Add type"
-            pending={create.isPending}
-            error={create.error}
-            onSubmit={handleCreate}
-            onCancel={handleClose}
-          />
-        </Card>
-      ) : null}
+      <div ref={formRef}>
+        {openForm?.mode === 'new' ? (
+          <Card eyebrow="New" title="Add an email type">
+            <EmailTypeForm
+              submitLabel="Add type"
+              pending={create.isPending}
+              error={create.error}
+              onSubmit={handleCreate}
+              onCancel={handleClose}
+            />
+          </Card>
+        ) : null}
 
-      {editing === undefined ? null : (
-        <Card eyebrow="Edit" title={editing.name}>
-          <EmailTypeForm
-            key={editing.id}
-            emailType={editing}
-            submitLabel="Save type"
-            pending={update.isPending}
-            error={update.error}
-            onSubmit={(input) => handleUpdate(editing.id, input)}
-            onCancel={handleClose}
-          />
-        </Card>
-      )}
-
-      {notice === null ? null : (
-        <p
-          role={notice.isError ? 'alert' : 'status'}
-          className={notice.isError ? 'field__error' : ''}
-        >
-          {notice.text}
-        </p>
-      )}
+        {editing === undefined ? null : (
+          <Card eyebrow="Edit" title={editing.name}>
+            <EmailTypeForm
+              key={editing.id}
+              emailType={editing}
+              submitLabel="Save type"
+              pending={update.isPending}
+              error={update.error}
+              onSubmit={(input) => handleUpdate(editing.id, input)}
+              onCancel={handleClose}
+            />
+          </Card>
+        )}
+      </div>
 
       <Card>
         <DataTable

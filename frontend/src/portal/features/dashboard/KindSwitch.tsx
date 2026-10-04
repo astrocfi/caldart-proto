@@ -9,7 +9,6 @@
  * a yearly recurring donation.  A member whose change is pending sees the day and an
  * **Undo** button; a friend gets **Make me a member**, which leads to the checkout.
  */
-import { useState } from 'react';
 import type { JSX } from 'react';
 
 import { useRenewal } from '@/portal/api/queries';
@@ -17,6 +16,8 @@ import type { IsoDate, MembershipStatus, RenewalMandate, User } from '@/portal/a
 import { useAuth } from '@/portal/auth/useAuth';
 import { Button, ButtonLink } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
+import { ConfirmButton } from '@/portal/components/ConfirmButton';
+import type { ConfirmChoice } from '@/portal/components/ConfirmButton';
 import { formatDate, todayIso } from '@/portal/components/DateText';
 import { formatCents } from '@/portal/components/Money';
 import { FormAlert } from '@/portal/features/auth/form';
@@ -131,28 +132,34 @@ function PendingChange({ friendOn }: { friendOn: IsoDate }) {
 
 /** **Make me a friend**, and the confirmation panel it opens. */
 function BecomeFriend({ expiresOn }: { expiresOn: IsoDate | null }) {
-  const [isOpen, setIsOpen] = useState(false);
   const renewal = useRenewal();
   const become = useBecomeFriend();
 
-  if (!isOpen) {
-    return (
-      <Button variant="secondary" onClick={() => setIsOpen(true)}>
-        Make me a friend
-      </Button>
-    );
-  }
-
   // Until the renewal has loaded nobody knows whether there is a contribution to ask
   // about, so the confirm buttons wait for it.
-  const isBusy = become.isPending || renewal.isPending;
+  const isWaiting = renewal.isPending;
   const contribution = renewalContribution(renewal.data?.mandate);
   const amount = formatCents(contribution, { whole: true });
-  const handleConfirm = (keepContribution?: boolean) =>
-    become.mutate(keepContribution === undefined ? {} : { keep_contribution: keepContribution });
+  const handleConfirm = (keepContribution?: boolean) => () =>
+    become.mutateAsync(
+      keepContribution === undefined ? {} : { keep_contribution: keepContribution },
+    );
+
+  const choices: ConfirmChoice[] =
+    contribution > 0
+      ? [
+          { label: 'Keep the contribution', disabled: isWaiting, onChoose: handleConfirm(true) },
+          {
+            label: 'Stop it',
+            variant: 'secondary',
+            disabled: isWaiting,
+            onChoose: handleConfirm(false),
+          },
+        ]
+      : [{ label: 'Make me a friend', disabled: isWaiting, onChoose: handleConfirm() }];
 
   return (
-    <section className="stack-tight" aria-label="Make me a friend">
+    <ConfirmButton label="Make me a friend" choices={choices}>
       <p>
         {expiresOn === null
           ? 'You become a friend of CalDART today: no dues, no expiry, and no renewal reminders.'
@@ -166,26 +173,7 @@ function BecomeFriend({ expiresOn }: { expiresOn: IsoDate | null }) {
           recurring donation?
         </p>
       ) : null}
-      <div className="cluster">
-        {contribution > 0 ? (
-          <>
-            <Button disabled={isBusy} onClick={() => handleConfirm(true)}>
-              Keep the contribution
-            </Button>
-            <Button variant="secondary" disabled={isBusy} onClick={() => handleConfirm(false)}>
-              Stop it
-            </Button>
-          </>
-        ) : (
-          <Button disabled={isBusy} onClick={() => handleConfirm()}>
-            Make me a friend
-          </Button>
-        )}
-        <Button variant="quiet" onClick={() => setIsOpen(false)}>
-          Cancel
-        </Button>
-      </div>
       <FormAlert error={become.error} />
-    </section>
+    </ConfirmButton>
   );
 }

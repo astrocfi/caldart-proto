@@ -7,8 +7,8 @@
  * their present one ends, and a lapsed member's begins today.  A donor, a "Deleted
  * member N" record included, is offered no grant: the server refuses one.
  */
-import { useState } from 'react';
-import type { JSX } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import type { JSX, KeyboardEvent } from 'react';
 
 import { usePlans } from '@/portal/api/queries';
 import type { MemberDetail, MemberTerm, MembershipTermStatus } from '@/portal/api/types';
@@ -18,6 +18,7 @@ import type { Column } from '@/portal/components/DataTable';
 import { DataTable } from '@/portal/components/DataTable';
 import { DateText, formatDate } from '@/portal/components/DateText';
 import { Field } from '@/portal/components/Field';
+import { RefusedSubmitNote, useRefusedSubmit } from '@/portal/components/RefusedSubmit';
 import { useToast } from '@/portal/components/Toast';
 import { TERM_STATUS_CHOICES } from './choices';
 import { useGrantTerm, useUpdateTerm } from './api';
@@ -53,10 +54,42 @@ export function MemberMembershipsTab({ member }: { member: MemberDetail }): JSX.
 
   const grantErrors = splitErrors(grant.error);
   const termErrors = splitErrors(updateTerm.error);
+  const grantRef = useRef<HTMLFormElement>(null);
+  const grantRefusal = useRefusedSubmit(grantRef, grant.error);
+
+  // The focus follows a term edit: into its end date as it opens, and back to the
+  // row's Edit as it closes; a granted term's Edit takes it too, once the row shows.
+  const editButtons = useRef(new Map<number, HTMLButtonElement | null>());
+  const endDateRef = useRef<HTMLInputElement>(null);
+  const [focusTermId, setFocusTermId] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (editingId !== null) endDateRef.current?.focus();
+  }, [editingId]);
+
+  useEffect(() => {
+    if (focusTermId === null) return;
+    const button = editButtons.current.get(focusTermId);
+    if (button === null || button === undefined) return;
+    setFocusTermId(null);
+    button.focus();
+  }, [focusTermId, member.memberships]);
 
   const startEditing = (term: MemberTerm) => {
     setEditingId(term.id);
     setEdit(editFrom(term));
+  };
+
+  const handleStopEditing = (): void => {
+    setFocusTermId(editingId);
+    setEditingId(null);
+  };
+
+  // Escape in the row being edited is Cancel.
+  const handleEditKeyDown = (event: KeyboardEvent<HTMLElement>): void => {
+    if (event.key !== 'Escape') return;
+    event.preventDefault();
+    handleStopEditing();
   };
 
   const saveTerm = (term: MemberTerm) => {
@@ -69,7 +102,7 @@ export function MemberMembershipsTab({ member }: { member: MemberDetail }): JSX.
       },
       {
         onSuccess: () => {
-          setEditingId(null);
+          handleStopEditing();
           toast.show('Term updated.', 'success');
         },
       },
@@ -82,6 +115,7 @@ export function MemberMembershipsTab({ member }: { member: MemberDetail }): JSX.
       { plan, starts_on: startsOn || null, note },
       {
         onSuccess: (term) => {
+          setFocusTermId(term.id);
           setPlan('');
           setStartsOn('');
           setNote('');
@@ -119,8 +153,10 @@ export function MemberMembershipsTab({ member }: { member: MemberDetail }): JSX.
       render: (term) =>
         editingId === term.id ? (
           <input
+            ref={endDateRef}
             type="date"
             aria-label="End date"
+            onKeyDown={handleEditKeyDown}
             value={edit.ends_on}
             onChange={(event) => setEdit({ ...edit, ends_on: event.target.value })}
           />
@@ -138,6 +174,7 @@ export function MemberMembershipsTab({ member }: { member: MemberDetail }): JSX.
         editingId === term.id ? (
           <select
             aria-label="Term status"
+            onKeyDown={handleEditKeyDown}
             value={edit.status}
             onChange={(event) => setEdit({ ...edit, status: event.target.value })}
           >
@@ -162,6 +199,7 @@ export function MemberMembershipsTab({ member }: { member: MemberDetail }): JSX.
           <input
             type="text"
             aria-label="Term note"
+            onKeyDown={handleEditKeyDown}
             value={edit.note}
             onChange={(event) => setEdit({ ...edit, note: event.target.value })}
           />
@@ -180,15 +218,27 @@ export function MemberMembershipsTab({ member }: { member: MemberDetail }): JSX.
       render: (term) =>
         editingId === term.id ? (
           <span className="cluster">
-            <Button small onClick={() => saveTerm(term)} disabled={updateTerm.isPending}>
+            <Button
+              small
+              onClick={() => saveTerm(term)}
+              onKeyDown={handleEditKeyDown}
+              disabled={updateTerm.isPending}
+            >
               Save
             </Button>
-            <Button small variant="quiet" onClick={() => setEditingId(null)}>
+            <Button small variant="quiet" onClick={handleStopEditing} onKeyDown={handleEditKeyDown}>
               Cancel
             </Button>
           </span>
         ) : (
-          <Button small variant="quiet" onClick={() => startEditing(term)}>
+          <Button
+            ref={(node) => {
+              editButtons.current.set(term.id, node);
+            }}
+            small
+            variant="quiet"
+            onClick={() => startEditing(term)}
+          >
             Edit
           </Button>
         ),
@@ -217,7 +267,7 @@ export function MemberMembershipsTab({ member }: { member: MemberDetail }): JSX.
 
       {isDonor ? null : (
         <Card title="Grant a term" eyebrow="Manual grant">
-          <form onSubmit={handleSubmitGrant} noValidate>
+          <form ref={grantRef} onSubmit={handleSubmitGrant} noValidate>
             {grantErrors.detail ? (
               <p role="alert" className="field__error">
                 {grantErrors.detail}
@@ -271,9 +321,12 @@ export function MemberMembershipsTab({ member }: { member: MemberDetail }): JSX.
                 />
               )}
             </Field>
-            <Button type="submit" disabled={!plan || grant.isPending}>
-              {grant.isPending ? 'Granting…' : 'Grant term'}
-            </Button>
+            <div className="cluster">
+              <Button type="submit" disabled={!plan || grant.isPending}>
+                {grant.isPending ? 'Granting…' : 'Grant term'}
+              </Button>
+              <RefusedSubmitNote count={grantRefusal.count} />
+            </div>
           </form>
         </Card>
       )}

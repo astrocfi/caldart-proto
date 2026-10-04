@@ -11,7 +11,6 @@
  * and PDF together.  Turning a mandate off asks first, because the member is
  * emailed about it.
  */
-import { useState } from 'react';
 import type { JSX } from 'react';
 
 import type {
@@ -23,6 +22,7 @@ import type {
   ReportColumn,
 } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
+import { ConfirmButton } from '@/portal/components/ConfirmButton';
 import type { Column } from '@/portal/components/DataTable';
 import { DataTable } from '@/portal/components/DataTable';
 import { DateText } from '@/portal/components/DateText';
@@ -199,7 +199,6 @@ export function RenewalsPage(): JSX.Element {
   const [mandateValues, setMandateValues] = useUrlFilters([...MANDATE_FILTER_KEYS, MANDATES_PAGE]);
   const { [MANDATES_PAGE]: mandatePageValue, ...filters } = mandateValues;
   const [attemptValues, setAttemptValues] = useUrlFilters(['outcome', ATTEMPTS_PAGE]);
-  const [confirmingId, setConfirmingId] = useState<number | null>(null);
   const choice = useColumnChoice('renewals', FALLBACK_COLUMNS);
 
   const mandatePage = pageOf(mandatePageValue);
@@ -228,23 +227,22 @@ export function RenewalsPage(): JSX.Element {
     setAttemptValues({ outcome, [ATTEMPTS_PAGE]: next > 1 ? String(next) : '' });
   };
 
-  const handleCancel = (mandate: RenewalMandate): void => {
-    cancel.mutate(mandate.id, {
-      onSuccess: () => {
-        setConfirmingId(null);
+  // Rejects when the request fails, so the confirmation stays open.
+  const handleCancel = (mandate: RenewalMandate): Promise<unknown> =>
+    cancel.mutateAsync(mandate.id).then(
+      () =>
         toast.show(
           `${MANDATE_KIND_LABELS[mandate.kind]} is off for ${mandate.user_name}.`,
           'success',
-        );
-      },
-      onError: (error) => {
+        ),
+      (error: unknown) => {
         toast.show(
           error instanceof Error ? error.message : 'That renewal could not be turned off.',
           'error',
         );
+        throw error;
       },
-    });
-  };
+    );
 
   const mandateColumns: Column<RenewalMandate>[] = [
     ...reportTableColumns(choice.tableColumns, choice.tableChosen, MANDATE_CELLS, false),
@@ -255,27 +253,20 @@ export function RenewalsPage(): JSX.Element {
       width: '13rem',
       render: (row) => {
         if (!isCancelable(row)) return <span className="muted">Off</span>;
-        if (confirmingId !== row.id) {
-          return (
-            <Button variant="quiet" small onClick={() => setConfirmingId(row.id)}>
-              Turn off
-            </Button>
-          );
-        }
         return (
-          <span className="cluster">
-            <Button
-              variant="danger"
-              small
-              disabled={cancel.isPending}
-              onClick={() => handleCancel(row)}
-            >
-              Yes, turn it off
-            </Button>
-            <Button variant="quiet" small onClick={() => setConfirmingId(null)}>
-              Keep it
-            </Button>
-          </span>
+          <ConfirmButton
+            label="Turn off"
+            variant="quiet"
+            small
+            choices={[
+              { label: 'Turn it off', variant: 'danger', onChoose: () => handleCancel(row) },
+            ]}
+          >
+            <p>
+              Turn off {MANDATE_KIND_LABELS[row.kind].toLowerCase()} for {row.user_name}? They are
+              emailed that it is off.
+            </p>
+          </ConfirmButton>
         );
       },
     },

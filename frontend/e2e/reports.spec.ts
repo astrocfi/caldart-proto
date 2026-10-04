@@ -50,7 +50,7 @@ test('an account administrator subscribes somebody to the member report, sends i
     .filter({ hasText: 'CSV' });
   await expect(created).toHaveCount(1);
   await created.getByRole('button', { name: 'Send now' }).click();
-  await expect(subscriptions.getByRole('status')).toHaveText(/^Sent to /);
+  await expect(page.getByText(/^Sent to /)).toBeVisible();
 
   // Edit the same row: its schedule becomes weekly on Thursday.
   await created.getByRole('button', { name: 'Edit' }).click();

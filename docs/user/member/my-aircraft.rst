@@ -57,7 +57,7 @@ Adding an airplane you fly
    **Insurance expired**, or **No insurance on file**), and **Out of service** for
    an airplane taken out of use.
 #. Click the airplane. It is attached straight away, *N12345 added.* appears, and
-   it joins the list above.
+   it joins the list above, where you are taken to its line.
 
 You can type a registration however you like. CalDART writes every N-number one
 way: upper case, no punctuation, and an N at the front. So 12345, n12345, and
@@ -75,7 +75,8 @@ Adding an airplane that is not in the register
 
 **Add a new aircraft** sits at the foot of the card (*Not in the register? Add it
 yourself.*), and you do not have to search first. It opens **Add an aircraft to the
-register**, the whole record, with every box the record has when you edit it later:
+register** in its place and takes you to the first box. **Cancel**, or Escape, closes it.
+The form is the whole record, with every box the record has when you edit it later:
 
 * **N-number** (required). The box writes the N and takes digits first, then at
   most two letters, so 172sp becomes N172SP. Anything you typed in the search box is
@@ -134,8 +135,9 @@ typing its N-number and fill the rest of the form in by hand.
 Editing an airplane
 ===================
 
-Press **Edit** beside an airplane. For one you added yourself, the form opens with
-every detail, as it was added: **N-number**, **Year**, **Aircraft type**, **Seats**,
+Press **Edit** beside an airplane. Escape, **Cancel**, or **Close** in its place closes the
+form again, and saving does too, taking you back to **Edit**. For one you added yourself,
+the form opens with every detail, as it was added: **N-number**, **Year**, **Aircraft type**, **Seats**,
 **Category**, and **Airworthiness**; **Owner type** (Individual, FBO, or Flying club), **Owner name**, and
 **Owner contact**; and **Carrier**, **Policy number**, **Liability per occurrence**,
 **Liability per person**, **Hull**, and **Insurance expires**. Money is in whole
@@ -156,9 +158,9 @@ administrator is the exception: for them **Edit** opens any airplane on the list
 Removing an airplane
 ====================
 
-The trashcan asks first: press it and it turns into **Remove** and **Keep**. Press
+The trashcan asks first: press it and it turns into **Remove** and **Cancel**. Press
 **Remove** and the airplane comes off your list, and *N12345 removed.* appears;
-press **Keep**, press Escape, or click away and nothing changes. Removing only
+press **Cancel**, press Escape, or click away and nothing changes. Removing only
 detaches the airplane from you. The record stays in the register, and anyone else
 who flies it keeps it on their list. Only an account administrator can delete an
 airplane from the register.

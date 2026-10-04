@@ -125,7 +125,7 @@ test('a recurring donation is changed and turned off from the Payments screen', 
   await expect(card.getByText('Yearly')).toBeVisible();
 
   await card.getByRole('button', { name: 'Turn off' }).click();
-  await page.getByRole('button', { name: 'Yes, turn it off' }).click();
+  await page.getByRole('button', { name: 'Turn it off' }).click();
   await expect(page.getByText('Recurring donation is off.').first()).toBeVisible();
   await expect(card.getByRole('link', { name: 'Set up' })).toBeVisible();
 });

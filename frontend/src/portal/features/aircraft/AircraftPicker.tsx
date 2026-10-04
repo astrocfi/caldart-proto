@@ -6,7 +6,7 @@
  * N-number box offers the FAA registry's registrations as it is typed into.
  * `/profile/aircraft` uses it for the planes a member commonly flies.
  */
-import { useId, useState } from 'react';
+import { useCallback, useId, useRef, useState } from 'react';
 import type { JSX } from 'react';
 
 import { ApiError } from '@/portal/api/client';
@@ -16,6 +16,7 @@ import { Card } from '@/portal/components/Card';
 import { EmptyState } from '@/portal/components/EmptyState';
 import { Field } from '@/portal/components/Field';
 import { useDebounced } from '@/portal/components/useDebounced';
+import { usePanelFocus } from '@/portal/components/focus';
 import { AircraftForm } from './AircraftForm';
 import './aircraft.css';
 import { InsuranceChip } from './InsuranceChip';
@@ -46,6 +47,11 @@ export function AircraftPicker({ onSelect, excludeIds = [] }: AircraftPickerProp
   const searched = debounced.length > 0 && search.isSuccess;
   // Say so when a search found nothing, rather than leaving the results blank.
   const nothingFound = searched && results.length === 0 && attached.length === 0;
+
+  // The add form takes the place of its button, which gets the focus back as it closes.
+  const addRef = useRef<HTMLButtonElement>(null);
+  const handleStopAdding = useCallback(() => setAdding(false), []);
+  const addFormRef = usePanelFocus<HTMLElement>(adding ? 'add' : null, handleStopAdding, addRef);
 
   const handleStartAdding = (): void => {
     create.reset();
@@ -131,7 +137,7 @@ export function AircraftPicker({ onSelect, excludeIds = [] }: AircraftPickerProp
 
       {adding ? null : (
         <p className="cluster aircraft-add">
-          <Button variant="secondary" onClick={handleStartAdding}>
+          <Button ref={addRef} variant="secondary" onClick={handleStartAdding}>
             Add a new aircraft
           </Button>
           <span className="muted">Not in the register? Add it yourself.</span>
@@ -139,7 +145,7 @@ export function AircraftPicker({ onSelect, excludeIds = [] }: AircraftPickerProp
       )}
 
       {adding ? (
-        <section className="aircraft-new" aria-labelledby={addTitleId}>
+        <section ref={addFormRef} className="aircraft-new" aria-labelledby={addTitleId}>
           <h3 id={addTitleId} className="aircraft-new__title">
             Add an aircraft to the register
           </h3>
@@ -148,8 +154,9 @@ export function AircraftPicker({ onSelect, excludeIds = [] }: AircraftPickerProp
             submitLabel="Add aircraft"
             pending={create.isPending}
             serverErrors={fieldErrors}
+            serverError={create.error}
             onSubmit={(payload) => create.mutate(payload, { onSuccess: handleCreated })}
-            onCancel={() => setAdding(false)}
+            onCancel={handleStopAdding}
           />
           {create.isError && Object.keys(fieldErrors ?? {}).length === 0 ? (
             <p className="field__error" role="alert">

@@ -4,7 +4,7 @@
  *
  * Opened by **Verify** on the aircraft check's card and on the aircraft record.
  */
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { FormEvent, JSX } from 'react';
 
 import type { AircraftDetail } from '@/portal/api/types';
@@ -12,6 +12,7 @@ import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { Field } from '@/portal/components/Field';
 import { MaskedInput } from '@/portal/components/MaskedInput';
+import { RefusedSubmitNote, useRefusedSubmit } from '@/portal/components/RefusedSubmit';
 import { useToast } from '@/portal/components/Toast';
 import { maskDollars } from '@/portal/masks';
 import { useVerifyInsurance } from './api';
@@ -61,6 +62,8 @@ export function InsuranceVerificationPanel({
   const [submitted, setSubmitted] = useState(false);
   const verify = useVerifyInsurance(aircraft.id);
   const toast = useToast();
+  const formRef = useRef<HTMLFormElement>(null);
+  const refusal = useRefusedSubmit(formRef, verify.error);
 
   const refused = saveErrors(verify.error, API_FIELDS);
   const local = submitted ? validateInsurance(draft) : {};
@@ -71,7 +74,10 @@ export function InsuranceVerificationPanel({
   const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault();
     setSubmitted(true);
-    if (Object.keys(validateInsurance(draft)).length > 0) return;
+    if (Object.keys(validateInsurance(draft)).length > 0) {
+      refusal.refuse();
+      return;
+    }
     verify.mutate(insurancePayload(initial, draft), {
       onSuccess: (saved) => {
         toast.show('Verification saved', 'success');
@@ -97,7 +103,7 @@ export function InsuranceVerificationPanel({
 
   return (
     <Card title="Verification" className="verification-panel">
-      <form onSubmit={handleSubmit} noValidate>
+      <form ref={formRef} onSubmit={handleSubmit} noValidate>
         {refused.form !== null ? (
           <p role="alert" className="field__error">
             {refused.form}
@@ -146,6 +152,7 @@ export function InsuranceVerificationPanel({
           <Button variant="quiet" onClick={handleClose}>
             Cancel
           </Button>
+          <RefusedSubmitNote count={refusal.count} />
         </div>
       </form>
     </Card>

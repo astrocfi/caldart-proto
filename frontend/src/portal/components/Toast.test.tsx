@@ -58,6 +58,24 @@ describe('ToastProvider', () => {
     expect(screen.getByText('Done.').parentElement).toHaveClass(expected, { exact: true });
   });
 
+  it('announces a failure at once, as an alert', async () => {
+    const user = userEvent.setup();
+    render(<Raiser message="Not saved." tone="error" />, { wrapper });
+
+    await user.click(screen.getByRole('button', { name: 'raise Not saved.' }));
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Not saved.');
+  });
+
+  it('leaves a success to the polite region', async () => {
+    const user = userEvent.setup();
+    render(<Raiser message="Saved." tone="success" />, { wrapper });
+
+    await user.click(screen.getByRole('button', { name: 'raise Saved.' }));
+
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
   it('queues a second toast beside the first, oldest first', async () => {
     const user = userEvent.setup();
     render(

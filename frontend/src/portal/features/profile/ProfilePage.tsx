@@ -2,7 +2,7 @@
  * `/profile` — the member's own details, the kind of account they hold, and the way to
  * deactivate it.
  */
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { JSX } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -26,6 +26,13 @@ export function ProfilePage(): JSX.Element {
   // Bumped on every successful save, so the form starts again from what the server
   // stored (a name, street, or city it title-cased, say) rather than from what was typed.
   const [formResetKey, setFormResetKey] = useState(0);
+  // The form starts again after a save, which takes the focus off Save profile; it goes
+  // back to the button of the form drawn afresh.
+  const formCardRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (formResetKey === 0) return;
+    formCardRef.current?.querySelector<HTMLElement>('button[type="submit"]')?.focus();
+  }, [formResetKey]);
 
   if (profile.isPending) {
     return (
@@ -66,25 +73,28 @@ export function ProfilePage(): JSX.Element {
         </ButtonLink>
       }
     >
-      <Card>
-        <ProfileForm
-          key={formResetKey}
-          initialValues={profileToForm(profile.data)}
-          verification={verification}
-          withNames
-          submitting={save.isPending}
-          serverErrors={serverErrors}
-          onSubmit={(patch) =>
-            save.mutate(patch, {
-              onSuccess: () => {
-                setFormResetKey((key) => key + 1);
-                toast.show('Profile saved.', 'success');
-              },
-              onError: (error) => toast.show(saveErrorMessage(error), 'error'),
-            })
-          }
-        />
-      </Card>
+      <div ref={formCardRef}>
+        <Card>
+          <ProfileForm
+            key={formResetKey}
+            initialValues={profileToForm(profile.data)}
+            verification={verification}
+            withNames
+            submitting={save.isPending}
+            serverErrors={serverErrors}
+            serverError={save.error}
+            onSubmit={(patch) =>
+              save.mutate(patch, {
+                onSuccess: () => {
+                  setFormResetKey((key) => key + 1);
+                  toast.show('Profile saved.', 'success');
+                },
+                onError: (error) => toast.show(saveErrorMessage(error), 'error'),
+              })
+            }
+          />
+        </Card>
+      </div>
 
       <KindCard />
 

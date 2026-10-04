@@ -6,12 +6,18 @@
  * member screens; what this adds is the state, the inline validation and the
  * submit button a member needs.
  */
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { FormEvent, JSX, ReactNode } from 'react';
 
 import { useDarts } from '@/portal/api/queries';
 import type { ProfilePatch, ProfileVerification } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
+import {
+  RefusedSubmitNote,
+  useFreshErrors,
+  useRefusedSubmit,
+} from '@/portal/components/RefusedSubmit';
+import { useFocusAfterSave } from '@/portal/components/focus';
 import { ProfileFieldsets } from './ProfileFieldsets';
 import { formToMemberPatch, validateProfileForm } from './form';
 import type { ProfileFormErrors, ProfileFormValues } from './form';
@@ -24,6 +30,12 @@ export interface ProfileFormProps {
   submitLabel?: string;
   /** Field-keyed messages from a rejected save, merged with the inline ones. */
   serverErrors?: Record<string, string>;
+  /**
+   * What `serverErrors` came from, normally the save's `error`: each new one moves the
+   * focus to the first field it highlights, and an error for a field goes once the
+   * field is edited.
+   */
+  serverError?: unknown;
   /** Rendered beside the submit button — a "Back" link in the wizard. */
   secondaryAction?: ReactNode;
   /** The verified state of the certificate, medical, and photo ID, marked under each. */
@@ -39,6 +51,7 @@ export function ProfileForm({
   submitting = false,
   submitLabel = 'Save profile',
   serverErrors,
+  serverError,
   secondaryAction,
   verification,
   withNames = false,
@@ -49,6 +62,10 @@ export function ProfileForm({
   const [touched, setTouched] = useState<Partial<Record<keyof ProfileFormValues, true>>>({});
   const [submitted, setSubmitted] = useState(false);
   const darts = useDarts();
+  const formRef = useRef<HTMLFormElement>(null);
+  const refusal = useRefusedSubmit(formRef, serverError);
+  useFocusAfterSave(formRef, submitting);
+  const freshServerErrors = useFreshErrors(serverError, values, serverErrors ?? {});
 
   const errors = validateProfileForm(values, withNames);
 
@@ -62,17 +79,18 @@ export function ProfileForm({
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitted(true);
-    if (Object.keys(errors).length > 0) return;
+    if (Object.keys(errors).length > 0) {
+      refusal.refuse();
+      return;
+    }
     onSubmit(formToMemberPatch(values, withNames), values);
   }
 
   /** Inline rules win; a server message fills in anything they missed. */
-  const shownErrors: ProfileFormErrors = { ...serverErrors, ...visible };
-
-  const hasErrors = Object.keys(errors).length > 0;
+  const shownErrors: ProfileFormErrors = { ...freshServerErrors, ...visible };
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="profile-form">
+    <form ref={formRef} onSubmit={handleSubmit} noValidate className="profile-form">
       <ProfileFieldsets
         value={values}
         onChange={(next) => setValues(next)}
@@ -85,17 +103,12 @@ export function ProfileForm({
         onFieldBlur={(key) => setTouched((left) => ({ ...left, [key]: true }))}
       />
 
-      {submitted && hasErrors ? (
-        <p className="field__error" role="alert">
-          Check the highlighted fields and try again.
-        </p>
-      ) : null}
-
       <div className="cluster profile-form__actions">
         <Button type="submit" disabled={submitting}>
           {submitting ? 'Saving…' : submitLabel}
         </Button>
         {secondaryAction}
+        <RefusedSubmitNote count={refusal.count} />
       </div>
     </form>
   );

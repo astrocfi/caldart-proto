@@ -3,11 +3,14 @@
  * schedule, with a button to edit one, send it now, pause or resume it, or
  * delete it, and the form that sets up another.
  *
- * One form is open at a time: **New subscription** opens it above the table
- * and **Edit** opens it under the table for that row, each closing the other.
+ * One form is open at a time, always in the same place above the table:
+ * **New subscription** opens it for a new one and a row's **Edit** for that row, each
+ * closing the other.  The focus moves into the form as it opens and back to the button
+ * that opened it as it closes, Escape included.  What every action did is said in a
+ * toast, the portal's one way of confirming a save or a send.
  */
-import { useState } from 'react';
-import type { JSX } from 'react';
+import { useCallback, useRef, useState } from 'react';
+import type { JSX, MouseEvent } from 'react';
 
 import type { ReportRunResult, ReportSubscription } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
@@ -17,6 +20,8 @@ import { DataTable } from '@/portal/components/DataTable';
 import { DateText } from '@/portal/components/DateText';
 import { DeleteButton } from '@/portal/components/DeleteButton';
 import { StatusDot } from '@/portal/components/StatusChip';
+import { useToast } from '@/portal/components/Toast';
+import { useFocusAfterSave, usePanelFocus } from '@/portal/components/focus';
 import {
   useDeleteSubscription,
   useSendSubscription,
@@ -55,19 +60,31 @@ function errorText(error: unknown, fallback: string): string {
 /** The subscriptions table, its row actions, and the form behind New subscription and Edit. */
 export function SubscriptionsCard(): JSX.Element {
   const [openForm, setOpenForm] = useState<OpenForm>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const toast = useToast();
+  const newRef = useRef<HTMLButtonElement>(null);
+  const handleFormDone = useCallback((): void => setOpenForm(null), []);
+  const openKey =
+    openForm === null ? null : openForm.mode === 'new' ? 'new' : `edit-${openForm.id}`;
+  const formRef = usePanelFocus(openKey, handleFormDone, newRef);
 
   const list = useSubscriptions();
   const send = useSendSubscription();
   const update = useUpdateSubscription();
   const remove = useDeleteSubscription();
   const isBusy = send.isPending || update.isPending || remove.isPending;
+  // Every row's buttons wait while one acts; the one pressed gets the focus back.
+  const pressedRef = useRef<HTMLElement | null>(null);
+  useFocusAfterSave(pressedRef, isBusy);
+  const handlePress = (event: MouseEvent<HTMLElement>): void => {
+    pressedRef.current = event.currentTarget;
+  };
 
   const handleSend = (row: ReportSubscription): void => {
     const recipient = recipientLabel(row);
     send.mutate(row.id, {
-      onSuccess: (result) => setNotice(sendNotice(result, recipient)),
-      onError: (error) => setNotice(errorText(error, `Not sent to ${recipient}.`)),
+      onSuccess: (result) =>
+        toast.show(sendNotice(result, recipient), result.sent > 0 ? 'success' : 'error'),
+      onError: (error) => toast.show(errorText(error, `Not sent to ${recipient}.`), 'error'),
     });
   };
 
@@ -76,32 +93,26 @@ export function SubscriptionsCard(): JSX.Element {
     update.mutate(
       { id: row.id, patch: { is_active: isActive } },
       {
-        onSuccess: () => setNotice(isActive ? 'Resumed.' : 'Paused.'),
-        onError: (error) => setNotice(errorText(error, 'The change was not saved.')),
+        onSuccess: () => toast.show(isActive ? 'Resumed.' : 'Paused.', 'success'),
+        onError: (error) => toast.show(errorText(error, 'The change was not saved.'), 'error'),
       },
     );
   };
 
   const handleDelete = (row: ReportSubscription): Promise<void> =>
     remove.mutateAsync(row.id).then(
-      () => setNotice('Deleted.'),
-      (error) => setNotice(errorText(error, 'The subscription was not deleted.')),
+      () => toast.show('Deleted.', 'success'),
+      (error) => toast.show(errorText(error, 'The subscription was not deleted.'), 'error'),
     );
 
   const handleAdd = (): void => {
-    setNotice(null);
     setOpenForm({ mode: 'new' });
   };
 
   const handleEdit = (row: ReportSubscription): void => {
-    setNotice(null);
     setOpenForm((open) =>
       open?.mode === 'edit' && open.id === row.id ? null : { mode: 'edit', id: row.id },
     );
-  };
-
-  const handleFormDone = (): void => {
-    setOpenForm(null);
   };
 
   // The report tells the rows apart and the actions come last, headed for a screen
@@ -180,10 +191,26 @@ export function SubscriptionsCard(): JSX.Element {
           <Button variant="quiet" small disabled={isBusy} onClick={() => handleEdit(row)}>
             Edit
           </Button>
-          <Button variant="quiet" small disabled={isBusy} onClick={() => handleSend(row)}>
+          <Button
+            variant="quiet"
+            small
+            disabled={isBusy}
+            onClick={(event) => {
+              handlePress(event);
+              handleSend(row);
+            }}
+          >
             Send now
           </Button>
-          <Button variant="quiet" small disabled={isBusy} onClick={() => handleToggleActive(row)}>
+          <Button
+            variant="quiet"
+            small
+            disabled={isBusy}
+            onClick={(event) => {
+              handlePress(event);
+              handleToggleActive(row);
+            }}
+          >
             {row.is_active ? 'Pause' : 'Resume'}
           </Button>
           <DeleteButton
@@ -208,13 +235,21 @@ export function SubscriptionsCard(): JSX.Element {
         schedule; <strong>Send now</strong> sends it at once without moving its next date.
       </p>
 
-      {openForm?.mode === 'new' ? (
-        <SubscriptionForm onDone={handleFormDone} />
-      ) : (
-        <Button onClick={handleAdd}>New subscription</Button>
+      {openForm?.mode === 'new' ? null : (
+        <Button ref={newRef} onClick={handleAdd}>
+          New subscription
+        </Button>
       )}
 
-      {notice === null ? null : <p role="status">{notice}</p>}
+      {openForm === null ? null : (
+        <div ref={formRef}>
+          {openForm.mode === 'new' ? (
+            <SubscriptionForm onDone={handleFormDone} />
+          ) : editing === null || editing === undefined ? null : (
+            <SubscriptionForm key={editing.id} subscription={editing} onDone={handleFormDone} />
+          )}
+        </div>
+      )}
 
       <DataTable
         singleLine
@@ -225,10 +260,6 @@ export function SubscriptionsCard(): JSX.Element {
         emptyTitle="No reports are sent by email yet"
         isLoading={list.isLoading}
       />
-
-      {editing === null || editing === undefined ? null : (
-        <SubscriptionForm key={editing.id} subscription={editing} onDone={handleFormDone} />
-      )}
 
       {list.isError ? (
         <p className="field__error" role="alert">

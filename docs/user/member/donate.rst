@@ -93,7 +93,7 @@ recurring donation**: the amount, **How often**, and **Next charge on**. It wait
 for an amount with *Choose an amount to give.* Press **Save changes**.
 
 **Turn off** asks *Turn your recurring donation off? Nothing further is charged and
-your saved method is dropped.* **Yes, turn it off** stops it at once, and CalDART
+your saved method is dropped.* **Turn it off** stops it at once, and CalDART
 emails *CalDART: your recurring donation is off*.
 
 

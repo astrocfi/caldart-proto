@@ -20,10 +20,11 @@ Every panel but the bulk email sender's works the same way:
 #. Leave the **Dry run** box ticked the first time. A dry run sends, charges, and records
    nothing.
 #. Press **Run now**. A heading reads **What this run would do**, or **What this run did**
-   after a real run, above a line of counts and a table naming each email or charge. On a
-   narrow screen the table leaves out **When**, then **Amount**, then **What**, and keeps
-   **Who** and any **Report or DART** column in sight; on a phone it scrolls sideways, says
-   so above it, and keeps **Who** pinned at the left.
+   after a real run, above a line of counts and a table naming each email or charge. You
+   stay on **Run now** while it runs and after. On a narrow screen the table leaves out
+   **When**, then **Amount**, then **What**, and keeps **Who** and any **Report or DART**
+   column in sight; on a phone it scrolls sideways, says so above it, and keeps **Who**
+   pinned at the left.
 #. If the numbers look right and you have a reason not to wait for the schedule, clear the
    box and press **Run now** again.
 
@@ -100,7 +101,8 @@ speak of the donation.
    refused, *pause* the members whose last try was refused or whose membership lapsed too
    long ago, and *skip* those that needed nothing.
 #. Clear the box and press **Run now** again for a real run. It asks first, because it
-   charges everybody who is due: press **Yes, charge what is due**, or **Cancel**.
+   charges everybody who is due: press **Charge what is due**, or **Cancel**, which is
+   where the confirmation starts you, so a second Enter charges nobody.
 
 The table names each email and each charge: **What** (*Notice*, *Card expiring warning*,
 *Charge taken notice*, *Charge failed notice*, or *Charge*), **Who**, **When**, and

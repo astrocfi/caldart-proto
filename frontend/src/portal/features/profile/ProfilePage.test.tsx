@@ -72,6 +72,32 @@ describe('<ProfilePage/>', () => {
     expect(save).not.toHaveBeenCalled();
   });
 
+  it('moves the focus to the field it refuses, a screen above the button', async () => {
+    server.use(
+      http.get(`${API}/me/profile`, () => HttpResponse.json(makeVerifiedProfile({ phone: '' }))),
+    );
+
+    renderWithProviders(<ProfilePage />, { route: '/profile' });
+    await screen.findByLabelText(label('Phone'));
+    await userEvent.click(screen.getByRole('button', { name: 'Save profile' }));
+
+    expect(screen.getByLabelText(label('Phone'))).toHaveFocus();
+  });
+
+  it('keeps the focus on Save profile after a save goes through', async () => {
+    server.use(
+      http.get(`${API}/me/profile`, () => HttpResponse.json(makeVerifiedProfile())),
+      http.put(`${API}/me/profile`, () => HttpResponse.json(makeVerifiedProfile())),
+    );
+
+    renderWithProviders(<ProfilePage />, { route: '/profile' });
+    await screen.findByLabelText(label('City'));
+    await userEvent.click(screen.getByRole('button', { name: 'Save profile' }));
+    await screen.findByText('Profile saved.');
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Save profile' })).toHaveFocus());
+  });
+
   it('reports a medical without an expiration date', async () => {
     server.use(
       http.get(`${API}/me/profile`, () =>

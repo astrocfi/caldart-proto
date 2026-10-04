@@ -60,6 +60,27 @@ describe('RecordPaymentPage', () => {
     expect(screen.getByText('marta@example.org')).toBeInTheDocument();
   });
 
+  it('moves on to the plan once a member is chosen', async () => {
+    const user = userEvent.setup();
+    serveRecord([]);
+    renderWithProviders(<RecordPaymentPage />);
+
+    await chooseMember(user);
+
+    expect(screen.getByLabelText(/Plan/)).toHaveFocus();
+  });
+
+  it('goes back to the search box after Choose somebody else', async () => {
+    const user = userEvent.setup();
+    serveRecord([]);
+    renderWithProviders(<RecordPaymentPage />);
+
+    await chooseMember(user);
+    await user.click(screen.getByRole('button', { name: 'Choose somebody else' }));
+
+    expect(screen.getByLabelText(/Member/)).toHaveFocus();
+  });
+
   it('refuses to record a payment with nobody chosen', async () => {
     const user = userEvent.setup();
     const recorded: Record<string, unknown>[] = [];

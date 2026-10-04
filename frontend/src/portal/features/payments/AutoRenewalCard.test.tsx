@@ -255,7 +255,7 @@ describe('AutoRenewalCard', () => {
     await user.click(await screen.findByRole('button', { name: 'Turn off' }));
     expect(screen.getByText(/Turn automatic renewal off\?/)).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Yes, turn it off' }));
+    await user.click(screen.getByRole('button', { name: 'Turn it off' }));
 
     expect(await screen.findByText('Automatic renewal is off.')).toBeInTheDocument();
     await waitFor(() => expect(screen.getByText('Off')).toBeInTheDocument());
@@ -266,10 +266,20 @@ describe('AutoRenewalCard', () => {
     mount(makeMandate());
 
     await user.click(await screen.findByRole('button', { name: 'Turn off' }));
-    await user.click(screen.getByRole('button', { name: 'Keep it on' }));
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
 
     expect(screen.getByText('On')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Turn off' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Turn off' })).toHaveFocus();
+  });
+
+  it('moves the focus into the change form and back to Change when it closes', async () => {
+    const user = userEvent.setup();
+    mount(makeMandate());
+
+    await user.click(await screen.findByRole('button', { name: 'Change' }));
+    await user.keyboard('{Escape}');
+
+    expect(screen.getByRole('button', { name: 'Change' })).toHaveFocus();
   });
 
   it('sends the plan and the new contribution as cents, and shows what came back', async () => {

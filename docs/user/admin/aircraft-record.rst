@@ -24,7 +24,8 @@ $1,000,000 / $100,000 · expires 03/01/2027*, or *Not on file* with nothing reco
 mark: **Verified** with who verified it and on which day, or **Not verified**. **Verify**
 opens the same verification panel as the :doc:`aircraft-check`: correct the policy against
 its documents, tick **Insurance verified**, and press **Save**. *Verification saved*
-confirms it, the card returns, and the form below starts again from the saved record.
+confirms it, the card returns with you on its **Verify**, and the form below starts again
+from the saved record. **Cancel**, or Escape, closes the panel and changes nothing.
 
 **Details** is the form, headed by a line such as *Last updated 09/01/2026 by Dana Fiske*:
 the date of the last change and the account behind it. A record nobody has changed since it
@@ -103,9 +104,9 @@ Deleting the record
 ===================
 
 **Delete this aircraft**, at the foot of the page, asks once: *Delete* the N-number
-*permanently? It will disappear from every member's profile.* Press **Yes, delete it** to go
-ahead, or **Keep it**. The record is removed from the register and from every profile that
-had it.
+*permanently? It will disappear from every member's profile.*, above a red **Delete** and
+**Cancel**. Press **Delete** to go ahead, or **Cancel**, Escape, or a click elsewhere to keep
+the record. The record is removed from the register and from every profile that had it.
 
 If the airplane may come back, clear **In service** instead. The history stays, and a leader
 checking the tail number can still see what was on file.

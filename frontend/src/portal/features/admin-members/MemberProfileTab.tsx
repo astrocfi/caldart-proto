@@ -4,7 +4,7 @@
  * medical, and the photo ID. Deactivating the account is the Danger zone tab's. A
  * "Deleted member N" record shows no form: the server refuses every edit to one.
  */
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { JSX } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -13,7 +13,13 @@ import type { LeaderStatus, MemberDetail } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { EmailVerifiedText } from '@/portal/components/EmailVerifiedText';
+import {
+  RefusedSubmitNote,
+  useFreshErrors,
+  useRefusedSubmit,
+} from '@/portal/components/RefusedSubmit';
 import { useToast } from '@/portal/components/Toast';
+import { useFocusAfterSave } from '@/portal/components/focus';
 import { ProfileFieldsets } from '@/portal/features/profile/ProfileFieldsets';
 import { EMPTY_PROFILE_FORM, formToPatch, profileToForm } from '@/portal/features/profile/form';
 import { MemberVerificationCard } from '@/portal/features/verification/MemberVerificationCard';
@@ -51,7 +57,16 @@ export function MemberProfileTab({ member }: { member: MemberDetail }): JSX.Elem
   );
   const [adminOnly, setAdminOnly] = useState(() => adminOnlyDraft(member.profile));
 
-  const errors = splitErrors(update.error);
+  const formRef = useRef<HTMLFormElement>(null);
+  const refusal = useRefusedSubmit(formRef, update.error);
+  useFocusAfterSave(formRef, update.isPending);
+  const server = splitErrors(update.error);
+  // A server error for a field goes once that field is edited.
+  const errors = {
+    ...server,
+    account: useFreshErrors(update.error, account, server.account),
+    profile: useFreshErrors(update.error, { ...profile, ...adminOnly }, server.profile),
+  };
   const verified = member.profile;
 
   /** A verification save may correct the fields the form below holds; take them up. */
@@ -97,7 +112,7 @@ export function MemberProfileTab({ member }: { member: MemberDetail }): JSX.Elem
         </Card>
       ) : (
         <Card>
-          <form onSubmit={handleSubmit} noValidate>
+          <form ref={formRef} onSubmit={handleSubmit} noValidate>
             {errors.detail ? (
               <p role="alert" className="field__error">
                 {errors.detail}
@@ -127,6 +142,7 @@ export function MemberProfileTab({ member }: { member: MemberDetail }): JSX.Elem
               <Button type="submit" disabled={update.isPending}>
                 {update.isPending ? 'Saving…' : 'Save changes'}
               </Button>
+              <RefusedSubmitNote count={refusal.count} />
               {member.profile?.aircraft.length ? (
                 <p className="muted">
                   Aircraft on file:{' '}

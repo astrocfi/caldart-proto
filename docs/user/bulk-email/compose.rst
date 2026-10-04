@@ -209,8 +209,8 @@ such as *Sending starts in 2 minutes, and until then you can cancel it.* or *It 
 10/04/2026 at 8:00 AM Pacific time.* When the email goes to more than 50 people, the
 confirmation also asks you to **Type 38 to confirm**, and the button that sends stays off
 until the number matches. A different number reads *That number does not match. Type 38, the
-number of people who will receive it.* The focus starts on **Go back**, so Enter pressed
-twice never sends. Press **Send now** or **Schedule it**, or **Go back** (or Escape). A batch
+number of people who will receive it.* The focus starts in that box, or on **Cancel**, so
+Enter pressed twice never sends. Press **Send now** or **Schedule it**, or **Cancel**. A batch
 that changed meanwhile is refused with its new number, such as *The batch has changed: it
 now holds 39 people. Type the new count.*
 

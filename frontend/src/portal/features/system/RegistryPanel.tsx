@@ -8,11 +8,13 @@
  * so the panel shows it running and asks for its state every few seconds until
  * it ends.
  */
+import { useRef } from 'react';
 import type { JSX } from 'react';
 
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { formatDate, formatTime } from '@/portal/components/DateText';
+import { useFocusAfterSave } from '@/portal/components/focus';
 import { useRegistryStatus } from '@/portal/api/queries';
 import type { RegistryStatus } from '@/portal/api/types';
 import { useRunRegistryImport } from './api';
@@ -45,6 +47,9 @@ export function registryImportSummary({ running, last }: RegistryStatus): string
 export function RegistryPanel(): JSX.Element {
   const status = useRegistryStatus();
   const run = useRunRegistryImport();
+  // The button is disabled while it runs; it gets the focus back once the run ends.
+  const runRef = useRef<HTMLButtonElement>(null);
+  useFocusAfterSave(runRef, run.isPending);
   const isRunning = status.data?.running === true;
 
   const handleRun = (): void => {
@@ -56,7 +61,7 @@ export function RegistryPanel(): JSX.Element {
       eyebrow="Aircraft"
       title="Aircraft database"
       footer={
-        <Button onClick={handleRun} disabled={isRunning || run.isPending}>
+        <Button ref={runRef} onClick={handleRun} disabled={isRunning || run.isPending}>
           {isRunning ? 'Running…' : 'Run now'}
         </Button>
       }

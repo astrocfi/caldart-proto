@@ -18,8 +18,8 @@ One form, with these fields:
 * **Member**, a search box. Type part of a name or an email address and up to ten
   matching people appear beneath it, each with a chip showing their membership. A friend
   (someone with an account who supports CalDART without being a member) or a donor can
-  be found the same way. Click the right person to choose them;
-  **Choose somebody else** clears the choice.
+  be found the same way. Click the right person to choose them, and you move on to
+  **Plan**; **Choose somebody else** clears the choice and takes you back to the search.
 * **Plan**, the membership plan the money pays for. Choose **No membership** for a
   contribution on its own.
 * **Contribution**, the gift in dollars on top of any dues. It starts at nothing.
@@ -32,7 +32,9 @@ What you can do
 ===============
 
 Fill in the form and press **Record the payment**. The site confirms with *Recorded* and
-the new receipt number, and opens the payment's own screen (see :doc:`payment-record`).
+the new receipt number, and opens the payment's own screen (see :doc:`payment-record`),
+starting at its heading. A form with nobody chosen, or one the site refuses, takes you to
+the first field to fix instead.
 
 What happens next
 ~~~~~~~~~~~~~~~~~

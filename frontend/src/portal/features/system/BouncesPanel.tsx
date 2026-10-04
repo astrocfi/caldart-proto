@@ -7,13 +7,14 @@
  * cannot is listed as unmatched. A rehearsal changes nothing and leaves every report
  * unread for the next run.
  */
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { ChangeEvent, JSX } from 'react';
 
 import type { BounceRunResult } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { RunActionsTable } from '@/portal/components/RunActionsTable';
+import { useFocusAfterSave } from '@/portal/components/focus';
 import { useRunBounces } from './api';
 
 /** What the panel says when no bounce mailbox is configured. */
@@ -51,6 +52,9 @@ export function BouncesPanel(): JSX.Element {
   const [lastRunWasDry, setLastRunWasDry] = useState(true);
 
   const run = useRunBounces();
+  // The button is disabled while it runs; it gets the focus back once the run ends.
+  const runRef = useRef<HTMLButtonElement>(null);
+  useFocusAfterSave(runRef, run.isPending);
 
   const handleRun = (): void => {
     setLastRunWasDry(dryRun);
@@ -67,7 +71,7 @@ export function BouncesPanel(): JSX.Element {
       title="Bounces"
       footer={
         <>
-          <Button onClick={handleRun} disabled={run.isPending}>
+          <Button ref={runRef} onClick={handleRun} disabled={run.isPending}>
             {run.isPending ? 'Running…' : 'Run now'}
           </Button>
           <label className="cluster">

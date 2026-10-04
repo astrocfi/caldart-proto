@@ -16,6 +16,11 @@ import { Field } from '@/portal/components/Field';
 import { IconButton } from '@/portal/components/IconButton';
 import { MaskedInput } from '@/portal/components/MaskedInput';
 import {
+  RefusedSubmitNote,
+  useFreshErrors,
+  useRefusedSubmit,
+} from '@/portal/components/RefusedSubmit';
+import {
   maskAirportIdentifier,
   maskAirportIdentifiers,
   maskEmail,
@@ -69,6 +74,12 @@ export interface DartFormProps {
   pending?: boolean;
   /** Field errors from the serializer, shown beside the input they belong to. */
   errors?: Record<string, string>;
+  /**
+   * What `errors` came from, normally the save's `error`: each new one moves the
+   * focus to the first field it highlights, and an error for a field goes once the
+   * field is edited. Left out, every server error stays until the next save.
+   */
+  serverError?: unknown;
   onSubmit: (payload: AdminDartPatch) => void;
   onCancel: () => void;
   /**
@@ -181,6 +192,7 @@ export function DartForm({
   submitLabel,
   pending = false,
   errors = {},
+  serverError,
   onSubmit,
   onCancel: handleCancel,
   onDelete: handleDelete,
@@ -190,7 +202,11 @@ export function DartForm({
   const [values, setValues] = useState<DartFormValues>(initial);
   const [nameError, setNameError] = useState<string | null>(null);
   const [airportError, setAirportError] = useState<string | null>(null);
-  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
+  const refusal = useRefusedSubmit(formRef, serverError);
+  // The server's errors for a field go once the field is edited; the rest stay until
+  // the next save.
+  const freshErrors = useFreshErrors(serverError, values, errors);
   // A row's identity, so React moves its inputs and buttons with it rather than
   // rewriting them in place when the order changes.  A saved person is known by
   // the server's id; one the administrator just added gets a counter.
@@ -244,13 +260,6 @@ export function DartForm({
     }));
   };
 
-  // A delete that succeeds closes the card, so the reset only ever shows after
-  // one that failed: the footer then offers the delete again rather than
-  // stranding the administrator in the confirmation.
-  const handleConfirmDelete = (): void => {
-    void Promise.resolve(handleDelete?.()).finally(() => setIsConfirmingDelete(false));
-  };
-
   /** Swap the person at `index` with the one at `index + step`. */
   const moveContact = (index: number, step: -1 | 1): void => {
     const target = index + step;
@@ -278,17 +287,20 @@ export function DartForm({
     const problem = airportProblem(values.airport_identifiers);
     setNameError(values.name.trim() ? null : 'Give the DART a name.');
     setAirportError(problem);
-    if (!values.name.trim() || problem) return;
+    if (!values.name.trim() || problem) {
+      refusal.refuse();
+      return;
+    }
     onSubmit(dartPayload(values));
   };
 
   return (
-    <form onSubmit={handleSubmit} noValidate>
+    <form ref={formRef} onSubmit={handleSubmit} noValidate>
       <div className="form-grid">
         <Field
           label="Name"
           required
-          error={nameError ?? errors.name}
+          error={nameError ?? freshErrors.name}
           hint="What members will see in the list, such as “Palo Alto”"
         >
           {(props) => (
@@ -296,14 +308,17 @@ export function DartForm({
               {...props}
               name="name"
               value={values.name}
-              onChange={(event) => set('name', event.target.value)}
+              onChange={(event) => {
+                set('name', event.target.value);
+                setNameError(null);
+              }}
             />
           )}
         </Field>
         <Field
           label="Airports"
           required
-          error={airportError ?? errors.airport_identifiers}
+          error={airportError ?? freshErrors.airport_identifiers}
           hint="The fields the team flies from, separated by commas: CCR, C83. Paste KCRQ and the K comes off."
         >
           {(props) => (
@@ -314,14 +329,17 @@ export function DartForm({
               placeholder="CCR, C83"
               mask={maskAirportIdentifiers}
               value={values.airport_identifiers}
-              onValueChange={(next) => set('airport_identifiers', next)}
+              onValueChange={(next) => {
+                set('airport_identifiers', next);
+                setAirportError(null);
+              }}
               onBlur={() => setAirportError(airportProblem(values.airport_identifiers))}
             />
           )}
         </Field>
         <Field
           label="Website"
-          error={errors.website_url}
+          error={freshErrors.website_url}
           hint="The team's own site, if it has one."
         >
           {(props) => (
@@ -451,9 +469,9 @@ export function DartForm({
         <span>Active — untick to make the DART inactive without losing its history</span>
       </label>
 
-      {errors.detail ? (
+      {freshErrors.detail ? (
         <p className="field__error" role="alert">
-          {errors.detail}
+          {freshErrors.detail}
         </p>
       ) : null}
 
@@ -464,32 +482,19 @@ export function DartForm({
         <Button variant="quiet" onClick={handleCancel}>
           Cancel
         </Button>
+        <RefusedSubmitNote count={refusal.count} />
         {handleDelete ? (
-          <span className="cluster dart-form__danger">
-            {isConfirmingDelete ? (
-              <>
-                {deleteWarning === null ? null : (
-                  <span className="dart-form__warning" role="alert">
-                    {deleteWarning}
-                  </span>
-                )}
-                <Button variant="danger" disabled={deletePending} onClick={handleConfirmDelete}>
-                  Delete for good
-                </Button>
-                <Button variant="quiet" onClick={() => setIsConfirmingDelete(false)}>
-                  Keep
-                </Button>
-              </>
-            ) : (
-              <DeleteButton
-                label="Delete this DART"
-                variant="danger"
-                small={false}
-                onClick={() => setIsConfirmingDelete(true)}
-              >
-                Delete this DART
-              </DeleteButton>
-            )}
+          <span className="dart-form__danger">
+            <DeleteButton
+              label="Delete this DART"
+              variant="danger"
+              small={false}
+              disabled={deletePending}
+              warning={deleteWarning ?? undefined}
+              onDelete={handleDelete}
+            >
+              Delete this DART
+            </DeleteButton>
           </span>
         ) : null}
       </div>

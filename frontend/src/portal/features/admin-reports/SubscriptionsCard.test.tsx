@@ -81,6 +81,27 @@ describe('SubscriptionsCard', () => {
     expect(within(row(table, /board@example.org/)).getByTitle('Paused')).toBeInTheDocument();
   });
 
+  it('opens Edit above the table, where New subscription opens', async () => {
+    const user = userEvent.setup();
+    const table = await renderCard();
+
+    await user.click(within(row(table, /Ada Admin/)).getByRole('button', { name: 'Edit' }));
+
+    const form = screen.getByRole('form', { name: 'Edit subscription' });
+    expect(form.compareDocumentPosition(table) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('moves the focus into the form it opens and back to Edit on Escape', async () => {
+    const user = userEvent.setup();
+    const table = await renderCard();
+    const edit = within(row(table, /Ada Admin/)).getByRole('button', { name: 'Edit' });
+
+    await user.click(edit);
+    await user.keyboard('{Escape}');
+
+    expect(edit).toHaveFocus();
+  });
+
   it('says who a sent report reached', async () => {
     const table = await renderCard();
     server.use(http.post(`${API}/reports/subscriptions/1/send`, () => HttpResponse.json(sent())));

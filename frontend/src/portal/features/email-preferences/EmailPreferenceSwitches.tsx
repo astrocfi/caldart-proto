@@ -3,18 +3,21 @@
  *
  * Both the person's own Email preferences screen and the member record show these.
  * A switch saves the moment it moves; while that save is under way every switch
- * waits, and the line under them says *Saved.* once it lands, or what went wrong.
+ * waits, and a toast says *Mission turned off.* once it lands, or what went wrong, and
+ * the focus stays on the switch that moved.
  * The switches read the list the server answered the save with, so a refused change
  * puts its switch straight back. Enter moves a switch as Space does. On the member
  * record each type turned off also says who turned it off and when.
  */
-import { useId, useState } from 'react';
+import { useId, useRef } from 'react';
 import type { JSX, KeyboardEvent } from 'react';
 import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
 
 import type { EmailPreference, EmailPreferenceChange } from '@/portal/api/types';
 import { formatDate } from '@/portal/components/DateText';
 import { EmptyState } from '@/portal/components/EmptyState';
+import { useToast } from '@/portal/components/Toast';
+import { useFocusAfterSave } from '@/portal/components/focus';
 
 import './email-preferences.css';
 
@@ -44,14 +47,17 @@ export function turnedOffLine(preference: EmailPreference): string | null {
   return `Turned off by the member on ${when} (${where}).`;
 }
 
-/** The switches, their loading and empty states, and the saved-or-failed line. */
+/** The switches, and their loading and empty states. */
 export function EmailPreferenceSwitches({
   preferences,
   save,
   label,
   showsWhoTurnedOff = false,
 }: EmailPreferenceSwitchesProps): JSX.Element {
-  const [notice, setNotice] = useState<string | null>(null);
+  const toast = useToast();
+  // The switch that moved, which keeps the focus while every switch waits on its save.
+  const movedRef = useRef<HTMLElement | null>(null);
+  useFocusAfterSave(movedRef, save.isPending);
 
   if (preferences.isPending) return <p role="status">Loading…</p>;
   if (preferences.isError) {
@@ -70,34 +76,34 @@ export function EmailPreferenceSwitches({
     );
   }
 
-  const handleToggle = (preference: EmailPreference, isReceiving: boolean): void => {
-    setNotice(null);
+  const handleToggle = (
+    preference: EmailPreference,
+    isReceiving: boolean,
+    control: HTMLInputElement,
+  ): void => {
+    movedRef.current = control;
     save.mutate(
       { email_type: preference.email_type, opted_out: !isReceiving },
       {
-        onSuccess: () => setNotice('Saved.'),
-        onError: (error) => setNotice(error.message || 'That change was not saved.'),
+        onSuccess: () =>
+          toast.show(`${preference.name} turned ${isReceiving ? 'on' : 'off'}.`, 'success'),
+        onError: (error) => toast.show(error.message || 'That change was not saved.', 'error'),
       },
     );
   };
 
   return (
-    <div className="stack">
-      <ul className="email-switches" aria-label={label}>
-        {preferences.data.map((preference) => (
-          <EmailPreferenceSwitch
-            key={preference.email_type}
-            preference={preference}
-            isDisabled={save.isPending}
-            showsWhoTurnedOff={showsWhoTurnedOff}
-            onToggle={handleToggle}
-          />
-        ))}
-      </ul>
-      <p role="status" className="muted email-switches__notice">
-        {notice}
-      </p>
-    </div>
+    <ul className="email-switches" aria-label={label}>
+      {preferences.data.map((preference) => (
+        <EmailPreferenceSwitch
+          key={preference.email_type}
+          preference={preference}
+          isDisabled={save.isPending}
+          showsWhoTurnedOff={showsWhoTurnedOff}
+          onToggle={handleToggle}
+        />
+      ))}
+    </ul>
   );
 }
 
@@ -105,7 +111,8 @@ interface EmailPreferenceSwitchProps {
   preference: EmailPreference;
   isDisabled: boolean;
   showsWhoTurnedOff: boolean;
-  onToggle: (preference: EmailPreference, isReceiving: boolean) => void;
+  /** Saves the switch's new position; `control` is the switch, which keeps the focus. */
+  onToggle: (preference: EmailPreference, isReceiving: boolean, control: HTMLInputElement) => void;
 }
 
 /** One type's switch, named by the type and described by what it is for. */
@@ -123,7 +130,7 @@ function EmailPreferenceSwitch({
   const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>): void => {
     if (event.key !== 'Enter') return;
     event.preventDefault();
-    if (!isDisabled) handleToggle(preference, preference.opted_out);
+    if (!isDisabled) handleToggle(preference, preference.opted_out, event.currentTarget);
   };
 
   return (
@@ -135,7 +142,7 @@ function EmailPreferenceSwitch({
         checked={!preference.opted_out}
         disabled={isDisabled}
         aria-describedby={descriptionId}
-        onChange={(event) => handleToggle(preference, event.target.checked)}
+        onChange={(event) => handleToggle(preference, event.target.checked, event.currentTarget)}
         onKeyDown={handleKeyDown}
       />
       <div>

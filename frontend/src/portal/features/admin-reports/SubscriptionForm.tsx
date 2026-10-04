@@ -14,7 +14,7 @@
  * account holds must be confirmed with a checkbox that appears once the server
  * has asked for it.
  */
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import type { ChangeEvent, FormEvent, JSX } from 'react';
 
 import { ApiError } from '@/portal/api/client';
@@ -25,6 +25,8 @@ import { ColumnChooser, defaultColumnKeys } from '@/portal/components/ColumnChoo
 import { Field } from '@/portal/components/Field';
 import { FilterBar } from '@/portal/components/FilterBar';
 import { FixedValue } from '@/portal/components/FixedValue';
+import { RefusedSubmitNote, useRefusedSubmit } from '@/portal/components/RefusedSubmit';
+import { useToast } from '@/portal/components/Toast';
 import { FormAlert, fieldError } from '@/portal/features/auth/form';
 import { useEmailPurposes } from '@/portal/features/system/api';
 import {
@@ -89,7 +91,7 @@ function setValues(values: FilterValues): Record<string, string> {
 interface SubscriptionFormProps {
   /** The subscription to edit; without one the form sets up a new subscription. */
   subscription?: ReportSubscription;
-  /** Called once the subscription is saved, or when the form is canceled. */
+  /** Called once the subscription is saved (and a toast has said so), or when the form is canceled. */
   onDone: () => void;
 }
 
@@ -125,6 +127,9 @@ export function SubscriptionForm({
   const create = useCreateSubscription();
   const update = useUpdateSubscription();
   const save = isEditing ? update : create;
+  const toast = useToast();
+  const sectionRef = useRef<HTMLElement>(null);
+  const refusal = useRefusedSubmit(sectionRef, save.error);
   const title = isEditing ? 'Edit subscription' : 'New subscription';
   const darts = useDarts();
   const plans = usePlans();
@@ -160,6 +165,11 @@ export function SubscriptionForm({
     setColumns(chosen);
   };
 
+  const handleSaved = (): void => {
+    toast.show(isEditing ? 'Subscription saved.' : 'Subscription added.', 'success');
+    handleDone();
+  };
+
   const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault();
     if (subscription !== undefined) {
@@ -174,7 +184,7 @@ export function SubscriptionForm({
             weekday,
           },
         },
-        { onSuccess: handleDone },
+        { onSuccess: handleSaved },
       );
       return;
     }
@@ -191,7 +201,7 @@ export function SubscriptionForm({
         confirmed: isConfirmed,
       },
       {
-        onSuccess: handleDone,
+        onSuccess: handleSaved,
         onError: (error) => {
           if (fieldError(error, 'confirmed') !== null) setNeedsConfirmation(true);
         },
@@ -203,7 +213,7 @@ export function SubscriptionForm({
   const confirmError = fieldError(create.error, 'confirmed');
 
   return (
-    <section className="subscription-form stack">
+    <section ref={sectionRef} className="subscription-form stack">
       <h3>{title}</h3>
 
       {subscription !== undefined ? (
@@ -357,6 +367,7 @@ export function SubscriptionForm({
           <Button variant="quiet" onClick={handleDone}>
             Cancel
           </Button>
+          <RefusedSubmitNote count={refusal.count} />
         </div>
       </form>
     </section>

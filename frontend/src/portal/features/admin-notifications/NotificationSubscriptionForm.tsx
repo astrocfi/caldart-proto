@@ -9,13 +9,15 @@
  * must be confirmed with a checkbox that appears once the server has asked for
  * it.
  */
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { FormEvent, JSX } from 'react';
 
 import type { NotificationSubscription } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { Field } from '@/portal/components/Field';
 import { FixedValue } from '@/portal/components/FixedValue';
+import { RefusedSubmitNote, useRefusedSubmit } from '@/portal/components/RefusedSubmit';
+import { useToast } from '@/portal/components/Toast';
 import { FormAlert, fieldError } from '@/portal/features/auth/form';
 import {
   useCreateNotificationSubscription,
@@ -59,6 +61,14 @@ export function NotificationSubscriptionForm({
   const save = isEditing ? update : create;
   const title = isEditing ? 'Edit subscription' : 'New subscription';
   const events = catalog.data ?? [];
+  const toast = useToast();
+  const sectionRef = useRef<HTMLElement>(null);
+  const refusal = useRefusedSubmit(sectionRef, save.error);
+
+  const handleSaved = (): void => {
+    toast.show(isEditing ? 'Subscription saved.' : 'Subscription added.', 'success');
+    handleDone();
+  };
 
   const handleEventsChange = (next: Set<string>): void => {
     setChosen(next);
@@ -68,13 +78,13 @@ export function NotificationSubscriptionForm({
     event.preventDefault();
     const slugs = events.map((entry) => entry.slug).filter((slug) => chosen.has(slug));
     if (subscription !== undefined) {
-      update.mutate({ id: subscription.id, patch: { events: slugs } }, { onSuccess: handleDone });
+      update.mutate({ id: subscription.id, patch: { events: slugs } }, { onSuccess: handleSaved });
       return;
     }
     create.mutate(
       { recipient_email: email, events: slugs, confirmed: isConfirmed },
       {
-        onSuccess: handleDone,
+        onSuccess: handleSaved,
         onError: (error) => {
           if (fieldError(error, 'confirmed') !== null) setNeedsConfirmation(true);
         },
@@ -86,7 +96,7 @@ export function NotificationSubscriptionForm({
   const confirmError = fieldError(create.error, 'confirmed');
 
   return (
-    <section className="subscription-form stack">
+    <section ref={sectionRef} className="subscription-form stack">
       <h3>{title}</h3>
       <form aria-label={title} className="stack" onSubmit={handleSubmit}>
         {subscription !== undefined ? (
@@ -151,6 +161,7 @@ export function NotificationSubscriptionForm({
           <Button variant="quiet" onClick={handleDone}>
             Cancel
           </Button>
+          <RefusedSubmitNote count={refusal.count} />
         </div>
       </form>
     </section>

@@ -186,7 +186,10 @@ test('an outside address hears of a sign-up, and stops once sign-ups are dropped
 
   // Each action asks first: the button opens the panel holding the one that acts.
   await status.getByRole('button', { name: 'Deactivate account' }).click();
-  await status.getByRole('button', { name: 'Deactivate account' }).click();
+  await status
+    .getByRole('region', { name: 'Deactivate account' })
+    .getByRole('button', { name: 'Deactivate account' })
+    .click();
   await expect(page.getByText('Account deactivated.')).toBeVisible();
 
   // The seeded account administrator hears of it, which proves the event went out,
@@ -198,7 +201,10 @@ test('an outside address hears of a sign-up, and stops once sign-ups are dropped
 
   // Leave the member as the seed made them, for the specs that follow.
   await status.getByRole('button', { name: 'Reactivate account' }).click();
-  await status.getByRole('button', { name: 'Reactivate account' }).click();
+  await status
+    .getByRole('region', { name: 'Reactivate account' })
+    .getByRole('button', { name: 'Reactivate account' })
+    .click();
   await expect(status.getByRole('button', { name: 'Deactivate account' })).toBeVisible();
   await expect
     .poll(() => latestEmailTo(DEMO.accountadmin))

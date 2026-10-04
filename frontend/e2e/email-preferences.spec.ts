@@ -17,14 +17,14 @@ test('a member turns a kind of email off, and it stays off', async ({ page }) =>
   const mission = page.getByRole('switch', { name: 'Mission' });
   await expect(mission).toBeChecked();
   await mission.click();
-  await expect(page.getByText('Saved.')).toBeVisible();
+  await expect(page.getByText('Mission turned off.')).toBeVisible();
 
   await page.reload();
   await expect(page.getByRole('switch', { name: 'Mission' })).not.toBeChecked();
 
   // Back on, so the seeded account receives Mission email again for every other spec.
   await page.getByRole('switch', { name: 'Mission' }).click();
-  await expect(page.getByText('Saved.')).toBeVisible();
+  await expect(page.getByText('Mission turned on.')).toBeVisible();
   await expect(page.getByRole('switch', { name: 'Mission' })).toBeChecked();
 });
 

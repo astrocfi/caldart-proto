@@ -36,7 +36,8 @@ registration, the make or model, or the owner's name.
 Reading the card
 ================
 
-**Back to search** returns you to the list. The card's address ends with the N-number, so it
+Opening a card takes you to its top. **Back to search** returns you to the list and the
+search box. The card's address ends with the N-number, so it
 survives a reload and you can send it to another leader.
 
 The band across the top gives one of four verdicts:
@@ -100,7 +101,8 @@ panel, with the policy's **Carrier**, **Policy number**, **Liability per occurre
 the policy documents, tick **Insurance verified**, and press **Save**. The toast reads
 *Verification saved* and the card shows the new verdict. Changing a field unticks the box,
 so you tick it again once you have checked the new value; unticking it clears the
-verification. **Cancel** closes the panel and changes nothing.
+verification. **Cancel**, or Escape, closes the panel and changes nothing. Either way you
+are back on **Verify**.
 
 Any later change to the insurance, by the pilot on **My aircraft** or by an account
 administrator, clears the verification. Each save that verifies or clears it emails the

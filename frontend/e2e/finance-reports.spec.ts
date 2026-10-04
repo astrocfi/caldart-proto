@@ -93,7 +93,7 @@ test('a treasurer turns a stalled renewal off', async ({ page }) => {
   await expect(paused.first()).toContainText('Paused');
 
   await paused.first().getByRole('button', { name: 'Turn off' }).click();
-  await paused.first().getByRole('button', { name: 'Yes, turn it off' }).click();
+  await paused.first().getByRole('button', { name: 'Turn it off' }).click();
 
   // The mandate is canceled rather than deleted, so it leaves the paused list.
   await expect(page.getByText('No renewals match')).toBeVisible();

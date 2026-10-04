@@ -104,11 +104,11 @@ life membership), **Status** (active, expired, canceled, or suspended), **Source
 a manual grant, or the demo data), **Note** with whoever granted it, and **Edit**. A narrow
 screen drops **Source**, **Starts**, **Note**, and **Ends** in turn, keeping the rest in sight.
 
-**Edit** on a row lets you change that term's end date, status, and note, for a refund, a
-goodwill extension, or a term entered wrongly. Press **Save** or **Cancel**; *Term updated.*
-confirms a save. A term set to **Canceled** no longer counts toward the membership, and its
-row stays in the history. The plan and the start date cannot be changed: cancel a wrong
-term and grant the right one, with a note saying why.
+**Edit** on a row changes that term's end date, status, and note, for a refund, a goodwill
+extension, or a wrong term. Press **Save** or **Cancel** (or Escape); *Term updated.* confirms
+a save. A term set to **Canceled** no longer counts toward the membership, and its row stays
+in the history. The plan and the start date cannot be changed: cancel a wrong term and
+grant the right one, with a note saying why.
 
 A donor's record has no **Grant a term**: a donor holds no membership, and the history
 reads *A donor holds no membership, and becomes a member only by registering.* A donor
@@ -156,7 +156,7 @@ Danger zone
 
 The tab holds two cards: **Account**, with the actions that change what the person can do,
 and **Delete this member**. Each action asks first: pressing it opens a short explanation
-with a button to go ahead and **Cancel**. A refusal appears in the card, under the action.
+below them, with a button to go ahead and **Cancel**. A refusal appears in the card.
 
 Account
 -------
@@ -167,7 +167,7 @@ membership that is current stays current to its end and they become a friend the
 or they become one at once when nothing is current, and their automatic renewal is canceled.
 The explanation says which. When their automatic renewal also gives a contribution, it asks
 *Keep it as a yearly recurring donation?* and offers **Keep the contribution** and **Stop
-it** in place of **Make a friend**. Once the change is waiting for its day, the card reads
+it** in place of **Yes, make a friend**. Once the change is waiting for its day, the card reads
 the name and *becomes a friend of CalDART on* the date instead of the button. The change is
 recorded under your name, and anyone subscribed to **Member became a friend**
 (:doc:`notifications`) hears that an administrator made it. *They already have a recurring

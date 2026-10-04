@@ -8,7 +8,6 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 
 import { ApiError } from '@/portal/api/client';
 import type { AircraftPatch } from '@/portal/api/types';
-import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { DeleteButton } from '@/portal/components/DeleteButton';
 import { EmptyState } from '@/portal/components/EmptyState';
@@ -45,7 +44,6 @@ export function AircraftRecordPage(): JSX.Element {
   const changes = useAircraftChanges(knownId ? aircraftId : null);
   const update = useUpdateAircraft(aircraftId);
   const remove = useDeleteAircraft(aircraftId);
-  const [confirming, setConfirming] = useState(false);
   // Bumped only when the insurance panel saves, so the Details form starts again
   // from the corrected record; an unrelated write (someone else's edit, a
   // background refetch) must not discard whatever the admin is mid-typing there.
@@ -92,15 +90,14 @@ export function AircraftRecordPage(): JSX.Element {
     });
   };
 
-  const handleDelete = (): void => {
-    remove.mutate(undefined, {
-      onSuccess: () => {
+  const handleDelete = (): Promise<void> =>
+    remove.mutateAsync(undefined).then(
+      () => {
         toast.show(`${aircraft.n_number} deleted from the register.`, 'success');
         void navigate('/admin/aircraft');
       },
-      onError: (error) => toast.show(error.message, 'error'),
-    });
-  };
+      (error: Error) => toast.show(error.message, 'error'),
+    );
 
   const serverErrors = update.error instanceof ApiError ? update.error.fieldErrors : undefined;
 
@@ -160,6 +157,7 @@ export function AircraftRecordPage(): JSX.Element {
           submitLabel="Save changes"
           pending={update.isPending}
           serverErrors={serverErrors}
+          serverError={update.error}
           onSubmit={handleSave}
           withAdminFields
         />
@@ -195,28 +193,15 @@ export function AircraftRecordPage(): JSX.Element {
       </Card>
 
       <div className="aircraft-danger">
-        {confirming ? (
-          <div className="cluster">
-            <p className="field__error" role="alert">
-              Delete {aircraft.n_number} permanently? It will disappear from every member's profile.
-            </p>
-            <Button variant="danger" disabled={remove.isPending} onClick={handleDelete}>
-              {remove.isPending ? 'Deleting…' : 'Yes, delete it'}
-            </Button>
-            <Button variant="quiet" onClick={() => setConfirming(false)}>
-              Keep it
-            </Button>
-          </div>
-        ) : (
-          <DeleteButton
-            label="Delete this aircraft"
-            variant="danger"
-            small={false}
-            onClick={() => setConfirming(true)}
-          >
-            Delete this aircraft
-          </DeleteButton>
-        )}
+        <DeleteButton
+          label="Delete this aircraft"
+          variant="danger"
+          small={false}
+          warning={`Delete ${aircraft.n_number} permanently? It will disappear from every member's profile.`}
+          onDelete={handleDelete}
+        >
+          Delete this aircraft
+        </DeleteButton>
       </div>
     </Page>
   );

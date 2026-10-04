@@ -73,7 +73,7 @@ describe('MemberEmailPreferences', () => {
     await userEvent.click(await screen.findByRole('switch', { name: 'Mission' }));
 
     await waitFor(() => expect(sent).toEqual([[{ email_type: 3, opted_out: true }]]));
-    expect(await screen.findByText('Saved.')).toBeInTheDocument();
+    expect(await screen.findByText('Mission turned off.')).toBeInTheDocument();
   });
 
   it('is shown for a member and a friend', () => {
