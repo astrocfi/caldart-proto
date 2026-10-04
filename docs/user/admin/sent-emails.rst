@@ -15,7 +15,7 @@ The page is the log itself: the filters, then the table of emails.
 What you see
 ============
 
-Each row is one email. The table shows the columns ticked under **Columns** (see
+Each row is one email. The table shows the columns checked under **Columns** (see
 `Downloading the log`_), which are these unless you choose others:
 
 - **Sent**: the date and time. The arrow on the heading shows the order, newest first; click
@@ -32,13 +32,13 @@ Each row is one email. The table shows the columns ticked under **Columns** (see
   red one; or *Bounced*, beside a red one, for an email the mail server took that the
   recipient's mail server later refused for good.
 
-Tick **Error**, **Attachments**, **Bounced**, or **Bounce detail** to add them: the reason a
+Check **Error**, **Attachments**, **Bounced**, or **Bounce detail** to add them: the reason a
 send failed, the names of any files attached, the date a bounce came back, and the reason
 the recipient's mail server gave, such as *5.1.1 550 User unknown*.
 
 On a narrow screen the table leaves out the default columns that matter least, **Purpose**,
 **Name**, and **To** in turn, and keeps **Subject**, **Sent**, **Status**, and any column you
-ticked beyond the defaults. If it is still too wide it scrolls sideways inside its card, says so above the
+checked beyond the defaults. If it is still too wide it scrolls sideways inside its card, says so above the
 table, and keeps **Subject** pinned at the left.
 
 When there are more than 25 emails, the foot reads, for example, *Showing 1–25 of 412*, with
@@ -52,8 +52,9 @@ Filtering the log
 The filters narrow the whole log, every page of it:
 
 **Purpose**
-   One kind of email: *Renewal reminder (60 days)*, *Renewal reminder (30 days)*, *Renewal
-   reminder (7 days)*, *Renewal reminder (expired)*, *Renewal reminder (30 days after)*,
+   One kind of email: *First reminder (60 days before)*, *Second reminder (30 days before)*,
+   *Final reminder (7 days before)*, *Expired reminder (up to 6 days after)*, *Lapsed reminder (30
+   days after)*,
    *Renewal turned on*, *Renewal notice*, *Card expiring*, *Renewal charged*, *Renewal
    declined*, *Renewal turned off*, *Receipt*, *Refund*, *Contribution statement*,
    *Invitation*, *Password reset*, *Email verification*, *Bulk email*, *Bulk email test*,
@@ -61,8 +62,9 @@ The filters narrow the whole log, every page of it:
    *Notification: Member added by an administrator*, *Notification: Member became a friend*,
    *Notification: Friend became a member*, *Notification: Membership paid*, *Notification:
    Membership granted by an administrator*, *Notification: Membership expired*,
-   *Notification: Automatic payment turned on*, *Notification: Automatic payment turned
-   off*, *Notification: Automatic payment declined*, *Notification: Donation received*,
+   *Notification: Automatic renewal or recurring donation turned on*, *Notification:
+   Automatic renewal or recurring donation turned off*, *Notification: Automatic renewal or
+   recurring donation charge failed*, *Notification: Donation received*,
    *Notification: Payment recorded by hand*, *Notification: Payment refunded*,
    *Notification: Account deactivated*, *Notification: Account reactivated*, *Notification:
    Roles changed*, *Notification: Email address changed*, *Notification: Profile changed*,

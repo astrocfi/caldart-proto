@@ -6,8 +6,8 @@ My aircraft
 and each airplane's insurance, before deciding whether to launch you on a mission,
 so keep it current.
 
-CalDART keeps one register of airplanes for everybody. Adding an airplane here
-attaches a record from that register to your profile; you do not get a private
+CalDART keeps one list of airplanes for everybody. Adding an airplane here
+attaches a record from that list to your profile; you do not get a private
 copy. Open the screen from **My aircraft** in the menu, from the button at the top
 of :doc:`profile`, or from **Add the planes I fly** at the end of :doc:`join`.
 
@@ -44,13 +44,13 @@ With nothing attached, the card says **No aircraft attached yet**.
 
 Beside each airplane are **Edit** and a trashcan, **Remove**.
 
-Below it, the **Find an aircraft** card searches the register.
+Below it, the **Find an aircraft** card searches CalDART's aircraft list.
 
 
 Adding an airplane you fly
 ==========================
 
-#. Type in **Search the aircraft register**: the N-number, or the make, model, or
+#. Type in **Search CalDART's aircraft list**: the N-number, or the make, model, or
    owner if you do not have the number to hand.
 #. The results say *Click on an aircraft to add it to your list.* Each shows its
    N-number, make and model, its insurance status (**Insured**, **Expiring soon**,
@@ -61,7 +61,7 @@ Adding an airplane you fly
 
 You can type a registration however you like. CalDART writes every N-number one
 way: upper case, no punctuation, and an N at the front. So 12345, n12345, and
-N-12345 all find N12345, and one airplane can be in the register only once.
+N-12345 all find N12345, and one airplane can be in CalDART's aircraft list only once.
 
 Airplanes already on your list are left out of the results and named under them,
 such as *N12345 is already on your list.* or *N12345 and N9021K are already on your
@@ -70,17 +70,17 @@ taken out of service is left out of the results, unless you type its exact
 registration, so you do not add it twice.
 
 
-Adding an airplane that is not in the register
-==============================================
+Adding an airplane that is not on CalDART's list
+================================================
 
-**Add a new aircraft** sits at the foot of the card (*Not in the register? Add it
+**Add a new aircraft** sits at the bottom of the card (*Not on CalDART's list? Add it
 yourself.*), and you do not have to search first. It opens **Add an aircraft to the
 register** in its place and takes you to the first box. **Cancel**, or Escape, closes it.
 The form is the whole record, with every box the record has when you edit it later:
 
 * **N-number** (required). The box writes the N and takes digits first, then at
   most two letters, so 172sp becomes N172SP. Anything you typed in the search box is
-  already in it. As you type, the FAA registry's airplanes whose N-number starts
+  already in it. As you type, the FAA data's airplanes whose N-number starts
   with what you typed are listed under the box: see :ref:`registry-list`.
 * **Year**, four digits.
 * **Aircraft type** (required): type the make, the model, or a designator, for example
@@ -100,16 +100,16 @@ The form is the whole record, with every box the record has when you edit it lat
   capitals or all in lower case is saved in title case, as your own name is
   (:doc:`profile`); an FBO's or a club's name is saved as typed.
 * **Carrier**, **Policy number**, **Liability per occurrence**, **Liability per
-  person**, **Hull**, and **Insurance expires**. Money is in whole dollars, and the
-  commas write themselves. **Insurance expires** is the most useful box on the form,
+  person**, **Hull**, and **Insurance expires**. Amounts are in US dollars, and
+  the commas fill in as you type. **Insurance expires** is the most useful box on the form,
   since it is what a DART leader looks at.
 
-Press **Add aircraft**. The airplane joins the register and your list at once.
+Press **Add aircraft**. The airplane joins CalDART's aircraft list and your list at once.
 **Cancel** closes the form.
 
 .. _registry-list:
 
-Picking an airplane from the FAA registry
+Picking an airplane from the FAA data
 -----------------------------------------
 
 Every US airplane is in the FAA's aircraft registry, and CalDART keeps a copy of it,
@@ -124,7 +124,7 @@ takes a guess from the kind of registrant it is: a person or co-owners become
 **Individual**, a partnership becomes **Flying club**, and a company becomes
 **FBO**. A government registrant, or one the registry does not sort into any of
 those, leaves **Owner type** as it was. The line under the N-number box then reads,
-for example, *From the FAA registry as of 09/20/2026*, the day of the copy, until
+for example, *From FAA data as of 09/20/2026*, the day of the copy, until
 you change the N-number again. Check what it filled and correct anything that is
 out of date.
 
@@ -140,17 +140,17 @@ form again, and saving does too, taking you back to **Edit**. For one you added 
 the form opens with every detail, as it was added: **N-number**, **Year**, **Aircraft type**, **Seats**,
 **Category**, and **Airworthiness**; **Owner type** (Individual, FBO, or Flying club), **Owner name**, and
 **Owner contact**; and **Carrier**, **Policy number**, **Liability per occurrence**,
-**Liability per person**, **Hull**, and **Insurance expires**. Money is in whole
-dollars, and the commas write themselves. To change the type, type in **Aircraft
+**Liability per person**, **Hull**, and **Insurance expires**. Amounts are in US
+dollars, and the commas fill in as you type. To change the type, type in **Aircraft
 type** and pick the new one from the list. Picking a type with **Seats** empty fills
 in its seats. Typing in **N-number** lists the registry's airplanes again, and
-picking one fills the form from it (:ref:`registry-list`). Press **Save aircraft**;
+picking one fills the form from it (:ref:`registry-list`). Press **Save changes**;
 *N12345 updated.* appears. Saving a change to any insurance detail clears the
 insurance's verification, and the mark reads **Not yet verified** until a DART
 leader or a verifier checks the new policy.
 
 For an airplane somebody else added, **Edit** shows **Someone else added this
-aircraft**: *Ask a CalDART account administrator to correct it.* The register is
+aircraft**: *Ask a CalDART account administrator to correct it.* The list is
 shared, so flying an airplane does not make its record yours to change. An account
 administrator is the exception: for them **Edit** opens any airplane on the list.
 
@@ -161,9 +161,9 @@ Removing an airplane
 The trashcan asks first: press it and it turns into **Remove** and **Cancel**. Press
 **Remove** and the airplane comes off your list, and *N12345 removed.* appears;
 press **Cancel**, press Escape, or click away and nothing changes. Removing only
-detaches the airplane from you. The record stays in the register, and anyone else
+detaches the airplane from you. The record stays in CalDART's aircraft list, and anyone else
 who flies it keeps it on their list. Only an account administrator can delete an
-airplane from the register.
+airplane from CalDART's aircraft list.
 
 
 If something looks wrong
@@ -172,7 +172,7 @@ If something looks wrong
 *Pick the aircraft type from the list.* means the **Aircraft type** box holds typing
 that was never picked from the list. If the list has no entry for your airplane, ask
 an account administrator to add its type. *An aircraft with this N-number is already
-on file.* means the register has it already. Search for it and attach that record.
+on file.* means CalDART's aircraft list has it already. Search for it and attach that record.
 *Use a US registration like N172SP: N, then digits, then at most two letters.* means
 the N-number cannot be a US registration. *Enter an amount of $0 or more.* means a
 money box holds something that is not an amount. If the insurance status says **Not on

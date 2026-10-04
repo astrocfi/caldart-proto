@@ -74,7 +74,7 @@ superuser read every one:
      - chosen
      - yes
    * - ``emails``
-     - CalDART email log
+     - CalDART sent emails
      - ``system_admin``
      - chosen
      - no
@@ -222,7 +222,7 @@ exactly: ``roster`` and ``Roster`` are two sets.  Either way the answer is
 
 The body is refused with **400**:
 
-* ``{"name": ["This field may not be blank."]}``, or the length refusal, for a
+* ``{"name": ["Give the set of columns a name."]}``, or the length refusal, for a
   name that is blank or longer than 60 characters;
 * ``{"columns": ["Choose at least one column."]}`` for an empty list;
 * ``{"columns": ["Unknown column: <key>"]}`` and
@@ -320,7 +320,7 @@ Refusals:
   is checked;
 * **400** ``{"recipient_email": ["<name> does not hold a role that may read
   this report."]}`` for an account that may not read it, confirmed or not;
-* **400** ``{"confirmed": ["Tick the box to confirm this address may receive
+* **400** ``{"confirmed": ["Check the box to confirm this address may receive
   this report."]}`` for an address no account holds, until it is confirmed;
 * **400** ``{"report": ["\"<slug>\" is not a valid choice."]}`` for an unknown
   report, and likewise for ``formats`` and ``cadence``; ``weekday`` outside 0
@@ -379,7 +379,7 @@ DART rosters
 ============
 
 Each active DART is emailed its roster once a month, to the people on its list
-ticked to receive it (``receives_roster``, see :doc:`api-darts`).  These two
+checked to receive it (``receives_roster``, see :doc:`api-darts`).  These two
 endpoints are ``account_admin`` only (and ``system_admin``).
 
 ``GET /reports/rosters``
@@ -390,7 +390,7 @@ One row per active DART, by name, unpaginated::
   [{"dart_id": 3, "name": "Bay Area DART", "roster_recipients": 2,
     "roster_sent_at": "2026-10-01T06:02:11-07:00"}]
 
-``roster_recipients`` counts the people ticked to receive the roster who have an
+``roster_recipients`` counts the people checked to receive the roster who have an
 email address; ``roster_sent_at`` is when the last roster went out, or ``null``.
 
 ``POST /reports/rosters/send``
@@ -399,7 +399,7 @@ email address; ``roster_sent_at`` is when the last roster went out, or ``null``.
 Send every active DART's roster now, whatever the date, and answer **200** with
 the run result (:ref:`api-reports-run`).  The body is optional:
 ``{"dry_run": true}`` sends nothing and answers who would be sent one.  A DART
-whose roster went to everyone ticked is stamped, which counts as its roster for
+whose roster went to everyone checked is stamped, which counts as its roster for
 the month.  A live send writes one ``report.send`` audit line per DART.
 **400** when ``dry_run`` is not a boolean.
 

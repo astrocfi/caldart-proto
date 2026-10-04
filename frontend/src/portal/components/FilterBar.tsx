@@ -41,7 +41,7 @@ export interface FilterBarProps {
 /** The longest number a number field holds: six digits is ample for days and dollars. */
 const NUMBER_DIGITS = 6;
 
-/** The value a ticked toggle sends. */
+/** The value a checked toggle sends. */
 const TOGGLE_ON = 'true';
 
 /** What separates the values of a multiselect in the URL and in a subscription. */

@@ -20,8 +20,8 @@ class ReminderKind(models.TextChoices):
     FIRST = "first", "First reminder"
     SECOND = "second", "Second reminder"
     FINAL = "final", "Final reminder"
-    EXPIRED = "expired", "Expired"
-    LAPSED = "lapsed", "Lapsed"
+    EXPIRED = "expired", "Expired reminder"
+    LAPSED = "lapsed", "Lapsed reminder"
 
 
 #: The schedule a fresh installation runs: whole days before expiry for the three
@@ -160,38 +160,33 @@ class ReminderSchedule(models.Model):
         }
 
     def kind_labels(self) -> dict[str, str]:
-        """Each stage in words, by kind, in stage order.
+        """Each stage by its one name and its day, by kind, in stage order.
 
-        ``"60 days before expiry"``, ``"30 days before expiry"``, ``"7 days before
-        expiry"``, ``"Expired"`` and ``"30 days after expiry"`` for the default
-        schedule; a final reminder one day out reads ``"1 day before expiry"``.
+        ``"First reminder (60 days before)"``, ``"Second reminder (30 days before)"``,
+        ``"Final reminder (7 days before)"``, ``"Expired reminder (up to 6 days
+        after)"`` and ``"Lapsed reminder (30 days after)"`` for the default schedule, the
+        words the reminder screens print; a final reminder one day out reads ``"Final
+        reminder (1 day before)"``.
         """
         return {
-            ReminderKind.FIRST: f"{_days(self.first_days_before)} before expiry",
-            ReminderKind.SECOND: f"{_days(self.second_days_before)} before expiry",
-            ReminderKind.FINAL: f"{_days(self.final_days_before)} before expiry",
-            ReminderKind.EXPIRED: "Expired",
-            ReminderKind.LAPSED: f"{_days(self.lapsed_days_after)} after expiry",
+            ReminderKind.FIRST: (
+                f"{ReminderKind.FIRST.label} ({_days(self.first_days_before)} before)"
+            ),
+            ReminderKind.SECOND: (
+                f"{ReminderKind.SECOND.label} ({_days(self.second_days_before)} before)"
+            ),
+            ReminderKind.FINAL: (
+                f"{ReminderKind.FINAL.label} ({_days(self.final_days_before)} before)"
+            ),
+            ReminderKind.EXPIRED: f"{ReminderKind.EXPIRED.label} (up to 6 days after)",
+            ReminderKind.LAPSED: (
+                f"{ReminderKind.LAPSED.label} ({_days(self.lapsed_days_after)} after)"
+            ),
         }
 
     def purpose_labels(self) -> dict[str, str]:
-        """Each stage's email purpose, ``reminder_<kind>``, in words, in stage order.
-
-        ``"Renewal reminder (60 days)"``, ``"Renewal reminder (30 days)"``,
-        ``"Renewal reminder (7 days)"``, ``"Renewal reminder (expired)"`` and
-        ``"Renewal reminder (30 days after)"`` for the default schedule.
-        """
-        return {
-            f"reminder_{ReminderKind.FIRST}": f"Renewal reminder ({_days(self.first_days_before)})",
-            f"reminder_{ReminderKind.SECOND}": (
-                f"Renewal reminder ({_days(self.second_days_before)})"
-            ),
-            f"reminder_{ReminderKind.FINAL}": f"Renewal reminder ({_days(self.final_days_before)})",
-            f"reminder_{ReminderKind.EXPIRED}": "Renewal reminder (expired)",
-            f"reminder_{ReminderKind.LAPSED}": (
-                f"Renewal reminder ({_days(self.lapsed_days_after)} after)"
-            ),
-        }
+        """Each stage's email purpose, ``reminder_<kind>``, worded as ``kind_labels``."""
+        return {f"reminder_{kind}": label for kind, label in self.kind_labels().items()}
 
 
 def reminder_purpose_labels() -> dict[str, str]:

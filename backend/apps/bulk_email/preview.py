@@ -24,7 +24,7 @@ from apps.bulk_email.render import (
 from caldart.exceptions import DomainValidationError
 
 #: Why a preview for somebody not in the batch is refused.
-NOT_IN_BATCH_MESSAGE = "That person is not in the batch."
+NOT_IN_BATCH_MESSAGE = "That person is not on the recipient list."
 
 
 @dataclass(frozen=True)

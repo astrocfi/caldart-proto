@@ -47,7 +47,21 @@ describe('InsuranceVerificationCard', () => {
         })}
       />,
     );
-    expect(screen.getByRole('listitem')).toHaveTextContent('InsuranceNot on fileNot verified');
+    expect(screen.getByRole('listitem')).toHaveTextContent(/^InsuranceNot on file$/);
+  });
+
+  it('says Expired beside a lapsed policy that somebody verified', () => {
+    renderWithProviders(
+      <InsuranceVerificationCard
+        aircraft={makeVerifiedAircraft({
+          insurance_expiration: '2025-02-02',
+          insurance_is_current: false,
+        })}
+      />,
+    );
+    expect(screen.getByRole('listitem')).toHaveTextContent(
+      /expires 02\/02\/2025Expired\s*Verified by Dana Leader on 05\/01\/2026$/,
+    );
   });
 
   it('offers no Verify to a reader without a verifying role', () => {
@@ -72,7 +86,7 @@ describe('InsuranceVerificationCard', () => {
 
     await user.click(await screen.findByRole('button', { name: 'Verify' }));
     await user.click(screen.getByLabelText('Insurance verified'));
-    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await user.click(screen.getByRole('button', { name: 'Save verification' }));
 
     expect(await screen.findByText('Verification saved')).toBeInTheDocument();
     expect(calls.aircraft).toEqual([{ aircraftId: 1, body: { verified: true } }]);

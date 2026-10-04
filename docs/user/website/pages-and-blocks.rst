@@ -103,8 +103,8 @@ Put a page in the top menu
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The top menu starts with **Home**, which is always there. After it come the pages
-directly under Home that have **Show in menus** ticked on their **Promote** tab. A menu
-page whose own children are ticked gets a drop-down listing them, which is how **About
+directly under Home that have **Show in menus** checked on their **Promote** tab. A menu
+page whose own children are checked gets a drop-down listing them, which is how **About
 Us** offers **How It Works**, **History**, **DARTs**, **Directors and Officers**, and
 **Sponsors**. A members-only menu page moves to the right-hand end, beside **Sign in**
 (or **Member portal** for a signed-in reader), which is not a page. Deeper pages are
@@ -157,7 +157,7 @@ If something looks wrong
 ========================
 
 If your edits are not on the live site, the page is still a draft: open it and choose
-**Publish**. If a page you published is missing from the top menu, tick **Show in menus**
+**Publish**. If a page you published is missing from the top menu, check **Show in menus**
 on its **Promote** tab. If the type you want is not offered, you are adding it under the
 wrong parent: a news post goes under **News**, an event under **Events**, and a DART page
 under **DARTs**. Preview on a phone-width window before publishing, since long headings

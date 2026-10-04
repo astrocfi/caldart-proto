@@ -54,14 +54,14 @@ function GroupList({ emailId, onAdded }: AddGroupButtonProps): JSX.Element {
   if (groups.isError) {
     return (
       <p className="field__error" role="alert">
-        The groups could not be loaded.
+        The groups didn&apos;t load. Try again in a moment.
       </p>
     );
   }
   if (groups.data.length === 0) {
     return (
       <p className="muted">
-        No groups are saved yet. Build a batch, then press Save as a group under it.
+        No groups are saved yet. Build a recipient list, then press Save as a group under it.
       </p>
     );
   }
@@ -85,7 +85,9 @@ function GroupList({ emailId, onAdded }: AddGroupButtonProps): JSX.Element {
       </ul>
       {add.error === null ? null : (
         <p className="field__error" role="alert">
-          {add.error instanceof ApiError ? add.error.message : 'That did not work. Try again.'}
+          {add.error instanceof ApiError
+            ? add.error.message
+            : "The group wasn't added. Try again in a moment."}
         </p>
       )}
     </div>

@@ -3,8 +3,8 @@
  *
  * The shut box is one line, like a select: the chosen labels in the order the
  * options list them, or the placeholder while nothing is chosen.  Pressing it
- * opens a panel of checkboxes under it.  Each checkbox applies as it is ticked or
- * unticked, so any choice, the last one included, can be taken back on its own,
+ * opens a panel of checkboxes under it.  Each checkbox applies as it is checked or
+ * unchecked, so any choice, the last one included, can be taken back on its own,
  * and **Clear** takes them all back at once.  The panel shuts on a click outside
  * it and on Escape, handing the focus back to the box, and when the focus moves on
  * past it.  A screen reader hears the

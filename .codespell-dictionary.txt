@@ -4,3 +4,14 @@ cheque->check
 cheques->checks
 aeroplane's->airplane's
 cheque's->check's
+tick->check
+ticks->checks
+ticked->checked
+ticking->checking
+untick->uncheck
+unticks->unchecks
+unticked->unchecked
+unticking->unchecking
+fortnight->two weeks
+fortnightly->every two weeks
+takings->money in

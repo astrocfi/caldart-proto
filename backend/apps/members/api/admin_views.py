@@ -240,7 +240,7 @@ def _refused(error: DomainError) -> Response:
 
 
 # --------------------------------------------------------------------------
-# The danger zone's account actions
+# The Delete or deactivate tab's account actions
 # --------------------------------------------------------------------------
 def _member_record(request: Request, pk: int) -> Response:
     """200 with the member record ``pk`` as it stands now."""

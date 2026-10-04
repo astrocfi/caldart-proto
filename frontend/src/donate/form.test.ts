@@ -61,7 +61,7 @@ describe('donorBody', () => {
     });
   });
 
-  it('leaves out a select left on its default and an unticked box', () => {
+  it('leaves out a select left on its default and an unchecked box', () => {
     const body = donorBody(FILLED);
 
     expect(['pilot_certificate_type', 'vol_newsletter'].some((key) => key in body)).toBe(false);

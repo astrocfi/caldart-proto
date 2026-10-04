@@ -32,7 +32,7 @@ export function MessagesPage(): JSX.Element {
       <Card>
         {messages.isError ? (
           <p className="field__error" role="alert">
-            Your messages could not be loaded. Try again in a moment.
+            Your messages didn&apos;t load. Try again in a moment.
           </p>
         ) : (
           <DataTable

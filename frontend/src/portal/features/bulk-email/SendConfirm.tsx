@@ -86,7 +86,7 @@ export function SendConfirm({
       {needsCount ? (
         <Field
           label={`Type ${count} to confirm`}
-          hint="A large send asks for its number, so the wrong batch is never sent by accident."
+          hint="A large send asks for its number, so the wrong list is never sent by accident."
           error={isMismatch ? mismatchMessage(count) : null}
         >
           {(field) => (

@@ -65,7 +65,7 @@ describe('NotificationSubscriptionForm', () => {
     ).toHaveAttribute('title', 'A gift arrived.');
   });
 
-  it('ticks every event of one category with Select all', async () => {
+  it('checks every event of one category with Select all', async () => {
     await renderForm();
     const money = screen.getByRole('group', { name: 'Money' });
 
@@ -90,7 +90,7 @@ describe('NotificationSubscriptionForm', () => {
     expect(screen.getByRole('checkbox', { name: 'Sign-up' })).not.toBeChecked();
   });
 
-  it('unticks every event of one category with Clear', async () => {
+  it('unchecks every event of one category with Clear', async () => {
     await renderForm(makeNotificationSubscription({ events: ['signed_up', 'donation_received'] }));
 
     await userEvent.click(
@@ -103,14 +103,14 @@ describe('NotificationSubscriptionForm', () => {
     expect(screen.getByRole('checkbox', { name: 'Donation received' })).toBeChecked();
   });
 
-  it('subscribes the address to the ticked events in catalog order', async () => {
+  it('subscribes the address to the checked events in catalog order', async () => {
     const bodies = recordBodies('post', SUBSCRIPTIONS_URL);
     const onDone = await renderForm();
 
     await userEvent.type(screen.getByLabelText(/Recipient email/), 'board@example.org');
     await userEvent.click(screen.getByRole('checkbox', { name: 'Aircraft added' }));
     await userEvent.click(screen.getByRole('checkbox', { name: 'Sign-up' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Add address' }));
 
     await vi.waitFor(() => expect(onDone).toHaveBeenCalled());
     expect(bodies).toEqual([
@@ -133,7 +133,7 @@ describe('NotificationSubscriptionForm', () => {
 
     await userEvent.type(screen.getByLabelText(/Recipient email/), 'ada@example.org');
     await userEvent.click(screen.getByRole('checkbox', { name: 'Sign-up' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Add address' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'This address already has a subscription.',
@@ -150,7 +150,7 @@ describe('NotificationSubscriptionForm', () => {
 
     await userEvent.type(screen.getByLabelText(/Recipient email/), 'tessa@example.org');
     await userEvent.click(screen.getByRole('checkbox', { name: 'Sign-up' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Add address' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(message);
     expect(screen.getByLabelText(/Recipient email/)).not.toHaveAttribute('aria-invalid');
@@ -162,14 +162,14 @@ describe('NotificationSubscriptionForm', () => {
     expect(screen.queryByRole('checkbox', { name: /outside CalDART/ })).not.toBeInTheDocument();
   });
 
-  it('asks to confirm an address outside CalDART, and sends the tick', async () => {
+  it('asks to confirm an address outside CalDART, and sends the check', async () => {
     let calls = 0;
     const bodies = recordBodies('post', SUBSCRIPTIONS_URL, () => {
       calls += 1;
       return calls === 1
         ? HttpResponse.json(
             {
-              confirmed: ['Tick the box to confirm this address may receive these notifications.'],
+              confirmed: ['Check the box to confirm this address may receive these notifications.'],
             },
             { status: 400 },
           )
@@ -179,13 +179,13 @@ describe('NotificationSubscriptionForm', () => {
 
     await userEvent.type(screen.getByLabelText(/Recipient email/), 'board@example.org');
     await userEvent.click(screen.getByRole('checkbox', { name: 'Sign-up' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Add address' }));
     await userEvent.click(
       await screen.findByRole('checkbox', {
         name: 'This address is outside CalDART and may receive these notifications',
       }),
     );
-    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Add address' }));
 
     await vi.waitFor(() => expect(onDone).toHaveBeenCalled());
     expect(bodies[1]).toEqual({
@@ -207,11 +207,11 @@ describe('NotificationSubscriptionForm', () => {
   it("starts an edit from the subscription's events", async () => {
     await renderForm(makeNotificationSubscription({ events: ['signed_up', 'payment_refunded'] }));
 
-    const ticked = screen
+    const checked = screen
       .getAllByRole('checkbox')
       .filter((box) => (box as HTMLInputElement).checked)
       .map((box) => box.getAttribute('name'));
-    expect(ticked).toEqual(['signed_up', 'payment_refunded']);
+    expect(checked).toEqual(['signed_up', 'payment_refunded']);
   });
 
   it('saves an edit as a change of its events', async () => {
@@ -220,7 +220,7 @@ describe('NotificationSubscriptionForm', () => {
 
     await userEvent.click(screen.getByRole('checkbox', { name: 'Sign-up' }));
     await userEvent.click(screen.getByRole('checkbox', { name: 'Roles changed' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Save changes' }));
 
     await vi.waitFor(() => expect(onDone).toHaveBeenCalled());
     expect(bodies).toEqual([{ events: ['roles_changed'] }]);

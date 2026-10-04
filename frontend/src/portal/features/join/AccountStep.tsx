@@ -191,7 +191,7 @@ export function AccountStep({ onDone: handleDone }: AccountStepProps): JSX.Eleme
           label="Password"
           required
           error={fieldErrors.password ?? null}
-          hint="At least eight characters, and not one of the obvious ones."
+          hint="At least 8 characters. Avoid common passwords such as password1."
         >
           {(props) => (
             <input

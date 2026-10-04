@@ -309,7 +309,7 @@ def test_a_user_admin_cannot_change_a_role_less_superusers_roles(
 def test_a_user_admin_cannot_grant_the_system_admin_role_to_a_role_less_superuser(
     api_client: APIClient, user_admin: User, bare_superuser: User
 ) -> None:
-    """Ticking the box grants the role, even on an account that counts as one already."""
+    """Checking the box grants the role, even on an account that counts as one already."""
     api_client.force_login(user_admin)
     response = api_client.patch(user_detail(bare_superuser), {"roles": [MEMBER, SYSTEM_ADMIN]})
 

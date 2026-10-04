@@ -65,7 +65,7 @@ describe('BouncesPanel', () => {
     const bodies = answerRuns(RESULT);
     renderWithProviders(<BouncesPanel />);
 
-    await userEvent.click(screen.getByRole('button', { name: 'Run now' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Run now: bounce check' }));
 
     expect(
       await screen.findByText('Would mark 1 bounced, leave 1 unmatched, ignore 2, and skip 0.'),
@@ -73,12 +73,14 @@ describe('BouncesPanel', () => {
     expect(bodies).toEqual([{ dry_run: true }]);
   });
 
-  it('runs for real once the dry-run box is cleared', async () => {
+  it('runs for real once the practice-run box is cleared', async () => {
     const bodies = answerRuns(RESULT);
     renderWithProviders(<BouncesPanel />);
 
-    await userEvent.click(screen.getByLabelText('Dry run (change nothing)'));
-    await userEvent.click(screen.getByRole('button', { name: 'Run now' }));
+    await userEvent.click(
+      screen.getByLabelText('Practice run: show what would happen, change nothing'),
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Run now: bounce check' }));
 
     expect(
       await screen.findByText('Marked 1 bounced, left 1 unmatched, ignored 2, and skipped 0.'),
@@ -90,7 +92,7 @@ describe('BouncesPanel', () => {
     answerRuns(RESULT);
     renderWithProviders(<BouncesPanel />);
 
-    await userEvent.click(screen.getByRole('button', { name: 'Run now' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Run now: bounce check' }));
 
     const row = await screen.findByRole('row', { name: /Dana Doe/ });
     expect(row).toHaveTextContent('Bounced');
@@ -101,7 +103,7 @@ describe('BouncesPanel', () => {
     answerRuns(RESULT);
     renderWithProviders(<BouncesPanel />);
 
-    await userEvent.click(screen.getByRole('button', { name: 'Run now' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Run now: bounce check' }));
 
     const row = await screen.findByRole('row', { name: /stranger@example\.net/ });
     expect(row).toHaveTextContent('No matching email');
@@ -112,7 +114,7 @@ describe('BouncesPanel', () => {
     answerRuns({ enabled: false, bounced: 0, unmatched: 0, ignored: 0, skipped: 0, actions: [] });
     renderWithProviders(<BouncesPanel />);
 
-    await userEvent.click(screen.getByRole('button', { name: 'Run now' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Run now: bounce check' }));
 
     expect(await screen.findByText(BOUNCES_OFF)).toBeInTheDocument();
   });
@@ -128,7 +130,7 @@ describe('BouncesPanel', () => {
     );
     renderWithProviders(<BouncesPanel />);
 
-    await userEvent.click(screen.getByRole('button', { name: 'Run now' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Run now: bounce check' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Could not reach the bounce mailbox at imap.example.org',

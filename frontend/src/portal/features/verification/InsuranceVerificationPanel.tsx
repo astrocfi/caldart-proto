@@ -22,6 +22,7 @@ import {
   draftFromAircraft,
   editInsurance,
   insurancePayload,
+  isPolicyOnFile,
   validateInsurance,
 } from './insuranceDraft';
 import type { InsuranceField } from './insuranceDraft';
@@ -51,7 +52,7 @@ export interface InsuranceVerificationPanelProps {
   onClose: () => void;
 }
 
-/** Edits an aircraft's insurance and ticks whether an authority has checked it. */
+/** Edits an aircraft's insurance and checks whether an authority has checked it. */
 export function InsuranceVerificationPanel({
   aircraft,
   onSaved,
@@ -112,11 +113,11 @@ export function InsuranceVerificationPanel({
         <div className="aircraft-form__grid">
           {text('insurance_carrier', 'Carrier')}
           {text('insurance_policy_number', 'Policy number')}
-          {(Object.keys(MONEY_FIELDS) as (keyof typeof MONEY_FIELDS)[]).map((field) => (
+          {(Object.keys(MONEY_FIELDS) as (keyof typeof MONEY_FIELDS)[]).map((field, index) => (
             <Field
               key={field}
               label={MONEY_LABELS[field]}
-              hint="US dollars; commas write themselves."
+              hint={index === 0 ? 'In US dollars.' : undefined}
               error={local[field] ?? refused.fields[MONEY_FIELDS[field]]}
             >
               {(props) => (
@@ -134,20 +135,26 @@ export function InsuranceVerificationPanel({
           {text('insurance_expiration', 'Insurance expires', { type: 'date' })}
         </div>
 
-        <label className="checkbox verification-panel__items">
-          <input
-            type="checkbox"
-            checked={draft.verified}
-            onChange={(event) =>
-              setDraft((current) => ({ ...current, verified: event.target.checked }))
-            }
-          />
-          <span>Insurance verified</span>
-        </label>
+        {isPolicyOnFile(draft) ? (
+          <label className="checkbox verification-panel__items">
+            <input
+              type="checkbox"
+              checked={draft.verified}
+              onChange={(event) =>
+                setDraft((current) => ({ ...current, verified: event.target.checked }))
+              }
+            />
+            <span>Insurance verified</span>
+          </label>
+        ) : (
+          <p className="muted verification-panel__items">
+            Nothing to verify yet. Enter the policy's expiry date to verify the insurance.
+          </p>
+        )}
 
         <div className="cluster">
           <Button type="submit" disabled={verify.isPending}>
-            {verify.isPending ? 'Saving…' : 'Save'}
+            {verify.isPending ? 'Saving…' : 'Save verification'}
           </Button>
           <Button variant="quiet" onClick={handleClose}>
             Cancel

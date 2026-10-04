@@ -36,7 +36,7 @@ A DART page has three things you fill in, and one it reads for itself:
 
 The airport shown on the page and in the directory comes from the team chosen under
 **Dart**, so the identifiers are never typed twice. A **This team** box beside the body
-shows the airport and the leader, and a link at the foot returns to **All DARTs**.
+shows the airport and the leader, and a link at the bottom returns to **All DARTs**.
 
 What you can do
 ===============

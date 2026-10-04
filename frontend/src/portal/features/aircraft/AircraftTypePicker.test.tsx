@@ -153,7 +153,7 @@ describe('<AircraftTypePicker/>', () => {
     await user.type(screen.getByLabelText(/^Model/), 'Eurofox 3K');
     await user.type(screen.getByLabelText(/^Seats/), '2');
     await user.type(screen.getByLabelText(/^Engines/), '1');
-    await user.click(screen.getByRole('button', { name: 'Add type' }));
+    await user.click(screen.getByRole('button', { name: 'Add aircraft type' }));
     await waitFor(() => expect(picked()).toBe('99'));
     expect(posted).toEqual([{ make: 'Aeropro', model: 'Eurofox 3K', seats: 2, engines: 1 }]);
   });
@@ -171,7 +171,7 @@ describe('<AircraftTypePicker/>', () => {
     await user.click(await screen.findByRole('button', { name: 'Add a type' }));
     await user.type(screen.getByLabelText(/^Make/), 'Aeropro');
     await user.type(screen.getByLabelText(/^Model/), 'Eurofox');
-    await user.click(screen.getByRole('button', { name: 'Add type' }));
+    await user.click(screen.getByRole('button', { name: 'Add aircraft type' }));
     await waitFor(() => expect(picked()).toBe('98'));
     expect(posted).toEqual([{ make: 'Aeropro', model: 'Eurofox' }]);
   });
@@ -180,7 +180,7 @@ describe('<AircraftTypePicker/>', () => {
     const user = renderPicker(['account_admin']);
     await search(user, 'zzzz');
     await user.click(await screen.findByRole('button', { name: 'Add a type' }));
-    await user.click(screen.getByRole('button', { name: 'Add type' }));
+    await user.click(screen.getByRole('button', { name: 'Add aircraft type' }));
     expect(screen.getByText('Enter the model.')).toBeVisible();
   });
 
@@ -195,7 +195,7 @@ describe('<AircraftTypePicker/>', () => {
     await user.click(await screen.findByRole('button', { name: 'Add a type' }));
     await user.type(screen.getByLabelText(/^Make/), 'Cessna');
     await user.type(screen.getByLabelText(/^Model/), '172S');
-    await user.click(screen.getByRole('button', { name: 'Add type' }));
+    await user.click(screen.getByRole('button', { name: 'Add aircraft type' }));
     expect(await screen.findByText('That aircraft type is already listed.')).toBeVisible();
   });
 

@@ -39,11 +39,34 @@ function renderPanel(overrides: { handleSaved?: () => void } = {}) {
 }
 
 describe('MemberVerificationPanel', () => {
-  it('ticks the boxes of the items verified now', () => {
+  it('checks the boxes of the items verified now', () => {
     renderPanel();
     expect(screen.getByLabelText('Pilot certificate verified')).toBeChecked();
     expect(screen.getByLabelText('Medical verified')).not.toBeChecked();
-    expect(screen.getByLabelText('Photo ID verified')).not.toBeChecked();
+  });
+
+  it('offers no box for an item the person does not hold', () => {
+    renderPanel();
+    expect(screen.queryByLabelText('Photo ID verified')).not.toBeInTheDocument();
+  });
+
+  it('takes the box away when an item is changed to one not held', async () => {
+    const user = userEvent.setup();
+    renderPanel();
+
+    await user.selectOptions(screen.getByLabelText('Pilot certificate'), 'none');
+
+    expect(screen.queryByLabelText('Pilot certificate verified')).not.toBeInTheDocument();
+  });
+
+  it('says there is nothing to verify when the person holds none of the items', async () => {
+    const user = userEvent.setup();
+    renderPanel();
+
+    await user.selectOptions(screen.getByLabelText('Pilot certificate'), 'none');
+    await user.selectOptions(screen.getByLabelText('Medical'), 'none');
+
+    expect(screen.getByText(/Nothing to verify yet/)).toBeInTheDocument();
   });
 
   it('opens with the fields the record holds', () => {
@@ -51,7 +74,7 @@ describe('MemberVerificationPanel', () => {
     expect(screen.getByLabelText('Certificate number')).toHaveValue('3181234');
   });
 
-  it('sends the ticked items in one save and says so', async () => {
+  it('sends the checked items in one save and says so', async () => {
     const user = userEvent.setup();
     const calls = emptyVerificationCalls();
     const handleSaved = vi.fn();
@@ -59,13 +82,10 @@ describe('MemberVerificationPanel', () => {
     const { handleClose } = renderPanel({ handleSaved });
 
     await user.click(screen.getByLabelText('Medical verified'));
-    await user.click(screen.getByLabelText('Photo ID verified'));
-    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await user.click(screen.getByRole('button', { name: 'Save verification' }));
 
     expect(await screen.findByText('Verification saved')).toBeInTheDocument();
-    expect(calls.members).toEqual([
-      { userId: 7, body: { verified: ['certificate', 'medical', 'photo_id'] } },
-    ]);
+    expect(calls.members).toEqual([{ userId: 7, body: { verified: ['certificate', 'medical'] } }]);
     expect(handleSaved).toHaveBeenCalledWith(makeLeaderStatus());
     expect(handleClose).toHaveBeenCalled();
   });
@@ -76,14 +96,14 @@ describe('MemberVerificationPanel', () => {
     const { client } = renderPanel();
     const invalidated = vi.spyOn(client, 'invalidateQueries');
 
-    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await user.click(screen.getByRole('button', { name: 'Save verification' }));
 
     expect(await screen.findByText('Verification saved')).toBeInTheDocument();
     const keys = invalidated.mock.calls.map(([filters]) => filters?.queryKey);
     expect(keys).toContainEqual(PROFILE_KEY);
   });
 
-  it('unticks an item when one of its fields is edited', async () => {
+  it('unchecks an item when one of its fields is edited', async () => {
     const user = userEvent.setup();
     renderPanel();
 
@@ -92,7 +112,7 @@ describe('MemberVerificationPanel', () => {
     expect(screen.getByLabelText('Pilot certificate verified')).not.toBeChecked();
   });
 
-  it('sends an edited field beside the items ticked again', async () => {
+  it('sends an edited field beside the items checked again', async () => {
     const user = userEvent.setup();
     const calls = emptyVerificationCalls();
     server.use(...verificationHandlers(calls));
@@ -100,7 +120,7 @@ describe('MemberVerificationPanel', () => {
 
     await user.selectOptions(screen.getByLabelText('Photo ID'), 'passport');
     await user.click(screen.getByLabelText('Photo ID verified'));
-    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await user.click(screen.getByRole('button', { name: 'Save verification' }));
 
     await waitFor(() => expect(calls.members).toHaveLength(1));
     expect(calls.members[0]?.body).toEqual({
@@ -114,7 +134,7 @@ describe('MemberVerificationPanel', () => {
     server.use(
       http.put(`${API}/leader/members/7/verification`, () =>
         HttpResponse.json(
-          { medical_expiration: ['Give the expiration date of your medical certificate.'] },
+          { medical_expiration: ["Enter the medical's expiration date."] },
           { status: 400 },
         ),
       ),
@@ -122,10 +142,10 @@ describe('MemberVerificationPanel', () => {
     renderPanel();
 
     await user.clear(screen.getByLabelText('Medical expires'));
-    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await user.click(screen.getByRole('button', { name: 'Save verification' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Give the expiration date of your medical certificate.',
+      "Enter the medical's expiration date.",
     );
     expect(screen.getByLabelText('Medical expires')).toHaveAttribute('aria-invalid', 'true');
   });
@@ -139,7 +159,7 @@ describe('MemberVerificationPanel', () => {
     );
     renderPanel();
 
-    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await user.click(screen.getByRole('button', { name: 'Save verification' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent("Unknown item 'badge'.");
   });

@@ -28,13 +28,13 @@ log = logging.getLogger(__name__)
 
 #: Why a ``Reply-To`` address is refused; ``{address}`` is the address as written.
 INVALID_MESSAGE = (
-    "Replies would go to {address}, which is not a valid email address. Change the "
-    "Reply-To address under What it says."
+    "Replies would go to {address}, which is not a valid email address. Change "
+    "Replies go to under What it says."
 )
 
 #: Why an email with no ``Reply-To`` address at all is refused.
 MISSING_MESSAGE = (
-    "There is no address for replies to go to. Write one in Reply-To under What it says."
+    "There is no address for replies to go to. Write one in Replies go to under What it says."
 )
 
 

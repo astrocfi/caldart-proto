@@ -206,7 +206,7 @@ the retry lives on the attempt.
 A term bought outside the scan rolls the stored day forward as well.  When a
 payment extends the coverage the stored day was aimed at, the day moves on by the
 same span, so a day stored on the expiry becomes the new expiry and a day the
-member placed a fortnight early stays a fortnight early; a day already behind
+member placed two weeks early stays two weeks early; a day already behind
 becomes the new expiry itself.  Without that a member who renews by hand a month
 before their expiry would be charged a second year on the day they had already
 covered.  A charge already scheduled when the coverage arrived is skipped as

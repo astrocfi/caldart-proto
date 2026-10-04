@@ -46,8 +46,15 @@ the item is unverified.
 
 The photo ID records only the kind of document — *Not provided*, *Driver's
 license*, *Passport*, *State ID card*, *Military ID*, or *Other* — and nothing
-else about it.  *Not provided* is a legitimate verified state: a verifier who saw
-the document and chose not to record its kind, or a friend with nothing to show.
+else about it.  A verifier who saw a document of a kind not listed records *Other*.
+
+An item the person does not hold has nothing to verify: a pilot certificate of
+``none``, a medical of ``none``, or a photo ID of ``not_provided``.  Each ``Item``
+carries the coded field that says so (its first field) and that field's ``none``
+value, and ``is_held(profile, slug)`` answers it.  Such an item is never stamped, a
+stamp on one counts for nothing, and every screen draws it with no mark and the
+panel with no box.  Insurance with no ``insurance_expiration`` is no policy on file
+and is likewise never stamped.
 
 A verified medical whose expiration passes stays verified, and so does verified
 insurance whose policy lapses.  Currency and verification are two separate facts,
@@ -122,9 +129,9 @@ and the office hears about it once.
 
 ``members.verification.verify_member(actor, target, *, changes, verified)``
     Writes ``changes`` through ``update_member`` (raising ``profile_changed`` and
-    clearing what moved), then stamps each item in ``verified`` that is not yet
-    verified with the time and ``actor`` and clears each verified item not in
-    ``verified``.  Re-verifying an already verified item keeps its stamp.  It
+    clearing what moved), then stamps each item in ``verified`` that is held and not
+    yet verified with the time and ``actor``, and clears each verified item that is
+    not in ``verified`` or that the saved profile does not hold.  Re-verifying an already verified item keeps its stamp.  It
     records ``member.verify`` with ``verified`` (the items it stamped) and
     ``cleared`` (the items verified before the save and not after), and raises
     ``verification_changed`` when either list is not empty.
@@ -132,7 +139,8 @@ and the office hears about it once.
 ``aircraft.verification.verify_insurance(aircraft, *, actor, changes, verified)``
     Writes ``changes``, calls ``record_updated`` (the history row, the audit
     record, ``aircraft_changed``, and the clearing), then stamps or clears the
-    insurance.  It records ``aircraft.verify`` with ``verified`` and raises
+    insurance.  Insurance with no expiry date on file ends unverified whatever the
+    request asks.  It records ``aircraft.verify`` with ``verified`` and raises
     ``verification_changed`` when the insurance was stamped or cleared.
 
 ``verification_changed`` is raised once per save, never once per item, and not at
@@ -144,11 +152,14 @@ The verdicts
 ============
 
 The status card's ``go_no_go`` carries ``membership``, ``medical``, and
-``verified``, the last true when the pilot certificate, the medical, and the photo
-ID are all verified; each of the three also carries its own ``verification``, and
-``photo_id`` its kind.  A person is a GO when all three booleans are true.  A
-search row carries the same ``verified``, worked out from the profile row the
-search already fetched, so it costs no query.
+``verified``, the last true when the person holds a pilot certificate, a medical,
+and a photo ID and all three are verified (``is_fully_verified``); each of the
+three also carries its own ``verification``, and ``photo_id`` its kind.  A person
+is a GO when all three booleans are true.  A search row and each pilot on the
+aircraft card carry the same ``go_no_go``, built by one helper (``_go_no_go`` in
+``apps/aircraft/services.py``) from the profile row already fetched, so the member
+check and the aircraft check never disagree about one person and neither costs a
+query per row.
 
 An aircraft is insured when its policy is current and its insurance verified;
 current but unverified coverage reads *Not verified*, and no current policy reads
@@ -161,11 +172,12 @@ The demo data
 =============
 
 ``seed_demo`` gives every profile a photo ID (friends mostly *Not provided*), and
-the seeded DART leader verifies all three items of about seven in ten members and
-the insurance of about seven in ten aircraft; the rest stay unverified.
-``seed_facts`` names an insured pilot verified on every count
-(``leaderCheck.insuredPilot``) and a current pilot with a current medical and
-nothing verified (``leaderCheck.unverifiedPilot``), and ``accounts.verifier`` is
+the seeded DART leader verifies each item held by about seven in ten members and
+the insurance of about seven in ten aircraft; the rest stay unverified, and no item
+a member does not hold is stamped.  ``seed_facts`` names an insured pilot verified
+on every count (``leaderCheck.insuredPilot``) and a current pilot with a current
+medical, all three items held, and nothing verified
+(``leaderCheck.unverifiedPilot``), and ``accounts.verifier`` is
 the seeded verifier.  See :doc:`setup`.
 
 
@@ -175,5 +187,7 @@ Tests
 ``backend/tests/test_verification.py`` covers the items, the clearing in every
 write path, and both services; ``test_verification_api.py`` the endpoints, their
 role matrices, the fields the reads carry, and the query counts;
-``test_verifier_role.py`` granting and revoking the role; and
-``test_verification_skeleton.py`` the role, the catalog, and the columns.
+``test_verifier_role.py`` granting and revoking the role;
+``test_verification_skeleton.py`` the role, the catalog, and the columns; and
+``test_verification_held_items.py`` the items a person does not hold and the
+aircraft card's pilot verdicts.

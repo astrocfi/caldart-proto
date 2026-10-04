@@ -71,4 +71,4 @@ If something looks wrong
 
 A user administrator can send you a reset link from your user record, which is the
 quickest way through when you are not sure which address your account uses. Ask
-the office, using the contact address at the foot of every public page.
+the office, using the contact address at the bottom of every public page.

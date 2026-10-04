@@ -87,10 +87,10 @@ describe('<RegistryPanel/>', () => {
     vi.useRealTimers();
   });
 
-  it('is the aircraft database, with Run now and no dry run', async () => {
+  it('is the FAA aircraft data, with Run now and no practice run', async () => {
     server.use(statusAnswers(makeRegistryStatus()));
     renderWithProviders(<RegistryPanel />);
-    expect(await screen.findByRole('heading', { name: 'Aircraft database' })).toBeVisible();
+    expect(await screen.findByRole('heading', { name: 'FAA aircraft data' })).toBeVisible();
     expect(screen.getByRole('button', { name: 'Run now' })).toBeVisible();
     expect(screen.queryByRole('checkbox')).toBeNull();
   });

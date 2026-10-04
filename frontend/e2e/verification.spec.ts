@@ -28,6 +28,7 @@ interface RegisterRow {
   n_number: string;
   is_active: boolean;
   insurance_is_current: boolean;
+  insurance_expiration: string | null;
   insurance_verification: { verified: boolean };
 }
 
@@ -90,7 +91,12 @@ async function unverifiedLapsedAirplane(page: Page): Promise<RegisterRow> {
   expect(response.status()).toBe(200);
   const { results } = (await response.json()) as { results: RegisterRow[] };
   const airplane = results.find(
-    (each) => each.is_active && !each.insurance_is_current && !each.insurance_verification.verified,
+    // A policy with no expiry on file has nothing to verify, so it carries no mark.
+    (each) =>
+      each.is_active &&
+      each.insurance_expiration !== null &&
+      !each.insurance_is_current &&
+      !each.insurance_verification.verified,
   );
   if (airplane === undefined) {
     throw new Error('The register holds no in-service airplane with unverified lapsed cover.');
@@ -135,7 +141,7 @@ test('a leader verifies a pilot, who verifies an airplane and then edits a medic
   await panel.getByRole('checkbox', { name: 'Pilot certificate verified' }).check();
   await panel.getByRole('checkbox', { name: 'Medical verified' }).check();
   await panel.getByRole('checkbox', { name: 'Photo ID verified' }).check();
-  await card.getByRole('button', { name: 'Save' }).click();
+  await card.getByRole('button', { name: 'Save verification' }).click();
   await expect(page.getByText('Verification saved')).toBeVisible();
 
   await expect(verdict).toContainText('GO');
@@ -177,7 +183,7 @@ test('a leader verifies a pilot, who verifies an airplane and then edits a medic
   await expect(aircraftVerdict).toContainText('Coverage is current but not verified');
   await aircraftCard.getByRole('button', { name: 'Verify' }).click();
   await aircraftCard.getByRole('checkbox', { name: 'Insurance verified' }).check();
-  await aircraftCard.getByRole('button', { name: 'Save' }).click();
+  await aircraftCard.getByRole('button', { name: 'Save verification' }).click();
   await expect(page.getByText('Verification saved')).toBeVisible();
   await expect(aircraftVerdict).toContainText('INSURED');
   await expect(aircraftVerdict).not.toContainText('NOT');
@@ -190,7 +196,7 @@ test('a leader verifies a pilot, who verifies an airplane and then edits a medic
   const current = await expires.inputValue();
   expect(current).not.toBe('');
   await expires.fill(dayAfter(current));
-  await page.getByRole('button', { name: 'Save profile' }).click();
+  await page.getByRole('button', { name: 'Save changes' }).click();
   await expect(page.getByText('Profile saved.')).toBeVisible();
   // The medical's mark sits under the expiration date, the field a verifier checks.
   await expect(expires).toHaveAccessibleDescription(/Not yet verified/);
@@ -220,7 +226,7 @@ test('an account administrator verifies an airplane from its aircraft record', a
   await expect(card).toContainText('Not verified');
   await card.getByRole('button', { name: 'Verify' }).click();
   await page.getByRole('checkbox', { name: 'Insurance verified' }).check();
-  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await page.getByRole('button', { name: 'Save verification' }).click();
   await expect(page.getByText('Verification saved')).toBeVisible();
 
   await expect(card).toContainText(`Verified by ${adminName} on`);

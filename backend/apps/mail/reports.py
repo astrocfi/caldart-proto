@@ -121,7 +121,7 @@ def email_log_report_query(params: Params) -> ReportQuery[EmailLog]:
 #: The email log, for system administrators.
 EMAIL_LOG_REPORT: ReportSpec[EmailLog] = ReportSpec(
     slug="emails",
-    title="CalDART email log",
+    title="CalDART sent emails",
     filename_stem="caldart-emails",
     columns=EMAIL_LOG_REPORT_COLUMNS,
     roles=(SYSTEM_ADMIN,),

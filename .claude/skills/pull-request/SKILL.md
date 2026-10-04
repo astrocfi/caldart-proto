@@ -30,10 +30,10 @@ The PR template is in `.github/pull_request_template.md`. GitHub applies it auto
 
 - **Purpose** — Why the change is needed; link issue with `Closes #NNN. Closes #MMM.`.
 - **Changes / Implementation Details** — What changed and how it was implemented; technical approaches chosen and non-obvious design decisions.
-- **Type of Change** — Tick every box that applies; flag breaking changes to the API contract.
+- **Type of Change** — Check every box that applies; flag breaking changes to the API contract.
 - **Testing** — Describe tests changed and new tests added along with test results, and any manual verification (the demo account used and the pages visited).
 - **Potential Impacts** — API contract, migrations, settings and environment variables, permissions, payment providers, performance, deployment; write "None" if straightforward.
-- **Checklist** — Tick each item that holds; explain any unticked item in Notes.
+- **Checklist** — Check each item that holds; explain any unchecked item in Notes.
 - **Notes** — Optional; delete only if not needed (tricky areas, follow-up work).
 
 ## Guidance

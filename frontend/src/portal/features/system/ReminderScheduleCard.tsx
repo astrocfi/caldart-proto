@@ -50,7 +50,7 @@ export function ReminderScheduleCard({ readOnly = false }: ReminderScheduleCardP
   if (schedule.isError) {
     return (
       <Card eyebrow={EYEBROW} title={TITLE}>
-        <p className="muted">The reminder schedule could not be loaded.</p>
+        <p className="muted">The reminder schedule didn&apos;t load. Try again in a moment.</p>
       </Card>
     );
   }
@@ -122,8 +122,8 @@ function ScheduleForm({ stored }: StoredProps): JSX.Element {
   return (
     <form onSubmit={handleSubmit} noValidate className="stack">
       <p className="muted">
-        The expired reminder goes from the day a membership ends through the six days after, and has
-        no number. A change applies from the next morning&rsquo;s scan, and never sends a member a
+        The expired reminder goes from the day a membership ends through 6 days after, and has no
+        number. A change applies from the next morning&rsquo;s check, and never sends a member a
         reminder they already had.
       </p>
       <div className="reminder-schedule__fields">
@@ -146,7 +146,7 @@ function ScheduleForm({ stored }: StoredProps): JSX.Element {
       </div>
       <div className="cluster">
         <Button type="submit" disabled={save.isPending}>
-          {save.isPending ? 'Saving…' : 'Save'}
+          {save.isPending ? 'Saving…' : 'Save changes'}
         </Button>
       </div>
     </form>

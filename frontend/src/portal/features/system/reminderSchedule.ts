@@ -1,6 +1,6 @@
 /**
  * The words the reminder screens print for the reminder stages, built from the stored
- * reminder schedule so they name the days the scan actually uses.
+ * reminder schedule so they name the days the nightly check actually uses.
  */
 import type { ReminderKind, ReminderSchedulePayload } from '@/portal/api/types';
 
@@ -13,13 +13,13 @@ export const REMINDER_KINDS: readonly ReminderKind[] = [
   'lapsed',
 ];
 
-/** What each stage is called before the schedule that dates it has loaded. */
-const KIND_NAMES: Record<ReminderKind, string> = {
+/** Each stage's one name, used on every screen that lists reminders. */
+const STAGE_NAMES: Record<ReminderKind, string> = {
   first: 'First reminder',
   second: 'Second reminder',
   final: 'Final reminder',
-  expired: 'Expired',
-  lapsed: 'Lapsed',
+  expired: 'Expired reminder',
+  lapsed: 'Lapsed reminder',
 };
 
 /**
@@ -48,21 +48,23 @@ export function days(count: number): string {
 }
 
 /**
- * Each stage in words, such as "60 days before", "Expired", and "30 days after".
+ * Each stage by its one name, with its day once the schedule has loaded, such as
+ * "First reminder (60 days before)", "Expired reminder (up to 6 days after)", and "Lapsed
+ * reminder (30 days after)".
  *
  * @param schedule the stored schedule, or `undefined` while it loads, when each stage
- *   reads by its name ("First reminder") instead.
+ *   reads by its name alone ("First reminder").
  */
 export function kindLabels(
   schedule: ReminderSchedulePayload | undefined,
 ): Record<ReminderKind, string> {
-  if (schedule === undefined) return KIND_NAMES;
+  if (schedule === undefined) return STAGE_NAMES;
   return {
-    first: `${days(schedule.first_days_before)} before`,
-    second: `${days(schedule.second_days_before)} before`,
-    final: `${days(schedule.final_days_before)} before`,
-    expired: 'Expired',
-    lapsed: `${days(schedule.lapsed_days_after)} after`,
+    first: `${STAGE_NAMES.first} (${days(schedule.first_days_before)} before)`,
+    second: `${STAGE_NAMES.second} (${days(schedule.second_days_before)} before)`,
+    final: `${STAGE_NAMES.final} (${days(schedule.final_days_before)} before)`,
+    expired: `${STAGE_NAMES.expired} (up to 6 days after)`,
+    lapsed: `${STAGE_NAMES.lapsed} (${days(schedule.lapsed_days_after)} after)`,
   };
 }
 

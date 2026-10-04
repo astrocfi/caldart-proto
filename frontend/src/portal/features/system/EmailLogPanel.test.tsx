@@ -58,7 +58,7 @@ const BOUNCED: EmailLogEntry = {
   user_id: 41,
   user_name: 'Dana Doe',
   purpose: 'reminder_second',
-  purpose_label: 'Renewal reminder (30 days)',
+  purpose_label: 'Second reminder (30 days before)',
   subject: 'CalDART: your membership expires in 30 days',
   sent_at: '2026-10-01T08:00:00-07:00',
   status: 'bounced',
@@ -76,7 +76,7 @@ function page(
   return { count, next, previous, results: rows };
 }
 
-/** The email log report's registry, as the server answers it, with `extra` ticked too. */
+/** The email log report's registry, as the server answers it, with `extra` checked too. */
 function registry(...extra: string[]): ReportColumn[] {
   const columns: [string, string, boolean][] = [
     ['sent_at', 'Sent', true],
@@ -134,7 +134,7 @@ describe('EmailLogPanel', () => {
     expect(row).toHaveTextContent('CalDART: your receipt for $95.00');
   });
 
-  it('shows the columns ticked in the chooser, such as the attachments', async () => {
+  it('shows the columns checked in the chooser, such as the attachments', async () => {
     server.use(emailsHandler(ENTRIES), registryHandler(registry('attachments')));
     renderWithProviders(<EmailLogPanel />);
 
@@ -142,7 +142,7 @@ describe('EmailLogPanel', () => {
     expect(row).toHaveTextContent('Marta Reyes');
   });
 
-  it('adds a column to the table when it is ticked in the chooser', async () => {
+  it('adds a column to the table when it is checked in the chooser', async () => {
     server.use(emailsHandler(ENTRIES), registryHandler(registry()));
     renderWithProviders(<EmailLogPanel />);
 
@@ -153,7 +153,7 @@ describe('EmailLogPanel', () => {
     expect(screen.getByRole('columnheader', { name: 'Error' })).toBeInTheDocument();
   });
 
-  it('carries a ticked column into the downloads', async () => {
+  it('carries a checked column into the downloads', async () => {
     server.use(emailsHandler(ENTRIES), registryHandler(registry()));
     renderWithProviders(<EmailLogPanel />);
 
@@ -243,7 +243,7 @@ describe('EmailLogPanel', () => {
     ).toContain('Bounced');
   });
 
-  it('shows when a message bounced and the report, once those columns are ticked', async () => {
+  it('shows when a message bounced and the report, once those columns are checked', async () => {
     server.use(emailsHandler([BOUNCED]), registryHandler(registry('bounced_at', 'bounce_detail')));
     renderWithProviders(<EmailLogPanel />);
 

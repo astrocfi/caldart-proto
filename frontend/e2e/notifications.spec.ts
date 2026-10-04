@@ -33,7 +33,7 @@ interface RosterDart {
 }
 
 /**
- * The first active DART with somebody ticked to receive its roster, read as the
+ * The first active DART with somebody checked to receive its roster, read as the
  * signed-in account administrator.  Read rather than copied out of the seed, so
  * an earlier spec that changed a DART's people cannot leave this one stale.
  */
@@ -47,7 +47,7 @@ async function rosterDart(page: Page): Promise<RosterDart> {
       return { id: dart.id, name: dart.name, rosterEmail: contact.email };
     }
   }
-  throw new Error('No active DART has anybody ticked to receive its roster.');
+  throw new Error('No active DART has anybody checked to receive its roster.');
 }
 
 /**
@@ -102,16 +102,16 @@ test('an outside address hears of a sign-up, and stops once sign-ups are dropped
     .getByRole('link', { name: 'Notifications' })
     .click();
   await expect(page).toHaveURL(/\/portal\/admin\/notifications/);
-  await page.getByRole('button', { name: 'New subscription' }).click();
-  const form = page.getByRole('form', { name: 'New subscription' });
+  await page.getByRole('button', { name: 'Add an address' }).click();
+  const form = page.getByRole('form', { name: 'Add an address' });
   await form.getByLabel(/^Recipient email/).fill(outside);
   await form.getByRole('checkbox', { name: 'Sign-up', exact: true }).check();
   await form.getByRole('checkbox', { name: 'Friend became a member', exact: true }).check();
-  await form.getByRole('button', { name: 'Save' }).click();
+  await form.getByRole('button', { name: 'Add address' }).click();
 
   // The server asks for the outside address to be confirmed before it saves.
   await expect(form.getByRole('alert')).toHaveText(
-    'Tick the box to confirm this address may receive these notifications.',
+    'Check the box to confirm this address may receive these notifications.',
   );
   await form.getByRole('checkbox', { name: /This address is outside CalDART/ }).check();
   const saved = page.waitForResponse(
@@ -119,13 +119,13 @@ test('an outside address hears of a sign-up, and stops once sign-ups are dropped
       response.url().endsWith('/notifications/subscriptions') &&
       response.request().method() === 'POST',
   );
-  await form.getByRole('button', { name: 'Save' }).click();
+  await form.getByRole('button', { name: 'Add address' }).click();
   expect((await saved).status()).toBe(201);
   await expect(form).toHaveCount(0);
 
   const card = page
     .locator('section.card')
-    .filter({ has: page.getByRole('heading', { name: 'Who hears about what' }) });
+    .filter({ has: page.getByRole('heading', { name: 'Notification emails' }) });
   const row = card.getByRole('row').filter({ hasText: outside });
   await expect(row).toContainText('Sign-up, Friend became a member');
   await signOut(page);
@@ -146,7 +146,7 @@ test('an outside address hears of a sign-up, and stops once sign-ups are dropped
   await signIn(page, DEMO.accountadmin);
   await page.goto('portal/admin/notifications');
   await row.getByRole('button', { name: 'Edit' }).click();
-  const edit = page.getByRole('form', { name: 'Edit subscription' });
+  const edit = page.getByRole('form', { name: 'Edit notifications' });
   await expect(edit.getByRole('group', { name: 'Recipient' })).toHaveText(`Recipient${outside}`);
   await edit.getByRole('checkbox', { name: 'Sign-up', exact: true }).uncheck();
   const patched = page.waitForResponse(
@@ -154,7 +154,7 @@ test('an outside address hears of a sign-up, and stops once sign-ups are dropped
       /\/notifications\/subscriptions\/\d+$/.test(response.url()) &&
       response.request().method() === 'PATCH',
   );
-  await edit.getByRole('button', { name: 'Save' }).click();
+  await edit.getByRole('button', { name: 'Save changes' }).click();
   expect((await patched).status()).toBe(200);
   await expect(edit).toHaveCount(0);
   await expect(row).toContainText('Friend became a member');

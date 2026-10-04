@@ -124,7 +124,7 @@ function DonationReturn({ returned, returnUrl, onGiven }: DonationReturnProps): 
   if (error !== null) {
     return (
       <EmptyState
-        title="Your gift is not confirmed"
+        title="Your donation is not confirmed"
         description={error}
         action={
           <a className="button button--secondary" href={returnUrl}>
@@ -136,7 +136,7 @@ function DonationReturn({ returned, returnUrl, onGiven }: DonationReturnProps): 
   }
   return (
     <p className="muted" role="status" aria-live="polite">
-      Confirming your gift…
+      Confirming your donation…
     </p>
   );
 }
@@ -173,8 +173,8 @@ function GiftForm({ configUrl, returnUrl, onGiven }: GiftFormProps): JSX.Element
   if (error || !config) {
     return (
       <EmptyState
-        title="The donation form could not be loaded"
-        description="Please reload the page, or contact CalDART if it keeps happening."
+        title="The donation form didn't load"
+        description="Reload the page, or contact CalDART if it keeps happening."
       />
     );
   }
@@ -357,7 +357,7 @@ function PaymentStep({
       {providers.length === 0 ? (
         <EmptyState
           title="Online giving is not set up yet"
-          description="Please contact CalDART to give by check, or try again later."
+          description="Contact CalDART to give by check, or try again later."
         />
       ) : (
         <ProviderTabs

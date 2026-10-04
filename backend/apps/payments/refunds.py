@@ -140,7 +140,7 @@ def issue_refund(
         locked = Payment.objects.select_for_update().get(pk=payment.pk)
         if locked.status not in SETTLED_STATUSES:
             raise DomainValidationError(
-                "amount_cents", "That payment has not succeeded, so there is nothing to refund."
+                "amount_cents", "That payment was never paid, so there is nothing to refund."
             )
         if amount_cents <= 0:
             raise DomainValidationError("amount_cents", "A refund must be for more than zero.")

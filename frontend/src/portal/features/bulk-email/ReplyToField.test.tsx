@@ -54,7 +54,7 @@ describe('replyToHint', () => {
 describe('ReplyToField', () => {
   it('shows the address it holds, described by its hint', () => {
     renderField();
-    expect(screen.getByRole('textbox', { name: 'Reply-To' })).toHaveAccessibleDescription(
+    expect(screen.getByRole('textbox', { name: 'Replies go to' })).toHaveAccessibleDescription(
       replyToHint('ops@example.org'),
     );
   });
@@ -62,18 +62,18 @@ describe('ReplyToField', () => {
   it('saves the address on its own when the field is left', async () => {
     const patches = answerPatches();
     renderField();
-    const field = screen.getByRole('textbox', { name: 'Reply-To' });
+    const field = screen.getByRole('textbox', { name: 'Replies go to' });
     await userEvent.clear(field);
     await userEvent.type(field, 'marin@example.org');
     await userEvent.click(screen.getByRole('button', { name: 'Elsewhere' }));
-    expect(await screen.findByRole('status')).toHaveTextContent('Reply-To saved.');
+    expect(await screen.findByRole('status')).toHaveTextContent('Address for replies saved.');
     expect(patches).toEqual([{ reply_to: 'marin@example.org' }]);
   });
 
   it('saves nothing while the address is being typed', async () => {
     const patches = answerPatches();
     renderField();
-    await userEvent.type(screen.getByRole('textbox', { name: 'Reply-To' }), 'x');
+    await userEvent.type(screen.getByRole('textbox', { name: 'Replies go to' }), 'x');
     expect(patches).toEqual([]);
   });
 
@@ -81,7 +81,7 @@ describe('ReplyToField', () => {
     const patches = answerPatches();
     renderField('');
     await userEvent.type(
-      screen.getByRole('textbox', { name: 'Reply-To' }),
+      screen.getByRole('textbox', { name: 'Replies go to' }),
       'ops@example.org{Enter}',
     );
     await waitFor(() => expect(patches).toEqual([{ reply_to: 'ops@example.org' }]));
@@ -90,7 +90,7 @@ describe('ReplyToField', () => {
   it('names a refused address under the field and marks it', async () => {
     answerPatches();
     renderField();
-    const field = screen.getByRole('textbox', { name: 'Reply-To' });
+    const field = screen.getByRole('textbox', { name: 'Replies go to' });
     await userEvent.clear(field);
     await userEvent.type(field, 'marin@');
     await userEvent.click(screen.getByRole('button', { name: 'Elsewhere' }));
@@ -101,7 +101,7 @@ describe('ReplyToField', () => {
   it('sends nothing when the address has not changed', async () => {
     const patches = answerPatches();
     renderField();
-    await userEvent.click(screen.getByRole('textbox', { name: 'Reply-To' }));
+    await userEvent.click(screen.getByRole('textbox', { name: 'Replies go to' }));
     await userEvent.click(screen.getByRole('button', { name: 'Elsewhere' }));
     expect(patches).toEqual([]);
   });

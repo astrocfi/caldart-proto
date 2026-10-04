@@ -159,11 +159,12 @@ def test_an_expired_token_is_fetched_again() -> None:
     with freeze_time("2026-09-22 12:00:00") as clock:
         assert paypal.access_token() == "A21AA-token"
 
+        # codespell:ignore-next-line tick
         clock.tick(timedelta(seconds=TOKEN_LIFETIME_SECONDS - paypal.TOKEN_SKEW_SECONDS - 1))
         assert paypal.access_token() == "A21AA-token"
         assert route.call_count == 1
 
-        clock.tick(timedelta(seconds=2))
+        clock.tick(timedelta(seconds=2))  # codespell:ignore tick
         assert paypal.access_token() == "A21AA-token"
         assert route.call_count == 2
 

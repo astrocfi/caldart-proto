@@ -34,7 +34,7 @@ async function openCompose(page: Page): Promise<void> {
 async function addRole(page: Page, role: string): Promise<void> {
   const filters = page.getByRole('search', { name: 'Choose people to add' });
   await filters.getByLabel('Role').selectOption(role);
-  await page.getByRole('button', { name: 'Add to batch' }).click();
+  await page.getByRole('button', { name: 'Add these people' }).click();
   await expect(page.getByText(/^Added \d+ (person|people)[.;]/)).toBeVisible();
 }
 
@@ -57,7 +57,7 @@ test('CalDART management builds a batch from two filter sets and sends it', asyn
   await addRole(page, 'management');
   await addRole(page, 'system_admin');
 
-  const batch = page.getByRole('table', { name: /^The batch: \d+ (person|people)$/ });
+  const batch = page.getByRole('table', { name: /^Recipient list: \d+ (person|people)$/ });
   // Chosen by shows on a screen wide enough for every column of the batch.
   await page.setViewportSize({ width: 1600, height: 900 });
   await expect(batch.getByRole('row').filter({ hasText: DEMO.management })).toContainText('Yes');
@@ -69,7 +69,7 @@ test('CalDART management builds a batch from two filter sets and sends it', asyn
     page.waitForEvent('download'),
     page.getByRole('link', { name: 'Download list' }).click(),
   ]);
-  expect(download.suggestedFilename()).toMatch(/^caldart-bulk-email-\d+-batch\.csv$/);
+  expect(download.suggestedFilename()).toMatch(/^caldart-bulk-email-\d+-recipient-list\.csv$/);
   const csv = await readFile(await download.path(), 'utf8');
   expect(csv).toContain(DEMO.management);
   expect(csv).toContain(DEMO.sysadmin);

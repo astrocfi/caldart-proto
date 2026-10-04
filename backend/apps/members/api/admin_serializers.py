@@ -40,6 +40,7 @@ from apps.members.services import (
     update_member,
 )
 from caldart.casing import person_name
+from caldart.messages import email_messages
 
 if TYPE_CHECKING:
     from apps.members.services import MemberRow
@@ -420,7 +421,7 @@ class MemberCreateSerializer(serializers.Serializer[User]):
     donor by hand.
     """
 
-    email = serializers.EmailField()
+    email = serializers.EmailField(error_messages=email_messages("Enter the email address."))
     first_name = serializers.CharField(max_length=150, allow_blank=True, required=False, default="")
     last_name = serializers.CharField(max_length=150, allow_blank=True, required=False, default="")
     password = serializers.CharField(write_only=True, required=False, allow_blank=True)
@@ -477,14 +478,16 @@ class MemberUpdateSerializer(serializers.Serializer[User]):
     obeys the same edit guard: changing the email address of an account that holds
     roles the caller does not hold is a 400 against ``email``.  It therefore needs the
     request in its context.  The active flag is not part of an edit: the member
-    record's danger zone deactivates and reactivates an account.
+    record's Delete or deactivate tab deactivates and reactivates an account.
 
     ``kind`` (``member`` or ``friend``) makes the account that kind at once and clears
     any pending ``friend_on`` date; a donor's kind is never changed by hand, which is
     a 400 against ``kind``.
     """
 
-    email = serializers.EmailField(required=False)
+    email = serializers.EmailField(
+        required=False, error_messages=email_messages("Enter the email address.")
+    )
     first_name = serializers.CharField(max_length=150, allow_blank=True, required=False)
     last_name = serializers.CharField(max_length=150, allow_blank=True, required=False)
     kind = serializers.ChoiceField(choices=PERSON_KIND_CHOICES, required=False)

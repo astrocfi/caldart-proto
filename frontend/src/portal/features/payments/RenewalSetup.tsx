@@ -69,8 +69,8 @@ export function RenewalSetup({
   if (error || !config) {
     return (
       <EmptyState
-        title="Payment options could not be loaded"
-        description="Please reload the page, or contact CalDART if it keeps happening."
+        title="Payment options didn't load"
+        description="Reload the page, or contact CalDART if it keeps happening."
       />
     );
   }
@@ -91,7 +91,7 @@ export function RenewalSetup({
     return (
       <EmptyState
         title="Automatic renewal is not available"
-        description="This deployment offers no renewing plan that a saved payment method can pay for."
+        description="Online renewal isn't set up yet. Renew by hand each year instead."
       />
     );
   }
@@ -141,8 +141,8 @@ export function RenewalSetup({
         <>
           <p className="renewal-setup__total">
             CalDART will charge <strong className="num">{formatCents(chargeCents)}</strong> on{' '}
-            {formatDate(nextChargeOn)}, and each year after that. We will email you fourteen days
-            before every charge.
+            {formatDate(nextChargeOn)}, and each year after that. We will email you 14 days before
+            every charge.
           </p>
           <MandateSetupTabs
             config={config}

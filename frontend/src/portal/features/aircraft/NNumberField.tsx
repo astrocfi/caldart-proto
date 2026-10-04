@@ -4,7 +4,7 @@
  * As the N-number is typed, the registrations whose N-number starts with it are
  * listed under the box, each with its aircraft type, year, and registrant.  Picking
  * one writes its N-number into the box and hands the registration to `onFound`,
- * which fills the form; under the box it then says *From the FAA registry as of*
+ * which fills the form; under the box it then says *From FAA data as of*
  * the day of the import behind it, until the box is changed again.  What is typed
  * keeps the N-number mask, so the box only ever holds a well-formed registration.
  */
@@ -42,7 +42,7 @@ export function registrationMeta(registration: Registration): string {
 /** The line under the box for the registration picked, or null before a pick. */
 export function registryNote(picked: Registration | null): string | null {
   if (picked === null) return null;
-  return `From the FAA registry as of ${formatDate(picked.imported_at)}`;
+  return `From FAA data as of ${formatDate(picked.imported_at)}`;
 }
 
 /** The N-number box, the registrations it offers, and the line naming the registry's date. */
@@ -75,7 +75,6 @@ export function NNumberField({
             {...field}
             listLabel="FAA registrations"
             className="num"
-            placeholder="N172SP"
             autoComplete="off"
             value={value}
             onValueChange={handleValueChange}

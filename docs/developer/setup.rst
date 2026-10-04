@@ -569,7 +569,7 @@ opens ``docs/_build/html/index.html`` in your browser.  It runs
 without rebuilding and ``--build`` to rebuild without opening, and honors
 ``BROWSER`` when you would rather not use the platform default.  To read the
 user guide the way a member does, ``make guide`` then sign in to the running
-site and open ``/docs/``, or follow the **User guide** link at the foot of the
+site and open ``/docs/``, or follow the **User guide** link at the bottom of the
 portal's menu.
 
 Troubleshooting

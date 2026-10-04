@@ -40,21 +40,24 @@ export function ReportsPanel(): JSX.Element {
       title="Scheduled reports"
       footer={
         <>
-          <Button ref={runRef} onClick={handleRun} disabled={run.isPending}>
+          <Button
+            ref={runRef}
+            onClick={handleRun}
+            disabled={run.isPending}
+            aria-label={run.isPending ? undefined : 'Run now: scheduled reports'}
+          >
             {run.isPending ? 'Running…' : 'Run now'}
           </Button>
           <label className="cluster">
             <input type="checkbox" checked={dryRun} onChange={handleDryRunChange} />
-            Dry run (send nothing)
+            Practice run: show what would happen, send nothing
           </label>
         </>
       }
     >
       <p className="muted">
         The sender runs every morning. It emails every report subscription that is due and, once a
-        month, each DART&rsquo;s roster to the people ticked to receive it. Running it again is
-        harmless: a subscription that has gone out is not due again until its next date, and a DART
-        gets one roster a month.
+        month, each DART&rsquo;s roster to the people checked to receive it.
       </p>
 
       {run.isSuccess ? <ReportRunOutcome result={run.data} dryRun={lastRunWasDry} /> : null}

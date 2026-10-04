@@ -93,14 +93,14 @@ _EVENTS: tuple[Event, ...] = (
     ),
     Event(
         "auto_renewal_on",
-        "Automatic payment turned on",
+        "Automatic renewal or recurring donation turned on",
         "Money",
         "Somebody set up automatic renewal or a recurring donation.",
         _MONEY_ROLES,
     ),
     Event(
         "auto_renewal_off",
-        "Automatic payment turned off",
+        "Automatic renewal or recurring donation turned off",
         "Money",
         "An automatic renewal or recurring donation was turned off, by the person, "
         "an administrator, a lapse, or a deactivation.",
@@ -108,7 +108,7 @@ _EVENTS: tuple[Event, ...] = (
     ),
     Event(
         "auto_renewal_declined",
-        "Automatic payment declined",
+        "Automatic renewal or recurring donation charge failed",
         "Money",
         "An automatic charge was declined and will be tried again.",
         _MONEY_ROLES,

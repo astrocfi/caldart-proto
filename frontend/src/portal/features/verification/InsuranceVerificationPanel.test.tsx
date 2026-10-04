@@ -32,7 +32,7 @@ function renderPanel(handleClose = vi.fn(), handleSaved = vi.fn()) {
 }
 
 describe('InsuranceVerificationPanel', () => {
-  it('opens on the policy the record holds, unticked when unverified', () => {
+  it('opens on the policy the record holds, unchecked when unverified', () => {
     renderPanel();
     expect(screen.getByLabelText('Carrier')).toHaveValue('Avemco');
     expect(screen.getByLabelText('Insurance verified')).not.toBeChecked();
@@ -45,7 +45,7 @@ describe('InsuranceVerificationPanel', () => {
     const { handleClose, handleSaved } = renderPanel();
 
     await user.click(screen.getByLabelText('Insurance verified'));
-    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await user.click(screen.getByRole('button', { name: 'Save verification' }));
 
     expect(await screen.findByText('Verification saved')).toBeInTheDocument();
     expect(calls.aircraft).toEqual([{ aircraftId: 1, body: { verified: true } }]);
@@ -60,7 +60,7 @@ describe('InsuranceVerificationPanel', () => {
     const invalidated = vi.spyOn(client, 'invalidateQueries');
 
     await user.click(screen.getByLabelText('Insurance verified'));
-    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await user.click(screen.getByRole('button', { name: 'Save verification' }));
 
     expect(await screen.findByText('Verification saved')).toBeInTheDocument();
     const keys = invalidated.mock.calls.map(([filters]) => filters?.queryKey);
@@ -68,7 +68,7 @@ describe('InsuranceVerificationPanel', () => {
     expect(keys).toContainEqual(MEMBERS_KEY);
   });
 
-  it('unticks the box when a field is edited, and sends the edit', async () => {
+  it('unchecks the box when a field is edited, and sends the edit', async () => {
     const user = userEvent.setup();
     const calls = emptyVerificationCalls();
     server.use(...verificationHandlers(calls));
@@ -79,10 +79,37 @@ describe('InsuranceVerificationPanel', () => {
     await user.clear(screen.getByLabelText('Carrier'));
     await user.type(screen.getByLabelText('Carrier'), 'AIG');
     expect(screen.getByLabelText('Insurance verified')).not.toBeChecked();
-    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await user.click(screen.getByRole('button', { name: 'Save verification' }));
 
     await waitFor(() => expect(calls.aircraft).toHaveLength(1));
     expect(calls.aircraft[0]?.body).toEqual({ insurance_carrier: 'AIG', verified: false });
+  });
+
+  it('offers no box while no policy expiry is on file', () => {
+    renderWithProviders(
+      <InsuranceVerificationPanel
+        aircraft={makeVerifiedAircraft({
+          insurance_expiration: null,
+          insurance_verification: NOT_VERIFIED,
+        })}
+        onClose={() => {}}
+      />,
+    );
+    expect(screen.queryByLabelText('Insurance verified')).not.toBeInTheDocument();
+  });
+
+  it('takes the box away when the expiry date is cleared', async () => {
+    const user = userEvent.setup();
+    renderPanel();
+
+    await user.clear(screen.getByLabelText('Insurance expires'));
+
+    expect(screen.queryByLabelText('Insurance verified')).not.toBeInTheDocument();
+  });
+
+  it('says once that the amounts are in US dollars', () => {
+    renderPanel();
+    expect(screen.getAllByText('In US dollars.')).toHaveLength(1);
   });
 
   it('shows a refused field under that field', async () => {
@@ -97,7 +124,7 @@ describe('InsuranceVerificationPanel', () => {
     );
     renderPanel();
 
-    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await user.click(screen.getByRole('button', { name: 'Save verification' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Ensure this value is greater than or equal to 0.',

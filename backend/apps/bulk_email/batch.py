@@ -542,7 +542,7 @@ def batch_document(bulk: BulkEmail) -> ReportDocument:
     holds, the account's membership status now (blank once it is deleted), the label
     of the add that chose the person, ``Yes`` or ``No``, the reason, and the email's
     type (blank while it has none).  The file is named
-    ``caldart-bulk-email-<id>-batch.csv``.
+    ``caldart-bulk-email-<id>-recipient-list.csv``.
     """
     labels = {add.pk: add_name(add) for add in bulk.adds.all()}
     type_name = email_type_name(bulk)
@@ -562,7 +562,7 @@ def batch_document(bulk: BulkEmail) -> ReportDocument:
     ]
     content = "".join(csv_rows(BATCH_CSV_HEADER, rows)).encode()
     return ReportDocument(
-        filename=f"caldart-bulk-email-{bulk.pk}-batch.csv",
+        filename=f"caldart-bulk-email-{bulk.pk}-recipient-list.csv",
         media_type=CSV_DOCUMENT_TYPE,
         content=content,
     )

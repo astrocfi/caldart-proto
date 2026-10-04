@@ -45,7 +45,11 @@ export interface InsuranceVerificationCardProps {
   onSaved?: (aircraft: AircraftDetail) => void;
 }
 
-/** Lists an aircraft's insurance with its mark, and opens the panel on **Verify**. */
+/**
+ * Lists an aircraft's insurance with its mark, and opens the panel on **Verify**.  With
+ * no policy on file there is nothing to verify, so there is no mark; a lapsed policy
+ * reads *Expired* before its mark.
+ */
 export function InsuranceVerificationCard({
   aircraft,
   onSaved: handleSaved,
@@ -85,7 +89,12 @@ export function InsuranceVerificationCard({
         <li className="verification-items__row">
           <span className="verification-items__label">Insurance</span>
           <span className="verification-items__detail">{insuranceDetail(aircraft)}</span>
-          <VerifiedMark verification={aircraft.insurance_verification} />
+          {aircraft.insurance_expiration === null ? null : (
+            <VerifiedMark
+              verification={aircraft.insurance_verification}
+              expired={!aircraft.insurance_is_current}
+            />
+          )}
         </li>
       </ul>
     </Card>

@@ -98,7 +98,7 @@ describe('HealthPanel', () => {
     expect(await screen.findByText('Database')).toBeInTheDocument();
     for (const label of ['Pending migrations', 'Disk free', 'Last backup', 'Version', 'Debug mode'])
       expect(screen.getByText(label)).toBeInTheDocument();
-    expect(screen.getAllByText('OK')).toHaveLength(6);
+    expect(screen.getAllByText('Good')).toHaveLength(6);
     expect(screen.getByText('0.1.0')).toBeInTheDocument();
   });
 
@@ -106,7 +106,7 @@ describe('HealthPanel', () => {
     server.use(healthHandler(health({ debug: true, pending_migrations: 2 })));
     renderWithProviders(<HealthPanel />);
 
-    expect(await screen.findByText('Attention')).toHaveAttribute('data-tone', 'expired');
+    expect(await screen.findByText('Problem')).toHaveAttribute('data-tone', 'expired');
     expect(screen.getByText('Warning')).toHaveAttribute('data-tone', 'expiring');
     expect(screen.getByText('Run manage.py migrate.')).toBeInTheDocument();
   });

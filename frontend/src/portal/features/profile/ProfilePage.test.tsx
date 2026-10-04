@@ -66,9 +66,9 @@ describe('<ProfilePage/>', () => {
 
     renderWithProviders(<ProfilePage />, { route: '/profile' });
     await screen.findByLabelText(label('Phone'));
-    await userEvent.click(screen.getByRole('button', { name: 'Save profile' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Save changes' }));
 
-    expect(await screen.findByText('A phone number is required.')).toBeInTheDocument();
+    expect(await screen.findByText('Enter a phone number.')).toBeInTheDocument();
     expect(save).not.toHaveBeenCalled();
   });
 
@@ -79,12 +79,12 @@ describe('<ProfilePage/>', () => {
 
     renderWithProviders(<ProfilePage />, { route: '/profile' });
     await screen.findByLabelText(label('Phone'));
-    await userEvent.click(screen.getByRole('button', { name: 'Save profile' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Save changes' }));
 
     expect(screen.getByLabelText(label('Phone'))).toHaveFocus();
   });
 
-  it('keeps the focus on Save profile after a save goes through', async () => {
+  it('keeps the focus on Save changes after a save goes through', async () => {
     server.use(
       http.get(`${API}/me/profile`, () => HttpResponse.json(makeVerifiedProfile())),
       http.put(`${API}/me/profile`, () => HttpResponse.json(makeVerifiedProfile())),
@@ -92,10 +92,10 @@ describe('<ProfilePage/>', () => {
 
     renderWithProviders(<ProfilePage />, { route: '/profile' });
     await screen.findByLabelText(label('City'));
-    await userEvent.click(screen.getByRole('button', { name: 'Save profile' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Save changes' }));
     await screen.findByText('Profile saved.');
 
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Save profile' })).toHaveFocus());
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Save changes' })).toHaveFocus());
   });
 
   it('reports a medical without an expiration date', async () => {
@@ -109,11 +109,9 @@ describe('<ProfilePage/>', () => {
 
     renderWithProviders(<ProfilePage />, { route: '/profile' });
     await screen.findByLabelText(label('Phone'));
-    await userEvent.click(screen.getByRole('button', { name: 'Save profile' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Save changes' }));
 
-    expect(
-      await screen.findByText('Give the expiration date of your medical certificate.'),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Enter the medical's expiration date.")).toBeInTheDocument();
   });
 
   it('clears an inline error as soon as the member fixes it', async () => {
@@ -124,13 +122,13 @@ describe('<ProfilePage/>', () => {
 
     renderWithProviders(<ProfilePage />, { route: '/profile' });
     await screen.findByLabelText(label('Phone'));
-    await userEvent.click(screen.getByRole('button', { name: 'Save profile' }));
-    await screen.findByText('A phone number is required.');
+    await userEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+    await screen.findByText('Enter a phone number.');
 
     await userEvent.type(screen.getByLabelText(label('Phone')), '555-0100');
 
     await waitFor(() =>
-      expect(screen.queryByText('A phone number is required.')).not.toBeInTheDocument(),
+      expect(screen.queryByText('Enter a phone number.')).not.toBeInTheDocument(),
     );
   });
 
@@ -148,7 +146,7 @@ describe('<ProfilePage/>', () => {
     const city = await screen.findByLabelText(label('City'));
     await userEvent.clear(city);
     await userEvent.type(city, 'Napa');
-    await userEvent.click(screen.getByRole('button', { name: 'Save profile' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Save changes' }));
 
     expect(await screen.findByText('Profile saved.')).toBeInTheDocument();
     expect(body).toMatchObject({ city: 'Napa', phone: '650-555-0101', dart_id: 1 });
@@ -167,7 +165,7 @@ describe('<ProfilePage/>', () => {
     const city = await screen.findByLabelText(label('City'));
     await user.clear(city);
     await user.type(city, 'palo ALTO');
-    await user.click(screen.getByRole('button', { name: 'Save profile' }));
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
     await waitFor(() => expect(screen.getByLabelText(label('City'))).toHaveValue('Palo Alto'));
   });
@@ -184,7 +182,7 @@ describe('<ProfilePage/>', () => {
 
     renderWithProviders(<ProfilePage />, { route: '/profile' });
     await screen.findByLabelText(label('Phone'));
-    await userEvent.click(screen.getByRole('button', { name: 'Save profile' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Save changes' }));
 
     await screen.findByText('Profile saved.');
     expect(sentToken).toBe(TEST_CSRF_TOKEN);
@@ -200,7 +198,7 @@ describe('<ProfilePage/>', () => {
 
     renderWithProviders(<ProfilePage />, { route: '/profile' });
     await screen.findByLabelText(label('Phone'));
-    await userEvent.click(screen.getByRole('button', { name: 'Save profile' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Save changes' }));
 
     expect(await screen.findByText('No such county.')).toBeInTheDocument();
     expect(screen.getByText('Check the highlighted fields and try again.')).toBeInTheDocument();
@@ -230,7 +228,7 @@ describe('<ProfilePage/>', () => {
     const last = await screen.findByLabelText(label('Last name'));
     await user.clear(last);
     await user.type(last, ' SMITH ');
-    await user.click(screen.getByRole('button', { name: 'Save profile' }));
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
     await screen.findByText('Profile saved.');
     expect(body).toMatchObject({ first_name: 'Marta', last_name: 'SMITH' });
@@ -249,7 +247,7 @@ describe('<ProfilePage/>', () => {
     const last = await screen.findByLabelText(label('Last name'));
     await user.clear(last);
     await user.type(last, 'SMITH');
-    await user.click(screen.getByRole('button', { name: 'Save profile' }));
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
     await waitFor(() => expect(screen.getByLabelText(label('Last name'))).toHaveValue('Smith'));
   });
@@ -267,9 +265,9 @@ describe('<ProfilePage/>', () => {
 
     renderWithProviders(<ProfilePage />, { route: '/profile' });
     await user.clear(await screen.findByLabelText(label('First name')));
-    await user.click(screen.getByRole('button', { name: 'Save profile' }));
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
-    expect(await screen.findByText('Your first name is required.')).toBeInTheDocument();
+    expect(await screen.findByText('Enter your first name.')).toBeInTheDocument();
     expect(save).not.toHaveBeenCalled();
   });
 
@@ -288,7 +286,7 @@ describe('<ProfilePage/>', () => {
     const callsign = await screen.findByLabelText('Amateur radio callsign');
     await user.type(callsign, 'w6abc');
     expect(callsign).toHaveValue('W6ABC');
-    await user.click(screen.getByRole('button', { name: 'Save profile' }));
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
     await screen.findByText('Profile saved.');
     expect(body).toMatchObject({ ham_callsign: 'W6ABC' });
@@ -316,7 +314,7 @@ describe('<ProfilePage/>', () => {
 
     renderWithProviders(<ProfilePage />, { route: '/profile' });
 
-    expect(await screen.findByText('We could not load your profile')).toBeInTheDocument();
+    expect(await screen.findByText("Your profile didn't load")).toBeInTheDocument();
   });
 });
 
@@ -393,6 +391,36 @@ describe('<ProfilePage/> inline complaints', () => {
     );
   });
 
+  it('draws no mark under an item the member does not hold, whatever is on file', async () => {
+    server.use(
+      http.get(`${API}/me/profile`, () =>
+        HttpResponse.json(
+          makeVerifiedProfile({ pilot_certificate_type: 'none', certificate_number: '' }),
+        ),
+      ),
+    );
+
+    renderWithProviders(<ProfilePage />, { route: '/profile' });
+
+    expect(
+      await screen.findByLabelText(label('Pilot certificate')),
+    ).not.toHaveAccessibleDescription(/Verified/);
+  });
+
+  it('says Expired under a lapsed medical, though somebody verified it', async () => {
+    server.use(
+      http.get(`${API}/me/profile`, () =>
+        HttpResponse.json(makeVerifiedProfile({ medical_expiration: '2025-02-02' })),
+      ),
+    );
+
+    renderWithProviders(<ProfilePage />, { route: '/profile' });
+
+    expect(await screen.findByLabelText(label('Medical expires'))).toHaveAccessibleDescription(
+      /^Expired\s*Verified by Dana Leader on 05\/01\/2026$/,
+    );
+  });
+
   it('shows the medical as not yet verified once a change the member saves clears it', async () => {
     const user = userEvent.setup();
     server.use(
@@ -409,7 +437,7 @@ describe('<ProfilePage/> inline complaints', () => {
 
     renderWithProviders(<ProfilePage />, { route: '/profile' });
     await user.selectOptions(await screen.findByLabelText(label('Medical')), 'second');
-    await user.click(screen.getByRole('button', { name: 'Save profile' }));
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
     await waitFor(() =>
       expect(screen.getByLabelText(label('Medical expires'))).toHaveAccessibleDescription(

@@ -31,7 +31,7 @@ const STATUS_TONES: Record<BulkEmailStatus, StatusTone> = {
 
 /** What each copy's status reads as. */
 const RESULT_LABELS: Record<BulkEmailRecipientStatus, string> = {
-  batched: 'In the batch',
+  batched: 'On the list',
   pending: 'Not sent yet',
   sent: 'Sent',
   failed: 'Failed',
@@ -111,8 +111,8 @@ export function addSentence(result: BulkEmailAddResult): string {
   if (result.already_present === 0) return `Added ${people(result.added)}.`;
   const already =
     result.already_present === 1
-      ? '1 was already in the batch'
-      : `${result.already_present} were already in the batch`;
+      ? '1 was already on the list'
+      : `${result.already_present} were already on the list`;
   return `Added ${people(result.added)}; ${already}.`;
 }
 

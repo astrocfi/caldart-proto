@@ -48,6 +48,14 @@ function termStatusLabel(status: MembershipTermStatus): string {
   return TERM_STATUS_CHOICES.find((choice) => choice.value === status)?.label ?? status;
 }
 
+/** Names a term by its plan and dates, so each row's Edit button says which term it opens. */
+function termName(term: MemberTerm): string {
+  const dates = term.ends_on
+    ? `${formatDate(term.starts_on)} to ${formatDate(term.ends_on)}`
+    : `from ${formatDate(term.starts_on)}`;
+  return `the ${term.plan} term, ${dates}`;
+}
+
 function editFrom(term: MemberTerm): TermEdit {
   return { ends_on: term.ends_on ?? '', status: term.status, note: term.note };
 }
@@ -245,7 +253,7 @@ export function MemberMembershipsTab({ member }: { member: MemberDetail }): JSX.
               onKeyDown={handleEditKeyDown}
               disabled={updateTerm.isPending}
             >
-              Save
+              Save changes
             </Button>
             <Button small variant="quiet" onClick={handleStopEditing} onKeyDown={handleEditKeyDown}>
               Cancel
@@ -258,6 +266,7 @@ export function MemberMembershipsTab({ member }: { member: MemberDetail }): JSX.
             }}
             small
             variant="quiet"
+            aria-label={`Edit ${termName(term)}`}
             onClick={() => startEditing(term)}
           >
             Edit

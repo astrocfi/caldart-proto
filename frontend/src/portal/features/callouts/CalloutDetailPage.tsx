@@ -14,6 +14,7 @@ import { useMemo, useState } from 'react';
 import type { JSX } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
+import { isNotFound } from '@/portal/api/client';
 import type {
   CalloutAnswerKind,
   CalloutDetail,
@@ -83,8 +84,10 @@ export function CalloutDetailPage(): JSX.Element {
     return (
       <Page title="Callout">
         <p className="field__error" role="alert">
-          This callout could not be loaded. <Link to="/bulk-email/callouts">See every callout</Link>
-          .
+          {isNotFound(callout.error)
+            ? "This callout isn't here. It may have been deleted."
+            : "This callout didn't load. Try again in a moment."}{' '}
+          <Link to="/bulk-email/callouts">Back to callouts</Link>.
         </p>
       </Page>
     );
@@ -93,7 +96,11 @@ export function CalloutDetailPage(): JSX.Element {
   const shown = callout.data;
 
   return (
-    <Page title={shown.subject || 'Callout'} lede={calloutLede(shown)}>
+    <Page
+      title={shown.subject || 'Callout'}
+      lede={calloutLede(shown)}
+      actions={<Link to="/bulk-email/callouts">Back to callouts</Link>}
+    >
       <Card title="Answers">
         <div className="stack">
           {shown.closed_skipped === 0 ? null : (

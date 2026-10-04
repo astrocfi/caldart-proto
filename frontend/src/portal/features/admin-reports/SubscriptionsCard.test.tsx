@@ -45,7 +45,7 @@ async function renderCard(subscriptions: ReportSubscription[] = [MEMBERS, PAYMEN
     http.get(`${API}/reports/:slug/columns`, () => HttpResponse.json(COLUMNS)),
   );
   renderWithProviders(<SubscriptionsCard />);
-  return screen.findByRole('table', { name: /^[1-9]\d* subscriptions?$/ });
+  return screen.findByRole('table', { name: /^[1-9]\d* emailed reports?$/ });
 }
 
 /** The table row naming `name`. */
@@ -84,20 +84,20 @@ describe('SubscriptionsCard', () => {
     );
   });
 
-  it('opens Edit above the table, where New subscription opens', async () => {
+  it('opens Edit above the table, where Email a report opens', async () => {
     const user = userEvent.setup();
     const table = await renderCard();
 
-    await user.click(within(row(table, /Ada Admin/)).getByRole('button', { name: 'Edit' }));
+    await user.click(within(row(table, /Ada Admin/)).getByRole('button', { name: /^Edit / }));
 
-    const form = screen.getByRole('form', { name: 'Edit subscription' });
+    const form = screen.getByRole('form', { name: 'Edit emailed report' });
     expect(form.compareDocumentPosition(table) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it('moves the focus into the form it opens and back to Edit on Escape', async () => {
     const user = userEvent.setup();
     const table = await renderCard();
-    const edit = within(row(table, /Ada Admin/)).getByRole('button', { name: 'Edit' });
+    const edit = within(row(table, /Ada Admin/)).getByRole('button', { name: /^Edit / });
 
     await user.click(edit);
     await user.keyboard('{Escape}');
@@ -110,7 +110,7 @@ describe('SubscriptionsCard', () => {
     server.use(http.post(`${API}/reports/subscriptions/1/send`, () => HttpResponse.json(sent())));
 
     await userEvent.click(
-      within(row(table, /Ada Admin/)).getByRole('button', { name: 'Send now' }),
+      within(row(table, /Ada Admin/)).getByRole('button', { name: /^Send now: / }),
     );
 
     expect(await screen.findByRole('status')).toHaveTextContent('Sent to Ada Admin.');
@@ -125,7 +125,7 @@ describe('SubscriptionsCard', () => {
     );
 
     await userEvent.click(
-      within(row(table, /Ada Admin/)).getByRole('button', { name: 'Send now' }),
+      within(row(table, /Ada Admin/)).getByRole('button', { name: /^Send now: / }),
     );
 
     expect(await screen.findByRole('status')).toHaveTextContent(
@@ -142,12 +142,12 @@ describe('SubscriptionsCard', () => {
     );
 
     await userEvent.click(
-      within(row(table, /Ada Admin/)).getByRole('button', { name: 'Send now' }),
+      within(row(table, /Ada Admin/)).getByRole('button', { name: /^Send now: / }),
     );
 
     expect(await screen.findByRole('status')).toHaveTextContent(
-      'Not sent: Ada Admin no longer holds a role that may read this report, so the ' +
-        'subscription is paused.',
+      'Not sent: Ada Admin no longer holds a role that may read this report, so its emails ' +
+        'are paused.',
     );
   });
 
@@ -161,7 +161,7 @@ describe('SubscriptionsCard', () => {
       }),
     );
 
-    await userEvent.click(within(row(table, /Ada Admin/)).getByRole('button', { name: 'Pause' }));
+    await userEvent.click(within(row(table, /Ada Admin/)).getByRole('button', { name: /^Pause / }));
 
     expect(await screen.findByRole('status')).toHaveTextContent('Paused.');
     expect(bodies).toEqual([{ is_active: false }]);
@@ -178,7 +178,7 @@ describe('SubscriptionsCard', () => {
     );
 
     await userEvent.click(
-      within(row(table, /board@example.org/)).getByRole('button', { name: 'Resume' }),
+      within(row(table, /board@example.org/)).getByRole('button', { name: /^Resume / }),
     );
 
     expect(await screen.findByRole('status')).toHaveTextContent('Resumed.');
@@ -197,7 +197,7 @@ describe('SubscriptionsCard', () => {
     );
 
     await userEvent.click(
-      within(row(table, /board@example.org/)).getByRole('button', { name: 'Resume' }),
+      within(row(table, /board@example.org/)).getByRole('button', { name: /^Resume / }),
     );
 
     expect(await screen.findByRole('status')).toHaveTextContent(
@@ -216,7 +216,7 @@ describe('SubscriptionsCard', () => {
     );
 
     await userEvent.click(
-      within(row(table, /Ada Admin/)).getByRole('button', { name: 'Delete subscription' }),
+      within(row(table, /Ada Admin/)).getByRole('button', { name: /^Delete / }),
     );
 
     expect(deleted).toEqual([]);
@@ -233,7 +233,7 @@ describe('SubscriptionsCard', () => {
     );
     const target = row(table, /Ada Admin/);
 
-    await userEvent.click(within(target).getByRole('button', { name: 'Delete subscription' }));
+    await userEvent.click(within(target).getByRole('button', { name: /^Delete / }));
     await userEvent.click(within(target).getByRole('button', { name: 'Delete' }));
 
     expect(await screen.findByRole('status')).toHaveTextContent('Deleted.');
@@ -247,25 +247,35 @@ describe('SubscriptionsCard', () => {
     expect(await screen.findByText('No reports are sent by email yet')).toBeInTheDocument();
   });
 
-  it('opens the form from New subscription', async () => {
+  it('opens the form from Email a report', async () => {
     await renderCard();
 
-    await userEvent.click(screen.getByRole('button', { name: 'New subscription' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Email a report' }));
 
-    expect(screen.getByRole('form', { name: 'New subscription' })).toBeInTheDocument();
+    expect(screen.getByRole('form', { name: 'Email a report' })).toBeInTheDocument();
   });
 
   it('opens the edit form for the row whose Edit was pressed', async () => {
     const table = await renderCard();
 
     await userEvent.click(
-      within(row(table, /board@example.org/)).getByRole('button', { name: 'Edit' }),
+      within(row(table, /board@example.org/)).getByRole('button', { name: /^Edit / }),
     );
 
-    const edit = screen.getByRole('form', { name: 'Edit subscription' });
+    const edit = screen.getByRole('form', { name: 'Edit emailed report' });
     expect(within(edit).getByRole('group', { name: 'Recipient' })).toHaveTextContent(
       'board@example.org',
     );
+  });
+
+  it("names a paused row's Resume for its report and recipient", async () => {
+    const table = await renderCard();
+
+    expect(
+      within(row(table, /board@example.org/)).getByRole('button', {
+        name: 'Resume Payments for board@example.org',
+      }),
+    ).toBeInTheDocument();
   });
 
   it('puts Edit first among the row controls', async () => {
@@ -274,74 +284,79 @@ describe('SubscriptionsCard', () => {
     const controls = within(row(table, /Ada Admin/))
       .getAllByRole('button')
       .map((button) => button.getAttribute('aria-label') ?? button.textContent);
-    expect(controls).toEqual(['Edit', 'Send now', 'Pause', 'Delete subscription']);
+    expect(controls).toEqual([
+      'Edit Members for Ada Admin',
+      'Send now: Members for Ada Admin',
+      'Pause Members for Ada Admin',
+      'Delete Members for Ada Admin',
+    ]);
   });
 
   it('swaps the edit form to the row whose Edit was pressed next', async () => {
     const table = await renderCard();
 
-    await userEvent.click(within(row(table, /Ada Admin/)).getByRole('button', { name: 'Edit' }));
+    await userEvent.click(within(row(table, /Ada Admin/)).getByRole('button', { name: /^Edit / }));
     await userEvent.click(
-      within(row(table, /board@example.org/)).getByRole('button', { name: 'Edit' }),
+      within(row(table, /board@example.org/)).getByRole('button', { name: /^Edit / }),
     );
 
-    expect(screen.getAllByRole('form', { name: 'Edit subscription' })).toHaveLength(1);
+    expect(screen.getAllByRole('form', { name: 'Edit emailed report' })).toHaveLength(1);
     expect(screen.getByRole('group', { name: 'Recipient' })).toHaveTextContent('board@example.org');
   });
 
   it("closes the edit form when the same row's Edit is pressed again", async () => {
     const table = await renderCard();
-    const edit = within(row(table, /Ada Admin/)).getByRole('button', { name: 'Edit' });
+    const edit = within(row(table, /Ada Admin/)).getByRole('button', { name: /^Edit / });
 
     await userEvent.click(edit);
     await userEvent.click(edit);
 
-    expect(screen.queryByRole('form', { name: 'Edit subscription' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('form', { name: 'Edit emailed report' })).not.toBeInTheDocument();
   });
 
-  it('closes an open edit when New subscription is pressed', async () => {
+  it('closes an open edit when Email a report is pressed', async () => {
     const table = await renderCard();
 
-    await userEvent.click(within(row(table, /Ada Admin/)).getByRole('button', { name: 'Edit' }));
-    await userEvent.click(screen.getByRole('button', { name: 'New subscription' }));
+    await userEvent.click(within(row(table, /Ada Admin/)).getByRole('button', { name: /^Edit / }));
+    await userEvent.click(screen.getByRole('button', { name: 'Email a report' }));
 
-    expect(screen.queryByRole('form', { name: 'Edit subscription' })).not.toBeInTheDocument();
-    expect(screen.getByRole('form', { name: 'New subscription' })).toBeInTheDocument();
+    expect(screen.queryByRole('form', { name: 'Edit emailed report' })).not.toBeInTheDocument();
+    expect(screen.getByRole('form', { name: 'Email a report' })).toBeInTheDocument();
   });
 
-  it('closes a new subscription form when Edit is pressed', async () => {
+  it('closes the Email a report form when Edit is pressed', async () => {
     const table = await renderCard();
 
-    await userEvent.click(screen.getByRole('button', { name: 'New subscription' }));
-    await userEvent.click(within(row(table, /Ada Admin/)).getByRole('button', { name: 'Edit' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Email a report' }));
+    await userEvent.click(within(row(table, /Ada Admin/)).getByRole('button', { name: /^Edit / }));
 
-    expect(screen.queryByRole('form', { name: 'New subscription' })).not.toBeInTheDocument();
-    expect(screen.getByRole('form', { name: 'Edit subscription' })).toBeInTheDocument();
+    expect(screen.queryByRole('form', { name: 'Email a report' })).not.toBeInTheDocument();
+    expect(screen.getByRole('form', { name: 'Edit emailed report' })).toBeInTheDocument();
   });
 
   it('shows the saved change in the row and closes the form', async () => {
     const table = await renderCard();
 
-    await userEvent.click(within(row(table, /Ada Admin/)).getByRole('button', { name: 'Edit' }));
-    const edit = screen.getByRole('form', { name: 'Edit subscription' });
+    await userEvent.click(within(row(table, /Ada Admin/)).getByRole('button', { name: /^Edit / }));
+    const edit = screen.getByRole('form', { name: 'Edit emailed report' });
     await userEvent.selectOptions(within(edit).getByLabelText('Schedule'), 'Weekly');
     await userEvent.selectOptions(within(edit).getByLabelText('Day'), 'Thursday');
-    await userEvent.click(within(edit).getByRole('button', { name: 'Save' }));
+    await userEvent.click(within(edit).getByRole('button', { name: 'Save changes' }));
 
     await vi.waitFor(() => expect(row(table, /Ada Admin/)).toHaveTextContent('Weekly on Thursday'));
-    expect(screen.queryByRole('form', { name: 'Edit subscription' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('form', { name: 'Edit emailed report' })).not.toBeInTheDocument();
   });
 
   it('closes the edit form on Cancel', async () => {
     const table = await renderCard();
 
-    await userEvent.click(within(row(table, /Ada Admin/)).getByRole('button', { name: 'Edit' }));
+    await userEvent.click(within(row(table, /Ada Admin/)).getByRole('button', { name: /^Edit / }));
     await userEvent.click(
-      within(screen.getByRole('form', { name: 'Edit subscription' })).getByRole('button', {
+      within(screen.getByRole('form', { name: 'Edit emailed report' })).getByRole('button', {
         name: 'Cancel',
       }),
     );
 
-    expect(screen.queryByRole('form', { name: 'Edit subscription' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('form', { name: 'Edit emailed report' })).not.toBeInTheDocument();
   });
 });

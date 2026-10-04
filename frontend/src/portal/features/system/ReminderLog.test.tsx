@@ -52,12 +52,12 @@ describe('ReminderLog', () => {
     expect(await screen.findByText('Marta Reyes')).toBeInTheDocument();
     // Scoped to the table: the kind filter uses the same labels.
     const table = within(screen.getByRole('table'));
-    expect(await table.findByText('30 days before')).toBeInTheDocument();
-    expect(table.getByText('30 days after')).toBeInTheDocument();
+    expect(await table.findByText('Second reminder (30 days before)')).toBeInTheDocument();
+    expect(table.getByText('Lapsed reminder (30 days after)')).toBeInTheDocument();
     expect(table.getByText('marta@example.org')).toBeInTheDocument();
   });
 
-  it('names each kind by the days of the stored schedule', async () => {
+  it('names each stage by the days of the stored schedule', async () => {
     server.use(
       logHandler(ENTRIES),
       http.get(`${API}/admin/reminders/schedule`, () =>
@@ -67,8 +67,8 @@ describe('ReminderLog', () => {
     renderWithProviders(<ReminderLog />);
 
     const table = within(await screen.findByRole('table'));
-    expect(await table.findByText('20 days before')).toBeInTheDocument();
-    expect(table.getByText('14 days after')).toBeInTheDocument();
+    expect(await table.findByText('Second reminder (20 days before)')).toBeInTheDocument();
+    expect(table.getByText('Lapsed reminder (14 days after)')).toBeInTheDocument();
   });
 
   it('captions the table with how many have been sent', async () => {
@@ -98,20 +98,20 @@ describe('ReminderLog', () => {
     expect(kinds).toEqual([null, 'second']);
   });
 
-  it('offers every kind plus "Any kind" in the filter', async () => {
+  it('offers every stage plus "Any reminder" in the filter', async () => {
     server.use(logHandler(ENTRIES));
     renderWithProviders(<ReminderLog />);
     await screen.findByText('Marta Reyes');
-    await within(screen.getByRole('table')).findByText('30 days before');
+    await within(screen.getByRole('table')).findByText('Second reminder (30 days before)');
 
     const options = within(screen.getByLabelText('Reminder')).getAllByRole('option');
     expect(options.map((option) => option.textContent)).toEqual([
-      'Any kind',
-      '60 days before',
-      '30 days before',
-      '7 days before',
-      'Expired',
-      '30 days after',
+      'Any reminder',
+      'First reminder (60 days before)',
+      'Second reminder (30 days before)',
+      'Final reminder (7 days before)',
+      'Expired reminder (up to 6 days after)',
+      'Lapsed reminder (30 days after)',
     ]);
   });
 
@@ -120,7 +120,7 @@ describe('ReminderLog', () => {
     renderWithProviders(<ReminderLog />);
     await screen.findByText('Marta Reyes');
 
-    expect(screen.queryByRole('button', { name: 'Run now' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Run .* now$/ })).not.toBeInTheDocument();
   });
 
   it('offers to reset the filter when no reminder of the chosen kind has gone', async () => {

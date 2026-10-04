@@ -1,7 +1,7 @@
 /**
  * The Profile tab of a member record: the same fields as "New member", plus the
  * administrator-only notes, under a Verification card for the pilot certificate, the
- * medical, and the photo ID. Deactivating the account is the Danger zone tab's. A
+ * medical, and the photo ID. Deactivating the account is the Delete or deactivate tab's. A
  * "Deleted member N" record shows no form: the server refuses every edit to one.
  */
 import { useRef, useState } from 'react';
@@ -123,7 +123,7 @@ export function MemberProfileTab({ member }: { member: MemberDetail }): JSX.Elem
               value={account}
               onChange={(next) => setAccount(next)}
               errors={errors.account}
-              emailHint={<EmailVerifiedText verifiedAt={member.email_verified_at} />}
+              emailStatus={<EmailVerifiedText verifiedAt={member.email_verified_at} />}
             />
             <ProfileFieldsets
               value={profile}
@@ -131,6 +131,7 @@ export function MemberProfileTab({ member }: { member: MemberDetail }): JSX.Elem
               errors={errors.profile}
               darts={darts.data ?? []}
               dartsLoading={darts.isPending}
+              audience="administrator"
             />
             <AdminOnlyFields
               value={adminOnly}

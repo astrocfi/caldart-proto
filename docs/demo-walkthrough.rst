@@ -173,7 +173,7 @@ membership buys.*
    Volunteer interests — one column on a phone and two from about 40rem wide.
 3. In *Aviation*, set **Pilot certificate** to ``Private`` and type any
    certificate number; set **Medical** to ``Third class`` and give an
-   expiration date comfortably in the future; tick **Instrument** under
+   expiration date comfortably in the future; check **Instrument** under
    *Ratings* if you like, and type a **Secondary airport** such as ``KPAO``,
    which the form trims to ``PAO``.  Save.  A toast confirms it.
 
@@ -263,7 +263,7 @@ airplane for us today?" in one screen.*
 5. Verify Marta's documents.  Press **Verify** in the card's head: the
    *Verification* panel opens with her certificate, medical, and photo ID
    fields and a box for each item.  Correct a field if the document in front
-   of you disagrees (changing a field unticks its box), tick **Pilot
+   of you disagrees (changing a field unchecks its box), check **Pilot
    certificate verified** and **Medical verified**, and press **Save**.  The
    band turns **GO** — *"Membership and medical are current and verified"* —
    and the Pilot certificate and Medical rows read *Verified by Priya Raman
@@ -286,7 +286,7 @@ airplane for us today?" in one screen.*
    membership and medical currency.  The verdict is **INSURED** for a current
    policy somebody has verified, **NOT VERIFIED** for a current one nobody
    has, and **NOT INSURED** for no current policy; the seed leaves about three
-   in ten airplanes unverified, ``N206KM`` among them.  Press **Verify**, tick
+   in ten airplanes unverified, ``N206KM`` among them.  Press **Verify**, check
    **Insurance verified**, and save to turn **NOT VERIFIED** into
    **INSURED**.
 
@@ -353,10 +353,10 @@ Flow E — a website administrator adds, edits, and deletes a page
    an "on this page" rail built from your heading blocks.
 
 4. **Make it members-only.**  Edit the page, open the **Access** panel and
-   tick *members only*, then publish.  Sign out and visit the page: you get
+   check *members only*, then publish.  Sign out and visit the page: you get
    the wall and HTTP 403.  Sign in as ``member@example.org`` and it opens.
 5. **Show it in the navigation.**  Edit the page, open the **Promote** tab and
-   tick *Show in menus*.  The top navigation picks it up on the next request.
+   check *Show in menus*.  The top navigation picks it up on the next request.
 6. **Reorder, unpublish, delete.**  Drag pages in the explorer to reorder
    them; *Unpublish* takes a page off the site while keeping its content;
    *Delete* removes it for good.  Delete the page you made.
@@ -401,12 +401,12 @@ roles; press *Send password reset* and watch the email arrive in Mailpit.  See
 ``/portal/admin/notifications``.  The seed has already subscribed this
 administrator to every Membership and Accounts event and the treasurer to every
 Money event.  Press **New subscription**, type an address no account holds,
-tick **Sign-up** and **Friend became a member**, and save.  The server asks you
-to confirm the outside address: tick the box and save again.  Then, in a
+check **Sign-up** and **Friend became a member**, and save.  The server asks you
+to confirm the outside address: check the box and save again.  Then, in a
 private window, join as a friend through ``/portal/join`` and pick a DART on
 the profile step.  Saving that step is the sign-up, and Mailpit shows the
 *signed up as a friend* email at your address, at the account administrator's,
-and at every person that DART has ticked to receive its roster.  Back on the
+and at every person that DART has checked to receive its roster.  Back on the
 Notifications screen, **Edit** the subscription and clear **Sign-up**; from
 then on the address hears only of a friend becoming a member.  The Sent
 Emails page's log files each of these messages under its event, as
@@ -422,7 +422,7 @@ imports the registry again, from the FAA's download unless
 ``backend/apps/aircraft/fixtures/faa`` the seed reads; the panel follows the run
 and, once it ends, reads *Imported* so many types and registrations on today's
 date.  On Scheduled, *Renewal reminder emails* runs the renewal scan — leave
-*dry run* ticked the first time — and lists what was recently sent.  Then try
+*dry run* checked the first time — and lists what was recently sent.  Then try
 the scan from the command line against
 a future date, which is how you rehearse a year's worth of reminders in a
 second:

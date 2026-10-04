@@ -110,7 +110,7 @@ export function GroupsPage(): JSX.Element {
     },
     {
       key: 'kind',
-      header: 'Kind',
+      header: 'Type',
       width: '5rem',
       dropOrder: DROP_ORDER.kind,
       render: (group) => groupKindLabel(group.kind),
@@ -138,7 +138,7 @@ export function GroupsPage(): JSX.Element {
   return (
     <Page
       title="Recipient groups"
-      lede="People you email again and again, such as the board. Add a group to a batch on the compose screen with Add a saved group."
+      lede="People you email again and again, such as the board. Add a group to an email's recipient list with Add a saved group on the compose screen."
       actions={
         isAdding ? null : (
           <Button
@@ -181,7 +181,7 @@ export function GroupsPage(): JSX.Element {
       <Card>
         {groups.isError ? (
           <p className="field__error" role="alert">
-            The recipient groups could not be loaded.
+            The recipient groups didn&apos;t load. Try again in a moment.
           </p>
         ) : (
           <DataTable
@@ -191,7 +191,7 @@ export function GroupsPage(): JSX.Element {
             rowKey={(group) => group.id}
             caption={`${rows.length} ${rows.length === 1 ? 'group' : 'groups'}`}
             emptyTitle="No recipient groups yet"
-            emptyDescription="Press New group, or save a batch with Save as a group on the compose screen."
+            emptyDescription="Press New group, or save a recipient list with Save as a group on the compose screen."
             emptyAction={
               isAdding ? undefined : (
                 <Button
@@ -250,7 +250,7 @@ function NewGroupCard({ onClose: handleClose }: { onClose: () => void }): JSX.El
         <FormAlert error={create.error} handled={['name', 'kind']} />
         <div className="cluster">
           <Button type="submit" disabled={create.isPending}>
-            {create.isPending ? 'Saving…' : 'Make the group'}
+            {create.isPending ? 'Adding…' : 'Add group'}
           </Button>
           <Button variant="quiet" onClick={handleClose}>
             Cancel

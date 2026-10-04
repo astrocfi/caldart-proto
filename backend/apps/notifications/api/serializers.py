@@ -11,6 +11,7 @@ from apps.accounts.models import User
 from apps.notifications.events import EVENTS
 from apps.notifications.models import NotificationSubscription
 from apps.notifications.services import refresh_recipient, refused_event
+from caldart.messages import email_messages
 
 #: What a subscription with no event is refused with.
 NO_EVENTS_MESSAGE = "Choose at least one event."
@@ -22,7 +23,7 @@ UNKNOWN_EVENT_MESSAGE = "Unknown event '{slug}'."
 NOT_PERMITTED_MESSAGE = "{name} does not hold a role that may receive {label}."
 
 #: What a subscription to an address no account holds is refused with until confirmed.
-CONFIRM_MESSAGE = "Tick the box to confirm this address may receive these notifications."
+CONFIRM_MESSAGE = "Check the box to confirm this address may receive these notifications."
 
 #: What a second subscription for one address is refused with.
 TAKEN_MESSAGE = "This address already has a subscription."
@@ -185,7 +186,9 @@ class NotificationSubscriptionCreateSerializer(
     confirmed = serializers.BooleanField(default=False, write_only=True)
     # Declared rather than generated, so the model's unique check does not answer
     # first with Django's own wording and case-sensitive comparison.
-    recipient_email = serializers.EmailField()
+    recipient_email = serializers.EmailField(
+        error_messages=email_messages("Enter the address to email.")
+    )
 
     class Meta:
         model = NotificationSubscription

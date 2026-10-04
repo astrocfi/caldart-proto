@@ -59,7 +59,7 @@ function makeAircraft(overrides: Partial<Aircraft> = {}): Aircraft {
 function searchOnly(results: Aircraft[]) {
   return [
     http.get(`${API}/aircraft/lookup`, () =>
-      HttpResponse.json({ detail: 'Not found.' }, { status: 404 }),
+      HttpResponse.json({ detail: "That isn't here. It may have been deleted." }, { status: 404 }),
     ),
     http.get(`${API}/aircraft`, () =>
       HttpResponse.json({ count: results.length, next: null, previous: null, results }),
@@ -90,7 +90,7 @@ describe('AircraftPicker', () => {
     const handleSelect = vi.fn();
     renderWithProviders(<AircraftPicker onSelect={handleSelect} />);
 
-    await search(user, /Search the aircraft register/i, 'n-172sp');
+    await search(user, /Search CalDART's aircraft list/i, 'n-172sp');
 
     expect(await screen.findByText('N172SP')).toBeInTheDocument();
     expect(seen).toEqual(['n-172sp']);
@@ -102,7 +102,10 @@ describe('AircraftPicker', () => {
     let searchTerm: string | null = null;
     server.use(
       http.get(`${API}/aircraft/lookup`, () =>
-        HttpResponse.json({ detail: 'Not found.' }, { status: 404 }),
+        HttpResponse.json(
+          { detail: "That isn't here. It may have been deleted." },
+          { status: 404 },
+        ),
       ),
       http.get(`${API}/aircraft`, ({ request }) => {
         searchTerm = new URL(request.url).searchParams.get('search');
@@ -116,7 +119,7 @@ describe('AircraftPicker', () => {
     );
 
     renderWithProviders(<AircraftPicker onSelect={() => {}} />);
-    await search(user, /Search the aircraft register/i, 'archer');
+    await search(user, /Search CalDART's aircraft list/i, 'archer');
 
     expect(await screen.findByText('N9021K')).toBeInTheDocument();
     expect(searchTerm).toBe('archer');
@@ -129,7 +132,7 @@ describe('AircraftPicker', () => {
 
     const handleSelect = vi.fn();
     renderWithProviders(<AircraftPicker onSelect={handleSelect} />);
-    await search(user, /Search the aircraft register/i, 'cessna');
+    await search(user, /Search CalDART's aircraft list/i, 'cessna');
 
     await user.click(await screen.findByRole('button', { name: /N172SP/ }));
     expect(handleSelect).toHaveBeenCalledWith(aircraft);
@@ -145,7 +148,7 @@ describe('AircraftPicker', () => {
     );
 
     renderWithProviders(<AircraftPicker onSelect={() => {}} excludeIds={[1]} />);
-    await search(user, /Search the aircraft register/i, 'cessna');
+    await search(user, /Search CalDART's aircraft list/i, 'cessna');
 
     expect(await screen.findByText('N9021K')).toBeInTheDocument();
     const list = screen.getByRole('list');
@@ -163,7 +166,7 @@ describe('AircraftPicker', () => {
     );
 
     renderWithProviders(<AircraftPicker onSelect={() => {}} excludeIds={[1, 2]} />);
-    await search(user, /Search the aircraft register/i, 'cessna');
+    await search(user, /Search CalDART's aircraft list/i, 'cessna');
 
     expect(
       await screen.findByText('N172SP and N9021K are already on your list.'),
@@ -181,7 +184,7 @@ describe('AircraftPicker', () => {
     );
 
     renderWithProviders(<AircraftPicker onSelect={() => {}} excludeIds={[1, 2, 3]} />);
-    await search(user, /Search the aircraft register/i, 'cessna');
+    await search(user, /Search CalDART's aircraft list/i, 'cessna');
 
     expect(
       await screen.findByText('N172SP, N9021K, and N4321Q are already on your list.'),
@@ -193,7 +196,10 @@ describe('AircraftPicker', () => {
     let params: URLSearchParams | null = null;
     server.use(
       http.get(`${API}/aircraft/lookup`, () =>
-        HttpResponse.json({ detail: 'Not found.' }, { status: 404 }),
+        HttpResponse.json(
+          { detail: "That isn't here. It may have been deleted." },
+          { status: 404 },
+        ),
       ),
       http.get(`${API}/aircraft`, ({ request }) => {
         params = new URL(request.url).searchParams;
@@ -202,7 +208,7 @@ describe('AircraftPicker', () => {
     );
 
     renderWithProviders(<AircraftPicker onSelect={() => {}} />);
-    await search(user, /Search the aircraft register/i, 'cessna');
+    await search(user, /Search CalDART's aircraft list/i, 'cessna');
     await screen.findByText(/No aircraft matches that/i);
 
     expect(params!.get('is_active')).toBe('true');
@@ -217,7 +223,7 @@ describe('AircraftPicker', () => {
     );
 
     renderWithProviders(<AircraftPicker onSelect={() => {}} />);
-    await search(user, /Search the aircraft register/i, 'n172sp');
+    await search(user, /Search CalDART's aircraft list/i, 'n172sp');
 
     expect(await screen.findByText('N172SP')).toBeInTheDocument();
     expect(screen.getByText('Out of service')).toBeInTheDocument();
@@ -228,7 +234,7 @@ describe('AircraftPicker', () => {
     server.use(...searchOnly([makeAircraft({ id: 1, n_number: 'N172SP' })]));
 
     renderWithProviders(<AircraftPicker onSelect={() => {}} excludeIds={[1]} />);
-    await search(user, /Search the aircraft register/i, 'n172sp');
+    await search(user, /Search CalDART's aircraft list/i, 'n172sp');
 
     expect(await screen.findByText('N172SP is already on your list.')).toBeInTheDocument();
     expect(screen.queryByText(/No aircraft matches that/i)).not.toBeInTheDocument();
@@ -239,7 +245,7 @@ describe('AircraftPicker', () => {
     server.use(...searchOnly([]));
 
     renderWithProviders(<AircraftPicker onSelect={() => {}} />);
-    await search(user, /Search the aircraft register/i, 'n4321q');
+    await search(user, /Search CalDART's aircraft list/i, 'n4321q');
 
     expect(await screen.findByText(/No aircraft matches that/i)).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /Add a new aircraft/i }));
@@ -253,7 +259,7 @@ describe('AircraftPicker', () => {
     server.use(...searchOnly([]));
 
     renderWithProviders(<AircraftPicker onSelect={() => {}} />);
-    await search(user, /Search the aircraft register/i, 'n4321q');
+    await search(user, /Search CalDART's aircraft list/i, 'n4321q');
 
     const empty = (await screen.findByText(/No aircraft matches that/i)).closest('.empty-state');
     expect(screen.getAllByRole('button', { name: /Add a new aircraft/i })).toHaveLength(1);
@@ -266,7 +272,7 @@ describe('AircraftPicker', () => {
     server.use(...searchOnly([]));
 
     renderWithProviders(<AircraftPicker onSelect={() => {}} />);
-    await search(user, /Search the aircraft register/i, 'n4321q');
+    await search(user, /Search CalDART's aircraft list/i, 'n4321q');
 
     expect(
       await screen.findByText('If the plane is not in the register yet, add it below.'),
@@ -278,7 +284,7 @@ describe('AircraftPicker', () => {
     server.use(...searchOnly([makeAircraft()]));
 
     renderWithProviders(<AircraftPicker onSelect={() => {}} />);
-    await search(user, /Search the aircraft register/i, 'cessna');
+    await search(user, /Search CalDART's aircraft list/i, 'cessna');
 
     const list = await screen.findByRole('list');
     const add = screen.getByRole('button', { name: /Add a new aircraft/i });
@@ -290,7 +296,7 @@ describe('AircraftPicker', () => {
     server.use(...searchOnly([makeAircraft()]));
 
     renderWithProviders(<AircraftPicker onSelect={() => {}} />);
-    await search(user, /Search the aircraft register/i, 'cessna');
+    await search(user, /Search CalDART's aircraft list/i, 'cessna');
 
     expect(
       await screen.findByText('Click on an aircraft to add it to your list.'),
@@ -317,7 +323,7 @@ describe('AircraftPicker', () => {
 
     const handleSelect = vi.fn();
     renderWithProviders(<AircraftPicker onSelect={handleSelect} />);
-    await search(user, /Search the aircraft register/i, 'n4321q');
+    await search(user, /Search CalDART's aircraft list/i, 'n4321q');
     await user.click(await screen.findByRole('button', { name: /Add a new aircraft/i }));
 
     await search(user, /^Aircraft type/, 'sr22');
@@ -338,7 +344,7 @@ describe('AircraftPicker', () => {
     );
 
     renderWithProviders(<AircraftPicker onSelect={() => {}} />);
-    await search(user, /Search the aircraft register/i, 'n739');
+    await search(user, /Search CalDART's aircraft list/i, 'n739');
     await user.click(await screen.findByRole('button', { name: /Add a new aircraft/i }));
     await search(user, /^N-number/, 't');
     await user.click(await screen.findByRole('option', { name: /^N739TA/ }));
@@ -395,7 +401,7 @@ describe('AircraftPicker', () => {
     );
 
     renderWithProviders(<AircraftPicker onSelect={() => {}} />);
-    await search(user, /Search the aircraft register/i, 'n4321q');
+    await search(user, /Search CalDART's aircraft list/i, 'n4321q');
     await user.click(await screen.findByRole('button', { name: /Add a new aircraft/i }));
     await user.click(screen.getByRole('button', { name: /^Add aircraft$/ }));
 
@@ -416,7 +422,7 @@ describe('AircraftPicker', () => {
     );
 
     renderWithProviders(<AircraftPicker onSelect={() => {}} />);
-    await search(user, /Search the aircraft register/i, 'n172sp');
+    await search(user, /Search CalDART's aircraft list/i, 'n172sp');
     await user.click(await screen.findByRole('button', { name: /Add a new aircraft/i }));
     await search(user, /^Aircraft type/, '172S');
     await user.click(await screen.findByRole('option', { name: /^Cessna 172S/ }));
@@ -438,7 +444,7 @@ describe('AircraftPicker', () => {
     );
 
     renderWithProviders(<AircraftPicker onSelect={() => {}} />);
-    await search(user, /Search the aircraft register/i, 'n172sp');
+    await search(user, /Search CalDART's aircraft list/i, 'n172sp');
     await user.click(await screen.findByRole('button', { name: /Add a new aircraft/i }));
     await search(user, /^Aircraft type/, '172S');
     await user.click(await screen.findByRole('option', { name: /^Cessna 172S/ }));
@@ -456,7 +462,10 @@ describe('AircraftPicker', () => {
     server.use(
       http.get(`${API}/aircraft/lookup`, () => {
         lookups += 1;
-        return HttpResponse.json({ detail: 'Not found.' }, { status: 404 });
+        return HttpResponse.json(
+          { detail: "That isn't here. It may have been deleted." },
+          { status: 404 },
+        );
       }),
       http.get(`${API}/aircraft`, () =>
         HttpResponse.json({ count: 0, next: null, previous: null, results: [] }),
@@ -464,7 +473,7 @@ describe('AircraftPicker', () => {
     );
 
     renderWithProviders(<AircraftPicker onSelect={() => {}} />);
-    await search(user, /Search the aircraft register/i, 'n172sp');
+    await search(user, /Search CalDART's aircraft list/i, 'n172sp');
     await screen.findByText(/No aircraft matches that/i);
 
     expect(lookups).toBe(1);

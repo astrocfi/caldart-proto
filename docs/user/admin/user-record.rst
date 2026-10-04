@@ -15,7 +15,7 @@ What you see
 The person's name heads the page, with their address under it and **Back to users** beside
 it. Four cards follow.
 
-**Where this account stands**
+**Membership**
    The kind of account (**Member**, **Friend**, or **Donor**), the membership status, and
    *Profile complete* or *Profile incomplete*. A donor's card adds *A donor gave through the
    public site and cannot sign in. Fix the email address here if a receipt went astray.* If
@@ -37,7 +37,7 @@ it. Four cards follow.
    **Send password reset**, which a donor's record leaves out.
 
 Nothing is saved until you press **Save changes**, and the message *Account saved.* confirms
-it. A refused save takes you to what the site refused. **Reset form** puts every box back the
+it. A refused save takes you to what the site refused. **Cancel** puts every box back the
 way the account has it and clears the refusal.
 
 
@@ -83,7 +83,7 @@ Granting and removing roles
 ===========================
 
 #. Find the account on :doc:`users` and open it.
-#. Under **Roles**, tick the roles they should have and untick the ones they should not.
+#. Under **Roles**, check the roles they should have and uncheck the ones they should not.
 #. Press **Save changes**.
 #. Ask them to reload the portal, so their menu shows the change.
 
@@ -112,12 +112,12 @@ Rules the site enforces
   deactivate, reactivate, or block an account only when you hold every role it holds, since
   moving somebody's address is enough to take their account over. As a user administrator you can move an ordinary member's address, or
   another user administrator's, and nobody else's with a role you lack. Because granting
-  roles is your job, you can lift this for any role except System administrator: tick the
+  roles is your job, you can lift this for any role except System administrator: check the
   missing role on your own record, save, and make the change. Names are never guarded.
 
 Some accounts, typically the one the site was installed with, hold full system access
-without the System administrator role ticked. They count as a system administrator here, so
-only a system administrator can change their roles. Leave their ticks as you found them and
+without the System administrator role checked. They count as a system administrator here, so
+only a system administrator can change their roles. Leave their boxes as you found them and
 the rest of the form still saves.
 
 
@@ -133,7 +133,7 @@ does. The account's password no longer signs it in, and it is signed out everywh
 Their automatic renewal and any recurring donation are canceled, and they are emailed that it
 is off. Any membership term with time left is set aside until they come back. Nothing is
 deleted: the profile, the membership history, and the payments stay as they were. An
-account administrator has the same action on the **Danger zone** tab of the
+account administrator has the same action on the **Delete or deactivate** tab of the
 :doc:`member-record`.
 
 **Reactivate account** brings a deactivated account back as the person's own reactivation
@@ -147,7 +147,7 @@ and completing a password reset they asked for reactivates it too.
 Deactivation is the right step for someone who has left. It does not keep out somebody who
 knows the password, so for an account you think has been taken over, deactivate it and ask
 the owner to reset the password once they are back in. Deleting an account is an account
-administrator's job, on the **Danger zone** tab of the :doc:`member-record`; the person's
+administrator's job, on the **Delete or deactivate** tab of the :doc:`member-record`; the person's
 payments stay in the books under the name **Deleted member** and the account's number.
 That name belongs to a deactivated account, so the :doc:`users` list shows it only when
 **Account status** includes deactivated accounts. Its record cannot be changed: pressing
@@ -194,10 +194,10 @@ If something looks wrong
 
 A message that only a system administrator can grant or revoke that role means you changed a
 box on a system administrator's account, or on an account with full system access; put the
-ticks back and save, or ask a system administrator. *You cannot change the email address of
+boxes back and save, or ask a system administrator. *You cannot change the email address of
 an account that holds roles you do not hold.*, *You cannot activate or deactivate an
 account that holds roles you do not hold.*, and *You cannot block or unblock an account that
-holds roles you do not hold.* mean the account holds a role you lack; tick it on your own
+holds roles you do not hold.* mean the account holds a role you lack; check it on your own
 record, save, and try again. If the address will not save, another account
 already uses it, and you have probably found a duplicate. *That account is deactivated, so
 no reset email was sent.* means the account was deactivated while the page was open; reload
@@ -207,6 +207,6 @@ server did not accept the message. A system administrator can see the attempt on
 Emails page.* after **Send password reset** or **Resend verification message** means nothing
 was sent: the site could not hand the email to its mail server. A system administrator sees
 the attempt marked *Failed:* on **Sent emails**, with the reason; tell whoever runs the
-server, and press the button again once it is fixed. If somebody still cannot see a page after you ticked its role, ask
+server, and press the button again once it is fixed. If somebody still cannot see a page after you checked its role, ask
 them to reload the portal, and check that you pressed **Save changes**. Profiles,
 memberships, and payments are not on this screen; they belong to an account administrator.

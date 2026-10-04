@@ -80,7 +80,7 @@ export function ChangePasswordPage(): JSX.Element {
             label="New password"
             required
             error={serverErrors.new_password}
-            hint="At least 8 characters, and not a password you have used elsewhere."
+            hint="At least 8 characters. Avoid common passwords such as password1."
           >
             {(props) => (
               <input

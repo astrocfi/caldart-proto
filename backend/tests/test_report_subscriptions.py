@@ -30,7 +30,7 @@ pytestmark = pytest.mark.django_db
 SUBSCRIPTIONS_URL = "/api/v1/reports/subscriptions"
 
 #: What an address outside CalDART is refused with until the caller confirms it.
-CONFIRM_MESSAGE = "Tick the box to confirm this address may receive this report."
+CONFIRM_MESSAGE = "Check the box to confirm this address may receive this report."
 
 
 def subscription_url(subscription: ReportSubscription) -> str:

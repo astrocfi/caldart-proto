@@ -25,7 +25,7 @@ Then the form, **Make a contribution**:
   Gold $1,000, Diamond $3,000, and Platinum $10,000), or **Other amount**, where you
   type whole dollars up to $99,999. For more than that, talk to the treasurer.
 * **Total today**, the sum that will be charged now.
-* **Make this a recurring donation**, a box to tick for a gift that repeats.
+* **Make this a recurring donation**, a box to check for a gift that repeats.
 * **How would you like to pay?**, the payment tabs, described on :doc:`join`.
 
 Until you choose an amount the screen says *Choose a contribution to continue.*
@@ -49,7 +49,7 @@ hold one, beside an automatic renewal or without one. It renews nothing and buys
 membership.
 
 #. Choose the amount.
-#. Tick **Make this a recurring donation**.
+#. Check **Make this a recurring donation**.
 #. Under **How often**, choose **Monthly**, **Quarterly**, or **Yearly**.
 #. Choose **First charge on**. It opens on today and takes no earlier day.
 #. Read the line under it, for example *CalDART charges $20.00 today, and each month
@@ -100,7 +100,7 @@ emails *CalDART: your recurring donation is off*.
 The emails it sends
 ===================
 
-* A yearly donation gets a warning fourteen days before every charge: *CalDART: we
+* A yearly donation gets a warning 14 days before every charge: *CalDART: we
   will take your recurring donation on* the day of the charge. A monthly or
   quarterly one sends no warning.
 * Each charge sends *CalDART: thank you for your recurring donation*, with the

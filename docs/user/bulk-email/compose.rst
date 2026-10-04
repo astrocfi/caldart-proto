@@ -19,8 +19,8 @@ kept as you go, so you can leave and come back from :doc:`drafts`. A draft made 
 1. Who gets it
 ==============
 
-The people you add make up the batch: the list this email goes to. You build it a group at a
-time, with the filters the member list uses:
+The people you add make up the recipient list: everyone this email goes to. You build it a
+group at a time, with the filters the member list uses:
 
 - **Kind**: **Members only** or **Friends only**. A friend is somebody who supports CalDART
   without a paid membership.
@@ -29,24 +29,24 @@ time, with the filters the member list uses:
   one of CalDART's local groups), **County**, and **Role**.
 - **Expiring within (days)**: members whose membership ends within that many days.
 
-Choose the filters, then press **Add to batch**. Everybody they choose joins the batch, and a
+Choose the filters, then press **Add these people**. Everybody they choose joins the recipient list, and a
 line, which takes the keyboard focus, says what happened, such as *Added 12 people; 3 were
-already in the batch.* or *Nobody matches these filters.* Add again as often as you like:
+already on the recipient list.* or *Nobody matches these filters.* Add again as often as you like:
 nobody is added twice. With no filters chosen, it adds every member and friend. Donors are
 never added.
 
-**Add a saved group**, beside **Add to batch**, adds everybody in a recipient group kept on
+**Add a saved group**, beside **Add these people**, adds everybody in a recipient group kept on
 :doc:`groups` the same way: nobody is added twice.
 
-Once somebody is in the batch, a line counts it, such as *38 people will receive this email;
+Once somebody is on the recipient list, a line counts it, such as *38 people will receive this email;
 4 are skipped.*, or *39 people will receive this email.* when nobody is skipped. Under it, in
-one row, **Download list** saves the batch as a spreadsheet file (CSV) with
+one row, **Download list** saves the recipient list as a spreadsheet file (CSV) with
 each person's membership status, the filters that chose them, whether they will receive
-the email, and its type. **Save as a group** keeps the batch as a group to add to another
-email later (:doc:`groups` explains the two kinds). **Clear batch** takes everybody out after
-you press **Clear the batch**.
+the email, and its type. **Save as a group** keeps the recipient list as a group to add to another
+email later (:doc:`groups` explains the two kinds). **Remove everyone** takes everybody off the list once
+you confirm it.
 
-The table lists the batch in surname order, ten at a time until you press **Show all**. Each
+The table lists the people in surname order, ten at a time until you press **Show all**. Each
 row has the person's **Name**, **Email**, **Will receive?** (*Yes* or the reason they are
 skipped), **Kind**, **DART**, **Chosen by** (the filters that brought them in, *Group:
 Board* for a saved group, or *Copied from* and a subject), and last the trashcan. A narrow
@@ -63,11 +63,11 @@ screen leaves out **Chosen by**, **DART**, **Kind**, then **Email**. The reasons
 - *Opted out of Mission* (with the email's type): the person has turned that type of email
   off on their :doc:`../member/email-preferences` or with an unsubscribe link. Nobody is
   skipped for this until you choose the type.
-- *Duplicate address*: somebody earlier in the batch has the same address; one copy goes.
+- *Duplicate address*: somebody earlier on the recipient list has the same address; one copy goes.
 
 Whether each person receives the email is worked out again whenever you open the screen, and
-once more when the email starts sending. In a batch of more than ten people, type in **Find in
-the batch** to find one person. The trashcan on a row takes that person out after you press
+once more when the email starts sending. On a recipient list of more than ten people, type in **Find on
+the list** to find one person. The trashcan on a row takes that person out after you press
 **Remove**.
 
 
@@ -84,18 +84,18 @@ close**; :doc:`callouts` explains the answer buttons and where the answers colle
 First choose the **Type of email**: one button for each type you may send, such as
 **Operational** or **Mission**, with a sentence saying what it is for. Until you choose,
 the card reads *Choose what type of email this is.* The choice saves at once. Everybody who
-has turned that type off is then skipped in the batch above. The types, and who may send
+has turned that type off is then skipped on the recipient list above. The types, and who may send
 each, are kept on :doc:`email-types`.
 
 Then write the **Subject**, one line, and the **Message**. Once you start typing, a quiet note
 under the message reads *Saving…* and then *Saved*.
 
-**Reply-To** is where a reader's reply goes. Every copy comes from the site's own address,
+**Replies go to** is where a reader's reply goes. Every copy comes from the site's own address,
 which nobody reads, so without it a reply would reach nobody. It starts filled in with the
 address your organization chose for replies, or with your own address. Change it to any
 address that should get the replies, such as a DART leader's or a shared operations
 mailbox; empty it to go back to the starting address, which the hint under it names. The
-address saves when you leave the field or press Enter, and *Reply-To saved.* says so. An
+address saves when you leave the field or press Enter, and *Address for replies saved.* says so. An
 address that is not one, such as *ops@*, reads *Enter a valid email address.*, and the one
 saved before stays until you fix it.
 
@@ -129,7 +129,7 @@ field.* In the message it is a chip marked *not a field*; click it for **Choose 
 Braces a link's web address needs are written *%7B* and *%7D*, as the message says. A field
 styled in part is refused too: put it in again with **Insert field**.
 
-Each copy comes from the site's own address, with replies going to the **Reply-To**
+Each copy comes from the site's own address, with replies going to the **Replies go to**
 address. Under the message it carries a short footer
 with your organization's name and the contact address when one is set. For a type people may
 turn off, the footer says *You receive Mission email from CalDART because you have not turned
@@ -138,8 +138,8 @@ can offer its own **Unsubscribe** button. For a type nobody may turn off, it say
 receive it instead.
 
 **Send me a test**, at the bottom of the card, sends the email to you alone, so you can see it
-in your own mail program as the people in the batch will: the same layout, pictures, links,
-footer, and Reply-To, with your own details in its fields. Its subject starts *[Test]*. What
+in your own mail program as the people on the recipient list will: the same layout, pictures, links,
+footer, and address for replies, with your own details in its fields. Its subject starts *[Test]*. What
 you have typed is saved first. Each press sends one more test and says where it went, such as
 *A test went to pat@example.org.*, which takes the keyboard focus. A test is not counted and
 is listed in the log of sent emails as *Bulk email test*. An email with a problem marked
@@ -160,8 +160,8 @@ Words that could not be saved come first, marked **Must fix**, such as *Your sub
 mistake:* and the reason, with **Fix it under 2. What it says.**, which puts the cursor there.
 **Send** and **Schedule for later** stay off until the words are saved.
 
-A red dot and **Must fix:** mark a problem the email cannot go with, such as a **Reply-To**
-that is not an email address, or a field that cannot be filled in. **Send** stays off until it
+A red dot and **Must fix:** mark a problem the email cannot go with, such as a **Replies go to**
+address that is not an email address, or a field that cannot be filled in. **Send** stays off until it
 is fixed and you press **Check again**. An amber dot and **Worth a look:** mark something
 that may be a mistake, and *You can still send.* says you may go ahead anyway:
 
@@ -187,18 +187,18 @@ tried. If the checks cannot run at all, or take more than a few seconds when you
 **Send**, the card says *The checks could not run. You can still send.* and lets you go
 on: an email with a problem marked **Must fix** is still refused when you send it.
 
-Below the checks is a preview: the email as the first person in the batch will
+Below the checks is a preview: the email as the first person on the recipient list will
 receive it, their own details filled in, once the message is written. *Previewing as Ann
 Able (1 of 38)* says whose copy it is; **Next person** and **Previous person** step through
 everybody who receives it. The preview shows what has been saved, and says so while your
-latest words cannot be saved. While nobody in the batch receives the email, the preview is
+latest words cannot be saved. While nobody on the recipient list receives the email, the preview is
 your own copy. The footer reads as it will in the email, but its unsubscribe link in the
 preview unsubscribes nobody. Every link in the preview opens in a new tab, so you can try
 them without leaving the email. When a field in the message cannot be filled in, the
 preview says why instead.
 
 Until the email can go, the card lists what is missing, such as *Choose a type.*, *Write a
-subject.*, or *Add people to the batch.* Then it offers two buttons:
+subject.*, or *Add people to the recipient list.* Then it offers two buttons:
 
 - **Send to 38 people** (with the number who will receive it) sends it now.
 - **Schedule for later** asks for a **Date** and a **Time**, in Pacific time, such as *8:00
@@ -210,8 +210,8 @@ such as *Sending starts in 2 minutes, and until then you can cancel it.* or *It 
 confirmation also asks you to **Type 38 to confirm**, and the button that sends stays off
 until the number matches. A different number reads *That number does not match. Type 38, the
 number of people who will receive it.* The focus starts in that box, or on **Cancel**, so
-Enter pressed twice never sends. Press **Send now** or **Schedule it**, or **Cancel**. A batch
-that changed meanwhile is refused with its new number, such as *The batch has changed: it
+Enter pressed twice never sends. Press **Send now** or **Schedule it**, or **Cancel**. A recipient list
+that changed meanwhile is refused with its new number, such as *The recipient list has changed: it
 now holds 39 people. Type the new count.*
 
 
@@ -228,7 +228,7 @@ with nothing lost until the first copy goes out.
 A scheduled email shows *Scheduled for* its date and time with **Cancel the schedule**. Until
 it starts you can still change its message, and **Check and send** offers **Change the
 time** and **Send in 2 minutes instead**, which starts the two-minute countdown. A change to
-its batch takes it back to your drafts, since the count you confirmed changed: *The
+its recipient list takes it back to your drafts, since the count you confirmed changed: *The
 recipients changed, so this email is back in your drafts.*
 
 Once sending starts, the screen holds still and the banner reads, for example, *Sending… 12
@@ -243,7 +243,7 @@ can never be changed again.
 If something looks wrong
 ========================
 
-If the batch holds fewer people than you expected, look at the skips first, then at the
+If the recipient list holds fewer people than you expected, look at the skips first, then at the
 **Chosen by** column: a forgotten **County** or **Kind** narrows an add quietly. If the email
 still says *Starting to send* a few minutes after the countdown ended, the server's sender may
 have stopped; a system administrator can start it by hand from the Scheduled page. If somebody

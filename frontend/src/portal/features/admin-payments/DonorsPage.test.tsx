@@ -216,6 +216,8 @@ describe('DonorsPage', () => {
     );
     renderWithProviders(<DonorsPage />);
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('The donors could not be loaded.');
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      "The donors didn't load. Try again in a moment.",
+    );
   });
 });

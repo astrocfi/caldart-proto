@@ -107,7 +107,7 @@ export function DeliveryReport({
       {canRetry ? <RetryFailed email={email} /> : null}
       {batch.isError ? (
         <p className="field__error" role="alert">
-          The results could not be loaded.
+          The results didn&apos;t load. Try again in a moment.
         </p>
       ) : (
         <Results rows={batch.data?.rows ?? []} columns={columns} isLoading={batch.isLoading} />

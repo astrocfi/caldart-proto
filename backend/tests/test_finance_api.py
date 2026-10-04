@@ -189,7 +189,7 @@ def test_a_match_cannot_be_dated_in_the_future(treasurer_client: APIClient, paid
     )
     assert response.status_code == 400
     assert response.json() == {
-        "reconciled_on": ["A payment cannot have been matched in the future."]
+        "reconciled_on": ["A payment cannot have been reconciled in the future."]
     }
 
 

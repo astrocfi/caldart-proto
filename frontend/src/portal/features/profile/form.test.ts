@@ -163,10 +163,10 @@ describe('validateProfileForm', () => {
   it('names every missing required field in its own words', () => {
     const errors = validateProfileForm({ ...EMPTY_PROFILE_FORM, postal_code: '' });
     expect(errors).toEqual({
-      phone: 'A phone number is required.',
-      address_line1: 'Your street address is required.',
-      city: 'Your city is required.',
-      postal_code: 'Your ZIP code is required.',
+      phone: 'Enter a phone number.',
+      address_line1: 'Enter your street address.',
+      city: 'Enter your city.',
+      postal_code: 'Enter your ZIP code.',
     });
   });
 
@@ -206,7 +206,7 @@ describe('validateProfileForm', () => {
     );
   });
 
-  const POSTAL_MESSAGE = 'Use a five-digit ZIP code like 95035.';
+  const POSTAL_MESSAGE = 'Use a 5-digit ZIP code, such as 95035.';
 
   it.each([
     ['94559', undefined],
@@ -243,8 +243,8 @@ describe('validateProfileForm', () => {
       true,
     );
     expect([errors.first_name, errors.last_name]).toEqual([
-      'Your first name is required.',
-      'Your last name is required.',
+      'Enter your first name.',
+      'Enter your last name.',
     ]);
   });
 
@@ -257,7 +257,7 @@ describe('validateProfileForm', () => {
   it('wants an expiration date once a medical is claimed', () => {
     const values = { ...profileToForm(makeProfile()), medical_expiration: '' };
     expect(validateProfileForm(values).medical_expiration).toBe(
-      'Give the expiration date of your medical certificate.',
+      "Enter the medical's expiration date.",
     );
   });
 
@@ -271,7 +271,7 @@ describe('validateProfileForm', () => {
   it('wants a certificate number once a certificate is claimed', () => {
     const values = { ...profileToForm(makeProfile()), certificate_number: '  ' };
     expect(validateProfileForm(values).certificate_number).toBe(
-      'Give your pilot certificate number.',
+      'Enter the pilot certificate number.',
     );
   });
 

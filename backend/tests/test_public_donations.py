@@ -256,7 +256,7 @@ def test_an_expired_token_is_refused() -> None:
     payment = PaymentFactory()
     with freeze_time("2026-09-25 12:00:00") as clock:
         token = donation_token(payment)
-        clock.tick(DONATION_TOKEN_MAX_AGE + 1)
+        clock.tick(DONATION_TOKEN_MAX_AGE + 1)  # codespell:ignore tick
         with pytest.raises(DonationTokenError, match=re.escape(NO_SUCH_PAYMENT)):
             payment_for_token(payment.pk, token)
 

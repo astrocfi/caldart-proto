@@ -71,8 +71,8 @@ export function RenewalChangeForm({
   if (!config) {
     return (
       <EmptyState
-        title="Payment options could not be loaded"
-        description="Please reload the page, or contact CalDART if it keeps happening."
+        title="Payment options didn't load"
+        description="Reload the page, or contact CalDART if it keeps happening."
       />
     );
   }
@@ -118,7 +118,7 @@ export function RenewalChangeForm({
               caught.fieldErrors.plan ??
               caught.fieldErrors.auto_renew ??
               caught.message)
-          : 'That change could not be saved.',
+          : "That change wasn't saved. Try again in a moment.",
       );
     }
   }

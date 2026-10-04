@@ -8,7 +8,7 @@ A member's money history gathers everything one person has paid, given, and been
 refunded, their automatic renewal or recurring donation, and the contribution statements
 they can be sent. It answers a question about one member's money without searching the
 payment list. You reach it by clicking the member's name on a payment's own screen, or
-the link **Everything** and the member's name **has paid** at the foot of that screen.
+the link **Everything** and the member's name **has paid** at the bottom of that screen.
 
 An account administrator sees the same cards on the **Payments** tab of the member's
 record. A treasurer, who does not open member records, uses this screen.
@@ -17,7 +17,8 @@ What you see
 ============
 
 The heading is the member's name, with their email address beneath it and, on the right,
-where their membership stands. Beside it, an account administrator
+*Membership:* and a dot and its word showing where their membership stands, such as
+**Current**. Beside it, an account administrator
 sees **Member record**, which opens the person's :doc:`../admin/member-record`, a donor's
 included. The history of a **Deleted member** has no such link: that record cannot be
 changed.
@@ -39,9 +40,9 @@ or **Automatic renewal and contribution**. It shows:
 * **State**: **On**, **Waiting for the first payment**, **Paused after failed charges**,
   or **Turned off**.
 * **Method**, the saved card or PayPal account.
-* **Charges**, the plan (or **Contribution** for a recurring donation) and the amount.
+* **Charges**, the plan (or **Donation** for a recurring donation) and the amount.
 * **Next charge**, the day it falls due.
-* **Last refusal**, when the last charge was declined, with the reason the provider gave.
+* **Last failed charge**, when the last charge was declined, with the reason the provider gave.
   It is the same wording the member was emailed.
 
 A member with no standing authority sees *This member renews by hand.*
@@ -78,7 +79,7 @@ To turn a member's automatic renewal or recurring donation off on their behalf, 
 If something looks wrong
 ========================
 
-If the screen says *That ledger could not be loaded*, the member may have been removed,
+If the screen says *That ledger didn't load*, the member may have been removed,
 or the link may be out of date; find the member again from one of their payments. If a
-renewal reads **Paused after failed charges**, the **Last refusal** line says why, and the
+renewal reads **Paused after failed charges**, the **Last failed charge** line says why, and the
 member can put a new card on file from their own **Payments** screen.

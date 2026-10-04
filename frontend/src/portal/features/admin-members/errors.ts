@@ -35,7 +35,9 @@ function flatten(body: unknown): FieldErrors {
 /** Splits a member form's DRF error body into account, profile, and detail messages. */
 export function splitErrors(error: unknown): SplitErrors {
   if (!(error instanceof ApiError)) {
-    return error ? { ...EMPTY, detail: 'Something went wrong. Please try again.' } : EMPTY;
+    return error
+      ? { ...EMPTY, detail: "The changes weren't saved. Try again in a moment." }
+      : EMPTY;
   }
   const body = error.body;
   if (!body || typeof body !== 'object') return { ...EMPTY, detail: error.message };

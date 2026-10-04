@@ -61,11 +61,11 @@ export function AircraftEditor({
     return (
       <Card title="Edit aircraft">
         <EmptyState
-          title="That aircraft could not be loaded"
+          title="That aircraft didn't load"
           description={
             aircraft.error instanceof ApiError
               ? aircraft.error.message
-              : 'Something went wrong. Try again in a moment.'
+              : 'Try again in a moment, or contact CalDART if it keeps happening.'
           }
           action={<Button onClick={handleClose}>Close</Button>}
         />
@@ -94,7 +94,7 @@ export function AircraftEditor({
     <Card eyebrow="Edit" title={record.n_number}>
       <AircraftForm
         initial={aircraftToValues(record)}
-        submitLabel="Save aircraft"
+        submitLabel="Save changes"
         pending={update.isPending}
         serverErrors={serverErrors}
         serverError={update.error}

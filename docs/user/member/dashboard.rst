@@ -54,7 +54,7 @@ The cards read down the page in this order. Each appears only when it applies.
   comes to and when. A life member's line is about their recurring donation. Then
   your last five payments, with the **Date** each was paid, the **Plan**, the
   **Amount**, and the **Status** as a colored dot and its word. **All payments,
-  receipts and renewal** opens :doc:`payments`.
+  receipts, and renewals** opens :doc:`payments`.
 
 **Quick links**
   Every other screen your roles open, in the same groups as the menu.
@@ -86,7 +86,7 @@ screen you are on in view.
 Every date and time in the portal is Pacific time, written like *10/04/2026 at 5:33
 AM*.
 
-At the foot of the menu, **User guide** opens this guide in a new tab, at its
+At the bottom of the menu, **User guide** opens this guide in a new tab, at its
 beginning, and **Back to caldart.org** returns you to the public site.
 
 The top bar holds **Help**, which opens the page of this guide for the screen you
@@ -121,6 +121,6 @@ If something looks wrong
 
 If you paid and the card still says **Expired** or **Friend**, reload the page
 first. Then look at **Recent payments**: a payment marked **Failed** moved no
-money, so try again from :doc:`renew`. A payment marked **Succeeded** with no
+money, so try again from :doc:`renew`. A payment marked **Paid** with no
 membership behind it is a fault; tell the office the date and the amount. If a menu
 entry you expect is missing, you lack the role; a user administrator can grant it.

@@ -40,7 +40,7 @@ both (see `Exporting the roles report`_). At first it shows:
 **Name** and **Email** sort: click one to sort by it, and again to reverse the order. The
 other headings have no arrow and do not sort. On a narrower screen the table leaves out
 **Kind**, **Phone**, **DART**, **Role**, and **Email** in turn, while **Name**, **Membership**,
-and any column you ticked beyond the defaults stay; on a phone a line over the table says when it scrolls sideways,
+and any column you checked beyond the defaults stay; on a phone a line over the table says when it scrolls sideways,
 and the names stay pinned at the left.
 
 Every screen names a role the way a person says it: Member, Verifier, DART leader, User
@@ -62,7 +62,7 @@ at the end of the bar, empties them and puts **Account status** back on **Active
 **Role**
    **Any role**, the first choice, or one role, to list the holders of that role.
 
-**Kind of account**
+**Kind**
    **Any kind**, the first choice, **Member**, **Friend**, or **Donor**. This is the kind
    the account was given, as its record shows it.
 
@@ -90,17 +90,17 @@ person holding two such roles is listed in both sections.
 
 The report lists active accounts only, whatever **Account status** shows, and follows
 the **Email** filter. It follows the screen's **Search**, the role chosen under **Role**,
-which leaves that one section, and **Member** or **Friend** under **Kind of account**. The
+which leaves that one section, and **Member** or **Friend** under **Kind**. The
 report's Kind follows the membership it shows for today: an account given the kind member
 reads as a friend there until one of its membership terms has started, and again once its
 change to a friend has come.
 
 **Columns** chooses the columns of the table on screen and of the two downloads together.
 It starts on Role, Name, Email, Phone, DART, Kind, and Membership, and adds City, County,
-and Home airport when you tick them. **Load columns** and **Save columns** keep a set of
+and Home airport when you check them. **Load columns** and **Save columns** keep a set of
 columns under a name, as :ref:`saved-column-sets` describes.
 
-With **Donor** chosen under **Kind of account**, or **Member** under **Role**, the report has
+With **Donor** chosen under **Kind**, or **Member** under **Role**, the report has
 nobody to list, so the two export buttons and **Columns** are grayed out, and **Load
 columns** and **Save columns** are put away until you choose another kind or role; rest the
 pointer on a grayed-out button to see why.
@@ -116,7 +116,7 @@ A donor gave through the public site without joining. Each gift from a new email
 makes a donor account, and a later gift from the same address goes on the same one. A donor
 account keeps the gifts and receipts, holds no password and no role, and cannot sign in.
 Donors appear nowhere else outside the treasurer's screens, so this list is where you find
-one: choose **Donor** under **Kind of account**. The usual reason is a receipt sent to a
+one: choose **Donor** under **Kind**. The usual reason is a receipt sent to a
 mistyped address.
 
 
@@ -136,7 +136,7 @@ What each role opens
   the payments, the reminders, and the reports, and verifying from the checks and the
   records.
 - **CalDART management**: the Bulk email screens, starting with
-  :doc:`../bulk-email/compose`, to email a batch of members and friends, and nothing that
+  :doc:`../bulk-email/compose`, to email members and friends, and nothing that
   shows a member's record.
 - **Website administrator**: the website's editor, for pages, images, documents, redirects,
   and site settings.
@@ -152,9 +152,9 @@ If something looks wrong
 
 If you cannot find an account you are sure exists, search for one word, or for part of the
 email address: every word you type has to match, so a middle name or a typo leaves everybody
-out. Check **Kind of account** and **Account status** too, remembering that the list opens
+out. Check **Kind** and **Account status** too, remembering that the list opens
 on **Active only**, or press **Reset filters**. If a person has two accounts, open each one
 and compare the memberships at the top to decide which to keep, then deactivate the other;
 an account administrator can say whether the records need merging. If somebody says a page
 shows *You do not have access to this page*, the message names the role the page needs; open
-their :doc:`user-record` and tick it.
+their :doc:`user-record` and check it.

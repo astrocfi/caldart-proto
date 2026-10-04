@@ -222,7 +222,7 @@ def test_a_pending_payment_cannot_be_refunded(
 ) -> None:
     """There is no money to give back until the payment succeeded."""
     pending = PaymentFactory(user=member, plan=annual_plan, status=PaymentStatus.PENDING)
-    with pytest.raises(DomainValidationError, match="has not succeeded") as caught:
+    with pytest.raises(DomainValidationError, match="was never paid") as caught:
         refund_service.issue_refund(
             pending, amount_cents=1_000, reason=RefundReason.OTHER, actor=account_admin
         )

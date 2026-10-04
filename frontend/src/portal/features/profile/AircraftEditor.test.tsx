@@ -66,14 +66,14 @@ describe('<AircraftEditor/>', () => {
   it('edits a record the member added themselves', async () => {
     renderEditor(makeDetail());
 
-    expect(await screen.findByRole('button', { name: 'Save aircraft' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Save changes' })).toBeInTheDocument();
     expect(screen.queryByText('Someone else added this aircraft')).not.toBeInTheDocument();
   });
 
   it('lets an account administrator edit a record somebody else added', async () => {
     renderEditor(makeDetail({ created_by: 99 }), true);
 
-    expect(await screen.findByRole('button', { name: 'Save aircraft' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Save changes' })).toBeInTheDocument();
     expect(screen.queryByText('Someone else added this aircraft')).not.toBeInTheDocument();
   });
 
@@ -84,6 +84,6 @@ describe('<AircraftEditor/>', () => {
     expect(
       screen.getByText('Ask a CalDART account administrator to correct it.'),
     ).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Save aircraft' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Save changes' })).not.toBeInTheDocument();
   });
 });

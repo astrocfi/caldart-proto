@@ -18,9 +18,7 @@ describe('AdminNotificationsPage', () => {
     server.use(...notificationHandlers());
     renderWithProviders(<AdminNotificationsPage />);
 
-    expect(
-      await screen.findByRole('heading', { name: 'Who hears about what' }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Notification emails' })).toBeInTheDocument();
   });
 
   it('ledes with what the screen is for', () => {

@@ -51,11 +51,11 @@ Profile
 
 A **Verification** card heads the tab. It lists **Pilot certificate**, **Medical**, and
 **Photo ID**, each with what the record holds (such as *Private · 1234567* or *Third class
-· expires 01/31/2027*) and its mark: **Verified** with who verified it and on which day, or
-**Not verified**. **Verify** opens the same verification panel as the :doc:`member-check`:
-correct the fields against the documents, tick the items you have checked, and press
-**Save**. *Verification saved* confirms it, and a field you corrected there is filled in on
-the form below too. A record with no profile yet has no Verification card, and one for a
+· expires 01/31/2027*) and its mark, read as on the :doc:`member-check`; an item not held,
+such as *Not a pilot*, has none. **Verify** opens the same verification panel: correct the
+fields against the documents, check the items you have checked, and press **Save verification**.
+*Verification saved* confirms it, and a field you corrected there is filled in on the form
+below too. A record with no profile yet has no Verification card, and one for a
 donor or a deactivated account has the card but no **Verify**: there is nothing to check
 against, since neither can fly.
 
@@ -89,7 +89,7 @@ enough to take an account over. You can change it only on an account whose roles
 yourself. As an account administrator you can change it on an ordinary member's record and
 on another account administrator's, and on nobody else's with a role you lack, such as a
 DART leader or a treasurer. Names, the DART, the phones, and every profile field stay
-editable on any record you can open. Deactivating the account is on the **Danger zone** tab.
+editable on any record you can open. Deactivating the account is on the **Delete or deactivate** tab.
 
 Below the form, but not on a donor's record, **Email preferences** shows the person's
 :doc:`../member/email-preferences` switches; each saves at once as yours. A type turned off
@@ -105,7 +105,7 @@ Memberships
 **Edit**. A narrow screen drops **Source**, **Starts**, **Note**, and **Ends** in turn.
 
 **Edit** on a row changes that term's end date, status, and note, for a refund, a goodwill
-extension, or a wrong term. Press **Save** or **Cancel** (or Escape); *Term updated.* confirms
+extension, or a wrong term. Press **Save changes** or **Cancel** (or Escape); *Term updated.* confirms
 a save. A term set to **Canceled** no longer counts toward the membership, and its row stays
 in the history. The plan and the start date cannot be changed: cancel a wrong term and
 grant the right one, with a note saying why.
@@ -151,8 +151,8 @@ A term you grant by hand has no payment behind it, so it does not appear here. F
 organization's figures, use **Finance** under **Administration** in the menu.
 
 
-Danger zone
-===========
+Delete or deactivate
+====================
 
 The tab holds two cards: **Account**, with the actions that change what the person can do,
 and **Delete this member**. Each action asks first: pressing it opens a short explanation
@@ -216,7 +216,7 @@ under the name **Deleted member** followed by the account's number, such as **De
 5**. That name stands in for the person's on the payment list, a payment's record, and the
 **Donors** tab, and the organization's totals do not change. An automatic renewal or recurring
 donation the person had is turned off first, and they are emailed that it is off. Anyone
-subscribed to **Automatic payment turned off** (:doc:`notifications`) is told too; the member
+subscribed to **Automatic renewal or recurring donation turned off** (:doc:`notifications`) is told too; the member
 link in that notification no longer opens, because the record is gone. A payment the person
 started but had not finished can still go through afterwards: it joins the books under
 **Deleted member** and buys no membership, and nobody is emailed a receipt.
@@ -242,7 +242,7 @@ If something looks wrong
 
 *You cannot change the email address of an account that holds roles you do not hold.* means
 the record carries a role you lack; ask a system administrator, or a colleague who holds
-every role that account holds. The **Danger zone** tab lists what its own refusals mean.
+every role that account holds. The **Delete or deactivate** tab lists what its own refusals mean.
 *The end date cannot be before the start date.* means the end date you typed is too early.
 *You cannot delete your own account.* and *Only a system administrator can delete a system
 administrator.* mean what they say. A granted term that starts later than you expected

@@ -12,6 +12,7 @@
 import type { JSX } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
+import { isNotFound } from '@/portal/api/client';
 import type { BulkEmailDetail } from '@/portal/api/types';
 import { useMe } from '@/portal/auth/useAuth';
 import { Card } from '@/portal/components/Card';
@@ -37,7 +38,10 @@ export function SentDetailPage(): JSX.Element {
     return (
       <Page title="Sent bulk email">
         <p className="field__error" role="alert">
-          This email could not be loaded. <Link to="/bulk-email/sent">See every sent email</Link>.
+          {isNotFound(email.error)
+            ? "This email isn't here. It may have been deleted."
+            : "This email didn't load. Try again in a moment."}{' '}
+          <Link to="/bulk-email/sent">Back to sent emails</Link>.
         </p>
       </Page>
     );
@@ -50,8 +54,12 @@ export function SentDetailPage(): JSX.Element {
   const canStop = canAct || sent.is_callout;
 
   return (
-    <Page title={sent.subject || 'Sent bulk email'} lede={sentLede(sent)}>
-      <Card title="Where it stands">
+    <Page
+      title={sent.subject || 'Sent bulk email'}
+      lede={sentLede(sent)}
+      actions={<Link to="/bulk-email/sent">Back to sent emails</Link>}
+    >
+      <Card title="Sending progress">
         {sent.started_at === null ? (
           <p>
             This email has not started sending.{' '}
@@ -80,8 +88,8 @@ export function SentDetailPage(): JSX.Element {
         <p className="muted">Replies go to: {sent.reply_to || sent.default_reply_to}</p>
         {hasFields(sent) ? (
           <p className="muted">
-            Fields such as {'{first_name}'} show as written here; each person&apos;s copy had their
-            own details filled in.
+            Recipient fields show here in braces; each person&apos;s copy had their own details
+            filled in.
           </p>
         ) : null}
         <EmailFrame title="The message as it was sent" html={sent.message_html} />

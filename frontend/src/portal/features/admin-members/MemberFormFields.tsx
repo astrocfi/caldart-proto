@@ -89,8 +89,8 @@ export interface AccountFieldsProps {
   errors?: FieldErrors;
   /** Offer a password box (creation only; changing one is the member's own job). */
   withPassword?: boolean;
-  /** Extra hint content under the email field, such as its verification status. */
-  emailHint?: ReactNode;
+  /** A standing fact under the email box, such as whether the address is verified. */
+  emailStatus?: ReactNode;
 }
 
 /**
@@ -102,7 +102,7 @@ export function AccountFields({
   onChange,
   errors = {},
   withPassword = false,
-  emailHint,
+  emailStatus,
 }: AccountFieldsProps): JSX.Element {
   const set = <Key extends keyof AccountDraft>(key: Key, next: AccountDraft[Key]) =>
     onChange({ ...value, [key]: next });
@@ -110,86 +110,76 @@ export function AccountFields({
   return (
     <fieldset>
       <legend>Account</legend>
-      <div className="grid">
-        <div className="col-half">
-          <Field label="Email address" required error={errors.email} hint={emailHint}>
-            {(props) => (
-              <MaskedInput
-                {...props}
-                type="email"
-                autoComplete="email"
-                mask={maskEmail}
-                value={value.email}
-                onValueChange={(next) => set('email', next)}
-              />
-            )}
-          </Field>
-        </div>
-        <div className="col-half">
-          <Field label="First name" error={errors.first_name}>
-            {(props) => (
-              <input
-                {...props}
-                type="text"
-                value={value.first_name}
-                onChange={(event) => set('first_name', event.target.value)}
-              />
-            )}
-          </Field>
-        </div>
-        <div className="col-half">
-          <Field label="Last name" error={errors.last_name}>
-            {(props) => (
-              <input
-                {...props}
-                type="text"
-                value={value.last_name}
-                onChange={(event) => set('last_name', event.target.value)}
-              />
-            )}
-          </Field>
-        </div>
+      <div className="form-grid">
+        <Field label="Email address" required error={errors.email} status={emailStatus}>
+          {(props) => (
+            <MaskedInput
+              {...props}
+              type="email"
+              autoComplete="email"
+              mask={maskEmail}
+              value={value.email}
+              onValueChange={(next) => set('email', next)}
+            />
+          )}
+        </Field>
+        <Field label="First name" error={errors.first_name}>
+          {(props) => (
+            <input
+              {...props}
+              type="text"
+              value={value.first_name}
+              onChange={(event) => set('first_name', event.target.value)}
+            />
+          )}
+        </Field>
+        <Field label="Last name" error={errors.last_name}>
+          {(props) => (
+            <input
+              {...props}
+              type="text"
+              value={value.last_name}
+              onChange={(event) => set('last_name', event.target.value)}
+            />
+          )}
+        </Field>
         {value.kind === 'donor' ? null : (
-          <div className="col-half">
-            <Field
-              label="Kind of account"
-              error={errors.kind}
-              hint="A friend pays no dues and is never current or expired."
-            >
-              {(props) => (
-                <select
-                  {...props}
-                  value={value.kind}
-                  onChange={(event) => set('kind', event.target.value as PersonKind)}
-                >
-                  {PERSON_KINDS.map((kind) => (
-                    <option key={kind} value={kind}>
-                      {ACCOUNT_KIND_LABELS[kind]}
-                    </option>
-                  ))}
-                </select>
-              )}
-            </Field>
-          </div>
+          <Field
+            label="Kind of account"
+            error={errors.kind}
+            hint="A friend pays no dues and is never current or expired."
+          >
+            {(props) => (
+              <select
+                {...props}
+                value={value.kind}
+                onChange={(event) => set('kind', event.target.value as PersonKind)}
+              >
+                {PERSON_KINDS.map((kind) => (
+                  <option key={kind} value={kind}>
+                    {ACCOUNT_KIND_LABELS[kind]}
+                  </option>
+                ))}
+              </select>
+            )}
+          </Field>
         )}
         {withPassword ? (
-          <div className="col-half">
-            <Field
-              label="Password"
-              error={errors.password}
-              hint="Leave blank to email an invitation to set one."
-            >
-              {(props) => (
-                <input
-                  {...props}
-                  type="password"
-                  autoComplete="new-password"
-                  value={value.password}
-                  onChange={(event) => set('password', event.target.value)}
-                />
-              )}
-            </Field>
-          </div>
+          <Field
+            label="Password"
+            error={errors.password}
+            hint="Leave blank to email an invitation to set one."
+          >
+            {(props) => (
+              <input
+                {...props}
+                type="password"
+                autoComplete="new-password"
+                value={value.password}
+                onChange={(event) => set('password', event.target.value)}
+              />
+            )}
+          </Field>
         ) : null}
       </div>
     </fieldset>

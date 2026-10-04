@@ -113,7 +113,7 @@ describe('MembersListPage', () => {
     expect(headers).toEqual(['Name', 'Email', 'DART', 'Status', 'Expires', 'Medical expires']);
   });
 
-  it('shows a column ticked in the chooser in the table as well as the downloads', async () => {
+  it('shows a column checked in the chooser in the table as well as the downloads', async () => {
     const user = userEvent.setup();
     server.use(...listHandlers([makeRow({ state: 'NV' })]));
     await renderList();
@@ -125,7 +125,7 @@ describe('MembersListPage', () => {
     expect(screen.getByRole('cell', { name: 'NV' })).toBeInTheDocument();
   });
 
-  it('takes a column unticked in the chooser out of the table', async () => {
+  it('takes a column unchecked in the chooser out of the table', async () => {
     const user = userEvent.setup();
     server.use(...listHandlers());
     await renderList();
@@ -167,7 +167,7 @@ describe('MembersListPage', () => {
     await waitFor(() => expect(screen.getByTestId('location-search')).toHaveTextContent(''));
   });
 
-  it('ticks a pilot whose medical is in date and crosses one whose is not', async () => {
+  it('marks a pilot whose medical is current and crosses one whose is not', async () => {
     server.use(
       ...listHandlers([
         makeRow(),
@@ -327,7 +327,12 @@ describe('MembersListPage', () => {
 
   it('still renders when the DART list is unavailable', async () => {
     server.use(
-      http.get(`${API}/darts`, () => HttpResponse.json({ detail: 'Not found.' }, { status: 404 })),
+      http.get(`${API}/darts`, () =>
+        HttpResponse.json(
+          { detail: "That isn't here. It may have been deleted." },
+          { status: 404 },
+        ),
+      ),
       ...listHandlers().slice(1),
     );
     await renderList();
@@ -397,7 +402,7 @@ describe('MembersListPage', () => {
     );
   });
 
-  it('offers every column the report can carry, with the defaults ticked', async () => {
+  it('offers every column the report can carry, with the defaults checked', async () => {
     const user = userEvent.setup();
     server.use(...listHandlers());
     await renderList();
@@ -419,7 +424,7 @@ describe('MembersListPage', () => {
     await renderList();
 
     expect(
-      await screen.findByText(/columns could not be loaded/i, undefined, { timeout: 5000 }),
+      await screen.findByText(/columns didn't load/i, undefined, { timeout: 5000 }),
     ).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Columns' })).not.toBeInTheDocument();
   });
@@ -432,7 +437,7 @@ describe('MembersListPage', () => {
       ...listHandlers(),
     );
     await renderList();
-    await screen.findByText(/columns could not be loaded/i, undefined, { timeout: 5000 });
+    await screen.findByText(/columns didn't load/i, undefined, { timeout: 5000 });
 
     expect(screen.getAllByRole('columnheader').map(headingText)).toEqual([
       'Name',
@@ -468,7 +473,7 @@ describe('MembersListPage', () => {
     );
   });
 
-  it('drops a column the administrator unticks from the export links', async () => {
+  it('drops a column the administrator unchecks from the export links', async () => {
     const user = userEvent.setup();
     server.use(...listHandlers());
     await renderList();
@@ -540,7 +545,7 @@ describe('MembersListPage', () => {
     expect(lastMemberQuery().get('ordering')).toBe('-expires_on');
   });
 
-  it('asks for deactivated accounts when Include deactivated is ticked', async () => {
+  it('asks for deactivated accounts when Include deactivated is checked', async () => {
     const user = userEvent.setup();
     server.use(...listHandlers());
     await renderList();

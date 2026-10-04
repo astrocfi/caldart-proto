@@ -436,9 +436,7 @@ def test_a_batch_only_outside_the_dart_cannot_be_sent(
     """Nobody in the batch is in the DART, so nobody can receive it."""
     add_to_batch(leader_draft, people["nat"])
     response = leader_client.post(url(leader_draft, "send"), {}, format="json")
-    assert response.json() == {
-        "batch": ["Nobody in the batch can receive this email. Add people to the batch."]
-    }
+    assert response.json() == {"batch": [drafts.NOBODY_MESSAGE]}
 
 
 def test_a_leader_cannot_send_a_type_their_role_may_not(

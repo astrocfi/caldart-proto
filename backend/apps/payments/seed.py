@@ -896,7 +896,7 @@ def _seed_mandates(ctx: dict[str, Any], *, mock_on: bool) -> int:
     wanted = generic_active + PAUSED_MANDATES + CANCELED_MANDATES
     eligible = _mandate_candidates([user for user in ctx["users"] if user.pk not in pinned], today)
     # Evenly spaced through the expiry order, so the seeded charge dates spread
-    # across the coming year instead of bunching in the next fortnight.
+    # across the coming year instead of bunching in the next two weeks.
     step = max(len(eligible) // wanted, 1)
     candidates = eligible[::step][:wanted]
 

@@ -12,9 +12,10 @@
 import { AircraftPicker, useCoveragePolicy } from '@/portal/features/aircraft';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { JSX } from 'react';
+import { Link } from 'react-router-dom';
 
 import { ApiError } from '@/portal/api/client';
-import { ButtonLink, Button } from '@/portal/components/Button';
+import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { DeleteButton } from '@/portal/components/DeleteButton';
 import { EmptyState } from '@/portal/components/EmptyState';
@@ -66,11 +67,7 @@ export function MyAircraftPage(): JSX.Element {
     <Page
       title="My aircraft"
       lede="The planes you commonly fly."
-      actions={
-        <ButtonLink to="/profile" variant="secondary">
-          Back to profile
-        </ButtonLink>
-      }
+      actions={<Link to="/profile">Back to My profile</Link>}
     >
       <Card title="Attached aircraft">
         {policyNote === '' ? null : (
@@ -103,7 +100,7 @@ export function MyAircraftPage(): JSX.Element {
                   isCurrent={plane.insurance_is_current}
                   missing={plane.insurance_expiration === null}
                 />
-                {plane.insurance_expiration === null && !plane.insurance_verified ? null : (
+                {plane.insurance_expiration === null ? null : (
                   // With no policy on file there is nothing to verify yet, so no mark.
                   <VerifiedMark verification={{ verified: plane.insurance_verified }} pending />
                 )}
@@ -118,6 +115,7 @@ export function MyAircraftPage(): JSX.Element {
                     variant="quiet"
                     small
                     disabled={busy}
+                    aria-label={`${editing === plane.id ? 'Close' : 'Edit'} ${plane.n_number}`}
                     onClick={() => setEditing((open) => (open === plane.id ? null : plane.id))}
                   >
                     {editing === plane.id ? 'Close' : 'Edit'}

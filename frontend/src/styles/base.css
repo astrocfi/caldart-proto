@@ -319,12 +319,52 @@ a:hover {
   margin-top: var(--space-1);
 }
 
+/* The hint sits between the label and the box, so it keeps its gap below. */
 .field__hint {
   color: var(--color-muted);
+  margin-top: 0;
+  margin-bottom: var(--space-1);
 }
 
 .field__error {
   color: var(--color-bad);
+}
+
+/* A field with no hint draws an empty slot in the hint's place.  It takes no room; in a
+ * two-column form grid it holds the field's box in the box row, so the boxes of one row
+ * line up without any space set aside where neither field has a hint. */
+.field__hint-slot {
+  display: block;
+}
+
+/* Two columns: each field spans five rows of the grid (label, hint, box, status, and
+ * error) and shares them with the field beside it, so a hint on one side lowers both
+ * boxes alike, and nothing else does.  A child that is not a field spans all five. */
+@media (min-width: 40rem) {
+  .form-grid,
+  .aircraft-form__grid {
+    grid-auto-rows: auto;
+  }
+
+  .form-grid > *,
+  .aircraft-form__grid > * {
+    grid-row: span 5;
+  }
+
+  .form-grid > .field,
+  .aircraft-form__grid > .field {
+    display: grid;
+    grid-template-rows: subgrid;
+    row-gap: 0;
+    align-content: start;
+  }
+}
+
+/* A standing fact about the value, such as a verification mark, under the box. */
+.field__status {
+  display: block;
+  font-size: var(--text-xs);
+  margin-top: var(--space-1);
 }
 
 .field__required {

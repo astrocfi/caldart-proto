@@ -96,7 +96,7 @@ export function MailDeliveryPage(): JSX.Element {
       lede="Whether other mail systems will trust and deliver the email CalDART sends. Do this check before a large send, and again after anyone changes the website's email settings."
     >
       <Card
-        title="Can our email be trusted?"
+        title="What other mail systems check"
         footer={
           <>
             <Button

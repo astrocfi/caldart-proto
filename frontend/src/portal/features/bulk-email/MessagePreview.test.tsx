@@ -41,7 +41,7 @@ describe('previewingLine', () => {
       count: 0,
     });
     expect(previewingLine(own)).toBe(
-      'Previewing as you, Grace Holloway: nobody in the batch receives it yet.',
+      'Previewing as you, Grace Holloway: nobody on the recipient list receives it yet.',
     );
   });
 });
@@ -97,7 +97,7 @@ describe('MessagePreview', () => {
     renderPreview([]);
     expect(
       await screen.findByText(
-        'Previewing as you, Grace Holloway: nobody in the batch receives it yet.',
+        'Previewing as you, Grace Holloway: nobody on the recipient list receives it yet.',
       ),
     ).toBeVisible();
   });

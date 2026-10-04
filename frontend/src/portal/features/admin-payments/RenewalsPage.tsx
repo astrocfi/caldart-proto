@@ -39,9 +39,8 @@ import { reportExportUrl } from '@/portal/reports/api';
 import { REPORTS, listFilters } from '@/portal/reports/definitions';
 import type { FilterField } from '@/portal/reports/types';
 import { FinanceTabs } from './FinanceTabs';
-import { MANDATE_KIND_LABELS } from './labels';
+import { MANDATE_KIND_LABELS, MANDATE_STATUS_LABELS } from './labels';
 import {
-  MANDATE_STATUS_LABELS,
   MANDATE_STATUS_TONES,
   RENEWAL_OUTCOME_LABELS,
   RENEWAL_OUTCOME_TONES,
@@ -59,7 +58,7 @@ import './admin-payments.css';
 const FALLBACK_COLUMNS: ReportColumn[] = [
   { key: 'name', label: 'Member', default: true },
   { key: 'email', label: 'Email', default: true },
-  { key: 'kind', label: 'Kind', default: true },
+  { key: 'kind', label: 'Type', default: true },
   { key: 'plan', label: 'Plan', default: true },
   { key: 'amount', label: 'Next charge', default: true },
   { key: 'next_charge_on', label: 'Due', default: true },
@@ -252,10 +251,11 @@ export function RenewalsPage(): JSX.Element {
       isActions: true,
       width: '13rem',
       render: (row) => {
-        if (!isCancelable(row)) return <span className="muted">Off</span>;
+        if (!isCancelable(row)) return <span className="muted">Turned off</span>;
         return (
           <ConfirmButton
             label="Turn off"
+            name={`Turn off ${MANDATE_KIND_LABELS[row.kind].toLowerCase()} for ${row.user_name}`}
             variant="quiet"
             small
             choices={[
@@ -373,7 +373,7 @@ export function RenewalsPage(): JSX.Element {
         />
         {mandates.isError ? (
           <p role="alert" className="field__error">
-            The renewals could not be loaded.
+            The renewals didn&apos;t load. Try again in a moment.
           </p>
         ) : null}
       </section>
@@ -396,7 +396,7 @@ export function RenewalsPage(): JSX.Element {
           }
           isLoading={attempts.isPending}
           emptyTitle="No renewal charges yet"
-          emptyDescription="The scan schedules a charge a fortnight before it is taken."
+          emptyDescription="The nightly check schedules a charge two weeks before it is taken."
           pagination={{
             page: attemptPage,
             pageSize: RENEWAL_PAGE_SIZE,
@@ -407,7 +407,7 @@ export function RenewalsPage(): JSX.Element {
         />
         {attempts.isError ? (
           <p role="alert" className="field__error">
-            The renewal charges could not be loaded.
+            The renewal charges didn&apos;t load. Try again in a moment.
           </p>
         ) : null}
       </section>

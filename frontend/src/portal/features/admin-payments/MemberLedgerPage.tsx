@@ -117,7 +117,7 @@ export function MandateCard({ mandate }: { mandate: RenewalMandate | null }): JS
         <div>
           <dt>Charges</dt>
           <dd>
-            {mandate.plan_name ?? 'Contribution'} · {formatCents(mandate.amount_cents)}
+            {mandate.plan_name ?? 'Donation'} · {formatCents(mandate.amount_cents)}
           </dd>
         </div>
         <div>
@@ -128,7 +128,7 @@ export function MandateCard({ mandate }: { mandate: RenewalMandate | null }): JS
         </div>
         {mandate.last_error === '' ? null : (
           <div>
-            <dt>Last refusal</dt>
+            <dt>Last failed charge</dt>
             <dd>{mandate.last_error}</dd>
           </div>
         )}
@@ -193,6 +193,7 @@ export function LedgerBody({ ledger }: { ledger: MemberLedger }): JSX.Element {
                 key={year}
                 className="button button--quiet button--small"
                 href={statementUrl(ledger.user.id, year)}
+                aria-label={`${year} contribution statement (PDF)`}
               >
                 {year}
               </a>
@@ -216,7 +217,7 @@ export function MemberLedgerPage(): JSX.Element {
       <Page title="Member ledger">
         <FinanceTabs current="/admin/payments/list" />
         <EmptyState
-          title="That ledger could not be loaded"
+          title="That ledger didn't load"
           description="The member may have been removed, or you may not have permission to see them."
         />
       </Page>
@@ -232,7 +233,9 @@ export function MemberLedgerPage(): JSX.Element {
       lede={ledger.user.email}
       actions={
         <>
-          <MembershipDot membership={ledger.user.membership} />
+          <span className="cluster">
+            Membership: <MembershipDot membership={ledger.user.membership} />
+          </span>
           <MemberRecordLink userId={ledger.user.id} isTombstone={ledger.user.is_tombstone} />
         </>
       }

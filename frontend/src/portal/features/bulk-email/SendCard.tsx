@@ -138,7 +138,7 @@ export function missingSteps(
     ...(email.email_type === null ? ['Choose a type.'] : []),
     ...(subject.trim() === '' ? ['Write a subject.'] : []),
     ...(body.trim() === '' ? ['Write the message.'] : []),
-    ...(email.receiving_count === 0 ? ['Add people to the batch.'] : []),
+    ...(email.receiving_count === 0 ? ['Add people to the recipient list.'] : []),
   ];
 }
 

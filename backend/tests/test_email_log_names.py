@@ -134,7 +134,7 @@ def test_recipient_name_keeps_the_name_recorded_over_the_accounts_current_one() 
 # The senders that pass their own name
 # --------------------------------------------------------------------------
 def test_a_roster_email_logs_the_contacts_name(mailoutbox: list[EmailMessage]) -> None:
-    """The DART roster sender records the ticked contact's own name."""
+    """The DART roster sender records the checked contact's own name."""
     dart = DartFactory(name="Bay Area DART")
     DartContactFactory(dart=dart, name="Lee Park", email="lee@example.test", receives_roster=True)
 

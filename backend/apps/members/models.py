@@ -45,8 +45,8 @@ class MedicalType(models.TextChoices):
 class PhotoIdType(models.TextChoices):
     """The kind of photo ID a verifier has seen; nothing else about it is recorded.
 
-    ``NOT_PROVIDED`` is the default and a legitimate verified state: a verifier who saw
-    the document and chose not to record its kind, or a friend with nothing to show.
+    ``NOT_PROVIDED`` is the default: nobody has shown a photo ID, so there is nothing to
+    verify.  A verifier who saw a document of a kind not listed records ``OTHER``.
     """
 
     NOT_PROVIDED = "not_provided", "Not provided"

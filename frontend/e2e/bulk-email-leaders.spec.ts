@@ -29,9 +29,9 @@ test('a DART leader sends bulk email to their own DART', async ({ page }) => {
   await expect(filters.getByLabel('DART', { exact: true })).toHaveCount(0);
 
   await filters.getByLabel('Search').fill(DEMO.leader);
-  await page.getByRole('button', { name: 'Add to batch' }).click();
+  await page.getByRole('button', { name: 'Add these people' }).click();
   await expect(page.getByText(/^Added 1 person[.;]/)).toBeVisible();
-  const batch = page.getByRole('table', { name: 'The batch: 1 person' });
+  const batch = page.getByRole('table', { name: 'Recipient list: 1 person' });
   // Chosen by shows on a screen wide enough for every column of the batch.
   await page.setViewportSize({ width: 1600, height: 900 });
   await expect(batch.getByRole('row').filter({ hasText: DEMO.leader })).toContainText(

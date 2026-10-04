@@ -43,7 +43,7 @@ const DONATE_PATH = '/donate';
 /** The eyebrow and heading over each scope's card. */
 const CARD_HEADINGS: Record<MandateScope, { eyebrow: string; title: string }> = {
   renewal: { eyebrow: 'Membership', title: 'Automatic renewal' },
-  donation: { eyebrow: 'Giving', title: 'Recurring donation' },
+  donation: { eyebrow: 'Donation', title: 'Recurring donation' },
 };
 
 /** The member's automatic renewal, with the controls that change it. */
@@ -91,7 +91,7 @@ export function MandateCard({ scope }: MandateCardProps): JSX.Element {
     try {
       await cancel.mutateAsync();
     } catch (error) {
-      toast.show(`${title} could not be turned off. Please try again.`, 'error');
+      toast.show(`${title} wasn't turned off. Try again in a moment.`, 'error');
       throw error;
     }
     toast.show(`${title} is off.`, 'success');
@@ -295,8 +295,8 @@ function RenewalSummary({ mandate, expiresOn }: RenewalSummaryProps): JSX.Elemen
         </div>
       </dl>
       <p className="muted">
-        We will email you fourteen days before every charge. While this is on you do not get the
-        ordinary renewal reminders.
+        We will email you 14 days before every charge. While this is on you do not get the ordinary
+        renewal reminders.
       </p>
     </div>
   );
@@ -372,7 +372,7 @@ function DonationSummary({ mandate }: { mandate: RenewalMandate | null }): JSX.E
       </dl>
       <p className="muted">
         {mandate.cadence === 'yearly'
-          ? 'We will email you fourteen days before every charge.'
+          ? 'We will email you 14 days before every charge.'
           : 'We email you a receipt after every charge.'}
       </p>
     </div>

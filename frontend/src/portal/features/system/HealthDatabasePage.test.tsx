@@ -25,28 +25,28 @@ describe('HealthDatabasePage', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        'How the server is doing, the database dumps it holds, and the aircraft database it loads.',
+        'How the server is doing, the backups it holds, and the FAA aircraft data it loads.',
       ),
     ).toBeInTheDocument();
   });
 
-  it('shows Health, Backups, and Aircraft database, in that order', async () => {
+  it('shows Health, Backups, and FAA aircraft data, in that order', async () => {
     renderWithProviders(<HealthDatabasePage />);
 
     await screen.findByText('0.1.0');
     const titles = screen
       .getAllByRole('heading', { level: 2 })
       .map((heading) => heading.textContent);
-    expect(titles).toEqual(['Health', 'Backups', 'Aircraft database']);
+    expect(titles).toEqual(['Health', 'Backups', 'FAA aircraft data']);
   });
 
-  it('says what the aircraft database is and that running it again is harmless', async () => {
+  it('says what the FAA aircraft data is and when it loads', async () => {
     renderWithProviders(<HealthDatabasePage />);
 
     expect(
       await screen.findByText(
-        'Loads the FAA aircraft registry, which is what the N-number box on an aircraft form ' +
-          'offers. It runs every night and changes nothing else, so running it again is harmless.',
+        'Loads the FAA aircraft data, which is what the N-number box on an aircraft form ' +
+          'offers. It runs every night and changes nothing else.',
       ),
     ).toBeInTheDocument();
   });

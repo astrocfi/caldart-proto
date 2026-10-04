@@ -58,9 +58,9 @@ describe('reportTableColumns', () => {
     expect(phone?.dropOrder).toBe(1);
   });
 
-  it('never lets the fitter leave out a column somebody ticked beyond the defaults', () => {
+  it('never lets the fitter leave out a column somebody checked beyond the defaults', () => {
     const columns = reportTableColumns(REGISTRY, ['name', 'phone', 'notes'], CELLS, false);
-    // 14rem holds the name and one more column: the default phone goes, the ticked notes stay.
+    // 14rem holds the name and one more column: the default phone goes, the checked notes stay.
     expect(fitColumns(columns, 14).map((column) => column.key)).toEqual(['name', 'notes']);
   });
 });

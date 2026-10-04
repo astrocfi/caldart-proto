@@ -80,7 +80,8 @@ export function InsertFieldMenu({
     <PanelButton label="Insert field" legend="Fields">
       {(handleClose) => {
         if (fields.isPending) return <p>Loading the fields…</p>;
-        if (fields.isError) return <p role="alert">The fields could not be loaded.</p>;
+        if (fields.isError)
+          return <p role="alert">The fields didn&apos;t load. Try again in a moment.</p>;
         return (
           <ul className="insert-field__list">
             {fields.data.map((field) => (

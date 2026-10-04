@@ -160,7 +160,7 @@ export function useUpdateTerm(): UseMutationResult<
 }
 
 /**
- * One of the danger zone's account actions: `POST /admin/members/{id}/{action}`.
+ * One of the Delete or deactivate tab's account actions: `POST /admin/members/{id}/{action}`.
  *
  * The answer is the member record as it stands afterwards. Every member query is
  * invalidated, and so are the users list and the finance area, since deactivating or making a friend

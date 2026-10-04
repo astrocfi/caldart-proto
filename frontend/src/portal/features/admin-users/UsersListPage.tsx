@@ -2,7 +2,7 @@
  * `/admin/users` — find an account and see what it may do.
  *
  * The filters are the shared `FilterBar`, held in the address like every other list:
- * a search, a role, the kind of account, the account status, and whether the address
+ * a search, a role, the kind, the account status, and whether the address
  * bounces.  The list opens on active accounts, since a deactivated one is rarely what
  * anybody is looking for: the status's blank choice is **Active only**, so **Reset
  * filters** returns to it.
@@ -12,7 +12,7 @@
  * member and lists active accounts only: the links carry the screen's search, role,
  * kind, and Email (bounced or not) filter, never its account status.  On screen a row
  * is an account, so the Role column lists every role it holds.  The report cannot
- * follow two of the screen's choices, Donor under Kind of account (a donor holds no
+ * follow two of the screen's choices, Donor under Kind (a donor holds no
  * role) and the Member role (the report has no section for it), so while either is
  * chosen the exports and the column chooser are disabled and say why.  Name and Email
  * sort on the server; the other headings do not sort.
@@ -58,7 +58,7 @@ const FILTER_FIELDS: FilterField[] = [
   { key: 'role', label: 'Role', kind: 'select', placeholder: 'Any role', options: ROLE_CHOICES },
   {
     key: 'kind',
-    label: 'Kind of account',
+    label: 'Kind',
     kind: 'select',
     placeholder: 'Any kind',
     options: KIND_OPTIONS,
@@ -209,7 +209,7 @@ export function UsersListPage(): JSX.Element {
   return (
     <Page
       title="Users and roles"
-      lede="Search accounts, grant, or remove roles, and send a password reset."
+      lede="Find an account, grant or remove roles, and send a password reset."
     >
       <DataTable
         singleLine

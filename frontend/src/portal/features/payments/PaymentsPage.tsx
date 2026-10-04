@@ -48,8 +48,8 @@ export function PaymentsPage(): JSX.Element {
           </p>
         ) : payments.error ? (
           <EmptyState
-            title="Your payments could not be loaded"
-            description="Please reload the page, or contact CalDART if it keeps happening."
+            title="Your payments didn't load"
+            description="Reload the page, or contact CalDART if it keeps happening."
           />
         ) : (
           <PaymentsTable payments={payments.data ?? []} />

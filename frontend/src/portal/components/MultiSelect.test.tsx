@@ -93,7 +93,7 @@ describe('MultiSelect', () => {
     expect(screen.getByLabelText('County')).toHaveAttribute('aria-expanded', 'true');
   });
 
-  it('sends the ticked values in list order and keeps the panel open', async () => {
+  it('sends the checked values in list order and keeps the panel open', async () => {
     const handleChange = vi.fn();
     render(<Harness onChange={handleChange} />);
 
@@ -105,7 +105,7 @@ describe('MultiSelect', () => {
     expect(screen.getByRole('checkbox', { name: 'Napa' })).toBeChecked();
   });
 
-  it('takes back the last choice when its checkbox is unticked', async () => {
+  it('takes back the last choice when its checkbox is unchecked', async () => {
     const handleChange = vi.fn();
     render(<Harness initial={['Marin']} onChange={handleChange} />);
 

@@ -123,7 +123,7 @@ function MemberCheck({ userId, onBack: handleBack }: MemberCheckProps): JSX.Elem
       {status.isPending ? <p className="muted">Loading the status card…</p> : null}
       {status.isError ? (
         <EmptyState
-          title="That member could not be loaded"
+          title="That member didn't load"
           description={
             status.error instanceof ApiError && status.error.status === 404
               ? 'No member with that id. They may have been removed.'

@@ -60,8 +60,12 @@ describe('RenewalsPanel', () => {
     );
     renderWithProviders(<RenewalsPanel />);
 
-    expect(screen.getByLabelText('Dry run (charge nothing)')).toBeChecked();
-    await userEvent.click(screen.getByRole('button', { name: 'Run now' }));
+    expect(
+      screen.getByLabelText('Practice run: show what would happen, charge nothing'),
+    ).toBeChecked();
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Run now: automatic renewal charges' }),
+    );
 
     expect(
       await screen.findByText('Would notice 2, warn 0, charge 1, fail 0, pause 0, and skip 3.'),
@@ -73,7 +77,9 @@ describe('RenewalsPanel', () => {
     server.use(http.post(`${API}/system/renewals/run`, () => HttpResponse.json(RESULT)));
     renderWithProviders(<RenewalsPanel />);
 
-    await userEvent.click(screen.getByRole('button', { name: 'Run now' }));
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Run now: automatic renewal charges' }),
+    );
 
     expect(
       await screen.findByRole('heading', { name: 'What this run would do' }),
@@ -91,12 +97,14 @@ describe('RenewalsPanel', () => {
     );
     renderWithProviders(<RenewalsPanel />);
 
-    await userEvent.click(screen.getByRole('button', { name: 'Run now' }));
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Run now: automatic renewal charges' }),
+    );
 
     expect(await screen.findByText('Nothing was due')).toBeInTheDocument();
   });
 
-  it('charges for real once the dry-run box is cleared', async () => {
+  it('charges for real once the practice-run box is cleared', async () => {
     const bodies: unknown[] = [];
     server.use(
       http.post(`${API}/system/renewals/run`, async ({ request }) => {
@@ -106,8 +114,12 @@ describe('RenewalsPanel', () => {
     );
     renderWithProviders(<RenewalsPanel />);
 
-    await userEvent.click(screen.getByLabelText('Dry run (charge nothing)'));
-    await userEvent.click(screen.getByRole('button', { name: 'Run now' }));
+    await userEvent.click(
+      screen.getByLabelText('Practice run: show what would happen, charge nothing'),
+    );
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Run now: automatic renewal charges' }),
+    );
     expect(bodies).toEqual([]);
 
     await userEvent.click(screen.getByRole('button', { name: 'Charge what is due' }));
@@ -129,12 +141,18 @@ describe('RenewalsPanel', () => {
     );
     renderWithProviders(<RenewalsPanel />);
 
-    await userEvent.click(screen.getByLabelText('Dry run (charge nothing)'));
-    await userEvent.click(screen.getByRole('button', { name: 'Run now' }));
+    await userEvent.click(
+      screen.getByLabelText('Practice run: show what would happen, charge nothing'),
+    );
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Run now: automatic renewal charges' }),
+    );
     await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
 
     expect(bodies).toEqual([]);
-    expect(screen.getByRole('button', { name: 'Run now' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Run now: automatic renewal charges' }),
+    ).toBeInTheDocument();
   });
 
   it('reports a run the server refused', async () => {
@@ -145,7 +163,9 @@ describe('RenewalsPanel', () => {
     );
     renderWithProviders(<RenewalsPanel />);
 
-    await userEvent.click(screen.getByRole('button', { name: 'Run now' }));
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Run now: automatic renewal charges' }),
+    );
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Stripe is unreachable');
   });

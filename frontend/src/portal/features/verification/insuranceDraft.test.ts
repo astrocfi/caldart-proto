@@ -25,11 +25,11 @@ describe('draftFromAircraft', () => {
 });
 
 describe('editInsurance', () => {
-  it('unticks the insurance when a field changes', () => {
+  it('unchecks the insurance when a field changes', () => {
     expect(editInsurance(INITIAL, INITIAL, 'insurance_carrier', 'AIG').verified).toBe(false);
   });
 
-  it('keeps the tick when a field is put back to its opening value', () => {
+  it('keeps the check when a field is put back to its opening value', () => {
     const edited = { ...editInsurance(INITIAL, INITIAL, 'hull', '1'), verified: true };
     expect(editInsurance(edited, INITIAL, 'hull', '145,000').verified).toBe(true);
   });
@@ -52,11 +52,15 @@ describe('insurancePayload', () => {
 
   it('sends a blank hull as no hull value and a blank date as null', () => {
     const draft = { ...INITIAL, hull: '', insurance_expiration: '' };
-    expect(insurancePayload(INITIAL, draft)).toEqual({
+    expect(insurancePayload(INITIAL, draft)).toMatchObject({
       insurance_hull_cents: null,
       insurance_expiration: null,
-      verified: true,
     });
+  });
+
+  it('never sends a policy with no expiry date as verified', () => {
+    const draft = { ...INITIAL, insurance_expiration: '' };
+    expect(insurancePayload(INITIAL, draft).verified).toBe(false);
   });
 });
 

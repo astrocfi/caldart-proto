@@ -64,7 +64,12 @@ export function StatementsPanel(): JSX.Element {
       title="Year-end statements"
       footer={
         <>
-          <Button ref={runRef} onClick={handleRun} disabled={run.isPending || year.trim() === ''}>
+          <Button
+            ref={runRef}
+            onClick={handleRun}
+            disabled={run.isPending || year.trim() === ''}
+            aria-label={run.isPending ? undefined : 'Run now: year-end statements'}
+          >
             {run.isPending ? 'Running…' : 'Run now'}
           </Button>
           <label className="cluster">
@@ -80,7 +85,7 @@ export function StatementsPanel(): JSX.Element {
           </label>
           <label className="cluster">
             <input type="checkbox" checked={dryRun} onChange={handleDryRunChange} />
-            Dry run (send nothing)
+            Practice run: show what would happen, send nothing
           </label>
         </>
       }
@@ -88,8 +93,7 @@ export function StatementsPanel(): JSX.Element {
       <p className="muted">
         The sender runs once a year in January, for the year before. It emails every active account
         — a member, a friend, or a donor — that gave a settled contribution in the chosen year, with
-        that year&rsquo;s statement PDF attached. Running it again is harmless: an account already
-        sent a year&rsquo;s statement is not sent it twice.
+        that year&rsquo;s statement PDF attached.
       </p>
 
       {run.isSuccess ? (

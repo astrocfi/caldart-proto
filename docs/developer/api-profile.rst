@@ -144,8 +144,8 @@ Statuses:
 ===================
 
 A **genuine full update**: any writable profile field left out of the body is
-reset to its model default, so a cleared text box really is cleared, an unticked
-checkbox really is unticked, and an omitted ``dart_id`` clears the DART.  The two
+reset to its model default, so a cleared text box really is cleared, an unchecked
+checkbox really is unchecked, and an omitted ``dart_id`` clears the DART.  The two
 names are the exception: they belong to the account, not the profile, so a body
 without them leaves them as they are.
 
@@ -291,8 +291,8 @@ cross-field complaints are raised together when both apply:
 .. code-block:: json
 
    {
-     "medical_expiration": ["Give the expiration date of your medical certificate."],
-     "certificate_number": ["Give your pilot certificate number."]
+     "medical_expiration": ["Enter the medical's expiration date."],
+     "certificate_number": ["Enter the pilot certificate number."]
    }
 
 The field-level sentences are "Use a ten-digit number like 415-555-0100." for

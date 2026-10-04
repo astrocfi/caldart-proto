@@ -37,7 +37,7 @@ test('CalDART management writes a formatted email with an image, previews it, an
 
   const filters = page.getByRole('search', { name: 'Choose people to add' });
   await filters.getByLabel('Role').selectOption('management');
-  await page.getByRole('button', { name: 'Add to batch' }).click();
+  await page.getByRole('button', { name: 'Add these people' }).click();
   await expect(page.getByText(/^Added \d+ (person|people)[.;]/)).toBeVisible();
 
   await page.getByRole('radio', { name: 'Operational' }).click();

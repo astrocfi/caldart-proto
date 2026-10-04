@@ -87,7 +87,7 @@ def test_login_validates_the_payload(api_client: APIClient) -> None:
     """A login missing the password field is refused with a 400 naming ``password``."""
     response = api_client.post("/api/v1/auth/login", {"email": "someone@example.test"})
     assert response.status_code == 400
-    assert response.json()["password"] == ["This field is required."]
+    assert response.json()["password"] == ["Enter your password."]
 
 
 def test_me_reports_the_member_who_just_logged_in(

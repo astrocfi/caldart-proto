@@ -368,6 +368,7 @@
   "AircraftPilot": {
     "properties": {
       "email": "string(email)",
+      "go_no_go": "ref:LeaderGoNoGo",
       "medical_is_current": "boolean",
       "membership_status": "ref:MembershipStateEnum",
       "name": "string",
@@ -375,6 +376,7 @@
     },
     "required": [
       "email",
+      "go_no_go",
       "medical_is_current",
       "membership_status",
       "name",

@@ -83,7 +83,7 @@ describe('isGo / noGoReasons', () => {
       membership: { status: 'expired', expires_on: null, plan: 'Annual' },
       certificate: { ...current.certificate, verification: NOT_VERIFIED },
       medical: { ...current.medical, verification: NOT_VERIFIED },
-      photo_id: { type: 'not_provided', verification: NOT_VERIFIED },
+      photo_id: { type: 'passport', verification: NOT_VERIFIED },
       go_no_go: { membership: false, medical: true, verified: false },
     });
     expect(noGoReasons(status)).toEqual([
@@ -92,6 +92,45 @@ describe('isGo / noGoReasons', () => {
       'Certificate not verified',
       'Photo ID not verified',
     ]);
+  });
+
+  it('gives a non-pilot one reason, and none for the items they do not hold', () => {
+    const status = makeStatus({
+      certificate: { type: 'none', number: '', ratings: [], verification: NOT_VERIFIED },
+      medical: { type: 'none', expiration: null, is_current: false, verification: NOT_VERIFIED },
+      photo_id: { type: 'not_provided', verification: NOT_VERIFIED },
+      go_no_go: { membership: true, medical: false, verified: false },
+    });
+    expect(noGoReasons(status)).toEqual(['Not a pilot']);
+  });
+
+  it('gives a pilot with no medical one reason for it', () => {
+    const status = makeStatus({
+      medical: { type: 'none', expiration: null, is_current: false, verification: NOT_VERIFIED },
+      go_no_go: { membership: true, medical: false, verified: false },
+    });
+    expect(noGoReasons(status)).toEqual(['No medical on file']);
+  });
+
+  it('gives a lapsed medical nobody verified one reason', () => {
+    const status = makeStatus({
+      medical: {
+        type: 'third',
+        expiration: '2025-02-02',
+        is_current: false,
+        verification: NOT_VERIFIED,
+      },
+      go_no_go: { membership: true, medical: false, verified: false },
+    });
+    expect(noGoReasons(status)).toEqual(['Medical expired']);
+  });
+
+  it('says a pilot with no photo ID on file has none, not that it is unverified', () => {
+    const status = makeStatus({
+      photo_id: { type: 'not_provided', verification: NOT_VERIFIED },
+      go_no_go: { membership: true, medical: true, verified: false },
+    });
+    expect(noGoReasons(status)).toEqual(['No photo ID on file']);
   });
 
   it('is a no-go when membership and medical are current but an item is unverified', () => {
@@ -285,7 +324,7 @@ describe('MemberStatusCard', () => {
     expect(screen.getByText(/Palo Alto · Verifier/)).toBeInTheDocument();
   });
 
-  it('says an aircraft whose insurance nobody verified is not verified', () => {
+  it('reads a current policy nobody verified as Not verified in amber, as the aircraft check does', () => {
     renderWithProviders(
       <MemberStatusCard
         userId={7}
@@ -293,7 +332,61 @@ describe('MemberStatusCard', () => {
         today={TODAY}
       />,
     );
-    expect(screen.getByText(/not verified/)).toHaveTextContent('expires 03/01/2027 · not verified');
+    const row = screen.getByRole('listitem');
+    expect(within(row).getByText('Not verified').closest('[data-tone]')).toHaveAttribute(
+      'data-tone',
+      'expiring',
+    );
+    expect(within(row).queryByText('Insured')).not.toBeInTheDocument();
+  });
+
+  it('draws no mark beside items a non-pilot does not hold', () => {
+    renderWithProviders(
+      <MemberStatusCard
+        userId={7}
+        status={makeStatus({
+          certificate: { type: 'none', number: '', ratings: [], verification: NOT_VERIFIED },
+          medical: {
+            type: 'none',
+            expiration: null,
+            is_current: false,
+            verification: NOT_VERIFIED,
+          },
+          photo_id: { type: 'not_provided', verification: NOT_VERIFIED },
+          go_no_go: { membership: true, medical: false, verified: false },
+        })}
+        today={TODAY}
+      />,
+    );
+    const text = (label: string) =>
+      screen.getByText(label, { selector: 'dt' }).closest('.leader-row')?.textContent;
+    expect([text('Certificate'), text('Medical'), text('Photo ID')]).toEqual([
+      'CertificateNot a pilot',
+      'MedicalNone',
+      'Photo IDNot provided',
+    ]);
+  });
+
+  it('says Expired beside a lapsed medical, though somebody verified it', () => {
+    renderWithProviders(
+      <MemberStatusCard
+        userId={7}
+        status={makeStatus({
+          medical: {
+            type: 'basicmed',
+            expiration: '2025-02-02',
+            is_current: false,
+            verification: VERIFIED_MEDICAL,
+          },
+          go_no_go: { membership: true, medical: false, verified: true },
+        })}
+        today={TODAY}
+      />,
+    );
+    const row = screen.getByText('Medical', { selector: 'dt' }).closest('.leader-row');
+    expect(row).toHaveTextContent(
+      /^MedicalExpired\s*BasicMed · expires 02\/02\/2025\s*Verified by Dana Leader/,
+    );
   });
 });
 
@@ -338,7 +431,7 @@ describe('MemberStatusCard verification', () => {
     await user.click(screen.getByLabelText('Pilot certificate verified'));
     await user.click(screen.getByLabelText('Medical verified'));
     await user.click(screen.getByLabelText('Photo ID verified'));
-    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await user.click(screen.getByRole('button', { name: 'Save verification' }));
 
     expect(await screen.findByText('Verification saved')).toBeInTheDocument();
     expect(calls.members).toEqual([

@@ -1,7 +1,7 @@
-"""Each DART's monthly roster, emailed to the people on its list ticked to receive it.
+"""Each DART's monthly roster, emailed to the people on its list checked to receive it.
 
 The roster is due on the first run in a month in which the DART has not been sent
-one; a DART with nobody to send it to is skipped as ``no_recipients``, and a ticked
+one; a DART with nobody to send it to is skipped as ``no_recipients``, and a checked
 person without an address as ``no_email``.  ``GET /reports/rosters`` lists them and
 ``POST /reports/rosters/send`` sends every one now.
 """
@@ -41,8 +41,8 @@ def at(day: date) -> datetime:
     return timezone.make_aware(datetime.combine(day, time(12)))
 
 
-def ticked_dart(name: str = "Bay Area DART", **fields: object) -> Dart:
-    """An active DART with one person ticked to receive the roster, and one not."""
+def checked_dart(name: str = "Bay Area DART", **fields: object) -> Dart:
+    """An active DART with one person checked to receive the roster, and one not."""
     dart = DartFactory(name=name, **fields)
     DartContactFactory(dart=dart, name="Lee Park", email="lee@example.test", receives_roster=True)
     DartContactFactory(dart=dart, name="Ana Cruz", email="ana@example.test", receives_roster=False)
@@ -58,18 +58,18 @@ def named_site(settings: Settings, site_settings: SiteSettings) -> None:
 
 
 # -- who is sent it -----------------------------------------------------------
-def test_only_the_ticked_people_are_sent_the_roster(mailoutbox: list[EmailMessage]) -> None:
-    """One email per ticked person with an address; an unticked person gets none."""
-    ticked_dart()
+def test_only_the_checked_people_are_sent_the_roster(mailoutbox: list[EmailMessage]) -> None:
+    """One email per checked person with an address; an unchecked person gets none."""
+    checked_dart()
 
     run_scheduled_reports(today=TODAY)
 
     assert [message.to for message in mailoutbox] == [["lee@example.test"]]
 
 
-def test_each_ticked_person_gets_an_email_of_their_own(mailoutbox: list[EmailMessage]) -> None:
-    """Two ticked people are two emails, one to each."""
-    dart = ticked_dart()
+def test_each_checked_person_gets_an_email_of_their_own(mailoutbox: list[EmailMessage]) -> None:
+    """Two checked people are two emails, one to each."""
+    dart = checked_dart()
     DartContactFactory(dart=dart, email="kim@example.test", receives_roster=True)
 
     run_scheduled_reports(today=TODAY)
@@ -80,8 +80,8 @@ def test_each_ticked_person_gets_an_email_of_their_own(mailoutbox: list[EmailMes
     ]
 
 
-def test_a_dart_with_nobody_ticked_is_skipped(mailoutbox: list[EmailMessage]) -> None:
-    """No ticked person is ``no_recipients``, once for the DART."""
+def test_a_dart_with_nobody_checked_is_skipped(mailoutbox: list[EmailMessage]) -> None:
+    """No checked person is ``no_recipients``, once for the DART."""
     dart = DartFactory()
     DartContactFactory(dart=dart, receives_roster=False)
 
@@ -90,10 +90,10 @@ def test_a_dart_with_nobody_ticked_is_skipped(mailoutbox: list[EmailMessage]) ->
     assert run.skipped_by_reason == {"no_recipients": 1}
 
 
-def test_a_dart_whose_ticked_people_have_no_address_is_skipped(
+def test_a_dart_whose_checked_people_have_no_address_is_skipped(
     mailoutbox: list[EmailMessage],
 ) -> None:
-    """Ticked people without an address are nobody to send to."""
+    """Checked people without an address are nobody to send to."""
     dart = DartFactory()
     DartContactFactory(dart=dart, email="", receives_roster=True)
 
@@ -102,11 +102,11 @@ def test_a_dart_whose_ticked_people_have_no_address_is_skipped(
     assert run.skipped_by_reason == {"no_recipients": 1}
 
 
-def test_a_ticked_person_without_an_address_is_skipped_beside_the_others(
+def test_a_checked_person_without_an_address_is_skipped_beside_the_others(
     mailoutbox: list[EmailMessage],
 ) -> None:
     """The roster goes to the rest, and the one without an address is ``no_email``."""
-    dart = ticked_dart()
+    dart = checked_dart()
     DartContactFactory(dart=dart, email="", receives_roster=True)
 
     run = run_scheduled_reports(today=TODAY)
@@ -116,7 +116,7 @@ def test_a_ticked_person_without_an_address_is_skipped_beside_the_others(
 
 def test_an_inactive_dart_is_sent_nothing(mailoutbox: list[EmailMessage]) -> None:
     """A DART that has stood down is not sent a roster."""
-    ticked_dart(is_active=False)
+    checked_dart(is_active=False)
 
     run_scheduled_reports(today=TODAY)
 
@@ -147,7 +147,7 @@ def test_a_roster_is_due_once_a_month(
     mailoutbox: list[EmailMessage], sent_on: date | None, today: date, is_due: bool
 ) -> None:
     """Due on any run in a month the DART has not yet been sent one."""
-    ticked_dart(roster_sent_at=None if sent_on is None else at(sent_on))
+    checked_dart(roster_sent_at=None if sent_on is None else at(sent_on))
 
     run_scheduled_reports(today=today)
 
@@ -156,7 +156,7 @@ def test_a_roster_is_due_once_a_month(
 
 def test_a_sent_roster_is_stamped(mailoutbox: list[EmailMessage], today: date) -> None:
     """``roster_sent_at`` records the send, so the month's later runs send nothing."""
-    dart = ticked_dart()
+    dart = checked_dart()
 
     run_scheduled_reports()
     run_scheduled_reports()
@@ -168,7 +168,7 @@ def test_a_sent_roster_is_stamped(mailoutbox: list[EmailMessage], today: date) -
 
 def test_a_refused_roster_stays_due(refusing_mail_server: None) -> None:
     """A send the mail server refuses leaves the DART unstamped, for the next run."""
-    dart = ticked_dart()
+    dart = checked_dart()
 
     run = run_scheduled_reports(today=TODAY)
 
@@ -179,7 +179,7 @@ def test_a_refused_roster_stays_due(refusing_mail_server: None) -> None:
 
 def test_a_refused_roster_is_in_the_email_log(refusing_mail_server: None) -> None:
     """The refusal is logged under the roster's purpose."""
-    ticked_dart()
+    checked_dart()
 
     run_scheduled_reports(today=TODAY)
 
@@ -188,7 +188,7 @@ def test_a_refused_roster_is_in_the_email_log(refusing_mail_server: None) -> Non
 
 def test_a_dry_run_sends_and_stamps_nothing(mailoutbox: list[EmailMessage]) -> None:
     """A rehearsal names the person and the DART, and leaves the roster due."""
-    dart = ticked_dart()
+    dart = checked_dart()
 
     run = run_scheduled_reports(today=TODAY, dry_run=True)
 
@@ -205,7 +205,7 @@ def test_the_roster_lists_the_darts_members_with_the_roster_columns(
     mailoutbox: list[EmailMultiAlternatives], pdf_text: PdfText
 ) -> None:
     """A PDF of the DART's own members, headed by the roster's eight columns."""
-    dart = ticked_dart()
+    dart = checked_dart()
     MemberProfileFactory(user=UserFactory(first_name="Robin", last_name="Ashby"), dart=dart)
     MemberProfileFactory(user=UserFactory(first_name="Other", last_name="Team"))
 
@@ -229,7 +229,7 @@ def test_the_roster_lists_friends_and_leaves_out_deactivated_accounts_and_donors
     mailoutbox: list[EmailMultiAlternatives], pdf_text: PdfText
 ) -> None:
     """A friend is on the roster; a deactivated account and a donor never are."""
-    dart = ticked_dart()
+    dart = checked_dart()
     people: dict[str, dict[str, object]] = {
         "Fay Friend": {"kind": AccountKind.FRIEND},
         "Ian Inactive": {"is_active": False},
@@ -249,7 +249,7 @@ def test_the_roster_lists_friends_and_leaves_out_deactivated_accounts_and_donors
 
 def test_the_subject_names_the_dart_and_the_day(mailoutbox: list[EmailMessage]) -> None:
     """The subject reads ``<DART name> roster (<MM/DD/YYYY>)``."""
-    ticked_dart()
+    checked_dart()
 
     run_scheduled_reports(today=TODAY)
 
@@ -260,7 +260,7 @@ def test_the_body_matches_its_recorded_text(
     mailoutbox: list[EmailMessage], named_site: None, golden: Golden
 ) -> None:
     """The plain-text body of a roster email, whole, counting the DART's members."""
-    dart = ticked_dart()
+    dart = checked_dart()
     MemberProfileFactory(dart=dart)
     MemberProfileFactory(dart=dart)
 
@@ -294,7 +294,7 @@ def test_sending_the_rosters_is_the_account_administrators(
 
 def test_the_roster_list_counts_who_receives_each(account_admin_client: APIClient) -> None:
     """One row per active DART, by name, with its recipients and its last send."""
-    sent = ticked_dart(name="Alpha DART", roster_sent_at=at(date(2026, 9, 1)))
+    sent = checked_dart(name="Alpha DART", roster_sent_at=at(date(2026, 9, 1)))
     quiet = DartFactory(name="Beta DART")
     DartContactFactory(dart=quiet, email="", receives_roster=True)
     DartFactory(name="Gone DART", is_active=False)
@@ -316,7 +316,7 @@ def test_send_now_overrides_the_month(
     account_admin_client: APIClient, mailoutbox: list[EmailMessage], today: date
 ) -> None:
     """A DART already sent its roster this month is sent it again."""
-    ticked_dart(roster_sent_at=timezone.now())
+    checked_dart(roster_sent_at=timezone.now())
 
     response = account_admin_client.post(SEND_URL, {}, format="json")
 
@@ -328,7 +328,7 @@ def test_send_now_stamps_the_dart(
     account_admin_client: APIClient, mailoutbox: list[EmailMessage]
 ) -> None:
     """A roster sent by hand counts as the month's."""
-    dart = ticked_dart()
+    dart = checked_dart()
 
     account_admin_client.post(SEND_URL, {}, format="json")
 
@@ -340,7 +340,7 @@ def test_send_now_as_a_dry_run_names_the_people(
     account_admin_client: APIClient, mailoutbox: list[EmailMessage]
 ) -> None:
     """A rehearsal answers who would be sent the roster, and sends nothing."""
-    ticked_dart()
+    checked_dart()
 
     response = account_admin_client.post(SEND_URL, {"dry_run": True}, format="json")
 
@@ -364,7 +364,7 @@ def test_send_now_writes_one_audit_line_per_dart(
     audit_log: pytest.LogCaptureFixture,
 ) -> None:
     """Each DART's line names the caller, the DART and its own counts."""
-    dart = ticked_dart()
+    dart = checked_dart()
 
     account_admin_client.post(SEND_URL, {}, format="json")
 

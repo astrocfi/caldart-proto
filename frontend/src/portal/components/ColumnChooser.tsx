@@ -45,7 +45,7 @@ export function defaultColumnKeys(columns: readonly ReportColumn[]): string[] {
  * The chosen keys with `key` added or removed, kept in registry order.
  *
  * Order matters: the export prints the columns in the order the registry lists
- * them, so the table has to agree however the boxes were ticked.  The last
+ * them, so the table has to agree however the boxes were checked.  The last
  * column cannot be removed: an empty set would export the server's defaults
  * rather than what is on screen, and a table of nothing helps nobody.
  */

@@ -40,7 +40,7 @@ ExecStart=/opt/caldart/caldart/.venv/bin/python /opt/caldart/caldart/backend/man
 
 # A large send runs for as long as its copies take at the configured rate, so
 # no time limit cuts it short.  systemd starts no second run while this one
-# works: the timer's next tick finds the unit still active and waits.
+# works: the timer's next run finds the unit still active and waits.
 TimeoutStartSec=0
 
 # --- Hardening --------------------------------------------------------------

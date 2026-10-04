@@ -77,7 +77,7 @@ class RecipientStatus(models.TextChoices):
     back.
     """
 
-    BATCHED = "batched", "In the batch"
+    BATCHED = "batched", "On the list"
     PENDING = "pending", "Not sent yet"
     SENT = "sent", "Sent"
     FAILED = "failed", "Failed"

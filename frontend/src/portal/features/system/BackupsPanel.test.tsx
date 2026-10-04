@@ -42,9 +42,14 @@ describe('BackupsPanel', () => {
 
     expect(await screen.findByText(BACKUPS[0]!.name)).toBeInTheDocument();
     expect(screen.getByText('2.3 MB')).toBeInTheDocument();
-    const links = screen.getAllByRole('link', { name: 'Download' });
-    expect(links).toHaveLength(2);
-    expect(links[0]).toHaveAttribute('href', `/api/v1/system/backups/${BACKUPS[0]!.name}/download`);
+    expect(screen.getByRole('link', { name: `Download ${BACKUPS[0]!.name}` })).toHaveAttribute(
+      'href',
+      `/api/v1/system/backups/${BACKUPS[0]!.name}/download`,
+    );
+    expect(screen.getByRole('link', { name: `Download ${BACKUPS[1]!.name}` })).toHaveAttribute(
+      'href',
+      `/api/v1/system/backups/${BACKUPS[1]!.name}/download`,
+    );
   });
 
   it('shows an empty state when there are none', async () => {

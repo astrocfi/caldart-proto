@@ -1,13 +1,13 @@
 /**
  * The undo window's countdown, and how long things take, in words.
  *
- * The time comes from the email's `start_at` and the reader's own clock, ticking
+ * The time comes from the email's `start_at` and the reader's own clock, updating
  * once a second, so the label moves smoothly between the screen's reads of the
  * email.
  */
 import { useEffect, useState } from 'react';
 
-/** How often the countdown ticks. */
+/** How often the countdown updates. */
 const TICK_MS = 1000;
 
 /**

@@ -18,12 +18,12 @@ pages, bringing you back to the top of the table. The caption above the table sa
 many payments match.
 
 With the columns you start with, each row shows the **Date** the money arrived, the
-member's **Name** and **Email**, the **Plan**, the **Total**, the provider's **Fee**, the
+member's **Name** and **Email**, the **Plan** (a dash when none was bought), the **Total**, the provider's **Fee**, the
 **Net**, and the **Status**. More columns are a click away (see `Choose the columns`_).
 
 On a narrower screen the table leaves out the columns that matter least, one at a time,
 so the **Total** and the **Status** stay in sight: first the **Email**, then the **Plan**, the
-**Fee** and **Net**, and the **Date**. A column you tick beyond the defaults always stays. On
+**Fee** and **Net**, and the **Date**. A column you check beyond the defaults always stays. On
 a phone, where even that is too wide, the
 table scrolls sideways inside the page, a line above it says so, and the **Name** stays
 pinned at the left so you always know whose payment a row is.
@@ -37,7 +37,7 @@ A payment whose name reads **Deleted member** followed by a number, such as **De
 total; only the name changed, and the email address, which ends in ``deleted.invalid``,
 reaches nobody.
 
-The statuses are **Pending**, **Succeeded**, **Failed**, **Partly refunded**, and
+The statuses are **Pending**, **Paid**, **Failed**, **Partly refunded**, and
 **Refunded**. The providers are **Stripe**, **PayPal**, **By hand** for money you recorded
 yourself, and **Test**, which appears only on a demonstration site.
 
@@ -54,10 +54,10 @@ The filter bar above the table narrows the list:
 * **Status**, one of the five statuses above.
 * **Plan**, the membership plan the payment bought.
 * **For**, what the payment bought: **Membership**, **Contribution**, or **Membership and
-  contribution**.
+  contribution**. It starts at **Membership or contribution**, which lists them all.
 * **Method**, how it was paid: **Card**, **Apple Pay**, **Google Pay**, **Link**,
   **PayPal**, **Check**, **Cash**, **Bank transfer**, or **Other**.
-* **Reconciled**, **Matched** to a bank statement or **Not matched** yet.
+* **Reconciled**, **Reconciled** with a bank statement or **Not reconciled** yet.
 * **At least** and **At most**, bounds on the total, in whole dollars.
 * **Search**, which matches a member's name or email address, a provider's own reference
   (useful when somebody forwards you a receipt from Stripe or PayPal), or a note you

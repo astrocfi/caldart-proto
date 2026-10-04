@@ -22,7 +22,7 @@ function menu(page: Page) {
 async function addByAddress(page: Page, address: string): Promise<void> {
   const filters = page.getByRole('search', { name: 'Choose people to add' });
   await filters.getByLabel('Search').fill(address);
-  await page.getByRole('button', { name: 'Add to batch' }).click();
+  await page.getByRole('button', { name: 'Add these people' }).click();
   await expect(page.getByText(/^Added 1 person[.;]/)).toBeVisible();
 }
 

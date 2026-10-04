@@ -68,7 +68,7 @@ export const BACK_TO_DRAFT_MESSAGE =
   'The recipients changed, so this email is back in your drafts. Press Send or Schedule again when it is ready.';
 
 /** What the card says when a request fails without a message of its own. */
-const FALLBACK_ERROR = 'That did not work. Try again.';
+const FALLBACK_ERROR = "The recipient list wasn't changed. Try again in a moment.";
 
 interface RecipientsCardProps {
   emailId: number;
@@ -178,9 +178,9 @@ export function RecipientsCard({
     <Card title="1. Who gets it" className="bulk-email__card">
       {isEditable ? (
         <p className="muted">
-          The people you add make up the batch: the list this email goes to. Choose people with the
-          filters, then press <strong>Add to batch</strong>. Add as many groups as you like: nobody
-          is added twice.
+          The people you add make up the recipient list: everyone this email goes to. Choose people
+          with the filters, then press <strong>Add these people</strong>. Add as many groups as you
+          like: nobody is added twice.
         </p>
       ) : null}
       {isEditable && senderNotice !== '' ? (
@@ -206,7 +206,7 @@ export function RecipientsCard({
           <div className="stack-tight">
             <div className="cluster">
               <Button ref={addRef} onClick={handleAdd} disabled={add.isPending || isSettling}>
-                {add.isPending || isSettling ? 'Adding…' : 'Add to batch'}
+                {add.isPending || isSettling ? 'Adding…' : 'Add these people'}
               </Button>
               <AddGroupButton
                 emailId={emailId}
@@ -252,18 +252,18 @@ export function RecipientsCard({
           <SaveGroupButton emailId={emailId} />
           {isEditable ? (
             <ConfirmButton
-              label="Clear batch"
+              label="Remove everyone"
               variant="quiet"
               small
               choices={[
                 {
-                  label: 'Clear the batch',
+                  label: `Remove all ${people(count)}`,
                   variant: 'danger',
                   onChoose: () => clear.mutateAsync().then(afterChange),
                 },
               ]}
             >
-              <p>This takes all {people(count)} out of the batch. The message is kept.</p>
+              <p>This takes all {people(count)} off the recipient list. The message is kept.</p>
             </ConfirmButton>
           ) : null}
         </div>
@@ -271,7 +271,7 @@ export function RecipientsCard({
 
       {batch.isError ? (
         <p className="field__error" role="alert">
-          The batch could not be loaded.
+          The recipient list didn&apos;t load. Try again in a moment.
         </p>
       ) : (
         <BatchTable
@@ -321,7 +321,7 @@ function BatchTable({
     <div className="stack-tight">
       {batch !== undefined && batch.count > SHORT_LIST_LENGTH ? (
         <label className="cluster">
-          Find in the batch
+          Find on the list
           <input type="search" value={search} onChange={handleSearchChange} />
         </label>
       ) : null}
@@ -330,9 +330,9 @@ function BatchTable({
         columns={batchColumns(labels, onRemove)}
         rows={rows}
         rowKey={(row) => row.id}
-        caption={`The batch: ${people(batch?.count ?? 0)}`}
-        emptyTitle="Nobody is in the batch yet"
-        emptyDescription="Choose people with the filters above, then press Add to batch."
+        caption={`Recipient list: ${people(batch?.count ?? 0)}`}
+        emptyTitle="Nobody is on the recipient list yet"
+        emptyDescription="Choose people with the filters above, then press Add these people."
         isLoading={isLoading}
       />
       {isShort ? (
@@ -404,7 +404,7 @@ export function batchColumns(
             isActions: true,
             render: (row) => (
               <DeleteButton
-                label={`Remove ${row.name || row.email} from the batch`}
+                label={`Remove ${row.name || row.email} from the recipient list`}
                 confirmLabel="Remove"
                 onDelete={() => onRemove(row.id)}
               />

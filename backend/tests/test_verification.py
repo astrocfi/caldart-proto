@@ -331,10 +331,10 @@ def test_verify_member_writes_the_changes(
     assert verified_profile.photo_id_type == PhotoIdType.STATE_ID
 
 
-def test_verify_member_restamps_a_changed_item_that_is_ticked(
+def test_verify_member_restamps_a_changed_item_that_is_checked(
     dart_leader: User, member: User, verified_profile: MemberProfile, today: date
 ) -> None:
-    """A changed field clears its item first, so ticking it stamps the new verifier."""
+    """A changed field clears its item first, so checking it stamps the new verifier."""
     profile = verify_member(
         dart_leader,
         member,
@@ -347,7 +347,7 @@ def test_verify_member_restamps_a_changed_item_that_is_ticked(
     )
 
 
-def test_verify_member_leaves_a_changed_item_unticked_unverified(
+def test_verify_member_leaves_a_changed_item_unchecked_unverified(
     dart_leader: User, member: User, verified_profile: MemberProfile
 ) -> None:
     """A changed field whose item is not in ``verified`` ends unverified."""
@@ -361,8 +361,10 @@ def test_verify_member_leaves_a_changed_item_unticked_unverified(
 
 
 def test_verify_member_creates_a_missing_profile(dart_leader: User, member: User) -> None:
-    """An account with no profile row gets one, with the items verified."""
-    verify_member(dart_leader, member, changes={}, verified=["photo_id"])
+    """An account with no profile gets one, with its fields written and items verified."""
+    verify_member(
+        dart_leader, member, changes={"photo_id_type": PhotoIdType.PASSPORT}, verified=["photo_id"]
+    )
     assert MemberProfile.objects.get(user=member).photo_id_verified_by == dart_leader
 
 

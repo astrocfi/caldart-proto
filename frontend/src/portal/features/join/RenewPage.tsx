@@ -58,7 +58,7 @@ export function RenewPage(): JSX.Element {
           : 'A renewal starts the day after your current term ends, so there is no penalty for renewing early.'
       }
     >
-      <Card eyebrow="Now" title="Where you stand" className="join-card">
+      <Card eyebrow="Now" title="Your membership" className="join-card">
         {membership.isPending ? (
           <p className="muted" role="status">
             Checking your membership…

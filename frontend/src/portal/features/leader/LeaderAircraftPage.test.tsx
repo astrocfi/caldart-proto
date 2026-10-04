@@ -38,7 +38,7 @@ async function search(user: ReturnType<typeof setupUser>, text: string) {
 function registerFinds(matches: AircraftDetail[], onSearch?: (term: string) => void) {
   return [
     http.get(`${API}/aircraft/lookup`, () =>
-      HttpResponse.json({ detail: 'Not found.' }, { status: 404 }),
+      HttpResponse.json({ detail: "That isn't here. It may have been deleted." }, { status: 404 }),
     ),
     http.get(`${API}/aircraft`, ({ request }) => {
       onSearch?.(new URL(request.url).searchParams.get('search') ?? '');
@@ -177,7 +177,7 @@ describe('LeaderAircraftPage search', () => {
     const { router } = renderPage('/leader/aircraft?aircraft=N172SP');
     expect(await screen.findByText('INSURED')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: /Back to search/ }));
+    await user.click(screen.getByRole('link', { name: 'Back to search' }));
     expect(screen.getByLabelText(SEARCH_LABEL)).toBeInTheDocument();
     expect(router.state.location.search).toBe('');
   });
@@ -308,13 +308,49 @@ describe('LeaderAircraftPage card', () => {
     expect(await screen.findByText('Category not recorded')).toBeInTheDocument();
   });
 
-  it('lists the members who fly it with their own currency', async () => {
-    server.use(http.get(`${API}/leader/aircraft`, () => HttpResponse.json(makeVerifiedAircraft())));
+  /** Render the card for an aircraft flown by `pilots`, and return the pilot list. */
+  async function renderPilots(pilots: AircraftDetail['pilots']) {
+    server.use(
+      http.get(`${API}/leader/aircraft`, () => HttpResponse.json(makeVerifiedAircraft({ pilots }))),
+    );
     renderWithProviders(<LeaderAircraftPage />, { route: '/leader/aircraft?aircraft=N172SP' });
+    const heading = await screen.findByRole('heading', { name: 'Pilots who fly it' });
+    return within(heading.nextElementSibling as HTMLElement);
+  }
 
-    expect(await screen.findByText('Marta Reyes')).toBeInTheDocument();
-    expect(screen.getByText('Member current')).toBeInTheDocument();
-    expect(screen.getByText('Medical current')).toBeInTheDocument();
+  const PILOT = makeVerifiedAircraft().pilots![0]!;
+
+  it('lists the members who fly it with their membership and the member check verdict', async () => {
+    const list = await renderPilots([PILOT]);
+    expect(list.getByRole('listitem')).toHaveTextContent(
+      /^Marta ReyesMember currentCleared to flyGO$/,
+    );
+  });
+
+  it('links each pilot to their member check card', async () => {
+    const list = await renderPilots([PILOT]);
+    expect(list.getByRole('link', { name: 'Marta Reyes' })).toHaveAttribute(
+      'href',
+      '/leader?member=7',
+    );
+  });
+
+  it('calls a friend a friend, not an expired member', async () => {
+    const list = await renderPilots([
+      {
+        ...PILOT,
+        membership_status: 'friend',
+        go_no_go: { membership: false, medical: true, verified: true },
+      },
+    ]);
+    expect(list.getByText('Friend')).toBeInTheDocument();
+  });
+
+  it('reads a pilot nobody has verified NO-GO, as the member check does', async () => {
+    const list = await renderPilots([
+      { ...PILOT, go_no_go: { membership: true, medical: true, verified: false } },
+    ]);
+    expect(list.getByText('NO-GO')).toBeInTheDocument();
   });
 
   it('says when the record was last written and who wrote it', async () => {
@@ -352,7 +388,10 @@ describe('LeaderAircraftPage card', () => {
   it('explains an unknown registration', async () => {
     server.use(
       http.get(`${API}/leader/aircraft`, () =>
-        HttpResponse.json({ detail: 'Not found.' }, { status: 404 }),
+        HttpResponse.json(
+          { detail: "That isn't here. It may have been deleted." },
+          { status: 404 },
+        ),
       ),
     );
     renderWithProviders(<LeaderAircraftPage />, { route: '/leader/aircraft?aircraft=N0000X' });
@@ -364,7 +403,10 @@ describe('LeaderAircraftPage card', () => {
     const user = userEvent.setup();
     server.use(
       http.get(`${API}/leader/aircraft`, () =>
-        HttpResponse.json({ detail: 'Not found.' }, { status: 404 }),
+        HttpResponse.json(
+          { detail: "That isn't here. It may have been deleted." },
+          { status: 404 },
+        ),
       ),
     );
     const { router } = renderPage('/leader/aircraft?aircraft=N0000X');
@@ -387,12 +429,42 @@ describe('LeaderAircraftPage card', () => {
     expect(screen.getByText('Coverage is current but not verified')).toBeInTheDocument();
   });
 
+  it('reads the insurance line as Not verified, as the member check does', async () => {
+    server.use(
+      http.get(`${API}/leader/aircraft`, () =>
+        HttpResponse.json(makeVerifiedAircraft({ insurance_verification: NOT_VERIFIED })),
+      ),
+    );
+    renderWithProviders(<LeaderAircraftPage />, { route: '/leader/aircraft?aircraft=N172SP' });
+
+    const insurance = (await screen.findByText('Insurance', { selector: 'dt' })).parentElement;
+    expect(insurance).toHaveTextContent(/^InsuranceNot verified/);
+  });
+
   it('marks the insurance row with who verified it and when', async () => {
     server.use(http.get(`${API}/leader/aircraft`, () => HttpResponse.json(makeVerifiedAircraft())));
     renderWithProviders(<LeaderAircraftPage />, { route: '/leader/aircraft?aircraft=N172SP' });
 
     const row = await screen.findByText('Insurance');
     expect(row.parentElement).toHaveTextContent(/Verified by Dana Leader on 05\/01\/2026$/);
+  });
+
+  it('draws no mark on the insurance row while no policy is on file', async () => {
+    server.use(
+      http.get(`${API}/leader/aircraft`, () =>
+        HttpResponse.json(
+          makeVerifiedAircraft({
+            insurance_is_current: false,
+            insurance_expiration: null,
+            insurance_verification: NOT_VERIFIED,
+          }),
+        ),
+      ),
+    );
+    renderWithProviders(<LeaderAircraftPage />, { route: '/leader/aircraft?aircraft=N172SP' });
+
+    const row = await screen.findByText('Insurance');
+    expect(row.parentElement).not.toHaveTextContent(/verified/i);
   });
 
   it('offers a verifier Verify, and verifies the insurance from the card', async () => {
@@ -409,7 +481,7 @@ describe('LeaderAircraftPage card', () => {
 
     await user.click(await screen.findByRole('button', { name: 'Verify' }));
     await user.click(screen.getByLabelText('Insurance verified'));
-    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await user.click(screen.getByRole('button', { name: 'Save verification' }));
 
     expect(await screen.findByText('Verification saved')).toBeInTheDocument();
     expect(calls.aircraft).toEqual([{ aircraftId: 1, body: { verified: true } }]);

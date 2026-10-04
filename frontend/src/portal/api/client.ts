@@ -21,25 +21,41 @@ const CSRF_COOKIE = 'csrftoken';
 /** How DRF starts the `detail` of a 403 it raised before the view ran. */
 const CSRF_FAILURE_PREFIX = 'CSRF Failed';
 
+/** What a person reads when a read fails and the server said nothing usable. */
+export const LOAD_FAILED_MESSAGE = "That didn't load. Try again in a moment.";
+
+/** What a person reads when a change fails and the server said nothing usable. */
+export const SAVE_FAILED_MESSAGE = "That didn't save. Try again in a moment.";
+
 /** A non-2xx response, with the DRF error body attached. */
 export class ApiError extends Error {
   readonly status: number;
   readonly body: unknown;
 
-  constructor(status: number, body: unknown, message?: string) {
-    super(message ?? ApiError.messageFor(status, body));
+  /**
+   * @param status the response's HTTP status.
+   * @param body the parsed error body, or `null`.
+   * @param method the request's method, which picks the fallback message: a safe method
+   * failed to load, any other failed to save.
+   */
+  constructor(status: number, body: unknown, method = 'GET') {
+    super(ApiError.messageFor(status, body, method));
     this.name = 'ApiError';
     this.status = status;
     this.body = body;
   }
 
-  static messageFor(status: number, body: unknown): string {
+  /**
+   * The sentence to show for a failed request: the server's own when it sent one,
+   * otherwise a plain one for the status and the kind of request.
+   */
+  static messageFor(status: number, body: unknown, method = 'GET'): string {
     const detail = ApiError.readDetail(body);
     if (detail) return detail;
     if (status === 401) return 'You need to sign in to do that.';
     if (status === 403) return 'You do not have permission to do that.';
-    if (status === 404) return 'Not found.';
-    return `Request failed (${status}).`;
+    if (status === 404) return "That isn't here. It may have been deleted.";
+    return SAFE_METHODS.has(method.toUpperCase()) ? LOAD_FAILED_MESSAGE : SAVE_FAILED_MESSAGE;
   }
 
   private static readDetail(body: unknown): string | null {
@@ -74,6 +90,11 @@ export class ApiError extends Error {
   }
 }
 
+/** True when `error` is the server saying the thing asked for is not there (a 404). */
+export function isNotFound(error: unknown): boolean {
+  return error instanceof ApiError && error.status === 404;
+}
+
 /**
  * A 2xx response whose body is not the JSON the caller was typed to expect.
  *
@@ -85,7 +106,7 @@ export class UnexpectedResponseError extends Error {
   readonly contentType: string | null;
 
   constructor(status: number, contentType: string | null, options?: ErrorOptions) {
-    super('The server sent an unexpected response. Please try again.', options);
+    super("CalDART sent an answer the portal couldn't read. Try again in a moment.", options);
     this.name = 'UnexpectedResponseError';
     this.status = status;
     this.contentType = contentType;
@@ -299,13 +320,13 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
 
   const body = await parseErrorBody(response);
   if (!isUnsafe || !isCsrfFailure(response.status, body)) {
-    throw new ApiError(response.status, body);
+    throw new ApiError(response.status, body, method);
   }
 
   await ensureCsrfToken({ force: true });
   const retried = await send(url, method, options);
   if (retried.ok) return (await parseSuccessBody(retried)) as T;
-  throw new ApiError(retried.status, await parseErrorBody(retried));
+  throw new ApiError(retried.status, await parseErrorBody(retried), method);
 }
 
 export const api = {

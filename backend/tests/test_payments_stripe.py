@@ -1037,7 +1037,7 @@ def test_a_stripe_error_leaves_the_refund_failed(
 
     monkeypatch.setattr(stripe_provider, "stripe_client", client)
 
-    with pytest.raises(ProviderUnavailableError, match="Stripe could not be reached"):
+    with pytest.raises(ProviderUnavailableError, match="Stripe didn't answer"):
         issue_refund(payment, amount_cents=1_500, reason=RefundReason.ERROR, actor=account_admin)
 
     assert Refund.objects.get().status == RefundStatus.FAILED

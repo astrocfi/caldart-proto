@@ -1,5 +1,6 @@
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { HttpResponse, http } from 'msw';
 import { describe, expect, it } from 'vitest';
 
 import type { BulkEmailDetail } from '@/portal/api/types';
@@ -13,7 +14,7 @@ import {
   makeBulkEmail,
   makeRow,
 } from '@test/fixtures/bulkEmail';
-import { makeUser, signedInAs } from '@test/handlers';
+import { API, makeUser, signedInAs } from '@test/handlers';
 import { renderRoutes } from '@test/render';
 import { server } from '@test/server';
 import { headerWords, tableHeaders } from '@test/table';
@@ -60,7 +61,7 @@ describe('SentDetailPage', () => {
     expect(screen.queryByRole('button', { name: 'Retry failed' })).not.toBeInTheDocument();
   });
 
-  it('offers Duplicate with its whole question under Where it stands', async () => {
+  it('offers Duplicate with its whole question under Sending progress', async () => {
     const user = userEvent.setup();
     renderSent();
     await user.click(await screen.findByRole('button', { name: 'Duplicate' }));
@@ -92,13 +93,13 @@ describe('SentDetailPage', () => {
 
   it('says the fields show as written when the message fills any in', async () => {
     renderSent({ body: '<p>Dear {first_name|friend},</p>' });
-    expect(await screen.findByText(/Fields such as \{first_name\} show as written/)).toBeVisible();
+    expect(await screen.findByText(/Recipient fields show here in braces/)).toBeVisible();
   });
 
   it('says nothing of fields when the message fills none in', async () => {
     renderSent();
     await screen.findByTitle('The message as it was sent');
-    expect(screen.queryByText(/Fields such as/)).toBeNull();
+    expect(screen.queryByText(/Recipient fields show here/)).toBeNull();
   });
 
   it('names the type it was sent as', async () => {
@@ -137,5 +138,24 @@ describe('SentDetailPage', () => {
     renderSent();
     const headers = tableHeaders(await screen.findByRole('table'));
     expect([headers[0], headers[1], headers.at(-1)]).toEqual(['Name', 'Result', 'Copy']);
+  });
+});
+
+describe('SentDetailPage, for an email that is gone', () => {
+  it('says the email is not there rather than to try again', async () => {
+    server.use(
+      http.get(`${API}/bulk-email/9`, () =>
+        HttpResponse.json(
+          { detail: "That isn't here. It may have been deleted." },
+          { status: 404 },
+        ),
+      ),
+    );
+    renderRoutes([{ path: '/bulk-email/sent/:id', element: <SentDetailPage /> }], {
+      route: '/bulk-email/sent/9',
+    });
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      "This email isn't here. It may have been deleted.",
+    );
   });
 });

@@ -61,6 +61,11 @@ export function fieldErrors(error: unknown): Record<string, string> {
   return out;
 }
 
+/** A DART's member count as words, such as "1 member" or "4 members". */
+function memberCount(dart: AdminDart): string {
+  return `${dart.member_count} member${dart.member_count === 1 ? '' : 's'}`;
+}
+
 /**
  * What deleting this DART leaves behind, as one sentence, or null when nothing.
  *
@@ -72,8 +77,7 @@ export function fieldErrors(error: unknown): Record<string, string> {
 export function deleteWarning(dart: AdminDart): string | null {
   const clauses: string[] = [];
   if (dart.member_count > 0) {
-    const members = `${dart.member_count} member${dart.member_count === 1 ? '' : 's'}`;
-    clauses.push(`makes its ${members} unaffiliated`);
+    clauses.push(`makes its ${memberCount(dart)} unaffiliated`);
   }
   if (dart.page_count > 0) {
     const pages = `${dart.page_count} website page${dart.page_count === 1 ? '' : 's'}`;
@@ -173,7 +177,12 @@ export function DartsPage(): JSX.Element {
       sortable: false,
       render: (dart) =>
         dart.website_url ? (
-          <a href={dart.website_url} target="_blank" rel="noreferrer">
+          <a
+            href={dart.website_url}
+            target="_blank"
+            rel="noreferrer"
+            aria-label={`Visit ${dart.name}'s website`}
+          >
             Visit
           </a>
         ) : (
@@ -206,7 +215,12 @@ export function DartsPage(): JSX.Element {
       dropOrder: 5,
       render: (dart) =>
         dart.member_count > 0 ? (
-          <Link to={`/admin/members?dart=${dart.id}`}>{dart.member_count}</Link>
+          <Link
+            to={`/admin/members?dart=${dart.id}`}
+            aria-label={`${dart.name}: ${memberCount(dart)}`}
+          >
+            {dart.member_count}
+          </Link>
         ) : (
           dart.member_count
         ),
@@ -232,7 +246,12 @@ export function DartsPage(): JSX.Element {
       isActions: true,
       narrowWidth: '5rem',
       render: (dart) => (
-        <Button variant="quiet" small onClick={() => setEditing(dart.id)}>
+        <Button
+          variant="quiet"
+          small
+          aria-label={`Edit ${dart.name}`}
+          onClick={() => setEditing(dart.id)}
+        >
           Edit
         </Button>
       ),
@@ -252,14 +271,14 @@ export function DartsPage(): JSX.Element {
               setEditing('new');
             }}
           >
-            Add a DART
+            New DART
           </Button>
         ) : null
       }
     >
       <div ref={formRef}>
         {editing === 'new' ? (
-          <Card eyebrow="New" title="Add a DART">
+          <Card eyebrow="New" title="New DART">
             <DartForm
               initial={emptyDartValues()}
               submitLabel="Add DART"
@@ -277,7 +296,7 @@ export function DartsPage(): JSX.Element {
             <DartForm
               key={open.id}
               initial={dartToValues(open)}
-              submitLabel="Save DART"
+              submitLabel="Save changes"
               pending={update.isPending}
               errors={fieldErrors(update.error)}
               serverError={update.error}

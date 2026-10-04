@@ -58,7 +58,7 @@ export function RefundForm({ payment, onDone, onCancel }: RefundFormProps): JSX.
   const [reason, setReason] = useState<RefundReason>('requested_by_member');
   const [note, setNote] = useState('');
   const [cancelTerm, setCancelTerm] = useState(shouldCancelTerm(payment, remaining));
-  // Once the treasurer has ticked or unticked the box themselves, the amount
+  // Once the treasurer has checked or unchecked the box themselves, the amount
   // stops speaking for them: it is their decision, not a running suggestion.
   const [hasChosenCancel, setHasChosenCancel] = useState(false);
   const refund = useIssueRefund(payment.id);
@@ -68,7 +68,7 @@ export function RefundForm({ payment, onDone, onCancel }: RefundFormProps): JSX.
     refund.error instanceof ApiError
       ? reportedErrors(refund.error)
       : refund.error
-        ? { detail: 'Something went wrong. Please try again.' }
+        ? { detail: "The refund wasn't recorded. Try again in a moment." }
         : {};
   const toast = useToast();
   const formRef = useRef<HTMLFormElement>(null);
@@ -122,7 +122,7 @@ export function RefundForm({ payment, onDone, onCancel }: RefundFormProps): JSX.
       <h3 id="refund-form">Refund this payment</h3>
       <p className="muted">{formatCents(remaining)} of this payment is left to refund.</p>
 
-      <Field label="Amount" hint="Dollars" error={shown.amount_cents} required>
+      <Field label="Amount" hint="In US dollars." error={shown.amount_cents} required>
         {(props) => (
           <input
             {...props}

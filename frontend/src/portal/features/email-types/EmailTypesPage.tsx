@@ -1,7 +1,7 @@
 /**
  * `/bulk-email/types` — the types of bulk email, for a system administrator.
  *
- * One table, in a card, and one form: **Add an email type** opens the form empty and
+ * One table, in a card, and one form: **New email type** opens the form empty and
  * each row's **Edit** opens it on that type, above the table.  The focus moves into the
  * form as it opens, scrolling it into view, and back to the button that opened it as it
  * closes, Escape included; a toast says what each save and delete did. Each row's trashcan asks before it
@@ -183,7 +183,7 @@ export function EmailTypesPage(): JSX.Element {
       actions={
         openForm === null ? (
           <Button ref={addRef} onClick={handleAdd}>
-            Add an email type
+            New email type
           </Button>
         ) : null
       }
@@ -192,7 +192,7 @@ export function EmailTypesPage(): JSX.Element {
         {openForm?.mode === 'new' ? (
           <Card eyebrow="New" title="Add an email type">
             <EmailTypeForm
-              submitLabel="Add type"
+              submitLabel="Add email type"
               pending={create.isPending}
               error={create.error}
               onSubmit={handleCreate}
@@ -206,7 +206,7 @@ export function EmailTypesPage(): JSX.Element {
             <EmailTypeForm
               key={editing.id}
               emailType={editing}
-              submitLabel="Save type"
+              submitLabel="Save changes"
               pending={update.isPending}
               error={update.error}
               onSubmit={(input) => handleUpdate(editing.id, input)}
@@ -229,20 +229,19 @@ export function EmailTypesPage(): JSX.Element {
           emptyAction={
             openForm === null ? (
               <Button variant="secondary" onClick={handleAdd}>
-                Add an email type
+                New email type
               </Button>
             ) : undefined
           }
         />
         {types.isError ? (
           <p className="field__error" role="alert">
-            The email types could not be loaded.
+            The email types didn&apos;t load. Try again in a moment.
           </p>
         ) : null}
         {types.isSuccess && rows.some((emailType) => emailType.in_use) ? (
           <p className="muted">
-            A grayed trashcan marks a type a bulk email has used, which cannot be deleted. Take the
-            senders off it instead to stop it being sent.
+            A type that has been used can&apos;t be deleted. To retire it, remove its senders.
           </p>
         ) : null}
       </Card>

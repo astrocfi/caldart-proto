@@ -49,7 +49,7 @@ export function ProfileForm({
   initialValues,
   onSubmit,
   submitting = false,
-  submitLabel = 'Save profile',
+  submitLabel = 'Save changes',
   serverErrors,
   serverError,
   secondaryAction,

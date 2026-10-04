@@ -3,7 +3,7 @@
  * and brings the account back from the sign-in page with the same password.
  *
  * An account administrator deactivates and reactivates somebody else's account from
- * the member record's Danger zone, and a user administrator blocks an account from
+ * the member record's Delete or deactivate tab, and a user administrator blocks an account from
  * reactivating, after which its owner is told it has been closed.
  */
 import { expect, test } from '@playwright/test';
@@ -50,7 +50,7 @@ async function freshFriend(page: Page, prefix: string): Promise<string> {
   return email;
 }
 
-/** Open the member record of the account at `email` on its Danger zone tab. */
+/** Open the member record of the account at `email` on its Delete or deactivate tab. */
 async function openDangerZone(page: Page, email: string): Promise<void> {
   const found = (await (
     await page.request.get(
@@ -60,7 +60,7 @@ async function openDangerZone(page: Page, email: string): Promise<void> {
   const row = found.results[0];
   expect(row).toBeDefined();
   await page.goto(`portal/admin/members/${row?.user_id ?? 0}`);
-  await page.getByRole('tab', { name: 'Danger zone' }).click();
+  await page.getByRole('tab', { name: 'Delete or deactivate' }).click();
 }
 
 test('a person deactivates their account and reactivates it at sign-in', async ({ page }) => {

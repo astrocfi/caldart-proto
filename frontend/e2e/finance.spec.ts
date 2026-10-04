@@ -113,7 +113,7 @@ test('a seeded refund is on the payment it came out of', async ({ page }) => {
   await expect(
     page.getByRole('heading', { name: `Payment ${SEED.refundedPayment.receiptNumber}` }),
   ).toBeVisible();
-  await expect(page.getByRole('table')).toContainText('Succeeded');
+  await expect(page.getByRole('table')).toContainText('Refunded');
 });
 
 // A payment recorded by hand is the one a refund can be demonstrated on without

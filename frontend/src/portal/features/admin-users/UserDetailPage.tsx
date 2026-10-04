@@ -107,7 +107,7 @@ export function UserDetailPage(): JSX.Element {
     return (
       <Page title="User record">
         <EmptyState
-          title="That account could not be loaded"
+          title="That account didn't load"
           description="It may have been deleted. Go back to the list and search again."
           action={<Link to="/admin/users">Back to users</Link>}
         />
@@ -140,7 +140,7 @@ export function UserDetailPage(): JSX.Element {
       lede={user.email}
       actions={<Link to="/admin/users">Back to users</Link>}
     >
-      <Card eyebrow="Membership" title="Where this account stands">
+      <Card eyebrow="Membership" title="Membership">
         <div className="cluster">
           <span>{ACCOUNT_KIND_LABELS[user.kind]}</span>
           <MembershipDot membership={user.membership} />
@@ -201,9 +201,9 @@ export function UserDetailPage(): JSX.Element {
           <Field
             label="Email address"
             error={emailError ?? serverErrors.email}
-            hint={
+            hint="This is also how they sign in."
+            status={
               <>
-                This is also how they sign in.{' '}
                 <EmailVerifiedText verifiedAt={user.email_verified_at} />{' '}
                 <BouncedDot bouncedAt={user.email_bounced_at} detail={user.email_bounce_detail} />
               </>
@@ -301,7 +301,7 @@ export function UserDetailPage(): JSX.Element {
                 update.reset();
               }}
             >
-              Reset form
+              Cancel
             </Button>
             <RefusedSubmitNote count={refusal.count} />
           </div>

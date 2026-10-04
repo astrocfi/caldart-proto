@@ -266,6 +266,19 @@ is a single string; non-field errors use ``detail`` or ``non_field_errors``:
 
    {"detail": "You do not have permission to perform this action."}
 
+A field a person fills in on a form answers a box left empty in its own words
+rather than DRF's stock "This field may not be blank." or "This field is required.":
+``caldart.messages.when_missing`` builds the ``error_messages`` for it, such as
+*Enter your first name.* on registration and *Give the template a name.* on a
+template, and ``caldart.messages.email_messages`` adds *Enter an email address,
+such as name@example.org.* for an address that does not parse.  The pages below
+quote each one where it applies.
+
+A **404** whose ``detail`` would be Django's or DRF's own sentence (*No User matches
+the given query.*, *Not found.*) reads *That isn't here. It may have been deleted.*
+instead; a 404 a view raises with its own sentence, such as *No contributions in that
+year.*, keeps it.
+
 Validation failures are **400**, permission failures **403**, missing objects
 **404**, and a method a view does not implement **405** (several detail views
 restrict ``http_method_names``, so ``PUT`` where only ``PATCH`` is offered is a

@@ -47,7 +47,7 @@ function kindField(labels: Record<ReminderKind, string>): FilterField {
     key: 'kind',
     label: 'Reminder',
     kind: 'select',
-    placeholder: 'Any kind',
+    placeholder: 'Any reminder',
     options: REMINDER_KINDS.map((option) => ({ value: option, label: labels[option] })),
   };
 }

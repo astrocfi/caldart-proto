@@ -245,8 +245,8 @@ const CALLSIGN_RE = /^(?:[KNW][A-Z]?|A[A-L])[0-9][A-Z]{1,3}$/;
 const CALLSIGN_MESSAGE = 'Enter a US amateur radio callsign, such as W6ABC.';
 
 const NAME_MESSAGES: Record<ProfileNameKey, string> = {
-  first_name: 'Your first name is required.',
-  last_name: 'Your last name is required.',
+  first_name: 'Enter your first name.',
+  last_name: 'Enter your last name.',
 };
 
 const POSTAL_RE = /^\d{5}$/;
@@ -300,11 +300,11 @@ export const REQUIRED_PROFILE_FIELDS = [
 ] as const satisfies readonly (keyof ProfileFormValues)[];
 
 const REQUIRED_MESSAGES: Record<(typeof REQUIRED_PROFILE_FIELDS)[number], string> = {
-  phone: 'A phone number is required.',
-  address_line1: 'Your street address is required.',
-  city: 'Your city is required.',
+  phone: 'Enter a phone number.',
+  address_line1: 'Enter your street address.',
+  city: 'Enter your city.',
   state: 'Choose your state.',
-  postal_code: 'Your ZIP code is required.',
+  postal_code: 'Enter your ZIP code.',
   pilot_certificate_type: 'Choose a certificate, or "Not a pilot".',
 };
 
@@ -357,15 +357,15 @@ export function validateProfileForm(
 
   const postal = values.postal_code.trim();
   if (postal && !POSTAL_RE.test(postal)) {
-    errors.postal_code = 'Use a five-digit ZIP code like 95035.';
+    errors.postal_code = 'Use a 5-digit ZIP code, such as 95035.';
   }
 
   if (values.medical_type !== 'none' && !values.medical_expiration) {
-    errors.medical_expiration = 'Give the expiration date of your medical certificate.';
+    errors.medical_expiration = "Enter the medical's expiration date.";
   }
 
   if (values.pilot_certificate_type !== 'none' && !values.certificate_number.trim()) {
-    errors.certificate_number = 'Give your pilot certificate number.';
+    errors.certificate_number = 'Enter the pilot certificate number.';
   }
 
   const hours = values.total_hours.trim();

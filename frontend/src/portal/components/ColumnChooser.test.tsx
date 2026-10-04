@@ -32,7 +32,7 @@ describe('toggleColumn', () => {
     expect(toggleColumn(TEST_COLUMNS, ['name'], 'name')).toEqual(['name']);
   });
 
-  it('keeps the chosen columns in registry order however they were ticked', () => {
+  it('keeps the chosen columns in registry order however they were checked', () => {
     expect(toggleColumn(TEST_COLUMNS, ['total', 'name'], 'paid_on')).toEqual([
       'paid_on',
       'name',
@@ -97,7 +97,7 @@ describe('ColumnChooser', () => {
     expect(screen.getAllByRole('checkbox')).toHaveLength(TEST_COLUMNS.length);
   });
 
-  it('reports the column that was ticked', async () => {
+  it('reports the column that was checked', async () => {
     const user = userEvent.setup();
     const handleChange = vi.fn();
     renderWithProviders(<Harness onChange={handleChange} />);
@@ -144,7 +144,7 @@ describe('ColumnChooser', () => {
     expect(screen.getByRole('button', { name: 'Columns' })).toHaveFocus();
   });
 
-  it('stays open while the boxes are being ticked', async () => {
+  it('stays open while the boxes are being checked', async () => {
     const user = userEvent.setup();
     renderWithProviders(<Harness onChange={handleNothing} />);
 
@@ -345,14 +345,19 @@ describe('ColumnChooser Load columns', () => {
     const { user } = await openWithSets(SAVED_SETS, 'Load columns');
     server.use(
       http.delete(`${API}/reports/payments/column-sets/7`, () =>
-        HttpResponse.json({ detail: 'Not found.' }, { status: 404 }),
+        HttpResponse.json(
+          { detail: "That isn't here. It may have been deleted." },
+          { status: 404 },
+        ),
       ),
     );
 
     await user.click(await screen.findByRole('button', { name: 'Delete the saved set Audit' }));
     await user.click(screen.getByRole('button', { name: 'Delete' }));
 
-    expect(await within(loadPanel()).findByRole('alert')).toHaveTextContent('Not found.');
+    expect(await within(loadPanel()).findByRole('alert')).toHaveTextContent(
+      "That isn't here. It may have been deleted.",
+    );
   });
 
   it('says so when the saved sets cannot be read', async () => {

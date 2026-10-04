@@ -65,7 +65,7 @@ first thing a DART leader checks before letting you fly a mission.
       :caption: The life of a membership. A solid box is a state CalDART works out
                 for you. A dashed box is a warning or a special case inside one:
                 *Expiring soon* is still current, and *Life member* is a current
-                term with no end date. The boxes at the foot are the five renewal
+                term with no end date. The boxes at the bottom are the five renewal
                 emails, in the order they are sent.
       :alt: The states of a CalDART membership, from visitor to expired, drawn top to bottom
 
@@ -225,7 +225,7 @@ your roles open. :doc:`roles` lists every screen each one reaches.
   members as a DART leader does.
 
 **CalDART management**
-  Writes to the membership as a whole: one email to a batch of members and friends,
+  Writes to the membership as a whole: one email to many members and friends,
   sent now or at a time chosen ahead. Keeps templates and recipient groups to use
   again, sends mission callouts and collects who can fly, and checks that other mail
   systems will trust the email CalDART sends.

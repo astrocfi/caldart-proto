@@ -52,7 +52,7 @@ describe('reportKindLabel', () => {
 describe('reportSkippedBreakdown', () => {
   it('names each reason in words', () => {
     expect(reportSkippedBreakdown({ no_recipients: 2, no_email: 1, not_permitted: 1 })).toBe(
-      'Skipped: no longer permitted 1, nobody ticked 2, no address on file 1.',
+      'Skipped: no longer permitted 1, nobody to send to 2, no address on file 1.',
     );
   });
 

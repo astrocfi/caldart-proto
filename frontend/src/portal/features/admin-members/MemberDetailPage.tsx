@@ -10,13 +10,12 @@
  */
 import { useRef } from 'react';
 import type { JSX } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 
 import type { MemberDetail } from '@/portal/api/types';
 import { useAuth } from '@/portal/auth/useAuth';
 import { ACCOUNT_KIND_LABELS, roleLabel } from '@/portal/choices';
 import { BouncedDot } from '@/portal/components/BouncedDot';
-import { ButtonLink } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { DateText } from '@/portal/components/DateText';
 import { EmptyState } from '@/portal/components/EmptyState';
@@ -34,7 +33,7 @@ const TABS = [
   { id: 'profile', label: 'Profile' },
   { id: 'memberships', label: 'Memberships' },
   { id: 'payments', label: 'Payments' },
-  { id: 'danger', label: 'Danger zone' },
+  { id: 'danger', label: 'Delete or deactivate' },
 ] as const;
 
 type TabId = (typeof TABS)[number]['id'];
@@ -187,9 +186,9 @@ export function MemberDetailPage(): JSX.Element {
     return (
       <Page title="Member">
         <EmptyState
-          title="That member could not be loaded"
+          title="That member didn't load"
           description="They may have been deleted."
-          action={<ButtonLink to="/admin/members">Back to members</ButtonLink>}
+          action={<Link to="/admin/members">Back to members</Link>}
         />
       </Page>
     );
@@ -202,11 +201,7 @@ export function MemberDetailPage(): JSX.Element {
     <Page
       title={record.name}
       tabTitle={`${record.name} · Member record`}
-      actions={
-        <ButtonLink to={home.to} variant="quiet">
-          {home.label}
-        </ButtonLink>
-      }
+      actions={<Link to={home.to}>{home.label}</Link>}
     >
       <MemberHeader member={record} />
       <Tabs active={active} onSelect={handleSelectTab} />

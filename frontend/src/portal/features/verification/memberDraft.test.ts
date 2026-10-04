@@ -19,11 +19,11 @@ describe('editField', () => {
     ['medical_type', 'second', ['certificate', 'photo_id']],
     ['medical_expiration', '2028-01-01', ['certificate', 'photo_id']],
     ['photo_id_type', 'drivers_license', ['certificate', 'medical']],
-  ] as const)('unticks the item %s belongs to', (field, value, left) => {
+  ] as const)('unchecks the item %s belongs to', (field, value, left) => {
     expect(editField(INITIAL, INITIAL, field, value).verified).toEqual(left);
   });
 
-  it('leaves the ticks alone when a field is put back to the value it opened with', () => {
+  it('leaves the checks alone when a field is put back to the value it opened with', () => {
     const edited = toggleItem(
       editField(INITIAL, INITIAL, 'medical_type', 'second'),
       'medical',
@@ -38,19 +38,19 @@ describe('editField', () => {
 });
 
 describe('toggleItem', () => {
-  it('keeps the ticked items in the order the screens list them', () => {
+  it('keeps the checked items in the order the screens list them', () => {
     const none = { ...INITIAL, verified: [] };
-    const ticked = toggleItem(toggleItem(none, 'photo_id', true), 'certificate', true);
-    expect(ticked.verified).toEqual(['certificate', 'photo_id']);
+    const checked = toggleItem(toggleItem(none, 'photo_id', true), 'certificate', true);
+    expect(checked.verified).toEqual(['certificate', 'photo_id']);
   });
 
-  it('unticks an item', () => {
+  it('unchecks an item', () => {
     expect(toggleItem(INITIAL, 'medical', false).verified).toEqual(['certificate', 'photo_id']);
   });
 });
 
 describe('memberVerificationPayload', () => {
-  it('sends only the ticked items when no field changed', () => {
+  it('sends only the checked items when no field changed', () => {
     expect(memberVerificationPayload(INITIAL, INITIAL)).toEqual({
       verified: ['certificate', 'medical', 'photo_id'],
     });
@@ -69,12 +69,22 @@ describe('memberVerificationPayload', () => {
     expect(memberVerificationPayload(INITIAL, draft)).toEqual({
       medical_type: 'none',
       medical_expiration: null,
-      verified: ['certificate', 'medical', 'photo_id'],
+      verified: ['certificate', 'photo_id'],
     });
   });
 
   it('sends a changed photo ID', () => {
     const draft = { ...INITIAL, photo_id_type: 'other' as const };
     expect(memberVerificationPayload(INITIAL, draft).photo_id_type).toBe('other');
+  });
+
+  it('never sends an item the person does not hold', () => {
+    const draft: MemberVerificationDraft = {
+      ...INITIAL,
+      pilot_certificate_type: 'none',
+      certificate_number: '',
+      photo_id_type: 'not_provided',
+    };
+    expect(memberVerificationPayload(INITIAL, draft).verified).toEqual(['medical']);
   });
 });

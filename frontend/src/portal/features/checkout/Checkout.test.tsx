@@ -351,7 +351,7 @@ describe('Checkout', () => {
       ),
     );
     renderWithProviders(<Checkout mode="join" onSuccess={() => {}} />);
-    expect(await screen.findByText('Payment options could not be loaded')).toBeInTheDocument();
+    expect(await screen.findByText("Payment options didn't load")).toBeInTheDocument();
   });
 
   it('moves between tabs with the arrow keys', async () => {
@@ -594,7 +594,7 @@ describe('Checkout · PayPal', () => {
 
     const panel = await screen.findByRole('tabpanel');
     expect(await within(panel).findByRole('alert')).toHaveTextContent(
-      'PayPal could not be reached. Please try again.',
+      "PayPal didn't answer. Try again in a moment.",
     );
   });
 
@@ -688,7 +688,7 @@ describe('Checkout · renewing automatically', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('asks the server to save the method when the box is ticked', async () => {
+  it('asks the server to save the method when the box is checked', async () => {
     const user = userEvent.setup();
     serveConfig(config());
     const requests = serveCheckout();
@@ -825,7 +825,7 @@ describe('Checkout · a way to skip', () => {
     const handleSkip = vi.fn();
     renderWithProviders(<Checkout mode="contribute" onSuccess={() => {}} onSkip={handleSkip} />);
 
-    await screen.findByText('Payment options could not be loaded');
+    await screen.findByText("Payment options didn't load");
     await userEvent.click(screen.getByRole('button', { name: 'Not now' }));
 
     expect(handleSkip).toHaveBeenCalledOnce();
@@ -877,8 +877,8 @@ describe('Checkout · recurring donation', () => {
     return setups;
   }
 
-  /** Render the contribution form, choose Participating, and tick the box. */
-  async function tickRecurring(
+  /** Render the contribution form, choose Participating, and check the box. */
+  async function checkRecurring(
     props: Partial<Parameters<typeof Checkout>[0]> = {},
   ): Promise<ReturnType<typeof userEvent.setup>> {
     const user = userEvent.setup();
@@ -889,7 +889,7 @@ describe('Checkout · recurring donation', () => {
     return user;
   }
 
-  it('offers to make the contribution a recurring donation, unticked', async () => {
+  it('offers to make the contribution a recurring donation, unchecked', async () => {
     const user = userEvent.setup();
     serveConfig(config());
     renderWithProviders(<Checkout mode="contribute" onSuccess={() => {}} />);
@@ -902,14 +902,14 @@ describe('Checkout · recurring donation', () => {
   });
 
   it('opens on a monthly donation whose first charge is today', async () => {
-    await tickRecurring();
+    await checkRecurring();
 
     expect(screen.getByRole('radio', { name: 'Monthly' })).toBeChecked();
     expect(screen.getByLabelText('First charge on')).toHaveValue(todayIso());
   });
 
   it('says a first charge today is taken now, and receipted each month', async () => {
-    await tickRecurring();
+    await checkRecurring();
 
     expect(
       screen.getByText(/CalDART charges \$20\.00 today, and each month after that\./),
@@ -919,7 +919,7 @@ describe('Checkout · recurring donation', () => {
   it('pays today and asks for the donation on the chosen cadence', async () => {
     serveMockSuccess();
     const requests = serveCheckout();
-    const user = await tickRecurring();
+    const user = await checkRecurring();
 
     await user.click(screen.getByRole('radio', { name: 'Quarterly' }));
     await user.click(screen.getByRole('button', { name: 'Succeed' }));
@@ -938,7 +938,7 @@ describe('Checkout · recurring donation', () => {
   });
 
   it('takes nothing today when the first charge is on a later day', async () => {
-    const user = await tickRecurring();
+    const user = await checkRecurring();
 
     await user.clear(screen.getByLabelText('First charge on'));
     await user.type(screen.getByLabelText('First charge on'), LATER);
@@ -949,7 +949,7 @@ describe('Checkout · recurring donation', () => {
   it('saves the method for a later first charge instead of paying', async () => {
     const setups = serveDonationSetup();
     const requests = serveCheckout();
-    const user = await tickRecurring();
+    const user = await checkRecurring();
 
     await user.clear(screen.getByLabelText('First charge on'));
     await user.type(screen.getByLabelText('First charge on'), LATER);
@@ -966,7 +966,7 @@ describe('Checkout · recurring donation', () => {
   it('reports the first charge day once a later donation is set up', async () => {
     serveDonationSetup();
     const handleScheduled = vi.fn();
-    const user = await tickRecurring({ onScheduled: handleScheduled });
+    const user = await checkRecurring({ onScheduled: handleScheduled });
 
     await user.clear(screen.getByLabelText('First charge on'));
     await user.type(screen.getByLabelText('First charge on'), LATER);
@@ -1008,7 +1008,7 @@ describe('Checkout · recurring donation', () => {
 
   it("shows the server's sentence when the renewal already takes a contribution", async () => {
     serveCheckoutRefusingTheMove();
-    const user = await tickRecurring();
+    const user = await checkRecurring();
 
     await user.click(screen.getByRole('button', { name: 'Succeed' }));
 
@@ -1017,7 +1017,7 @@ describe('Checkout · recurring donation', () => {
 
   it('holds the payment back until the member continues', async () => {
     serveCheckoutRefusingTheMove();
-    const user = await tickRecurring();
+    const user = await checkRecurring();
 
     await user.click(screen.getByRole('button', { name: 'Succeed' }));
 
@@ -1028,7 +1028,7 @@ describe('Checkout · recurring donation', () => {
   it('sends the agreement to move the contribution once the member continues', async () => {
     serveMockSuccess();
     const requests = serveCheckoutRefusingTheMove();
-    const user = await tickRecurring();
+    const user = await checkRecurring();
 
     await user.click(screen.getByRole('button', { name: 'Succeed' }));
     await user.click(await screen.findByRole('button', { name: 'Continue' }));
@@ -1045,7 +1045,7 @@ describe('Checkout · recurring donation', () => {
         return moveRefusal();
       }),
     );
-    const user = await tickRecurring();
+    const user = await checkRecurring();
 
     await user.clear(screen.getByLabelText('First charge on'));
     await user.type(screen.getByLabelText('First charge on'), LATER);
@@ -1228,14 +1228,14 @@ describe('Checkout · changing one’s mind to a member', () => {
     expect(await screen.findByRole('button', { name: MEMBER_BUTTON })).toBeInTheDocument();
   });
 
-  it('puts it under the contribution chooser', async () => {
+  it('puts it under the donation chooser', async () => {
     serveConfig(config());
     renderWithProviders(
       <Checkout mode="contribute" onSuccess={() => {}} onBecomeMember={() => {}} />,
     );
 
     const button = await screen.findByRole('button', { name: MEMBER_BUTTON });
-    const chooser = screen.getByRole('group', { name: 'Add a contribution' });
+    const chooser = screen.getByRole('group', { name: 'Your donation' });
     expect(chooser.compareDocumentPosition(button)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
   });
 
@@ -1269,5 +1269,23 @@ describe('Checkout · changing one’s mind to a member', () => {
     await userEvent.click(await screen.findByRole('button', { name: MEMBER_BUTTON }));
 
     expect(handleBecomeMember).toHaveBeenCalledOnce();
+  });
+});
+
+describe('Checkout · the words over a gift', () => {
+  it('calls a gift on its own a donation, with no talk of dues', async () => {
+    serveConfig(config());
+    renderWithProviders(<Checkout mode="contribute" onSuccess={() => {}} />);
+
+    const chooser = await screen.findByRole('group', { name: 'Your donation' });
+    expect(chooser).toHaveTextContent('Gifts to CalDART, a 501(c)(3), are tax deductible.');
+  });
+
+  it('says a contribution added to dues is tax deductible', async () => {
+    serveConfig(config());
+    renderWithProviders(<Checkout mode="renew" onSuccess={() => {}} />);
+
+    const chooser = await screen.findByRole('group', { name: 'Add a contribution' });
+    expect(chooser).toHaveTextContent('a contribution on top of your dues is tax deductible');
   });
 });

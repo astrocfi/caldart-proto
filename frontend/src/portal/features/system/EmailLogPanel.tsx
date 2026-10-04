@@ -58,7 +58,7 @@ const STATUS_TEXT: Record<EmailStatus, (row: EmailLogEntry) => string> = {
 const NOTHING = <span className="muted">—</span>;
 
 /**
- * The email log report's columns, with its default ones ticked, which the table shows
+ * The email log report's columns, with its default ones checked, which the table shows
  * while the registry loads or if it cannot be read.
  */
 const FALLBACK_COLUMNS: ReportColumn[] = [
@@ -159,7 +159,9 @@ export function EmailLogPanel(): JSX.Element {
     <Card>
       {log.isError ? (
         <p className="field__error" role="alert">
-          {log.error instanceof Error ? log.error.message : 'Could not read the email log.'}
+          {log.error instanceof Error
+            ? log.error.message
+            : "The sent emails didn't load. Try again in a moment."}
         </p>
       ) : null}
 

@@ -758,7 +758,7 @@ describe. It reads best as a member's Stripe checkout with automatic renewal,
 but every step names the PayPal or mock equivalent where it differs.
 
 #. **Join or renew with automatic renewal on.** From the portal's checkout,
-   tick **Renew automatically each year** and pay with ``4242 4242 4242
+   check **Renew automatically each year** and pay with ``4242 4242 4242
    4242``. This is ``POST /payments/checkout`` with ``auto_renew: true``
    (:doc:`api-payments`); on success it creates an ``active``
    ``RenewalMandate`` from the card the checkout just used, and

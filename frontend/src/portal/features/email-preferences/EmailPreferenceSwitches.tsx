@@ -63,7 +63,7 @@ export function EmailPreferenceSwitches({
   if (preferences.isError) {
     return (
       <p className="field__error" role="alert">
-        The email preferences could not be loaded.
+        The email preferences didn&apos;t load. Try again in a moment.
       </p>
     );
   }

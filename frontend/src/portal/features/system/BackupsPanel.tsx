@@ -61,6 +61,7 @@ const COLUMNS: Column<Backup>[] = [
         className="button button--quiet button--small"
         href={backupDownloadUrl(row.name)}
         download={row.name}
+        aria-label={`Download ${row.name}`}
       >
         Download
       </a>

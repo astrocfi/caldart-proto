@@ -145,7 +145,7 @@ def test_a_wrong_password_leaves_the_account_active(member_client: APIClient, me
 def test_a_missing_password_is_refused(member_client: APIClient) -> None:
     """The current password is required."""
     response = member_client.post(DEACTIVATE_URL, {}, format="json")
-    assert response.json() == {"current_password": ["This field is required."]}
+    assert response.json() == {"current_password": ["Enter your current password."]}
 
 
 @pytest.mark.parametrize("fixture", ["system_admin", "superuser"])

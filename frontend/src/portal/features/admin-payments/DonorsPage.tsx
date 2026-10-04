@@ -240,7 +240,7 @@ export function DonorsPage(): JSX.Element {
 
       {rows.isError ? (
         <p role="alert" className="field__error">
-          The donors could not be loaded.
+          The donors didn&apos;t load. Try again in a moment.
         </p>
       ) : null}
     </Page>

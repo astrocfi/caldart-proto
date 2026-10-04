@@ -3,7 +3,7 @@
 ``caldart.events.emit`` hands the event to the notifications dispatcher, which builds
 the email at once and sends it when the raising transaction commits.  Each active
 subscription that lists the event, and whose recipient may receive it, is sent one
-email; a sign-up also goes to the contacts ticked to receive the chosen DART's
+email; a sign-up also goes to the contacts checked to receive the chosen DART's
 roster.  Every send is recorded in the email log under ``notification_<slug>``, and a
 refused send never stops the next one or fails the request that raised the event.
 """
@@ -316,7 +316,7 @@ def test_a_sign_up_goes_to_the_dart_roster_contacts_unsubscribed(
     mailoutbox: list[EmailMessage],
     django_capture_on_commit_callbacks: DjangoCaptureOnCommitCallbacks,
 ) -> None:
-    """Every contact ticked to receive the chosen DART's roster hears of the sign-up."""
+    """Every contact checked to receive the chosen DART's roster hears of the sign-up."""
     DartContactFactory(dart=north, email="lead@example.test", receives_roster=True)
     DartContactFactory(dart=north, email="quiet@example.test", receives_roster=False)
 

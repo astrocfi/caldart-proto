@@ -55,9 +55,9 @@ class PaymentStatus(models.TextChoices):
     """Where an attempt to pay got to.  Only ``SUCCEEDED`` buys a membership term."""
 
     PENDING = "pending", "Pending"
-    SUCCEEDED = "succeeded", "Succeeded"
+    SUCCEEDED = "succeeded", "Paid"
     FAILED = "failed", "Failed"
-    PARTIALLY_REFUNDED = "partially_refunded", "Partially refunded"
+    PARTIALLY_REFUNDED = "partially_refunded", "Partly refunded"
     REFUNDED = "refunded", "Refunded"
 
 
@@ -273,7 +273,7 @@ class RefundStatus(models.TextChoices):
     """Where an attempt to give money back got to.  Only ``SUCCEEDED`` counts."""
 
     PENDING = "pending", "Pending"
-    SUCCEEDED = "succeeded", "Succeeded"
+    SUCCEEDED = "succeeded", "Refunded"
     FAILED = "failed", "Failed"
 
 
@@ -462,7 +462,7 @@ class RenewalOutcome(models.TextChoices):
     """Where one scheduled renewal charge got to."""
 
     SCHEDULED = "scheduled", "Scheduled"
-    SUCCEEDED = "succeeded", "Succeeded"
+    SUCCEEDED = "succeeded", "Charged"
     FAILED = "failed", "Failed"
     SKIPPED = "skipped", "Skipped"
 

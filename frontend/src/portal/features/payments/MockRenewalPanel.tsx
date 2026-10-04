@@ -34,7 +34,7 @@ export function MockRenewalPanel({
       setError(
         panelErrorMessage(
           caught,
-          'That payment method could not be saved. Please try again.',
+          "That payment method wasn't saved. Try again in a moment.",
           onRenewalContribution,
         ),
       );
@@ -44,8 +44,8 @@ export function MockRenewalPanel({
   return (
     <div className="checkout__panel stack">
       <p className="muted">
-        This deployment has no live payment keys, so a test card stands in. Nothing is charged and
-        no card details are collected.
+        Online payment isn't set up yet, so a test card stands in. Nothing is charged and no card
+        details are collected.
       </p>
       {error ? (
         <p className="checkout__error" role="alert">

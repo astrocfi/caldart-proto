@@ -12,7 +12,7 @@ import type { JSX } from 'react';
 import type { PaymentSummary } from '@/portal/api/types';
 import type { Column } from '@/portal/components/DataTable';
 import { DataTable } from '@/portal/components/DataTable';
-import { DateText } from '@/portal/components/DateText';
+import { DateText, formatDate } from '@/portal/components/DateText';
 import { Money } from '@/portal/components/Money';
 import { PaymentDot } from '@/portal/components/StatusDot';
 import { receiptUrl } from './api';
@@ -88,7 +88,11 @@ function paymentColumns(hasRefunds: boolean): Column<PaymentSummary>[] {
       keepInSight: true,
       render: (payment) =>
         RECEIPTED.includes(payment.status) ? (
-          <a href={receiptUrl(payment.id)} download>
+          <a
+            href={receiptUrl(payment.id)}
+            download
+            aria-label={`Receipt for ${formatDate(payment.paid_on ?? payment.completed_at)} (PDF)`}
+          >
             Receipt
           </a>
         ) : (

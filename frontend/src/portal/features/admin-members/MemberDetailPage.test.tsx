@@ -204,10 +204,9 @@ describe('MemberDetailPage', () => {
   it('offers the member their contribution statements', async () => {
     server.use(...detailHandlers());
     renderDetail('/admin/members/1?tab=payments');
-    expect(await screen.findByRole('link', { name: '2025' })).toHaveAttribute(
-      'href',
-      '/api/v1/admin/payments/ledger/1/statements/2025.pdf',
-    );
+    expect(
+      await screen.findByRole('link', { name: '2025 contribution statement (PDF)' }),
+    ).toHaveAttribute('href', '/api/v1/admin/payments/ledger/1/statements/2025.pdf');
   });
 
   it('saves the profile, notes included', async () => {
@@ -283,12 +282,14 @@ describe('MemberDetailPage', () => {
     server.use(...detailHandlers());
     renderDetail('/admin/members/1?tab=memberships');
 
-    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+    await user.click(
+      await screen.findByRole('button', { name: 'Edit the Annual term, 07/01/2026 to 06/30/2027' }),
+    );
     const endDate = screen.getByLabelText('End date');
     await user.clear(endDate);
     await user.type(endDate, '2027-12-31');
     await user.selectOptions(screen.getByLabelText('Term status'), 'canceled');
-    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
     await waitFor(() => expect(captured.patchedTerm).not.toBeNull());
     expect(captured.patchedTerm).toMatchObject({ ends_on: '2027-12-31', status: 'canceled' });
@@ -299,7 +300,7 @@ describe('MemberDetailPage', () => {
     server.use(...detailHandlers());
     renderDetail('/admin/members/1?tab=memberships');
 
-    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+    await user.click(await screen.findByRole('button', { name: /^Edit the / }));
 
     expect(screen.getByLabelText('End date')).toHaveFocus();
   });
@@ -309,10 +310,10 @@ describe('MemberDetailPage', () => {
     server.use(...detailHandlers());
     renderDetail('/admin/members/1?tab=memberships');
 
-    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+    await user.click(await screen.findByRole('button', { name: /^Edit the / }));
     await user.keyboard('{Escape}');
 
-    expect(screen.getByRole('button', { name: 'Edit' })).toHaveFocus();
+    expect(screen.getByRole('button', { name: /^Edit the / })).toHaveFocus();
   });
 
   it('offers Suspended when editing a term a self-deactivation suspended', async () => {
@@ -340,7 +341,9 @@ describe('MemberDetailPage', () => {
     );
     renderDetail('/admin/members/1?tab=memberships');
 
-    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+    await user.click(
+      await screen.findByRole('button', { name: 'Edit the Annual term, 07/01/2026 to 06/30/2027' }),
+    );
 
     expect(screen.getByLabelText('Term status')).toHaveValue('suspended');
     expect(screen.getByRole('option', { name: 'Suspended' })).toBeInTheDocument();
@@ -458,11 +461,14 @@ describe('MemberDetailPage', () => {
       http.get(`${API}/darts`, () => HttpResponse.json(DARTS)),
       http.get(`${API}/plans`, () => HttpResponse.json(PLANS)),
       http.get(`${API}/admin/members/1`, () =>
-        HttpResponse.json({ detail: 'Not found.' }, { status: 404 }),
+        HttpResponse.json(
+          { detail: "That isn't here. It may have been deleted." },
+          { status: 404 },
+        ),
       ),
     );
     renderDetail();
-    expect(await screen.findByText('That member could not be loaded')).toBeInTheDocument();
+    expect(await screen.findByText("That member didn't load")).toBeInTheDocument();
   });
 
   it('shows the kind of a friend on the profile tab and saves a change of kind', async () => {

@@ -381,7 +381,7 @@ describe('DashboardPage · payments and renewal', () => {
 
     expect(
       await card('Recent payments').findByRole('link', {
-        name: 'All payments, receipts and renewal',
+        name: 'All payments, receipts, and renewals',
       }),
     ).toHaveAttribute('href', '/payments');
   });

@@ -24,7 +24,7 @@ export function MemberPaymentsTab({ member }: { member: MemberDetail }): JSX.Ele
     return (
       <Card title="Payments">
         <EmptyState
-          title="This member's payments could not be loaded"
+          title="This member's payments didn't load"
           description="Try again in a moment, or open the finance area's ledger for them."
         />
       </Card>

@@ -31,7 +31,9 @@ describe('ReportRunOutcome', () => {
       />,
     );
 
-    expect(screen.getByText('Skipped: nobody ticked 2, no address on file 1.')).toBeInTheDocument();
+    expect(
+      screen.getByText('Skipped: nobody to send to 2, no address on file 1.'),
+    ).toBeInTheDocument();
   });
 
   it('reports the failed count only when it is above zero', () => {

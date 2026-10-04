@@ -5,7 +5,7 @@ Health and database
 ===================
 
 **Health and database** shows how the server is doing, the database backups it holds, and the
-aircraft database it loads from the FAA. Only a system administrator sees it, under
+FAA aircraft data it loads. Only a system administrator sees it, under
 **System** in the menu, beside :doc:`sent-emails` and :doc:`scheduled`. Opening **System**
 on its own lands here.
 
@@ -22,7 +22,7 @@ database**.
 Health
 ======
 
-Six checks, each with a value and its status, **OK**, **Warning**, or **Attention**. **Refresh**
+Six checks, each with a value and its status, **Good**, **Warning**, or **Problem**. **Refresh**
 runs them again.
 
 - **Database**: whether the site can reach its database. Anything but *ok* means the site is
@@ -58,7 +58,7 @@ There is no restore button. Restoring replaces everything in the database and is
 server with the site stopped, by the person who installed it.
 
 
-Aircraft database
+FAA aircraft data
 =================
 
 Every night at 4:30 AM CalDART loads the FAA's aircraft registry: the list of aircraft types
@@ -67,7 +67,8 @@ line under the panel's text reads *Imported 312 types and 204 registrations on 0
 adding, for example, *folded 2 hand-added types* when types an account administrator added
 by hand have since been registered by the FAA and were merged into its entries. A failed
 load reads *Failed:* and the reason; before the first one, *No import has run yet.* There is
-no dry run, because the load changes nothing but the copy. **Run now** starts one at once;
+no practice run, because the load changes nothing but the copy. **Run now** starts one at
+once;
 it reads *Running since* and the time, and the button waits, until the load ends a few
 minutes later. A press while one runs says *An import is already running.*
 
@@ -75,7 +76,7 @@ minutes later. A press while one runs says *An import is already running.*
 Routine
 =======
 
-Once a week, open **Health and database**: six **OK** checks and a recent backup are the whole
+Once a week, open **Health and database**: six **Good** checks and a recent backup are the whole
 check. Before any upgrade, take a backup and download it. Once a month, keep a copy somewhere
 off the server. When someone reports a problem, read **Health** first and note the
 **Version**.
@@ -86,6 +87,6 @@ If something looks wrong
 
 If **Create backup** fails, the message under it comes from the server; pass it to whoever
 runs the server, since nothing half written is left behind. If the N-number box offers
-nothing for an aircraft you know is registered, read the line under **Aircraft database**: a
+nothing for an aircraft you know is registered, read the line under **FAA aircraft data**: a
 *Failed:* line, or a date more than a few days old, means the nightly load has stopped, and
 the person who runs the server can check it. Meanwhile **Run now** loads it by hand.

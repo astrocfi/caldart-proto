@@ -500,7 +500,7 @@ def test_donation_received_one_time(pat: User) -> None:
 
     assert (message.headline, message.lines, message.link) == (
         "Pat Quill gave $100.00",
-        (("From", "Pat Quill"), ("Amount", "$100.00"), ("Kind", "One-time")),
+        (("From", "Pat Quill"), ("Amount", "$100.00"), ("Type", "One-time")),
         f"{SITE}/admin/payments/{payment.pk}",
     )
 
@@ -520,7 +520,7 @@ def test_donation_received_recurring(pat: User) -> None:
 
     message = build_message("donation_received", {"payment": payment})
 
-    assert message.lines[2] == ("Kind", "Recurring")
+    assert message.lines[2] == ("Type", "Recurring")
 
 
 def test_payment_recorded(pat: User, boss: User, annual_plan: MembershipPlan) -> None:

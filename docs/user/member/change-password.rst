@@ -16,7 +16,7 @@ Three boxes:
   The password you signed in with.
 
 **New password**
-  At least eight characters, and not a password you have used elsewhere.
+  The hint reads *At least 8 characters. Avoid common passwords such as password1.*
 
 **Repeat new password**
   The new password again.

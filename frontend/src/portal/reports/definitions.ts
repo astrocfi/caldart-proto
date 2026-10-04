@@ -15,8 +15,11 @@ import {
   PAYMENT_WALLET_LABELS,
   ROLE_CHOICES,
 } from '@/portal/choices';
-import { KIND_LABELS, MANDATE_KIND_LABELS } from '@/portal/features/admin-payments/labels';
-import { MANDATE_STATUS_LABELS } from '@/portal/features/admin-payments/reports-api';
+import {
+  KIND_LABELS,
+  MANDATE_KIND_LABELS,
+  MANDATE_STATUS_LABELS,
+} from '@/portal/features/admin-payments/labels';
 import {
   CERTIFICATE_FILTER_CHOICES,
   KIND_FILTER_CHOICES,
@@ -109,7 +112,7 @@ const MEMBER_FILTERS: FilterField[] = [
     label: 'County',
     kind: 'multiselect',
     options: COUNTY_OPTIONS,
-    hint: 'Tick as many counties as you like.',
+    hint: 'Check as many counties as you like.',
   },
   { key: 'role', label: 'Role', kind: 'select', options: ROLE_CHOICES },
   { key: 'expiring_within', label: 'Expiring within (days)', kind: 'number' },
@@ -225,7 +228,7 @@ const PAYMENT_FILTERS: FilterField[] = [
     key: 'kind',
     label: 'For',
     kind: 'select',
-    placeholder: 'Any',
+    placeholder: 'Membership or contribution',
     options: optionsFor(['membership', 'contribution', 'both'], KIND_LABELS),
   },
   {
@@ -254,8 +257,8 @@ const PAYMENT_FILTERS: FilterField[] = [
     kind: 'select',
     placeholder: 'Any',
     options: [
-      { value: 'yes', label: 'Matched' },
-      { value: 'no', label: 'Not matched' },
+      { value: 'yes', label: 'Reconciled' },
+      { value: 'no', label: 'Not reconciled' },
     ],
   },
   { key: 'min_cents', label: 'At least', kind: 'number', placeholder: 'Dollars', isDollars: true },
@@ -280,9 +283,9 @@ const RENEWAL_FILTERS: FilterField[] = [
   },
   {
     key: 'kind',
-    label: 'Kind',
+    label: 'Type',
     kind: 'select',
-    placeholder: 'Any kind',
+    placeholder: 'Any type',
     options: optionsFor(['renewal', 'both', 'contribution'], MANDATE_KIND_LABELS),
   },
   {
@@ -336,7 +339,7 @@ const DONOR_FILTERS: FilterField[] = [
     label: 'County',
     kind: 'multiselect',
     options: COUNTY_OPTIONS,
-    hint: 'Tick as many counties as you like.',
+    hint: 'Check as many counties as you like.',
   },
   // The DARTs are the server's, so the page supplies them through `options`.
   { key: 'dart', label: 'DART', kind: 'select', placeholder: 'Any DART' },
@@ -431,7 +434,7 @@ export const REPORTS: Readonly<Record<ReportSlug, ReportDefinition>> = {
   },
   emails: {
     slug: 'emails',
-    label: 'Email log',
+    label: 'Sent emails',
     filters: EMAIL_LOG_FILTERS,
     choosable: true,
     periods: false,

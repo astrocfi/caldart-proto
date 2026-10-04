@@ -39,9 +39,9 @@ const VERDICT_TONE: Record<CheckVerdict, StatusTone> = {
 };
 
 const VERDICT_LABEL: Record<CheckVerdict, string> = {
-  ok: 'OK',
+  ok: 'Good',
   warn: 'Warning',
-  bad: 'Attention',
+  bad: 'Problem',
 };
 
 function daysSince(iso: string, now: Date): number {

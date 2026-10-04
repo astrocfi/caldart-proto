@@ -484,14 +484,31 @@ class InsuranceVerificationSerializer(AircraftSerializer):
         read_only_fields: list[str] = []
 
 
+class LeaderGoNoGoSerializer(serializers.Serializer[Any]):
+    """The go/no-go booleans, so a leader sees why, not just whether.
+
+    ``verified`` is true when the person holds a pilot certificate, a medical, and a
+    photo ID, and all three are verified.
+    """
+
+    membership = serializers.BooleanField()
+    medical = serializers.BooleanField()
+    verified = serializers.BooleanField()
+
+
 class AircraftPilotSerializer(serializers.Serializer[Any]):
-    """A member who lists this aircraft as one they commonly fly."""
+    """A member or friend who lists this aircraft as one they commonly fly.
+
+    ``go_no_go`` is the member check's verdict for the person, so the aircraft check
+    and the member check never disagree about them.
+    """
 
     user_id = serializers.IntegerField()
     name = serializers.CharField()
     email = serializers.EmailField()
     membership_status = serializers.ChoiceField(choices=MembershipState.choices)
     medical_is_current = serializers.BooleanField()
+    go_no_go = LeaderGoNoGoSerializer()
 
 
 class AircraftActorSerializer(serializers.Serializer[Any]):
@@ -589,18 +606,6 @@ class LeaderPhotoIdSerializer(serializers.Serializer[Any]):
 
     type = serializers.ChoiceField(choices=PhotoIdType.choices)
     verification = VerificationSerializer()
-
-
-class LeaderGoNoGoSerializer(serializers.Serializer[Any]):
-    """The go/no-go booleans, so a leader sees why, not just whether.
-
-    ``verified`` is true when the pilot certificate, the medical, and the photo ID are
-    all verified.
-    """
-
-    membership = serializers.BooleanField()
-    medical = serializers.BooleanField()
-    verified = serializers.BooleanField()
 
 
 class LeaderSearchResultSerializer(serializers.Serializer[Any]):

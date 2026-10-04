@@ -1,9 +1,9 @@
 /**
- * The *Who hears about what* card of `/admin/notifications`: every address
+ * The *Notification emails* card of `/admin/notifications`: every address
  * subscribed to notifications, one per line, with a button to edit its events,
  * pause or resume it, or delete it, and the form that subscribes another.
  *
- * One form is open at a time, always under the table: **New subscription** opens it
+ * One form is open at a time, always under the table: **Add an address** opens it
  * empty and **Edit** opens it for that row, each closing the other.  The focus moves
  * into the form as it opens, scrolling it into view, and back to the button that
  * opened it as it closes, Escape included.  What every action did is said in a toast.
@@ -37,7 +37,7 @@ function errorText(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message : fallback;
 }
 
-/** The subscriptions table, its row controls, and the form behind New subscription and Edit. */
+/** The subscriptions table, its row controls, and the form behind Add an address and Edit. */
 export function NotificationSubscriptionsCard(): JSX.Element {
   const [openForm, setOpenForm] = useState<OpenForm>(null);
   const toast = useToast();
@@ -66,7 +66,8 @@ export function NotificationSubscriptionsCard(): JSX.Element {
       { id: row.id, patch: { is_active: isActive } },
       {
         onSuccess: () => toast.show(isActive ? 'Resumed.' : 'Paused.', 'success'),
-        onError: (error) => toast.show(errorText(error, 'The change was not saved.'), 'error'),
+        onError: (error) =>
+          toast.show(errorText(error, "The change wasn't saved. Try again in a moment."), 'error'),
       },
     );
   };
@@ -74,7 +75,8 @@ export function NotificationSubscriptionsCard(): JSX.Element {
   const handleDelete = (row: NotificationSubscription): Promise<void> =>
     remove.mutateAsync(row.id).then(
       () => toast.show('Deleted.', 'success'),
-      (error) => toast.show(errorText(error, 'The subscription was not deleted.'), 'error'),
+      (error) =>
+        toast.show(errorText(error, "The address wasn't deleted. Try again in a moment."), 'error'),
     );
 
   const handleAdd = (): void => {
@@ -126,29 +128,39 @@ export function NotificationSubscriptionsCard(): JSX.Element {
       width: '16rem',
       isActions: true,
       narrowWidth: '8rem',
-      render: (row) => (
-        <span className="cluster cluster--nowrap">
-          <Button variant="quiet" small disabled={isBusy} onClick={() => handleEdit(row)}>
-            Edit
-          </Button>
-          <Button
-            variant="quiet"
-            small
-            disabled={isBusy}
-            onClick={(event) => {
-              handlePress(event);
-              handleToggleActive(row);
-            }}
-          >
-            {row.is_active ? 'Pause' : 'Resume'}
-          </Button>
-          <DeleteButton
-            label="Delete subscription"
-            disabled={isBusy}
-            onDelete={() => handleDelete(row)}
-          />
-        </span>
-      ),
+      render: (row) => {
+        const which = `notifications for ${recipientLabel(row)}`;
+        return (
+          <span className="cluster cluster--nowrap">
+            <Button
+              variant="quiet"
+              small
+              disabled={isBusy}
+              aria-label={`Edit ${which}`}
+              onClick={() => handleEdit(row)}
+            >
+              Edit
+            </Button>
+            <Button
+              variant="quiet"
+              small
+              disabled={isBusy}
+              onClick={(event) => {
+                handlePress(event);
+                handleToggleActive(row);
+              }}
+              aria-label={`${row.is_active ? 'Pause' : 'Resume'} ${which}`}
+            >
+              {row.is_active ? 'Pause' : 'Resume'}
+            </Button>
+            <DeleteButton
+              label={`Delete ${which}`}
+              disabled={isBusy}
+              onDelete={() => handleDelete(row)}
+            />
+          </span>
+        );
+      },
     },
   ];
 
@@ -157,16 +169,15 @@ export function NotificationSubscriptionsCard(): JSX.Element {
     openForm?.mode === 'edit' ? rows.find((subscription) => subscription.id === openForm.id) : null;
 
   return (
-    <Card title="Who hears about what">
+    <Card title="Notification emails">
       <p className="muted">
-        Each subscription sends one address an email whenever one of its events happens.{' '}
-        <strong>Edit</strong> changes its events; <strong>Pause</strong> stops the emails without
-        forgetting the events.
+        Each address gets an email whenever one of its events happens. Pause stops the emails and
+        keeps the settings.
       </p>
 
       {openForm?.mode === 'new' ? null : (
         <Button ref={newRef} onClick={handleAdd}>
-          New subscription
+          Add an address
         </Button>
       )}
 
@@ -175,8 +186,8 @@ export function NotificationSubscriptionsCard(): JSX.Element {
         columns={columns}
         rows={rows}
         rowKey={(row) => row.id}
-        caption={`${rows.length} subscription${rows.length === 1 ? '' : 's'}`}
-        emptyTitle="Nobody is subscribed to a notification yet"
+        caption={`${rows.length} address${rows.length === 1 ? '' : 'es'}`}
+        emptyTitle="No address gets notifications yet"
         isLoading={list.isLoading}
       />
 
@@ -196,7 +207,7 @@ export function NotificationSubscriptionsCard(): JSX.Element {
 
       {list.isError ? (
         <p className="field__error" role="alert">
-          {errorText(list.error, 'The subscriptions could not be loaded.')}
+          {errorText(list.error, "The addresses didn't load. Try again in a moment.")}
         </p>
       ) : null}
     </Card>

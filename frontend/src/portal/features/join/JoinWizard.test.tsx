@@ -387,7 +387,7 @@ describe('<JoinWizard/> step progression', () => {
     await screen.findByRole('heading', { name: 'About you' });
     await userEvent.click(await screen.findByRole('button', { name: 'Save and continue' }));
 
-    expect(await screen.findByText('A phone number is required.')).toBeInTheDocument();
+    expect(await screen.findByText('Enter a phone number.')).toBeInTheDocument();
     expect(path()).toBe('/join/profile');
   });
 

@@ -47,7 +47,7 @@ One email's page
 The page of one sent email says under its subject who sent it and when, such as *Sent by
 Grace Holloway on 10/03/2026 at 5:34 PM.*, and has three cards:
 
-- **Where it stands**: while it sends, *Sending… 12 of 38 sent, about 1 minute left.* with
+- **Sending progress**: while it sends, *Sending… 12 of 38 sent, about 1 minute left.* with
   a bar and **Stop sending**, which stops it after the copy going out now, once you press
   **Stop now**; copies already sent cannot be called back. When it is finished, a line
   such as *Sent to 37 people. 1 failed and 4 were skipped.* (a count of nobody is left
@@ -60,7 +60,7 @@ Grace Holloway on 10/03/2026 at 5:34 PM.*, and has three cards:
   until then, with **Stop sending**. A mission callout adds *This is a mission callout.*
   with **See who can fly**, which opens its answers on :doc:`callouts`.
 - **The message**: the email as it was sent, with the subject at its head, and above it its
-  type and *Replies go to:* with the Reply-To address its copies carried. Fields such as
+  type and *Replies go to:* with the address for replies its copies carried. Fields such as
   *{first_name}* show as written, because each person's copy had their own details filled
   in. Under it, a line says whether the people it went to can read it again under
   **Messages**, with **Hide from Messages** or **Show in Messages** (`Messages`_).
@@ -78,7 +78,7 @@ At its top are the counts: **Sent**, **Failed**, **Skipped**, **Bounced**, and *
 took, those that came back later included, and **Bounced** says how many of those came back.
 Under the counts is **Retry failed** (below).
 
-Then one line per person in the batch, for their first copy, with **Name**, **Result**,
+Then one line per person on the recipient list, for their first copy, with **Name**, **Result**,
 **Email**, **Reason** (in full, on as many lines as it needs), **Tried at** (such as
 *10/03/2026 at 5:34 PM*), **Kind**, **DART**, and last **Copy**; on a screen too narrow for
 every column, **DART**, then **Kind**, then **Tried at**, then **Email** are left out, and on
@@ -137,7 +137,7 @@ says *Nobody whose copy failed can be sent one now.*
 
 **Retry failed** cannot be pressed when no copy failed, and says so. On a stopped email it
 says to send the rest first: press **Send the rest**, and once that has finished, retry the
-failed copies. Each retry is listed under **Retries** at the foot of the report, with when
+failed copies. Each retry is listed under **Retries** at the bottom of the report, with when
 it was pressed, who pressed it, and how many people it sent a fresh copy to.
 
 
@@ -159,15 +159,15 @@ Each copy also appears in the log of sent emails as *Bulk email*.
 Duplicate
 =========
 
-**Duplicate**, on the email's own page under **Where it stands**, starts a new draft of your
+**Duplicate**, on the email's own page under **Sending progress**, starts a new draft of your
 own from the email; **Duplicate…** on each line of the list opens that page. It asks how:
 
 - **Copy the message**: the new draft has the email's subject, message (pictures included),
-  type, and Reply-To address, and an empty batch.
-- **Copy the message and the people**: the batch holds everybody the email was for too, as
+  type, and address for replies, and an empty recipient list.
+- **Copy the message and the people**: the recipient list holds everybody the email was for too, as
   their accounts are now. Whether each receives the new email is worked out afresh, so
   somebody who has since turned that type of email off, or whose address bounced, shows as
-  skipped. The batch's **Chosen by** reads *Copied from* and the subject. Accounts deleted
+  skipped. The recipient list's **Chosen by** reads *Copied from* and the subject. Accounts deleted
   since are left out. A DART leader's copy goes to their own DART alone: anybody outside it
   shows as skipped, *Not in your DART*.
 

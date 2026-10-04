@@ -112,7 +112,7 @@ function columns(group: ReconciliationGroup): Column<ReconciliationRow>[] {
     },
     {
       key: 'matched',
-      header: 'Matched',
+      header: 'Reconciled',
       numeric: true,
       width: '6.5rem',
       dropOrder: 5,
@@ -163,7 +163,7 @@ export function ReconciliationPage(): JSX.Element {
         initialSort={defaultSort(group)}
         rows={rows.data ?? []}
         rowKey={(row) => row.period}
-        caption={`Takings by ${GROUP_LABELS[group].toLowerCase()}`}
+        caption={`Money in by ${GROUP_LABELS[group].toLowerCase()}`}
         filters={
           <FilterBar
             fields={FILTER_FIELDS}
@@ -189,7 +189,7 @@ export function ReconciliationPage(): JSX.Element {
 
       {rows.isError ? (
         <p role="alert" className="field__error">
-          The reconciliation could not be loaded.
+          The reconciliation didn&apos;t load. Try again in a moment.
         </p>
       ) : null}
     </Page>

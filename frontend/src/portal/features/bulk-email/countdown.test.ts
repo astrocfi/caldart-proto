@@ -52,7 +52,7 @@ describe('useSecondsUntil', () => {
     vi.useRealTimers();
   });
 
-  it('ticks down once a second', () => {
+  it('counts down once a second', () => {
     const { result } = renderHook(() => useSecondsUntil('2026-04-06T17:02:00Z'));
     const before = result.current;
     act(() => {

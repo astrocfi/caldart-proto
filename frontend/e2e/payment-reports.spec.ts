@@ -23,7 +23,7 @@ function periodRows(page: Page): Locator {
 }
 
 /** The statuses the by-period summary counts: the money arrived, whatever came back later. */
-const RECEIVED_STATUSES = new Set(['succeeded', 'partially_refunded', 'refunded']);
+const RECEIVED_STATUSES = new Set(['Paid', 'Partly refunded', 'Refunded']);
 
 interface LedgerTotals {
   payments: number;
@@ -178,7 +178,7 @@ test('a saved set of columns comes back after a reload', async ({ page }) => {
   const header = page.locator('thead');
   const chooser = page.getByRole('group', { name: 'Columns in the table and the download' });
 
-  // Tick Receipt, untick Fee, and save the boxes as they stand under a name.
+  // Check Receipt, uncheck Fee, and save the boxes as they stand under a name.
   await page.getByRole('button', { name: 'Columns', exact: true }).click();
   await chooser.getByRole('checkbox', { name: 'Receipt' }).check();
   await chooser.getByRole('checkbox', { name: 'Fee', exact: true }).uncheck();

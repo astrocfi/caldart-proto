@@ -71,12 +71,17 @@ export function BouncesPanel(): JSX.Element {
       title="Bounces"
       footer={
         <>
-          <Button ref={runRef} onClick={handleRun} disabled={run.isPending}>
+          <Button
+            ref={runRef}
+            onClick={handleRun}
+            disabled={run.isPending}
+            aria-label={run.isPending ? undefined : 'Run now: bounce check'}
+          >
             {run.isPending ? 'Running…' : 'Run now'}
           </Button>
           <label className="cluster">
             <input type="checkbox" checked={dryRun} onChange={handleDryRunChange} />
-            Dry run (change nothing)
+            Practice run: show what would happen, change nothing
           </label>
         </>
       }

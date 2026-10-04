@@ -6,7 +6,7 @@
  */
 import { useRef, useState } from 'react';
 import type { JSX } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 import { useDarts } from '@/portal/api/queries';
 import { Button, ButtonLink } from '@/portal/components/Button';
@@ -92,11 +92,7 @@ export function MemberCreatePage(): JSX.Element {
     <Page
       title="New member"
       lede="Create an account and fill in as much of the profile as you have."
-      actions={
-        <ButtonLink to="/admin/members" variant="quiet">
-          Back to members
-        </ButtonLink>
-      }
+      actions={<Link to="/admin/members">Back to members</Link>}
     >
       <Card>
         <form ref={formRef} onSubmit={handleSubmit} noValidate>
@@ -121,6 +117,7 @@ export function MemberCreatePage(): JSX.Element {
             errors={errors.profile}
             darts={darts.data ?? []}
             dartsLoading={darts.isPending}
+            audience="administrator"
           />
           <AdminOnlyFields
             value={adminOnly}
@@ -130,7 +127,7 @@ export function MemberCreatePage(): JSX.Element {
 
           <div className="cluster">
             <Button type="submit" disabled={create.isPending}>
-              {create.isPending ? 'Creating…' : 'Create member'}
+              {create.isPending ? 'Adding…' : 'Add member'}
             </Button>
             <ButtonLink to="/admin/members" variant="quiet">
               Cancel

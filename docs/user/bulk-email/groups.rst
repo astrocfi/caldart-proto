@@ -5,7 +5,7 @@ Recipient groups
 ================
 
 **Recipient groups** keeps the people you email again and again, such as the board, the
-pilots of one DART, or every friend whose membership has lapsed, so you add them to a batch
+pilots of one DART, or every friend whose membership has lapsed, so you add them to a recipient list
 in one step. Every member of CalDART management shares the same groups. CalDART management
 opens it as **Recipient groups** under **Bulk email** in the menu. A system administrator can
 open it too.
@@ -25,12 +25,12 @@ The list
 One line per group, by name:
 
 - **Name** opens the group's own page, below, where it is changed.
-- **Kind**: *Fixed* or *Live*.
+- **Type**: *Fixed* or *Live*.
 - **People**: how many people the group holds now. A live group's filters are run again to
   count them. It reads *Unknown* for a live group whose filters need fixing, below.
 - **Last edited**: the day the group, its people, or its filters last changed.
 - **Actions**, last: the trashcan deletes the group after you press **Delete**. Emails the
-  group was added to keep their people, and their batch still names the group that brought
+  group was added to keep their people, and their recipient lists still name the group that brought
   each person in. **Download list** saves the group's people as a spreadsheet file (CSV)
   named after the group, such as *caldart-group-board.csv*, with each person's name, email
   address, kind, and DART; a group with nobody in it offers none.
@@ -40,7 +40,7 @@ phone the table scrolls sideways, says so above it, and keeps **Name** pinned at
 Before the first group is saved the table reads *No recipient groups yet*, with its own
 **New group** button.
 
-**New group** asks for a **Name** and the **Kind of group**, then **Make the group** opens
+**New group** asks for a **Name** and the **Type of group**, then **Add group** opens
 its page, empty, to fill in. The cursor starts in **Name**; the Escape key closes the
 form, as **Cancel** does, and puts you back on **New group**. No two groups may share a
 name, in any mix of capital and small letters. The usual way to make a group is **Save as
@@ -50,7 +50,7 @@ a group** on the compose screen, below.
 A group's page
 ==============
 
-**Name** shows the group's name; change it and press **Save name**. Emails the group was
+**Name** shows the group's name; change it and press **Save changes**. Emails the group was
 added to before keep the name it had then.
 
 A fixed group's **People** card lists everybody in it, with **Name**, **Email**, **Kind**,
@@ -82,22 +82,22 @@ a group with nobody in it, such as a live group whose filters find nobody, offer
 Using a group
 =============
 
-On :doc:`compose`, **Add a saved group** beside **Add to batch** lists the groups, each with
+On :doc:`compose`, **Add a saved group** beside **Add these people** lists the groups, each with
 its kind and how many people it holds. Choosing one adds everybody in it now, and a line such
-as *Added 12 people; 3 were already in the batch.* says so: as with any add, nobody is added
-twice. The batch's **Chosen by** column reads *Group: Board* for the people the group brought
+as *Added 12 people; 3 were already on the recipient list.* says so: as with any add, nobody is added
+twice. The recipient list's **Chosen by** column reads *Group: Board* for the people the group brought
 in, and keeps that name if the group is renamed or deleted later.
 
-Under the batch, **Save as a group** keeps the batch as a group to use again. Give it a
-**Group name** and choose the **Kind of group**:
+Under the recipient list, **Save as a group** keeps the recipient list as a group to use again. Give it a
+**Group name** and choose the **Type of group**:
 
-- **Fixed** keeps everybody in the batch now, including people who will be skipped for this
+- **Fixed** keeps everybody on the recipient list now, including people who will be skipped for this
   email.
-- **Live** keeps the filters behind the batch, once each, so the group finds whoever matches
-  them each time it is used. People you took out of the batch one at a time come back when
-  the filters find them. A batch with people a fixed group brought in, or copied from
+- **Live** keeps the filters behind the recipient list, once each, so the group finds whoever matches
+  them each time it is used. People you took off the recipient list one at a time come back when
+  the filters find them. A recipient list with people a fixed group brought in, or copied from
   another email with **Duplicate**, has no filters to keep for them, and is refused with
-  *Save it as a fixed group instead.* A batch with people from a group since deleted is
+  *Save it as a fixed group instead.* A recipient list with people from a group since deleted is
   refused the same way, saying the group was deleted.
 
-**Save group** keeps it, and a line such as *Saved as the group Board.* links to its page.
+**Add group** keeps it, and a line such as *Saved as the group Board.* links to its page.

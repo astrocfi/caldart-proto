@@ -20,11 +20,11 @@ import type { StatusTone } from '@/portal/components/StatusDot';
 import { useToast } from '@/portal/components/Toast';
 import { VerifiedMark } from '@/portal/components/VerifiedMark';
 import { useFocusAfterSave, usePanelFocus } from '@/portal/components/focus';
-import { InsuranceDot } from '@/portal/features/aircraft/InsuranceDot';
 import { MemberVerificationPanel } from '@/portal/features/verification/MemberVerificationPanel';
 import { useSetVerifier } from '@/portal/features/verification/api';
 import { draftFromStatus } from '@/portal/features/verification/memberDraft';
 import { useCanGrantVerifier, useCanVerify } from '@/portal/features/verification/useCanVerify';
+import { InsuranceCheckDot } from './AircraftStatusCard';
 import { CERTIFICATE_LABELS, MEDICAL_LABELS, PHOTO_ID_LABELS, ratingLabels } from './labels';
 import './leader.css';
 
@@ -45,25 +45,47 @@ function membershipNoGo(state: MembershipState): string {
 
 /**
  * Why the member is a no-go, in the order a leader would say them out loud: the
- * membership, the medical's currency, then each item nobody has verified.
+ * membership, then one reason for each document that stops them.
+ *
+ * Each document gives at most one reason.  A non-pilot gets *Not a pilot* and nothing
+ * about the certificate, medical, or photo ID they need not hold.  A pilot's medical
+ * reads *No medical on file*, *No medical expiry on file*, or *Medical expired* before it
+ * can read *Medical not verified*, since verifying a lapsed medical clears nobody.  A
+ * photo ID of *Not provided* reads *No photo ID on file*, not *Photo ID not verified*.
  */
 export function noGoReasons(status: LeaderStatus): string[] {
   const reasons: string[] = [];
   if (!status.go_no_go.membership) {
     reasons.push(membershipNoGo(status.membership.status));
   }
+  if (status.certificate.type === 'none') return [...reasons, 'Not a pilot'];
+  const medical = medicalNoGo(status);
+  if (medical !== null) reasons.push(medical);
+  if (!status.certificate.verification.verified) reasons.push('Certificate not verified');
+  if (status.photo_id.type === 'not_provided') reasons.push('No photo ID on file');
+  else if (!status.photo_id.verification.verified) reasons.push('Photo ID not verified');
+  return reasons;
+}
+
+/** The medical's one reason for a no-go, or null when it is current and verified. */
+function medicalNoGo(status: LeaderStatus): string | null {
+  if (status.medical.type === 'none') return 'No medical on file';
   if (!status.go_no_go.medical) {
     // A medical can also fail because the member picked a class but never
     // entered the date; saying "expired" would send the leader chasing a
     // renewal that is not due.
-    if (status.medical.type === 'none') reasons.push('No medical on file');
-    else if (status.medical.expiration === null) reasons.push('No medical expiry on file');
-    else reasons.push('Medical expired');
+    return status.medical.expiration === null ? 'No medical expiry on file' : 'Medical expired';
   }
-  if (!status.medical.verification.verified) reasons.push('Medical not verified');
-  if (!status.certificate.verification.verified) reasons.push('Certificate not verified');
-  if (!status.photo_id.verification.verified) reasons.push('Photo ID not verified');
-  return reasons;
+  return status.medical.verification.verified ? null : 'Medical not verified';
+}
+
+/** The medical's currency chip: none for a member who holds no medical. */
+function MedicalDot({ medical }: { medical: LeaderStatus['medical'] }): JSX.Element | null {
+  if (medical.is_current) return <StatusDot tone="current" label="Current" />;
+  if (medical.type === 'none') return null;
+  return (
+    <StatusDot tone="expired" label={medical.expiration === null ? 'Not current' : 'Expired'} />
+  );
 }
 
 /**
@@ -165,16 +187,7 @@ export function MemberStatusCard({ userId, status, today }: MemberStatusCardProp
         <div className="leader-row">
           <dt>Medical</dt>
           <dd>
-            <StatusDot
-              tone={
-                status.medical.is_current
-                  ? 'current'
-                  : status.medical.type === 'none'
-                    ? 'none'
-                    : 'expired'
-              }
-              label={status.medical.is_current ? 'Current' : 'Not current'}
-            />
+            <MedicalDot medical={status.medical} />
             <span className="leader-row__detail">
               {MEDICAL_LABELS[status.medical.type]}
               {status.medical.expiration ? (
@@ -184,7 +197,9 @@ export function MemberStatusCard({ userId, status, today }: MemberStatusCardProp
                 </>
               ) : null}
             </span>
-            <VerifiedMark verification={status.medical.verification} />
+            {status.medical.type === 'none' ? null : (
+              <VerifiedMark verification={status.medical.verification} />
+            )}
           </dd>
         </div>
 
@@ -203,7 +218,9 @@ export function MemberStatusCard({ userId, status, today }: MemberStatusCardProp
                 ? ` · ${ratingLabels(status.certificate.ratings)}`
                 : ''}
             </span>
-            <VerifiedMark verification={status.certificate.verification} />
+            {status.certificate.type === 'none' ? null : (
+              <VerifiedMark verification={status.certificate.verification} />
+            )}
           </dd>
         </div>
 
@@ -211,7 +228,9 @@ export function MemberStatusCard({ userId, status, today }: MemberStatusCardProp
           <dt>Photo ID</dt>
           <dd>
             <span className="leader-row__detail">{PHOTO_ID_LABELS[status.photo_id.type]}</span>
-            <VerifiedMark verification={status.photo_id.verification} />
+            {status.photo_id.type === 'not_provided' ? null : (
+              <VerifiedMark verification={status.photo_id.verification} />
+            )}
           </dd>
         </div>
       </dl>
@@ -230,7 +249,11 @@ export function MemberStatusCard({ userId, status, today }: MemberStatusCardProp
               {aircraft.coverage.excluded ? (
                 <StatusDot tone="expired" label="Not covered" title={aircraft.coverage.reason} />
               ) : (
-                <InsuranceDot aircraft={aircraft} today={today} />
+                <InsuranceCheckDot
+                  aircraft={aircraft}
+                  verified={aircraft.insurance_verified}
+                  today={today}
+                />
               )}
               <span className="leader-aircraft__expiry muted">
                 {aircraft.insurance_expiration ? (
@@ -241,7 +264,6 @@ export function MemberStatusCard({ userId, status, today }: MemberStatusCardProp
                 ) : (
                   'no policy on file'
                 )}
-                {aircraft.insurance_verified ? '' : ' · not verified'}
                 {aircraft.coverage.reason === '' ? '' : ` · ${aircraft.coverage.reason}`}
               </span>
             </li>

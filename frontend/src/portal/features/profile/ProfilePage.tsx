@@ -48,11 +48,11 @@ export function ProfilePage(): JSX.Element {
     return (
       <Page title="My profile">
         <EmptyState
-          title="We could not load your profile"
+          title="Your profile didn't load"
           description={
             profile.error instanceof ApiError
               ? profile.error.message
-              : 'Something went wrong. Try again in a moment.'
+              : 'Try again in a moment, or contact CalDART if it keeps happening.'
           }
         />
       </Page>

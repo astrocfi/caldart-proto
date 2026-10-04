@@ -67,7 +67,7 @@ export function AircraftPicker({ onSelect, excludeIds = [] }: AircraftPickerProp
   return (
     <Card eyebrow="Aircraft" title="Find an aircraft">
       <Field
-        label="Search the aircraft register"
+        label="Search CalDART's aircraft list"
         hint="N-number, make, model, or owner. Type a registration however you like — 12345, n12345, and N-12345 all match."
       >
         {(field) => (
@@ -89,7 +89,7 @@ export function AircraftPicker({ onSelect, excludeIds = [] }: AircraftPickerProp
 
       <p className="visually-hidden" role="status">
         {search.isFetching
-          ? 'Searching the aircraft register'
+          ? "Searching CalDART's aircraft list"
           : searched
             ? `${results.length} aircraft found`
             : ''}
@@ -140,7 +140,7 @@ export function AircraftPicker({ onSelect, excludeIds = [] }: AircraftPickerProp
           <Button ref={addRef} variant="secondary" onClick={handleStartAdding}>
             Add a new aircraft
           </Button>
-          <span className="muted">Not in the register? Add it yourself.</span>
+          <span className="muted">Not on CalDART&apos;s list? Add it yourself.</span>
         </p>
       )}
 

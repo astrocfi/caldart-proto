@@ -269,7 +269,7 @@ def test_a_certificate_needs_a_number_on_the_merged_record(
         {"certificate_number": "", "verified": []},
         format="json",
     )
-    assert response.json() == {"certificate_number": ["Give your pilot certificate number."]}
+    assert response.json() == {"certificate_number": ["Enter the pilot certificate number."]}
 
 
 def test_a_medical_needs_an_expiration_on_the_merged_record(
@@ -281,9 +281,7 @@ def test_a_medical_needs_an_expiration_on_the_merged_record(
         {"medical_expiration": None, "verified": []},
         format="json",
     )
-    assert response.json() == {
-        "medical_expiration": ["Give the expiration date of your medical certificate."]
-    }
+    assert response.json() == {"medical_expiration": ["Enter the medical's expiration date."]}
 
 
 def test_a_refused_body_writes_nothing(leader_client: APIClient, pilot: User) -> None:

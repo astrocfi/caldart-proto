@@ -21,9 +21,11 @@ The N-number heads the page, with the make and model under it and the insurance 
 A **Verification** card heads the page below that, the same as on a :doc:`member-record`.
 It lists **Insurance**, with what the record holds (such as *Avemco · AV-00012345 ·
 $1,000,000 / $100,000 · expires 03/01/2027*, or *Not on file* with nothing recorded) and its
-mark: **Verified** with who verified it and on which day, or **Not verified**. **Verify**
+mark: **Verified** with who verified it and on which day, or **Not verified** in amber. A
+policy whose date has passed reads **Expired** before its mark, and insurance with no expiry
+date on file has nothing to verify and no mark. **Verify**
 opens the same verification panel as the :doc:`aircraft-check`: correct the policy against
-its documents, tick **Insurance verified**, and press **Save**. *Verification saved*
+its documents, check **Insurance verified**, and press **Save verification**. *Verification saved*
 confirms it, the card returns with you on its **Verify**, and the form below starts again
 from the saved record. **Cancel**, or Escape, closes the panel and changes nothing.
 
@@ -35,7 +37,7 @@ was loaded gives the date alone. The form has four parts.
    **N-number**, **Year**, **Aircraft type**, **Seats**, **Category**, and
    **Airworthiness**. The N-number is a US
    registration: the box writes the N, then takes digits first and at most two letters,
-   never I or O. As you type, up to eight airplanes from the FAA registry whose N-number
+   never I or O. As you type, up to eight airplanes from the FAA data whose N-number
    starts with what you typed are listed under the box, each with its N-number, aircraft
    type, year, and registrant; click one, or reach it with the arrow keys and press Enter,
    and Escape closes the list. Picking one writes its N-number into the box and fills the
@@ -43,7 +45,7 @@ was loaded gives the date alone. The form has four parts.
    type** from the kind of registrant it is (a person or co-owners become Individual, a
    partnership becomes Flying club, a company becomes FBO; a government registrant, or one
    that fits none of those, leaves Owner type as it was). The line under the box then reads
-   *From the FAA registry as of* the day of CalDART's copy, until the N-number changes. An
+   *From FAA data as of* the day of CalDART's copy, until the N-number changes. An
    airplane the registry lacks is simply not listed; type its whole N-number. The aircraft type is picked from a list: type the make, the
    model, or a designator (cessna 172, c172, skyhawk) in **Aircraft type** and pick the
    entry, which shows its seats. The make and model come from the type, and picking one
@@ -87,14 +89,14 @@ the form, so *insurance expiry* is the **Insurance expires** box.
 
 A record with no recorded change says *No change is recorded for this record.* The next save
 starts the list. If the history cannot be fetched, the card says *That record's history
-could not be loaded.*
+didn't load. Try again in a moment.*
 
 
-Pilots who fly this aircraft
-============================
+Pilots who fly it
+=================
 
 This card lists every member who has attached the airplane to their profile, with their
-email address, **Member current** or **Member expired**, and **Medical current** or
+email address, **Member current**, **Member expired**, or **Friend**, and **Medical current** or
 **Medical not current**: the same facts a DART leader sees. A name opens that person's
 :doc:`member-record`. With nobody attached it reads *No member lists this aircraft on their
 profile.*
@@ -103,7 +105,7 @@ profile.*
 Deleting the record
 ===================
 
-**Delete this aircraft**, at the foot of the page, asks once: *Delete* the N-number
+**Delete this aircraft**, at the bottom of the page, asks once: *Delete* the N-number
 *permanently? It will disappear from every member's profile.*, above a red **Delete** and
 **Cancel**. Press **Delete** to go ahead, or **Cancel**, Escape, or a click elsewhere to keep
 the record. The record is removed from the register and from every profile that had it.

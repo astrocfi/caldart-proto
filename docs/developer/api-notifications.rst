@@ -108,7 +108,7 @@ Refusals, each **400**:
 * ``{"events": ["<name> does not hold a role that may receive <label>."]}``
   for an account that may not receive one of the events, naming the account
   and the first such event in catalog order;
-* ``{"confirmed": ["Tick the box to confirm this address may receive these
+* ``{"confirmed": ["Check the box to confirm this address may receive these
   notifications."]}`` for an address no account holds, until it is confirmed.
 
 ``GET``, ``PATCH`` and ``DELETE /notifications/subscriptions/{id}``

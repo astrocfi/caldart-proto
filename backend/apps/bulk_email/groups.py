@@ -55,11 +55,11 @@ from caldart.reports import CSV_DOCUMENT_TYPE, ReportDocument, csv_rows
 GROUP_LABEL = "Group: {name}"
 
 #: The refusal of saving a batch with nobody in it.
-EMPTY_BATCH_MESSAGE = "The batch is empty. Add people to it before you save it as a group."
+EMPTY_BATCH_MESSAGE = "The recipient list is empty. Add people to it before you save it as a group."
 
 #: The refusal of saving a batch as a live group when some of it has no filters behind it.
 NO_FILTERS_MESSAGE = (
-    "Some people in this batch came from a fixed group or were copied from another "
+    "Some people on this recipient list came from a fixed group or were copied from another "
     "email, so there are no filters to save for them. Save it as a fixed group instead."
 )
 
@@ -67,7 +67,7 @@ NO_FILTERS_MESSAGE = (
 #: deleted; ``{name}`` is the group's name as the add recorded it.
 DELETED_GROUP_MESSAGE = (
     'The group "{name}" was deleted, so its filters are gone. '
-    "Save this batch as a fixed group instead."
+    "Save this recipient list as a fixed group instead."
 )
 
 #: What a live group whose stored filters the member list no longer accepts says, in

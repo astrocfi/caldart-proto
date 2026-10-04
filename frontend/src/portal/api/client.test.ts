@@ -10,6 +10,7 @@ import {
   UnexpectedResponseError,
   api,
   ensureCsrfToken,
+  isNotFound,
   readCookie,
   request,
   resetCsrfBootstrap,
@@ -30,11 +31,15 @@ describe('ApiError', () => {
     expect(error.message).toBe('Incorrect email address or password.');
   });
 
-  it('falls back to a status-specific message', () => {
-    expect(new ApiError(401, null).message).toMatch(/sign in/i);
-    expect(new ApiError(403, null).message).toMatch(/permission/i);
-    expect(new ApiError(404, null).message).toMatch(/not found/i);
-    expect(new ApiError(500, null).message).toMatch(/500/);
+  it.each([
+    [401, 'GET', 'You need to sign in to do that.'],
+    [403, 'GET', 'You do not have permission to do that.'],
+    [404, 'GET', "That isn't here. It may have been deleted."],
+    [500, 'GET', "That didn't load. Try again in a moment."],
+    [500, 'POST', "That didn't save. Try again in a moment."],
+    [502, 'delete', "That didn't save. Try again in a moment."],
+  ])('falls back to a plain message for a %i on %s', (status, method, message) => {
+    expect(new ApiError(status, null, method).message).toBe(message);
   });
 
   it('exposes field errors for forms', () => {
@@ -47,6 +52,13 @@ describe('ApiError', () => {
       email: 'Enter a valid email address.',
       password: 'Too short.',
     });
+  });
+
+  it('tells a 404 from any other failure', () => {
+    expect([isNotFound(new ApiError(404, null)), isNotFound(new ApiError(500, null))]).toEqual([
+      true,
+      false,
+    ]);
   });
 
   it('classifies 401 and 403', () => {
@@ -528,7 +540,7 @@ describe('response bodies', () => {
     await expect(request('/thing')).rejects.toMatchObject({
       name: 'ApiError',
       status: 502,
-      message: 'Request failed (502).',
+      message: "That didn't load. Try again in a moment.",
     });
   });
 });

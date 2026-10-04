@@ -58,7 +58,7 @@ export function CoveragePolicyCard(): JSX.Element {
   if (policy.isError) {
     return (
       <Card eyebrow="Insurance" title="Coverage policy">
-        <p className="muted">The coverage policy could not be loaded.</p>
+        <p className="muted">The coverage policy didn&apos;t load. Try again in a moment.</p>
       </Card>
     );
   }
@@ -171,7 +171,7 @@ function CoveragePolicyForm({ initial, onDone: handleDone }: CoveragePolicyFormP
       </Field>
       <div className="cluster">
         <Button type="submit" disabled={save.isPending}>
-          {save.isPending ? 'Saving…' : 'Save policy'}
+          {save.isPending ? 'Saving…' : 'Save changes'}
         </Button>
         <Button variant="quiet" onClick={handleDone}>
           Cancel

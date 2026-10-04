@@ -70,7 +70,7 @@ The recipient is named by address when the subscription is set up:
   holds a role that may read the report — the same rule the report's download
   applies.  A treasurer cannot be subscribed to the membership report, for
   example, whose medical and certificate data is not theirs to read.
-* When no account holds it, the person setting it up must tick a box
+* When no account holds it, the person setting it up must check a box
   confirming that the address, outside CalDART, may receive the report.  The
   subscription is then bound to the bare address.
 
@@ -99,7 +99,7 @@ DART rosters
 ============
 
 Each active DART is sent its roster once a month, one email to each person on
-the DART's list (``DartContact``) who is ticked to receive it
+the DART's list (``DartContact``) who is checked to receive it
 (``receives_roster``).  The roster is the membership report for the DART —
 ``{"dart": <id>, "ordering": "name"}`` — with the columns in
 ``ROSTER_COLUMNS``: name, phone, email, certificate, medical, medical expiry,
@@ -116,8 +116,8 @@ the timer missed the day.  ``roster_sent_at`` is stamped when every email went
 out; a refused one leaves the DART due, and the next run sends the roster to all
 its people again, since a repeated roster does less harm than a missing one.
 
-A DART with nobody ticked who has an address is skipped as ``no_recipients``.
-Otherwise each ticked person without an address is skipped as ``no_email`` and
+A DART with nobody set to receive its roster who has an address is skipped as ``no_recipients``.
+Otherwise each checked person without an address is skipped as ``no_email`` and
 everyone else is sent the roster.  The subject is
 ``<DART name> roster (<MM/DD/YYYY>)``, and the body says how many members it
 lists and that the DART's leaders may ask a CalDART account administrator to

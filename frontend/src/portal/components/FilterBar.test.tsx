@@ -151,7 +151,7 @@ describe('FilterBar', () => {
     expect(handleChange).toHaveBeenLastCalledWith(expect.objectContaining({ from: '2026-01-31' }));
   });
 
-  it('sends true for a ticked toggle', async () => {
+  it('sends true for a checked toggle', async () => {
     const handleChange = vi.fn();
     render(<Harness onChange={handleChange} />);
 
@@ -160,7 +160,7 @@ describe('FilterBar', () => {
     expect(handleChange).toHaveBeenLastCalledWith(expect.objectContaining({ is_active: 'true' }));
   });
 
-  it('sends nothing for a toggle ticked off again', async () => {
+  it('sends nothing for a toggle checked off again', async () => {
     const handleChange = vi.fn();
     render(<Harness initial={{ is_active: 'true' }} onChange={handleChange} />);
 
@@ -350,7 +350,7 @@ describe('FilterBar multiselect', () => {
     expect([box.textContent, screen.queryByRole('checkbox')]).toEqual(['Any', null]);
   });
 
-  it('opens a checkbox per county, with no blank choice: ticking none means any', async () => {
+  it('opens a checkbox per county, with no blank choice: checking none means any', async () => {
     render(<Harness fields={COUNTY_FIELDS} onChange={handleNothing} />);
 
     await userEvent.click(screen.getByLabelText('County'));
@@ -363,7 +363,7 @@ describe('FilterBar multiselect', () => {
     ]);
   });
 
-  it('sends the ticked values joined with commas, in the order they are listed', async () => {
+  it('sends the checked values joined with commas, in the order they are listed', async () => {
     const handleChange = vi.fn();
     render(<Harness fields={COUNTY_FIELDS} onChange={handleChange} />);
 
@@ -374,7 +374,7 @@ describe('FilterBar multiselect', () => {
     expect(handleChange).toHaveBeenLastCalledWith({ county: 'Alameda,Napa' });
   });
 
-  it('ticks every county a comma-separated value names', async () => {
+  it('checks every county a comma-separated value names', async () => {
     render(
       <Harness
         fields={COUNTY_FIELDS}
@@ -404,7 +404,7 @@ describe('FilterBar multiselect', () => {
     expect(screen.getByLabelText('County')).toHaveTextContent('Marin, Santa Clara');
   });
 
-  it('sends an empty value once the last county is unticked', async () => {
+  it('sends an empty value once the last county is unchecked', async () => {
     const handleChange = vi.fn();
     render(
       <Harness fields={COUNTY_FIELDS} initial={{ county: 'Marin' }} onChange={handleChange} />,

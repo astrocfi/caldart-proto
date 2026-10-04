@@ -26,8 +26,8 @@ What you see
 ============
 
 The header, beside **New aircraft**, says how fresh CalDART's copy of the FAA aircraft
-registry is, such as *Registry as of 09/20/2026*: the day of the last successful import,
-which runs every night. Until the first import it reads *Registry not imported yet*.
+registry is, such as *FAA data as of 09/20/2026*: the day of the last successful import,
+which runs every night. Until the first import it reads *FAA data not loaded yet*.
 The airplanes the N-number box lists on the aircraft forms and the list of aircraft types
 both come from that copy.
 
@@ -62,7 +62,7 @@ The table shows the same columns as the register you download, and **Columns** c
 Each row stays on one line, and anything too long for its column ends in an ellipsis. On a
 narrower screen the table leaves columns out until the rest fit, the insurance figures
 first, then **Owner**, **Model**, and **Make**; the N-number, **Expires**, and any column
-you ticked beyond the defaults always stay. When the table is still wider than the screen, a line over it says
+you checked beyond the defaults always stay. When the table is still wider than the screen, a line over it says
 so, and the N-numbers stay pinned at the left while you scroll.
 
 **N-number**, **Make**, **Model**, **Owner**, and **Expires** sort: their headings carry an
@@ -95,9 +95,9 @@ register without it. It reads three lines:
    A short statement of the limitation in your own words, or *None*. Every member reads it
    above the list on **My aircraft**.
 
-To change it, press **Edit policy**. Tick the categories and the airworthiness categories
-to leave out in the two drop-downs (**Clear** in either unticks them all), write the note,
-and press **Save policy**; *Coverage policy saved.* appears. **Cancel** puts the card back
+To change it, press **Edit policy**. Check the categories and the airworthiness categories
+to leave out in the two drop-downs (**Clear** in either unchecks them all), write the note,
+and press **Save changes**; *Coverage policy saved.* appears. **Cancel** puts the card back
 as it was. The note takes at most 1,000 characters.
 
 The policy takes effect at once. The aircraft check shows an airplane it leaves out as
@@ -191,9 +191,9 @@ title.
 **Columns**, at the right of the bar beside the export buttons, chooses the columns of the
 table on screen and of the downloads together. Five more are on offer: **Category**,
 **Airworthiness**, **Owner type**, **Liability / person**, and **Pilots**, the members who
-list the airplane on their profile. They are off until you tick them. **Pilots** is filled
+list the airplane on their profile. They are off until you check them. **Pilots** is filled
 in the downloads alone: who flies an airplane is the member check's to show, so its column
-on screen reads a dash. **Reset to the default columns** ticks the nine again. **Load
+on screen reads a dash. **Reset to the default columns** checks the nine again. **Load
 columns** and **Save columns** keep a set of columns under a name, as
 :ref:`saved-column-sets` describes.
 
@@ -207,7 +207,7 @@ If something looks wrong
 airplane, under whatever spelling somebody first used; search for it and correct that
 record. An airplane a member cannot find when they add it to their profile has probably been
 taken out of service, which leaves it out of their search until they type the whole
-registration. If the line beside the export buttons says *The columns could not be loaded;
+registration. If the line beside the export buttons says *The columns didn't load;
 the list shows the default ones.*, reload the page. If a download carries more rows than
 you expected, a box you had typed in had not applied yet; wait for the table to narrow, then
 download again.

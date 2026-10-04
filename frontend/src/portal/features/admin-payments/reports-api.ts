@@ -126,13 +126,6 @@ export function useCancelMandate(): UseMutationResult<void, unknown, number> {
 }
 
 /* ------------------------------------------------------------- vocabulary */
-export const MANDATE_STATUS_LABELS: Record<MandateStatus, string> = {
-  pending: 'Awaiting a method',
-  active: 'On',
-  paused: 'Paused',
-  canceled: 'Off',
-};
-
 export const MANDATE_STATUS_TONES: Record<MandateStatus, StatusTone> = {
   pending: 'new',
   active: 'current',
@@ -143,7 +136,7 @@ export const MANDATE_STATUS_TONES: Record<MandateStatus, StatusTone> = {
 export const RENEWAL_OUTCOME_LABELS: Record<RenewalOutcome, string> = {
   scheduled: 'Scheduled',
   succeeded: 'Charged',
-  failed: 'Refused',
+  failed: 'Failed',
   skipped: 'Skipped',
 };
 

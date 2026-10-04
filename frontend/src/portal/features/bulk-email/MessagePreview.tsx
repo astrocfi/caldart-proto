@@ -31,7 +31,7 @@ const FALLBACK_ERROR = 'The preview could not be shown. Try again in a moment.';
  */
 export function previewingLine(preview: BulkEmailPreview): string {
   if (preview.recipient.id === null) {
-    return `Previewing as you, ${preview.recipient.name}: nobody in the batch receives it yet.`;
+    return `Previewing as you, ${preview.recipient.name}: nobody on the recipient list receives it yet.`;
   }
   return `Previewing as ${preview.recipient.name} (${preview.position} of ${preview.count})`;
 }

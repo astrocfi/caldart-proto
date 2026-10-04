@@ -30,10 +30,10 @@ import { useApplyTemplate, useCreateTemplate, useTemplates } from './reuseApi';
 
 /** What the confirmation says before a template replaces words already written. */
 export const REPLACE_WARNING =
-  "This replaces the subject, the message, and the Reply-To address you have with the template's, and the type too when the template has one. The people in the batch stay.";
+  "This replaces the subject, the message, and the address for replies you have with the template's, and the type too when the template has one. The recipient list stays.";
 
 /** What a failed request says when the server gave no sentence of its own. */
-const FALLBACK_ERROR = 'That did not work. Try again.';
+const FALLBACK_ERROR = "The template wasn't used. Try again in a moment.";
 
 /**
  * Whether a draft holds any words or pictures: a subject, or a message with text or
@@ -110,7 +110,7 @@ function StartFromTemplate({
   if (templates.isError) {
     return (
       <p className="field__error" role="alert">
-        The templates could not be loaded.
+        The templates didn&apos;t load. Try again in a moment.
       </p>
     );
   }
@@ -208,7 +208,7 @@ function SaveAsTemplate({
       <Field
         label="Template name"
         error={fieldError(create.error, 'name')}
-        hint="Such as Monthly newsletter. The type, subject, Reply-To address, and message are kept."
+        hint="Such as Monthly newsletter. The type, subject, address for replies, and message are kept."
         required
       >
         {(props) => (
@@ -223,7 +223,7 @@ function SaveAsTemplate({
       <FormAlert error={create.error} handled={['name']} />
       <div className="cluster">
         <Button type="submit" small disabled={create.isPending}>
-          {create.isPending ? 'Saving…' : 'Save template'}
+          {create.isPending ? 'Adding…' : 'Add template'}
         </Button>
       </div>
     </form>

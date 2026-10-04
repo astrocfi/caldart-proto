@@ -56,6 +56,7 @@ from apps.members.models import (
     MembershipPlan,
     MembershipSource,
     MembershipStatusChoices,
+    PhotoIdType,
     PilotCertificateType,
 )
 from apps.payments.models import (
@@ -248,7 +249,11 @@ class AircraftChangeFactory(ModelFactory[AircraftChange]):
 
 
 class MemberProfileFactory(ModelFactory[MemberProfile]):
-    """Builds a ``MemberProfile``, reusing an existing row for the same user."""
+    """Builds a ``MemberProfile``, reusing an existing row for the same user.
+
+    The profile is a complete pilot's: a private certificate, a current third-class
+    medical, and a driver's license, so each of the three verified items is held.
+    """
 
     class Meta:
         model = MemberProfile
@@ -267,6 +272,7 @@ class MemberProfileFactory(ModelFactory[MemberProfile]):
     ratings = factory.LazyFunction(lambda: ["instrument"])
     medical_type = MedicalType.THIRD
     medical_expiration = factory.LazyFunction(lambda: timezone.localdate() + timedelta(days=365))
+    photo_id_type = PhotoIdType.DRIVERS_LICENSE
     total_hours = 750
 
 

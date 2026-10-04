@@ -129,7 +129,7 @@ describe('PaymentsPage', () => {
     const row = within(await screen.findByRole('row', { name: /Annual and contribution/ }));
     expect(row.getByText('03/14/2026')).toBeInTheDocument();
     expect(row.getByText('$45.00')).toBeInTheDocument();
-    expect(row.getByRole('link', { name: 'Receipt' })).toHaveAttribute(
+    expect(row.getByRole('link', { name: 'Receipt for 03/14/2026 (PDF)' })).toHaveAttribute(
       'href',
       '/api/v1/me/payments/414/receipt.pdf',
     );
@@ -156,7 +156,7 @@ describe('PaymentsPage', () => {
     });
 
     await screen.findByRole('table');
-    expect(screen.queryByRole('link', { name: 'Receipt' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /^Receipt/ })).not.toBeInTheDocument();
   });
 
   it('shows the refunded column only when something has come back', async () => {
@@ -207,7 +207,7 @@ describe('PaymentsPage', () => {
       ],
     });
 
-    expect(await screen.findByText('Your statements could not be loaded')).toBeInTheDocument();
+    expect(await screen.findByText("Your statements didn't load")).toBeInTheDocument();
     expect(screen.queryByText('No statements yet')).not.toBeInTheDocument();
   });
 });

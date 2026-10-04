@@ -7,6 +7,7 @@ checked by an authority against the policy.  It is recorded on ``Aircraft`` as
 that changes the stored value of any insurance field clears the verification, whoever
 writes it; a write that changes nothing clears nothing.  Verified insurance whose
 expiration passes stays verified: currency and verification are two separate facts.
+Insurance with no expiration on file is no policy at all, and is never stamped.
 
 A holder of any role in ``apps.accounts.roles.VERIFY_ROLES`` may verify it, a system
 administrator and a superuser included.  A person's items (pilot certificate, medical,
@@ -76,11 +77,13 @@ def verify_insurance(
 
     Then, when ``verified`` is true and the insurance is not verified, it is stamped
     with ``timezone.now()`` and ``actor``; verified insurance keeps its stamp.  When
-    ``verified`` is false the insurance ends unverified.  The audit log records
-    ``aircraft.verify`` with ``verified`` (true or false), and when the verified state
-    before the save differs from the state after it, or the insurance was stamped
-    anew, ``verification_changed`` is raised once with ``aircraft``, ``verified`` and
-    ``cleared`` as item labels, and ``actor``.  Returns the saved aircraft.
+    ``verified`` is false, or the saved record has no ``insurance_expiration`` (no
+    policy on file, so nothing to verify), the insurance ends unverified.  The audit
+    log records ``aircraft.verify`` with ``verified`` (whether the insurance ends
+    verified), and when the verified state before the save differs from the state
+    after it, or the insurance was stamped anew, ``verification_changed`` is raised
+    once with ``aircraft``, ``verified`` and ``cleared`` as item labels, and
+    ``actor``.  Returns the saved aircraft.
 
     Locks the aircraft row with ``select_for_update`` before reading it, so a save
     racing this one -- the owner's own edit, or another verifier's -- waits for this
@@ -99,6 +102,7 @@ def verify_insurance(
     services.record_updated(aircraft, actor=actor, fields=moved)
 
     stamped = False
+    verified = verified and aircraft.insurance_expiration is not None
     if verified and not aircraft.insurance_is_verified:
         aircraft.insurance_verified_at = timezone.now()
         aircraft.insurance_verified_by = actor

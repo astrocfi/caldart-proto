@@ -168,14 +168,14 @@ describe('UsersListPage', () => {
     ]);
   });
 
-  it('draws Search, then Kind of account, then Account status', async () => {
+  it('draws Search, then Kind, then Account status', async () => {
     stubList();
     renderWithProviders(<UsersListPage />);
     await screen.findByRole('link', { name: 'Marta Reyes' });
 
     const fields = [
       screen.getByLabelText(/search/i),
-      screen.getByLabelText(/kind of account/i),
+      screen.getByLabelText('Kind', { exact: true }),
       screen.getByLabelText(/account status/i),
     ];
     const order = fields.map((field) =>
@@ -208,7 +208,7 @@ describe('UsersListPage', () => {
     ]);
   });
 
-  it('shows a column ticked in the chooser in the table as well as the downloads', async () => {
+  it('shows a column checked in the chooser in the table as well as the downloads', async () => {
     stubList([makeAdminUser({ ...MARTA, city: 'Concord' })]);
     renderWithProviders(<UsersListPage />);
     await screen.findByRole('link', { name: 'Marta Reyes' });
@@ -249,7 +249,7 @@ describe('UsersListPage', () => {
     await user.type(screen.getByLabelText(/search/i), 'reyes');
     await act(() => vi.advanceTimersByTimeAsync(SEARCH_DEBOUNCE_MS));
     await user.selectOptions(screen.getByLabelText('Role'), 'dart_leader');
-    await user.selectOptions(screen.getByLabelText(/kind of account/i), 'friend');
+    await user.selectOptions(screen.getByLabelText('Kind', { exact: true }), 'friend');
     await user.click(screen.getByRole('button', { name: 'Columns' }));
     await user.click(screen.getByRole('checkbox', { name: 'City' }));
 
@@ -282,7 +282,7 @@ describe('UsersListPage', () => {
     renderWithProviders(<UsersListPage />);
     await screen.findByRole('button', { name: 'Columns' });
 
-    await userEvent.selectOptions(screen.getByLabelText(/kind of account/i), 'donor');
+    await userEvent.selectOptions(screen.getByLabelText('Kind', { exact: true }), 'donor');
 
     const controls = ['Export CSV', 'Export PDF', 'Columns'].map((name) =>
       screen.getByRole('button', { name }),
@@ -299,7 +299,7 @@ describe('UsersListPage', () => {
     renderWithProviders(<UsersListPage />);
     await screen.findByRole('button', { name: 'Columns' });
 
-    await userEvent.selectOptions(screen.getByLabelText(/kind of account/i), 'donor');
+    await userEvent.selectOptions(screen.getByLabelText('Kind', { exact: true }), 'donor');
 
     expect(screen.queryByRole('link', { name: /Export/ })).not.toBeInTheDocument();
   });
@@ -329,7 +329,7 @@ describe('UsersListPage', () => {
     renderWithProviders(<UsersListPage />);
 
     expect(
-      await screen.findByText('The columns could not be loaded; the list shows the default ones.'),
+      await screen.findByText("The columns didn't load; the list shows the default ones."),
     ).toBeInTheDocument();
   });
 
@@ -339,7 +339,7 @@ describe('UsersListPage', () => {
       http.get(`${API}/reports/roles/columns`, () => new HttpResponse(null, { status: 500 })),
     );
     renderWithProviders(<UsersListPage />);
-    await screen.findByText(/the columns could not be loaded/i);
+    await screen.findByText(/the columns didn't load/i);
 
     expect(screen.getByRole('link', { name: 'Export CSV' })).toHaveAttribute(
       'href',
@@ -447,12 +447,12 @@ describe('UsersListPage', () => {
     expect(within(gilRow).getByText('Donor')).toBeInTheDocument();
   });
 
-  it('filters by kind of account', async () => {
+  it('filters by kind', async () => {
     const seen = stubList([MARTA, GIL]);
     renderWithProviders(<UsersListPage />);
     await screen.findByRole('link', { name: 'Marta Reyes' });
 
-    await userEvent.selectOptions(screen.getByLabelText(/kind of account/i), 'donor');
+    await userEvent.selectOptions(screen.getByLabelText('Kind', { exact: true }), 'donor');
 
     await waitFor(() => expect(seen.at(-1)?.get('kind')).toBe('donor'));
     await waitFor(() =>

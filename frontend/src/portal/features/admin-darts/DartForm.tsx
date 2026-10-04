@@ -68,6 +68,11 @@ function personLabel(contact: AdminDartContact, index: number): string {
   return contact.name.trim() || `Person ${index + 1}`;
 }
 
+/** The same name for use mid-sentence, where a nameless row reads "person 2". */
+function personInSentence(contact: AdminDartContact, index: number): string {
+  return contact.name.trim() || `person ${index + 1}`;
+}
+
 export interface DartFormProps {
   initial: DartFormValues;
   submitLabel: string;
@@ -319,14 +324,13 @@ export function DartForm({
           label="Airports"
           required
           error={airportError ?? freshErrors.airport_identifiers}
-          hint="The fields the team flies from, separated by commas: CCR, C83. Paste KCRQ and the K comes off."
+          hint="The fields the team flies from, separated by commas, such as CCR, C83. Leave off the leading K: CRQ, not KCRQ."
         >
           {(props) => (
             <MaskedInput
               {...props}
               className="num"
               name="airport_identifiers"
-              placeholder="CCR, C83"
               mask={maskAirportIdentifiers}
               value={values.airport_identifiers}
               onValueChange={(next) => {
@@ -340,14 +344,13 @@ export function DartForm({
         <Field
           label="Website"
           error={freshErrors.website_url}
-          hint="The team's own site, if it has one."
+          hint="The team's own site, if it has one, such as https://paloaltodart.org/"
         >
           {(props) => (
             <input
               {...props}
               type="url"
               name="website_url"
-              placeholder="https://paloaltodart.org/"
               value={values.website_url}
               onChange={(event) => set('website_url', event.target.value)}
             />
@@ -358,11 +361,17 @@ export function DartForm({
       <fieldset className="dart-contacts">
         <legend>DART management</legend>
         <p className="muted small">
-          Shown on the team&rsquo;s page in the order you put them in. A phone number and an email
-          address are both optional.
+          Shown on the team&rsquo;s page in the order you put them in. A title such as DART leader
+          says what each person does. A phone number, such as 415-555-0100, and an email address are
+          both optional.
         </p>
         {values.contacts.map((contact, index) => (
-          <div className="dart-contacts__row" key={rowKeys[index] ?? `row-${index}`}>
+          <div
+            className="dart-contacts__row"
+            key={rowKeys[index] ?? `row-${index}`}
+            role="group"
+            aria-label={personLabel(contact, index)}
+          >
             <span
               className="cluster dart-contacts__controls"
               ref={(node) => {
@@ -371,13 +380,13 @@ export function DartForm({
             >
               <IconButton
                 icon="arrow-up"
-                label={`Move person ${index + 1} up`}
+                label={`Move ${personInSentence(contact, index)} up`}
                 disabled={!canSwap(index, index - 1)}
                 onClick={() => moveContact(index, -1)}
               />
               <IconButton
                 icon="arrow-down"
-                label={`Move person ${index + 1} down`}
+                label={`Move ${personInSentence(contact, index)} down`}
                 disabled={!canSwap(index, index + 1)}
                 onClick={() => moveContact(index, 1)}
               />
@@ -395,7 +404,6 @@ export function DartForm({
               {(props) => (
                 <input
                   {...props}
-                  placeholder="DART leader"
                   value={contact.title}
                   onChange={(event) => setContact(index, { title: event.target.value })}
                 />
@@ -408,7 +416,6 @@ export function DartForm({
                   type="tel"
                   inputMode="tel"
                   className="dart-contacts__phone"
-                  placeholder="415-555-0100"
                   mask={maskPhone}
                   value={contact.phone}
                   onValueChange={(next) => setContact(index, { phone: next })}
@@ -439,7 +446,7 @@ export function DartForm({
               />
             </div>
             <DeleteButton
-              label={`Remove person ${index + 1}`}
+              label={`Remove ${personInSentence(contact, index)}`}
               confirmLabel="Remove"
               onDelete={() => handleRemoveContact(index)}
             />
@@ -466,7 +473,7 @@ export function DartForm({
           checked={values.is_active}
           onChange={(event) => set('is_active', event.target.checked)}
         />
-        <span>Active — untick to make the DART inactive without losing its history</span>
+        <span>Active — uncheck to make the DART inactive without losing its history</span>
       </label>
 
       {freshErrors.detail ? (

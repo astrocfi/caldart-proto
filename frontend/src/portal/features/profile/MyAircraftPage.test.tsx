@@ -291,7 +291,10 @@ describe('<MyAircraftPage/>', () => {
         HttpResponse.json(makeProfile({ aircraft: [TEST_AIRCRAFT] })),
       ),
       http.delete(`${API}/me/profile/aircraft/:id`, () =>
-        HttpResponse.json({ detail: 'Not found.' }, { status: 404 }),
+        HttpResponse.json(
+          { detail: "That isn't here. It may have been deleted." },
+          { status: 404 },
+        ),
       ),
     );
 
@@ -299,7 +302,9 @@ describe('<MyAircraftPage/>', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Remove N12345' }));
     await userEvent.click(screen.getByRole('button', { name: 'Remove' }));
 
-    expect(await screen.findByText('Not found.')).toBeInTheDocument();
+    expect(
+      await screen.findByText("That isn't here. It may have been deleted."),
+    ).toBeInTheDocument();
   });
 });
 
@@ -341,11 +346,13 @@ describe('<MyAircraftPage/> editing', () => {
 
     renderWithProviders(<MyAircraftPage />);
 
-    await userEvent.click(await screen.findByRole('button', { name: 'Edit' }));
+    await userEvent.click(
+      await screen.findByRole('button', { name: `Edit ${TEST_AIRCRAFT.n_number}` }),
+    );
     const expiry = await screen.findByLabelText('Insurance expires');
     await userEvent.clear(expiry);
     await userEvent.type(expiry, '2028-05-31');
-    await userEvent.click(screen.getByRole('button', { name: 'Save aircraft' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Save changes' }));
 
     await waitFor(() => expect(patched).not.toBeNull());
     expect(patched).toMatchObject({ insurance_expiration: '2028-05-31' });
@@ -357,10 +364,12 @@ describe('<MyAircraftPage/> editing', () => {
 
     renderWithProviders(<MyAircraftPage />);
 
-    await userEvent.click(await screen.findByRole('button', { name: 'Edit' }));
+    await userEvent.click(
+      await screen.findByRole('button', { name: `Edit ${TEST_AIRCRAFT.n_number}` }),
+    );
 
     expect(await screen.findByText('Someone else added this aircraft')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Save aircraft' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Save changes' })).not.toBeInTheDocument();
   });
 
   it.each([
@@ -408,6 +417,30 @@ describe('<MyAircraftPage/> editing', () => {
     expect(within(row).queryByText('Not yet verified')).not.toBeInTheDocument();
   });
 
+  it('draws no mark with no insurance on file, even over a stamp left on the record', async () => {
+    server.use(
+      http.get(`${API}/me/profile`, () =>
+        HttpResponse.json(
+          makeProfile({
+            aircraft: [
+              makeVerifiedAircraftSummary({
+                insurance_verified: true,
+                insurance_is_current: false,
+                insurance_expiration: null,
+                insurance_summary: 'No insurance on file',
+              }),
+            ],
+          }),
+        ),
+      ),
+    );
+
+    renderWithProviders(<MyAircraftPage />, { route: '/profile/aircraft' });
+
+    const row = (await screen.findByText('N172SP')).closest('li') as HTMLElement;
+    expect(within(row).queryByText('Verified')).not.toBeInTheDocument();
+  });
+
   it('reads the insurance as not yet verified once the member edits it', async () => {
     let edited = false;
     server.use(
@@ -434,9 +467,9 @@ describe('<MyAircraftPage/> editing', () => {
     renderWithProviders(<MyAircraftPage />);
 
     expect(await screen.findByText('Verified')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    await userEvent.click(screen.getByRole('button', { name: `Edit ${TEST_AIRCRAFT.n_number}` }));
     await userEvent.type(await screen.findByLabelText('Carrier'), 'AIG');
-    await userEvent.click(screen.getByRole('button', { name: 'Save aircraft' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Save changes' }));
 
     expect(await screen.findByText('Not yet verified')).toBeInTheDocument();
   });

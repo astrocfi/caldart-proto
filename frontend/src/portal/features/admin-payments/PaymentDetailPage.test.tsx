@@ -229,8 +229,8 @@ describe('PaymentDetailPage', () => {
     const bodies = servePayment();
     renderDetail();
 
-    await user.type(await screen.findByLabelText(/Matched on/), '2026-02-02');
-    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await user.type(await screen.findByLabelText(/Reconciled on/), '2026-02-02');
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
     await waitFor(() => expect(bodies[0]).toMatchObject({ reconciled_on: '2026-02-02' }));
   });
@@ -240,8 +240,8 @@ describe('PaymentDetailPage', () => {
     const bodies = servePayment(makeDetail({ reconciled_on: '2026-02-02' }));
     renderDetail();
 
-    await user.clear(await screen.findByLabelText(/Matched on/));
-    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await user.clear(await screen.findByLabelText(/Reconciled on/));
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
     await waitFor(() => expect(bodies[0]).toMatchObject({ reconciled_on: null }));
   });

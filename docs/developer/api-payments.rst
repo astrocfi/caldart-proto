@@ -80,7 +80,7 @@ chosen provider.
 membership term is created when it succeeds.  A life member -- somebody who
 already holds a term that never expires -- has nothing left to buy, so a ``plan``
 from one is refused with a 400 naming ``plan``: ``You are a life member, so there
-is nothing to renew. Make a contribution instead.``  There is no amount field; one
+is nothing to renew. Make a donation instead.``  There is no amount field; one
 sent anyway is ignored.  ``contribution_cents`` runs from ``0`` to
 ``9999900`` ($99,999.00) inclusive -- inside every provider's per-charge
 ceiling, so an amount the API accepts is one the provider will take.  Anything
@@ -371,7 +371,7 @@ address, so they make one donor between them.
 The names, the phone, and the profile fields land on the account only once this
 payment settles: a new donor's names and profile are then written for the first
 time, and an existing donor's names and phone are replaced, with each optional
-field that was sent filled in (a non-blank value, a DART, a ticked box) written
+field that was sent filled in (a non-blank value, a DART, a checked box) written
 over the stored one and a field left out keeping what an earlier, completed gift
 said (``apps.payments.donations.apply_donor_fields``, called from
 ``mark_succeeded``).  Nothing is mailed to the donor but the receipt.  The page's

@@ -386,7 +386,9 @@ def test_a_batch_that_changed_since_the_count_was_typed_is_refused(
         url(three_people, "send"), {"confirm_count": 3}, format="json"
     )
     assert response.json() == {
-        "confirm_count": ["The batch has changed: it now holds 4 people. Type the new count."]
+        "confirm_count": [
+            "The recipient list has changed: it now holds 4 people. Type the new count."
+        ]
     }
 
 

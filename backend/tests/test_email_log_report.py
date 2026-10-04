@@ -57,8 +57,8 @@ def test_the_email_log_is_registered_under_emails() -> None:
 
 
 def test_the_email_log_is_titled_for_its_pdf() -> None:
-    """The PDF heads the report ``CalDART email log``."""
-    assert EMAIL_LOG_REPORT.title == "CalDART email log"
+    """The PDF heads the report ``CalDART sent emails``."""
+    assert EMAIL_LOG_REPORT.title == "CalDART sent emails"
 
 
 @pytest.mark.parametrize("url", [CSV_URL, PDF_URL, COLUMNS_URL])
@@ -177,7 +177,7 @@ def test_the_pdf_is_titled_and_names_its_filters(
     text = " ".join(pdf_text(response.content)[0])
 
     assert response.status_code == 200
-    assert "CalDART email log" in text
+    assert "CalDART sent emails" in text
     assert "purpose: refund" in text
     assert "from: 2026-03-01" in text
 

@@ -50,6 +50,8 @@ export interface ContributionChooserProps {
   disabled?: boolean;
   /** The fieldset's legend; a checkout adds a contribution to its dues. */
   legend?: string;
+  /** The label over the box an amount of one's own is typed into. */
+  amountLabel?: string;
   /** The line under the legend; null for none. */
   hint?: string | null;
 }
@@ -58,6 +60,9 @@ export interface ContributionChooserProps {
 const DUES_HINT =
   'CalDART is a 501(c)(3); a contribution on top of your dues is tax deductible and pays for ' +
   'training, fuel, and equipment.';
+
+/** What the chooser says over a donation, where there are no dues to add it to. */
+export const DONATION_HINT = 'Gifts to CalDART, a 501(c)(3), are tax deductible.';
 
 function label(tier: ContributionTier): string {
   if (tier.cents === 0) return 'No thank you';
@@ -74,6 +79,7 @@ export function ContributionChooser({
   onOther, // codespell:ignore onother
   disabled = false,
   legend = 'Add a contribution',
+  amountLabel = 'Contribution amount',
   hint = DUES_HINT,
 }: ContributionChooserProps): JSX.Element {
   const otherId = useId();
@@ -121,7 +127,7 @@ export function ContributionChooser({
       {isOther ? (
         <div className="field checkout__other">
           <label className="field__label" htmlFor={otherId}>
-            Contribution amount
+            {amountLabel}
           </label>
           <p className="field__hint" id={`${otherId}-hint`}>
             Up to {formatCents(maxCents, { whole: true })}. For more than that, talk to the

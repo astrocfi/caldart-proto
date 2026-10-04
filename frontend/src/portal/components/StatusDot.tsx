@@ -121,7 +121,7 @@ function membershipLabel(
 }
 
 /**
- * Whether this member may fly for CalDART today: a tick when the medical is in
+ * Whether this member may fly for CalDART today: a check when the medical is in
  * date, a cross when it has lapsed, and a dash for somebody who holds none.
  */
 export function PilotMark({

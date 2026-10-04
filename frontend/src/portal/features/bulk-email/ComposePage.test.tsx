@@ -91,7 +91,7 @@ describe('ComposePage', () => {
     answerBulkEmail(draftState({ sender_notice: notice }));
     renderCompose(draftState({ sender_notice: notice }));
     expect(await screen.findByText(notice)).toBeVisible();
-    expect(screen.queryByRole('button', { name: 'Add to batch' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Add these people' })).not.toBeInTheDocument();
   });
 
   it('explains the batch the first time it is named', async () => {
@@ -99,7 +99,7 @@ describe('ComposePage', () => {
     renderCompose(draftState());
     expect(
       await screen.findByText(
-        /The people you add make up the batch: the list this email goes to\./,
+        /The people you add make up the recipient list: everyone this email goes to\./,
       ),
     ).toBeVisible();
   });
@@ -108,9 +108,9 @@ describe('ComposePage', () => {
     const calls = answerBulkEmail(draftState());
     renderCompose(draftState());
     const user = typist();
-    await user.click(await screen.findByRole('button', { name: 'Add to batch' }));
+    await user.click(await screen.findByRole('button', { name: 'Add these people' }));
     await pass(500);
-    expect(await screen.findByText('Added 1 person; 1 was already in the batch.')).toBeVisible();
+    expect(await screen.findByText('Added 1 person; 1 was already on the list.')).toBeVisible();
     expect(calls.adds).toEqual([{ filters: {} }]);
   });
 
@@ -118,9 +118,9 @@ describe('ComposePage', () => {
     answerBulkEmail(draftState());
     renderCompose(draftState());
     const user = typist();
-    await user.click(await screen.findByRole('button', { name: 'Add to batch' }));
+    await user.click(await screen.findByRole('button', { name: 'Add these people' }));
     await pass(500);
-    const result = await screen.findByText('Added 1 person; 1 was already in the batch.');
+    const result = await screen.findByText('Added 1 person; 1 was already on the list.');
     await waitFor(() => expect(result).toHaveFocus());
   });
 
@@ -136,12 +136,12 @@ describe('ComposePage', () => {
     expect(screen.queryByText(hint)).toBeNull();
   });
 
-  it('puts Download list and Clear batch in one row of small buttons', async () => {
+  it('puts Download list and Remove everyone in one row of small buttons', async () => {
     answerBulkEmail(draftState());
     renderCompose(draftState());
     const download = await screen.findByRole('link', { name: 'Download list' });
     const row = download.parentElement as HTMLElement;
-    const buttons = [download, within(row).getByRole('button', { name: 'Clear batch' })];
+    const buttons = [download, within(row).getByRole('button', { name: 'Remove everyone' })];
     expect(buttons.map((button) => button.classList.contains('button--small'))).toEqual([
       true,
       true,
@@ -154,7 +154,7 @@ describe('ComposePage', () => {
     const user = typist();
     const filters = await screen.findByRole('search', { name: 'Choose people to add' });
     await user.type(within(filters).getByLabelText('Search'), 'bea');
-    await user.click(screen.getByRole('button', { name: 'Add to batch' }));
+    await user.click(screen.getByRole('button', { name: 'Add these people' }));
     // In two steps, as real time passes: the bar's pause, then the add's.
     await pass(300);
     await pass(300);
@@ -170,7 +170,7 @@ describe('ComposePage', () => {
     answerBulkEmail(state);
     renderCompose(state);
     const user = typist();
-    await user.click(await screen.findByRole('button', { name: 'Add to batch' }));
+    await user.click(await screen.findByRole('button', { name: 'Add these people' }));
     await pass(500);
     expect(await screen.findByText(BACK_TO_DRAFT_MESSAGE)).toBeVisible();
   });
@@ -194,7 +194,7 @@ describe('ComposePage', () => {
     state.batch = makeBatch([]);
     answerBulkEmail(state);
     renderCompose(state);
-    expect(await screen.findByText('Nobody is in the batch yet')).toBeVisible();
+    expect(await screen.findByText('Nobody is on the recipient list yet')).toBeVisible();
     expect(screen.queryByText(/will receive this email/)).toBeNull();
   });
 
@@ -223,7 +223,7 @@ describe('ComposePage', () => {
     );
     answerBulkEmail(state);
     renderCompose(state);
-    const table = await screen.findByRole('table', { name: 'The batch: 12 people' });
+    const table = await screen.findByRole('table', { name: 'Recipient list: 12 people' });
     expect(within(table).getAllByRole('row')).toHaveLength(SHORT_LIST_LENGTH + 1);
     await typist().click(screen.getByRole('button', { name: 'Show all 12' }));
     expect(within(table).getAllByRole('row')).toHaveLength(13);
@@ -232,7 +232,7 @@ describe('ComposePage', () => {
   it('gives the name and the address a real width and starts the name at the left', async () => {
     answerBulkEmail(draftState());
     renderCompose(draftState());
-    const table = await screen.findByRole('table', { name: 'The batch: 1 person' });
+    const table = await screen.findByRole('table', { name: 'Recipient list: 1 person' });
     const headers = within(table).getAllByRole('columnheader');
     expect(headers.map(headerWords)).toEqual([
       'Name',
@@ -251,7 +251,9 @@ describe('ComposePage', () => {
     const calls = answerBulkEmail(draftState());
     renderCompose(draftState());
     const user = typist();
-    await user.click(await screen.findByRole('button', { name: 'Remove Ann Able from the batch' }));
+    await user.click(
+      await screen.findByRole('button', { name: 'Remove Ann Able from the recipient list' }),
+    );
     await user.click(screen.getByRole('button', { name: 'Remove' }));
     await waitFor(() => expect(calls.removed).toEqual([1]));
   });
@@ -260,9 +262,9 @@ describe('ComposePage', () => {
     const calls = answerBulkEmail(draftState());
     renderCompose(draftState());
     const user = typist();
-    await user.click(await screen.findByRole('button', { name: 'Clear batch' }));
+    await user.click(await screen.findByRole('button', { name: 'Remove everyone' }));
     expect(calls.clears).toBe(0);
-    await user.click(screen.getByRole('button', { name: 'Clear the batch' }));
+    await user.click(screen.getByRole('button', { name: /^Remove all \d+ (person|people)$/ }));
     await waitFor(() => expect(calls.clears).toBe(1));
   });
 
@@ -301,7 +303,7 @@ describe('ComposePage', () => {
       '/bulk-email/sent/7',
     );
     expect(screen.getByRole('textbox', { name: /^Subject/ })).toBeDisabled();
-    expect(screen.queryByRole('button', { name: 'Add to batch' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Add these people' })).toBeNull();
     expect(screen.queryByRole('heading', { name: '3. Check and send' })).toBeNull();
     expect(screen.queryByText(/Your work saves itself/)).toBeNull();
   });

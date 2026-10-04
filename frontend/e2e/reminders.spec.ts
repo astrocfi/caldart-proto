@@ -37,8 +37,10 @@ test('the account administrator has no way to start a scan', async ({ page }) =>
   await page.goto('portal/admin/reminders');
   await expect(page.getByRole('heading', { name: 'Renewal reminders' })).toBeVisible();
 
-  await expect(page.getByRole('button', { name: 'Run now' })).toHaveCount(0);
-  await expect(page.getByLabel('Dry run (send nothing)')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /^Run .* now$/ })).toHaveCount(0);
+  await expect(page.getByLabel('Practice run: show what would happen, send nothing')).toHaveCount(
+    0,
+  );
 });
 
 test('the account administrator reads the reminder schedule without changing it', async ({
@@ -52,7 +54,7 @@ test('the account administrator reads the reminder schedule without changing it'
     .filter({ has: page.getByRole('heading', { name: 'Reminder schedule' }) });
   await expect(card.getByText('First reminder')).toBeVisible();
   await expect(card.getByRole('spinbutton')).toHaveCount(0);
-  await expect(card.getByRole('button', { name: 'Save' })).toHaveCount(0);
+  await expect(card.getByRole('button', { name: 'Save changes' })).toHaveCount(0);
 });
 
 test('a DART leader cannot reach the reminder log', async ({ page }) => {
@@ -82,9 +84,11 @@ test('a system administrator keeps the run controls on the Scheduled page', asyn
     .locator('section.card')
     .filter({ has: page.getByRole('heading', { name: 'Renewal reminder emails' }) });
   await expect(panel).toBeVisible();
-  await expect(panel.getByLabel('Dry run (send nothing)')).toBeChecked();
+  await expect(
+    panel.getByLabel('Practice run: show what would happen, send nothing'),
+  ).toBeChecked();
 
-  await panel.getByRole('button', { name: 'Run now' }).click();
+  await panel.getByRole('button', { name: 'Run now: renewal reminder emails' }).click();
   await expect(panel.getByRole('status').filter({ hasText: /^Would send / })).toBeVisible();
   await expect(panel.getByRole('heading', { name: 'What this run would do' })).toBeVisible();
 
@@ -108,7 +112,7 @@ test('a system administrator saves the reminder schedule', async ({ page }) => {
     (response) =>
       response.url().includes('/admin/reminders/schedule') && response.request().method() === 'PUT',
   );
-  await card.getByRole('button', { name: 'Save' }).click();
+  await card.getByRole('button', { name: 'Save changes' }).click();
   expect((await saved).status()).toBe(200);
   await expect(card.getByText(/^Last saved \d{2}\/\d{2}\/\d{4} by /)).toBeVisible();
 });

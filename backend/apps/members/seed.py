@@ -29,7 +29,7 @@ from apps.members.models import (
     PilotCertificateType,
 )
 from apps.members.plans import PLANS, seed_plans
-from apps.members.verification import ITEMS
+from apps.members.verification import ITEMS, is_held
 
 #: The DARTs to seed.
 #: Every DART, with the airports it flies from.
@@ -225,7 +225,7 @@ def seed_darts(seed: int = DART_SEED) -> list[Dart]:
 def seed_dart_contacts(dart: Dart, faker: Faker, rng: random.Random) -> None:
     """Give ``dart`` its example contacts, replacing any it already has.
 
-    Every team gets a leader and a deputy, both ticked to receive the roster;
+    Every team gets a leader and a deputy, both checked to receive the roster;
     the other roles are drawn, so the list looks like a real one rather than
     four identical teams.
     """
@@ -423,8 +423,9 @@ def _seed_photo_ids_and_verification(profiles: list[MemberProfile], leader: User
     A member shows a document drawn from :data:`MEMBER_PHOTO_IDS`; a friend shows one
     only :data:`FRIEND_PHOTO_ID_SHARE` of the time.  The draw comes from its own
     generator seeded with :data:`PHOTO_ID_SEED`, so it is the same on every run.
-    Every member outside :data:`UNVERIFIED_POSITIONS` has all three items verified by
-    ``leader`` as of now; every other profile has none, so re-seeding leaves the same
+    Every member outside :data:`UNVERIFIED_POSITIONS` has each item they hold
+    (:func:`~apps.members.verification.is_held`) verified by ``leader`` as of now, and
+    nothing they do not hold; every other profile has none, so re-seeding leaves the same
     state however the previous run ended.  With no ``leader``, nothing is verified.
     """
     rng = random.Random(PHOTO_ID_SEED)  # noqa: S311 - demo data, not security-sensitive
@@ -442,8 +443,9 @@ def _seed_photo_ids_and_verification(profiles: list[MemberProfile], leader: User
         if is_member:
             position += 1
         for item in ITEMS:
-            setattr(profile, f"{item.slug}_verified_at", now if is_verified else None)
-            setattr(profile, f"{item.slug}_verified_by", leader if is_verified else None)
+            stamp = is_verified and is_held(profile, item.slug)
+            setattr(profile, f"{item.slug}_verified_at", now if stamp else None)
+            setattr(profile, f"{item.slug}_verified_by", leader if stamp else None)
         profile.save()
 
 

@@ -772,7 +772,7 @@ table draws its ``EmptyState`` with no rule above it, and ``emptyAction`` puts
 the next thing to do under it as a button, such as **Reset filters**.
 ``components/reportTable.tsx`` serves a list whose table follows its report's
 column chooser: ``useColumnChoice`` holds the chosen keys (the registry's
-defaults until somebody ticks), ``reportTableColumns`` turns them into the
+defaults until somebody checks), ``reportTableColumns`` turns them into the
 table's columns in registry order from the page's own ``ReportCell`` per key
 (its drawing, its layout, and the ``ordering`` value it sorts by on the
 server), and ``ColumnTools`` draws the chooser, or says the columns could not
@@ -827,7 +827,7 @@ mount only while it is open, and receive a function that closes it; the panel
 closes on a click outside it, on Escape, or when the focus moves to a control
 outside it, and closing it by a click or Escape while the focus is inside hands
 the focus back to the button.  ``ColumnChooser`` drives a report table and its
-two exports from one set of ticks, and its panel says so (*Columns in the table
+two exports from one set of checkboxes, and its panel says so (*Columns in the table
 and the download*).  It is three ``PanelButton``\ s side by side in a
 ``.column-chooser`` cluster: **Columns** holds the checkboxes, scrolling in a
 long list, and **Reset to the default columns** under them, always in sight; **Load columns** lists the signed-in
@@ -882,9 +882,9 @@ it sends as its ``key``,
 and its ``kind`` says how it is drawn: ``search`` (a text box), ``select`` (a
 drop-down whose blank first option reads *Any*, or the field's
 ``placeholder``), ``multiselect`` (a one-line drop-down that opens a checkbox
-per choice with no blank one, whose ticked values travel joined with commas, in
+per choice with no blank one, whose checked values travel joined with commas, in
 the order the panel lists them, both in the address and in a subscription's
-``filters``; ticking none sends nothing), ``number`` (digits only; with ``isDollars`` the box takes
+``filters``; checking none sends nothing), ``number`` (digits only; with ``isDollars`` the box takes
 whole dollars and sends cents), ``date``, or ``toggle`` (a checkbox that sends
 ``true`` or nothing).  A field marked ``subscriptionOnly``, the period of the
 payments and contributions reports, belongs to the form that subscribes
@@ -904,8 +904,8 @@ first option, the choice that filters nothing, always reads *Any* or *Any*
 followed by what it filters (*Any role*), never *All* or *Every*.  The county filter of
 the member list and the donors report is the one ``multiselect``, so a DART
 that covers two counties can ask for both; ``components/MultiSelect.tsx`` draws
-it as a button that reads as the ticked choices and opens a panel of checkboxes
-under itself, each applying as it is ticked or unticked, with **Clear** beneath
+it as a button that reads as the checked choices and opens a panel of checkboxes
+under itself, each applying as it is checked or unchecked, with **Clear** beneath
 them, shut by a click outside or Escape through
 ``components/useClickOutside.ts``, or by the focus moving on past it.  ``components/useUrlFilters.ts`` keeps a list
 page's filters in the query string, so a filtered view is a link: it reads

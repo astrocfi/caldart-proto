@@ -798,7 +798,9 @@ class PaymentPatchSerializer(serializers.Serializer[dict[str, Any]]):
     def validate_reconciled_on(self, value: dt.date | None) -> dt.date | None:
         """Return ``value``, or refuse a day no statement can have carried yet."""
         if value is not None and is_in_the_future(value):
-            raise serializers.ValidationError("A payment cannot have been matched in the future.")
+            raise serializers.ValidationError(
+                "A payment cannot have been reconciled in the future."
+            )
         return value
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:

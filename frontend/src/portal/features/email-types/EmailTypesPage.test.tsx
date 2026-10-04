@@ -99,11 +99,11 @@ describe('EmailTypesPage', () => {
     renderPage();
     const user = userEvent.setup();
 
-    await user.click(await screen.findByRole('button', { name: 'Add an email type' }));
+    await user.click(await screen.findByRole('button', { name: 'New email type' }));
     await user.type(screen.getByLabelText(/^Name/), 'Board news');
     await user.type(screen.getByLabelText(/^What it is for/), 'What the board decided.');
     await user.click(screen.getByRole('checkbox', { name: 'CalDART management' }));
-    await user.click(screen.getByRole('button', { name: 'Add type' }));
+    await user.click(screen.getByRole('button', { name: 'Add email type' }));
 
     await waitFor(() =>
       expect(captured.created).toEqual([
@@ -128,10 +128,10 @@ describe('EmailTypesPage', () => {
     renderPage();
     const user = userEvent.setup();
 
-    await user.click(await screen.findByRole('button', { name: 'Add an email type' }));
+    await user.click(await screen.findByRole('button', { name: 'New email type' }));
     await user.type(screen.getByLabelText(/^Name/), 'operational');
     await user.type(screen.getByLabelText(/^What it is for/), 'Again.');
-    await user.click(screen.getByRole('button', { name: 'Add type' }));
+    await user.click(screen.getByRole('button', { name: 'Add email type' }));
 
     expect(await screen.findByText('Another email type already has this name.')).toBeVisible();
   });
@@ -141,7 +141,7 @@ describe('EmailTypesPage', () => {
     renderPage();
     const user = userEvent.setup();
 
-    await user.click(await screen.findByRole('button', { name: 'Add an email type' }));
+    await user.click(await screen.findByRole('button', { name: 'New email type' }));
 
     expect(screen.getByRole('textbox', { name: /Name/ })).toHaveFocus();
   });
@@ -170,7 +170,7 @@ describe('EmailTypesPage', () => {
     expect(screen.getByRole('checkbox', { name: 'Recipients may turn it off' })).not.toBeChecked();
     await user.click(screen.getByRole('checkbox', { name: 'Recipients may turn it off' }));
     await user.click(screen.getByRole('checkbox', { name: 'DART leader' }));
-    await user.click(screen.getByRole('button', { name: 'Save type' }));
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
     await waitFor(() =>
       expect(captured.updated).toEqual([

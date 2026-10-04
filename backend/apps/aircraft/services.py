@@ -221,18 +221,29 @@ def search_result(user: UserModel) -> dict[str, Any]:
     profile = getattr(user, "profile", None)
     dart = profile.dart if profile is not None else None
     status = membership_of(user)["status"]
-    medical_ok = bool(profile is not None and profile.medical_is_current)
     return {
         "user_id": user.id,
         "name": user.display_name,
         "email": user.email,
         "dart": dart.name if dart is not None else None,
         "membership_status": status,
-        "go_no_go": {
-            "membership": status == MembershipState.CURRENT,
-            "medical": medical_ok,
-            "verified": is_fully_verified(profile),
-        },
+        "go_no_go": _go_no_go(status, profile),
+    }
+
+
+def _go_no_go(status: str, profile: MemberProfile | None) -> dict[str, bool]:
+    """The member check's three go/no-go booleans for ``status`` and ``profile``.
+
+    ``membership`` is a current membership, ``medical`` a current medical, and
+    ``verified`` whether every item is held and verified (``is_fully_verified``).  An
+    account with no profile has neither a medical nor anything verified.  The search
+    row, the status card, and the aircraft card's pilot list all answer with this, so
+    the checks never disagree about one person.
+    """
+    return {
+        "membership": status == MembershipState.CURRENT,
+        "medical": bool(profile is not None and profile.medical_is_current),
+        "verified": is_fully_verified(profile),
     }
 
 
@@ -248,7 +259,6 @@ def leader_status(user: UserModel) -> dict[str, Any]:
     """
     profile = getattr(user, "profile", None)
     status = membership_status(user)
-    membership_ok = status["status"] == MembershipState.CURRENT
     medical_ok = bool(profile is not None and profile.medical_is_current)
     dart = profile.dart if profile is not None else None
 
@@ -280,11 +290,7 @@ def leader_status(user: UserModel) -> dict[str, Any]:
         },
         "is_verifier": VERIFIER in user.roles,
         "aircraft": list(profile.aircraft.select_related("type")) if profile is not None else [],
-        "go_no_go": {
-            "membership": membership_ok,
-            "medical": medical_ok,
-            "verified": is_fully_verified(profile),
-        },
+        "go_no_go": _go_no_go(status["status"], profile),
     }
 
 
@@ -298,22 +304,27 @@ def _item_state(profile: MemberProfile | None, slug: str) -> VerificationState:
 def aircraft_pilots(aircraft: Aircraft) -> list[dict[str, Any]]:
     """The members and friends who list ``aircraft`` among the planes they commonly fly.
 
-    Only :func:`checkable_people` are listed.  One query whatever the number of
-    pilots: the membership annotations ride along with the row.
+    Only :func:`checkable_people` are listed.  Each pilot carries ``membership_status``
+    (``friend`` for a friend of CalDART), ``medical_is_current``, and ``go_no_go``, the
+    member check's own three booleans for that person.  One query whatever the number
+    of pilots: the membership annotations ride along with the row.
     """
     pilots = with_membership(
         checkable_people().filter(profile__aircraft=aircraft).select_related("profile")
     ).order_by("last_name", "first_name")
-    return [
-        {
-            "user_id": user.pk,
-            "name": user.display_name,
-            "email": user.email,
-            "membership_status": membership_payload(user)["status"],
-            "medical_is_current": user.profile.medical_is_current,
-        }
-        for user in pilots
-    ]
+    return [_pilot_row(user, membership_payload(user)["status"]) for user in pilots]
+
+
+def _pilot_row(user: UserModel, status: str) -> dict[str, Any]:
+    """One row of :func:`aircraft_pilots` for ``user``, whose membership is ``status``."""
+    return {
+        "user_id": user.pk,
+        "name": user.display_name,
+        "email": user.email,
+        "membership_status": status,
+        "medical_is_current": user.profile.medical_is_current,
+        "go_no_go": _go_no_go(status, user.profile),
+    }
 
 
 def pilot_names(aircraft: Aircraft) -> list[str]:

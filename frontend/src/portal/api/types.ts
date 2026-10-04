@@ -283,7 +283,7 @@ export interface AdminDartContact extends DartContact {
  * `member_count` and `page_count` say what points at the DART: the members
  * whose profile names it, and the website pages linked to it.  Both are
  * read-only, and both being zero is what makes a DART deletable.
- * `roster_recipients` counts the people ticked to receive the roster who have
+ * `roster_recipients` counts the people checked to receive the roster who have
  * an email address, and `roster_sent_at` is when the last roster went out, or
  * `null` when none has; both are read-only too.
  */
@@ -629,7 +629,7 @@ export interface MemberCreatePayload {
   profile?: AdminProfilePayload;
 }
 
-/** `PATCH /admin/members/{id}`. The danger zone deactivates and reactivates. */
+/** `PATCH /admin/members/{id}`. The Delete or deactivate tab deactivates and reactivates. */
 export interface MemberUpdatePayload {
   email?: string;
   first_name?: string;
@@ -848,6 +848,8 @@ export interface AircraftPilot {
   email: string;
   membership_status: MembershipState;
   medical_is_current: boolean;
+  /** The member check's verdict for this person, so both checks give one answer. */
+  go_no_go: LeaderGoNoGo;
 }
 
 /** The account behind a write: its id and the name to print beside the date. */
@@ -1817,7 +1819,7 @@ export type ReportSubscriptionPatch = Partial<
 export interface Roster {
   dart_id: number;
   name: string;
-  /** How many people ticked to receive the roster have an email address. */
+  /** How many people checked to receive the roster have an email address. */
   roster_recipients: number;
   roster_sent_at: IsoDateTime | null;
 }
