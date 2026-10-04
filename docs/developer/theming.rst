@@ -272,8 +272,12 @@ and ``--color-muted`` over all three grounds, ``--color-primary`` as link text,
 ``--color-primary-fg`` on both primary fills, ``--color-accent`` on the ground,
 and each status color both on the ground and on its own translucent fill --
 composited over the ground first, because an ``#rrggbbaa`` value read raw
-reports a contrast no reader ever sees.  Text pairs must reach 4.5:1 and
-non-text ones, such as the focus ring, 3:1.
+reports a contrast no reader ever sees.  It also measures the bulk email
+editor's field chips: ``--color-fg`` and ``--color-muted`` on their fill, the
+primary mixed 10% into ``--color-bg-raised`` (``CHIP_TINT``, which must match the
+``color-mix`` in ``base.css``), and their ``--color-muted`` edge against both of
+the editor's grounds.  Text pairs must reach 4.5:1 and non-text ones, such as the
+focus ring and the chip's edge, 3:1.
 
 ``npm run theme-contrast`` prints a table per theme and exits non-zero on any
 failure; ``make lint`` runs it, so a theme that fails cannot merge.

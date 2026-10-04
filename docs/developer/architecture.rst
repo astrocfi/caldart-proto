@@ -916,14 +916,15 @@ layout's message column; ``emailImageSize``), since some mail programs honor onl
 those attributes.  A
 block that ends the message is followed by an empty paragraph, so the sender
 can always click below a list or an image and carry on writing.  Its ``ref``
-exposes ``insertText``, ``insertField``, ``focus``, and ``contains``, which is
-how the bulk email screen's **Insert field** menu
+exposes ``insertField``, ``focus``, and ``contains``, which is how the bulk
+email screen's **Insert field** menu
 (``features/bulk-email/InsertFieldMenu.tsx``) puts a recipient field into the
 message as a chip, or its token into the subject when that had the focus last.
 The chips are the ``fieldToken`` node in ``components/richTextField.ts``, which
 shows a token such as ``{first_name|friend}`` as *First name, or friend*, with
 labels from the ``fields`` prop, and writes it back out as the same text
-(:doc:`bulk-email`).
+(:doc:`bulk-email`).  Clicking a chip opens its panel from
+``components/RichTextFieldPanels.tsx``.
 
 
 Background work
