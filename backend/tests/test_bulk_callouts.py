@@ -217,6 +217,22 @@ def test_send_refuses_a_callout_whose_answers_close_before_it_goes(
     )
 
 
+def test_a_duplicated_callout_is_a_fresh_callout(
+    management_client: APIClient, management: User, ann: User
+) -> None:
+    """**Duplicate** of a callout is a callout again, open two days, with no answers."""
+    bulk = sent_callout(management, ann)
+    record_answer(bulk.callout, ann, answer="available", note="")
+    with freeze_time("2026-08-01T15:10:00Z"):
+        copy = management_client.post(f"{API}/{bulk.pk}/duplicate", {}, format="json").json()
+    fresh = Callout.objects.get(bulk_email_id=copy["id"])
+    assert (copy["is_callout"], copy["closes_at"], fresh.answers.count()) == (
+        True,
+        "2026-08-03T08:30:00-07:00",
+        0,
+    )
+
+
 # --------------------------------------------------------------------------
 # The copies
 # --------------------------------------------------------------------------

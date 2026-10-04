@@ -259,6 +259,8 @@ does: a DART leader duplicates only their own emails (any other id is **404**), 
 copy goes to their own DART alone, and one whose profile names no DART is **403**
 with *Your profile names no DART, so there is nobody to send to. Set your DART on My
 profile.*
+A mission callout's copy is a callout too, ``is_callout`` true, with no answers and
+its answers closing two days ahead (:ref:`api-bulk-email-callouts`).
 ``copy_recipients`` may be left out, and is false then: the batch starts empty.
 True copies everybody in the email's batch whose account still exists as one add
 labeled ``Copied from "<subject>"``, each a fresh ``batched`` row with the account's

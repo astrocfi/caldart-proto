@@ -154,7 +154,8 @@ own from the email; **Duplicate…** on each line of the list opens that page. I
   shows as skipped, *Not in your DART*.
 
 The new draft opens on :doc:`compose`, ready to change and send. The email you copied stays as
-it was. **Cancel** closes the question without copying anything.
+it was. A copy of a mission callout is a callout too, with no answers yet and its answers
+closing two days ahead (:doc:`callouts`). **Cancel** closes the question without copying anything.
 
 
 If something looks wrong

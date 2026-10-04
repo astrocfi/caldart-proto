@@ -54,13 +54,13 @@ export function SentDetailPage(): JSX.Element {
         ) : (
           <SendStatus email={sent} />
         )}
-        <DuplicateButton emailId={sent.id} subject={sent.subject} />
         {sent.is_callout && sent.started_at !== null ? (
           <p>
             This is a mission callout.{' '}
             <Link to={`/bulk-email/callouts/${sent.id}`}>See who can fly</Link>.
           </p>
         ) : null}
+        <DuplicateButton emailId={sent.id} subject={sent.subject} />
       </Card>
 
       <Card title="The message">

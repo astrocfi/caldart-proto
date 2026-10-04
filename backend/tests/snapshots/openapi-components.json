@@ -653,6 +653,7 @@
       "body": "string",
       "bounced_count": "integer",
       "can_edit": "boolean",
+      "closes_at": "string(date-time)|null",
       "confirm_above": "integer",
       "confirm_count": "integer|null",
       "created_at": "string(date-time)",
@@ -664,6 +665,7 @@
       "failed_count": "integer",
       "hidden_from_archive": "boolean",
       "id": "integer",
+      "is_callout": "boolean",
       "message_html": "string",
       "not_sent_reason": "string",
       "receiving_count": "integer",
@@ -694,6 +696,7 @@
       "body",
       "bounced_count",
       "can_edit",
+      "closes_at",
       "confirm_above",
       "confirm_count",
       "created_at",
@@ -705,6 +708,7 @@
       "failed_count",
       "hidden_from_archive",
       "id",
+      "is_callout",
       "message_html",
       "not_sent_reason",
       "receiving_count",
@@ -792,6 +796,7 @@
   },
   "BulkEmailMessage": {
     "properties": {
+      "answer_url": "string",
       "email_type_name": "string",
       "from_name": "string",
       "id": "integer",
@@ -799,6 +804,7 @@
       "subject": "string"
     },
     "required": [
+      "answer_url",
       "email_type_name",
       "from_name",
       "id",
@@ -808,6 +814,7 @@
   },
   "BulkEmailMessageDetail": {
     "properties": {
+      "answer_url": "string",
       "email_type_name": "string",
       "from_name": "string",
       "html": "string",
@@ -817,6 +824,7 @@
       "text": "string"
     },
     "required": [
+      "answer_url",
       "email_type_name",
       "from_name",
       "html",
@@ -1005,6 +1013,129 @@
       "monthly",
       "quarterly",
       "yearly"
+    ]
+  },
+  "CalloutAnswerEnum": {
+    "enum": [
+      "available",
+      "limited",
+      "unavailable"
+    ]
+  },
+  "CalloutCounts": {
+    "properties": {
+      "available": "integer",
+      "limited": "integer",
+      "no_answer": "integer",
+      "reached": "integer",
+      "unavailable": "integer"
+    },
+    "required": [
+      "available",
+      "limited",
+      "no_answer",
+      "reached",
+      "unavailable"
+    ]
+  },
+  "CalloutDetail": {
+    "properties": {
+      "closed_at": "string(date-time)|null",
+      "closed_by": "string",
+      "closes_at": "string(date-time)",
+      "counts": "ref:CalloutCounts",
+      "dart_name": "string",
+      "id": "integer",
+      "is_open": "boolean",
+      "recipients": "array<ref:CalloutRecipient>",
+      "reminders": "array<ref:CalloutReminder>",
+      "sender": "string",
+      "sent_at": "string(date-time)|null",
+      "started_at": "string(date-time)|null",
+      "status": "ref:BulkEmailStatusEnum",
+      "subject": "string"
+    },
+    "required": [
+      "closed_at",
+      "closed_by",
+      "closes_at",
+      "counts",
+      "dart_name",
+      "id",
+      "is_open",
+      "recipients",
+      "reminders",
+      "sender",
+      "sent_at",
+      "started_at",
+      "status",
+      "subject"
+    ]
+  },
+  "CalloutRecipient": {
+    "properties": {
+      "aircraft": "array<string>",
+      "answer": "unknown|null",
+      "answered_at": "string(date-time)|null",
+      "dart_name": "string",
+      "email": "string",
+      "go_no_go": "ref:LeaderGoNoGo",
+      "home_airport": "string",
+      "name": "string",
+      "note": "string",
+      "user_id": "integer"
+    },
+    "required": [
+      "aircraft",
+      "answer",
+      "answered_at",
+      "dart_name",
+      "email",
+      "go_no_go",
+      "home_airport",
+      "name",
+      "note",
+      "user_id"
+    ]
+  },
+  "CalloutReminder": {
+    "properties": {
+      "count": "integer",
+      "requested_at": "string(date-time)",
+      "round": "integer"
+    },
+    "required": [
+      "count",
+      "requested_at",
+      "round"
+    ]
+  },
+  "CalloutSummary": {
+    "properties": {
+      "closed_at": "string(date-time)|null",
+      "closes_at": "string(date-time)",
+      "counts": "ref:CalloutCounts",
+      "dart_name": "string",
+      "id": "integer",
+      "is_open": "boolean",
+      "sender": "string",
+      "sent_at": "string(date-time)|null",
+      "started_at": "string(date-time)|null",
+      "status": "ref:BulkEmailStatusEnum",
+      "subject": "string"
+    },
+    "required": [
+      "closed_at",
+      "closes_at",
+      "counts",
+      "dart_name",
+      "id",
+      "is_open",
+      "sender",
+      "sent_at",
+      "started_at",
+      "status",
+      "subject"
     ]
   },
   "CheckoutRequest": {
@@ -2619,7 +2750,9 @@
   "PatchedBulkEmailUpdateRequest": {
     "properties": {
       "body": "string",
+      "closes_at": "string(date-time)",
       "email_type": "integer",
+      "is_callout": "boolean",
       "reply_to": "unknown",
       "subject": "string"
     },
