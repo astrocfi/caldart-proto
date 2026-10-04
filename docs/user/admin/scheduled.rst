@@ -56,7 +56,7 @@ recent reminders an account administrator reads on :doc:`reminders`.
 Reminder schedule
 =================
 
-Beside the reminder emails, the **Reminder schedule** card sets when they go. It has four
+Below the reminder emails, the **Reminder schedule** card sets when they go. It has four
 number fields:
 
 - **First reminder**, **Second reminder**, and **Final reminder**: days before a membership
@@ -175,8 +175,9 @@ sent to it, or until a user administrator clears it on :doc:`user-record`.
 The table names each one: **What** (*Bounced*, or *No matching email*), **Who** the email
 went to, the **Report** the other mail server gave, and **When** the email was sent.
 
-If the server has no bounce mailbox set up, the panel says *Bounce checking is off*, and the
-person who runs the server can set one up.
+If the server has no bounce mailbox set up, **Run now** checks nothing: the panel says
+*Bounce checking is off* under the button once you press it, and the person who runs the
+server can set one up.
 
 
 Bulk email sender

@@ -51,8 +51,8 @@ Setting one up
 **New subscription** opens the form under the table and takes you to its first box:
 
 #. **Recipient email** is where the emails go. Each address has one subscription.
-#. The events come in five groups: **Membership**, **Money**, **Accounts**,
-   **Aircraft**, and **Callouts**. Tick each event the address should hear about; rest the pointer on one to
+#. The events come in four groups: **Membership**, **Money**, **Accounts**, and
+   **Aircraft**. Tick each event the address should hear about; rest the pointer on one to
    read what it covers. **Select all** ticks every event in its group, and **Clear**
    unticks them.
 
@@ -188,7 +188,8 @@ Callouts
 *Notification: Callout answer*
    Somebody answers a mission callout, or changes their answer. It names the person, their
    answer and note, the callout, and their DART, and links the callout's answers on
-   :doc:`../bulk-email/callouts`.
+   :doc:`../bulk-email/callouts`. The form on this screen does not offer this event, so a
+   subscription set up here never receives it.
 
 
 If something looks wrong
