@@ -210,7 +210,7 @@ test('a saved set of columns comes back after a reload', async ({ page }) => {
   // The trashcan asks before it deletes the saved set.
   await page.getByRole('button', { name: 'Load columns' }).click();
   await loadPanel.getByRole('button', { name: 'Delete the saved set Audit' }).click();
-  await loadPanel.getByRole('button', { name: 'Keep' }).click();
+  await loadPanel.getByRole('button', { name: 'Cancel' }).click();
   await expect(loadPanel.getByRole('button', { name: 'Delete the saved set Audit' })).toBeVisible();
 
   await loadPanel.getByRole('button', { name: 'Delete the saved set Audit' }).click();

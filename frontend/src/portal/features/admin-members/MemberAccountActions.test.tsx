@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -96,7 +96,11 @@ describe('MemberAccountActions', () => {
 
     await userEvent.click(await screen.findByRole('button', { name: 'Make a friend' }));
     expect(screen.getByText(/membership stays current through 06\/30\/2027/)).toBeVisible();
-    await userEvent.click(screen.getByRole('button', { name: 'Make a friend' }));
+    await userEvent.click(
+      within(screen.getByRole('region', { name: 'Make a friend' })).getByRole('button', {
+        name: 'Make a friend',
+      }),
+    );
 
     await waitFor(() => expect(posted.friend).toEqual([{}]));
   });
@@ -122,7 +126,11 @@ describe('MemberAccountActions', () => {
     renderActions();
 
     await userEvent.click(await screen.findByRole('button', { name: 'Make a friend' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Make a friend' }));
+    await userEvent.click(
+      within(screen.getByRole('region', { name: 'Make a friend' })).getByRole('button', {
+        name: 'Make a friend',
+      }),
+    );
 
     expect(await screen.findByRole('button', { name: 'Stop it' })).toBeInTheDocument();
     expect(screen.queryByText('This field is required.')).not.toBeInTheDocument();
@@ -156,7 +164,11 @@ describe('MemberAccountActions', () => {
     renderActions();
 
     await userEvent.click(screen.getByRole('button', { name: 'Deactivate account' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Deactivate account' }));
+    await userEvent.click(
+      within(screen.getByRole('region', { name: 'Deactivate account' })).getByRole('button', {
+        name: 'Deactivate account',
+      }),
+    );
 
     await waitFor(() => expect(posted.deactivate).toHaveLength(1));
   });
@@ -175,7 +187,11 @@ describe('MemberAccountActions', () => {
     renderActions();
 
     await userEvent.click(screen.getByRole('button', { name: 'Deactivate account' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Deactivate account' }));
+    await userEvent.click(
+      within(screen.getByRole('region', { name: 'Deactivate account' })).getByRole('button', {
+        name: 'Deactivate account',
+      }),
+    );
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'You cannot activate or deactivate an account that holds roles you do not hold.',
@@ -194,7 +210,11 @@ describe('MemberAccountActions', () => {
     renderActions(makeDetail({ is_active: false }));
 
     await userEvent.click(screen.getByRole('button', { name: 'Reactivate account' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Reactivate account' }));
+    await userEvent.click(
+      within(screen.getByRole('region', { name: 'Reactivate account' })).getByRole('button', {
+        name: 'Reactivate account',
+      }),
+    );
 
     await waitFor(() => expect(posted.reactivate).toHaveLength(1));
   });

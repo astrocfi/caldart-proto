@@ -171,7 +171,7 @@ describe('RecurringDonationCard', () => {
 
     await user.click(await screen.findByRole('button', { name: 'Turn off' }));
     expect(screen.getByText(/Turn your recurring donation off\?/)).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Yes, turn it off' }));
+    await user.click(screen.getByRole('button', { name: 'Turn it off' }));
 
     expect(await screen.findByText('Recurring donation is off.')).toBeInTheDocument();
   });

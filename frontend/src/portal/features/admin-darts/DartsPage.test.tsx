@@ -413,7 +413,7 @@ describe('DartsPage', () => {
     await user.click(screen.getByRole('button', { name: 'Delete this DART' }));
     expect(deleted).toBe(false);
 
-    await user.click(screen.getByRole('button', { name: 'Delete for good' }));
+    await user.click(screen.getByRole('button', { name: 'Delete' }));
     await waitFor(() => expect(deleted).toBe(true));
   });
 
@@ -424,9 +424,10 @@ describe('DartsPage', () => {
 
     await user.click(await screen.findByRole('button', { name: 'Edit' }));
     await user.click(screen.getByRole('button', { name: 'Delete this DART' }));
-    await user.click(screen.getByRole('button', { name: 'Keep' }));
+    const confirmation = screen.getByRole('group', { name: 'Delete this DART' });
+    await user.click(within(confirmation).getByRole('button', { name: 'Cancel' }));
 
-    expect(screen.getByRole('button', { name: 'Delete this DART' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Delete this DART' })).toHaveFocus();
   });
 
   it('offers the delete again when the delete fails', async () => {
@@ -441,7 +442,7 @@ describe('DartsPage', () => {
 
     await user.click(await screen.findByRole('button', { name: 'Edit' }));
     await user.click(screen.getByRole('button', { name: 'Delete this DART' }));
-    await user.click(screen.getByRole('button', { name: 'Delete for good' }));
+    await user.click(screen.getByRole('button', { name: 'Delete' }));
 
     expect(await screen.findByRole('button', { name: 'Delete this DART' })).toBeInTheDocument();
   });

@@ -79,6 +79,7 @@ export function ProfileStep({ onDone }: ProfileStepProps): JSX.Element {
         submitLabel="Save and continue"
         submitting={save.isPending}
         serverErrors={serverErrors}
+        serverError={save.error}
         onSubmit={(patch) =>
           save.mutate(patch, {
             onSuccess: onDone,

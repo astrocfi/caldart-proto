@@ -12,7 +12,7 @@
  * Pilots column is in the downloads alone: the register is open to every member, and
  * who flies an aircraft is the member check's to show, so the table draws a dash.
  */
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import type { JSX } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
@@ -35,6 +35,7 @@ import { Page } from '@/portal/components/Page';
 import type { ReportCell } from '@/portal/components/reportTable';
 import { ColumnTools, reportTableColumns, useColumnChoice } from '@/portal/components/reportTable';
 import { useToast } from '@/portal/components/Toast';
+import { usePanelFocus } from '@/portal/components/focus';
 import { useUrlFilters } from '@/portal/components/useUrlFilters';
 import {
   useFirstPageWhenMissing,
@@ -183,6 +184,8 @@ export function AircraftRegisterPage(): JSX.Element {
   const position = useUrlListPosition(DEFAULT_ORDERING);
   const { ordering, page, setPage, sort, setSort: handleSortChange } = position;
   const [adding, setAdding] = useState(false);
+  const handleStopAdding = useCallback(() => setAdding(false), []);
+  const addFormRef = usePanelFocus(adding ? 'add' : null, handleStopAdding);
 
   const query: AircraftFilters = {
     search: filters.search,
@@ -247,17 +250,20 @@ export function AircraftRegisterPage(): JSX.Element {
       }
     >
       {adding ? (
-        <Card eyebrow="Register" title="Add an aircraft">
-          <AircraftForm
-            initial={emptyAircraftValues()}
-            submitLabel="Add aircraft"
-            pending={create.isPending}
-            serverErrors={serverErrors}
-            onSubmit={handleSubmit}
-            onCancel={() => setAdding(false)}
-            withAdminFields
-          />
-        </Card>
+        <div ref={addFormRef}>
+          <Card eyebrow="Register" title="Add an aircraft">
+            <AircraftForm
+              initial={emptyAircraftValues()}
+              submitLabel="Add aircraft"
+              pending={create.isPending}
+              serverErrors={serverErrors}
+              serverError={create.error}
+              onSubmit={handleSubmit}
+              onCancel={handleStopAdding}
+              withAdminFields
+            />
+          </Card>
+        </div>
       ) : null}
 
       {isSystemAdmin ? <CoveragePolicyCard /> : null}

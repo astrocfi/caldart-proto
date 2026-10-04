@@ -111,7 +111,7 @@ test('a member pays with renewal on, reads it, takes a receipt, and turns it off
 
   // Turning it off asks first, and then the card says so.
   await card.getByRole('button', { name: 'Turn off' }).click();
-  await page.getByRole('button', { name: 'Yes, turn it off' }).click();
+  await page.getByRole('button', { name: 'Turn it off' }).click();
   await expect(page.getByText('Automatic renewal is off.').first()).toBeVisible();
   await expect(card.getByText('Off', { exact: true })).toBeVisible();
   await expect(card.getByRole('button', { name: 'Turn on' })).toBeVisible();
@@ -167,7 +167,7 @@ test('a life member reads their recurring donation, turns it off, and is sent to
   await expect(card.locator('dd').filter({ hasText: /\d{2}\/\d{2}\/\d{4} · \$/ })).toBeVisible();
 
   await card.getByRole('button', { name: 'Turn off' }).click();
-  await page.getByRole('button', { name: 'Yes, turn it off' }).click();
+  await page.getByRole('button', { name: 'Turn it off' }).click();
   await expect(page.getByText('Recurring donation is off.').first()).toBeVisible();
   await expect(card.getByText('Off', { exact: true })).toBeVisible();
 

@@ -58,10 +58,3 @@
 .dart-form__danger {
   margin-inline-start: auto;
 }
-
-/* The sentence that says what the delete leaves behind, beside the two buttons. */
-.dart-form__warning {
-  color: var(--color-muted);
-  font-size: var(--text-sm);
-  max-width: 44ch;
-}

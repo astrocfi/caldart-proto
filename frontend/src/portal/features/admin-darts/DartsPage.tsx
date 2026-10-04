@@ -8,7 +8,7 @@
  * confirmation says what will be left behind.  A team that has stopped flying
  * but should keep its history is made inactive instead.
  */
-import { useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import type { JSX } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -21,6 +21,7 @@ import { DataTable } from '@/portal/components/DataTable';
 import { Page } from '@/portal/components/Page';
 import { StatusChip } from '@/portal/components/StatusChip';
 import { useToast } from '@/portal/components/Toast';
+import { usePanelFocus } from '@/portal/components/focus';
 import { DartForm, dartToValues, emptyDartValues } from './DartForm';
 import { useAdminDarts, useCreateDart, useDeleteDart, useUpdateDart } from './api';
 
@@ -96,11 +97,16 @@ export function DartsPage(): JSX.Element {
   const rows = darts.data ?? [];
   const open = typeof editing === 'number' ? rows.find((dart) => dart.id === editing) : undefined;
 
-  const handleClose = (): void => {
+  const handleClose = useCallback((): void => {
     create.reset();
     update.reset();
     setEditing(null);
-  };
+  }, [create, update]);
+
+  // The form opens above the table, so the focus moves into it and, as it closes, back
+  // to the row's Edit, or to Add a DART, which the form hides while it is open.
+  const addRef = useRef<HTMLButtonElement>(null);
+  const formRef = usePanelFocus(editing === null ? null : String(editing), handleClose, addRef);
 
   const handleCreate = (payload: AdminDartPatch): void => {
     create.mutate(payload, {
@@ -241,6 +247,7 @@ export function DartsPage(): JSX.Element {
       actions={
         editing === null ? (
           <Button
+            ref={addRef}
             onClick={() => {
               create.reset();
               setEditing('new');
@@ -251,35 +258,39 @@ export function DartsPage(): JSX.Element {
         ) : null
       }
     >
-      {editing === 'new' ? (
-        <Card eyebrow="New" title="Add a DART">
-          <DartForm
-            initial={emptyDartValues()}
-            submitLabel="Add DART"
-            pending={create.isPending}
-            errors={fieldErrors(create.error)}
-            onSubmit={handleCreate}
-            onCancel={handleClose}
-          />
-        </Card>
-      ) : null}
+      <div ref={formRef}>
+        {editing === 'new' ? (
+          <Card eyebrow="New" title="Add a DART">
+            <DartForm
+              initial={emptyDartValues()}
+              submitLabel="Add DART"
+              pending={create.isPending}
+              errors={fieldErrors(create.error)}
+              serverError={create.error}
+              onSubmit={handleCreate}
+              onCancel={handleClose}
+            />
+          </Card>
+        ) : null}
 
-      {open ? (
-        <Card eyebrow="Edit" title={open.name}>
-          <DartForm
-            key={open.id}
-            initial={dartToValues(open)}
-            submitLabel="Save DART"
-            pending={update.isPending}
-            errors={fieldErrors(update.error)}
-            onSubmit={(payload) => handleUpdate(open.id, payload)}
-            onCancel={handleClose}
-            onDelete={() => handleDelete(open)}
-            deleteWarning={deleteWarning(open)}
-            deletePending={remove.isPending}
-          />
-        </Card>
-      ) : null}
+        {open ? (
+          <Card eyebrow="Edit" title={open.name}>
+            <DartForm
+              key={open.id}
+              initial={dartToValues(open)}
+              submitLabel="Save DART"
+              pending={update.isPending}
+              errors={fieldErrors(update.error)}
+              serverError={update.error}
+              onSubmit={(payload) => handleUpdate(open.id, payload)}
+              onCancel={handleClose}
+              onDelete={() => handleDelete(open)}
+              deleteWarning={deleteWarning(open)}
+              deletePending={remove.isPending}
+            />
+          </Card>
+        ) : null}
+      </div>
 
       <DataTable
         singleLine

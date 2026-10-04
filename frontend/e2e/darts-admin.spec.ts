@@ -73,7 +73,7 @@ test('deleting a DART leaves its website page standing', async ({ page }) => {
   await expect(
     page.getByText(`Deleting ${DELETABLE} unlinks 1 website page. This cannot be undone.`),
   ).toBeVisible();
-  await page.getByRole('button', { name: 'Delete for good' }).click();
+  await page.getByRole('button', { name: 'Delete', exact: true }).click();
 
   await expect(page.getByRole('row').filter({ hasText: DELETABLE })).toHaveCount(0);
 

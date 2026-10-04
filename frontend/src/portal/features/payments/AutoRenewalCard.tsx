@@ -11,7 +11,7 @@
  * A renewal is turned on in place.  A recurring donation is set up on the Donate
  * screen, where the first gift can be taken at once, so its card links there.
  */
-import { useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import type { JSX } from 'react';
 
 import { useMandate } from '@/portal/api/queries';
@@ -19,11 +19,13 @@ import type { MandateScope } from '@/portal/api/queries';
 import type { IsoDate, RenewalMandate } from '@/portal/api/types';
 import { Button, ButtonLink } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
+import { ConfirmButton } from '@/portal/components/ConfirmButton';
 import { DateText, formatDate } from '@/portal/components/DateText';
 import { EmptyState } from '@/portal/components/EmptyState';
 import { Money, formatCents } from '@/portal/components/Money';
 import { StatusChip } from '@/portal/components/StatusChip';
 import { useToast } from '@/portal/components/Toast';
+import { usePanelFocus } from '@/portal/components/focus';
 import { useMembership } from '@/portal/features/profile/api';
 import { RenewalChangeForm } from './RenewalChangeForm';
 import { RenewalSetup } from './RenewalSetup';
@@ -33,7 +35,7 @@ import { CADENCE_LABELS, automaticKindLabel } from './labels';
 import { useSetupReturn } from './setupReturn';
 
 /** What the card offers to do next; `setup` is the renewal's inline turn-on flow. */
-type Mode = 'idle' | 'setup' | 'change' | 'confirm-off';
+type Mode = 'idle' | 'setup' | 'change';
 
 /** Where a recurring donation is set up. */
 const DONATE_PATH = '/donate';
@@ -67,6 +69,11 @@ export function MandateCard({ scope }: MandateCardProps): JSX.Element {
   const setupReturn = useSetupReturn(scope);
   const toast = useToast();
   const [mode, setMode] = useState<Mode>('idle');
+  // The button that opened the setup or change form, which takes the focus back when
+  // the form closes: the form takes the buttons' place while it is open.
+  const openerRef = useRef<HTMLButtonElement>(null);
+  const handleClosePanel = useCallback(() => setMode('idle'), []);
+  const panelRef = usePanelFocus(mode === 'idle' ? null : mode, handleClosePanel, openerRef);
 
   const mandate = query.data?.mandate ?? null;
   const isOn = mandate !== null && mandate.status === 'active';
@@ -79,14 +86,15 @@ export function MandateCard({ scope }: MandateCardProps): JSX.Element {
     toast.show(`${title} is on.`, 'success');
   }
 
+  // Rejects when the request fails, so the confirmation stays open to try again.
   async function turnOff(): Promise<void> {
     try {
       await cancel.mutateAsync();
-      setMode('idle');
-      toast.show(`${title} is off.`, 'success');
-    } catch {
+    } catch (error) {
       toast.show(`${title} could not be turned off. Please try again.`, 'error');
+      throw error;
     }
+    toast.show(`${title} is off.`, 'success');
   }
 
   return (
@@ -129,68 +137,62 @@ export function MandateCard({ scope }: MandateCardProps): JSX.Element {
           {/* The setup flow opens on the day the membership runs out, so it waits
               for the membership itself: guessing today would authorize a charge
               that throws away coverage the member has already paid for. */}
-          {mode === 'setup' && !isDonation ? (
-            membership.isPending ? (
-              <p className="muted" role="status">
-                Checking when your membership runs out…
-              </p>
-            ) : membership.isSuccess ? (
-              <RenewalSetup
-                expiresOn={expiresOn}
-                initialContributionCents={mandate?.contribution_cents ?? 0}
-                onCancel={() => setMode('idle')}
-                onDone={handleDone}
-              />
-            ) : (
-              <EmptyState
-                title="Your membership could not be read"
-                description="CalDART cannot tell which day your first charge should fall on, so it cannot offer you one yet. Try again, or contact CalDART if it keeps happening."
-                action={
-                  <Button variant="secondary" onClick={() => void membership.refetch()}>
-                    Try again
-                  </Button>
-                }
-              />
-            )
-          ) : null}
+          {mode === 'idle' ? null : (
+            <div ref={panelRef}>
+              {mode === 'setup' && !isDonation ? (
+                membership.isPending ? (
+                  <p className="muted" role="status">
+                    Checking when your membership runs out…
+                  </p>
+                ) : membership.isSuccess ? (
+                  <RenewalSetup
+                    expiresOn={expiresOn}
+                    initialContributionCents={mandate?.contribution_cents ?? 0}
+                    onCancel={() => setMode('idle')}
+                    onDone={handleDone}
+                  />
+                ) : (
+                  <EmptyState
+                    title="Your membership could not be read"
+                    description="CalDART cannot tell which day your first charge should fall on, so it cannot offer you one yet. Try again, or contact CalDART if it keeps happening."
+                    action={
+                      <Button variant="secondary" onClick={() => void membership.refetch()}>
+                        Try again
+                      </Button>
+                    }
+                  />
+                )
+              ) : null}
 
-          {mode === 'change' && mandate ? (
-            <RenewalChangeForm scope={scope} mandate={mandate} onDone={() => setMode('idle')} />
-          ) : null}
-
-          {mode === 'confirm-off' && mandate ? (
-            <div className="renewal__confirm stack">
-              <p>
-                {isDonation
-                  ? 'Turn your recurring donation off? Nothing further is charged and your saved method is dropped.'
-                  : 'Turn automatic renewal off? Nothing further is charged and your saved method is dropped. Your membership still runs to the end of the term you have paid for.'}
-              </p>
-              <div className="cluster">
-                <Button variant="danger" onClick={() => void turnOff()} disabled={cancel.isPending}>
-                  {cancel.isPending ? 'Turning off…' : 'Yes, turn it off'}
-                </Button>
-                <Button variant="quiet" onClick={() => setMode('idle')}>
-                  Keep it on
-                </Button>
-              </div>
+              {mode === 'change' && mandate ? (
+                <RenewalChangeForm scope={scope} mandate={mandate} onDone={() => setMode('idle')} />
+              ) : null}
             </div>
-          ) : null}
+          )}
 
           {mode === 'idle' ? (
             <div className="cluster card__footer">
               {isOn ? (
                 <>
-                  <Button variant="secondary" onClick={() => setMode('change')}>
+                  <Button ref={openerRef} variant="secondary" onClick={() => setMode('change')}>
                     Change
                   </Button>
-                  <Button variant="quiet" onClick={() => setMode('confirm-off')}>
-                    Turn off
-                  </Button>
+                  <ConfirmButton
+                    label="Turn off"
+                    variant="quiet"
+                    choices={[{ label: 'Turn it off', variant: 'danger', onChoose: turnOff }]}
+                  >
+                    <p>
+                      {isDonation
+                        ? 'Turn your recurring donation off? Nothing further is charged and your saved method is dropped.'
+                        : 'Turn automatic renewal off? Nothing further is charged and your saved method is dropped. Your membership still runs to the end of the term you have paid for.'}
+                    </p>
+                  </ConfirmButton>
                 </>
               ) : isDonation ? (
                 <ButtonLink to={DONATE_PATH}>Set up</ButtonLink>
               ) : (
-                <Button onClick={() => setMode('setup')}>
+                <Button ref={openerRef} onClick={() => setMode('setup')}>
                   {mandate?.status === 'paused' ? 'Turn on again' : 'Turn on'}
                 </Button>
               )}

@@ -4,7 +4,7 @@
  * Leaving the password blank is the normal path: the server stores an unusable
  * password and emails the new member a link to choose their own.
  */
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { JSX } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -12,6 +12,11 @@ import { useDarts } from '@/portal/api/queries';
 import { Button, ButtonLink } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { Page } from '@/portal/components/Page';
+import {
+  RefusedSubmitNote,
+  useFreshErrors,
+  useRefusedSubmit,
+} from '@/portal/components/RefusedSubmit';
 import { useToast } from '@/portal/components/Toast';
 import { ProfileFieldsets } from '@/portal/features/profile/ProfileFieldsets';
 import { EMPTY_PROFILE_FORM, formToPatch } from '@/portal/features/profile/form';
@@ -40,16 +45,23 @@ export function MemberCreatePage(): JSX.Element {
 
   const [emailError, setEmailError] = useState<string | null>(null);
 
+  const formRef = useRef<HTMLFormElement>(null);
+  const refusal = useRefusedSubmit(formRef, create.error);
   const server = splitErrors(create.error);
+  // A server error for a field goes once that field is edited.
+  const freshAccount = useFreshErrors(create.error, account, server.account);
+  const freshProfile = useFreshErrors(create.error, { ...profile, ...adminOnly }, server.profile);
   const errors = {
     ...server,
-    account: emailError ? { ...server.account, email: emailError } : server.account,
+    account: emailError ? { ...freshAccount, email: emailError } : freshAccount,
+    profile: freshProfile,
   };
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     if (!isEmailAddress(account.email)) {
       setEmailError(EMAIL_MESSAGE);
+      refusal.refuse();
       return;
     }
     setEmailError(null);
@@ -88,7 +100,7 @@ export function MemberCreatePage(): JSX.Element {
       }
     >
       <Card>
-        <form onSubmit={handleSubmit} noValidate>
+        <form ref={formRef} onSubmit={handleSubmit} noValidate>
           {errors.detail ? (
             <p role="alert" className="field__error">
               {errors.detail}
@@ -97,7 +109,10 @@ export function MemberCreatePage(): JSX.Element {
 
           <AccountFields
             value={account}
-            onChange={(next) => setAccount(next)}
+            onChange={(next) => {
+              if (next.email !== account.email) setEmailError(null);
+              setAccount(next);
+            }}
             errors={errors.account}
             withPassword
           />
@@ -121,6 +136,7 @@ export function MemberCreatePage(): JSX.Element {
             <ButtonLink to="/admin/members" variant="quiet">
               Cancel
             </ButtonLink>
+            <RefusedSubmitNote count={refusal.count} />
           </div>
         </form>
       </Card>

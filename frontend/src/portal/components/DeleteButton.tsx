@@ -7,8 +7,10 @@
  * of its accessible name; where it wants more weight it keeps its words, inside a
  * `Button`, with the icon leading them. Every delete asks first: give it
  * `onDelete` and the first press swaps the control, in place, for a small danger
- * button reading `confirmLabel` beside a plain **Keep**, and only that
- * confirmation calls `onDelete`. A caller whose own flow already confirms the
+ * button reading `confirmLabel` beside a plain **Cancel**, and only that
+ * confirmation calls `onDelete`.  `DeleteButton` is the portal's one confirmation
+ * for a delete; every other action that cannot be undone asks through
+ * `ConfirmButton`, with the same **Cancel**. A caller whose own flow already confirms the
  * action -- a typed value, a separate warning screen -- leaves `onDelete` out,
  * and the control fires its ordinary click at once, as it always has.
  *
@@ -21,6 +23,7 @@ import type { FocusEvent, JSX, ReactNode } from 'react';
 import { Button } from './Button';
 import type { ButtonProps } from './Button';
 import { IconButton } from './IconButton';
+import { rememberPlace, useRefocusOnUnmount } from './focus';
 import { TrashcanIcon } from './icons';
 import { useClickOutside } from './useClickOutside';
 
@@ -31,7 +34,7 @@ const WORDED_ICON_SIZE = '1em';
 const DEFAULT_CONFIRM_LABEL = 'Delete';
 
 /** What the confirmation's second button always reads. */
-const KEEP_LABEL = 'Keep';
+const CANCEL_LABEL = 'Cancel';
 
 interface DeleteButtonBaseProps extends Omit<ButtonProps, 'children' | 'ref'> {
   /** The accessible name, e.g. "Remove N12345" or "Delete this DART". */
@@ -46,6 +49,12 @@ interface DeleteButtonBaseProps extends Omit<ButtonProps, 'children' | 'ref'> {
   onDelete?: () => void | Promise<unknown>;
   /** The confirmation's danger button, once `onDelete` is given. Defaults to "Delete". */
   confirmLabel?: string;
+  /**
+   * What the delete will take with it, said before the confirmation's buttons, such
+   * as "It will disappear from every member's profile."  Left out, the pair stands
+   * alone, which suits a row's trashcan.
+   */
+  warning?: ReactNode;
 }
 
 /** A trashcan followed by words, inside a `Button` the caller can style. */
@@ -83,12 +92,15 @@ export type DeleteButtonProps = WordedDeleteButtonProps | IconDeleteButtonProps;
  *
  * Given `onDelete`, the first press swaps the whole control, in place, for a
  * `role="group"` pair named by `label`: a small danger button reading
- * `confirmLabel` and a plain **Keep**. Only the danger button calls `onDelete`;
- * pressing **Keep**, pressing Escape, clicking outside the pair, or moving the
- * focus off it all restore the trashcan without calling anything. The focus
- * moves to **Keep** when the pair opens, so a stray second Enter keeps the thing,
- * and returns to the trashcan after **Keep** or Escape. An Escape pressed on the
- * pair stops there, so a panel or dialog the control sits in stays open. The pair
+ * `confirmLabel` and a plain **Cancel**, after the `warning` when there is one.
+ * Only the danger button calls `onDelete`; pressing **Cancel**, pressing Escape,
+ * clicking outside the pair, or moving the focus off it all restore the trashcan
+ * without calling anything. The focus moves to **Cancel** when the pair opens, so a
+ * stray second Enter keeps the thing, and returns to the trashcan after **Cancel**
+ * or Escape. Once a delete settles the focus goes back to the trashcan or, when the
+ * delete took it away with its row, to the nearest place still on the page: the
+ * table cell or list item it sat in, or the heading of its card. An Escape pressed
+ * on the pair stops there, so a panel or dialog the control sits in stays open. The pair
  * disables both of its buttons while `onDelete`'s promise is in flight, and
  * while the caller's own `disabled` is true. Every other `Button` prop --
  * `type`, `aria-*`, a caller's own `onClick` used when `onDelete` is left out --
@@ -104,6 +116,7 @@ export function DeleteButton(props: DeleteButtonProps): JSX.Element {
     title,
     onDelete,
     confirmLabel = DEFAULT_CONFIRM_LABEL,
+    warning,
     disabled = false,
     ...rest
   } = props;
@@ -111,14 +124,18 @@ export function DeleteButton(props: DeleteButtonProps): JSX.Element {
   const [isConfirming, setIsConfirming] = useState(false);
   const [isPending, setIsPending] = useState(false);
   const containerRef = useRef<HTMLSpanElement>(null);
-  const keepRef = useRef<HTMLButtonElement>(null);
+  const cancelRef = useRef<HTMLButtonElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
-  // Set by Keep and Escape, the two ways out that leave the reader where they were;
-  // a click elsewhere or a tab away has already put the focus somewhere of its own.
+  // Set by Cancel, Escape, and a settled delete, the ways out that leave the reader
+  // where they were; a click elsewhere or a tab away has already put the focus
+  // somewhere of its own.
   const shouldRefocusTriggerRef = useRef(false);
+  const placeRef = useRef<(() => HTMLElement | null) | null>(null);
+  const hasDeletedRef = useRef(false);
+  useRefocusOnUnmount(placeRef, hasDeletedRef);
 
   const handleDismiss = useCallback((): void => setIsConfirming(false), []);
-  const handleKeep = useCallback((): void => {
+  const handleCancel = useCallback((): void => {
     shouldRefocusTriggerRef.current = true;
     setIsConfirming(false);
   }, []);
@@ -126,12 +143,15 @@ export function DeleteButton(props: DeleteButtonProps): JSX.Element {
 
   useEffect(() => {
     if (isConfirming) {
-      keepRef.current?.focus();
+      cancelRef.current?.focus();
       return undefined;
     }
     if (shouldRefocusTriggerRef.current) {
       shouldRefocusTriggerRef.current = false;
-      triggerRef.current?.focus();
+      // The trashcan drawn again after the pair is a new element, so it comes first;
+      // the remembered place stands in while it is disabled.
+      const trigger = triggerRef.current;
+      (trigger !== null && !trigger.disabled ? trigger : (placeRef.current?.() ?? null))?.focus();
     }
     return undefined;
   }, [isConfirming]);
@@ -144,11 +164,12 @@ export function DeleteButton(props: DeleteButtonProps): JSX.Element {
     const handleKeyDown = (event: KeyboardEvent): void => {
       if (event.key !== 'Escape') return;
       event.stopPropagation();
-      handleKeep();
+      event.preventDefault();
+      handleCancel();
     };
     container.addEventListener('keydown', handleKeyDown);
     return () => container.removeEventListener('keydown', handleKeyDown);
-  }, [isConfirming, handleKeep]);
+  }, [isConfirming, handleCancel]);
 
   // Tabbing away is not a click, so `useClickOutside`'s pointerdown listener
   // never sees it; a plain blur that lands outside the pair closes it the
@@ -160,41 +181,63 @@ export function DeleteButton(props: DeleteButtonProps): JSX.Element {
   };
 
   const handleConfirm = (): void => {
+    // Armed before the delete starts: the row may go before the promise settles.
+    hasDeletedRef.current = true;
     setIsPending(true);
     void Promise.resolve(onDelete?.())
       .catch(() => undefined)
       .finally(() => {
+        shouldRefocusTriggerRef.current = true;
         setIsPending(false);
         setIsConfirming(false);
       });
   };
 
   if (onDelete !== undefined && isConfirming) {
+    const buttons = (
+      <>
+        <Button variant="danger" small onClick={handleConfirm} disabled={disabled || isPending}>
+          {confirmLabel}
+        </Button>
+        <Button
+          ref={cancelRef}
+          variant="quiet"
+          small
+          onClick={handleCancel}
+          disabled={disabled || isPending}
+        >
+          {CANCEL_LABEL}
+        </Button>
+      </>
+    );
     return (
       <span
         ref={containerRef}
         role="group"
         aria-label={label}
-        className="cluster"
+        className={warning === undefined ? 'cluster' : 'delete-confirm stack-tight'}
+        data-own-escape
         onBlur={handleBlur}
       >
-        <Button variant="danger" small onClick={handleConfirm} disabled={disabled || isPending}>
-          {confirmLabel}
-        </Button>
-        <Button
-          ref={keepRef}
-          variant="quiet"
-          small
-          onClick={handleKeep}
-          disabled={disabled || isPending}
-        >
-          {KEEP_LABEL}
-        </Button>
+        {warning === undefined ? (
+          buttons
+        ) : (
+          <>
+            <span className="delete-confirm__warning">{warning}</span>
+            <span className="cluster">{buttons}</span>
+          </>
+        )}
       </span>
     );
   }
 
-  const handleReveal = onDelete !== undefined ? (): void => setIsConfirming(true) : undefined;
+  const handleReveal =
+    onDelete !== undefined
+      ? (): void => {
+          placeRef.current = rememberPlace(triggerRef.current);
+          setIsConfirming(true);
+        }
+      : undefined;
   const isIconOnly = children === undefined || children === null || children === false;
 
   if (isIconOnly) {

@@ -20,12 +20,12 @@ import type { Column } from '@/portal/components/DataTable';
 import { DataTable } from '@/portal/components/DataTable';
 import { DateText } from '@/portal/components/DateText';
 import { DeleteButton } from '@/portal/components/DeleteButton';
+import { usePanelFocus } from '@/portal/components/focus';
 import { Page } from '@/portal/components/Page';
 import { DROP_ORDER } from './dropOrder';
 import './bulk-email.css';
 import { useCreateTemplate, useDeleteTemplate, useTemplates, useUpdateTemplate } from './reuseApi';
 import { TemplateForm } from './TemplateForm';
-import { useFormCard } from './useFormCard';
 
 /** Which form is open: a new template, or the edit of one. */
 type OpenForm = { mode: 'new' } | { mode: 'edit'; id: number } | null;
@@ -68,7 +68,7 @@ export function TemplatesPage(): JSX.Element {
 
   const openKey =
     openForm === null ? null : openForm.mode === 'new' ? 'new' : `edit-${openForm.id}`;
-  const formRef = useFormCard(openKey, handleClose, newRef);
+  const formRef = usePanelFocus(openKey, handleClose, newRef);
 
   const handleNew = (): void => {
     create.reset();

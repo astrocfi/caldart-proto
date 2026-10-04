@@ -210,7 +210,11 @@ describe('UserDetailPage', () => {
       await screen.findByRole('heading', { name: 'Priya Raman' });
 
       await userEvent.click(screen.getByRole('button', { name: 'Deactivate account' }));
-      await userEvent.click(screen.getByRole('button', { name: 'Deactivate account' }));
+      await userEvent.click(
+        within(screen.getByRole('region', { name: 'Deactivate account' })).getByRole('button', {
+          name: 'Deactivate account',
+        }),
+      );
 
       expect(await screen.findByRole('button', { name: 'Reactivate account' })).toBeVisible();
       expect(calls).toEqual(['deactivate']);
@@ -229,7 +233,11 @@ describe('UserDetailPage', () => {
       await screen.findByRole('heading', { name: 'Priya Raman' });
 
       await userEvent.click(screen.getByRole('button', { name: 'Deactivate account' }));
-      await userEvent.click(screen.getByRole('button', { name: 'Deactivate account' }));
+      await userEvent.click(
+        within(screen.getByRole('region', { name: 'Deactivate account' })).getByRole('button', {
+          name: 'Deactivate account',
+        }),
+      );
 
       expect(await screen.findByRole('alert')).toHaveTextContent(
         'You cannot activate or deactivate an account that holds roles you do not hold.',
@@ -248,7 +256,11 @@ describe('UserDetailPage', () => {
 
       await userEvent.click(screen.getByRole('button', { name: 'Block reactivation' }));
       expect(screen.getByText(/The account is deactivated first/)).toBeVisible();
-      await userEvent.click(screen.getByRole('button', { name: 'Block reactivation' }));
+      await userEvent.click(
+        within(screen.getByRole('region', { name: 'Block reactivation' })).getByRole('button', {
+          name: 'Block reactivation',
+        }),
+      );
 
       expect(await screen.findByRole('button', { name: 'Allow reactivation' })).toBeVisible();
       expect(calls).toEqual(['block']);
@@ -269,7 +281,11 @@ describe('UserDetailPage', () => {
       await screen.findByRole('heading', { name: 'Priya Raman' });
 
       await userEvent.click(screen.getByRole('button', { name: 'Allow reactivation' }));
-      await userEvent.click(screen.getByRole('button', { name: 'Allow reactivation' }));
+      await userEvent.click(
+        within(screen.getByRole('region', { name: 'Allow reactivation' })).getByRole('button', {
+          name: 'Allow reactivation',
+        }),
+      );
 
       expect(await screen.findByRole('button', { name: 'Block reactivation' })).toBeVisible();
       expect(calls).toEqual(['unblock']);

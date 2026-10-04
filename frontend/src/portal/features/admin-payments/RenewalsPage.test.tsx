@@ -186,7 +186,7 @@ describe('RenewalsPage', () => {
     await userEvent.click(row.getByRole('button', { name: 'Turn off' }));
     expect(seen.canceled).toEqual([]);
 
-    await userEvent.click(row.getByRole('button', { name: 'Yes, turn it off' }));
+    await userEvent.click(row.getByRole('button', { name: 'Turn it off' }));
 
     await expect.poll(() => seen.canceled).toEqual([13]);
   });
@@ -198,7 +198,7 @@ describe('RenewalsPage', () => {
 
     const row = within(await screen.findByRole('row', { name: /Dana Field/ }));
     await userEvent.click(row.getByRole('button', { name: 'Turn off' }));
-    await userEvent.click(row.getByRole('button', { name: 'Yes, turn it off' }));
+    await userEvent.click(row.getByRole('button', { name: 'Turn it off' }));
 
     expect(
       await screen.findByText('Recurring donation is off for Dana Field.'),
@@ -255,10 +255,10 @@ describe('RenewalsPage', () => {
 
     const row = within(await screen.findByRole('row', { name: /Ben Ortiz/ }));
     await userEvent.click(row.getByRole('button', { name: 'Turn off' }));
-    await userEvent.click(row.getByRole('button', { name: 'Yes, turn it off' }));
+    await userEvent.click(row.getByRole('button', { name: 'Turn it off' }));
 
     expect(await screen.findByText('That renewal is already off.')).toBeInTheDocument();
-    expect(row.getByRole('button', { name: 'Yes, turn it off' })).toBeInTheDocument();
+    expect(row.getByRole('button', { name: 'Turn it off' })).toBeInTheDocument();
   });
 
   it('counts every mandate the server has, not only the page on screen', async () => {

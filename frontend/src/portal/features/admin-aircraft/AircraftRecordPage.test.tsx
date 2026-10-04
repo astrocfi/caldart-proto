@@ -249,7 +249,8 @@ describe('AircraftRecordPage', () => {
     expect(screen.getByText(/Delete N172SP permanently/)).toBeInTheDocument();
     expect(deleted).toBe(false);
 
-    await user.click(screen.getByRole('button', { name: /Yes, delete it/ }));
+    const confirmation = screen.getByRole('group', { name: 'Delete this aircraft' });
+    await user.click(within(confirmation).getByRole('button', { name: 'Delete' }));
     await waitFor(() => expect(deleted).toBe(true));
     expect(await screen.findByText('register')).toBeInTheDocument();
   });
@@ -269,7 +270,8 @@ describe('AircraftRecordPage', () => {
 
     renderRecord();
     await user.click(await screen.findByRole('button', { name: 'Delete this aircraft' }));
-    await user.click(screen.getByRole('button', { name: 'Keep it' }));
+    const confirmation = screen.getByRole('group', { name: 'Delete this aircraft' });
+    await user.click(within(confirmation).getByRole('button', { name: 'Cancel' }));
 
     expect(screen.queryByText(/permanently/)).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Delete this aircraft' })).toBeInTheDocument();

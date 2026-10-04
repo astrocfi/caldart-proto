@@ -110,7 +110,7 @@ describe('RenewalsPanel', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Run now' }));
     expect(bodies).toEqual([]);
 
-    await userEvent.click(screen.getByRole('button', { name: 'Yes, charge what is due' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Charge what is due' }));
 
     expect(
       await screen.findByText('Noticed 2, warned 0, charged 1, failed 0, paused 0, and skipped 3.'),

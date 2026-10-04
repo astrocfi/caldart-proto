@@ -7,13 +7,19 @@
  * (its category and airworthiness among it) and its owner; the aircraft type is
  * picked from the aircraft types, and fills the category when the type knows it.
  */
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { JSX } from 'react';
 
 import type { AircraftPatch, AircraftType, Registration } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { Field } from '@/portal/components/Field';
 import { MaskedInput } from '@/portal/components/MaskedInput';
+import {
+  RefusedSubmitNote,
+  useFreshErrors,
+  useRefusedSubmit,
+} from '@/portal/components/RefusedSubmit';
+import { useFocusAfterSave } from '@/portal/components/focus';
 import { maskDigits, maskDollars } from '@/portal/masks';
 import { AircraftTypePicker } from './AircraftTypePicker';
 import './aircraft.css';
@@ -35,6 +41,12 @@ export interface AircraftFormProps {
   pending?: boolean;
   /** Field errors returned by the serializer, merged with the local ones. */
   serverErrors?: Record<string, string>;
+  /**
+   * What `serverErrors` came from, normally the save's `error`: each new one moves
+   * the focus to the first field it highlights, and an error for a field goes once
+   * the field is edited. Left out, every server error stays until the next save.
+   */
+  serverError?: unknown;
   onSubmit: (payload: AircraftPatch) => void;
   onCancel?: () => void;
   /** Notes and the active flag: only on the administrator's screen. */
@@ -47,11 +59,16 @@ export function AircraftForm({
   submitLabel,
   pending = false,
   serverErrors,
+  serverError,
   onSubmit,
   onCancel: handleCancel,
   withAdminFields = false,
 }: AircraftFormProps): JSX.Element {
   const [values, setValues] = useState<AircraftFormValues>(initial);
+  const formRef = useRef<HTMLFormElement>(null);
+  const refusal = useRefusedSubmit(formRef, serverError);
+  useFocusAfterSave(formRef, pending);
+  const freshServerErrors = useFreshErrors(serverError, values, serverErrors ?? {});
   // The fields that have been typed in and left; a complaint appears when the
   // typist moves on from a field rather than when they try to save.
   const [touched, setTouched] = useState<Record<string, true>>({});
@@ -63,7 +80,7 @@ export function AircraftForm({
     if (submitted || touched[key]) visible[key] = message;
   }
 
-  const shown = { ...visible, ...(serverErrors ?? {}) };
+  const shown = { ...visible, ...freshServerErrors };
 
   const handleBlur = (key: string) => () => setTouched((left) => ({ ...left, [key]: true }));
 
@@ -80,12 +97,15 @@ export function AircraftForm({
   const handleSubmit = (event: React.FormEvent): void => {
     event.preventDefault();
     setSubmitted(true);
-    if (Object.keys(found).length > 0) return;
+    if (Object.keys(found).length > 0) {
+      refusal.refuse();
+      return;
+    }
     onSubmit(aircraftPayload(values));
   };
 
   return (
-    <form onSubmit={handleSubmit} noValidate>
+    <form ref={formRef} onSubmit={handleSubmit} noValidate>
       <fieldset className="aircraft-form__section">
         <legend className="aircraft-form__legend">Aircraft</legend>
         <div className="aircraft-form__grid">
@@ -331,6 +351,7 @@ export function AircraftForm({
             Cancel
           </Button>
         ) : null}
+        <RefusedSubmitNote count={refusal.count} />
       </div>
     </form>
   );
