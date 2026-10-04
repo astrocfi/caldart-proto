@@ -1,4 +1,42 @@
 {
+  "AccountActor": {
+    "properties": {
+      "id": "integer",
+      "name": "string"
+    },
+    "required": [
+      "id",
+      "name"
+    ]
+  },
+  "AccountChange": {
+    "properties": {
+      "added": "array<ref:RolesEnum>",
+      "changed_at": "string(date-time)",
+      "changed_by": "ref:AccountActor|null",
+      "id": "integer",
+      "kind": "ref:AccountChangeKindEnum",
+      "removed": "array<ref:RolesEnum>"
+    },
+    "required": [
+      "added",
+      "changed_at",
+      "changed_by",
+      "id",
+      "kind",
+      "removed"
+    ]
+  },
+  "AccountChangeKindEnum": {
+    "enum": [
+      "created",
+      "roles",
+      "deactivated",
+      "reactivated",
+      "blocked",
+      "unblocked"
+    ]
+  },
   "AccountKindEnum": {
     "enum": [
       "member",
@@ -181,6 +219,7 @@
   },
   "AdminUser": {
     "properties": {
+      "admin_created": "boolean",
       "city": "string",
       "county": "string",
       "dart": "string|null",
@@ -203,6 +242,7 @@
       "roles": "array<ref:RolesEnum>"
     },
     "required": [
+      "admin_created",
       "city",
       "county",
       "dart",
@@ -4263,6 +4303,7 @@
   },
   "User": {
     "properties": {
+      "admin_created": "boolean",
       "email": "string(email)",
       "email_verified": "boolean",
       "first_name": "string",
@@ -4276,6 +4317,7 @@
       "roles": "array<ref:RolesEnum>"
     },
     "required": [
+      "admin_created",
       "email",
       "email_verified",
       "first_name",

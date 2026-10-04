@@ -52,6 +52,7 @@ def test_login_returns_the_user_payload(
         "email_verified",
         "kind",
         "friend_on",
+        "admin_created",
     }
 
 
