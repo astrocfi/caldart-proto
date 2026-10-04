@@ -52,7 +52,7 @@ an audit needs them.
 
 On a narrower screen the table leaves out the columns that matter least, one at a time,
 so **Given** and **Net** stay in sight: first the place columns, then the **Email**, the
-**Phone**, and the dates. On a phone the table scrolls sideways inside the page, a line
+**Phone**, and the dates. A column you tick beyond the defaults always stays. On a phone the table scrolls sideways inside the page, a line
 above it says so, and the **Name** stays pinned at the left.
 
 What you can do

@@ -140,24 +140,29 @@ function instrumentText(instrument: boolean | null): string {
 }
 
 /**
- * The columns the table shows while the report's registry loads, or if it cannot be read:
- * who, how to reach them, their team, and their membership.
+ * The report's default columns, which the table shows while the registry loads or if it
+ * cannot be read, so the table and the downloads still agree.
  */
 const FALLBACK_COLUMNS: ReportColumn[] = [
   { key: 'name', label: 'Name', default: true },
   { key: 'email', label: 'Email', default: true },
+  { key: 'phone', label: 'Phone', default: true },
   { key: 'dart', label: 'DART', default: true },
   { key: 'status', label: 'Status', default: true },
+  { key: 'kind', label: 'Kind', default: true },
   { key: 'expires_on', label: 'Expires', default: true },
+  { key: 'certificate', label: 'Certificate', default: true },
+  { key: 'medical_type', label: 'Medical', default: true },
+  { key: 'medical_expiration', label: 'Medical expires', default: true },
+  { key: 'aircraft', label: 'Aircraft', default: true },
 ];
 
-/** A column that only somebody who asks for it sees, and that goes first on a narrow screen. */
-const OPTIONAL = 1;
-
 /**
- * How each members report column draws.  The columns that matter least on a narrow
- * screen go first (the lowest `dropOrder`), then Email, then DART; the name, the
- * membership status, and the expiry never go.
+ * How each members report column draws.  On a narrow screen the default columns go in
+ * a stated order: Email, then DART, then Phone, Kind, and Aircraft, so a laptop keeps the
+ * pilot columns, then Medical, Certificate, and Medical expires.  The name, the
+ * membership status, and the expiry never go, and neither does a column somebody ticked
+ * beyond the defaults: the table scrolls instead.
  */
 function memberCells(isAccountAdmin: boolean): Record<string, ReportCell<MemberRow>> {
   return {
@@ -170,14 +175,14 @@ function memberCells(isAccountAdmin: boolean): Record<string, ReportCell<MemberR
     email: {
       ordering: 'email',
       minWidth: '14rem',
-      dropOrder: 20,
+      dropOrder: 1,
       render: (row) => <a href={`mailto:${row.email}`}>{row.email}</a>,
     },
-    phone: { width: '8.5rem', noWrap: true, dropOrder: 10, render: (row) => row.phone },
+    phone: { width: '8.5rem', noWrap: true, dropOrder: 3, render: (row) => row.phone },
     dart: {
       ordering: 'dart',
       minWidth: '9rem',
-      dropOrder: 21,
+      dropOrder: 2,
       render: (row) => row.dart ?? 'Unaffiliated',
     },
     status: {
@@ -194,8 +199,8 @@ function memberCells(isAccountAdmin: boolean): Record<string, ReportCell<MemberR
         </>
       ),
     },
-    kind: { width: '6rem', dropOrder: 5, render: kindLabel },
-    plan: { width: '7rem', dropOrder: 4, render: (row) => row.membership.plan ?? '' },
+    kind: { width: '6rem', dropOrder: 4, render: kindLabel },
+    plan: { width: '7rem', render: (row) => row.membership.plan ?? '' },
     expires_on: {
       ordering: 'expires_on',
       width: '8rem',
@@ -204,28 +209,26 @@ function memberCells(isAccountAdmin: boolean): Record<string, ReportCell<MemberR
     },
     certificate: {
       width: '7rem',
-      dropOrder: 8,
+      dropOrder: 7,
       render: (row) => certificateText(row.pilot_certificate_type),
     },
     certificate_number: {
       width: '8rem',
       noWrap: true,
-      dropOrder: OPTIONAL,
       render: (row) => row.certificate_number,
     },
     instrument: {
       width: '7rem',
-      dropOrder: OPTIONAL,
       render: (row) => instrumentText(row.instrument),
     },
     medical_type: {
       width: '7rem',
-      dropOrder: 7,
+      dropOrder: 6,
       render: (row) => (row.medical_type === 'none' ? '' : medicalLabel(row.medical_type)),
     },
     medical_expiration: {
       width: '9.5rem',
-      dropOrder: 15,
+      dropOrder: 8,
       render: (row) => (
         <>
           <PilotMark
@@ -236,32 +239,28 @@ function memberCells(isAccountAdmin: boolean): Record<string, ReportCell<MemberR
         </>
       ),
     },
-    aircraft: { minWidth: '7rem', dropOrder: 6, render: (row) => row.aircraft.join(' ') },
-    home_airport: { width: '6.5rem', dropOrder: OPTIONAL, render: (row) => row.home_airport },
+    aircraft: { minWidth: '7rem', dropOrder: 5, render: (row) => row.aircraft.join(' ') },
+    home_airport: { width: '6.5rem', render: (row) => row.home_airport },
     secondary_airport: {
       width: '6.5rem',
-      dropOrder: OPTIONAL,
       render: (row) => row.secondary_airport,
     },
-    city: { minWidth: '7rem', dropOrder: OPTIONAL, render: (row) => row.city },
-    state: { width: '4.5rem', dropOrder: OPTIONAL, render: (row) => row.state },
-    county: { minWidth: '8rem', dropOrder: OPTIONAL, render: (row) => row.county },
-    ham_callsign: { width: '6.5rem', dropOrder: OPTIONAL, render: (row) => row.ham_callsign },
+    city: { minWidth: '7rem', render: (row) => row.city },
+    state: { width: '4.5rem', render: (row) => row.state },
+    county: { minWidth: '8rem', render: (row) => row.county },
+    ham_callsign: { width: '6.5rem', render: (row) => row.ham_callsign },
     joined_on: {
       ordering: 'joined',
       width: '8rem',
-      dropOrder: OPTIONAL,
       render: (row) => <DateText value={row.joined_on} />,
     },
     member_since: {
       width: '8rem',
-      dropOrder: OPTIONAL,
       render: (row) => <DateText value={row.member_since} />,
     },
     profile_updated: {
       ordering: 'updated',
       width: '8.5rem',
-      dropOrder: OPTIONAL,
       render: (row) => <DateText value={row.profile_updated_at} />,
     },
   };

@@ -37,9 +37,9 @@ both (see `Exporting the roles report`_). At first it shows:
 - **Membership**: **Current**, **Expired**, **Friend**, or **Donor**, after a colored dot.
 
 **Name** and **Email** sort: click one to sort by it, and again to reverse the order. The
-other headings have no arrow and do not sort. On a narrower screen the table leaves out the
-optional columns, then **Kind**, **Phone**, **DART**, **Role**, and **Email**, while **Name**
-and **Membership** stay; on a phone a line over the table says when it scrolls sideways,
+other headings have no arrow and do not sort. On a narrower screen the table leaves out
+**Kind**, **Phone**, **DART**, **Role**, and **Email** in turn, while **Name**, **Membership**,
+and any column you ticked beyond the defaults stay; on a phone a line over the table says when it scrolls sideways,
 and the names stay pinned at the left.
 
 Every screen names a role the way a person says it: Member, Verifier, DART leader, User

@@ -424,7 +424,7 @@ describe('MembersListPage', () => {
     expect(screen.queryByRole('button', { name: 'Columns' })).not.toBeInTheDocument();
   });
 
-  it('falls back on the name, the team, and the membership when the columns fail to load', async () => {
+  it("falls back on the report's own default columns when the columns fail to load", async () => {
     server.use(
       http.get(`${API}/reports/members/columns`, () =>
         HttpResponse.json({ detail: 'Server error.' }, { status: 500 }),
@@ -437,9 +437,15 @@ describe('MembersListPage', () => {
     expect(screen.getAllByRole('columnheader').map(headingText)).toEqual([
       'Name',
       'Email',
+      'Phone',
       'DART',
       'Status',
+      'Kind',
       'Expires',
+      'Certificate',
+      'Medical',
+      'Medical expires',
+      'Aircraft',
     ]);
   });
 

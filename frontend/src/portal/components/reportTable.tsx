@@ -21,7 +21,8 @@ import type { Column } from './DataTable';
 /**
  * How one report column draws in the table: everything a `Column` takes but its key
  * and heading, which come from the registry, and the `ordering` value the list's API
- * sorts it by, where it has one.
+ * sorts it by, where it has one.  Its `dropOrder` counts only while the column is one
+ * of the report's defaults.
  */
 export type ReportCell<Row> = Omit<Column<Row>, 'key' | 'header'> & {
   /** The `?ordering=` value behind the column; a column without one does not sort on the server. */
@@ -92,7 +93,9 @@ function unknownCell<Row>(): ReportCell<Row> {
 /**
  * The table's columns for the chosen keys, in registry order.
  *
- * Each takes its heading from the registry and its drawing from `cells`.  Under
+ * Each takes its heading from the registry and its drawing from `cells`.  Only a
+ * default column keeps the `dropOrder` its cell gives: a column somebody ticked beyond
+ * the defaults always shows, and the table scrolls sideways when it must.  Under
  * server sorting (`isServerSorted`) a column's key is its `ordering` value and a
  * column without one is unsortable; otherwise the key is the registry's.
  *
@@ -111,7 +114,10 @@ export function reportTableColumns<Row>(
   return registry
     .filter((column) => chosen.includes(column.key))
     .map((column) => {
-      const { ordering, ...cell }: ReportCell<Row> = cells[column.key] ?? unknownCell<Row>();
+      const { ordering, ...given }: ReportCell<Row> = cells[column.key] ?? unknownCell<Row>();
+      // A column the person ticked, beyond the report's defaults, is never left out to
+      // fit the screen: the table scrolls instead, its identifying column pinned.
+      const cell = column.default ? given : { ...given, dropOrder: undefined };
       if (!isServerSorted) return { ...cell, key: column.key, header: column.label };
       return {
         ...cell,

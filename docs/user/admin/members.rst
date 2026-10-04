@@ -66,9 +66,11 @@ changes both (see `Choosing the columns`_). At first it shows the report's eleve
 **Aircraft**
    The N-numbers of the aircraft on their profile.
 
-On a narrower screen the table leaves columns out, one at a time, until the rest fit: the
-optional ones first, then **Email**, then **DART**. **Name**, **Status**, and **Expires**
-always stay. On a phone the table can still be wider than the screen: a line over it says
+On a narrower screen the table leaves default columns out, one at a time, until the rest
+fit: **Email**, then **DART**, then **Phone**, **Kind**, and **Aircraft**, so a laptop keeps
+the pilot columns; then **Medical**, **Certificate**, and **Medical expires**. **Name**,
+**Status**, and **Expires** always stay, and so does any column you tick beyond the
+defaults. On a phone the table can still be wider than the screen: a line over it says
 *Scroll sideways to see every column*, a shadow marks the edge with more beyond it, and the
 names stay pinned at the left while you scroll. With a keyboard, Tab to the table and use
 the arrow keys.

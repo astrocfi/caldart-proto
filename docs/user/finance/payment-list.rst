@@ -22,8 +22,9 @@ member's **Name** and **Email**, the **Plan**, the **Total**, the provider's **F
 **Net**, and the **Status**. More columns are a click away (see `Choose the columns`_).
 
 On a narrower screen the table leaves out the columns that matter least, one at a time,
-so the **Total** and the **Status** stay in sight: first the provider's **Reference**, your
-**Note**, and the **Email**, then the rest. On a phone, where even that is too wide, the
+so the **Total** and the **Status** stay in sight: first the **Email**, then the **Plan**, the
+**Fee** and **Net**, and the **Date**. A column you tick beyond the defaults always stays. On
+a phone, where even that is too wide, the
 table scrolls sideways inside the page, a line above it says so, and the **Name** stays
 pinned at the left so you always know whose payment a row is.
 

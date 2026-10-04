@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 
 import { Button } from './Button';
-import { PanelButton } from './PanelButton';
+import { PanelButton, panelShift } from './PanelButton';
 
 /** A panel button whose panel holds one checkbox and a Done button that closes it. */
 function renderPanel() {
@@ -156,5 +156,19 @@ describe('PanelButton', () => {
     await userEvent.tab();
 
     expect(screen.getByRole('button', { name: 'Export CSV' })).toHaveFocus();
+  });
+});
+
+describe('panelShift', () => {
+  it('leaves a panel that fits the screen where it is', () => {
+    expect(panelShift(40, 300, 390)).toBe(0);
+  });
+
+  it('moves a panel that starts before the left edge to the right', () => {
+    expect(panelShift(-155, 125, 390)).toBe(163);
+  });
+
+  it('moves a panel that runs past the right edge to the left', () => {
+    expect(panelShift(210, 434, 390)).toBe(-52);
   });
 });

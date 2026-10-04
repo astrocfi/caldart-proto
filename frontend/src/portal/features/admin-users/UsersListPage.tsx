@@ -114,9 +114,6 @@ function displayName(user: AdminUser): string {
   return `${user.first_name} ${user.last_name}`.trim() || user.email;
 }
 
-/** A column that only somebody who asks for it sees, and that goes first on a narrow screen. */
-const OPTIONAL = 1;
-
 /** How each roles report column draws for one account. */
 const CELLS: Record<string, ReportCell<AdminUser>> = {
   role: {
@@ -161,16 +158,22 @@ const CELLS: Record<string, ReportCell<AdminUser>> = {
       </>
     ),
   },
-  city: { minWidth: '7rem', dropOrder: OPTIONAL, render: (user) => user.city },
-  county: { minWidth: '8rem', dropOrder: OPTIONAL, render: (user) => user.county },
-  home_airport: { width: '6.5rem', dropOrder: OPTIONAL, render: (user) => user.home_airport },
+  city: { minWidth: '7rem', render: (user) => user.city },
+  county: { minWidth: '8rem', render: (user) => user.county },
+  home_airport: { width: '6.5rem', render: (user) => user.home_airport },
 };
 
-/** The columns the table shows while the report's registry loads, or if it cannot be read. */
+/**
+ * The report's default columns, which the table shows while the registry loads or if it
+ * cannot be read, so the table and the downloads still agree.
+ */
 const FALLBACK_COLUMNS: ReportColumn[] = [
+  { key: 'role', label: 'Role', default: true },
   { key: 'name', label: 'Name', default: true },
   { key: 'email', label: 'Email', default: true },
-  { key: 'role', label: 'Role', default: true },
+  { key: 'phone', label: 'Phone', default: true },
+  { key: 'dart', label: 'DART', default: true },
+  { key: 'kind', label: 'Kind', default: true },
   { key: 'membership', label: 'Membership', default: true },
 ];
 

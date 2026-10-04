@@ -155,13 +155,20 @@ const CELLS: Record<string, ReportCell<Aircraft>> = {
   pilots: { width: '8rem', dropOrder: OPTIONAL, render: () => '—' },
 };
 
-/** The columns the table shows while the report's registry loads, or if it cannot be read. */
+/**
+ * The report's default columns, which the table shows while the registry loads or if it
+ * cannot be read, so the table and the downloads still agree.
+ */
 const FALLBACK_COLUMNS: ReportColumn[] = [
   { key: 'n_number', label: 'N-number', default: true },
   { key: 'make', label: 'Make', default: true },
   { key: 'model', label: 'Model', default: true },
   { key: 'owner_name', label: 'Owner', default: true },
+  { key: 'insurance_carrier', label: 'Carrier', default: true },
+  { key: 'liability_per_occurrence', label: 'Liability / occurrence', default: true },
+  { key: 'hull', label: 'Hull', default: true },
   { key: 'insurance_expiration', label: 'Expires', default: true },
+  { key: 'insurance_current', label: 'Current', default: true },
 ];
 
 /** `/admin/aircraft` page: filter, sort, export, and add aircraft register records. */

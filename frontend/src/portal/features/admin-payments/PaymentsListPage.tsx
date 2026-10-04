@@ -36,14 +36,17 @@ import { KIND_LABELS, PROVIDER_LABELS, STATUS_LABELS, WALLET_LABELS, statusTone 
 import './admin-payments.css';
 
 /**
- * The columns the table shows while the report's registry loads, or if it cannot be read:
- * when, who, and how much.
+ * The report's default columns, which the table shows while the registry loads or if it
+ * cannot be read, so the table and the downloads still agree.
  */
 const FALLBACK_COLUMNS: ReportColumn[] = [
   { key: 'paid_on', label: 'Date', default: true },
   { key: 'name', label: 'Name', default: true },
+  { key: 'email', label: 'Email', default: true },
   { key: 'plan', label: 'Plan', default: true },
   { key: 'total', label: 'Total', default: true },
+  { key: 'fee', label: 'Fee', default: true },
+  { key: 'net', label: 'Net', default: true },
   { key: 'status', label: 'Status', default: true },
 ];
 

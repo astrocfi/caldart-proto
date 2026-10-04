@@ -53,14 +53,17 @@ import {
 import './admin-payments.css';
 
 /**
- * The columns the table shows while the report's registry loads, or if it cannot be read:
- * who, what, when, and whether it is on.
+ * The report's default columns, which the table shows while the registry loads or if it
+ * cannot be read, so the table and the downloads still agree.
  */
 const FALLBACK_COLUMNS: ReportColumn[] = [
   { key: 'name', label: 'Member', default: true },
+  { key: 'email', label: 'Email', default: true },
   { key: 'kind', label: 'Kind', default: true },
+  { key: 'plan', label: 'Plan', default: true },
   { key: 'amount', label: 'Next charge', default: true },
   { key: 'next_charge_on', label: 'Due', default: true },
+  { key: 'method', label: 'Method', default: true },
   { key: 'status', label: 'Status', default: true },
 ];
 
@@ -75,7 +78,11 @@ export function isCancelable(mandate: RenewalMandate): boolean {
 const MANDATE_FILTERS = listFilters(REPORTS.renewals);
 const MANDATE_FILTER_KEYS = MANDATE_FILTERS.map((field) => field.key);
 
-/** The query parameter the attempts table keeps its page in, apart from the mandates'. */
+/**
+ * The query parameters the two tables keep their pages in, each its own, so paging one
+ * table never moves the other.
+ */
+const MANDATES_PAGE = 'renewals_page';
 const ATTEMPTS_PAGE = 'attempts_page';
 
 /** The attempts table's one filter, which is the tab's own rather than a report's. */
@@ -189,13 +196,13 @@ const MANDATE_CELLS: Record<string, ReportCell<RenewalMandate>> = {
 export function RenewalsPage(): JSX.Element {
   const toast = useToast();
 
-  const [filters, setFilters] = useUrlFilters(MANDATE_FILTER_KEYS);
-  const [mandatePageValues, setMandatePageValues] = useUrlFilters(['page']);
+  const [mandateValues, setMandateValues] = useUrlFilters([...MANDATE_FILTER_KEYS, MANDATES_PAGE]);
+  const { [MANDATES_PAGE]: mandatePageValue, ...filters } = mandateValues;
   const [attemptValues, setAttemptValues] = useUrlFilters(['outcome', ATTEMPTS_PAGE]);
   const [confirmingId, setConfirmingId] = useState<number | null>(null);
   const choice = useColumnChoice('renewals', FALLBACK_COLUMNS);
 
-  const mandatePage = pageOf(mandatePageValues.page);
+  const mandatePage = pageOf(mandatePageValue);
   const attemptPage = pageOf(attemptValues[ATTEMPTS_PAGE]);
   const outcome = (attemptValues.outcome ?? '') as RenewalOutcome | '';
   const mandates = useRenewalMandates(
@@ -210,8 +217,12 @@ export function RenewalsPage(): JSX.Element {
   const cancel = useCancelMandate();
   const exportParams = { ...filters, columns: choice.chosen };
 
+  // A change of filter returns the renewals to their first page; the charges keep theirs.
+  const setFilters = (next: Record<string, string>): void => {
+    setMandateValues({ ...next, [MANDATES_PAGE]: '' });
+  };
   const setMandatePage = (next: number): void => {
-    setMandatePageValues({ page: next > 1 ? String(next) : '' });
+    setMandateValues({ ...filters, [MANDATES_PAGE]: next > 1 ? String(next) : '' });
   };
   const setAttemptPage = (next: number): void => {
     setAttemptValues({ outcome, [ATTEMPTS_PAGE]: next > 1 ? String(next) : '' });

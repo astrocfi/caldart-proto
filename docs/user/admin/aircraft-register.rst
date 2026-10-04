@@ -59,9 +59,9 @@ The table shows the same columns as the register you download, and **Columns** c
    Yes while the insurance runs, No once it has lapsed or with none on file.
 
 Each row stays on one line, and anything too long for its column ends in an ellipsis. On a
-narrower screen the table leaves columns out until the rest fit, the optional ones and the
-insurance figures first, then **Owner**, **Model**, and **Make**; the N-number and
-**Expires** always stay. When the table is still wider than the screen, a line over it says
+narrower screen the table leaves columns out until the rest fit, the insurance figures
+first, then **Owner**, **Model**, and **Make**; the N-number, **Expires**, and any column
+you ticked beyond the defaults always stay. When the table is still wider than the screen, a line over it says
 so, and the N-numbers stay pinned at the left while you scroll.
 
 **N-number**, **Make**, **Model**, **Owner**, and **Expires** sort: their headings carry an

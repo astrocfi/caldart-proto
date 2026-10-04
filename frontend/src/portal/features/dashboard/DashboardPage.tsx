@@ -23,24 +23,23 @@ import './dashboard.css';
 const RECENT_PAYMENTS = 5;
 
 /**
- * The recent payments' columns.  The plan identifies a row; the amount and the status
- * stay in sight on a phone, where the date gives way first.
+ * The recent payments' columns.  The date identifies a payment, never gives way, and
+ * stays pinned when the table scrolls; the amount and the status stay in sight on a
+ * phone, where the plan gives way first.
  */
 const RECENT_PAYMENT_COLUMNS: Column<PaymentSummary>[] = [
   {
     key: 'date',
     header: 'Date',
-    width: '12rem',
-    noWrap: true,
-    dropOrder: 1,
+    width: '9.5rem',
+    isIdentity: true,
     render: (payment) => <DateText value={payment.completed_at} withTime />,
   },
   {
     key: 'plan',
     header: 'Plan',
-    // Narrow enough that the plan, the amount, and the status fit the card on a phone.
     minWidth: '6rem',
-    isIdentity: true,
+    dropOrder: 1,
     render: (payment) => payment.plan ?? 'Contribution',
   },
   {

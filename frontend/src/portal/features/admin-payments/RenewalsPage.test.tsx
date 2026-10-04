@@ -308,6 +308,31 @@ describe('RenewalsPage', () => {
     await expect.poll(() => seen.attemptQueries.at(-1)?.get('page')).toBe('2');
   });
 
+  it('keeps the renewals on their page while the charges page on', async () => {
+    const seen = record();
+    server.use(
+      http.get(`${API}/admin/renewals/attempts`, ({ request }) => {
+        seen.attemptQueries.push(new URL(request.url).searchParams);
+        return HttpResponse.json(page([REFUSED], 120));
+      }),
+      http.get(`${API}/admin/renewals`, ({ request }) => {
+        seen.mandateQueries.push(new URL(request.url).searchParams);
+        return HttpResponse.json(page([ACTIVE], 180));
+      }),
+    );
+    renderWithProviders(<RenewalsPage />);
+    expect(await screen.findByText('180 renewals')).toBeInTheDocument();
+
+    const renewals = within(screen.getByRole('navigation', { name: 'Renewal pages' }));
+    await userEvent.click(renewals.getByRole('button', { name: 'Next' }));
+    await expect.poll(() => seen.mandateQueries.at(-1)?.get('page')).toBe('2');
+    const charges = within(screen.getByRole('navigation', { name: 'Renewal charge pages' }));
+    await userEvent.click(charges.getByRole('button', { name: 'Next' }));
+    await expect.poll(() => seen.attemptQueries.at(-1)?.get('page')).toBe('2');
+
+    expect(seen.mandateQueries.at(-1)?.get('page')).toBe('2');
+  });
+
   it('says so when the mandates cannot be loaded', async () => {
     server.use(
       http.get(`${API}/admin/renewals/attempts`, () => HttpResponse.json(page([]))),

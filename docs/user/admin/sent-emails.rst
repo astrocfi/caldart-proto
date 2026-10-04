@@ -35,9 +35,9 @@ Tick **Error**, **Attachments**, **Bounced**, or **Bounce detail** to add them: 
 send failed, the names of any files attached, the date a bounce came back, and the reason
 the recipient's mail server gave, such as *5.1.1 550 User unknown*.
 
-On a narrow screen the table leaves out the columns that matter least, the ones you ticked
-first, then **Purpose**, **Name**, and **To**, and keeps **Subject**, **Sent**, and
-**Status**. If it is still too wide it scrolls sideways inside its card, says so above the
+On a narrow screen the table leaves out the default columns that matter least, **Purpose**,
+**Name**, and **To** in turn, and keeps **Subject**, **Sent**, **Status**, and any column you
+ticked beyond the defaults. If it is still too wide it scrolls sideways inside its card, says so above the
 table, and keeps **Subject** pinned at the left.
 
 When there are more than 25 emails, the foot reads, for example, *Showing 1–25 of 412*, with

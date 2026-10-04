@@ -28,10 +28,11 @@ export function purchaseLabel(payment: PaymentSummary): string {
 }
 
 /**
- * The history's columns.  What a payment bought identifies a row and stays pinned when
- * the table scrolls; the amount and the status stay in sight on a phone, and the date,
- * the refund, and the receipt drop, in that order, when the table would not fit.  The
- * Refunded column is there only when something has come back.
+ * The history's columns.  The date identifies a payment, never gives way, and stays
+ * pinned when the table scrolls; the amount, the status, and the receipt link, last on
+ * the row, stay in sight, and what the payment bought, then the refund, give way when
+ * the table would not fit.  The Refunded column is there only when something has come
+ * back.
  */
 function paymentColumns(hasRefunds: boolean): Column<PaymentSummary>[] {
   const columns: (Column<PaymentSummary> | null)[] = [
@@ -39,16 +40,14 @@ function paymentColumns(hasRefunds: boolean): Column<PaymentSummary>[] {
       key: 'date',
       header: 'Date',
       width: '7rem',
-      noWrap: true,
-      dropOrder: 3,
+      isIdentity: true,
       render: (payment) => <DateText value={payment.paid_on ?? payment.completed_at} />,
     },
     {
       key: 'for',
       header: 'For',
-      // Narrow enough that what it bought, the amount, and the status fit a phone.
-      minWidth: '6rem',
-      isIdentity: true,
+      minWidth: '8rem',
+      dropOrder: 1,
       render: (payment) => purchaseLabel(payment),
     },
     {
@@ -65,7 +64,7 @@ function paymentColumns(hasRefunds: boolean): Column<PaymentSummary>[] {
           header: 'Refunded',
           width: '6.5rem',
           numeric: true,
-          dropOrder: 1,
+          dropOrder: 2,
           render: (payment) =>
             payment.refunded_cents > 0 ? (
               <Money cents={payment.refunded_cents} />
@@ -85,8 +84,8 @@ function paymentColumns(hasRefunds: boolean): Column<PaymentSummary>[] {
     {
       key: 'receipt',
       header: 'Receipt',
-      width: '6rem',
-      dropOrder: 2,
+      width: '5.5rem',
+      keepInSight: true,
       render: (payment) =>
         RECEIPTED.includes(payment.status) ? (
           <a href={receiptUrl(payment.id)} download>

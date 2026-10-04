@@ -766,9 +766,7 @@ defaults until somebody ticks), ``reportTableColumns`` turns them into the
 table's columns in registry order from the page's own ``ReportCell`` per key
 (its drawing, its layout, and the ``ordering`` value it sorts by on the
 server), and ``ColumnTools`` draws the chooser, or says the columns could not
-be loaded.  A confirmation section that opens inside a ``.cluster`` row of
-buttons takes a line of its own under the row, so the buttons beside it stay
-put.  A ``PanelButton``
+be loaded.  A ``PanelButton``
 whose panel holds a form passes ``isForm``, so the panel grows to the form rather
 than scrolling at a fixed height.
 ``IconButton`` is a control that shows one of those icons and nothing else: a
@@ -800,7 +798,8 @@ contribution offers two), and **Cancel**.  A choice's ``onChoose`` returns a
 promise; the section closes when it resolves and stays open when it rejects, so
 the caller can draw the refusal beside it.  ``PanelButton`` is a quiet small ``Button`` with
 ``aria-expanded`` and ``aria-controls`` and the captioned panel (a
-``<fieldset>`` with its ``legend``) it opens under itself.  The panel's contents
+``<fieldset>`` with its ``legend``) it opens under itself, moved sideways where
+need be so it stays on the screen (``panelShift``).  The panel's contents
 mount only while it is open, and receive a function that closes it; the panel
 closes on a click outside it, on Escape, or when the focus moves to a control
 outside it, and closing it by a click or Escape while the focus is inside hands

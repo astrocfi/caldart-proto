@@ -38,12 +38,18 @@ import { FinanceTabs } from './FinanceTabs';
 import './admin-payments.css';
 
 /**
- * The columns the table shows while the report's registry loads, or if it cannot be read:
- * the donor, how to reach them, and what they gave.
+ * The report's default columns, which the table shows while the registry loads or if it
+ * cannot be read, so the table and the downloads still agree.
  */
 const FALLBACK_COLUMNS: ReportColumn[] = [
   { key: 'name', label: 'Name', default: true },
   { key: 'email', label: 'Email', default: true },
+  { key: 'phone', label: 'Phone', default: true },
+  { key: 'city', label: 'City', default: true },
+  { key: 'state', label: 'State', default: true },
+  { key: 'first_gift', label: 'First gift', default: true },
+  { key: 'last_gift', label: 'Last gift', default: true },
+  { key: 'gifts', label: 'Gifts', default: true },
   { key: 'given', label: 'Given', default: true },
   { key: 'net', label: 'Net', default: true },
 ];

@@ -272,14 +272,6 @@ a:hover {
   align-items: flex-end;
 }
 
-/* A confirmation panel that opens in a row of buttons (ConfirmButton's, and the
- * like) takes a line of its own under the row, at full width, so the buttons beside
- * the one that opened it stay where they were. */
-.cluster > section.stack-tight {
-  flex-basis: 100%;
-  order: 1;
-}
-
 /* --------------------------------------------------------- form controls */
 .field {
   display: block;
