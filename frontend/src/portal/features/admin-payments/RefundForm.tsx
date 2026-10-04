@@ -6,7 +6,7 @@
  * when the amount covers the dues the payment bought — a member who has their
  * money back has not paid for the year.
  */
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { FormEvent, JSX } from 'react';
 
 import { ApiError } from '@/portal/api/client';
@@ -14,6 +14,11 @@ import type { PaymentDetail, RefundReason } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { Field } from '@/portal/components/Field';
 import { formatCents } from '@/portal/components/Money';
+import {
+  RefusedSubmitNote,
+  useFreshErrors,
+  useRefusedSubmit,
+} from '@/portal/components/RefusedSubmit';
 import { useToast } from '@/portal/components/Toast';
 import { reportedErrors, unrefundedCents, useIssueRefund } from './api';
 import { REFUND_REASON_LABELS } from './labels';
@@ -56,10 +61,24 @@ export function RefundForm({ payment, onDone, onCancel }: RefundFormProps): JSX.
   // Once the treasurer has ticked or unticked the box themselves, the amount
   // stops speaking for them: it is their decision, not a running suggestion.
   const [hasChosenCancel, setHasChosenCancel] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-
   const refund = useIssueRefund(payment.id);
+  // Read off the request itself, so the errors are on the page in the same render
+  // that moves the focus to them.
+  const errors: Record<string, string> =
+    refund.error instanceof ApiError
+      ? reportedErrors(refund.error)
+      : refund.error
+        ? { detail: 'Something went wrong. Please try again.' }
+        : {};
   const toast = useToast();
+  const formRef = useRef<HTMLFormElement>(null);
+  const refusal = useRefusedSubmit(formRef, refund.error);
+  // What the server said about a field goes once the field is edited.
+  const shown = useFreshErrors(
+    refund.error,
+    { amount_cents: amount, reason, note, cancel_term: cancelTerm },
+    errors,
+  );
 
   function handleAmountChange(typed: string) {
     setAmount(typed);
@@ -77,7 +96,6 @@ export function RefundForm({ payment, onDone, onCancel }: RefundFormProps): JSX.
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    setErrors({});
     refund.mutate(
       {
         amount_cents: amountCents(amount),
@@ -90,20 +108,21 @@ export function RefundForm({ payment, onDone, onCancel }: RefundFormProps): JSX.
           toast.show(`Refunded ${formatCents(issued.refund.amount_cents)}.`, 'success');
           onDone();
         },
-        onError: (error) => {
-          if (error instanceof ApiError) setErrors(reportedErrors(error));
-          else setErrors({ detail: 'Something went wrong. Please try again.' });
-        },
       },
     );
   }
 
   return (
-    <form className="stack refund-form" onSubmit={handleSubmit} aria-labelledby="refund-form">
+    <form
+      ref={formRef}
+      className="stack refund-form"
+      onSubmit={handleSubmit}
+      aria-labelledby="refund-form"
+    >
       <h3 id="refund-form">Refund this payment</h3>
       <p className="muted">{formatCents(remaining)} of this payment is left to refund.</p>
 
-      <Field label="Amount" hint="Dollars" error={errors.amount_cents} required>
+      <Field label="Amount" hint="Dollars" error={shown.amount_cents} required>
         {(props) => (
           <input
             {...props}
@@ -116,7 +135,7 @@ export function RefundForm({ payment, onDone, onCancel }: RefundFormProps): JSX.
         )}
       </Field>
 
-      <Field label="Reason" error={errors.reason} required>
+      <Field label="Reason" error={shown.reason} required>
         {(props) => (
           <select
             {...props}
@@ -135,7 +154,7 @@ export function RefundForm({ payment, onDone, onCancel }: RefundFormProps): JSX.
       <Field
         label="Note"
         hint="Kept with the refund; the member does not see it"
-        error={errors.note}
+        error={shown.note}
       >
         {(props) => (
           <input
@@ -158,9 +177,9 @@ export function RefundForm({ payment, onDone, onCancel }: RefundFormProps): JSX.
         </label>
       )}
 
-      {errors.detail ? (
+      {shown.detail ? (
         <p className="field__error" role="alert">
-          {errors.detail}
+          {shown.detail}
         </p>
       ) : null}
 
@@ -171,6 +190,7 @@ export function RefundForm({ payment, onDone, onCancel }: RefundFormProps): JSX.
         <Button variant="quiet" onClick={handleCancel}>
           Cancel
         </Button>
+        <RefusedSubmitNote count={refusal.count} />
       </div>
     </form>
   );

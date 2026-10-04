@@ -8,6 +8,7 @@ import { DartForm, emptyDartValues } from './DartForm';
 /** The add form, with whatever server errors a test hands it. */
 function renderForm(errors: Record<string, string> = {}, serverError: unknown = null) {
   const handleSubmit = vi.fn();
+  const handleCancel = vi.fn();
   const view = renderWithProviders(
     <DartForm
       initial={{ ...emptyDartValues(), name: 'Palo Alto', airport_identifiers: 'PAO' }}
@@ -15,7 +16,7 @@ function renderForm(errors: Record<string, string> = {}, serverError: unknown = 
       errors={errors}
       serverError={serverError}
       onSubmit={handleSubmit}
-      onCancel={vi.fn()}
+      onCancel={handleCancel}
     />,
   );
   return { ...view, handleSubmit };

@@ -4,7 +4,7 @@
  * An address the bounce check found bouncing carries a **Bounced** chip beside it and a
  * **Clear bounce** action that asks first.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { JSX } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
@@ -22,8 +22,14 @@ import { MaskedInput } from '@/portal/components/MaskedInput';
 import { MemberRecordLink } from '@/portal/components/MemberRecordLink';
 import { MembershipChip } from '@/portal/components/StatusChip';
 import { Page } from '@/portal/components/Page';
+import {
+  RefusedSubmitNote,
+  useFreshErrors,
+  useRefusedSubmit,
+} from '@/portal/components/RefusedSubmit';
 import { ResendVerificationButton } from '@/portal/components/ResendVerificationButton';
 import { useToast } from '@/portal/components/Toast';
+import { useFocusAfterSave } from '@/portal/components/focus';
 import { EMAIL_MESSAGE, isEmailAddress, maskEmail } from '@/portal/masks';
 import { FormAlert, fieldError } from '@/portal/features/auth/form';
 import { AccountStatusCard } from './AccountStatusCard';
@@ -70,6 +76,16 @@ export function UserDetailPage(): JSX.Element {
   const [form, setForm] = useState<FormState | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
   const user = query.data;
+  const formRef = useRef<HTMLFormElement>(null);
+  const refusal = useRefusedSubmit(formRef, update.error);
+  useFocusAfterSave(formRef, update.isPending);
+  // The server's complaint about a field goes once the field is edited.
+  const serverErrors = useFreshErrors(update.error, form ?? {}, {
+    first_name: fieldError(update.error, 'first_name'),
+    last_name: fieldError(update.error, 'last_name'),
+    email: fieldError(update.error, 'email'),
+    roles: fieldError(update.error, 'roles'),
+  });
 
   // Seed the form once the account has loaded, and again after a save so the
   // inputs show what the server actually stored.
@@ -143,11 +159,13 @@ export function UserDetailPage(): JSX.Element {
 
       <Card title="Account">
         <form
+          ref={formRef}
           noValidate
           onSubmit={(event) => {
             event.preventDefault();
             if (!isEmailAddress(form.email)) {
               setEmailError(EMAIL_MESSAGE);
+              refusal.refuse();
               return;
             }
             setEmailError(null);
@@ -156,7 +174,7 @@ export function UserDetailPage(): JSX.Element {
             });
           }}
         >
-          <Field label="First name" error={fieldError(update.error, 'first_name')}>
+          <Field label="First name" error={serverErrors.first_name}>
             {(props) => (
               <input
                 {...props}
@@ -168,7 +186,7 @@ export function UserDetailPage(): JSX.Element {
               />
             )}
           </Field>
-          <Field label="Last name" error={fieldError(update.error, 'last_name')}>
+          <Field label="Last name" error={serverErrors.last_name}>
             {(props) => (
               <input
                 {...props}
@@ -182,7 +200,7 @@ export function UserDetailPage(): JSX.Element {
           </Field>
           <Field
             label="Email address"
-            error={emailError ?? fieldError(update.error, 'email')}
+            error={emailError ?? serverErrors.email}
             hint={
               <>
                 This is also how they sign in.{' '}
@@ -199,7 +217,10 @@ export function UserDetailPage(): JSX.Element {
                 autoComplete="email"
                 mask={maskEmail}
                 value={form.email}
-                onValueChange={(next) => setForm({ ...form, email: next })}
+                onValueChange={(next) => {
+                  setForm({ ...form, email: next });
+                  setEmailError(null);
+                }}
               />
             )}
           </Field>
@@ -257,9 +278,9 @@ export function UserDetailPage(): JSX.Element {
                 </li>
               ))}
             </ul>
-            {fieldError(update.error, 'roles') ? (
+            {serverErrors.roles ? (
               <p className="field__error" role="alert">
-                {fieldError(update.error, 'roles')}
+                {serverErrors.roles}
               </p>
             ) : null}
           </fieldset>
@@ -270,9 +291,19 @@ export function UserDetailPage(): JSX.Element {
             <Button type="submit" disabled={update.isPending}>
               {update.isPending ? 'Saving…' : 'Save changes'}
             </Button>
-            <Button variant="quiet" onClick={() => setForm(formFor(user))}>
+            <Button
+              variant="quiet"
+              onClick={() => {
+                // Starting again from the stored account drops what the server said
+                // about the edits being thrown away.
+                setForm(formFor(user));
+                setEmailError(null);
+                update.reset();
+              }}
+            >
               Reset form
             </Button>
+            <RefusedSubmitNote count={refusal.count} />
           </div>
         </form>
       </Card>

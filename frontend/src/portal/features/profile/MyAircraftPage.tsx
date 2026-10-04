@@ -56,7 +56,7 @@ export function MyAircraftPage(): JSX.Element {
     setAddedId(null);
     item.tabIndex = -1;
     item.focus();
-  }, [addedId, aircraft]);
+  }, [addedId, profile.data]);
 
   function fail(error: unknown, fallback: string) {
     toast.show(error instanceof ApiError ? error.message : fallback, 'error');

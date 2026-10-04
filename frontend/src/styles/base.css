@@ -266,12 +266,6 @@ a:hover {
   align-items: center;
 }
 
-/* A row whose items open in place to different heights, such as a confirmation
-   panel beside a button: the button stays level with the panel's own buttons. */
-.cluster--end {
-  align-items: flex-end;
-}
-
 /* A confirmation that opens from a button in a row takes a line of its own below the
    row, at full width, so the buttons around it stay where they were. */
 .confirm-panel {

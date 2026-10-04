@@ -12,8 +12,8 @@
  *   control that opened it.
  * - `focusRefusal` moves the focus to the first highlighted field of a refused form,
  *   or to the form's own complaint when no field is highlighted.
- * - `useFocusAfterSave` puts the focus back on a form's submit button after a save
- *   that leaves the form in place, which the button lost while it was disabled.
+ * - `useFocusAfterSave` puts the focus back on a button, or a form's submit button,
+ *   after a request that leaves it in place, which the button lost while disabled.
  */
 import { useEffect, useRef } from 'react';
 import type { RefObject } from 'react';
@@ -177,25 +177,25 @@ export function usePanelFocus<Panel extends HTMLElement = HTMLDivElement>(
 }
 
 /**
- * Put the focus back on the submit button in `formRef` once `isPending` ends, when it
- * has nowhere better to be.
+ * Put the focus back on a button once `isPending` ends, when it has nowhere better to be.
  *
- * A submit button is disabled while its request is in flight, and a disabled button
- * drops the focus to the page body.  When the request ends and the focus is still lost,
- * it returns to the button, so the person carries on from where they pressed; a refusal
- * that has already moved it to a highlighted field keeps it there.
+ * `ref` is the button itself, or a form whose submit button is meant.  A button is
+ * disabled while its request is in flight, and a disabled button drops the focus to the
+ * page body.  When the request ends and the focus is still lost, it returns to the
+ * button, so the person carries on from where they pressed; a refusal that has already
+ * moved it to a highlighted field keeps it there.
  */
-export function useFocusAfterSave(
-  formRef: RefObject<HTMLElement | null>,
-  isPending: boolean,
-): void {
+export function useFocusAfterSave(ref: RefObject<HTMLElement | null>, isPending: boolean): void {
   const wasPendingRef = useRef(false);
   useEffect(() => {
     const wasPending = wasPendingRef.current;
     wasPendingRef.current = isPending;
     if (!wasPending || isPending || !isFocusLost()) return;
-    formRef.current?.querySelector<HTMLElement>(SUBMIT_BUTTON)?.focus();
-  }, [formRef, isPending]);
+    const root = ref.current;
+    const button =
+      root?.matches('button') === true ? root : root?.querySelector<HTMLElement>(SUBMIT_BUTTON);
+    button?.focus();
+  }, [ref, isPending]);
 }
 
 /** The places around a control the focus may fall back to, nearest first. */

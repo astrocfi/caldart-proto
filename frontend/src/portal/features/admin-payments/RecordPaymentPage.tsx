@@ -6,8 +6,8 @@
  * else is the same decision a card checkout makes: which plan, how much of it
  * is a gift, and when the money arrived.
  */
-import { useState } from 'react';
-import type { FormEvent, JSX } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import type { FormEvent, JSX, RefObject } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { ApiError } from '@/portal/api/client';
@@ -18,6 +18,11 @@ import { Card } from '@/portal/components/Card';
 import { todayIso } from '@/portal/components/DateText';
 import { Field } from '@/portal/components/Field';
 import { Page } from '@/portal/components/Page';
+import {
+  RefusedSubmitNote,
+  useFreshErrors,
+  useRefusedSubmit,
+} from '@/portal/components/RefusedSubmit';
 import { MembershipChip } from '@/portal/components/StatusChip';
 import { useToast } from '@/portal/components/Toast';
 import { useDebounced } from '@/portal/components/useDebounced';
@@ -35,13 +40,21 @@ export function contributionCents(typed: string): number {
   return Math.round(dollars * 100);
 }
 
+/** Where the payment page is told it was reached by recording the payment. */
+export interface RecordedState {
+  recorded: true;
+}
+
 interface MemberPickerProps {
   chosen: FinanceMember | null;
   onChoose: (member: FinanceMember | null) => void;
   error?: string;
+  /** The search box, which takes the focus back after **Choose somebody else**. */
+  searchRef: RefObject<HTMLInputElement | null>;
 }
 
-function MemberPicker({ chosen, onChoose, error }: MemberPickerProps): JSX.Element {
+/** The member search, or the member chosen from it with the way to choose again. */
+function MemberPicker({ chosen, onChoose, error, searchRef }: MemberPickerProps): JSX.Element {
   const [term, setTerm] = useState('');
   const settled = useDebounced(term);
   const results = useFinanceMemberSearch(settled);
@@ -66,6 +79,7 @@ function MemberPicker({ chosen, onChoose, error }: MemberPickerProps): JSX.Eleme
         {(props) => (
           <input
             {...props}
+            ref={searchRef}
             type="search"
             placeholder="Search by name or email address"
             value={term}
@@ -114,24 +128,61 @@ export function RecordPaymentPage(): JSX.Element {
   const [reference, setReference] = useState('');
   const [receivedOn, setReceivedOn] = useState(todayIso());
   const [note, setNote] = useState('');
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [memberError, setMemberError] = useState<string | null>(null);
 
   const plans = usePlans();
   const record = useRecordPayment();
   const toast = useToast();
   const navigate = useNavigate();
+  const formRef = useRef<HTMLFormElement>(null);
+  const refusal = useRefusedSubmit(formRef, record.error);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const planRef = useRef<HTMLSelectElement>(null);
+  // Picking a member moves on to the plan; choosing again goes back to the search.
+  const [hasPicked, setHasPicked] = useState(false);
+
+  // Read off the request itself, so the errors are on the page in the same render
+  // that moves the focus to them; a field's error goes once the field is edited.
+  const serverErrors = useFreshErrors(
+    record.error,
+    {
+      user_id: member,
+      plan,
+      contribution_cents: contribution,
+      amount_cents: contribution,
+      method,
+      reference,
+      received_on: receivedOn,
+      note,
+    },
+    record.error instanceof ApiError
+      ? reportedErrors(record.error)
+      : record.error
+        ? { detail: 'Something went wrong. Please try again.' }
+        : {},
+  );
+  const errors: Record<string, string | undefined> =
+    memberError === null ? serverErrors : { ...serverErrors, user_id: memberError };
+
+  useEffect(() => {
+    if (!hasPicked) return;
+    (member === null ? searchRef : planRef).current?.focus();
+  }, [hasPicked, member]);
 
   function handleChooseMember(chosen: FinanceMember | null) {
     setMember(chosen);
+    setMemberError(null);
+    setHasPicked(true);
   }
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    setErrors({});
     if (member === null) {
-      setErrors({ user_id: 'Choose the member this payment is for.' });
+      setMemberError('Choose the member this payment is for.');
+      refusal.refuse();
       return;
     }
+    setMemberError(null);
     record.mutate(
       {
         user_id: member.user_id,
@@ -145,11 +196,8 @@ export function RecordPaymentPage(): JSX.Element {
       {
         onSuccess: (payment) => {
           toast.show(`Recorded ${payment.receipt_number}.`, 'success');
-          void navigate(`/admin/payments/${payment.id}`);
-        },
-        onError: (error) => {
-          if (error instanceof ApiError) setErrors(reportedErrors(error));
-          else setErrors({ detail: 'Something went wrong. Please try again.' });
+          const state: RecordedState = { recorded: true };
+          void navigate(`/admin/payments/${payment.id}`, { state });
         },
       },
     );
@@ -164,12 +212,22 @@ export function RecordPaymentPage(): JSX.Element {
       <FinanceTabs current="/admin/payments/list" />
 
       <Card>
-        <form className="stack" onSubmit={handleSubmit}>
-          <MemberPicker chosen={member} onChoose={handleChooseMember} error={errors.user_id} />
+        <form ref={formRef} className="stack" onSubmit={handleSubmit} noValidate>
+          <MemberPicker
+            chosen={member}
+            onChoose={handleChooseMember}
+            error={errors.user_id}
+            searchRef={searchRef}
+          />
 
           <Field label="Plan" hint="Leave blank for a contribution on its own" error={errors.plan}>
             {(props) => (
-              <select {...props} value={plan} onChange={(event) => setPlan(event.target.value)}>
+              <select
+                {...props}
+                ref={planRef}
+                value={plan}
+                onChange={(event) => setPlan(event.target.value)}
+              >
                 <option value="">No membership</option>
                 {(plans.data ?? []).map((option) => (
                   <option key={option.slug} value={option.slug}>
@@ -256,9 +314,12 @@ export function RecordPaymentPage(): JSX.Element {
             </p>
           ) : null}
 
-          <Button type="submit" disabled={record.isPending}>
-            {record.isPending ? 'Recording…' : 'Record the payment'}
-          </Button>
+          <div className="cluster">
+            <Button type="submit" disabled={record.isPending}>
+              {record.isPending ? 'Recording…' : 'Record the payment'}
+            </Button>
+            <RefusedSubmitNote count={refusal.count} />
+          </div>
         </form>
       </Card>
     </Page>
