@@ -6,7 +6,7 @@
 .portal {
   /* One width for every page body, cards and tables alike, with the header's
    * actions aligned to it: a wide table scrolls inside its card instead. */
-  --portal-page-max: 90rem;
+  --portal-page-max: 100rem;
   min-height: 100vh;
   display: flex;
   flex-direction: column;

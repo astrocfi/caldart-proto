@@ -950,7 +950,7 @@ none, and an error page asks for none with ``noEyebrow``.  ``Page`` also sets th
 document title to the page's title and the organization's name (``Member check ·
 CalDART``, through ``documentTitle.ts``, which reads the name Django stamps on
 ``<html>`` as ``data-org-name``).  Every page keeps to one width,
-``--portal-page-max`` (90rem, in ``portal.css``), cards and tables alike, with the
+``--portal-page-max`` (100rem, in ``portal.css``), cards and tables alike, with the
 header's actions aligned to it.  A card's eyebrow appears only where it adds to the
 card's title, never repeating the page's, and a table's caption is always a count
 ("6 donors").  Every tab bar uses the ``tab-bar`` classes (the finance tabs and the
