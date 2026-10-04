@@ -412,7 +412,7 @@ describe('LeaderAircraftPage card', () => {
     const { router } = renderPage('/leader/aircraft?aircraft=N0000X');
     expect(await screen.findByText(/N0000X is not in the register/)).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Search again' }));
+    await user.click(screen.getByRole('link', { name: 'Back to search' }));
     expect(screen.getByLabelText(SEARCH_LABEL)).toBeInTheDocument();
     expect(router.state.location.search).toBe('');
   });

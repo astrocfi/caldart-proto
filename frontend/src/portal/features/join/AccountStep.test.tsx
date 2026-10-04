@@ -198,4 +198,53 @@ describe('<AccountStep/>', () => {
     await screen.findByText('That address is already registered.');
     expect(screen.queryByRole('link', { name: 'Sign in to reactivate' })).not.toBeInTheDocument();
   });
+
+  it('refuses an empty form before asking the server, and focuses its first box', async () => {
+    const register = vi.fn();
+    server.use(
+      http.post(`${API}/auth/register`, () => {
+        register();
+        return HttpResponse.json(makeUser(), { status: 201 });
+      }),
+    );
+    renderWithProviders(<AccountStep onDone={() => {}} />);
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Create account' }));
+
+    expect(screen.getByLabelText(/^First name/)).toHaveFocus();
+    expect(register).not.toHaveBeenCalled();
+  });
+
+  it('says beside Create account how many boxes to check', async () => {
+    renderWithProviders(<AccountStep onDone={() => {}} />);
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Create account' }));
+
+    expect(await screen.findByText('Check the 4 highlighted fields.')).toBeInTheDocument();
+  });
+
+  it('names each empty box in the words the server uses', async () => {
+    renderWithProviders(<AccountStep onDone={() => {}} />);
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Create account' }));
+
+    expect(
+      ['Enter your first name.', 'Enter your last name.', 'Choose a password.'].map(
+        (message) => screen.getByText(message).textContent,
+      ),
+    ).toEqual(['Enter your first name.', 'Enter your last name.', 'Choose a password.']);
+  });
+
+  it('moves the focus to the box the server refused', async () => {
+    server.use(
+      http.post(`${API}/auth/register`, () =>
+        HttpResponse.json({ password: ['This password is too common.'] }, { status: 400 }),
+      ),
+    );
+    renderWithProviders(<AccountStep onDone={() => {}} />);
+
+    await fillAndSubmit();
+
+    await waitFor(() => expect(screen.getByLabelText(/^Password/)).toHaveFocus());
+  });
 });

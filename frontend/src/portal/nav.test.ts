@@ -249,12 +249,12 @@ describe('visibleNavItems', () => {
     expect(labels(['member'], { isEffectiveFriend: false })).toContain('Renew');
   });
 
-  it('names Renew Contribute for a lifetime member, as the screen behind it is titled', () => {
-    expect(labels(['member'], { isLifetime: true })).toContain('Contribute');
+  it('offers a lifetime member no Renew, since Donate is where they give', () => {
+    expect(labels(['member'], { isLifetime: true })).not.toContain('Renew');
   });
 
-  it('keeps no Renew label for a lifetime member', () => {
-    expect(labels(['member'], { isLifetime: true })).not.toContain('Renew');
+  it('offers a lifetime member no second giving entry beside Donate', () => {
+    expect(labels(['member'], { isLifetime: true })).not.toContain('Contribute');
   });
 
   it('writes every label in sentence case, with "and" rather than "&"', () => {

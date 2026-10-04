@@ -52,7 +52,8 @@ The cards read down the page in this order. Each appears only when it applies.
 **Recent payments**
   One line saying whether automatic renewal is on, and if so what the next charge
   comes to and when. A life member's line is about their recurring donation. Then
-  your last five payments, with the **Date** each was paid, the **Plan**, the
+  your last five payments, with the **Date** each was paid, the **Plan** (**Donation** for a
+  gift on its own), the
   **Amount**, and the **Status** as a colored dot and its word. **All payments,
   receipts, and renewals** opens :doc:`payments`.
 
@@ -71,9 +72,9 @@ the group it sits under.
 Every signed-in person has two groups:
 
 * **Membership**: **Dashboard**, **My profile**, **My aircraft**, **Payments**,
-  **Donate**, **Renew**, **Change password**, and **Change email**. A friend has no
-  **Renew** entry, since a friend has nothing to renew, and a life member's reads
-  **Contribute**.
+  **Donate**, **Renew**, **Change password**, and **Change email**. A friend and a life
+  member have no **Renew** entry, since neither has a term to renew; a life member gives
+  through **Donate**.
 * **Your email**: **Messages** (:doc:`messages`) and **Email preferences**
   (:doc:`email-preferences`), the bulk email CalDART has sent you and the kinds it
   sends.

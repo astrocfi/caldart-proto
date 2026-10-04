@@ -61,7 +61,9 @@ describe('RenewalsPanel', () => {
     renderWithProviders(<RenewalsPanel />);
 
     expect(
-      screen.getByLabelText('Practice run: show what would happen, charge nothing'),
+      screen.getByLabelText(
+        'Practice run: show what would happen, charge nothing (automatic renewal charges)',
+      ),
     ).toBeChecked();
     await userEvent.click(
       screen.getByRole('button', { name: 'Run now: automatic renewal charges' }),
@@ -115,7 +117,9 @@ describe('RenewalsPanel', () => {
     renderWithProviders(<RenewalsPanel />);
 
     await userEvent.click(
-      screen.getByLabelText('Practice run: show what would happen, charge nothing'),
+      screen.getByLabelText(
+        'Practice run: show what would happen, charge nothing (automatic renewal charges)',
+      ),
     );
     await userEvent.click(
       screen.getByRole('button', { name: 'Run now: automatic renewal charges' }),
@@ -142,7 +146,9 @@ describe('RenewalsPanel', () => {
     renderWithProviders(<RenewalsPanel />);
 
     await userEvent.click(
-      screen.getByLabelText('Practice run: show what would happen, charge nothing'),
+      screen.getByLabelText(
+        'Practice run: show what would happen, charge nothing (automatic renewal charges)',
+      ),
     );
     await userEvent.click(
       screen.getByRole('button', { name: 'Run now: automatic renewal charges' }),

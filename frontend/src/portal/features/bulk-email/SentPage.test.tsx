@@ -124,7 +124,7 @@ describe('SentPage', () => {
     answerSent([]);
     renderWithProviders(<SentPage />);
     expect(await screen.findByText('You have not sent an email yet')).toBeVisible();
-    expect(screen.getByRole('link', { name: 'Write an email' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'New email' })).toHaveAttribute(
       'href',
       '/bulk-email/compose',
     );
@@ -133,7 +133,7 @@ describe('SentPage', () => {
   it('offers CalDART management a way to write one when nothing has been sent', async () => {
     answerSent([]);
     renderWithProviders(<SentPage />);
-    expect(await screen.findByRole('link', { name: 'Write an email' })).toHaveAttribute(
+    expect(await screen.findByRole('link', { name: 'New email' })).toHaveAttribute(
       'href',
       '/bulk-email/compose',
     );
@@ -144,6 +144,6 @@ describe('SentPage', () => {
     answerSent([]);
     renderWithProviders(<SentPage />);
     await screen.findByText('You have not sent an email yet');
-    expect(screen.queryByRole('link', { name: 'Write an email' })).toBeNull();
+    expect(screen.queryByRole('link', { name: 'New email' })).toBeNull();
   });
 });

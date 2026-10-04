@@ -27,6 +27,11 @@ const THEMES_DIR = join(STYLES_DIR, 'themes');
 const TEXT_RATIO = 4.5;
 /** Minimum ratio for large text and for non-text affordances such as the focus ring. */
 const NON_TEXT_RATIO = 3;
+/**
+ * Minimum ratio between a button at rest and under the pointer, so the hover is a shade
+ * a reader sees change rather than a nudge they cannot tell from the resting color.
+ */
+const HOVER_SHIFT_RATIO = 1.3;
 
 /**
  * Themes whose `--color-bg` is a ground the page floats on rather than a
@@ -71,6 +76,23 @@ const PAIRS = [
   // The danger button's words, at rest and under the pointer.
   { fg: '--color-bad-fg', bg: '--color-bad', ratio: TEXT_RATIO },
   { fg: '--color-bad-fg', bg: '--color-bad-hover', ratio: TEXT_RATIO },
+  // The danger button under the pointer against the same button at rest.
+  {
+    fg: '--color-bad-hover',
+    bg: '--color-bad',
+    ratio: HOVER_SHIFT_RATIO,
+    nonText: true,
+    label: 'danger hover against danger at rest',
+  },
+  // The member and aircraft checks' verdict bands: GO, NOT VERIFIED, and NO-GO.
+  { fg: '--color-primary-fg', bg: '--color-ok', ratio: TEXT_RATIO, label: 'band text on ok' },
+  {
+    fg: '--color-primary-fg',
+    bg: '--color-warn',
+    ratio: TEXT_RATIO,
+    label: 'band text on warn',
+  },
+  { fg: '--color-primary-fg', bg: '--color-bad', ratio: TEXT_RATIO, label: 'band text on bad' },
   { fg: '--color-accent', bg: '--color-bg', ratio: TEXT_RATIO },
   { fg: '--color-ok', bg: '--color-bg', ratio: TEXT_RATIO },
   { fg: '--color-warn', bg: '--color-bg', ratio: TEXT_RATIO },

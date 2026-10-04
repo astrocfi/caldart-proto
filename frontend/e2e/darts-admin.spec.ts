@@ -46,7 +46,7 @@ test('an account administrator adds a DART and it is offered straight away', asy
   // the ICAO K so one airport is written one way everywhere.
   await page.getByLabel('Airports*').fill('o86, kcrq');
   await expect(page.getByLabel('Airports*')).toHaveValue('O86, CRQ');
-  await page.getByLabel('Name', { exact: true }).fill('Dana Whitfield');
+  await page.getByLabel('Name of person 1').fill('Dana Whitfield');
   await page.getByLabel('Title').fill('DART leader');
   await page.getByRole('button', { name: 'Add DART' }).click();
 
@@ -122,7 +122,7 @@ test('a DART takes a sixth person, and the Roster column counts the checked ones
   // The seed lists two to four people; add rows until there are six.  Each row
   // is named before the next is added, since a nameless last row holds the
   // button back.
-  const names = page.getByLabel('Name', { exact: true });
+  const names = page.getByLabel(/^Name of person \d+$/);
   const addPerson = page.getByRole('button', { name: 'Add a person' });
   const seeded = await names.count();
   for (let index = seeded; index < 6; index += 1) {

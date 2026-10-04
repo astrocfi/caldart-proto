@@ -28,6 +28,11 @@
   background: var(--color-bad);
 }
 
+/* A current policy nobody has checked yet: amber, as its Not verified mark is. */
+.leader-verdict--wait {
+  background: var(--color-warn);
+}
+
 .leader-verdict__word {
   font-family: var(--font-display);
   font-size: var(--text-3xl);

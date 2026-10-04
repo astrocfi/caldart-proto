@@ -47,7 +47,9 @@ describe('ReportsPanel', () => {
     renderWithProviders(<ReportsPanel />);
 
     expect(
-      screen.getByLabelText('Practice run: show what would happen, send nothing'),
+      screen.getByLabelText(
+        'Practice run: show what would happen, send nothing (scheduled reports)',
+      ),
     ).toBeChecked();
     await userEvent.click(screen.getByRole('button', { name: 'Run now: scheduled reports' }));
 
@@ -76,7 +78,9 @@ describe('ReportsPanel', () => {
     renderWithProviders(<ReportsPanel />);
 
     await userEvent.click(
-      screen.getByLabelText('Practice run: show what would happen, send nothing'),
+      screen.getByLabelText(
+        'Practice run: show what would happen, send nothing (scheduled reports)',
+      ),
     );
     await userEvent.click(screen.getByRole('button', { name: 'Run now: scheduled reports' }));
 

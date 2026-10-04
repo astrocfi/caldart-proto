@@ -66,7 +66,7 @@ describe('RostersCard', () => {
     await renderCard(bodies);
 
     expect(
-      screen.getByLabelText('Practice run: show what would happen, send nothing'),
+      screen.getByLabelText('Practice run: show what would happen, send nothing (DART rosters)'),
     ).toBeChecked();
     await userEvent.click(screen.getByRole('button', { name: 'Send rosters now' }));
 
@@ -84,7 +84,7 @@ describe('RostersCard', () => {
     await renderCard(bodies);
 
     await userEvent.click(
-      screen.getByLabelText('Practice run: show what would happen, send nothing'),
+      screen.getByLabelText('Practice run: show what would happen, send nothing (DART rosters)'),
     );
     await userEvent.click(screen.getByRole('button', { name: 'Send rosters now' }));
 

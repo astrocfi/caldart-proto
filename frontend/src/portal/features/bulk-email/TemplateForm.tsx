@@ -14,6 +14,7 @@ import type { FormEvent, JSX } from 'react';
 import type { EmailTemplate, EmailTemplateWrite } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { Field } from '@/portal/components/Field';
+import { RefusedSubmitNote, useRefusedSubmit } from '@/portal/components/RefusedSubmit';
 import { RichTextEditor } from '@/portal/components/RichTextEditor';
 import type { RichTextEditorHandle } from '@/portal/components/RichTextEditor';
 import { FormAlert, fieldError } from '@/portal/features/auth/form';
@@ -27,6 +28,9 @@ import { uploadBulkEmailImage, useBulkEmailFields } from './richTextApi';
 
 /** The fields the form shows the server's complaints beside. */
 const HANDLED_FIELDS = ['name', 'email_type', 'subject', 'reply_to', 'body'];
+
+/** What the Name box says when it is left empty, in the server's own words. */
+const NAME_MISSING = 'Give the template a name.';
 
 /** The longest name and subject the server accepts. */
 const NAME_MAX_LENGTH = 80;
@@ -83,9 +87,18 @@ export function TemplateForm({
   const editorRef = useRef<RichTextEditorHandle>(null);
   const messageId = useId();
   const bodyError = fieldError(error, 'body');
+  const formRef = useRef<HTMLFormElement>(null);
+  const refusal = useRefusedSubmit(formRef, error);
+  // Set by a submit with no name, and dropped as soon as one is typed.
+  const [isNameMissing, setIsNameMissing] = useState(false);
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault();
+    if (name.trim() === '') {
+      setIsNameMissing(true);
+      refusal.refuse();
+      return;
+    }
     handleSave({
       name,
       subject,
@@ -96,10 +109,16 @@ export function TemplateForm({
   };
 
   return (
-    <form className="stack" aria-label={submitLabel} onSubmit={handleSubmit}>
+    <form
+      ref={formRef}
+      className="stack"
+      aria-label={submitLabel}
+      onSubmit={handleSubmit}
+      noValidate
+    >
       <Field
         label="Name"
-        error={fieldError(error, 'name')}
+        error={isNameMissing ? NAME_MISSING : fieldError(error, 'name')}
         hint="What the template is called when you choose it, such as Monthly newsletter."
         required
       >
@@ -108,7 +127,10 @@ export function TemplateForm({
             {...props}
             maxLength={NAME_MAX_LENGTH}
             value={name}
-            onChange={(change) => setName(change.target.value)}
+            onChange={(change) => {
+              setName(change.target.value);
+              setIsNameMissing(false);
+            }}
           />
         )}
       </Field>
@@ -149,7 +171,6 @@ export function TemplateForm({
             {...props}
             type="email"
             autoComplete="off"
-            placeholder={sender.data?.default_reply_to}
             maxLength={254}
             value={replyTo}
             onChange={(change) => setReplyTo(change.target.value)}
@@ -192,6 +213,7 @@ export function TemplateForm({
         <Button variant="quiet" onClick={handleCancel}>
           Cancel
         </Button>
+        <RefusedSubmitNote count={refusal.count} />
       </div>
     </form>
   );

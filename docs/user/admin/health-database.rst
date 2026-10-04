@@ -15,8 +15,8 @@ the :doc:`user-record`. Anything that has to happen on the server itself, such a
 an upgrade, restoring a backup, or changing the settings, is a job for the person who
 installed the site.
 
-The page has three panels, top to bottom: **Health**, **Backups**, and **Aircraft
-database**.
+The page has three panels, top to bottom: **Health**, **Backups**, and **FAA aircraft
+data**.
 
 
 Health

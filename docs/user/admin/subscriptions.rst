@@ -92,7 +92,7 @@ Setting one up
    first of January.
 #. **Recipient email** is where it goes.
 
-Press **Add emailed report**, or **Cancel** or Escape. *Subscription added.* confirms a save. An address that belongs to a CalDART account is refused when
+Press **Add emailed report**, or **Cancel** or Escape. *Report added.* confirms a save. An address that belongs to a CalDART account is refused when
 that account holds no role that may read the report, with *does not hold a role that may read
 this report* under the address: the treasurer cannot be sent the membership report, whose
 medical and certificate details are not theirs to read. An address no account holds is
@@ -111,7 +111,7 @@ checked. The **Report** and the **Recipient** are shown as plain text, since nei
 change: to send a different report, or to send it to somebody else, delete the subscription
 and set up another.
 
-Change what you need and press **Save changes**; the form closes, *Subscription saved.* confirms it,
+Change what you need and press **Save changes**; the form closes, *Report saved.* confirms it,
 and the row shows the change. A changed schedule moves **Next** to the schedule's next day
 after today. **Cancel**, or Escape, closes the form and changes nothing, and you are back on
 the row's **Edit**. A filter the report cannot use is named, with the reason, under the
@@ -142,8 +142,8 @@ saying which each one is. It never lists a deactivated account or a donor.
 The **DART rosters** card lists each active DART, its **Recipients** (the checked people with
 an address), and when its roster was **Last sent**. A DART with nobody set to receive it is sent nothing.
 
-**Send rosters now** sends every DART's roster at once, whatever the date. Leave **Dry run
-(send nothing)** checked the first time. The card then reads **What this run would do** and a
+**Send rosters now** sends every DART's roster at once, whatever the date. Leave **Practice
+run: show what would happen, send nothing** checked the first time. The card then reads **What this run would do** and a
 line such as *Would send 7 emails, skipped 1.* When something was skipped, a further line
 gives the reasons: *nobody to send to* for a DART with nobody set to receive it, and *no address on
 file* for a checked person with no email address. A table names each email with **What**,

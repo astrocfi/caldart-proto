@@ -4,7 +4,7 @@
  * administrator is offered it.
  *
  * It sits inside the aircraft form, and a form cannot hold another, so it is a
- * group of boxes whose **Add type** button, or Enter in any of its boxes, sends
+ * group of boxes whose **Add aircraft type** button, or Enter in any of its boxes, sends
  * the type without submitting the aircraft form around it.
  */
 import { useState } from 'react';
@@ -87,7 +87,7 @@ export function AddAircraftType({
 
   return (
     <fieldset className="aircraft-type__add">
-      <legend className="aircraft-type__legend">Add a type</legend>
+      <legend className="aircraft-type__legend">New aircraft type</legend>
       <p className="muted">For a type the FAA has never registered.</p>
       <div className="aircraft-type__grid">
         <Field label="Make" required error={errors.make}>

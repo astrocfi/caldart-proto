@@ -109,6 +109,36 @@ describe('TemplatesPage', () => {
     );
   });
 
+  it('refuses a template with no name, focusing the Name box, before asking the server', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<TemplatesPage />);
+    await user.click(await screen.findByRole('button', { name: 'New template' }));
+    await user.click(screen.getByRole('button', { name: 'Add template' }));
+
+    expect(screen.getByRole('textbox', { name: /^Name/ })).toHaveFocus();
+    expect(state.posted).toEqual([]);
+  });
+
+  it('says beside Add template what to fix after a refused save', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<TemplatesPage />);
+    await user.click(await screen.findByRole('button', { name: 'New template' }));
+    await user.click(screen.getByRole('button', { name: 'Add template' }));
+
+    expect(await screen.findByText('Check the highlighted field.')).toBeInTheDocument();
+  });
+
+  it('moves the focus to the name the server refused', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<TemplatesPage />);
+    await user.click(await screen.findByRole('button', { name: 'New template' }));
+    await user.type(screen.getByRole('textbox', { name: /^Name/ }), 'Monthly newsletter');
+    await user.click(screen.getByRole('button', { name: 'Add template' }));
+
+    await screen.findByRole('alert');
+    expect(screen.getByRole('textbox', { name: /^Name/ })).toHaveFocus();
+  });
+
   it('renames a template from its Edit form', async () => {
     const user = userEvent.setup();
     renderWithProviders(<TemplatesPage />);

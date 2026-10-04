@@ -22,12 +22,20 @@ function renderForm(errors: Record<string, string> = {}, serverError: unknown = 
   return { ...view, handleSubmit };
 }
 
-/** The DART's own Name box, which comes before the first person's. */
+/** The DART's own Name box; each person's is named after its row. */
 function dartName(): HTMLElement {
-  const [first] = screen.getAllByRole('textbox', { name: 'Name' });
-  if (first === undefined) throw new Error('no Name box');
-  return first;
+  return screen.getByRole('textbox', { name: 'Name' });
 }
+
+describe('DartForm contact boxes', () => {
+  it.each(['Name', 'Title', 'Phone', 'Email'])(
+    "names each person's %s box after its row, so no two boxes share a name",
+    (label) => {
+      renderForm();
+      expect(screen.getByRole('textbox', { name: `${label} of person 1` })).toBeInTheDocument();
+    },
+  );
+});
 
 describe('DartForm', () => {
   it('moves the focus to the first field it refuses', async () => {

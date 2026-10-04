@@ -1,5 +1,5 @@
 /** Step 1 — create the account (`POST /auth/register`) as a member or as a friend. */
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { FormEvent, JSX } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -10,12 +10,23 @@ import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { Field } from '@/portal/components/Field';
 import { MaskedInput } from '@/portal/components/MaskedInput';
+import { RefusedSubmitNote, useRefusedSubmit } from '@/portal/components/RefusedSubmit';
 import { EMAIL_MESSAGE, isEmailAddress, maskEmail } from '@/portal/masks';
 import { joinStepEyebrow } from './steps';
 import './join.css';
 
 /** The error code `POST /auth/register` answers for a deactivated account's address. */
 const DEACTIVATED = 'deactivated';
+
+/** What each box says when it is left empty, in the server's own words. */
+const MISSING: Record<'first_name' | 'last_name' | 'password', string> = {
+  first_name: 'Enter your first name.',
+  last_name: 'Enter your last name.',
+  password: 'Choose a password.',
+};
+
+/** The complaints the step makes before sending anything: empty boxes and a bad address. */
+type LocalErrors = Partial<Record<'first_name' | 'last_name' | 'email' | 'password', string>>;
 
 /** The two kinds of account a visitor may join as, with the words the site uses. */
 const KIND_CHOICES: { kind: PersonKind; title: string; description: string }[] = [
@@ -54,8 +65,17 @@ export function AccountStep({ onDone: handleDone }: AccountStepProps): JSX.Eleme
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [kind, setKind] = useState<PersonKind>('member');
-  const [emailError, setEmailError] = useState<string | null>(null);
+  const [localErrors, setLocalErrors] = useState<LocalErrors>({});
   const [sentTo, setSentTo] = useState<string | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const refusal = useRefusedSubmit(formRef, register.error);
+
+  /** Drop the complaint about `key` once its box is edited. */
+  const clearLocal = (key: keyof LocalErrors): void =>
+    setLocalErrors((current) => {
+      const { [key]: _dropped, ...rest } = current;
+      return rest;
+    });
 
   if (isAuthenticated && user) {
     return (
@@ -87,13 +107,19 @@ export function AccountStep({ onDone: handleDone }: AccountStepProps): JSX.Eleme
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    // Say so here rather than after a round trip: the address is how they
-    // will sign in, and a typo in it locks them out of their own account.
-    if (!isEmailAddress(email)) {
-      setEmailError(EMAIL_MESSAGE);
+    // Say so here rather than after a round trip: an empty box is plain to see, and
+    // the address is how they will sign in, where a typo locks them out of their own
+    // account.
+    const found: LocalErrors = {};
+    if (firstName.trim() === '') found.first_name = MISSING.first_name;
+    if (lastName.trim() === '') found.last_name = MISSING.last_name;
+    if (!isEmailAddress(email)) found.email = EMAIL_MESSAGE;
+    if (password === '') found.password = MISSING.password;
+    setLocalErrors(found);
+    if (Object.keys(found).length > 0) {
+      refusal.refuse();
       return;
     }
-    setEmailError(null);
     const address = email.trim();
     register.mutate(
       {
@@ -121,7 +147,7 @@ export function AccountStep({ onDone: handleDone }: AccountStepProps): JSX.Eleme
       eyebrow={joinStepEyebrow('account')}
       title="Create your account"
     >
-      <form onSubmit={handleSubmit} noValidate>
+      <form ref={formRef} onSubmit={handleSubmit} noValidate>
         <fieldset className="join-kind">
           <legend>How would you like to join?</legend>
           {KIND_CHOICES.map((choice) => (
@@ -142,7 +168,11 @@ export function AccountStep({ onDone: handleDone }: AccountStepProps): JSX.Eleme
             </label>
           ))}
         </fieldset>
-        <Field label="First name" required error={fieldErrors.first_name ?? null}>
+        <Field
+          label="First name"
+          required
+          error={localErrors.first_name ?? fieldErrors.first_name ?? null}
+        >
           {(props) => (
             <input
               {...props}
@@ -151,11 +181,18 @@ export function AccountStep({ onDone: handleDone }: AccountStepProps): JSX.Eleme
               autoComplete="given-name"
               required
               value={firstName}
-              onChange={(event) => setFirstName(event.target.value)}
+              onChange={(event) => {
+                setFirstName(event.target.value);
+                clearLocal('first_name');
+              }}
             />
           )}
         </Field>
-        <Field label="Last name" required error={fieldErrors.last_name ?? null}>
+        <Field
+          label="Last name"
+          required
+          error={localErrors.last_name ?? fieldErrors.last_name ?? null}
+        >
           {(props) => (
             <input
               {...props}
@@ -164,14 +201,17 @@ export function AccountStep({ onDone: handleDone }: AccountStepProps): JSX.Eleme
               autoComplete="family-name"
               required
               value={lastName}
-              onChange={(event) => setLastName(event.target.value)}
+              onChange={(event) => {
+                setLastName(event.target.value);
+                clearLocal('last_name');
+              }}
             />
           )}
         </Field>
         <Field
           label="Email address"
           required
-          error={emailError ?? fieldErrors.email ?? null}
+          error={localErrors.email ?? fieldErrors.email ?? null}
           hint="This is how you will sign in."
         >
           {(props) => (
@@ -183,14 +223,17 @@ export function AccountStep({ onDone: handleDone }: AccountStepProps): JSX.Eleme
               required
               mask={maskEmail}
               value={email}
-              onValueChange={(next) => setEmail(next)}
+              onValueChange={(next) => {
+                setEmail(next);
+                clearLocal('email');
+              }}
             />
           )}
         </Field>
         <Field
           label="Password"
           required
-          error={fieldErrors.password ?? null}
+          error={localErrors.password ?? fieldErrors.password ?? null}
           hint="At least 8 characters. Avoid common passwords such as password1."
         >
           {(props) => (
@@ -201,7 +244,10 @@ export function AccountStep({ onDone: handleDone }: AccountStepProps): JSX.Eleme
               autoComplete="new-password"
               required
               value={password}
-              onChange={(event) => setPassword(event.target.value)}
+              onChange={(event) => {
+                setPassword(event.target.value);
+                clearLocal('password');
+              }}
             />
           )}
         </Field>
@@ -225,6 +271,7 @@ export function AccountStep({ onDone: handleDone }: AccountStepProps): JSX.Eleme
             {register.isPending ? 'Creating…' : 'Create account'}
           </Button>
           <Link to="/login?next=%2Fjoin">Already a member? Sign in</Link>
+          <RefusedSubmitNote count={refusal.count} />
         </div>
       </form>
     </Card>

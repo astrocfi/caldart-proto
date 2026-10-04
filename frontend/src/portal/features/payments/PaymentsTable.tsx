@@ -20,9 +20,12 @@ import { receiptUrl } from './api';
 /** The statuses whose money arrived, and so have a receipt behind them. */
 const RECEIPTED: PaymentSummary['status'][] = ['succeeded', 'partially_refunded', 'refunded'];
 
-/** What one payment bought, in the member's own words. */
+/**
+ * What one payment bought, in the member's own words: a gift on its own is a donation,
+ * and only a gift added to dues at checkout is a contribution.
+ */
 export function purchaseLabel(payment: PaymentSummary): string {
-  if (payment.kind === 'contribution') return 'Contribution';
+  if (payment.kind === 'contribution') return 'Donation';
   if (payment.kind === 'both') return `${payment.plan ?? 'Membership'} and contribution`;
   return payment.plan ?? 'Membership';
 }

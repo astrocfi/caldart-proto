@@ -66,7 +66,7 @@ export function NotificationSubscriptionForm({
   const refusal = useRefusedSubmit(sectionRef, save.error);
 
   const handleSaved = (): void => {
-    toast.show(isEditing ? 'Subscription saved.' : 'Subscription added.', 'success');
+    toast.show(isEditing ? 'Address saved.' : 'Address added.', 'success');
     handleDone();
   };
 

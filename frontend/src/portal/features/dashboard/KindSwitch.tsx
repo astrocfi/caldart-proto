@@ -159,7 +159,7 @@ function BecomeFriend({ expiresOn }: { expiresOn: IsoDate | null }) {
       : [{ label: 'Make me a friend', disabled: isWaiting, onChoose: handleConfirm() }];
 
   return (
-    <ConfirmButton label="Make me a friend" choices={choices}>
+    <ConfirmButton label="Make me a friend" choices={choices} startOnCancel>
       <p>
         {expiresOn === null
           ? 'You become a friend of CalDART today: no dues, no expiry, and no renewal reminders.'

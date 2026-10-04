@@ -34,7 +34,7 @@ async function registerAsFriend(page: Page, first: string, email: string): Promi
   await page.getByRole('button', { name: 'Save and continue' }).click();
 
   await expect(page).toHaveURL(/\/portal\/join\/pay/);
-  await expect(page.getByRole('heading', { name: 'Contribute to CalDART' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Donate to CalDART' })).toBeVisible();
   // A friend's checkout sells no plan.
   await expect(page.getByRole('radio', { name: /Annual/ })).toHaveCount(0);
 }

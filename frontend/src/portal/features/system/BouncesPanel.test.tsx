@@ -78,7 +78,7 @@ describe('BouncesPanel', () => {
     renderWithProviders(<BouncesPanel />);
 
     await userEvent.click(
-      screen.getByLabelText('Practice run: show what would happen, change nothing'),
+      screen.getByLabelText('Practice run: show what would happen, change nothing (bounce check)'),
     );
     await userEvent.click(screen.getByRole('button', { name: 'Run now: bounce check' }));
 

@@ -105,6 +105,15 @@ describe('MemberAccountActions', () => {
     await waitFor(() => expect(posted.friend).toEqual([{}]));
   });
 
+  it('opens Make a friend on Cancel, so a second Enter converts nobody', async () => {
+    stub({ mandate: makeMandate({ contribution_cents: 2_500 }) });
+    renderActions();
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Make a friend' }));
+
+    expect(screen.getByRole('button', { name: 'Cancel' })).toHaveFocus();
+  });
+
   it('asks about a renewal contribution and sends the answer', async () => {
     stub({ mandate: makeMandate({ contribution_cents: 2_500 }) });
     renderActions();

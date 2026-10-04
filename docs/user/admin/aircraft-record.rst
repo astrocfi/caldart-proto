@@ -15,8 +15,10 @@ What you see
 ============
 
 The N-number heads the page, with the make and model under it and the insurance status
-(**Insured**, **Expiring soon**, **Insurance expired**, or **No insurance on file**) and
-**Out of service** (when the airplane is out of service) at the right.
+(**Insured**, **Expiring soon**, **Insurance expired**, or **No insurance on file**, and
+**Not verified**, amber, for a current policy nobody has checked yet, as the
+:doc:`aircraft-check` reads it) and **Out of service** (when the airplane is out of
+service) at the right.
 
 A **Verification** card heads the page below that, the same as on a :doc:`member-record`.
 It lists **Insurance**, with what the record holds (such as *Avemco · AV-00012345 ·
@@ -50,7 +52,7 @@ was loaded gives the date alone. The form has four parts.
    model, or a designator (cessna 172, c172, skyhawk) in **Aircraft type** and pick the
    entry, which shows its seats. The make and model come from the type, and picking one
    with **Seats** empty fills in its seats and, when the registry knows it, the
-   **Category**. A type the list lacks can be added with **Add a type**, as the
+   **Category**. A type the list lacks can be added with **New aircraft type**, as the
    :doc:`aircraft-register` describes. **Category** (Airplane, Helicopter, Gyroplane,
    Glider, Balloon, Airship, Powered lift, Weight-shift control, Powered parachute, or
    Other) and **Airworthiness** (Standard, Limited, Restricted, Experimental, Provisional,
@@ -96,8 +98,9 @@ Pilots who fly it
 =================
 
 This card lists every member who has attached the airplane to their profile, with their
-email address, **Member current**, **Member expired**, or **Friend**, and **Medical current** or
-**Medical not current**: the same facts a DART leader sees. A name opens that person's
+email address, **Member current**, **Member expired**, or **Friend**, and **GO** or
+**NO-GO**, the :doc:`member-check`'s own verdict for that person, so the record and the
+checks never disagree. A name opens that person's
 :doc:`member-record`. With nobody attached it reads *No member lists this aircraft on their
 profile.*
 

@@ -142,9 +142,9 @@ test('an account administrator adds a type the FAA has never registered', async 
   const model = unusedModel();
   await typeBox(page).pressSequentially(`quillfeather ${model}`);
   await expect(page.getByText('No aircraft type matches that.')).toBeVisible();
-  await page.getByRole('button', { name: 'Add a type' }).click();
+  await page.getByRole('button', { name: 'New aircraft type' }).click();
 
-  const adding = page.getByRole('group', { name: 'Add a type' });
+  const adding = page.getByRole('group', { name: 'New aircraft type' });
   await adding.getByRole('textbox', { name: /^Make/ }).fill('Quillfeather');
   await adding.getByRole('textbox', { name: /^Model/ }).fill(model);
   await adding.getByRole('button', { name: 'Add aircraft type' }).click();

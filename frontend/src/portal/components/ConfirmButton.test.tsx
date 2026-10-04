@@ -182,6 +182,20 @@ describe('ConfirmButton', () => {
     expect(screen.getByRole('button', { name: 'Go ahead' })).toHaveFocus();
   });
 
+  it('opens on Cancel for a weighty change when the caller asks', async () => {
+    renderWithProviders(
+      <ConfirmButton
+        label="Make a friend"
+        startOnCancel
+        choices={[{ label: 'Make a friend', onChoose: vi.fn() }]}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'Make a friend' }));
+
+    expect(screen.getByRole('button', { name: 'Cancel' })).toHaveFocus();
+  });
+
   it('closes on Escape and gives the focus back to its button', async () => {
     const onChoose = vi.fn(() => Promise.resolve());
     renderButton(onChoose);

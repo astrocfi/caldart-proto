@@ -69,7 +69,7 @@ describe('NotificationSubscriptionForm', () => {
     await renderForm();
     const money = screen.getByRole('group', { name: 'Money' });
 
-    await userEvent.click(within(money).getByRole('button', { name: 'Select all' }));
+    await userEvent.click(within(money).getByRole('button', { name: 'Select all Money events' }));
 
     expect(
       within(money)
@@ -83,7 +83,7 @@ describe('NotificationSubscriptionForm', () => {
 
     await userEvent.click(
       within(screen.getByRole('group', { name: 'Money' })).getByRole('button', {
-        name: 'Select all',
+        name: 'Select all Money events',
       }),
     );
 
@@ -95,7 +95,7 @@ describe('NotificationSubscriptionForm', () => {
 
     await userEvent.click(
       within(screen.getByRole('group', { name: 'Membership' })).getByRole('button', {
-        name: 'Clear',
+        name: 'Clear Membership events',
       }),
     );
 

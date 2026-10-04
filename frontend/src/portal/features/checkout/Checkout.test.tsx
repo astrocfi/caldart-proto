@@ -248,7 +248,7 @@ describe('Checkout', () => {
   it('renewals are labeled as renewals', async () => {
     serveConfig(config());
     renderWithProviders(<Checkout mode="renew" onSuccess={() => {}} />);
-    expect(await screen.findByText('Renew your membership')).toBeInTheDocument();
+    expect(await screen.findByText('Your renewal')).toBeInTheDocument();
     expect(screen.getByText('Renewal')).toBeInTheDocument();
   });
 
@@ -769,7 +769,7 @@ describe('Checkout · contributing', () => {
     serveConfig(config());
     renderWithProviders(<Checkout mode="contribute" onSuccess={() => {}} />);
 
-    expect(await screen.findByText('Choose a contribution to continue.')).toBeVisible();
+    expect(await screen.findByText('Choose a donation amount to continue.')).toBeVisible();
     expect(screen.queryByRole('button', { name: 'Succeed' })).not.toBeInTheDocument();
   });
 
@@ -809,7 +809,7 @@ describe('Checkout · a way to skip', () => {
     serveConfig(config());
     renderWithProviders(<Checkout mode="contribute" onSuccess={() => {}} onSkip={() => {}} />);
 
-    await screen.findByText('Choose a contribution to continue.');
+    await screen.findByText('Choose a donation amount to continue.');
     expect(screen.getByRole('button', { name: 'Not now' })).toBeInTheDocument();
   });
 

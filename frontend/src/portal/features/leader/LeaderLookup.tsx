@@ -55,8 +55,8 @@ export interface LeaderLookupProps<T> {
   renderRow: (row: T) => ReactNode;
   /** What to say when a search finds nothing. */
   renderEmpty: (term: string) => ReactNode;
-  /** The chosen record's card; `handleBack` returns to the search. */
-  renderSelected: (value: string, handleBack: () => void) => ReactNode;
+  /** The chosen record's card; **Back to search** above it returns to the search. */
+  renderSelected: (value: string) => ReactNode;
 }
 
 /** A search that queries as the leader types, and the card of the result they pick. */
@@ -96,10 +96,6 @@ export function LeaderLookup<T>({
     (selected === null ? searchRef : selectedRef).current?.focus();
   }, [selected]);
 
-  const handleBack = (): void => {
-    setParams({});
-  };
-
   if (selected !== null) {
     return (
       <Page title={title}>
@@ -107,7 +103,7 @@ export function LeaderLookup<T>({
           <Link to={{ search: '' }}>Back to search</Link>
         </div>
         <div ref={selectedRef} tabIndex={-1} className="stack leader-selected">
-          {renderSelected(selected, handleBack)}
+          {renderSelected(selected)}
         </div>
       </Page>
     );

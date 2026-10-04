@@ -391,7 +391,11 @@ export function DartForm({
                 onClick={() => moveContact(index, 1)}
               />
             </span>
-            <Field label="Name" error={contactError(errors, index, 'name')}>
+            <Field
+              label="Name"
+              labelSuffix={` of person ${index + 1}`}
+              error={contactError(errors, index, 'name')}
+            >
               {(props) => (
                 <input
                   {...props}
@@ -400,7 +404,11 @@ export function DartForm({
                 />
               )}
             </Field>
-            <Field label="Title" error={contactError(errors, index, 'title')}>
+            <Field
+              label="Title"
+              labelSuffix={` of person ${index + 1}`}
+              error={contactError(errors, index, 'title')}
+            >
               {(props) => (
                 <input
                   {...props}
@@ -409,7 +417,11 @@ export function DartForm({
                 />
               )}
             </Field>
-            <Field label="Phone" error={contactError(errors, index, 'phone')}>
+            <Field
+              label="Phone"
+              labelSuffix={` of person ${index + 1}`}
+              error={contactError(errors, index, 'phone')}
+            >
               {(props) => (
                 <MaskedInput
                   {...props}
@@ -422,7 +434,11 @@ export function DartForm({
                 />
               )}
             </Field>
-            <Field label="Email" error={contactError(errors, index, 'email')}>
+            <Field
+              label="Email"
+              labelSuffix={` of person ${index + 1}`}
+              error={contactError(errors, index, 'email')}
+            >
               {(props) => (
                 <MaskedInput
                   {...props}

@@ -2,9 +2,9 @@
  * The scheduled-reports panel of `/portal/system/scheduled`: run the report sender by
  * hand, optionally as a rehearsal, and read who it reached.
  *
- * The sender mails every report subscription that is due and every DART roster
- * due this month; `/admin/reports` is where the subscriptions and the rosters'
- * recipients are kept.
+ * The sender mails every emailed report that is due and every DART roster due this
+ * month; `/admin/reports` is where the emailed reports and the rosters' recipients are
+ * kept.
  */
 import { useRef, useState } from 'react';
 import type { ChangeEvent, JSX } from 'react';
@@ -12,6 +12,7 @@ import type { ChangeEvent, JSX } from 'react';
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { useFocusAfterSave } from '@/portal/components/focus';
+import { PracticeRunCheckbox } from '@/portal/components/PracticeRunCheckbox';
 import { ReportRunOutcome } from '@/portal/features/admin-reports/ReportRunOutcome';
 import { useRunScheduledReports } from './api';
 
@@ -48,16 +49,17 @@ export function ReportsPanel(): JSX.Element {
           >
             {run.isPending ? 'Running…' : 'Run now'}
           </Button>
-          <label className="cluster">
-            <input type="checkbox" checked={dryRun} onChange={handleDryRunChange} />
-            Practice run: show what would happen, send nothing
-          </label>
+          <PracticeRunCheckbox
+            checked={dryRun}
+            onChange={handleDryRunChange}
+            task="scheduled reports"
+          />
         </>
       }
     >
       <p className="muted">
-        The sender runs every morning. It emails every report subscription that is due and, once a
-        month, each DART&rsquo;s roster to the people checked to receive it.
+        The sender runs every morning. It sends every emailed report that is due and, once a month,
+        each DART&rsquo;s roster to the people checked to receive it.
       </p>
 
       {run.isSuccess ? <ReportRunOutcome result={run.data} dryRun={lastRunWasDry} /> : null}

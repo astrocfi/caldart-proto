@@ -104,35 +104,35 @@ describe('<AircraftTypePicker/>', () => {
     const user = renderPicker(['member']);
     await search(user, 'zzzz');
     await waitFor(() => expect(screen.getByText('No aircraft type matches that.')).toBeVisible());
-    expect(screen.queryByRole('button', { name: 'Add a type' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'New aircraft type' })).toBeNull();
   });
 
-  it('offers an account administrator Add a type when the search finds nothing', async () => {
+  it('offers an account administrator New aircraft type when the search finds nothing', async () => {
     const user = renderPicker(['account_admin']);
     await search(user, 'zzzz');
-    expect(await screen.findByRole('button', { name: 'Add a type' })).toBeVisible();
+    expect(await screen.findByRole('button', { name: 'New aircraft type' })).toBeVisible();
   });
 
-  it('keeps the focus in the box when Add a type is pressed', async () => {
+  it('keeps the focus in the box when New aircraft type is pressed', async () => {
     // Leaving the box marks it, and the mark pushes the button down under the
     // pointer; the press must not move the focus, or its click lands elsewhere.
     const user = renderPicker(['account_admin']);
     await search(user, 'zzzz');
-    const add = await screen.findByRole('button', { name: 'Add a type' });
+    const add = await screen.findByRole('button', { name: 'New aircraft type' });
     expect(fireEvent.mouseDown(add)).toBe(false);
   });
 
-  it('offers Add a type to a system administrator too', async () => {
+  it('offers New aircraft type to a system administrator too', async () => {
     const user = renderPicker(['system_admin']);
     await search(user, 'zzzz');
-    expect(await screen.findByRole('button', { name: 'Add a type' })).toBeVisible();
+    expect(await screen.findByRole('button', { name: 'New aircraft type' })).toBeVisible();
   });
 
-  it('keeps Add a type out of the way while the search finds something', async () => {
+  it('keeps New aircraft type out of the way while the search finds something', async () => {
     const user = renderPicker(['account_admin']);
     await search(user, 'cessna');
     await screen.findByRole('option', { name: /^Cessna 172S/ });
-    expect(screen.queryByRole('button', { name: 'Add a type' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'New aircraft type' })).toBeNull();
   });
 
   it('adds the type and picks it at once', async () => {
@@ -148,7 +148,7 @@ describe('<AircraftTypePicker/>', () => {
     );
     const user = renderPicker(['account_admin']);
     await search(user, 'zzzz');
-    await user.click(await screen.findByRole('button', { name: 'Add a type' }));
+    await user.click(await screen.findByRole('button', { name: 'New aircraft type' }));
     await user.type(screen.getByLabelText(/^Make/), 'Aeropro');
     await user.type(screen.getByLabelText(/^Model/), 'Eurofox 3K');
     await user.type(screen.getByLabelText(/^Seats/), '2');
@@ -168,7 +168,7 @@ describe('<AircraftTypePicker/>', () => {
     );
     const user = renderPicker(['account_admin']);
     await search(user, 'zzzz');
-    await user.click(await screen.findByRole('button', { name: 'Add a type' }));
+    await user.click(await screen.findByRole('button', { name: 'New aircraft type' }));
     await user.type(screen.getByLabelText(/^Make/), 'Aeropro');
     await user.type(screen.getByLabelText(/^Model/), 'Eurofox');
     await user.click(screen.getByRole('button', { name: 'Add aircraft type' }));
@@ -179,7 +179,7 @@ describe('<AircraftTypePicker/>', () => {
   it('asks for the make and the model before it adds anything', async () => {
     const user = renderPicker(['account_admin']);
     await search(user, 'zzzz');
-    await user.click(await screen.findByRole('button', { name: 'Add a type' }));
+    await user.click(await screen.findByRole('button', { name: 'New aircraft type' }));
     await user.click(screen.getByRole('button', { name: 'Add aircraft type' }));
     expect(screen.getByText('Enter the model.')).toBeVisible();
   });
@@ -192,7 +192,7 @@ describe('<AircraftTypePicker/>', () => {
     );
     const user = renderPicker(['account_admin']);
     await search(user, 'zzzz');
-    await user.click(await screen.findByRole('button', { name: 'Add a type' }));
+    await user.click(await screen.findByRole('button', { name: 'New aircraft type' }));
     await user.type(screen.getByLabelText(/^Make/), 'Cessna');
     await user.type(screen.getByLabelText(/^Model/), '172S');
     await user.click(screen.getByRole('button', { name: 'Add aircraft type' }));
@@ -219,7 +219,7 @@ describe('<AircraftTypePicker/>', () => {
     }
     renderWithProviders(<Outer />);
     await search(user, 'zzzz');
-    await user.click(await screen.findByRole('button', { name: 'Add a type' }));
+    await user.click(await screen.findByRole('button', { name: 'New aircraft type' }));
     await user.type(screen.getByLabelText(/^Make/), 'Aeropro');
     await user.type(screen.getByLabelText(/^Model/), 'Eurofox{Enter}');
     await waitFor(() => expect(picked()).toBe('97'));
@@ -229,7 +229,7 @@ describe('<AircraftTypePicker/>', () => {
   it('closes the add form on Cancel', async () => {
     const user = renderPicker(['account_admin']);
     await search(user, 'zzzz');
-    await user.click(await screen.findByRole('button', { name: 'Add a type' }));
+    await user.click(await screen.findByRole('button', { name: 'New aircraft type' }));
     await user.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(screen.queryByLabelText(/^Make/)).toBeNull();
   });

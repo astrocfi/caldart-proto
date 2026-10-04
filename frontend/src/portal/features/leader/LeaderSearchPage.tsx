@@ -8,7 +8,6 @@ import { Link } from 'react-router-dom';
 
 import { ApiError } from '@/portal/api/client';
 import type { LeaderSearchResult } from '@/portal/api/types';
-import { Button } from '@/portal/components/Button';
 import { EmptyState } from '@/portal/components/EmptyState';
 import { looksLikeRegistration, normalizeNNumber } from '@/portal/features/aircraft/insurance';
 import { reportExportUrl } from '@/portal/reports/api';
@@ -52,7 +51,7 @@ export function LeaderSearchPage(): JSX.Element {
         );
       }}
       renderEmpty={(term) => <NoMemberFound term={term} />}
-      renderSelected={(id, handleBack) => <MemberCheck userId={Number(id)} onBack={handleBack} />}
+      renderSelected={(id) => <MemberCheck userId={Number(id)} />}
     />
   );
 }
@@ -112,11 +111,13 @@ function NoMemberFound({ term }: NoMemberFoundProps): JSX.Element {
 
 interface MemberCheckProps {
   userId: number;
-  onBack: () => void;
 }
 
-/** The chosen member's status card, or why it could not be loaded. */
-function MemberCheck({ userId, onBack: handleBack }: MemberCheckProps): JSX.Element {
+/**
+ * The chosen member's status card, or why it could not be loaded.  **Back to search**
+ * above the card is the way back, so the card offers no second one.
+ */
+function MemberCheck({ userId }: MemberCheckProps): JSX.Element {
   const status = useMemberStatus(userId);
   return (
     <>
@@ -128,11 +129,6 @@ function MemberCheck({ userId, onBack: handleBack }: MemberCheckProps): JSX.Elem
             status.error instanceof ApiError && status.error.status === 404
               ? 'No member with that id. They may have been removed.'
               : status.error.message
-          }
-          action={
-            <Button variant="secondary" onClick={handleBack}>
-              Search again
-            </Button>
           }
         />
       ) : null}

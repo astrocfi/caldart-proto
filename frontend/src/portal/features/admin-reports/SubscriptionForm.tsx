@@ -166,7 +166,7 @@ export function SubscriptionForm({
   };
 
   const handleSaved = (): void => {
-    toast.show(isEditing ? 'Subscription saved.' : 'Subscription added.', 'success');
+    toast.show(isEditing ? 'Report saved.' : 'Report added.', 'success');
     handleDone();
   };
 
