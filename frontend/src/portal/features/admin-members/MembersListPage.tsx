@@ -43,7 +43,7 @@ import { FilterBar, clearedValues } from '@/portal/components/FilterBar';
 import { Page } from '@/portal/components/Page';
 import type { ReportCell } from '@/portal/components/reportTable';
 import { ColumnTools, reportTableColumns, useColumnChoice } from '@/portal/components/reportTable';
-import { MembershipDot, PilotMark } from '@/portal/components/StatusChip';
+import { MembershipDot, PilotMark } from '@/portal/components/StatusDot';
 import { useUrlFilters } from '@/portal/components/useUrlFilters';
 import {
   useFirstPageWhenMissing,
@@ -186,18 +186,11 @@ function memberCells(isAccountAdmin: boolean): Record<string, ReportCell<MemberR
       render: (row) => row.dart ?? 'Unaffiliated',
     },
     status: {
-      width: '7rem',
+      width: '8.5rem',
       keepInSight: true,
-      render: (row) => (
-        <>
-          {/* The word says the state; the dot beside it adds the amber of an expiry
-              that is close, which the Expires column dates. */}
-          <span aria-hidden="true">
-            <MembershipDot membership={row.membership} />
-          </span>{' '}
-          {MEMBERSHIP_STATUS_LABELS[row.membership.status]}
-        </>
-      ),
+      // A dot and its word, "Expiring soon" for an expiry that is close, which the
+      // Expires column dates.
+      render: (row) => <MembershipDot membership={row.membership} />,
     },
     kind: { width: '6rem', dropOrder: 4, render: kindLabel },
     plan: { width: '7rem', render: (row) => row.membership.plan ?? '' },

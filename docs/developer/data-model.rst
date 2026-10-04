@@ -4397,7 +4397,7 @@ it.
    * - ``updated_at``
      - ``DateTimeField``
      - not null; set on every save
-     - when the email or its batch was last changed; the Drafts & scheduled list calls it *Last edited*
+     - when the email or its batch was last changed; the Drafts and scheduled list calls it *Last edited*
    * - ``subject``
      - ``CharField(200)``
      - not null; default ``""``

@@ -22,7 +22,7 @@ export function MemberPaymentsTab({ member }: { member: MemberDetail }): JSX.Ele
   if (ledger.isPending) return <Loading />;
   if (ledger.error || !ledger.data) {
     return (
-      <Card title="Payments" eyebrow="History">
+      <Card title="Payments">
         <EmptyState
           title="This member's payments could not be loaded"
           description="Try again in a moment, or open the finance area's ledger for them."

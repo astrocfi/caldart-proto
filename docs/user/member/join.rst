@@ -205,7 +205,7 @@ Step 5: Done
 ============
 
 The lede reads *You are a member of CalDART.*, or *You are a friend of CalDART.* for
-a friend. The step is headed **Welcome to CalDART**, with your membership chip and
+a friend. The step is headed **Welcome to CalDART**, with your membership status and
 the date your membership runs until. A life member reads *You are a life member. There is
 nothing more to pay, ever.* A friend reads *You are a friend of CalDART: no dues,
 no expiry. Become a member any time.*

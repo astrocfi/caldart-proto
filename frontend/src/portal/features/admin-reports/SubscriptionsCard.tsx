@@ -19,7 +19,7 @@ import type { Column } from '@/portal/components/DataTable';
 import { DataTable } from '@/portal/components/DataTable';
 import { DateText } from '@/portal/components/DateText';
 import { DeleteButton } from '@/portal/components/DeleteButton';
-import { StatusDot } from '@/portal/components/StatusChip';
+import { StatusDot } from '@/portal/components/StatusDot';
 import { useToast } from '@/portal/components/Toast';
 import { useFocusAfterSave, usePanelFocus } from '@/portal/components/focus';
 import {
@@ -228,7 +228,7 @@ export function SubscriptionsCard(): JSX.Element {
     openForm?.mode === 'edit' ? rows.find((subscription) => subscription.id === openForm.id) : null;
 
   return (
-    <Card eyebrow="By email" title="Subscriptions">
+    <Card title="Subscriptions">
       <p className="muted">
         Each subscription emails one report, filtered and with the columns chosen for it, to one
         address on its schedule. <strong>Edit</strong> changes its filters, columns, formats, and

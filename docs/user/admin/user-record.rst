@@ -16,7 +16,7 @@ The person's name heads the page, with their address under it and **Back to user
 it. Four cards follow.
 
 **Where this account stands**
-   The kind of account (**Member**, **Friend**, or **Donor**), the membership chip, and
+   The kind of account (**Member**, **Friend**, or **Donor**), the membership status, and
    *Profile complete* or *Profile incomplete*. A donor's card adds *A donor gave through the
    public site and cannot sign in. Fix the email address here if a receipt went astray.* If
    you are an account administrator too, **Member record** opens the person's
@@ -24,8 +24,8 @@ it. Four cards follow.
 
 **Account**
    **First name**, **Last name**, and **Email address**, with the hint *This is also how
-   they sign in.* and **Verified** with a date, or **Unverified**, and a **Bounced** chip
-   when the address bounces. Then **Roles**, a box for each role with a line saying what it
+   they sign in.* and **Verified** with a date, or **Unverified**, and **Bounced**, beside
+   a red dot, when the address bounces. Then **Roles**, a box for each role with a line saying what it
    grants.
 
 **Account status**
@@ -65,8 +65,8 @@ An address that bounces
 =======================
 
 When another mail server refuses an email to this address for good, because the address does
-not exist or no longer takes mail, the hint under **Email address** carries a red chip,
-**Bounced** with the date (MM/DD/YYYY), followed by the reason that server gave, such as
+not exist or no longer takes mail, the hint under **Email address** reads
+**Bounced**, beside a red dot, with the date (MM/DD/YYYY), followed by the reason that server gave, such as
 *5.1.1 550 User unknown*. The bounce check finds these every hour (:doc:`scheduled`), and
 :doc:`users` lists every bounced account under **Email**.
 
@@ -206,7 +206,7 @@ already active.* mean somebody changed it while the page was open; reload the pa
 server did not accept the message. A system administrator can see the attempt on the Sent
 Emails page.* after **Send password reset** or **Resend verification message** means nothing
 was sent: the site could not hand the email to its mail server. A system administrator sees
-the attempt marked *Failed:* on **Sent Emails**, with the reason; tell whoever runs the
+the attempt marked *Failed:* on **Sent emails**, with the reason; tell whoever runs the
 server, and press the button again once it is fixed. If somebody still cannot see a page after you ticked its role, ask
 them to reload the portal, and check that you pressed **Save changes**. Profiles,
 memberships, and payments are not on this screen; they belong to an account administrator.

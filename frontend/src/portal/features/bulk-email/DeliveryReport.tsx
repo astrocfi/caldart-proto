@@ -22,7 +22,7 @@ import type { Column } from '@/portal/components/DataTable';
 import { DataTable } from '@/portal/components/DataTable';
 import { DateText } from '@/portal/components/DateText';
 import { clearedValues, FilterBar } from '@/portal/components/FilterBar';
-import { StatusDot } from '@/portal/components/StatusChip';
+import { StatusDot } from '@/portal/components/StatusDot';
 import { useToast } from '@/portal/components/Toast';
 import type { FilterField, FilterValues } from '@/portal/reports/types';
 import { DROP_ORDER } from './dropOrder';
@@ -285,7 +285,7 @@ function Retries({ email }: { email: BulkEmailDetail }): JSX.Element | null {
       <ul className="bulk-email__retries">
         {email.retries.map((retry) => (
           <li key={retry.id}>
-            <DateText value={retry.requested_at} withTime twelveHour />
+            <DateText value={retry.requested_at} withTime />
             {`: ${retry.requested_by || 'A deleted account'} sent ${people(retry.count)} a fresh copy.`}
           </li>
         ))}
@@ -325,7 +325,6 @@ export function resultColumns(
       render: (row) => (
         <span className="bulk-email__will-receive">
           <StatusDot tone={resultTone(row.status)} label={resultLabel(row.status)} />
-          <span aria-hidden="true">{resultLabel(row.status)}</span>
         </span>
       ),
       sortValue: (row) => row.status,
@@ -368,7 +367,7 @@ export function resultColumns(
       header: 'Tried at',
       width: '11.5rem',
       dropOrder: DROP_ORDER.triedAt,
-      render: (row) => <DateText value={row.tried_at} withTime twelveHour />,
+      render: (row) => <DateText value={row.tried_at} withTime />,
       sortValue: (row) => row.tried_at,
     },
     {

@@ -5,7 +5,7 @@ Sent
 ====
 
 **Sent** lists every bulk email that has gone out, or is going out now, and what became of
-each copy. CalDART management opens it as **Sent** under **Bulk Email** in the menu, and sees
+each copy. CalDART management opens it as **Sent** under **Bulk email** in the menu, and sees
 every sender's emails. A DART leader opens it too, and sees only their own
 (:doc:`dart-leaders`). A system administrator can open it as well.
 

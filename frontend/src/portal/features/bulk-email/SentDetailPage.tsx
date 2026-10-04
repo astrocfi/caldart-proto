@@ -15,7 +15,7 @@ import { Link, useParams } from 'react-router-dom';
 import type { BulkEmailDetail } from '@/portal/api/types';
 import { useMe } from '@/portal/auth/useAuth';
 import { Card } from '@/portal/components/Card';
-import { formatDateAt } from '@/portal/components/DateText';
+import { formatDateTime } from '@/portal/components/DateText';
 import { EmailFrame } from '@/portal/components/EmailFrame';
 import { Loading } from '@/portal/components/Loading';
 import { Page } from '@/portal/components/Page';
@@ -109,6 +109,6 @@ export function hasFields(email: Pick<BulkEmailDetail, 'subject' | 'body'>): boo
  */
 function sentLede(email: BulkEmailDetail): string {
   const from = email.sender ? `Sent by ${email.sender}` : 'Sent';
-  const when = email.started_at === null ? '' : ` on ${formatDateAt(email.started_at)}`;
+  const when = email.started_at === null ? '' : ` on ${formatDateTime(email.started_at)}`;
   return `${from}${when}.`;
 }

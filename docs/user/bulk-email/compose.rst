@@ -6,7 +6,7 @@ Compose
 
 **Compose** is where you write one email to many members and friends of CalDART at once: a
 newsletter, a seminar notice, or a call for volunteers. Each person gets a copy of their own.
-CalDART management opens it as **Compose** under **Bulk Email** in the menu, and so does a
+CalDART management opens it as **Compose** under **Bulk email** in the menu, and so does a
 DART leader, who writes to their own DART (:doc:`dart-leaders`). A system administrator can
 open it too.
 

@@ -23,7 +23,7 @@
 
 .join-steps__step::before {
   content: counter(join-step);
-  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   font-size: var(--text-xs);
   line-height: 1.6;
   min-width: 1.5em;

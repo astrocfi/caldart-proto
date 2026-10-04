@@ -1,17 +1,18 @@
+/**
+ * The portal's one way of showing a status: a colored dot followed by its word.
+ *
+ * The word always carries the meaning, so nothing is said by color alone, and it is
+ * set in the normal text color, so it reads on a plain row and a striped one alike.
+ * The dot's color is the tone: green current, amber expiring or pending, red expired
+ * or failed, blue for something new, and gray for a quiet state.
+ */
 import type { JSX } from 'react';
 
 import type { MembershipStatus, PaymentState } from '../api/types';
 import { MEMBERSHIP_STATUS_LABELS, PAYMENT_STATUS_LABELS } from '../choices';
+import { formatDate } from './DateText';
 
 export type StatusTone = 'current' | 'expiring' | 'new' | 'expired' | 'none';
-
-const TONE_CLASS: Record<StatusTone, string> = {
-  current: 'chip--ok',
-  expiring: 'chip--warn',
-  new: 'chip--info',
-  expired: 'chip--bad',
-  none: 'chip--neutral',
-};
 
 // The `current`, `expired` and `none` tones read the same words as the member
 // report and the member list's status filter: `none` is the quiet tone of a
@@ -38,7 +39,7 @@ export function daysUntil(iso: string | null, today: Date = new Date()): number 
   return Math.round((target.getTime() - start.getTime()) / 86_400_000);
 }
 
-/** Map a membership payload onto one of the chip tones. */
+/** Map a membership payload onto one of the status tones. */
 export function membershipTone(
   membership: Pick<MembershipStatus, 'status' | 'expires_on' | 'is_lifetime'>,
   today: Date = new Date(),
@@ -51,55 +52,27 @@ export function membershipTone(
   return 'current';
 }
 
-export interface StatusChipProps {
-  tone: StatusTone;
-  label?: string;
-  title?: string;
-}
-
-/** The base tone-colored chip; most callers want {@link MembershipChip} or a sibling instead. */
-export function StatusChip({ tone, label, title }: StatusChipProps): JSX.Element {
-  return (
-    <span className={`chip ${TONE_CLASS[tone]}`} data-tone={tone} title={title}>
-      {label ?? TONE_LABEL[tone]}
-    </span>
-  );
-}
-
-export interface MembershipChipProps {
-  membership: Pick<MembershipStatus, 'status' | 'expires_on' | 'is_lifetime' | 'plan'>;
-  today?: Date;
-}
-
-/** The chip most screens want: tone and wording derived from the membership. */
-export function MembershipChip({ membership, today }: MembershipChipProps): JSX.Element {
-  const tone = membershipTone(membership, today);
-  if (membership.is_lifetime && membership.status === 'current') {
-    // "Never expires" rather than "Lifetime member": the screens that show this
-    // chip already say the membership is a lifetime one, and the chip's job is
-    // to answer the question the other tones answer -- when does it run out.
-    return <StatusChip tone="current" label="Never expires" />;
-  }
-  if (membership.status === 'friend') {
-    return <StatusChip tone={tone} label={MEMBERSHIP_STATUS_LABELS.friend} />;
-  }
-  return <StatusChip tone={tone} title={membership.expires_on ?? undefined} />;
-}
-
 export interface StatusDotProps {
   tone: StatusTone;
-  /** What the dot means, read out and shown on hover. */
-  label: string;
+  /** The state in words, shown after the dot; the tone's own word when left out. */
+  label?: string;
+  /** Shown on hover, such as the date a state runs to. */
+  title?: string;
+  /**
+   * Hide the word from sight, keeping it for a screen reader and on hover: only where
+   * the value right beside the dot already says it, such as an expiry date in a
+   * dense table.
+   */
+  hideWord?: boolean;
 }
 
-/**
- * A tone-colored dot for a dense table, where a chip beside every row would
- * shout. The meaning is carried by the accessible name, never by color alone.
- */
-export function StatusDot({ tone, label }: StatusDotProps): JSX.Element {
+/** A status: a tone-colored dot, then its word in the normal text color. */
+export function StatusDot({ tone, label, title, hideWord = false }: StatusDotProps): JSX.Element {
+  const word = label ?? TONE_LABEL[tone];
   return (
-    <span className="status-dot" data-tone={tone} title={label}>
-      <span className="visually-hidden">{label}</span>
+    <span className="status" data-tone={tone} title={title ?? (hideWord ? word : undefined)}>
+      <span className="status-dot" data-tone={tone} aria-hidden="true" />
+      {hideWord ? <span className="visually-hidden">{word}</span> : word}
     </span>
   );
 }
@@ -107,21 +80,42 @@ export function StatusDot({ tone, label }: StatusDotProps): JSX.Element {
 export interface MembershipDotProps {
   membership: Pick<MembershipStatus, 'status' | 'expires_on' | 'is_lifetime'>;
   today?: Date;
+  /** Hide the word where the expiry date beside the dot already says it. */
+  hideWord?: boolean;
 }
 
-/** The membership's tone as a dot: green current, amber expiring, red expired. */
-export function MembershipDot({ membership, today }: MembershipDotProps): JSX.Element {
+/**
+ * The membership's state: green current, amber expiring, red expired, gray for a
+ * friend, and "Never expires" for a lifetime member.  The date it runs to shows on
+ * hover, or, with `hideWord`, the word does.
+ */
+export function MembershipDot({ membership, today, hideWord }: MembershipDotProps): JSX.Element {
   const tone = membershipTone(membership, today);
-  return <StatusDot tone={tone} label={membershipDotLabel(membership, tone)} />;
+  return (
+    <StatusDot
+      tone={tone}
+      label={membershipLabel(membership, tone)}
+      title={
+        !hideWord && membership.expires_on
+          ? `Runs to ${formatDate(membership.expires_on)}`
+          : undefined
+      }
+      hideWord={hideWord}
+    />
+  );
 }
 
-/** What a membership dot is read out as: the chip's own word for the same state. */
-function membershipDotLabel(
+/** The word for a membership's state. */
+function membershipLabel(
   membership: Pick<MembershipStatus, 'status' | 'is_lifetime'>,
   tone: StatusTone,
 ): string {
+  // "Never expires" rather than "Lifetime member": the screens that show it already
+  // say the membership is a lifetime one, and the word's job is to answer the
+  // question the other states answer -- when does it run out.
   if (membership.is_lifetime && membership.status === 'current') return 'Never expires';
   if (membership.status === 'friend') return MEMBERSHIP_STATUS_LABELS.friend;
+  if (membership.status === 'donor') return MEMBERSHIP_STATUS_LABELS.donor;
   return TONE_LABEL[tone];
 }
 
@@ -153,19 +147,19 @@ export function PilotMark({
   );
 }
 
-/** Chip for a plain currency flag, such as insurance or medical currency. */
-export function CurrencyChip({
+/** A plain currency flag, such as insurance or medical currency: Current, Expired, or Not on file. */
+export function CurrencyDot({
   isCurrent,
   missing = false,
 }: {
   isCurrent: boolean;
   missing?: boolean;
 }): JSX.Element {
-  if (missing) return <StatusChip tone="none" label="Not on file" />;
+  if (missing) return <StatusDot tone="none" label="Not on file" />;
   return isCurrent ? (
-    <StatusChip tone="current" label="Current" />
+    <StatusDot tone="current" label="Current" />
   ) : (
-    <StatusChip tone="expired" label="Expired" />
+    <StatusDot tone="expired" label="Expired" />
   );
 }
 
@@ -177,7 +171,7 @@ export function paymentStatusTone(status: PaymentState): StatusTone {
   return 'none';
 }
 
-/** Chip for a payment's state, in the shared status palette. */
-export function PaymentChip({ status }: { status: PaymentState }): JSX.Element {
-  return <StatusChip tone={paymentStatusTone(status)} label={PAYMENT_STATUS_LABELS[status]} />;
+/** A payment's state as a dot and its word. */
+export function PaymentDot({ status }: { status: PaymentState }): JSX.Element {
+  return <StatusDot tone={paymentStatusTone(status)} label={PAYMENT_STATUS_LABELS[status]} />;
 }

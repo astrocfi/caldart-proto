@@ -29,8 +29,12 @@ describe('formatDate', () => {
     expect(formatDate('2027-01-01')).toBe('01/01/2027');
   });
 
-  it('reads a datetime as its local day', () => {
-    expect(formatDate(new Date(2026, 2, 7, 23, 59).toISOString())).toBe('03/07/2026');
+  it('reads a datetime as its Pacific day', () => {
+    expect(formatDate('2026-03-08T07:59:00Z')).toBe('03/07/2026');
+  });
+
+  it('reads a datetime after Pacific midnight as the next day', () => {
+    expect(formatDate('2026-03-08T08:01:00Z')).toBe('03/08/2026');
   });
 
   it('gives the placeholder for a missing value', () => {
@@ -43,8 +47,16 @@ describe('formatDate', () => {
 });
 
 describe('formatDateTime', () => {
-  it('adds a 24-hour clock to MM/DD/YYYY', () => {
-    expect(formatDateTime(new Date(2026, 8, 27, 14, 5).toISOString())).toBe('09/27/2026 14:05');
+  it('reads a moment in Pacific time on the 12-hour clock, whatever the reader’s zone', () => {
+    expect(formatDateTime('2026-10-04T12:33:00Z')).toBe('10/04/2026 at 5:33 AM');
+  });
+
+  it('reads an afternoon moment with PM', () => {
+    expect(formatDateTime('2026-09-27T21:05:00Z')).toBe('09/27/2026 at 2:05 PM');
+  });
+
+  it('reads midnight Pacific as 12:00 AM', () => {
+    expect(formatDateTime('2026-01-15T08:00:00Z')).toBe('01/15/2026 at 12:00 AM');
   });
 
   it('gives the placeholder for a missing value', () => {
@@ -53,8 +65,8 @@ describe('formatDateTime', () => {
 });
 
 describe('formatTime', () => {
-  it('reads the time of day alone, on a 24-hour clock', () => {
-    expect(formatTime(new Date(2026, 8, 27, 3, 7).toISOString())).toBe('03:07');
+  it('reads the time of day alone, in Pacific time on the 12-hour clock', () => {
+    expect(formatTime('2026-09-27T10:07:00Z')).toBe('3:07 AM');
   });
 
   it('gives the placeholder for an unparseable value', () => {
@@ -82,16 +94,19 @@ describe('DateText', () => {
     expect(screen.getByText('09/27/2026')).toHaveAttribute('datetime', '2026-09-27');
   });
 
-  it('renders the time of day when asked', () => {
-    const value = new Date(2026, 8, 27, 8, 30).toISOString();
-    renderWithProviders(<DateText value={value} withTime />);
-    expect(screen.getByText('09/27/2026 08:30')).toBeInTheDocument();
+  it('renders the time of day in Pacific time on the 12-hour clock when asked', () => {
+    renderWithProviders(<DateText value="2026-09-28T00:34:00Z" withTime />);
+    expect(screen.getByText('09/27/2026 at 5:34 PM')).toBeInTheDocument();
   });
 
-  it('reads the time on the 12-hour clock when asked', () => {
-    const value = new Date(2026, 8, 27, 17, 34).toISOString();
-    renderWithProviders(<DateText value={value} withTime twelveHour />);
-    expect(screen.getByText('09/27/2026 at 5:34 PM')).toBeInTheDocument();
+  it('sets its digits in the body face, not the mono face', () => {
+    renderWithProviders(<DateText value="2026-09-27" />);
+    expect(screen.getByText('09/27/2026')).toHaveClass('num');
+  });
+
+  it('keeps the mono face off a date', () => {
+    renderWithProviders(<DateText value="2026-09-27" />);
+    expect(screen.getByText('09/27/2026')).not.toHaveClass('mono');
   });
 
   it('renders the placeholder for a missing value', () => {

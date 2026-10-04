@@ -140,7 +140,7 @@ export function RenewalSetup({
       ) : (
         <>
           <p className="renewal-setup__total">
-            CalDART will charge <strong className="mono">{formatCents(chargeCents)}</strong> on{' '}
+            CalDART will charge <strong className="num">{formatCents(chargeCents)}</strong> on{' '}
             {formatDate(nextChargeOn)}, and each year after that. We will email you fourteen days
             before every charge.
           </p>

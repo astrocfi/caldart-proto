@@ -6,7 +6,7 @@ Callouts
 
 When CalDART activates for a mission, a mission callout asks who can fly. **Callouts**
 collects the answers: who is available, who is available with limits, who is not, and who
-has not answered yet. Open it from **Callouts** under **Bulk Email** in the menu. CalDART
+has not answered yet. Open it from **Callouts** under **Bulk email** in the menu. CalDART
 management sees every callout. A DART leader sees the callouts they sent and the ones sent
 to the DART (a Disaster Airlift Response Team, one of CalDART's local groups) on their own
 profile.

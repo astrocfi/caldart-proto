@@ -27,10 +27,10 @@ export interface MoneyProps {
   placeholder?: string;
 }
 
-/** Money always renders in the mono face with tabular figures. */
+/** Money always renders in the body face with tabular figures, so amounts line up. */
 export function Money({ cents, whole = false, placeholder = '—' }: MoneyProps): JSX.Element {
   if (cents === null || cents === undefined) {
-    return <span className="mono muted">{placeholder}</span>;
+    return <span className="num muted">{placeholder}</span>;
   }
-  return <span className="mono">{formatCents(cents, { whole })}</span>;
+  return <span className="num">{formatCents(cents, { whole })}</span>;
 }

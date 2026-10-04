@@ -35,12 +35,13 @@ describe('eventLabels', () => {
 });
 
 describe('groupEvents', () => {
-  it('groups the catalog under its four categories, in order', () => {
+  it('groups the catalog under its five categories, in order', () => {
     expect(groupEvents(NOTIFICATION_EVENTS).map((group) => group.category)).toEqual([
       'Membership',
       'Money',
       'Accounts',
       'Aircraft',
+      'Callouts',
     ]);
   });
 

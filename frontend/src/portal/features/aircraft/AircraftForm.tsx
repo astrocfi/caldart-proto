@@ -121,7 +121,7 @@ export function AircraftForm({
             {(field) => (
               <MaskedInput
                 {...field}
-                className="mono"
+                className="num"
                 inputMode="numeric"
                 size={6}
                 mask={(raw) => maskDigits(raw, 4)}
@@ -141,7 +141,7 @@ export function AircraftForm({
             {(field) => (
               <MaskedInput
                 {...field}
-                className="mono"
+                className="num"
                 inputMode="numeric"
                 size={4}
                 mask={(raw) => maskDigits(raw, 2)}
@@ -247,7 +247,7 @@ export function AircraftForm({
             {(field) => (
               <input
                 {...field}
-                className="mono"
+                className="num"
                 value={values.insurance_policy_number}
                 onChange={(event) => set('insurance_policy_number', event.target.value)}
               />
@@ -261,7 +261,7 @@ export function AircraftForm({
             {(field) => (
               <MaskedInput
                 {...field}
-                className="mono"
+                className="num"
                 inputMode="decimal"
                 mask={maskDollars}
                 value={values.liability_per_occurrence}
@@ -278,7 +278,7 @@ export function AircraftForm({
             {(field) => (
               <MaskedInput
                 {...field}
-                className="mono"
+                className="num"
                 inputMode="decimal"
                 mask={maskDollars}
                 value={values.liability_per_person}
@@ -295,7 +295,7 @@ export function AircraftForm({
             {(field) => (
               <MaskedInput
                 {...field}
-                className="mono"
+                className="num"
                 inputMode="decimal"
                 mask={maskDollars}
                 value={values.hull}
@@ -309,7 +309,7 @@ export function AircraftForm({
               <input
                 {...field}
                 type="date"
-                className="mono"
+                className="num"
                 value={values.insurance_expiration}
                 onChange={(event) => set('insurance_expiration', event.target.value)}
               />

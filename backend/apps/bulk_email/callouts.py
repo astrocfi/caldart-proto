@@ -624,8 +624,8 @@ def answers_document(bulk: BulkEmail) -> ReportDocument:
     """The callout's answers as a CSV, one row per person in :func:`callout_rows` order.
 
     The columns are :data:`ANSWERS_CSV_HEADER`: the name and address, the answer in
-    words (blank for none), the note, when it was given (``MM/DD/YYYY HH:MM`` in the
-    site's time zone, blank for none), the DART, the home airport, the aircraft
+    words (blank for none), the note, when it was given (``MM/DD/YYYY at h:mm AM`` in
+    the site's time zone, blank for none), the DART, the home airport, the aircraft
     (N-numbers separated by commas), and ``GO`` or ``NO-GO``.  The file is named
     ``caldart-callout-<id>-answers.csv``.
     """

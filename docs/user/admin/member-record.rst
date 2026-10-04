@@ -25,7 +25,7 @@ The person's name heads the page, with **Back to members** beside it. A donor's 
 **Back to donors** there instead, which returns to the **Donors** tab, when you have that
 tab. A summary strip under the name carries:
 
-- their membership chip: **Current**, **Expiring soon**, **Expired**, **Friend**, or
+- their membership status: **Current**, **Expiring soon**, **Expired**, **Friend**, or
   **Never expires** for a life member. Somebody who joined as a member and has no term that
   has started, only a canceled one, or only suspended ones reads **Friend**: nobody is a
   member until a paid or granted term has started;
@@ -34,11 +34,11 @@ tab. A summary strip under the name carries:
 - *updated* with the date their profile was last changed, or *never edited* for a profile
   nobody has changed since it was loaded. A payment, a renewal, or a membership grant does
   not change the date, so it tells you how current the details are;
-- a **Donor** chip for somebody who has only given through the public site, and an
-  **Account deactivated** chip for an account that cannot sign in;
+- **Donor** for somebody who has only given through the public site, and **Account
+  deactivated**, beside a red dot, for an account that cannot sign in;
 - their email address, and the roles the account holds. When another mail server has
-  refused an email to the address for good, a red **Bounced** chip with the date and the
-  reason that server gave follows it. A user administrator corrects the address or clears
+  refused an email to the address for good, **Bounced** beside a red dot, with the date and
+  the reason that server gave, follows it. A user administrator corrects the address or clears
   the flag on the :doc:`user-record`.
 
 Below the strip are four tabs: **Profile**, **Memberships**, **Payments**, and **Danger
@@ -100,9 +100,10 @@ Memberships
 ===========
 
 **Membership history** lists every term: **Plan**, **Starts**, **Ends** (*Lifetime* for a
-life membership), **Status** (active, expired, canceled, or suspended), **Source** (a payment,
-a manual grant, or the demo data), **Note** with whoever granted it, and **Edit**. A narrow
-screen drops **Source**, **Starts**, **Note**, and **Ends** in turn, keeping the rest in sight.
+life membership), **Status** (**Active**, **Expired**, **Canceled**, or **Suspended**, each
+beside its dot), **Source** (**Paid** for a term a payment bought, **Granted by hand**, or
+**Demo data**), **Note** with whoever granted it, and **Edit**. A narrow screen drops
+**Source**, **Starts**, **Note**, and **Ends** in turn, keeping the rest in sight.
 
 **Edit** on a row changes that term's end date, status, and note, for a refund, a goodwill
 extension, or a wrong term. Press **Save** or **Cancel** (or Escape); *Term updated.* confirms
@@ -148,7 +149,7 @@ This person's whole money history, the same one the treasurer's screens show:
   given anything beyond their dues.*
 
 A term you grant by hand has no payment behind it, so it does not appear here. For the
-organization's figures, use **Payments** under **Administration** in the menu.
+organization's figures, use **Finance** under **Administration** in the menu.
 
 
 Danger zone

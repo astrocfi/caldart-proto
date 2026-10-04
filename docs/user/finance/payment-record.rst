@@ -14,7 +14,7 @@ What you see
 ============
 
 The heading is the payment's receipt number, with the member's name and the payment's
-status beneath it and the status as a colored chip on the right.
+status beneath it and the status, a colored dot and its word, on the right.
 
 This payment
 ~~~~~~~~~~~~

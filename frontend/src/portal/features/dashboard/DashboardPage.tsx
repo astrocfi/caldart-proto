@@ -12,7 +12,7 @@ import { DateText } from '@/portal/components/DateText';
 import { EmptyState } from '@/portal/components/EmptyState';
 import { Money } from '@/portal/components/Money';
 import { Page } from '@/portal/components/Page';
-import { MembershipChip, PaymentChip, membershipTone } from '@/portal/components/StatusChip';
+import { MembershipDot, PaymentDot, membershipTone } from '@/portal/components/StatusDot';
 import { automaticCardTitle, automaticKindLabel } from '@/portal/features/payments/labels';
 import { useMembership, useMyPayments } from '@/portal/features/profile/api';
 import { groupedNavItems } from '@/portal/nav';
@@ -33,7 +33,7 @@ const RECENT_PAYMENT_COLUMNS: Column<PaymentSummary>[] = [
     header: 'Date',
     width: '9.5rem',
     isIdentity: true,
-    render: (payment) => <DateText value={payment.completed_at} withTime />,
+    render: (payment) => <DateText value={payment.paid_on ?? payment.completed_at} />,
   },
   {
     key: 'plan',
@@ -56,7 +56,7 @@ const RECENT_PAYMENT_COLUMNS: Column<PaymentSummary>[] = [
     width: '9rem',
     narrowWidth: '7rem',
     keepInSight: true,
-    render: (payment) => <PaymentChip status={payment.status} />,
+    render: (payment) => <PaymentDot status={payment.status} />,
   },
 ];
 
@@ -105,19 +105,19 @@ export function DashboardPage(): JSX.Element {
   const recent = (payments.data ?? []).slice(0, RECENT_PAYMENTS);
 
   return (
-    <Page title={greeting}>
+    <Page title={greeting} tabTitle="Dashboard">
       <div className="grid">
         <div className="col-text stack-loose">
           <Card
             className={urgent ? 'dashboard__card--urgent' : undefined}
-            eyebrow={isFriend ? 'Friend of CalDART' : 'Membership'}
+            eyebrow={isFriend ? 'Friend of CalDART' : undefined}
             title={<MembershipHeadline status={status} />}
           >
             {isFriend ? (
               <FriendStatus />
             ) : status ? (
               <div className="dashboard__status">
-                <MembershipChip membership={status} />
+                <MembershipDot membership={status} />
                 {status.is_lifetime && status.status === 'current' ? (
                   <p className="muted">Nothing to renew — thank you for joining for life.</p>
                 ) : status.expires_on ? (

@@ -19,16 +19,15 @@ import { Button, ButtonLink } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import type { Column } from '@/portal/components/DataTable';
 import { DataTable } from '@/portal/components/DataTable';
-import { DateText, formatDateAt } from '@/portal/components/DateText';
+import { DateText, formatDateTime } from '@/portal/components/DateText';
 import { DeleteButton } from '@/portal/components/DeleteButton';
 import { Page } from '@/portal/components/Page';
-import { StatusDot } from '@/portal/components/StatusChip';
+import { StatusDot } from '@/portal/components/StatusDot';
 import { useToast } from '@/portal/components/Toast';
 import { DROP_ORDER } from './dropOrder';
 import { useBulkEmailAction, useBulkSender, useDeleteDraft, useDrafts } from './api';
 import './bulk-email.css';
 import { formatCountdown, useSecondsUntil } from './countdown';
-import { SITE_TIME_ZONE, SITE_TIME_ZONE_NAME } from './schedule';
 import { SenderNotice } from './SenderNotice';
 import { withSenderColumns } from './senderColumns';
 import { actionError, CANCELED_MESSAGE } from './SendStatus';
@@ -174,14 +173,13 @@ function draftColumns(
       render: (row) => (
         <span className="bulk-email__will-receive">
           <StatusDot tone={statusTone(row.status)} label={statusLabel(row)} />
-          <span aria-hidden="true">{statusLabel(row)}</span>
         </span>
       ),
       sortValue: (row) => statusLabel(row),
     },
     {
       key: 'when',
-      header: `When (${SITE_TIME_ZONE_NAME})`,
+      header: 'When',
       width: '11.5rem',
       render: (row) => <When row={row} />,
     },
@@ -210,7 +208,7 @@ function When({ row }: { row: BulkEmailSummary }): JSX.Element {
   const seconds = useSecondsUntil(row.status === 'queued' ? row.start_at : null);
   if (row.status !== 'queued' || seconds === null) return <span className="muted">—</span>;
   if (row.scheduled) {
-    return <span>{formatDateAt(row.start_at, SITE_TIME_ZONE)}</span>;
+    return <span>{formatDateTime(row.start_at)}</span>;
   }
   return <span>{seconds > 0 ? `Starts in ${formatCountdown(seconds)}` : 'Starting now'}</span>;
 }

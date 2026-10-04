@@ -17,11 +17,11 @@ import type {
 } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
-import { formatDateAt } from '@/portal/components/DateText';
+import { formatDateTime } from '@/portal/components/DateText';
 import { Loading } from '@/portal/components/Loading';
 import { Page } from '@/portal/components/Page';
-import { StatusDot } from '@/portal/components/StatusChip';
-import type { StatusTone } from '@/portal/components/StatusChip';
+import { StatusDot } from '@/portal/components/StatusDot';
+import type { StatusTone } from '@/portal/components/StatusDot';
 import { useMailDeliveryCheck, useRecheckMailDelivery } from './api';
 import './mail-delivery.css';
 
@@ -57,9 +57,6 @@ function FindingRow({ finding }: { finding: MailDeliveryFinding }): JSX.Element 
       <h3 className="delivery-check__name">
         <span className="delivery-check__status">
           <StatusDot tone={STATUS_TONE[finding.status]} label={word} />
-          <span aria-hidden="true" className="delivery-check__word">
-            {word}
-          </span>
         </span>
         <span>{finding.name}</span>
       </h3>
@@ -111,7 +108,7 @@ export function MailDeliveryPage(): JSX.Element {
             </Button>
             {report ? (
               <span className="muted">
-                Checked {formatDateAt(report.checked_at)}
+                Checked {formatDateTime(report.checked_at)}
                 {report.domain === '' ? '' : ` for ${report.domain}`}.
               </span>
             ) : null}

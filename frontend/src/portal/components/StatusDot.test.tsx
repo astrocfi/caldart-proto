@@ -2,14 +2,7 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
 import type { MembershipStatus } from '../api/types';
-import {
-  CurrencyChip,
-  MembershipChip,
-  MembershipDot,
-  StatusChip,
-  daysUntil,
-  membershipTone,
-} from './StatusChip';
+import { CurrencyDot, MembershipDot, StatusDot, daysUntil, membershipTone } from './StatusDot';
 
 const TODAY = new Date(2026, 5, 15); // 15 June 2026, local time
 
@@ -78,34 +71,57 @@ describe('membershipTone', () => {
   });
 });
 
-describe('StatusChip', () => {
-  it('renders the default label and tone class', () => {
-    render(<StatusChip tone="expired" />);
-    const chip = screen.getByText('Expired');
-    expect(chip).toHaveClass('chip', 'chip--bad');
-    expect(chip).toHaveAttribute('data-tone', 'expired');
+describe('StatusDot', () => {
+  it('shows its word as visible text', () => {
+    render(<StatusDot tone="expired" />);
+    expect(screen.getByText('Expired')).not.toHaveClass('visually-hidden');
+  });
+
+  it('carries its tone on the word', () => {
+    render(<StatusDot tone="expired" />);
+    expect(screen.getByText('Expired')).toHaveAttribute('data-tone', 'expired');
+  });
+
+  it('hides the dot from a screen reader, since the word says it', () => {
+    const { container } = render(<StatusDot tone="current" label="Insured" />);
+    expect(container.querySelector('.status-dot')).toHaveAttribute('aria-hidden', 'true');
+  });
+
+  it('colors the dot by its tone', () => {
+    const { container } = render(<StatusDot tone="expiring" label="Pending" />);
+    expect(container.querySelector('.status-dot')).toHaveAttribute('data-tone', 'expiring');
   });
 
   it('accepts an override label', () => {
-    render(<StatusChip tone="current" label="Insured" />);
-    expect(screen.getByText('Insured')).toHaveClass('chip--ok');
+    render(<StatusDot tone="current" label="Insured" />);
+    expect(screen.getByText('Insured')).toHaveAttribute('data-tone', 'current');
   });
 
   it('labels the `none` tone "Friend", the same word the member report uses', () => {
-    render(<StatusChip tone="none" />);
-    expect(screen.getByText('Friend')).toHaveClass('chip--neutral');
+    render(<StatusDot tone="none" />);
+    expect(screen.getByText('Friend')).toHaveAttribute('data-tone', 'none');
   });
 
-  it('keeps the `new` tone in its own color for the features that pass a label', () => {
-    render(<StatusChip tone="new" label="Pending" />);
-    expect(screen.getByText('Pending')).toHaveClass('chip--info');
+  it('is never drawn as a chip', () => {
+    const { container } = render(<StatusDot tone="current" />);
+    expect(container.querySelector('.chip')).toBeNull();
+  });
+
+  it('keeps a hidden word for a screen reader beside a value that says it', () => {
+    render(<StatusDot tone="expired" label="Insurance expired" hideWord />);
+    expect(screen.getByText('Insurance expired')).toHaveClass('visually-hidden');
+  });
+
+  it('shows a hidden word on hover', () => {
+    render(<StatusDot tone="expired" label="Insurance expired" hideWord />);
+    expect(screen.getByTitle('Insurance expired')).toHaveAttribute('data-tone', 'expired');
   });
 });
 
-describe('MembershipChip', () => {
+describe('MembershipDot', () => {
   it('says "Never expires" for lifetime members', () => {
     render(
-      <MembershipChip
+      <MembershipDot
         membership={membership({ expires_on: null, is_lifetime: true })}
         today={TODAY}
       />,
@@ -114,21 +130,24 @@ describe('MembershipChip', () => {
   });
 
   it('warns when the membership is expiring', () => {
-    render(<MembershipChip membership={membership({ expires_on: '2026-07-01' })} today={TODAY} />);
-    expect(screen.getByText('Expiring soon')).toHaveClass('chip--warn');
+    render(<MembershipDot membership={membership({ expires_on: '2026-07-01' })} today={TODAY} />);
+    expect(screen.getByText('Expiring soon')).toHaveAttribute('data-tone', 'expiring');
+  });
+
+  it('shows the date the membership runs to on hover', () => {
+    render(<MembershipDot membership={membership({ expires_on: '2026-07-01' })} today={TODAY} />);
+    expect(screen.getByText('Expiring soon')).toHaveAttribute('title', 'Runs to 07/01/2026');
   });
 });
 
-describe('CurrencyChip', () => {
-  it('distinguishes current, expired, and missing', () => {
-    const { rerender } = render(<CurrencyChip isCurrent />);
-    expect(screen.getByText('Current')).toHaveClass('chip--ok');
-
-    rerender(<CurrencyChip isCurrent={false} />);
-    expect(screen.getByText('Expired')).toHaveClass('chip--bad');
-
-    rerender(<CurrencyChip isCurrent={false} missing />);
-    expect(screen.getByText('Not on file')).toHaveClass('chip--neutral');
+describe('CurrencyDot', () => {
+  it.each([
+    [{ isCurrent: true }, 'Current', 'current'],
+    [{ isCurrent: false }, 'Expired', 'expired'],
+    [{ isCurrent: false, missing: true }, 'Not on file', 'none'],
+  ])('reads %o as %s', (props, word, tone) => {
+    render(<CurrencyDot {...props} />);
+    expect(screen.getByText(word)).toHaveAttribute('data-tone', tone);
   });
 });
 
@@ -139,13 +158,13 @@ describe('a friend of CalDART', () => {
     expect(membershipTone(FRIEND, TODAY)).toBe('none');
   });
 
-  it('reads Friend on the chip, in the neutral color', () => {
-    render(<MembershipChip membership={FRIEND} today={TODAY} />);
-    expect(screen.getByText('Friend')).toHaveClass('chip--neutral');
+  it('reads Friend beside the gray dot', () => {
+    render(<MembershipDot membership={FRIEND} today={TODAY} />);
+    expect(screen.getByText('Friend')).toHaveAttribute('data-tone', 'none');
   });
 
-  it('reads Friend on the dot', () => {
-    render(<MembershipDot membership={FRIEND} today={TODAY} />);
+  it('reads Friend on a dot whose word is hidden', () => {
+    render(<MembershipDot membership={FRIEND} today={TODAY} hideWord />);
     expect(screen.getByTitle('Friend')).toHaveAttribute('data-tone', 'none');
   });
 });

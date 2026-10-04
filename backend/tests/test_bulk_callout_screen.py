@@ -44,6 +44,7 @@ from apps.bulk_email.models import (
 from apps.mail.models import EmailOptOut, EmailType, OptOutSource
 from apps.members.models import MemberProfile
 from apps.members.services import with_membership
+from caldart.dates import format_display_datetime
 from caldart.exceptions import DomainError
 from tests.conftest import audit_messages, read_csv, role_matrix
 from tests.factories import (
@@ -216,7 +217,7 @@ def test_the_answers_download_as_a_csv(
             "ann@example.test",
             "Available with limits",
             "Saturday only",
-            answered.strftime("%m/%d/%Y %H:%M"),
+            format_display_datetime(answered),
             "Marin DART",
             "LVK",
             "N123AB",

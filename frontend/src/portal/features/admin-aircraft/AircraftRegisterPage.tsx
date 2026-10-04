@@ -46,8 +46,8 @@ import { useAuth } from '@/portal/auth/useAuth';
 import type { RegistryStatus } from '@/portal/api/types';
 import { AircraftForm } from '@/portal/features/aircraft/AircraftForm';
 import { AIRWORTHINESS_LABELS, CATEGORY_LABELS } from '@/portal/features/aircraft/categories';
-import { InsuranceDot } from '@/portal/features/aircraft/InsuranceChip';
-import { ServiceChip } from '@/portal/features/aircraft/ServiceChip';
+import { InsuranceDot } from '@/portal/features/aircraft/InsuranceDot';
+import { ServiceDot } from '@/portal/features/aircraft/ServiceDot';
 import type { AircraftFilters, InsuranceState } from '@/portal/features/aircraft/api';
 import { useAircraftList, useCreateAircraft } from '@/portal/features/aircraft/api';
 import { OWNER_TYPE_LABELS, emptyAircraftValues } from '@/portal/features/aircraft/form';
@@ -84,10 +84,10 @@ const CELLS: Record<string, ReportCell<Aircraft>> = {
     width: '9rem',
     render: (row) => (
       <>
-        <Link className="mono" to={`/admin/aircraft/${row.id}`}>
+        <Link className="num" to={`/admin/aircraft/${row.id}`}>
           {row.n_number}
         </Link>{' '}
-        <ServiceChip aircraft={row} />
+        <ServiceDot aircraft={row} />
       </>
     ),
   },

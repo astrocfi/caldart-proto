@@ -2,13 +2,13 @@
  * Scheduled times, which a sender chooses in the site's own time zone and reads
  * back the same way everywhere: `10/04/2026 at 8:00 AM Pacific time`.
  */
-import { datePartsIn, formatDateAt } from '@/portal/components/DateText';
-
-/** The site's time zone, in which the server reads a time chosen without an offset. */
-export const SITE_TIME_ZONE = 'America/Los_Angeles';
-
-/** What the site's time zone is called on screen. */
-export const SITE_TIME_ZONE_NAME = 'Pacific time';
+import {
+  SITE_TIME_ZONE,
+  SITE_TIME_ZONE_NAME,
+  datePartsIn,
+  formatDateAt,
+  formatDateTime,
+} from '@/portal/components/DateText';
 
 /** One choice of the time box: its `HH:MM` value and its words, such as `8:00 AM`. */
 export interface TimeChoice {
@@ -40,7 +40,7 @@ export function timeChoice(value: string): TimeChoice {
  * @param iso an ISO datetime with its offset.
  */
 export function scheduledWords(iso: string | null): string {
-  return `${formatDateAt(iso, SITE_TIME_ZONE)} ${SITE_TIME_ZONE_NAME}`;
+  return `${formatDateTime(iso)} ${SITE_TIME_ZONE_NAME}`;
 }
 
 /**

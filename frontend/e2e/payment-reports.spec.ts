@@ -118,8 +118,7 @@ test('an account administrator reads the monthly and yearly totals and exports t
 }) => {
   await signIn(page, DEMO.accountadmin);
 
-  // The rail carries two entries called Payments: the member's own screen and
-  // this one, so the administration entry is named by its address.
+  // The finance area's rail entry, named by its address.
   await page
     .getByRole('navigation', { name: 'Portal sections' })
     .locator('a[href$="/portal/admin/payments"]')

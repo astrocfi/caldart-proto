@@ -9,7 +9,7 @@ import type {
   BulkEmailStatus,
   BulkEmailSummary,
 } from '@/portal/api/types';
-import type { StatusTone } from '@/portal/components/StatusChip';
+import type { StatusTone } from '@/portal/components/StatusDot';
 
 /** What each email status reads as; a queued email the sender scheduled reads *Scheduled*. */
 const STATUS_LABELS: Record<BulkEmailStatus, string> = {

@@ -23,7 +23,7 @@ import { ConfirmButton } from '@/portal/components/ConfirmButton';
 import { DateText, formatDate } from '@/portal/components/DateText';
 import { EmptyState } from '@/portal/components/EmptyState';
 import { Money, formatCents } from '@/portal/components/Money';
-import { StatusChip } from '@/portal/components/StatusChip';
+import { StatusDot } from '@/portal/components/StatusDot';
 import { useToast } from '@/portal/components/Toast';
 import { usePanelFocus } from '@/portal/components/focus';
 import { useMembership } from '@/portal/features/profile/api';
@@ -215,7 +215,7 @@ function RenewalSummary({ mandate, expiresOn }: RenewalSummaryProps): JSX.Elemen
   if (mandate === null || mandate.status === 'pending') {
     return (
       <div className="stack">
-        <StatusChip tone="none" label="Off" />
+        <StatusDot tone="none" label="Off" />
         <p>
           Turn this on and CalDART will charge a saved card or PayPal account on the day you choose,
           normally the day your membership runs out, so it never lapses.
@@ -229,7 +229,7 @@ function RenewalSummary({ mandate, expiresOn }: RenewalSummaryProps): JSX.Elemen
   if (mandate.status === 'canceled') {
     return (
       <div className="stack">
-        <StatusChip tone="none" label="Off" />
+        <StatusDot tone="none" label="Off" />
         <p>
           You turned {authority.toLowerCase()} off on <DateText value={mandate.canceled_at} />. Your
           membership runs to the end of the term you have paid for, and the ordinary renewal
@@ -242,7 +242,7 @@ function RenewalSummary({ mandate, expiresOn }: RenewalSummaryProps): JSX.Elemen
   if (mandate.status === 'paused') {
     return (
       <div className="stack">
-        <StatusChip tone="expired" label="Stopped" />
+        <StatusDot tone="expired" label="Stopped" />
         <p>
           {authority} stopped because CalDART could not charge{' '}
           {mandate.method_label || 'your saved payment method'}.
@@ -260,7 +260,7 @@ function RenewalSummary({ mandate, expiresOn }: RenewalSummaryProps): JSX.Elemen
 
   return (
     <div className="stack">
-      <StatusChip tone="current" label="On" />
+      <StatusDot tone="current" label="On" />
       <dl className="renewal__facts">
         <div>
           <dt>Method</dt>
@@ -290,7 +290,7 @@ function RenewalSummary({ mandate, expiresOn }: RenewalSummaryProps): JSX.Elemen
                 after your membership runs out on {formatDate(expiresOn)}
               </span>
             ) : null}{' '}
-            · <span className="mono">{formatCents(mandate.amount_cents)}</span>
+            · <span className="num">{formatCents(mandate.amount_cents)}</span>
           </dd>
         </div>
       </dl>
@@ -307,7 +307,7 @@ function DonationSummary({ mandate }: { mandate: RenewalMandate | null }): JSX.E
   if (mandate === null || mandate.status === 'pending') {
     return (
       <div className="stack">
-        <StatusChip tone="none" label="Off" />
+        <StatusDot tone="none" label="Off" />
         <p>
           Set one up on the Donate screen and CalDART will charge a saved card or PayPal account
           monthly, quarterly, or yearly, for the amount you choose.
@@ -319,7 +319,7 @@ function DonationSummary({ mandate }: { mandate: RenewalMandate | null }): JSX.E
   if (mandate.status === 'canceled') {
     return (
       <div className="stack">
-        <StatusChip tone="none" label="Off" />
+        <StatusDot tone="none" label="Off" />
         <p>
           You turned your recurring donation off on <DateText value={mandate.canceled_at} />.
           Nothing further is taken. You can give at any time from the Donate screen.
@@ -331,7 +331,7 @@ function DonationSummary({ mandate }: { mandate: RenewalMandate | null }): JSX.E
   if (mandate.status === 'paused') {
     return (
       <div className="stack">
-        <StatusChip tone="expired" label="Stopped" />
+        <StatusDot tone="expired" label="Stopped" />
         <p>
           Your recurring donation stopped because CalDART could not charge{' '}
           {mandate.method_label || 'your saved payment method'}.
@@ -346,7 +346,7 @@ function DonationSummary({ mandate }: { mandate: RenewalMandate | null }): JSX.E
 
   return (
     <div className="stack">
-      <StatusChip tone="current" label="On" />
+      <StatusDot tone="current" label="On" />
       <dl className="renewal__facts">
         <div>
           <dt>Method</dt>
@@ -366,7 +366,7 @@ function DonationSummary({ mandate }: { mandate: RenewalMandate | null }): JSX.E
           <dt>Next charge</dt>
           <dd>
             <DateText value={mandate.next_charge_on} /> ·{' '}
-            <span className="mono">{formatCents(mandate.amount_cents)}</span>
+            <span className="num">{formatCents(mandate.amount_cents)}</span>
           </dd>
         </div>
       </dl>

@@ -347,7 +347,7 @@ function PaymentStep({
     <section className="donate stack">
       <div className="donate__summary">
         <p>
-          You are giving <strong className="mono">{formatCents(amountCents)}</strong> as{' '}
+          You are giving <strong className="num">{formatCents(amountCents)}</strong> as{' '}
           {donor.first_name} {donor.last_name} ({donor.email}).
         </p>
         <Button variant="quiet" onClick={() => handleChange()}>

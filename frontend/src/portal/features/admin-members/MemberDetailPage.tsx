@@ -15,13 +15,13 @@ import { useParams, useSearchParams } from 'react-router-dom';
 import type { MemberDetail } from '@/portal/api/types';
 import { useAuth } from '@/portal/auth/useAuth';
 import { ACCOUNT_KIND_LABELS, roleLabel } from '@/portal/choices';
-import { BouncedChip } from '@/portal/components/BouncedChip';
+import { BouncedDot } from '@/portal/components/BouncedDot';
 import { ButtonLink } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { DateText } from '@/portal/components/DateText';
 import { EmptyState } from '@/portal/components/EmptyState';
 import { Page } from '@/portal/components/Page';
-import { MembershipChip } from '@/portal/components/StatusChip';
+import { MembershipDot, StatusDot } from '@/portal/components/StatusDot';
 import { MemberDangerZone } from './MemberDangerZone';
 import { MemberEmailPreferences, showsEmailPreferences } from './MemberEmailPreferences';
 import { MemberMembershipsTab } from './MemberMembershipsTab';
@@ -124,7 +124,7 @@ function MemberHeader({ member }: { member: MemberDetail }) {
   return (
     <Card>
       <div className="cluster">
-        <MembershipChip membership={member.membership} />
+        <MembershipDot membership={member.membership} />
         {member.membership.plan ? <span className="muted">{member.membership.plan}</span> : null}
         {member.membership.is_lifetime ? null : (
           <span className="muted">
@@ -143,17 +143,15 @@ function MemberHeader({ member }: { member: MemberDetail }) {
             </>
           )}
         </span>
-        {member.kind === 'donor' ? (
-          <span className="chip chip--neutral">{ACCOUNT_KIND_LABELS.donor}</span>
-        ) : null}
-        {member.is_active ? null : <span className="chip chip--bad">Account deactivated</span>}
+        {member.kind === 'donor' ? <span>{ACCOUNT_KIND_LABELS.donor}</span> : null}
+        {member.is_active ? null : <StatusDot tone="expired" label="Account deactivated" />}
       </div>
       <p className="muted cluster">
         <span>
           <a href={`mailto:${member.email}`}>{member.email}</a> ·{' '}
           {member.roles.map(roleLabel).join(', ')}
         </span>
-        <BouncedChip bouncedAt={member.email_bounced_at} detail={member.email_bounce_detail} />
+        <BouncedDot bouncedAt={member.email_bounced_at} detail={member.email_bounce_detail} />
       </p>
     </Card>
   );

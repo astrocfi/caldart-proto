@@ -1,10 +1,10 @@
 :roles: system_admin
 
 ===========
-Sent Emails
+Sent emails
 ===========
 
-**Sent Emails** lists every email CalDART has tried to send, 25 at a time and newest first.
+**Sent emails** lists every email CalDART has tried to send, 25 at a time and newest first.
 It answers "what did we send this person?" and "is our mail going out at all?" Only a system
 administrator sees it, under **System** in the menu, because it lists every address the site
 has written to.
@@ -28,8 +28,9 @@ Each row is one email. The table shows the columns ticked under **Columns** (see
 - **Name**: the recipient's name, when CalDART knows it. A DART contact on a roster has a
   name and no account.
 - **Subject**: the email's subject line.
-- **Status**: *Sent*; *Failed:* and the reason the mail server gave; or *Bounced*, for an
-  email the mail server took that the recipient's mail server later refused for good.
+- **Status**: *Sent* beside a green dot; *Failed:* and the reason the mail server gave, beside a
+  red one; or *Bounced*, beside a red one, for an email the mail server took that the
+  recipient's mail server later refused for good.
 
 Tick **Error**, **Attachments**, **Bounced**, or **Bounce detail** to add them: the reason a
 send failed, the names of any files attached, the date a bounce came back, and the reason

@@ -74,7 +74,7 @@ export function NNumberField({
           <Typeahead
             {...field}
             listLabel="FAA registrations"
-            className="mono"
+            className="num"
             placeholder="N172SP"
             autoComplete="off"
             value={value}

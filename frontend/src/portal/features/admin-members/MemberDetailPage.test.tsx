@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { QueryClient } from '@tanstack/react-query';
 import { HttpResponse, http } from 'msw';
@@ -8,6 +8,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { API } from '@test/handlers';
 import { renderWithProviders, signedInClient } from '@test/render';
 import { server } from '@test/server';
+import type { MemberTerm } from '@/portal/api/types';
 import { MemberDetailPage } from './MemberDetailPage';
 import { makeDetail } from '@test/fixtures/members';
 import { makeLedger } from '@test/fixtures/finance';
@@ -335,6 +336,51 @@ describe('MemberDetailPage', () => {
 
     expect(screen.getByLabelText('Term status')).toHaveValue('suspended');
     expect(screen.getByRole('option', { name: 'Suspended' })).toBeInTheDocument();
+  });
+
+  describe('the membership history', () => {
+    /** One term of the history, active and paid unless the case says otherwise. */
+    function term(overrides: Partial<MemberTerm>): MemberTerm {
+      return {
+        id: 11,
+        plan: 'Annual',
+        plan_slug: 'annual',
+        starts_on: '2026-07-01',
+        ends_on: '2027-06-30',
+        status: 'active',
+        source: 'payment',
+        note: '',
+        granted_by: null,
+        payment: 21,
+        created_at: '2026-07-01T12:00:00Z',
+        ...overrides,
+      };
+    }
+
+    it.each([
+      ['active', 'Active', 'current'],
+      ['expired', 'Expired', 'expired'],
+      ['canceled', 'Canceled', 'none'],
+      ['suspended', 'Suspended', 'none'],
+    ] as const)('shows a %s term as the word %s beside its dot', async (status, word, tone) => {
+      server.use(...detailHandlers(makeDetail({ memberships: [term({ status })] })));
+      renderDetail('/admin/members/1?tab=memberships');
+
+      const table = within(await screen.findByRole('table'));
+      expect(table.getByText(word)).toHaveAttribute('data-tone', tone);
+    });
+
+    it.each([
+      ['payment', 'Paid'],
+      ['manual', 'Granted by hand'],
+      ['seed', 'Demo data'],
+    ] as const)('names a %s source %s, not by its code', async (source, word) => {
+      server.use(...detailHandlers(makeDetail({ memberships: [term({ source })] })));
+      renderDetail('/admin/members/1?tab=memberships');
+
+      const table = within(await screen.findByRole('table'));
+      expect(table.getByRole('cell', { name: word })).toBeInTheDocument();
+    });
   });
 
   it('requires the email address to be typed before deleting', async () => {

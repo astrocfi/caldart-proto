@@ -23,7 +23,7 @@ import {
   useFreshErrors,
   useRefusedSubmit,
 } from '@/portal/components/RefusedSubmit';
-import { MembershipChip } from '@/portal/components/StatusChip';
+import { MembershipDot } from '@/portal/components/StatusDot';
 import { useToast } from '@/portal/components/Toast';
 import { useDebounced } from '@/portal/components/useDebounced';
 import { reportedErrors, useFinanceMemberSearch, useRecordPayment } from './api';
@@ -64,7 +64,7 @@ function MemberPicker({ chosen, onChoose, error, searchRef }: MemberPickerProps)
       <div className="record-payment__chosen">
         <p>
           <strong>{chosen.name}</strong> <span className="muted">{chosen.email}</span>{' '}
-          <MembershipChip membership={chosen.membership} />
+          <MembershipDot membership={chosen.membership} />
         </p>
         <Button variant="quiet" small onClick={() => onChoose(null)}>
           Choose somebody else
@@ -106,7 +106,7 @@ function MemberPicker({ chosen, onChoose, error, searchRef }: MemberPickerProps)
               >
                 <span className="member-picker__name">{member.name}</span>
                 <span className="member-picker__meta">{member.email}</span>
-                <MembershipChip membership={member.membership} />
+                <MembershipDot membership={member.membership} />
               </button>
             </li>
           ))}

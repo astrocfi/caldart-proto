@@ -5,8 +5,8 @@ Messages
 **Messages** is where you read again the bulk emails CalDART has sent you. Bulk email is the
 news CalDART writes to many members and friends at once, such as meeting announcements,
 appeals for donations, and requests for pilots. If you deleted one, joined after it went
-out, or your mail program shows it badly, you can read it here. Open it from **Bulk Email**
-in the menu; the screen's own heading names it under **Your email**.
+out, or your mail program shows it badly, you can read it here. Open it from **Your email**
+in the menu.
 
 
 What you see

@@ -34,7 +34,7 @@ Running any of them twice does nothing twice.
 Renewal reminder emails
 =======================
 
-Every morning at 07:00 CalDART emails members whose membership is about to expire or has
+Every morning at 7:00 AM CalDART emails members whose membership is about to expire or has
 just expired: 60, 30, and 7 days before, on the day, and 30 days after, on the default
 schedule. The panel names the days the stored schedule uses. It sends email only and never
 charges anyone. A member whose automatic renewal is on is skipped. The
@@ -86,7 +86,7 @@ Automatic renewal charges
 =========================
 
 Members can ask CalDART to renew their membership for them from a card or PayPal account
-saved with the payment provider. Every morning at 06:30, before the reminder emails, this job
+saved with the payment provider. Every morning at 6:30 AM, before the reminder emails, this job
 looks after them. It emails each member a notice two weeks before their charge (*CalDART: we
 will renew your membership on* and the date), warns anyone whose saved card runs out before
 the charge (*the card we renew your membership with expires soon*), and takes the charges
@@ -122,7 +122,7 @@ membership* email.
 Scheduled reports
 =================
 
-Every morning at 06:00 CalDART sends the report subscriptions set up on :doc:`subscriptions`,
+Every morning at 6:00 AM CalDART sends the report subscriptions set up on :doc:`subscriptions`,
 and early each month it sends each DART's roster. The box reads **Dry run (send nothing)**.
 
 The result reads, for example, *Would send 5 emails, skipped 1.* When something was skipped,
@@ -136,7 +136,7 @@ email: *Report* or *Roster*, who it goes to, and **Report or DART**.
 Year-end statements
 ===================
 
-Each January 15th at 06:45 CalDART emails every active member, friend, and donor who gave in
+Each January 15th at 6:45 AM CalDART emails every active member, friend, and donor who gave in
 the year before a statement of their gifts for their tax return, with the statement attached.
 The subject reads *CalDART: your 2025 contribution statement*, with the year and your
 organization's name.
@@ -186,7 +186,7 @@ Bulk email sender
 Every minute CalDART starts each bulk email whose time has come, either at the end of its two
 minutes to cancel or at the time it was scheduled for, and sends its copies a few at a time,
 so the mail provider never turns them away. CalDART management writes and sends those emails
-on the Bulk Email screens (:doc:`../bulk-email/compose`).
+on the Bulk email screens (:doc:`../bulk-email/compose`).
 
 The panel has no dry run, because the sender only sends what CalDART management has already
 pressed **Send** on. Press **Run the bulk email sender now**, under the panel's description

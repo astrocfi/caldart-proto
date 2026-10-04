@@ -31,7 +31,7 @@ import { Money } from '@/portal/components/Money';
 import { Page } from '@/portal/components/Page';
 import type { ReportCell } from '@/portal/components/reportTable';
 import { ColumnTools, reportTableColumns, useColumnChoice } from '@/portal/components/reportTable';
-import { StatusChip } from '@/portal/components/StatusChip';
+import { StatusDot } from '@/portal/components/StatusDot';
 import { useToast } from '@/portal/components/Toast';
 import { useUrlFilters } from '@/portal/components/useUrlFilters';
 import { CADENCE_LABELS } from '@/portal/features/payments/labels';
@@ -167,7 +167,7 @@ const MANDATE_CELLS: Record<string, ReportCell<RenewalMandate>> = {
     wrap: true,
     render: (row) => (
       <>
-        <StatusChip
+        <StatusDot
           tone={MANDATE_STATUS_TONES[row.status]}
           label={MANDATE_STATUS_LABELS[row.status]}
         />
@@ -295,7 +295,7 @@ export function RenewalsPage(): JSX.Element {
       width: '8rem',
       keepInSight: true,
       render: (row) => (
-        <StatusChip
+        <StatusDot
           tone={RENEWAL_OUTCOME_TONES[row.outcome]}
           label={RENEWAL_OUTCOME_LABELS[row.outcome]}
         />

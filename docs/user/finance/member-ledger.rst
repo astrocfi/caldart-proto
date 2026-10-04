@@ -16,8 +16,8 @@ record. A treasurer, who does not open member records, uses this screen.
 What you see
 ============
 
-The heading is the member's name, with their email address beneath it and a chip on the
-right showing where their membership stands. Beside the chip, an account administrator
+The heading is the member's name, with their email address beneath it and, on the right,
+where their membership stands. Beside it, an account administrator
 sees **Member record**, which opens the person's :doc:`../admin/member-record`, a donor's
 included. The history of a **Deleted member** has no such link: that record cannot be
 changed.

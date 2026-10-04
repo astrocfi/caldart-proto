@@ -21,7 +21,7 @@ import type { Column } from '@/portal/components/DataTable';
 import { DataTable } from '@/portal/components/DataTable';
 import { DateText } from '@/portal/components/DateText';
 import { Page } from '@/portal/components/Page';
-import { StatusDot } from '@/portal/components/StatusChip';
+import { StatusDot } from '@/portal/components/StatusDot';
 import { DROP_ORDER } from './dropOrder';
 import { recipientsCsvUrl, useBulkSender, useSentEmails } from './api';
 import './bulk-email.css';
@@ -133,7 +133,6 @@ export const SENT_COLUMNS: Column<BulkEmailSummary>[] = [
     render: (row) => (
       <span className="bulk-email__will-receive">
         <StatusDot tone={statusTone(row.status)} label={statusLabel(row)} />
-        <span aria-hidden="true">{statusLabel(row)}</span>
       </span>
     ),
     sortValue: (row) => row.status,

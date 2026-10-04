@@ -4,8 +4,8 @@
  * insurance state every screen colors its chips by.
  */
 import type { AircraftSummary } from '@/portal/api/types';
-import { EXPIRING_WINDOW_DAYS, daysUntil } from '@/portal/components/StatusChip';
-import type { StatusTone } from '@/portal/components/StatusChip';
+import { EXPIRING_WINDOW_DAYS, daysUntil } from '@/portal/components/StatusDot';
+import type { StatusTone } from '@/portal/components/StatusDot';
 
 const PUNCTUATION = /[^A-Za-z0-9]/g;
 
@@ -26,7 +26,7 @@ export function looksLikeRegistration(value: string): boolean {
   return /\d/.test(value);
 }
 
-/** Insurance currency as one of the four chip tones. */
+/** Insurance currency as one of the four status tones. */
 export function insuranceTone(
   aircraft: Pick<AircraftSummary, 'insurance_is_current' | 'insurance_expiration'>,
   today: Date = new Date(),
@@ -47,7 +47,7 @@ const INSURANCE_LABEL: Record<StatusTone, string> = {
   none: 'No insurance on file',
 };
 
-/** The chip text for an insurance tone. */
+/** The status word for an insurance tone. */
 export function insuranceLabel(tone: StatusTone): string {
   return INSURANCE_LABEL[tone];
 }

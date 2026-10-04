@@ -18,8 +18,8 @@ What you see
 The cards read down the page in this order. Each appears only when it applies.
 
 **Membership**
-  A chip with your membership's state, and the date it runs to or ran out on. The
-  four chips are:
+  A colored dot and a word for your membership's state, and the date it runs to or ran
+  out on. The four states are:
 
   * **Current**: a term covers today.
   * **Expiring soon**: current, with 30 days or fewer to run.
@@ -33,7 +33,7 @@ The cards read down the page in this order. Each appears only when it applies.
   **Make me a friend** appears beside the button (see :doc:`profile`).
 
   A life member's card is headed **Lifetime member**, carries the **Never
-  expires** chip, and reads *Nothing to renew* with thanks for joining for life.
+  expires** state, and reads *Nothing to renew* with thanks for joining for life.
   It offers no button.
 
   A friend's card is labeled **Friend of CalDART** and headed **You are a friend of
@@ -43,16 +43,18 @@ The cards read down the page in this order. Each appears only when it applies.
 
 **Member content**
   The members-only pages you may read, straight from the public site (see
-  :doc:`members-only-content`). The card says **Nothing published yet** both when
-  there are none and when your membership has lapsed, so check your membership
-  chip if you expected pages. A friend does not see this card, unless a staff role
-  lets them read those pages anyway.
+  :doc:`members-only-content`). When your membership has lapsed, the card says
+  *Members-only pages are open to current members* and offers **Renew to read them
+  again**, which opens :doc:`renew`. When nothing members-only is published, it says
+  **Nothing published yet**. A friend does not see this card, unless a staff role lets
+  them read those pages anyway.
 
 **Recent payments**
   One line saying whether automatic renewal is on, and if so what the next charge
   comes to and when. A life member's line is about their recurring donation. Then
-  your last five payments, with the **Date**, **Plan**, **Amount**, and **Status**
-  of each. **All payments, receipts and renewal** opens :doc:`payments`.
+  your last five payments, with the **Date** each was paid, the **Plan**, the
+  **Amount**, and the **Status** as a colored dot and its word. **All payments,
+  receipts and renewal** opens :doc:`payments`.
 
 **Quick links**
   Every other screen your roles open, in the same groups as the menu.
@@ -61,21 +63,37 @@ The cards read down the page in this order. Each appears only when it applies.
 Finding your way around
 =======================
 
-The menu down the left of every portal screen is grouped under **Membership**,
-**Operations**, **Administration**, and **System**, and shows only the screens your
-roles open. Every signed-in person has the **Membership** group: **Dashboard**, **My
-profile**, **My aircraft**, **Payments**, **Donate**, **Renew**, **Change
-password**, and **Change email**. A friend has no **Renew** entry, since a friend
-has nothing to renew. The other groups belong to DART leaders and administrators
-(see :doc:`../roles`).
+The menu down the left of every portal screen is grouped under **Membership**, **Your
+email**, **Operations**, **Bulk email**, **Administration**, and **System**, and shows
+only the screens your roles open. Each screen's small heading above its title names
+the group it sits under.
+
+Every signed-in person has two groups:
+
+* **Membership**: **Dashboard**, **My profile**, **My aircraft**, **Payments**,
+  **Donate**, **Renew**, **Change password**, and **Change email**. A friend has no
+  **Renew** entry, since a friend has nothing to renew, and a life member's reads
+  **Contribute**.
+* **Your email**: **Messages** (:doc:`messages`) and **Email preferences**
+  (:doc:`email-preferences`), the bulk email CalDART has sent you and the kinds it
+  sends.
+
+The other groups belong to DART leaders, CalDART management, and administrators (see
+:doc:`../roles`). When the menu is longer than the window it scrolls on its own, a
+shadow at its foot shows that more entries lie below, and it always opens with the
+screen you are on in view.
+
+Every date and time in the portal is Pacific time, written like *10/04/2026 at 5:33
+AM*.
 
 At the foot of the menu, **User guide** opens this guide in a new tab, at its
 beginning, and **Back to caldart.org** returns you to the public site.
 
 The top bar holds **Help**, which opens the page of this guide for the screen you
-are on in a new tab, then your email address and **Sign out**. On a phone the menu
-folds away behind the **Menu** button in the top bar. Every screen works from the
-keyboard, and *Skip to content* is the first stop when you press Tab.
+are on in a new tab, then your name and **Sign out**. On a phone or a narrow window the
+menu folds away behind the **Menu** button in the top bar; Escape closes it again. Every
+screen works from the keyboard, and *Skip to content* is the first stop when you press
+Tab.
 
 
 When a screen will not open
@@ -90,13 +108,18 @@ When a screen will not open
 
 **Page not found**
   *That page is not part of the member portal.* The address is mistyped or out of
-  date. **Go to the dashboard** takes you home.
+  date. **Go to the dashboard** takes you home. If you are not signed in, **Go to the
+  CalDART home page** takes you to the public site instead.
+
+**This page did not load**
+  The screen's code did not arrive, usually because the connection dropped or the
+  site was updated while the page was open. Press **Reload** to try again.
 
 
 If something looks wrong
 ========================
 
-If you paid and the chip still says **Expired** or **Friend**, reload the page
+If you paid and the card still says **Expired** or **Friend**, reload the page
 first. Then look at **Recent payments**: a payment marked **Failed** moved no
 money, so try again from :doc:`renew`. A payment marked **Succeeded** with no
 membership behind it is a fault; tell the office the date and the amount. If a menu

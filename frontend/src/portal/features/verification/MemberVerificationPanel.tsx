@@ -112,7 +112,7 @@ export function MemberVerificationPanel({
             {(props) => (
               <input
                 {...props}
-                className="mono"
+                className="num"
                 value={draft.certificate_number}
                 onChange={(event) => set('certificate_number', event.target.value)}
               />
@@ -124,7 +124,7 @@ export function MemberVerificationPanel({
               <input
                 {...props}
                 type="date"
-                className="mono"
+                className="num"
                 value={draft.medical_expiration}
                 onChange={(event) => set('medical_expiration', event.target.value)}
               />

@@ -229,7 +229,10 @@ def test_the_email_log_report_prints_the_bounce(
         system_admin_client.get(CSV_URL, {"columns": "status,bounced_at,bounce_detail"})
     )
 
-    assert rows == [["Status", "Bounced", "Bounce detail"], ["Bounced", "10/01/2026 11:00", DETAIL]]
+    assert rows == [
+        ["Status", "Bounced", "Bounce detail"],
+        ["Bounced", "10/01/2026 at 11:00 AM", DETAIL],
+    ]
 
 
 def test_the_email_log_report_leaves_the_bounce_blank_for_a_sent_message(

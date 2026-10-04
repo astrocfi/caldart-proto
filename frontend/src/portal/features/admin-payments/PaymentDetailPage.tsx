@@ -26,7 +26,7 @@ import { MemberRecordLink } from '@/portal/components/MemberRecordLink';
 import { Money } from '@/portal/components/Money';
 import { Page } from '@/portal/components/Page';
 import { useFreshErrors, useRefusedSubmit } from '@/portal/components/RefusedSubmit';
-import { StatusChip } from '@/portal/components/StatusChip';
+import { StatusDot } from '@/portal/components/StatusDot';
 import { useToast } from '@/portal/components/Toast';
 import { useFocusAfterSave, usePanelFocus } from '@/portal/components/focus';
 import {
@@ -92,7 +92,7 @@ function Facts({ payment }: FactsProps): JSX.Element {
       </div>
       <div>
         <dt>Receipt</dt>
-        <dd className="mono">{payment.receipt_number}</dd>
+        <dd className="num">{payment.receipt_number}</dd>
       </div>
       <div>
         <dt>For</dt>
@@ -147,7 +147,7 @@ function Facts({ payment }: FactsProps): JSX.Element {
       </div>
       <div>
         <dt>Reference</dt>
-        <dd className="mono">{payment.provider_ref || '—'}</dd>
+        <dd className="num">{payment.provider_ref || '—'}</dd>
       </div>
       <div>
         <dt>Receipt emailed</dt>
@@ -224,7 +224,7 @@ function ReconcileCard({ payment }: ReconcileCardProps): JSX.Element {
   }
 
   return (
-    <Card title="Reconciliation" eyebrow="Treasurer">
+    <Card title="Reconciliation">
       <form ref={formRef} onSubmit={handleSave} noValidate>
         <Field
           label="Matched on"
@@ -328,12 +328,12 @@ export function PaymentDetailPage(): JSX.Element {
       title={`Payment ${payment.receipt_number}`}
       lede={`${payment.user_name} · ${STATUS_LABELS[payment.status]}`}
       actions={
-        <StatusChip tone={statusTone(payment.status)} label={STATUS_LABELS[payment.status]} />
+        <StatusDot tone={statusTone(payment.status)} label={STATUS_LABELS[payment.status]} />
       }
     >
       <FinanceTabs current="/admin/payments/list" />
 
-      <Card title="This payment" eyebrow="Record">
+      <Card title="This payment">
         <Facts payment={payment} />
         <div className="cluster">
           <Button
@@ -374,7 +374,7 @@ export function PaymentDetailPage(): JSX.Element {
         </div>
       ) : null}
 
-      <Card title="Refunds" eyebrow="History">
+      <Card title="Refunds">
         <DataTable
           columns={REFUND_COLUMNS}
           rows={payment.refunds}

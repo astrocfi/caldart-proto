@@ -12,11 +12,11 @@ import { Card } from '@/portal/components/Card';
 import { DeleteButton } from '@/portal/components/DeleteButton';
 import { EmptyState } from '@/portal/components/EmptyState';
 import { Page } from '@/portal/components/Page';
-import { StatusChip } from '@/portal/components/StatusChip';
+import { StatusDot } from '@/portal/components/StatusDot';
 import { useToast } from '@/portal/components/Toast';
 import { AircraftForm } from '@/portal/features/aircraft/AircraftForm';
-import { InsuranceChip } from '@/portal/features/aircraft/InsuranceChip';
-import { ServiceChip } from '@/portal/features/aircraft/ServiceChip';
+import { InsuranceDot } from '@/portal/features/aircraft/InsuranceDot';
+import { ServiceDot } from '@/portal/features/aircraft/ServiceDot';
 import {
   useAircraft,
   useAircraftChanges,
@@ -132,8 +132,8 @@ export function AircraftRecordPage(): JSX.Element {
       lede={`${aircraft.make} ${aircraft.model}`.trim()}
       actions={
         <>
-          <InsuranceChip aircraft={aircraft} />
-          <ServiceChip aircraft={aircraft} />
+          <InsuranceDot aircraft={aircraft} />
+          <ServiceDot aircraft={aircraft} />
         </>
       }
     >
@@ -142,10 +142,8 @@ export function AircraftRecordPage(): JSX.Element {
         onSaved={() => setFormResetKey((key) => key + 1)}
       />
 
-      <Card
-        eyebrow={lastUpdatedLine(aircraft.updated_at, aircraft.updated_by ?? null)}
-        title="Details"
-      >
+      <Card title="Details">
+        <p className="muted">{lastUpdatedLine(aircraft.updated_at, aircraft.updated_by ?? null)}</p>
         <AircraftForm
           // A verification save may correct the insurance, so it starts the form
           // again from what the register now holds; any other write to the
@@ -162,11 +160,9 @@ export function AircraftRecordPage(): JSX.Element {
         />
       </Card>
 
-      <Card eyebrow="Register" title="History">
-        {history()}
-      </Card>
+      <Card title="History">{history()}</Card>
 
-      <Card eyebrow="Members" title="Pilots who fly this aircraft">
+      <Card title="Pilots who fly this aircraft">
         {pilots.length === 0 ? (
           <p className="muted">No member lists this aircraft on their profile.</p>
         ) : (
@@ -174,14 +170,14 @@ export function AircraftRecordPage(): JSX.Element {
             {pilots.map((pilot) => (
               <li key={pilot.user_id}>
                 <Link to={`/admin/members/${pilot.user_id}`}>{pilot.name}</Link>
-                <span className="aircraft-pilots__email mono">{pilot.email}</span>
-                <StatusChip
+                <span className="aircraft-pilots__email">{pilot.email}</span>
+                <StatusDot
                   tone={pilot.membership_status === 'current' ? 'current' : 'expired'}
                   label={
                     pilot.membership_status === 'current' ? 'Member current' : 'Member expired'
                   }
                 />
-                <StatusChip
+                <StatusDot
                   tone={pilot.medical_is_current ? 'current' : 'expired'}
                   label={pilot.medical_is_current ? 'Medical current' : 'Medical not current'}
                 />

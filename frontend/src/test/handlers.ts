@@ -621,6 +621,13 @@ export const NOTIFICATION_EVENTS: NotificationEvent[] = [
     'An aircraft was taken off a list.',
     ['account_admin'],
   ),
+  notificationEvent(
+    'callout_answer',
+    'Callout answer',
+    'Callouts',
+    'Somebody answered a mission callout, or changed their answer.',
+    ['management', 'dart_leader'],
+  ),
 ];
 
 /** What the `/admin/notifications` screen reads as it mounts. */

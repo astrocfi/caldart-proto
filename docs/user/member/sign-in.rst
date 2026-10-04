@@ -51,7 +51,7 @@ open without signing in, so **Help** works on the screens you see before you can
 sign in.
 
 You stay signed in on that browser until you sign out. **Sign out** is in the
-portal's top bar, beside your email address. It ends the session and clears
+portal's top bar, beside your name. It ends the session and clears
 everything the portal had kept about you, which matters on a shared or borrowed
 computer.
 

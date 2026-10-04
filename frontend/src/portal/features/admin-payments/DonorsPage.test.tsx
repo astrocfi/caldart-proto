@@ -85,7 +85,7 @@ describe('DonorsPage', () => {
     renderWithProviders(<DonorsPage />);
 
     await screen.findByRole('row', { name: /Dana Doe/ });
-    const table = screen.getByRole('table', { name: 'Donors' });
+    const table = screen.getByRole('table', { name: '1 donor' });
     const headers = within(table)
       .getAllByRole('columnheader')
       .map((cell) => cell.textContent?.replace(/[↑↓↕]/g, '').trim());
@@ -134,7 +134,7 @@ describe('DonorsPage', () => {
     await user.click(screen.getByRole('button', { name: 'Columns' }));
     await user.click(screen.getByRole('checkbox', { name: 'County' }));
 
-    const table = screen.getByRole('table', { name: 'Donors' });
+    const table = screen.getByRole('table', { name: '1 donor' });
     expect(within(table).getByText('Contra Costa')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Export CSV' })).toHaveAttribute(
       'href',

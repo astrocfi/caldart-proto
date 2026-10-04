@@ -8,7 +8,7 @@ Users and roles
 administrators. Use it to find an account, to see what it may do, and to open it to change
 its roles, correct its name or address, or help somebody back in.
 
-A user administrator finds it as **Users & roles** under **Administration** in the menu. A
+A user administrator finds it as **Users and roles** under **Administration** in the menu. A
 system administrator can open it too. A user administrator looks after accounts and roles
 and does not edit profiles, grant memberships, or see payments, which belong to an account
 administrator and the treasurer.
@@ -34,7 +34,8 @@ both (see `Exporting the roles report`_). At first it shows:
 - **Phone**: the phone number on their profile.
 - **DART**: their team, blank for none.
 - **Kind**: **Member**, **Friend**, or **Donor**, as the account's record shows it.
-- **Membership**: **Current**, **Expired**, **Friend**, or **Donor**, after a colored dot.
+- **Membership**: a colored dot and the membership's state: **Current**, **Expiring soon**,
+  **Expired**, **Never expires**, **Friend**, or **Donor**.
 
 **Name** and **Email** sort: click one to sort by it, and again to reverse the order. The
 other headings have no arrow and do not sort. On a narrower screen the table leaves out
@@ -134,7 +135,7 @@ What each role opens
 - **Account administrator**: the member list and records, the aircraft register, the DARTs,
   the payments, the reminders, and the reports, and verifying from the checks and the
   records.
-- **CalDART management**: the Bulk Email screens, starting with
+- **CalDART management**: the Bulk email screens, starting with
   :doc:`../bulk-email/compose`, to email a batch of members and friends, and nothing that
   shows a member's record.
 - **Website administrator**: the website's editor, for pages, images, documents, redirects,

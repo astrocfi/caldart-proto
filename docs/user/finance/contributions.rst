@@ -51,7 +51,8 @@ Download the list
 **Export CSV** gives a file for a mail merge, and **Export PDF** a copy for the board.
 Each file is named for the day it was made. Click a column heading to sort the table by
 it, and click it again to reverse the order; the table opens sorted by **Net**, largest
-first, and every heading but **Statement** sorts. The **Subscriptions** screen can also send this list on a schedule, for **This year** or
+first, and every heading but **Statement** sorts. The **Emailed reports** screen can also
+send this list on a schedule, for **This year** or
 **Last year**.
 
 If something looks wrong

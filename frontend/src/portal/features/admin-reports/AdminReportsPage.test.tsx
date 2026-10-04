@@ -15,7 +15,7 @@ describe('AdminReportsPage', () => {
     );
     renderWithProviders(<AdminReportsPage />);
 
-    expect(screen.getByRole('heading', { level: 1, name: 'Subscriptions' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Emailed reports' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 2, name: 'Subscriptions' })).toBeInTheDocument();
     expect(await screen.findByRole('heading', { name: 'DART rosters' })).toBeInTheDocument();
   });

@@ -300,7 +300,8 @@ work does not collide in the route table.
    ``routes/index.tsx``, which does nothing but concatenate the feature files.
 #. Declare the navigation entry in ``frontend/src/portal/nav.ts``.  An entry
    with no ``NAV_ITEMS`` row is reachable by URL alone, which is how a screen
-   ends up invisible.
+   ends up invisible.  The label matches the page's title, and the entry's group
+   becomes the page's eyebrow, so ``Page`` takes none.
 #. Write ``<Name>Page.test.tsx`` beside the component, rendering through
    ``src/test/render.tsx`` and answering the API from the msw server in
    ``src/test/server.ts``.
@@ -327,7 +328,7 @@ work does not collide in the route table.
      const query = useUninsuredAircraft();
 
      return (
-       <Page title="Lapsed insurance" eyebrow="Aircraft" lede="Airframes to chase.">
+       <Page title="Lapsed insurance" lede="Airframes to chase.">
          {query.isPending ? <Loading /> : null}
          {query.data?.length === 0 ? <EmptyState title="Every aircraft is insured." /> : null}
          {query.data?.map((aircraft) => (

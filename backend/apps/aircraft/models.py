@@ -230,7 +230,7 @@ class RegistryImport(models.Model):
 
     ``finished_at`` is null while the run is under way; ``ok`` says whether it
     succeeded and ``error`` why it did not.  ``started_by`` is the system administrator
-    who started it from the Health & Database page, null for a run the timer started.
+    who started it from the Health and database page, null for a run the timer started.
     """
 
     started_at = models.DateTimeField(default=timezone.now)

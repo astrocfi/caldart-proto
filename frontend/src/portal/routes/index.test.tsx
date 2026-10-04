@@ -109,7 +109,7 @@ vi.mock('../features/bulk-email/ComposePage', () => ({
   ComposePage: pageStub('Compose a bulk email'),
 }));
 vi.mock('../features/bulk-email/DraftsPage', () => ({
-  DraftsPage: pageStub('Drafts & scheduled'),
+  DraftsPage: pageStub('Drafts and scheduled'),
 }));
 vi.mock('../features/bulk-email/SentPage', () => ({ SentPage: pageStub('Sent') }));
 vi.mock('../features/bulk-email/SentDetailPage', () => ({
@@ -149,9 +149,9 @@ vi.mock('../features/admin-users/UserDetailPage', () => ({
   UserDetailPage: pageStub('User record'),
 }));
 vi.mock('../features/system/HealthDatabasePage', () => ({
-  HealthDatabasePage: pageStub('Health & Database'),
+  HealthDatabasePage: pageStub('Health and database'),
 }));
-vi.mock('../features/system/SentEmailsPage', () => ({ SentEmailsPage: pageStub('Sent Emails') }));
+vi.mock('../features/system/SentEmailsPage', () => ({ SentEmailsPage: pageStub('Sent emails') }));
 vi.mock('../features/system/ScheduledPage', () => ({ ScheduledPage: pageStub('Scheduled') }));
 
 /** The 403 page's headline, from `auth/guards.tsx`. */
@@ -309,7 +309,7 @@ const GUARDED_PATHS: GuardedPath[] = [
   },
   {
     path: '/bulk-email/drafts',
-    heading: 'Drafts & scheduled',
+    heading: 'Drafts and scheduled',
     allowed: ['dart_leader', 'management', 'system_admin'],
   },
   {
@@ -363,9 +363,9 @@ const GUARDED_PATHS: GuardedPath[] = [
   { path: '/email-preferences', heading: 'Email preferences', allowed: ANY_SIGNED_IN },
   { path: '/admin/users', heading: 'Users and roles', allowed: ['user_admin', 'system_admin'] },
   { path: '/admin/users/1', heading: 'User record', allowed: ['user_admin', 'system_admin'] },
-  { path: '/system', heading: 'Health & Database', allowed: ['system_admin'] },
-  { path: '/system/health', heading: 'Health & Database', allowed: ['system_admin'] },
-  { path: '/system/emails', heading: 'Sent Emails', allowed: ['system_admin'] },
+  { path: '/system', heading: 'Health and database', allowed: ['system_admin'] },
+  { path: '/system/health', heading: 'Health and database', allowed: ['system_admin'] },
+  { path: '/system/emails', heading: 'Sent emails', allowed: ['system_admin'] },
   { path: '/system/scheduled', heading: 'Scheduled', allowed: ['system_admin'] },
 ];
 
@@ -426,7 +426,7 @@ describe('the finance area', () => {
 });
 
 describe('the System section', () => {
-  it('sends a system administrator at /system to Health & Database', async () => {
+  it('sends a system administrator at /system to Health and database', async () => {
     server.use(signedInAs(makeUser({ roles: ['member', 'system_admin'] })));
 
     const { router } = renderRoutes(routes, { route: '/system' });

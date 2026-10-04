@@ -11,7 +11,7 @@ import { Link, useParams } from 'react-router-dom';
 import type { AdminUser, RoleSlug } from '@/portal/api/types';
 import { useAuth, useRoles } from '@/portal/auth/useAuth';
 import { ACCOUNT_KIND_LABELS, roleLabel } from '@/portal/choices';
-import { BouncedChip } from '@/portal/components/BouncedChip';
+import { BouncedDot } from '@/portal/components/BouncedDot';
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { ConfirmButton } from '@/portal/components/ConfirmButton';
@@ -20,7 +20,7 @@ import { EmptyState } from '@/portal/components/EmptyState';
 import { Field } from '@/portal/components/Field';
 import { MaskedInput } from '@/portal/components/MaskedInput';
 import { MemberRecordLink } from '@/portal/components/MemberRecordLink';
-import { MembershipChip } from '@/portal/components/StatusChip';
+import { MembershipDot } from '@/portal/components/StatusDot';
 import { Page } from '@/portal/components/Page';
 import {
   RefusedSubmitNote,
@@ -141,8 +141,8 @@ export function UserDetailPage(): JSX.Element {
     >
       <Card eyebrow="Membership" title="Where this account stands">
         <div className="cluster">
-          <span className="chip chip--neutral">{ACCOUNT_KIND_LABELS[user.kind]}</span>
-          <MembershipChip membership={user.membership} />
+          <span>{ACCOUNT_KIND_LABELS[user.kind]}</span>
+          <MembershipDot membership={user.membership} />
           <span className="muted">
             {user.profile_complete ? 'Profile complete' : 'Profile incomplete'}
           </span>
@@ -204,7 +204,7 @@ export function UserDetailPage(): JSX.Element {
               <>
                 This is also how they sign in.{' '}
                 <EmailVerifiedText verifiedAt={user.email_verified_at} />{' '}
-                <BouncedChip bouncedAt={user.email_bounced_at} detail={user.email_bounce_detail} />
+                <BouncedDot bouncedAt={user.email_bounced_at} detail={user.email_bounce_detail} />
               </>
             }
           >

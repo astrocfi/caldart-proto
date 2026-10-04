@@ -359,13 +359,13 @@ Aircraft Database, imported daily by ``manage.py import_faa_registry`` (see
    an ``http`` or ``https`` URL of the zip, which is downloaded, or a local zip
    or a directory holding ``ACFTREF.txt`` and ``MASTER.txt``, as a path or a
    ``file://`` URL.  The end-to-end run points it at the fixture directory,
-   ``backend/apps/aircraft/fixtures/faa``, so **Run now** on the Health & Database page
+   ``backend/apps/aircraft/fixtures/faa``, so **Run now** on the Health and database page
    imports the fixture rather than downloading.
 
    :Both: ``https://registry.faa.gov/database/ReleasableAircraft.zip``
 
 ``REGISTRY_IMPORT_STALE_MINUTES``
-   How many minutes an import started from the Health & Database page may run unfinished
+   How many minutes an import started from the Health and database page may run unfinished
    before it stops counting as running: the next **Run now** records it as
    failed, with the error *Did not finish.*, and starts another.  A full import
    takes well under a minute once the file is down, so the default leaves room

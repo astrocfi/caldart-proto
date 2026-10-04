@@ -69,16 +69,22 @@ describe('NotificationSubscriptionsCard', () => {
     ).toBeInTheDocument();
   });
 
-  it('marks a paused subscription with a dot', async () => {
+  it('marks a paused subscription with the word Paused beside a gray dot', async () => {
     const table = await renderCard();
 
-    expect(within(row(table, /board@example.org/)).getByTitle('Paused')).toBeInTheDocument();
+    expect(within(row(table, /board@example.org/)).getByText('Paused')).toHaveAttribute(
+      'data-tone',
+      'none',
+    );
   });
 
-  it('marks an active subscription with a dot', async () => {
+  it('marks an active subscription with the word Active beside a green dot', async () => {
     const table = await renderCard();
 
-    expect(within(row(table, /Ada Admin/)).getByTitle('Active')).toBeInTheDocument();
+    expect(within(row(table, /Ada Admin/)).getByText('Active')).toHaveAttribute(
+      'data-tone',
+      'current',
+    );
   });
 
   it('heads the actions column for a screen reader', async () => {
@@ -132,7 +138,7 @@ describe('NotificationSubscriptionsCard', () => {
 
     expect(await screen.findByRole('status')).toHaveTextContent('Resumed.');
     await vi.waitFor(() =>
-      expect(within(row(table, /board@example.org/)).getByTitle('Active')).toBeInTheDocument(),
+      expect(within(row(table, /board@example.org/)).getByText('Active')).toBeInTheDocument(),
     );
   });
 

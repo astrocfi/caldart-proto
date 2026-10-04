@@ -132,7 +132,7 @@
 }
 
 .aircraft-list__ident {
-  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   font-size: var(--text-lg);
   font-weight: var(--weight-medium);
 }

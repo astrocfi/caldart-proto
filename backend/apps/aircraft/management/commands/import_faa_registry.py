@@ -17,7 +17,7 @@ class Command(BaseCommand):
     ``--source`` names a URL of the zip, a local zip, or a directory holding
     ``ACFTREF.txt`` and ``MASTER.txt``; without it the command reads
     ``FAA_REGISTRY_URL``.  ``--types-only`` skips the master file.  ``--import-id``
-    fills in the ``RegistryImport`` row the Health & Database page wrote rather than
+    fills in the ``RegistryImport`` row the Health and database page wrote rather than
     creating one.  A failed import is recorded on its row and raises ``CommandError``.
     """
 

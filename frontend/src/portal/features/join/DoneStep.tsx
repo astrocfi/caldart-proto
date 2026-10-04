@@ -15,7 +15,7 @@ import { ButtonLink } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { DateText } from '@/portal/components/DateText';
 import { EmptyState } from '@/portal/components/EmptyState';
-import { MembershipChip } from '@/portal/components/StatusChip';
+import { MembershipDot } from '@/portal/components/StatusDot';
 import { useMembership } from '@/portal/features/profile/api';
 import { joinStepEyebrow } from './steps';
 import './join.css';
@@ -61,7 +61,7 @@ export function DoneStep({ joiningAs, hasPaid }: DoneStepProps): JSX.Element {
           </p>
         ) : status ? (
           <div className="renew__status">
-            <MembershipChip membership={status} />
+            <MembershipDot membership={status} />
             {isFriend ? (
               <p>You are a friend of CalDART: no dues, no expiry. Become a member any time.</p>
             ) : status.is_lifetime ? (

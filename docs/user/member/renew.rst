@@ -12,7 +12,7 @@ reminder email.
 What you see
 ============
 
-The **Where you stand** card comes first. It shows your membership chip, then
+The **Where you stand** card comes first. It shows your membership status, then
 *Expires* and the date with the days to go, or *Expired* and the date it ran out
 on, and the plan you hold, such as *Annual membership*.
 
@@ -49,9 +49,9 @@ An Annual term runs 365 days, counting the day it starts, so a term that starts 
 Life members
 ============
 
-A life member has nothing to renew, so the same menu entry opens **Contribute to
-CalDART**: *As a life member you have nothing to renew. A contribution keeps the
-DARTs flying.* The **Where you stand** card carries the **Never expires** chip and
+A life member has nothing to renew, so the menu entry reads **Contribute** and opens
+**Contribute to CalDART**: *As a life member you have nothing to renew. A contribution keeps the
+DARTs flying.* The **Where you stand** card reads **Never expires** and
 the line *You are a life member. Thank you.*, with no date and no plan.
 
 The form below it, **Make a contribution**, takes a contribution alone. **Make this

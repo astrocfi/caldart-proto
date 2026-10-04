@@ -68,6 +68,6 @@ If something looks wrong
 ========================
 
 The wall ends with *Already paid, or think this is wrong?* and the address to write
-to. Before writing, check the membership chip on your :doc:`dashboard`. If it says
+to. Before writing, check the membership status on your :doc:`dashboard`. If it says
 **Current** and the wall still appears, make sure you are signed in on this browser:
 **Sign in** in the top menu means you are not.

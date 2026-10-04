@@ -43,6 +43,12 @@ describe('<Page/>', () => {
     expect(document.title).toBe('Member check · CalDART');
   });
 
+  it('names the browser tab after the screen when the heading is a greeting', () => {
+    renderWithProviders(<Page title="Welcome, Marta" tabTitle="Dashboard" />, { route: '/' });
+
+    expect(document.title).toBe('Dashboard · CalDART');
+  });
+
   it('puts the actions on the title line', () => {
     const { container } = renderWithProviders(
       <Page

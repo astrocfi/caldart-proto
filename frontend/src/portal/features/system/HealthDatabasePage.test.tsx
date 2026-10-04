@@ -17,11 +17,11 @@ describe('HealthDatabasePage', () => {
     vi.useRealTimers();
   });
 
-  it('is headed Health & Database, with its lede', async () => {
+  it('is headed Health and database, with its lede', async () => {
     renderWithProviders(<HealthDatabasePage />);
 
     expect(
-      await screen.findByRole('heading', { level: 1, name: 'Health & Database' }),
+      await screen.findByRole('heading', { level: 1, name: 'Health and database' }),
     ).toBeInTheDocument();
     expect(
       screen.getByText(

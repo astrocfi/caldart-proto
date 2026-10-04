@@ -2,9 +2,9 @@
 Change email
 ============
 
-The **Change your email address** screen moves your account to another address.
-*You sign in with the new address, and we send it a verification message.* Open it
-from **Change email** in the menu.
+The **Change email** screen moves your account to another address. *You sign in with
+the new address, and we send it a verification message.* Open it from **Change email**
+under **Membership** in the menu.
 
 
 What you see
@@ -18,7 +18,8 @@ Two boxes:
 **Current password**
   Your password, to prove the request is yours.
 
-Press **Change email**. **Back to the dashboard** leaves without changing anything.
+Press **Change email**. To leave without changing anything, choose another screen in the
+menu.
 
 
 What happens next

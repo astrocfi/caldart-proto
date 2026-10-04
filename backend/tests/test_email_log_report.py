@@ -115,7 +115,7 @@ def test_a_row_reads_as_a_reader_would_say_it(system_admin_client: APIClient) ->
     rows = read_csv(system_admin_client.get(CSV_URL))
 
     assert rows[1] == [
-        "01/08/2026 09:05",
+        "01/08/2026 at 9:05 AM",
         "Receipt",
         "marta@example.org",
         "Marta Reyes",

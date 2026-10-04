@@ -136,7 +136,7 @@ def send_mandate_email(
     """Send one renewal email to the mandate's member, and say whether it went.
 
     The subject comes from :data:`SUBJECTS` with the organization's name filled
-    in and any date in ``extra`` written ``MM/DD/YYYY``, as the Sent Emails page
+    in and any date in ``extra`` written ``MM/DD/YYYY``, as the Sent emails page
     lists it; the body from ``emails/<template>.{txt,html}`` rendered over
     :func:`mandate_context`.  Each entry of ``attachments`` is a filename, its
     bytes and its media type, which is how the charge report carries the

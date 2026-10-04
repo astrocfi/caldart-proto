@@ -1,8 +1,8 @@
 ==========
-Bulk Email
+Bulk email
 ==========
 
-To send your first bulk email, press **Compose** under **Bulk Email** in the menu. In
+To send your first bulk email, press **Compose** under **Bulk email** in the menu. In
 **1. Who gets it**, choose filters, such as a DART or a county, and press **Add to batch**
 until the batch holds everybody the email is for. In **2. What it says**, choose the type
 of email, write the subject and the message, and press **Send me a test** to see it in your
@@ -11,7 +11,7 @@ the preview, and press **Send to 38 people** (with your own count), which asks y
 confirm. You then have two minutes to cancel, and **Sent** shows what became of each
 person's copy once it goes.
 
-These pages cover every screen under **Bulk Email**. CalDART management writes to any
+These pages cover every screen under **Bulk email**. CalDART management writes to any
 member or friend, and a DART leader writes to their own DART (a Disaster Airlift Response
 Team, one of CalDART's local groups). The words mean the same on every page:
 

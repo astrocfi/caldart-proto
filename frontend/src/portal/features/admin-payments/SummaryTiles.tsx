@@ -18,22 +18,22 @@ function Tile({ label, totals }: TileProps) {
   return (
     <div className="stat-tile">
       <p className="eyebrow">{label}</p>
-      <p className="stat-tile__value mono">{formatCents(totals.grossCents)}</p>
+      <p className="stat-tile__value num">{formatCents(totals.grossCents)}</p>
       <p className="stat-tile__meta muted">
         {totals.count} {totals.count === 1 ? 'payment' : 'payments'}
       </p>
       <dl className="stat-tile__breakdown">
         <div>
           <dt>Fees</dt>
-          <dd className="mono">{formatCents(totals.feeCents)}</dd>
+          <dd className="num">{formatCents(totals.feeCents)}</dd>
         </div>
         <div>
           <dt>Net</dt>
-          <dd className="mono">{formatCents(totals.netCents)}</dd>
+          <dd className="num">{formatCents(totals.netCents)}</dd>
         </div>
         <div>
           <dt>Refunded</dt>
-          <dd className="mono">{formatCents(totals.refundedCents)}</dd>
+          <dd className="num">{formatCents(totals.refundedCents)}</dd>
         </div>
       </dl>
     </div>

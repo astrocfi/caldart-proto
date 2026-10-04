@@ -5,7 +5,7 @@
  * The renewal reminder emails and the automatic renewal charges come first
  * because they are the pair readers confuse: one only emails, the other takes
  * the money, and the charges run before the emails each morning.  The reminder
- * schedule sits beside the reminder emails it dates.
+ * schedule sits below the reminder emails it dates.
  */
 import type { JSX } from 'react';
 

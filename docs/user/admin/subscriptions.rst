@@ -1,14 +1,15 @@
 :roles: account_admin, treasurer
 
-=============
-Subscriptions
-=============
+===============
+Emailed reports
+===============
 
-**Subscriptions** is where you tell CalDART to email a report on a schedule, and where each DART's
+**Emailed reports** is where you tell CalDART to email a report on a schedule, and where each DART's
 monthly roster is sent from. A roster is the list of a DART's members and friends with the
 details a team needs to reach them.
 
-An account administrator and the treasurer find it under **Administration** in the menu. A
+An account administrator and the treasurer find it as **Emailed reports** under
+**Administration** in the menu. A
 system administrator can open it too. The treasurer sees the subscriptions for the money
 reports; the DART rosters belong to account administrators alone.
 
@@ -25,7 +26,8 @@ you may read:
 - **Schedule**: *Weekly on Monday* (or another day), *Monthly*, *Quarterly*, or *Yearly*.
 - **Formats**: *CSV*, *PDF*, or *Both*.
 - **Last sent** and **Next**: when it last went and when it is due.
-- **Active**: a green dot while it is being sent, and a gray one while it is paused.
+- **Active**: *Active* beside a green dot while it is being sent, and *Paused* beside a gray
+  one while it is paused.
 
 Each row carries four controls, last on the line under an **Actions** heading a screen
 reader announces. A message in the corner of the screen says what the last three did. On a
@@ -122,7 +124,7 @@ opens that row's subscription in its place, and **Edit** on the row being edited
 What happens next
 ~~~~~~~~~~~~~~~~~
 
-The emails go out every morning at 06:00. The subject reads *CalDART report:* with the
+The emails go out every morning at 6:00 AM. The subject reads *CalDART report:* with the
 report's title and the date, such as *(09/27/2026)*, and the files are attached. A
 subscription that could not be sent is tried again the next morning. One whose recipient
 has lost the role is paused.
@@ -152,7 +154,7 @@ real; the heading then reads **What this run did**.
 If something looks wrong
 ========================
 
-If a subscription stops arriving, look at its **Active** dot: a gray one means it was paused,
+If a subscription stops arriving, look at its **Active** column: *Paused* means it was paused,
 often because the recipient lost the role that reads the report, and **Resume** tells you
 whether that is still so. If a roster never reaches a DART's people, check on :doc:`darts`
 that somebody is ticked **Roster** and has an email address, then run **Send rosters now**

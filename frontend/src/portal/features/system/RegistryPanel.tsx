@@ -58,7 +58,6 @@ export function RegistryPanel(): JSX.Element {
 
   return (
     <Card
-      eyebrow="Aircraft"
       title="Aircraft database"
       footer={
         <Button ref={runRef} onClick={handleRun} disabled={isRunning || run.isPending}>

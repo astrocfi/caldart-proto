@@ -9,8 +9,8 @@ insurance a DART leader checks before a mission. Members add the airplanes they 
 **My aircraft**; you keep the register tidy, the insurance details current, and the
 downloads ready for an insurance review.
 
-Only an account administrator finds it, as **Aircraft** under **Administration** in the
-menu. A system administrator can open it too, and also keeps the :ref:`coverage-policy`
+Only an account administrator finds it, as **Aircraft register** under **Administration**
+in the menu. A system administrator can open it too, and also keeps the :ref:`coverage-policy`
 there.
 
 
@@ -40,7 +40,7 @@ The table shows the same columns as the register you download, and **Columns** c
 
 **N-number**
    The registration, which opens the :doc:`aircraft-record`. An airplane taken out of
-   service carries an **Out of service** chip; the register lists it all the same.
+   service reads **Out of service**; the register lists it all the same.
 
 **Make** and **Model**
    The record's aircraft type, as the list of aircraft types spells it.

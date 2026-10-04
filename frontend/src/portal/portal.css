@@ -117,6 +117,12 @@
   max-width: var(--portal-page-max);
 }
 
+/* Without a rail (signed out, or still joining) the page centers in the window, so the
+ * join wizard's centered cards sit in the middle of the screen. */
+.portal__frame--no-rail .page {
+  margin-inline: auto;
+}
+
 /* ------------------------------------------------------------------ rail */
 .portal__rail {
   padding-top: var(--space-5);

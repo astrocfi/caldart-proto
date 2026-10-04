@@ -5,7 +5,7 @@ Email preferences
 **Email preferences** is where you choose which types of bulk email CalDART sends you.
 Bulk email is the news CalDART writes to many members and friends at once, such as
 meeting announcements, appeals for donations, and requests for pilots. Open it from
-**Bulk Email** in the menu; the screen's own heading names it under **Your email**.
+**Your email** in the menu.
 
 
 What you see

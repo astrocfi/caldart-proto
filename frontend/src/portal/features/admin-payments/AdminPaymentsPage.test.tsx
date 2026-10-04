@@ -117,13 +117,14 @@ describe('AdminPaymentsPage', () => {
     expect(screen.queryByLabelText('Reconciled')).not.toBeInTheDocument();
   });
 
-  it('links on to the payment list', async () => {
+  it('links on to the payment list from its tab alone', async () => {
     serveOverview();
     renderWithProviders(<AdminPaymentsPage />);
 
-    expect(await screen.findByRole('link', { name: 'All payments' })).toHaveAttribute(
+    expect(await screen.findByRole('link', { name: 'Payments' })).toHaveAttribute(
       'href',
       '/admin/payments/list',
     );
+    expect(screen.queryByRole('link', { name: 'All payments' })).not.toBeInTheDocument();
   });
 });

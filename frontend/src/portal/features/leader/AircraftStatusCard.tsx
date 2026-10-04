@@ -11,12 +11,12 @@ import type { Aircraft, AircraftDetail } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { DateText } from '@/portal/components/DateText';
 import { Money } from '@/portal/components/Money';
-import { StatusChip } from '@/portal/components/StatusChip';
-import type { StatusTone } from '@/portal/components/StatusChip';
+import { StatusDot } from '@/portal/components/StatusDot';
+import type { StatusTone } from '@/portal/components/StatusDot';
 import { VerifiedMark } from '@/portal/components/VerifiedMark';
 import { usePanelFocus } from '@/portal/components/focus';
-import { InsuranceChip } from '@/portal/features/aircraft/InsuranceChip';
-import { ServiceChip } from '@/portal/features/aircraft/ServiceChip';
+import { InsuranceDot } from '@/portal/features/aircraft/InsuranceDot';
+import { ServiceDot } from '@/portal/features/aircraft/ServiceDot';
 import { categoryLine } from '@/portal/features/aircraft/categories';
 import { OWNER_TYPE_LABELS } from '@/portal/features/aircraft/form';
 import { insuranceTone } from '@/portal/features/aircraft/insurance';
@@ -115,8 +115,8 @@ export function AircraftStatusCard({ aircraft, today }: AircraftStatusCardProps)
       </p>
 
       <header className="leader-card__head">
-        <h2 className="leader-card__name mono">{aircraft.n_number}</h2>
-        <ServiceChip aircraft={aircraft} />
+        <h2 className="leader-card__name num">{aircraft.n_number}</h2>
+        <ServiceDot aircraft={aircraft} />
         <p className="leader-card__meta muted">
           {aircraft.make} {aircraft.model}
           {aircraft.year ? ` · ${aircraft.year}` : ''}
@@ -143,7 +143,7 @@ export function AircraftStatusCard({ aircraft, today }: AircraftStatusCardProps)
           <dd>
             <span className="leader-row__detail">{categoryLine(aircraft)}</span>
             {aircraft.coverage.excluded ? (
-              <StatusChip tone="expired" label="Not covered" title={aircraft.coverage.reason} />
+              <StatusDot tone="expired" label="Not covered" title={aircraft.coverage.reason} />
             ) : null}
           </dd>
         </div>
@@ -151,7 +151,7 @@ export function AircraftStatusCard({ aircraft, today }: AircraftStatusCardProps)
         <div className="leader-row">
           <dt>Insurance</dt>
           <dd>
-            <InsuranceChip aircraft={aircraft} today={today} />
+            <InsuranceDot aircraft={aircraft} today={today} />
             <span className="leader-row__detail">
               {aircraft.insurance_carrier || 'No carrier on file'}
               {aircraft.insurance_expiration ? (
@@ -213,11 +213,11 @@ export function AircraftStatusCard({ aircraft, today }: AircraftStatusCardProps)
           {pilots.map((pilot) => (
             <li key={pilot.user_id} className="leader-aircraft__row">
               <span className="leader-search__name">{pilot.name}</span>
-              <StatusChip
+              <StatusDot
                 tone={pilot.membership_status === 'current' ? 'current' : 'expired'}
                 label={pilot.membership_status === 'current' ? 'Member current' : 'Member expired'}
               />
-              <StatusChip
+              <StatusDot
                 tone={pilot.medical_is_current ? 'current' : 'expired'}
                 label={pilot.medical_is_current ? 'Medical current' : 'Medical not current'}
               />

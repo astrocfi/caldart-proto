@@ -7,6 +7,11 @@ import { navEyebrow } from '@/portal/nav';
 export interface PageProps {
   title: string;
   /**
+   * The browser tab's name, when the heading is not the screen's name: the
+   * dashboard's greeting, say.  The title otherwise.
+   */
+  tabTitle?: string;
+  /**
    * Leave the eyebrow off: for a page that belongs to no menu group, such as an
    * error page shown at whatever address failed.
    */
@@ -24,10 +29,11 @@ export interface PageProps {
  *
  * The eyebrow is always the menu group the page sits under (`navEyebrow`), so it
  * reads the same as the rail; a page outside the rail has none.  The page's title
- * also names the browser tab, followed by the organization's name.
+ * (or `tabTitle`) also names the browser tab, followed by the organization's name.
  */
 export function Page({
   title,
+  tabTitle,
   noEyebrow = false,
   lede,
   actions,
@@ -35,7 +41,7 @@ export function Page({
 }: PageProps): JSX.Element {
   const { pathname } = useLocation();
   const eyebrow = noEyebrow ? null : navEyebrow(pathname);
-  useDocumentTitle(title);
+  useDocumentTitle(tabTitle ?? title);
   return (
     <article className="page">
       <header className="page__header">

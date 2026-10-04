@@ -21,6 +21,8 @@ import { DateText } from '@/portal/components/DateText';
 import { clearedValues, FilterBar } from '@/portal/components/FilterBar';
 import type { ReportCell } from '@/portal/components/reportTable';
 import { ColumnTools, reportTableColumns, useColumnChoice } from '@/portal/components/reportTable';
+import { StatusDot } from '@/portal/components/StatusDot';
+import type { StatusTone } from '@/portal/components/StatusDot';
 import { useUrlFilters } from '@/portal/components/useUrlFilters';
 import {
   useFirstPageWhenMissing,
@@ -37,6 +39,13 @@ const FILTER_KEYS = FILTER_FIELDS.map((field) => field.key);
 
 /** The most recent send first, as the server orders the log by default. */
 const DEFAULT_ORDERING = '-sent_at';
+
+/** The dot beside each status: green sent, red failed or bounced. */
+const STATUS_TONE: Record<EmailStatus, StatusTone> = {
+  sent: 'current',
+  failed: 'expired',
+  bounced: 'expired',
+};
 
 /** What the Status column reads for each status: a refusal carries its error. */
 const STATUS_TEXT: Record<EmailStatus, (row: EmailLogEntry) => string> = {
@@ -88,7 +97,13 @@ const CELLS: Record<string, ReportCell<EmailLogEntry>> = {
     render: (row) => (row.user_name === '' ? NOTHING : row.user_name),
   },
   subject: { minWidth: '14rem', isIdentity: true, render: (row) => row.subject },
-  status: { minWidth: '7rem', keepInSight: true, render: (row) => STATUS_TEXT[row.status](row) },
+  status: {
+    minWidth: '7rem',
+    keepInSight: true,
+    render: (row) => (
+      <StatusDot tone={STATUS_TONE[row.status]} label={STATUS_TEXT[row.status](row)} />
+    ),
+  },
   error: {
     minWidth: '12rem',
     dropOrder: 3,

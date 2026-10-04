@@ -17,7 +17,7 @@ import { Checkout } from '@/portal/features/checkout';
 import { Card } from '@/portal/components/Card';
 import { DateText } from '@/portal/components/DateText';
 import { Page } from '@/portal/components/Page';
-import { MembershipChip, daysUntil } from '@/portal/components/StatusChip';
+import { MembershipDot, daysUntil } from '@/portal/components/StatusDot';
 import { useToast } from '@/portal/components/Toast';
 import { JOIN_AS_MEMBER_PATH } from '@/portal/features/dashboard/KindSwitch';
 import { useMembership } from '@/portal/features/profile/api';
@@ -65,7 +65,7 @@ export function RenewPage(): JSX.Element {
           </p>
         ) : status ? (
           <div className="renew__status">
-            <MembershipChip membership={status} />
+            <MembershipDot membership={status} />
             {status.is_lifetime ? (
               <p>You are a life member. Thank you.</p>
             ) : status.expires_on ? (

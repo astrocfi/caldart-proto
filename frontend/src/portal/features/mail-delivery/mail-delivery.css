@@ -41,9 +41,9 @@
   }
 }
 
-.delivery-check__word {
+/* The status word reads as a label beside the heading, not as part of it. */
+.delivery-check__status .status {
   font-weight: normal;
-  color: var(--color-muted);
 }
 
 .delivery-check__row p {

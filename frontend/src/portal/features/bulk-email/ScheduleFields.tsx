@@ -10,9 +10,9 @@ import { useEffect, useRef, useState } from 'react';
 import type { JSX, KeyboardEvent } from 'react';
 
 import { Button } from '@/portal/components/Button';
-import { todayIso } from '@/portal/components/DateText';
+import { SITE_TIME_ZONE_NAME, todayIso } from '@/portal/components/DateText';
 import { Field } from '@/portal/components/Field';
-import { SITE_TIME_ZONE_NAME, TIME_CHOICES, timeChoice } from './schedule';
+import { TIME_CHOICES, timeChoice } from './schedule';
 
 /** The time a schedule offers first: a morning newsletter. */
 const DEFAULT_TIME = '08:00';

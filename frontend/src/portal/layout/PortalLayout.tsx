@@ -53,7 +53,9 @@ function useRailScroll(
     const rail = railRef.current;
     const current = rail?.querySelector<HTMLElement>('.portal__nav-link.is-active');
     if (rail && current) {
-      const top = current.offsetTop - rail.offsetTop;
+      // Where the entry sits inside the rail's scrolled content.
+      const top =
+        current.getBoundingClientRect().top - rail.getBoundingClientRect().top + rail.scrollTop;
       const bottom = top + current.offsetHeight;
       if (top < rail.scrollTop || bottom > rail.scrollTop + rail.clientHeight) {
         rail.scrollTop = Math.max(0, top - rail.clientHeight / 2);

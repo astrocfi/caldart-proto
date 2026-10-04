@@ -30,8 +30,8 @@ export function AdminRemindersPage(): JSX.Element {
     <Page title="Reminders" lede="The renewal emails CalDART has sent, newest first.">
       <Card eyebrow="Membership" title="Renewal reminders">
         <p className="muted">
-          The scan runs every morning at 07:00 and mails a member {when}. Each member gets one email
-          per membership per kind. This is the record of what renewal emails were sent to each
+          The scan runs every morning at 7:00 AM and mails a member {when}. Each member gets one
+          email per membership per kind. This is the record of what renewal emails were sent to each
           member.
         </p>
 

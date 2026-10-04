@@ -1,9 +1,9 @@
 import type { JSX } from 'react';
 
 import type { Aircraft } from '@/portal/api/types';
-import { StatusChip } from '@/portal/components/StatusChip';
+import { StatusDot } from '@/portal/components/StatusDot';
 
-export interface ServiceChipProps {
+export interface ServiceDotProps {
   aircraft: Pick<Aircraft, 'is_active'>;
 }
 
@@ -14,7 +14,7 @@ export interface ServiceChipProps {
  * or sold; every screen that offers an airplane says so, rather than letting
  * the flag be a field that only the form ever reads.
  */
-export function ServiceChip({ aircraft }: ServiceChipProps): JSX.Element | null {
+export function ServiceDot({ aircraft }: ServiceDotProps): JSX.Element | null {
   if (aircraft.is_active) return null;
-  return <StatusChip tone="none" label="Out of service" />;
+  return <StatusDot tone="none" label="Out of service" />;
 }

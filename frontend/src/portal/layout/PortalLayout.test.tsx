@@ -316,11 +316,11 @@ describe('PortalLayout', () => {
     server.use(signedInAs(makeUser({ roles: ['member', 'system_admin'] })));
     vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(400);
     vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(30);
-    vi.spyOn(HTMLElement.prototype, 'offsetTop', 'get').mockImplementation(function offsetTop(
-      this: HTMLElement,
-    ) {
-      return this.classList.contains('is-active') ? 1000 : 0;
-    });
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
+      function boundingRect(this: HTMLElement) {
+        return new DOMRect(0, this.classList.contains('is-active') ? 1000 : 0, 100, 30);
+      },
+    );
     renderWithProviders(tree(), { route: '/profile/aircraft' });
 
     const rail = await screen.findByRole('navigation', { name: 'Portal sections' });

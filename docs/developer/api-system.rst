@@ -698,7 +698,7 @@ with it:
      "source": "https://registry.faa.gov/database/ReleasableAircraft.zip"
    }
 
-The Health & Database page then polls ``GET /aircraft/registry`` (:doc:`api-aircraft`)
+The Health and database page then polls ``GET /aircraft/registry`` (:doc:`api-aircraft`)
 every five seconds until ``running`` is false, and reads the outcome from its
 ``last``.
 

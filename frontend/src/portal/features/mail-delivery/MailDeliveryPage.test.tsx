@@ -7,7 +7,7 @@ import { API } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
 import type { MailDeliveryCheck, MailDeliveryFinding } from '@/portal/api/types';
-import { formatDateAt } from '@/portal/components/DateText';
+import { formatDateTime } from '@/portal/components/DateText';
 import { MailDeliveryPage, summarize } from './MailDeliveryPage';
 
 const CHECK_URL = `${API}/mail/delivery-check`;
@@ -77,7 +77,7 @@ describe('MailDeliveryPage', () => {
 
     const heading = await screen.findByRole('heading', { name: /Approved senders/ });
 
-    expect(within(heading).getAllByText('Problem')).toHaveLength(2);
+    expect(within(heading).getByText('Problem')).toHaveAttribute('data-tone', 'expired');
   });
 
   it('keeps the dot and the word together, apart from the name', async () => {
@@ -117,7 +117,7 @@ describe('MailDeliveryPage', () => {
     renderWithProviders(<MailDeliveryPage />);
 
     expect(
-      await screen.findByText(`Checked ${formatDateAt('2026-10-03T15:00:00Z')} for example.org.`),
+      await screen.findByText(`Checked ${formatDateTime('2026-10-03T15:00:00Z')} for example.org.`),
     ).toBeVisible();
   });
 
