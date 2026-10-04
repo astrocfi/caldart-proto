@@ -68,7 +68,7 @@ go ahead. *Operational deleted.* confirms it, and every member's choice about th
 with it.
 
 A kind that a bulk email has already used cannot be deleted, because the record of that
-email names it. Its trashcan is greyed out, and a line under the table says why; holding the
+email names it. Its trashcan is grayed out, and a line under the table says why; holding the
 pointer over the trashcan gives the reason in full: *Operational has been used for a bulk
 email, so it cannot be deleted. To keep DART leaders and CalDART management from sending it,
 take their roles off it instead.* Edit the kind, clear both boxes under **Who may send it**,

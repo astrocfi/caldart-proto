@@ -69,7 +69,7 @@ Every type, in ``position`` order and then by name.
    ]
 
 ``slug`` is read-only and follows ``name``.  ``in_use`` is read-only and true once a
-bulk email has the type, which then cannot be deleted; the Email types screen greys
+bulk email has the type, which then cannot be deleted; the Email types screen grays
 that type's trashcan and says why.  ``sender_roles`` lists the roles
 whose holders may send the type, from ``dart_leader`` and ``management``, once each
 and in that order; an empty list leaves the type to system administrators, who send

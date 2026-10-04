@@ -3,7 +3,7 @@
  *
  * One table, in a card, and one form: **Add an email type** opens the form empty and
  * each row's **Edit** opens it on that type. Each row's trashcan asks before it
- * deletes. A type a bulk email has used cannot be deleted: its trashcan is greyed, and
+ * deletes. A type a bulk email has used cannot be deleted: its trashcan is grayed, and
  * holding the pointer over it says what to do instead. The description and the
  * senders wrap, so they read in full.
  */
@@ -231,7 +231,7 @@ export function EmailTypesPage(): JSX.Element {
         ) : null}
         {types.isSuccess && rows.some((emailType) => emailType.in_use) ? (
           <p className="muted">
-            A greyed trashcan marks a type a bulk email has used, which cannot be deleted. Take the
+            A grayed trashcan marks a type a bulk email has used, which cannot be deleted. Take the
             senders off it instead to stop it being sent.
           </p>
         ) : null}

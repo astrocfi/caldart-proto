@@ -176,7 +176,7 @@ describe('EmailTypesPage', () => {
     expect(await screen.findByText('Operational deleted.')).toBeInTheDocument();
   });
 
-  it('greys the trashcan of a type in use, saying why', async () => {
+  it('grays the trashcan of a type in use, saying why', async () => {
     stubTypes([makeType({ in_use: true })]);
     renderPage();
 
