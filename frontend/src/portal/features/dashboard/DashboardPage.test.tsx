@@ -13,7 +13,7 @@ import type {
   SiteConfig,
   User,
 } from '@/portal/api/types';
-import { EXPIRING_WINDOW_DAYS } from '@/portal/components/StatusChip';
+import { EXPIRING_WINDOW_DAYS } from '@/portal/components/StatusDot';
 import { DashboardPage } from './DashboardPage';
 
 const NOW = new Date('2026-06-15T12:00:00Z');
@@ -270,7 +270,7 @@ describe('<DashboardPage/>', () => {
     const links = card('Quick links');
     expect(links.getByRole('link', { name: 'My profile' })).toBeInTheDocument();
     expect(links.getByRole('link', { name: 'Members' })).toBeInTheDocument();
-    expect(links.queryByRole('link', { name: 'Health & Database' })).not.toBeInTheDocument();
+    expect(links.queryByRole('link', { name: 'Health and database' })).not.toBeInTheDocument();
     // The dashboard does not link to itself.
     expect(links.queryByRole('link', { name: 'Dashboard' })).not.toBeInTheDocument();
   });
@@ -307,6 +307,20 @@ describe('<DashboardPage/>', () => {
     expect(await screen.findByText('Nothing published yet')).toBeInTheDocument();
   });
 
+  it('tells a lapsed member that renewing opens the members-only pages again', async () => {
+    mount({ user: makeUser({ membership: EXPIRED }), status: EXPIRED });
+
+    const link = await screen.findByRole('link', { name: 'Renew to read them again.' });
+    expect(link).toHaveAttribute('href', '/renew');
+  });
+
+  it('does not tell a lapsed member that nothing is published', async () => {
+    mount({ user: makeUser({ membership: EXPIRED }), status: EXPIRED });
+
+    await screen.findByRole('link', { name: 'Renew to read them again.' });
+    expect(screen.queryByText('Nothing published yet')).not.toBeInTheDocument();
+  });
+
   it('shows recent payments newest first, capped at five', async () => {
     const payments: PaymentSummary[] = Array.from({ length: 7 }, (_, index) => ({
       id: 100 - index,
@@ -329,6 +343,29 @@ describe('<DashboardPage/>', () => {
 
     expect(await screen.findByText('$45.00')).toBeInTheDocument();
     expect(screen.getAllByRole('row')).toHaveLength(6); // header + 5
+  });
+
+  it('dates a recent payment by the day it was paid, as Payments does', async () => {
+    const payment: PaymentSummary = {
+      id: 7,
+      plan: 'Annual',
+      kind: 'membership',
+      amount_cents: 4500,
+      plan_amount_cents: 4500,
+      contribution_cents: 0,
+      refunded_cents: 0,
+      provider: 'stripe',
+      wallet: 'card',
+      status: 'succeeded',
+      paid_on: '2026-04-28',
+      completed_at: '2026-04-29T02:52:00Z',
+      receipt_sent_at: '2026-04-29T02:52:05Z',
+      membership: null,
+    };
+
+    mount({ user: makeUser({ membership: CURRENT }), status: CURRENT, payments: [payment] });
+
+    expect(await card('Recent payments').findByText('04/28/2026')).toBeInTheDocument();
   });
 
   it('has an empty state when there are no payments', async () => {

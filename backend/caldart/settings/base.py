@@ -483,7 +483,7 @@ ADDRESS_SUGGEST_THROTTLE_RATE = _throttle_rate("ADDRESS_SUGGEST_THROTTLE_RATE", 
 FAA_REGISTRY_URL = env(
     "FAA_REGISTRY_URL", default="https://registry.faa.gov/database/ReleasableAircraft.zip"
 )
-# How many minutes an import started from the Health & Database page may run before a
+# How many minutes an import started from the Health and database page may run before a
 # later press treats it as failed and starts another.
 REGISTRY_IMPORT_STALE_MINUTES = env.int("REGISTRY_IMPORT_STALE_MINUTES", default=30)
 

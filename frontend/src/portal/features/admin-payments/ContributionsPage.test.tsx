@@ -77,7 +77,7 @@ describe('ContributionsPage', () => {
       'href',
       statementUrl(37, 2024),
     );
-    expect(screen.getByRole('table', { name: 'Contributions in 2024' })).toBeInTheDocument();
+    expect(screen.getByRole('table', { name: '1 contributor in 2024' })).toBeInTheDocument();
   });
 
   it('treats a year the Year field does not offer as this year, everywhere on the page', async () => {
@@ -91,7 +91,7 @@ describe('ContributionsPage', () => {
     const thisYear = new Date().getFullYear();
     expect(seen).toEqual(['']);
     expect(screen.getByLabelText('Year')).toHaveValue('');
-    expect(screen.getByRole('table', { name: `Contributions in ${thisYear}` })).toBeInTheDocument();
+    expect(screen.getByRole('table', { name: `1 contributor in ${thisYear}` })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Export CSV' })).toHaveAttribute(
       'href',
       `${API_BASE}/reports/contributions/export.csv`,

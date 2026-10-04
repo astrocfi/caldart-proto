@@ -502,3 +502,70 @@ def test_an_unknown_role_fails_the_build(
     source, out = _write_project(tmp_path, pages)
     assert build_main(["-q", "-W", "-b", "dirhtml", str(source), str(out)]) != 0
     assert "unknown role 'bookkeeper'" in capsys.readouterr().err
+
+
+# -- signed-out pages -------------------------------------------------------------
+
+#: The pages of the guide a visitor reads before they can sign in, which Help opens on
+#: the signed-out screens and the site serves without sign-in.
+SIGNED_OUT_PAGES = frozenset(
+    {
+        "member/sign-in",
+        "member/forgot-password",
+        "member/reset-password",
+        "member/join",
+        "member/verify-email",
+    }
+)
+
+#: A ``:signed-out:`` field at the head of a page, before its title.
+SIGNED_OUT_FIELD = re.compile(r"\A:signed-out:[ \t]*(.*)$", re.MULTILINE)
+
+
+@pytest.mark.parametrize("page", USER_PAGES, ids=_page_id)
+def test_only_the_pages_before_sign_in_carry_the_signed_out_field(page: Path) -> None:
+    """Exactly the sign-in, password, join, and verification pages open signed out."""
+    match = SIGNED_OUT_FIELD.search(page.read_text(encoding="utf-8"))
+    expected = "yes" if _slug(page) in SIGNED_OUT_PAGES else None
+    assert (match.group(1).strip() if match else None) == expected
+
+
+#: ``SAMPLE_GUIDE`` with a page a visitor may read before signing in.
+SIGNED_OUT_GUIDE = {
+    **SAMPLE_GUIDE,
+    "index": _page("Guide", body=_toctree("open", "sign-in", "admin/index")),
+    "sign-in": ":signed-out: yes\n\n" + _page("Sign in"),
+}
+
+
+def test_the_extension_writes_the_signed_out_pages_and_every_page(tmp_path: Path) -> None:
+    """``signed-out.json`` names the signed-out page and lists every page of the build."""
+    source, out = _write_project(tmp_path, SIGNED_OUT_GUIDE)
+    assert build_main(["-q", "-W", "-b", "dirhtml", str(source), str(out)]) == 0
+    assert json.loads((out / "signed-out.json").read_text(encoding="utf-8")) == {
+        "signed_out": ["sign-in"],
+        "pages": ["admin/index", "admin/members", "admin/money", "index", "open", "sign-in"],
+    }
+
+
+def test_a_signed_out_field_other_than_yes_fails_the_build(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """``yes`` is the field's only value; anything else is a warning, so ``-W`` fails."""
+    pages = {**SIGNED_OUT_GUIDE, "sign-in": ":signed-out: maybe\n\n" + _page("Sign in")}
+    source, out = _write_project(tmp_path, pages)
+    assert build_main(["-q", "-W", "-b", "dirhtml", str(source), str(out)]) != 0
+    assert "the :signed-out: field says 'maybe'" in capsys.readouterr().err
+
+
+def test_a_signed_out_page_with_roles_fails_the_build(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A page every visitor may read cannot also be kept to some roles."""
+    pages = {
+        **SIGNED_OUT_GUIDE,
+        "sign-in": ":signed-out: yes\n:roles: treasurer\n\n" + _page("Sign in"),
+    }
+    source, out = _write_project(tmp_path, pages)
+    assert build_main(["-q", "-W", "-b", "dirhtml", str(source), str(out)]) != 0
+    assert "cannot carry a :roles: field" in capsys.readouterr().err

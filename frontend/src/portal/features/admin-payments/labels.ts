@@ -20,7 +20,7 @@ export {
   PAYMENT_STATUS_LABELS as STATUS_LABELS,
   PAYMENT_WALLET_LABELS as WALLET_LABELS,
 } from '@/portal/choices';
-export { paymentStatusTone as statusTone } from '@/portal/components/StatusChip';
+export { paymentStatusTone as statusTone } from '@/portal/components/StatusDot';
 
 /** What a payment bought. */
 export const KIND_LABELS: Record<PaymentKind, string> = {

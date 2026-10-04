@@ -505,7 +505,7 @@ def test_the_results_csv_carries_the_bounce_and_the_time_tried(
         send_now(bulk)
     bounce(row_of(bulk, "ann@example.test"))
     rows = read_csv(management_client.get(f"/api/v1/bulk-email/{bulk.pk}/recipients.csv"))
-    assert rows[1][4:] == ["Bounced", BEA_BOUNCE, "04/07/2026 08:00", "Operational"]
+    assert rows[1][4:] == ["Bounced", BEA_BOUNCE, "04/07/2026 at 8:00 AM", "Operational"]
 
 
 # --------------------------------------------------------------------------
@@ -602,7 +602,7 @@ def test_a_copy_of_another_email_is_not_found(
 def test_the_email_log_links_a_bulk_copy_to_its_bulk_email(
     system_admin_client: APIClient, mixed: BulkEmail
 ) -> None:
-    """A copy's row on Sent Emails leads to the bulk email's Sent page."""
+    """A copy's row on Sent emails leads to the bulk email's Sent page."""
     rows = system_admin_client.get("/api/v1/system/emails").json()["results"]
     assert {row["to_email"]: row["link"] for row in rows} == {
         "ann@example.test": f"/bulk-email/sent/{mixed.pk}",

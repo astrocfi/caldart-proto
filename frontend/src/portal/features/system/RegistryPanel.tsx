@@ -25,7 +25,7 @@ function counted(count: number, noun: string): string {
 }
 
 /**
- * The panel's status line: *Running since HH:MM* while an import runs, then
+ * The panel's status line: *Running since 5:33 AM* while an import runs, then
  * what the last import wrote and on which day (and the hand-added types it
  * folded into the FAA's, when any), or *Failed:* and its error.
  */
@@ -58,7 +58,6 @@ export function RegistryPanel(): JSX.Element {
 
   return (
     <Card
-      eyebrow="Aircraft"
       title="Aircraft database"
       footer={
         <Button ref={runRef} onClick={handleRun} disabled={isRunning || run.isPending}>

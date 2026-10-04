@@ -6,14 +6,28 @@
  */
 import type { RoleSlug } from './api/types';
 
+/** The rail's groups, in the order they render. */
+export type NavGroup =
+  'Membership' | 'Your email' | 'Operations' | 'Bulk email' | 'Administration' | 'System';
+
 export interface NavItem {
   /** Route path, relative to the `/portal` basename. */
   to: string;
   label: string;
   /** Any one of these roles grants the entry. Empty = any authenticated user. */
   roles: RoleSlug[];
-  /** Grouping shown as a small-caps heading in the rail. */
-  group: 'Membership' | 'Operations' | 'Bulk Email' | 'Administration' | 'System';
+  /**
+   * Grouping shown as a small-caps heading in the rail, and as the eyebrow over
+   * every page the entry leads to (`navEyebrow`).
+   */
+  group: NavGroup;
+  /**
+   * The eyebrow over the entry's pages when it heads an area of its own with
+   * tabs, such as Finance; the group's name otherwise.
+   */
+  area?: string;
+  /** The label a lifetime member sees, whose screen behind the entry is titled for them. */
+  lifetimeLabel?: string;
   /**
    * Match the route exactly rather than by prefix.
    *
@@ -36,7 +50,14 @@ export const NAV_ITEMS: NavItem[] = [
   { to: '/profile/aircraft', label: 'My aircraft', roles: [], group: 'Membership' },
   { to: '/payments', label: 'Payments', roles: [], group: 'Membership' },
   { to: '/donate', label: 'Donate', roles: [], group: 'Membership' },
-  { to: '/renew', label: 'Renew', roles: [], group: 'Membership', hideForFriend: true },
+  {
+    to: '/renew',
+    label: 'Renew',
+    lifetimeLabel: 'Contribute',
+    roles: [],
+    group: 'Membership',
+    hideForFriend: true,
+  },
   // `/change-password` is a real route with a real screen; without an entry
   // here nothing in the portal linked to it.
   { to: '/change-password', label: 'Change password', roles: [], group: 'Membership' },
@@ -59,56 +80,59 @@ export const NAV_ITEMS: NavItem[] = [
     group: 'Operations',
   },
 
+  // A person's own mail is theirs whatever their roles, so it has a group of its
+  // own, apart from the sending tools.
+  { to: '/messages', label: 'Messages', roles: [], group: 'Your email' },
+  { to: '/email-preferences', label: 'Email preferences', roles: [], group: 'Your email' },
+
   // Bulk email has a group of its own. Compose opens a draft at
-  // `/bulk-email/drafts/:id`, so Drafts & scheduled is current while one is written.
+  // `/bulk-email/drafts/:id`, so Drafts and scheduled is current while one is written.
   // A DART leader sends to their own DART.
   {
     to: '/bulk-email/compose',
     label: 'Compose',
     roles: ['management', 'dart_leader'],
-    group: 'Bulk Email',
+    group: 'Bulk email',
   },
   {
     to: '/bulk-email/drafts',
-    label: 'Drafts & scheduled',
+    label: 'Drafts and scheduled',
     roles: ['management', 'dart_leader'],
-    group: 'Bulk Email',
+    group: 'Bulk email',
   },
   {
     to: '/bulk-email/sent',
     label: 'Sent',
     roles: ['management', 'dart_leader'],
-    group: 'Bulk Email',
+    group: 'Bulk email',
   },
   {
     to: '/bulk-email/templates',
     label: 'Templates',
     roles: ['management'],
-    group: 'Bulk Email',
+    group: 'Bulk email',
   },
   {
     to: '/bulk-email/groups',
     label: 'Recipient groups',
     roles: ['management'],
-    group: 'Bulk Email',
+    group: 'Bulk email',
   },
   // A DART leader reads the answers to the callouts they sent and to their DART's.
   {
     to: '/bulk-email/callouts',
     label: 'Callouts',
     roles: ['management', 'dart_leader'],
-    group: 'Bulk Email',
+    group: 'Bulk email',
   },
-  { to: '/bulk-email/types', label: 'Email types', roles: ['system_admin'], group: 'Bulk Email' },
+  { to: '/bulk-email/types', label: 'Email types', roles: ['system_admin'], group: 'Bulk email' },
   // The DNS check is visible to management and (as for every entry) a system administrator.
   {
     to: '/bulk-email/mail-delivery',
     label: 'Mail delivery',
     roles: ['management'],
-    group: 'Bulk Email',
+    group: 'Bulk email',
   },
-  { to: '/messages', label: 'Messages', roles: [], group: 'Bulk Email' },
-  { to: '/email-preferences', label: 'Email preferences', roles: [], group: 'Bulk Email' },
 
   // A DART leader reads the member list and its report too; the member record
   // behind each name stays the account administrator's.
@@ -118,16 +142,22 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ['account_admin', 'dart_leader'],
     group: 'Administration',
   },
-  { to: '/admin/aircraft', label: 'Aircraft', roles: ['account_admin'], group: 'Administration' },
-  { to: '/admin/users', label: 'Users & roles', roles: ['user_admin'], group: 'Administration' },
+  {
+    to: '/admin/aircraft',
+    label: 'Aircraft register',
+    roles: ['account_admin'],
+    group: 'Administration',
+  },
+  { to: '/admin/users', label: 'Users and roles', roles: ['user_admin'], group: 'Administration' },
   { to: '/admin/darts', label: 'DARTs', roles: ['account_admin'], group: 'Administration' },
   // The finance area admits a treasurer as well as an account administrator,
   // and the rail has to say so or a treasurer reaches it by URL only.
   {
     to: '/admin/payments',
-    label: 'Payments',
+    label: 'Finance',
     roles: ['account_admin', 'treasurer'],
     group: 'Administration',
+    area: 'Finance',
   },
   {
     to: '/admin/reminders',
@@ -135,11 +165,11 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ['account_admin'],
     group: 'Administration',
   },
-  // The subscriptions are the finance roles', so a treasurer reaches the
+  // The emailed reports are the finance roles', so a treasurer reaches the
   // screen too; the DART rosters on it are the account administrator's.
   {
     to: '/admin/reports',
-    label: 'Subscriptions',
+    label: 'Emailed reports',
     roles: ['account_admin', 'treasurer'],
     group: 'Administration',
   },
@@ -150,18 +180,29 @@ export const NAV_ITEMS: NavItem[] = [
     group: 'Administration',
   },
 
-  { to: '/system/health', label: 'Health & Database', roles: ['system_admin'], group: 'System' },
-  { to: '/system/emails', label: 'Sent Emails', roles: ['system_admin'], group: 'System' },
+  { to: '/system/health', label: 'Health and database', roles: ['system_admin'], group: 'System' },
+  { to: '/system/emails', label: 'Sent emails', roles: ['system_admin'], group: 'System' },
   { to: '/system/scheduled', label: 'Scheduled', roles: ['system_admin'], group: 'System' },
 ];
 
 /** Order the rail renders groups in. */
-export const NAV_GROUPS: NavItem['group'][] = [
+export const NAV_GROUPS: NavGroup[] = [
   'Membership',
+  'Your email',
   'Operations',
-  'Bulk Email',
+  'Bulk email',
   'Administration',
   'System',
+];
+
+/**
+ * Screens no rail entry leads to directly, and the group they belong to: the join
+ * page a friend opens from the dashboard to become a member, and `/system`, which
+ * opens the first System screen.
+ */
+const UNLISTED_AREAS: readonly { to: string; group: NavGroup }[] = [
+  { to: '/membership', group: 'Membership' },
+  { to: '/system', group: 'System' },
 ];
 
 /** True when `userRoles` satisfies `required` (`system_admin` satisfies all). */
@@ -171,30 +212,67 @@ export function hasAnyRole(userRoles: readonly RoleSlug[], required: readonly Ro
   return required.some((role) => userRoles.includes(role));
 }
 
+/** What the rail knows about the reader beyond their roles. */
+export interface NavReader {
+  /** A friend by kind or by an arrived `friend_on` date, who has no membership to renew. */
+  isEffectiveFriend?: boolean;
+  /** A lifetime member, whose Renew screen asks for a contribution instead. */
+  isLifetime?: boolean;
+}
+
 /**
  * The nav entries a user with `userRoles` may see, in declaration order.
  *
- * `isEffectiveFriend` drops an entry marked `hideForFriend`, such as Renew: a
- * friend by kind or by an arrived `friend_on` date has no membership to renew.
+ * An effective friend loses an entry marked `hideForFriend`, such as Renew, and a
+ * lifetime member reads an entry's `lifetimeLabel` in place of its label.
  */
 export function visibleNavItems(
   userRoles: readonly RoleSlug[],
-  isEffectiveFriend = false,
+  { isEffectiveFriend = false, isLifetime = false }: NavReader = {},
 ): NavItem[] {
   return NAV_ITEMS.filter(
     (item) =>
       hasAnyRole(userRoles, item.roles) && !(item.hideForFriend === true && isEffectiveFriend),
+  ).map((item) =>
+    isLifetime && item.lifetimeLabel !== undefined ? { ...item, label: item.lifetimeLabel } : item,
   );
 }
 
 /** Visible entries bucketed by group, empty groups dropped. */
 export function groupedNavItems(
   userRoles: readonly RoleSlug[],
-  isEffectiveFriend = false,
-): { group: NavItem['group']; items: NavItem[] }[] {
-  const visible = visibleNavItems(userRoles, isEffectiveFriend);
+  reader: NavReader = {},
+): { group: NavGroup; items: NavItem[] }[] {
+  const visible = visibleNavItems(userRoles, reader);
   return NAV_GROUPS.map((group) => ({
     group,
     items: visible.filter((item) => item.group === group),
   })).filter((bucket) => bucket.items.length > 0);
+}
+
+/** Whether `pathname` is the screen at `to` or one nested under it. */
+function isWithin(to: string, pathname: string): boolean {
+  if (to === '/') return pathname === '/';
+  return pathname === to || pathname.startsWith(`${to}/`);
+}
+
+/**
+ * The eyebrow over the page at `pathname`: the rail group of the entry that leads to
+ * it, or the entry's `area` when it heads an area of its own, such as Finance.
+ *
+ * A page nested under an entry (a member record under Members) takes that entry's,
+ * the deepest entry wins (Aircraft check over Member check), and a screen outside
+ * the rail, such as sign-in or the join wizard, has none.  Every entry counts,
+ * whatever the reader's roles, so the eyebrow never depends on who is reading.
+ */
+export function navEyebrow(pathname: string): string | null {
+  const candidates = [
+    ...NAV_ITEMS.map((item) => ({ to: item.to, eyebrow: item.area ?? item.group })),
+    ...UNLISTED_AREAS.map((area) => ({ to: area.to, eyebrow: area.group })),
+  ].filter((candidate) => isWithin(candidate.to, pathname));
+  const deepest = candidates.reduce<{ to: string; eyebrow: string } | null>(
+    (best, candidate) => (best === null || candidate.to.length > best.to.length ? candidate : best),
+    null,
+  );
+  return deepest?.eyebrow ?? null;
 }

@@ -380,7 +380,7 @@ verified.  With a ``password`` no invitation is sent; the address is mailed a
 verification link instead, on commit in the same way (see the email
 verification section of :doc:`api-auth`).  A mail server that refuses either
 message leaves the member created and the answer a 201: the failed send is on
-the Sent Emails page and the refusal is logged
+the Sent emails page and the refusal is logged
 (:ref:`refused sends <api-refused-send>`).
 
 Statuses:
@@ -659,7 +659,7 @@ raises no notification, and sends no receipt, so the tombstone keeps its name an
 blank profile and never becomes a member.
 
 The payment list, the ledger, and the donors report name the tombstone as the
-payer; the member list and **Users & roles**, which show active accounts, do
+payer; the member list and **Users and roles**, which show active accounts, do
 not list it.  A member who never paid leaves no tombstone.
 
 The delete is recorded as ``member.delete``, with ``payments=<n>

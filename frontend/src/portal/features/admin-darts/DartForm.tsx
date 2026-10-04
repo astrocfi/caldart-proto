@@ -324,7 +324,7 @@ export function DartForm({
           {(props) => (
             <MaskedInput
               {...props}
-              className="mono"
+              className="num"
               name="airport_identifiers"
               placeholder="CCR, C83"
               mask={maskAirportIdentifiers}

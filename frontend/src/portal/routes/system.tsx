@@ -1,6 +1,6 @@
 /**
- * System administration routes: Health & Database, Sent Emails, and Scheduled.
- * `/system` itself opens Health & Database.
+ * System administration routes: Health and database, Sent emails, and Scheduled.
+ * `/system` itself opens Health and database.
  */
 import { Navigate } from 'react-router-dom';
 import type { RouteObject } from 'react-router-dom';

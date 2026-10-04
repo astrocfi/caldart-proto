@@ -148,14 +148,14 @@ describe('AircraftRecordPage', () => {
         HttpResponse.json([
           {
             id: 2,
-            changed_at: '2026-09-01T12:00:00',
+            changed_at: '2026-09-01T12:00:00-07:00',
             changed_by: { id: 4, name: 'Dana Fiske' },
             kind: 'updated',
             fields: ['insurance_carrier', 'insurance_expiration'],
           },
           {
             id: 1,
-            changed_at: '2026-01-04T09:15:00',
+            changed_at: '2026-01-04T09:15:00-08:00',
             changed_by: null,
             kind: 'created',
             fields: [],
@@ -168,9 +168,9 @@ describe('AircraftRecordPage', () => {
     const history = await historyCard();
     const entries = within(history).getAllByRole('listitem');
     expect(entries[0]).toHaveTextContent(
-      '09/01/2026 12:00 · Dana Fiske · updated carrier, insurance expiry',
+      '09/01/2026 at 12:00 PM · Dana Fiske · updated carrier, insurance expiry',
     );
-    expect(entries[1]).toHaveTextContent('01/04/2026 09:15 · the seed · created');
+    expect(entries[1]).toHaveTextContent('01/04/2026 at 9:15 AM · the seed · created');
   });
 
   it('says so when no change is recorded against the record', async () => {

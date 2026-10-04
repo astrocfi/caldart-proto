@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 
 import type { BulkEmailDetail } from '@/portal/api/types';
-import { formatDateAt } from '@/portal/components/DateText';
+import { formatDateTime } from '@/portal/components/DateText';
 import { EMAIL_FRAME_SANDBOX, emailDocument } from '@/portal/components/EmailFrame';
 import {
   LEADER_SENDER,
@@ -117,7 +117,9 @@ describe('SentDetailPage', () => {
   it('says who sent it and when, on the 12-hour clock', async () => {
     renderSent();
     expect(
-      await screen.findByText(`Sent by Grace Holloway on ${formatDateAt('2026-04-06T17:00:00Z')}.`),
+      await screen.findByText(
+        `Sent by Grace Holloway on ${formatDateTime('2026-04-06T17:00:00Z')}.`,
+      ),
     ).toBeVisible();
   });
 

@@ -21,21 +21,21 @@ airplanes CalDART's insurance leaves out; a DART leader treats an airplane it le
 as a no-go.
 
 The **Attached aircraft** card lists each airplane on your profile: its N-number,
-make, and model, an insurance chip, and the liability limits and expiry date on
-file, for example *$1,000,000 / $100,000 · exp 03/01/2027*. The chip reads:
+make, and model, its insurance status, and the liability limits and expiry date on
+file, for example *$1,000,000 / $100,000 · exp 03/01/2027*. The status reads:
 
 * **Current**: a policy is on file and has not expired;
 * **Expired**: the expiry date on file has passed;
 * **Not on file**: the record has no insurance expiry date at all.
 
-After the chip comes the insurance's mark: **Verified** once a DART leader or a
+After the status comes the insurance's mark: **Verified** once a DART leader or a
 verifier has checked the policy against its documents, or **Not yet verified**. An
-airplane whose chip reads **Not on file** carries no mark, since there is no policy to
+airplane whose status reads **Not on file** carries no mark, since there is no policy to
 verify yet; a DART leader still treats it as a no-go, and a verifier still sees its
 insurance as not verified. A DART leader treats an airplane whose insurance is not
 verified as a no-go.
 
-An airplane the coverage policy leaves out carries a red **Not covered** chip, and the
+An airplane the coverage policy leaves out reads **Not covered** beside a red dot, and the
 reason follows the limits, such as *Not covered: helicopters are excluded by CalDART's
 policy*.
 
@@ -53,7 +53,7 @@ Adding an airplane you fly
 #. Type in **Search the aircraft register**: the N-number, or the make, model, or
    owner if you do not have the number to hand.
 #. The results say *Click on an aircraft to add it to your list.* Each shows its
-   N-number, make and model, an insurance chip (**Insured**, **Expiring soon**,
+   N-number, make and model, its insurance status (**Insured**, **Expiring soon**,
    **Insurance expired**, or **No insurance on file**), and **Out of service** for
    an airplane taken out of use.
 #. Click the airplane. It is attached straight away, *N12345 added.* appears, and
@@ -175,6 +175,6 @@ an account administrator to add its type. *An aircraft with this N-number is alr
 on file.* means the register has it already. Search for it and attach that record.
 *Use a US registration like N172SP: N, then digits, then at most two letters.* means
 the N-number cannot be a US registration. *Enter an amount of $0 or more.* means a
-money box holds something that is not an amount. If the insurance chip says **Not on
+money box holds something that is not an amount. If the insurance status says **Not on
 file** and the airplane is insured, the record has no expiry date: add it if you
 added the airplane, or ask an account administrator.

@@ -136,7 +136,7 @@ function ScheduleForm({ stored }: StoredProps): JSX.Element {
                 inputMode="numeric"
                 min={min}
                 max={max}
-                className="mono"
+                className="num"
                 value={draft[name]}
                 onChange={handleChange(name)}
               />

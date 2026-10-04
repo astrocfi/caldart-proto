@@ -35,7 +35,7 @@ describe('a guarded route that loads on demand', () => {
 
     renderRoutes(routes, { route: '/system/health' });
 
-    expect(await screen.findByText('You do not have access to this page')).toBeInTheDocument();
+    expect(await screen.findByText(/^You do not have access to this page\./)).toBeInTheDocument();
     await waitFor(() => expect(systemPageLoads.count).toBe(1));
   });
 });

@@ -155,7 +155,7 @@ Everything the application sends also leaves a row in the email log: the
 address, the purpose, the subject, when, whether the mail server took it, and
 the names of any attachments.  Three ways to read it:
 
-* the portal: sign in as ``sysadmin@example.org`` and open **Sent Emails**,
+* the portal: sign in as ``sysadmin@example.org`` and open **Sent emails**,
   which filters by date, purpose, recipient, status, and attachments, and
   exports what it shows as CSV or PDF;
 * the Django admin, read-only, at http://localhost:8000/django-admin/mail/emaillog/;

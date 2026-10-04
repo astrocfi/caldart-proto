@@ -10,13 +10,16 @@ runs it that way, and CI runs ``make docs`` on every PR.
 The same configuration builds two things.  ``make docs`` builds the whole tree
 from ``docs/``.  ``make guide`` builds ``docs/user/`` alone, with the ``guide``
 tag and the ``dirhtml`` builder, into the user guide the site serves at
-``/docs/`` to signed-in members.  The developer guide is outside that build's
-source tree, so a user page never links into it: every reference on a user page
-resolves inside ``docs/user/``, and the guide build needs no special case.
+``/docs/`` to signed-in members, and its signed-out pages to anybody.  The
+developer guide is outside that build's source tree, so a user page never links
+into it: every reference on a user page resolves inside ``docs/user/``, and the
+guide build needs no special case.
 
-One local extension, ``docs/_ext/guide_roles.py``, reads the ``:roles:`` field a
-user page opens with and writes ``roles.json`` beside the built pages; the site
-reads it to show each reader only the pages their roles reach.  It is pure Python
+One local extension, ``docs/_ext/guide_roles.py``, reads the ``:roles:`` and
+``:signed-out:`` fields a user page opens with and writes ``roles.json`` and
+``signed-out.json`` beside the built pages; the site reads them to show each
+reader only the pages their roles reach, and a visitor who is not signed in only
+the signed-out pages.  It is pure Python
 and needs nothing installed.
 """
 
@@ -57,8 +60,9 @@ release = ""
 _HAS_DOT = shutil.which("dot") is not None
 
 # ``guide_roles`` is the one local extension, in ``docs/_ext``: pure Python, it reads
-# each user page's ``:roles:`` field, fails the build on a slug that is not a role,
-# writes ``roles.json`` beside the built pages for the site's ``user_guide`` view, and
+# each user page's ``:roles:`` and ``:signed-out:`` fields, fails the build on a slug
+# that is not a role or a malformed signed-out field, writes ``roles.json`` and
+# ``signed-out.json`` beside the built pages for the site's ``user_guide`` view, and
 # keeps every table of contents out of the search index.  The path is taken from this
 # file, so the guide build, whose source tree is ``docs/user``, finds it too.
 sys.path.insert(0, str(Path(__file__).resolve().parent / "_ext"))
@@ -154,8 +158,9 @@ html_js_files: list[tuple[str, dict[str, str]]] = [("figure-zoom.js", {"defer": 
 templates_path: list[str] = []
 
 # The guide the site serves is trimmed to each reader by the site's ``user_guide``
-# view, which reads ``roles.json``: a page's navigation and the search index leave out
-# the pages the reader's roles do not reach.
+# view, which reads ``roles.json`` and ``signed-out.json``: a page's navigation and the
+# search index leave out the pages the reader's roles do not reach, and a signed-out
+# visitor's page leaves out every page but the signed-out ones.
 if tags.has("guide"):  # noqa: F821 - Sphinx injects ``tags``
     # No ``_sources/`` copy of each page: the site serves the guide's files as they
     # are, and a restricted page's text would otherwise be one address away.

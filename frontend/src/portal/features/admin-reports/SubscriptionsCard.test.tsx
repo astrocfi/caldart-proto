@@ -78,7 +78,10 @@ describe('SubscriptionsCard', () => {
   it('marks a paused subscription as paused', async () => {
     const table = await renderCard();
 
-    expect(within(row(table, /board@example.org/)).getByTitle('Paused')).toBeInTheDocument();
+    expect(within(row(table, /board@example.org/)).getByText('Paused')).toHaveAttribute(
+      'data-tone',
+      'none',
+    );
   });
 
   it('opens Edit above the table, where New subscription opens', async () => {

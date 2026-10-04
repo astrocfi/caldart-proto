@@ -62,7 +62,7 @@ export function GroupDetailPage(): JSX.Element {
 
   if (group.isError) {
     return (
-      <Page title="Recipient group" eyebrow="Bulk Email">
+      <Page title="Recipient group">
         <p className="field__error" role="alert">
           This group could not be loaded. It may have been deleted.{' '}
           <Link to="/bulk-email/groups">See every group</Link>.
@@ -76,7 +76,6 @@ export function GroupDetailPage(): JSX.Element {
   return (
     <Page
       title={current.name}
-      eyebrow="Recipient group"
       lede={
         current.kind === 'fixed'
           ? 'A fixed group: the same people every time, until you add or remove someone.'

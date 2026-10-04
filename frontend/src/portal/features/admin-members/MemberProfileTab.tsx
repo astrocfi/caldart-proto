@@ -149,7 +149,7 @@ export function MemberProfileTab({ member }: { member: MemberDetail }): JSX.Elem
                   {member.profile.aircraft.map((one, index) => (
                     <span key={one.id}>
                       {index > 0 ? ', ' : ''}
-                      <Link className="mono" to={`/admin/aircraft/${one.id}`}>
+                      <Link className="num" to={`/admin/aircraft/${one.id}`}>
                         {one.n_number}
                       </Link>
                     </span>

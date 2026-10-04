@@ -2,7 +2,7 @@
 import type { NotificationEvent, NotificationSubscription } from '@/portal/api/types';
 
 /** The headings the screen groups the events under, as the catalog names them. */
-export type NotificationCategory = 'Membership' | 'Money' | 'Accounts' | 'Aircraft';
+export type NotificationCategory = 'Membership' | 'Money' | 'Accounts' | 'Aircraft' | 'Callouts';
 
 /** The categories, in the order the form groups the events under them. */
 export const CATEGORIES: readonly NotificationCategory[] = [
@@ -10,6 +10,7 @@ export const CATEGORIES: readonly NotificationCategory[] = [
   'Money',
   'Accounts',
   'Aircraft',
+  'Callouts',
 ];
 
 /** One category's heading and its events, in catalog order. */

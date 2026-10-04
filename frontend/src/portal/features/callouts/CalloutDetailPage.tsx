@@ -29,7 +29,7 @@ import { DateText, formatDate } from '@/portal/components/DateText';
 import { clearedValues, FilterBar } from '@/portal/components/FilterBar';
 import { Loading } from '@/portal/components/Loading';
 import { Page } from '@/portal/components/Page';
-import { StatusDot } from '@/portal/components/StatusChip';
+import { StatusDot } from '@/portal/components/StatusDot';
 import { useToast } from '@/portal/components/Toast';
 import { DROP_ORDER } from '@/portal/features/bulk-email/dropOrder';
 import { scheduledWords } from '@/portal/features/bulk-email/schedule';
@@ -81,7 +81,7 @@ export function CalloutDetailPage(): JSX.Element {
 
   if (callout.isError) {
     return (
-      <Page title="Callout" eyebrow="Bulk Email">
+      <Page title="Callout">
         <p className="field__error" role="alert">
           This callout could not be loaded. <Link to="/bulk-email/callouts">See every callout</Link>
           .
@@ -93,7 +93,7 @@ export function CalloutDetailPage(): JSX.Element {
   const shown = callout.data;
 
   return (
-    <Page title={shown.subject || 'Callout'} eyebrow="Bulk Email" lede={calloutLede(shown)}>
+    <Page title={shown.subject || 'Callout'} lede={calloutLede(shown)}>
       <Card title="Answers">
         <div className="stack">
           {shown.closed_skipped === 0 ? null : (
@@ -300,7 +300,6 @@ export const ANSWER_COLUMNS: Column<CalloutRecipient>[] = [
     render: (row) => (
       <span className="callouts__state">
         <StatusDot tone={answerTone(row.answer)} label={answerLabel(row.answer)} />
-        <span aria-hidden="true">{answerLabel(row.answer)}</span>
       </span>
     ),
     sortValue: (row) => (row.answer === null ? '' : ANSWER_LABELS[row.answer]),
@@ -324,7 +323,7 @@ export const ANSWER_COLUMNS: Column<CalloutRecipient>[] = [
     key: 'answered_at',
     header: 'Answered',
     width: '11.5rem',
-    render: (row) => <DateText value={row.answered_at} withTime twelveHour />,
+    render: (row) => <DateText value={row.answered_at} withTime />,
     sortValue: (row) => row.answered_at,
   },
   {
@@ -368,7 +367,7 @@ function Reminders({ callout }: { callout: CalloutDetail }): JSX.Element | null 
       <ul className="callouts__reminders">
         {callout.reminders.map((reminder) => (
           <li key={reminder.round}>
-            <DateText value={reminder.requested_at} withTime twelveHour />
+            <DateText value={reminder.requested_at} withTime />
             {`: reminded ${people(reminder.count)}.`}
           </li>
         ))}

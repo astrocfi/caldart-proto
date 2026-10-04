@@ -49,7 +49,7 @@ const COLUMNS: Column<Backup>[] = [
     header: 'Size',
     width: '6rem',
     numeric: true,
-    render: (row) => <span className="mono">{formatBytes(row.size_bytes)}</span>,
+    render: (row) => <span className="num">{formatBytes(row.size_bytes)}</span>,
     sortValue: (row) => row.size_bytes,
   },
   {
@@ -87,7 +87,6 @@ export function BackupsPanel(): JSX.Element {
 
   return (
     <Card
-      eyebrow="Data"
       title="Backups"
       footer={
         <>

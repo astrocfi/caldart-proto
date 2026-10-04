@@ -635,7 +635,7 @@ def three_senders(leader: User, management: User, napa: Dart) -> dict[str, BulkE
 def test_a_leader_lists_only_their_own(
     leader_client: APIClient, three_senders: dict[str, BulkEmail], path: str, subject: str
 ) -> None:
-    """Drafts & scheduled and Sent list a leader's own emails alone."""
+    """Drafts and scheduled and Sent list a leader's own emails alone."""
     rows = leader_client.get(f"{API}/{path}").json()
     assert [row["subject"] for row in rows] == [subject]
 

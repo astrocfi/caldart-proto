@@ -1,3 +1,5 @@
+:signed-out: yes
+
 ======================
 Choose a new password
 ======================

@@ -150,7 +150,7 @@ test('a scheduled bulk email is canceled back to a draft', async ({ page }) => {
 
   await page
     .getByRole('navigation', { name: 'Portal sections' })
-    .getByRole('link', { name: 'Drafts & scheduled' })
+    .getByRole('link', { name: 'Drafts and scheduled' })
     .click();
   const row = page.getByRole('row').filter({ hasText: subject });
   await expect(row).toContainText('Scheduled');

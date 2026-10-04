@@ -7,8 +7,11 @@
   gap: var(--space-3) var(--space-4);
 }
 
+/* The expiry date is a figure to read, so it takes the body face with tabular digits,
+ * as every date and amount in the portal does, at headline size. */
 .dashboard__expiry {
-  font-family: var(--font-display);
+  font-family: var(--font-body);
+  font-variant-numeric: tabular-nums;
   font-size: var(--text-xl);
   line-height: var(--leading-tight);
   margin: 0;

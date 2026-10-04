@@ -128,12 +128,12 @@ export function ContributionChooser({
             treasurer.
           </p>
           <div className="checkout__other-input">
-            <span aria-hidden="true" className="mono">
+            <span aria-hidden="true" className="num">
               $
             </span>
             <MaskedInput
               id={otherId}
-              className="mono"
+              className="num"
               inputMode="numeric"
               aria-describedby={`${otherId}-hint`}
               disabled={disabled}

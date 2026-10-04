@@ -22,7 +22,7 @@ import { Money } from '@/portal/components/Money';
 import { Page } from '@/portal/components/Page';
 import type { ReportCell } from '@/portal/components/reportTable';
 import { ColumnTools, reportTableColumns, useColumnChoice } from '@/portal/components/reportTable';
-import { StatusChip } from '@/portal/components/StatusChip';
+import { StatusDot } from '@/portal/components/StatusDot';
 import { useUrlFilters } from '@/portal/components/useUrlFilters';
 import {
   useFirstPageWhenMissing,
@@ -79,7 +79,7 @@ const CELLS: Record<string, ReportCell<Payment>> = {
     width: '9.5rem',
     noWrap: true,
     dropOrder: 6,
-    render: (row) => <span className="mono">{row.receipt_number}</span>,
+    render: (row) => <span className="num">{row.receipt_number}</span>,
   },
   name: {
     ordering: 'user__last_name',
@@ -152,12 +152,12 @@ const CELLS: Record<string, ReportCell<Payment>> = {
     width: '9rem',
     keepInSight: true,
     narrowWidth: '7rem',
-    render: (row) => <StatusChip tone={statusTone(row.status)} label={STATUS_LABELS[row.status]} />,
+    render: (row) => <StatusDot tone={statusTone(row.status)} label={STATUS_LABELS[row.status]} />,
   },
   provider_ref: {
     minWidth: '9rem',
     dropOrder: 1,
-    render: (row) => <span className="mono">{row.provider_ref}</span>,
+    render: (row) => <span className="num">{row.provider_ref}</span>,
   },
   received_on: {
     width: '7rem',
@@ -223,7 +223,7 @@ export function PaymentsListPage(): JSX.Element {
   return (
     <Page
       title="Payments"
-      eyebrow="Finance"
+      tabTitle="Payments · Finance"
       lede="Every payment CalDART has taken, however it arrived."
       actions={<ButtonLink to="/admin/payments/record">Record a payment</ButtonLink>}
     >

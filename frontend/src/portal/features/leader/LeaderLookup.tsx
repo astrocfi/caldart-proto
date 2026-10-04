@@ -16,7 +16,7 @@ import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { Field } from '@/portal/components/Field';
 import { Page } from '@/portal/components/Page';
-import { StatusDot } from '@/portal/components/StatusChip';
+import { StatusDot } from '@/portal/components/StatusDot';
 import { useDebounced } from '@/portal/components/useDebounced';
 import './leader.css';
 
@@ -43,7 +43,7 @@ export interface LeaderLookupProps<T> {
   /** The search box's hint. */
   hint: string;
   placeholder: string;
-  /** An extra class for the search box, such as `mono` for registrations. */
+  /** An extra class for the search box, such as `num` for registrations. */
   inputClassName?: string;
   /** What the results are, in the plural, for the screen-reader count. */
   noun: string;
@@ -103,7 +103,7 @@ export function LeaderLookup<T>({
 
   if (selected !== null) {
     return (
-      <Page title={title} eyebrow="DART leader">
+      <Page title={title}>
         <div className="leader-back">
           <Button variant="quiet" small onClick={handleBack}>
             ← Back to search
@@ -120,7 +120,7 @@ export function LeaderLookup<T>({
   const searched = debounced.length > 0 && search.isSuccess;
 
   return (
-    <Page title={title} eyebrow="DART leader" lede={lede}>
+    <Page title={title} lede={lede}>
       {aboveSearch}
       <Card>
         <Field label={label} hint={hint}>
@@ -192,7 +192,7 @@ export interface GoMarkProps {
 export function GoMark({ go, label }: GoMarkProps): JSX.Element {
   return (
     <span className="leader-search__readiness">
-      <StatusDot tone={go ? 'current' : 'expired'} label={label} />
+      <StatusDot tone={go ? 'current' : 'expired'} label={label} hideWord />
       <span
         className={`leader-search__verdict ${
           go ? 'leader-search__verdict--go' : 'leader-search__verdict--nogo'

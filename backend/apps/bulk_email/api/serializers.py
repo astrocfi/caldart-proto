@@ -392,7 +392,7 @@ class BulkEmailDetailSerializer(serializers.ModelSerializer[BulkEmail]):
 
 
 class BulkEmailSummarySerializer(serializers.ModelSerializer[BulkEmail]):
-    """One bulk email as the Drafts & scheduled and the Sent lists show it.
+    """One bulk email as the Drafts and scheduled and the Sent lists show it.
 
     ``batch_count`` is how many people are in the batch and ``remaining`` how many
     copies are waiting to be sent; both come from the list's own annotations.

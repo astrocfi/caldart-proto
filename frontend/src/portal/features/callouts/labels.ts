@@ -1,8 +1,7 @@
 /** The words the Callouts screens use for an answer and for a callout's state. */
 import type { CalloutAnswerKind, CalloutSummary } from '@/portal/api/types';
-import { formatDateAt } from '@/portal/components/DateText';
-import type { StatusTone } from '@/portal/components/StatusChip';
-import { SITE_TIME_ZONE } from '@/portal/features/bulk-email/schedule';
+import { formatDateTime } from '@/portal/components/DateText';
+import type { StatusTone } from '@/portal/components/StatusDot';
 
 /** Each answer as the email's buttons word it. */
 export const ANSWER_LABELS: Record<CalloutAnswerKind, string> = {
@@ -30,7 +29,7 @@ export function answerLabel(answer: CalloutAnswerKind | null): string {
  */
 export function openLabel(callout: CalloutSummary): string {
   if (callout.is_open) {
-    return `Taking answers until ${formatDateAt(callout.closes_at, SITE_TIME_ZONE)}`;
+    return `Taking answers until ${formatDateTime(callout.closes_at)}`;
   }
-  return `Closed ${formatDateAt(callout.closed_at ?? callout.closes_at, SITE_TIME_ZONE)}`;
+  return `Closed ${formatDateTime(callout.closed_at ?? callout.closes_at)}`;
 }

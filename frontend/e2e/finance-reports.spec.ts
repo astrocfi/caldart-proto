@@ -53,7 +53,7 @@ test('a treasurer reconciles a period and exports it', async ({ page }) => {
 async function contributionRows(page: Page, year: number): Promise<Locator> {
   const isThisYear = year === new Date().getFullYear();
   await page.getByLabel('Year').selectOption(isThisYear ? '' : String(year));
-  const rows = bodyRows(page, new RegExp(`Contributions in ${year}`));
+  const rows = bodyRows(page, new RegExp(`^\\d+ contributors? in ${year}$`));
   await expect(rows.first().or(page.getByText('No contributions that year'))).toBeVisible();
   return rows;
 }
@@ -66,7 +66,9 @@ test('a treasurer reads the year of giving and can print a statement', async ({ 
 
   const thisYear = new Date().getFullYear();
   await expect(page.getByLabel('Year')).toHaveValue('');
-  await expect(page.getByRole('table', { name: `Contributions in ${thisYear}` })).toBeVisible();
+  await expect(
+    page.getByRole('table', { name: new RegExp(`^\\d+ contributors? in ${thisYear}$`) }),
+  ).toBeVisible();
 
   // The seed spreads its payments over the past two years, so early in January
   // the current year may hold none of them; last year always holds some.

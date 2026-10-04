@@ -124,7 +124,6 @@ export function ContributionsPage(): JSX.Element {
   return (
     <Page
       title="Contributions"
-      eyebrow="Payments"
       lede="Everyone who gave in one calendar year, and what each of them gave."
     >
       <FinanceTabs />
@@ -140,7 +139,7 @@ export function ContributionsPage(): JSX.Element {
         initialSort={DEFAULT_SORT}
         rows={rows.data ?? []}
         rowKey={(row) => row.user_id}
-        caption={`Contributions in ${year}`}
+        caption={`${(rows.data ?? []).length} ${(rows.data ?? []).length === 1 ? 'contributor' : 'contributors'} in ${year}`}
         filters={
           <FilterBar
             fields={FILTER_FIELDS}

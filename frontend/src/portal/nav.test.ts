@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
 import type { RoleSlug } from './api/types';
-import { NAV_ITEMS, groupedNavItems, hasAnyRole, visibleNavItems } from './nav';
+import { NAV_ITEMS, groupedNavItems, hasAnyRole, navEyebrow, visibleNavItems } from './nav';
+import type { NavReader } from './nav';
 
-const labels = (roles: RoleSlug[], isEffectiveFriend = false): string[] =>
-  visibleNavItems(roles, isEffectiveFriend).map((item) => item.label);
+const labels = (roles: RoleSlug[], reader: NavReader = {}): string[] =>
+  visibleNavItems(roles, reader).map((item) => item.label);
 
 describe('hasAnyRole', () => {
   it('grants entries with no role requirement to any user', () => {
@@ -52,7 +53,7 @@ describe('visibleNavItems', () => {
     const visible = labels(['member', 'dart_leader']);
     expect(visible).toContain('Member check');
     expect(visible).toContain('Aircraft check');
-    expect(visible).not.toContain('Users & roles');
+    expect(visible).not.toContain('Users and roles');
   });
 
   it.each([['verifier'], ['user_admin']] as const)(
@@ -69,9 +70,9 @@ describe('visibleNavItems', () => {
 
   it('gives account_admin the member, aircraft, and payment screens but not users', () => {
     const visible = labels(['member', 'account_admin']);
-    expect(visible).toEqual(expect.arrayContaining(['Members', 'Aircraft', 'Payments']));
-    expect(visible).not.toContain('Users & roles');
-    expect(visible).not.toContain('Health & Database');
+    expect(visible).toEqual(expect.arrayContaining(['Members', 'Aircraft register', 'Finance']));
+    expect(visible).not.toContain('Users and roles');
+    expect(visible).not.toContain('Health and database');
   });
 
   it('gives account_admin the reminder log', () => {
@@ -119,12 +120,12 @@ describe('visibleNavItems', () => {
     },
   );
 
-  it('gives a treasurer the subscriptions screen', () => {
-    expect(labels(['member', 'treasurer'])).toContain('Subscriptions');
+  it('gives a treasurer the emailed reports screen', () => {
+    expect(labels(['member', 'treasurer'])).toContain('Emailed reports');
   });
 
-  it('keeps the subscriptions screen away from dart_leader', () => {
-    expect(labels(['member', 'dart_leader'])).not.toContain('Subscriptions');
+  it('keeps the emailed reports screen away from dart_leader', () => {
+    expect(labels(['member', 'dart_leader'])).not.toContain('Emailed reports');
   });
 
   it('offers the leader checks to account_admin, as the API and guards do', () => {
@@ -134,7 +135,7 @@ describe('visibleNavItems', () => {
   });
 
   it('gives a treasurer the finance area', () => {
-    expect(labels(['member', 'treasurer'])).toContain('Payments');
+    expect(labels(['member', 'treasurer'])).toContain('Finance');
   });
 
   it('keeps the member register away from a treasurer', () => {
@@ -143,7 +144,7 @@ describe('visibleNavItems', () => {
 
   it('gives user_admin only the users screen on top of membership', () => {
     const visible = labels(['member', 'user_admin']);
-    expect(visible).toContain('Users & roles');
+    expect(visible).toContain('Users and roles');
     expect(visible).not.toContain('Members');
   });
 
@@ -151,7 +152,7 @@ describe('visibleNavItems', () => {
     const member = labels(['member']);
     expect(labels(['member', 'management']).filter((label) => !member.includes(label))).toEqual([
       'Compose',
-      'Drafts & scheduled',
+      'Drafts and scheduled',
       'Sent',
       'Templates',
       'Recipient groups',
@@ -160,9 +161,9 @@ describe('visibleNavItems', () => {
     ]);
   });
 
-  it('files Mail delivery in the Bulk Email group, for management', () => {
+  it('files Mail delivery in the Bulk email group, for management', () => {
     expect(NAV_ITEMS.find((item) => item.to === '/bulk-email/mail-delivery')).toMatchObject({
-      group: 'Bulk Email',
+      group: 'Bulk email',
       roles: ['management'],
     });
   });
@@ -178,9 +179,9 @@ describe('visibleNavItems', () => {
     expect(labels(['member', 'system_admin'])).toContain('Mail delivery');
   });
 
-  it('files the bulk email screens in a Bulk Email group of their own', () => {
+  it('files the bulk email screens in a Bulk email group of their own', () => {
     const bulk = groupedNavItems(['member', 'management']).find(
-      (bucket) => bucket.group === 'Bulk Email',
+      (bucket) => bucket.group === 'Bulk email',
     );
     expect(bulk?.items.map((item) => item.to)).toEqual([
       '/bulk-email/compose',
@@ -190,32 +191,26 @@ describe('visibleNavItems', () => {
       '/bulk-email/groups',
       '/bulk-email/callouts',
       '/bulk-email/mail-delivery',
-      '/messages',
-      '/email-preferences',
     ]);
   });
 
-  it('gives a DART leader Compose, Drafts & scheduled, Sent, and Callouts, for their own DART', () => {
+  it('gives a DART leader Compose, Drafts and scheduled, Sent, and Callouts, for their own DART', () => {
     const bulk = groupedNavItems(['member', 'dart_leader']).find(
-      (bucket) => bucket.group === 'Bulk Email',
+      (bucket) => bucket.group === 'Bulk email',
     );
     expect(bulk?.items.map((item) => item.to)).toEqual([
       '/bulk-email/compose',
       '/bulk-email/drafts',
       '/bulk-email/sent',
       '/bulk-email/callouts',
-      '/messages',
-      '/email-preferences',
     ]);
   });
 
   it.each([['account_admin'], ['user_admin'], ['treasurer']] as const)(
-    'keeps the bulk email screens away from %s, who has only their messages and preferences',
+    'gives %s no Bulk email group',
     (role) => {
-      const bulk = groupedNavItems(['member', role]).find(
-        (bucket) => bucket.group === 'Bulk Email',
-      );
-      expect(bulk?.items.map((item) => item.to)).toEqual(['/messages', '/email-preferences']);
+      const groups = groupedNavItems(['member', role]).map((bucket) => bucket.group);
+      expect(groups).not.toContain('Bulk email');
     },
   );
 
@@ -233,11 +228,11 @@ describe('visibleNavItems', () => {
   });
 
   it('hides Renew from an effective friend, who has no membership to renew', () => {
-    expect(labels(['member'], true)).not.toContain('Renew');
+    expect(labels(['member'], { isEffectiveFriend: true })).not.toContain('Renew');
   });
 
   it('leaves every other membership entry for an effective friend', () => {
-    expect(labels(['member'], true)).toEqual([
+    expect(labels(['member'], { isEffectiveFriend: true })).toEqual([
       'Dashboard',
       'My profile',
       'My aircraft',
@@ -251,18 +246,33 @@ describe('visibleNavItems', () => {
   });
 
   it('keeps Renew for a member who is not an effective friend', () => {
-    expect(labels(['member'], false)).toContain('Renew');
+    expect(labels(['member'], { isEffectiveFriend: false })).toContain('Renew');
+  });
+
+  it('names Renew Contribute for a lifetime member, as the screen behind it is titled', () => {
+    expect(labels(['member'], { isLifetime: true })).toContain('Contribute');
+  });
+
+  it('keeps no Renew label for a lifetime member', () => {
+    expect(labels(['member'], { isLifetime: true })).not.toContain('Renew');
+  });
+
+  it('writes every label in sentence case, with "and" rather than "&"', () => {
+    const offending = NAV_ITEMS.map((item) => item.label).filter(
+      (label) => label.includes('&') || /\s(?!DART)[A-Z]/.test(label),
+    );
+    expect(offending).toEqual([]);
   });
 });
 
 describe('the System group', () => {
-  it('lists Health & Database, Sent Emails, and Scheduled, in that order', () => {
+  it('lists Health and database, Sent emails, and Scheduled, in that order', () => {
     const system = groupedNavItems(['member', 'system_admin']).find(
       (bucket) => bucket.group === 'System',
     );
     expect(system?.items.map((item) => [item.label, item.to])).toEqual([
-      ['Health & Database', '/system/health'],
-      ['Sent Emails', '/system/emails'],
+      ['Health and database', '/system/health'],
+      ['Sent emails', '/system/emails'],
       ['Scheduled', '/system/scheduled'],
     ]);
   });
@@ -277,49 +287,40 @@ describe('the System group', () => {
   });
 });
 
-describe('the Bulk Email group', () => {
+describe('the Bulk email group', () => {
   it('lists every entry in the sidebar order for a system admin', () => {
     const bulk = groupedNavItems(['member', 'system_admin']).find(
-      (bucket) => bucket.group === 'Bulk Email',
+      (bucket) => bucket.group === 'Bulk email',
     );
     expect(bulk?.items.map((item) => item.label)).toEqual([
       'Compose',
-      'Drafts & scheduled',
+      'Drafts and scheduled',
       'Sent',
       'Templates',
       'Recipient groups',
       'Callouts',
       'Email types',
       'Mail delivery',
-      'Messages',
-      'Email preferences',
     ]);
   });
 
   it('declares each entry with its path and the roles that open it', () => {
     expect(
-      NAV_ITEMS.filter((item) => item.group === 'Bulk Email').map((item) => [
+      NAV_ITEMS.filter((item) => item.group === 'Bulk email').map((item) => [
         item.label,
         item.to,
         item.roles,
       ]),
     ).toEqual([
       ['Compose', '/bulk-email/compose', ['management', 'dart_leader']],
-      ['Drafts & scheduled', '/bulk-email/drafts', ['management', 'dart_leader']],
+      ['Drafts and scheduled', '/bulk-email/drafts', ['management', 'dart_leader']],
       ['Sent', '/bulk-email/sent', ['management', 'dart_leader']],
       ['Templates', '/bulk-email/templates', ['management']],
       ['Recipient groups', '/bulk-email/groups', ['management']],
       ['Callouts', '/bulk-email/callouts', ['management', 'dart_leader']],
       ['Email types', '/bulk-email/types', ['system_admin']],
       ['Mail delivery', '/bulk-email/mail-delivery', ['management']],
-      ['Messages', '/messages', []],
-      ['Email preferences', '/email-preferences', []],
     ]);
-  });
-
-  it('gives every signed-in person their messages and email preferences', () => {
-    const bulk = groupedNavItems(['member']).find((bucket) => bucket.group === 'Bulk Email');
-    expect(bulk?.items.map((item) => item.to)).toEqual(['/messages', '/email-preferences']);
   });
 
   it.each([['management'], ['account_admin'], ['dart_leader']] as const)(
@@ -330,16 +331,67 @@ describe('the Bulk Email group', () => {
   );
 });
 
+describe('the Your email group', () => {
+  it('gives every signed-in person their messages and email preferences', () => {
+    const own = groupedNavItems(['member']).find((bucket) => bucket.group === 'Your email');
+    expect(own?.items.map((item) => item.to)).toEqual(['/messages', '/email-preferences']);
+  });
+
+  it('keeps the messages and preferences out of the Bulk email group for management', () => {
+    const bulk = groupedNavItems(['member', 'management']).find(
+      (bucket) => bucket.group === 'Bulk email',
+    );
+    expect(bulk?.items.map((item) => item.to)).not.toContain('/messages');
+  });
+});
+
 describe('groupedNavItems', () => {
   it('drops groups with nothing in them', () => {
     const groups = groupedNavItems(['member']).map((bucket) => bucket.group);
-    expect(groups).toEqual(['Membership', 'Bulk Email']);
+    expect(groups).toEqual(['Membership', 'Your email']);
   });
 
   it('orders groups consistently for a system admin', () => {
     const groups = groupedNavItems(['system_admin']).map((bucket) => bucket.group);
-    expect(groups).toEqual(['Membership', 'Operations', 'Bulk Email', 'Administration', 'System']);
+    expect(groups).toEqual([
+      'Membership',
+      'Your email',
+      'Operations',
+      'Bulk email',
+      'Administration',
+      'System',
+    ]);
   });
+});
+
+describe('navEyebrow', () => {
+  it.each([
+    ['/', 'Membership'],
+    ['/profile/aircraft', 'Membership'],
+    ['/change-password', 'Membership'],
+    ['/membership/join', 'Membership'],
+    ['/messages/12', 'Your email'],
+    ['/leader', 'Operations'],
+    ['/leader/aircraft', 'Operations'],
+    ['/bulk-email/drafts/4', 'Bulk email'],
+    ['/admin/members/7', 'Administration'],
+    ['/admin/users/3', 'Administration'],
+    ['/admin/payments', 'Finance'],
+    ['/admin/payments/renewals', 'Finance'],
+    ['/admin/payments/members/9', 'Finance'],
+    ['/admin/reports', 'Administration'],
+    ['/system', 'System'],
+    ['/system/health', 'System'],
+  ])('heads %s with %s, the menu group it sits under', (path, eyebrow) => {
+    expect(navEyebrow(path)).toBe(eyebrow);
+  });
+
+  it.each([['/login'], ['/join/profile'], ['/no-such-page']])(
+    'gives %s, outside the menu, no eyebrow',
+    (path) => {
+      expect(navEyebrow(path)).toBeNull();
+    },
+  );
 });
 
 describe('nav definition', () => {

@@ -19,8 +19,10 @@ import { DataTable } from '@/portal/components/DataTable';
 import { DateText, formatDate } from '@/portal/components/DateText';
 import { Field } from '@/portal/components/Field';
 import { RefusedSubmitNote, useRefusedSubmit } from '@/portal/components/RefusedSubmit';
+import { StatusDot } from '@/portal/components/StatusDot';
+import type { StatusTone } from '@/portal/components/StatusDot';
 import { useToast } from '@/portal/components/Toast';
-import { TERM_STATUS_CHOICES } from './choices';
+import { TERM_SOURCE_LABELS, TERM_STATUS_CHOICES } from './choices';
 import { useGrantTerm, useUpdateTerm } from './api';
 import { splitErrors } from './errors';
 
@@ -31,6 +33,19 @@ interface TermEdit {
   ends_on: string;
   status: string;
   note: string;
+}
+
+/** The dot beside a term's state: green active, red expired, gray canceled or suspended. */
+const TERM_STATUS_TONE: Record<MembershipTermStatus, StatusTone> = {
+  active: 'current',
+  expired: 'expired',
+  canceled: 'none',
+  suspended: 'none',
+};
+
+/** A term's state in words, as the correction form's choices word it. */
+function termStatusLabel(status: MembershipTermStatus): string {
+  return TERM_STATUS_CHOICES.find((choice) => choice.value === status)?.label ?? status;
 }
 
 function editFrom(term: MemberTerm): TermEdit {
@@ -185,10 +200,16 @@ export function MemberMembershipsTab({ member }: { member: MemberDetail }): JSX.
             ))}
           </select>
         ) : (
-          term.status
+          <StatusDot tone={TERM_STATUS_TONE[term.status]} label={termStatusLabel(term.status)} />
         ),
     },
-    { key: 'source', header: 'Source', width: '6rem', dropOrder: 1, render: (term) => term.source },
+    {
+      key: 'source',
+      header: 'Source',
+      width: '8.5rem',
+      dropOrder: 1,
+      render: (term) => TERM_SOURCE_LABELS[term.source],
+    },
     {
       key: 'note',
       header: 'Note',
@@ -247,7 +268,7 @@ export function MemberMembershipsTab({ member }: { member: MemberDetail }): JSX.
 
   return (
     <>
-      <Card title="Membership history" eyebrow="Terms">
+      <Card title="Membership history">
         {termErrors.detail || termErrors.account.ends_on ? (
           <p role="alert" className="field__error">
             {termErrors.account.ends_on ?? termErrors.detail}
@@ -266,7 +287,7 @@ export function MemberMembershipsTab({ member }: { member: MemberDetail }): JSX.
       </Card>
 
       {isDonor ? null : (
-        <Card title="Grant a term" eyebrow="Manual grant">
+        <Card title="Grant a term">
           <form ref={grantRef} onSubmit={handleSubmitGrant} noValidate>
             {grantErrors.detail ? (
               <p role="alert" className="field__error">

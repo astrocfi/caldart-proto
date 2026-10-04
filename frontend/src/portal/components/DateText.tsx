@@ -2,12 +2,13 @@
  * The one place the portal turns a date or a time into text.
  *
  * Every date or time a portal screen shows passes through this module, so the
- * format can change here alone: dates read `MM/DD/YYYY`, datetimes add a
- * 24-hour `HH:MM`, a time of day alone reads `HH:MM`, and a month reads
- * `Mar 2026`. A time a volunteer reads in words, such as when a bulk email went,
- * reads `04/07/2026 at 8:00 AM` instead (`formatDateAt`, or `DateText` with
- * `twelveHour`). Date inputs stay native `<input type="date">`, which the browser
- * renders in the reader's own locale; `todayIso` gives them their value.
+ * format can change here alone.  A date reads `MM/DD/YYYY`; a moment reads
+ * `10/04/2026 at 5:33 AM`, always in the site's own time zone (Pacific), whoever is
+ * reading and wherever they are, so the same moment reads the same on every screen;
+ * a time of day alone reads `5:33 AM`; and a month reads `Mar 2026`.  A moment shown
+ * as a date alone is its Pacific day.  Date inputs stay native
+ * `<input type="date">`, which the browser renders in the reader's own locale;
+ * `todayIso` gives them their value.
  */
 import type { JSX } from 'react';
 
@@ -42,51 +43,19 @@ function dateParts(value: Date): string {
   return `${pad(value.getMonth() + 1)}/${pad(value.getDate())}/${value.getFullYear()}`;
 }
 
-function timeParts(value: Date): string {
-  return `${pad(value.getHours())}:${pad(value.getMinutes())}`;
-}
+/** The site's time zone, in which every moment is read and every schedule is chosen. */
+export const SITE_TIME_ZONE = 'America/Los_Angeles';
 
-function parse(iso: string): Date | null {
-  // A bare `YYYY-MM-DD` parses as UTC midnight, which reads as the previous
-  // day west of Greenwich; pin it to local midnight instead.
-  const value = /^\d{4}-\d{2}-\d{2}$/.test(iso) ? new Date(`${iso}T00:00:00`) : new Date(iso);
-  return Number.isNaN(value.getTime()) ? null : value;
-}
+/** What the site's time zone is called on screen. */
+export const SITE_TIME_ZONE_NAME = 'Pacific time';
 
-/** Formats an ISO date or datetime as `MM/DD/YYYY`, or `placeholder` when it is unparseable. */
-export function formatDate(iso: string | null | undefined, placeholder = '—'): string {
-  if (!iso) return placeholder;
-  const value = parse(iso);
-  return value ? dateParts(value) : placeholder;
-}
+const BARE_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
-/** Formats an ISO datetime as `MM/DD/YYYY HH:MM`, or `placeholder` when it is unparseable. */
-export function formatDateTime(iso: string | null | undefined, placeholder = '—'): string {
-  if (!iso) return placeholder;
-  const value = parse(iso);
-  return value ? `${dateParts(value)} ${timeParts(value)}` : placeholder;
-}
-
-/** Formats an ISO datetime's time of day as `HH:MM`, or `placeholder` when it is unparseable. */
-export function formatTime(iso: string | null | undefined, placeholder = '—'): string {
-  if (!iso) return placeholder;
-  const value = parse(iso);
-  return value ? timeParts(value) : placeholder;
-}
-
-/**
- * Formats a datetime as `04/07/2026 at 8:00 AM`, in `timeZone` when one is given and
- * on the reader's own clock otherwise, or `placeholder` when it is unparseable.  A
- * schedule a person chose reads this way, in the words they would say it.
- */
-export function formatDateAt(
-  iso: string | null | undefined,
-  timeZone?: string,
-  placeholder = '—',
-): string {
-  if (!iso) return placeholder;
-  const value = parse(iso);
-  if (value === null) return placeholder;
+/** The named parts of `value` in `timeZone` (the reader's own zone when undefined). */
+function zonedParts(
+  value: Date,
+  timeZone: string | undefined,
+): (type: Intl.DateTimeFormatPartTypes) => string {
   const parts = new Intl.DateTimeFormat('en-US', {
     timeZone,
     year: 'numeric',
@@ -96,8 +65,64 @@ export function formatDateAt(
     minute: '2-digit',
     hour12: true,
   }).formatToParts(value);
-  const part = (type: Intl.DateTimeFormatPartTypes): string =>
-    parts.find((piece) => piece.type === type)?.value ?? '';
+  return (type) => parts.find((piece) => piece.type === type)?.value ?? '';
+}
+
+function parse(iso: string): Date | null {
+  // A bare `YYYY-MM-DD` parses as UTC midnight, which reads as the previous
+  // day west of Greenwich; pin it to local midnight instead.
+  const value = BARE_DATE.test(iso) ? new Date(`${iso}T00:00:00`) : new Date(iso);
+  return Number.isNaN(value.getTime()) ? null : value;
+}
+
+/**
+ * Formats an ISO date as `MM/DD/YYYY`, that day wherever the reader is, or an ISO
+ * datetime as the Pacific day it falls on; `placeholder` when it is unparseable.
+ */
+export function formatDate(iso: string | null | undefined, placeholder = '—'): string {
+  if (!iso) return placeholder;
+  const value = parse(iso);
+  if (value === null) return placeholder;
+  if (BARE_DATE.test(iso)) return dateParts(value);
+  const part = zonedParts(value, SITE_TIME_ZONE);
+  return `${part('month')}/${part('day')}/${part('year')}`;
+}
+
+/**
+ * Formats an ISO datetime as `10/04/2026 at 5:33 AM` in Pacific time, or
+ * `placeholder` when it is unparseable: `formatDateAt` in the site's time zone.
+ */
+export function formatDateTime(iso: string | null | undefined, placeholder = '—'): string {
+  return formatDateAt(iso, SITE_TIME_ZONE, placeholder);
+}
+
+/**
+ * Formats an ISO datetime's time of day as `5:33 AM` in Pacific time, or `placeholder`
+ * when it is unparseable.
+ */
+export function formatTime(iso: string | null | undefined, placeholder = '—'): string {
+  if (!iso) return placeholder;
+  const value = parse(iso);
+  if (value === null) return placeholder;
+  const part = zonedParts(value, SITE_TIME_ZONE);
+  return `${part('hour')}:${part('minute')} ${part('dayPeriod')}`;
+}
+
+/**
+ * Formats a datetime as `04/07/2026 at 8:00 AM`, in `timeZone` when one is given and
+ * on the reader's own clock otherwise, or `placeholder` when it is unparseable.  A
+ * moment the server holds is read in `SITE_TIME_ZONE` (`formatDateTime`); the reader's
+ * own clock is for a time they have chosen in the boxes and not yet saved.
+ */
+export function formatDateAt(
+  iso: string | null | undefined,
+  timeZone?: string,
+  placeholder = '—',
+): string {
+  if (!iso) return placeholder;
+  const value = parse(iso);
+  if (value === null) return placeholder;
+  const part = zonedParts(value, timeZone);
   return `${part('month')}/${part('day')}/${part('year')} at ${part('hour')}:${part('minute')} ${part('dayPeriod')}`;
 }
 
@@ -132,32 +157,25 @@ export function formatMonth(yyyyMm: string): string {
 
 export interface DateTextProps {
   value: string | null | undefined;
-  /** Include the time of day. */
+  /** Include the time of day: `10/04/2026 at 5:33 AM`, in Pacific time. */
   withTime?: boolean;
-  /** With `withTime`, read the time on the 12-hour clock: `04/07/2026 at 8:00 AM`. */
-  twelveHour?: boolean;
   placeholder?: string;
 }
 
 /**
- * A date, or a datetime with `withTime`, in the mono face so columns line up; with
- * `twelveHour` too, the time reads on the 12-hour clock.
+ * A date, or a moment with `withTime`, in a `time` element, with tabular digits so
+ * a column of them lines up.
  */
 export function DateText({
   value,
   withTime = false,
-  twelveHour = false,
   placeholder = '—',
 }: DateTextProps): JSX.Element {
-  if (!value) return <span className="mono muted">{placeholder}</span>;
+  if (!value) return <span className="num muted">{placeholder}</span>;
   const parsed = parse(value);
-  const text = !withTime
-    ? formatDate(value, placeholder)
-    : twelveHour
-      ? formatDateAt(value, undefined, placeholder)
-      : formatDateTime(value, placeholder);
+  const text = withTime ? formatDateTime(value, placeholder) : formatDate(value, placeholder);
   return (
-    <time className="mono" dateTime={parsed ? value : undefined}>
+    <time className="num" dateTime={parsed ? value : undefined}>
       {text}
     </time>
   );

@@ -114,7 +114,7 @@ export function AddAircraftType({
           {(field) => (
             <MaskedInput
               {...field}
-              className="mono"
+              className="num"
               inputMode="numeric"
               size={4}
               mask={(raw) => maskDigits(raw, 2)}
@@ -128,7 +128,7 @@ export function AddAircraftType({
           {(field) => (
             <MaskedInput
               {...field}
-              className="mono"
+              className="num"
               inputMode="numeric"
               size={4}
               mask={(raw) => maskDigits(raw, 1)}

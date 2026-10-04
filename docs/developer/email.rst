@@ -307,7 +307,7 @@ the message is recorded as **failed** with the exception's class name, and the
 error then travels on to the caller, which decides what the refusal means
 (`When the mail server refuses`_).  The body itself is not stored.
 
-A system administrator reads the log in the portal, on the **Sent Emails**
+A system administrator reads the log in the portal, on the **Sent emails**
 page, which filters by date, purpose, recipient, status, and attachments and
 exports what it shows; the same rows come from
 ``GET /api/v1/system/emails`` (:doc:`api-system`) and, read-only, from the
@@ -355,7 +355,7 @@ fails loudly.  Every caller catches a refusal and carries on:
   ``caldart.mail.send_on_commit`` for a send queued for the commit.
 * A send a user administrator asks for by name, the user record's **Send password
   reset** and **Resend verification message**, answers 503 with a sentence
-  pointing at the Sent Emails page, so the administrator knows it did not go.
+  pointing at the Sent emails page, so the administrator knows it did not go.
 
 The request answers are listed endpoint by endpoint under
 :ref:`refused sends <api-refused-send>`.  A refusal during one of those account
@@ -447,8 +447,8 @@ checking is off and reads nothing.
 leaves the password out of its ``repr``, and the check's own frames are marked
 sensitive, so a traceback shows none of their variables.
 
-The flag on the account shows as a **Bounced** chip beside the address on the
-member record and the user record, and Users and roles filters on it
+The flag on the account shows as a red dot and the word **Bounced** beside the address
+on the member record and the user record, and Users and roles filters on it
 (``?email_bounced=``).  It clears when the address changes, when a verification,
 password reset, or invitation link sent to it is followed, and when a user
 administrator presses **Clear bounce** on the user record
@@ -484,7 +484,7 @@ Setting up the mailbox
 
 Send a message to an address that cannot exist on a domain you control, such as
 ``no-such-person@caldart.example.org``, from a password reset or an invitation;
-within the hour its row on the Sent Emails page reads **Bounced**.  A relay that
+within the hour its row on the Sent emails page reads **Bounced**.  A relay that
 rewrites the envelope sender, as some transactional services do, returns the
 reports to its own address instead: point ``BOUNCE_ADDRESS`` at an address the
 relay forwards bounces to, or read the relay's own bounce list, since such a

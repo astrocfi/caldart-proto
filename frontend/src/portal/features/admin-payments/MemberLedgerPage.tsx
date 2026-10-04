@@ -20,7 +20,7 @@ import { Loading } from '@/portal/components/Loading';
 import { MemberRecordLink } from '@/portal/components/MemberRecordLink';
 import { Money, formatCents } from '@/portal/components/Money';
 import { Page } from '@/portal/components/Page';
-import { MembershipChip, StatusChip } from '@/portal/components/StatusChip';
+import { MembershipDot, StatusDot } from '@/portal/components/StatusDot';
 import { statementUrl, useMemberLedger } from './api';
 import { FinanceTabs } from './FinanceTabs';
 import {
@@ -90,7 +90,7 @@ const LEDGER_COLUMNS: Column<PaymentDetail>[] = [
     width: '9rem',
     narrowWidth: '7rem',
     keepInSight: true,
-    render: (row) => <StatusChip tone={statusTone(row.status)} label={STATUS_LABELS[row.status]} />,
+    render: (row) => <StatusDot tone={statusTone(row.status)} label={STATUS_LABELS[row.status]} />,
   },
 ];
 
@@ -98,13 +98,13 @@ const LEDGER_COLUMNS: Column<PaymentDetail>[] = [
 export function MandateCard({ mandate }: { mandate: RenewalMandate | null }): JSX.Element {
   if (mandate === null) {
     return (
-      <Card title="Automatic renewal" eyebrow="Renewal">
+      <Card title="Automatic renewal">
         <p className="muted">This member renews by hand.</p>
       </Card>
     );
   }
   return (
-    <Card title={MANDATE_KIND_LABELS[mandate.kind]} eyebrow="Renewal">
+    <Card title={MANDATE_KIND_LABELS[mandate.kind]}>
       <dl className="payment-facts">
         <div>
           <dt>State</dt>
@@ -172,7 +172,7 @@ export function LedgerBody({ ledger }: { ledger: MemberLedger }): JSX.Element {
 
       <MandateCard mandate={ledger.mandate} />
 
-      <Card title="Payments" eyebrow="History">
+      <Card title="Payments">
         <DataTable
           singleLine
           columns={LEDGER_COLUMNS}
@@ -183,7 +183,7 @@ export function LedgerBody({ ledger }: { ledger: MemberLedger }): JSX.Element {
         />
       </Card>
 
-      <Card title="Contribution statements" eyebrow="Downloads">
+      <Card title="Contribution statements">
         {ledger.statement_years.length === 0 ? (
           <p className="muted">This member has not given anything beyond their dues.</p>
         ) : (
@@ -213,7 +213,7 @@ export function MemberLedgerPage(): JSX.Element {
   if (query.isPending) return <Loading />;
   if (query.error || !query.data) {
     return (
-      <Page title="Member ledger" eyebrow="Finance">
+      <Page title="Member ledger">
         <FinanceTabs current="/admin/payments/list" />
         <EmptyState
           title="That ledger could not be loaded"
@@ -228,11 +228,11 @@ export function MemberLedgerPage(): JSX.Element {
   return (
     <Page
       title={ledger.user.name}
-      eyebrow="Member ledger"
+      tabTitle={`${ledger.user.name} · Money history`}
       lede={ledger.user.email}
       actions={
         <>
-          <MembershipChip membership={ledger.user.membership} />
+          <MembershipDot membership={ledger.user.membership} />
           <MemberRecordLink userId={ledger.user.id} isTombstone={ledger.user.is_tombstone} />
         </>
       }

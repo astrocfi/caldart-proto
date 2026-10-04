@@ -54,7 +54,7 @@ export function ComposePage(): JSX.Element {
 
   if (email.isError) {
     return (
-      <Page title="Compose" eyebrow="Bulk Email">
+      <Page title="Compose">
         <p className="field__error" role="alert">
           This email could not be loaded. It may have been deleted.{' '}
           <Link to="/bulk-email/drafts">See your drafts</Link>.
@@ -107,7 +107,6 @@ function ComposeForm({
   return (
     <Page
       title="Compose"
-      eyebrow="Bulk Email"
       lede={
         email.can_edit
           ? 'Choose who gets it, write it, then check and send. Your work saves itself.'

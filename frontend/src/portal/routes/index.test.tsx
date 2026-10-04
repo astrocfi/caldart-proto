@@ -109,7 +109,7 @@ vi.mock('../features/bulk-email/ComposePage', () => ({
   ComposePage: pageStub('Compose a bulk email'),
 }));
 vi.mock('../features/bulk-email/DraftsPage', () => ({
-  DraftsPage: pageStub('Drafts & scheduled'),
+  DraftsPage: pageStub('Drafts and scheduled'),
 }));
 vi.mock('../features/bulk-email/SentPage', () => ({ SentPage: pageStub('Sent') }));
 vi.mock('../features/bulk-email/SentDetailPage', () => ({
@@ -149,13 +149,13 @@ vi.mock('../features/admin-users/UserDetailPage', () => ({
   UserDetailPage: pageStub('User record'),
 }));
 vi.mock('../features/system/HealthDatabasePage', () => ({
-  HealthDatabasePage: pageStub('Health & Database'),
+  HealthDatabasePage: pageStub('Health and database'),
 }));
-vi.mock('../features/system/SentEmailsPage', () => ({ SentEmailsPage: pageStub('Sent Emails') }));
+vi.mock('../features/system/SentEmailsPage', () => ({ SentEmailsPage: pageStub('Sent emails') }));
 vi.mock('../features/system/ScheduledPage', () => ({ ScheduledPage: pageStub('Scheduled') }));
 
 /** The 403 page's headline, from `auth/guards.tsx`. */
-const FORBIDDEN = 'You do not have access to this page';
+const FORBIDDEN = /^You do not have access to this page\./;
 
 interface Identity {
   /** How the case is named, and the key the `allowed` lists use. */
@@ -309,7 +309,7 @@ const GUARDED_PATHS: GuardedPath[] = [
   },
   {
     path: '/bulk-email/drafts',
-    heading: 'Drafts & scheduled',
+    heading: 'Drafts and scheduled',
     allowed: ['dart_leader', 'management', 'system_admin'],
   },
   {
@@ -363,9 +363,9 @@ const GUARDED_PATHS: GuardedPath[] = [
   { path: '/email-preferences', heading: 'Email preferences', allowed: ANY_SIGNED_IN },
   { path: '/admin/users', heading: 'Users and roles', allowed: ['user_admin', 'system_admin'] },
   { path: '/admin/users/1', heading: 'User record', allowed: ['user_admin', 'system_admin'] },
-  { path: '/system', heading: 'Health & Database', allowed: ['system_admin'] },
-  { path: '/system/health', heading: 'Health & Database', allowed: ['system_admin'] },
-  { path: '/system/emails', heading: 'Sent Emails', allowed: ['system_admin'] },
+  { path: '/system', heading: 'Health and database', allowed: ['system_admin'] },
+  { path: '/system/health', heading: 'Health and database', allowed: ['system_admin'] },
+  { path: '/system/emails', heading: 'Sent emails', allowed: ['system_admin'] },
   { path: '/system/scheduled', heading: 'Scheduled', allowed: ['system_admin'] },
 ];
 
@@ -426,7 +426,7 @@ describe('the finance area', () => {
 });
 
 describe('the System section', () => {
-  it('sends a system administrator at /system to Health & Database', async () => {
+  it('sends a system administrator at /system to Health and database', async () => {
     server.use(signedInAs(makeUser({ roles: ['member', 'system_admin'] })));
 
     const { router } = renderRoutes(routes, { route: '/system' });
@@ -458,6 +458,31 @@ describe('the paths outside the session', () => {
     renderRoutes(routes, { route: '/no-such-screen' });
 
     expect(await screen.findByRole('heading', { name: 'Page not found' })).toBeInTheDocument();
+  });
+
+  it('sends a signed-out visitor from the not-found page to the CalDART home page', async () => {
+    renderRoutes(routes, { route: '/no-such-screen' });
+
+    expect(
+      await screen.findByRole('link', { name: 'Go to the CalDART home page' }),
+    ).toHaveAttribute('href', '/');
+  });
+
+  it('offers a signed-out visitor no dashboard from the not-found page', async () => {
+    renderRoutes(routes, { route: '/no-such-screen' });
+
+    await screen.findByRole('link', { name: 'Go to the CalDART home page' });
+    expect(screen.queryByRole('link', { name: 'Go to the dashboard' })).not.toBeInTheDocument();
+  });
+
+  it('sends a signed-in member from the not-found page to their dashboard', async () => {
+    server.use(signedInAs(makeUser()));
+    renderRoutes(routes, { route: '/no-such-screen' });
+
+    expect(await screen.findByRole('link', { name: 'Go to the dashboard' })).toHaveAttribute(
+      'href',
+      '/',
+    );
   });
 
   it('has no address that ends a session: /logout is not a route', async () => {

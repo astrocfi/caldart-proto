@@ -644,7 +644,7 @@ Statuses:
 --------------------------
 
 The date the registry is as of, whether an import is running, and the newest
-import.  The register's header and the Health & Database page's *Aircraft
+import.  The register's header and the Health and database page's *Aircraft
 database* panel read it; that page polls it every five seconds while ``running``.
 
 .. code-block:: json

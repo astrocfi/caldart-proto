@@ -51,6 +51,18 @@ def vite_dev_mode(settings: Settings) -> Iterator[None]:
     DjangoViteAssetLoader._instance = None
 
 
+def test_the_portal_shell_names_the_organization_for_the_tab_titles(
+    client: Client, site_settings: SiteSettings
+) -> None:
+    """``<html>`` carries the organization's name, which every tab title ends with."""
+    site_settings.org_name = "Sierra DART"
+    site_settings.save()
+
+    body = client.get("/portal/").content.decode()
+
+    assert 'data-org-name="Sierra DART"' in body
+
+
 def test_portal_shell_renders(client: Client, site_settings: SiteSettings) -> None:
     """The portal shell renders its root mount and the site's theme attribute."""
     response = client.get("/portal/")

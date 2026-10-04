@@ -19,8 +19,8 @@ import { useDebounced } from '@/portal/components/useDebounced';
 import { usePanelFocus } from '@/portal/components/focus';
 import { AircraftForm } from './AircraftForm';
 import './aircraft.css';
-import { InsuranceChip } from './InsuranceChip';
-import { ServiceChip } from './ServiceChip';
+import { InsuranceDot } from './InsuranceDot';
+import { ServiceDot } from './ServiceDot';
 import { useAircraftSearch, useCreateAircraft } from './api';
 import { emptyAircraftValues } from './form';
 import { normalizeNNumber } from './insurance';
@@ -76,7 +76,7 @@ export function AircraftPicker({ onSelect, excludeIds = [] }: AircraftPickerProp
             type="search"
             autoComplete="off"
             spellCheck={false}
-            className="mono"
+            className="num"
             value={term}
             placeholder="N12345"
             onChange={(event) => {
@@ -108,12 +108,12 @@ export function AircraftPicker({ onSelect, excludeIds = [] }: AircraftPickerProp
                   className="aircraft-result__button"
                   onClick={() => onSelect(aircraft)}
                 >
-                  <span className="aircraft-result__ident mono">{aircraft.n_number}</span>
+                  <span className="aircraft-result__ident num">{aircraft.n_number}</span>
                   <span className="aircraft-result__name">
                     {aircraft.make} {aircraft.model}
                   </span>
-                  <InsuranceChip aircraft={aircraft} />
-                  <ServiceChip aircraft={aircraft} />
+                  <InsuranceDot aircraft={aircraft} />
+                  <ServiceDot aircraft={aircraft} />
                 </button>
               </li>
             ))}

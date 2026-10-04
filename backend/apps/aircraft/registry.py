@@ -12,8 +12,7 @@ stripped as it is read.  No address is kept.
 holding the two files), upserts the types, folds away any hand-added type the FAA now
 lists, upserts the registrations and deletes those the file no longer holds, writes the
 aliases, and records the run as a ``RegistryImport``.  ``manage.py import_faa_registry``
-wraps it, and :func:`start_import` starts that command from the portal's Health & Database
-page.
+wraps it, and :func:`start_import` starts that command from the Health and database page.
 """
 
 from __future__ import annotations
@@ -89,7 +88,7 @@ DOWNLOAD_TIMEOUT_SECONDS = 600
 #: How the download introduces itself.
 USER_AGENT = "CalDART registry import"
 
-#: The error a run started from the Health & Database page is closed with once it is older
+#: The error a run started on the Health and database page is closed with once older
 #: than ``REGISTRY_IMPORT_STALE_MINUTES`` without finishing.
 DID_NOT_FINISH = "Did not finish."
 
@@ -398,7 +397,7 @@ def import_registry(
 ) -> RegistryImport:
     """Import the registry at ``source`` and return the ``RegistryImport`` row for it.
 
-    ``run`` is the row to fill in (the one the Health & Database page wrote); without it,
+    ``run`` is the row to fill in (the one Health and database wrote); without it,
     one is created under the same advisory lock :func:`start_import` takes, refusing with
     :class:`ImportAlreadyRunningError` while another import runs, so the nightly timer
     and Run now can never overlap.  Its ``source`` is set to ``source``.  The source is

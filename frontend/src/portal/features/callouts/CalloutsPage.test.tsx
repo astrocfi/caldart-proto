@@ -32,7 +32,7 @@ describe('CalloutsPage', () => {
     const row = (await screen.findByRole('link', { name: 'Fire near Paradise' })).closest('tr');
     const state = 'Taking answers until 04/08/2026 at 8:30 AM';
     expect(row).toHaveTextContent(
-      `Fire near Paradise${formatDate('2026-04-06T17:00:00Z')}${state}${state}Grace Holloway—0102`,
+      `Fire near Paradise${formatDate('2026-04-06T17:00:00Z')}${state}Grace Holloway—0102`,
     );
   });
 

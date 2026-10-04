@@ -18,8 +18,8 @@ import { SentEmailsPage } from './SentEmailsPage';
 const TIMER_PATTERN = /caldart-[a-z]+|systemd|\.timer/;
 
 const PAGES: [name: string, page: () => JSX.Element, loaded: string][] = [
-  ['Health & Database', HealthDatabasePage, '0.1.0'],
-  ['Sent Emails', SentEmailsPage, 'No emails sent yet'],
+  ['Health and database', HealthDatabasePage, '0.1.0'],
+  ['Sent emails', SentEmailsPage, 'No emails sent yet'],
   ['Scheduled', ScheduledPage, 'No reminders sent yet'],
 ];
 

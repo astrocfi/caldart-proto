@@ -2,7 +2,7 @@ import type { JSX } from 'react';
 
 import type { Verification } from '@/portal/api/types';
 import { DateText } from './DateText';
-import { StatusChip } from './StatusChip';
+import { StatusDot } from './StatusDot';
 
 /** An item's verified state: the full stamp, or only the flag a summary row carries. */
 export type VerificationLike = Pick<Verification, 'verified'> &
@@ -26,7 +26,7 @@ export function VerifiedMark({ verification, pending = false }: VerifiedMarkProp
   if (!verification.verified) {
     return (
       <span className="verified-mark">
-        <StatusChip tone="expired" label={pending ? 'Not yet verified' : 'Not verified'} />
+        <StatusDot tone="expired" label={pending ? 'Not yet verified' : 'Not verified'} />
       </span>
     );
   }
@@ -34,7 +34,7 @@ export function VerifiedMark({ verification, pending = false }: VerifiedMarkProp
   const at = verification.verified_at ?? null;
   return (
     <span className="verified-mark">
-      <StatusChip tone="current" label="Verified" />
+      <StatusDot tone="current" label="Verified" />
       {by !== null ? ` by ${by}` : null}
       {at !== null ? (
         <>

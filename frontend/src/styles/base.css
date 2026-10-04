@@ -139,6 +139,13 @@ li {
   color: var(--color-muted);
 }
 
+/* Digits a reader compares (dates, amounts, counts, references) stay in the body face,
+ * with every figure the same width so a column of them lines up. */
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* The mono face is for code-like text alone: a file name, a setting, a command. */
 .mono,
 code,
 kbd,
@@ -737,7 +744,6 @@ tbody tr:nth-child(even) {
 td.numeric,
 th.numeric {
   text-align: right;
-  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
 }
 
@@ -746,16 +752,26 @@ th.numeric {
   margin-top: var(--space-5);
 }
 
-/* ------------------------------------------------------- status chips */
-/* A dot carries a status where a chip in every row would shout.  The meaning
- * always rides in the accessible name beside it, never in the color alone. */
+/* --------------------------------------------------------------- status */
+/* A status is a dot and its word (StatusDot.tsx).  The word is set in the normal text
+ * color, so it reads on a plain row and a striped one alike; the dot's color only
+ * repeats what the word says. */
+.status {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.4em;
+  white-space: nowrap;
+}
+
 .status-dot {
   display: inline-block;
+  flex: none;
   width: 0.7rem;
   height: 0.7rem;
   border-radius: var(--radius-pill);
   border: var(--hairline) solid rgba(0, 0, 0, 0.3);
   vertical-align: baseline;
+  align-self: center;
 }
 
 .status-dot[data-tone='current'] {
@@ -796,59 +812,28 @@ th.numeric {
   color: var(--color-muted);
 }
 
+/* A label on the public site, such as "Members only" on a news post.  The portal shows
+ * a status as a dot and its word instead.  The text is the normal text color, which
+ * passes on every background the label sits on. */
 .chip {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-1);
   padding: 0.1rem var(--space-2);
   border-radius: var(--radius);
   font-size: var(--text-xs);
   font-weight: var(--weight-medium);
   letter-spacing: 0.02em;
   white-space: nowrap;
-  border: var(--hairline) solid transparent;
-}
-
-.chip::before {
-  content: '';
-  width: 0.45em;
-  height: 0.45em;
-  border-radius: var(--radius-pill);
-  background: currentColor;
-}
-
-.chip--info {
-  color: var(--color-primary);
-  background: var(--color-neutral-bg);
-  border-color: var(--color-primary);
-}
-
-.chip--ok {
-  color: var(--color-ok);
-  background: var(--color-ok-bg);
-  border-color: var(--color-ok);
-}
-
-.chip--warn {
-  color: var(--color-warn);
-  background: var(--color-warn-bg);
-  border-color: var(--color-warn);
-}
-
-.chip--bad {
-  color: var(--color-bad);
-  background: var(--color-bad-bg);
-  border-color: var(--color-bad);
+  border: var(--hairline) solid var(--color-rule-strong);
 }
 
 .chip--neutral {
-  color: var(--color-muted);
-  background: var(--color-neutral-bg);
-  border-color: var(--color-rule-strong);
+  color: var(--color-fg);
+  background: var(--color-bg-raised);
 }
 
 /*
- * Whether an authority has checked an item: a chip, then who and when in the
+ * Whether an authority has checked an item: a status, then who and when in the
  * muted small face.  The member's profile adds a one-line hint under the first.
  */
 .verified-mark {

@@ -61,7 +61,9 @@ first:
    the ``user_guide`` view streams these files at ``/docs/`` to anyone signed
    in, from ``USER_GUIDE_ROOT`` (:doc:`configuration`), holds back the pages
    the reader's roles do not reach (:ref:`documentation-role-gated-pages`),
-   and sends a visitor to the portal's login page first.
+   serves the few pages a visitor needs before signing in without a session
+   (:ref:`documentation-signed-out-pages`), and sends a visitor to the
+   portal's login page for every other page.
 
 ``make docs``
    ``sphinx-build -n -W -b html docs docs/_build/html``: the whole tree,
@@ -213,7 +215,11 @@ pages they may not open taken out, by ``caldart/guide_search.py``:
 
 - *A page.*  Every sidebar (``.sidebar-tree``) and table-of-contents
   (``.toctree-wrapper``) entry whose link leads to a hidden page goes, with
-  everything nested under it; so does every next or previous link at the
+  everything nested under it, unless an entry nested under it leads to a page
+  the reader may open: then it stays as a label, its link taken out as below
+  (a signed-out visitor's member group, see
+  :ref:`documentation-signed-out-pages`).  The sidebar's search box goes when
+  the search page is hidden.  So does every next or previous link at the
   foot of the page (``.related-pages``) and every ``<link rel="next">`` or
   ``<link rel="prev">`` in its head, which carries the page's title.  Then
   every list left with no entries goes, with the caption before it, and a
@@ -251,6 +257,61 @@ carries, so a reader whose roles change is sent the file again instead of a
 
 To restrict a new page, give it the field and run ``make guide``; to change
 who reads a screen, change its menu entry and its page's field together.
+
+
+.. _documentation-signed-out-pages:
+
+Signed-out pages
+================
+
+A visitor who cannot sign in still needs help, so the pages the signed-out
+screens' **Help** opens are served without sign-in: ``member/sign-in``,
+``member/forgot-password``, ``member/reset-password``, ``member/join``, and
+``member/verify-email``.  Every other page of the guide needs a session.
+
+**The field.**  Each of those pages opens with a ``:signed-out:`` field, before
+its title::
+
+  :signed-out: yes
+
+  =======
+  Sign in
+  =======
+
+``yes`` is the field's only value.  The ``guide_roles`` extension warns about
+any other value, and about a page that carries both ``:signed-out:`` and
+``:roles:``, so ``-W`` fails the build on either.
+
+**The JSON.**  At the end of a successful HTML build the extension writes
+``signed-out.json`` beside ``roles.json``, by the same temporary name and
+rename: the signed-out pages under ``signed_out``, and every docname of the
+build under ``pages``::
+
+  {
+    "signed_out": ["member/forgot-password", "member/join", ...],
+    "pages": ["admin/aircraft-check", ...]
+  }
+
+**The view.**  For a visitor who is not signed in, ``user_guide`` serves a
+page ``signed_out`` names (by its slashed directory or its ``index.html``),
+and any file under ``_static/``, which those pages load and which names no
+page.  The page reaches them trimmed as in
+:ref:`documentation-role-gated-pages`, with every other page of the build
+hidden, and the search page and the general index too, since Sphinx writes
+those without a source file and they need a session: the sidebar lists only
+the signed-out pages, under the label of the member group that holds them,
+the search box goes, and a link in the prose to any other page keeps its
+text and loses its anchor.  Every other request from that visitor, including
+one for a file that does not exist, ``searchindex.js``, or an image under
+``_images/``, is sent to the portal's login page with ``next`` set to what
+they asked for.  A guide built without ``signed-out.json`` serves nothing
+signed out, and one whose file is not valid JSON, or not the shape above, is
+logged as an error and serves nothing signed out either.  ``signed-out.json``
+itself answers 404 to everyone, as ``roles.json`` does.
+
+To open another page before sign-in, give it the field and run ``make guide``;
+``backend/tests/test_docs_user.py`` holds the list of signed-out pages to the
+five above, so change it in the same change.
 
 
 .. _documentation-diagrams:
@@ -395,7 +456,11 @@ against the code on every run.
 - the ``guide_roles`` extension's slugs equal ``ROLE_SLUGS``, and, run on a
   small project in a temporary directory, it writes each restricted page and
   a group index's union into ``roles.json``, leaves an index open when a page
-  it lists is open, and fails a ``-W`` build on an unknown slug.
+  it lists is open, and fails a ``-W`` build on an unknown slug;
+- exactly the five pages of :ref:`documentation-signed-out-pages` carry
+  ``:signed-out: yes``, and the extension writes them and every page into
+  ``signed-out.json`` and fails a ``-W`` build on another value or on a page
+  that carries both fields.
 
 ``frontend/src/portal/help.test.ts`` walks the route table exported by
 ``routes/index.tsx`` and checks that every screen's path pattern is a
@@ -411,7 +476,16 @@ the refusal of paths that leave the guide, the content type of each
 asset the figure toolbar depends on, and ``roles.json``: a restricted page
 redirects a reader without its roles and is served to one with them, a page
 it does not name is served to a member, and a guide without it serves every
-page.  ``backend/tests/test_user_guide_search.py`` checks the trimming: on a
+page.  ``backend/tests/test_user_guide_signed_out.py`` checks the pages served
+without sign-in: each signed-out page and a ``_static/`` file are served to a
+visitor, the page loses its links to every other page, to the search page,
+and its search box, keeps its links to the other signed-out pages and its
+group's entry as a label, every other request
+(the front page, a gated page, the search page and index, the JSON files, an
+image, and a missing page) is sent to sign in, a guide without
+``signed-out.json`` or with an unreadable one serves nothing signed out, and a
+signed-in reader is served the page untrimmed.
+``backend/tests/test_user_guide_search.py`` checks the trimming: on a
 stand-in guide, each field of a member's and a DART leader's search index,
 each piece of navigation a member's page loses or keeps, a prose link to a
 restricted page reduced to its text, the queries a page and a stylesheet cost, the system

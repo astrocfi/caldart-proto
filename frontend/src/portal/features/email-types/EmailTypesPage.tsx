@@ -20,7 +20,7 @@ import type { Column } from '@/portal/components/DataTable';
 import { DataTable } from '@/portal/components/DataTable';
 import { DeleteButton } from '@/portal/components/DeleteButton';
 import { Page } from '@/portal/components/Page';
-import { StatusDot } from '@/portal/components/StatusChip';
+import { StatusDot } from '@/portal/components/StatusDot';
 import { useToast } from '@/portal/components/Toast';
 import { usePanelFocus } from '@/portal/components/focus';
 import { useCreateEmailType, useDeleteEmailType, useEmailTypes, useUpdateEmailType } from './api';
@@ -167,17 +167,11 @@ export function EmailTypesPage(): JSX.Element {
       width: '7rem',
       wrap: true,
       dropOrder: 1,
-      // The word says it; the dot, hidden from a screen reader, only colors it.
       render: (emailType) => (
-        <>
-          <span aria-hidden="true">
-            <StatusDot
-              tone={emailType.allow_opt_out ? 'current' : 'none'}
-              label={emailType.allow_opt_out ? 'Yes' : 'No'}
-            />
-          </span>{' '}
-          {emailType.allow_opt_out ? 'Yes' : 'No'}
-        </>
+        <StatusDot
+          tone={emailType.allow_opt_out ? 'current' : 'none'}
+          label={emailType.allow_opt_out ? 'Yes' : 'No'}
+        />
       ),
     },
   ];
@@ -185,7 +179,6 @@ export function EmailTypesPage(): JSX.Element {
   return (
     <Page
       title="Email types"
-      eyebrow="Bulk Email"
       lede="The types of bulk email CalDART sends. Each one says who may send it and whether members may turn it off on their Email preferences."
       actions={
         openForm === null ? (
@@ -229,7 +222,7 @@ export function EmailTypesPage(): JSX.Element {
           columns={columns}
           rows={rows}
           rowKey={(emailType) => emailType.id}
-          caption="Email types"
+          caption={`${rows.length} ${rows.length === 1 ? 'email type' : 'email types'}`}
           isLoading={types.isPending}
           emptyTitle="No email types yet"
           emptyDescription="Add one, and CalDART management can choose it when they send a bulk email."

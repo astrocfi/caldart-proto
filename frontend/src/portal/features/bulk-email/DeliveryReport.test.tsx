@@ -4,7 +4,7 @@ import { HttpResponse, http } from 'msw';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { BulkEmailCopy, BulkEmailDetail } from '@/portal/api/types';
-import { formatDateAt } from '@/portal/components/DateText';
+import { formatDateTime } from '@/portal/components/DateText';
 import { EMAIL_FRAME_SANDBOX, emailDocument } from '@/portal/components/EmailFrame';
 import { answerBulkEmail, makeBatch, makeBulkEmail, makeRow } from '@test/fixtures/bulkEmail';
 import { API } from '@test/handlers';
@@ -97,7 +97,7 @@ describe('DeliveryReport', () => {
     const row = (await screen.findByText('cy@example.org')).closest('tr');
     // Formatted as the table formats it, so the test reads alike in every time zone.
     expect(row).toHaveTextContent(
-      `Bouncedcy@example.org5.1.1 User unknown${formatDateAt('2026-04-06T17:00:06Z')}`,
+      `Bouncedcy@example.org5.1.1 User unknown${formatDateTime('2026-04-06T17:00:06Z')}`,
     );
   });
 
@@ -263,7 +263,7 @@ describe('DeliveryReport', () => {
     );
     const retries = screen.getByRole('region', { name: 'Retries' });
     expect(retries).toHaveTextContent(
-      `${formatDateAt('2026-04-07T15:00:00Z')}: Hollis Grant sent 1 person a fresh copy.`,
+      `${formatDateTime('2026-04-07T15:00:00Z')}: Hollis Grant sent 1 person a fresh copy.`,
     );
   });
 

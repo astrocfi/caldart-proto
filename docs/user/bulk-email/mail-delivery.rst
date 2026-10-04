@@ -10,7 +10,7 @@ a bulk email can land in people's spam folders or never arrive, and nothing on t
 compose screen would tell you. Open this page before your first bulk email, before a
 large one, and after anyone changes the website's email settings.
 
-CalDART management opens it, as **Mail delivery** under **Bulk Email** in the menu. A
+CalDART management opens it, as **Mail delivery** under **Bulk email** in the menu. A
 system administrator can open it too. You only read it: the fixes are made by whoever
 manages the CalDART domain name and the website's server.
 

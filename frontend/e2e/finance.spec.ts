@@ -12,8 +12,8 @@ import type { Locator, Page } from '@playwright/test';
 import { DEMO, SEED, signIn, uniqueEmail } from './helpers';
 
 /**
- * The rail carries two entries called Payments -- the member's own screen and
- * the finance area -- so the administration one is named by its address.
+ * The finance area's rail entry, Finance under Administration, named by its address
+ * so a change to its label leaves the specs alone.
  */
 function financeRailEntry(page: Page): Locator {
   return page

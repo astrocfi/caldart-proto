@@ -15,7 +15,7 @@ import { Link, useParams } from 'react-router-dom';
 import type { BulkEmailDetail } from '@/portal/api/types';
 import { useMe } from '@/portal/auth/useAuth';
 import { Card } from '@/portal/components/Card';
-import { formatDateAt } from '@/portal/components/DateText';
+import { formatDateTime } from '@/portal/components/DateText';
 import { EmailFrame } from '@/portal/components/EmailFrame';
 import { Loading } from '@/portal/components/Loading';
 import { Page } from '@/portal/components/Page';
@@ -35,7 +35,7 @@ export function SentDetailPage(): JSX.Element {
 
   if (email.isError) {
     return (
-      <Page title="Sent bulk email" eyebrow="Bulk Email">
+      <Page title="Sent bulk email">
         <p className="field__error" role="alert">
           This email could not be loaded. <Link to="/bulk-email/sent">See every sent email</Link>.
         </p>
@@ -50,7 +50,7 @@ export function SentDetailPage(): JSX.Element {
   const canStop = canAct || sent.is_callout;
 
   return (
-    <Page title={sent.subject || 'Sent bulk email'} eyebrow="Bulk Email" lede={sentLede(sent)}>
+    <Page title={sent.subject || 'Sent bulk email'} lede={sentLede(sent)}>
       <Card title="Where it stands">
         {sent.started_at === null ? (
           <p>
@@ -109,6 +109,6 @@ export function hasFields(email: Pick<BulkEmailDetail, 'subject' | 'body'>): boo
  */
 function sentLede(email: BulkEmailDetail): string {
   const from = email.sender ? `Sent by ${email.sender}` : 'Sent';
-  const when = email.started_at === null ? '' : ` on ${formatDateAt(email.started_at)}`;
+  const when = email.started_at === null ? '' : ` on ${formatDateTime(email.started_at)}`;
   return `${from}${when}.`;
 }

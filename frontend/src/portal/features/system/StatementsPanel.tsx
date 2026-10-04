@@ -72,7 +72,7 @@ export function StatementsPanel(): JSX.Element {
             <input
               type="number"
               inputMode="numeric"
-              className="mono"
+              className="num"
               style={{ width: '5.5rem' }}
               value={year}
               onChange={handleYearChange}

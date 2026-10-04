@@ -414,7 +414,7 @@ Emails page's log files each of these messages under its event, as
 :doc:`developer/notifications`.
 
 **System** — sign in as ``sysadmin@example.org`` and open ``/portal/system``,
-which lands on Health & Database.  Health shows database connectivity, pending
+which lands on Health and database.  Health shows database connectivity, pending
 migrations, free disk and the last backup; Backups lists the dumps in
 ``backups/`` and can make a new one.  The *Aircraft database* panel's **Run now**
 imports the registry again, from the FAA's download unless

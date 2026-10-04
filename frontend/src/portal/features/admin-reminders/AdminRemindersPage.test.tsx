@@ -89,7 +89,7 @@ describe('AdminRemindersPage', () => {
         (_text, element) =>
           element?.tagName.toLowerCase() === 'p' &&
           element.textContent ===
-            'The scan runs every morning at 07:00 and mails a member 60, 30, and 7 days before ' +
+            'The scan runs every morning at 7:00 AM and mails a member 60, 30, and 7 days before ' +
               'their membership ends, on the day it ends, and 30 days after. Each member gets ' +
               'one email per membership per kind. This is the record of what renewal emails ' +
               'were sent to each member.',
@@ -111,7 +111,7 @@ describe('AdminRemindersPage', () => {
         (_text, element) =>
           element?.tagName.toLowerCase() === 'p' &&
           (element.textContent ?? '').startsWith(
-            'The scan runs every morning at 07:00 and mails a member 90, 30, and 1 day before ' +
+            'The scan runs every morning at 7:00 AM and mails a member 90, 30, and 1 day before ' +
               'their membership ends,',
           ),
       ),

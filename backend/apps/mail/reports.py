@@ -1,6 +1,6 @@
 """The email log as a CSV and a PDF.
 
-The ``emails`` report is the log the Sent Emails page pages through, as a file: the
+The ``emails`` report is the log the Sent emails page pages through, as a file: the
 same filters (:class:`~apps.mail.filters.EmailLogFilterSet`), the same order, newest
 first, and one column registry that the column chooser and both formats share.  The
 house style lives in ``caldart.reports``; this module only decides what a row prints
@@ -39,7 +39,7 @@ DEFAULT_ORDERING = "-sent_at"
 
 
 def _sent_at(row: EmailLog) -> str:
-    """When ``row`` went, as local ``MM/DD/YYYY HH:MM``, as the Sent Emails page reads."""
+    """When ``row`` went, as local ``MM/DD/YYYY at h:mm AM``, as Sent emails reads it."""
     return format_display_datetime(row.sent_at)
 
 
@@ -49,7 +49,10 @@ def _user_name(row: EmailLog) -> str:
 
 
 def _bounced_at(row: EmailLog) -> str:
-    """When the bounce check found ``row`` bounced, as ``MM/DD/YYYY HH:MM``, or ``""``."""
+    """When the bounce check found ``row`` bounced (``MM/DD/YYYY at h:mm AM``), or ``""``.
+
+    The moment is read in the site's time zone, as the Sent emails page reads it.
+    """
     return format_display_datetime(row.bounced_at) if row.bounced_at is not None else ""
 
 

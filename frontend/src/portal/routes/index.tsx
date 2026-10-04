@@ -13,7 +13,8 @@
  * the first page a visitor asks for, and a later move between screens holds the
  * current one until the next page's chunk arrives.  The sign-in, dashboard, and
  * not-found screens stay eager: they are where a visitor lands, and an extra
- * request there would only delay them.
+ * request there would only delay them.  A page whose code fails to arrive shows
+ * "This page did not load" with a Reload button (`RouteError`).
  */
 import type { RouteObject } from 'react-router-dom';
 
@@ -21,6 +22,7 @@ import { RequireAuth, RequireOnboarded } from '../auth/guards';
 import { Loading } from '../components/Loading';
 import { PortalLayout } from '../layout/PortalLayout';
 import { NotFound } from './not-found';
+import { RouteError } from './route-error';
 import { adminAircraftRoutes } from './admin-aircraft';
 import { adminDartsRoutes } from './admin-darts';
 import { adminMembersRoutes } from './admin-members';
@@ -64,18 +66,29 @@ export const privateRoutes: RouteObject[] = [
   ...systemRoutes,
 ];
 
+/**
+ * The whole table.  A screen that fails to load or to draw shows `RouteError` inside
+ * the portal frame, so the menu stays; the outer `errorElement` catches a failure of
+ * the frame itself.
+ */
 export const routes: RouteObject[] = [
   {
     path: '/',
     element: <PortalLayout />,
+    errorElement: <RouteError />,
     hydrateFallbackElement: <Loading />,
     children: [
-      ...publicRoutes,
       {
-        element: <RequireAuth />,
-        children: [{ element: <RequireOnboarded />, children: privateRoutes }],
+        errorElement: <RouteError />,
+        children: [
+          ...publicRoutes,
+          {
+            element: <RequireAuth />,
+            children: [{ element: <RequireOnboarded />, children: privateRoutes }],
+          },
+          { path: '*', element: <NotFound /> },
+        ],
       },
-      { path: '*', element: <NotFound /> },
     ],
   },
 ];

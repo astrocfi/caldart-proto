@@ -14,15 +14,10 @@ import type { JSX } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
 import { ApiError } from '@/portal/api/client';
+import { SITE_TIME_ZONE_NAME } from '@/portal/components/DateText';
 import { Field } from '@/portal/components/Field';
 import { batchKey, useUpdateBulkEmail } from './api';
-import {
-  SITE_TIME_ZONE_NAME,
-  TIME_CHOICES,
-  scheduledWords,
-  sitePartsOf,
-  timeChoice,
-} from './schedule';
+import { TIME_CHOICES, scheduledWords, sitePartsOf, timeChoice } from './schedule';
 
 /** What the switch says a callout does. */
 export const CALLOUT_HINT =

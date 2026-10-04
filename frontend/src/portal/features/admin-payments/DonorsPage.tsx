@@ -28,7 +28,7 @@ import { Money } from '@/portal/components/Money';
 import { Page } from '@/portal/components/Page';
 import type { ReportCell } from '@/portal/components/reportTable';
 import { ColumnTools, reportTableColumns, useColumnChoice } from '@/portal/components/reportTable';
-import { StatusChip } from '@/portal/components/StatusChip';
+import { StatusDot } from '@/portal/components/StatusDot';
 import { useUrlFilters } from '@/portal/components/useUrlFilters';
 import { hasAnyRole } from '@/portal/nav';
 import { reportExportUrl } from '@/portal/reports/api';
@@ -142,9 +142,9 @@ const CELLS: Record<string, ReportCell<DonorRow>> = {
     dropOrder: 2,
     render: (row) =>
       row.active ? (
-        <StatusChip tone="current" label="Active" />
+        <StatusDot tone="current" label="Active" />
       ) : (
-        <StatusChip tone="expired" label="Deactivated" />
+        <StatusDot tone="expired" label="Deactivated" />
       ),
   },
 };
@@ -202,7 +202,6 @@ export function DonorsPage(): JSX.Element {
   return (
     <Page
       title="Donors"
-      eyebrow="Payments"
       lede="Everyone who has given through the public donation page, and what each of them has given."
     >
       <FinanceTabs />
@@ -212,7 +211,7 @@ export function DonorsPage(): JSX.Element {
         columns={tableCells}
         rows={rows.data ?? []}
         rowKey={(row) => row.user_id}
-        caption="Donors"
+        caption={`${(rows.data ?? []).length} ${(rows.data ?? []).length === 1 ? 'donor' : 'donors'}`}
         initialSort={DEFAULT_SORT}
         filters={
           <FilterBar

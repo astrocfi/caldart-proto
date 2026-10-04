@@ -16,7 +16,7 @@ import type { Column } from '@/portal/components/DataTable';
 import { DataTable } from '@/portal/components/DataTable';
 import { DateText } from '@/portal/components/DateText';
 import { Page } from '@/portal/components/Page';
-import { StatusDot } from '@/portal/components/StatusChip';
+import { StatusDot } from '@/portal/components/StatusDot';
 import { DROP_ORDER } from '@/portal/features/bulk-email/dropOrder';
 import { useCallouts } from './api';
 import './callouts.css';
@@ -30,7 +30,6 @@ export function CalloutsPage(): JSX.Element {
   return (
     <Page
       title="Callouts"
-      eyebrow="Bulk Email"
       lede="Mission callouts ask who can fly. Open one to see each person's answer."
     >
       <Card>
@@ -87,7 +86,6 @@ export const CALLOUT_COLUMNS: Column<CalloutSummary>[] = [
     render: (row) => (
       <span className="callouts__state">
         <StatusDot tone={row.is_open ? 'current' : 'none'} label={openLabel(row)} />
-        <span aria-hidden="true">{openLabel(row)}</span>
       </span>
     ),
     sortValue: (row) => (row.is_open ? 1 : 0),

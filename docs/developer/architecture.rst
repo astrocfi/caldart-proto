@@ -114,7 +114,8 @@ Repository layout
         urls.py                 the root URLconf
         api_urls.py             /api/v1/: includes every app's api/urls.py
         views.py                portal_shell, the page the SPA runs in, and
-                                user_guide, the built guide behind the login
+                                user_guide, the built guide, most of it
+                                behind the login
         authentication.py       session auth, with CSRF for anonymous callers
         models.py               TimestampedModel, the abstract base every
                                 model inherits
@@ -192,7 +193,9 @@ Path                  Served by
                       live page, or to the DART directory (the site root
                       when none is published) for a missing or unknown team
 ``/docs/<path>``      ``caldart.views.user_guide``: the built user guide,
-                      served to signed-in users from ``USER_GUIDE_ROOT``
+                      served to signed-in users from ``USER_GUIDE_ROOT``,
+                      and its sign-in, password, join, and verification
+                      pages to anybody
 ``/portal/<path>``    ``caldart.views.portal_shell``, the page the SPA runs in
 ``/media/``           uploaded files, to anybody, while ``DEBUG`` is on;
                       ``make run`` serves them so, and ``make e2e``, which
@@ -218,7 +221,10 @@ site's ``URL_PREFIX`` (:doc:`configuration`) when it has one.
 **The user guide.**  ``make guide`` builds ``docs/user/`` alone into
 ``docs/_build/guide``, and ``user_guide`` serves those files at ``/docs/`` to
 anyone signed in, each reader seeing only the pages their roles reach
-(:ref:`documentation-role-gated-pages`); a visitor who is not is sent to the
+(:ref:`documentation-role-gated-pages`).  A visitor who is not signed in may
+read the pages the signed-out screens' **Help** opens (signing in, a forgotten
+or reset password, joining, and email verification;
+:ref:`documentation-signed-out-pages`); for any other page they are sent to the
 portal's login page with the guide page as ``next``, and the login page hands
 them back to the guide with a full-page navigation, since the guide lives
 outside the SPA.  The
@@ -588,19 +594,22 @@ File                      Routes, and who may open them
 ``not-found.tsx``         any other path
 ========================  ======================================================
 
-**Auth screens.**  Every screen ``auth.tsx`` routes to renders through
-``AuthShell`` (``features/auth/AuthShell.tsx``, styled by ``auth.css`` beside
-it): a panel no wider than 26rem, centered in the frame, holding a centered
+**Auth screens.**  The screens a person meets on the way in (sign in, forgot and
+reset password, verify email) render through ``AuthShell``
+(``features/auth/AuthShell.tsx``, styled by ``auth.css`` beside it), which also
+names the browser tab after the screen: a panel no wider than 26rem, centered in the frame, holding a centered
 ``h1`` title, an optional lede, one ``Card`` with the ``auth-card`` class for
 the form, and an optional footer line below the card, such as the sign-in
 page's link to join.  Inside the card, an ``auth__actions`` block stacks the
-submit button at the card's full width above a centered secondary link.  A
+submit button at the card's full width above a centered secondary link.  Change
+password and Change email are portal pages, drawn with ``Page`` like every other
+signed-in screen.  A
 visitor who is not signed in gets no rail, so ``PortalLayout`` adds the
 ``portal__frame--no-rail`` class to the frame, which makes it a single column
 at every width; the page therefore has the whole window to center in.  A
 signed-in reader who has not finished joining (``isOnboarded`` is false) gets the
 same frame and no **Menu** toggle, since the join wizard is the only screen open
-to them; the header keeps **Help**, the address, and **Sign out**.  The
+to them; the header keeps **Help**, the reader's name, and **Sign out**.  The
 join wizard's cards center themselves in it, and a ``.join-shell`` wrapper
 around ``JoinWizard`` (``features/join/join.css``) caps the page header and
 the step list at 46rem, centered on the same axis as the join card below,
@@ -609,9 +618,8 @@ card.  The account and verify steps use a narrower, 30rem card on that same
 axis, so the header sits wider than the card on those two steps; the pay and
 done steps' cards are the full 46rem, so the edges line up there.  The profile
 step holds the form ``/profile`` shows, so its card carries
-``join-card--wide`` and takes the portal's working width (``--page-max``), as
-``/profile``'s card does, which keeps a phone number and its extension on one
-line; the wizard adds ``join-shell--wide`` on that step, widening the header and
+``join-card--wide`` and widens to ``--page-max``, which keeps a phone number and its
+extension on one line; the wizard adds ``join-shell--wide`` on that step, widening the header and
 the step list to match.
 
 **Code splitting.**  A route names its page with React Router's ``lazy``
@@ -698,11 +706,11 @@ the files they test, and an ``index.ts`` of what the route files use:
 ``profile``             the profile form, the fieldsets the admin member
                         screens share with it, and *My aircraft*
 ``aircraft``            the aircraft picker, form, and insurance and service
-                        chips that the profile, leader, and admin screens reuse;
+                        dots that the profile, leader, and admin screens reuse;
                         the form's N-number typeahead over the FAA
                         registry, the aircraft type typeahead with **Add a
                         type**, and the registry state the register and the
-                        Health & Database page read
+                        Health and database page read
 ``leader``              the DART leader's member check and aircraft check
 ``verification``        the verification panels for a person's certificate,
                         medical, and photo ID and for an aircraft's
@@ -710,8 +718,8 @@ the files they test, and an ``index.ts`` of what the route files use:
                         the three writes behind them, and ``useCanVerify``
 ``admin-*``             the members, aircraft, DARTs, payments, reminder-log,
                         reports, notifications, and users screens
-``system``              the three System pages: Health & Database (health,
-                        backups, and the FAA registry import), Sent Emails
+``system``              the three System pages: Health and database (health,
+                        backups, and the FAA registry import), Sent emails
                         (the email log), and Scheduled (the reminder emails,
                         the renewal charges, the scheduled reports, and the
                         year-end statements)
@@ -719,7 +727,7 @@ the files they test, and an ``index.ts`` of what the route files use:
 
 Shared code sits outside ``features/``: ``components/`` holds the primitives
 every screen uses (``Page``, ``Card``, ``Field``, ``FixedValue``, ``Button``,
-``IconButton``, ``DeleteButton``, ``ConfirmButton``, ``RefusedSubmit``, ``StatusChip``,
+``IconButton``, ``DeleteButton``, ``ConfirmButton``, ``RefusedSubmit``, ``StatusDot``,
 ``DataTable``, ``Pagination``, ``PanelButton``, ``ColumnChooser``, ``FilterBar``, ``RunActionsTable``,
 ``Money``, ``DateText``, ``EmptyState``, ``VerifiedMark``, and ``Toast``), and
 ``choices.ts`` holds the one set of labels for certificate, medical,
@@ -920,20 +928,57 @@ order.
 
 **Navigation.**  ``nav.ts`` declares every entry in ``NAV_ITEMS`` with the
 roles that may see it (an empty list means any signed-in user) and a group:
-*Membership*, *Operations*, *Administration*, or *System*.
-``layout/PortalLayout.tsx`` shows what the user's roles allow, as a rail on
-a wide screen and a drawer on a phone.  Keep an entry's roles the same as
+*Membership*, *Your email* (a person's own messages and email preferences),
+*Operations*, *Bulk email* (the sending tools), *Administration*, or *System*.
+Labels are sentence case, use "and" rather than "&", and match the title of the
+page they open; an entry may carry a ``lifetimeLabel`` for a lifetime member
+(Renew reads *Contribute*).  ``layout/PortalLayout.tsx`` shows what the user's roles
+allow, as a rail on a wide screen and a drawer, opened from **Menu**, under 60rem;
+**Menu** is hidden above that width, and Escape closes the drawer.  The rail scrolls on
+its own when the menu is taller than the window: on every page it is scrolled until the
+current entry shows, and a shadow at its foot says more lies below.  The header names
+the reader, with their address as the name's title.  Keep an entry's roles the same as
 the ``RequireRole`` on its route.
+
+**The page frame.**  Every signed-in screen renders through
+``components/Page.tsx``: an eyebrow, the title with the page's actions on its line, an
+optional lede, and a rule.  The eyebrow is never passed in: ``navEyebrow`` in
+``nav.ts`` reads it from the menu group of the entry the route sits under (the deepest
+matching entry, whatever the reader's roles), or the entry's ``area`` where it heads an
+area of its own (*Finance* across ``/admin/payments``); a screen outside the menu has
+none, and an error page asks for none with ``noEyebrow``.  ``Page`` also sets the
+document title to the page's title and the organization's name (``Member check ·
+CalDART``, through ``documentTitle.ts``, which reads the name Django stamps on
+``<html>`` as ``data-org-name``).  A page whose heading is not the screen's name passes
+``tabTitle`` instead: the dashboard's greeting reads ``Dashboard``, a record reads its
+name and kind (``Marta Reyes · Member record``), and the finance payment list reads
+``Payments · Finance`` apart from a member's own **Payments**.  Every page keeps to one width,
+``--portal-page-max`` (100rem, in ``portal.css``), cards and tables alike, with the
+header's actions aligned to it.  A card's eyebrow appears only where it adds to the
+card's title, never repeating the page's, and a table's caption is always a count
+("6 donors").  Every tab bar uses the ``tab-bar`` classes (the finance tabs and the
+member record's tabs), and a selection, a current tab or a pressed toggle, is marked in
+the primary color.
+
+**Errors.**  Inside the frame, a pathless route with ``errorElement`` wraps every
+screen, so a screen whose code fails to load, or that throws while drawing, shows
+``routes/route-error.tsx`` ("This page did not load", with a **Reload** button) under
+the menu instead of React Router's developer error; the root route carries the same
+``errorElement`` for a failure of the frame itself.  ``routes/not-found.tsx`` sends a
+signed-in reader to the dashboard and anyone else to the public site's home page.
 
 **Dates.**  Every date or time a portal screen shows passes through
 ``components/DateText.tsx``, so the format changes there alone.  A date reads
-``MM/DD/YYYY`` (``formatDate`` and the ``DateText`` component), a moment adds a
-24-hour clock, ``MM/DD/YYYY HH:MM`` (``formatDateTime``, or ``DateText`` with
-``withTime``), a time of day alone reads ``HH:MM`` (``formatTime``), and a
-``YYYY-MM`` month reads ``Mar 2026`` (``formatMonth``).  A moment a volunteer reads
-in words, such as when a bulk email went or a schedule a sender chose, reads on the
-12-hour clock, ``MM/DD/YYYY at h:mm AM`` (``formatDateAt``, or ``DateText`` with
-``withTime`` and ``twelveHour``); every bulk email screen and Mail delivery use it.  A bare ``YYYY-MM-DD``
+``MM/DD/YYYY`` (``formatDate`` and the ``DateText`` component), a moment reads
+``MM/DD/YYYY at h:mm AM`` on the 12-hour clock (``formatDateTime``, or ``DateText``
+with ``withTime``), a time of day alone reads ``h:mm AM`` (``formatTime``), and a
+``YYYY-MM`` month reads ``Mar 2026`` (``formatMonth``).  Every moment is read in the
+site's time zone, ``SITE_TIME_ZONE`` (Pacific), whoever reads it and wherever they
+are, and a moment shown as a date alone is its Pacific day; ``formatDateAt`` takes
+another zone only for a time a sender has chosen in the schedule boxes and not yet
+saved.  Digits in a date, an amount, or a count are set in the body face with
+``tabular-nums`` (the ``num`` class, and ``numeric`` table cells), so a column of
+them lines up; the mono face is kept for code-like text alone.  A bare ``YYYY-MM-DD``
 is read as local midnight, so a date never shows as the day before west of
 Greenwich.  ESLint's ``no-restricted-syntax`` refuses five calls anywhere else
 under ``src/portal``: ``toLocaleDateString``, ``toLocaleTimeString``,
@@ -942,10 +987,11 @@ browser draws in the reader's own locale; ``todayIso`` gives one its value.
 
 The backend's counterpart is ``caldart/dates.py``: ``DISPLAY_DATE_FORMAT``
 (``%m/%d/%Y``), ``format_display_date``, and ``format_display_datetime``, which
-converts a moment to ``TIME_ZONE`` first.  Everything that writes a date into
+converts a moment to ``TIME_ZONE`` first and writes it as the portal does,
+``MM/DD/YYYY at h:mm AM``.  Everything that writes a date into
 text a screen or a download shows uses it: the verification report, the
 notification emails, and the renewal, scheduled-report, and DART-roster email
-subjects that the Sent Emails page lists, the email log report's ``Sent``
+subjects that the Sent emails page lists, the email log report's ``Sent``
 column, the bulk email ``{expiration}`` field, the PDF report footer, and
 ``seed_facts``.  Three kinds of date keep their own form: ISO-8601 dates in a
 CSV data column, which a spreadsheet sorts (:doc:`reports`); dates in the
@@ -1023,7 +1069,7 @@ and a system administrator can run it from the portal's Scheduled page
 **Backups.**  ``db_backup`` writes a gzipped ``pg_dump`` into ``BACKUP_DIR``
 (``backups/`` by default), inside the Compose database container while
 ``DB_BACKUP_VIA_DOCKER`` is on, the default, and with a local ``pg_dump``
-otherwise.  ``make backup`` runs it, and so does the Health & Database page, which also
+otherwise.  ``make backup`` runs it, and so does the Health and database page, which also
 lists and downloads dumps.  No backup timer ships in ``deploy/``
 (:doc:`backup-restore` shows how to add one), and restore and reset are
 command-line only, so nothing destructive is one click away.  ``health``

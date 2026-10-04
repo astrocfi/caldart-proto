@@ -28,7 +28,7 @@ import type {
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { DataTable } from '@/portal/components/DataTable';
-import { DateText, formatDate } from '@/portal/components/DateText';
+import { formatDate } from '@/portal/components/DateText';
 import { FilterBar, clearedValues } from '@/portal/components/FilterBar';
 import { Money } from '@/portal/components/Money';
 import { Page } from '@/portal/components/Page';
@@ -46,8 +46,8 @@ import { useAuth } from '@/portal/auth/useAuth';
 import type { RegistryStatus } from '@/portal/api/types';
 import { AircraftForm } from '@/portal/features/aircraft/AircraftForm';
 import { AIRWORTHINESS_LABELS, CATEGORY_LABELS } from '@/portal/features/aircraft/categories';
-import { InsuranceDot } from '@/portal/features/aircraft/InsuranceChip';
-import { ServiceChip } from '@/portal/features/aircraft/ServiceChip';
+import { InsuranceDot } from '@/portal/features/aircraft/InsuranceDot';
+import { ServiceDot } from '@/portal/features/aircraft/ServiceDot';
 import type { AircraftFilters, InsuranceState } from '@/portal/features/aircraft/api';
 import { useAircraftList, useCreateAircraft } from '@/portal/features/aircraft/api';
 import { OWNER_TYPE_LABELS, emptyAircraftValues } from '@/portal/features/aircraft/form';
@@ -84,10 +84,10 @@ const CELLS: Record<string, ReportCell<Aircraft>> = {
     width: '9rem',
     render: (row) => (
       <>
-        <Link className="mono" to={`/admin/aircraft/${row.id}`}>
+        <Link className="num" to={`/admin/aircraft/${row.id}`}>
           {row.n_number}
         </Link>{' '}
-        <ServiceChip aircraft={row} />
+        <ServiceDot aircraft={row} />
       </>
     ),
   },
@@ -139,13 +139,9 @@ const CELLS: Record<string, ReportCell<Aircraft>> = {
   },
   insurance_expiration: {
     ordering: 'insurance_expiration',
-    width: '9rem',
+    width: '12rem',
     keepInSight: true,
-    render: (row) => (
-      <>
-        <InsuranceDot aircraft={row} /> <DateText value={row.insurance_expiration} />
-      </>
-    ),
+    render: (row) => <InsuranceDot aircraft={row} withDate />,
   },
   insurance_current: {
     width: '6.5rem',
@@ -228,7 +224,6 @@ export function AircraftRegisterPage(): JSX.Element {
   return (
     <Page
       title="Aircraft register"
-      eyebrow="Administration"
       lede="Every airframe CalDART members fly, with the insurance a DART leader checks before a mission."
       actions={
         <>

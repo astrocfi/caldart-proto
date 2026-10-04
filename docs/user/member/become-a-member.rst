@@ -35,7 +35,7 @@ What happens next
 
 As soon as the payment goes through, *Thank you — you are a member of CalDART.*
 appears and you return to your dashboard, which shows a member's membership card
-with the **Current** chip and the date your membership runs to. Members-only pages
+with the status **Current** and the date your membership runs to. Members-only pages
 open to you. The receipt arrives by email, subject *CalDART: your receipt for
 $45.00* with your own amount.
 

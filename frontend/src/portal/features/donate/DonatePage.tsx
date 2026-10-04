@@ -61,7 +61,6 @@ export function DonatePage(): JSX.Element {
   return (
     <Page
       title="Donate"
-      eyebrow="Membership"
       lede="Give once, or on a schedule. Every gift pays for training, fuel, and equipment."
     >
       {held?.status === 'active' ? <HeldDonation mandate={held} /> : null}

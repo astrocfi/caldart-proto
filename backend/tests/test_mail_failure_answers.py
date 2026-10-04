@@ -492,7 +492,7 @@ def test_a_refused_admin_send_answers_503(admin_send: tuple[int, object, User]) 
 def test_a_refused_admin_send_says_where_the_attempt_is(
     admin_send: tuple[int, object, User],
 ) -> None:
-    """The ``detail`` says the message did not go and points at the Sent Emails page."""
+    """The ``detail`` says the message did not go and points at the Sent emails page."""
     _status, body, _account = admin_send
 
     assert body == {"detail": MAIL_REFUSED}
@@ -506,7 +506,7 @@ def test_a_refused_admin_send_says_where_the_attempt_is(
 def test_a_refused_admin_send_is_in_the_email_log(
     admin_send: tuple[int, object, User], purpose: str
 ) -> None:
-    """The attempt is on the Sent Emails page as a failed send."""
+    """The attempt is on the Sent emails page as a failed send."""
     _status, _body, account = admin_send
 
     assert EmailLog.objects.get(user=account, purpose=purpose).status == EmailStatus.FAILED

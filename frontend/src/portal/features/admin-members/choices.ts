@@ -8,7 +8,7 @@
  * labels come from the same shared module, so the member screens, the member
  * report, and the DART leader's status card all agree on them.
  */
-import type { MembershipTermStatus } from '@/portal/api/types';
+import type { MembershipSource, MembershipTermStatus } from '@/portal/api/types';
 import type { Choice } from '@/portal/choices';
 import { CERTIFICATE_TYPES, MEDICAL_TYPES } from '@/portal/features/profile/constants';
 
@@ -56,3 +56,13 @@ export const TERM_STATUS_CHOICES: Choice<MembershipTermStatus>[] = [
   { value: 'canceled', label: 'Canceled' },
   { value: 'suspended', label: 'Suspended' },
 ];
+
+/**
+ * How a term was come by, in words: a payment (online or recorded by the treasurer), a
+ * grant by an administrator, or the demo data.
+ */
+export const TERM_SOURCE_LABELS: Record<MembershipSource, string> = {
+  payment: 'Paid',
+  manual: 'Granted by hand',
+  seed: 'Demo data',
+};

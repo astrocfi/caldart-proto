@@ -78,7 +78,7 @@ Choose the columns and download
 choose the columns of the table and of its downloads together, exactly as on the payment
 list (see :doc:`payment-list`). **Export CSV** and **Export PDF** download the standing
 authorities the filters describe, with the columns you chose, newest first. The
-**Subscriptions** screen can also send this list on a schedule.
+**Emailed reports** screen can also send this list on a schedule.
 
 Turn a standing charge off
 ~~~~~~~~~~~~~~~~~~~~~~~~~~

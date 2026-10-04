@@ -4,14 +4,10 @@ import type { JSX } from 'react';
 import { Page } from '@/portal/components/Page';
 import { EmailLogPanel } from './EmailLogPanel';
 
-/** Renders the Sent Emails page, whose body is the email log. */
+/** Renders the Sent emails page, whose body is the email log. */
 export function SentEmailsPage(): JSX.Element {
   return (
-    <Page
-      title="Sent Emails"
-      eyebrow="System"
-      lede="Every message the site has sent, with who it went to and why."
-    >
+    <Page title="Sent emails" lede="Every message the site has sent, with who it went to and why.">
       <EmailLogPanel />
     </Page>
   );

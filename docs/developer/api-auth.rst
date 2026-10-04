@@ -69,7 +69,7 @@ mails to ``ADMIN_EMAILS``
 
   .. code-block:: json
 
-     {"detail": "The mail server did not accept the message. A system administrator can see the attempt on the Sent Emails page."}
+     {"detail": "The mail server did not accept the message. A system administrator can see the attempt on the Sent emails page."}
 
 A refusal is ``caldart.mail.MailRefusedError``, which ``send_templated`` raises
 only from an ``smtplib.SMTPException`` or an ``OSError`` (a connection refused, a
@@ -880,7 +880,7 @@ donor, who cannot sign in, is refused with a sentence of its own::
 
 Both the send and the refusal are recorded in the audit log
 (:ref:`deploy-audit-log`).  A mail server that refuses the message is a 503
-naming the Sent Emails page, and nothing is recorded in the audit log
+naming the Sent emails page, and nothing is recorded in the audit log
 (:ref:`refused sends <api-refused-send>`).
 
 Statuses: **200** when the mail went out; **400** for an account that is
@@ -908,7 +908,7 @@ Three accounts are refused, and none is mailed::
 
 The send is recorded in the audit log as
 ``action=email_verification.admin_sent actor=<admin> target=<id>``.  A mail
-server that refuses the message is a 503 naming the Sent Emails page, and
+server that refuses the message is a 503 naming the Sent emails page, and
 nothing is recorded in the audit log (:ref:`refused sends <api-refused-send>`).
 
 Statuses: **202** when the mail went out; **400** for a donor, a verified

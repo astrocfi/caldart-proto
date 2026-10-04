@@ -203,7 +203,7 @@ your roles open. :doc:`roles` lists every screen each one reaches.
 **Member**
   Every member and friend holds it. It opens your own dashboard, profile, aircraft,
   payments, donations, renewal, the bulk emails you received, and the types of bulk
-  email you receive, under **Bulk Email** in the menu.
+  email you receive, under **Your email** in the menu.
 
 **DART leader**
   Checks, before a mission, whether a member is current to fly: membership, medical,

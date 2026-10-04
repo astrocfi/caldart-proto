@@ -103,7 +103,7 @@ DONOR_VERIFICATION_REFUSED = "A donor cannot sign in, so no verification message
 #: asked to send, so they know it did not go and where to see the attempt.
 MAIL_REFUSED = (
     "The mail server did not accept the message. "
-    "A system administrator can see the attempt on the Sent Emails page."
+    "A system administrator can see the attempt on the Sent emails page."
 )
 
 

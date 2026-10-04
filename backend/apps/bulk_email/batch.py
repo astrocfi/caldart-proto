@@ -574,8 +574,8 @@ def results_document(bulk: BulkEmail) -> ReportDocument:
     The columns are :data:`RESULTS_CSV_HEADER`: the name, address, kind, and DART the
     copy went to, the result in words (such as ``Sent``, ``Failed``, ``Skipped``,
     ``Bounced``, or ``Not sent (stopped)``), the reason, when the copy was last tried
-    (``MM/DD/YYYY HH:MM`` in the site's time zone, blank when never), and the email's
-    type.  The file is named ``caldart-bulk-email-<id>-recipients.csv``.
+    (``MM/DD/YYYY at h:mm AM`` in the site's time zone, blank when never), and the
+    email's type.  The file is named ``caldart-bulk-email-<id>-recipients.csv``.
     """
     type_name = email_type_name(bulk)
     rows = [

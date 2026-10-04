@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 
 import type { CalloutDetail } from '@/portal/api/types';
-import { formatDateAt } from '@/portal/components/DateText';
+import { formatDateTime } from '@/portal/components/DateText';
 import { answerCallout, makeCallout } from '@test/fixtures/callouts';
 import { renderRoutes } from '@test/render';
 import {
@@ -44,8 +44,8 @@ describe('CalloutDetailPage', () => {
       .getByText('Ann Able')
       .closest('tr');
     expect(ann).toHaveTextContent(
-      `Ann AbleAvailable with limitsAvailable with limitsCleared to flyGOSaturday only` +
-        `${formatDateAt('2026-04-06T18:00:00Z')}Marin DARTLVKN123AB`,
+      `Ann AbleAvailable with limitsCleared to flyGOSaturday only` +
+        `${formatDateTime('2026-04-06T18:00:00Z')}Marin DARTLVKN123AB`,
     );
   });
 

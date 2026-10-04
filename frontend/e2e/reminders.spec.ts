@@ -2,7 +2,7 @@
  * The renewal reminder log as each role sees it: an account administrator
  * reads and filters it, a DART leader cannot reach it, and only a system
  * administrator can start a scan, change the reminder schedule, or read the
- * Sent Emails log behind it.
+ * Sent emails log behind it.
  */
 import { expect, test } from '@playwright/test';
 
@@ -116,7 +116,7 @@ test('a system administrator saves the reminder schedule', async ({ page }) => {
 test('a system administrator filters the email log and downloads it', async ({ page }) => {
   await signIn(page, DEMO.sysadmin);
   await page.goto('portal/system/emails');
-  await expect(page.getByRole('heading', { level: 1, name: 'Sent Emails' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Sent emails' })).toBeVisible();
 
   const panel = page.locator('section.card').filter({ has: page.getByLabel('Purpose') });
   await expect(panel).toBeVisible();

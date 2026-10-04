@@ -17,7 +17,7 @@ import { Checkout } from '@/portal/features/checkout';
 import { Card } from '@/portal/components/Card';
 import { DateText } from '@/portal/components/DateText';
 import { Page } from '@/portal/components/Page';
-import { MembershipChip, daysUntil } from '@/portal/components/StatusChip';
+import { MembershipDot, daysUntil } from '@/portal/components/StatusDot';
 import { useToast } from '@/portal/components/Toast';
 import { JOIN_AS_MEMBER_PATH } from '@/portal/features/dashboard/KindSwitch';
 import { useMembership } from '@/portal/features/profile/api';
@@ -52,7 +52,6 @@ export function RenewPage(): JSX.Element {
   return (
     <Page
       title={isLifetime ? 'Contribute to CalDART' : 'Renew your membership'}
-      eyebrow="Membership"
       lede={
         isLifetime
           ? 'As a life member you have nothing to renew. A contribution keeps the DARTs flying.'
@@ -66,7 +65,7 @@ export function RenewPage(): JSX.Element {
           </p>
         ) : status ? (
           <div className="renew__status">
-            <MembershipChip membership={status} />
+            <MembershipDot membership={status} />
             {status.is_lifetime ? (
               <p>You are a life member. Thank you.</p>
             ) : status.expires_on ? (

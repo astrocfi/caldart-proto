@@ -14,7 +14,7 @@ administrator can open it too.
 What you see
 ============
 
-The N-number heads the page, with the make and model under it and the insurance chip
+The N-number heads the page, with the make and model under it and the insurance status
 (**Insured**, **Expiring soon**, **Insurance expired**, or **No insurance on file**) and
 **Out of service** (when the airplane is out of service) at the right.
 
@@ -80,8 +80,8 @@ History
 =======
 
 **History** lists every change to the record, newest first, one line each: the date and
-time, the account that made it, and what it did, such as *09/01/2026 12:00 · Dana Fiske ·
-updated carrier, insurance expiry*, or *created* for the change that added the airplane. A
+time, the account that made it, and what it did, such as *09/01/2026 at 12:00 PM · Dana
+Fiske · updated carrier, insurance expiry*, or *created* for the change that added the airplane. A
 change with no account behind it, such as the demo data, reads *the seed*. The words match
 the form, so *insurance expiry* is the **Insurance expires** box.
 

@@ -53,7 +53,7 @@ export function actorName(actor: AircraftActor | null): string {
 /**
  * One history entry as a single line.
  *
- * Reads `09/01/2026 12:34 · Dana Fiske · created` for a creation, where the
+ * Reads `09/01/2026 at 12:34 PM · Dana Fiske · created` for a creation, where the
  * whole record is the change, and `… · updated carrier, insurance expiry` for a
  * write, naming every column that moved.  A write that names no column at all
  * reads `updated` on its own.

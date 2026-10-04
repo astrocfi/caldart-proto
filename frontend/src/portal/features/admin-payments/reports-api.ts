@@ -24,7 +24,7 @@ import type {
   RenewalOutcome,
 } from '@/portal/api/types';
 import { formatMonth } from '@/portal/components/DateText';
-import type { StatusTone } from '@/portal/components/StatusChip';
+import type { StatusTone } from '@/portal/components/StatusDot';
 import type { FilterValues } from '@/portal/reports/types';
 import { filterParams, queryString } from './api';
 import { PROVIDER_LABELS } from './labels';

@@ -17,7 +17,7 @@ import { Card } from '@/portal/components/Card';
 import type { Column } from '@/portal/components/DataTable';
 import { DataTable } from '@/portal/components/DataTable';
 import { DeleteButton } from '@/portal/components/DeleteButton';
-import { StatusDot } from '@/portal/components/StatusChip';
+import { StatusDot } from '@/portal/components/StatusDot';
 import { useToast } from '@/portal/components/Toast';
 import { useFocusAfterSave, usePanelFocus } from '@/portal/components/focus';
 import {
@@ -110,7 +110,8 @@ export function NotificationSubscriptionsCard(): JSX.Element {
     {
       key: 'is_active',
       header: 'Active',
-      width: '5rem',
+      // The dot and its longer word, "Paused", with the cell's padding.
+      width: '7rem',
       keepInSight: true,
       render: (row) =>
         row.is_active ? (
@@ -156,7 +157,7 @@ export function NotificationSubscriptionsCard(): JSX.Element {
     openForm?.mode === 'edit' ? rows.find((subscription) => subscription.id === openForm.id) : null;
 
   return (
-    <Card eyebrow="By email" title="Who hears about what">
+    <Card title="Who hears about what">
       <p className="muted">
         Each subscription sends one address an email whenever one of its events happens.{' '}
         <strong>Edit</strong> changes its events; <strong>Pause</strong> stops the emails without

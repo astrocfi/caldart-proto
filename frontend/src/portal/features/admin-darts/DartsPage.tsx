@@ -19,7 +19,7 @@ import { Card } from '@/portal/components/Card';
 import type { Column } from '@/portal/components/DataTable';
 import { DataTable } from '@/portal/components/DataTable';
 import { Page } from '@/portal/components/Page';
-import { StatusChip } from '@/portal/components/StatusChip';
+import { StatusDot } from '@/portal/components/StatusDot';
 import { useToast } from '@/portal/components/Toast';
 import { usePanelFocus } from '@/portal/components/focus';
 import { DartForm, dartToValues, emptyDartValues } from './DartForm';
@@ -159,7 +159,7 @@ export function DartsPage(): JSX.Element {
       dropOrder: 3,
       render: (dart) =>
         dart.airport_identifiers ? (
-          <span className="mono">{dart.airport_identifiers}</span>
+          <span className="num">{dart.airport_identifiers}</span>
         ) : (
           <span className="muted">—</span>
         ),
@@ -220,9 +220,9 @@ export function DartsPage(): JSX.Element {
       narrowWidth: '5.5rem',
       render: (dart) =>
         dart.is_active ? (
-          <StatusChip tone="current" label="Active" />
+          <StatusDot tone="current" label="Active" />
         ) : (
-          <StatusChip tone="none" label="Inactive" />
+          <StatusDot tone="none" label="Inactive" />
         ),
       sortValue: (dart) => (dart.is_active ? 0 : 1),
     },
@@ -242,7 +242,6 @@ export function DartsPage(): JSX.Element {
   return (
     <Page
       title="DARTs"
-      eyebrow="Administration"
       lede="The teams a member can join. Everything here shows up in the list on the join form and on a member's profile."
       actions={
         editing === null ? (
@@ -297,7 +296,7 @@ export function DartsPage(): JSX.Element {
         columns={columns}
         rows={rows}
         rowKey={(dart) => dart.id}
-        caption="DARTs"
+        caption={`${rows.length} ${rows.length === 1 ? 'DART' : 'DARTs'}`}
         isLoading={darts.isPending}
         emptyTitle="No DARTs yet"
         emptyDescription="Add the first one, and it appears on the join form straight away."

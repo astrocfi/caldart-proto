@@ -551,7 +551,7 @@ is saved, built with ``render.render_for`` from the actor's own field values, so
 carries the actor's footer and unsubscribe link, the type's headers, and the
 email's ``Reply-To``, exactly as a copy to the actor would; only the subject
 differs, starting ``[Test]``.  The copy goes through ``send_templated`` under the
-purpose ``bulk_email_test`` (:doc:`email`), so Sent Emails lists it, and touches
+purpose ``bulk_email_test`` (:doc:`email`), so Sent emails lists it, and touches
 nothing of the send: no row joins the batch, and no count moves.  Every call sends
 one more copy.  A mail server that refuses it raises ``MailRefusedError``, which the
 endpoint answers with a 503.
@@ -570,7 +570,7 @@ marks a row of the ``bulk_email`` purpose ``bounced``, the receiver finds the
 recipient row with the same ``message_id`` (indexed) that still reads ``sent``,
 marks it ``bounced`` with the report's detail as its reason, and moves one from
 ``sent_count`` to ``bounced_count``.  The mail app never imports this one: the
-receiver lives here, and so does the link each copy's row on the Sent Emails page
+receiver lives here, and so does the link each copy's row on the Sent emails page
 carries to its bulk email, which ``ready`` registers with ``apps.mail.links``.
 
 **Retry failed.**  ``delivery.retry_failed`` takes a ``sent`` email whose copies
@@ -836,7 +836,7 @@ The pieces a feature added to bulk email changes, and where:
   ``Reply-To`` is.  A new **recipient field** is one more ``Field`` in
   ``fields.FIELDS``, which the **Insert field** menu, the checks, and the copies all
   read.
-* A new **screen** joins the Bulk Email group of the portal's menu
+* A new **screen** joins the Bulk email group of the portal's menu
   (``frontend/src/portal/nav.ts``), its route goes in
   ``frontend/src/portal/routes/bulk-email.tsx``, and its guide page under
   ``docs/user/bulk-email/``.

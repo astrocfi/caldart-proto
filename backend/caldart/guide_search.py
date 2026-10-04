@@ -53,8 +53,15 @@ _GUIDE_ORIGIN = "https://guide.invalid/"
 #: The navigation a page carries: the sidebar and every table of contents.
 _TREES = ".sidebar-tree, .toctree-wrapper"
 
-#: The next and previous links at a page's foot, and their twins in the page head.
-_RELATED = ".related-pages a, link[rel~=next], link[rel~=prev]"
+#: The search page Sphinx writes, which no source file makes.
+SEARCH_DOCNAME = "search"
+
+#: The search box in a page's sidebar, which submits to the search page.
+_SEARCH_FORM = "form[role=search]"
+
+#: The next and previous links at a page's foot, and the page head's links to the next,
+#: previous, index, and search pages.
+_RELATED = ".related-pages a, link[rel~=next], link[rel~=prev], link[rel~=index], link[rel~=search]"
 
 type Json = bool | int | float | str | list[Json] | dict[str, Json] | None
 
@@ -186,8 +193,11 @@ def trimmed_page(page_file: Path, page_path: str, modified: int, hidden: frozens
 
     ``page_path`` is the file's path inside the guide, against which its links are
     resolved (``link_is_hidden``).  Taken out: every sidebar and table-of-contents
-    entry whose link leads to a hidden page, with everything nested under it; every
-    next or previous link at the foot of the page and in its head that leads to one;
+    entry whose link leads to a hidden page, with everything nested under it, unless an
+    entry nested under it leads to a page left, when the entry stays and its link is
+    taken out as below; the sidebar's search box, when the search page is hidden; every
+    next or previous link at the foot of the page, and every next, previous, index, or
+    search link in its head, that leads to one;
     every other link to one, such as a link in the page's prose, which loses its
     anchor and keeps its text; and then every list in the navigation left with no
     entries, with the caption before it and a table of contents left with no list.
@@ -201,8 +211,14 @@ def trimmed_page(page_file: Path, page_path: str, modified: int, hidden: frozens
         entry = anchor.parent
         if anchor.decomposed or entry is None:
             continue
-        if _leads_to_hidden(anchor, page_path, hidden):
+        if _leads_to_hidden(anchor, page_path, hidden) and not _holds_open_entry(
+            entry, anchor, page_path, hidden
+        ):
             entry.decompose()
+            removed = True
+    if SEARCH_DOCNAME in hidden:
+        for form in soup.select(_SEARCH_FORM):
+            form.decompose()
             removed = True
     for link in soup.select(_RELATED):
         if _leads_to_hidden(link, page_path, hidden):
@@ -216,6 +232,14 @@ def trimmed_page(page_file: Path, page_path: str, modified: int, hidden: frozens
         return raw
     _remove_empty_lists(soup)
     return soup.encode()
+
+
+def _holds_open_entry(entry: Tag, anchor: Tag, page_path: str, hidden: frozenset[str]) -> bool:
+    """True when an entry nested under ``entry`` (other than ``anchor``) is not hidden."""
+    return any(
+        nested is not anchor and not _leads_to_hidden(nested, page_path, hidden)
+        for nested in entry.select("li > a")
+    )
 
 
 def _leads_to_hidden(element: Tag, page_path: str, hidden: frozenset[str]) -> bool:

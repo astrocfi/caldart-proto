@@ -200,7 +200,7 @@ spreadsheet sorts it: the membership, aircraft, and payments reports read that
 way.  A column that describes rather than sorts writes its date through
 ``caldart.dates`` (:doc:`architecture`), the ``MM/DD/YYYY`` a screen shows: the
 verification report's *Details*, *Updated*, and *Verified on* cells, and the
-email log's *Sent* cell (``MM/DD/YYYY HH:MM``).  The PDF footer stamps the
+email log's *Sent* cell (``MM/DD/YYYY at h:mm AM``).  The PDF footer stamps the
 moment it was generated the same way.  A file's name keeps ``YYYY-MM-DD``.
 
 Filters
@@ -230,7 +230,7 @@ The house style
 ``build_pdf_table(buffer, *, title, subtitle, header, rows, landscape, widths, sections, empty_section)``
    A reportlab table in the CalDART palette, written to any binary stream:
    hairline rules instead of boxes, zebra rows, the header repeated on every
-   page, and a footer carrying "CalDART · generated MM/DD/YYYY HH:MM <zone>"
+   page, and a footer carrying "CalDART · generated MM/DD/YYYY at h:mm AM <zone>"
    (local time, through ``caldart.dates``) and "Page n of m".  ``landscape``
    defaults to true, which is landscape US letter (792 × 612 points);
    ``landscape=False`` is the same page upright (612 × 792).
@@ -794,7 +794,7 @@ ordering is ignored, as the list ignores it.  The columns, in order:
 Key           Label       Default Contents
 ============= =========== ======= ==============================================
 sent_at       Sent        yes     When the message went, local time,
-                                  ``MM/DD/YYYY HH:MM``
+                                  ``MM/DD/YYYY at h:mm AM``
 purpose       Purpose     yes     The purpose's label from
                                   ``apps/mail/purposes.py``, or the template
                                   name when no label names it

@@ -41,14 +41,14 @@ export function ComposeStart(): JSX.Element {
 
   if (sender.data !== undefined && !sender.data.can_send) {
     return (
-      <Page title="Compose" eyebrow="Bulk Email">
+      <Page title="Compose">
         <SenderNotice sender={sender.data} />
       </Page>
     );
   }
   if (!open.isError && !sender.isError) return <Loading />;
   return (
-    <Page title="Compose" eyebrow="Bulk Email">
+    <Page title="Compose">
       <p className="field__error" role="alert">
         A new email could not be started. Check your connection and try again.
       </p>

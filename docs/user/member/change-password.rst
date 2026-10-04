@@ -2,8 +2,8 @@
 Change password
 ===============
 
-The **Change your password** screen replaces a password you still know. *You stay
-signed in on this device.* Open it from **Change password** in the menu. If you
+The **Change password** screen replaces a password you still know. *You stay signed in
+on this device.* Open it from **Change password** under **Membership** in the menu. If you
 have forgotten your password, use :doc:`forgot-password` instead.
 
 
@@ -21,8 +21,8 @@ Three boxes:
 **Repeat new password**
   The new password again.
 
-Press **Change password**. **Back to the dashboard** leaves without changing
-anything.
+Press **Change password**. To leave without changing anything, choose another screen
+in the menu.
 
 
 What happens next

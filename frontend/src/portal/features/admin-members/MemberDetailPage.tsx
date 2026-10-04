@@ -15,13 +15,13 @@ import { useParams, useSearchParams } from 'react-router-dom';
 import type { MemberDetail } from '@/portal/api/types';
 import { useAuth } from '@/portal/auth/useAuth';
 import { ACCOUNT_KIND_LABELS, roleLabel } from '@/portal/choices';
-import { BouncedChip } from '@/portal/components/BouncedChip';
+import { BouncedDot } from '@/portal/components/BouncedDot';
 import { ButtonLink } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { DateText } from '@/portal/components/DateText';
 import { EmptyState } from '@/portal/components/EmptyState';
 import { Page } from '@/portal/components/Page';
-import { MembershipChip } from '@/portal/components/StatusChip';
+import { MembershipDot, StatusDot } from '@/portal/components/StatusDot';
 import { MemberDangerZone } from './MemberDangerZone';
 import { MemberEmailPreferences, showsEmailPreferences } from './MemberEmailPreferences';
 import { MemberMembershipsTab } from './MemberMembershipsTab';
@@ -73,7 +73,7 @@ function Tabs({ active, onSelect }: TabsProps) {
   };
 
   return (
-    <div className="cluster" role="tablist" aria-label="Member record sections">
+    <div className="tab-bar" role="tablist" aria-label="Member record sections">
       {TABS.map((tab) => (
         <button
           key={tab.id}
@@ -86,7 +86,7 @@ function Tabs({ active, onSelect }: TabsProps) {
           aria-selected={active === tab.id}
           aria-controls={`panel-${tab.id}`}
           tabIndex={active === tab.id ? 0 : -1}
-          className={`button button--small ${active === tab.id ? 'button--secondary' : 'button--quiet'}`}
+          className="tab-bar__tab"
           onClick={() => onSelect(tab.id)}
           onKeyDown={handleKeyDown}
         >
@@ -124,7 +124,7 @@ function MemberHeader({ member }: { member: MemberDetail }) {
   return (
     <Card>
       <div className="cluster">
-        <MembershipChip membership={member.membership} />
+        <MembershipDot membership={member.membership} />
         {member.membership.plan ? <span className="muted">{member.membership.plan}</span> : null}
         {member.membership.is_lifetime ? null : (
           <span className="muted">
@@ -143,17 +143,15 @@ function MemberHeader({ member }: { member: MemberDetail }) {
             </>
           )}
         </span>
-        {member.kind === 'donor' ? (
-          <span className="chip chip--neutral">{ACCOUNT_KIND_LABELS.donor}</span>
-        ) : null}
-        {member.is_active ? null : <span className="chip chip--bad">Account deactivated</span>}
+        {member.kind === 'donor' ? <span>{ACCOUNT_KIND_LABELS.donor}</span> : null}
+        {member.is_active ? null : <StatusDot tone="expired" label="Account deactivated" />}
       </div>
       <p className="muted cluster">
         <span>
           <a href={`mailto:${member.email}`}>{member.email}</a> ·{' '}
           {member.roles.map(roleLabel).join(', ')}
         </span>
-        <BouncedChip bouncedAt={member.email_bounced_at} detail={member.email_bounce_detail} />
+        <BouncedDot bouncedAt={member.email_bounced_at} detail={member.email_bounce_detail} />
       </p>
     </Card>
   );
@@ -179,7 +177,7 @@ export function MemberDetailPage(): JSX.Element {
 
   if (member.isPending) {
     return (
-      <Page title="Member" eyebrow="Administration">
+      <Page title="Member">
         <p role="status">Loading…</p>
       </Page>
     );
@@ -187,7 +185,7 @@ export function MemberDetailPage(): JSX.Element {
 
   if (member.isError || !member.data) {
     return (
-      <Page title="Member" eyebrow="Administration">
+      <Page title="Member">
         <EmptyState
           title="That member could not be loaded"
           description="They may have been deleted."
@@ -203,7 +201,7 @@ export function MemberDetailPage(): JSX.Element {
   return (
     <Page
       title={record.name}
-      eyebrow="Member record"
+      tabTitle={`${record.name} · Member record`}
       actions={
         <ButtonLink to={home.to} variant="quiet">
           {home.label}

@@ -163,14 +163,14 @@ export function RenewalChangeForm({
       <p className="renewal-setup__total">
         {isDonation ? (
           <>
-            CalDART will charge <strong className="mono">{formatCents(contributionCents)}</strong>{' '}
+            CalDART will charge <strong className="num">{formatCents(contributionCents)}</strong>{' '}
             {CADENCE_PHRASES[cadence]}.
           </>
         ) : (
           <>
             Each year CalDART will charge{' '}
-            <strong className="mono">{formatCents(planCents + contributionCents)}</strong> — the
-            plan price on the day, plus your contribution.
+            <strong className="num">{formatCents(planCents + contributionCents)}</strong> — the plan
+            price on the day, plus your contribution.
           </>
         )}
       </p>

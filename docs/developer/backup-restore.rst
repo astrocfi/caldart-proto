@@ -5,7 +5,7 @@ Backup and restore
 Four commands look after the data: ``db_backup`` writes a dump, ``db_restore``
 puts one back, ``db_reset`` rebuilds a development database from nothing, and
 ``health`` says whether any of that has been happening.  They live in
-``backend/apps/sysadmin/``; the portal's Health & Database page reaches the same code
+``backend/apps/sysadmin/``; the portal's Health and database page reaches the same code
 through the endpoints listed under :ref:`api-reminders-system`.
 
 
@@ -51,7 +51,7 @@ from the FAA's own file (:doc:`aircraft-registry`).  Everything else is dumped
 whole, the aircraft types, their aliases, and the import log included, because
 every member's aircraft points at a type and a dump without them would not
 restore.  There is no option for a full dump.  The ``db_backup`` command, the
-``caldart-backup`` timer, and the Health & Database page's **Create backup** button all
+``caldart-backup`` timer, and the Health and database page's **Create backup** button all
 go through the same ``create_backup()``, so all three leave the registrations
 out.
 

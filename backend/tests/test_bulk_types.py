@@ -244,7 +244,7 @@ def test_a_draft_starts_with_no_type(management_client: APIClient) -> None:
 
 
 def test_the_lists_show_the_type(management_client: APIClient, management: User) -> None:
-    """Drafts & scheduled name each email's type."""
+    """Drafts and scheduled name each email's type."""
     mission = EmailTypeFactory(name="Mission Calls", sender_roles=[MANAGEMENT])
     BulkEmailFactory(sender=management, email_type=mission)
 
@@ -503,7 +503,7 @@ def test_sending_again_clears_the_not_sent_notice(management: User, mission: Ema
 def test_the_drafts_list_carries_the_not_sent_notice(
     management_client: APIClient, management: User, mission: EmailType
 ) -> None:
-    """The notice reaches the Drafts & scheduled list."""
+    """The notice reaches the Drafts and scheduled list."""
     BulkEmailFactory(sender=management, email_type=mission, not_sent_reason="Not sent.")
 
     response = management_client.get("/api/v1/bulk-email/drafts")

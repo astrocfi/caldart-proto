@@ -41,7 +41,7 @@ describe('FinanceTabs', () => {
     const result = renderWithProviders(<FinanceTabs />, { route: '/admin/payments' });
     await waitFor(() => expect(result.client.getQueryState(AUTH_ME_KEY)?.status).toBe('success'));
 
-    await screen.findByRole('link', { name: 'Overview' });
+    await screen.findByRole('link', { name: 'Money overview' });
     expect(screen.queryByRole('link', { name: 'Donors' })).not.toBeInTheDocument();
     expect(screen.getAllByRole('link')).toHaveLength(FINANCE_TABS.length - 1);
   });
@@ -73,6 +73,8 @@ describe('FinanceTabs', () => {
       route: '/admin/payments/412',
     });
 
-    expect(screen.getByRole('link', { name: 'Overview' })).not.toHaveAttribute('aria-current');
+    expect(screen.getByRole('link', { name: 'Money overview' })).not.toHaveAttribute(
+      'aria-current',
+    );
   });
 });

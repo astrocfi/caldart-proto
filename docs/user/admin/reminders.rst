@@ -15,7 +15,7 @@ where the reminders can be sent by hand.
 How the reminders work
 ======================
 
-Every morning at 07:00 CalDART looks for memberships near their end and emails each member
+Every morning at 7:00 AM CalDART looks for memberships near their end and emails each member
 at five stages. Each stage covers a stretch of the calendar, so every member passes through
 it even if a morning is missed. On the default schedule the stages are:
 

@@ -10,8 +10,8 @@ import type { Health } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { formatDateTime } from '@/portal/components/DateText';
-import { StatusChip } from '@/portal/components/StatusChip';
-import type { StatusTone } from '@/portal/components/StatusChip';
+import { StatusDot } from '@/portal/components/StatusDot';
+import type { StatusTone } from '@/portal/components/StatusDot';
 import { useHealth } from './api';
 
 export type CheckVerdict = 'ok' | 'warn' | 'bad';
@@ -122,7 +122,6 @@ export function HealthPanel(): JSX.Element {
 
   return (
     <Card
-      eyebrow="System"
       title="Health"
       footer={
         <Button variant="quiet" small onClick={() => void refetch()} disabled={isFetching}>
@@ -158,11 +157,11 @@ export function HealthPanel(): JSX.Element {
                 <tr key={check.key}>
                   <th scope="row">{check.label}</th>
                   <td>
-                    <span className="mono">{check.value}</span>
+                    <span className="num">{check.value}</span>
                     {check.note ? <div className="muted">{check.note}</div> : null}
                   </td>
                   <td>
-                    <StatusChip
+                    <StatusDot
                       tone={VERDICT_TONE[check.verdict]}
                       label={VERDICT_LABEL[check.verdict]}
                     />

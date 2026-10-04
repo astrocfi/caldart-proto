@@ -15,7 +15,7 @@ import type { JSX, MouseEvent, RefObject } from 'react';
 
 import type { BulkEmailFinding } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
-import { StatusDot } from '@/portal/components/StatusChip';
+import { StatusDot } from '@/portal/components/StatusDot';
 import { hasError } from './checksApi';
 
 /**
@@ -95,7 +95,7 @@ export function ChecksList({
           {saveProblems.map((problem) => (
             <li key={problem.key} className="bulk-email__finding" role="alert">
               <span aria-hidden="true">
-                <StatusDot tone="expired" label="" />
+                <StatusDot tone="expired" label="" hideWord />
               </span>
               <span>
                 <strong>{LEVEL_WORDS.error}</strong> {problem.message}{' '}
@@ -170,7 +170,7 @@ function Findings({ findings, isChecking, error, hasMissingSteps }: FindingsProp
   if (shown.length === 0) {
     return (
       <p className="bulk-email__finding" role="status">
-        <StatusDot tone="current" label="Passed" />
+        <StatusDot tone="current" label="Passed" hideWord />
         No problems found.
       </p>
     );
@@ -183,7 +183,11 @@ function Findings({ findings, isChecking, error, hasMissingSteps }: FindingsProp
           <li key={`${finding.code}:${finding.message}`} className="bulk-email__finding">
             {/* The level is written out beside the dot, so the dot's own name is not read too. */}
             <span aria-hidden="true">
-              <StatusDot tone={finding.level === 'error' ? 'expired' : 'expiring'} label="" />
+              <StatusDot
+                tone={finding.level === 'error' ? 'expired' : 'expiring'}
+                label=""
+                hideWord
+              />
             </span>
             <span>
               <strong>{LEVEL_WORDS[finding.level]}</strong> {finding.message}

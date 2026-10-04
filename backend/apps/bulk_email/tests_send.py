@@ -6,7 +6,7 @@ with their own field values and built exactly as the background sender builds a 
 footer and headers, and the same ``Reply-To``.  Only the subject differs, starting
 :data:`SUBJECT_PREFIX`.  A test is not part of the send: it adds nobody to the batch,
 counts toward nothing, and is in the email log under its own purpose,
-:data:`PURPOSE`, so Sent Emails shows it.  Every call sends one more copy.
+:data:`PURPOSE`, so Sent emails shows it.  Every call sends one more copy.
 """
 
 from __future__ import annotations

@@ -178,7 +178,6 @@ export function TemplatesPage(): JSX.Element {
   return (
     <Page
       title="Templates"
-      eyebrow="Bulk Email"
       lede="Messages you send again and again, such as the monthly newsletter. Start a draft from one on the compose screen; changing the draft leaves the template as it is."
       actions={
         openForm === null ? (

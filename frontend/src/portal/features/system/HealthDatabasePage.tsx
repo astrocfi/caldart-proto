@@ -9,12 +9,11 @@ import { BackupsPanel } from './BackupsPanel';
 import { HealthPanel } from './HealthPanel';
 import { RegistryPanel } from './RegistryPanel';
 
-/** Renders the Health & Database page: the health checks, backups, and aircraft database. */
+/** Renders the Health and database page: the health checks, backups, and aircraft database. */
 export function HealthDatabasePage(): JSX.Element {
   return (
     <Page
-      title="Health & Database"
-      eyebrow="System"
+      title="Health and database"
       lede="How the server is doing, the database dumps it holds, and the aircraft database it loads."
     >
       <HealthPanel />

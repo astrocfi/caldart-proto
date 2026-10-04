@@ -22,7 +22,8 @@ The **Who hears about what** card lists every subscription, one per line:
 - **Recipient**: the account's name, or the bare address for somebody outside CalDART.
 - **Events**: the events it hears about, joined with commas. A long list is cut short;
   rest the pointer on it to read the whole list.
-- **Active**: a green dot while its emails go out, and a gray one while it is paused.
+- **Active**: *Active* beside a green dot while its emails go out, and *Paused* beside a gray
+  one while it is paused.
 
 Each row carries three controls, last on the line under an **Actions** heading a screen
 reader announces. A message in the corner of the screen says what the last two did.
@@ -52,8 +53,8 @@ Setting one up
 
 #. **Recipient email** is where the emails go. Each address has one subscription.
 #. The events come in five groups: **Membership**, **Money**, **Accounts**,
-   **Aircraft**, and **Callouts**. Tick each event the address should hear about; rest the pointer on one to
-   read what it covers. **Select all** ticks every event in its group, and **Clear**
+   **Aircraft**, and **Callouts**. Tick each event the address should hear about; rest
+   the pointer on one to read what it covers. **Select all** ticks every event in its group, and **Clear**
    unticks them.
 
 Press **Save**, or **Cancel** or Escape. *Subscription added.* confirms a save. An address
@@ -194,9 +195,9 @@ Callouts
 If something looks wrong
 ========================
 
-If an address stops hearing about an event, look at its **Active** dot: a gray one means
+If an address stops hearing about an event, look at its **Active** column: *Paused* means
 the subscription is paused, and **Resume** says whether the account may still receive every
 event on it. An account that lost a role or was deactivated is skipped quietly, so check
-its roles on the **Users & roles** screen. If a notification never arrives, a system
+its roles on the **Users and roles** screen. If a notification never arrives, a system
 administrator can find it in the email log on the :doc:`sent-emails` page and see whether the
 mail server refused it.

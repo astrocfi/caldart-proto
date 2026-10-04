@@ -46,7 +46,7 @@ export function LeaderAircraftPage(): JSX.Element {
       label="Search by N-number"
       hint="Registration, make, model, or owner all match."
       placeholder="N12345"
-      inputClassName="mono"
+      inputClassName="num"
       noun="aircraft"
       useResults={useAircraftMatches}
       rowKey={(aircraft) => aircraft.id}
@@ -56,7 +56,7 @@ export function LeaderAircraftPage(): JSX.Element {
         return (
           <>
             <span className="leader-search__aircraft">
-              <span className="leader-search__name mono">{aircraft.n_number}</span>
+              <span className="leader-search__name num">{aircraft.n_number}</span>
               <span className="leader-search__meta">
                 {[aircraft.make, aircraft.model].filter(Boolean).join(' ')}
               </span>

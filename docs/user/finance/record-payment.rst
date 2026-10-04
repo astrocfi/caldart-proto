@@ -16,7 +16,7 @@ What you see
 One form, with these fields:
 
 * **Member**, a search box. Type part of a name or an email address and up to ten
-  matching people appear beneath it, each with a chip showing their membership. A friend
+  matching people appear beneath it, each with their membership status. A friend
   (someone with an account who supports CalDART without being a member) or a donor can
   be found the same way. Click the right person to choose them, and you move on to
   **Plan**; **Choose somebody else** clears the choice and takes you back to the search.

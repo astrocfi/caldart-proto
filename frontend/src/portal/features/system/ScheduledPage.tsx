@@ -5,7 +5,7 @@
  * The renewal reminder emails and the automatic renewal charges come first
  * because they are the pair readers confuse: one only emails, the other takes
  * the money, and the charges run before the emails each morning.  The reminder
- * schedule sits beside the reminder emails it dates.
+ * schedule sits below the reminder emails it dates.
  */
 import type { JSX } from 'react';
 
@@ -27,7 +27,6 @@ export function ScheduledPage(): JSX.Element {
   return (
     <Page
       title="Scheduled"
-      eyebrow="System"
       lede="The jobs the server runs on a schedule. Each one can be run by hand here, and a dry run shows what it would do."
     >
       <RemindersPanel />

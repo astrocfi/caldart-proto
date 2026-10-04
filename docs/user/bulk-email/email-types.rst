@@ -7,7 +7,7 @@ Email types
 **Email types** lists the types of bulk email CalDART sends, such as Operational,
 Fundraising, and Mission. For each type it says what the email is for, who may send it, and
 whether members and friends may turn it off. Only a system administrator sees it, under
-**Bulk Email** in the menu.
+**Bulk email** in the menu.
 
 The types matter to the people who receive the email. Every member and friend can turn off
 any type that allows it, on their own :doc:`../member/email-preferences` screen or from the

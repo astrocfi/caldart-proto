@@ -188,7 +188,7 @@ its panel::
 No account screens
 ------------------
 
-Accounts and roles are managed in the portal alone: **Users & roles** for an
+Accounts and roles are managed in the portal alone: **Users and roles** for an
 administrator, **My profile**, **Change password**, and **Change email** for the
 person themselves.  Those screens apply the rules an account change needs
 (roles, deactivation and the reactivation block, address verification, and the

@@ -108,8 +108,8 @@ export function CopyDialog({
         <>
           <p className="muted">
             {resultLabel(copy.data.status)} to {copy.data.email} on{' '}
-            <DateText value={copy.data.tried_at} withTime twelveHour />. This is the copy exactly as
-            it went, with the details it was sent with.
+            <DateText value={copy.data.tried_at} withTime />. This is the copy exactly as it went,
+            with the details it was sent with.
           </p>
           <p>
             <strong>Subject:</strong> {copy.data.subject}

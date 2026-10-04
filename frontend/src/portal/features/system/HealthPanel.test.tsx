@@ -91,7 +91,7 @@ describe('HealthPanel', () => {
     vi.useRealTimers();
   });
 
-  it('renders a row per check with a status chip', async () => {
+  it('renders a row per check with its status', async () => {
     server.use(healthHandler(health()));
     renderWithProviders(<HealthPanel />);
 
@@ -106,8 +106,8 @@ describe('HealthPanel', () => {
     server.use(healthHandler(health({ debug: true, pending_migrations: 2 })));
     renderWithProviders(<HealthPanel />);
 
-    expect(await screen.findByText('Attention')).toHaveClass('chip--bad');
-    expect(screen.getByText('Warning')).toHaveClass('chip--warn');
+    expect(await screen.findByText('Attention')).toHaveAttribute('data-tone', 'expired');
+    expect(screen.getByText('Warning')).toHaveAttribute('data-tone', 'expiring');
     expect(screen.getByText('Run manage.py migrate.')).toBeInTheDocument();
   });
 

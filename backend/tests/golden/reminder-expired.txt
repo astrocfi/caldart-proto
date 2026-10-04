@@ -4,7 +4,7 @@ Hello Marta,
 
 Your Annual membership ends on June 15, 2026 — that is
 today. From tomorrow it reads as expired: the members-only pages close, and DART
-leaders checking you before a flight will see a red chip rather than a green one.
+leaders checking you before a flight will see a red mark rather than a green one.
 
 Renew today and nothing lapses at all:
 https://caldart.example.org/portal/renew

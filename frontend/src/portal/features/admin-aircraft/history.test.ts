@@ -4,10 +4,10 @@ import type { AircraftChange } from '@/portal/api/types';
 import { actorName, changeLine, fieldLabel, lastUpdatedLine } from './history';
 
 /**
- * A stamp with no zone on it, which reads as local time wherever the suite
- * runs, so an assertion on the clock does not depend on the runner's zone.
+ * A stamp at 12:34 PM Pacific, which every screen reads in Pacific time wherever the
+ * suite runs.
  */
-const CHANGED_AT = '2026-09-01T12:34:00';
+const CHANGED_AT = '2026-09-01T12:34:00-07:00';
 
 function makeChange(overrides: Partial<AircraftChange> = {}): AircraftChange {
   return {
@@ -43,25 +43,25 @@ describe('actorName', () => {
 describe('changeLine', () => {
   it('reads a creation as the date, the name, and created', () => {
     expect(changeLine(makeChange({ kind: 'created', fields: [] }))).toBe(
-      '09/01/2026 12:34 · Dana Fiske · created',
+      '09/01/2026 at 12:34 PM · Dana Fiske · created',
     );
   });
 
   it('names every column an update moved', () => {
     expect(changeLine(makeChange({ fields: ['insurance_carrier', 'insurance_expiration'] }))).toBe(
-      '09/01/2026 12:34 · Dana Fiske · updated carrier, insurance expiry',
+      '09/01/2026 at 12:34 PM · Dana Fiske · updated carrier, insurance expiry',
     );
   });
 
   it('names a change of aircraft type as the form does', () => {
     expect(changeLine(makeChange({ fields: ['type'] }))).toBe(
-      '09/01/2026 12:34 · Dana Fiske · updated aircraft type',
+      '09/01/2026 at 12:34 PM · Dana Fiske · updated aircraft type',
     );
   });
 
   it('says only updated when an update names no column', () => {
     expect(changeLine(makeChange({ fields: [], changed_by: null }))).toBe(
-      '09/01/2026 12:34 · the seed · updated',
+      '09/01/2026 at 12:34 PM · the seed · updated',
     );
   });
 });

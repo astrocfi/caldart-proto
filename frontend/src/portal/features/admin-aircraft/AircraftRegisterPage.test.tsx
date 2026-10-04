@@ -136,11 +136,10 @@ describe('AircraftRegisterPage', () => {
       '/admin/aircraft/1',
     );
     const table = within(screen.getByRole('table'));
-    // The state is a dot beside the date rather than a chip: the column
-    // heading already says "Insurance".  The wording survives as the dot's
-    // accessible name, so a screen reader still hears it.
-    expect(table.getByText('Insured')).toHaveClass('visually-hidden');
-    expect(table.getByText('Insurance expired')).toHaveClass('visually-hidden');
+    // The state is a dot and words that carry the date, so no state is told by color
+    // alone.
+    expect(table.getByText('Insured to 03/01/2027')).toHaveAttribute('data-tone', 'current');
+    expect(table.getByText('Expired 01/01/2026')).toHaveAttribute('data-tone', 'expired');
   });
 
   it("shows the report's default columns, in the report's order", async () => {

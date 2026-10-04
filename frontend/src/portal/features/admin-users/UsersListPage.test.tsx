@@ -59,6 +59,7 @@ const COLUMNS: ReportColumn[] = [
   { key: 'email', label: 'Email', default: true },
   { key: 'kind', label: 'Kind', default: true },
   { key: 'city', label: 'City', default: false },
+  { key: 'membership', label: 'Membership', default: false },
 ];
 
 /** The `columns` parameter the exports carry while the defaults stand. */
@@ -127,6 +128,18 @@ describe('UsersListPage', () => {
     expect(within(priyaRow).getByText('Member, DART leader')).toBeInTheDocument();
     expect(within(priyaRow).getByText(/account deactivated/)).toBeInTheDocument();
     expect(screen.getByText('2 accounts')).toBeInTheDocument();
+  });
+
+  it('shows membership as a dot and its word, never a chip', async () => {
+    stubList();
+    const { container } = renderWithProviders(<UsersListPage />);
+    await screen.findByRole('link', { name: 'Marta Reyes' });
+    await userEvent.click(screen.getByRole('button', { name: 'Columns' }));
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Membership' }));
+
+    const martaRow = screen.getByRole('link', { name: 'Marta Reyes' }).closest('tr')!;
+    expect(within(martaRow).getByText('Current')).toHaveAttribute('data-tone', 'current');
+    expect(container.querySelector('tbody .chip')).toBeNull();
   });
 
   it('starts on active accounts only', async () => {

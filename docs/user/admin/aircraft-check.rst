@@ -53,19 +53,19 @@ The band across the top gives one of four verdicts:
   and nobody has checked it against the documents yet.
 - **NOT INSURED**, with *Coverage has expired* or *No policy on file*.
 
-Under the band are the N-number, an **Out of service** chip when an administrator has taken
+Under the band are the N-number, **Out of service** when an administrator has taken
 the airplane out of service, and the make, model, year, and seats. Then come five rows:
 
 **Category**
    The aircraft category and the airworthiness category, such as *Helicopter · Standard*,
-   and a red **Not covered** chip when the coverage policy leaves the airplane out. With no
+   and **Not covered**, beside a red dot, when the coverage policy leaves the airplane out. With no
    category recorded it reads *Category not recorded*, followed by the airworthiness category
    when there is one, such as *Category not recorded · Standard*: the policy cannot tell
    whether the airplane's category is covered, so ask the pilot, and have the category recorded on **My aircraft**
    or the :doc:`aircraft-record`.
 
 **Insurance**
-   The insurance chip (**Insured**, **Expiring soon**, **Insurance expired**, or **No
+   The insurance status (**Insured**, **Expiring soon**, **Insurance expired**, or **No
    insurance on file**), the carrier, the expiry date, and the mark: **Verified** with
    who verified it and on which day, or **Not verified**.
 

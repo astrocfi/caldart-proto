@@ -93,7 +93,7 @@ export function InsuranceVerificationPanel({
         <input
           {...props}
           type={options.type ?? 'text'}
-          className={field === 'insurance_carrier' ? undefined : 'mono'}
+          className={field === 'insurance_carrier' ? undefined : 'num'}
           value={draft[field]}
           onChange={(event) => set(field, event.target.value)}
         />
@@ -122,7 +122,7 @@ export function InsuranceVerificationPanel({
               {(props) => (
                 <MaskedInput
                   {...props}
-                  className="mono"
+                  className="num"
                   inputMode="decimal"
                   mask={maskDollars}
                   value={draft[field]}

@@ -91,7 +91,7 @@ export function PlanChooser({
               <span className="plan-card__head">
                 <span className="plan-card__name">{card.name}</span>
                 {card.price === null ? null : (
-                  <span className="plan-card__price mono">{card.price}</span>
+                  <span className="plan-card__price num">{card.price}</span>
                 )}
               </span>
               {card.term === null ? null : (

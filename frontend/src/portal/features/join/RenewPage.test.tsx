@@ -84,8 +84,8 @@ describe('<RenewPage/>', () => {
   it('says so when the membership has already lapsed', async () => {
     renderRenew(detail({ status: 'expired', expires_on: '2024-06-30' }));
 
-    const chip = await screen.findByText('Expired', { selector: 'span.chip' });
-    expect(chip).toHaveAttribute('data-tone', 'expired');
+    const status = await screen.findByText('Expired', { selector: 'span.status' });
+    expect(status).toHaveAttribute('data-tone', 'expired');
     expect(screen.getByText('06/30/2024')).toBeInTheDocument();
   });
 

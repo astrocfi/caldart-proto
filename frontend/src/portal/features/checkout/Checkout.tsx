@@ -298,18 +298,18 @@ export function Checkout({
         {isContributionOnly ? null : (
           <div>
             <dt>{selectedPlan?.name ?? 'Membership'}</dt>
-            <dd className="mono">{formatCents(planCents)}</dd>
+            <dd className="num">{formatCents(planCents)}</dd>
           </div>
         )}
         {contributionCents > 0 ? (
           <div>
             <dt>Contribution</dt>
-            <dd className="mono">{formatCents(contributionCents)}</dd>
+            <dd className="num">{formatCents(contributionCents)}</dd>
           </div>
         ) : null}
         <div className="checkout__total-row">
           <dt>Total today</dt>
-          <dd className="mono" data-testid="checkout-total">
+          <dd className="num" data-testid="checkout-total">
             {formatCents(isScheduledLater ? 0 : totalCents)}
           </dd>
         </div>

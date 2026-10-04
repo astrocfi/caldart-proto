@@ -22,19 +22,14 @@ import type { JSX } from 'react';
 import { Link } from 'react-router-dom';
 
 import type { AccountKind, AdminUser, ReportColumn, RoleSlug } from '@/portal/api/types';
-import {
-  ACCOUNT_KIND_LABELS,
-  MEMBERSHIP_STATUS_LABELS,
-  ROLE_CHOICES,
-  roleLabel,
-} from '@/portal/choices';
+import { ACCOUNT_KIND_LABELS, ROLE_CHOICES, roleLabel } from '@/portal/choices';
 import { Button } from '@/portal/components/Button';
 import { DataTable } from '@/portal/components/DataTable';
 import { FilterBar, clearedValues } from '@/portal/components/FilterBar';
 import { Page } from '@/portal/components/Page';
 import type { ReportCell } from '@/portal/components/reportTable';
 import { ColumnTools, reportTableColumns, useColumnChoice } from '@/portal/components/reportTable';
-import { MembershipDot } from '@/portal/components/StatusChip';
+import { MembershipDot } from '@/portal/components/StatusDot';
 import { useUrlFilters } from '@/portal/components/useUrlFilters';
 import {
   useFirstPageWhenMissing,
@@ -147,16 +142,9 @@ const CELLS: Record<string, ReportCell<AdminUser>> = {
   dart: { minWidth: '9rem', dropOrder: 10, render: (user) => user.dart ?? '' },
   kind: { width: '6rem', dropOrder: 4, render: (user) => ACCOUNT_KIND_LABELS[user.kind] },
   membership: {
-    width: '8rem',
+    width: '8.5rem',
     keepInSight: true,
-    render: (user) => (
-      <>
-        <span aria-hidden="true">
-          <MembershipDot membership={user.membership} />
-        </span>{' '}
-        {MEMBERSHIP_STATUS_LABELS[user.membership.status]}
-      </>
-    ),
+    render: (user) => <MembershipDot membership={user.membership} />,
   },
   city: { minWidth: '7rem', render: (user) => user.city },
   county: { minWidth: '8rem', render: (user) => user.county },
@@ -221,7 +209,6 @@ export function UsersListPage(): JSX.Element {
   return (
     <Page
       title="Users and roles"
-      eyebrow="Administration"
       lede="Search accounts, grant, or remove roles, and send a password reset."
     >
       <DataTable

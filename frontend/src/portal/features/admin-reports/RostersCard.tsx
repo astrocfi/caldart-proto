@@ -66,7 +66,6 @@ export function RostersCard(): JSX.Element {
 
   return (
     <Card
-      eyebrow="By email"
       title="DART rosters"
       footer={
         <>

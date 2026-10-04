@@ -15,12 +15,12 @@ import type { LeaderStatus, MembershipState } from '@/portal/api/types';
 import { MEMBERSHIP_STATUS_LABELS } from '@/portal/choices';
 import { Button } from '@/portal/components/Button';
 import { DateText } from '@/portal/components/DateText';
-import { StatusChip } from '@/portal/components/StatusChip';
-import type { StatusTone } from '@/portal/components/StatusChip';
+import { StatusDot } from '@/portal/components/StatusDot';
+import type { StatusTone } from '@/portal/components/StatusDot';
 import { useToast } from '@/portal/components/Toast';
 import { VerifiedMark } from '@/portal/components/VerifiedMark';
 import { useFocusAfterSave, usePanelFocus } from '@/portal/components/focus';
-import { InsuranceChip } from '@/portal/features/aircraft/InsuranceChip';
+import { InsuranceDot } from '@/portal/features/aircraft/InsuranceDot';
 import { MemberVerificationPanel } from '@/portal/features/verification/MemberVerificationPanel';
 import { useSetVerifier } from '@/portal/features/verification/api';
 import { draftFromStatus } from '@/portal/features/verification/memberDraft';
@@ -111,7 +111,7 @@ export function MemberStatusCard({ userId, status, today }: MemberStatusCardProp
           {status.phone ? (
             <>
               {' · '}
-              <a className="mono" href={`tel:${status.phone.replace(/[^\d+]/g, '')}`}>
+              <a className="num" href={`tel:${status.phone.replace(/[^\d+]/g, '')}`}>
                 {status.phone}
               </a>
             </>
@@ -143,7 +143,7 @@ export function MemberStatusCard({ userId, status, today }: MemberStatusCardProp
         <div className="leader-row">
           <dt>Membership</dt>
           <dd>
-            <StatusChip
+            <StatusDot
               tone={MEMBERSHIP_TONE[status.membership.status]}
               label={MEMBERSHIP_STATUS_LABELS[status.membership.status]}
             />
@@ -165,7 +165,7 @@ export function MemberStatusCard({ userId, status, today }: MemberStatusCardProp
         <div className="leader-row">
           <dt>Medical</dt>
           <dd>
-            <StatusChip
+            <StatusDot
               tone={
                 status.medical.is_current
                   ? 'current'
@@ -196,7 +196,7 @@ export function MemberStatusCard({ userId, status, today }: MemberStatusCardProp
               {status.certificate.number ? (
                 <>
                   {' · '}
-                  <span className="mono">{status.certificate.number}</span>
+                  <span className="num">{status.certificate.number}</span>
                 </>
               ) : null}
               {status.certificate.ratings.length > 0
@@ -223,14 +223,14 @@ export function MemberStatusCard({ userId, status, today }: MemberStatusCardProp
         <ul className="leader-aircraft">
           {status.aircraft.map((aircraft) => (
             <li key={aircraft.id} className="leader-aircraft__row">
-              <span className="leader-aircraft__ident mono">{aircraft.n_number}</span>
+              <span className="leader-aircraft__ident num">{aircraft.n_number}</span>
               <span className="leader-aircraft__name">
                 {aircraft.make} {aircraft.model}
               </span>
               {aircraft.coverage.excluded ? (
-                <StatusChip tone="expired" label="Not covered" title={aircraft.coverage.reason} />
+                <StatusDot tone="expired" label="Not covered" title={aircraft.coverage.reason} />
               ) : (
-                <InsuranceChip aircraft={aircraft} today={today} />
+                <InsuranceDot aircraft={aircraft} today={today} />
               )}
               <span className="leader-aircraft__expiry muted">
                 {aircraft.insurance_expiration ? (

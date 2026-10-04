@@ -1,10 +1,10 @@
 :roles: system_admin
 
-=================
-Health & Database
-=================
+===================
+Health and database
+===================
 
-**Health & Database** shows how the server is doing, the database backups it holds, and the
+**Health and database** shows how the server is doing, the database backups it holds, and the
 aircraft database it loads from the FAA. Only a system administrator sees it, under
 **System** in the menu, beside :doc:`sent-emails` and :doc:`scheduled`. Opening **System**
 on its own lands here.
@@ -22,7 +22,7 @@ database**.
 Health
 ======
 
-Six checks, each with a value and an **OK**, **Warning**, or **Attention** chip. **Refresh**
+Six checks, each with a value and its status, **OK**, **Warning**, or **Attention**. **Refresh**
 runs them again.
 
 - **Database**: whether the site can reach its database. Anything but *ok* means the site is
@@ -61,7 +61,7 @@ server with the site stopped, by the person who installed it.
 Aircraft database
 =================
 
-Every night at 04:30 CalDART loads the FAA's aircraft registry: the list of aircraft types
+Every night at 4:30 AM CalDART loads the FAA's aircraft registry: the list of aircraft types
 members pick from, and the registrations the N-number box lists on the aircraft forms. The
 line under the panel's text reads *Imported 312 types and 204 registrations on 09/20/2026*,
 adding, for example, *folded 2 hand-added types* when types an account administrator added
@@ -75,7 +75,7 @@ minutes later. A press while one runs says *An import is already running.*
 Routine
 =======
 
-Once a week, open **Health & Database**: six **OK** chips and a recent backup are the whole
+Once a week, open **Health and database**: six **OK** checks and a recent backup are the whole
 check. Before any upgrade, take a backup and download it. Once a month, keep a copy somewhere
 off the server. When someone reports a problem, read **Health** first and note the
 **Version**.

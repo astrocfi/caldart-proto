@@ -19,7 +19,7 @@ import { Card } from '@/portal/components/Card';
 import { DeleteButton } from '@/portal/components/DeleteButton';
 import { EmptyState } from '@/portal/components/EmptyState';
 import { Page } from '@/portal/components/Page';
-import { CurrencyChip, StatusChip } from '@/portal/components/StatusChip';
+import { CurrencyDot, StatusDot } from '@/portal/components/StatusDot';
 import { useToast } from '@/portal/components/Toast';
 import { VerifiedMark } from '@/portal/components/VerifiedMark';
 import { usePanelFocus } from '@/portal/components/focus';
@@ -65,7 +65,6 @@ export function MyAircraftPage(): JSX.Element {
   return (
     <Page
       title="My aircraft"
-      eyebrow="Membership"
       lede="The planes you commonly fly."
       actions={
         <ButtonLink to="/profile" variant="secondary">
@@ -100,7 +99,7 @@ export function MyAircraftPage(): JSX.Element {
               >
                 <span className="aircraft-list__ident">{plane.n_number}</span>
                 <span>{[plane.make, plane.model].filter(Boolean).join(' ') || 'Unknown type'}</span>
-                <CurrencyChip
+                <CurrencyDot
                   isCurrent={plane.insurance_is_current}
                   missing={plane.insurance_expiration === null}
                 />
@@ -108,7 +107,7 @@ export function MyAircraftPage(): JSX.Element {
                   // With no policy on file there is nothing to verify yet, so no mark.
                   <VerifiedMark verification={{ verified: plane.insurance_verified }} pending />
                 )}
-                {plane.coverage.excluded ? <StatusChip tone="expired" label="Not covered" /> : null}
+                {plane.coverage.excluded ? <StatusDot tone="expired" label="Not covered" /> : null}
                 <p className="aircraft-list__meta">
                   {plane.coverage.excluded
                     ? `${plane.insurance_summary} · ${plane.coverage.reason}`

@@ -85,7 +85,7 @@ Under the band is the person's name, their DART (or *No DART*), *Verifier* when 
 that role, their phone number, and their email address. Tap the number to call them, or
 the address to write to them.
 
-**Membership** shows a chip (**Current**, **Expiring soon**, **Expired**, **Friend**, or
+**Membership** shows the status (**Current**, **Expiring soon**, **Expired**, **Friend**, or
 **Never expires** for a life member), then the plan and the expiry date. A membership
 counts as current up to and including its last day.
 
@@ -102,7 +102,7 @@ Nothing else about the document is recorded.
 Each mark reads **Verified** followed by who verified it and on which day, such as
 *Verified by Dana Leader on 05/01/2026*, or **Not verified**.
 
-**Aircraft** lists every airplane on the member's profile, each with its insurance chip
+**Aircraft** lists every airplane on the member's profile, each with its insurance status
 and expiry date:
 
 - **Insured**: a policy is on file and has not expired.
@@ -114,7 +114,7 @@ When nobody has verified an airplane's insurance, *not verified* follows its exp
 The :doc:`aircraft-check` verifies it.
 
 An airplane CalDART's coverage policy leaves out, such as a helicopter while helicopters
-are excluded, carries a red **Not covered** chip in place of its insurance chip, and the
+are excluded, reads **Not covered**, beside a red dot, in place of its insurance status, and the
 reason follows its expiry date, such as *Not covered: helicopters are excluded by
 CalDART's policy*. An airplane with no category recorded reads *Category not recorded*
 there instead.

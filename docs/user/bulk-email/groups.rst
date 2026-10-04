@@ -7,7 +7,7 @@ Recipient groups
 **Recipient groups** keeps the people you email again and again, such as the board, the
 pilots of one DART, or every friend whose membership has lapsed, so you add them to a batch
 in one step. Every member of CalDART management shares the same groups. CalDART management
-opens it as **Recipient groups** under **Bulk Email** in the menu. A system administrator can
+opens it as **Recipient groups** under **Bulk email** in the menu. A system administrator can
 open it too.
 
 A group is one of two kinds:

@@ -14,7 +14,7 @@ import type { Column } from '@/portal/components/DataTable';
 import { DataTable } from '@/portal/components/DataTable';
 import { DateText } from '@/portal/components/DateText';
 import { Money } from '@/portal/components/Money';
-import { PaymentChip } from '@/portal/components/StatusChip';
+import { PaymentDot } from '@/portal/components/StatusDot';
 import { receiptUrl } from './api';
 
 /** The statuses whose money arrived, and so have a receipt behind them. */
@@ -79,7 +79,7 @@ function paymentColumns(hasRefunds: boolean): Column<PaymentSummary>[] {
       width: '9rem',
       narrowWidth: '7rem',
       keepInSight: true,
-      render: (payment) => <PaymentChip status={payment.status} />,
+      render: (payment) => <PaymentDot status={payment.status} />,
     },
     {
       key: 'receipt',

@@ -4,9 +4,10 @@
 The money overview
 ==================
 
-The **Payments** screen under **Administration** answers "how are we doing?" at a glance:
-what came in, what the payment providers kept, what reached the bank, and what went back
-in refunds. It is the first tab of the finance area, and the one the menu opens.
+The **Money overview** screen answers "how are we doing?" at a glance: what came in, what
+the payment providers kept, what reached the bank, and what went back in refunds. It is the
+first tab of the finance area, and the one **Finance** under **Administration** in the menu
+opens.
 
 Who sees this screen
 ====================
@@ -20,7 +21,7 @@ Moving around the finance area
 
 A row of tabs sits at the top of every finance screen:
 
-* **Overview**, this screen.
+* **Money overview**, this screen.
 * **Payments**, every payment, one row each (see :doc:`payment-list`).
 * **Renewals**, the automatic renewals and recurring donations people have set up (see
   :doc:`renewals`).
@@ -88,15 +89,10 @@ Each filter applies as soon as you set it. A typed one applies once you pause. *
 filters** clears them all, and appears under an empty table too. The filters are kept in the page's address, so you can
 bookmark a filtered view or send the link to another treasurer.
 
-Go to the list
-~~~~~~~~~~~~~~
-
-**All payments**, at the top right, opens the payment list.
-
 Reports by email
 ~~~~~~~~~~~~~~~~
 
-The **Subscriptions** screen, also under **Administration**, sends the payments,
+The **Emailed reports** screen, also under **Administration**, sends the payments,
 reconciliation, and contributions reports, and for the treasurer the donors report, to you
 or to anyone else allowed to read them, on a schedule you choose.
 

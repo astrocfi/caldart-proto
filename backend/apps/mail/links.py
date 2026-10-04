@@ -1,7 +1,7 @@
 """Where an email log row leads in the portal, for a message that belongs to a record.
 
 Most messages stand alone, but some belong to a record of the app that sent them: each
-copy of a bulk email belongs to that bulk email.  The Sent Emails page links such a row
+copy of a bulk email belongs to that bulk email.  The Sent emails page links such a row
 to its record.  The mail app sits below the apps that send through it and never imports
 them, so an app whose messages belong to a record registers a source of links with
 :func:`register_log_links` from its ``AppConfig.ready()``, as the bulk email app does,

@@ -3,7 +3,8 @@
 Order matters: the Wagtail page serving view is a catch-all and must come
 last, and the closed Wagtail account screens must come before the Wagtail admin
 they shadow.  ``/portal/`` is itself a catch-all for the SPA's client-side routes, and
-``/docs/`` serves the built user guide to signed-in users.
+``/docs/`` serves the built user guide to signed-in users, and its signed-out pages to
+anybody.
 """
 
 from django.conf import settings

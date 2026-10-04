@@ -2,10 +2,10 @@ export { AircraftForm } from './AircraftForm';
 export type { AircraftFormProps } from './AircraftForm';
 export { AircraftPicker } from './AircraftPicker';
 export type { AircraftPickerProps } from './AircraftPicker';
-export { InsuranceChip } from './InsuranceChip';
-export type { InsuranceChipProps } from './InsuranceChip';
-export { ServiceChip } from './ServiceChip';
-export type { ServiceChipProps } from './ServiceChip';
+export { InsuranceDot } from './InsuranceDot';
+export type { InsuranceDotProps } from './InsuranceDot';
+export { ServiceDot } from './ServiceDot';
+export type { ServiceDotProps } from './ServiceDot';
 export {
   aircraftQuery,
   findAircraft,

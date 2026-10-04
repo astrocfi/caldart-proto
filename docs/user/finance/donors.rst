@@ -82,7 +82,7 @@ the export buttons, work exactly as they do on the payment list (see :doc:`payme
 the columns you choose are the table's and the downloads' alike. **Export CSV** gives a file for a mailing list and
 **Export PDF** a copy for the board, each with the columns you chose.
 
-The **Subscriptions** screen can send this list on a schedule. There, a **Period** choice of
+The **Emailed reports** screen can send this list on a schedule. There, a **Period** choice of
 **This month**, **Last month**, **This year**, or **Last year** picks the dates each
 emailed copy covers.
 

@@ -7,12 +7,12 @@ import { systemPageHandlers } from './pageHandlers';
 import { SentEmailsPage } from './SentEmailsPage';
 
 describe('SentEmailsPage', () => {
-  it('is headed Sent Emails, with its lede', async () => {
+  it('is headed Sent emails, with its lede', async () => {
     server.use(...systemPageHandlers());
     renderWithProviders(<SentEmailsPage />);
 
     expect(
-      await screen.findByRole('heading', { level: 1, name: 'Sent Emails' }),
+      await screen.findByRole('heading', { level: 1, name: 'Sent emails' }),
     ).toBeInTheDocument();
     expect(
       screen.getByText('Every message the site has sent, with who it went to and why.'),

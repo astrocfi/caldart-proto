@@ -818,7 +818,8 @@ service user could not reach it.
 names.  Without it every page raises at render time.
 
 The last line builds the user guide into ``docs/_build/guide``, the directory
-Django serves at ``/docs/`` to signed-in users (it is ``make guide`` on a
+Django serves at ``/docs/`` to signed-in users, and its sign-in, password,
+join, and verification pages to anybody (it is ``make guide`` on a
 checkout).  It calls the virtualenv's ``sphinx-build`` directly: ``uv run``
 would first sync the default dependency groups, development tools included.
 The developer guide is not published: the build reads ``docs/user`` alone.
@@ -1544,7 +1545,7 @@ registrations, which takes well under a minute once the file is down; it needs
 the database and an outbound HTTPS connection to ``registry.faa.gov``.  The
 ``systemctl start`` above runs the first import straight away, so the aircraft
 type picker has its vocabulary before anybody opens it.  A system administrator
-can also start an import from the Health & Database page (**Run now** on the
+can also start an import from the Health and database page (**Run now** on the
 *Aircraft database* panel); that import runs as a child of ``caldart-web``, so
 restarting the web service while one is under way stops it, and the next press
 after ``REGISTRY_IMPORT_STALE_MINUTES`` records it as *Did not finish.* and
@@ -2002,7 +2003,7 @@ Action                        Fields beyond actor and target
 ``email.opt_in``              ``email_type``, ``source`` -- the type turned
                               back on
 ``system.registry_import``    -- (the target is the ``RegistryImport`` row);
-                              one line per **Run now** on Health & Database
+                              one line per **Run now** on Health and database
 ============================= ===============================================
 
 An account edit is recorded only when it really alters the record.  The admin

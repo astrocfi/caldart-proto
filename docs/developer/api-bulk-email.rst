@@ -10,7 +10,7 @@ of people built from the member list's filters, the send that queues it, and its
 results.  Nothing is sent in a request: the background sender sends
 (:doc:`bulk-email`).  The portal's Bulk Email screens read them: Compose at
 ``/bulk-email/compose``, the compose screen of one email at
-``/bulk-email/compose/{id}``, **Drafts & scheduled**, **Sent**, **Templates**,
+``/bulk-email/compose/{id}``, **Drafts and scheduled**, **Sent**, **Templates**,
 **Recipient groups**, and **Callouts**.  What CalDART management keeps to use again
 lives here too: saved templates (:ref:`api-bulk-email-templates`) and saved recipient
 groups (:ref:`api-bulk-email-groups`); so do mission callouts
@@ -538,7 +538,7 @@ in the order the send went, with the columns ``Name``, ``Email``, ``Kind``,
 ``DART``, ``Result`` (the row's status in words: ``Sent``, ``Failed``,
 ``Skipped``, ``Not sent (stopped)``, ``Not sent yet``, ``In the batch``, or
 ``Bounced``), ``Reason``, ``Tried at`` (when the copy was last tried,
-``MM/DD/YYYY HH:MM`` in the site's time zone, blank when it never was), and
+``MM/DD/YYYY at h:mm AM`` in the site's time zone, blank when it never was), and
 ``Email type``.  This is the delivery report the Sent page shows.
 
 ``POST /system/bulk-email/run``
@@ -625,7 +625,7 @@ send to everyone, with ``dart`` null and ``dart_name`` blank.  For a DART leader
 a leader whose profile names no DART, and ``reason`` then says *Your profile names no
 DART, so there is nobody to send to. Set your DART on My profile.*; it is blank
 otherwise.  The compose screen shows that sentence in place of the form, and names a
-leader's DART as a fixed value in place of the DART filter; the Drafts & scheduled
+leader's DART as a fixed value in place of the DART filter; the Drafts and scheduled
 screen shows it too.  ``default_reply_to`` is where replies to the caller's email go
 when they choose no Reply-To address: ``BULK_EMAIL_REPLY_TO``, or the caller's own
 address when that setting is blank.  The template form names it under its
@@ -961,7 +961,7 @@ skipped.  The portal reads this every half minute while the callout is open.
 
 The answers as a CSV download, ``caldart-callout-<id>-answers.csv``, one line per
 person in the order above, with the columns ``Name``, ``Email``, ``Answer`` (in words,
-blank for none), ``Note``, ``Answered at`` (``MM/DD/YYYY HH:MM`` in the site's time
+blank for none), ``Note``, ``Answered at`` (``MM/DD/YYYY at h:mm AM`` in the site's time
 zone, blank for none), ``DART``, ``Home airport``, ``Aircraft`` (the N-numbers,
 separated by commas), and ``Go/no-go`` (``GO`` or ``NO-GO``).
 

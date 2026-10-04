@@ -32,6 +32,36 @@ describe('the portal frame width', () => {
   });
 });
 
+describe('the Menu toggle', () => {
+  // `.button` sets `display` as well, so a rule naming the toggle's class alone loses to
+  // it whenever the button styles load later, and Menu shows beside an open rail.
+  it('hides itself on a wide screen with a selector that outweighs .button', () => {
+    expect(ruleBody('.button.portal__drawer-toggle')).toContain('display: none;');
+  });
+});
+
+describe('the open drawer', () => {
+  it('scrolls on its own, so it can open at the current entry', () => {
+    expect(css).toMatch(
+      /\.portal\[data-drawer-open='true'\] \.portal__rail \{[^}]*overflow-y: auto;/,
+    );
+  });
+
+  it('shades its foot when more entries lie below, outside the desktop query', () => {
+    expect(ruleBody(".portal__rail[data-more-below='true']")).toContain('box-shadow');
+  });
+});
+
+describe('the page width', () => {
+  it('keeps every page, its header and its cards to one width', () => {
+    expect(ruleBody('.page')).toContain('max-width: var(--portal-page-max);');
+  });
+
+  it('lets no card escape that width, a card holding a table included', () => {
+    expect(css).not.toContain('.card:has(.data-table)');
+  });
+});
+
 describe('the frame without a rail', () => {
   it('is a single column', () => {
     expect(ruleBody('.portal__frame--no-rail')).toContain('grid-template-columns: minmax(0, 1fr);');
@@ -121,19 +151,5 @@ describe('a row-actions cluster kept on one line', () => {
     const body = ruleBody('.cluster.cluster--nowrap');
     expect(body).toContain('flex-wrap: nowrap;');
     expect(body).toContain('white-space: nowrap;');
-  });
-});
-
-describe('non-report content inside the uncapped frame', () => {
-  it('caps a card at the portal working width', () => {
-    expect(ruleBody('.portal__main .card')).toContain('max-width: var(--page-max);');
-  });
-
-  it('lets a card built around a report table grow with the frame', () => {
-    expect(ruleBody('.portal__main .card:has(.data-table)')).toContain('max-width: none;');
-  });
-
-  it("caps the dashboard's ratio grid at the portal working width", () => {
-    expect(ruleBody('.portal__main .grid')).toContain('max-width: var(--page-max);');
   });
 });

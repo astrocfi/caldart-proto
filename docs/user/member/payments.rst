@@ -21,7 +21,7 @@ The cards come in the order they matter.
   so they can turn it off.
 
 **Recurring donation**
-  Whether you give on a schedule. Its chip reads **On**, **Off**, or **Stopped**,
+  Whether you give on a schedule. Its status reads **On**, **Off**, or **Stopped**,
   and it shows the **Method**, **Amount**, **How often**, and **Next charge**, with
   **Change** and **Turn off**, or **Set up**, which opens :doc:`donate`. Setting up
   and changing a recurring donation are described there.
@@ -74,7 +74,7 @@ the card, and the day of the next charge.
 What the card shows
 ~~~~~~~~~~~~~~~~~~~
 
-While it is on, the chip reads **On** and the card shows the **Method**, the
+While it is on, the status reads **On** and the card shows the **Method**, the
 **Plan**, the **Contribution renewed with it**, and the **Next charge** with its
 amount. When the charge falls after your membership runs out, the day adds *after
 your membership runs out on* that date. While it is on you do not get the ordinary
@@ -113,7 +113,7 @@ If a charge is refused
 CalDART tries again the next day, then three days after that, then a week after
 that. If all four attempts are refused, automatic renewal switches itself off, you
 are told so, and the ordinary reminders take over. Your current membership runs to
-its end date as it would anyway. The card's chip then reads **Stopped** and repeats
+its end date as it would anyway. The card's status then reads **Stopped** and repeats
 the reason the last charge was refused. **Turn on again** saves another method and
 starts it again.
 

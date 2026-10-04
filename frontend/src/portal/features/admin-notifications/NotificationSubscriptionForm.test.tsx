@@ -42,13 +42,19 @@ describe('NotificationSubscriptionForm', () => {
     server.use(...notificationHandlers());
   });
 
-  it('groups the events under their four categories', async () => {
+  it('groups the events under their five categories', async () => {
     await renderForm();
 
     const legends = screen
       .getAllByRole('group')
       .map((group) => group.querySelector('legend')?.textContent);
-    expect(legends).toEqual(['Membership', 'Money', 'Accounts', 'Aircraft']);
+    expect(legends).toEqual(['Membership', 'Money', 'Accounts', 'Aircraft', 'Callouts']);
+  });
+
+  it('offers the callout answer event, which the catalog lists under Callouts', async () => {
+    await renderForm();
+
+    expect(screen.getByRole('checkbox', { name: 'Callout answer' })).toBeInTheDocument();
   });
 
   it("gives each event's box its description as a title", async () => {

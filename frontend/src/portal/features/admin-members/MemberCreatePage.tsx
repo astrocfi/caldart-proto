@@ -91,7 +91,6 @@ export function MemberCreatePage(): JSX.Element {
   return (
     <Page
       title="New member"
-      eyebrow="Administration"
       lede="Create an account and fill in as much of the profile as you have."
       actions={
         <ButtonLink to="/admin/members" variant="quiet">

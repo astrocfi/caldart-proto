@@ -1,5 +1,5 @@
 /**
- * The FAA registry on the aircraft forms and the Health & Database page.
+ * The FAA registry on the aircraft forms and the Health and database page.
  *
  * The seed imports the registry fixture in `backend/apps/aircraft/fixtures/faa`,
  * and `make e2e` points `FAA_REGISTRY_URL` at the same directory, so Run now
@@ -31,7 +31,7 @@ const REGISTRY = SEED.registry;
  */
 const FIXTURE_HELICOPTER = 'N781SH';
 
-/** The status Health & Database and the register read, as `GET /aircraft/registry` answers it. */
+/** The status Health and database and the register read, as `GET /aircraft/registry` answers it. */
 interface RegistryStatus {
   as_of: string | null;
   running: boolean;
@@ -206,7 +206,7 @@ test('the system administrator runs the FAA registry import', async ({ page }) =
   await page.goto('portal/system');
   await expect(page).toHaveURL(/\/portal\/system\/health$/);
 
-  // Health & Database's panels are cards, each a section headed by its title.
+  // Health and database's panels are cards, each a section headed by its title.
   const panel = page
     .locator('section')
     .filter({ has: page.getByRole('heading', { name: 'Aircraft database' }) });

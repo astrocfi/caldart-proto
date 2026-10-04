@@ -21,10 +21,9 @@ function running(): RegistryStatus {
   });
 }
 
-/** `STARTED` on the reader's own clock, as the panel prints it. */
+/** `STARTED` in Pacific time on the 12-hour clock, as the panel prints it wherever it runs. */
 function startedClock(): string {
-  const at = new Date(STARTED);
-  return `${String(at.getHours()).padStart(2, '0')}:${String(at.getMinutes()).padStart(2, '0')}`;
+  return '4:05 AM';
 }
 
 /** Answer `GET /aircraft/registry` with each of `answers` in turn, the last one after that. */

@@ -28,7 +28,7 @@ import type { Column } from '@/portal/components/DataTable';
 import { DataTable } from '@/portal/components/DataTable';
 import { DeleteButton } from '@/portal/components/DeleteButton';
 import { FilterBar } from '@/portal/components/FilterBar';
-import { StatusDot } from '@/portal/components/StatusChip';
+import { StatusDot } from '@/portal/components/StatusDot';
 import { useToast } from '@/portal/components/Toast';
 import { SEARCH_DEBOUNCE_MS } from '@/portal/components/useDebounced';
 import { listFilters, REPORTS } from '@/portal/reports/definitions';
@@ -445,7 +445,6 @@ function WillReceive({ row }: { row: BulkEmailBatchRow }): JSX.Element {
   return (
     <span className="bulk-email__will-receive">
       <StatusDot tone={row.will_receive ? 'current' : 'none'} label={words} />
-      <span aria-hidden="true">{words}</span>
     </span>
   );
 }

@@ -415,7 +415,7 @@ export function ProfileFieldsets({
         <div className="form-grid">
           {text('ham_callsign', {
             label: 'Amateur radio callsign',
-            className: 'mono',
+            className: 'num',
             size: 7,
             placeholder: 'W6ABC',
             hint: 'Optional; a US callsign',
@@ -469,7 +469,7 @@ export function ProfileFieldsets({
           )}
           {text('certificate_number', {
             label: 'Certificate number',
-            className: 'mono',
+            className: 'num',
             required: value.pilot_certificate_type !== 'none',
           })}
           {coded('medical_type', 'Medical', MEDICAL_TYPES)}

@@ -62,13 +62,13 @@ function screenRoute(pathname: string): string {
   return deepest.path ?? (deepest.index === true ? 'index' : '');
 }
 
-/** The rail's Bulk Email entries and every entry open to any signed-in member. */
+/** The rail's Bulk email entries and every entry open to any signed-in member. */
 const BULK_AND_MEMBER_ENTRIES = NAV_ITEMS.filter(
-  (item) => item.group === 'Bulk Email' || item.roles.length === 0,
+  (item) => item.group === 'Bulk email' || item.roles.length === 0,
 ).map((item) => [item.label, item.to]);
 
 describe('the rail and the router', () => {
-  it('covers every Bulk Email entry and every member-facing entry', () => {
+  it('covers every Bulk email entry and every member-facing entry', () => {
     expect(BULK_AND_MEMBER_ENTRIES.map(([label]) => label)).toEqual([
       'Dashboard',
       'My profile',
@@ -78,16 +78,16 @@ describe('the rail and the router', () => {
       'Renew',
       'Change password',
       'Change email',
+      'Messages',
+      'Email preferences',
       'Compose',
-      'Drafts & scheduled',
+      'Drafts and scheduled',
       'Sent',
       'Templates',
       'Recipient groups',
       'Callouts',
       'Email types',
       'Mail delivery',
-      'Messages',
-      'Email preferences',
     ]);
   });
 
