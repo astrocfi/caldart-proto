@@ -506,7 +506,9 @@ The token.
    ``UNSUBSCRIBE_TOKEN_MAX_AGE`` (180 days by default, :doc:`configuration`), one
    whose payload is not the shape it writes, and one naming an account or a type
    since deleted.  The link is ``<SITE_URL>/mail/unsubscribe/<token>``, built on
-   ``SITE_URL`` so a site served under a path keeps it.
+   ``SITE_URL`` so a site served under a path keeps it.  A host with non-ASCII
+   letters is written in its IDNA form (``xn--...``), as is the domain of the
+   ``mailto:`` below, because a mail header must be ASCII.
 
 The headers.
    ``headers_for(user, email_type)`` answers, for a type that allows opting out,

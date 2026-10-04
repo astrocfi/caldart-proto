@@ -77,6 +77,22 @@ def test_without_a_contact_address_only_the_link_is_given(
     assert re.fullmatch(r"<https://caldart\.example\.org/mail/unsubscribe/[^>]+>", header)
 
 
+def test_a_non_ascii_site_host_reaches_the_header_in_its_ascii_form(
+    member: User, mission: EmailType, settings: Settings
+) -> None:
+    """Each host is IDNA-encoded, so the header stays the ASCII a mail program reads."""
+    settings.SITE_URL = "https://caldärt.example.org:8443/caldart"
+    make_site_settings(contact_email="contact@caldärt.example.org")
+
+    header = headers_for(member, mission)["List-Unsubscribe"]
+
+    assert re.fullmatch(
+        r"<https://xn--caldrt-eua\.example\.org:8443/caldart/mail/unsubscribe/[^>]+>, "
+        r"<mailto:contact@xn--caldrt-eua\.example\.org\?subject=unsubscribe>",
+        header,
+    )
+
+
 @pytest.mark.usefixtures("site")
 def test_a_type_that_cannot_be_turned_off_carries_no_headers(
     member: User, operational: EmailType
