@@ -1,7 +1,8 @@
 /**
  * The From and DART columns the Drafts & scheduled and Sent lists show CalDART
  * management, who sees every sender's emails. A DART leader sees only their own, so
- * their lists leave both out.
+ * their lists leave both out. Both give way to the columns that matter more when the
+ * table would not fit its card.
  */
 import type { BulkEmailSummary } from '@/portal/api/types';
 import type { Column } from '@/portal/components/DataTable';
@@ -12,6 +13,7 @@ const SENDER_COLUMNS: Column<BulkEmailSummary>[] = [
     key: 'sender',
     header: 'From',
     width: '7rem',
+    wideOnly: true,
     render: (row) => row.sender || '—',
     sortValue: (row) => row.sender,
   },
@@ -19,6 +21,7 @@ const SENDER_COLUMNS: Column<BulkEmailSummary>[] = [
     key: 'dart_name',
     header: 'DART',
     width: '7rem',
+    wideOnly: true,
     render: (row) => row.dart_name || '—',
     sortValue: (row) => row.dart_name,
   },

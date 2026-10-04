@@ -1,9 +1,12 @@
 /**
  * The sortable table every admin screen uses, with an optional
  * filter bar and CSV/PDF export buttons.
+ *
+ * A single-line table whose columns would not all fit its container leaves out the
+ * columns marked `wideOnly`, so the rest, and the row's actions, stay in sight.
  */
-import { useMemo, useState } from 'react';
-import type { JSX, ReactNode } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import type { JSX, ReactNode, RefObject } from 'react';
 
 import { Button } from './Button';
 import { EmptyState } from './EmptyState';
@@ -35,6 +38,18 @@ export interface Column<Row> {
    * of squeezing these columns to nothing. Its cells start at the left edge.
    */
   minWidth?: string;
+  /**
+   * A column that matters less than the others, such as a type or a DART, which the
+   * table leaves out while it would not fit its container with every column shown,
+   * so the columns that matter, the row's actions among them, stay in sight without
+   * scrolling. It needs `width` or `minWidth` in rem, as every single-line column has.
+   */
+  wideOnly?: boolean;
+  /**
+   * Let this column's words wrap onto more lines in single-line mode, for words that
+   * must be read whole, such as a reason or a description.
+   */
+  wrap?: boolean;
 }
 
 /** What a column without a width or a minimum is reckoned at, for the table's minimum. */
@@ -59,11 +74,64 @@ function columnStyle<Row>(column: Column<Row>): { width: string } | undefined {
   return width === undefined ? undefined : { width };
 }
 
-/** The class a cell of `column` carries: numeric, text, or none. */
+/** The class a cell of `column` carries: numeric or text, and whether it wraps. */
 function cellClass<Row>(column: Column<Row>): string | undefined {
-  if (column.numeric) return 'numeric';
-  if (column.minWidth !== undefined) return 'data-table__text';
-  return undefined;
+  const classes = [
+    column.numeric ? 'numeric' : column.minWidth !== undefined ? 'data-table__text' : '',
+    column.wrap ? 'data-table__wrap' : '',
+  ].filter((name) => name !== '');
+  return classes.length === 0 ? undefined : classes.join(' ');
+}
+
+/** `12rem` as 12; null for any other length. */
+function remOf(length: string): number | null {
+  const match = /^(\d+(?:\.\d+)?)rem$/.exec(length);
+  return match ? Number(match[1]) : null;
+}
+
+/**
+ * The least width, in rem, the table takes with every column shown; null when no
+ * column is `wideOnly`, or when a width is not given in rem.
+ */
+export function fullWidthRem<Row>(columns: readonly Column<Row>[]): number | null {
+  if (!columns.some((column) => column.wideOnly === true)) return null;
+  const widths = columns.map((column) =>
+    remOf(column.width ?? column.minWidth ?? DEFAULT_COLUMN_WIDTH),
+  );
+  if (widths.some((width) => width === null)) return null;
+  return widths.reduce<number>((total, width) => total + (width ?? 0), 0);
+}
+
+/**
+ * The columns to show in a container `isWide` or not: every column when it is, and
+ * all but the `wideOnly` ones when it is not.
+ */
+export function shownColumns<Row>(columns: Column<Row>[], isWide: boolean): Column<Row>[] {
+  return isWide ? columns : columns.filter((column) => column.wideOnly !== true);
+}
+
+/**
+ * Whether the element `ref` holds is at least `rem` wide, measured again whenever it
+ * changes size. True when `rem` is null, and where the browser cannot measure.
+ */
+function useIsAtLeast(ref: RefObject<HTMLElement | null>, rem: number | null): boolean {
+  const [isWide, setIsWide] = useState(true);
+  useLayoutEffect(() => {
+    const element = ref.current;
+    if (element === null || rem === null || typeof ResizeObserver === 'undefined') {
+      setIsWide(true);
+      return undefined;
+    }
+    const measure = (): void => {
+      const rootPx = Number.parseFloat(getComputedStyle(document.documentElement).fontSize);
+      setIsWide(element.clientWidth >= rem * (Number.isNaN(rootPx) ? 16 : rootPx));
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [ref, rem]);
+  return isWide;
 }
 
 export interface DataTableProps<Row> {
@@ -148,7 +216,7 @@ function ExportLink({
 
 /** A sortable table with an optional filter bar and CSV/PDF export buttons. */
 export function DataTable<Row>({
-  columns,
+  columns: allColumns,
   rows,
   rowKey,
   caption,
@@ -164,6 +232,12 @@ export function DataTable<Row>({
   initialSort,
   sort,
 }: DataTableProps<Row>): JSX.Element {
+  const rootRef = useRef<HTMLDivElement>(null);
+  const isWide = useIsAtLeast(
+    rootRef,
+    singleLine ? fullWidthRem(allColumns) : null,
+  );
+  const columns = shownColumns(allColumns, isWide);
   const [ownKey, setSortKey] = useState<string | null>(initialSort?.key ?? null);
   const [ownDirection, setDirection] = useState<SortDirection>(initialSort?.direction ?? 'asc');
   const sortKey = sort ? sort.key : ownKey;
@@ -173,10 +247,10 @@ export function DataTable<Row>({
     if (onSortChange || !sortKey) return rows;
     return sortRows(
       rows,
-      columns.find((column) => column.key === sortKey),
+      allColumns.find((column) => column.key === sortKey),
       direction,
     );
-  }, [rows, columns, sortKey, direction, onSortChange]);
+  }, [rows, allColumns, sortKey, direction, onSortChange]);
 
   const toggle = (column: Column<Row>): void => {
     if (column.sortable === false) return;
@@ -191,7 +265,10 @@ export function DataTable<Row>({
   const hasExports = Boolean(exportCsvUrl || exportPdfUrl);
 
   return (
-    <div className={singleLine ? 'data-table data-table--single-line' : 'data-table'}>
+    <div
+      ref={rootRef}
+      className={singleLine ? 'data-table data-table--single-line' : 'data-table'}
+    >
       {filters || hasExports ? (
         <div className="data-table__bar">
           <div className="data-table__filters">{filters}</div>

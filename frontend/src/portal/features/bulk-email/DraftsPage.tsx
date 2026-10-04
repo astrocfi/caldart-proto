@@ -8,7 +8,8 @@
  * which asks before it deletes. An email the background sender returned unsent,
  * because its sender may no longer send its type, is named above the table with
  * the reason. CalDART management, who sees every sender's emails, also sees who
- * wrote each and the DART a DART leader's email goes to.
+ * wrote each and the DART a DART leader's email goes to. A DART leader whose profile
+ * names no DART is told to set it on My profile, in place of **Write a new email**.
  */
 import type { JSX } from 'react';
 import { Link } from 'react-router-dom';
@@ -27,6 +28,7 @@ import { useBulkEmailAction, useBulkSender, useDeleteDraft, useDrafts } from './
 import './bulk-email.css';
 import { formatCountdown, useSecondsUntil } from './countdown';
 import { SITE_TIME_ZONE, SITE_TIME_ZONE_NAME } from './schedule';
+import { SenderNotice } from './SenderNotice';
 import { withSenderColumns } from './senderColumns';
 import { actionError, CANCELED_MESSAGE } from './SendStatus';
 import { statusLabel, statusTone } from './status';
@@ -52,14 +54,20 @@ export function DraftsPage(): JSX.Element {
 
   const failure = cancel.error ?? remove.error;
   const notSent = rows.filter((row) => row.not_sent_reason !== '');
+  // A DART leader with no DART on their profile cannot write one, so the screen says
+  // how to fix that rather than how to start one.
+  const cannotSend = sender.data?.can_send === false;
 
   return (
     <Page
       title="Drafts & scheduled"
       eyebrow="Bulk Email"
       lede="Emails still being written, and emails waiting for their time to send."
-      actions={<ButtonLink to="/bulk-email/compose">Write a new email</ButtonLink>}
+      actions={
+        cannotSend ? null : <ButtonLink to="/bulk-email/compose">Write a new email</ButtonLink>
+      }
     >
+      {sender.data === undefined ? null : <SenderNotice sender={sender.data} />}
       <Card>
         {failure === null ? null : (
           <p className="field__error" role="alert">
@@ -91,7 +99,7 @@ export function DraftsPage(): JSX.Element {
             rowKey={(row) => row.id}
             caption={`${rows.length} ${rows.length === 1 ? 'email' : 'emails'} not sent yet`}
             emptyTitle="No drafts"
-            emptyDescription="Press Write a new email to start one."
+            emptyDescription={cannotSend ? undefined : 'Press Write a new email to start one.'}
             isLoading={drafts.isLoading}
           />
         )}
@@ -100,7 +108,11 @@ export function DraftsPage(): JSX.Element {
   );
 }
 
-/** The table's columns, wired to the two row actions. */
+/**
+ * The table's columns, wired to the two row actions: the subject, then the actions,
+ * so they stay in sight on a narrow screen. The type and when it was last edited give
+ * way first when the table would not fit its card.
+ */
 function draftColumns(
   onCancel: (id: number) => void,
   onDelete: (id: number) => Promise<unknown>,
@@ -109,16 +121,41 @@ function draftColumns(
     {
       key: 'subject',
       header: 'Subject',
-      minWidth: '16rem',
+      minWidth: '14rem',
       render: (row) => (
         <Link to={`/bulk-email/compose/${row.id}`}>{row.subject || NO_SUBJECT}</Link>
       ),
       sortValue: (row) => row.subject,
     },
     {
+      key: 'actions',
+      header: 'Actions',
+      width: '8.5rem',
+      render: (row) => (
+        <span className="cluster cluster--nowrap">
+          {row.status === 'queued' ? (
+            <Button
+              variant="quiet"
+              small
+              aria-label={`Cancel the send of ${row.subject || NO_SUBJECT}`}
+              onClick={() => onCancel(row.id)}
+            >
+              {row.scheduled ? 'Cancel schedule' : 'Cancel'}
+            </Button>
+          ) : (
+            <DeleteButton
+              label={`Delete the draft ${row.subject || NO_SUBJECT}`}
+              onDelete={() => onDelete(row.id)}
+            />
+          )}
+        </span>
+      ),
+    },
+    {
       key: 'email_type_name',
       header: 'Type',
       width: '7rem',
+      wideOnly: true,
       render: (row) => row.email_type_name || '—',
       sortValue: (row) => row.email_type_name,
     },
@@ -144,7 +181,7 @@ function draftColumns(
       key: 'batch_count',
       header: 'People',
       numeric: true,
-      width: '5.5rem',
+      width: '5rem',
       render: (row) => row.batch_count,
       sortValue: (row) => row.batch_count,
     },
@@ -152,32 +189,9 @@ function draftColumns(
       key: 'updated_at',
       header: 'Last edited',
       width: '6.5rem',
+      wideOnly: true,
       render: (row) => <DateText value={row.updated_at} />,
       sortValue: (row) => row.updated_at,
-    },
-    {
-      key: 'actions',
-      header: 'Actions',
-      width: '9rem',
-      render: (row) => (
-        <span className="cluster">
-          {row.status === 'queued' ? (
-            <Button
-              variant="quiet"
-              small
-              aria-label={`Cancel the send of ${row.subject || NO_SUBJECT}`}
-              onClick={() => onCancel(row.id)}
-            >
-              {row.scheduled ? 'Cancel schedule' : 'Cancel'}
-            </Button>
-          ) : (
-            <DeleteButton
-              label={`Delete the draft ${row.subject || NO_SUBJECT}`}
-              onDelete={() => onDelete(row.id)}
-            />
-          )}
-        </span>
-      ),
     },
   ];
 }

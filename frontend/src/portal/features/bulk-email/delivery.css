@@ -1,6 +1,6 @@
 /*
  * A sent bulk email's delivery report: the counts in a row, the retries, and the
- * copy of one person's email, which opens under the table without covering the page.
+ * copy of one person's email, which opens as a dialog over the page.
  */
 
 .bulk-email__counts {
@@ -31,17 +31,20 @@
   padding-left: var(--space-4);
 }
 
-/* Drawn in the page's flow, not over it: `position: static` undoes the browser's own. */
+/* Over the page, in the middle of the window, and never wider or taller than it. */
 .bulk-email__copy {
-  position: static;
-  width: 100%;
-  max-width: none;
-  margin: 0;
+  width: min(48rem, calc(100vw - 2 * var(--space-4)));
+  max-height: calc(100vh - 2 * var(--space-4));
+  overflow-y: auto;
   color: inherit;
   border: var(--hairline) solid var(--color-rule-strong);
   border-radius: var(--radius);
-  padding: var(--space-3);
-  background: var(--color-bg-sunken);
+  padding: var(--space-4);
+  background: var(--color-bg-raised);
+}
+
+.bulk-email__copy::backdrop {
+  background: rgb(0 0 0 / 40%);
 }
 
 .bulk-email__copy-bar {

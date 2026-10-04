@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 
 import type { BulkEmailDetail } from '@/portal/api/types';
+import { formatDateAt } from '@/portal/components/DateText';
 import { EMAIL_FRAME_SANDBOX, withNewTabLinks } from '@/portal/components/EmailFrame';
 import {
   LEADER_SENDER,
@@ -111,18 +112,31 @@ describe('SentDetailPage', () => {
     );
   });
 
-  it('says who sent it and to how many people', async () => {
+  it('says who sent it and when, on the 12-hour clock', async () => {
     renderSent();
-    expect(await screen.findByText(/^Sent by Grace Holloway on .* to 2 people\.$/)).toBeVisible();
+    expect(
+      await screen.findByText(
+        `Sent by Grace Holloway on ${formatDateAt('2026-04-06T17:00:00Z')}.`,
+      ),
+    ).toBeVisible();
   });
 
   it('puts the name first in the results, with a real width', async () => {
     renderSent();
     const table = await screen.findByRole('table');
     const first = within(table).getAllByRole('columnheader')[0];
-    expect([first?.textContent, table.style.minWidth.includes('16rem + 14rem')]).toEqual([
+    expect([first?.textContent, table.style.minWidth.includes('11rem + 9rem')]).toEqual([
       'Name',
       true,
     ]);
+  });
+
+  it('puts the result and View copy next to the name, so a phone shows them', async () => {
+    renderSent();
+    const table = await screen.findByRole('table');
+    const headers = within(table)
+      .getAllByRole('columnheader')
+      .map((header) => header.textContent);
+    expect(headers.slice(0, 3)).toEqual(['Name', 'Result', 'Copy']);
   });
 });

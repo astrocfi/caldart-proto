@@ -1,9 +1,9 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { Column } from './DataTable';
-import { DataTable, sortRows, tableMinWidth } from './DataTable';
+import { DataTable, fullWidthRem, shownColumns, sortRows, tableMinWidth } from './DataTable';
 
 interface Row {
   id: number;
@@ -249,5 +249,70 @@ describe('the minimum widths of a single-line table', () => {
     expect(screen.getByRole('columnheader', { name: 'Name' })).toHaveClass('data-table__text');
     expect(screen.getByRole('table')).toHaveStyle({ minWidth: 'calc(16rem + 9rem + 6rem)' });
     expect(screen.getByRole('columnheader', { name: 'Name' })).toHaveStyle({ width: '16rem' });
+  });
+});
+
+describe('the columns a narrow container leaves out', () => {
+  const columns: Column<{ id: number; name: string }>[] = [
+    { key: 'name', header: 'Name', minWidth: '16rem', render: (row) => row.name },
+    { key: 'actions', header: 'Actions', width: '6rem', render: () => 'Edit' },
+    { key: 'type', header: 'Type', width: '7rem', wideOnly: true, render: () => 'Operational' },
+    { key: 'reason', header: 'Reason', minWidth: '10rem', wrap: true, render: () => 'Opted out' },
+  ];
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('adds every column into the width the whole table needs', () => {
+    expect(fullWidthRem(columns)).toBe(39);
+  });
+
+  it('needs no measuring when no column is wide-only', () => {
+    expect(fullWidthRem(columns.filter((column) => column.wideOnly !== true))).toBeNull();
+  });
+
+  it('keeps the columns in order, less the wide-only ones, when narrow', () => {
+    expect(shownColumns(columns, false).map((column) => column.key)).toEqual([
+      'name',
+      'actions',
+      'reason',
+    ]);
+  });
+
+  it('leaves the wide-only columns out of a container too narrow for them', () => {
+    // jsdom lays nothing out, so every container measures 0 pixels wide.
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        observe(): void {}
+        disconnect(): void {}
+      },
+    );
+    render(
+      <DataTable
+        singleLine
+        columns={columns}
+        rows={[{ id: 1, name: 'Ann' }]}
+        rowKey={(r) => r.id}
+      />,
+    );
+    expect(screen.getAllByRole('columnheader').map((header) => header.textContent)).toEqual([
+      'Name',
+      'Actions',
+      'Reason',
+    ]);
+  });
+
+  it('lets a wrapping column run onto more lines', () => {
+    render(
+      <DataTable
+        singleLine
+        columns={columns}
+        rows={[{ id: 1, name: 'Ann' }]}
+        rowKey={(r) => r.id}
+      />,
+    );
+    expect(screen.getByRole('cell', { name: 'Opted out' })).toHaveClass('data-table__wrap');
   });
 });

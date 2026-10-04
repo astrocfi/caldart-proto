@@ -88,6 +88,12 @@ describe('DateText', () => {
     expect(screen.getByText('09/27/2026 08:30')).toBeInTheDocument();
   });
 
+  it('reads the time on the 12-hour clock when asked', () => {
+    const value = new Date(2026, 8, 27, 17, 34).toISOString();
+    renderWithProviders(<DateText value={value} withTime twelveHour />);
+    expect(screen.getByText('09/27/2026 at 5:34 PM')).toBeInTheDocument();
+  });
+
   it('renders the placeholder for a missing value', () => {
     renderWithProviders(<DateText value={null} placeholder="Lifetime" />);
     expect(screen.getByText('Lifetime')).toBeInTheDocument();

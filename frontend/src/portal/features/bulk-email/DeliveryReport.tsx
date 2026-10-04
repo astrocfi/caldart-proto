@@ -28,7 +28,7 @@ import { CopyDialog } from './CopyDialog';
 import './delivery.css';
 import { useRetryFailed } from './deliveryApi';
 import { actionError } from './SendStatus';
-import { kindLabel, people, resultLabel, resultTone } from './status';
+import { kindLabel, people, resultLabel, resultTone, wentCount } from './status';
 
 /** What the screen says once Retry failed has been pressed. */
 export const RETRYING_MESSAGE = 'The failed copies will be sent again within a minute.';
@@ -107,13 +107,13 @@ export function DeliveryReport({
 }
 
 /**
- * `Delivered 36 · Failed 1 · Skipped 4 · Bounced 1 · Retried 1`, as a list of terms.
- * Delivered counts the copies sent that have not come back, so Delivered and Bounced
- * together are the copies the result line calls sent.
+ * `Sent 37 · Failed 1 · Skipped 4 · Bounced 1 · Retried 1`, as a list of terms. Sent
+ * counts every copy the mail server took, those that came back later included, so it
+ * is the number the result line gives; Bounced says how many of them came back.
  */
 export function DeliveryCounts({ email }: { email: BulkEmailDetail }): JSX.Element {
   const counts: [string, number][] = [
-    ['Delivered', email.sent_count],
+    ['Sent', wentCount(email)],
     ['Failed', email.failed_count],
     ['Skipped', email.skipped_count],
     ['Bounced', email.bounced_count],
@@ -233,12 +233,20 @@ function Results({ rows, columns, isLoading }: ResultsProps): JSX.Element {
         columns={columns}
         rows={shown}
         rowKey={(row) => row.id}
-        caption={`Results: ${people(rows.length)}`}
+        caption={resultsCaption(shown.length, rows.length)}
         emptyTitle="Nobody to show"
         isLoading={isLoading}
       />
     </div>
   );
+}
+
+/**
+ * The results table's caption: `Results: 39 people`, or `Showing 2 of 39` once a result
+ * or a search narrows it.
+ */
+export function resultsCaption(shown: number, total: number): string {
+  return shown === total ? `Results: ${people(total)}` : `Showing ${shown} of ${total}`;
 }
 
 /** The retries, each with when it was pressed, by whom, and how many copies it queued. */
@@ -250,7 +258,7 @@ function Retries({ email }: { email: BulkEmailDetail }): JSX.Element | null {
       <ul className="bulk-email__retries">
         {email.retries.map((retry) => (
           <li key={retry.id}>
-            <DateText value={retry.requested_at} withTime />
+            <DateText value={retry.requested_at} withTime twelveHour />
             {`: ${retry.requested_by || 'A deleted account'} sent ${people(retry.count)} a fresh copy.`}
           </li>
         ))}
@@ -260,9 +268,10 @@ function Retries({ email }: { email: BulkEmailDetail }): JSX.Element | null {
 }
 
 /**
- * The results table's columns: the person's name first, then what became of their
- * copy, then what a narrow screen scrolls to, ending with **View copy** for every
- * copy that was tried.
+ * The results table's columns: the person's name, what became of their copy, and
+ * **View copy** for every copy that was tried, so all three stay in sight on a phone;
+ * then the address and the reason, which wraps. When it was tried, their kind, and
+ * their DART give way first when the table would not fit its card.
  *
  * @param onView opens a person's copy, given the row and the button pressed.
  */
@@ -273,21 +282,14 @@ export function resultColumns(
     {
       key: 'name',
       header: 'Name',
-      minWidth: '16rem',
+      minWidth: '11rem',
       render: (row) => row.name,
       sortValue: (row) => row.name,
     },
     {
-      key: 'email',
-      header: 'Email',
-      minWidth: '14rem',
-      render: (row) => row.email,
-      sortValue: (row) => row.email,
-    },
-    {
       key: 'status',
       header: 'Result',
-      width: '10rem',
+      width: '9rem',
       render: (row) => (
         <span className="bulk-email__will-receive">
           <StatusDot tone={resultTone(row.status)} label={resultLabel(row.status)} />
@@ -296,16 +298,6 @@ export function resultColumns(
       ),
       sortValue: (row) => row.status,
     },
-    { key: 'reason', header: 'Reason', minWidth: '12rem', render: (row) => row.reason || '—' },
-    {
-      key: 'tried_at',
-      header: 'Tried at',
-      width: '9.5rem',
-      render: (row) => <DateText value={row.tried_at} withTime />,
-      sortValue: (row) => row.tried_at,
-    },
-    { key: 'kind', header: 'Kind', width: '5.5rem', render: (row) => kindLabel(row.kind) },
-    { key: 'dart', header: 'DART', width: '8rem', render: (row) => row.dart_name || '—' },
     {
       key: 'copy',
       header: 'Copy',
@@ -323,6 +315,42 @@ export function resultColumns(
             View copy
           </Button>
         ),
+    },
+    {
+      key: 'email',
+      header: 'Email',
+      minWidth: '13rem',
+      render: (row) => row.email,
+      sortValue: (row) => row.email,
+    },
+    {
+      key: 'reason',
+      header: 'Reason',
+      minWidth: '10rem',
+      wrap: true,
+      render: (row) => row.reason || '—',
+    },
+    {
+      key: 'tried_at',
+      header: 'Tried at',
+      width: '11.5rem',
+      wideOnly: true,
+      render: (row) => <DateText value={row.tried_at} withTime twelveHour />,
+      sortValue: (row) => row.tried_at,
+    },
+    {
+      key: 'kind',
+      header: 'Kind',
+      width: '5.5rem',
+      wideOnly: true,
+      render: (row) => kindLabel(row.kind),
+    },
+    {
+      key: 'dart',
+      header: 'DART',
+      width: '8rem',
+      wideOnly: true,
+      render: (row) => row.dart_name || '—',
     },
   ];
 }

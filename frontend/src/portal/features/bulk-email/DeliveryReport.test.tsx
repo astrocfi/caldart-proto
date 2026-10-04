@@ -4,7 +4,7 @@ import { HttpResponse, http } from 'msw';
 import { describe, expect, it } from 'vitest';
 
 import type { BulkEmailCopy, BulkEmailDetail } from '@/portal/api/types';
-import { formatDateTime } from '@/portal/components/DateText';
+import { formatDateAt } from '@/portal/components/DateText';
 import { EMAIL_FRAME_SANDBOX, withNewTabLinks } from '@/portal/components/EmailFrame';
 import { answerBulkEmail, makeBatch, makeBulkEmail, makeRow } from '@test/fixtures/bulkEmail';
 import { API } from '@test/handlers';
@@ -88,7 +88,7 @@ describe('DeliveryReport', () => {
   it('counts the copies by result', () => {
     renderReport(finished({ retried_count: 2 }));
     expect(screen.getByLabelText('Copies by result')).toHaveTextContent(
-      'Delivered1Failed1Skipped1Bounced1Retried2',
+      'Sent2Failed1Skipped1Bounced1Retried2',
     );
   });
 
@@ -97,7 +97,7 @@ describe('DeliveryReport', () => {
     const row = (await screen.findByText('cy@example.org')).closest('tr');
     // Formatted as the table formats it, so the test reads alike in every time zone.
     expect(row).toHaveTextContent(
-      `Bounced5.1.1 User unknown${formatDateTime('2026-04-06T17:00:06Z')}`,
+      `BouncedView copycy@example.org5.1.1 User unknown${formatDateAt('2026-04-06T17:00:06Z')}`,
     );
   });
 
@@ -112,6 +112,13 @@ describe('DeliveryReport', () => {
         .slice(1)
         .map((row) => row.textContent),
     ).toEqual([expect.stringContaining('Bea Bell')]);
+  });
+
+  it('says how many of everybody a narrowed table shows', async () => {
+    renderReport();
+    await screen.findByText('bea@example.org');
+    await userEvent.selectOptions(screen.getByLabelText('Result'), 'Failed');
+    expect(screen.getByRole('table')).toHaveTextContent('Showing 1 of 4');
   });
 
   it('offers a copy only for the people whose copy was tried', async () => {
@@ -169,15 +176,12 @@ describe('DeliveryReport', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
-  it('leaves the copy open on Escape pressed outside it', async () => {
+  it('opens the copy as a dialog over the page, which waits until it is shut', async () => {
     renderReport();
     await userEvent.click(
       await screen.findByRole('button', { name: 'View the copy sent to Ann Able' }),
     );
-    await screen.findByRole('dialog');
-    await userEvent.click(screen.getByRole('searchbox'));
-    await userEvent.keyboard('{Escape}');
-    expect(screen.getByRole('dialog')).toBeVisible();
+    expect(await screen.findByRole('dialog')).toHaveAttribute('aria-modal', 'true');
   });
 
   it('retries the failed copies after asking', async () => {
@@ -227,7 +231,7 @@ describe('DeliveryReport', () => {
     );
     const retries = screen.getByRole('region', { name: 'Retries' });
     expect(retries).toHaveTextContent(
-      `${formatDateTime('2026-04-07T15:00:00Z')}: Hollis Grant sent 1 person a fresh copy.`,
+      `${formatDateAt('2026-04-07T15:00:00Z')}: Hollis Grant sent 1 person a fresh copy.`,
     );
   });
 

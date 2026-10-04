@@ -15,7 +15,7 @@ import { Link, useParams } from 'react-router-dom';
 import type { BulkEmailDetail } from '@/portal/api/types';
 import { useMe } from '@/portal/auth/useAuth';
 import { Card } from '@/portal/components/Card';
-import { formatDateTime } from '@/portal/components/DateText';
+import { formatDateAt } from '@/portal/components/DateText';
 import { EmailFrame } from '@/portal/components/EmailFrame';
 import { Loading } from '@/portal/components/Loading';
 import { Page } from '@/portal/components/Page';
@@ -25,7 +25,6 @@ import { DeliveryReport } from './DeliveryReport';
 import { MessagesVisibility } from './MessagesVisibility';
 import { DuplicateButton } from './DuplicateButton';
 import { SendStatus } from './SendStatus';
-import { people } from './status';
 
 /** One send's page: the counts, the message, and every person's result. */
 export function SentDetailPage(): JSX.Element {
@@ -104,9 +103,12 @@ export function hasFields(email: Pick<BulkEmailDetail, 'subject' | 'body'>): boo
   return TOKEN.test(email.subject) || TOKEN.test(email.body);
 }
 
-/** `Sent by Grace Holloway on 04/06/2026 10:00 to 41 people.` */
+/**
+ * `Sent by Grace Holloway on 04/06/2026 at 10:00 AM.`: who and when. How many it went
+ * to is the result line's, so the page gives that number once.
+ */
 function sentLede(email: BulkEmailDetail): string {
   const from = email.sender ? `Sent by ${email.sender}` : 'Sent';
-  const when = email.started_at === null ? '' : ` on ${formatDateTime(email.started_at)}`;
-  return `${from}${when} to ${people(email.batch_count - email.skipped_count)}.`;
+  const when = email.started_at === null ? '' : ` on ${formatDateAt(email.started_at)}`;
+  return `${from}${when}.`;
 }
