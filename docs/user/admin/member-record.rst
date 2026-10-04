@@ -21,9 +21,8 @@ member's record`_).
 What you see
 ============
 
-The person's name heads the page, with **Back to members** beside it. A donor's record has
-**Back to donors** there instead, which returns to the **Donors** tab, when you have that
-tab. A summary strip under the name carries:
+The person's name heads the page, with **Back to members** beside it (**Back to donors**
+on a donor's record, when you have that tab). A summary strip under the name carries:
 
 - their membership status: **Current**, **Expiring soon**, **Expired**, **Friend**, or
   **Never expires** for a life member. Somebody who joined as a member and has no term that
@@ -41,9 +40,9 @@ tab. A summary strip under the name carries:
   the reason that server gave, follows it. A user administrator corrects the address or clears
   the flag on the :doc:`user-record`.
 
-Below the strip are four tabs: **Profile**, **Memberships**, **Payments**, and **Danger
-zone**. The arrow keys move between them. The tab you are on is part of the page's address,
-so you can send a colleague straight to somebody's payments.
+Below the strip are four tabs: **Profile**, **Memberships**, **Payments**, and **Delete or
+deactivate**; on a phone the row scrolls sideways. The arrow keys move between them. The tab
+is part of the page's address, so you can send a colleague straight to somebody's payments.
 
 
 Profile
@@ -59,8 +58,9 @@ below too. A record with no profile yet has no Verification card, and one for a
 donor or a deactivated account has the card but no **Verify**: there is nothing to check
 against, since neither can fly.
 
-Below the card are the same fields as :doc:`new-member`, less the password, with **Photo
-ID** (the kind of photo ID only) among the aviation fields, plus:
+Below the card are the same fields as :doc:`new-member`, less the password, both names
+required as there, with **Photo ID** (the kind of photo ID only) among the aviation fields,
+plus:
 
 - **Kind of account**, **Member** or **Friend**. Saving a change of kind makes it at once: a
   member made a friend reads **Friend** from that moment, and any change to friend they had
@@ -205,25 +205,25 @@ Delete this member
 ------------------
 
 The card is for a duplicate, a spam sign-up, a test record, or a person who asks to be
-removed. The delete is permanent and takes the profile and every membership term with it.
-There is no undo. Type the person's email address into the box; the **Delete member** button
-stays disabled until the address matches. Two deletions are refused outright: your own
-account, and a system administrator's account unless you are one.
+removed. The delete is permanent, with no undo, and takes the profile and every membership
+term with it. Type the person's email address into the box; **Delete member** stays disabled
+until it matches. Two deletions are refused: your own account, and a system administrator's
+unless you are one.
 
-Payments are the organization's financial record, so they are never deleted. When the person
-has paid, the card says how many payment records they have and that they stay in the books
-under the name **Deleted member** followed by the account's number, such as **Deleted member
-5**. That name stands in for the person's on the payment list, a payment's record, and the
-**Donors** tab, and the organization's totals do not change. An automatic renewal or recurring
-donation the person had is turned off first, and they are emailed that it is off. Anyone
-subscribed to **Automatic renewal or recurring donation turned off** (:doc:`notifications`) is told too; the member
-link in that notification no longer opens, because the record is gone. A payment the person
-started but had not finished can still go through afterwards: it joins the books under
-**Deleted member** and buys no membership, and nobody is emailed a receipt.
+Payments are the organization's financial record, so they are never deleted. The card says
+how many the person has, if any, and that they stay in the books under **Deleted member** and
+the account's number, such as **Deleted member 5**. That name stands in for the person's on
+the payment list, a payment's record, and the **Donors** tab, and the organization's totals
+do not change. An automatic renewal or recurring donation the person had is turned off
+first, and they are emailed that it is off. Anyone subscribed to **Automatic renewal or
+recurring donation turned off** (:doc:`notifications`) is told too; the member link in that
+notification no longer opens, because the record is gone. A payment the person started but
+had not finished can still go through afterwards: it joins the books under **Deleted
+member**, buys no membership, and sends no receipt.
 
-After the delete you are back on the member list. A donor's delete brings you back to the
-**Donors** tab instead, when you have it, where the donor's row reads **Deleted member** and
-the number with the same gifts and amounts, and the year's totals are as they were.
+After the delete you are back on the member list, or on the **Donors** tab after a donor's
+when you have it, where the row reads **Deleted member** and the number with the same gifts
+and totals.
 
 
 A deleted member's record

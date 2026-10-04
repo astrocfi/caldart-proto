@@ -1,6 +1,7 @@
 /**
  * The events of a notification subscription as checkboxes, grouped under the
- * catalog's categories, each group with **Select all** and **Clear**.
+ * catalog's categories, each group with **Select all** and **Clear**, each named after
+ * its group for a screen reader.
  */
 import type { JSX } from 'react';
 
@@ -52,10 +53,20 @@ export function EventPicker({
           <fieldset key={category} className="event-picker__group">
             <legend>{category}</legend>
             <div className="cluster">
-              <Button variant="quiet" small onClick={() => handleGroup(slugs, true)}>
+              <Button
+                variant="quiet"
+                small
+                aria-label={`Select all ${category} events`}
+                onClick={() => handleGroup(slugs, true)}
+              >
                 Select all
               </Button>
-              <Button variant="quiet" small onClick={() => handleGroup(slugs, false)}>
+              <Button
+                variant="quiet"
+                small
+                aria-label={`Clear ${category} events`}
+                onClick={() => handleGroup(slugs, false)}
+              >
                 Clear
               </Button>
             </div>

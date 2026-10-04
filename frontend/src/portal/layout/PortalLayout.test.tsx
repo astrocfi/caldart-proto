@@ -4,7 +4,7 @@
  * Signing out is a button that posts, not an address that can be opened, so
  * merely rendering the shell must never log anybody out.
  */
-import { screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import type { JSX } from 'react';
@@ -300,6 +300,30 @@ describe('PortalLayout', () => {
     await user.tab();
     await user.keyboard('{Escape}');
     expect(toggle).toHaveFocus();
+  });
+
+  it('names its button Close menu while the drawer is open', async () => {
+    server.use(signedInAs(makeUser()));
+    const user = userEvent.setup();
+    renderWithProviders(tree(), { route: '/' });
+
+    await user.click(await screen.findByRole('button', { name: 'Menu' }));
+
+    expect(screen.getByRole('button', { name: 'Close menu' })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
+  });
+
+  it('says the rail has more entries above once it is scrolled down', async () => {
+    server.use(signedInAs(makeUser({ roles: ['member', 'system_admin'] })));
+    renderWithProviders(tree(), { route: '/' });
+
+    const rail = await screen.findByRole('navigation', { name: 'Portal sections' });
+    rail.scrollTop = 200;
+    fireEvent.scroll(rail);
+
+    await waitFor(() => expect(rail).toHaveAttribute('data-more-above', 'true'));
   });
 
   it('says the rail has more entries below when it overflows', async () => {

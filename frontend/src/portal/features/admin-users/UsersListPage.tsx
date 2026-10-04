@@ -11,7 +11,8 @@
  * downloads are the CalDART roles report, which has a section for every role but
  * member and lists active accounts only: the links carry the screen's search, role,
  * kind, and Email (bounced or not) filter, never its account status.  On screen a row
- * is an account, so the Role column lists every role it holds.  The report cannot
+ * is an account, headed by its name: the Role column shows the widest role it holds and
+ * how many more, naming them all on hover.  The report cannot
  * follow two of the screen's choices, Donor under Kind (a donor holds no
  * role) and the Member role (the report has no section for it), so while either is
  * chosen the exports and the column chooser are disabled and say why.  Name and Email
@@ -25,6 +26,7 @@ import type { AccountKind, AdminUser, ReportColumn, RoleSlug } from '@/portal/ap
 import { ACCOUNT_KIND_LABELS, ROLE_CHOICES, roleLabel } from '@/portal/choices';
 import { Button } from '@/portal/components/Button';
 import { DataTable } from '@/portal/components/DataTable';
+import type { Column } from '@/portal/components/DataTable';
 import { FilterBar, clearedValues } from '@/portal/components/FilterBar';
 import { Page } from '@/portal/components/Page';
 import type { ReportCell } from '@/portal/components/reportTable';
@@ -109,17 +111,39 @@ function displayName(user: AdminUser): string {
   return `${user.first_name} ${user.last_name}`.trim() || user.email;
 }
 
-/** How each roles report column draws for one account. */
+/** The roles in the order `ROLE_CHOICES` gives them, from every member's to the widest. */
+const ROLE_ORDER: string[] = ROLE_CHOICES.map((choice) => choice.value);
+
+/**
+ * An account's roles for its one-line cell: the widest it holds, and how many more,
+ * with every role named on hover and to a screen reader, so the cell is never cut.
+ */
+export function RolesCell({ roles }: { roles: readonly string[] }): JSX.Element {
+  if (roles.length === 0) return <span className="muted">No role</span>;
+  const ranked = [...roles].sort((a, b) => ROLE_ORDER.indexOf(b) - ROLE_ORDER.indexOf(a));
+  const [widest, ...others] = ranked.map(roleLabel);
+  if (others.length === 0) return <>{widest}</>;
+  return (
+    <span title={ranked.map(roleLabel).join(', ')}>
+      {widest}
+      <span className="muted" aria-hidden="true">
+        {' '}
+        +{others.length}
+      </span>
+      <span className="visually-hidden">, also {others.join(', ')}</span>
+    </span>
+  );
+}
+
+/**
+ * How each roles report column draws for one account.  The name heads the row and
+ * stays pinned, so the table puts it first whatever the report's own order.
+ */
 const CELLS: Record<string, ReportCell<AdminUser>> = {
   role: {
-    minWidth: '10rem',
+    minWidth: '12rem',
     dropOrder: 15,
-    render: (user) =>
-      user.roles.length > 0 ? (
-        user.roles.map(roleLabel).join(', ')
-      ) : (
-        <span className="muted">No role</span>
-      ),
+    render: (user) => <RolesCell roles={user.roles} />,
   },
   name: {
     ordering: 'last_name',
@@ -165,6 +189,18 @@ const FALLBACK_COLUMNS: ReportColumn[] = [
   { key: 'membership', label: 'Membership', default: true },
 ];
 
+/**
+ * `columns` with the identifying column, the name, moved to the front.  The roles report
+ * leads with Role, which suits its sections in a download; on screen a row is an account,
+ * told apart by its name.
+ */
+export function nameFirst<Row>(columns: Column<Row>[]): Column<Row>[] {
+  return [
+    ...columns.filter((column) => column.isIdentity === true),
+    ...columns.filter((column) => column.isIdentity !== true),
+  ];
+}
+
 /** `/admin/users` page: search accounts and see what each one may do. */
 export function UsersListPage(): JSX.Element {
   const [filters, setFilters] = useUrlFilters(FILTER_KEYS);
@@ -190,7 +226,7 @@ export function UsersListPage(): JSX.Element {
 
   const choice = useColumnChoice('roles', FALLBACK_COLUMNS);
   const columns = useMemo(
-    () => reportTableColumns(choice.tableColumns, choice.tableChosen, CELLS, true),
+    () => nameFirst(reportTableColumns(choice.tableColumns, choice.tableChosen, CELLS, true)),
     [choice.tableColumns, choice.tableChosen],
   );
   const disabledReason = exportDisabledReason(role, kind);

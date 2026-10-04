@@ -216,7 +216,7 @@ describe('AircraftRecordPage', () => {
     ).toBeInTheDocument();
   });
 
-  it('lists the pilots with their membership and medical currency', async () => {
+  it('lists the pilots with their membership', async () => {
     server.use(http.get(`${API}/aircraft/1`, () => HttpResponse.json(makeDetail())));
     renderRecord();
 
@@ -225,7 +225,52 @@ describe('AircraftRecordPage', () => {
       '/admin/members/7',
     );
     expect(screen.getByText('Member current')).toBeInTheDocument();
-    expect(screen.getByText('Medical not current')).toBeInTheDocument();
+  });
+
+  it("gives each pilot the member check's own NO-GO", async () => {
+    server.use(http.get(`${API}/aircraft/1`, () => HttpResponse.json(makeDetail())));
+    renderRecord();
+
+    const row = (await screen.findByRole('link', { name: 'Marta Reyes' })).closest('li')!;
+    expect(within(row).getByText('NO-GO')).toBeInTheDocument();
+  });
+
+  it('gives a pilot the member check passes a GO', async () => {
+    server.use(
+      http.get(`${API}/aircraft/1`, () =>
+        HttpResponse.json(
+          makeDetail({
+            pilots: [
+              {
+                user_id: 7,
+                name: 'Marta Reyes',
+                email: 'marta@example.org',
+                membership_status: 'current',
+                medical_is_current: true,
+                go_no_go: { membership: true, medical: true, verified: true },
+              },
+            ],
+          }),
+        ),
+      ),
+    );
+    renderRecord();
+
+    const row = (await screen.findByRole('link', { name: 'Marta Reyes' })).closest('li')!;
+    expect(within(row).getByText('GO')).toBeInTheDocument();
+  });
+
+  it('heads the record Not verified, not Insured, for a policy nobody has checked', async () => {
+    server.use(
+      http.get(`${API}/aircraft/1`, () =>
+        HttpResponse.json(makeDetail({ insurance_verification: NOT_VERIFIED })),
+      ),
+    );
+    const { container } = renderRecord();
+
+    await screen.findByRole('link', { name: 'Marta Reyes' });
+    const header = container.querySelector('.page__header') as HTMLElement;
+    expect(within(header).getByText('Not verified')).toHaveAttribute('data-tone', 'expiring');
   });
 
   it('says so when nobody flies it', async () => {
@@ -368,7 +413,7 @@ describe('AircraftRecordPage', () => {
     );
     renderRecord();
 
-    expect(await screen.findByText('Not verified')).toBeInTheDocument();
+    expect(await screen.findAllByText('Not verified')).toHaveLength(2);
     await user.click(await screen.findByRole('button', { name: 'Verify' }));
     await user.click(screen.getByLabelText('Insurance verified'));
     await user.click(screen.getByRole('button', { name: 'Save verification' }));

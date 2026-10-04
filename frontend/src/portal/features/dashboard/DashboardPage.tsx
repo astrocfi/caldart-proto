@@ -40,7 +40,8 @@ const RECENT_PAYMENT_COLUMNS: Column<PaymentSummary>[] = [
     header: 'Plan',
     minWidth: '6rem',
     dropOrder: 1,
-    render: (payment) => payment.plan ?? 'Contribution',
+    // A payment with no plan is a gift on its own: a donation.
+    render: (payment) => payment.plan ?? 'Donation',
   },
   {
     key: 'amount',

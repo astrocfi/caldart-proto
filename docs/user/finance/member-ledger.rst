@@ -55,10 +55,10 @@ it was **Paid**, the **Receipt** number (which opens the payment's own screen, s
 :doc:`payment-record`), what it was **For**, the **Total**, what was **Refunded**, the
 provider under **Method**, and the **Status**. A member with none sees *No payments
 recorded*; a term an administrator granted by hand has no payment behind it. The receipt
-numbers never break across lines. On a narrower screen the card leaves out **Refunded** and
-**Method**, then **For**, then **Paid**, so the **Total** and the **Status** stay beside the
-receipt number; on a phone the table scrolls sideways inside the card, a line above it says
-so, and the receipt number stays pinned at the left.
+numbers are never broken or cut short. On a narrower screen the card leaves out **Refunded**
+and **Method**, then **For**; on a phone the table scrolls sideways inside the card, a line
+above it says so, and **Paid**, the date, stays pinned at the left with the whole receipt
+number beside it.
 
 Contribution statements
 ~~~~~~~~~~~~~~~~~~~~~~~

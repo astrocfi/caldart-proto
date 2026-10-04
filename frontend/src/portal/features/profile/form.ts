@@ -291,7 +291,6 @@ export function normalizePhone(value: string): string {
  * is a select that always holds a value, so it is listed for the record.
  */
 export const REQUIRED_PROFILE_FIELDS = [
-  'phone',
   'address_line1',
   'city',
   'state',
@@ -300,7 +299,6 @@ export const REQUIRED_PROFILE_FIELDS = [
 ] as const satisfies readonly (keyof ProfileFormValues)[];
 
 const REQUIRED_MESSAGES: Record<(typeof REQUIRED_PROFILE_FIELDS)[number], string> = {
-  phone: 'Enter a phone number.',
   address_line1: 'Enter your street address.',
   city: 'Enter your city.',
   state: 'Choose your state.',

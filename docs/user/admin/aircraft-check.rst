@@ -49,8 +49,8 @@ The band across the top gives one of four verdicts:
 
 - **INSURED**, with *Coverage is current* or *Coverage expires soon*: a current policy
   that somebody has verified. This is a go.
-- **NOT VERIFIED**, with *Coverage is current but not verified*: the policy is current,
-  and nobody has checked it against the documents yet.
+- **NOT VERIFIED**, with *Coverage is current but not verified*, on amber: the policy is
+  current, and nobody has checked it against the documents yet.
 - **NOT INSURED**, with *Coverage has expired* or *No policy on file*.
 
 Under the band are the N-number, **Out of service** when an administrator has taken
@@ -125,8 +125,8 @@ When the airplane is missing
 
 A link that names a registration the register has never seen shows a card saying the
 airplane *is not in the register*, with *Nobody has added this aircraft yet. Ask the pilot
-to add it to their profile, or add it from the aircraft register.* Press **Search again**
-to go back. A pilot adds an airplane from **My aircraft** on their own portal, and an
+to add it to their profile, or add it from the aircraft register.* **Back to search**
+above it goes back. A pilot adds an airplane from **My aircraft** on their own portal, and an
 account administrator can add it from the :doc:`aircraft-register`.
 
 
@@ -140,5 +140,5 @@ date under **Last updated**; ask the pilot to correct it from **My aircraft**, o
 account administrator to correct it on the :doc:`aircraft-record`. If a search finds nothing
 for an airplane you know is on file, type the registration in full: it may be out of
 service, or it may be past the first eight results. If the card says *That check could not
-be run*, the server could not answer; press **Search again** and try once more, and tell a
+be run*, the server could not answer; go **Back to search** and try once more, and tell a
 system administrator if it keeps happening.

@@ -9,6 +9,7 @@ import { renderWithProviders } from '@test/render';
 import { headerWords, rowCells, tableHeaders } from '@test/table';
 import { server } from '@test/server';
 import type { BulkEmailSummary } from '@/portal/api/types';
+import { formatDateTime } from '@/portal/components/DateText';
 import { DraftsPage, NO_SUBJECT } from './DraftsPage';
 
 /** Answer the list with `rows`, recording each delete and cancel. */
@@ -43,6 +44,20 @@ describe('DraftsPage', () => {
     const draft = (await screen.findByText(NO_SUBJECT)).closest('tr');
     expect(draft).toHaveTextContent('Draft');
     expect(screen.getByText('Newsletter').closest('tr')).toHaveTextContent('04/07/2027 at 8:00 AM');
+  });
+
+  it('tells two drafts with no subject apart by when each was saved', async () => {
+    answerDrafts([
+      makeSummary({ id: 1, subject: '', updated_at: '2026-10-04T12:33:00Z' }),
+      makeSummary({ id: 2, subject: '', updated_at: '2026-10-03T16:05:00Z' }),
+    ]);
+    renderWithProviders(<DraftsPage />);
+    const links = await screen.findAllByRole('link', { name: /^\(no subject yet\), saved / });
+
+    expect(links.map((link) => link.getAttribute('aria-label'))).toEqual([
+      `${NO_SUBJECT}, saved ${formatDateTime('2026-10-04T12:33:00Z')}`,
+      `${NO_SUBJECT}, saved ${formatDateTime('2026-10-03T16:05:00Z')}`,
+    ]);
   });
 
   it('names the type of each draft, or a dash before one is chosen', async () => {
@@ -151,7 +166,7 @@ describe('DraftsPage', () => {
       'href',
       '/profile',
     );
-    expect(screen.queryByText('Press Write a new email to start one.')).toBeNull();
+    expect(screen.queryByText('Press New email to start one.')).toBeNull();
   });
 
   it('shows CalDART management who wrote each email and its DART', async () => {

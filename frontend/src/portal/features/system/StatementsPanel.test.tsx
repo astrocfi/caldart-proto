@@ -65,7 +65,9 @@ describe('StatementsPanel', () => {
 
     expect(screen.getByLabelText('Year')).toHaveValue(2025);
     expect(
-      screen.getByLabelText('Practice run: show what would happen, send nothing'),
+      screen.getByLabelText(
+        'Practice run: show what would happen, send nothing (year-end statements)',
+      ),
     ).toBeChecked();
 
     await userEvent.click(screen.getByRole('button', { name: 'Run now: year-end statements' }));
@@ -117,7 +119,9 @@ describe('StatementsPanel', () => {
     renderWithProviders(<StatementsPanel />);
 
     await userEvent.click(
-      screen.getByLabelText('Practice run: show what would happen, send nothing'),
+      screen.getByLabelText(
+        'Practice run: show what would happen, send nothing (year-end statements)',
+      ),
     );
     await userEvent.click(screen.getByRole('button', { name: 'Run now: year-end statements' }));
 

@@ -757,7 +757,14 @@ def test_the_member_detail_carries_the_kind(account_admin_client: APIClient, fri
 def test_an_administrator_creates_a_friend(account_admin_client: APIClient) -> None:
     """``POST /admin/members`` with ``kind: friend`` makes a friend."""
     response = account_admin_client.post(
-        MEMBERS_URL, {"email": "new.friend@example.test", "kind": "friend"}, format="json"
+        MEMBERS_URL,
+        {
+            "email": "new.friend@example.test",
+            "first_name": "Ivy",
+            "last_name": "Novak",
+            "kind": "friend",
+        },
+        format="json",
     )
     assert response.status_code == 201
     assert User.objects.get(email="new.friend@example.test").kind == AccountKind.FRIEND
@@ -766,7 +773,14 @@ def test_an_administrator_creates_a_friend(account_admin_client: APIClient) -> N
 def test_an_administrator_cannot_create_a_donor(account_admin_client: APIClient) -> None:
     """``kind: donor`` is not a choice an administrator has."""
     response = account_admin_client.post(
-        MEMBERS_URL, {"email": "new.donor@example.test", "kind": "donor"}, format="json"
+        MEMBERS_URL,
+        {
+            "email": "new.donor@example.test",
+            "first_name": "Ivy",
+            "last_name": "Novak",
+            "kind": "donor",
+        },
+        format="json",
     )
     assert response.status_code == 400
     assert response.json() == {"kind": ['"donor" is not a valid choice.']}

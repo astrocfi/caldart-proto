@@ -10,7 +10,9 @@
  *
  * Administrator screens render the profile fieldsets without required markers
  * and do no client-side insistence that a half-known record be completed.  The
- * server's rules still apply to both.
+ * account is the exception: its email address and both names are required, here and
+ * on the server, so no record is saved under a surname alone.  The server's rules
+ * still apply to both.
  */
 import type { JSX, ReactNode } from 'react';
 
@@ -83,6 +85,38 @@ export function adminProfilePayload<Patch extends AdminProfilePayload>(
 
 export type FieldErrors = Record<string, string>;
 
+/** What a blank name is refused with, in the server's own words. */
+const NAME_MESSAGES = {
+  first_name: 'Enter a first name.',
+  last_name: 'Enter a last name.',
+} as const;
+
+/**
+ * The complaints about `draft`'s names: each one left blank, as the server would refuse
+ * it, so a record never saves under a surname alone.
+ */
+export function missingNames(draft: AccountDraft): FieldErrors {
+  const errors: FieldErrors = {};
+  for (const key of ['first_name', 'last_name'] as const) {
+    if (draft[key].trim() === '') errors[key] = NAME_MESSAGES[key];
+  }
+  return errors;
+}
+
+/** `errors` less the ones about fields whose value differs between `before` and `after`. */
+export function withoutEdited(
+  errors: FieldErrors,
+  before: AccountDraft,
+  after: AccountDraft,
+): FieldErrors {
+  return Object.fromEntries(
+    Object.entries(errors).filter(
+      ([key]) =>
+        !(key in after) || before[key as keyof AccountDraft] === after[key as keyof AccountDraft],
+    ),
+  );
+}
+
 export interface AccountFieldsProps {
   value: AccountDraft;
   onChange: (next: AccountDraft) => void;
@@ -123,7 +157,7 @@ export function AccountFields({
             />
           )}
         </Field>
-        <Field label="First name" error={errors.first_name}>
+        <Field label="First name" required error={errors.first_name}>
           {(props) => (
             <input
               {...props}
@@ -133,7 +167,7 @@ export function AccountFields({
             />
           )}
         </Field>
-        <Field label="Last name" error={errors.last_name}>
+        <Field label="Last name" required error={errors.last_name}>
           {(props) => (
             <input
               {...props}

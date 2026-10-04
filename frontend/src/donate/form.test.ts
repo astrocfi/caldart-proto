@@ -13,18 +13,23 @@ const FILLED: DonationFormValues = {
 };
 
 describe('validateDonation', () => {
-  it('accepts an amount and the four required fields', () => {
+  it('accepts an amount and the three required fields', () => {
     expect(validateDonation(FILLED, 2000)).toEqual({});
   });
 
-  it('names every missing required field', () => {
+  it('names every missing required field, and never the optional phone', () => {
     expect(Object.keys(validateDonation(EMPTY_DONATION_FORM, 0))).toEqual([
       'amount',
       'first_name',
       'last_name',
       'email',
-      'phone',
     ]);
+  });
+
+  it('refuses a phone number that is typed but not ten digits', () => {
+    expect(validateDonation({ ...FILLED, phone: '555' }, 2000).phone).toBe(
+      'Use a ten-digit number like 415-555-0100.',
+    );
   });
 
   it('refuses an address that does not read as one', () => {
@@ -35,7 +40,11 @@ describe('validateDonation', () => {
 });
 
 describe('donorBody', () => {
-  it('sends the required four trimmed, with the phone in its stored form', () => {
+  it('leaves out a phone number nobody typed', () => {
+    expect(donorBody({ ...FILLED, phone: '' })).not.toHaveProperty('phone');
+  });
+
+  it('sends the required three trimmed, with the phone in its stored form', () => {
     expect(donorBody(FILLED)).toEqual({
       first_name: 'Pat',
       last_name: 'Giver',

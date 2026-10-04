@@ -76,9 +76,7 @@ describe('AdminRemindersPage', () => {
     await screen.findByText('Marta Reyes');
 
     expect(screen.queryByRole('button', { name: 'Run now' })).not.toBeInTheDocument();
-    expect(
-      screen.queryByLabelText('Practice run: show what would happen, send nothing'),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/^Practice run/)).not.toBeInTheDocument();
   });
 
   it('explains when reminders go and that nobody gets one twice', async () => {

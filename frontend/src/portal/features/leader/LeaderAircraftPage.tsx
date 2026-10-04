@@ -9,7 +9,6 @@ import type { JSX } from 'react';
 
 import { ApiError } from '@/portal/api/client';
 import type { Aircraft } from '@/portal/api/types';
-import { Button } from '@/portal/components/Button';
 import { EmptyState } from '@/portal/components/EmptyState';
 import { useAircraftSearch } from '@/portal/features/aircraft/api';
 import { normalizeNNumber } from '@/portal/features/aircraft/insurance';
@@ -71,27 +70,22 @@ export function LeaderAircraftPage(): JSX.Element {
           description="Try the registration, the make or model, or the owner's name."
         />
       )}
-      renderSelected={(nNumber, handleBack) => (
-        <AircraftCheck nNumber={nNumber} onBack={handleBack} />
-      )}
+      renderSelected={(nNumber) => <AircraftCheck nNumber={nNumber} />}
     />
   );
 }
 
 interface AircraftCheckProps {
   nNumber: string;
-  onBack: () => void;
 }
 
-/** The chosen aircraft's insurance card, or why there is none. */
-function AircraftCheck({ nNumber, onBack: handleBack }: AircraftCheckProps): JSX.Element {
+/**
+ * The chosen aircraft's insurance card, or why there is none.  **Back to search** above
+ * the card is the way back, so the card offers no second one.
+ */
+function AircraftCheck({ nNumber }: AircraftCheckProps): JSX.Element {
   const query = useLeaderAircraft(nNumber);
   const notFound = query.error instanceof ApiError && query.error.status === 404;
-  const searchAgain = (
-    <Button variant="secondary" onClick={handleBack}>
-      Search again
-    </Button>
-  );
 
   return (
     <>
@@ -105,16 +99,11 @@ function AircraftCheck({ nNumber, onBack: handleBack }: AircraftCheckProps): JSX
         <EmptyState
           title={`${nNumber} is not in the register`}
           description="Nobody has added this aircraft yet. Ask the pilot to add it to their profile, or add it from the aircraft register."
-          action={searchAgain}
         />
       ) : null}
 
       {query.isError && !notFound ? (
-        <EmptyState
-          title="That check could not be run"
-          description={query.error.message}
-          action={searchAgain}
-        />
+        <EmptyState title="That check could not be run" description={query.error.message} />
       ) : null}
 
       {query.data ? <AircraftStatusCard aircraft={query.data} /> : null}

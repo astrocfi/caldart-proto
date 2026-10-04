@@ -17,6 +17,7 @@ import type { RenewalRunResult } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { ConfirmButton } from '@/portal/components/ConfirmButton';
+import { PracticeRunCheckbox } from '@/portal/components/PracticeRunCheckbox';
 import { RunActionsTable } from '@/portal/components/RunActionsTable';
 import { useFocusAfterSave } from '@/portal/components/focus';
 import { useRunRenewals } from './api';
@@ -107,10 +108,12 @@ export function RenewalsPanel(): JSX.Element {
               </p>
             </ConfirmButton>
           )}
-          <label className="cluster">
-            <input type="checkbox" checked={dryRun} onChange={handleDryRunChange} />
-            Practice run: show what would happen, charge nothing
-          </label>
+          <PracticeRunCheckbox
+            checked={dryRun}
+            onChange={handleDryRunChange}
+            task="automatic renewal charges"
+            leaves="charge nothing"
+          />
         </>
       }
     >

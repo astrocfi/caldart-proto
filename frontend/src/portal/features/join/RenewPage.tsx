@@ -1,12 +1,12 @@
 /**
- * `/renew` — renew an existing membership, or contribute as a life member.
+ * `/renew` — renew an existing membership.
  *
  * The new term starts the day after the current one ends, so renewing early
  * costs nothing; the status card above the checkout says exactly what the
- * member has now.  A life member has nothing to renew, so the page asks for a
- * contribution instead.  A friend has no membership to renew either (that includes a
- * member who registered and has not yet paid), so the page sends them on to
- * `/membership/join`.
+ * member has now, at the checkout's own width.  A life member has nothing to renew and
+ * gives through Donate like everyone else, so the page sends them to `/donate`.  A
+ * friend has no membership to renew either (that includes a member who registered and
+ * has not yet paid), so the page sends them on to `/membership/join`.
  */
 import { useQueryClient } from '@tanstack/react-query';
 import type { JSX } from 'react';
@@ -24,6 +24,9 @@ import { useMembership } from '@/portal/features/profile/api';
 import { refreshAfterPayment } from './refresh';
 import './join.css';
 
+/** Where a life member gives, having no term to renew. */
+export const LIFETIME_GIVING_PATH = '/donate';
+
 /** Renders the current membership status and a checkout to renew it. */
 export function RenewPage(): JSX.Element {
   const membership = useMembership();
@@ -34,31 +37,25 @@ export function RenewPage(): JSX.Element {
   const status = membership.data ?? null;
   const days = status ? daysUntil(status.expires_on) : null;
 
-  const isLifetime = status?.is_lifetime ?? false;
-
   if (status?.status === 'friend') {
     return <Navigate to={JOIN_AS_MEMBER_PATH} replace />;
+  }
+  if (status?.is_lifetime === true) {
+    return <Navigate to={LIFETIME_GIVING_PATH} replace />;
   }
 
   function handleSuccess() {
     refreshAfterPayment(queryClient);
-    toast.show(
-      isLifetime ? 'Thank you for your contribution.' : 'Thank you — your membership is renewed.',
-      'success',
-    );
+    toast.show('Thank you — your membership is renewed.', 'success');
     void navigate('/');
   }
 
   return (
     <Page
-      title={isLifetime ? 'Contribute to CalDART' : 'Renew your membership'}
-      lede={
-        isLifetime
-          ? 'As a life member you have nothing to renew. A contribution keeps the DARTs flying.'
-          : 'A renewal starts the day after your current term ends, so there is no penalty for renewing early.'
-      }
+      title="Renew your membership"
+      lede="A renewal starts the day after your current term ends, so there is no penalty for renewing early."
     >
-      <Card eyebrow="Now" title="Your membership" className="join-card">
+      <Card eyebrow="Now" title="Your membership">
         {membership.isPending ? (
           <p className="muted" role="status">
             Checking your membership…
@@ -66,9 +63,7 @@ export function RenewPage(): JSX.Element {
         ) : status ? (
           <div className="renew__status">
             <MembershipDot membership={status} />
-            {status.is_lifetime ? (
-              <p>You are a life member. Thank you.</p>
-            ) : status.expires_on ? (
+            {status.expires_on ? (
               <p>
                 {status.status === 'current' ? 'Expires ' : 'Expired '}
                 <DateText value={status.expires_on} />
@@ -80,14 +75,12 @@ export function RenewPage(): JSX.Element {
                 ) : null}
               </p>
             ) : null}
-            {status.plan && !status.is_lifetime ? (
-              <p className="muted">{status.plan} membership</p>
-            ) : null}
+            {status.plan ? <p className="muted">{status.plan} membership</p> : null}
           </div>
         ) : null}
       </Card>
 
-      <Checkout mode={isLifetime ? 'contribute' : 'renew'} onSuccess={handleSuccess} />
+      <Checkout mode="renew" onSuccess={handleSuccess} />
     </Page>
   );
 }

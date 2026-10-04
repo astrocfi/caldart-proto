@@ -59,10 +59,10 @@ import type { RecurringDonation } from './RecurringDonationFields';
 import type { CheckoutMode, CheckoutProps, ProviderPanelProps } from './types';
 import './checkout.css';
 
-/** The eyebrow and title over each mode's form. */
+/** The eyebrow and title over each mode's form, never the title of the page around it. */
 const HEADINGS: Record<CheckoutMode, { eyebrow: string; title: string }> = {
-  join: { eyebrow: 'Membership', title: 'Join CalDART' },
-  renew: { eyebrow: 'Renewal', title: 'Renew your membership' },
+  join: { eyebrow: 'Membership', title: 'Your dues' },
+  renew: { eyebrow: 'Renewal', title: 'Your renewal' },
   contribute: { eyebrow: 'Donation', title: 'Make a donation' },
 };
 
@@ -307,7 +307,7 @@ export function Checkout({
         )}
         {contributionCents > 0 ? (
           <div>
-            <dt>Contribution</dt>
+            <dt>{isContributionOnly ? 'Donation' : 'Contribution'}</dt>
             <dd className="num">{formatCents(contributionCents)}</dd>
           </div>
         ) : null}
@@ -362,7 +362,7 @@ export function Checkout({
         </div>
       ) : needsContribution ? (
         <p className="checkout__blocked muted" role="status">
-          Choose a contribution to continue.
+          Choose a donation amount to continue.
         </p>
       ) : scheduledOn !== null ? (
         <p className="checkout__notice" role="status">

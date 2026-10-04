@@ -147,7 +147,7 @@ export function AircraftPicker({ onSelect, excludeIds = [] }: AircraftPickerProp
       {adding ? (
         <section ref={addFormRef} className="aircraft-new" aria-labelledby={addTitleId}>
           <h3 id={addTitleId} className="aircraft-new__title">
-            Add an aircraft to the register
+            Add an aircraft
           </h3>
           <AircraftForm
             initial={emptyAircraftValues(normalizeNNumber(term))}

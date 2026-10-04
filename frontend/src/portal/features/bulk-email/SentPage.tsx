@@ -66,7 +66,7 @@ export function SentPage(): JSX.Element {
                 : 'Each bulk email appears here once it starts going out.'
             }
             emptyAction={
-              canSend ? <ButtonLink to="/bulk-email/compose">Write an email</ButtonLink> : undefined
+              canSend ? <ButtonLink to="/bulk-email/compose">New email</ButtonLink> : undefined
             }
             isLoading={sent.isLoading}
           />

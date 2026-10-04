@@ -446,7 +446,7 @@ reminders, newest first, with a filter by kind.
 ``/portal/system/scheduled``
    The *Renewal reminder emails* panel of the Scheduled page, guarded by
    ``system_admin``.  The
-   same table with the *Run now* button and the *Dry run* switch above it,
+   same table with the *Run now* button and the *Practice run* box above it,
    which call ``POST /system/reminders/run``, and the editable *Reminder
    schedule* card beside it.
 

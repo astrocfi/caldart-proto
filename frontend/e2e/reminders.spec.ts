@@ -38,9 +38,7 @@ test('the account administrator has no way to start a scan', async ({ page }) =>
   await expect(page.getByRole('heading', { name: 'Renewal reminders' })).toBeVisible();
 
   await expect(page.getByRole('button', { name: /^Run .* now$/ })).toHaveCount(0);
-  await expect(page.getByLabel('Practice run: show what would happen, send nothing')).toHaveCount(
-    0,
-  );
+  await expect(page.getByLabel(/^Practice run/)).toHaveCount(0);
 });
 
 test('the account administrator reads the reminder schedule without changing it', async ({
@@ -85,7 +83,9 @@ test('a system administrator keeps the run controls on the Scheduled page', asyn
     .filter({ has: page.getByRole('heading', { name: 'Renewal reminder emails' }) });
   await expect(panel).toBeVisible();
   await expect(
-    panel.getByLabel('Practice run: show what would happen, send nothing'),
+    panel.getByLabel(
+      'Practice run: show what would happen, send nothing (renewal reminder emails)',
+    ),
   ).toBeChecked();
 
   await panel.getByRole('button', { name: 'Run now: renewal reminder emails' }).click();

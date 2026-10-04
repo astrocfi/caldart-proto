@@ -34,24 +34,24 @@ import {
 import './admin-payments.css';
 
 /**
- * The payment history's columns.  The receipt number identifies a row and never
- * wraps; Total and Status stay in sight on a phone, and the rest drop when the table
- * would not fit.
+ * The payment history's columns.  The date tells one payment from the next and stays
+ * pinned when the table scrolls; the receipt number keeps its whole width, since every
+ * receipt starts alike and a cut one reads the same as its neighbors.  Total and Status
+ * stay in sight on a phone, and the rest drop when the table would not fit.
  */
-const LEDGER_COLUMNS: Column<PaymentDetail>[] = [
+export const LEDGER_COLUMNS: Column<PaymentDetail>[] = [
   {
     key: 'paid_on',
     header: 'Paid',
     width: '7rem',
-    noWrap: true,
-    dropOrder: 3,
+    isIdentity: true,
     render: (row) => <DateText value={row.paid_on} />,
   },
   {
     key: 'receipt_number',
     header: 'Receipt',
     width: '10rem',
-    isIdentity: true,
+    noWrap: true,
     render: (row) => <Link to={`/admin/payments/${row.id}`}>{row.receipt_number}</Link>,
   },
   {

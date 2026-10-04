@@ -41,8 +41,9 @@ from the stored reminder schedule, so the mail app never imports it:
      - the daily reminder scan (:doc:`reminders`)
    * - ``renewal_enabled``, ``renewal_notice``, ``renewal_card_expiring``,
        ``renewal_charged``, ``renewal_failed``, ``renewal_canceled``
-     - Renewal turned on, Renewal notice, Card expiring, Renewal charged,
-       Renewal declined, Renewal turned off
+     - Automatic renewal or recurring donation turned on, Renewal notice, Card
+       expiring, Renewal charged, Automatic renewal or recurring donation charge failed,
+       Automatic renewal or recurring donation turned off
      - the portal, and the daily renewal run (:doc:`renewals`)
    * - ``receipt``, ``refund``
      - Receipt, Refund

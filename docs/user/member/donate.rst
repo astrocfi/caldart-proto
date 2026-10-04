@@ -28,7 +28,7 @@ Then the form, **Make a contribution**:
 * **Make this a recurring donation**, a box to check for a gift that repeats.
 * **How would you like to pay?**, the payment tabs, described on :doc:`join`.
 
-Until you choose an amount the screen says *Choose a contribution to continue.*
+Until you choose an amount the screen says *Choose a donation amount to continue.*
 
 
 Giving once

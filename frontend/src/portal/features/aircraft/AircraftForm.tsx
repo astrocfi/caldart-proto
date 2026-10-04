@@ -8,7 +8,7 @@
  * picked from the aircraft types, and fills the category when the type knows it.
  */
 import { useRef, useState } from 'react';
-import type { JSX } from 'react';
+import type { JSX, MouseEvent } from 'react';
 
 import type { AircraftPatch, AircraftType, Registration } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
@@ -34,6 +34,14 @@ import type { AircraftFormValues } from './form';
 import { OWNER_TYPES, OWNER_TYPE_LABELS, aircraftPayload, validateAircraft } from './form';
 import { NNumberField } from './NNumberField';
 import { withPickedType, withRegistration } from './registry';
+
+/**
+ * Keep the focus where it is while Cancel is pressed: a box losing it would check itself
+ * and draw its error, moving Cancel out from under the pointer before the click lands.
+ */
+function handleKeepFocus(event: MouseEvent<HTMLButtonElement>): void {
+  event.preventDefault();
+}
 
 export interface AircraftFormProps {
   initial: AircraftFormValues;
@@ -70,7 +78,9 @@ export function AircraftForm({
   useFocusAfterSave(formRef, pending);
   const freshServerErrors = useFreshErrors(serverError, values, serverErrors ?? {});
   // The fields that have been typed in and left; a complaint appears when the
-  // typist moves on from a field rather than when they try to save.
+  // typist moves on from a field rather than when they try to save.  Leaving a box
+  // untouched says nothing, so pressing Cancel straight after the form opens does not
+  // first draw an error that moves the button out from under the pointer.
   const [touched, setTouched] = useState<Record<string, true>>({});
   const [submitted, setSubmitted] = useState(false);
 
@@ -82,7 +92,14 @@ export function AircraftForm({
 
   const shown = { ...visible, ...freshServerErrors };
 
-  const handleBlur = (key: string) => () => setTouched((left) => ({ ...left, [key]: true }));
+  // `errorKey` names the complaint when it differs from the value's own key, as the
+  // type's does (`type_id` for `type`).
+  const handleBlur =
+    (key: keyof AircraftFormValues, errorKey: string = key) =>
+    (): void => {
+      if (values[key] === initial[key]) return;
+      setTouched((left) => ({ ...left, [errorKey]: true }));
+    };
 
   const set = <K extends keyof AircraftFormValues>(key: K, value: AircraftFormValues[K]): void => {
     setValues((current) => ({ ...current, [key]: value }));
@@ -134,7 +151,7 @@ export function AircraftForm({
           <AircraftTypePicker
             value={values.type}
             onChange={handleType}
-            onBlur={handleBlur('type_id')}
+            onBlur={handleBlur('type', 'type_id')}
             error={shown.type_id}
           />
           <Field label="Seats" error={shown.seats}>
@@ -342,7 +359,7 @@ export function AircraftForm({
           {pending ? 'Saving…' : submitLabel}
         </Button>
         {handleCancel ? (
-          <Button variant="quiet" onClick={handleCancel}>
+          <Button variant="quiet" onMouseDown={handleKeepFocus} onClick={handleCancel}>
             Cancel
           </Button>
         ) : null}

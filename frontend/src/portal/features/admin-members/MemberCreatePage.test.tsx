@@ -35,6 +35,13 @@ function renderCreate() {
   );
 }
 
+/** Type the three boxes an account needs: the address and both names. */
+async function fillAccount(user: ReturnType<typeof userEvent.setup>, email: string): Promise<void> {
+  await user.type(screen.getByLabelText(/Email address/), email);
+  await user.type(screen.getByLabelText(/^First name/), 'Nova');
+  await user.type(screen.getByLabelText(/^Last name/), 'Ito');
+}
+
 beforeEach(() => {
   posted = null;
 });
@@ -46,8 +53,8 @@ describe('MemberCreatePage', () => {
     renderCreate();
 
     await user.type(screen.getByLabelText(/Email address/), 'nova@example.org');
-    await user.type(screen.getByLabelText('First name'), 'Nova');
-    await user.type(screen.getByLabelText('Last name'), 'Ito');
+    await user.type(screen.getByLabelText(/^First name/), 'Nova');
+    await user.type(screen.getByLabelText(/^Last name/), 'Ito');
     await user.type(screen.getByLabelText('Phone'), '408-555-0199');
     await user.type(screen.getByLabelText('City'), 'San Jose');
     await user.selectOptions(screen.getByLabelText('Pilot certificate'), 'private');
@@ -80,7 +87,7 @@ describe('MemberCreatePage', () => {
     server.use(...createHandlers());
     renderCreate();
 
-    await user.type(screen.getByLabelText(/Email address/), 'nova@example.org');
+    await fillAccount(user, 'nova@example.org');
     await user.selectOptions(screen.getByLabelText('Photo ID'), 'passport');
     await user.click(screen.getByRole('button', { name: 'Add member' }));
 
@@ -93,7 +100,7 @@ describe('MemberCreatePage', () => {
     server.use(...createHandlers());
     renderCreate();
 
-    await user.type(screen.getByLabelText(/Email address/), 'plain@example.org');
+    await fillAccount(user, 'plain@example.org');
     await user.click(screen.getByRole('button', { name: 'Add member' }));
 
     await waitFor(() => expect(posted?.kind).toBe('member'));
@@ -104,7 +111,7 @@ describe('MemberCreatePage', () => {
     server.use(...createHandlers());
     renderCreate();
 
-    await user.type(screen.getByLabelText(/Email address/), 'pal@example.org');
+    await fillAccount(user, 'pal@example.org');
     await user.selectOptions(screen.getByLabelText('Kind of account'), 'friend');
     await user.click(screen.getByRole('button', { name: 'Add member' }));
 
@@ -116,7 +123,7 @@ describe('MemberCreatePage', () => {
     server.use(...createHandlers());
     renderCreate();
 
-    await user.type(screen.getByLabelText(/Email address/), 'invited@example.org');
+    await fillAccount(user, 'invited@example.org');
     await user.click(screen.getByRole('button', { name: 'Add member' }));
 
     await waitFor(() => expect(posted).not.toBeNull());
@@ -128,7 +135,7 @@ describe('MemberCreatePage', () => {
     server.use(...createHandlers());
     renderCreate();
 
-    await user.type(screen.getByLabelText(/Email address/), 'nova@example.org');
+    await fillAccount(user, 'nova@example.org');
     await user.type(screen.getByLabelText('Password'), 'correct-horse-battery');
     await user.click(screen.getByRole('button', { name: 'Add member' }));
 
@@ -141,7 +148,7 @@ describe('MemberCreatePage', () => {
     server.use(...createHandlers(makeDetail({ id: 42 })));
     renderCreate();
 
-    await user.type(screen.getByLabelText(/Email address/), 'nova@example.org');
+    await fillAccount(user, 'nova@example.org');
     await user.click(screen.getByRole('button', { name: 'Add member' }));
 
     expect(await screen.findByText('member record')).toBeInTheDocument();
@@ -163,7 +170,7 @@ describe('MemberCreatePage', () => {
     );
     renderCreate();
 
-    await user.type(screen.getByLabelText(/Email address/), 'taken@example.org');
+    await fillAccount(user, 'taken@example.org');
     await user.click(screen.getByRole('button', { name: 'Add member' }));
 
     expect(
@@ -194,7 +201,7 @@ describe('MemberCreatePage', () => {
       refuse();
       renderCreate();
 
-      await user.type(screen.getByLabelText(/Email address/), 'taken@example.org');
+      await fillAccount(user, 'taken@example.org');
       await user.click(screen.getByRole('button', { name: 'Add member' }));
 
       await waitFor(() => expect(screen.getByLabelText(/Email address/)).toHaveFocus());
@@ -205,7 +212,7 @@ describe('MemberCreatePage', () => {
       refuse();
       renderCreate();
 
-      await user.type(screen.getByLabelText(/Email address/), 'taken@example.org');
+      await fillAccount(user, 'taken@example.org');
       await user.click(screen.getByRole('button', { name: 'Add member' }));
 
       expect(await screen.findByText('Check the 2 highlighted fields.')).toBeInTheDocument();
@@ -216,10 +223,10 @@ describe('MemberCreatePage', () => {
       refuse();
       renderCreate();
 
-      await user.type(screen.getByLabelText(/Email address/), 'taken@example.org');
+      await fillAccount(user, 'taken@example.org');
       await user.click(screen.getByRole('button', { name: 'Add member' }));
       await screen.findByText('An account with that email address already exists.');
-      await user.type(screen.getByLabelText(/Email address/), 'x');
+      await fillAccount(user, 'x');
 
       expect(screen.queryByText('An account with that email address already exists.')).toBeNull();
     });
@@ -230,7 +237,7 @@ describe('MemberCreatePage', () => {
     server.use(...createHandlers());
     renderCreate();
 
-    await user.type(screen.getByLabelText(/Email address/), 'not-an-address');
+    await fillAccount(user, 'not-an-address');
     await user.click(screen.getByRole('button', { name: 'Add member' }));
 
     expect(screen.getByLabelText(/Email address/)).toHaveFocus();
@@ -251,13 +258,38 @@ describe('MemberCreatePage', () => {
     },
   );
 
-  it('leaves the profile fields unstarred, so a half-known record can be saved', () => {
+  it('stars only the address and the names, so a half-known record can be saved', () => {
     server.use(...createHandlers());
     const { container } = renderCreate();
 
     const starred = Array.from(container.querySelectorAll('.field__required')).map(
       (marker) => marker.parentElement?.textContent,
     );
-    expect(starred).toEqual(['Email address*']);
+    expect(starred).toEqual(['Email address*', 'First name*', 'Last name*']);
+  });
+
+  it('refuses a member with no first name before anything is sent', async () => {
+    const user = userEvent.setup();
+    server.use(...createHandlers());
+    renderCreate();
+
+    await user.type(screen.getByLabelText(/Email address/), 'nova@example.org');
+    await user.type(screen.getByLabelText(/^Last name/), 'Ballard');
+    await user.click(screen.getByRole('button', { name: 'Add member' }));
+
+    expect(await screen.findByText('Enter a first name.')).toBeInTheDocument();
+    expect(screen.getByLabelText(/^First name/)).toHaveFocus();
+    expect(posted).toBeNull();
+  });
+
+  it('adds a member with no phone number, which is optional', async () => {
+    const user = userEvent.setup();
+    server.use(...createHandlers());
+    renderCreate();
+
+    await fillAccount(user, 'nova@example.org');
+    await user.click(screen.getByRole('button', { name: 'Add member' }));
+
+    await waitFor(() => expect(posted).not.toBeNull());
   });
 });

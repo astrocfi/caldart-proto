@@ -25,13 +25,14 @@ export function headerName(user: Pick<User, 'first_name' | 'last_name' | 'email'
 }
 
 /**
- * Keeps the rail's current entry in view, and says whether more entries lie below
- * the rail's visible part.
+ * Keeps the rail's current entry in view, and says whether more entries lie above or
+ * below the rail's visible part.
  *
  * The rail scrolls on its own when the reader's menu is taller than the window: on a
  * desktop always, and on a narrow screen as the open drawer.  On every page, and each
  * time the drawer opens, it is scrolled, by itself alone and never the page, until the
- * current entry shows.  `hasMoreBelow` drives the shadow at its foot.
+ * current entry shows.  `hasMoreAbove` and `hasMoreBelow` drive the shadows at its head
+ * and its foot.
  */
 function useRailScroll(
   pathname: string,
@@ -39,15 +40,18 @@ function useRailScroll(
   drawerOpen: boolean,
 ): {
   railRef: RefObject<HTMLElement | null>;
+  hasMoreAbove: boolean;
   hasMoreBelow: boolean;
   handleRailScroll: () => void;
 } {
   const railRef = useRef<HTMLElement | null>(null);
+  const [hasMoreAbove, setHasMoreAbove] = useState(false);
   const [hasMoreBelow, setHasMoreBelow] = useState(false);
 
   const handleRailScroll = useCallback(() => {
     const rail = railRef.current;
     if (rail === null) return;
+    setHasMoreAbove(rail.scrollTop > 1);
     setHasMoreBelow(rail.scrollTop + rail.clientHeight < rail.scrollHeight - 1);
   }, []);
 
@@ -71,7 +75,7 @@ function useRailScroll(
     return () => window.removeEventListener('resize', handleRailScroll);
   }, [handleRailScroll]);
 
-  return { railRef, hasMoreBelow, handleRailScroll };
+  return { railRef, hasMoreAbove, hasMoreBelow, handleRailScroll };
 }
 
 /** The portal chrome: header, role-filtered navigation, and the routed page outlet. */
@@ -96,7 +100,7 @@ export function PortalLayout(): JSX.Element {
     if (drawerOpen) window.scrollTo({ top: 0, left: 0 });
   }, [drawerOpen]);
 
-  // Escape closes an open drawer and hands focus back to the Menu button.
+  // Escape closes an open drawer and hands focus back to its button.
   useEffect(() => {
     if (!drawerOpen) return undefined;
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -115,7 +119,7 @@ export function PortalLayout(): JSX.Element {
       })
     : [];
   const hasRail = groups.length > 0;
-  const { railRef, hasMoreBelow, handleRailScroll } = useRailScroll(
+  const { railRef, hasMoreAbove, hasMoreBelow, handleRailScroll } = useRailScroll(
     location.pathname,
     hasRail,
     drawerOpen,
@@ -138,7 +142,7 @@ export function PortalLayout(): JSX.Element {
               aria-controls="portal-nav"
               onClick={() => setDrawerOpen((open) => !open)}
             >
-              Menu
+              {drawerOpen ? 'Close menu' : 'Menu'}
             </button>
           ) : null}
 
@@ -184,6 +188,7 @@ export function PortalLayout(): JSX.Element {
             className="portal__rail"
             id="portal-nav"
             aria-label="Portal sections"
+            data-more-above={hasMoreAbove ? 'true' : 'false'}
             data-more-below={hasMoreBelow ? 'true' : 'false'}
             onScroll={handleRailScroll}
           >

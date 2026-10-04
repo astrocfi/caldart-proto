@@ -3,11 +3,11 @@
  * address a reader's reply goes to. Every bulk email comes from the site's own
  * address, which nobody reads, so without this a reply reaches nobody.
  *
- * It starts filled in with the site's default. It saves itself on its own, when
- * the field is left or Enter is pressed, never together with the subject and the
- * message: a half-typed address must not stop the words from saving. An address
+ * Empty, it stands for the sender's default address, which the hint names; nothing
+ * is written in the box itself, so it never looks filled in. It saves itself on its
+ * own, when the field is left or Enter is pressed, never together with the subject and
+ * the message: a half-typed address must not stop the words from saving. An address
  * the server refuses is named under the field and the last good one stays saved.
- * Emptied, the field goes back to the default, which the hint names.
  */
 import { useState } from 'react';
 import type { JSX, KeyboardEvent } from 'react';
@@ -82,7 +82,6 @@ export function ReplyToField({ emailId, saved, defaultReplyTo }: ReplyToFieldPro
             type="email"
             autoComplete="off"
             maxLength={REPLY_TO_MAX_LENGTH}
-            placeholder={defaultReplyTo}
             value={value}
             onChange={(event) => setValue(event.target.value)}
             onBlur={handleSave}

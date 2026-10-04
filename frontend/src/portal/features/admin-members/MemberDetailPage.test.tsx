@@ -226,6 +226,20 @@ describe('MemberDetailPage', () => {
     expect(await screen.findByText('Member saved.')).toBeInTheDocument();
   });
 
+  it('refuses to save a blank first name, so the heading never reads a surname alone', async () => {
+    const user = userEvent.setup();
+    server.use(...detailHandlers());
+    renderDetail();
+
+    const first = await screen.findByLabelText(/^First name/);
+    await user.clear(first);
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
+
+    expect(await screen.findByText('Enter a first name.')).toBeInTheDocument();
+    expect(first).toHaveFocus();
+    expect(captured.patchedMember).toBeNull();
+  });
+
   it('grants a term from the memberships tab', async () => {
     const user = userEvent.setup();
     server.use(...detailHandlers());

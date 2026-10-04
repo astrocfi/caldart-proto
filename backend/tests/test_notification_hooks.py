@@ -246,7 +246,7 @@ def test_an_administrator_adding_a_member_raises_member_added(
     """``POST /admin/members`` raises ``member_added`` naming the administrator."""
     response = account_admin_client.post(
         "/api/v1/admin/members",
-        {"email": "added@example.test", "first_name": "Ada", "kind": "member"},
+        {"email": "added@example.test", "first_name": "Ada", "last_name": "Lane", "kind": "member"},
         format="json",
     )
 

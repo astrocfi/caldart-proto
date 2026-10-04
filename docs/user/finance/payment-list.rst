@@ -23,10 +23,10 @@ member's **Name** and **Email**, the **Plan** (a dash when none was bought), the
 
 On a narrower screen the table leaves out the columns that matter least, one at a time,
 so the **Total** and the **Status** stay in sight: first the **Email**, then the **Plan**, the
-**Fee** and **Net**, and the **Date**. A column you check beyond the defaults always stays. On
-a phone, where even that is too wide, the
-table scrolls sideways inside the page, a line above it says so, and the **Name** stays
-pinned at the left so you always know whose payment a row is.
+**Fee** and **Net**. A column you check beyond the defaults always stays. On a phone,
+where even that is too wide, the table scrolls sideways inside the page, a line above it
+says so and names the columns not shown, and the **Date** stays pinned at the left, since
+the date is what tells one payment from the next.
 
 A payment's name opens that payment's own screen (see :doc:`payment-record`). An email
 address opens a message to the member in your email program.
@@ -76,7 +76,7 @@ column, and click it again to reverse the order. The arrow of the column the lis
 by points up or down; the list opens sorted by **Date**, newest first. The headings that
 sort are **Date**, **Name**, **Email**, **Plan**, **Contribution**, **Total**, **Fee**,
 **Net**, **Provider**, **Status**, and **Reconciled**. A heading with no arrow, such as
-**Kind** or **Reference**, does not sort. Sorting and paging cover every matching payment,
+**For** or **Reference**, does not sort. Sorting and paging cover every matching payment,
 so the first row after sorting by **Total** is the largest payment of all.
 
 Choose the columns
@@ -86,7 +86,7 @@ Choose the columns
 checkboxes, *Columns in the table and the download*, that decides both what the table shows
 and what the downloads hold. Twenty-one columns are on offer and eight are on to begin
 with. The thirteen that start off are for a reconciliation or an audit: what the payment
-was for (**Kind**), the **Dues** and the **Contribution** it split into, what has been
+was for (**For**), the **Dues** and the **Contribution** it split into, what has been
 **Refunded**, the **Provider**, the **Method**, the provider's own **Reference**, the day
 you matched it to a statement (**Reconciled**), the **Receipt** number, the day a check was
 **Received**, your own **Note**, and the two dates of the membership term a payment

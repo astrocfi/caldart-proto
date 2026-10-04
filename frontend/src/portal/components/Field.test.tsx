@@ -46,6 +46,20 @@ describe('Field', () => {
     expect(input?.previousElementSibling).toHaveTextContent('10 digits, such as 415-555-0100');
   });
 
+  it('marks the hint hidden while an error shows, so one column gives its line up', () => {
+    renderField('Enter 10 digits.');
+    expect(screen.getByText('10 digits, such as 415-555-0100')).toHaveClass('field__hint--hidden');
+  });
+
+  it('adds words a screen reader hears after the label, for boxes that share one', () => {
+    render(
+      <Field label="Phone" labelSuffix=" of person 2">
+        {(props) => <input {...props} />}
+      </Field>,
+    );
+    expect(screen.getByRole('textbox', { name: 'Phone of person 2' })).toBeInTheDocument();
+  });
+
   it('draws an empty hint slot for a field with no hint, so a grid row lines up', () => {
     const { container } = render(
       <Field label="Alternate phone">{(props) => <input {...props} />}</Field>,

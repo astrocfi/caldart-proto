@@ -97,7 +97,9 @@ test('an account administrator rehearses the DART rosters', async ({ page }) => 
   expect(person).not.toBe('');
 
   await page.goto('portal/admin/reports');
-  await expect(card.getByLabel('Practice run: show what would happen, send nothing')).toBeChecked();
+  await expect(
+    card.getByLabel('Practice run: show what would happen, send nothing (DART rosters)'),
+  ).toBeChecked();
   await card.getByRole('button', { name: 'Send rosters now' }).click();
   await expect(card.getByRole('status')).toHaveText(/^Would send [1-9]\d* emails?/);
 

@@ -263,7 +263,7 @@ function GiftForm({ configUrl, returnUrl, onGiven }: GiftFormProps): JSX.Element
               />
             )}
           </Field>
-          <Field label="Phone" required error={errors.phone}>
+          <Field label="Phone" error={errors.phone}>
             {(props) => (
               <MaskedInput
                 {...props}

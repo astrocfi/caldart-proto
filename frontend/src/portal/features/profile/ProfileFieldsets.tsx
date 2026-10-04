@@ -349,7 +349,6 @@ export function ProfileFieldsets({
             </>
           ) : null}
           {phone('phone', 'phone_extension', 'Phone', {
-            required: true,
             autoComplete: 'tel',
             hint: '10 digits, such as 415-555-0100',
           })}
@@ -561,6 +560,9 @@ export function ProfileFieldsets({
                 onChange={(event) => set(interest.field, event.target.checked)}
               />
               <span>{interest.label}</span>
+              {/* An email type can share the name, such as Fundraising on the member
+                  record, so a screen reader hears which list this box is in. */}
+              <span className="visually-hidden"> (volunteer interest)</span>
             </label>
           ))}
         </div>

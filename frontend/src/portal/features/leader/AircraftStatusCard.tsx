@@ -33,6 +33,11 @@ export interface Verdict {
   /** What the results list's mark reads: *Insured*, *Not verified*, or *Not insured*. */
   mark: string;
   go: boolean;
+  /**
+   * Nobody has checked yet: the band is amber, as the *Not verified* mark under it is,
+   * rather than the red kept for a policy that has failed or lapsed.
+   */
+  isAwaitingCheck?: boolean;
 }
 
 /** How the pilot list names each membership state: a friend is a friend, never expired. */
@@ -58,6 +63,7 @@ const NOT_VERIFIED: Verdict = {
   why: 'Coverage is current but not verified',
   mark: 'Not verified',
   go: false,
+  isAwaitingCheck: true,
 };
 
 type InsuranceFacts = Pick<
@@ -124,6 +130,12 @@ export function InsuranceCheckDot({
   return <InsuranceDot aircraft={aircraft} today={today} />;
 }
 
+/** The band's color: green for a go, amber while nobody has checked, red otherwise. */
+function bandOf(verdict: Verdict): 'go' | 'wait' | 'nogo' {
+  if (verdict.go) return 'go';
+  return verdict.isAwaitingCheck === true ? 'wait' : 'nogo';
+}
+
 export interface AircraftStatusCardProps {
   aircraft: AircraftDetail;
   today?: Date;
@@ -142,10 +154,7 @@ export function AircraftStatusCard({ aircraft, today }: AircraftStatusCardProps)
 
   return (
     <section className="leader-card" aria-label={`Insurance for ${aircraft.n_number}`}>
-      <p
-        className={`leader-verdict ${verdict.go ? 'leader-verdict--go' : 'leader-verdict--nogo'}`}
-        role="status"
-      >
+      <p className={`leader-verdict leader-verdict--${bandOf(verdict)}`} role="status">
         <span className="leader-verdict__word">{verdict.word}</span>
         <span className="leader-verdict__why">{verdict.why}</span>
       </p>

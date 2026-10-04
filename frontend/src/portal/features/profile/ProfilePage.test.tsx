@@ -54,10 +54,10 @@ describe('<ProfilePage/>', () => {
     );
   });
 
-  it('refuses to save without a phone number and never calls the API', async () => {
+  it('refuses to save without a city and never calls the API', async () => {
     const save = vi.fn();
     server.use(
-      http.get(`${API}/me/profile`, () => HttpResponse.json(makeVerifiedProfile({ phone: '' }))),
+      http.get(`${API}/me/profile`, () => HttpResponse.json(makeVerifiedProfile({ city: '' }))),
       http.put(`${API}/me/profile`, () => {
         save();
         return HttpResponse.json(makeVerifiedProfile());
@@ -65,23 +65,41 @@ describe('<ProfilePage/>', () => {
     );
 
     renderWithProviders(<ProfilePage />, { route: '/profile' });
-    await screen.findByLabelText(label('Phone'));
+    await screen.findByLabelText(label('City'));
     await userEvent.click(screen.getByRole('button', { name: 'Save changes' }));
 
-    expect(await screen.findByText('Enter a phone number.')).toBeInTheDocument();
+    expect(await screen.findByText('Enter your city.')).toBeInTheDocument();
     expect(save).not.toHaveBeenCalled();
   });
 
-  it('moves the focus to the field it refuses, a screen above the button', async () => {
+  it('saves a profile with no phone number, which is optional', async () => {
+    const save = vi.fn();
     server.use(
       http.get(`${API}/me/profile`, () => HttpResponse.json(makeVerifiedProfile({ phone: '' }))),
+      http.put(`${API}/me/profile`, () => {
+        save();
+        return HttpResponse.json(makeVerifiedProfile({ phone: '' }));
+      }),
     );
 
     renderWithProviders(<ProfilePage />, { route: '/profile' });
     await screen.findByLabelText(label('Phone'));
     await userEvent.click(screen.getByRole('button', { name: 'Save changes' }));
 
-    expect(screen.getByLabelText(label('Phone'))).toHaveFocus();
+    await screen.findByText('Profile saved.');
+    expect(save).toHaveBeenCalledOnce();
+  });
+
+  it('moves the focus to the field it refuses, a screen above the button', async () => {
+    server.use(
+      http.get(`${API}/me/profile`, () => HttpResponse.json(makeVerifiedProfile({ city: '' }))),
+    );
+
+    renderWithProviders(<ProfilePage />, { route: '/profile' });
+    await screen.findByLabelText(label('City'));
+    await userEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+
+    expect(screen.getByLabelText(label('City'))).toHaveFocus();
   });
 
   it('keeps the focus on Save changes after a save goes through', async () => {
@@ -116,20 +134,18 @@ describe('<ProfilePage/>', () => {
 
   it('clears an inline error as soon as the member fixes it', async () => {
     server.use(
-      http.get(`${API}/me/profile`, () => HttpResponse.json(makeVerifiedProfile({ phone: '' }))),
+      http.get(`${API}/me/profile`, () => HttpResponse.json(makeVerifiedProfile({ city: '' }))),
       http.put(`${API}/me/profile`, () => HttpResponse.json(makeVerifiedProfile())),
     );
 
     renderWithProviders(<ProfilePage />, { route: '/profile' });
-    await screen.findByLabelText(label('Phone'));
+    await screen.findByLabelText(label('City'));
     await userEvent.click(screen.getByRole('button', { name: 'Save changes' }));
-    await screen.findByText('Enter a phone number.');
+    await screen.findByText('Enter your city.');
 
-    await userEvent.type(screen.getByLabelText(label('Phone')), '555-0100');
+    await userEvent.type(screen.getByLabelText(label('City')), 'Petaluma');
 
-    await waitFor(() =>
-      expect(screen.queryByText('Enter a phone number.')).not.toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.queryByText('Enter your city.')).not.toBeInTheDocument());
   });
 
   it('PUTs every field and shows a toast on success', async () => {

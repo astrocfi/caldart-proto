@@ -60,7 +60,7 @@ changes both (see `Choosing the columns`_). At first it shows the report's eleve
 **Medical expires**
    The medical's date, after a mark that answers the question the list is most often
    opened for, who can fly today: a green check when the person holds a pilot certificate
-   and their medical is in date, a red cross when the medical has lapsed, and a dash for
+   and their medical is current, a red cross when the medical has lapsed, and a dash for
    somebody who is not a pilot.
 
 **Aircraft**
@@ -71,9 +71,9 @@ fit: **Email**, then **DART**, then **Phone**, **Kind**, and **Aircraft**, so a 
 the pilot columns; then **Medical**, **Certificate**, and **Medical expires**. **Name**,
 **Status**, and **Expires** always stay, and so does any column you check beyond the
 defaults. A line over the table names any column it hid; the downloads still carry it.
-On a phone the table can still be wider than the screen: a line over it says
-*Scroll sideways to see every column*, a shadow marks the edge with more beyond it, and the
-names stay pinned at the left while you scroll. With a keyboard, Tab to the table and use
+On a phone the table can still be wider than the screen: the line over it then reads
+*Scroll sideways for more.* before the columns it hid, a shadow marks the edge with more
+beyond it, and the names stay pinned at the left while you scroll. With a keyboard, Tab to the table and use
 the arrow keys.
 
 For an account administrator a name opens the :doc:`member-record`. For a DART leader it

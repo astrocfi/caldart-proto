@@ -27,8 +27,8 @@ The cards come in the order they matter.
   and changing a recurring donation are described there.
 
 **Your payments**
-  Everything you have paid CalDART, newest first: **Date**, **For** (the plan, *and
-  contribution*, or **Contribution**), **Amount**, **Refunded** (only when
+  Everything you have paid CalDART, newest first: **Date**, **For** (the plan, the plan *and
+  contribution*, or **Donation** for a gift on its own), **Amount**, **Refunded** (only when
   something has come back), **Status**, and **Receipt**. The status reads
   **Paid**, **Pending**, **Failed**, **Partly refunded**, or **Refunded**. The
   **Receipt** link downloads the same PDF the receipt email carried. A payment that

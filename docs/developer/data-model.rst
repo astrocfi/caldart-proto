@@ -1722,7 +1722,7 @@ descriptions live in ``apps/accounts/roles.py``:
    * - ``account_admin``
      - \+ create, edit, and delete members and profiles, make a member a friend,
        deactivate or reactivate accounts, grant or extend memberships manually,
-       manage aircraft, and run payment, membership and aircraft reports
+       manage aircraft, and run payment, membership, and aircraft reports
    * - ``management``
      - write a bulk email to a batch built from the member list's filters,
        send, schedule, cancel, or stop it, retry its failed copies, and hide it
@@ -2192,8 +2192,8 @@ and preserving the order given.
 **Invariants**, all enforced in the API serializers rather than the model, so
 that the message a person reads can be specific:
 
-- ``phone`` is required, and every number is ten digits; an extension is up to
-  six digits.
+- Every phone number is optional, and every one given is ten digits; an extension
+  is up to six digits.
 - A ``medical_type`` other than ``none`` requires a ``medical_expiration``.
 - A ``pilot_certificate_type`` other than ``none`` requires a
   ``certificate_number``.

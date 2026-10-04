@@ -1,6 +1,10 @@
 /**
  * `/admin/aircraft/:id` — one record: edit it, verify its insurance, read its
  * history, see who flies it, delete it.
+ *
+ * The marks follow the aircraft check: the header's insurance reads *Not verified* for a
+ * current policy nobody has checked, and each pilot carries the member check's GO or
+ * NO-GO, so the record never clears what a check would not.
  */
 import { useState } from 'react';
 import type { JSX } from 'react';
@@ -15,7 +19,6 @@ import { Page } from '@/portal/components/Page';
 import { StatusDot } from '@/portal/components/StatusDot';
 import { useToast } from '@/portal/components/Toast';
 import { AircraftForm } from '@/portal/features/aircraft/AircraftForm';
-import { InsuranceDot } from '@/portal/features/aircraft/InsuranceDot';
 import { ServiceDot } from '@/portal/features/aircraft/ServiceDot';
 import {
   useAircraft,
@@ -24,7 +27,8 @@ import {
   useUpdateAircraft,
 } from '@/portal/features/aircraft/api';
 import { aircraftToValues } from '@/portal/features/aircraft/form';
-import { PILOT_MEMBERSHIP } from '@/portal/features/leader/AircraftStatusCard';
+import { InsuranceCheckDot, PILOT_MEMBERSHIP } from '@/portal/features/leader/AircraftStatusCard';
+import { GoMark, isReady } from '@/portal/features/leader/LeaderLookup';
 import { InsuranceVerificationCard } from '@/portal/features/verification/InsuranceVerificationCard';
 import { changeLine, lastUpdatedLine } from './history';
 import '@/portal/features/aircraft/aircraft.css';
@@ -132,7 +136,10 @@ export function AircraftRecordPage(): JSX.Element {
       lede={`${aircraft.make} ${aircraft.model}`.trim()}
       actions={
         <>
-          <InsuranceDot aircraft={aircraft} />
+          <InsuranceCheckDot
+            aircraft={aircraft}
+            verified={aircraft.insurance_verification.verified}
+          />
           <ServiceDot aircraft={aircraft} />
           <Link to="/admin/aircraft">Back to aircraft register</Link>
         </>
@@ -168,20 +175,21 @@ export function AircraftRecordPage(): JSX.Element {
           <p className="muted">No member lists this aircraft on their profile.</p>
         ) : (
           <ul className="aircraft-pilots">
-            {pilots.map((pilot) => (
-              <li key={pilot.user_id}>
-                <Link to={`/admin/members/${pilot.user_id}`}>{pilot.name}</Link>
-                <span className="aircraft-pilots__email">{pilot.email}</span>
-                <StatusDot
-                  tone={PILOT_MEMBERSHIP[pilot.membership_status].tone}
-                  label={PILOT_MEMBERSHIP[pilot.membership_status].label}
-                />
-                <StatusDot
-                  tone={pilot.medical_is_current ? 'current' : 'expired'}
-                  label={pilot.medical_is_current ? 'Medical current' : 'Medical not current'}
-                />
-              </li>
-            ))}
+            {pilots.map((pilot) => {
+              // The member check's own verdict, so the record and both checks agree.
+              const ready = isReady(pilot.go_no_go);
+              return (
+                <li key={pilot.user_id}>
+                  <Link to={`/admin/members/${pilot.user_id}`}>{pilot.name}</Link>
+                  <span className="aircraft-pilots__email">{pilot.email}</span>
+                  <StatusDot
+                    tone={PILOT_MEMBERSHIP[pilot.membership_status].tone}
+                    label={PILOT_MEMBERSHIP[pilot.membership_status].label}
+                  />
+                  <GoMark go={ready} label={ready ? 'Cleared to fly' : 'Not cleared to fly'} />
+                </li>
+              );
+            })}
           </ul>
         )}
       </Card>

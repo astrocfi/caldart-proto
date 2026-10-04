@@ -313,6 +313,23 @@ def test_patch_updates_names_and_email(
     assert member.email == "marta.reyes@example.test"
 
 
+@pytest.mark.parametrize(
+    ("field", "message"),
+    [("first_name", "Enter a first name."), ("last_name", "Enter a last name.")],
+)
+def test_patch_refuses_a_blank_name(
+    api_client: APIClient, user_admin: User, member: User, field: str, message: str
+) -> None:
+    """A ``PATCH`` clearing a name is refused with the plain message and saves nothing."""
+    api_client.force_login(user_admin)
+    before = getattr(member, field)
+    response = api_client.patch(detail(member), {field: "  "})
+
+    assert (response.status_code, response.json()) == (400, {field: [message]})
+    member.refresh_from_db()
+    assert getattr(member, field) == before
+
+
 def test_patch_rejects_an_email_another_account_uses(
     api_client: APIClient, user_admin: User, member: User
 ) -> None:

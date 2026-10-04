@@ -1,5 +1,5 @@
 /**
- * Step 4 — pay, or, for a friend, contribute.
+ * Step 4 — pay, or, for a friend, donate.
  *
  * The payment UI itself is `<Checkout/>` from `@/portal/features/checkout`:
  * it offers the plans, the optional contribution and the card / Apple Pay /
@@ -7,8 +7,8 @@
  * activated the membership.  The step shows the kind the wizard names in
  * `joiningAs`, which starts as the kind the visitor chose when they registered.
  *
- * A friend owes no dues, so a friend's step offers a contribution alone, and its
- * **Not now** button moves on without paying.  Under the contribution, **I changed
+ * A friend owes no dues, so a friend's step offers a donation alone, and its
+ * **Not now** button moves on without paying.  Under the donation, **I changed
  * my mind, I want to be a member** swaps the step to a member's: nothing changes on
  * the server until a membership is paid for.  A member's step has no **Not now**:
  * paying is what makes a member.  Its one other way on is the card for changing
@@ -37,7 +37,7 @@ export interface PayStepProps {
   onDone: () => void;
 }
 
-/** Step 4 of the join wizard: dues through `<Checkout/>`, or a friend's contribution. */
+/** Step 4 of the join wizard: dues through `<Checkout/>`, or a friend's donation. */
 export function PayStep({
   joiningAs,
   onJoiningAsChange: handleJoiningAsChange,
@@ -62,11 +62,11 @@ export function PayStep({
         key="friend"
         className="join-card"
         eyebrow={joinStepEyebrow('pay')}
-        title="Contribute to CalDART"
+        title="Donate to CalDART"
       >
         <p className="muted">
-          Friends pay no dues. A contribution of any size helps, and you can skip this step if now
-          is not the time.
+          Friends pay no dues. A donation of any size helps, and you can skip this step if now is
+          not the time.
         </p>
         <Checkout
           mode="contribute"

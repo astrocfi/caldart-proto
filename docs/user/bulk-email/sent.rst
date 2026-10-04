@@ -33,7 +33,7 @@ one at a time until the rest fit, so the actions stay in sight; on a phone the t
 sideways, says so above it, and keeps the subject pinned at the left. Before the first send
 the table reads *No bulk email has been sent* and *Each bulk email appears here once it
 starts going out.*; a DART leader's reads *You have not sent an email yet* and *Emails you
-send appear here once they start going out.* Either offers **Write an email**, which opens
+send appear here once they start going out.* Either offers **New email**, which opens
 :doc:`compose`, to anybody who has people to send to. The list keeps itself up to date while
 an email is sending.
 

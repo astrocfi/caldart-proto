@@ -32,6 +32,7 @@ import { Page } from '@/portal/components/Page';
 import type { ReportCell } from '@/portal/components/reportTable';
 import { ColumnTools, reportTableColumns, useColumnChoice } from '@/portal/components/reportTable';
 import { StatusDot } from '@/portal/components/StatusDot';
+import { ACTIONS_MIN_WIDTH } from '@/portal/components/tableFit';
 import { useToast } from '@/portal/components/Toast';
 import { useUrlFilters } from '@/portal/components/useUrlFilters';
 import { CADENCE_LABELS } from '@/portal/features/payments/labels';
@@ -114,7 +115,7 @@ const MANDATE_CELLS: Record<string, ReportCell<RenewalMandate>> = {
     sortValue: (row) => row.user_name,
   },
   email: {
-    minWidth: '12rem',
+    minWidth: '15rem',
     dropOrder: 1,
     render: (row) => row.user_email,
     sortValue: (row) => row.user_email,
@@ -122,6 +123,8 @@ const MANDATE_CELLS: Record<string, ReportCell<RenewalMandate>> = {
   kind: {
     minWidth: '11rem',
     dropOrder: 3,
+    // "Automatic renewal and contribution · Monthly" is read whole, on two lines.
+    wrap: true,
     render: (row) => (
       <>
         {MANDATE_KIND_LABELS[row.kind]}
@@ -158,7 +161,7 @@ const MANDATE_CELLS: Record<string, ReportCell<RenewalMandate>> = {
     render: (row) => <DateText value={row.next_charge_on} />,
     sortValue: (row) => row.next_charge_on,
   },
-  method: { minWidth: '10rem', dropOrder: 1, render: (row) => row.method_label },
+  method: { minWidth: '18rem', dropOrder: 1, render: (row) => row.method_label },
   status: {
     width: '9rem',
     narrowWidth: '7rem',
@@ -249,7 +252,8 @@ export function RenewalsPage(): JSX.Element {
       key: 'actions',
       header: 'Actions',
       isActions: true,
-      width: '13rem',
+      // Turn off alone; the table gives an open confirmation its least width.
+      width: ACTIONS_MIN_WIDTH,
       render: (row) => {
         if (!isCancelable(row)) return <span className="muted">Turned off</span>;
         return (

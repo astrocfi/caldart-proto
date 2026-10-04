@@ -90,7 +90,7 @@ describe('ScheduledPage', () => {
     renderPage();
 
     expect(
-      await screen.findByText(/^The sender runs every morning\. It emails every report/),
+      await screen.findByText(/^The sender runs every morning\. It sends every emailed report/),
     ).toBeInTheDocument();
   });
 

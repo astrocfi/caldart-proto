@@ -264,9 +264,9 @@ describe('DartsPage', () => {
     await user.click(await screen.findByRole('button', { name: 'New DART' }));
     await user.type(screen.getByLabelText('Name*'), 'Napa');
     await user.type(screen.getByLabelText('Airports*'), 'APC');
-    await user.type(screen.getByLabelText('Name'), 'Helen Marchetti');
-    await user.type(screen.getByLabelText('Title'), 'DART leader');
-    await user.type(screen.getByLabelText('Phone'), '7075550133');
+    await user.type(screen.getByLabelText('Name of person 1'), 'Helen Marchetti');
+    await user.type(screen.getByLabelText('Title of person 1'), 'DART leader');
+    await user.type(screen.getByLabelText('Phone of person 1'), '7075550133');
     await user.click(screen.getByRole('button', { name: 'Add DART' }));
 
     await waitFor(() =>
@@ -796,7 +796,7 @@ describe('DartsPage', () => {
     renderPage();
 
     await user.click(await screen.findByRole('button', { name: 'New DART' }));
-    await user.type(screen.getByLabelText('Name'), 'Helen Marchetti');
+    await user.type(screen.getByLabelText('Name of person 1'), 'Helen Marchetti');
 
     expect(screen.getByRole('button', { name: 'Add a person' })).toBeEnabled();
   });
@@ -808,7 +808,7 @@ describe('DartsPage', () => {
 
     await user.click(await screen.findByRole('button', { name: 'Edit Palo Alto' }));
     await user.click(screen.getByRole('button', { name: 'Add a person' }));
-    await user.type(screen.getAllByLabelText('Name')[2] as HTMLElement, '   ');
+    await user.type(screen.getAllByLabelText(/^Name of person/)[2] as HTMLElement, '   ');
 
     expect(screen.getByRole('button', { name: 'Add a person' })).toBeDisabled();
   });
@@ -831,7 +831,7 @@ describe('DartsPage', () => {
       renderPage();
 
       await user.click(await screen.findByRole('button', { name: 'Edit Palo Alto' }));
-      await user.clear(screen.getAllByLabelText('Name')[1] as HTMLElement);
+      await user.clear(screen.getAllByLabelText(/^Name of person/)[1] as HTMLElement);
 
       expect(screen.getByRole('button', { name: control })).toBeDisabled();
     },
@@ -846,7 +846,7 @@ describe('DartsPage', () => {
     renderPage();
 
     await user.click(await screen.findByRole('button', { name: 'Edit Palo Alto' }));
-    await user.clear(screen.getAllByLabelText('Name')[1] as HTMLElement);
+    await user.clear(screen.getAllByLabelText(/^Name of person/)[1] as HTMLElement);
 
     expect(screen.getByRole('button', { name: control })).toBeDisabled();
   });
@@ -859,7 +859,7 @@ describe('DartsPage', () => {
       renderPage();
 
       await user.click(await screen.findByRole('button', { name: 'Edit Palo Alto' }));
-      await user.clear(screen.getAllByLabelText('Name')[3] as HTMLElement);
+      await user.clear(screen.getAllByLabelText(/^Name of person/)[3] as HTMLElement);
 
       expect(screen.getByRole('button', { name: control })).toBeEnabled();
     },

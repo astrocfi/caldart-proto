@@ -9,7 +9,9 @@ import { server } from '@test/server';
 import type { EmailLogEntry, Paginated, ReportColumn } from '@/portal/api/types';
 import { SEARCH_DEBOUNCE_MS } from '@/portal/components/useDebounced';
 import { API_BASE } from '@/portal/urlPrefix';
-import { EmailLogPanel } from './EmailLogPanel';
+import { reportTableColumns } from '@/portal/components/reportTable';
+import { fitColumns } from '@/portal/components/tableFit';
+import { CELLS, EmailLogPanel } from './EmailLogPanel';
 
 /** A userEvent instance whose internal waits advance the fake clock instead of sleeping. */
 function setupUser() {
@@ -418,5 +420,37 @@ describe('EmailLogPanel', () => {
 
     const link = await screen.findByRole('link', { name: 'Export PDF' });
     expect(link).toHaveAttribute('href', '/api/v1/reports/emails/export.pdf?ordering=-sent_at');
+  });
+});
+
+describe('the sent emails table at narrow widths', () => {
+  const DEFAULTS: ReportColumn[] = [
+    { key: 'sent_at', label: 'Sent', default: true },
+    { key: 'purpose', label: 'Purpose', default: true },
+    { key: 'to_email', label: 'To', default: true },
+    { key: 'user_name', label: 'Name', default: true },
+    { key: 'subject', label: 'Subject', default: true },
+    { key: 'status', label: 'Status', default: true },
+  ];
+  const columns = reportTableColumns(
+    DEFAULTS,
+    DEFAULTS.map((column) => column.key),
+    CELLS,
+    true,
+  );
+
+  it.each([
+    ['a tablet', 46],
+    ['a phone', 19],
+  ])('keeps To, the column the screen exists for, on %s', (_width, rem) => {
+    expect(fitColumns(columns, rem).map((column) => column.header)).toContain('To');
+  });
+
+  it('pins To at the left as the table scrolls', () => {
+    expect(fitColumns(columns, 19).find((column) => column.isIdentity)?.header).toBe('To');
+  });
+
+  it('keeps the subject beside the address on a tablet', () => {
+    expect(fitColumns(columns, 46).map((column) => column.header)).toContain('Subject');
   });
 });

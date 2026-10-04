@@ -245,7 +245,10 @@ def test_only_user_administrators_may_send_an_email_verification(
 def test_system_admin_may_create_a_member(api_client: APIClient, system_admin: User) -> None:
     """A system administrator holds the account administrator's write access too."""
     api_client.force_login(system_admin)
-    response = api_client.post(MEMBERS_LIST_URL, {"email": "newmember@example.test"})
+    response = api_client.post(
+        MEMBERS_LIST_URL,
+        {"email": "newmember@example.test", "first_name": "Ivy", "last_name": "Novak"},
+    )
     assert response.status_code == 201
 
 

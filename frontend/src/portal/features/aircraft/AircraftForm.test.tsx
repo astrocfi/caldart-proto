@@ -241,3 +241,48 @@ describe('<AircraftForm/> aircraft type', () => {
     expect(submitted[0]?.type_id).toBe(3);
   });
 });
+
+describe('<AircraftForm/> leaving a box', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('says nothing about an N-number box left without typing', async () => {
+    const { user } = renderForm();
+    await user.click(nNumberBox());
+    await user.tab();
+
+    expect(nNumberBox()).not.toHaveAttribute('aria-invalid');
+  });
+
+  it('marks a box once something typed in it is left', async () => {
+    const { user } = renderForm();
+    await user.type(screen.getByLabelText('Year'), '19');
+    await user.tab();
+
+    expect(screen.getByLabelText('Year')).toHaveAttribute('aria-invalid', 'true');
+  });
+
+  it('keeps the focus in a half-typed box while Cancel is pressed, so nothing moves', async () => {
+    const user = setupUser();
+    renderWithProviders(
+      <AircraftForm
+        initial={emptyAircraftValues()}
+        submitLabel="Add aircraft"
+        onSubmit={() => undefined}
+        onCancel={() => undefined}
+      />,
+    );
+    await user.type(nNumberBox(), '1');
+    await user.pointer({
+      keys: '[MouseLeft>]',
+      target: screen.getByRole('button', { name: 'Cancel' }),
+    });
+
+    expect(nNumberBox()).toHaveFocus();
+  });
+});

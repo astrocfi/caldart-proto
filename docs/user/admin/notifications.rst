@@ -27,8 +27,9 @@ The **Notification emails** card lists every address that gets notifications, on
 
 Each row carries three controls, last on the line under an **Actions** heading a screen
 reader announces. A message in the corner of the screen says what the last two did.
-**Events** never narrows below a readable width: on a phone the table scrolls sideways, says
-so above it, and keeps **Recipient** pinned at the left.
+**Events** never narrows below a readable width, and its list wraps onto as many lines as it
+needs: on a phone the table scrolls sideways, says so above it, and keeps **Recipient**
+pinned at the left.
 
 **Edit**
    Opens the subscription's form under the table, to change its events, as **Changing one**
@@ -57,7 +58,7 @@ Setting one up
    read what it covers. **Select all** checks every event in its group, and **Clear**
    unchecks them.
 
-Press **Add address**, or **Cancel** or Escape. *Subscription added.* confirms a save. An address
+Press **Add address**, or **Cancel** or Escape. *Address added.* confirms a save. An address
 that already has a subscription is refused with *This address already has a subscription.*
 Edit that one instead. An address that belongs
 to a CalDART account is refused when the account holds no role that may receive a checked
@@ -72,7 +73,7 @@ Changing one
 **Edit** on a row opens the same form, headed **Edit notifications**, with the subscription's
 events checked. The **Recipient** is shown as plain text, since it cannot change: to send the
 notifications somewhere else, delete the subscription and set up another. Change the checked events
-and press **Save changes**; the form closes, *Subscription saved.* confirms it, and the row shows the
+and press **Save changes**; the form closes, *Address saved.* confirms it, and the row shows the
 change. **Cancel**, or Escape, closes the form and changes nothing, and you are back on the
 row's **Edit**. One form is open at a time.
 

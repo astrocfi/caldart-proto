@@ -86,7 +86,9 @@ describe('RemindersPanel', () => {
     await screen.findByText('Marta Reyes');
 
     expect(
-      screen.getByLabelText('Practice run: show what would happen, send nothing'),
+      screen.getByLabelText(
+        'Practice run: show what would happen, send nothing (renewal reminder emails)',
+      ),
     ).toBeChecked();
     await userEvent.click(screen.getByRole('button', { name: 'Run now: renewal reminder emails' }));
 
@@ -133,7 +135,9 @@ describe('RemindersPanel', () => {
     await screen.findByText('Marta Reyes');
 
     await userEvent.click(
-      screen.getByLabelText('Practice run: show what would happen, send nothing'),
+      screen.getByLabelText(
+        'Practice run: show what would happen, send nothing (renewal reminder emails)',
+      ),
     );
     await userEvent.click(screen.getByRole('button', { name: 'Run now: renewal reminder emails' }));
 
@@ -239,7 +243,9 @@ describe('RemindersPanel', () => {
     await waitFor(() => expect(emailRequests).toBe(1));
 
     await userEvent.click(
-      screen.getByLabelText('Practice run: show what would happen, send nothing'),
+      screen.getByLabelText(
+        'Practice run: show what would happen, send nothing (renewal reminder emails)',
+      ),
     );
     await userEvent.click(screen.getByRole('button', { name: 'Run now: renewal reminder emails' }));
     await screen.findByText('Sent 1 email, skipped 0.');

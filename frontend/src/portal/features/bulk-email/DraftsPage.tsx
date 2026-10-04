@@ -9,7 +9,7 @@
  * because its sender may no longer send its type, is named above the table with
  * the reason. CalDART management, who sees every sender's emails, also sees who
  * wrote each and the DART a DART leader's email goes to. A DART leader whose profile
- * names no DART is told to set it on My profile, in place of **Write a new email**.
+ * names no DART is told to set it on My profile, in place of **New email**.
  */
 import type { JSX } from 'react';
 import { Link } from 'react-router-dom';
@@ -35,6 +35,28 @@ import { statusLabel, statusTone } from './status';
 
 /** What a draft with no subject yet is listed as. */
 export const NO_SUBJECT = '(no subject yet)';
+
+/**
+ * What a screen reader calls an email in the list: its subject, or, for a draft with
+ * none yet, `(no subject yet)` and when it was last saved, so two such drafts are not
+ * heard as one.
+ */
+export function draftName(row: Pick<BulkEmailSummary, 'subject' | 'updated_at'>): string {
+  if (row.subject !== '') return row.subject;
+  return `${NO_SUBJECT}, saved ${formatDateTime(row.updated_at)}`;
+}
+
+/** The link that opens an email's compose screen, named by `draftName`. */
+function SubjectLink({ row }: { row: BulkEmailSummary }): JSX.Element {
+  return (
+    <Link
+      to={`/bulk-email/compose/${row.id}`}
+      aria-label={row.subject === '' ? draftName(row) : undefined}
+    >
+      {row.subject || NO_SUBJECT}
+    </Link>
+  );
+}
 
 /** The drafts and queued emails, each opened by its subject, with Cancel and the trashcan. */
 export function DraftsPage(): JSX.Element {
@@ -75,8 +97,7 @@ export function DraftsPage(): JSX.Element {
           <ul className="bulk-email__not-sent stack-tight" aria-label="Emails that were not sent">
             {notSent.map((row) => (
               <li key={row.id} className="bulk-email__notice">
-                <Link to={`/bulk-email/compose/${row.id}`}>{row.subject || NO_SUBJECT}</Link>:{' '}
-                {row.not_sent_reason}
+                <SubjectLink row={row} />: {row.not_sent_reason}
               </li>
             ))}
           </ul>
@@ -124,9 +145,7 @@ function draftColumns(
       header: 'Subject',
       minWidth: '14rem',
       isIdentity: true,
-      render: (row) => (
-        <Link to={`/bulk-email/compose/${row.id}`}>{row.subject || NO_SUBJECT}</Link>
-      ),
+      render: (row) => <SubjectLink row={row} />,
       sortValue: (row) => row.subject,
     },
     {
@@ -140,14 +159,14 @@ function draftColumns(
             <Button
               variant="quiet"
               small
-              aria-label={`Cancel the send of ${row.subject || NO_SUBJECT}`}
+              aria-label={`Cancel the send of ${draftName(row)}`}
               onClick={() => onCancel(row.id)}
             >
               {row.scheduled ? 'Cancel schedule' : 'Cancel'}
             </Button>
           ) : (
             <DeleteButton
-              label={`Delete the draft ${row.subject || NO_SUBJECT}`}
+              label={`Delete the draft ${draftName(row)}`}
               onDelete={() => onDelete(row.id)}
             />
           )}

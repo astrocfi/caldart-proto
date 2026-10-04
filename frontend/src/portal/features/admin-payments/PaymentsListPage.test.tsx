@@ -7,7 +7,8 @@ import { TEST_COLUMNS, makePayment } from '@test/fixtures/finance';
 import { API, financeHandlers } from '@test/handlers';
 import { renderRoutes, renderWithProviders } from '@test/render';
 import { server } from '@test/server';
-import { PaymentsListPage } from './PaymentsListPage';
+import { fitColumns } from '@/portal/components/tableFit';
+import { PaymentsListPage, tableColumns } from './PaymentsListPage';
 
 /** Serve the list, its columns and the plan catalog, recording every URL. */
 function serveList(payments = [makePayment()]): string[] {
@@ -341,5 +342,21 @@ describe('PaymentsListPage', () => {
       'href',
       '/admin/payments/record',
     );
+  });
+});
+
+describe('the payment list on a phone', () => {
+  /** The list's room at 390 pixels wide, in rem. */
+  const PHONE_REM = 18;
+  const defaults = TEST_COLUMNS.filter((column) => column.default).map((column) => column.key);
+
+  it('keeps the date, the column that tells the payments apart', () => {
+    const shown = fitColumns(tableColumns(TEST_COLUMNS, defaults), PHONE_REM);
+    expect(shown.map((column) => column.header)).toContain('Date');
+  });
+
+  it('pins the date at the left as the table scrolls', () => {
+    const shown = fitColumns(tableColumns(TEST_COLUMNS, defaults), PHONE_REM);
+    expect(shown.find((column) => column.isIdentity)?.header).toBe('Date');
   });
 });

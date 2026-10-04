@@ -47,7 +47,7 @@ export function CalloutsPage(): JSX.Element {
             caption={`${rows.length} ${rows.length === 1 ? 'callout' : 'callouts'}`}
             emptyTitle="No callout has been sent"
             emptyDescription="To send one, write an email and switch on This is a mission callout."
-            emptyAction={<ButtonLink to="/bulk-email/compose">Write an email</ButtonLink>}
+            emptyAction={<ButtonLink to="/bulk-email/compose">New email</ButtonLink>}
             isLoading={callouts.isLoading}
           />
         )}

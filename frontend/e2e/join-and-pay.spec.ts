@@ -129,12 +129,12 @@ test('a declined payment says so and leaves the visitor able to try again', asyn
   await expect(page.getByRole('button', { name: 'Succeed', exact: true })).toBeEnabled();
 });
 
-test('a life member contributes where the renew screen would renew', async ({ page }) => {
+test('a life member who opens Renew gives through Donate instead', async ({ page }) => {
   await signIn(page, SEED.contributionMandate.email);
   await page.goto('portal/renew');
 
-  await expect(page.getByRole('heading', { name: 'Contribute to CalDART' })).toBeVisible();
-  await expect(page.getByText('You are a life member. Thank you.')).toBeVisible();
+  await expect(page).toHaveURL(/\/portal\/donate$/);
+  await expect(page.getByRole('heading', { level: 1, name: 'Donate' })).toBeVisible();
   // Nothing is on sale here: a life member has bought their membership already.
   await expect(page.getByRole('radio', { name: /Annual/ })).toHaveCount(0);
 
@@ -142,8 +142,8 @@ test('a life member contributes where the renew screen would renew', async ({ pa
   await page.getByRole('tab', { name: 'Test payment' }).click();
   await page.getByRole('button', { name: 'Succeed', exact: true }).click();
 
-  await expect(page.getByText('Thank you for your contribution.').first()).toBeVisible();
-  await expect(page).toHaveURL(/\/portal\/?$/);
+  await expect(page.getByText('Thank you for your donation.').first()).toBeVisible();
+  await expect(page).toHaveURL(/\/portal\/payments$/);
 });
 
 test('an unverified joiner sees only the verify screen, even after signing in again', async ({

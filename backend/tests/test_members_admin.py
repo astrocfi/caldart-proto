@@ -832,7 +832,9 @@ def test_create_without_a_password_emails_an_invitation(
     """Creating a member with no password mails a set-your-password invitation."""
     with django_capture_on_commit_callbacks(execute=True):
         response = account_admin_client.post(
-            LIST_URL, {"email": "invited@example.test"}, format="json"
+            LIST_URL,
+            {"email": "invited@example.test", "first_name": "Ivy", "last_name": "Novak"},
+            format="json",
         )
     assert response.status_code == 201
 
@@ -885,11 +887,66 @@ def test_create_applies_the_same_profile_rules_as_the_member_form(
     assert "medical_expiration" in response.json()["profile"]
 
 
-def test_create_needs_nothing_but_an_email(account_admin_client: APIClient) -> None:
-    """An administrator records what they were told, which may be very little."""
-    response = account_admin_client.post(LIST_URL, {"email": "sparse@example.test"}, format="json")
+def test_create_needs_nothing_but_an_email_and_the_names(account_admin_client: APIClient) -> None:
+    """An administrator records what they were told, which may be little: no phone."""
+    response = account_admin_client.post(
+        LIST_URL,
+        {"email": "sparse@example.test", "first_name": "Ivy", "last_name": "Novak"},
+        format="json",
+    )
     assert response.status_code == 201
     assert response.json()["profile"]["phone"] == ""
+
+
+@pytest.mark.parametrize(
+    ("body", "expected"),
+    [
+        ({"last_name": "Ballard"}, {"first_name": ["Enter a first name."]}),
+        ({"first_name": "Alan"}, {"last_name": ["Enter a last name."]}),
+        (
+            {"first_name": " ", "last_name": "Ballard"},
+            {"first_name": ["Enter a first name."]},
+        ),
+    ],
+    ids=["no-first-name", "no-last-name", "blank-first-name"],
+)
+def test_create_refuses_a_member_without_both_names(
+    account_admin_client: APIClient, body: dict[str, str], expected: dict[str, list[str]]
+) -> None:
+    """A new member needs a first and a last name, so no record reads a surname alone."""
+    response = account_admin_client.post(
+        LIST_URL, {"email": "nameless@example.test", **body}, format="json"
+    )
+    assert response.status_code == 400
+    assert response.json() == expected
+
+
+@pytest.mark.parametrize("field", ["first_name", "last_name"])
+def test_an_edit_refuses_a_blank_name(
+    account_admin_client: APIClient, population: dict[str, User], field: str
+) -> None:
+    """Clearing a name on the member record is refused, naming the field."""
+    response = account_admin_client.patch(
+        detail_url(population["current"]), {field: ""}, format="json"
+    )
+    assert response.status_code == 400
+    assert response.json() == {
+        field: [f"Enter a {'first' if field == 'first_name' else 'last'} name."]
+    }
+
+
+def test_an_edit_leaves_a_name_it_does_not_send_alone(
+    account_admin_client: APIClient, population: dict[str, User]
+) -> None:
+    """A PATCH that carries no name keeps the stored one."""
+    member = population["current"]
+    first = member.first_name
+    response = account_admin_client.patch(
+        detail_url(member), {"profile": {"city": "Petaluma"}}, format="json"
+    )
+    assert response.status_code == 200
+    member.refresh_from_db()
+    assert member.first_name == first
 
 
 def test_a_partial_profile_patch_is_judged_against_the_stored_row(

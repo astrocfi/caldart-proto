@@ -26,8 +26,6 @@ export interface NavItem {
    * tabs, such as Finance; the group's name otherwise.
    */
   area?: string;
-  /** The label a lifetime member sees, whose screen behind the entry is titled for them. */
-  lifetimeLabel?: string;
   /**
    * Match the route exactly rather than by prefix.
    *
@@ -42,6 +40,11 @@ export interface NavItem {
    * `friend_on` date that has arrived has no membership to renew.
    */
   hideForFriend?: boolean;
+  /**
+   * Hide this entry from a lifetime member, who has no term to renew and gives through
+   * Donate like everyone else.
+   */
+  hideForLifetime?: boolean;
 }
 
 export const NAV_ITEMS: NavItem[] = [
@@ -53,10 +56,10 @@ export const NAV_ITEMS: NavItem[] = [
   {
     to: '/renew',
     label: 'Renew',
-    lifetimeLabel: 'Contribute',
     roles: [],
     group: 'Membership',
     hideForFriend: true,
+    hideForLifetime: true,
   },
   // `/change-password` is a real route with a real screen; without an entry
   // here nothing in the portal linked to it.
@@ -216,15 +219,15 @@ export function hasAnyRole(userRoles: readonly RoleSlug[], required: readonly Ro
 export interface NavReader {
   /** A friend by kind or by an arrived `friend_on` date, who has no membership to renew. */
   isEffectiveFriend?: boolean;
-  /** A lifetime member, whose Renew screen asks for a contribution instead. */
+  /** A lifetime member, who has no term to renew. */
   isLifetime?: boolean;
 }
 
 /**
  * The nav entries a user with `userRoles` may see, in declaration order.
  *
- * An effective friend loses an entry marked `hideForFriend`, such as Renew, and a
- * lifetime member reads an entry's `lifetimeLabel` in place of its label.
+ * An effective friend loses an entry marked `hideForFriend`, and a lifetime member one
+ * marked `hideForLifetime`: Renew is both.
  */
 export function visibleNavItems(
   userRoles: readonly RoleSlug[],
@@ -232,9 +235,9 @@ export function visibleNavItems(
 ): NavItem[] {
   return NAV_ITEMS.filter(
     (item) =>
-      hasAnyRole(userRoles, item.roles) && !(item.hideForFriend === true && isEffectiveFriend),
-  ).map((item) =>
-    isLifetime && item.lifetimeLabel !== undefined ? { ...item, label: item.lifetimeLabel } : item,
+      hasAnyRole(userRoles, item.roles) &&
+      !(item.hideForFriend === true && isEffectiveFriend) &&
+      !(item.hideForLifetime === true && isLifetime),
   );
 }
 

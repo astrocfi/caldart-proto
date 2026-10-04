@@ -63,16 +63,16 @@ const FILTER_KEYS = FILTER_FIELDS.map((field) => field.key);
  *
  * The registry names the columns; this names the cells, so a column the server
  * adds shows up in the chooser and in the exports without the table pretending
- * to know how to render it.  The name identifies a row and stays pinned when the
- * table scrolls; Total and Status stay in sight on a phone; the rest drop, the
- * least needed first, when the table would not fit.
+ * to know how to render it.  The date identifies a row, the list being a run of
+ * payments in time, and stays pinned when the table scrolls; the name, Total, and Status
+ * stay in the table on a phone; the rest drop, the least needed first, when the table
+ * would not fit.
  */
 const CELLS: Record<string, ReportCell<Payment>> = {
   paid_on: {
     ordering: 'paid_at',
     width: '7rem',
-    noWrap: true,
-    dropOrder: 7,
+    isIdentity: true,
     render: (row) => <DateText value={row.paid_on} />,
   },
   receipt_number: {
@@ -84,7 +84,6 @@ const CELLS: Record<string, ReportCell<Payment>> = {
   name: {
     ordering: 'user__last_name',
     minWidth: '10rem',
-    isIdentity: true,
     render: (row) => <Link to={`/admin/payments/${row.id}`}>{row.user_name}</Link>,
   },
   email: {

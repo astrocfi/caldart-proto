@@ -19,6 +19,8 @@ from apps.accounts.models import PERSON_KIND_CHOICES, AccountKind, User
 from apps.accounts.roles import ROLE_SLUGS
 from apps.accounts.services import AccountChanges
 from apps.members.api.profile_serializers import (
+    FIRST_NAME_MESSAGE,
+    LAST_NAME_MESSAGE,
     MembershipTermSerializer,
     PaymentSummarySerializer,
     ProfileSerializer,
@@ -40,7 +42,7 @@ from apps.members.services import (
     update_member,
 )
 from caldart.casing import person_name
-from caldart.messages import email_messages
+from caldart.messages import email_messages, when_missing
 
 if TYPE_CHECKING:
     from apps.members.services import MemberRow
@@ -417,13 +419,19 @@ class MemberDetailSerializer(serializers.Serializer[User]):
 class MemberCreateSerializer(serializers.Serializer[User]):
     """``POST /admin/members`` -- account plus nested profile.
 
-    ``kind`` is ``member`` (the default) or ``friend``: an administrator never makes a
-    donor by hand.
+    ``email``, ``first_name``, and ``last_name`` are required; a missing or blank name
+    is refused with "Enter a first name." or "Enter a last name."  Every phone number in
+    the profile is optional.  ``kind`` is ``member`` (the default) or ``friend``: an
+    administrator never makes a donor by hand.
     """
 
     email = serializers.EmailField(error_messages=email_messages("Enter the email address."))
-    first_name = serializers.CharField(max_length=150, allow_blank=True, required=False, default="")
-    last_name = serializers.CharField(max_length=150, allow_blank=True, required=False, default="")
+    first_name = serializers.CharField(
+        max_length=150, error_messages=when_missing(FIRST_NAME_MESSAGE)
+    )
+    last_name = serializers.CharField(
+        max_length=150, error_messages=when_missing(LAST_NAME_MESSAGE)
+    )
     password = serializers.CharField(write_only=True, required=False, allow_blank=True)
     kind = serializers.ChoiceField(
         choices=PERSON_KIND_CHOICES, required=False, default=AccountKind.MEMBER.value
@@ -463,8 +471,8 @@ class MemberCreateSerializer(serializers.Serializer[User]):
             request.user,
             email=validated_data["email"],
             password=validated_data.get("password", "") or "",
-            first_name=validated_data.get("first_name", ""),
-            last_name=validated_data.get("last_name", ""),
+            first_name=validated_data["first_name"],
+            last_name=validated_data["last_name"],
             kind=AccountKind(validated_data.get("kind", AccountKind.MEMBER)),
             profile=validated_data.get("profile") or {},
             request=request,
@@ -482,14 +490,19 @@ class MemberUpdateSerializer(serializers.Serializer[User]):
 
     ``kind`` (``member`` or ``friend``) makes the account that kind at once and clears
     any pending ``friend_on`` date; a donor's kind is never changed by hand, which is
-    a 400 against ``kind``.
+    a 400 against ``kind``.  A name left out is left alone, and one sent blank is
+    refused with "Enter a first name." or "Enter a last name."
     """
 
     email = serializers.EmailField(
         required=False, error_messages=email_messages("Enter the email address.")
     )
-    first_name = serializers.CharField(max_length=150, allow_blank=True, required=False)
-    last_name = serializers.CharField(max_length=150, allow_blank=True, required=False)
+    first_name = serializers.CharField(
+        max_length=150, required=False, error_messages=when_missing(FIRST_NAME_MESSAGE)
+    )
+    last_name = serializers.CharField(
+        max_length=150, required=False, error_messages=when_missing(LAST_NAME_MESSAGE)
+    )
     kind = serializers.ChoiceField(choices=PERSON_KIND_CHOICES, required=False)
     profile = AdminProfileSerializer(required=False, partial=True)
 

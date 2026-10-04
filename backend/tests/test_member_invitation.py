@@ -258,7 +258,11 @@ def test_creating_a_member_without_a_password_sends_the_invitation(
 ) -> None:
     """Creating a member with no password mails an invitation once the commit fires."""
     with django_capture_on_commit_callbacks(execute=True):
-        account_admin_client.post(MEMBERS_URL, {"email": "newbie@example.test"}, format="json")
+        account_admin_client.post(
+            MEMBERS_URL,
+            {"email": "newbie@example.test", "first_name": "Ivy", "last_name": "Novak"},
+            format="json",
+        )
     assert mail.outbox[0].subject == f"{ORG_NAME}: set your password"
 
 
@@ -271,7 +275,12 @@ def test_creating_a_member_with_a_password_sends_no_invitation(
     with django_capture_on_commit_callbacks(execute=True):
         account_admin_client.post(
             MEMBERS_URL,
-            {"email": "newbie@example.test", "password": GOOD_PASSWORD},
+            {
+                "email": "newbie@example.test",
+                "first_name": "Ivy",
+                "last_name": "Novak",
+                "password": GOOD_PASSWORD,
+            },
             format="json",
         )
     assert [message.subject for message in mail.outbox] == [

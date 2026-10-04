@@ -21,6 +21,9 @@ import type { PaginationSettings } from './Pagination';
 import { arrangeColumns, DEFAULT_COLUMN_WIDTH, fitColumns, needsFitting } from './tableFit';
 import { useTableScroll } from './useTableScroll';
 
+/** How much narrower than its screen a window must be before it counts as widenable. */
+const WIDEN_SLACK_PX = 16;
+
 export type SortDirection = 'asc' | 'desc';
 
 export interface Column<Row> {
@@ -346,29 +349,57 @@ function listNames(names: readonly string[]): string {
   return `${names.slice(0, -1).join(', ')}, and ${names.at(-1) ?? ''}`;
 }
 
+/** How a table sits in its window, for the line above it. */
+export interface TableCueState {
+  /** The table's tools include a column chooser. */
+  hasChooser: boolean;
+  /** The table is wider than its card and scrolls sideways. */
+  isScrolling: boolean;
+  /** The window could be made wider, as a desktop window short of the screen can. */
+  canWiden: boolean;
+}
+
 /**
- * The line that names the columns the table left out to fit its container, or null
- * when it left none out.  With a column chooser beside the table it also offers
- * choosing fewer columns; the downloads keep the hidden columns either way.
+ * The one line above a table that does not show whole, or null when it does: that it
+ * scrolls sideways, which columns it left out to fit, and what would bring those back.
+ *
+ * A window that cannot be widened, such as a phone's, is never told to widen; with a
+ * column chooser beside the table the line offers choosing fewer columns instead.  The
+ * downloads keep the hidden columns either way.
  *
  * @param all every column the table would draw with room enough.
  * @param shown the columns it draws.
- * @param hasChooser whether the table's tools include a column chooser.
+ * @param state whether it scrolls, has a chooser, and sits in a window that can widen.
  * @returns the sentence, or null.
  */
-export function hiddenColumnsNote<Row>(
+export function tableCue<Row>(
   all: readonly Column<Row>[],
   shown: readonly Column<Row>[],
-  hasChooser: boolean,
+  { hasChooser, isScrolling, canWiden }: TableCueState,
 ): string | null {
   const shownKeys = new Set(shown.map((column) => column.key));
   const hidden = all.filter((column) => !shownKeys.has(column.key)).map((column) => column.header);
-  if (hidden.length === 0) return null;
-  const verb = hidden.length === 1 ? 'is' : 'are';
-  const advice = hasChooser
-    ? 'Widen it, or choose fewer columns.'
-    : 'Widen it to show every column.';
-  return `${listNames(hidden)} ${verb} hidden to fit the window. ${advice}`;
+  if (hidden.length === 0) return isScrolling ? 'Scroll sideways to see every column.' : null;
+  const parts = [
+    isScrolling ? 'Scroll sideways for more.' : '',
+    `${listNames(hidden)} ${hidden.length === 1 ? 'is' : 'are'} not shown at this width.`,
+  ];
+  if (canWiden) {
+    parts.push(
+      hasChooser ? 'Widen the window, or choose fewer columns.' : 'Widen the window to see them.',
+    );
+  } else if (hasChooser) {
+    parts.push('Choose fewer columns to make room for them.');
+  }
+  return parts.filter((part) => part !== '').join(' ');
+}
+
+/**
+ * Whether the window could be made wider than it is: a desktop window short of its
+ * screen's width.  A phone's window, or one already as wide as the screen, cannot.
+ */
+function windowCanWiden(): boolean {
+  return window.innerWidth + WIDEN_SLACK_PX < window.screen.availWidth;
 }
 
 /** The class of the box that holds the scroll box: whether it scrolls, and which way. */
@@ -410,7 +441,6 @@ export function DataTable<Row>({
   const allColumns = useMemo(() => arrangeColumns(givenColumns), [givenColumns]);
   const availableRem = useWidthRem(rootRef, singleLine && needsFitting(allColumns));
   const columns = fitColumns(allColumns, availableRem);
-  const hiddenNote = hiddenColumnsNote(allColumns, columns, Boolean(tools));
   const [ownKey, setSortKey] = useState<string | null>(initialSort?.key ?? null);
   const [ownDirection, setDirection] = useState<SortDirection>(initialSort?.direction ?? 'asc');
   const sortKey = sort ? sort.key : ownKey;
@@ -427,6 +457,11 @@ export function DataTable<Row>({
 
   const isEmpty = sorted.length === 0 && !isLoading;
   const scroll = useTableScroll(scrollRef, !isEmpty);
+  const cue = tableCue(allColumns, columns, {
+    hasChooser: Boolean(tools),
+    isScrolling: scroll.isOverflowing,
+    canWiden: windowCanWiden(),
+  });
 
   const isSortable = (column: Column<Row>): boolean =>
     column.sortable !== false &&
@@ -476,12 +511,7 @@ export function DataTable<Row>({
         <EmptyState title={emptyTitle} description={emptyDescription} action={emptyAction} />
       ) : (
         <>
-          {scroll.isOverflowing ? (
-            <p className="muted data-table__scroll-hint">Scroll sideways to see every column.</p>
-          ) : null}
-          {hiddenNote === null ? null : (
-            <p className="muted data-table__scroll-hint">{hiddenNote}</p>
-          )}
+          {cue === null ? null : <p className="muted data-table__scroll-hint">{cue}</p>}
           <div className={scrollClass(scroll)}>
             {/* The box scrolls a table wider than its card rather than widening the page.
               Once it does, a keyboard can reach it, and a screen reader hears its name. */}

@@ -185,6 +185,14 @@ describe('<KindSwitch/>', () => {
     },
   );
 
+  it('opens on Cancel, so pressing Enter twice converts nobody', async () => {
+    setUp();
+    renderWithProviders(<KindSwitch />);
+    await openPanel();
+    await readyButton('Yes, make me a friend');
+    expect(screen.getByRole('button', { name: 'Cancel' })).toHaveFocus();
+  });
+
   it('closes the panel on Cancel without asking the server', async () => {
     const calls = setUp();
     renderWithProviders(<KindSwitch />);

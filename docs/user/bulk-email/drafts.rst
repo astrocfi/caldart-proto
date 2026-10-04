@@ -34,8 +34,8 @@ On a screen too narrow for every column, **Type**, then **DART**, then **Last ed
 **From** are left out, one at a time until the rest fit, so the actions stay in sight; on a
 phone the table scrolls sideways, says so above it, and keeps the subject pinned at the left.
 **New email** at the top opens :doc:`compose`. Before the first draft the table reads
-*No drafts*, with its own **New email** button. A DART leader whose profile names no DART sees, in place of **Write a new
-email**, the line saying to set their DART on My profile, with **Open My profile**
+*No drafts*, with its own **New email** button. A DART leader whose profile names no DART
+sees, in place of **New email**, the line saying to set their DART on My profile, with **Open My profile**
 (:doc:`dart-leaders`).
 
 An email that came due but was not sent is named above the table with the reason, such as

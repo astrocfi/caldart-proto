@@ -25,11 +25,13 @@ foot of the table reads, for example, *Showing 1–25 of 212*, between **Previou
 **Next**.
 
 The table shows the same columns as the roles report you download, and **Columns** changes
-both (see `Exporting the roles report`_). At first it shows:
+both (see `Exporting the roles report`_). At first it shows, **Name** first on screen
+though the download leads with **Role**:
 
-- **Role**: every role the account holds, such as *Member, DART leader*, or *No role*.
 - **Name**: the person's name, or their address when no name is on file. Click it to open
   the :doc:`user-record`. A deactivated account has *account deactivated* beside it.
+- **Role**: the widest role the account holds and how many more, such as *DART leader +1*,
+  or *No role*. Rest the pointer on it to read every role.
 - **Email**: the address, which is also how they sign in.
 - **Phone**: the phone number on their profile.
 - **DART**: their team, blank for none.

@@ -62,8 +62,8 @@ class DonationsConfigSerializer(serializers.Serializer[dict[str, Any]]):
 class DonationCheckoutSerializer(ProfileSerializer):
     """``POST /donations/checkout``: who is giving, how much, and through which provider.
 
-    ``first_name``, ``last_name``, ``email`` and ``phone`` are required; the phone
-    follows the profile's rule and is stored as ``XXX-XXX-XXXX``.  The optional fields
+    ``first_name``, ``last_name``, and ``email`` are required.  The phone is optional,
+    as it is on every profile, and is stored as ``XXX-XXX-XXXX``.  The optional fields
     are the profile's own, under the profile's own rules (a five-digit ZIP code, a
     three-character airport, an active DART named by ``dart_id``), except that a
     pilot certificate needs no number here.  ``contribution_cents`` runs from 1 to

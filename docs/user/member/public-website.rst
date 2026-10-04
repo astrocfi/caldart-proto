@@ -82,8 +82,8 @@ form:
 
 #. **Amount.** Choose a tier, or **Other amount** and type whole dollars. Without an
    amount it says *Choose an amount to give.*
-#. **About you.** **First name**, **Last name**, **Email** (*Your receipt goes
-   here*), and **Phone** are required. The phone box takes ten digits and writes
+#. **About you.** **First name**, **Last name**, and **Email** (*Your receipt goes
+   here*) are required. **Phone** is optional; the box takes ten digits and writes
    the dashes itself.
 #. **Tell us more (optional).** Closed until you open it: your address, city, state,
    ZIP code, and California county; your home airport; your DART; your Air Care

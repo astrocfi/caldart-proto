@@ -71,16 +71,19 @@ const FALLBACK_COLUMNS: ReportColumn[] = [
 ];
 
 /**
- * How the table draws each column of the email log report.  The subject tells one
- * row from another; the columns the defaults leave out drop first on a narrow screen,
- * then the purpose, the name, and the address.  Only Sent sorts: it is the one order
- * the log takes.
+ * How the table draws each column of the email log report.  The address it went to is
+ * what the screen answers, so it tells one row from another, stays pinned when the table
+ * scrolls, and never drops; the status stays in sight beside it.  The columns the
+ * defaults leave out drop first on a narrow screen, then the purpose, the name, the
+ * subject, and on a phone the time it went.  Only Sent sorts: it is the one order the
+ * log takes.
  */
-const CELLS: Record<string, ReportCell<EmailLogEntry>> = {
+export const CELLS: Record<string, ReportCell<EmailLogEntry>> = {
   sent_at: {
     ordering: 'sent_at',
     width: '12rem',
     noWrap: true,
+    dropOrder: 9,
     render: (row) => <DateText value={row.sent_at} withTime />,
   },
   purpose: {
@@ -90,15 +93,16 @@ const CELLS: Record<string, ReportCell<EmailLogEntry>> = {
     render: (row) =>
       row.link === '' ? row.purpose_label : <Link to={row.link}>{row.purpose_label}</Link>,
   },
-  to_email: { minWidth: '14rem', dropOrder: 7, render: (row) => row.to_email },
+  to_email: { minWidth: '13rem', isIdentity: true, render: (row) => row.to_email },
   user_name: {
     minWidth: '9rem',
     dropOrder: 6,
     render: (row) => (row.user_name === '' ? NOTHING : row.user_name),
   },
-  subject: { minWidth: '14rem', isIdentity: true, render: (row) => row.subject },
+  subject: { minWidth: '13rem', dropOrder: 8, render: (row) => row.subject },
   status: {
     minWidth: '7rem',
+    narrowWidth: '5.5rem',
     keepInSight: true,
     render: (row) => (
       <StatusDot tone={STATUS_TONE[row.status]} label={STATUS_TEXT[row.status](row)} />
@@ -194,7 +198,7 @@ export function EmailLogPanel(): JSX.Element {
             values={filters}
             onChange={handleFilterChange}
             options={purposeOptions}
-            label="Filter the email log"
+            label="Filter sent emails"
           />
         }
         tools={<ColumnTools choice={choice} />}
@@ -203,7 +207,7 @@ export function EmailLogPanel(): JSX.Element {
           pageSize: EMAIL_LOG_PAGE_SIZE,
           count,
           onPageChange: handlePageChange,
-          label: 'Email log pages',
+          label: 'Sent email pages',
         }}
       />
     </Card>

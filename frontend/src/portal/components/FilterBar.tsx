@@ -255,7 +255,7 @@ function FilterControl({
           );
         }
         if (field.kind === 'number') {
-          return (
+          const input = (
             <MaskedInput
               {...props}
               title={field.hint}
@@ -265,6 +265,17 @@ function FilterControl({
               value={field.isDollars ? dollarsFromCents(value) : value}
               onValueChange={handleNumber}
             />
+          );
+          if (field.isDollars !== true) return input;
+          // A dollar sign before the box says what to type, where a word in it would
+          // read as a value already given.
+          return (
+            <span className="filter-money">
+              <span className="filter-money__sign" aria-hidden="true">
+                $
+              </span>
+              {input}
+            </span>
           );
         }
         return (

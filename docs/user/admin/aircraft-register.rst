@@ -162,14 +162,14 @@ Adding an aircraft type
 The aircraft types are the FAA's list of every type ever registered in the United States,
 foreign-built ones such as the Aeropro Eurofox included, so the type of almost any airplane
 is already there. When a search in **Aircraft type** finds nothing, the box says *No
-aircraft type matches that.*, and you, unlike a member, also see **Add a type**. Try the
-make alone, or a designator such as c172, first. **Add a type** is for a type the FAA has
-never registered:
+aircraft type matches that.*, and you, unlike a member, also see **New aircraft type**. Try
+the make alone, or a designator such as c172, first. **New aircraft type** is for a type the
+FAA has never registered:
 
-#. Press **Add a type**. A small form opens under the box.
+#. Press **New aircraft type**. A small form opens under the box.
 #. Fill in **Make** and **Model** (both required), and **Seats** and **Engines** if you know
    them.
-#. Press **Add type**, or Enter. The type is added to the list and picked at once.
+#. Press **Add aircraft type**, or Enter. The type is added to the list and picked at once.
    **Cancel** closes the small form.
 
 CalDART tidies the names the way it tidies the FAA's, so *CESSNA* becomes *Cessna*. If the

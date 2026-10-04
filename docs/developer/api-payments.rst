@@ -350,7 +350,7 @@ donor, then starts a pending contribution with the provider.
     "phone": "707-555-0142", "contribution_cents": 10000, "provider": "stripe",
     "city": "Petaluma", "county": "Sonoma", "dart_id": 3, "vol_fundraising": true}
 
-``first_name``, ``last_name``, ``email``, and ``phone`` are required.  The rest
+``first_name``, ``last_name``, and ``email`` are required.  ``phone`` and the rest
 are optional profile fields, each written onto the donor's profile under its own
 name, and under the profile's own rules (see :doc:`api-profile`): ``address_line1``,
 ``address_line2``, ``city``, ``state``, ``postal_code``, ``county``,

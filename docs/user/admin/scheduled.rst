@@ -125,13 +125,13 @@ membership* email.
 Scheduled reports
 =================
 
-Every morning at 6:00 AM CalDART sends the report subscriptions set up on :doc:`subscriptions`,
+Every morning at 6:00 AM CalDART sends the emailed reports set up on :doc:`subscriptions`,
 and early each month it sends each DART's roster. The box reads **Practice run: show what
 would happen, send nothing**.
 
 The result reads, for example, *Would send 5 emails, skipped 1.* When something was skipped,
 a line gives the reasons: *no longer permitted* (the recipient has lost the role that reads
-the report, and a real run pauses the subscription), *nobody to send to* (a DART with nobody to
+the report, and a real run pauses the emailed report), *nobody to send to* (a DART with nobody to
 receive its roster), and *no address on file*. A line such as *Failed 1.* counts a refused
 send or a report that could not be built; it stays due for the next run. The table names each
 email: *Report* or *Roster*, who it goes to, and **Report or DART**.

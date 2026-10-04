@@ -13,6 +13,7 @@ import type { ChangeEvent, JSX } from 'react';
 import type { BounceRunResult } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
+import { PracticeRunCheckbox } from '@/portal/components/PracticeRunCheckbox';
 import { RunActionsTable } from '@/portal/components/RunActionsTable';
 import { useFocusAfterSave } from '@/portal/components/focus';
 import { useRunBounces } from './api';
@@ -79,10 +80,12 @@ export function BouncesPanel(): JSX.Element {
           >
             {run.isPending ? 'Running…' : 'Run now'}
           </Button>
-          <label className="cluster">
-            <input type="checkbox" checked={dryRun} onChange={handleDryRunChange} />
-            Practice run: show what would happen, change nothing
-          </label>
+          <PracticeRunCheckbox
+            checked={dryRun}
+            onChange={handleDryRunChange}
+            task="bounce check"
+            leaves="change nothing"
+          />
         </>
       }
     >

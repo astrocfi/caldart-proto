@@ -20,7 +20,7 @@ Renewing is for a member. A friend of CalDART, including somebody who joined as 
 member and has not paid yet, has nothing to renew: opening **Renew** takes a friend
 to :doc:`become-a-member` instead.
 
-Below it is the checkout, headed **Renew your membership**. It works the same way
+Below it is the checkout, headed **Your renewal**. It works the same way
 as the join wizard's payment step (see :doc:`join`): choose the plan, with the first
 plan listed chosen for you, add a contribution if you like, check **Renew
 automatically each year** if you want CalDART to renew you from now on, and pay from
@@ -49,15 +49,9 @@ An Annual term runs 365 days, counting the day it starts, so a term that starts 
 Life members
 ============
 
-A life member has nothing to renew, so the menu entry reads **Contribute** and opens
-**Contribute to CalDART**: *As a life member you have nothing to renew. A contribution keeps the
-DARTs flying.* The **Your membership** card reads **Never expires** and
-the line *You are a life member. Thank you.*, with no date and no plan.
-
-The form below it, **Make a contribution**, takes a contribution alone. **Make this
-a recurring donation** under the amount gives the same amount monthly, quarterly,
-or yearly (see :doc:`donate`). When the payment clears, *Thank you for your
-contribution.* appears.
+A life member has nothing to renew, so their menu has no **Renew** entry: they give
+through **Donate** like everyone else (see :doc:`donate`). A renewal link that reaches a
+life member, such as one in an old email, opens **Donate** instead.
 
 
 Renewal reminders

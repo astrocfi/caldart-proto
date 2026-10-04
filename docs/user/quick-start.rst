@@ -17,9 +17,9 @@ Create an account
    at least 8 characters. Press **Create account**.
 #. Open the email *CalDART: verify your email address* and follow its link. On the
    **Email verified** screen, press **Continue**.
-#. Fill in **About you**: at least your **Phone**, **Address**, **City**, **State**,
-   and **ZIP code**. Press **Save and continue**.
-#. A member pays the dues on **Pay your dues**. A friend may give on **Contribute to
+#. Fill in **About you**: at least your **Address**, **City**, **State**, and **ZIP
+   code**. Press **Save and continue**.
+#. A member pays the dues on **Pay your dues**. A friend may give on **Donate to
    CalDART**, or press **Not now**.
 #. On **Welcome to CalDART**, press **Go to my dashboard**.
 

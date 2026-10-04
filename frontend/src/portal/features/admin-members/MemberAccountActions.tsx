@@ -101,7 +101,12 @@ function MakeFriend({ member }: { member: MemberDetail }) {
 
   return (
     <div className="stack-tight">
-      <ConfirmButton label="Make a friend" disabled={ledger.isPending} choices={choices}>
+      <ConfirmButton
+        label="Make a friend"
+        disabled={ledger.isPending}
+        choices={choices}
+        startOnCancel
+      >
         <p>
           {expiresOn === null
             ? `${member.name} becomes a friend of CalDART today: no dues, no expiry, and no ` +

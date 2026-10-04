@@ -261,8 +261,8 @@ const PAYMENT_FILTERS: FilterField[] = [
       { value: 'no', label: 'Not reconciled' },
     ],
   },
-  { key: 'min_cents', label: 'At least', kind: 'number', placeholder: 'Dollars', isDollars: true },
-  { key: 'max_cents', label: 'At most', kind: 'number', placeholder: 'Dollars', isDollars: true },
+  { key: 'min_cents', label: 'At least', kind: 'number', isDollars: true },
+  { key: 'max_cents', label: 'At most', kind: 'number', isDollars: true },
   {
     key: 'search',
     label: 'Search',
@@ -343,8 +343,8 @@ const DONOR_FILTERS: FilterField[] = [
   },
   // The DARTs are the server's, so the page supplies them through `options`.
   { key: 'dart', label: 'DART', kind: 'select', placeholder: 'Any DART' },
-  { key: 'min_cents', label: 'At least', kind: 'number', placeholder: 'Dollars', isDollars: true },
-  { key: 'max_cents', label: 'At most', kind: 'number', placeholder: 'Dollars', isDollars: true },
+  { key: 'min_cents', label: 'At least', kind: 'number', isDollars: true },
+  { key: 'max_cents', label: 'At most', kind: 'number', isDollars: true },
   periodField(PERIOD_OPTIONS, 'Any date'),
 ];
 

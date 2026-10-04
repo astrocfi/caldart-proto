@@ -9,7 +9,8 @@ import { makeContributionMandate, makeLedger, makeMandate } from '@test/fixtures
 import { API } from '@test/handlers';
 import { renderWithProviders, signedInClient } from '@test/render';
 import { server } from '@test/server';
-import { MemberLedgerPage } from './MemberLedgerPage';
+import { fitColumns } from '@/portal/components/tableFit';
+import { LEDGER_COLUMNS, MemberLedgerPage } from './MemberLedgerPage';
 
 /** Serve one member's ledger. */
 function serveLedger(ledger: MemberLedger = makeLedger()) {
@@ -148,5 +149,22 @@ describe('MemberLedgerPage', () => {
     renderLedger();
 
     expect(await screen.findByText("That ledger didn't load")).toBeInTheDocument();
+  });
+});
+
+describe('the payment history on a phone', () => {
+  /** The payment card's room at 390 pixels wide, in rem. */
+  const PHONE_REM = 18;
+
+  it('pins the date, which tells one payment from the next', () => {
+    const identity = fitColumns(LEDGER_COLUMNS, PHONE_REM).find((column) => column.isIdentity);
+    expect(identity?.key).toBe('paid_on');
+  });
+
+  it('keeps the receipt number at its whole width, never cut to CALDART-000…', () => {
+    const receipt = fitColumns(LEDGER_COLUMNS, PHONE_REM).find(
+      (column) => column.key === 'receipt_number',
+    );
+    expect(receipt?.width).toBe('10rem');
   });
 });

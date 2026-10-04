@@ -109,6 +109,8 @@
 }
 
 .aircraft-pilots li {
+  /* A row of marks, not a paragraph: it takes the card's width, not a reading measure. */
+  max-width: none;
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
@@ -143,7 +145,7 @@
   display: none;
 }
 
-/* The type picker spans the form's grid, so Add a type has room under it. */
+/* The type picker spans the form's grid, so New aircraft type has room under it. */
 .aircraft-type {
   grid-column: 1 / -1;
 }

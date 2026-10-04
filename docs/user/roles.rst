@@ -33,8 +33,8 @@ Every member and every friend of CalDART holds the member role. It opens the
 * **Payments** (:doc:`member/payments`): automatic renewal, recurring donations,
   every payment with its receipt, and contribution statements.
 * **Donate** (:doc:`member/donate`): a gift, once or on a schedule.
-* **Renew** (:doc:`member/renew`): your next term. A friend has no **Renew** entry, and a
-  life member's reads **Contribute**.
+* **Renew** (:doc:`member/renew`): your next term. A friend and a life member have no
+  **Renew** entry; a life member gives through **Donate**.
 * **Change password** (:doc:`member/change-password`) and **Change email**
   (:doc:`member/change-email`).
 
@@ -149,7 +149,7 @@ An account administrator looks after the membership records. The role adds:
   membership terms, granting a term by hand, making a member a friend,
   deactivating and reactivating an account, and deleting a member.
 * **Aircraft register** (:doc:`admin/aircraft-register`) and
-  each aircraft's record (:doc:`admin/aircraft-record`), and **Add a type** on any
+  each aircraft's record (:doc:`admin/aircraft-record`), and **New aircraft type** on any
   aircraft form, for an aircraft type the FAA has never registered.
 * **DARTs** (:doc:`admin/darts`): the teams, their airports, and their leaders.
 * **Finance**: the finance area as the treasurer sees it, without **Donors**

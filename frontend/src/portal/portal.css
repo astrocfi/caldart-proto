@@ -192,10 +192,20 @@
   margin: 0 0 var(--space-1);
 }
 
-/* A shadow at the rail's foot says that more entries lie below it, on a desktop and in
- * the open drawer alike. */
+/* A shadow at the rail's head or foot says that more entries lie above or below it, on
+ * a desktop and in the open drawer alike. */
 .portal__rail[data-more-below='true'] {
   box-shadow: inset 0 -1.5rem 1rem -1rem rgb(0 0 0 / 0.25);
+}
+
+.portal__rail[data-more-above='true'] {
+  box-shadow: inset 0 1.5rem 1rem -1rem rgb(0 0 0 / 0.25);
+}
+
+.portal__rail[data-more-above='true'][data-more-below='true'] {
+  box-shadow:
+    inset 0 1.5rem 1rem -1rem rgb(0 0 0 / 0.25),
+    inset 0 -1.5rem 1rem -1rem rgb(0 0 0 / 0.25);
 }
 
 /* Under 60rem the rail becomes a drawer toggled from the bar. */
@@ -260,15 +270,41 @@
 /* Every tab bar in the portal: plain words on a rule, the current one underlined in
  * the primary color.  A bar of links marks its current tab with `aria-current`, a
  * bar of buttons (a `tablist`) with `aria-selected`. */
+/* The bar keeps one line at every width: one too wide for a phone scrolls sideways on
+ * its own, with a fade at each edge that hides more tabs (`useTabBar`).  Its rule is an
+ * inset shadow, so the current tab's underline is drawn over it inside the scroll box. */
 .tab-bar {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: var(--space-1);
-  border-bottom: var(--hairline) solid var(--color-rule);
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  box-shadow: inset 0 calc(-1 * var(--hairline)) 0 var(--color-rule);
   margin-bottom: var(--space-4);
 }
 
+.tab-bar[data-more-right='true'] {
+  mask-image: linear-gradient(to right, black calc(100% - 2rem), transparent);
+}
+
+.tab-bar[data-more-left='true'] {
+  mask-image: linear-gradient(to left, black calc(100% - 2rem), transparent);
+}
+
+.tab-bar[data-more-left='true'][data-more-right='true'] {
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    black 2rem,
+    black calc(100% - 2rem),
+    transparent
+  );
+}
+
 .tab-bar__tab {
+  flex: none;
+  white-space: nowrap;
   padding: var(--space-2) var(--space-3);
   font: inherit;
   font-size: var(--text-sm);
@@ -277,8 +313,22 @@
   background: none;
   border: 0;
   border-bottom: 2px solid transparent;
-  margin-bottom: calc(-1 * var(--hairline));
   cursor: pointer;
+}
+
+@media (max-width: 40rem) {
+  .tab-bar {
+    gap: 0;
+  }
+
+  .tab-bar__tab {
+    padding-inline: var(--space-2);
+  }
+}
+
+/* Inside the scroll box an outer focus ring would be clipped, so it is drawn inside. */
+.tab-bar__tab:focus-visible {
+  outline-offset: -2px;
 }
 
 .tab-bar__tab:hover {
@@ -311,6 +361,13 @@
   border-top: var(--hairline) solid var(--color-rule);
 }
 
+/* A page whose body is only an empty state, such as a record that did not load, sits
+ * under the header's own rule rather than drawing a second one. */
+.page__body > .empty-state:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
 /* An empty table's card draws no rule above its empty state: there is no table
  * for the rule to head. */
 .data-table .empty-state {
@@ -341,6 +398,14 @@
   flex-direction: column;
   gap: var(--space-3);
   padding-bottom: var(--space-3);
+  border-bottom: var(--hairline) solid var(--color-rule);
+  margin-bottom: var(--space-2);
+}
+
+/* The rule above a table parts it from its filters and tools; a table with neither
+ * starts under its card's title with no rule to part it from. */
+.data-table .table-wrap {
+  border-top: 0;
 }
 
 .data-table__tools {
@@ -370,6 +435,27 @@
   min-height: var(--control-height, 2.5rem);
   padding-block: 0;
   font-size: var(--text-sm);
+}
+
+/* A dollar amount carries a "$" before the figure, inside its box. */
+.filter-money {
+  position: relative;
+  display: block;
+}
+
+.filter-money__sign {
+  position: absolute;
+  inset-block: 0;
+  left: var(--space-3);
+  display: flex;
+  align-items: center;
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+  pointer-events: none;
+}
+
+.data-table__filters .filter-money input {
+  padding-left: calc(var(--space-3) + 1.5ch);
 }
 
 /* A search box is wide enough to show its whole placeholder. */
@@ -433,6 +519,17 @@
 
 .data-table--single-line td.data-table__wrap .cluster.cluster--nowrap {
   flex-wrap: wrap;
+}
+
+/* A status in a wrapping column, such as "Paused after failed charges", wraps whole
+ * words onto a second line rather than being cut, its dot level with the first line. */
+.data-table td.data-table__wrap .status {
+  white-space: normal;
+}
+
+.data-table td.data-table__wrap .status-dot {
+  align-self: flex-start;
+  margin-top: 0.4em;
 }
 
 /* A name, a receipt number, a phone number or a month reads wrongly broken. */

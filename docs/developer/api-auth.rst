@@ -785,7 +785,9 @@ Statuses: **200**; **401** when anonymous; **403** without ``user_admin``;
 ---------------------------
 
 Accepts any of ``first_name``, ``last_name``, ``email``, and ``roles``, and
-returns the updated payload.  ``PUT`` and ``DELETE`` are 405:
+returns the updated payload.  A name left out is left alone; one sent blank, or as
+spaces only, is a **400** ``{"first_name": ["Enter a first name."]}`` or
+``{"last_name": ["Enter a last name."]}``.  ``PUT`` and ``DELETE`` are 405:
 this API edits accounts, it does not replace or remove them.  Deleting a member
 is ``DELETE /admin/members/{user_id}``, behind ``account_admin`` — see
 :doc:`api-members`.

@@ -15,6 +15,7 @@ import { Card } from '@/portal/components/Card';
 import type { Column } from '@/portal/components/DataTable';
 import { DataTable } from '@/portal/components/DataTable';
 import { DateText } from '@/portal/components/DateText';
+import { PracticeRunCheckbox } from '@/portal/components/PracticeRunCheckbox';
 import { useRosters, useSendRosters } from '@/portal/reports/api';
 import { ReportRunOutcome } from './ReportRunOutcome';
 
@@ -72,10 +73,7 @@ export function RostersCard(): JSX.Element {
           <Button onClick={handleSend} disabled={send.isPending}>
             {send.isPending ? 'Sending…' : 'Send rosters now'}
           </Button>
-          <label className="cluster">
-            <input type="checkbox" checked={dryRun} onChange={handleDryRunChange} />
-            Practice run: show what would happen, send nothing
-          </label>
+          <PracticeRunCheckbox checked={dryRun} onChange={handleDryRunChange} task="DART rosters" />
         </>
       }
     >

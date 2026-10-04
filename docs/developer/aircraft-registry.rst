@@ -160,7 +160,7 @@ Run now answers.
 Run now
 -------
 
-The Health and database page's *Aircraft database* panel has a **Run now** button, which
+The Health and database page's *FAA aircraft data* panel has a **Run now** button, which
 calls ``POST /admin/system/registry-import`` (:ref:`api-registry-import`).
 ``start_import()`` writes the ``RegistryImport`` row, unfinished, and hands its
 id to ``launch_import()``, which starts ``manage.py import_faa_registry
@@ -317,7 +317,7 @@ Hand-added types
 
 A type the FAA has never registered — a homebuilt, or a foreign design no US
 owner has registered yet — cannot be picked from the registry's vocabulary.  An
-account administrator adds one from the type picker's **Add a type**, which
+account administrator adds one from the type picker's **New aircraft type**, which
 calls ``POST /aircraft/types`` (:doc:`api-aircraft`): the names are normalized
 as the registry's are, the type is marked ``is_custom``, and its code is
 ``CUSTOM-<id>``.  A make and model already listed is refused, and so is a name

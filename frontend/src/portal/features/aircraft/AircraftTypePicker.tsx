@@ -5,7 +5,7 @@
  * aircraft types, and typing in the box again drops the type until another is
  * picked.
  *
- * An account administrator whose search finds nothing is offered **Add a type**,
+ * An account administrator whose search finds nothing is offered **New aircraft type**,
  * for a type the FAA has never registered; the type it adds is picked at once.
  */
 import { useState } from 'react';
@@ -119,7 +119,7 @@ export function AircraftTypePicker({
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => setIsAdding(true)}
             >
-              Add a type
+              New aircraft type
             </Button>
           ) : null}
         </p>

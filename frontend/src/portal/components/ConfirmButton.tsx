@@ -50,6 +50,12 @@ export interface ConfirmButtonProps {
   children?: ReactNode;
   /** The ways to go ahead, in the order the panel shows them. */
   choices: ConfirmChoice[];
+  /**
+   * Open with the focus on **Cancel** whatever the first choice is, for a change that is
+   * weighty without being destructive, such as making a member a friend, so a stray
+   * second Enter never makes it.
+   */
+  startOnCancel?: boolean;
 }
 
 /** What the panel's way out always reads. */
@@ -75,8 +81,8 @@ export function choiceText(choiceLabel: string, triggerLabel: string): string {
  *
  * Every button in the panel is disabled while a choice is in flight. **Cancel** closes
  * the panel without calling anything. Opening the panel moves the focus to its first
- * choice or, when that choice is `danger` or held back with `disabled`, to **Cancel**,
- * so a stray second Enter does nothing it cannot take back.  A choice whose label is the
+ * choice or, when that choice is `danger` or held back with `disabled` or the caller
+ * asks with `startOnCancel`, to **Cancel**, so a stray second Enter does nothing it cannot take back.  A choice whose label is the
  * button's own reads *Yes,* before it, so the open panel never shows two buttons of one
  * name. **Cancel** and the Escape key close it and put the
  * focus back on the button that opened it, and an Escape pressed in the panel goes no
@@ -92,6 +98,7 @@ export function ConfirmButton({
   disabled = false,
   children,
   choices,
+  startOnCancel = false,
 }: ConfirmButtonProps): JSX.Element {
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, setIsPending] = useState(false);
@@ -108,7 +115,8 @@ export function ConfirmButton({
   // A destructive first choice waits for a deliberate press, so a stray second Enter
   // lands on Cancel, as it does in `DeleteButton`; so does one still held back, which
   // could not take the focus.
-  const shouldStartOnCancel = choices[0]?.variant === 'danger' || choices[0]?.disabled === true;
+  const shouldStartOnCancel =
+    startOnCancel || choices[0]?.variant === 'danger' || choices[0]?.disabled === true;
   const wasOpenRef = useRef(false);
 
   useEffect(() => {

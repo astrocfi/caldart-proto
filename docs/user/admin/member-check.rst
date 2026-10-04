@@ -201,4 +201,4 @@ administrator can add it. An airplane missing from the card is one the member ha
 attached to their profile, so use the :doc:`aircraft-check` for it. Insurance dates that
 look old come from the aircraft register, where an account administrator or the member who
 added the airplane keeps them; see :doc:`aircraft-record`. If a card says *That member
-didn't load*, press **Search again**: the account may have been deleted.
+didn't load*, the account may have been deleted; **Back to search** above it goes back.
