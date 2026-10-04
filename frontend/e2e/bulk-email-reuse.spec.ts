@@ -65,6 +65,8 @@ test('a saved group and a saved template start a fresh draft', async ({ page }) 
   await page.getByRole('button', { name: new RegExp(`^${group}: fixed, `) }).click();
   await expect(page.getByText(/^Added \d+ (person|people)\.$/)).toBeVisible();
   const batch = page.getByRole('table', { name: /^The batch: / });
+  // Chosen by shows on a screen wide enough for every column of the batch.
+  await page.setViewportSize({ width: 1600, height: 900 });
   await expect(batch.getByRole('row').filter({ hasText: DEMO.management })).toContainText(
     `Group: ${group}`,
   );
