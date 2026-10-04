@@ -16,19 +16,22 @@ The list
 One line per email, the most recently started first:
 
 - **Subject**: what it said. It opens the email's own page, below.
-- **Type**: the kind of email it was, such as *Operational*.
+- **Actions**: **Download results** saves the email's results as a spreadsheet file.
+- **Reuse**: **Duplicate…** opens the email's own page, where **Duplicate** starts a new
+  draft from it, below.
 - **Date**: the day it started sending.
+- **Type**: the kind of email it was, such as *Operational*.
 - **From** and **DART**, for CalDART management only: who sent it, and the DART a DART
   leader's email went to, or a dash for an email that could go to anybody.
 - **Status**: a dot and *Sending*, *Sent*, *Stopped*, or *Waiting to send the rest*.
 - **Sent**, **Failed**, and **Skipped**: how many copies went, were refused by the mail
   server, and were never sent because the person could not receive them.
-- **Download results** saves the email's results as a spreadsheet file.
-- **Duplicate…** opens the email's own page, where **Duplicate** starts a new draft from
-  it, below.
 
-Before the first send the table reads *No bulk email has been sent*. The list keeps itself up
-to date while an email is sending. On a narrow screen the table scrolls sideways.
+On a screen too narrow for every column, **Type**, **From**, and **DART** are left out, so
+the actions stay in sight; on a phone the table scrolls sideways. Before the first send the
+table reads *No bulk email has been sent*; a DART leader's reads *You have not sent an email
+yet* and *Emails you send appear here. Write one on Compose.* The list keeps itself up to
+date while an email is sending.
 
 An email that is sending offers **Stop…** in place of the download, and a stopped one **Send
 the rest…**. Each opens the email's own page, where the action asks first.
@@ -37,7 +40,8 @@ the rest…**. Each opens the email's own page, where the action asks first.
 One email's page
 ================
 
-The page of one sent email has three cards:
+The page of one sent email says under its subject who sent it and when, such as *Sent by
+Grace Holloway on 10/03/2026 at 5:34 PM.*, and has three cards:
 
 - **Where it stands**: while it sends, *Sending… 12 of 38 sent, about 1 minute left.* with a
   bar and **Stop sending**, which stops it after the copy going out now, once you press
@@ -63,14 +67,17 @@ The delivery report
 **Who received it** shows what became of every copy, including what happened after it
 left CalDART.
 
-At its top are the counts: **Delivered**, **Failed**, **Skipped**, **Bounced**, and
-**Retried**. **Delivered** counts the copies that went and have not come back, so
-**Delivered** and **Bounced** together are the people the line above calls *Sent to*. Under
-the counts is **Retry failed** (below).
+At its top are the counts: **Sent**, **Failed**, **Skipped**, **Bounced**, and **Retried**.
+**Sent** is the number the line above gives, *Sent to 37 people*: every copy the mail server
+took, those that came back later included, and **Bounced** says how many of those came back.
+Under the counts is **Retry failed** (below).
 
-Then one line per person in the batch, with **Name**, **Email**, **Result**, **Reason**,
-**Tried at**, **Kind**, **DART**, and **Copy**. **Result** narrows the table to one result,
-such as *Failed*, and **Find a person** to a name or address. **Download results** saves
+Then one line per person in the batch, with **Name**, **Result**, **Copy**, **Email**,
+**Reason** (in full, on as many lines as it needs), **Tried at** (such as *10/03/2026 at 5:34
+PM*), **Kind**, and **DART**; on a screen too narrow for every column, the last three are
+left out. **Result** narrows the table to one result, such as *Failed*, and **Find a person**
+to a name or address; the table's caption then says how many of everybody it shows, such as
+*Showing 2 of 39*. **Download results** saves
 the whole table as a spreadsheet file, with each person's result, reason, and the time
 their copy was tried.
 
@@ -94,12 +101,12 @@ Seeing one person's copy
 ------------------------
 
 **View copy**, on the line of anybody whose copy was tried, opens that person's copy
-exactly as it went, under the table: who it went to and when, its subject, and the email
+exactly as it went, in a window over the page: who it went to and when, its subject, and the email
 itself, with the details that were filled in for them at the time, even if they have
 changed their profile since. This answers "what did I get?" Its links open in a new tab.
 The unsubscribe link at its foot is shown but does nothing here, since it belongs to the
-person the copy went to. **Close**, or the Escape key while you are in the copy, shuts it and
-returns you to the line you opened it from. Somebody who was skipped, or not sent a copy
+person the copy went to. The page behind waits until you shut the window. **Close**, or the
+Escape key, shuts it and returns you to the line you opened it from. Somebody who was skipped, or not sent a copy
 yet, has no copy to view.
 
 Retry failed
@@ -154,9 +161,10 @@ own from the email; **Duplicate…** on each line of the list opens that page. I
   since are left out. A DART leader's copy goes to their own DART alone: anybody outside it
   shows as skipped, *Not in your DART*.
 
-The new draft opens on :doc:`compose`, ready to change and send. The email you copied stays as
-it was. A copy of a mission callout is a callout too, with no answers yet and its answers
-closing two days ahead (:doc:`callouts`). **Cancel** closes the question without copying anything.
+The new draft opens on :doc:`compose`, ready to change and send, with a line at the top
+saying which email it is a copy of. The email you copied stays as it was. A copy of a
+mission callout is a callout too, with no answers yet and its answers closing two days ahead
+(:doc:`callouts`). **Cancel** closes the question without copying anything.
 
 
 If something looks wrong
