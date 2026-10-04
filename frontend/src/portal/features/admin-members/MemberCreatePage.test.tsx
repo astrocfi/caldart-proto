@@ -243,6 +243,20 @@ describe('MemberCreatePage', () => {
     expect(screen.getByLabelText(/Email address/)).toHaveFocus();
   });
 
+  it('asks for the email address when the box is left empty', async () => {
+    const user = userEvent.setup();
+    server.use(...createHandlers());
+    renderCreate();
+
+    await user.type(screen.getByLabelText(/^First name/), 'Nova');
+    await user.type(screen.getByLabelText(/^Last name/), 'Ito');
+    await user.click(screen.getByRole('button', { name: 'Add member' }));
+
+    expect(screen.getByLabelText(/Email address/)).toHaveAccessibleDescription(
+      /Enter their email address\./,
+    );
+  });
+
   it('offers a way back to the list', () => {
     server.use(...createHandlers());
     renderCreate();

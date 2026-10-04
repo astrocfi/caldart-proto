@@ -20,7 +20,9 @@
  *
  * A DART leader reads the same list and downloads the same report, but the
  * member record is the account administrator's: for a leader there is no
- * **New member** button, and a name opens the member check instead.
+ * **New member** button, and a name opens the member check instead.  A leader whose
+ * profile names a DART gets **Show my DART** in its place, which sets the DART filter
+ * to theirs: their roster.
  */
 import { useMemo } from 'react';
 import type { JSX } from 'react';
@@ -53,7 +55,7 @@ import { hasAnyRole } from '@/portal/nav';
 import { reportExportUrl } from '@/portal/reports/api';
 import { listFilters, REPORTS } from '@/portal/reports/definitions';
 import type { FilterField, FilterValues } from '@/portal/reports/types';
-import { useMembers } from './api';
+import { useMembers, useOwnDart } from './api';
 
 const PAGE_SIZE = 25;
 
@@ -295,6 +297,15 @@ export function MembersListPage(): JSX.Element {
     setFilters(clearedValues(FILTER_FIELDS, filters));
   };
 
+  // A DART leader's roster is this list filtered to their own DART, one press away.
+  const isLeader = !isAccountAdmin && hasAnyRole(roles, ['dart_leader']);
+  const myDart = useOwnDart(isLeader);
+  const showsMyDart = isLeader && myDart !== null && filters.dart !== String(myDart.id);
+
+  const handleMyDart = (): void => {
+    if (myDart !== null) setFilters({ ...filters, dart: String(myDart.id) });
+  };
+
   const count = members.data?.count ?? 0;
   const rows = members.data?.results ?? [];
 
@@ -303,7 +314,13 @@ export function MembersListPage(): JSX.Element {
       title="Members"
       lede="Every member and friend of CalDART, with their membership, certificate, and medical currency."
       actions={
-        isAccountAdmin ? <ButtonLink to="/admin/members/new">New member</ButtonLink> : undefined
+        isAccountAdmin ? (
+          <ButtonLink to="/admin/members/new">New member</ButtonLink>
+        ) : showsMyDart ? (
+          <Button variant="secondary" onClick={handleMyDart}>
+            Show my DART
+          </Button>
+        ) : undefined
       }
     >
       <Card>
@@ -315,7 +332,7 @@ export function MembersListPage(): JSX.Element {
           caption={
             members.isPending
               ? 'Loading members'
-              : `${count} member${count === 1 ? '' : 's'} match these filters`
+              : `${count} ${count === 1 ? 'person matches' : 'people match'}`
           }
           label="Members"
           filters={
@@ -333,7 +350,7 @@ export function MembersListPage(): JSX.Element {
           isLoading={members.isPending}
           onSortChange={handleSortChange}
           sort={sort}
-          emptyTitle="No members match these filters"
+          emptyTitle="Nobody matches these filters"
           emptyDescription="Widen the search, or reset the filters to see everyone."
           emptyAction={
             <Button variant="quiet" onClick={handleReset}>

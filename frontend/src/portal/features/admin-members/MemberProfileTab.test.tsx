@@ -7,7 +7,6 @@ import { makeDetail } from '@test/fixtures/members';
 import {
   API,
   emptyVerificationCalls,
-  makeLeaderStatus,
   makeUser,
   signedInAs,
   verificationHandlers,
@@ -46,25 +45,39 @@ describe('MemberProfileTab', () => {
     expect(screen.getByLabelText('Photo ID')).toHaveValue('drivers_license');
   });
 
-  it('takes a field corrected in the panel up into the form below', async () => {
+  it('opens Verify on the checks alone, leaving the details to the form below', async () => {
     const user = userEvent.setup();
-    const calls = emptyVerificationCalls();
-    const corrected = makeLeaderStatus({
-      certificate: { ...makeLeaderStatus().certificate, number: '7654321' },
-      photo_id: { type: 'passport', verification: makeLeaderStatus().photo_id.verification },
-    });
-    server.use(...verificationHandlers(calls, { status: corrected }));
     renderWithProviders(<MemberProfileTab member={makeDetail()} />);
 
     await user.click(await within(verificationCard()).findByRole('button', { name: 'Verify' }));
-    const panel = verificationCard();
-    await user.clear(within(panel).getByLabelText('Certificate number'));
-    await user.type(within(panel).getByLabelText('Certificate number'), '7654321');
-    await user.click(within(panel).getByRole('button', { name: 'Save verification' }));
+
+    expect(within(verificationCard()).queryByLabelText('Certificate number')).toBeNull();
+  });
+
+  it('sends only which items are verified from the member record', async () => {
+    const user = userEvent.setup();
+    const calls = emptyVerificationCalls();
+    server.use(...verificationHandlers(calls));
+    renderWithProviders(<MemberProfileTab member={makeDetail()} />);
+
+    await user.click(await within(verificationCard()).findByRole('button', { name: 'Verify' }));
+    await user.click(
+      within(verificationCard()).getByRole('checkbox', { name: /medical verified/i }),
+    );
+    await user.click(within(verificationCard()).getByRole('button', { name: 'Save verification' }));
 
     await waitFor(() => expect(calls.members).toHaveLength(1));
-    expect(await screen.findByLabelText('Certificate number')).toHaveValue('7654321');
-    expect(screen.getByLabelText('Photo ID')).toHaveValue('passport');
+    expect(calls.members[0]?.body).toEqual({ verified: ['medical'] });
+  });
+
+  it('lists the aircraft on the profile in a card of their own, linked to each record', () => {
+    renderWithProviders(<MemberProfileTab member={makeDetail()} />);
+    const card = screen.getByRole('heading', { name: 'Aircraft' }).closest('section');
+    expect(card).not.toBeNull();
+    const links = within(card as HTMLElement).getAllByRole('link');
+    expect(links.map((link) => link.getAttribute('href'))).toEqual(
+      (makeDetail().profile?.aircraft ?? []).map((one) => `/admin/aircraft/${one.id}`),
+    );
   });
 
   it('shows the member’s callsign in the Amateur radio fieldset', () => {

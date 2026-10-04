@@ -193,9 +193,9 @@ export function LedgerBody({ ledger }: { ledger: MemberLedger }): JSX.Element {
                 key={year}
                 className="button button--quiet button--small"
                 href={statementUrl(ledger.user.id, year)}
-                aria-label={`${year} contribution statement (PDF)`}
+                aria-label={`Download the ${year} contribution statement (PDF)`}
               >
-                {year}
+                {`Download ${year} statement`}
               </a>
             ))}
           </div>

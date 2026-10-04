@@ -62,6 +62,37 @@ describe('MemberAccountActions', () => {
     expect(screen.getByRole('button', { name: 'Deactivate account' })).toBeInTheDocument();
   });
 
+  it('mentions no automatic renewal for a member who has none', async () => {
+    const user = userEvent.setup();
+    stub();
+    renderActions();
+    const button = screen.getByRole('button', { name: 'Make a friend' });
+    await waitFor(() => expect(button).toBeEnabled());
+
+    await user.click(button);
+
+    expect(screen.queryByText(/automatic renewal is canceled/)).not.toBeInTheDocument();
+  });
+
+  it('says the automatic renewal ends for a member who has one', async () => {
+    const user = userEvent.setup();
+    stub({ mandate: makeMandate({ contribution_cents: 0 }) });
+    renderActions();
+    const button = screen.getByRole('button', { name: 'Make a friend' });
+    await waitFor(() => expect(button).toBeEnabled());
+
+    await user.click(button);
+
+    expect(screen.getByText(/automatic renewal is canceled/)).toBeInTheDocument();
+  });
+
+  it('says what each action does before it is pressed', async () => {
+    stub();
+    renderActions();
+    await screen.findByText('A friend pays no dues and gets no renewal reminders.');
+    expect(screen.getByText(/Nothing is deleted, and it can be undone\./)).toBeInTheDocument();
+  });
+
   it('offers a friend no switch to friend', () => {
     stub();
     renderActions(makeDetail({ kind: 'friend', membership: FRIEND }));

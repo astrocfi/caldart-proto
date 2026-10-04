@@ -94,9 +94,8 @@
   accent-color: var(--color-primary);
 }
 
-/* A nested set of checkboxes inside a section keeps a quieter rule. */
+/* A nested set of checkboxes inside a section draws the same rule as the sections. */
 .checkbox-set {
-  border-top-style: dotted;
   margin-bottom: 0;
 }
 

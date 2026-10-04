@@ -48,6 +48,8 @@ export interface MemberVerificationCardProps {
   checkable: boolean;
   /** Called with the saved status card, so the page can take up any corrected field. */
   onSaved?: (status: LeaderStatus) => void;
+  /** Open the panel with the checks alone, for a page whose own form edits the fields. */
+  checksOnly?: boolean;
 }
 
 /**
@@ -60,6 +62,7 @@ export function MemberVerificationCard({
   profile,
   checkable,
   onSaved: handleSaved,
+  checksOnly = false,
 }: MemberVerificationCardProps): JSX.Element {
   const canVerify = useCanVerify() && checkable;
   const [verifying, setVerifying] = useState(false);
@@ -77,6 +80,7 @@ export function MemberVerificationCard({
           initial={draftFromProfile(profile)}
           onSaved={handleSaved}
           onClose={handleCloseVerify}
+          checksOnly={checksOnly}
         />
       </div>
     );

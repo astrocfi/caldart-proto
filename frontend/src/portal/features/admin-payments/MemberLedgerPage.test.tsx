@@ -124,7 +124,7 @@ describe('MemberLedgerPage', () => {
     renderLedger();
 
     expect(
-      await screen.findByRole('link', { name: '2026 contribution statement (PDF)' }),
+      await screen.findByRole('link', { name: 'Download the 2026 contribution statement (PDF)' }),
     ).toHaveAttribute('href', '/api/v1/admin/payments/ledger/37/statements/2026.pdf');
   });
 

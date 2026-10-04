@@ -1,6 +1,10 @@
 /**
  * `/admin/members/:id` — one member record, in four tabs.
  *
+ * The summary strip above the tabs says where the membership stands in words: a member
+ * with no term in force is pointed at Memberships, and one whose terms a deactivation
+ * set aside says so, rather than either reading as a friend.
+ *
  * A donor's record is reached from the donors report rather than the member list,
  * and leads back to it for a reader who opens that report (see `recordHome`).
  *
@@ -12,7 +16,7 @@ import { useRef } from 'react';
 import type { JSX } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 
-import type { MemberDetail } from '@/portal/api/types';
+import type { MemberDetail, MemberTerm } from '@/portal/api/types';
 import { useAuth } from '@/portal/auth/useAuth';
 import { ACCOUNT_KIND_LABELS, roleLabel } from '@/portal/choices';
 import { BouncedDot } from '@/portal/components/BouncedDot';
@@ -128,26 +132,59 @@ function TabPanel({
   );
 }
 
+/**
+ * What the summary strip says about the membership.  A member whose terms are set aside
+ * by a deactivation says so; a member who holds no term in force is told where to grant
+ * one, rather than reading as a friend; anybody else gets the membership's dot, plan, and
+ * expiry.
+ */
+function MembershipSummary({ member }: { member: MemberDetail }): JSX.Element {
+  const isMember = member.kind === 'member';
+  if (isMember && !member.is_active && member.memberships.some(isSetAside)) {
+    return <StatusDot tone="none" label="Membership set aside while deactivated" />;
+  }
+  if (isMember && member.membership.status === 'friend' && member.friend_on === null) {
+    const label =
+      member.memberships.length === 0
+        ? 'No membership yet: grant a term on Memberships'
+        : 'No membership in force: grant a term on Memberships';
+    return <StatusDot tone="none" label={label} />;
+  }
+  const { membership } = member;
+  return (
+    <>
+      <MembershipDot membership={membership} />
+      {membership.plan ? <span className="muted">{membership.plan}</span> : null}
+      {membership.is_lifetime || membership.expires_on === null ? null : (
+        <span className="muted">
+          expires <DateText value={membership.expires_on} />
+        </span>
+      )}
+    </>
+  );
+}
+
+/** True for a term a deactivation set aside, which resumes when the account comes back. */
+function isSetAside(term: MemberTerm): boolean {
+  return term.status === 'suspended';
+}
+
 function MemberHeader({ member }: { member: MemberDetail }) {
   return (
     <Card>
       <div className="cluster">
-        <MembershipDot membership={member.membership} />
-        {member.membership.plan ? <span className="muted">{member.membership.plan}</span> : null}
-        {member.membership.is_lifetime ? null : (
+        <MembershipSummary member={member} />
+        {member.joined_on === null ? null : (
           <span className="muted">
-            expires <DateText value={member.membership.expires_on} />
+            joined <DateText value={member.joined_on} />
           </span>
         )}
         <span className="muted">
-          joined <DateText value={member.joined_on} />
-        </span>
-        <span className="muted">
           {member.profile_updated_at === null ? (
-            'never edited'
+            'Profile never edited'
           ) : (
             <>
-              updated <DateText value={member.profile_updated_at} />
+              Profile updated <DateText value={member.profile_updated_at} />
             </>
           )}
         </span>

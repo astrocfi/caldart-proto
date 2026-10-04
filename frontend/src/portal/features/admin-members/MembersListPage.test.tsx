@@ -12,6 +12,7 @@ import { rowCells } from '@test/table';
 import { server } from '@test/server';
 import { MembersListPage } from './MembersListPage';
 import { LIFETIME, makeRow } from '@test/fixtures/members';
+import { makeProfile } from '@test/fixtures/profile';
 import { API_BASE } from '@/portal/urlPrefix';
 
 /** The registry `GET /reports/members/columns` answers with, trimmed to eight. */
@@ -38,6 +39,9 @@ const DARTS = [
   { id: 3, name: 'Palo Alto', airport_identifiers: 'PAO', city: 'Palo Alto' },
   { id: 5, name: 'Napa', airport_identifiers: 'APC', city: 'Napa' },
 ];
+
+/** The leader's own profile, which names Napa as their DART. */
+const LEADER_PROFILE = makeProfile({ dart: { id: 5, name: 'Napa' } });
 
 /** Every request the list page makes, with the last member query recorded. */
 let requestedUrls: string[] = [];
@@ -160,7 +164,7 @@ describe('MembersListPage', () => {
     const user = userEvent.setup();
     server.use(...listHandlers([], 0));
     await renderList('/admin/members?status=expired');
-    await screen.findByText('No members match these filters');
+    await screen.findByText('Nobody matches these filters');
 
     await user.click(screen.getAllByRole('button', { name: 'Reset filters' }).at(-1)!);
 
@@ -253,13 +257,13 @@ describe('MembersListPage', () => {
     );
     expect(screen.getByRole('link', { name: 'Bo Chen' })).toBeInTheDocument();
     expect(screen.getByText('Never expires')).toBeInTheDocument();
-    expect(screen.getByText('2 members match these filters')).toBeInTheDocument();
+    expect(screen.getByText('2 people match')).toBeInTheDocument();
   });
 
   it('shows an empty state when nothing matches', async () => {
     server.use(...listHandlers([], 0));
     await renderList();
-    expect(await screen.findByText('No members match these filters')).toBeInTheDocument();
+    expect(await screen.findByText('Nobody matches these filters')).toBeInTheDocument();
   });
 
   it('sends a dropdown filter as a query parameter and puts it in the URL', async () => {
@@ -630,6 +634,24 @@ describe('MembersListPage', () => {
 describe('MembersListPage for a DART leader', () => {
   beforeEach(() => {
     signIn('dart_leader');
+    server.use(http.get(`${API}/me/profile`, () => HttpResponse.json(LEADER_PROFILE)));
+  });
+
+  it('shows the leader their own DART at one press', async () => {
+    server.use(...listHandlers());
+    await renderList();
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Show my DART' }));
+
+    expect(screen.getByTestId('location-search')).toHaveTextContent('dart=5');
+  });
+
+  it('drops Show my DART once the list shows that DART', async () => {
+    server.use(...listHandlers());
+    await renderList('/admin/members?dart=5');
+    await screen.findByRole('link', { name: 'Ana Bracco' });
+
+    expect(screen.queryByRole('button', { name: 'Show my DART' })).not.toBeInTheDocument();
   });
 
   it('offers no New member button', async () => {

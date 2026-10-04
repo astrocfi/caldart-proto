@@ -1,15 +1,16 @@
 /**
  * The Profile tab of a member record: the same fields as "New member", plus the
  * administrator-only notes, under a Verification card for the pilot certificate, the
- * medical, and the photo ID. Deactivating the account is the Delete or deactivate tab's. A
+ * medical, and the photo ID, and an Aircraft card listing the airplanes on the profile.
+ * **Verify** on the Verification card only checks items off: the details themselves are
+ * corrected in the form. Deactivating the account is the Delete or deactivate tab's. A
  * "Deleted member N" record shows no form: the server refuses every edit to one.
  */
 import { useRef, useState } from 'react';
 import type { JSX } from 'react';
-import { Link } from 'react-router-dom';
 
 import { useDarts } from '@/portal/api/queries';
-import type { LeaderStatus, MemberDetail } from '@/portal/api/types';
+import type { MemberDetail } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { EmailVerifiedText } from '@/portal/components/EmailVerifiedText';
@@ -33,6 +34,7 @@ import {
   withoutEdited,
 } from './MemberFormFields';
 import type { AccountDraft, FieldErrors } from './MemberFormFields';
+import { MemberAircraftCard } from './MemberAircraftCard';
 import { useUpdateMember } from './api';
 import { splitErrors } from './errors';
 import { TOMBSTONE_NOTE } from './tombstone';
@@ -73,18 +75,6 @@ export function MemberProfileTab({ member }: { member: MemberDetail }): JSX.Elem
   };
   const verified = member.profile;
 
-  /** A verification save may correct the fields the form below holds; take them up. */
-  const handleVerified = (status: LeaderStatus): void => {
-    setProfile((current) => ({
-      ...current,
-      pilot_certificate_type: status.certificate.type,
-      certificate_number: status.certificate.number,
-      medical_type: status.medical.type,
-      medical_expiration: status.medical.expiration ?? '',
-      photo_id_type: status.photo_id.type,
-    }));
-  };
-
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     const missing = missingNames(account);
@@ -113,9 +103,10 @@ export function MemberProfileTab({ member }: { member: MemberDetail }): JSX.Elem
           userId={member.id}
           profile={verified}
           checkable={member.is_active && member.kind !== 'donor'}
-          onSaved={handleVerified}
+          checksOnly
         />
       ) : null}
+      {verified !== null ? <MemberAircraftCard aircraft={verified.aircraft} /> : null}
       {member.is_tombstone ? (
         <Card>
           <p className="muted">{TOMBSTONE_NOTE}</p>
@@ -157,19 +148,6 @@ export function MemberProfileTab({ member }: { member: MemberDetail }): JSX.Elem
                 {update.isPending ? 'Saving…' : 'Save changes'}
               </Button>
               <RefusedSubmitNote count={refusal.count} />
-              {member.profile?.aircraft.length ? (
-                <p className="muted">
-                  Aircraft on file:{' '}
-                  {member.profile.aircraft.map((one, index) => (
-                    <span key={one.id}>
-                      {index > 0 ? ', ' : ''}
-                      <Link className="num" to={`/admin/aircraft/${one.id}`}>
-                        {one.n_number}
-                      </Link>
-                    </span>
-                  ))}
-                </p>
-              ) : null}
             </div>
           </form>
         </Card>
