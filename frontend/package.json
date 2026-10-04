@@ -23,7 +23,8 @@
     "pretest": "npm run schema",
     "pretest:watch": "npm run schema",
     "theme-contrast": "node scripts/theme-contrast.mjs",
-    "theme-previews": "node scripts/theme-previews.mjs"
+    "theme-previews": "node scripts/theme-previews.mjs",
+    "screenshots": "node scripts/screenshots.mjs"
   },
   "dependencies": {
     "@fontsource-variable/archivo": "^5.3.0",
@@ -65,6 +66,7 @@
     "react-router-dom": "^7.1.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@eslint/js": "^9.17.0",
     "@playwright/test": "^1.49.0",
     "@testing-library/dom": "^10.4.0",

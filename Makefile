@@ -110,6 +110,28 @@ E2E_ENV := DJANGO_SETTINGS_MODULE=caldart.settings.dev \
            FAA_REGISTRY_URL="$(abspath backend/apps/aircraft/fixtures/faa)" \
            BULK_EMAIL_UNDO_SECONDS=0
 
+# `make screenshots` builds the site, resets its own database, starts its own
+# server, and has frontend/scripts/screenshots.mjs shoot every portal route each
+# demo role can reach.  Like `make e2e`, it never touches the database you are
+# developing against.  `make screenshots SCREENSHOTS_ROLES=member,leader` shoots
+# only those demo accounts.
+SCREENSHOTS_PORT ?= 8031
+SCREENSHOTS_DB ?= caldart_screenshots
+SCREENSHOTS_DATABASE_URL ?= postgres://caldart:caldart@localhost:5432/$(SCREENSHOTS_DB)
+SCREENSHOTS_LOG ?= /tmp/caldart-screenshots-server.log
+SCREENSHOTS_ROLES ?=
+SCREENSHOTS_ENV := DJANGO_SETTINGS_MODULE=caldart.settings.dev \
+                   DATABASE_URL="$(SCREENSHOTS_DATABASE_URL)" \
+                   SECRET_KEY=screenshots-insecure-secret-key \
+                   DEBUG=false \
+                   ALLOWED_HOSTS='localhost,127.0.0.1,[::1]' \
+                   SITE_URL="http://localhost:$(SCREENSHOTS_PORT)" \
+                   CSRF_TRUSTED_ORIGINS="http://localhost:$(SCREENSHOTS_PORT)" \
+                   EMAIL_URL=dummymail:// \
+                   DJANGO_VITE_DEV_MODE=false \
+                   PAYMENTS_MOCK_ENABLED=true \
+                   AUTH_THROTTLE_LOGIN=1000/min
+
 # `make rehearse-deploy` runs the real installer in a throwaway systemd
 # container: deploy/bootstrap.sh, with every scheduled job started once after
 # the install, then deploy/reset-database.sh and deploy/seed.sh --content twice,
@@ -198,7 +220,7 @@ REHEARSE_KEEP_FLAG = $(call flag,REHEARSE_KEEP,keep)
 
 .PHONY: help setup up down wait-db createdb migrate makemigrations seed reset run \
         dev-frontend build test test-backend test-frontend coverage coverage-backend \
-        coverage-frontend e2e rehearse-deploy \
+        coverage-frontend e2e screenshots rehearse-deploy \
         lint lint-backend lint-shell \
         lint-frontend lint-spelling format check check-backend check-deploy check-frontend \
         audit audit-backend audit-frontend backup restore reminders bounces bulk-email sandbox-check \
@@ -356,6 +378,26 @@ e2e: ## Playwright end-to-end tests (own database, own server, mock payments; E2
 	         dump_logs 20 >&2; exit 1; }; \
 	  cd frontend && E2E_BASE_URL="$(E2E_SITE_URL)" $(NPM) run e2e \
 	    || { echo; echo "==== last 100 lines of $$logs ===="; dump_logs 100; exit 1; }
+
+screenshots: ## Screenshot every portal route for each demo role and run axe (own database and server; SCREENSHOTS_ROLES=member,leader)
+	@test -n "$(SKIP_CREATEDB)" \
+	  || $(MAKE) --no-print-directory createdb DATABASE_URL="$(SCREENSHOTS_DATABASE_URL)"
+	$(SCREENSHOTS_ENV) $(MANAGE) db_reset --seed --noinput
+	cd frontend && $(NPM) run build
+	$(SCREENSHOTS_ENV) $(MANAGE) collectstatic --noinput
+	@set -e; \
+	  $(SCREENSHOTS_ENV) $(MANAGE) runserver 0.0.0.0:$(SCREENSHOTS_PORT) --noreload \
+	    > $(SCREENSHOTS_LOG) 2>&1 & \
+	  server=$$!; \
+	  trap 'pkill -P $$server >/dev/null 2>&1; kill $$server >/dev/null 2>&1; true' EXIT INT TERM; \
+	  for i in $$(seq 1 60); do \
+	    curl -sf -o /dev/null "http://localhost:$(SCREENSHOTS_PORT)/portal/login" && break; \
+	    sleep 1; \
+	    test $$i -lt 60 || { echo "Django did not start; see $(SCREENSHOTS_LOG)" >&2; \
+	                         tail -n 20 $(SCREENSHOTS_LOG) >&2; exit 1; }; \
+	  done; \
+	  cd frontend && SCREENSHOTS_BASE_URL="http://localhost:$(SCREENSHOTS_PORT)" \
+	    SCREENSHOTS_ROLES="$(SCREENSHOTS_ROLES)" $(NPM) run screenshots
 
 rehearse-deploy: ## Rehearse the server install in a throwaway systemd container (REHEARSE_WEB_SERVER=apache|nginx, REHEARSE_URL_PREFIX=/path, REHEARSE_GUNICORN_PORT=port, REHEARSE_DB_PORT=port, REHEARSE_SEED=content|demo|all)
 	@case "$(REHEARSE_WEB_SERVER)" in apache|nginx) ;; \

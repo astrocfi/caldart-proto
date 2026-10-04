@@ -29,6 +29,9 @@ built frontend, a seeded database and a browser.
 waits on and CI does not run: the server installer, run for real in a
 throwaway container (:ref:`testing-rehearsal`).
 
+``make screenshots`` is a review aid rather than a check: it shoots every screen
+each demo account can reach (:ref:`testing-screenshots`).
+
 Running the backend suite
 =========================
 
@@ -1032,6 +1035,58 @@ from other end-to-end runs on the same machine:
    ``test.only``, retries a failing spec once, and switches its reporter to a
    list plus an HTML report instead of interactive output.  The CI workflow
    sets it; a local run leaves it unset.
+
+.. _testing-screenshots:
+
+Screenshots of every screen
+===========================
+
+``make screenshots`` is a review aid, not a test: it opens every portal screen a
+demo account can reach and writes what it sees, so a person (or a script) can look at
+the whole portal at once.  It is self-contained, like ``make e2e``: it creates its own
+database (``SCREENSHOTS_DB``, default ``caldart_screenshots``), resets and seeds it,
+builds the frontend, starts Django on its own port (``SCREENSHOTS_PORT``, default
+``8031``), runs ``frontend/scripts/screenshots.mjs``, and stops the server.  Nothing
+needs to be running first, and nothing it started is left behind.
+
+.. code-block:: console
+
+   $ make screenshots                                   # every demo account
+   $ make screenshots SCREENSHOTS_ROLES=member,leader   # only these accounts
+
+The script signs in as each demo account in ``backend/apps/accounts/seed.py`` and
+visits every route its roles admit.  The routes are not listed anywhere: the paths and
+the roles each one needs are read from ``frontend/src/portal/routes/*.tsx`` and
+``frontend/src/portal/nav.ts``, so a new route is shot the first time it is run.  A
+route with an id in it opens at the first record that a screen the account already
+visited links to, and is skipped, with a note, when there is none.
+
+Each route is shot full page at ``1920x1080``, ``820x1180`` and ``390x844``, into
+``frontend/screenshots/<role>/<route-slug>@<width>.png`` (untracked).  Where the screen
+has one, the script also shoots, and then closes without confirming, the first inline
+delete confirmation (``-delete``), the first confirmation panel (``-confirm``), the
+first panel opened by a button (``-panel``), and the first dialog (``-dialog``), so
+the seed is left as it was.  A list the seed leaves empty is shot as the empty state
+it shows.
+
+Every route is also checked with ``@axe-core/playwright`` at the widest viewport.  The
+run writes two files beside the images and prints a table of the routes with
+violations at the end:
+
+``frontend/screenshots/manifest.json``
+   Every image with its role, route, final URL, whether the page held an empty state,
+   and any errors the browser logged while it loaded.
+``frontend/screenshots/axe.json``
+   The axe violations by role and route, each with its rule, impact, and the number
+   of elements affected.
+
+The target reads ``SCREENSHOTS_PORT``, ``SCREENSHOTS_DB``,
+``SCREENSHOTS_DATABASE_URL``, ``SCREENSHOTS_LOG`` (the server's output, default
+``/tmp/caldart-screenshots-server.log``) and ``SKIP_CREATEDB`` as ``make e2e`` reads
+their ``E2E_`` counterparts.  The script itself reads ``SCREENSHOTS_BASE_URL`` and
+``SCREENSHOTS_OUT_DIR``, and ``SCREENSHOTS_WORKERS`` (demo accounts shot at once,
+default ``4``), so it can also be run by hand against a server you started:
+``cd frontend && SCREENSHOTS_BASE_URL=http://localhost:8000 npm run screenshots``.
 
 .. _testing-rehearsal:
 

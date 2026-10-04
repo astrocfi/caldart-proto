@@ -350,6 +350,12 @@ list, in full:
        and its own server (port ``8021``, or ``E2E_PORT``), with the mock
        payment provider and the file email backend; ``E2E_URL_PREFIX`` serves
        the site under a URL prefix through a proxy; see :doc:`testing`
+   * - ``screenshots``
+     - a screenshot of every portal screen each demo account can reach at three
+       widths, plus an axe accessibility check of each, in
+       ``frontend/screenshots/``; its own database (``caldart_screenshots``, or
+       ``SCREENSHOTS_DB``) and server (port ``8031``, or ``SCREENSHOTS_PORT``);
+       see :doc:`testing`
    * - ``rehearse-deploy``
      - the server installer, run for real in a throwaway systemd container:
        install, upgrade, a second install, and uninstall
@@ -419,8 +425,8 @@ list, in full:
        ``__pycache__``
 
 Every target runs from the repository root, and every one that touches the
-development database honors ``DATABASE_URL``; ``e2e`` alone builds its own
-database from ``E2E_DB``.
+development database honors ``DATABASE_URL``; ``e2e`` and ``screenshots`` build
+their own databases from ``E2E_DB`` and ``SCREENSHOTS_DB``.
 
 .. _make-switches:
 
