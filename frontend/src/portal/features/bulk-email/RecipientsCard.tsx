@@ -356,11 +356,12 @@ function matching(rows: BulkEmailBatchRow[], search: string): BulkEmailBatchRow[
 }
 
 /**
- * The batch table's columns; the trashcan column, right after the name so it stays in
- * sight on a phone, only while the batch can change. The rows come in surname order
- * from the server, and the columns sort on a press. *Will receive?* wraps, so a skip
- * reason is read whole, and *Chosen by*, then the DART, give way when the table would
- * not fit its card.
+ * The batch table's columns: the name, which tells the rows apart, and last the
+ * trashcan column, which stays in sight on a phone, only while the batch can change.
+ * The rows come in surname order from the server, and the columns sort on a press.
+ * *Will receive?* wraps, so a skip reason is read whole, and stays in sight; *Chosen
+ * by*, the DART, the kind, then the address give way when the table would not fit its
+ * card.
  */
 export function batchColumns(
   labels: Map<number, string>,
@@ -370,6 +371,7 @@ export function batchColumns(
     key: 'name',
     header: 'Name',
     minWidth: '12rem',
+    isIdentity: true,
     render: (row) => row.name,
     sortValue: (row) => row.name,
   };
@@ -378,6 +380,7 @@ export function batchColumns(
       key: 'email',
       header: 'Email',
       minWidth: '13rem',
+      dropOrder: DROP_ORDER.address,
       render: (row) => row.email,
       sortValue: (row) => row.email,
     },
@@ -386,6 +389,7 @@ export function batchColumns(
       header: 'Will receive?',
       width: '11rem',
       wrap: true,
+      keepInSight: true,
       render: (row) => <WillReceive row={row} />,
       sortValue: (row) => (row.will_receive ? '' : row.reason),
     },
@@ -397,8 +401,7 @@ export function batchColumns(
           {
             key: 'remove',
             header: 'Remove',
-            width: '5.5rem',
-            keepInSight: true,
+            isActions: true,
             render: (row) => (
               <DeleteButton
                 label={`Remove ${row.name || row.email} from the batch`}
@@ -413,6 +416,7 @@ export function batchColumns(
       key: 'kind',
       header: 'Kind',
       width: '5.5rem',
+      dropOrder: DROP_ORDER.kind,
       render: (row) => kindLabel(row.kind),
       sortValue: (row) => row.kind,
     },

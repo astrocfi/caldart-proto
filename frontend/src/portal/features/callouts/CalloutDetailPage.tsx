@@ -11,7 +11,7 @@
  * the callout takes answers.
  */
 import { useMemo, useState } from 'react';
-import type { ChangeEvent, JSX } from 'react';
+import type { JSX } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
 import type {
@@ -20,11 +20,13 @@ import type {
   CalloutRecipient,
   LeaderGoNoGo,
 } from '@/portal/api/types';
+import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { ConfirmButton } from '@/portal/components/ConfirmButton';
 import type { Column } from '@/portal/components/DataTable';
 import { DataTable } from '@/portal/components/DataTable';
 import { DateText, formatDate } from '@/portal/components/DateText';
+import { clearedValues, FilterBar } from '@/portal/components/FilterBar';
 import { Loading } from '@/portal/components/Loading';
 import { Page } from '@/portal/components/Page';
 import { StatusDot } from '@/portal/components/StatusChip';
@@ -35,6 +37,7 @@ import { actionError } from '@/portal/features/bulk-email/SendStatus';
 import { resultsCaption } from '@/portal/features/bulk-email/DeliveryReport';
 import { people } from '@/portal/features/bulk-email/status';
 import { GoMark, isReady } from '@/portal/features/leader/LeaderLookup';
+import type { FilterField, FilterValues } from '@/portal/reports/types';
 import { answersCsvUrl, useCallout, useCalloutAction } from './api';
 import './callouts.css';
 import { ANSWER_LABELS, answerLabel, answerTone } from './labels';
@@ -48,9 +51,28 @@ export const CLOSED_MESSAGE = 'The callout is closed. Its buttons record nothing
 /** The answers a reader can narrow the table to, then no answer. */
 const ANSWER_CHOICES: readonly CalloutAnswerKind[] = ['available', 'limited', 'unavailable'];
 
-/** The menu's values for every person, and for the people who have not answered. */
-const EVERY_ANSWER = 'all';
+/** The menu's value for the people who have not answered. */
 const NO_ANSWER = 'none';
+
+/**
+ * The answers table's filters: the answer, blank for any, and a search over names and
+ * addresses.  They narrow the rows on screen; the callout's answers all arrive at once.
+ */
+const ANSWER_FILTERS: readonly FilterField[] = [
+  {
+    key: 'answer',
+    label: 'Answer',
+    kind: 'select',
+    placeholder: 'Any answer',
+    options: [
+      ...ANSWER_CHOICES.map((choice) => ({ value: choice, label: ANSWER_LABELS[choice] })),
+      { value: NO_ANSWER, label: 'No answer yet' },
+    ],
+  },
+  { key: 'search', label: 'Find a person', kind: 'search', placeholder: 'Name or email' },
+];
+
+const NO_FILTERS: FilterValues = { answer: '', search: '' };
 
 /** One callout's page. */
 export function CalloutDetailPage(): JSX.Element {
@@ -206,56 +228,53 @@ function CalloutActions({ callout }: { callout: CalloutDetail }): JSX.Element {
 
 /** The answer menu, a search box, and one line per person with their answer. */
 function Answers({ rows }: { rows: CalloutRecipient[] }): JSX.Element {
-  const [search, setSearch] = useState('');
-  const [answer, setAnswer] = useState<string>(EVERY_ANSWER);
+  const [filters, setFilters] = useState<FilterValues>(NO_FILTERS);
+  const answer = filters.answer ?? '';
+  const search = filters.search ?? '';
   const shown = useMemo(() => {
     const needle = search.trim().toLowerCase();
     return rows.filter(
       (row) =>
-        (answer === EVERY_ANSWER ||
-          (answer === NO_ANSWER ? row.answer === null : row.answer === answer)) &&
+        (answer === '' || (answer === NO_ANSWER ? row.answer === null : row.answer === answer)) &&
         (needle === '' ||
           row.name.toLowerCase().includes(needle) ||
           row.email.toLowerCase().includes(needle)),
     );
   }, [rows, search, answer]);
 
-  const handleAnswerChange = (event: ChangeEvent<HTMLSelectElement>): void => {
-    setAnswer(event.target.value);
+  const handleFilterChange = (next: FilterValues): void => {
+    setFilters(next);
   };
-  const handleSearchChange = (event: ChangeEvent<HTMLInputElement>): void => {
-    setSearch(event.target.value);
-  };
+  const isFiltered = answer !== '' || search.trim() !== '';
 
   return (
-    <div className="stack-tight">
-      <div className="cluster">
-        <label className="cluster">
-          Answer
-          <select value={answer} onChange={handleAnswerChange}>
-            <option value={EVERY_ANSWER}>Every answer</option>
-            {ANSWER_CHOICES.map((choice) => (
-              <option key={choice} value={choice}>
-                {ANSWER_LABELS[choice]}
-              </option>
-            ))}
-            <option value={NO_ANSWER}>No answer yet</option>
-          </select>
-        </label>
-        <label className="cluster">
-          Find a person
-          <input type="search" value={search} onChange={handleSearchChange} />
-        </label>
-      </div>
-      <DataTable
-        singleLine
-        columns={ANSWER_COLUMNS}
-        rows={shown}
-        rowKey={(row) => row.user_id}
-        caption={resultsCaption(shown.length, rows.length, 'Answers')}
-        emptyTitle="Nobody to show"
-      />
-    </div>
+    <DataTable
+      singleLine
+      columns={ANSWER_COLUMNS}
+      rows={shown}
+      rowKey={(row) => row.user_id}
+      caption={resultsCaption(shown.length, rows.length, 'Answers')}
+      filters={
+        <FilterBar
+          fields={ANSWER_FILTERS}
+          values={filters}
+          onChange={handleFilterChange}
+          label="Filter the answers"
+        />
+      }
+      emptyTitle="Nobody to show"
+      emptyDescription={isFiltered ? 'Nobody matches these filters.' : undefined}
+      emptyAction={
+        isFiltered ? (
+          <Button
+            variant="secondary"
+            onClick={() => setFilters(clearedValues(ANSWER_FILTERS, filters))}
+          >
+            Reset filters
+          </Button>
+        ) : undefined
+      }
+    />
   );
 }
 
@@ -270,6 +289,7 @@ export const ANSWER_COLUMNS: Column<CalloutRecipient>[] = [
     key: 'name',
     header: 'Name',
     minWidth: '10rem',
+    isIdentity: true,
     render: (row) => row.name,
     sortValue: (row) => row.name,
   },

@@ -15,6 +15,7 @@ import type { JSX } from 'react';
 import { Link } from 'react-router-dom';
 
 import type { BulkEmailSummary } from '@/portal/api/types';
+import { ButtonLink } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import type { Column } from '@/portal/components/DataTable';
 import { DataTable } from '@/portal/components/DataTable';
@@ -34,6 +35,7 @@ export function SentPage(): JSX.Element {
   const rows = sent.data ?? [];
   // A DART leader sees only their own emails, so the screen speaks of theirs.
   const isLeader = sender.data?.is_management === false;
+  const canSend = sender.data?.can_send === true;
 
   return (
     <Page
@@ -56,15 +58,16 @@ export function SentPage(): JSX.Element {
             columns={withSenderColumns(SENT_COLUMNS, sender.data?.is_management === true)}
             rows={rows}
             rowKey={(row) => row.id}
+            initialSort={{ key: 'started_at', direction: 'desc' }}
             caption={`${rows.length} bulk ${rows.length === 1 ? 'email' : 'emails'} sent`}
             emptyTitle={isLeader ? 'You have not sent an email yet' : 'No bulk email has been sent'}
             emptyDescription={
-              isLeader ? (
-                <>
-                  Emails you send appear here. Write one on{' '}
-                  <Link to="/bulk-email/compose">Compose</Link>.
-                </>
-              ) : undefined
+              isLeader
+                ? 'Emails you send appear here once they start going out.'
+                : 'Each bulk email appears here once it starts going out.'
+            }
+            emptyAction={
+              canSend ? <ButtonLink to="/bulk-email/compose">Write an email</ButtonLink> : undefined
             }
             isLoading={sent.isLoading}
           />
@@ -75,16 +78,17 @@ export function SentPage(): JSX.Element {
 }
 
 /**
- * The table's columns: the subject, then the actions (the row's action and
- * **Duplicate…**, one above the other on a phone), so they stay in sight, then the
- * date, the status, and the counts. The type, then the DART, then who sent it give way
- * when the table would not fit its card.
+ * The table's columns: the subject, which tells the rows apart, then the date, the
+ * status, the counts, and last the actions (the row's action and **Duplicate…**, one
+ * above the other on a phone), which stay in sight. The type, then the DART, then who
+ * sent it give way when the table would not fit its card.
  */
 export const SENT_COLUMNS: Column<BulkEmailSummary>[] = [
   {
     key: 'subject',
     header: 'Subject',
     minWidth: '9rem',
+    isIdentity: true,
     render: (row) => <Link to={`/bulk-email/sent/${row.id}`}>{row.subject}</Link>,
     sortValue: (row) => row.subject,
   },
@@ -92,7 +96,7 @@ export const SENT_COLUMNS: Column<BulkEmailSummary>[] = [
     key: 'actions',
     header: 'Actions',
     width: '15.25rem',
-    keepInSight: true,
+    isActions: true,
     narrowWidth: '9.5rem',
     render: (row) => (
       <span className="cluster cluster--nowrap">
@@ -111,6 +115,7 @@ export const SENT_COLUMNS: Column<BulkEmailSummary>[] = [
     key: 'started_at',
     header: 'Date',
     width: '6.5rem',
+    noWrap: true,
     render: (row) => <DateText value={row.started_at} />,
     sortValue: (row) => row.started_at,
   },

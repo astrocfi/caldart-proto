@@ -54,6 +54,11 @@ function row(table: HTMLElement, name: RegExp): HTMLElement {
 }
 
 describe('SubscriptionsCard', () => {
+  it('heads the actions column for a screen reader, and draws it last', async () => {
+    const table = await renderCard();
+    expect(within(table).getAllByRole('columnheader').at(-1)).toHaveTextContent('Actions');
+  });
+
   it('names the report, the recipient, the schedule and the formats of each', async () => {
     const table = await renderCard();
 

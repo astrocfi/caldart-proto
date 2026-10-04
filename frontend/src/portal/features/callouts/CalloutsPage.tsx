@@ -10,6 +10,7 @@ import type { JSX } from 'react';
 import { Link } from 'react-router-dom';
 
 import type { CalloutSummary } from '@/portal/api/types';
+import { ButtonLink } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import type { Column } from '@/portal/components/DataTable';
 import { DataTable } from '@/portal/components/DataTable';
@@ -43,9 +44,11 @@ export function CalloutsPage(): JSX.Element {
             columns={CALLOUT_COLUMNS}
             rows={rows}
             rowKey={(row) => row.id}
+            initialSort={{ key: 'started_at', direction: 'desc' }}
             caption={`${rows.length} ${rows.length === 1 ? 'callout' : 'callouts'}`}
             emptyTitle="No callout has been sent"
-            emptyDescription="To send one, open Compose and switch on This is a mission callout."
+            emptyDescription="To send one, write an email and switch on This is a mission callout."
+            emptyAction={<ButtonLink to="/bulk-email/compose">Write an email</ButtonLink>}
             isLoading={callouts.isLoading}
           />
         )}
@@ -64,6 +67,7 @@ export const CALLOUT_COLUMNS: Column<CalloutSummary>[] = [
     key: 'subject',
     header: 'Subject',
     minWidth: '12rem',
+    isIdentity: true,
     render: (row) => <Link to={`/bulk-email/callouts/${row.id}`}>{row.subject}</Link>,
     sortValue: (row) => row.subject,
   },
@@ -71,6 +75,7 @@ export const CALLOUT_COLUMNS: Column<CalloutSummary>[] = [
     key: 'started_at',
     header: 'Sent',
     width: '6.5rem',
+    noWrap: true,
     render: (row) => <DateText value={row.started_at} />,
     sortValue: (row) => row.started_at,
   },

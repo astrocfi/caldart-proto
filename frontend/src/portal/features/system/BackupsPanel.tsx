@@ -23,22 +23,29 @@ export function formatBytes(bytes: number): string {
   return `${(mb / 1024).toFixed(2)} GB`;
 }
 
+/** The file tells the rows apart; when it was taken gives way first on a narrow screen. */
 const COLUMNS: Column<Backup>[] = [
   {
     key: 'name',
     header: 'File',
+    minWidth: '14rem',
+    isIdentity: true,
     render: (row) => <span className="mono">{row.name}</span>,
     sortValue: (row) => row.name,
   },
   {
     key: 'created_at',
     header: 'Taken',
+    width: '12rem',
+    noWrap: true,
+    dropOrder: 1,
     render: (row) => <DateText value={row.created_at} withTime />,
     sortValue: (row) => row.created_at,
   },
   {
     key: 'size_bytes',
     header: 'Size',
+    width: '6rem',
     numeric: true,
     render: (row) => <span className="mono">{formatBytes(row.size_bytes)}</span>,
     sortValue: (row) => row.size_bytes,
@@ -46,6 +53,7 @@ const COLUMNS: Column<Backup>[] = [
   {
     key: 'download',
     header: 'Download',
+    isActions: true,
     render: (row) => (
       <a
         className="button button--quiet button--small"
@@ -101,6 +109,7 @@ export function BackupsPanel(): JSX.Element {
       ) : null}
 
       <DataTable
+        singleLine
         columns={COLUMNS}
         rows={data ?? []}
         rowKey={(row) => row.name}

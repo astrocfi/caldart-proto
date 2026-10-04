@@ -13,12 +13,9 @@ every sender's emails. A DART leader opens it too, and sees only their own
 The list
 ========
 
-One line per email, the most recently started first:
+One line per email, the most recently started first, which the arrow on **Date** shows:
 
 - **Subject**: what it said. It opens the email's own page, below.
-- **Actions**: **Download results** saves the email's results as a spreadsheet file, and
-  **Duplicate…** opens the email's own page, where **Duplicate** starts a new draft from it,
-  below. On a phone the two sit one above the other.
 - **Date**: the day it started sending.
 - **Type**: the type of email it was, such as *Operational*.
 - **From** and **DART**, for CalDART management only: who sent it, and the DART a DART
@@ -27,13 +24,18 @@ One line per email, the most recently started first:
 - **Sent**, **Failed**, and **Skipped**: how many copies went, were refused by the mail
   server, and were never sent because the person could not receive them. A mission
   callout's counts include its reminders.
+- **Actions**, last: **Download results** saves the email's results as a spreadsheet file,
+  and **Duplicate…** opens the email's own page, where **Duplicate** starts a new draft from
+  it, below. On a phone the two sit one above the other.
 
 On a screen too narrow for every column, **Type**, then **DART**, then **From** are left out,
 one at a time until the rest fit, so the actions stay in sight; on a phone the table scrolls
-sideways, with the subject narrowed and the actions beside it. Before the first send the
-table reads *No bulk email has been sent*; a DART leader's reads *You have not sent an email
-yet* and *Emails you send appear here. Write one on Compose.* The list keeps itself up to
-date while an email is sending.
+sideways, says so above it, and keeps the subject pinned at the left. Before the first send
+the table reads *No bulk email has been sent* and *Each bulk email appears here once it
+starts going out.*; a DART leader's reads *You have not sent an email yet* and *Emails you
+send appear here once they start going out.* Either offers **Write an email**, which opens
+:doc:`compose`, to anybody who has people to send to. The list keeps itself up to date while
+an email is sending.
 
 An email that is sending offers **Stop…** in place of the download, and a stopped one **Send
 the rest…**. Each opens the email's own page, where the action asks first.
@@ -77,12 +79,14 @@ took, those that came back later included, and **Bounced** says how many of thos
 Under the counts is **Retry failed** (below).
 
 Then one line per person in the batch, for their first copy, with **Name**, **Result**,
-**Copy**, **Email**, **Reason** (in full, on as many lines as it needs), **Tried at**
-(such as *10/03/2026 at 5:34 PM*), **Kind**, and **DART**; on a screen too narrow for
-every column, **DART**, then **Kind**, then **Tried at** are left out, and on a phone the
-result wraps so **Copy** stays in sight. **Result** narrows the table to one result, such
-as *Failed*, and **Find a person** to a name or address; the table's caption then says how
-many of everybody it shows, such as *Showing 2 of 39*. **Download results** saves the
+**Email**, **Reason** (in full, on as many lines as it needs), **Tried at** (such as
+*10/03/2026 at 5:34 PM*), **Kind**, **DART**, and last **Copy**; on a screen too narrow for
+every column, **DART**, then **Kind**, then **Tried at**, then **Email** are left out, and on
+a phone the result wraps so **Copy** stays in sight. **Result** narrows the table to one
+result, such as *Failed*, with **Any result** for everybody, and **Find a person** to a name
+or address; the table's caption then says how many of everybody it shows, such as *Showing 2
+of 39*. **Reset filters** puts both back; when nobody matches them, the empty table offers
+its own **Reset filters** button. **Download results** saves the
 whole table as a spreadsheet file, with each person's result, reason, and the time their
 copy was tried.
 

@@ -107,21 +107,24 @@ export function EmailTypesPage(): JSX.Element {
         }),
     );
 
-  // The name and the actions come first, narrow enough to stay in sight on a phone; the
-  // description takes whatever room the fixed widths leave.
+  // The name tells the rows apart and stays pinned while a phone scrolls the table; the
+  // description wraps and never narrows below a readable width, so it reads in full; the
+  // actions come last, wide enough for an open delete confirmation beside Edit. Whether
+  // it can be turned off, then who may send it, give way on a narrow screen.
   const columns: Column<EmailType>[] = [
     {
       key: 'name',
       header: 'Name',
       width: '10rem',
-      wrap: true,
+      isIdentity: true,
       render: (emailType) => emailType.name,
     },
     {
       key: 'actions',
       header: 'Actions',
-      width: '7rem',
-      keepInSight: true,
+      width: '12rem',
+      isActions: true,
+      narrowWidth: '7rem',
       render: (emailType) => (
         <span className="cluster cluster--nowrap">
           <Button
@@ -144,6 +147,7 @@ export function EmailTypesPage(): JSX.Element {
     {
       key: 'description',
       header: 'What it is for',
+      minWidth: '14rem',
       wrap: true,
       render: (emailType) => emailType.description,
     },
@@ -152,6 +156,7 @@ export function EmailTypesPage(): JSX.Element {
       header: 'Who may send it',
       width: '16rem',
       wrap: true,
+      dropOrder: 2,
       render: (emailType) => sendersText(emailType),
     },
     {
@@ -159,6 +164,7 @@ export function EmailTypesPage(): JSX.Element {
       header: 'Can be turned off',
       width: '9rem',
       wrap: true,
+      dropOrder: 1,
       // The word says it; the dot, hidden from a screen reader, only colors it.
       render: (emailType) => (
         <>
@@ -226,6 +232,13 @@ export function EmailTypesPage(): JSX.Element {
           isLoading={types.isPending}
           emptyTitle="No email types yet"
           emptyDescription="Add one, and CalDART management can choose it when they send a bulk email."
+          emptyAction={
+            openForm === null ? (
+              <Button variant="secondary" onClick={handleAdd}>
+                Add an email type
+              </Button>
+            ) : undefined
+          }
         />
         {types.isError ? (
           <p className="field__error" role="alert">

@@ -7,6 +7,7 @@ import { makeGroup, makeGroupPerson } from '@test/fixtures/bulkEmailReuse';
 import { API } from '@test/handlers';
 import { renderRoutes } from '@test/render';
 import { server } from '@test/server';
+import { headerWords } from '@test/table';
 import type { GroupPerson, RecipientGroup } from '@/portal/api/types';
 import { GroupDetailPage } from './GroupDetailPage';
 
@@ -93,14 +94,14 @@ describe('GroupDetailPage, a fixed group', () => {
   it('lists its people with their DART', async () => {
     answerGroup(makeGroup(), [makeGroupPerson()]);
     renderGroup(5);
-    const row = (await screen.findByRole('cell', { name: 'Ann Able' })).closest('tr');
+    const row = (await screen.findByRole('rowheader', { name: 'Ann Able' })).closest('tr');
     expect(row).toHaveTextContent('Marin DART');
   });
 
   it('marks a deactivated person', async () => {
     answerGroup(makeGroup(), [makeGroupPerson({ is_active: false })]);
     renderGroup(5);
-    expect(await screen.findByRole('cell', { name: 'Ann Able (deactivated)' })).toBeVisible();
+    expect(await screen.findByRole('rowheader', { name: 'Ann Able (deactivated)' })).toBeVisible();
   });
 
   it('adds the person picked from the search', async () => {
@@ -134,12 +135,12 @@ describe('GroupDetailPage, a fixed group', () => {
     await waitFor(() => expect(calls.renamed).toEqual([{ name: 'Directors' }]));
   });
 
-  it('puts the trashcan right after the name, so a phone shows it', async () => {
+  it('puts the name first and the trashcan last, where every table keeps its actions', async () => {
     answerGroup(makeGroup(), [makeGroupPerson()]);
     renderGroup(5);
-    await screen.findByRole('cell', { name: 'Ann Able' });
-    const headers = screen.getAllByRole('columnheader').map((header) => header.textContent);
-    expect(headers.slice(0, 2)).toEqual(['Name', 'Remove']);
+    await screen.findByRole('rowheader', { name: 'Ann Able' });
+    const headers = screen.getAllByRole('columnheader').map(headerWords);
+    expect([headers[0], headers.at(-1)]).toEqual(['Name', 'Remove']);
   });
 
   it('has no filters to change', async () => {

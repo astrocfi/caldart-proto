@@ -30,6 +30,7 @@ import { Typeahead } from '@/portal/components/Typeahead';
 import { fieldError } from '@/portal/features/auth/form';
 import type { FilterValues } from '@/portal/reports/types';
 import { givenFilters } from './api';
+import { DROP_ORDER } from './dropOrder';
 import './bulk-email.css';
 import './reuse.css';
 import { groupKindLabel } from './GroupKindChoice';
@@ -209,12 +210,14 @@ function PeopleCard({ group }: { group: RecipientGroup }): JSX.Element {
   const count = members.data?.count ?? group.count;
   const countText = count === null ? 'people the filters cannot find yet' : people(count);
 
-  // The trashcan follows the name, so a phone shows it without scrolling sideways.
+  // The trashcan comes last and stays in sight; the DART, the kind, then the address
+  // give way on a narrow screen.
   const columns: Column<GroupPerson>[] = [
     {
       key: 'name',
       header: 'Name',
       minWidth: '14rem',
+      isIdentity: true,
       render: (person) => (person.is_active ? person.name : `${person.name} (deactivated)`),
       sortValue: (person) => person.name,
     },
@@ -223,8 +226,7 @@ function PeopleCard({ group }: { group: RecipientGroup }): JSX.Element {
           {
             key: 'remove',
             header: 'Remove',
-            width: '5.5rem',
-            keepInSight: true,
+            isActions: true,
             render: (person: GroupPerson) => (
               <DeleteButton
                 label={`Remove ${person.name || person.email} from the group`}
@@ -239,11 +241,24 @@ function PeopleCard({ group }: { group: RecipientGroup }): JSX.Element {
       key: 'email',
       header: 'Email',
       minWidth: '14rem',
+      dropOrder: DROP_ORDER.address,
       render: (person) => person.email,
       sortValue: (person) => person.email,
     },
-    { key: 'kind', header: 'Kind', width: '5.5rem', render: (person) => kindLabel(person.kind) },
-    { key: 'dart', header: 'DART', width: '8rem', render: (person) => person.dart_name || '—' },
+    {
+      key: 'kind',
+      header: 'Kind',
+      width: '5.5rem',
+      dropOrder: DROP_ORDER.kind,
+      render: (person) => kindLabel(person.kind),
+    },
+    {
+      key: 'dart',
+      header: 'DART',
+      width: '8rem',
+      dropOrder: DROP_ORDER.dart,
+      render: (person) => person.dart_name || '—',
+    },
   ];
 
   return (

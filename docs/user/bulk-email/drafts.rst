@@ -18,8 +18,6 @@ One line per email, the most recently changed first:
 
 - **Subject**: the subject so far, or *(no subject yet)*. Press it to open the email in
   :doc:`compose`.
-- **Actions**: **Cancel schedule** or **Cancel** on an email waiting to send, and the
-  trashcan on a draft (below).
 - **Type**: the type of email chosen, or a dash before one is.
 - **From** and **DART**, for CalDART management only: who is writing it, and the DART a DART
   leader's email goes to, or a dash for an email that may go to anybody.
@@ -29,12 +27,14 @@ One line per email, the most recently changed first:
   at 8:00 AM*, or *Starts in* a countdown.
 - **People**: how many are in the batch.
 - **Last edited**: the day the email or its batch last changed.
+- **Actions**, last: **Cancel schedule** or **Cancel** on an email waiting to send, and the
+  trashcan on a draft (below).
 
 On a screen too narrow for every column, **Type**, then **DART**, then **Last edited**, then
 **From** are left out, one at a time until the rest fit, so the actions stay in sight; on a
-phone the table scrolls sideways, with the subject narrowed and the actions beside it.
+phone the table scrolls sideways, says so above it, and keeps the subject pinned at the left.
 **Write a new email** at the top opens :doc:`compose`. Before the first draft the table reads
-*No drafts*. A DART leader whose profile names no DART sees, in place of **Write a new
+*No drafts*, with its own **Write a new email** button. A DART leader whose profile names no DART sees, in place of **Write a new
 email**, the line saying to set their DART on My profile, with **Open My profile**
 (:doc:`dart-leaders`).
 

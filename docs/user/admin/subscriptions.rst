@@ -27,7 +27,11 @@ you may read:
 - **Last sent** and **Next**: when it last went and when it is due.
 - **Active**: a green dot while it is being sent, and a gray one while it is paused.
 
-Each row carries four controls. The line above the table says what the last three did.
+Each row carries four controls, last on the line under an **Actions** heading a screen
+reader announces. The line above the table says what the last three did. On a screen too
+narrow for every column, **Formats**, then **Last sent**, then **Schedule**, then
+**Recipient** are left out, and the controls wrap onto two lines; on a phone the table
+scrolls sideways, says so above it, and keeps **Report** pinned at the left.
 
 **Edit**
    Opens the subscription's form under the table, to change its filters, columns, formats,

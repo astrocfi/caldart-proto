@@ -4,29 +4,29 @@
  *
  * The filters are the `emails` report's own, drawn by the shared `FilterBar`
  * from `REPORTS.emails`, and they live in the address beside the order and the
- * page, so a filtered view of the log is a link.  The export links download the
- * same rows as the `emails` report, carrying the filters, the order and the
- * columns chosen for the export, but every page rather than the one on screen.
- * A message that belongs to a record, such as a copy of a bulk email, links to it.
+ * page, so a filtered view of the log is a link.  The column chooser drives the
+ * table and the two export links together, so the downloads carry the columns on
+ * screen, for every page rather than the one shown.  A message that belongs to a
+ * record, such as a copy of a bulk email, links to it.
  */
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import type { JSX } from 'react';
 import { Link } from 'react-router-dom';
 
-import type { EmailLogEntry, EmailStatus } from '@/portal/api/types';
+import type { EmailLogEntry, EmailStatus, ReportColumn } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
-import { ColumnChooser, defaultColumnKeys } from '@/portal/components/ColumnChooser';
-import type { Column } from '@/portal/components/DataTable';
 import { DataTable } from '@/portal/components/DataTable';
 import { DateText } from '@/portal/components/DateText';
-import { FilterBar } from '@/portal/components/FilterBar';
+import { clearedValues, FilterBar } from '@/portal/components/FilterBar';
+import type { ReportCell } from '@/portal/components/reportTable';
+import { ColumnTools, reportTableColumns, useColumnChoice } from '@/portal/components/reportTable';
 import { useUrlFilters } from '@/portal/components/useUrlFilters';
 import {
   useFirstPageWhenMissing,
   useUrlListPosition,
 } from '@/portal/components/useUrlListPosition';
-import { reportExportUrl, useReportColumns } from '@/portal/reports/api';
+import { reportExportUrl } from '@/portal/reports/api';
 import { listFilters, REPORTS } from '@/portal/reports/definitions';
 import type { FilterValues } from '@/portal/reports/types';
 import { EMAIL_LOG_PAGE_SIZE, useEmailLog, useEmailPurposes } from './api';
@@ -45,69 +45,78 @@ const STATUS_TEXT: Record<EmailStatus, (row: EmailLogEntry) => string> = {
   bounced: () => 'Bounced',
 };
 
-const COLUMNS: Column<EmailLogEntry>[] = [
-  {
-    key: 'sent_at',
-    header: 'Sent',
+/** A dash for a cell with nothing in it. */
+const NOTHING = <span className="muted">—</span>;
+
+/**
+ * The email log report's columns, with its default ones ticked, which the table shows
+ * while the registry loads or if it cannot be read.
+ */
+const FALLBACK_COLUMNS: ReportColumn[] = [
+  { key: 'sent_at', label: 'Sent', default: true },
+  { key: 'purpose', label: 'Purpose', default: true },
+  { key: 'to_email', label: 'To', default: true },
+  { key: 'user_name', label: 'Name', default: true },
+  { key: 'subject', label: 'Subject', default: true },
+  { key: 'status', label: 'Status', default: true },
+];
+
+/**
+ * How the table draws each column of the email log report.  The subject tells one
+ * row from another; the columns the defaults leave out drop first on a narrow screen,
+ * then the purpose, the name, and the address.  Only Sent sorts: it is the one order
+ * the log takes.
+ */
+const CELLS: Record<string, ReportCell<EmailLogEntry>> = {
+  sent_at: {
+    ordering: 'sent_at',
+    width: '12rem',
+    noWrap: true,
     render: (row) => <DateText value={row.sent_at} withTime />,
   },
-  {
-    key: 'purpose',
-    header: 'Purpose',
-    sortable: false,
+  purpose: {
+    minWidth: '10rem',
+    dropOrder: 5,
     // A copy of a bulk email leads to that email's page on Sent.
     render: (row) =>
       row.link === '' ? row.purpose_label : <Link to={row.link}>{row.purpose_label}</Link>,
   },
-  {
-    key: 'to',
-    header: 'To',
-    sortable: false,
-    render: (row) => (
-      <>
-        {row.user_name ? (
-          <>
-            {row.user_name}
-            <span className="muted"> · </span>
-          </>
-        ) : null}
-        <span className="mono">{row.to_email}</span>
-      </>
-    ),
+  to_email: { minWidth: '14rem', dropOrder: 7, render: (row) => row.to_email },
+  user_name: {
+    minWidth: '9rem',
+    dropOrder: 6,
+    render: (row) => (row.user_name === '' ? NOTHING : row.user_name),
   },
-  {
-    key: 'status',
-    header: 'Status',
-    sortable: false,
-    render: (row) => STATUS_TEXT[row.status](row),
+  subject: { minWidth: '14rem', isIdentity: true, render: (row) => row.subject },
+  status: { minWidth: '7rem', keepInSight: true, render: (row) => STATUS_TEXT[row.status](row) },
+  error: {
+    minWidth: '12rem',
+    dropOrder: 3,
+    render: (row) => (row.error === '' ? NOTHING : row.error),
   },
-  {
-    key: 'bounce',
-    header: 'Bounce',
-    sortable: false,
-    render: (row) =>
-      row.bounced_at === null ? (
-        <span className="muted">—</span>
-      ) : (
-        <>
-          <DateText value={row.bounced_at} />
-          <span className="muted"> · {row.bounce_detail}</span>
-        </>
-      ),
+  attachments: {
+    minWidth: '12rem',
+    dropOrder: 2,
+    render: (row) => (row.attachments === '' ? NOTHING : row.attachments),
   },
-  {
-    key: 'attachments',
-    header: 'Attachments',
-    sortable: false,
-    render: (row) => (row.attachments === '' ? <span className="muted">—</span> : row.attachments),
+  bounced_at: {
+    width: '8rem',
+    noWrap: true,
+    dropOrder: 4,
+    render: (row) => (row.bounced_at === null ? NOTHING : <DateText value={row.bounced_at} />),
   },
-];
+  bounce_detail: {
+    minWidth: '12rem',
+    dropOrder: 1,
+    render: (row) => (row.bounce_detail === '' ? NOTHING : row.bounce_detail),
+  },
+};
 
 /** The email log: filtered, paged, sorted by when each message went, and downloadable. */
 export function EmailLogPanel(): JSX.Element {
   const [filters, setFilters] = useUrlFilters(FILTER_KEYS);
   const position = useUrlListPosition(DEFAULT_ORDERING);
-  const { ordering, page, setPage, sort, setSort: handleSortChange } = position;
+  const { ordering, page, setPage: handlePageChange, sort, setSort: handleSortChange } = position;
 
   const log = useEmailLog({ filters, ordering, page });
   useFirstPageWhenMissing(position, log.error);
@@ -115,26 +124,21 @@ export function EmailLogPanel(): JSX.Element {
   const purposes = useEmailPurposes();
   const purposeOptions = useMemo(() => ({ purpose: purposes.data ?? [] }), [purposes.data]);
 
-  const registry = useReportColumns('emails');
-  const reportColumns = useMemo(() => registry.data ?? [], [registry.data]);
-  // Null means "whatever the registry calls default": the chooser has not been
-  // touched, so it must follow a registry that is still loading.
-  const [chosen, setChosen] = useState<string[] | null>(null);
-  const chosenKeys = chosen ?? defaultColumnKeys(reportColumns);
-  const exportParams = { ...filters, ordering, columns: chosenKeys };
+  const choice = useColumnChoice('emails', FALLBACK_COLUMNS);
+  const columns = reportTableColumns(choice.tableColumns, choice.tableChosen, CELLS, true);
+  const exportParams = { ...filters, ordering, columns: choice.chosen };
 
   const handleFilterChange = (next: FilterValues): void => {
     setFilters(next);
   };
 
-  const handleColumnChange = (next: string[]): void => {
-    setChosen(next);
+  const handleReset = (): void => {
+    setFilters(clearedValues(FILTER_FIELDS, filters));
   };
 
   const count = log.data?.count ?? 0;
   const rows = log.data?.results ?? [];
-  const firstRow = count === 0 ? 0 : (page - 1) * EMAIL_LOG_PAGE_SIZE + 1;
-  const lastRow = (page - 1) * EMAIL_LOG_PAGE_SIZE + rows.length;
+  const isFiltered = FILTER_KEYS.some((key) => (filters[key] ?? '') !== '');
 
   return (
     <Card>
@@ -145,66 +149,46 @@ export function EmailLogPanel(): JSX.Element {
       ) : null}
 
       <DataTable
-        columns={COLUMNS}
+        singleLine
+        columns={columns}
         rows={rows}
         rowKey={(row) => row.id}
         isLoading={log.isPending}
         caption={log.data ? `${count} email${count === 1 ? '' : 's'}` : undefined}
+        label="Sent emails"
         onSortChange={handleSortChange}
         sort={sort}
         exportCsvUrl={reportExportUrl('emails', 'csv', exportParams)}
         exportPdfUrl={reportExportUrl('emails', 'pdf', exportParams)}
-        emptyTitle="No emails sent yet"
-        emptyDescription="Nothing has gone out yet, or nothing matches these filters."
-        filters={
-          <>
-            <FilterBar
-              fields={FILTER_FIELDS}
-              values={filters}
-              onChange={handleFilterChange}
-              options={purposeOptions}
-              label="Filter the email log"
-            />
-            {registry.isError ? (
-              <p className="muted">
-                The columns could not be loaded; the downloads carry the default columns.
-              </p>
-            ) : reportColumns.length > 0 ? (
-              <ColumnChooser
-                report="emails"
-                columns={reportColumns}
-                chosen={chosenKeys}
-                onChange={handleColumnChange}
-                legend="Columns to export"
-              />
-            ) : null}
-          </>
+        emptyTitle={isFiltered ? 'No emails match these filters' : 'No emails sent yet'}
+        emptyDescription={
+          isFiltered ? 'Widen the dates, or reset the filters to see every email.' : undefined
         }
+        emptyAction={
+          isFiltered ? (
+            <Button variant="secondary" onClick={handleReset}>
+              Reset filters
+            </Button>
+          ) : undefined
+        }
+        filters={
+          <FilterBar
+            fields={FILTER_FIELDS}
+            values={filters}
+            onChange={handleFilterChange}
+            options={purposeOptions}
+            label="Filter the email log"
+          />
+        }
+        tools={<ColumnTools choice={choice} />}
+        pagination={{
+          page,
+          pageSize: EMAIL_LOG_PAGE_SIZE,
+          count,
+          onPageChange: handlePageChange,
+          label: 'Email log pages',
+        }}
       />
-
-      {count > EMAIL_LOG_PAGE_SIZE ? (
-        <div className="cluster card__footer">
-          <p className="muted">
-            Showing {firstRow}–{lastRow} of {count}
-          </p>
-          <Button
-            variant="quiet"
-            small
-            disabled={!log.data?.previous}
-            onClick={() => setPage(page - 1)}
-          >
-            Previous
-          </Button>
-          <Button
-            variant="quiet"
-            small
-            disabled={!log.data?.next}
-            onClick={() => setPage(page + 1)}
-          >
-            Next
-          </Button>
-        </div>
-      ) : null}
     </Card>
   );
 }

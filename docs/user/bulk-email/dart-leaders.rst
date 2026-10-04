@@ -57,7 +57,8 @@ Your drafts and your sent email
 
 **Drafts & scheduled** and **Sent** list only the emails you wrote. Nobody else's drafts
 appear there, and other DART leaders do not see yours. Until you send one, **Sent** says
-*Emails you send appear here. Write one on Compose.* CalDART management sees every bulk
+*Emails you send appear here once they start going out.*, with a **Write an email** button
+that opens Compose. CalDART management sees every bulk
 email, with who wrote it and the DART it went to.
 
 

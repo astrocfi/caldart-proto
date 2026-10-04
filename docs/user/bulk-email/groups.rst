@@ -25,18 +25,20 @@ The list
 One line per group, by name:
 
 - **Name** opens the group's own page, below, where it is changed.
-- **Actions**: the trashcan deletes the group after you press **Delete**. Emails the group
-  was added to keep their people, and their batch still names the group that brought each
-  person in. **Download list** saves the group's people as a spreadsheet file (CSV) named
-  after the group, such as *caldart-group-board.csv*, with each person's name, email address,
-  kind, and DART; a group with nobody in it offers none.
 - **Kind**: *Fixed* or *Live*.
 - **People**: how many people the group holds now. A live group's filters are run again to
   count them. It reads *Unknown* for a live group whose filters need fixing, below.
 - **Last edited**: the day the group, its people, or its filters last changed.
+- **Actions**, last: the trashcan deletes the group after you press **Delete**. Emails the
+  group was added to keep their people, and their batch still names the group that brought
+  each person in. **Download list** saves the group's people as a spreadsheet file (CSV)
+  named after the group, such as *caldart-group-board.csv*, with each person's name, email
+  address, kind, and DART; a group with nobody in it offers none.
 
-Before the first group is saved the table reads *No recipient groups yet*. On a phone the
-table scrolls sideways.
+On a screen too narrow for every column, **Kind**, then **Last edited** are left out; on a
+phone the table scrolls sideways, says so above it, and keeps **Name** pinned at the left.
+Before the first group is saved the table reads *No recipient groups yet*, with its own
+**New group** button.
 
 **New group** asks for a **Name** and the **Kind of group**, then **Make the group** opens
 its page, empty, to fill in. The cursor starts in **Name**; the Escape key closes the
@@ -51,8 +53,9 @@ A group's page
 **Name** shows the group's name; change it and press **Save name**. Emails the group was
 added to before keep the name it had then.
 
-A fixed group's **People** card lists everybody in it, with **Name**, the trashcan, **Email**,
-**Kind**, and **DART**. A deactivated account reads *(deactivated)* after the name; a send
+A fixed group's **People** card lists everybody in it, with **Name**, **Email**, **Kind**,
+**DART**, and last the trashcan; a narrow screen leaves out **DART**, then **Kind**, then
+**Email**. A deactivated account reads *(deactivated)* after the name; a send
 skips it. To add somebody, type part of their name or email address in **Add a person** and
 choose them from the list that appears; a line such as *Ann Able added.* says so. Somebody
 already in the group is refused with *Ann Able is in this group already.* The trashcan on a

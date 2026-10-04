@@ -43,7 +43,8 @@ Backups
 =======
 
 The table lists every backup on the server, newest first, with its **File** name, when it
-was **Taken**, its **Size**, and a **Download** link.
+was **Taken**, its **Size**, and last a **Download** link. On a narrow screen **Taken** is
+left out, and the **File** name stays pinned at the left while the table scrolls sideways.
 
 **Create backup** takes one now. It leaves out the FAA aircraft registry, which the nightly
 import brings back. The button reads *Taking a backup…* while it works, a minute or two on a

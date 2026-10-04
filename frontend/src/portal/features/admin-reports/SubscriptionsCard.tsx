@@ -104,40 +104,62 @@ export function SubscriptionsCard(): JSX.Element {
     setOpenForm(null);
   };
 
+  // The report tells the rows apart and the actions come last, headed for a screen
+  // reader, with room for every button beside an open delete confirmation. The formats,
+  // the last send, the schedule, then the recipient give way on a narrow screen.
   const columns: Column<ReportSubscription>[] = [
     {
       key: 'report',
       header: 'Report',
+      minWidth: '11rem',
+      isIdentity: true,
       render: (row) => row.report_title,
       sortValue: (row) => row.report_title,
     },
     {
       key: 'recipient',
       header: 'Recipient',
+      minWidth: '12rem',
+      dropOrder: 4,
       render: (row) => recipientLabel(row),
       sortValue: (row) => recipientLabel(row),
     },
     {
       key: 'schedule',
       header: 'Schedule',
+      minWidth: '9rem',
+      dropOrder: 3,
       render: (row) => scheduleLabel(row.cadence, row.weekday),
     },
-    { key: 'formats', header: 'Formats', render: (row) => FORMAT_LABELS[row.formats] },
+    {
+      key: 'formats',
+      header: 'Formats',
+      width: '7rem',
+      dropOrder: 1,
+      render: (row) => FORMAT_LABELS[row.formats],
+    },
     {
       key: 'last_sent_at',
       header: 'Last sent',
+      width: '7rem',
+      noWrap: true,
+      dropOrder: 2,
       render: (row) => <DateText value={row.last_sent_at} />,
       sortValue: (row) => row.last_sent_at,
     },
     {
       key: 'next_due_on',
       header: 'Next',
+      width: '7rem',
+      noWrap: true,
       render: (row) => <DateText value={row.next_due_on} />,
       sortValue: (row) => row.next_due_on,
     },
     {
       key: 'is_active',
       header: 'Active',
+      width: '5rem',
+      keepInSight: true,
       render: (row) =>
         row.is_active ? (
           <StatusDot tone="current" label="Active" />
@@ -148,6 +170,9 @@ export function SubscriptionsCard(): JSX.Element {
     {
       key: 'actions',
       header: '',
+      width: '22rem',
+      isActions: true,
+      narrowWidth: '9rem',
       render: (row) => (
         <span className="cluster cluster--nowrap">
           <Button variant="quiet" small disabled={isBusy} onClick={() => handleEdit(row)}>
@@ -190,6 +215,7 @@ export function SubscriptionsCard(): JSX.Element {
       {notice === null ? null : <p role="status">{notice}</p>}
 
       <DataTable
+        singleLine
         columns={columns}
         rows={rows}
         rowKey={(row) => row.id}

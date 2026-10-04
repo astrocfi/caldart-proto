@@ -21,15 +21,16 @@ One line per template, by name:
 
 - **Name**: what the template is called when you choose it. Press it to open the template
   in the form below the heading.
-- **Actions**: the trashcan, which deletes the template after you press **Delete**. Emails
-  already started from it keep their words.
 - **Subject**: the subject it starts an email with.
-- **Type**: the type of email it starts as, such as *Operational*, or a dash for none. On a
-  screen too narrow for every column it is left out.
+- **Type**: the type of email it starts as, such as *Operational*, or a dash for none.
 - **Last edited**: the day it last changed.
+- **Actions**, last: the trashcan, which deletes the template after you press **Delete**.
+  Emails already started from it keep their words.
 
-Before the first template is saved the table reads *No templates yet*. On a phone the table
-scrolls sideways.
+On a screen too narrow for every column, **Type**, then **Last edited**, then **Subject** are
+left out; on a phone the table scrolls sideways, says so above it, and keeps **Name** pinned
+at the left. Before the first template is saved the table reads *No templates yet*, with its
+own **New template** button.
 
 
 Making and changing a template

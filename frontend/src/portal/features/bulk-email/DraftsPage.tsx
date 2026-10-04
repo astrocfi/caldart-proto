@@ -101,6 +101,11 @@ export function DraftsPage(): JSX.Element {
             caption={`${rows.length} ${rows.length === 1 ? 'email' : 'emails'} not sent yet`}
             emptyTitle="No drafts"
             emptyDescription={cannotSend ? undefined : 'Press Write a new email to start one.'}
+            emptyAction={
+              cannotSend ? undefined : (
+                <ButtonLink to="/bulk-email/compose">Write a new email</ButtonLink>
+              )
+            }
             isLoading={drafts.isLoading}
           />
         )}
@@ -110,10 +115,10 @@ export function DraftsPage(): JSX.Element {
 }
 
 /**
- * The table's columns, wired to the two row actions: the subject, then the actions,
- * so they stay in sight on a narrow screen. The type, the DART, when it was last
- * edited, and who wrote it give way, in that order, when the table would not fit its
- * card.
+ * The table's columns, wired to the two row actions: the subject, which tells the rows
+ * apart, and last the actions, which stay in sight on a narrow screen. The type, the
+ * DART, when it was last edited, and who wrote it give way, in that order, when the
+ * table would not fit its card.
  */
 function draftColumns(
   onCancel: (id: number) => void,
@@ -124,6 +129,7 @@ function draftColumns(
       key: 'subject',
       header: 'Subject',
       minWidth: '14rem',
+      isIdentity: true,
       render: (row) => (
         <Link to={`/bulk-email/compose/${row.id}`}>{row.subject || NO_SUBJECT}</Link>
       ),
@@ -132,8 +138,8 @@ function draftColumns(
     {
       key: 'actions',
       header: 'Actions',
-      width: '8.5rem',
-      keepInSight: true,
+      width: '10rem',
+      isActions: true,
       render: (row) => (
         <span className="cluster cluster--nowrap">
           {row.status === 'queued' ? (
@@ -192,6 +198,7 @@ function draftColumns(
       key: 'updated_at',
       header: 'Last edited',
       width: '6.5rem',
+      noWrap: true,
       dropOrder: DROP_ORDER.lastEdited,
       render: (row) => <DateText value={row.updated_at} />,
       sortValue: (row) => row.updated_at,

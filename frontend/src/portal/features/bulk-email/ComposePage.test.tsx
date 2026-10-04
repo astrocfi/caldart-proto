@@ -8,6 +8,7 @@ import type { BulkEmailState } from '@test/fixtures/bulkEmail';
 import { API } from '@test/handlers';
 import { renderRoutes } from '@test/render';
 import { server } from '@test/server';
+import { headerWords } from '@test/table';
 import { ComposePage } from './ComposePage';
 import { BACK_TO_DRAFT_MESSAGE, SHORT_LIST_LENGTH } from './RecipientsCard';
 import { AUTOSAVE_MS } from './useAutosave';
@@ -233,17 +234,17 @@ describe('ComposePage', () => {
     renderCompose(draftState());
     const table = await screen.findByRole('table', { name: 'The batch: 1 person' });
     const headers = within(table).getAllByRole('columnheader');
-    expect(headers.map((header) => header.textContent)).toEqual([
+    expect(headers.map(headerWords)).toEqual([
       'Name',
-      'Remove',
       'Email',
       'Will receive?',
       'Kind',
       'DART',
       'Chosen by',
+      'Remove',
     ]);
     expect(headers[0]).toHaveClass('data-table__text');
-    expect(table.style.minWidth).toContain('12rem + 5.5rem + 13rem');
+    expect(table.style.minWidth).toContain('12rem + 13rem');
   });
 
   it('takes one person out once the trashcan is confirmed', async () => {

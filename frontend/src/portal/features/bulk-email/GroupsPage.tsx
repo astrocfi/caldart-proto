@@ -24,6 +24,7 @@ import { DeleteButton } from '@/portal/components/DeleteButton';
 import { Field } from '@/portal/components/Field';
 import { Page } from '@/portal/components/Page';
 import { FormAlert, fieldError } from '@/portal/features/auth/form';
+import { DROP_ORDER } from './dropOrder';
 import './bulk-email.css';
 import './reuse.css';
 import { GroupKindChoice, groupKindLabel } from './GroupKindChoice';
@@ -65,6 +66,7 @@ export function GroupsPage(): JSX.Element {
       key: 'name',
       header: 'Name',
       minWidth: '12rem',
+      isIdentity: true,
       render: (group) => (
         <span className="cluster cluster--nowrap">
           <Link to={`/bulk-email/groups/${group.id}`}>{group.name}</Link>
@@ -80,11 +82,14 @@ export function GroupsPage(): JSX.Element {
     {
       key: 'actions',
       header: 'Actions',
-      width: '10.5rem',
-      keepInSight: true,
+      // Room for the open delete confirmation beside Download list; on a phone the two
+      // wrap, one above the other.
+      width: '15.5rem',
+      isActions: true,
+      narrowWidth: '9rem',
       render: (group) => (
         <span className="cluster cluster--nowrap">
-          {/* The trashcan first, so a phone shows it beside the name. */}
+          {/* The trashcan first, so it opens its confirmation where it stood. */}
           <DeleteButton
             label={`Delete ${group.name}`}
             disabled={remove.isPending}
@@ -107,6 +112,7 @@ export function GroupsPage(): JSX.Element {
       key: 'kind',
       header: 'Kind',
       width: '5rem',
+      dropOrder: DROP_ORDER.kind,
       render: (group) => groupKindLabel(group.kind),
       sortValue: (group) => group.kind,
     },
@@ -122,6 +128,8 @@ export function GroupsPage(): JSX.Element {
       key: 'updated_at',
       header: 'Last edited',
       width: '7rem',
+      noWrap: true,
+      dropOrder: DROP_ORDER.lastEdited,
       render: (group) => <DateText value={group.updated_at} />,
       sortValue: (group) => group.updated_at,
     },
@@ -185,6 +193,19 @@ export function GroupsPage(): JSX.Element {
             caption={`${rows.length} ${rows.length === 1 ? 'group' : 'groups'}`}
             emptyTitle="No recipient groups yet"
             emptyDescription="Press New group, or save a batch with Save as a group on the compose screen."
+            emptyAction={
+              isAdding ? undefined : (
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setNotice(null);
+                    setIsAdding(true);
+                  }}
+                >
+                  New group
+                </Button>
+              )
+            }
             isLoading={groups.isLoading}
           />
         )}

@@ -30,7 +30,7 @@ How the email looks to the people it goes to is on :doc:`../member/callouts`.
 The list
 ========
 
-One line per callout, the most recently sent first:
+One line per callout, the most recently sent first, which the arrow on **Sent** shows:
 
 - **Subject**: what it said. It opens the callout's own page, below.
 - **Sent**: the day it went out.
@@ -42,7 +42,9 @@ One line per callout, the most recently sent first:
   each answer, and how many have not answered.
 
 On a screen too narrow for every column, **DART**, then **From**, are left out; on a phone
-the table scrolls sideways. Before the first callout the table reads *No callout has been sent*.
+the table scrolls sideways, says so above it, and keeps **Subject** pinned at the left. Before
+the first callout the table reads *No callout has been sent*, with a **Write an email**
+button that opens Compose, where **This is a mission callout** makes the email a callout.
 
 
 One callout's page
@@ -61,9 +63,10 @@ every person the callout reached:
 - **DART**, **Home airport**, and **Aircraft**: from their profile as it is now. On a screen
   too narrow for every column these three are left out.
 
-The **Answer** menu narrows the table to one answer, or to *No answer yet*, and **Find a
-person** to a name or an address; the caption then says how many of everybody it shows,
-such as *Showing 2 of 39*. **Download answers** saves every line as a spreadsheet
+The **Answer** menu narrows the table to one answer, or to *No answer yet*, with **Any
+answer** for everybody, and **Find a person** to a name or an address; the caption then says
+how many of everybody it shows, such as *Showing 2 of 39*. **Reset filters** puts both back;
+when nobody matches them, the empty table offers its own **Reset filters** button. **Download answers** saves every line as a spreadsheet
 file. **See the email and who it went to** opens the email on :doc:`sent`, with what became
 of every copy. The page keeps itself up to date every half minute while answers are coming
 in.

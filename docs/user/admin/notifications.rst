@@ -24,7 +24,10 @@ The **Who hears about what** card lists every subscription, one per line:
   rest the pointer on it to read the whole list.
 - **Active**: a green dot while its emails go out, and a gray one while it is paused.
 
-Each row carries three controls. The line above the table says what the last two did.
+Each row carries three controls, last on the line under an **Actions** heading a screen
+reader announces. The line above the table says what the last two did. **Events** never
+narrows below a readable width: on a phone the table scrolls sideways, says so above it, and
+keeps **Recipient** pinned at the left.
 
 **Edit**
    Opens the subscription's form under the table, to change its events, as **Changing one**

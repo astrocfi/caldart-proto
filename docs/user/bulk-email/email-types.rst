@@ -23,12 +23,18 @@ A table with one row per type, in the order every screen lists them. The descrip
 the senders wrap, so they read in full:
 
 - **Name**, what every screen and every email calls it.
-- **Edit** and a trashcan, beside the name so a phone shows them.
 - **What it is for**, one sentence that members read beside the switch that turns it off.
+  It never narrows below a readable width, and it breaks only between words.
 - **Who may send it**: **DART leader**, **CalDART management**, or both. A type with
   neither reads **System administrators only**, because a system administrator can send
   every type.
 - **Can be turned off**: **Yes** or **No**, with a colored dot.
+- **Edit** and a trashcan, last.
+
+On a screen too narrow for every column, **Can be turned off**, then **Who may send it**
+are left out, and **Edit** and the trashcan sit one above the other; on a phone the table
+scrolls sideways, says so above it, and keeps **Name** pinned at the left. With no types the
+table reads *No email types yet*, with an **Add an email type** button.
 
 Every site starts with three types: **Operational** and **Mission**, sent by CalDART
 management and DART leaders, and **Fundraising**, sent by CalDART management alone. All

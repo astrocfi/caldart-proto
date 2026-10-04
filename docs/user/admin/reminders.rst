@@ -55,11 +55,14 @@ reminders sent*.
 - **To**: the address it was sent to.
 
 The **Reminder** list above the table narrows it to one stage: **60 days before**, **30 days
-before**, **7 days before**, **Expired**, or **30 days after** on the default schedule. **All
-kinds** puts them back. Click a column heading to sort the rows shown.
+before**, **7 days before**, **Expired**, or **30 days after** on the default schedule. **Any
+kind**, or **Reset filters** beside it, puts them back. The rows open newest first, with the
+arrow on **Sent**; click a column heading to sort the rows shown. On a narrow screen the
+table leaves out **To**, then **Reminder**, and keeps **Member** in sight.
 
 An empty table reads *No reminders sent yet*: no membership has reached a stage, which is
-normal on a new site or when every member renewed early.
+normal on a new site or when every member renewed early. With one stage chosen it reads *No
+reminders of this kind*, with a **Reset filters** button.
 
 The second card, **Reminder schedule**, lists the four numbers the stages are dated by:
 **First reminder**, **Second reminder**, and **Final reminder** in days before expiry, and

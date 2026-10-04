@@ -16,6 +16,7 @@ import {
 import { makeUser, signedInAs } from '@test/handlers';
 import { renderRoutes } from '@test/render';
 import { server } from '@test/server';
+import { headerWords, tableHeaders } from '@test/table';
 import { SentDetailPage } from './SentDetailPage';
 
 /** Render the Sent page of a finished send to Ann, with Bea's copy refused. */
@@ -124,18 +125,15 @@ describe('SentDetailPage', () => {
     renderSent();
     const table = await screen.findByRole('table');
     const first = within(table).getAllByRole('columnheader')[0];
-    expect([first?.textContent, table.style.minWidth.includes('11rem + 9rem')]).toEqual([
-      'Name',
-      true,
-    ]);
+    expect([
+      first === undefined ? '' : headerWords(first),
+      table.style.minWidth.includes('11rem + 9rem'),
+    ]).toEqual(['Name', true]);
   });
 
-  it('puts the result and View copy next to the name, so a phone shows them', async () => {
+  it('puts the result next to the name and View copy last, where every table keeps it', async () => {
     renderSent();
-    const table = await screen.findByRole('table');
-    const headers = within(table)
-      .getAllByRole('columnheader')
-      .map((header) => header.textContent);
-    expect(headers.slice(0, 3)).toEqual(['Name', 'Result', 'Copy']);
+    const headers = tableHeaders(await screen.findByRole('table'));
+    expect([headers[0], headers[1], headers.at(-1)]).toEqual(['Name', 'Result', 'Copy']);
   });
 });

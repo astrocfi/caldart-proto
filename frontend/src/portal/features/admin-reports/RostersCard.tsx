@@ -18,11 +18,20 @@ import { DateText } from '@/portal/components/DateText';
 import { useRosters, useSendRosters } from '@/portal/reports/api';
 import { ReportRunOutcome } from './ReportRunOutcome';
 
+/** The DART tells the rows apart; the count and the date keep their widths. */
 const COLUMNS: Column<Roster>[] = [
-  { key: 'name', header: 'DART', render: (row) => row.name, sortValue: (row) => row.name },
+  {
+    key: 'name',
+    header: 'DART',
+    minWidth: '12rem',
+    isIdentity: true,
+    render: (row) => row.name,
+    sortValue: (row) => row.name,
+  },
   {
     key: 'roster_recipients',
     header: 'Recipients',
+    width: '7rem',
     numeric: true,
     render: (row) => row.roster_recipients,
     sortValue: (row) => row.roster_recipients,
@@ -30,6 +39,8 @@ const COLUMNS: Column<Roster>[] = [
   {
     key: 'roster_sent_at',
     header: 'Last sent',
+    width: '7rem',
+    noWrap: true,
     render: (row) => <DateText value={row.roster_sent_at} />,
     sortValue: (row) => row.roster_sent_at,
   },
@@ -84,6 +95,7 @@ export function RostersCard(): JSX.Element {
         </p>
       ) : (
         <DataTable
+          singleLine
           columns={COLUMNS}
           rows={rows}
           rowKey={(row) => row.dart_id}
