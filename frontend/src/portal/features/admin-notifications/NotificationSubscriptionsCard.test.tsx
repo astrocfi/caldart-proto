@@ -61,6 +61,13 @@ describe('NotificationSubscriptionsCard', () => {
     ).toBeInTheDocument();
   });
 
+  it('shows every event in the row itself, wrapping rather than cutting it short', async () => {
+    const table = await renderCard();
+
+    const cell = within(row(table, /Ada Admin/)).getByText('Sign-up, Friend became a member');
+    expect(cell).toHaveClass('data-table__wrap');
+  });
+
   it('keeps the full list of events in the cell title', async () => {
     const table = await renderCard();
 

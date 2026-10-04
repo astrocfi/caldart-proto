@@ -4,8 +4,8 @@
 Notifications
 =============
 
-**Notifications** lists the email addresses that receive notification of system changes,
-and which changes each one hears about. A notification is a short email sent the moment
+**Notifications** says who is emailed when something happens, such as a sign-up, a payment,
+or a refund, and which events each address hears about. A notification is a short email sent the moment
 something happens: somebody signs up, a friend becomes a member, a donation arrives, an
 account is deactivated, or an aircraft changes. Each email address you subscribe hears
 about the events you pick for it, and nothing else.
@@ -20,8 +20,7 @@ Notification emails
 The **Notification emails** card lists every address that gets notifications, one per line:
 
 - **Recipient**: the account's name, or the bare address for somebody outside CalDART.
-- **Events**: the events it hears about, joined with commas. A long list is cut short;
-  rest the pointer on it to read the whole list.
+- **Events**: every event it hears about, joined with commas, the whole list in the row.
 - **Active**: *Active* beside a green dot while its emails go out, and *Paused* beside a gray
   one while it is paused.
 

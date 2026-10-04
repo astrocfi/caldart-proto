@@ -26,7 +26,9 @@ describe('AdminNotificationsPage', () => {
     renderWithProviders(<AdminNotificationsPage />);
 
     expect(
-      screen.getByText('Email addresses that receive notification of system changes'),
+      screen.getByText(
+        'Who is emailed when something happens, such as a sign-up, a payment, or a refund.',
+      ),
     ).toBeInTheDocument();
   });
 });
