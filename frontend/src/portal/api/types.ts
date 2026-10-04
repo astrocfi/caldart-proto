@@ -2339,6 +2339,8 @@ export interface AddGroupRequest {
 export interface SaveGroupRequest {
   name: string;
   kind: RecipientGroupKind;
+}
+
 /* ----------------------------------------------------------- mission callouts */
 
 /** What a recipient answered a mission callout. */
