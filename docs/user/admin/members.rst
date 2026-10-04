@@ -4,8 +4,8 @@
 Members
 =======
 
-**Members** lists every member and every friend of CalDART, one row each, with whether they
-can fly today, their DART, when their membership runs out, and their email address. A friend
+**Members** lists every member and every friend of CalDART, one row each, with their
+membership, their DART, their pilot certificate and medical, and how to reach them. A friend
 supports CalDART without paying dues. Use the list to find people, to see who is about to
 lapse, and to download a report or a roster.
 
@@ -19,30 +19,59 @@ What you see
 
 The caption over the table counts the people your filters match, such as *42 members match
 these filters*. The table shows 25 people at a time. When there are more, the foot of the
-list reads, for example, *Showing 1–25 of 212*, with **Previous** and **Next**.
+list reads, for example, *Showing 1–25 of 212*, between **Previous** and **Next**; a page
+button with nowhere to go has a dashed frame. Moving to another page brings the top of the
+table back into view.
 
-**Pilot**
-   A green tick when the person holds a pilot certificate and their medical is in date, a
-   red cross when the medical has lapsed, and a dash for somebody who is not a pilot. It
-   answers the question the list is most often opened for: who can fly today.
+The table shows the same columns as the membership report you download, and **Columns**
+changes both (see `Choosing the columns`_). At first it shows the report's eleven:
 
 **Name**
    The person's name. A deactivated account has *account deactivated* beside it.
+
+**Email**
+   Their address. Click it to write to them.
+
+**Phone**
+   Their phone number.
 
 **DART**
    Their team, or **Unaffiliated**. A DART (Disaster Airlift Response Team) is one of the
    local teams that fly for CalDART.
 
-**Membership Exp.**
-   A colored dot and the date the membership runs out. The dot is green while the membership
-   is current, amber in its last 30 days, red once it has run out, and gray for a friend. A
-   life member's date reads **Never**, and a friend's reads **Friend**.
+**Status**
+   **Current**, **Expired**, or **Friend**, after a colored dot. The dot is green while the
+   membership is current, amber in its last 30 days, red once it has run out, and gray for
+   a friend.
 
-**Email**
-   Their address. Click it to write to them.
+**Kind**
+   Member or Friend.
 
-The date is the end of the person's unbroken cover. Somebody who renews in March for a term
-that starts in July already shows next July's date, so you never add terms up yourself.
+**Expires**
+   The date the membership runs out. A life member's reads **Never**, and a friend's reads
+   **Friend**. The date is the end of the person's unbroken cover: somebody who renews in
+   March for a term that starts in July already shows next July's date, so you never add
+   terms up yourself.
+
+**Certificate** and **Medical**
+   The pilot certificate and the medical on the person's profile. An airline transport
+   pilot certificate reads **ATP**.
+
+**Medical expires**
+   The medical's date, after a mark that answers the question the list is most often
+   opened for, who can fly today: a green tick when the person holds a pilot certificate
+   and their medical is in date, a red cross when the medical has lapsed, and a dash for
+   somebody who is not a pilot.
+
+**Aircraft**
+   The N-numbers of the aircraft on their profile.
+
+On a narrower screen the table leaves columns out, one at a time, until the rest fit: the
+optional ones first, then **Email**, then **DART**. **Name**, **Status**, and **Expires**
+always stay. On a phone the table can still be wider than the screen: a line over it says
+*Scroll sideways to see every column*, a shadow marks the edge with more beyond it, and the
+names stay pinned at the left while you scroll. With a keyboard, Tab to the table and use
+the arrow keys.
 
 For an account administrator a name opens the :doc:`member-record`. For a DART leader it
 opens the :doc:`member-check` card for that person, and a deactivated account's name opens
@@ -53,28 +82,30 @@ nothing, since the member check never shows one. Only an account administrator s
 Sorting
 =======
 
-Click a column heading to sort by it, and click again to reverse the order. The whole list
-is sorted, every page of it. **Pilot** sorts the way its marks read: a current medical first,
-then a lapsed one, then everybody who is not a pilot. People who tie fall into name order, so
-a sorted list reads the same every time.
+The list opens sorted by name, and the arrow beside **Name** says so. **Name**, **Email**,
+**DART**, **Expires**, **Joined**, and **Profile updated** sort: their headings carry an
+arrow, faint until you use it. Click one to sort by it, and click again to reverse the
+order. The whole list is sorted, every page of it. People who tie fall into name order, so
+a sorted list reads the same every time. The other headings have no arrow and do not sort.
 
 
 Filtering
 =========
 
 The filter bar sits above the table. A list or a checkbox applies the moment you change it,
-and a box you type in applies after a short pause. There is no Apply button. **Reset to
-Defaults** empties the bar and leaves the sort alone. The filters and the sort are part of
+and a box you type in applies after a short pause. There is no Apply button. **Reset
+filters**, at the end of the bar, empties it and leaves the sort alone. The filters and the sort are part of
 the page's address, so a filtered list is a link you can bookmark or send to a colleague.
 
 **Kind**
-   **All**, the first choice, lists members and friends together. **Members only** and
+   **Any kind**, the first choice, lists members and friends together. **Members only** and
    **Friends only** list one kind. A member who has asked to become a friend at the end of
    their term is a member until that day comes. Somebody who joined as a member and has
    never paid is a friend: nobody is a member until a paid or granted term has started.
 
 **Search**
-   A name, an email address, either phone number, or a pilot certificate number. A full name
+   A name, an email address, either phone number, or a pilot certificate number, though the
+   box's hint names only the first three. A full name
    works: *Ana Bracco* finds her.
 
 **Membership**
@@ -132,16 +163,20 @@ an empty **Expires** cell.
 Choosing the columns
 ~~~~~~~~~~~~~~~~~~~~
 
-**Columns**, beside the filters, opens a list of every column the report offers, with a box
-to tick for each. Twelve more are on offer: **Plan**, **Certificate number**, **Instrument**
-(Yes or No for a pilot, by whether **Instrument** is among the ratings; blank for a
-non-pilot), **Home airport**, **Secondary airport**, **City**, **State**, **County**,
-**Callsign** (the amateur radio callsign), **Joined** (the day the first term on file began), **Member since** (the day the member says
-they joined), and **Profile updated** (the day their profile was last changed). **Reset to the default columns**, under the boxes, ticks the eleven again.
+**Columns**, at the right of the bar beside the export buttons, opens a list of every column
+the report offers, with a box to tick for each. Twelve more are on offer: **Plan**,
+**Certificate number**, **Instrument** (Yes or No for a pilot, by whether **Instrument** is
+among the ratings; blank for a non-pilot), **Home airport**, **Secondary airport**, **City**,
+**State**, **County**, **Callsign** (the amateur radio callsign), **Joined** (the day the
+first term on file began), **Member since** (the day the member says they joined), and
+**Profile updated** (the day their profile was last changed). **Reset to the default
+columns**, under the boxes, ticks the eleven again.
 
-Your choice changes the downloads only. The list on screen keeps its five columns. You cannot
-untick the last column. Add many columns and the PDF starts to wrap its cells, which is the
-point at which the CSV is the better file.
+Your choice changes the table on screen and both downloads together, as the panel's title,
+*Columns in the table and the download*, says. You cannot untick the last column. Add many
+columns and the PDF starts to wrap its cells, which is the point at which the CSV is the
+better file. The panel closes when you click outside it, press Escape, or Tab past its
+last control.
 
 .. _saved-column-sets:
 
@@ -149,7 +184,8 @@ Saved column sets
 ~~~~~~~~~~~~~~~~~
 
 Beside **Columns**, **Load columns** lists the sets of columns you have saved for this
-report. Pick a name and its columns are ticked for you. The trashcan beside a name asks
+report. Pick a name and its columns are ticked for you, in the table and the downloads
+alike. The trashcan beside a name asks
 first: press it and it turns into **Delete** and **Keep**; press **Delete** and that set
 is gone, or **Keep**, Escape, or a click elsewhere to leave it as it is. **Save columns**
 keeps the boxes as they stand: type a name of up to 60 characters
@@ -165,9 +201,11 @@ If something looks wrong
 
 If a download carries more people than the screen shows, a box you had just typed in had not
 applied yet; wait for the table to narrow, then download. If somebody you expect is missing,
-press **Reset to Defaults** and search for them by name: a filter may be hiding them, their
+press **Reset filters** (an empty list offers one too) and search for them by name: a filter may be hiding them, their
 account may be deactivated (tick **Include deactivated**), or they may be a donor, who is
-never listed here. If the line under the filters says *The columns could not be loaded; the
-downloads carry the default columns.*, reload the page to get the column chooser back. If a
+never listed here. If the line beside the export buttons says *The columns could not be loaded; the list
+shows the default ones.*, the table shows the name, email, DART, status, and expiry, and the
+downloads carry the report's own default columns; reload the page to get the column chooser
+back. If a
 member reads **Expired** and says they renewed, an account administrator can check the
 **Memberships** and **Payments** tabs of their :doc:`member-record`.

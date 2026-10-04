@@ -26,7 +26,7 @@ async function rosterCell(page: Page, dart: string): Promise<Locator> {
   const row = page.getByRole('row').filter({ hasText: dart }).first();
   await expect(row).toBeVisible();
   const headers = await page.getByRole('columnheader').allTextContents();
-  const column = headers.findIndex((text) => text.startsWith('Roster'));
+  const column = headers.findIndex((text) => text.includes('Roster'));
   expect(column).toBeGreaterThanOrEqual(0);
   return row.getByRole('cell').nth(column);
 }

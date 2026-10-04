@@ -156,6 +156,13 @@ export interface AdminUser extends User {
   /** That report's status code and diagnostic, or `''`. */
   email_bounce_detail: string;
   reactivation_blocked: boolean;
+  /** Read from the profile, blank without one, for the columns the users list can show. */
+  phone: string;
+  /** The DART's name, or null without one. */
+  dart: string | null;
+  city: string;
+  county: string;
+  home_airport: string;
 }
 
 /**
@@ -523,6 +530,16 @@ export interface MemberRow {
   aircraft: string[];
   joined_on: IsoDate | null;
   profile_updated_at: IsoDateTime | null;
+  certificate_number: string;
+  /** Whether a pilot holds an instrument rating; null for somebody who is no pilot. */
+  instrument: boolean | null;
+  home_airport: string;
+  secondary_airport: string;
+  city: string;
+  state: string;
+  county: string;
+  ham_callsign: string;
+  member_since: IsoDate | null;
 }
 
 /* ---------------------------------------------------- member administration */

@@ -98,6 +98,12 @@ export function makeAdminUser(overrides: Partial<AdminUser> = {}): AdminUser {
     email_verified_at = '2024-07-01T12:05:00Z',
     email_bounced_at = null,
     email_bounce_detail = '',
+    reactivation_blocked = false,
+    phone = '415-555-0100',
+    dart = 'Palo Alto',
+    city = 'Palo Alto',
+    county = 'Santa Clara',
+    home_airport = 'PAO',
     ...userOverrides
   } = overrides;
   return {
@@ -106,7 +112,12 @@ export function makeAdminUser(overrides: Partial<AdminUser> = {}): AdminUser {
     email_verified_at,
     email_bounced_at,
     email_bounce_detail,
-    reactivation_blocked: false,
+    reactivation_blocked,
+    phone,
+    dart,
+    city,
+    county,
+    home_airport,
   };
 }
 

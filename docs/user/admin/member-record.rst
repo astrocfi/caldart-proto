@@ -100,9 +100,9 @@ Memberships
 ===========
 
 **Membership history** lists every term: **Plan**, **Starts**, **Ends** (*Lifetime* for a
-life membership), **Status** (active, expired, canceled, or suspended), **Source** (a
-payment, a manual grant, or the demo data), and **Note**, with the name of whoever granted
-it.
+life membership), **Status** (active, expired, canceled, or suspended), **Source** (a payment,
+a manual grant, or the demo data), **Note** with whoever granted it, and **Edit**. A narrow
+screen drops **Source**, **Starts**, **Note**, and **Ends** in turn, keeping the rest in sight.
 
 **Edit** on a row lets you change that term's end date, status, and note, for a refund, a
 goodwill extension, or a term entered wrongly. Press **Save** or **Cancel**; *Term updated.*

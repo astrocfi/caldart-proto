@@ -35,6 +35,15 @@ export function makeRow(overrides: Partial<MemberRow> = {}): MemberRow {
     aircraft: ['N172SP'],
     joined_on: '2024-07-01',
     profile_updated_at: '2026-08-11T09:14:02.100522-07:00',
+    certificate_number: '1234567',
+    instrument: true,
+    home_airport: 'PAO',
+    secondary_airport: '',
+    city: 'Palo Alto',
+    state: 'CA',
+    county: 'Santa Clara',
+    ham_callsign: '',
+    member_since: null,
     ...overrides,
   };
 }

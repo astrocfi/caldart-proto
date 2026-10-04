@@ -621,7 +621,9 @@ def admin_user_queryset() -> QuerySet[User]:
     The membership annotations are worked out for the date this is called, so
     both views below build the queryset per request rather than once at import.
     """
-    return with_membership(User.objects.select_related("profile").prefetch_related("groups"))
+    return with_membership(
+        User.objects.select_related("profile", "profile__dart").prefetch_related("groups")
+    )
 
 
 class AdminUserListView(generics.ListAPIView[User]):

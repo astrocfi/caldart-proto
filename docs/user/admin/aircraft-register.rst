@@ -32,8 +32,11 @@ The airplanes the N-number box lists on the aircraft forms and the list of aircr
 both come from that copy.
 
 The caption over the table counts the airplanes your filters match, such as *57 aircraft*.
-The table shows 25 at a time, with **← Previous** and **Next →** and a count such as
-*1–25 of 57* under it when there are more.
+The table shows 25 at a time; when there are more, the foot of the table reads, for example,
+*Showing 1–25 of 57*, between **Previous** and **Next**.
+
+The table shows the same columns as the register you download, and **Columns** changes both
+(see `Downloading the register`_). At first it shows the report's nine:
 
 **N-number**
    The registration, which opens the :doc:`aircraft-record`. An airplane taken out of
@@ -43,19 +46,32 @@ The table shows 25 at a time, with **← Previous** and **Next →** and a count
    The record's aircraft type, as the list of aircraft types spells it.
 
 **Owner**
-   The owner's name, then Individual, FBO, or Flying club.
+   The owner's name.
 
-**Insurance**
-   A colored dot beside the expiry date: green while the cover runs, amber in its last 30
-   days, red once it has lapsed, and gray with no policy on file.
+**Carrier**, **Liability / occurrence**, and **Hull**
+   The insurance carrier, and the policy's limits in dollars, right-aligned.
 
-Each row stays on one line, and anything too long for its column ends in an ellipsis. Click
-a column heading to sort the whole register by it; click again to reverse. An airplane with
-no insurance on file always sorts to the bottom of the insurance column, whichever way you
-sort, so it never crowds out the ones about to lapse.
+**Expires**
+   A colored dot beside the insurance's expiry date: green while the cover runs, amber in
+   its last 30 days, red once it has lapsed, and gray with no policy on file.
 
-When no airplane matches, the table says *No aircraft match these filters* and suggests
-clearing a filter or adding the aircraft to the register.
+**Current**
+   Yes while the insurance runs, No once it has lapsed or with none on file.
+
+Each row stays on one line, and anything too long for its column ends in an ellipsis. On a
+narrower screen the table leaves columns out until the rest fit, the optional ones and the
+insurance figures first, then **Owner**, **Model**, and **Make**; the N-number and
+**Expires** always stay. When the table is still wider than the screen, a line over it says
+so, and the N-numbers stay pinned at the left while you scroll.
+
+**N-number**, **Make**, **Model**, **Owner**, and **Expires** sort: their headings carry an
+arrow, and the register opens sorted by N-number. Click one to sort the whole register by
+it; click again to reverse. An airplane with no insurance on file always sorts to the bottom
+of **Expires**, whichever way you sort, so it never crowds out the ones about to lapse. The
+other headings have no arrow and do not sort.
+
+When no airplane matches, the table says *No aircraft match these filters* and offers
+**Reset filters**.
 
 
 .. _coverage-policy:
@@ -96,7 +112,7 @@ Filtering
 =========
 
 A list applies the moment you change it, and a box you type in applies after a short pause.
-**Reset to Defaults** empties them all. The filters, the sort, and the page are kept in the
+**Reset filters** empties them all. The filters, the sort, and the page are kept in the
 page's address, so a filtered register can be bookmarked or sent to a colleague, and the
 browser's back button steps back through them.
 
@@ -170,11 +186,13 @@ occurrence**, **Hull**, **Expires**, and **Current**. The CSV gives money as pla
 for a spreadsheet. The PDF is a landscape letter table with the filters printed under the
 title.
 
-**Columns** chooses what the downloads carry. Five more are on offer: **Category**,
+**Columns**, at the right of the bar beside the export buttons, chooses the columns of the
+table on screen and of the downloads together. Five more are on offer: **Category**,
 **Airworthiness**, **Owner type**, **Liability / person**, and **Pilots**, the members who
-list the airplane on their profile. They are off until you tick them. **Reset to the default columns** ticks the nine again.
-Your choice changes the downloads only; the register on screen keeps its five columns.
-**Load columns** and **Save columns** keep a set of columns under a name, as
+list the airplane on their profile. They are off until you tick them. **Pilots** is filled
+in the downloads alone: who flies an airplane is the member check's to show, so its column
+on screen reads a dash. **Reset to the default columns** ticks the nine again. **Load
+columns** and **Save columns** keep a set of columns under a name, as
 :ref:`saved-column-sets` describes.
 
 A useful monthly routine: choose **Expiring in 30 days**, download the PDF, and work down it.
@@ -187,7 +205,7 @@ If something looks wrong
 airplane, under whatever spelling somebody first used; search for it and correct that
 record. An airplane a member cannot find when they add it to their profile has probably been
 taken out of service, which leaves it out of their search until they type the whole
-registration. If the line under the filters says *The columns could not be loaded; the
-downloads carry the default columns.*, reload the page. If a download carries more rows than
+registration. If the line beside the export buttons says *The columns could not be loaded;
+the list shows the default ones.*, reload the page. If a download carries more rows than
 you expected, a box you had typed in had not applied yet; wait for the table to narrow, then
 download again.

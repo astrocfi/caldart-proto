@@ -97,11 +97,25 @@ export function MemberMembershipsTab({ member }: { member: MemberDetail }): JSX.
   };
 
   const columns: Column<MemberTerm>[] = [
-    { key: 'plan', header: 'Plan', render: (term) => term.plan },
-    { key: 'starts_on', header: 'Starts', render: (term) => <DateText value={term.starts_on} /> },
+    {
+      key: 'plan',
+      header: 'Plan',
+      isIdentity: true,
+      minWidth: '8rem',
+      render: (term) => term.plan,
+    },
+    {
+      key: 'starts_on',
+      header: 'Starts',
+      width: '8rem',
+      dropOrder: 2,
+      render: (term) => <DateText value={term.starts_on} />,
+    },
     {
       key: 'ends_on',
       header: 'Ends',
+      width: '9.5rem',
+      dropOrder: 4,
       render: (term) =>
         editingId === term.id ? (
           <input
@@ -117,6 +131,9 @@ export function MemberMembershipsTab({ member }: { member: MemberDetail }): JSX.
     {
       key: 'status',
       header: 'Status',
+      width: '8rem',
+      keepInSight: true,
+      narrowWidth: '6rem',
       render: (term) =>
         editingId === term.id ? (
           <select
@@ -134,10 +151,12 @@ export function MemberMembershipsTab({ member }: { member: MemberDetail }): JSX.
           term.status
         ),
     },
-    { key: 'source', header: 'Source', render: (term) => term.source },
+    { key: 'source', header: 'Source', width: '6rem', dropOrder: 1, render: (term) => term.source },
     {
       key: 'note',
       header: 'Note',
+      minWidth: '8rem',
+      dropOrder: 3,
       render: (term) =>
         editingId === term.id ? (
           <input
@@ -156,6 +175,8 @@ export function MemberMembershipsTab({ member }: { member: MemberDetail }): JSX.
     {
       key: 'actions',
       header: 'Actions',
+      isActions: true,
+      narrowWidth: '5rem',
       render: (term) =>
         editingId === term.id ? (
           <span className="cluster">
@@ -183,6 +204,7 @@ export function MemberMembershipsTab({ member }: { member: MemberDetail }): JSX.
           </p>
         ) : null}
         <DataTable
+          singleLine
           columns={columns}
           rows={member.memberships}
           rowKey={(term) => term.id}

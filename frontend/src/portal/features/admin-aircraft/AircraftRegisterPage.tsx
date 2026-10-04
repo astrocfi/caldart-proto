@@ -4,9 +4,13 @@
  * coverage policy that says which aircraft CalDART's insurance does not cover.  The header says which day the FAA
  * registry behind the N-number box and the aircraft types was imported.
  *
- * The exports carry more columns than the five the table shows, so the column
- * chooser drives the two download links rather than the table: the register
- * stays scannable while the CSV and the PDF carry whatever was asked for.
+ * The column chooser governs the table and the two downloads together: the table
+ * shows the aircraft report's chosen columns, in the report's order, and a saved set
+ * applies to the screen as it does to the files.  N-number, Make, Model, Owner, and
+ * Expires sort on the server; the other headings do not sort.  On a narrow screen the
+ * optional columns go first, and the N-number and the insurance expiry stay.  The
+ * Pilots column is in the downloads alone: the register is open to every member, and
+ * who flies an aircraft is the member check's to show, so the table draws a dash.
  */
 import { useMemo, useState } from 'react';
 import type { JSX } from 'react';
@@ -19,15 +23,17 @@ import type {
   AircraftPatch,
   Airworthiness,
   OwnerType,
+  ReportColumn,
 } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
-import { ColumnChooser, defaultColumnKeys } from '@/portal/components/ColumnChooser';
 import { DataTable } from '@/portal/components/DataTable';
-import type { Column } from '@/portal/components/DataTable';
 import { DateText, formatDate } from '@/portal/components/DateText';
-import { FilterBar } from '@/portal/components/FilterBar';
+import { FilterBar, clearedValues } from '@/portal/components/FilterBar';
+import { Money } from '@/portal/components/Money';
 import { Page } from '@/portal/components/Page';
+import type { ReportCell } from '@/portal/components/reportTable';
+import { ColumnTools, reportTableColumns, useColumnChoice } from '@/portal/components/reportTable';
 import { useToast } from '@/portal/components/Toast';
 import { useUrlFilters } from '@/portal/components/useUrlFilters';
 import {
@@ -38,13 +44,14 @@ import { useRegistryStatus } from '@/portal/api/queries';
 import { useAuth } from '@/portal/auth/useAuth';
 import type { RegistryStatus } from '@/portal/api/types';
 import { AircraftForm } from '@/portal/features/aircraft/AircraftForm';
+import { AIRWORTHINESS_LABELS, CATEGORY_LABELS } from '@/portal/features/aircraft/categories';
 import { InsuranceDot } from '@/portal/features/aircraft/InsuranceChip';
 import { ServiceChip } from '@/portal/features/aircraft/ServiceChip';
 import type { AircraftFilters, InsuranceState } from '@/portal/features/aircraft/api';
 import { useAircraftList, useCreateAircraft } from '@/portal/features/aircraft/api';
 import { OWNER_TYPE_LABELS, emptyAircraftValues } from '@/portal/features/aircraft/form';
 import { hasAnyRole } from '@/portal/nav';
-import { reportExportUrl, useReportColumns } from '@/portal/reports/api';
+import { reportExportUrl } from '@/portal/reports/api';
 import { REPORTS, listFilters } from '@/portal/reports/definitions';
 import '@/portal/features/aircraft/aircraft.css';
 import { CoveragePolicyCard } from './CoveragePolicyCard';
@@ -60,6 +67,102 @@ const DEFAULT_ORDERING = 'n_number';
 function registryLine({ as_of: asOf }: RegistryStatus): string {
   return asOf === null ? 'Registry not imported yet' : `Registry as of ${formatDate(asOf)}`;
 }
+
+/** A column that only somebody who asks for it sees, and that goes first on a narrow screen. */
+const OPTIONAL = 1;
+
+/**
+ * How each aircraft report column draws.  The optional columns go first on a narrow
+ * screen, then the insurance figures, then the owner, model, and make; the N-number
+ * and the insurance expiry stay.
+ */
+const CELLS: Record<string, ReportCell<Aircraft>> = {
+  n_number: {
+    ordering: 'n_number',
+    isIdentity: true,
+    width: '9rem',
+    render: (row) => (
+      <>
+        <Link className="mono" to={`/admin/aircraft/${row.id}`}>
+          {row.n_number}
+        </Link>{' '}
+        <ServiceChip aircraft={row} />
+      </>
+    ),
+  },
+  make: { ordering: 'make', minWidth: '8rem', dropOrder: 10, render: (row) => row.make },
+  model: { ordering: 'model', minWidth: '8rem', dropOrder: 11, render: (row) => row.model },
+  category: {
+    width: '8rem',
+    dropOrder: OPTIONAL,
+    render: (row) => (row.category === '' ? '' : CATEGORY_LABELS[row.category]),
+  },
+  airworthiness: {
+    width: '9rem',
+    dropOrder: OPTIONAL,
+    render: (row) => (row.airworthiness === '' ? '' : AIRWORTHINESS_LABELS[row.airworthiness]),
+  },
+  owner_name: {
+    ordering: 'owner_name',
+    minWidth: '12rem',
+    dropOrder: 12,
+    render: (row) => row.owner_name || '—',
+  },
+  owner_type: {
+    width: '8rem',
+    dropOrder: OPTIONAL,
+    render: (row) => OWNER_TYPE_LABELS[row.owner_type],
+  },
+  insurance_carrier: {
+    minWidth: '9rem',
+    dropOrder: 5,
+    render: (row) => row.insurance_carrier,
+  },
+  liability_per_occurrence: {
+    numeric: true,
+    width: '10rem',
+    dropOrder: 3,
+    render: (row) => <Money cents={row.insurance_liability_per_occurrence_cents} whole />,
+  },
+  liability_per_person: {
+    numeric: true,
+    width: '9rem',
+    dropOrder: OPTIONAL,
+    render: (row) => <Money cents={row.insurance_liability_per_person_cents} whole />,
+  },
+  hull: {
+    numeric: true,
+    width: '7.5rem',
+    dropOrder: 4,
+    render: (row) => <Money cents={row.insurance_hull_cents} whole />,
+  },
+  insurance_expiration: {
+    ordering: 'insurance_expiration',
+    width: '9rem',
+    keepInSight: true,
+    render: (row) => (
+      <>
+        <InsuranceDot aircraft={row} /> <DateText value={row.insurance_expiration} />
+      </>
+    ),
+  },
+  insurance_current: {
+    width: '6.5rem',
+    dropOrder: 6,
+    render: (row) => (row.insurance_is_current ? 'Yes' : 'No'),
+  },
+  // Who flies an aircraft is the member check's to show; the downloads carry it.
+  pilots: { width: '8rem', dropOrder: OPTIONAL, render: () => '—' },
+};
+
+/** The columns the table shows while the report's registry loads, or if it cannot be read. */
+const FALLBACK_COLUMNS: ReportColumn[] = [
+  { key: 'n_number', label: 'N-number', default: true },
+  { key: 'make', label: 'Make', default: true },
+  { key: 'model', label: 'Model', default: true },
+  { key: 'owner_name', label: 'Owner', default: true },
+  { key: 'insurance_expiration', label: 'Expires', default: true },
+];
 
 /** `/admin/aircraft` page: filter, sort, export, and add aircraft register records. */
 export function AircraftRegisterPage(): JSX.Element {
@@ -90,60 +193,15 @@ export function AircraftRegisterPage(): JSX.Element {
   const registryStatus = useRegistryStatus();
   useFirstPageWhenMissing(position, list.error);
 
-  const registry = useReportColumns('aircraft');
-  const reportColumns = useMemo(() => registry.data ?? [], [registry.data]);
-  // Null means "whatever the registry calls default": the chooser has not been
-  // touched, so it must follow a registry that is still loading.
-  const [chosen, setChosen] = useState<string[] | null>(null);
-  const chosenKeys = chosen ?? defaultColumnKeys(reportColumns);
-  const exportParams = { ...filters, ordering, columns: chosenKeys };
+  const choice = useColumnChoice('aircraft', FALLBACK_COLUMNS);
+  const columns = useMemo(
+    () => reportTableColumns(choice.tableColumns, choice.tableChosen, CELLS, true),
+    [choice.tableColumns, choice.tableChosen],
+  );
+  const exportParams = { ...filters, ordering, columns: choice.chosen };
 
   const rows = list.data?.results ?? [];
   const count = list.data?.count ?? 0;
-  const firstRow = count === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
-  const lastRow = Math.min(page * PAGE_SIZE, count);
-
-  const columns: Column<Aircraft>[] = [
-    {
-      key: 'n_number',
-      header: 'N-number',
-      width: '9rem',
-      render: (row) => (
-        <>
-          <Link className="mono" to={`/admin/aircraft/${row.id}`}>
-            {row.n_number}
-          </Link>{' '}
-          <ServiceChip aircraft={row} />
-        </>
-      ),
-    },
-    { key: 'make', header: 'Make', width: '16%', render: (row) => row.make },
-    { key: 'model', header: 'Model', width: '16%', render: (row) => row.model },
-    {
-      key: 'owner_name',
-      header: 'Owner',
-      render: (row) => (
-        <>
-          {row.owner_name || '—'}
-          <span className="muted"> · {OWNER_TYPE_LABELS[row.owner_type]}</span>
-        </>
-      ),
-    },
-    {
-      key: 'insurance_expiration',
-      header: 'Insurance',
-      width: '11rem',
-      render: (row) => (
-        <>
-          <InsuranceDot aircraft={row} /> <DateText value={row.insurance_expiration} />
-        </>
-      ),
-    },
-  ];
-
-  const handleColumnChange = (next: string[]): void => {
-    setChosen(next);
-  };
 
   const handleSubmit = (payload: AircraftPatch): void => {
     create.mutate(payload, {
@@ -203,61 +261,36 @@ export function AircraftRegisterPage(): JSX.Element {
         rows={rows}
         rowKey={(row) => row.id}
         caption={`${count} aircraft`}
+        label="Aircraft register"
         isLoading={list.isPending}
         onSortChange={handleSortChange}
         sort={sort}
         exportCsvUrl={reportExportUrl('aircraft', 'csv', exportParams)}
         exportPdfUrl={reportExportUrl('aircraft', 'pdf', exportParams)}
         emptyTitle="No aircraft match these filters"
-        emptyDescription="Clear a filter, or add the aircraft to the register."
-        filters={
-          <>
-            <FilterBar
-              fields={FILTER_FIELDS}
-              values={filters}
-              onChange={(next) => setFilters(next)}
-              label="Filter aircraft"
-            />
-            {registry.isError ? (
-              <p className="muted">
-                The columns could not be loaded; the downloads carry the default columns.
-              </p>
-            ) : reportColumns.length > 0 ? (
-              <ColumnChooser
-                report="aircraft"
-                columns={reportColumns}
-                chosen={chosenKeys}
-                onChange={handleColumnChange}
-                legend="Columns to export"
-              />
-            ) : null}
-          </>
+        emptyDescription="Reset the filters, or add the aircraft to the register."
+        emptyAction={
+          <Button variant="quiet" onClick={() => setFilters(clearedValues(FILTER_FIELDS, filters))}>
+            Reset filters
+          </Button>
         }
+        filters={
+          <FilterBar
+            fields={FILTER_FIELDS}
+            values={filters}
+            onChange={(next) => setFilters(next)}
+            label="Filter aircraft"
+          />
+        }
+        tools={<ColumnTools choice={choice} />}
+        pagination={{
+          page,
+          pageSize: PAGE_SIZE,
+          count,
+          onPageChange: setPage,
+          label: 'Aircraft pages',
+        }}
       />
-
-      {count > PAGE_SIZE ? (
-        <div className="aircraft-pager">
-          <Button
-            variant="quiet"
-            small
-            disabled={!list.data?.previous}
-            onClick={() => setPage(page - 1)}
-          >
-            ← Previous
-          </Button>
-          <p className="aircraft-pager__count">
-            {firstRow}–{lastRow} of {count}
-          </p>
-          <Button
-            variant="quiet"
-            small
-            disabled={!list.data?.next}
-            onClick={() => setPage(page + 1)}
-          >
-            Next →
-          </Button>
-        </div>
-      ) : null}
     </Page>
   );
 }

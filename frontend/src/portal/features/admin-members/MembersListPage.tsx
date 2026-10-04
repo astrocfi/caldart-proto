@@ -6,15 +6,13 @@
  * query the table is showing.  The filters are the members report's own, drawn
  * by the shared `FilterBar` from `REPORTS.members`.
  *
- * Five columns, kept narrow enough to scan: whether the member may fly, who
- * they are, their team, when their membership runs out, and how to reach them.
- * Every column maps onto an `?ordering=` value the API accepts, Pilot included:
- * the server ranks a current medical ahead of a lapsed one ahead of somebody
- * who is not a pilot, which is the order the column's marks read in.
- *
- * The membership report carries far more than those five, so the column chooser
- * drives the two export links rather than the table: the screen stays scannable
- * while the CSV and the PDF carry whatever the administrator asked for.
+ * The column chooser governs the table and both downloads together: the table
+ * shows the members report's chosen columns, in the report's order, and a saved
+ * set of columns applies to the screen as it does to the files.  It opens on the
+ * report's default columns.  Name, Email, DART, Expires, Joined, and Profile updated
+ * sort on the server; the other headings do not sort, and carry no arrow.  On a
+ * narrow screen the optional columns go first, then Email, then DART, while the
+ * name, the membership status, and the expiry stay.
  *
  * The list hides deactivated accounts until **Include deactivated** is ticked.
  * That switch is the list's own: the report never lists a deactivated account,
@@ -24,31 +22,43 @@
  * member record is the account administrator's: for a leader there is no
  * **New member** button, and a name opens the member check instead.
  */
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import type { JSX } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 import { useDarts } from '@/portal/api/queries';
-import type { MemberRow } from '@/portal/api/types';
+import type { MemberRow, ReportColumn } from '@/portal/api/types';
 import { useAuth } from '@/portal/auth/useAuth';
-import { MEMBERSHIP_STATUS_LABELS } from '@/portal/choices';
+import {
+  ACCOUNT_KIND_LABELS,
+  MEMBERSHIP_STATUS_LABELS,
+  certificateLabel,
+  medicalLabel,
+} from '@/portal/choices';
 import { Button, ButtonLink } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
-import { ColumnChooser, defaultColumnKeys } from '@/portal/components/ColumnChooser';
-import type { Column, SortDirection } from '@/portal/components/DataTable';
 import { DataTable } from '@/portal/components/DataTable';
 import { DateText } from '@/portal/components/DateText';
-import { FilterBar } from '@/portal/components/FilterBar';
+import { FilterBar, clearedValues } from '@/portal/components/FilterBar';
 import { Page } from '@/portal/components/Page';
+import type { ReportCell } from '@/portal/components/reportTable';
+import { ColumnTools, reportTableColumns, useColumnChoice } from '@/portal/components/reportTable';
 import { MembershipDot, PilotMark } from '@/portal/components/StatusChip';
 import { useUrlFilters } from '@/portal/components/useUrlFilters';
+import {
+  useFirstPageWhenMissing,
+  useUrlListPosition,
+} from '@/portal/components/useUrlListPosition';
 import { hasAnyRole } from '@/portal/nav';
-import { reportExportUrl, useReportColumns } from '@/portal/reports/api';
+import { reportExportUrl } from '@/portal/reports/api';
 import { listFilters, REPORTS } from '@/portal/reports/definitions';
 import type { FilterField, FilterValues } from '@/portal/reports/types';
 import { useMembers } from './api';
 
 const PAGE_SIZE = 25;
+
+/** The order the list opens on, which the server also falls back to. */
+const DEFAULT_ORDERING = 'name';
 
 /** The list's switch for deactivated accounts, which the report never lists. */
 const INCLUDE_INACTIVE = 'include_inactive';
@@ -65,21 +75,7 @@ const INCLUDE_INACTIVE_FIELD: FilterField = {
  * alone offers, and then the list's own Include deactivated switch.
  */
 const FILTER_FIELDS = [...listFilters(REPORTS.members), INCLUDE_INACTIVE_FIELD];
-
-/** The table's sort, which the URL keeps beside the filters. */
-const ORDERING = 'ordering';
-
-/** Every query parameter the list keeps in the URL, the page number aside. */
-const URL_KEYS = [...FILTER_FIELDS.map((field) => field.key), ORDERING];
-
-function ordering(value: string): { key: string; direction: SortDirection } | undefined {
-  if (!value) return undefined;
-  const descending = value.startsWith('-');
-  return {
-    key: descending ? value.slice(1) : value,
-    direction: descending ? 'desc' : 'asc',
-  };
-}
+const FILTER_KEYS = FILTER_FIELDS.map((field) => field.key);
 
 /**
  * Where a name in the list leads: the member record, or the member check for a leader.
@@ -98,12 +94,17 @@ function MemberName({
   isAccountAdmin: boolean;
 }): JSX.Element {
   const href = memberHref(row, isAccountAdmin);
-  return href === null ? <>{row.name}</> : <Link to={href}>{row.name}</Link>;
+  return (
+    <>
+      {href === null ? row.name : <Link to={href}>{row.name}</Link>}
+      {row.is_active ? null : <small className="muted"> · account deactivated</small>}
+    </>
+  );
 }
 
 /**
- * The words beside the membership dot: the expiry date, **Never** for a lifetime
- * member, and **Friend** for a friend, who pays no dues and so has no date.
+ * The expiry cell: the date, **Never** for a lifetime member, and **Friend** for a
+ * friend, who pays no dues and so has no date.
  */
 function ExpiryText({ row }: { row: MemberRow }): JSX.Element {
   if (row.membership.status === 'friend') {
@@ -113,59 +114,165 @@ function ExpiryText({ row }: { row: MemberRow }): JSX.Element {
   return <DateText value={row.membership.expires_on} />;
 }
 
-function memberColumns(isAccountAdmin: boolean): Column<MemberRow>[] {
-  return [
-    {
-      key: 'pilot',
-      header: 'Pilot',
-      width: '4.25rem',
-      render: (row) => (
-        <PilotMark
-          isPilot={row.pilot_certificate_type !== 'none'}
-          isCurrent={row.medical_is_current}
-        />
-      ),
+/**
+ * The kind the report prints: Friend for anybody whose membership reads friend, which
+ * takes in a member whose change to friend has come; otherwise the account's kind.
+ */
+function kindLabel(row: MemberRow): string {
+  return row.membership.status === 'friend'
+    ? ACCOUNT_KIND_LABELS.friend
+    : ACCOUNT_KIND_LABELS[row.kind];
+}
+
+/**
+ * The certificate cell as the report prints it: blank for no certificate, and the
+ * airline transport pilot certificate as ATP, which keeps the column narrow.
+ */
+function certificateText(certificate: MemberRow['pilot_certificate_type']): string {
+  if (certificate === 'none') return '';
+  return certificate === 'atp' ? 'ATP' : certificateLabel(certificate);
+}
+
+/** Yes or No for a pilot's instrument rating, blank for somebody who is no pilot. */
+function instrumentText(instrument: boolean | null): string {
+  if (instrument === null) return '';
+  return instrument ? 'Yes' : 'No';
+}
+
+/**
+ * The columns the table shows while the report's registry loads, or if it cannot be read:
+ * who, how to reach them, their team, and their membership.
+ */
+const FALLBACK_COLUMNS: ReportColumn[] = [
+  { key: 'name', label: 'Name', default: true },
+  { key: 'email', label: 'Email', default: true },
+  { key: 'dart', label: 'DART', default: true },
+  { key: 'status', label: 'Status', default: true },
+  { key: 'expires_on', label: 'Expires', default: true },
+];
+
+/** A column that only somebody who asks for it sees, and that goes first on a narrow screen. */
+const OPTIONAL = 1;
+
+/**
+ * How each members report column draws.  The columns that matter least on a narrow
+ * screen go first (the lowest `dropOrder`), then Email, then DART; the name, the
+ * membership status, and the expiry never go.
+ */
+function memberCells(isAccountAdmin: boolean): Record<string, ReportCell<MemberRow>> {
+  return {
+    name: {
+      ordering: 'name',
+      isIdentity: true,
+      minWidth: '12rem',
+      render: (row) => <MemberName row={row} isAccountAdmin={isAccountAdmin} />,
     },
-    {
-      key: 'name',
-      header: 'Name',
-      width: '22%',
-      render: (row) => (
-        <>
-          <MemberName row={row} isAccountAdmin={isAccountAdmin} />
-          {row.is_active ? null : <small className="muted"> · account deactivated</small>}
-        </>
-      ),
-    },
-    {
-      key: 'dart',
-      header: 'DART',
-      width: '18%',
-      render: (row) => row.dart ?? 'Unaffiliated',
-    },
-    {
-      key: 'expires_on',
-      header: 'Membership Exp.',
-      width: '11rem',
-      render: (row) => (
-        <>
-          <MembershipDot membership={row.membership} /> <ExpiryText row={row} />
-        </>
-      ),
-    },
-    {
-      key: 'email',
-      header: 'Email',
+    email: {
+      ordering: 'email',
+      minWidth: '14rem',
+      dropOrder: 20,
       render: (row) => <a href={`mailto:${row.email}`}>{row.email}</a>,
     },
-  ];
+    phone: { width: '8.5rem', noWrap: true, dropOrder: 10, render: (row) => row.phone },
+    dart: {
+      ordering: 'dart',
+      minWidth: '9rem',
+      dropOrder: 21,
+      render: (row) => row.dart ?? 'Unaffiliated',
+    },
+    status: {
+      width: '7rem',
+      keepInSight: true,
+      render: (row) => (
+        <>
+          {/* The word says the state; the dot beside it adds the amber of an expiry
+              that is close, which the Expires column dates. */}
+          <span aria-hidden="true">
+            <MembershipDot membership={row.membership} />
+          </span>{' '}
+          {MEMBERSHIP_STATUS_LABELS[row.membership.status]}
+        </>
+      ),
+    },
+    kind: { width: '6rem', dropOrder: 5, render: kindLabel },
+    plan: { width: '7rem', dropOrder: 4, render: (row) => row.membership.plan ?? '' },
+    expires_on: {
+      ordering: 'expires_on',
+      width: '8rem',
+      keepInSight: true,
+      render: (row) => <ExpiryText row={row} />,
+    },
+    certificate: {
+      width: '7rem',
+      dropOrder: 8,
+      render: (row) => certificateText(row.pilot_certificate_type),
+    },
+    certificate_number: {
+      width: '8rem',
+      noWrap: true,
+      dropOrder: OPTIONAL,
+      render: (row) => row.certificate_number,
+    },
+    instrument: {
+      width: '7rem',
+      dropOrder: OPTIONAL,
+      render: (row) => instrumentText(row.instrument),
+    },
+    medical_type: {
+      width: '7rem',
+      dropOrder: 7,
+      render: (row) => (row.medical_type === 'none' ? '' : medicalLabel(row.medical_type)),
+    },
+    medical_expiration: {
+      width: '9.5rem',
+      dropOrder: 15,
+      render: (row) => (
+        <>
+          <PilotMark
+            isPilot={row.pilot_certificate_type !== 'none'}
+            isCurrent={row.medical_is_current}
+          />{' '}
+          <DateText value={row.medical_expiration} placeholder="" />
+        </>
+      ),
+    },
+    aircraft: { minWidth: '7rem', dropOrder: 6, render: (row) => row.aircraft.join(' ') },
+    home_airport: { width: '6.5rem', dropOrder: OPTIONAL, render: (row) => row.home_airport },
+    secondary_airport: {
+      width: '6.5rem',
+      dropOrder: OPTIONAL,
+      render: (row) => row.secondary_airport,
+    },
+    city: { minWidth: '7rem', dropOrder: OPTIONAL, render: (row) => row.city },
+    state: { width: '4.5rem', dropOrder: OPTIONAL, render: (row) => row.state },
+    county: { minWidth: '8rem', dropOrder: OPTIONAL, render: (row) => row.county },
+    ham_callsign: { width: '6.5rem', dropOrder: OPTIONAL, render: (row) => row.ham_callsign },
+    joined_on: {
+      ordering: 'joined',
+      width: '8rem',
+      dropOrder: OPTIONAL,
+      render: (row) => <DateText value={row.joined_on} />,
+    },
+    member_since: {
+      width: '8rem',
+      dropOrder: OPTIONAL,
+      render: (row) => <DateText value={row.member_since} />,
+    },
+    profile_updated: {
+      ordering: 'updated',
+      width: '8.5rem',
+      dropOrder: OPTIONAL,
+      render: (row) => <DateText value={row.profile_updated_at} />,
+    },
+  };
 }
 
 /** `/admin/members` page: the filtered, sortable, exportable member list. */
 export function MembersListPage(): JSX.Element {
-  const [params, setParams] = useSearchParams();
-  const [filters, setFilters] = useUrlFilters(URL_KEYS);
-  const page = Number(params.get('page') ?? '1') || 1;
+  const [filters, setFilters] = useUrlFilters(FILTER_KEYS);
+  // The order and the page live in the address beside the filters.
+  const position = useUrlListPosition(DEFAULT_ORDERING);
+  const { ordering, page, setPage, sort, setSort: handleSortChange } = position;
   const { roles } = useAuth();
   const isAccountAdmin = hasAnyRole(roles, ['account_admin']);
 
@@ -176,38 +283,28 @@ export function MembersListPage(): JSX.Element {
     }),
     [darts.data],
   );
-  const members = useMembers({ filters, page, page_size: PAGE_SIZE });
+  const members = useMembers({ filters: { ...filters, ordering }, page, page_size: PAGE_SIZE });
+  useFirstPageWhenMissing(position, members.error);
 
-  const columns = useMemo(() => memberColumns(isAccountAdmin), [isAccountAdmin]);
-
-  const registry = useReportColumns('members');
-  const reportColumns = useMemo(() => registry.data ?? [], [registry.data]);
-  // Null means "whatever the registry calls default": the chooser has not been
-  // touched, so it must follow a registry that is still loading.
-  const [chosen, setChosen] = useState<string[] | null>(null);
-  const chosenKeys = chosen ?? defaultColumnKeys(reportColumns);
+  const choice = useColumnChoice('members', FALLBACK_COLUMNS);
+  const cells = useMemo(() => memberCells(isAccountAdmin), [isAccountAdmin]);
+  const columns = useMemo(
+    () => reportTableColumns(choice.tableColumns, choice.tableChosen, cells, true),
+    [choice.tableColumns, choice.tableChosen, cells],
+  );
   const { [INCLUDE_INACTIVE]: _listOnly, ...reportFilters } = filters;
-  const exportParams = { ...reportFilters, columns: chosenKeys };
+  const exportParams = { ...reportFilters, ordering, columns: choice.chosen };
 
-  const handleFilterChange = (next: FilterValues) => {
+  const handleFilterChange = (next: FilterValues): void => {
     setFilters(next);
   };
 
-  const handleColumnChange = (next: string[]) => {
-    setChosen(next);
-  };
-
-  const setPage = (next: number) => {
-    const updated = new URLSearchParams(params);
-    if (next <= 1) updated.delete('page');
-    else updated.set('page', String(next));
-    setParams(updated);
+  const handleReset = (): void => {
+    setFilters(clearedValues(FILTER_FIELDS, filters));
   };
 
   const count = members.data?.count ?? 0;
   const rows = members.data?.results ?? [];
-  const firstRow = count === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
-  const lastRow = (page - 1) * PAGE_SIZE + rows.length;
 
   return (
     <Page
@@ -229,69 +326,42 @@ export function MembersListPage(): JSX.Element {
               ? 'Loading members'
               : `${count} member${count === 1 ? '' : 's'} match these filters`
           }
+          label="Members"
           filters={
-            <>
-              <FilterBar
-                fields={FILTER_FIELDS}
-                values={filters}
-                onChange={handleFilterChange}
-                options={dartOptions}
-                label="Filter members"
-              />
-              {registry.isError ? (
-                <p className="muted">
-                  The columns could not be loaded; the downloads carry the default columns.
-                </p>
-              ) : reportColumns.length > 0 ? (
-                <ColumnChooser
-                  report="members"
-                  columns={reportColumns}
-                  chosen={chosenKeys}
-                  onChange={handleColumnChange}
-                  legend="Columns to export"
-                />
-              ) : null}
-            </>
+            <FilterBar
+              fields={FILTER_FIELDS}
+              values={filters}
+              onChange={handleFilterChange}
+              options={dartOptions}
+              label="Filter members"
+            />
           }
+          tools={<ColumnTools choice={choice} />}
           exportCsvUrl={reportExportUrl('members', 'csv', exportParams)}
           exportPdfUrl={reportExportUrl('members', 'pdf', exportParams)}
           isLoading={members.isPending}
-          onSortChange={(key, direction) =>
-            setFilters({ ...filters, [ORDERING]: direction === 'desc' ? `-${key}` : key })
-          }
-          initialSort={ordering(filters[ORDERING] ?? '')}
+          onSortChange={handleSortChange}
+          sort={sort}
           emptyTitle="No members match these filters"
-          emptyDescription="Widen the search, or clear the filters to see everyone."
+          emptyDescription="Widen the search, or reset the filters to see everyone."
+          emptyAction={
+            <Button variant="quiet" onClick={handleReset}>
+              Reset filters
+            </Button>
+          }
+          pagination={{
+            page,
+            pageSize: PAGE_SIZE,
+            count,
+            onPageChange: setPage,
+            label: 'Member pages',
+          }}
         />
 
         {members.isError ? (
           <p role="alert" className="field__error">
             The member list could not be loaded.
           </p>
-        ) : null}
-
-        {count > PAGE_SIZE ? (
-          <div className="cluster card__footer">
-            <p className="muted">
-              Showing {firstRow}–{lastRow} of {count}
-            </p>
-            <Button
-              variant="quiet"
-              small
-              disabled={!members.data?.previous}
-              onClick={() => setPage(page - 1)}
-            >
-              Previous
-            </Button>
-            <Button
-              variant="quiet"
-              small
-              disabled={!members.data?.next}
-              onClick={() => setPage(page + 1)}
-            >
-              Next
-            </Button>
-          </div>
         ) : null}
       </Card>
     </Page>

@@ -138,11 +138,19 @@ export function DartsPage(): JSX.Element {
   };
 
   const columns: Column<AdminDart>[] = [
-    { key: 'name', header: 'Name', render: (dart) => dart.name, sortValue: (dart) => dart.name },
+    {
+      key: 'name',
+      header: 'Name',
+      isIdentity: true,
+      minWidth: '10rem',
+      render: (dart) => dart.name,
+      sortValue: (dart) => dart.name,
+    },
     {
       key: 'airport',
       header: 'Airport',
       width: '7rem',
+      dropOrder: 3,
       render: (dart) =>
         dart.airport_identifiers ? (
           <span className="mono">{dart.airport_identifiers}</span>
@@ -154,7 +162,8 @@ export function DartsPage(): JSX.Element {
     {
       key: 'website',
       header: 'Website',
-      width: '9rem',
+      width: '6rem',
+      dropOrder: 1,
       sortable: false,
       render: (dart) =>
         dart.website_url ? (
@@ -170,6 +179,7 @@ export function DartsPage(): JSX.Element {
       header: 'People',
       numeric: true,
       width: '6rem',
+      dropOrder: 2,
       render: (dart) => dart.contacts.length,
       sortValue: (dart) => dart.contacts.length,
     },
@@ -178,6 +188,7 @@ export function DartsPage(): JSX.Element {
       header: 'Roster',
       numeric: true,
       width: '6rem',
+      dropOrder: 4,
       render: (dart) => dart.roster_recipients,
       sortValue: (dart) => dart.roster_recipients,
     },
@@ -185,7 +196,8 @@ export function DartsPage(): JSX.Element {
       key: 'members',
       header: 'Members',
       numeric: true,
-      width: '6rem',
+      width: '7rem',
+      dropOrder: 5,
       render: (dart) =>
         dart.member_count > 0 ? (
           <Link to={`/admin/members?dart=${dart.id}`}>{dart.member_count}</Link>
@@ -198,6 +210,8 @@ export function DartsPage(): JSX.Element {
       key: 'is_active',
       header: 'Status',
       width: '7rem',
+      keepInSight: true,
+      narrowWidth: '5.5rem',
       render: (dart) =>
         dart.is_active ? (
           <StatusChip tone="current" label="Active" />
@@ -209,8 +223,8 @@ export function DartsPage(): JSX.Element {
     {
       key: 'actions',
       header: 'Actions',
-      width: '6rem',
-      sortable: false,
+      isActions: true,
+      narrowWidth: '5rem',
       render: (dart) => (
         <Button variant="quiet" small onClick={() => setEditing(dart.id)}>
           Edit
@@ -268,6 +282,7 @@ export function DartsPage(): JSX.Element {
       ) : null}
 
       <DataTable
+        singleLine
         columns={columns}
         rows={rows}
         rowKey={(dart) => dart.id}

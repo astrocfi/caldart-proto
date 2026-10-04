@@ -26,7 +26,7 @@ from apps.accounts.roles import (
 )
 from apps.members.models import MembershipPlan
 from tests.conftest import role_matrix
-from tests.factories import MembershipFactory, UserFactory
+from tests.factories import DartFactory, MemberProfileFactory, MembershipFactory, UserFactory
 
 pytestmark = pytest.mark.django_db
 
@@ -43,6 +43,9 @@ def send_reset(user: User) -> str:
     """``/admin/users/{id}/send-password-reset`` for ``user``."""
     return f"{LIST}/{user.pk}/send-password-reset"
 
+
+#: The row's profile fields, which the roles report's optional columns draw.
+PROFILE_KEYS = ("phone", "dart", "city", "county", "home_airport")
 
 #: (role slug, may use the users-admin API).
 USERS_ADMIN_MATRIX = role_matrix(USER_ADMIN, SYSTEM_ADMIN)
@@ -132,9 +135,56 @@ def test_list_returns_the_user_payload(
         "email_bounced_at",
         "email_bounce_detail",
         "reactivation_blocked",
+        "phone",
+        "dart",
+        "city",
+        "county",
+        "home_airport",
     }
     assert row["roles"] == [MEMBER]
     assert row["membership"]["status"] == "current"
+
+
+def test_list_rows_carry_the_profile_columns_the_roles_report_offers(
+    api_client: APIClient, user_admin: User
+) -> None:
+    """A row holds the phone, DART, city, county, and home airport its columns draw."""
+    holder = UserFactory(email="holder@example.test", roles=[MEMBER])
+    MemberProfileFactory(
+        user=holder,
+        phone="415-555-0100",
+        dart=DartFactory(name="Palo Alto"),
+        city="Palo Alto",
+        county="Santa Clara",
+        home_airport_identifier="PAO",
+    )
+    api_client.force_login(user_admin)
+
+    (row,) = api_client.get(LIST, {"search": "holder@example.test"}).json()["results"]
+    assert {key: row[key] for key in PROFILE_KEYS} == {
+        "phone": "415-555-0100",
+        "dart": "Palo Alto",
+        "city": "Palo Alto",
+        "county": "Santa Clara",
+        "home_airport": "PAO",
+    }
+
+
+def test_list_rows_read_blank_profile_columns_without_a_profile(
+    api_client: APIClient, user_admin: User
+) -> None:
+    """An account with no profile has blank text and no DART."""
+    UserFactory(email="bare@example.test", roles=[MEMBER])
+    api_client.force_login(user_admin)
+
+    (row,) = api_client.get(LIST, {"search": "bare@example.test"}).json()["results"]
+    assert {key: row[key] for key in PROFILE_KEYS} == {
+        "phone": "",
+        "dart": None,
+        "city": "",
+        "county": "",
+        "home_airport": "",
+    }
 
 
 def test_list_is_ordered_by_name(api_client: APIClient, user_admin: User) -> None:
