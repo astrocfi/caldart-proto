@@ -4,16 +4,26 @@ Bulk email
 
 CalDART management writes one email to many members and friends at once: a
 newsletter, a seminar notice, a call for volunteers, or a mission callout that asks
-who can fly (:ref:`bulk-email-callouts`).  A DART leader does the same
-for the members and friends of their own DART (:ref:`bulk-email-dart-limit`).  The email is a draft on the
-server from the moment Compose opens it, its people are a *batch* built from the
-member list's own filters, and **Send** only queues it.  A background sender,
-started every minute by a systemd timer like the other scheduled jobs, sends the
-copies, paced to the mail provider's limit, and records what became of each.
+who can fly (:ref:`bulk-email-callouts`).  A DART leader does the same for the
+members and friends of their own DART (:ref:`bulk-email-dart-limit`).  The email is a
+draft on the server from the moment Compose opens it, its people are a *batch* built
+from the member list's own filters, and **Send** only queues it.  A background
+sender, started every minute by a systemd timer like the other scheduled jobs, sends
+each person a *copy* of their own, paced to the mail provider's limit, and records
+what became of each.  Every email has a *type* (``mail.EmailType``,
+:doc:`api-email-types`) that says who may send it and whether its recipients may
+turn it off.
 
-The code is in ``apps/bulk_email/``, the templates are ``bulk_email`` and
-``bulk_email_copy`` in ``backend/templates/emails/``, and the endpoints are in
-:doc:`api-bulk-email`.  The models are in :ref:`data-model-bulk-email`.
+The chapter follows an email through its life: the modules, the states, the batch,
+the sender, how a copy is rendered, the checks and the test copy before the send,
+what happens after it, the templates and groups that let a sender reuse what was
+written, and mission callouts, whose reminders are further *rounds* of copies of the
+same email.  It ends with the rules every change to bulk email follows and where a
+new feature goes.  The code is in ``apps/bulk_email/``, the templates are
+``bulk_email`` and ``bulk_email_copy`` in ``backend/templates/emails/``, and the
+endpoints are in :doc:`api-bulk-email`.  The models are in
+:ref:`data-model-bulk-email`, and the user's view of every screen is in the user
+guide's Bulk Email pages.
 
 
 The modules
@@ -23,9 +33,10 @@ The modules
 added later lands in a file of its own rather than growing one:
 
 ``models.py``
-    ``BulkEmail``, ``BatchAdd``, ``BulkEmailRecipient``, ``BulkEmailImage``, ``BulkEmailRetry``,
-    ``EmailTemplate``, ``RecipientGroup`` with its ``RecipientGroupMember`` and
-    ``RecipientGroupFilter`` rows, ``Callout``, ``CalloutAnswer``, and their choices.
+    ``BulkEmail``, ``BatchAdd``, ``BulkEmailRecipient``, ``BulkEmailImage``,
+    ``BulkEmailRetry``, ``EmailTemplate``, ``RecipientGroup`` with its
+    ``RecipientGroupMember`` and ``RecipientGroupFilter`` rows, ``Callout``,
+    ``CalloutAnswer``, and their choices.
 ``batch.py``
     The batch: adding by filters, the skip reasons, the batch as rows and as a
     CSV, and a send's results as a CSV.  ``locked_for_edit`` is the edit rule.
@@ -49,7 +60,8 @@ added later lands in a file of its own rather than growing one:
     The link check, held to its deadlines, that never reaches into a private network
     or this server.
 ``throttling.py``
-    The per-account limit on running the checks.
+    The per-account limit on running the checks, and the per-link limit on answering
+    a callout.
 ``tests_send.py``
     **Send me a test**: one copy of an email to its sender alone.
 ``richtext.py``
@@ -105,10 +117,10 @@ States
 .. code-block:: text
 
    draft --Send--> queued --(start_at arrives, the sender claims it)--> sending --> sent
-     ^               |                                                      |
-     +----Cancel-----+                                                      +--Stop--> stopped
-                                                                                         |
-                       queued <-------------------Send the rest--------------------------+
+     ^               |  ^                                                   |
+     +----Cancel-----+  |                                                   +--Stop--> stopped
+                        |
+                        +-- Send the rest (from stopped); Retry failed or Remind (from sent)
 
 ``draft``
     Being written.  ``POST /bulk-email/drafts`` hands a sender their one empty
@@ -136,11 +148,17 @@ States
 ``sent``
     Every copy has been tried.  One ``bulk_email.send`` audit line names the
     sender and the counts.
+``sent`` again
+    **Retry failed** (`After the send`_) and **Remind non-responders**
+    (`Mission callouts`_) queue a sent email to start at once, the path **Send the
+    rest** takes from ``stopped``, and the email reads ``sent`` again once their
+    copies have been tried.  The edit rule below keeps it read-only all the while.
 ``stopped``
     **Stop** reached the sender between copies.  Every copy not yet sent is
     ``stopped``, with *Stopped by* and the name of whoever pressed it.  **Send the
-    rest** turns those rows back to ``pending`` and queues the email to start at
-    once, with no undo window.  **Stop** on that queued email stops it again at once,
+    rest** (``drafts.resume``) checks each of those rows again
+    (``delivery.recheck_rows``, as **Retry failed** does), turns the rest back to
+    ``pending``, and queues the email to start at once, with no undo window.  **Stop** on that queued email stops it again at once,
     without waiting for the sender.
 
 .. _bulk-email-edit-rule:
@@ -219,10 +237,11 @@ after a deleted account, so the batch screen shows it at once and the freeze sto
 it.  And ``drafts.queue`` refuses an email limited to no DART, as the background
 sender's claim does; the claim also returns unsent an email whose batch the limit
 leaves nobody in, and the send loop checks the limit again before every copy (both
-under *The sender*, below).  ``senders.sender_notice`` names
-the sender of an email limited to no DART, for the compose screen and the refusals.  ``BulkEmail.dart`` records the DART the email goes to when the
-draft is made, at each add and **Send**, and when the send starts; the lists show
-it, and once the email has started it is the DART it went to.
+under `The sender`_, below).  ``senders.sender_notice`` names the sender of an email
+limited to no DART, for the compose screen and the refusals.  ``BulkEmail.dart``
+records the DART the email goes to when the draft is made, at each add and **Send**,
+and when the send starts; the lists show it, and once the email has started it is
+the DART it went to.
 
 
 .. _bulk-email-sender:
@@ -277,7 +296,8 @@ screen and the compose screen show, such as *This email was not sent: you can no
 longer send Mission email. Choose another type and send again.*, a WARNING
 ``bulk_email.refused`` audit line names the email under the ``command`` actor with
 the reason ``type_not_sendable``, ``sender_deleted``, ``no_type``, ``no_dart``, or
-``dart_changed``, and the claim moves on to the next due email.  Queuing the email again clears ``not_sent_reason``.
+``dart_changed``, and the claim moves on to the next due email.  Queuing the email
+again clears ``not_sent_reason``.
 
 The pending rows are then sent in surname order, one copy each.  Right before each
 copy goes, after its pause, the run reads afresh whether the person is still in the
@@ -296,17 +316,20 @@ again.  A run that dies in the narrow gap between the email log row and the
 recipient row leaves a pending row whose ``Message-ID`` is logged without an error;
 the next run records that copy as sent before it sends anything
 (``job._recover_logged_copies``), and sends a pending row whose try is logged with
-an error, or not at all, as usual.  A crash between the row and the counts leaves
-a count short, never a duplicate email: when the email finishes, and when a stop takes effect,
-``job.recount`` sets ``sent_count``, ``failed_count``, ``skipped_count``, and
-``bounced_count`` from the rows, so no count stays off.  The counts are added to in the database (``F() + 1``) rather
-than written from the email held in memory, so a bounce moved off ``sent_count``
-while the email sends (`After the send`_) stays moved.  The run reads ``stop_requested`` afresh before each copy's
-pause and again after it.  A **Stop** takes effect there: every copy not yet sent
-becomes ``stopped``, and one ``bulk_email.stop`` audit line names who pressed it.
-A stop that arrives after the last copy has nothing to keep back: the email is
-``sent``, its ``stopped_by`` is cleared, and no stop is recorded.  When no row is
-pending, the email is ``sent`` and ``sent_at`` set.
+an error, or not at all, as usual.  A crash between the row and the counts leaves a
+count short, never a duplicate email: when the email finishes, and when a stop takes
+effect, ``job.recount`` sets ``sent_count``, ``failed_count``, ``skipped_count``, and
+``bounced_count`` from the rows of every round, so no count stays off.  The counts
+are added to in the database (``F() + 1``) rather than written from the email held
+in memory, so a bounce moved off ``sent_count`` while the email sends (`After the
+send`_) stays moved.
+
+The run reads ``stop_requested`` afresh before each copy's pause and again after it.
+A **Stop** takes effect there: every copy not yet sent becomes ``stopped``, and one
+``bulk_email.stop`` audit line names who pressed it. A stop that arrives after the
+last copy has nothing to keep back: the email is ``sent``, its ``stopped_by`` is
+cleared, and no stop is recorded.  When no row is pending, the email is ``sent`` and
+``sent_at`` set.
 
 A copy that fails in a way the mail server did not report, an exception other than
 a refusal, is a bug: it is logged with its traceback, the copy becomes ``failed``
@@ -327,9 +350,9 @@ The sender sends at most ``BULK_EMAIL_RATE_PER_MINUTE`` copies a minute: after a
 copy begins it sleeps out whatever is left of 60 / rate seconds before the next,
 so the rate is a ceiling however fast the mail server answers.  The pace is the
 run's, carried from one email to the next, so several small emails due together
-are paced as one stream.  It opens one mail
-connection, and a fresh one every ``BULK_EMAIL_BATCH_SIZE`` copies and after any
-refused copy, rather than writing to a session the server may have dropped.
+are paced as one stream.  It opens one mail connection, and a fresh one every
+``BULK_EMAIL_BATCH_SIZE`` copies and after any refused copy, rather than writing to
+a session the server may have dropped.
 
 A copy goes through ``caldart.mail.send_templated``, so it is in the email log
 under the purpose ``bulk_email`` like any other message, and its ``Message-ID`` is
@@ -359,42 +382,41 @@ compose screen and the Sent page read it every three seconds while the email is
 Rendering a copy
 ================
 
-The message is HTML from the portal's rich text editor, sanitized on every save
-and again whenever a copy is built.  ``render.render_copy(bulk, recipient)``
-returns a ``RenderedCopy``: the subject, the plain-text and HTML bodies, and a
-dictionary of extra headers, with the recipient's field values filled in
+The message is HTML from the portal's rich text editor, sanitized on every save and
+again whenever a copy is built.  ``render.render_copy(bulk, recipient)`` returns a
+``RenderedCopy``: the subject, the plain-text and HTML bodies, and a dictionary of
+extra headers, with the recipient's field values filled in
 (:ref:`api-bulk-email-rich-text`).  The bodies are rendered from
 ``emails/bulk_email.{txt,html}``: the plain-text body is the message as plain text
 (``richtext.html_to_text``) followed by the house footer, and the HTML one puts the
 sanitized message inside the shared report frame.  Just before it tries a copy the
 sender reads the person's values for the fields the message uses
 (``render.fill_values``) and stores them on the row as ``values``, and
-``render_copy`` builds the copy from those, so any copy can be rebuilt exactly as
-it went.  The sender hands
-the finished bodies to ``send_templated`` through the pass-through pair
-``emails/bulk_email_copy.{txt,html}``, which print the ``text`` and ``html`` they
-are given unchanged, and passes the copy's ``headers`` through
+``render_copy`` builds the copy from those, so any copy can be rebuilt exactly as it
+went.  The sender hands the finished bodies to ``send_templated`` through the
+pass-through pair ``emails/bulk_email_copy.{txt,html}``, which print the ``text``
+and ``html`` they are given unchanged, and passes the copy's ``headers`` through
 ``send_templated``'s ``headers`` argument.
 
 ``render.render_for(bulk, user, values)`` is one person's whole copy, footer and
 headers included: ``render_copy`` builds a row's copy through it with the row's
-stored values, the preview builds each person's with their values as they are
-now, and a test copy the sender's own, so all three read alike.  The preview's is
-inert (``inert=True``): its footer reads as the copy's, but its unsubscribe link
-carries ``render.PREVIEW_STAND_IN`` where a signed token goes and it has no headers,
-so showing a person's copy to a sender never hands over a link that would turn that
-person's email off.  The test copy carries the sender's own real link.  Above the footer
-every copy but a test copy carries *View this email in your browser*, a link to the
-email on the recipient's **Messages** page, ``<SITE_URL>/portal/messages/<id>``
-(``render.browser_url``; `After the send`_).  The footer and the headers follow the
-email's type (:ref:`email-unsubscribe`).  For
-a type recipients may turn off, both bodies end with ``unsubscribe.footer_for``'s line
-and the recipient's own unsubscribe link, and the copy carries
+stored values, the preview builds each person's with their values as they are now,
+and a test copy the sender's own, so all three read alike.  The preview's is inert
+(``inert=True``): its footer reads as the copy's, but its unsubscribe link carries
+``render.PREVIEW_STAND_IN`` where a signed token goes and it has no headers, so
+showing a person's copy to a sender never hands over a link that would turn that
+person's email off.  The test copy carries the sender's own real link.  Above the
+footer every copy but a test copy carries *View this email in your browser*, a link
+to the email on the recipient's **Messages** page,
+``<SITE_URL>/portal/messages/<id>`` (``render.browser_url``; `After the send`_).
+The footer and the headers follow the email's type (:ref:`email-unsubscribe`).  For
+a type recipients may turn off, both bodies end with ``unsubscribe.footer_for``'s
+line and the recipient's own unsubscribe link, and the copy carries
 ``unsubscribe.headers_for``'s ``List-Unsubscribe`` and ``List-Unsubscribe-Post``
 headers.  For a type they may not, the footer says why the recipient receives it and
-there is no header.  A row whose account is gone gets neither, nor does an email with
-no type, which cannot be sent; both fall back to the general line *You receive this
-email as a member or a friend of <organization>.*
+there is no header.  A row whose account is gone gets neither, nor does an email
+with no type, which cannot be sent; both fall back to the general line *You receive
+this email as a member or a friend of <organization>.*
 
 
 .. _bulk-email-reply-to:
@@ -415,14 +437,16 @@ its ``Reply-To`` blanked among it, so the sender resolves and checks it once mor
 as it claims the email (``reply_to.claimed_reply_to``): when nothing usable
 resolves, the copies fall back to ``DEFAULT_FROM_EMAIL``'s address and a WARNING
 names the email.  The address settled on is stored on the email, so the Sent detail
-shows what the copies went with whatever the setting says later.  An address that is blank or not valid is an error of the
-checks, below, so **Send** and a test both refuse it.
+shows what the copies went with whatever the setting says later.  An address that is
+blank or not valid is an error of the checks, below, so **Send** and a test both
+refuse it.
 
 
 .. _bulk-email-checks:
 
 The checks
 ==========
+
 ``checks.run_checks(bulk)`` lists what is wrong with an email as it is saved, each
 finding a ``Finding(code, level, message)``.  The compose screen's **Check and
 send** card runs them when it opens, again on **Check again**, and again just
@@ -529,25 +553,28 @@ receiver lives here, and so does the link each copy's row on the Sent Emails pag
 carries to its bulk email, which ``ready`` registers with ``apps.mail.links``.
 
 **Retry failed.**  ``delivery.retry_failed`` takes a ``sent`` email whose copies
-include ``failed`` ones.  Each failed row takes its account's name and address as they
-are now and is asked ``batch.skip_reason`` again, as the freeze asks it, with the
-DART limit of a DART leader's email (``senders.dart_limit``), so a deleted or
-deactivated account, a person no longer in the leader's DART, a bounced address, or an
-opt-out makes it ``skipped`` and a corrected address is the one used.  The rest go back to ``pending``; all leave
-``failed_count``.  A ``BulkEmailRetry`` is recorded and the email queued to start now,
-the path **Send the rest** takes.  When the retried copies have all been tried,
-``job._finish`` keeps the email's first ``sent_at`` and writes
-``bulk_email.retry_finished`` with the retry's counts instead of a second
-``bulk_email.send``.  The email keeps its ``started_at``, so it stays
+include ``failed`` ones.  Each failed row takes its account's name and address as
+they are now and is asked ``batch.skip_reason`` again, as the freeze asks it, with
+the DART limit of a DART leader's email (``senders.dart_limit``), so a deleted or
+deactivated account, a person no longer in the leader's DART, a bounced address, or
+an opt-out makes it ``skipped`` and a corrected address is the one used.  The rest
+go back to ``pending``; all leave ``failed_count``.  A ``BulkEmailRetry`` is
+recorded and the email queued to start now, the path **Send the rest** takes.  When
+the retried copies have all been tried, ``job._finish`` keeps the email's first
+``sent_at`` and writes ``bulk_email.retry_finished`` with the retry's counts instead
+of a second ``bulk_email.send``.  The email keeps its ``started_at``, so it stays
 read-only (:ref:`the edit rule <bulk-email-edit-rule>`), and the sender's own checks
 apply to the retried copies as to any: the sender's right to send the type at the
 claim, and each person's opt-out before their copy.  A stopped email sends the rest
 first; its failed copies can be retried once it has finished.
 
 **A copy as it went.**  ``delivery.recipient_copy`` rebuilds one tried copy with
-``render.render_copy`` from the row's stored ``values``, with ``live_unsubscribe``
-false: the sender reads it, so its unsubscribe link is inert and carries no token.  The
-archive rebuilds the reader's own row the same way, with their live link.  Neither ever reads the account's values as they are now.
+``render.render_copy`` from the row's stored ``values``, with ``inert=True``: the
+sender reads it, so its unsubscribe link and any answer buttons carry no token.
+The archive rebuilds the reader's own row the same way, with their live link.
+Neither ever reads the account's values as they are now.  The Sent page's table and
+its download list the batch, round 0; a callout's reminder rounds are in the counts
+alone.
 
 **Messages.**  ``archive.messages_for`` lists the emails with a row naming the reader
 that reads ``sent`` or ``bounced``, not hidden from the archive, newest copy first;
@@ -555,6 +582,7 @@ that reads ``sent`` or ``bounced``, not hidden from the archive, newest copy fir
 its page there (``render.browser_url``, on ``SITE_URL``), and CalDART management can
 hide an email from every recipient's list (``delivery.set_hidden``) without changing
 its history.
+
 
 Reusing what was written
 ========================
@@ -568,8 +596,13 @@ draft's serializer uses), and optionally a type and a Reply-To address.
 ``templates.apply_template`` copies it into a draft through ``drafts.update``, so the
 edit rule and a queued email's checks apply; the type comes too only when the
 caller may send it, and a blank Reply-To becomes the sender's default.  Templates and
-groups are CalDART management's alone (``IsManagement``), never a DART leader's.  **Save as a template** on the compose screen is a plain
-``POST /bulk-email/templates`` of the draft's words, once its autosave has caught up.
+groups are CalDART management's alone (``IsManagement``), never a DART leader's.
+**Save as a template** on the compose screen is a plain ``POST /bulk-email/templates``
+of the draft's words, once its autosave has caught up.  Saving, changing, and
+deleting a template each write one audit line (``email_template.create``,
+``.update``, ``.delete``), and so do making, renaming, and deleting a group
+(``recipient_group.create``, with its kind, ``.rename``, ``.delete``), whether the
+group was made empty or saved from a batch.
 
 **Recipient groups.**  ``RecipientGroup`` is ``fixed`` (``RecipientGroupMember``
 rows) or ``live`` (``RecipientGroupFilter`` rows).  ``groups.group_accounts`` is the
@@ -592,9 +625,9 @@ with the subject, message, Reply-To, and type, recording the DART
 original's accounts to ``batch.add_accounts`` as one add labeled
 ``Copied from "<subject>"``.  ``add_accounts`` holds every add to the email's DART
 limit, as ``add_filters`` does: a DART leader's copy records their DART, and
-``batch_rows`` skips everybody outside it as ``Not in your DART``.  The rows are fresh and ``batched``, so the skip
-reasons are worked out as they are now; the original's rows and counts are not
-read for anything else.
+``batch_rows`` skips everybody outside it as ``Not in your DART``.  The rows are fresh
+and ``batched``, so the skip reasons are worked out as they are now; the original's
+rows and counts are not read for anything else.
 
 .. _bulk-email-callouts:
 
@@ -667,26 +700,26 @@ the list.
 **Remind non-responders.**  ``callouts.remind`` takes a callout that has finished
 sending and still takes answers, and adds a round of rows, ``round`` one higher than
 any so far, for everybody the callout reached with an active account and no answer,
-exactly the people the Callouts screen lists without one, so its confirmation's count
-is the round's.  Each row is
-refreshed and asked ``batch.skip_reason`` as **Retry failed** asks it: the account's
-name and address as they are now, the DART limit, the type's opt-outs, and, as
-``seen``, the addresses of the round so far and of everybody who has answered.  The
-rows that pass are ``pending`` and the email is queued to start now, the path **Send
-the rest** and a retry take, so the background sender sends the round with the same
-message, each copy filled in with the person's values as they are then, and checks
-the sender's type and each opt-out again.  ``Callout.reminded_at`` is set, and when the
-round has gone ``job._finish`` writes ``callout.remind_finished`` instead of a retry's
-line.  A retry compares addresses within each round, so a person the first round
-reached is not taken for a duplicate of their reminder, and takes the latest round
-first, skipping a failed copy with *Sent a later copy instead* once a later round's copy
-of that person went, is pending, or is queued in the same retry
-(``delivery._sort_failed``): nobody is sent an earlier copy after a later one, or two at
-once.  **Close now** (``callouts.close``) sets ``closed_at`` and ``closed_by``, and
-calls off a round queued and not yet started, its copies ``skipped`` with *Callout
-closed*.  The background sender asks ``callouts.closed_reason`` when it claims an email
-and before every copy, so a late timer, a long paced send, or **Send the rest** after
-the close sends nobody a callout that has closed.
+exactly the people the Callouts screen lists without one, so its confirmation's
+count is the round's.  Each row is refreshed and asked ``batch.skip_reason`` as
+**Retry failed** asks it: the account's name and address as they are now, the DART
+limit, the type's opt-outs, and, as ``seen``, the addresses of the round so far and
+of everybody who has answered.  The rows that pass are ``pending`` and the email is
+queued to start now, the path **Send the rest** and a retry take, so the background
+sender sends the round with the same message, each copy filled in with the person's
+values as they are then, and checks the sender's type and each opt-out again.
+``Callout.reminded_at`` is set, and when the round has gone ``job._finish`` writes
+``callout.remind_finished`` instead of a retry's line.  A retry compares addresses
+within each round, so a person the first round reached is not taken for a duplicate
+of their reminder, and takes the latest round first, skipping a failed copy with
+*Sent a later copy instead* once a later round's copy of that person went, is
+pending, or is queued in the same retry (``delivery.recheck_rows``): nobody is sent
+an earlier copy after a later one, or two at once.  **Close now**
+(``callouts.close``) sets ``closed_at`` and ``closed_by``, and calls off a round
+queued and not yet started, its copies ``skipped`` with *Callout closed*.  The
+background sender asks ``callouts.closed_reason`` when it claims an email and before
+every copy, so a late timer, a long paced send, or **Send the rest** after the close
+sends nobody a callout that has closed.
 
 The Callouts screens and the notification show the subject filled in with
 the sender's own values (``callouts.display_subject``), so no token shows in braces.
@@ -696,6 +729,61 @@ deactivated account's link records nothing and reads *This link no longer works*
 its answer leaves the screen and the counts.  A DART leader reads another leader's
 email to their own DART through ``senders.readable_by``, and may act on it only through
 the callout's actions and **Stop**.
+
+
+.. _bulk-email-rules:
+
+Rules every bulk email change follows
+=====================================
+
+Four lessons the build of these screens learned the hard way.  Every change to bulk
+email, and every review of one, holds to them.
+
+**A staff view never carries a recipient's live link.**  A copy holds signed links
+that act for the person it went to: the unsubscribe link and, in a callout, the
+three answer buttons.  Only that person's own copy carries them live: the copy the
+sender sends and the copy on the reader's **Messages** page.  Every view a sender or
+an administrator reads (the compose preview, a test copy's callout buttons, **View
+copy** on the delivery report, ``message_html`` on the Sent page) is rendered inert,
+through ``render_for(..., inert=True)`` or ``render_copy(..., inert=True)``, so its
+links carry ``render.PREVIEW_STAND_IN`` or ``callout_links.STAND_IN``.  Showing a
+sender a person's copy must never hand the sender a link that unsubscribes that
+person or answers a callout as them.  A view added later asks which of the two it is
+before it renders a copy.
+
+**Every path that queues an email again checks everybody again.**  Time passes
+between the first send and **Send the rest**, **Retry failed**, or **Remind
+non-responders**: accounts are deleted or deactivated, addresses bounce or are
+corrected, people turn the type off, a DART leader's DART changes, a callout closes,
+and a sender loses the role that sends the type.  So no row goes back to ``pending``
+on its old answer.  Each row that returns goes through ``delivery.recheck_rows``,
+which refreshes it from its account and asks ``batch.skip_reason`` with the email's
+DART limit and the type's opt-outs, as the freeze asks it (**Remind
+non-responders** asks the same of each row of its round); the email is queued
+through the same claim as a first send, which checks the sender's type and DART
+again (`The sender`_); and the send loop asks ``job._skip_if_unsendable`` and
+``callouts.closed_reason`` before every copy.  A new re-queue path reuses those
+three steps and never marks rows ``pending`` by hand.
+
+**Every network call has a deadline for the whole of it.**  A per-socket timeout is
+not a deadline: a server that drips one byte at a time resets a read timeout
+forever, and a name lookup cannot be interrupted at all.  The link check cancels each
+link's whole check at 12 seconds with ``asyncio.wait_for`` and the whole run at 30,
+and runs lookups in a thread pool it abandons (`Checking a link`_); the mail delivery
+check gives every lookup ``DNS_TIMEOUT_SECONDS`` and the whole check
+``CHECK_BUDGET_SECONDS``; and **Run now** stops claiming after
+``REQUEST_BUDGET_SECONDS``, inside the proxy's 60-second limit on a request.  A new
+call that reads the network names its overall deadline, says what the reader sees
+when it runs out, and is tested with a fake that never answers.
+
+**Every table fits a phone.**  Each bulk email table is a ``DataTable`` in
+single-line mode whose every column gives a ``width`` or a ``minWidth`` in rem, so
+the table can reckon its fit; columns that matter less carry a ``dropOrder`` and go
+one at a time on a narrow screen; the row's actions carry ``keepInSight`` (with a
+``narrowWidth`` when their buttons stack), so they stay beside the subject without
+scrolling; and words that must be read whole, such as a reason, ``wrap``.  The user
+guide page for the screen says which columns go first.  A column added later takes
+its place in that order, and its vitest covers the narrow layout.
 
 
 Extending
@@ -718,9 +806,9 @@ The pieces a feature added to bulk email changes, and where:
 * Anything that changes **what a copy says** goes in ``render_message``
   (``render_for`` passes it the type's footer and adds the type's headers) and in
   the arguments the sender and the test copy pass to ``send_templated``, as the
-  ``Reply-To`` is.  A
-  new **recipient field** is one more ``Field`` in ``fields.FIELDS``, which the
-  **Insert field** menu, the checks, and the copies all read.
+  ``Reply-To`` is.  A new **recipient field** is one more ``Field`` in
+  ``fields.FIELDS``, which the **Insert field** menu, the checks, and the copies all
+  read.
 * A new **screen** joins the Bulk Email group of the portal's menu
   (``frontend/src/portal/nav.ts``), its route goes in
   ``frontend/src/portal/routes/bulk-email.tsx``, and its guide page under
