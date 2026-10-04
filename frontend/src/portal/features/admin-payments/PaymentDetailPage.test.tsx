@@ -215,6 +215,20 @@ describe('PaymentDetailPage', () => {
     expect(screen.getByRole('checkbox', { name: /Also end Marta Reyes/ })).not.toBeChecked();
   });
 
+  it("offers to end a deactivated account's suspended membership, which would come back", async () => {
+    const user = userEvent.setup();
+    servePayment(
+      makeDetail({
+        membership: { id: 88, starts_on: '2026-01-09', ends_on: '2027-01-08', status: 'suspended' },
+      }),
+    );
+    renderDetail();
+
+    await user.click(await screen.findByRole('button', { name: 'Refund' }));
+
+    expect(screen.getByRole('checkbox', { name: /Also end Marta Reyes/ })).toBeChecked();
+  });
+
   it('offers no box to end a membership that has already ended', async () => {
     const user = userEvent.setup();
     servePayment(

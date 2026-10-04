@@ -103,15 +103,43 @@ export function methodLabel(provider: PaymentProvider, wallet: PaymentWallet): s
   return providerLabel === walletLabel ? providerLabel : `${providerLabel} · ${walletLabel}`;
 }
 
+/** The words a provider uses when it could not confirm a charge it was asked to take. */
+const VERIFICATION_PATTERNS: readonly RegExp[] = [
+  /\bcaptured\b/i,
+  /does not match/i,
+  /belongs to another payment/i,
+  /reports the payment as/i,
+  /without a capture/i,
+  /different currency/i,
+];
+
+/** A recorded message without its closing period, ready to quote. */
+function quoted(message: string): string {
+  return `“${message.replace(/\.$/, '')}”`;
+}
+
 /**
- * Why a charge was refused, as the treasurer reads it.  Every failed charge is a refusal
- * by the card or account, and the provider's own reason is written to the member ("Your
- * card was declined"), so the screen says `Card declined` and quotes the member's wording
- * only when it says more than that.
+ * Why an automatic charge failed, as the treasurer reads it.  The recorded message is the
+ * provider's, and a card's is written to the member ("Your card was declined"), so it is
+ * named by what happened:
+ *
+ * - a card decline reads `Card declined`, quoting the member's wording only when it says
+ *   more, as in `Card declined (member was told: “Your card has expired”)`;
+ * - PayPal refusing the saved account reads `PayPal refused the saved payment method`;
+ * - a charge the provider took but CalDART could not match to the payment reads
+ *   `Payment could not be verified`, with the recorded message after it;
+ * - anything else reads `Charge refused` with the recorded message quoted.
  */
-export function declineReason(memberWording: string): string {
-  const wording = memberWording.trim();
-  if (wording === '') return '';
-  if (/^your card was declined\.?$/i.test(wording)) return 'Card declined';
-  return `Card declined (member was told: “${wording.replace(/\.$/, '')}”)`;
+export function declineReason(recorded: string): string {
+  const message = recorded.trim();
+  if (message === '') return '';
+  if (/^your card was declined\.?$/i.test(message)) return 'Card declined';
+  if (/^your card\b/i.test(message)) return `Card declined (member was told: ${quoted(message)})`;
+  if (/^PayPal refused the saved payment method\.?$/i.test(message)) {
+    return 'PayPal refused the saved payment method';
+  }
+  if (VERIFICATION_PATTERNS.some((pattern) => pattern.test(message))) {
+    return `Payment could not be verified (${quoted(message)})`;
+  }
+  return `Charge refused (${quoted(message)})`;
 }

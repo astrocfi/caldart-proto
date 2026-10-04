@@ -3,7 +3,7 @@
  *
  * It opens with the whole unrefunded balance filled in, because a refund is
  * usually the whole thing.  When the payment bought a membership that is still
- * running, a box offers to end it today, naming the member and the term's dates; it
+ * running, or suspended while the account is deactivated, a box offers to end it today, naming the member and the term's dates; it
  * starts checked for a refund of everything that is left, since a member who has all
  * their money back has not paid for the year, and unchecked for a partial refund.
  */
@@ -11,7 +11,7 @@ import { useRef, useState } from 'react';
 import type { FormEvent, JSX } from 'react';
 
 import { ApiError } from '@/portal/api/client';
-import type { PaymentDetail, RefundReason } from '@/portal/api/types';
+import type { MembershipTermStatus, PaymentDetail, RefundReason } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { formatDate } from '@/portal/components/DateText';
 import { Field } from '@/portal/components/Field';
@@ -40,9 +40,20 @@ export interface RefundFormProps {
   onCancel: () => void;
 }
 
-/** Whether the payment bought a membership that is still running, which a refund can end. */
+/** The term states a refund can still end: a running term, and one held while an account is
+ * deactivated, which would come back on reactivation. */
+const ENDABLE_TERM_STATES: readonly MembershipTermStatus[] = ['active', 'suspended'];
+
+/**
+ * Whether the payment bought a membership a refund can still end: one that is running, or
+ * suspended while the account is deactivated.  An expired or canceled term has nothing
+ * left to end.
+ */
 export function canEndTerm(payment: PaymentDetail): boolean {
-  return payment.membership?.status === 'active' && payment.plan_amount_cents > 0;
+  const status = payment.membership?.status;
+  return (
+    status !== undefined && ENDABLE_TERM_STATES.includes(status) && payment.plan_amount_cents > 0
+  );
 }
 
 /**

@@ -65,10 +65,11 @@ Setting one up
 you choose a report, **Add emailed report** waits, and *Choose a report first.* sits beside
 it.
 
-#. **Report** offers the reports you may read, each by the name its own screen uses: the membership report, the roles report,
-   the verification report, the aircraft register, the payments, the reconciliation, and
-   the contributions for an account administrator; the payments, the reconciliation, the contributions, and the
-   donors for the treasurer; and every one of them plus the sent emails for a system
+#. **Report** offers the reports you may read, each by the name its own screen uses: the
+   membership report, the roles report, the verification report, the aircraft register,
+   the payments, the renewals, the reconciliation, and the contributions for an account
+   administrator; the payments, the renewals, the reconciliation, the contributions, and
+   the donors for the treasurer; and every one of them plus the sent emails for a system
    administrator. The roles report lists the people who hold each role other than member,
    in a section per role that says *Nobody holds this role.* when it is empty; it filters
    by name or email, by role, and by kind, and it can go to a user administrator as well

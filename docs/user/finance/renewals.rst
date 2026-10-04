@@ -29,10 +29,15 @@ you start with, each row shows:
 * **Next charge**, the amount the next charge comes to, and **Due**, the day it falls due.
 * **Method**, the saved card or PayPal account it will be taken from.
 * **Status**: **On**, **Waiting for the first payment**, **Paused after failed charges**, or
-  **Turned off**. A paused row shows, beneath its status, why its last charge was
-  refused: *Card declined*, or, when the provider gave a more particular reason, *Card
-  declined* followed by the words the member was emailed, such as *Card declined (member
-  was told: "Your card has expired")*.
+  **Turned off**. A paused row shows, beneath its status, why its last charge failed:
+
+  - *Card declined*, followed by the words the member was emailed when the card's
+    provider said more, such as *Card declined (member was told: "Your card has
+    expired")*;
+  - *PayPal refused the saved payment method*;
+  - *Payment could not be verified*, with what was recorded, when the provider took a
+    charge the site could not match to the payment, such as a different amount;
+  - *Charge refused*, with what the provider said, for anything else.
 * **Actions**, the **Turn off** button, or *Turned off* once it is off.
 
 Three more columns start off: **Cadence**, how often it charges; **Failed charges**, how
@@ -55,8 +60,8 @@ Recent charges
 The second table, **Recent charges**, has one row per scheduled charge, fifty to a page:
 the day it was **Scheduled**, the **Member**, whose name opens their money history, the
 **Outcome** (**Scheduled**, **Charged**, **Failed**, or **Skipped**), when it was
-**Tried**, and the **Reason** a refused charge was refused, written as under a paused
-renewal's status. The charges still to come are listed first, then the rest by when they
+**Tried**, and the **Reason** a charge failed, written as under a paused renewal's
+status. The charges still to come are listed first, then the rest by when they
 were tried, newest first.
 
 What you can do

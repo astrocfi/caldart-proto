@@ -155,9 +155,10 @@ function totalsFooter(rows: readonly ReconciliationRow[]): Record<string, ReactN
 }
 
 /**
- * The table's columns.  The period identifies a row and never wraps; Gross and Net
- * stay in sight on a phone, and the rest drop, the least needed first, when the
- * table would not fit.  Every column sorts.
+ * The table's columns.  The period identifies a row and never wraps; Net and the
+ * Reconciled figure, whose link is what the page is for, stay in sight on a phone, and
+ * the rest drop, the least needed first and Gross last, when the table would not fit.
+ * Every column sorts.
  */
 function columns(group: ReconciliationGroup, filters: FilterValues): Column<ReconciliationRow>[] {
   return [
@@ -183,7 +184,7 @@ function columns(group: ReconciliationGroup, filters: FilterValues): Column<Reco
       header: 'Gross',
       numeric: true,
       width: '7.5rem',
-      keepInSight: true,
+      dropOrder: 6,
       render: (row) => <Money cents={row.gross_cents} />,
       sortValue: (row) => row.gross_cents,
     },
@@ -228,7 +229,7 @@ function columns(group: ReconciliationGroup, filters: FilterValues): Column<Reco
       header: 'Reconciled',
       numeric: true,
       width: '6.5rem',
-      dropOrder: 5,
+      keepInSight: true,
       noWrap: true,
       render: (row) => matchedCell(row, group, filters),
       sortValue: (row) => row.reconciled_count,

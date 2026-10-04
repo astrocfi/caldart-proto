@@ -18,8 +18,10 @@ One form, with these fields:
 * **Member**, a search box. Type at least two letters of a name or an email address and
   up to ten matching people appear beneath it, each with their address and membership
   status. A friend (someone with an account who supports CalDART without being a member)
-  or a donor can be found the same way. Click the right person, or move to them with the
-  arrow keys and press Enter, to choose them, and you move on to **Plan**. Enter in the
+  or a donor can be found the same way; a deactivated account is never offered. With
+  nobody to offer, the search says *No member matches that.* Click the right person, or
+  move to them with the arrow keys and press Enter, to choose them, and you move on to
+  **Plan**. Enter in the
   search box never records the payment. **Choose somebody else** clears the choice and
   takes you back to the search.
 * **Plan**, the membership plan the money pays for. Choose **No membership** for a
@@ -62,6 +64,7 @@ Mistakes the form catches
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 * No member chosen: *Choose the member this payment is for.*
+* A contribution below zero: *Enter a contribution of $0.00 or more.*
 * A date after today: *The money cannot have arrived in the future.*
 * A reference another recorded payment already carries: *Another recorded payment
   already carries the reference* followed by the number. This stops the same check being

@@ -307,6 +307,36 @@ def test_a_reconciliation_subscription_may_cover_last_month(
     assert response.json()["filters"] == {"period": "last_month"}
 
 
+def test_a_contributions_subscription_refuses_a_fixed_year(
+    account_admin_client: APIClient, account_admin: User
+) -> None:
+    """A fixed year would send the same list every time, so the period says which year."""
+    response = account_admin_client.post(
+        SUBSCRIPTIONS_URL,
+        new_subscription(report="contributions", filters={"year": "2024"}),
+        format="json",
+    )
+
+    assert response.json() == {
+        "filters": {
+            "year": ["An emailed report covers this year or last year. Choose one of those."]
+        }
+    }
+
+
+def test_a_contributions_subscription_may_cover_last_year(
+    account_admin_client: APIClient, account_admin: User
+) -> None:
+    """The one Year control a subscription offers sends ``period``."""
+    response = account_admin_client.post(
+        SUBSCRIPTIONS_URL,
+        new_subscription(report="contributions", filters={"period": "last_year"}),
+        format="json",
+    )
+
+    assert response.json()["filters"] == {"period": "last_year"}
+
+
 def test_a_fixed_report_takes_no_columns(
     account_admin_client: APIClient, account_admin: User
 ) -> None:

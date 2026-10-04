@@ -40,6 +40,17 @@ const TOTAL_ID = 'record-payment-total';
 /** The fewest characters of a name or address worth searching for. */
 const MEMBER_SEARCH_MIN_LENGTH = 2;
 
+/** What a negative or unreadable contribution is refused with, before anything is sent. */
+export const CONTRIBUTION_MESSAGE = 'Enter a contribution of $0.00 or more.';
+
+/** Whether the typed contribution is a sum of dollars the form can send: blank, or 0 or more. */
+export function isContributionValid(typed: string): boolean {
+  const trimmed = typed.trim();
+  if (trimmed === '') return true;
+  const dollars = Number(trimmed);
+  return Number.isFinite(dollars) && dollars >= 0;
+}
+
 /** Dollars typed into a money box as the integer cents the API takes. */
 export function contributionCents(typed: string): number {
   const dollars = Number(typed.trim());
@@ -111,6 +122,7 @@ function MemberPicker({
             autoComplete="off"
             value={term}
             minLength={MEMBER_SEARCH_MIN_LENGTH}
+            emptyText="No member matches that."
             onValueChange={(next) => setTerm(next)}
             onPick={handleChoose}
             useSuggestions={useFinanceMemberSearch}
@@ -134,6 +146,7 @@ export function RecordPaymentPage(): JSX.Element {
   const [receivedOn, setReceivedOn] = useState(todayIso());
   const [note, setNote] = useState('');
   const [memberError, setMemberError] = useState<string | null>(null);
+  const [contributionError, setContributionError] = useState<string | null>(null);
 
   const plans = usePlans();
   const chosenPlan = plans.data?.find((option) => option.slug === plan);
@@ -167,8 +180,11 @@ export function RecordPaymentPage(): JSX.Element {
         ? { detail: "The payment wasn't recorded. Try again in a moment." }
         : {},
   );
-  const errors: Record<string, string | undefined> =
-    memberError === null ? serverErrors : { ...serverErrors, user_id: memberError };
+  const errors: Record<string, string | undefined> = {
+    ...serverErrors,
+    ...(memberError === null ? {} : { user_id: memberError }),
+    ...(contributionError === null ? {} : { contribution_cents: contributionError }),
+  };
 
   useEffect(() => {
     if (!hasPicked) return;
@@ -186,12 +202,14 @@ export function RecordPaymentPage(): JSX.Element {
     event.preventDefault();
     // Enter in the member search picks a match or does nothing; it never sends the form.
     if (member === null && pickerRef.current?.contains(document.activeElement) === true) return;
-    if (member === null) {
-      setMemberError('Choose the member this payment is for.');
+    const nextMemberError = member === null ? 'Choose the member this payment is for.' : null;
+    const nextContributionError = isContributionValid(contribution) ? null : CONTRIBUTION_MESSAGE;
+    setMemberError(nextMemberError);
+    setContributionError(nextContributionError);
+    if (member === null || nextContributionError !== null) {
       refusal.refuse();
       return;
     }
-    setMemberError(null);
     record.mutate(
       {
         user_id: member.user_id,
@@ -261,7 +279,10 @@ export function RecordPaymentPage(): JSX.Element {
                   step="0.01"
                   className="num"
                   value={contribution}
-                  onChange={(event) => setContribution(event.target.value)}
+                  onChange={(event) => {
+                    setContribution(event.target.value);
+                    setContributionError(null);
+                  }}
                 />
               </span>
             )}

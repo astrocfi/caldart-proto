@@ -37,6 +37,7 @@ interface HarnessProps {
   onPick?: (place: Place) => void;
   useSuggestions?: (term: string) => SuggestionResults<Place>;
   itemMeta?: (place: Place) => string;
+  emptyText?: string;
 }
 
 /** Holds the typed text the way a form does, and fills it with the picked place. */
@@ -44,6 +45,7 @@ function Harness({
   onPick: handleReport,
   useSuggestions = makeSuggestions().useSuggestions,
   itemMeta,
+  emptyText,
 }: HarnessProps): JSX.Element {
   const [value, setValue] = useState('');
   const handlePick = (place: Place): void => {
@@ -63,6 +65,7 @@ function Harness({
         itemKey={(place) => place.id}
         itemLabel={(place) => place.label}
         itemMeta={itemMeta}
+        emptyText={emptyText}
       />
       <p>somewhere else</p>
       <button type="button">Next field</button>
@@ -80,6 +83,26 @@ async function typeAndWaitForList(text: string) {
 }
 
 describe('Typeahead', () => {
+  it('says so when a search comes back empty, given the words to say it with', async () => {
+    const user = userEvent.setup();
+    render(<Harness emptyText="No address matches that." />);
+
+    await user.type(screen.getByRole('combobox', { name: 'Address' }), 'zzzz');
+
+    expect(await screen.findByText('No address matches that.', { selector: 'p' })).toBeVisible();
+  });
+
+  it('shows nothing for an empty search without the words to say it with', async () => {
+    const user = userEvent.setup();
+    const { terms, useSuggestions } = makeSuggestions();
+    render(<Harness useSuggestions={useSuggestions} />);
+
+    await user.type(screen.getByRole('combobox', { name: 'Address' }), 'zzzz');
+    await waitFor(() => expect(terms).toContain('zzzz'));
+
+    expect(screen.queryByText(/matches/)).not.toBeInTheDocument();
+  });
+
   it('is a combobox with no list until something is typed', () => {
     render(<Harness />);
 

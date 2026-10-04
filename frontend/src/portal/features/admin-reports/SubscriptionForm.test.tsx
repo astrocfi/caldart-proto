@@ -7,7 +7,7 @@ import { API, makeSubscription, subscriptionHandlers } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
 import type { ReportColumn, ReportSubscription, ReportSummary } from '@/portal/api/types';
-import { SubscriptionForm } from './SubscriptionForm';
+import { SubscriptionForm, storedFilters } from './SubscriptionForm';
 
 const REPORTS: ReportSummary[] = [
   { slug: 'members', title: 'Members', choosable: true, periods: false },
@@ -45,6 +45,22 @@ async function chooseReport(title: string): Promise<void> {
 function form(): HTMLElement {
   return screen.getByRole('form', { name: 'Email a report' });
 }
+
+describe('storedFilters', () => {
+  it('drops a fixed contributions year, which the form no longer draws', () => {
+    expect(
+      storedFilters(
+        makeSubscription({ report: 'contributions', filters: { year: '2024', period: '' } }),
+      ),
+    ).toEqual({ period: '' });
+  });
+
+  it('keeps every filter the form draws for the report', () => {
+    expect(
+      storedFilters(makeSubscription({ report: 'payments', filters: { period: 'last_month' } })),
+    ).toEqual({ period: 'last_month' });
+  });
+});
 
 describe('SubscriptionForm', () => {
   it('offers only the reports the caller may read', async () => {

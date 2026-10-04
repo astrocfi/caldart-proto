@@ -30,6 +30,14 @@ CONFIRM_MESSAGE = "Check the box to confirm this address may receive this report
 #: What a ``columns`` entry among a subscription's filters is refused with.
 COLUMNS_AS_FILTER_MESSAGE = "Choose columns with the columns field, not as a filter."
 
+#: Filters a report's list page takes but a subscription may not store, by report slug.
+#: A fixed contributions ``year`` would send the same list every time; a subscription
+#: says ``period`` (this year or last year) instead.
+LIST_ONLY_FILTERS: dict[str, tuple[str, ...]] = {"contributions": ("year",)}
+
+#: What a list-only filter among a subscription's filters is refused with.
+LIST_ONLY_FILTER_MESSAGE = "An emailed report covers this year or last year. Choose one of those."
+
 
 class ReportSummaryDict(TypedDict):
     """One report as ``GET /reports`` describes it."""
@@ -108,7 +116,8 @@ def checked_contents(spec: Report, filters: Mapping[str, str], columns: Sequence
     here too.  Errors are keyed as the subscription's fields are: ``columns`` for the
     columns, and ``filters`` holding the report's own errors keyed by filter.  A
     ``columns`` entry among the filters is refused with
-    :data:`COLUMNS_AS_FILTER_MESSAGE`.
+    :data:`COLUMNS_AS_FILTER_MESSAGE`, and a filter :data:`LIST_ONLY_FILTERS` names for
+    the report, given a value, with :data:`LIST_ONLY_FILTER_MESSAGE` keyed by that filter.
     """
     try:
         chosen = checked_columns(spec, columns)
@@ -116,6 +125,11 @@ def checked_contents(spec: Report, filters: Mapping[str, str], columns: Sequence
         raise serializers.ValidationError({"columns": exc.detail}) from exc
     if "columns" in filters:
         raise serializers.ValidationError({"filters": {"columns": [COLUMNS_AS_FILTER_MESSAGE]}})
+    refused = [key for key in LIST_ONLY_FILTERS.get(spec.slug, ()) if filters.get(key, "") != ""]
+    if refused:
+        raise serializers.ValidationError(
+            {"filters": {key: [LIST_ONLY_FILTER_MESSAGE] for key in refused}}
+        )
     params = {**filters, "columns": ",".join(chosen)} if chosen else dict(filters)
     try:
         spec.table(params, fmt="csv", today=timezone.localdate())

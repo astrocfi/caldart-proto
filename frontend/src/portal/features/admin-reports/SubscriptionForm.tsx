@@ -98,6 +98,18 @@ function setValues(values: FilterValues): Record<string, string> {
   return Object.fromEntries(Object.entries(values).filter(([, value]) => value !== ''));
 }
 
+/**
+ * The filters an edit starts from: the subscription's own, less any the form does not
+ * draw for its report, such as a fixed contributions year from before the report took a
+ * period, so Save never sends back a filter nobody can see.
+ */
+export function storedFilters(subscription: ReportSubscription | undefined): FilterValues {
+  if (subscription === undefined) return {};
+  if (!isReportSlug(subscription.report)) return { ...subscription.filters };
+  const drawn = new Set(subscriptionFilters(REPORTS[subscription.report]).map((f) => f.key));
+  return Object.fromEntries(Object.entries(subscription.filters).filter(([key]) => drawn.has(key)));
+}
+
 interface SubscriptionFormProps {
   /** The subscription to edit; without one the form sets up a new subscription. */
   subscription?: ReportSubscription;
@@ -122,7 +134,7 @@ export function SubscriptionForm({
   const [slug, setSlug] = useState<ReportSlug | ''>(() =>
     subscription !== undefined && isReportSlug(subscription.report) ? subscription.report : '',
   );
-  const [filters, setFilters] = useState<FilterValues>(() => ({ ...subscription?.filters }));
+  const [filters, setFilters] = useState<FilterValues>(() => storedFilters(subscription));
   const [columns, setColumns] = useState<string[] | null>(() =>
     subscription === undefined || subscription.columns.length === 0 ? null : subscription.columns,
   );

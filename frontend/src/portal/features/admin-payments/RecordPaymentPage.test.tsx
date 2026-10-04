@@ -72,7 +72,38 @@ describe('RecordPaymentPage', () => {
     await screen.findByRole('option', { name: /Marta Reyes/ });
     await user.keyboard('{Enter}');
 
+    expect(recorded).toEqual([]);
     expect(screen.queryByText('Choose the member this payment is for.')).not.toBeInTheDocument();
+  });
+
+  it('says so when no member matches the search', async () => {
+    const user = userEvent.setup();
+    serveRecord([]);
+    server.use(http.get(`${API}/admin/payments/members`, () => HttpResponse.json([])));
+    renderWithProviders(<RecordPaymentPage />);
+
+    await user.type(screen.getByLabelText(/Member/), 'nobody');
+
+    expect(
+      await screen.findByText('No member matches that.', { selector: 'p' }),
+    ).toBeInTheDocument();
+  });
+
+  it('refuses a negative contribution rather than recording nothing', async () => {
+    const user = userEvent.setup();
+    const recorded: Record<string, unknown>[] = [];
+    serveRecord(recorded);
+    renderWithProviders(<RecordPaymentPage />);
+
+    await chooseMember(user);
+    await user.clear(screen.getByLabelText(/Contribution/));
+    await user.type(screen.getByLabelText(/Contribution/), '-5');
+    await user.click(screen.getByRole('button', { name: 'Record the payment' }));
+
+    expect(screen.getByLabelText('Contribution')).toHaveAccessibleDescription(
+      'Enter a contribution of $0.00 or more.',
+    );
+    expect(recorded).toEqual([]);
   });
 
   it('shows the dues, the contribution, and the total before the payment is recorded', async () => {

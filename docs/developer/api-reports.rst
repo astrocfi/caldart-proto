@@ -333,7 +333,10 @@ Refusals:
   refuses — the report is built from the filters exactly as a download builds
   it, so ``{"filters": {"period": ["Unknown period 'someday'."]}}`` — and
   ``{"filters": {"columns": ["Choose columns with the columns field, not as a
-  filter."]}}`` for a ``columns`` entry among the filters.
+  filter."]}}`` for a ``columns`` entry among the filters, and ``{"filters":
+  {"year": ["An emailed report covers this year or last year. Choose one of
+  those."]}}`` for a fixed ``year`` on the contributions report, whose
+  subscriptions say ``period`` instead.
 
 ``GET | PATCH | DELETE /reports/subscriptions/{id}``
 ----------------------------------------------------

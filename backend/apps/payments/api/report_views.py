@@ -438,16 +438,22 @@ def search_members(term: str) -> list[User]:
     The term is matched against the full name as well as each half of it, so a
     treasurer holding a check made out to "Marta Reyes" can type what is written
     on it.  An empty term matches nobody: the search is a form control, and a
-    form nobody has typed in asks for no members rather than for all of them.
+    form nobody has typed in asks for no members rather than for all of them.  A
+    deactivated account, a deleted member's tombstone included, is never offered: money
+    recorded against it would buy nothing and reach nobody.
     """
     if term == "":
         return []
-    matches = User.objects.annotate(
-        full_name=Concat(F("first_name"), Value(" "), F("last_name"), output_field=CharField())
-    ).filter(
-        Q(full_name__icontains=term)
-        | Q(first_name__icontains=term)
-        | Q(last_name__icontains=term)
-        | Q(email__icontains=term)
+    matches = (
+        User.objects.filter(is_active=True)
+        .annotate(
+            full_name=Concat(F("first_name"), Value(" "), F("last_name"), output_field=CharField())
+        )
+        .filter(
+            Q(full_name__icontains=term)
+            | Q(first_name__icontains=term)
+            | Q(last_name__icontains=term)
+            | Q(email__icontains=term)
+        )
     )
     return list(matches.order_by("last_name", "first_name", "pk")[:MEMBER_SEARCH_LIMIT])

@@ -48,6 +48,11 @@ export interface TypeaheadProps<T> {
   itemMeta?: (item: T) => string;
   /** The fewest characters worth asking about; three unless given. */
   minLength?: number;
+  /**
+   * A line shown under the box when a search comes back empty, such as `No member matches
+   * that.`; without it an empty answer shows nothing.
+   */
+  emptyText?: string;
   name?: string;
   autoComplete?: string;
   placeholder?: string;
@@ -75,6 +80,7 @@ export function Typeahead<T>({
   itemLabel,
   itemMeta,
   minLength = TYPEAHEAD_MIN_LENGTH,
+  emptyText,
   onBlur,
   ...input
 }: TypeaheadProps<T>): JSX.Element {
@@ -88,6 +94,7 @@ export function Typeahead<T>({
   const { data } = useSuggestions(isAsking ? term : '');
   const items = isAsking ? (data ?? []) : [];
   const isListShown = items.length > 0;
+  const isEmptyShown = emptyText !== undefined && isAsking && data !== undefined && !isListShown;
   // A fresh answer can be shorter than the last, so an index past its end means none.
   const active = activeIndex < items.length ? activeIndex : -1;
 
@@ -184,8 +191,13 @@ export function Typeahead<T>({
           ))}
         </ul>
       ) : null}
+      {isEmptyShown ? <p className="muted typeahead__empty">{emptyText}</p> : null}
       <span className="visually-hidden" role="status">
-        {isListShown ? `${count} ${count === 1 ? 'suggestion' : 'suggestions'}` : ''}
+        {isListShown
+          ? `${count} ${count === 1 ? 'suggestion' : 'suggestions'}`
+          : isEmptyShown
+            ? emptyText
+            : ''}
       </span>
     </div>
   );

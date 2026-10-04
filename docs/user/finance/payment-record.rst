@@ -105,8 +105,9 @@ fields:
   **Fraudulent**, or **Something else**.
 * **Note**, kept with the refund. The member does not see it.
 * **Also end** the member's **membership** and its dates **today**, such as *Also end
-  Marta Reyes's membership (01/09/2026 to 01/08/2027) today*, shown only when the payment
-  bought a membership that is still running. It starts checked when you refund
+  Marta Reyes's membership (01/09/2026 to 01/08/2027) today*, shown when the payment
+  bought a membership that is still running, or one held while the account is
+  deactivated, which would otherwise come back on reactivation. It starts checked when you refund
   everything that is left, and unchecked for a partial refund. Once you check or uncheck
   it yourself, changing the amount leaves your choice alone.
 
