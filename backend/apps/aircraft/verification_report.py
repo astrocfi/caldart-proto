@@ -5,10 +5,10 @@ per checkable person with a profile who holds that item, and *Aircraft insurance
 row per aircraft in service with a policy on file.  An item nobody holds (a non-pilot's
 certificate, a medical of *None*, a photo ID of *Not provided*, insurance with no
 expiration) has nothing to verify and is never listed.  Each row names the item's holder,
-what is on file, and when the record was last written; the Section column and the three
+what is on file, and when the record was last written.  The Section column is a default
+in the CSV, which has no headings, and left to the headings in the PDF; the three
 verification columns (whether, by whom, and on which day) are there to choose, and off
-by default, since the section heads its rows and the default list is of items nobody
-has verified.  The
+by default, since the default list is of items nobody has verified.  The
 house style lives in ``caldart.reports``; this module decides which rows the report
 holds, how its two filters narrow them, and what each cell prints.  It lives in the
 aircraft app, which sits above the members app and already decides who the leader's
@@ -155,10 +155,10 @@ def _verified_by_name(row: VerificationRow) -> str:
     return "" if row.verified_by is None else row.verified_by.display_name
 
 
-#: Every column the report can carry, in export order.  Section and the three
-#: verification columns are off by default.
+#: Every column the report can carry, in export order.  The three verification columns
+#: are off by default, and the PDF leaves Section to its headings.
 VERIFICATION_REPORT_COLUMNS: tuple[ReportColumn[VerificationRow], ...] = (
-    ReportColumn("section", "Section", False, lambda row: row.section, width=2.3),
+    ReportColumn("section", "Section", True, lambda row: row.section, width=2.3),
     ReportColumn("name", "Name", True, lambda row: row.name, width=2.6),
     ReportColumn("dart", "DART", True, lambda row: row.dart, width=3.0),
     ReportColumn("details", "Details", True, lambda row: row.details, width=4.2),
@@ -320,4 +320,5 @@ VERIFICATION_REPORT: ReportSpec[VerificationRow] = ReportSpec(
     choosable=True,
     section=lambda row: row.section,
     empty_section=EMPTY_SECTION,
+    section_column="section",
 )

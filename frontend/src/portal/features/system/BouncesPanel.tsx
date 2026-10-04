@@ -1,7 +1,8 @@
 /**
  * The bounces panel of `/portal/system/scheduled`: read the bounce mailbox by hand,
  * optionally as a practice run, and see which emails bounced.  When no bounce mailbox
- * is set up the panel says so as it loads and holds **Run now** back.
+ * is set up the panel says so as it loads and holds **Run now** back; it holds it back,
+ * too, until the server has said whether one is.
  *
  * The check runs every hour on its own. A report it can tie to an email marks that
  * email **Bounced** in the email log and flags the address on its account; one it
@@ -84,7 +85,7 @@ export function BouncesPanel(): JSX.Element {
         <RunNowButton
           task="bounce check"
           isRunning={run.isPending}
-          disabled={isOff}
+          disabled={status.isPending || isOff}
           onClick={handleRun}
         />
       }

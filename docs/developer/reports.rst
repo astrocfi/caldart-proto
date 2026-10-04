@@ -82,7 +82,7 @@ report (:ref:`reports-roles`) lists active accounts only; the verification repor
 The engine
 ==========
 
-``ReportSpec(slug, title, filename_stem, columns, roles, query, landscape=True, choosable=True, resolve=keep_params, section=None, empty_section="")``
+``ReportSpec(slug, title, filename_stem, columns, roles, query, landscape=True, choosable=True, resolve=keep_params, section=None, empty_section="", section_column="")``
    One report.  ``slug`` names it in every URL; ``title`` heads its PDF and
    labels it in the portal; ``filename_stem`` begins its file name
    (``caldart-members``).  ``columns`` is its registry of ``ReportColumn``
@@ -96,8 +96,9 @@ The engine
    ``resolve(params, today)`` turns the parameters into the ones the query
    reads; a dated report uses it for ``period`` (below), and ``spec.periods`` is
    true exactly when it is not ``keep_params``, the identity.  ``section(row)``
-   names the section a row is drawn in, and ``empty_section`` is the line the PDF
-   draws under a section with no rows (see `Sections`_ below).
+   names the section a row is drawn in, ``empty_section`` is the line the PDF
+   draws under a section with no rows, and ``section_column`` the column a default
+   PDF leaves to its section headings (see `Sections`_ below).
 ``build_report(spec, params, *, fmt, today=None)``
    The whole job.  It resolves the parameters for ``today`` (the local date by
    default), chooses the columns — the ``columns`` parameter, or the defaults,
@@ -142,7 +143,10 @@ nothing.  The PDF draws each section's title in ``SECTION_STYLE`` (the subtitle'
 Helvetica at 10pt, bold, in the house blue, 8pt above and 4pt below) and then that
 section's own table, its header repeated on every page it runs onto.  A section
 with no rows draws its title and then the spec's ``empty_section`` in italics, or
-its title alone when ``empty_section`` is blank.  A title with less than
+its title alone when ``empty_section`` is blank.  A spec's ``section_column`` names a
+column that repeats each row's section title: the CSV prints it among the defaults, and
+a PDF of the default columns leaves it out, since its headings say the same.  A title
+with less than
 ``SECTION_KEEP_HEIGHT`` (an inch) left under it on the page starts the next page,
 so a title is never left alone above a page break.
 
@@ -523,14 +527,16 @@ Two filters narrow the rows:
 The PDF subtitle always names the status in words, since it has a default
 (*Showing: Not yet verified*, *Verified*, or *Everything*), and then the DART when
 one is given, by name for an id (*DART: Monterey*) and as given for part of a name.
-Any other parameter is ignored, apart from ``columns``.  The section heads its rows
-and the default list is of items nobody has verified, so the Section column and the
-three verification columns are there to choose but off by default; in order:
+Any other parameter is ignored, apart from ``columns``.  The default list is of items
+nobody has verified, so the three verification columns are there to choose but off by
+default.  Section is a default, which keeps the grouping in the flat CSV; the spec names
+it as its ``section_column``, so a PDF of the default columns leaves it to the section
+headings and prints it only when ``columns`` asks for it.  In order:
 
 ============= ============== ======= =============================================
 Key           Label          Default Contents
 ============= ============== ======= =============================================
-section       Section        no      The section's title, so the CSV keeps the
+section       Section        yes     The section's title, so the CSV keeps the
                                      grouping
 name          Name           yes     The person's full name (or address), or the
                                      aircraft's N-number

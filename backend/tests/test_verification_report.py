@@ -153,14 +153,35 @@ def test_every_column_is_registered_in_export_order() -> None:
     ]
 
 
-def test_the_default_columns_leave_out_the_section_and_the_stamp() -> None:
-    """Choosing no columns prints Name, DART, Details, and Updated.
+def test_the_default_columns_leave_out_the_stamp() -> None:
+    """Choosing no columns prints Section, Name, DART, Details, and Updated.
 
-    The section heads its rows already, and the verified columns are always *No* and
-    blank in the default list of items nobody has checked.
+    The verified columns are always *No* and blank in the default list of items nobody
+    has checked.
     """
     chosen = select_columns(VERIFICATION_REPORT_COLUMNS, None)
-    assert [column.key for column in chosen] == ["name", "dart", "details", "updated"]
+    assert [column.key for column in chosen] == ["section", "name", "dart", "details", "updated"]
+
+
+def test_the_default_csv_keeps_each_row_s_section() -> None:
+    """A flat CSV has no headings, so its first column says which section a row is in."""
+    person()
+    table = VERIFICATION_REPORT.table({}, fmt="csv", today=TODAY)
+    assert table.header == ["Section", "Name", "DART", "Details", "Updated"]
+
+
+def test_the_default_pdf_leaves_the_section_to_its_headings() -> None:
+    """Each PDF section is headed by its title, so the column would only repeat it."""
+    person()
+    table = VERIFICATION_REPORT.table({}, fmt="pdf", today=TODAY)
+    assert table.header == ["Name", "DART", "Details", "Updated"]
+
+
+def test_a_pdf_that_asks_for_the_section_column_prints_it() -> None:
+    """Asked for by name, the Section column is printed in the PDF too."""
+    person()
+    table = VERIFICATION_REPORT.table({"columns": "section,name"}, fmt="pdf", today=TODAY)
+    assert table.header == ["Section", "Name"]
 
 
 def test_the_registry_files_the_report_under_its_slug() -> None:

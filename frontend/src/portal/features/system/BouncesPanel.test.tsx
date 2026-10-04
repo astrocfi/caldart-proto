@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it } from 'vitest';
@@ -46,6 +46,13 @@ function answerRuns(body: BounceRunResult, bodies: unknown[] = []): unknown[] {
   return bodies;
 }
 
+/** Run now, once the bounce status has come back and the button is free to press. */
+async function enabledRunNow(): Promise<HTMLElement> {
+  const button = screen.getByRole('button', { name: 'Run now: bounce check' });
+  await waitFor(() => expect(button).toBeEnabled());
+  return button;
+}
+
 describe('bounceRunSummary', () => {
   it('says what a rehearsal would have done', () => {
     expect(bounceRunSummary(RESULT, true)).toBe(
@@ -65,7 +72,7 @@ describe('BouncesPanel', () => {
     const bodies = answerRuns(RESULT);
     renderWithProviders(<BouncesPanel />);
 
-    await userEvent.click(screen.getByRole('button', { name: 'Run now: bounce check' }));
+    await userEvent.click(await enabledRunNow());
 
     expect(
       await screen.findByText('Would mark 1 bounced, leave 1 unmatched, ignore 2, and skip 0.'),
@@ -80,7 +87,7 @@ describe('BouncesPanel', () => {
     await userEvent.click(
       screen.getByLabelText('Practice run: show what would happen, change nothing (bounce check)'),
     );
-    await userEvent.click(screen.getByRole('button', { name: 'Run now: bounce check' }));
+    await userEvent.click(await enabledRunNow());
 
     expect(
       await screen.findByText('Marked 1 bounced, left 1 unmatched, ignored 2, and skipped 0.'),
@@ -92,7 +99,7 @@ describe('BouncesPanel', () => {
     answerRuns(RESULT);
     renderWithProviders(<BouncesPanel />);
 
-    await userEvent.click(screen.getByRole('button', { name: 'Run now: bounce check' }));
+    await userEvent.click(await enabledRunNow());
 
     const row = await screen.findByRole('row', { name: /Dana Doe/ });
     expect(row).toHaveTextContent('Bounced');
@@ -103,7 +110,7 @@ describe('BouncesPanel', () => {
     answerRuns(RESULT);
     renderWithProviders(<BouncesPanel />);
 
-    await userEvent.click(screen.getByRole('button', { name: 'Run now: bounce check' }));
+    await userEvent.click(await enabledRunNow());
 
     const row = await screen.findByRole('row', { name: /stranger@example\.net/ });
     expect(row).toHaveTextContent('No matching email');
@@ -114,7 +121,7 @@ describe('BouncesPanel', () => {
     answerRuns({ enabled: false, bounced: 0, unmatched: 0, ignored: 0, skipped: 0, actions: [] });
     renderWithProviders(<BouncesPanel />);
 
-    await userEvent.click(screen.getByRole('button', { name: 'Run now: bounce check' }));
+    await userEvent.click(await enabledRunNow());
 
     expect(await screen.findByText(BOUNCES_OFF)).toBeInTheDocument();
   });
@@ -130,7 +137,7 @@ describe('BouncesPanel', () => {
     );
     renderWithProviders(<BouncesPanel />);
 
-    await userEvent.click(screen.getByRole('button', { name: 'Run now: bounce check' }));
+    await userEvent.click(await enabledRunNow());
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Could not reach the bounce mailbox at imap.example.org',
@@ -143,6 +150,25 @@ describe('BouncesPanel', () => {
 
     expect(await screen.findByText(BOUNCES_OFF)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Run now: bounce check' })).toBeDisabled();
+  });
+
+  it('holds Run now back until the server has said whether checking is set up', async () => {
+    let answer: (() => void) | undefined;
+    server.use(
+      http.get(`${API}/system/bounces`, async () => {
+        await new Promise<void>((resolve) => {
+          answer = resolve;
+        });
+        return HttpResponse.json({ enabled: true });
+      }),
+    );
+    renderWithProviders(<BouncesPanel />);
+
+    const button = screen.getByRole('button', { name: 'Run now: bounce check' });
+    expect(button).toBeDisabled();
+    await waitFor(() => expect(answer).toBeDefined());
+    answer?.();
+    await waitFor(() => expect(button).toBeEnabled());
   });
 
   it('asks the person who installed the site, in plain words', () => {

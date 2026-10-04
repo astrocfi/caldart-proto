@@ -1,4 +1,5 @@
 import { screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it } from 'vitest';
 
@@ -7,6 +8,7 @@ import { renderRoutes } from '@test/render';
 import { server } from '@test/server';
 import type { EmailLogEntry } from '@/portal/api/types';
 import { formatDateTime } from '@/portal/components/DateText';
+import { EmailLogPanel } from './EmailLogPanel';
 import { SentEmailPage } from './SentEmailPage';
 
 const FAILED: EmailLogEntry = {
@@ -56,10 +58,38 @@ describe('SentEmailPage', () => {
     expect(screen.getByText(formatDateTime(FAILED.sent_at))).toBeInTheDocument();
   });
 
-  it('says what became of it, with the reason a send failed', async () => {
+  it('says what became of it, with the reason a send failed in words', async () => {
     renderEmail(FAILED);
     expect(await screen.findByText('Failed')).toBeInTheDocument();
-    expect(screen.getByText('SMTPRecipientsRefused')).toBeInTheDocument();
+    expect(screen.getByText('The mail server refused the address.')).toBeInTheDocument();
+  });
+
+  it('keeps the error the server recorded beside its words, for whoever runs the server', async () => {
+    renderEmail(FAILED);
+    expect(await screen.findByText('Recorded as SMTPRecipientsRefused')).toBeInTheDocument();
+  });
+
+  it('goes back to the list with the filters it was opened from', async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.get(`${API}/system/emails`, () =>
+        HttpResponse.json({ count: 1, next: null, previous: null, results: [FAILED] }),
+      ),
+      http.get(`${API}/system/emails/902`, () => HttpResponse.json(FAILED)),
+    );
+    const { router } = renderRoutes(
+      [
+        { path: '/system/emails', element: <EmailLogPanel /> },
+        { path: '/system/emails/:id', element: <SentEmailPage /> },
+      ],
+      { route: '/system/emails?status=failed' },
+    );
+
+    await user.click(await screen.findByRole('link', { name: /^marta@example\.org, sent / }));
+    await user.click(await screen.findByRole('link', { name: 'Back to sent emails' }));
+
+    expect(router.state.location.pathname).toBe('/system/emails');
+    expect(router.state.location.search).toBe('?status=failed');
   });
 
   it('says when and why an email bounced', async () => {

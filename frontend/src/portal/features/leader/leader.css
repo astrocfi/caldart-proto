@@ -215,9 +215,11 @@
 /* The aircraft check's row: the registration, then the make and model beside it. */
 .leader-search__aircraft {
   display: flex;
+  flex: 1 1 auto;
   flex-wrap: wrap;
   align-items: baseline;
   gap: 0 var(--space-3);
+  min-width: 0;
 }
 
 .leader-search__meta {
@@ -228,6 +230,7 @@
 /* The member check's row: the name, then the DART and email that tell namesakes apart. */
 .leader-search__who {
   display: flex;
+  flex: 1 1 auto;
   flex-wrap: wrap;
   align-items: baseline;
   gap: 0 var(--space-3);
@@ -238,10 +241,14 @@
   overflow-wrap: anywhere;
 }
 
+/* The verdict never wraps or shrinks: on a phone the name and its DART wrap instead, so
+   NO-GO never breaks at its hyphen into a red GO under a name. */
 .leader-search__readiness {
   display: flex;
+  flex-shrink: 0;
   align-items: baseline;
   gap: var(--space-2);
+  white-space: nowrap;
 }
 
 .leader-search__verdict {

@@ -183,9 +183,10 @@ day the record last changed. The line under the PDF's title reads *Showing: Not 
 verified*. Only what somebody holds is listed: a non-pilot has no certificate to check,
 nor a person with no medical a medical, nor one with no photo ID on file a photo ID, nor an
 airplane with no policy on file its insurance. A section heading always starts on the page
-with its first rows. The report can also be emailed on a schedule from the
-:doc:`subscriptions` screen, where the **Section**, **Verified**, **Verified by**, and
-**Verified on** columns can be added.
+with its first rows. The CSV names each row's section in its first column, **Section**,
+which the PDF leaves to its headings. The report can also be emailed on a schedule from
+the :doc:`subscriptions` screen, where the **Verified**, **Verified by**, and **Verified
+on** columns can be added.
 
 
 When nobody matches

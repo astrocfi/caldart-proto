@@ -188,7 +188,8 @@ went to, the **Report** the other mail server gave, and **When** the email was s
 
 If the server has no bounce mailbox set up, the panel says so as it opens, above the box:
 *Bounce checking is off. Ask the person who installed the site to set up a bounce
-mailbox.* **Run now** is held back until one is set up.
+mailbox.* **Run now** is held back until one is set up, and, as the page opens, until the
+server has said whether one is.
 
 
 Bulk email sender

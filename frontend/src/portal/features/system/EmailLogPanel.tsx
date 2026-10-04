@@ -32,7 +32,7 @@ import {
 import { reportExportUrl } from '@/portal/reports/api';
 import { listFilters, REPORTS } from '@/portal/reports/definitions';
 import type { FilterValues } from '@/portal/reports/types';
-import { EMAIL_LOG_PAGE_SIZE, useEmailLog, useEmailPurposes } from './api';
+import { EMAIL_LOG_PAGE_SIZE, FROM_LOG, useEmailLog, useEmailPurposes } from './api';
 
 /** The filters the panel draws: the email log report's own. */
 const FILTER_FIELDS = listFilters(REPORTS.emails);
@@ -101,6 +101,7 @@ export const CELLS: Record<string, ReportCell<EmailLogEntry>> = {
     render: (row) => (
       <Link
         to={`/system/emails/${row.id}`}
+        state={{ [FROM_LOG]: true }}
         aria-label={`${row.to_email}, sent ${formatDateTime(row.sent_at)}`}
       >
         {row.to_email}

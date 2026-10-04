@@ -52,7 +52,11 @@ export function CalloutsPage(): JSX.Element {
             initialSort={{ key: 'started_at', direction: 'desc' }}
             caption={`${rows.length} ${rows.length === 1 ? 'callout' : 'callouts'}`}
             emptyTitle="No callout has been sent"
-            emptyDescription="To send one, write an email and switch on This is a mission callout."
+            emptyDescription={
+              canSend || sender.data === undefined
+                ? 'To send one, write an email and switch on This is a mission callout.'
+                : sender.data.reason
+            }
             emptyAction={
               canSend ? <ButtonLink to="/bulk-email/compose">New email</ButtonLink> : undefined
             }

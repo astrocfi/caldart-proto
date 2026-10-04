@@ -16,7 +16,7 @@ from apps.accounts.models import User
 from apps.accounts.roles import SYSTEM_ADMIN
 from apps.mail.models import EmailLog, EmailStatus
 from tests.conftest import role_matrix
-from tests.factories import EmailLogFactory, UserFactory
+from tests.factories import BulkEmailFactory, EmailLogFactory, UserFactory, add_to_batch
 
 pytestmark = pytest.mark.django_db
 
@@ -77,3 +77,17 @@ def test_the_email_reads_as_its_row_in_the_list(system_admin_client: APIClient) 
         "bounce_detail": "",
         "link": "",
     }
+
+
+def test_a_bulk_email_copy_leads_to_its_bulk_email(
+    system_admin_client: APIClient, management: User
+) -> None:
+    """A copy carries the Sent page of the bulk email it belongs to, as its row does."""
+    bulk = BulkEmailFactory(sender=management)
+    member = UserFactory(email="ann@example.test")
+    (copy,) = add_to_batch(bulk, member)
+    copy.message_id = "<copy.1@caldart.example.org>"
+    copy.save()
+    row = EmailLogFactory(user=member, purpose="bulk_email", message_id=copy.message_id)
+    data = system_admin_client.get(detail_url(row)).json()
+    assert data["link"] == f"/bulk-email/sent/{bulk.pk}"

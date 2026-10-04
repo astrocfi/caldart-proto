@@ -26,3 +26,9 @@
     gap: 0;
   }
 }
+
+/* The error as the server recorded it, under its words, for whoever runs the server. */
+.sent-email__raw {
+  display: block;
+  font-size: var(--text-sm);
+}

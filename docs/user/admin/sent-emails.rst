@@ -58,7 +58,9 @@ It reads, one line each:
 - **For**: what the email was for, as **Purpose** reads in the table.
 - **Sent**: the date and time.
 - **Status**: *Sent*, *Failed*, or *Bounced*, beside its dot.
-- **Error**, for a failed send: the reason the mail server gave.
+- **Error**, for a failed send: the reason in words, such as *The mail server refused the
+  address.*, and under it what the server recorded, such as *Recorded as
+  SMTPRecipientsRefused*, to pass on to whoever runs the server.
 - **Bounced on** and **Bounce report**, for a bounced email: when the bounce came back and
   what the recipient's mail server said.
 - **Attachments**: the names of any files attached.
@@ -67,7 +69,7 @@ The log keeps who an email went to and what it was for. It keeps no copy of the 
 password reset link or a verification link is never kept in it. A copy of a bulk email
 offers **Open the bulk email**, which opens that email's page on
 :doc:`../bulk-email/sent`, where its message is. **Back to sent emails** returns to the
-list.
+list with the filters, order, and page you opened the email from.
 
 
 Filtering the log

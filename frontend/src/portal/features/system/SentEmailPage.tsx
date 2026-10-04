@@ -7,8 +7,8 @@
  * verification email would hold a working link.  A copy of a bulk email leads to that
  * email's page, where its message is.
  */
-import type { JSX, ReactNode } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import type { JSX, MouseEvent, ReactNode } from 'react';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 
 import { ApiError } from '@/portal/api/client';
 import type { EmailLogEntry, EmailStatus } from '@/portal/api/types';
@@ -18,11 +18,32 @@ import { EmptyState } from '@/portal/components/EmptyState';
 import { Page } from '@/portal/components/Page';
 import { StatusDot } from '@/portal/components/StatusDot';
 import type { StatusTone } from '@/portal/components/StatusDot';
-import { useEmailLogEntry } from './api';
+import { FROM_LOG, useEmailLogEntry } from './api';
+import { sendErrorWords } from './labels';
 import './sentEmail.css';
 
-/** The page's way back, to the list with its filters as the browser left them. */
-const BACK = <Link to="/system/emails">Back to sent emails</Link>;
+/**
+ * **Back to sent emails**: the list with its filters, its order, and its page as they
+ * were, when the list is where the email was opened from; the whole list otherwise,
+ * such as for a link opened on its own.
+ */
+function BackToLog(): JSX.Element {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const isFromLog = (location.state as Record<string, unknown> | null)?.[FROM_LOG] === true;
+  const handleClick = (event: MouseEvent<HTMLAnchorElement>): void => {
+    if (!isFromLog) return;
+    event.preventDefault();
+    void navigate(-1);
+  };
+  return (
+    <Link to="/system/emails" onClick={handleClick}>
+      Back to sent emails
+    </Link>
+  );
+}
+
+const BACK = <BackToLog />;
 
 /** Each status's dot and word: green sent, red failed or bounced. */
 const STATUS: Record<EmailStatus, { tone: StatusTone; label: string }> = {
@@ -74,7 +95,15 @@ function EmailCard({ entry }: { entry: EmailLogEntry }): JSX.Element {
     ['Sent', <DateText key="sent" value={entry.sent_at} withTime />],
     ['Status', <StatusDot key="status" tone={status.tone} label={status.label} />],
   ];
-  if (entry.error !== '') facts.push(['Error', entry.error]);
+  if (entry.error !== '') {
+    facts.push([
+      'Error',
+      <>
+        {sendErrorWords(entry.error)}
+        <span className="sent-email__raw muted">Recorded as {entry.error}</span>
+      </>,
+    ]);
+  }
   if (entry.bounced_at !== null) {
     facts.push(['Bounced on', <DateText key="bounced" value={entry.bounced_at} withTime />]);
   }
