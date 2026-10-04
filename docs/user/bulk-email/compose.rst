@@ -97,14 +97,12 @@ address your organization chose for replies, or with your own address. Change it
 address that should get the replies, such as a DART leader's or a shared operations
 mailbox; empty it to go back to the starting address, which the hint under it names. The
 address saves when you leave the field or press Enter, and *Reply-To saved.* says so. An
-address that is not one, such as *ops@*, reads *Enter a valid email address.* and the
-address saved before stays until you fix it; the subject and the message keep saving
-meanwhile.
+address that is not one, such as *ops@*, reads *Enter a valid email address.*, and the one
+saved before stays until you fix it.
 
-The buttons over the message format it: **Bold** and **Italic** for the words you have
-selected, **Heading** for a line that heads a section, and **Bulleted list** and **Numbered
-list**. A button stays pressed while the words at the cursor have its style; press it again
-to take the style off.
+The buttons over the message format it: **Bold**, **Italic**, **Heading**, **Bulleted list**,
+and **Numbered list**. A button stays pressed while the words at the cursor have its style;
+press it again to take the style off.
 
 - **Link** asks for the **Web or email address** the selected words go to, such as
   *caldart.org/events* or an email address, then **Add link**. With nothing selected, the
@@ -168,8 +166,7 @@ is fixed and you press **Check again**. An amber dot and **Worth a look:** mark 
 that may be a mistake, and *You can still send.* says you may go ahead anyway:
 
 - *{dart_name} is empty for 41 of 120 people who receive this email, so their copies show
-  nothing there.* Most people have no value for that field: add words to show instead, as
-  in *{dart_name|your DART}*, or take it out.
+  nothing there.* Add words to show instead, as in *{dart_name|your DART}*, or take it out.
 - *The email still says "TODO".* Placeholder text, such as *TODO*, *XXX*, *lorem ipsum*, or
   *[insert*, is still in the subject or the message.
 - *1 picture has no description for people who cannot see pictures.* Delete it and put it
