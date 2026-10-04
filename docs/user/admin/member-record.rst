@@ -99,11 +99,10 @@ says by whom and when: *Turned off by the member on 10/03/2026 (unsubscribe link
 Memberships
 ===========
 
-**Membership history** lists every term: **Plan**, **Starts**, **Ends** (*Lifetime* for a
-life membership), **Status** (**Active**, **Expired**, **Canceled**, or **Suspended**, each
-beside its dot), **Source** (**Paid** for a term a payment bought, **Granted by hand**, or
-**Demo data**), **Note** with whoever granted it, and **Edit**. A narrow screen drops
-**Source**, **Starts**, **Note**, and **Ends** in turn, keeping the rest in sight.
+**Membership history** lists every term: **Plan**, **Starts**, **Ends** (*Lifetime* for life),
+**Status** (a dot and **Active**, **Expired**, **Canceled**, or **Suspended**), **Source**
+(**Paid**, **Granted by hand**, or **Demo data**), **Note** with whoever granted it, and
+**Edit**. A narrow screen drops **Source**, **Starts**, **Note**, and **Ends** in turn.
 
 **Edit** on a row changes that term's end date, status, and note, for a refund, a goodwill
 extension, or a wrong term. Press **Save** or **Cancel** (or Escape); *Term updated.* confirms
