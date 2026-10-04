@@ -517,6 +517,18 @@ def test_send_the_rest_counts_the_people_it_skips(
     assert (refreshed(three).sent_count, refreshed(three).skipped_count) == (2, 1)
 
 
+def test_send_the_rest_with_everybody_skipped_finishes_the_email_sending_nothing(
+    three: BulkEmail, management: User, stop_after_first: None
+) -> None:
+    """When nobody the stop kept back can be sent it now, the email ends ``sent``."""
+    job.run_sender(now=NOW)
+    account(three, "bea@example.test").delete()
+    account(three, "cy@example.test").delete()
+    drafts.resume(three, actor=management, now=NOW)
+    job.run_sender(now=NOW)
+    assert (len(mail.outbox), refreshed(three).status) == (1, BulkEmailStatus.SENT)
+
+
 def test_send_the_rest_is_refused_unless_the_email_was_stopped(
     management_client: APIClient, three: BulkEmail
 ) -> None:
