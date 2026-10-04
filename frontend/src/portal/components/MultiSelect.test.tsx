@@ -42,6 +42,16 @@ function Harness({ initial = [], onChange: handleReport }: HarnessProps): JSX.El
 }
 
 describe('MultiSelect', () => {
+  it('is named by its legend and what it holds, not by the placeholder alone', () => {
+    render(<Harness initial={['Marin']} />);
+    expect(screen.getByRole('button', { name: 'County: Marin' })).toBeInTheDocument();
+  });
+
+  it('reads Any after its legend while nothing is chosen', () => {
+    render(<Harness />);
+    expect(screen.getByRole('button', { name: 'County: Any' })).toBeInTheDocument();
+  });
+
   it('is a one-line box that reads Any while nothing is chosen', () => {
     render(<Harness />);
 

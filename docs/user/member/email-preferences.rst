@@ -5,7 +5,7 @@ Email preferences
 **Email preferences** is where you choose which kinds of bulk email CalDART sends you.
 Bulk email is the news CalDART writes to many members and friends at once, such as
 meeting announcements, appeals for donations, and requests for pilots. Open it from
-**Bulk Email** in the menu.
+**Bulk Email** in the menu; the screen's own heading names it under **Your email**.
 
 
 What you see
@@ -23,8 +23,8 @@ reaches you.
 What you can do
 ===============
 
-Press a switch, or move to it with the Tab key and press the space bar. The change is saved
-at once and the word *Saved.* appears under the switches. Nothing else needs pressing.
+Press a switch, or move to it with the Tab key and press the space bar or Enter. The change
+is saved at once and the word *Saved.* appears under the switches. Nothing else needs pressing.
 
 Turning a kind back on works the same way. Your earlier choice is kept even if CalDART
 later decides a kind cannot be turned off; it applies again if that changes back.
@@ -39,10 +39,10 @@ link. Your mail program may also show its own **Unsubscribe** button beside the 
 name, which does the same thing.
 
 The link opens a page on the CalDART site, with no need to sign in, titled **Unsubscribe
-from Mission email** (with the kind's own name) and one **Unsubscribe** button. Opening the
-page changes nothing; pressing the button turns that one kind off, and the page then reads
-**You are unsubscribed** and *You will no longer receive Mission email from CalDART.* Other
-kinds keep arriving. To turn it back on, sign in and use the switch on this screen.
+from Mission email** (with the kind's own name), the email address it is for, and one
+**Unsubscribe** button. Opening the page changes nothing; pressing the button turns that one
+kind off, and the page then reads **You are unsubscribed** and *You will no longer receive
+Mission email from CalDART for* your address. Other kinds keep arriving. To turn it back on, sign in and use the switch on this screen.
 
 An email of a kind that cannot be turned off has no link. Its last line says *CalDART sends
 Operational email to everyone it writes to, so it cannot be turned off.*

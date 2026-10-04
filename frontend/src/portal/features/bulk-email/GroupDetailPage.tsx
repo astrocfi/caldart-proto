@@ -7,7 +7,8 @@
  * and the member list's filter bar with **Add these filters**, which empties the bar
  * and says what it added; under them, everybody the filters find now. A filter set
  * the member list no longer accepts is marked, and the group's people wait until it
- * is taken out. Either kind downloads its people as a spreadsheet.
+ * is taken out. Either kind downloads its people as a spreadsheet with **Download
+ * list**, offered while the group holds anybody.
  */
 import { useState } from 'react';
 import type { FormEvent, JSX } from 'react';
@@ -208,6 +209,7 @@ function PeopleCard({ group }: { group: RecipientGroup }): JSX.Element {
   const count = members.data?.count ?? group.count;
   const countText = count === null ? 'people the filters cannot find yet' : people(count);
 
+  // The trashcan follows the name, so a phone shows it without scrolling sideways.
   const columns: Column<GroupPerson>[] = [
     {
       key: 'name',
@@ -216,21 +218,13 @@ function PeopleCard({ group }: { group: RecipientGroup }): JSX.Element {
       render: (person) => (person.is_active ? person.name : `${person.name} (deactivated)`),
       sortValue: (person) => person.name,
     },
-    {
-      key: 'email',
-      header: 'Email',
-      minWidth: '14rem',
-      render: (person) => person.email,
-      sortValue: (person) => person.email,
-    },
-    { key: 'kind', header: 'Kind', width: '5.5rem', render: (person) => kindLabel(person.kind) },
-    { key: 'dart', header: 'DART', width: '8rem', render: (person) => person.dart_name || '—' },
     ...(isFixed
       ? [
           {
             key: 'remove',
             header: 'Remove',
             width: '5.5rem',
+            keepInSight: true,
             render: (person: GroupPerson) => (
               <DeleteButton
                 label={`Remove ${person.name || person.email} from the group`}
@@ -241,6 +235,15 @@ function PeopleCard({ group }: { group: RecipientGroup }): JSX.Element {
           },
         ]
       : []),
+    {
+      key: 'email',
+      header: 'Email',
+      minWidth: '14rem',
+      render: (person) => person.email,
+      sortValue: (person) => person.email,
+    },
+    { key: 'kind', header: 'Kind', width: '5.5rem', render: (person) => kindLabel(person.kind) },
+    { key: 'dart', header: 'DART', width: '8rem', render: (person) => person.dart_name || '—' },
   ];
 
   return (
@@ -274,11 +277,13 @@ function PeopleCard({ group }: { group: RecipientGroup }): JSX.Element {
           {remove.error instanceof ApiError ? remove.error.message : FALLBACK_ERROR}
         </p>
       )}
-      <div className="cluster">
-        <a className="button button--quiet" href={groupCsvUrl(group.id)} download>
-          Download list
-        </a>
-      </div>
+      {count === null || count === 0 ? null : (
+        <div className="cluster">
+          <a className="button button--quiet" href={groupCsvUrl(group.id)} download>
+            Download list
+          </a>
+        </div>
+      )}
     </Card>
   );
 }

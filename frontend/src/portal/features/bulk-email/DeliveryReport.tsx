@@ -8,7 +8,7 @@
  * person's copy exactly as it went. **Download results** saves the table as a
  * spreadsheet file, and the retries are listed with their times.
  */
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ChangeEvent, JSX, MouseEvent } from 'react';
 
 import type {
@@ -23,12 +23,13 @@ import { DataTable } from '@/portal/components/DataTable';
 import { DateText } from '@/portal/components/DateText';
 import { StatusDot } from '@/portal/components/StatusChip';
 import { useToast } from '@/portal/components/Toast';
+import { DROP_ORDER } from './dropOrder';
 import { isMoving, recipientsCsvUrl, useBatch } from './api';
 import { CopyDialog } from './CopyDialog';
 import './delivery.css';
 import { useRetryFailed } from './deliveryApi';
 import { actionError } from './SendStatus';
-import { kindLabel, people, resultLabel, resultTone } from './status';
+import { kindLabel, people, resultLabel, resultTone, wentCount } from './status';
 
 /** What the screen says once Retry failed has been pressed. */
 export const RETRYING_MESSAGE = 'The failed copies will be sent again within a minute.';
@@ -68,12 +69,19 @@ export function DeliveryReport({
     setViewing({ row, trigger });
   }, []);
 
-  // Back to the View copy button that opened the copy, so a keyboard reader keeps
-  // their place in the table.
+  // Back to the View copy button that opened the copy, so a keyboard reader keeps their
+  // place in the table: once the dialog has gone, since the page behind a modal dialog
+  // takes no focus while it is open.
+  const returnFocusRef = useRef<HTMLButtonElement | null>(null);
   const handleClose = (): void => {
-    viewing?.trigger.focus();
+    returnFocusRef.current = viewing?.trigger ?? null;
     setViewing(null);
   };
+  useEffect(() => {
+    if (viewing !== null) return;
+    returnFocusRef.current?.focus();
+    returnFocusRef.current = null;
+  }, [viewing]);
 
   const columns = useMemo(() => resultColumns(handleView), [handleView]);
 
@@ -107,13 +115,13 @@ export function DeliveryReport({
 }
 
 /**
- * `Delivered 36 · Failed 1 · Skipped 4 · Bounced 1 · Retried 1`, as a list of terms.
- * Delivered counts the copies sent that have not come back, so Delivered and Bounced
- * together are the copies the result line calls sent.
+ * `Sent 37 · Failed 1 · Skipped 4 · Bounced 1 · Retried 1`, as a list of terms. Sent
+ * counts every copy the mail server took, those that came back later included, so it
+ * is the number the result line gives; Bounced says how many of them came back.
  */
 export function DeliveryCounts({ email }: { email: BulkEmailDetail }): JSX.Element {
   const counts: [string, number][] = [
-    ['Delivered', email.sent_count],
+    ['Sent', wentCount(email)],
     ['Failed', email.failed_count],
     ['Skipped', email.skipped_count],
     ['Bounced', email.bounced_count],
@@ -233,12 +241,24 @@ function Results({ rows, columns, isLoading }: ResultsProps): JSX.Element {
         columns={columns}
         rows={shown}
         rowKey={(row) => row.id}
-        caption={`Results: ${people(rows.length)}`}
+        caption={resultsCaption(shown.length, rows.length)}
         emptyTitle="Nobody to show"
         isLoading={isLoading}
       />
     </div>
   );
+}
+
+/**
+ * A narrowable table's caption: `Results: 39 people`, or `Showing 2 of 39` once a menu
+ * or a search narrows it.
+ *
+ * @param shown how many lines the table shows.
+ * @param total how many there are in all.
+ * @param label what the table holds, `Results` unless given.
+ */
+export function resultsCaption(shown: number, total: number, label = 'Results'): string {
+  return shown === total ? `${label}: ${people(total)}` : `Showing ${shown} of ${total}`;
 }
 
 /** The retries, each with when it was pressed, by whom, and how many copies it queued. */
@@ -250,7 +270,7 @@ function Retries({ email }: { email: BulkEmailDetail }): JSX.Element | null {
       <ul className="bulk-email__retries">
         {email.retries.map((retry) => (
           <li key={retry.id}>
-            <DateText value={retry.requested_at} withTime />
+            <DateText value={retry.requested_at} withTime twelveHour />
             {`: ${retry.requested_by || 'A deleted account'} sent ${people(retry.count)} a fresh copy.`}
           </li>
         ))}
@@ -260,9 +280,11 @@ function Retries({ email }: { email: BulkEmailDetail }): JSX.Element | null {
 }
 
 /**
- * The results table's columns: the person's name first, then what became of their
- * copy, then what a narrow screen scrolls to, ending with **View copy** for every
- * copy that was tried.
+ * The results table's columns: the person's name, what became of their copy, and
+ * **View copy** for every copy that was tried, so all three stay in sight on a phone;
+ * then the address and the reason, which wraps. Their DART, their kind, and when it was
+ * tried give way, in that order, when the table would not fit its card; on a phone the
+ * result wraps and the name narrows so the copy stays in sight.
  *
  * @param onView opens a person's copy, given the row and the button pressed.
  */
@@ -273,21 +295,16 @@ export function resultColumns(
     {
       key: 'name',
       header: 'Name',
-      minWidth: '16rem',
+      minWidth: '11rem',
       render: (row) => row.name,
       sortValue: (row) => row.name,
     },
     {
-      key: 'email',
-      header: 'Email',
-      minWidth: '14rem',
-      render: (row) => row.email,
-      sortValue: (row) => row.email,
-    },
-    {
       key: 'status',
       header: 'Result',
-      width: '10rem',
+      width: '9rem',
+      keepInSight: true,
+      narrowWidth: '6.5rem',
       render: (row) => (
         <span className="bulk-email__will-receive">
           <StatusDot tone={resultTone(row.status)} label={resultLabel(row.status)} />
@@ -296,20 +313,11 @@ export function resultColumns(
       ),
       sortValue: (row) => row.status,
     },
-    { key: 'reason', header: 'Reason', minWidth: '12rem', render: (row) => row.reason || '—' },
-    {
-      key: 'tried_at',
-      header: 'Tried at',
-      width: '9.5rem',
-      render: (row) => <DateText value={row.tried_at} withTime />,
-      sortValue: (row) => row.tried_at,
-    },
-    { key: 'kind', header: 'Kind', width: '5.5rem', render: (row) => kindLabel(row.kind) },
-    { key: 'dart', header: 'DART', width: '8rem', render: (row) => row.dart_name || '—' },
     {
       key: 'copy',
       header: 'Copy',
       width: '7rem',
+      keepInSight: true,
       render: (row) =>
         row.tried_at === null ? (
           '—'
@@ -323,6 +331,42 @@ export function resultColumns(
             View copy
           </Button>
         ),
+    },
+    {
+      key: 'email',
+      header: 'Email',
+      minWidth: '13rem',
+      render: (row) => row.email,
+      sortValue: (row) => row.email,
+    },
+    {
+      key: 'reason',
+      header: 'Reason',
+      minWidth: '10rem',
+      wrap: true,
+      render: (row) => row.reason || '—',
+    },
+    {
+      key: 'tried_at',
+      header: 'Tried at',
+      width: '11.5rem',
+      dropOrder: DROP_ORDER.triedAt,
+      render: (row) => <DateText value={row.tried_at} withTime twelveHour />,
+      sortValue: (row) => row.tried_at,
+    },
+    {
+      key: 'kind',
+      header: 'Kind',
+      width: '5.5rem',
+      dropOrder: DROP_ORDER.kind,
+      render: (row) => kindLabel(row.kind),
+    },
+    {
+      key: 'dart',
+      header: 'DART',
+      width: '8rem',
+      dropOrder: DROP_ORDER.dart,
+      render: (row) => row.dart_name || '—',
     },
   ];
 }

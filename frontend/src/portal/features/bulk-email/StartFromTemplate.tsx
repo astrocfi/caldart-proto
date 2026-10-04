@@ -3,8 +3,8 @@
  * fills the draft from a saved template, and **Save as a template** keeps the draft's
  * words as one.
  *
- * Starting from a template replaces the subject and the message, and the type when
- * the template has one; the people in the batch stay. When the draft already has
+ * Starting from a template replaces the subject, the message, and the Reply-To
+ * address, and the type when the template has one; the people in the batch stay. When the draft already has
  * words, it asks before it replaces them. The draft is a copy: changing it leaves the
  * template as it is. Templates are CalDART management's, so nobody else sees either
  * control.
@@ -12,6 +12,7 @@
 import { useId, useState } from 'react';
 import type { FormEvent, JSX } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 
 import { ApiError } from '@/portal/api/client';
 import type { BulkEmailDetail, EmailTemplate } from '@/portal/api/types';
@@ -29,7 +30,7 @@ import { useApplyTemplate, useCreateTemplate, useTemplates } from './reuseApi';
 
 /** What the confirmation says before a template replaces words already written. */
 export const REPLACE_WARNING =
-  "This replaces the subject and the message you have written with the template's. The people in the batch stay.";
+  "This replaces the subject, the message, and the Reply-To address you have with the template's, and the type too when the template has one. The people in the batch stay.";
 
 /** What a failed request says when the server gave no sentence of its own. */
 const FALLBACK_ERROR = 'That did not work. Try again.';
@@ -65,10 +66,10 @@ export function TemplateControls(props: TemplateControlsProps): JSX.Element | nu
   return (
     <div className="stack-tight">
       <div className="cluster">
-        <PanelButton label="Start from a template" legend="Start from a template">
+        <PanelButton label="Start from a template" legend="Start from a template" isForm>
           {() => <StartFromTemplate {...props} />}
         </PanelButton>
-        <PanelButton label="Save as a template" legend="Save as a template">
+        <PanelButton label="Save as a template" legend="Save as a template" isForm>
           {(handleClose) => (
             <SaveAsTemplate
               {...props}
@@ -81,7 +82,10 @@ export function TemplateControls(props: TemplateControlsProps): JSX.Element | nu
         </PanelButton>
       </div>
       {savedName === null ? null : (
-        <p role="status">{`Saved as the template ${savedName}. Find it under Templates.`}</p>
+        <p role="status">
+          {`Saved as the template ${savedName}. Find it under `}
+          <Link to="/bulk-email/templates">Templates</Link>.
+        </p>
       )}
     </div>
   );
@@ -204,7 +208,7 @@ function SaveAsTemplate({
       <Field
         label="Template name"
         error={fieldError(create.error, 'name')}
-        hint="Such as Monthly newsletter. The subject, message, and type are kept."
+        hint="Such as Monthly newsletter. The type, subject, Reply-To address, and message are kept."
         required
       >
         {(props) => (

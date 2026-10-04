@@ -9,7 +9,7 @@
  * how to copy the email. The list is read again every few seconds while a send is in
  * progress.
  * CalDART management, who sees every sender's sends, also sees who sent each and the
- * DART a DART leader's send went to.
+ * DART a DART leader's send went to. A DART leader's screen speaks of their own emails.
  */
 import type { JSX } from 'react';
 import { Link } from 'react-router-dom';
@@ -21,6 +21,7 @@ import { DataTable } from '@/portal/components/DataTable';
 import { DateText } from '@/portal/components/DateText';
 import { Page } from '@/portal/components/Page';
 import { StatusDot } from '@/portal/components/StatusChip';
+import { DROP_ORDER } from './dropOrder';
 import { recipientsCsvUrl, useBulkSender, useSentEmails } from './api';
 import './bulk-email.css';
 import { withSenderColumns } from './senderColumns';
@@ -31,12 +32,18 @@ export function SentPage(): JSX.Element {
   const sent = useSentEmails();
   const sender = useBulkSender();
   const rows = sent.data ?? [];
+  // A DART leader sees only their own emails, so the screen speaks of theirs.
+  const isLeader = sender.data?.is_management === false;
 
   return (
     <Page
       title="Sent"
       eyebrow="Bulk Email"
-      lede="Every bulk email that has gone out, or is going out now, and what became of it."
+      lede={
+        isLeader
+          ? 'The emails you have sent, or are sending now, and what became of each.'
+          : 'Every bulk email that has gone out, or is going out now, and what became of it.'
+      }
     >
       <Card>
         {sent.isError ? (
@@ -50,7 +57,15 @@ export function SentPage(): JSX.Element {
             rows={rows}
             rowKey={(row) => row.id}
             caption={`${rows.length} bulk ${rows.length === 1 ? 'email' : 'emails'} sent`}
-            emptyTitle="No bulk email has been sent"
+            emptyTitle={isLeader ? 'You have not sent an email yet' : 'No bulk email has been sent'}
+            emptyDescription={
+              isLeader ? (
+                <>
+                  Emails you send appear here. Write one on{' '}
+                  <Link to="/bulk-email/compose">Compose</Link>.
+                </>
+              ) : undefined
+            }
             isLoading={sent.isLoading}
           />
         )}
@@ -59,14 +74,38 @@ export function SentPage(): JSX.Element {
   );
 }
 
-/** The table's columns, the subject first. */
+/**
+ * The table's columns: the subject, then the actions (the row's action and
+ * **Duplicate…**, one above the other on a phone), so they stay in sight, then the
+ * date, the status, and the counts. The type, then the DART, then who sent it give way
+ * when the table would not fit its card.
+ */
 export const SENT_COLUMNS: Column<BulkEmailSummary>[] = [
   {
     key: 'subject',
     header: 'Subject',
-    minWidth: '16rem',
+    minWidth: '9rem',
     render: (row) => <Link to={`/bulk-email/sent/${row.id}`}>{row.subject}</Link>,
     sortValue: (row) => row.subject,
+  },
+  {
+    key: 'actions',
+    header: 'Actions',
+    width: '15.25rem',
+    keepInSight: true,
+    narrowWidth: '9.5rem',
+    render: (row) => (
+      <span className="cluster cluster--nowrap">
+        <RowAction row={row} />
+        <Link
+          className="button button--quiet button--small"
+          to={`/bulk-email/sent/${row.id}`}
+          aria-label={`Duplicate ${row.subject}`}
+        >
+          Duplicate…
+        </Link>
+      </span>
+    ),
   },
   {
     key: 'started_at',
@@ -79,13 +118,14 @@ export const SENT_COLUMNS: Column<BulkEmailSummary>[] = [
     key: 'email_type_name',
     header: 'Type',
     width: '7rem',
+    dropOrder: DROP_ORDER.type,
     render: (row) => row.email_type_name || '—',
     sortValue: (row) => row.email_type_name,
   },
   {
     key: 'status',
     header: 'Status',
-    width: '6.5rem',
+    width: '6rem',
     render: (row) => (
       <span className="bulk-email__will-receive">
         <StatusDot tone={statusTone(row.status)} label={statusLabel(row)} />
@@ -108,21 +148,6 @@ export const SENT_COLUMNS: Column<BulkEmailSummary>[] = [
     numeric: true,
     width: '4.5rem',
     render: (row) => row.skipped_count,
-  },
-  { key: 'actions', header: 'Actions', width: '9rem', render: (row) => <RowAction row={row} /> },
-  {
-    key: 'duplicate',
-    header: 'Reuse',
-    width: '8rem',
-    render: (row) => (
-      <Link
-        className="button button--quiet button--small"
-        to={`/bulk-email/sent/${row.id}`}
-        aria-label={`Duplicate ${row.subject}`}
-      >
-        Duplicate…
-      </Link>
-    ),
   },
 ];
 

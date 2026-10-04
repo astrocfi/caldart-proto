@@ -6,9 +6,10 @@
  * The words on the screen are saved first, so the test is the email as written.
  * Every press sends one more test, and each says where it went: *A test went to
  * pat@example.org.* An email with an error the checks catch, such as a missing
- * subject, is not sent, and the errors are listed instead.
+ * subject, is not sent, and the errors are listed instead. The focus moves to the
+ * line saying what became of the press, since the button was off while it worked.
  */
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { JSX } from 'react';
 
 import { ApiError } from '@/portal/api/client';
@@ -35,6 +36,12 @@ export function TestSendButton({
 }: TestSendButtonProps): JSX.Element {
   const test = useSendTest(emailId);
   const [isUnsaved, setIsUnsaved] = useState(false);
+  const outcomeRef = useRef<HTMLDivElement>(null);
+  const isSettled = test.isSuccess || test.isError || isUnsaved;
+
+  useEffect(() => {
+    if (isSettled) outcomeRef.current?.focus();
+  }, [isSettled, test.submittedAt]);
 
   const handleClick = async (): Promise<void> => {
     setIsUnsaved(false);
@@ -57,13 +64,15 @@ export function TestSendButton({
       <p className="muted bulk-email__test-hint">
         Sends this email to you alone, so you can see it in your own mail program first.
       </p>
-      {test.data === undefined ? null : <p role="status">{`A test went to ${test.data.to}.`}</p>}
-      {isUnsaved ? (
-        <p className="field__error" role="alert">
-          {NOT_SAVED_MESSAGE}
-        </p>
-      ) : null}
-      <TestError error={test.error} />
+      <div ref={outcomeRef} tabIndex={-1} className="stack-tight bulk-email__test-outcome">
+        {test.data === undefined ? null : <p role="status">{`A test went to ${test.data.to}.`}</p>}
+        {isUnsaved ? (
+          <p className="field__error" role="alert">
+            {NOT_SAVED_MESSAGE}
+          </p>
+        ) : null}
+        <TestError error={test.error} />
+      </div>
     </div>
   );
 }

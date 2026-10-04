@@ -5,14 +5,16 @@
  * It opens with the checks (`ChecksList`), run when the card opens and again
  * before the confirmation, and the preview. For a draft it says what is still
  * missing, if anything, then offers **Send to 38 people** and **Schedule for
- * later**, which stay off while the checks list a problem that must be fixed;
- * a press that finds one puts the focus on **Check again**. Checks that fail or
+ * later**, which stay off while the checks list a problem that must be fixed, and
+ * while the words typed are still saving or could not be saved; a refused save is
+ * listed with the checks, with a link to the field to fix. A press that finds a
+ * problem puts the focus on **Check again**. Checks that fail or
  * are slow do not stop a send: the server refuses an email with an error anyway. Either asks first,
  * in a confirmation that says what goes to how many people and when; above the size `confirm_above` the
  * sender types the number of people before the button that sends works. For a
  * scheduled email it offers **Change the time**, which opens at the time already
- * chosen, and **Send now instead**. Once Send is pressed, where the email stands is
- * the banner at the top of the screen.
+ * chosen, and **Send in 2 minutes instead** (the undo wait). Once Send is pressed,
+ * where the email stands is the banner at the top of the screen.
  *
  * Going back from the confirmation or the schedule puts the focus back on the
  * button that opened it.
@@ -26,12 +28,15 @@ import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { useSendBulkEmail } from './api';
 import { ChecksList, shownFindings } from './ChecksList';
+import type { SaveProblem } from './ChecksList';
+import { formatDuration } from './countdown';
 import { hasError, refusedFindings, useBulkEmailChecks } from './checksApi';
 import { MessagePreview } from './MessagePreview';
 import { ScheduleFields } from './ScheduleFields';
 import { sitePartsOf } from './schedule';
 import { SendConfirm } from './SendConfirm';
 import { sendLabel } from './status';
+import type { MessageValues, SaveState } from './useAutosave';
 
 /** What the card says when the send fails without a message of its own. */
 const FALLBACK_ERROR = 'The email could not be sent. Try again.';
@@ -79,6 +84,48 @@ interface SendCardProps {
   body: string;
   /** Save what is typed before sending; resolves true once it is saved. */
   onBeforeSend: () => Promise<boolean>;
+  /** Whether the words typed are saved; Send waits while they are not. */
+  saveState: SaveState;
+  /** The server's complaint about each field it refused to save. */
+  saveErrors: Partial<Record<keyof MessageValues, string>>;
+  /** Moves the focus to a field in **What it says**, to fix it. */
+  onFixField: (field: keyof MessageValues) => void;
+}
+
+/** What a field is called in the sentence that names its mistake. */
+const FIELD_WORDS: Record<keyof MessageValues, string> = {
+  subject: 'Your subject has a mistake',
+  body: 'Your message has a mistake',
+};
+
+/** What the checks list says when the words could not be saved for another reason. */
+export const NOT_SAVED_PROBLEM =
+  'Your latest changes are not saved yet. Saving tries again as you type.';
+
+/**
+ * The refused save as problems for the checks list: one per field the server named,
+ * or one sentence when it named none.
+ */
+export function saveProblems(
+  saveState: SaveState,
+  errors: Partial<Record<keyof MessageValues, string>>,
+): SaveProblem[] {
+  if (saveState !== 'failed') return [];
+  const fields = (['subject', 'body'] as const).filter((field) => errors[field] !== undefined);
+  if (fields.length === 0) return [{ key: 'not-saved', message: NOT_SAVED_PROBLEM }];
+  return fields.map((field) => ({
+    key: field,
+    field,
+    message: `${FIELD_WORDS[field]}: ${errors[field] ?? ''}`,
+  }));
+}
+
+/**
+ * The words on the button that sends a scheduled email sooner: after the undo wait
+ * when there is one, `Send in 2 minutes instead`, else `Send now instead`.
+ */
+export function sendSoonerLabel(undoSeconds: number): string {
+  return undoSeconds > 0 ? `Send in ${formatDuration(undoSeconds)} instead` : 'Send now instead';
 }
 
 /** What is still missing before the email can go, as short instructions. */
@@ -101,6 +148,9 @@ export function SendCard({
   subject,
   body,
   onBeforeSend: handleBeforeSend,
+  saveState,
+  saveErrors,
+  onFixField: handleFixField,
 }: SendCardProps): JSX.Element {
   const [step, setStep] = useState<Step>({ kind: 'choose', returnTo: null });
   const [saveError, setSaveError] = useState<Error | null>(null);
@@ -112,7 +162,10 @@ export function SendCard({
   const checkAgainRef = useRef<HTMLButtonElement>(null);
   const checks = useBulkEmailChecks(email.id);
   const { mutate: runChecks, mutateAsync: runChecksAsync } = checks;
-  const isBlocked = checks.data !== undefined && hasError(shownFindings(checks.data));
+  const problems = saveProblems(saveState, saveErrors);
+  const isBlocked =
+    (checks.data !== undefined && hasError(shownFindings(checks.data))) || problems.length > 0;
+  const isSaving = saveState === 'saving';
 
   useEffect(() => {
     runChecks();
@@ -216,15 +269,15 @@ export function SendCard({
           <Button
             ref={sendRef}
             variant={isScheduled ? 'secondary' : 'primary'}
-            disabled={isBlocked}
+            disabled={isBlocked || isSaving}
             onClick={() => void handleConfirmStep({ startAt: null, from: 'send' })}
           >
-            {isScheduled ? 'Send now instead' : sendLabel(email.receiving_count)}
+            {isScheduled ? sendSoonerLabel(email.undo_seconds) : sendLabel(email.receiving_count)}
           </Button>
           <Button
             ref={scheduleRef}
             variant="secondary"
-            disabled={isBlocked}
+            disabled={isBlocked || isSaving}
             onClick={() => handleStep({ kind: 'schedule' })}
           >
             {isScheduled ? 'Change the time' : 'Schedule for later'}
@@ -239,7 +292,7 @@ export function SendCard({
     <Card title="3. Check and send" className="bulk-email__card">
       <p className="muted">
         {isScheduled
-          ? 'Change when it goes out, or send it now instead. Cancel the schedule at the top of the screen.'
+          ? 'Change when it goes out, or send it sooner instead. Cancel the schedule at the top of the screen.'
           : 'Read the email through, then send it now or choose a time. You can cancel a send for a short while after you press Send.'}
       </p>
       <ChecksList
@@ -248,8 +301,11 @@ export function SendCard({
         isChecking={checks.isPending}
         error={checks.error}
         onCheckAgain={() => runChecks()}
+        saveProblems={problems}
+        onFixField={handleFixField}
+        hasMissingSteps={missing.length > 0}
       />
-      <MessagePreview email={email} />
+      <MessagePreview email={email} isBehind={saveState === 'failed'} />
       {controls()}
     </Card>
   );

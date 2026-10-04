@@ -16,6 +16,7 @@ import { DataTable } from '@/portal/components/DataTable';
 import { DateText } from '@/portal/components/DateText';
 import { Page } from '@/portal/components/Page';
 import { StatusDot } from '@/portal/components/StatusChip';
+import { DROP_ORDER } from '@/portal/features/bulk-email/dropOrder';
 import { useCallouts } from './api';
 import './callouts.css';
 import { openLabel } from './labels';
@@ -53,12 +54,16 @@ export function CalloutsPage(): JSX.Element {
   );
 }
 
-/** The table's columns: the subject, when it went, whether it is open, then the counts. */
+/**
+ * The table's columns: the subject, when it went, whether it is open (wrapping, so the
+ * closing time reads in full), then the counts. Who sent it and their DART give way
+ * first when the table would not fit its card.
+ */
 export const CALLOUT_COLUMNS: Column<CalloutSummary>[] = [
   {
     key: 'subject',
     header: 'Subject',
-    minWidth: '14rem',
+    minWidth: '12rem',
     render: (row) => <Link to={`/bulk-email/callouts/${row.id}`}>{row.subject}</Link>,
     sortValue: (row) => row.subject,
   },
@@ -72,7 +77,8 @@ export const CALLOUT_COLUMNS: Column<CalloutSummary>[] = [
   {
     key: 'closes_at',
     header: 'Answers',
-    width: '19rem',
+    width: '13rem',
+    wrap: true,
     render: (row) => (
       <span className="callouts__state">
         <StatusDot tone={row.is_open ? 'current' : 'none'} label={openLabel(row)} />
@@ -85,6 +91,7 @@ export const CALLOUT_COLUMNS: Column<CalloutSummary>[] = [
     key: 'sender',
     header: 'From',
     width: '8rem',
+    dropOrder: DROP_ORDER.from,
     render: (row) => row.sender || '—',
     sortValue: (row) => row.sender,
   },
@@ -92,6 +99,7 @@ export const CALLOUT_COLUMNS: Column<CalloutSummary>[] = [
     key: 'dart_name',
     header: 'DART',
     width: '7rem',
+    dropOrder: DROP_ORDER.dart,
     render: (row) => row.dart_name || '—',
     sortValue: (row) => row.dart_name,
   },

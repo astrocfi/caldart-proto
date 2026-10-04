@@ -7,6 +7,7 @@ import { API } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
 import type { MailDeliveryCheck, MailDeliveryFinding } from '@/portal/api/types';
+import { formatDateAt } from '@/portal/components/DateText';
 import { MailDeliveryPage, summarize } from './MailDeliveryPage';
 
 const CHECK_URL = `${API}/mail/delivery-check`;
@@ -79,6 +80,15 @@ describe('MailDeliveryPage', () => {
     expect(within(heading).getAllByText('Problem')).toHaveLength(2);
   });
 
+  it('keeps the dot and the word together, apart from the name', async () => {
+    serve(report([finding({ status: 'fail' })]));
+    renderWithProviders(<MailDeliveryPage />);
+
+    const heading = await screen.findByRole('heading', { name: /Approved senders/ });
+
+    expect(heading.querySelector('.delivery-check__status')).toHaveTextContent('Problem');
+  });
+
   it('says what the record is for in the finding detail', async () => {
     serve(report([finding()]));
     renderWithProviders(<MailDeliveryPage />);
@@ -107,7 +117,7 @@ describe('MailDeliveryPage', () => {
     renderWithProviders(<MailDeliveryPage />);
 
     expect(
-      await screen.findByText(/Checked 10\/03\/2026 \d\d:\d\d for example\.org\./),
+      await screen.findByText(`Checked ${formatDateAt('2026-10-03T15:00:00Z')} for example.org.`),
     ).toBeVisible();
   });
 

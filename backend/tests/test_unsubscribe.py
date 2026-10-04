@@ -57,6 +57,16 @@ def test_the_page_names_the_type_and_offers_one_button(client: Client, link: str
     assert "Unsubscribe from Mission email" in response.content.decode()
 
 
+@pytest.mark.parametrize("method", ["get", "post"])
+def test_the_page_names_the_address_it_unsubscribes(
+    client: Client, link: str, member: User, method: str
+) -> None:
+    """Before and after the press, the page says which address it is for."""
+    response = client.generic(method.upper(), link)
+
+    assert f"<strong>{member.email}</strong>." in response.content.decode()
+
+
 def test_the_page_says_when_the_type_is_already_off(
     client: Client, link: str, member: User, mission: EmailType
 ) -> None:
@@ -66,7 +76,7 @@ def test_the_page_says_when_the_type_is_already_off(
     response = client.get(link)
 
     assert response.context["state"] == "already"
-    assert "You have already unsubscribed from Mission email." in response.content.decode()
+    assert "You have already unsubscribed from Mission email for" in response.content.decode()
 
 
 def test_pressing_the_button_records_the_opt_out(

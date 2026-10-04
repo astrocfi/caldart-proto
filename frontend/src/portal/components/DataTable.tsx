@@ -1,12 +1,17 @@
 /**
  * The sortable table every admin screen uses, with an optional
  * filter bar and CSV/PDF export buttons.
+ *
+ * A single-line table fits itself to its container (`tableFit.ts`): it leaves out the
+ * columns that matter least, one at a time, and on a phone narrows its leading column
+ * so the row's actions stay in sight.
  */
-import { useMemo, useState } from 'react';
-import type { JSX, ReactNode } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import type { JSX, ReactNode, RefObject } from 'react';
 
 import { Button } from './Button';
 import { EmptyState } from './EmptyState';
+import { DEFAULT_COLUMN_WIDTH, fitColumns, needsFitting } from './tableFit';
 
 export type SortDirection = 'asc' | 'desc';
 
@@ -35,10 +40,31 @@ export interface Column<Row> {
    * of squeezing these columns to nothing. Its cells start at the left edge.
    */
   minWidth?: string;
+  /**
+   * A column that matters less than the others, such as a type or a DART, which the
+   * table leaves out while it would not fit its container. Columns go one at a time,
+   * the lowest `dropOrder` first, until the rest fit, so the columns that matter, the
+   * row's actions among them, stay in sight without scrolling. Every single-line column
+   * gives its `width` or `minWidth` in rem, which is how the fit is reckoned.
+   */
+  dropOrder?: number;
+  /**
+   * A column that stays in sight on a screen too narrow for the table, such as the
+   * row's actions: the leading text column then gives up its room, down to a floor, so
+   * that the table's columns up to the last of these end within the container.
+   */
+  keepInSight?: boolean;
+  /**
+   * The width a `keepInSight` column takes on a screen too narrow for the table, its
+   * content wrapping onto more lines, such as two buttons one above the other.
+   */
+  narrowWidth?: string;
+  /**
+   * Let this column's words wrap onto more lines in single-line mode, for words that
+   * must be read whole, such as a reason or a description.
+   */
+  wrap?: boolean;
 }
-
-/** What a column without a width or a minimum is reckoned at, for the table's minimum. */
-const DEFAULT_COLUMN_WIDTH = '6rem';
 
 /**
  * The least width a single-line table takes: every fixed width and every minimum
@@ -59,11 +85,34 @@ function columnStyle<Row>(column: Column<Row>): { width: string } | undefined {
   return width === undefined ? undefined : { width };
 }
 
-/** The class a cell of `column` carries: numeric, text, or none. */
+/** The class a cell of `column` carries: numeric or text, and whether it wraps. */
 function cellClass<Row>(column: Column<Row>): string | undefined {
-  if (column.numeric) return 'numeric';
-  if (column.minWidth !== undefined) return 'data-table__text';
-  return undefined;
+  const classes = [
+    column.numeric ? 'numeric' : column.minWidth !== undefined ? 'data-table__text' : '',
+    column.wrap ? 'data-table__wrap' : '',
+  ].filter((name) => name !== '');
+  return classes.length === 0 ? undefined : classes.join(' ');
+}
+
+/** The width of the element `ref` holds, in rem, measured again whenever it changes size. */
+function useWidthRem(ref: RefObject<HTMLElement | null>, isMeasured: boolean): number | null {
+  const [widthRem, setWidthRem] = useState<number | null>(null);
+  useLayoutEffect(() => {
+    const element = ref.current;
+    if (element === null || !isMeasured || typeof ResizeObserver === 'undefined') {
+      setWidthRem(null);
+      return undefined;
+    }
+    const measure = (): void => {
+      const rootPx = Number.parseFloat(getComputedStyle(document.documentElement).fontSize);
+      setWidthRem(element.clientWidth / (Number.isNaN(rootPx) ? 16 : rootPx));
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [ref, isMeasured]);
+  return widthRem;
 }
 
 export interface DataTableProps<Row> {
@@ -148,7 +197,7 @@ function ExportLink({
 
 /** A sortable table with an optional filter bar and CSV/PDF export buttons. */
 export function DataTable<Row>({
-  columns,
+  columns: allColumns,
   rows,
   rowKey,
   caption,
@@ -164,6 +213,9 @@ export function DataTable<Row>({
   initialSort,
   sort,
 }: DataTableProps<Row>): JSX.Element {
+  const rootRef = useRef<HTMLDivElement>(null);
+  const availableRem = useWidthRem(rootRef, singleLine && needsFitting(allColumns));
+  const columns = fitColumns(allColumns, availableRem);
   const [ownKey, setSortKey] = useState<string | null>(initialSort?.key ?? null);
   const [ownDirection, setDirection] = useState<SortDirection>(initialSort?.direction ?? 'asc');
   const sortKey = sort ? sort.key : ownKey;
@@ -173,10 +225,10 @@ export function DataTable<Row>({
     if (onSortChange || !sortKey) return rows;
     return sortRows(
       rows,
-      columns.find((column) => column.key === sortKey),
+      allColumns.find((column) => column.key === sortKey),
       direction,
     );
-  }, [rows, columns, sortKey, direction, onSortChange]);
+  }, [rows, allColumns, sortKey, direction, onSortChange]);
 
   const toggle = (column: Column<Row>): void => {
     if (column.sortable === false) return;
@@ -191,7 +243,7 @@ export function DataTable<Row>({
   const hasExports = Boolean(exportCsvUrl || exportPdfUrl);
 
   return (
-    <div className={singleLine ? 'data-table data-table--single-line' : 'data-table'}>
+    <div ref={rootRef} className={singleLine ? 'data-table data-table--single-line' : 'data-table'}>
       {filters || hasExports ? (
         <div className="data-table__bar">
           <div className="data-table__filters">{filters}</div>

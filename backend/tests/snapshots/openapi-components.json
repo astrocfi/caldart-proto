@@ -933,6 +933,7 @@
       "can_send": "boolean",
       "dart": "integer|null",
       "dart_name": "string",
+      "default_reply_to": "string",
       "is_management": "boolean",
       "reason": "string"
     },
@@ -940,6 +941,7 @@
       "can_send",
       "dart",
       "dart_name",
+      "default_reply_to",
       "is_management",
       "reason"
     ]
@@ -1598,13 +1600,17 @@
       "description": "string",
       "email_type": "integer",
       "name": "string",
-      "opted_out": "boolean"
+      "opted_out": "boolean",
+      "opted_out_at": "string(date-time)|null",
+      "opted_out_source": "unknown"
     },
     "required": [
       "description",
       "email_type",
       "name",
-      "opted_out"
+      "opted_out",
+      "opted_out_at",
+      "opted_out_source"
     ]
   },
   "EmailPreferenceChangeRequest": {
@@ -1666,6 +1672,7 @@
       "allow_opt_out": "boolean",
       "description": "string",
       "id": "integer",
+      "in_use": "boolean",
       "name": "string",
       "position": "integer",
       "sender_roles": "array<ref:SenderRolesEnum>",
@@ -1674,6 +1681,7 @@
     "required": [
       "description",
       "id",
+      "in_use",
       "name",
       "sender_roles",
       "slug"
@@ -2533,6 +2541,13 @@
   "NullEnum": {
     "enum": [
       null
+    ]
+  },
+  "OptedOutSourceEnum": {
+    "enum": [
+      "profile",
+      "unsubscribe",
+      "admin"
     ]
   },
   "OwnerTypeEnum": {

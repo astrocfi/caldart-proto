@@ -167,7 +167,7 @@ def test_a_template_message_with_an_unknown_field_is_refused(
         TEMPLATES_URL, {"name": "Notice", "body": "<p>Hi {nickname}</p>"}, format="json"
     )
     assert response.status_code == 400
-    assert response.json()["body"][0].startswith("{nickname} is not a recipient field.")
+    assert response.json()["body"][0].startswith("{nickname} is not one of the fields.")
 
 
 def test_a_template_type_the_caller_may_not_send_is_refused(

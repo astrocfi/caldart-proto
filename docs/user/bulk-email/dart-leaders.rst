@@ -22,7 +22,8 @@ from then on.
 
 If your profile names no DART, **Compose** shows *Your profile names no DART, so there is
 nobody to send to. Set your DART on My profile.* in place of the email, with a link to **My
-profile**. Choose your DART there and press **Compose** again. An email you started earlier
+profile**; **Drafts & scheduled** shows the same line. Choose your DART there and press
+**Compose** again. An email you started earlier
 says, in place of the filters, that it belongs to you and that your profile names no DART,
 so nobody can be added; CalDART management reads the same line if they open it.
 
@@ -54,7 +55,8 @@ Your drafts and your sent email
 ===============================
 
 **Drafts & scheduled** and **Sent** list only the emails you wrote. Nobody else's drafts
-appear there, and other DART leaders do not see yours. CalDART management sees every bulk
+appear there, and other DART leaders do not see yours. Until you send one, **Sent** says
+*Emails you send appear here. Write one on Compose.* CalDART management sees every bulk
 email, with who wrote it and the DART it went to.
 
 

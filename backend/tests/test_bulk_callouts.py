@@ -356,6 +356,15 @@ def test_the_page_shows_the_message_as_the_persons_copy_had_it(
     assert ("Fire near Paradise for Ann" in page, "Dear Ann," in page) == (True, True)
 
 
+def test_the_page_names_the_address_it_answers_for(
+    client: Client, management: User, ann: User
+) -> None:
+    """The form says whose answer it records."""
+    bulk = sent_callout(management, ann)
+    page = client.get(page_url(token_for(bulk, ann))).content.decode()
+    assert f"You are answering for <strong>{ann.email}</strong>." in page
+
+
 def test_sending_an_answer_records_it_with_the_note(
     client: Client, management: User, ann: User
 ) -> None:

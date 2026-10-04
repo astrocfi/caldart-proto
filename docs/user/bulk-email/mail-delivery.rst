@@ -22,7 +22,8 @@ The page opens with one sentence that sums everything up: either every check is 
 or it says how many found a problem and what that costs. Under it is one block for each
 of four checks. Each block has:
 
-- a colored dot and a word: **Good** (green), **Warning** (amber), or **Problem** (red);
+- a colored dot and a word: **Good** (green), **Warning** (amber), or **Problem** (red),
+  beside the check's name, or on a line of its own under the name on a phone;
 - a line that says what the check is for, in plain words, and what it found;
 - when the check is not good, **What to do**, a sentence you can pass on as it stands to
   the person who looks after the domain name or the server.
@@ -32,7 +33,7 @@ is weaker than it should be, or the page could not judge it. **Problem** means s
 is likely to be marked as spam or refused until it is fixed.
 
 At the foot of the page, **Checked** gives the date and time of the last look and the
-domain it was made for, for example *Checked 10/03/2026 08:00 for caldart.example.org.*
+domain it was made for, for example *Checked 10/03/2026 at 8:00 AM for caldart.example.org.*
 Press **Check again** after somebody says they have fixed something. The page looks the
 records up again, which takes a few seconds. Without it, the page shows what it found
 in the last five minutes.

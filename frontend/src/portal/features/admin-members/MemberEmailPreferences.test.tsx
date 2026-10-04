@@ -4,6 +4,7 @@ import { HttpResponse, http } from 'msw';
 import { describe, expect, it } from 'vitest';
 
 import type { EmailPreference, EmailPreferenceChange } from '@/portal/api/types';
+import { formatDate } from '@/portal/components/DateText';
 import { API } from '@test/handlers';
 import { makeDetail } from '@test/fixtures/members';
 import { renderWithProviders } from '@test/render';
@@ -15,6 +16,8 @@ const MISSION: EmailPreference = {
   name: 'Mission',
   description: 'Requests for pilots and aircraft.',
   opted_out: false,
+  opted_out_source: '',
+  opted_out_at: null,
 };
 
 const MEMBER = makeDetail({ id: 7, name: 'Marta Reyes' });
@@ -44,6 +47,23 @@ describe('MemberEmailPreferences', () => {
       await screen.findByRole('list', { name: 'Kinds of email Marta Reyes receives' }),
     ).toBeInTheDocument();
     expect(screen.getByRole('switch', { name: 'Mission' })).toBeChecked();
+  });
+
+  it('says who turned a type off and when', async () => {
+    const turnedOff: EmailPreference = {
+      ...MISSION,
+      opted_out: true,
+      opted_out_source: 'unsubscribe',
+      opted_out_at: '2026-10-03T16:00:00Z',
+    };
+    stubPreferences([turnedOff]);
+    renderWithProviders(<MemberEmailPreferences member={MEMBER} />);
+
+    expect(
+      await screen.findByText(
+        `Turned off by the member on ${formatDate('2026-10-03T16:00:00Z')} (unsubscribe link).`,
+      ),
+    ).toBeVisible();
   });
 
   it('saves a change to the member’s own preferences', async () => {

@@ -22,7 +22,8 @@ Answering
 
 Press the button that fits. A page opens with the callout's subject, your answer chosen,
 and a **Note (optional)** box for anything the people organizing the mission should know,
-such as *can fly Saturday only* or *aircraft at KSQL*. Press **Send answer**. The page
+such as *can fly Saturday only* or *aircraft at KSQL*, and it names the email address you are
+answering for. Press **Send answer**. The page
 then reads *Thank you. Your answer is* and your answer. Nothing is recorded until you press
 **Send answer**.
 

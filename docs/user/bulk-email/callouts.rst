@@ -40,7 +40,8 @@ One line per callout, the most recently sent first:
 - **Available**, **With limits**, **Not available**, and **No answer**: how many people gave
   each answer, and how many have not answered.
 
-Before the first callout the table reads *No callout has been sent*.
+On a screen too narrow for every column, **DART**, then **From**, are left out; on a phone
+the table scrolls sideways. Before the first callout the table reads *No callout has been sent*.
 
 
 One callout's page
@@ -52,14 +53,16 @@ every person the callout reached:
 
 - **Name** and **Answer**: a dot and *Available*, *Available with limits*, *Not available*,
   or *No answer yet*.
-- **Note**: what the person added, such as *can fly Saturday only*.
-- **Answered**: when they last answered.
-- **DART**, **Home airport**, and **Aircraft**: from their profile as it is now.
 - **Go/no-go**: *GO* or *NO-GO*, as the member check reads them now: a current membership,
   a current medical, and a verified certificate, medical, and photo ID.
+- **Note**: what the person added, such as *can fly Saturday only*, in full.
+- **Answered**: when they last answered, such as *10/03/2026 at 5:34 PM*.
+- **DART**, **Home airport**, and **Aircraft**: from their profile as it is now. On a screen
+  too narrow for every column these three are left out.
 
 The **Answer** menu narrows the table to one answer, or to *No answer yet*, and **Find a
-person** to a name or an address. **Download answers** saves every line as a spreadsheet
+person** to a name or an address; the caption then says how many of everybody it shows,
+such as *Showing 2 of 39*. **Download answers** saves every line as a spreadsheet
 file. **See the email and who it went to** opens the email on :doc:`sent`, with what became
 of every copy. The page keeps itself up to date every half minute while answers are coming
 in.

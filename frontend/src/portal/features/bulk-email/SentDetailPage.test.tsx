@@ -3,7 +3,8 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 
 import type { BulkEmailDetail } from '@/portal/api/types';
-import { EMAIL_FRAME_SANDBOX, withNewTabLinks } from '@/portal/components/EmailFrame';
+import { formatDateAt } from '@/portal/components/DateText';
+import { EMAIL_FRAME_SANDBOX, emailDocument } from '@/portal/components/EmailFrame';
 import {
   LEADER_SENDER,
   answerBulkEmail,
@@ -67,9 +68,10 @@ describe('SentDetailPage', () => {
 
   it('says what the send came to', async () => {
     renderSent();
-    expect(
-      await screen.findByText('Sent to 1 person. 1 failed and 0 were skipped.'),
-    ).toHaveAttribute('role', 'status');
+    expect(await screen.findByText('Sent to 1 person. 1 failed.')).toHaveAttribute(
+      'role',
+      'status',
+    );
   });
 
   it('lists every person with their result and the reason', async () => {
@@ -83,7 +85,7 @@ describe('SentDetailPage', () => {
     const frame = await screen.findByTitle('The message as it was sent');
     expect([frame.getAttribute('sandbox'), frame.getAttribute('srcdoc')]).toEqual([
       EMAIL_FRAME_SANDBOX,
-      withNewTabLinks('<html><body><h1>Hangar day</h1><p>Bring gloves.</p></body></html>'),
+      emailDocument('<html><body><h1>Hangar day</h1><p>Bring gloves.</p></body></html>'),
     ]);
   });
 
@@ -111,18 +113,29 @@ describe('SentDetailPage', () => {
     );
   });
 
-  it('says who sent it and to how many people', async () => {
+  it('says who sent it and when, on the 12-hour clock', async () => {
     renderSent();
-    expect(await screen.findByText(/^Sent by Grace Holloway on .* to 2 people\.$/)).toBeVisible();
+    expect(
+      await screen.findByText(`Sent by Grace Holloway on ${formatDateAt('2026-04-06T17:00:00Z')}.`),
+    ).toBeVisible();
   });
 
   it('puts the name first in the results, with a real width', async () => {
     renderSent();
     const table = await screen.findByRole('table');
     const first = within(table).getAllByRole('columnheader')[0];
-    expect([first?.textContent, table.style.minWidth.includes('16rem + 14rem')]).toEqual([
+    expect([first?.textContent, table.style.minWidth.includes('11rem + 9rem')]).toEqual([
       'Name',
       true,
     ]);
+  });
+
+  it('puts the result and View copy next to the name, so a phone shows them', async () => {
+    renderSent();
+    const table = await screen.findByRole('table');
+    const headers = within(table)
+      .getAllByRole('columnheader')
+      .map((header) => header.textContent);
+    expect(headers.slice(0, 3)).toEqual(['Name', 'Result', 'Copy']);
   });
 });

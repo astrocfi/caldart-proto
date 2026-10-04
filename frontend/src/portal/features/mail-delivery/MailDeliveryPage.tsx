@@ -4,8 +4,9 @@
  *
  * Each line of the server's check (who may send for the domain, the message signature,
  * what to do with forged mail, the bounce address) shows a dot and a word, what the
- * record is for and what was found, and, when something is wrong, what to ask for. The
- * page is written for a reader who has never heard of SPF, DKIM, or DMARC.
+ * record is for and what was found, and, when something is wrong, what to ask for. On
+ * a narrow screen the dot and the word take a line of their own under the line's name.
+ * The page is written for a reader who has never heard of SPF, DKIM, or DMARC.
  */
 import type { JSX } from 'react';
 
@@ -16,7 +17,7 @@ import type {
 } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
-import { formatDateTime } from '@/portal/components/DateText';
+import { formatDateAt } from '@/portal/components/DateText';
 import { Loading } from '@/portal/components/Loading';
 import { Page } from '@/portal/components/Page';
 import { StatusDot } from '@/portal/components/StatusChip';
@@ -54,11 +55,13 @@ function FindingRow({ finding }: { finding: MailDeliveryFinding }): JSX.Element 
   return (
     <li className="delivery-check__row">
       <h3 className="delivery-check__name">
-        <StatusDot tone={STATUS_TONE[finding.status]} label={word} />
-        <span aria-hidden="true" className="delivery-check__word">
-          {word}
+        <span className="delivery-check__status">
+          <StatusDot tone={STATUS_TONE[finding.status]} label={word} />
+          <span aria-hidden="true" className="delivery-check__word">
+            {word}
+          </span>
         </span>
-        {finding.name}
+        <span>{finding.name}</span>
       </h3>
       <p>{finding.detail}</p>
       {finding.fix === '' ? null : (
@@ -109,7 +112,7 @@ export function MailDeliveryPage(): JSX.Element {
             </Button>
             {report ? (
               <span className="muted">
-                Checked {formatDateTime(report.checked_at)}
+                Checked {formatDateAt(report.checked_at)}
                 {report.domain === '' ? '' : ` for ${report.domain}`}.
               </span>
             ) : null}

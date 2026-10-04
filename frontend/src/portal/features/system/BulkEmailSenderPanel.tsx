@@ -6,7 +6,8 @@
  * start time has come and sends it, paced to the mail provider's limit, so a run by
  * hand matters only where no timer is running, such as on a developer's machine.
  * There is no dry run: the sender only ever sends what CalDART management has
- * already pressed Send on.
+ * already pressed Send on. The button sits above what the last run did, so a long
+ * list of copies never pushes it out of reach.
  */
 import type { JSX } from 'react';
 
@@ -42,20 +43,17 @@ export function BulkEmailSenderPanel(): JSX.Element {
   const run = useRunBulkEmailSender();
 
   return (
-    <Card
-      eyebrow="Email"
-      title="Bulk email sender"
-      footer={
-        <Button onClick={() => run.mutate()} disabled={run.isPending}>
-          {run.isPending ? 'Running…' : 'Run the bulk email sender now'}
-        </Button>
-      }
-    >
+    <Card eyebrow="Email" title="Bulk email sender">
       <p className="muted">
         Every minute the server starts each bulk email whose time has come and sends its copies a
         few at a time, so the mail provider never turns them away. Run it here to start at once. The
         page waits up to 45 seconds; a larger send carries on in the background after that.
       </p>
+      <div className="cluster">
+        <Button onClick={() => run.mutate()} disabled={run.isPending}>
+          {run.isPending ? 'Running…' : 'Run the bulk email sender now'}
+        </Button>
+      </div>
 
       {run.isSuccess && run.data.busy ? <p role="status">{SENDER_BUSY}</p> : null}
 

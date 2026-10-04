@@ -47,7 +47,7 @@ from django.conf import settings
 from django.core.mail import mailers
 from django.core.mail.backends.base import BaseEmailBackend
 from django.db import connection, transaction
-from django.db.models import F
+from django.db.models import Count, F
 from django.utils import timezone
 
 from apps.accounts.models import User
@@ -652,13 +652,16 @@ def _try_copy(
 
 
 def _record(bulk: BulkEmail, row: BulkEmailRecipient, attempt: _Attempt, run: SenderRun) -> None:
-    """Save what became of one copy at once: its row, and the email's count.
+    """Save what became of one copy at once: its row first, then the email's count.
 
-    The row is saved first, with its status and ``Message-ID``, before the counts or
-    anything else, so a run that dies after the hand-over leaves a copy that went
-    marked ``sent``, and the next run does not send it again.  The count is added to in
-    the database, not written from ``bulk`` in memory, so a bounce the bounce check
-    moves off ``sent_count`` meanwhile (``apps.bulk_email.delivery``) is not undone.
+    The row is saved first, with its status and ``Message-ID``, outside any transaction
+    and before the counts or anything else, so a run that dies after the hand-over leaves
+    a copy that went marked ``sent``, and the next run never sends it again.  A crash
+    between the two saves therefore leaves the count one short, never a duplicate
+    email; :func:`recount` puts the counts right from the rows when the email finishes
+    or stops.  The count is added to in the database, not written from ``bulk`` in
+    memory, so a bounce the bounce check moves off ``sent_count`` meanwhile
+    (``apps.bulk_email.delivery``) is not undone.
     """
     row.status = attempt.status
     row.reason = attempt.reason
@@ -692,13 +695,43 @@ def _is_stop_requested(bulk: BulkEmail) -> bool:
     return BulkEmail.objects.filter(pk=bulk.pk, stop_requested=True).exists()
 
 
+#: Each count an email keeps, and the status of the rows it counts.
+COUNTED_STATUSES: dict[str, str] = {
+    "sent_count": RecipientStatus.SENT,
+    "failed_count": RecipientStatus.FAILED,
+    "skipped_count": RecipientStatus.SKIPPED,
+    "bounced_count": RecipientStatus.BOUNCED,
+}
+
+
+def recount(bulk: BulkEmail) -> list[str]:
+    """Set ``bulk``'s four counts from its rows, unsaved; answer the fields set.
+
+    ``sent_count``, ``failed_count``, ``skipped_count``, and ``bounced_count`` become the
+    number of rows, over every round, that are ``sent``, ``failed``, ``skipped``, and
+    ``bounced``.  The counts are added to one copy at a time as the send goes, after each
+    row is saved (:func:`_record`), so a run that died between the two leaves a count
+    short; recounting when the email finishes or stops puts it right.
+    """
+    by_status = dict(
+        bulk.recipients.order_by()
+        .values("status")
+        .annotate(rows=Count("pk"))
+        .values_list("status", "rows")
+    )
+    for count_field, status in COUNTED_STATUSES.items():
+        setattr(bulk, count_field, by_status.get(status, 0))
+    return list(COUNTED_STATUSES)
+
+
 def apply_stop(bulk: BulkEmail) -> None:
     """Mark every copy of ``bulk`` not yet sent ``stopped``, and the email too.
 
     Each such row's reason names who pressed **Stop**, ``stopped_by``.  One
     ``bulk_email.stop`` audit line names that account and the copies stopped; it is
     written here, when the stop takes effect, so a stop that came too late to keep any
-    copy back writes none.
+    copy back writes none.  The email's counts are recounted from its rows
+    (:func:`recount`).
     """
     bulk.refresh_from_db(fields=["stopped_by"])
     stopper = bulk.stopped_by.display_name if bulk.stopped_by is not None else UNKNOWN_STOPPER
@@ -711,7 +744,15 @@ def apply_stop(bulk: BulkEmail) -> None:
         bulk.status = BulkEmailStatus.STOPPED
         bulk.stopped_at = moment
         bulk.stop_requested = False
-        bulk.save(update_fields=["status", "stopped_at", "stop_requested", "updated_at"])
+        bulk.save(
+            update_fields=[
+                "status",
+                "stopped_at",
+                "stop_requested",
+                "updated_at",
+                *recount(bulk),
+            ]
+        )
     log.info("bulk email stopped: bulk_email=%s", bulk.pk)
     audit.record(
         audit.BULK_EMAIL_STOP,
@@ -730,7 +771,9 @@ def _finish(bulk: BulkEmail) -> None:
     finishing again after **Retry failed** keeps its first ``sent_at`` and writes
     :func:`_retry_finished`'s line instead, and a mission callout finishing a round of
     reminders writes ``callout.remind_finished``
-    (``apps.bulk_email.callouts.reminder_finished``).
+    (``apps.bulk_email.callouts.reminder_finished``).  Every time, the email's counts are
+    recounted from its rows (:func:`recount`), so a run that died between saving a row
+    and its count leaves no count off for good.
     """
     if bulk.recipients.filter(status=RecipientStatus.PENDING).exists():
         return
@@ -740,7 +783,16 @@ def _finish(bulk: BulkEmail) -> None:
         bulk.sent_at = timezone.now()
     bulk.stop_requested = False
     bulk.stopped_by = None
-    bulk.save(update_fields=["status", "sent_at", "stop_requested", "stopped_by", "updated_at"])
+    bulk.save(
+        update_fields=[
+            "status",
+            "sent_at",
+            "stop_requested",
+            "stopped_by",
+            "updated_at",
+            *recount(bulk),
+        ]
+    )
     if is_retry and is_reminder_finish(bulk):
         reminder_finished(bulk)
         return

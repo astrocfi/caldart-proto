@@ -80,6 +80,16 @@ describe('BulkEmailSenderPanel', () => {
     expect(row).toHaveTextContent('Failed');
   });
 
+  it('keeps the button above what the run did', async () => {
+    answerRuns(RESULT);
+    renderWithProviders(<BulkEmailSenderPanel />);
+    const button = screen.getByRole('button', { name: 'Run the bulk email sender now' });
+    await userEvent.click(button);
+    const table = await screen.findByRole('table');
+    // The table follows the button in the page's order.
+    expect(button.compareDocumentPosition(table) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it('says so when another run was already sending', async () => {
     answerRuns({ ...RESULT, busy: true, emails: 0, sent: 0, failed: 0, skipped: 0, actions: [] });
     renderWithProviders(<BulkEmailSenderPanel />);

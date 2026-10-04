@@ -34,7 +34,7 @@ export function MessagePage(): JSX.Element {
   if (message.isError) {
     const isMissing = message.error instanceof ApiError && message.error.status === 404;
     return (
-      <Page title="Message" eyebrow="Bulk Email">
+      <Page title="Message" eyebrow="Your email">
         <p className="field__error" role="alert">
           {isMissing ? NOT_AVAILABLE_MESSAGE : FALLBACK_ERROR}{' '}
           <Link to="/messages">See all your messages</Link>.
@@ -46,7 +46,7 @@ export function MessagePage(): JSX.Element {
   const shown = message.data;
 
   return (
-    <Page title={shown.subject || 'Message'} eyebrow="Bulk Email" lede={fromLine(shown)}>
+    <Page title={shown.subject || 'Message'} eyebrow="Your email" lede={fromLine(shown)}>
       <Card>
         <EmailFrame title={`The email: ${shown.subject}`} html={shown.html} />
         <p>

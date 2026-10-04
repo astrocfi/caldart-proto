@@ -2,13 +2,15 @@
  * `/bulk-email/groups`: the people CalDART management mails again and again, saved
  * as groups and shared by every manager.
  *
- * One line per group: its name, which opens the group's page, whether it is fixed
- * or live, how many people it holds now, when it last changed, a download of its
- * people, and a trashcan that asks first. **New group** makes an empty one; the
- * usual way to make a group is **Save as a group** under a batch on the compose
- * screen.
+ * One line per group: its name, which opens the group's page, where it is edited;
+ * then a trashcan that asks first and **Download list** of its people (for a group
+ * that holds somebody), so both stay in sight on a phone; then whether it is
+ * fixed or live, how many people it holds now, and when it last changed. **New group**
+ * makes an empty one; the focus moves into its form, Escape closes it, and closing it
+ * puts the focus back on **New group**. The usual way to make a group is **Save as a
+ * group** under a batch on the compose screen.
  */
-import { useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import type { FormEvent, JSX } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
@@ -26,6 +28,7 @@ import './bulk-email.css';
 import './reuse.css';
 import { GroupKindChoice, groupKindLabel } from './GroupKindChoice';
 import { groupCsvUrl, useCreateGroup, useDeleteGroup, useGroups } from './reuseApi';
+import { useFormCard } from './useFormCard';
 
 /** What a live group's row says when the member list refuses one of its stored filters. */
 export const FILTERS_NEED_FIXING = "This group's filters need fixing";
@@ -40,6 +43,9 @@ interface Notice {
 export function GroupsPage(): JSX.Element {
   const [isAdding, setIsAdding] = useState(false);
   const [notice, setNotice] = useState<Notice | null>(null);
+  const newRef = useRef<HTMLButtonElement>(null);
+  const handleClose = useCallback(() => setIsAdding(false), []);
+  const formRef = useFormCard(isAdding ? 'new' : null, handleClose, newRef);
   const groups = useGroups();
   const remove = useDeleteGroup();
   const rows = groups.data ?? [];
@@ -58,7 +64,7 @@ export function GroupsPage(): JSX.Element {
     {
       key: 'name',
       header: 'Name',
-      minWidth: '14rem',
+      minWidth: '12rem',
       render: (group) => (
         <span className="cluster cluster--nowrap">
           <Link to={`/bulk-email/groups/${group.id}`}>{group.name}</Link>
@@ -70,6 +76,32 @@ export function GroupsPage(): JSX.Element {
         </span>
       ),
       sortValue: (group) => group.name.toLowerCase(),
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      width: '10.5rem',
+      keepInSight: true,
+      render: (group) => (
+        <span className="cluster cluster--nowrap">
+          {/* The trashcan first, so a phone shows it beside the name. */}
+          <DeleteButton
+            label={`Delete ${group.name}`}
+            disabled={remove.isPending}
+            onDelete={() => handleDelete(group)}
+          />
+          {hasPeople(group) ? (
+            <a
+              className="button button--quiet button--small"
+              href={groupCsvUrl(group.id)}
+              aria-label={`Download the list of ${group.name}`}
+              download
+            >
+              Download list
+            </a>
+          ) : null}
+        </span>
+      ),
     },
     {
       key: 'kind',
@@ -93,28 +125,6 @@ export function GroupsPage(): JSX.Element {
       render: (group) => <DateText value={group.updated_at} />,
       sortValue: (group) => group.updated_at,
     },
-    {
-      key: 'actions',
-      header: 'Actions',
-      width: '9rem',
-      render: (group) => (
-        <span className="cluster cluster--nowrap">
-          <a
-            className="button button--quiet button--small"
-            href={groupCsvUrl(group.id)}
-            aria-label={`Download the people in ${group.name}`}
-            download
-          >
-            Download
-          </a>
-          <DeleteButton
-            label={`Delete ${group.name}`}
-            disabled={remove.isPending}
-            onDelete={() => handleDelete(group)}
-          />
-        </span>
-      ),
-    },
   ];
 
   return (
@@ -125,6 +135,7 @@ export function GroupsPage(): JSX.Element {
       actions={
         isAdding ? null : (
           <Button
+            ref={newRef}
             onClick={() => {
               setNotice(null);
               setIsAdding(true);
@@ -147,7 +158,9 @@ export function GroupsPage(): JSX.Element {
         </dl>
       </Card>
 
-      {isAdding ? <NewGroupCard onClose={() => setIsAdding(false)} /> : null}
+      <div ref={formRef} className="bulk-email__form-slot">
+        {isAdding ? <NewGroupCard onClose={handleClose} /> : null}
+      </div>
 
       {notice === null ? null : (
         <p
@@ -178,6 +191,11 @@ export function GroupsPage(): JSX.Element {
       </Card>
     </Page>
   );
+}
+
+/** Whether `group` holds anybody now, so that its list is worth downloading. */
+export function hasPeople(group: Pick<RecipientGroup, 'count'>): boolean {
+  return group.count !== null && group.count > 0;
 }
 
 /** The new group form: a name and a kind, then the group's own page opens. */

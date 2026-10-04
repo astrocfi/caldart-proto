@@ -33,6 +33,14 @@ describe('TestSendButton', () => {
     expect(await screen.findByRole('status')).toHaveTextContent('A test went to pat@example.org.');
   });
 
+  it('moves the focus to the line saying where the test went', async () => {
+    answerTest(() => HttpResponse.json({ to: 'pat@example.org' }));
+    renderButton();
+    await userEvent.click(screen.getByRole('button', { name: 'Send me a test' }));
+    const line = await screen.findByText('A test went to pat@example.org.');
+    await waitFor(() => expect(line.parentElement).toHaveFocus());
+  });
+
   it('sends one more test on every press', async () => {
     const count = answerTest(() => HttpResponse.json({ to: 'pat@example.org' }));
     renderButton();

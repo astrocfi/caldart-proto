@@ -7,7 +7,7 @@ import type { EmailType, EmailTypeInput } from '@/portal/api/types';
 import { API, makeUser, signedInAs } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
-import { EmailTypesPage, sendersText } from './EmailTypesPage';
+import { EmailTypesPage, inUseReason, sendersText } from './EmailTypesPage';
 
 function makeType(overrides: Partial<EmailType> = {}): EmailType {
   return {
@@ -18,6 +18,7 @@ function makeType(overrides: Partial<EmailType> = {}): EmailType {
     allow_opt_out: true,
     sender_roles: ['dart_leader', 'management'],
     position: 1,
+    in_use: false,
     ...overrides,
   };
 }
@@ -140,7 +141,7 @@ describe('EmailTypesPage', () => {
     const user = userEvent.setup();
 
     const row = await rowOf('Fundraising');
-    await user.click(within(row).getByRole('button', { name: 'Edit' }));
+    await user.click(within(row).getByRole('button', { name: 'Edit Fundraising' }));
     expect(screen.getByRole('checkbox', { name: 'Recipients may turn it off' })).not.toBeChecked();
     await user.click(screen.getByRole('checkbox', { name: 'Recipients may turn it off' }));
     await user.click(screen.getByRole('checkbox', { name: 'DART leader' }));
@@ -173,6 +174,38 @@ describe('EmailTypesPage', () => {
 
     await waitFor(() => expect(captured.deleted).toEqual(['1']));
     expect(await screen.findByText('Operational deleted.')).toBeInTheDocument();
+  });
+
+  it('grays the trashcan of a type in use, saying why', async () => {
+    stubTypes([makeType({ in_use: true })]);
+    renderPage();
+
+    const trashcan = within(await rowOf('Operational')).getByRole('button', {
+      name: 'Delete Operational',
+    });
+    expect([trashcan.hasAttribute('disabled'), trashcan.getAttribute('title')]).toEqual([
+      true,
+      inUseReason(makeType()),
+    ]);
+  });
+
+  it('starts each name at the left edge', async () => {
+    stubTypes();
+    renderPage();
+    await rowOf('Operational');
+    expect(screen.getByRole('columnheader', { name: 'Name' })).toHaveClass('data-table__wrap');
+  });
+
+  it('puts Edit and the trashcan right after the name, so a phone shows them', async () => {
+    stubTypes();
+    renderPage();
+    await rowOf('Operational');
+    expect(
+      screen
+        .getAllByRole('columnheader')
+        .slice(0, 2)
+        .map((header) => header.textContent),
+    ).toEqual(['Name', 'Actions']);
   });
 
   it('says plainly why a type in use cannot be deleted', async () => {

@@ -18,7 +18,7 @@ import { useToast } from '@/portal/components/Toast';
 import { useBulkEmailAction } from './api';
 import { formatCountdown, useSecondsUntil } from './countdown';
 import { scheduledWords } from './schedule';
-import { people, progressSentence, resultSentence, wentCount } from './status';
+import { people, progressSentence, progressTotal, resultSentence, wentCount } from './status';
 
 /** What the screen says once a queued email is a draft again. */
 export const CANCELED_MESSAGE = 'Sending was canceled. The email is a draft again.';
@@ -129,7 +129,7 @@ function WaitingForTheRest({ email, canStop = true }: StatusProps): JSX.Element 
 /** A send in progress: *Sending… 12 of 38 sent, about 1 minute left.*, a bar, and Stop. */
 export function SendingStatus({ email, canStop = true }: StatusProps): JSX.Element {
   const tried = wentCount(email) + email.failed_count;
-  const total = tried + email.remaining;
+  const total = progressTotal(email);
 
   return (
     <div className="stack-tight bulk-email__status">

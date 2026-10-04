@@ -6,7 +6,7 @@ from typing import Any
 
 from rest_framework import serializers
 
-from apps.mail.models import EmailType
+from apps.mail.models import EmailType, OptOutSource
 from apps.mail.types import SENDER_ROLES, EmailTypeFields
 
 #: The highest ``position`` a type may take: the largest value its column holds.
@@ -20,7 +20,8 @@ class EmailTypeSerializer(serializers.ModelSerializer[EmailType]):
     ``dart_leader`` and ``management``, in that order, once each; an empty list means
     only a system administrator may send the type.  ``position`` is optional on input,
     from 0 to :data:`MAX_POSITION`: left out, a new type goes after every other and an
-    edited one keeps its place.
+    edited one keeps its place.  ``in_use`` is read-only and true once a bulk email has
+    the type, which then cannot be deleted.
     """
 
     # Declared rather than generated so it carries no unique validator: the service
@@ -31,11 +32,25 @@ class EmailTypeSerializer(serializers.ModelSerializer[EmailType]):
         child=serializers.ChoiceField(choices=list(SENDER_ROLES)), allow_empty=True
     )
     position = serializers.IntegerField(min_value=0, max_value=MAX_POSITION, required=False)
+    in_use = serializers.SerializerMethodField()
 
     class Meta:
         model = EmailType
-        fields = ["id", "name", "slug", "description", "allow_opt_out", "sender_roles", "position"]
-        read_only_fields = ["id", "slug"]
+        fields = [
+            "id",
+            "name",
+            "slug",
+            "description",
+            "allow_opt_out",
+            "sender_roles",
+            "position",
+            "in_use",
+        ]
+        read_only_fields = ["id", "slug", "in_use"]
+
+    def get_in_use(self, email_type: EmailType) -> bool:
+        """True once a bulk email has the type, so that it cannot be deleted."""
+        return email_type.bulk_emails.exists()
 
     def to_fields(self) -> EmailTypeFields:
         """The validated input as the service takes it; no ``position`` is ``None``."""
@@ -62,13 +77,19 @@ class EmailPreferenceSerializer(serializers.Serializer[dict[str, object]]):
     """One type a person may turn off, and whether they have.
 
     ``email_type`` is the type's id; ``name`` and ``description`` are the type's own.
-    ``opted_out`` is true when the person receives none of that type.
+    ``opted_out`` is true when the person receives none of that type.  For a type
+    turned off, ``opted_out_source`` says where (``profile``, ``unsubscribe``, or
+    ``admin``) and ``opted_out_at`` when; they are ``""`` and null for a type left on.
     """
 
     email_type = serializers.IntegerField()
     name = serializers.CharField()
     description = serializers.CharField()
     opted_out = serializers.BooleanField()
+    opted_out_source = serializers.ChoiceField(
+        choices=[("", "Not turned off"), *OptOutSource.choices], allow_blank=True
+    )
+    opted_out_at = serializers.DateTimeField(allow_null=True)
 
 
 class EmailPreferenceChangeSerializer(serializers.Serializer[dict[str, object]]):

@@ -12,7 +12,8 @@ open it too.
 
 Pressing **Compose** opens a fresh email, or the empty one you started earlier. The screen
 reads top to bottom as three numbered cards. There is no Save button: everything you do is
-kept as you go, so you can leave and come back from :doc:`drafts`.
+kept as you go, so you can leave and come back from :doc:`drafts`. A draft made with
+**Duplicate** (:doc:`sent`) says at the top *This is a copy of* and the email's subject.
 
 
 1. Who gets it
@@ -29,26 +30,27 @@ time, with the filters the member list uses:
 - **Expiring within (days)**: members whose membership ends within that many days.
 
 Choose the filters, then press **Add to batch**. Everybody they choose joins the batch, and a
-line says what happened, such as *Added 12 people; 3 were already in the batch.* Change the
-filters and press **Add to batch** again as often as you like: nobody is added twice. With no
-filters chosen, **Add to batch** adds every member and friend. Donors are never added.
+line, which takes the keyboard focus, says what happened, such as *Added 12 people; 3 were
+already in the batch.* or *Nobody matches these filters.* Add again as often as you like:
+nobody is added twice. With no filters chosen, it adds every member and friend. Donors are
+never added.
 
 **Add a saved group**, beside **Add to batch**, adds everybody in a group kept on
 :doc:`groups` the same way: nobody is added twice.
 
 Once somebody is in the batch, a line counts it, such as *38 people will receive this email;
-4 are skipped.* Under it, **Download list** saves the batch as a spreadsheet file (CSV) with
+4 are skipped.*, or *39 people will receive this email.* when nobody is skipped. Under it, in
+one row, **Download list** saves the batch as a spreadsheet file (CSV) with
 each person's membership status, the filters that chose them, whether they will receive
 the email, and its type. **Save as a group** keeps the batch as a group to add to another
 email later (:doc:`groups` explains the two kinds). **Clear batch** takes everybody out after
 you press **Clear the batch**.
 
 The table lists the batch in surname order, ten at a time until you press **Show all**. Each
-row has the person's **Name**, **Email**, and **Will receive?**, which reads *Yes* or the
-reason they are skipped; then **Kind**, **DART**, and **Chosen by** (the filters that brought
-them in, such as *Kind: Members only*, or *Group: Board* for a saved group, or *Copied from*
-and the subject for people copied with **Duplicate**). On a narrow screen the table scrolls sideways. The
-reasons are:
+row has the person's **Name**, the trashcan, **Email**, and **Will receive?**, which reads
+*Yes* or the reason they are skipped; then **Kind**, **DART**, and **Chosen by** (the filters
+that brought them in, *Group: Board* for a saved group, or *Copied from* and a subject). A
+narrow screen leaves out **Chosen by**, then **DART**. The reasons are:
 
 - *Account deactivated*: the account has been deactivated.
 - *Account deleted*: the account no longer exists.
@@ -95,14 +97,12 @@ address your organization chose for replies, or with your own address. Change it
 address that should get the replies, such as a DART leader's or a shared operations
 mailbox; empty it to go back to the starting address, which the hint under it names. The
 address saves when you leave the field or press Enter, and *Reply-To saved.* says so. An
-address that is not one, such as *ops@*, reads *Enter a valid email address.* and the
-address saved before stays until you fix it; the subject and the message keep saving
-meanwhile.
+address that is not one, such as *ops@*, reads *Enter a valid email address.*, and the one
+saved before stays until you fix it.
 
-The buttons over the message format it: **Bold** and **Italic** for the words you have
-selected, **Heading** for a line that heads a section, and **Bulleted list** and **Numbered
-list**. A button stays pressed while the words at the cursor have its style; press it again
-to take the style off.
+The buttons over the message format it: **Bold**, **Italic**, **Heading**, **Bulleted list**,
+and **Numbered list**. A button stays pressed while the words at the cursor have its style;
+press it again to take the style off.
 
 - **Link** asks for the **Web or email address** the selected words go to, such as
   *caldart.org/events* or an email address, then **Add link**. With nothing selected, the
@@ -123,9 +123,10 @@ to take the style off.
   with no first name.
 
 A field can only be one of those in the list. Anything else written in braces, such as
-*{nickname}*, is refused with *{nickname} is not a recipient field.*, and the message is
-not saved until it is fixed. A web address that needs braces of its own writes them as
-*%7B* and *%7D*, as the message says. A field with bold or another style on only part of it
+*{nickname}*, is refused with *{nickname} is not one of the fields. Pick a field from Insert
+field, or take out the braces.*, and the words are not saved until it is fixed. A link's web
+address that needs braces of its own writes them as *%7B* and *%7D*, as the message says
+when the braces are in one. A field with bold or another style on only part of it
 is refused too: delete it and put it in again with **Insert field**.
 
 Each copy comes from the site's own address, with replies going to the **Reply-To**
@@ -140,11 +141,9 @@ receive it instead.
 in your own mail program as the people in the batch will: the same layout, pictures, links,
 footer, and Reply-To, with your own details in its fields. Its subject starts *[Test]*. What
 you have typed is saved first. Each press sends one more test and says where it went, such as
-*A test went to pat@example.org.* A test is not part of the send: it is not counted and
-nobody else receives it, though it is listed in the log of sent emails as *Bulk email test*.
-If the email has a problem marked **Must fix** (see below), the test is not sent and the
-problems are listed instead. If the mail server turns the test away, the card says *The mail
-server refused the test. Try again in a minute.*
+*A test went to pat@example.org.*, which takes the keyboard focus. A test is not counted and
+is listed in the log of sent emails as *Bulk email test*. An email with a problem marked
+**Must fix** (see below) is not sent as a test; the problems are listed instead.
 
 
 3. Check and send
@@ -154,8 +153,12 @@ At the top of the card are the **Checks**: mistakes the site looks for in the sa
 each on a line of its own with a dot. They run when the card opens, again when you press
 **Check again**, and again when you press **Send** or **Schedule for later**. While they run
 the card reads *Checking the email for mistakes, such as links that do not work…*, which can
-take a few seconds, since each link is tried. *No problems found.* means there is nothing to
-say.
+take a few seconds. *No problems found.* means there is nothing to say, or *Nothing else to
+fix.* while a step such as the subject is still missing.
+
+Words that could not be saved come first, marked **Must fix**, such as *Your subject has a
+mistake:* and the reason, with **Fix it under 2. What it says.**, which puts the cursor there.
+**Send** and **Schedule for later** stay off until the words are saved.
 
 A red dot and **Must fix:** mark a problem the email cannot go with, such as a **Reply-To**
 that is not an email address, or a field that cannot be filled in. **Send** stays off until it
@@ -163,13 +166,11 @@ is fixed and you press **Check again**. An amber dot and **Worth a look:** mark 
 that may be a mistake, and *You can still send.* says you may go ahead anyway:
 
 - *{dart_name} is empty for 41 of 120 people who receive this email, so their copies show
-  nothing there.* Most people have no value for that field: add words to show instead, as
-  in *{dart_name|your DART}*, or take it out.
+  nothing there.* Add words to show instead, as in *{dart_name|your DART}*, or take it out.
 - *The email still says "TODO".* Placeholder text, such as *TODO*, *XXX*, *lorem ipsum*, or
   *[insert*, is still in the subject or the message.
-- *1 picture has no description for people who cannot see pictures.* A picture pasted in
-  from somewhere else can arrive without one. Delete it and put it in again with **Image**,
-  which asks for a description.
+- *1 picture has no description for people who cannot see pictures.* Delete it and put it
+  in again with **Image**, which asks for one.
 - *1 picture is wider than 1200 pixels, too wide for many mail programs.*
 - *This link does not load*, sometimes with the kind of error the site answered, or *This
   link timed out*: the page may be gone or the address mistyped. Open it yourself to be
@@ -187,9 +188,10 @@ tried. If the checks cannot run at all, or take more than a few seconds when you
 on: an email with a problem marked **Must fix** is still refused when you send it.
 
 Below the checks is a preview: the email as the first person in the batch will
-receive it, their own details filled in. *Previewing as Ann Able (1 of 38)* says whose copy
-it is; **Next person** and **Previous person** step through everybody who receives it. The
-preview shows what has been saved, so it catches up a moment after you stop typing. While
+receive it, their own details filled in, once the message is written. *Previewing as Ann
+Able (1 of 38)* says whose copy it is; **Next person** and **Previous person** step through
+everybody who receives it. The preview shows what has been saved, and says so while your
+latest words cannot be saved. While
 nobody in the batch receives the email, the preview is your own copy. The footer reads as
 it will in the email, but its unsubscribe link in the preview leads nowhere, so nobody is
 unsubscribed by a click there. When a field in the message cannot be filled in, the
@@ -207,10 +209,10 @@ such as *Sending starts in 2 minutes, and until then you can cancel it.* or *It 
 10/04/2026 at 8:00 AM Pacific time.* When the email goes to more than 50 people, the
 confirmation also asks you to **Type 38 to confirm**, and the button that sends stays off
 until the number matches. A different number reads *That number does not match. Type 38, the
-number of people who will receive it.* Press **Send now** or **Schedule it** to go ahead, or
-**Go back**; the Escape key goes back too. If the batch changed meanwhile, the send is refused
-with the new number, such as *The batch has changed: it now holds 39 people. Type the new
-count.*
+number of people who will receive it.* The focus starts on **Go back**, so Enter pressed
+twice never sends. Press **Send now** or **Schedule it**, or **Go back** (or Escape). A batch
+that changed meanwhile is refused with its new number, such as *The batch has changed: it
+now holds 39 people. Type the new count.*
 
 
 Once it is sent
@@ -219,25 +221,23 @@ Once it is sent
 Where the email stands then shows in a banner at the top of the screen.
 
 After **Send now** you have two minutes to change your mind. The banner reads *Sending in 1
-min 58 s* with a bar counting down, and a **Cancel** button. Once the countdown ends it reads
-*Starting to send. Nothing has been sent yet. You can still cancel until the first copy goes
-out.* **Cancel** turns the email back into a draft with nothing lost.
+min 58 s* with a bar counting down and **Cancel**, in place of **Check and send**; then
+*Starting to send. Nothing has been sent yet.* **Cancel** turns the email back into a draft
+with nothing lost until the first copy goes out.
 
 A scheduled email shows *Scheduled for* its date and time with **Cancel the schedule**. Until
-it starts you can still change its message, and the **Check and send** card offers **Change
-the time**, which opens at the time already chosen, and **Send now instead**. A change to the
-batch of a scheduled email takes it back to your drafts, because the number of people you
-confirmed has changed, and the screen says *The recipients changed, so this email is back in
-your drafts. Press Send or Schedule again when it is ready.*
+it starts you can still change its message, and **Check and send** offers **Change the
+time** and **Send in 2 minutes instead**, which starts the two-minute countdown. A change to
+its batch takes it back to your drafts, since the count you confirmed changed: *The
+recipients changed, so this email is back in your drafts.*
 
 Once sending starts, the screen holds still and the banner reads, for example, *Sending… 12
 of 38 sent, about 1 minute left.* with a bar. CalDART sends a few copies a minute so the mail
 provider never turns them away, so a large email takes a while. **Stop sending** stops it
 after the copy going out now, once you press **Stop now**: copies already sent cannot be
 called back. When it finishes, the banner says how it went, such as *Sent to 51 people.
-Everyone was sent a copy.*, beside **See who received it**, which opens the email's page under
-:doc:`sent`. An email that was partly sent can never be changed again, even after **Send the
-rest**.
+Everyone was sent a copy.*, beside **See who received it** (:doc:`sent`). A partly sent email
+can never be changed again.
 
 
 If something looks wrong

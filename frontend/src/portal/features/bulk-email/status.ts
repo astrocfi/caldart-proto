@@ -91,17 +91,23 @@ export function people(count: number): string {
   return count === 1 ? '1 person' : `${count} people`;
 }
 
-/** `38 people will receive this email; 4 are skipped.`: what the batch comes to. */
+/**
+ * `38 people will receive this email; 4 are skipped.`: what the batch comes to; with
+ * nobody skipped, `38 people will receive this email.`
+ */
 export function batchSentence(receiving: number, skipped: number): string {
+  if (skipped === 0) return `${people(receiving)} will receive this email.`;
   const skips = skipped === 1 ? '1 is skipped' : `${skipped} are skipped`;
   return `${people(receiving)} will receive this email; ${skips}.`;
 }
 
 /**
  * `Added 12 people; 3 were already in the batch.`: what one add did.  With nobody
- * there already it is `Added 12 people.`
+ * there already it is `Added 12 people.`, and with nobody found at all `Nobody matches
+ * these filters.`
  */
 export function addSentence(result: BulkEmailAddResult): string {
+  if (result.added === 0 && result.already_present === 0) return 'Nobody matches these filters.';
   if (result.already_present === 0) return `Added ${people(result.added)}.`;
   const already =
     result.already_present === 1
@@ -136,17 +142,31 @@ export function wentCount(
   return email.sent_count + (email.bounced_count ?? 0);
 }
 
+/**
+ * How many copies a send in progress comes to: the batch's count of who receives one,
+ * which holds still while the copies go. The email's counts and its waiting copies are
+ * read one after the other, so a copy recorded between the two reads is in neither,
+ * and adding them up can come one short; the batch's count does not.
+ */
+export function progressTotal(
+  email: Pick<BulkEmailDetail, 'sent_count' | 'failed_count' | 'remaining' | 'receiving_count'> & {
+    bounced_count?: number;
+  },
+): number {
+  return Math.max(email.receiving_count, wentCount(email) + email.failed_count + email.remaining);
+}
+
 /** `Sending… 12 of 38 sent, about 1 minute left.`: a send in progress. */
 export function progressSentence(email: BulkEmailDetail, now: Date = new Date()): string {
   const went = wentCount(email);
-  const total = went + email.failed_count + email.remaining;
+  const total = progressTotal(email);
   return `Sending… ${went} of ${total} sent, ${timeLeft(email.estimated_finish_at, now)} left.`;
 }
 
 /**
  * `Sent to 37 people. 1 failed and 4 were skipped.`: what a finished or stopped
- * send came to.  With nothing failed or skipped it is `Sent to 51 people. Everyone
- * was sent a copy.`  Copies that came back undelivered later are counted as sent and
+ * send came to, leaving out a count of nobody (`Sent to 37 people. 2 failed.`).  With
+ * nothing failed or skipped it is `Sent to 51 people. Everyone was sent a copy.`  Copies that came back undelivered later are counted as sent and
  * then named: `2 came back undelivered.`
  */
 export function resultSentence(
@@ -158,12 +178,17 @@ export function resultSentence(
   const bounced = email.bounced_count ?? 0;
   const returned = bounced === 0 ? '' : ` ${bounced} came back undelivered.`;
   const sent = `Sent to ${people(wentCount(email))}.`;
-  const failed = `${email.failed_count} failed`;
-  const skipped = `${email.skipped_count} ${email.skipped_count === 1 ? 'was' : 'were'} skipped`;
-  const isEveryone = email.failed_count === 0 && email.skipped_count === 0;
-  const counts = isEveryone
-    ? `${sent} Everyone was sent a copy.${returned}`
-    : `${sent} ${failed} and ${skipped}.${returned}`;
+  // A count of nobody is left out, so the line names only what happened.
+  const misses = [
+    email.failed_count === 0 ? null : `${email.failed_count} failed`,
+    email.skipped_count === 0
+      ? null
+      : `${email.skipped_count} ${email.skipped_count === 1 ? 'was' : 'were'} skipped`,
+  ].filter((part) => part !== null);
+  const counts =
+    misses.length === 0
+      ? `${sent} Everyone was sent a copy.${returned}`
+      : `${sent} ${misses.join(' and ')}.${returned}`;
   if (email.status !== 'stopped') return counts;
   const who = email.stopped_by ? ` by ${email.stopped_by}` : '';
   return `Stopped${who}. ${counts}`;

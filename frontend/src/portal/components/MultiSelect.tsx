@@ -6,7 +6,8 @@
  * opens a panel of checkboxes under it.  Each checkbox applies as it is ticked or
  * unticked, so any choice, the last one included, can be taken back on its own,
  * and **Clear** takes them all back at once.  The panel shuts on a click outside
- * it and on Escape, handing the focus back to the box.
+ * it and on Escape, handing the focus back to the box.  A screen reader hears the
+ * box by its legend and what it holds, *County: Any*, not by what it holds alone.
  */
 import { useCallback, useId, useRef, useState } from 'react';
 import type { JSX } from 'react';
@@ -78,6 +79,7 @@ export function MultiSelect({
   };
 
   const summary = summarize(options, value);
+  const shown = summary === '' ? placeholder : summary;
 
   return (
     <div className="multi-select" ref={rootRef}>
@@ -85,15 +87,14 @@ export function MultiSelect({
         type="button"
         id={id}
         className="multi-select__toggle"
+        aria-label={`${legend}: ${shown}`}
         title={title}
         aria-describedby={describedBy}
         aria-expanded={isOpen}
         aria-controls={isOpen ? panelId : undefined}
         onClick={() => setIsOpen((open) => !open)}
       >
-        <span className={summary === '' ? 'multi-select__placeholder' : undefined}>
-          {summary === '' ? placeholder : summary}
-        </span>
+        <span className={summary === '' ? 'multi-select__placeholder' : undefined}>{shown}</span>
         <span className="multi-select__caret" aria-hidden="true" />
       </button>
       {isOpen ? (

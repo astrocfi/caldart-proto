@@ -734,6 +734,77 @@ def test_a_copy_that_went_is_marked_sent_before_anything_else(
     ]
 
 
+def test_a_count_a_crash_left_short_is_put_right_when_the_send_finishes(
+    three: BulkEmail, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The run that finishes recounts from the rows, so the missed count comes back."""
+    original = QuerySet.update
+    crashed: list[bool] = []
+
+    def crash_on_counts(self: QuerySet[Any], **kwargs: Any) -> int:
+        if not crashed and "sent_count" in kwargs:
+            crashed.append(True)
+            raise KeyboardInterrupt
+        return original(self, **kwargs)
+
+    monkeypatch.setattr(QuerySet, "update", crash_on_counts)
+    with pytest.raises(KeyboardInterrupt):
+        job.run_sender(now=NOW)
+    short = refreshed(three).sent_count
+    job.run_sender(now=NOW)
+    assert (short, refreshed(three).sent_count) == (0, 3)
+
+
+@pytest.mark.parametrize(
+    ("field", "planted"),
+    [("sent_count", 0), ("failed_count", 5), ("skipped_count", 2), ("bounced_count", 1)],
+)
+def test_finishing_recounts_every_count_from_the_rows(
+    three: BulkEmail, field: str, planted: int
+) -> None:
+    """A count planted wrong while the email sends is the rows' count once it finishes."""
+    job.run_sender(now=NOW)
+    BulkEmail.objects.filter(pk=three.pk).update(status=BulkEmailStatus.SENDING, **{field: planted})
+    job.run_sender(now=NOW)
+    sent = refreshed(three)
+    assert (sent.status, getattr(sent, field)) == (
+        BulkEmailStatus.SENT,
+        {"sent_count": 3, "failed_count": 0, "skipped_count": 0, "bounced_count": 0}[field],
+    )
+
+
+def test_stopping_recounts_from_the_rows(three: BulkEmail, management: User) -> None:
+    """A stop that takes effect puts a planted count right too."""
+    job.run_sender(now=NOW)
+    BulkEmail.objects.filter(pk=three.pk).update(sent_count=7, stopped_by=management)
+    job.apply_stop(refreshed(three))
+    assert refreshed(three).sent_count == 3
+
+
+def test_a_recorded_copy_is_not_sent_again_by_the_next_run(
+    three: BulkEmail, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A run that dies after recording a copy leaves it sent; the next run skips it."""
+    original = job._record
+    recorded: list[bool] = []
+
+    def crash_after_first(*args: Any, **kwargs: Any) -> None:
+        original(*args, **kwargs)
+        if not recorded:
+            recorded.append(True)
+            raise KeyboardInterrupt
+
+    monkeypatch.setattr(job, "_record", crash_after_first)
+    with pytest.raises(KeyboardInterrupt):
+        job.run_sender(now=NOW)
+    job.run_sender(now=NOW)
+    assert [message.to[0] for message in mail.outbox] == [
+        "ann@example.test",
+        "bea@example.test",
+        "cy@example.test",
+    ]
+
+
 # --------------------------------------------------------------------------
 # An unexpected error
 # --------------------------------------------------------------------------

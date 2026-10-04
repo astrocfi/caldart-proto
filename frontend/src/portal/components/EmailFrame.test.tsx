@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
-import { EmailFrame, withNewTabLinks } from './EmailFrame';
+import { EmailFrame, withFittedImages, withNewTabLinks } from './EmailFrame';
 
 const EMAIL =
   '<!doctype html><html lang="en"><head><meta charset="utf-8" /></head><body><a href="https://caldart.org">Site</a></body></html>';
@@ -28,7 +28,7 @@ describe('EmailFrame', () => {
   it("opens the email's links in a new tab", () => {
     render(<EmailFrame title="The email" html={EMAIL} />);
     expect(screen.getByTitle('The email').getAttribute('srcdoc')).toBe(
-      '<!doctype html><html lang="en"><head><base target="_blank" rel="noopener"><meta charset="utf-8" /></head><body><a href="https://caldart.org">Site</a></body></html>',
+      '<!doctype html><html lang="en"><head><style>img{max-width:100%;height:auto}</style><base target="_blank" rel="noopener"><meta charset="utf-8" /></head><body><a href="https://caldart.org">Site</a></body></html>',
     );
   });
 });
@@ -41,6 +41,14 @@ describe('withNewTabLinks', () => {
   it('reads a head that carries attributes', () => {
     expect(withNewTabLinks('<HEAD lang="en"><title>x</title></HEAD>')).toBe(
       '<HEAD lang="en"><base target="_blank" rel="noopener"><title>x</title></HEAD>',
+    );
+  });
+});
+
+describe('withFittedImages', () => {
+  it('keeps every picture within the width it is shown at', () => {
+    expect(withFittedImages('<p><img src="a.png" width="900"></p>')).toBe(
+      '<style>img{max-width:100%;height:auto}</style><p><img src="a.png" width="900"></p>',
     );
   });
 });

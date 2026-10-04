@@ -6,6 +6,10 @@
  * sits over the table somebody is trying to read.  Closing it while the focus is
  * still inside puts the focus back on the button, so a keyboard user carries on
  * from the control they opened rather than from the top of the page.
+ *
+ * A panel of choices, such as a list of columns, keeps to a fixed height and
+ * scrolls; a panel that holds a form (`isForm`) takes the height its form needs, so
+ * the button that sends it is never cut off.
  */
 import { useCallback, useId, useRef, useState } from 'react';
 import type { JSX, ReactNode } from 'react';
@@ -23,6 +27,8 @@ export interface PanelButtonProps {
    * that closes the panel, for a choice that finishes the panel's work.
    */
   children: (handleClose: () => void) => ReactNode;
+  /** The panel holds a form: it grows to the form's height rather than scrolling. */
+  isForm?: boolean;
 }
 
 /**
@@ -32,7 +38,12 @@ export interface PanelButtonProps {
  * The panel's contents mount only while it is open, so anything they fetch is
  * fetched only once somebody asks for the panel.
  */
-export function PanelButton({ label, legend, children }: PanelButtonProps): JSX.Element {
+export function PanelButton({
+  label,
+  legend,
+  children,
+  isForm = false,
+}: PanelButtonProps): JSX.Element {
   const [isOpen, setIsOpen] = useState(false);
   const panelId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -63,7 +74,12 @@ export function PanelButton({ label, legend, children }: PanelButtonProps): JSX.
         {label}
       </Button>
       {isOpen ? (
-        <fieldset id={panelId} className="panel-button__panel">
+        <fieldset
+          id={panelId}
+          className={
+            isForm ? 'panel-button__panel panel-button__panel--form' : 'panel-button__panel'
+          }
+        >
           <legend>{legend}</legend>
           {children(handleClose)}
         </fieldset>

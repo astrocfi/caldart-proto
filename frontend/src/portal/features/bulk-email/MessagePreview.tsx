@@ -7,7 +7,9 @@
  * portal. The preview shows the saved message, and is read again each time the
  * message or the batch is saved. A change to the batch starts it again from the
  * first person, since the person shown may have left it, and so does the server
- * saying the person shown is no longer in the batch.
+ * saying the person shown is no longer in the batch. Before the message is written
+ * it says the preview appears once it is, and while the words typed could not be
+ * saved it says it shows the last saved version.
  */
 import { useEffect, useState } from 'react';
 import type { JSX } from 'react';
@@ -15,6 +17,7 @@ import type { JSX } from 'react';
 import { ApiError } from '@/portal/api/client';
 import type { BulkEmailDetail, BulkEmailPreview } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
+import { withFittedImages } from '@/portal/components/EmailFrame';
 import { useBulkEmailPreview } from './richTextApi';
 import './preview.css';
 
@@ -50,8 +53,33 @@ function isNotInBatch(error: unknown): boolean {
   return error instanceof ApiError && error.fieldErrors.recipient_id !== undefined;
 }
 
+/** What the preview says before the message is written. */
+export const NO_MESSAGE_YET = 'The preview appears once you write the message.';
+
+/** What the preview says while the words on the screen could not be saved. */
+export const LAST_SAVED_NOTE =
+  'This preview shows the last saved version. Your latest changes are not in it yet.';
+
+interface MessagePreviewProps {
+  email: BulkEmailDetail;
+  /** True while the words on the screen could not be saved, so the preview is behind. */
+  isBehind?: boolean;
+}
+
 /** The preview of `email`'s saved message, one person at a time. */
-export function MessagePreview({ email }: { email: BulkEmailDetail }): JSX.Element {
+export function MessagePreview({ email, isBehind = false }: MessagePreviewProps): JSX.Element {
+  if (email.body.trim() === '') {
+    return (
+      <section className="bulk-email__preview" aria-label="Preview">
+        <p className="muted">{NO_MESSAGE_YET}</p>
+      </section>
+    );
+  }
+  return <PersonPreview email={email} isBehind={isBehind} />;
+}
+
+/** The preview of a written message, with the person shown and the steps between people. */
+function PersonPreview({ email, isBehind }: Required<MessagePreviewProps>): JSX.Element {
   // The person chosen, remembered with the batch they were chosen from: once the
   // batch changes, the choice no longer stands and the first person is shown.
   const batchVersion = `${email.batch_count}/${email.receiving_count}`;
@@ -107,6 +135,7 @@ export function MessagePreview({ email }: { email: BulkEmailDetail }): JSX.Eleme
           </Button>
         </div>
       </div>
+      {isBehind ? <p className="field__error">{LAST_SAVED_NOTE}</p> : null}
       <p>
         <strong>Subject:</strong> {shown.subject}
       </p>
@@ -114,7 +143,7 @@ export function MessagePreview({ email }: { email: BulkEmailDetail }): JSX.Eleme
         className="bulk-email__preview-frame"
         title={`The email as ${shown.recipient.name} will receive it`}
         sandbox=""
-        srcDoc={shown.html}
+        srcDoc={withFittedImages(shown.html)}
       />
     </section>
   );

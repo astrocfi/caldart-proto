@@ -19,7 +19,8 @@
 .bulk-email__preview-frame {
   display: block;
   width: 100%;
-  min-height: 28rem;
+  height: 75vh;
+  min-height: 20rem;
   border: var(--hairline) solid var(--color-rule-strong);
   border-radius: var(--radius);
 }

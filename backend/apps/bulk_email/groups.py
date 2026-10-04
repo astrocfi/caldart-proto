@@ -25,6 +25,7 @@ from operator import or_
 
 from django.db import transaction
 from django.db.models import Max, Q, QuerySet
+from django.utils.text import slugify
 from rest_framework.exceptions import ValidationError
 
 from apps.accounts.models import User
@@ -327,16 +328,17 @@ def group_document(group: RecipientGroup) -> ReportDocument:
     """Everybody in ``group`` now as a CSV, in surname order.
 
     The columns are :data:`GROUP_CSV_HEADER`: each person's name, address, kind
-    (``Member`` or ``Friend``), and DART.  The file is named
-    ``caldart-recipient-group-<id>.csv``.  Raises :class:`GroupFiltersError` when a
-    live group's stored filters need fixing.
+    (``Member`` or ``Friend``), and DART.  The file is named after the group,
+    ``caldart-group-<slug>.csv`` with the slug of its name, or
+    ``caldart-group-<id>.csv`` when the name has no letter or digit to slug.  Raises
+    :class:`GroupFiltersError` when a live group's stored filters need fixing.
     """
     rows = [
         (person.name, person.email, person.kind.capitalize(), person.dart_name)
         for person in group_people(group)
     ]
     return ReportDocument(
-        filename=f"caldart-recipient-group-{group.pk}.csv",
+        filename=f"caldart-group-{slugify(group.name) or group.pk}.csv",
         media_type=CSV_DOCUMENT_TYPE,
         content="".join(csv_rows(GROUP_CSV_HEADER, rows)).encode(),
     )

@@ -1,11 +1,11 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { BulkEmailCopy, BulkEmailDetail } from '@/portal/api/types';
-import { formatDateTime } from '@/portal/components/DateText';
-import { EMAIL_FRAME_SANDBOX, withNewTabLinks } from '@/portal/components/EmailFrame';
+import { formatDateAt } from '@/portal/components/DateText';
+import { EMAIL_FRAME_SANDBOX, emailDocument } from '@/portal/components/EmailFrame';
 import { answerBulkEmail, makeBatch, makeBulkEmail, makeRow } from '@test/fixtures/bulkEmail';
 import { API } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
@@ -88,7 +88,7 @@ describe('DeliveryReport', () => {
   it('counts the copies by result', () => {
     renderReport(finished({ retried_count: 2 }));
     expect(screen.getByLabelText('Copies by result')).toHaveTextContent(
-      'Delivered1Failed1Skipped1Bounced1Retried2',
+      'Sent2Failed1Skipped1Bounced1Retried2',
     );
   });
 
@@ -97,7 +97,7 @@ describe('DeliveryReport', () => {
     const row = (await screen.findByText('cy@example.org')).closest('tr');
     // Formatted as the table formats it, so the test reads alike in every time zone.
     expect(row).toHaveTextContent(
-      `Bounced5.1.1 User unknown${formatDateTime('2026-04-06T17:00:06Z')}`,
+      `BouncedView copycy@example.org5.1.1 User unknown${formatDateAt('2026-04-06T17:00:06Z')}`,
     );
   });
 
@@ -112,6 +112,13 @@ describe('DeliveryReport', () => {
         .slice(1)
         .map((row) => row.textContent),
     ).toEqual([expect.stringContaining('Bea Bell')]);
+  });
+
+  it('says how many of everybody a narrowed table shows', async () => {
+    renderReport();
+    await screen.findByText('bea@example.org');
+    await userEvent.selectOptions(screen.getByLabelText('Result'), 'Failed');
+    expect(screen.getByRole('table')).toHaveTextContent('Showing 1 of 4');
   });
 
   it('offers a copy only for the people whose copy was tried', async () => {
@@ -136,7 +143,7 @@ describe('DeliveryReport', () => {
     const frame = await screen.findByTitle('The email as Ann Able received it');
     expect([frame.getAttribute('sandbox'), frame.getAttribute('srcdoc')]).toEqual([
       EMAIL_FRAME_SANDBOX,
-      withNewTabLinks(ANN_COPY.html),
+      emailDocument(ANN_COPY.html),
     ]);
   });
 
@@ -159,6 +166,38 @@ describe('DeliveryReport', () => {
     expect([screen.queryByRole('dialog'), document.activeElement]).toEqual([null, view]);
   });
 
+  describe('in a browser with modal dialogs', () => {
+    // jsdom has no modal dialogs; these stand in for the browser's, opening and
+    // shutting the dialog as `showModal` and `close` do.
+    beforeEach(() => {
+      HTMLDialogElement.prototype.showModal = function showModal(this: HTMLDialogElement) {
+        this.setAttribute('open', '');
+      };
+      HTMLDialogElement.prototype.close = function close(this: HTMLDialogElement) {
+        this.removeAttribute('open');
+      };
+    });
+
+    afterEach(() => {
+      Reflect.deleteProperty(HTMLDialogElement.prototype, 'showModal');
+      Reflect.deleteProperty(HTMLDialogElement.prototype, 'close');
+    });
+
+    it('moves the focus back to View copy only once the modal dialog has shut', async () => {
+      renderReport();
+      const view = await screen.findByRole('button', { name: 'View the copy sent to Ann Able' });
+      // The page behind a modal dialog takes no focus, so the dialog must be shut first.
+      const isOpenAtFocus: boolean[] = [];
+      vi.spyOn(view, 'focus').mockImplementation(() => {
+        isOpenAtFocus.push(document.querySelector('dialog[open]') !== null);
+        HTMLElement.prototype.focus.call(view);
+      });
+      await userEvent.click(view);
+      await userEvent.click(await screen.findByRole('button', { name: 'Close' }));
+      expect([isOpenAtFocus.includes(true), document.activeElement]).toEqual([false, view]);
+    });
+  });
+
   it('closes the copy on Escape', async () => {
     renderReport();
     await userEvent.click(
@@ -169,15 +208,12 @@ describe('DeliveryReport', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
-  it('leaves the copy open on Escape pressed outside it', async () => {
+  it('opens the copy as a dialog over the page, which waits until it is shut', async () => {
     renderReport();
     await userEvent.click(
       await screen.findByRole('button', { name: 'View the copy sent to Ann Able' }),
     );
-    await screen.findByRole('dialog');
-    await userEvent.click(screen.getByRole('searchbox'));
-    await userEvent.keyboard('{Escape}');
-    expect(screen.getByRole('dialog')).toBeVisible();
+    expect(await screen.findByRole('dialog')).toHaveAttribute('aria-modal', 'true');
   });
 
   it('retries the failed copies after asking', async () => {
@@ -227,7 +263,7 @@ describe('DeliveryReport', () => {
     );
     const retries = screen.getByRole('region', { name: 'Retries' });
     expect(retries).toHaveTextContent(
-      `${formatDateTime('2026-04-07T15:00:00Z')}: Hollis Grant sent 1 person a fresh copy.`,
+      `${formatDateAt('2026-04-07T15:00:00Z')}: Hollis Grant sent 1 person a fresh copy.`,
     );
   });
 

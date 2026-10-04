@@ -121,3 +121,19 @@
 .bulk-email__test p {
   margin: 0;
 }
+
+/* Download list, Save as a group, and Clear batch, in one row; Clear batch's
+ * confirmation takes a line of its own when it opens. */
+.bulk-email__batch-actions {
+  align-items: flex-start;
+}
+
+.bulk-email__batch-actions > section {
+  flex-basis: 100%;
+}
+
+/* Holds a list screen's form for its keyboard handling and draws nothing itself, so
+ * the page's spacing between cards is as it would be without it. */
+.bulk-email__form-slot {
+  display: contents;
+}

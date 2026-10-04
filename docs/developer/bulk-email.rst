@@ -288,7 +288,10 @@ row becomes ``skipped`` with *Not in your DART* or *Opted out of <type>*, and
 handed to the mail server its row is saved first, ``sent`` with its
 ``Message-ID``, and only then the email's counts, all outside any transaction, so a
 run that dies after the hand-over leaves the copy marked sent and the next run does
-not send it again.  The counts are added to in the database (``F() + 1``) rather
+not send it again.  A crash between the two saves leaves a count short, never a
+duplicate email: when the email finishes, and when a stop takes effect,
+``job.recount`` sets ``sent_count``, ``failed_count``, ``skipped_count``, and
+``bounced_count`` from the rows, so no count stays off.  The counts are added to in the database (``F() + 1``) rather
 than written from the email held in memory, so a bounce moved off ``sent_count``
 while the email sends (`After the send`_) stays moved.  The run reads ``stop_requested`` afresh before each copy's
 pause and again after it.  A **Stop** takes effect there: every copy not yet sent

@@ -323,6 +323,22 @@
   text-align: start;
 }
 
+/* A column whose words must be read whole, such as a skip reason, wraps instead, and
+ * starts at the left edge whatever position it holds.  Its buttons wrap too, one
+ * above the other, when a phone narrows the column. */
+.data-table--single-line th.data-table__wrap,
+.data-table--single-line td.data-table__wrap {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-overflow: clip;
+  padding-right: var(--space-3);
+  text-align: start;
+}
+
+.data-table--single-line td.data-table__wrap .cluster.cluster--nowrap {
+  flex-wrap: wrap;
+}
+
 .data-table__sort {
   display: inline-flex;
   align-items: center;

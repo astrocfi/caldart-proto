@@ -86,9 +86,44 @@ describe('GroupsPage', () => {
 
   it("offers each group's people as a download", async () => {
     renderGroups();
+    expect(await screen.findByRole('link', { name: 'Download the list of Board' })).toHaveAttribute(
+      'href',
+      '/api/v1/bulk-email/groups/5/members.csv',
+    );
+  });
+
+  it('calls the download Download list, as the group page does', async () => {
+    renderGroups();
     expect(
-      await screen.findByRole('link', { name: 'Download the people in Board' }),
-    ).toHaveAttribute('href', '/api/v1/bulk-email/groups/5/members.csv');
+      (await screen.findByRole('link', { name: 'Download the list of Board' })).textContent,
+    ).toBe('Download list');
+  });
+
+  it('offers no download for a group with nobody in it', async () => {
+    state.rows = [makeGroup({ kind: 'live', count: 0 })];
+    renderGroups();
+    await screen.findByRole('link', { name: 'Board' });
+    expect(screen.queryByRole('link', { name: 'Download the list of Board' })).toBeNull();
+  });
+
+  it('puts the actions right after the name', async () => {
+    renderGroups();
+    const table = await screen.findByRole('table');
+    expect(
+      within(table)
+        .getAllByRole('columnheader')
+        .slice(0, 2)
+        .map((header) => header.textContent),
+    ).toEqual(['Name', 'Actions']);
+  });
+
+  it('moves the focus into the new group form, and back to New group on Escape', async () => {
+    const user = userEvent.setup();
+    renderGroups();
+    await user.click(await screen.findByRole('button', { name: 'New group' }));
+    expect(screen.getByRole('textbox', { name: /^Name/ })).toHaveFocus();
+    await user.keyboard('{Escape}');
+    expect(screen.getByRole('button', { name: 'New group' })).toHaveFocus();
   });
 
   it('says what a fixed and a live group keep', async () => {

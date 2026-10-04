@@ -729,6 +729,16 @@ rating, photo ID, and role codes, and the list of California counties.
 ``BoldIcon`` to ``ImageIcon`` -- each ``aria-hidden``, drawn in
 ``currentColor``, square, and ``1.25em`` on a side unless the caller asks for
 another size, so the portal ships no icon dependency.
+A single-line ``DataTable`` fits its container (``components/tableFit.ts``) and keeps
+a row's actions in sight: a screen puts its actions column right after the
+identifying column; the columns with a ``dropOrder`` (such as a type or a DART; the
+bulk email screens share theirs in ``features/bulk-email/dropOrder.ts``) are left out
+one at a time, the lowest first, until the rest fit; and on a phone, where even that
+is too wide, the ``keepInSight`` columns take their ``narrowWidth`` and the leading
+text column narrows, down to a floor, so they end within the screen.  A column marked
+``wrap`` (a reason, a description) runs onto more lines rather than being cut short.  A ``PanelButton``
+whose panel holds a form passes ``isForm``, so the panel grows to the form rather
+than scrolling at a fixed height.
 ``IconButton`` is a control that shows one of those icons and nothing else: a
 ``<button>`` with the ``icon-button`` class rather than a ``Button``, with no
 border, no background, and the muted text color until hover or keyboard focus
@@ -847,7 +857,10 @@ the ``RequireRole`` on its route.
 ``MM/DD/YYYY`` (``formatDate`` and the ``DateText`` component), a moment adds a
 24-hour clock, ``MM/DD/YYYY HH:MM`` (``formatDateTime``, or ``DateText`` with
 ``withTime``), a time of day alone reads ``HH:MM`` (``formatTime``), and a
-``YYYY-MM`` month reads ``Mar 2026`` (``formatMonth``).  A bare ``YYYY-MM-DD``
+``YYYY-MM`` month reads ``Mar 2026`` (``formatMonth``).  A moment a volunteer reads
+in words, such as when a bulk email went or a schedule a sender chose, reads on the
+12-hour clock, ``MM/DD/YYYY at h:mm AM`` (``formatDateAt``, or ``DateText`` with
+``withTime`` and ``twelveHour``); every bulk email screen and Mail delivery use it.  A bare ``YYYY-MM-DD``
 is read as local midnight, so a date never shows as the day before west of
 Greenwich.  ESLint's ``no-restricted-syntax`` refuses five calls anywhere else
 under ``src/portal``: ``toLocaleDateString``, ``toLocaleTimeString``,

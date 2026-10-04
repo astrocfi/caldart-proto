@@ -134,12 +134,12 @@ describe('GroupDetailPage, a fixed group', () => {
     await waitFor(() => expect(calls.renamed).toEqual([{ name: 'Directors' }]));
   });
 
-  it('puts the trashcan at the end of each row', async () => {
+  it('puts the trashcan right after the name, so a phone shows it', async () => {
     answerGroup(makeGroup(), [makeGroupPerson()]);
     renderGroup(5);
     await screen.findByRole('cell', { name: 'Ann Able' });
     const headers = screen.getAllByRole('columnheader').map((header) => header.textContent);
-    expect(headers.at(-1)).toBe('Remove');
+    expect(headers.slice(0, 2)).toEqual(['Name', 'Remove']);
   });
 
   it('has no filters to change', async () => {
@@ -212,6 +212,23 @@ describe('GroupDetailPage, a live group', () => {
     );
     await user.click(screen.getByRole('button', { name: 'Remove' }));
     await waitFor(() => expect(calls.filtersRemoved).toEqual([8]));
+  });
+
+  it('offers the list as a download while it finds somebody', async () => {
+    answerGroup(MARIN, [makeGroupPerson()]);
+    renderGroup(6);
+    expect(await screen.findByRole('link', { name: 'Download list' })).toHaveAttribute(
+      'href',
+      '/api/v1/bulk-email/groups/6/members.csv',
+    );
+  });
+
+  it('offers no download while its filters find nobody', async () => {
+    answerGroup({ ...MARIN, count: 0, filter_sets: [] }, []);
+    renderGroup(6);
+    await screen.findByRole('heading', { name: 'Who it finds now' });
+    await screen.findByText('Nobody is in this group');
+    expect(screen.queryByRole('link', { name: 'Download list' })).toBeNull();
   });
 
   it('lists whoever its filters find now, with no way to add one person', async () => {

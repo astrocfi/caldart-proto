@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 
 import type { CalloutDetail } from '@/portal/api/types';
-import { formatDateTime } from '@/portal/components/DateText';
+import { formatDateAt } from '@/portal/components/DateText';
 import { answerCallout, makeCallout } from '@test/fixtures/callouts';
 import { renderRoutes } from '@test/render';
 import {
@@ -44,9 +44,18 @@ describe('CalloutDetailPage', () => {
       .getByText('Ann Able')
       .closest('tr');
     expect(ann).toHaveTextContent(
-      `Ann AbleAvailable with limitsAvailable with limitsSaturday only` +
-        `${formatDateTime('2026-04-06T18:00:00Z')}Marin DARTLVKN123ABCleared to flyGO`,
+      `Ann AbleAvailable with limitsAvailable with limitsCleared to flyGOSaturday only` +
+        `${formatDateAt('2026-04-06T18:00:00Z')}Marin DARTLVKN123AB`,
     );
+  });
+
+  it('puts the answer and the go/no-go next to the name, so a phone shows them', async () => {
+    renderCallout();
+
+    const headers = within(await answersTable())
+      .getAllByRole('columnheader')
+      .map((header) => header.textContent);
+    expect(headers.slice(0, 3)).toEqual(['Name', 'Answer', 'Go/no-go']);
   });
 
   it('marks somebody the member check would not clear', async () => {
@@ -66,7 +75,7 @@ describe('CalloutDetailPage', () => {
       'No answer yet',
     );
 
-    const table = screen.getByRole('table', { name: 'Answers: 3 people' });
+    const table = screen.getByRole('table', { name: 'Showing 2 of 3' });
     expect(within(table).queryByText('Ann Able')).not.toBeInTheDocument();
     expect(within(table).getByText('Cy Cole')).toBeInTheDocument();
   });

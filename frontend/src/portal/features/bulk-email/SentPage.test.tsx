@@ -85,7 +85,7 @@ describe('SentPage', () => {
     renderWithProviders(<SentPage />);
     const table = await screen.findByRole('table');
     const first = within(table).getAllByRole('columnheader')[0];
-    expect([first?.textContent, first?.className, table.style.minWidth.includes('16rem')]).toEqual([
+    expect([first?.textContent, first?.className, table.style.minWidth.includes('9rem')]).toEqual([
       'Subject',
       'data-table__text',
       true,
@@ -115,5 +115,26 @@ describe('SentPage', () => {
       .getAllByRole('columnheader')
       .map((header) => header.textContent);
     expect(headers.filter((header) => header === 'From' || header === 'DART')).toEqual([]);
+  });
+
+  it('puts the actions right after the subject, so they stay in sight', async () => {
+    answerSent([makeSummary({ status: 'sent' })]);
+    renderWithProviders(<SentPage />);
+    const table = await screen.findByRole('table');
+    const headers = within(table)
+      .getAllByRole('columnheader')
+      .map((header) => header.textContent);
+    expect(headers.slice(0, 2)).toEqual(['Subject', 'Actions']);
+  });
+
+  it('tells a DART leader with nothing sent where their emails will show', async () => {
+    answerSender(LEADER_SENDER);
+    answerSent([]);
+    renderWithProviders(<SentPage />);
+    expect(await screen.findByText('You have not sent an email yet')).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Compose' })).toHaveAttribute(
+      'href',
+      '/bulk-email/compose',
+    );
   });
 });

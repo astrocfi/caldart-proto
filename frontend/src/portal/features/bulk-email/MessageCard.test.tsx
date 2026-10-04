@@ -1,7 +1,7 @@
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { JSX } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -9,6 +9,7 @@ import { FIELDS } from '@test/fixtures/bulkEmail';
 import { API } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
+import type { RichTextEditorHandle } from '@/portal/components/RichTextEditor';
 import { MessageCard } from './MessageCard';
 
 interface CardProps {
@@ -25,6 +26,8 @@ function Card({
 }: CardProps): JSX.Element {
   const [subject, setSubject] = useState('Hangar day');
   const [body, setBody] = useState('<p>Dear </p>');
+  const subjectRef = useRef<HTMLInputElement>(null);
+  const editorRef = useRef<RichTextEditorHandle>(null);
   return (
     <MessageCard
       emailId={7}
@@ -47,6 +50,8 @@ function Card({
       isEditable={isEditable}
       onBeforeReplace={() => Promise.resolve(true)}
       onReplaced={() => undefined}
+      subjectRef={subjectRef}
+      editorRef={editorRef}
     />
   );
 }
@@ -76,10 +81,10 @@ describe('MessageCard', () => {
 
   it("shows the server's refusal of the message beside it", () => {
     answerFields();
-    renderWithProviders(<Card errors={{ body: '{nickname} is not a recipient field.' }} />);
+    renderWithProviders(<Card errors={{ body: '{nickname} is not one of the fields.' }} />);
     const message = screen.getByRole('textbox', { name: 'Message' });
     expect([screen.getByRole('alert').textContent, message.getAttribute('aria-invalid')]).toEqual([
-      '{nickname} is not a recipient field.',
+      '{nickname} is not one of the fields.',
       'true',
     ]);
   });

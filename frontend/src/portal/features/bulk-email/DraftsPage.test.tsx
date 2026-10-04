@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it } from 'vitest';
 
-import { answerSender, LEADER_SENDER, makeSummary } from '@test/fixtures/bulkEmail';
+import { answerSender, LEADER_SENDER, makeSummary, NO_DART_SENDER } from '@test/fixtures/bulkEmail';
 import { API } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
@@ -51,8 +51,8 @@ describe('DraftsPage', () => {
     ]);
     renderWithProviders(<DraftsPage />);
     const draft = (await screen.findByRole('link', { name: 'Hangar day' })).closest('tr');
-    // The type is the column after the subject.
-    expect(within(draft as HTMLElement).getAllByRole('cell')[1]).toHaveTextContent(/^—$/);
+    // The type is the column after the subject and its actions.
+    expect(within(draft as HTMLElement).getAllByRole('cell')[2]).toHaveTextContent(/^—$/);
     const scheduled = screen.getByText('Newsletter').closest('tr');
     expect(
       within(scheduled as HTMLElement).getByRole('cell', { name: 'Mission' }),
@@ -120,11 +120,32 @@ describe('DraftsPage', () => {
     renderWithProviders(<DraftsPage />);
     const table = await screen.findByRole('table');
     const first = within(table).getAllByRole('columnheader')[0];
-    expect([first?.textContent, first?.className, table.style.minWidth.includes('16rem')]).toEqual([
+    expect([first?.textContent, first?.className, table.style.minWidth.includes('14rem')]).toEqual([
       'Subject',
       'data-table__text',
       true,
     ]);
+  });
+
+  it('puts the actions right after the subject, so they stay in sight', async () => {
+    answerDrafts([makeSummary()]);
+    renderWithProviders(<DraftsPage />);
+    const table = await screen.findByRole('table');
+    const headers = within(table)
+      .getAllByRole('columnheader')
+      .map((header) => header.textContent);
+    expect(headers.slice(0, 2)).toEqual(['Subject', 'Actions']);
+  });
+
+  it('tells a DART leader with no DART to set it, rather than to write an email', async () => {
+    answerSender(NO_DART_SENDER);
+    answerDrafts([]);
+    renderWithProviders(<DraftsPage />);
+    expect(await screen.findByRole('link', { name: 'Open My profile' })).toHaveAttribute(
+      'href',
+      '/profile',
+    );
+    expect(screen.queryByText('Press Write a new email to start one.')).toBeNull();
   });
 
   it('shows CalDART management who wrote each email and its DART', async () => {

@@ -5,13 +5,15 @@
  * A switch saves the moment it moves; while that save is under way every switch
  * waits, and the line under them says *Saved.* once it lands, or what went wrong.
  * The switches read the list the server answered the save with, so a refused change
- * puts its switch straight back.
+ * puts its switch straight back. Enter moves a switch as Space does. On the member
+ * record each type turned off also says who turned it off and when.
  */
 import { useId, useState } from 'react';
-import type { JSX } from 'react';
+import type { JSX, KeyboardEvent } from 'react';
 import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
 
 import type { EmailPreference, EmailPreferenceChange } from '@/portal/api/types';
+import { formatDate } from '@/portal/components/DateText';
 import { EmptyState } from '@/portal/components/EmptyState';
 
 import './email-preferences.css';
@@ -23,6 +25,23 @@ export interface EmailPreferenceSwitchesProps {
   save: UseMutationResult<EmailPreference[], Error, EmailPreferenceChange>;
   /** Names the group of switches for a screen reader. */
   label: string;
+  /** Say under each type turned off who turned it off and when, as the member record does. */
+  showsWhoTurnedOff?: boolean;
+}
+
+/**
+ * Who turned `preference` off and when, in words: *Turned off by the member on
+ * 10/03/2026 (unsubscribe link).*, or null for a type left on.
+ */
+export function turnedOffLine(preference: EmailPreference): string | null {
+  if (!preference.opted_out || preference.opted_out_source === '') return null;
+  const when = formatDate(preference.opted_out_at);
+  if (preference.opted_out_source === 'admin') {
+    return `Turned off by an account administrator on ${when}.`;
+  }
+  const where =
+    preference.opted_out_source === 'unsubscribe' ? 'unsubscribe link' : 'Email preferences';
+  return `Turned off by the member on ${when} (${where}).`;
 }
 
 /** The switches, their loading and empty states, and the saved-or-failed line. */
@@ -30,6 +49,7 @@ export function EmailPreferenceSwitches({
   preferences,
   save,
   label,
+  showsWhoTurnedOff = false,
 }: EmailPreferenceSwitchesProps): JSX.Element {
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -69,6 +89,7 @@ export function EmailPreferenceSwitches({
             key={preference.email_type}
             preference={preference}
             isDisabled={save.isPending}
+            showsWhoTurnedOff={showsWhoTurnedOff}
             onToggle={handleToggle}
           />
         ))}
@@ -83,6 +104,7 @@ export function EmailPreferenceSwitches({
 interface EmailPreferenceSwitchProps {
   preference: EmailPreference;
   isDisabled: boolean;
+  showsWhoTurnedOff: boolean;
   onToggle: (preference: EmailPreference, isReceiving: boolean) => void;
 }
 
@@ -90,10 +112,20 @@ interface EmailPreferenceSwitchProps {
 function EmailPreferenceSwitch({
   preference,
   isDisabled,
+  showsWhoTurnedOff,
   onToggle: handleToggle,
 }: EmailPreferenceSwitchProps): JSX.Element {
   const id = useId();
   const descriptionId = `${id}-description`;
+  const whoLine = showsWhoTurnedOff ? turnedOffLine(preference) : null;
+
+  // A checkbox moves on Space alone; a switch moves on Enter too, as a reader expects.
+  const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>): void => {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    if (!isDisabled) handleToggle(preference, preference.opted_out);
+  };
+
   return (
     <li className="email-switch">
       <input
@@ -104,6 +136,7 @@ function EmailPreferenceSwitch({
         disabled={isDisabled}
         aria-describedby={descriptionId}
         onChange={(event) => handleToggle(preference, event.target.checked)}
+        onKeyDown={handleKeyDown}
       />
       <div>
         <label htmlFor={id} className="email-switch__name">
@@ -116,6 +149,7 @@ function EmailPreferenceSwitch({
         <p id={descriptionId} className="muted email-switch__description">
           {preference.description}
         </p>
+        {whoLine === null ? null : <p className="muted email-switch__description">{whoLine}</p>}
       </div>
     </li>
   );

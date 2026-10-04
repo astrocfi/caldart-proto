@@ -12,14 +12,15 @@
  * **Start from a template** and **Save as a template** sit at the top
  * (`TemplateControls`).
  */
-import { useId, useRef } from 'react';
-import type { JSX } from 'react';
+import { useId } from 'react';
+import type { JSX, RefObject } from 'react';
 
 import { Card } from '@/portal/components/Card';
 import { Field } from '@/portal/components/Field';
 import { RichTextEditor } from '@/portal/components/RichTextEditor';
 import type { RichTextEditorHandle } from '@/portal/components/RichTextEditor';
 import { CalloutFields } from './CalloutFields';
+import { WHAT_IT_SAYS_ID } from './ChecksList';
 import { EmailTypeChoice } from './EmailTypeChoice';
 import { InsertFieldMenu } from './InsertFieldMenu';
 import { ReplyToField } from './ReplyToField';
@@ -70,6 +71,9 @@ interface MessageCardProps {
   onBeforeReplace: () => Promise<boolean>;
   /** Called once a template's words are saved in the email, to show them. */
   onReplaced: () => void;
+  /** The subject box and the editor, which the screen moves the focus to for a fix. */
+  subjectRef: RefObject<HTMLInputElement | null>;
+  editorRef: RefObject<RichTextEditorHandle | null>;
 }
 
 /** The subject and message fields, with the save note. */
@@ -91,9 +95,9 @@ export function MessageCard({
   isEditable,
   onBeforeReplace: handleBeforeReplace,
   onReplaced: handleReplaced,
+  subjectRef,
+  editorRef,
 }: MessageCardProps): JSX.Element {
-  const subjectRef = useRef<HTMLInputElement>(null);
-  const editorRef = useRef<RichTextEditorHandle>(null);
   const messageId = useId();
   const hintId = `${messageId}-hint`;
   const errorId = `${messageId}-error`;
@@ -102,7 +106,7 @@ export function MessageCard({
     .join(' ');
 
   return (
-    <Card title="2. What it says" className="bulk-email__card">
+    <Card id={WHAT_IT_SAYS_ID} title="2. What it says" className="bulk-email__card">
       {isEditable ? (
         <p className="muted">
           Choose the type, then write the subject and the message. Everything saves itself as you

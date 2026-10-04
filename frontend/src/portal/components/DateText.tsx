@@ -4,7 +4,9 @@
  * Every date or time a portal screen shows passes through this module, so the
  * format can change here alone: dates read `MM/DD/YYYY`, datetimes add a
  * 24-hour `HH:MM`, a time of day alone reads `HH:MM`, and a month reads
- * `Mar 2026`. Date inputs stay native `<input type="date">`, which the browser
+ * `Mar 2026`. A time a volunteer reads in words, such as when a bulk email went,
+ * reads `04/07/2026 at 8:00 AM` instead (`formatDateAt`, or `DateText` with
+ * `twelveHour`). Date inputs stay native `<input type="date">`, which the browser
  * renders in the reader's own locale; `todayIso` gives them their value.
  */
 import type { JSX } from 'react';
@@ -132,18 +134,28 @@ export interface DateTextProps {
   value: string | null | undefined;
   /** Include the time of day. */
   withTime?: boolean;
+  /** With `withTime`, read the time on the 12-hour clock: `04/07/2026 at 8:00 AM`. */
+  twelveHour?: boolean;
   placeholder?: string;
 }
 
-/** A date, or a datetime with `withTime`, in the mono face so columns line up. */
+/**
+ * A date, or a datetime with `withTime`, in the mono face so columns line up; with
+ * `twelveHour` too, the time reads on the 12-hour clock.
+ */
 export function DateText({
   value,
   withTime = false,
+  twelveHour = false,
   placeholder = '—',
 }: DateTextProps): JSX.Element {
   if (!value) return <span className="mono muted">{placeholder}</span>;
   const parsed = parse(value);
-  const text = withTime ? formatDateTime(value, placeholder) : formatDate(value, placeholder);
+  const text = !withTime
+    ? formatDate(value, placeholder)
+    : twelveHour
+      ? formatDateAt(value, undefined, placeholder)
+      : formatDateTime(value, placeholder);
   return (
     <time className="mono" dateTime={parsed ? value : undefined}>
       {text}

@@ -58,6 +58,8 @@ test('CalDART management builds a batch from two filter sets and sends it', asyn
   await addRole(page, 'system_admin');
 
   const batch = page.getByRole('table', { name: /^The batch: \d+ (person|people)$/ });
+  // Chosen by shows on a screen wide enough for every column of the batch.
+  await page.setViewportSize({ width: 1600, height: 900 });
   await expect(batch.getByRole('row').filter({ hasText: DEMO.management })).toContainText('Yes');
   await expect(batch.getByRole('row').filter({ hasText: DEMO.sysadmin })).toContainText(
     'Role: System administrator',

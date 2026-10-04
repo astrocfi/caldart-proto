@@ -1,6 +1,6 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { Column } from './DataTable';
 import { DataTable, sortRows, tableMinWidth } from './DataTable';
@@ -249,5 +249,65 @@ describe('the minimum widths of a single-line table', () => {
     expect(screen.getByRole('columnheader', { name: 'Name' })).toHaveClass('data-table__text');
     expect(screen.getByRole('table')).toHaveStyle({ minWidth: 'calc(16rem + 9rem + 6rem)' });
     expect(screen.getByRole('columnheader', { name: 'Name' })).toHaveStyle({ width: '16rem' });
+  });
+});
+
+describe('a table fitted to a narrow container', () => {
+  const columns: Column<{ id: number; name: string }>[] = [
+    { key: 'name', header: 'Name', minWidth: '16rem', render: (row) => row.name },
+    { key: 'actions', header: 'Actions', width: '6rem', keepInSight: true, render: () => 'Edit' },
+    { key: 'type', header: 'Type', width: '7rem', dropOrder: 1, render: () => 'Operational' },
+    { key: 'reason', header: 'Reason', minWidth: '10rem', wrap: true, render: () => 'Opted out' },
+  ];
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('leaves out a droppable column and keeps the actions in sight', () => {
+    // jsdom lays nothing out, so every container measures 0 pixels wide.
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        observe(): void {}
+        disconnect(): void {}
+      },
+    );
+    render(
+      <DataTable
+        singleLine
+        columns={columns}
+        rows={[{ id: 1, name: 'Ann' }]}
+        rowKey={(r) => r.id}
+      />,
+    );
+    expect([
+      screen.getAllByRole('columnheader').map((header) => header.textContent),
+      screen.getByRole('columnheader', { name: 'Name' }).style.width,
+    ]).toEqual([['Name', 'Actions', 'Reason'], '5rem']);
+  });
+
+  it('shows every column where nothing is measured', () => {
+    render(
+      <DataTable
+        singleLine
+        columns={columns}
+        rows={[{ id: 1, name: 'Ann' }]}
+        rowKey={(r) => r.id}
+      />,
+    );
+    expect(screen.getAllByRole('columnheader')).toHaveLength(4);
+  });
+
+  it('lets a wrapping column run onto more lines', () => {
+    render(
+      <DataTable
+        singleLine
+        columns={columns}
+        rows={[{ id: 1, name: 'Ann' }]}
+        rowKey={(r) => r.id}
+      />,
+    );
+    expect(screen.getByRole('cell', { name: 'Opted out' })).toHaveClass('data-table__wrap');
   });
 });

@@ -86,7 +86,22 @@ def test_a_listed_type_carries_every_setting(system_admin_client: APIClient) -> 
             "allow_opt_out": False,
             "sender_roles": [DART_LEADER],
             "position": 4,
+            "in_use": False,
         }
+    ]
+
+
+def test_a_type_a_bulk_email_has_reads_as_in_use(system_admin_client: APIClient) -> None:
+    """``in_use`` says the type cannot be deleted, before anybody tries."""
+    used = EmailTypeFactory(name="Used", position=1)
+    EmailTypeFactory(name="Unused", position=2)
+    BulkEmailFactory(email_type=used)
+
+    response = system_admin_client.get(LIST_URL)
+
+    assert [(row["name"], row["in_use"]) for row in response.json()] == [
+        ("Used", True),
+        ("Unused", False),
     ]
 
 

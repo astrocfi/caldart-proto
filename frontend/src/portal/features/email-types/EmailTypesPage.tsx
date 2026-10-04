@@ -1,10 +1,11 @@
 /**
  * `/bulk-email/types` — the kinds of bulk email, for a system administrator.
  *
- * One table and one form: **Add an email type** opens the form empty and each row's
- * **Edit** opens it on that type. Each row's trashcan asks before it deletes, and a
- * type a bulk email has used is refused, with the server's sentence saying what to
- * do instead shown above the table.
+ * One table, in a card, and one form: **Add an email type** opens the form empty and
+ * each row's **Edit** opens it on that type. Each row's trashcan asks before it
+ * deletes. A type a bulk email has used cannot be deleted: its trashcan is grayed, and
+ * holding the pointer over it says what to do instead. The description and the
+ * senders wrap, so they read in full.
  */
 import { useState } from 'react';
 import type { JSX } from 'react';
@@ -28,6 +29,11 @@ type OpenForm = { mode: 'new' } | { mode: 'edit'; id: number } | null;
 interface Notice {
   text: string;
   isError: boolean;
+}
+
+/** Why a type a bulk email has used cannot be deleted, and what to do instead. */
+export function inUseReason(emailType: EmailType): string {
+  return `${emailType.name} has been used for a bulk email, so it cannot be deleted. To keep DART leaders and CalDART management from sending it, take their roles off it instead.`;
 }
 
 /** The roles that send `emailType`, in words. */
@@ -101,28 +107,58 @@ export function EmailTypesPage(): JSX.Element {
         }),
     );
 
+  // The name and the actions come first, narrow enough to stay in sight on a phone; the
+  // description takes whatever room the fixed widths leave.
   const columns: Column<EmailType>[] = [
     {
       key: 'name',
       header: 'Name',
       width: '10rem',
+      wrap: true,
       render: (emailType) => emailType.name,
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      width: '7rem',
+      keepInSight: true,
+      render: (emailType) => (
+        <span className="cluster cluster--nowrap">
+          <Button
+            variant="quiet"
+            small
+            aria-label={`Edit ${emailType.name}`}
+            onClick={() => handleEdit(emailType)}
+          >
+            Edit
+          </Button>
+          <DeleteButton
+            label={`Delete ${emailType.name}`}
+            disabled={remove.isPending || emailType.in_use}
+            title={emailType.in_use ? inUseReason(emailType) : undefined}
+            onDelete={() => handleDelete(emailType)}
+          />
+        </span>
+      ),
     },
     {
       key: 'description',
       header: 'What it is for',
+      wrap: true,
       render: (emailType) => emailType.description,
     },
     {
       key: 'senders',
       header: 'Who may send it',
       width: '16rem',
+      wrap: true,
       render: (emailType) => sendersText(emailType),
     },
     {
       key: 'allow_opt_out',
       header: 'Can be turned off',
       width: '9rem',
+      wrap: true,
       // The word says it; the dot, hidden from a screen reader, only colors it.
       render: (emailType) => (
         <>
@@ -134,23 +170,6 @@ export function EmailTypesPage(): JSX.Element {
           </span>{' '}
           {emailType.allow_opt_out ? 'Yes' : 'No'}
         </>
-      ),
-    },
-    {
-      key: 'actions',
-      header: '',
-      width: '7rem',
-      render: (emailType) => (
-        <span className="cluster cluster--nowrap">
-          <Button variant="quiet" small onClick={() => handleEdit(emailType)}>
-            Edit
-          </Button>
-          <DeleteButton
-            label={`Delete ${emailType.name}`}
-            disabled={remove.isPending}
-            onDelete={() => handleDelete(emailType)}
-          />
-        </span>
       ),
     },
   ];
@@ -197,21 +216,29 @@ export function EmailTypesPage(): JSX.Element {
         </p>
       )}
 
-      <DataTable
-        singleLine
-        columns={columns}
-        rows={rows}
-        rowKey={(emailType) => emailType.id}
-        caption="Email types"
-        isLoading={types.isPending}
-        emptyTitle="No email types yet"
-        emptyDescription="Add one, and CalDART management can choose it when they send a bulk email."
-      />
-      {types.isError ? (
-        <p className="field__error" role="alert">
-          The email types could not be loaded.
-        </p>
-      ) : null}
+      <Card>
+        <DataTable
+          singleLine
+          columns={columns}
+          rows={rows}
+          rowKey={(emailType) => emailType.id}
+          caption="Email types"
+          isLoading={types.isPending}
+          emptyTitle="No email types yet"
+          emptyDescription="Add one, and CalDART management can choose it when they send a bulk email."
+        />
+        {types.isError ? (
+          <p className="field__error" role="alert">
+            The email types could not be loaded.
+          </p>
+        ) : null}
+        {types.isSuccess && rows.some((emailType) => emailType.in_use) ? (
+          <p className="muted">
+            A grayed trashcan marks a type a bulk email has used, which cannot be deleted. Take the
+            senders off it instead to stop it being sent.
+          </p>
+        ) : null}
+      </Card>
     </Page>
   );
 }

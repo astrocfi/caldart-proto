@@ -36,8 +36,8 @@ from apps.mail.types import (
     create_type,
     delete_type,
     list_types,
+    opt_out_records,
     opt_out_types,
-    opt_outs,
     sendable_types,
     set_opt_out,
     update_type,
@@ -217,14 +217,23 @@ class MemberEmailPreferencesView(APIView):
 
 
 def _preferences(user: User) -> Response:
-    """200 with ``user``'s choice for every type that may be turned off."""
-    chosen = opt_outs(user)
+    """200 with ``user``'s choice for every type that may be turned off.
+
+    A type turned off carries where and when that was recorded.
+    """
+    recorded = opt_out_records(user)
     rows = [
         {
             "email_type": email_type.pk,
             "name": email_type.name,
             "description": email_type.description,
-            "opted_out": email_type.pk in chosen,
+            "opted_out": email_type.pk in recorded,
+            "opted_out_source": (
+                recorded[email_type.pk].source if email_type.pk in recorded else ""
+            ),
+            "opted_out_at": (
+                recorded[email_type.pk].created_at if email_type.pk in recorded else None
+            ),
         }
         for email_type in opt_out_types()
     ]

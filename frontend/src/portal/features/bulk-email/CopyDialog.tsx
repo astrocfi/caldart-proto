@@ -2,13 +2,14 @@
  * One person's copy of a sent bulk email, exactly as it went: the subject and the
  * email in a sandboxed frame, filled in with the details stored when it was sent.
  *
- * It opens under the delivery report's table as a dialog that does not cover the
- * page. The focus moves to its **Close** button; **Close**, and the Escape key while the
- * focus is inside the dialog, shut it, and the caller puts the focus back on the button
- * that opened it. Links in the copy open in a new tab.
+ * It opens as a dialog over the page, beside the row it belongs to whatever the
+ * scroll, and the page behind it waits until it is shut. The focus moves to its
+ * **Close** button; **Close** and the Escape key shut it, and the caller puts the focus
+ * back on the button that opened it once the dialog has gone. Links in the copy open in a
+ * new tab.
  */
 import { useEffect, useId, useRef } from 'react';
-import type { JSX } from 'react';
+import type { JSX, SyntheticEvent } from 'react';
 
 import { ApiError } from '@/portal/api/client';
 import { Button } from '@/portal/components/Button';
@@ -31,7 +32,7 @@ export interface CopyDialogProps {
   onClose: () => void;
 }
 
-/** The copy sent to one person, in a dialog under the table. */
+/** The copy sent to one person, in a dialog over the page. */
 export function CopyDialog({
   emailId,
   rowId,
@@ -43,12 +44,34 @@ export function CopyDialog({
   const closeRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
 
+  // Opened as a modal, so the page behind waits; a browser without modal dialogs
+  // shows it open in place instead.
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (dialog === null) return undefined;
+    if (typeof dialog.showModal === 'function') {
+      if (!dialog.open) dialog.showModal();
+    } else {
+      dialog.setAttribute('open', '');
+    }
+    // Shut before it goes, so the page behind takes the focus again at once.
+    return () => {
+      if (dialog.open && typeof dialog.close === 'function') dialog.close();
+    };
+  }, []);
+
   useEffect(() => {
     closeRef.current?.focus();
   }, [rowId]);
 
-  // The Escape key closes the dialog while the focus is inside it, and only then, so a
-  // key pressed elsewhere on the page is left to whatever has the focus there.
+  // The browser's own Escape would shut the dialog behind React's back; the dialog
+  // closes through the caller instead, so the focus goes back to View copy.
+  const handleCancel = (event: SyntheticEvent<HTMLDialogElement>): void => {
+    event.preventDefault();
+    handleClose();
+  };
+
+  // The Escape key closes the dialog while the focus is inside it.
   useEffect(() => {
     const dialog = dialogRef.current;
     if (dialog === null) return undefined;
@@ -64,9 +87,10 @@ export function CopyDialog({
   return (
     <dialog
       ref={dialogRef}
-      open
       className="bulk-email__copy stack-tight"
       aria-labelledby={headingId}
+      aria-modal="true"
+      onCancel={handleCancel}
     >
       <div className="cluster bulk-email__copy-bar">
         <h3 id={headingId}>{`The copy sent to ${name}`}</h3>
@@ -84,8 +108,8 @@ export function CopyDialog({
         <>
           <p className="muted">
             {resultLabel(copy.data.status)} to {copy.data.email} on{' '}
-            <DateText value={copy.data.tried_at} withTime />. This is the copy exactly as it went,
-            with the details it was sent with.
+            <DateText value={copy.data.tried_at} withTime twelveHour />. This is the copy exactly as
+            it went, with the details it was sent with.
           </p>
           <p>
             <strong>Subject:</strong> {copy.data.subject}
