@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -69,6 +69,40 @@ describe('DartForm', () => {
     await userEvent.type(dartName(), ' North');
 
     expect(screen.queryByText('A DART with that name already exists.')).toBeNull();
+  });
+
+  it('sends the save on the first press after fixing the airports, the button holding still', async () => {
+    const user = userEvent.setup();
+    const { handleSubmit } = renderForm();
+    const airports = screen.getByRole('textbox', { name: /Airports/ });
+    await user.clear(airports);
+    await user.click(screen.getByRole('button', { name: 'Add DART' }));
+    await user.type(airports, 'PAO');
+
+    await user.click(screen.getByRole('button', { name: 'Add DART' }));
+
+    expect(handleSubmit).toHaveBeenCalledTimes(1);
+  });
+
+  it('holds the error lines still while the focus leaves the airports for the submit button', async () => {
+    const user = userEvent.setup();
+    renderForm();
+    const airports = screen.getByRole('textbox', { name: /Airports/ });
+    await user.clear(airports);
+
+    fireEvent.blur(airports, { relatedTarget: screen.getByRole('button', { name: 'Add DART' }) });
+
+    expect(screen.queryByText('Give the DART at least one airport.')).toBeNull();
+  });
+
+  it('checks the airports when the focus leaves them for another field', async () => {
+    const user = userEvent.setup();
+    renderForm();
+    const airports = screen.getByRole('textbox', { name: /Airports/ });
+    await user.clear(airports);
+    await user.tab();
+
+    expect(screen.getByText('Give the DART at least one airport.')).toBeInTheDocument();
   });
 
   it('moves the focus to the field the server refused', () => {

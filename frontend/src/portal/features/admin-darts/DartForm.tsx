@@ -6,7 +6,7 @@
  * an existing DART it also carries the delete control, because deleting a team
  * is a thing you do while looking at it rather than from a row in a list.
  */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import type { JSX } from 'react';
 
 import type { AdminDart, AdminDartContact, AdminDartPatch } from '@/portal/api/types';
@@ -207,6 +207,7 @@ export function DartForm({
   const [values, setValues] = useState<DartFormValues>(initial);
   const [nameError, setNameError] = useState<string | null>(null);
   const [airportError, setAirportError] = useState<string | null>(null);
+  const activeHintId = useId();
   const formRef = useRef<HTMLFormElement>(null);
   const refusal = useRefusedSubmit(formRef, serverError);
   // The server's errors for a field go once the field is edited; the rest stay until
@@ -287,6 +288,15 @@ export function DartForm({
 
   const isLastNameless = isNameless(values.contacts.at(-1));
 
+  // Leaving Airports checks it, except on the way to the submit button: the check would
+  // change the error line above the button, moving the button out from under the click
+  // that left the box, and the submit checks the airports itself anyway.
+  const handleAirportsBlur = (event: React.FocusEvent<HTMLInputElement>): void => {
+    const next = event.relatedTarget;
+    if (next instanceof HTMLButtonElement && next.type === 'submit') return;
+    setAirportError(airportProblem(values.airport_identifiers));
+  };
+
   const handleSubmit = (event: React.FormEvent): void => {
     event.preventDefault();
     const problem = airportProblem(values.airport_identifiers);
@@ -337,7 +347,7 @@ export function DartForm({
                 set('airport_identifiers', next);
                 setAirportError(null);
               }}
-              onBlur={() => setAirportError(airportProblem(values.airport_identifiers))}
+              onBlur={handleAirportsBlur}
             />
           )}
         </Field>
@@ -482,15 +492,21 @@ export function DartForm({
         </Button>
       </fieldset>
 
-      <label className="checkbox">
-        <input
-          type="checkbox"
-          name="is_active"
-          checked={values.is_active}
-          onChange={(event) => set('is_active', event.target.checked)}
-        />
-        <span>Active — uncheck to make the DART inactive without losing its history</span>
-      </label>
+      <div className="dart-form__active">
+        <label className="checkbox">
+          <input
+            type="checkbox"
+            name="is_active"
+            checked={values.is_active}
+            aria-describedby={activeHintId}
+            onChange={(event) => set('is_active', event.target.checked)}
+          />
+          <span>Active</span>
+        </label>
+        <p className="field__hint" id={activeHintId}>
+          Uncheck to make the DART inactive without losing its history.
+        </p>
+      </div>
 
       {freshErrors.detail ? (
         <p className="field__error" role="alert">
