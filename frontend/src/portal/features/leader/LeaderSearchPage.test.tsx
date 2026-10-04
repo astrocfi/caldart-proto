@@ -71,7 +71,7 @@ describe('LeaderSearchPage', () => {
     expect(queries).toEqual(['reyes']);
   });
 
-  it('shows the name and the verdict and nothing else about the person', async () => {
+  it('shows the name, the DART, the email, and the verdict', async () => {
     const user = setupUser();
     server.use(searchReturns([MARTA]));
 
@@ -79,7 +79,24 @@ describe('LeaderSearchPage', () => {
     await search(user, 'reyes');
 
     const marta = await screen.findByRole('button', { name: /Marta Reyes/ });
-    expect(marta).toHaveTextContent(/^Marta ReyesCleared to flyGO$/);
+    expect(marta).toHaveTextContent(
+      /^Marta ReyesPalo Alto DART · marta@example\.orgCleared to flyGO$/,
+    );
+  });
+
+  it('tells two people of the same name apart by their DART and email', async () => {
+    const user = setupUser();
+    const namesake = { ...MARTA, user_id: 8, dart: null, email: 'marta.r@example.org' };
+    server.use(searchReturns([MARTA, namesake]));
+
+    renderWithProviders(<LeaderSearchPage />, { route: '/leader' });
+    await search(user, 'reyes');
+
+    const rows = await screen.findAllByRole('button', { name: /Marta Reyes/ });
+    expect(rows.map((row) => row.textContent)).toEqual([
+      'Marta ReyesPalo Alto DART · marta@example.orgCleared to flyGO',
+      'Marta ReyesNo DART · marta.r@example.orgCleared to flyGO',
+    ]);
   });
 
   it('leaves the membership state to the card, so the row says go or no-go alone', async () => {
@@ -219,7 +236,8 @@ describe('LeaderSearchPage', () => {
       ),
     );
     renderWithProviders(<LeaderSearchPage />, { route: '/leader?member=7' });
-    expect(await screen.findByText(/didn't load/i)).toBeInTheDocument();
+    expect(await screen.findByText('We could not find that person')).toBeInTheDocument();
+    expect(screen.getByText('Their account may have been deleted.')).toBeInTheDocument();
   });
 
   it('offers the aircraft check when an N-number matches no member', async () => {
@@ -257,7 +275,13 @@ describe('LeaderSearchPage', () => {
     await search(user, 'reyes');
 
     const marta = await screen.findByRole('button', { name: /Marta Reyes/ });
-    expect(marta).toHaveTextContent(/^Marta ReyesNot cleared to flyNO-GO$/);
+    expect(marta).toHaveTextContent(/^Marta Reyes.*Not cleared to flyNO-GO$/);
+  });
+
+  it('says what the verification report holds beside its downloads', () => {
+    renderWithProviders(<LeaderSearchPage />, { route: '/leader' });
+    const group = screen.getByRole('group', { name: 'Everything nobody has checked yet:' });
+    expect(within(group).getAllByRole('link')).toHaveLength(2);
   });
 
   it('offers the verification report for download above the search', () => {

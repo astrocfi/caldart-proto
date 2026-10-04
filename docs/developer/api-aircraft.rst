@@ -793,6 +793,7 @@ The pre-flight status card for one member.
        "type": "drivers_license",
        "verification": {"verified": false, "verified_by": null, "verified_at": null}
      },
+     "is_dart_leader": false,
      "is_verifier": false,
      "aircraft": [
        {
@@ -832,8 +833,8 @@ two separate facts.  The overall verdict is the conjunction of the three
 booleans, and the portal renders it as the GO / NO-GO band.  ``photo_id``
 carries only the kind of document (``not_provided``, ``drivers_license``,
 ``passport``, ``state_id``, ``military_id``, or ``other``); nothing else about
-it is recorded.  ``is_verifier`` says whether the member holds the verifier
-role.  Each airplane's ``insurance_verified`` says whether its insurance is
+it is recorded.  ``is_dart_leader`` and ``is_verifier`` say whether the member
+holds the DART leader role and the verifier role.  Each airplane's ``insurance_verified`` says whether its insurance is
 verified.  Insurance is
 reported per airplane and never folded into ``go_no_go``, because a member
 may be current in one airplane and not another.

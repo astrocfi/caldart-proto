@@ -45,7 +45,10 @@ export function LeaderSearchPage(): JSX.Element {
         const ready = isReady(result.go_no_go);
         return (
           <>
-            <span className="leader-search__name">{result.name}</span>
+            <span className="leader-search__who">
+              <span className="leader-search__name">{result.name}</span>
+              <span className="leader-search__meta">{resultMeta(result)}</span>
+            </span>
             <GoMark go={ready} label={ready ? 'Cleared to fly' : 'Not cleared to fly'} />
           </>
         );
@@ -57,13 +60,25 @@ export function LeaderSearchPage(): JSX.Element {
 }
 
 /**
+ * What tells two people of one name apart in the results: their DART, named as one,
+ * and their email address, such as *Monterey DART · marta@example.org*.
+ */
+function resultMeta(result: LeaderSearchResult): string {
+  const dart = result.dart === null ? 'No DART' : `${result.dart} DART`;
+  return `${dart} · ${result.email}`;
+}
+
+/** The caption of the verification report's downloads, which names the group. */
+const REPORT_CAPTION = 'Everything nobody has checked yet:';
+
+/**
  * The verification report, downloaded with its default filter: every item nobody has
  * verified yet.
  */
 function VerificationReportLinks(): JSX.Element {
   return (
-    <p className="cluster leader-report">
-      <span className="muted">Verification report</span>
+    <div className="cluster leader-report" role="group" aria-labelledby="leader-report-caption">
+      <span id="leader-report-caption">{REPORT_CAPTION}</span>
       <a
         className="button button--quiet button--small"
         href={reportExportUrl('verification', 'csv', {})}
@@ -76,7 +91,7 @@ function VerificationReportLinks(): JSX.Element {
       >
         Export PDF
       </a>
-    </p>
+    </div>
   );
 }
 
@@ -123,14 +138,17 @@ function MemberCheck({ userId }: MemberCheckProps): JSX.Element {
     <>
       {status.isPending ? <p className="muted">Loading the status card…</p> : null}
       {status.isError ? (
-        <EmptyState
-          title="That member didn't load"
-          description={
-            status.error instanceof ApiError && status.error.status === 404
-              ? 'No member with that id. They may have been removed.'
-              : status.error.message
-          }
-        />
+        status.error instanceof ApiError && status.error.status === 404 ? (
+          <EmptyState
+            title="We could not find that person"
+            description="Their account may have been deleted."
+          />
+        ) : (
+          <EmptyState
+            title="That person's check didn't load"
+            description="Try again in a moment."
+          />
+        )
       ) : null}
       {status.data ? <MemberStatusCard userId={userId} status={status.data} /> : null}
     </>

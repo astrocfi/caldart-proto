@@ -18,7 +18,7 @@ from django.utils import timezone
 
 from apps.accounts.models import AccountKind
 from apps.accounts.models import User as UserModel
-from apps.accounts.roles import VERIFIER
+from apps.accounts.roles import DART_LEADER, VERIFIER
 from apps.aircraft import verification
 from apps.aircraft.models import (
     Aircraft,
@@ -253,8 +253,8 @@ def leader_status(user: UserModel) -> dict[str, Any]:
     ``go_no_go`` is deliberately plain booleans: a leader is entitled to see *why*
     a member is a no-go, not just that they are.  ``verified`` among them is true when
     the pilot certificate, the medical, and the photo ID are all verified; each of the
-    three carries its own ``verification``.  ``is_verifier`` says whether the member
-    holds the verifier role.  An account with no profile has nothing verified and a
+    three carries its own ``verification``.  ``is_dart_leader`` and ``is_verifier`` say
+    whether the member holds the DART leader role and the verifier role.  An account with no profile has nothing verified and a
     photo ID of ``not_provided``.
     """
     profile = getattr(user, "profile", None)
@@ -288,6 +288,7 @@ def leader_status(user: UserModel) -> dict[str, Any]:
             "type": profile.photo_id_type if profile is not None else PhotoIdType.NOT_PROVIDED,
             "verification": _item_state(profile, "photo_id"),
         },
+        "is_dart_leader": DART_LEADER in user.roles,
         "is_verifier": VERIFIER in user.roles,
         "aircraft": list(profile.aircraft.select_related("type")) if profile is not None else [],
         "go_no_go": _go_no_go(status["status"], profile),

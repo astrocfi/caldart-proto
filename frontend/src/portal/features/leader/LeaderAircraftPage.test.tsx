@@ -18,7 +18,7 @@ import type { AircraftDetail } from '@/portal/api/types';
 import { SEARCH_DEBOUNCE_MS } from '@/portal/components/useDebounced';
 import { LeaderAircraftPage } from './LeaderAircraftPage';
 
-const SEARCH_LABEL = /^Search by N-number/;
+const SEARCH_LABEL = /^N-number, make, model, or owner/;
 
 /** The day the search tests run on, so the list's GO/NO-GO never follows the wall clock. */
 const TODAY = new Date('2026-09-24T12:00:00Z');
@@ -397,6 +397,33 @@ describe('LeaderAircraftPage card', () => {
     renderWithProviders(<LeaderAircraftPage />, { route: '/leader/aircraft?aircraft=N0000X' });
 
     expect(await screen.findByText(/N0000X is not in the register/)).toBeInTheDocument();
+    expect(
+      screen.getByText('Ask the pilot to add it on My aircraft, or ask an account administrator.'),
+    ).toBeInTheDocument();
+  });
+
+  it("links the owner's email address, as the member check links a member's", async () => {
+    server.use(http.get(`${API}/leader/aircraft`, () => HttpResponse.json(makeVerifiedAircraft())));
+    renderWithProviders(<LeaderAircraftPage />, { route: '/leader/aircraft?aircraft=N172SP' });
+
+    expect(await screen.findByRole('link', { name: 'ops@example.org' })).toHaveAttribute(
+      'href',
+      'mailto:ops@example.org',
+    );
+  });
+
+  it("links the owner's phone number", async () => {
+    server.use(
+      http.get(`${API}/leader/aircraft`, () =>
+        HttpResponse.json(makeVerifiedAircraft({ owner_contact: '(650) 555-0100' })),
+      ),
+    );
+    renderWithProviders(<LeaderAircraftPage />, { route: '/leader/aircraft?aircraft=N172SP' });
+
+    expect(await screen.findByRole('link', { name: '(650) 555-0100' })).toHaveAttribute(
+      'href',
+      'tel:6505550100',
+    );
   });
 
   it('goes back to the search from an unknown registration', async () => {

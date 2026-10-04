@@ -23,6 +23,7 @@ import { DateText } from '@/portal/components/DateText';
 import { Page } from '@/portal/components/Page';
 import { StatusDot } from '@/portal/components/StatusDot';
 import { DROP_ORDER } from './dropOrder';
+import { SenderNotice } from './SenderNotice';
 import { recipientsCsvUrl, useBulkSender, useSentEmails } from './api';
 import './bulk-email.css';
 import { withSenderColumns } from './senderColumns';
@@ -46,6 +47,7 @@ export function SentPage(): JSX.Element {
           : 'Every bulk email that has gone out, or is going out now, and what became of it.'
       }
     >
+      {sender.data === undefined ? null : <SenderNotice sender={sender.data} />}
       <Card>
         {sent.isError ? (
           <p className="field__error" role="alert">

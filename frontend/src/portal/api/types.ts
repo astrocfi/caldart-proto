@@ -1464,6 +1464,7 @@ export interface LeaderStatus {
   };
   medical: LeaderMedical;
   photo_id: LeaderPhotoId;
+  is_dart_leader: boolean;
   is_verifier: boolean;
   aircraft: AircraftSummary[];
   go_no_go: LeaderGoNoGo;

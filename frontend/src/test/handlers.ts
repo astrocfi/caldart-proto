@@ -807,6 +807,7 @@ export function makeLeaderStatus(overrides: Partial<LeaderStatus> = {}): LeaderS
     },
     medical: { type: 'third', expiration: '2026-12-01', is_current: true, verification: VERIFIED },
     photo_id: { type: 'passport', verification: VERIFIED },
+    is_dart_leader: false,
     is_verifier: false,
     aircraft: [makeVerifiedAircraftSummary()],
     go_no_go: { membership: true, medical: true, verified: true },

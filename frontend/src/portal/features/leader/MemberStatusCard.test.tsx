@@ -173,7 +173,7 @@ describe('MemberStatusCard', () => {
   it('names the member, their DART and how to reach them', () => {
     renderWithProviders(<MemberStatusCard userId={7} status={makeStatus()} today={TODAY} />);
     expect(screen.getByRole('heading', { name: 'Marta Reyes' })).toBeInTheDocument();
-    expect(screen.getByText('Palo Alto', { exact: false })).toBeInTheDocument();
+    expect(screen.getByText('Palo Alto DART', { exact: false })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: '650-555-0100' })).toHaveAttribute(
       'href',
       'tel:6505550100',
@@ -321,7 +321,20 @@ describe('MemberStatusCard', () => {
     renderWithProviders(
       <MemberStatusCard userId={7} status={makeStatus({ is_verifier: true })} today={TODAY} />,
     );
-    expect(screen.getByText(/Palo Alto · Verifier/)).toBeInTheDocument();
+    expect(screen.getByText(/Palo Alto DART · Verifier/)).toBeInTheDocument();
+  });
+
+  it('names every operational role the person holds', () => {
+    const status = makeStatus({ is_dart_leader: true, is_verifier: true });
+    renderWithProviders(<MemberStatusCard userId={7} status={status} today={TODAY} />);
+    expect(screen.getByText(/Palo Alto DART · DART leader · Verifier/)).toBeInTheDocument();
+  });
+
+  it('says so when the person has no DART', () => {
+    renderWithProviders(
+      <MemberStatusCard userId={7} status={makeStatus({ dart: null })} today={TODAY} />,
+    );
+    expect(screen.getByText(/^No DART/)).toBeInTheDocument();
   });
 
   it('reads a current policy nobody verified as Not verified in amber, as the aircraft check does', () => {
@@ -448,6 +461,7 @@ describe('MemberStatusCard verification', () => {
       await renderAs(['member', role]);
 
       await user.click(await screen.findByRole('button', { name: 'Make a verifier' }));
+      await user.click(screen.getByRole('button', { name: 'Yes, make a verifier' }));
 
       expect(await screen.findByText('Marta Reyes is a verifier.')).toBeInTheDocument();
       expect(calls.verifier).toEqual([{ userId: 7, body: { verifier: true } }]);
@@ -461,9 +475,35 @@ describe('MemberStatusCard verification', () => {
     await renderAs(['member', 'dart_leader'], makeStatus({ is_verifier: true }));
 
     await user.click(await screen.findByRole('button', { name: 'Remove as verifier' }));
+    await user.click(screen.getByRole('button', { name: 'Yes, remove as verifier' }));
 
     expect(await screen.findByText('Marta Reyes is no longer a verifier.')).toBeInTheDocument();
     expect(calls.verifier).toEqual([{ userId: 7, body: { verifier: false } }]);
+  });
+
+  it('asks before making somebody a verifier, starting on Cancel', async () => {
+    const user = userEvent.setup();
+    const calls = emptyVerificationCalls();
+    server.use(...verificationHandlers(calls));
+    await renderAs(['member', 'dart_leader']);
+
+    await user.click(await screen.findByRole('button', { name: 'Make a verifier' }));
+
+    expect(screen.getByRole('button', { name: 'Cancel' })).toHaveFocus();
+    expect(calls.verifier).toEqual([]);
+  });
+
+  it('makes nobody a verifier when the question is cancelled', async () => {
+    const user = userEvent.setup();
+    const calls = emptyVerificationCalls();
+    server.use(...verificationHandlers(calls));
+    await renderAs(['member', 'dart_leader']);
+
+    await user.click(await screen.findByRole('button', { name: 'Make a verifier' }));
+    await user.keyboard('{Enter}');
+
+    expect(screen.queryByRole('button', { name: 'Yes, make a verifier' })).toBeNull();
+    expect(calls.verifier).toEqual([]);
   });
 
   it.each([['verifier'], ['account_admin']] as const)(

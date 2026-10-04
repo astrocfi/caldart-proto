@@ -6,7 +6,7 @@
  * answers one question — membership, medical, certificate, photo ID, insurance.
  * A verifier corrects and verifies the certificate, medical, and photo ID from
  * the card's head, and a DART leader or user administrator makes the person a
- * verifier there.
+ * verifier there, after a question that starts on Cancel.
  */
 import { useCallback, useRef, useState } from 'react';
 import type { JSX } from 'react';
@@ -14,12 +14,13 @@ import type { JSX } from 'react';
 import type { LeaderStatus, MembershipState } from '@/portal/api/types';
 import { MEMBERSHIP_STATUS_LABELS } from '@/portal/choices';
 import { Button } from '@/portal/components/Button';
+import { ConfirmButton } from '@/portal/components/ConfirmButton';
 import { DateText } from '@/portal/components/DateText';
 import { StatusDot } from '@/portal/components/StatusDot';
 import type { StatusTone } from '@/portal/components/StatusDot';
 import { useToast } from '@/portal/components/Toast';
 import { VerifiedMark } from '@/portal/components/VerifiedMark';
-import { useFocusAfterSave, usePanelFocus } from '@/portal/components/focus';
+import { usePanelFocus } from '@/portal/components/focus';
 import { MemberVerificationPanel } from '@/portal/features/verification/MemberVerificationPanel';
 import { useSetVerifier } from '@/portal/features/verification/api';
 import { draftFromStatus } from '@/portal/features/verification/memberDraft';
@@ -89,6 +90,19 @@ function MedicalDot({ medical }: { medical: LeaderStatus['medical'] }): JSX.Elem
 }
 
 /**
+ * The line under the name, before the phone and email: the DART, named as one, and each
+ * operational role the person holds, such as *Monterey DART · DART leader · Verifier*.
+ */
+export function cardMeta(status: LeaderStatus): string {
+  const dart = status.dart === null ? 'No DART' : `${status.dart} DART`;
+  const roles = [
+    status.is_dart_leader ? 'DART leader' : null,
+    status.is_verifier ? 'Verifier' : null,
+  ];
+  return [dart, ...roles.filter((role) => role !== null)].join(' · ');
+}
+
+/**
  * A member is a go when their membership and medical are current and their
  * certificate, medical, and photo ID are all verified.
  */
@@ -128,8 +142,7 @@ export function MemberStatusCard({ userId, status, today }: MemberStatusCardProp
       <header className="leader-card__head">
         <h2 className="leader-card__name">{status.name}</h2>
         <p className="leader-card__meta muted">
-          {status.dart ?? 'No DART'}
-          {status.is_verifier ? ' · Verifier' : ''}
+          {cardMeta(status)}
           {status.phone ? (
             <>
               {' · '}
@@ -279,39 +292,46 @@ interface VerifierButtonProps {
   status: LeaderStatus;
 }
 
-/** *Make a verifier* or *Remove as verifier*, for a DART leader or user administrator. */
+/**
+ * *Make a verifier* or *Remove as verifier*, for a DART leader or user administrator.
+ *
+ * Either one changes the person's roles, so it asks first, with the focus on Cancel,
+ * as a role change on Users and roles waits for Save changes.
+ */
 function VerifierButton({ userId, status }: VerifierButtonProps): JSX.Element | null {
   const canGrant = useCanGrantVerifier();
   const setVerifier = useSetVerifier(userId);
   const toast = useToast();
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  useFocusAfterSave(buttonRef, setVerifier.isPending);
   if (!canGrant) return null;
 
   const wanted = !status.is_verifier;
-  const handleClick = (): void => {
-    setVerifier.mutate(
-      { verifier: wanted },
-      {
-        onSuccess: () =>
-          toast.show(
-            wanted ? `${status.name} is a verifier.` : `${status.name} is no longer a verifier.`,
-            'success',
-          ),
-        onError: (error) => toast.show(error.message, 'error'),
-      },
+  const label = wanted ? 'Make a verifier' : 'Remove as verifier';
+  const handleChoose = async (): Promise<void> => {
+    try {
+      await setVerifier.mutateAsync({ verifier: wanted });
+    } catch (error) {
+      toast.show(error instanceof Error ? error.message : 'The role did not change.', 'error');
+      throw error;
+    }
+    toast.show(
+      wanted ? `${status.name} is a verifier.` : `${status.name} is no longer a verifier.`,
+      'success',
     );
   };
 
   return (
-    <Button
-      ref={buttonRef}
+    <ConfirmButton
+      label={label}
       variant="quiet"
       small
-      disabled={setVerifier.isPending}
-      onClick={handleClick}
+      startOnCancel
+      choices={[{ label, onChoose: handleChoose }]}
     >
-      {wanted ? 'Make a verifier' : 'Remove as verifier'}
-    </Button>
+      <p>
+        {wanted
+          ? `${status.name} will be able to check and verify the certificate, medical, photo ID, and aircraft insurance of every member.`
+          : `${status.name} will no longer be able to verify anyone's documents.`}
+      </p>
+    </ConfirmButton>
   );
 }

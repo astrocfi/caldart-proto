@@ -634,6 +634,7 @@ class LeaderStatusSerializer(serializers.Serializer[Any]):
     certificate = LeaderCertificateSerializer()
     medical = LeaderMedicalSerializer()
     photo_id = LeaderPhotoIdSerializer()
+    is_dart_leader = serializers.BooleanField()
     is_verifier = serializers.BooleanField()
     aircraft = AircraftSummarySerializer(many=True)
     go_no_go = LeaderGoNoGoSerializer()

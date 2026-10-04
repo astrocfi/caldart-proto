@@ -13,6 +13,7 @@ import { EmptyState } from '@/portal/components/EmptyState';
 import { Money } from '@/portal/components/Money';
 import { Page } from '@/portal/components/Page';
 import { MembershipDot, PaymentDot, membershipTone } from '@/portal/components/StatusDot';
+import { OwnSenderNotice } from '@/portal/features/bulk-email/SenderNotice';
 import { automaticCardTitle, automaticKindLabel } from '@/portal/features/payments/labels';
 import { useMembership, useMyPayments } from '@/portal/features/profile/api';
 import { groupedNavItems } from '@/portal/nav';
@@ -107,6 +108,7 @@ export function DashboardPage(): JSX.Element {
 
   return (
     <Page title={greeting} tabTitle="Dashboard">
+      <OwnSenderNotice />
       <div className="grid">
         <div className="col-text stack-loose">
           <Card

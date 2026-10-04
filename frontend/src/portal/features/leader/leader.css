@@ -10,6 +10,17 @@
   background: var(--color-bg-raised);
 }
 
+/*
+ * The band and the rows are paragraphs and list items, which the base stylesheet holds
+ * to a reading measure; here they are bands across the whole card, so they span it.
+ */
+.leader-verdict,
+.leader-aircraft__row,
+.leader-search__result,
+.leader-aircraft-card__limits {
+  max-width: none;
+}
+
 .leader-verdict {
   display: flex;
   flex-wrap: wrap;
@@ -212,6 +223,19 @@
 .leader-search__meta {
   color: var(--color-muted);
   font-size: var(--text-sm);
+}
+
+/* The member check's row: the name, then the DART and email that tell namesakes apart. */
+.leader-search__who {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--space-3);
+  min-width: 0;
+}
+
+.leader-search__who .leader-search__meta {
+  overflow-wrap: anywhere;
 }
 
 .leader-search__readiness {
