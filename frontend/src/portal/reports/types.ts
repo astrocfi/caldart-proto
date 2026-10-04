@@ -63,6 +63,8 @@ export interface FilterField {
   isDollars?: boolean;
   /** Offered only where a subscription is set up, never on the report's list page. */
   subscriptionOnly?: boolean;
+  /** Offered only on the report's list page, never where a subscription is set up. */
+  listOnly?: boolean;
 }
 
 /** What the portal knows about one report: its name, filters, and what it allows. */

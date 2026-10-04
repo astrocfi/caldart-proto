@@ -27,7 +27,8 @@ Every panel but the bulk email sender's works the same way:
    **What this run would do**, or **What this run did** after a real run, above a line of
    counts and a table naming each email or charge, and the focus moves to that heading.
    A run that found nothing at all to do says only *Nothing is due.* (*Nothing was due.*
-   after a real run). On a narrow screen the table leaves out **When**, then **Amount**,
+   after a real run). A column no row fills, such as **Amount** for emails that charge
+   nothing, is left out. On a narrow screen the table leaves out **When**, then **Amount**,
    then **What**, and keeps **Who** and any **Report or DART** column in sight; on a phone
    it scrolls sideways, says so above it, and keeps **Who** pinned at the left.
 #. If the numbers look right and you have a reason not to wait for the schedule, clear the
@@ -52,8 +53,8 @@ words: *already sent*, *already renewed*, *auto-renew on*, *lifetime member*, *a
 deactivated*, and *no address on file*, such as *Skipped: already sent 10, auto-renew on 2.*
 When the mail server refused a send, a further line reads, for example, *Failed 2.* A
 refused reminder stays due and goes out on a later run. The table names every email: **What**
-reminder, **Who** it went to with their address, **When** their membership ends, and an
-**Amount** column that stays empty for a reminder.
+reminder, **Who** it went to with their address, and **When** their membership ends; a
+reminder charges nothing, so the table has no **Amount** column.
 
 Each member gets each reminder once per membership. At the foot of the panel, under its
 own heading **Reminders sent**, sits the same record of recent reminders an account

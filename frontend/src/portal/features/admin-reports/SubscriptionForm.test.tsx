@@ -57,6 +57,64 @@ describe('SubscriptionForm', () => {
     expect(offered).toEqual(['Choose a report…', 'Members', 'Payments', 'Contributions']);
   });
 
+  it('names each report as its tab does, not by the title its PDF carries', async () => {
+    server.use(
+      ...subscriptionHandlers({
+        reports: [
+          { slug: 'reconciliation', title: 'CalDART reconciliation', choosable: false, periods: true },
+        ],
+      }),
+    );
+    renderWithProviders(<SubscriptionForm onDone={vi.fn()} />);
+
+    expect(await screen.findByRole('option', { name: 'Reconciliation' })).toBeInTheDocument();
+  });
+
+  it('says why Save waits until a report is chosen', async () => {
+    renderForm();
+
+    expect(
+      within(form()).getByRole('button', { name: 'Add emailed report' }),
+    ).toHaveAccessibleDescription('Choose a report first.');
+  });
+
+  it('drops the hint once a report is chosen', async () => {
+    renderForm();
+
+    await chooseReport('Members');
+
+    expect(within(form()).queryByText('Choose a report first.')).not.toBeInTheDocument();
+  });
+
+  it('gives the contributions one Year control, this year or last year', async () => {
+    renderForm();
+
+    await chooseReport('Contributions');
+
+    const bar = screen.getByRole('search', { name: 'Report filters' });
+    const year = within(bar).getByLabelText('Year');
+    expect(within(year).getAllByRole('option').map((option) => option.textContent)).toEqual([
+      'This year',
+      'Last year',
+    ]);
+  });
+
+  it('offers a period on the reconciliation, so a monthly email can cover last month', async () => {
+    server.use(
+      ...subscriptionHandlers({
+        reports: [
+          { slug: 'reconciliation', title: 'Reconciliation', choosable: false, periods: true },
+        ],
+      }),
+    );
+    renderWithProviders(<SubscriptionForm onDone={vi.fn()} />);
+
+    await chooseReport('Reconciliation');
+
+    const bar = screen.getByRole('search', { name: 'Report filters' });
+    expect(within(bar).getByRole('option', { name: 'Last month' })).toBeInTheDocument();
+  });
+
   it("draws the chosen report's filters, the period included", async () => {
     renderForm();
 
@@ -72,14 +130,14 @@ describe('SubscriptionForm', () => {
       ...subscriptionHandlers({
         reports: [
           ...REPORTS,
-          { slug: 'emails', title: 'Email log', choosable: true, periods: false },
+          { slug: 'emails', title: 'CalDART email log', choosable: true, periods: false },
         ],
       }),
     );
     const handleDone = vi.fn();
     renderWithProviders(<SubscriptionForm onDone={handleDone} />);
 
-    await chooseReport('Email log');
+    await chooseReport('Sent emails');
 
     const bar = screen.getByRole('search', { name: 'Report filters' });
     const offered = within(bar)
@@ -325,12 +383,10 @@ describe('SubscriptionForm editing a subscription', () => {
     expect(screen.getByRole('heading', { name: 'Edit emailed report' })).toBeInTheDocument();
   });
 
-  it('shows the report as fixed text rather than a choice', () => {
+  it('shows the report as fixed text, by its tab name, rather than a choice', () => {
     renderEdit();
 
-    expect(screen.getByRole('group', { name: 'Report' })).toHaveTextContent(
-      'CalDART membership report',
-    );
+    expect(screen.getByRole('group', { name: 'Report' })).toHaveTextContent(/^Report\s*Members$/);
     expect(screen.queryByRole('combobox', { name: 'Report' })).not.toBeInTheDocument();
   });
 

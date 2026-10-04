@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { CA_COUNTIES, ROLE_LABELS } from '@/portal/choices';
-import { listFilters, PERIOD_OPTIONS, REPORTS } from './definitions';
+import { listFilters, PERIOD_OPTIONS, REPORTS, subscriptionFilters } from './definitions';
 import type { ReportSlug } from './types';
 
 /** Every report in the server's registry. */
@@ -159,8 +159,8 @@ describe('REPORTS', () => {
     ]);
   });
 
-  it('filters reconciliation by dates, provider and grouping', () => {
-    expect(keysOf('reconciliation')).toEqual(['from', 'to', 'provider', 'group']);
+  it('filters reconciliation by dates, provider, grouping, and period', () => {
+    expect(keysOf('reconciliation')).toEqual(['from', 'to', 'provider', 'group', 'period']);
   });
 
   it('filters contributions by year', () => {
@@ -219,9 +219,10 @@ describe('REPORTS', () => {
     ]);
   });
 
-  it('takes a period on the payments, contributions, and donors reports', () => {
+  it('takes a period on the payments, reconciliation, contributions, and donors reports', () => {
     expect(SLUGS.filter((slug) => REPORTS[slug].periods)).toEqual([
       'payments',
+      'reconciliation',
       'contributions',
       'donors',
     ]);
@@ -236,9 +237,24 @@ describe('REPORTS', () => {
     expect(period?.options).toEqual(PERIOD_OPTIONS);
   });
 
-  it('offers only the whole-year periods on the contributions report', () => {
-    const period = REPORTS.contributions.filters.find((field) => field.key === 'period');
-    expect(period?.options?.map((option) => option.value)).toEqual(['this_year', 'last_year']);
+  it('offers every period on the reconciliation report, so a monthly email can cover last month', () => {
+    const period = REPORTS.reconciliation.filters.find((field) => field.key === 'period');
+    expect(period?.options).toEqual(PERIOD_OPTIONS);
+  });
+
+  it('gives a contributions subscription one Year control: this year or last year', () => {
+    const fields = subscriptionFilters(REPORTS.contributions);
+    expect(
+      fields.map((field) => [
+        field.label,
+        field.placeholder,
+        field.options?.map((option) => option.label),
+      ]),
+    ).toEqual([['Year', 'This year', ['Last year']]]);
+  });
+
+  it('gives the contributions list page one Year control over calendar years', () => {
+    expect(listFilters(REPORTS.contributions).map((field) => field.label)).toEqual(['Year']);
   });
 
   it('types and shows the payment amounts in dollars', () => {

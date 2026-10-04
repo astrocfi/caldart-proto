@@ -107,7 +107,13 @@ describe('RunActionsTable', () => {
   });
 
   it('leaves the detail out when no heading is named', () => {
-    render(<RunActionsTable actions={ACTIONS} dryRun={true} kindLabel={() => 'Notice'} />);
+    render(
+      <RunActionsTable
+        actions={[{ ...ACTIONS[0]!, amount_cents: 4_500, detail: 'Annual' }]}
+        dryRun={true}
+        kindLabel={() => 'Notice'}
+      />,
+    );
 
     expect(screen.getAllByRole('columnheader').map((cell) => cell.textContent)).toEqual([
       'What',
@@ -123,17 +129,44 @@ describe('RunActionsTable', () => {
     expect(screen.getByText('Nothing was due')).toBeInTheDocument();
   });
 
-  it('heads a When and an Amount column by default', () => {
-    render(<RunActionsTable actions={ACTIONS} dryRun={true} kindLabel={() => 'Notice'} />);
+  it('heads a When and an Amount column for actions that carry them', () => {
+    render(
+      <RunActionsTable
+        actions={[{ ...ACTIONS[0]!, amount_cents: 4_500 }]}
+        dryRun={true}
+        kindLabel={() => 'Notice'}
+      />,
+    );
 
     const headers = screen.getAllByRole('columnheader').map((header) => header.textContent);
     expect(headers).toEqual(['What', 'Who', 'When', 'Amount']);
   });
 
+  it('leaves out a column that is empty in every row', () => {
+    render(<RunActionsTable actions={ACTIONS} dryRun={true} kindLabel={() => 'Notice'} />);
+
+    const headers = screen.getAllByRole('columnheader').map((header) => header.textContent);
+    expect(headers).toEqual(['What', 'Who', 'When']);
+  });
+
+  it('leaves out When, Amount, and the detail when no row carries them, as for rosters', () => {
+    render(
+      <RunActionsTable
+        actions={[{ ...ACTIONS[0]!, on: null, detail: '' }]}
+        dryRun={true}
+        kindLabel={() => 'Roster'}
+        detailHeader="Report or DART"
+      />,
+    );
+
+    const headers = screen.getAllByRole('columnheader').map((header) => header.textContent);
+    expect(headers).toEqual(['What', 'Who']);
+  });
+
   it('leaves the When and Amount columns out for actions that carry neither', () => {
     render(
       <RunActionsTable
-        actions={ACTIONS}
+        actions={[{ ...ACTIONS[0]!, detail: 'Duplicate address' }]}
         dryRun={true}
         kindLabel={() => 'Sent'}
         detailHeader="Reason"

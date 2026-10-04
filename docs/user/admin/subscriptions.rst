@@ -21,7 +21,8 @@ CalDART emails each report to one address on the schedule you choose, with the f
 columns chosen for it. The **Reports on a schedule** card lists every one for a report you
 may read:
 
-- **Report**: the report's title, such as *CalDART membership report*.
+- **Report**: the report's name, as its own screen's tab or menu entry names it, such as
+  *Members*, *Payments*, *Reconciliation*, *Contributions*, or *Donors*.
 - **Recipient**: the account's name, or the bare address for somebody outside CalDART.
 - **Schedule**: *Weekly on Monday* (or another day), *Monthly*, *Quarterly*, or *Yearly*.
 - **Formats**: *CSV*, *PDF*, or *Both*.
@@ -60,9 +61,11 @@ With none set up the table reads *No reports are sent by email yet*.
 Setting one up
 ~~~~~~~~~~~~~~
 
-**Email a report** opens the form above the table and takes you to its first box:
+**Email a report** opens the form above the table and takes you to its first box. Until
+you choose a report, **Add emailed report** waits, and *Choose a report first.* sits beside
+it.
 
-#. **Report** offers the reports you may read: the membership report, the roles report,
+#. **Report** offers the reports you may read, each by the name its own screen uses: the membership report, the roles report,
    the verification report, the aircraft register, the payments, the reconciliation, and
    the contributions for an account administrator; the payments, the reconciliation, the contributions, and the
    donors for the treasurer; and every one of them plus the sent emails for a system
@@ -78,10 +81,11 @@ Setting one up
    **Verified** ones, or **All** of them, and its **DART** filter keeps one DART's people
    and the aircraft they fly. It can go to a verifier, a DART leader, a user
    administrator, or an account administrator. Choosing a report draws the same filters its own screen
-   has. The payments, contributions, and donors reports add **Period**: **This month**,
+   has. The payments, reconciliation, and donors reports add **Period**: **This month**,
    **Last month**, **This year**, or **Last year**, worked out on the day each email goes,
    so a monthly subscription for **Last month** always carries the month before the one it
-   is sent in.
+   is sent in. The contributions report has one **Year** control instead: **This year**
+   or **Last year**, also worked out on the day each email goes.
 #. **Columns** chooses what the report carries, as on the report's own screen; left alone,
    it carries the default columns. The reconciliation and contributions reports have fixed
    columns and offer no chooser.
@@ -142,13 +146,15 @@ saying which each one is. It never lists a deactivated account or a donor.
 The **DART rosters** card lists each active DART, its **Recipients** (the checked people with
 an address), and when its roster was **Last sent**. A DART with nobody set to receive it is sent nothing.
 
-**Send rosters now** sends every DART's roster at once, whatever the date. Leave **Practice
-run: show what would happen, send nothing** checked the first time. The card then reads **What this run would do** and a
-line such as *Would send 7 emails, skipped 1.* When something was skipped, a further line
-gives the reasons: *nobody to send to* for a DART with nobody set to receive it, and *no address on
-file* for a checked person with no email address. A table names each email with **What**,
-**Who**, and **Report or DART**. Clear the box and press the button again to send them for
-real; the heading then reads **What this run did**.
+Under the table sit the box **Practice run: show what would happen, send nothing**, checked
+to begin with, and the button beside it. While the box is checked the button reads
+**Preview rosters**: press it the first time, and the card reads **What this run would do**
+and a line such as *Would send 7 emails, skipped 1.* When something was skipped, a further
+line gives the reasons: *nobody to send to* for a DART with nobody set to receive it, and
+*no address on file* for a checked person with no email address. A table names each email
+with **What** and **Who**, and **Report or DART** when an email names one. Clear the box,
+and the button reads **Send rosters now**: it sends every DART's roster at once, whatever
+the date, and the heading then reads **What this run did**.
 
 
 If something looks wrong
@@ -157,7 +163,8 @@ If something looks wrong
 If a subscription stops arriving, look at its **Active** column: *Paused* means it was paused,
 often because the recipient lost the role that reads the report, and **Resume** tells you
 whether that is still so. If a roster never reaches a DART's people, check on :doc:`darts`
-that somebody is checked **Roster** and has an email address, then run **Send rosters now**
-with **Practice run: show what would happen, send nothing** checked to see who it would reach. If a line reads *Not sent*
+that somebody is checked **Roster** and has an email address, then press **Preview
+rosters**, with **Practice run: show what would happen, send nothing** checked, to see who
+it would reach. If a line reads *Not sent*
 and blames the mail server, try **Send now** again later, and tell a system administrator if
 it keeps failing; they can see every email CalDART tried to send on the :doc:`sent-emails` page.
