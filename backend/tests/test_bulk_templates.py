@@ -15,7 +15,7 @@ from rest_framework.test import APIClient
 
 from apps.accounts.roles import MANAGEMENT, SYSTEM_ADMIN
 from apps.bulk_email.models import BulkEmail, BulkEmailStatus, EmailTemplate
-from tests.conftest import role_matrix
+from tests.conftest import audit_messages, role_matrix
 from tests.factories import (
     BulkEmailFactory,
     EmailTemplateFactory,
@@ -257,6 +257,52 @@ def test_deleting_a_template_leaves_drafts_started_from_it(
     management_client.delete(template_url(newsletter))
     draft.refresh_from_db()
     assert draft.subject == "News for {first_name}"
+
+
+# --------------------------------------------------------------------------
+# The audit trail
+# --------------------------------------------------------------------------
+def test_saving_a_template_writes_one_audit_line(
+    management_client: APIClient, management: User, audit_log: pytest.LogCaptureFixture
+) -> None:
+    """One ``email_template.create`` line names who saved it and the template."""
+    response = management_client.post(
+        TEMPLATES_URL, {"name": "Notice", "subject": "Hi", "body": "<p>Hi.</p>"}, format="json"
+    )
+
+    assert audit_messages(audit_log) == [
+        f"action=email_template.create actor={management.pk} target={response.json()['id']}"
+    ]
+
+
+def test_changing_a_template_writes_one_audit_line(
+    management_client: APIClient,
+    management: User,
+    newsletter: EmailTemplate,
+    audit_log: pytest.LogCaptureFixture,
+) -> None:
+    """A rename or an edit writes one ``email_template.update`` line."""
+    management_client.patch(template_url(newsletter), {"name": "Newsletter"}, format="json")
+
+    assert audit_messages(audit_log) == [
+        f"action=email_template.update actor={management.pk} target={newsletter.pk}"
+    ]
+
+
+def test_deleting_a_template_writes_one_audit_line(
+    management_client: APIClient,
+    management: User,
+    newsletter: EmailTemplate,
+    audit_log: pytest.LogCaptureFixture,
+) -> None:
+    """One ``email_template.delete`` line names the template that was deleted."""
+    pk = newsletter.pk
+
+    management_client.delete(template_url(newsletter))
+
+    assert audit_messages(audit_log) == [
+        f"action=email_template.delete actor={management.pk} target={pk}"
+    ]
 
 
 def test_deleting_its_type_leaves_the_template_without_one(newsletter: EmailTemplate) -> None:

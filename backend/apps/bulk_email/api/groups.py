@@ -42,6 +42,7 @@ from apps.bulk_email.models import (
     RecipientGroupMember,
 )
 from apps.members.api.actors import acting_user
+from caldart import audit
 from caldart.exceptions import DomainError, DomainValidationError
 from caldart.reports import CSV_MEDIA_TYPE, download_responses, report_response
 
@@ -249,8 +250,13 @@ class GroupListCreateView(generics.ListCreateAPIView[RecipientGroup]):
         return _groups()
 
     def perform_create(self, serializer: serializers.BaseSerializer[RecipientGroup]) -> None:
-        """Save the group, with nobody and no filters in it, the caller as its author."""
-        serializer.save(created_by=acting_user(self.request))
+        """Save the group, with nobody and no filters in it, the caller as its author.
+
+        One ``recipient_group.create`` line names the group and its kind.
+        """
+        actor = acting_user(self.request)
+        group = serializer.save(created_by=actor)
+        audit.record(audit.RECIPIENT_GROUP_CREATE, actor=actor, target=group, kind=group.kind)
 
 
 class GroupDetailView(generics.RetrieveUpdateDestroyAPIView[RecipientGroup]):
@@ -267,6 +273,17 @@ class GroupDetailView(generics.RetrieveUpdateDestroyAPIView[RecipientGroup]):
     def get_queryset(self) -> QuerySet[RecipientGroup]:
         """Every group, with its author and its filter sets."""
         return _groups()
+
+    def perform_update(self, serializer: serializers.BaseSerializer[RecipientGroup]) -> None:
+        """Save the new name; one ``recipient_group.rename`` line names the group."""
+        group = serializer.save()
+        audit.record(audit.RECIPIENT_GROUP_RENAME, actor=acting_user(self.request), target=group)
+
+    def perform_destroy(self, instance: RecipientGroup) -> None:
+        """Delete the group; one ``recipient_group.delete`` line names it by id."""
+        pk = instance.pk
+        instance.delete()
+        audit.record(audit.RECIPIENT_GROUP_DELETE, actor=acting_user(self.request), target=pk)
 
 
 class GroupPeopleView(APIView):

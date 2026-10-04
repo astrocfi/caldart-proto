@@ -1328,6 +1328,7 @@ Choose another name.*  ``subject`` and ``body`` follow a draft's rules
 (``PATCH /bulk-email/{id}``): the same lengths and refusals, and the message saved
 sanitized.  ``email_type`` is a type the caller may send, or null, refused as a
 draft refuses it; ``reply_to`` is an address, or blank.  **201** with the template.
+One ``email_template.create`` audit line names the caller and the template.
 
 ``GET /bulk-email/templates/{id}``
 ----------------------------------
@@ -1339,12 +1340,13 @@ One template, as the list shows it.
 
 Saves the fields given, each checked as ``POST`` checks it, which is how a template
 is renamed and edited; a template may keep its own name in another case.  **200**
-with the template.
+with the template, and one ``email_template.update`` audit line.
 
 ``DELETE /bulk-email/templates/{id}``
 -------------------------------------
 
 Deletes the template: **204**.  Drafts already started from it keep their words.
+One ``email_template.delete`` audit line names the caller and the template's id.
 
 ``POST /bulk-email/{id}/apply-template``
 ----------------------------------------
@@ -1426,7 +1428,8 @@ its sets change.
 Makes an empty group, the caller as its author: ``{"name": "Board", "kind":
 "fixed"}``.  ``name`` is at most 80 characters, trimmed, and must not be another
 group's in any mix of cases: **400** *A group named "Board" already exists. Choose
-another name.*  ``kind`` is ``fixed`` or ``live``.  **201** with the group.
+another name.*  ``kind`` is ``fixed`` or ``live``.  **201** with the group, and one
+``recipient_group.create`` audit line naming the caller, the group, and its kind.
 
 ``GET /bulk-email/groups/{id}``
 -------------------------------
@@ -1439,13 +1442,14 @@ One group, as the list shows it.
 Renames the group (``{"name": "Directors"}``), checked as ``POST`` checks it; a
 ``kind`` other than its own is **400** *A group's kind cannot change. Save a new
 group instead.*  Every add already made keeps the name the group had then.  **200**
-with the group.
+with the group, and one ``recipient_group.rename`` audit line.
 
 ``DELETE /bulk-email/groups/{id}``
 ----------------------------------
 
 Deletes the group: **204**.  Every batch the group was added to keeps its people and
-its add's name, and the add's ``group`` becomes null.
+its add's name, and the add's ``group`` becomes null.  One ``recipient_group.delete``
+audit line names the caller and the group's id.
 
 ``GET /bulk-email/groups/{id}/members``
 ---------------------------------------
@@ -1529,7 +1533,8 @@ one that has started sending is **409**.
 ------------------------------------
 
 Saves the batch as a group: ``{"name": "Hangar crew", "kind": "fixed"}``, the name
-checked as ``POST /bulk-email/groups`` checks it.  **201** with the group.
+checked as ``POST /bulk-email/groups`` checks it.  **201** with the group, audited as
+``recipient_group.create`` like a group made empty.
 
 - A ``fixed`` group holds every account in the batch now, whether or not each will
   receive the email; a deleted account is left out.

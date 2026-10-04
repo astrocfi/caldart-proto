@@ -47,6 +47,7 @@ from apps.bulk_email.models import (
     RecipientGroupMember,
 )
 from apps.members.filters import member_admin_queryset
+from caldart import audit
 from caldart.exceptions import DomainError, DomainValidationError
 from caldart.reports import CSV_DOCUMENT_TYPE, ReportDocument, csv_rows
 
@@ -214,7 +215,8 @@ def save_group(bulk: BulkEmail, *, name: str, kind: str, actor: User) -> Recipie
     keyed ``batch`` with :data:`EMPTY_BATCH_MESSAGE` when the batch is empty, and with
     :data:`NO_FILTERS_MESSAGE` for a live group when an add has no filters behind it,
     a fixed group's or people copied from another email, and with
-    :data:`DELETED_GROUP_MESSAGE` when an add's group has since been deleted.
+    :data:`DELETED_GROUP_MESSAGE` when an add's group has since been deleted.  One
+    ``recipient_group.create`` audit line names the group and its kind.
     """
     if not batch_queryset(bulk).exists():
         raise DomainValidationError("batch", EMPTY_BATCH_MESSAGE)
@@ -227,15 +229,16 @@ def save_group(bulk: BulkEmail, *, name: str, kind: str, actor: User) -> Recipie
             RecipientGroupMember.objects.bulk_create(
                 [RecipientGroupMember(group=group, user_id=pk) for pk in accounts]
             )
-            return group
-        filter_sets = _batch_filter_sets(bulk)
-        group = RecipientGroup.objects.create(name=name, kind=kind, created_by=actor)
-        RecipientGroupFilter.objects.bulk_create(
-            [
-                RecipientGroupFilter(group=group, filters=filters, position=position)
-                for position, filters in enumerate(filter_sets)
-            ]
-        )
+        else:
+            filter_sets = _batch_filter_sets(bulk)
+            group = RecipientGroup.objects.create(name=name, kind=kind, created_by=actor)
+            RecipientGroupFilter.objects.bulk_create(
+                [
+                    RecipientGroupFilter(group=group, filters=filters, position=position)
+                    for position, filters in enumerate(filter_sets)
+                ]
+            )
+    audit.record(audit.RECIPIENT_GROUP_CREATE, actor=actor, target=group, kind=group.kind)
     return group
 
 
