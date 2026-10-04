@@ -22,7 +22,7 @@ export const LEAD_FLOOR_REM = 8;
 
 /**
  * The least an actions column takes: room for an open delete confirmation, its
- * danger button and **Keep** side by side, so neither is cut off.
+ * danger button and **Cancel** side by side, so neither is cut off.
  */
 export const ACTIONS_MIN_WIDTH = '10rem';
 
