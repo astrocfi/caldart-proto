@@ -53,12 +53,16 @@ export function CalloutsPage(): JSX.Element {
   );
 }
 
-/** The table's columns: the subject, when it went, whether it is open, then the counts. */
+/**
+ * The table's columns: the subject, when it went, whether it is open (wrapping, so the
+ * closing time reads in full), then the counts. Who sent it and their DART give way
+ * first when the table would not fit its card.
+ */
 export const CALLOUT_COLUMNS: Column<CalloutSummary>[] = [
   {
     key: 'subject',
     header: 'Subject',
-    minWidth: '14rem',
+    minWidth: '12rem',
     render: (row) => <Link to={`/bulk-email/callouts/${row.id}`}>{row.subject}</Link>,
     sortValue: (row) => row.subject,
   },
@@ -72,7 +76,8 @@ export const CALLOUT_COLUMNS: Column<CalloutSummary>[] = [
   {
     key: 'closes_at',
     header: 'Answers',
-    width: '19rem',
+    width: '13rem',
+    wrap: true,
     render: (row) => (
       <span className="callouts__state">
         <StatusDot tone={row.is_open ? 'current' : 'none'} label={openLabel(row)} />
@@ -85,6 +90,7 @@ export const CALLOUT_COLUMNS: Column<CalloutSummary>[] = [
     key: 'sender',
     header: 'From',
     width: '8rem',
+    wideOnly: true,
     render: (row) => row.sender || '—',
     sortValue: (row) => row.sender,
   },
@@ -92,6 +98,7 @@ export const CALLOUT_COLUMNS: Column<CalloutSummary>[] = [
     key: 'dart_name',
     header: 'DART',
     width: '7rem',
+    wideOnly: true,
     render: (row) => row.dart_name || '—',
     sortValue: (row) => row.dart_name,
   },

@@ -5,8 +5,9 @@
  * sends the callout again to everybody who has not answered, after asking), **Close
  * now** (which stops the answers, after asking), and **Download answers**. Then one
  * line per person the callout reached, narrowed by answer or by a name, with their
- * note, when they answered, their DART, home airport, and aircraft, and GO or NO-GO
- * as the member check reads them now. The page is read again every half minute while
+ * answer and GO or NO-GO as the member check reads them now, then their note, when
+ * they answered, their DART, home airport, and aircraft. A narrowed table's caption
+ * says how many of everybody it shows. The page is read again every half minute while
  * the callout takes answers.
  */
 import { useMemo, useState } from 'react';
@@ -30,6 +31,7 @@ import { StatusDot } from '@/portal/components/StatusChip';
 import { useToast } from '@/portal/components/Toast';
 import { scheduledWords } from '@/portal/features/bulk-email/schedule';
 import { actionError } from '@/portal/features/bulk-email/SendStatus';
+import { resultsCaption } from '@/portal/features/bulk-email/DeliveryReport';
 import { people } from '@/portal/features/bulk-email/status';
 import { GoMark, isReady } from '@/portal/features/leader/LeaderLookup';
 import { answersCsvUrl, useCallout, useCalloutAction } from './api';
@@ -249,14 +251,19 @@ function Answers({ rows }: { rows: CalloutRecipient[] }): JSX.Element {
         columns={ANSWER_COLUMNS}
         rows={shown}
         rowKey={(row) => row.user_id}
-        caption={`Answers: ${people(rows.length)}`}
+        caption={resultsCaption(shown.length, rows.length, 'Answers')}
         emptyTitle="Nobody to show"
       />
     </div>
   );
 }
 
-/** The answers table's columns: the person, their answer, then what the member check reads. */
+/**
+ * The answers table's columns: the person, their answer, and the member check's GO or
+ * NO-GO, so all three stay in sight on a phone; then their note, which wraps, and when
+ * they answered. Their DART, home airport, and aircraft give way first when the table
+ * would not fit its card.
+ */
 export const ANSWER_COLUMNS: Column<CalloutRecipient>[] = [
   {
     key: 'name',
@@ -278,23 +285,32 @@ export const ANSWER_COLUMNS: Column<CalloutRecipient>[] = [
     sortValue: (row) => (row.answer === null ? '' : ANSWER_LABELS[row.answer]),
   },
   {
+    key: 'go_no_go',
+    header: 'Go/no-go',
+    width: '7.5rem',
+    render: (row) => <GoCell goNoGo={row.go_no_go} />,
+    sortValue: (row) => (isReady(row.go_no_go) ? 1 : 0),
+  },
+  {
     key: 'note',
     header: 'Note',
     minWidth: '10rem',
+    wrap: true,
     render: (row) => row.note || '—',
     sortValue: (row) => row.note,
   },
   {
     key: 'answered_at',
     header: 'Answered',
-    width: '10rem',
-    render: (row) => <DateText value={row.answered_at} withTime />,
+    width: '11.5rem',
+    render: (row) => <DateText value={row.answered_at} withTime twelveHour />,
     sortValue: (row) => row.answered_at,
   },
   {
     key: 'dart_name',
     header: 'DART',
     width: '7rem',
+    wideOnly: true,
     render: (row) => row.dart_name || '—',
     sortValue: (row) => row.dart_name,
   },
@@ -302,6 +318,7 @@ export const ANSWER_COLUMNS: Column<CalloutRecipient>[] = [
     key: 'home_airport',
     header: 'Home airport',
     width: '6.5rem',
+    wideOnly: true,
     render: (row) => row.home_airport || '—',
     sortValue: (row) => row.home_airport,
   },
@@ -309,15 +326,9 @@ export const ANSWER_COLUMNS: Column<CalloutRecipient>[] = [
     key: 'aircraft',
     header: 'Aircraft',
     width: '8rem',
+    wideOnly: true,
     render: (row) => (row.aircraft.length === 0 ? '—' : row.aircraft.join(', ')),
     sortValue: (row) => row.aircraft.join(', '),
-  },
-  {
-    key: 'go_no_go',
-    header: 'Go/no-go',
-    width: '7.5rem',
-    render: (row) => <GoCell goNoGo={row.go_no_go} />,
-    sortValue: (row) => (isReady(row.go_no_go) ? 1 : 0),
   },
 ];
 
@@ -336,7 +347,7 @@ function Reminders({ callout }: { callout: CalloutDetail }): JSX.Element | null 
       <ul className="callouts__reminders">
         {callout.reminders.map((reminder) => (
           <li key={reminder.round}>
-            <DateText value={reminder.requested_at} withTime />
+            <DateText value={reminder.requested_at} withTime twelveHour />
             {`: reminded ${people(reminder.count)}.`}
           </li>
         ))}

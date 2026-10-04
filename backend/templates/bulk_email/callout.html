@@ -5,7 +5,8 @@
   `closed`, `busy`, `inactive`, or `invalid` (see `apps.bulk_email.views.callout_answer`).  The form posts
   back to this same address; it carries no CSRF token because the signed token in the
   address is the authorization.  `page.body_html` is the sanitized message with the
-  person's values filled in, each escaped.
+  person's values filled in, each escaped; the form names `page.user`'s address, so a
+  reader sees whose answer it records.
 {% endcomment %}
 
 {% block title %}{% if state == "invalid" or state == "inactive" %}Mission callout{% else %}{{ page.subject }}{% endif %}{% endblock %}
@@ -57,6 +58,7 @@
         {% else %}
           <p class="lede">Can you fly? Choose your answer and press Send answer. You can change it until {{ closes }}.</p>
         {% endif %}
+        <p class="small">You are answering for <strong>{{ page.user.email }}</strong>.</p>
         <form method="post" class="stack callout-answer__form">
           <fieldset class="stack-tight callout-answer__choices"{% if error %} aria-describedby="callout-answer-error"{% endif %}>
             <legend class="field__label">Your answer</legend>

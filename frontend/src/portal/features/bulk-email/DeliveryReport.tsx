@@ -242,11 +242,15 @@ function Results({ rows, columns, isLoading }: ResultsProps): JSX.Element {
 }
 
 /**
- * The results table's caption: `Results: 39 people`, or `Showing 2 of 39` once a result
+ * A narrowable table's caption: `Results: 39 people`, or `Showing 2 of 39` once a menu
  * or a search narrows it.
+ *
+ * @param shown how many lines the table shows.
+ * @param total how many there are in all.
+ * @param label what the table holds, `Results` unless given.
  */
-export function resultsCaption(shown: number, total: number): string {
-  return shown === total ? `Results: ${people(total)}` : `Showing ${shown} of ${total}`;
+export function resultsCaption(shown: number, total: number, label = 'Results'): string {
+  return shown === total ? `${label}: ${people(total)}` : `Showing ${shown} of ${total}`;
 }
 
 /** The retries, each with when it was pressed, by whom, and how many copies it queued. */

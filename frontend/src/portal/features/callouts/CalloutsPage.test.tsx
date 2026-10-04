@@ -8,7 +8,7 @@ import { makeCalloutSummary } from '@test/fixtures/callouts';
 import { API } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
-import { CalloutsPage } from './CalloutsPage';
+import { CALLOUT_COLUMNS, CalloutsPage } from './CalloutsPage';
 
 /** Render the list with `/bulk-email/callouts` answering `rows`. */
 function renderList(rows: CalloutSummary[]) {
@@ -18,6 +18,12 @@ function renderList(rows: CalloutSummary[]) {
 
 describe('CalloutsPage', () => {
   // The state reads twice: once for a screen reader, beside its dot, and once on screen.
+  it('lets who sent a callout and its DART give way on a narrow screen', () => {
+    expect(
+      CALLOUT_COLUMNS.filter((column) => column.wideOnly === true).map((column) => column.key),
+    ).toEqual(['sender', 'dart_name']);
+  });
+
   it('lists each callout with its answers counted', async () => {
     renderList([makeCalloutSummary()]);
 
