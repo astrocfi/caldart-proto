@@ -26,7 +26,8 @@ from apps.bulk_email import drafts, job
 from apps.bulk_email.batch import SKIP_DEACTIVATED
 from apps.bulk_email.models import BulkEmail, BulkEmailStatus, RecipientStatus
 from apps.bulk_email.render import render_copy
-from apps.mail.models import EmailLog
+from apps.mail.models import EmailLog, EmailStatus
+from caldart.mail import send_templated
 from tests.conftest import audit_messages
 from tests.factories import BulkEmailFactory, add_to_batch, make_person
 
@@ -910,6 +911,94 @@ def test_a_copy_recovered_from_the_log_keeps_the_message_id_it_went_with(
         RecipientStatus.SENT,
         mail.outbox[0].extra_headers["Message-ID"],
     )
+
+
+@pytest.fixture
+def crash_before_first_record(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Make the first copy's ``_record`` die, after the email log row is written."""
+    original = job._record
+    crashed: list[bool] = []
+
+    def crash_before_first(*args: Any, **kwargs: Any) -> None:
+        if not crashed:
+            crashed.append(True)
+            raise KeyboardInterrupt
+        original(*args, **kwargs)
+
+    monkeypatch.setattr(job, "_record", crash_before_first)
+
+
+def test_a_copy_whose_logged_try_failed_is_sent_again(
+    three: BulkEmail, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A hand-over that died is logged as failed; the next run sends that copy again."""
+    original = EmailBackend.send_messages
+    calls: list[int] = []
+
+    def crash_on_first(self: EmailBackend, messages: list[EmailMessage]) -> int:
+        calls.append(1)
+        if len(calls) == 1:
+            raise KeyboardInterrupt
+        return original(self, messages)
+
+    monkeypatch.setattr(EmailBackend, "send_messages", crash_on_first)
+    with pytest.raises(KeyboardInterrupt):
+        job.run_sender(now=NOW)
+    job.run_sender(now=NOW)
+    assert [message.to[0] for message in mail.outbox] == [
+        "ann@example.test",
+        "bea@example.test",
+        "cy@example.test",
+    ]
+
+
+def test_a_copy_tried_but_never_logged_is_sent_again(
+    three: BulkEmail, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A run that died after saving the ``Message-ID``, before the send, sends it next."""
+    original = send_templated
+    calls: list[int] = []
+
+    def crash_on_first(**kwargs: Any) -> EmailMultiAlternatives:
+        calls.append(1)
+        if len(calls) == 1:
+            raise KeyboardInterrupt
+        return original(**kwargs)
+
+    monkeypatch.setattr(job, "send_templated", crash_on_first)
+    with pytest.raises(KeyboardInterrupt):
+        job.run_sender(now=NOW)
+    job.run_sender(now=NOW)
+    assert [message.to[0] for message in mail.outbox] == [
+        "ann@example.test",
+        "bea@example.test",
+        "cy@example.test",
+    ]
+
+
+@pytest.mark.usefixtures("crash_before_first_record")
+def test_a_logged_copy_that_bounced_before_the_next_run_is_recorded_bounced(
+    three: BulkEmail,
+) -> None:
+    """The copy went and came back, so it is ``bounced`` with the report, not sent."""
+    with pytest.raises(KeyboardInterrupt):
+        job.run_sender(now=NOW)
+    EmailLog.objects.filter(to_email="ann@example.test").update(
+        status=EmailStatus.BOUNCED, bounce_detail="5.1.1 User unknown"
+    )
+    job.run_sender(now=NOW)
+    ann = three.recipients.get(email="ann@example.test")
+    assert (ann.status, ann.reason) == (RecipientStatus.BOUNCED, "5.1.1 User unknown")
+
+
+@pytest.mark.usefixtures("crash_before_first_record")
+def test_a_logged_copy_that_bounced_is_counted_bounced(three: BulkEmail) -> None:
+    """The finished email counts the bounce, and two copies sent."""
+    with pytest.raises(KeyboardInterrupt):
+        job.run_sender(now=NOW)
+    EmailLog.objects.filter(to_email="ann@example.test").update(status=EmailStatus.BOUNCED)
+    job.run_sender(now=NOW)
+    assert (refreshed(three).sent_count, refreshed(three).bounced_count) == (2, 1)
 
 
 # --------------------------------------------------------------------------

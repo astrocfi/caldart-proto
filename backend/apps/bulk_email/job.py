@@ -59,6 +59,7 @@ from apps.bulk_email.callouts import (
     reminder_finished,
     skip_pending,
 )
+from apps.bulk_email.delivery import mark_bounced
 from apps.bulk_email.models import (
     BulkEmail,
     BulkEmailRecipient,
@@ -68,7 +69,7 @@ from apps.bulk_email.models import (
 from apps.bulk_email.render import COPY_TEMPLATE, PURPOSE, fill_values, render_copy
 from apps.bulk_email.reply_to import claimed_reply_to
 from apps.bulk_email.senders import SKIP_NOT_IN_DART, DartLimit, dart_limit, limit_dart
-from apps.mail.models import EmailLog
+from apps.mail.models import EmailLog, EmailStatus
 from apps.mail.types import is_opted_out, sendable_types
 from apps.members.models import MemberProfile
 from caldart import audit
@@ -521,9 +522,12 @@ def _recover_logged_copies(bulk: BulkEmail, run: SenderRun) -> None:
     :func:`_try_copy` saves each try's ``Message-ID`` on the row before handing the copy
     over, and ``send_templated`` writes the email log row as soon as the mail server
     accepts it, before :func:`_record` saves the row.  A run that died between those two
-    writes leaves a pending row whose ``Message-ID`` is in the log without an error; that
-    copy went, so it is recorded as sent rather than sent a second time.  A pending row
-    whose try is logged with an error, or not at all, is sent again as usual.
+    writes leaves a pending row whose ``Message-ID`` is in the log as ``sent``; that copy
+    went, so it is recorded as sent rather than sent a second time.  One whose log row the
+    bounce check has since marked ``bounced`` went and came back: it is recorded as sent,
+    then bounced through ``apps.bulk_email.delivery.mark_bounced``, with the report as its
+    reason, as any bounce is.  A pending row whose try is logged as ``failed``, or not at
+    all, is sent again as usual.
     """
     tried = {
         row.message_id: row
@@ -531,16 +535,17 @@ def _recover_logged_copies(bulk: BulkEmail, run: SenderRun) -> None:
     }
     if len(tried) == 0:
         return
-    went = EmailLog.objects.filter(message_id__in=tried, error="").values_list(
-        "message_id", flat=True
+    went = EmailLog.objects.filter(
+        message_id__in=tried, status__in=[EmailStatus.SENT, EmailStatus.BOUNCED]
     )
-    for message_id in went:
+    for entry in went:
         _record(
             bulk,
-            tried[message_id],
-            _Attempt(status=RecipientStatus.SENT, message_id=message_id),
+            tried[entry.message_id],
+            _Attempt(status=RecipientStatus.SENT, message_id=entry.message_id),
             run,
         )
+        mark_bounced(entry)
 
 
 def _skip_if_unsendable(bulk: BulkEmail, row: BulkEmailRecipient, run: SenderRun) -> bool:

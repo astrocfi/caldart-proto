@@ -313,10 +313,12 @@ as the mail server accepts the copy; after that the row is saved first, ``sent``
 and only then the email's counts, all outside any transaction, so a run that dies
 after the hand-over leaves the copy marked sent and the next run does not send it
 again.  A run that dies in the narrow gap between the email log row and the
-recipient row leaves a pending row whose ``Message-ID`` is logged without an error;
-the next run records that copy as sent before it sends anything
-(``job._recover_logged_copies``), and sends a pending row whose try is logged with
-an error, or not at all, as usual.  A crash between the row and the counts leaves a
+recipient row leaves a pending row whose ``Message-ID`` is logged ``sent``; the next
+run records that copy as sent before it sends anything
+(``job._recover_logged_copies``).  If the bounce check has meanwhile marked the log
+row ``bounced``, the copy is recorded sent and then bounced
+(``delivery.mark_bounced``), as any bounce is.  A pending row whose try is logged
+``failed``, or not at all, is sent again as usual.  A crash between the row and the counts leaves a
 count short, never a duplicate email: when the email finishes, and when a stop takes
 effect, ``job.recount`` sets ``sent_count``, ``failed_count``, ``skipped_count``, and
 ``bounced_count`` from the rows of every round, so no count stays off.  The counts
