@@ -79,11 +79,11 @@ describe('BackupsPanel', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Create backup' }));
 
     expect(await screen.findByText(created.name)).toBeInTheDocument();
-    // The toast confirms it, so a slow dump cannot look like a no-op.
-    expect(screen.getByText(`Wrote ${created.name}`)).toBeInTheDocument();
+    // The toast confirms it, so a slow backup cannot look like a no-op.
+    expect(screen.getByText('Backup taken.')).toBeInTheDocument();
   });
 
-  it('shows progress while pg_dump runs', async () => {
+  it('shows progress while the backup is taken', async () => {
     server.use(
       listHandler([]),
       http.post(`${API}/system/backups`, async () => {
@@ -98,7 +98,9 @@ describe('BackupsPanel', () => {
 
     const button = await screen.findByRole('button', { name: 'Taking a backup…' });
     expect(button).toBeDisabled();
-    expect(screen.getByText(/pg_dump is running/)).toBeInTheDocument();
+    expect(
+      screen.getByText('Taking a backup. A large database takes a minute or two.'),
+    ).toBeInTheDocument();
     await waitFor(() =>
       expect(screen.getByRole('button', { name: 'Create backup' })).toBeEnabled(),
     );
@@ -129,5 +131,17 @@ describe('BackupsPanel', () => {
     renderWithProviders(<BackupsPanel />);
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Nope');
+  });
+
+  it('says how a backup is restored, in plain words', async () => {
+    server.use(listHandler([]));
+    renderWithProviders(<BackupsPanel />);
+
+    expect(
+      await screen.findByText(
+        'There is no restore button. To restore a backup, ask the person who installed the site.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/BACKUP_DIR|db_restore|[Dd]ump/)).toBeNull();
   });
 });

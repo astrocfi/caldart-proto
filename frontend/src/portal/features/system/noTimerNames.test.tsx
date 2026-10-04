@@ -20,7 +20,7 @@ const TIMER_PATTERN = /caldart-[a-z]+|systemd|\.timer/;
 const PAGES: [name: string, page: () => JSX.Element, loaded: string][] = [
   ['Health and database', HealthDatabasePage, '0.1.0'],
   ['Sent emails', SentEmailsPage, 'No emails sent yet'],
-  ['Scheduled', ScheduledPage, 'No reminders sent yet'],
+  ['Scheduled', ScheduledPage, 'No reminders have been sent yet'],
 ];
 
 describe('the System pages', () => {

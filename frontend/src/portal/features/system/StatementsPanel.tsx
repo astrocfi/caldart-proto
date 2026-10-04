@@ -1,22 +1,21 @@
 /**
  * The year-end statements panel of `/portal/system/scheduled`: run the statement sender
- * by hand for a chosen year, optionally as a rehearsal, and read who it
+ * by hand for a chosen year, optionally as a practice run, and read who it
  * reached.
  *
  * The sender mails every active account -- a member, a friend, or a donor --
  * with a settled contribution in the chosen year; `/admin/payments/donors` is
  * where a treasurer reads the donors themselves.
  */
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import type { ChangeEvent, JSX } from 'react';
 
 import type { StatementsRunResult } from '@/portal/api/types';
-import { Button } from '@/portal/components/Button';
-import { Card } from '@/portal/components/Card';
+import { Field } from '@/portal/components/Field';
 import { PracticeRunCheckbox } from '@/portal/components/PracticeRunCheckbox';
 import { RunActionsTable } from '@/portal/components/RunActionsTable';
-import { useFocusAfterSave } from '@/portal/components/focus';
 import { useRunStatements } from './api';
+import { JobPanel, NothingDue, RunNowButton } from './JobPanel';
 
 /** The year the panel offers by default: the one the January run sends. */
 export function defaultStatementYear(today: Date = new Date()): number {
@@ -42,9 +41,6 @@ export function StatementsPanel(): JSX.Element {
   const [lastRunWasDry, setLastRunWasDry] = useState(true);
 
   const run = useRunStatements();
-  // The button is disabled while it runs; it gets the focus back once the run ends.
-  const runRef = useRef<HTMLButtonElement>(null);
-  useFocusAfterSave(runRef, run.isPending);
 
   const handleRun = (): void => {
     setLastRunWasDry(dryRun);
@@ -60,30 +56,24 @@ export function StatementsPanel(): JSX.Element {
   };
 
   return (
-    <Card
+    <JobPanel
       eyebrow="Payments"
       title="Year-end statements"
-      footer={
+      description="The year-end statements go once a year, on January 15th at 6:45 AM, for the year before. Every active member, friend, or donor who gave a settled contribution in the chosen year is emailed that year&rsquo;s statement as a PDF."
+      options={
         <>
-          <Button
-            ref={runRef}
-            onClick={handleRun}
-            disabled={run.isPending || year.trim() === ''}
-            aria-label={run.isPending ? undefined : 'Run now: year-end statements'}
-          >
-            {run.isPending ? 'Running…' : 'Run now'}
-          </Button>
-          <label className="cluster">
-            Year
-            <input
-              type="number"
-              inputMode="numeric"
-              className="num"
-              style={{ width: '5.5rem' }}
-              value={year}
-              onChange={handleYearChange}
-            />
-          </label>
+          <Field label="Year">
+            {(field) => (
+              <input
+                {...field}
+                type="number"
+                inputMode="numeric"
+                className="job-panel__year"
+                value={year}
+                onChange={handleYearChange}
+              />
+            )}
+          </Field>
           <PracticeRunCheckbox
             checked={dryRun}
             onChange={handleDryRunChange}
@@ -91,27 +81,45 @@ export function StatementsPanel(): JSX.Element {
           />
         </>
       }
-    >
-      <p className="muted">
-        The sender runs once a year in January, for the year before. It emails every active account
-        — a member, a friend, or a donor — that gave a settled contribution in the chosen year, with
-        that year&rsquo;s statement PDF attached.
-      </p>
-
-      {run.isSuccess ? (
-        <RunActionsTable
-          actions={run.data.actions}
-          dryRun={lastRunWasDry}
-          kindLabel={statementKindLabel}
-          summary={<p role="status">{statementsRunSummary(run.data, lastRunWasDry)}</p>}
+      action={
+        <RunNowButton
+          task="year-end statements"
+          isRunning={run.isPending}
+          disabled={year.trim() === ''}
+          onClick={handleRun}
         />
-      ) : null}
+      }
+      isRunning={run.isPending}
+      result={<StatementsResult run={run} dryRun={lastRunWasDry} />}
+    />
+  );
+}
 
-      {run.isError ? (
-        <p className="field__error" role="alert">
-          {run.error instanceof Error ? run.error.message : 'The statement run failed.'}
-        </p>
-      ) : null}
-    </Card>
+interface StatementsResultProps {
+  run: ReturnType<typeof useRunStatements>;
+  dryRun: boolean;
+}
+
+/** What the last statement run did, or why it failed; nothing before the first run. */
+function StatementsResult({ run, dryRun }: StatementsResultProps): JSX.Element | null {
+  if (run.isError) {
+    return (
+      <p className="field__error" role="alert">
+        {run.error instanceof Error ? run.error.message : 'The statement run failed.'}
+      </p>
+    );
+  }
+  if (!run.isSuccess) return null;
+  const { data } = run;
+  if (data.actions.length === 0 && data.sent + data.skipped + data.failed === 0) {
+    return <NothingDue dryRun={dryRun} />;
+  }
+  return (
+    <RunActionsTable
+      actions={data.actions}
+      dryRun={dryRun}
+      kindLabel={statementKindLabel}
+      summary={<p role="status">{statementsRunSummary(data, dryRun)}</p>}
+    />
   );
 }

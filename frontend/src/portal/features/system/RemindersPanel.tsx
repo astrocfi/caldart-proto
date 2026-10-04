@@ -1,18 +1,17 @@
 /**
- * The renewal reminder emails panel of `/portal/system/scheduled`: run the scan
- * by hand — optionally as a rehearsal — and read the log of what went out.
+ * The renewal reminder emails panel of `/portal/system/scheduled`: run the scan by
+ * hand, optionally as a practice run, and read the log of what went out under its own
+ * heading below.
  */
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import type { ChangeEvent, JSX } from 'react';
 
 import type { ReminderKind } from '@/portal/api/types';
-import { Button } from '@/portal/components/Button';
-import { Card } from '@/portal/components/Card';
 import { PracticeRunCheckbox } from '@/portal/components/PracticeRunCheckbox';
 import { RunActionsTable } from '@/portal/components/RunActionsTable';
 import { runSummary, skippedBreakdown } from '@/portal/components/runSummary';
-import { useFocusAfterSave } from '@/portal/components/focus';
 import { useReminderSchedule, useRunReminders } from './api';
+import { JobPanel, NothingDue, RunNowButton } from './JobPanel';
 import { SKIPPED_REASON_LABELS } from './labels';
 import { ReminderLog } from './ReminderLog';
 import { kindLabels, REMINDER_KINDS, schedulePhrase } from './reminderSchedule';
@@ -33,12 +32,6 @@ export function RemindersPanel(): JSX.Element {
   const reminderKindLabel = (kind: string): string => (isReminderKind(kind) ? labels[kind] : kind);
 
   const run = useRunReminders();
-  // The button is disabled while it runs; it gets the focus back once the run ends.
-  const runRef = useRef<HTMLButtonElement>(null);
-  useFocusAfterSave(runRef, run.isPending);
-  const breakdown = run.data
-    ? skippedBreakdown(run.data.skipped_by_reason, SKIPPED_REASON_LABELS)
-    : '';
 
   const handleRun = (): void => {
     setLastRunWasDry(dryRun);
@@ -50,55 +43,73 @@ export function RemindersPanel(): JSX.Element {
   };
 
   return (
-    <Card
+    <JobPanel
       eyebrow="Membership"
       title="Renewal reminder emails"
-      footer={
+      description={
         <>
-          <Button
-            ref={runRef}
-            onClick={handleRun}
-            disabled={run.isPending}
-            aria-label={run.isPending ? undefined : 'Run now: renewal reminder emails'}
-          >
-            {run.isPending ? 'Running…' : 'Run now'}
-          </Button>
-          <PracticeRunCheckbox
-            checked={dryRun}
-            onChange={handleDryRunChange}
-            task="renewal reminder emails"
-          />
+          The renewal reminder emails go every morning at 7:00 AM to members whose membership is
+          about to expire or has just expired
+          {schedule.data ? `: ${schedulePhrase(schedule.data)}` : ''}. They are email only and never
+          charge anyone, and a member whose automatic renewal is on is skipped.
         </>
       }
-    >
-      <p className="muted">
-        Emails members whose membership is about to expire or has just expired
-        {schedule.data ? `: ${schedulePhrase(schedule.data)}` : ''}. It sends email only and never
-        charges anyone. A member whose automatic renewal is on is skipped. It runs every morning.
-      </p>
-
-      {run.isSuccess ? (
-        <RunActionsTable
-          actions={run.data.actions}
-          dryRun={lastRunWasDry}
-          kindLabel={reminderKindLabel}
-          summary={
-            <>
-              <p role="status">{runSummary(run.data, lastRunWasDry)}</p>
-              {breakdown ? <p className="muted">{breakdown}</p> : null}
-              {run.data.failed > 0 ? <p className="muted">{`Failed ${run.data.failed}.`}</p> : null}
-            </>
-          }
+      options={
+        <PracticeRunCheckbox
+          checked={dryRun}
+          onChange={handleDryRunChange}
+          task="renewal reminder emails"
         />
-      ) : null}
-
-      {run.isError ? (
-        <p className="field__error" role="alert">
-          {run.error instanceof Error ? run.error.message : 'The reminder run failed.'}
-        </p>
-      ) : null}
-
+      }
+      action={
+        <RunNowButton
+          task="renewal reminder emails"
+          isRunning={run.isPending}
+          onClick={handleRun}
+        />
+      }
+      isRunning={run.isPending}
+      result={<RemindersResult run={run} dryRun={lastRunWasDry} labelKind={reminderKindLabel} />}
+    >
+      <h3 className="job-panel__subhead">Reminders sent</h3>
       <ReminderLog />
-    </Card>
+    </JobPanel>
+  );
+}
+
+interface RemindersResultProps {
+  run: ReturnType<typeof useRunReminders>;
+  dryRun: boolean;
+  labelKind: (kind: string) => string;
+}
+
+/** What the last reminder run did, or why it failed; nothing before the first run. */
+function RemindersResult({ run, dryRun, labelKind }: RemindersResultProps): JSX.Element | null {
+  if (run.isError) {
+    return (
+      <p className="field__error" role="alert">
+        {run.error instanceof Error ? run.error.message : 'The reminder run failed.'}
+      </p>
+    );
+  }
+  if (!run.isSuccess) return null;
+  const { data } = run;
+  if (data.actions.length === 0 && data.sent + data.skipped + data.failed === 0) {
+    return <NothingDue dryRun={dryRun} />;
+  }
+  const breakdown = skippedBreakdown(data.skipped_by_reason, SKIPPED_REASON_LABELS);
+  return (
+    <RunActionsTable
+      actions={data.actions}
+      dryRun={dryRun}
+      kindLabel={labelKind}
+      summary={
+        <>
+          <p role="status">{runSummary(data, dryRun)}</p>
+          {breakdown ? <p className="muted">{breakdown}</p> : null}
+          {data.failed > 0 ? <p className="muted">{`Failed ${data.failed}.`}</p> : null}
+        </>
+      }
+    />
   );
 }

@@ -80,6 +80,7 @@ export const HELP_PAGES: readonly HelpPage[] = [
   { pattern: '/system', slug: 'admin/health-database' },
   { pattern: '/system/health', slug: 'admin/health-database' },
   { pattern: '/system/emails', slug: 'admin/sent-emails' },
+  { pattern: '/system/emails/:id', slug: 'admin/sent-emails' },
   { pattern: '/system/scheduled', slug: 'admin/scheduled' },
 ];
 

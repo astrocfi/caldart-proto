@@ -1515,6 +1515,11 @@ export interface BounceRunResult {
   actions: RunAction[];
 }
 
+/** Whether bounce checking is set up, from `GET /system/bounces`. */
+export interface BounceStatus {
+  enabled: boolean;
+}
+
 /** A role an email type may name as one that sends it. */
 export type EmailTypeSenderRole = 'dart_leader' | 'management';
 

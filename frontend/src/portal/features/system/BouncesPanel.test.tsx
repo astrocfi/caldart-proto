@@ -136,4 +136,18 @@ describe('BouncesPanel', () => {
       'Could not reach the bounce mailbox at imap.example.org',
     );
   });
+
+  it('says bounce checking is off as the panel loads, and holds Run now back', async () => {
+    server.use(http.get(`${API}/system/bounces`, () => HttpResponse.json({ enabled: false })));
+    renderWithProviders(<BouncesPanel />);
+
+    expect(await screen.findByText(BOUNCES_OFF)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Run now: bounce check' })).toBeDisabled();
+  });
+
+  it('asks the person who installed the site, in plain words', () => {
+    expect(BOUNCES_OFF).toBe(
+      'Bounce checking is off. Ask the person who installed the site to set up a bounce mailbox.',
+    );
+  });
 });

@@ -244,6 +244,8 @@ export const handlers = [
       { value: 'password_reset', label: 'Password reset' },
     ]),
   ),
+  // The Scheduled page's Bounces panel reads whether bounce checking is set up.
+  http.get(`${API}/system/bounces`, () => HttpResponse.json({ enabled: true })),
   // The compose screen's type choice reads the types the sender may send.
   http.get(`${API}/email-types/sendable`, () => HttpResponse.json(SENDABLE_TYPES)),
   // The bulk email screens read who the sender may send to.

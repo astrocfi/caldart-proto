@@ -44,6 +44,7 @@ import type {
   Backup,
   BecomeFriendPayload,
   BounceRunResult,
+  BounceStatus,
   AddGroupRequest,
   ApplyTemplateRequest,
   BulkEmailAddRequest,
@@ -440,6 +441,7 @@ const verifierGrant: Matches<VerifierGrantPayload, Schemas['VerifierGrantRequest
 const emailLog: Matches<EmailLogEntry, Schemas['EmailLog']> = true;
 const emailPurpose: Matches<EmailPurpose, Schemas['EmailPurpose']> = true;
 const bounceRun: Matches<BounceRunResult, Schemas['BounceRunResult']> = true;
+const bounceStatus: Matches<BounceStatus, Schemas['BounceStatus']> = true;
 const mailDeliveryCheck: Matches<MailDeliveryCheck, Schemas['MailDeliveryCheck']> = true;
 const mailDeliveryFinding: Matches<MailDeliveryFinding, Schemas['MailDeliveryFinding']> = true;
 
@@ -704,6 +706,7 @@ const assertions: readonly true[] = [
   emailLog,
   emailPurpose,
   bounceRun,
+  bounceStatus,
   mailDeliveryCheck,
   mailDeliveryFinding,
   emailTypeSenderRole,
@@ -925,6 +928,7 @@ const MAPPED_COMPONENTS: readonly (keyof Schemas)[] = [
   'EmailLog',
   'EmailPurpose',
   'BounceRunResult',
+  'BounceStatus',
   'MailDeliveryCheck',
   'MailDeliveryFinding',
   'SenderRolesEnum',

@@ -60,11 +60,30 @@ describe('RemindersPanel', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows the reminder log under the run controls', async () => {
+  it('shows the reminder log under its own heading, below Run now', async () => {
     server.use(logHandler(ENTRIES));
     renderWithProviders(<RemindersPanel />);
 
     expect(await screen.findByText('Marta Reyes')).toBeInTheDocument();
+    const heading = screen.getByRole('heading', { name: 'Reminders sent' });
+    const button = screen.getByRole('button', { name: 'Run now: renewal reminder emails' });
+    expect(button.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+  });
+
+  it('says only that nothing is due when a practice run finds nothing at all', async () => {
+    server.use(
+      logHandler(ENTRIES),
+      http.post(`${API}/system/reminders/run`, () =>
+        HttpResponse.json({ sent: 0, skipped: 0, failed: 0, skipped_by_reason: {}, actions: [] }),
+      ),
+    );
+    renderWithProviders(<RemindersPanel />);
+    await screen.findByText('Marta Reyes');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Run now: renewal reminder emails' }));
+
+    expect(await screen.findByRole('status')).toHaveTextContent(/^Nothing is due\.$/);
+    expect(screen.queryByText(/Would send/)).toBeNull();
   });
 
   it('runs a practice run by default and reports the result', async () => {

@@ -1,20 +1,18 @@
 /**
  * The scheduled-reports panel of `/portal/system/scheduled`: run the report sender by
- * hand, optionally as a rehearsal, and read who it reached.
+ * hand, optionally as a practice run, and read who it reached.
  *
  * The sender mails every emailed report that is due and every DART roster due this
  * month; `/admin/reports` is where the emailed reports and the rosters' recipients are
  * kept.
  */
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import type { ChangeEvent, JSX } from 'react';
 
-import { Button } from '@/portal/components/Button';
-import { Card } from '@/portal/components/Card';
-import { useFocusAfterSave } from '@/portal/components/focus';
 import { PracticeRunCheckbox } from '@/portal/components/PracticeRunCheckbox';
 import { ReportRunOutcome } from '@/portal/features/admin-reports/ReportRunOutcome';
 import { useRunScheduledReports } from './api';
+import { JobPanel, NothingDue, RunNowButton } from './JobPanel';
 
 /** Runs the report sender on demand and reports what it sent. */
 export function ReportsPanel(): JSX.Element {
@@ -22,9 +20,6 @@ export function ReportsPanel(): JSX.Element {
   const [lastRunWasDry, setLastRunWasDry] = useState(true);
 
   const run = useRunScheduledReports();
-  // The button is disabled while it runs; it gets the focus back once the run ends.
-  const runRef = useRef<HTMLButtonElement>(null);
-  useFocusAfterSave(runRef, run.isPending);
 
   const handleRun = (): void => {
     setLastRunWasDry(dryRun);
@@ -36,39 +31,44 @@ export function ReportsPanel(): JSX.Element {
   };
 
   return (
-    <Card
+    <JobPanel
       eyebrow="Reports"
       title="Scheduled reports"
-      footer={
-        <>
-          <Button
-            ref={runRef}
-            onClick={handleRun}
-            disabled={run.isPending}
-            aria-label={run.isPending ? undefined : 'Run now: scheduled reports'}
-          >
-            {run.isPending ? 'Running…' : 'Run now'}
-          </Button>
-          <PracticeRunCheckbox
-            checked={dryRun}
-            onChange={handleDryRunChange}
-            task="scheduled reports"
-          />
-        </>
+      description="The scheduled reports go every morning at 6:00 AM: every emailed report that is due and, once a month, each DART&rsquo;s roster to the people checked to receive it."
+      options={
+        <PracticeRunCheckbox
+          checked={dryRun}
+          onChange={handleDryRunChange}
+          task="scheduled reports"
+        />
       }
-    >
-      <p className="muted">
-        The sender runs every morning. It sends every emailed report that is due and, once a month,
-        each DART&rsquo;s roster to the people checked to receive it.
-      </p>
-
-      {run.isSuccess ? <ReportRunOutcome result={run.data} dryRun={lastRunWasDry} /> : null}
-
-      {run.isError ? (
-        <p className="field__error" role="alert">
-          {run.error instanceof Error ? run.error.message : 'The report run failed.'}
-        </p>
-      ) : null}
-    </Card>
+      action={
+        <RunNowButton task="scheduled reports" isRunning={run.isPending} onClick={handleRun} />
+      }
+      isRunning={run.isPending}
+      result={<ReportsResult run={run} dryRun={lastRunWasDry} />}
+    />
   );
+}
+
+interface ReportsResultProps {
+  run: ReturnType<typeof useRunScheduledReports>;
+  dryRun: boolean;
+}
+
+/** What the last report run did, or why it failed; nothing before the first run. */
+function ReportsResult({ run, dryRun }: ReportsResultProps): JSX.Element | null {
+  if (run.isError) {
+    return (
+      <p className="field__error" role="alert">
+        {run.error instanceof Error ? run.error.message : 'The report run failed.'}
+      </p>
+    );
+  }
+  if (!run.isSuccess) return null;
+  const { data } = run;
+  if (data.actions.length === 0 && data.sent + data.skipped + data.failed === 0) {
+    return <NothingDue dryRun={dryRun} />;
+  }
+  return <ReportRunOutcome result={data} dryRun={dryRun} />;
 }

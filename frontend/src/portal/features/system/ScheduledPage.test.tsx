@@ -28,7 +28,7 @@ describe('ScheduledPage', () => {
   it('puts the reminder emails, their schedule, and renewal charges first, then the rest', async () => {
     renderPage();
 
-    await screen.findByText('No reminders sent yet');
+    await screen.findByText('No reminders have been sent yet');
     await screen.findByRole('button', { name: 'Save changes' });
     const titles = screen
       .getAllByRole('heading', { level: 2 })
@@ -47,9 +47,9 @@ describe('ScheduledPage', () => {
   it("names each card's Run now for the job it runs", async () => {
     renderPage();
 
-    await screen.findByText('No reminders sent yet');
+    await screen.findByText('No reminders have been sent yet');
     const names = screen
-      .getAllByRole('button', { name: /^Run (now: |.* now$)/ })
+      .getAllByRole('button', { name: /^Run now: / })
       .map((button) => button.getAttribute('aria-label') ?? button.textContent);
     expect(names).toEqual([
       'Run now: renewal reminder emails',
@@ -57,7 +57,7 @@ describe('ScheduledPage', () => {
       'Run now: scheduled reports',
       'Run now: year-end statements',
       'Run now: bounce check',
-      'Run the bulk email sender now',
+      'Run now: bulk email sender',
     ]);
   });
 
@@ -66,9 +66,10 @@ describe('ScheduledPage', () => {
 
     expect(
       await screen.findByText(
-        'Emails members whose membership is about to expire or has just expired: 60, 30, and ' +
-          '7 days before, on the day, and 30 days after. It sends email only and never charges ' +
-          'anyone. A member whose automatic renewal is on is skipped. It runs every morning.',
+        'The renewal reminder emails go every morning at 7:00 AM to members whose membership ' +
+          'is about to expire or has just expired: 60, 30, and 7 days before, on the day, and ' +
+          '30 days after. They are email only and never charge anyone, and a member whose ' +
+          'automatic renewal is on is skipped.',
       ),
     ).toBeInTheDocument();
   });
@@ -78,10 +79,10 @@ describe('ScheduledPage', () => {
 
     expect(
       await screen.findByText(
-        'Charges the saved card or PayPal account of every member whose automatic renewal is ' +
-          'due, after emailing a notice two weeks ahead and a warning when the card is about ' +
-          'to expire. It runs every morning before the reminder emails, so a member it renews ' +
-          'is not also reminded.',
+        'The automatic renewal charges run every morning at 6:30 AM, before the reminder ' +
+          'emails, so a member they renew is not also reminded. They charge the saved card or ' +
+          'PayPal account of every member whose automatic renewal is due, after emailing a ' +
+          'notice two weeks ahead and a warning when the card is about to expire.',
       ),
     ).toBeInTheDocument();
   });
@@ -90,7 +91,9 @@ describe('ScheduledPage', () => {
     renderPage();
 
     expect(
-      await screen.findByText(/^The sender runs every morning\. It sends every emailed report/),
+      await screen.findByText(
+        /^The scheduled reports go every morning at 6:00 AM: every emailed report/,
+      ),
     ).toBeInTheDocument();
   });
 
@@ -98,7 +101,25 @@ describe('ScheduledPage', () => {
     renderPage();
 
     expect(
-      await screen.findByText(/^The sender runs once a year in January, for the year before\./),
+      await screen.findByText(
+        /^The year-end statements go once a year, on January 15th at 6:45 AM, for the year before\./,
+      ),
     ).toBeInTheDocument();
+  });
+
+  it("keeps every job's Run now above what its run did", async () => {
+    renderPage();
+
+    await screen.findByText('No reminders have been sent yet');
+    for (const card of screen.getAllByRole('heading', { level: 2 }).slice(2)) {
+      const panel = card.closest('section');
+      const results = panel?.querySelector('.job-panel__result');
+      const button = panel?.querySelector('.job-panel__run');
+      expect(
+        button && results
+          ? button.compareDocumentPosition(results) & Node.DOCUMENT_POSITION_FOLLOWING
+          : 0,
+      ).not.toBe(0);
+    }
   });
 });

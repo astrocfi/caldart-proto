@@ -1,0 +1,60 @@
+/*
+ * A scheduled job's panel: the description, a notice when the job cannot run, the
+ * fields that shape a run, Run now, the result, and the job's log, one step apart, in
+ * the same order on every panel.
+ */
+.job-panel > * + * {
+  margin-top: var(--space-4);
+}
+
+/* The card's own eyebrow and title keep their tight spacing above the description. */
+.job-panel > .card__title,
+.job-panel > .card__title + * {
+  margin-top: var(--space-1);
+}
+
+.job-panel__options {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3) var(--space-5);
+}
+
+.job-panel__options .field {
+  margin: 0;
+}
+
+.job-panel__year {
+  width: 6rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.job-panel__result:empty {
+  display: none;
+}
+
+/* The result's heading sits under the card's title in size, as a part of the card. */
+.job-panel .run-actions {
+  margin-top: 0;
+}
+
+.job-panel h3 {
+  font-size: var(--text-base);
+}
+
+.job-panel h3:focus {
+  outline-offset: var(--space-1);
+}
+
+/* A log the job keeps, under its own heading, ruled off from the run above it. */
+.job-panel__subhead {
+  padding-top: var(--space-4);
+  border-top: var(--hairline) solid var(--color-rule);
+}
+
+.job-panel__notice {
+  border: var(--hairline) solid var(--color-rule-strong);
+  border-left-width: var(--space-1);
+  border-radius: var(--radius);
+  padding: var(--space-3) var(--space-4);
+}

@@ -73,11 +73,42 @@ describe('healthChecks', () => {
     const check = healthChecks(health({ last_backup: null }), NOW).find(
       (row) => row.key === 'last_backup',
     );
-    expect(check).toMatchObject({ value: 'never', verdict: 'bad' });
+    expect(check).toMatchObject({ value: 'No backup yet', verdict: 'bad' });
   });
 
   it('fails when DEBUG is on', () => {
     expect(verdictFor('debug', health({ debug: true }))).toBe('bad');
+  });
+
+  /** The value and the note `key` reads in, for `payload`. */
+  function wordsFor(key: string, payload: Health): [string, string | undefined] {
+    const check = healthChecks(payload, NOW).find((row) => row.key === key)!;
+    return [check.value, check.note];
+  }
+
+  it.each([
+    ['db', health(), 'Connected'],
+    ['db', health({ db: 'error: connection refused' }), 'Not reachable'],
+    ['pending_migrations', health(), 'Complete'],
+    ['pending_migrations', health({ pending_migrations: 3 }), '3 steps not applied'],
+    ['pending_migrations', health({ pending_migrations: 1 }), '1 step not applied'],
+    ['disk_free_mb', health({ disk_free_mb: 51_200 }), '50.0 GB'],
+    ['disk_free_mb', health({ disk_free_mb: 512 }), '512 MB'],
+    ['debug', health(), 'Off'],
+    ['debug', health({ debug: true }), 'On'],
+  ])('reads %s in plain words: %#', (key, payload, value) => {
+    expect(wordsFor(key, payload)[0]).toBe(value);
+  });
+
+  it('tells the reader who to ask, never which command to run', () => {
+    const notes = healthChecks(
+      health({ db: 'error: down', pending_migrations: 2, debug: true, last_backup: null }),
+      NOW,
+    ).map((check) => check.note ?? '');
+    expect(notes.join(' ')).not.toMatch(/manage\.py|DEBUG|BACKUP_DIR|dump/);
+    expect(notes.filter((note) => note.includes('the person who installed the site'))).toHaveLength(
+      3,
+    );
   });
 });
 
@@ -96,7 +127,7 @@ describe('HealthPanel', () => {
     renderWithProviders(<HealthPanel />);
 
     expect(await screen.findByText('Database')).toBeInTheDocument();
-    for (const label of ['Pending migrations', 'Disk free', 'Last backup', 'Version', 'Debug mode'])
+    for (const label of ['Database upgrade', 'Disk free', 'Last backup', 'Version', 'Debug mode'])
       expect(screen.getByText(label)).toBeInTheDocument();
     expect(screen.getAllByText('Good')).toHaveLength(6);
     expect(screen.getByText('0.1.0')).toBeInTheDocument();
@@ -108,7 +139,11 @@ describe('HealthPanel', () => {
 
     expect(await screen.findByText('Problem')).toHaveAttribute('data-tone', 'expired');
     expect(screen.getByText('Warning')).toHaveAttribute('data-tone', 'expiring');
-    expect(screen.getByText('Run manage.py migrate.')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'An upgrade was left half finished. Tell the person who installed the site.',
+      ),
+    ).toBeInTheDocument();
   });
 
   it('shows the error when the check itself fails', async () => {

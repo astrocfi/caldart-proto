@@ -123,8 +123,8 @@ function ScheduleForm({ stored }: StoredProps): JSX.Element {
     <form onSubmit={handleSubmit} noValidate className="stack">
       <p className="muted">
         The expired reminder goes from the day a membership ends through 6 days after, and has no
-        number. A change applies from the next morning&rsquo;s check, and never sends a member a
-        reminder they already had.
+        number. A change applies from the next morning&rsquo;s renewal reminder emails, and never
+        sends a member a reminder they already had.
       </p>
       <div className="reminder-schedule__fields">
         {SCHEDULE_FIELDS.map(({ name, label, side, min, max }) => (

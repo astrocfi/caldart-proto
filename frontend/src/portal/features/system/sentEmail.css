@@ -1,0 +1,28 @@
+/* One logged email: a label column and its value, or the label above it on a phone. */
+.sent-email__facts {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-4);
+}
+
+.sent-email__facts > div {
+  display: grid;
+  grid-template-columns: 9rem 1fr;
+  gap: var(--space-3);
+}
+
+.sent-email__facts dt {
+  color: var(--color-muted);
+}
+
+.sent-email__facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 40rem) {
+  .sent-email__facts > div {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+}

@@ -101,13 +101,11 @@ export function ReminderLog(): JSX.Element {
         log.data ? `${log.data.count} reminder${log.data.count === 1 ? '' : 's'} sent` : undefined
       }
       initialSort={{ key: 'sent_at', direction: 'desc' }}
-      emptyTitle={isFiltered ? 'No reminders of this kind' : 'No reminders sent yet'}
+      emptyTitle={isFiltered ? 'No reminders of this kind' : 'No reminders have been sent yet'}
       emptyDescription={
-        isFiltered
+        isFiltered || schedule.data === undefined
           ? undefined
-          : schedule.data
-            ? `No member has reached a reminder yet. They go ${schedulePhrase(schedule.data)} expiry.`
-            : 'No member has reached a reminder yet.'
+          : `They go ${schedulePhrase(schedule.data)} expiry.`
       }
       emptyAction={
         isFiltered ? (

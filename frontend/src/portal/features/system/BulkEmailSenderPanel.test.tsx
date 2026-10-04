@@ -67,7 +67,7 @@ describe('BulkEmailSenderPanel', () => {
   it('runs the sender when Run now is pressed', async () => {
     const calls = answerRuns(RESULT);
     renderWithProviders(<BulkEmailSenderPanel />);
-    await userEvent.click(screen.getByRole('button', { name: 'Run the bulk email sender now' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Run now: bulk email sender' }));
     expect(await screen.findByRole('status')).toHaveTextContent(senderRunSummary(RESULT));
     expect(calls.runs).toBe(1);
   });
@@ -75,7 +75,7 @@ describe('BulkEmailSenderPanel', () => {
   it('lists each copy the run tried with its result', async () => {
     answerRuns(RESULT);
     renderWithProviders(<BulkEmailSenderPanel />);
-    await userEvent.click(screen.getByRole('button', { name: 'Run the bulk email sender now' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Run now: bulk email sender' }));
     const row = (await screen.findByText(/bea@example\.org/)).closest('tr');
     expect(row).toHaveTextContent('Failed');
   });
@@ -83,7 +83,7 @@ describe('BulkEmailSenderPanel', () => {
   it('keeps the button above what the run did', async () => {
     answerRuns(RESULT);
     renderWithProviders(<BulkEmailSenderPanel />);
-    const button = screen.getByRole('button', { name: 'Run the bulk email sender now' });
+    const button = screen.getByRole('button', { name: 'Run now: bulk email sender' });
     await userEvent.click(button);
     const table = await screen.findByRole('table');
     // The table follows the button in the page's order.
@@ -93,7 +93,21 @@ describe('BulkEmailSenderPanel', () => {
   it('says so when another run was already sending', async () => {
     answerRuns({ ...RESULT, busy: true, emails: 0, sent: 0, failed: 0, skipped: 0, actions: [] });
     renderWithProviders(<BulkEmailSenderPanel />);
-    await userEvent.click(screen.getByRole('button', { name: 'Run the bulk email sender now' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Run now: bulk email sender' }));
     expect(await screen.findByRole('status')).toHaveTextContent(SENDER_BUSY);
+  });
+
+  it('says only that nothing was due when nothing was waiting', async () => {
+    answerRuns({ ...RESULT, emails: 0, sent: 0, failed: 0, skipped: 0, actions: [] });
+    renderWithProviders(<BulkEmailSenderPanel />);
+    await userEvent.click(screen.getByRole('button', { name: 'Run now: bulk email sender' }));
+    expect(await screen.findByRole('status')).toHaveTextContent(/^Nothing was due\.$/);
+    expect(screen.queryByRole('table')).toBeNull();
+    expect(screen.queryByText(/Worked on/)).toBeNull();
+  });
+
+  it('names the job it describes', () => {
+    renderWithProviders(<BulkEmailSenderPanel />);
+    expect(screen.getByText(/^The bulk email sender runs every minute\./)).toBeInTheDocument();
   });
 });
