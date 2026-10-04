@@ -4,9 +4,9 @@
 :class:`Message`, while the objects the payload names are still in hand.  Every email
 reads the same way: the subject is ``<org name>: <headline>``, the lines are
 ``(label, value)`` pairs, and the link opens the record the event is about in the
-portal (the member record, the user record, the payment, or the aircraft), or is blank
-when there is nothing left to open.  Names are the account's display name, money is
-printed as dollars, and a date is ``MM/DD/YYYY`` (``caldart.dates``).
+portal (the member record, the user record, the payment, the aircraft, or the callout),
+or is blank when there is nothing left to open.  Names are the account's display name,
+money is printed as dollars, and a date is ``MM/DD/YYYY`` (``caldart.dates``).
 """
 
 from __future__ import annotations
@@ -20,6 +20,7 @@ from django.conf import settings
 from apps.accounts.models import AccountKind, User
 from apps.accounts.roles import ROLE_LABELS
 from apps.aircraft.models import Aircraft
+from apps.bulk_email.models import Callout, CalloutAnswerKind
 from apps.darts.models import Dart
 from apps.members.models import MemberProfile, Membership
 from apps.members.services import account_kind
@@ -528,6 +529,28 @@ def _aircraft_event(verb: str) -> Callable[[Mapping[str, object]], Built]:
     return build
 
 
+def _callout_answer(payload: Mapping[str, object]) -> Built:
+    """``callout_answer``: who answered which mission callout, and what they said.
+
+    The payload names the ``callout``, the ``user`` who answered, their ``answer`` (one
+    of ``CalloutAnswerKind``'s values), and their ``note``.  The email links the
+    callout's page on the Callouts screen.
+    """
+    callout = _required(payload, "callout", Callout)
+    user = _required(payload, "user", User)
+    answer = CalloutAnswerKind(_required(payload, "answer", str)).label
+    note = _optional(payload, "note", str) or ""
+    bulk = callout.bulk_email
+    lines: list[Line] = [
+        ("Callout", bulk.subject),
+        ("Answer", answer),
+        ("Note", note or NONE),
+        ("DART", _dart_of(user)),
+    ]
+    headline = f"{user.display_name} answered {answer} to a mission callout"
+    return headline, lines, _portal(f"/bulk-email/callouts/{bulk.pk}")
+
+
 _BUILDERS: dict[str, Callable[[Mapping[str, object]], Built]] = {
     "signed_up": _signed_up,
     "member_added": _member_added,
@@ -551,4 +574,5 @@ _BUILDERS: dict[str, Callable[[Mapping[str, object]], Built]] = {
     "aircraft_added": _aircraft_event("added"),
     "aircraft_changed": _aircraft_event("changed"),
     "aircraft_removed": _aircraft_event("removed"),
+    "callout_answer": _callout_answer,
 }

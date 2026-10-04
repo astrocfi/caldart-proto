@@ -11,7 +11,9 @@ from the filled-in message (``html_to_text``), so it reads each value as it is. 
 bodies come from ``emails/bulk_email.{txt,html}``: the plain-text body is the message
 followed by the house footer, and the HTML one puts the message inside the house email
 layout, and every copy's footer links to the message on the recipient's **Messages**
-page (:func:`browser_url`).  The sender hands the finished bodies to
+page (:func:`browser_url`).  A mission callout's copy carries its three answer buttons
+above the footer, and its footer link opens the answer page instead
+(``apps.bulk_email.callout_links``).  The sender hands the finished bodies to
 ``caldart.mail.send_templated`` through the pass-through pair
 ``emails/bulk_email_copy.{txt,html}`` (:data:`COPY_TEMPLATE`), so the email log
 records the copy like any other message.  The email's type decides the footer line
@@ -26,7 +28,7 @@ from __future__ import annotations
 
 import html as html_lib
 import re
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field, replace
 
 from django.conf import settings
@@ -34,6 +36,13 @@ from django.template.loader import render_to_string
 from django.utils.safestring import mark_safe
 
 from apps.accounts.models import User
+from apps.bulk_email.callout_links import (
+    AnswerLink,
+    answer_links,
+    answer_url,
+    at_words,
+    link_token,
+)
 from apps.bulk_email.fields import (
     FIELDS_BY_TOKEN,
     TOKEN_RE,
@@ -44,7 +53,7 @@ from apps.bulk_email.fields import (
     unknown_tokens,
     values_for,
 )
-from apps.bulk_email.models import BulkEmail, BulkEmailRecipient
+from apps.bulk_email.models import BulkEmail, BulkEmailRecipient, Callout
 from apps.bulk_email.richtext import MAX_NESTING_DEPTH, html_to_text, nesting_depth, sanitize
 from apps.mail.unsubscribe import UNSUBSCRIBE_PATH, Footer, footer_for, headers_for
 from caldart.mail import contact_email, org_name
@@ -111,9 +120,10 @@ def render_copy(
     The footer and the headers are :func:`render_for`'s for the row's account; with
     ``inert``, for a copy shown to somebody other than its recipient, such as the sender
     on the delivery report, the unsubscribe link carries no token and there is no header.
+    A callout's answer buttons are the recipient's own, signed for them, unless ``inert``.
     """
     values = stored_values(bulk, recipient)
-    return render_for(bulk, recipient.user, values, inert=inert)
+    return render_for(bulk, recipient.user, values, inert=inert, live_answers=not inert)
 
 
 def render_for(
@@ -123,6 +133,7 @@ def render_for(
     *,
     inert: bool = False,
     view_url: str | None = None,
+    live_answers: bool = False,
 ) -> RenderedCopy:
     """``user``'s copy of ``bulk``, filled in with ``values``: one person's whole copy.
 
@@ -141,6 +152,13 @@ def render_for(
     Above the footer the copy links to the email on the reader's **Messages** page,
     :func:`browser_url`; ``view_url`` given replaces that link, and ``""`` leaves it
     out, as a test copy does.
+
+    A mission callout's copy carries the three answer buttons above the footer, and its
+    link to read the email opens the answer page.  With ``live_answers``, which only a
+    recipient's own copy passes (``render_copy``), the buttons and that link carry a
+    token signed for ``user``; otherwise, and always with ``inert``, they carry
+    ``callout_links.STAND_IN`` and answer for nobody, as in the preview, a test copy, and
+    every copy shown to a sender.
     """
     footer: Footer | None = None
     headers: dict[str, str] = {}
@@ -150,15 +168,47 @@ def render_for(
     if inert and footer is not None:
         footer = Footer(text=footer.text, url=inert_unsubscribe_url() if footer.url else "")
         headers = {}
+    answers = callout_answers(bulk, user, live=live_answers and not inert)
+    default_view = browser_url(bulk) if answers is None else answers.page_url
     copy = render_message(
         bulk.subject,
         bulk.body,
         values,
         footer=footer,
         type_name=bulk.email_type.name if bulk.email_type is not None else "",
-        view_url=browser_url(bulk) if view_url is None else view_url,
+        view_url=default_view if view_url is None else view_url,
+        answers=answers,
     )
     return replace(copy, headers=headers)
+
+
+@dataclass(frozen=True)
+class CalloutButtons:
+    """A callout copy's answer block: the three buttons, its page, and the close time.
+
+    ``closes`` is when answers close, in words (``callout_links.at_words``).
+    """
+
+    links: Sequence[AnswerLink]
+    page_url: str
+    closes: str
+
+
+def callout_answers(bulk: BulkEmail, user: User | None, *, live: bool) -> CalloutButtons | None:
+    """``user``'s answer buttons for the callout ``bulk``; ``None`` for any other email.
+
+    With ``live`` each link carries a token signed for ``user``; without it, or for an
+    account that is gone, the stand-in.
+    """
+    if not bulk.is_callout:
+        return None
+    callout = Callout.objects.filter(bulk_email=bulk).first()
+    if callout is None:
+        return None
+    token = link_token(callout, user, live=live)
+    return CalloutButtons(
+        links=answer_links(token), page_url=answer_url(token), closes=at_words(callout.closes_at)
+    )
 
 
 def inert_unsubscribe_url() -> str:
@@ -184,6 +234,7 @@ def render_message(
     footer: Footer | None = None,
     type_name: str = "",
     view_url: str = "",
+    answers: CalloutButtons | None = None,
 ) -> RenderedCopy:
     """A copy of the message ``subject`` and ``body`` with ``values`` filled in.
 
@@ -197,7 +248,8 @@ def render_message(
     name and contact address as they are now, and end with ``footer`` (its line, and
     its link to unsubscribe from ``type_name`` email when it has one), or the general
     line when it is ``None``.  A ``view_url`` puts a line linking to the message in the
-    browser above the footer's own lines.  The copy carries no header.
+    browser above the footer's own lines.  ``answers`` puts a callout's three answer
+    buttons, and when answers close, below the message.  The copy carries no header.
     """
     clean = sanitize(body)
     if values is not None:
@@ -218,6 +270,7 @@ def render_message(
         "footer_text": footer.text if footer is not None else "",
         "footer_url": footer.url if footer is not None else "",
         "view_url": view_url,
+        "answers": answers,
     }
     return RenderedCopy(
         subject=subject,

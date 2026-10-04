@@ -26,7 +26,8 @@ class BulkEmailMessageSerializer(serializers.Serializer[Message]):
     ``id`` is the bulk email's.  ``subject`` is the subject as the reader's copy had it,
     ``sent_at`` when their copy went, ``from_name`` who sent it (the organization's
     name once the sender's account is gone), and ``email_type_name`` the kind of email
-    it is, blank for none.
+    it is, blank for none.  ``answer_url`` is the reader's own answer page for a mission
+    callout, blank for any other email.
     """
 
     id = serializers.IntegerField(source="bulk.pk")
@@ -34,6 +35,7 @@ class BulkEmailMessageSerializer(serializers.Serializer[Message]):
     sent_at = serializers.DateTimeField(source="recipient.tried_at")
     from_name = serializers.CharField()
     email_type_name = serializers.SerializerMethodField()
+    answer_url = serializers.CharField()
 
     def get_email_type_name(self, message: Message) -> str:
         """The kind of email it is, or ``""`` for none."""
@@ -44,7 +46,8 @@ class BulkEmailMessageDetailSerializer(serializers.Serializer[OpenedMessage]):
     """One message as the reader received it: the list's fields and the copy itself.
 
     ``html`` is the whole HTML email and ``text`` the plain-text one, filled in from the
-    values stored on the reader's own row when it went.
+    values stored on the reader's own row when it went.  ``answer_url`` is the reader's
+    own answer page for a mission callout, blank for any other email.
     """
 
     id = serializers.IntegerField(source="message.bulk.pk")
@@ -52,6 +55,7 @@ class BulkEmailMessageDetailSerializer(serializers.Serializer[OpenedMessage]):
     sent_at = serializers.DateTimeField(source="message.recipient.tried_at")
     from_name = serializers.CharField(source="message.from_name")
     email_type_name = serializers.SerializerMethodField()
+    answer_url = serializers.CharField(source="message.answer_url")
     html = serializers.CharField(source="copy.html")
     text = serializers.CharField(source="copy.text")
 

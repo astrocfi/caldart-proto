@@ -5,6 +5,7 @@ from django.urls import path
 from apps.bulk_email.api import (
     archive,
     batch,
+    callouts,
     checks,
     delivery,
     drafts,
@@ -58,6 +59,23 @@ urlpatterns = [
         "bulk-email/groups/<int:pk>/filters/<int:fid>",
         groups.GroupFilterView.as_view(),
         name="group-filter",
+    ),
+    path("bulk-email/callouts", callouts.CalloutListView.as_view(), name="callouts"),
+    path("bulk-email/callouts/<int:pk>", callouts.CalloutDetailView.as_view(), name="callout"),
+    path(
+        "bulk-email/callouts/<int:pk>/answers.csv",
+        callouts.CalloutAnswersCsvView.as_view(),
+        name="callout-answers-csv",
+    ),
+    path(
+        "bulk-email/callouts/<int:pk>/remind",
+        callouts.CalloutRemindView.as_view(),
+        name="callout-remind",
+    ),
+    path(
+        "bulk-email/callouts/<int:pk>/close",
+        callouts.CalloutCloseView.as_view(),
+        name="callout-close",
     ),
     path("bulk-email/<int:pk>", drafts.BulkEmailDetailView.as_view(), name="detail"),
     path("bulk-email/<int:pk>/send", drafts.SendView.as_view(), name="send"),

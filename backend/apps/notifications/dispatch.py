@@ -13,12 +13,15 @@ raised the event.
 from __future__ import annotations
 
 import logging
-from collections.abc import Iterator, Mapping
+from collections.abc import Callable, Iterator, Mapping
 from contextlib import contextmanager
 from dataclasses import dataclass
 
 from django.db import IntegrityError, transaction
 
+from apps.accounts.models import User
+from apps.bulk_email.callouts import can_see
+from apps.bulk_email.models import Callout
 from apps.darts.models import Dart
 from apps.notifications.events import EVENTS
 from apps.notifications.messages import Message, build_message
@@ -34,6 +37,12 @@ TEMPLATE = "notification"
 
 #: The event whose email also goes to the chosen DART's roster contacts.
 SIGNED_UP = "signed_up"
+
+#: The event whose email reaches an account only when it may open the callout.
+CALLOUT_ANSWER = "callout_answer"
+
+#: Whether one bound account may be sent one raised event, beyond its roles.
+type Audience = Callable[[User], bool]
 
 
 @dataclass(frozen=True)
@@ -65,12 +74,27 @@ def handle(slug: str, payload: Mapping[str, object]) -> None:
     try:
         message = build_message(slug, payload)
         extra = roster_recipients(payload.get("dart")) if slug == SIGNED_UP else []
+        audience = audience_for(slug, payload)
     # Broad on purpose: whatever went wrong, the service that raised the event has
     # already done its work, and a notification must never undo or fail it.
     except Exception:
         log.exception("notification not built: event=%s", slug)
         return
-    transaction.on_commit(lambda: send(slug, message, extra), robust=True)
+    transaction.on_commit(lambda: send(slug, message, extra, audience), robust=True)
+
+
+def audience_for(slug: str, payload: Mapping[str, object]) -> Audience | None:
+    """Who among the bound accounts the event may reach, beyond its roles; ``None``: all.
+
+    A ``callout_answer`` reaches an account only when it may open the callout
+    (``apps.bulk_email.callouts.can_see``): CalDART management every callout, and a DART
+    leader the ones they sent or that went to their own DART.
+    """
+    callout = payload.get("callout")
+    if slug != CALLOUT_ANSWER or not isinstance(callout, Callout):
+        return None
+    bulk = callout.bulk_email
+    return lambda user: can_see(user, bulk)
 
 
 @contextmanager
@@ -101,13 +125,14 @@ def roster_recipients(dart: object) -> list[Recipient]:
     ]
 
 
-def subscribed_recipients(slug: str) -> list[Recipient]:
+def subscribed_recipients(slug: str, audience: Audience | None = None) -> list[Recipient]:
     """Every active subscription to ``slug`` whose recipient may receive it, by address.
 
     Each subscription's recipient is brought up to date first (a bare address an account
     has taken is bound to it, a bound one takes the account's current address) and the
     change saved, unless another subscription already holds that address.  A recipient
-    who may not receive the event is left out, and its subscription is left as it is.
+    who may not receive the event is left out, and its subscription is left as it is;
+    so is a bound account ``audience``, when given, turns away.
     """
     label = EVENTS[slug].label
     why = f"You are receiving this because this address is subscribed to the {label} notification."
@@ -119,6 +144,8 @@ def subscribed_recipients(slug: str) -> list[Recipient]:
         if not recipient_may_receive(subscription, slug):
             continue
         user = subscription.recipient_user
+        if audience is not None and user is not None and not audience(user):
+            continue
         found.append(
             Recipient(
                 email=subscription.recipient_email,
@@ -130,8 +157,12 @@ def subscribed_recipients(slug: str) -> list[Recipient]:
     return found
 
 
-def send(slug: str, message: Message, extra: list[Recipient]) -> None:
+def send(
+    slug: str, message: Message, extra: list[Recipient], audience: Audience | None = None
+) -> None:
     """Send ``message`` once to every subscribed recipient, then to each of ``extra``.
+
+    ``audience``, when given, narrows the subscribed accounts (:func:`audience_for`).
 
     An address is sent the event once however many ways it qualifies, compared without
     regard to case, and a subscriber's footer wins over a roster contact's.  A send that
@@ -140,7 +171,7 @@ def send(slug: str, message: Message, extra: list[Recipient]) -> None:
     """
     event = EVENTS[slug]
     seen: set[str] = set()
-    for recipient in [*subscribed_recipients(slug), *extra]:
+    for recipient in [*subscribed_recipients(slug, audience), *extra]:
         address = recipient.email.lower()
         if address in seen:
             continue

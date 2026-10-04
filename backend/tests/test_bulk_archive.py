@@ -86,7 +86,10 @@ def message_url(bulk: BulkEmail) -> str:
 def test_a_recipient_finds_the_message_in_their_list(
     ann_client: APIClient, ann: User, bea: User
 ) -> None:
-    """Ann's list holds the email, with her own subject, its type, and who sent it."""
+    """Ann's list holds the email, with her own subject, its type, and who sent it.
+
+    It is no mission callout, so it has no answer page.
+    """
     with freeze_time("2026-04-07T15:00:00Z"):
         bulk = sent_to(ann, bea)
     assert ann_client.get(MESSAGES_URL).json() == [
@@ -96,6 +99,7 @@ def test_a_recipient_finds_the_message_in_their_list(
             "sent_at": "2026-04-07T08:00:00-07:00",
             "from_name": "Grace Holloway",
             "email_type_name": "Operational",
+            "answer_url": "",
         }
     ]
 

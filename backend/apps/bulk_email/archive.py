@@ -13,7 +13,9 @@ recipient row when it went, never from the profile as it is now and never from a
 else's row.  Only bulk email is here: receipts, reminders, and other mail about the
 person's own account are not.  An email CalDART management has hidden
 (``BulkEmail.hidden_from_archive``) is not listed and cannot be opened, though its
-history stays.  There is no way to show a message to anybody it was not sent to.
+history stays.  There is no way to show a message to anybody it was not sent to.  A
+mission callout's entry leads to the reader's own answer page instead
+(:attr:`Message.answer_url`).
 """
 
 from __future__ import annotations
@@ -23,7 +25,8 @@ from dataclasses import dataclass
 from django.db.models import QuerySet
 
 from apps.accounts.models import User
-from apps.bulk_email.models import BulkEmail, BulkEmailRecipient, RecipientStatus
+from apps.bulk_email.callout_links import answer_url, link_token
+from apps.bulk_email.models import BulkEmail, BulkEmailRecipient, Callout, RecipientStatus
 from apps.bulk_email.render import RenderedCopy, fill_subject, render_copy, stored_values
 from caldart.mail import org_name
 
@@ -48,6 +51,20 @@ class Message:
     def from_name(self) -> str:
         """The sender's name, or the organization's once the sender's account is gone."""
         return self.bulk.sender.display_name if self.bulk.sender is not None else org_name()
+
+    @property
+    def answer_url(self) -> str:
+        """The reader's own answer page for a mission callout; ``""`` for any other email.
+
+        The link carries a token signed for the reader, as the buttons in their copy do
+        (``apps.bulk_email.callout_links``).
+        """
+        if not self.bulk.is_callout:
+            return ""
+        callout = Callout.objects.filter(bulk_email=self.bulk).first()
+        if callout is None:
+            return ""
+        return answer_url(link_token(callout, self.recipient.user, live=True))
 
 
 @dataclass(frozen=True)

@@ -44,6 +44,7 @@ from apps.notifications.messages import build_message
 from caldart.settings.base import normalize_url_prefix
 from tests.factories import (
     AircraftFactory,
+    CalloutFactory,
     DartFactory,
     MembershipFactory,
     PaymentFactory,
@@ -680,6 +681,9 @@ def every_event_payload() -> dict[str, object]:
         "aircraft": AircraftFactory(),
         "n_number": "N12345",
         "owner": user,
+        "callout": CalloutFactory(),
+        "answer": "available",
+        "note": "Can fly Saturday",
     }
 
 

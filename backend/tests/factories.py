@@ -22,9 +22,12 @@ from apps.aircraft.models import (
     AircraftType,
     OwnerType,
 )
+from apps.bulk_email.job import run_sender
 from apps.bulk_email.models import (
     BulkEmail,
     BulkEmailRecipient,
+    BulkEmailStatus,
+    Callout,
     EmailTemplate,
     GroupKind,
     RecipientGroup,
@@ -676,6 +679,20 @@ class BulkEmailFactory(ModelFactory[BulkEmail]):
     email_type = factory.LazyFunction(lambda: operational_type())
 
 
+class CalloutFactory(ModelFactory[Callout]):
+    """Builds a mission callout: a bulk email marked as one, its answers closing in a day.
+
+    The email is :class:`BulkEmailFactory`'s, with ``is_callout`` set; its batch is
+    empty.
+    """
+
+    class Meta:
+        model = Callout
+
+    bulk_email = factory.SubFactory(BulkEmailFactory, is_callout=True)
+    closes_at = factory.LazyFunction(lambda: timezone.now() + timedelta(days=1))
+
+
 def operational_type() -> EmailType:
     """The Operational email type, made as the migration makes it when it is missing."""
     email_type, _created = EmailType.objects.get_or_create(
@@ -777,3 +794,32 @@ def make_group(
     for position, filters in enumerate(filter_sets):
         RecipientGroupFilter.objects.create(group=group, filters=filters, position=position)
     return group
+
+
+#: When a callout :func:`sent_callout` builds was queued to start: long past.
+CALLOUT_START = datetime(2026, 1, 1, tzinfo=UTC)
+
+
+def sent_callout(
+    sender: UserModel, *people: UserModel, closes_in: timedelta = timedelta(days=1)
+) -> BulkEmail:
+    """A mission callout from ``sender`` to ``people``, sent by one run of the sender.
+
+    Its subject and message fill in each person's first name, its type is Mission, and
+    its answers close ``closes_in`` from now.  A test that builds one takes the pacing's
+    pause out first, as every bulk email test does.
+    """
+    bulk = BulkEmailFactory(
+        sender=sender,
+        subject="Fire near Paradise for {first_name}",
+        body="<p>Dear {first_name|pilot},</p><p>Can you fly supplies to Chico?</p>",
+        email_type=EmailType.objects.get(slug="mission"),
+        is_callout=True,
+        status=BulkEmailStatus.QUEUED,
+        start_at=CALLOUT_START,
+    )
+    Callout.objects.create(bulk_email=bulk, closes_at=timezone.now() + closes_in)
+    add_to_batch(bulk, *people)
+    run_sender()
+    bulk.refresh_from_db()
+    return bulk

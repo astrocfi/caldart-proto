@@ -206,19 +206,24 @@ def _sort_failed(
     Each row takes its account's name and address as they are now, then
     ``batch.skip_reason`` decides, with the DART a DART leader's email is limited to
     (``senders.dart_limit``, as it is now), the type's opt-outs, and the addresses already
-    sent this email (or queued in this pass), trimmed and case-folded.  The rows are
-    changed in memory; the caller saves them.
+    sent the row's own round of this email (or queued in this pass), trimmed and
+    case-folded: a callout's reminder round goes to people its first round reached, so
+    an address is a duplicate only within one round.  The rows are changed in memory;
+    the caller saves them.
     """
     opt_outs = type_opt_outs(bulk)
     limit = dart_limit(bulk)
     went = bulk.recipients.filter(
         status__in=[RecipientStatus.SENT, RecipientStatus.BOUNCED, RecipientStatus.PENDING]
-    ).values_list("email", flat=True)
-    seen = {_folded(address) for address in went}
+    ).values_list("round", "email")
+    seen: dict[int, set[str]] = {}
+    for number, address in went:
+        seen.setdefault(number, set()).add(_folded(address))
     retried = 0
     for row in failed:
         account = row.user
-        reason = skip_reason(account, seen, opt_outs=opt_outs, limit=limit)
+        in_round = seen.setdefault(row.round, set())
+        reason = skip_reason(account, in_round, opt_outs=opt_outs, limit=limit)
         if account is not None:
             row.name = account.display_name
             row.email = account.email
@@ -226,7 +231,7 @@ def _sort_failed(
         row.reason = reason[:REASON_MAX_LENGTH]
         if reason == "":
             row.status = RecipientStatus.PENDING
-            seen.add(_folded(row.email))
+            in_round.add(_folded(row.email))
             retried += 1
         else:
             row.status = RecipientStatus.SKIPPED

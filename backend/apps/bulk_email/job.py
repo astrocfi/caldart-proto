@@ -52,6 +52,7 @@ from django.utils import timezone
 
 from apps.accounts.models import User
 from apps.bulk_email.batch import SKIP_OPTED_OUT, batch_rows, snapshot, surname_order
+from apps.bulk_email.callouts import is_reminder_finish, reminder_finished
 from apps.bulk_email.models import (
     BulkEmail,
     BulkEmailRecipient,
@@ -705,7 +706,9 @@ def _finish(bulk: BulkEmail) -> None:
     its ``stopped_by`` are cleared, and no stop is recorded.  The first time an email
     finishes, ``sent_at`` is set and one ``bulk_email.send`` line written.  An email
     finishing again after **Retry failed** keeps its first ``sent_at`` and writes
-    :func:`_retry_finished`'s line instead.
+    :func:`_retry_finished`'s line instead, and a mission callout finishing a round of
+    reminders writes ``callout.remind_finished``
+    (``apps.bulk_email.callouts.reminder_finished``).
     """
     if bulk.recipients.filter(status=RecipientStatus.PENDING).exists():
         return
@@ -716,6 +719,9 @@ def _finish(bulk: BulkEmail) -> None:
     bulk.stop_requested = False
     bulk.stopped_by = None
     bulk.save(update_fields=["status", "sent_at", "stop_requested", "stopped_by", "updated_at"])
+    if is_retry and is_reminder_finish(bulk):
+        reminder_finished(bulk)
+        return
     if is_retry:
         _retry_finished(bulk)
         return

@@ -322,6 +322,34 @@
   color: var(--color-muted);
 }
 
+/* ------------------------------------------------- callout answer page */
+.callout-answer__choices {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.callout-answer__choice {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 2.75rem;
+  font-size: var(--text-base);
+}
+
+.callout-answer__message {
+  padding: var(--space-3);
+  border: var(--hairline) solid var(--color-rule);
+  border-radius: var(--radius);
+  background: var(--color-bg-sunken);
+  overflow-wrap: anywhere;
+}
+
+.callout-answer__message img {
+  max-width: 100%;
+  height: auto;
+}
+
 /* ----------------------------------------------------------- home page */
 .photo {
   margin: 0;
