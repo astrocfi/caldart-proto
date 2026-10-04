@@ -9,8 +9,9 @@ before it has a user: ``GET /admin/reminders/log``,
 ``GET``/``PUT /admin/reminders/schedule`` and ``POST /system/reminders/run`` from
 ``apps.reminders``,
 ``POST /system/reports/run`` from ``apps.reports``,
-``GET /system/emails``, ``GET /system/emails/purposes``, ``POST /system/bounces/run``
-and ``GET /mail/delivery-check`` from ``apps.mail``, the health, backup,
+``GET /system/emails``, ``GET /system/emails/{id}``, ``GET /system/emails/purposes``,
+``GET /system/bounces``, ``POST /system/bounces/run`` and ``GET /mail/delivery-check``
+from ``apps.mail``, the health, backup,
 renewal-scan and year-end-statement routes under ``/system/`` and
 ``POST /admin/system/registry-import`` from ``apps.sysadmin``, and
 ``GET /site/config`` from ``apps.cms``.  ``POST /system/bulk-email/run``, which runs
@@ -350,6 +351,19 @@ the same parameters and download every matching row rather than one page (see
 Statuses: **200**; **400** for an unknown ``status`` or an unparseable date;
 **401** when anonymous; **403** for every other role.
 
+``GET /system/emails/{id}``
+---------------------------
+
+One email of the log, the object a row of ``GET /system/emails`` is, with the same
+fields and values; the Sent emails screen opens it on a page of its own.  The log
+keeps no copy of a message's body, which for a password reset or a verification
+email would hold a working link: what was said is the template's, named by
+``purpose``, and a message that belongs to a record carries ``link`` to the page that
+shows it, such as a bulk email's on **Sent**.  ``system_admin`` only, as the log is.
+
+Statuses: **200**; **401** when anonymous; **403** for every other role; **404** for an
+id no row has.
+
 ``GET /system/emails/purposes``
 -------------------------------
 
@@ -368,6 +382,17 @@ from the stored reminder schedule, then every entry of ``PURPOSE_LABELS``.  Unpa
 
 ``value`` is what ``?purpose=`` takes and ``label`` the words the table shows
 for it, the same ``purpose_label`` a row carries.
+
+Statuses: **200**; **401** when anonymous; **403** for every other role.
+
+``GET /system/bounces``
+-----------------------
+
+Whether bounce checking is set up, so the Scheduled screen can say so before anyone
+presses **Run now**: ``{"enabled": true}`` when ``BOUNCE_IMAP_URL`` is set, ``false``
+when it is empty (``bounce_checking_enabled()`` in ``apps/mail/bounces.py``).  Nothing
+is read from the mailbox; one that is set up but cannot be read is found by a run.
+``system_admin`` only.
 
 Statuses: **200**; **401** when anonymous; **403** for every other role.
 
