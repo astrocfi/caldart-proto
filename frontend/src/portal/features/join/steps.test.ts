@@ -115,6 +115,17 @@ describe('isOnboarded', () => {
     const user = makeUser({ kind: 'member', membership: FRIEND, friend_on: '2026-01-01' });
     expect(isOnboarded(user)).toBe(true);
   });
+
+  it('counts an account an administrator created as joined, with no term and no profile', () => {
+    const user = makeUser({
+      admin_created: true,
+      email_verified: false,
+      profile_complete: false,
+      kind: 'member',
+      membership: FRIEND,
+    });
+    expect(isOnboarded(user)).toBe(true);
+  });
 });
 
 describe('joiningAs', () => {

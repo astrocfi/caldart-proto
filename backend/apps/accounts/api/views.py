@@ -30,6 +30,7 @@ from apps.accounts.api.account_actions import (
 )
 from apps.accounts.api.filters import UserFilter
 from apps.accounts.api.serializers import (
+    AccountChangeSerializer,
     AdminUserSerializer,
     DeactivateSerializer,
     EmailChangeSerializer,
@@ -45,7 +46,7 @@ from apps.accounts.api.serializers import (
     UserSerializer,
     VerificationSentSerializer,
 )
-from apps.accounts.models import AccountKind, User
+from apps.accounts.models import AccountChange, AccountKind, User
 from apps.accounts.permissions import IsUserAdmin
 from apps.accounts.roles import ROLE_DESCRIPTIONS
 from apps.accounts.services import (
@@ -679,6 +680,22 @@ def _mail_refused(what: str, refusal: MailRefusedError) -> Response:
     """
     log_refusal(what, refusal)
     return Response({"detail": MAIL_REFUSED}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+
+class AdminUserHistoryView(generics.ListAPIView[AccountChange]):
+    """``GET /admin/users/{id}/history`` -- the account's role and status changes."""
+
+    permission_classes = [IsUserAdmin]
+    serializer_class = AccountChangeSerializer
+    pagination_class = None
+
+    def get_queryset(self) -> QuerySet[AccountChange]:
+        """The changes to the account in the URL, newest first, with each actor joined.
+
+        Answers 404 when no account has that id, rather than an empty history.
+        """
+        user = generics.get_object_or_404(User, pk=self.kwargs["pk"])
+        return user.account_changes.select_related("changed_by")
 
 
 class AdminUserSendPasswordResetView(APIView):

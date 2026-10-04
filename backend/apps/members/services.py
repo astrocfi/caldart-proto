@@ -67,7 +67,8 @@ from django.db.models import (
 from django.http import HttpRequest
 from django.utils import timezone
 
-from apps.accounts.models import AccountKind, User
+from apps.accounts.history import record_account_change
+from apps.accounts.models import AccountChangeKind, AccountKind, User
 from apps.accounts.roles import SYSTEM_ADMIN
 from apps.accounts.services import (
     AccountChanges,
@@ -249,13 +250,17 @@ def create_member(
     mail server that refuses it is logged (``caldart.mail.send_on_commit``) rather than
     failing the committed create.
     ``request`` only tells the invitation which site's name and contact address to
-    use.  The new
+    use.  The account is marked ``admin_created``, so its owner's first sign-in opens the
+    portal rather than the join wizard, and its history starts with a ``created`` entry
+    under ``actor``.  The new
     profile's ``profile_updated_at`` is stamped as the moment it was created.  The
     ``member_added`` event is raised with the account and ``actor``.
     """
     user = create_account(
         email=email, password=password, first_name=first_name, last_name=last_name, kind=kind
     )
+    user.admin_created = True
+    user.save(update_fields=["admin_created"])
     row = MemberProfile.objects.create(user=user, **(profile or {}))
     touch_profile(row)
     if password:
@@ -269,6 +274,7 @@ def create_member(
             what=f"the invitation for account {user.pk}",
         )
     audit.record(audit.MEMBER_CREATE, actor=actor, target=user, invited=not password)
+    record_account_change(AccountChangeKind.CREATED, actor=actor, target=user)
     events.emit("member_added", user=user, actor=actor)
     return user
 

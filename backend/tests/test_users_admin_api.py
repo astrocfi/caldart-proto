@@ -131,6 +131,7 @@ def test_list_returns_the_user_payload(
         "email_verified",
         "kind",
         "friend_on",
+        "admin_created",
         "email_verified_at",
         "email_bounced_at",
         "email_bounce_detail",

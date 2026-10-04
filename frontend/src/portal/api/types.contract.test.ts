@@ -24,6 +24,9 @@ import type {
   AddressSuggestion,
   AdminProfile,
   AdminProfilePayload,
+  AccountActor,
+  AccountChange,
+  AccountChangeKind,
   AdminUser,
   AdminUserPatch,
   Aircraft,
@@ -337,6 +340,9 @@ const aircraftPatch: Matches<AircraftPatch, Schemas['PatchedAircraftRequest']> =
 const aircraftPilot: Matches<AircraftPilot, Schemas['AircraftPilot']> = true;
 const aircraftActor: Matches<AircraftActor, Schemas['AircraftActor']> = true;
 const aircraftChange: Matches<AircraftChange, Schemas['AircraftChange']> = true;
+const accountChange: Matches<AccountChange, Schemas['AccountChange']> = true;
+const accountChangeKind: Matches<AccountChangeKind, Schemas['AccountChangeKindEnum']> = true;
+const accountActor: Matches<AccountActor, Schemas['AccountActor']> = true;
 const aircraftDetail: Matches<AircraftDetail, Schemas['AircraftDetail']> = true;
 const aircraftType: Matches<AircraftType, Schemas['AircraftType']> = true;
 const aircraftCoverage: Matches<AircraftCoverage, Schemas['Coverage']> = true;
@@ -598,6 +604,9 @@ const assertions: readonly true[] = [
   passwordResetConfirm,
   adminUserPatch,
   sendPasswordReset,
+  accountActor,
+  accountChange,
+  accountChangeKind,
   adminUser,
   emailVerify,
   emailVerified,

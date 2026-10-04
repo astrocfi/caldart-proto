@@ -77,6 +77,11 @@ export interface User {
   kind: AccountKind;
   /** The day a member who asked to become a friend becomes one, or null. */
   friend_on: IsoDate | null;
+  /**
+   * True for an account an account administrator created on New member: its owner has
+   * joined already, so the portal opens for them without the join wizard.
+   */
+  admin_created: boolean;
 }
 
 export interface LoginPayload {
@@ -163,6 +168,30 @@ export interface AdminUser extends User {
   city: string;
   county: string;
   home_airport: string;
+}
+
+/** What one entry of an account's history did: `GET /admin/users/{id}/history`. */
+export type AccountChangeKind =
+  'created' | 'roles' | 'deactivated' | 'reactivated' | 'blocked' | 'unblocked';
+
+/**
+ * One row of `GET /admin/users/{id}/history`, newest first.  `changed_by` is null for a
+ * management command or an account since deleted; `added` and `removed` are the role
+ * slugs a `roles` entry granted and took away, and empty for every other kind.
+ */
+export interface AccountChange {
+  id: number;
+  changed_at: IsoDateTime;
+  changed_by: AccountActor | null;
+  kind: AccountChangeKind;
+  added: RoleSlug[];
+  removed: RoleSlug[];
+}
+
+/** The account behind a history entry: its id and the name to print beside a date. */
+export interface AccountActor {
+  id: number;
+  name: string;
 }
 
 /**

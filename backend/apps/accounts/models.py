@@ -132,6 +132,10 @@ class User(AbstractUser):
     #: Set by a user administrator to keep a deactivated account deactivated: while it
     #: is set, no sign-in, password reset, or registration brings the account back.
     reactivation_blocked = models.BooleanField(default=False)
+    #: True for an account an account administrator created on **New member**.  Such a
+    #: person has joined already, as a member or a friend, so their first sign-in opens
+    #: the portal rather than the join wizard and its pay step.
+    admin_created = models.BooleanField(default=False)
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS: ClassVar[list[str]] = []
@@ -267,3 +271,51 @@ class User(AbstractUser):
         if self.membership_status["status"] == MembershipState.CURRENT:
             return True
         return bool(set(self.roles) & set(STAFF_ROLE_SLUGS))
+
+
+class AccountChangeKind(models.TextChoices):
+    """What one entry in an account's history did to it."""
+
+    CREATED = "created", "Created"
+    ROLES = "roles", "Roles changed"
+    DEACTIVATED = "deactivated", "Deactivated"
+    REACTIVATED = "reactivated", "Reactivated"
+    BLOCKED = "blocked", "Reactivation blocked"
+    UNBLOCKED = "unblocked", "Reactivation allowed"
+
+
+class AccountChange(models.Model):
+    """One change to who an account is allowed to be: who made it, when, and what.
+
+    The user record's **History** card reads these back.  An entry is written beside
+    the audit line for the same change, for an account an administrator created, a
+    role granted or taken away, and an account deactivated, reactivated, blocked from
+    reactivating, or allowed to reactivate again.  ``changed_by`` is the account that
+    acted, which is the account itself when its owner deactivated or reactivated it,
+    and ``None`` for a management command or an actor since deleted.  ``added`` and
+    ``removed`` hold role slugs in privilege order, and are empty for every kind but
+    ``roles``.
+    """
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="account_changes")
+    changed_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="account_changes_made",
+    )
+    changed_at = models.DateTimeField(default=timezone.now)
+    kind = models.CharField(max_length=12, choices=AccountChangeKind.choices)
+    added = models.JSONField(default=list, blank=True)
+    removed = models.JSONField(default=list, blank=True)
+
+    class Meta:
+        # The primary key breaks the tie between two changes written in the same
+        # instant, so a history never comes back in an undefined order.
+        ordering = ["-changed_at", "-id"]
+        indexes = [models.Index(fields=["user", "-changed_at"], name="account_change_idx")]
+
+    def __str__(self) -> str:
+        """Return the account id and the kind, e.g. ``account 12 roles``."""
+        return f"account {self.user_id} {self.kind}"

@@ -11,7 +11,13 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers, status
 from rest_framework.exceptions import APIException
 
-from apps.accounts.models import PERSON_KIND_CHOICES, AccountKind, User
+from apps.accounts.models import (
+    PERSON_KIND_CHOICES,
+    AccountChange,
+    AccountChangeKind,
+    AccountKind,
+    User,
+)
 from apps.accounts.roles import ROLE_SLUGS
 from apps.accounts.services import (
     AccountChanges,
@@ -28,7 +34,11 @@ from caldart.messages import email_messages, when_missing
 
 
 class UserSerializer(serializers.ModelSerializer[User]):
-    """The ``user`` payload every account endpoint returns."""
+    """The ``user`` payload every account endpoint returns.
+
+    ``admin_created`` is true for an account an account administrator created on New
+    member: its owner has joined already, so the portal opens without the join wizard.
+    """
 
     roles = serializers.SerializerMethodField()
     membership = serializers.SerializerMethodField()
@@ -49,6 +59,7 @@ class UserSerializer(serializers.ModelSerializer[User]):
             "email_verified",
             "kind",
             "friend_on",
+            "admin_created",
         ]
         read_only_fields = fields
 
@@ -397,6 +408,7 @@ class AdminUserSerializer(UserSerializer):
             "id",
             "kind",
             "friend_on",
+            "admin_created",
             "is_active",
             "reactivation_blocked",
             "email_bounce_detail",
@@ -404,7 +416,7 @@ class AdminUserSerializer(UserSerializer):
         extra_kwargs = {
             "email": {
                 "required": False,
-                "error_messages": email_messages("Enter the email address."),
+                "error_messages": email_messages("Enter their email address."),
             },
             "first_name": {
                 "required": False,
@@ -477,3 +489,32 @@ class AdminUserSerializer(UserSerializer):
         ``DomainValidationError`` it raises rather than as a serializer error.
         """
         return update_account(self._actor, instance, validated_data)
+
+
+class AccountActorSerializer(serializers.Serializer[User]):
+    """The account behind a history entry: its id and the name to print beside a date."""
+
+    id = serializers.IntegerField(read_only=True)
+    name = serializers.CharField(source="display_name", read_only=True)
+
+
+class AccountChangeSerializer(serializers.ModelSerializer[AccountChange]):
+    """One entry of ``GET /admin/users/{id}/history``.
+
+    ``changed_by`` is ``{id, name}`` for the account that acted, or null for a
+    management command or an account since deleted.  ``added`` and ``removed`` are the
+    role slugs a ``roles`` entry granted and took away, in privilege order, and empty for
+    every other kind.
+    """
+
+    changed_by = AccountActorSerializer(read_only=True, allow_null=True)
+    kind = serializers.ChoiceField(choices=AccountChangeKind.choices, read_only=True)
+    added = serializers.ListField(child=serializers.ChoiceField(choices=ROLE_SLUGS), read_only=True)
+    removed = serializers.ListField(
+        child=serializers.ChoiceField(choices=ROLE_SLUGS), read_only=True
+    )
+
+    class Meta:
+        model = AccountChange
+        fields = ["id", "changed_at", "changed_by", "kind", "added", "removed"]
+        read_only_fields = fields

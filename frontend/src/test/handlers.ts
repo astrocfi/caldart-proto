@@ -84,6 +84,7 @@ export function makeUser(overrides: Partial<User> = {}): User {
     email_verified: true,
     kind: 'member',
     friend_on: null,
+    admin_created: false,
     ...overrides,
   };
 }
@@ -189,6 +190,8 @@ export const handlers = [
   // The same for the recurring donation, which the Payments screen, the checkout
   // and a life member's dashboard read.
   http.get(`${API}/me/donation`, () => HttpResponse.json({ mandate: null })),
+  // The user record's History card reads the account's changes; none by default.
+  http.get(`${API}/admin/users/:id/history`, () => HttpResponse.json([])),
   // Every report screen reads its column registry as it mounts.  An empty
   // registry leaves the exports on the server's own default columns, so a suite
   // that is not about columns does not have to declare one.
