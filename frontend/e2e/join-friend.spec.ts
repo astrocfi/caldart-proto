@@ -83,11 +83,20 @@ test('a friend contributes on the way through the wizard', async ({ page }) => {
   await expect(page.getByText(/A receipt is on its way to your inbox/)).toBeVisible();
 });
 
-test('coming back to the wizard, a friend lands on done rather than paying', async ({ page }) => {
+test('a friend stays on the pay step in that tab, and lands on done in another', async ({
+  page,
+}) => {
   await registerAsFriend(page, 'Fiona', uniqueEmail('friend-return'));
 
-  await page.goto('portal/join');
+  // The tab that reached the pay step holds it, reload and all, with no menu.
+  await page.reload();
+  await expect(page).toHaveURL(/\/portal\/join\/pay/);
+  await expect(page.getByRole('heading', { name: 'Donate to CalDART' })).toBeVisible();
+  await expect(page.getByRole('navigation', { name: 'Portal sections' })).toHaveCount(0);
 
-  await expect(page).toHaveURL(/\/portal\/join\/done/);
-  await expect(page.getByRole('heading', { name: 'Welcome to CalDART' })).toBeVisible();
+  // A friend owes nothing, so another tab finds them joined.
+  const other = await page.context().newPage();
+  await other.goto('portal/join');
+  await expect(other).toHaveURL(/\/portal\/join\/done/);
+  await expect(other.getByRole('heading', { name: 'Welcome to CalDART' })).toBeVisible();
 });
