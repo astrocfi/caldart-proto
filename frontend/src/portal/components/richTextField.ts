@@ -12,38 +12,30 @@
  * A chip a brace typed beside it turns into no token, `{{first_name}`, goes back to
  * text, so a chip always stands for a token the server will fill in.
  */
-import { Node } from '@tiptap/react';
-import type { Editor } from '@tiptap/react';
 import { DOMSerializer } from '@tiptap/pm/model';
 import type { Fragment, Mark, Node as ProseMirrorNode, NodeType, Schema } from '@tiptap/pm/model';
+import { isHistoryTransaction } from '@tiptap/pm/history';
 import { NodeSelection, Plugin, PluginKey } from '@tiptap/pm/state';
 import type { EditorState, Transaction } from '@tiptap/pm/state';
+import { Node } from '@tiptap/react';
 
-import type { BulkEmailField } from '@/portal/api/types';
+import {
+  FIELD_TOKEN,
+  FieldCatalog,
+  TOKEN_PATTERN,
+  UNKNOWN_FIELD_FLAG,
+  UNKNOWN_FIELD_TITLE,
+  WHOLE_TOKEN,
+  chipAt,
+  chipText,
+  fieldAttrs,
+  isFallbackEven,
+  tokenText,
+} from './richTextTokens';
+import type { FieldTokenAttrs } from './richTextTokens';
 
-/** The node's name in the editor's schema. */
-export const FIELD_TOKEN = 'fieldToken';
-
-/**
- * A token: a lower-case name of letters, digits, and underscores in braces,
- * optionally followed by `|` and a fallback with no brace, bar, angle bracket, or
- * line break.  A brace doubled on either side is not a token.  This mirrors
- * `TOKEN_RE` in `backend/apps/bulk_email/fields.py`; the two must read alike.
- */
-const TOKEN_PATTERN = /(?<!\{)\{([a-z][a-z0-9_]*)(?:\|([^{}|<>\n]*))?\}(?!\})/g;
-
-/** A character a fallback cannot hold, as `TOKEN_PATTERN` refuses it. */
-const FALLBACK_REFUSED = /[{}|<>\n]/;
-
-/** Why a fallback cannot be used: the words `fields.py` describes a fallback in. */
-export const FALLBACK_ERROR =
-  'What to show must be plain text: no brace, bar, angle bracket, or line break.';
-
-/** What a chip whose name the catalog does not have says when pointed at. */
-export const UNKNOWN_FIELD_TITLE = 'Not one of the fields';
-
-/** A whole token and nothing else, for reading a chip's own element back. */
-const WHOLE_TOKEN = new RegExp(`^${TOKEN_PATTERN.source}$`);
+/** The class ProseMirror marks a selected node with, kept across a redraw. */
+const SELECTED_CLASS = 'ProseMirror-selectednode';
 
 /** Marks the element a chip is first written as, before `TokenSerializer` unwraps it. */
 const TOKEN_ATTRIBUTE = 'data-field-token';
@@ -58,80 +50,6 @@ const CONVERT_ALL = 'convertAll';
 const WHOLESALE_EVENTS = new Set(['paste', 'drop']);
 
 const PLUGIN_KEY = new PluginKey('fieldToken');
-
-/** A token's parts: the field's name and the fallback, `''` when there is none. */
-export interface FieldTokenAttrs {
-  name: string;
-  fallback: string;
-}
-
-/** The token as it is written: `{name}` or `{name|fallback}`. */
-export function tokenText({ name, fallback }: FieldTokenAttrs): string {
-  return fallback === '' ? `{${name}}` : `{${name}|${fallback}}`;
-}
-
-/** Whether `fallback` can go in a token as it is. */
-export function isFallbackAllowed(fallback: string): boolean {
-  return !FALLBACK_REFUSED.test(fallback);
-}
-
-/** How a chip reads: its label and fallback, or, for an unknown name, its token. */
-export interface ChipText {
-  label: string;
-  fallback: string;
-  isUnknown: boolean;
-}
-
-/**
- * How the chip for `attrs` reads given the catalog `labels` (token to label).
- *
- * While the catalog is still loading (`labels` is `null`) the name is shown made
- * readable, `first_name` as "first name".  A name the catalog does not have shows
- * the token itself, so the server's refusal of `{nickname}` names what the sender
- * sees.
- */
-export function chipText(
-  attrs: FieldTokenAttrs,
-  labels: ReadonlyMap<string, string> | null,
-): ChipText {
-  if (labels === null) {
-    return { label: attrs.name.replaceAll('_', ' '), fallback: attrs.fallback, isUnknown: false };
-  }
-  const label = labels.get(attrs.name);
-  if (label === undefined) return { label: tokenText(attrs), fallback: '', isUnknown: true };
-  return { label, fallback: attrs.fallback, isUnknown: false };
-}
-
-/**
- * The field catalog one editor's chips read their labels from.
- *
- * The editor's schema is built once, but the catalog arrives later, so the chips
- * subscribe and draw themselves again when `set` is called.
- */
-export class FieldCatalog {
-  #labels: ReadonlyMap<string, string> | null = null;
-  readonly #listeners = new Set<() => void>();
-
-  /** Token to label, or `null` while the catalog is still loading. */
-  get labels(): ReadonlyMap<string, string> | null {
-    return this.#labels;
-  }
-
-  /** Takes the catalog, `undefined` while it loads, and redraws every chip. */
-  set(fields: readonly BulkEmailField[] | undefined): void {
-    this.#labels =
-      fields === undefined ? null : new Map(fields.map((field) => [field.token, field.label]));
-    this.#listeners.forEach((listener) => listener());
-  }
-
-  /** Calls `listener` whenever the catalog changes; returns the unsubscribe. */
-  subscribe(listener: () => void): () => void {
-    this.#listeners.add(listener);
-    return () => {
-      this.#listeners.delete(listener);
-    };
-  }
-}
 
 export interface FieldTokenOptions {
   /** Where the chips read their labels. */
@@ -168,11 +86,6 @@ interface Segment {
   node: ProseMirrorNode;
 }
 
-/** The attributes of a `fieldToken` node. */
-export function fieldAttrs(node: ProseMirrorNode): FieldTokenAttrs {
-  return node.attrs as FieldTokenAttrs;
-}
-
 /**
  * Reads every paragraph of `doc` as the server would read its HTML, each chip as its
  * token's text and an image or a line break as one object character, and answers
@@ -180,7 +93,8 @@ export function fieldAttrs(node: ProseMirrorNode): FieldTokenAttrs {
  *
  * A token written as text becomes a chip only when all of it lies in one run of text
  * with the same styles: one split by bold or a link is left as text, which the server
- * refuses.  A chip becomes text again when a brace written beside it doubles one of
+ * refuses, and so is one whose fallback holds whitespace other than single plain
+ * spaces.  A chip becomes text again when a brace written beside it doubles one of
  * its own, `{` before it or `}` after it, since the server then reads no token there
  * either.
  */
@@ -199,6 +113,8 @@ function scanTokens(doc: ProseMirrorNode): TokenScan {
     });
     const tokens = new Set<string>();
     for (const match of text.matchAll(TOKEN_PATTERN)) {
+      // The server refuses a token whose fallback its plain text reads differently.
+      if (!isFallbackEven(match[2] ?? '')) continue;
       const start = match.index;
       const end = start + match[0].length;
       tokens.add(`${start}:${end}`);
@@ -226,13 +142,15 @@ function scanTokens(doc: ProseMirrorNode): TokenScan {
 
 /**
  * Whether `transactions` put text in wholesale, a draft or a template loading or a
- * paste or a drop, so every token in it becomes a chip whether or not the cursor
- * is beside it.
+ * paste or a drop, or leave the editor, so every token in it becomes a chip whether
+ * or not the cursor is beside it.
  */
 function isWholesale(transactions: readonly Transaction[]): boolean {
   return transactions.some(
     (tr) =>
       tr.getMeta(PLUGIN_KEY) === CONVERT_ALL ||
+      // Leaving the editor leaves whatever was being typed finished.
+      tr.getMeta('blur') !== undefined ||
       tr.getMeta('preventUpdate') === true ||
       WHOLESALE_EVENTS.has(tr.getMeta('uiEvent') as string),
   );
@@ -272,52 +190,6 @@ function convertTokens(
     tr.replaceWith(change.from, change.to, change.node);
   }
   return tr;
-}
-
-/** Puts a chip for the field `name` in at the cursor, replacing any selection. */
-export function insertFieldToken(editor: Editor, name: string): void {
-  editor
-    .chain()
-    .focus()
-    .command(({ tr, state }) => {
-      const type = state.schema.nodes[FIELD_TOKEN];
-      if (type === undefined) return false;
-      // Takes the styles at the cursor, and leaves the cursor just after the chip.
-      tr.replaceSelectionWith(type.create({ name, fallback: '' }));
-      return true;
-    })
-    .run();
-}
-
-/** Selects the chip at `pos` and focuses the editor, as a panel closes. */
-export function selectFieldToken(editor: Editor, pos: number): void {
-  const node = editor.state.doc.nodeAt(pos);
-  if (node?.type.name !== FIELD_TOKEN) {
-    editor.commands.focus();
-    return;
-  }
-  editor.chain().focus().setNodeSelection(pos).run();
-}
-
-/**
- * Sets the fallback of the chip at `pos`, `''` to remove it, and leaves the chip
- * selected.  Does nothing to the document when `pos` no longer holds a chip.
- */
-export function setFieldFallback(editor: Editor, pos: number, fallback: string): void {
-  const node = editor.state.doc.nodeAt(pos);
-  if (node?.type.name !== FIELD_TOKEN) {
-    editor.commands.focus();
-    return;
-  }
-  editor
-    .chain()
-    .focus()
-    .command(({ tr }) => {
-      tr.setNodeMarkup(pos, undefined, { ...node.attrs, fallback });
-      return true;
-    })
-    .setNodeSelection(pos)
-    .run();
 }
 
 /**
@@ -360,9 +232,18 @@ function drawChip(
   labels: ReadonlyMap<string, string> | null,
 ): void {
   const { label, fallback, isUnknown } = chipText(attrs, labels);
-  dom.className = isUnknown ? 'rich-text__field rich-text__field--unknown' : 'rich-text__field';
-  if (isUnknown) dom.title = UNKNOWN_FIELD_TITLE;
-  else dom.removeAttribute('title');
+  // Toggled rather than set, so a redraw keeps ProseMirror's selected class.
+  dom.classList.add('rich-text__field');
+  dom.classList.toggle('rich-text__field--unknown', isUnknown);
+  if (isUnknown) {
+    dom.title = UNKNOWN_FIELD_TITLE;
+    const flag = document.createElement('span');
+    flag.className = 'rich-text__field-flag';
+    flag.textContent = UNKNOWN_FIELD_FLAG;
+    dom.replaceChildren(`${label} `, flag);
+    return;
+  }
+  dom.removeAttribute('title');
   if (fallback === '') {
     dom.replaceChildren(label);
     return;
@@ -370,12 +251,6 @@ function drawChip(
   const emphasis = document.createElement('em');
   emphasis.textContent = fallback;
   dom.replaceChildren(`${label}, or `, emphasis);
-}
-
-/** The node at `pos` when it is a chip, else `null`. */
-function chipAt(state: EditorState, pos: number): ProseMirrorNode | null {
-  const node = state.doc.nodeAt(pos);
-  return node?.type.name === FIELD_TOKEN ? node : null;
 }
 
 /**
@@ -442,7 +317,12 @@ export const FieldToken = Node.create<FieldTokenOptions>({
         const pos = getPos();
         if (!editor.isEditable || pos === undefined) return;
         editor.chain().focus().setNodeSelection(pos).run();
-        onOpen(pos, attrs);
+        // Read back, since selecting the chip may have turned typed text before it
+        // into a chip and moved it.
+        const { selection } = editor.state;
+        if (selection instanceof NodeSelection && selection.node.type.name === FIELD_TOKEN) {
+          onOpen(selection.from, fieldAttrs(selection.node));
+        }
       };
       dom.addEventListener('click', handleClick);
       return {
@@ -453,6 +333,8 @@ export const FieldToken = Node.create<FieldTokenOptions>({
           draw();
           return true;
         },
+        selectNode: () => dom.classList.add(SELECTED_CLASS),
+        deselectNode: () => dom.classList.remove(SELECTED_CLASS),
         destroy: () => {
           unsubscribe();
           dom.removeEventListener('click', handleClick);
@@ -493,11 +375,26 @@ export const FieldToken = Node.create<FieldTokenOptions>({
       new Plugin({
         key: PLUGIN_KEY,
         appendTransaction: (transactions, _oldState, state) => {
+          // Undo and redo put back exactly what was there; a token they restore as
+          // text becomes a chip at the next change instead.
+          if (transactions.some(isHistoryTransaction)) return null;
           const isChange = transactions.some(
-            (tr) => tr.docChanged || tr.selectionSet || tr.getMeta(PLUGIN_KEY) === CONVERT_ALL,
+            (tr) =>
+              tr.docChanged ||
+              tr.selectionSet ||
+              tr.getMeta(PLUGIN_KEY) === CONVERT_ALL ||
+              tr.getMeta('blur') !== undefined,
           );
           if (!isChange) return null;
-          return convertTokens(state, type, !isWholesale(transactions));
+          // Kept out of the history: undo takes back what the sender did, and the
+          // history maps its steps through this one, so undoing the typing of a
+          // token removes the chip it became.
+          return (
+            convertTokens(state, type, !isWholesale(transactions))?.setMeta(
+              'addToHistory',
+              false,
+            ) ?? null
+          );
         },
       }),
     ];

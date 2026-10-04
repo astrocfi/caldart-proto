@@ -1,5 +1,6 @@
 import { act, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { closeHistory } from '@tiptap/pm/history';
 import type { Editor, TiptapEditorHTMLElement } from '@tiptap/react';
 import { createRef, useState } from 'react';
 import type { JSX, Ref } from 'react';
@@ -10,8 +11,16 @@ import { FIELDS } from '@test/fixtures/bulkEmail';
 import { renderWithProviders } from '@test/render';
 
 import { RichTextEditor } from './RichTextEditor';
+import { fieldPhrase } from './RichTextFieldPanels';
 import type { RichTextEditorHandle } from './RichTextEditor';
-import { FALLBACK_ERROR, UNKNOWN_FIELD_TITLE, chipText } from './richTextField';
+import { setFieldFallback } from './richTextFieldCommands';
+import {
+  FALLBACK_BLANK_ERROR,
+  FALLBACK_ERROR,
+  UNKNOWN_FIELD_FLAG,
+  UNKNOWN_FIELD_TITLE,
+  chipText,
+} from './richTextTokens';
 
 interface HarnessProps {
   initial?: string;
@@ -101,6 +110,9 @@ async function settle(): Promise<void> {
   await act(() => new Promise((resolve) => setTimeout(resolve, 0)));
 }
 
+/** The fallback box of the panel a first-name chip opens. */
+const FALLBACK_LABEL = "If we don't have their first name, show";
+
 /** The latest HTML the editor reported. */
 function lastChange(handleChange: ReturnType<typeof vi.fn>): string {
   return handleChange.mock.lastCall?.[0] as string;
@@ -185,7 +197,7 @@ describe('RichTextEditor field chips', () => {
     expect([unknown.className, unknown.title, unknown.textContent]).toEqual([
       'rich-text__field rich-text__field--unknown',
       UNKNOWN_FIELD_TITLE,
-      '{nickname}',
+      `{nickname} ${UNKNOWN_FIELD_FLAG}`,
     ]);
   });
 
@@ -198,7 +210,7 @@ describe('RichTextEditor field chips', () => {
 
     expect([copied?.getData('text/plain'), copied?.getData('text/html')]).toEqual([
       '{first_name|friend}',
-      expect.stringContaining('{first_name|friend}'),
+      '{first_name|friend}',
     ]);
   });
 
@@ -275,6 +287,77 @@ describe('RichTextEditor typed tokens', () => {
     },
   );
 
+  it.each([
+    ['two spaces in a row', '{first_name|Tom  Jo}'],
+    ['a tab', '{first_name|Tom\tJo}'],
+    ['a non-breaking space', '{first_name|Tom\u00a0Jo}'],
+  ])('leaves a token whose fallback holds %s as text', async (_case, token) => {
+    renderWithProviders(<Harness initial="<p>Dear ,</p>" />);
+
+    await placeCursor(6);
+    typeText(`${token}!`);
+
+    expect([area().querySelector('.rich-text__field'), area().textContent]).toEqual([
+      null,
+      `Dear ${token}!,`,
+    ]);
+  });
+
+  it('keeps undo and redo working across a token that became a chip', async () => {
+    const handleChange = vi.fn();
+    renderWithProviders(<Harness initial="<p>Dear ,</p>" onChange={handleChange} />);
+    const seen: string[] = [];
+    const step = (run: () => void): void => {
+      act(run);
+      seen.push(editor().getHTML());
+    };
+
+    await placeCursor(6);
+    typeText('{first_name}');
+    // A pause between the token and what follows it, as the history groups by time.
+    act(() => {
+      const { view } = editor();
+      view.dispatch(closeHistory(view.state.tr));
+    });
+    typeText(' hi');
+    step(() => editor().commands.undo());
+    step(() => editor().commands.setTextSelection(1));
+    step(() => editor().commands.undo());
+    step(() => editor().commands.redo());
+    step(() => editor().commands.setTextSelection(1));
+    step(() => editor().commands.redo());
+    step(() => editor().commands.undo());
+    step(() => editor().commands.undo());
+
+    expect(seen).toEqual([
+      '<p>Dear {first_name},</p>',
+      '<p>Dear {first_name},</p>',
+      '<p>Dear ,</p>',
+      '<p>Dear {first_name},</p>',
+      '<p>Dear {first_name},</p>',
+      '<p>Dear {first_name} hi,</p>',
+      '<p>Dear {first_name},</p>',
+      '<p>Dear ,</p>',
+    ]);
+  });
+
+  it('leaves the chip in place when undo takes back what followed it', async () => {
+    renderWithProviders(<Harness initial="<p>Dear ,</p>" />);
+
+    await placeCursor(6);
+    typeText('{first_name}');
+    act(() => {
+      const { view } = editor();
+      view.dispatch(closeHistory(view.state.tr));
+    });
+    typeText(' hi');
+    act(() => {
+      editor().commands.undo();
+    });
+
+    expect((await chip()).textContent).toBe('First name');
+  });
+
   it('leaves a token split by formatting as text', async () => {
     renderWithProviders(<Harness initial="<p><strong>{first</strong>_name}</p>" />);
     await settle();
@@ -313,7 +396,7 @@ describe('RichTextEditor field panel', () => {
     renderWithProviders(<Harness initial="<p>Dear {first_name},</p>" onChange={handleChange} />);
 
     await userEvent.click(await chip());
-    await userEvent.type(screen.getByLabelText(/If the person has no value, show/), 'friend');
+    await userEvent.type(screen.getByLabelText(FALLBACK_LABEL), 'friend');
     await userEvent.click(screen.getByRole('button', { name: 'Apply' }));
 
     expect([(await chip()).textContent, lastChange(handleChange)]).toEqual([
@@ -350,7 +433,7 @@ describe('RichTextEditor field panel', () => {
 
     await userEvent.click(await chip());
 
-    expect(screen.getByLabelText(/If the person has no value, show/)).toHaveValue('friend');
+    expect(screen.getByLabelText(FALLBACK_LABEL)).toHaveValue('friend');
   });
 
   it('takes the fallback off with Clear', async () => {
@@ -373,14 +456,14 @@ describe('RichTextEditor field panel', () => {
     expect(screen.queryByRole('button', { name: 'Clear' })).toBeNull();
   });
 
-  it('leaves the chip as it was on Cancel, selected in the editor', async () => {
+  it('leaves the chip as it was on Cancel, with the cursor just after it', async () => {
     const handleChange = vi.fn();
     renderWithProviders(
       <Harness initial="<p>Dear {first_name|friend}</p>" onChange={handleChange} />,
     );
 
     await userEvent.click(await chip());
-    await userEvent.clear(screen.getByLabelText(/If the person has no value, show/));
+    await userEvent.clear(screen.getByLabelText(FALLBACK_LABEL));
     await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     await waitFor(() => expect(area()).toHaveFocus());
 
@@ -388,7 +471,7 @@ describe('RichTextEditor field panel', () => {
       handleChange.mock.calls.length,
       editor().state.selection.from,
       editor().state.selection.to,
-    ]).toEqual([0, 6, 7]);
+    ]).toEqual([0, 7, 7]);
   });
 
   it.each(['a{b', 'a|b', 'a<b', 'a>b', 'a}b'])(
@@ -399,10 +482,7 @@ describe('RichTextEditor field panel', () => {
 
       await userEvent.click(await chip());
       // Typed into the box, where user-event reads `{` as the start of a key name.
-      await userEvent.type(
-        screen.getByLabelText(/If the person has no value, show/),
-        fallback.replace('{', '{{'),
-      );
+      await userEvent.type(screen.getByLabelText(FALLBACK_LABEL), fallback.replace('{', '{{'));
       await userEvent.click(screen.getByRole('button', { name: 'Apply' }));
 
       expect([screen.getByRole('alert').textContent, handleChange.mock.calls.length]).toEqual([
@@ -412,12 +492,216 @@ describe('RichTextEditor field panel', () => {
     },
   );
 
+  it.each([
+    ['runs of spaces', 'Tom   Jo', '{first_name|Tom Jo}'],
+    ['spaces at either end', '  friend ', '{first_name|friend}'],
+    ['a non-breaking space', 'Tom\u00a0Jo', '{first_name|Tom Jo}'],
+  ])('puts %s in a fallback as single spaces', async (_case, typed, token) => {
+    const handleChange = vi.fn();
+    renderWithProviders(<Harness initial="<p>{first_name}</p>" onChange={handleChange} />);
+
+    await userEvent.click(await chip());
+    const box = screen.getByLabelText(FALLBACK_LABEL);
+    await userEvent.click(box);
+    await userEvent.paste(typed);
+    await userEvent.click(screen.getByRole('button', { name: 'Apply' }));
+
+    expect(lastChange(handleChange)).toBe(`<p>${token}</p>`);
+  });
+
+  it('refuses a fallback of only spaces, and changes nothing', async () => {
+    const handleChange = vi.fn();
+    renderWithProviders(<Harness initial="<p>{first_name}</p>" onChange={handleChange} />);
+
+    await userEvent.click(await chip());
+    await userEvent.type(screen.getByLabelText(FALLBACK_LABEL), '   ');
+    await userEvent.click(screen.getByRole('button', { name: 'Apply' }));
+
+    expect([screen.getByRole('alert').textContent, handleChange.mock.calls.length]).toEqual([
+      FALLBACK_BLANK_ERROR,
+      0,
+    ]);
+  });
+
+  it('closes the panel when its chip is taken out while it is open', async () => {
+    const handleChange = vi.fn();
+    renderWithProviders(
+      <Harness initial="<p>{first_name} {dart_name}</p>" onChange={handleChange} />,
+    );
+    const [first] = await chips();
+    if (first === undefined) throw new Error('No chip.');
+
+    await userEvent.click(first);
+    act(() => {
+      editor().commands.deleteRange({ from: 1, to: 3 });
+    });
+
+    expect([
+      screen.queryByRole('region', { name: 'First name field' }),
+      lastChange(handleChange),
+    ]).toEqual([null, '<p>{dart_name}</p>']);
+  });
+
+  it('leaves the message alone when the chip the panel opened on is no longer there', async () => {
+    renderWithProviders(<Harness initial="<p>{first_name} {dart_name}</p>" />);
+    await chips();
+
+    act(() => setFieldFallback(editor(), 3, { name: 'first_name', fallback: '' }, 'friend'));
+
+    expect(editor().getHTML()).toBe('<p>{first_name} {dart_name}</p>');
+  });
+
+  it('follows its chip when the message changes before it', async () => {
+    const handleChange = vi.fn();
+    renderWithProviders(
+      <Harness initial="<p>{first_name} {dart_name}</p>" onChange={handleChange} />,
+    );
+    const [, second] = await chips();
+    if (second === undefined) throw new Error('No second chip.');
+
+    await userEvent.click(second);
+    act(() => {
+      editor().commands.insertContentAt(1, 'Hi ');
+    });
+    await userEvent.type(screen.getByLabelText("If we don't have their DART, show"), 'yours');
+    await userEvent.click(screen.getByRole('button', { name: 'Apply' }));
+
+    expect(lastChange(handleChange)).toBe('<p>Hi {first_name} {dart_name|yours}</p>');
+  });
+
+  it('titles the panel with the field it is for', async () => {
+    renderWithProviders(<Harness initial="<p>{first_name}</p>" />);
+
+    await userEvent.click(await chip());
+
+    expect(screen.getByRole('region', { name: 'First name field' }).firstChild).toHaveTextContent(
+      'First name',
+    );
+  });
+
+  it('puts the next key typed after the chip once Apply closes the panel', async () => {
+    const handleChange = vi.fn();
+    renderWithProviders(<Harness initial="<p>Dear {first_name},</p>" onChange={handleChange} />);
+
+    await userEvent.click(await chip());
+    await userEvent.type(screen.getByLabelText(FALLBACK_LABEL), 'friend');
+    await userEvent.click(screen.getByRole('button', { name: 'Apply' }));
+    typeText('X');
+
+    expect(lastChange(handleChange)).toBe('<p>Dear {first_name|friend}X,</p>');
+  });
+
+  it('leaves a plain cursor after the chip when Escape closes the panel', async () => {
+    renderWithProviders(<Harness initial="<p>Dear {first_name},</p>" />);
+
+    await userEvent.click(await chip());
+    await userEvent.keyboard('{Escape}');
+
+    expect([
+      screen.queryByRole('region', { name: 'First name field' }),
+      editor().state.selection.empty,
+      editor().state.selection.from,
+    ]).toEqual([null, true, 7]);
+  });
+
   it('opens no panel on a chip in a message that cannot change', async () => {
     renderWithProviders(<Harness initial="<p>{first_name}</p>" readOnly />);
 
     await userEvent.click(await chip());
 
     expect(screen.queryByRole('region', { name: 'First name field' })).toBeNull();
+  });
+});
+
+describe('RichTextEditor unknown field panel', () => {
+  /** Opens the panel of the one unknown chip in `<p>Hi {nickname}</p>`. */
+  async function openUnknown(handleChange: (html: string) => void): Promise<void> {
+    renderWithProviders(<Harness initial="<p>Hi {nickname}</p>" onChange={handleChange} />);
+    await userEvent.click(await chip());
+  }
+
+  it('says the chip is not one of the fields', async () => {
+    await openUnknown(vi.fn());
+
+    expect(screen.getByRole('region', { name: 'Unknown field' })).toHaveTextContent(
+      '{nickname} is not one of the fields.',
+    );
+  });
+
+  it('makes the chip a field chosen from the list', async () => {
+    const handleChange = vi.fn();
+    await openUnknown(handleChange);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Choose a field' }));
+    await userEvent.click(screen.getByRole('button', { name: 'DART' }));
+
+    expect([lastChange(handleChange), (await chip()).textContent]).toEqual([
+      '<p>Hi {dart_name}</p>',
+      'DART',
+    ]);
+  });
+
+  it('turns the chip into words without its braces', async () => {
+    const handleChange = vi.fn();
+    await openUnknown(handleChange);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Turn into words' }));
+    act(() => {
+      editor().commands.setTextSelection(1);
+    });
+
+    expect([lastChange(handleChange), area().querySelector('.rich-text__field')]).toEqual([
+      '<p>Hi nickname</p>',
+      null,
+    ]);
+  });
+
+  it('removes the chip', async () => {
+    const handleChange = vi.fn();
+    await openUnknown(handleChange);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Remove' }));
+
+    expect(lastChange(handleChange)).toBe('<p>Hi </p>');
+  });
+});
+
+describe('RichTextEditor chip states', () => {
+  it('keeps a selected chip marked selected when it is drawn again', async () => {
+    const { rerender } = renderWithProviders(
+      <Harness initial="<p>Dear {first_name}</p>" fields="loading" />,
+    );
+    await chip();
+
+    await placeCursor(6, true);
+    rerender(<Harness initial="<p>Dear {first_name}</p>" fields={FIELDS} />);
+    const selected = await chip();
+
+    expect([selected.textContent, selected.classList.contains('ProseMirror-selectednode')]).toEqual(
+      ['First name', true],
+    );
+  });
+
+  it('turns a typed token into a chip when the editor loses the focus', async () => {
+    renderWithProviders(<Harness initial="<p>Dear ,</p>" />);
+
+    await placeCursor(6);
+    typeText('{first_name}');
+    act(() => {
+      editor().view.dom.blur();
+    });
+
+    expect((await chip()).textContent).toBe('First name');
+  });
+});
+
+describe('fieldPhrase', () => {
+  it.each([
+    ['First name', 'first name'],
+    ['Email address', 'email address'],
+    ['DART', 'DART'],
+  ])('names %s in a sentence as %s', (label, phrase) => {
+    expect(fieldPhrase(label)).toBe(phrase);
   });
 });
 

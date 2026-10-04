@@ -34,16 +34,12 @@ import {
 } from './icons';
 import type { IconProps } from './icons';
 import { emailImageSize } from './richText';
-import {
-  FieldCatalog,
-  FieldToken,
-  chipText,
-  insertFieldToken,
-  selectFieldToken,
-  setFieldFallback,
-} from './richTextField';
-import type { FieldTokenAttrs } from './richTextField';
-import { FieldPanel, ImagePanel, LinkPanel } from './RichTextPanels';
+import { FieldToken } from './richTextField';
+import { insertFieldToken } from './richTextFieldCommands';
+import { FieldCatalog } from './richTextTokens';
+import type { FieldTokenAttrs } from './richTextTokens';
+import { ChipPanel } from './RichTextFieldPanels';
+import { ImagePanel, LinkPanel } from './RichTextPanels';
 import type { UploadState } from './RichTextPanels';
 
 /** The image types the picker offers; the server accepts these and no others. */
@@ -61,8 +57,6 @@ export interface UploadedImage {
 
 /** What a caller can do to the editor through its `ref`. */
 export interface RichTextEditorHandle {
-  /** Puts `text` in at the cursor, replacing any selection, and focuses the editor. */
-  insertText: (text: string) => void;
   /**
    * Puts the field named `token`, such as `first_name`, in at the cursor as a chip,
    * replacing any selection, and focuses the editor with the cursor after the chip.
@@ -221,9 +215,6 @@ export function RichTextEditor({
   useImperativeHandle(
     ref,
     () => ({
-      insertText: (text: string) => {
-        editor.chain().focus().insertContent(text).run();
-      },
       insertField: (token: string) => {
         insertFieldToken(editor, token);
       },
@@ -238,16 +229,6 @@ export function RichTextEditor({
   const handlePanelClose = (): void => {
     setPanel({ kind: 'none' });
     editor.commands.focus();
-  };
-
-  const handleFieldClose = (pos: number): void => {
-    setPanel({ kind: 'none' });
-    selectFieldToken(editor, pos);
-  };
-
-  const handleFieldFallback = (pos: number, fallback: string): void => {
-    setPanel({ kind: 'none' });
-    setFieldFallback(editor, pos, fallback);
   };
 
   const handleLinkOpen = (): void => {
@@ -393,14 +374,14 @@ export function RichTextEditor({
         />
       ) : null}
       {panel.kind === 'field' ? (
-        <FieldPanel
+        <ChipPanel
           // A fresh panel for each chip, so its box starts from that chip's fallback.
           key={panel.pos}
-          label={chipText(panel.attrs, catalog.labels).label}
-          initialFallback={panel.attrs.fallback}
-          onApply={(fallback) => handleFieldFallback(panel.pos, fallback)}
-          onClear={() => handleFieldFallback(panel.pos, '')}
-          onCancel={() => handleFieldClose(panel.pos)}
+          editor={editor}
+          pos={panel.pos}
+          attrs={panel.attrs}
+          fields={fields}
+          onClose={() => setPanel({ kind: 'none' })}
         />
       ) : null}
       <EditorContent editor={editor} />

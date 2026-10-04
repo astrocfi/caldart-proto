@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createRef, useState } from 'react';
 import type { JSX } from 'react';
@@ -195,17 +195,6 @@ describe('RichTextEditor', () => {
       screen.getByRole('button', { name: 'Bold' }),
       area().getAttribute('contenteditable'),
     ]).toEqual([expect.objectContaining({ disabled: true }), 'false']);
-  });
-
-  it('puts text in at the cursor through its handle', async () => {
-    const handleChange = vi.fn();
-    const editorRef = createRef<RichTextEditorHandle>();
-    render(<Harness initial="<p>Hello</p>" onChange={handleChange} editorRef={editorRef} />);
-
-    await selectAll();
-    act(() => editorRef.current?.insertText('{first_name}'));
-
-    expect(lastChange(handleChange)).toBe('<p>{first_name}</p>');
   });
 
   it('tells through its handle whether a node is inside the editing area', () => {
