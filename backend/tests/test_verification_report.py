@@ -84,7 +84,7 @@ ALL_COLUMNS = ",".join(column.key for column in VERIFICATION_REPORT_COLUMNS)
 
 
 def cells(section: str, name: str, params: Params | None = None) -> list[str]:
-    """Every cell after Section and Name of the row ``(section, name)``, all columns on."""
+    """Every cell after Section and Name of the row ``(section, name)``, any column."""
     table = VERIFICATION_REPORT.table(
         {**(params or {}), "columns": ALL_COLUMNS}, fmt="csv", today=TODAY
     )
@@ -464,9 +464,7 @@ def test_the_default_status_is_named_among_the_filters() -> None:
     assert VERIFICATION_REPORT.query({}).filters == {"Showing": "Not yet verified"}
 
 
-@pytest.mark.parametrize(
-    ("status", "words"), [("verified", "Verified"), ("all", "Everything")]
-)
+@pytest.mark.parametrize(("status", "words"), [("verified", "Verified"), ("all", "Everything")])
 def test_each_status_is_named_in_words(status: str, words: str) -> None:
     """The subtitle names the status as a reader would say it."""
     assert VERIFICATION_REPORT.query({"status": status}).filters == {"Showing": words}

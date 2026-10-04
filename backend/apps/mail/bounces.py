@@ -341,7 +341,7 @@ class BounceRun:
 
 
 def bounce_checking_enabled() -> bool:
-    """True when a bounce mailbox is configured, so the bounce check has a mailbox to read.
+    """True when a bounce mailbox is configured, so the bounce check has one to read.
 
     That is ``BOUNCE_IMAP_URL`` set to anything; whether it can be read is only known
     once a run tries.

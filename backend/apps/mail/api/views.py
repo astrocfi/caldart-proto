@@ -1,8 +1,9 @@
 """The email log endpoints, and the bounce check run by hand.
 
 ``GET /system/emails``, ``GET /system/emails/{id}``, ``GET /system/emails/purposes``,
-``GET /system/bounces``, and ``POST /system/bounces/run`` are ``system_admin`` only: the log carries every address the
-installation has written to, which is operations work rather than membership work.
+``GET /system/bounces``, and ``POST /system/bounces/run`` are ``system_admin`` only: the
+log carries every address the installation has written to, which is operations work
+rather than membership work.
 The filters live in ``apps.mail.filters``, which the ``emails`` report shares.
 ``GET /mail/delivery-check`` is the DNS check CalDART management reads before a bulk
 send; it is open to ``management`` and ``system_admin``.

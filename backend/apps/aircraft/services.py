@@ -254,8 +254,8 @@ def leader_status(user: UserModel) -> dict[str, Any]:
     a member is a no-go, not just that they are.  ``verified`` among them is true when
     the pilot certificate, the medical, and the photo ID are all verified; each of the
     three carries its own ``verification``.  ``is_dart_leader`` and ``is_verifier`` say
-    whether the member holds the DART leader role and the verifier role.  An account with no profile has nothing verified and a
-    photo ID of ``not_provided``.
+    whether the member holds the DART leader role and the verifier role.  An account with
+    no profile has nothing verified and a photo ID of ``not_provided``.
     """
     profile = getattr(user, "profile", None)
     status = membership_status(user)
