@@ -23,6 +23,7 @@ dependencies = [
     "beautifulsoup4>=4.13",
     "dnspython>=2.8.0",
     "nh3>=0.3.7",
+    "idna>=3.7",
 ]
 
 [dependency-groups]

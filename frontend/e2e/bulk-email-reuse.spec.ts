@@ -1,10 +1,11 @@
 /**
  * What CalDART management keeps to use again: a batch saved as a recipient group and a
  * message saved as a template, then a fresh draft started from both, and both found on
- * their own screens.
+ * their own screens; and a sent email duplicated, with its people, into a new draft.
  *
  * The batch is the holders of the management role, which the seed gives to one demo
- * account, whose inbox no spec here reads: nothing is sent.
+ * account. `make e2e` sets `BULK_EMAIL_UNDO_SECONDS=0`, so the email this spec sends
+ * is ready for the sender, which the system administrator runs from the Scheduled page.
  */
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
@@ -92,4 +93,58 @@ test('a saved group and a saved template start a fresh draft', async ({ page }) 
   await page.getByRole('link', { name: group, exact: true }).click();
   await expect(page.getByRole('heading', { level: 1, name: group })).toBeVisible();
   await expect(page.getByRole('cell', { name: DEMO.management, exact: true })).toBeVisible();
+});
+
+test('Duplicate starts a new draft from a sent email, with its people', async ({ page }) => {
+  const subject = fresh('Ramp cleanup');
+
+  await signIn(page, DEMO.management);
+  await openCompose(page);
+  const filters = page.getByRole('search', { name: 'Choose people to add' });
+  await filters.getByLabel('Role').selectOption('management');
+  await page.getByRole('button', { name: 'Add to batch' }).click();
+  await expect(page.getByText(/^Added \d+ (person|people)[.;]/)).toBeVisible();
+  await page.getByRole('radio', { name: 'Operational' }).click();
+  await expect(page.getByRole('radio', { name: 'Operational' })).toBeChecked();
+  await page.getByRole('textbox', { name: /^Subject/ }).fill(subject);
+  await page.getByRole('textbox', { name: 'Message' }).click();
+  await page.keyboard.type('Sweep the ramp on Saturday.');
+  await page.getByRole('button', { name: /^Send to \d+ (person|people)$/ }).click();
+  await page
+    .getByRole('region', { name: 'Confirm sending' })
+    .getByRole('button', {
+      name: 'Send now',
+    })
+    .click();
+  await expect(
+    page.getByRole('region', { name: 'Waiting to send' }).getByText(/^Starting to send/),
+  ).toBeVisible();
+
+  await page.context().clearCookies();
+  await signIn(page, DEMO.sysadmin);
+  await page.goto('portal/system/scheduled');
+  const sender = page
+    .locator('section')
+    .filter({ has: page.getByRole('heading', { name: 'Bulk email sender' }) });
+  await sender.getByRole('button', { name: 'Run the bulk email sender now' }).click();
+  await expect(sender.getByRole('status')).toHaveText(/^Worked on \d+ bulk emails?: /);
+
+  await page.context().clearCookies();
+  await signIn(page, DEMO.management);
+  await page
+    .getByRole('navigation', { name: 'Portal sections' })
+    .getByRole('link', { name: 'Sent', exact: true })
+    .click();
+  await page.getByRole('link', { name: subject, exact: true }).click();
+  await page.getByRole('button', { name: 'Duplicate' }).click();
+  await page.getByRole('button', { name: 'Copy the message and the people' }).click();
+
+  await expect(page).toHaveURL(/\/portal\/bulk-email\/compose\/\d+$/);
+  await expect(page.getByText(`This is a copy of "${subject}".`)).toBeVisible();
+  await expect(page.getByRole('textbox', { name: /^Subject/ })).toHaveValue(subject);
+  const batch = page.getByRole('table', { name: /^The batch: / });
+  await page.setViewportSize({ width: 1600, height: 900 });
+  await expect(batch.getByRole('row').filter({ hasText: DEMO.management })).toContainText(
+    `Copied from "${subject}"`,
+  );
 });

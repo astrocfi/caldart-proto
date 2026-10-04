@@ -27,7 +27,7 @@ from apps.bulk_email.models import (
 )
 from apps.bulk_email.templates import duplicate
 from caldart.exceptions import DomainError, DomainValidationError
-from tests.conftest import read_csv, role_matrix
+from tests.conftest import audit_messages, read_csv, role_matrix
 from tests.factories import (
     BulkEmailFactory,
     DartFactory,
@@ -810,3 +810,73 @@ def test_only_management_adds_or_saves_a_group_from_a_batch(
     api_client.force_login(all_role_users[role])
     response = api_client.post(f"/api/v1/bulk-email/{bulk.pk}{path}", body, format="json")
     assert response.status_code == (code if allowed else 403)
+
+
+# --------------------------------------------------------------------------
+# The audit trail
+# --------------------------------------------------------------------------
+def test_making_a_group_writes_one_audit_line(
+    management_client: APIClient, management: User, audit_log: pytest.LogCaptureFixture
+) -> None:
+    """One ``recipient_group.create`` line names who made it, the group, and its kind."""
+    response = management_client.post(
+        GROUPS_URL, {"name": "Seminar", "kind": "live"}, format="json"
+    )
+
+    assert audit_messages(audit_log) == [
+        f"action=recipient_group.create actor={management.pk} "
+        f"target={response.json()['id']} kind=live"
+    ]
+
+
+def test_saving_a_batch_as_a_group_writes_one_audit_line(
+    management_client: APIClient,
+    management: User,
+    bulk: BulkEmail,
+    ann: User,
+    audit_log: pytest.LogCaptureFixture,
+) -> None:
+    """A group saved from a batch is audited as made, like one made empty."""
+    add_to_batch(bulk, ann)
+    audit_log.clear()
+
+    response = management_client.post(
+        f"/api/v1/bulk-email/{bulk.pk}/save-group",
+        {"name": "Hangar crew", "kind": "fixed"},
+        format="json",
+    )
+
+    assert audit_messages(audit_log) == [
+        f"action=recipient_group.create actor={management.pk} "
+        f"target={response.json()['id']} kind=fixed"
+    ]
+
+
+def test_renaming_a_group_writes_one_audit_line(
+    management_client: APIClient,
+    management: User,
+    board: RecipientGroup,
+    audit_log: pytest.LogCaptureFixture,
+) -> None:
+    """One ``recipient_group.rename`` line names the group."""
+    management_client.patch(group_url(board), {"name": "Directors"}, format="json")
+
+    assert audit_messages(audit_log) == [
+        f"action=recipient_group.rename actor={management.pk} target={board.pk}"
+    ]
+
+
+def test_deleting_a_group_writes_one_audit_line(
+    management_client: APIClient,
+    management: User,
+    board: RecipientGroup,
+    audit_log: pytest.LogCaptureFixture,
+) -> None:
+    """One ``recipient_group.delete`` line names the group that was deleted."""
+    pk = board.pk
+
+    management_client.delete(group_url(board))
+
+    assert audit_messages(audit_log) == [
+        f"action=recipient_group.delete actor={management.pk} target={pk}"
+    ]

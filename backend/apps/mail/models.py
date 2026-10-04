@@ -1,4 +1,4 @@
-"""The record of every email the installation has sent, and the kinds of bulk email.
+"""The record of every email the installation has sent, and the types of bulk email.
 
 :class:`EmailLog` is written by ``caldart.mail.send_templated`` after each send.  It
 answers "what did the system say to this member, and did it arrive?" for an operator,

@@ -1950,7 +1950,9 @@ Action                        Fields beyond actor and target
                               took a queued email back to a draft
 ``bulk_email.stop``           ``recipients`` -- the copies kept back; written
                               when the stop takes effect
-``bulk_email.resume``         ``recipients`` -- the copies queued again
+``bulk_email.resume``         ``recipients``, ``skipped`` -- the stopped copies
+                              **Send the rest** queued again, and those it
+                              found skipped
 ``bulk_email.retry``          ``recipients``, ``skipped`` -- the failed copies
                               **Retry failed** queued again, and those it
                               found skipped
@@ -1986,6 +1988,14 @@ Action                        Fields beyond actor and target
 ``email_type.create``         -- (the target is the ``EmailType``)
 ``email_type.update``         --
 ``email_type.delete``         --
+``email_template.create``     -- (the target is the ``EmailTemplate``)
+``email_template.update``     -- one line per change, whatever it changed
+``email_template.delete``     -- (the target is the deleted template's id)
+``recipient_group.create``    ``kind`` -- ``fixed`` or ``live`` (the target is
+                              the ``RecipientGroup``); made empty or saved
+                              from a batch
+``recipient_group.rename``    --
+``recipient_group.delete``    -- (the target is the deleted group's id)
 ``email.opt_out``             ``email_type``, ``source`` -- the type turned
                               off and where: ``profile``, ``unsubscribe``,
                               or ``admin`` (the target is the person)

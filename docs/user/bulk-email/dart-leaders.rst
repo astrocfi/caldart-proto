@@ -6,7 +6,8 @@ Bulk email for a DART
 
 A DART leader can write one email to every member and friend of their own DART (Disaster
 Airlift Response Team, one of CalDART's local groups) at once: a training night, a call for
-pilots, a change of meeting place. You use the same three screens CalDART management uses,
+pilots, a change of meeting place, or a mission callout asking who can fly (:doc:`callouts`).
+You use the same three screens CalDART management uses,
 **Compose** (:doc:`compose`), **Drafts & scheduled** (:doc:`drafts`), and **Sent**
 (:doc:`sent`), under **Bulk Email** in the menu. This page covers what is different for a
 DART leader.
@@ -42,11 +43,11 @@ another DART after you added them, shows *Not in your DART* under **Will receive
 sent nothing.
 
 
-The kind of email
+The type of email
 =================
 
-Card **2. What it says** offers the kinds of email a DART leader may send. As the site
-starts these are Operational and Mission email; a system administrator decides which kinds
+Card **2. What it says** offers the types of email a DART leader may send. As the site
+starts these are Operational and Mission email; a system administrator decides which types
 each role may send on **Email types** (:doc:`email-types`). Everything else on the screen,
 from the message to **Send** and **Schedule for later**, works as :doc:`compose` describes.
 
@@ -75,4 +76,5 @@ If an email went back to your drafts with *Your DART changed, so this email was 
 Add the people again and send when it is ready.*, your profile names a different DART than
 the one you built the batch in. Open it from **Drafts & scheduled**, press **Clear batch**,
 add the people of your DART, and send it again. A send you stopped and then finished with
-**Send the rest** also skips anybody who has left your DART since, with *Not in your DART*.
+**Send the rest** also skips anybody who has left your DART since, with *Not in your DART*,
+as it skips anybody else who can no longer receive it.

@@ -1498,7 +1498,7 @@ export interface BounceRunResult {
 export type EmailTypeSenderRole = 'dart_leader' | 'management';
 
 /**
- * A kind of bulk email, from `GET /email-types` (system administrators only).
+ * A type of bulk email, from `GET /email-types` (system administrators only).
  * `slug` follows `name`. `sender_roles` lists the roles that may send the type, once
  * each in the order above; an empty list leaves it to system administrators.
  * `allow_opt_out` says whether a recipient may turn it off. `position` orders the

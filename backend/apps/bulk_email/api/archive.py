@@ -25,7 +25,7 @@ class BulkEmailMessageSerializer(serializers.Serializer[Message]):
 
     ``id`` is the bulk email's.  ``subject`` is the subject as the reader's copy had it,
     ``sent_at`` when their copy went, ``from_name`` who sent it (the organization's
-    name once the sender's account is gone), and ``email_type_name`` the kind of email
+    name once the sender's account is gone), and ``email_type_name`` the type of email
     it is, blank for none.  ``answer_url`` is the reader's own answer page for a mission
     callout, blank for any other email.
     """
@@ -38,7 +38,7 @@ class BulkEmailMessageSerializer(serializers.Serializer[Message]):
     answer_url = serializers.CharField()
 
     def get_email_type_name(self, message: Message) -> str:
-        """The kind of email it is, or ``""`` for none."""
+        """The type of email it is, or ``""`` for none."""
         return email_type_name(message.bulk)
 
 
@@ -60,7 +60,7 @@ class BulkEmailMessageDetailSerializer(serializers.Serializer[OpenedMessage]):
     text = serializers.CharField(source="copy.text")
 
     def get_email_type_name(self, opened: OpenedMessage) -> str:
-        """The kind of email it is, or ``""`` for none."""
+        """The type of email it is, or ``""`` for none."""
         return email_type_name(opened.message.bulk)
 
 

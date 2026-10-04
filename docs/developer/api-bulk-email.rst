@@ -517,13 +517,18 @@ had gone records nothing, and the email reads ``sent``.
 ``POST /bulk-email/{id}/resume``
 --------------------------------
 
-**Send the rest** of a stopped send: every ``stopped`` row goes back to
-``pending`` and the email is queued to start now, with no undo window.  **200**
-with the email.  Nobody already sent a copy is sent another.  The email keeps its
-``started_at``, so it stays read-only (:ref:`the edit rule <bulk-email-edit-rule>`).  An email that is not
-``stopped`` is **409** *Only a stopped email can send the rest.*  One
-``bulk_email.resume`` audit line names the caller and the number of copies
-queued again.
+**Send the rest** of a stopped send.  Every ``stopped`` row is checked again first,
+as **Retry failed** checks a failed one (``POST /bulk-email/{id}/retry``): it takes
+its account's name and address as they are now, and a deleted or deactivated account,
+a missing, invalid, or bounced address, an opt-out of the type, a person outside a
+DART leader's DART, or, in a callout's reminder round, a person who has answered since
+makes it ``skipped`` with that reason.  The rest go back to
+``pending`` and the email is queued to start now, with no undo window.  **200** with
+the email.  Nobody already sent a copy is sent another.  The email keeps its
+``started_at``, so it stays read-only (:ref:`the edit rule <bulk-email-edit-rule>`).
+An email that is not ``stopped`` is **409** *Only a stopped email can send the
+rest.*  One ``bulk_email.resume`` audit line names the caller, the number of copies
+queued again, and the number skipped.
 
 ``GET /bulk-email/{id}/recipients.csv``
 ---------------------------------------
@@ -740,8 +745,10 @@ already sent this round of the email makes the row ``skipped`` with that reason 
 to ``skipped_count``.  For a mission callout the rows are taken the latest round first,
 and a failed copy whose person a later round's copy reached, or is going to, or one
 already queued in this retry, is ``skipped`` with *Sent a later copy instead*, so a
-person whose first copy and reminder both failed is sent one copy, the reminder.  Every other failed copy goes back to ``pending`` with its reason
-cleared.  All of them leave ``failed_count``.  The email is queued to start now, with
+person whose first copy and reminder both failed is sent one copy, the reminder.  A
+failed reminder (``round`` above 0) whose person has answered the callout since is
+``skipped`` with *Answered the callout*.  Every other failed copy goes back to
+``pending`` with its reason cleared.  All of them leave ``failed_count``.  The email is queued to start now, with
 no undo window, as **Send the rest** queues it.  No body is taken.  **200** with the
 email, ``queued`` with the retry in ``retries``.  The background sender then sends
 those copies alone, each filled in with the person's values as they are then, and
@@ -1328,6 +1335,7 @@ Choose another name.*  ``subject`` and ``body`` follow a draft's rules
 (``PATCH /bulk-email/{id}``): the same lengths and refusals, and the message saved
 sanitized.  ``email_type`` is a type the caller may send, or null, refused as a
 draft refuses it; ``reply_to`` is an address, or blank.  **201** with the template.
+One ``email_template.create`` audit line names the caller and the template.
 
 ``GET /bulk-email/templates/{id}``
 ----------------------------------
@@ -1339,12 +1347,13 @@ One template, as the list shows it.
 
 Saves the fields given, each checked as ``POST`` checks it, which is how a template
 is renamed and edited; a template may keep its own name in another case.  **200**
-with the template.
+with the template, and one ``email_template.update`` audit line.
 
 ``DELETE /bulk-email/templates/{id}``
 -------------------------------------
 
 Deletes the template: **204**.  Drafts already started from it keep their words.
+One ``email_template.delete`` audit line names the caller and the template's id.
 
 ``POST /bulk-email/{id}/apply-template``
 ----------------------------------------
@@ -1426,7 +1435,8 @@ its sets change.
 Makes an empty group, the caller as its author: ``{"name": "Board", "kind":
 "fixed"}``.  ``name`` is at most 80 characters, trimmed, and must not be another
 group's in any mix of cases: **400** *A group named "Board" already exists. Choose
-another name.*  ``kind`` is ``fixed`` or ``live``.  **201** with the group.
+another name.*  ``kind`` is ``fixed`` or ``live``.  **201** with the group, and one
+``recipient_group.create`` audit line naming the caller, the group, and its kind.
 
 ``GET /bulk-email/groups/{id}``
 -------------------------------
@@ -1439,13 +1449,14 @@ One group, as the list shows it.
 Renames the group (``{"name": "Directors"}``), checked as ``POST`` checks it; a
 ``kind`` other than its own is **400** *A group's kind cannot change. Save a new
 group instead.*  Every add already made keeps the name the group had then.  **200**
-with the group.
+with the group, and one ``recipient_group.rename`` audit line.
 
 ``DELETE /bulk-email/groups/{id}``
 ----------------------------------
 
 Deletes the group: **204**.  Every batch the group was added to keeps its people and
-its add's name, and the add's ``group`` becomes null.
+its add's name, and the add's ``group`` becomes null.  One ``recipient_group.delete``
+audit line names the caller and the group's id.
 
 ``GET /bulk-email/groups/{id}/members``
 ---------------------------------------
@@ -1529,7 +1540,8 @@ one that has started sending is **409**.
 ------------------------------------
 
 Saves the batch as a group: ``{"name": "Hangar crew", "kind": "fixed"}``, the name
-checked as ``POST /bulk-email/groups`` checks it.  **201** with the group.
+checked as ``POST /bulk-email/groups`` checks it.  **201** with the group, audited as
+``recipient_group.create`` like a group made empty.
 
 - A ``fixed`` group holds every account in the batch now, whether or not each will
   receive the email; a deleted account is left out.

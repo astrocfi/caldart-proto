@@ -33,13 +33,20 @@ from apps.bulk_email.batch import (
     batch_counts,
     batch_rows,
     locked_for_edit,
+    surname_order,
 )
 from apps.bulk_email.callouts import apply_settings, check_for_send
 from apps.bulk_email.checks import NO_BODY_MESSAGE as NO_BODY_MESSAGE
 from apps.bulk_email.checks import NO_SUBJECT_MESSAGE as NO_SUBJECT_MESSAGE
 from apps.bulk_email.checks import refuse_on_errors
+from apps.bulk_email.delivery import recheck_rows
 from apps.bulk_email.job import apply_stop
-from apps.bulk_email.models import BulkEmail, BulkEmailStatus, RecipientStatus
+from apps.bulk_email.models import (
+    BulkEmail,
+    BulkEmailRecipient,
+    BulkEmailStatus,
+    RecipientStatus,
+)
 from apps.bulk_email.render import check_message
 from apps.bulk_email.reply_to import default_reply_to, reply_to_for
 from apps.bulk_email.richtext import html_to_text, sanitize
@@ -327,9 +334,16 @@ def stop(bulk: BulkEmail, *, actor: User) -> BulkEmail:
 def resume(bulk: BulkEmail, *, actor: User, now: datetime | None = None) -> BulkEmail:
     """**Send the rest**: queue the copies a stop left unsent, to start at once.
 
-    Every ``stopped`` row goes back to ``pending`` and the email is queued with
-    ``start_at`` at ``now``, with no undo window; the background sender sends those
-    copies alone, and nobody already sent a copy is sent another.  The email keeps its
+    Every ``stopped`` row is checked again first, as **Retry failed** checks a failed
+    one (``apps.bulk_email.delivery.recheck_rows``): it takes its account's name and
+    address as they are now, and a deleted or deactivated account, a missing, invalid,
+    or bounced address, an opt-out of the type, a person outside a DART leader's DART,
+    or an address already sent this round makes it ``skipped`` with that reason, and
+    ``skipped_count`` grows.  Every other stopped row goes back to ``pending``, and the
+    email is queued with ``start_at`` at ``now``, with no undo window; the background
+    sender sends those copies alone, and nobody already sent a copy is sent another.
+    When every stopped row is skipped the email is still queued, and the sender marks
+    it sent.  The email keeps its
     ``started_at``, so it stays read-only and cannot be canceled back to a draft;
     **Stop** stops it again.  Raises
     ``DomainError`` unless the email is ``stopped``.  One ``bulk_email.resume`` audit
@@ -340,9 +354,16 @@ def resume(bulk: BulkEmail, *, actor: User, now: datetime | None = None) -> Bulk
         locked = BulkEmail.objects.select_for_update().get(pk=bulk.pk)
         if locked.status != BulkEmailStatus.STOPPED:
             raise DomainError(NOT_STOPPED_MESSAGE)
-        resumed = locked.recipients.filter(status=RecipientStatus.STOPPED).update(
-            status=RecipientStatus.PENDING, reason=""
+        stopped = list(
+            surname_order(locked.recipients.filter(status=RecipientStatus.STOPPED)).select_related(
+                "user", "user__profile"
+            )
         )
+        resumed, skipped = recheck_rows(locked, stopped, moment)
+        BulkEmailRecipient.objects.bulk_update(
+            stopped, ["status", "reason", "name", "email", "updated_at"]
+        )
+        locked.skipped_count += skipped
         locked.status = BulkEmailStatus.QUEUED
         locked.start_at = moment
         locked.scheduled = False
@@ -357,10 +378,17 @@ def resume(bulk: BulkEmail, *, actor: User, now: datetime | None = None) -> Bulk
                 "stop_requested",
                 "stopped_at",
                 "stopped_by",
+                "skipped_count",
                 "updated_at",
             ]
         )
-    audit.record(audit.BULK_EMAIL_RESUME, actor=actor, target=locked, recipients=resumed)
+    audit.record(
+        audit.BULK_EMAIL_RESUME,
+        actor=actor,
+        target=locked,
+        recipients=resumed,
+        skipped=skipped,
+    )
     return locked
 
 

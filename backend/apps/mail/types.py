@@ -1,4 +1,4 @@
-"""The kinds of bulk email, who may send each, and who has turned each one off.
+"""The types of bulk email, who may send each, and who has turned each one off.
 
 A system administrator keeps the :class:`~apps.mail.models.EmailType` rows through
 :func:`create_type`, :func:`update_type` and :func:`delete_type`, each audited.  A

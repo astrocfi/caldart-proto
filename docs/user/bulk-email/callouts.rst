@@ -4,11 +4,12 @@
 Callouts
 ========
 
-When CalDART activates for a mission, a callout asks who can fly. **Callouts** collects the
-answers: who is available, who is available with limits, who is not, and who has not
-answered yet. Open it from **Callouts** under **Bulk Email** in the menu. CalDART management
-sees every callout. A DART leader sees the callouts they sent and the ones sent to the DART
-on their own profile. A DART is one of CalDART's regional groups of pilots.
+When CalDART activates for a mission, a mission callout asks who can fly. **Callouts**
+collects the answers: who is available, who is available with limits, who is not, and who
+has not answered yet. Open it from **Callouts** under **Bulk Email** in the menu. CalDART
+management sees every callout. A DART leader sees the callouts they sent and the ones sent
+to the DART (a Disaster Airlift Response Team, one of CalDART's local groups) on their own
+profile.
 
 
 Sending a callout
@@ -68,12 +69,15 @@ of every copy. The page keeps itself up to date every half minute while answers 
 in.
 
 **Remind non-responders** sends the callout again, with the same message, to everybody on
-the page who has not answered, once you press **Send reminders**. Nobody who has answered is sent it,
-and it starts within a minute: *The reminders will be sent within a minute.* Each person's
-details in the reminder are filled in as they are then. Each round of reminders is listed
-under **Reminders** with its time and how many people it went to. The button stays off,
-with the reason under it, while the callout is still sending, once it has closed, and once
-everybody has answered.
+the page who has not answered, once you press **Send reminders**. Nobody who has answered
+is sent it, and it starts within a minute: *The reminders will be sent within a minute.*
+Each person's details in the reminder are filled in as they are then. Each time you remind
+is a round of copies, listed under **Reminders** with its time and how many people it went
+to. The counts on :doc:`sent` include every round, and its table lists each person's first
+copy. When a round of reminders is stopped and then sent with **Send the rest**, or
+retried with **Retry failed**, anybody who has answered meanwhile is skipped, *Answered
+the callout*. The button stays off, with the reason under it, while the callout is still
+sending, once it has closed, and once everybody has answered.
 
 **Close now** stops the answers at once, after you press **Close the callout**. Nobody can
 answer or change an answer after that, and the answers already given stay. Reminders not
@@ -96,7 +100,7 @@ If something looks wrong
 
 A person who never received the callout, because they were skipped or their copy failed,
 is not listed and is not reminded; :doc:`sent` shows why. Nor is a person whose account has
-since been deactivated: their link no longer works. A person who says the buttons did nothing may have
-tried after the callout closed: the page they reach says so. A reminder skips the same
-people a send would, such as somebody who has turned Mission email off, and the delivery
-report on :doc:`sent` gives each reason.
+since been deactivated: their link no longer works. A person who says the buttons did nothing
+may have tried after the callout closed: the page they reach says so. A reminder skips the same
+people a send would, such as somebody who has turned Mission email off. **Retry failed** on
+:doc:`sent` sends a fresh copy to anybody whose reminder the mail server refused.

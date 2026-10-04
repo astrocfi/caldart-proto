@@ -162,6 +162,7 @@ def send_templated(
     mailer: BaseEmailBackend | None = None,
     headers: Mapping[str, str] | None = None,
     reply_to: str = "",
+    message_id: str = "",
 ) -> EmailMultiAlternatives:
     """Render ``emails/<template>.{txt,html}`` and send them to one address.
 
@@ -173,7 +174,9 @@ def send_templated(
     ``BOUNCE_ADDRESS`` is set, when that address is the envelope sender instead and a
     receiving server returns an undeliverable message there.  The message carries a
     fresh ``Message-ID`` on the domain of ``DEFAULT_FROM_EMAIL``, recorded on its email
-    log row.
+    log row; ``message_id``, when given, is used instead, which is how a caller that
+    must record the ``Message-ID`` before the hand-over (one from :func:`new_message_id`)
+    can find the message in the email log afterward.
 
     Every send is recorded in the email log: ``purpose`` names what the message
     was for and defaults to ``template``, which is the right answer wherever one
@@ -203,7 +206,7 @@ def send_templated(
     before anything is sent or logged.
     """
     rendered = context or {}
-    message_id = make_msgid(domain=_message_id_domain())
+    message_id = message_id or new_message_id()
     message_headers = {**(headers or {}), "Message-ID": message_id}
     envelope_sender = settings.BOUNCE_ADDRESS or settings.DEFAULT_FROM_EMAIL
     if settings.BOUNCE_ADDRESS:
@@ -312,6 +315,14 @@ def send_on_commit(send: Callable[[], object], *, what: str) -> None:
     nothing.
     """
     transaction.on_commit(lambda: send_logging_refusal(send, what=what))
+
+
+def new_message_id() -> str:
+    """A fresh ``Message-ID``, in angle brackets, on ``DEFAULT_FROM_EMAIL``'s domain.
+
+    It is what :func:`send_templated` gives a message when the caller names none.
+    """
+    return make_msgid(domain=_message_id_domain())
 
 
 def _message_id_domain() -> str:

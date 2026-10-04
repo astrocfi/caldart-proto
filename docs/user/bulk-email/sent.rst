@@ -20,12 +20,13 @@ One line per email, the most recently started first:
   **Duplicate…** opens the email's own page, where **Duplicate** starts a new draft from it,
   below. On a phone the two sit one above the other.
 - **Date**: the day it started sending.
-- **Type**: the kind of email it was, such as *Operational*.
+- **Type**: the type of email it was, such as *Operational*.
 - **From** and **DART**, for CalDART management only: who sent it, and the DART a DART
   leader's email went to, or a dash for an email that could go to anybody.
 - **Status**: a dot and *Sending*, *Sent*, *Stopped*, or *Waiting to send the rest*.
 - **Sent**, **Failed**, and **Skipped**: how many copies went, were refused by the mail
-  server, and were never sent because the person could not receive them.
+  server, and were never sent because the person could not receive them. A mission
+  callout's counts include its reminders.
 
 On a screen too narrow for every column, **Type**, then **DART**, then **From** are left out,
 one at a time until the rest fit, so the actions stay in sight; on a phone the table scrolls
@@ -44,17 +45,18 @@ One email's page
 The page of one sent email says under its subject who sent it and when, such as *Sent by
 Grace Holloway on 10/03/2026 at 5:34 PM.*, and has three cards:
 
-- **Where it stands**: while it sends, *Sending… 12 of 38 sent, about 1 minute left.* with a
-  bar and **Stop sending**, which stops it after the copy going out now, once you press
-  **Stop now**; copies already sent cannot be called back. When it is finished, a line such
-  as *Sent to 37 people. 1 failed and 4 were skipped.* (a count of nobody is left out), or
-  *Everyone was sent a copy.*,
-  followed by *2 came back undelivered.* once copies have bounced (`The delivery report`_). A
-  stopped email reads *Stopped by* who stopped it, with **Send the rest**, which sends it to
-  everybody the stop kept it from once you press **Send them now**. Nobody gets it twice, it
-  starts within a minute, and the email reads *Waiting to send the rest* until then, with
-  **Stop sending**. A mission callout adds *This is a mission callout.* with **See who can
-  fly**, which opens its answers on :doc:`callouts`.
+- **Where it stands**: while it sends, *Sending… 12 of 38 sent, about 1 minute left.* with
+  a bar and **Stop sending**, which stops it after the copy going out now, once you press
+  **Stop now**; copies already sent cannot be called back. When it is finished, a line
+  such as *Sent to 37 people. 1 failed and 4 were skipped.* (a count of nobody is left
+  out), or *Everyone was sent a copy.*, followed by *2 came back undelivered.* once copies
+  have bounced (`The delivery report`_). A stopped email reads *Stopped by* who stopped
+  it, with **Send the rest**, which sends it to everybody the stop kept it from once you
+  press **Send them now**. Each of them is checked again first, as **Retry failed** checks
+  (below), and marked *Skipped* with the reason when they can no longer receive it. Nobody
+  gets it twice, it starts within a minute, and the email reads *Waiting to send the rest*
+  until then, with **Stop sending**. A mission callout adds *This is a mission callout.*
+  with **See who can fly**, which opens its answers on :doc:`callouts`.
 - **The message**: the email as it was sent, with the subject at its head, and above it its
   type and *Replies go to:* with the Reply-To address its copies carried. Fields such as
   *{first_name}* show as written, because each person's copy had their own details filled
@@ -74,15 +76,15 @@ At its top are the counts: **Sent**, **Failed**, **Skipped**, **Bounced**, and *
 took, those that came back later included, and **Bounced** says how many of those came back.
 Under the counts is **Retry failed** (below).
 
-Then one line per person in the batch, with **Name**, **Result**, **Copy**, **Email**,
-**Reason** (in full, on as many lines as it needs), **Tried at** (such as *10/03/2026 at 5:34
-PM*), **Kind**, and **DART**; on a screen too narrow for every column, **DART**, then
-**Kind**, then **Tried at** are left out, and on a phone the result wraps so **Copy** stays in
-sight. **Result** narrows the table to one result, such as *Failed*, and **Find a person**
-to a name or address; the table's caption then says how many of everybody it shows, such as
-*Showing 2 of 39*. **Download results** saves
-the whole table as a spreadsheet file, with each person's result, reason, and the time
-their copy was tried.
+Then one line per person in the batch, for their first copy, with **Name**, **Result**,
+**Copy**, **Email**, **Reason** (in full, on as many lines as it needs), **Tried at**
+(such as *10/03/2026 at 5:34 PM*), **Kind**, and **DART**; on a screen too narrow for
+every column, **DART**, then **Kind**, then **Tried at** are left out, and on a phone the
+result wraps so **Copy** stays in sight. **Result** narrows the table to one result, such
+as *Failed*, and **Find a person** to a name or address; the table's caption then says how
+many of everybody it shows, such as *Showing 2 of 39*. **Download results** saves the
+whole table as a spreadsheet file, with each person's result, reason, and the time their
+copy was tried.
 
 Each **Result** reads:
 
@@ -104,23 +106,24 @@ Seeing one person's copy
 ------------------------
 
 **View copy**, on the line of anybody whose copy was tried, opens that person's copy
-exactly as it went, in a window over the page: who it went to and when, its subject, and the email
-itself, with the details that were filled in for them at the time, even if they have
+exactly as it went, in a window over the page: who it went to and when, its subject, and
+the email itself, with the details that were filled in for them at the time, even if they have
 changed their profile since. This answers "what did I get?" Its links open in a new tab.
 The unsubscribe link at its foot is shown but does nothing here, since it belongs to the
 person the copy went to. The page behind waits until you shut the window. **Close**, or the
-Escape key, shuts it and returns you to the line you opened it from. Somebody who was skipped, or not sent a copy
-yet, has no copy to view.
+Escape key, shuts it and returns you to the line you opened it from. Somebody who was
+skipped, or not sent a copy yet, has no copy to view.
 
 Retry failed
 ------------
 
 When the mail server refused some copies, **Retry failed** sends a fresh copy to those
 people only, once you press **Retry now**. Nobody already sent a copy gets another (for a
-mission callout, nobody gets the first copy again once a reminder has reached them), and
+mission callout, a failed copy of any round is retried, and nobody a later round reached gets
+an earlier one again), and
 nobody whose copy bounced (their address is bad) or who was skipped is sent one. Each person
 is checked again first, as for any send: one whose account has since been deleted or
-deactivated, whose address has bounced, who has turned this kind of email off, or, for a
+deactivated, whose address has bounced, who has turned this type of email off, or, for a
 DART leader's email, who is no longer in the leader's DART is marked
 *Skipped* with the reason, and an address a user administrator has corrected since is the
 one the fresh copy goes to. The copies start going within a minute, and the page shows their
@@ -159,7 +162,7 @@ own from the email; **Duplicate…** on each line of the list opens that page. I
   type, and Reply-To address, and an empty batch.
 - **Copy the message and the people**: the batch holds everybody the email was for too, as
   their accounts are now. Whether each receives the new email is worked out afresh, so
-  somebody who has since turned that kind of email off, or whose address bounced, shows as
+  somebody who has since turned that type of email off, or whose address bounced, shows as
   skipped. The batch's **Chosen by** reads *Copied from* and the subject. Accounts deleted
   since are left out. A DART leader's copy goes to their own DART alone: anybody outside it
   shows as skipped, *Not in your DART*.
@@ -176,7 +179,8 @@ If something looks wrong
 If somebody says the email never arrived, find their row. *Sent* means CalDART handed the
 copy to the mail server, so ask them to check their spam folder, or point them to their
 Messages page, where they can read it. *Failed*, *Bounced*, or *Skipped* gives the reason.
-After a failure the mail server reported, **Retry failed** may get the copy through. An address that needs correcting is corrected on the person's account by a user
-administrator or an account administrator. To write to everybody again, use **Duplicate**
+After a failure the mail server reported, **Retry failed** may get the copy through. An
+address that needs correcting is corrected on the person's account by a user administrator
+or an account administrator. To write to everybody again, use **Duplicate**
 with the people; to write to only the people a failure left out, download the results and add
 them to a new email.

@@ -44,7 +44,7 @@ describe('MemberEmailPreferences', () => {
     renderWithProviders(<MemberEmailPreferences member={MEMBER} />);
 
     expect(
-      await screen.findByRole('list', { name: 'Kinds of email Marta Reyes receives' }),
+      await screen.findByRole('list', { name: 'Types of email Marta Reyes receives' }),
     ).toBeInTheDocument();
     expect(screen.getByRole('switch', { name: 'Mission' })).toBeChecked();
   });

@@ -104,3 +104,34 @@ To find a receipt or a tax statement:
 #. Under **Contribution statements**, press the button for the year.
 
 See :doc:`member/payments`.
+
+
+Read a bulk email again, or turn a type off
+===========================================
+
+#. Choose **Messages** under **Bulk Email** in the menu, and press a subject to read that
+   email as you received it.
+#. To stop a type of bulk email, such as Fundraising, choose **Email preferences** under
+   **Bulk Email** and turn its switch off. The change saves at once.
+
+The unsubscribe link at the foot of a bulk email turns its type off too. See
+:doc:`member/messages` and :doc:`member/email-preferences`.
+
+
+Send a bulk email
+=================
+
+CalDART management, and a DART leader writing to their own DART:
+
+#. Choose **Compose** under **Bulk Email** in the menu.
+#. Under **1. Who gets it**, choose filters and press **Add to batch**. Add again until the
+   batch holds everybody the email is for.
+#. Under **2. What it says**, choose the **Type of email**, write the **Subject** and the
+   **Message**, and press **Send me a test** to see it in your own mail program.
+#. Under **3. Check and send**, fix anything marked **Must fix**, then press **Send to 38
+   people** (with your own count) and **Send now**. Above 50 people, type the count first.
+#. For two minutes, **Cancel** turns the email back into a draft. Then **Sent** shows what
+   became of each person's copy.
+
+See :doc:`bulk-email/index`, which explains the words these screens use, and
+:doc:`bulk-email/compose`.

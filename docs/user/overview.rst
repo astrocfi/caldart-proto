@@ -7,13 +7,15 @@ directory of DARTs (Disaster Airlift Response Teams, local groups of volunteer
 pilots and ground crew at one airport), the news, the events, and the contact and
 donation pages. Anybody can read it. The **member portal** is where you sign in,
 and what it shows you depends on the roles your account holds: members keep their
-own details current, DART leaders check whether somebody is fit to fly, and
-administrators look after accounts, money, the website, and the system.
+own details current and read the bulk email CalDART sends them, DART leaders check
+whether somebody is fit to fly and write to their own DART, CalDART management writes
+to the whole membership, and administrators look after accounts, money, the website,
+and the system.
 
 This page is the shape of the whole thing: the three kinds of people the site knows,
 what a membership is and how it runs its course, and the roles. :doc:`quick-start`
-walks through the first things you will do, and :doc:`member/index` describes every
-screen you will use.
+walks through the first things you will do, :doc:`member/index` describes every
+screen you will use, and :doc:`bulk-email/index` covers writing to many people at once.
 
 
 Members, friends, and donors
@@ -200,12 +202,14 @@ your roles open. :doc:`roles` lists every screen each one reaches.
 
 **Member**
   Every member and friend holds it. It opens your own dashboard, profile, aircraft,
-  payments, donations, renewal, the bulk emails you received, and the kinds of bulk
-  email you receive.
+  payments, donations, renewal, the bulk emails you received, and the types of bulk
+  email you receive, under **Bulk Email** in the menu.
 
 **DART leader**
   Checks, before a mission, whether a member is current to fly: membership, medical,
   pilot certificate, and aircraft insurance. Reads the member list and downloads it.
+  Writes bulk email to the members and friends of their own DART, mission callouts
+  among them, and collects the callouts' answers.
 
 **User administrator**
   Looks after accounts: who holds which role, activating and deactivating, and
@@ -222,11 +226,14 @@ your roles open. :doc:`roles` lists every screen each one reaches.
 
 **CalDART management**
   Writes to the membership as a whole: one email to a batch of members and friends,
-  sent now or at a time chosen ahead.
+  sent now or at a time chosen ahead. Keeps templates and recipient groups to use
+  again, sends mission callouts and collects who can fly, and checks that other mail
+  systems will trust the email CalDART sends.
 
 **Website administrator**
   Writes and publishes the public site's pages, news, and events.
 
 **System administrator**
   Can do everything above, and looks after the system itself: health, backups,
-  the jobs that run each night, and the kinds of bulk email CalDART sends.
+  the jobs that run on a schedule, the bulk email sender among them, and the types of
+  bulk email CalDART sends and who may send each.

@@ -2,7 +2,7 @@
  * `/messages`: the bulk emails the signed-in person received, newest first.
  *
  * Each line is one email: when it was sent to them, its subject as their copy had
- * it, who sent it, and its kind. The subject opens the email, or, for a mission
+ * it, who sent it, and its type. The subject opens the email, or, for a mission
  * callout, the reader's own answer page, which shows the message beside the answer.
  * Only bulk email is here; receipts, reminders, and other mail about the person's own
  * account are not.
@@ -88,7 +88,7 @@ export const MESSAGE_COLUMNS: Column<BulkEmailMessage>[] = [
   },
   {
     key: 'email_type_name',
-    header: 'Kind',
+    header: 'Type',
     width: '7rem',
     render: (row) => row.email_type_name || '—',
     sortValue: (row) => row.email_type_name,

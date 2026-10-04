@@ -36,7 +36,7 @@ describe('MessagesPage', () => {
     expect(screen.getByText('Your email')).toBeVisible();
   });
 
-  it('lists each message with its date, subject, sender, and kind', async () => {
+  it('lists each message with its date, subject, sender, and type', async () => {
     renderList([SPRING]);
     const row = (await screen.findByRole('link', { name: SPRING.subject })).closest('tr');
     expect(row).toHaveTextContent('04/07/2026Spring newsletter for AnnGrace HollowayOperational');

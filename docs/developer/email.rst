@@ -81,9 +81,12 @@ or ``BULK_EMAIL_REPLY_TO``, or the sender's own address
 SPF, DKIM, and DMARC still align.  Where any other template tells the reader how to
 get in touch, it prints the contact address from the website's site settings, which
 a website administrator edits in the Wagtail admin (:doc:`cms`).
-``send_templated`` takes two keyword arguments for a sender that needs more:
+``send_templated`` takes three keyword arguments for a sender that needs more:
 ``headers``, extra headers merged into the message (they cannot replace its
-``Message-ID`` or ``From``), and ``reply_to``, the message's ``Reply-To`` address.
+``Message-ID`` or ``From``); ``reply_to``, the message's ``Reply-To`` address; and
+``message_id``, a ``Message-ID`` made beforehand with ``new_message_id``, which the
+bulk email sender saves on its recipient row before the hand-over so it can find the
+copy in the email log after a crash (:ref:`bulk-email-sender`).
 
 
 Sending
@@ -506,7 +509,12 @@ The token.
    ``UNSUBSCRIBE_TOKEN_MAX_AGE`` (180 days by default, :doc:`configuration`), one
    whose payload is not the shape it writes, and one naming an account or a type
    since deleted.  The link is ``<SITE_URL>/mail/unsubscribe/<token>``, built on
-   ``SITE_URL`` so a site served under a path keeps it.
+   ``SITE_URL`` so a site served under a path keeps it.  A host with non-ASCII
+   letters is written in its IDNA form (``xn--...``), as is the domain of the
+   ``mailto:`` below, because a mail header must be ASCII.  The encoding is UTS 46
+   with IDNA 2008, from the ``idna`` package, as browsers read a host: a German
+   sharp s stays a sharp s, which Python's own ``idna`` codec (IDNA 2003) would
+   spell as "ss".
 
 The headers.
    ``headers_for(user, email_type)`` answers, for a type that allows opting out,

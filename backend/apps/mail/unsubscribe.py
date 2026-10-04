@@ -17,8 +17,9 @@ recipient receives it.  Transactional mail never passes through here.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from urllib.parse import quote
+from urllib.parse import quote, urlsplit, urlunsplit
 
+import idna
 from django.conf import settings
 from django.core import signing
 
@@ -92,9 +93,30 @@ def unsubscribe_url(user: User, email_type: EmailType) -> str:
     """The absolute link that turns ``email_type`` off for ``user``.
 
     Built on ``SITE_URL``, which carries the path the site is served under, with the
-    unsubscribe page's own path after it: ``<SITE_URL>/mail/unsubscribe/<token>``.
+    unsubscribe page's own path after it: ``<SITE_URL>/mail/unsubscribe/<token>``.  A host
+    with non-ASCII letters is given in its IDNA form (``xn--...``), so the link can sit in
+    a mail header, which must be ASCII.
     """
-    return f"{settings.SITE_URL.rstrip('/')}{UNSUBSCRIBE_PATH}{make_token(user, email_type)}"
+    parts = urlsplit(settings.SITE_URL.rstrip("/"))
+    site = urlunsplit(parts._replace(netloc=_ascii_host(parts.netloc)))
+    return f"{site}{UNSUBSCRIBE_PATH}{make_token(user, email_type)}"
+
+
+def _ascii_host(host: str) -> str:
+    """``host`` (a domain, with or without a ``:port``) with its labels in IDNA form.
+
+    An ASCII host comes back unchanged.  Any other is encoded as browsers and mail
+    programs read it, by UTS 46 and IDNA 2008 (the ``idna`` package): the a-umlaut of
+    ``cald\u00e4rt.example.org`` gives ``xn--caldrt-eua.example.org``, and a German
+    sharp s is kept, ``stra\u00dfe.de`` becoming ``xn--strae-oqa.de`` where
+    IDNA 2003 would spell it ``strasse.de``.  A port after the host is kept as it is.
+    """
+    if host.isascii():
+        return host
+    name, colon, port = host.rpartition(":")
+    if colon == "" or not port.isdigit():
+        name, colon, port = host, "", ""
+    return f"{idna.encode(name, uts46=True).decode('ascii')}{colon}{port}"
 
 
 def headers_for(user: User, email_type: EmailType) -> dict[str, str]:
@@ -102,16 +124,19 @@ def headers_for(user: User, email_type: EmailType) -> dict[str, str]:
 
     For a type that allows opting out: ``List-Unsubscribe`` holding the HTTPS link from
     :func:`unsubscribe_url` and, when the site's contact address is set, a ``mailto:``
-    to it with the subject ``unsubscribe``; and ``List-Unsubscribe-Post:
-    List-Unsubscribe=One-Click``, which tells a mail program it may POST to the link
-    without showing the page.  For a type that does not, an empty dictionary.
+    to it with the subject ``unsubscribe`` (its domain in IDNA form, like the link's
+    host); and ``List-Unsubscribe-Post: List-Unsubscribe=One-Click``, which tells a mail
+    program it may POST to the link without showing the page.  For a type that does not,
+    an empty dictionary.
     """
     if not email_type.allow_opt_out:
         return {}
     targets = [f"<{unsubscribe_url(user, email_type)}>"]
     address = contact_email()
     if address:
-        targets.append(f"<mailto:{quote(address, safe='@')}?subject=unsubscribe>")
+        local, _, domain = address.rpartition("@")
+        mailbox = f"{quote(local)}@{_ascii_host(domain)}"
+        targets.append(f"<mailto:{mailbox}?subject=unsubscribe>")
     return {
         "List-Unsubscribe": ", ".join(targets),
         "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",

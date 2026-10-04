@@ -2,7 +2,8 @@
 Answering a mission callout
 ==============================
 
-When CalDART activates for a mission it sends a callout: a bulk email asking who can fly.
+When CalDART activates for a mission it sends a mission callout: a bulk email asking who can
+fly.
 This page shows what the email looks like and how to answer it. You do not need to sign in
 to answer.
 
@@ -44,6 +45,7 @@ If something looks wrong
 *This callout has closed.* means the time for answers has passed, or the organizers closed
 it, and nothing was recorded. *This link no longer works* means your account is no longer
 active. If you change your answer many times in an hour, the page asks you to try again
-later. Changing only your note updates it without telling anybody again. *This link does not work* means the link was copied
-incompletely or changed; open the email again and press one of its buttons. To stop
-receiving Mission email altogether, use :doc:`email-preferences`.
+later. Changing only your note updates it without telling anybody again. *This link does
+not work* means the link was copied incompletely or changed; open the email again and
+press one of its buttons. To stop receiving Mission email altogether, use
+:doc:`email-preferences`.

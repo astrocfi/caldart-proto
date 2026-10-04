@@ -92,7 +92,7 @@ DART leader or a treasurer. Names, the DART, the phones, and every profile field
 editable on any record you can open. Deactivating the account is on the **Danger zone** tab.
 
 Below the form, but not on a donor's record, **Email preferences** shows the person's
-:doc:`../member/email-preferences` switches; each saves at once as yours. A kind turned off
+:doc:`../member/email-preferences` switches; each saves at once as yours. A type turned off
 says by whom and when: *Turned off by the member on 10/03/2026 (unsubscribe link).*
 
 

@@ -296,6 +296,27 @@ describe('the Bulk Email group', () => {
     ]);
   });
 
+  it('declares each entry with its path and the roles that open it', () => {
+    expect(
+      NAV_ITEMS.filter((item) => item.group === 'Bulk Email').map((item) => [
+        item.label,
+        item.to,
+        item.roles,
+      ]),
+    ).toEqual([
+      ['Compose', '/bulk-email/compose', ['management', 'dart_leader']],
+      ['Drafts & scheduled', '/bulk-email/drafts', ['management', 'dart_leader']],
+      ['Sent', '/bulk-email/sent', ['management', 'dart_leader']],
+      ['Templates', '/bulk-email/templates', ['management']],
+      ['Recipient groups', '/bulk-email/groups', ['management']],
+      ['Callouts', '/bulk-email/callouts', ['management', 'dart_leader']],
+      ['Email types', '/bulk-email/types', ['system_admin']],
+      ['Mail delivery', '/bulk-email/mail-delivery', ['management']],
+      ['Messages', '/messages', []],
+      ['Email preferences', '/email-preferences', []],
+    ]);
+  });
+
   it('gives every signed-in person their messages and email preferences', () => {
     const bulk = groupedNavItems(['member']).find((bucket) => bucket.group === 'Bulk Email');
     expect(bulk?.items.map((item) => item.to)).toEqual(['/messages', '/email-preferences']);

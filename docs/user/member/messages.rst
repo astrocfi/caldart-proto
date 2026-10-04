@@ -18,7 +18,7 @@ One line for each bulk email CalDART sent you, the newest first:
 - **Subject**: what it was about, as your copy had it. It opens the email, or, for a
   mission callout, the page where you answer it (:doc:`callouts`).
 - **From**: who at CalDART sent it.
-- **Kind**: the kind of email, such as *Operational*.
+- **Type**: the type of email, such as *Operational*.
 
 Before CalDART has sent you any, the list reads *No messages yet*. On a narrow screen the
 table scrolls sideways.
@@ -34,7 +34,7 @@ Reading an email
 ================
 
 The subject opens the email on a page of its own: the subject as its heading, a line saying
-who sent it, on which day, and what kind of email it is, and the email itself, exactly as
+who sent it, on which day, and what type of email it is, and the email itself, exactly as
 you received it. Wherever the email used your details, such as your first name or your
 DART, it shows them as they were when it was sent, even if you have changed them since.
 
@@ -59,5 +59,5 @@ If something looks wrong
 If an email you remember is missing, it may be one CalDART has since taken off Messages,
 for example a call for volunteers that no longer applies; its page then reads *This message
 is not available.* The same appears if a link to an email that was sent to somebody else
-was passed to you. To stop receiving a kind of bulk email, use
+was passed to you. To stop receiving a type of bulk email, use
 :doc:`email-preferences`.

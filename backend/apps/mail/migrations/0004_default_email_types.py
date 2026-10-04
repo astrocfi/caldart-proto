@@ -1,9 +1,11 @@
 """Create the three email types every installation starts with.
 
-Operational, Fundraising, and Mission, all of which recipients may turn off.  Each is
-found or created by its slug, so a database that already holds one keeps it as it is.
-Reversing the migration leaves the rows alone: by then a system administrator may have
-edited them, and a bulk email may name them.
+Operational, Fundraising, and Mission, all of which recipients may turn off.  They are
+created only when the table holds no type at all: once any type exists the list belongs
+to the system administrator, so running the migration again after a rollback neither
+brings back a deleted type nor adds a second copy of one that was renamed (a type's slug
+follows its name).  Reversing the migration leaves the rows alone: by then a system
+administrator may have edited them, and a bulk email may name them.
 """
 
 from django.apps.registry import Apps
@@ -38,19 +40,21 @@ DEFAULT_TYPES: tuple[tuple[str, str, str, list[str], int], ...] = (
 
 
 def create_default_types(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -> None:
-    """Find or create each default type by its slug, leaving an existing one as it is."""
+    """Create the default types when there is no type yet; otherwise change nothing."""
     email_type = apps.get_model("mail", "EmailType")
-    for slug, name, description, roles, position in DEFAULT_TYPES:
-        email_type.objects.get_or_create(
+    if email_type.objects.exists():
+        return
+    email_type.objects.bulk_create(
+        email_type(
             slug=slug,
-            defaults={
-                "name": name,
-                "description": description,
-                "allow_opt_out": True,
-                "sender_roles": roles,
-                "position": position,
-            },
+            name=name,
+            description=description,
+            allow_opt_out=True,
+            sender_roles=roles,
+            position=position,
         )
+        for slug, name, description, roles, position in DEFAULT_TYPES
+    )
 
 
 class Migration(migrations.Migration):

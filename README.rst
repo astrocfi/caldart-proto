@@ -6,8 +6,8 @@ CalDART is the website and member management system for The California DART
 Network, a 501(c)(3) that organizes California pilots and ground personnel to
 provide volunteer disaster air transportation. It is a prototype: a
 Wagtail-managed public website plus a React member portal, with roles,
-profiles, an aircraft register, online join/renew, renewal reminders and
-admin reporting.
+profiles, an aircraft register, online join/renew, renewal reminders, bulk email
+to members and friends, and admin reporting.
 
 The documentation in ``docs/`` is the specification. If the code and the docs
 disagree, one of them is wrong — fix it in the same pull request.
@@ -39,8 +39,14 @@ Features
   exports as CSV, all with the same filters as the screen you exported them
   from.
 - **Bulk email.** One email to a batch of members and friends built from the
-  member list's filters, sent in the background at a pace the mail provider
-  accepts, with an undo window, scheduling, and each person's result kept.
+  member list's filters, written in a rich text editor with each person's
+  details filled in, checked and tested before it goes, and sent in the
+  background at a pace the mail provider accepts, with an undo window,
+  scheduling, and each person's result kept. Email types members can turn off,
+  saved templates and recipient groups, DART leaders writing to their own DART,
+  mission callouts that collect who can fly, a delivery report with bounces and
+  retries, each member's own **Messages**, and a check of the domain's mail
+  records.
 - **Content.** Wagtail page types, StreamField blocks, four themes, and a
   members-only wall that only current members and staff get past.
 - **Operations.** Health checks, database backups, restore, and reset, from

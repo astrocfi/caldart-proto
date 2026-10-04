@@ -311,7 +311,7 @@ def test_a_negated_term_does_not_authorize(dns_zone: Zone) -> None:
     [
         ("v=spf1 +all", "accepting mail from any server"),
         ("v=spf1 all", "accepting mail from any server"),
-        ("v=spf1 ip4:192.0.2.25 ?all", "accepting mail from any server"),
+        ("v=spf1 ip4:192.0.2.25 ?all", "tells receivers to make no judgment"),
         ("v=spf1 ip4:192.0.2.25", "does not say what to do"),
     ],
     ids=["plus-all", "bare-all", "neutral-all", "no-all"],
@@ -685,8 +685,31 @@ def test_dmarc_lists_where_its_reports_go(dns_zone: Zone) -> None:
 
     detail = finding(run(), DMARC_NAME).detail
 
-    assert "Summary reports go to mailto:a@example.org." in detail
-    assert "Failure reports go to mailto:f@example.org." in detail
+    assert "Summary reports go to a@example.org." in detail
+    assert "Failure reports go to f@example.org." in detail
+
+
+def test_dmarc_report_addresses_read_without_their_scheme_or_size_limit(
+    dns_zone: Zone,
+) -> None:
+    """Several ``rua`` addresses read as a list, without ``mailto:`` or a ``!`` limit."""
+    dns_zone[("_dmarc.example.org", "TXT")] = [
+        "v=DMARC1; p=reject; rua=mailto:a@example.org!10m,MAILTO:b@example.org,mailto:c@example.org"
+    ]
+
+    detail = finding(run(), DMARC_NAME).detail
+
+    assert "Summary reports go to a@example.org, b@example.org, and c@example.org." in detail
+
+
+def test_two_dmarc_records_fail_because_receivers_apply_neither(dns_zone: Zone) -> None:
+    """RFC 7489 has a receiver apply no policy when more than one is published."""
+    dns_zone[("_dmarc.example.org", "TXT")] = ["v=DMARC1; p=reject", "v=DMARC1; p=none"]
+
+    result = finding(run(), DMARC_NAME)
+
+    assert result.status == DnsStatus.FAIL
+    assert "publishes 2 policies; receiving servers apply none of them" in result.detail
 
 
 def test_a_missing_dmarc_record_fails_with_a_record_to_publish(dns_zone: Zone) -> None:

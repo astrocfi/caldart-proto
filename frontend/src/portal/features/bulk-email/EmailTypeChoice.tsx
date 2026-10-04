@@ -1,11 +1,11 @@
 /**
- * The type choice at the top of **What it says**: what kind of email this is.
+ * The type choice at the top of **What it says**: what type of email this is.
  *
  * One radio button per type the sender may send, each with the sentence saying what
  * the type is for. Choosing one saves it at once, and the batch is read again, since
  * whoever turned that type off is now skipped. While a choice saves the buttons stay
  * enabled, so the keyboard focus stays on them, and a further choice is ignored. Until a type is chosen the choice says
- * *Choose what kind of email this is*, and Send is refused with *Choose a type.*
+ * *Choose what type of email this is*, and Send is refused with *Choose a type.*
  * Changing the type of a scheduled email takes it back to the drafts, since who has
  * turned the type off changes the count that was confirmed, and the screen says so.
  */
@@ -28,7 +28,7 @@ export function wasUnqueued(before: BulkEmailDetail | undefined, after: BulkEmai
 }
 
 /** The hint shown until a type is chosen. */
-export const NO_TYPE_HINT = 'Choose what kind of email this is.';
+export const NO_TYPE_HINT = 'Choose what type of email this is.';
 
 interface EmailTypeChoiceProps {
   emailId: number;
@@ -94,7 +94,7 @@ export function EmailTypeChoice({
       <legend>Type of email</legend>
       {chosen === null ? (
         <p id={hintId} className="field__hint">
-          {NO_TYPE_HINT} People who have turned that kind of email off are skipped.
+          {NO_TYPE_HINT} People who have turned that type of email off are skipped.
         </p>
       ) : null}
       {types.isPending ? <p role="status">Loading the types…</p> : null}

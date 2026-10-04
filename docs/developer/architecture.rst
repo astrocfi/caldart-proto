@@ -898,8 +898,10 @@ toolbar offers no more than that list allows.
 
 The compose screen's **What it says** card (``features/bulk-email/MessageCard.tsx``)
 writes the message in it, and the **Check and send** card's preview
-(``MessagePreview.tsx``) and the Sent page show the email in a sandboxed
-``<iframe srcdoc>``, so nothing in a message can run in the portal.
+(``MessagePreview.tsx``), the Sent page, the delivery report's copies, and the
+member's Messages all show the email in ``components/EmailFrame.tsx``, a sandboxed
+``<iframe srcdoc>`` whose links open in a new tab, so nothing in a message can run
+in the portal.
 ``RichTextEditor`` takes ``value`` and reports ``onChange`` as HTML, ``''``
 when the message is empty.  Its toolbar is Bold, Italic, Heading, Bulleted
 list, Numbered list, Link, and Image, each an icon with its name beside it,

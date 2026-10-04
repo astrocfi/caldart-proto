@@ -100,7 +100,7 @@ class BulkEmail(TimestampedModel):
     sanitized on every save (``apps.bulk_email.richtext.sanitize``), and both may
     carry recipient field tokens such as ``{first_name}``
     (``apps.bulk_email.fields``).  ``sender`` owns the draft and sends it, null once
-    that account is deleted.  ``email_type`` is the kind of email it is
+    that account is deleted.  ``email_type`` is the type of email it is
     (``apps.mail.models.EmailType``): null while a draft, required to send, and
     protected, so a type a bulk email names cannot be deleted.  ``dart`` is the DART a
     DART leader's email is limited to (``apps.bulk_email.senders``), recorded when the
@@ -238,11 +238,12 @@ class BulkEmailRecipient(TimestampedModel):
 
     ``added_by`` is the add that brought the person in.  ``round`` is 0 for the
     original copies.  ``reason`` says why a copy was skipped, failed, or not sent, and
-    is blank otherwise.  ``message_id`` is the ``Message-ID`` the copy went out with,
-    and ``tried_at`` when it was last tried.  ``values`` are the recipient field values
-    the copy was filled in with, token to value, for the fields the message uses only;
-    they are stored when the copy is tried, so the copy can be rebuilt as it went
-    whatever happens to the account later.
+    is blank otherwise.  ``message_id`` is the ``Message-ID`` the copy went out with;
+    on a pending copy it is that of the try being made, saved before the hand-over so a
+    run that dies can tell whether it went.  ``tried_at`` is when it was last tried.
+    ``values`` are the recipient field values the copy was filled in with, token to
+    value, for the fields the message uses only; they are stored when the copy is
+    tried, so the copy can be rebuilt as it went whatever happens to the account later.
     """
 
     bulk_email = models.ForeignKey(BulkEmail, on_delete=models.CASCADE, related_name="recipients")

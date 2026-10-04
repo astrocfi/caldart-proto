@@ -34,6 +34,7 @@ from apps.bulk_email.models import EmailTemplate
 from apps.mail.models import EmailType
 from apps.mail.types import sendable_types
 from apps.members.api.actors import acting_user
+from caldart import audit
 from caldart.exceptions import DomainError, DomainValidationError
 
 #: The refusal of a template name another template has, ignoring case.
@@ -140,8 +141,10 @@ class TemplateListCreateView(generics.ListCreateAPIView[EmailTemplate]):
         return _templates()
 
     def perform_create(self, serializer: serializers.BaseSerializer[EmailTemplate]) -> None:
-        """Save the template with the caller as its author."""
-        serializer.save(created_by=acting_user(self.request))
+        """Save the template as the caller's; one ``email_template.create`` line."""
+        actor = acting_user(self.request)
+        template = serializer.save(created_by=actor)
+        audit.record(audit.EMAIL_TEMPLATE_CREATE, actor=actor, target=template)
 
 
 class TemplateDetailView(generics.RetrieveUpdateDestroyAPIView[EmailTemplate]):
@@ -155,6 +158,17 @@ class TemplateDetailView(generics.RetrieveUpdateDestroyAPIView[EmailTemplate]):
     def get_queryset(self) -> QuerySet[EmailTemplate]:
         """Every template, with its type and its author."""
         return _templates()
+
+    def perform_update(self, serializer: serializers.BaseSerializer[EmailTemplate]) -> None:
+        """Save the change; one ``email_template.update`` line names the template."""
+        template = serializer.save()
+        audit.record(audit.EMAIL_TEMPLATE_UPDATE, actor=acting_user(self.request), target=template)
+
+    def perform_destroy(self, instance: EmailTemplate) -> None:
+        """Delete the template; one ``email_template.delete`` line names it by id."""
+        pk = instance.pk
+        instance.delete()
+        audit.record(audit.EMAIL_TEMPLATE_DELETE, actor=acting_user(self.request), target=pk)
 
 
 class ApplyTemplateView(APIView):

@@ -11,7 +11,7 @@ opens it as **Templates** under **Bulk Email** in the menu. A system administrat
 too.
 
 A template holds a message and nobody to send it to: who gets an email is chosen on
-:doc:`compose`, or kept as a group on :doc:`groups`.
+:doc:`compose`, or kept as a recipient group on :doc:`groups`.
 
 
 The list
@@ -24,7 +24,7 @@ One line per template, by name:
 - **Actions**: the trashcan, which deletes the template after you press **Delete**. Emails
   already started from it keep their words.
 - **Subject**: the subject it starts an email with.
-- **Type**: the kind of email it starts as, such as *Operational*, or a dash for none. On a
+- **Type**: the type of email it starts as, such as *Operational*, or a dash for none. On a
   screen too narrow for every column it is left out.
 - **Last edited**: the day it last changed.
 
@@ -42,13 +42,14 @@ the compose screen's **What it says** card with a name:
 
 - **Name**: required, such as *Monthly newsletter*. No two templates may share a name, in
   any mix of capital and small letters.
-- **Type of email**: one button for each kind, with the sentence saying what it is for, as
-  on the compose screen; a draft started from the template takes that kind. **No type**
+- **Type of email**: one button for each type, with the sentence saying what it is for, as
+  on the compose screen; a draft started from the template takes that type. **No type**
   leaves the choice to each draft.
-- **Subject**, **Reply-To** (where replies go; the hint under it names the address used when
-  you leave it empty, as on the compose screen), and **Message**, with the same buttons as on :doc:`compose`, **Insert field**
-  among them. A field such as *{first_name}* stays as written in the template and is filled
-  in for each person when an email goes.
+- **Subject**, **Reply-To** (where replies go; the hint under it names the address used
+  when you leave it empty, as on the compose screen), and **Message**, with the same
+  buttons as on :doc:`compose`, **Insert field** among them. A field such as
+  *{first_name}* stays as written in the template and is filled in for each person when an
+  email goes.
 
 **Save template** keeps it, and a line such as *Monthly newsletter saved.* says so; **Cancel**
 closes the form without saving. A refused field says why under it, as on the compose screen.

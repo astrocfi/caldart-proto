@@ -6,6 +6,7 @@ import type { RouteObject } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 
 import { HELP_PAGES, helpPath } from './help';
+import { NAV_ITEMS } from './nav';
 import { routes } from './routes';
 
 /**
@@ -123,8 +124,10 @@ const HELP_PAGE_CASES: readonly [pathname: string, expectedHref: string][] = [
   ['/bulk-email/callouts', '/docs/bulk-email/callouts/'],
   ['/bulk-email/callouts/42', '/docs/bulk-email/callouts/'],
   ['/bulk-email/mail-delivery', '/docs/bulk-email/mail-delivery/'],
+  ['/bulk-email/types', '/docs/bulk-email/email-types/'],
   ['/messages', '/docs/member/messages/'],
   ['/messages/42', '/docs/member/messages/'],
+  ['/email-preferences', '/docs/member/email-preferences/'],
   ['/admin/users', '/docs/admin/users/'],
   ['/admin/users/42', '/docs/admin/user-record/'],
   ['/system', '/docs/admin/health-database/'],
@@ -148,6 +151,18 @@ describe('helpPath', () => {
 
   it('falls into the /admin/payments/:id wildcard for an id that names none of the above', () => {
     expect(helpPath('/admin/payments/7')).toBe('/docs/finance/payment-record/');
+  });
+
+  it.each(NAV_ITEMS.map((item) => [item.label, item.to]))(
+    'opens a guide page for the rail entry %s (%s), never the front page',
+    (_label, to) => {
+      expect(helpPath(to)).not.toBe('/docs/');
+    },
+  );
+
+  it('opens a different guide page for every rail entry', () => {
+    const pages = NAV_ITEMS.map((item) => helpPath(item.to));
+    expect(new Set(pages).size).toBe(NAV_ITEMS.length);
   });
 
   it('does not let /admin/members/:id swallow /admin/members/new', () => {
