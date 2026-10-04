@@ -1,4 +1,5 @@
 import { render, renderHook, screen, waitFor } from '@testing-library/react';
+import { matchRoutes } from 'react-router-dom';
 import { QueryClientProvider, useQuery } from '@tanstack/react-query';
 import type { QueryClient } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
@@ -8,6 +9,8 @@ import { clearUrlPrefix, stampUrlPrefix } from '@test/render';
 
 import { ApiError } from './api/client';
 import { createQueryClient } from './App';
+import { NAV_ITEMS } from './nav';
+import { routes } from './routes';
 
 /** Run `queryFn` under the application's real query client. */
 function runQuery(client: QueryClient, queryFn: () => Promise<string>) {
@@ -43,6 +46,57 @@ describe('the router', () => {
     render(<App />);
 
     expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeInTheDocument();
+  });
+});
+
+/** The catch-all route's path, which renders the not-found page. */
+const NOT_FOUND = '*';
+
+/**
+ * The path of the route the portal's router renders for `pathname`: the deepest match,
+ * `index` for an index route, or the catch-all when nothing matches.
+ */
+function screenRoute(pathname: string): string {
+  const deepest = matchRoutes(routes, pathname)?.at(-1)?.route;
+  if (deepest === undefined) return NOT_FOUND;
+  return deepest.path ?? (deepest.index === true ? 'index' : '');
+}
+
+/** The rail's Bulk Email entries and every entry open to any signed-in member. */
+const BULK_AND_MEMBER_ENTRIES = NAV_ITEMS.filter(
+  (item) => item.group === 'Bulk Email' || item.roles.length === 0,
+).map((item) => [item.label, item.to]);
+
+describe('the rail and the router', () => {
+  it('covers every Bulk Email entry and every member-facing entry', () => {
+    expect(BULK_AND_MEMBER_ENTRIES.map(([label]) => label)).toEqual([
+      'Dashboard',
+      'My profile',
+      'My aircraft',
+      'Payments',
+      'Donate',
+      'Renew',
+      'Change password',
+      'Change email',
+      'Compose',
+      'Drafts & scheduled',
+      'Sent',
+      'Templates',
+      'Recipient groups',
+      'Callouts',
+      'Email types',
+      'Mail delivery',
+      'Messages',
+      'Email preferences',
+    ]);
+  });
+
+  it.each(BULK_AND_MEMBER_ENTRIES)('routes %s (%s) to a screen of its own', (_label, to) => {
+    expect(screenRoute(to ?? '')).not.toBe(NOT_FOUND);
+  });
+
+  it('reads an unknown path as the not-found page, so the cases above can fail', () => {
+    expect(screenRoute('/not-a-real-screen')).toBe(NOT_FOUND);
   });
 });
 

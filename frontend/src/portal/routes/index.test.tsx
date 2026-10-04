@@ -115,6 +115,24 @@ vi.mock('../features/bulk-email/SentPage', () => ({ SentPage: pageStub('Sent') }
 vi.mock('../features/bulk-email/SentDetailPage', () => ({
   SentDetailPage: pageStub('Sent bulk email'),
 }));
+vi.mock('../features/bulk-email/TemplatesPage', () => ({
+  TemplatesPage: pageStub('Templates'),
+}));
+vi.mock('../features/bulk-email/GroupsPage', () => ({
+  GroupsPage: pageStub('Recipient groups'),
+}));
+vi.mock('../features/bulk-email/GroupDetailPage', () => ({
+  GroupDetailPage: pageStub('Recipient group'),
+}));
+vi.mock('../features/email-types/EmailTypesPage', () => ({
+  EmailTypesPage: pageStub('Email types'),
+}));
+vi.mock('../features/messages/MessagesPage', () => ({ MessagesPage: pageStub('Messages') }));
+vi.mock('../features/messages/MessagePage', () => ({ MessagePage: pageStub('Message') }));
+vi.mock('../features/email-preferences/EmailPreferencesPage', () => ({
+  EmailPreferencesPage: pageStub('Email preferences'),
+}));
+vi.mock('../features/donate/DonatePage', () => ({ DonatePage: pageStub('Donate') }));
 vi.mock('../features/callouts/CalloutsPage', () => ({
   CalloutsPage: pageStub('Callouts'),
 }));
@@ -189,6 +207,7 @@ const GUARDED_PATHS: GuardedPath[] = [
   { path: '/profile', heading: 'My profile', allowed: ANY_SIGNED_IN },
   { path: '/profile/aircraft', heading: 'My aircraft', allowed: ANY_SIGNED_IN },
   { path: '/payments', heading: 'My payments', allowed: ANY_SIGNED_IN },
+  { path: '/donate', heading: 'Donate', allowed: ANY_SIGNED_IN },
   { path: '/renew', heading: 'Renew', allowed: ANY_SIGNED_IN },
   { path: '/change-password', heading: 'Change password', allowed: ANY_SIGNED_IN },
   { path: '/change-email', heading: 'Change email', allowed: ANY_SIGNED_IN },
@@ -319,10 +338,29 @@ const GUARDED_PATHS: GuardedPath[] = [
     allowed: ['dart_leader', 'management', 'system_admin'],
   },
   {
+    path: '/bulk-email/templates',
+    heading: 'Templates',
+    allowed: ['management', 'system_admin'],
+  },
+  {
+    path: '/bulk-email/groups',
+    heading: 'Recipient groups',
+    allowed: ['management', 'system_admin'],
+  },
+  {
+    path: '/bulk-email/groups/1',
+    heading: 'Recipient group',
+    allowed: ['management', 'system_admin'],
+  },
+  {
     path: '/bulk-email/mail-delivery',
     heading: 'Mail delivery',
     allowed: ['management', 'system_admin'],
   },
+  { path: '/bulk-email/types', heading: 'Email types', allowed: ['system_admin'] },
+  { path: '/messages', heading: 'Messages', allowed: ANY_SIGNED_IN },
+  { path: '/messages/1', heading: 'Message', allowed: ANY_SIGNED_IN },
+  { path: '/email-preferences', heading: 'Email preferences', allowed: ANY_SIGNED_IN },
   { path: '/admin/users', heading: 'Users and roles', allowed: ['user_admin', 'system_admin'] },
   { path: '/admin/users/1', heading: 'User record', allowed: ['user_admin', 'system_admin'] },
   { path: '/system', heading: 'Health & Database', allowed: ['system_admin'] },
