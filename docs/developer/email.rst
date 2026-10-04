@@ -511,7 +511,10 @@ The token.
    since deleted.  The link is ``<SITE_URL>/mail/unsubscribe/<token>``, built on
    ``SITE_URL`` so a site served under a path keeps it.  A host with non-ASCII
    letters is written in its IDNA form (``xn--...``), as is the domain of the
-   ``mailto:`` below, because a mail header must be ASCII.
+   ``mailto:`` below, because a mail header must be ASCII.  The encoding is UTS 46
+   with IDNA 2008, from the ``idna`` package, as browsers read a host: a German
+   sharp s stays a sharp s, which Python's own ``idna`` codec (IDNA 2003) would
+   spell as "ss".
 
 The headers.
    ``headers_for(user, email_type)`` answers, for a type that allows opting out,

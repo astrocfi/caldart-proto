@@ -19,6 +19,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from urllib.parse import quote, urlsplit, urlunsplit
 
+import idna
 from django.conf import settings
 from django.core import signing
 
@@ -102,12 +103,20 @@ def unsubscribe_url(user: User, email_type: EmailType) -> str:
 
 
 def _ascii_host(host: str) -> str:
-    """``host`` (a domain, with or without a ``:port``) with each label in its IDNA form.
+    """``host`` (a domain, with or without a ``:port``) with its labels in IDNA form.
 
-    An ASCII host comes back unchanged; ``cald\u00e4rt.example.org``, with an a-umlaut,
-    becomes ``xn--caldrt-eua.example.org``.
+    An ASCII host comes back unchanged.  Any other is encoded as browsers and mail
+    programs read it, by UTS 46 and IDNA 2008 (the ``idna`` package): the a-umlaut of
+    ``cald\u00e4rt.example.org`` gives ``xn--caldrt-eua.example.org``, and a German
+    sharp s is kept, ``stra\u00dfe.de`` becoming ``xn--strae-oqa.de`` where
+    IDNA 2003 would spell it ``strasse.de``.  A port after the host is kept as it is.
     """
-    return host.encode("idna").decode("ascii")
+    if host.isascii():
+        return host
+    name, colon, port = host.rpartition(":")
+    if colon == "" or not port.isdigit():
+        name, colon, port = host, "", ""
+    return f"{idna.encode(name, uts46=True).decode('ascii')}{colon}{port}"
 
 
 def headers_for(user: User, email_type: EmailType) -> dict[str, str]:

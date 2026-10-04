@@ -93,6 +93,18 @@ def test_a_non_ascii_site_host_reaches_the_header_in_its_ascii_form(
     )
 
 
+def test_a_host_is_encoded_by_uts_46_keeping_a_sharp_s(
+    member: User, mission: EmailType, settings: Settings
+) -> None:
+    """UTS 46 keeps the German sharp s, which IDNA 2003 would spell as "ss"."""
+    settings.SITE_URL = "https://stra\u00dfe.de"
+    make_site_settings(contact_email="")
+
+    header = headers_for(member, mission)["List-Unsubscribe"]
+
+    assert re.fullmatch(r"<https://xn--strae-oqa\.de/mail/unsubscribe/[^>]+>", header)
+
+
 @pytest.mark.usefixtures("site")
 def test_a_type_that_cannot_be_turned_off_carries_no_headers(
     member: User, operational: EmailType
