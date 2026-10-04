@@ -69,6 +69,7 @@ const HELP_ROUTE_PATTERNS: readonly string[] = [
   '/system',
   '/system/health',
   '/system/emails',
+  '/system/emails/:id',
   '/system/scheduled',
 ];
 
@@ -133,6 +134,7 @@ const HELP_PAGE_CASES: readonly [pathname: string, expectedHref: string][] = [
   ['/system', '/docs/admin/health-database/'],
   ['/system/health', '/docs/admin/health-database/'],
   ['/system/emails', '/docs/admin/sent-emails/'],
+  ['/system/emails/903', '/docs/admin/sent-emails/'],
   ['/system/scheduled', '/docs/admin/scheduled/'],
 ];
 

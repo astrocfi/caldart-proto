@@ -22,21 +22,25 @@ data**.
 Health
 ======
 
-Six checks, each with a value and its status, **Good**, **Warning**, or **Problem**. **Refresh**
-runs them again.
+Six checks, each with a value and its status, **Good**, **Warning**, or **Problem**. A check
+that needs attention says, under its value, what is wrong and who to ask. **Refresh** runs
+them again.
 
-- **Database**: whether the site can reach its database. Anything but *ok* means the site is
-  down or about to be. Tell whoever runs the server at once.
-- **Pending migrations**: changes to the database that arrived with an upgrade and have not
-  been applied. It should read 0. Anything else means an upgrade was left half finished.
-- **Disk free**: the space left where backups are kept. It warns below 2,048 MB and asks for
-  attention below 512 MB. Old backups are the usual reason; download the ones worth keeping
-  and ask for the rest to be deleted from the server.
-- **Last backup**: when the newest backup was taken. It warns after a week, and asks for
-  attention after a month or when there has never been one. Take one from the next panel.
+- **Database**: *Connected* when the site can reach its database. *Not reachable* means the
+  site is down or about to be. Tell the person who installed the site at once.
+- **Database upgrade**: *Complete*, or how many changes that arrived with an upgrade have
+  not been applied, such as *3 steps not applied*. Anything but *Complete* means an upgrade
+  was left half finished; tell the person who installed the site.
+- **Disk free**: the space left on the disk that holds the backups, such as *50.0 GB*. It
+  warns below 2 GB and asks for attention below 512 MB. Old backups are the usual reason;
+  download the ones worth keeping and ask for the rest to be deleted from the server.
+- **Last backup**: when the newest backup was taken, or *No backup yet*. It warns after a
+  week, and asks for attention after a month or when there has never been one. Take one
+  from the next panel.
 - **Version**: which release is running. Quote it when you report a problem.
-- **Debug mode**: must read *off*. If a live site reads *on*, have it fixed at once, because
-  it shows internal details to anyone who causes an error.
+- **Debug mode**: must read *Off*. If a live site reads *On*, ask the person who installed
+  the site to turn it off at once, because it shows internal details to anyone who causes
+  an error.
 
 
 Backups
@@ -47,15 +51,17 @@ was **Taken**, its **Size**, and last a **Download** link. On a narrow screen **
 left out, and the **File** name stays pinned at the left while the table scrolls sideways.
 
 **Create backup** takes one now. It leaves out the FAA aircraft registry, which the nightly
-import brings back. The button reads *Taking a backup…* while it works, a minute or two on a
-large database, so leave the page open. A message names the file when done.
+import brings back. The button reads *Taking a backup…*, beside *Taking a backup. A large
+database takes a minute or two.*, while it works, so leave the page open. *Backup taken.*
+confirms it, and the backup heads the table.
 
 **Download** saves a backup to your own computer. Keep at least one copy somewhere other than
 the server: a backup on the same disk as the database is lost with it. Take a backup before
 every upgrade, before any bulk change, and before anyone experiments with the data.
 
-There is no restore button. Restoring replaces everything in the database and is done on the
-server with the site stopped, by the person who installed it.
+The panel says so: *There is no restore button. To restore a backup, ask the person who
+installed the site.* Restoring replaces everything in the database and is done on the
+server with the site stopped.
 
 
 FAA aircraft data

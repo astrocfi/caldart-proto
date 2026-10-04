@@ -42,8 +42,6 @@ export interface LeaderLookupProps<T> {
   /** The search box's hint. */
   hint: string;
   placeholder: string;
-  /** An extra class for the search box, such as `num` for registrations. */
-  inputClassName?: string;
   /** What the results are, in the plural, for the screen-reader count. */
   noun: string;
   /** The query hook behind the results; it must stay idle for a blank term. */
@@ -69,7 +67,6 @@ export function LeaderLookup<T>({
   label,
   hint,
   placeholder,
-  inputClassName,
   noun,
   useResults,
   rowKey,
@@ -124,7 +121,6 @@ export function LeaderLookup<T>({
               type="search"
               autoComplete="off"
               spellCheck={false}
-              className={inputClassName}
               value={term}
               placeholder={placeholder}
               onChange={(event) => setTerm(event.target.value)}

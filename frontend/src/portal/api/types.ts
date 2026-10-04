@@ -1464,6 +1464,7 @@ export interface LeaderStatus {
   };
   medical: LeaderMedical;
   photo_id: LeaderPhotoId;
+  is_dart_leader: boolean;
   is_verifier: boolean;
   aircraft: AircraftSummary[];
   go_no_go: LeaderGoNoGo;
@@ -1512,6 +1513,11 @@ export interface BounceRunResult {
   ignored: number;
   skipped: number;
   actions: RunAction[];
+}
+
+/** Whether bounce checking is set up, from `GET /system/bounces`. */
+export interface BounceStatus {
+  enabled: boolean;
 }
 
 /** A role an email type may name as one that sends it. */

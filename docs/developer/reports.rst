@@ -82,7 +82,7 @@ report (:ref:`reports-roles`) lists active accounts only; the verification repor
 The engine
 ==========
 
-``ReportSpec(slug, title, filename_stem, columns, roles, query, landscape=True, choosable=True, resolve=keep_params, section=None, empty_section="")``
+``ReportSpec(slug, title, filename_stem, columns, roles, query, landscape=True, choosable=True, resolve=keep_params, section=None, empty_section="", section_column="")``
    One report.  ``slug`` names it in every URL; ``title`` heads its PDF and
    labels it in the portal; ``filename_stem`` begins its file name
    (``caldart-members``).  ``columns`` is its registry of ``ReportColumn``
@@ -96,8 +96,9 @@ The engine
    ``resolve(params, today)`` turns the parameters into the ones the query
    reads; a dated report uses it for ``period`` (below), and ``spec.periods`` is
    true exactly when it is not ``keep_params``, the identity.  ``section(row)``
-   names the section a row is drawn in, and ``empty_section`` is the line the PDF
-   draws under a section with no rows (see `Sections`_ below).
+   names the section a row is drawn in, ``empty_section`` is the line the PDF
+   draws under a section with no rows, and ``section_column`` the column a default
+   PDF leaves to its section headings (see `Sections`_ below).
 ``build_report(spec, params, *, fmt, today=None)``
    The whole job.  It resolves the parameters for ``today`` (the local date by
    default), chooses the columns — the ``columns`` parameter, or the defaults,
@@ -142,7 +143,12 @@ nothing.  The PDF draws each section's title in ``SECTION_STYLE`` (the subtitle'
 Helvetica at 10pt, bold, in the house blue, 8pt above and 4pt below) and then that
 section's own table, its header repeated on every page it runs onto.  A section
 with no rows draws its title and then the spec's ``empty_section`` in italics, or
-its title alone when ``empty_section`` is blank.
+its title alone when ``empty_section`` is blank.  A spec's ``section_column`` names a
+column that repeats each row's section title: the CSV prints it among the defaults, and
+a PDF of the default columns leaves it out, since its headings say the same.  A title
+with less than
+``SECTION_KEEP_HEIGHT`` (an inch) left under it on the page starts the next page,
+so a title is never left alone above a page break.
 
 Periods
 -------
@@ -494,13 +500,17 @@ It is sectioned, one section per kind of item, always in this order and each dra
 even when empty, with the line "Nothing to show." under an empty one:
 
 ``Pilot certificates``, ``Medicals``, ``Photo IDs``
-   One row per checkable person with a profile, in each of the three: every active
-   member and friend (``checkable_people()`` in ``apps/aircraft/services.py``).  A
+   One row per checkable person with a profile who holds the item, in each of the
+   three: every active member and friend (``checkable_people()`` in
+   ``apps/aircraft/services.py``).  An item the person does not hold (``is_held`` in
+   ``apps/members/verification.py``: a certificate of *Not a pilot*, a medical of
+   *None*, a photo ID of *Not provided*) has nothing to verify and is left out.  A
    donor, a deactivated account, and an account with no profile are never listed.
    The rows are ordered by last name, first name, then address.
 ``Aircraft insurance``
-   One row per aircraft in service (``is_active``), in N-number order.  An aircraft
-   out of service is never listed.
+   One row per aircraft in service (``is_active``) with a policy on file (an
+   ``insurance_expiration``), in N-number order.  An aircraft out of service, or with
+   no policy, is never listed.
 
 Two filters narrow the rows:
 
@@ -514,9 +524,14 @@ Two filters narrow the rows:
    report reads ``dart``.  It keeps that DART's people and the aircraft that at
    least one pilot on that DART flies, each aircraft once.
 
-The PDF subtitle always names the status, since it has a default, and then the
-DART when one is given.  Any other parameter is ignored, apart from ``columns``.
-Every column is a default; in order:
+The PDF subtitle always names the status in words, since it has a default
+(*Showing: Not yet verified*, *Verified*, or *Everything*), and then the DART when
+one is given, by name for an id (*DART: Monterey*) and as given for part of a name.
+Any other parameter is ignored, apart from ``columns``.  The default list is of items
+nobody has verified, so the three verification columns are there to choose but off by
+default.  Section is a default, which keeps the grouping in the flat CSV; the spec names
+it as its ``section_column``, so a PDF of the default columns leaves it to the section
+headings and prints it only when ``columns`` asks for it.  In order:
 
 ============= ============== ======= =============================================
 Key           Label          Default Contents
@@ -534,10 +549,10 @@ updated       Updated        yes     ``MM/DD/YYYY`` of the profile's
                                      ``profile_updated_at`` or the aircraft's
                                      ``updated_at``; blank for a profile nobody has
                                      written
-verified      Verified       yes     ``Yes`` or ``No``
-verified_by   Verified by    yes     The verifier's name, blank when unverified or
+verified      Verified       no      ``Yes`` or ``No``
+verified_by   Verified by    no      The verifier's name, blank when unverified or
                                      when the verifier's account is gone
-verified_on   Verified on    yes     ``MM/DD/YYYY`` of the verification, in local
+verified_on   Verified on    no      ``MM/DD/YYYY`` of the verification, in local
                                      time
 ============= ============== ======= =============================================
 
@@ -826,7 +841,8 @@ headers, escaping, pagination, and an empty result set.
 ``backend/tests/test_report_endpoints.py`` proves the endpoints and the role
 matrix for every report.
 
-``backend/tests/test_report_sections.py`` covers sections.
+``backend/tests/test_report_sections.py`` covers sections, and
+``backend/tests/test_report_section_headings.py`` the title kept with its rows.
 ``backend/tests/test_members_reports.py`` covers the membership report and is
 the pattern to copy.  Assertions worth keeping:
 

@@ -11,6 +11,15 @@
   margin-block: var(--space-3);
 }
 
+/* Room under the panel's title before the first field, and above its buttons. */
+.verification-panel > .card__title {
+  margin-bottom: var(--space-4);
+}
+
+.verification-panel form > .cluster {
+  margin-top: var(--space-5);
+}
+
 /* The Verification card on the member and aircraft records: one line per item, in three
  * columns shared by every row (the item, what the record holds, and its marks), so each
  * row's marks sit beside its value at the same place.  On a phone the marks go under. */

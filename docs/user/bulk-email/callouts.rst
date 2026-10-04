@@ -45,6 +45,9 @@ On a screen too narrow for every column, **DART**, then **From**, are left out; 
 the table scrolls sideways, says so above it, and keeps **Subject** pinned at the left. Before
 the first callout the table reads *No callout has been sent*, with a **New email**
 button that opens Compose, where **This is a mission callout** makes the email a callout.
+A DART leader whose profile names no DART sees, above the table, the box saying to set
+their DART on My profile (:doc:`dart-leaders`); the empty table repeats why, and offers no
+**New email** button.
 
 
 One callout's page

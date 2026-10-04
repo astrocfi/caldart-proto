@@ -17,7 +17,9 @@ import { DataTable } from '@/portal/components/DataTable';
 import { DateText } from '@/portal/components/DateText';
 import { Page } from '@/portal/components/Page';
 import { StatusDot } from '@/portal/components/StatusDot';
+import { useBulkSender } from '@/portal/features/bulk-email/api';
 import { DROP_ORDER } from '@/portal/features/bulk-email/dropOrder';
+import { SenderNotice } from '@/portal/features/bulk-email/SenderNotice';
 import { useCallouts } from './api';
 import './callouts.css';
 import { openLabel } from './labels';
@@ -25,13 +27,17 @@ import { openLabel } from './labels';
 /** Every callout, one line each. */
 export function CalloutsPage(): JSX.Element {
   const callouts = useCallouts();
+  const sender = useBulkSender();
   const rows = callouts.data ?? [];
+  // A DART leader with no DART cannot write a callout, so the empty list offers no way to.
+  const canSend = sender.data?.can_send !== false;
 
   return (
     <Page
       title="Callouts"
       lede="Mission callouts ask who can fly. Open one to see each person's answer."
     >
+      {sender.data === undefined ? null : <SenderNotice sender={sender.data} />}
       <Card>
         {callouts.isError ? (
           <p className="field__error" role="alert">
@@ -46,8 +52,14 @@ export function CalloutsPage(): JSX.Element {
             initialSort={{ key: 'started_at', direction: 'desc' }}
             caption={`${rows.length} ${rows.length === 1 ? 'callout' : 'callouts'}`}
             emptyTitle="No callout has been sent"
-            emptyDescription="To send one, write an email and switch on This is a mission callout."
-            emptyAction={<ButtonLink to="/bulk-email/compose">New email</ButtonLink>}
+            emptyDescription={
+              canSend || sender.data === undefined
+                ? 'To send one, write an email and switch on This is a mission callout.'
+                : sender.data.reason
+            }
+            emptyAction={
+              canSend ? <ButtonLink to="/bulk-email/compose">New email</ButtonLink> : undefined
+            }
             isLoading={callouts.isLoading}
           />
         )}

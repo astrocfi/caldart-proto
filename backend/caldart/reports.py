@@ -37,6 +37,7 @@ from reportlab.lib.units import inch
 from reportlab.pdfgen import canvas as pdf_canvas
 from reportlab.platypus import (
     BaseDocTemplate,
+    CondPageBreak,
     Flowable,
     Frame,
     LongTable,
@@ -129,6 +130,10 @@ SECTION_STYLE = ParagraphStyle(
     spaceBefore=8,
     spaceAfter=4,
 )
+#: The room a section's title needs below it, in points, for the table's header and its
+#: first row to follow on the same page; with less left, the title starts the next page.
+SECTION_KEEP_HEIGHT = inch
+
 #: The line an empty section draws under its title, when its report gives one.
 EMPTY_SECTION_STYLE = ParagraphStyle(
     "CalDartEmptySection",
@@ -454,7 +459,9 @@ def build_pdf_table(
     them, ``rows`` is not read: each section draws its title in
     :data:`SECTION_STYLE` and then its own table, header repeated on every page it
     runs onto.  A section with no rows draws its title and then ``empty_section`` in
-    italics, or its title alone when ``empty_section`` is blank.
+    italics, or its title alone when ``empty_section`` is blank.  A title with less than
+    :data:`SECTION_KEEP_HEIGHT` left under it on the page starts the next page, so it is
+    never left alone above a page break.
     """
     if widths is not None and len(widths) != len(header):
         raise ValueError(f"{len(header)} columns but {len(widths)} widths")
@@ -502,6 +509,7 @@ def build_pdf_table(
         story.append(_pdf_table(header, rows, col_widths))
     else:
         for section_title, section_rows in sections:
+            story.append(CondPageBreak(SECTION_KEEP_HEIGHT))
             story.append(Paragraph(escape_markup(section_title), SECTION_STYLE))
             if len(section_rows) > 0:
                 story.append(_pdf_table(header, section_rows, col_widths))
@@ -711,7 +719,10 @@ class ReportSpec[RowT]:
     :func:`keep_params`.  ``section`` names the section a row belongs to, which
     groups the table's rows under titled headings (see :meth:`table`), and
     ``empty_section`` is the line the PDF draws under a section with no rows; blank,
-    such a section is its title alone.
+    such a section is its title alone.  ``section_column`` is the key of a column that
+    repeats each row's section title, which a flat CSV needs and a PDF drawn under
+    section headings does not: the PDF leaves it out of the default columns, and prints
+    it only when the caller asks for it by name.
     """
 
     slug: str
@@ -725,6 +736,7 @@ class ReportSpec[RowT]:
     resolve: Callable[[Params, date], Params] = keep_params
     section: Callable[[RowT], str] | None = None
     empty_section: str = ""
+    section_column: str = ""
 
     @property
     def periods(self) -> bool:
@@ -743,7 +755,9 @@ class ReportSpec[RowT]:
         defaults, refused as :func:`chosen_columns` refuses them -- and only then is
         the query run, so a bad column list is refused before any row is read.
 
-        Without a ``section`` function, the table is one section titled ``""`` holding
+        A PDF of the default columns leaves out ``section_column``, which its section
+        headings already say.  Without a ``section`` function, the table is one section
+        titled ``""`` holding
         every row.  With one, the rows are grouped by the title it gives each, as
         :func:`group_sections` groups them over the query's ``sections``: a listed
         section with no rows still appears, and a row in an unlisted section raises
@@ -753,6 +767,8 @@ class ReportSpec[RowT]:
         requested = resolved.get("columns", "")
         if self.choosable:
             columns: Sequence[ReportColumn[RowT]] = chosen_columns(self.columns, requested)
+            if fmt == "pdf" and requested == "" and self.section_column != "":
+                columns = [column for column in columns if column.key != self.section_column]
         elif requested != "":
             raise ValidationError({"columns": [FIXED_COLUMNS_MESSAGE]})
         else:

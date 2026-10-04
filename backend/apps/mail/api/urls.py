@@ -9,7 +9,9 @@ app_name = "mail"
 urlpatterns = [
     path("system/emails", views.EmailLogListView.as_view(), name="emails"),
     path("system/emails/purposes", views.EmailPurposeListView.as_view(), name="purposes"),
+    path("system/emails/<int:pk>", views.EmailLogDetailView.as_view(), name="email-detail"),
     path("mail/delivery-check", views.MailDeliveryCheckView.as_view(), name="delivery-check"),
+    path("system/bounces", views.BounceStatusView.as_view(), name="bounces"),
     path("system/bounces/run", views.BounceRunView.as_view(), name="bounces-run"),
     path("email-types", email_types.EmailTypeListView.as_view(), name="email-types"),
     path(

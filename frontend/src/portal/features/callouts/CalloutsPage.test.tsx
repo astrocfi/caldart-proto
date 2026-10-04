@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { CalloutSummary } from '@/portal/api/types';
 import { formatDate } from '@/portal/components/DateText';
+import { answerSender, NO_DART_SENDER } from '@test/fixtures/bulkEmail';
 import { makeCalloutSummary } from '@test/fixtures/callouts';
 import { API } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
@@ -56,5 +57,24 @@ describe('CalloutsPage', () => {
     renderList([]);
 
     expect(await screen.findByText('No callout has been sent')).toBeInTheDocument();
+  });
+
+  it('tells a DART leader with no DART why, rather than sending them to Compose', async () => {
+    answerSender(NO_DART_SENDER);
+    renderList([]);
+
+    expect(await screen.findByRole('link', { name: 'Open My profile' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'New email' })).toBeNull();
+  });
+
+  it('tells a DART leader with no DART why there is nothing to write, not how to write one', async () => {
+    answerSender(NO_DART_SENDER);
+    renderList([]);
+
+    await screen.findByText('No callout has been sent');
+    expect(screen.queryByText(/switch on This is a mission callout/)).toBeNull();
+    expect(
+      screen.getAllByText(/^Your profile names no DART, so there is nobody to send to\./),
+    ).not.toHaveLength(0);
   });
 });

@@ -1881,7 +1881,23 @@ not (see :ref:`api-csrf-bootstrap`).
      - ·
      - ·
      - ``system_admin`` only
+   * - ``GET /system/emails/{id}``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ``system_admin`` only
    * - ``GET /system/emails/purposes``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ``system_admin`` only
+   * - ``GET /system/bounces``
      - ·
      - ·
      - ·

@@ -161,6 +161,9 @@ test('a leader verifies a pilot, who verifies an airplane and then edits a medic
 
   // The leader makes the pilot a verifier from the same card.
   await card.getByRole('button', { name: 'Make a verifier' }).click();
+  // It asks first, starting on Cancel.
+  await expect(card.getByRole('button', { name: 'Cancel' })).toBeFocused();
+  await card.getByRole('button', { name: 'Yes, make a verifier' }).click();
   await expect(page.getByText(`${name} is a verifier.`)).toBeVisible();
   await expect(card.getByRole('button', { name: 'Remove as verifier' })).toBeVisible();
   await expect(card).toContainText('· Verifier');
@@ -172,7 +175,7 @@ test('a leader verifies a pilot, who verifies an airplane and then edits a medic
     .getByRole('navigation', { name: 'Portal sections' })
     .getByRole('link', { name: 'Aircraft check' })
     .click();
-  await page.getByRole('searchbox', { name: 'Search by N-number' }).fill(nNumber);
+  await page.getByRole('searchbox', { name: 'N-number, make, model, or owner' }).fill(nNumber);
   const result = page.getByRole('button', { name: new RegExp(nNumber) });
   await expect(result).toContainText('Not verified');
   await result.click();

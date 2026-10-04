@@ -2,7 +2,9 @@
  * The health panel of `/portal/system/health`.
  *
  * `healthChecks` turns the raw payload into one row per check with an ok /
- * warn / bad verdict; the component only renders what it returns.
+ * warn / bad verdict, each value and note in plain words: what is wrong and who to
+ * ask, never a command or a setting's name.  The component only renders what it
+ * returns.
  */
 import type { JSX } from 'react';
 
@@ -44,18 +46,23 @@ const VERDICT_LABEL: Record<CheckVerdict, string> = {
   bad: 'Problem',
 };
 
+/** Who fixes anything on the server itself. */
+const INSTALLER = 'the person who installed the site';
+
+/** Days from `iso` to `now`, with the fraction of a day. */
 function daysSince(iso: string, now: Date): number {
   return (now.getTime() - new Date(iso).getTime()) / 86_400_000;
 }
 
+/** The last backup's row: when it was taken, graded by its age. */
 function backupCheck(health: Health, now: Date): HealthCheck {
   if (!health.last_backup) {
     return {
       key: 'last_backup',
       label: 'Last backup',
-      value: 'never',
+      value: 'No backup yet',
       verdict: 'bad',
-      note: 'No dump has been taken on this machine.',
+      note: 'Take one under Backups below.',
     };
   }
   const age = daysSince(health.last_backup, now);
@@ -70,15 +77,47 @@ function backupCheck(health: Health, now: Date): HealthCheck {
   };
 }
 
+/** Free space in GB with one decimal, or in whole MB below a gigabyte. */
+function diskSpace(megabytes: number): string {
+  if (megabytes < 1024) return `${megabytes.toLocaleString('en-US')} MB`;
+  const gigabytes = megabytes / 1024;
+  return `${gigabytes.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} GB`;
+}
+
+/** The free disk space's row, graded against the room a backup needs. */
 function diskCheck(health: Health): HealthCheck {
   const free = health.disk_free_mb;
   const verdict: CheckVerdict = free >= DISK_WARN_MB ? 'ok' : free >= DISK_BAD_MB ? 'warn' : 'bad';
   return {
     key: 'disk_free_mb',
     label: 'Disk free',
-    value: `${free.toLocaleString('en-US')} MB`,
+    value: diskSpace(free),
     verdict,
-    note: verdict === 'ok' ? undefined : 'On the filesystem holding BACKUP_DIR.',
+    note: verdict === 'ok' ? undefined : 'On the disk that holds the backups.',
+  };
+}
+
+/** The database upgrade's row: complete, or how many steps an upgrade left unapplied. */
+function upgradeCheck(health: Health): HealthCheck {
+  const waiting = health.pending_migrations;
+  if (waiting === 0) {
+    return {
+      key: 'pending_migrations',
+      label: 'Database upgrade',
+      value: 'Complete',
+      verdict: 'ok',
+    };
+  }
+  return {
+    key: 'pending_migrations',
+    label: 'Database upgrade',
+    // The server cannot count the steps while the database is down.
+    value: waiting < 0 ? 'Unknown' : `${waiting} ${waiting === 1 ? 'step' : 'steps'} not applied`,
+    verdict: 'warn',
+    note:
+      waiting < 0
+        ? 'The database could not be reached to check.'
+        : `An upgrade was left half finished. Tell ${INSTALLER}.`,
   };
 }
 
@@ -88,16 +127,14 @@ export function healthChecks(health: Health, now: Date = new Date()): HealthChec
     {
       key: 'db',
       label: 'Database',
-      value: health.db,
+      value: health.db === 'ok' ? 'Connected' : 'Not reachable',
       verdict: health.db === 'ok' ? 'ok' : 'bad',
+      note:
+        health.db === 'ok'
+          ? undefined
+          : `The site is down or about to be. Tell ${INSTALLER} at once.`,
     },
-    {
-      key: 'pending_migrations',
-      label: 'Pending migrations',
-      value: String(health.pending_migrations),
-      verdict: health.pending_migrations === 0 ? 'ok' : 'warn',
-      note: health.pending_migrations === 0 ? undefined : 'Run manage.py migrate.',
-    },
+    upgradeCheck(health),
     diskCheck(health),
     backupCheck(health, now),
     {
@@ -109,9 +146,11 @@ export function healthChecks(health: Health, now: Date = new Date()): HealthChec
     {
       key: 'debug',
       label: 'Debug mode',
-      value: health.debug ? 'on' : 'off',
+      value: health.debug ? 'On' : 'Off',
       verdict: health.debug ? 'bad' : 'ok',
-      note: health.debug ? 'DEBUG must be off in production.' : undefined,
+      note: health.debug
+        ? `It shows internal details to anyone who causes an error. Ask ${INSTALLER} to turn it off.`
+        : undefined,
     },
   ];
 }

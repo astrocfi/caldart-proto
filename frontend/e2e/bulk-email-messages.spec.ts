@@ -48,7 +48,7 @@ async function runSender(page: Page): Promise<void> {
   const sender = page
     .locator('section')
     .filter({ has: page.getByRole('heading', { name: 'Bulk email sender' }) });
-  await sender.getByRole('button', { name: 'Run the bulk email sender now' }).click();
+  await sender.getByRole('button', { name: 'Run now: bulk email sender' }).click();
   await expect(sender.getByRole('status')).toHaveText(/^Worked on \d+ bulk emails?: sent \d+/);
 }
 

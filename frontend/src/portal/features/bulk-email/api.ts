@@ -70,12 +70,14 @@ const SENDER_KEY = [...BULK_EMAIL_KEY, 'sender'] as const;
 
 /**
  * Who the signed-in sender may send to, via `GET /bulk-email/sender`: everyone for
- * CalDART management, the DART on their profile for a DART leader.
+ * CalDART management, the DART on their profile for a DART leader.  `enabled` false
+ * asks nothing, for a screen shown to people who may not send bulk email at all.
  */
-export function useBulkSender(): UseQueryResult<BulkEmailSender> {
+export function useBulkSender(enabled = true): UseQueryResult<BulkEmailSender> {
   return useQuery({
     queryKey: SENDER_KEY,
     queryFn: () => api.get<BulkEmailSender>('/bulk-email/sender'),
+    enabled,
   });
 }
 

@@ -146,4 +146,11 @@ describe('SentPage', () => {
     await screen.findByText('You have not sent an email yet');
     expect(screen.queryByRole('link', { name: 'New email' })).toBeNull();
   });
+
+  it('tells a DART leader with no DART why, with the way to My profile', async () => {
+    answerSender(NO_DART_SENDER);
+    answerSent([]);
+    renderWithProviders(<SentPage />);
+    expect(await screen.findByRole('link', { name: 'Open My profile' })).toBeInTheDocument();
+  });
 });

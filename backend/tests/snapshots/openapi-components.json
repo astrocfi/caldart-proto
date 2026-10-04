@@ -546,6 +546,14 @@
       "unmatched"
     ]
   },
+  "BounceStatus": {
+    "properties": {
+      "enabled": "boolean"
+    },
+    "required": [
+      "enabled"
+    ]
+  },
   "BulkEmailAddRequest": {
     "properties": {
       "filters": "map<string>"
@@ -2058,6 +2066,7 @@
       "dart": "string|null",
       "email": "string(email)",
       "go_no_go": "ref:LeaderGoNoGo",
+      "is_dart_leader": "boolean",
       "is_verifier": "boolean",
       "medical": "ref:LeaderMedical",
       "membership": "ref:LeaderMembership",
@@ -2071,6 +2080,7 @@
       "dart",
       "email",
       "go_no_go",
+      "is_dart_leader",
       "is_verifier",
       "medical",
       "membership",

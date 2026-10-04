@@ -42,10 +42,9 @@ export function LeaderAircraftPage(): JSX.Element {
       lede="Look up the aircraft in front of you to see whether CalDART's policy covers it and its insurance is current and verified."
       param="aircraft"
       parse={parseRegistration}
-      label="Search by N-number"
-      hint="Registration, make, model, or owner all match."
-      placeholder="N12345"
-      inputClassName="num"
+      label="N-number, make, model, or owner"
+      hint="Try “N172SP”, “Cessna”, or the owner’s name."
+      placeholder="Search aircraft"
       noun="aircraft"
       useResults={useAircraftMatches}
       rowKey={(aircraft) => aircraft.id}
@@ -98,7 +97,7 @@ function AircraftCheck({ nNumber }: AircraftCheckProps): JSX.Element {
       {notFound ? (
         <EmptyState
           title={`${nNumber} is not in the register`}
-          description="Nobody has added this aircraft yet. Ask the pilot to add it to their profile, or add it from the aircraft register."
+          description="Ask the pilot to add it on My aircraft, or ask an account administrator."
         />
       ) : null}
 

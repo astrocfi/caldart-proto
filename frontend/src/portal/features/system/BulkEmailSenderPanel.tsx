@@ -6,18 +6,14 @@
  * start time has come and sends it, paced to the mail provider's limit, so a run by
  * hand matters only where no timer is running, such as on a developer's machine.
  * There is no dry run: the sender only ever sends what CalDART management has
- * already pressed Send on. The button sits above what the last run did, so a long
- * list of copies never pushes it out of reach.
+ * already pressed Send on. A run that found nothing waiting says only that.
  */
-import { useRef } from 'react';
 import type { JSX } from 'react';
 
 import type { BulkEmailRunResult } from '@/portal/api/types';
-import { Button } from '@/portal/components/Button';
-import { Card } from '@/portal/components/Card';
 import { RunActionsTable } from '@/portal/components/RunActionsTable';
-import { useFocusAfterSave } from '@/portal/components/focus';
 import { useRunBulkEmailSender } from './api';
+import { JobPanel, NothingDue, RunNowButton } from './JobPanel';
 
 /** What the panel says when another run was already sending. */
 export const SENDER_BUSY =
@@ -36,6 +32,7 @@ export function senderRunSummary(result: BulkEmailRunResult): string {
 /** What each kind of action reads as in the actions table. */
 const KIND_LABELS: Record<string, string> = { sent: 'Sent', failed: 'Failed' };
 
+/** How a sender run's own `kind` slug reads in the actions table. */
 function senderKindLabel(kind: string): string {
   return KIND_LABELS[kind] ?? kind;
 }
@@ -43,43 +40,50 @@ function senderKindLabel(kind: string): string {
 /** Runs the bulk email sender on demand and reports what it sent. */
 export function BulkEmailSenderPanel(): JSX.Element {
   const run = useRunBulkEmailSender();
-  // The button is disabled while it runs; it gets the focus back once the run ends.
-  const runRef = useRef<HTMLButtonElement>(null);
-  useFocusAfterSave(runRef, run.isPending);
 
   return (
-    <Card eyebrow="Email" title="Bulk email sender">
-      <p className="muted">
-        Every minute the server starts each bulk email whose time has come and sends its copies a
-        few at a time, so the mail provider never turns them away. Run it here to start at once. The
-        page waits up to 45 seconds; a larger send carries on in the background after that.
-      </p>
-      <div className="cluster">
-        <Button ref={runRef} onClick={() => run.mutate()} disabled={run.isPending}>
-          {run.isPending ? 'Running…' : 'Run the bulk email sender now'}
-        </Button>
-      </div>
-
-      {run.isSuccess && run.data.busy ? <p role="status">{SENDER_BUSY}</p> : null}
-
-      {run.isSuccess && !run.data.busy ? (
-        <RunActionsTable
-          actions={run.data.actions}
-          dryRun={false}
-          kindLabel={senderKindLabel}
-          detailHeader="Subject or reason"
-          hasWhenAndAmount={false}
-          emptyTitle="Nothing was due"
-          emptyDescription="No bulk email was waiting to send."
-          summary={<p role="status">{senderRunSummary(run.data)}</p>}
+    <JobPanel
+      eyebrow="Email"
+      title="Bulk email sender"
+      description="The bulk email sender runs every minute. It starts each bulk email whose time has come and sends its copies a few at a time, so the mail provider never turns them away. The page waits up to 45 seconds; a larger send carries on in the background after that."
+      action={
+        <RunNowButton
+          task="bulk email sender"
+          isRunning={run.isPending}
+          onClick={() => run.mutate()}
         />
-      ) : null}
+      }
+      isRunning={run.isPending}
+      result={<SenderResult run={run} />}
+    />
+  );
+}
 
-      {run.isError ? (
-        <p className="field__error" role="alert">
-          {run.error instanceof Error ? run.error.message : 'The bulk email sender failed.'}
-        </p>
-      ) : null}
-    </Card>
+interface SenderResultProps {
+  run: ReturnType<typeof useRunBulkEmailSender>;
+}
+
+/** What the last sender run did, or why it did nothing; nothing before the first run. */
+function SenderResult({ run }: SenderResultProps): JSX.Element | null {
+  if (run.isError) {
+    return (
+      <p className="field__error" role="alert">
+        {run.error instanceof Error ? run.error.message : 'The bulk email sender failed.'}
+      </p>
+    );
+  }
+  if (!run.isSuccess) return null;
+  const { data } = run;
+  if (data.busy) return <p role="status">{SENDER_BUSY}</p>;
+  if (data.emails === 0 && data.actions.length === 0) return <NothingDue dryRun={false} />;
+  return (
+    <RunActionsTable
+      actions={data.actions}
+      dryRun={false}
+      kindLabel={senderKindLabel}
+      detailHeader="Subject or reason"
+      hasWhenAndAmount={false}
+      summary={<p role="status">{senderRunSummary(data)}</p>}
+    />
   );
 }

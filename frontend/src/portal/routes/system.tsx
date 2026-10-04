@@ -1,5 +1,6 @@
 /**
- * System administration routes: Health and database, Sent emails, and Scheduled.
+ * System administration routes: Health and database, Sent emails and one sent email,
+ * and Scheduled.
  * `/system` itself opens Health and database.
  */
 import { Navigate } from 'react-router-dom';
@@ -22,6 +23,12 @@ export const systemRoutes: RouteObject[] = [
         path: 'system/emails',
         lazy: async () => ({
           Component: (await import('../features/system/SentEmailsPage')).SentEmailsPage,
+        }),
+      },
+      {
+        path: 'system/emails/:id',
+        lazy: async () => ({
+          Component: (await import('../features/system/SentEmailPage')).SentEmailPage,
         }),
       },
       {

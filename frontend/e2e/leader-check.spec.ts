@@ -136,7 +136,7 @@ test('a leader searches for a tail number and reads its insurance card', async (
 
   await page.goto('portal/leader/aircraft');
   await expect(page.getByRole('button', { name: /Check aircraft/ })).toHaveCount(0);
-  await page.getByRole('searchbox', { name: 'Search by N-number' }).fill(nNumber);
+  await page.getByRole('searchbox', { name: 'N-number, make, model, or owner' }).fill(nNumber);
   // The result row answers before the card is opened.
   const result = page.getByRole('button', { name: new RegExp(nNumber) });
   await expect(result.getByText('GO', { exact: true })).toBeVisible();

@@ -340,6 +340,15 @@ class BounceRun:
         return f"{verb} {action.member} <{action.email}>{sent} ({action.detail})"
 
 
+def bounce_checking_enabled() -> bool:
+    """True when a bounce mailbox is configured, so the bounce check has one to read.
+
+    That is ``BOUNCE_IMAP_URL`` set to anything; whether it can be read is only known
+    once a run tries.
+    """
+    return bool(settings.BOUNCE_IMAP_URL)
+
+
 def check_bounces(*, dry_run: bool = False, actor: Model | str = audit.COMMAND_ACTOR) -> BounceRun:
     """Read the unseen messages in the bounce mailbox and mark what bounced.
 
@@ -374,7 +383,7 @@ def check_bounces(*, dry_run: bool = False, actor: Model | str = audit.COMMAND_A
     messages stay seen.
     """
     run = BounceRun(today=timezone.localdate(), dry_run=dry_run, enabled=False)
-    if settings.BOUNCE_IMAP_URL:
+    if bounce_checking_enabled():
         run.enabled = True
         _read_mailbox(parse_imap_url(settings.BOUNCE_IMAP_URL), run)
     audit.record(

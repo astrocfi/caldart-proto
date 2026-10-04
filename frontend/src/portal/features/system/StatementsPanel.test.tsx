@@ -142,4 +142,17 @@ describe('StatementsPanel', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('The mail server is unreachable');
   });
+
+  it('puts the Year and the practice run box before Run now', () => {
+    renderWithProviders(<StatementsPanel />);
+    const button = screen.getByRole('button', { name: 'Run now: year-end statements' });
+    for (const field of [
+      screen.getByLabelText('Year'),
+      screen.getByLabelText(
+        'Practice run: show what would happen, send nothing (year-end statements)',
+      ),
+    ]) {
+      expect(field.compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+    }
+  });
 });

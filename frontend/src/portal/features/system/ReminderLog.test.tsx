@@ -82,7 +82,7 @@ describe('ReminderLog', () => {
     server.use(logHandler([]));
     renderWithProviders(<ReminderLog />);
 
-    expect(await screen.findByText('No reminders sent yet')).toBeInTheDocument();
+    expect(await screen.findByText('No reminders have been sent yet')).toBeInTheDocument();
   });
 
   it('filters the log by kind', async () => {
@@ -126,10 +126,18 @@ describe('ReminderLog', () => {
   it('offers to reset the filter when no reminder of the chosen kind has gone', async () => {
     server.use(logHandler([]));
     renderWithProviders(<ReminderLog />);
-    await screen.findByText('No reminders sent yet');
+    await screen.findByText('No reminders have been sent yet');
 
     await userEvent.selectOptions(screen.getByLabelText('Reminder'), 'first');
 
     expect(await screen.findByText('No reminders of this kind')).toBeInTheDocument();
+  });
+
+  it('says no reminder has been sent, and when they go, without contradicting a run', async () => {
+    server.use(logHandler([]));
+    renderWithProviders(<ReminderLog />);
+
+    await screen.findByText('No reminders have been sent yet');
+    expect(screen.queryByText(/No member has reached/)).toBeNull();
   });
 });

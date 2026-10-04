@@ -16,6 +16,7 @@ import { ADMIN_USERS_KEY, REGISTRY_KEY } from '@/portal/api/queries';
 import type {
   Backup,
   BounceRunResult,
+  BounceStatus,
   BulkEmailRunResult,
   EmailLogEntry,
   EmailPurpose,
@@ -211,6 +212,14 @@ export function useRunStatements(): UseMutationResult<
   });
 }
 
+/** Whether bounce checking is set up, via `GET /system/bounces`, read as the panel loads. */
+export function useBounceStatus(): UseQueryResult<BounceStatus> {
+  return useQuery({
+    queryKey: ['system', 'bounces'],
+    queryFn: () => api.get<BounceStatus>('/system/bounces'),
+  });
+}
+
 /**
  * Runs the bounce check (or a rehearsal) via `POST /system/bounces/run`: reads the
  * bounce mailbox and marks every email that bounced.
@@ -275,6 +284,12 @@ export function backupDownloadUrl(name: string): string {
 export const EMAIL_LOG_PAGE_SIZE = 25;
 
 /**
+ * The key a link from the email log sets in the history state, so the email's page knows
+ * the list is one step back, filters and all.
+ */
+export const FROM_LOG = 'fromSentEmails';
+
+/**
  * The purposes the email log's filter offers are the server's. They change only when the
  * reminder schedule is saved, which drops them along with the rest of the email log.
  */
@@ -315,6 +330,14 @@ export function useEmailLog(query: EmailLogQuery): UseQueryResult<Paginated<Emai
         query: { ...filters, ordering, page: page > 1 ? page : undefined },
       }),
     placeholderData: keepPreviousData,
+  });
+}
+
+/** One email of the log, via `GET /system/emails/{id}`, for its page on Sent emails. */
+export function useEmailLogEntry(id: number): UseQueryResult<EmailLogEntry> {
+  return useQuery({
+    queryKey: ['system', 'emails', 'entry', id],
+    queryFn: () => api.get<EmailLogEntry>(`/system/emails/${id}`),
   });
 }
 

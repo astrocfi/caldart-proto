@@ -111,7 +111,7 @@ test('CalDART management writes a formatted email with an image, previews it, an
   const sender = page
     .locator('section')
     .filter({ has: page.getByRole('heading', { name: 'Bulk email sender' }) });
-  await sender.getByRole('button', { name: 'Run the bulk email sender now' }).click();
+  await sender.getByRole('button', { name: 'Run now: bulk email sender' }).click();
   await expect(sender.getByRole('row').filter({ hasText: DEMO.management })).toContainText('Sent');
 
   const email = await latestEmailTo(DEMO.management);

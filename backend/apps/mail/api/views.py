@@ -1,8 +1,9 @@
 """The email log endpoints, and the bounce check run by hand.
 
-``GET /system/emails``, ``GET /system/emails/purposes`` and ``POST
-/system/bounces/run`` are ``system_admin`` only: the log carries every address the
-installation has written to, which is operations work rather than membership work.
+``GET /system/emails``, ``GET /system/emails/{id}``, ``GET /system/emails/purposes``,
+``GET /system/bounces``, and ``POST /system/bounces/run`` are ``system_admin`` only: the
+log carries every address the installation has written to, which is operations work
+rather than membership work.
 The filters live in ``apps.mail.filters``, which the ``emails`` report shares.
 ``GET /mail/delivery-check`` is the DNS check CalDART management reads before a bulk
 send; it is open to ``management`` and ``system_admin``.
@@ -17,7 +18,7 @@ from django.db.models import QuerySet
 from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
 from rest_framework import status
-from rest_framework.generics import ListAPIView
+from rest_framework.generics import ListAPIView, RetrieveAPIView
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
@@ -28,11 +29,12 @@ from apps.accounts.permissions import IsManagement, IsSystemAdmin
 from apps.mail.api.serializers import (
     BounceRunRequestSerializer,
     BounceRunResultSerializer,
+    BounceStatusSerializer,
     EmailLogSerializer,
     EmailPurposeSerializer,
     MailDeliveryCheckSerializer,
 )
-from apps.mail.bounces import BounceCheckError, check_bounces
+from apps.mail.bounces import BounceCheckError, bounce_checking_enabled, check_bounces
 from apps.mail.dns_check import check_mail_dns
 from apps.mail.filters import EmailLogFilterSet
 from apps.mail.links import log_links
@@ -92,6 +94,19 @@ class EmailLogListView(ListAPIView[EmailLog]):
         return order_email_log(narrowed, self.request.query_params.get("ordering", ""))
 
 
+class EmailLogDetailView(RetrieveAPIView[EmailLog]):
+    """``GET /system/emails/{id}`` -- one email of the log, as its list row reads.
+
+    Answers 404 for an id no row has.  The log keeps no copy of a message's body; a
+    message that belongs to a record, such as a copy of a bulk email, carries ``link``
+    to the page that shows it.
+    """
+
+    permission_classes = [IsSystemAdmin]
+    serializer_class = EmailLogSerializer
+    queryset = EmailLog.objects.select_related("user")
+
+
 class EmailPurposeListView(APIView):
     """``GET /system/emails/purposes`` -- the purposes the log's filter offers."""
 
@@ -110,6 +125,21 @@ class EmailPurposeListView(APIView):
         # they do not widen it to a list when ``many`` is set.
         serializer = EmailPurposeSerializer(rows, many=True)  # type: ignore[arg-type]
         return Response(serializer.data)
+
+
+class BounceStatusView(APIView):
+    """``GET /system/bounces`` -- whether bounce checking is set up."""
+
+    permission_classes = [IsSystemAdmin]
+
+    @extend_schema(responses={200: BounceStatusSerializer})
+    def get(self, request: Request) -> Response:
+        """Return ``{"enabled": <bool>}``, true when ``BOUNCE_IMAP_URL`` is set.
+
+        Nothing is read from the mailbox: a mailbox that is set up but cannot be read
+        is found by a run.
+        """
+        return Response(BounceStatusSerializer({"enabled": bounce_checking_enabled()}).data)
 
 
 class BounceRunView(APIView):

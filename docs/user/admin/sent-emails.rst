@@ -9,7 +9,8 @@ It answers "what did we send this person?" and "is our mail going out at all?" O
 administrator sees it, under **System** in the menu, because it lists every address the site
 has written to.
 
-The page is the log itself: the filters, then the table of emails.
+The page is the log itself: the filters, then the table of emails. Each email opens on a
+page of its own.
 
 
 What you see
@@ -24,7 +25,7 @@ Each row is one email. The table shows the columns checked under **Columns** (se
 - **Purpose**: what the email was for. For a copy of a bulk email, *Bulk email* is a link
   to that email's page on :doc:`../bulk-email/sent`, where its delivery report shows every
   copy.
-- **To**: the address it went to.
+- **To**: the address it went to, a link that opens the email (see `Opening an email`_).
 - **Name**: the recipient's name, when CalDART knows it. A DART contact on a roster has a
   name and no account.
 - **Subject**: the email's subject line.
@@ -45,6 +46,30 @@ keeps **To** pinned at the left.
 When there are more than 25 emails, the foot reads, for example, *Showing 1–25 of 412*, with
 **Previous** and **Next**; moving to another page brings the top of the table back into
 view.
+
+
+Opening an email
+================
+
+Press the address in **To** to open that email on a page of its own, headed by its subject.
+It reads, one line each:
+
+- **To**: the recipient's name, when CalDART knows it, and the address.
+- **For**: what the email was for, as **Purpose** reads in the table.
+- **Sent**: the date and time.
+- **Status**: *Sent*, *Failed*, or *Bounced*, beside its dot.
+- **Error**, for a failed send: the reason in words, such as *The mail server refused the
+  address.*, and under it what the server recorded, such as *Recorded as
+  SMTPRecipientsRefused*, to pass on to whoever runs the server.
+- **Bounced on** and **Bounce report**, for a bounced email: when the bounce came back and
+  what the recipient's mail server said.
+- **Attachments**: the names of any files attached.
+
+The log keeps who an email went to and what it was for. It keeps no copy of the text, so a
+password reset link or a verification link is never kept in it. A copy of a bulk email
+offers **Open the bulk email**, which opens that email's page on
+:doc:`../bulk-email/sent`, where its message is. **Back to sent emails** returns to the
+list with the filters, order, and page you opened the email from.
 
 
 Filtering the log

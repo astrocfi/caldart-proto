@@ -22,9 +22,10 @@ else. If your profile names a different DART later, the emails you write reach t
 from then on.
 
 If your profile names no DART, **Compose** shows *Your profile names no DART, so there is
-nobody to send to. Set your DART on My profile.* in place of the email, with a link to **My
-profile**; **Drafts and scheduled** shows the same line. Choose your DART there and press
-**Compose** again. An email you started earlier
+nobody to send to. Set your DART on My profile.* in place of the email, in a box with a
+link, **Open My profile**. The same box stands at the top of your **Dashboard**, **Drafts
+and scheduled**, **Sent**, and **Callouts**, and none of them offers **New email** until
+your DART is set. Choose your DART there and press **Compose** again. An email you started earlier
 says, in place of the filters, that it belongs to you and that your profile names no DART,
 so nobody can be added; CalDART management reads the same line if they open it.
 

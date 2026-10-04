@@ -6,8 +6,9 @@
  * from `REPORTS.emails`, and they live in the address beside the order and the
  * page, so a filtered view of the log is a link.  The column chooser drives the
  * table and the two export links together, so the downloads carry the columns on
- * screen, for every page rather than the one shown.  A message that belongs to a
- * record, such as a copy of a bulk email, links to it.
+ * screen, for every page rather than the one shown.  The address each email went to
+ * opens that email on its own page, and a message that belongs to a record, such as a
+ * copy of a bulk email, links to it.
  */
 import { useMemo } from 'react';
 import type { JSX } from 'react';
@@ -17,7 +18,7 @@ import type { EmailLogEntry, EmailStatus, ReportColumn } from '@/portal/api/type
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { DataTable } from '@/portal/components/DataTable';
-import { DateText } from '@/portal/components/DateText';
+import { DateText, formatDateTime } from '@/portal/components/DateText';
 import { clearedValues, FilterBar } from '@/portal/components/FilterBar';
 import type { ReportCell } from '@/portal/components/reportTable';
 import { ColumnTools, reportTableColumns, useColumnChoice } from '@/portal/components/reportTable';
@@ -31,7 +32,7 @@ import {
 import { reportExportUrl } from '@/portal/reports/api';
 import { listFilters, REPORTS } from '@/portal/reports/definitions';
 import type { FilterValues } from '@/portal/reports/types';
-import { EMAIL_LOG_PAGE_SIZE, useEmailLog, useEmailPurposes } from './api';
+import { EMAIL_LOG_PAGE_SIZE, FROM_LOG, useEmailLog, useEmailPurposes } from './api';
 
 /** The filters the panel draws: the email log report's own. */
 const FILTER_FIELDS = listFilters(REPORTS.emails);
@@ -93,7 +94,20 @@ export const CELLS: Record<string, ReportCell<EmailLogEntry>> = {
     render: (row) =>
       row.link === '' ? row.purpose_label : <Link to={row.link}>{row.purpose_label}</Link>,
   },
-  to_email: { minWidth: '13rem', isIdentity: true, render: (row) => row.to_email },
+  to_email: {
+    minWidth: '13rem',
+    isIdentity: true,
+    // The address opens the email's own page; its time tells two to one address apart.
+    render: (row) => (
+      <Link
+        to={`/system/emails/${row.id}`}
+        state={{ [FROM_LOG]: true }}
+        aria-label={`${row.to_email}, sent ${formatDateTime(row.sent_at)}`}
+      >
+        {row.to_email}
+      </Link>
+    ),
+  },
   user_name: {
     minWidth: '9rem',
     dropOrder: 6,

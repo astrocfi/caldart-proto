@@ -93,6 +93,12 @@ class BounceRunRequestSerializer(serializers.Serializer[dict[str, bool]]):
     dry_run = serializers.BooleanField(default=False)
 
 
+class BounceStatusSerializer(serializers.Serializer[dict[str, bool]]):
+    """``GET /system/bounces``: whether a bounce mailbox is configured."""
+
+    enabled = serializers.BooleanField()
+
+
 class BounceRunResultSerializer(serializers.Serializer[dict[str, object]]):
     """What one bounce check found, and who each failure was about.
 

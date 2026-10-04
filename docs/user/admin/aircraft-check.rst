@@ -16,8 +16,9 @@ A verifier, a DART leader, a user administrator, and an account administrator fi
 Searching
 =========
 
-Type into **Search by N-number**. The register is searched as you type, and a registration,
-a make, a model, or an owner's name all match, so a half-remembered tail number is enough.
+Type into **N-number, make, model, or owner**. The register is searched as you type, and a
+registration, a make, a model, or an owner's name all match, so a half-remembered tail
+number is enough.
 The leading N is optional, and spaces, dashes, and capitals are ignored.
 
 Each result is one line: the N-number, the make and model, and **GO** or **NO-GO** at the
@@ -77,7 +78,9 @@ the airplane out of service, and the make, model, year, and seats. Then come fiv
 
 **Owner**
    The owner's name, whether they are an individual, an FBO, or a flying club, and how to
-   reach them.
+   reach them. An email address or a phone number is a link: tap it to write or to call,
+   as on the :doc:`member-check` card. Each pilot's name under **Pilots who fly it** opens
+   their member check.
 
 **Last updated**
    The date of the last change to the record and who made it, such as *09/01/2026 by Dana
@@ -124,10 +127,10 @@ When the airplane is missing
 ============================
 
 A link that names a registration the register has never seen shows a card saying the
-airplane *is not in the register*, with *Nobody has added this aircraft yet. Ask the pilot
-to add it to their profile, or add it from the aircraft register.* **Back to search**
-above it goes back. A pilot adds an airplane from **My aircraft** on their own portal, and an
-account administrator can add it from the :doc:`aircraft-register`.
+airplane *is not in the register*, with *Ask the pilot to add it on My aircraft, or ask an
+account administrator.* **Back to search** above it goes back. A pilot adds an airplane
+from **My aircraft** on their own portal, and an account administrator can add it from the
+aircraft register.
 
 
 If something looks wrong

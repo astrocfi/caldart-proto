@@ -24,6 +24,7 @@ import { OWNER_TYPE_LABELS } from '@/portal/features/aircraft/form';
 import { insuranceTone } from '@/portal/features/aircraft/insurance';
 import { InsuranceVerificationPanel } from '@/portal/features/verification/InsuranceVerificationPanel';
 import { useCanVerify } from '@/portal/features/verification/useCanVerify';
+import { contactHref } from './contact';
 import { GoMark, isReady } from './LeaderLookup';
 import './leader.css';
 
@@ -128,6 +129,12 @@ export function InsuranceCheckDot({
     return <StatusDot tone="expiring" label="Not verified" />;
   }
   return <InsuranceDot aircraft={aircraft} today={today} />;
+}
+
+/** The owner's contact as a link when it is an email address or a phone number. */
+function OwnerContact({ contact }: { contact: string }): JSX.Element {
+  const href = contactHref(contact);
+  return href === null ? <>{contact}</> : <a href={href}>{contact}</a>;
 }
 
 /** The band's color: green for a go, amber while nobody has checked, red otherwise. */
@@ -240,7 +247,12 @@ export function AircraftStatusCard({ aircraft, today }: AircraftStatusCardProps)
           <dd>
             <span className="leader-row__detail">
               {aircraft.owner_name || 'Not recorded'} ({OWNER_TYPE_LABELS[aircraft.owner_type]})
-              {aircraft.owner_contact ? ` · ${aircraft.owner_contact}` : ''}
+              {aircraft.owner_contact ? (
+                <>
+                  {' · '}
+                  <OwnerContact contact={aircraft.owner_contact} />
+                </>
+              ) : null}
             </span>
           </dd>
         </div>

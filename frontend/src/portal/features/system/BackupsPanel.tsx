@@ -1,6 +1,7 @@
 /**
- * The backups panel of `/portal/system/health`: what is on disk, a button
- * that takes a fresh dump, and a download link per file.
+ * The backups panel of `/portal/system/health`: the backups on the server, a button
+ * that takes one, and a download link per file.  Restoring one is done on the server,
+ * so the panel says who to ask rather than offering a button.
  */
 import { useRef } from 'react';
 import type { JSX } from 'react';
@@ -15,7 +16,7 @@ import { useToast } from '@/portal/components/Toast';
 import { useFocusAfterSave } from '@/portal/components/focus';
 import { backupDownloadUrl, useBackups, useCreateBackup } from './api';
 
-/** Human file size; dumps run from a few hundred kB to a few hundred MB. */
+/** Human file size; backups run from a few hundred kB to a few hundred MB. */
 export function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   const kb = bytes / 1024;
@@ -69,7 +70,7 @@ const COLUMNS: Column<Backup>[] = [
   },
 ];
 
-/** Lists the database dumps on disk and offers a button to take a fresh one. */
+/** Lists the backups on the server and offers a button to take one. */
 export function BackupsPanel(): JSX.Element {
   const { data, isPending, isError, error } = useBackups();
   const create = useCreateBackup();
@@ -80,7 +81,7 @@ export function BackupsPanel(): JSX.Element {
 
   const handleCreateBackup = () => {
     create.mutate(undefined, {
-      onSuccess: (backup) => toast.show(`Wrote ${backup.name}`, 'success'),
+      onSuccess: () => toast.show('Backup taken.', 'success'),
       onError: (failure) =>
         toast.show(failure instanceof Error ? failure.message : 'The backup failed.', 'error'),
     });
@@ -96,15 +97,14 @@ export function BackupsPanel(): JSX.Element {
           </Button>
           {create.isPending ? (
             <span className="muted" role="status">
-              pg_dump is running; large databases take a minute.
+              Taking a backup. A large database takes a minute or two.
             </span>
           ) : null}
         </>
       }
     >
       <p className="muted">
-        Dumps are written to <code className="mono">BACKUP_DIR</code> on the server. Restoring one
-        is a command-line job: <code className="mono">manage.py db_restore</code>.
+        There is no restore button. To restore a backup, ask the person who installed the site.
       </p>
 
       {isError ? (

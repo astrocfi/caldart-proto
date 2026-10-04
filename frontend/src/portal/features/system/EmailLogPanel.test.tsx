@@ -136,6 +136,14 @@ describe('EmailLogPanel', () => {
     expect(row).toHaveTextContent('CalDART: your receipt for $95.00');
   });
 
+  it('opens each email on its own page from the address it went to', async () => {
+    server.use(emailsHandler(ENTRIES));
+    renderWithProviders(<EmailLogPanel />);
+
+    const link = await screen.findByRole('link', { name: /^marta\.reyes@example\.org, sent / });
+    expect(link).toHaveAttribute('href', '/system/emails/903');
+  });
+
   it('shows the columns checked in the chooser, such as the attachments', async () => {
     server.use(emailsHandler(ENTRIES), registryHandler(registry('attachments')));
     renderWithProviders(<EmailLogPanel />);

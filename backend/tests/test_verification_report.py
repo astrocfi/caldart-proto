@@ -1,10 +1,11 @@
 """The CalDART verification report: what a verifier still has to check, item by item.
 
 The report has four sections, pilot certificates, medicals, photo IDs, and aircraft
-insurance, each present even when it has no rows.  A person is listed in each of the
-first three once, an aircraft in the fourth once, and ``?status=`` chooses whether the
-unverified items (the default), the verified ones, or all of them are listed.  Every
-verifying role reads it, and a subscription can send it to any of them.
+insurance, each present even when it has no rows.  A person is listed once in each of
+the first three for an item they hold, an aircraft in the fourth once when it has a
+policy on file, and ``?status=`` chooses whether the unverified items (the default),
+the verified ones, or all of them are listed.  Every verifying role reads it, and a
+subscription can send it to any of them.
 """
 
 from __future__ import annotations
@@ -78,9 +79,15 @@ def section_titles(params: Params | None = None) -> list[str]:
     return [section.title for section in table.sections]
 
 
+#: Every column of the report, for the tests that read the cells the defaults leave out.
+ALL_COLUMNS = ",".join(column.key for column in VERIFICATION_REPORT_COLUMNS)
+
+
 def cells(section: str, name: str, params: Params | None = None) -> list[str]:
-    """Every default cell after Section and Name of the row ``(section, name)``."""
-    table = VERIFICATION_REPORT.table(params or {}, fmt="csv", today=TODAY)
+    """Every cell after Section and Name of the row ``(section, name)``, any column."""
+    table = VERIFICATION_REPORT.table(
+        {**(params or {}), "columns": ALL_COLUMNS}, fmt="csv", today=TODAY
+    )
     return next(row[2:] for row in table.rows if row[0] == section and row[1] == name)
 
 
@@ -146,10 +153,35 @@ def test_every_column_is_registered_in_export_order() -> None:
     ]
 
 
-def test_every_column_is_on_by_default() -> None:
-    """Choosing no columns prints all eight."""
+def test_the_default_columns_leave_out_the_stamp() -> None:
+    """Choosing no columns prints Section, Name, DART, Details, and Updated.
+
+    The verified columns are always *No* and blank in the default list of items nobody
+    has checked.
+    """
     chosen = select_columns(VERIFICATION_REPORT_COLUMNS, None)
-    assert len(chosen) == len(VERIFICATION_REPORT_COLUMNS)
+    assert [column.key for column in chosen] == ["section", "name", "dart", "details", "updated"]
+
+
+def test_the_default_csv_keeps_each_row_s_section() -> None:
+    """A flat CSV has no headings, so its first column says which section a row is in."""
+    person()
+    table = VERIFICATION_REPORT.table({}, fmt="csv", today=TODAY)
+    assert table.header == ["Section", "Name", "DART", "Details", "Updated"]
+
+
+def test_the_default_pdf_leaves_the_section_to_its_headings() -> None:
+    """Each PDF section is headed by its title, so the column would only repeat it."""
+    person()
+    table = VERIFICATION_REPORT.table({}, fmt="pdf", today=TODAY)
+    assert table.header == ["Name", "DART", "Details", "Updated"]
+
+
+def test_a_pdf_that_asks_for_the_section_column_prints_it() -> None:
+    """Asked for by name, the Section column is printed in the PDF too."""
+    person()
+    table = VERIFICATION_REPORT.table({"columns": "section,name"}, fmt="pdf", today=TODAY)
+    assert table.header == ["Section", "Name"]
 
 
 def test_the_registry_files_the_report_under_its_slug() -> None:
@@ -301,10 +333,29 @@ def test_a_medical_reads_its_class_and_expiration() -> None:
     assert cells("Medicals", "Pat Doe")[1] == "Third class \u00b7 expires 03/01/2027"
 
 
-def test_no_medical_reads_none() -> None:
-    """A member with no medical and no expiration reads *None*."""
+@pytest.mark.parametrize("status", ["unverified", "all"])
+def test_a_person_without_a_medical_is_not_listed_under_medicals(status: str) -> None:
+    """With no medical there is nothing to verify, whatever the status asked for."""
     person(medical_type=MedicalType.NONE, medical_expiration=None)
-    assert cells("Medicals", "Pat Doe")[1] == "None"
+    assert pairs(rows_for({"status": status})) == [
+        ("Pilot certificates", "Pat Doe"),
+        ("Photo IDs", "Pat Doe"),
+    ]
+
+
+def test_a_non_pilot_is_not_listed_under_pilot_certificates() -> None:
+    """*Not a pilot* holds no certificate to verify."""
+    person(pilot_certificate_type=PilotCertificateType.NONE, certificate_number="")
+    assert [section for section, _name in pairs(rows_for())] == ["Medicals", "Photo IDs"]
+
+
+def test_a_person_without_a_photo_id_is_not_listed_under_photo_ids() -> None:
+    """A photo ID of *Not provided* is no document a verifier could check."""
+    person(photo_id_type=PhotoIdType.NOT_PROVIDED)
+    assert [section for section, _name in pairs(rows_for())] == [
+        "Pilot certificates",
+        "Medicals",
+    ]
 
 
 def test_a_photo_id_reads_its_kind() -> None:
@@ -327,10 +378,10 @@ def test_insurance_reads_the_owner_the_carrier_and_the_expiration() -> None:
     ]
 
 
-def test_insurance_with_nothing_on_file_has_blank_details() -> None:
-    """No carrier and no expiration leave the Details cell empty."""
+def test_an_aircraft_with_no_policy_on_file_is_not_listed() -> None:
+    """Insurance with no expiration is no policy, so there is nothing to verify."""
     AircraftFactory(n_number="N123AB", insurance_carrier="", insurance_expiration=None)
-    assert cells("Aircraft insurance", "N123AB")[1] == ""
+    assert rows_for({"status": "all"}) == []
 
 
 def test_a_person_s_updated_cell_is_when_the_profile_was_last_written() -> None:
@@ -373,7 +424,7 @@ def test_an_item_whose_verifier_is_gone_still_reads_verified() -> None:
 def test_the_section_cell_carries_the_section() -> None:
     """The flat CSV keeps each row's section in its first cell."""
     person()
-    table = VERIFICATION_REPORT.table({}, fmt="csv", today=TODAY)
+    table = VERIFICATION_REPORT.table({"columns": ALL_COLUMNS}, fmt="csv", today=TODAY)
     assert [row[0] for row in table.rows] == SECTION_TITLES[:3]
 
 
@@ -430,14 +481,36 @@ def test_status_refuses_anything_else() -> None:
 
 
 def test_the_default_status_is_named_among_the_filters() -> None:
-    """With nothing given, the PDF subtitle still says the unverified items are listed."""
-    assert VERIFICATION_REPORT.query({}).filters == {"status": "unverified"}
+    """With nothing given, the PDF subtitle says the items not yet verified are listed."""
+    assert VERIFICATION_REPORT.query({}).filters == {"Showing": "Not yet verified"}
+
+
+@pytest.mark.parametrize(("status", "words"), [("verified", "Verified"), ("all", "Everything")])
+def test_each_status_is_named_in_words(status: str, words: str) -> None:
+    """The subtitle names the status as a reader would say it."""
+    assert VERIFICATION_REPORT.query({"status": status}).filters == {"Showing": words}
 
 
 def test_the_report_names_the_filters_it_applied(dart: Dart) -> None:
-    """Status and DART, in that order, and nothing it does not read."""
+    """Status and the DART by name, in that order, and nothing it does not read."""
     query = VERIFICATION_REPORT.query({"dart": str(dart.pk), "status": "all", "page": "2"})
-    assert query.filters == {"status": "all", "dart": str(dart.pk)}
+    assert query.filters == {"Showing": "Everything", "DART": dart.name}
+
+
+def test_a_dart_given_by_part_of_its_name_is_named_as_given() -> None:
+    """A name fragment names no one DART, so the subtitle repeats it."""
+    assert VERIFICATION_REPORT.query({"dart": "south"}).filters == {
+        "Showing": "Not yet verified",
+        "DART": "south",
+    }
+
+
+def test_the_pdf_subtitle_reads_in_words(
+    account_admin_client: APIClient, pdf_text: PdfText
+) -> None:
+    """The line under the title reads *Showing: Not yet verified*."""
+    strings = pdf_text(account_admin_client.get(PDF_URL).content)[0]
+    assert strings[1] == "Showing: Not yet verified"
 
 
 # --------------------------------------------------------------------------
