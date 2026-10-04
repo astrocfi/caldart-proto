@@ -36,10 +36,13 @@ interface ReminderScheduleCardProps {
 /** The reminder schedule, editable unless `readOnly`. */
 export function ReminderScheduleCard({ readOnly = false }: ReminderScheduleCardProps): JSX.Element {
   const schedule = useReminderSchedule();
+  // On the Scheduled page the eyebrow sorts the panels; the Reminders page is about
+  // membership already, so its card goes without.
+  const eyebrow = readOnly ? undefined : EYEBROW;
 
   if (schedule.isPending) {
     return (
-      <Card eyebrow={EYEBROW} title={TITLE}>
+      <Card eyebrow={eyebrow} title={TITLE}>
         <p className="muted" role="status">
           Loading the reminder schedule…
         </p>
@@ -49,14 +52,14 @@ export function ReminderScheduleCard({ readOnly = false }: ReminderScheduleCardP
 
   if (schedule.isError) {
     return (
-      <Card eyebrow={EYEBROW} title={TITLE}>
+      <Card eyebrow={eyebrow} title={TITLE}>
         <p className="muted">The reminder schedule didn&apos;t load. Try again in a moment.</p>
       </Card>
     );
   }
 
   return (
-    <Card eyebrow={EYEBROW} title={TITLE}>
+    <Card eyebrow={eyebrow} title={TITLE}>
       {readOnly ? (
         <ScheduleFacts stored={schedule.data} />
       ) : (

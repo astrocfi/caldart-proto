@@ -192,7 +192,7 @@ export function RefundForm({ payment, onDone, onCancel }: RefundFormProps): JSX.
       </Field>
 
       {canEndTerm(payment) ? (
-        <label className="cluster">
+        <label className="finance-form__check">
           <input
             type="checkbox"
             checked={cancelTerm}
