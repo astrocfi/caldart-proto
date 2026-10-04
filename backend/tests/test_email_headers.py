@@ -81,8 +81,8 @@ def test_a_non_ascii_site_host_reaches_the_header_in_its_ascii_form(
     member: User, mission: EmailType, settings: Settings
 ) -> None:
     """Each host is IDNA-encoded, so the header stays the ASCII a mail program reads."""
-    settings.SITE_URL = "https://caldärt.example.org:8443/caldart"
-    make_site_settings(contact_email="contact@caldärt.example.org")
+    settings.SITE_URL = "https://cald\u00e4rt.example.org:8443/caldart"
+    make_site_settings(contact_email="contact@cald\u00e4rt.example.org")
 
     header = headers_for(member, mission)["List-Unsubscribe"]
 

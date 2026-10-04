@@ -104,8 +104,8 @@ def unsubscribe_url(user: User, email_type: EmailType) -> str:
 def _ascii_host(host: str) -> str:
     """``host`` (a domain, with or without a ``:port``) with each label in its IDNA form.
 
-    An ASCII host comes back unchanged; ``caldärt.example.org`` becomes
-    ``xn--caldrt-eua.example.org``.
+    An ASCII host comes back unchanged; ``cald\u00e4rt.example.org``, with an a-umlaut,
+    becomes ``xn--caldrt-eua.example.org``.
     """
     return host.encode("idna").decode("ascii")
 
