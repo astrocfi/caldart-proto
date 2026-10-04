@@ -4,7 +4,7 @@
  * fresh is the record?  A verifier corrects and verifies the insurance from the
  * card's head.
  */
-import { useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import type { JSX } from 'react';
 
 import type { Aircraft, AircraftDetail } from '@/portal/api/types';
@@ -14,6 +14,7 @@ import { Money } from '@/portal/components/Money';
 import { StatusChip } from '@/portal/components/StatusChip';
 import type { StatusTone } from '@/portal/components/StatusChip';
 import { VerifiedMark } from '@/portal/components/VerifiedMark';
+import { usePanelFocus } from '@/portal/components/focus';
 import { InsuranceChip } from '@/portal/features/aircraft/InsuranceChip';
 import { ServiceChip } from '@/portal/features/aircraft/ServiceChip';
 import { categoryLine } from '@/portal/features/aircraft/categories';
@@ -97,6 +98,9 @@ export function AircraftStatusCard({ aircraft, today }: AircraftStatusCardProps)
   const verdict = aircraftVerdict(aircraft, today);
   const canVerify = useCanVerify();
   const [verifying, setVerifying] = useState(false);
+  const verifyRef = useRef<HTMLButtonElement>(null);
+  const handleCloseVerify = useCallback(() => setVerifying(false), []);
+  const panelRef = usePanelFocus(verifying ? 'verify' : null, handleCloseVerify, verifyRef);
   // Only a leader or administrator is sent the pilot list.
   const pilots = aircraft.pilots ?? [];
 
@@ -120,7 +124,7 @@ export function AircraftStatusCard({ aircraft, today }: AircraftStatusCardProps)
         </p>
         {canVerify && !verifying ? (
           <div className="leader-card__actions cluster">
-            <Button variant="secondary" small onClick={() => setVerifying(true)}>
+            <Button ref={verifyRef} variant="secondary" small onClick={() => setVerifying(true)}>
               Verify
             </Button>
           </div>
@@ -128,7 +132,9 @@ export function AircraftStatusCard({ aircraft, today }: AircraftStatusCardProps)
       </header>
 
       {verifying ? (
-        <InsuranceVerificationPanel aircraft={aircraft} onClose={() => setVerifying(false)} />
+        <div ref={panelRef}>
+          <InsuranceVerificationPanel aircraft={aircraft} onClose={handleCloseVerify} />
+        </div>
       ) : null}
 
       <dl className="leader-rows">

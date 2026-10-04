@@ -4,7 +4,7 @@
  *
  * **Verify** swaps the list for the verification panel; a save or Cancel swaps it back.
  */
-import { useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import type { JSX } from 'react';
 
 import type { AdminProfile, LeaderStatus, VerificationItem } from '@/portal/api/types';
@@ -13,6 +13,7 @@ import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { formatDate } from '@/portal/components/DateText';
 import { VerifiedMark } from '@/portal/components/VerifiedMark';
+import { usePanelFocus } from '@/portal/components/focus';
 import { MemberVerificationPanel } from './MemberVerificationPanel';
 import { ITEM_LABELS, ITEM_SLUGS, PHOTO_ID_LABELS } from './labels';
 import { draftFromProfile } from './memberDraft';
@@ -57,15 +58,22 @@ export function MemberVerificationCard({
 }: MemberVerificationCardProps): JSX.Element {
   const canVerify = useCanVerify() && checkable;
   const [verifying, setVerifying] = useState(false);
+  // The panel takes the card's place, Verify with it, so the button gets the focus back
+  // as the panel closes.
+  const verifyRef = useRef<HTMLButtonElement>(null);
+  const handleCloseVerify = useCallback(() => setVerifying(false), []);
+  const panelRef = usePanelFocus(verifying ? 'verify' : null, handleCloseVerify, verifyRef);
 
   if (verifying) {
     return (
-      <MemberVerificationPanel
-        userId={userId}
-        initial={draftFromProfile(profile)}
-        onSaved={handleSaved}
-        onClose={() => setVerifying(false)}
-      />
+      <div ref={panelRef}>
+        <MemberVerificationPanel
+          userId={userId}
+          initial={draftFromProfile(profile)}
+          onSaved={handleSaved}
+          onClose={handleCloseVerify}
+        />
+      </div>
     );
   }
 
@@ -74,7 +82,7 @@ export function MemberVerificationCard({
       title="Verification"
       footer={
         canVerify ? (
-          <Button variant="secondary" small onClick={() => setVerifying(true)}>
+          <Button ref={verifyRef} variant="secondary" small onClick={() => setVerifying(true)}>
             Verify
           </Button>
         ) : null

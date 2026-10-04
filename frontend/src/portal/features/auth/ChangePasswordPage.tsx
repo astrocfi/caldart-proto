@@ -1,10 +1,15 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { JSX } from 'react';
 import { Link } from 'react-router-dom';
 
 import { usePasswordChange } from '@/portal/auth/useAuth';
 import { Button } from '@/portal/components/Button';
 import { Field } from '@/portal/components/Field';
+import {
+  RefusedSubmitNote,
+  useFreshErrors,
+  useRefusedSubmit,
+} from '@/portal/components/RefusedSubmit';
 import { useToast } from '@/portal/components/Toast';
 import { AuthShell } from './AuthShell';
 import { FormAlert, fieldError } from './form';
@@ -17,15 +22,30 @@ export function ChangePasswordPage(): JSX.Element {
   const [password, setPassword] = useState('');
   const [repeat, setRepeat] = useState('');
   const [mismatch, setMismatch] = useState<string | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const refusal = useRefusedSubmit(formRef, change.error);
+  // The server's complaint about a box goes once the box is edited.
+  const serverErrors = useFreshErrors(
+    change.error,
+    { current_password: current, new_password: password },
+    {
+      current_password: fieldError(change.error, 'current_password'),
+      new_password: fieldError(change.error, 'new_password'),
+    },
+  );
 
   return (
     <AuthShell title="Change your password" lede="You stay signed in on this device.">
       <form
+        ref={formRef}
         noValidate
         onSubmit={(event) => {
           event.preventDefault();
           if (password !== repeat) {
+            // What the server said about the last attempt no longer applies.
+            change.reset();
             setMismatch('The two passwords do not match.');
+            refusal.refuse();
             return;
           }
           setMismatch(null);
@@ -42,11 +62,7 @@ export function ChangePasswordPage(): JSX.Element {
           );
         }}
       >
-        <Field
-          label="Current password"
-          required
-          error={fieldError(change.error, 'current_password')}
-        >
+        <Field label="Current password" required error={serverErrors.current_password}>
           {(props) => (
             <input
               {...props}
@@ -62,7 +78,7 @@ export function ChangePasswordPage(): JSX.Element {
         <Field
           label="New password"
           required
-          error={fieldError(change.error, 'new_password')}
+          error={serverErrors.new_password}
           hint="At least 8 characters, and not a password you have used elsewhere."
         >
           {(props) => (
@@ -73,7 +89,10 @@ export function ChangePasswordPage(): JSX.Element {
               autoComplete="new-password"
               required
               value={password}
-              onChange={(event) => setPassword(event.target.value)}
+              onChange={(event) => {
+                setPassword(event.target.value);
+                setMismatch(null);
+              }}
             />
           )}
         </Field>
@@ -86,7 +105,10 @@ export function ChangePasswordPage(): JSX.Element {
               autoComplete="new-password"
               required
               value={repeat}
-              onChange={(event) => setRepeat(event.target.value)}
+              onChange={(event) => {
+                setRepeat(event.target.value);
+                setMismatch(null);
+              }}
             />
           )}
         </Field>
@@ -98,6 +120,7 @@ export function ChangePasswordPage(): JSX.Element {
             {change.isPending ? 'Saving…' : 'Change password'}
           </Button>
           <Link to="/">Back to the dashboard</Link>
+          <RefusedSubmitNote count={refusal.count} />
         </div>
       </form>
     </AuthShell>

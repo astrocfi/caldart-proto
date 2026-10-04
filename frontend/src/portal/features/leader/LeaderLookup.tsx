@@ -4,9 +4,10 @@
  * the chosen record's card in place of the search.
  *
  * The chosen record lives in the query string, so a leader can send a link, use
- * the back button, and reload without losing the card.
+ * the back button, and reload without losing the card.  Picking a result moves the
+ * focus to its card, and **Back to search** moves it back to the search box.
  */
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { JSX, Key, ReactNode } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
@@ -85,6 +86,17 @@ export function LeaderLookup<T>({
   const debounced = useDebounced(term.trim());
   const search = useResults(selected === null ? debounced : '');
 
+  // The focus follows the leader between the search and a card, once they have moved
+  // between them; a page opened on a card or a search leaves it where the page puts it.
+  const searchRef = useRef<HTMLInputElement>(null);
+  const selectedRef = useRef<HTMLDivElement>(null);
+  const shownRef = useRef(selected);
+  useEffect(() => {
+    if (shownRef.current === selected) return;
+    shownRef.current = selected;
+    (selected === null ? searchRef : selectedRef).current?.focus();
+  }, [selected]);
+
   const handleBack = (): void => {
     setParams({});
   };
@@ -97,7 +109,9 @@ export function LeaderLookup<T>({
             ← Back to search
           </Button>
         </div>
-        {renderSelected(selected, handleBack)}
+        <div ref={selectedRef} tabIndex={-1} className="stack leader-selected">
+          {renderSelected(selected, handleBack)}
+        </div>
       </Page>
     );
   }
@@ -113,6 +127,7 @@ export function LeaderLookup<T>({
           {(field) => (
             <input
               {...field}
+              ref={searchRef}
               type="search"
               autoComplete="off"
               spellCheck={false}

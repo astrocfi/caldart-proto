@@ -7,13 +7,14 @@
  * with a settled contribution in the chosen year; `/admin/payments/donors` is
  * where a treasurer reads the donors themselves.
  */
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { ChangeEvent, JSX } from 'react';
 
 import type { StatementsRunResult } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { RunActionsTable } from '@/portal/components/RunActionsTable';
+import { useFocusAfterSave } from '@/portal/components/focus';
 import { useRunStatements } from './api';
 
 /** The year the panel offers by default: the one the January run sends. */
@@ -40,6 +41,9 @@ export function StatementsPanel(): JSX.Element {
   const [lastRunWasDry, setLastRunWasDry] = useState(true);
 
   const run = useRunStatements();
+  // The button is disabled while it runs; it gets the focus back once the run ends.
+  const runRef = useRef<HTMLButtonElement>(null);
+  useFocusAfterSave(runRef, run.isPending);
 
   const handleRun = (): void => {
     setLastRunWasDry(dryRun);
@@ -60,7 +64,7 @@ export function StatementsPanel(): JSX.Element {
       title="Year-end statements"
       footer={
         <>
-          <Button onClick={handleRun} disabled={run.isPending || year.trim() === ''}>
+          <Button ref={runRef} onClick={handleRun} disabled={run.isPending || year.trim() === ''}>
             {run.isPending ? 'Running…' : 'Run now'}
           </Button>
           <label className="cluster">

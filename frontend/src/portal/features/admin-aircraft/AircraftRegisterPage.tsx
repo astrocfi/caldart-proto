@@ -35,12 +35,12 @@ import { Page } from '@/portal/components/Page';
 import type { ReportCell } from '@/portal/components/reportTable';
 import { ColumnTools, reportTableColumns, useColumnChoice } from '@/portal/components/reportTable';
 import { useToast } from '@/portal/components/Toast';
-import { usePanelFocus } from '@/portal/components/focus';
 import { useUrlFilters } from '@/portal/components/useUrlFilters';
 import {
   useFirstPageWhenMissing,
   useUrlListPosition,
 } from '@/portal/components/useUrlListPosition';
+import { usePanelFocus } from '@/portal/components/focus';
 import { useRegistryStatus } from '@/portal/api/queries';
 import { useAuth } from '@/portal/auth/useAuth';
 import type { RegistryStatus } from '@/portal/api/types';

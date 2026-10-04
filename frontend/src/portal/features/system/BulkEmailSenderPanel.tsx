@@ -9,12 +9,14 @@
  * already pressed Send on. The button sits above what the last run did, so a long
  * list of copies never pushes it out of reach.
  */
+import { useRef } from 'react';
 import type { JSX } from 'react';
 
 import type { BulkEmailRunResult } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { RunActionsTable } from '@/portal/components/RunActionsTable';
+import { useFocusAfterSave } from '@/portal/components/focus';
 import { useRunBulkEmailSender } from './api';
 
 /** What the panel says when another run was already sending. */
@@ -41,6 +43,9 @@ function senderKindLabel(kind: string): string {
 /** Runs the bulk email sender on demand and reports what it sent. */
 export function BulkEmailSenderPanel(): JSX.Element {
   const run = useRunBulkEmailSender();
+  // The button is disabled while it runs; it gets the focus back once the run ends.
+  const runRef = useRef<HTMLButtonElement>(null);
+  useFocusAfterSave(runRef, run.isPending);
 
   return (
     <Card eyebrow="Email" title="Bulk email sender">
@@ -50,7 +55,7 @@ export function BulkEmailSenderPanel(): JSX.Element {
         page waits up to 45 seconds; a larger send carries on in the background after that.
       </p>
       <div className="cluster">
-        <Button onClick={() => run.mutate()} disabled={run.isPending}>
+        <Button ref={runRef} onClick={() => run.mutate()} disabled={run.isPending}>
           {run.isPending ? 'Running…' : 'Run the bulk email sender now'}
         </Button>
       </div>

@@ -10,7 +10,7 @@
  * confirmation, because it charges every member whose renewal is due, and a cleared
  * checkbox is a quiet thing to lean a hundred charges on.
  */
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { ChangeEvent, JSX } from 'react';
 
 import type { RenewalRunResult } from '@/portal/api/types';
@@ -18,6 +18,7 @@ import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { ConfirmButton } from '@/portal/components/ConfirmButton';
 import { RunActionsTable } from '@/portal/components/RunActionsTable';
+import { useFocusAfterSave } from '@/portal/components/focus';
 import { useRunRenewals } from './api';
 
 /** The sentence shown after a run, in the past tense or the conditional. */
@@ -59,6 +60,9 @@ export function RenewalsPanel(): JSX.Element {
   const [lastRunWasDry, setLastRunWasDry] = useState(true);
 
   const run = useRunRenewals();
+  // The button is disabled while it runs; it gets the focus back once the run ends.
+  const runRef = useRef<HTMLButtonElement>(null);
+  useFocusAfterSave(runRef, run.isPending);
 
   const handleRehearse = (): void => {
     setLastRunWasDry(true);
@@ -81,7 +85,7 @@ export function RenewalsPanel(): JSX.Element {
       footer={
         <>
           {dryRun ? (
-            <Button onClick={handleRehearse} disabled={run.isPending}>
+            <Button ref={runRef} onClick={handleRehearse} disabled={run.isPending}>
               {run.isPending ? 'Running…' : 'Run now'}
             </Button>
           ) : (
