@@ -1950,7 +1950,9 @@ Action                        Fields beyond actor and target
                               took a queued email back to a draft
 ``bulk_email.stop``           ``recipients`` -- the copies kept back; written
                               when the stop takes effect
-``bulk_email.resume``         ``recipients`` -- the copies queued again
+``bulk_email.resume``         ``recipients``, ``skipped`` -- the stopped copies
+                              **Send the rest** queued again, and those it
+                              found skipped
 ``bulk_email.retry``          ``recipients``, ``skipped`` -- the failed copies
                               **Retry failed** queued again, and those it
                               found skipped

@@ -23,6 +23,7 @@ from pytest_django import Settings
 from rest_framework.test import APIClient
 
 from apps.bulk_email import drafts, job
+from apps.bulk_email.batch import SKIP_DEACTIVATED
 from apps.bulk_email.models import BulkEmail, BulkEmailStatus, RecipientStatus
 from apps.bulk_email.render import render_copy
 from apps.mail.models import EmailLog
@@ -120,6 +121,13 @@ def statuses(bulk: BulkEmail) -> list[tuple[str, str, str]]:
     return [
         (row.email, row.status, row.reason) for row in bulk.recipients.order_by("user__last_name")
     ]
+
+
+def account(bulk: BulkEmail, address: str) -> User:
+    """The account behind ``bulk``'s row for ``address``."""
+    user = bulk.recipients.select_related("user").get(email=address).user
+    assert user is not None
+    return user
 
 
 def refreshed(bulk: BulkEmail) -> BulkEmail:
@@ -468,6 +476,45 @@ def test_send_the_rest_starts_at_once(
     job.run_sender(now=NOW)
     resumed = drafts.resume(three, actor=management, now=NOW)
     assert (resumed.status, resumed.start_at) == (BulkEmailStatus.QUEUED, NOW)
+
+
+def test_send_the_rest_skips_a_person_deactivated_since_the_stop(
+    three: BulkEmail, management: User, stop_after_first: None
+) -> None:
+    """Each stopped copy is checked again: Bea, deactivated meanwhile, is skipped."""
+    job.run_sender(now=NOW)
+    bea = account(three, "bea@example.test")
+    bea.is_active = False
+    bea.save()
+    drafts.resume(three, actor=management, now=NOW)
+    job.run_sender(now=NOW)
+    assert statuses(three) == [
+        ("ann@example.test", RecipientStatus.SENT, ""),
+        ("bea@example.test", RecipientStatus.SKIPPED, SKIP_DEACTIVATED),
+        ("cy@example.test", RecipientStatus.SENT, ""),
+    ]
+
+
+def test_send_the_rest_sends_nothing_to_an_account_deleted_since_the_stop(
+    three: BulkEmail, management: User, stop_after_first: None
+) -> None:
+    """A deleted account's stored address is not sent the rest."""
+    job.run_sender(now=NOW)
+    account(three, "cy@example.test").delete()
+    drafts.resume(three, actor=management, now=NOW)
+    job.run_sender(now=NOW)
+    assert [message.to[0] for message in mail.outbox] == ["ann@example.test", "bea@example.test"]
+
+
+def test_send_the_rest_counts_the_people_it_skips(
+    three: BulkEmail, management: User, stop_after_first: None
+) -> None:
+    """The skipped count includes the stopped copies skipped on the second look."""
+    job.run_sender(now=NOW)
+    account(three, "cy@example.test").delete()
+    drafts.resume(three, actor=management, now=NOW)
+    job.run_sender(now=NOW)
+    assert (refreshed(three).sent_count, refreshed(three).skipped_count) == (2, 1)
 
 
 def test_send_the_rest_is_refused_unless_the_email_was_stopped(

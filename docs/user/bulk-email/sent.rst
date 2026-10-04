@@ -45,17 +45,18 @@ One email's page
 The page of one sent email says under its subject who sent it and when, such as *Sent by
 Grace Holloway on 10/03/2026 at 5:34 PM.*, and has three cards:
 
-- **Where it stands**: while it sends, *Sending… 12 of 38 sent, about 1 minute left.* with a
-  bar and **Stop sending**, which stops it after the copy going out now, once you press
-  **Stop now**; copies already sent cannot be called back. When it is finished, a line such
-  as *Sent to 37 people. 1 failed and 4 were skipped.* (a count of nobody is left out), or
-  *Everyone was sent a copy.*,
-  followed by *2 came back undelivered.* once copies have bounced (`The delivery report`_). A
-  stopped email reads *Stopped by* who stopped it, with **Send the rest**, which sends it to
-  everybody the stop kept it from once you press **Send them now**. Nobody gets it twice, it
-  starts within a minute, and the email reads *Waiting to send the rest* until then, with
-  **Stop sending**. A mission callout adds *This is a mission callout.* with **See who can
-  fly**, which opens its answers on :doc:`callouts`.
+- **Where it stands**: while it sends, *Sending… 12 of 38 sent, about 1 minute left.* with
+  a bar and **Stop sending**, which stops it after the copy going out now, once you press
+  **Stop now**; copies already sent cannot be called back. When it is finished, a line
+  such as *Sent to 37 people. 1 failed and 4 were skipped.* (a count of nobody is left
+  out), or *Everyone was sent a copy.*, followed by *2 came back undelivered.* once copies
+  have bounced (`The delivery report`_). A stopped email reads *Stopped by* who stopped
+  it, with **Send the rest**, which sends it to everybody the stop kept it from once you
+  press **Send them now**. Each of them is checked again first, as **Retry failed** checks
+  (below), and marked *Skipped* with the reason when they can no longer receive it. Nobody
+  gets it twice, it starts within a minute, and the email reads *Waiting to send the rest*
+  until then, with **Stop sending**. A mission callout adds *This is a mission callout.*
+  with **See who can fly**, which opens its answers on :doc:`callouts`.
 - **The message**: the email as it was sent, with the subject at its head, and above it its
   type and *Replies go to:* with the Reply-To address its copies carried. Fields such as
   *{first_name}* show as written, because each person's copy had their own details filled

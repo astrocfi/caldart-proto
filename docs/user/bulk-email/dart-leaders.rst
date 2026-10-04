@@ -76,4 +76,5 @@ If an email went back to your drafts with *Your DART changed, so this email was 
 Add the people again and send when it is ready.*, your profile names a different DART than
 the one you built the batch in. Open it from **Drafts & scheduled**, press **Clear batch**,
 add the people of your DART, and send it again. A send you stopped and then finished with
-**Send the rest** also skips anybody who has left your DART since, with *Not in your DART*.
+**Send the rest** also skips anybody who has left your DART since, with *Not in your DART*,
+as it skips anybody else who can no longer receive it.

@@ -517,13 +517,17 @@ had gone records nothing, and the email reads ``sent``.
 ``POST /bulk-email/{id}/resume``
 --------------------------------
 
-**Send the rest** of a stopped send: every ``stopped`` row goes back to
-``pending`` and the email is queued to start now, with no undo window.  **200**
-with the email.  Nobody already sent a copy is sent another.  The email keeps its
-``started_at``, so it stays read-only (:ref:`the edit rule <bulk-email-edit-rule>`).  An email that is not
-``stopped`` is **409** *Only a stopped email can send the rest.*  One
-``bulk_email.resume`` audit line names the caller and the number of copies
-queued again.
+**Send the rest** of a stopped send.  Every ``stopped`` row is checked again first,
+as **Retry failed** checks a failed one (``POST /bulk-email/{id}/retry``): it takes
+its account's name and address as they are now, and a deleted or deactivated account,
+a missing, invalid, or bounced address, an opt-out of the type, or a person outside a
+DART leader's DART makes it ``skipped`` with that reason.  The rest go back to
+``pending`` and the email is queued to start now, with no undo window.  **200** with
+the email.  Nobody already sent a copy is sent another.  The email keeps its
+``started_at``, so it stays read-only (:ref:`the edit rule <bulk-email-edit-rule>`).
+An email that is not ``stopped`` is **409** *Only a stopped email can send the
+rest.*  One ``bulk_email.resume`` audit line names the caller, the number of copies
+queued again, and the number skipped.
 
 ``GET /bulk-email/{id}/recipients.csv``
 ---------------------------------------
