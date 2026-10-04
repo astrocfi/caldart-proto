@@ -136,10 +136,34 @@ describe('AircraftRecordPage', () => {
       http.get(`${API}/aircraft/1`, () =>
         HttpResponse.json(makeDetail({ updated_by: { id: 4, name: 'Dana Fiske' } })),
       ),
+      http.get(`${API}/aircraft/1/changes`, () =>
+        HttpResponse.json([
+          {
+            id: 1,
+            changed_at: '2026-09-01T12:00:00-07:00',
+            changed_by: { id: 4, name: 'Dana Fiske' },
+            kind: 'updated',
+            fields: ['insurance_carrier'],
+          },
+        ]),
+      ),
     );
     renderRecord();
 
     expect(await screen.findByText('Last updated 09/01/2026 by Dana Fiske')).toBeInTheDocument();
+  });
+
+  it('leaves out the last-updated line while the history records no change', async () => {
+    server.use(
+      http.get(`${API}/aircraft/1`, () =>
+        HttpResponse.json(makeDetail({ updated_by: { id: 4, name: 'Dana Fiske' } })),
+      ),
+      http.get(`${API}/aircraft/1/changes`, () => HttpResponse.json([])),
+    );
+    renderRecord();
+
+    await screen.findByText('No change is recorded for this record.');
+    expect(screen.queryByText(/^Last updated/)).toBeNull();
   });
 
   it("lists the record's history, newest first", async () => {

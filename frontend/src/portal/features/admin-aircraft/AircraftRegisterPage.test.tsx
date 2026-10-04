@@ -179,6 +179,25 @@ describe('AircraftRegisterPage', () => {
     expect(screen.getByRole('cell', { name: '$145,000' })).toHaveClass('numeric');
   });
 
+  it('leaves the insurance figures blank for an airplane with no policy on file', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    const uninsured = makeAircraft({
+      insurance_carrier: '',
+      insurance_expiration: null,
+      insurance_is_current: false,
+      insurance_hull_cents: 0,
+    });
+    server.use(columnsReturn(), listReturns([uninsured], []));
+
+    renderWithProviders(<AircraftRegisterPage />, { route: '/admin/aircraft' });
+    const link = await screen.findByRole('link', { name: 'N172SP' });
+    await user.click(screen.getByRole('button', { name: 'Columns' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Hull' }));
+
+    const row = link.closest('tr') as HTMLElement;
+    expect(within(row).queryByText(/\$0|—/)).toBeNull();
+  });
+
   it('sends every filter to the API', async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     const seen: URLSearchParams[] = [];

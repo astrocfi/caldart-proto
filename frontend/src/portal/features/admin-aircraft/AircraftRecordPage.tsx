@@ -33,6 +33,7 @@ import { InsuranceVerificationCard } from '@/portal/features/verification/Insura
 import { changeLine, lastUpdatedLine } from './history';
 import '@/portal/features/aircraft/aircraft.css';
 import './history.css';
+import './record.css';
 
 /** `/admin/aircraft/:id` page: edit, view pilots, and delete an aircraft record. */
 export function AircraftRecordPage(): JSX.Element {
@@ -121,7 +122,7 @@ export function AircraftRecordPage(): JSX.Element {
       return <p className="muted">No change is recorded for this record.</p>;
     }
     return (
-      <ul className="aircraft-history">
+      <ul className="record-history">
         {changes.data.map((change) => (
           <li key={change.id}>{changeLine(change)}</li>
         ))}
@@ -151,7 +152,12 @@ export function AircraftRecordPage(): JSX.Element {
       />
 
       <Card title="Details">
-        <p className="muted">{lastUpdatedLine(aircraft.updated_at, aircraft.updated_by ?? null)}</p>
+        {/* The line would contradict a history that records no change, so it waits for one. */}
+        {(changes.data?.length ?? 0) > 0 ? (
+          <p className="muted">
+            {lastUpdatedLine(aircraft.updated_at, aircraft.updated_by ?? null)}
+          </p>
+        ) : null}
         <AircraftForm
           // A verification save may correct the insurance, so it starts the form
           // again from what the register now holds; any other write to the

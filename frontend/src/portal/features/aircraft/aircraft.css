@@ -102,38 +102,6 @@
   margin-bottom: var(--space-3);
 }
 
-.aircraft-pilots {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.aircraft-pilots li {
-  /* A row of marks, not a paragraph: it takes the card's width, not a reading measure. */
-  max-width: none;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--space-2) var(--space-3);
-  padding: var(--space-2) 0;
-  border-bottom: var(--hairline) solid var(--color-rule);
-}
-
-.aircraft-pilots li:last-child {
-  border-bottom: 0;
-}
-
-.aircraft-pilots__email {
-  color: var(--color-muted);
-  font-size: var(--text-sm);
-}
-
-.aircraft-danger {
-  border-top: var(--hairline) solid var(--color-rule);
-  margin-top: var(--space-5);
-  padding-top: var(--space-4);
-}
-
 /* --------------------------------------------------- registry and types */
 /* The line under the N-number box naming the registry's date after a pick. */
 .aircraft-nnumber__note {
@@ -176,33 +144,4 @@
 
 .aircraft-registry-date {
   font-size: var(--text-sm);
-}
-
-/* The coverage policy card on the register: three labeled lines, then Edit. */
-.aircraft-policy {
-  display: grid;
-  gap: var(--space-2);
-  margin: 0 0 var(--space-4);
-}
-
-.aircraft-policy > div {
-  display: grid;
-  grid-template-columns: minmax(10rem, max-content) 1fr;
-  gap: var(--space-3);
-}
-
-.aircraft-policy dt {
-  color: var(--color-muted);
-}
-
-.aircraft-policy dd {
-  margin: 0;
-  white-space: pre-line;
-}
-
-@media (max-width: 40rem) {
-  .aircraft-policy > div {
-    grid-template-columns: 1fr;
-    gap: 0;
-  }
 }
