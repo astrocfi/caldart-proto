@@ -401,7 +401,7 @@ checks, below, so **Send** and a test both refuse it.
 .. _bulk-email-checks:
 
 The checks
-===
+==========
 ``checks.run_checks(bulk)`` lists what is wrong with an email as it is saved, each
 finding a ``Finding(code, level, message)``.  The compose screen's **Check and
 send** card runs them when it opens, again on **Check again**, and again just
@@ -535,7 +535,6 @@ its page there (``render.browser_url``, on ``SITE_URL``), and CalDART management
 hide an email from every recipient's list (``delivery.set_hidden``) without changing
 its history.
 
-=======
 Reusing what was written
 ========================
 
