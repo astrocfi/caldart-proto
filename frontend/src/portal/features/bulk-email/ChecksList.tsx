@@ -73,7 +73,7 @@ export function ChecksList({
   error,
   onCheckAgain: handleCheckAgain,
   saveProblems = [],
-  onFixField,
+  onFixField: handleFixField,
   hasMissingSteps = false,
 }: ChecksListProps): JSX.Element {
   return (
@@ -99,8 +99,8 @@ export function ChecksList({
               </span>
               <span>
                 <strong>{LEVEL_WORDS.error}</strong> {problem.message}{' '}
-                {problem.field === undefined || onFixField === undefined ? null : (
-                  <FixLink field={problem.field} onFix={onFixField} />
+                {problem.field === undefined || handleFixField === undefined ? null : (
+                  <FixLink field={problem.field} onFix={handleFixField} />
                 )}
               </span>
             </li>

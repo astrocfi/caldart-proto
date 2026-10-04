@@ -11,14 +11,7 @@ export interface CardProps {
 }
 
 /** A flat panel with a hairline border — no shadow, near-square corners. */
-export function Card({
-  title,
-  eyebrow,
-  footer,
-  className,
-  id,
-  children,
-}: CardProps): JSX.Element {
+export function Card({ title, eyebrow, footer, className, id, children }: CardProps): JSX.Element {
   return (
     <section id={id} className={className ? `card ${className}` : 'card'}>
       {eyebrow ? <p className="eyebrow">{eyebrow}</p> : null}

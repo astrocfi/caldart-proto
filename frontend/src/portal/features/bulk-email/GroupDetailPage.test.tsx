@@ -214,6 +214,23 @@ describe('GroupDetailPage, a live group', () => {
     await waitFor(() => expect(calls.filtersRemoved).toEqual([8]));
   });
 
+  it('offers the list as a download while it finds somebody', async () => {
+    answerGroup(MARIN, [makeGroupPerson()]);
+    renderGroup(6);
+    expect(await screen.findByRole('link', { name: 'Download list' })).toHaveAttribute(
+      'href',
+      '/api/v1/bulk-email/groups/6/members.csv',
+    );
+  });
+
+  it('offers no download while its filters find nobody', async () => {
+    answerGroup({ ...MARIN, count: 0, filter_sets: [] }, []);
+    renderGroup(6);
+    await screen.findByRole('heading', { name: 'Who it finds now' });
+    await screen.findByText('Nobody is in this group');
+    expect(screen.queryByRole('link', { name: 'Download list' })).toBeNull();
+  });
+
   it('lists whoever its filters find now, with no way to add one person', async () => {
     answerGroup(MARIN, [makeGroupPerson()]);
     renderGroup(6);

@@ -65,9 +65,7 @@ export function TestSendButton({
         Sends this email to you alone, so you can see it in your own mail program first.
       </p>
       <div ref={outcomeRef} tabIndex={-1} className="stack-tight bulk-email__test-outcome">
-        {test.data === undefined ? null : (
-          <p role="status">{`A test went to ${test.data.to}.`}</p>
-        )}
+        {test.data === undefined ? null : <p role="status">{`A test went to ${test.data.to}.`}</p>}
         {isUnsaved ? (
           <p className="field__error" role="alert">
             {NOT_SAVED_MESSAGE}

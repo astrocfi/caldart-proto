@@ -2,13 +2,16 @@
  * `/bulk-email/templates`: the messages CalDART management keeps to start a draft
  * from, such as the monthly newsletter, shared by every manager.
  *
- * One table and one form: **New template** opens the form empty, and each row's
- * **Edit** opens it on that template, which is also how one is renamed. Each row's
- * trashcan asks before it deletes. A draft starts from a template on the compose
- * screen, with **Start from a template**.
+ * One table and one form: **New template** opens the form empty, and each template's
+ * name is a link that opens the form on it (`?edit=<id>`), which is also how one is
+ * renamed. The trashcan sits right after the name and asks before it deletes. The
+ * focus moves into the form as it opens, Escape closes it, and closing it puts the
+ * focus back where it was. A draft starts from a template on the compose screen, with
+ * **Start from a template**.
  */
-import { useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import type { JSX } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 
 import type { EmailTemplate, EmailTemplateWrite } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
@@ -21,9 +24,17 @@ import { Page } from '@/portal/components/Page';
 import './bulk-email.css';
 import { useCreateTemplate, useDeleteTemplate, useTemplates, useUpdateTemplate } from './reuseApi';
 import { TemplateForm } from './TemplateForm';
+import { useFormCard } from './useFormCard';
 
 /** Which form is open: a new template, or the edit of one. */
 type OpenForm = { mode: 'new' } | { mode: 'edit'; id: number } | null;
+
+/** The address's `?new` or `?edit=<id>`, as the form it opens. */
+function openFormOf(params: URLSearchParams): OpenForm {
+  const edit = Number(params.get('edit'));
+  if (params.has('edit') && Number.isInteger(edit) && edit > 0) return { mode: 'edit', id: edit };
+  return params.has('new') ? { mode: 'new' } : null;
+}
 
 /** A line for the screen's status: what happened, and whether it went wrong. */
 interface Notice {
@@ -33,8 +44,10 @@ interface Notice {
 
 /** The templates table, its row controls, and the new-and-edit form. */
 export function TemplatesPage(): JSX.Element {
-  const [openForm, setOpenForm] = useState<OpenForm>(null);
+  const [params, setParams] = useSearchParams();
+  const openForm = openFormOf(params);
   const [notice, setNotice] = useState<Notice | null>(null);
+  const newRef = useRef<HTMLButtonElement>(null);
 
   const templates = useTemplates();
   const create = useCreateTemplate();
@@ -44,22 +57,29 @@ export function TemplatesPage(): JSX.Element {
   const editing =
     openForm?.mode === 'edit' ? rows.find((template) => template.id === openForm.id) : undefined;
 
-  const handleClose = (): void => {
-    create.reset();
-    update.reset();
-    setOpenForm(null);
-  };
+  const { reset: resetCreate } = create;
+  const { reset: resetUpdate } = update;
+  const handleClose = useCallback((): void => {
+    resetCreate();
+    resetUpdate();
+    setParams({});
+  }, [resetCreate, resetUpdate, setParams]);
+
+  const openKey =
+    openForm === null ? null : openForm.mode === 'new' ? 'new' : `edit-${openForm.id}`;
+  const formRef = useFormCard(openKey, handleClose, newRef);
 
   const handleNew = (): void => {
     create.reset();
     setNotice(null);
-    setOpenForm({ mode: 'new' });
+    setParams({ new: '' });
   };
 
-  const handleEdit = (template: EmailTemplate): void => {
+  // The name is a link, which opens the form through the address; this clears what
+  // the last form left behind.
+  const handleEdit = (): void => {
     update.reset();
     setNotice(null);
-    setOpenForm({ mode: 'edit', id: template.id });
   };
 
   const handleCreate = (input: EmailTemplateWrite): void => {
@@ -100,20 +120,43 @@ export function TemplatesPage(): JSX.Element {
     {
       key: 'name',
       header: 'Name',
-      minWidth: '14rem',
-      render: (template) => template.name,
+      minWidth: '12rem',
+      render: (template) => (
+        <Link
+          to={{ search: `?edit=${template.id}` }}
+          aria-label={`Edit ${template.name}`}
+          onClick={handleEdit}
+        >
+          {template.name}
+        </Link>
+      ),
       sortValue: (template) => template.name.toLowerCase(),
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      width: '8.5rem',
+      render: (template) => (
+        <span className="cluster cluster--nowrap">
+          <DeleteButton
+            label={`Delete ${template.name}`}
+            disabled={remove.isPending}
+            onDelete={() => handleDelete(template)}
+          />
+        </span>
+      ),
     },
     {
       key: 'subject',
       header: 'Subject',
-      minWidth: '14rem',
+      minWidth: '12rem',
       render: (template) => template.subject || '—',
     },
     {
       key: 'email_type_name',
       header: 'Type',
       width: '7rem',
+      wideOnly: true,
       render: (template) => template.email_type_name || '—',
       sortValue: (template) => template.email_type_name,
     },
@@ -124,28 +167,6 @@ export function TemplatesPage(): JSX.Element {
       render: (template) => <DateText value={template.updated_at} />,
       sortValue: (template) => template.updated_at,
     },
-    {
-      key: 'actions',
-      header: 'Actions',
-      width: '7rem',
-      render: (template) => (
-        <span className="cluster cluster--nowrap">
-          <Button
-            variant="quiet"
-            small
-            aria-label={`Edit ${template.name}`}
-            onClick={() => handleEdit(template)}
-          >
-            Edit
-          </Button>
-          <DeleteButton
-            label={`Delete ${template.name}`}
-            disabled={remove.isPending}
-            onDelete={() => handleDelete(template)}
-          />
-        </span>
-      ),
-    },
   ];
 
   return (
@@ -153,33 +174,41 @@ export function TemplatesPage(): JSX.Element {
       title="Templates"
       eyebrow="Bulk Email"
       lede="Messages you send again and again, such as the monthly newsletter. Start a draft from one on the compose screen; changing the draft leaves the template as it is."
-      actions={openForm === null ? <Button onClick={handleNew}>New template</Button> : null}
+      actions={
+        openForm === null ? (
+          <Button ref={newRef} onClick={handleNew}>
+            New template
+          </Button>
+        ) : null
+      }
     >
-      {openForm?.mode === 'new' ? (
-        <Card eyebrow="New" title="New template">
-          <TemplateForm
-            submitLabel="Save template"
-            pending={create.isPending}
-            error={create.error}
-            onSubmit={handleCreate}
-            onCancel={handleClose}
-          />
-        </Card>
-      ) : null}
+      <div ref={formRef} className="bulk-email__form-slot">
+        {openForm?.mode === 'new' ? (
+          <Card eyebrow="New" title="New template">
+            <TemplateForm
+              submitLabel="Save template"
+              pending={create.isPending}
+              error={create.error}
+              onSubmit={handleCreate}
+              onCancel={handleClose}
+            />
+          </Card>
+        ) : null}
 
-      {editing === undefined ? null : (
-        <Card eyebrow="Edit" title={editing.name}>
-          <TemplateForm
-            key={editing.id}
-            template={editing}
-            submitLabel="Save template"
-            pending={update.isPending}
-            error={update.error}
-            onSubmit={(input) => handleUpdate(editing.id, input)}
-            onCancel={handleClose}
-          />
-        </Card>
-      )}
+        {editing === undefined ? null : (
+          <Card eyebrow="Edit" title={editing.name}>
+            <TemplateForm
+              key={editing.id}
+              template={editing}
+              submitLabel="Save template"
+              pending={update.isPending}
+              error={update.error}
+              onSubmit={(input) => handleUpdate(editing.id, input)}
+              onCancel={handleClose}
+            />
+          </Card>
+        )}
+      </div>
 
       {notice === null ? null : (
         <p

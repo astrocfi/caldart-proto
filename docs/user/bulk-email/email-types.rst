@@ -19,7 +19,8 @@ kind arriving as before.
 What you see
 ============
 
-A table with one row per kind, in the order every screen lists them:
+A table with one row per kind, in the order every screen lists them. The description and
+the senders wrap, so they read in full:
 
 - **Name**, what every screen and every email calls it.
 - **What it is for**, one sentence that members read beside the switch that turns it off.
@@ -67,9 +68,11 @@ go ahead. *Operational deleted.* confirms it, and every member's choice about th
 with it.
 
 A kind that a bulk email has already used cannot be deleted, because the record of that
-email names it. The screen says so: *Operational has been used for a bulk email, so it
-cannot be deleted. To keep DART leaders and CalDART management from sending it, take their
-roles off it instead.* Edit the kind, clear both boxes under **Who may send it**, and save.
+email names it. Its trashcan is greyed out, and a line under the table says why; holding the
+pointer over the trashcan gives the reason in full: *Operational has been used for a bulk
+email, so it cannot be deleted. To keep DART leaders and CalDART management from sending it,
+take their roles off it instead.* Edit the kind, clear both boxes under **Who may send it**,
+and save.
 After that only a system administrator can send it.
 
 

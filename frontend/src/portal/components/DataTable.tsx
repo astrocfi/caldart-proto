@@ -233,10 +233,7 @@ export function DataTable<Row>({
   sort,
 }: DataTableProps<Row>): JSX.Element {
   const rootRef = useRef<HTMLDivElement>(null);
-  const isWide = useIsAtLeast(
-    rootRef,
-    singleLine ? fullWidthRem(allColumns) : null,
-  );
+  const isWide = useIsAtLeast(rootRef, singleLine ? fullWidthRem(allColumns) : null);
   const columns = shownColumns(allColumns, isWide);
   const [ownKey, setSortKey] = useState<string | null>(initialSort?.key ?? null);
   const [ownDirection, setDirection] = useState<SortDirection>(initialSort?.direction ?? 'asc');
@@ -265,10 +262,7 @@ export function DataTable<Row>({
   const hasExports = Boolean(exportCsvUrl || exportPdfUrl);
 
   return (
-    <div
-      ref={rootRef}
-      className={singleLine ? 'data-table data-table--single-line' : 'data-table'}
-    >
+    <div ref={rootRef} className={singleLine ? 'data-table data-table--single-line' : 'data-table'}>
       {filters || hasExports ? (
         <div className="data-table__bar">
           <div className="data-table__filters">{filters}</div>

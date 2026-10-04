@@ -25,6 +25,22 @@
   margin: 0;
 }
 
+.delivery-check__status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: none;
+}
+
+/* On a phone the name keeps the whole line, and the dot and the word go under it. */
+@media (max-width: 40rem) {
+  .delivery-check__name {
+    flex-direction: column-reverse;
+    align-items: flex-start;
+    gap: var(--space-1);
+  }
+}
+
 .delivery-check__word {
   font-weight: normal;
   color: var(--color-muted);

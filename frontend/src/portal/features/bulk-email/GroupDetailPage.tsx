@@ -7,7 +7,8 @@
  * and the member list's filter bar with **Add these filters**, which empties the bar
  * and says what it added; under them, everybody the filters find now. A filter set
  * the member list no longer accepts is marked, and the group's people wait until it
- * is taken out. Either kind downloads its people as a spreadsheet.
+ * is taken out. Either kind downloads its people as a spreadsheet with **Download
+ * list**, offered while the group holds anybody.
  */
 import { useState } from 'react';
 import type { FormEvent, JSX } from 'react';
@@ -274,11 +275,13 @@ function PeopleCard({ group }: { group: RecipientGroup }): JSX.Element {
           {remove.error instanceof ApiError ? remove.error.message : FALLBACK_ERROR}
         </p>
       )}
-      <div className="cluster">
-        <a className="button button--quiet" href={groupCsvUrl(group.id)} download>
-          Download list
-        </a>
-      </div>
+      {count === null || count === 0 ? null : (
+        <div className="cluster">
+          <a className="button button--quiet" href={groupCsvUrl(group.id)} download>
+            Download list
+          </a>
+        </div>
+      )}
     </Card>
   );
 }

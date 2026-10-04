@@ -76,7 +76,9 @@ export function PanelButton({
       {isOpen ? (
         <fieldset
           id={panelId}
-          className={isForm ? 'panel-button__panel panel-button__panel--form' : 'panel-button__panel'}
+          className={
+            isForm ? 'panel-button__panel panel-button__panel--form' : 'panel-button__panel'
+          }
         >
           <legend>{legend}</legend>
           {children(handleClose)}

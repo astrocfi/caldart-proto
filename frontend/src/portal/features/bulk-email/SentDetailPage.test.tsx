@@ -115,9 +115,7 @@ describe('SentDetailPage', () => {
   it('says who sent it and when, on the 12-hour clock', async () => {
     renderSent();
     expect(
-      await screen.findByText(
-        `Sent by Grace Holloway on ${formatDateAt('2026-04-06T17:00:00Z')}.`,
-      ),
+      await screen.findByText(`Sent by Grace Holloway on ${formatDateAt('2026-04-06T17:00:00Z')}.`),
     ).toBeVisible();
   });
 

@@ -14,7 +14,7 @@ import type { JSX } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
 import { ApiError } from '@/portal/api/client';
-import type { BulkEmailDetail } from '@/portal/api/types';
+import type { BulkEmailDetail, SendableEmailType } from '@/portal/api/types';
 import { useToast } from '@/portal/components/Toast';
 import { batchKey, emailKey, useSendableEmailTypes, useUpdateBulkEmail } from './api';
 
@@ -56,10 +56,11 @@ export function EmailTypeChoice({
   const [saving, setSaving] = useState<number | null>(null);
   const chosen = saving ?? emailType;
 
-  const handleChoose = (id: number): void => {
+  const handleChoose = (id: number | null): void => {
     // The radios stay enabled while a choice saves, so the keyboard focus stays on
-    // them; a second choice made before the first is saved is ignored.
-    if (update.isPending) return;
+    // them; a second choice made before the first is saved is ignored. The compose
+    // screen offers no choice of no type.
+    if (update.isPending || id === null) return;
     setSaving(id);
     const before = queryClient.getQueryData<BulkEmailDetail>(emailKey(emailId));
     update.mutate(
@@ -107,35 +108,72 @@ export function EmailTypeChoice({
           There is no type of email you may send. Ask a system administrator.
         </p>
       ) : null}
-      {options.map((option) => (
-        <div key={option.id} className="bulk-email__type">
-          <input
-            id={`${hintId}-${option.id}`}
-            type="radio"
-            name={`email-type-${emailId}`}
-            value={option.id}
-            checked={chosen === option.id}
-            aria-describedby={`${hintId}-${option.id}-description`}
-            onChange={() => handleChoose(option.id)}
-          />
-          <div>
-            <label htmlFor={`${hintId}-${option.id}`} className="bulk-email__type-name">
-              {option.name}
-            </label>
-            <p
-              id={`${hintId}-${option.id}-description`}
-              className="muted bulk-email__type-description"
-            >
-              {option.description}
-            </p>
-          </div>
-        </div>
-      ))}
+      <TypeRadios
+        name={`email-type-${emailId}`}
+        options={options}
+        chosen={chosen}
+        onChoose={handleChoose}
+      />
       {error === null ? null : (
         <p className="field__error" role="alert">
           {error}
         </p>
       )}
     </fieldset>
+  );
+}
+
+/** One type a radio list offers: an id, or null for no type, with its words. */
+export type TypeOption = Pick<SendableEmailType, 'name' | 'description'> & { id: number | null };
+
+interface TypeRadiosProps {
+  /** The radio group's name, unique on the page. */
+  name: string;
+  options: readonly TypeOption[];
+  /** The chosen type's id, null for none. */
+  chosen: number | null;
+  onChoose: (id: number | null) => void;
+}
+
+/**
+ * One radio button per type, each with the sentence saying what the type is for: the
+ * list both the compose screen and the template form choose a type from.
+ */
+export function TypeRadios({
+  name,
+  options,
+  chosen,
+  onChoose: handleChoose,
+}: TypeRadiosProps): JSX.Element {
+  const id = useId();
+  return (
+    <>
+      {options.map((option) => {
+        const optionId = `${id}-${option.id ?? 'none'}`;
+        return (
+          <div key={option.id ?? 'none'} className="bulk-email__type">
+            <input
+              id={optionId}
+              type="radio"
+              name={name}
+              value={option.id ?? ''}
+              checked={chosen === option.id}
+              aria-describedby={option.description === '' ? undefined : `${optionId}-description`}
+              onChange={() => handleChoose(option.id)}
+            />
+            <div>
+              <label htmlFor={optionId} className="bulk-email__type-name">
+                {option.name}
+              </label>
+              {option.description === '' ? null : (
+                <p id={`${optionId}-description`} className="muted bulk-email__type-description">
+                  {option.description}
+                </p>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </>
   );
 }

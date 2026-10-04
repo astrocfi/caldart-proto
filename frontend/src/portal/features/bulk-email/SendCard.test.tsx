@@ -35,7 +35,7 @@ function renderCard(
   email: BulkEmailDetail,
   findings: BulkEmailFinding[] = [],
   saving: { saveState?: SaveState; saveErrors?: Autosave['errors'] } = {},
-  onFixField: (field: 'subject' | 'body') => void = () => undefined,
+  handleFixField: (field: 'subject' | 'body') => void = () => undefined,
 ) {
   const state: BulkEmailState = { email, batch: makeBatch([makeRow()]), findings };
   const calls = answerBulkEmail(state);
@@ -47,7 +47,7 @@ function renderCard(
       onBeforeSend={() => Promise.resolve(true)}
       saveState={saving.saveState ?? 'saved'}
       saveErrors={saving.saveErrors ?? {}}
-      onFixField={onFixField}
+      onFixField={handleFixField}
     />,
   );
   return Object.assign(calls, { state });

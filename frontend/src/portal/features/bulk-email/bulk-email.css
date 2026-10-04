@@ -131,3 +131,9 @@
 .bulk-email__batch-actions > section {
   flex-basis: 100%;
 }
+
+/* Holds a list screen's form for its keyboard handling and draws nothing itself, so
+ * the page's spacing between cards is as it would be without it. */
+.bulk-email__form-slot {
+  display: contents;
+}
