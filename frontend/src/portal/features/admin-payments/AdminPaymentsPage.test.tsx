@@ -40,10 +40,11 @@ describe('AdminPaymentsPage', () => {
     serveOverview();
     renderWithProviders(<AdminPaymentsPage />);
 
-    const table = await screen.findByRole('table', { name: /Payment totals by month/ });
+    await screen.findByText('Jan 2026');
+    const table = screen.getByRole('table', { name: /Payment totals by month/ });
     const headers = within(table)
       .getAllByRole('columnheader')
-      .map((cell) => cell.textContent);
+      .map((cell) => cell.textContent?.replace(/[↑↓↕]/g, ''));
     expect(headers).toEqual([
       'Month',
       'Payments',
@@ -62,7 +63,8 @@ describe('AdminPaymentsPage', () => {
     serveOverview();
     renderWithProviders(<AdminPaymentsPage />);
 
-    const table = await screen.findByRole('table', { name: /by month/ });
+    await screen.findByText('Jan 2026');
+    const table = screen.getByRole('table', { name: /by month/ });
     const first = within(table).getAllByRole('row')[1];
     expect(within(first!).getByRole('rowheader')).toHaveTextContent('Jan 2026');
   });
@@ -71,7 +73,8 @@ describe('AdminPaymentsPage', () => {
     serveOverview();
     renderWithProviders(<AdminPaymentsPage />);
 
-    const table = await screen.findByRole('table', { name: /by month/ });
+    await screen.findByText('Jan 2026');
+    const table = screen.getByRole('table', { name: /by month/ });
     const first = within(table).getAllByRole('row')[1];
     expect(first!).toHaveTextContent('$25.00');
   });

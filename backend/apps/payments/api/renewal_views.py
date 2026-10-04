@@ -17,7 +17,7 @@ from __future__ import annotations
 from typing import Any, cast
 
 from django.db import transaction
-from django.db.models import Q, QuerySet
+from django.db.models import QuerySet
 from django.http import Http404
 from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import status as http_status
@@ -39,7 +39,6 @@ from apps.payments.api.serializers import (
     RenewalPatchSerializer,
     RenewalSetupResponseSerializer,
     RenewalSetupSerializer,
-    RenewalStatusFilterSerializer,
 )
 from apps.payments.models import RenewalAttempt, RenewalMandate, RenewalOutcome
 from apps.payments.providers.base import PaymentError, get_provider
@@ -52,7 +51,7 @@ from apps.payments.renewals.mandates import (
     refuse_renewal_contribution,
     save_method,
 )
-from apps.payments.renewals.schedule import MandateKind
+from apps.payments.renewals_report import mandate_queryset
 
 #: What ``DELETE /me/renewal``, ``/me/donation`` and ``/admin/renewals/{id}`` answer with.
 DELETE_RESPONSE_DESCRIPTION = "The authority is off.  The body is empty."
@@ -313,47 +312,31 @@ class MyRenewalConfirmView(APIView):
 # --------------------------------------------------------------------------
 # Finance
 # --------------------------------------------------------------------------
-#: How each mandate kind narrows the finance list.
-KIND_FILTERS: dict[str, Q] = {
-    MandateKind.CONTRIBUTION: Q(plan__isnull=True),
-    MandateKind.BOTH: Q(plan__isnull=False, contribution_cents__gt=0),
-    MandateKind.RENEWAL: Q(plan__isnull=False, contribution_cents=0),
-}
-
-
 class AdminRenewalListView(ListAPIView[RenewalMandate]):
     """``GET /admin/renewals`` -- every mandate of either kind, newest first."""
 
     permission_classes = [IsAuthenticated, IsFinance]
     serializer_class = RenewalMandateSerializer
-    search_fields = ["user__email", "user__first_name", "user__last_name", "method_label"]
     ordering_fields = ["created_at", "status", "last_charged_at"]
 
     def get_queryset(self) -> QuerySet[RenewalMandate]:
-        """Every mandate, narrowed by ``?status=`` and ``?kind=`` when they are given.
+        """Every mandate ``?status=``, ``?kind=``, and ``?search=`` keep, newest first.
 
-        ``kind`` is ``renewal``, ``both`` or ``contribution`` (a recurring
-        donation), the values each row's ``kind`` carries.  Raises DRF's
-        ``ValidationError`` keyed by ``status`` for a status outside the mandate
-        states, and by ``kind`` for any other kind.  Only a treasurer or an account
+        The renewals report narrows through the same function,
+        :func:`~apps.payments.renewals_report.mandate_queryset`, so the list and its
+        downloads never disagree.  ``kind`` is ``renewal``, ``both`` or
+        ``contribution`` (a recurring donation), the values each row's ``kind``
+        carries.  Raises DRF's ``ValidationError`` keyed by ``status`` for a status
+        outside the mandate states, and by ``kind`` for any other kind.  ``search``
+        keeps a mandate when every word appears in the member's email, first name, or
+        last name, or in the saved method's label.  Only a treasurer or an account
         administrator reaches this.
 
         The attempts and the member's terms are prefetched, because the serializer
         reads the next charge date and the last decline out of them: without that
         the page costs three further queries for every row it answers.
         """
-        query = RenewalStatusFilterSerializer(data=self.request.query_params)
-        query.is_valid(raise_exception=True)
-        queryset = RenewalMandate.objects.select_related("user", "plan").prefetch_related(
-            "attempts", "user__memberships"
-        )
-        wanted = query.validated_data["status"]
-        if wanted:
-            queryset = queryset.filter(status=wanted)
-        kind = query.validated_data["kind"]
-        if kind:
-            queryset = queryset.filter(KIND_FILTERS[kind])
-        return queryset
+        return mandate_queryset(self.request.query_params)
 
 
 class AdminRenewalDetailView(APIView):

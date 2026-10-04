@@ -157,11 +157,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* ------------------------------------------------------- period table */
-.period-table__filters {
-  padding-bottom: var(--space-2);
-}
-
 /* ------------------------------------------------------- payment facts */
 .payment-facts {
   display: grid;

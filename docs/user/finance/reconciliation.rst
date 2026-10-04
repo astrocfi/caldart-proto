@@ -15,7 +15,14 @@ What you see
 One row per month to begin with, or per year or per payment provider if you choose. Each
 row shows the number of **Payments**, the **Gross** taken, the **Fees**, the **Net**, what
 was **Refunded**, the **Net after refunds**, and **Matched**, how many of that period's
-payments you have already found on a statement, such as *12 of 15*.
+payments you have already found on a statement, such as *12 of 15*. The months and the
+years run oldest first.
+
+On a narrower screen the table leaves out the columns that matter least, one at a time, so
+the **Gross** and the **Net** stay beside the period: first **Refunded**, then **Net after
+refunds**, **Fees**, **Payments**, and **Matched**. On a phone, where even that is too
+wide, the table scrolls sideways inside the page, a line above it says so, and the period
+stays pinned at the left.
 
 Two dating rules make the rows line up with a statement, and the screen repeats them
 above the table:
@@ -36,9 +43,10 @@ Choose the rows and the range
 * **Provider** counts one payment provider alone.
 * **Rows** chooses **By month** (the starting choice), **By year**, or **By provider**.
 
-Each filter applies as soon as you set it, **Reset to Defaults** clears them all, and the
+Each filter applies as soon as you set it, **Reset filters** clears them all, and the
 filters are kept in the page's address so you can bookmark a view. Click a column heading
-to sort by it.
+to sort by it, and click it again to reverse the order; every heading sorts, and the arrow
+beside one shows the order the table is in.
 
 Match payments as you go
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -60,7 +68,7 @@ If something looks wrong
 
 If a month's net does not match the statement, check whether a refund taken that month
 belongs to a payment from an earlier month; it counts here in the month it was taken. If
-the table says *Nothing was taken in this range*, widen the dates or press **Reset to
-Defaults**. With **Rows** set to
+the table says *Nothing was taken in this range*, widen the dates or press **Reset
+filters**, which appears under the empty table too. With **Rows** set to
 **By provider**, a provider gets a row only when it took money in the range, and a
 demonstration site shows everything under **Test**.

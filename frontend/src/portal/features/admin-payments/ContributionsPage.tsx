@@ -32,13 +32,37 @@ const OFFERED_YEARS = new Set(
   ),
 );
 
+/** The order the server lists givers in, as the arrow the table opens on: most given. */
+const DEFAULT_SORT = { key: 'net_contribution_cents', direction: 'desc' } as const;
+
+/**
+ * The table's columns.  The member identifies a row and stays pinned when the table
+ * scrolls; Net and the Statement button stay in sight on a phone, and the rest drop,
+ * the least needed first, when the table would not fit.
+ */
 function columns(year: number): Column<ContributionRow>[] {
   return [
-    { key: 'name', header: 'Member', render: (row) => row.name, sortValue: (row) => row.name },
-    { key: 'email', header: 'Email', render: (row) => row.email, sortValue: (row) => row.email },
+    {
+      key: 'name',
+      header: 'Member',
+      minWidth: '10rem',
+      isIdentity: true,
+      render: (row) => row.name,
+      sortValue: (row) => row.name,
+    },
+    {
+      key: 'email',
+      header: 'Email',
+      minWidth: '12rem',
+      dropOrder: 1,
+      render: (row) => row.email,
+      sortValue: (row) => row.email,
+    },
     {
       key: 'count',
       header: 'Payments',
+      width: '6.5rem',
+      dropOrder: 2,
       numeric: true,
       render: (row) => row.count,
       sortValue: (row) => row.count,
@@ -46,6 +70,8 @@ function columns(year: number): Column<ContributionRow>[] {
     {
       key: 'contribution_cents',
       header: 'Given',
+      width: '7rem',
+      dropOrder: 4,
       numeric: true,
       render: (row) => <Money cents={row.contribution_cents} />,
       sortValue: (row) => row.contribution_cents,
@@ -53,6 +79,8 @@ function columns(year: number): Column<ContributionRow>[] {
     {
       key: 'refunded_cents',
       header: 'Refunded',
+      width: '7rem',
+      dropOrder: 3,
       numeric: true,
       render: (row) => <Money cents={row.refunded_cents} />,
       sortValue: (row) => row.refunded_cents,
@@ -60,6 +88,8 @@ function columns(year: number): Column<ContributionRow>[] {
     {
       key: 'net_contribution_cents',
       header: 'Net',
+      width: '7rem',
+      keepInSight: true,
       numeric: true,
       render: (row) => <Money cents={row.net_contribution_cents} />,
       sortValue: (row) => row.net_contribution_cents,
@@ -67,7 +97,7 @@ function columns(year: number): Column<ContributionRow>[] {
     {
       key: 'statement',
       header: 'Statement',
-      sortable: false,
+      isActions: true,
       render: (row) => (
         <a href={statementUrl(row.user_id, year)} className="button button--quiet button--small">
           Statement
@@ -105,7 +135,9 @@ export function ContributionsPage(): JSX.Element {
       </p>
 
       <DataTable
+        singleLine
         columns={columns(year)}
+        initialSort={DEFAULT_SORT}
         rows={rows.data ?? []}
         rowKey={(row) => row.user_id}
         caption={`Contributions in ${year}`}

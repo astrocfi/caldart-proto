@@ -138,7 +138,7 @@ describe('PaymentsPage', () => {
   it('names a payment that bought nothing but a contribution', async () => {
     mount({ payments: [makePaymentSummary({ plan: null, kind: 'contribution' })] });
 
-    expect(await screen.findByRole('cell', { name: 'Contribution' })).toBeInTheDocument();
+    expect(await screen.findByRole('rowheader', { name: 'Contribution' })).toBeInTheDocument();
   });
 
   it('offers no receipt for a payment whose money never arrived', async () => {

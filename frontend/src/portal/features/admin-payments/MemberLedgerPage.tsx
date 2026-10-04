@@ -33,30 +33,63 @@ import {
 } from './labels';
 import './admin-payments.css';
 
+/**
+ * The payment history's columns.  The receipt number identifies a row and never
+ * wraps; Total and Status stay in sight on a phone, and the rest drop when the table
+ * would not fit.
+ */
 const LEDGER_COLUMNS: Column<PaymentDetail>[] = [
-  { key: 'paid_on', header: 'Paid', render: (row) => <DateText value={row.paid_on} /> },
+  {
+    key: 'paid_on',
+    header: 'Paid',
+    width: '7rem',
+    noWrap: true,
+    dropOrder: 3,
+    render: (row) => <DateText value={row.paid_on} />,
+  },
   {
     key: 'receipt_number',
     header: 'Receipt',
+    width: '10rem',
+    isIdentity: true,
     render: (row) => <Link to={`/admin/payments/${row.id}`}>{row.receipt_number}</Link>,
   },
-  { key: 'kind', header: 'For', render: (row) => KIND_LABELS[row.kind] },
+  {
+    key: 'kind',
+    header: 'For',
+    minWidth: '8rem',
+    dropOrder: 2,
+    render: (row) => KIND_LABELS[row.kind],
+  },
   {
     key: 'amount_cents',
     header: 'Total',
+    width: '6.5rem',
+    keepInSight: true,
     numeric: true,
     render: (row) => <Money cents={row.amount_cents} />,
   },
   {
     key: 'refunded_cents',
     header: 'Refunded',
+    width: '6.5rem',
+    dropOrder: 1,
     numeric: true,
     render: (row) => <Money cents={row.refunded_cents} />,
   },
-  { key: 'provider', header: 'Method', render: (row) => PROVIDER_LABELS[row.provider] },
+  {
+    key: 'provider',
+    header: 'Method',
+    width: '6.5rem',
+    dropOrder: 1,
+    render: (row) => PROVIDER_LABELS[row.provider],
+  },
   {
     key: 'status',
     header: 'Status',
+    width: '9rem',
+    narrowWidth: '7rem',
+    keepInSight: true,
     render: (row) => <StatusChip tone={statusTone(row.status)} label={STATUS_LABELS[row.status]} />,
   },
 ];
@@ -141,6 +174,7 @@ export function LedgerBody({ ledger }: { ledger: MemberLedger }): JSX.Element {
 
       <Card title="Payments" eyebrow="History">
         <DataTable
+          singleLine
           columns={LEDGER_COLUMNS}
           rows={ledger.payments}
           rowKey={(row) => row.id}

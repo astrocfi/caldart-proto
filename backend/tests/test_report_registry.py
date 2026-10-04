@@ -54,14 +54,15 @@ DAY = date(2026, 9, 25)
 # --------------------------------------------------------------------------
 # The registry
 # --------------------------------------------------------------------------
-def test_the_registry_holds_the_nine_reports_by_slug() -> None:
-    """The nine reports, in the order the portal lists them, the roles report second."""
+def test_the_registry_holds_the_ten_reports_by_slug() -> None:
+    """The ten reports, in the order the portal lists them, the roles report second."""
     assert list(REPORTS) == [
         "members",
         "roles",
         "verification",
         "aircraft",
         "payments",
+        "renewals",
         "reconciliation",
         "contributions",
         "donors",
@@ -77,6 +78,7 @@ def test_the_registry_holds_the_nine_reports_by_slug() -> None:
         "verification",
         "aircraft",
         "payments",
+        "renewals",
         "reconciliation",
         "contributions",
         "donors",
@@ -107,6 +109,7 @@ def test_report_or_404_refuses_an_unknown_slug() -> None:
         ("verification", (VERIFIER, DART_LEADER, USER_ADMIN, ACCOUNT_ADMIN)),
         ("aircraft", (ACCOUNT_ADMIN,)),
         ("payments", (TREASURER, ACCOUNT_ADMIN)),
+        ("renewals", (TREASURER, ACCOUNT_ADMIN)),
         ("reconciliation", (TREASURER, ACCOUNT_ADMIN)),
         ("contributions", (TREASURER, ACCOUNT_ADMIN)),
         ("donors", (TREASURER,)),

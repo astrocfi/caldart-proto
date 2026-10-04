@@ -413,29 +413,31 @@ def _money(cents: int) -> str:
 #: Every column the payment exports can carry, in export order.  ``key`` is what
 #: ``?columns=`` names and what ``GET /reports/payments/columns`` answers with,
 #: ``label`` is the header both exports print, and ``default`` says whether the
-#: column appears when the caller chooses none.  The five that are off by default
-#: -- the receipt number, the date a check was received, the treasurer's note and
-#: the term's two dates -- are there for a reconciliation or an audit rather than
-#: for the everyday list.
+#: column appears when the caller chooses none.  The eight defaults -- the date,
+#: who paid and their address, the plan, the total, the fee, what CalDART kept, and
+#: the status -- are what the everyday list is read for, and fit a screen without
+#: wrapping.  The rest are there for a reconciliation or an audit: the kind repeats
+#: the plan, and the provider, the method and the provider's reference are rarely
+#: needed beyond the payment's own record.
 PAYMENT_REPORT_COLUMNS: tuple[ReportColumn[Payment], ...] = (
     ReportColumn("paid_on", "Date", True, lambda p: _iso(p.paid_on)),
     ReportColumn("receipt_number", "Receipt", False, lambda p: p.receipt_number),
     ReportColumn("name", "Name", True, display_name),
     ReportColumn("email", "Email", True, lambda p: p.user.email),
     ReportColumn("plan", "Plan", True, lambda p: p.plan.name if p.plan is not None else ""),
-    ReportColumn("kind", "Kind", True, lambda p: p.kind),
-    ReportColumn("plan_amount", "Dues", True, lambda p: _money(p.plan_amount_cents)),
-    ReportColumn("contribution", "Contribution", True, lambda p: _money(p.contribution_cents)),
+    ReportColumn("kind", "Kind", False, lambda p: p.kind),
+    ReportColumn("plan_amount", "Dues", False, lambda p: _money(p.plan_amount_cents)),
+    ReportColumn("contribution", "Contribution", False, lambda p: _money(p.contribution_cents)),
     ReportColumn("total", "Total", True, lambda p: _money(p.amount_cents)),
     ReportColumn("fee", "Fee", True, lambda p: _money(p.fee_cents)),
     ReportColumn("net", "Net", True, lambda p: _money(p.net_cents)),
-    ReportColumn("refunded", "Refunded", True, lambda p: _money(p.refunded_cents)),
-    ReportColumn("provider", "Provider", True, lambda p: p.provider),
-    ReportColumn("wallet", "Method", True, lambda p: p.wallet),
+    ReportColumn("refunded", "Refunded", False, lambda p: _money(p.refunded_cents)),
+    ReportColumn("provider", "Provider", False, lambda p: p.provider),
+    ReportColumn("wallet", "Method", False, lambda p: p.wallet),
     ReportColumn("status", "Status", True, lambda p: p.status),
-    ReportColumn("provider_ref", "Reference", True, lambda p: p.provider_ref),
+    ReportColumn("provider_ref", "Reference", False, lambda p: p.provider_ref),
     ReportColumn("received_on", "Received", False, lambda p: _iso(p.received_on)),
-    ReportColumn("reconciled_on", "Reconciled", True, lambda p: _iso(p.reconciled_on)),
+    ReportColumn("reconciled_on", "Reconciled", False, lambda p: _iso(p.reconciled_on)),
     ReportColumn("note", "Note", False, lambda p: p.note),
     ReportColumn("membership_starts", "Term starts", False, _term_start),
     ReportColumn("membership_ends", "Term ends", False, _term_end),

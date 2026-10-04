@@ -18,7 +18,6 @@ from apps.payments.models import (
     MAX_CONTRIBUTION_CENTS,
     MandateCadence,
     MandateProvider,
-    MandateStatus,
     Payment,
     PaymentKind,
     PaymentProvider,
@@ -640,29 +639,6 @@ class RenewalPatchSerializer(MandateScopedSerializer):
             return {**attrs, "plan": ""}
         refuse_non_yearly_renewal(attrs["cadence"])
         return attrs
-
-
-class RenewalStatusFilterSerializer(serializers.Serializer[dict[str, Any]]):
-    """``GET /admin/renewals?status=&kind=`` -- an empty value narrows nothing.
-
-    ``kind`` is one of the mandate kinds the rows carry: ``renewal``, ``both`` or
-    ``contribution`` (a recurring donation).
-    """
-
-    status = serializers.CharField(required=False, allow_blank=True, default="")
-    kind = serializers.CharField(required=False, allow_blank=True, default="")
-
-    def validate_status(self, value: str) -> str:
-        """Return ``value``, or raise ``Unknown status '<value>'.`` for an unknown one."""
-        if value and value not in MandateStatus.values:
-            raise serializers.ValidationError(f"Unknown status '{value}'.")
-        return value
-
-    def validate_kind(self, value: str) -> str:
-        """Return ``value``, or raise ``Unknown kind '<value>'.`` for an unknown one."""
-        if value and value not in MandateKind.values:
-            raise serializers.ValidationError(f"Unknown kind '{value}'.")
-        return value
 
 
 class RenewalRunRequestSerializer(serializers.Serializer[dict[str, Any]]):

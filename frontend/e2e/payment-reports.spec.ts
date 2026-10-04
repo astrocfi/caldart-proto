@@ -177,7 +177,7 @@ test('a saved set of columns comes back after a reload', async ({ page }) => {
   await signIn(page, DEMO.accountadmin);
   await page.goto('portal/admin/payments/list');
   const header = page.locator('thead');
-  const chooser = page.getByRole('group', { name: 'Columns to show and export' });
+  const chooser = page.getByRole('group', { name: 'Columns in the table and the download' });
 
   // Tick Receipt, untick Fee, and save the boxes as they stand under a name.
   await page.getByRole('button', { name: 'Columns', exact: true }).click();

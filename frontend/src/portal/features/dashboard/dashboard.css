@@ -49,7 +49,3 @@
 .dashboard__link-group + .dashboard__link-group {
   margin-top: var(--space-5);
 }
-
-.dashboard__payments {
-  width: 100%;
-}
