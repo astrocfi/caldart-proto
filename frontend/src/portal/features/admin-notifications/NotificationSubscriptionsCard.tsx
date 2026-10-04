@@ -110,7 +110,8 @@ export function NotificationSubscriptionsCard(): JSX.Element {
     {
       key: 'is_active',
       header: 'Active',
-      width: '5rem',
+      // The dot and its longer word, "Paused", with the cell's padding.
+      width: '7rem',
       keepInSight: true,
       render: (row) =>
         row.is_active ? (

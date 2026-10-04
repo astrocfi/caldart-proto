@@ -129,6 +129,7 @@ export function AircraftRecordPage(): JSX.Element {
   return (
     <Page
       title={aircraft.n_number}
+      tabTitle={`${aircraft.n_number} · Aircraft record`}
       lede={`${aircraft.make} ${aircraft.model}`.trim()}
       actions={
         <>

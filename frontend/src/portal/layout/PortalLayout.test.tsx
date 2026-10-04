@@ -327,6 +327,26 @@ describe('PortalLayout', () => {
     await waitFor(() => expect(rail.scrollTop).toBe(800));
   });
 
+  it('scrolls the drawer to the current entry when Menu opens it', async () => {
+    server.use(signedInAs(makeUser({ roles: ['member', 'system_admin'] })));
+    vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(400);
+    vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(30);
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
+      function boundingRect(this: HTMLElement) {
+        const top = this.classList.contains('is-active') ? 1000 - this.scrollTop : 0;
+        return new DOMRect(0, top, 100, 30);
+      },
+    );
+    const user = userEvent.setup();
+    renderWithProviders(tree(), { route: '/profile/aircraft' });
+    const rail = await screen.findByRole('navigation', { name: 'Portal sections' });
+    // A phone's drawer starts at its top until it opens.
+    rail.scrollTop = 0;
+
+    await user.click(screen.getByRole('button', { name: 'Menu' }));
+    await waitFor(() => expect(rail.scrollTop).toBe(800));
+  });
+
   it('opens and closes the mobile drawer from the Menu button', async () => {
     const user = userEvent.setup();
     server.use(signedInAs(makeUser()));

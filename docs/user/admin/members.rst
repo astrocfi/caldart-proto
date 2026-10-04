@@ -40,9 +40,9 @@ changes both (see `Choosing the columns`_). At first it shows the report's eleve
    local teams that fly for CalDART.
 
 **Status**
-   **Current**, **Expired**, or **Friend**, after a colored dot. The dot is green while the
-   membership is current, amber in its last 30 days, red once it has run out, and gray for
-   a friend.
+   A colored dot and the membership's state: **Current** (green), **Expiring soon** in its
+   last 30 days (amber), **Expired** (red), **Never expires** for a life member (green), or
+   **Friend** (gray).
 
 **Kind**
    Member or Friend.

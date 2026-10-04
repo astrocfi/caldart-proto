@@ -28,7 +28,7 @@ import type {
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { DataTable } from '@/portal/components/DataTable';
-import { DateText, formatDate } from '@/portal/components/DateText';
+import { formatDate } from '@/portal/components/DateText';
 import { FilterBar, clearedValues } from '@/portal/components/FilterBar';
 import { Money } from '@/portal/components/Money';
 import { Page } from '@/portal/components/Page';
@@ -139,13 +139,9 @@ const CELLS: Record<string, ReportCell<Aircraft>> = {
   },
   insurance_expiration: {
     ordering: 'insurance_expiration',
-    width: '9rem',
+    width: '12rem',
     keepInSight: true,
-    render: (row) => (
-      <>
-        <InsuranceDot aircraft={row} /> <DateText value={row.insurance_expiration} />
-      </>
-    ),
+    render: (row) => <InsuranceDot aircraft={row} withDate />,
   },
   insurance_current: {
     width: '6.5rem',

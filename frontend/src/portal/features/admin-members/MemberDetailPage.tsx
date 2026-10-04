@@ -201,6 +201,7 @@ export function MemberDetailPage(): JSX.Element {
   return (
     <Page
       title={record.name}
+      tabTitle={`${record.name} · Member record`}
       actions={
         <ButtonLink to={home.to} variant="quiet">
           {home.label}

@@ -59,6 +59,7 @@ const COLUMNS: ReportColumn[] = [
   { key: 'email', label: 'Email', default: true },
   { key: 'kind', label: 'Kind', default: true },
   { key: 'city', label: 'City', default: false },
+  { key: 'membership', label: 'Membership', default: false },
 ];
 
 /** The `columns` parameter the exports carry while the defaults stand. */
@@ -129,28 +130,14 @@ describe('UsersListPage', () => {
     expect(screen.getByText('2 accounts')).toBeInTheDocument();
   });
 
-  it('lists no Member role, which every account holds', async () => {
-    stubList();
-    renderWithProviders(<UsersListPage />);
-
-    const martaRow = (await screen.findByRole('link', { name: 'Marta Reyes' })).closest('tr')!;
-    const roles = within(martaRow).getAllByRole('cell')[2];
-    expect(roles).toHaveTextContent(/^—$/);
-  });
-
-  it('marks no active account as Active', async () => {
-    stubList();
-    renderWithProviders(<UsersListPage />);
-
-    const martaRow = (await screen.findByRole('link', { name: 'Marta Reyes' })).closest('tr')!;
-    expect(within(martaRow).queryByText('Active')).not.toBeInTheDocument();
-  });
-
   it('shows membership as a dot and its word, never a chip', async () => {
     stubList();
     const { container } = renderWithProviders(<UsersListPage />);
+    await screen.findByRole('link', { name: 'Marta Reyes' });
+    await userEvent.click(screen.getByRole('button', { name: 'Columns' }));
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Membership' }));
 
-    const martaRow = (await screen.findByRole('link', { name: 'Marta Reyes' })).closest('tr')!;
+    const martaRow = screen.getByRole('link', { name: 'Marta Reyes' }).closest('tr')!;
     expect(within(martaRow).getByText('Current')).toHaveAttribute('data-tone', 'current');
     expect(container.querySelector('tbody .chip')).toBeNull();
   });

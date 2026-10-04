@@ -706,7 +706,7 @@ the files they test, and an ``index.ts`` of what the route files use:
 ``profile``             the profile form, the fieldsets the admin member
                         screens share with it, and *My aircraft*
 ``aircraft``            the aircraft picker, form, and insurance and service
-                        chips that the profile, leader, and admin screens reuse;
+                        dots that the profile, leader, and admin screens reuse;
                         the form's N-number typeahead over the FAA
                         registry, the aircraft type typeahead with **Add a
                         type**, and the registry state the register and the
@@ -727,7 +727,7 @@ the files they test, and an ``index.ts`` of what the route files use:
 
 Shared code sits outside ``features/``: ``components/`` holds the primitives
 every screen uses (``Page``, ``Card``, ``Field``, ``FixedValue``, ``Button``,
-``IconButton``, ``DeleteButton``, ``ConfirmButton``, ``RefusedSubmit``, ``StatusChip``,
+``IconButton``, ``DeleteButton``, ``ConfirmButton``, ``RefusedSubmit``, ``StatusDot``,
 ``DataTable``, ``Pagination``, ``PanelButton``, ``ColumnChooser``, ``FilterBar``, ``RunActionsTable``,
 ``Money``, ``DateText``, ``EmptyState``, ``VerifiedMark``, and ``Toast``), and
 ``choices.ts`` holds the one set of labels for certificate, medical,
@@ -949,7 +949,10 @@ area of its own (*Finance* across ``/admin/payments``); a screen outside the men
 none, and an error page asks for none with ``noEyebrow``.  ``Page`` also sets the
 document title to the page's title and the organization's name (``Member check ·
 CalDART``, through ``documentTitle.ts``, which reads the name Django stamps on
-``<html>`` as ``data-org-name``).  Every page keeps to one width,
+``<html>`` as ``data-org-name``).  A page whose heading is not the screen's name passes
+``tabTitle`` instead: the dashboard's greeting reads ``Dashboard``, a record reads its
+name and kind (``Marta Reyes · Member record``), and the finance payment list reads
+``Payments · Finance`` apart from a member's own **Payments**.  Every page keeps to one width,
 ``--portal-page-max`` (100rem, in ``portal.css``), cards and tables alike, with the
 header's actions aligned to it.  A card's eyebrow appears only where it adds to the
 card's title, never repeating the page's, and a table's caption is always a count

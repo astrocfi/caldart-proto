@@ -28,13 +28,15 @@ export function headerName(user: Pick<User, 'first_name' | 'last_name' | 'email'
  * Keeps the rail's current entry in view, and says whether more entries lie below
  * the rail's visible part.
  *
- * On a desktop the rail scrolls on its own when the reader's menu is taller than
- * the window, so on every page it is scrolled, by itself alone and never the page,
- * until the current entry shows.  `hasMoreBelow` drives the shadow at its foot.
+ * The rail scrolls on its own when the reader's menu is taller than the window: on a
+ * desktop always, and on a narrow screen as the open drawer.  On every page, and each
+ * time the drawer opens, it is scrolled, by itself alone and never the page, until the
+ * current entry shows.  `hasMoreBelow` drives the shadow at its foot.
  */
 function useRailScroll(
   pathname: string,
   hasRail: boolean,
+  drawerOpen: boolean,
 ): {
   railRef: RefObject<HTMLElement | null>;
   hasMoreBelow: boolean;
@@ -62,7 +64,7 @@ function useRailScroll(
       }
     }
     handleRailScroll();
-  }, [pathname, hasRail, handleRailScroll]);
+  }, [pathname, hasRail, drawerOpen, handleRailScroll]);
 
   useEffect(() => {
     window.addEventListener('resize', handleRailScroll);
@@ -107,7 +109,11 @@ export function PortalLayout(): JSX.Element {
       })
     : [];
   const hasRail = groups.length > 0;
-  const { railRef, hasMoreBelow, handleRailScroll } = useRailScroll(location.pathname, hasRail);
+  const { railRef, hasMoreBelow, handleRailScroll } = useRailScroll(
+    location.pathname,
+    hasRail,
+    drawerOpen,
+  );
 
   return (
     <div className="portal" data-drawer-open={drawerOpen ? 'true' : 'false'}>

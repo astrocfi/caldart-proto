@@ -85,7 +85,7 @@ export default tseslint.config(
         },
       ],
       // The design system deliberately co-locates a component with the pure
-      // helper that computes its input (`membershipTone` beside `StatusChip`,
+      // helper that computes its input (`membershipTone` beside `StatusDot`,
       // `formatCents` beside `Money`), which this rule cannot express.  Losing
       // fast refresh on those files is a fair trade for keeping them together.
       'react-refresh/only-export-components': 'off',

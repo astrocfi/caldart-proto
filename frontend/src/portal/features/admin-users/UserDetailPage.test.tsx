@@ -359,7 +359,7 @@ describe('UserDetailPage', () => {
   ])('reports a mail server that refused the %s message', async (action, button, overrides) => {
     const refused =
       'The mail server did not accept the message. ' +
-      'A system administrator can see the attempt on the Sent Emails page.';
+      'A system administrator can see the attempt on the Sent emails page.';
     stubDetail({ target: { ...TARGET, ...overrides } });
     server.use(
       http.post(`${API}/admin/users/${TARGET.id}/${action}`, () =>

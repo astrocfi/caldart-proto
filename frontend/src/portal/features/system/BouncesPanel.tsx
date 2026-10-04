@@ -83,7 +83,7 @@ export function BouncesPanel(): JSX.Element {
     >
       <p className="muted">
         Every hour the server reads the mailbox that undeliverable email is returned to. Each
-        message another mail server refused for good is marked Bounced on the Sent Emails page, and
+        message another mail server refused for good is marked Bounced on the Sent emails page, and
         the address is flagged on the person&rsquo;s member and user records until it changes, is
         verified, or a user administrator clears it. Delays and temporary failures are ignored.
       </p>

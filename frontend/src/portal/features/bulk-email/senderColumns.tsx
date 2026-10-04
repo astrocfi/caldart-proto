@@ -1,5 +1,5 @@
 /**
- * The From and DART columns the Drafts & scheduled and Sent lists show CalDART
+ * The From and DART columns the Drafts and scheduled and Sent lists show CalDART
  * management, who sees every sender's emails. A DART leader sees only their own, so
  * their lists leave both out. Both give way to the columns that matter more when the
  * table would not fit its card.

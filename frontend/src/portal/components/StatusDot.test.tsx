@@ -162,9 +162,4 @@ describe('a friend of CalDART', () => {
     render(<MembershipDot membership={FRIEND} today={TODAY} />);
     expect(screen.getByText('Friend')).toHaveAttribute('data-tone', 'none');
   });
-
-  it('reads Friend on a dot whose word is hidden', () => {
-    render(<MembershipDot membership={FRIEND} today={TODAY} hideWord />);
-    expect(screen.getByTitle('Friend')).toHaveAttribute('data-tone', 'none');
-  });
 });

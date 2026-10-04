@@ -45,11 +45,16 @@ GROUP_LINK = '<a href="../">Your screens</a>'
 #: The sidebar's search box, which submits to the search page.
 SEARCH_FORM = '<form action="../../search/" method="get" role="search"></form>'
 
-#: The stand-in sign-in page: a sidebar with the search box, a gated top-level entry,
-#: and the member group holding the page itself, a signed-out page, and a gated one;
-#: then a sentence linking a gated page, a signed-out one, and the search page.
+#: The links Sphinx puts in a page's head to the general index and the search page.
+HEAD_INDEX_LINK = '<link href="../../genindex/" rel="index" title="Index"/>'
+HEAD_SEARCH_LINK = '<link href="../../search/" rel="search" title="Search"/>'
+
+#: The stand-in sign-in page: head links to the index and the search page; a sidebar
+#: with the search box, a gated top-level entry, and the member group holding the page
+#: itself, a signed-out page, and a gated one; then a sentence linking a gated page, a
+#: signed-out one, and the search page.
 SIGN_IN_HTML = (
-    "<html><body>"
+    f"<html><head>{HEAD_INDEX_LINK}{HEAD_SEARCH_LINK}</head><body>"
     f"{SEARCH_FORM}"
     '<div class="sidebar-tree">'
     '<ul><li><a href="../../overview/">Overview</a></li></ul>'
@@ -163,6 +168,27 @@ def test_a_signed_out_page_loses_its_link_to_the_search_page(client: Client, gui
     """The search page needs sign-in, so the link to it goes too."""
     page = body(client.get("/docs/member/sign-in/"))
     assert 'href="../../search/"' not in page
+
+
+@pytest.mark.parametrize(
+    "link", ['href="../../genindex/"', 'rel="search"'], ids=["index", "search"]
+)
+def test_a_signed_out_page_loses_its_head_links_to_gated_pages(
+    client: Client, guide: Path, link: str
+) -> None:
+    """The head's links to the general index and the search page, both gated, go."""
+    page = body(client.get("/docs/member/sign-in/"))
+    assert link not in page
+
+
+@pytest.mark.parametrize("link", [HEAD_INDEX_LINK, HEAD_SEARCH_LINK], ids=["index", "search"])
+def test_a_signed_in_reader_keeps_the_head_links(
+    client: Client, member: User, guide: Path, link: str
+) -> None:
+    """A signed-in reader's copy keeps the head's links to the index and search."""
+    client.force_login(member)
+    page = body(client.get("/docs/member/sign-in/"))
+    assert link in page
 
 
 def test_a_signed_out_page_keeps_its_links_to_other_signed_out_pages(

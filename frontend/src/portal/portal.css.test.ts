@@ -40,6 +40,18 @@ describe('the Menu toggle', () => {
   });
 });
 
+describe('the open drawer', () => {
+  it('scrolls on its own, so it can open at the current entry', () => {
+    expect(css).toMatch(
+      /\.portal\[data-drawer-open='true'\] \.portal__rail \{[^}]*overflow-y: auto;/,
+    );
+  });
+
+  it('shades its foot when more entries lie below, outside the desktop query', () => {
+    expect(ruleBody(".portal__rail[data-more-below='true']")).toContain('box-shadow');
+  });
+});
+
 describe('the page width', () => {
   it('keeps every page, its header and its cards to one width', () => {
     expect(ruleBody('.page')).toContain('max-width: var(--portal-page-max);');

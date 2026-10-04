@@ -101,7 +101,7 @@ export function useSiteConfig(): UseQueryResult<SiteConfig> {
   });
 }
 
-/** The registry's state is cached under this key, which the Health & Database import drops. */
+/** The registry's state is cached under this key, which the Health and database import drops. */
 export const REGISTRY_KEY = ['aircraft', 'registry'] as const;
 
 /** How often the registry's state is asked for again while an import runs. */

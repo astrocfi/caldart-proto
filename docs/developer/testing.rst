@@ -671,7 +671,7 @@ the API client and its error mapping; the route guards, and the real route
 table opened at every guarded path by an anonymous visitor and by a user
 holding each role, so a guard that loses a role fails a case, plus the order a
 guard and an on-demand page resolve in; the shared
-``DataTable`` and ``StatusChip``; the auth pages; the join wizard's step
+``DataTable`` and ``StatusDot``; the auth pages; the join wizard's step
 progression, resume, and clamp rules; profile form conversion and validation;
 the aircraft picker's search, exclude, and create paths; the leader search and
 status card in each verdict state; every admin screen's filters, paging, export

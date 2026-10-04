@@ -210,7 +210,7 @@ export const handlers = [
     );
     return HttpResponse.json(found);
   }),
-  // The register's header and the Health & Database page read the registry's state as
+  // The register's header and the Health and database page read the registry's state as
   // they mount: by default, one successful import and none running.
   http.get(`${API}/aircraft/registry`, () => HttpResponse.json(makeRegistryStatus())),
   // Both reminder screens read the reminder schedule; by default nobody has changed it.
@@ -229,7 +229,7 @@ export const handlers = [
       { status: 404 },
     ),
   ),
-  // The Sent Emails page reads this as it mounts, so a suite that
+  // The Sent emails page reads this as it mounts, so a suite that
   // is not about the log does not have to declare one.
   http.get(`${API}/system/emails`, () =>
     HttpResponse.json({ count: 0, next: null, previous: null, results: [] }),

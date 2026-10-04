@@ -290,7 +290,7 @@ work does not collide in the route table.
 #. Write the screen in
    ``frontend/src/portal/features/<feature>/<Name>Page.tsx``, building it from
    the primitives in ``frontend/src/portal/components/`` — ``Page``, ``Card``,
-   ``DataTable``, ``EmptyState``, ``Loading``, ``StatusChip`` — rather than new
+   ``DataTable``, ``EmptyState``, ``Loading``, ``StatusDot`` — rather than new
    markup.
 #. Export a ``RouteObject[]`` from
    ``frontend/src/portal/routes/<feature>.tsx``, wrapped in ``RequireRole``

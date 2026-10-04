@@ -447,8 +447,8 @@ checking is off and reads nothing.
 leaves the password out of its ``repr``, and the check's own frames are marked
 sensitive, so a traceback shows none of their variables.
 
-The flag on the account shows as a **Bounced** chip beside the address on the
-member record and the user record, and Users and roles filters on it
+The flag on the account shows as a red dot and the word **Bounced** beside the address
+on the member record and the user record, and Users and roles filters on it
 (``?email_bounced=``).  It clears when the address changes, when a verification,
 password reset, or invitation link sent to it is followed, and when a user
 administrator presses **Clear bounce** on the user record

@@ -136,6 +136,7 @@ export function UserDetailPage(): JSX.Element {
   return (
     <Page
       title={displayName(user)}
+      tabTitle={`${displayName(user)} · User record`}
       lede={user.email}
       actions={<Link to="/admin/users">Back to users</Link>}
     >

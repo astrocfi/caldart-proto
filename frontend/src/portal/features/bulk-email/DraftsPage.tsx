@@ -1,5 +1,5 @@
 /**
- * `/bulk-email/drafts`: Drafts & scheduled. One line per bulk email not yet
+ * `/bulk-email/drafts`: Drafts and scheduled. One line per bulk email not yet
  * started: every draft, every email waiting out its undo window, and every
  * scheduled one, the most recently edited first.
  *

@@ -56,7 +56,7 @@ def sent(management: User) -> BulkEmail:
 def test_the_sent_list_holds_started_emails_alone(
     management_client: APIClient, management: User, sent: BulkEmail
 ) -> None:
-    """Drafts and queued emails are on the Drafts & scheduled list instead."""
+    """Drafts and queued emails are on the Drafts and scheduled list instead."""
     BulkEmailFactory(sender=management, subject="Draft")
     BulkEmailFactory(sender=management, subject="Queued", status=BulkEmailStatus.QUEUED)
     stopped = BulkEmailFactory(

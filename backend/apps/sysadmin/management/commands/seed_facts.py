@@ -51,7 +51,7 @@ def _has_lapsed_insurance(aircraft: Aircraft) -> bool:
 
 
 #: How many days ahead the portal starts warning that a policy runs out, which is
-#: ``EXPIRING_WINDOW_DAYS`` in ``frontend/src/portal/components/StatusChip.tsx``.
+#: ``EXPIRING_WINDOW_DAYS`` in ``frontend/src/portal/components/StatusDot.tsx``.
 #: An insured pilot's policies all run past it, so the card says "Insured".
 INSURANCE_WARNING_DAYS = 30
 

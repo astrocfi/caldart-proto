@@ -96,6 +96,14 @@ describe('MemberDetailPage', () => {
     expect(screen.getByRole('link', { name: 'ana@example.org' })).toBeInTheDocument();
   });
 
+  it('names the browser tab after the member and the record', async () => {
+    server.use(...detailHandlers());
+    renderDetail();
+
+    await screen.findByRole('heading', { name: 'Ana Bracco' });
+    await waitFor(() => expect(document.title).toBe('Ana Bracco · Member record · CalDART'));
+  });
+
   it('says when the profile was last written', async () => {
     server.use(...detailHandlers());
     renderDetail();

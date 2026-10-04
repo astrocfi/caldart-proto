@@ -2,14 +2,17 @@ import type { JSX } from 'react';
 
 import type { AircraftSummary } from '@/portal/api/types';
 import { formatDate } from '@/portal/components/DateText';
-import { StatusDot } from '@/portal/components/StatusDot';
+import { StatusDot, datedWord } from '@/portal/components/StatusDot';
 import { insuranceLabel, insuranceTone } from './insurance';
 
 export interface InsuranceDotProps {
   aircraft: Pick<AircraftSummary, 'insurance_is_current' | 'insurance_expiration'>;
   today?: Date;
-  /** Hide the word where the expiry date beside the dot already says it. */
-  hideWord?: boolean;
+  /**
+   * Put the date in the word, for a column of expiry dates: "Insured to 04/29/2027",
+   * "Expiring 10/31/2026", or "Expired 03/02/2026".
+   */
+  withDate?: boolean;
 }
 
 /**
@@ -20,19 +23,18 @@ export interface InsuranceDotProps {
 export function InsuranceDot({
   aircraft,
   today,
-  hideWord = false,
+  withDate = false,
 }: InsuranceDotProps): JSX.Element {
   const tone = insuranceTone(aircraft, today);
+  const date = aircraft.insurance_expiration;
+  if (withDate && date && tone !== 'none') {
+    return <StatusDot tone={tone} label={datedWord(tone, 'Insured to', formatDate(date))} />;
+  }
   return (
     <StatusDot
       tone={tone}
       label={insuranceLabel(tone)}
-      title={
-        !hideWord && aircraft.insurance_expiration
-          ? `Runs to ${formatDate(aircraft.insurance_expiration)}`
-          : undefined
-      }
-      hideWord={hideWord}
+      title={date ? `Runs to ${formatDate(date)}` : undefined}
     />
   );
 }

@@ -184,7 +184,7 @@ describe('MembersListPage', () => {
     expect(table.getByText('Not a pilot')).toBeInTheDocument();
   });
 
-  it('marks the membership with a dot rather than a chip', async () => {
+  it('marks the membership with a dot and words that carry the date', async () => {
     server.use(
       ...listHandlers([
         makeRow(),

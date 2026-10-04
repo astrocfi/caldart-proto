@@ -80,29 +80,30 @@ export function StatusDot({ tone, label, title, hideWord = false }: StatusDotPro
 export interface MembershipDotProps {
   membership: Pick<MembershipStatus, 'status' | 'expires_on' | 'is_lifetime'>;
   today?: Date;
-  /** Hide the word where the expiry date beside the dot already says it. */
-  hideWord?: boolean;
 }
 
 /**
  * The membership's state: green current, amber expiring, red expired, gray for a
- * friend, and "Never expires" for a lifetime member.  The date it runs to shows on
- * hover, or, with `hideWord`, the word does.
+ * friend, "Donor" for a donor, and "Never expires" for a lifetime member.  The date it
+ * runs to shows on hover.
  */
-export function MembershipDot({ membership, today, hideWord }: MembershipDotProps): JSX.Element {
+export function MembershipDot({ membership, today }: MembershipDotProps): JSX.Element {
   const tone = membershipTone(membership, today);
+  const word = membershipLabel(membership, tone);
+  const date = membership.expires_on;
   return (
-    <StatusDot
-      tone={tone}
-      label={membershipLabel(membership, tone)}
-      title={
-        !hideWord && membership.expires_on
-          ? `Runs to ${formatDate(membership.expires_on)}`
-          : undefined
-      }
-      hideWord={hideWord}
-    />
+    <StatusDot tone={tone} label={word} title={date ? `Runs to ${formatDate(date)}` : undefined} />
   );
+}
+
+/**
+ * A state and its date in one word for a column of dates: `current` reads `lead` (such
+ * as "Current to"), `expiring` reads "Expiring", and `expired` "Expired", then the date.
+ */
+export function datedWord(tone: StatusTone, lead: string, date: string): string {
+  if (tone === 'expiring') return `Expiring ${date}`;
+  if (tone === 'expired') return `Expired ${date}`;
+  return `${lead} ${date}`;
 }
 
 /** The word for a membership's state. */

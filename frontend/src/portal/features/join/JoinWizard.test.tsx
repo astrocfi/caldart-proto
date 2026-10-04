@@ -117,6 +117,14 @@ describe('<JoinWizard/> resume logic', () => {
     expect(path()).toBe('/join/account');
   });
 
+  it('names the browser tab Join', async () => {
+    stubApi(null);
+    renderWizard('/join');
+
+    await screen.findByRole('heading', { name: 'Create your account' });
+    expect(document.title).toBe('Join · CalDART');
+  });
+
   it('resumes a signed-in visitor with an unverified address on the verify step', async () => {
     stubApi(makeUser({ email_verified: false, profile_complete: false, membership: UNPAID }));
     renderWizard('/join');

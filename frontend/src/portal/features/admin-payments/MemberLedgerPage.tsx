@@ -228,6 +228,7 @@ export function MemberLedgerPage(): JSX.Element {
   return (
     <Page
       title={ledger.user.name}
+      tabTitle={`${ledger.user.name} · Money history`}
       lede={ledger.user.email}
       actions={
         <>

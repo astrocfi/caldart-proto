@@ -1,6 +1,6 @@
 """Health and backup endpoints -- ``system_admin`` only.
 
-These are the endpoints behind the portal's Health & Database page
+These are the endpoints behind the portal's Health and database page
 (``/portal/system/health``): is the box healthy, take a dump, download one.
 Everything destructive (restore, reset) stays on the command line deliberately; it
 is not something to do from a browser tab.
