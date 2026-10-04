@@ -20,7 +20,7 @@ One line per email, the most recently changed first:
   :doc:`compose`.
 - **Actions**: **Cancel schedule** or **Cancel** on an email waiting to send, and the
   trashcan on a draft (below).
-- **Type**: the kind of email chosen, or a dash before one is.
+- **Type**: the type of email chosen, or a dash before one is.
 - **From** and **DART**, for CalDART management only: who is writing it, and the DART a DART
   leader's email goes to, or a dash for an email that may go to anybody.
 - **Status**: a dot and *Draft*, *Scheduled*, or *Waiting to send* for an email in its two
@@ -41,7 +41,7 @@ email**, the line saying to set their DART on My profile, with **Open My profile
 An email that came due but was not sent is named above the table with the reason, such as
 *This email was not sent: you can no longer send Mission email. Choose another type and send
 again.* This happens when the person who pressed **Send** has since lost the role that sends
-that kind of email, or their account was deleted. The email is a draft again with nothing
+that type of email, or their account was deleted. The email is a draft again with nothing
 lost; open it, choose a type you may send, and send it again. The same line shows at the top
 of its compose screen until you do.
 

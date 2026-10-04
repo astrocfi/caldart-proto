@@ -38,10 +38,11 @@ One line per group, by name:
 Before the first group is saved the table reads *No recipient groups yet*. On a phone the
 table scrolls sideways.
 
-**New group** asks for a **Name** and the **Kind of group**, then **Make the group** opens its
-page, empty, to fill in. The cursor starts in **Name**; the Escape key closes the form, as
-**Cancel** does, and puts you back on **New group**. No two groups may share a name, in any mix of capital and small
-letters. The usual way to make a group is **Save as a group** on the compose screen, below.
+**New group** asks for a **Name** and the **Kind of group**, then **Make the group** opens
+its page, empty, to fill in. The cursor starts in **Name**; the Escape key closes the
+form, as **Cancel** does, and puts you back on **New group**. No two groups may share a
+name, in any mix of capital and small letters. The usual way to make a group is **Save as
+a group** on the compose screen, below.
 
 
 A group's page

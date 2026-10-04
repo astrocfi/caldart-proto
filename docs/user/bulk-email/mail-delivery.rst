@@ -7,7 +7,7 @@ Mail delivery
 **Mail delivery** tells you whether other mail systems, such as Gmail, Outlook, and
 the providers your members use, will trust the email CalDART sends. If they do not,
 a bulk email can land in people's spam folders or never arrive, and nothing on the
-Compose screen would tell you. Open this page before your first bulk email, before a
+compose screen would tell you. Open this page before your first bulk email, before a
 large one, and after anyone changes the website's email settings.
 
 CalDART management opens it, as **Mail delivery** under **Bulk Email** in the menu. A
@@ -44,9 +44,8 @@ The four checks
 
 **Approved senders (SPF).** A public list, kept with the CalDART domain name (or, when
 bounces return to a different address, the domain of that address, which the block names),
-of the
-servers allowed to send email that claims to come from CalDART. Receiving systems read
-it to catch forgeries. The check is good when the list exists, names the server the
+of the servers allowed to send email that claims to come from CalDART. Receiving systems
+read it to catch forgeries. The check is good when the list exists, names the server the
 website sends through, and tells receivers to be suspicious of anything else. It is a
 problem when there is no list, the list is malformed, or the website's server is not on
 it. It is a warning when the list is too lenient, or when the website hands its mail to
@@ -64,15 +63,15 @@ just cannot check.
 systems what to do with a message that claims to come from CalDART but fails the other
 checks, and where to send reports about such messages. It is a problem when none is
 published, or when more than one is, because receiving systems then follow none of them.
-It is a warning while the instruction only says to watch (``p=none``) and
-asks receivers to do nothing about forgeries. It is good when it says to send forgeries
-to spam (``quarantine``) or refuse them (``reject``). When the instruction names an address for
-reports, the page lists it.
+It is a warning while the instruction only says to watch (``p=none``) and asks receivers to
+do nothing about forgeries. It is good when it says to send forgeries to spam
+(``quarantine``) or refuse them (``reject``). When the instruction names addresses for
+reports, the page lists them.
 
 **Bounce address.** When a receiving server cannot deliver a message, it sends it back to
 the bounce address, and CalDART reads those returns to find out which addresses are no
-good. Some systems trust a message more when the
-bounce address is on the same domain as the From address. It is a warning when it is on
+good. Some systems trust a message more when the bounce address is on the same domain as
+the From address. It is a warning when it is on
 an unrelated domain.
 
 

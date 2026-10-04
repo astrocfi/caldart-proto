@@ -39,7 +39,7 @@ Every member and every friend of CalDART holds the member role. It opens the
 
 Every signed-in person also has **Messages** (:doc:`member/messages`) and **Email
 preferences** (:doc:`member/email-preferences`), under **Bulk Email** in the menu: the bulk
-emails CalDART has sent them, to read again, and which kinds of bulk email it sends them.
+emails CalDART has sent them, to read again, and which types of bulk email it sends them.
 
 A friend also reaches **Become a member** (:doc:`member/become-a-member`). While
 your membership is current, the members-only pages of the public site open to you
@@ -90,8 +90,9 @@ friends of the DART on the leader's own profile (:doc:`bulk-email/dart-leaders`)
 **Compose** (:doc:`bulk-email/compose`), **Drafts & scheduled**
 (:doc:`bulk-email/drafts`), and **Sent** (:doc:`bulk-email/sent`). A leader sees only the
 emails they wrote. **Callouts** (:doc:`bulk-email/callouts`) collects the answers to the
-mission callouts the leader sent and to those sent to their DART. Which kinds of email a leader may send is set on **Email types**; as the
-site starts, those are Operational and Mission email.
+mission callouts the leader sent and to those sent to their DART. Which types of email a
+leader may send is set on **Email types**; as the site starts, those are Operational and
+Mission email.
 
 Every role beyond member also opens the members-only pages, whatever the holder's
 own membership.
@@ -170,13 +171,13 @@ CalDART management writes to the membership as a whole. The role adds the **Bulk
 group of the menu:
 
 * **Compose** (:doc:`bulk-email/compose`): build a batch of people with the same filters the
-  member list uses, write the message, and send it now or schedule it, with two minutes to
-  cancel.
+  member list uses, write the message, send yourself a test, read the checks and the
+  preview, and send it now or schedule it, with two minutes to cancel.
 * **Drafts & scheduled** (:doc:`bulk-email/drafts`): every email not yet sent, to open,
   cancel, or delete.
-* **Sent** (:doc:`bulk-email/sent`): every email sent, with the result for each person, to
-  stop or finish a send, to download as a CSV, and to start a new draft from with
-  **Duplicate**.
+* **Sent** (:doc:`bulk-email/sent`): every email sent, with what became of each person's
+  copy, to stop or finish a send, retry the failed copies, view one person's copy, hide it
+  from **Messages**, download the results, and start a new draft from with **Duplicate**.
 * **Templates** (:doc:`bulk-email/templates`): the messages kept to start an email from,
   such as the monthly newsletter.
 * **Recipient groups** (:doc:`bulk-email/groups`): the people kept to add to a batch in one
@@ -213,14 +214,15 @@ role adds:
   backups, and the aircraft database loaded from the FAA registry, with a way to load
   it now.
 * **Sent Emails** (:doc:`admin/sent-emails`): the log of every email CalDART has sent.
-* **Email types** (:doc:`bulk-email/email-types`), under **Bulk Email**: the kinds of
+* **Email types** (:doc:`bulk-email/email-types`), under **Bulk Email**: the types of
   bulk email, who may send each, and whether members may turn each off.
 * **Coverage policy** on the **Aircraft register** (:doc:`admin/aircraft-register`):
   which aircraft categories and airworthiness categories CalDART's insurance does not
   cover, and the note members read on **My aircraft**.
-* **Scheduled** (:doc:`admin/scheduled`): the four jobs that run on a schedule (the
-  renewal reminder emails, the automatic renewal charges, the scheduled reports, and
-  the year-end contribution statements), with a way to run each now, and the reminder
-  schedule, which only a system administrator changes.
+* **Scheduled** (:doc:`admin/scheduled`): the six jobs that run on a schedule (the
+  renewal reminder emails, the automatic renewal charges, the scheduled reports, the
+  year-end contribution statements, the bounce check, and the bulk email sender), with a
+  way to run each now, and the reminder schedule, which only a system administrator
+  changes.
 
 A system administrator cannot deactivate their own account.

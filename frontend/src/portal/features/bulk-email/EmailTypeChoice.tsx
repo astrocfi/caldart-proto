@@ -5,7 +5,7 @@
  * the type is for. Choosing one saves it at once, and the batch is read again, since
  * whoever turned that type off is now skipped. While a choice saves the buttons stay
  * enabled, so the keyboard focus stays on them, and a further choice is ignored. Until a type is chosen the choice says
- * *Choose what kind of email this is*, and Send is refused with *Choose a type.*
+ * *Choose what type of email this is*, and Send is refused with *Choose a type.*
  * Changing the type of a scheduled email takes it back to the drafts, since who has
  * turned the type off changes the count that was confirmed, and the screen says so.
  */
@@ -28,7 +28,7 @@ export function wasUnqueued(before: BulkEmailDetail | undefined, after: BulkEmai
 }
 
 /** The hint shown until a type is chosen. */
-export const NO_TYPE_HINT = 'Choose what kind of email this is.';
+export const NO_TYPE_HINT = 'Choose what type of email this is.';
 
 interface EmailTypeChoiceProps {
   emailId: number;

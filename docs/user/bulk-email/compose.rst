@@ -35,7 +35,7 @@ already in the batch.* or *Nobody matches these filters.* Add again as often as 
 nobody is added twice. With no filters chosen, it adds every member and friend. Donors are
 never added.
 
-**Add a saved group**, beside **Add to batch**, adds everybody in a group kept on
+**Add a saved group**, beside **Add to batch**, adds everybody in a recipient group kept on
 :doc:`groups` the same way: nobody is added twice.
 
 Once somebody is in the batch, a line counts it, such as *38 people will receive this email;
@@ -60,7 +60,7 @@ narrow screen leaves out **Chosen by**, then **DART**. The reasons are:
 - *Address bounced*: an earlier email to this address came back undelivered. Once the
   address is corrected, or a user administrator presses **Clear bounce** on the account, the
   person receives copies again.
-- *Opted out of Mission* (with the email's type): the person has turned that kind of email
+- *Opted out of Mission* (with the email's type): the person has turned that type of email
   off on their :doc:`../member/email-preferences` or with an unsubscribe link. Nobody is
   skipped for this until you choose the type.
 - *Duplicate address*: somebody earlier in the batch has the same address, so it gets one
@@ -82,10 +82,10 @@ with **Save as a template**; that page explains both.
 To ask who can fly for a mission, switch on **This is a mission callout** and set **Answers
 close**; :doc:`callouts` explains the answer buttons and where the answers collect.
 
-First choose the **Type of email**: one button for each kind you may send, such as
+First choose the **Type of email**: one button for each type you may send, such as
 **Operational** or **Mission**, with a sentence saying what it is for. Until you choose,
-the card reads *Choose what kind of email this is.* The choice saves at once. Everybody who
-has turned that kind off is then skipped in the batch above. The kinds, and who may send
+the card reads *Choose what type of email this is.* The choice saves at once. Everybody who
+has turned that type off is then skipped in the batch above. The types, and who may send
 each, are kept on :doc:`email-types`.
 
 Then write the **Subject**, one line, and the **Message**. Once you start typing, a quiet note
@@ -131,10 +131,10 @@ is refused too: delete it and put it in again with **Insert field**.
 
 Each copy comes from the site's own address, with replies going to the **Reply-To**
 address. Under the message it carries a short footer
-with your organization's name and the contact address when one is set. For a kind people may
+with your organization's name and the contact address when one is set. For a type people may
 turn off, the footer says *You receive Mission email from CalDART because you have not turned
 it off. To stop it, unsubscribe here:* with a link for that person, and their mail program
-can offer its own **Unsubscribe** button. For a kind nobody may turn off, it says why they
+can offer its own **Unsubscribe** button. For a type nobody may turn off, it says why they
 receive it instead.
 
 **Send me a test**, at the bottom of the card, sends the email to you alone, so you can see it
@@ -191,10 +191,10 @@ Below the checks is a preview: the email as the first person in the batch will
 receive it, their own details filled in, once the message is written. *Previewing as Ann
 Able (1 of 38)* says whose copy it is; **Next person** and **Previous person** step through
 everybody who receives it. The preview shows what has been saved, and says so while your
-latest words cannot be saved. While
-nobody in the batch receives the email, the preview is your own copy. The footer reads as
-it will in the email, but its unsubscribe link in the preview unsubscribes nobody. Every
-link in the preview opens in a new tab, so you can try them without leaving the email. When a field in the message cannot be filled in, the
+latest words cannot be saved. While nobody in the batch receives the email, the preview is
+your own copy. The footer reads as it will in the email, but its unsubscribe link in the
+preview unsubscribes nobody. Every link in the preview opens in a new tab, so you can try
+them without leaving the email. When a field in the message cannot be filled in, the
 preview says why instead.
 
 Until the email can go, the card lists what is missing, such as *Choose a type.*, *Write a
