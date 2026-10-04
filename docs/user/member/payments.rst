@@ -86,8 +86,8 @@ your membership runs out on* that date. While it is on you do not get the ordina
 renewal reminders (see :doc:`renew`).
 
 **Change** opens **Change your renewal**: the plan, the contribution, and **Next
-charge on**. With one plan that renews, the form names it rather than offering a
-choice of one. Press **Save changes**. The dues are whatever the chosen plan costs on
+charge on**. With one plan that renews, the form names that plan in place of a choice
+of one. Press **Save changes**. The dues are whatever the chosen plan costs on
 the day of the charge. A charge already scheduled keeps its own day, so a day you
 set while one waits is the day of the charge after it. After each charge the day
 moves to the end of the term that charge bought.

@@ -65,12 +65,12 @@ nobody to send bulk email to, with **Open My profile**, where the DART is set (s
   a friend's reads **All payments and receipts**.
 
 **Quick links**
-  A few next steps, not the whole menu. Everybody gets **Renew** (or **Donate**, for
+  A few next steps; the menu has everything else. Everybody gets **Renew** (or **Donate**, for
   a friend or a life member), **My profile**, **My aircraft**, and **Messages**. A
   DART leader, a verifier, or an administrator also gets **Member check**; a
   treasurer or an account administrator, **Finance**; an account administrator,
   **Members**. The list stops at five: your role's own screens stay, and **Messages**
-  and then **My aircraft** give way to them. The menu has the rest.
+  and then **My aircraft** give way to them.
 
 
 Finding your way around
