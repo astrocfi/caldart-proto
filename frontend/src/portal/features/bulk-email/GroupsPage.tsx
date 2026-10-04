@@ -3,8 +3,8 @@
  * as groups and shared by every manager.
  *
  * One line per group: its name, which opens the group's page, where it is edited;
- * then **Download list** of its people (for a group that holds somebody) and a
- * trashcan that asks first, so both stay in sight on a phone; then whether it is
+ * then a trashcan that asks first and **Download list** of its people (for a group
+ * that holds somebody), so both stay in sight on a phone; then whether it is
  * fixed or live, how many people it holds now, and when it last changed. **New group**
  * makes an empty one; the focus moves into its form, Escape closes it, and closing it
  * puts the focus back on **New group**. The usual way to make a group is **Save as a
@@ -83,6 +83,12 @@ export function GroupsPage(): JSX.Element {
       width: '10.5rem',
       render: (group) => (
         <span className="cluster cluster--nowrap">
+          {/* The trashcan first, so a phone shows it beside the name. */}
+          <DeleteButton
+            label={`Delete ${group.name}`}
+            disabled={remove.isPending}
+            onDelete={() => handleDelete(group)}
+          />
           {hasPeople(group) ? (
             <a
               className="button button--quiet button--small"
@@ -93,11 +99,6 @@ export function GroupsPage(): JSX.Element {
               Download list
             </a>
           ) : null}
-          <DeleteButton
-            label={`Delete ${group.name}`}
-            disabled={remove.isPending}
-            onDelete={() => handleDelete(group)}
-          />
         </span>
       ),
     },

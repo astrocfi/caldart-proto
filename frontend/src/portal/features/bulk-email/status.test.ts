@@ -102,6 +102,12 @@ describe('progressSentence', () => {
 });
 
 describe('resultSentence', () => {
+  it('leaves out a count of nobody', () => {
+    expect(
+      resultSentence({ status: 'sent', sent_count: 37, failed_count: 2, skipped_count: 0 }),
+    ).toBe('Sent to 37 people. 2 failed.');
+  });
+
   it('counts a copy that came back as sent, then names it', () => {
     expect(
       resultSentence({
@@ -135,6 +141,6 @@ describe('resultSentence', () => {
         skipped_count: 1,
         stopped_by: 'Grace Holloway',
       }),
-    ).toBe('Stopped by Grace Holloway. Sent to 12 people. 0 failed and 1 was skipped.');
+    ).toBe('Stopped by Grace Holloway. Sent to 12 people. 1 was skipped.');
   });
 });

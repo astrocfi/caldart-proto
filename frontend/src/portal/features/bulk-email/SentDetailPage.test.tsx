@@ -68,9 +68,10 @@ describe('SentDetailPage', () => {
 
   it('says what the send came to', async () => {
     renderSent();
-    expect(
-      await screen.findByText('Sent to 1 person. 1 failed and 0 were skipped.'),
-    ).toHaveAttribute('role', 'status');
+    expect(await screen.findByText('Sent to 1 person. 1 failed.')).toHaveAttribute(
+      'role',
+      'status',
+    );
   });
 
   it('lists every person with their result and the reason', async () => {

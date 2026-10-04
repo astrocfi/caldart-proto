@@ -25,11 +25,11 @@ The list
 One line per group, by name:
 
 - **Name** opens the group's own page, below, where it is changed.
-- **Actions**: **Download list** saves the group's people as a spreadsheet file (CSV) named
+- **Actions**: the trashcan deletes the group after you press **Delete**. Emails the group
+  was added to keep their people, and their batch still names the group that brought each
+  person in. **Download list** saves the group's people as a spreadsheet file (CSV) named
   after the group, such as *caldart-group-board.csv*, with each person's name, email address,
-  kind, and DART; a group with nobody in it offers none. The trashcan deletes the group after
-  you press **Delete**. Emails the group was added to keep their people, and their batch
-  still names the group that brought each person in.
+  kind, and DART; a group with nobody in it offers none.
 - **Kind**: *Fixed* or *Live*.
 - **People**: how many people the group holds now. A live group's filters are run again to
   count them. It reads *Unknown* for a live group whose filters need fixing, below.

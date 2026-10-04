@@ -165,7 +165,7 @@ export function progressSentence(email: BulkEmailDetail, now: Date = new Date())
 
 /**
  * `Sent to 37 people. 1 failed and 4 were skipped.`: what a finished or stopped
- * send came to.  With nothing failed or skipped it is `Sent to 51 people. Everyone
+ * send came to, leaving out a count of nobody (`Sent to 37 people. 2 failed.`).  With nothing failed or skipped it is `Sent to 51 people. Everyone
  * was sent a copy.`  Copies that came back undelivered later are counted as sent and
  * then named: `2 came back undelivered.`
  */
@@ -178,12 +178,17 @@ export function resultSentence(
   const bounced = email.bounced_count ?? 0;
   const returned = bounced === 0 ? '' : ` ${bounced} came back undelivered.`;
   const sent = `Sent to ${people(wentCount(email))}.`;
-  const failed = `${email.failed_count} failed`;
-  const skipped = `${email.skipped_count} ${email.skipped_count === 1 ? 'was' : 'were'} skipped`;
-  const isEveryone = email.failed_count === 0 && email.skipped_count === 0;
-  const counts = isEveryone
-    ? `${sent} Everyone was sent a copy.${returned}`
-    : `${sent} ${failed} and ${skipped}.${returned}`;
+  // A count of nobody is left out, so the line names only what happened.
+  const misses = [
+    email.failed_count === 0 ? null : `${email.failed_count} failed`,
+    email.skipped_count === 0
+      ? null
+      : `${email.skipped_count} ${email.skipped_count === 1 ? 'was' : 'were'} skipped`,
+  ].filter((part) => part !== null);
+  const counts =
+    misses.length === 0
+      ? `${sent} Everyone was sent a copy.${returned}`
+      : `${sent} ${misses.join(' and ')}.${returned}`;
   if (email.status !== 'stopped') return counts;
   const who = email.stopped_by ? ` by ${email.stopped_by}` : '';
   return `Stopped${who}. ${counts}`;
