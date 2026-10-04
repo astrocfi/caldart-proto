@@ -14,6 +14,7 @@ import { Card } from '@/portal/components/Card';
 import { ConfirmButton } from '@/portal/components/ConfirmButton';
 import { useToast } from '@/portal/components/Toast';
 import { FormAlert } from '@/portal/features/auth/form';
+import './users.css';
 import { useAccountStatusAction } from './api';
 import type { AccountStatusAction } from './api';
 
@@ -29,6 +30,24 @@ function statusSentence(user: AdminUser): string {
     ? 'Active: the account can sign in.'
     : 'Deactivated: the person can reactivate it by signing in or resetting their password.';
 }
+
+/** What Deactivate account does, under the button: it can be undone. */
+const DEACTIVATE_HINT =
+  'Signs them out and stops them signing in. They, or you, can reactivate it later.';
+
+/** What Block reactivation does, under the button: it outlasts the deactivation. */
+const BLOCK_HINT =
+  'Deactivates the account and keeps it closed: they cannot bring it back themselves.';
+
+/** What Reactivate account does, under the button. */
+const REACTIVATE_HINT = 'Lets them sign in again.';
+
+/** Why Reactivate account is grayed out while the block stands. */
+const REACTIVATE_BLOCKED_HINT = 'Allow reactivation first; the block keeps the account closed.';
+
+/** What Allow reactivation does, under the button. */
+const UNBLOCK_HINT =
+  'Lifts the block. The account stays deactivated until somebody reactivates it.';
 
 /** The toast each action shows once it has gone through. */
 const DONE: Record<AccountStatusAction, string> = {
@@ -58,65 +77,83 @@ export function AccountStatusCard({ user, isSelf }: AccountStatusCardProps): JSX
         {isSelf ? (
           <p className="muted">You cannot deactivate or block your own account.</p>
         ) : (
-          <div className="cluster">
+          <div className="account-actions">
             {user.is_active ? (
-              <ConfirmButton
-                key="deactivate"
-                label="Deactivate account"
-                variant="danger"
-                choices={[
-                  {
-                    label: 'Deactivate account',
-                    variant: 'danger',
-                    onChoose: handleRun('deactivate'),
-                  },
-                ]}
-              >
-                <p>
-                  They are signed out everywhere and cannot sign in until the account is
-                  reactivated. Automatic renewal and any recurring donation are canceled, and a
-                  membership with time left is set aside. Nothing is deleted.
-                </p>
-              </ConfirmButton>
+              <div>
+                <ConfirmButton
+                  key="deactivate"
+                  label="Deactivate account"
+                  variant="danger"
+                  choices={[
+                    {
+                      label: 'Deactivate account',
+                      variant: 'danger',
+                      onChoose: handleRun('deactivate'),
+                    },
+                  ]}
+                >
+                  <p>
+                    They are signed out everywhere and cannot sign in until the account is
+                    reactivated. Automatic renewal and any recurring donation are canceled, and a
+                    membership with time left is set aside. Nothing is deleted.
+                  </p>
+                </ConfirmButton>
+                <p className="account-actions__hint muted">{DEACTIVATE_HINT}</p>
+              </div>
             ) : (
-              <ConfirmButton
-                key="reactivate"
-                label="Reactivate account"
-                disabled={user.reactivation_blocked}
-                choices={[{ label: 'Reactivate account', onChoose: handleRun('reactivate') }]}
-              >
-                <p>
-                  They can sign in again, and a membership set aside when the account was
-                  deactivated resumes if it has time left. Automatic renewal stays off.
+              <div>
+                <ConfirmButton
+                  key="reactivate"
+                  label="Reactivate account"
+                  disabled={user.reactivation_blocked}
+                  choices={[{ label: 'Reactivate account', onChoose: handleRun('reactivate') }]}
+                >
+                  <p>
+                    They can sign in again, and a membership set aside when the account was
+                    deactivated resumes if it has time left. Automatic renewal stays off.
+                  </p>
+                </ConfirmButton>
+                <p className="account-actions__hint muted">
+                  {user.reactivation_blocked ? REACTIVATE_BLOCKED_HINT : REACTIVATE_HINT}
                 </p>
-              </ConfirmButton>
+              </div>
             )}
             {user.reactivation_blocked ? (
-              <ConfirmButton
-                key="unblock"
-                label="Allow reactivation"
-                choices={[{ label: 'Allow reactivation', onChoose: handleRun('unblock') }]}
-              >
-                <p>
-                  The account stays deactivated. The person can then reactivate it by signing in or
-                  resetting their password.
-                </p>
-              </ConfirmButton>
+              <div>
+                <ConfirmButton
+                  key="unblock"
+                  label="Allow reactivation"
+                  choices={[{ label: 'Allow reactivation', onChoose: handleRun('unblock') }]}
+                >
+                  <p>
+                    The account stays deactivated. The person can then reactivate it by signing in
+                    or resetting their password.
+                  </p>
+                </ConfirmButton>
+                <p className="account-actions__hint muted">{UNBLOCK_HINT}</p>
+              </div>
             ) : (
-              <ConfirmButton
-                key="block"
-                label="Block reactivation"
-                variant="danger"
-                choices={[
-                  { label: 'Block reactivation', variant: 'danger', onChoose: handleRun('block') },
-                ]}
-              >
-                <p>
-                  {user.is_active ? 'The account is deactivated first. ' : ''}Until you allow
-                  reactivation again, the person is told the account has been closed whenever they
-                  try to sign in, reset their password, or register with this address.
-                </p>
-              </ConfirmButton>
+              <div>
+                <ConfirmButton
+                  key="block"
+                  label="Block reactivation"
+                  variant="danger"
+                  choices={[
+                    {
+                      label: 'Block reactivation',
+                      variant: 'danger',
+                      onChoose: handleRun('block'),
+                    },
+                  ]}
+                >
+                  <p>
+                    {user.is_active ? 'The account is deactivated first. ' : ''}Until you allow
+                    reactivation again, the person is told the account has been closed whenever they
+                    try to sign in, reset their password, or register with this address.
+                  </p>
+                </ConfirmButton>
+                <p className="account-actions__hint muted">{BLOCK_HINT}</p>
+              </div>
             )}
           </div>
         )}

@@ -15,7 +15,9 @@
  * how many more, naming them all on hover.  The report cannot
  * follow two of the screen's choices, Donor under Kind (a donor holds no
  * role) and the Member role (the report has no section for it), so while either is
- * chosen the exports and the column chooser are disabled and say why.  Name and Email
+ * chosen the exports and the column chooser are disabled, and a line beside them says
+ * why.  A donor's row shows **No membership**, since a donor holds none.  An empty list
+ * names the filters in force.  Name and Email
  * sort on the server; the other headings do not sort.
  */
 import { useMemo } from 'react';
@@ -40,6 +42,7 @@ import {
 import { reportExportUrl } from '@/portal/reports/api';
 import type { FilterField, Option } from '@/portal/reports/types';
 import { useAdminUsers } from './api';
+import './users.css';
 
 const PAGE_SIZE = 25;
 
@@ -89,8 +92,10 @@ const FILTER_FIELDS: FilterField[] = [
 ];
 const FILTER_KEYS = FILTER_FIELDS.map((field) => field.key);
 
-const DONOR_EXPORT_REASON = 'A donor holds no role, so the roles report lists nobody.';
-const MEMBER_EXPORT_REASON = 'The roles report has no section for Member, so it lists nobody.';
+const DONOR_EXPORT_REASON =
+  'Columns and the downloads are off for donors: a donor holds no role, so the roles report lists nobody.';
+const MEMBER_EXPORT_REASON =
+  'Columns and the downloads are off for the Member role: the roles report has no section for it.';
 
 /**
  * Why the roles report cannot follow the screen's filters, or `undefined` when it can.
@@ -99,6 +104,23 @@ function exportDisabledReason(role: string, kind: string): string | undefined {
   if (kind === 'donor') return DONOR_EXPORT_REASON;
   if (role === 'member') return MEMBER_EXPORT_REASON;
   return undefined;
+}
+
+/** Lists filter names the way a sentence does: "Role, Kind, and Email". */
+const FILTER_LIST = new Intl.ListFormat('en-US', { style: 'long', type: 'conjunction' });
+
+/**
+ * The empty list's title, naming the filters in force, so it blames the right one: "No
+ * accounts match the Role and Kind filters".  The account status counts only once it is
+ * moved off **Active only**.
+ */
+export function emptyTitle(values: Record<string, string>): string {
+  const named = FILTER_FIELDS.filter((field) => (values[field.key] ?? '') !== '').map(
+    (field) => field.label,
+  );
+  if (named.length === 0) return 'No active accounts';
+  const filters = FILTER_LIST.format(named);
+  return `No accounts match the ${filters} filter${named.length === 1 ? '' : 's'}`;
 }
 
 /** The API's `is_active` for the status chosen: blank means active only. */
@@ -168,7 +190,13 @@ const CELLS: Record<string, ReportCell<AdminUser>> = {
   membership: {
     width: '8.5rem',
     keepInSight: true,
-    render: (user) => <MembershipDot membership={user.membership} />,
+    // A donor holds no membership at all, so the cell says so rather than drawing a dot.
+    render: (user) =>
+      user.kind === 'donor' ? (
+        <span className="muted">No membership</span>
+      ) : (
+        <MembershipDot membership={user.membership} />
+      ),
   },
   city: { minWidth: '7rem', render: (user) => user.city },
   county: { minWidth: '8rem', render: (user) => user.county },
@@ -262,14 +290,21 @@ export function UsersListPage(): JSX.Element {
             label="Filter accounts"
           />
         }
-        tools={<ColumnTools choice={choice} disabledReason={disabledReason} />}
+        tools={
+          <>
+            {disabledReason === undefined ? null : (
+              <p className="muted users-list__off">{disabledReason}</p>
+            )}
+            <ColumnTools choice={choice} disabledReason={disabledReason} />
+          </>
+        }
         exportCsvUrl={reportExportUrl('roles', 'csv', exportParams)}
         exportPdfUrl={reportExportUrl('roles', 'pdf', exportParams)}
         exportDisabledReason={disabledReason}
         isLoading={query.isPending}
         onSortChange={handleSortChange}
         sort={sort}
-        emptyTitle="No accounts match those filters"
+        emptyTitle={emptyTitle(filters)}
         emptyDescription="Try a shorter search, or reset the filters."
         emptyAction={
           <Button variant="quiet" onClick={handleReset}>

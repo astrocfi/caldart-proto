@@ -1,0 +1,22 @@
+/* The user record: Resend verification keeps its distance from the Roles rule below it. */
+.user-record__resend {
+  margin-bottom: var(--space-5);
+}
+
+/* The line under each status action, saying what it does before it is pressed. */
+.account-actions {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.account-actions__hint {
+  margin: var(--space-1) 0 0;
+  font-size: var(--text-sm);
+}
+
+/* Why the users list's columns and downloads are off, beside the grayed buttons. */
+.users-list__off {
+  margin: 0;
+  font-size: var(--text-sm);
+  flex-basis: 100%;
+}

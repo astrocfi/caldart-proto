@@ -71,10 +71,12 @@ function headingText(cell: HTMLElement): string {
 }
 
 /** The title the disabled export controls carry while Donor is chosen. */
-const DONOR_TITLE = 'A donor holds no role, so the roles report lists nobody.';
+const DONOR_TITLE =
+  'Columns and the downloads are off for donors: a donor holds no role, so the roles report lists nobody.';
 
 /** The title the disabled export controls carry while Member is the role. */
-const MEMBER_TITLE = 'The roles report has no section for Member, so it lists nobody.';
+const MEMBER_TITLE =
+  'Columns and the downloads are off for the Member role: the roles report has no section for it.';
 
 /** Records every `/admin/users` query the page issues, and answers from `rows`. */
 function stubList(rows: AdminUser[] = [MARTA, PRIYA]) {
@@ -476,7 +478,36 @@ describe('UsersListPage', () => {
     stubList([]);
     renderWithProviders(<UsersListPage />);
 
-    expect(await screen.findByText(/no accounts match those filters/i)).toBeInTheDocument();
+    expect(await screen.findByText('No active accounts')).toBeInTheDocument();
+  });
+
+  it('names the filters in force when nothing matches them', async () => {
+    stubList([]);
+    renderWithProviders(<UsersListPage />, { route: '/admin/users?kind=friend&role=treasurer' });
+
+    expect(
+      await screen.findByText('No accounts match the Role and Kind filters'),
+    ).toBeInTheDocument();
+  });
+
+  it('says in words why the downloads are off while Donor is chosen', async () => {
+    stubList([MARTA, GIL]);
+    renderWithProviders(<UsersListPage />);
+    await screen.findByRole('button', { name: 'Columns' });
+
+    await userEvent.selectOptions(screen.getByLabelText('Kind', { exact: true }), 'donor');
+
+    expect(screen.getByText(DONOR_TITLE)).toBeInTheDocument();
+  });
+
+  it('shows No membership for a donor rather than a membership dot', async () => {
+    stubList([GIL]);
+    renderWithProviders(<UsersListPage />);
+    await screen.findByRole('link', { name: 'Gil Ivers' });
+    await userEvent.click(screen.getByRole('button', { name: 'Columns' }));
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Membership' }));
+    const row = screen.getByRole('link', { name: 'Gil Ivers' }).closest('tr');
+    expect(within(row as HTMLElement).getByText('No membership')).toBeInTheDocument();
   });
 
   it('pages through a long list', async () => {

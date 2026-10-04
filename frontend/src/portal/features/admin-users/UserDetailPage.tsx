@@ -2,7 +2,10 @@
  * `/admin/users/:id` — edit one account's names, email, and roles, and change its
  * status: deactivate or reactivate it, and block it from reactivating or lift the block.
  * An address the bounce check found bouncing carries a **Bounced** chip beside it and a
- * **Clear bounce** action that asks first.
+ * **Clear bounce** action that asks first.  Only a system administrator may give or take
+ * away the System administrator role, so its box is grayed out for anybody else, with
+ * the reason under it.  The **History** card lists who changed the account's roles or
+ * status, and when.
  */
 import { useEffect, useRef, useState } from 'react';
 import type { JSX } from 'react';
@@ -30,9 +33,12 @@ import {
 import { ResendVerificationButton } from '@/portal/components/ResendVerificationButton';
 import { useToast } from '@/portal/components/Toast';
 import { useFocusAfterSave } from '@/portal/components/focus';
-import { EMAIL_MESSAGE, isEmailAddress, maskEmail } from '@/portal/masks';
+import { maskEmail } from '@/portal/masks';
+import { emailProblem } from '@/portal/features/admin-members/MemberFormFields';
 import { FormAlert, fieldError } from '@/portal/features/auth/form';
+import { AccountHistoryCard } from './AccountHistoryCard';
 import { AccountStatusCard } from './AccountStatusCard';
+import './users.css';
 import {
   useAdminUser,
   useClearBounce,
@@ -67,6 +73,9 @@ function blankNames(form: FormState): NameErrors {
   if (form.last_name.trim() === '') errors.last_name = 'Enter a last name.';
   return errors;
 }
+
+/** Why the System administrator box is grayed out for anybody who is not one. */
+const SYSTEM_ADMIN_ONLY = 'Only a system administrator can give or take away this role.';
 
 function displayName(user: AdminUser): string {
   return `${user.first_name} ${user.last_name}`.trim() || user.email;
@@ -128,6 +137,8 @@ export function UserDetailPage(): JSX.Element {
   }
 
   const isSelf = me?.id === user.id;
+  // The server refuses anybody else a change to this role, so the box says so first.
+  const maySetSystemAdmin = me?.roles.includes('system_admin') ?? false;
   // A donor cannot sign in, so neither a password nor a verification link would
   // lead anywhere.
   const isDonor = user.kind === 'donor';
@@ -152,7 +163,7 @@ export function UserDetailPage(): JSX.Element {
       lede={user.email}
       actions={<Link to="/admin/users">Back to users</Link>}
     >
-      <Card eyebrow="Membership" title="Membership">
+      <Card title="Membership">
         <div className="cluster">
           <span>{ACCOUNT_KIND_LABELS[user.kind]}</span>
           <MembershipDot membership={user.membership} />
@@ -177,8 +188,9 @@ export function UserDetailPage(): JSX.Element {
             event.preventDefault();
             const missing = blankNames(form);
             setNameErrors(missing);
-            const isEmailBad = !isEmailAddress(form.email);
-            setEmailError(isEmailBad ? EMAIL_MESSAGE : null);
+            const problem = emailProblem(form.email);
+            const isEmailBad = problem !== null;
+            setEmailError(problem);
             if (isEmailBad || Object.keys(missing).length > 0) {
               refusal.refuse();
               return;
@@ -249,7 +261,7 @@ export function UserDetailPage(): JSX.Element {
             )}
           </Field>
           {user.email_verified || isDonor ? null : (
-            <div className="cluster">
+            <div className="cluster user-record__resend">
               <ResendVerificationButton
                 variant="secondary"
                 disabled={!user.is_active}
@@ -286,21 +298,29 @@ export function UserDetailPage(): JSX.Element {
             <legend>Roles</legend>
             {roles.isPending ? <p className="muted">Loading roles…</p> : null}
             <ul role="list" className="stack">
-              {(roles.data ?? []).map((role) => (
-                <li key={role.slug}>
-                  <label className="cluster">
-                    <input
-                      type="checkbox"
-                      name="roles"
-                      value={role.slug}
-                      checked={form.roles.includes(role.slug)}
-                      onChange={(event) => toggleRole(role.slug, event.target.checked)}
-                    />
-                    <span>{roleLabel(role.slug)}</span>
-                  </label>
-                  <p className="field__hint">{role.description}</p>
-                </li>
-              ))}
+              {(roles.data ?? []).map((role) => {
+                const isLocked = role.slug === 'system_admin' && !maySetSystemAdmin;
+                return (
+                  <li key={role.slug}>
+                    <label className="cluster">
+                      <input
+                        type="checkbox"
+                        name="roles"
+                        value={role.slug}
+                        checked={form.roles.includes(role.slug)}
+                        disabled={isLocked}
+                        aria-describedby={`role-${role.slug}-hint`}
+                        onChange={(event) => toggleRole(role.slug, event.target.checked)}
+                      />
+                      <span>{roleLabel(role.slug)}</span>
+                    </label>
+                    <p className="field__hint" id={`role-${role.slug}-hint`}>
+                      {role.description}
+                      {isLocked ? ` ${SYSTEM_ADMIN_ONLY}` : null}
+                    </p>
+                  </li>
+                );
+              })}
             </ul>
             {serverErrors.roles ? (
               <p className="field__error" role="alert">
@@ -359,6 +379,8 @@ export function UserDetailPage(): JSX.Element {
           </p>
         </Card>
       )}
+
+      <AccountHistoryCard userId={user.id} />
     </Page>
   );
 }
