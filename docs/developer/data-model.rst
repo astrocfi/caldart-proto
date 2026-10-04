@@ -556,7 +556,7 @@ The answer ``members.services.membership_status`` gives (see
 :ref:`membership-status`).  The labels are what the member list's status
 filter, the member report, and the portal's status select show.  ``donor`` is
 what a donor account reads; donors appear in no member list, report, roster, or
-member check, so no chip for it is drawn anywhere.
+member check, so no status dot for it is drawn anywhere.
 
 .. list-table::
    :header-rows: 1

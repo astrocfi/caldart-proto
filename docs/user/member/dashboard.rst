@@ -91,9 +91,9 @@ beginning, and **Back to caldart.org** returns you to the public site.
 
 The top bar holds **Help**, which opens the page of this guide for the screen you
 are on in a new tab, then your name and **Sign out**. On a phone or a narrow window the
-menu folds away behind the **Menu** button in the top bar; Escape closes it again. Every
-screen works from the keyboard, and *Skip to content* is the first stop when you press
-Tab.
+menu folds away behind the **Menu** button in the top bar, which opens it at the top of
+the page; Escape closes it again. Every screen works from the keyboard, and *Skip to
+content* is the first stop when you press Tab.
 
 
 When a screen will not open

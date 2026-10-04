@@ -347,6 +347,17 @@ describe('PortalLayout', () => {
     await waitFor(() => expect(rail.scrollTop).toBe(800));
   });
 
+  it('brings the page back to the top when Menu opens the drawer', async () => {
+    server.use(signedInAs(makeUser()));
+    const user = userEvent.setup();
+    renderWithProviders(tree(), { route: '/' });
+    const menu = await screen.findByRole('button', { name: 'Menu' });
+    const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined);
+
+    await user.click(menu);
+    expect(scrollTo).toHaveBeenCalledWith({ top: 0, left: 0 });
+  });
+
   it('opens and closes the mobile drawer from the Menu button', async () => {
     const user = userEvent.setup();
     server.use(signedInAs(makeUser()));
