@@ -611,7 +611,8 @@ Who the caller may send to.  **200**:
     "can_send": true,
     "reason": "",
     "dart": 4,
-    "dart_name": "Marin"}
+    "dart_name": "Marin",
+    "default_reply_to": "office@caldart.org"}
 
 ``is_management`` is true for CalDART management and a system administrator, who
 send to everyone, with ``dart`` null and ``dart_name`` blank.  For a DART leader
@@ -619,7 +620,11 @@ send to everyone, with ``dart`` null and ``dart_name`` blank.  For a DART leader
 a leader whose profile names no DART, and ``reason`` then says *Your profile names no
 DART, so there is nobody to send to. Set your DART on My profile.*; it is blank
 otherwise.  The compose screen shows that sentence in place of the form, and names a
-leader's DART as a fixed value in place of the DART filter.
+leader's DART as a fixed value in place of the DART filter; the Drafts & scheduled
+screen shows it too.  ``default_reply_to`` is where replies to the caller's email go
+when they choose no Reply-To address: ``BULK_EMAIL_REPLY_TO``, or the caller's own
+address when that setting is blank.  The template form names it under its
+**Reply-To** field.
 
 
 .. _api-bulk-email-checks:
@@ -1118,10 +1123,13 @@ fallback that stands in for an empty one there, so
 
 ``{{`` and ``}}`` are never part of a token and are left exactly as written,
 inside an address or out; they never stand for a single brace.  A web address
-that needs a brace of its own writes it percent-encoded, ``%7B`` and ``%7D``,
-and ``fields.unknown_token_message`` says so when a sender writes one bare:
-*{id} is not a recipient field. Choose a field from Insert field, or, if the
-braces belong in a web address, write them as %7B and %7D: %7Bid%7D.*
+that needs a brace of its own writes it percent-encoded, ``%7B`` and ``%7D``.
+``fields.unknown_token_message`` names an unknown token and the ways out: in the
+text, *{nickname} is not one of the fields. Pick a field from Insert field, or
+take out the braces.*; inside a link's ``href`` or a picture's ``src``
+(``fields.is_in_address``), *{id} is not one of the fields. Pick a field from
+Insert field, or, if the braces belong in the web address, write them as %7B and
+%7D: %7Bid%7D.*
 
 
 **Checking a message.**  ``render.check_message`` is what a save, a preview, and a
@@ -1457,8 +1465,9 @@ fixing is **409** *This group's filters need fixing.*, here and for the CSV.
 ``GET /bulk-email/groups/{id}/members.csv``
 -------------------------------------------
 
-The same people as a CSV download, ``caldart-recipient-group-<id>.csv``, with the
-columns ``Name``, ``Email``, ``Kind``, and ``DART``.
+The same people as a CSV download named after the group, ``caldart-group-<slug>.csv``
+with the slug of its name (``caldart-group-<id>.csv`` for a name with no letter or
+digit), with the columns ``Name``, ``Email``, ``Kind``, and ``DART``.
 
 ``POST /bulk-email/groups/{id}/members``
 ----------------------------------------

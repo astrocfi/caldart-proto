@@ -6,7 +6,7 @@ Messages
 news CalDART writes to many members and friends at once, such as meeting announcements,
 appeals for donations, and requests for pilots. If you deleted one, joined after it went
 out, or your mail program shows it badly, you can read it here. Open it from **Bulk Email**
-in the menu.
+in the menu; the screen's own heading names it under **Your email**.
 
 
 What you see

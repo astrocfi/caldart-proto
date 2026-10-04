@@ -1502,7 +1502,8 @@ export type EmailTypeSenderRole = 'dart_leader' | 'management';
  * `slug` follows `name`. `sender_roles` lists the roles that may send the type, once
  * each in the order above; an empty list leaves it to system administrators.
  * `allow_opt_out` says whether a recipient may turn it off. `position` orders the
- * types on every screen, then `name`.
+ * types on every screen, then `name`. `in_use` is true once a bulk email has the type,
+ * which then cannot be deleted.
  */
 export interface EmailType {
   id: number;
@@ -1512,6 +1513,7 @@ export interface EmailType {
   allow_opt_out: boolean;
   sender_roles: EmailTypeSenderRole[];
   position: number;
+  in_use: boolean;
 }
 
 /**
@@ -1537,14 +1539,21 @@ export interface SendableEmailType {
 /**
  * One type a person may turn off, and whether they have, from `GET
  * /me/email-preferences` or `GET /admin/members/{id}/email-preferences`.
- * `email_type` is the type's id. Types nobody may turn off are not listed.
+ * `email_type` is the type's id. Types nobody may turn off are not listed. For a type
+ * turned off, `opted_out_source` says where and `opted_out_at` when; `''` and null for
+ * a type left on.
  */
 export interface EmailPreference {
   email_type: number;
   name: string;
   description: string;
   opted_out: boolean;
+  opted_out_source: OptOutSource | '';
+  opted_out_at: IsoDateTime | null;
 }
+
+/** Where an opt-out was recorded: Email preferences, an unsubscribe link, or an administrator. */
+export type OptOutSource = 'profile' | 'unsubscribe' | 'admin';
 
 /** One entry of the list a `PUT` of email preferences takes. */
 export interface EmailPreferenceChange {
@@ -2026,6 +2035,7 @@ export interface BulkEmailSummary {
  * `GET /bulk-email/sender`: who the signed-in sender may send to. CalDART management
  * sends to everyone (`is_management`); a DART leader to `dart`, the DART on their
  * profile. `can_send` is false when there is nobody to send to, and `reason` says why.
+ * `default_reply_to` is where replies go when the sender chooses no Reply-To address.
  */
 export interface BulkEmailSender {
   is_management: boolean;
@@ -2033,6 +2043,7 @@ export interface BulkEmailSender {
   reason: string;
   dart: number | null;
   dart_name: string;
+  default_reply_to: string;
 }
 
 /** The fields `PATCH /bulk-email/{id}` may change. */

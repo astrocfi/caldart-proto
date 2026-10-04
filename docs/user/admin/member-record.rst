@@ -93,7 +93,10 @@ editable on any record you can open. Deactivating the account is on the **Danger
 
 Below the form, **Email preferences** shows the switches the person sees on their own
 :doc:`../member/email-preferences`, one per kind of bulk email. A switch saves at once,
-*Saved.* confirms it, and the change is recorded as yours. A donor's record has none.
+*Saved.* confirms it, and the change is recorded as yours. Under a kind that is off, a
+line says who turned it off and when, such as *Turned off by the member on 10/03/2026
+(unsubscribe link).* or *Turned off by an account administrator on 10/03/2026.* A donor's
+record has none.
 
 
 Memberships

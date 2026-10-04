@@ -106,12 +106,12 @@ describe('MessagePreview', () => {
     renderPreview();
     server.use(
       http.post(`${API}/bulk-email/7/preview`, () =>
-        HttpResponse.json({ body: ['{nickname} is not a recipient field.'] }, { status: 400 }),
+        HttpResponse.json({ body: ['{nickname} is not one of the fields.'] }, { status: 400 }),
       ),
     );
     await waitFor(() =>
       expect(screen.getByRole('alert')).toHaveTextContent(
-        'The preview cannot be shown: {nickname} is not a recipient field.',
+        'The preview cannot be shown: {nickname} is not one of the fields.',
       ),
     );
   });

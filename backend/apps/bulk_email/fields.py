@@ -42,8 +42,14 @@ URL_SAFE = "@"
 
 #: How an unknown token is refused: what it is, and the two ways out.
 UNKNOWN_FIELD_MESSAGE = (
-    "{token} is not a recipient field. Choose a field from Insert field, or, if "
-    "the braces belong in a web address, write them as %7B and %7D: {encoded}."
+    "{token} is not one of the fields. Pick a field from Insert field, or take out the braces."
+)
+
+#: How an unknown token inside a link's or a picture's address is refused: the braces
+#: may belong to the address, so the message says how to write them there.
+UNKNOWN_FIELD_IN_ADDRESS_MESSAGE = (
+    "{token} is not one of the fields. Pick a field from Insert field, or, if the "
+    "braces belong in the web address, write them as %7B and %7D: {encoded}."
 )
 
 
@@ -175,15 +181,33 @@ def unknown_tokens(text: str) -> list[str]:
     return list(dict.fromkeys(names))
 
 
-def unknown_token_message(name: str) -> str:
+def unknown_token_message(name: str, *, in_address: bool = False) -> str:
     """Return why the token ``{name}`` is refused, for a sender to read.
 
     The message names the token and says how to avoid it: pick a field from the
-    menu, or, where braces belong in a web address, percent-encode them, since a
-    doubled brace (``{{`` or ``}}``) is left exactly as written and never stands
-    for one.
+    menu, or take the braces out (:data:`UNKNOWN_FIELD_MESSAGE`).  With ``in_address``
+    true, for a token inside a link's or a picture's address, the second way out is
+    to percent-encode the braces instead (:data:`UNKNOWN_FIELD_IN_ADDRESS_MESSAGE`),
+    since a doubled brace (``{{`` or ``}}``) is left exactly as written and never
+    stands for one.
     """
-    return UNKNOWN_FIELD_MESSAGE.format(token=f"{{{name}}}", encoded=f"%7B{name}%7D")
+    token = f"{{{name}}}"
+    if in_address:
+        return UNKNOWN_FIELD_IN_ADDRESS_MESSAGE.format(token=token, encoded=f"%7B{name}%7D")
+    return UNKNOWN_FIELD_MESSAGE.format(token=token)
+
+
+def is_in_address(html_text: str, name: str) -> bool:
+    """Return whether a token naming ``name`` sits inside an address in ``html_text``.
+
+    An address is the value of a link's ``href`` or a picture's ``src`` within a tag;
+    the same token written in the text alone answers False.
+    """
+    spans = _address_spans(html_text)
+    return any(
+        match.group(1) == name and any(start <= match.start() < end for start, end in spans)
+        for match in TOKEN_RE.finditer(html_text)
+    )
 
 
 def values_for(user: User, tokens: Iterable[str]) -> dict[str, str]:

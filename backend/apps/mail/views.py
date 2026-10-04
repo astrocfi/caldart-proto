@@ -40,7 +40,8 @@ def unsubscribe(request: HttpRequest, token: str) -> HttpResponse:
     **Unsubscribe** button posting back here), ``already`` on a GET when the person has
     turned the type off already, ``done`` once a POST has recorded the opt-out with the
     source ``unsubscribe`` (or found it recorded), and ``not_allowed`` on either
-    method for a type that no longer allows opting out, which records nothing.  A
+    method for a type that no longer allows opting out, which records nothing.  Every
+    state but ``expired`` names the address the link unsubscribes, as ``address``.  A
     tampered, expired, or orphaned token renders ``expired`` with status 400 and
     records nothing.  Every state but ``expired`` answers 200.
     """
@@ -50,7 +51,7 @@ def unsubscribe(request: HttpRequest, token: str) -> HttpResponse:
         log.info("Refused an unsubscribe link: %s", error)
         return render(request, TEMPLATE, {"state": "expired"}, status=400)
 
-    context: dict[str, object] = {"email_type": email_type}
+    context: dict[str, object] = {"email_type": email_type, "address": user.email}
     if not email_type.allow_opt_out:
         return render(request, TEMPLATE, {**context, "state": "not_allowed"})
     if request.method == "POST":

@@ -31,6 +31,11 @@ describe('MessagesPage', () => {
     expect(link).toHaveAttribute('href', answerUrl);
   });
 
+  it('speaks to the reader of their own email, not of bulk email', () => {
+    renderList([SPRING]);
+    expect(screen.getByText('Your email')).toBeVisible();
+  });
+
   it('lists each message with its date, subject, sender, and kind', async () => {
     renderList([SPRING]);
     const row = (await screen.findByRole('link', { name: SPRING.subject })).closest('tr');

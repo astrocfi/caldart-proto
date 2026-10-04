@@ -157,6 +157,7 @@ export const MANAGEMENT_SENDER: BulkEmailSender = {
   reason: '',
   dart: null,
   dart_name: '',
+  default_reply_to: 'office@caldart.org',
 };
 
 export const handlers = [

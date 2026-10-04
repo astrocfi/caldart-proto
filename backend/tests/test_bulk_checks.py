@@ -142,7 +142,7 @@ def test_a_message_of_empty_paragraphs_is_an_error() -> None:
 def test_an_unknown_token_is_an_error() -> None:
     """A field the catalog lacks is refused as a save words it."""
     found = findings_for(message("Dear {nickname},"))
-    assert (codes(found), found[0].message.startswith("{nickname} is not a recipient field")) == (
+    assert (codes(found), found[0].message.startswith("{nickname} is not one of the fields")) == (
         [UNFILLABLE],
         True,
     )

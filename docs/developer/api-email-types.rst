@@ -16,7 +16,7 @@ The code lives in ``backend/apps/mail/``:
    :ref:`data-model-email-opt-out`).
 ``types.py``
    The services: ``list_types``, ``create_type``, ``update_type``,
-   ``delete_type``, ``sendable_types``, ``opt_outs``, ``is_opted_out``, and
+   ``delete_type``, ``sendable_types``, ``opt_out_records``, ``is_opted_out``, and
    ``set_opt_out``.  Every write is audited.
 ``api/type_serializers.py`` and ``api/email_types.py``
    The serializers and the five views.
@@ -63,11 +63,14 @@ Every type, in ``position`` order and then by name.
        "description": "News about how CalDART runs: meetings, training, exercises, and changes that affect members.",
        "allow_opt_out": true,
        "sender_roles": ["dart_leader", "management"],
-       "position": 1
+       "position": 1,
+       "in_use": true
      }
    ]
 
-``slug`` is read-only and follows ``name``.  ``sender_roles`` lists the roles
+``slug`` is read-only and follows ``name``.  ``in_use`` is read-only and true once a
+bulk email has the type, which then cannot be deleted; the Email types screen greys
+that type's trashcan and says why.  ``sender_roles`` lists the roles
 whose holders may send the type, from ``dart_leader`` and ``management``, once each
 and in that order; an empty list leaves the type to system administrators, who send
 every type whatever it names.
@@ -152,9 +155,17 @@ every ``opted_out`` starts ``false``.
        "email_type": 2,
        "name": "Fundraising",
        "description": "Appeals for donations and news about CalDART's fundraising events.",
-       "opted_out": true
+       "opted_out": true,
+       "opted_out_source": "unsubscribe",
+       "opted_out_at": "2026-10-03T09:12:00-07:00"
      }
    ]
+
+For a type turned off, ``opted_out_source`` says where that was recorded:
+``profile`` (the person's own Email preferences), ``unsubscribe`` (the link in an
+email, or a mail program's own unsubscribe button), or ``admin`` (an account
+administrator on the member record); ``opted_out_at`` says when.  They are ``""``
+and ``null`` for a type left on.  The member record shows them under the switch.
 
 
 ``PUT /me/email-preferences``

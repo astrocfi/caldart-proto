@@ -308,6 +308,7 @@ export const LEADER_SENDER: BulkEmailSender = {
   reason: '',
   dart: 4,
   dart_name: 'Marin',
+  default_reply_to: 'office@caldart.org',
 };
 
 /** Who a DART leader whose profile names no DART may send to: nobody. */
@@ -317,6 +318,7 @@ export const NO_DART_SENDER: BulkEmailSender = {
   reason: 'Your profile names no DART, so there is nobody to send to. Set your DART on My profile.',
   dart: null,
   dart_name: '',
+  default_reply_to: 'office@caldart.org',
 };
 
 /** Answer `GET /bulk-email/sender` with `sender` for the rest of the test. */

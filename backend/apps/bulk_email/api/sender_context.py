@@ -14,6 +14,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.bulk_email.api.common import BULK_EMAIL_PERMISSIONS
+from apps.bulk_email.reply_to import default_reply_to
 from apps.bulk_email.senders import SenderContext, sender_context
 from apps.members.api.actors import acting_user
 
@@ -25,7 +26,9 @@ class BulkEmailSenderSerializer(serializers.Serializer[SenderContext]):
     send to everyone.  ``dart`` and ``dart_name`` are the id and name of the DART a
     DART leader sends to, null and blank for CalDART management and for a leader whose
     profile names none.  ``can_send`` is false when there is nobody to send to, and
-    ``reason`` then says why, blank otherwise.
+    ``reason`` then says why, blank otherwise.  ``default_reply_to`` is where replies to
+    the caller's email go when they choose no Reply-To address
+    (``apps.bulk_email.reply_to.default_reply_to``).
     """
 
     is_management = serializers.BooleanField()
@@ -33,6 +36,7 @@ class BulkEmailSenderSerializer(serializers.Serializer[SenderContext]):
     reason = serializers.CharField(allow_blank=True)
     dart = serializers.SerializerMethodField()
     dart_name = serializers.SerializerMethodField()
+    default_reply_to = serializers.SerializerMethodField()
 
     def get_dart(self, context: SenderContext) -> int | None:
         """The id of the DART the caller sends to, or null for none."""
@@ -41,6 +45,10 @@ class BulkEmailSenderSerializer(serializers.Serializer[SenderContext]):
     def get_dart_name(self, context: SenderContext) -> str:
         """The name of the DART the caller sends to, or ``""`` for none."""
         return str(context.dart.name) if context.dart is not None else ""
+
+    def get_default_reply_to(self, context: SenderContext) -> str:
+        """Where replies go when the caller chooses no Reply-To address."""
+        return default_reply_to(context.user)
 
 
 class SenderContextView(APIView):

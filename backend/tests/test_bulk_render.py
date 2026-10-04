@@ -252,7 +252,7 @@ def _sending_to_a_deleted_account(sender: User) -> BulkEmailRecipient:
         (
             "x",
             '<p><a href="https://example.org/{id}">x</a></p>',
-            {"body": unknown_token_message("id")},
+            {"body": unknown_token_message("id", in_address=True)},
         ),
         (
             "x",

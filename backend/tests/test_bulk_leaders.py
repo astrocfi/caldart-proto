@@ -163,21 +163,26 @@ def test_a_leader_with_no_dart_cannot_send(dart_leader: User, has_profile: bool)
     assert (context.can_send, context.reason) == (False, NO_DART_MESSAGE)
 
 
-def test_the_sender_endpoint_answers_a_leader_s_dart(leader_client: APIClient, marin: Dart) -> None:
+def test_the_sender_endpoint_answers_a_leader_s_dart(
+    leader_client: APIClient, marin: Dart, settings: Settings
+) -> None:
     """``GET /bulk-email/sender`` names the leader's DART."""
+    settings.BULK_EMAIL_REPLY_TO = "office@example.test"
     assert leader_client.get(f"{API}/sender").json() == {
         "is_management": False,
         "can_send": True,
         "reason": "",
         "dart": marin.pk,
         "dart_name": "Marin DART",
+        "default_reply_to": "office@example.test",
     }
 
 
 def test_the_sender_endpoint_says_why_a_leader_cannot_send(
-    api_client: APIClient, dart_leader: User
+    api_client: APIClient, dart_leader: User, settings: Settings
 ) -> None:
     """A leader with no DART is told why there is nobody to send to."""
+    settings.BULK_EMAIL_REPLY_TO = "office@example.test"
     api_client.force_login(dart_leader)
     assert api_client.get(f"{API}/sender").json() == {
         "is_management": False,
@@ -185,18 +190,32 @@ def test_the_sender_endpoint_says_why_a_leader_cannot_send(
         "reason": NO_DART_MESSAGE,
         "dart": None,
         "dart_name": "",
+        "default_reply_to": "office@example.test",
     }
 
 
-def test_the_sender_endpoint_answers_management(management_client: APIClient) -> None:
+def test_the_sender_endpoint_answers_management(
+    management_client: APIClient, settings: Settings
+) -> None:
     """CalDART management sends to everyone, with no DART of its own."""
+    settings.BULK_EMAIL_REPLY_TO = "office@example.test"
     assert management_client.get(f"{API}/sender").json() == {
         "is_management": True,
         "can_send": True,
         "reason": "",
         "dart": None,
         "dart_name": "",
+        "default_reply_to": "office@example.test",
     }
+
+
+def test_the_sender_endpoint_names_the_caller_s_own_address_without_a_site_reply_to(
+    api_client: APIClient, management: User, settings: Settings
+) -> None:
+    """With no ``BULK_EMAIL_REPLY_TO``, replies default to the caller's own address."""
+    settings.BULK_EMAIL_REPLY_TO = ""
+    api_client.force_login(management)
+    assert api_client.get(f"{API}/sender").json()["default_reply_to"] == management.email
 
 
 # --------------------------------------------------------------------------

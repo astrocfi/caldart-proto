@@ -14,6 +14,8 @@ const MISSION: EmailPreference = {
   name: 'Mission',
   description: 'Requests for pilots and aircraft.',
   opted_out: false,
+  opted_out_source: '',
+  opted_out_at: null,
 };
 
 const FUNDRAISING: EmailPreference = {
@@ -21,6 +23,8 @@ const FUNDRAISING: EmailPreference = {
   name: 'Fundraising',
   description: 'Appeals for donations.',
   opted_out: true,
+  opted_out_source: 'profile',
+  opted_out_at: '2026-10-03T16:00:00Z',
 };
 
 /**
@@ -51,6 +55,12 @@ function renderPage() {
 }
 
 describe('EmailPreferencesPage', () => {
+  it('speaks to the reader of their own email, not of bulk email', () => {
+    stubPreferences([MISSION]);
+    renderPage();
+    expect(screen.getByText('Your email')).toBeVisible();
+  });
+
   it('shows one switch per type, on when the person receives it', async () => {
     stubPreferences([FUNDRAISING, MISSION]);
     renderPage();
@@ -75,6 +85,24 @@ describe('EmailPreferencesPage', () => {
     await userEvent.click(await screen.findByRole('switch', { name: 'Mission' }));
 
     await waitFor(() => expect(sent).toEqual([[{ email_type: 3, opted_out: true }]]));
+  });
+
+  it('moves a switch on Enter as on Space', async () => {
+    const sent = stubPreferences([MISSION]);
+    renderPage();
+
+    (await screen.findByRole('switch', { name: 'Mission' })).focus();
+    await userEvent.keyboard('{Enter}');
+
+    await waitFor(() => expect(sent).toEqual([[{ email_type: 3, opted_out: true }]]));
+  });
+
+  it('keeps who turned a type off to the member record', async () => {
+    stubPreferences([FUNDRAISING]);
+    renderPage();
+
+    await screen.findByRole('switch', { name: 'Fundraising' });
+    expect(screen.queryByText(/^Turned off by/)).toBeNull();
   });
 
   it('says Saved once the change lands', async () => {

@@ -123,9 +123,10 @@ to take the style off.
   with no first name.
 
 A field can only be one of those in the list. Anything else written in braces, such as
-*{nickname}*, is refused with *{nickname} is not a recipient field.*, and the message is
-not saved until it is fixed. A web address that needs braces of its own writes them as
-*%7B* and *%7D*, as the message says. A field with bold or another style on only part of it
+*{nickname}*, is refused with *{nickname} is not one of the fields. Pick a field from Insert
+field, or take out the braces.*, and the words are not saved until it is fixed. A link's web
+address that needs braces of its own writes them as *%7B* and *%7D*, as the message says
+when the braces are in one. A field with bold or another style on only part of it
 is refused too: delete it and put it in again with **Insert field**.
 
 Each copy comes from the site's own address, with replies going to the **Reply-To**

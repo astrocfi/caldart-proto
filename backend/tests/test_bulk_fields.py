@@ -20,6 +20,7 @@ from apps.bulk_email.fields import (
     FIELDS,
     Token,
     find_tokens,
+    is_in_address,
     substitute,
     unknown_token_message,
     unknown_tokens,
@@ -342,11 +343,34 @@ def test_doubled_braces_in_an_address_are_left_as_written() -> None:
 
 
 def test_the_unknown_token_message_says_how_to_avoid_it() -> None:
-    """The refusal names the token and offers the menu or percent-encoded braces."""
-    assert unknown_token_message("id") == (
-        "{id} is not a recipient field. Choose a field from Insert field, or, if the "
-        "braces belong in a web address, write them as %7B and %7D: %7Bid%7D."
+    """The refusal names the token and offers the menu or taking the braces out."""
+    assert unknown_token_message("nickname") == (
+        "{nickname} is not one of the fields. Pick a field from Insert field, or take out "
+        "the braces."
     )
+
+
+def test_the_unknown_token_message_in_an_address_says_how_to_write_braces() -> None:
+    """Inside a web address, the refusal offers percent-encoded braces instead."""
+    assert unknown_token_message("id", in_address=True) == (
+        "{id} is not one of the fields. Pick a field from Insert field, or, if the "
+        "braces belong in the web address, write them as %7B and %7D: %7Bid%7D."
+    )
+
+
+@pytest.mark.parametrize(
+    ("html", "expected"),
+    [
+        ('<p><a href="https://example.org/{id}">x</a></p>', True),
+        ('<p><img src="https://example.org/{id}.png" alt="x"></p>', True),
+        ("<p>Order {id}</p>", False),
+        ('<p><a href="https://example.org/">{id}</a></p>', False),
+    ],
+    ids=["link", "picture", "text", "link-words"],
+)
+def test_a_token_is_in_an_address_only_inside_href_or_src(html: str, expected: bool) -> None:
+    """``is_in_address`` answers True only for a token inside an address."""
+    assert is_in_address(html, "id") is expected
 
 
 def test_a_fallback_inside_an_address_is_percent_encoded() -> None:

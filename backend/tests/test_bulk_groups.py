@@ -438,16 +438,25 @@ def test_a_groups_people_are_listed_with_their_dart(
 def test_a_groups_people_download_as_a_csv(
     management_client: APIClient, board: RecipientGroup
 ) -> None:
-    """The CSV lists everybody in the group, named for the group's id."""
+    """The CSV lists everybody in the group, named for the group."""
     response = management_client.get(group_url(board, "/members.csv"))
-    assert response["Content-Disposition"] == (
-        f'attachment; filename="caldart-recipient-group-{board.pk}.csv"'
-    )
+    assert response["Content-Disposition"] == 'attachment; filename="caldart-group-board.csv"'
     assert read_csv(response) == [
         ["Name", "Email", "Kind", "DART"],
         ["Ann Able", "ann@example.test", "Friend", "Marin DART"],
         ["Bob Burns", "bob@example.test", "Friend", "Marin DART"],
     ]
+
+
+def test_a_group_whose_name_cannot_be_slugged_downloads_under_its_id(
+    management_client: APIClient, board: RecipientGroup
+) -> None:
+    """A name with no letter or digit names the file for the group's id instead."""
+    RecipientGroup.objects.filter(pk=board.pk).update(name="!!!")
+    response = management_client.get(group_url(board, "/members.csv"))
+    assert response["Content-Disposition"] == (
+        f'attachment; filename="caldart-group-{board.pk}.csv"'
+    )
 
 
 def test_adding_a_person_to_a_fixed_group(

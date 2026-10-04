@@ -48,6 +48,7 @@ from apps.bulk_email.fields import (
     TOKEN_RE,
     Token,
     find_tokens,
+    is_in_address,
     substitute,
     unknown_token_message,
     unknown_tokens,
@@ -339,12 +340,13 @@ def body_problem(body: str) -> str | None:
 
     ``body`` is sanitized first.  It is refused with :data:`TOO_DEEP_MESSAGE` when its
     tags nest deeper than ``richtext.MAX_NESTING_DEPTH``.  It is refused for its first
-    token the catalog does
-    not have, in the HTML or in the plain text derived from it, with
-    :func:`apps.bulk_email.fields.unknown_token_message`; and for a token the two
-    parts would not fill in alike, with :func:`retype_message`: a token the plain
-    text holds but the HTML does not, because formatting splits it
-    (``<strong>{first</strong>_name}``), or a token in the HTML's text the plain text
+    token the catalog does not have, in the HTML or in the plain text derived from it,
+    with :func:`apps.bulk_email.fields.unknown_token_message`, which says how to write
+    braces in a web address only when the token sits in a link's or a picture's
+    address; and for a token the two parts would not fill in alike, with
+    :func:`retype_message`: a token the plain text holds but the HTML does not, because
+    formatting splits it (``<strong>{first</strong>_name}``), or a token in the HTML's
+    text the plain text
     does not hold, because its fallback holds an angle bracket.
     """
     clean = sanitize(body)
@@ -353,7 +355,7 @@ def body_problem(body: str) -> str | None:
     text = html_to_text(clean)
     unknown = unknown_tokens(clean) or unknown_tokens(text)
     if len(unknown) > 0:
-        return unknown_token_message(unknown[0])
+        return unknown_token_message(unknown[0], in_address=is_in_address(clean, unknown[0]))
     mismatched = _mismatched_token(clean, text)
     return None if mismatched is None else retype_message(mismatched)
 

@@ -2,7 +2,8 @@
 
 {% comment %}
   The page a bulk email's unsubscribe link opens.  `state` is one of `confirm`,
-  `already`, `done`, `not_allowed`, or `expired` (see `apps.mail.views.unsubscribe`).
+  `already`, `done`, `not_allowed`, or `expired` (see `apps.mail.views.unsubscribe`);
+  `address` is the email address the link unsubscribes, in every state but `expired`.
   The button posts back to this same address; it carries no CSRF token because the
   signed token in the address is the authorization.
 {% endcomment %}
@@ -28,19 +29,21 @@
     <div class="box__body">
       {% if state == "confirm" %}
         <p class="lede">
-          Press the button to stop receiving {{ email_type.name }} email from {{ org }}.
-          Other kinds of email from {{ org }} are not affected.
+          Press the button to stop receiving {{ email_type.name }} email from {{ org }} for
+          <strong>{{ address }}</strong>. Other kinds of email from {{ org }} are not affected.
         </p>
         <form method="post">
           <button type="submit" class="button">Unsubscribe</button>
         </form>
       {% elif state == "already" %}
         <p class="lede">
-          You have already unsubscribed from {{ email_type.name }} email.
+          You have already unsubscribed from {{ email_type.name }} email for
+          <strong>{{ address }}</strong>.
         </p>
       {% elif state == "done" %}
         <p class="lede">
-          You will no longer receive {{ email_type.name }} email from {{ org }}.
+          You will no longer receive {{ email_type.name }} email from {{ org }} for
+          <strong>{{ address }}</strong>.
         </p>
       {% elif state == "not_allowed" %}
         <p class="lede">

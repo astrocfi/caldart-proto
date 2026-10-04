@@ -81,10 +81,10 @@ describe('MessageCard', () => {
 
   it("shows the server's refusal of the message beside it", () => {
     answerFields();
-    renderWithProviders(<Card errors={{ body: '{nickname} is not a recipient field.' }} />);
+    renderWithProviders(<Card errors={{ body: '{nickname} is not one of the fields.' }} />);
     const message = screen.getByRole('textbox', { name: 'Message' });
     expect([screen.getByRole('alert').textContent, message.getAttribute('aria-invalid')]).toEqual([
-      '{nickname} is not a recipient field.',
+      '{nickname} is not one of the fields.',
       'true',
     ]);
   });

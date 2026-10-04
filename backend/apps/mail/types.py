@@ -148,13 +148,9 @@ def sendable_types(user: User | AnonymousUser) -> list[EmailType]:
     ]
 
 
-def opt_outs(user: User) -> set[int]:
-    """The ids of every type ``user`` has opted out of, whether or not it applies now.
-
-    A type whose ``allow_opt_out`` is off is included when the person opted out of it
-    while it allowed that; :func:`is_opted_out` says whether such a row applies.
-    """
-    return set(EmailOptOut.objects.filter(user=user).values_list("email_type_id", flat=True))
+def opt_out_records(user: User) -> dict[int, EmailOptOut]:
+    """Every opt-out ``user`` has recorded, by its type's id, with where and when."""
+    return {row.email_type_id: row for row in EmailOptOut.objects.filter(user=user)}
 
 
 def is_opted_out(user: User, email_type: EmailType) -> bool:

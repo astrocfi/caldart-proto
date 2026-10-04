@@ -2,7 +2,9 @@
  * The member record's **Email preferences** card: the kinds of bulk email this
  * person receives, with the same switches they see on their own screen.
  *
- * A change made here is saved at once and recorded as the administrator's. A donor
+ * A change made here is saved at once and recorded as the administrator's. Each type
+ * turned off says who turned it off and when: the member, on their Email preferences
+ * or from an unsubscribe link, or an account administrator. A donor
  * receives no bulk email and a deleted member's record cannot change, so neither
  * shows the card.
  */
@@ -36,6 +38,7 @@ export function MemberEmailPreferences({ member }: { member: MemberDetail }): JS
         preferences={preferences}
         save={save}
         label={`Kinds of email ${member.name} receives`}
+        showsWhoTurnedOff
       />
     </Card>
   );

@@ -6,8 +6,10 @@ The behavior is documented in ``docs/developer/api-email-types.rst``.
 from __future__ import annotations
 
 import logging
+from datetime import datetime
 
 import pytest
+from rest_framework import serializers
 from rest_framework.test import APIClient
 
 from apps.accounts.models import User
@@ -48,6 +50,11 @@ def member_client(api_client: APIClient, member: User) -> APIClient:
     return api_client
 
 
+def serialized_time(moment: datetime) -> str:
+    """``moment`` as the API writes a time: ISO 8601 in the site's time zone."""
+    return serializers.DateTimeField().to_representation(moment)
+
+
 def change(email_type: EmailType, *, opted_out: bool) -> list[dict[str, object]]:
     """A ``PUT`` body changing one type."""
     return [{"email_type": email_type.pk, "opted_out": opted_out}]
@@ -67,6 +74,8 @@ def test_only_types_that_may_be_turned_off_are_listed(
             "name": "Mission",
             "description": "Pilots wanted.",
             "opted_out": False,
+            "opted_out_source": "",
+            "opted_out_at": None,
         }
     ]
 
@@ -217,8 +226,8 @@ def test_an_opt_out_waits_while_the_type_does_not_allow_it(member: User) -> None
 def test_an_administrator_reads_a_members_preferences(
     account_admin_client: APIClient, member: User
 ) -> None:
-    """The member record shows the same rows the member's own screen does."""
-    opt_out = EmailOptOutFactory(user=member)
+    """The member record shows the rows, with where and when a type was turned off."""
+    opt_out = EmailOptOutFactory(user=member, source=OptOutSource.UNSUBSCRIBE)
 
     response = account_admin_client.get(member_url(member))
 
@@ -228,6 +237,8 @@ def test_an_administrator_reads_a_members_preferences(
             "name": opt_out.email_type.name,
             "description": opt_out.email_type.description,
             "opted_out": True,
+            "opted_out_source": "unsubscribe",
+            "opted_out_at": serialized_time(opt_out.created_at),
         }
     ]
 
