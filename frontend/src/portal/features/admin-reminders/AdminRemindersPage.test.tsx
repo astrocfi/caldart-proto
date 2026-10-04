@@ -122,9 +122,7 @@ describe('AdminRemindersPage', () => {
     renderWithProviders(<AdminRemindersPage />);
 
     await screen.findByText('60 days before expiry');
-    expect(
-      screen.getAllByRole('term').map((term) => term.textContent),
-    ).toEqual([
+    expect(screen.getAllByRole('term').map((term) => term.textContent)).toEqual([
       'First reminder',
       'Second reminder',
       'Final reminder',

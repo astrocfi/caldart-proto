@@ -480,7 +480,7 @@ def test_seed_demo_puts_the_paused_renewal_on_a_stripe_card_with_the_mock_off() 
 
 
 def test_seed_demo_dates_no_refused_charge_after_today() -> None:
-    """The paused renewal's refused charges all lie in the past, never on a day to come."""
+    """The paused renewal's refused charges all lie in the past, none on a day to come."""
     _seed()
     failed = RenewalAttempt.objects.filter(outcome=RenewalOutcome.FAILED)
     later = [a.scheduled_on for a in failed if a.scheduled_on >= timezone.localdate()]

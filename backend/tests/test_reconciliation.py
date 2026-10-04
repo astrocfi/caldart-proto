@@ -280,13 +280,17 @@ def test_the_csv_export_writes_money_a_spreadsheet_can_add_up(
 
 
 def test_the_export_covers_the_period_a_subscription_names(
-    treasurer_client: APIClient, books: list[Payment], today: dt.date
+    treasurer_client: APIClient,
+    books: list[Payment],
+    member: User,
+    annual_plan: MembershipPlan,
+    today: dt.date,
 ) -> None:
     """``?period=last_month`` is the month before the one the report is built in."""
     last_month = today.replace(day=1) - dt.timedelta(days=1)
     settled(
-        books[0].user,
-        books[0].plan,
+        member,
+        annual_plan,
         when=at_noon(last_month.year, last_month.month, 1),
         total=7_000,
         fee=0,

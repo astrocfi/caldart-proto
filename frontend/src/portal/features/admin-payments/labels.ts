@@ -17,10 +17,7 @@ import type {
   RefundReason,
   RefundState,
 } from '@/portal/api/types';
-import {
-  PAYMENT_PROVIDER_LABELS,
-  PAYMENT_WALLET_LABELS,
-} from '@/portal/choices';
+import { PAYMENT_PROVIDER_LABELS, PAYMENT_WALLET_LABELS } from '@/portal/choices';
 
 export {
   PAYMENT_PROVIDER_LABELS as PROVIDER_LABELS,

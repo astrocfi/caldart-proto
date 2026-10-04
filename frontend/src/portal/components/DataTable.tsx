@@ -572,6 +572,7 @@ export function DataTable<Row>({
                           key={column.key}
                           isRowHeader={column.isIdentity === true}
                           className={cellClass(column)}
+                          title={undefined}
                         >
                           {footer[column.key] ?? null}
                         </Cell>

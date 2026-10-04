@@ -61,16 +61,22 @@ describe('SubscriptionForm', () => {
     server.use(
       ...subscriptionHandlers({
         reports: [
-          { slug: 'reconciliation', title: 'CalDART reconciliation', choosable: false, periods: true },
+          {
+            slug: 'reconciliation',
+            title: 'CalDART reconciliation',
+            choosable: false,
+            periods: true,
+          },
         ],
       }),
     );
-    renderWithProviders(<SubscriptionForm onDone={vi.fn()} />);
+    const handleDone = vi.fn();
+    renderWithProviders(<SubscriptionForm onDone={handleDone} />);
 
     expect(await screen.findByRole('option', { name: 'Reconciliation' })).toBeInTheDocument();
   });
 
-  it('says why Save waits until a report is chosen', async () => {
+  it('says why Save waits until a report is chosen', () => {
     renderForm();
 
     expect(
@@ -93,10 +99,11 @@ describe('SubscriptionForm', () => {
 
     const bar = screen.getByRole('search', { name: 'Report filters' });
     const year = within(bar).getByLabelText('Year');
-    expect(within(year).getAllByRole('option').map((option) => option.textContent)).toEqual([
-      'This year',
-      'Last year',
-    ]);
+    expect(
+      within(year)
+        .getAllByRole('option')
+        .map((option) => option.textContent),
+    ).toEqual(['This year', 'Last year']);
   });
 
   it('offers a period on the reconciliation, so a monthly email can cover last month', async () => {
@@ -107,7 +114,8 @@ describe('SubscriptionForm', () => {
         ],
       }),
     );
-    renderWithProviders(<SubscriptionForm onDone={vi.fn()} />);
+    const handleDone = vi.fn();
+    renderWithProviders(<SubscriptionForm onDone={handleDone} />);
 
     await chooseReport('Reconciliation');
 

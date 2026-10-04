@@ -73,7 +73,12 @@ interface MemberPickerProps {
  * The member search, the shared `Typeahead`, or the member chosen from it with the way
  * to choose again.  Each match names the person's address and membership state.
  */
-function MemberPicker({ chosen, onChoose, error, pickerRef }: MemberPickerProps): JSX.Element {
+function MemberPicker({
+  chosen,
+  onChoose: handleChoose,
+  error,
+  pickerRef,
+}: MemberPickerProps): JSX.Element {
   const [term, setTerm] = useState('');
 
   if (chosen !== null) {
@@ -83,7 +88,7 @@ function MemberPicker({ chosen, onChoose, error, pickerRef }: MemberPickerProps)
           <strong>{chosen.name}</strong> <span className="muted">{chosen.email}</span>{' '}
           <MembershipDot membership={chosen.membership} />
         </p>
-        <Button variant="quiet" small onClick={() => onChoose(null)}>
+        <Button variant="quiet" small onClick={() => handleChoose(null)}>
           Choose somebody else
         </Button>
       </div>
@@ -106,8 +111,8 @@ function MemberPicker({ chosen, onChoose, error, pickerRef }: MemberPickerProps)
             autoComplete="off"
             value={term}
             minLength={MEMBER_SEARCH_MIN_LENGTH}
-            onValueChange={setTerm}
-            onPick={onChoose}
+            onValueChange={(next) => setTerm(next)}
+            onPick={handleChoose}
             useSuggestions={useFinanceMemberSearch}
             itemKey={(member) => String(member.user_id)}
             itemLabel={(member) => member.name}

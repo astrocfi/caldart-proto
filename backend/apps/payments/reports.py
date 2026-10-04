@@ -215,7 +215,7 @@ def apply_filters(queryset: QuerySet[Payment], filters: PaymentFilters) -> Query
     if filters.reconciled == "yes":
         queryset = queryset.filter(reconciled_on__isnull=False)
     elif filters.reconciled == "no":
-        # Only money that arrived is on a statement to be found, as reconciliation counts it.
+        # Only money that arrived is on a statement, as the reconciliation counts it.
         queryset = queryset.filter(reconciled_on__isnull=True, status__in=RECEIVED_STATUSES)
     if filters.member is not None:
         queryset = queryset.filter(user_id=filters.member)

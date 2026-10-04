@@ -78,9 +78,7 @@ export function unmatchedPaymentsUrl(
   const chosenFrom = filters.from ?? '';
   const chosenTo = filters.to ?? '';
   const range =
-    group === 'provider'
-      ? { from: chosenFrom, to: chosenTo }
-      : periodBounds(row.period, group);
+    group === 'provider' ? { from: chosenFrom, to: chosenTo } : periodBounds(row.period, group);
   const params = new URLSearchParams();
   const from = laterOf(range.from, chosenFrom);
   const to = earlierOf(range.to, chosenTo);
@@ -161,10 +159,7 @@ function totalsFooter(rows: readonly ReconciliationRow[]): Record<string, ReactN
  * stay in sight on a phone, and the rest drop, the least needed first, when the
  * table would not fit.  Every column sorts.
  */
-function columns(
-  group: ReconciliationGroup,
-  filters: FilterValues,
-): Column<ReconciliationRow>[] {
+function columns(group: ReconciliationGroup, filters: FilterValues): Column<ReconciliationRow>[] {
   return [
     {
       key: 'period',
