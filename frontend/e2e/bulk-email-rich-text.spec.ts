@@ -80,7 +80,8 @@ test('CalDART management writes a formatted email with an image, previews it, an
   const preview = page.getByRole('region', { name: 'Preview' });
   await expect(preview.getByText(/^Previewing as .+ \(1 of \d+\)$/)).toBeVisible();
   const frame = preview.locator('iframe');
-  await expect(frame).toHaveAttribute('sandbox', '');
+  // The shared email frame: nothing in the email runs, and its links open in a new tab.
+  await expect(frame).toHaveAttribute('sandbox', 'allow-popups allow-popups-to-escape-sandbox');
   // The image went in last, so a preview that shows it shows every earlier change.
   await expect.poll(async () => (await frame.getAttribute('srcdoc')) ?? '').toMatch(IMAGE_SRC);
   const html = (await frame.getAttribute('srcdoc')) ?? '';
