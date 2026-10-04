@@ -43,10 +43,19 @@ const GROUND_IS_NOT_A_SURFACE = new Set(['duty']);
 const PANEL_TOKEN = '--color-bg-raised';
 
 /**
+ * How much primary the bulk email editor's field chips mix into the editor's
+ * ground for their fill: the `10%` in `.rich-text__field` in `base.css`.  Mixing in
+ * sRGB is painting the primary at this opacity over the ground.
+ */
+const CHIP_TINT = 0.1;
+
+/**
  * The pairs to check.
  *
  * `fg` is the foreground token, `bg` the background token it sits on, and
- * `over` the ground a translucent `bg` is composited onto before comparison.
+ * `over` the ground a translucent `bg` is composited onto before comparison;
+ * `alpha` paints an opaque `bg` at that opacity, as a CSS `color-mix` does, and
+ * `label` names a pair the token names alone would not.
  */
 const PAIRS = [
   { fg: '--color-fg', bg: '--color-bg', ratio: TEXT_RATIO },
@@ -67,6 +76,38 @@ const PAIRS = [
   { fg: '--color-warn', bg: '--color-warn-bg', over: '--color-bg', ratio: TEXT_RATIO },
   { fg: '--color-bad', bg: '--color-bad-bg', over: '--color-bg', ratio: TEXT_RATIO },
   { fg: '--color-focus', bg: '--color-bg', ratio: NON_TEXT_RATIO, nonText: true },
+  // The bulk email editor's field chips: their text, plain and read-only, on their
+  // tinted fill, and their edge against the editor's ground, editable and read-only.
+  {
+    fg: '--color-fg',
+    bg: '--color-primary',
+    alpha: CHIP_TINT,
+    over: '--color-bg-raised',
+    ratio: TEXT_RATIO,
+    label: 'fg on field chip',
+  },
+  {
+    fg: '--color-muted',
+    bg: '--color-primary',
+    alpha: CHIP_TINT,
+    over: '--color-bg-raised',
+    ratio: TEXT_RATIO,
+    label: 'muted on field chip',
+  },
+  {
+    fg: '--color-muted',
+    bg: '--color-bg-raised',
+    ratio: NON_TEXT_RATIO,
+    nonText: true,
+    label: 'field chip edge on bg-raised',
+  },
+  {
+    fg: '--color-muted',
+    bg: '--color-bg-sunken',
+    ratio: NON_TEXT_RATIO,
+    nonText: true,
+    label: 'field chip edge on bg-sunken',
+  },
 ];
 
 /**
@@ -152,7 +193,9 @@ function checkTheme(slug, tokens) {
       throw new Error(`${slug}: ${pair.fg} or ${pair.bg} resolves to nothing`);
     }
     const under = pair.over === undefined ? null : parseHex(tokens[pair.over]);
-    const bg = under === null ? parseHex(bgValue) : composite(parseHex(bgValue), under);
+    const bgRaw = parseHex(bgValue);
+    const bgTop = pair.alpha === undefined ? bgRaw : { ...bgRaw, a: pair.alpha };
+    const bg = under === null ? bgTop : composite(bgTop, under);
     const fgRaw = parseHex(fgValue);
     const fg = fgRaw.a === 1 ? fgRaw : composite(fgRaw, bg);
     const ratio = contrast(fg, bg);
@@ -166,6 +209,7 @@ function checkTheme(slug, tokens) {
       ratio: Math.round(ratio * 100) / 100,
       passes: ratio >= pair.ratio,
       nonText: pair.nonText === true,
+      label: pair.label ?? null,
     });
   }
   return rows;
@@ -189,7 +233,9 @@ export function auditThemes() {
   });
 }
 
-function describePair(row) {
+/** How a row reads in a report: its label, or its tokens without the `--color-` prefix. */
+export function describePair(row) {
+  if (row.label !== null) return row.label;
   const over = row.over === null ? '' : ` over ${row.over.replace('--color-', '')}`;
   return `${row.fg.replace('--color-', '')} on ${row.bg.replace('--color-', '')}${over}`;
 }
