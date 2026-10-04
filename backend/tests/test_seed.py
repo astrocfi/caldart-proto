@@ -43,7 +43,9 @@ from apps.payments.models import (
     MandateStatus,
     Payment,
     PaymentStatus,
+    RenewalAttempt,
     RenewalMandate,
+    RenewalOutcome,
 )
 from apps.payments.renewals.scan import _due_attempts, run_auto_renewals
 from apps.payments.renewals.schedule import lapsed_term_to_renew
@@ -475,6 +477,26 @@ def test_seed_demo_puts_the_paused_renewal_on_a_stripe_card_with_the_mock_off() 
         MandateProvider.STRIPE,
         "Visa ending 4242, expires 03/2028",
     )
+
+
+def test_seed_demo_dates_no_refused_charge_after_today() -> None:
+    """The paused renewal's refused charges all lie in the past, never on a day to come."""
+    _seed()
+    failed = RenewalAttempt.objects.filter(outcome=RenewalOutcome.FAILED)
+    later = [a.scheduled_on for a in failed if a.scheduled_on >= timezone.localdate()]
+    assert later == []
+
+
+def test_seed_demo_tries_each_refused_charge_on_the_day_it_was_scheduled() -> None:
+    """A refused charge reads as tried on its own day, not on the day the seed ran."""
+    _seed()
+    failed = RenewalAttempt.objects.filter(outcome=RenewalOutcome.FAILED)
+    days = [
+        (a.scheduled_on, timezone.localtime(a.attempted_at).date())
+        for a in failed
+        if a.attempted_at is not None
+    ]
+    assert [scheduled for scheduled, tried in days if scheduled != tried] == []
 
 
 @pytest.mark.usefixtures("mock_payments_off")

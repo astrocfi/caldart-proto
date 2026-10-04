@@ -561,6 +561,40 @@ def test_the_attempts_list_narrows_to_one_outcome(
     assert body["count"] == 1
 
 
+def test_the_attempts_list_reads_by_when_each_charge_was_tried_newest_first(
+    treasurer_client: APIClient, member: User, annual_plan: MembershipPlan, today: date
+) -> None:
+    """A charge still to come leads, then the tried ones newest first, whatever their day.
+
+    A retry scheduled later than the next charge but tried earlier comes after it, so
+    the list reads as the history of what happened.
+    """
+    mandate = RenewalMandateFactory(user=member, plan=annual_plan)
+    membership = MembershipFactory(user=member, plan=annual_plan)
+    now = timezone.now()
+    older = RenewalAttemptFactory(
+        mandate=mandate,
+        membership=membership,
+        scheduled_on=today + timedelta(days=200),
+        outcome=RenewalOutcome.FAILED,
+        attempted_at=now - timedelta(days=10),
+    )
+    newer = RenewalAttemptFactory(
+        mandate=mandate,
+        membership=membership,
+        scheduled_on=today - timedelta(days=1),
+        outcome=RenewalOutcome.FAILED,
+        attempted_at=now - timedelta(days=1),
+    )
+    upcoming = RenewalAttemptFactory(
+        mandate=mandate, membership=membership, scheduled_on=today + timedelta(days=5)
+    )
+
+    body = treasurer_client.get(ATTEMPTS).json()
+
+    assert [row["id"] for row in body["results"]] == [upcoming.pk, newer.pk, older.pk]
+
+
 def test_an_unknown_attempt_outcome_is_refused(treasurer_client: APIClient) -> None:
     """An outcome outside the attempt states is a 400 naming the parameter."""
     response = treasurer_client.get(ATTEMPTS, {"outcome": "bounced"})

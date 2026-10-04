@@ -100,6 +100,9 @@ DONOR_HISTORY_DAYS = 730
 #: The donor, by position, whose profile names a DART.
 DONOR_ON_A_DART = 2
 
+#: The time of day the seeded renewal charges were tried, as the morning run tries them.
+SEEDED_CHARGE_TIME = dt.time(6, 30)
+
 #: How far back the payment history runs.
 HISTORY_MONTHS = 24
 
@@ -1030,13 +1033,19 @@ def _seed_scheduled_attempt(mandate: RenewalMandate, term: Membership, today: dt
 
 
 def _seed_failed_attempts(mandate: RenewalMandate, term: Membership, today: dt.date) -> None:
-    """The charge and the three retries that all failed, which paused this mandate."""
+    """The charge and the three retries that all failed, which paused this mandate.
+
+    Each was tried on the day it was scheduled, and the last no later than yesterday,
+    so the history never shows a refusal on a day still to come, whenever the term ends.
+    """
     if term.ends_on is None:
         return
-    day = term.ends_on - timedelta(days=sum(RETRY_OFFSETS))
+    last_day = min(term.ends_on, today - timedelta(days=1))
+    day = last_day - timedelta(days=sum(RETRY_OFFSETS))
     previous: RenewalAttempt | None = None
     for offset in (0, *RETRY_OFFSETS):
         day = day + timedelta(days=offset)
+        tried_at = timezone.make_aware(dt.datetime.combine(day, SEEDED_CHARGE_TIME))
         previous = RenewalAttempt.objects.create(
             mandate=mandate,
             membership=term,
@@ -1044,7 +1053,7 @@ def _seed_failed_attempts(mandate: RenewalMandate, term: Membership, today: dt.d
             retry_of=previous,
             outcome=RenewalOutcome.FAILED,
             error=DECLINED_MESSAGE,
-            noticed_at=timezone.now(),
-            attempted_at=timezone.now(),
-            result_emailed_at=timezone.now(),
+            noticed_at=tried_at,
+            attempted_at=tried_at,
+            result_emailed_at=tried_at,
         )

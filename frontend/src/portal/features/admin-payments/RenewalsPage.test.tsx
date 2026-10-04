@@ -169,12 +169,46 @@ describe('RenewalsPage', () => {
     expect(row.getByText('Automatic renewal')).toBeInTheDocument();
   });
 
-  it('shows why a paused mandate stopped', async () => {
+  it('says to the treasurer why a paused mandate stopped, not what the member was told', async () => {
     server.use(...renewalHandlers([PAUSED], [], record()));
     renderWithProviders(<RenewalsPage />);
 
     const row = within(await screen.findByRole('row', { name: /Ben Ortiz/ }));
-    expect(row.getByText('Your card was declined')).toBeInTheDocument();
+    expect(row.getByText('Card declined')).toBeInTheDocument();
+  });
+
+  it("quotes the member's wording when the provider said more than a decline", async () => {
+    server.use(
+      ...renewalHandlers([{ ...PAUSED, last_error: 'Your card has expired.' }], [], record()),
+    );
+    renderWithProviders(<RenewalsPage />);
+
+    const row = within(await screen.findByRole('row', { name: /Ben Ortiz/ }));
+    expect(
+      row.getByText('Card declined (member was told: “Your card has expired”)'),
+    ).toBeInTheDocument();
+  });
+
+  it("links each person's name to their money history", async () => {
+    server.use(...renewalHandlers([ACTIVE], [REFUSED], record()));
+    renderWithProviders(<RenewalsPage />);
+
+    const links = await screen.findAllByRole('link', { name: /Maria Alvarez|Ben Ortiz/ });
+    expect(links.map((link) => link.getAttribute('href'))).toEqual([
+      `/admin/payments/members/${ACTIVE.user_id}`,
+      `/admin/payments/members/${REFUSED.user_id}`,
+    ]);
+  });
+
+  it('marks Recent charges as sorted by when each was tried, newest first', async () => {
+    server.use(...renewalHandlers([], [REFUSED], record()));
+    renderWithProviders(<RenewalsPage />);
+
+    await screen.findByRole('row', { name: /Ben Ortiz/ });
+    expect(screen.getByRole('columnheader', { name: /Tried/ })).toHaveAttribute(
+      'aria-sort',
+      'descending',
+    );
   });
 
   it('says what turning a mandate off does, and for whom', async () => {
@@ -260,7 +294,7 @@ describe('RenewalsPage', () => {
 
     const row = within(await screen.findByRole('row', { name: /03\/14\/2026/ }));
     expect(row.getByText('Failed')).toBeInTheDocument();
-    expect(row.getByText('Your card was declined')).toBeInTheDocument();
+    expect(row.getByText('Card declined')).toBeInTheDocument();
   });
 
   it('tells the administrator when a mandate refuses to be turned off', async () => {

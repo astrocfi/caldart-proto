@@ -21,16 +21,18 @@ The first table has one row per standing authority, newest first, fifty to a pag
 person holds at most one automatic renewal and one recurring donation. With the columns
 you start with, each row shows:
 
-* **Member**, the person's name, and **Email**, their address.
+* **Member**, the person's name, which opens everything they have paid (see
+  :doc:`member-ledger`), and **Email**, their address.
 * **Type**: **Automatic renewal**, **Automatic renewal and contribution**, or **Recurring
   donation** followed by how often it charges, such as *Recurring donation · Monthly*.
 * **Plan**, the membership plan it renews, or a dash for a recurring donation.
 * **Next charge**, the amount the next charge comes to, and **Due**, the day it falls due.
 * **Method**, the saved card or PayPal account it will be taken from.
 * **Status**: **On**, **Waiting for the first payment**, **Paused after failed charges**, or
-  **Turned off**. A paused row shows,
-  beneath its status, the reason its last charge was declined. That is the wording the
-  member was emailed.
+  **Turned off**. A paused row shows, beneath its status, why its last charge was
+  refused: *Card declined*, or, when the provider gave a more particular reason, *Card
+  declined* followed by the words the member was emailed, such as *Card declined (member
+  was told: "Your card has expired")*.
 * **Actions**, the **Turn off** button, or *Turned off* once it is off.
 
 Three more columns start off: **Cadence**, how often it charges; **Failed charges**, how
@@ -51,9 +53,11 @@ Recent charges
 ~~~~~~~~~~~~~~
 
 The second table, **Recent charges**, has one row per scheduled charge, fifty to a page:
-the day it was **Scheduled**, the **Member**, the **Outcome** (**Scheduled**,
-**Charged**, **Failed**, or **Skipped**), when it was **Tried**, and the **Reason** a
-provider gave for refusing it.
+the day it was **Scheduled**, the **Member**, whose name opens their money history, the
+**Outcome** (**Scheduled**, **Charged**, **Failed**, or **Skipped**), when it was
+**Tried**, and the **Reason** a refused charge was refused, written as under a paused
+renewal's status. The charges still to come are listed first, then the rest by when they
+were tried, newest first.
 
 What you can do
 ===============
@@ -105,8 +109,7 @@ If something looks wrong
 ========================
 
 If a member says they were not renewed, find their row and read the reason under
-**Paused after failed charges**; it is the provider's own explanation, usually an expired or declined card,
-and the member can put a new card on file from their own **Payments** screen. If
+**Paused after failed charges**, usually a declined or expired card, and the member can put a new card on file from their own **Payments** screen. If
 **Recent charges** says *No renewal charges yet*, nothing has fallen due: the site
 schedules a charge about two weeks before it takes it. If a charge you expected is
 missing, check the member's **Due** date in the first table.
