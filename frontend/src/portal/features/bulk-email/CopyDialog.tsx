@@ -5,7 +5,8 @@
  * It opens as a dialog over the page, beside the row it belongs to whatever the
  * scroll, and the page behind it waits until it is shut. The focus moves to its
  * **Close** button; **Close** and the Escape key shut it, and the caller puts the focus
- * back on the button that opened it. Links in the copy open in a new tab.
+ * back on the button that opened it once the dialog has gone. Links in the copy open in a
+ * new tab.
  */
 import { useEffect, useId, useRef } from 'react';
 import type { JSX, SyntheticEvent } from 'react';
@@ -47,12 +48,16 @@ export function CopyDialog({
   // shows it open in place instead.
   useEffect(() => {
     const dialog = dialogRef.current;
-    if (dialog === null) return;
+    if (dialog === null) return undefined;
     if (typeof dialog.showModal === 'function') {
       if (!dialog.open) dialog.showModal();
     } else {
       dialog.setAttribute('open', '');
     }
+    // Shut before it goes, so the page behind takes the focus again at once.
+    return () => {
+      if (dialog.open && typeof dialog.close === 'function') dialog.close();
+    };
   }, []);
 
   useEffect(() => {

@@ -729,11 +729,14 @@ rating, photo ID, and role codes, and the list of California counties.
 ``BoldIcon`` to ``ImageIcon`` -- each ``aria-hidden``, drawn in
 ``currentColor``, square, and ``1.25em`` on a side unless the caller asks for
 another size, so the portal ships no icon dependency.
-A single-line ``DataTable`` keeps a row's actions in sight: a screen puts its
-actions column right after the identifying column, a column marked ``wideOnly``
-(such as a type or a DART) is left out while the table would not fit its
-container with every column shown, and a column marked ``wrap`` (a reason, a
-description) runs onto more lines rather than being cut short.  A ``PanelButton``
+A single-line ``DataTable`` fits its container (``components/tableFit.ts``) and keeps
+a row's actions in sight: a screen puts its actions column right after the
+identifying column; the columns with a ``dropOrder`` (such as a type or a DART; the
+bulk email screens share theirs in ``features/bulk-email/dropOrder.ts``) are left out
+one at a time, the lowest first, until the rest fit; and on a phone, where even that
+is too wide, the ``keepInSight`` columns take their ``narrowWidth`` and the leading
+text column narrows, down to a floor, so they end within the screen.  A column marked
+``wrap`` (a reason, a description) runs onto more lines rather than being cut short.  A ``PanelButton``
 whose panel holds a form passes ``isForm``, so the panel grows to the form rather
 than scrolling at a fixed height.
 ``IconButton`` is a control that shows one of those icons and nothing else: a

@@ -5,7 +5,8 @@
  * There is no Save button to forget. Send calls `flush` first, so the words on
  * the screen are the words that go. Saves run one at a time: a save asked for
  * while another is on its way waits for it, then saves whatever is newest, so two
- * requests never race and an older one never lands last.
+ * requests never race and an older one never lands last. Words put back to the ones
+ * the server holds need no request, and clear any refusal of the words in between.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -86,7 +87,14 @@ export function useAutosave(email: BulkEmailDetail, isEditable: boolean): Autosa
   const saveNewest = useCallback(async (): Promise<boolean> => {
     const next = newestRef.current;
     const patch = changedFields(savedRef.current, next);
-    if (!isEditableRef.current || Object.keys(patch).length === 0) return true;
+    if (!isEditableRef.current) return true;
+    if (Object.keys(patch).length === 0) {
+      // The words are back to what the server holds, such as a refused field typed
+      // and then taken out again: nothing is left to refuse, so the refusal goes too.
+      setHasFailed(false);
+      setErrors({});
+      return true;
+    }
     setInFlight((count) => count + 1);
     try {
       await mutateAsync(patch);

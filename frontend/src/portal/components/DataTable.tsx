@@ -2,14 +2,16 @@
  * The sortable table every admin screen uses, with an optional
  * filter bar and CSV/PDF export buttons.
  *
- * A single-line table whose columns would not all fit its container leaves out the
- * columns marked `wideOnly`, so the rest, and the row's actions, stay in sight.
+ * A single-line table fits itself to its container (`tableFit.ts`): it leaves out the
+ * columns that matter least, one at a time, and on a phone narrows its leading column
+ * so the row's actions stay in sight.
  */
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { JSX, ReactNode, RefObject } from 'react';
 
 import { Button } from './Button';
 import { EmptyState } from './EmptyState';
+import { DEFAULT_COLUMN_WIDTH, fitColumns, needsFitting } from './tableFit';
 
 export type SortDirection = 'asc' | 'desc';
 
@@ -40,20 +42,29 @@ export interface Column<Row> {
   minWidth?: string;
   /**
    * A column that matters less than the others, such as a type or a DART, which the
-   * table leaves out while it would not fit its container with every column shown,
-   * so the columns that matter, the row's actions among them, stay in sight without
-   * scrolling. It needs `width` or `minWidth` in rem, as every single-line column has.
+   * table leaves out while it would not fit its container. Columns go one at a time,
+   * the lowest `dropOrder` first, until the rest fit, so the columns that matter, the
+   * row's actions among them, stay in sight without scrolling. Every single-line column
+   * gives its `width` or `minWidth` in rem, which is how the fit is reckoned.
    */
-  wideOnly?: boolean;
+  dropOrder?: number;
+  /**
+   * A column that stays in sight on a screen too narrow for the table, such as the
+   * row's actions: the leading text column then gives up its room, down to a floor, so
+   * that the table's columns up to the last of these end within the container.
+   */
+  keepInSight?: boolean;
+  /**
+   * The width a `keepInSight` column takes on a screen too narrow for the table, its
+   * content wrapping onto more lines, such as two buttons one above the other.
+   */
+  narrowWidth?: string;
   /**
    * Let this column's words wrap onto more lines in single-line mode, for words that
    * must be read whole, such as a reason or a description.
    */
   wrap?: boolean;
 }
-
-/** What a column without a width or a minimum is reckoned at, for the table's minimum. */
-const DEFAULT_COLUMN_WIDTH = '6rem';
 
 /**
  * The least width a single-line table takes: every fixed width and every minimum
@@ -83,55 +94,25 @@ function cellClass<Row>(column: Column<Row>): string | undefined {
   return classes.length === 0 ? undefined : classes.join(' ');
 }
 
-/** `12rem` as 12; null for any other length. */
-function remOf(length: string): number | null {
-  const match = /^(\d+(?:\.\d+)?)rem$/.exec(length);
-  return match ? Number(match[1]) : null;
-}
-
-/**
- * The least width, in rem, the table takes with every column shown; null when no
- * column is `wideOnly`, or when a width is not given in rem.
- */
-export function fullWidthRem<Row>(columns: readonly Column<Row>[]): number | null {
-  if (!columns.some((column) => column.wideOnly === true)) return null;
-  const widths = columns.map((column) =>
-    remOf(column.width ?? column.minWidth ?? DEFAULT_COLUMN_WIDTH),
-  );
-  if (widths.some((width) => width === null)) return null;
-  return widths.reduce<number>((total, width) => total + (width ?? 0), 0);
-}
-
-/**
- * The columns to show in a container `isWide` or not: every column when it is, and
- * all but the `wideOnly` ones when it is not.
- */
-export function shownColumns<Row>(columns: Column<Row>[], isWide: boolean): Column<Row>[] {
-  return isWide ? columns : columns.filter((column) => column.wideOnly !== true);
-}
-
-/**
- * Whether the element `ref` holds is at least `rem` wide, measured again whenever it
- * changes size. True when `rem` is null, and where the browser cannot measure.
- */
-function useIsAtLeast(ref: RefObject<HTMLElement | null>, rem: number | null): boolean {
-  const [isWide, setIsWide] = useState(true);
+/** The width of the element `ref` holds, in rem, measured again whenever it changes size. */
+function useWidthRem(ref: RefObject<HTMLElement | null>, isMeasured: boolean): number | null {
+  const [widthRem, setWidthRem] = useState<number | null>(null);
   useLayoutEffect(() => {
     const element = ref.current;
-    if (element === null || rem === null || typeof ResizeObserver === 'undefined') {
-      setIsWide(true);
+    if (element === null || !isMeasured || typeof ResizeObserver === 'undefined') {
+      setWidthRem(null);
       return undefined;
     }
     const measure = (): void => {
       const rootPx = Number.parseFloat(getComputedStyle(document.documentElement).fontSize);
-      setIsWide(element.clientWidth >= rem * (Number.isNaN(rootPx) ? 16 : rootPx));
+      setWidthRem(element.clientWidth / (Number.isNaN(rootPx) ? 16 : rootPx));
     };
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(element);
     return () => observer.disconnect();
-  }, [ref, rem]);
-  return isWide;
+  }, [ref, isMeasured]);
+  return widthRem;
 }
 
 export interface DataTableProps<Row> {
@@ -233,8 +214,8 @@ export function DataTable<Row>({
   sort,
 }: DataTableProps<Row>): JSX.Element {
   const rootRef = useRef<HTMLDivElement>(null);
-  const isWide = useIsAtLeast(rootRef, singleLine ? fullWidthRem(allColumns) : null);
-  const columns = shownColumns(allColumns, isWide);
+  const availableRem = useWidthRem(rootRef, singleLine && needsFitting(allColumns));
+  const columns = fitColumns(allColumns, availableRem);
   const [ownKey, setSortKey] = useState<string | null>(initialSort?.key ?? null);
   const [ownDirection, setDirection] = useState<SortDirection>(initialSort?.direction ?? 'asc');
   const sortKey = sort ? sort.key : ownKey;

@@ -16,6 +16,7 @@ import { DataTable } from '@/portal/components/DataTable';
 import { DateText } from '@/portal/components/DateText';
 import { Page } from '@/portal/components/Page';
 import { StatusDot } from '@/portal/components/StatusChip';
+import { DROP_ORDER } from '@/portal/features/bulk-email/dropOrder';
 import { useCallouts } from './api';
 import './callouts.css';
 import { openLabel } from './labels';
@@ -90,7 +91,7 @@ export const CALLOUT_COLUMNS: Column<CalloutSummary>[] = [
     key: 'sender',
     header: 'From',
     width: '8rem',
-    wideOnly: true,
+    dropOrder: DROP_ORDER.from,
     render: (row) => row.sender || '—',
     sortValue: (row) => row.sender,
   },
@@ -98,7 +99,7 @@ export const CALLOUT_COLUMNS: Column<CalloutSummary>[] = [
     key: 'dart_name',
     header: 'DART',
     width: '7rem',
-    wideOnly: true,
+    dropOrder: DROP_ORDER.dart,
     render: (row) => row.dart_name || '—',
     sortValue: (row) => row.dart_name,
   },

@@ -50,8 +50,8 @@ A group's page
 **Name** shows the group's name; change it and press **Save name**. Emails the group was
 added to before keep the name it had then.
 
-A fixed group's **People** card lists everybody in it, with **Name**, **Email**, **Kind**,
-**DART**, and the trashcan. A deactivated account reads *(deactivated)* after the name; a send
+A fixed group's **People** card lists everybody in it, with **Name**, the trashcan, **Email**,
+**Kind**, and **DART**. A deactivated account reads *(deactivated)* after the name; a send
 skips it. To add somebody, type part of their name or email address in **Add a person** and
 choose them from the list that appears; a line such as *Ann Able added.* says so. Somebody
 already in the group is refused with *Ann Able is in this group already.* The trashcan on a

@@ -21,6 +21,7 @@ import { DataTable } from '@/portal/components/DataTable';
 import { DateText } from '@/portal/components/DateText';
 import { Page } from '@/portal/components/Page';
 import { StatusDot } from '@/portal/components/StatusChip';
+import { DROP_ORDER } from './dropOrder';
 import { recipientsCsvUrl, useBulkSender, useSentEmails } from './api';
 import './bulk-email.css';
 import { withSenderColumns } from './senderColumns';
@@ -74,31 +75,36 @@ export function SentPage(): JSX.Element {
 }
 
 /**
- * The table's columns: the subject, then the actions, so they stay in sight on a
- * narrow screen, then the date, the status, and the counts. The type gives way first
+ * The table's columns: the subject, then the actions (the row's action and
+ * **Duplicate…**, one above the other on a phone), so they stay in sight, then the
+ * date, the status, and the counts. The type, then the DART, then who sent it give way
  * when the table would not fit its card.
  */
 export const SENT_COLUMNS: Column<BulkEmailSummary>[] = [
   {
     key: 'subject',
     header: 'Subject',
-    minWidth: '12rem',
+    minWidth: '9rem',
     render: (row) => <Link to={`/bulk-email/sent/${row.id}`}>{row.subject}</Link>,
     sortValue: (row) => row.subject,
   },
-  { key: 'actions', header: 'Actions', width: '9rem', render: (row) => <RowAction row={row} /> },
   {
-    key: 'duplicate',
-    header: 'Reuse',
-    width: '7rem',
+    key: 'actions',
+    header: 'Actions',
+    width: '15.25rem',
+    keepInSight: true,
+    narrowWidth: '9.5rem',
     render: (row) => (
-      <Link
-        className="button button--quiet button--small"
-        to={`/bulk-email/sent/${row.id}`}
-        aria-label={`Duplicate ${row.subject}`}
-      >
-        Duplicate…
-      </Link>
+      <span className="cluster cluster--nowrap">
+        <RowAction row={row} />
+        <Link
+          className="button button--quiet button--small"
+          to={`/bulk-email/sent/${row.id}`}
+          aria-label={`Duplicate ${row.subject}`}
+        >
+          Duplicate…
+        </Link>
+      </span>
     ),
   },
   {
@@ -112,14 +118,14 @@ export const SENT_COLUMNS: Column<BulkEmailSummary>[] = [
     key: 'email_type_name',
     header: 'Type',
     width: '7rem',
-    wideOnly: true,
+    dropOrder: DROP_ORDER.type,
     render: (row) => row.email_type_name || '—',
     sortValue: (row) => row.email_type_name,
   },
   {
     key: 'status',
     header: 'Status',
-    width: '6.5rem',
+    width: '6rem',
     render: (row) => (
       <span className="bulk-email__will-receive">
         <StatusDot tone={statusTone(row.status)} label={statusLabel(row)} />

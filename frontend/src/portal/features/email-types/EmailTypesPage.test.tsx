@@ -193,7 +193,19 @@ describe('EmailTypesPage', () => {
     stubTypes();
     renderPage();
     await rowOf('Operational');
-    expect(screen.getByRole('columnheader', { name: 'Name' })).toHaveClass('data-table__text');
+    expect(screen.getByRole('columnheader', { name: 'Name' })).toHaveClass('data-table__wrap');
+  });
+
+  it('puts Edit and the trashcan right after the name, so a phone shows them', async () => {
+    stubTypes();
+    renderPage();
+    await rowOf('Operational');
+    expect(
+      screen
+        .getAllByRole('columnheader')
+        .slice(0, 2)
+        .map((header) => header.textContent),
+    ).toEqual(['Name', 'Actions']);
   });
 
   it('says plainly why a type in use cannot be deleted', async () => {

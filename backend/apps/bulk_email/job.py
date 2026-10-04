@@ -652,24 +652,30 @@ def _try_copy(
 
 
 def _record(bulk: BulkEmail, row: BulkEmailRecipient, attempt: _Attempt, run: SenderRun) -> None:
-    """Save what became of one copy at once: its row, and the email's count.
+    """Save what became of one copy at once: its row, and the email's count, together.
 
-    The row is saved first, with its status and ``Message-ID``, before the counts or
-    anything else, so a run that dies after the hand-over leaves a copy that went
-    marked ``sent``, and the next run does not send it again.  The count is added to in
-    the database, not written from ``bulk`` in memory, so a bounce the bounce check
-    moves off ``sent_count`` meanwhile (``apps.bulk_email.delivery``) is not undone.
+    The row, with its status and ``Message-ID``, and the email's count are written in one
+    transaction, right after the hand-over and before anything else, so no reader ever
+    sees the copy as neither waiting nor counted, and a run that dies once it commits
+    leaves a copy that went marked ``sent`` and the next run does not send it again; a
+    run that dies inside it leaves the copy waiting, to be sent once more.  The count
+    is added to in the database, not written from ``bulk`` in memory, so a bounce the
+    bounce check moves off ``sent_count`` meanwhile (``apps.bulk_email.delivery``) is not
+    undone.
     """
     row.status = attempt.status
     row.reason = attempt.reason
     row.message_id = attempt.message_id
     row.tried_at = timezone.now()
-    row.save(update_fields=["status", "reason", "message_id", "tried_at", "values", "updated_at"])
     is_sent = attempt.status == RecipientStatus.SENT
     counter = "sent_count" if is_sent else "failed_count"
-    BulkEmail.objects.filter(pk=bulk.pk).update(
-        **{counter: F(counter) + 1, "updated_at": timezone.now()}
-    )
+    with transaction.atomic():
+        row.save(
+            update_fields=["status", "reason", "message_id", "tried_at", "values", "updated_at"]
+        )
+        BulkEmail.objects.filter(pk=bulk.pk).update(
+            **{counter: F(counter) + 1, "updated_at": timezone.now()}
+        )
     bulk.refresh_from_db(fields=["sent_count", "failed_count", "updated_at"])
     if is_sent:
         run.sent += 1

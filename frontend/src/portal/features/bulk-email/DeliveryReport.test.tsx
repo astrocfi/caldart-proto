@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { BulkEmailCopy, BulkEmailDetail } from '@/portal/api/types';
 import { formatDateAt } from '@/portal/components/DateText';
@@ -164,6 +164,38 @@ describe('DeliveryReport', () => {
     expect(close).toHaveFocus();
     await userEvent.click(close);
     expect([screen.queryByRole('dialog'), document.activeElement]).toEqual([null, view]);
+  });
+
+  describe('in a browser with modal dialogs', () => {
+    // jsdom has no modal dialogs; these stand in for the browser's, opening and
+    // shutting the dialog as `showModal` and `close` do.
+    beforeEach(() => {
+      HTMLDialogElement.prototype.showModal = function showModal(this: HTMLDialogElement) {
+        this.setAttribute('open', '');
+      };
+      HTMLDialogElement.prototype.close = function close(this: HTMLDialogElement) {
+        this.removeAttribute('open');
+      };
+    });
+
+    afterEach(() => {
+      Reflect.deleteProperty(HTMLDialogElement.prototype, 'showModal');
+      Reflect.deleteProperty(HTMLDialogElement.prototype, 'close');
+    });
+
+    it('moves the focus back to View copy only once the modal dialog has shut', async () => {
+      renderReport();
+      const view = await screen.findByRole('button', { name: 'View the copy sent to Ann Able' });
+      // The page behind a modal dialog takes no focus, so the dialog must be shut first.
+      const isOpenAtFocus: boolean[] = [];
+      vi.spyOn(view, 'focus').mockImplementation(() => {
+        isOpenAtFocus.push(document.querySelector('dialog[open]') !== null);
+        HTMLElement.prototype.focus.call(view);
+      });
+      await userEvent.click(view);
+      await userEvent.click(await screen.findByRole('button', { name: 'Close' }));
+      expect([isOpenAtFocus.includes(true), document.activeElement]).toEqual([false, view]);
+    });
   });
 
   it('closes the copy on Escape', async () => {

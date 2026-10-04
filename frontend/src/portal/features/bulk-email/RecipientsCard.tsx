@@ -33,6 +33,7 @@ import { useToast } from '@/portal/components/Toast';
 import { SEARCH_DEBOUNCE_MS } from '@/portal/components/useDebounced';
 import { listFilters, REPORTS } from '@/portal/reports/definitions';
 import type { FilterValues, Option } from '@/portal/reports/types';
+import { DROP_ORDER } from './dropOrder';
 import { AddGroupButton } from './AddGroupButton';
 import {
   batchCsvUrl,
@@ -355,23 +356,24 @@ function matching(rows: BulkEmailBatchRow[], search: string): BulkEmailBatchRow[
 }
 
 /**
- * The batch table's columns; the trashcan column, last, only while the batch can
- * change. The rows come in surname order from the server, and the columns sort on a
- * press. *Will receive?* wraps, so a skip reason is read whole, and the DART and
- * *Chosen by* give way first when the table would not fit its card.
+ * The batch table's columns; the trashcan column, right after the name so it stays in
+ * sight on a phone, only while the batch can change. The rows come in surname order
+ * from the server, and the columns sort on a press. *Will receive?* wraps, so a skip
+ * reason is read whole, and *Chosen by*, then the DART, give way when the table would
+ * not fit its card.
  */
 export function batchColumns(
   labels: Map<number, string>,
   onRemove: ((rowId: number) => Promise<unknown>) | undefined,
 ): Column<BulkEmailBatchRow>[] {
-  const identity: Column<BulkEmailBatchRow>[] = [
-    {
-      key: 'name',
-      header: 'Name',
-      minWidth: '12rem',
-      render: (row) => row.name,
-      sortValue: (row) => row.name,
-    },
+  const name: Column<BulkEmailBatchRow> = {
+    key: 'name',
+    header: 'Name',
+    minWidth: '12rem',
+    render: (row) => row.name,
+    sortValue: (row) => row.name,
+  };
+  const delivery: Column<BulkEmailBatchRow>[] = [
     {
       key: 'email',
       header: 'Email',
@@ -396,6 +398,7 @@ export function batchColumns(
             key: 'remove',
             header: 'Remove',
             width: '5.5rem',
+            keepInSight: true,
             render: (row) => (
               <DeleteButton
                 label={`Remove ${row.name || row.email} from the batch`}
@@ -417,7 +420,7 @@ export function batchColumns(
       key: 'dart',
       header: 'DART',
       width: '8rem',
-      wideOnly: true,
+      dropOrder: DROP_ORDER.dart,
       render: (row) => row.dart_name || '—',
       sortValue: (row) => row.dart_name,
     },
@@ -425,11 +428,11 @@ export function batchColumns(
       key: 'chosen_by',
       header: 'Chosen by',
       minWidth: '10rem',
-      wideOnly: true,
+      dropOrder: DROP_ORDER.chosenBy,
       render: (row) => (row.added_by === null ? '—' : (labels.get(row.added_by) ?? '—')),
     },
   ];
-  return [...identity, ...details, ...remove];
+  return [name, ...remove, ...delivery, ...details];
 }
 
 /** A dot and *Yes*, or a dot and the reason the person is skipped. */

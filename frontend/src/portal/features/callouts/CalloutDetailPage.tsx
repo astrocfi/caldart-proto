@@ -29,6 +29,7 @@ import { Loading } from '@/portal/components/Loading';
 import { Page } from '@/portal/components/Page';
 import { StatusDot } from '@/portal/components/StatusChip';
 import { useToast } from '@/portal/components/Toast';
+import { DROP_ORDER } from '@/portal/features/bulk-email/dropOrder';
 import { scheduledWords } from '@/portal/features/bulk-email/schedule';
 import { actionError } from '@/portal/features/bulk-email/SendStatus';
 import { resultsCaption } from '@/portal/features/bulk-email/DeliveryReport';
@@ -310,7 +311,7 @@ export const ANSWER_COLUMNS: Column<CalloutRecipient>[] = [
     key: 'dart_name',
     header: 'DART',
     width: '7rem',
-    wideOnly: true,
+    dropOrder: DROP_ORDER.dart,
     render: (row) => row.dart_name || '—',
     sortValue: (row) => row.dart_name,
   },
@@ -318,7 +319,7 @@ export const ANSWER_COLUMNS: Column<CalloutRecipient>[] = [
     key: 'home_airport',
     header: 'Home airport',
     width: '6.5rem',
-    wideOnly: true,
+    dropOrder: DROP_ORDER.homeAirport,
     render: (row) => row.home_airport || '—',
     sortValue: (row) => row.home_airport,
   },
@@ -326,7 +327,7 @@ export const ANSWER_COLUMNS: Column<CalloutRecipient>[] = [
     key: 'aircraft',
     header: 'Aircraft',
     width: '8rem',
-    wideOnly: true,
+    dropOrder: DROP_ORDER.aircraft,
     render: (row) => (row.aircraft.length === 0 ? '—' : row.aircraft.join(', ')),
     sortValue: (row) => row.aircraft.join(', '),
   },

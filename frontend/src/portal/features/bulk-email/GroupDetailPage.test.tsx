@@ -134,12 +134,12 @@ describe('GroupDetailPage, a fixed group', () => {
     await waitFor(() => expect(calls.renamed).toEqual([{ name: 'Directors' }]));
   });
 
-  it('puts the trashcan at the end of each row', async () => {
+  it('puts the trashcan right after the name, so a phone shows it', async () => {
     answerGroup(makeGroup(), [makeGroupPerson()]);
     renderGroup(5);
     await screen.findByRole('cell', { name: 'Ann Able' });
     const headers = screen.getAllByRole('columnheader').map((header) => header.textContent);
-    expect(headers.at(-1)).toBe('Remove');
+    expect(headers.slice(0, 2)).toEqual(['Name', 'Remove']);
   });
 
   it('has no filters to change', async () => {

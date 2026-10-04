@@ -20,7 +20,9 @@ describe('CalloutsPage', () => {
   // The state reads twice: once for a screen reader, beside its dot, and once on screen.
   it('lets who sent a callout and its DART give way on a narrow screen', () => {
     expect(
-      CALLOUT_COLUMNS.filter((column) => column.wideOnly === true).map((column) => column.key),
+      CALLOUT_COLUMNS.filter((column) => column.dropOrder !== undefined).map(
+        (column) => column.key,
+      ),
     ).toEqual(['sender', 'dart_name']);
   });
 

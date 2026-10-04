@@ -235,15 +235,15 @@ describe('ComposePage', () => {
     const headers = within(table).getAllByRole('columnheader');
     expect(headers.map((header) => header.textContent)).toEqual([
       'Name',
+      'Remove',
       'Email',
       'Will receive?',
       'Kind',
       'DART',
       'Chosen by',
-      'Remove',
     ]);
     expect(headers[0]).toHaveClass('data-table__text');
-    expect(table.style.minWidth).toContain('12rem + 13rem');
+    expect(table.style.minWidth).toContain('12rem + 5.5rem + 13rem');
   });
 
   it('takes one person out once the trashcan is confirmed', async () => {
@@ -361,6 +361,29 @@ describe('ComposePage', () => {
     answerBulkEmail(draftState());
     renderCompose(draftState(), { copiedFrom: 'Fly-in at Livermore' });
     expect(await screen.findByText('This is a copy of "Fly-in at Livermore".')).toBeVisible();
+  });
+
+  it('lets the email go again once a refused field is typed and taken back out', async () => {
+    const state = draftState({ receiving_count: 1 });
+    answerBulkEmail(state);
+    server.use(
+      http.patch(`${API}/bulk-email/7`, () =>
+        HttpResponse.json({ subject: ['{nickname} is not one of the fields.'] }, { status: 400 }),
+      ),
+    );
+    renderCompose(state);
+    const user = typist();
+    const subject = await screen.findByRole('textbox', { name: /^Subject/ });
+    await user.type(subject, ' {{nickname}');
+    await pass(1000);
+    expect(await screen.findByRole('list', { name: 'Not saved' })).toBeVisible();
+    await user.type(subject, '{Backspace>11/}');
+    await pass(1000);
+    expect([
+      screen.queryByRole('list', { name: 'Not saved' }),
+      screen.queryByText('{nickname} is not one of the fields.'),
+      screen.getByRole('button', { name: /^Send to/ }).hasAttribute('disabled'),
+    ]).toEqual([null, null, false]);
   });
 
   it('moves the focus to the subject from the link beside its refused save', async () => {

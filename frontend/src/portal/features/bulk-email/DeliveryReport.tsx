@@ -8,7 +8,7 @@
  * person's copy exactly as it went. **Download results** saves the table as a
  * spreadsheet file, and the retries are listed with their times.
  */
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ChangeEvent, JSX, MouseEvent } from 'react';
 
 import type {
@@ -23,6 +23,7 @@ import { DataTable } from '@/portal/components/DataTable';
 import { DateText } from '@/portal/components/DateText';
 import { StatusDot } from '@/portal/components/StatusChip';
 import { useToast } from '@/portal/components/Toast';
+import { DROP_ORDER } from './dropOrder';
 import { isMoving, recipientsCsvUrl, useBatch } from './api';
 import { CopyDialog } from './CopyDialog';
 import './delivery.css';
@@ -68,12 +69,19 @@ export function DeliveryReport({
     setViewing({ row, trigger });
   }, []);
 
-  // Back to the View copy button that opened the copy, so a keyboard reader keeps
-  // their place in the table.
+  // Back to the View copy button that opened the copy, so a keyboard reader keeps their
+  // place in the table: once the dialog has gone, since the page behind a modal dialog
+  // takes no focus while it is open.
+  const returnFocusRef = useRef<HTMLButtonElement | null>(null);
   const handleClose = (): void => {
-    viewing?.trigger.focus();
+    returnFocusRef.current = viewing?.trigger ?? null;
     setViewing(null);
   };
+  useEffect(() => {
+    if (viewing !== null) return;
+    returnFocusRef.current?.focus();
+    returnFocusRef.current = null;
+  }, [viewing]);
 
   const columns = useMemo(() => resultColumns(handleView), [handleView]);
 
@@ -274,8 +282,9 @@ function Retries({ email }: { email: BulkEmailDetail }): JSX.Element | null {
 /**
  * The results table's columns: the person's name, what became of their copy, and
  * **View copy** for every copy that was tried, so all three stay in sight on a phone;
- * then the address and the reason, which wraps. When it was tried, their kind, and
- * their DART give way first when the table would not fit its card.
+ * then the address and the reason, which wraps. Their DART, their kind, and when it was
+ * tried give way, in that order, when the table would not fit its card; on a phone the
+ * result wraps and the name narrows so the copy stays in sight.
  *
  * @param onView opens a person's copy, given the row and the button pressed.
  */
@@ -294,6 +303,8 @@ export function resultColumns(
       key: 'status',
       header: 'Result',
       width: '9rem',
+      keepInSight: true,
+      narrowWidth: '6.5rem',
       render: (row) => (
         <span className="bulk-email__will-receive">
           <StatusDot tone={resultTone(row.status)} label={resultLabel(row.status)} />
@@ -306,6 +317,7 @@ export function resultColumns(
       key: 'copy',
       header: 'Copy',
       width: '7rem',
+      keepInSight: true,
       render: (row) =>
         row.tried_at === null ? (
           '—'
@@ -338,7 +350,7 @@ export function resultColumns(
       key: 'tried_at',
       header: 'Tried at',
       width: '11.5rem',
-      wideOnly: true,
+      dropOrder: DROP_ORDER.triedAt,
       render: (row) => <DateText value={row.tried_at} withTime twelveHour />,
       sortValue: (row) => row.tried_at,
     },
@@ -346,14 +358,14 @@ export function resultColumns(
       key: 'kind',
       header: 'Kind',
       width: '5.5rem',
-      wideOnly: true,
+      dropOrder: DROP_ORDER.kind,
       render: (row) => kindLabel(row.kind),
     },
     {
       key: 'dart',
       header: 'DART',
       width: '8rem',
-      wideOnly: true,
+      dropOrder: DROP_ORDER.dart,
       render: (row) => row.dart_name || '—',
     },
   ];

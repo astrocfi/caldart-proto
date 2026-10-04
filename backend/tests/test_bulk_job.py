@@ -710,20 +710,38 @@ def test_a_retry_that_would_overrun_the_budget_leaves_the_copy_pending(
     assert (statuses(three)[0][1], run.out_of_time) == (RecipientStatus.PENDING, True)
 
 
-def test_a_copy_that_went_is_marked_sent_before_anything_else(
+def test_a_copy_and_its_count_are_recorded_together(
     three: BulkEmail, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """A run that dies saving the counts leaves the copy sent, never to be resent."""
+    """A run that dies saving the count leaves the row unchanged too, never half-saved."""
     original = QuerySet.update
-    crashed: list[bool] = []
 
     def crash_on_counts(self: QuerySet[Any], **kwargs: Any) -> int:
-        if not crashed and "sent_count" in kwargs:
-            crashed.append(True)
+        if "sent_count" in kwargs:
             raise KeyboardInterrupt
         return original(self, **kwargs)
 
     monkeypatch.setattr(QuerySet, "update", crash_on_counts)
+    with pytest.raises(KeyboardInterrupt):
+        job.run_sender(now=NOW)
+    ann = three.recipients.get(email="ann@example.test")
+    assert (ann.status, refreshed(three).sent_count) == (RecipientStatus.PENDING, 0)
+
+
+def test_a_recorded_copy_is_not_sent_again_by_the_next_run(
+    three: BulkEmail, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A run that dies after recording a copy leaves it sent; the next run skips it."""
+    original = job._record
+    recorded: list[bool] = []
+
+    def crash_after_first(*args: Any, **kwargs: Any) -> None:
+        original(*args, **kwargs)
+        if not recorded:
+            recorded.append(True)
+            raise KeyboardInterrupt
+
+    monkeypatch.setattr(job, "_record", crash_after_first)
     with pytest.raises(KeyboardInterrupt):
         job.run_sender(now=NOW)
     job.run_sender(now=NOW)

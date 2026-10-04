@@ -81,6 +81,7 @@ export function GroupsPage(): JSX.Element {
       key: 'actions',
       header: 'Actions',
       width: '10.5rem',
+      keepInSight: true,
       render: (group) => (
         <span className="cluster cluster--nowrap">
           {/* The trashcan first, so a phone shows it beside the name. */}

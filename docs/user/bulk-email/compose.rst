@@ -47,10 +47,10 @@ email later (:doc:`groups` explains the two kinds). **Clear batch** takes everyb
 you press **Clear the batch**.
 
 The table lists the batch in surname order, ten at a time until you press **Show all**. Each
-row has the person's **Name**, **Email**, and **Will receive?**, which reads *Yes* or the
-reason they are skipped; then **Kind**, **DART**, and **Chosen by** (the filters that brought
-them in, *Group: Board* for a saved group, or *Copied from* and a subject); and the trashcan.
-A narrow screen leaves out **DART** and **Chosen by**. The reasons are:
+row has the person's **Name**, the trashcan, **Email**, and **Will receive?**, which reads
+*Yes* or the reason they are skipped; then **Kind**, **DART**, and **Chosen by** (the filters
+that brought them in, *Group: Board* for a saved group, or *Copied from* and a subject). A
+narrow screen leaves out **Chosen by**, then **DART**. The reasons are:
 
 - *Account deactivated*: the account has been deactivated.
 - *Account deleted*: the account no longer exists.

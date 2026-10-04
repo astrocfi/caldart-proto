@@ -209,6 +209,7 @@ function PeopleCard({ group }: { group: RecipientGroup }): JSX.Element {
   const count = members.data?.count ?? group.count;
   const countText = count === null ? 'people the filters cannot find yet' : people(count);
 
+  // The trashcan follows the name, so a phone shows it without scrolling sideways.
   const columns: Column<GroupPerson>[] = [
     {
       key: 'name',
@@ -217,21 +218,13 @@ function PeopleCard({ group }: { group: RecipientGroup }): JSX.Element {
       render: (person) => (person.is_active ? person.name : `${person.name} (deactivated)`),
       sortValue: (person) => person.name,
     },
-    {
-      key: 'email',
-      header: 'Email',
-      minWidth: '14rem',
-      render: (person) => person.email,
-      sortValue: (person) => person.email,
-    },
-    { key: 'kind', header: 'Kind', width: '5.5rem', render: (person) => kindLabel(person.kind) },
-    { key: 'dart', header: 'DART', width: '8rem', render: (person) => person.dart_name || '—' },
     ...(isFixed
       ? [
           {
             key: 'remove',
             header: 'Remove',
             width: '5.5rem',
+            keepInSight: true,
             render: (person: GroupPerson) => (
               <DeleteButton
                 label={`Remove ${person.name || person.email} from the group`}
@@ -242,6 +235,15 @@ function PeopleCard({ group }: { group: RecipientGroup }): JSX.Element {
           },
         ]
       : []),
+    {
+      key: 'email',
+      header: 'Email',
+      minWidth: '14rem',
+      render: (person) => person.email,
+      sortValue: (person) => person.email,
+    },
+    { key: 'kind', header: 'Kind', width: '5.5rem', render: (person) => kindLabel(person.kind) },
+    { key: 'dart', header: 'DART', width: '8rem', render: (person) => person.dart_name || '—' },
   ];
 
   return (

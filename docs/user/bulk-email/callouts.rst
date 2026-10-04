@@ -40,8 +40,8 @@ One line per callout, the most recently sent first:
 - **Available**, **With limits**, **Not available**, and **No answer**: how many people gave
   each answer, and how many have not answered.
 
-On a screen too narrow for every column, **From** and **DART** are left out; on a phone the
-table scrolls sideways. Before the first callout the table reads *No callout has been sent*.
+On a screen too narrow for every column, **DART**, then **From**, are left out; on a phone
+the table scrolls sideways. Before the first callout the table reads *No callout has been sent*.
 
 
 One callout's page

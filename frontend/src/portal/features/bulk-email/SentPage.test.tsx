@@ -85,7 +85,7 @@ describe('SentPage', () => {
     renderWithProviders(<SentPage />);
     const table = await screen.findByRole('table');
     const first = within(table).getAllByRole('columnheader')[0];
-    expect([first?.textContent, first?.className, table.style.minWidth.includes('12rem')]).toEqual([
+    expect([first?.textContent, first?.className, table.style.minWidth.includes('9rem')]).toEqual([
       'Subject',
       'data-table__text',
       true,
@@ -124,7 +124,7 @@ describe('SentPage', () => {
     const headers = within(table)
       .getAllByRole('columnheader')
       .map((header) => header.textContent);
-    expect(headers.slice(0, 3)).toEqual(['Subject', 'Actions', 'Reuse']);
+    expect(headers.slice(0, 2)).toEqual(['Subject', 'Actions']);
   });
 
   it('tells a DART leader with nothing sent where their emails will show', async () => {

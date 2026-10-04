@@ -143,10 +143,10 @@ export function wentCount(
 }
 
 /**
- * How many copies a send in progress comes to: the batch's count of who receives one.
- * The copy going out at the moment is neither waiting nor counted as sent yet, so
- * adding up the sent, the failed, and the waiting can come one short; the batch's
- * count holds it.
+ * How many copies a send in progress comes to: the batch's count of who receives one,
+ * which holds still while the copies go. The email's counts and its waiting copies are
+ * read one after the other, so a copy recorded between the two reads is in neither,
+ * and adding them up can come one short; the batch's count does not.
  */
 export function progressTotal(
   email: Pick<BulkEmailDetail, 'sent_count' | 'failed_count' | 'remaining' | 'receiving_count'> & {
@@ -165,8 +165,8 @@ export function progressSentence(email: BulkEmailDetail, now: Date = new Date())
 
 /**
  * `Sent to 37 people. 1 failed and 4 were skipped.`: what a finished or stopped
- * send came to, leaving out a count of nobody (`Sent to 37 people. 2 failed.`).  With nothing failed or skipped it is `Sent to 51 people. Everyone
- * was sent a copy.`  Copies that came back undelivered later are counted as sent and
+ * send came to, leaving out a count of nobody (`Sent to 37 people. 2 failed.`).  With
+ * nothing failed or skipped it is `Sent to 51 people. Everyone was sent a copy.`  Copies that came back undelivered later are counted as sent and
  * then named: `2 came back undelivered.`
  */
 export function resultSentence(

@@ -21,6 +21,7 @@ import { DataTable } from '@/portal/components/DataTable';
 import { DateText } from '@/portal/components/DateText';
 import { DeleteButton } from '@/portal/components/DeleteButton';
 import { Page } from '@/portal/components/Page';
+import { DROP_ORDER } from './dropOrder';
 import './bulk-email.css';
 import { useCreateTemplate, useDeleteTemplate, useTemplates, useUpdateTemplate } from './reuseApi';
 import { TemplateForm } from './TemplateForm';
@@ -136,6 +137,7 @@ export function TemplatesPage(): JSX.Element {
       key: 'actions',
       header: 'Actions',
       width: '8.5rem',
+      keepInSight: true,
       render: (template) => (
         <span className="cluster cluster--nowrap">
           <DeleteButton
@@ -156,7 +158,7 @@ export function TemplatesPage(): JSX.Element {
       key: 'email_type_name',
       header: 'Type',
       width: '7rem',
-      wideOnly: true,
+      dropOrder: DROP_ORDER.type,
       render: (template) => template.email_type_name || '—',
       sortValue: (template) => template.email_type_name,
     },

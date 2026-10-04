@@ -16,9 +16,9 @@ The list
 One line per email, the most recently started first:
 
 - **Subject**: what it said. It opens the email's own page, below.
-- **Actions**: **Download results** saves the email's results as a spreadsheet file.
-- **Reuse**: **Duplicate…** opens the email's own page, where **Duplicate** starts a new
-  draft from it, below.
+- **Actions**: **Download results** saves the email's results as a spreadsheet file, and
+  **Duplicate…** opens the email's own page, where **Duplicate** starts a new draft from it,
+  below. On a phone the two sit one above the other.
 - **Date**: the day it started sending.
 - **Type**: the kind of email it was, such as *Operational*.
 - **From** and **DART**, for CalDART management only: who sent it, and the DART a DART
@@ -27,8 +27,9 @@ One line per email, the most recently started first:
 - **Sent**, **Failed**, and **Skipped**: how many copies went, were refused by the mail
   server, and were never sent because the person could not receive them.
 
-On a screen too narrow for every column, **Type**, **From**, and **DART** are left out, so
-the actions stay in sight; on a phone the table scrolls sideways. Before the first send the
+On a screen too narrow for every column, **Type**, then **DART**, then **From** are left out,
+one at a time until the rest fit, so the actions stay in sight; on a phone the table scrolls
+sideways, with the subject narrowed and the actions beside it. Before the first send the
 table reads *No bulk email has been sent*; a DART leader's reads *You have not sent an email
 yet* and *Emails you send appear here. Write one on Compose.* The list keeps itself up to
 date while an email is sending.
@@ -75,8 +76,9 @@ Under the counts is **Retry failed** (below).
 
 Then one line per person in the batch, with **Name**, **Result**, **Copy**, **Email**,
 **Reason** (in full, on as many lines as it needs), **Tried at** (such as *10/03/2026 at 5:34
-PM*), **Kind**, and **DART**; on a screen too narrow for every column, the last three are
-left out. **Result** narrows the table to one result, such as *Failed*, and **Find a person**
+PM*), **Kind**, and **DART**; on a screen too narrow for every column, **DART**, then
+**Kind**, then **Tried at** are left out, and on a phone the result wraps so **Copy** stays in
+sight. **Result** narrows the table to one result, such as *Failed*, and **Find a person**
 to a name or address; the table's caption then says how many of everybody it shows, such as
 *Showing 2 of 39*. **Download results** saves
 the whole table as a spreadsheet file, with each person's result, reason, and the time

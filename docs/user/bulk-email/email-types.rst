@@ -23,12 +23,12 @@ A table with one row per kind, in the order every screen lists them. The descrip
 the senders wrap, so they read in full:
 
 - **Name**, what every screen and every email calls it.
+- **Edit** and a trashcan, beside the name so a phone shows them.
 - **What it is for**, one sentence that members read beside the switch that turns it off.
 - **Who may send it**: **DART leader**, **CalDART management**, or both. A kind with
   neither reads **System administrators only**, because a system administrator can send
   every kind.
 - **Can be turned off**: **Yes** or **No**, with a colored dot.
-- **Edit** and a trashcan.
 
 Every site starts with three kinds: **Operational** and **Mission**, sent by CalDART
 management and DART leaders, and **Fundraising**, sent by CalDART management alone. All

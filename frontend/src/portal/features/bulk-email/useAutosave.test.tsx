@@ -51,6 +51,26 @@ describe('useAutosave', () => {
     expect(result.current.saveState).toBe('idle');
   });
 
+  it('clears a refusal once the refused words are taken out, without a request', async () => {
+    const { result, calls } = renderAutosave();
+    server.use(
+      http.patch(`${API}/bulk-email/7`, () =>
+        HttpResponse.json({ subject: ['{nickname} is not one of the fields.'] }, { status: 400 }),
+      ),
+    );
+    act(() => result.current.setSubject('{nickname}'));
+    await pass(AUTOSAVE_MS + 50);
+    expect(result.current.saveState).toBe('failed');
+    const requestsBefore = calls.patches.length;
+    act(() => result.current.setSubject(''));
+    await pass(AUTOSAVE_MS + 50);
+    expect([result.current.saveState, result.current.errors, calls.patches.length]).toEqual([
+      'saved',
+      {},
+      requestsBefore,
+    ]);
+  });
+
   it('saves the words once the typing pauses', async () => {
     const { result, calls } = renderAutosave();
     act(() => result.current.setSubject('Fly-in'));

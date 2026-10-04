@@ -6,6 +6,7 @@
  */
 import type { BulkEmailSummary } from '@/portal/api/types';
 import type { Column } from '@/portal/components/DataTable';
+import { DROP_ORDER } from './dropOrder';
 
 /** Who wrote each email, and the DART a DART leader's email goes to. */
 const SENDER_COLUMNS: Column<BulkEmailSummary>[] = [
@@ -13,7 +14,7 @@ const SENDER_COLUMNS: Column<BulkEmailSummary>[] = [
     key: 'sender',
     header: 'From',
     width: '7rem',
-    wideOnly: true,
+    dropOrder: DROP_ORDER.from,
     render: (row) => row.sender || '—',
     sortValue: (row) => row.sender,
   },
@@ -21,7 +22,7 @@ const SENDER_COLUMNS: Column<BulkEmailSummary>[] = [
     key: 'dart_name',
     header: 'DART',
     width: '7rem',
-    wideOnly: true,
+    dropOrder: DROP_ORDER.dart,
     render: (row) => row.dart_name || '—',
     sortValue: (row) => row.dart_name,
   },

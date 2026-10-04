@@ -107,49 +107,21 @@ export function EmailTypesPage(): JSX.Element {
         }),
     );
 
+  // The name and the actions come first, narrow enough to stay in sight on a phone; the
+  // description takes whatever room the fixed widths leave.
   const columns: Column<EmailType>[] = [
     {
       key: 'name',
       header: 'Name',
-      minWidth: '9rem',
+      width: '10rem',
+      wrap: true,
       render: (emailType) => emailType.name,
-    },
-    {
-      key: 'description',
-      header: 'What it is for',
-      minWidth: '14rem',
-      wrap: true,
-      render: (emailType) => emailType.description,
-    },
-    {
-      key: 'senders',
-      header: 'Who may send it',
-      width: '12rem',
-      wrap: true,
-      render: (emailType) => sendersText(emailType),
-    },
-    {
-      key: 'allow_opt_out',
-      header: 'Can be turned off',
-      width: '8rem',
-      wrap: true,
-      // The word says it; the dot, hidden from a screen reader, only colors it.
-      render: (emailType) => (
-        <>
-          <span aria-hidden="true">
-            <StatusDot
-              tone={emailType.allow_opt_out ? 'current' : 'none'}
-              label={emailType.allow_opt_out ? 'Yes' : 'No'}
-            />
-          </span>{' '}
-          {emailType.allow_opt_out ? 'Yes' : 'No'}
-        </>
-      ),
     },
     {
       key: 'actions',
       header: 'Actions',
       width: '7rem',
+      keepInSight: true,
       render: (emailType) => (
         <span className="cluster cluster--nowrap">
           <Button
@@ -167,6 +139,37 @@ export function EmailTypesPage(): JSX.Element {
             onDelete={() => handleDelete(emailType)}
           />
         </span>
+      ),
+    },
+    {
+      key: 'description',
+      header: 'What it is for',
+      wrap: true,
+      render: (emailType) => emailType.description,
+    },
+    {
+      key: 'senders',
+      header: 'Who may send it',
+      width: '16rem',
+      wrap: true,
+      render: (emailType) => sendersText(emailType),
+    },
+    {
+      key: 'allow_opt_out',
+      header: 'Can be turned off',
+      width: '9rem',
+      wrap: true,
+      // The word says it; the dot, hidden from a screen reader, only colors it.
+      render: (emailType) => (
+        <>
+          <span aria-hidden="true">
+            <StatusDot
+              tone={emailType.allow_opt_out ? 'current' : 'none'}
+              label={emailType.allow_opt_out ? 'Yes' : 'No'}
+            />
+          </span>{' '}
+          {emailType.allow_opt_out ? 'Yes' : 'No'}
+        </>
       ),
     },
   ];

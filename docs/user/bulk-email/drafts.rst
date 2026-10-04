@@ -30,8 +30,9 @@ One line per email, the most recently changed first:
 - **People**: how many are in the batch.
 - **Last edited**: the day the email or its batch last changed.
 
-On a screen too narrow for every column, **Type**, **From**, **DART**, and **Last edited**
-are left out, so the actions stay in sight; on a phone the table scrolls sideways.
+On a screen too narrow for every column, **Type**, then **DART**, then **Last edited**, then
+**From** are left out, one at a time until the rest fit, so the actions stay in sight; on a
+phone the table scrolls sideways, with the subject narrowed and the actions beside it.
 **Write a new email** at the top opens :doc:`compose`. Before the first draft the table reads
 *No drafts*. A DART leader whose profile names no DART sees, in place of **Write a new
 email**, the line saying to set their DART on My profile, with **Open My profile**

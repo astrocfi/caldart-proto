@@ -24,6 +24,7 @@ import { DeleteButton } from '@/portal/components/DeleteButton';
 import { Page } from '@/portal/components/Page';
 import { StatusDot } from '@/portal/components/StatusChip';
 import { useToast } from '@/portal/components/Toast';
+import { DROP_ORDER } from './dropOrder';
 import { useBulkEmailAction, useBulkSender, useDeleteDraft, useDrafts } from './api';
 import './bulk-email.css';
 import { formatCountdown, useSecondsUntil } from './countdown';
@@ -110,8 +111,9 @@ export function DraftsPage(): JSX.Element {
 
 /**
  * The table's columns, wired to the two row actions: the subject, then the actions,
- * so they stay in sight on a narrow screen. The type and when it was last edited give
- * way first when the table would not fit its card.
+ * so they stay in sight on a narrow screen. The type, the DART, when it was last
+ * edited, and who wrote it give way, in that order, when the table would not fit its
+ * card.
  */
 function draftColumns(
   onCancel: (id: number) => void,
@@ -131,6 +133,7 @@ function draftColumns(
       key: 'actions',
       header: 'Actions',
       width: '8.5rem',
+      keepInSight: true,
       render: (row) => (
         <span className="cluster cluster--nowrap">
           {row.status === 'queued' ? (
@@ -155,7 +158,7 @@ function draftColumns(
       key: 'email_type_name',
       header: 'Type',
       width: '7rem',
-      wideOnly: true,
+      dropOrder: DROP_ORDER.type,
       render: (row) => row.email_type_name || '—',
       sortValue: (row) => row.email_type_name,
     },
@@ -189,7 +192,7 @@ function draftColumns(
       key: 'updated_at',
       header: 'Last edited',
       width: '6.5rem',
-      wideOnly: true,
+      dropOrder: DROP_ORDER.lastEdited,
       render: (row) => <DateText value={row.updated_at} />,
       sortValue: (row) => row.updated_at,
     },
