@@ -5,8 +5,10 @@ copy had it, the three answers (the one ``?answer=`` names chosen, else the pers
 current answer), a note field, and **Send answer**, and records nothing: a mail scanner
 that follows every link in a message must not answer for anybody.  ``POST`` to the same
 address records the answer (``apps.bulk_email.callouts.record_answer``) and shows it.
-Once the callout has closed both say so and record nothing.  A token that does not read
-is a 400 page.
+Once the callout has closed both say so and record nothing, and so does a link whose
+account has since been deactivated.  A token that does not read is a 400 page.  Each link
+may send at most ``CALLOUT_ANSWER_THROTTLE_RATE`` answers
+(``apps.bulk_email.throttling.CalloutAnswerThrottle``).
 """
 
 from __future__ import annotations
@@ -27,6 +29,7 @@ from apps.bulk_email.callouts import (
     record_answer,
 )
 from apps.bulk_email.models import CalloutAnswerKind
+from apps.bulk_email.throttling import CalloutAnswerThrottle
 from caldart.exceptions import DomainError
 
 log = logging.getLogger(__name__)
@@ -36,6 +39,9 @@ TEMPLATE = "bulk_email/callout.html"
 
 #: What the page says when **Send answer** is pressed with no answer chosen.
 CHOOSE_MESSAGE = "Choose one of the three answers."
+
+#: The status of a page refused because the link has sent too many answers.
+TOO_MANY_STATUS = 429
 
 
 # The answer page is opened from a link in an email, often in a mail program's own
@@ -50,10 +56,13 @@ def callout_answer(request: HttpRequest, token: str) -> HttpResponse:
     The page's ``state`` is ``form`` on a GET while the callout takes answers, with the
     answer ``?answer=`` names chosen when it is one of the kinds, else the person's
     current one; ``done`` once a POST has recorded the answer; and ``closed`` on either
-    method once the callout has closed, which records nothing.  A POST with no answer,
-    or one that is not a kind, shows ``form`` again with :data:`CHOOSE_MESSAGE` and
-    status 400.  A tampered token, or one naming a callout or account since deleted,
-    renders ``invalid`` with status 400 and records nothing.
+    method once the callout has closed, which records nothing; ``inactive`` on either
+    method for an account since deactivated, saying the link no longer works, which
+    records nothing.  A POST with no answer, or one that is not a kind, shows ``form``
+    again with :data:`CHOOSE_MESSAGE` and status 400.  A POST past the link's limit of
+    answers renders ``busy`` with status 429 and records nothing.  A tampered token, or
+    one naming a callout or account since deleted, renders ``invalid`` with status 400
+    and records nothing.
     """
     try:
         callout, user = read_token(token)
@@ -61,6 +70,8 @@ def callout_answer(request: HttpRequest, token: str) -> HttpResponse:
         log.info("Refused a callout link: %s", error)
         return render(request, TEMPLATE, {"state": "invalid"}, status=400)
 
+    if not user.is_active:
+        return render(request, TEMPLATE, {"state": "inactive"})
     page = answer_page(callout, user)
     if not page.is_open:
         return _render(request, page, state="closed")
@@ -71,6 +82,8 @@ def callout_answer(request: HttpRequest, token: str) -> HttpResponse:
         note = "" if page.answer is None else page.answer.note
         return _render(request, page, state="form", chosen=chosen, note=note)
 
+    if not CalloutAnswerThrottle(token).allows(request):
+        return _render(request, page, state="busy", status=TOO_MANY_STATUS)
     chosen = request.POST.get("answer", "")
     note = request.POST.get("note", "")
     if chosen not in CalloutAnswerKind.values:

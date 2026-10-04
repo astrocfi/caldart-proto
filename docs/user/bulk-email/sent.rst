@@ -106,7 +106,8 @@ Retry failed
 ------------
 
 When the mail server refused some copies, **Retry failed** sends a fresh copy to those
-people only, once you press **Retry now**. Nobody already sent a copy gets another, and
+people only, once you press **Retry now**. Nobody already sent a copy gets another (for a
+mission callout, nobody gets the first copy again once a reminder has reached them), and
 nobody whose copy bounced (their address is bad) or who was skipped is sent one. Each person
 is checked again first, as for any send: one whose account has since been deleted or
 deactivated, whose address has bounced, who has turned this kind of email off, or, for a

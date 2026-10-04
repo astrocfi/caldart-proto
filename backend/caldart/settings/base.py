@@ -455,6 +455,10 @@ AUTH_THROTTLE_RATES = {
 # Empty is off.
 BULK_EMAIL_CHECKS_THROTTLE_RATE = _throttle_rate("BULK_EMAIL_CHECKS_THROTTLE_RATE", "30/min")
 
+# How often one mission callout answer link may send an answer, read by
+# ``apps.bulk_email.throttling``: each change can email every subscriber.  Empty is off.
+CALLOUT_ANSWER_THROTTLE_RATE = _throttle_rate("CALLOUT_ANSWER_THROTTLE_RATE", "10/hour")
+
 # --------------------------------------------------------------------------
 # Address suggestions (Geoapify)
 # --------------------------------------------------------------------------

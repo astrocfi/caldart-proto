@@ -32,7 +32,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 
 from django.db import transaction
-from django.db.models import Max, Q, QuerySet
+from django.db.models import Max, QuerySet
 from django.utils import timezone
 
 from apps.accounts.models import User
@@ -41,10 +41,8 @@ from apps.accounts.roles import DART_LEADER, MANAGEMENT
 from apps.aircraft.services import search_result
 from apps.bulk_email.batch import (
     SKIP_DUPLICATE,
-    batch_queryset,
     skip_reason,
     snapshot,
-    surname_order,
     type_opt_outs,
 )
 from apps.bulk_email.fields import substitute
@@ -57,9 +55,9 @@ from apps.bulk_email.models import (
     CalloutAnswerKind,
     RecipientStatus,
 )
-from apps.bulk_email.render import message_tokens
+from apps.bulk_email.render import fill_subject, fill_values, message_tokens
 from apps.bulk_email.richtext import sanitize
-from apps.bulk_email.senders import dart_limit
+from apps.bulk_email.senders import dart_limit, readable_by
 from apps.mail.models import EmailType
 from apps.mail.types import sendable_types
 from apps.members.models import MemberProfile
@@ -97,6 +95,10 @@ CLOSES_BEFORE_SEND_MESSAGE = (
 
 #: Why an answer, a reminder, or a close is refused.
 CLOSED_MESSAGE = "This callout has closed."
+INACTIVE_MESSAGE = "This link no longer works."
+
+#: Why a copy of a callout is not sent once its answers have closed.
+CLOSED_REASON = "Callout closed"
 NOT_SENT_MESSAGE = "This callout has not been sent."
 STILL_SENDING_MESSAGE = "This callout is still sending. Remind the others once it has finished."
 STOPPED_MESSAGE = "This callout was stopped. Send the rest first, then remind the others."
@@ -315,15 +317,18 @@ def record_answer(
 
     ``answer`` is one of :class:`~apps.bulk_email.models.CalloutAnswerKind`'s values and
     ``note`` is trimmed and cut to :data:`NOTE_MAX_LENGTH`.  A person's earlier answer is
-    replaced, and ``answered_at`` set to ``now``.  A new answer, or one whose answer or
-    note changed, raises the :data:`ANSWER_EVENT` event (:func:`_raise_answer`) and
-    writes one ``callout.answer`` audit line; the same answer sent again changes
-    nothing.  Raises ``DomainError`` with
-    :data:`CLOSED_MESSAGE` once the callout has closed, and ``ValueError`` for an answer
-    that is not one of the kinds; nothing is recorded then.
+    replaced, and ``answered_at`` set to ``now``.  A new answer, or one whose answer
+    changed, raises the :data:`ANSWER_EVENT` event (:func:`_raise_answer`) and writes one
+    ``callout.answer`` audit line; a change to the note alone is saved without either,
+    so editing a note emails nobody, and the same answer and note sent again changes
+    nothing.  Raises ``DomainError`` with :data:`INACTIVE_MESSAGE` for a deactivated
+    account, :data:`CLOSED_MESSAGE` once the callout has closed, and ``ValueError`` for
+    an answer that is not one of the kinds; nothing is recorded then.
     """
     if answer not in CalloutAnswerKind.values:
         raise ValueError(f"Not a callout answer: {answer!r}")
+    if not user.is_active:
+        raise DomainError(INACTIVE_MESSAGE)
     moment = now if now is not None else timezone.now()
     clean_note = note.strip()[:NOTE_MAX_LENGTH]
     with transaction.atomic():
@@ -338,8 +343,9 @@ def record_answer(
             user=user,
             defaults={"answer": answer, "note": clean_note, "answered_at": moment},
         )
-        audit.record(audit.CALLOUT_ANSWER, actor=user, target=locked.bulk_email, answer=answer)
-        _raise_answer(locked.bulk_email, user, answer=answer, note=clean_note)
+        if existing is None or existing.answer != answer:
+            audit.record(audit.CALLOUT_ANSWER, actor=user, target=locked.bulk_email, answer=answer)
+            _raise_answer(locked.bulk_email, user, answer=answer, note=clean_note)
     return saved
 
 
@@ -348,7 +354,8 @@ def _raise_answer(bulk: BulkEmail, user: User, *, answer: str, note: str) -> Non
 
     The payload carries plain values, so the notifications app, which sits beside this
     one, needs nothing of it: ``user``; ``answer``, the answer in words; ``note``;
-    ``subject``, the callout's subject as written; ``callout_id``, the bulk email's id;
+    ``subject``, the callout's subject as the sender's own copy would read
+    (:func:`display_subject`); ``callout_id``, the bulk email's id;
     and ``audience``, a function that answers whether an account may open the callout
     (:func:`can_see`), so a DART leader hears only of the callouts they may read.
     """
@@ -357,39 +364,84 @@ def _raise_answer(bulk: BulkEmail, user: User, *, answer: str, note: str) -> Non
         user=user,
         answer=CalloutAnswerKind(answer).label,
         note=note,
-        subject=bulk.subject,
+        subject=display_subject(bulk),
         callout_id=bulk.pk,
         audience=lambda account: can_see(account, bulk),
     )
+
+
+def display_subject(bulk: BulkEmail) -> str:
+    """``bulk``'s subject filled in with its sender's own values, as the screens show it.
+
+    A recipient field such as ``{first_name}`` reads as the sender's own value, or its
+    fallback once the sender's account is gone, so no screen or notification shows a
+    token in braces.
+    """
+    return fill_subject(bulk.subject, fill_values(bulk, bulk.sender))
 
 
 # -- the sender's actions --------------------------------------------------------------
 def close(bulk: BulkEmail, *, actor: User, now: datetime | None = None) -> Callout:
     """**Close now**: stop ``bulk``'s callout taking answers from ``now``.
 
-    Raises ``DomainError`` with :data:`NOT_SENT_MESSAGE` for a callout that has not
-    started sending, and :data:`CLOSED_MESSAGE` for one already closed.  One
-    ``callout.close`` audit line names ``actor``.
+    A round of copies queued and not yet started, a round of reminders or the rest of a
+    stopped send, is called off: each of its ``pending`` copies becomes ``skipped`` with
+    :data:`CLOSED_REASON`, ``skipped_count`` grows, and the email reads ``sent`` again
+    (its ``sent_at`` set now when it never had one).  A round the sender is sending
+    stops before its next copy (:func:`closed_reason`).  Raises ``DomainError`` with
+    :data:`NOT_SENT_MESSAGE` for a callout that has not started sending, and
+    :data:`CLOSED_MESSAGE` for one already closed.  One ``callout.close`` audit line
+    names ``actor``.
     """
     moment = now if now is not None else timezone.now()
     with transaction.atomic():
-        callout = Callout.objects.select_for_update().get(bulk_email=bulk)
-        if bulk.started_at is None:
+        locked = BulkEmail.objects.select_for_update().get(pk=bulk.pk)
+        callout = Callout.objects.select_for_update().get(bulk_email=locked)
+        if locked.started_at is None:
             raise DomainError(NOT_SENT_MESSAGE)
         if not is_open(callout, moment):
             raise DomainError(CLOSED_MESSAGE)
         callout.closed_at = moment
         callout.closed_by = actor
         callout.save(update_fields=["closed_at", "closed_by"])
-    audit.record(audit.CALLOUT_CLOSE, actor=actor, target=bulk)
+        if locked.status == BulkEmailStatus.QUEUED:
+            locked.skipped_count += skip_pending(locked, moment)
+            locked.status = BulkEmailStatus.SENT
+            locked.sent_at = locked.sent_at if locked.sent_at is not None else moment
+            locked.save(update_fields=["skipped_count", "status", "sent_at", "updated_at"])
+    audit.record(audit.CALLOUT_CLOSE, actor=actor, target=locked)
     return callout
+
+
+def closed_reason(bulk: BulkEmail, now: datetime | None = None) -> str:
+    """:data:`CLOSED_REASON` when ``bulk`` is a callout that has closed; else ``""``.
+
+    The background sender asks this when it starts the email and before every copy, so
+    nobody is sent a callout, or a reminder, that can no longer be answered.
+    """
+    callout = callout_of(bulk)
+    if callout is None or is_open(callout, now):
+        return ""
+    return CLOSED_REASON
+
+
+def skip_pending(bulk: BulkEmail, now: datetime | None = None) -> int:
+    """Mark every ``pending`` copy of ``bulk`` skipped with :data:`CLOSED_REASON`.
+
+    Answers how many; the caller adds them to ``skipped_count`` and saves the email.
+    """
+    moment = now if now is not None else timezone.now()
+    return bulk.recipients.filter(status=RecipientStatus.PENDING).update(
+        status=RecipientStatus.SKIPPED, reason=CLOSED_REASON, updated_at=moment
+    )
 
 
 def remind(bulk: BulkEmail, *, actor: User, now: datetime | None = None) -> Reminder:
     """**Remind non-responders**: queue the callout again for everybody yet to answer.
 
-    Everybody in the batch with an account and no answer gets a row of a fresh round,
-    one more than the highest so far, taking the account's name, address, kind, and DART
+    Everybody the callout reached who has not answered, the people :func:`callout_rows`
+    lists with no answer, gets a row of a fresh round, one more than the highest so
+    far, taking the account's name, address, kind, and DART
     as they are now and asked ``batch.skip_reason`` afresh, as **Retry failed** asks
     it: with the DART a DART leader's email is limited to, the type's opt-outs, and the
     addresses of this round and of everybody who has answered, so an address shared
@@ -414,13 +466,12 @@ def remind(bulk: BulkEmail, *, actor: User, now: datetime | None = None) -> Remi
         callout = Callout.objects.select_for_update().get(bulk_email=locked)
         _check_remind(locked, callout, moment)
         answered = set(callout.answers.values_list("user_id", flat=True))
-        waiting = [
-            row
-            for row in surname_order(
-                batch_queryset(locked).filter(user__isnull=False)
-            ).select_related("user", "user__profile", "user__profile__dart")
-            if row.user_id not in answered
-        ]
+        waiting = list(
+            User.objects.filter(pk__in=_reached_ids(locked), is_active=True)
+            .exclude(pk__in=answered)
+            .select_related("profile", "profile__dart")
+            .order_by("last_name", "first_name", "email", "pk")
+        )
         if len(waiting) == 0:
             raise DomainError(EVERYBODY_ANSWERED_MESSAGE)
         number = (locked.recipients.aggregate(top=Max("round"))["top"] or 0) + 1
@@ -487,20 +538,16 @@ def visible_callouts(user: User) -> QuerySet[BulkEmail]:
 
     CalDART management and a system administrator see every callout that has started
     sending.  A DART leader sees the ones they sent, and the ones sent to the DART on
-    their own profile as it is now; anybody else sees none.
+    their own profile as it is now (``apps.bulk_email.senders.readable_by``); anybody
+    else sees none.
     """
-    callouts = BulkEmail.objects.filter(is_callout=True, started_at__isnull=False).select_related(
-        "sender", "email_type", "dart", "callout", "callout__closed_by"
+    if not user_has_any_role(user, (MANAGEMENT, DART_LEADER)):
+        return BulkEmail.objects.none()
+    return (
+        readable_by(user)
+        .filter(is_callout=True, started_at__isnull=False)
+        .select_related("callout", "callout__closed_by")
     )
-    if user_has_any_role(user, (MANAGEMENT,)):
-        return callouts
-    if not user_has_any_role(user, (DART_LEADER,)):
-        return callouts.none()
-    dart_id = MemberProfile.objects.filter(user=user).values_list("dart_id", flat=True).first()
-    mine = Q(sender=user)
-    if dart_id is not None:
-        mine |= Q(dart_id=dart_id)
-    return callouts.filter(mine)
 
 
 def can_see(user: User, bulk: BulkEmail) -> bool:
@@ -514,14 +561,17 @@ def callout_rows(bulk: BulkEmail) -> list[CalloutRow]:
     A person is reached once a copy of any round went to the mail server for them
     (``sent``, or ``bounced`` afterwards); a person who answered is listed too.  Each
     row reads the account as it is now: its DART, home airport, aircraft, and the member
-    check's go/no-go.  An account since deleted is not listed, and neither is its answer.
+    check's go/no-go.  An account since deleted or deactivated is not listed, and neither
+    is its answer.
     """
     callout = callout_of(bulk)
     answers: dict[int, CalloutAnswer] = (
-        {} if callout is None else {answer.user_id: answer for answer in callout.answers.all()}
+        {}
+        if callout is None
+        else {answer.user_id: answer for answer in callout.answers.filter(user__is_active=True)}
     )
     accounts = with_membership(
-        User.objects.filter(pk__in=set(_reached_ids(bulk)) | set(answers))
+        User.objects.filter(pk__in=set(_reached_ids(bulk)) | set(answers), is_active=True)
         .select_related("profile", "profile__dart")
         .prefetch_related("profile__aircraft")
         .order_by("last_name", "first_name", "email", "pk")
@@ -537,7 +587,9 @@ def counts_for(bulk: BulkEmail) -> CalloutCounts:
     """
     callout = callout_of(bulk)
     given: dict[int, str] = (
-        {} if callout is None else dict(callout.answers.values_list("user_id", "answer"))
+        {}
+        if callout is None
+        else dict(callout.answers.filter(user__is_active=True).values_list("user_id", "answer"))
     )
     reached = set(_reached_ids(bulk)) | set(given)
     kinds = list(given.values())
@@ -612,13 +664,13 @@ def _check_remind(bulk: BulkEmail, callout: Callout, now: datetime) -> None:
 
 
 def _reminder_rows(
-    bulk: BulkEmail, waiting: list[BulkEmailRecipient], number: int, answered: set[int]
+    bulk: BulkEmail, waiting: list[User], number: int, answered: set[int]
 ) -> list[BulkEmailRecipient]:
-    """Unsaved rows of round ``number`` for the people of ``waiting``, each sorted.
+    """Unsaved rows of round ``number`` for the accounts of ``waiting``, each sorted.
 
-    Each person appears once, whatever rows they hold.  Each row takes its account as it
-    is now (``batch.snapshot``) and ``batch.skip_reason``'s answer, with ``seen`` holding
-    the addresses of the people who ``answered`` and of the rows already made.
+    Each row takes its account as it is now (``batch.snapshot``) and
+    ``batch.skip_reason``'s answer, with ``seen`` holding the addresses of the people
+    who ``answered`` and of the rows already made.
     """
     opt_outs = type_opt_outs(bulk)
     limit = dart_limit(bulk)
@@ -627,12 +679,7 @@ def _reminder_rows(
         for address in User.objects.filter(pk__in=answered).values_list("email", flat=True)
     }
     made: list[BulkEmailRecipient] = []
-    people: set[int] = set()
-    for earlier in waiting:
-        account = earlier.user
-        if account is None or account.pk in people:
-            continue
-        people.add(account.pk)
+    for account in waiting:
         reason = skip_reason(account, seen, opt_outs=opt_outs, limit=limit)
         row = BulkEmailRecipient(bulk_email=bulk, user=account, round=number)
         snapshot(row, account)
@@ -647,7 +694,7 @@ def _reminder_rows(
 def _reached_ids(bulk: BulkEmail) -> QuerySet[BulkEmailRecipient, int]:
     """The account ids of the people a copy of ``bulk``, of any round, went to."""
     return bulk.recipients.filter(
-        status__in=list(REACHED_STATUSES), user__isnull=False
+        status__in=list(REACHED_STATUSES), user__isnull=False, user__is_active=True
     ).values_list("user_id", flat=True)
 
 

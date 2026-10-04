@@ -13,12 +13,13 @@ import type { JSX } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
 import type { BulkEmailDetail } from '@/portal/api/types';
+import { useMe } from '@/portal/auth/useAuth';
 import { Card } from '@/portal/components/Card';
 import { formatDateTime } from '@/portal/components/DateText';
 import { EmailFrame } from '@/portal/components/EmailFrame';
 import { Loading } from '@/portal/components/Loading';
 import { Page } from '@/portal/components/Page';
-import { useBulkEmail } from './api';
+import { useBulkEmail, useBulkSender } from './api';
 import './bulk-email.css';
 import { DeliveryReport } from './DeliveryReport';
 import { MessagesVisibility } from './MessagesVisibility';
@@ -30,6 +31,8 @@ import { people } from './status';
 export function SentDetailPage(): JSX.Element {
   const id = Number(useParams().id);
   const email = useBulkEmail(id);
+  const me = useMe();
+  const sender = useBulkSender();
 
   if (email.isError) {
     return (
@@ -42,6 +45,10 @@ export function SentDetailPage(): JSX.Element {
   }
   if (email.data === undefined) return <Loading />;
   const sent = email.data;
+  // A DART leader may read another leader's email to their DART, and stop a callout's
+  // reminders, but acts on no other email of theirs.
+  const canAct = sender.data?.is_management === true || me.data?.id === sent.sender_id;
+  const canStop = canAct || sent.is_callout;
 
   return (
     <Page title={sent.subject || 'Sent bulk email'} eyebrow="Bulk Email" lede={sentLede(sent)}>
@@ -52,7 +59,7 @@ export function SentDetailPage(): JSX.Element {
             <Link to={`/bulk-email/compose/${sent.id}`}>Open it</Link>.
           </p>
         ) : (
-          <SendStatus email={sent} />
+          <SendStatus email={sent} canAct={canAct} canStop={canStop} />
         )}
         {sent.is_callout && sent.started_at !== null ? (
           <p>
@@ -60,7 +67,13 @@ export function SentDetailPage(): JSX.Element {
             <Link to={`/bulk-email/callouts/${sent.id}`}>See who can fly</Link>.
           </p>
         ) : null}
-        <DuplicateButton emailId={sent.id} subject={sent.subject} />
+        {canAct ? (
+          <DuplicateButton emailId={sent.id} subject={sent.subject} />
+        ) : (
+          <p className="muted">
+            {sent.sender || 'Another sender'} sent this email to your DART. You can read it here.
+          </p>
+        )}
       </Card>
 
       <Card title="The message">
@@ -77,7 +90,7 @@ export function SentDetailPage(): JSX.Element {
       </Card>
 
       <Card title="Who received it">
-        <DeliveryReport email={sent} />
+        <DeliveryReport email={sent} canRetry={canAct} />
       </Card>
     </Page>
   );

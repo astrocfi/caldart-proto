@@ -2,13 +2,13 @@
 
 {% comment %}
   The page a mission callout's answer buttons open.  `state` is one of `form`, `done`,
-  `closed`, or `invalid` (see `apps.bulk_email.views.callout_answer`).  The form posts
+  `closed`, `busy`, `inactive`, or `invalid` (see `apps.bulk_email.views.callout_answer`).  The form posts
   back to this same address; it carries no CSRF token because the signed token in the
   address is the authorization.  `page.body_html` is the sanitized message with the
   person's values filled in, each escaped.
 {% endcomment %}
 
-{% block title %}{% if state == "invalid" %}Mission callout{% else %}{{ page.subject }}{% endif %}{% endblock %}
+{% block title %}{% if state == "invalid" or state == "inactive" %}Mission callout{% else %}{{ page.subject }}{% endif %}{% endblock %}
 {% block body_class %}callout-answer{% endblock %}
 {% block extra_head %}<meta name="robots" content="noindex" />{% endblock %}
 
@@ -17,13 +17,23 @@
   <section class="box">
     <div class="box__head box__head--titled">
       <p class="box__parent">Mission callout</p>
-      <h1>{% if state == "invalid" %}This link does not work{% else %}{{ page.subject }}{% endif %}</h1>
+      <h1>{% if state == "invalid" %}This link does not work{% elif state == "inactive" %}This link no longer works{% else %}{{ page.subject }}{% endif %}</h1>
     </div>
     <div class="box__body stack">
       {% if state == "invalid" %}
         <p class="lede">
           The answer link was copied incompletely or changed, so nothing was recorded.
           Open the email again and use one of its buttons.
+        </p>
+      {% elif state == "inactive" %}
+        <p class="lede">
+          This link no longer works, because the account it was sent to is no longer active,
+          so nothing was recorded.
+        </p>
+      {% elif state == "busy" %}
+        <p class="lede">
+          This link has sent many answers in the last hour, so this one was not recorded.
+          Try again later.
         </p>
       {% elif state == "closed" %}
         <p class="lede">This callout has closed. Answers closed {{ closes }}, so nothing was recorded.</p>
@@ -66,7 +76,7 @@
           <button type="submit" class="button">Send answer</button>
         </form>
       {% endif %}
-      {% if state != "invalid" %}
+      {% if state != "invalid" and state != "inactive" %}
         <hr />
         <p class="small">The email {{ org }} sent:</p>
         <div class="callout-answer__message">{{ page.body_html|safe }}</div>

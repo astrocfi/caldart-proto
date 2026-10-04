@@ -9,7 +9,7 @@ from rest_framework import generics
 from rest_framework.request import Request
 from rest_framework.views import APIView
 
-from apps.bulk_email.api.common import BULK_EMAIL_PERMISSIONS, email_for
+from apps.bulk_email.api.common import BULK_EMAIL_PERMISSIONS, readable_email_for
 from apps.bulk_email.api.drafts import summary_queryset
 from apps.bulk_email.api.serializers import BulkEmailSummarySerializer
 from apps.bulk_email.batch import results_document
@@ -46,4 +46,4 @@ class RecipientsCsvView(APIView):
     @extend_schema(responses=download_responses(CSV_MEDIA_TYPE, "One send's recipients."))
     def get(self, request: Request, pk: int) -> HttpResponse:
         """The CSV of every person in the batch, with each result; 404 if unknown."""
-        return report_response(results_document(email_for(request, pk)))
+        return report_response(results_document(readable_email_for(request, pk)))

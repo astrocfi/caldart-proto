@@ -72,7 +72,7 @@ export const CALLOUT_COLUMNS: Column<CalloutSummary>[] = [
   {
     key: 'closes_at',
     header: 'Answers',
-    width: '8.5rem',
+    width: '19rem',
     render: (row) => (
       <span className="callouts__state">
         <StatusDot tone={row.is_open ? 'current' : 'none'} label={openLabel(row)} />

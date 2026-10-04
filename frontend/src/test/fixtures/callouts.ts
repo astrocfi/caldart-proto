@@ -67,6 +67,7 @@ export function makeCallout(overrides: Partial<CalloutDetail> = {}): CalloutDeta
   return {
     ...makeCalloutSummary(),
     closed_by: '',
+    closed_skipped: 0,
     reminders: [],
     recipients: RECIPIENTS,
     ...overrides,

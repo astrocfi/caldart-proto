@@ -4,8 +4,17 @@ import { describe, expect, it } from 'vitest';
 
 import type { BulkEmailDetail } from '@/portal/api/types';
 import { EMAIL_FRAME_SANDBOX, withNewTabLinks } from '@/portal/components/EmailFrame';
-import { answerBulkEmail, makeBatch, makeBulkEmail, makeRow } from '@test/fixtures/bulkEmail';
+import {
+  LEADER_SENDER,
+  answerBulkEmail,
+  answerSender,
+  makeBatch,
+  makeBulkEmail,
+  makeRow,
+} from '@test/fixtures/bulkEmail';
+import { makeUser, signedInAs } from '@test/handlers';
 import { renderRoutes } from '@test/render';
+import { server } from '@test/server';
 import { SentDetailPage } from './SentDetailPage';
 
 /** Render the Sent page of a finished send to Ann, with Bea's copy refused. */
@@ -38,6 +47,17 @@ function renderSent(overrides: Partial<BulkEmailDetail> = {}) {
 }
 
 describe('SentDetailPage', () => {
+  it("shows a co-leader another leader's email to read, without its actions", async () => {
+    answerSender(LEADER_SENDER);
+    server.use(signedInAs(makeUser({ id: 99, roles: ['member', 'dart_leader'] })));
+    renderSent();
+    expect(
+      await screen.findByText('Grace Holloway sent this email to your DART. You can read it here.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Duplicate' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Retry failed' })).not.toBeInTheDocument();
+  });
+
   it('offers Duplicate with its whole question under Where it stands', async () => {
     const user = userEvent.setup();
     renderSent();

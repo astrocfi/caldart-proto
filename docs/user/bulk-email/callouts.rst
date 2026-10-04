@@ -33,7 +33,8 @@ One line per callout, the most recently sent first:
 
 - **Subject**: what it said. It opens the callout's own page, below.
 - **Sent**: the day it went out.
-- **Answers**: a dot and *Taking answers*, or *Closed*.
+- **Answers**: a dot and *Taking answers until* the date and time they close, or *Closed*
+  and when.
 - **From** and **DART**: who sent it, and the DART a DART leader's callout went to, or a
   dash for one that went to anybody.
 - **Available**, **With limits**, **Not available**, and **No answer**: how many people gave
@@ -63,8 +64,8 @@ file. **See the email and who it went to** opens the email on :doc:`sent`, with 
 of every copy. The page keeps itself up to date every half minute while answers are coming
 in.
 
-**Remind non-responders** sends the callout again, with the same message, to everybody who
-has not answered, once you press **Send reminders**. Nobody who has answered is sent it,
+**Remind non-responders** sends the callout again, with the same message, to everybody on
+the page who has not answered, once you press **Send reminders**. Nobody who has answered is sent it,
 and it starts within a minute: *The reminders will be sent within a minute.* Each person's
 details in the reminder are filled in as they are then. Each round of reminders is listed
 under **Reminders** with its time and how many people it went to. The button stays off,
@@ -72,8 +73,14 @@ with the reason under it, while the callout is still sending, once it has closed
 everybody has answered.
 
 **Close now** stops the answers at once, after you press **Close the callout**. Nobody can
-answer or change an answer after that, and the answers already given stay. This cannot be
-undone.
+answer or change an answer after that, and the answers already given stay. Reminders not
+sent yet are not sent. This cannot be undone. Once a callout has closed, nobody is sent a
+copy of it, even when sending ran late, and the page says how many people were not sent
+it.
+
+A DART leader can open a callout another leader sent to their DART, remind, close, and
+stop its reminders, and read its email on :doc:`sent`, where its other actions are left
+out.
 
 Each new or changed answer can also be emailed to you as it arrives: an account
 administrator subscribes your address to the *Callout answer* notification on
@@ -85,7 +92,8 @@ If something looks wrong
 ========================
 
 A person who never received the callout, because they were skipped or their copy failed,
-is not listed; :doc:`sent` shows why. A person who says the buttons did nothing may have
+is not listed and is not reminded; :doc:`sent` shows why. Nor is a person whose account has
+since been deactivated: their link no longer works. A person who says the buttons did nothing may have
 tried after the callout closed: the page they reach says so. A reminder skips the same
 people a send would, such as somebody who has turned Mission email off, and the delivery
 report on :doc:`sent` gives each reason.

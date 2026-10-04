@@ -2402,10 +2402,12 @@ export interface CalloutSummary {
 
 /**
  * One callout with its answers, from `GET /bulk-email/callouts/{id}`: who closed it
- * (blank when nobody did), each round of reminders, and one row per person reached.
+ * (blank when nobody did), how many copies were not sent because it had closed, each
+ * round of reminders, and one row per person reached.
  */
 export interface CalloutDetail extends CalloutSummary {
   closed_by: string;
+  closed_skipped: number;
   reminders: CalloutReminder[];
   recipients: CalloutRecipient[];
 }

@@ -52,7 +52,12 @@ from django.utils import timezone
 
 from apps.accounts.models import User
 from apps.bulk_email.batch import SKIP_OPTED_OUT, batch_rows, snapshot, surname_order
-from apps.bulk_email.callouts import is_reminder_finish, reminder_finished
+from apps.bulk_email.callouts import (
+    closed_reason,
+    is_reminder_finish,
+    reminder_finished,
+    skip_pending,
+)
 from apps.bulk_email.models import (
     BulkEmail,
     BulkEmailRecipient,
@@ -273,7 +278,8 @@ def _claim(now: datetime, run: SenderRun) -> BulkEmail | None:
     An email its sender may no longer send (:func:`_sender_refusal`) is returned unsent
     (:func:`_refuse`), and the next due email is taken instead.  A claimed email's
     ``reply_to`` becomes the address its copies carry
-    (``apps.bulk_email.reply_to.claimed_reply_to``).
+    (``apps.bulk_email.reply_to.claimed_reply_to``).  A mission callout whose answers
+    have closed sends nothing: its copies are skipped (:func:`_skip_if_closed`).
     """
     while True:
         with transaction.atomic():
@@ -296,6 +302,7 @@ def _claim(now: datetime, run: SenderRun) -> BulkEmail | None:
                 bulk.dart = limit_dart(dart_limit(bulk))
             bulk.reply_to = claimed_reply_to(bulk)
             run.skipped += _freeze(bulk)
+            run.skipped += _skip_if_closed(bulk)
             bulk.save(
                 update_fields=[
                     "status",
@@ -307,6 +314,20 @@ def _claim(now: datetime, run: SenderRun) -> BulkEmail | None:
                 ]
             )
         return bulk
+
+
+def _skip_if_closed(bulk: BulkEmail) -> int:
+    """Skip every pending copy of ``bulk`` when it is a callout that has closed.
+
+    Each becomes ``skipped`` with ``apps.bulk_email.callouts.CLOSED_REASON``, so a timer
+    that runs late, or **Send the rest** after **Close now**, sends nobody a callout that
+    can no longer be answered.  ``skipped_count`` grows; answers how many were skipped.
+    """
+    if closed_reason(bulk) == "":
+        return 0
+    skipped = skip_pending(bulk)
+    bulk.skipped_count += skipped
+    return skipped
 
 
 @dataclass(frozen=True)
@@ -499,12 +520,13 @@ def _skip_if_unsendable(bulk: BulkEmail, row: BulkEmailRecipient, run: SenderRun
     honored.  A person outside the DART a DART leader's email is limited to
     (``apps.bulk_email.senders.dart_limit``, the sender's DART as it is now) is skipped
     with *Not in your DART*, and one who has turned the email's type off with the
-    batch's *Opted out of <type>*; ``skipped_count`` grows by one.  Returns whether the
-    row was skipped.
+    batch's *Opted out of <type>*, and every copy of a mission callout whose answers
+    have closed meanwhile with ``apps.bulk_email.callouts.CLOSED_REASON``;
+    ``skipped_count`` grows by one.  Returns whether the row was skipped.
     """
-    if row.user is None:
-        return False
-    reason = _unsendable_reason(bulk, row.user)
+    reason = closed_reason(bulk)
+    if reason == "" and row.user is not None:
+        reason = _unsendable_reason(bulk, row.user)
     if reason == "":
         return False
     row.status = RecipientStatus.SKIPPED

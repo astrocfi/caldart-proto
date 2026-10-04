@@ -18,6 +18,8 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass
 
+from django.db.models import Q, QuerySet
+
 from apps.accounts.models import User
 from apps.accounts.permissions import user_has_any_role
 from apps.accounts.roles import DART_LEADER, MANAGEMENT
@@ -165,6 +167,27 @@ def email_dart_name(bulk: BulkEmail) -> str:
     """
     dart = bulk.dart if not bulk.can_edit else limit_dart(dart_limit(bulk))
     return str(dart.name) if dart is not None else ""
+
+
+def readable_by(user: User) -> QuerySet[BulkEmail]:
+    """The bulk emails ``user`` may read: every one for CalDART management.
+
+    A DART leader reads the emails they sent, and the ones another sender's send took to
+    the DART on the leader's own profile as it is now, once they have started sending,
+    so the leaders of one DART share a callout's answers and its delivery report.
+    Anybody else reads only the emails they sent.  Reading is all a leader may do with
+    another's email, but for a mission callout's actions (``apps.bulk_email.callouts``)
+    and **Stop**.
+    """
+    emails = BulkEmail.objects.select_related("sender", "stopped_by", "email_type", "dart")
+    if user_has_any_role(user, (MANAGEMENT,)):
+        return emails
+    mine = Q(sender=user)
+    if user_has_any_role(user, (DART_LEADER,)):
+        dart_id = MemberProfile.objects.filter(user=user).values_list("dart_id", flat=True).first()
+        if dart_id is not None:
+            mine |= Q(dart_id=dart_id, started_at__isnull=False)
+    return emails.filter(mine)
 
 
 def _profile_dart_id(account: User) -> int | None:

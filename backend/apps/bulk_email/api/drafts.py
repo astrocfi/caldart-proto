@@ -18,7 +18,13 @@ from rest_framework.views import APIView
 
 from apps.bulk_email import drafts
 from apps.bulk_email.api.checks import CHECKS_REFUSED, checks_refused
-from apps.bulk_email.api.common import BULK_EMAIL_PERMISSIONS, email_for, refused
+from apps.bulk_email.api.common import (
+    BULK_EMAIL_PERMISSIONS,
+    email_for,
+    readable_email_for,
+    refused,
+    stoppable_email_for,
+)
 from apps.bulk_email.api.serializers import (
     BulkEmailDetailSerializer,
     BulkEmailSendSerializer,
@@ -91,7 +97,7 @@ class BulkEmailDetailView(APIView):
     @extend_schema(responses={200: BulkEmailDetailSerializer})
     def get(self, request: Request, pk: int) -> Response:
         """200 with the email, its batch counts, and its progress; 404 if unknown."""
-        return detail_response(email_for(request, pk))
+        return detail_response(readable_email_for(request, pk))
 
     @extend_schema(
         request=BulkEmailUpdateSerializer,
@@ -192,7 +198,7 @@ class StopView(APIView):
         The sender stops between copies, so the email reads ``stopped`` a moment later.
         """
         try:
-            stopping = drafts.stop(email_for(request, pk), actor=acting_user(request))
+            stopping = drafts.stop(stoppable_email_for(request, pk), actor=acting_user(request))
         except DomainError as error:
             return refused(error)
         return detail_response(stopping)

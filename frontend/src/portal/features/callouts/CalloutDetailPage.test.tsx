@@ -119,6 +119,14 @@ describe('CalloutDetailPage', () => {
     expect(screen.getByText('Everybody has answered.')).toBeInTheDocument();
   });
 
+  it('says how many copies a close kept back', async () => {
+    renderCallout(makeCallout({ is_open: false, closed_skipped: 2 }));
+
+    expect(
+      await screen.findByText('2 people were not sent the callout because its answers had closed.'),
+    ).toBeInTheDocument();
+  });
+
   it('downloads the answers', async () => {
     renderCallout();
 

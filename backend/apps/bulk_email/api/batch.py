@@ -13,7 +13,12 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.bulk_email import batch
-from apps.bulk_email.api.common import BULK_EMAIL_PERMISSIONS, email_for, refused
+from apps.bulk_email.api.common import (
+    BULK_EMAIL_PERMISSIONS,
+    email_for,
+    readable_email_for,
+    refused,
+)
 from apps.bulk_email.api.serializers import (
     BulkEmailAddResultSerializer,
     BulkEmailAddSerializer,
@@ -37,7 +42,9 @@ class BatchView(APIView):
     @extend_schema(responses={200: BulkEmailBatchSerializer})
     def get(self, request: Request, pk: int) -> Response:
         """200 with the counts, the adds, and every person with their reason."""
-        return Response(BulkEmailBatchSerializer(batch_payload(email_for(request, pk))).data)
+        return Response(
+            BulkEmailBatchSerializer(batch_payload(readable_email_for(request, pk))).data
+        )
 
     @extend_schema(responses={200: BulkEmailBatchSerializer, 409: CONFLICT})
     def delete(self, request: Request, pk: int) -> Response:
@@ -111,4 +118,4 @@ class BatchCsvView(APIView):
     @extend_schema(responses=download_responses(CSV_MEDIA_TYPE, "One email's batch."))
     def get(self, request: Request, pk: int) -> HttpResponse:
         """The CSV of everybody in the batch, with who will receive a copy and why not."""
-        return report_response(batch.batch_document(email_for(request, pk)))
+        return report_response(batch.batch_document(readable_email_for(request, pk)))

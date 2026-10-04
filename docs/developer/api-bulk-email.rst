@@ -29,8 +29,12 @@ Any other role is refused with **403**, and an anonymous caller with **401**.
 reaches the emails ``apps.bulk_email.drafts.visible_to`` gives them, which for
 CalDART management is every email, whoever its sender, and for a DART leader the
 emails they are the sender of; any other id is **404**.  So a DART leader retries the
-failed copies of, and reads the copies on the delivery report of, their own emails
-alone.
+failed copies of their own emails alone.  A DART leader also *reads* another sender's
+email that went to the DART on the leader's own profile, once it has started
+(``apps.bulk_email.senders.readable_by``): ``GET /bulk-email/{id}``, its ``batch``,
+``batch.csv``, ``recipients.csv``, and each copy, so the leaders of one DART share a
+callout's delivery report; and may **Stop** such an email when it is a mission callout,
+whose reminders any of them may start.  Every other action on it is **404** for them.
 
 CalDART management sends to any member or friend.  A DART leader sends only to the
 DART on their own member profile (:ref:`api-bulk-email-dart-leaders`).
@@ -727,15 +731,19 @@ the email is still sending is not undone by the next copy's count.
 as they are now, so an address corrected since is the one used, and is asked
 ``batch.skip_reason`` afresh: a deleted account (*Account deleted*), a deactivated
 one, a missing, invalid, or bounced address, an opt-out of the type, or an address
-already sent this email makes the row ``skipped`` with that reason and adds to
-``skipped_count``.  Every other failed copy goes back to ``pending`` with its reason
+already sent this round of the email makes the row ``skipped`` with that reason and adds
+to ``skipped_count``.  For a mission callout the rows are taken the latest round first,
+and a failed copy whose person a later round's copy reached, or is going to, or one
+already queued in this retry, is ``skipped`` with *Sent a later copy instead*, so a
+person whose first copy and reminder both failed is sent one copy, the reminder.  Every other failed copy goes back to ``pending`` with its reason
 cleared.  All of them leave ``failed_count``.  The email is queued to start now, with
 no undo window, as **Send the rest** queues it.  No body is taken.  **200** with the
 email, ``queued`` with the retry in ``retries``.  The background sender then sends
 those copies alone, each filled in with the person's values as they are then, and
 checks once more that the sender may send the type and that nobody has turned it
-off.  A bounced copy is not retried, since its address is bad, nor a skipped one,
-nor anybody already sent a copy.  The email keeps its ``started_at``, so it stays
+off.  A bounced copy is not retried, since its address is bad, nor a skipped one.
+Nobody already sent a copy of that round is sent another, nobody is sent an earlier
+round's copy once a later one has gone to them, and nobody is queued twice.  The email keeps its ``started_at``, so it stays
 read-only, and **Stop** stops the retry as it stops **Send the rest**.  A refusal is
 **409**:
 
@@ -891,8 +899,10 @@ callout goes out a few times a year.
      "counts": {"reached": 41, "available": 12, "limited": 5,
                 "unavailable": 9, "no_answer": 15}}]
 
-``sender`` is blank once the account is deleted, and ``dart_name`` blank for CalDART
-management's callout.  ``closes_at`` is when the answers close, ``closed_at`` when
+``subject`` reads as the sender's own copy would, each recipient field filled in with
+the sender's values, or its fallback once the sender's account is gone.  ``sender`` is
+blank once the account is deleted, and ``dart_name`` blank for CalDART management's
+callout.  ``closes_at`` is when the answers close, ``closed_at`` when
 **Close now** closed it sooner, and ``is_open`` whether it takes answers now.
 ``counts`` counts the people the callout reached by answer: ``reached`` everybody a
 copy of any round went to (``sent``, or ``bounced`` afterwards) and anybody who
@@ -902,14 +912,17 @@ answered, and ``no_answer`` those of them with no answer.
 ---------------------------------
 
 One callout: the list's fields, ``closed_by`` (who pressed **Close now**, blank when
-nobody did or the account is deleted), ``reminders``, and ``recipients``, one per
-person counted in ``reached``, in surname order:
+nobody did or the account is deleted), ``closed_skipped`` (how many copies were
+skipped with *Callout closed* because the callout had closed before they went),
+``reminders``, and ``recipients``, one per person counted in ``reached``, in surname
+order:
 
 .. code-block:: json
 
    {"id": 12,
     "subject": "Fire near Paradise",
     "closed_by": "",
+    "closed_skipped": 0,
     "reminders": [{"round": 1, "requested_at": "2026-08-07T09:00:00-07:00",
                    "count": 15}],
     "recipients": [{"user_id": 31, "name": "Ann Able", "email": "ann@example.org",
@@ -925,7 +938,8 @@ person counted in ``reached``, in surname order:
 blank and ``answered_at`` null.  ``dart_name``, ``home_airport``, ``aircraft`` (the
 N-numbers on the profile), and ``go_no_go`` read the account as it is now;
 ``go_no_go`` is the member check's own three verdicts (:doc:`api-aircraft`), and the
-person is a go when all three hold.  An account since deleted is not listed.  Each of
+person is a go when all three hold.  An account since deleted or deactivated is not
+listed, nor counted, and neither is its answer.  Each of
 ``reminders`` is one round of **Remind non-responders**, oldest first: its number, when
 its rows were made, and how many reminders it queued, leaving out the people it
 skipped.  The portal reads this every half minute while the callout is open.
@@ -943,11 +957,13 @@ separated by commas), and ``Go/no-go`` (``GO`` or ``NO-GO``).
 -----------------------------------------
 
 **Remind non-responders**: sends the callout again, with the same message, to
-everybody in its batch who has not answered, as a new round of copies.  No body is
+everybody the callout reached who has not answered, the people ``recipients`` lists
+with a null ``answer``, as a new round of copies.  Somebody whose first copy failed or
+was skipped was never reached, and is not reminded.  No body is
 taken.  Each person's row of the round takes their name and address as they are now
 and is asked ``batch.skip_reason`` afresh, as **Retry failed** asks it, with the
-addresses of everybody who has answered counted as already sent: a deleted or
-deactivated account, a missing, invalid, or bounced address, an opt-out of the type,
+addresses of everybody who has answered counted as already sent: a missing, invalid,
+or bounced address, an opt-out of the type,
 somebody outside a DART leader's DART, and an address somebody who answered shares
 are ``skipped`` with that reason.  The rest are queued, and the email is queued to
 start now, with no undo window; the background sender fills each copy in with the
@@ -973,7 +989,13 @@ round has gone.  A reminder's copies can be read one by one
 ----------------------------------------
 
 **Close now**: the callout takes no more answers from now, and every answer link reads
-*This callout has closed*.  No body is taken.  **200** with the callout, ``is_open``
+*This callout has closed*.  A round of copies queued and not started yet, a round of
+reminders or the rest of a stopped send, is called off: each of its copies becomes
+``skipped`` with *Callout closed*, and the email reads ``sent`` again.  A round being
+sent stops before its next copy, and **Send the rest** afterwards sends nothing: the
+background sender skips every copy of a callout whose answers have closed, when it
+starts the email and before each copy, so a timer that runs past ``closes_at`` sends
+nothing either.  No body is taken.  **200** with the callout, ``is_open``
 false and ``closed_at`` and ``closed_by`` set.  A callout already closed, by **Close
 now** or by its ``closes_at``, is **409** *This callout has closed.*  One
 ``callout.close`` audit line names the caller.
@@ -995,11 +1017,16 @@ limit of its own.
   answer, or one that is not a kind, is **400** with the form and *Choose one of the
   three answers.*  The view is CSRF-exempt: the signed token is the authorization.
 - Once the callout has closed both answer **200** with *This callout has closed.* and
-  record nothing.  A token that was changed, signed for another purpose, or names a
+  record nothing, and so do both for an account since deactivated, with *This link no
+  longer works*.
+- One link may send at most ``CALLOUT_ANSWER_THROTTLE_RATE`` answers (10 an hour
+  unless :doc:`configuration` says otherwise); past it a ``POST`` is **429**, says to
+  try again later, and records nothing.  A token that was changed, signed for another purpose, or names a
   callout or an account since deleted is **400** with *This link does not work*.
 
-Each answer that changes something raises the ``callout_answer`` event
-(:doc:`notification-events`) and writes one ``callout.answer`` audit line.
+A new answer, or a change of answer, raises the ``callout_answer`` event
+(:doc:`notification-events`) and writes one ``callout.answer`` audit line; a change to
+the note alone is saved and raises neither, so editing a note emails nobody.
 
 
 .. _api-bulk-email-rich-text:

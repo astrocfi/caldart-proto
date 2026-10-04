@@ -1974,7 +1974,7 @@ Action                        Fields beyond actor and target
 ``callout.answer``            ``answer`` -- ``available``, ``limited``, or
                               ``unavailable`` (the actor is the person who
                               answered, the target the ``BulkEmail``); one line
-                              per new or changed answer, never the note
+                              per new answer or change of answer, never the note
 ``callout.remind``            ``round``, ``recipients``, ``skipped`` -- the
                               reminders **Remind non-responders** queued, and
                               the people it found skipped

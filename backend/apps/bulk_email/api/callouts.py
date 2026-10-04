@@ -89,6 +89,8 @@ class CalloutRecipientSerializer(serializers.Serializer[CalloutRow]):
 class CalloutSummarySerializer(serializers.ModelSerializer[BulkEmail]):
     """One callout as the Callouts list shows it.
 
+    ``subject`` reads as the sender's own copy would, its recipient fields filled in
+    with the sender's values (``apps.bulk_email.callouts.display_subject``).
     ``sender`` is the sender's display name, blank once the account is gone, and
     ``dart_name`` the DART a DART leader's callout went to, blank for CalDART
     management's.  ``closes_at`` is when answers close, ``closed_at`` when **Close now**
@@ -96,6 +98,7 @@ class CalloutSummarySerializer(serializers.ModelSerializer[BulkEmail]):
     ``counts`` counts the people it reached by answer.
     """
 
+    subject = serializers.SerializerMethodField()
     sender = serializers.SerializerMethodField()
     dart_name = serializers.SerializerMethodField()
     closes_at = serializers.SerializerMethodField()
@@ -119,6 +122,10 @@ class CalloutSummarySerializer(serializers.ModelSerializer[BulkEmail]):
             "counts",
         ]
         read_only_fields = fields
+
+    def get_subject(self, bulk: BulkEmail) -> str:
+        """The subject with the sender's own values filled in."""
+        return callouts.display_subject(bulk)
 
     def get_sender(self, bulk: BulkEmail) -> str:
         """The sender's display name, or ``""`` once the account is gone."""
@@ -152,22 +159,34 @@ class CalloutDetailSerializer(CalloutSummarySerializer):
 
     On top of the list's fields: ``closed_by``, who pressed **Close now** (blank when
     nobody did or the account is gone); ``reminders``, each round of **Remind
-    non-responders**, oldest first; and ``recipients``, one row per person it reached,
-    in surname order.
+    non-responders**, oldest first; ``recipients``, one row per person it reached, in
+    surname order; and ``closed_skipped``, how many copies were not sent because the
+    callout had closed by then.
     """
 
     closed_by = serializers.SerializerMethodField()
+    closed_skipped = serializers.SerializerMethodField()
     reminders = serializers.SerializerMethodField()
     recipients = serializers.SerializerMethodField()
 
     class Meta(CalloutSummarySerializer.Meta):
-        fields = [*CalloutSummarySerializer.Meta.fields, "closed_by", "reminders", "recipients"]
+        fields = [
+            *CalloutSummarySerializer.Meta.fields,
+            "closed_by",
+            "closed_skipped",
+            "reminders",
+            "recipients",
+        ]
         read_only_fields = fields
 
     def get_closed_by(self, bulk: BulkEmail) -> str:
         """Who pressed **Close now**, or ``""`` when nobody did or the account is gone."""
         closer = bulk.callout.closed_by
         return "" if closer is None else closer.display_name
+
+    def get_closed_skipped(self, bulk: BulkEmail) -> int:
+        """How many copies were skipped because the callout had closed."""
+        return bulk.recipients.filter(reason=callouts.CLOSED_REASON).count()
 
     @extend_schema_field(CalloutReminderSerializer(many=True))
     def get_reminders(self, bulk: BulkEmail) -> list[dict[str, Any]]:

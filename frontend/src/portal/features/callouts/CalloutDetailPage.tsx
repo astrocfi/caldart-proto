@@ -71,6 +71,12 @@ export function CalloutDetailPage(): JSX.Element {
     <Page title={shown.subject || 'Callout'} eyebrow="Bulk Email" lede={calloutLede(shown)}>
       <Card title="Answers">
         <div className="stack">
+          {shown.closed_skipped === 0 ? null : (
+            <p className="callouts__notice" role="status">
+              {people(shown.closed_skipped)} {shown.closed_skipped === 1 ? 'was' : 'were'} not sent
+              the callout because its answers had closed.
+            </p>
+          )}
           <AnswerCounts callout={shown} />
           <CalloutActions callout={shown} />
           <Answers rows={shown.recipients} />

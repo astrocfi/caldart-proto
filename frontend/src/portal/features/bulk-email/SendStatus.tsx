@@ -39,6 +39,13 @@ export function actionError(error: unknown): string {
 
 interface StatusProps {
   email: BulkEmailDetail;
+  /**
+   * False for somebody who may read the email but not act on it, a DART leader reading
+   * another leader's email to their DART: **Cancel** and **Send the rest** are left out.
+   */
+  canAct?: boolean;
+  /** False to leave out **Stop sending** too; it follows `canAct` unless given. */
+  canStop?: boolean;
 }
 
 /**
@@ -46,13 +53,13 @@ interface StatusProps {
  * *Scheduled for 10/04/2026 at 8:00 AM Pacific time* with **Cancel the schedule**, or,
  * after Send the rest, the copies waiting with **Stop sending**.
  */
-export function QueuedStatus({ email }: StatusProps): JSX.Element {
-  if (email.started_at !== null) return <WaitingForTheRest email={email} />;
-  return <Countdown email={email} />;
+export function QueuedStatus({ email, canAct = true, canStop = canAct }: StatusProps): JSX.Element {
+  if (email.started_at !== null) return <WaitingForTheRest email={email} canStop={canStop} />;
+  return <Countdown email={email} canAct={canAct} />;
 }
 
 /** An email that has never started, waiting out its undo window or its scheduled time. */
-function Countdown({ email }: StatusProps): JSX.Element {
+function Countdown({ email, canAct = true }: StatusProps): JSX.Element {
   const seconds = useSecondsUntil(email.start_at) ?? 0;
   const cancel = useBulkEmailAction('cancel');
   const toast = useToast();
@@ -90,11 +97,13 @@ function Countdown({ email }: StatusProps): JSX.Element {
           the first copy goes out.
         </p>
       )}
-      <div className="cluster">
-        <Button variant="secondary" onClick={handleCancel} disabled={cancel.isPending}>
-          {email.scheduled ? 'Cancel the schedule' : 'Cancel'}
-        </Button>
-      </div>
+      {canAct ? (
+        <div className="cluster">
+          <Button variant="secondary" onClick={handleCancel} disabled={cancel.isPending}>
+            {email.scheduled ? 'Cancel the schedule' : 'Cancel'}
+          </Button>
+        </div>
+      ) : null}
       {cancel.isError ? (
         <p className="field__error" role="alert">
           {actionError(cancel.error)}
@@ -105,20 +114,20 @@ function Countdown({ email }: StatusProps): JSX.Element {
 }
 
 /** An email Send the rest queued again: it goes within a minute, and can be stopped. */
-function WaitingForTheRest({ email }: StatusProps): JSX.Element {
+function WaitingForTheRest({ email, canStop = true }: StatusProps): JSX.Element {
   return (
     <div className="stack-tight bulk-email__status">
       <p>
         <strong>Waiting to send the rest.</strong> The {people(email.remaining)} not sent a copy yet
         will be sent one within a minute.
       </p>
-      <StopButton email={email} />
+      {canStop ? <StopButton email={email} /> : null}
     </div>
   );
 }
 
 /** A send in progress: *Sending… 12 of 38 sent, about 1 minute left.*, a bar, and Stop. */
-export function SendingStatus({ email }: StatusProps): JSX.Element {
+export function SendingStatus({ email, canStop = true }: StatusProps): JSX.Element {
   const tried = wentCount(email) + email.failed_count;
   const total = tried + email.remaining;
 
@@ -133,7 +142,7 @@ export function SendingStatus({ email }: StatusProps): JSX.Element {
         max={Math.max(total, 1)}
         value={tried}
       />
-      {email.stop_requested ? null : <StopButton email={email} />}
+      {email.stop_requested || !canStop ? null : <StopButton email={email} />}
     </div>
   );
 }
@@ -184,6 +193,7 @@ interface FinishedStatusProps extends StatusProps {
 export function FinishedStatus({
   email,
   isDetailLinked = false,
+  canAct = true,
 }: FinishedStatusProps): JSX.Element {
   const resume = useBulkEmailAction('resume');
   const toast = useToast();
@@ -193,7 +203,7 @@ export function FinishedStatus({
     <div className="stack-tight bulk-email__status">
       <p role="status">{resultSentence(email)}</p>
       <div className="cluster">
-        {email.status === 'stopped' ? (
+        {email.status === 'stopped' && canAct ? (
           <ConfirmButton
             label="Send the rest"
             variant="primary"
@@ -227,11 +237,18 @@ export function FinishedStatus({
 }
 
 /** Whichever of the three fits `email`'s status; nothing for a draft. */
-export function SendStatus({ email, isDetailLinked = false }: FinishedStatusProps): JSX.Element {
-  if (email.status === 'queued') return <QueuedStatus email={email} />;
-  if (email.status === 'sending') return <SendingStatus email={email} />;
+export function SendStatus({
+  email,
+  isDetailLinked = false,
+  canAct = true,
+  canStop = canAct,
+}: FinishedStatusProps): JSX.Element {
+  if (email.status === 'queued') {
+    return <QueuedStatus email={email} canAct={canAct} canStop={canStop} />;
+  }
+  if (email.status === 'sending') return <SendingStatus email={email} canStop={canStop} />;
   if (email.status === 'sent' || email.status === 'stopped') {
-    return <FinishedStatus email={email} isDetailLinked={isDetailLinked} />;
+    return <FinishedStatus email={email} isDetailLinked={isDetailLinked} canAct={canAct} />;
   }
   return <></>;
 }

@@ -1435,7 +1435,7 @@ not (see :ref:`api-csrf-bootstrap`).
      - ·
      - ·
      - ·
-     - ``management``, a ``dart_leader`` on their own emails (404 on any other); 409 once the email has started sending (see :doc:`api-bulk-email`)
+     - ``management``, a ``dart_leader`` on their own emails (404 on any other), and ``GET`` on another sender's started email to their DART; 409 once the email has started sending (see :doc:`api-bulk-email`)
    * - ``GET | DELETE /bulk-email/{id}/batch``
      - ·
      - ·

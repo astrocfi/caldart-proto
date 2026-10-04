@@ -25,6 +25,7 @@ from apps.aircraft.services import search_result
 from apps.bulk_email import callouts, job
 from apps.bulk_email.callouts import (
     CLOSED_MESSAGE,
+    CLOSED_REASON,
     EVERYBODY_ANSWERED_MESSAGE,
     NOBODY_TO_REMIND_MESSAGE,
     NOT_SENT_MESSAGE,
@@ -32,7 +33,14 @@ from apps.bulk_email.callouts import (
     STOPPED_MESSAGE,
     record_answer,
 )
-from apps.bulk_email.models import BulkEmail, BulkEmailStatus, Callout, RecipientStatus
+from apps.bulk_email.delivery import SKIP_LATER_COPY
+from apps.bulk_email.models import (
+    BulkEmail,
+    BulkEmailRecipient,
+    BulkEmailStatus,
+    Callout,
+    RecipientStatus,
+)
 from apps.mail.models import EmailOptOut, EmailType, OptOutSource
 from apps.members.models import MemberProfile
 from apps.members.services import with_membership
@@ -42,6 +50,7 @@ from tests.factories import (
     AircraftFactory,
     BulkEmailFactory,
     DartFactory,
+    add_to_batch,
     make_dart_leader,
     make_person,
     sent_callout,
@@ -118,7 +127,7 @@ def test_the_list_counts_the_answers_by_kind(
     (row,) = management_client.get(API).json()
     assert (row["id"], row["subject"], row["is_open"], row["counts"]) == (
         callout.pk,
-        "Fire near Paradise for {first_name}",
+        "Fire near Paradise for Hollis",
         True,
         {"reached": 3, "available": 0, "limited": 1, "unavailable": 0, "no_answer": 2},
     )
@@ -366,10 +375,16 @@ def test_nobody_is_reminded_once_everybody_has_answered(
 def test_a_reminder_everybody_would_skip_changes_nothing(
     management_client: APIClient, callout: BulkEmail, bea: User, cy: User
 ) -> None:
-    """When nobody left can be sent one, no round is made and nothing is queued."""
+    """When nobody left can be sent one, no round is made and nothing is queued.
+
+    Bea and Cy have both turned Mission email off since the first copy.
+    """
     for person in (bea, cy):
-        person.is_active = False
-        person.save()
+        EmailOptOut.objects.create(
+            user=person,
+            email_type=EmailType.objects.get(slug="mission"),
+            source=OptOutSource.PROFILE,
+        )
     response = management_client.post(url(callout, "remind"))
     callout.refresh_from_db()
     assert (
@@ -531,3 +546,213 @@ def test_a_callout_answer_raised_for_a_leaders_callout_counts_on_the_screen(
         "unavailable": 1,
         "no_answer": 1,
     }
+
+
+# --------------------------------------------------------------------------
+# Retrying failed copies across rounds
+# --------------------------------------------------------------------------
+def reminder_row(bulk: BulkEmail, person: User, status: str) -> BulkEmailRecipient:
+    """A reminder (round 1) row of ``bulk`` for ``person`` in ``status``, tried now."""
+    return BulkEmailRecipient.objects.create(
+        bulk_email=bulk,
+        user=person,
+        name=person.display_name,
+        email=person.email,
+        round=1,
+        status=status,
+        tried_at=timezone.now(),
+    )
+
+
+def test_a_retry_sends_one_copy_when_the_first_and_the_reminder_both_failed(
+    management_client: APIClient, management: User, bea: User
+) -> None:
+    """Only the reminder goes again; the first copy is skipped for it."""
+    bulk = sent_callout(management, bea)
+    bulk.recipients.filter(round=0).update(status=RecipientStatus.FAILED)
+    reminder_row(bulk, bea, RecipientStatus.FAILED)
+    mail.outbox.clear()
+    management_client.post(f"/api/v1/bulk-email/{bulk.pk}/retry")
+    job.run_sender()
+    rows = sorted(bulk.recipients.values_list("round", "status", "reason"))
+    assert (rows, [message.to for message in mail.outbox]) == (
+        [
+            (0, RecipientStatus.SKIPPED, SKIP_LATER_COPY),
+            (1, RecipientStatus.SENT, ""),
+        ],
+        [["bea@example.test"]],
+    )
+
+
+def test_a_retry_does_not_resend_a_first_copy_once_the_reminder_went(
+    management_client: APIClient, management: User, bea: User
+) -> None:
+    """Bea's reminder reached her, so her failed first copy is not sent again."""
+    bulk = sent_callout(management, bea)
+    bulk.recipients.filter(round=0).update(status=RecipientStatus.FAILED)
+    reminder_row(bulk, bea, RecipientStatus.SENT)
+    response = management_client.post(f"/api/v1/bulk-email/{bulk.pk}/retry")
+    first = bulk.recipients.get(round=0)
+    assert (response.status_code, first.status, first.reason) == (
+        409,
+        RecipientStatus.SKIPPED,
+        SKIP_LATER_COPY,
+    )
+
+
+# --------------------------------------------------------------------------
+# Closing stops every copy still to go
+# --------------------------------------------------------------------------
+def test_close_now_calls_off_a_queued_round_of_reminders(
+    management_client: APIClient, callout: BulkEmail
+) -> None:
+    """The queued reminders are skipped as *Callout closed*, and nothing is sent."""
+    management_client.post(url(callout, "remind"))
+    management_client.post(url(callout, "close"))
+    job.run_sender()
+    callout.refresh_from_db()
+    reminders = set(callout.recipients.filter(round=1).values_list("status", "reason"))
+    assert (callout.status, reminders, mail.outbox) == (
+        BulkEmailStatus.SENT,
+        {(RecipientStatus.SKIPPED, CLOSED_REASON)},
+        [],
+    )
+
+
+def test_send_the_rest_of_a_closed_callout_sends_nothing(
+    management_client: APIClient, management: User, bea: User, cy: User
+) -> None:
+    """A stopped callout closed meanwhile skips the rest as *Callout closed*."""
+    bulk = sent_callout(management, bea, cy)
+    bulk.recipients.filter(user=cy).update(status=RecipientStatus.STOPPED)
+    BulkEmail.objects.filter(pk=bulk.pk).update(status=BulkEmailStatus.STOPPED)
+    management_client.post(url(bulk, "close"))
+    mail.outbox.clear()
+    management_client.post(f"/api/v1/bulk-email/{bulk.pk}/resume")
+    job.run_sender()
+    row = bulk.recipients.get(user=cy)
+    assert (row.status, row.reason, mail.outbox) == (RecipientStatus.SKIPPED, CLOSED_REASON, [])
+
+
+def test_a_late_run_sends_no_copy_of_a_callout_already_closed(
+    management_client: APIClient, management: User, bea: User
+) -> None:
+    """The timer came after ``closes_at``: no copy goes, and the detail says so."""
+    bulk = BulkEmailFactory(
+        sender=management,
+        email_type=EmailType.objects.get(slug="mission"),
+        is_callout=True,
+        status=BulkEmailStatus.QUEUED,
+        start_at=timezone.now() - timedelta(hours=2),
+    )
+    Callout.objects.create(bulk_email=bulk, closes_at=timezone.now() - timedelta(hours=1))
+    add_to_batch(bulk, bea)
+    job.run_sender()
+    body = management_client.get(url(bulk)).json()
+    assert (mail.outbox, body["closed_skipped"]) == ([], 1)
+
+
+def test_a_callout_closing_during_a_paced_send_sends_no_more_copies(
+    management: User, bea: User, cy: User, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The answers close while the sender waits between copies: Cy is skipped."""
+
+    def close_while_waiting(seconds: float) -> None:
+        Callout.objects.update(closed_at=timezone.now())
+
+    monkeypatch.setattr(job, "sleep", close_while_waiting)
+    monkeypatch.setattr(job, "monotonic", lambda: 0.0)
+    bulk = sent_callout(management, bea, cy)
+    statuses = dict(bulk.recipients.values_list("email", "status"))
+    assert statuses == {
+        "bea@example.test": RecipientStatus.SENT,
+        "cy@example.test": RecipientStatus.SKIPPED,
+    }
+
+
+# --------------------------------------------------------------------------
+# Who a reminder goes to
+# --------------------------------------------------------------------------
+def test_a_reminder_goes_to_exactly_the_people_the_detail_lists_without_an_answer(
+    management_client: APIClient, management: User, ann: User, bea: User, cy: User
+) -> None:
+    """Cy's first copy failed, so the callout never reached him: no reminder either."""
+    bulk = sent_callout(management, ann, bea, cy)
+    bulk.recipients.filter(user=cy).update(status=RecipientStatus.FAILED)
+    detail = management_client.get(url(bulk)).json()
+    waiting = sorted(row["user_id"] for row in detail["recipients"] if row["answer"] is None)
+    management_client.post(url(bulk, "remind"))
+    reminded = sorted(bulk.recipients.filter(round=1).values_list("user_id", flat=True))
+    assert (reminded, detail["counts"]["no_answer"]) == (waiting, len(waiting))
+
+
+# --------------------------------------------------------------------------
+# A co-leader of the callout's DART
+# --------------------------------------------------------------------------
+@pytest.fixture
+def lou_callout(marin: Dart, bea: User) -> BulkEmail:
+    """A callout Lou, a Marin DART leader, sent to Bea."""
+    lou = make_dart_leader("lou@example.test", marin, first="Lou", last="Lee")
+    return sent_callout(lou, bea)
+
+
+@pytest.mark.parametrize(
+    "action",
+    ["", "batch", "batch.csv", "recipients.csv"],
+    ids=["detail", "batch", "csv", "results"],
+)
+def test_a_co_leader_reads_the_callouts_sent_detail(
+    api_client: APIClient, marin: Dart, lou_callout: BulkEmail, action: str
+) -> None:
+    """Lane leads Marin too, and reads Lou's callout as it went."""
+    api_client.force_login(make_dart_leader("lane@example.test", marin))
+    path = f"/api/v1/bulk-email/{lou_callout.pk}" + (f"/{action}" if action else "")
+    assert api_client.get(path).status_code == 200
+
+
+@pytest.mark.parametrize(
+    ("method", "action"),
+    [("patch", ""), ("delete", ""), ("post", "retry"), ("post", "resume"), ("post", "duplicate")],
+    ids=["edit", "delete", "retry", "resume", "duplicate"],
+)
+def test_a_co_leader_cannot_act_on_anothers_email(
+    api_client: APIClient,
+    marin: Dart,
+    lou_callout: BulkEmail,
+    method: str,
+    action: str,
+) -> None:
+    """Reading is all Lane may do with Lou's email, but for the callout's own actions."""
+    api_client.force_login(make_dart_leader("lane@example.test", marin))
+    path = f"/api/v1/bulk-email/{lou_callout.pk}" + (f"/{action}" if action else "")
+    assert getattr(api_client, method)(path, {}, format="json").status_code == 404
+
+
+def test_a_co_leader_can_stop_a_callouts_reminders(
+    api_client: APIClient, marin: Dart, lou_callout: BulkEmail
+) -> None:
+    """Lane reminded the rest of Lou's callout, and can stop that round."""
+    lane = make_dart_leader("lane@example.test", marin)
+    api_client.force_login(lane)
+    api_client.post(url(lou_callout, "remind"))
+    response = api_client.post(f"/api/v1/bulk-email/{lou_callout.pk}/stop")
+    assert (response.status_code, response.json()["status"]) == (200, BulkEmailStatus.STOPPED)
+
+
+def test_a_co_leader_cannot_stop_anothers_ordinary_email(
+    api_client: APIClient, marin: Dart, bea: User
+) -> None:
+    """**Stop** on another leader's email is the callout's alone."""
+    lou = make_dart_leader("lou@example.test", marin, first="Lou", last="Lee")
+    plain = sent_callout(lou, bea)
+    BulkEmail.objects.filter(pk=plain.pk).update(is_callout=False, status=BulkEmailStatus.SENDING)
+    api_client.force_login(make_dart_leader("lane@example.test", marin))
+    assert api_client.post(f"/api/v1/bulk-email/{plain.pk}/stop").status_code == 404
+
+
+def test_a_leader_of_another_dart_cannot_read_the_email(
+    api_client: APIClient, lou_callout: BulkEmail
+) -> None:
+    """Nell leads Napa: Lou's Marin email is a 404 for her."""
+    api_client.force_login(make_dart_leader("nell@example.test", DartFactory(name="Napa DART")))
+    assert api_client.get(f"/api/v1/bulk-email/{lou_callout.pk}").status_code == 404

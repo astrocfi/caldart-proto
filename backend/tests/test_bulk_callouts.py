@@ -20,7 +20,7 @@ from django.core.mail import EmailMessage
 from django.test import Client
 from django.utils import timezone
 from freezegun import freeze_time
-from pytest_django import DjangoCaptureOnCommitCallbacks
+from pytest_django import DjangoCaptureOnCommitCallbacks, Settings
 from rest_framework.test import APIClient
 
 from apps.accounts.roles import MANAGEMENT, MEMBER
@@ -34,6 +34,7 @@ from apps.bulk_email.callout_links import (
 )
 from apps.bulk_email.callouts import (
     CLOSED_MESSAGE,
+    INACTIVE_MESSAGE,
     default_closes_at,
     record_answer,
 )
@@ -484,7 +485,7 @@ def test_record_answer_refuses_a_closed_callout(management: User, ann: User) -> 
         record_answer(Callout.objects.get(), ann, answer="available", note="")
 
 
-def test_the_answer_page_is_served_under_the_site_address(management: User, ann: User) -> None:
+def test_an_answer_link_is_built_on_the_site_address(management: User, ann: User) -> None:
     """The button's link is built on ``SITE_URL``, which carries any path prefix."""
     bulk = sent_callout(management, ann)
     assert answer_url(token_for(bulk, ann)).startswith(f"{settings.SITE_URL}/mail/callout/")
@@ -506,7 +507,7 @@ def test_an_answer_raises_the_callout_answer_event(
             "user": ann,
             "answer": "Available",
             "note": "KSQL",
-            "subject": "Fire near Paradise for {first_name}",
+            "subject": "Fire near Paradise for Hollis",
             "callout_id": bulk.pk,
         },
     )
@@ -536,11 +537,14 @@ def test_the_same_answer_again_raises_nothing(
 def test_a_changed_answer_raises_the_event_again(
     management: User, ann: User, recorded_events: RecordedEvents
 ) -> None:
-    """Each change is an event of its own."""
+    """Each change of the answer is an event of its own."""
     bulk = sent_callout(management, ann)
     record_answer(bulk.callout, ann, answer="available", note="")
-    record_answer(bulk.callout, ann, answer="available", note="Saturday only")
-    assert [payload["note"] for _slug, payload in recorded_events] == ["", "Saturday only"]
+    record_answer(bulk.callout, ann, answer="unavailable", note="")
+    assert [payload["answer"] for _slug, payload in recorded_events] == [
+        "Available",
+        "Not available",
+    ]
 
 
 def test_an_answer_is_audited(
@@ -630,3 +634,72 @@ def test_a_leader_can_be_subscribed_to_callout_answers(
         format="json",
     )
     assert response.status_code == 201
+
+
+# --------------------------------------------------------------------------
+# A deactivated account, a throttled link, and a note edited alone
+# --------------------------------------------------------------------------
+@pytest.mark.parametrize("method", ["get", "post"])
+def test_a_deactivated_accounts_link_no_longer_works(
+    client: Client, management: User, ann: User, method: str
+) -> None:
+    """Ann's account was deactivated: her link records nothing and says why."""
+    bulk = sent_callout(management, ann)
+    ann.is_active = False
+    ann.save()
+    response = getattr(client, method)(page_url(token_for(bulk, ann)), {"answer": "available"})
+    assert (
+        "This link no longer works" in response.content.decode(),
+        CalloutAnswer.objects.count(),
+    ) == (True, 0)
+
+
+def test_record_answer_refuses_a_deactivated_account(management: User, ann: User) -> None:
+    """The service refuses, whoever calls it."""
+    bulk = sent_callout(management, ann)
+    ann.is_active = False
+    ann.save()
+    with pytest.raises(DomainError, match=re.escape(INACTIVE_MESSAGE)):
+        record_answer(bulk.callout, ann, answer="available", note="")
+
+
+def test_a_deactivated_accounts_answer_is_not_listed(
+    management_client: APIClient, management: User, ann: User, bea: User
+) -> None:
+    """Ann answered, then her account was deactivated: the detail drops her."""
+    bulk = sent_callout(management, ann, bea)
+    record_answer(bulk.callout, ann, answer="available", note="KSQL")
+    ann.is_active = False
+    ann.save()
+    body = management_client.get(f"{API}/callouts/{bulk.pk}").json()
+    assert ([row["name"] for row in body["recipients"]], body["counts"]["available"]) == (
+        ["Bea Bell"],
+        0,
+    )
+
+
+def test_a_link_past_its_limit_of_answers_records_nothing(
+    client: Client, management: User, ann: User, settings: Settings
+) -> None:
+    """With two answers an hour, the third is refused and the second stands."""
+    settings.CALLOUT_ANSWER_THROTTLE_RATE = "2/hour"
+    bulk = sent_callout(management, ann)
+    url = page_url(token_for(bulk, ann))
+    client.post(url, {"answer": "available"})
+    client.post(url, {"answer": "limited"})
+    response = client.post(url, {"answer": "unavailable"})
+    assert (response.status_code, CalloutAnswer.objects.get().answer) == (
+        429,
+        CalloutAnswerKind.LIMITED,
+    )
+
+
+def test_editing_only_the_note_raises_no_event(
+    management: User, ann: User, recorded_events: RecordedEvents
+) -> None:
+    """A changed note is saved without a notification; a changed answer raises one."""
+    bulk = sent_callout(management, ann)
+    record_answer(bulk.callout, ann, answer="available", note="")
+    record_answer(bulk.callout, ann, answer="available", note="Saturday only")
+    saved = CalloutAnswer.objects.get()
+    assert (saved.note, len(recorded_events)) == ("Saturday only", 1)

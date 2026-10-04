@@ -631,9 +631,11 @@ callout has closed, at ``closes_at`` or sooner by **Close now**, both methods sa
 callout has closed* and record nothing; a token that does not read is a 400 page.
 
 **An answer.**  ``record_answer`` takes the callout's row lock, refuses a closed
-callout, and creates or replaces the person's ``CalloutAnswer`` (one per person, its
+callout and a deactivated account, and creates or replaces the person's
+``CalloutAnswer`` (one per person, its
 note trimmed to 500 characters).  An answer that changes nothing, the same answer and
-note sent again, records and raises nothing; any other raises the ``callout_answer``
+note sent again, records and raises nothing, a change to the note alone is saved
+quietly, and a new answer or a change of answer raises the ``callout_answer``
 event (:doc:`notification-events`) inside the transaction and writes one
 ``callout.answer`` audit line naming the person and the answer, never the note.  The
 event carries plain values and an ``audience`` function (``callouts.can_see``), since
@@ -653,7 +655,9 @@ the list.
 
 **Remind non-responders.**  ``callouts.remind`` takes a callout that has finished
 sending and still takes answers, and adds a round of rows, ``round`` one higher than
-any so far, for everybody in the batch with an account and no answer.  Each row is
+any so far, for everybody the callout reached with an active account and no answer,
+exactly the people the Callouts screen lists without one, so its confirmation's count
+is the round's.  Each row is
 refreshed and asked ``batch.skip_reason`` as **Retry failed** asks it: the account's
 name and address as they are now, the DART limit, the type's opt-outs, and, as
 ``seen``, the addresses of the round so far and of everybody who has answered.  The
@@ -662,9 +666,25 @@ the rest** and a retry take, so the background sender sends the round with the s
 message, each copy filled in with the person's values as they are then, and checks
 the sender's type and each opt-out again.  ``Callout.reminded_at`` is set, and when the
 round has gone ``job._finish`` writes ``callout.remind_finished`` instead of a retry's
-line.  A retry of a failed reminder compares addresses within that round alone
-(``delivery._sort_failed``), so a person the first round reached is not taken for a
-duplicate.  **Close now** (``callouts.close``) sets ``closed_at`` and ``closed_by``.
+line.  A retry compares addresses within each round, so a person the first round
+reached is not taken for a duplicate of their reminder, and takes the latest round
+first, skipping a failed copy with *Sent a later copy instead* once a later round's copy
+of that person went, is pending, or is queued in the same retry
+(``delivery._sort_failed``): nobody is sent an earlier copy after a later one, or two at
+once.  **Close now** (``callouts.close``) sets ``closed_at`` and ``closed_by``, and
+calls off a round queued and not yet started, its copies ``skipped`` with *Callout
+closed*.  The background sender asks ``callouts.closed_reason`` when it claims an email
+and before every copy, so a late timer, a long paced send, or **Send the rest** after
+the close sends nobody a callout that has closed.
+
+The Callouts screens and the notification show the subject filled in with
+the sender's own values (``callouts.display_subject``), so no token shows in braces.
+The answer page's ``POST`` is limited per link by
+``throttling.CalloutAnswerThrottle`` (``CALLOUT_ANSWER_THROTTLE_RATE``), and a
+deactivated account's link records nothing and reads *This link no longer works*;
+its answer leaves the screen and the counts.  A DART leader reads another leader's
+email to their own DART through ``senders.readable_by``, and may act on it only through
+the callout's actions and **Stop**.
 
 
 Extending
