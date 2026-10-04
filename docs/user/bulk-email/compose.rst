@@ -114,20 +114,20 @@ press it again to take the style off.
   **Put image in**. The description is required: many mail programs hide pictures until the
   reader allows them, and the description is what they see instead. A large picture is made
   smaller to suit an email, and any location the camera recorded in it is removed.
-- **Insert field** lists details each person's copy fills in for them: **First name**,
-  **Last name**, **Full name**, **Email address**, **DART**, **Membership plan**,
-  **Membership status**, **Expiration date**, and **Home airport**. Choose one and it goes in
-  where the cursor was last, in the subject or the message, written in braces, such as
-  *{first_name}*. Somebody with no value for a field gets nothing there; to put in a word
-  instead, add it after a bar, as in *{first_name|friend}*, which reads *friend* for a person
-  with no first name.
+- **Insert field** lists details each person's copy fills in for them: **First name**, **Last
+  name**, **Full name**, **Email address**, **DART**, **Membership plan**, **Membership
+  status**, **Expiration date**, and **Home airport**. Choose one and it goes in where the
+  cursor was last: in the subject as *{first_name}*, in the message as a chip, **First name**,
+  that Backspace removes whole (braces typed there become a chip too). To show a word for a
+  person with no value, click the chip, fill in **If the person has no value, show**, and
+  press **Apply** (*First name, or friend*); in the subject, write *{first_name|friend}*.
 
-A field can only be one of those in the list. Anything else written in braces, such as
-*{nickname}*, is refused with *{nickname} is not one of the fields. Pick a field from Insert
-field, or take out the braces.*, and the words are not saved until it is fixed. A link's web
-address that needs braces of its own writes them as *%7B* and *%7D*, as the message says
-when the braces are in one. A field with bold or another style on only part of it
-is refused too: delete it and put it in again with **Insert field**.
+A field can only be one of those in the list. Anything else in braces, such as *{nickname}*,
+shows as a chip with a dashed border and is refused with *{nickname} is not one of the
+fields. Pick a field from Insert field, or take out the braces.*; the words are not saved
+until it is fixed. A link's web address that needs braces of its own writes them as *%7B*
+and *%7D*, as the message says when the braces are in one. A field with bold or another
+style on only part of it is refused too: delete it and put it in again with **Insert field**.
 
 Each copy comes from the site's own address, with replies going to the **Reply-To**
 address. Under the message it carries a short footer
