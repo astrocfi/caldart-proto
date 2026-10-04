@@ -20,10 +20,10 @@ years run newest first, as on the **Money overview**. Under the rows, a **Total*
 every column up, so you can check the whole range against the statement at once.
 
 On a narrower screen the table leaves out the columns that matter least, one at a time, so
-the **Gross** and the **Net** stay beside the period: first **Refunded**, then **Net after
-refunds**, **Fees**, **Payments**, and **Reconciled**. On a phone, where even that is too
-wide, the table scrolls sideways inside the page, a line above it says so, and the period
-stays pinned at the left.
+the **Net** and **Reconciled**, with its link, stay beside the period: first **Refunded**,
+then **Net after refunds**, **Fees**, **Payments**, and **Gross**. A line above the table
+names what it left out. If even that is too wide, the table scrolls sideways inside the
+page, a line above it says so, and the period stays pinned at the left.
 
 Two dating rules make the rows line up with a statement, and the screen repeats them
 above the table:
