@@ -1,3 +1,5 @@
+:signed-out: yes
+
 =======
 Sign in
 =======
@@ -42,8 +44,11 @@ dues**. The rest of the portal opens once that is done.
 Once you are signed in, the public site's top menu reads **Welcome, <first name>**
 in place of **Sign in**, and takes you back to the portal from any page.
 
-A page of this guide also asks you to sign in first, because the guide is for
-members. Once you are in, the guide page opens.
+Most pages of this guide also ask you to sign in first, because the guide is for
+members. Once you are in, the guide page opens. This page and the pages for
+:doc:`forgot-password`, :doc:`reset-password`, :doc:`join`, and :doc:`verify-email`
+open without signing in, so **Help** works on the screens you see before you can
+sign in.
 
 You stay signed in on that browser until you sign out. **Sign out** is in the
 portal's top bar, beside your email address. It ends the session and clears

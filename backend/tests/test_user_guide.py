@@ -1,5 +1,7 @@
 """``/docs/``: the built user guide, served to signed-in users.
 
+The pages served without sign-in are ``test_user_guide_signed_out.py``'s.
+
 The guide is a directory of static files ``make guide`` writes; these tests
 build a tiny stand-in under ``tmp_path`` and point ``USER_GUIDE_ROOT`` at it,
 so they run whether or not the real guide has been built.

@@ -1,3 +1,5 @@
+:signed-out: yes
+
 ====================
 Forgot your password
 ====================

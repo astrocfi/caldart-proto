@@ -1,3 +1,5 @@
+:signed-out: yes
+
 ============
 Join CalDART
 ============

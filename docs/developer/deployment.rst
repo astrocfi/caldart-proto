@@ -818,7 +818,8 @@ service user could not reach it.
 names.  Without it every page raises at render time.
 
 The last line builds the user guide into ``docs/_build/guide``, the directory
-Django serves at ``/docs/`` to signed-in users (it is ``make guide`` on a
+Django serves at ``/docs/`` to signed-in users, and its sign-in, password,
+join, and verification pages to anybody (it is ``make guide`` on a
 checkout).  It calls the virtualenv's ``sphinx-build`` directly: ``uv run``
 would first sync the default dependency groups, development tools included.
 The developer guide is not published: the build reads ``docs/user`` alone.

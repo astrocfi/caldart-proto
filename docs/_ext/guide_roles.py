@@ -1,4 +1,4 @@
-"""Role-restricted pages of the user guide: the ``:roles:`` field and ``roles.json``.
+"""Who may read each page of the user guide: ``roles.json`` and ``signed-out.json``.
 
 A user-guide page that only some roles may read opens with a field list before its
 title::
@@ -21,6 +21,18 @@ the search index it serves that reader.  So that the index holds a page's title 
 under that page, the extension marks every table of contents ``no-search``; Sphinx
 would otherwise index the titles a table of contents lists as words of the page
 holding it.
+
+A page a visitor needs before they can sign in (signing in, a forgotten password,
+joining) opens with a different field instead::
+
+    :signed-out: yes
+
+Such a page is served to anybody, signed in or not.  ``yes`` is the field's only value,
+and a page may not carry both fields; the extension warns about either, so the ``-W``
+build fails.  At the end of an HTML build it writes ``signed-out.json`` beside
+``roles.json``: the signed-out pages' docnames under ``signed_out``, and every page of
+the build under ``pages``, from which the view works out which pages an anonymous
+reader's copy of a signed-out page must not link to.
 
 The extension is pure Python and imports nothing from the Django project, so the
 role slugs are spelled here; ``backend/tests/test_docs_user.py`` holds them equal to
@@ -61,6 +73,13 @@ ROLES_FIELD = "roles"
 #: The file written into the output directory.
 ROLES_FILE = "roles.json"
 
+#: The metadata field a page served without sign-in carries, and its one value.
+SIGNED_OUT_FIELD = "signed-out"
+SIGNED_OUT_VALUE = "yes"
+
+#: The file naming the signed-out pages and every page of the build.
+SIGNED_OUT_FILE = "signed-out.json"
+
 #: The class Sphinx's search indexer skips a node for.
 NO_SEARCH = "no-search"
 
@@ -68,7 +87,7 @@ log = logging.getLogger(__name__)
 
 
 def setup(app: Sphinx) -> ExtensionMetadata:
-    """Check the ``:roles:`` fields once every page is read; write ``roles.json`` last.
+    """Check the fields once every page is read; write the two JSON files last.
 
     Each table of contents is kept out of the search index as each page is read.
 
@@ -77,7 +96,9 @@ def setup(app: Sphinx) -> ExtensionMetadata:
     """
     app.connect("doctree-read", keep_toctrees_out_of_search)
     app.connect("env-check-consistency", check_roles)
+    app.connect("env-check-consistency", check_signed_out)
     app.connect("build-finished", write_roles)
+    app.connect("build-finished", write_signed_out)
     return {"version": "1", "parallel_read_safe": True, "parallel_write_safe": True}
 
 
@@ -128,6 +149,50 @@ def check_roles(app: Sphinx, env: BuildEnvironment) -> None:
                 )
 
 
+def check_signed_out(app: Sphinx, env: BuildEnvironment) -> None:
+    """Warn, against the page, about a ``:signed-out:`` field that is not ``yes``.
+
+    A page that carries both ``:signed-out:`` and ``:roles:`` is warned about too: a
+    page every visitor may read cannot also be kept to some roles.  Under ``-W`` either
+    warning fails the build.
+    """
+    for docname in sorted(env.found_docs):
+        metadata = env.metadata.get(docname, {})
+        if SIGNED_OUT_FIELD not in metadata:
+            continue
+        value = str(metadata[SIGNED_OUT_FIELD]).strip()
+        if value != SIGNED_OUT_VALUE:
+            log.warning(
+                "the :signed-out: field says %r; its only value is %r",
+                value,
+                SIGNED_OUT_VALUE,
+                location=docname,
+                type="guide_roles",
+            )
+        if ROLES_FIELD in metadata:
+            log.warning(
+                "a page with a :signed-out: field cannot carry a :roles: field",
+                location=docname,
+                type="guide_roles",
+            )
+
+
+def signed_out_pages(env: BuildEnvironment) -> dict[str, list[str]]:
+    """The signed-out pages' docnames, and every docname of the build, each sorted.
+
+    A page is signed out when its ``:signed-out:`` field says ``yes``.
+    """
+    return {
+        "signed_out": [
+            docname
+            for docname in sorted(env.found_docs)
+            if str(env.metadata.get(docname, {}).get(SIGNED_OUT_FIELD, "")).strip()
+            == SIGNED_OUT_VALUE
+        ],
+        "pages": sorted(env.found_docs),
+    }
+
+
 def page_roles(env: BuildEnvironment) -> dict[str, list[str]]:
     """Every restricted page's docname and its role slugs, in role order.
 
@@ -166,14 +231,25 @@ def page_roles(env: BuildEnvironment) -> dict[str, list[str]]:
 
 
 def write_roles(app: Sphinx, exception: Exception | None) -> None:
-    """Write ``roles.json`` into the output directory after a successful HTML build.
-
-    The file is written to a temporary name beside it and renamed over it, so the site
-    reading it during a rebuild finds the old file or the new one, never half of one.
-    """
+    """Write ``roles.json`` into the output directory after a successful HTML build."""
     if exception is not None or app.builder.format != "html":
         return
-    target = Path(app.outdir) / ROLES_FILE
-    partial = target.with_name(f".{ROLES_FILE}.partial")
-    partial.write_text(json.dumps(page_roles(app.env), indent=2) + "\n", encoding="utf-8")
+    _write_whole(Path(app.outdir) / ROLES_FILE, page_roles(app.env))
+
+
+def write_signed_out(app: Sphinx, exception: Exception | None) -> None:
+    """Write ``signed-out.json`` into the output directory after a successful build."""
+    if exception is not None or app.builder.format != "html":
+        return
+    _write_whole(Path(app.outdir) / SIGNED_OUT_FILE, signed_out_pages(app.env))
+
+
+def _write_whole(target: Path, content: dict[str, list[str]]) -> None:
+    """Write ``content`` as JSON to ``target`` by way of a temporary name beside it.
+
+    The file is renamed over ``target``, so the site reading it during a rebuild finds
+    the old file or the new one, never half of one.
+    """
+    partial = target.with_name(f".{target.name}.partial")
+    partial.write_text(json.dumps(content, indent=2) + "\n", encoding="utf-8")
     partial.replace(target)

@@ -607,7 +607,8 @@ User guide
 
 ``USER_GUIDE_ROOT``
    The directory holding the built user guide, which ``caldart.views.user_guide``
-   serves at ``/docs/`` to signed-in users.  ``make guide`` (on a server, the
+   serves at ``/docs/`` to signed-in users, and its few signed-out pages to
+   anybody.  ``make guide`` (on a server, the
    ``sphinx-build`` line of the deployment guide's build step) writes it.  A
    directory with no ``index.html`` makes every ``/docs/`` page answer 404 and
    logs a warning.

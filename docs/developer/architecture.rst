@@ -114,7 +114,8 @@ Repository layout
         urls.py                 the root URLconf
         api_urls.py             /api/v1/: includes every app's api/urls.py
         views.py                portal_shell, the page the SPA runs in, and
-                                user_guide, the built guide behind the login
+                                user_guide, the built guide, most of it
+                                behind the login
         authentication.py       session auth, with CSRF for anonymous callers
         models.py               TimestampedModel, the abstract base every
                                 model inherits
@@ -192,7 +193,9 @@ Path                  Served by
                       live page, or to the DART directory (the site root
                       when none is published) for a missing or unknown team
 ``/docs/<path>``      ``caldart.views.user_guide``: the built user guide,
-                      served to signed-in users from ``USER_GUIDE_ROOT``
+                      served to signed-in users from ``USER_GUIDE_ROOT``,
+                      and its sign-in, password, join, and verification
+                      pages to anybody
 ``/portal/<path>``    ``caldart.views.portal_shell``, the page the SPA runs in
 ``/media/``           uploaded files, to anybody, while ``DEBUG`` is on;
                       ``make run`` serves them so, and ``make e2e``, which
@@ -218,7 +221,10 @@ site's ``URL_PREFIX`` (:doc:`configuration`) when it has one.
 **The user guide.**  ``make guide`` builds ``docs/user/`` alone into
 ``docs/_build/guide``, and ``user_guide`` serves those files at ``/docs/`` to
 anyone signed in, each reader seeing only the pages their roles reach
-(:ref:`documentation-role-gated-pages`); a visitor who is not is sent to the
+(:ref:`documentation-role-gated-pages`).  A visitor who is not signed in may
+read the pages the signed-out screens' **Help** opens (signing in, a forgotten
+or reset password, joining, and email verification;
+:ref:`documentation-signed-out-pages`); for any other page they are sent to the
 portal's login page with the guide page as ``next``, and the login page hands
 them back to the guide with a full-page navigation, since the guide lives
 outside the SPA.  The
