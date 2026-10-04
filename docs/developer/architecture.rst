@@ -719,8 +719,8 @@ the files they test, and an ``index.ts`` of what the route files use:
 
 Shared code sits outside ``features/``: ``components/`` holds the primitives
 every screen uses (``Page``, ``Card``, ``Field``, ``FixedValue``, ``Button``,
-``IconButton``, ``DeleteButton``, ``ConfirmButton``, ``StatusChip``, ``DataTable``,
-``Pagination``, ``PanelButton``, ``ColumnChooser``, ``FilterBar``, ``RunActionsTable``,
+``IconButton``, ``DeleteButton``, ``ConfirmButton``, ``RefusedSubmit``, ``StatusChip``,
+``DataTable``, ``Pagination``, ``PanelButton``, ``ColumnChooser``, ``FilterBar``, ``RunActionsTable``,
 ``Money``, ``DateText``, ``EmptyState``, ``VerifiedMark``, and ``Toast``), and
 ``choices.ts`` holds the one set of labels for certificate, medical,
 rating, photo ID, and role codes, and the list of California counties.
@@ -785,20 +785,30 @@ weight, with the trashcan at the text size there rather than at the larger size
 a bare icon takes.  Every delete asks first.  Given ``onDelete``, the first
 press swaps the control, in place, for an inline pair, a ``role="group"`` named
 by ``label``: a small danger button reading ``confirmLabel`` (**Delete** unless
-the caller names another word, such as **Remove**) and a plain **Keep**.  Only
-the danger button calls ``onDelete``; **Keep**, Escape, a click outside, or the
-focus leaving the pair restore the trashcan.  The focus moves to **Keep** when
-the pair opens and back to the trashcan after **Keep** or Escape, and an Escape
-on the pair stops there, so the panel around it stays open.  A caller whose own
+the caller names another word, such as **Remove**) and a plain **Cancel**, after
+the caller's ``warning`` when it gives one (what the delete takes with it, as on
+the aircraft record and a DART).  Only the danger button calls ``onDelete``;
+**Cancel**, Escape, a click outside, or the focus leaving the pair restore the
+trashcan.  The focus moves to **Cancel** when the pair opens and back to the
+trashcan after **Cancel**, Escape, or the delete, or, when the delete took the
+row away, to the heading of the card around it; an Escape on the pair stops
+there, so the panel around it stays open.  A caller whose own
 flow already confirms the action, such as the member record's type-the-email
 delete, leaves ``onDelete`` out, and the control fires its ordinary
-``onClick`` at once.  ``ConfirmButton`` asks before an action that is not a
-delete, such as deactivating an account: its first press replaces it with a
-section named by its ``label``, holding the caller's explanation, one button per
-way to go ahead (``choices``; making somebody a friend whose renewal carries a
-contribution offers two), and **Cancel**.  A choice's ``onChoose`` returns a
-promise; the section closes when it resolves and stays open when it rejects, so
-the caller can draw the refusal beside it.  ``PanelButton`` is a quiet small ``Button`` with
+``onClick`` at once.  ``ConfirmButton`` asks before every other action that
+cannot be undone, such as deactivating an account or turning off an automatic
+renewal: its first press opens, after the button, a section named by its
+``label`` (class ``confirm-panel``, which takes a line of its own at full width
+below a ``.cluster`` row, so the buttons beside it stay put), holding the
+caller's explanation, one button per way to go ahead (``choices``; making
+somebody a friend whose renewal carries a contribution offers two), and
+**Cancel**.  The button stays in place, marked ``aria-expanded``, and closes the
+section when pressed again.  A destructive choice is ``variant: 'danger'`` and
+names the act; when the first choice is one, the focus starts on **Cancel**.  A
+choice's ``onChoose`` returns a promise; the section closes when it resolves
+and stays open when it rejects, so the caller can draw the refusal beside it.
+These two are the portal's only confirmations: a screen does not build its own
+pair of buttons.  ``PanelButton`` is a quiet small ``Button`` with
 ``aria-expanded`` and ``aria-controls`` and the captioned panel (a
 ``<fieldset>`` with its ``legend``) it opens under itself, moved sideways where
 need be so it stays on the screen (``panelShift``).  The panel's contents
@@ -819,7 +829,26 @@ columns** first opens.
 the guards and the route table are its only callers, and both import it by
 name, as every file in the directory is imported -- there is no barrel.
 ``components/useClickOutside.ts`` is the hook behind that dismissal, for any
-popover that wants it.  ``components/useDebounced.ts`` sits beside the
+popover that wants it.  ``components/focus.ts`` says where the keyboard focus
+goes as things open, close, and fail, so it never falls to the page body:
+``usePanelFocus`` takes a panel or form that opens in place (**Edit** on a row,
+**Verify**, **Refund**, **New subscription**) and moves the focus to its first
+field as it opens, closes it on Escape unless a popover or confirmation inside
+took the key, and hands the focus back to the control that opened it, or to a
+fallback ref when that control left the page with the panel open;
+``useFocusAfterSave`` returns the focus to a button (or a form's submit button)
+that dropped it while disabled for its request; and ``rememberPlace`` and
+``useRefocusOnUnmount`` let ``ConfirmButton`` and ``DeleteButton`` land the
+focus on the cell, item, or card heading they sat in once their action took
+them away.  ``components/RefusedSubmit.tsx`` is the refused submit:
+``useRefusedSubmit`` watches a form for a refusal (a call to ``refuse`` on the
+form's own rules, or a new server error) and moves the focus to the first field
+marked ``aria-invalid``, scrolled to the middle of the screen, or to the form's
+``role="alert"`` message when no field is marked; ``RefusedSubmitNote`` is the
+line beside the submit button (*Check the 2 highlighted fields.*) that counts
+down as the fields are corrected; and ``useFreshErrors`` drops a server error
+for a field once that field is edited.  The shared ``Toast`` confirms every
+save, send, and delete, and an error toast is an ``alert``.  ``components/useDebounced.ts`` sits beside the
 primitives too, a hook rather than something a page renders: it returns a
 value only once it has held still for a delay, which defaults to the
 ``SEARCH_DEBOUNCE_MS`` of 250 milliseconds that every search box uses.  The checkout panel passes 500 milliseconds instead, so

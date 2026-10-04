@@ -116,7 +116,7 @@ How do I stop being charged automatically?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 On **Payments**, press **Turn off** on the **Automatic renewal** or **Recurring
-donation** card, then **Yes, turn it off**. Nothing further is charged, and your
+donation** card, then **Turn it off**. Nothing further is charged, and your
 membership runs to the end of the term you paid for. See :doc:`member/payments`.
 
 Do I get a receipt?

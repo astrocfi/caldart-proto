@@ -84,9 +84,10 @@ Turn a standing charge off
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 **Turn off** ends a person's automatic renewal or recurring donation for them. Because
-the person is emailed when it happens, the button asks first: press **Yes, turn it off**
-to go ahead or **Keep it** to leave it alone. A message then confirms what was turned
-off and for whom, such as *Automatic renewal is off for Marta Reyes.*
+the person is emailed when it happens, the button asks first: a red **Turn it off** and
+**Cancel** open under it. Press **Turn it off** to go ahead, or **Cancel** or Escape to
+leave it alone. A message then confirms what was turned off and for whom, such as
+*Automatic renewal is off for Marta Reyes.*
 
 What happens next:
 

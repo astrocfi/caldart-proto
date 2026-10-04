@@ -28,17 +28,17 @@ you may read:
 - **Active**: a green dot while it is being sent, and a gray one while it is paused.
 
 Each row carries four controls, last on the line under an **Actions** heading a screen
-reader announces. The line above the table says what the last three did. On a screen too
-narrow for every column, **Last sent**, then **Next**, then **Formats**, then
+reader announces. A message in the corner of the screen says what the last three did. On a
+screen too narrow for every column, **Last sent**, then **Next**, then **Formats**, then
 **Schedule**, then **Recipient** are left out, and the controls wrap onto two lines; on a phone the table
 scrolls sideways, says so above it, and keeps **Report** pinned at the left.
 
 **Edit**
-   Opens the subscription's form under the table, to change its filters, columns, formats,
-   and schedule, as **Changing one** below describes.
+   Opens the subscription's form above the table, where **New subscription** opens it, to
+   change its filters, columns, formats, and schedule, as **Changing one** below describes.
 
 **Send now**
-   Sends the report at once, whatever the date, and leaves its next date alone. The line
+   Sends the report at once, whatever the date, and leaves its next date alone. The message
    reads *Sent to* the recipient, or says why nothing went: the report could not be built or
    the mail server refused it, or the recipient no longer holds a role that may read the
    report, in which case the subscription is paused.
@@ -46,11 +46,11 @@ scrolls sideways, says so above it, and keeps **Report** pinned at the left.
 **Pause** and **Resume**
    A paused subscription keeps everything it was set up with and sends nothing until you
    resume it. Resuming one whose recipient may no longer read the report is refused, and the
-   line says why.
+   message says why.
 
 **The trashcan**
-   Asks first: press it and it turns into **Delete** and **Keep**. Press **Delete** and
-   the subscription is gone; **Keep**, Escape, or a click elsewhere leaves it as it is.
+   Asks first: press it and it turns into **Delete** and **Cancel**. Press **Delete** and
+   the subscription is gone; **Cancel**, Escape, or a click elsewhere leaves it as it is.
 
 With none set up the table reads *No reports are sent by email yet*.
 
@@ -58,7 +58,7 @@ With none set up the table reads *No reports are sent by email yet*.
 Setting one up
 ~~~~~~~~~~~~~~
 
-**New subscription** opens the form:
+**New subscription** opens the form above the table and takes you to its first box:
 
 #. **Report** offers the reports you may read: the membership report, the roles report,
    the verification report, the aircraft register, the payments, the reconciliation, and
@@ -90,7 +90,7 @@ Setting one up
    first of January.
 #. **Recipient email** is where it goes.
 
-Press **Save**, or **Cancel**. An address that belongs to a CalDART account is refused when
+Press **Save**, or **Cancel** or Escape. *Subscription added.* confirms a save. An address that belongs to a CalDART account is refused when
 that account holds no role that may read the report, with *does not hold a role that may read
 this report* under the address: the treasurer cannot be sent the membership report, whose
 medical and certificate details are not theirs to read. An address no account holds is
@@ -102,16 +102,17 @@ under the filters.
 Changing one
 ~~~~~~~~~~~~
 
-**Edit** on a row opens the same form under the table, headed **Edit subscription** and filled
+**Edit** on a row opens the same form above the table, headed **Edit subscription** and filled
 with everything the subscription was set up with: its filters, its columns, its formats, and
 its schedule and day. A subscription on the report's default columns opens with the defaults
 ticked. The **Report** and the **Recipient** are shown as plain text, since neither can
 change: to send a different report, or to send it to somebody else, delete the subscription
 and set up another.
 
-Change what you need and press **Save**; the form closes and the row shows the change. A
-changed schedule moves **Next** to the schedule's next day after today. **Cancel** closes the
-form and changes nothing. A filter the report cannot use is named, with the reason, under the
+Change what you need and press **Save**; the form closes, *Subscription saved.* confirms it,
+and the row shows the change. A changed schedule moves **Next** to the schedule's next day
+after today. **Cancel**, or Escape, closes the form and changes nothing, and you are back on
+the row's **Edit**. A filter the report cannot use is named, with the reason, under the
 filters, as when setting one up.
 
 One form is open at a time. **New subscription** closes an open edit, **Edit** on another row

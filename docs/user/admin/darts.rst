@@ -39,7 +39,7 @@ With no teams yet the table says *No DARTs yet*.
 Adding a DART
 =============
 
-**Add a DART** opens a short form above the table:
+**Add a DART** opens a short form above the table, and takes you to its first box:
 
 **Name**
    What members will see in the list, such as "Palo Alto". Required.
@@ -72,7 +72,7 @@ kept as typed.
   team's page on the public website lists them in, so put the leader first. A row with no
   name cannot be moved, and neither can its neighbors past it.
 - The trashcan at the end of a row asks first: press it and it turns into **Remove** and
-  **Keep**. Press **Remove** and that person comes off the list; **Keep**, Escape, or a
+  **Cancel**. Press **Remove** and that person comes off the list; **Cancel**, Escape, or a
   click elsewhere leaves them on it.
 
 The people are saved with the rest of the form.
@@ -81,7 +81,9 @@ The people are saved with the rest of the form.
 Changing a DART
 ===============
 
-**Edit** opens the same form on an existing team, headed with its name. Press **Save DART**.
+**Edit** opens the same form on an existing team, headed with its name, above the table, and
+takes you to its first box. Press **Save DART**. Escape closes the form as **Cancel** does,
+and you are back on the row's **Edit**.
 Renaming a team is safe: the members on it stay on it.
 
 **Making one inactive.** Untick **Active** (*Active — untick to make the DART inactive
@@ -93,12 +95,13 @@ reports still read correctly. Tick the box again to bring the team back.
 Deleting a DART
 ===============
 
-**Delete this DART**, at the foot of the edit form, asks before it acts. When the team has
-members or a page on the public website, the question says what the delete leaves behind,
-for example *Deleting Napa makes its 12 members unaffiliated and unlinks 1 website page.
-This cannot be undone.* The members come off the team and stay members, with nothing else on
-their record touched. A website page for the team keeps its own words and loses only its
-link to the team. Press **Delete for good**, or **Keep**.
+**Delete this DART**, at the foot of the edit form, asks before it acts: it turns into a red
+**Delete** and **Cancel**. When the team has members or a page on the public website, a
+line above them says what the delete leaves behind, for example *Deleting Napa makes its 12
+members unaffiliated and unlinks 1 website page. This cannot be undone.* The members come
+off the team and stay members, with nothing else on their record touched. A website page
+for the team keeps its own words and loses only its link to the team. Press **Delete**, or
+**Cancel**, Escape, or a click elsewhere to keep the team.
 
 Deleting is permanent, so a team that has stopped flying is better made inactive.
 

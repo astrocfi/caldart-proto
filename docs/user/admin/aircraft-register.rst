@@ -143,8 +143,9 @@ browser's back button steps back through them.
 Adding an airplane
 ==================
 
-**New aircraft**, at the top right, opens **Add an aircraft** above the table, and the
-button reads **Close** while the form is open. The form is the whole record, the one on the
+**New aircraft**, at the top right, opens **Add an aircraft** above the table and takes you
+to its first box, and the button reads **Close** while the form is open. **Close**,
+**Cancel**, or Escape closes it again. The form is the whole record, the one on the
 :doc:`aircraft-record`, so everything can be filled in at once. Only the N-number and the
 aircraft type are required. Type the start of the N-number, such as N17, and the FAA
 registry's airplanes whose N-number starts with it are listed under the box; pick one to

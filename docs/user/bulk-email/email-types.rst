@@ -44,7 +44,8 @@ three can be turned off. They are ordinary types: edit them, delete them, or add
 Adding or changing a type
 =========================
 
-Press **Add an email type**, or **Edit** on a row, and fill in the form:
+Press **Add an email type**, or **Edit** on a row. The form opens above the table and takes you
+to its first box, scrolling it into view. Fill it in:
 
 **Name**
    At most 60 characters, and different from every other type's name. Capitals and
@@ -63,13 +64,14 @@ Press **Add an email type**, or **Edit** on a row, and fill in the form:
    keeps everyone's earlier choice, and ticking it again brings those choices back.
 
 Press **Add type** or **Save type**. The message *Operational added.* or *Operational saved.*
-confirms it, with the type's own name. **Cancel** closes the form and changes nothing.
+confirms it, with the type's own name. **Cancel**, or Escape, closes the form and changes
+nothing, and you are back on the button that opened it.
 
 
 Deleting a type
 ===============
 
-Press the trashcan on the row. It turns into **Delete** and **Keep**; press **Delete** to
+Press the trashcan on the row. It turns into **Delete** and **Cancel**; press **Delete** to
 go ahead. *Operational deleted.* confirms it, and every member's choice about that type goes
 with it.
 

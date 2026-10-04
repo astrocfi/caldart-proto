@@ -40,7 +40,10 @@ Creating the account
 #. Choose **Member** or **Friend**.
 #. Leave **Password** empty unless you have a particular reason to set one.
 #. Fill in whatever else you know.
-#. Press **Create member**. **Cancel** or **Back to members** leaves without saving.
+#. Press **Create member**. **Cancel** or **Back to members** leaves without saving. If the
+   site refuses something, such as an address another account holds, you are taken to the
+   first field it refused, however far up the form, and a line beside the button says how
+   many fields to check.
 
 The member's record opens, with a message at the top of the screen.
 

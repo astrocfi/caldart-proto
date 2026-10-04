@@ -37,7 +37,8 @@ it. Four cards follow.
    **Send password reset**, which a donor's record leaves out.
 
 Nothing is saved until you press **Save changes**, and the message *Account saved.* confirms
-it. **Reset form** puts every box back the way the account has it.
+it. A refused save takes you to what the site refused. **Reset form** puts every box back the
+way the account has it and clears the refusal.
 
 
 Changing a name or an address
@@ -124,7 +125,8 @@ Deactivating and reactivating
 =============================
 
 Each action on the **Account status** card asks first: pressing it opens a short
-explanation with a button to go ahead and **Cancel**. A refusal appears in the card.
+explanation below the card's buttons, with a button to go ahead and **Cancel**. Escape
+cancels too. A refusal appears in the card.
 
 **Deactivate account** does everything the person's own deactivation from their profile
 does. The account's password no longer signs it in, and it is signed out everywhere at once.
