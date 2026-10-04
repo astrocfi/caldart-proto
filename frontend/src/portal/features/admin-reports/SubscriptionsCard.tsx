@@ -105,13 +105,14 @@ export function SubscriptionsCard(): JSX.Element {
   };
 
   // The report tells the rows apart and the actions come last, headed for a screen
-  // reader, with room for every button beside an open delete confirmation. The formats,
-  // the last send, the schedule, then the recipient give way on a narrow screen.
+  // reader, with room for every button. The last send, the next send, the formats, the
+  // schedule, then the recipient give way on a narrow screen, so a laptop keeps the
+  // recipient, the schedule, and the formats.
   const columns: Column<ReportSubscription>[] = [
     {
       key: 'report',
       header: 'Report',
-      minWidth: '11rem',
+      minWidth: '10rem',
       isIdentity: true,
       render: (row) => row.report_title,
       sortValue: (row) => row.report_title,
@@ -119,8 +120,8 @@ export function SubscriptionsCard(): JSX.Element {
     {
       key: 'recipient',
       header: 'Recipient',
-      minWidth: '12rem',
-      dropOrder: 4,
+      minWidth: '10rem',
+      dropOrder: 5,
       render: (row) => recipientLabel(row),
       sortValue: (row) => recipientLabel(row),
     },
@@ -128,14 +129,14 @@ export function SubscriptionsCard(): JSX.Element {
       key: 'schedule',
       header: 'Schedule',
       minWidth: '9rem',
-      dropOrder: 3,
+      dropOrder: 4,
       render: (row) => scheduleLabel(row.cadence, row.weekday),
     },
     {
       key: 'formats',
       header: 'Formats',
       width: '7rem',
-      dropOrder: 1,
+      dropOrder: 3,
       render: (row) => FORMAT_LABELS[row.formats],
     },
     {
@@ -143,7 +144,7 @@ export function SubscriptionsCard(): JSX.Element {
       header: 'Last sent',
       width: '7rem',
       noWrap: true,
-      dropOrder: 2,
+      dropOrder: 1,
       render: (row) => <DateText value={row.last_sent_at} />,
       sortValue: (row) => row.last_sent_at,
     },
@@ -152,6 +153,7 @@ export function SubscriptionsCard(): JSX.Element {
       header: 'Next',
       width: '7rem',
       noWrap: true,
+      dropOrder: 2,
       render: (row) => <DateText value={row.next_due_on} />,
       sortValue: (row) => row.next_due_on,
     },
@@ -170,7 +172,7 @@ export function SubscriptionsCard(): JSX.Element {
     {
       key: 'actions',
       header: '',
-      width: '22rem',
+      width: '16rem',
       isActions: true,
       narrowWidth: '9rem',
       render: (row) => (

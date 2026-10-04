@@ -28,7 +28,7 @@ async function rosterCell(page: Page, dart: string): Promise<Locator> {
   const headers = await page.getByRole('columnheader').allTextContents();
   const column = headers.findIndex((text) => text.includes('Roster'));
   expect(column).toBeGreaterThanOrEqual(0);
-  return row.getByRole('cell').nth(column);
+  return row.locator(':scope > th, :scope > td').nth(column);
 }
 
 test('an account administrator adds a DART and it is offered straight away', async ({ page }) => {
@@ -50,7 +50,7 @@ test('an account administrator adds a DART and it is offered straight away', asy
   await page.getByLabel('Title').fill('DART leader');
   await page.getByRole('button', { name: 'Add DART' }).click();
 
-  await expect(page.getByRole('cell', { name: NAME })).toBeVisible();
+  await expect(page.getByRole('rowheader', { name: NAME })).toBeVisible();
 
   // The public catalog is the same table, so the profile's DART box has it.
   await page.goto('portal/profile');

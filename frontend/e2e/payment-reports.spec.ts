@@ -192,16 +192,16 @@ test('a saved set of columns comes back after a reload', async ({ page }) => {
 
   // A reload starts from the default columns again.
   await page.reload();
-  await expect(header.getByText('Fee', { exact: true })).toBeVisible();
-  await expect(header.getByText('Receipt', { exact: true })).toHaveCount(0);
+  await expect(header.getByRole('columnheader', { name: 'Fee', exact: true })).toBeVisible();
+  await expect(header.getByRole('columnheader', { name: 'Receipt', exact: true })).toHaveCount(0);
 
   // Loading the set puts its columns back, in the table and in the exports.
   await page.getByRole('button', { name: 'Load columns' }).click();
   const loadPanel = page.getByRole('group', { name: 'Your saved columns' });
   await expect(loadPanel.getByRole('button', { name: 'Delete the saved set Audit' })).toBeVisible();
   await loadPanel.getByRole('button', { name: 'Audit', exact: true }).click();
-  await expect(header.getByText('Receipt', { exact: true })).toBeVisible();
-  await expect(header.getByText('Fee', { exact: true })).toHaveCount(0);
+  await expect(header.getByRole('columnheader', { name: 'Receipt', exact: true })).toBeVisible();
+  await expect(header.getByRole('columnheader', { name: 'Fee', exact: true })).toHaveCount(0);
   await expect(page.getByRole('link', { name: 'Export CSV' })).toHaveAttribute(
     'href',
     /columns=paid_on%2Creceipt_number%2Cname/,

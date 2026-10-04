@@ -80,7 +80,7 @@ test('an account administrator rehearses the DART rosters', async ({ page }) => 
     .getByRole('table', { name: /DARTs?$/ })
     .getByRole('row')
     .nth(1);
-  const dartName = (await firstDart.getByRole('cell').first().textContent()) ?? '';
+  const dartName = (await firstDart.getByRole('rowheader').textContent()) ?? '';
   expect(dartName).not.toBe('');
 
   // The seed generates the people's names, so read one ticked on that DART from its form.
