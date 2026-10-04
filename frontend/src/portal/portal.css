@@ -305,6 +305,12 @@
   font-size: var(--text-sm);
 }
 
+/* A search box is wide enough to show its whole placeholder. */
+.data-table__filters input[type='search'] {
+  width: 16rem;
+  max-width: 100%;
+}
+
 .data-table__filters .data-table__toggle {
   height: var(--control-height, 2.5rem);
   font-size: var(--text-sm);
@@ -326,7 +332,9 @@
 }
 
 .data-table--single-line td > a,
-.data-table--single-line td > time {
+.data-table--single-line td > time,
+.data-table--single-line tbody th > a,
+.data-table--single-line tbody th > time {
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -334,16 +342,8 @@
   display: inline-block;
 }
 
-/* The pilot mark is a glyph, not a word: give it just enough room and let the
- * name sit next to it rather than across a gap. */
-.data-table--single-line th:first-child,
-.data-table--single-line td:first-child {
-  padding-right: 0;
-  text-align: center;
-}
-
 /* A column of text with a minimum width (a name, an address) starts at the
- * left edge, whatever position it holds; the rule above is for a glyph. */
+ * left edge, whatever position it holds. */
 .data-table--single-line th.data-table__text,
 .data-table--single-line td.data-table__text,
 .data-table--single-line th.data-table__identity,
@@ -369,8 +369,14 @@
 }
 
 /* A name, a receipt number, a phone number or a month reads wrongly broken. */
-.data-table td.data-table__nowrap {
+.data-table .data-table__nowrap {
   white-space: nowrap;
+}
+
+/* The identifying cell heads its row for a screen reader, but reads as an ordinary
+ * cell on screen. */
+.data-table tbody th {
+  font-weight: inherit;
 }
 
 /* The actions sit last, left-aligned, and never clip an open confirmation. */

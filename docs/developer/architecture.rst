@@ -720,7 +720,7 @@ the files they test, and an ``index.ts`` of what the route files use:
 Shared code sits outside ``features/``: ``components/`` holds the primitives
 every screen uses (``Page``, ``Card``, ``Field``, ``FixedValue``, ``Button``,
 ``IconButton``, ``DeleteButton``, ``ConfirmButton``, ``StatusChip``, ``DataTable``,
-``PanelButton``, ``ColumnChooser``, ``FilterBar``, ``RunActionsTable``,
+``Pagination``, ``PanelButton``, ``ColumnChooser``, ``FilterBar``, ``RunActionsTable``,
 ``Money``, ``DateText``, ``EmptyState``, ``VerifiedMark``, and ``Toast``), and
 ``choices.ts`` holds the one set of labels for certificate, medical,
 rating, photo ID, and role codes, and the list of California counties.
@@ -729,14 +729,46 @@ rating, photo ID, and role codes, and the list of California counties.
 ``BoldIcon`` to ``ImageIcon`` -- each ``aria-hidden``, drawn in
 ``currentColor``, square, and ``1.25em`` on a side unless the caller asks for
 another size, so the portal ships no icon dependency.
-A single-line ``DataTable`` fits its container (``components/tableFit.ts``) and keeps
-a row's actions in sight: a screen puts its actions column right after the
-identifying column; the columns with a ``dropOrder`` (such as a type or a DART; the
-bulk email screens share theirs in ``features/bulk-email/dropOrder.ts``) are left out
-one at a time, the lowest first, until the rest fit; and on a phone, where even that
-is too wide, the ``keepInSight`` columns take their ``narrowWidth`` and the leading
-text column narrows, down to a floor, so they end within the screen.  A column marked
-``wrap`` (a reason, a description) runs onto more lines rather than being cut short.  A ``PanelButton``
+A ``DataTable`` column names its width in rem, fixed (``width``) or as a least
+width it may grow from (``minWidth``), so no column is ever drawn narrower than
+that.  A single-line ``DataTable`` fits its container (``components/tableFit.ts``):
+the columns with a ``dropOrder`` (such as a type or a DART; the bulk email screens
+share theirs in ``features/bulk-email/dropOrder.ts``) are left out one at a time,
+the lowest first, until the rest fit; and on a phone, where even that is too wide,
+the ``keepInSight`` columns (a status, a total) and the actions take their
+``narrowWidth`` and the identifying column narrows, down to a readable floor, so
+they end within the screen.  The identifying column (``isIdentity``: a name, an
+N-number, a subject) never wraps and stays pinned at the left while the table
+scrolls.  The actions column (``isActions``) is always drawn last, at least wide
+enough for an open ``DeleteButton`` confirmation, and a blank heading on it reads
+*Actions* to a screen reader.  A column marked ``wrap`` (a reason, a description)
+runs onto more lines rather than being cut short, and one marked ``noWrap`` (a
+receipt number, a phone number, a month) never breaks.  A table still wider than
+its card scrolls sideways inside it (``components/useTableScroll.ts`` measures
+it): a line above the table says so, a shadow lies along each edge that hides
+more, and the scroll box becomes a ``role="region"`` named by the caption with
+``tabindex="0"``, so a keyboard can scroll it.  A sortable heading is a button
+with an arrow: up or down on the sorted column, which alone carries
+``aria-sort``, and a faint both-ways arrow on the others, so a heading that does
+not sort looks different; on a right-aligned heading the arrow comes first, so
+the words end over the figures.  A list passes the order it opens on as ``sort``
+or ``initialSort``, so that arrow shows from the start.  The ``tools`` prop (the
+column chooser) and the export buttons share one row at the right of the bar
+under the filters.  The ``pagination`` prop draws ``components/Pagination.tsx``
+under the table, the portal's one pagination control: *Showing 26–50 of 51*
+between **Previous** and **Next**, a disabled button drawn with a dashed frame,
+and a page change that brings the top of the table back into view.  An empty
+table draws its ``EmptyState`` with no rule above it, and ``emptyAction`` puts
+the next thing to do under it as a button, such as **Reset filters**.
+``components/reportTable.tsx`` serves a list whose table follows its report's
+column chooser: ``useColumnChoice`` holds the chosen keys (the registry's
+defaults until somebody ticks), ``reportTableColumns`` turns them into the
+table's columns in registry order from the page's own ``ReportCell`` per key
+(its drawing, its layout, and the ``ordering`` value it sorts by on the
+server), and ``ColumnTools`` draws the chooser, or says the columns could not
+be loaded.  A confirmation section that opens inside a ``.cluster`` row of
+buttons takes a line of its own under the row, so the buttons beside it stay
+put.  A ``PanelButton``
 whose panel holds a form passes ``isForm``, so the panel grows to the form rather
 than scrolling at a fixed height.
 ``IconButton`` is a control that shows one of those icons and nothing else: a
@@ -770,11 +802,13 @@ the caller can draw the refusal beside it.  ``PanelButton`` is a quiet small ``B
 ``aria-expanded`` and ``aria-controls`` and the captioned panel (a
 ``<fieldset>`` with its ``legend``) it opens under itself.  The panel's contents
 mount only while it is open, and receive a function that closes it; the panel
-closes on a click outside it or on Escape, and closing it while the focus is
-inside hands the focus back to the button.  ``ColumnChooser`` drives a report
-table and its two exports from one set of ticks.  It is three ``PanelButton``\ s
-side by side in a ``.column-chooser`` cluster: **Columns** holds the checkboxes
-and **Reset to the default columns**; **Load columns** lists the signed-in
+closes on a click outside it, on Escape, or when the focus moves to a control
+outside it, and closing it by a click or Escape while the focus is inside hands
+the focus back to the button.  ``ColumnChooser`` drives a report table and its
+two exports from one set of ticks, and its panel says so (*Columns in the table
+and the download*).  It is three ``PanelButton``\ s side by side in a
+``.column-chooser`` cluster: **Columns** holds the checkboxes, scrolling in a
+long list, and **Reset to the default columns** under them, always in sight; **Load columns** lists the signed-in
 user's named sets of the report's columns as buttons, each with a trashcan, and
 applies and closes on a pick; **Save columns** holds a name box and a **Save**
 button that keeps the chosen columns under that name and closes on success.
@@ -818,15 +852,19 @@ fields, with choices only the server knows, such as the DARTs or the plans,
 passed in through its ``options`` prop, and applies every change itself: a
 select, a multiselect, a date, or a toggle at once, a text or number box once the typing has
 held still for ``SEARCH_DEBOUNCE_MS``.  There is no Apply button, and
-**Reset to Defaults** empties every field.  The bar aligns its controls to
+**Reset filters**, as tall as the fields, empties every field;
+``clearedValues`` gives the same values for an empty table's own **Reset
+filters** button.  Every control in the bar is one height and they align to
 their bottom edge, and a field's ``hint`` is its control's ``title`` rather
-than a line under it, so the controls of a row line up.  The county filter of
+than a line under it, so the controls of a row line up.  A select's blank
+first option, the choice that filters nothing, always reads *Any* or *Any*
+followed by what it filters (*Any role*), never *All* or *Every*.  The county filter of
 the member list and the donors report is the one ``multiselect``, so a DART
 that covers two counties can ask for both; ``components/MultiSelect.tsx`` draws
 it as a button that reads as the ticked choices and opens a panel of checkboxes
 under itself, each applying as it is ticked or unticked, with **Clear** beneath
 them, shut by a click outside or Escape through
-``components/useClickOutside.ts``.  ``components/useUrlFilters.ts`` keeps a list
+``components/useClickOutside.ts``, or by the focus moving on past it.  ``components/useUrlFilters.ts`` keeps a list
 page's filters in the query string, so a filtered view is a link: it reads
 the keys it is given, and writing them drops the empty ones and ``page``, so a
 change of filter returns the list to its first page, while leaving any other

@@ -65,6 +65,19 @@ describe('sortRows', () => {
     expect(sortRows(rows, COLUMNS[1], direction).map((row) => row.hours)).toEqual(expected);
   });
 
+  it('keeps rows that tie in the order they arrived when sorting descending', () => {
+    const tied: Row[] = [
+      { id: 1, name: 'first', hours: 5 },
+      { id: 2, name: 'second', hours: 5 },
+      { id: 3, name: 'third', hours: 9 },
+    ];
+    expect(sortRows(tied, COLUMNS[1], 'desc').map((row) => row.name)).toEqual([
+      'third',
+      'first',
+      'second',
+    ]);
+  });
+
   it('leaves rows alone for an unsortable column', () => {
     expect(sortRows(ROWS, COLUMNS[2], 'asc')).toEqual(ROWS);
   });
@@ -352,7 +365,7 @@ describe('the identifying and actions columns', () => {
 
   it('marks the identifying column so it is pinned and never wraps', () => {
     renderTable();
-    expect(screen.getByRole('cell', { name: 'Reyes, Marta' })).toHaveClass(
+    expect(screen.getByRole('rowheader', { name: 'Reyes, Marta' })).toHaveClass(
       'data-table__identity',
       'data-table__nowrap',
     );

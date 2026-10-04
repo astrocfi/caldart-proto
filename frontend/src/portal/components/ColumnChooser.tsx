@@ -37,7 +37,7 @@ export interface ColumnChooserProps {
 }
 
 /** The keys a fresh chooser starts with: the registry's own default columns. */
-export function defaultColumnKeys(columns: ReportColumn[]): string[] {
+export function defaultColumnKeys(columns: readonly ReportColumn[]): string[] {
   return columns.filter((column) => column.default).map((column) => column.key);
 }
 

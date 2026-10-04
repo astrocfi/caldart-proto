@@ -805,9 +805,10 @@ when it runs out, and is tested with a fake that never answers.
 **Every table fits a phone.**  Each bulk email table is a ``DataTable`` in
 single-line mode whose every column gives a ``width`` or a ``minWidth`` in rem, so
 the table can reckon its fit; columns that matter less carry a ``dropOrder`` and go
-one at a time on a narrow screen; the row's actions carry ``keepInSight`` (with a
-``narrowWidth`` when their buttons stack), so they stay beside the subject without
-scrolling; and words that must be read whole, such as a reason, ``wrap``.  The user
+one at a time on a narrow screen; the subject or name is the ``isIdentity`` column,
+pinned at the left while the table scrolls; the row's actions are the ``isActions``
+column, drawn last and kept in sight (with a ``narrowWidth`` when their buttons
+stack); and words that must be read whole, such as a reason, ``wrap``.  The user
 guide page for the screen says which columns go first.  A column added later takes
 its place in that order, and its vitest covers the narrow layout.
 

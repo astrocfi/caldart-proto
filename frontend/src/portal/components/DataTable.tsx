@@ -80,8 +80,9 @@ export interface Column<Row> {
   wrap?: boolean;
   /**
    * The column that tells one row from another: a name, an N-number, a subject, or a
-   * description.  It keeps a readable width before any other, and stays pinned at
-   * the left while the table scrolls sideways.  Its cells never wrap.
+   * description.  It keeps a readable width before any other, stays pinned at the
+   * left while the table scrolls sideways, and heads its row for a screen reader
+   * (`th scope="row"`).  Its cells never wrap.
    */
   isIdentity?: boolean;
   /**
@@ -220,8 +221,11 @@ export function sortRows<Row>(
 ): Row[] {
   if (!column?.sortValue) return rows;
   const sortValue = column.sortValue;
-  const sorted = [...rows].sort((a, b) => compare(sortValue(a), sortValue(b)));
-  return direction === 'asc' ? sorted : sorted.reverse();
+  // Each direction compares in its own order rather than reversing the ascending
+  // result, so rows that tie keep the order they arrived in either way.
+  return [...rows].sort((a, b) =>
+    direction === 'asc' ? compare(sortValue(a), sortValue(b)) : compare(sortValue(b), sortValue(a)),
+  );
 }
 
 /** One export: a link to the download, or a disabled button saying why there is none. */
@@ -307,6 +311,32 @@ function HeaderCell<Row>({
     >
       {content}
     </th>
+  );
+}
+
+interface CellProps {
+  isRowHeader: boolean;
+  className: string | undefined;
+  title: string | undefined;
+  children: ReactNode;
+}
+
+/**
+ * One body cell: a row header (`th scope="row"`) for the identifying column, so a
+ * screen reader names each row by it, and an ordinary cell for the rest.
+ */
+function Cell({ isRowHeader, className, title, children }: CellProps): JSX.Element {
+  if (isRowHeader) {
+    return (
+      <th scope="row" className={className} title={title}>
+        {children}
+      </th>
+    );
+  }
+  return (
+    <td className={className} title={title}>
+      {children}
+    </td>
   );
 }
 
@@ -449,13 +479,14 @@ export function DataTable<Row>({
                       {columns.map((column) => {
                         const content = column.render(row);
                         return (
-                          <td
+                          <Cell
                             key={column.key}
+                            isRowHeader={column.isIdentity === true}
                             className={cellClass(column)}
                             title={typeof content === 'string' ? content : undefined}
                           >
                             {content}
-                          </td>
+                          </Cell>
                         );
                       })}
                     </tr>

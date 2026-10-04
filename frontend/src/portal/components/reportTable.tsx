@@ -38,27 +38,49 @@ export interface ColumnChoice {
   setChosen: (chosen: string[]) => void;
   /** The registry could not be read. */
   isError: boolean;
+  /** The registry has not arrived yet. */
+  isPending: boolean;
+  /**
+   * The columns the table draws from: the registry once it has arrived, or the page's
+   * fallback while it loads, if it cannot be read, or if it names no column.
+   */
+  tableColumns: readonly ReportColumn[];
+  /** The keys the table shows: the chosen ones, or the fallback's defaults. */
+  tableChosen: readonly string[];
 }
 
 /**
  * The column choice for `report`: the registry's defaults until the chooser changes
  * them, following a registry that is still loading.
  *
+ * The table never goes without columns: until the registry arrives, and if it cannot
+ * be read or names none, it draws `fallback`, the page's own copy of the report's
+ * default columns.
+ *
  * @param report the report whose columns are chosen.
- * @returns the registry, the chosen keys, and their setter.
+ * @param fallback the columns the table shows without the registry, the defaults ticked.
+ * @returns the registry, the chosen keys, their setter, and what the table shows.
  */
-export function useColumnChoice(report: ReportSlug): ColumnChoice {
+export function useColumnChoice(
+  report: ReportSlug,
+  fallback: readonly ReportColumn[] = [],
+): ColumnChoice {
   const registry = useReportColumns(report);
   const columns = useMemo(() => registry.data ?? [], [registry.data]);
   // Null means "whatever the registry calls default": the chooser has not been
   // touched, so it must follow a registry that is still loading.
   const [chosen, setChosen] = useState<string[] | null>(null);
+  const chosenKeys = chosen ?? defaultColumnKeys(columns);
+  const isFallback = columns.length === 0;
   return {
     report,
     columns,
-    chosen: chosen ?? defaultColumnKeys(columns),
+    chosen: chosenKeys,
     setChosen,
     isError: registry.isError,
+    isPending: registry.isPending,
+    tableColumns: isFallback ? fallback : columns,
+    tableChosen: isFallback ? defaultColumnKeys(fallback) : chosenKeys,
   };
 }
 

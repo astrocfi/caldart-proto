@@ -11,6 +11,7 @@ const SLUGS: ReportSlug[] = [
   'verification',
   'aircraft',
   'payments',
+  'renewals',
   'reconciliation',
   'contributions',
   'donors',
@@ -52,17 +53,21 @@ describe('REPORTS', () => {
     expect(new Set(keysOf(slug)).size).toBe(keysOf(slug).length);
   });
 
+  it('filters renewals by the parameters the renewals report reads', () => {
+    expect(keysOf('renewals')).toEqual(['status', 'kind', 'search']);
+  });
+
   it('filters members by every export parameter', () => {
     expect([...keysOf('members')].sort()).toEqual([...MEMBER_EXPORT_FILTER_PARAMS].sort());
   });
 
-  it('draws the member kind selector first, defaulting to All', () => {
+  it('draws the member kind selector first, on Any kind', () => {
     const [kind] = REPORTS.members.filters;
     expect([kind?.key, kind?.label, kind?.kind, kind?.placeholder]).toEqual([
       'kind',
       'Kind',
       'select',
-      'All',
+      'Any kind',
     ]);
   });
 
@@ -93,10 +98,10 @@ describe('REPORTS', () => {
     expect([search?.kind, search?.placeholder]).toEqual(['search', 'Name or email']);
   });
 
-  it('offers the eight staff roles on the roles report, every role by default', () => {
+  it('offers the eight staff roles on the roles report, any role by default', () => {
     const role = REPORTS.roles.filters.find((field) => field.key === 'role');
     expect([role?.placeholder, role?.options?.map((option) => option.label)]).toEqual([
-      'Every role',
+      'Any role',
       [
         ROLE_LABELS.verifier,
         ROLE_LABELS.dart_leader,
@@ -208,6 +213,7 @@ describe('REPORTS', () => {
       'verification',
       'aircraft',
       'payments',
+      'renewals',
       'donors',
       'emails',
     ]);
@@ -248,5 +254,15 @@ describe('listFilters', () => {
 
   it('keeps every other field, in order', () => {
     expect(listFilters(REPORTS.members)).toEqual(REPORTS.members.filters);
+  });
+});
+
+describe('the choice that filters nothing', () => {
+  it.each(
+    Object.values(REPORTS).flatMap((report) =>
+      report.filters.map((field) => [report.slug, field] as const),
+    ),
+  )('never reads All or Every (%s)', (_slug, field) => {
+    expect(field.placeholder ?? '').not.toMatch(/^(All|Every)\b/);
   });
 });
