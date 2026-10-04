@@ -961,6 +961,38 @@ th.numeric {
   color: var(--color-muted);
 }
 
+/* A recipient field: an inline pill in the surrounding text's size, one unit the
+ * cursor steps over.  The text keeps the body's foreground on the sunken fill, a pair
+ * the contrast gate checks in every theme, inside a link as well; an unknown field
+ * is told apart by a dashed border in the error color, and by its title. */
+.rich-text__field {
+  display: inline-block;
+  padding: 0 var(--space-2);
+  border: var(--hairline) solid var(--color-rule-strong);
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-sunken);
+  color: var(--color-fg);
+  line-height: 1.3;
+  text-decoration: none;
+  max-width: 100%;
+  cursor: pointer;
+}
+
+.rich-text__field.ProseMirror-selectednode {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 1px;
+}
+
+.rich-text__field--unknown {
+  border-style: dashed;
+  border-color: var(--color-bad);
+}
+
+.rich-text__area[contenteditable='false'] .rich-text__field {
+  color: var(--color-muted);
+  cursor: default;
+}
+
 /* ------------------------------------------------------------- motion */
 @media (prefers-reduced-motion: reduce) {
   html {
