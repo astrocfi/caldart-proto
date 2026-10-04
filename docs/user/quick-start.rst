@@ -135,3 +135,30 @@ CalDART management, and a DART leader writing to their own DART:
 
 See :doc:`bulk-email/index`, which explains the words these screens use, and
 :doc:`bulk-email/compose`.
+
+
+Forms, confirmations, and messages
+==================================
+
+Every screen of the portal behaves the same way when you save, change, or delete
+something, so what you learn on one screen holds on the next.
+
+**A form that cannot be saved** says so beside the field that needs fixing, in red, and
+moves you to the first such field, scrolling it into view. A line beside the button you
+pressed says how many fields to check, such as *Check the 2 highlighted fields.*, and
+it counts down as you correct them. A complaint about a field goes as soon as you edit
+that field.
+
+**Anything that cannot be undone asks first.** A trashcan turns into a red **Delete**
+(or **Remove**) and **Cancel**; any other such action, such as turning off an automatic
+renewal or deactivating an account, opens a short panel below its row of buttons that
+says what will happen, with a red button that names the act and **Cancel**. Only the
+red button acts. **Cancel**, the Escape key, or a click elsewhere changes nothing.
+
+**A form that opens in place**, such as **Edit** on a row, takes you to its first box.
+Escape closes it as **Cancel** does, and closing it, or saving it, takes you back to the
+button that opened it.
+
+**Every save, send, and delete is confirmed** by a short message in the corner of the
+screen, which goes away on its own after a few seconds. A message about something that
+went wrong stays in red until it goes.

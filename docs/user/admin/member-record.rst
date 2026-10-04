@@ -55,8 +55,7 @@ A **Verification** card heads the tab. It lists **Pilot certificate**, **Medical
 **Not verified**. **Verify** opens the same verification panel as the :doc:`member-check`:
 correct the fields against the documents, tick the items you have checked, and press
 **Save**. *Verification saved* confirms it, and a field you corrected there is filled in on
-the form below too. **Cancel**, or Escape, closes the panel and takes you back to
-**Verify**. A record with no profile yet has no Verification card, and one for a
+the form below too. A record with no profile yet has no Verification card, and one for a
 donor or a deactivated account has the card but no **Verify**: there is nothing to check
 against, since neither can fly.
 
@@ -72,8 +71,7 @@ ID** (the kind of photo ID only) among the aviation fields, plus:
   the :doc:`user-record`, and the member can from their own dashboard.
 
 **Save changes** saves the account and the profile together, and the message *Member saved.*
-confirms it. A refused save takes you to the first field the site refused, however far up
-the form, and the line beside the button says how many fields to check. Saving a changed pilot certificate, medical, or photo ID clears that item's
+confirms it. Saving a changed pilot certificate, medical, or photo ID clears that item's
 verification. Changing the email address marks it **Unverified** and sends the new address a
 message with the subject *CalDART: verify your email address*. Beside the button,
 **Aircraft on file** lists the airplanes on the person's profile; each N-number opens the
@@ -106,12 +104,11 @@ life membership), **Status** (active, expired, canceled, or suspended), **Source
 a manual grant, or the demo data), **Note** with whoever granted it, and **Edit**. A narrow
 screen drops **Source**, **Starts**, **Note**, and **Ends** in turn, keeping the rest in sight.
 
-**Edit** on a row lets you change that term's end date, status, and note, for a refund, a
-goodwill extension, or a term entered wrongly. The edit starts in the end date. Press
-**Save**, or **Cancel** or Escape, and you are back on the row's **Edit**; *Term updated.*
-confirms a save. A term set to **Canceled** no longer counts toward the membership, and its
-row stays in the history. The plan and the start date cannot be changed: cancel a wrong
-term and grant the right one, with a note saying why.
+**Edit** on a row changes that term's end date, status, and note, for a refund, a goodwill
+extension, or a wrong term. Press **Save** or **Cancel** (or Escape); *Term updated.* confirms
+a save. A term set to **Canceled** no longer counts toward the membership, and its row stays
+in the history. The plan and the start date cannot be changed: cancel a wrong term and
+grant the right one, with a note saying why.
 
 A donor's record has no **Grant a term**: a donor holds no membership, and the history
 reads *A donor holds no membership, and becomes a member only by registering.* A donor
@@ -120,8 +117,7 @@ becomes a member by registering on the site with the same address.
 **Grant a term** gives somebody a membership by hand, for a check or cash, or as a gift.
 Choose the **Plan**, and optionally a **Start date** and a **Note** (*Why this term was
 granted*), then press **Grant term**. The message reads *Term granted through* and the end
-date, or *Lifetime membership granted.*, and you are taken to the granted term's **Edit** in
-the history.
+date, or *Lifetime membership granted.*
 
 Leave the start date blank and the term starts in the right place:
 
@@ -160,8 +156,7 @@ Danger zone
 
 The tab holds two cards: **Account**, with the actions that change what the person can do,
 and **Delete this member**. Each action asks first: pressing it opens a short explanation
-below the card's buttons, with a button to go ahead and **Cancel**. Escape cancels too. A
-refusal appears in the card, under the action.
+below them, with a button to go ahead and **Cancel**. A refusal appears in the card.
 
 Account
 -------
