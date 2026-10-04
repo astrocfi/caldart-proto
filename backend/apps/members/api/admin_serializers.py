@@ -425,7 +425,7 @@ class MemberCreateSerializer(serializers.Serializer[User]):
     administrator never makes a donor by hand.
     """
 
-    email = serializers.EmailField(error_messages=email_messages("Enter the email address."))
+    email = serializers.EmailField(error_messages=email_messages("Enter their email address."))
     first_name = serializers.CharField(
         max_length=150, error_messages=when_missing(FIRST_NAME_MESSAGE)
     )
@@ -495,7 +495,7 @@ class MemberUpdateSerializer(serializers.Serializer[User]):
     """
 
     email = serializers.EmailField(
-        required=False, error_messages=email_messages("Enter the email address.")
+        required=False, error_messages=email_messages("Enter their email address.")
     )
     first_name = serializers.CharField(
         max_length=150, required=False, error_messages=when_missing(FIRST_NAME_MESSAGE)

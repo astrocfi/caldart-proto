@@ -2,7 +2,8 @@
 
 Every save already normalizes a person's name (:func:`caldart.casing.person_name`): an
 account's first and last name, a profile's emergency contact, a DART contact, an
-individual aircraft owner, and a DART page's leader; and a profile's street and city
+individual aircraft owner, and a DART page's leader; any other aircraft owner's name
+(:func:`caldart.casing.business_name`); and a profile's street and city
 (:func:`caldart.casing.title_case_words`).  This applies the same rules to the rows stored
 before those rules existed, or written past ``save()``.
 """
@@ -21,7 +22,7 @@ from apps.aircraft.models import Aircraft, OwnerType
 from apps.cms.models import DartPage
 from apps.darts.models import DartContact
 from apps.members.models import MemberProfile
-from caldart.casing import person_name, title_case_words
+from caldart.casing import business_name, person_name, title_case_words
 
 #: The account columns the command normalizes, and the rule each one follows.
 USER_RULES: tuple[tuple[str, Callable[[str], str]], ...] = (
@@ -38,6 +39,10 @@ PROFILE_RULES: tuple[tuple[str, Callable[[str], str]], ...] = (
 #: The single-name columns of the other models, each a person's name.
 DART_CONTACT_RULES: tuple[tuple[str, Callable[[str], str]], ...] = (("name", person_name),)
 AIRCRAFT_RULES: tuple[tuple[str, Callable[[str], str]], ...] = (("owner_name", person_name),)
+#: An FBO's or a flying club's name, which keeps its abbreviations upper case.
+BUSINESS_AIRCRAFT_RULES: tuple[tuple[str, Callable[[str], str]], ...] = (
+    ("owner_name", business_name),
+)
 DART_PAGE_RULES: tuple[tuple[str, Callable[[str], str]], ...] = (("leader_name", person_name),)
 
 
@@ -64,7 +69,8 @@ class Command(BaseCommand):
         Each field whose stored value differs from its normalized one is printed as
         ``<row>: <field> "<old>" -> "<new>"``, where ``<row>`` is the account's email for
         an account or a profile, ``DART contact <id>``, ``aircraft <N-number>`` (an
-        individual owner's only), or ``DART page <id>``, in that order of models and
+        individual owner's, then any other owner's), or ``DART page <id>``, in that
+        order of models and
         each in primary-key order, and the run ends with ``Changed <n> fields.``
         (``Would change`` under ``--dry-run``).  Only a row with a changed field is
         written, and only its changed columns, by a queryset update that runs no
@@ -86,6 +92,12 @@ class Command(BaseCommand):
         count += self._normalize(
             Aircraft.objects.filter(owner_type=OwnerType.INDIVIDUAL).order_by("pk"),
             AIRCRAFT_RULES,
+            label=lambda aircraft: f"aircraft {aircraft.n_number}",
+            dry_run=dry_run,
+        )
+        count += self._normalize(
+            Aircraft.objects.exclude(owner_type=OwnerType.INDIVIDUAL).order_by("pk"),
+            BUSINESS_AIRCRAFT_RULES,
             label=lambda aircraft: f"aircraft {aircraft.n_number}",
             dry_run=dry_run,
         )

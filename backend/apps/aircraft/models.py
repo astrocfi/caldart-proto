@@ -12,7 +12,7 @@ from django.db.models import Value
 from django.db.models.functions import Concat
 from django.utils import timezone
 
-from caldart.casing import person_name
+from caldart.casing import business_name, person_name
 from caldart.dates import format_display_date
 from caldart.models import TimestampedModel
 
@@ -335,13 +335,16 @@ class Aircraft(TimestampedModel):
     def save(self, *args: Any, **kwargs: Any) -> None:
         """Save the record after normalizing ``n_number`` to canonical form.
 
-        An individual owner's name is stored through :func:`caldart.casing.person_name`;
-        an FBO's or a flying club's is kept as typed, since a business name's casing
-        (``LLC``, ``FBO``) is not a person's.
+        An individual owner's name is stored through :func:`caldart.casing.person_name`,
+        and any other owner's through :func:`caldart.casing.business_name`, so a name
+        the FAA registry filled in capitals reads ``Skyways Aviation LLC`` rather than
+        ``SKYWAYS AVIATION LLC``, while a business name typed in mixed case is kept.
         """
         self.n_number = normalize_n_number(self.n_number)
         if self.owner_type == OwnerType.INDIVIDUAL:
             self.owner_name = person_name(self.owner_name)
+        else:
+            self.owner_name = business_name(self.owner_name)
         super().save(*args, **kwargs)
 
     @property

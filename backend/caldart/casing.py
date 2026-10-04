@@ -29,6 +29,10 @@ _NAME_SEPARATOR_RE = re.compile("(['\u2019.])")
 #: The vowels whose absence marks a part as initials (``TJ``) rather than a name.
 _VOWELS = frozenset("aeiouy")
 
+#: The words a business name keeps upper case when it is title-cased: the legal forms
+#: and the trade abbreviations an aircraft owner's name carries.
+BUSINESS_ABBREVIATIONS = frozenset({"llc", "llp", "lp", "pc", "fbo", "usa", "us"})
+
 #: The prefix whose next letter is capitalized too.  ``Mac`` is deliberately absent:
 #: ``Macarthur`` and ``Mackey`` are as common as ``MacArthur``, so it cannot be guessed.
 _MC_PREFIX = "Mc"
@@ -76,6 +80,26 @@ def person_name(value: str) -> str:
         return trimmed
     words = trimmed.split(" ")
     return " ".join(_name_word(word, first=index == 0) for index, word in enumerate(words))
+
+
+def business_name(value: str) -> str:
+    """Return a business's name ``value``, such as a flying club's, as it is stored.
+
+    Leading and trailing whitespace is trimmed and internal runs of whitespace collapse
+    to one space, always.  A name with any letter in each case (``SkyWest Aviation``,
+    ``Bay Area FBO``) is kept as typed.  A name typed entirely in upper or entirely in
+    lower case, as the FAA registry writes every name, is title-cased by
+    :func:`title_case_words`, except that the abbreviations in
+    ``BUSINESS_ABBREVIATIONS`` stay upper case: ``SKYWAYS AVIATION LLC`` becomes
+    ``Skyways Aviation LLC``.  A blank value stays blank.
+    """
+    trimmed = _WHITESPACE_RE.sub(" ", value.strip())
+    if trimmed not in {trimmed.upper(), trimmed.lower()}:
+        return trimmed
+    return " ".join(
+        word.upper() if word.lower() in BUSINESS_ABBREVIATIONS else word
+        for word in title_case_words(trimmed).split(" ")
+    )
 
 
 def _name_word(word: str, *, first: bool) -> str:
