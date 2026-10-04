@@ -29,6 +29,11 @@
   margin-top: var(--space-5);
 }
 
+/* A done screen's paragraphs, such as Check your email's, keep a line between them. */
+.auth-card p + p {
+  margin-top: var(--space-3);
+}
+
 /* The primary button spans the card; the secondary link sits centered under it. */
 .auth__actions {
   display: flex;

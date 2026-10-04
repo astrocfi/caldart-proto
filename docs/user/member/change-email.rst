@@ -2,9 +2,10 @@
 Change email
 ============
 
-The **Change email** screen moves your account to another address. *You sign in with
-the new address, and we send it a verification message.* Open it from **Change email**
-under **Membership** in the menu.
+The **Change email** screen moves your account to another address. Open it from
+**Change email** under **Membership** in the menu. It starts by naming the address you
+use: *Your address is marta.reyes@example.org. We will send a link to the new one;
+sign in with it after you open the link.*
 
 
 What you see
