@@ -10,7 +10,7 @@
  */
 import type { Transaction } from '@tiptap/pm/state';
 import type { Editor } from '@tiptap/react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { JSX } from 'react';
 
 import type { BulkEmailField } from '@/portal/api/types';
@@ -28,6 +28,7 @@ import { Panel, enterKey, useFocusOnMount } from './RichTextPanels';
 import {
   FALLBACK_BLANK_ERROR,
   FALLBACK_ERROR,
+  chipAt,
   chipText,
   evenFallback,
   fieldAttrs,
@@ -101,7 +102,10 @@ function useChipPosition(
     goneRef.current = onGone;
   }, [onGone]);
 
-  useEffect(() => {
+  // A layout effect, so it is listening before the panel's text box takes the focus in
+  // its own effect: leaving the editor can turn a typed token beside the chip into a
+  // chip, which moves this one.
+  useLayoutEffect(() => {
     const handleTransaction = ({
       transaction,
       appendedTransactions,
@@ -120,7 +124,7 @@ function useChipPosition(
         }
         at = mapped.pos;
       }
-      const node = editor.state.doc.nodeAt(at);
+      const node = chipAt(editor.state, at);
       const now = node === null ? null : fieldAttrs(node);
       if (now?.name !== attrs.name || now.fallback !== attrs.fallback) {
         goneRef.current();
@@ -241,7 +245,7 @@ export interface UnknownFieldPanelProps {
   fields: BulkEmailField[];
   /** Makes the chip the field named `name`. */
   onChoose: (name: string) => void;
-  /** Puts the chip back as words, its braces taken out. */
+  /** Puts the chip back as words, its field's name alone. */
   onWords: () => void;
   /** Takes the chip out. */
   onRemove: () => void;
@@ -250,8 +254,8 @@ export interface UnknownFieldPanelProps {
 
 /**
  * Says a chip is not one of the fields and offers the ways out: **Choose a field**
- * lists the fields to make it one of them, **Turn into words** takes its braces out,
- * and **Remove** takes it out.
+ * lists the fields to make it one of them, **Turn into words** puts back its name
+ * alone, without braces or fallback, and **Remove** takes it out.
  */
 export function UnknownFieldPanel({
   token,

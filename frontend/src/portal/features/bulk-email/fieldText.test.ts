@@ -3,13 +3,13 @@ import { describe, expect, it } from 'vitest';
 import { messageError } from './fieldText';
 
 describe('messageError', () => {
-  it('says how to deal with an unknown field shown as a chip', () => {
+  it('says how to deal with an unknown field in the message', () => {
     expect(
       messageError(
         '{nickname} is not one of the fields. Pick a field from Insert field, or take out ' +
           'the braces.',
       ),
-    ).toBe('{nickname} is not one of the fields. Delete it, or click it to choose a field.');
+    ).toBe('{nickname} is not one of the fields. Delete it, or pick a field from Insert field.');
   });
 
   it('leaves the refusal of a field in a web address as the server wrote it', () => {

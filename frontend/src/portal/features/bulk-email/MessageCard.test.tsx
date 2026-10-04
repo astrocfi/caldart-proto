@@ -89,7 +89,7 @@ describe('MessageCard', () => {
     ]);
   });
 
-  it('says how to deal with an unknown field the message shows as a chip', () => {
+  it('says how to deal with an unknown field in the message', () => {
     answerFields();
     renderWithProviders(
       <Card
@@ -101,7 +101,7 @@ describe('MessageCard', () => {
       />,
     );
     expect(screen.getByRole('alert')).toHaveTextContent(
-      '{nickname} is not one of the fields. Delete it, or click it to choose a field.',
+      '{nickname} is not one of the fields. Delete it, or pick a field from Insert field.',
     );
   });
 

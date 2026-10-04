@@ -414,9 +414,10 @@ as ``{{first_name}``, goes back to text, so every chip is a token the server fil
 in.  The fallback panel puts each run of whitespace in as one space.  A chip whose
 name is not in the catalog is marked *not a field*, and its panel
 (``components/RichTextFieldPanels.tsx``) offers to choose a field, to turn it into
-words without its braces, or to remove it; the message's error line
-(``features/bulk-email/fieldText.ts``) words ``fields.UNKNOWN_FIELD_MESSAGE`` for a
-chip accordingly, so that wording and the client's pattern for it change together.
+its name alone as words, or to remove it; the message's error line
+(``features/bulk-email/fieldText.ts``) words ``fields.UNKNOWN_FIELD_MESSAGE`` to
+point at **Insert field** rather than at braces, so that wording and the client's
+pattern for it change together.
 
 ``render.render_for(bulk, user, values)`` is one person's whole copy, footer and
 headers included: ``render_copy`` builds a row's copy through it with the row's

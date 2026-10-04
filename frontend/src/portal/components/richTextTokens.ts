@@ -144,8 +144,9 @@ export function fieldAttrs(node: ProseMirrorNode): FieldTokenAttrs {
   return node.attrs as FieldTokenAttrs;
 }
 
-/** The node at `pos` when it is a chip, else `null`. */
+/** The node at `pos` when it is a chip, else `null`, as for a `pos` past the document. */
 export function chipAt(state: EditorState, pos: number): ProseMirrorNode | null {
+  if (pos < 0 || pos >= state.doc.content.size) return null;
   const node = state.doc.nodeAt(pos);
   return node?.type.name === FIELD_TOKEN ? node : null;
 }

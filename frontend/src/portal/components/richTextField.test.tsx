@@ -1,6 +1,7 @@
 import { act, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { closeHistory } from '@tiptap/pm/history';
+import { NodeSelection } from '@tiptap/pm/state';
 import type { Editor, TiptapEditorHTMLElement } from '@tiptap/react';
 import { createRef, useState } from 'react';
 import type { JSX, Ref } from 'react';
@@ -569,6 +570,27 @@ describe('RichTextEditor field panel', () => {
     expect(lastChange(handleChange)).toBe('<p>Hi {first_name} {dart_name|yours}</p>');
   });
 
+  it('follows its chip when opening the panel turns a typed token beside it into a chip', async () => {
+    const handleChange = vi.fn();
+    renderWithProviders(<Harness initial="<p>Dear ,</p>" onChange={handleChange} />);
+
+    await placeCursor(6);
+    typeText('{dart_name}');
+    // A chip put in just after the typed token and selected, so the token stays text.
+    act(() => {
+      const { view } = editor();
+      const type = view.state.schema.nodes.fieldToken;
+      if (type === undefined) throw new Error('No fieldToken node.');
+      const tr = view.state.tr.insert(17, type.create({ name: 'first_name', fallback: '' }));
+      view.dispatch(tr.setSelection(NodeSelection.create(tr.doc, 17)));
+    });
+    await userEvent.keyboard('{Enter}');
+    await userEvent.type(screen.getByLabelText(FALLBACK_LABEL), 'friend');
+    await userEvent.click(screen.getByRole('button', { name: 'Apply' }));
+
+    expect(lastChange(handleChange)).toBe('<p>Dear {dart_name}{first_name|friend},</p>');
+  });
+
   it('titles the panel with the field it is for', async () => {
     renderWithProviders(<Harness initial="<p>{first_name}</p>" />);
 
@@ -641,7 +663,7 @@ describe('RichTextEditor unknown field panel', () => {
     ]);
   });
 
-  it('turns the chip into words without its braces', async () => {
+  it('turns the chip into its name as words', async () => {
     const handleChange = vi.fn();
     await openUnknown(handleChange);
 
@@ -654,6 +676,16 @@ describe('RichTextEditor unknown field panel', () => {
       '<p>Hi nickname</p>',
       null,
     ]);
+  });
+
+  it('turns a chip with a fallback into its name alone', async () => {
+    const handleChange = vi.fn();
+    renderWithProviders(<Harness initial="<p>Hi {nickname|pal}</p>" onChange={handleChange} />);
+
+    await userEvent.click(await chip());
+    await userEvent.click(screen.getByRole('button', { name: 'Turn into words' }));
+
+    expect(lastChange(handleChange)).toBe('<p>Hi nickname</p>');
   });
 
   it('removes the chip', async () => {

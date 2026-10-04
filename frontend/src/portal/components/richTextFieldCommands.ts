@@ -9,7 +9,7 @@ import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
 import type { Transaction } from '@tiptap/pm/state';
 import type { Editor } from '@tiptap/react';
 
-import { FIELD_TOKEN, chipAt, fieldAttrs, tokenText } from './richTextTokens';
+import { FIELD_TOKEN, chipAt, fieldAttrs } from './richTextTokens';
 import type { FieldTokenAttrs } from './richTextTokens';
 
 /** Puts a chip for the field `name` in at the cursor, replacing any selection. */
@@ -101,12 +101,12 @@ export function renameField(
 }
 
 /**
- * Puts the chip at `pos` back as words: its token without the braces, which is no
- * longer a token, so it stays as written (see `changeField`).
+ * Puts the chip at `pos` back as words: its field's name alone, `nickname` for
+ * `{nickname|pal}`, which is no token, so it stays as written (see `changeField`).
  */
 export function fieldToWords(editor: Editor, pos: number, expected: FieldTokenAttrs): void {
   changeField(editor, pos, expected, (tr, node) => {
-    const words = tokenText(fieldAttrs(node)).slice(1, -1);
+    const words = fieldAttrs(node).name;
     tr.replaceWith(pos, pos + node.nodeSize, tr.doc.type.schema.text(words, node.marks));
     return words.length;
   });

@@ -123,11 +123,11 @@ press it again to take the style off.
   friend*); in the subject, write *{first_name|friend}*.
 
 A field not in the list, such as *{nickname}*, is refused, and the words are not saved until
-it is fixed. In the message it is a chip marked *not a field*, the refusal reads *{nickname}
-is not one of the fields. Delete it, or click it to choose a field.*, and clicking it offers
-**Choose a field**, **Turn into words**, and **Remove**; in the subject, pick a field or take
-out the braces. Braces a link's web address needs are written *%7B* and *%7D*, as the message
-says. A field styled in part is refused too: put it in again with **Insert field**.
+it is fixed: *{nickname} is not one of the fields. Delete it, or pick a field from Insert
+field.* In the message it is a chip marked *not a field*; click it for **Choose a field**,
+**Turn into words**, or **Remove**. In the subject, pick a field or take out the braces.
+Braces a link's web address needs are written *%7B* and *%7D*, as the message says. A field
+styled in part is refused too: put it in again with **Insert field**.
 
 Each copy comes from the site's own address, with replies going to the **Reply-To**
 address. Under the message it carries a short footer

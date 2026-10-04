@@ -23,13 +23,14 @@ const UNKNOWN_FIELD_REFUSAL = new RegExp(
 /**
  * The server's refusal of the message `error` as the message's own error line says it.
  *
- * In the message an unknown field is a chip, which has no braces to take out, so its
- * refusal says how to deal with the chip instead: *{nickname} is not one of the
- * fields. Delete it, or click it to choose a field.*  Every other refusal, such as one
- * for braces inside a web address, reads as the server wrote it.
+ * In the message an unknown field is usually a chip, which has no braces to take
+ * out, so its refusal reads *{nickname} is not one of the fields. Delete it, or pick a
+ * field from Insert field.*, which holds for a chip and for one the editor shows as
+ * text alike.  Every other refusal, such as one for braces inside a web address,
+ * reads as the server wrote it.
  */
 export function messageError(error: string): string {
   const match = UNKNOWN_FIELD_REFUSAL.exec(error);
   if (match === null) return error;
-  return `${match[1]} is not one of the fields. Delete it, or click it to choose a field.`;
+  return `${match[1]} is not one of the fields. Delete it, or pick a field from Insert field.`;
 }
