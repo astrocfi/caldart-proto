@@ -53,6 +53,7 @@ export function automaticCardTitle(isLifetime: boolean): string {
  * told about a renewal they will not get.
  */
 export function paymentsPageLede(renews: boolean): string {
-  const renewal = renews ? ' whether CalDART renews your membership for you,' : '';
-  return `Your recurring donation,${renewal} your receipts, and your contribution statements.`;
+  return renews
+    ? 'Your automatic renewal, recurring donation, payments and receipts, and tax statements.'
+    : 'Your recurring donation, payments and receipts, and tax statements.';
 }

@@ -31,6 +31,13 @@ describe('MessagesPage', () => {
     expect(link).toHaveAttribute('href', answerUrl);
   });
 
+  it('says in plain words what the list holds', () => {
+    renderList([SPRING]);
+    expect(
+      screen.getByText('Copies of the emails CalDART sent to members and friends.'),
+    ).toBeVisible();
+  });
+
   it('speaks to the reader of their own email, not of bulk email', () => {
     renderList([SPRING]);
     expect(screen.getByText('Your email')).toBeVisible();

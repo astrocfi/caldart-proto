@@ -75,3 +75,8 @@
   cursor: wait;
   opacity: 0.6;
 }
+
+/* The note under the switches stands apart from the last of them. */
+.email-preferences__note {
+  margin-top: var(--space-5);
+}

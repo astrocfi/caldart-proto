@@ -15,9 +15,10 @@ One switch for each type of email you may turn off, with its name and a sentence
 what it is for. A switch that is on, with the word **On** beside the name, means you receive
 that type; **Off** means you do not. Everyone starts with every switch on.
 
-A type of email that everybody must receive is not listed. Email about your own account,
-such as receipts, renewal reminders, and password links, is not bulk email and always
-reaches you.
+A type of email that everybody must receive is not listed. A note under the switches says
+that email about your own account, such as receipts, renewal reminders, and password links,
+is not bulk email and always reaches you. A system administrator names the types and
+writes their sentences (see :doc:`../bulk-email/email-types`).
 
 
 What you can do

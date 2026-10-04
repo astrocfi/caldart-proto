@@ -71,8 +71,8 @@ describe('RecurringDonationCard', () => {
 
     expect(
       await screen.findByText(
-        'Set one up on the Donate screen and CalDART will charge a saved card or PayPal account ' +
-          'monthly, quarterly, or yearly, for the amount you choose.',
+        'A recurring donation charges a saved card or PayPal account monthly, quarterly, or ' +
+          'yearly, for the amount you choose.',
       ),
     ).toBeInTheDocument();
   });

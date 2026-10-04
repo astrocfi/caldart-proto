@@ -27,7 +27,7 @@ export function MessagesPage(): JSX.Element {
   return (
     <Page
       title="Messages"
-      lede="The emails CalDART has sent you along with other members and friends, to read again here."
+      lede="Copies of the emails CalDART sent to members and friends."
     >
       <Card>
         {messages.isError ? (

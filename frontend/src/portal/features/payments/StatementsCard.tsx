@@ -36,7 +36,7 @@ export function StatementsCard(): JSX.Element {
         <>
           <p>
             Each statement lists every contribution that settled in the year, less anything
-            refunded, with the year&rsquo;s total and the 501(c)(3) wording.
+            refunded, with the year&rsquo;s total and the wording your tax preparer needs.
           </p>
           <ul className="payments__statements" role="list">
             {years.map((year) => (

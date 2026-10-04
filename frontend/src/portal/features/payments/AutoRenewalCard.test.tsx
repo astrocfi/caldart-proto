@@ -68,6 +68,12 @@ function recordPatches(mandate: RenewalMandate): unknown[] {
 }
 
 describe('AutoRenewalCard', () => {
+  it('names the contribution a renewal takes as a yearly contribution', async () => {
+    mount(makeMandate({ contribution_cents: 2500 }));
+
+    expect(await screen.findByText('Yearly contribution')).toBeInTheDocument();
+  });
+
   it('offers to turn renewal on when the member has never had a mandate', async () => {
     mount(null);
 
