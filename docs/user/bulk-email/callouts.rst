@@ -74,8 +74,10 @@ is sent it, and it starts within a minute: *The reminders will be sent within a 
 Each person's details in the reminder are filled in as they are then. Each time you remind
 is a round of copies, listed under **Reminders** with its time and how many people it went
 to. The counts on :doc:`sent` include every round, and its table lists each person's first
-copy. The button stays off, with the reason under it, while the callout is still sending,
-once it has closed, and once everybody has answered.
+copy. When a round of reminders is stopped and then sent with **Send the rest**, or
+retried with **Retry failed**, anybody who has answered meanwhile is skipped, *Answered
+the callout*. The button stays off, with the reason under it, while the callout is still
+sending, once it has closed, and once everybody has answered.
 
 **Close now** stops the answers at once, after you press **Close the callout**. Nobody can
 answer or change an answer after that, and the answers already given stay. Reminders not

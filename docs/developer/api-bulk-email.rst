@@ -520,8 +520,9 @@ had gone records nothing, and the email reads ``sent``.
 **Send the rest** of a stopped send.  Every ``stopped`` row is checked again first,
 as **Retry failed** checks a failed one (``POST /bulk-email/{id}/retry``): it takes
 its account's name and address as they are now, and a deleted or deactivated account,
-a missing, invalid, or bounced address, an opt-out of the type, or a person outside a
-DART leader's DART makes it ``skipped`` with that reason.  The rest go back to
+a missing, invalid, or bounced address, an opt-out of the type, a person outside a
+DART leader's DART, or, in a callout's reminder round, a person who has answered since
+makes it ``skipped`` with that reason.  The rest go back to
 ``pending`` and the email is queued to start now, with no undo window.  **200** with
 the email.  Nobody already sent a copy is sent another.  The email keeps its
 ``started_at``, so it stays read-only (:ref:`the edit rule <bulk-email-edit-rule>`).
@@ -744,8 +745,10 @@ already sent this round of the email makes the row ``skipped`` with that reason 
 to ``skipped_count``.  For a mission callout the rows are taken the latest round first,
 and a failed copy whose person a later round's copy reached, or is going to, or one
 already queued in this retry, is ``skipped`` with *Sent a later copy instead*, so a
-person whose first copy and reminder both failed is sent one copy, the reminder.  Every other failed copy goes back to ``pending`` with its reason
-cleared.  All of them leave ``failed_count``.  The email is queued to start now, with
+person whose first copy and reminder both failed is sent one copy, the reminder.  A
+failed reminder (``round`` above 0) whose person has answered the callout since is
+``skipped`` with *Answered the callout*.  Every other failed copy goes back to
+``pending`` with its reason cleared.  All of them leave ``failed_count``.  The email is queued to start now, with
 no undo window, as **Send the rest** queues it.  No body is taken.  **200** with the
 email, ``queued`` with the retry in ``retries``.  The background sender then sends
 those copies alone, each filled in with the person's values as they are then, and

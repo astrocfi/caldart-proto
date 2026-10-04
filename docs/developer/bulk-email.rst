@@ -716,9 +716,11 @@ within each round, so a person the first round reached is not taken for a duplic
 of their reminder, and takes the latest round first, skipping a failed copy with
 *Sent a later copy instead* once a later round's copy of that person went, is
 pending, or is queued in the same retry (``delivery.recheck_rows``): nobody is sent
-an earlier copy after a later one, or two at once.  **Close now**
-(``callouts.close``) sets ``closed_at`` and ``closed_by``, and calls off a round
-queued and not yet started, its copies ``skipped`` with *Callout closed*.  The
+an earlier copy after a later one, or two at once.  A retry, or **Send the rest**,
+of a reminder round also skips anybody who has answered the callout since, with
+*Answered the callout*, since a reminder is only for those who have not.  **Close
+now** (``callouts.close``) sets ``closed_at`` and ``closed_by``, and calls off a
+round queued and not yet started, its copies ``skipped`` with *Callout closed*.  The
 background sender asks ``callouts.closed_reason`` when it claims an email and before
 every copy, so a late timer, a long paced send, or **Send the rest** after the close
 sends nobody a callout that has closed.

@@ -39,6 +39,7 @@ from apps.bulk_email.models import (
     BulkEmailRecipient,
     BulkEmailRetry,
     BulkEmailStatus,
+    CalloutAnswer,
     RecipientStatus,
 )
 from apps.bulk_email.render import PURPOSE, RenderedCopy, render_copy
@@ -67,6 +68,10 @@ NOBODY_TO_RETRY_MESSAGE = (
 
 #: Why a failed copy is not retried when a later copy has gone, or is going, instead.
 SKIP_LATER_COPY = "Sent a later copy instead"
+
+#: Why a copy of a callout's reminder round is not sent again to somebody who has
+#: answered the callout since the round was queued.
+SKIP_ANSWERED = "Answered the callout"
 
 #: Why a recipient's copy cannot be shown.
 NOT_TRIED_MESSAGE = "This person was not sent a copy."
@@ -216,8 +221,11 @@ def recheck_rows(
     is retried once, with the reminder.  A row is ``skipped`` with
     :data:`SKIP_LATER_COPY` when its account has a copy of a later round that was sent,
     bounced, or is pending, or one queued earlier in this pass, so nobody is sent an
-    earlier copy after a later one, or two copies at once.  Every other row takes its
-    account's name and address as they are now, then ``batch.skip_reason`` decides,
+    earlier copy after a later one, or two copies at once.  A row of a reminder round
+    (``round`` above 0) whose account has answered the callout since is ``skipped``
+    with :data:`SKIP_ANSWERED`, since a reminder asks only those who have not.  Every
+    other row takes its account's name and address as they are now, then
+    ``batch.skip_reason`` decides,
     with the DART a DART leader's email is limited to (``senders.dart_limit``, as it is
     now), the type's opt-outs, and the addresses already sent the row's own round of
     this email (or queued in this pass), trimmed and case-folded, so nobody already
@@ -235,6 +243,7 @@ def recheck_rows(
         seen.setdefault(number, set()).add(_folded(address))
         if user_id is not None:
             latest[user_id] = max(latest.get(user_id, number), number)
+    answered = _answered(bulk) if any(row.round > 0 for row in rows) else set()
     queued: set[int] = set()
     retried = 0
     # Stable: within a round the rows keep the surname order the caller gave them.
@@ -243,6 +252,8 @@ def recheck_rows(
         in_round = seen.setdefault(row.round, set())
         if account is not None and (latest.get(account.pk, -1) > row.round or account.pk in queued):
             reason = SKIP_LATER_COPY
+        elif account is not None and row.round > 0 and account.pk in answered:
+            reason = SKIP_ANSWERED
         else:
             reason = skip_reason(account, in_round, opt_outs=opt_outs, limit=limit)
         if account is not None:
@@ -259,6 +270,13 @@ def recheck_rows(
         else:
             row.status = RecipientStatus.SKIPPED
     return retried, len(rows) - retried
+
+
+def _answered(bulk: BulkEmail) -> set[int]:
+    """The ids of the accounts that have answered ``bulk``'s callout, if it is one."""
+    return set(
+        CalloutAnswer.objects.filter(callout__bulk_email=bulk).values_list("user_id", flat=True)
+    )
 
 
 def _folded(address: str) -> str:

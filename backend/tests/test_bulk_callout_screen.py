@@ -22,7 +22,7 @@ from rest_framework.test import APIClient
 from apps.accounts.models import User as UserModel
 from apps.accounts.roles import DART_LEADER, MANAGEMENT, SYSTEM_ADMIN
 from apps.aircraft.services import search_result
-from apps.bulk_email import callouts, job
+from apps.bulk_email import callouts, drafts, job
 from apps.bulk_email.callouts import (
     CLOSED_MESSAGE,
     CLOSED_REASON,
@@ -33,7 +33,7 @@ from apps.bulk_email.callouts import (
     STOPPED_MESSAGE,
     record_answer,
 )
-from apps.bulk_email.delivery import SKIP_LATER_COPY
+from apps.bulk_email.delivery import SKIP_ANSWERED, SKIP_LATER_COPY
 from apps.bulk_email.models import (
     BulkEmail,
     BulkEmailRecipient,
@@ -332,6 +332,54 @@ def test_a_failed_reminder_can_be_retried(management_client: APIClient, callout:
     response = management_client.post(f"/api/v1/bulk-email/{callout.pk}/retry")
     statuses = set(callout.recipients.filter(round=1).values_list("status", flat=True))
     assert (response.status_code, statuses) == (200, {RecipientStatus.PENDING})
+
+
+@pytest.fixture
+def stopped_reminders(management_client: APIClient, callout: BulkEmail) -> BulkEmail:
+    """``callout`` reminded, and the reminder round stopped before any copy went."""
+    management_client.post(url(callout, "remind"))
+    callout.recipients.filter(round=1).update(status=RecipientStatus.STOPPED)
+    BulkEmail.objects.filter(pk=callout.pk).update(status=BulkEmailStatus.STOPPED)
+    callout.refresh_from_db()
+    return callout
+
+
+def test_send_the_rest_of_a_reminder_round_skips_a_person_who_answered_since(
+    stopped_reminders: BulkEmail, management: User, bea: User
+) -> None:
+    """Bea answered after the stop, so her reminder is skipped, saying why."""
+    record_answer(stopped_reminders.callout, bea, answer="available", note="")
+    drafts.resume(stopped_reminders, actor=management)
+    job.run_sender()
+    assert sorted(
+        stopped_reminders.recipients.filter(round=1).values_list("email", "status", "reason")
+    ) == [
+        ("bea@example.test", RecipientStatus.SKIPPED, SKIP_ANSWERED),
+        ("cy@example.test", RecipientStatus.SENT, ""),
+    ]
+
+
+def test_send_the_rest_of_a_reminder_round_sends_nothing_to_a_person_who_answered(
+    stopped_reminders: BulkEmail, management: User, bea: User
+) -> None:
+    """Only Cy, who has still not answered, is sent the rest."""
+    record_answer(stopped_reminders.callout, bea, answer="available", note="")
+    drafts.resume(stopped_reminders, actor=management)
+    job.run_sender()
+    assert addresses() == ["cy@example.test"]
+
+
+def test_retrying_a_failed_reminder_skips_a_person_who_answered_since(
+    management_client: APIClient, callout: BulkEmail, bea: User
+) -> None:
+    """A failed reminder is not retried to somebody who has answered meanwhile."""
+    management_client.post(url(callout, "remind"))
+    callout.recipients.filter(round=1).update(status=RecipientStatus.FAILED)
+    BulkEmail.objects.filter(pk=callout.pk).update(status=BulkEmailStatus.SENT)
+    record_answer(callout.callout, bea, answer="unavailable", note="")
+    management_client.post(f"/api/v1/bulk-email/{callout.pk}/retry")
+    bea_row = callout.recipients.get(round=1, email="bea@example.test")
+    assert (bea_row.status, bea_row.reason) == (RecipientStatus.SKIPPED, SKIP_ANSWERED)
 
 
 @pytest.mark.parametrize(
