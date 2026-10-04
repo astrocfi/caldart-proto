@@ -156,8 +156,10 @@ export function DeleteButton(props: DeleteButtonProps): JSX.Element {
     return undefined;
   }, [isConfirming]);
 
-  // A native listener on the pair, so the key is stopped before it reaches the
-  // document listeners of a panel around the control (which would close too).
+  // A native listener on the pair, so the key stops here, before it bubbles to a
+  // panel around the control: `usePanelFocus`'s listener on the panel's element, or a
+  // popover's listener on the document, would close that panel too.  The pair's
+  // `data-own-escape` tells `usePanelFocus` the same thing should the key get past.
   useEffect(() => {
     const container = containerRef.current;
     if (!isConfirming || container === null) return undefined;

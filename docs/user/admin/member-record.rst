@@ -167,7 +167,7 @@ membership that is current stays current to its end and they become a friend the
 or they become one at once when nothing is current, and their automatic renewal is canceled.
 The explanation says which. When their automatic renewal also gives a contribution, it asks
 *Keep it as a yearly recurring donation?* and offers **Keep the contribution** and **Stop
-it** in place of **Make a friend**. Once the change is waiting for its day, the card reads
+it** in place of **Yes, make a friend**. Once the change is waiting for its day, the card reads
 the name and *becomes a friend of CalDART on* the date instead of the button. The change is
 recorded under your name, and anyone subscribed to **Member became a friend**
 (:doc:`notifications`) hears that an administrator made it. *They already have a recurring

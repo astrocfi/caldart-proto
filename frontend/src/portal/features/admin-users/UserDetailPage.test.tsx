@@ -252,7 +252,7 @@ describe('UserDetailPage', () => {
       await userEvent.click(screen.getByRole('button', { name: 'Deactivate account' }));
       await userEvent.click(
         within(screen.getByRole('region', { name: 'Deactivate account' })).getByRole('button', {
-          name: 'Deactivate account',
+          name: 'Yes, deactivate account',
         }),
       );
 
@@ -275,7 +275,7 @@ describe('UserDetailPage', () => {
       await userEvent.click(screen.getByRole('button', { name: 'Deactivate account' }));
       await userEvent.click(
         within(screen.getByRole('region', { name: 'Deactivate account' })).getByRole('button', {
-          name: 'Deactivate account',
+          name: 'Yes, deactivate account',
         }),
       );
 
@@ -298,7 +298,7 @@ describe('UserDetailPage', () => {
       expect(screen.getByText(/The account is deactivated first/)).toBeVisible();
       await userEvent.click(
         within(screen.getByRole('region', { name: 'Block reactivation' })).getByRole('button', {
-          name: 'Block reactivation',
+          name: 'Yes, block reactivation',
         }),
       );
 
@@ -323,7 +323,7 @@ describe('UserDetailPage', () => {
       await userEvent.click(screen.getByRole('button', { name: 'Allow reactivation' }));
       await userEvent.click(
         within(screen.getByRole('region', { name: 'Allow reactivation' })).getByRole('button', {
-          name: 'Allow reactivation',
+          name: 'Yes, allow reactivation',
         }),
       );
 
@@ -429,7 +429,7 @@ describe('UserDetailPage', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Clear bounce' }));
     expect(cleared).toEqual([]);
     const panel = screen.getByRole('region', { name: 'Clear bounce' });
-    await userEvent.click(within(panel).getByRole('button', { name: 'Clear bounce' }));
+    await userEvent.click(within(panel).getByRole('button', { name: 'Yes, clear bounce' }));
 
     await waitFor(() => expect(screen.queryByText('Bounced 10/01/2026')).not.toBeInTheDocument());
     expect(cleared).toHaveLength(1);
@@ -446,7 +446,7 @@ describe('UserDetailPage', () => {
 
     await userEvent.click(await screen.findByRole('button', { name: 'Clear bounce' }));
     const panel = screen.getByRole('region', { name: 'Clear bounce' });
-    await userEvent.click(within(panel).getByRole('button', { name: 'Clear bounce' }));
+    await userEvent.click(within(panel).getByRole('button', { name: 'Yes, clear bounce' }));
 
     expect(await screen.findByText('Not allowed.')).toBeInTheDocument();
   });

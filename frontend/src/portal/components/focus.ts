@@ -30,9 +30,14 @@ const CONTROL = 'a, button, input, select, textarea';
 /**
  * Popovers and confirmations inside a panel that close on Escape themselves, so an
  * Escape pressed in one closes it and leaves the panel open.  `data-own-escape` marks
- * the confirmation panels of `ConfirmButton` and `DeleteButton`.
+ * the confirmation panels of `ConfirmButton` and `DeleteButton`; `aria-expanded="true"`
+ * marks the control of an open popover, such as a `Typeahead` box with its list showing
+ * or the toggle of an open `MultiSelect` or `PanelButton`, where the focus sits while
+ * the popover is open.  The panel's own listener hears the key before the popover's
+ * document listener does, so it has to recognize the popover rather than wait for it.
  */
-const OWN_ESCAPE = '.panel-button__panel, .multi-select__panel, [data-own-escape]';
+const OWN_ESCAPE =
+  '.panel-button__panel, .multi-select__panel, [data-own-escape], [aria-expanded="true"]';
 
 /** A field the form has marked as wrong, by `Field` or by hand. */
 const INVALID_FIELD = '[aria-invalid="true"]';
@@ -115,7 +120,8 @@ function isFocusLost(): boolean {
  *
  * As the panel opens the focus moves to its first field (or, in a panel without
  * fields, its first button).  An Escape pressed anywhere inside it calls `onClose`,
- * unless a popover or confirmation inside the panel took the key for itself.  As it
+ * unless it was pressed in an open popover or confirmation inside the panel, which
+ * closes that alone.  As it
  * closes, the focus goes back to the control that had it when the panel opened, or to
  * `fallbackRef` when that control is no longer on the page, such as an **Edit** button
  * the panel replaced or a row the panel deleted.
@@ -165,7 +171,9 @@ export function usePanelFocus<Panel extends HTMLElement = HTMLDivElement>(
     if (openKey === null || panel === null) return undefined;
     const handleKeyDown = (event: KeyboardEvent): void => {
       if (event.key !== 'Escape' || event.defaultPrevented) return;
-      if (event.target instanceof Element && event.target.closest(OWN_ESCAPE) !== null) return;
+      // A popover inside the panel takes the key; one around the panel does not count.
+      const owner = event.target instanceof Element ? event.target.closest(OWN_ESCAPE) : null;
+      if (owner !== null && owner !== panel && panel.contains(owner)) return;
       event.preventDefault();
       closeRef.current();
     };

@@ -129,7 +129,7 @@ describe('<KindSwitch/>', () => {
     const calls = setUp({ renewal: makeMandate({ contribution_cents: 0, kind: 'renewal' }) });
     renderWithProviders(<KindSwitch />);
     await openPanel();
-    await userEvent.click(await readyButton('Make me a friend'));
+    await userEvent.click(await readyButton('Yes, make me a friend'));
     await screen.findByText('You become a friend on 07/01/2027.');
     expect(calls.bodies).toEqual([{}]);
   });
@@ -140,7 +140,7 @@ describe('<KindSwitch/>', () => {
     renderWithProviders(<KindSwitch />);
     await openPanel();
     const panel = screen.getByRole('region', { name: 'Make me a friend' });
-    expect(within(panel).getByRole('button', { name: 'Make me a friend' })).toBeDisabled();
+    expect(within(panel).getByRole('button', { name: 'Yes, make me a friend' })).toBeDisabled();
   });
 
   it('asks whether to keep a contribution the renewal gives', async () => {
@@ -179,7 +179,7 @@ describe('<KindSwitch/>', () => {
       const calls = setUp({ renewal: makeMandate({ contribution_cents: 2500, status }) });
       renderWithProviders(<KindSwitch />);
       await openPanel();
-      await userEvent.click(await readyButton('Make me a friend'));
+      await userEvent.click(await readyButton('Yes, make me a friend'));
       await screen.findByText('You become a friend on 07/01/2027.');
       expect(calls.bodies).toEqual([{}]);
     },
@@ -202,7 +202,7 @@ describe('<KindSwitch/>', () => {
     );
     renderWithProviders(<KindSwitch />);
     await openPanel();
-    await userEvent.click(await readyButton('Make me a friend'));
+    await userEvent.click(await readyButton('Yes, make me a friend'));
     expect(await screen.findByRole('alert')).toHaveTextContent('A lifetime member stays a member.');
   });
 

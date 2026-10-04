@@ -177,6 +177,17 @@ describe('RenewalsPage', () => {
     expect(row.getByText('Your card was declined')).toBeInTheDocument();
   });
 
+  it('says what turning a mandate off does, and for whom', async () => {
+    const seen = record();
+    server.use(...renewalHandlers([PAUSED], [], seen));
+    renderWithProviders(<RenewalsPage />);
+
+    const row = within(await screen.findByRole('row', { name: /Ben Ortiz/ }));
+    await userEvent.click(row.getByRole('button', { name: 'Turn off' }));
+
+    expect(row.getByRole('region', { name: 'Turn off' })).toHaveTextContent(/for Ben Ortiz\?/);
+  });
+
   it('turns a mandate off once the administrator confirms', async () => {
     const seen = record();
     server.use(...renewalHandlers([PAUSED], [], seen));

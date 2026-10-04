@@ -227,4 +227,30 @@ describe('ConfirmButton', () => {
 
     expect(screen.getByRole('button', { name: 'Go ahead' })).toBeDisabled();
   });
+
+  it('leads a choice that repeats its button with Yes, so the two never share a name', async () => {
+    renderWithProviders(
+      <ConfirmButton
+        label="Deactivate account"
+        choices={[{ label: 'Deactivate account', variant: 'danger', onChoose: vi.fn() }]}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'Deactivate account' }));
+
+    expect(screen.getByRole('button', { name: 'Yes, deactivate account' })).toBeInTheDocument();
+  });
+
+  it('moves the focus to Cancel when the first choice is held back', async () => {
+    renderWithProviders(
+      <ConfirmButton
+        label="Make me a friend"
+        choices={[{ label: 'Go ahead', disabled: true, onChoose: vi.fn() }]}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'Make me a friend' }));
+
+    expect(screen.getByRole('button', { name: 'Cancel' })).toHaveFocus();
+  });
 });

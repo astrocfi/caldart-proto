@@ -804,7 +804,10 @@ caller's explanation, one button per way to go ahead (``choices``; making
 somebody a friend whose renewal carries a contribution offers two), and
 **Cancel**.  The button stays in place, marked ``aria-expanded``, and closes the
 section when pressed again.  A destructive choice is ``variant: 'danger'`` and
-names the act; when the first choice is one, the focus starts on **Cancel**.  A
+names the act; when the first choice is one, or is held back with ``disabled``,
+the focus starts on **Cancel**.  A choice whose label repeats the button's reads
+*Yes,* before it (``choiceText``), so the open panel never shows two buttons of
+one name.  A
 choice's ``onChoose`` returns a promise; the section closes when it resolves
 and stays open when it rejects, so the caller can draw the refusal beside it.
 These two are the portal's only confirmations: a screen does not build its own
@@ -833,8 +836,10 @@ popover that wants it.  ``components/focus.ts`` says where the keyboard focus
 goes as things open, close, and fail, so it never falls to the page body:
 ``usePanelFocus`` takes a panel or form that opens in place (**Edit** on a row,
 **Verify**, **Refund**, **New subscription**) and moves the focus to its first
-field as it opens, closes it on Escape unless a popover or confirmation inside
-took the key, and hands the focus back to the control that opened it, or to a
+field as it opens, closes it on Escape unless the key was pressed in an open
+popover or confirmation inside it (a ``Typeahead`` box with its list showing, any
+control marked ``aria-expanded="true"``, a ``PanelButton`` or ``MultiSelect``
+panel, or a ``data-own-escape`` confirmation), which closes alone, and hands the focus back to the control that opened it, or to a
 fallback ref when that control left the page with the panel open;
 ``useFocusAfterSave`` returns the focus to a button (or a form's submit button)
 that dropped it while disabled for its request; and ``rememberPlace`` and

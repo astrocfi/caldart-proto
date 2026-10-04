@@ -51,6 +51,16 @@ export interface ConfirmButtonProps {
 const CANCEL_LABEL = 'Cancel';
 
 /**
+ * What a choice's button reads: its own label, led by *Yes,* when it would otherwise
+ * repeat the button that opened the panel ("Yes, deactivate account" under
+ * **Deactivate account**), so the two never share a name.
+ */
+export function choiceText(choiceLabel: string, triggerLabel: string): string {
+  if (choiceLabel !== triggerLabel) return choiceLabel;
+  return `Yes, ${choiceLabel.charAt(0).toLowerCase()}${choiceLabel.slice(1)}`;
+}
+
+/**
  * A button that opens a confirmation panel, and acts only from the panel.
  *
  * The button stays where it is while the panel is open, marked `aria-expanded`, and
@@ -60,8 +70,10 @@ const CANCEL_LABEL = 'Cancel';
  *
  * Every button in the panel is disabled while a choice is in flight. **Cancel** closes
  * the panel without calling anything. Opening the panel moves the focus to its first
- * choice or, when that choice is `danger`, to **Cancel**, so a stray second Enter
- * does nothing it cannot take back. **Cancel** and the Escape key close it and put the
+ * choice or, when that choice is `danger` or held back with `disabled`, to **Cancel**,
+ * so a stray second Enter does nothing it cannot take back.  A choice whose label is the
+ * button's own reads *Yes,* before it, so the open panel never shows two buttons of one
+ * name. **Cancel** and the Escape key close it and put the
  * focus back on the button that opened it, and an Escape pressed in the panel goes no
  * further, so a panel the button sits in stays open. After a choice goes through the focus also returns to
  * the button or, when the change took the button away, to the nearest place still on
@@ -87,20 +99,25 @@ export function ConfirmButton({
   const hasChosenRef = useRef(false);
   useRefocusOnUnmount(placeRef, hasChosenRef);
 
-  const isFirstChoiceDanger = choices[0]?.variant === 'danger';
+  // A destructive first choice waits for a deliberate press, so a stray second Enter
+  // lands on Cancel, as it does in `DeleteButton`; so does one still held back, which
+  // could not take the focus.
+  const shouldStartOnCancel = choices[0]?.variant === 'danger' || choices[0]?.disabled === true;
+  const wasOpenRef = useRef(false);
 
   useEffect(() => {
+    const wasOpen = wasOpenRef.current;
+    wasOpenRef.current = isOpen;
     if (isOpen) {
-      // A destructive first choice waits for a deliberate press: a stray second Enter
-      // lands on Cancel, as it does in `DeleteButton`.
-      (isFirstChoiceDanger ? cancelRef : firstChoiceRef).current?.focus();
+      // Only as the panel opens: a choice enabling later leaves the focus alone.
+      if (!wasOpen) (shouldStartOnCancel ? cancelRef : firstChoiceRef).current?.focus();
       return;
     }
     if (shouldRefocusRef.current) {
       shouldRefocusRef.current = false;
       placeRef.current?.()?.focus();
     }
-  }, [isOpen, isFirstChoiceDanger]);
+  }, [isOpen, shouldStartOnCancel]);
 
   const handleOpen = (): void => {
     placeRef.current = rememberPlace(triggerRef.current);
@@ -165,7 +182,7 @@ export function ConfirmButton({
                 disabled={isPending || choice.disabled === true}
                 onClick={() => handleChoose(choice)}
               >
-                {choice.label}
+                {choiceText(choice.label, label)}
               </Button>
             ))}
             <Button

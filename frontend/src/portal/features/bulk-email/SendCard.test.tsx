@@ -89,8 +89,8 @@ describe('SendCard', () => {
     expect(confirm).toHaveTextContent(
       'This sends Hangar day to 3 people. Sending starts in 2 minutes, and until then you can cancel it.',
     );
-    // Go back has the focus, so Enter pressed twice does not send by accident.
-    expect(within(confirm).getByRole('button', { name: 'Go back' })).toHaveFocus();
+    // Cancel has the focus, so Enter pressed twice does not send by accident.
+    expect(within(confirm).getByRole('button', { name: 'Cancel' })).toHaveFocus();
     await userEvent.click(within(confirm).getByRole('button', { name: 'Send now' }));
     await waitFor(() => expect(calls.sends).toEqual([{ confirm_count: null, start_at: null }]));
   });

@@ -5,7 +5,58 @@ import type { JSX } from 'react';
 import { describe, expect, it } from 'vitest';
 
 import { ConfirmButton } from './ConfirmButton';
+import { MultiSelect } from './MultiSelect';
+import { Typeahead } from './Typeahead';
 import { focusRefusal, rememberPlace, useFocusAfterSave, usePanelFocus } from './focus';
+
+const AIRPORTS = ['PAO', 'PAE', 'PAN'];
+
+/** Suggestions answered at once, for the typeahead inside a panel. */
+function useAirports(term: string): { data: string[] | undefined } {
+  return { data: term === '' ? undefined : AIRPORTS.filter((one) => one.startsWith(term)) };
+}
+
+/** A form opened in place that holds a typeahead and a drop-down of checkboxes. */
+function FormWithPopovers(): JSX.Element {
+  const [isOpen, setIsOpen] = useState(false);
+  const [airport, setAirport] = useState('');
+  const [kinds, setKinds] = useState<string[]>([]);
+  const handleClose = useCallback(() => setIsOpen(false), []);
+  const panelRef = usePanelFocus(isOpen ? 'new' : null, handleClose);
+  return (
+    <>
+      <button type="button" onClick={() => setIsOpen(true)}>
+        New
+      </button>
+      {isOpen ? (
+        <div ref={panelRef}>
+          <label htmlFor="airport">Airport</label>
+          <Typeahead
+            id="airport"
+            listLabel="Airports"
+            value={airport}
+            onValueChange={(next) => setAirport(next)}
+            onPick={(item) => setAirport(item)}
+            useSuggestions={useAirports}
+            itemKey={(item) => item}
+            itemLabel={(item) => item}
+            minLength={1}
+          />
+          <MultiSelect
+            id="kinds"
+            legend="Kinds"
+            options={[
+              { value: 'member', label: 'Member' },
+              { value: 'friend', label: 'Friend' },
+            ]}
+            value={kinds}
+            onChange={(next) => setKinds(next)}
+          />
+        </div>
+      ) : null}
+    </>
+  );
+}
 
 /** A button that opens a form in place, the way a list screen's **Edit** does. */
 function EditInPlace({ hidesOpener = false }: { hidesOpener?: boolean }): JSX.Element {
@@ -95,6 +146,40 @@ describe('usePanelFocus', () => {
     await userEvent.keyboard('{Escape}');
 
     expect(screen.getByRole('textbox', { name: 'Name' })).toBeInTheDocument();
+  });
+});
+
+describe('usePanelFocus around a popover', () => {
+  it('closes an open typeahead list on Escape and leaves the form open', async () => {
+    render(<FormWithPopovers />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'New' }));
+    await userEvent.type(screen.getByRole('combobox', { name: 'Airport' }), 'PA');
+    await screen.findByRole('listbox', { name: 'Airports' });
+    await userEvent.keyboard('{Escape}');
+
+    expect(screen.getByRole('combobox', { name: 'Airport' })).toBeInTheDocument();
+  });
+
+  it('closes an open drop-down of checkboxes on Escape and leaves the form open', async () => {
+    render(<FormWithPopovers />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'New' }));
+    await userEvent.click(screen.getByRole('button', { name: /Any/ }));
+    await userEvent.keyboard('{Escape}');
+
+    expect(screen.getByRole('combobox', { name: 'Airport' })).toBeInTheDocument();
+  });
+
+  it('closes the form on an Escape pressed once the popover is shut', async () => {
+    render(<FormWithPopovers />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'New' }));
+    await userEvent.click(screen.getByRole('button', { name: /Any/ }));
+    await userEvent.keyboard('{Escape}');
+    await userEvent.keyboard('{Escape}');
+
+    expect(screen.queryByRole('combobox', { name: 'Airport' })).toBeNull();
   });
 });
 

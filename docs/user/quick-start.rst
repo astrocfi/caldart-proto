@@ -55,7 +55,7 @@ To become a friend:
 #. On your **Dashboard**, or on **My profile** under **Your kind of account**, press
    **Make me a friend**.
 #. Read the confirmation. If your automatic renewal also gives a contribution,
-   choose **Keep the contribution** or **Stop it**. Otherwise press **Make me a
+   choose **Keep the contribution** or **Stop it**. Otherwise press **Yes, make me a
    friend**.
 #. A current membership runs to its end, and you become a friend the next day. Until
    then, **Undo** keeps you a member.
@@ -153,12 +153,13 @@ that field.
 (or **Remove**) and **Cancel**; any other such action, such as turning off an automatic
 renewal or deactivating an account, opens a short panel below its row of buttons that
 says what will happen, with a red button that names the act and **Cancel**. Only the
-red button acts. **Cancel**, the Escape key, or a click elsewhere changes nothing.
+red button acts. **Cancel** or the Escape key closes the question and changes nothing,
+and so does a click anywhere else while a trashcan is asking.
 
 **A form that opens in place**, such as **Edit** on a row, takes you to its first box.
 Escape closes it as **Cancel** does, and closing it, or saving it, takes you back to the
 button that opened it.
 
 **Every save, send, and delete is confirmed** by a short message in the corner of the
-screen, which goes away on its own after a few seconds. A message about something that
-went wrong stays in red until it goes.
+screen, which goes away on its own after a few seconds, or at once when you press its
+**×**. A message about something that went wrong is drawn in red.

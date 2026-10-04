@@ -74,7 +74,7 @@ Ask the person for an address that works and enter it: a new address clears the 
 does the person following a verification or password reset link sent to the address, since
 that proves mail reaches it. When you know the address works without changing it (the
 person's mailbox was full and they have emptied it, say), press **Clear bounce** under the
-address. It asks first; press **Clear bounce** again to confirm, or **Cancel**. The message
+address. It asks first; press **Yes, clear bounce** to confirm, or **Cancel**. The message
 *Bounce cleared.* confirms it. If the next email to the address bounces too, the flag comes
 back.
 

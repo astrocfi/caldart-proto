@@ -165,7 +165,7 @@ member stays a member and is offered neither.
   card, first charged on the day your renewal would have been. **Stop it** ends it
   with the renewal. If you already have a recurring donation, **Keep the
   contribution** is refused and you are asked to change that donation on
-  :doc:`donate`. Otherwise the confirmation has one **Make me a friend** button.
+  :doc:`donate`. Otherwise the confirmation has one **Yes, make me a friend** button.
   **Cancel**, or Escape, changes nothing.
 
 **Undo**

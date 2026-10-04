@@ -261,7 +261,12 @@ export function RenewalsPage(): JSX.Element {
             choices={[
               { label: 'Turn it off', variant: 'danger', onChoose: () => handleCancel(row) },
             ]}
-          />
+          >
+            <p>
+              Turn off {MANDATE_KIND_LABELS[row.kind].toLowerCase()} for {row.user_name}? They are
+              emailed that it is off.
+            </p>
+          </ConfirmButton>
         );
       },
     },

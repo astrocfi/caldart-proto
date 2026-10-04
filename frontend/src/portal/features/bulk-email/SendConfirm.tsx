@@ -4,9 +4,9 @@
  * people, and the button that sends stays off until the number matches; the
  * server checks the number again, in case the batch changed meanwhile.
  *
- * The focus starts in the number box, or on **Go back** when there is none, so a
- * second press of Enter does not send by accident; the Escape key goes back, as
- * **Go back** does.
+ * The focus starts in the number box, or on **Cancel** when there is none, so a
+ * second press of Enter does not send by accident; the Escape key cancels, as
+ * **Cancel** does.
  */
 import { useEffect, useRef, useState } from 'react';
 import type { JSX, KeyboardEvent } from 'react';
@@ -54,7 +54,7 @@ export function SendConfirm({
   const [typed, setTyped] = useState('');
   const [isPending, setIsPending] = useState(false);
   const countRef = useRef<HTMLInputElement>(null);
-  const backRef = useRef<HTMLButtonElement>(null);
+  const cancelRef = useRef<HTMLButtonElement>(null);
   const needsCount = count > confirmAbove;
   const typedNumber = typed.trim();
   const isConfirmed = !needsCount || Number(typedNumber) === count;
@@ -62,7 +62,7 @@ export function SendConfirm({
   const label = startAt === null ? 'Send now' : 'Schedule it';
 
   useEffect(() => {
-    (needsCount ? countRef.current : backRef.current)?.focus();
+    (needsCount ? countRef.current : cancelRef.current)?.focus();
   }, [needsCount]);
 
   const handleConfirm = (): void => {
@@ -113,13 +113,13 @@ export function SendConfirm({
           {isPending ? 'Sending…' : label}
         </Button>
         <Button
-          ref={backRef}
+          ref={cancelRef}
           variant="quiet"
           onClick={handleBack}
           onKeyDown={handleKeyDown}
           disabled={isPending}
         >
-          Go back
+          Cancel
         </Button>
       </div>
     </section>

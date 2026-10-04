@@ -98,7 +98,7 @@ describe('MemberAccountActions', () => {
     expect(screen.getByText(/membership stays current through 06\/30\/2027/)).toBeVisible();
     await userEvent.click(
       within(screen.getByRole('region', { name: 'Make a friend' })).getByRole('button', {
-        name: 'Make a friend',
+        name: 'Yes, make a friend',
       }),
     );
 
@@ -128,7 +128,7 @@ describe('MemberAccountActions', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Make a friend' }));
     await userEvent.click(
       within(screen.getByRole('region', { name: 'Make a friend' })).getByRole('button', {
-        name: 'Make a friend',
+        name: 'Yes, make a friend',
       }),
     );
 
@@ -166,7 +166,7 @@ describe('MemberAccountActions', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Deactivate account' }));
     await userEvent.click(
       within(screen.getByRole('region', { name: 'Deactivate account' })).getByRole('button', {
-        name: 'Deactivate account',
+        name: 'Yes, deactivate account',
       }),
     );
 
@@ -189,7 +189,7 @@ describe('MemberAccountActions', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Deactivate account' }));
     await userEvent.click(
       within(screen.getByRole('region', { name: 'Deactivate account' })).getByRole('button', {
-        name: 'Deactivate account',
+        name: 'Yes, deactivate account',
       }),
     );
 
@@ -212,7 +212,7 @@ describe('MemberAccountActions', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Reactivate account' }));
     await userEvent.click(
       within(screen.getByRole('region', { name: 'Reactivate account' })).getByRole('button', {
-        name: 'Reactivate account',
+        name: 'Yes, reactivate account',
       }),
     );
 
