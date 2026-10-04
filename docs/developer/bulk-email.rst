@@ -836,7 +836,7 @@ The pieces a feature added to bulk email changes, and where:
   ``Reply-To`` is.  A new **recipient field** is one more ``Field`` in
   ``fields.FIELDS``, which the **Insert field** menu, the checks, and the copies all
   read.
-* A new **screen** joins the Bulk Email group of the portal's menu
+* A new **screen** joins the Bulk email group of the portal's menu
   (``frontend/src/portal/nav.ts``), its route goes in
   ``frontend/src/portal/routes/bulk-email.tsx``, and its guide page under
   ``docs/user/bulk-email/``.
