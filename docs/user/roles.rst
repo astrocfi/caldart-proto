@@ -174,7 +174,12 @@ group of the menu:
 * **Drafts & scheduled** (:doc:`bulk-email/drafts`): every email not yet sent, to open,
   cancel, or delete.
 * **Sent** (:doc:`bulk-email/sent`): every email sent, with the result for each person, to
-  stop or finish a send, and to download as a CSV.
+  stop or finish a send, to download as a CSV, and to start a new draft from with
+  **Duplicate**.
+* **Templates** (:doc:`bulk-email/templates`): the messages kept to start an email from,
+  such as the monthly newsletter.
+* **Recipient groups** (:doc:`bulk-email/groups`): the people kept to add to a batch in one
+  step, either a fixed list or filters run again each time.
 * **Mail delivery** (:doc:`bulk-email/mail-delivery`): check that other mail systems will
   trust and deliver the email CalDART sends, and what to ask for when they will not.
 

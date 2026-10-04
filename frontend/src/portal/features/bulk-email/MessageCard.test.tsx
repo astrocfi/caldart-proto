@@ -43,6 +43,8 @@ function Card({
       saveState="idle"
       errors={errors}
       isEditable={isEditable}
+      onBeforeReplace={() => Promise.resolve(true)}
+      onReplaced={() => undefined}
     />
   );
 }

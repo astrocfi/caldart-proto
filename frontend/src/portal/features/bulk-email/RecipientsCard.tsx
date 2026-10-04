@@ -30,12 +30,14 @@ import { StatusDot } from '@/portal/components/StatusChip';
 import { useToast } from '@/portal/components/Toast';
 import { SEARCH_DEBOUNCE_MS } from '@/portal/components/useDebounced';
 import { listFilters, REPORTS } from '@/portal/reports/definitions';
-import type { FilterValues } from '@/portal/reports/types';
+import type { FilterValues, Option } from '@/portal/reports/types';
+import { AddGroupButton } from './AddGroupButton';
 import { batchCsvUrl, useAddToBatch, useBatch, useClearBatch, useRemoveFromBatch } from './api';
+import { SaveGroupButton } from './SaveGroupButton';
 import { addSentence, batchSentence, kindLabel, people } from './status';
 
 /** The member list's filters, less any only a subscription offers, with a short search hint. */
-const FILTER_FIELDS = listFilters(REPORTS.members).map((field) =>
+export const FILTER_FIELDS = listFilters(REPORTS.members).map((field) =>
   field.key === 'search' ? { ...field, placeholder: 'Name or email' } : field,
 );
 
@@ -70,6 +72,17 @@ interface RecipientsCardProps {
   senderNotice: string;
 }
 
+/** The DARTs as the filter bar's DART choices, by id. */
+export function useDartOptions(): Record<string, Option[]> {
+  const darts = useDarts();
+  return useMemo(
+    () => ({
+      dart: (darts.data ?? []).map((dart) => ({ value: String(dart.id), label: dart.name })),
+    }),
+    [darts.data],
+  );
+}
+
 /** The batch: build it with the filters, read it, and change it. */
 export function RecipientsCard({
   emailId,
@@ -85,13 +98,7 @@ export function RecipientsCard({
   const [isSettling, setIsSettling] = useState(false);
   const toast = useToast();
 
-  const darts = useDarts();
-  const dartOptions = useMemo(
-    () => ({
-      dart: (darts.data ?? []).map((dart) => ({ value: String(dart.id), label: dart.name })),
-    }),
-    [darts.data],
-  );
+  const dartOptions = useDartOptions();
 
   const batch = useBatch(emailId);
   const add = useAddToBatch(emailId);
@@ -183,6 +190,13 @@ export function RecipientsCard({
               <Button ref={addRef} onClick={handleAdd} disabled={add.isPending || isSettling}>
                 {add.isPending || isSettling ? 'Adding…' : 'Add to batch'}
               </Button>
+              <AddGroupButton
+                emailId={emailId}
+                onAdded={(result) => {
+                  setLastAdd(result);
+                  afterChange();
+                }}
+              />
             </div>
             <p className="muted">
               {dartName === ''
@@ -213,6 +227,7 @@ export function RecipientsCard({
               Download list
             </a>
           </div>
+          <SaveGroupButton emailId={emailId} />
           {isEditable ? (
             <div>
               <ConfirmButton

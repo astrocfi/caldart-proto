@@ -10,7 +10,10 @@ of people built from the member list's filters, the send that queues it, and its
 results.  Nothing is sent in a request: the background sender sends
 (:doc:`bulk-email`).  The portal's Bulk Email screens read them: Compose at
 ``/bulk-email/compose``, the compose screen of one email at
-``/bulk-email/compose/{id}``, **Drafts & scheduled**, and **Sent**.  The
+``/bulk-email/compose/{id}``, **Drafts & scheduled**, **Sent**, **Templates**, and
+**Recipient groups**.  What CalDART management keeps to use again lives here too:
+saved templates (:ref:`api-bulk-email-templates`) and saved recipient groups
+(:ref:`api-bulk-email-groups`).  The
 ``/messages`` endpoints, under :ref:`api-bulk-email-messages`, are every signed-in
 person's own: the bulk emails they received, read on the portal's **Messages** page.
 :doc:`api-reference` covers the conventions these endpoints share: session
@@ -217,8 +220,37 @@ Delete it and put it in again with Insert field.*  The words already saved stay
 saved.
 A queued email can still be changed, and keeps its ``start_at``, but it cannot be
 left without a subject or a message: blanking one is **400** *Write a subject.* or
-*Write the message.*, as **Send** refuses it.  Once the email has started sending
+*Write the message.*, as **Send** refuses it.  A different ``email_type`` takes a
+queued email back to a draft instead, its ``start_at``, ``scheduled``, and
+``confirm_count`` cleared, as a change to its batch does, since who is skipped as
+opted out follows the type; one ``bulk_email.cancel`` audit line with the reason
+``type_changed`` says so, and the answer's ``status`` reads ``draft``.  Once the email has started sending
 the answer is **409** *This email has been sent and cannot be changed.*
+
+``POST /bulk-email/{id}/duplicate``
+-----------------------------------
+
+**Duplicate**: a fresh draft copied from the email, sent or not, which is left as it
+is.
+
+.. code-block:: json
+
+   {"copy_recipients": true}
+
+The draft is the caller's own, made afresh even when the caller has an empty draft
+already, with the email's ``subject``, ``body`` (its images are links, so they come
+too), and ``reply_to``, and its ``email_type`` when the caller may send that type, else
+none.  It records the DART the caller may send to, as ``POST /bulk-email/drafts``
+does: a DART leader duplicates only their own emails (any other id is **404**), their
+copy goes to their own DART alone, and one whose profile names no DART is **403**
+with *Your profile names no DART, so there is nobody to send to. Set your DART on My
+profile.*
+``copy_recipients`` may be left out, and is false then: the batch starts empty.
+True copies everybody in the email's batch whose account still exists as one add
+labeled ``Copied from "<subject>"``, each a fresh ``batched`` row with the account's
+details as they are now, so who is skipped is worked out afresh; in a DART leader's
+copy everybody outside their DART is skipped as ``Not in your DART``.  **201** with the
+draft, as ``GET /bulk-email/{id}`` answers it.
 
 ``DELETE /bulk-email/{id}``
 ---------------------------
@@ -297,7 +329,7 @@ in the order above:
     "skipped": 1,
     "adds": [{"id": 4, "label": "Kind: Friends only, County: Marin, Napa",
               "filters": {"kind": "friend", "county": "Marin,Napa"},
-              "added_count": 2, "already_count": 0,
+              "group": null, "added_count": 2, "already_count": 0,
               "created_at": "2026-04-05T09:10:00-07:00"}],
     "rows": [{"id": 31, "user_id": 12, "name": "Ann Able",
               "email": "ann@example.org", "kind": "friend",
@@ -312,7 +344,10 @@ in the order above:
 An add's ``label`` is its filters in words, as the member list's filter bar names
 them: a kind as the filter bar offers it (*Members only*, *Friends only*), a DART by
 its name, a role by its label, a choice by the filter's label for
-it, and ``Everybody`` for an add with no filter.  A row's ``name``, ``email``,
+it, and ``Everybody`` for an add with no filter.  An add that was not made with
+filters keeps the name it was given then: ``Group: Board`` for a saved group
+(``group`` is its id, null once the group is deleted), and ``Copied from "Spring
+newsletter"`` for the people **Duplicate** copied.  A row's ``name``, ``email``,
 ``kind``, and ``dart_name`` are its own, taken when the person joined the batch
 and brought up to date when the send starts; ``user_id`` is null once the account
 is deleted.  ``added_by`` is the add's id.  While the email has not started, every
@@ -1034,3 +1069,274 @@ copy, the preview is the caller's own copy, with ``recipient.id`` null and
 ``position`` and ``count`` 0.  A token that cannot be filled in is **400** keyed
 ``subject`` or ``body``, worded as a save words it; a row that is not in the batch
 is **400** ``{"recipient_id": ["That person is not in the batch."]}``.
+
+
+.. _api-bulk-email-templates:
+
+Templates
+=========
+
+A template is a message saved under a name, shared by every member of CalDART
+management: a subject, a message, and optionally a type and a Reply-To address.
+**Start from a template** copies it into a draft, so changing the draft leaves the
+template as it was.  The model is ``EmailTemplate`` (:ref:`data-model-bulk-email`).
+These endpoints are CalDART management's alone, whatever role sends bulk email.
+
+``GET /bulk-email/templates``
+-----------------------------
+
+Every template, by name ignoring case.  Unpaginated: CalDART keeps a handful.
+
+.. code-block:: json
+
+   [{"id": 3,
+     "name": "Monthly newsletter",
+     "subject": "News for {first_name}",
+     "body": "<p>Dear {first_name|friend},</p><p>The hangar is open.</p>",
+     "email_type": 1,
+     "email_type_name": "Operational",
+     "reply_to": "news@caldart.org",
+     "created_by": "Grace Holloway",
+     "created_at": "2026-04-01T09:00:00-07:00",
+     "updated_at": "2026-04-05T10:30:00-07:00"}]
+
+``email_type`` is null and ``email_type_name`` blank for a template with no type,
+including one whose type has been deleted.  ``reply_to`` is blank for the default.
+``created_by`` is who saved it, blank once that account is deleted.
+
+``POST /bulk-email/templates``
+------------------------------
+
+Saves a template, the caller as its author.  ``name`` is required; the rest may be
+left out.
+
+.. code-block:: json
+
+   {"name": "Monthly newsletter",
+    "subject": "News for {first_name}",
+    "body": "<p>Dear {first_name|friend},</p><p>The hangar is open.</p>",
+    "email_type": 1,
+    "reply_to": "news@caldart.org"}
+
+``name`` is at most 80 characters, trimmed, and must not be another template's in
+any mix of cases: **400** *A template named "Monthly newsletter" already exists.
+Choose another name.*  ``subject`` and ``body`` follow a draft's rules
+(``PATCH /bulk-email/{id}``): the same lengths and refusals, and the message saved
+sanitized.  ``email_type`` is a type the caller may send, or null, refused as a
+draft refuses it; ``reply_to`` is an address, or blank.  **201** with the template.
+
+``GET /bulk-email/templates/{id}``
+----------------------------------
+
+One template, as the list shows it.
+
+``PATCH /bulk-email/templates/{id}``
+------------------------------------
+
+Saves the fields given, each checked as ``POST`` checks it, which is how a template
+is renamed and edited; a template may keep its own name in another case.  **200**
+with the template.
+
+``DELETE /bulk-email/templates/{id}``
+-------------------------------------
+
+Deletes the template: **204**.  Drafts already started from it keep their words.
+
+``POST /bulk-email/{id}/apply-template``
+----------------------------------------
+
+**Start from a template**: fills the email from a template.
+
+.. code-block:: json
+
+   {"template": 3}
+
+The email's ``subject`` and ``body`` become the template's, its ``reply_to`` the
+template's or, when the template leaves it blank, the sender's default
+(:ref:`bulk-email-reply-to`), and its ``email_type`` the template's when the template
+has one the caller may send; otherwise the email keeps its type.  The batch is not touched.  **200** with the email.  An unknown template is
+**400** under ``template``.  The change goes through the edit rule, as ``PATCH``
+does: an email that has started sending is **409**; a template that changes a queued
+email's type takes it back to a draft; and one that would leave a queued email of the
+same type without a subject or a message is **400** *Write a subject.* or *Write the
+message.*  The portal
+asks before it replaces words already written.
+
+
+.. _api-bulk-email-groups:
+
+Recipient groups
+================
+
+A recipient group is a set of people saved under a name, shared by every member of
+CalDART management, that **Add a saved group** puts into a batch.  It is one of two
+kinds (:ref:`choices <choices-group-kind>`):
+
+``fixed``
+    A list of accounts, exactly the people it was saved with until somebody adds or
+    removes one.  Deleting an account takes it out.
+``live``
+    A list of member list filter sets, each as **Add to batch** takes them.  Every use
+    runs them afresh, so the group follows membership as it changes: its people are
+    everybody any set chooses, deactivated accounts included as an add includes
+    them, and nobody while it has no set.
+
+The models are ``RecipientGroup``, ``RecipientGroupMember``, and
+``RecipientGroupFilter`` (:ref:`data-model-bulk-email`).  These endpoints are CalDART
+management's alone.  A change the group's kind does not allow is **409**
+``{"detail": <sentence>}``: *Only a fixed group lists its people. Change a live group
+by its filters.* or *Only a live group has filters. Change a fixed group by its
+people.*
+
+``GET /bulk-email/groups``
+--------------------------
+
+Every group, by name ignoring case.  Unpaginated.
+
+.. code-block:: json
+
+   [{"id": 5,
+     "name": "Marin friends",
+     "kind": "live",
+     "count": 41,
+     "needs_fixing": false,
+     "filter_sets": [{"id": 8, "label": "Kind: Friends only, County: Marin",
+                      "filters": {"kind": "friend", "county": "Marin"},
+                      "position": 0, "needs_fixing": false}],
+     "created_by": "Grace Holloway",
+     "created_at": "2026-04-01T09:00:00-07:00",
+     "updated_at": "2026-04-05T10:30:00-07:00"}]
+
+``count`` is how many people the group holds now, a live group's sets run afresh.
+``filter_sets`` are a live group's sets in order, each named as an add's filters are;
+a fixed group has none.  A set's ``needs_fixing`` is true when the member list no
+longer accepts it as stored, such as a ``dart`` whose DART has been deleted; the
+group's ``needs_fixing`` is then true and its ``count`` null, and its people, their
+CSV, and its add to a batch are refused with *This group's filters need fixing.*
+until the set is taken out.  Every other group answers as usual.  ``updated_at`` moves on whenever the group, its people, or
+its sets change.
+
+``POST /bulk-email/groups``
+---------------------------
+
+Makes an empty group, the caller as its author: ``{"name": "Board", "kind":
+"fixed"}``.  ``name`` is at most 80 characters, trimmed, and must not be another
+group's in any mix of cases: **400** *A group named "Board" already exists. Choose
+another name.*  ``kind`` is ``fixed`` or ``live``.  **201** with the group.
+
+``GET /bulk-email/groups/{id}``
+-------------------------------
+
+One group, as the list shows it.
+
+``PATCH /bulk-email/groups/{id}``
+---------------------------------
+
+Renames the group (``{"name": "Directors"}``), checked as ``POST`` checks it; a
+``kind`` other than its own is **400** *A group's kind cannot change. Save a new
+group instead.*  Every add already made keeps the name the group had then.  **200**
+with the group.
+
+``DELETE /bulk-email/groups/{id}``
+----------------------------------
+
+Deletes the group: **204**.  Every batch the group was added to keeps its people and
+its add's name, and the add's ``group`` becomes null.
+
+``GET /bulk-email/groups/{id}/members``
+---------------------------------------
+
+Everybody in the group now, in surname order:
+
+.. code-block:: json
+
+   {"count": 1,
+    "people": [{"user_id": 12, "name": "Ann Able", "email": "ann@example.org",
+                "kind": "friend", "dart_name": "Marin DART", "is_active": true}]}
+
+``kind`` and ``dart_name`` are worked out as a batch row's are; ``is_active`` is
+false for a deactivated account, which a send skips.  A live group whose filters need
+fixing is **409** *This group's filters need fixing.*, here and for the CSV.
+
+``GET /bulk-email/groups/{id}/members.csv``
+-------------------------------------------
+
+The same people as a CSV download, ``caldart-recipient-group-<id>.csv``, with the
+columns ``Name``, ``Email``, ``Kind``, and ``DART``.
+
+``POST /bulk-email/groups/{id}/members``
+----------------------------------------
+
+Adds one account to a fixed group: ``{"user": 12}``.  **201** with the person, as
+the list above shows them.  An account that is not a member or a friend is **400**
+under ``user`` *Choose a member or a friend.*, and one in the group already *Ann Able
+is in this group already.*
+
+``DELETE /bulk-email/groups/{id}/members/{user_id}``
+----------------------------------------------------
+
+Takes one account out of a fixed group: **204**, or **404** when it is not in it.
+
+``POST /bulk-email/groups/{id}/filters``
+----------------------------------------
+
+Adds a filter set to a live group, after its others: ``{"filters": {"county":
+"Napa"}}``, taken and refused as ``POST /bulk-email/{id}/batch/add`` takes them, blank
+values dropped; left out or empty it chooses every member and friend.  A set the
+group has already is **400** under ``filters`` *This group has these filters
+already.*  **201** with the set.
+
+``DELETE /bulk-email/groups/{id}/filters/{fid}``
+------------------------------------------------
+
+Takes a filter set out of a live group: **204**, or **404** for a set that is not the
+group's.
+
+``GET /bulk-email/groups/people``
+---------------------------------
+
+The members and friends to offer while adding somebody to a fixed group:
+``?search=able`` runs the member list's own search, by name or address, and answers
+at most ten, in surname order, deactivated accounts included; a blank search answers
+nobody.
+
+.. code-block:: json
+
+   [{"id": 12, "name": "Ann Able", "email": "ann@example.org"}]
+
+``POST /bulk-email/{id}/batch/add-group``
+-----------------------------------------
+
+**Add a saved group**: adds everybody in the group now to the batch, as one add.
+
+.. code-block:: json
+
+   {"group": 5}
+
+Everybody not in the batch yet joins it, as with ``POST /bulk-email/{id}/batch/add``,
+and **200** answers the same counts: ``{"added": 12, "already_present": 3, "count":
+41}``.  The add links the group and is labeled ``Group: <name>``.  An unknown group is
+**400** under ``group``, and so is a live group whose filters need fixing, with
+*This group's filters need fixing.*; nothing is added then.  A queued email goes back to a draft, as with any add, and
+one that has started sending is **409**.
+
+``POST /bulk-email/{id}/save-group``
+------------------------------------
+
+Saves the batch as a group: ``{"name": "Hangar crew", "kind": "fixed"}``, the name
+checked as ``POST /bulk-email/groups`` checks it.  **201** with the group.
+
+- A ``fixed`` group holds every account in the batch now, whether or not each will
+  receive the email; a deleted account is left out.
+- A ``live`` group holds the filters behind the batch, once each, in the order they
+  were added: every add's filters, and every live group added, its sets as they are
+  now.  People taken out of the batch one by one are not remembered.  A batch with
+  people no filters chose, from a fixed group or **Duplicate**, is **400** under
+  ``batch``: *Some people in this batch came from a fixed group or were copied from
+  another email, so there are no filters to save for them. Save it as a fixed group
+  instead.*  One with people from a group since deleted is refused the same way with
+  *The group "Board" was deleted, so its filters are gone. Save this batch as a fixed
+  group instead.*
+
+An empty batch is **400** under ``batch``: *The batch is empty. Add people to it
+before you save it as a group.*

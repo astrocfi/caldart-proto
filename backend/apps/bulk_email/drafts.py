@@ -27,7 +27,13 @@ from django.utils import timezone
 from apps.accounts.models import User
 from apps.accounts.permissions import user_has_any_role
 from apps.accounts.roles import MANAGEMENT
-from apps.bulk_email.batch import batch_counts, batch_rows, locked_for_edit
+from apps.bulk_email.batch import (
+    TYPE_CHANGED,
+    back_to_draft,
+    batch_counts,
+    batch_rows,
+    locked_for_edit,
+)
 from apps.bulk_email.checks import NO_BODY_MESSAGE as NO_BODY_MESSAGE
 from apps.bulk_email.checks import NO_SUBJECT_MESSAGE as NO_SUBJECT_MESSAGE
 from apps.bulk_email.checks import refuse_on_errors
@@ -115,22 +121,28 @@ def open_draft(sender: User) -> OpenedDraft:
     return OpenedDraft(bulk=fresh, created=True)
 
 
-def update(bulk: BulkEmail, changes: dict[str, object]) -> BulkEmail:
-    """Save ``changes``, field name to value, onto ``bulk``; return it as saved.
+def update(bulk: BulkEmail, changes: dict[str, object], *, actor: User) -> BulkEmail:
+    """Save ``changes``, field name to value, onto ``bulk`` as ``actor``; return it.
 
     The values are taken as given: the API's serializer has checked them.  Editing a
     queued email leaves its start time alone, but cannot leave it without a subject
-    or a message, which it is about to be sent with.  Raises ``DomainValidationError``
-    keyed ``subject`` or ``body`` for that, and ``DomainError`` once the email has
-    started sending.
+    or a message, which it is about to be sent with.  Changing a queued email's type
+    takes it back to a draft instead, its schedule and confirmed count cleared, since
+    who is skipped as opted out changes with the type
+    (``apps.bulk_email.batch.back_to_draft``, reason ``type_changed``).  Raises
+    ``DomainValidationError`` keyed ``subject`` or ``body`` for a queued email left
+    without either, and ``DomainError`` once the email has started sending.
     """
     with transaction.atomic():
         locked = locked_for_edit(bulk)
+        is_type_change = "email_type" in changes and changes["email_type"] != locked.email_type
         for name, value in changes.items():
             setattr(locked, name, value)
-        if locked.status == BulkEmailStatus.QUEUED:
+        if locked.status == BulkEmailStatus.QUEUED and not is_type_change:
             _check_content(locked)
         locked.save(update_fields=[*changes, "updated_at"])
+        if is_type_change:
+            back_to_draft(locked, actor=actor, reason=TYPE_CHANGED)
     return locked
 
 

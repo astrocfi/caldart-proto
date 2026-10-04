@@ -21,6 +21,7 @@ import { useBulkEmail } from './api';
 import './bulk-email.css';
 import { DeliveryReport } from './DeliveryReport';
 import { MessagesVisibility } from './MessagesVisibility';
+import { DuplicateButton } from './DuplicateButton';
 import { SendStatus } from './SendStatus';
 import { people } from './status';
 
@@ -52,6 +53,7 @@ export function SentDetailPage(): JSX.Element {
         ) : (
           <SendStatus email={sent} />
         )}
+        <DuplicateButton emailId={sent.id} subject={sent.subject} />
       </Card>
 
       <Card title="The message">

@@ -24,6 +24,8 @@ One line per email, the most recently started first:
 - **Sent**, **Failed**, and **Skipped**: how many copies went, were refused by the mail
   server, and were never sent because the person could not receive them.
 - **Download results** saves the email's results as a spreadsheet file.
+- **Duplicate…** opens the email's own page, where **Duplicate** starts a new draft from
+  it, below.
 
 Before the first send the table reads *No bulk email has been sent*. The list keeps itself up
 to date while an email is sending. On a narrow screen the table scrolls sideways.
@@ -135,6 +137,25 @@ their copy. Nothing else changes: this page, its counts, and its results stay as
 Each copy also appears in the log of sent emails as *Bulk email*.
 
 
+Duplicate
+=========
+
+**Duplicate**, on the email's own page under **Where it stands**, starts a new draft of your
+own from the email; **Duplicate…** on each line of the list opens that page. It asks how:
+
+- **Copy the message**: the new draft has the email's subject, message (pictures included),
+  type, and Reply-To address, and an empty batch.
+- **Copy the message and the people**: the batch holds everybody the email was for too, as
+  their accounts are now. Whether each receives the new email is worked out afresh, so
+  somebody who has since turned that kind of email off, or whose address bounced, shows as
+  skipped. The batch's **Chosen by** reads *Copied from* and the subject. Accounts deleted
+  since are left out. A DART leader's copy goes to their own DART alone: anybody outside it
+  shows as skipped, *Not in your DART*.
+
+The new draft opens on :doc:`compose`, ready to change and send. The email you copied stays as
+it was. **Cancel** closes the question without copying anything.
+
+
 If something looks wrong
 ========================
 
@@ -142,5 +163,6 @@ If somebody says the email never arrived, find their row. *Sent* means CalDART h
 copy to the mail server, so ask them to check their spam folder, or point them to their
 Messages page, where they can read it. *Failed*, *Bounced*, or *Skipped* gives the reason.
 After a failure the mail server reported, **Retry failed** may get the copy through. An address that needs correcting is corrected on the person's account by a user
-administrator or an account administrator. To write to the people a failure left out, download
-the results and add them to a new email.
+administrator or an account administrator. To write to everybody again, use **Duplicate**
+with the people; to write to only the people a failure left out, download the results and add
+them to a new email.

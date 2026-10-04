@@ -1,4 +1,5 @@
 import { screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 
 import type { BulkEmailDetail } from '@/portal/api/types';
@@ -37,6 +38,13 @@ function renderSent(overrides: Partial<BulkEmailDetail> = {}) {
 }
 
 describe('SentDetailPage', () => {
+  it('offers Duplicate with its whole question under Where it stands', async () => {
+    const user = userEvent.setup();
+    renderSent();
+    await user.click(await screen.findByRole('button', { name: 'Duplicate' }));
+    expect(screen.getByRole('button', { name: 'Copy the message and the people' })).toBeVisible();
+  });
+
   it('says what the send came to', async () => {
     renderSent();
     expect(

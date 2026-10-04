@@ -1945,7 +1945,8 @@ Action                        Fields beyond actor and target
                               the ``BulkEmail``); one line per **Send** or
                               **Schedule**
 ``bulk_email.cancel``         -- (the target is the ``BulkEmail``); ``reason``
-                              ``batch_changed`` when a change to its batch
+                              ``batch_changed`` when a change to its batch,
+                              or ``type_changed`` when a change of its type,
                               took a queued email back to a draft
 ``bulk_email.stop``           ``recipients`` -- the copies kept back; written
                               when the stop takes effect

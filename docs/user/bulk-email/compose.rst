@@ -33,15 +33,21 @@ line says what happened, such as *Added 12 people; 3 were already in the batch.*
 filters and press **Add to batch** again as often as you like: nobody is added twice. With no
 filters chosen, **Add to batch** adds every member and friend. Donors are never added.
 
+**Add a saved group**, beside **Add to batch**, adds everybody in a group kept on
+:doc:`groups` the same way: nobody is added twice.
+
 Once somebody is in the batch, a line counts it, such as *38 people will receive this email;
 4 are skipped.* Under it, **Download list** saves the batch as a spreadsheet file (CSV) with
 each person's membership status, the filters that chose them, whether they will receive
-the email, and its type. **Clear batch** takes everybody out after you press **Clear the batch**.
+the email, and its type. **Save as a group** keeps the batch as a group to add to another
+email later (:doc:`groups` explains the two kinds). **Clear batch** takes everybody out after
+you press **Clear the batch**.
 
 The table lists the batch in surname order, ten at a time until you press **Show all**. Each
 row has the person's **Name**, **Email**, and **Will receive?**, which reads *Yes* or the
 reason they are skipped; then **Kind**, **DART**, and **Chosen by** (the filters that brought
-them in, such as *Kind: Members only*). On a narrow screen the table scrolls sideways. The
+them in, such as *Kind: Members only*, or *Group: Board* for a saved group, or *Copied from*
+and the subject for people copied with **Duplicate**). On a narrow screen the table scrolls sideways. The
 reasons are:
 
 - *Account deactivated*: the account has been deactivated.
@@ -66,6 +72,10 @@ the batch** to find one person. The trashcan on a row takes that person out afte
 
 2. What it says
 ===============
+
+CalDART management can start from a message kept on :doc:`templates` with **Start from a
+template**, which asks before it replaces words already written, and keep this message as one
+with **Save as a template**; that page explains both.
 
 First choose the **Type of email**: one button for each kind you may send, such as
 **Operational** or **Mission**, with a sentence saying what it is for. Until you choose,

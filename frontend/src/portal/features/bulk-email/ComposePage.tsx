@@ -11,6 +11,7 @@
  * Check and send card is gone. The email is read again every few seconds while it
  * waits to start or is sending.
  */
+import { useState } from 'react';
 import type { JSX } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
@@ -29,6 +30,8 @@ import { useAutosave } from './useAutosave';
 export function ComposePage(): JSX.Element {
   const id = Number(useParams().id);
   const email = useBulkEmail(id);
+  // Moved on when a template replaces the words, so the form starts again from them.
+  const [generation, setGeneration] = useState(0);
 
   if (email.isError) {
     return (
@@ -42,11 +45,24 @@ export function ComposePage(): JSX.Element {
   }
   if (email.data === undefined) return <Loading />;
   // Keyed by the email, so the fields start from this email's words.
-  return <ComposeForm key={email.data.id} email={email.data} />;
+  return (
+    <ComposeForm
+      key={`${email.data.id}-${generation}`}
+      email={email.data}
+      onReplaced={() => setGeneration((count) => count + 1)}
+    />
+  );
 }
 
 /** The banner and the three cards, for an email already read. */
-function ComposeForm({ email }: { email: BulkEmailDetail }): JSX.Element {
+function ComposeForm({
+  email,
+  onReplaced: handleReplaced,
+}: {
+  email: BulkEmailDetail;
+  /** Called once a template's words are saved in the email. */
+  onReplaced: () => void;
+}): JSX.Element {
   const {
     values,
     setSubject: handleSubjectChange,
@@ -94,6 +110,8 @@ function ComposeForm({ email }: { email: BulkEmailDetail }): JSX.Element {
         saveState={saveState}
         errors={errors}
         isEditable={email.can_edit}
+        onBeforeReplace={handleBeforeSend}
+        onReplaced={handleReplaced}
       />
       {isSendable ? (
         <SendCard

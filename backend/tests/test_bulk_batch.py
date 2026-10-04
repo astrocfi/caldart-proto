@@ -517,6 +517,7 @@ def test_the_batch_lists_every_person_with_the_counts_and_the_adds(
                 "id": add.pk,
                 "label": "County: Marin",
                 "filters": MARIN,
+                "group": None,
                 "added_count": 1,
                 "already_count": 0,
                 "created_at": add.created_at.astimezone().isoformat(),
