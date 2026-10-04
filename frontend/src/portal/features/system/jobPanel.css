@@ -58,3 +58,9 @@
   border-radius: var(--radius);
   padding: var(--space-3) var(--space-4);
 }
+
+/* The practice run box stays beside its words on a phone, the words wrapping under them. */
+.job-panel__options label.cluster {
+  flex-wrap: nowrap;
+  align-items: baseline;
+}

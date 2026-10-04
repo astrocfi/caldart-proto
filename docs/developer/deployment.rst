@@ -1601,8 +1601,8 @@ no second run while it works.  A run with nothing due exits at once.  A missed
 minute is not caught up (``Persistent=false``); the next minute's run sends
 whatever is due by then.  It needs the database and the SMTP server, from the
 same ``/etc/caldart/caldart.env``.  Run it by hand with ``sudo deploy/manage.sh
-send_bulk_emails``, or with **Run the bulk email sender now** on the Scheduled
-page, which works for at most 45 seconds and leaves the rest to the timer.  See
+send_bulk_emails``, or with **Run now** on the Scheduled page's **Bulk email sender**
+panel, which works for at most 45 seconds and leaves the rest to the timer.  See
 :doc:`bulk-email` for the states, the pacing, and the retries.
 
 

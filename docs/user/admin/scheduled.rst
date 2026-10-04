@@ -16,16 +16,20 @@ are easy to confuse. The reminder emails only ever send email. The renewal charg
 money from members who asked to be renewed automatically, and they run first each morning,
 so a member they renew is not also reminded.
 
+Every panel is laid out the same way, top to bottom: what the job does and when the server
+runs it, any field that shapes a run (the **Year**, the **Practice run** box), **Run now**,
+and then what the last run did, so **Run now** stays where it is however long the result.
 Every panel but the bulk email sender's works the same way:
 
 #. Leave the **Practice run** box checked the first time. A practice run sends, charges, and
    records nothing.
-#. Press **Run now**. A heading reads **What this run would do**, or **What this run did**
-   after a real run, above a line of counts and a table naming each email or charge. You
-   stay on **Run now** while it runs and after. On a narrow screen the table leaves out
-   **When**, then **Amount**, then **What**, and keeps **Who** and any **Report or DART**
-   column in sight; on a phone it scrolls sideways, says so above it, and keeps **Who**
-   pinned at the left.
+#. Press **Run now**. It reads *Running…* while the job runs. Below it a heading reads
+   **What this run would do**, or **What this run did** after a real run, above a line of
+   counts and a table naming each email or charge, and the focus moves to that heading.
+   A run that found nothing at all to do says only *Nothing is due.* (*Nothing was due.*
+   after a real run). On a narrow screen the table leaves out **When**, then **Amount**,
+   then **What**, and keeps **Who** and any **Report or DART** column in sight; on a phone
+   it scrolls sideways, says so above it, and keeps **Who** pinned at the left.
 #. If the numbers look right and you have a reason not to wait for the schedule, clear the
    box and press **Run now** again.
 
@@ -51,8 +55,10 @@ refused reminder stays due and goes out on a later run. The table names every em
 reminder, **Who** it went to with their address, **When** their membership ends, and an
 **Amount** column that stays empty for a reminder.
 
-Each member gets each reminder once per membership. Under the panel sits the same record of
-recent reminders an account administrator reads on :doc:`reminders`.
+Each member gets each reminder once per membership. At the foot of the panel, under its
+own heading **Reminders sent**, sits the same record of recent reminders an account
+administrator reads on :doc:`reminders`. Before any has gone it reads *No reminders have
+been sent yet*, with the days they go.
 
 
 Reminder schedule
@@ -105,7 +111,8 @@ speak of the donation.
    long ago, and *skip* those that needed nothing.
 #. Clear the box and press **Run now** again for a real run. It asks first, because it
    charges everybody who is due: press **Charge what is due**, or **Cancel**, which is
-   where the confirmation starts you, so a second Enter charges nobody.
+   where the confirmation starts you, so a second Enter charges nobody. Escape cancels
+   too. After a real run the focus goes back to **Run now**, with the result below it.
 
 The table names each email and each charge: **What** (*Notice*, *Card expiring warning*,
 *Charge taken notice*, *Charge failed notice*, or *Charge*), **Who**, **When**, and
@@ -179,9 +186,9 @@ sent to it, or until a user administrator clears it on :doc:`user-record`.
 The table names each one: **What** (*Bounced*, or *No matching email*), **Who** the email
 went to, the **Report** the other mail server gave, and **When** the email was sent.
 
-If the server has no bounce mailbox set up, **Run now** checks nothing: the panel says
-*Bounce checking is off* under the button once you press it, and the person who runs the
-server can set one up.
+If the server has no bounce mailbox set up, the panel says so as it opens, above the box:
+*Bounce checking is off. Ask the person who installed the site to set up a bounce
+mailbox.* **Run now** is held back until one is set up.
 
 
 Bulk email sender
@@ -192,15 +199,15 @@ minutes to cancel or at the time it was scheduled for, and sends its copies a fe
 so the mail provider never turns them away. CalDART management writes and sends those emails
 on the Bulk email screens (:doc:`../bulk-email/compose`).
 
-The panel has no practice run, because the sender only sends what CalDART management has already
-pressed **Send** on. Press **Run the bulk email sender now**, under the panel's description
-and above what the last run did, to run it at once. The page waits up to 45 seconds; a larger email carries on in the background after that. The result reads,
-for example, *Worked on 1 bulk email: sent 37, failed 1, and skipped 4.*, and when the time
-ran out it adds how many copies are still to go and that the server's sender carries on with
+The panel has no practice run, because the sender only sends what CalDART management has
+already pressed **Send** on. Press **Run now** to run it at once. The page waits up to 45
+seconds; a larger email carries on in the background after that. The result reads, for
+example, *Worked on 1 bulk email: sent 37, failed 1, and skipped 4.*, and when the time ran
+out it adds how many copies are still to go and that the server's sender carries on with
 them within a minute. A table names each copy: **What** (*Sent* or *Failed*), **Who** it
-went to, and the **Subject or reason**. When nothing was due the table reads *Nothing was
-due*. If the sender was already running, the panel says *The sender is already running, so
-this run did nothing. Try again in a minute.*
+went to, and the **Subject or reason**. When no bulk email was waiting the panel says only
+*Nothing was due.* If the sender was already running, the panel says *The sender is
+already running, so this run did nothing. Try again in a minute.*
 
 
 If something looks wrong

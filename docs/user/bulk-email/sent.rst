@@ -34,8 +34,9 @@ sideways, says so above it, and keeps the subject pinned at the left. Before the
 the table reads *No bulk email has been sent* and *Each bulk email appears here once it
 starts going out.*; a DART leader's reads *You have not sent an email yet* and *Emails you
 send appear here once they start going out.* Either offers **New email**, which opens
-:doc:`compose`, to anybody who has people to send to. The list keeps itself up to date while
-an email is sending.
+:doc:`compose`, to anybody who has people to send to. A DART leader whose profile names no
+DART sees, above the table, the box saying to set their DART on My profile
+(:doc:`dart-leaders`). The list keeps itself up to date while an email is sending.
 
 An email that is sending offers **Stop…** in place of the download, and a stopped one **Send
 the rest…**. Each opens the email's own page, where the action asks first.

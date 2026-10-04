@@ -65,7 +65,7 @@ puts them back. The rows open newest first, with the arrow on **Sent**; click a 
 heading to sort the rows shown. On a narrow screen the table leaves out **To**, then
 **Reminder**, and keeps **Member** in sight.
 
-An empty table reads *No reminders sent yet*: no membership has reached a stage, which is
+An empty table reads *No reminders have been sent yet*: no membership has reached a stage, which is
 normal on a new site or when every member renewed early. With one stage chosen it reads *No
 reminders of this kind*, with a **Reset filters** button.
 

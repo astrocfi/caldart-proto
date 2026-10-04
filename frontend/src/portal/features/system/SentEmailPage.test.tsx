@@ -86,7 +86,7 @@ describe('SentEmailPage', () => {
     renderEmail(FAILED);
     expect(
       await screen.findByText(
-        'The log keeps who an email went to and what it was for, not its text.',
+        'The log keeps who an email went to and what it was for. It keeps no copy of the text.',
       ),
     ).toBeInTheDocument();
   });

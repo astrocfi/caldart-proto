@@ -49,8 +49,10 @@ The search finds members and friends of CalDART. A friend supports CalDART witho
 dues. Two kinds of account are never found: an account that has been deactivated, and a
 donor, who gave through the public site and cannot sign in.
 
-You see at most twenty people, each on one line with a name and **GO** or **NO-GO**. For a
-single name that line is the whole check.
+You see at most twenty people, each on one line: the name, their DART and email address,
+such as *Monterey DART · marta@example.org* (or *No DART*), and **GO** or **NO-GO** at the
+end. The DART and the address tell two people of the same name apart. For a single name
+that line is the whole check.
 
 
 Reading the status card
@@ -85,9 +87,9 @@ cleared and the item needs checking again.
 The band is about the person. Insurance is listed separately below it, because a member
 with a lapsed policy on one airplane may fly another. Read both before you launch.
 
-Under the band is the person's name, their DART (or *No DART*), *Verifier* when they hold
-that role, their phone number, and their email address. Tap the number to call them, or
-the address to write to them.
+Under the band is the person's name, then one line: their DART, such as *Monterey DART* (or
+*No DART*), *DART leader* and *Verifier* when they hold those roles, their phone number, and
+their email address. Tap the number to call them, or the address to write to them.
 
 **Membership** shows the status (**Current**, **Expiring soon**, **Expired**, **Friend**, or
 **Never expires** for a life member), then the plan and the expiry date. A membership
@@ -147,7 +149,7 @@ administrator see **Verify** under the person's name. Press it to open the
    provided*) has no box, since there is nothing to verify; choose what they showed you
    and its box appears. With none of the three held, the panel says *Nothing to verify
    yet*.
-#. Press **Save verification**. The toast reads *Verification saved*, and the card shows the
+#. Press **Save verification** at the foot of the panel. The toast reads *Verification saved*, and the card shows the
    new marks and verdict. **Cancel**, or Escape, closes the panel and changes nothing.
    Either way you are back on **Verify**.
 
@@ -162,7 +164,10 @@ Making someone a verifier
 
 A DART leader, a user administrator, and a system administrator also see **Make a
 verifier** under the person's name, or **Remove as verifier** when they already hold the
-role. Pressing it grants or takes away the verifier role at once, and a toast confirms it.
+role. It asks first, saying what the change means, with **Cancel** already chosen, so a
+stray Enter changes nothing. Press **Yes, make a verifier** (or **Yes, remove as
+verifier**) to change the role; a toast confirms it. **Cancel**, or Escape, leaves the role
+as it was.
 A verifier finds **Member check** and **Aircraft check** in their menu the next time the
 page loads. See :doc:`../roles`.
 
@@ -170,11 +175,17 @@ page loads. See :doc:`../roles`.
 The verification report
 =======================
 
-Above the search box, **Export CSV** and **Export PDF** download the CalDART
-verification report: every pilot certificate, medical, photo ID, and aircraft insurance
-nobody has verified yet, each under its own heading, with the person or airplane, their
-DART or owner, the details, and the day the record last changed. It can also be emailed on
-a schedule from the :doc:`subscriptions` screen.
+Above the search box, *Everything nobody has checked yet:* stands beside **Export CSV**
+and **Export PDF**, which download the CalDART verification report: every pilot
+certificate, medical, photo ID, and aircraft insurance nobody has verified yet, each under
+its own heading, with the person or airplane, their DART or owner, the details, and the
+day the record last changed. The line under the PDF's title reads *Showing: Not yet
+verified*. Only what somebody holds is listed: a non-pilot has no certificate to check,
+nor a person with no medical a medical, nor one with no photo ID on file a photo ID, nor an
+airplane with no policy on file its insurance. A section heading always starts on the page
+with its first rows. The report can also be emailed on a schedule from the
+:doc:`subscriptions` screen, where the **Section**, **Verified**, **Verified by**, and
+**Verified on** columns can be added.
 
 
 When nobody matches
@@ -200,5 +211,6 @@ who has one means they have not entered it on their profile, and only they or an
 administrator can add it. An airplane missing from the card is one the member has not
 attached to their profile, so use the :doc:`aircraft-check` for it. Insurance dates that
 look old come from the aircraft register, where an account administrator or the member who
-added the airplane keeps them; see :doc:`aircraft-record`. If a card says *That member
-didn't load*, the account may have been deleted; **Back to search** above it goes back.
+added the airplane keeps them; see :doc:`aircraft-record`. If a card says *We could not
+find that person*, their account may have been deleted; **Back to search** above it goes
+back.

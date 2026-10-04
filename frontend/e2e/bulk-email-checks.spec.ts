@@ -74,7 +74,7 @@ test('CalDART management sets a Reply-To, sends a test, reads the checks, and se
   const sender = page
     .locator('section')
     .filter({ has: page.getByRole('heading', { name: 'Bulk email sender' }) });
-  await sender.getByRole('button', { name: 'Run the bulk email sender now' }).click();
+  await sender.getByRole('button', { name: 'Run now: bulk email sender' }).click();
   await expect(sender.getByRole('row').filter({ hasText: DEMO.management })).toContainText('Sent');
 
   await expect.poll(async () => latestEmailTo(DEMO.management)).toContain(`Subject: ${subject}`);

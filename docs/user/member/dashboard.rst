@@ -17,6 +17,10 @@ What you see
 
 The cards read down the page in this order. Each appears only when it applies.
 
+A DART leader whose profile names no DART sees, above the cards, a box saying there is
+nobody to send bulk email to, with **Open My profile**, where the DART is set (see
+:doc:`../bulk-email/dart-leaders`).
+
 **Membership**
   A colored dot and a word for your membership's state, and the date it runs to or ran
   out on. The four states are:
