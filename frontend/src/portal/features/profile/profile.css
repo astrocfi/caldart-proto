@@ -114,6 +114,28 @@
   border-top: var(--hairline) solid var(--color-rule);
 }
 
+/* A changed form keeps its Save button in reach: the row sticks to the window's foot
+ * until the form's own end scrolls up to meet it. */
+.profile-form__actions[data-dirty='true'] {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  padding-bottom: var(--space-3);
+  background: var(--color-bg-raised);
+}
+
+/* The deactivation password box takes one column of the profile form's grid, as every
+ * other single field does. */
+.deactivate__password {
+  max-width: calc((100% - var(--space-5)) / 2);
+}
+
+@media (max-width: 40rem) {
+  .deactivate__password {
+    max-width: none;
+  }
+}
+
 /* ------------------------------------------------------------- aircraft */
 .aircraft-list {
   list-style: none;

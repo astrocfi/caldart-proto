@@ -148,9 +148,13 @@ function BecomeFriend({ expiresOn }: { expiresOn: IsoDate | null }) {
   const choices: ConfirmChoice[] =
     contribution > 0
       ? [
-          { label: 'Keep the contribution', disabled: isWaiting, onChoose: handleConfirm(true) },
           {
-            label: 'Stop it',
+            label: `Become a friend and keep giving ${amount} a year`,
+            disabled: isWaiting,
+            onChoose: handleConfirm(true),
+          },
+          {
+            label: `Become a friend and stop the ${amount}`,
             variant: 'secondary',
             disabled: isWaiting,
             onChoose: handleConfirm(false),

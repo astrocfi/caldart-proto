@@ -44,7 +44,13 @@ export interface ProfileFormProps {
   withNames?: boolean;
 }
 
-/** The member profile form: validated fieldsets, a submit button, and an optional action. */
+/**
+ * The member profile form: validated fieldsets, a submit button, and an optional action.
+ *
+ * Once anything differs from `initialValues`, the row holding the submit button sticks to
+ * the foot of the window (`data-dirty="true"`), so a change made far up a long form can
+ * be saved without scrolling down to it.
+ */
 export function ProfileForm({
   initialValues,
   onSubmit,
@@ -68,6 +74,9 @@ export function ProfileForm({
   const freshServerErrors = useFreshErrors(serverError, values, serverErrors ?? {});
 
   const errors = validateProfileForm(values, withNames);
+  const isDirty = (Object.keys(values) as (keyof ProfileFormValues)[]).some(
+    (key) => JSON.stringify(values[key]) !== JSON.stringify(initialValues[key]),
+  );
 
   // Before the first save attempt only a field they have left says anything;
   // afterwards every complaint is shown, including fields never reached.
@@ -109,7 +118,7 @@ export function ProfileForm({
         onFieldBlur={handleFieldBlur}
       />
 
-      <div className="cluster profile-form__actions">
+      <div className="cluster profile-form__actions" data-dirty={isDirty ? 'true' : 'false'}>
         <Button type="submit" disabled={submitting}>
           {submitting ? 'Saving…' : submitLabel}
         </Button>

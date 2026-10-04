@@ -108,8 +108,10 @@ support**, **Fundraising**, **Social media**, and **Newsletter**.
 Saving your changes
 ===================
 
-Change anything and press **Save changes**. *Profile saved.* appears at the bottom of
-the screen, and you stay on **Save changes**. Saving replaces the whole profile, so a field you clear is cleared.
+Change anything and press **Save changes**. Once you change a field, the row with
+**Save changes** stays at the foot of the window as you scroll, so you can save
+from anywhere on the form. *Profile saved.* appears at the bottom of the screen, and
+you stay on **Save changes**. Saving replaces the whole profile, so a field you clear is cleared.
 Your aircraft are kept on their own screen and are not touched.
 
 The form checks each field as you leave it. A field that is wrong turns red with
@@ -150,8 +152,9 @@ The card says which you are: *You are a member of CalDART.*, *You are a life mem
 of CalDART.*, or *You are a friend of CalDART: no dues, no expiry. Become a member
 any time.* A friend of CalDART has the same portal as a member but pays no dues, so
 nothing expires, no renewal reminder is sent, and members-only pages stay closed.
-The same buttons appear on the membership card of your :doc:`dashboard`. A life
-member stays a member and is offered neither.
+**Make me a friend** is offered here alone; your :doc:`dashboard` shows a change
+that is waiting, with its **Undo**, and a friend's **Make me a member**. A life member
+stays a member and is offered neither.
 
 **Make me a friend**
   Opens a short confirmation below the card's buttons. While your membership is current it reads *Your
@@ -162,12 +165,12 @@ member stays a member and is offered neither.
   Automatic renewal is turned off either way, and CalDART emails you that it is off
   (subject *CalDART: automatic renewal is off*). If your renewal also gives a
   contribution each year, the confirmation asks *Your automatic renewal also gives
-  $100 each year. Keep giving $100 a year as a recurring donation?* **Keep the
-  contribution** carries the gift on as a yearly recurring donation on the same
-  card, first charged on the day your renewal would have been. **Stop it** ends it
-  with the renewal. If you already have a recurring donation, **Keep the
-  contribution** is refused and you are asked to change that donation on
-  :doc:`donate`. Otherwise the confirmation has one **Yes, make me a friend** button.
+  $100 each year. Keep giving $100 a year as a recurring donation?* **Become a friend
+  and keep giving $100 a year** carries the gift on as a yearly recurring donation
+  on the same card, first charged on the day your renewal would have been. **Become
+  a friend and stop the $100** ends it with the renewal. Both name your own amount.
+  If you already have a recurring donation, keeping the gift is refused and you are
+  asked to change that donation on :doc:`donate`. Otherwise the confirmation has one **Yes, make me a friend** button.
   **Cancel**, or Escape, changes nothing.
 
 **Undo**

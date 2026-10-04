@@ -52,11 +52,10 @@ Become a member or a friend, and back
 
 To become a friend:
 
-#. On your **Dashboard**, or on **My profile** under **Your kind of account**, press
-   **Make me a friend**.
+#. On **My profile**, under **Your kind of account**, press **Make me a friend**.
 #. Read the confirmation. If your automatic renewal also gives a contribution,
-   choose **Keep the contribution** or **Stop it**. Otherwise press **Yes, make me a
-   friend**.
+   choose **Become a friend and keep giving $100 a year** or **Become a friend and
+   stop the $100**, with your own amount. Otherwise press **Yes, make me a friend**.
 #. A current membership runs to its end, and you become a friend the next day. Until
    then, **Undo** keeps you a member.
 

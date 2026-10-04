@@ -64,23 +64,25 @@ export function DeactivateCard(): JSX.Element {
       </p>
       {notice ? <p>{notice}</p> : null}
       <form onSubmit={handleSubmit} noValidate>
-        <Field
-          label="Current password"
-          required
-          error={fieldError(deactivate.error, 'current_password')}
-        >
-          {(props) => (
-            <input
-              {...props}
-              type="password"
-              name="current_password"
-              autoComplete="current-password"
-              required
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-            />
-          )}
-        </Field>
+        <div className="deactivate__password">
+          <Field
+            label="Current password"
+            required
+            error={fieldError(deactivate.error, 'current_password')}
+          >
+            {(props) => (
+              <input
+                {...props}
+                type="password"
+                name="current_password"
+                autoComplete="current-password"
+                required
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+              />
+            )}
+          </Field>
+        </div>
         <FormAlert error={deactivate.error} handled={['current_password']} />
         <Button type="submit" variant="danger" disabled={password === '' || deactivate.isPending}>
           Deactivate my account

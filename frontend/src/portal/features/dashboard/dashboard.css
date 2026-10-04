@@ -48,7 +48,3 @@
 .dashboard__links a {
   display: block;
 }
-
-.dashboard__link-group + .dashboard__link-group {
-  margin-top: var(--space-5);
-}
