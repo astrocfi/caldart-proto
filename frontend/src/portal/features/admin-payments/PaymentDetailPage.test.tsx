@@ -135,6 +135,15 @@ describe('PaymentDetailPage', () => {
     expect(await screen.findByText('Nothing has been refunded')).toBeInTheDocument();
   });
 
+  it('says where refunds are listed without promising a table it does not show', async () => {
+    servePayment();
+    renderDetail();
+
+    expect(
+      await screen.findByText("Refunds made here or in the provider's dashboard are listed here."),
+    ).toBeInTheDocument();
+  });
+
   it('offers the whole unrefunded balance in the refund form', async () => {
     const user = userEvent.setup();
     servePayment(makeDetail({ refunded_cents: 2_500 }));
@@ -170,26 +179,54 @@ describe('PaymentDetailPage', () => {
     await waitFor(() => expect(bodies[0]).toMatchObject({ reason: 'duplicate' }));
   });
 
-  it('marks the term for cancellation when the refund covers the dues', async () => {
+  it('says whose membership the box ends, with its dates, and that it ends today', async () => {
     const user = userEvent.setup();
     servePayment();
     renderDetail();
 
     await user.click(await screen.findByRole('button', { name: 'Refund' }));
 
-    expect(screen.getByRole('checkbox', { name: /Cancel the membership term/ })).toBeChecked();
+    expect(
+      screen.getByRole('checkbox', {
+        name: "Also end Marta Reyes's membership (01/09/2026 to 01/08/2027) today",
+      }),
+    ).toBeInTheDocument();
   });
 
-  it('leaves the term alone when only part of the dues comes back', async () => {
+  it('checks the box that ends the membership for a refund of everything left', async () => {
+    const user = userEvent.setup();
+    servePayment();
+    renderDetail();
+
+    await user.click(await screen.findByRole('button', { name: 'Refund' }));
+
+    expect(screen.getByRole('checkbox', { name: /Also end Marta Reyes/ })).toBeChecked();
+  });
+
+  it('leaves the membership alone for a partial refund, even one the size of the dues', async () => {
     const user = userEvent.setup();
     servePayment();
     renderDetail();
 
     await user.click(await screen.findByRole('button', { name: 'Refund' }));
     await user.clear(screen.getByLabelText(/Amount/));
-    await user.type(screen.getByLabelText(/Amount/), '10');
+    await user.type(screen.getByLabelText(/Amount/), '45');
 
-    expect(screen.getByRole('checkbox', { name: /Cancel the membership term/ })).not.toBeChecked();
+    expect(screen.getByRole('checkbox', { name: /Also end Marta Reyes/ })).not.toBeChecked();
+  });
+
+  it('offers no box to end a membership that has already ended', async () => {
+    const user = userEvent.setup();
+    servePayment(
+      makeDetail({
+        membership: { id: 88, starts_on: '2025-01-09', ends_on: '2026-01-08', status: 'expired' },
+      }),
+    );
+    renderDetail();
+
+    await user.click(await screen.findByRole('button', { name: 'Refund' }));
+
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
   });
 
   it("leaves the treasurer's own answer about the term alone as the amount changes", async () => {
@@ -198,7 +235,7 @@ describe('PaymentDetailPage', () => {
     renderDetail();
 
     await user.click(await screen.findByRole('button', { name: 'Refund' }));
-    const box = screen.getByRole('checkbox', { name: /Cancel the membership term/ });
+    const box = screen.getByRole('checkbox', { name: /Also end Marta Reyes/ });
     await user.click(box);
     await user.clear(screen.getByLabelText(/Amount/));
     await user.type(screen.getByLabelText(/Amount/), '145');
@@ -288,6 +325,65 @@ describe('PaymentDetailPage', () => {
       'href',
       '/api/v1/admin/payments/412/receipt.pdf',
     );
+  });
+
+  it('puts Refund last, in the same style as the other actions', async () => {
+    servePayment();
+    renderDetail();
+
+    const refund = await screen.findByRole('button', { name: 'Refund' });
+    const row = refund.parentElement as HTMLElement;
+    const names = Array.from(row.querySelectorAll('a, button')).map(
+      (element) => element.textContent,
+    );
+    expect(names).toEqual(['Resend receipt', 'Download receipt', 'Refund']);
+  });
+
+  it('draws Refund as a quiet button rather than the main one', async () => {
+    servePayment();
+    renderDetail();
+
+    expect(await screen.findByRole('button', { name: 'Refund' })).toHaveClass('button--quiet');
+  });
+
+  it('names the link beside the member Money history', async () => {
+    servePayment();
+    renderDetail();
+
+    expect(await screen.findByRole('link', { name: 'Money history' })).toHaveAttribute(
+      'href',
+      '/admin/payments/members/37',
+    );
+  });
+
+  it('says the method once when the provider and the way of paying share a name', async () => {
+    servePayment(makeDetail({ provider: 'paypal', wallet: 'paypal' }));
+    renderDetail();
+
+    const method = await screen.findByText('Method');
+    expect(method.nextElementSibling).toHaveTextContent(/^PayPal$/);
+  });
+
+  it("reads the term's state capitalized", async () => {
+    servePayment();
+    renderDetail();
+
+    expect(await screen.findByText(/· Active/)).toBeInTheDocument();
+  });
+
+  it('shows a dash for a payment that bought no term', async () => {
+    servePayment(makeDetail({ membership: null }));
+    renderDetail();
+
+    const term = await screen.findByText('Term');
+    expect(term.nextElementSibling).toHaveTextContent(/^—$/);
+  });
+
+  it('says a payment nobody automated was paid by the member', async () => {
+    servePayment();
+    renderDetail();
+
+    expect(await screen.findByText('No, paid by the member')).toBeInTheDocument();
   });
 
   it('links on to the member ledger', async () => {

@@ -40,11 +40,11 @@ import { FinanceTabs } from './FinanceTabs';
 import {
   KIND_LABELS,
   PAYMENT_AUTOMATIC_LABELS,
-  PROVIDER_LABELS,
   REFUND_REASON_LABELS,
   REFUND_STATUS_LABELS,
   STATUS_LABELS,
-  WALLET_LABELS,
+  TERM_STATUS_LABELS,
+  methodLabel,
   statusTone,
 } from './labels';
 import type { RecordedState } from './RecordPaymentPage';
@@ -85,9 +85,11 @@ function Facts({ payment }: FactsProps): JSX.Element {
       <div>
         <dt>Member</dt>
         <dd>
-          <Link to={`/admin/payments/members/${payment.user_id}`}>{payment.user_name}</Link>{' '}
-          <span className="muted">{payment.user_email}</span>{' '}
-          <MemberRecordLink userId={payment.user_id} isTombstone={payment.user_is_tombstone} />
+          {payment.user_name} <span className="muted">{payment.user_email}</span>
+          <span className="payment-facts__links">
+            <Link to={`/admin/payments/members/${payment.user_id}`}>Money history</Link>
+            <MemberRecordLink userId={payment.user_id} isTombstone={payment.user_is_tombstone} />
+          </span>
         </dd>
       </div>
       <div>
@@ -141,9 +143,7 @@ function Facts({ payment }: FactsProps): JSX.Element {
       </div>
       <div>
         <dt>Method</dt>
-        <dd>
-          {PROVIDER_LABELS[payment.provider]} · {WALLET_LABELS[payment.wallet]}
-        </dd>
+        <dd>{methodLabel(payment.provider, payment.wallet)}</dd>
       </div>
       <div>
         <dt>Reference</dt>
@@ -159,11 +159,12 @@ function Facts({ payment }: FactsProps): JSX.Element {
         <dt>Term</dt>
         <dd>
           {payment.membership === null ? (
-            'None'
+            '—'
           ) : (
             <>
               <DateText value={payment.membership.starts_on} /> to{' '}
-              <DateText value={payment.membership.ends_on} /> · {payment.membership.status}
+              <DateText value={payment.membership.ends_on} /> ·{' '}
+              {TERM_STATUS_LABELS[payment.membership.status]}
             </>
           )}
         </dd>
@@ -172,7 +173,7 @@ function Facts({ payment }: FactsProps): JSX.Element {
         <dt>{PAYMENT_AUTOMATIC_LABELS[payment.kind]}</dt>
         <dd>
           {payment.renewal_attempt === null ? (
-            'Paid by a person'
+            'No, paid by the member'
           ) : (
             <>
               Charged on <DateText value={payment.renewal_attempt.scheduled_on} />
@@ -225,7 +226,7 @@ function ReconcileCard({ payment }: ReconcileCardProps): JSX.Element {
 
   return (
     <Card title="Reconciliation">
-      <form ref={formRef} onSubmit={handleSave} noValidate>
+      <form ref={formRef} className="stack finance-form" onSubmit={handleSave} noValidate>
         <Field
           label="Reconciled on"
           hint="The day this payment was found on a statement"
@@ -240,7 +241,7 @@ function ReconcileCard({ payment }: ReconcileCardProps): JSX.Element {
             />
           )}
         </Field>
-        <Field label="Note" hint="A check number, or why this entry exists">
+        <Field label="Note" hint="Anything worth keeping with this payment">
           {(props) => (
             <input
               {...props}
@@ -335,17 +336,11 @@ export function PaymentDetailPage(): JSX.Element {
 
       <Card title="This payment">
         <Facts payment={payment} />
+        {/* One style for every action, and Refund, the one that gives money back, last. */}
         <div className="cluster">
           <Button
-            ref={refundRef}
-            aria-expanded={isRefunding}
-            onClick={() => setIsRefunding((current) => !current)}
-          >
-            Refund
-          </Button>
-          <Button
             ref={resendRef}
-            variant="secondary"
+            variant="quiet"
             onClick={handleResend}
             disabled={resend.isPending}
           >
@@ -359,6 +354,14 @@ export function PaymentDetailPage(): JSX.Element {
               {fees.isPending ? 'Asking…' : 'Fetch fee from provider'}
             </Button>
           )}
+          <Button
+            ref={refundRef}
+            variant="quiet"
+            aria-expanded={isRefunding}
+            onClick={() => setIsRefunding((current) => !current)}
+          >
+            Refund
+          </Button>
         </div>
       </Card>
 
@@ -380,7 +383,7 @@ export function PaymentDetailPage(): JSX.Element {
           rows={payment.refunds}
           rowKey={(row) => row.id}
           emptyTitle="Nothing has been refunded"
-          emptyDescription="A refund issued here or in the provider's dashboard appears in this table."
+          emptyDescription="Refunds made here or in the provider's dashboard are listed here."
         />
       </Card>
 

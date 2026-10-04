@@ -10,10 +10,17 @@ import type {
   MandateKind,
   MandateStatus,
   ManualMethod,
+  MembershipTermStatus,
   PaymentKind,
+  PaymentProvider,
+  PaymentWallet,
   RefundReason,
   RefundState,
 } from '@/portal/api/types';
+import {
+  PAYMENT_PROVIDER_LABELS,
+  PAYMENT_WALLET_LABELS,
+} from '@/portal/choices';
 
 export {
   PAYMENT_PROVIDER_LABELS as PROVIDER_LABELS,
@@ -80,3 +87,34 @@ export const PAYMENT_AUTOMATIC_LABELS: Record<PaymentKind, string> = {
   both: 'Automatic renewal and contribution',
   contribution: 'Recurring donation',
 };
+
+/** Where the membership term a payment bought stands, capitalized as a heading reads. */
+export const TERM_STATUS_LABELS: Record<MembershipTermStatus, string> = {
+  active: 'Active',
+  expired: 'Expired',
+  canceled: 'Canceled',
+  suspended: 'Suspended',
+};
+
+/**
+ * How a payment was made, such as `Stripe · Apple Pay`, or the one word when the
+ * provider and the way of paying share it (`PayPal`, not `PayPal · PayPal`).
+ */
+export function methodLabel(provider: PaymentProvider, wallet: PaymentWallet): string {
+  const providerLabel = PAYMENT_PROVIDER_LABELS[provider];
+  const walletLabel = PAYMENT_WALLET_LABELS[wallet];
+  return providerLabel === walletLabel ? providerLabel : `${providerLabel} · ${walletLabel}`;
+}
+
+/**
+ * Why a charge was refused, as the treasurer reads it.  Every failed charge is a refusal
+ * by the card or account, and the provider's own reason is written to the member ("Your
+ * card was declined"), so the screen says `Card declined` and quotes the member's wording
+ * only when it says more than that.
+ */
+export function declineReason(memberWording: string): string {
+  const wording = memberWording.trim();
+  if (wording === '') return '';
+  if (/^your card was declined\.?$/i.test(wording)) return 'Card declined';
+  return `Card declined (member was told: “${wording.replace(/\.$/, '')}”)`;
+}
