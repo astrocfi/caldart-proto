@@ -206,6 +206,12 @@ export interface DataTableProps<Row> {
    * top of the table back into view.
    */
   pagination?: PaginationSettings;
+  /**
+   * A totals row under the rows, keyed by column: each shown column draws its entry, or
+   * nothing, and the row stays put whichever way the table is sorted.  A column the
+   * table leaves out at this width leaves its total out with it.
+   */
+  footer?: Partial<Record<string, ReactNode>>;
 }
 
 function compare(a: string | number | null, b: string | number | null): number {
@@ -435,6 +441,7 @@ export function DataTable<Row>({
   initialSort,
   sort,
   pagination,
+  footer,
 }: DataTableProps<Row>): JSX.Element {
   const rootRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -557,6 +564,21 @@ export function DataTable<Row>({
                     </tr>
                   ))}
                 </tbody>
+                {footer === undefined ? null : (
+                  <tfoot>
+                    <tr>
+                      {columns.map((column) => (
+                        <Cell
+                          key={column.key}
+                          isRowHeader={column.isIdentity === true}
+                          className={cellClass(column)}
+                        >
+                          {footer[column.key] ?? null}
+                        </Cell>
+                      ))}
+                    </tr>
+                  </tfoot>
+                )}
               </table>
             </div>
           </div>

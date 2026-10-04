@@ -94,7 +94,7 @@ Unpaginated::
   [
     {"slug": "payments", "title": "CalDART payments", "choosable": true, "periods": true},
     {"slug": "reconciliation", "title": "CalDART reconciliation", "choosable": false,
-     "periods": false},
+     "periods": true},
     {"slug": "contributions", "title": "CalDART contributions", "choosable": false,
      "periods": true}
   ]
@@ -154,7 +154,8 @@ filters            same way: :doc:`api-members` for ``members``,
                    ``{"columns": ["This report's columns are fixed."]}``.
 ``period``         ``this_month``, ``last_month``, ``this_year`` or
                    ``last_year``, counted from the day the report is built.  The
-                   payments and donors reports turn it into ``from`` and ``to``
+                   payments, reconciliation, and donors reports turn it into
+                   ``from`` and ``to``
                    (the first and last day of the period), the contributions
                    report into ``year``; either way the period wins over those
                    parameters.  Any other value is

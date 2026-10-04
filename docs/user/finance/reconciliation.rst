@@ -16,7 +16,8 @@ One row per month to begin with, or per year or per payment provider if you choo
 row shows the number of **Payments**, the **Gross** taken, the **Fees**, the **Net**, what
 was **Refunded**, the **Net after refunds**, and **Reconciled**, how many of that period's
 payments you have already found on a statement, such as *12 of 15*. The months and the
-years run oldest first.
+years run newest first, as on the **Money overview**. Under the rows, a **Total** row adds
+every column up, so you can check the whole range against the statement at once.
 
 On a narrower screen the table leaves out the columns that matter least, one at a time, so
 the **Gross** and the **Net** stay beside the period: first **Refunded**, then **Net after
@@ -53,8 +54,10 @@ Match payments as you go
 
 When you find a payment on the statement, open it from the payment list and set its
 **Reconciled on** date (see :doc:`payment-record`). The site records that it was you. The
-**Reconciled** column here then counts it. To see what is left to do, filter the payment
-list to **Reconciled**: **Not reconciled** (see :doc:`payment-list`).
+**Reconciled** column here then counts it. A **Reconciled** figure short of the count,
+such as *0 of 4*, opens the payment list (see :doc:`payment-list`) narrowed to that
+period and to **Not reconciled**, so you see the four payments still to find; with
+**Rows** set to **By provider**, it narrows to that provider over the range you chose.
 
 Download the rows
 ~~~~~~~~~~~~~~~~~

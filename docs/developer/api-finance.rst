@@ -46,7 +46,8 @@ Parameter        Meaning
 ``wallet``       How the money was presented: ``card``, ``check``,
                  ``cash``, and the rest of the wallet choices.
 ``reconciled``   ``yes`` for payments matched to a statement, ``no``
-                 for the ones still outstanding.
+                 for the money that arrived and is still outstanding
+                 (a pending or failed payment is never outstanding).
 ``member``       A member's id.
 ``min_cents``    Lower bound on the total charged.
 ``max_cents``    Upper bound on the total charged.
@@ -186,8 +187,9 @@ the range, which is expected rather than a fault.
 ======================================
 
 One row per period, or per provider, for matching the books against a bank or
-provider statement.  Parameters: ``from``, ``to``, ``provider``, and ``group``,
-which is ``month`` (the default), ``year`` or ``provider``.
+provider statement, the newest period first (providers in their declared order).
+Parameters: ``from``, ``to``, ``provider``, and ``group``, which is ``month`` (the
+default), ``year`` or ``provider``.
 
 .. code-block:: json
 
@@ -209,7 +211,8 @@ with a zero ``count``.  ``net_after_refunds_cents`` is ``net_cents`` less
 whether a treasurer has set ``reconciled_on``.
 
 The reconciliation report, ``GET /reports/reconciliation/export.{csv,pdf}``,
-carries the same rows for the same parameters, in fixed columns: Period,
+carries the same rows for the same parameters, and takes ``?period=`` as a dated
+report does (see :doc:`api-reports`), in fixed columns: Period,
 Payments, Gross, Fees, Net, Refunded, Net after refunds, Reconciled and
 Unreconciled.  Money is plain decimals in the CSV and dollars in the PDF, which
 is portrait letter and names the range under its title.

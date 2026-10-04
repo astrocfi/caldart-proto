@@ -165,7 +165,7 @@ def test_the_report_list_describes_each_report(account_admin_client: APIClient) 
             "slug": "reconciliation",
             "title": "CalDART reconciliation",
             "choosable": False,
-            "periods": False,
+            "periods": True,
         },
         {
             "slug": "contributions",

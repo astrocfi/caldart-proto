@@ -128,7 +128,7 @@ def test_each_report_names_the_roles_that_may_read_it(slug: str, roles: tuple[st
         ("verification", (True, True, False)),
         ("aircraft", (True, True, False)),
         ("payments", (True, True, True)),
-        ("reconciliation", (False, False, False)),
+        ("reconciliation", (False, False, True)),
         ("contributions", (False, False, True)),
         ("donors", (True, True, True)),
     ],
@@ -429,6 +429,7 @@ def test_the_donors_report_answers_the_rows_the_screen_answers(
         (CONTRIBUTION_REPORT, "last_year", {"year": "2025"}),
         (CONTRIBUTION_REPORT, "this_month", {"year": "2026"}),
         (DONOR_REPORT, "last_month", {"from": "2026-08-01", "to": "2026-08-31"}),
+        (RECONCILIATION_REPORT, "last_month", {"from": "2026-08-01", "to": "2026-08-31"}),
     ],
     ids=[
         "payments-last-month",
@@ -436,14 +437,18 @@ def test_the_donors_report_answers_the_rows_the_screen_answers(
         "contributions-last-year",
         "contributions-now",
         "donors-last-month",
+        "reconciliation-last-month",
     ],
 )
 def test_a_dated_report_resolves_a_period_into_its_own_params(
-    spec: ReportSpec[Payment] | ReportSpec[ContributionRow] | ReportSpec[DonorRow],
+    spec: ReportSpec[Payment]
+    | ReportSpec[ContributionRow]
+    | ReportSpec[DonorRow]
+    | ReportSpec[ReconciliationRow],
     period: str,
     expected: dict[str, str],
 ) -> None:
-    """Payments and donors take a date range, contributions a year; ``period`` drops."""
+    """Payments, reconciliation, and donors take a date range, contributions a year."""
     assert spec.resolve({"period": period, "columns": "total"}, DAY) == {
         "columns": "total",
         **expected,
@@ -461,8 +466,8 @@ def test_the_contributions_report_defaults_to_the_year_it_is_built_in(
 
 @pytest.mark.parametrize(
     "resolve",
-    [MEMBER_REPORT.resolve, AIRCRAFT_REPORT.resolve, RECONCILIATION_REPORT.resolve],
-    ids=["members", "aircraft", "reconciliation"],
+    [MEMBER_REPORT.resolve, AIRCRAFT_REPORT.resolve],
+    ids=["members", "aircraft"],
 )
 def test_every_other_report_ignores_a_period(resolve: Callable[[Params, date], Params]) -> None:
     """A report without a period takes its params as they come."""

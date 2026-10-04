@@ -799,6 +799,13 @@ th.numeric {
   font-variant-numeric: tabular-nums;
 }
 
+/* A totals row: set off from the rows above by a strong rule, in the weight of a total. */
+tfoot th,
+tfoot td {
+  font-weight: var(--weight-semibold);
+  border-top: var(--hairline) solid var(--color-rule-strong);
+}
+
 /* --------------------------------------------------------- run actions */
 .run-actions {
   margin-top: var(--space-5);
