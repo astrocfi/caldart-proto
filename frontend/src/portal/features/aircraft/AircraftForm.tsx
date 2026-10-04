@@ -60,8 +60,9 @@ export interface AircraftFormProps {
   /** Notes and the active flag: only on the administrator's screen. */
   withAdminFields?: boolean;
   /**
-   * What to say under the N-number about the registration in the box, such as that
-   * CalDART has it on file already; handed the box's value as it changes.
+   * What to say about the registration in the N-number box, such as that CalDART has
+   * it on file already, on a line of its own under the N-number and the year; handed
+   * the box's value as it changes.
    */
   nNumberNote?: (nNumber: string) => ReactNode;
 }
@@ -140,9 +141,6 @@ export function AircraftForm({
             error={shown.n_number}
             hint="N, then digits, then at most two letters, such as N172SP"
           />
-          {nNumberNote === undefined ? null : (
-            <div className="aircraft-form__wide">{nNumberNote(values.n_number)}</div>
-          )}
           <Field label="Year" error={shown.year}>
             {(field) => (
               <MaskedInput
@@ -157,6 +155,9 @@ export function AircraftForm({
               />
             )}
           </Field>
+          {nNumberNote === undefined ? null : (
+            <div className="aircraft-form__wide">{nNumberNote(values.n_number)}</div>
+          )}
           <AircraftTypePicker
             value={values.type}
             onChange={handleType}
