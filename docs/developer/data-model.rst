@@ -4006,9 +4006,10 @@ administrator keeps on the Email types screen (:doc:`api-email-types`).  Every
 installation starts with three, created by the migration
 ``mail/0004_default_email_types``: Operational and Mission, sent by ``management``
 and ``dart_leader``, and Fundraising, sent by ``management``, all of which a recipient
-may turn off.  The migration finds or creates each by its slug and its reverse
-leaves them alone; once created they are ordinary rows a system administrator may
-edit or delete.  The demo seed creates no type: it turns Fundraising off for the
+may turn off.  The migration creates them only when the table holds no type, so
+running it again after a rollback neither restores a deleted type nor duplicates a
+renamed one, and its reverse leaves them alone; once created they are ordinary rows a
+system administrator may edit or delete.  The demo seed creates no type: it turns Fundraising off for the
 demo friend.
 
 .. list-table::

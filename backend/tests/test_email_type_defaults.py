@@ -5,7 +5,10 @@ The behavior is documented in ``docs/developer/data-model.rst``.
 
 from __future__ import annotations
 
+from importlib import import_module
+
 import pytest
+from django.apps import apps as django_apps
 
 from apps.accounts.models import User
 from apps.accounts.roles import DART_LEADER, MANAGEMENT
@@ -26,6 +29,48 @@ def test_a_fresh_database_holds_the_three_default_types() -> None:
         ("operational", "Operational", [DART_LEADER, MANAGEMENT], True, 1),
         ("fundraising", "Fundraising", [MANAGEMENT], True, 2),
         ("mission", "Mission", [DART_LEADER, MANAGEMENT], True, 3),
+    ]
+
+
+#: The migration that creates the default types, imported by path since its name starts
+#: with a digit.
+DEFAULT_TYPES_MIGRATION = import_module("apps.mail.migrations.0004_default_email_types")
+
+
+def test_running_the_migration_again_adds_no_copy_of_a_renamed_type() -> None:
+    """After a rollback, a renamed Operational is not joined by a second Operational."""
+    operational = EmailType.objects.get(slug="operational")
+    operational.name = "Club news"
+    operational.save()
+
+    DEFAULT_TYPES_MIGRATION.create_default_types(django_apps, None)
+
+    assert sorted(EmailType.objects.values_list("slug", flat=True)) == [
+        "club-news",
+        "fundraising",
+        "mission",
+    ]
+
+
+def test_running_the_migration_again_does_not_bring_back_a_deleted_type() -> None:
+    """A type the system administrator deleted stays deleted."""
+    EmailType.objects.filter(slug="fundraising").delete()
+
+    DEFAULT_TYPES_MIGRATION.create_default_types(django_apps, None)
+
+    assert sorted(EmailType.objects.values_list("slug", flat=True)) == ["mission", "operational"]
+
+
+def test_the_migration_creates_the_three_types_in_an_empty_table() -> None:
+    """With no type at all, the three defaults are created again in their order."""
+    EmailType.objects.all().delete()
+
+    DEFAULT_TYPES_MIGRATION.create_default_types(django_apps, None)
+
+    assert list(EmailType.objects.values_list("slug", flat=True)) == [
+        "operational",
+        "fundraising",
+        "mission",
     ]
 
 
