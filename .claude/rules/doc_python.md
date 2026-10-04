@@ -20,7 +20,9 @@ Sphinx build requirements for all documentation in this repository. Docstring ru
   docs page that covers it.
 - After ANY code or documentation change, rebuild the full tree and fix every warning and error
   before delivering (see Section 5).
-- The site serves `docs/user/` alone, at `/docs/`, to signed-in users. `make guide` builds that
+- The site serves `docs/user/` alone, at `/docs/`, to signed-in users, except the pages a
+  person needs before signing in (sign-in, forgot password, reset password, join, and verify
+  email), which carry `:signed-out: yes` and are public. `make guide` builds that
   copy from the same `conf.py` (the `guide` tag, the `dirhtml` builder), and `make docs` runs it
   first. A user page links only to other user pages, with a relative `:doc:` target: a
   reference into `docs/developer/`, `demo-walkthrough.rst`, or `index.rst` is not resolvable
