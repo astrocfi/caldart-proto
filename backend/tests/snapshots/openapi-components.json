@@ -1042,6 +1042,7 @@
     "properties": {
       "closed_at": "string(date-time)|null",
       "closed_by": "string",
+      "closed_skipped": "integer",
       "closes_at": "string(date-time)",
       "counts": "ref:CalloutCounts",
       "dart_name": "string",
@@ -1058,6 +1059,7 @@
     "required": [
       "closed_at",
       "closed_by",
+      "closed_skipped",
       "closes_at",
       "counts",
       "dart_name",
