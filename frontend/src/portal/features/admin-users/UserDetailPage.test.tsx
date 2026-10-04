@@ -153,6 +153,46 @@ describe('UserDetailPage', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(/only a system administrator/i);
   });
 
+  it("clears the server's refusal when the form is reset", async () => {
+    stubDetail({
+      patch: () =>
+        HttpResponse.json(
+          {
+            roles: ['Only a system administrator can grant or revoke the system_admin role.'],
+          },
+          { status: 400 },
+        ),
+    });
+    renderDetail();
+    await screen.findByRole('heading', { name: 'Priya Raman' });
+
+    await userEvent.click(screen.getByRole('checkbox', { name: /system admin/i }));
+    await userEvent.click(screen.getByRole('button', { name: /save changes/i }));
+    await screen.findByText(/only a system administrator/i);
+    await userEvent.click(screen.getByRole('button', { name: 'Reset form' }));
+
+    expect(screen.queryByText(/only a system administrator/i)).toBeNull();
+  });
+
+  it("moves the focus to the server's refusal when no field carries it", async () => {
+    stubDetail({
+      patch: () =>
+        HttpResponse.json(
+          {
+            roles: ['Only a system administrator can grant or revoke the system_admin role.'],
+          },
+          { status: 400 },
+        ),
+    });
+    renderDetail();
+    await screen.findByRole('heading', { name: 'Priya Raman' });
+
+    await userEvent.click(screen.getByRole('checkbox', { name: /system admin/i }));
+    await userEvent.click(screen.getByRole('button', { name: /save changes/i }));
+
+    await waitFor(() => expect(screen.getByText(/only a system administrator/i)).toHaveFocus());
+  });
+
   it('offers no action on your own account', async () => {
     const me = makeUser({ id: 7, roles: ['member', 'user_admin'] });
     stubDetail({ me });

@@ -10,7 +10,7 @@
  * toast, the portal's one way of confirming a save or a send.
  */
 import { useCallback, useRef, useState } from 'react';
-import type { JSX } from 'react';
+import type { JSX, MouseEvent } from 'react';
 
 import type { ReportRunResult, ReportSubscription } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
@@ -21,7 +21,7 @@ import { DateText } from '@/portal/components/DateText';
 import { DeleteButton } from '@/portal/components/DeleteButton';
 import { StatusDot } from '@/portal/components/StatusChip';
 import { useToast } from '@/portal/components/Toast';
-import { usePanelFocus } from '@/portal/components/focus';
+import { useFocusAfterSave, usePanelFocus } from '@/portal/components/focus';
 import {
   useDeleteSubscription,
   useSendSubscription,
@@ -72,6 +72,12 @@ export function SubscriptionsCard(): JSX.Element {
   const update = useUpdateSubscription();
   const remove = useDeleteSubscription();
   const isBusy = send.isPending || update.isPending || remove.isPending;
+  // Every row's buttons wait while one acts; the one pressed gets the focus back.
+  const pressedRef = useRef<HTMLElement | null>(null);
+  useFocusAfterSave(pressedRef, isBusy);
+  const handlePress = (event: MouseEvent<HTMLElement>): void => {
+    pressedRef.current = event.currentTarget;
+  };
 
   const handleSend = (row: ReportSubscription): void => {
     const recipient = recipientLabel(row);
@@ -185,10 +191,26 @@ export function SubscriptionsCard(): JSX.Element {
           <Button variant="quiet" small disabled={isBusy} onClick={() => handleEdit(row)}>
             Edit
           </Button>
-          <Button variant="quiet" small disabled={isBusy} onClick={() => handleSend(row)}>
+          <Button
+            variant="quiet"
+            small
+            disabled={isBusy}
+            onClick={(event) => {
+              handlePress(event);
+              handleSend(row);
+            }}
+          >
             Send now
           </Button>
-          <Button variant="quiet" small disabled={isBusy} onClick={() => handleToggleActive(row)}>
+          <Button
+            variant="quiet"
+            small
+            disabled={isBusy}
+            onClick={(event) => {
+              handlePress(event);
+              handleToggleActive(row);
+            }}
+          >
             {row.is_active ? 'Pause' : 'Resume'}
           </Button>
           <DeleteButton

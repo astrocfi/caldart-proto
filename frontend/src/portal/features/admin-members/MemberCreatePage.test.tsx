@@ -173,6 +173,69 @@ describe('MemberCreatePage', () => {
     expect(screen.getByLabelText(/Email address/)).toHaveAttribute('aria-invalid', 'true');
   });
 
+  describe('after the server refuses the new member', () => {
+    function refuse(): void {
+      server.use(
+        http.get(`${API}/darts`, () => HttpResponse.json(DARTS)),
+        http.post(`${API}/admin/members`, () =>
+          HttpResponse.json(
+            {
+              email: ['An account with that email address already exists.'],
+              profile: { phone: ['Enter a valid phone number.'] },
+            },
+            { status: 400 },
+          ),
+        ),
+      );
+    }
+
+    it('moves the focus to the first refused field, far above the button', async () => {
+      const user = userEvent.setup();
+      refuse();
+      renderCreate();
+
+      await user.type(screen.getByLabelText(/Email address/), 'taken@example.org');
+      await user.click(screen.getByRole('button', { name: 'Create member' }));
+
+      await waitFor(() => expect(screen.getByLabelText(/Email address/)).toHaveFocus());
+    });
+
+    it('says beside the button how many fields to check', async () => {
+      const user = userEvent.setup();
+      refuse();
+      renderCreate();
+
+      await user.type(screen.getByLabelText(/Email address/), 'taken@example.org');
+      await user.click(screen.getByRole('button', { name: 'Create member' }));
+
+      expect(await screen.findByText('Check the 2 highlighted fields.')).toBeInTheDocument();
+    });
+
+    it('clears the refusal of a field once it is edited', async () => {
+      const user = userEvent.setup();
+      refuse();
+      renderCreate();
+
+      await user.type(screen.getByLabelText(/Email address/), 'taken@example.org');
+      await user.click(screen.getByRole('button', { name: 'Create member' }));
+      await screen.findByText('An account with that email address already exists.');
+      await user.type(screen.getByLabelText(/Email address/), 'x');
+
+      expect(screen.queryByText('An account with that email address already exists.')).toBeNull();
+    });
+  });
+
+  it('moves the focus to a malformed email address before sending anything', async () => {
+    const user = userEvent.setup();
+    server.use(...createHandlers());
+    renderCreate();
+
+    await user.type(screen.getByLabelText(/Email address/), 'not-an-address');
+    await user.click(screen.getByRole('button', { name: 'Create member' }));
+
+    expect(screen.getByLabelText(/Email address/)).toHaveFocus();
+  });
+
   it('offers a way back to the list', () => {
     server.use(...createHandlers());
     renderCreate();

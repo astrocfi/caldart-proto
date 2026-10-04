@@ -9,7 +9,7 @@
  * opened it as it closes, Escape included.  What every action did is said in a toast.
  */
 import { useCallback, useRef, useState } from 'react';
-import type { JSX } from 'react';
+import type { JSX, MouseEvent } from 'react';
 
 import type { NotificationSubscription } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
@@ -19,7 +19,7 @@ import { DataTable } from '@/portal/components/DataTable';
 import { DeleteButton } from '@/portal/components/DeleteButton';
 import { StatusDot } from '@/portal/components/StatusChip';
 import { useToast } from '@/portal/components/Toast';
-import { usePanelFocus } from '@/portal/components/focus';
+import { useFocusAfterSave, usePanelFocus } from '@/portal/components/focus';
 import {
   useDeleteNotificationSubscription,
   useNotificationEvents,
@@ -52,6 +52,12 @@ export function NotificationSubscriptionsCard(): JSX.Element {
   const update = useUpdateNotificationSubscription();
   const remove = useDeleteNotificationSubscription();
   const isBusy = update.isPending || remove.isPending;
+  // Every row's buttons wait while one acts; the one pressed gets the focus back.
+  const pressedRef = useRef<HTMLElement | null>(null);
+  useFocusAfterSave(pressedRef, isBusy);
+  const handlePress = (event: MouseEvent<HTMLElement>): void => {
+    pressedRef.current = event.currentTarget;
+  };
   const events = catalog.data ?? [];
 
   const handleToggleActive = (row: NotificationSubscription): void => {
@@ -124,7 +130,15 @@ export function NotificationSubscriptionsCard(): JSX.Element {
           <Button variant="quiet" small disabled={isBusy} onClick={() => handleEdit(row)}>
             Edit
           </Button>
-          <Button variant="quiet" small disabled={isBusy} onClick={() => handleToggleActive(row)}>
+          <Button
+            variant="quiet"
+            small
+            disabled={isBusy}
+            onClick={(event) => {
+              handlePress(event);
+              handleToggleActive(row);
+            }}
+          >
             {row.is_active ? 'Pause' : 'Resume'}
           </Button>
           <DeleteButton

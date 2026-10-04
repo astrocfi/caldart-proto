@@ -19,7 +19,7 @@ import { StatusChip } from '@/portal/components/StatusChip';
 import type { StatusTone } from '@/portal/components/StatusChip';
 import { useToast } from '@/portal/components/Toast';
 import { VerifiedMark } from '@/portal/components/VerifiedMark';
-import { usePanelFocus } from '@/portal/components/focus';
+import { useFocusAfterSave, usePanelFocus } from '@/portal/components/focus';
 import { InsuranceChip } from '@/portal/features/aircraft/InsuranceChip';
 import { MemberVerificationPanel } from '@/portal/features/verification/MemberVerificationPanel';
 import { useSetVerifier } from '@/portal/features/verification/api';
@@ -262,6 +262,8 @@ function VerifierButton({ userId, status }: VerifierButtonProps): JSX.Element | 
   const canGrant = useCanGrantVerifier();
   const setVerifier = useSetVerifier(userId);
   const toast = useToast();
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  useFocusAfterSave(buttonRef, setVerifier.isPending);
   if (!canGrant) return null;
 
   const wanted = !status.is_verifier;
@@ -280,7 +282,13 @@ function VerifierButton({ userId, status }: VerifierButtonProps): JSX.Element | 
   };
 
   return (
-    <Button variant="quiet" small disabled={setVerifier.isPending} onClick={handleClick}>
+    <Button
+      ref={buttonRef}
+      variant="quiet"
+      small
+      disabled={setVerifier.isPending}
+      onClick={handleClick}
+    >
       {wanted ? 'Make a verifier' : 'Remove as verifier'}
     </Button>
   );

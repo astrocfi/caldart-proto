@@ -201,4 +201,30 @@ describe('ConfirmButton', () => {
 
     expect(screen.getByRole('button', { name: 'Deactivate account' })).toHaveFocus();
   });
+
+  it('moves the focus to Cancel when the first choice is a destructive one', async () => {
+    renderWithProviders(
+      <ConfirmButton
+        label="Run now"
+        choices={[{ label: 'Charge what is due', variant: 'danger', onChoose: vi.fn() }]}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'Run now' }));
+
+    expect(screen.getByRole('button', { name: 'Cancel' })).toHaveFocus();
+  });
+
+  it('holds back a choice the caller marks as not ready', async () => {
+    renderWithProviders(
+      <ConfirmButton
+        label="Make me a friend"
+        choices={[{ label: 'Go ahead', disabled: true, onChoose: vi.fn() }]}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'Make me a friend' }));
+
+    expect(screen.getByRole('button', { name: 'Go ahead' })).toBeDisabled();
+  });
 });

@@ -136,6 +136,30 @@ describe('EmailTypesPage', () => {
     expect(await screen.findByText('Another email type already has this name.')).toBeVisible();
   });
 
+  it('moves the focus into the form as it opens', async () => {
+    stubTypes();
+    renderPage();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole('button', { name: 'Add an email type' }));
+
+    expect(screen.getByRole('textbox', { name: /Name/ })).toHaveFocus();
+  });
+
+  it('closes the form on Escape and gives the focus back to the row it was opened from', async () => {
+    stubTypes();
+    renderPage();
+    const user = userEvent.setup();
+
+    const row = await rowOf('Fundraising');
+    await user.click(within(row).getByRole('button', { name: 'Edit Fundraising' }));
+    await user.keyboard('{Escape}');
+
+    expect(
+      within(await rowOf('Fundraising')).getByRole('button', { name: 'Edit Fundraising' }),
+    ).toHaveFocus();
+  });
+
   it('edits a type, starting from its settings', async () => {
     const captured = stubTypes();
     renderPage();

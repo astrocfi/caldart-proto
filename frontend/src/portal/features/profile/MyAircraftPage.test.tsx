@@ -224,6 +224,25 @@ describe('<MyAircraftPage/>', () => {
     expect(await screen.findByText('N12345')).toBeInTheDocument();
   });
 
+  it('moves the focus to the line of the aircraft just added', async () => {
+    const added = { ...TEST_AIRCRAFT, id: 9, n_number: 'N54321' };
+    let attached = false;
+    server.use(
+      http.get(`${API}/me/profile`, () =>
+        HttpResponse.json(makeProfile({ aircraft: attached ? [added] : [] })),
+      ),
+      http.post(`${API}/me/profile/aircraft`, () => {
+        attached = true;
+        return HttpResponse.json({ aircraft: [added] });
+      }),
+    );
+
+    renderWithProviders(<MyAircraftPage />, { route: '/profile/aircraft' });
+    await userEvent.click(await screen.findByRole('button', { name: 'Pick N54321' }));
+
+    await waitFor(() => expect(screen.getByText('N54321').closest('li')).toHaveFocus());
+  });
+
   it('does nothing to an aircraft on the first press of its trashcan', async () => {
     let deleted: string | null = null;
     server.use(
