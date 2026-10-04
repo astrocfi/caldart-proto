@@ -84,7 +84,7 @@ test('a saved group and a saved template start a fresh draft', async ({ page }) 
     .getByRole('navigation', { name: 'Portal sections' })
     .getByRole('link', { name: 'Templates' })
     .click();
-  await expect(page.getByRole('cell', { name: template, exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: `Edit ${template}` })).toBeVisible();
   await page
     .getByRole('navigation', { name: 'Portal sections' })
     .getByRole('link', { name: 'Recipient groups' })
