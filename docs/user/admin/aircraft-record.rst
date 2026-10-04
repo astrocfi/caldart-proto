@@ -32,8 +32,8 @@ confirms it, the card returns with you on its **Verify**, and the form below sta
 from the saved record. **Cancel**, or Escape, closes the panel and changes nothing.
 
 **Details** is the form, headed by a line such as *Last updated 09/01/2026 by Dana Fiske*:
-the date of the last change and the account behind it. A record nobody has changed since it
-was loaded gives the date alone. The form has four parts.
+the date of the last change and the account behind it. A record whose **History** records no
+change has no such line. The form has four parts.
 
 **Aircraft**
    **N-number**, **Year**, **Aircraft type**, **Seats**, **Category**, and
@@ -61,7 +61,9 @@ was loaded gives the date alone. The form has four parts.
 
 **Owner**
    **Owner type** (Individual, FBO, or Flying club), **Owner name**, and **Owner contact**,
-   an email address or a phone number.
+   an email address or a phone number. A name typed, or filled from the registry, all in
+   capitals is saved in title case, *SKYWAYS AVIATION LLC* as **Skyways Aviation LLC**; one
+   typed in mixed case is kept as typed.
 
 **Insurance**
    **Carrier**, **Policy number**, **Liability per occurrence**, **Liability per person**,
@@ -97,8 +99,8 @@ didn't load. Try again in a moment.*
 Pilots who fly it
 =================
 
-This card lists every member who has attached the airplane to their profile, with their
-email address, **Member current**, **Member expired**, or **Friend**, and **GO** or
+This card lists every member who has attached the airplane to their profile, one a line
+with each part in a column of its own: their name, their email address, **Member current**, **Member expired**, or **Friend**, and **GO** or
 **NO-GO**, the :doc:`member-check`'s own verdict for that person, so the record and the
 checks never disagree. A name opens that person's
 :doc:`member-record`. With nobody attached it reads *No member lists this aircraft on their

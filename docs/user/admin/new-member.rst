@@ -16,8 +16,8 @@ What you see
 
 One form in four parts. Only the email address and the first and last names are required;
 the phone number never is. Everything else can be filled in later, by you or by the
-member. Left empty, a name reads *Enter a first name.* or *Enter a last name.* when you
-press **Add member**.
+member. Left empty, the address reads *Enter their email address.* and a name *Enter a first
+name.* or *Enter a last name.* when you press **Add member**.
 
 **Account**
    **Email address**, **First name**, **Last name**, **Kind of account**, and
@@ -63,17 +63,13 @@ tell them the password yourself. They are sent an email with the subject *CalDAR
 your email address*, and their address shows **Unverified** on their record until they open
 the link in it.
 
-Either way the person's first sign-in opens the join wizard (see :doc:`../member/join`),
-and the rest of the portal stays closed until they finish it:
-they verify the address if it is not verified yet, fill in any required profile field you
-left empty, and, when the kind is member and no term has started, pay their dues or choose
-to be a friend instead. Grant the term first, as below, and complete the profile, and they
-go straight to the dashboard.
-Creating an account does not give anybody a membership: the account is a friend of CalDART
-until a term starts, and reads **Friend** on :doc:`members` and on its record whichever
-kind you chose. Grant a term on the **Memberships** tab of the :doc:`member-record`, or let
-the member pay online, and they are a member from that moment. A friend needs neither,
-because a friend pays no dues.
+Either way the person has joined already: their first sign-in opens the dashboard, never
+the join wizard (see :doc:`../member/join`), even with the address unverified, the profile
+half empty, or no term yet. Creating an account does not give anybody a membership, though:
+until a term starts the account reads **Friend** on :doc:`members`, and *No membership yet:
+grant a term on Memberships* on its record. Grant a term on the **Memberships** tab of the
+:doc:`member-record`, or let the member pay online, and they are a member from that
+moment. A friend needs neither, because a friend pays no dues.
 
 
 If something looks wrong

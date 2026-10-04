@@ -24,8 +24,9 @@ House rules that apply throughout:
   ``last_published_at``, and ``latest_revision_created_at``) alongside the
   revision history behind them.  ``cms.SiteSettings`` carries no dates either,
   so editing the settings overwrites the single row and records nothing about
-  when or by whom.  ``aircraft.AircraftChange`` carries its own ``changed_at``
-  and no row is ever updated, so the inherited pair would only duplicate it.
+  when or by whom.  ``aircraft.AircraftChange`` and ``accounts.AccountChange``
+  carry their own ``changed_at`` and no row is ever updated, so the inherited pair
+  would only duplicate it.
   The registry's tables carry the dates the import needs instead:
   ``AircraftType.created_at``, ``Registration.imported_at``, and
   ``RegistryImport.started_at`` and ``finished_at``; ``AircraftTypeAlias``
@@ -106,6 +107,7 @@ Accounts, members, DARTs, and aircraft
 
           AbstractUser [label="auth.AbstractUser\n(abstract)", style="rounded,dashed"];
           User [label="accounts.User"];
+          AccountChange [label="accounts.AccountChange"];
           Group [label="auth.Group\n(a role)"];
           Permission [label="auth.Permission"];
           Profile [label="members.MemberProfile"];
@@ -123,6 +125,7 @@ Accounts, members, DARTs, and aircraft
           Payment [label="payments.Payment\n(see payments)", style="rounded,dotted"];
 
           User -> AbstractUser [arrowhead=empty];
+          AccountChange -> User [label="user CASCADE\nchanged_by SET_NULL"];
           User -> Group [label="groups\n(m2m)", dir=none, color="black:black"];
           User -> Permission [label="user_permissions\n(m2m)", dir=none, color="black:black"];
           Profile -> User [label="user 1--1\nCASCADE", arrowhead=none];
@@ -153,6 +156,7 @@ Accounts, members, DARTs, and aircraft
       Models in this area
       -------------------
       accounts.User             the account; inherits auth.AbstractUser (abstract)
+      accounts.AccountChange    one change to an account's roles or status
       auth.Group                a role, named by its slug
       auth.Permission           Django's per-model permissions
       members.MemberProfile     everything the join form collects
@@ -177,6 +181,8 @@ Accounts, members, DARTs, and aircraft
       accounts.User.groups              -> auth.Group              m2m
       accounts.User.user_permissions    -> auth.Permission         m2m
       accounts.User                     inherits auth.AbstractUser
+      accounts.AccountChange.user       -> accounts.User           FK, CASCADE
+      accounts.AccountChange.changed_by -> accounts.User           FK, SET_NULL, nullable
       members.MemberProfile.user        -> accounts.User           1--1, CASCADE
       members.MemberProfile.dart        -> darts.Dart              FK, SET_NULL, nullable
       members.MemberProfile.aircraft    -> aircraft.Aircraft       m2m, related name pilots
@@ -546,6 +552,32 @@ The kind of person an account belongs to (``User.kind``); see
 
 ``PERSON_KINDS`` is ``member`` and ``friend``, the kinds registration and an
 administrator may choose.
+
+.. _choices-account-change-kind:
+
+``AccountChangeKind`` (``apps/accounts/models.py``)
+---------------------------------------------------
+
+``AccountChange.kind``: what one entry of an account's history did.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 70
+
+   * - Value
+     - Label
+   * - ``created``
+     - Created
+   * - ``roles``
+     - Roles changed
+   * - ``deactivated``
+     - Deactivated
+   * - ``reactivated``
+     - Reactivated
+   * - ``blocked``
+     - Reactivation blocked
+   * - ``unblocked``
+     - Reactivation allowed
 
 .. _choices-membership-state:
 
@@ -1522,6 +1554,10 @@ and ``PermissionsMixin`` classes it builds on.
      - ``DateField``
      - null; default ``NULL``
      - the day a member who asked to become a friend becomes one; null when no change is pending
+   * - ``admin_created``
+     - ``BooleanField``
+     - not null; default ``False``
+     - true for an account an account administrator created on New member (``members.services.create_member``): its owner has joined already, so the portal opens without the join wizard
    * - ``reactivation_blocked``
      - ``BooleanField``
      - not null; default ``False``
@@ -1563,7 +1599,7 @@ to the rows already stored (:doc:`setup`).
 
 - ``groups``: many-to-many to ``auth.Group``; the reverse accessor is ``user_set``.
 - ``user_permissions``: many-to-many to ``auth.Permission``; the reverse accessor is ``user_set``.
-- Referenced by ``aircraft.Aircraft.created_by``, ``aircraft.Aircraft.insurance_verified_by``, ``aircraft.Aircraft.updated_by``, ``aircraft.AircraftChange.changed_by``, ``aircraft.AircraftCoveragePolicy.updated_by``, ``aircraft.RegistryImport.started_by``, ``mail.EmailLog.user``, ``mail.EmailOptOut.user``, ``members.MemberProfile.certificate_verified_by``, ``members.MemberProfile.medical_verified_by``, ``members.MemberProfile.photo_id_verified_by``, ``members.MemberProfile.user``, ``members.Membership.granted_by``, ``members.Membership.user``, ``payments.Payment.reconciled_by``, ``payments.Payment.recorded_by``, ``payments.Payment.user``, ``payments.Refund.requested_by``, ``payments.RenewalMandate.canceled_by``, ``payments.RenewalMandate.user``, ``payments.YearStatement.user``, ``reminders.ReminderLog.user``, ``reminders.ReminderSchedule.updated_by``, ``reports.ReportSubscription.created_by``, ``reports.ReportSubscription.recipient_user``, ``reports.SavedColumnSet.user``.
+- Referenced by ``accounts.AccountChange.changed_by``, ``accounts.AccountChange.user``, ``aircraft.Aircraft.created_by``, ``aircraft.Aircraft.insurance_verified_by``, ``aircraft.Aircraft.updated_by``, ``aircraft.AircraftChange.changed_by``, ``aircraft.AircraftCoveragePolicy.updated_by``, ``aircraft.RegistryImport.started_by``, ``mail.EmailLog.user``, ``mail.EmailOptOut.user``, ``members.MemberProfile.certificate_verified_by``, ``members.MemberProfile.medical_verified_by``, ``members.MemberProfile.photo_id_verified_by``, ``members.MemberProfile.user``, ``members.Membership.granted_by``, ``members.Membership.user``, ``payments.Payment.reconciled_by``, ``payments.Payment.recorded_by``, ``payments.Payment.user``, ``payments.Refund.requested_by``, ``payments.RenewalMandate.canceled_by``, ``payments.RenewalMandate.user``, ``payments.YearStatement.user``, ``reminders.ReminderLog.user``, ``reminders.ReminderSchedule.updated_by``, ``reports.ReportSubscription.created_by``, ``reports.ReportSubscription.recipient_user``, ``reports.SavedColumnSet.user``.
 
 **Invariants.**
 
@@ -1686,6 +1722,69 @@ included.  ``payments.renewals.mandates.switch_to_friend`` wraps
     Full name, falling back to the email address.
 ``email_verified``
     ``True`` when ``email_verified_at`` is set.
+
+``AccountChange``
+-----------------
+
+One change to who an account is allowed to be: the entries the user record's
+**History** card lists.  The audit log (``caldart.audit``) is a journal line per
+action and cannot be read back by a screen, so ``accounts.history.record_account_change``
+writes this row beside the audit line for the same change.  It does not inherit
+``TimestampedModel``: ``changed_at`` is its only date, and no row is ever updated.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 22 26 18 34
+
+   * - Field
+     - Type
+     - Null, default
+     - Meaning
+   * - ``id``
+     - ``BigAutoField``
+     - not null; assigned by the database
+     - primary key
+   * - ``user``
+     - ``ForeignKey`` to ``accounts.User``, ``CASCADE``
+     - not null; required
+     - the account changed; related name ``account_changes``, so deleting the account deletes its history
+   * - ``changed_by``
+     - ``ForeignKey`` to ``accounts.User``, ``SET_NULL``
+     - null; default ``NULL``
+     - who made it: the account itself for its owner's own deactivation or reactivation, null for a management command or an account since deleted; related name ``account_changes_made``
+   * - ``changed_at``
+     - ``DateTimeField``
+     - not null; default now
+     - when the change happened
+   * - ``kind``
+     - ``CharField(12)``, choices :ref:`AccountChangeKind <choices-account-change-kind>`
+     - not null; required
+     - what the change did
+   * - ``added``
+     - ``JSONField``
+     - not null; default ``[]``
+     - the role slugs a ``roles`` change granted, in privilege order; empty for every other kind
+   * - ``removed``
+     - ``JSONField``
+     - not null; default ``[]``
+     - the role slugs a ``roles`` change took away, in privilege order; empty for every other kind
+
+**Constraints, indexes, and ordering.**
+
+- Index ``account_change_idx`` on (``user``, ``-changed_at``).
+- Ordering: ``-changed_at``, ``-id``.
+
+**Relationships.**
+
+- ``user``: foreign key to ``accounts.User``, ``CASCADE``; the reverse accessor is ``account_changes``.
+- ``changed_by``: foreign key to ``accounts.User``, ``SET_NULL``, nullable; the reverse accessor is ``account_changes_made``.
+
+A row is written by ``members.services.create_member`` (``created``),
+``accounts.services.update_account`` for a role list that really changes
+(``roles``), and the four status functions in ``accounts.status`` (``deactivated``,
+``reactivated``, ``blocked``, ``unblocked``), the owner's own deactivation and
+reactivation included.  :doc:`api-auth` covers ``GET /admin/users/{id}/history``,
+which is ``user_admin`` only.
 
 Roles
 -----
@@ -2627,7 +2726,8 @@ than copying it, so an insurance renewal entered once is right for everybody.
      - ``CharField(160)``
      - not null; default ``""``
      - the owner's name; an individual's is stored through ``caldart.casing.person_name``
-       (see ``User``), an FBO's or a club's as typed
+       (see ``User``), an FBO's or a club's through ``caldart.casing.business_name``:
+       title case for a name in one case, its abbreviations (``LLC``, ``FBO``) upper case
    * - ``owner_contact``
      - ``CharField(200)``
      - not null; default ``""``

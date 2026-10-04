@@ -657,6 +657,14 @@ not (see :ref:`api-csrf-bootstrap`).
      - ·
      - ·
      - ``PUT`` → 405; a tombstone refuses ``PATCH`` with 400
+   * - ``GET /admin/users/{id}/history``
+     - ·
+     - ·
+     - ·
+     - ✓
+     - ·
+     - ·
+     - the account's role and status changes
    * - ``POST /admin/users/{id}/send-password-reset``
      - ·
      - ·

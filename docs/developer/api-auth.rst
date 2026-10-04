@@ -103,7 +103,8 @@ Every endpoint that returns an account returns the same object:
      "profile_complete": true,
      "email_verified": true,
      "kind": "member",
-     "friend_on": null
+     "friend_on": null,
+     "admin_created": false
    }
 
 ``roles``
@@ -152,6 +153,14 @@ Every endpoint that returns an account returns the same object:
 ``friend_on``
    The date a member who asked to become a friend becomes one, or ``null``.
    Read-only on every endpoint here.
+
+``admin_created``
+   True for an account an account administrator created on New member
+   (``POST /admin/members``, :doc:`api-members`), with or without a password.
+   Such a person has joined already, as a member or a friend, so the portal treats
+   them as onboarded whatever ``email_verified``, ``profile_complete``, and
+   ``membership`` say, and their first sign-in opens the dashboard rather than the
+   join wizard.  False for an account made any other way.  Read-only everywhere.
 
 The payload is read-only everywhere except ``PATCH /admin/users/{id}``, whose
 answer also carries ``email_verified_at`` (below).
@@ -707,7 +716,7 @@ Statuses: **200**; **401** when anonymous.
 Users admin
 ===========
 
-All ten endpoints require the ``user_admin`` role.  ``system_admin`` passes
+All eleven endpoints require the ``user_admin`` role.  ``system_admin`` passes
 every role check, so system administrators have them too; every other role gets
 403.
 
@@ -940,6 +949,36 @@ The flag comes back if the next message to the address bounces too.
 
 Statuses: **200** with the user payload; **401** when anonymous; **403** without
 ``user_admin``; **404** for an unknown id.
+
+
+``GET /admin/users/{id}/history``
+---------------------------------
+
+The account's role and status changes, newest first, unpaginated: the user record's
+History card.  Each is an ``AccountChange`` row (``apps.accounts.history``), written
+beside the audit line for the same change, since the audit log is a journal and cannot
+be read back.  A row is written for an account created on New member (``created``), a
+role list that really changes (``roles``), and each deactivation, reactivation, block,
+and lifted block (``deactivated``, ``reactivated``, ``blocked``, ``unblocked``),
+including the owner's own deactivation and reactivation.
+
+.. code-block:: json
+
+   [
+     {"id": 7, "changed_at": "2026-10-04T15:12:00-07:00",
+      "changed_by": {"id": 3, "name": "Nina Kowalski"}, "kind": "roles",
+      "added": ["dart_leader"], "removed": []},
+     {"id": 2, "changed_at": "2026-09-01T10:00:00-07:00",
+      "changed_by": null, "kind": "deactivated", "added": [], "removed": []}
+   ]
+
+``changed_by`` is the acting account's id and name, which is the account itself for
+its owner's own change, and ``null`` for a management command or an account since
+deleted.  ``added`` and ``removed`` are the role slugs a ``roles`` row granted and
+took away, in privilege order, and empty for every other kind.
+
+Statuses: **200**; **401** when anonymous; **403** without ``user_admin``;
+**404** for an unknown id.
 
 
 .. _api-account-status:
@@ -1197,7 +1236,8 @@ person presses one — no address signs anybody out by being opened.
 ``/login?next=<where they were going>`` and a missing role into the 403 page.
 ``RequireOnboarded``, nested inside ``RequireAuth`` around every signed-in route
 except ``/change-email``, sends a reader who has not finished joining
-(``isOnboarded`` in ``features/join/steps.ts``) to ``/join/verify``,
+(``isOnboarded`` in ``features/join/steps.ts``, always true for an account with
+``admin_created``) to ``/join/verify``,
 ``/join/profile``, or ``/join/pay``, whichever they still owe; the portal chrome
 draws no rail for them (see :doc:`architecture`).
 The guards wait for ``GET /auth/me`` to settle first, so a slow answer never
@@ -1219,7 +1259,9 @@ there.  The public screens -- the portal chrome, sign-in, and the join wizard
 something usable for a visitor who is not signed in.
 
 The users-admin screens live in ``src/portal/features/admin-users/``, with their
-query hooks in ``api.ts``.
+query hooks in ``api.ts``.  The user record's History card reads
+``GET /admin/users/{id}/history`` through ``useAdminUserHistory``, whose key sits
+under the users-admin key, so every save and status action reads it again.
 
 
 Tests
@@ -1233,6 +1275,14 @@ Tests
 ``backend/tests/test_users_admin_api.py``
    The full role matrix on every users-admin endpoint, the search and filter
    parameters, and each business rule above.
+
+``backend/tests/test_user_history.py``
+   Which changes write an ``AccountChange`` row and under whom, and the history
+   endpoint's role matrix, order, and shape.
+
+``backend/tests/test_admin_created_accounts.py``
+   ``admin_created`` on accounts made on New member and by registration, the role
+   descriptions' wording, and the refusal of a System administrator change.
 
 ``backend/tests/test_email_verification.py``
    The verification token and each way it is refused, the message, every path

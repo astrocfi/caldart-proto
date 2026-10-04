@@ -37,7 +37,8 @@ though the download leads with **Role**:
 - **DART**: their team, blank for none.
 - **Kind**: **Member**, **Friend**, or **Donor**, as the account's record shows it.
 - **Membership**: a colored dot and the membership's state: **Current**, **Expiring soon**,
-  **Expired**, **Never expires**, **Friend**, or **Donor**.
+  **Expired**, **Never expires**, or **Friend**. A donor holds none, and reads *No
+  membership*.
 
 **Name** and **Email** sort: click one to sort by it, and again to reverse the order. The
 other headings have no arrow and do not sort. On a narrower screen the table leaves out
@@ -78,8 +79,9 @@ at the end of the bar, empties them and puts **Account status** back on **Active
    bounced** lists the accounts whose address another mail server has refused for good, so
    you can find each one and correct the address (:doc:`user-record`).
 
-Changing a filter takes you back to the first page. With nothing to show the table reads *No
-accounts match those filters*, with a **Reset filters** button under it.
+Changing a filter takes you back to the first page. With nothing to show, the table names
+the filters in force, such as *No accounts match the Role and Kind filters*, with a **Reset
+filters** button under it.
 
 
 Exporting the roles report
@@ -104,8 +106,8 @@ columns under a name, as :ref:`saved-column-sets` describes.
 
 With **Donor** chosen under **Kind**, or **Member** under **Role**, the report has
 nobody to list, so the two export buttons and **Columns** are grayed out, and **Load
-columns** and **Save columns** are put away until you choose another kind or role; rest the
-pointer on a grayed-out button to see why.
+columns** and **Save columns** are put away until you choose another kind or role. A line
+beside the grayed-out buttons says why.
 
 An account administrator can have the same report emailed on a schedule, to themselves or to
 a user administrator, from :doc:`subscriptions`.

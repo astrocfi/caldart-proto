@@ -87,8 +87,8 @@ takes you to its first box. Press **Save changes**. Escape closes the form as **
 and you are back on the row's **Edit**.
 Renaming a team is safe: the members on it stay on it.
 
-**Making one inactive.** Uncheck **Active** (*Active — uncheck to make the DART inactive
-without losing its history*) and save. The team disappears from the join form and from the
+**Making one inactive.** Uncheck **Active** (the line under it reads *Uncheck to make the
+DART inactive without losing its history.*) and save. The team disappears from the join form and from the
 list on a member's profile, and everybody already on it stays on it, so the history and the
 reports still read correctly. Check the box again to bring the team back.
 

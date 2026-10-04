@@ -512,7 +512,7 @@ Beyond Django's and Wagtail's own, this project adds:
    * - ``normalize_casing [--dry-run]``
      - put every stored person's name (an account's first and last name, an emergency
        contact, a DART contact, an individual aircraft owner, a DART page's leader),
-       street, and city in the casing a save gives it (:doc:`data-model`), writing only
+       every other aircraft owner's name, street, and city in the casing a save gives it (:doc:`data-model`), writing only
        the fields that change and printing each as ``<email>: last_name "SMITH" ->
        "Smith"`` (``DART contact <id>``, ``aircraft <N-number>``, or ``DART page <id>``
        in place of the email for those rows), then a count;

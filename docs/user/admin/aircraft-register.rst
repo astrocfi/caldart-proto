@@ -49,7 +49,8 @@ The table shows the same columns as the register you download, and **Columns** c
    The owner's name.
 
 **Carrier**, **Liability / occurrence**, and **Hull**
-   The insurance carrier, and the policy's limits in dollars, right-aligned.
+   The insurance carrier, and the policy's limits in dollars, right-aligned. An airplane
+   with no policy on file, no carrier and no expiry date, leaves all three blank.
 
 **Expires**
    A colored dot and the cover's state with its date: *Insured to 04/29/2027* (green),
