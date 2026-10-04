@@ -38,7 +38,7 @@ Add an aircraft you fly
 
 #. Sign in and choose **My aircraft** in the menu.
 #. In **Search CalDART's aircraft list**, type the N-number.
-#. Click the airplane in the results. It joins your **Attached aircraft**.
+#. Click the airplane in the results. It joins **Your aircraft**.
 #. If it is not on CalDART's list, press **Add a new aircraft**, fill in the
    **N-number**, **Make**, **Model**, and the **Insurance expires** date, and press
    **Add aircraft**.

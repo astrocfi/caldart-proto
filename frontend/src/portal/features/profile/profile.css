@@ -181,3 +181,8 @@
   margin: 0 0 var(--space-4);
   white-space: pre-line;
 }
+
+/* Where Edit would be on a plane somebody else added: who to write to instead. */
+.aircraft-list__owner {
+  font-size: var(--text-sm);
+}

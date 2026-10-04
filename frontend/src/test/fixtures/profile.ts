@@ -83,8 +83,11 @@ export const TEST_AIRCRAFT: AircraftSummary = {
   coverage: { excluded: false, reason: '' },
   insurance_is_current: true,
   insurance_expiration: '2027-03-01',
+  insurance_liability_per_occurrence_cents: 100_000_000,
+  insurance_liability_per_person_cents: 10_000_000,
   insurance_summary: '$1,000,000 / $100,000 · exp 2027-03-01',
   insurance_verified: false,
+  created_by: null,
 };
 
 /** A complete `Profile` fixture, with `overrides` merged over the defaults. */

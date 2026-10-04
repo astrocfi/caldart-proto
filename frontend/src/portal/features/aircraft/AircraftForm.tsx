@@ -8,7 +8,7 @@
  * picked from the aircraft types, and fills the category when the type knows it.
  */
 import { useRef, useState } from 'react';
-import type { JSX, MouseEvent } from 'react';
+import type { JSX, MouseEvent, ReactNode } from 'react';
 
 import type { AircraftPatch, AircraftType, Registration } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
@@ -59,6 +59,11 @@ export interface AircraftFormProps {
   onCancel?: () => void;
   /** Notes and the active flag: only on the administrator's screen. */
   withAdminFields?: boolean;
+  /**
+   * What to say under the N-number about the registration in the box, such as that
+   * CalDART has it on file already; handed the box's value as it changes.
+   */
+  nNumberNote?: (nNumber: string) => ReactNode;
 }
 
 /** The aircraft record form, shared by the create and edit screens. */
@@ -71,6 +76,7 @@ export function AircraftForm({
   onSubmit,
   onCancel: handleCancel,
   withAdminFields = false,
+  nNumberNote,
 }: AircraftFormProps): JSX.Element {
   const [values, setValues] = useState<AircraftFormValues>(initial);
   const formRef = useRef<HTMLFormElement>(null);
@@ -134,6 +140,9 @@ export function AircraftForm({
             error={shown.n_number}
             hint="N, then digits, then at most two letters, such as N172SP"
           />
+          {nNumberNote === undefined ? null : (
+            <div className="aircraft-form__wide">{nNumberNote(values.n_number)}</div>
+          )}
           <Field label="Year" error={shown.year}>
             {(field) => (
               <MaskedInput

@@ -35,7 +35,12 @@ test('a current member asks to become a friend, then undoes it', async ({ page }
   await completeOnboarding(page, uniqueEmail('switcher'), { as: 'member', firstName: 'Rosa' });
   await page.getByRole('link', { name: 'Go to my dashboard' }).click();
 
-  const card = membershipCard(page, 'Your membership is current');
+  // The dashboard leads with Renew; becoming a friend is offered on My profile.
+  const dashboardCard = membershipCard(page, 'Your membership is current');
+  await expect(dashboardCard.getByRole('button', { name: 'Make me a friend' })).toHaveCount(0);
+  await dashboardCard.getByRole('link', { name: 'Update your details' }).click();
+
+  const card = membershipCard(page, 'Your kind of account');
   await card.getByRole('button', { name: 'Make me a friend' }).click();
   await expect(
     card.getByText(/^Your membership stays current through \d{2}\/\d{2}\/\d{4}\./),

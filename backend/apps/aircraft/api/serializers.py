@@ -295,7 +295,9 @@ class AircraftSummarySerializer(serializers.ModelSerializer[Aircraft]):
 
     ``make`` and ``model`` are the display names of the aircraft's ``type``;
     ``coverage`` is whether the coverage policy excludes the aircraft (see
-    :func:`coverage_payload`).
+    :func:`coverage_payload`).  ``created_by`` is the id of the account that added the
+    record, or null, so a member's own list can tell the records they may edit; the two
+    liability limits, in cents, let a screen label each one.
     """
 
     make = serializers.CharField(read_only=True)
@@ -321,8 +323,11 @@ class AircraftSummarySerializer(serializers.ModelSerializer[Aircraft]):
             "coverage",
             "insurance_is_current",
             "insurance_expiration",
+            "insurance_liability_per_occurrence_cents",
+            "insurance_liability_per_person_cents",
             "insurance_summary",
             "insurance_verified",
+            "created_by",
         ]
         read_only_fields = fields
 

@@ -141,7 +141,11 @@ settings.  An aircraft with no category that is not otherwise excluded reads
 ``Category not recorded``, and every other reason is blank.  The policy is read
 once per response, however many aircraft it carries.  The short form embedded
 in profiles and the member check's status card carries ``category``,
-``airworthiness``, and ``coverage`` too.
+``airworthiness``, and ``coverage`` too, with the two liability limits in cents
+(``insurance_liability_per_occurrence_cents`` and
+``insurance_liability_per_person_cents``, 0 when none is recorded) and
+``created_by``, the id of the account that added the record or null, by which My
+aircraft offers **Edit** on a member's own records alone.
 
 ===================  ============================================================
 Parameter            Meaning

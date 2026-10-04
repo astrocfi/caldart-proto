@@ -19,6 +19,8 @@
 
 .aircraft-result {
   border-bottom: var(--hairline) solid var(--color-rule);
+  /* A row of the list, not a paragraph: it runs the card's width. */
+  max-width: none;
 }
 
 .aircraft-result__button {
@@ -144,4 +146,15 @@
 
 .aircraft-registry-date {
   font-size: var(--text-sm);
+}
+
+/* A line that belongs to the whole form, such as the note that the N-number is on
+ * file already, takes a row of its own. */
+.aircraft-form__wide {
+  grid-column: 1 / -1;
+}
+
+.aircraft-on-file {
+  margin: 0 0 var(--space-4);
+  max-width: none;
 }

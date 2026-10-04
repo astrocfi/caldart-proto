@@ -8,7 +8,7 @@ import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
 import type { AircraftPickerProps } from '@/portal/features/aircraft';
 
-import type { Aircraft } from '@/portal/api/types';
+import type { Aircraft, SiteConfig } from '@/portal/api/types';
 import { MyAircraftPage } from './MyAircraftPage';
 import { TEST_AIRCRAFT, makeAircraftType, makeProfile } from '@test/fixtures/profile';
 
@@ -49,6 +49,15 @@ const PICKED: Aircraft = {
 
 const excluded = vi.fn<(ids: number[] | undefined) => void>();
 
+/** The site settings My aircraft reads: the address to write to about a record. */
+const SITE_CONFIG: SiteConfig = {
+  org_name: 'CalDART',
+  theme: 'sierra',
+  contact_email: 'office@example.org',
+  nav: [],
+  members_pages: [],
+};
+
 vi.mock('@/portal/features/aircraft', async (importOriginal) => {
   // Keep the real module — the editor on this page is built from it — and
   // stand in only for the picker.
@@ -69,10 +78,21 @@ vi.mock('@/portal/features/aircraft', async (importOriginal) => {
 describe('<MyAircraftPage/>', () => {
   beforeEach(() => {
     excluded.mockClear();
-    server.use(signedInAs(makeUser()));
+    server.use(
+      signedInAs(makeUser()),
+      http.get(`${API}/site/config`, () => HttpResponse.json(SITE_CONFIG)),
+    );
   });
 
-  it('lists an attached aircraft with its insurance chip', async () => {
+  it('heads the list Your aircraft', async () => {
+    server.use(http.get(`${API}/me/profile`, () => HttpResponse.json(makeProfile())));
+
+    renderWithProviders(<MyAircraftPage />, { route: '/profile/aircraft' });
+
+    expect(await screen.findByRole('heading', { name: 'Your aircraft' })).toBeInTheDocument();
+  });
+
+  it('lists an attached aircraft with its insurance in the words every list uses', async () => {
     server.use(
       http.get(`${API}/me/profile`, () =>
         HttpResponse.json(makeProfile({ aircraft: [TEST_AIRCRAFT] })),
@@ -83,8 +103,10 @@ describe('<MyAircraftPage/>', () => {
 
     expect(await screen.findByText('N12345')).toBeInTheDocument();
     expect(screen.getByText('Cessna 182T Skylane')).toBeInTheDocument();
-    expect(screen.getByText('Current')).toHaveAttribute('data-tone', 'current');
-    expect(screen.getByText('$1,000,000 / $100,000 · exp 2027-03-01')).toBeInTheDocument();
+    expect(screen.getByText('Insured to 03/01/2027')).toHaveAttribute('data-tone', 'current');
+    expect(
+      screen.getByText('Liability $1,000,000 per occurrence, $100,000 per person'),
+    ).toBeInTheDocument();
   });
 
   it('ledes with the planes a member commonly flies and nothing more', async () => {
@@ -125,7 +147,7 @@ describe('<MyAircraftPage/>', () => {
 
     renderWithProviders(<MyAircraftPage />, { route: '/profile/aircraft' });
 
-    expect(await screen.findByText('Not on file')).toBeInTheDocument();
+    expect(await screen.findByText('No insurance on file')).toBeInTheDocument();
   });
 
   it('states the coverage policy note above the list', async () => {
@@ -328,8 +350,9 @@ describe('<MyAircraftPage/> editing', () => {
   beforeEach(() => {
     server.use(
       signedInAs(makeUser({ id: 1 })),
+      http.get(`${API}/site/config`, () => HttpResponse.json(SITE_CONFIG)),
       http.get(`${API}/me/profile`, () =>
-        HttpResponse.json(makeProfile({ aircraft: [TEST_AIRCRAFT] })),
+        HttpResponse.json(makeProfile({ aircraft: [{ ...TEST_AIRCRAFT, created_by: 1 }] })),
       ),
     );
   });
@@ -359,17 +382,36 @@ describe('<MyAircraftPage/> editing', () => {
     expect(await screen.findByText('N12345 updated.')).toBeInTheDocument();
   });
 
-  it("sends the member to an administrator for someone else's record", async () => {
-    server.use(http.get(`${API}/aircraft/7`, () => HttpResponse.json(record(99))));
+  it('offers no Edit on a plane somebody else added, and says who to write to', async () => {
+    server.use(
+      http.get(`${API}/me/profile`, () =>
+        HttpResponse.json(makeProfile({ aircraft: [{ ...TEST_AIRCRAFT, created_by: 99 }] })),
+      ),
+    );
 
     renderWithProviders(<MyAircraftPage />);
 
-    await userEvent.click(
-      await screen.findByRole('button', { name: `Edit ${TEST_AIRCRAFT.n_number}` }),
+    const row = (await screen.findByText('N12345')).closest('li') as HTMLElement;
+    expect(within(row).queryByRole('button', { name: /^Edit/ })).not.toBeInTheDocument();
+    expect(
+      await within(row).findByRole('link', { name: 'office@example.org' }),
+    ).toHaveAttribute('href', 'mailto:office@example.org');
+    expect(row).toHaveTextContent('Added by someone else. To correct it, write to');
+  });
+
+  it('lets an account administrator edit a plane somebody else added', async () => {
+    server.use(
+      signedInAs(makeUser({ id: 1, roles: ['member', 'account_admin'] })),
+      http.get(`${API}/me/profile`, () =>
+        HttpResponse.json(makeProfile({ aircraft: [{ ...TEST_AIRCRAFT, created_by: 99 }] })),
+      ),
     );
 
-    expect(await screen.findByText('Someone else added this aircraft')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Save changes' })).not.toBeInTheDocument();
+    renderWithProviders(<MyAircraftPage />);
+
+    expect(
+      await screen.findByRole('button', { name: `Edit ${TEST_AIRCRAFT.n_number}` }),
+    ).toBeInTheDocument();
   });
 
   it.each([
@@ -413,7 +455,7 @@ describe('<MyAircraftPage/> editing', () => {
     renderWithProviders(<MyAircraftPage />, { route: '/profile/aircraft' });
 
     const row = (await screen.findByText('N172SP')).closest('li') as HTMLElement;
-    expect(within(row).getByText('Not on file')).toBeInTheDocument();
+    expect(within(row).getByText('No insurance on file')).toBeInTheDocument();
     expect(within(row).queryByText('Not yet verified')).not.toBeInTheDocument();
   });
 
@@ -452,6 +494,7 @@ describe('<MyAircraftPage/> editing', () => {
                 id: TEST_AIRCRAFT.id,
                 n_number: TEST_AIRCRAFT.n_number,
                 insurance_verified: !edited,
+                created_by: 1,
               }),
             ],
           }),
