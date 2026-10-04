@@ -407,7 +407,11 @@ export function ProfileFieldsets({
                 value={value.county}
                 onChange={(event) => set('county', event.target.value as CaliforniaCounty | '')}
               >
-                <option value="">Not in California</option>
+                {/* With California chosen a blank county is one still to choose, not
+                    an address outside the state. */}
+                <option value="">
+                  {value.state === 'CA' ? 'Choose a county' : 'Not in California'}
+                </option>
                 {CA_COUNTIES.map((county) => (
                   <option key={county} value={county}>
                     {county}

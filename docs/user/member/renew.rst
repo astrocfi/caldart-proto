@@ -2,9 +2,10 @@
 Renew
 =====
 
-The **Renew your membership** screen pays for your next term. A renewal starts the
-day after your current term ends, so there is no penalty for renewing early: you
-never lose days you have already paid for. Open it from **Renew** in the menu, from
+The **Renew your membership** screen pays for your next term. While you are current
+it says *A renewal starts the day after your current term ends, so there is no
+penalty for renewing early*: you never lose days you have already paid for. Once
+your membership has lapsed it says *Your new year starts today.* Open it from **Renew** in the menu, from
 the **Renew** button on your :doc:`dashboard`, or from the link in any renewal
 reminder email.
 
@@ -12,20 +13,27 @@ reminder email.
 What you see
 ============
 
-The **Your membership** card comes first. It shows your membership status, then
-*Expires* and the date with the days to go, or *Expired* and the date it ran out
-on, and the plan you hold, such as *Annual membership*.
+The **Your membership** card comes first, across the page's full width. It shows
+your membership status, then *Expires* and the date with the days to go, or
+*Expired* and the date it ran out on, and the plan you hold, such as *Annual
+membership*.
 
 Renewing is for a member. A friend of CalDART, including somebody who joined as a
 member and has not paid yet, has nothing to renew: opening **Renew** takes a friend
 to :doc:`become-a-member` instead.
 
-Below it is the checkout, headed **Your renewal**. It works the same way
-as the join wizard's payment step (see :doc:`join`): choose the plan, with the first
-plan listed chosen for you, add a contribution if you like, check **Renew
-automatically each year** if you want CalDART to renew you from now on, and pay from
-one of the tabs. A site with no membership plan set up shows *No membership plan is
-set up yet. Ask an administrator.* instead of the plans, and offers no way to pay.
+Below it is the checkout, in a card of its own. It works the same way as the join
+wizard's payment step (see :doc:`join`): choose the plan, with the first plan listed
+chosen for you, add a contribution if you like, check **Renew automatically each
+year** if you want CalDART to renew you from now on, and pay from one of the tabs. A
+site with no membership plan set up shows *No membership plan is set up yet. Ask an
+administrator.* instead of the plans, and offers no way to pay.
+
+If your automatic renewal is already on, a card headed **Automatic renewal is on**
+takes the checkout's place: *We will charge $145.00 on 04/27/2027. You do not need
+to do anything.*, with your own amount and date. Nothing more is needed, so you do
+not pay twice by mistake. To pay for another term now all the same, press **Renew
+now anyway**, which opens the checkout.
 
 
 What happens next

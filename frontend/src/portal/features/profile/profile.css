@@ -28,14 +28,16 @@
 /* `input[type='tel']` in base.css sets width: 100%, and a single class does
  * not outrank an element-plus-attribute selector, so both widths here are
  * written with two classes.  The inputs are `border-box`, so the widths below
- * include the padding.  A phone box the width of the number it holds reads as
- * an afterthought beside the address fields above it, so the boxes are wider
- * than the number strictly needs; the same widths apply wherever
- * `ProfileFieldsets` renders, on the member's own profile form and on the
- * account administrator's member screens alike. */
+ * include the padding.  The number's box grows to 32ch where the column has room
+ * and gives way down to 10rem, still wide enough for 415-555-0100, where it has not,
+ * so the extension stays on the number's line in a two-column form at any width; the
+ * same widths apply wherever `ProfileFieldsets` renders, on the member's own profile
+ * form, in the join wizard, and on the account administrator's member screens. */
 .field-pair .field-pair__main {
-  width: 32ch;
-  flex: 0 0 auto;
+  width: auto;
+  flex: 1 1 10rem;
+  min-width: 10rem;
+  max-width: 32ch;
 }
 
 .field-pair__extension {
@@ -48,7 +50,7 @@
 }
 
 .field-pair .field-pair__extension input {
-  width: 14ch;
+  width: 11ch;
   flex: 0 0 auto;
 }
 

@@ -1,13 +1,13 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 
 import { makeUser } from '@test/handlers';
 import type { MembershipStatus } from '@/portal/api/types';
 import {
   clampJoinStep,
   furthestJoinStep,
+  holdFriendPayStep,
   isJoinStep,
   isOnboarded,
-  joinStepEyebrow,
   joinStepIndex,
   joiningAs,
   laterJoinStep,
@@ -64,7 +64,7 @@ describe('furthestJoinStep', () => {
     expect(furthestJoinStep(makeUser())).toBe('done');
   });
 
-  it('never holds a friend with a complete profile at the pay step', () => {
+  it('resumes a friend with a complete profile on done when nothing holds the pay step', () => {
     expect(furthestJoinStep(makeUser({ kind: 'friend', membership: FRIEND }))).toBe('done');
   });
 
@@ -144,6 +144,32 @@ describe('isOnboarded', () => {
   });
 });
 
+describe('holdFriendPayStep', () => {
+  afterEach(() => window.sessionStorage.clear());
+
+  it('holds a friend at the pay step while this tab holds it for them', () => {
+    const user = makeUser({ id: 7, kind: 'friend', membership: FRIEND });
+    holdFriendPayStep(7);
+
+    expect(isOnboarded(user)).toBe(false);
+    expect(furthestJoinStep(user)).toBe('pay');
+  });
+
+  it('holds nobody else', () => {
+    holdFriendPayStep(7);
+
+    expect(isOnboarded(makeUser({ id: 8, kind: 'friend', membership: FRIEND }))).toBe(true);
+  });
+
+  it('lets the friend go once the hold is released', () => {
+    const user = makeUser({ id: 7, kind: 'friend', membership: FRIEND });
+    holdFriendPayStep(7);
+    holdFriendPayStep(null);
+
+    expect(isOnboarded(user)).toBe(true);
+  });
+});
+
 describe('joiningAs', () => {
   it('walks a member-intent joiner through as a member, though they read as a friend', () => {
     expect(joiningAs(makeUser({ kind: 'member', membership: FRIEND }))).toBe('member');
@@ -195,15 +221,6 @@ describe('step helpers', () => {
 
   it('orders verify between account and profile', () => {
     expect(joinStepIndex('verify')).toBe(1);
-  });
-
-  it('numbers a step out of all five', () => {
-    expect(joinStepEyebrow('profile')).toBe('Step 3 of 5');
-  });
-
-  it('names the kind being joined as when it is given', () => {
-    expect(joinStepEyebrow('verify', 'friend')).toBe('Step 2 of 5 · Joining as a friend');
-    expect(joinStepEyebrow('verify', 'member')).toBe('Step 2 of 5 · Joining as a member');
   });
 
   it('takes the later of two steps', () => {

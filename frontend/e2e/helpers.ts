@@ -491,7 +491,7 @@ export async function completeProfileStep(page: Page): Promise<void> {
  * Walk a fresh account at `email` through the whole join wizard, which is the whole
  * portal until it is done: register, follow the verification link, complete the
  * profile, then pay the annual dues with the mock provider (a member) or press
- * **Not now** (a friend).  Ends on the wizard's done step, with the rest of the
+ * **Continue without a gift** (a friend).  Ends on the wizard's done step, with the rest of the
  * portal open.
  */
 export async function completeOnboarding(page: Page, email: string, joinAs: JoinAs): Promise<void> {
@@ -504,7 +504,7 @@ export async function completeOnboarding(page: Page, email: string, joinAs: Join
   } else {
     // Wait for the payment options, so the click lands on the loaded form's button.
     await expect(page.getByRole('radio', { name: /Participating/ })).toBeVisible();
-    await page.getByRole('button', { name: 'Not now' }).click();
+    await page.getByRole('button', { name: 'Continue without a gift' }).click();
   }
   await expect(page).toHaveURL(/\/portal\/join\/done/);
   await expect(page.getByRole('heading', { name: 'Welcome to CalDART' })).toBeVisible();

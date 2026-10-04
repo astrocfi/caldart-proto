@@ -17,7 +17,6 @@ import { DateText } from '@/portal/components/DateText';
 import { EmptyState } from '@/portal/components/EmptyState';
 import { MembershipDot } from '@/portal/components/StatusDot';
 import { useMembership } from '@/portal/features/profile/api';
-import { joinStepEyebrow } from './steps';
 import './join.css';
 
 export interface DoneStepProps {
@@ -44,7 +43,6 @@ export function DoneStep({ joiningAs, hasPaid }: DoneStepProps): JSX.Element {
     <>
       <Card
         className="join-card"
-        eyebrow={joinStepEyebrow('done')}
         title={status?.status === 'current' || isFriend ? 'Welcome to CalDART' : 'Almost there'}
         footer={
           <>

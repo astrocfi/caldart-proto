@@ -9,6 +9,7 @@ import type { CheckoutProps } from '@/portal/features/checkout';
 import { API, makeUser, signedInAs } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
+import { makeMandate } from '@test/fixtures/payments';
 import type { MembershipDetail } from '@/portal/api/types';
 import { RenewPage } from './RenewPage';
 
@@ -126,5 +127,59 @@ describe('<RenewPage/>', () => {
 
     expect(await screen.findByText('Become a member')).toBeInTheDocument();
     expect(screen.getByTestId('path')).toHaveTextContent('/membership/join');
+  });
+
+  it('tells a member whose term is current that renewing early costs nothing', async () => {
+    renderRenew(detail());
+
+    expect(
+      await screen.findByText(/A renewal starts the day after your current term ends/),
+    ).toBeInTheDocument();
+  });
+
+  it('tells a member whose term has lapsed that the new year starts today', async () => {
+    renderRenew(detail({ status: 'expired', expires_on: '2024-06-30' }));
+
+    expect(await screen.findByText('Your new year starts today.')).toBeInTheDocument();
+    expect(screen.queryByText(/day after your current term ends/)).not.toBeInTheDocument();
+  });
+});
+
+describe('<RenewPage/> with automatic renewal on', () => {
+  function renderCovered() {
+    server.use(
+      http.get(`${API}/me/renewal`, () =>
+        HttpResponse.json({
+          mandate: makeMandate({ amount_cents: 14500, next_charge_on: '2027-04-27' }),
+        }),
+      ),
+    );
+    return renderRenew(detail());
+  }
+
+  it('says what automatic renewal will charge, and when', async () => {
+    renderCovered();
+
+    expect(
+      await screen.findByText(
+        'We will charge $145.00 on 04/27/2027. You do not need to do anything.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Automatic renewal is on' })).toBeInTheDocument();
+  });
+
+  it('holds the checkout back behind Renew now anyway', async () => {
+    renderCovered();
+
+    await screen.findByRole('button', { name: 'Renew now anyway' });
+    expect(screen.queryByRole('button', { name: 'Pretend to pay' })).not.toBeInTheDocument();
+  });
+
+  it('opens the checkout, with the focus in it, on Renew now anyway', async () => {
+    renderCovered();
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Renew now anyway' }));
+
+    expect(screen.getByRole('button', { name: 'Pretend to pay' })).toHaveFocus();
   });
 });

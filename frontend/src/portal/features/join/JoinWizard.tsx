@@ -15,15 +15,17 @@
  * `done` step and lets `<ReturnStep/>` settle the payment first.
  *
  * A friend walks the same five steps, but owes no dues: their pay step offers a
- * contribution they may skip, and a friend with a complete profile resumes on the
- * done step rather than being held at paying.  A member's pay step also offers to
- * become a friend instead, which turns it into a friend's contribution, and a
- * friend's pay step offers to become a member, which turns it into the member's
- * dues.  The wizard remembers that choice in this tab only, so the ledes follow it;
- * a reload goes back to the kind the server has stored.
+ * donation they may skip.  Finishing the profile step holds a friend's pay step open in
+ * this tab (`holdFriendPayStep`), so a reload stays on it and the rest of the portal
+ * stays shut until they give or press **Continue without a gift**; leaving the pay step
+ * either way lets it go.  A member's pay step also offers to become a friend instead,
+ * which turns it into a friend's donation, and a friend's pay step offers to become a
+ * member, which turns it into the member's dues.  The wizard remembers that choice in
+ * this tab only, so the ledes follow it; a reload goes back to the kind the server has
+ * stored.
  *
- * The profile step's form is the one `/profile` shows, so that step takes the
- * portal's full working width, as `/profile` does, rather than the wizard's own.
+ * Every step is drawn at one width, the width of the title and the step list above it,
+ * so the card's edges never move as the visitor goes from step to step.
  *
  * Until the wizard is finished it is the whole portal: `RequireOnboarded` sends
  * every other screen here, and the layout draws no rail.
@@ -46,6 +48,7 @@ import { StepIndicator } from './StepIndicator';
 import {
   clampJoinStep,
   furthestJoinStep,
+  holdFriendPayStep,
   isJoinStep,
   joiningAs,
   laterJoinStep,
@@ -56,9 +59,7 @@ import { VerifyStep } from './VerifyStep';
 import './join.css';
 
 const LEDE: Record<JoinStep, string> = {
-  account:
-    'Membership is annual or for life; the pay step shows the prices. ' +
-    'It takes about three minutes.',
+  account: 'Joining takes about three minutes.',
   verify: 'Nothing else in the portal is available until you verify your email address.',
   profile: 'Tell us how to reach you and what you fly.',
   pay: 'Card, Apple Pay, Google Pay, or PayPal. Your membership starts immediately.',
@@ -93,6 +94,7 @@ export function JoinWizard(): JSX.Element {
   const [chosenKind, setChosenKind] = useState<PersonKind | null>(null);
 
   const handleReturnSettled = useCallback(() => {
+    holdFriendPayStep(null);
     refreshAfterPayment(queryClient);
     setReached('done');
     setReturnSettled(true);
@@ -137,12 +139,15 @@ export function JoinWizard(): JSX.Element {
 
   function advance(from: JoinStep) {
     const next = nextJoinStep(from);
+    // The pay step is held open from the moment it is reached until it is left.
+    if (from === 'profile') holdFriendPayStep(user?.id ?? null);
+    if (from === 'pay') holdFriendPayStep(null);
     setReached((seen) => laterJoinStep(seen, next));
     void navigate(`/join/${next}`);
   }
 
   return (
-    <div className={current === 'profile' ? 'join-shell join-shell--wide' : 'join-shell'}>
+    <div className="join-shell">
       <Page title="Join CalDART" tabTitle="Join" lede={lede}>
         <StepIndicator current={current} />
         {current === 'account' ? <AccountStep onDone={() => advance('account')} /> : null}

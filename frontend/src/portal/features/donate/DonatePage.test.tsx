@@ -100,6 +100,15 @@ describe('DonatePage', () => {
     expect(screen.queryByRole('radio', { name: /Annual/ })).not.toBeInTheDocument();
   });
 
+  it('opens with no amount chosen, no "No thank you", and no $0.00 to pay', async () => {
+    mount();
+
+    await screen.findByRole('radio', { name: /Supporter/ });
+    expect(screen.queryByRole('radio', { name: 'No thank you' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('radio', { checked: true })).not.toBeInTheDocument();
+    expect(screen.getByText('Choose a donation amount to continue.')).toBeInTheDocument();
+  });
+
   it('thanks the giver and goes to Payments once the gift is taken', async () => {
     const user = userEvent.setup();
     const { router } = mount();

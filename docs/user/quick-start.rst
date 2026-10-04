@@ -20,13 +20,13 @@ Create an account
 #. Fill in **About you**: at least your **Address**, **City**, **State**, and **ZIP
    code**. Press **Save and continue**.
 #. A member pays the dues on **Pay your dues**. A friend may give on **Donate to
-   CalDART**, or press **Not now**.
+   CalDART**, or press **Continue without a gift**.
 #. On **Welcome to CalDART**, press **Go to my dashboard**.
 
 Until the last step, the wizard is the whole portal: there is no menu, and signing
 in again brings you back to the step you still have to finish. A member who would
-rather not pay after all chooses **I changed my mind, I just want to be a friend**
-on **Pay your dues**, then **Continue as a friend**.
+rather not pay after all chooses **Join as a friend instead (no dues)** on **Pay
+your dues**, then **Continue without a gift**.
 
 Next time, choose **Sign in** in the public site's top menu and use the same email
 address and password. See :doc:`member/join`, :doc:`member/verify-email`, and

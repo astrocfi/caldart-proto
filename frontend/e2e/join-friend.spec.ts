@@ -23,7 +23,7 @@ async function registerAsFriend(page: Page, first: string, email: string): Promi
   await page.getByRole('button', { name: 'Create account' }).click();
 
   await expect(page).toHaveURL(/\/portal\/join\/verify/);
-  await expect(page.getByText('Step 2 of 5 · Joining as a friend')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Check your email' })).toBeVisible();
   await followVerificationLink(page, email);
 
   await expect(page.getByRole('heading', { name: 'About you' })).toBeVisible();
@@ -44,7 +44,7 @@ test('a visitor joins as a friend and skips the contribution', async ({ page }) 
 
   // Wait for the payment options, so the click lands on the loaded form's button.
   await expect(page.getByRole('radio', { name: /Participating/ })).toBeVisible();
-  await page.getByRole('button', { name: 'Not now' }).click();
+  await page.getByRole('button', { name: 'Continue without a gift' }).click();
 
   await expect(page).toHaveURL(/\/portal\/join\/done/);
   await expect(page.getByRole('heading', { name: 'Welcome to CalDART' })).toBeVisible();

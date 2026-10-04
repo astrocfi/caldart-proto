@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { Plan } from '@/portal/api/types';
-import { FRIEND_CHOICE, PlanChooser } from './PlanChooser';
+import { PlanChooser } from './PlanChooser';
 
 const PLANS: Plan[] = [
   {
@@ -22,42 +22,28 @@ const PLANS: Plan[] = [
   },
 ];
 
-const FRIEND_HEADING = 'I changed my mind, I just want to be a friend';
-
 describe('<PlanChooser/>', () => {
-  it('offers the plans alone unless asked to offer a friend', () => {
+  it('offers each plan as a card to choose', () => {
     render(<PlanChooser plans={PLANS} value="annual" onChange={() => {}} />);
 
     expect(screen.getAllByRole('radio')).toHaveLength(2);
   });
 
-  it('adds a friend card after the plans when asked', () => {
-    render(<PlanChooser plans={PLANS} value="annual" onChange={() => {}} offerFriend />);
-
-    const radios = screen.getAllByRole('radio');
-    expect(radios.at(-1)).toHaveAccessibleName(expect.stringContaining(FRIEND_HEADING));
-  });
-
-  it('says what a friend is on the friend card', () => {
-    render(<PlanChooser plans={PLANS} value="annual" onChange={() => {}} offerFriend />);
-
-    expect(
-      screen.getByText('A friend has an account and hears from CalDART, but is not a member.'),
-    ).toBeInTheDocument();
-  });
-
-  it('reports the friend choice by its own value', async () => {
+  it('reports the plan chosen', async () => {
     const handleChange = vi.fn();
-    render(<PlanChooser plans={PLANS} value="annual" onChange={handleChange} offerFriend />);
+    render(<PlanChooser plans={PLANS} value="annual" onChange={handleChange} />);
 
-    await userEvent.click(screen.getByRole('radio', { name: new RegExp(FRIEND_HEADING) }));
+    await userEvent.click(screen.getByRole('radio', { name: /Life/ }));
 
-    expect(handleChange).toHaveBeenCalledWith(FRIEND_CHOICE);
+    expect(handleChange).toHaveBeenCalledWith('life');
   });
 
-  it('marks the friend card as chosen when it is the value', () => {
-    render(<PlanChooser plans={PLANS} value={FRIEND_CHOICE} onChange={() => {}} offerFriend />);
+  it('names a single plan in plain text rather than as a choice of one', () => {
+    render(<PlanChooser plans={PLANS.slice(0, 1)} value="annual" onChange={() => {}} />);
 
-    expect(screen.getByRole('radio', { name: new RegExp(FRIEND_HEADING) })).toBeChecked();
+    expect(screen.queryByRole('radio')).not.toBeInTheDocument();
+    expect(screen.getByText('Annual')).toBeInTheDocument();
+    expect(screen.getByText('$45.00')).toBeInTheDocument();
+    expect(screen.getByText('One year')).toBeInTheDocument();
   });
 });

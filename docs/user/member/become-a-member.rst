@@ -17,8 +17,8 @@ friend** while joining (see :doc:`join`).
 What you see
 ============
 
-The checkout, headed **Join CalDART**, the same one the join wizard uses (see
-:doc:`join`):
+The checkout, in a card under the page's title, the same one the join wizard uses
+(see :doc:`join`):
 
 #. **Membership**: **Annual** ($45.00, *One year*) or **Life** ($650.00, *One
    payment, membership for life*). The first plan listed is chosen for you. A site

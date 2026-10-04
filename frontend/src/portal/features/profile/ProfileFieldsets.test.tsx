@@ -231,7 +231,7 @@ describe('<ProfileFieldsets/>', () => {
     expect(onChange).toHaveBeenCalledWith({ ...EMPTY_PROFILE_FORM, state: 'NV' });
   });
 
-  it("picks the county from California's, and offers an out for everyone else", async () => {
+  it("picks the county from California's", async () => {
     const user = userEvent.setup();
     const onChange = renderFieldsets();
     const county = screen.getByLabelText('California county');
@@ -239,7 +239,27 @@ describe('<ProfileFieldsets/>', () => {
     await user.selectOptions(county, 'Napa');
 
     expect(onChange).toHaveBeenCalledWith({ ...EMPTY_PROFILE_FORM, county: 'Napa' });
-    expect(within(county).getByRole('option', { name: 'Not in California' })).toBeInTheDocument();
+  });
+
+  it('asks a Californian to choose a county rather than saying they are elsewhere', () => {
+    renderFieldsets();
+
+    const county = screen.getByLabelText('California county');
+    expect(within(county).getByRole('option', { selected: true })).toHaveTextContent(
+      'Choose a county',
+    );
+    expect(
+      within(county).queryByRole('option', { name: 'Not in California' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('offers an address outside California an out', () => {
+    renderFieldsets({ value: { ...EMPTY_PROFILE_FORM, state: 'NV' } });
+
+    const county = screen.getByLabelText('California county');
+    expect(within(county).getByRole('option', { selected: true })).toHaveTextContent(
+      'Not in California',
+    );
   });
 
   it('offers the ratings in two rows, category and class then instructor', () => {

@@ -114,8 +114,10 @@ describe('RenewalSetup', () => {
   it('offers only the plans that have a term, because a life membership never renews', async () => {
     mount({ providers: ['mock'] });
 
-    expect(await screen.findByRole('radio', { name: /Annual/ })).toBeInTheDocument();
-    expect(screen.queryByRole('radio', { name: /Life/ })).not.toBeInTheDocument();
+    expect(
+      await screen.findByText('Annual', { selector: '.plan-card__name' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Life', { selector: '.plan-card__name' })).not.toBeInTheDocument();
   });
 
   it('preselects the first renewing plan the server lists', async () => {

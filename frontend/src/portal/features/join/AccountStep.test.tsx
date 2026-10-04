@@ -95,7 +95,7 @@ describe('<AccountStep/>', () => {
     renderWithProviders(<AccountStep onDone={() => {}} />);
 
     expect(
-      await screen.findByText('Pay annual dues now and be counted as a current member.'),
+      await screen.findByText('Pay yearly or lifetime dues and you are a member right away.'),
     ).toBeInTheDocument();
     expect(
       screen.getByText('No dues. Support CalDART when you like, and become a member any time.'),
@@ -146,16 +146,6 @@ describe('<AccountStep/>', () => {
       expect(handleDone).not.toHaveBeenCalled();
       expect(client.getQueryData(AUTH_ME_KEY)).toBeNull();
     });
-
-    it('names the kind being joined as on the verify eyebrow', async () => {
-      serveDonorUpgrade();
-      renderWithProviders(<AccountStep onDone={() => {}} />);
-
-      await userEvent.click(await screen.findByRole('radio', { name: /Join as a friend/ }));
-      await fillAndSubmit();
-
-      expect(await screen.findByText('Step 2 of 5 · Joining as a friend')).toBeInTheDocument();
-    });
   });
 
   it('offers a deactivated account the way back through the sign-in page', async () => {
@@ -197,6 +187,14 @@ describe('<AccountStep/>', () => {
 
     await screen.findByText('That address is already registered.');
     expect(screen.queryByRole('link', { name: 'Sign in to reactivate' })).not.toBeInTheDocument();
+  });
+
+  it('offers anybody with an account, friend or member, a way to sign in', async () => {
+    renderWithProviders(<AccountStep onDone={() => {}} />);
+
+    expect(
+      await screen.findByRole('link', { name: 'Already have an account? Sign in' }),
+    ).toHaveAttribute('href', '/login?next=%2Fjoin');
   });
 
   it('refuses an empty form before asking the server, and focuses its first box', async () => {

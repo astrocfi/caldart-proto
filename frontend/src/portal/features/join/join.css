@@ -54,11 +54,9 @@
   border-color: var(--color-accent);
 }
 
-/* `.join-shell` wraps the join wizard's and the renew page's `<Page>`. Their
- * header and step list otherwise span the whole frame while `.join-card`
- * below sits centered at 46rem, so on a wide window they look flush left
- * above a centered card; capping them to the card's own width lines the two
- * up instead. */
+/* `.join-shell` wraps the join wizard's `<Page>`.  Every step is drawn at one width,
+ * 46rem, centered, and the header and the step list above take the same width, so their
+ * edges line up with the card's and never move from one step to the next. */
 .join-shell .page__header {
   max-width: 46rem;
   margin-inline: auto;
@@ -70,23 +68,15 @@
 }
 
 /* Outweighs `.portal__main .card` (portal.css), which caps every card at the
- * portal's working width, so a join card keeps its own narrower width. */
+ * portal's working width, so a join card keeps the wizard's own width. */
 .portal__main .card.join-card {
   max-width: 46rem;
   margin-inline: auto;
 }
 
-.portal__main .card.join-card--narrow {
-  max-width: 30rem;
-}
-
-/* The profile step holds the form `/profile` shows, so it takes the portal's full
- * working width, as that card does, and the header and step list above it widen
- * with it so their edges still line up with the card's. */
-.portal__main .card.join-card--wide,
-.join-shell--wide .page__header,
-.join-shell--wide .join-steps {
-  max-width: var(--page-max);
+/* A step's opening sentence stands apart from the form or choices under it. */
+.join__intro {
+  margin: 0 0 var(--space-5);
 }
 
 .join__aside {
@@ -114,9 +104,10 @@
 }
 
 /* The account step's choice between joining as a member and as a friend: two
- * radio cards, stacked, since the account step is a narrow card. */
+ * radio cards, side by side where the card has room and stacked on a phone. */
 .join-kind {
   display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
   gap: var(--space-3);
   margin: 0 0 var(--space-5);
   padding: 0;
@@ -134,19 +125,23 @@
   gap: var(--space-1) var(--space-3);
   align-items: baseline;
   padding: var(--space-4);
-  border: var(--hairline) solid var(--color-rule);
+  border: var(--hairline) solid var(--color-rule-strong);
   border-radius: var(--radius);
-  background: var(--color-bg);
+  /* Drawn like the plan cards: an unchosen card is white and on offer, the chosen one
+   * takes the sunken tint and the primary edge. */
+  background: var(--color-bg-raised);
   cursor: pointer;
   transition: border-color var(--duration) var(--ease);
 }
 
 .join-kind__card:hover {
-  border-color: var(--color-rule-strong);
+  border-color: var(--color-primary);
 }
 
 .join-kind__card[data-selected='true'] {
+  background: var(--color-bg-sunken);
   border-color: var(--color-primary);
+  box-shadow: inset 3px 0 0 var(--color-primary);
 }
 
 .join-kind__card:focus-within {

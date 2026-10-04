@@ -305,7 +305,16 @@ describe('AutoRenewalCard', () => {
     await user.click(await screen.findByRole('button', { name: 'Change' }));
 
     expect(screen.getByRole('radio', { name: /Supporter/ })).toBeChecked();
-    expect(screen.getByRole('radio', { name: /Annual/ })).toBeChecked();
+  });
+
+  it('names the one plan that renews rather than offering a choice of one', async () => {
+    const user = userEvent.setup();
+    mount(makeMandate({ contribution_cents: 2500 }));
+
+    await user.click(await screen.findByRole('button', { name: 'Change' }));
+
+    expect(screen.getByText('Annual', { selector: '.plan-card__name' })).toBeInTheDocument();
+    expect(screen.queryByRole('radio', { name: /Annual/ })).not.toBeInTheDocument();
   });
 
   it('sends a contribution that is not whole dollars back untouched', async () => {
