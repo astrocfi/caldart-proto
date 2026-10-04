@@ -32,7 +32,7 @@ of four checks. Each block has:
 is weaker than it should be, or the page could not judge it. **Problem** means some mail
 is likely to be marked as spam or refused until it is fixed.
 
-At the foot of the page, **Checked** gives the date and time of the last look and the
+At the bottom of the page, **Checked** gives the date and time of the last look and the
 domain it was made for, for example *Checked 10/03/2026 at 8:00 AM for caldart.example.org.*
 Press **Check again** after somebody says they have fixed something. The page looks the
 records up again, which takes a few seconds. Without it, the page shows what it found

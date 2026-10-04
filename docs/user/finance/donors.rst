@@ -52,7 +52,7 @@ an audit needs them.
 
 On a narrower screen the table leaves out the columns that matter least, one at a time,
 so **Given** and **Net** stay in sight: first the place columns, then the **Email**, the
-**Phone**, and the dates. A column you tick beyond the defaults always stays. On a phone the table scrolls sideways inside the page, a line
+**Phone**, and the dates. A column you check beyond the defaults always stays. On a phone the table scrolls sideways inside the page, a line
 above it says so, and the **Name** stays pinned at the left.
 
 What you can do
@@ -63,7 +63,7 @@ Filter the list
 
 * **From** and **To**, the range of gift dates counted.
 * **Search**, a name or an email address.
-* **County**, one county or several: click the box, tick each county you want, and press
+* **County**, one county or several: click the box, check each county you want, and press
   **Clear** to take them all back.
 * **DART**, the donors whose record names that DART.
 * **At least** and **At most**, bounds on what a donor gave over the whole range, in
@@ -93,7 +93,7 @@ If you are an account administrator as well as the treasurer, or a system admini
 each donor's name is a link to their :doc:`../admin/member-record`. The record tells you
 who the donor is: the name, address, and phone on **Profile**, and every gift on
 **Payments**. It is where a donor is deleted, for somebody who asks to be removed or a
-record made by a test gift. On **Danger zone**, type the donor's email address and press
+record made by a test gift. On **Delete or deactivate**, type the donor's email address and press
 **Delete member**. **Back to donors** brings you back here without deleting anybody, and so
 does the delete itself. An account administrator who is not the treasurer reaches the same
 record from **Member record** on one of the donor's payments; the member record page lists

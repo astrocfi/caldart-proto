@@ -65,7 +65,9 @@ describe('RostersCard', () => {
     const bodies: unknown[] = [];
     await renderCard(bodies);
 
-    expect(screen.getByLabelText('Dry run (send nothing)')).toBeChecked();
+    expect(
+      screen.getByLabelText('Practice run: show what would happen, send nothing'),
+    ).toBeChecked();
     await userEvent.click(screen.getByRole('button', { name: 'Send rosters now' }));
 
     expect(await screen.findByRole('status')).toHaveTextContent('Would send 2 emails, skipped 1.');
@@ -74,14 +76,16 @@ describe('RostersCard', () => {
     expect(within(actions).getByRole('row', { name: /Lee Leader/ })).toHaveTextContent(
       'Bay Area DART',
     );
-    expect(screen.getByText('Skipped: nobody ticked 1.')).toBeInTheDocument();
+    expect(screen.getByText('Skipped: nobody to send to 1.')).toBeInTheDocument();
   });
 
-  it('sends for real once the dry-run box is cleared', async () => {
+  it('sends for real once the practice-run box is cleared', async () => {
     const bodies: unknown[] = [];
     await renderCard(bodies);
 
-    await userEvent.click(screen.getByLabelText('Dry run (send nothing)'));
+    await userEvent.click(
+      screen.getByLabelText('Practice run: show what would happen, send nothing'),
+    );
     await userEvent.click(screen.getByRole('button', { name: 'Send rosters now' }));
 
     expect(await screen.findByRole('status')).toHaveTextContent('Sent 2 emails, skipped 1.');

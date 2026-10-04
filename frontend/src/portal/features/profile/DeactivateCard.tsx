@@ -1,5 +1,5 @@
 /**
- * The **Deactivate my account** card at the foot of `/profile`.
+ * The **Deactivate my account** card at the bottom of `/profile`.
  *
  * The member confirms with their current password.  The server cancels any automatic
  * renewal or recurring donation, suspends the membership, and ends the session; the

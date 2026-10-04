@@ -2,7 +2,7 @@
  * Adding a DART from the portal: an account administrator creates one, and it
  * is offered on a member's profile the same moment, which is the whole point
  * of the screen.  A DART lists as many people as it needs, and the Roster
- * column counts the ones ticked to receive the team's roster.
+ * column counts the ones checked to receive the team's roster.
  */
 import { expect, test } from '@playwright/test';
 import type { Locator, Page } from '@playwright/test';
@@ -40,7 +40,7 @@ test('an account administrator adds a DART and it is offered straight away', asy
     .click();
   await expect(page).toHaveURL(/\/portal\/admin\/darts/);
 
-  await page.getByRole('button', { name: 'Add a DART' }).click();
+  await page.getByRole('button', { name: 'New DART' }).click();
   await page.getByLabel('Name*').fill(NAME);
   // The box upper-cases what is typed, takes more than one field, and trims
   // the ICAO K so one airport is written one way everywhere.
@@ -87,7 +87,7 @@ test('the member count opens the member list filtered to that DART', async ({ pa
   await page.goto('portal/admin/darts');
 
   const row = page.getByRole('row').filter({ hasText: 'Palo Alto' }).first();
-  await row.getByRole('link', { name: /^\d+$/ }).click();
+  await row.getByRole('link', { name: /^Palo Alto: \d+ members?$/ }).click();
 
   await expect(page).toHaveURL(/\/portal\/admin\/members\?dart=\d+/);
 });
@@ -100,13 +100,13 @@ test('a plain member cannot reach the DART screen', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'DARTs', exact: true })).toHaveCount(0);
 });
 
-test('a DART takes a sixth person, and the Roster column counts the ticked ones', async ({
+test('a DART takes a sixth person, and the Roster column counts the checked ones', async ({
   page,
 }) => {
   await signIn(page, DEMO.accountadmin);
   await page.goto('portal/admin/darts');
 
-  // The seed ticks each team's leader and deputy, both with an address.
+  // The seed checks each team's leader and deputy, both with an address.
   const before = await rosterCell(page, GROWING);
   await expect(before).toHaveText('2');
 
@@ -138,7 +138,7 @@ test('a DART takes a sixth person, and the Roster column counts the ticked ones'
   await expect(names).toHaveCount(6);
   await page.getByRole('checkbox', { name: 'Volunteer 5 receives the roster' }).check();
   await page.getByRole('checkbox', { name: 'Volunteer 6 receives the roster' }).check();
-  await page.getByRole('button', { name: 'Save DART' }).click();
+  await page.getByRole('button', { name: 'Save changes' }).click();
 
   await expect(page.getByText(`${GROWING} saved.`)).toBeVisible();
   await expect(await rosterCell(page, GROWING)).toHaveText('4');

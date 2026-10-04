@@ -14,7 +14,7 @@ export function HealthDatabasePage(): JSX.Element {
   return (
     <Page
       title="Health and database"
-      lede="How the server is doing, the database dumps it holds, and the aircraft database it loads."
+      lede="How the server is doing, the backups it holds, and the FAA aircraft data it loads."
     >
       <HealthPanel />
       <BackupsPanel />

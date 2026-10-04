@@ -1679,7 +1679,7 @@ prints the summary described under :ref:`deploy-install-scripts`.
 
 Then, in a browser: the public site loads and is styled, ``/portal/`` signs you
 in, ``/admin/`` opens Wagtail, every check on the health panel of
-``/portal/system/health`` is green, and the **User guide** link at the foot of the
+``/portal/system/health`` is green, and the **User guide** link at the bottom of the
 portal's menu opens the user guide.
 
 

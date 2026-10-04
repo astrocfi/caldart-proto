@@ -79,7 +79,7 @@ subscription is set up, much as a report subscription's is
   subscription is bound to that account, and every event chosen must be one a
   role of that account may receive.  A treasurer cannot be subscribed to
   sign-ups, for example, and a user administrator cannot hear about money.
-* When no account holds it, the account administrator must tick a box
+* When no account holds it, the account administrator must check a box
   confirming that the address, outside CalDART, may receive these
   notifications.
 

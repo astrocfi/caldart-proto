@@ -66,7 +66,7 @@ const DEFAULT_ORDERING = 'n_number';
 
 /** The header's line about the FAA registry: the day of its newest successful import. */
 function registryLine({ as_of: asOf }: RegistryStatus): string {
-  return asOf === null ? 'Registry not imported yet' : `Registry as of ${formatDate(asOf)}`;
+  return asOf === null ? 'FAA data not loaded yet' : `FAA data as of ${formatDate(asOf)}`;
 }
 
 /** A column that only somebody who asks for it sees, and that goes first on a narrow screen. */

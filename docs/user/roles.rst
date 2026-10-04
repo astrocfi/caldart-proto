@@ -171,7 +171,7 @@ CalDART management
 CalDART management writes to the membership as a whole. The role adds the **Bulk email**
 group of the menu:
 
-* **Compose** (:doc:`bulk-email/compose`): build a batch of people with the same filters the
+* **Compose** (:doc:`bulk-email/compose`): build a recipient list with the same filters the
   member list uses, write the message, send yourself a test, read the checks and the
   preview, and send it now or schedule it, with two minutes to cancel.
 * **Drafts and scheduled** (:doc:`bulk-email/drafts`): every email not yet sent, to open,
@@ -182,7 +182,7 @@ group of the menu:
   **Duplicate**.
 * **Templates** (:doc:`bulk-email/templates`): the messages kept to start an email from,
   such as the monthly newsletter.
-* **Recipient groups** (:doc:`bulk-email/groups`): the people kept to add to a batch in one
+* **Recipient groups** (:doc:`bulk-email/groups`): the people kept to add to a recipient list in one
   step, either a fixed list or filters run again each time.
 * **Callouts** (:doc:`bulk-email/callouts`): the answers to every mission callout, who can
   fly and who has not answered, to remind the rest or close the answers.
@@ -213,7 +213,7 @@ A system administrator holds every role above and can do everything they can. Th
 role adds:
 
 * **Health and database** (:doc:`admin/health-database`): the site's health, database
-  backups, and the aircraft database loaded from the FAA registry, with a way to load
+  backups, and the FAA aircraft data, with a way to load
   it now.
 * **Sent emails** (:doc:`admin/sent-emails`): the log of every email CalDART has sent.
 * **Email types** (:doc:`bulk-email/email-types`), under **Bulk email**: the types of

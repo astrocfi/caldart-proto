@@ -9,7 +9,7 @@ const REASON_LABELS: Record<string, string> = {
 };
 
 describe('runSummary', () => {
-  it('says what a dry run would have done', () => {
+  it('says what a practice run would have done', () => {
     expect(runSummary({ sent: 3, skipped: 1 }, true)).toBe('Would send 3 emails, skipped 1.');
   });
 

@@ -137,7 +137,7 @@ def test_a_template_needs_a_name(management_client: APIClient) -> None:
     """A blank name is refused."""
     response = management_client.post(TEMPLATES_URL, {"name": " "}, format="json")
     assert response.status_code == 400
-    assert response.json() == {"name": ["This field may not be blank."]}
+    assert response.json() == {"name": ["Give the template a name."]}
 
 
 @pytest.mark.parametrize(

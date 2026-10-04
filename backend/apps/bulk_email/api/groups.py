@@ -44,7 +44,11 @@ from apps.bulk_email.models import (
 from apps.members.api.actors import acting_user
 from caldart import audit
 from caldart.exceptions import DomainError, DomainValidationError
+from caldart.messages import when_missing
 from caldart.reports import CSV_MEDIA_TYPE, download_responses, report_response
+
+#: The answer to a group saved with no name.
+GROUP_NAME_MISSING = "Give the group a name."
 
 #: The refusal of a group name another group has, ignoring case.
 NAME_TAKEN_MESSAGE = 'A group named "{name}" already exists. Choose another name.'
@@ -123,6 +127,7 @@ class RecipientGroupSerializer(serializers.ModelSerializer[RecipientGroup]):
             "updated_at",
         ]
         read_only_fields = ["id", "created_at", "updated_at"]
+        extra_kwargs = {"name": {"error_messages": when_missing(GROUP_NAME_MISSING)}}
 
     def validate_name(self, value: str) -> str:
         """Refuse a name another group has, ignoring case."""
@@ -201,7 +206,7 @@ class AddGroupSerializer(serializers.Serializer[dict[str, Any]]):
 class SaveGroupSerializer(serializers.Serializer[dict[str, Any]]):
     """``POST /bulk-email/{id}/save-group``'s body: the group's name and kind."""
 
-    name = serializers.CharField(max_length=80)
+    name = serializers.CharField(max_length=80, error_messages=when_missing(GROUP_NAME_MISSING))
     kind = serializers.ChoiceField(choices=GroupKind.choices)
 
     def validate_name(self, value: str) -> str:

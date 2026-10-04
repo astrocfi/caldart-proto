@@ -131,7 +131,7 @@ export function StripePanel({
       .then((checkout) => {
         if (controller.signal.aborted) return;
         if (checkout.provider !== 'stripe' || !checkout.client.client_secret) {
-          setError('Stripe did not return a payment session. Please try again.');
+          setError("Stripe didn't start the payment. Try again in a moment.");
           return;
         }
         setIntent({ paymentId: checkout.payment_id, clientSecret: checkout.client.client_secret });
@@ -241,7 +241,7 @@ function StripeForm({
         onSuccess({ paymentId, membership: result.membership });
         return;
       }
-      setError('Stripe has not confirmed that payment yet. Please try again in a moment.');
+      setError("Stripe hasn't confirmed that payment yet. Try again in a moment.");
     } catch (caught) {
       setError(
         caught instanceof ApiError ? caught.message : 'That payment could not be completed.',

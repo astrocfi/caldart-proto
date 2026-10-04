@@ -86,7 +86,7 @@ describe('TemplatesPage', () => {
     await user.type(screen.getByRole('textbox', { name: /^Name/ }), 'Meeting notice');
     await user.click(screen.getByRole('radio', { name: 'Operational' }));
     await user.type(screen.getByRole('textbox', { name: /^Subject/ }), 'Meeting on Saturday');
-    await user.click(screen.getByRole('button', { name: 'Save template' }));
+    await user.click(screen.getByRole('button', { name: 'Add template' }));
     expect(await screen.findByRole('status')).toHaveTextContent('Meeting notice saved.');
     expect(state.posted).toEqual([
       expect.objectContaining({
@@ -103,7 +103,7 @@ describe('TemplatesPage', () => {
     renderWithProviders(<TemplatesPage />);
     await user.click(await screen.findByRole('button', { name: 'New template' }));
     await user.type(screen.getByRole('textbox', { name: /^Name/ }), 'Monthly newsletter');
-    await user.click(screen.getByRole('button', { name: 'Save template' }));
+    await user.click(screen.getByRole('button', { name: 'Add template' }));
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'A template named "Monthly newsletter" already exists. Choose another name.',
     );
@@ -116,7 +116,7 @@ describe('TemplatesPage', () => {
     const name = screen.getByRole('textbox', { name: /^Name/ });
     await user.clear(name);
     await user.type(name, 'Spring newsletter');
-    await user.click(screen.getByRole('button', { name: 'Save template' }));
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
     expect(await screen.findByRole('status')).toHaveTextContent('Spring newsletter saved.');
     expect(state.patched).toEqual([expect.objectContaining({ name: 'Spring newsletter' })]);
   });
@@ -164,9 +164,10 @@ describe('TemplatesPage', () => {
     await user.click(name);
     expect(screen.getByRole('textbox', { name: /^Name/ })).toHaveFocus();
     await user.keyboard('{Escape}');
-    expect([screen.queryByRole('form', { name: 'Save template' }), document.activeElement]).toEqual(
-      [null, screen.getByRole('link', { name: 'Edit Monthly newsletter' })],
-    );
+    expect([screen.queryByRole('form', { name: 'Save changes' }), document.activeElement]).toEqual([
+      null,
+      screen.getByRole('link', { name: 'Edit Monthly newsletter' }),
+    ]);
   });
 
   it('deletes a template only once the trashcan is confirmed', async () => {

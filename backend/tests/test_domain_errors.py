@@ -8,9 +8,12 @@ those refusals into a response.
 from __future__ import annotations
 
 import pytest
+from django.http import Http404
+from rest_framework.exceptions import NotFound
 from rest_framework.test import APIClient
 
 from caldart.exceptions import (
+    NOT_FOUND_MESSAGE,
     DomainError,
     DomainPermissionError,
     DomainValidationError,
@@ -78,3 +81,29 @@ def test_an_exception_the_handler_does_not_know_is_left_to_django() -> None:
 def test_an_unauthenticated_request_is_still_401(api_client: APIClient) -> None:
     """A request with no session cookie gets a 401 from the ``me`` endpoint."""
     assert api_client.get(ME_URL).status_code == 401
+
+
+@pytest.mark.parametrize(
+    "exc",
+    [Http404("No User matches the given query."), Http404(), NotFound()],
+    ids=["django-lookup", "bare-http404", "bare-not-found"],
+)
+def test_a_stock_404_reads_in_plain_words(exc: Exception) -> None:
+    """Django's and DRF's own 404 sentences are replaced with one a volunteer reads."""
+    response = caldart_exception_handler(exc, {})
+    assert response is not None
+    assert response.data == {"detail": NOT_FOUND_MESSAGE}
+
+
+def test_a_404_a_view_worded_itself_keeps_its_words() -> None:
+    """A 404 raised with its own sentence is passed through unchanged."""
+    response = caldart_exception_handler(Http404("No contributions in that year."), {})
+    assert response is not None
+    assert response.data == {"detail": "No contributions in that year."}
+
+
+def test_an_unknown_member_id_answers_in_plain_words(account_admin_client: APIClient) -> None:
+    """The member detail view's 404 body is the plain sentence, not the model lookup."""
+    response = account_admin_client.get("/api/v1/admin/members/999999")
+    assert response.status_code == 404
+    assert response.json() == {"detail": NOT_FOUND_MESSAGE}

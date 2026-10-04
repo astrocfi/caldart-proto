@@ -4,7 +4,7 @@
  * every roster now, whatever the date.  A roster lists the DART's members and
  * friends alike, with a Kind column.
  *
- * Who receives a DART's roster is ticked on the DART itself, under **DARTs**.
+ * Who receives a DART's roster is checked on the DART itself, under **DARTs**.
  */
 import { useState } from 'react';
 import type { ChangeEvent, JSX } from 'react';
@@ -74,23 +74,21 @@ export function RostersCard(): JSX.Element {
           </Button>
           <label className="cluster">
             <input type="checkbox" checked={dryRun} onChange={handleDryRunChange} />
-            Dry run (send nothing)
+            Practice run: show what would happen, send nothing
           </label>
         </>
       }
     >
       <p className="muted">
-        Early each month every active DART&rsquo;s roster goes as a PDF to each of its people ticked
-        to receive it who has an email address. A roster lists the DART&rsquo;s members and friends,
-        its Kind column saying which each one is, and never a deactivated account.{' '}
-        <strong>Send rosters now</strong> sends every one at once, whatever the date.
+        Early each month, each DART&rsquo;s roster goes out as a PDF to the people checked to
+        receive it. It lists the DART&rsquo;s members and friends.
       </p>
 
       {rosters.isError ? (
         <p className="field__error" role="alert">
           {rosters.error instanceof Error
             ? rosters.error.message
-            : 'The rosters could not be loaded.'}
+            : "The rosters didn't load. Try again in a moment."}
         </p>
       ) : (
         <DataTable

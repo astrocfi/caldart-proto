@@ -711,7 +711,7 @@ summary.
 Then, in a browser: the public site loads and is styled, ``/portal/`` signs
 you in, ``/admin/`` opens Wagtail, every check on the health panel of the
 portal's Health and database page (``/portal/system/health``) is green, and the
-**User guide** link at the foot of the portal's menu opens the user guide.  The
+**User guide** link at the bottom of the portal's menu opens the user guide.  The
 guide is served at ``/docs/`` (under the prefix, when there is one), to
 signed-in users only.
 

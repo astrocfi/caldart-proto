@@ -88,7 +88,7 @@ Token                      Meaning
 ``--color-rule-strong``    Input borders, the strongest hairline
 ``--color-muted``          Secondary text
 ``--color-selection``      ``::selection`` background, at low alpha
-``--color-ok``             Status foreground: current, paid, in date
+``--color-ok``             Status foreground: current, paid, unexpired
 ``--color-warn``           Status foreground: expiring soon
 ``--color-bad``            Status foreground: expired, failed; the fill of a
                            danger button

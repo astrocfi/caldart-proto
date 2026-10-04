@@ -20,7 +20,7 @@ import { useUpdateBulkEmail } from './api';
 const REPLY_TO_MAX_LENGTH = 254;
 
 /** What the field says when the save fails without a reason of its own. */
-const FALLBACK_ERROR = 'The Reply-To address could not be saved. Try again in a moment.';
+const FALLBACK_ERROR = "The address for replies wasn't saved. Try again in a moment.";
 
 interface ReplyToFieldProps {
   emailId: number;
@@ -72,7 +72,7 @@ export function ReplyToField({ emailId, saved, defaultReplyTo }: ReplyToFieldPro
   return (
     <div className="stack-tight">
       <Field
-        label="Reply-To"
+        label="Replies go to"
         error={update.isError ? refusal(update.error) : null}
         hint={replyToHint(defaultReplyTo)}
       >
@@ -92,7 +92,7 @@ export function ReplyToField({ emailId, saved, defaultReplyTo }: ReplyToFieldPro
       </Field>
       {isSaved ? (
         <p className="muted bulk-email__save-note" role="status">
-          Reply-To saved.
+          Address for replies saved.
         </p>
       ) : null}
     </div>

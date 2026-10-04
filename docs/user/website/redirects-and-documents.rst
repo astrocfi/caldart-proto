@@ -54,7 +54,7 @@ Press **Add redirect** and fill in:
 
 * **Redirect from**, the old address, such as /old-news.
 * **From site**, which you leave as it is.
-* **Permanent**, ticked to begin with. Untick it for a redirect you mean to remove later.
+* **Permanent**, checked to begin with. Uncheck it for a redirect you mean to remove later.
 * **Redirect to a page**, a page chosen from the tree, or **Redirect to any URL**, a typed
   address. Fill in one of the two.
 

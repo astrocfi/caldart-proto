@@ -62,9 +62,7 @@ export function DraftsPage(): JSX.Element {
     <Page
       title="Drafts and scheduled"
       lede="Emails still being written, and emails waiting for their time to send."
-      actions={
-        cannotSend ? null : <ButtonLink to="/bulk-email/compose">Write a new email</ButtonLink>
-      }
+      actions={cannotSend ? null : <ButtonLink to="/bulk-email/compose">New email</ButtonLink>}
     >
       {sender.data === undefined ? null : <SenderNotice sender={sender.data} />}
       <Card>
@@ -85,7 +83,7 @@ export function DraftsPage(): JSX.Element {
         )}
         {drafts.isError ? (
           <p className="field__error" role="alert">
-            The drafts could not be loaded.
+            The drafts didn&apos;t load. Try again in a moment.
           </p>
         ) : (
           <DataTable
@@ -98,11 +96,9 @@ export function DraftsPage(): JSX.Element {
             rowKey={(row) => row.id}
             caption={`${rows.length} ${rows.length === 1 ? 'email' : 'emails'} not sent yet`}
             emptyTitle="No drafts"
-            emptyDescription={cannotSend ? undefined : 'Press Write a new email to start one.'}
+            emptyDescription={cannotSend ? undefined : 'Press New email to start one.'}
             emptyAction={
-              cannotSend ? undefined : (
-                <ButtonLink to="/bulk-email/compose">Write a new email</ButtonLink>
-              )
+              cannotSend ? undefined : <ButtonLink to="/bulk-email/compose">New email</ButtonLink>
             }
             isLoading={drafts.isLoading}
           />

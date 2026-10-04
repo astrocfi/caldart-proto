@@ -39,11 +39,11 @@ test('a system administrator adds, edits, and deletes an email type', async ({ p
   await expect(page).toHaveURL(/\/portal\/bulk-email\/types/);
   await expect(page.getByRole('rowheader', { name: 'Fundraising', exact: true })).toBeVisible();
 
-  await page.getByRole('button', { name: 'Add an email type' }).click();
+  await page.getByRole('button', { name: 'New email type' }).click();
   await page.getByLabel('Name*').fill(name);
   await page.getByLabel('What it is for*').fill('What the board decided this month.');
   await page.getByRole('checkbox', { name: 'CalDART management' }).check();
-  await page.getByRole('button', { name: 'Add type' }).click();
+  await page.getByRole('button', { name: 'Add email type' }).click();
   await expect(page.getByText(`${name} added.`)).toBeVisible();
 
   const row = page.getByRole('row').filter({ hasText: name });
@@ -51,7 +51,7 @@ test('a system administrator adds, edits, and deletes an email type', async ({ p
   await row.getByRole('button', { name: 'Edit' }).click();
   await page.getByRole('checkbox', { name: 'Recipients may turn it off' }).uncheck();
   await page.getByRole('checkbox', { name: 'DART leader' }).check();
-  await page.getByRole('button', { name: 'Save type' }).click();
+  await page.getByRole('button', { name: 'Save changes' }).click();
   await expect(page.getByText(`${name} saved.`)).toBeVisible();
   await expect(row).toContainText('DART leader, CalDART management');
   await expect(row.getByRole('cell', { name: 'No', exact: true })).toBeVisible();

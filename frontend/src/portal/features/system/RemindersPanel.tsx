@@ -54,12 +54,17 @@ export function RemindersPanel(): JSX.Element {
       title="Renewal reminder emails"
       footer={
         <>
-          <Button ref={runRef} onClick={handleRun} disabled={run.isPending}>
+          <Button
+            ref={runRef}
+            onClick={handleRun}
+            disabled={run.isPending}
+            aria-label={run.isPending ? undefined : 'Run now: renewal reminder emails'}
+          >
             {run.isPending ? 'Running…' : 'Run now'}
           </Button>
           <label className="cluster">
             <input type="checkbox" checked={dryRun} onChange={handleDryRunChange} />
-            Dry run (send nothing)
+            Practice run: show what would happen, send nothing
           </label>
         </>
       }
@@ -67,8 +72,7 @@ export function RemindersPanel(): JSX.Element {
       <p className="muted">
         Emails members whose membership is about to expire or has just expired
         {schedule.data ? `: ${schedulePhrase(schedule.data)}` : ''}. It sends email only and never
-        charges anyone. A member whose automatic renewal is on is skipped. It runs every morning;
-        running it again is harmless, because each member gets each reminder once per membership.
+        charges anyone. A member whose automatic renewal is on is skipped. It runs every morning.
       </p>
 
       {run.isSuccess ? (

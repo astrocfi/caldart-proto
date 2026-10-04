@@ -2,12 +2,14 @@
  * The aircraft half of the leader check: does CalDART's coverage policy cover
  * this tail number, is its insurance current and verified, who flies it, and how
  * fresh is the record?  A verifier corrects and verifies the insurance from the
- * card's head.
+ * card's head.  Each pilot carries the member check's own GO or NO-GO and links to
+ * their member check card, so the two checks never disagree about one person.
  */
 import { useCallback, useRef, useState } from 'react';
 import type { JSX } from 'react';
+import { Link } from 'react-router-dom';
 
-import type { Aircraft, AircraftDetail } from '@/portal/api/types';
+import type { Aircraft, AircraftDetail, MembershipState } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { DateText } from '@/portal/components/DateText';
 import { Money } from '@/portal/components/Money';
@@ -22,6 +24,7 @@ import { OWNER_TYPE_LABELS } from '@/portal/features/aircraft/form';
 import { insuranceTone } from '@/portal/features/aircraft/insurance';
 import { InsuranceVerificationPanel } from '@/portal/features/verification/InsuranceVerificationPanel';
 import { useCanVerify } from '@/portal/features/verification/useCanVerify';
+import { GoMark, isReady } from './LeaderLookup';
 import './leader.css';
 
 export interface Verdict {
@@ -31,6 +34,14 @@ export interface Verdict {
   mark: string;
   go: boolean;
 }
+
+/** How the pilot list names each membership state: a friend is a friend, never expired. */
+export const PILOT_MEMBERSHIP: Record<MembershipState, { tone: StatusTone; label: string }> = {
+  current: { tone: 'current', label: 'Member current' },
+  expired: { tone: 'expired', label: 'Member expired' },
+  friend: { tone: 'none', label: 'Friend' },
+  donor: { tone: 'none', label: 'Donor' },
+};
 
 const VERDICT: Record<StatusTone, Verdict> = {
   current: { word: 'INSURED', why: 'Coverage is current', mark: 'Insured', go: true },
@@ -86,6 +97,31 @@ export function aircraftVerdict(aircraft: CheckFacts, today?: Date): Verdict {
 /** Whether an aircraft's insurance lets it fly: current and verified. */
 export function isInsured(aircraft: InsuranceFacts, today?: Date): boolean {
   return insuranceVerdict(aircraft, today).go;
+}
+
+export interface InsuranceCheckDotProps {
+  aircraft: Pick<Aircraft, 'insurance_is_current' | 'insurance_expiration'>;
+  /** Whether an authority has checked the policy against its documents. */
+  verified: boolean;
+  today?: Date;
+}
+
+/**
+ * An airplane's insurance as the aircraft check reads it, in one mark: a current policy
+ * nobody has verified reads *Not verified* in amber, and anything else reads as the
+ * insurance dot does.  Both checks draw this, the aircraft check on its insurance line and
+ * the member check on its aircraft rows, so they give the same airplane the same answer.
+ */
+export function InsuranceCheckDot({
+  aircraft,
+  verified,
+  today,
+}: InsuranceCheckDotProps): JSX.Element {
+  const tone = insuranceTone(aircraft, today);
+  if ((tone === 'current' || tone === 'expiring') && !verified) {
+    return <StatusDot tone="expiring" label="Not verified" />;
+  }
+  return <InsuranceDot aircraft={aircraft} today={today} />;
 }
 
 export interface AircraftStatusCardProps {
@@ -151,7 +187,11 @@ export function AircraftStatusCard({ aircraft, today }: AircraftStatusCardProps)
         <div className="leader-row">
           <dt>Insurance</dt>
           <dd>
-            <InsuranceDot aircraft={aircraft} today={today} />
+            <InsuranceCheckDot
+              aircraft={aircraft}
+              verified={aircraft.insurance_verification.verified}
+              today={today}
+            />
             <span className="leader-row__detail">
               {aircraft.insurance_carrier || 'No carrier on file'}
               {aircraft.insurance_expiration ? (
@@ -161,7 +201,11 @@ export function AircraftStatusCard({ aircraft, today }: AircraftStatusCardProps)
                 </>
               ) : null}
             </span>
-            <VerifiedMark verification={aircraft.insurance_verification} />
+            {/* The band above already says NOT VERIFIED; only a stamp adds anything. */}
+            {aircraft.insurance_expiration === null ||
+            !aircraft.insurance_verification.verified ? null : (
+              <VerifiedMark verification={aircraft.insurance_verification} />
+            )}
           </dd>
         </div>
 
@@ -203,26 +247,28 @@ export function AircraftStatusCard({ aircraft, today }: AircraftStatusCardProps)
         </div>
       </dl>
 
-      <h3 className="leader-card__subhead">Members who fly it</h3>
+      <h3 className="leader-card__subhead">Pilots who fly it</h3>
       {pilots.length === 0 ? (
         <p className="leader-aircraft-card__limits muted">
           No member lists this aircraft on their profile.
         </p>
       ) : (
         <ul className="leader-aircraft">
-          {pilots.map((pilot) => (
-            <li key={pilot.user_id} className="leader-aircraft__row">
-              <span className="leader-search__name">{pilot.name}</span>
-              <StatusDot
-                tone={pilot.membership_status === 'current' ? 'current' : 'expired'}
-                label={pilot.membership_status === 'current' ? 'Member current' : 'Member expired'}
-              />
-              <StatusDot
-                tone={pilot.medical_is_current ? 'current' : 'expired'}
-                label={pilot.medical_is_current ? 'Medical current' : 'Medical not current'}
-              />
-            </li>
-          ))}
+          {pilots.map((pilot) => {
+            const ready = isReady(pilot.go_no_go);
+            return (
+              <li key={pilot.user_id} className="leader-aircraft__row">
+                <Link className="leader-search__name" to={`/leader?member=${pilot.user_id}`}>
+                  {pilot.name}
+                </Link>
+                <StatusDot
+                  tone={PILOT_MEMBERSHIP[pilot.membership_status].tone}
+                  label={PILOT_MEMBERSHIP[pilot.membership_status].label}
+                />
+                <GoMark go={ready} label={ready ? 'Cleared to fly' : 'Not cleared to fly'} />
+              </li>
+            );
+          })}
         </ul>
       )}
     </section>

@@ -66,7 +66,7 @@ Aviation
 
 **Home airport** (three characters, with the leading K left off: PAO, E16),
 **Secondary airport** (another field you fly from, under the same three-character
-rule), **DART** (your primary Disaster Airlift Response Team, a local group of
+rule), **DART** (your main Disaster Airlift Response Team, a local group of
 volunteers at one airport; *Not decided yet* if you have not chosen), **Air Care
 Alliance number**, **Pilot certificate**, **Certificate number**, **Medical**,
 **Medical expires**, **Photo ID**, **Last flight review**, and **Total hours**.
@@ -82,23 +82,24 @@ Alliance number**, **Pilot certificate**, **Certificate number**, **Medical**,
   Military ID, and Other. Only the kind of document is recorded, never its number or
   its dates.
 * Under **Pilot certificate**, **Medical expires**, and **Photo ID** is each item's
-  mark: **Verified** with who verified it and on which day, or **Not yet verified**.
-  An item you have marked as not held (**Not a pilot**, a medical of **None**, or a
-  photo ID of **Not provided**) has nothing to verify and shows no mark.
-  The medical's mark sits under its expiration date, the date a verifier checks
-  against the certificate. Under the first
+  mark: **Verified** with who verified it and on which day, or **Not yet verified** in
+  amber, which is the usual state until you show the documents. An item you have marked
+  as not held (**Not a pilot**, a medical of **None**, or a photo ID of **Not provided**)
+  has nothing to verify and shows no mark. The medical's mark sits with its expiration
+  date, the date a verifier checks against the certificate, and reads **Expired** first
+  once that date has passed, verified or not. Under the first
   is *A DART leader or verifier checks these against the documents.* You cannot
   verify them yourself here. Show the documents to a DART leader or a verifier.
-* **Aircraft**: tick **I fly rented or borrowed aircraft** if you have no airframe
+* **Aircraft**: check **I fly rented or borrowed aircraft** if you have no airframe
   of your own to list, so a DART leader knows why your list is empty.
 * **Ratings**: ASEL, AMEL, ASES, AMES, Helicopter, and Instrument on one row; CFI,
-  CFII, and MEI on the next. Tick **Instrument** if you hold an instrument rating:
+  CFII, and MEI on the next. Check **Instrument** if you hold an instrument rating:
   it is the one place the profile records it.
 
 Volunteer interests
 ~~~~~~~~~~~~~~~~~~~
 
-*CalDART runs on volunteers. Tick anything you would be willing to help with:*
+*CalDART runs on volunteers. Check any you would help with:*
 **Mission pilot**, **Ground support**, **Exercises and training**, **Member
 support**, **Fundraising**, **Social media**, and **Newsletter**.
 
@@ -106,27 +107,27 @@ support**, **Fundraising**, **Social media**, and **Newsletter**.
 Saving your changes
 ===================
 
-Change anything and press **Save profile**. *Profile saved.* appears at the foot of
-the screen, and you stay on **Save profile**. Saving replaces the whole profile, so a field you clear is cleared.
+Change anything and press **Save changes**. *Profile saved.* appears at the bottom of
+the screen, and you stay on **Save changes**. Saving replaces the whole profile, so a field you clear is cleared.
 Your aircraft are kept on their own screen and are not touched.
 
 The form checks each field as you leave it. A field that is wrong turns red with
-the reason under it, and nothing is saved until you fix it. Pressing **Save profile**
+the reason under it, and nothing is saved until you fix it. Pressing **Save changes**
 with a field still wrong takes you to the first such field, and a line beside the
 button says how many fields to check:
 
-* *Your first name is required.* and *Your last name is required.* when either
+* *Enter your first name.* and *Enter your last name.* when either
   name is blank.
-* *A phone number is required.*, *Your street address is required.*, *Your city is
-  required.*, *Choose your state.*, and *Your ZIP code is required.* for the
+* *Enter a phone number.*, *Enter your street address.*, *Enter your
+  city.*, *Choose your state.*, and *Enter your ZIP code.* for the
   details every profile needs.
 * *Use a ten-digit number like 415-555-0100.* when a phone number is short.
-* *Use a five-digit ZIP code like 95035.* ZIP+4 is not collected.
+* *Use a 5-digit ZIP code, such as 95035.* ZIP+4 is not collected.
 * *Use a three-character identifier like PAO, E16, or KLS.* Typing the four-letter
   form drops the K, so KPAO becomes PAO. An identifier that starts with K keeps it:
   KLS stays KLS.
-* *Give your pilot certificate number.* when you chose a certificate.
-* *Give the expiration date of your medical certificate.* when you chose a medical.
+* *Enter the pilot certificate number.* when you chose a certificate.
+* *Enter the medical's expiration date.* when you chose a medical.
 * *Enter your total hours as a whole number.*
 * *Enter a US amateur radio callsign, such as W6ABC.* for a callsign that is not a
   US one.

@@ -514,7 +514,7 @@ def test_a_hand_renewal_moves_the_stored_day_to_the_new_expiry(
 def test_a_hand_renewal_keeps_a_day_chosen_early_as_early_as_it_was(
     api_client: APIClient, dated_member: User, annual_plan: MembershipPlan, expires_on: date
 ) -> None:
-    """A day placed a fortnight before the expiry stays a fortnight before it."""
+    """A day placed two weeks before the expiry stays two weeks before it."""
     early = timedelta(days=NOTICE_DAYS)
     mandate = active_mandate(dated_member, annual_plan, next_charge_on=expires_on - early)
 

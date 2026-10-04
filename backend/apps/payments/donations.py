@@ -218,8 +218,8 @@ def apply_donor_fields(payment: Payment) -> None:
 
     Reads them from ``payment.donor_fields``, as :func:`start_donation` left them.
     The names and the phone are replaced outright, and each optional profile field
-    the giver filled in (a non-blank value, a DART, or a ticked box) is written over
-    the stored one, while a field left blank or unticked keeps what an earlier gift
+    the giver filled in (a non-blank value, a DART, or a checked box) is written over
+    the stored one, while a field left blank or unchecked keeps what an earlier gift
     told us.  A payment that carries no such fields -- every payment but a public
     gift -- is left alone, which is what lets
     :func:`apps.payments.services.mark_succeeded` call this unconditionally for

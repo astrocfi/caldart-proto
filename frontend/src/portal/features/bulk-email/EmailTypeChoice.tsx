@@ -100,7 +100,7 @@ export function EmailTypeChoice({
       {types.isPending ? <p role="status">Loading the types…</p> : null}
       {types.isError ? (
         <p className="field__error" role="alert">
-          The types of email could not be loaded.
+          The types of email didn&apos;t load. Try again in a moment.
         </p>
       ) : null}
       {types.isSuccess && options.length === 0 ? (

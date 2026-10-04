@@ -36,6 +36,7 @@ from apps.mail.types import sendable_types
 from apps.members.api.actors import acting_user
 from caldart import audit
 from caldart.exceptions import DomainError, DomainValidationError
+from caldart.messages import when_missing
 
 #: The refusal of a template name another template has, ignoring case.
 NAME_TAKEN_MESSAGE = 'A template named "{name}" already exists. Choose another name.'
@@ -77,6 +78,7 @@ class EmailTemplateSerializer(serializers.ModelSerializer[EmailTemplate]):
             "updated_at",
         ]
         read_only_fields = ["id", "created_at", "updated_at"]
+        extra_kwargs = {"name": {"error_messages": when_missing("Give the template a name.")}}
 
     def validate_name(self, value: str) -> str:
         """Refuse a name another template has, ignoring case."""

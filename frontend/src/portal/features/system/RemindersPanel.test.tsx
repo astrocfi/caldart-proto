@@ -67,7 +67,7 @@ describe('RemindersPanel', () => {
     expect(await screen.findByText('Marta Reyes')).toBeInTheDocument();
   });
 
-  it('runs a dry run by default and reports the result', async () => {
+  it('runs a practice run by default and reports the result', async () => {
     const bodies: unknown[] = [];
     server.use(
       logHandler(ENTRIES),
@@ -85,15 +85,17 @@ describe('RemindersPanel', () => {
     renderWithProviders(<RemindersPanel />);
     await screen.findByText('Marta Reyes');
 
-    expect(screen.getByLabelText('Dry run (send nothing)')).toBeChecked();
-    await userEvent.click(screen.getByRole('button', { name: 'Run now' }));
+    expect(
+      screen.getByLabelText('Practice run: show what would happen, send nothing'),
+    ).toBeChecked();
+    await userEvent.click(screen.getByRole('button', { name: 'Run now: renewal reminder emails' }));
 
     expect(await screen.findByText('Would send 4 emails, skipped 2.')).toBeInTheDocument();
     expect(bodies).toEqual([{ dry_run: true }]);
     expect(screen.getByRole('heading', { name: 'What this run would do' })).toBeInTheDocument();
     const actionsTable = screen.getByRole('table', { name: '1 action' });
     const row = within(actionsTable).getByRole('row', { name: /Marta Reyes/ });
-    expect(row).toHaveTextContent('30 days before');
+    expect(row).toHaveTextContent('Second reminder (30 days before)');
     expect(row).toHaveTextContent('07/15/2026');
   });
 
@@ -107,12 +109,12 @@ describe('RemindersPanel', () => {
     renderWithProviders(<RemindersPanel />);
     await screen.findByText('Marta Reyes');
 
-    await userEvent.click(screen.getByRole('button', { name: 'Run now' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Run now: renewal reminder emails' }));
 
     expect(await screen.findByText('Nothing was due')).toBeInTheDocument();
   });
 
-  it('sends for real once the dry-run box is cleared', async () => {
+  it('sends for real once the practice-run box is cleared', async () => {
     const bodies: unknown[] = [];
     server.use(
       logHandler(ENTRIES),
@@ -130,8 +132,10 @@ describe('RemindersPanel', () => {
     renderWithProviders(<RemindersPanel />);
     await screen.findByText('Marta Reyes');
 
-    await userEvent.click(screen.getByLabelText('Dry run (send nothing)'));
-    await userEvent.click(screen.getByRole('button', { name: 'Run now' }));
+    await userEvent.click(
+      screen.getByLabelText('Practice run: show what would happen, send nothing'),
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Run now: renewal reminder emails' }));
 
     expect(await screen.findByText('Sent 1 email, skipped 0.')).toBeInTheDocument();
     expect(bodies).toEqual([{ dry_run: false }]);
@@ -154,7 +158,7 @@ describe('RemindersPanel', () => {
     renderWithProviders(<RemindersPanel />);
     await screen.findByText('Marta Reyes');
 
-    await userEvent.click(screen.getByRole('button', { name: 'Run now' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Run now: renewal reminder emails' }));
 
     expect(
       await screen.findByText('Skipped: already sent 10, auto-renew on 2.'),
@@ -177,7 +181,7 @@ describe('RemindersPanel', () => {
     renderWithProviders(<RemindersPanel />);
     await screen.findByText('Marta Reyes');
 
-    await userEvent.click(screen.getByRole('button', { name: 'Run now' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Run now: renewal reminder emails' }));
 
     expect(await screen.findByText('Failed 2.')).toBeInTheDocument();
   });
@@ -198,7 +202,7 @@ describe('RemindersPanel', () => {
     renderWithProviders(<RemindersPanel />);
     await screen.findByText('Marta Reyes');
 
-    await userEvent.click(screen.getByRole('button', { name: 'Run now' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Run now: renewal reminder emails' }));
 
     await screen.findByText('Would send 1 email, skipped 0.');
     expect(screen.queryByText(/^Skipped:/)).not.toBeInTheDocument();
@@ -234,8 +238,10 @@ describe('RemindersPanel', () => {
     await screen.findByText('Marta Reyes');
     await waitFor(() => expect(emailRequests).toBe(1));
 
-    await userEvent.click(screen.getByLabelText('Dry run (send nothing)'));
-    await userEvent.click(screen.getByRole('button', { name: 'Run now' }));
+    await userEvent.click(
+      screen.getByLabelText('Practice run: show what would happen, send nothing'),
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Run now: renewal reminder emails' }));
     await screen.findByText('Sent 1 email, skipped 0.');
 
     await waitFor(() => {
@@ -253,7 +259,7 @@ describe('RemindersPanel', () => {
     renderWithProviders(<RemindersPanel />);
     await screen.findByText('Marta Reyes');
 
-    await userEvent.click(screen.getByRole('button', { name: 'Run now' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Run now: renewal reminder emails' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('SMTP refused the connection');
   });

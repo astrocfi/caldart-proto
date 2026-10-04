@@ -2,7 +2,7 @@
  * The insurance verification panel's state and the request it sends.
  *
  * Amounts are typed in dollars and sent in integer cents, as the aircraft form does.
- * Changing any insurance field unticks *Insurance verified*, as the server clears it.
+ * Changing any insurance field unchecks *Insurance verified*, as the server clears it.
  */
 import type { AircraftDetail, InsuranceVerificationPayload } from '@/portal/api/types';
 import { MONEY_ERROR } from '@/portal/features/aircraft/form';
@@ -20,7 +20,7 @@ export interface InsuranceDraft {
   verified: boolean;
 }
 
-/** A field the panel edits, which is every draft key but the tick. */
+/** A field the panel edits, which is every draft key but the check. */
 export type InsuranceField = Exclude<keyof InsuranceDraft, 'verified'>;
 
 /** The dollar fields, each with the API field that holds its cents. */
@@ -45,7 +45,7 @@ export function draftFromAircraft(aircraft: AircraftDetail): InsuranceDraft {
   };
 }
 
-/** `draft` with `field` set to `value`, unticked when the value differs from the opening one. */
+/** `draft` with `field` set to `value`, unchecked when the value differs from the opening one. */
 export function editInsurance(
   draft: InsuranceDraft,
   initial: InsuranceDraft,
@@ -68,8 +68,16 @@ export function validateInsurance(draft: InsuranceDraft): Partial<Record<MoneyFi
 }
 
 /**
+ * True when the draft has a policy to verify: one with an expiry date, as every screen
+ * reads *No insurance on file* for a policy without one.
+ */
+export function isPolicyOnFile(draft: InsuranceDraft): boolean {
+  return draft.insurance_expiration !== '';
+}
+
+/**
  * The request body: the fields that differ from the ones the panel opened with, and
- * whether the insurance is verified.  An untouched field is left out, so it is left
+ * whether the insurance is verified, never verified while no policy is on file.  An untouched field is left out, so it is left
  * alone; a blank liability is no cover and a blank hull no hull value, as on the form.
  */
 export function insurancePayload(
@@ -77,7 +85,9 @@ export function insurancePayload(
   draft: InsuranceDraft,
 ): InsuranceVerificationPayload {
   const changed = (field: InsuranceField): boolean => draft[field] !== initial[field];
-  const payload: InsuranceVerificationPayload = { verified: draft.verified };
+  const payload: InsuranceVerificationPayload = {
+    verified: draft.verified && isPolicyOnFile(draft),
+  };
   if (changed('insurance_carrier')) payload.insurance_carrier = draft.insurance_carrier.trim();
   if (changed('insurance_policy_number')) {
     payload.insurance_policy_number = draft.insurance_policy_number.trim();

@@ -41,7 +41,7 @@ export const REFUND_REASON_LABELS: Record<RefundReason, string> = {
 /** How far a refund has got. */
 export const REFUND_STATUS_LABELS: Record<RefundState, string> = {
   pending: 'Pending',
-  succeeded: 'Succeeded',
+  succeeded: 'Refunded',
   failed: 'Failed',
 };
 

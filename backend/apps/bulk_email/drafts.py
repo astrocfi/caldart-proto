@@ -62,7 +62,9 @@ MAX_SCHEDULE_AHEAD = timedelta(days=365)
 #: words, ``NO_SUBJECT_MESSAGE`` and ``NO_BODY_MESSAGE``, imported above.
 NO_TYPE_MESSAGE = "Choose a type."
 NOT_SENDABLE_MESSAGE = "You cannot send {type} email. Choose another type."
-NOBODY_MESSAGE = "Nobody in the batch can receive this email. Add people to the batch."
+NOBODY_MESSAGE = (
+    "Nobody on the recipient list can receive this email. Add people to the recipient list."
+)
 CONFIRM_MISSING_MESSAGE = "Type the number of people this email goes to."
 PAST_MESSAGE = "Choose a time in the future."
 TOO_FAR_MESSAGE = "Choose a time within a year."
@@ -395,7 +397,7 @@ def resume(bulk: BulkEmail, *, actor: User, now: datetime | None = None) -> Bulk
 def confirm_message(receiving: int) -> str:
     """The refusal of a typed count that no longer matches: the batch's count now."""
     people = "1 person" if receiving == 1 else f"{receiving} people"
-    return f"The batch has changed: it now holds {people}. Type the new count."
+    return f"The recipient list has changed: it now holds {people}. Type the new count."
 
 
 def _check_content(bulk: BulkEmail) -> None:

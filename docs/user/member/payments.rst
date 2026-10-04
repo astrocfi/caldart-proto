@@ -5,7 +5,7 @@ Payments
 **Payments** is where your money lives: whether CalDART renews your membership for
 you, whether you give on a schedule, everything you have paid with a receipt for
 each, and a contribution statement for each year you gave. Open it from
-**Payments** in the menu, or from **All payments, receipts and renewal** on your
+**Payments** in the menu, or from **All payments, receipts, and renewals** on your
 :doc:`dashboard`. The screen's title reads **Payments**.
 
 
@@ -30,7 +30,7 @@ The cards come in the order they matter.
   Everything you have paid CalDART, newest first: **Date**, **For** (the plan, *and
   contribution*, or **Contribution**), **Amount**, **Refunded** (only when
   something has come back), **Status**, and **Receipt**. The status reads
-  **Succeeded**, **Pending**, **Failed**, **Partly refunded**, or **Refunded**. The
+  **Paid**, **Pending**, **Failed**, **Partly refunded**, or **Refunded**. The
   **Receipt** link downloads the same PDF the receipt email carried. A payment that
   failed, or one still pending, has no receipt, because no money arrived. On a phone
   what you paid for, then **Refunded**, give way; the **Date** stays pinned at the left,
@@ -50,7 +50,7 @@ yearly.
 Turning it on
 ~~~~~~~~~~~~~
 
-Tick **Renew automatically each year** when you pay for a membership, or press
+Check **Renew automatically each year** when you pay for a membership, or press
 **Turn on** on the card here, which saves a method without charging it. **Turn on**
 opens the same choices the checkout offers: the plan that will renew, the
 contribution to renew beside it, **First charge on**, and a tab per payment method.
@@ -58,7 +58,7 @@ The first plan listed that renews is chosen for you. A site with no membership p
 set up shows *No membership plan is set up yet. Ask an administrator.* instead, and
 offers no way to save a method.
 The line above the tabs says what will happen, for example *CalDART will charge
-$145.00 on 03/01/2027, and each year after that. We will email you fourteen days
+$145.00 on 03/01/2027, and each year after that. We will email you 14 days
 before every charge.*
 
 **First charge on** is yours to choose. It opens on the day your membership runs

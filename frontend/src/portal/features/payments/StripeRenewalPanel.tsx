@@ -70,7 +70,7 @@ export function StripeRenewalPanel({
       .then((response) => {
         if (controller.signal.aborted) return;
         if (response.provider !== 'stripe' || !response.client.client_secret) {
-          setError('Stripe did not return a setup session. Please try again.');
+          setError("Stripe didn't start saving the card. Try again in a moment.");
           return;
         }
         setClientSecret(response.client.client_secret);
@@ -158,7 +158,7 @@ function StripeSetupForm({
         redirect: 'if_required',
       });
       if (confirmation.error) {
-        setError(confirmation.error.message ?? 'That card could not be saved.');
+        setError(confirmation.error.message ?? "That card wasn't saved. Try again in a moment.");
         return;
       }
       await confirm.mutateAsync({
@@ -167,7 +167,11 @@ function StripeSetupForm({
       });
       onDone();
     } catch (caught) {
-      setError(caught instanceof ApiError ? caught.message : 'That card could not be saved.');
+      setError(
+        caught instanceof ApiError
+          ? caught.message
+          : "That card wasn't saved. Try again in a moment.",
+      );
     } finally {
       if (isMounted.current) setIsBusy(false);
     }

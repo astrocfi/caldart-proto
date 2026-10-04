@@ -49,7 +49,7 @@ import {
 import { kindLabel, people } from './status';
 
 /** What a failed request says when the server gave no sentence of its own. */
-const FALLBACK_ERROR = 'That did not work. Try again.';
+const FALLBACK_ERROR = "The group wasn't changed. Try again in a moment.";
 
 /** What a filter set the member list no longer accepts says beside itself. */
 export const NEEDS_FIXING_HINT =
@@ -64,8 +64,8 @@ export function GroupDetailPage(): JSX.Element {
     return (
       <Page title="Recipient group">
         <p className="field__error" role="alert">
-          This group could not be loaded. It may have been deleted.{' '}
-          <Link to="/bulk-email/groups">See every group</Link>.
+          This group didn&apos;t load. It may have been deleted.{' '}
+          <Link to="/bulk-email/groups">Back to recipient groups</Link>.
         </p>
       </Page>
     );
@@ -81,10 +81,8 @@ export function GroupDetailPage(): JSX.Element {
           ? 'A fixed group: the same people every time, until you add or remove someone.'
           : 'A live group: each time it is used, it finds whoever matches its filters then.'
       }
+      actions={<Link to="/bulk-email/groups">Back to recipient groups</Link>}
     >
-      <p>
-        <Link to="/bulk-email/groups">All recipient groups</Link>
-      </p>
       {/* Keyed by the name, so the box starts again from the name as saved. */}
       <RenameCard key={current.name} group={current} />
       {current.kind === 'live' ? <FiltersCard group={current} /> : null}
@@ -93,7 +91,7 @@ export function GroupDetailPage(): JSX.Element {
   );
 }
 
-/** The group's name, and **Save name**. */
+/** The group's name, and **Save changes**. */
 function RenameCard({ group }: { group: RecipientGroup }): JSX.Element {
   const [name, setName] = useState(group.name);
   const rename = useRenameGroup(group.id);
@@ -122,7 +120,7 @@ function RenameCard({ group }: { group: RecipientGroup }): JSX.Element {
           variant="secondary"
           disabled={rename.isPending || name === group.name}
         >
-          Save name
+          Save changes
         </Button>
       </form>
     </Card>
@@ -270,7 +268,7 @@ function PeopleCard({ group }: { group: RecipientGroup }): JSX.Element {
         <p className="field__error" role="alert">
           {members.error instanceof ApiError
             ? `${members.error.message} ${NEEDS_FIXING_HINT}`
-            : 'The people could not be loaded.'}
+            : "The people didn't load. Try again in a moment."}
         </p>
       ) : (
         <DataTable

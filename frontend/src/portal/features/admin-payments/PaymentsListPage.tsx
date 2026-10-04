@@ -97,7 +97,7 @@ const CELLS: Record<string, ReportCell<Payment>> = {
     ordering: 'plan__name',
     minWidth: '8rem',
     dropOrder: 3,
-    render: (row) => row.plan ?? 'Contribution only',
+    render: (row) => row.plan ?? '—',
   },
   kind: { minWidth: '8rem', dropOrder: 2, render: (row) => KIND_LABELS[row.kind] },
   plan_amount: {

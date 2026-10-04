@@ -385,7 +385,7 @@ and in the evening the two can disagree by a day (``CLOCK_GRACE_DAYS`` in
 
 .. code-block:: json
 
-   {"reconciled_on": ["A payment cannot have been matched in the future."]}
+   {"reconciled_on": ["A payment cannot have been reconciled in the future."]}
 
 Statuses: **200**; **400** for a body the serializer refuses, a future
 ``reconciled_on`` included; **401** when anonymous; **403** without a finance

@@ -23,6 +23,7 @@ from apps.accounts.services import (
 from apps.accounts.status import closed_account_message
 from apps.members.api.serializers import MembershipStatusSerializer
 from apps.members.services import membership_of
+from caldart.messages import email_messages, when_missing
 
 
 class UserSerializer(serializers.ModelSerializer[User]):
@@ -114,8 +115,12 @@ def run_password_validators(
 class LoginSerializer(serializers.Serializer[None]):
     """``POST /auth/login``: the email address and password to sign in with."""
 
-    email = serializers.EmailField()
-    password = serializers.CharField(style={"input_type": "password"}, trim_whitespace=False)
+    email = serializers.EmailField(error_messages=email_messages("Enter your email address."))
+    password = serializers.CharField(
+        style={"input_type": "password"},
+        trim_whitespace=False,
+        error_messages=when_missing("Enter your password."),
+    )
 
 
 class DeactivatedAccountError(APIException):
@@ -136,10 +141,14 @@ class DeactivatedAccountError(APIException):
 class RegisterSerializer(serializers.Serializer[None]):
     """``POST /auth/register``: the fields a self-service signup supplies."""
 
-    email = serializers.EmailField()
-    password = PasswordField()
-    first_name = serializers.CharField(max_length=150)
-    last_name = serializers.CharField(max_length=150)
+    email = serializers.EmailField(error_messages=email_messages("Enter your email address."))
+    password = PasswordField(error_messages=when_missing("Choose a password."))
+    first_name = serializers.CharField(
+        max_length=150, error_messages=when_missing("Enter your first name.")
+    )
+    last_name = serializers.CharField(
+        max_length=150, error_messages=when_missing("Enter your last name.")
+    )
     kind = serializers.ChoiceField(
         choices=PERSON_KIND_CHOICES, default=AccountKind.MEMBER.value, required=False
     )
@@ -189,7 +198,7 @@ class RegisterSerializer(serializers.Serializer[None]):
 class CurrentPasswordSerializer(serializers.Serializer[None]):
     """A request the signed-in user confirms with their current password."""
 
-    current_password = PasswordField()
+    current_password = PasswordField(error_messages=when_missing("Enter your current password."))
 
     WRONG_PASSWORD = "That is not your current password."  # noqa: S105 - an error message
 
@@ -207,7 +216,7 @@ class CurrentPasswordSerializer(serializers.Serializer[None]):
 class PasswordChangeSerializer(CurrentPasswordSerializer):
     """``POST /auth/password/change``: the current password and the one to replace it."""
 
-    new_password = PasswordField()
+    new_password = PasswordField(error_messages=when_missing("Choose a new password."))
 
     def validate_new_password(self, value: str) -> str:
         """``value`` unchanged when Django's password validators accept it.
@@ -226,7 +235,7 @@ class DeactivateSerializer(CurrentPasswordSerializer):
 class PasswordResetSerializer(serializers.Serializer[None]):
     """``POST /auth/password/reset`` -- the request half: the address to mail."""
 
-    email = serializers.EmailField()
+    email = serializers.EmailField(error_messages=email_messages("Enter your email address."))
 
 
 class PasswordResetConfirmSerializer(serializers.Serializer[None]):
@@ -234,7 +243,7 @@ class PasswordResetConfirmSerializer(serializers.Serializer[None]):
 
     uid = serializers.CharField()
     token = serializers.CharField()
-    new_password = PasswordField()
+    new_password = PasswordField(error_messages=when_missing("Choose a new password."))
 
     #: One message for every way a link can be unusable, so a caller cannot
     #: tell "no such account" from "already used".
@@ -286,8 +295,8 @@ class VerificationSentSerializer(serializers.Serializer[dict[str, str]]):
 class EmailChangeSerializer(serializers.Serializer[None]):
     """``POST /auth/email/change``: the address to move to, and the current password."""
 
-    email = serializers.EmailField()
-    current_password = PasswordField()
+    email = serializers.EmailField(error_messages=email_messages("Enter the new address."))
+    current_password = PasswordField(error_messages=when_missing("Enter your current password."))
 
     #: The address is the login, so moving it asks for the password first.
     WRONG_PASSWORD = "That is not your current password."  # noqa: S105 - an error message
@@ -390,7 +399,10 @@ class AdminUserSerializer(UserSerializer):
             "email_bounce_detail",
         ]
         extra_kwargs = {
-            "email": {"required": False},
+            "email": {
+                "required": False,
+                "error_messages": email_messages("Enter the email address."),
+            },
             "first_name": {"required": False},
             "last_name": {"required": False},
         }

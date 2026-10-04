@@ -30,7 +30,7 @@ export const STOPPING_MESSAGE = 'Stopping. Nobody else will be sent a copy.';
 export const RESUMED_MESSAGE = 'The rest will start sending within a minute.';
 
 /** What a failed action says when the server gave no sentence of its own. */
-const FALLBACK_ERROR = 'That did not work. Try again.';
+const FALLBACK_ERROR = "The email wasn't changed. Try again in a moment.";
 
 /** The sentence an action's failure shows. */
 export function actionError(error: unknown): string {

@@ -78,7 +78,7 @@ the list is a page long and the screen shows all of it.  Each row adds
 ``is_active``; the two counts the delete warning reads — ``member_count``,
 the profiles naming this DART, and ``page_count``, the website pages linked
 to it; and the two roster fields, both read-only — ``roster_recipients``, how
-many of the DART's people are ticked to receive the roster and have an email
+many of the DART's people are checked to receive the roster and have an email
 address, and ``roster_sent_at``, when the last roster went out, or ``null``
 when none has.  Each person in ``contacts`` carries ``receives_roster`` as
 well as the fields the public catalog gives.
@@ -143,7 +143,7 @@ Field                      Rule
                            (a person may have neither), and
                            ``receives_roster`` (default ``false``), whether
                            the person is sent the team's roster.  A person
-                           without an email address may be ticked; the sender
+                           without an email address may be checked; the sender
                            skips them.  The order given is the order stored --
                            ``sort_order`` follows the position in the list --
                            and it is the order the public catalog and the

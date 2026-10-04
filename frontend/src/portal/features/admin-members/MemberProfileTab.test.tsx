@@ -60,7 +60,7 @@ describe('MemberProfileTab', () => {
     const panel = verificationCard();
     await user.clear(within(panel).getByLabelText('Certificate number'));
     await user.type(within(panel).getByLabelText('Certificate number'), '7654321');
-    await user.click(within(panel).getByRole('button', { name: 'Save' }));
+    await user.click(within(panel).getByRole('button', { name: 'Save verification' }));
 
     await waitFor(() => expect(calls.members).toHaveLength(1));
     expect(await screen.findByLabelText('Certificate number')).toHaveValue('7654321');
@@ -115,7 +115,7 @@ describe('MemberProfileTab', () => {
     expect(sent.profile).not.toHaveProperty('first_name');
   });
 
-  it('offers no Account is active box: the Danger zone deactivates', () => {
+  it('offers no Account is active box: the Delete or deactivate tab deactivates', () => {
     renderWithProviders(<MemberProfileTab member={makeDetail()} />);
     expect(screen.queryByRole('checkbox', { name: /account is active/i })).not.toBeInTheDocument();
   });

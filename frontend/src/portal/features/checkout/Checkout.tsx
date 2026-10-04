@@ -51,7 +51,7 @@ import { formatCents } from '@/portal/components/Money';
 import { MandateSetupTabs } from '@/portal/features/payments/MandateSetupTabs';
 import { useBecomeFriend } from '@/portal/features/profile/api';
 import { PROVIDER_ORDER, usePaymentsConfig } from './api';
-import { ContributionChooser } from './ContributionChooser';
+import { ContributionChooser, DONATION_HINT } from './ContributionChooser';
 import { FRIEND_CHOICE, PlanChooser } from './PlanChooser';
 import { ProviderTabs } from './ProviderTabs';
 import { RecurringDonationFields } from './RecurringDonationFields';
@@ -63,7 +63,7 @@ import './checkout.css';
 const HEADINGS: Record<CheckoutMode, { eyebrow: string; title: string }> = {
   join: { eyebrow: 'Membership', title: 'Join CalDART' },
   renew: { eyebrow: 'Renewal', title: 'Renew your membership' },
-  contribute: { eyebrow: 'Contribution', title: 'Make a contribution' },
+  contribute: { eyebrow: 'Donation', title: 'Make a donation' },
 };
 
 export type { CheckoutProps, CheckoutResult } from './types';
@@ -156,8 +156,8 @@ export function Checkout({
     return (
       <Card eyebrow={heading.eyebrow} title="Payment">
         <EmptyState
-          title="Payment options could not be loaded"
-          description="Please reload the page, or contact CalDART if it keeps happening."
+          title="Payment options didn't load"
+          description="Reload the page, or contact CalDART if it keeps happening."
         />
         <SkipFooter onSkip={handleSkip} />
       </Card>
@@ -274,6 +274,10 @@ export function Checkout({
         value={contributionCents}
         maxCents={config.max_contribution_cents}
         onChange={(next) => setContributionCents(next)}
+        // A donation stands on its own; a friend joining pays no dues to add it to.
+        legend={isContributionOnly ? 'Your donation' : 'Add a contribution'}
+        amountLabel={isContributionOnly ? 'Donation amount' : undefined}
+        hint={isContributionOnly ? DONATION_HINT : undefined}
         isOther={isOther}
         // codespell:ignore-next-line onother
         onOther={(next) => {
@@ -378,7 +382,7 @@ export function Checkout({
       ) : providers.length === 0 ? (
         <EmptyState
           title="Online payment is not set up yet"
-          description="Please contact CalDART to pay by check, or try again later."
+          description="Contact CalDART to pay by check, or try again later."
         />
       ) : isScheduledLater ? (
         <MandateSetupTabs

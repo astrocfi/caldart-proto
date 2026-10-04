@@ -143,10 +143,13 @@ describe('<ProfileFieldsets/>', () => {
     expect(screen.getByLabelText('First name*')).toBeInTheDocument();
   });
 
-  it('gives each of the three numbers an extension box beside it', () => {
-    renderFieldsets();
-    expect(screen.getAllByLabelText('ext.')).toHaveLength(3);
-  });
+  it.each(['Phone extension', 'Alternate phone extension', 'Emergency contact phone extension'])(
+    'names the extension box beside its number: %s',
+    (name) => {
+      renderFieldsets();
+      expect(screen.getByRole('textbox', { name })).toBeInTheDocument();
+    },
+  );
 
   it('refuses a letter typed into a phone number', async () => {
     const user = userEvent.setup();
@@ -159,13 +162,22 @@ describe('<ProfileFieldsets/>', () => {
     );
   });
 
-  it.each(['Home airport', 'Secondary airport'])(
-    'shows XXX as the ghost text for %s, not a real airport',
+  it.each(['Phone', 'ZIP code', 'Amateur radio callsign', 'Home airport', 'Secondary airport'])(
+    'leaves %s empty of ghost text that could pass for an answer',
     (label) => {
       renderFieldsets();
-      expect(screen.getByLabelText(label)).toHaveAttribute('placeholder', 'XXX');
+      expect(screen.getByLabelText(label)).not.toHaveAttribute('placeholder');
     },
   );
+
+  it.each([
+    ['Phone', '10 digits, such as 415-555-0100'],
+    ['ZIP code', '5 digits, such as 95035'],
+    ['Amateur radio callsign', 'Optional. A US callsign, such as W6ABC'],
+  ])('gives the example for %s in its hint', (label, hint) => {
+    renderFieldsets();
+    expect(screen.getByLabelText(label)).toHaveAccessibleDescription(hint);
+  });
 
   it('upper-cases a home airport as it is typed', async () => {
     const user = userEvent.setup();
@@ -253,7 +265,7 @@ describe('<ProfileFieldsets/>', () => {
     });
   });
 
-  it('adds a rating when its box is ticked', async () => {
+  it('adds a rating when its box is checked', async () => {
     const user = userEvent.setup();
     const onChange = renderFieldsets();
 
@@ -272,7 +284,7 @@ describe('<ProfileFieldsets/>', () => {
     expect(onChange).toHaveBeenCalledWith({ ...EMPTY_PROFILE_FORM, ratings: ['cfi'] });
   });
 
-  it('reports a ticked volunteer interest through onChange', async () => {
+  it('reports a checked volunteer interest through onChange', async () => {
     const user = userEvent.setup();
     const onChange = renderFieldsets();
 
@@ -286,7 +298,7 @@ describe('<ProfileFieldsets/>', () => {
     (label) => {
       renderFieldsets();
       expect(screen.getByLabelText(label)).toHaveAccessibleDescription(
-        'Three characters, omit the leading K',
+        'Leave off the leading K: PAO, not KPAO',
       );
     },
   );
@@ -317,9 +329,31 @@ describe('<ProfileFieldsets/>', () => {
     expect(screen.queryByLabelText(label)).not.toBeInTheDocument();
   });
 
-  it('calls the DART field a primary DART', () => {
+  it("calls the DART field the member's main DART", () => {
     renderFieldsets();
-    expect(screen.getByLabelText('DART')).toHaveAccessibleDescription('Your primary DART');
+    expect(screen.getByLabelText('DART')).toHaveAccessibleDescription('Your main DART');
+  });
+
+  it("speaks of the person, not to them, on an administrator's form", () => {
+    renderFieldsets({ audience: 'administrator' });
+    expect(screen.getByLabelText('DART')).toHaveAccessibleDescription('Their main DART');
+  });
+
+  it("says what an administrator is recording about the person's aircraft", () => {
+    renderFieldsets({ audience: 'administrator' });
+    expect(screen.getByLabelText('Flies rented or borrowed aircraft')).toBeInTheDocument();
+  });
+
+  it('asks an administrator what the person would help with', () => {
+    renderFieldsets({ audience: 'administrator' });
+    expect(screen.getByText('What they would help with.')).toBeInTheDocument();
+  });
+
+  it('asks the member what they would help with', () => {
+    renderFieldsets();
+    expect(
+      screen.getByText('CalDART runs on volunteers. Check any you would help with.'),
+    ).toBeInTheDocument();
   });
 
   it('lists each DART with its airport identifier', () => {
@@ -458,11 +492,9 @@ describe('<ProfileFieldsets/>', () => {
     expect(screen.queryByText('Not yet verified')).not.toBeInTheDocument();
   });
 
-  it('still shows the verified stamp on an item the member does not hold', () => {
+  it('shows no verified stamp on an item the member does not hold', () => {
     renderFieldsets({ verification: ALL_VERIFIED });
-    expect(screen.getByLabelText('Photo ID')).toHaveAccessibleDescription(
-      'Verified by Dana Leader on 05/01/2026',
-    );
+    expect(screen.queryByText('Verified')).not.toBeInTheDocument();
   });
 });
 

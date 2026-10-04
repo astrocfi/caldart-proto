@@ -117,7 +117,7 @@ describe('MessageCard', () => {
   it('asks where replies go, between the subject and the message', () => {
     answerFields();
     renderWithProviders(<Card />);
-    expect(screen.getByRole('textbox', { name: 'Reply-To' })).toHaveValue('grace@example.org');
+    expect(screen.getByRole('textbox', { name: 'Replies go to' })).toHaveValue('grace@example.org');
   });
 
   it('offers Send me a test while the email can change', () => {

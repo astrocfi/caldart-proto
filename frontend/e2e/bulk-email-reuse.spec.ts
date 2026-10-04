@@ -38,12 +38,12 @@ test('a saved group and a saved template start a fresh draft', async ({ page }) 
   // Build a batch and keep it as a fixed group.
   const filters = page.getByRole('search', { name: 'Choose people to add' });
   await filters.getByLabel('Role').selectOption('management');
-  await page.getByRole('button', { name: 'Add to batch' }).click();
+  await page.getByRole('button', { name: 'Add these people' }).click();
   await expect(page.getByText(/^Added \d+ (person|people)[.;]/)).toBeVisible();
   await page.getByRole('button', { name: 'Save as a group' }).click();
-  const saveGroup = page.getByRole('form', { name: 'Save the batch as a group' });
+  const saveGroup = page.getByRole('form', { name: 'Save the recipient list as a group' });
   await saveGroup.getByRole('textbox', { name: /Group name/ }).fill(group);
-  await saveGroup.getByRole('button', { name: 'Save group' }).click();
+  await saveGroup.getByRole('button', { name: 'Add group' }).click();
   await expect(page.getByRole('link', { name: group, exact: true })).toBeVisible();
 
   // Write a message and keep it as a template.
@@ -56,7 +56,7 @@ test('a saved group and a saved template start a fresh draft', async ({ page }) 
   await page.getByRole('button', { name: 'Save as a template' }).click();
   const saveTemplate = page.getByRole('form', { name: 'Save as a template' });
   await saveTemplate.getByRole('textbox', { name: /Template name/ }).fill(template);
-  await saveTemplate.getByRole('button', { name: 'Save template' }).click();
+  await saveTemplate.getByRole('button', { name: 'Add template' }).click();
   await expect(page.getByText(`Saved as the template ${template}.`)).toBeVisible();
 
   // A fresh draft starts from both.
@@ -65,7 +65,7 @@ test('a saved group and a saved template start a fresh draft', async ({ page }) 
   await page.getByRole('button', { name: 'Add a saved group' }).click();
   await page.getByRole('button', { name: new RegExp(`^${group}: fixed, `) }).click();
   await expect(page.getByText(/^Added \d+ (person|people)\.$/)).toBeVisible();
-  const batch = page.getByRole('table', { name: /^The batch: / });
+  const batch = page.getByRole('table', { name: /^Recipient list: / });
   // Chosen by shows on a screen wide enough for every column of the batch.
   await page.setViewportSize({ width: 1600, height: 900 });
   await expect(batch.getByRole('row').filter({ hasText: DEMO.management })).toContainText(
@@ -102,7 +102,7 @@ test('Duplicate starts a new draft from a sent email, with its people', async ({
   await openCompose(page);
   const filters = page.getByRole('search', { name: 'Choose people to add' });
   await filters.getByLabel('Role').selectOption('management');
-  await page.getByRole('button', { name: 'Add to batch' }).click();
+  await page.getByRole('button', { name: 'Add these people' }).click();
   await expect(page.getByText(/^Added \d+ (person|people)[.;]/)).toBeVisible();
   await page.getByRole('radio', { name: 'Operational' }).click();
   await expect(page.getByRole('radio', { name: 'Operational' })).toBeChecked();
@@ -142,7 +142,7 @@ test('Duplicate starts a new draft from a sent email, with its people', async ({
   await expect(page).toHaveURL(/\/portal\/bulk-email\/compose\/\d+$/);
   await expect(page.getByText(`This is a copy of "${subject}".`)).toBeVisible();
   await expect(page.getByRole('textbox', { name: /^Subject/ })).toHaveValue(subject);
-  const batch = page.getByRole('table', { name: /^The batch: / });
+  const batch = page.getByRole('table', { name: /^Recipient list: / });
   await page.setViewportSize({ width: 1600, height: 900 });
   await expect(batch.getByRole('row').filter({ hasText: DEMO.management })).toContainText(
     `Copied from "${subject}"`,

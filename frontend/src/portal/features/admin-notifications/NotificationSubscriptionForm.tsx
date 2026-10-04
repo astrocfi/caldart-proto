@@ -1,5 +1,5 @@
 /**
- * The form behind **New subscription** and each row's **Edit** on
+ * The form behind **Add an address** and each row's **Edit** on
  * `/admin/notifications`: an address, and the events it hears about.
  *
  * Editing changes the events alone; the server keeps the recipient fixed, so
@@ -41,9 +41,9 @@ interface NotificationSubscriptionFormProps {
 }
 
 /**
- * Subscribes one address to the ticked events, or changes the events of
+ * Subscribes one address to the checked events, or changes the events of
  * `subscription` when it is given, starting from the events it lists.  The
- * events are sent in catalog order, whatever order they were ticked in.
+ * events are sent in catalog order, whatever order they were checked in.
  */
 export function NotificationSubscriptionForm({
   subscription,
@@ -59,7 +59,7 @@ export function NotificationSubscriptionForm({
   const create = useCreateNotificationSubscription();
   const update = useUpdateNotificationSubscription();
   const save = isEditing ? update : create;
-  const title = isEditing ? 'Edit subscription' : 'New subscription';
+  const title = isEditing ? 'Edit notifications' : 'Add an address';
   const events = catalog.data ?? [];
   const toast = useToast();
   const sectionRef = useRef<HTMLElement>(null);
@@ -122,7 +122,7 @@ export function NotificationSubscriptionForm({
         <EventPicker events={events} chosen={chosen} onChange={handleEventsChange} />
         {catalog.isError ? (
           <p className="field__error" role="alert">
-            The events could not be loaded.
+            The events didn&apos;t load. Try again in a moment.
           </p>
         ) : null}
         {eventsError === null ? null : (
@@ -156,7 +156,7 @@ export function NotificationSubscriptionForm({
 
         <div className="cluster">
           <Button type="submit" disabled={save.isPending}>
-            {save.isPending ? 'Saving…' : 'Save'}
+            {save.isPending ? 'Saving…' : isEditing ? 'Save changes' : 'Add address'}
           </Button>
           <Button variant="quiet" onClick={handleDone}>
             Cancel

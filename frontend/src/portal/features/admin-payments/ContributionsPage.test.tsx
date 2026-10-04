@@ -45,10 +45,17 @@ describe('ContributionsPage', () => {
     renderWithProviders(<ContributionsPage />);
 
     const row = within(await screen.findByRole('row', { name: /Marta Reyes/ }));
-    expect(row.getByRole('link', { name: 'Statement' })).toHaveAttribute(
-      'href',
-      statementUrl(37, new Date().getFullYear()),
-    );
+    const thisYear = new Date().getFullYear();
+    expect(
+      row.getByRole('link', { name: `${thisYear} statement for Marta Reyes` }),
+    ).toHaveAttribute('href', statementUrl(37, thisYear));
+  });
+
+  it('heads the statement column Download', async () => {
+    server.use(contributionsHandler([MARTA], []));
+    renderWithProviders(<ContributionsPage />);
+
+    expect(await screen.findByRole('columnheader', { name: 'Download' })).toBeInTheDocument();
   });
 
   it("leaves the year to the server's own current year, then asks for the one chosen", async () => {
@@ -73,7 +80,7 @@ describe('ContributionsPage', () => {
     });
 
     const row = within(await screen.findByRole('row', { name: /Marta Reyes/ }));
-    expect(row.getByRole('link', { name: 'Statement' })).toHaveAttribute(
+    expect(row.getByRole('link', { name: '2024 statement for Marta Reyes' })).toHaveAttribute(
       'href',
       statementUrl(37, 2024),
     );
@@ -128,7 +135,7 @@ describe('ContributionsPage', () => {
     renderWithProviders(<ContributionsPage />);
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'The contributions could not be loaded.',
+      "The contributions didn't load. Try again in a moment.",
     );
   });
 });

@@ -153,7 +153,7 @@ describe('UserDetailPage', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(/only a system administrator/i);
   });
 
-  it("clears the server's refusal when the form is reset", async () => {
+  it("clears the server's refusal when the edits are canceled", async () => {
     stubDetail({
       patch: () =>
         HttpResponse.json(
@@ -169,7 +169,7 @@ describe('UserDetailPage', () => {
     await userEvent.click(screen.getByRole('checkbox', { name: /system admin/i }));
     await userEvent.click(screen.getByRole('button', { name: /save changes/i }));
     await screen.findByText(/only a system administrator/i);
-    await userEvent.click(screen.getByRole('button', { name: 'Reset form' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
 
     expect(screen.queryByText(/only a system administrator/i)).toBeNull();
   });
@@ -388,12 +388,15 @@ describe('UserDetailPage', () => {
       signedInAs(makeUser({ roles: ['member', 'user_admin'] })),
       http.get(`${API}/roles`, () => HttpResponse.json(ROLES)),
       http.get(`${API}/admin/users/404`, () =>
-        HttpResponse.json({ detail: 'Not found.' }, { status: 404 }),
+        HttpResponse.json(
+          { detail: "That isn't here. It may have been deleted." },
+          { status: 404 },
+        ),
       ),
     );
     renderDetail('404');
 
-    expect(await screen.findByText(/could not be loaded/i)).toBeInTheDocument();
+    expect(await screen.findByText(/didn't load/i)).toBeInTheDocument();
   });
 
   it('marks a bounced address with the date and the report', async () => {

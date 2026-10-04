@@ -94,15 +94,15 @@ the methods this site accepts. See :doc:`member/join`.
 Can my membership renew itself?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Yes. Tick **Renew automatically each year** when you pay, or press **Turn on** on
-the **Automatic renewal** card of **Payments**. You get an email fourteen days
+Yes. Check **Renew automatically each year** when you pay, or press **Turn on** on
+the **Automatic renewal** card of **Payments**. You get an email 14 days
 before every charge, and you can turn it off at any time. See
 :doc:`member/payments`.
 
 I am a life member. Can I still give every year?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Yes. On **Donate**, choose the amount and tick **Make this a recurring donation**.
+Yes. On **Donate**, choose the amount and check **Make this a recurring donation**.
 See :doc:`member/donate`.
 
 How do I change the card on file?
@@ -209,7 +209,7 @@ You lack the role for it. A user administrator can grant it. See :doc:`roles` an
 Can I close my account?
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-You can deactivate it with **Deactivate my account** at the foot of **My profile**.
+You can deactivate it with **Deactivate my account** at the bottom of **My profile**.
 Nothing is deleted, and you can reactivate by signing in again. See
 :doc:`member/profile`.
 

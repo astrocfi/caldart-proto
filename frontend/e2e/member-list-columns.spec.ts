@@ -2,14 +2,14 @@
  * The member list's table follows its column chooser at a laptop's width, and the
  * Columns panel stays on a phone's screen.
  *
- * jsdom lays nothing out, so whether a ticked column survives the table's fitting to a
+ * jsdom lays nothing out, so whether a checked column survives the table's fitting to a
  * real width is checked here, in a browser.
  */
 import { expect, test } from '@playwright/test';
 
 import { DEMO, signIn } from './helpers';
 
-test('a column ticked in the chooser shows in the table on a laptop', async ({ page }) => {
+test('a column checked in the chooser shows in the table on a laptop', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await signIn(page, DEMO.accountadmin);
   await page.goto('portal/admin/members');

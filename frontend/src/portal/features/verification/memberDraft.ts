@@ -2,8 +2,9 @@
  * The member verification panel's state and the request it sends.
  *
  * A draft holds the five fields a verifier may correct and the items to be verified
- * after the save.  Changing a field unticks the item that covers it, as the server
- * clears it, so a verifier ticks it again only after checking the new value.
+ * after the save.  Changing a field unchecks the item that covers it, as the server
+ * clears it, so a verifier checks it again only after checking the new value.  An item
+ * the person does not hold is never sent as verified.
  */
 import type {
   AdminProfile,
@@ -16,6 +17,7 @@ import type {
   ProfileVerification,
   VerificationItem,
 } from '@/portal/api/types';
+import { isItemHeld } from './held';
 import { ITEM_SLUGS } from './labels';
 
 export interface MemberVerificationDraft {
@@ -25,11 +27,11 @@ export interface MemberVerificationDraft {
   /** `YYYY-MM-DD`, or empty for no date. */
   medical_expiration: string;
   photo_id_type: PhotoIdType;
-  /** The items ticked as verified. */
+  /** The items checked as verified. */
   verified: VerificationItem[];
 }
 
-/** A field the panel edits, which is every draft key but the ticked items. */
+/** A field the panel edits, which is every draft key but the checked items. */
 export type MemberField = Exclude<keyof MemberVerificationDraft, 'verified'>;
 
 /** The item each field belongs to: changing the field clears that item. */
@@ -75,7 +77,7 @@ export function draftFromProfile(profile: Profile | AdminProfile): MemberVerific
 }
 
 /**
- * `draft` with `field` set to `value`, and the field's item unticked when the value
+ * `draft` with `field` set to `value`, and the field's item unchecked when the value
  * differs from the one the panel opened with.
  */
 export function editField<Field extends MemberField>(
@@ -90,28 +92,31 @@ export function editField<Field extends MemberField>(
   return { ...next, verified: next.verified.filter((slug) => slug !== item) };
 }
 
-/** `draft` with `item` ticked or unticked, keeping the screens' order. */
+/** `draft` with `item` checked or unchecked, keeping the screens' order. */
 export function toggleItem(
   draft: MemberVerificationDraft,
   item: VerificationItem,
   checked: boolean,
 ): MemberVerificationDraft {
-  const ticked = new Set(draft.verified);
-  if (checked) ticked.add(item);
-  else ticked.delete(item);
-  return { ...draft, verified: ITEM_SLUGS.filter((slug) => ticked.has(slug)) };
+  const chosen = new Set(draft.verified);
+  if (checked) chosen.add(item);
+  else chosen.delete(item);
+  return { ...draft, verified: ITEM_SLUGS.filter((slug) => chosen.has(slug)) };
 }
 
 /**
  * The request body: the fields that differ from the ones the panel opened with, and
- * the ticked items.  An untouched field is left out, so it is left alone.
+ * the checked items the draft holds.  An untouched field is left out, so it is left
+ * alone; a checked item the draft no longer holds is left out, so it ends unverified.
  */
 export function memberVerificationPayload(
   initial: MemberVerificationDraft,
   draft: MemberVerificationDraft,
 ): MemberVerificationPayload {
   const changed = (field: MemberField): boolean => draft[field] !== initial[field];
-  const payload: MemberVerificationPayload = { verified: draft.verified };
+  const payload: MemberVerificationPayload = {
+    verified: draft.verified.filter((item) => isItemHeld(item, draft)),
+  };
   if (changed('pilot_certificate_type')) {
     payload.pilot_certificate_type = draft.pilot_certificate_type;
   }

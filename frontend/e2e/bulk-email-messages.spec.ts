@@ -26,7 +26,7 @@ async function sendToWebsiteAdmins(page: Page, subject: string): Promise<void> {
     .getByRole('search', { name: 'Choose people to add' })
     .getByLabel('Role')
     .selectOption('website_admin');
-  await page.getByRole('button', { name: 'Add to batch' }).click();
+  await page.getByRole('button', { name: 'Add these people' }).click();
   await expect(page.getByText(/^Added \d+ (person|people)[.;]/)).toBeVisible();
   await page.getByRole('radio', { name: 'Operational' }).click();
   await page.getByRole('textbox', { name: /^Subject/ }).fill(subject);

@@ -603,7 +603,7 @@ def roll_charge_date_past(user: User, *, covered_until: date | None) -> RenewalM
     have just bought or been granted.  When their coverage now runs further than
     that, the stored charge day moves on by the same span, keeping the place the
     member gave it relative to their expiry: a day stored on the expiry itself
-    becomes the new expiry, a day stored a fortnight early stays a fortnight early,
+    becomes the new expiry, a day stored two weeks early stays two weeks early,
     and a day stored after the expiry stays as far after it.  A day already behind
     when the coverage moved has lost that place, so it becomes the new expiry
     itself.  Without this a member who renews by hand would be charged a second

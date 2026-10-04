@@ -28,6 +28,7 @@ function makeDetail(overrides: Partial<AircraftDetail> = {}): AircraftDetail {
         email: 'marta@example.org',
         membership_status: 'current',
         medical_is_current: false,
+        go_no_go: { membership: true, medical: false, verified: true },
       },
     ],
     ...overrides,
@@ -211,7 +212,7 @@ describe('AircraftRecordPage', () => {
 
     const history = await historyCard();
     expect(
-      await within(history).findByText("That record's history could not be loaded."),
+      await within(history).findByText("That record's history didn't load. Try again in a moment."),
     ).toBeInTheDocument();
   });
 
@@ -312,7 +313,10 @@ describe('AircraftRecordPage', () => {
   it('explains a record that is not there', async () => {
     server.use(
       http.get(`${API}/aircraft/1`, () =>
-        HttpResponse.json({ detail: 'Not found.' }, { status: 404 }),
+        HttpResponse.json(
+          { detail: "That isn't here. It may have been deleted." },
+          { status: 404 },
+        ),
       ),
     );
     renderRecord();
@@ -324,7 +328,7 @@ describe('AircraftRecordPage', () => {
     renderRecord();
 
     expect(await screen.findByRole('heading', { name: 'Verification' })).toBeInTheDocument();
-    expect(screen.getByText('Verified').parentElement).toHaveTextContent(
+    expect(screen.getByText('Verified').closest('.verified-mark')).toHaveTextContent(
       /^Verified by Dana Leader on 05\/01\/2026$/,
     );
   });
@@ -367,7 +371,7 @@ describe('AircraftRecordPage', () => {
     expect(await screen.findByText('Not verified')).toBeInTheDocument();
     await user.click(await screen.findByRole('button', { name: 'Verify' }));
     await user.click(screen.getByLabelText('Insurance verified'));
-    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await user.click(screen.getByRole('button', { name: 'Save verification' }));
 
     expect(await screen.findByText('Verification saved')).toBeInTheDocument();
     expect(calls.aircraft).toEqual([{ aircraftId: 1, body: { verified: true } }]);

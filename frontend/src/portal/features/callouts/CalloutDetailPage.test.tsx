@@ -1,11 +1,14 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { HttpResponse, http } from 'msw';
 import { describe, expect, it } from 'vitest';
 
 import type { CalloutDetail } from '@/portal/api/types';
 import { formatDateTime } from '@/portal/components/DateText';
 import { answerCallout, makeCallout } from '@test/fixtures/callouts';
+import { API } from '@test/handlers';
 import { renderRoutes } from '@test/render';
+import { server } from '@test/server';
 import {
   CalloutDetailPage,
   CLOSED_MESSAGE,
@@ -176,5 +179,24 @@ describe('remindBlocked', () => {
     await userEvent.type(await screen.findByRole('searchbox', { name: 'Find a person' }), 'zzz');
 
     expect(await screen.findByText('Nobody matches these filters.')).toBeInTheDocument();
+  });
+});
+
+describe('CalloutDetailPage, for a callout that is gone', () => {
+  it('says the callout is not there rather than to try again', async () => {
+    server.use(
+      http.get(`${API}/bulk-email/callouts/9`, () =>
+        HttpResponse.json(
+          { detail: "That isn't here. It may have been deleted." },
+          { status: 404 },
+        ),
+      ),
+    );
+    renderRoutes([{ path: '/bulk-email/callouts/:id', element: <CalloutDetailPage /> }], {
+      route: '/bulk-email/callouts/9',
+    });
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      "This callout isn't here. It may have been deleted.",
+    );
   });
 });

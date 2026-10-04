@@ -9,10 +9,9 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import type { JSX, Key, ReactNode } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 
 import type { LeaderGoNoGo } from '@/portal/api/types';
-import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { Field } from '@/portal/components/Field';
 import { Page } from '@/portal/components/Page';
@@ -105,9 +104,7 @@ export function LeaderLookup<T>({
     return (
       <Page title={title}>
         <div className="leader-back">
-          <Button variant="quiet" small onClick={handleBack}>
-            ← Back to search
-          </Button>
+          <Link to={{ search: '' }}>Back to search</Link>
         </div>
         <div ref={selectedRef} tabIndex={-1} className="stack leader-selected">
           {renderSelected(selected, handleBack)}

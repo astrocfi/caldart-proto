@@ -59,7 +59,7 @@ ROSTER_KIND = "roster"
 #: Why a subscription or a roster did not produce an email, in the order a
 #: summary lists them.  ``not_permitted``: the subscription's account may no
 #: longer read the report, so it was paused.  ``no_recipients``: a DART with no
-#: ticked person who has an address.  ``no_email``: one ticked person without an
+#: checked person who has an address.  ``no_email``: one checked person without an
 #: address, on a DART whose roster went to others.
 SKIP_REASONS: tuple[str, ...] = ("not_permitted", "no_recipients", "no_email")
 
@@ -439,7 +439,7 @@ def roster_member_count(dart: Dart) -> int:
 def send_roster_email(
     contact: DartContact, dart: Dart, document: ReportDocument, *, members: int, today: date
 ) -> None:
-    """Email ``dart``'s roster, already built as ``document``, to one ticked person.
+    """Email ``dart``'s roster, already built as ``document``, to one checked person.
 
     The subject reads ``<DART name> roster (<MM/DD/YYYY>)`` and the body
     (``emails/dart_roster.{txt,html}``) says how many members the roster lists and
@@ -469,10 +469,10 @@ def send_roster_email(
 
 
 def send_roster(run: ReportRun, dart: Dart, *, today: date, dry_run: bool) -> None:
-    """Send ``dart``'s roster to each person ticked to receive it, recorded on ``run``.
+    """Send ``dart``'s roster to each person checked to receive it, recorded on ``run``.
 
-    A DART with no ticked person who has an address is skipped once as
-    ``no_recipients``; otherwise each ticked person without one is skipped as
+    A DART with no checked person who has an address is skipped once as
+    ``no_recipients``; otherwise each checked person without one is skipped as
     ``no_email`` and everyone else is sent one email.  The roster is the members
     report for the DART, by name, with :data:`ROSTER_COLUMNS`, as a PDF built once.
     ``roster_sent_at`` is stamped when every email went out; a refused one is counted
@@ -483,8 +483,8 @@ def send_roster(run: ReportRun, dart: Dart, *, today: date, dry_run: bool) -> No
     if len(reachable) == 0:
         run.record_skipped("no_recipients")
         return
-    ticked = [contact for contact in dart.contacts.all() if contact.receives_roster]
-    for _unreachable in range(len(ticked) - len(reachable)):
+    checked = [contact for contact in dart.contacts.all() if contact.receives_roster]
+    for _unreachable in range(len(checked) - len(reachable)):
         run.record_skipped("no_email")
     actions = [
         RunAction(kind=ROSTER_KIND, member=contact.name, email=contact.email, detail=dart.name)

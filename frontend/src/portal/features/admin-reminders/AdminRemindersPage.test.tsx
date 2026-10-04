@@ -76,10 +76,12 @@ describe('AdminRemindersPage', () => {
     await screen.findByText('Marta Reyes');
 
     expect(screen.queryByRole('button', { name: 'Run now' })).not.toBeInTheDocument();
-    expect(screen.queryByLabelText('Dry run (send nothing)')).not.toBeInTheDocument();
+    expect(
+      screen.queryByLabelText('Practice run: show what would happen, send nothing'),
+    ).not.toBeInTheDocument();
   });
 
-  it('explains the log as the record of what renewal emails were sent', async () => {
+  it('explains when reminders go and that nobody gets one twice', async () => {
     server.use(logHandler(ENTRIES));
     renderWithProviders(<AdminRemindersPage />);
     await screen.findByText('Marta Reyes');
@@ -89,10 +91,9 @@ describe('AdminRemindersPage', () => {
         (_text, element) =>
           element?.tagName.toLowerCase() === 'p' &&
           element.textContent ===
-            'The scan runs every morning at 7:00 AM and mails a member 60, 30, and 7 days before ' +
-              'their membership ends, on the day it ends, and 30 days after. Each member gets ' +
-              'one email per membership per kind. This is the record of what renewal emails ' +
-              'were sent to each member.',
+            'Every morning at 7:00 AM, CalDART emails each member a renewal reminder 60, 30, ' +
+              'and 7 days before their membership ends, on the day it ends, and 30 days after. ' +
+              'Nobody gets the same reminder twice for one membership.',
       ),
     ).toBeInTheDocument();
   });
@@ -111,8 +112,8 @@ describe('AdminRemindersPage', () => {
         (_text, element) =>
           element?.tagName.toLowerCase() === 'p' &&
           (element.textContent ?? '').startsWith(
-            'The scan runs every morning at 7:00 AM and mails a member 90, 30, and 1 day before ' +
-              'their membership ends,',
+            'Every morning at 7:00 AM, CalDART emails each member a renewal reminder 90, 30, ' +
+              'and 1 day before their membership ends,',
           ),
       ),
     ).toBeInTheDocument();

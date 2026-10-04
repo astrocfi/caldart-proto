@@ -59,7 +59,7 @@ describe('missingSteps', () => {
       'Choose a type.',
       'Write a subject.',
       'Write the message.',
-      'Add people to the batch.',
+      'Add people to the recipient list.',
     ]);
   });
 });

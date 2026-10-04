@@ -27,7 +27,7 @@ export function ScheduledPage(): JSX.Element {
   return (
     <Page
       title="Scheduled"
-      lede="The jobs the server runs on a schedule. Each one can be run by hand here, and a dry run shows what it would do."
+      lede="The jobs CalDART runs on a schedule. Run any of them by hand here: each is safe to run twice, and a practice run shows what it would do first."
     >
       <RemindersPanel />
       <ReminderScheduleCard />

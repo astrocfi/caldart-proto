@@ -12,7 +12,7 @@ reminder email.
 What you see
 ============
 
-The **Where you stand** card comes first. It shows your membership status, then
+The **Your membership** card comes first. It shows your membership status, then
 *Expires* and the date with the days to go, or *Expired* and the date it ran out
 on, and the plan you hold, such as *Annual membership*.
 
@@ -22,7 +22,7 @@ to :doc:`become-a-member` instead.
 
 Below it is the checkout, headed **Renew your membership**. It works the same way
 as the join wizard's payment step (see :doc:`join`): choose the plan, with the first
-plan listed chosen for you, add a contribution if you like, tick **Renew
+plan listed chosen for you, add a contribution if you like, check **Renew
 automatically each year** if you want CalDART to renew you from now on, and pay from
 one of the tabs. A site with no membership plan set up shows *No membership plan is
 set up yet. Ask an administrator.* instead of the plans, and offers no way to pay.
@@ -51,7 +51,7 @@ Life members
 
 A life member has nothing to renew, so the menu entry reads **Contribute** and opens
 **Contribute to CalDART**: *As a life member you have nothing to renew. A contribution keeps the
-DARTs flying.* The **Where you stand** card reads **Never expires** and
+DARTs flying.* The **Your membership** card reads **Never expires** and
 the line *You are a life member. Thank you.*, with no date and no plan.
 
 The form below it, **Make a contribution**, takes a contribution alone. **Make this

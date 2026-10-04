@@ -35,7 +35,7 @@ from apps.members.models import (
 )
 from apps.members.seed import DART_SEED, EMPTY_DART
 from apps.members.services import membership_status
-from apps.members.verification import verified_items
+from apps.members.verification import ITEMS, is_held, verified_items
 from apps.notifications.events import EVENTS
 from apps.notifications.models import NotificationSubscription
 from apps.payments.models import (
@@ -720,13 +720,30 @@ def test_seed_demo_makes_the_verifier_account() -> None:
 
 
 def test_seed_demo_verifies_about_seven_in_ten_members() -> None:
-    """Most seeded members have all three items verified by the leader; the rest none."""
+    """Most seeded members have each held item verified by the leader; the rest none."""
     _seed()
     members = MemberProfile.objects.filter(user__kind=AccountKind.MEMBER)
-    verified = [profile for profile in members if len(verified_items(profile)) == 3]
+    verified = [profile for profile in members if verified_items(profile) == _held(profile)]
     unverified = [profile for profile in members if len(verified_items(profile)) == 0]
-    assert len(verified) + len(unverified) == members.count()
+    assert len({*verified, *unverified}) == members.count()
     assert len(verified) == SEEDED_VERIFIED_MEMBERS
+
+
+def test_seed_demo_never_verifies_an_item_a_member_does_not_hold() -> None:
+    """No seeded profile has a stamp on a certificate, medical, or photo ID it lacks."""
+    _seed()
+    stamped = [
+        (profile.pk, slug)
+        for profile in MemberProfile.objects.all()
+        for slug in verified_items(profile)
+        if not is_held(profile, slug)
+    ]
+    assert stamped == []
+
+
+def _held(profile: MemberProfile) -> list[str]:
+    """The slugs of the items ``profile`` holds, in the order the screens list them."""
+    return [item.slug for item in ITEMS if is_held(profile, item.slug)]
 
 
 def test_seed_demo_stamps_every_verification_with_the_leader() -> None:
@@ -745,10 +762,11 @@ def test_seed_demo_stamps_every_verification_with_the_leader() -> None:
 
 
 def test_seed_demo_verifies_the_demo_member() -> None:
-    """The demo member's three items are all verified."""
+    """Every item the demo member holds is verified."""
     _seed()
     profile = MemberProfile.objects.get(user__email="member@example.org")
-    assert verified_items(profile) == ["certificate", "medical", "photo_id"]
+    assert len(verified_items(profile)) > 0
+    assert verified_items(profile) == _held(profile)
 
 
 def test_seed_demo_verifies_about_seven_in_ten_aircraft() -> None:

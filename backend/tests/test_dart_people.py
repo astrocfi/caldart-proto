@@ -1,9 +1,9 @@
 """The people a DART lists: any number of them, and which of them receive the roster.
 
-Covers the list having no cap, the ``receives_roster`` tick on each person, the
+Covers the list having no cap, the ``receives_roster`` check on each person, the
 ``roster_recipients`` count and ``roster_sent_at`` stamp the account administrator's
-DART screen reads, the public catalog leaving the tick out, and the demo seed
-ticking each team's leader and deputy leader.
+DART screen reads, the public catalog leaving the check out, and the demo seed
+checking each team's leader and deputy leader.
 """
 
 from __future__ import annotations
@@ -58,10 +58,10 @@ def test_a_sixth_person_can_be_added_to_a_dart_of_five(account_admin_client: API
     assert dart.contacts.count() == 6
 
 
-def test_a_person_does_not_receive_the_roster_unless_ticked(
+def test_a_person_does_not_receive_the_roster_unless_checked(
     account_admin_client: APIClient,
 ) -> None:
-    """A contact posted without ``receives_roster`` is stored unticked."""
+    """A contact posted without ``receives_roster`` is stored unchecked."""
     response = account_admin_client.post(
         LIST_URL,
         {"name": "Napa", "airport_identifiers": "APC", "contacts": _people(1)},
@@ -71,17 +71,17 @@ def test_a_person_does_not_receive_the_roster_unless_ticked(
     assert response.json()["contacts"][0]["receives_roster"] is False
 
 
-def test_the_roster_tick_is_stored_per_person(account_admin_client: APIClient) -> None:
-    """Each person's tick is stored as given, and read back on the admin list."""
+def test_the_roster_checkbox_is_stored_per_person(account_admin_client: APIClient) -> None:
+    """Each person's check is stored as given, and read back on the admin list."""
     contacts = _people(3)
-    ticked = [
+    checked = [
         {**contacts[0], "receives_roster": True},
         {**contacts[1], "receives_roster": False},
         {**contacts[2], "receives_roster": True},
     ]
     account_admin_client.post(
         LIST_URL,
-        {"name": "Napa", "airport_identifiers": "APC", "contacts": ticked},
+        {"name": "Napa", "airport_identifiers": "APC", "contacts": checked},
         format="json",
     )
 
@@ -90,8 +90,8 @@ def test_the_roster_tick_is_stored_per_person(account_admin_client: APIClient) -
     assert [contact["receives_roster"] for contact in row["contacts"]] == [True, False, True]
 
 
-def test_a_person_without_an_email_may_be_ticked(account_admin_client: APIClient) -> None:
-    """The tick is accepted for a phone-only person; the sender skips them later."""
+def test_a_person_without_an_email_may_be_checked(account_admin_client: APIClient) -> None:
+    """The checkbox is accepted for a phone-only person; the sender skips them later."""
     response = account_admin_client.post(
         LIST_URL,
         {
@@ -113,10 +113,10 @@ def test_a_person_without_an_email_may_be_ticked(account_admin_client: APIClient
     assert DartContact.objects.get().receives_roster is True
 
 
-def test_roster_recipients_counts_ticked_people_with_an_email(
+def test_roster_recipients_counts_checked_people_with_an_email(
     account_admin_client: APIClient,
 ) -> None:
-    """Only a ticked person with an address counts: unticked or address-less do not."""
+    """Only a checked person with an address counts: unchecked or address-less do not."""
     dart = DartFactory(name="Napa")
     DartContactFactory(dart=dart, receives_roster=True)
     DartContactFactory(dart=dart, receives_roster=True)
@@ -172,7 +172,7 @@ def test_roster_sent_at_is_not_written_by_the_screen(account_admin_client: APICl
     assert dart.roster_sent_at is None
 
 
-def test_the_public_catalog_leaves_the_roster_tick_out(api_client: APIClient) -> None:
+def test_the_public_catalog_leaves_the_roster_checkbox_out(api_client: APIClient) -> None:
     """Who receives the roster is the administrator's business, not a visitor's."""
     dart = DartFactory(name="Napa")
     DartContactFactory(dart=dart, receives_roster=True)
@@ -182,10 +182,10 @@ def test_the_public_catalog_leaves_the_roster_tick_out(api_client: APIClient) ->
     assert "receives_roster" not in contact
 
 
-def test_the_seed_ticks_each_dart_leader_and_deputy() -> None:
+def test_the_seed_checks_each_dart_leader_and_deputy() -> None:
     """Every seeded DART sends its roster to its leader and its deputy leader."""
     seed_darts()
 
     for dart in Dart.objects.all():
-        ticked = [contact.title for contact in dart.contacts.filter(receives_roster=True)]
-        assert ticked == ["DART leader", "Deputy leader"], dart.name
+        checked = [contact.title for contact in dart.contacts.filter(receives_roster=True)]
+        assert checked == ["DART leader", "Deputy leader"], dart.name

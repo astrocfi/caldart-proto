@@ -47,7 +47,7 @@ SANDBOX_BASE = "https://api-m.sandbox.paypal.com"
 #: What a member is told when PayPal times out or answers with something we
 #: cannot read.  It says nothing about the money: a capture can fail in transit
 #: after PayPal has already taken it.
-UNAVAILABLE_MESSAGE = "PayPal could not be reached. Please try again."
+UNAVAILABLE_MESSAGE = "PayPal didn't answer. Try again in a moment."
 
 #: Seconds shaved off the advertised token lifetime, so we never present one
 #: that expires mid-flight.

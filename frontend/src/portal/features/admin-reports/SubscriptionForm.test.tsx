@@ -43,7 +43,7 @@ async function chooseReport(title: string): Promise<void> {
 
 /** The form's own controls, outside the filter bar. */
 function form(): HTMLElement {
-  return screen.getByRole('form', { name: 'New subscription' });
+  return screen.getByRole('form', { name: 'Email a report' });
 }
 
 describe('SubscriptionForm', () => {
@@ -143,7 +143,7 @@ describe('SubscriptionForm', () => {
     await userEvent.click(within(form()).getByLabelText('CSV'));
     await userEvent.selectOptions(within(form()).getByLabelText('Schedule'), 'Quarterly');
     await userEvent.type(within(form()).getByLabelText(/^Recipient email/), 'tessa@example.org');
-    await userEvent.click(within(form()).getByRole('button', { name: 'Save' }));
+    await userEvent.click(within(form()).getByRole('button', { name: 'Add emailed report' }));
 
     await vi.waitFor(() => expect(onDone).toHaveBeenCalled());
     expect(bodies).toEqual([
@@ -168,7 +168,7 @@ describe('SubscriptionForm', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Columns' }));
     await userEvent.click(screen.getByRole('checkbox', { name: 'County' }));
     await userEvent.type(within(form()).getByLabelText(/^Recipient email/), 'ada@example.org');
-    await userEvent.click(within(form()).getByRole('button', { name: 'Save' }));
+    await userEvent.click(within(form()).getByRole('button', { name: 'Add emailed report' }));
 
     await vi.waitFor(() => expect(bodies).toHaveLength(1));
     expect(bodies[0]).toMatchObject({ columns: ['name', 'email', 'county'] });
@@ -182,7 +182,7 @@ describe('SubscriptionForm', () => {
     await userEvent.selectOptions(within(form()).getByLabelText('Schedule'), 'Weekly');
     await userEvent.selectOptions(within(form()).getByLabelText('Day'), 'Thursday');
     await userEvent.type(within(form()).getByLabelText(/^Recipient email/), 'ada@example.org');
-    await userEvent.click(within(form()).getByRole('button', { name: 'Save' }));
+    await userEvent.click(within(form()).getByRole('button', { name: 'Add emailed report' }));
 
     await vi.waitFor(() => expect(bodies).toHaveLength(1));
     expect(bodies[0]).toMatchObject({ cadence: 'weekly', weekday: 3 });
@@ -201,7 +201,7 @@ describe('SubscriptionForm', () => {
     await chooseReport('Members');
 
     await userEvent.type(within(form()).getByLabelText(/^Recipient email/), 'tessa@example.org');
-    await userEvent.click(within(form()).getByRole('button', { name: 'Save' }));
+    await userEvent.click(within(form()).getByRole('button', { name: 'Add emailed report' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Tessa Treasurer does not hold a role that may read this report.',
@@ -223,7 +223,7 @@ describe('SubscriptionForm', () => {
           return HttpResponse.json(makeSubscription(), { status: 201 });
         }
         return HttpResponse.json(
-          { confirmed: ['Tick the box to confirm this address may receive this report.'] },
+          { confirmed: ['Check the box to confirm this address may receive this report.'] },
           { status: 400 },
         );
       }),
@@ -233,13 +233,13 @@ describe('SubscriptionForm', () => {
     const outside = 'This address is outside CalDART and may receive this report';
     expect(within(form()).queryByLabelText(outside)).not.toBeInTheDocument();
     await userEvent.type(within(form()).getByLabelText(/^Recipient email/), 'board@example.org');
-    await userEvent.click(within(form()).getByRole('button', { name: 'Save' }));
+    await userEvent.click(within(form()).getByRole('button', { name: 'Add emailed report' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Tick the box to confirm this address may receive this report.',
+      'Check the box to confirm this address may receive this report.',
     );
     await userEvent.click(within(form()).getByLabelText(outside));
-    await userEvent.click(within(form()).getByRole('button', { name: 'Save' }));
+    await userEvent.click(within(form()).getByRole('button', { name: 'Add emailed report' }));
 
     await vi.waitFor(() => expect(bodies).toHaveLength(2));
     expect(bodies[1]?.confirmed).toBe(true);
@@ -255,7 +255,7 @@ describe('SubscriptionForm', () => {
     await chooseReport('Payments');
 
     await userEvent.type(within(form()).getByLabelText(/^Recipient email/), 'ada@example.org');
-    await userEvent.click(within(form()).getByRole('button', { name: 'Save' }));
+    await userEvent.click(within(form()).getByRole('button', { name: 'Add emailed report' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Period: Choose a valid period.');
   });
@@ -265,7 +265,7 @@ describe('SubscriptionForm', () => {
     renderForm(bodies);
     await screen.findByRole('option', { name: 'Members' });
 
-    expect(within(form()).getByRole('button', { name: 'Save' })).toBeDisabled();
+    expect(within(form()).getByRole('button', { name: 'Add emailed report' })).toBeDisabled();
     expect(bodies).toEqual([]);
   });
 
@@ -315,14 +315,14 @@ function renderEdit(
 
 /** The edit form's own controls, outside the filter bar. */
 function editForm(): HTMLElement {
-  return screen.getByRole('form', { name: 'Edit subscription' });
+  return screen.getByRole('form', { name: 'Edit emailed report' });
 }
 
 describe('SubscriptionForm editing a subscription', () => {
-  it('is headed Edit subscription', () => {
+  it('is headed Edit emailed report', () => {
     renderEdit();
 
-    expect(screen.getByRole('heading', { name: 'Edit subscription' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Edit emailed report' })).toBeInTheDocument();
   });
 
   it('shows the report as fixed text rather than a choice', () => {
@@ -351,15 +351,15 @@ describe('SubscriptionForm editing a subscription', () => {
     expect(within(bar).getByLabelText('Expiring within (days)')).toHaveValue('30');
   });
 
-  it('ticks the stored columns in the chooser', async () => {
+  it('checks the stored columns in the chooser', async () => {
     renderEdit();
 
     await userEvent.click(await screen.findByRole('button', { name: 'Columns' }));
 
-    const ticked = MEMBER_COLUMNS.filter(
+    const checked = MEMBER_COLUMNS.filter(
       (column) => screen.getByRole<HTMLInputElement>('checkbox', { name: column.label }).checked,
     ).map((column) => column.label);
-    expect(ticked).toEqual(['Name', 'County']);
+    expect(checked).toEqual(['Name', 'County']);
   });
 
   it('fills the formats, the schedule and the day', () => {
@@ -378,7 +378,7 @@ describe('SubscriptionForm editing a subscription', () => {
     await userEvent.selectOptions(screen.getByLabelText('Kind'), 'Members only');
     await userEvent.click(within(editForm()).getByLabelText('PDF'));
     await userEvent.selectOptions(within(editForm()).getByLabelText('Schedule'), 'Monthly');
-    await userEvent.click(within(editForm()).getByRole('button', { name: 'Save' }));
+    await userEvent.click(within(editForm()).getByRole('button', { name: 'Save changes' }));
 
     await vi.waitFor(() => expect(onDone).toHaveBeenCalled());
     expect(bodies).toEqual([
@@ -397,7 +397,7 @@ describe('SubscriptionForm editing a subscription', () => {
     renderEdit(makeSubscription({ id: 6, columns: [] }), bodies);
     await screen.findByRole('button', { name: 'Columns' });
 
-    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Save changes' }));
 
     await vi.waitFor(() => expect(bodies).toHaveLength(1));
     expect(bodies[0]).toMatchObject({ columns: [] });
@@ -414,7 +414,7 @@ describe('SubscriptionForm editing a subscription', () => {
       ),
     );
 
-    await userEvent.click(within(editForm()).getByRole('button', { name: 'Save' }));
+    await userEvent.click(within(editForm()).getByRole('button', { name: 'Save changes' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Expiring within (days): Enter a whole number.',
@@ -430,7 +430,7 @@ describe('SubscriptionForm editing a subscription', () => {
       ),
     );
 
-    await userEvent.click(within(editForm()).getByRole('button', { name: 'Save' }));
+    await userEvent.click(within(editForm()).getByRole('button', { name: 'Save changes' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Unknown column: fax.');
     expect(within(editForm()).queryByRole('alert')).not.toBeInTheDocument();
@@ -444,7 +444,7 @@ describe('SubscriptionForm editing a subscription', () => {
       ),
     );
 
-    await userEvent.click(within(editForm()).getByRole('button', { name: 'Save' }));
+    await userEvent.click(within(editForm()).getByRole('button', { name: 'Save changes' }));
 
     expect(await within(editForm()).findByRole('alert')).toHaveTextContent(
       'You may not change this subscription.',
@@ -459,7 +459,7 @@ describe('SubscriptionForm editing a subscription', () => {
     );
 
     await userEvent.selectOptions(within(editForm()).getByLabelText('Schedule'), 'Yearly');
-    await userEvent.click(within(editForm()).getByRole('button', { name: 'Save' }));
+    await userEvent.click(within(editForm()).getByRole('button', { name: 'Save changes' }));
 
     await vi.waitFor(() => expect(bodies).toHaveLength(1));
     expect(bodies[0]).toMatchObject({ cadence: 'yearly' });

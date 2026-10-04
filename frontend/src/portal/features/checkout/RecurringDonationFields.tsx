@@ -1,9 +1,9 @@
 /**
  * The block under the amount that makes a contribution a recurring donation.
  *
- * A checkbox, then -- once it is ticked -- how often, and the day of the first
+ * A checkbox, then -- once it is checked -- how often, and the day of the first
  * charge, which opens on today and never offers a day before it.  The line under
- * them says what will happen in money and dates, so nobody ticks a box without
+ * them says what will happen in money and dates, so nobody checks a box without
  * knowing what it does.
  */
 import { useId } from 'react';
@@ -83,7 +83,7 @@ export function RecurringDonationFields({
  * What a recurring donation will do, in one or two sentences.
  *
  * A first charge today is taken now; a later one is taken on its day with
- * nothing charged today.  A yearly donation is announced a fortnight ahead of
+ * nothing charged today.  A yearly donation is announced two weeks ahead of
  * every charge, and a monthly or quarterly one is not.
  */
 export function recurringSummary(
@@ -99,7 +99,7 @@ export function recurringSummary(
       : `CalDART charges ${amount} today, and ${phrase} after that.`;
   const notice =
     cadence === 'yearly'
-      ? 'We will email you fourteen days before every charge.'
+      ? 'We will email you 14 days before every charge.'
       : 'We email you a receipt after every charge.';
   return `${when} ${notice} You can change it or turn it off at any time from Payments.`;
 }

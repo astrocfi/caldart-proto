@@ -51,7 +51,9 @@ describe('MessagePage', () => {
   });
 
   it("says a message that is not the reader's is not available", async () => {
-    renderMessage(() => HttpResponse.json({ detail: 'Not found.' }, { status: 404 }));
+    renderMessage(() =>
+      HttpResponse.json({ detail: "That isn't here. It may have been deleted." }, { status: 404 }),
+    );
     expect(await screen.findByRole('alert')).toHaveTextContent(NOT_AVAILABLE_MESSAGE);
   });
 

@@ -220,11 +220,11 @@ exactly as ``manage.py send_scheduled_reports`` sends them (see
 
 Each action is one email: kind ``report`` names the subscription's recipient,
 with the report's title and formats in ``detail``, and kind ``roster`` names a
-person ticked to receive a DART's roster, with the DART in ``detail``.  ``on``
+person checked to receive a DART's roster, with the DART in ``detail``.  ``on``
 and ``amount_cents`` are always ``null``.  ``skipped_by_reason`` holds one entry
 per reason that occurred: ``not_permitted`` (the subscription's account may no
 longer read the report, so it was paused), ``no_recipients`` (a DART with nobody
-ticked who has an address) and ``no_email`` (one ticked person without an
+checked who has an address) and ``no_email`` (one checked person without an
 address).  ``failed`` counts the emails the mail server refused, and the reports
 the stored filters could no longer build; each of them stays due.
 
@@ -277,7 +277,7 @@ reminder run's ``failed`` count reports it as well.
    ``password_reset``, ``scheduled_report`` or ``dart_roster``.
 
 ``purpose_label``
-   The purpose in words, such as ``Renewal reminder (30 days)`` for
+   The purpose in words, such as ``Second reminder (30 days before)`` for
    ``reminder_second``, from ``purpose_labels()`` in ``apps/mail/purposes.py``:
    the five reminders worded from the stored reminder schedule
    (:ref:`api-reminder-schedule`), read once per page, then ``PURPOSE_LABELS``.  A
@@ -361,8 +361,8 @@ from the stored reminder schedule, then every entry of ``PURPOSE_LABELS``.  Unpa
 .. code-block:: json
 
    [
-     {"value": "reminder_first", "label": "Renewal reminder (60 days)"},
-     {"value": "reminder_second", "label": "Renewal reminder (30 days)"},
+     {"value": "reminder_first", "label": "First reminder (60 days before)"},
+     {"value": "reminder_second", "label": "Second reminder (30 days before)"},
      {"value": "receipt", "label": "Receipt"}
    ]
 

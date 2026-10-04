@@ -94,7 +94,7 @@ class Dart(TimestampedModel):  # type: ignore[django-manager-missing]
         "website", max_length=200, blank=True, help_text="The team's own site, if it has one."
     )
     is_active = models.BooleanField(default=True)
-    #: When the team's monthly roster last went out to its ticked people, or
+    #: When the team's monthly roster last went out to its checked people, or
     #: null when none has; the sender stamps it and nothing else writes it.
     roster_sent_at = models.DateTimeField(null=True, blank=True)
 
@@ -117,7 +117,7 @@ class Dart(TimestampedModel):  # type: ignore[django-manager-missing]
         return split_airport_identifiers(self.airport_identifiers)
 
     def roster_recipients(self) -> list[DartContact]:
-        """The people ticked to receive the roster who have an address, in list order.
+        """The people checked to receive the roster who have an address, in list order.
 
         Reads ``contacts.all()``, so a queryset that prefetched the contacts costs no
         further query.
@@ -158,7 +158,7 @@ class DartContact(TimestampedModel):
     email = models.EmailField(blank=True)
     sort_order = models.PositiveIntegerField(default=0)
     #: Whether this person is sent the team's roster.  A person without an
-    #: email address may be ticked; the sender skips them.
+    #: email address may be checked; the sender skips them.
     receives_roster = models.BooleanField(default=False)
 
     class Meta:

@@ -373,7 +373,7 @@ def _donation_received(payload: Mapping[str, object]) -> Built:
     recurring = payment.renewal_attempts.exists()
     return (
         f"{name} gave {amount}",
-        [("From", name), ("Amount", amount), ("Kind", "Recurring" if recurring else "One-time")],
+        [("From", name), ("Amount", amount), ("Type", "Recurring" if recurring else "One-time")],
         _payment_link(payment),
     )
 

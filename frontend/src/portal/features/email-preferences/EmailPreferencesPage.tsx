@@ -30,8 +30,8 @@ export function EmailPreferencesPage(): JSX.Element {
         />
         <p className="muted">
           Email about your own account, such as receipts, renewal reminders, and password links,
-          always reaches you. The unsubscribe link at the foot of a CalDART email turns off that one
-          type, and you can turn it back on here.
+          always reaches you. The unsubscribe link at the bottom of a CalDART email turns off that
+          one type, and you can turn it back on here.
         </p>
       </Card>
     </Page>

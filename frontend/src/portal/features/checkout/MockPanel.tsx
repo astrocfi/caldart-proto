@@ -50,8 +50,8 @@ export function MockPanel({
   return (
     <div className="checkout__panel stack">
       <p className="muted">
-        This deployment has no live payment keys, so payments are simulated. Nothing is charged and
-        no card details are collected.
+        Online payment isn't set up yet, so this is a practice payment. Nothing is charged and no
+        card details are collected.
       </p>
       {error ? (
         <p className="checkout__error" role="alert">

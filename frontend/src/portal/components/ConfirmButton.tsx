@@ -36,6 +36,11 @@ export interface ConfirmChoice {
 export interface ConfirmButtonProps {
   /** The button's words, and the accessible name of the panel it opens. */
   label: string;
+  /**
+   * The button's accessible name when the row it acts on must be named, starting with
+   * `label`, such as *Turn off automatic renewal for Ben Ortiz*; `label` unless given.
+   */
+  name?: string;
   /** The button's look; `secondary` unless given. */
   variant?: ButtonVariant;
   /** Draw the button and the panel's buttons small, to sit among small ones. */
@@ -81,6 +86,7 @@ export function choiceText(choiceLabel: string, triggerLabel: string): string {
  */
 export function ConfirmButton({
   label,
+  name,
   variant = 'secondary',
   small = false,
   disabled = false,
@@ -157,6 +163,7 @@ export function ConfirmButton({
         variant={variant}
         small={small}
         disabled={disabled}
+        aria-label={name}
         aria-expanded={isOpen}
         aria-controls={isOpen ? panelId : undefined}
         onClick={handleToggle}

@@ -59,7 +59,7 @@ export interface ColumnChoice {
  * default columns.
  *
  * @param report the report whose columns are chosen.
- * @param fallback the columns the table shows without the registry, the defaults ticked.
+ * @param fallback the columns the table shows without the registry, the defaults checked.
  * @returns the registry, the chosen keys, their setter, and what the table shows.
  */
 export function useColumnChoice(
@@ -94,7 +94,7 @@ function unknownCell<Row>(): ReportCell<Row> {
  * The table's columns for the chosen keys, in registry order.
  *
  * Each takes its heading from the registry and its drawing from `cells`.  Only a
- * default column keeps the `dropOrder` its cell gives: a column somebody ticked beyond
+ * default column keeps the `dropOrder` its cell gives: a column somebody checked beyond
  * the defaults always shows, and the table scrolls sideways when it must.  Under
  * server sorting (`isServerSorted`) a column's key is its `ordering` value and a
  * column without one is unsortable; otherwise the key is the registry's.
@@ -115,7 +115,7 @@ export function reportTableColumns<Row>(
     .filter((column) => chosen.includes(column.key))
     .map((column) => {
       const { ordering, ...given }: ReportCell<Row> = cells[column.key] ?? unknownCell<Row>();
-      // A column the person ticked, beyond the report's defaults, is never left out to
+      // A column the person checked, beyond the report's defaults, is never left out to
       // fit the screen: the table scrolls instead, its identifying column pinned.
       const cell = column.default ? given : { ...given, dropOrder: undefined };
       if (!isServerSorted) return { ...cell, key: column.key, header: column.label };
@@ -140,9 +140,7 @@ export interface ColumnToolsProps {
  */
 export function ColumnTools({ choice, disabledReason }: ColumnToolsProps): JSX.Element | null {
   if (choice.isError) {
-    return (
-      <p className="muted">The columns could not be loaded; the list shows the default ones.</p>
-    );
+    return <p className="muted">The columns didn't load; the list shows the default ones.</p>;
   }
   if (choice.columns.length === 0) return null;
   if (disabledReason !== undefined) {

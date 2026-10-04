@@ -41,6 +41,7 @@ from apps.members.verification import VerificationState, clear_stale, document_e
 from apps.payments.models import Payment, PaymentKind
 from caldart import events
 from caldart.casing import person_name
+from caldart.messages import when_missing
 from caldart.phone import PHONE_EXTENSION_RE, PHONE_RE, normalize_phone
 
 #: Five digits, e.g. ``95035``.  The four-digit add-on is not collected: it is
@@ -158,8 +159,19 @@ class ProfileSerializer(serializers.ModelSerializer[MemberProfile]):
 
     # The names live on the account, so a PUT that leaves them out does not reset
     # them the way it resets a profile field; trimming makes a blank of spaces only.
-    first_name = serializers.CharField(source="user.first_name", max_length=150, required=False)
-    last_name = serializers.CharField(source="user.last_name", max_length=150, required=False)
+    # The messages are neutral because an administrator edits someone else's names here.
+    first_name = serializers.CharField(
+        source="user.first_name",
+        max_length=150,
+        required=False,
+        error_messages=when_missing("Enter a first name."),
+    )
+    last_name = serializers.CharField(
+        source="user.last_name",
+        max_length=150,
+        required=False,
+        error_messages=when_missing("Enter a last name."),
+    )
 
     dart = DartRefSerializer(read_only=True, allow_null=True)
     dart_id = serializers.PrimaryKeyRelatedField(
@@ -410,7 +422,7 @@ class ProfileSerializer(serializers.ModelSerializer[MemberProfile]):
         DRF's own behavior is to ignore absent optional fields even on a full
         update, which would make ``PUT`` and ``PATCH`` indistinguishable.  The
         API contract says one is a full update and the other partial,
-        so unticked checkboxes and cleared text really do get cleared.
+        so unchecked checkboxes and cleared text really do get cleared.
 
         The account's names are the exception: they are written to the ``User`` row
         when the request carries them and left alone when it does not.

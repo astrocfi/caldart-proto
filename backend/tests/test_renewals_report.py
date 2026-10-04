@@ -20,7 +20,7 @@ pytestmark = pytest.mark.django_db
 EXPORT = "/api/v1/reports/renewals/export.csv"
 LIST = "/api/v1/admin/renewals"
 
-DEFAULT_HEADER = ["Member", "Email", "Kind", "Plan", "Next charge", "Due", "Method", "Status"]
+DEFAULT_HEADER = ["Member", "Email", "Type", "Plan", "Next charge", "Due", "Method", "Status"]
 
 
 @pytest.fixture
@@ -80,7 +80,7 @@ def test_a_recurring_donation_has_no_plan_and_names_its_cadence(
 ) -> None:
     """A donation renews no plan; its cadence is a column to ask for."""
     rows = read_csv(treasurer_client.get(EXPORT, {"columns": "kind,plan,cadence,status"}))
-    assert rows[1] == ["Recurring donation", "", "Monthly", "Off"]
+    assert rows[1] == ["Recurring donation", "", "Monthly", "Turned off"]
 
 
 @pytest.mark.parametrize(

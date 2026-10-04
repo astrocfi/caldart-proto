@@ -124,7 +124,7 @@ def test_another_accounts_set_of_the_same_name_is_left_alone(
         ({"name": "Bad", "columns": ["nope"]}, {"columns": ["Unknown column: nope"]}),
         ({"name": "Bad", "columns": ["name", "name"]}, {"columns": ["Repeated column: name"]}),
         ({"name": "Bad", "columns": []}, {"columns": ["Choose at least one column."]}),
-        ({"name": "", "columns": ["name"]}, {"name": ["This field may not be blank."]}),
+        ({"name": "", "columns": ["name"]}, {"name": ["Give the set of columns a name."]}),
         (
             {"name": "x" * 61, "columns": ["name"]},
             {"name": ["Ensure this field has no more than 60 characters."]},

@@ -19,13 +19,13 @@ test('an account administrator subscribes somebody to the member report, sends i
   await expect(page).toHaveURL(/\/portal\/admin\/reports/);
   await expect(page.getByRole('heading', { level: 1, name: 'Emailed reports' })).toBeVisible();
 
-  await page.getByRole('button', { name: 'New subscription' }).click();
+  await page.getByRole('button', { name: 'Email a report' }).click();
   await page.getByLabel('Report', { exact: true }).selectOption('members');
-  const form = page.getByRole('form', { name: 'New subscription' });
+  const form = page.getByRole('form', { name: 'Email a report' });
 
   // The treasurer holds no role that may read the member report.
   await form.getByLabel(/^Recipient email/).fill(DEMO.treasurer);
-  await form.getByRole('button', { name: 'Save' }).click();
+  await form.getByRole('button', { name: 'Add emailed report' }).click();
   await expect(form.getByRole('alert')).toHaveText(
     /does not hold a role that may read this report\./,
   );
@@ -37,24 +37,24 @@ test('an account administrator subscribes somebody to the member report, sends i
     (response) =>
       response.url().endsWith('/reports/subscriptions') && response.request().method() === 'POST',
   );
-  await form.getByRole('button', { name: 'Save' }).click();
+  await form.getByRole('button', { name: 'Add emailed report' }).click();
   expect((await saved).status()).toBe(201);
   await expect(form).toHaveCount(0);
 
   const subscriptions = page
     .locator('section.card')
-    .filter({ has: page.getByRole('heading', { level: 2, name: 'Subscriptions' }) });
+    .filter({ has: page.getByRole('heading', { level: 2, name: 'Reports on a schedule' }) });
   const created = subscriptions
     .getByRole('row')
     .filter({ hasText: /^CalDART membership report/ })
     .filter({ hasText: 'CSV' });
   await expect(created).toHaveCount(1);
-  await created.getByRole('button', { name: 'Send now' }).click();
+  await created.getByRole('button', { name: /^Send now: / }).click();
   await expect(page.getByText(/^Sent to /)).toBeVisible();
 
   // Edit the same row: its schedule becomes weekly on Thursday.
   await created.getByRole('button', { name: 'Edit' }).click();
-  const edit = page.getByRole('form', { name: 'Edit subscription' });
+  const edit = page.getByRole('form', { name: 'Edit emailed report' });
   await edit.getByLabel('Schedule').selectOption('weekly');
   await edit.getByLabel('Day').selectOption('Thursday');
   const patched = page.waitForResponse(
@@ -62,7 +62,7 @@ test('an account administrator subscribes somebody to the member report, sends i
       /\/reports\/subscriptions\/\d+$/.test(response.url()) &&
       response.request().method() === 'PATCH',
   );
-  await edit.getByRole('button', { name: 'Save' }).click();
+  await edit.getByRole('button', { name: 'Save changes' }).click();
   expect((await patched).status()).toBe(200);
   await expect(edit).toHaveCount(0);
   await expect(created.filter({ hasText: 'Weekly on Thursday' })).toHaveCount(1);
@@ -75,7 +75,7 @@ test('an account administrator rehearses the DART rosters', async ({ page }) => 
   const card = page
     .locator('section.card')
     .filter({ has: page.getByRole('heading', { name: 'DART rosters' }) });
-  // The seed ticks two people on every DART, so each one has a roster to send.
+  // The seed checks two people on every DART, so each one has a roster to send.
   const firstDart = card
     .getByRole('table', { name: /DARTs?$/ })
     .getByRole('row')
@@ -83,7 +83,7 @@ test('an account administrator rehearses the DART rosters', async ({ page }) => 
   const dartName = (await firstDart.getByRole('rowheader').textContent()) ?? '';
   expect(dartName).not.toBe('');
 
-  // The seed generates the people's names, so read one ticked on that DART from its form.
+  // The seed generates the people's names, so read one checked on that DART from its form.
   await page.goto('portal/admin/darts');
   await page
     .getByRole('row')
@@ -91,13 +91,13 @@ test('an account administrator rehearses the DART rosters', async ({ page }) => 
     .first()
     .getByRole('button', { name: 'Edit' })
     .click();
-  const ticked = page.getByRole('checkbox', { name: / receives the roster$/, checked: true });
-  const tickedLabel = (await ticked.first().getAttribute('aria-label')) ?? '';
-  const person = tickedLabel.replace(/ receives the roster$/, '');
+  const checked = page.getByRole('checkbox', { name: / receives the roster$/, checked: true });
+  const checkedLabel = (await checked.first().getAttribute('aria-label')) ?? '';
+  const person = checkedLabel.replace(/ receives the roster$/, '');
   expect(person).not.toBe('');
 
   await page.goto('portal/admin/reports');
-  await expect(card.getByLabel('Dry run (send nothing)')).toBeChecked();
+  await expect(card.getByLabel('Practice run: show what would happen, send nothing')).toBeChecked();
   await card.getByRole('button', { name: 'Send rosters now' }).click();
   await expect(card.getByRole('status')).toHaveText(/^Would send [1-9]\d* emails?/);
 
@@ -111,7 +111,9 @@ test('a treasurer reads the subscriptions but not the DART rosters', async ({ pa
   await signIn(page, DEMO.treasurer);
   await page.goto('portal/admin/reports');
 
-  await expect(page.getByRole('heading', { level: 2, name: 'Subscriptions' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { level: 2, name: 'Reports on a schedule' }),
+  ).toBeVisible();
   await expect(page.getByRole('heading', { name: 'DART rosters' })).toHaveCount(0);
 });
 

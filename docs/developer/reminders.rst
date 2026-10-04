@@ -129,8 +129,8 @@ can put a member into an earlier stage they never had, for instance a shorter
 once, and its subject states the real number of days.
 
 The words the screens print for a stage come from the schedule too:
-``ReminderSchedule.kind_labels()`` ("60 days before expiry") and
-``purpose_labels()`` ("Renewal reminder (60 days)").  ``RemindersConfig.ready()``
+``ReminderSchedule.kind_labels()`` ("First reminder (60 days before)"), which
+``purpose_labels()`` keys by purpose.  ``RemindersConfig.ready()``
 registers ``reminder_purpose_labels`` with ``apps.mail.purposes``, whose
 ``purpose_labels()`` puts them ahead of the other purposes; the mail app sits
 below reminders and never imports it (:doc:`email`).  The

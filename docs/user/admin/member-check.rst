@@ -69,14 +69,18 @@ and names each reason:
 - *Membership expired*, or, for a friend, *Friend of CalDART, not a member*. A friend pays
   no dues, so a friend is always a NO-GO on membership. Somebody who joined as a member and
   has never paid is a friend until their first payment clears.
+- *Not a pilot* for somebody with no pilot certificate. It is their only reason besides the
+  membership: the medical and photo ID of a person who cannot fly are not listed.
 - *Medical expired*, *No medical on file*, or *No medical expiry on file* when the member
   chose a class of medical and never entered its date.
 - *Medical not verified*, *Certificate not verified*, and *Photo ID not verified*, one for
   each of the three that nobody has checked against the documents yet.
+- *No photo ID on file* when the photo ID reads *Not provided*.
 
-A verified item stays verified when its date passes: a verified medical that expires reads
-*Medical expired* and nothing more. When the member or an administrator changes a verified
-item, the verification is cleared and the item needs checking again.
+Each document gives one reason at most. A medical that has expired, or that is not on
+file, reads that and nothing more, verified or not: verifying it would not clear the
+pilot. When the member or an administrator changes a verified item, the verification is
+cleared and the item needs checking again.
 
 The band is about the person. Insurance is listed separately below it, because a member
 with a lapsed policy on one airplane may fly another. Read both before you launch.
@@ -89,8 +93,10 @@ the address to write to them.
 **Never expires** for a life member), then the plan and the expiry date. A membership
 counts as current up to and including its last day.
 
-**Medical** shows **Current** or **Not current**, the kind of medical (BasicMed or the
-class), its expiry date, and its mark. A medical expiring today still counts as current.
+**Medical** shows **Current**, **Expired** once its date has passed, or **Not current**
+when no date was entered, then the kind of medical (BasicMed or the class), its expiry
+date, and its mark. A medical expiring today still counts as current. A medical of *None*
+shows the word *None* and nothing else.
 
 **Certificate** shows the certificate, its number, any ratings (**Instrument** among them
 when the pilot holds an instrument rating), and its mark.
@@ -100,18 +106,19 @@ passport, a state ID card, a military ID, another kind, or *Not provided*) and i
 Nothing else about the document is recorded.
 
 Each mark reads **Verified** followed by who verified it and on which day, such as
-*Verified by Dana Leader on 05/01/2026*, or **Not verified**.
+*Verified by Dana Leader on 05/01/2026*, or **Not verified** in amber, the color of a check
+still to be made. An item the person does not hold (*Not a pilot*, a medical of *None*, or
+a photo ID of *Not provided*) has nothing to verify and shows no mark.
 
 **Aircraft** lists every airplane on the member's profile, each with its insurance status
-and expiry date:
+and expiry date. The status gives the same answer as the :doc:`aircraft-check`:
 
-- **Insured**: a policy is on file and has not expired.
+- **Insured**: a current policy that somebody has verified.
 - **Expiring soon**: insured, and the policy runs out within 30 days.
+- **Not verified**, in amber: the policy is current, and nobody has checked it against the
+  documents yet. The :doc:`aircraft-check` verifies it.
 - **Insurance expired**: the policy's expiry date has passed.
 - **No insurance on file**: nobody has recorded a policy for this airplane.
-
-When nobody has verified an airplane's insurance, *not verified* follows its expiry date.
-The :doc:`aircraft-check` verifies it.
 
 An airplane CalDART's coverage policy leaves out, such as a helicopter while helicopters
 are excluded, reads **Not covered**, beside a red dot, in place of its insurance status, and the
@@ -132,13 +139,17 @@ administrator see **Verify** under the person's name. Press it to open the
 #. Check the fields against the documents in front of you: **Pilot certificate**,
    **Certificate number**, **Medical**, **Medical expires**, and **Photo ID**. Correct
    any that are wrong.
-#. Tick **Pilot certificate verified**, **Medical verified**, and **Photo ID verified**
-   for each document you have seen. The boxes open ticked for the items already
-   verified, and changing a field unticks its box, so you tick it again only once you
-   have checked the new value. Untick a box to clear that verification.
-#. Press **Save**. The toast reads *Verification saved*, and the card shows the new marks
-   and verdict. **Cancel**, or Escape, closes the panel and changes nothing. Either way you
-   are back on **Verify**.
+#. Check **Pilot certificate verified**, **Medical verified**, and **Photo ID verified**
+   for each document you have seen. The boxes open checked for the items already
+   verified, and changing a field unchecks its box, so you check it again only once you
+   have checked the new value. Uncheck a box to clear that verification. An item the
+   person does not hold (*Not a pilot*, a medical of *None*, or a photo ID of *Not
+   provided*) has no box, since there is nothing to verify; choose what they showed you
+   and its box appears. With none of the three held, the panel says *Nothing to verify
+   yet*.
+#. Press **Save verification**. The toast reads *Verification saved*, and the card shows the
+   new marks and verdict. **Cancel**, or Escape, closes the panel and changes nothing.
+   Either way you are back on **Verify**.
 
 A field the record refuses, such as a certificate with no number, shows its message under
 the field and nothing is saved. You may verify your own documents. Each save that
@@ -184,10 +195,10 @@ If a member says they paid and the card reads *Membership expired*, ask them to 
 dashboard; a renewal counts from the moment it is paid, and an account administrator can
 read their payment history on the :doc:`member-record`. A *not verified* reason for an
 item that was verified means somebody changed it since; open **Verify**, check the new
-value, and tick its box again. *No medical on file* for a pilot
+value, and check its box again. *No medical on file* for a pilot
 who has one means they have not entered it on their profile, and only they or an account
 administrator can add it. An airplane missing from the card is one the member has not
 attached to their profile, so use the :doc:`aircraft-check` for it. Insurance dates that
 look old come from the aircraft register, where an account administrator or the member who
 added the airplane keeps them; see :doc:`aircraft-record`. If a card says *That member
-could not be loaded*, press **Search again**: the account may have been deleted.
+didn't load*, press **Search again**: the account may have been deleted.

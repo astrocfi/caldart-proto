@@ -29,6 +29,7 @@ from apps.payments.api.serializers import (
 )
 from apps.payments.donations import DONOR_PROFILE_FIELDS
 from apps.payments.models import MAX_CONTRIBUTION_CENTS, PaymentProvider
+from caldart.messages import email_messages, when_missing
 
 #: What a gift of nothing is told.
 NO_AMOUNT_MESSAGE = "Choose an amount to give."
@@ -70,9 +71,15 @@ class DonationCheckoutSerializer(ProfileSerializer):
     There is no amount field: the gift is the contribution and nothing else.
     """
 
-    first_name = serializers.CharField(max_length=150)
-    last_name = serializers.CharField(max_length=150)
-    email = serializers.EmailField(max_length=254)
+    first_name = serializers.CharField(
+        max_length=150, error_messages=when_missing("Enter your first name.")
+    )
+    last_name = serializers.CharField(
+        max_length=150, error_messages=when_missing("Enter your last name.")
+    )
+    email = serializers.EmailField(
+        max_length=254, error_messages=email_messages("Enter your email address.")
+    )
     contribution_cents = serializers.IntegerField(min_value=0, max_value=MAX_CONTRIBUTION_CENTS)
     provider = serializers.ChoiceField(choices=PaymentProvider.choices)
     state = serializers.ChoiceField(choices=US_STATE_VALUES, required=False, allow_blank=True)

@@ -27,7 +27,7 @@ from apps.aircraft.models import (
 from apps.aircraft.registry import as_of
 from apps.members.models import MembershipPlan, MembershipState
 from apps.members.services import membership_status
-from apps.members.verification import is_fully_verified, verified_items
+from apps.members.verification import ITEMS, is_fully_verified, is_held, verified_items
 from apps.payments.models import (
     MandateStatus,
     Payment,
@@ -70,15 +70,18 @@ def _is_insured_and_verified(aircraft: Aircraft) -> bool:
 
 
 def _unverified_pilot() -> dict[str, str]:
-    """A current member with a current medical and none of their documents verified.
+    """A current member with a current medical, holding all three items, none verified.
 
-    The member check reads such a member as not verified on all three items.  Returns
-    ``{"name"}``, and an empty name when nobody in the seed fits.
+    The member check reads such a member as not verified on all three items: each is
+    held, so none is left out as having nothing to verify.  Returns ``{"name"}``, and
+    an empty name when nobody in the seed fits.
     """
     for user in User.objects.filter(profile__isnull=False).select_related("profile"):
         if membership_status(user)["status"] != MembershipState.CURRENT:
             continue
         if not user.profile.medical_is_current:
+            continue
+        if not all(is_held(user.profile, item.slug) for item in ITEMS):
             continue
         if len(verified_items(user.profile)) == 0:
             return {"name": user.display_name}

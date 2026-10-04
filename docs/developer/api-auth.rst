@@ -242,8 +242,11 @@ Rejections, all 400:
    the user-to-be, so a password that looks like the person's own name or email
    address is refused.
 
-``{"<field>": ["This field is required."]}``
-   A field was missing.  All four of the account's fields are mandatory.
+``{"<field>": ["<what to enter>"]}``
+   A field was missing or blank.  All four of the account's fields are mandatory,
+   and each says what to put there: *Enter your email address.*, *Choose a
+   password.*, *Enter your first name.*, or *Enter your last name.*  An address
+   that does not parse is *Enter an email address, such as name@example.org.*
 
 Statuses: **201** with the user payload; **202** for a donor's address; **400**
 for any rejection above; **429** when the ``auth_register`` throttle is
@@ -334,8 +337,10 @@ password does not sign you out of the browser you changed it from.  Other
 sessions are invalidated, because the session auth hash is derived from the
 password.
 
-* ``{"current_password": [...]}`` — did not match.
-* ``{"new_password": [...]}`` — refused by a password validator.
+* ``{"current_password": [...]}`` — did not match, or *Enter your current
+  password.* when it was left empty.
+* ``{"new_password": [...]}`` — refused by a password validator, or *Choose a new
+  password.* when it was left empty.
 
 Statuses: **204**; **400** for either rejection above or a missing field;
 **401** when anonymous.
@@ -623,8 +628,10 @@ current password is asked for first.
 
    {"email": "marta@example.net", "current_password": "..."}
 
-The checks run in this order and only the first failure is reported, each a
-400 keyed on its field:
+A box left empty is refused first, with *Enter the new address.* or *Enter your
+current password.*, and an address that does not parse with *Enter an email
+address, such as name@example.org.*  The checks then run in this order and only
+the first failure is reported, each a 400 keyed on its field:
 
 * ``{"current_password": ["That is not your current password."]}``
 * ``{"email": ["That is already your email address."]}`` — compared
@@ -825,8 +832,8 @@ account already holds is not a write: the groups and the Django flags are left
 exactly as they are, so the portal may post the whole form on every save.
 
 **Only a system administrator may move ``system_admin``.**  A write of the role
-list moves it when the list ticks ``system_admin`` on an account whose groups
-lack it, or leaves it unticked on an account that counts as a system
+list moves it when the list checks ``system_admin`` on an account whose groups
+lack it, or leaves it unchecked on an account that counts as a system
 administrator.  From a caller who is not one, that is a 400 on ``roles``.  The
 second half of the test reads *effective* roles, so a Django superuser without
 the role group counts as a system administrator, and so does the caller who

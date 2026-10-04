@@ -26,7 +26,7 @@ function makeDart(overrides: Partial<AdminDart> = {}): AdminDart {
   };
 }
 
-/** `count` saved people, numbered from 1, none of them ticked for the roster. */
+/** `count` saved people, numbered from 1, none of them checked for the roster. */
 function makePeople(count: number): AdminDartContact[] {
   return Array.from({ length: count }, (_, index) => ({
     id: index + 1,
@@ -99,8 +99,42 @@ describe('DartsPage', () => {
     stubList([makeDart({ member_count: 4 })]);
     renderPage();
 
-    const link = await screen.findByRole('link', { name: '4' });
+    const link = await screen.findByRole('link', { name: 'Palo Alto: 4 members' });
     expect(link).toHaveAttribute('href', '/admin/members?dart=1');
+  });
+
+  it('names a member count of one in the singular', async () => {
+    stubList([makeDart({ member_count: 1 })]);
+    renderPage();
+
+    expect(await screen.findByRole('link', { name: 'Palo Alto: 1 member' })).toBeInTheDocument();
+  });
+
+  it("names each DART's website link for its DART", async () => {
+    stubList([makeDart(), { ...NAPA, website_url: 'https://napa.example.org' }]);
+    renderPage();
+
+    expect(await screen.findByRole('link', { name: "Visit Napa's website" })).toHaveAttribute(
+      'href',
+      'https://napa.example.org',
+    );
+  });
+
+  it("names each row's Edit button for its DART", async () => {
+    stubList();
+    renderPage();
+
+    expect(await screen.findByRole('button', { name: 'Edit Napa' })).toBeInTheDocument();
+  });
+
+  it('names a person row by the person in it', async () => {
+    const user = userEvent.setup();
+    stubList([makeDart({ contacts: makePeople(2) })]);
+    renderPage();
+
+    await user.click(await screen.findByRole('button', { name: 'Edit Palo Alto' }));
+
+    expect(screen.getByRole('group', { name: 'Person 2' })).toBeInTheDocument();
   });
 
   it('says which DARTs are inactive', async () => {
@@ -129,7 +163,7 @@ describe('DartsPage', () => {
     );
     renderPage();
 
-    await user.click(await screen.findByRole('button', { name: 'Add a DART' }));
+    await user.click(await screen.findByRole('button', { name: 'New DART' }));
     await user.type(screen.getByLabelText('Name*'), 'Hayward');
     await user.type(screen.getByLabelText('Airports*'), 'hwd');
     await user.click(screen.getByRole('button', { name: 'Add DART' }));
@@ -155,7 +189,7 @@ describe('DartsPage', () => {
     );
     renderPage();
 
-    await user.click(await screen.findByRole('button', { name: 'Add a DART' }));
+    await user.click(await screen.findByRole('button', { name: 'New DART' }));
     await user.type(screen.getByLabelText('Name*'), 'Hayward');
     await user.type(screen.getByLabelText('Airports*'), 'hwd');
     await user.click(screen.getByRole('button', { name: 'Add DART' }));
@@ -169,7 +203,7 @@ describe('DartsPage', () => {
     stubList();
     renderPage();
 
-    await user.click(await screen.findByRole('button', { name: 'Add a DART' }));
+    await user.click(await screen.findByRole('button', { name: 'New DART' }));
     expect(screen.queryByLabelText('Town')).not.toBeInTheDocument();
   });
 
@@ -178,9 +212,11 @@ describe('DartsPage', () => {
     stubList();
     renderPage();
 
-    await user.click(await screen.findByRole('button', { name: 'Add a DART' }));
+    await user.click(await screen.findByRole('button', { name: 'New DART' }));
     expect(
-      screen.getByLabelText('Active — untick to make the DART inactive without losing its history'),
+      screen.getByLabelText(
+        'Active — uncheck to make the DART inactive without losing its history',
+      ),
     ).toBeInTheDocument();
   });
 
@@ -189,7 +225,7 @@ describe('DartsPage', () => {
     stubList();
     renderPage();
 
-    await user.click(await screen.findByRole('button', { name: 'Add a DART' }));
+    await user.click(await screen.findByRole('button', { name: 'New DART' }));
     expect(screen.getByRole('group', { name: /DART management/ })).toBeInTheDocument();
   });
 
@@ -205,7 +241,7 @@ describe('DartsPage', () => {
     );
     renderPage();
 
-    await user.click(await screen.findByRole('button', { name: 'Add a DART' }));
+    await user.click(await screen.findByRole('button', { name: 'New DART' }));
     await user.type(screen.getByLabelText('Name*'), 'Nowhere');
     await user.click(screen.getByRole('button', { name: 'Add DART' }));
 
@@ -225,7 +261,7 @@ describe('DartsPage', () => {
     );
     renderPage();
 
-    await user.click(await screen.findByRole('button', { name: 'Add a DART' }));
+    await user.click(await screen.findByRole('button', { name: 'New DART' }));
     await user.type(screen.getByLabelText('Name*'), 'Napa');
     await user.type(screen.getByLabelText('Airports*'), 'APC');
     await user.type(screen.getByLabelText('Name'), 'Helen Marchetti');
@@ -258,7 +294,7 @@ describe('DartsPage', () => {
     );
     renderPage();
 
-    await user.click(await screen.findByRole('button', { name: 'Add a DART' }));
+    await user.click(await screen.findByRole('button', { name: 'New DART' }));
     await user.type(screen.getByLabelText('Name*'), 'Napa');
     await user.type(screen.getByLabelText('Airports*'), 'APC');
     await user.click(screen.getByRole('button', { name: 'Add DART' }));
@@ -278,7 +314,7 @@ describe('DartsPage', () => {
     );
     renderPage();
 
-    await user.click(await screen.findByRole('button', { name: 'Add a DART' }));
+    await user.click(await screen.findByRole('button', { name: 'New DART' }));
     await user.click(screen.getByRole('button', { name: 'Add DART' }));
 
     expect(await screen.findByText('Give the DART a name.')).toBeInTheDocument();
@@ -295,7 +331,7 @@ describe('DartsPage', () => {
     );
     renderPage();
 
-    await user.click(await screen.findByRole('button', { name: 'Add a DART' }));
+    await user.click(await screen.findByRole('button', { name: 'New DART' }));
     await user.type(screen.getByLabelText('Name*'), 'Napa');
     await user.type(screen.getByLabelText('Airports*'), 'APC');
     await user.click(screen.getByRole('button', { name: 'Add DART' }));
@@ -315,11 +351,11 @@ describe('DartsPage', () => {
     );
     renderPage();
 
-    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+    await user.click(await screen.findByRole('button', { name: 'Edit Palo Alto' }));
     const name = screen.getByLabelText('Name*');
     await user.clear(name);
     await user.type(name, 'Mountain View');
-    await user.click(screen.getByRole('button', { name: 'Save DART' }));
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
     await waitFor(() => expect(patched).toMatchObject({ name: 'Mountain View' }));
   });
@@ -328,7 +364,7 @@ describe('DartsPage', () => {
     stubList([makeDart()]);
     renderPage();
 
-    await screen.findByRole('button', { name: 'Edit' });
+    await screen.findByRole('button', { name: 'Edit Palo Alto' });
     expect(screen.queryByRole('button', { name: 'Delete this DART' })).not.toBeInTheDocument();
   });
 
@@ -337,7 +373,7 @@ describe('DartsPage', () => {
     stubList([makeDart({ member_count: 4 })]);
     renderPage();
 
-    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+    await user.click(await screen.findByRole('button', { name: 'Edit Palo Alto' }));
 
     expect(screen.getByRole('button', { name: 'Delete this DART' })).toBeEnabled();
   });
@@ -347,7 +383,7 @@ describe('DartsPage', () => {
     stubList([makeDart({ member_count: 4, page_count: 2 })]);
     renderPage();
 
-    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+    await user.click(await screen.findByRole('button', { name: 'Edit Palo Alto' }));
     await user.click(screen.getByRole('button', { name: 'Delete this DART' }));
 
     expect(
@@ -363,7 +399,7 @@ describe('DartsPage', () => {
     stubList([makeDart({ member_count: 1, page_count: 0 })]);
     renderPage();
 
-    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+    await user.click(await screen.findByRole('button', { name: 'Edit Palo Alto' }));
     await user.click(screen.getByRole('button', { name: 'Delete this DART' }));
 
     expect(
@@ -378,7 +414,7 @@ describe('DartsPage', () => {
     stubList([makeDart({ member_count: 0, page_count: 1 })]);
     renderPage();
 
-    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+    await user.click(await screen.findByRole('button', { name: 'Edit Palo Alto' }));
     await user.click(screen.getByRole('button', { name: 'Delete this DART' }));
 
     expect(
@@ -391,7 +427,7 @@ describe('DartsPage', () => {
     stubList([makeDart()]);
     renderPage();
 
-    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+    await user.click(await screen.findByRole('button', { name: 'Edit Palo Alto' }));
     await user.click(screen.getByRole('button', { name: 'Delete this DART' }));
 
     expect(screen.queryByText(/This cannot be undone/)).not.toBeInTheDocument();
@@ -409,7 +445,7 @@ describe('DartsPage', () => {
     );
     renderPage();
 
-    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+    await user.click(await screen.findByRole('button', { name: 'Edit Palo Alto' }));
     await user.click(screen.getByRole('button', { name: 'Delete this DART' }));
     expect(deleted).toBe(false);
 
@@ -422,7 +458,7 @@ describe('DartsPage', () => {
     stubList([makeDart()]);
     renderPage();
 
-    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+    await user.click(await screen.findByRole('button', { name: 'Edit Palo Alto' }));
     await user.click(screen.getByRole('button', { name: 'Delete this DART' }));
     const confirmation = screen.getByRole('group', { name: 'Delete this DART' });
     await user.click(within(confirmation).getByRole('button', { name: 'Cancel' }));
@@ -440,7 +476,7 @@ describe('DartsPage', () => {
     );
     renderPage();
 
-    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+    await user.click(await screen.findByRole('button', { name: 'Edit Palo Alto' }));
     await user.click(screen.getByRole('button', { name: 'Delete this DART' }));
     await user.click(screen.getByRole('button', { name: 'Delete' }));
 
@@ -473,9 +509,9 @@ describe('DartsPage', () => {
     );
     renderPage();
 
-    await user.click(await screen.findByRole('button', { name: 'Edit' }));
-    await user.click(screen.getByRole('button', { name: 'Move person 1 down' }));
-    await user.click(screen.getByRole('button', { name: 'Save DART' }));
+    await user.click(await screen.findByRole('button', { name: 'Edit Palo Alto' }));
+    await user.click(screen.getByRole('button', { name: 'Move Helen down' }));
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
     await waitFor(() =>
       expect(patched?.contacts?.map((one) => one.name)).toEqual(['Sam', 'Helen']),
@@ -508,9 +544,9 @@ describe('DartsPage', () => {
     );
     renderPage();
 
-    await user.click(await screen.findByRole('button', { name: 'Edit' }));
-    await user.click(screen.getByRole('button', { name: 'Move person 2 up' }));
-    await user.click(screen.getByRole('button', { name: 'Save DART' }));
+    await user.click(await screen.findByRole('button', { name: 'Edit Palo Alto' }));
+    await user.click(screen.getByRole('button', { name: 'Move Sam up' }));
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
     await waitFor(() =>
       expect(patched?.contacts?.map((one) => one.name)).toEqual(['Sam', 'Helen']),
@@ -536,10 +572,10 @@ describe('DartsPage', () => {
     ]);
     renderPage();
 
-    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+    await user.click(await screen.findByRole('button', { name: 'Edit Palo Alto' }));
 
-    expect(screen.getByRole('button', { name: 'Move person 1 up' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Move person 2 down' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Move Helen up' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Move Sam down' })).toBeDisabled();
   });
 
   it('moves a person with a bare icon button', async () => {
@@ -561,9 +597,9 @@ describe('DartsPage', () => {
     ]);
     renderPage();
 
-    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+    await user.click(await screen.findByRole('button', { name: 'Edit Palo Alto' }));
 
-    expect(screen.getByRole('button', { name: 'Move person 1 down' })).toHaveClass('icon-button');
+    expect(screen.getByRole('button', { name: 'Move Helen down' })).toHaveClass('icon-button');
   });
 
   it('does nothing to a person on the first press of their trashcan', async () => {
@@ -584,8 +620,8 @@ describe('DartsPage', () => {
     ]);
     renderPage();
 
-    await user.click(await screen.findByRole('button', { name: 'Edit' }));
-    await user.click(screen.getByRole('button', { name: 'Remove person 1' }));
+    await user.click(await screen.findByRole('button', { name: 'Edit Palo Alto' }));
+    await user.click(screen.getByRole('button', { name: 'Remove Helen' }));
 
     expect(screen.getByDisplayValue('Helen')).toBeInTheDocument();
   });
@@ -616,10 +652,10 @@ describe('DartsPage', () => {
     );
     renderPage();
 
-    await user.click(await screen.findByRole('button', { name: 'Edit' }));
-    await user.click(screen.getByRole('button', { name: 'Remove person 1' }));
+    await user.click(await screen.findByRole('button', { name: 'Edit Palo Alto' }));
+    await user.click(screen.getByRole('button', { name: 'Remove Helen' }));
     await user.click(screen.getByRole('button', { name: 'Remove' }));
-    await user.click(screen.getByRole('button', { name: 'Save DART' }));
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
     await waitFor(() => expect(patched?.contacts?.map((one) => one.name)).toEqual(['Sam']));
   });
@@ -640,7 +676,7 @@ describe('DartsPage', () => {
     stubList([makeDart({ contacts: makePeople(5) })]);
     renderPage();
 
-    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+    await user.click(await screen.findByRole('button', { name: 'Edit Palo Alto' }));
 
     expect(screen.getByRole('button', { name: 'Add a person' })).toBeInTheDocument();
   });
@@ -650,7 +686,7 @@ describe('DartsPage', () => {
     stubList();
     renderPage();
 
-    await user.click(await screen.findByRole('button', { name: 'Add a DART' }));
+    await user.click(await screen.findByRole('button', { name: 'New DART' }));
 
     expect(
       screen.getByText(/^Shown on the team’s page in the order you put them in\./),
@@ -663,7 +699,7 @@ describe('DartsPage', () => {
     stubList([makeDart({ contacts: [{ ...first, receives_roster: true }, second] })]);
     renderPage();
 
-    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+    await user.click(await screen.findByRole('button', { name: 'Edit Palo Alto' }));
 
     expect(screen.getByRole('checkbox', { name: 'Person 1 receives the roster' })).toBeChecked();
   });
@@ -673,14 +709,14 @@ describe('DartsPage', () => {
     stubList();
     renderPage();
 
-    await user.click(await screen.findByRole('button', { name: 'Add a DART' }));
+    await user.click(await screen.findByRole('button', { name: 'New DART' }));
 
     expect(
       screen.getByRole('checkbox', { name: 'Person 1 receives the roster' }),
     ).not.toBeChecked();
   });
 
-  it('sends the roster tick with each person', async () => {
+  it('sends the roster checkbox with each person', async () => {
     const user = userEvent.setup();
     let patched: { contacts?: AdminDartContact[] } | null = null;
     stubList([
@@ -706,9 +742,9 @@ describe('DartsPage', () => {
     );
     renderPage();
 
-    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+    await user.click(await screen.findByRole('button', { name: 'Edit Palo Alto' }));
     await user.click(screen.getByRole('checkbox', { name: 'Sam receives the roster' }));
-    await user.click(screen.getByRole('button', { name: 'Save DART' }));
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
     await waitFor(() =>
       expect(patched?.contacts?.map((one) => one.receives_roster)).toEqual([false, true]),
@@ -720,11 +756,13 @@ describe('DartsPage', () => {
     stubList();
     renderPage();
 
-    await user.click(await screen.findByRole('button', { name: 'Add a DART' }));
+    await user.click(await screen.findByRole('button', { name: 'New DART' }));
 
     expect(
       screen.getByText(
-        'Shown on the team’s page in the order you put them in. A phone number and an email address are both optional.',
+        'Shown on the team’s page in the order you put them in. A title such as DART leader ' +
+          'says what each person does. A phone number, such as 415-555-0100, and an email ' +
+          'address are both optional.',
       ),
     ).toBeInTheDocument();
   });
@@ -734,7 +772,7 @@ describe('DartsPage', () => {
     stubList();
     renderPage();
 
-    await user.click(await screen.findByRole('button', { name: 'Add a DART' }));
+    await user.click(await screen.findByRole('button', { name: 'New DART' }));
 
     expect(screen.getByRole('button', { name: 'Add a person' })).toBeDisabled();
   });
@@ -744,7 +782,7 @@ describe('DartsPage', () => {
     stubList();
     renderPage();
 
-    await user.click(await screen.findByRole('button', { name: 'Add a DART' }));
+    await user.click(await screen.findByRole('button', { name: 'New DART' }));
 
     expect(screen.getByRole('button', { name: 'Add a person' })).toHaveAttribute(
       'title',
@@ -757,7 +795,7 @@ describe('DartsPage', () => {
     stubList();
     renderPage();
 
-    await user.click(await screen.findByRole('button', { name: 'Add a DART' }));
+    await user.click(await screen.findByRole('button', { name: 'New DART' }));
     await user.type(screen.getByLabelText('Name'), 'Helen Marchetti');
 
     expect(screen.getByRole('button', { name: 'Add a person' })).toBeEnabled();
@@ -768,7 +806,7 @@ describe('DartsPage', () => {
     stubList([makeDart({ contacts: makePeople(2) })]);
     renderPage();
 
-    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+    await user.click(await screen.findByRole('button', { name: 'Edit Palo Alto' }));
     await user.click(screen.getByRole('button', { name: 'Add a person' }));
     await user.type(screen.getAllByLabelText('Name')[2] as HTMLElement, '   ');
 
@@ -780,7 +818,7 @@ describe('DartsPage', () => {
     stubList([makeDart({ contacts: [] })]);
     renderPage();
 
-    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+    await user.click(await screen.findByRole('button', { name: 'Edit Palo Alto' }));
 
     expect(screen.getByRole('button', { name: 'Add a person' })).toBeEnabled();
   });
@@ -792,7 +830,7 @@ describe('DartsPage', () => {
       stubList([makeDart({ contacts: makePeople(3) })]);
       renderPage();
 
-      await user.click(await screen.findByRole('button', { name: 'Edit' }));
+      await user.click(await screen.findByRole('button', { name: 'Edit Palo Alto' }));
       await user.clear(screen.getAllByLabelText('Name')[1] as HTMLElement);
 
       expect(screen.getByRole('button', { name: control })).toBeDisabled();
@@ -800,27 +838,27 @@ describe('DartsPage', () => {
   );
 
   it.each([
-    ['the person above cannot move down past it', 'Move person 1 down'],
-    ['the person below cannot move up past it', 'Move person 3 up'],
+    ['the person above cannot move down past it', 'Move Person 1 down'],
+    ['the person below cannot move up past it', 'Move Person 3 up'],
   ])('keeps a nameless person in place: %s', async (_, control) => {
     const user = userEvent.setup();
     stubList([makeDart({ contacts: makePeople(3) })]);
     renderPage();
 
-    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+    await user.click(await screen.findByRole('button', { name: 'Edit Palo Alto' }));
     await user.clear(screen.getAllByLabelText('Name')[1] as HTMLElement);
 
     expect(screen.getByRole('button', { name: control })).toBeDisabled();
   });
 
-  it.each([['Move person 2 up'], ['Move person 2 down']])(
+  it.each([['Move Person 2 up'], ['Move Person 2 down']])(
     'leaves named people free to move past each other (%s)',
     async (control) => {
       const user = userEvent.setup();
       stubList([makeDart({ contacts: makePeople(4) })]);
       renderPage();
 
-      await user.click(await screen.findByRole('button', { name: 'Edit' }));
+      await user.click(await screen.findByRole('button', { name: 'Edit Palo Alto' }));
       await user.clear(screen.getAllByLabelText('Name')[3] as HTMLElement);
 
       expect(screen.getByRole('button', { name: control })).toBeEnabled();

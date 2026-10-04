@@ -54,7 +54,7 @@ describe('MemberCreatePage', () => {
     await user.click(screen.getByLabelText('Instrument'));
     await user.type(screen.getByLabelText('Administrator notes'), 'Met at the airshow.');
 
-    await user.click(screen.getByRole('button', { name: 'Create member' }));
+    await user.click(screen.getByRole('button', { name: 'Add member' }));
 
     await waitFor(() => expect(posted).not.toBeNull());
     expect(posted).toMatchObject({
@@ -82,7 +82,7 @@ describe('MemberCreatePage', () => {
 
     await user.type(screen.getByLabelText(/Email address/), 'nova@example.org');
     await user.selectOptions(screen.getByLabelText('Photo ID'), 'passport');
-    await user.click(screen.getByRole('button', { name: 'Create member' }));
+    await user.click(screen.getByRole('button', { name: 'Add member' }));
 
     await waitFor(() => expect(posted).not.toBeNull());
     expect((posted?.profile as Record<string, unknown>).photo_id_type).toBe('passport');
@@ -94,7 +94,7 @@ describe('MemberCreatePage', () => {
     renderCreate();
 
     await user.type(screen.getByLabelText(/Email address/), 'plain@example.org');
-    await user.click(screen.getByRole('button', { name: 'Create member' }));
+    await user.click(screen.getByRole('button', { name: 'Add member' }));
 
     await waitFor(() => expect(posted?.kind).toBe('member'));
   });
@@ -106,7 +106,7 @@ describe('MemberCreatePage', () => {
 
     await user.type(screen.getByLabelText(/Email address/), 'pal@example.org');
     await user.selectOptions(screen.getByLabelText('Kind of account'), 'friend');
-    await user.click(screen.getByRole('button', { name: 'Create member' }));
+    await user.click(screen.getByRole('button', { name: 'Add member' }));
 
     await waitFor(() => expect(posted?.kind).toBe('friend'));
   });
@@ -117,7 +117,7 @@ describe('MemberCreatePage', () => {
     renderCreate();
 
     await user.type(screen.getByLabelText(/Email address/), 'invited@example.org');
-    await user.click(screen.getByRole('button', { name: 'Create member' }));
+    await user.click(screen.getByRole('button', { name: 'Add member' }));
 
     await waitFor(() => expect(posted).not.toBeNull());
     expect(posted).not.toHaveProperty('password');
@@ -130,7 +130,7 @@ describe('MemberCreatePage', () => {
 
     await user.type(screen.getByLabelText(/Email address/), 'nova@example.org');
     await user.type(screen.getByLabelText('Password'), 'correct-horse-battery');
-    await user.click(screen.getByRole('button', { name: 'Create member' }));
+    await user.click(screen.getByRole('button', { name: 'Add member' }));
 
     await waitFor(() => expect(posted).not.toBeNull());
     expect(posted?.password).toBe('correct-horse-battery');
@@ -142,7 +142,7 @@ describe('MemberCreatePage', () => {
     renderCreate();
 
     await user.type(screen.getByLabelText(/Email address/), 'nova@example.org');
-    await user.click(screen.getByRole('button', { name: 'Create member' }));
+    await user.click(screen.getByRole('button', { name: 'Add member' }));
 
     expect(await screen.findByText('member record')).toBeInTheDocument();
   });
@@ -164,7 +164,7 @@ describe('MemberCreatePage', () => {
     renderCreate();
 
     await user.type(screen.getByLabelText(/Email address/), 'taken@example.org');
-    await user.click(screen.getByRole('button', { name: 'Create member' }));
+    await user.click(screen.getByRole('button', { name: 'Add member' }));
 
     expect(
       await screen.findByText('An account with that email address already exists.'),
@@ -195,7 +195,7 @@ describe('MemberCreatePage', () => {
       renderCreate();
 
       await user.type(screen.getByLabelText(/Email address/), 'taken@example.org');
-      await user.click(screen.getByRole('button', { name: 'Create member' }));
+      await user.click(screen.getByRole('button', { name: 'Add member' }));
 
       await waitFor(() => expect(screen.getByLabelText(/Email address/)).toHaveFocus());
     });
@@ -206,7 +206,7 @@ describe('MemberCreatePage', () => {
       renderCreate();
 
       await user.type(screen.getByLabelText(/Email address/), 'taken@example.org');
-      await user.click(screen.getByRole('button', { name: 'Create member' }));
+      await user.click(screen.getByRole('button', { name: 'Add member' }));
 
       expect(await screen.findByText('Check the 2 highlighted fields.')).toBeInTheDocument();
     });
@@ -217,7 +217,7 @@ describe('MemberCreatePage', () => {
       renderCreate();
 
       await user.type(screen.getByLabelText(/Email address/), 'taken@example.org');
-      await user.click(screen.getByRole('button', { name: 'Create member' }));
+      await user.click(screen.getByRole('button', { name: 'Add member' }));
       await screen.findByText('An account with that email address already exists.');
       await user.type(screen.getByLabelText(/Email address/), 'x');
 
@@ -231,7 +231,7 @@ describe('MemberCreatePage', () => {
     renderCreate();
 
     await user.type(screen.getByLabelText(/Email address/), 'not-an-address');
-    await user.click(screen.getByRole('button', { name: 'Create member' }));
+    await user.click(screen.getByRole('button', { name: 'Add member' }));
 
     expect(screen.getByLabelText(/Email address/)).toHaveFocus();
   });

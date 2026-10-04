@@ -196,7 +196,7 @@ def trimmed_page(page_file: Path, page_path: str, modified: int, hidden: frozens
     entry whose link leads to a hidden page, with everything nested under it, unless an
     entry nested under it leads to a page left, when the entry stays and its link is
     taken out as below; the sidebar's search box, when the search page is hidden; every
-    next or previous link at the foot of the page, and every next, previous, index, or
+    next or previous link at the bottom of the page, and every next, previous, index, or
     search link in its head, that leads to one;
     every other link to one, such as a link in the page's prose, which loses its
     anchor and keeps its text; and then every list in the navigation left with no

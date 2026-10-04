@@ -12,6 +12,10 @@ item covers clears that item's verification, whoever writes it; a write that cha
 nothing clears nothing.  A verified medical whose expiration passes stays verified:
 currency and verification are two separate facts.
 
+An item the person does not hold -- a pilot certificate of ``none``, a medical of
+``none``, or a photo ID of ``not_provided`` -- has nothing to verify: it is never
+stamped, and a person is fully verified only when every item is held and verified.
+
 A holder of any role in ``apps.accounts.roles.VERIFY_ROLES`` may verify an item, a
 system administrator and a superuser included.  An aircraft's insurance is the fourth
 kind of item, and lives in ``apps.aircraft.verification``.
@@ -28,14 +32,14 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.accounts.models import User
-from apps.members.models import MedicalType, MemberProfile, PilotCertificateType
+from apps.members.models import MedicalType, MemberProfile, PhotoIdType, PilotCertificateType
 from caldart import audit, events
 
 #: What the member check and the profile form answer for a medical with no expiration.
-MEDICAL_EXPIRATION_MESSAGE = "Give the expiration date of your medical certificate."
+MEDICAL_EXPIRATION_MESSAGE = "Enter the medical's expiration date."
 
 #: What they answer for a pilot certificate with no number.
-CERTIFICATE_NUMBER_MESSAGE = "Give your pilot certificate number."
+CERTIFICATE_NUMBER_MESSAGE = "Enter the pilot certificate number."
 
 
 @dataclass(frozen=True)
@@ -45,20 +49,30 @@ class Item:
     ``slug`` names the item's columns (``<slug>_verified_at``, ``<slug>_verified_by``)
     and property (``<slug>_is_verified``) on ``MemberProfile``; ``label`` is the item's
     name as every screen prints it; ``fields`` are the ``MemberProfile`` fields whose
-    change clears the item's verification.
+    change clears the item's verification.  ``fields[0]`` is the coded field that says
+    whether the person holds the item, and ``none`` its value for one they do not.
     """
 
     slug: str
     label: str
     fields: tuple[str, ...]
+    none: str
 
 
 #: A person's verified items, in the order the screens list them.
 ITEMS: tuple[Item, ...] = (
-    Item("certificate", "Pilot certificate", ("pilot_certificate_type", "certificate_number")),
-    Item("medical", "Medical", ("medical_type", "medical_expiration")),
-    Item("photo_id", "Photo ID", ("photo_id_type",)),
+    Item(
+        "certificate",
+        "Pilot certificate",
+        ("pilot_certificate_type", "certificate_number"),
+        PilotCertificateType.NONE,
+    ),
+    Item("medical", "Medical", ("medical_type", "medical_expiration"), MedicalType.NONE),
+    Item("photo_id", "Photo ID", ("photo_id_type",), PhotoIdType.NOT_PROVIDED),
 )
+
+#: Item slug -> the item, in the order of :data:`ITEMS`.
+_ITEMS_BY_SLUG: dict[str, Item] = {item.slug: item for item in ITEMS}
 
 #: Item slug -> the item's label, in the order of :data:`ITEMS`.
 ITEM_LABELS: dict[str, str] = {item.slug: item.label for item in ITEMS}
@@ -105,15 +119,28 @@ def verified_items(profile: MemberProfile) -> list[str]:
     return [item.slug for item in ITEMS if getattr(profile, f"{item.slug}_verified_at") is not None]
 
 
-def is_fully_verified(profile: MemberProfile | None) -> bool:
-    """True when ``profile`` exists and every one of its items is verified.
+def is_held(profile: MemberProfile, slug: str) -> bool:
+    """True when ``profile`` holds the item ``slug``, so there is something to verify.
 
-    Reads only the ``*_verified_at`` columns, so a row the caller already fetched
-    answers without another query.  An account with no profile has nothing verified.
+    A pilot certificate of ``none``, a medical of ``none``, and a photo ID of
+    ``not_provided`` are not held; any other value is.
+    """
+    item = _ITEMS_BY_SLUG[slug]
+    return str(getattr(profile, item.fields[0])) != item.none
+
+
+def is_fully_verified(profile: MemberProfile | None) -> bool:
+    """True when ``profile`` exists and every one of its items is held and verified.
+
+    A stamp on an item the person does not hold counts for nothing, so a non-pilot is
+    never fully verified.  Reads only columns of the profile row, so a row the caller
+    already fetched answers without another query.  An account with no profile has
+    nothing verified.
     """
     if profile is None:
         return False
-    return len(verified_items(profile)) == len(ITEMS)
+    verified = verified_items(profile)
+    return all(item.slug in verified and is_held(profile, item.slug) for item in ITEMS)
 
 
 def document_errors(
@@ -185,7 +212,8 @@ def verify_member(
 
     Then each slug in ``verified`` names an item that ends verified: one not yet
     verified is stamped with ``timezone.now()`` and ``actor``, and one already verified
-    keeps its stamp.  Every item not named ends unverified.  Slugs must come from
+    keeps its stamp.  Every item not named ends unverified, and so does every item the
+    saved profile does not hold (:func:`is_held`), named or not.  Slugs must come from
     :data:`ITEMS`; the caller validates them.
 
     The audit log records ``member.verify`` with ``verified`` (the items stamped by
@@ -213,16 +241,17 @@ def verify_member(
     stamped: list[str] = []
     for item in ITEMS:
         is_verified = getattr(profile, f"{item.slug}_verified_at") is not None
-        if item.slug in verified and not is_verified:
+        wanted = item.slug in verified and is_held(profile, item.slug)
+        if wanted and not is_verified:
             setattr(profile, f"{item.slug}_verified_at", now)
             setattr(profile, f"{item.slug}_verified_by", actor)
             stamped.append(item.slug)
-        elif item.slug not in verified:
+        elif not wanted:
             setattr(profile, f"{item.slug}_verified_at", None)
             setattr(profile, f"{item.slug}_verified_by", None)
     profile.save(update_fields=[*_verification_columns(), "updated_at"])
 
-    cleared = [slug for slug in before if slug not in verified]
+    cleared = [slug for slug in before if getattr(profile, f"{slug}_verified_at") is None]
     audit.record(audit.MEMBER_VERIFY, actor=actor, target=target, verified=stamped, cleared=cleared)
     if len(stamped) > 0 or len(cleared) > 0:
         events.emit(

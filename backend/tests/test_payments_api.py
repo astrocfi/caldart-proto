@@ -187,7 +187,7 @@ def test_checkout_refuses_a_plan_from_a_life_member(
     )
 
     assert response.json()["plan"] == [
-        "You are a life member, so there is nothing to renew. Make a contribution instead."
+        "You are a life member, so there is nothing to renew. Make a donation instead."
     ]
 
 

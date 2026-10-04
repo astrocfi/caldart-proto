@@ -85,12 +85,18 @@ export function RenewalsPanel(): JSX.Element {
       footer={
         <>
           {dryRun ? (
-            <Button ref={runRef} onClick={handleRehearse} disabled={run.isPending}>
+            <Button
+              ref={runRef}
+              onClick={handleRehearse}
+              disabled={run.isPending}
+              aria-label={run.isPending ? undefined : 'Run now: automatic renewal charges'}
+            >
               {run.isPending ? 'Running…' : 'Run now'}
             </Button>
           ) : (
             <ConfirmButton
               label="Run now"
+              name="Run now: automatic renewal charges"
               variant="primary"
               disabled={run.isPending}
               choices={[{ label: 'Charge what is due', variant: 'danger', onChoose: handleCharge }]}
@@ -103,7 +109,7 @@ export function RenewalsPanel(): JSX.Element {
           )}
           <label className="cluster">
             <input type="checkbox" checked={dryRun} onChange={handleDryRunChange} />
-            Dry run (charge nothing)
+            Practice run: show what would happen, charge nothing
           </label>
         </>
       }
@@ -112,7 +118,6 @@ export function RenewalsPanel(): JSX.Element {
         Charges the saved card or PayPal account of every member whose automatic renewal is due,
         after emailing a notice two weeks ahead and a warning when the card is about to expire. It
         runs every morning before the reminder emails, so a member it renews is not also reminded.
-        Running it again is harmless: every scheduled charge records what has already gone out.
       </p>
 
       {run.isSuccess ? (

@@ -43,12 +43,12 @@ export const WEEKDAY_OPTIONS: readonly Option[] = WEEKDAY_NAMES.map((name, day) 
  * Why the report sender passed a subscription or a person over, in words.
  *
  * `not_permitted`: the account no longer holds a role that may read the report
- * (the subscription is paused); `no_recipients`: a DART has nobody ticked with
- * an address; `no_email`: a ticked person has no address.
+ * (the subscription is paused); `no_recipients`: a DART has nobody checked to receive its roster with
+ * an address; `no_email`: a checked person has no address.
  */
 const REPORT_SKIPPED_REASON_LABELS: Record<string, string> = {
   not_permitted: 'no longer permitted',
-  no_recipients: 'nobody ticked',
+  no_recipients: 'nobody to send to',
   no_email: 'no address on file',
 };
 

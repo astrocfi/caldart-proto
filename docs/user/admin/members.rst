@@ -59,7 +59,7 @@ changes both (see `Choosing the columns`_). At first it shows the report's eleve
 
 **Medical expires**
    The medical's date, after a mark that answers the question the list is most often
-   opened for, who can fly today: a green tick when the person holds a pilot certificate
+   opened for, who can fly today: a green check when the person holds a pilot certificate
    and their medical is in date, a red cross when the medical has lapsed, and a dash for
    somebody who is not a pilot.
 
@@ -69,7 +69,7 @@ changes both (see `Choosing the columns`_). At first it shows the report's eleve
 On a narrower screen the table leaves default columns out, one at a time, until the rest
 fit: **Email**, then **DART**, then **Phone**, **Kind**, and **Aircraft**, so a laptop keeps
 the pilot columns; then **Medical**, **Certificate**, and **Medical expires**. **Name**,
-**Status**, and **Expires** always stay, and so does any column you tick beyond the
+**Status**, and **Expires** always stay, and so does any column you check beyond the
 defaults. A line over the table names any column it hid; the downloads still carry it.
 On a phone the table can still be wider than the screen: a line over it says
 *Scroll sideways to see every column*, a shadow marks the edge with more beyond it, and the
@@ -128,9 +128,9 @@ the page's address, so a filtered list is a link you can bookmark or send to a c
 
 **County**
    The California counties on people's profiles. Click the box to open the list of
-   counties and tick as many as you like; the list shows the people of any county you
-   ticked. Untick a county to take it back, or press **Clear** to take them all back at
-   once. With no county ticked the filter narrows nothing.
+   counties and check as many as you like; the list shows the people of any county you
+   checked. Uncheck a county to take it back, or press **Clear** to take them all back at
+   once. With no county checked the filter narrows nothing.
 
 **Role**
    People who hold one role, such as DART leader or Treasurer. A system administrator is
@@ -141,8 +141,8 @@ the page's address, so a filtered list is a link you can bookmark or send to a c
    at once, and a life member never appears.
 
 **Include deactivated**
-   Off at first. Tick it to list deactivated accounts too. The downloads never carry one,
-   ticked or not.
+   Off at first. Check it to list deactivated accounts too. The downloads never carry one,
+   checked or not.
 
 Filters combine. "Current members of one DART who expire within 30 days" is two lists and a
 number.
@@ -155,7 +155,7 @@ Downloading the report
 showing: the same filters and the same order, every matching person and every page. The CSV
 opens in a spreadsheet, for mail merges and anything you want to sort or total. The PDF is a
 landscape letter table ready to print, with your filters printed under the title and the
-date and page numbers at the foot, so it says on its face what it is a list of.
+date and page numbers at the bottom, so it says on its face what it is a list of.
 
 Both files carry eleven columns unless you choose others: **Name**, **Email**, **Phone**,
 **DART**, **Status**, **Kind**, **Expires**, **Certificate**, **Medical**, **Medical
@@ -167,16 +167,16 @@ Choosing the columns
 ~~~~~~~~~~~~~~~~~~~~
 
 **Columns**, at the right of the bar beside the export buttons, opens a list of every column
-the report offers, with a box to tick for each. Twelve more are on offer: **Plan**,
+the report offers, with a box to check for each. Twelve more are on offer: **Plan**,
 **Certificate number**, **Instrument** (Yes or No for a pilot, by whether **Instrument** is
 among the ratings; blank for a non-pilot), **Home airport**, **Secondary airport**, **City**,
 **State**, **County**, **Callsign** (the amateur radio callsign), **Joined** (the day the
 first term on file began), **Member since** (the day the member says they joined), and
 **Profile updated** (the day their profile was last changed). **Reset to the default
-columns**, under the boxes, ticks the eleven again.
+columns**, under the boxes, checks the eleven again.
 
 Your choice changes the table on screen and both downloads together, as the panel's title,
-*Columns in the table and the download*, says. You cannot untick the last column. Add many
+*Columns in the table and the download*, says. You cannot uncheck the last column. Add many
 columns and the PDF starts to wrap its cells, which is the point at which the CSV is the
 better file. The panel closes when you click outside it, press Escape, or Tab past its
 last control.
@@ -187,7 +187,7 @@ Saved column sets
 ~~~~~~~~~~~~~~~~~
 
 Beside **Columns**, **Load columns** lists the sets of columns you have saved for this
-report. Pick a name and its columns are ticked for you, in the table and the downloads
+report. Pick a name and its columns are checked for you, in the table and the downloads
 alike. The trashcan beside a name asks
 first: press it and it turns into **Delete** and **Cancel**; press **Delete** and that set
 is gone, or **Cancel**, Escape, or a click elsewhere to leave it as it is. **Save columns**
@@ -205,8 +205,8 @@ If something looks wrong
 If a download carries more people than the screen shows, a box you had just typed in had not
 applied yet; wait for the table to narrow, then download. If somebody you expect is missing,
 press **Reset filters** (an empty list offers one too) and search for them by name: a filter may be hiding them, their
-account may be deactivated (tick **Include deactivated**), or they may be a donor, who is
-never listed here. If the line beside the export buttons says *The columns could not be loaded; the list
+account may be deactivated (check **Include deactivated**), or they may be a donor, who is
+never listed here. If the line beside the export buttons says *The columns didn't load; the list
 shows the default ones.*, the table shows the name, email, DART, status, and expiry, and the
 downloads carry the report's own default columns; reload the page to get the column chooser
 back. If a

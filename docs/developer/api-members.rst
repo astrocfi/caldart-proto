@@ -641,7 +641,7 @@ Before the account goes, in the same transaction, the view:
    administrator's cancellation (the ``renewal.cancel`` audit line ends in
    ``reason=member.delete``), so nothing is charged again and the member is
    emailed that it is off, and throws away a ``pending`` one, which has saved no
-   payment method and told nobody.  The *Automatic payment turned off*
+   payment method and told nobody.  The *Automatic renewal or recurring donation turned off*
    notification for an active one says the account was deleted
    (``how="deleted"``) and links to no member record;
 #. when the member has any payment, whatever its status, creates a *tombstone*
@@ -702,8 +702,8 @@ ledger flag a tombstone, so the portal links to its record from none of them and
 shows the record without its controls.
 
 
-The danger zone's account actions
-=================================
+The Delete or deactivate tab's account actions
+==============================================
 
 Three endpoints behind ``account_admin`` do for a member what the member does for
 themselves.  Each answers 200 with the whole record, in the detail shape above;
@@ -934,7 +934,7 @@ Tests
    only without a password and only on commit, the two halves of an update, and
    each delete guard.
 ``backend/tests/test_admin_account_actions.py``
-   The danger zone's account actions and the user record's deactivation and
+   The Delete or deactivate tab's account actions and the user record's deactivation and
    reactivation: the role matrix, what each does to the account, its sessions,
    its mandates and its terms, the audit lines and events under the
    administrator, every refusal, and ``is_active`` ignored by both edits.
@@ -945,7 +945,7 @@ Tests
 
 On the front end, ``frontend/src/portal/features/admin-members/`` holds a test
 per page: filters to query parameters, export hrefs, the grant-term form, the
-typed delete confirmation, the Danger zone's explanation for a member whose
+typed delete confirmation, the Delete or deactivate tab's explanation for a member whose
 payments keep the account, and the account actions in
 ``MemberAccountActions.test.tsx``: what each offers, the contribution question,
 and every refusal drawn.

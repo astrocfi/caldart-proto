@@ -62,7 +62,7 @@ export function ResetPasswordPage(): JSX.Element {
           label="New password"
           required
           error={fieldError(confirm.error, 'new_password')}
-          hint="At least 8 characters, and not a password you have used elsewhere."
+          hint="At least 8 characters. Avoid common passwords such as password1."
         >
           {(props) => (
             <input

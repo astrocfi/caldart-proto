@@ -35,7 +35,7 @@ test('a member signs in, edits their profile and reads members-only content', as
   await page.getByRole('textbox', { name: 'Total hours' }).fill('1234');
   await page.getByRole('textbox', { name: 'Home airport', exact: true }).fill('SQL');
   await page.getByRole('textbox', { name: 'Secondary airport', exact: true }).fill('KPAO');
-  await page.getByRole('button', { name: 'Save profile' }).click();
+  await page.getByRole('button', { name: 'Save changes' }).click();
   await expect(page.getByText('Profile saved.')).toBeVisible();
 
   await page.reload();
@@ -46,21 +46,21 @@ test('a member signs in, edits their profile and reads members-only content', as
 
   // The form says what it wants: no leading K on either airport, one primary
   // DART, and ground support among the volunteer interests.
-  await expect(page.getByText('Three characters, omit the leading K')).toHaveCount(2);
-  await expect(page.getByText('Your primary DART')).toBeVisible();
+  await expect(page.getByText('Leave off the leading K: PAO, not KPAO')).toHaveCount(2);
+  await expect(page.getByText('Your main DART')).toBeVisible();
   await expect(page.getByRole('checkbox', { name: 'Ground support' })).toBeVisible();
 
   // My aircraft ledes in one sentence and offers one way to add an airplane.
   await page.goto('portal/profile/aircraft');
   await expect(page.getByText('The planes you commonly fly.')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Add a new aircraft' })).toHaveCount(1);
-  await expect(page.getByText('Not in the register? Add it yourself.')).toBeVisible();
+  await expect(page.getByText("Not on CalDART's list? Add it yourself.")).toBeVisible();
 
   // Attach an airplane from the picker, then search for that registration on
   // its own: the picker leaves it out of the results and names it in a
   // sentence underneath.  Every registration begins with an N and a digit, so
   // the search term and the result need no seeded make or model.
-  const search = page.getByRole('searchbox', { name: 'Search the aircraft register' });
+  const search = page.getByRole('searchbox', { name: "Search CalDART's aircraft list" });
   await search.fill('N');
   const firstResult = page.getByRole('button', { name: /^N\d/ }).first();
   await expect(firstResult).toBeVisible();

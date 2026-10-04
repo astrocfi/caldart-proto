@@ -35,7 +35,7 @@ export function CalloutsPage(): JSX.Element {
       <Card>
         {callouts.isError ? (
           <p className="field__error" role="alert">
-            The callouts could not be loaded.
+            The callouts didn&apos;t load. Try again in a moment.
           </p>
         ) : (
           <DataTable

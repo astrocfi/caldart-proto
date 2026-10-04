@@ -5,8 +5,9 @@ Scheduled
 =========
 
 **Scheduled** lists the six jobs the server runs on a schedule. Each one can be run by hand
-here, and all but the bulk email sender have a dry run that shows what they would do. Only a system administrator sees it, under
-**System** in the menu. In normal running you never need to touch it.
+here, each is safe to run twice, and all but the bulk email sender have a practice run that
+shows what they would do. Only a system administrator sees it, under **System** in the menu.
+In normal running you never need to touch it.
 
 The page has six panels, top to bottom: **Renewal reminder emails**, **Automatic renewal
 charges**, **Scheduled reports**, **Year-end statements**, **Bounces**, and **Bulk email
@@ -17,8 +18,8 @@ so a member they renew is not also reminded.
 
 Every panel but the bulk email sender's works the same way:
 
-#. Leave the **Dry run** box ticked the first time. A dry run sends, charges, and records
-   nothing.
+#. Leave the **Practice run** box checked the first time. A practice run sends, charges, and
+   records nothing.
 #. Press **Run now**. A heading reads **What this run would do**, or **What this run did**
    after a real run, above a line of counts and a table naming each email or charge. You
    stay on **Run now** while it runs and after. On a narrow screen the table leaves out
@@ -28,7 +29,7 @@ Every panel but the bulk email sender's works the same way:
 #. If the numbers look right and you have a reason not to wait for the schedule, clear the
    box and press **Run now** again.
 
-Running any of them twice does nothing twice.
+Running any of them twice does nothing twice: each job records what it has already done.
 
 
 Renewal reminder emails
@@ -40,8 +41,9 @@ schedule. The panel names the days the stored schedule uses. It sends email only
 charges anyone. A member whose automatic renewal is on is skipped. The
 :doc:`reminders` page describes the stages and the subject line of each email.
 
-The box reads **Dry run (send nothing)**. The result reads, for example, *Would send 4
-emails, skipped 2.* When something was skipped, a line gives the reasons in the panel's
+The box reads **Practice run: show what would happen, send nothing**. The result reads, for
+example, *Would send 4 emails, skipped 2.* When something was skipped, a line gives the
+reasons in the panel's
 words: *already sent*, *already renewed*, *auto-renew on*, *lifetime member*, *account
 deactivated*, and *no address on file*, such as *Skipped: already sent 10, auto-renew on 2.*
 When the mail server refused a send, a further line reads, for example, *Failed 2.* A
@@ -64,7 +66,7 @@ number fields:
 - **Lapsed reminder**: days after a membership ends. The default is 30.
 
 The expired reminder has no number: it goes from the day a membership ends through the six
-days after. Change a number and press **Save**; *Reminder schedule saved.* confirms it, and
+days after. Change a number and press **Save changes**; *Reminder schedule saved.* confirms it, and
 the line under the card reads **Last saved** with the date and your name. The next morning's
 run uses the new days, and the reminder record, the **Purpose** filter on
 :doc:`sent-emails`, and the stage names on :doc:`reminders` all read with them. A member
@@ -94,7 +96,8 @@ that are due (*your membership has been renewed*, or *we could not renew your me
 A life member's recurring donation is charged once a year by the same job, and its emails
 speak of the donation.
 
-#. Leave **Dry run (charge nothing)** ticked the first time. Nobody is charged or emailed.
+#. Leave **Practice run: show what would happen, charge nothing** checked the first time.
+   Nobody is charged or emailed.
 #. Press **Run now**. The result reads, for example, *Would notice 2, warn 0, charge 1, fail
    0, pause 0, and skip 3.* *Notice* counts the two-week notices, *warn* the members whose
    card runs out first, *charge* the renewals taken, *fail* the charges the provider
@@ -123,11 +126,12 @@ Scheduled reports
 =================
 
 Every morning at 6:00 AM CalDART sends the report subscriptions set up on :doc:`subscriptions`,
-and early each month it sends each DART's roster. The box reads **Dry run (send nothing)**.
+and early each month it sends each DART's roster. The box reads **Practice run: show what
+would happen, send nothing**.
 
 The result reads, for example, *Would send 5 emails, skipped 1.* When something was skipped,
 a line gives the reasons: *no longer permitted* (the recipient has lost the role that reads
-the report, and a real run pauses the subscription), *nobody ticked* (a DART with nobody to
+the report, and a real run pauses the subscription), *nobody to send to* (a DART with nobody to
 receive its roster), and *no address on file*. A line such as *Failed 1.* counts a refused
 send or a report that could not be built; it stays due for the next run. The table names each
 email: *Report* or *Roster*, who it goes to, and **Report or DART**.
@@ -142,7 +146,7 @@ The subject reads *CalDART: your 2025 contribution statement*, with the year and
 organization's name.
 
 #. Check the **Year** box; it starts at last year.
-#. Leave **Dry run (send nothing)** ticked the first time.
+#. Leave **Practice run: show what would happen, send nothing** checked the first time.
 #. Press **Run now**. The result reads, for example, *Would send 6, skip 0, and fail 0.*
    *Skip* counts accounts already sent that year's statement, and *fail* an address the mail
    server refused or an account with no address.
@@ -162,8 +166,8 @@ and temporary failures, which the other server is still retrying, are ignored. T
 until the address is changed, until the person follows a verification or password reset link
 sent to it, or until a user administrator clears it on :doc:`user-record`.
 
-#. Leave **Dry run (change nothing)** ticked the first time. Nothing is marked, and every
-   message stays in the mailbox for the next run.
+#. Leave **Practice run: show what would happen, change nothing** checked the first time.
+   Nothing is marked, and every message stays in the mailbox for the next run.
 #. Press **Run now**. The result reads, for example, *Would mark 1 bounced, leave 1
    unmatched, ignore 2, and skip 0.* *Bounced* counts the emails matched to a bounce,
    *unmatched* the bounces CalDART could not tie to an email it sent in the last week,
@@ -188,7 +192,7 @@ minutes to cancel or at the time it was scheduled for, and sends its copies a fe
 so the mail provider never turns them away. CalDART management writes and sends those emails
 on the Bulk email screens (:doc:`../bulk-email/compose`).
 
-The panel has no dry run, because the sender only sends what CalDART management has already
+The panel has no practice run, because the sender only sends what CalDART management has already
 pressed **Send** on. Press **Run the bulk email sender now**, under the panel's description
 and above what the last run did, to run it at once. The page waits up to 45 seconds; a larger email carries on in the background after that. The result reads,
 for example, *Worked on 1 bulk email: sent 37, failed 1, and skipped 4.*, and when the time
@@ -208,5 +212,5 @@ marked for weeks, or bulk emails that stay *Waiting to send*), the server may
 have stopped starting that job; the person who runs the server can check it. Meanwhile **Run
 now** does the same work by hand. A reminder run that skips everyone is normal on most days,
 because members were written to the first morning they reached each stage. A run that sends
-nothing when you expected mail usually still has its **Dry run** box ticked. To see whether
+nothing when you expected mail usually still has its **Practice run** box checked. To see whether
 the emails a run sent went out, read :doc:`sent-emails`.

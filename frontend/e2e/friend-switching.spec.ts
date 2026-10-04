@@ -142,7 +142,7 @@ test('an account administrator makes a current member a friend', async ({ page }
     await page.request.get(`api/v1/admin/members?search=${encodeURIComponent(email)}`)
   ).json()) as { results: { user_id: number }[] };
   await page.goto(`portal/admin/members/${found.results[0]?.user_id ?? 0}`);
-  await page.getByRole('tab', { name: 'Danger zone' }).click();
+  await page.getByRole('tab', { name: 'Delete or deactivate' }).click();
 
   const account = page.locator('section.card', {
     has: page.getByRole('heading', { name: 'Account', exact: true }),

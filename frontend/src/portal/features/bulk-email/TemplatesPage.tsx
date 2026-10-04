@@ -191,7 +191,7 @@ export function TemplatesPage(): JSX.Element {
         {openForm?.mode === 'new' ? (
           <Card eyebrow="New" title="New template">
             <TemplateForm
-              submitLabel="Save template"
+              submitLabel="Add template"
               pending={create.isPending}
               error={create.error}
               onSubmit={handleCreate}
@@ -205,7 +205,7 @@ export function TemplatesPage(): JSX.Element {
             <TemplateForm
               key={editing.id}
               template={editing}
-              submitLabel="Save template"
+              submitLabel="Save changes"
               pending={update.isPending}
               error={update.error}
               onSubmit={(input) => handleUpdate(editing.id, input)}
@@ -227,7 +227,7 @@ export function TemplatesPage(): JSX.Element {
       <Card>
         {templates.isError ? (
           <p className="field__error" role="alert">
-            The templates could not be loaded.
+            The templates didn&apos;t load. Try again in a moment.
           </p>
         ) : (
           <DataTable

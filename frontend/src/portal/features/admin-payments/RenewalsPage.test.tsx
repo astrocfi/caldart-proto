@@ -183,7 +183,9 @@ describe('RenewalsPage', () => {
     renderWithProviders(<RenewalsPage />);
 
     const row = within(await screen.findByRole('row', { name: /Ben Ortiz/ }));
-    await userEvent.click(row.getByRole('button', { name: 'Turn off' }));
+    await userEvent.click(
+      row.getByRole('button', { name: 'Turn off automatic renewal for Ben Ortiz' }),
+    );
 
     expect(row.getByRole('region', { name: 'Turn off' })).toHaveTextContent(/for Ben Ortiz\?/);
   });
@@ -194,7 +196,9 @@ describe('RenewalsPage', () => {
     renderWithProviders(<RenewalsPage />);
 
     const row = within(await screen.findByRole('row', { name: /Ben Ortiz/ }));
-    await userEvent.click(row.getByRole('button', { name: 'Turn off' }));
+    await userEvent.click(
+      row.getByRole('button', { name: 'Turn off automatic renewal for Ben Ortiz' }),
+    );
     expect(seen.canceled).toEqual([]);
 
     await userEvent.click(row.getByRole('button', { name: 'Turn it off' }));
@@ -208,7 +212,11 @@ describe('RenewalsPage', () => {
     renderWithProviders(<RenewalsPage />);
 
     const row = within(await screen.findByRole('row', { name: /Dana Field/ }));
-    await userEvent.click(row.getByRole('button', { name: 'Turn off' }));
+    await userEvent.click(
+      row.getByRole('button', {
+        name: 'Turn off recurring donation for Dana Field',
+      }),
+    );
     await userEvent.click(row.getByRole('button', { name: 'Turn it off' }));
 
     expect(
@@ -221,7 +229,7 @@ describe('RenewalsPage', () => {
     renderWithProviders(<RenewalsPage />);
 
     const row = within(await screen.findByRole('row', { name: /Iris Kwan/ }));
-    expect(row.queryByRole('button', { name: 'Turn off' })).not.toBeInTheDocument();
+    expect(row.queryByRole('button', { name: /^Turn off/ })).not.toBeInTheDocument();
   });
 
   it('narrows the mandates to one kind', async () => {
@@ -230,7 +238,7 @@ describe('RenewalsPage', () => {
     renderWithProviders(<RenewalsPage />);
     await screen.findByRole('row', { name: /Maria Alvarez/ });
 
-    await userEvent.selectOptions(screen.getByLabelText('Kind'), 'contribution');
+    await userEvent.selectOptions(screen.getByLabelText('Type'), 'contribution');
 
     await expect.poll(() => seen.mandateQueries.at(-1)?.get('kind')).toBe('contribution');
   });
@@ -246,12 +254,12 @@ describe('RenewalsPage', () => {
     await expect.poll(() => seen.mandateQueries.at(-1)?.get('status')).toBe('paused');
   });
 
-  it('lists a refused attempt with the reason the provider gave', async () => {
+  it('lists a failed attempt with the reason the provider gave', async () => {
     server.use(...renewalHandlers([], [REFUSED], record()));
     renderWithProviders(<RenewalsPage />);
 
     const row = within(await screen.findByRole('row', { name: /03\/14\/2026/ }));
-    expect(row.getByText('Refused')).toBeInTheDocument();
+    expect(row.getByText('Failed')).toBeInTheDocument();
     expect(row.getByText('Your card was declined')).toBeInTheDocument();
   });
 
@@ -265,7 +273,11 @@ describe('RenewalsPage', () => {
     renderWithProviders(<RenewalsPage />);
 
     const row = within(await screen.findByRole('row', { name: /Ben Ortiz/ }));
-    await userEvent.click(row.getByRole('button', { name: 'Turn off' }));
+    await userEvent.click(
+      row.getByRole('button', {
+        name: 'Turn off automatic renewal for Ben Ortiz',
+      }),
+    );
     await userEvent.click(row.getByRole('button', { name: 'Turn it off' }));
 
     expect(await screen.findByText('That renewal is already off.')).toBeInTheDocument();
@@ -351,7 +363,9 @@ describe('RenewalsPage', () => {
     );
     renderWithProviders(<RenewalsPage />);
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('The renewals could not be loaded.');
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      "The renewals didn't load. Try again in a moment.",
+    );
   });
 
   it('narrows the attempts to one outcome', async () => {

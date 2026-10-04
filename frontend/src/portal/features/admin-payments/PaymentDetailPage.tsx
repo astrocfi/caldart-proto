@@ -227,7 +227,7 @@ function ReconcileCard({ payment }: ReconcileCardProps): JSX.Element {
     <Card title="Reconciliation">
       <form ref={formRef} onSubmit={handleSave} noValidate>
         <Field
-          label="Matched on"
+          label="Reconciled on"
           hint="The day this payment was found on a statement"
           error={error ?? undefined}
         >
@@ -251,10 +251,10 @@ function ReconcileCard({ payment }: ReconcileCardProps): JSX.Element {
           )}
         </Field>
         {payment.reconciled_by === null ? null : (
-          <p className="muted">Matched by {payment.reconciled_by}.</p>
+          <p className="muted">Reconciled by {payment.reconciled_by}.</p>
         )}
         <Button type="submit" disabled={patch.isPending}>
-          {patch.isPending ? 'Saving…' : 'Save'}
+          {patch.isPending ? 'Saving…' : 'Save changes'}
         </Button>
       </form>
     </Card>
@@ -300,7 +300,7 @@ export function PaymentDetailPage(): JSX.Element {
       <Page title="Payment">
         <FinanceTabs current="/admin/payments/list" />
         <EmptyState
-          title="That payment could not be loaded"
+          title="That payment didn't load"
           description="It may have been removed, or you may not have permission to see it."
         />
       </Page>
@@ -326,7 +326,7 @@ export function PaymentDetailPage(): JSX.Element {
   return (
     <Page
       title={`Payment ${payment.receipt_number}`}
-      lede={`${payment.user_name} · ${STATUS_LABELS[payment.status]}`}
+      lede={payment.user_name}
       actions={
         <StatusDot tone={statusTone(payment.status)} label={STATUS_LABELS[payment.status]} />
       }

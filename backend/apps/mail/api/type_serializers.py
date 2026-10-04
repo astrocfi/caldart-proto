@@ -8,6 +8,7 @@ from rest_framework import serializers
 
 from apps.mail.models import EmailType, OptOutSource
 from apps.mail.types import SENDER_ROLES, EmailTypeFields
+from caldart.messages import when_missing
 
 #: The highest ``position`` a type may take: the largest value its column holds.
 MAX_POSITION = 2_147_483_647
@@ -27,7 +28,9 @@ class EmailTypeSerializer(serializers.ModelSerializer[EmailType]):
     # Declared rather than generated so it carries no unique validator: the service
     # checks the name against every other type, case and slug included, and says so in
     # its own words, where the model's validator would answer first, in Django's.
-    name = serializers.CharField(max_length=60)
+    name = serializers.CharField(
+        max_length=60, error_messages=when_missing("Give the email type a name.")
+    )
     sender_roles = serializers.ListField(
         child=serializers.ChoiceField(choices=list(SENDER_ROLES)), allow_empty=True
     )
@@ -47,6 +50,11 @@ class EmailTypeSerializer(serializers.ModelSerializer[EmailType]):
             "in_use",
         ]
         read_only_fields = ["id", "slug", "in_use"]
+        extra_kwargs = {
+            "description": {
+                "error_messages": when_missing("Say in one sentence what this email is for.")
+            }
+        }
 
     def get_in_use(self, email_type: EmailType) -> bool:
         """True once a bulk email has the type, so that it cannot be deleted."""

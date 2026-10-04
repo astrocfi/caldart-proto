@@ -13,8 +13,8 @@ after recording a payment by hand.
 What you see
 ============
 
-The heading is the payment's receipt number, with the member's name and the payment's
-status beneath it and the status, a colored dot and its word, on the right.
+The heading is the payment's receipt number, with the member's name beneath it and the
+status, a colored dot and its word, on the right.
 
 This payment
 ~~~~~~~~~~~~
@@ -49,7 +49,7 @@ Refunds
 
 The **Refunds** card lists every refund against the payment, with the day it was
 **Issued**, the **Amount**, the **Reason**, your **Note**, the **Status** (**Pending**,
-**Succeeded**, or **Failed**), and the **Source**: **The CalDART portal** for a refund
+**Refunded**, or **Failed**), and the **Source**: **The CalDART portal** for a refund
 issued from this screen, or **The provider's dashboard** for one somebody made in
 Stripe's or PayPal's own dashboard. With no refunds it reads *Nothing has been
 refunded*.
@@ -57,9 +57,9 @@ refunded*.
 Reconciliation
 ~~~~~~~~~~~~~~
 
-The **Reconciliation** card holds your two fields: **Matched on**, the day you found this
+The **Reconciliation** card holds your two fields: **Reconciled on**, the day you found this
 payment on a bank statement, and **Note**, such as a check number or why the entry
-exists. Once a payment is matched, the card names who matched it.
+exists. Once a payment is reconciled, the card names who reconciled it.
 
 What you can do
 ===============
@@ -80,13 +80,13 @@ report what they kept a little after the money arrives, and sometimes later stil
 asks again, and the screen confirms with *Fee read from the provider.* A payment
 recorded by hand has no fee, so the button never appears for it.
 
-Mark the payment as matched
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Mark the payment as reconciled
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Set **Matched on** once you have found the payment on the bank statement, add a
-**Note** if it helps, and press **Save**. The screen confirms with *Payment updated.*
-A date later than today is refused with *A payment cannot have been matched in the
-future.* Clear the date and save to mark the payment as not matched again.
+Set **Reconciled on** once you have found the payment on the bank statement, add a
+**Note** if it helps, and press **Save changes**. The screen confirms with *Payment
+updated.* A date later than today is refused with *A payment cannot have been reconciled
+in the future.* Clear the date and save to mark the payment as not reconciled again.
 
 Refund the payment
 ~~~~~~~~~~~~~~~~~~
@@ -101,8 +101,8 @@ fields:
   **Fraudulent**, or **Something else**.
 * **Note**, kept with the refund. The member does not see it.
 * **Cancel the membership term this payment bought**, shown only when the payment bought
-  a term. It starts ticked when the amount covers the dues, and unticked when it does
-  not. Once you tick or untick it yourself, changing the amount leaves your choice alone.
+  a term. It starts checked when the amount covers the dues, and unchecked when it does
+  not. Once you check or uncheck it yourself, changing the amount leaves your choice alone.
 
 Press **Refund** to issue it, or **Cancel** or Escape to close the form and go back to the
 **Refund** that opened it. The screen confirms with *Refunded* and the amount. An amount the
@@ -126,7 +126,7 @@ not succeeded, so there is nothing to refund.*
 See everything the member has paid
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The link at the foot of the screen, **Everything** and the member's name **has paid**,
+The link at the bottom of the screen, **Everything** and the member's name **has paid**,
 opens their money history (see :doc:`member-ledger`).
 
 If something looks wrong
@@ -137,5 +137,5 @@ money moved; try again, or make the refund in the provider's dashboard. A refund
 Stripe's or PayPal's dashboard appears here on its own, marked **The provider's
 dashboard**, and it never ends a membership. If that refund should end the member's
 term, an account administrator ends it on the **Memberships** tab of the member's record.
-If a payment shows **Succeeded** and its **Term** reads **None** when it bought a plan,
+If a payment shows **Paid** and its **Term** reads **None** when it bought a plan,
 ask an account administrator to grant the term, and report the fault.

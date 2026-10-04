@@ -13,7 +13,7 @@ import { useNavigate } from 'react-router-dom';
 import { ApiError } from '@/portal/api/client';
 import { usePlans } from '@/portal/api/queries';
 import type { FinanceMember, ManualMethod } from '@/portal/api/types';
-import { Button } from '@/portal/components/Button';
+import { Button, ButtonLink } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { todayIso } from '@/portal/components/DateText';
 import { Field } from '@/portal/components/Field';
@@ -158,7 +158,7 @@ export function RecordPaymentPage(): JSX.Element {
     record.error instanceof ApiError
       ? reportedErrors(record.error)
       : record.error
-        ? { detail: 'Something went wrong. Please try again.' }
+        ? { detail: "The payment wasn't recorded. Try again in a moment." }
         : {},
   );
   const errors: Record<string, string | undefined> =
@@ -219,7 +219,11 @@ export function RecordPaymentPage(): JSX.Element {
             searchRef={searchRef}
           />
 
-          <Field label="Plan" hint="Leave blank for a contribution on its own" error={errors.plan}>
+          <Field
+            label="Plan"
+            hint="Choose No membership for a donation on its own"
+            error={errors.plan}
+          >
             {(props) => (
               <select
                 {...props}
@@ -239,7 +243,7 @@ export function RecordPaymentPage(): JSX.Element {
 
           <Field
             label="Contribution"
-            hint="Dollars"
+            hint="In US dollars."
             error={errors.contribution_cents ?? errors.amount_cents}
           >
             {(props) => (
@@ -318,6 +322,9 @@ export function RecordPaymentPage(): JSX.Element {
               {record.isPending ? 'Recording…' : 'Record the payment'}
             </Button>
             <RefusedSubmitNote count={refusal.count} />
+            <ButtonLink to="/admin/payments/list" variant="quiet">
+              Cancel
+            </ButtonLink>
           </div>
         </form>
       </Card>

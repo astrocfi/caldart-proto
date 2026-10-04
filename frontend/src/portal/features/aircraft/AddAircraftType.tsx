@@ -146,7 +146,7 @@ export function AddAircraftType({
       ) : null}
       <div className="cluster">
         <Button small onClick={handleAdd} disabled={create.isPending}>
-          {create.isPending ? 'Adding…' : 'Add type'}
+          {create.isPending ? 'Adding…' : 'Add aircraft type'}
         </Button>
         <Button variant="quiet" small onClick={handleCancel}>
           Cancel

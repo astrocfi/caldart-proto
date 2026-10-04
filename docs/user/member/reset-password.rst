@@ -23,7 +23,7 @@ What you see
 Pick something you do not use anywhere else. The screen has two boxes:
 
 **New password**
-  At least eight characters, and not a password you have used elsewhere.
+  The hint reads *At least 8 characters. Avoid common passwords such as password1.*
 
 **Repeat new password**
   The same password again, so a typing slip does not lock you out.
@@ -51,7 +51,7 @@ Password rules
 
 CalDART turns down a password that is:
 
-* shorter than eight characters;
+* shorter than 8 characters;
 * one of the twenty thousand most common passwords;
 * entirely numbers;
 * too like your own name or email address.

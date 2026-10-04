@@ -19,8 +19,8 @@ describe('ScheduledPage', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'Scheduled' })).toBeInTheDocument();
     expect(
       screen.getByText(
-        'The jobs the server runs on a schedule. Each one can be run by hand here, and a dry ' +
-          'run shows what it would do.',
+        'The jobs CalDART runs on a schedule. Run any of them by hand here: each is safe to run ' +
+          'twice, and a practice run shows what it would do first.',
       ),
     ).toBeInTheDocument();
   });
@@ -29,7 +29,7 @@ describe('ScheduledPage', () => {
     renderPage();
 
     await screen.findByText('No reminders sent yet');
-    await screen.findByRole('button', { name: 'Save' });
+    await screen.findByRole('button', { name: 'Save changes' });
     const titles = screen
       .getAllByRole('heading', { level: 2 })
       .map((heading) => heading.textContent);
@@ -44,6 +44,23 @@ describe('ScheduledPage', () => {
     ]);
   });
 
+  it("names each card's Run now for the job it runs", async () => {
+    renderPage();
+
+    await screen.findByText('No reminders sent yet');
+    const names = screen
+      .getAllByRole('button', { name: /^Run (now: |.* now$)/ })
+      .map((button) => button.getAttribute('aria-label') ?? button.textContent);
+    expect(names).toEqual([
+      'Run now: renewal reminder emails',
+      'Run now: automatic renewal charges',
+      'Run now: scheduled reports',
+      'Run now: year-end statements',
+      'Run now: bounce check',
+      'Run the bulk email sender now',
+    ]);
+  });
+
   it('says the reminder emails send email only and never charge', async () => {
     renderPage();
 
@@ -51,9 +68,7 @@ describe('ScheduledPage', () => {
       await screen.findByText(
         'Emails members whose membership is about to expire or has just expired: 60, 30, and ' +
           '7 days before, on the day, and 30 days after. It sends email only and never charges ' +
-          'anyone. A member whose automatic renewal is on is skipped. It runs every morning; ' +
-          'running it again is harmless, because each member gets each reminder once per ' +
-          'membership.',
+          'anyone. A member whose automatic renewal is on is skipped. It runs every morning.',
       ),
     ).toBeInTheDocument();
   });
@@ -66,8 +81,7 @@ describe('ScheduledPage', () => {
         'Charges the saved card or PayPal account of every member whose automatic renewal is ' +
           'due, after emailing a notice two weeks ahead and a warning when the card is about ' +
           'to expire. It runs every morning before the reminder emails, so a member it renews ' +
-          'is not also reminded. Running it again is harmless: every scheduled charge records ' +
-          'what has already gone out.',
+          'is not also reminded.',
       ),
     ).toBeInTheDocument();
   });

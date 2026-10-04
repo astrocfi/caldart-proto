@@ -180,7 +180,7 @@ export function DashboardPage(): JSX.Element {
           <Card
             eyebrow="History"
             title="Recent payments"
-            footer={<Link to="/payments">All payments, receipts and renewal</Link>}
+            footer={<Link to="/payments">All payments, receipts, and renewals</Link>}
           >
             <RenewalLine
               mandate={(status?.is_lifetime ? donation : renewal).data?.mandate ?? null}

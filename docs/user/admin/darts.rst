@@ -39,14 +39,15 @@ With no teams yet the table says *No DARTs yet*.
 Adding a DART
 =============
 
-**Add a DART** opens a short form above the table, and takes you to its first box:
+**New DART** opens a short form above the table, and takes you to its first box:
 
 **Name**
    What members will see in the list, such as "Palo Alto". Required.
 
 **Airports**
    The fields the team flies from, as three-character identifiers separated by commas: PAO,
-   or CCR, C83 for a team with two fields. Paste KCRQ and the leading K comes off. At least
+   or CCR, C83 for a team with two fields. Leave off the leading K, so CRQ for KCRQ; a
+   pasted KCRQ loses its K. At least
    one is required and twelve at most. A DART is known by its fields, so there is no town to
    fill in.
 
@@ -67,7 +68,7 @@ kept as typed.
 
 - **Add a person** adds a row. It is grayed out while the last row has no name, so give the
   person above a name first.
-- Tick **Roster** on the row of each person who should receive the team's roster by email.
+- Check **Roster** on the row of each person who should receive the team's roster by email.
 - The arrows at the head of a row move that person up or down. The order is the order the
   team's page on the public website lists them in, so put the leader first. A row with no
   name cannot be moved, and neither can its neighbors past it.
@@ -82,20 +83,20 @@ Changing a DART
 ===============
 
 **Edit** opens the same form on an existing team, headed with its name, above the table, and
-takes you to its first box. Press **Save DART**. Escape closes the form as **Cancel** does,
+takes you to its first box. Press **Save changes**. Escape closes the form as **Cancel** does,
 and you are back on the row's **Edit**.
 Renaming a team is safe: the members on it stay on it.
 
-**Making one inactive.** Untick **Active** (*Active — untick to make the DART inactive
+**Making one inactive.** Uncheck **Active** (*Active — uncheck to make the DART inactive
 without losing its history*) and save. The team disappears from the join form and from the
 list on a member's profile, and everybody already on it stays on it, so the history and the
-reports still read correctly. Tick the box again to bring the team back.
+reports still read correctly. Check the box again to bring the team back.
 
 
 Deleting a DART
 ===============
 
-**Delete this DART**, at the foot of the edit form, asks before it acts: it turns into a red
+**Delete this DART**, at the bottom of the edit form, asks before it acts: it turns into a red
 **Delete** and **Cancel**. When the team has members or a page on the public website, a
 line above them says what the delete leaves behind, for example *Deleting Napa makes its 12
 members unaffiliated and unlinks 1 website page. This cannot be undone.* The members come
@@ -109,11 +110,11 @@ Deleting is permanent, so a team that has stopped flying is better made inactive
 What happens next
 =================
 
-Early each month every active team's roster goes by email to each person ticked **Roster**.
+Early each month every active team's roster goes by email to each person checked **Roster**.
 The subject is the team's name, the word *roster*, and the date. The :doc:`subscriptions` screen
 lists the rosters, shows when each was last sent, and can send them all at once.
 
-Each person ticked **Roster** also hears of every sign-up that chooses the team: the email
+Each person checked **Roster** also hears of every sign-up that chooses the team: the email
 names the new member or friend and links to their record. The :doc:`notifications` page
 describes it under *Notification: Sign-up*.
 
@@ -127,7 +128,7 @@ If something looks wrong
 *Give the DART a name.* and *Give the DART at least one airport.* mean a required box is
 empty. *Use three-character identifiers, separated by commas, like CCR, C83.* means an
 airport is written some other way, and *That list names the same airport twice.* means what
-it says. A **Roster** count lower than the people you ticked means some of them have no
+it says. A **Roster** count lower than the people you checked means some of them have no
 email address. After a team is deleted, an unpublished draft of its website page still names
 it, and publishing that draft fails: ask the website administrator to open the page, clear
 its **DART** field, and publish again.

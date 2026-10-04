@@ -472,7 +472,7 @@ def test_a_row_carries_its_purpose_label(api_client: APIClient, system_admin: Us
 
     row = api_client.get(EMAILS_URL).json()["results"][0]
 
-    assert row["purpose_label"] == "Renewal reminder (30 days)"
+    assert row["purpose_label"] == "Second reminder (30 days before)"
 
 
 def test_an_unlabeled_purpose_reads_as_its_slug(api_client: APIClient, system_admin: User) -> None:

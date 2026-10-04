@@ -421,7 +421,7 @@ Empties the batch, its adds included: **200** with the empty batch, as
 ``GET /bulk-email/{id}/batch.csv``
 ----------------------------------
 
-The batch as a CSV download, ``caldart-bulk-email-<id>-batch.csv``, in the order
+The batch as a CSV download, ``caldart-bulk-email-<id>-recipient-list.csv``, in the order
 above, with the columns ``Name``, ``Email``, ``Kind``, ``DART``, ``Membership
 status`` (the account's now, blank once it is deleted), ``Chosen by`` (the add's
 label), ``Will receive`` (``Yes`` or ``No``), ``Reason``, and ``Email type`` (the
@@ -536,7 +536,7 @@ queued again, and the number skipped.
 One send's results as a CSV download, ``caldart-bulk-email-<id>-recipients.csv``,
 in the order the send went, with the columns ``Name``, ``Email``, ``Kind``,
 ``DART``, ``Result`` (the row's status in words: ``Sent``, ``Failed``,
-``Skipped``, ``Not sent (stopped)``, ``Not sent yet``, ``In the batch``, or
+``Skipped``, ``Not sent (stopped)``, ``Not sent yet``, ``On the list``, or
 ``Bounced``), ``Reason``, ``Tried at`` (when the copy was last tried,
 ``MM/DD/YYYY at h:mm AM`` in the site's time zone, blank when it never was), and
 ``Email type``.  This is the delivery report the Sent page shows.

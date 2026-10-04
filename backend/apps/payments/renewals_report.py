@@ -47,10 +47,10 @@ SEARCH_FIELDS: tuple[str, ...] = (
 
 #: The words each status prints, as the Renewals tab shows them.
 STATUS_LABELS: dict[str, str] = {
-    MandateStatus.PENDING: "Awaiting a method",
+    MandateStatus.PENDING: "Waiting for the first payment",
     MandateStatus.ACTIVE: "On",
-    MandateStatus.PAUSED: "Paused",
-    MandateStatus.CANCELED: "Off",
+    MandateStatus.PAUSED: "Paused after failed charges",
+    MandateStatus.CANCELED: "Turned off",
 }
 
 
@@ -122,7 +122,7 @@ def _iso(mandate: RenewalMandate) -> str:
 RENEWAL_REPORT_COLUMNS: tuple[ReportColumn[RenewalMandate], ...] = (
     ReportColumn("name", "Member", True, lambda row: row.user.display_name, width=2.6),
     ReportColumn("email", "Email", True, lambda row: row.user.email, width=3.6),
-    ReportColumn("kind", "Kind", True, lambda row: MandateKind(mandate_kind(row)).label, width=3.0),
+    ReportColumn("kind", "Type", True, lambda row: MandateKind(mandate_kind(row)).label, width=3.0),
     ReportColumn("cadence", "Cadence", False, lambda row: row.get_cadence_display(), width=1.4),
     ReportColumn(
         "plan", "Plan", True, lambda row: row.plan.name if row.plan is not None else "", width=1.8

@@ -45,6 +45,42 @@ describe('MemberVerificationCard', () => {
     expect(within(rows[2]!).getByText('Not verified')).toBeInTheDocument();
   });
 
+  it('draws no mark for an item the person does not hold', () => {
+    renderWithProviders(
+      <MemberVerificationCard
+        userId={7}
+        profile={makeAdminProfile({
+          pilot_certificate_type: 'none',
+          certificate_number: '',
+          medical_type: 'none',
+          medical_expiration: null,
+          photo_id_type: 'not_provided',
+          verification: NONE_VERIFIED,
+        })}
+        checkable
+      />,
+    );
+    expect(screen.getAllByRole('listitem').map((row) => row.textContent)).toEqual([
+      'Pilot certificateNot a pilot',
+      'MedicalNone',
+      'Photo IDNot provided',
+    ]);
+  });
+
+  it('says Expired beside a lapsed medical that somebody verified', () => {
+    renderWithProviders(
+      <MemberVerificationCard
+        userId={7}
+        profile={makeAdminProfile({ medical_type: 'basicmed', medical_expiration: '2025-02-02' })}
+        checkable
+      />,
+    );
+    const medical = screen.getAllByRole('listitem')[1]!;
+    expect(medical).toHaveTextContent(
+      /^MedicalBasicMed · expires 02\/02\/2025Expired\s*Verified by Dana Leader on 05\/01\/2026$/,
+    );
+  });
+
   it('offers no Verify to a reader without a verifying role', () => {
     renderWithProviders(
       <MemberVerificationCard userId={7} profile={makeAdminProfile()} checkable />,
@@ -79,7 +115,7 @@ describe('MemberVerificationCard', () => {
 
     await user.click(await screen.findByRole('button', { name: 'Verify' }));
     await user.click(screen.getByLabelText('Medical verified'));
-    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await user.click(screen.getByRole('button', { name: 'Save verification' }));
 
     expect(await screen.findByText('Verification saved')).toBeInTheDocument();
     expect(calls.members).toEqual([{ userId: 7, body: { verified: ['medical'] } }]);

@@ -36,9 +36,9 @@ On **Compose**, card **1. Who gets it** says *Sending to the Marin DART* (with y
 name) where CalDART management sees a **DART** filter. Every other filter works as it does
 for management, inside your DART: **Kind**, **Search**, **Membership**, **Certificate**,
 **Medical**, **County**, **Role**, and **Expiring within (days)**. With no filters chosen,
-**Add to batch** adds every member and friend of your DART, you among them.
+**Add these people** adds every member and friend of your DART, you among them.
 
-Anybody in the batch whose profile no longer names your DART, such as a member who moved to
+Anybody on the recipient list whose profile no longer names your DART, such as a member who moved to
 another DART after you added them, shows *Not in your DART* under **Will receive?** and is
 sent nothing.
 
@@ -68,14 +68,14 @@ If something looks wrong
 If an email you scheduled went back to your drafts with *This email was not sent: your
 profile names no DART, so there is nobody to send to. Set your DART on My profile and send
 again.*, your profile lost its DART before the email started. Set your DART on **My
-profile**, open the email from **Drafts and scheduled**, check the batch, and send it again.
-If somebody you expected is missing from the batch, check their DART: only people whose
+profile**, open the email from **Drafts and scheduled**, check the recipient list, and send it again.
+If somebody you expected is missing from the recipient list, check their DART: only people whose
 profile names your DART can be added. A member's DART is on their profile, which an account
 administrator can change.
 
 If an email went back to your drafts with *Your DART changed, so this email was not sent.
 Add the people again and send when it is ready.*, your profile names a different DART than
-the one you built the batch in. Open it from **Drafts and scheduled**, press **Clear batch**,
+the one you built the recipient list in. Open it from **Drafts and scheduled**, press **Remove everyone**,
 add the people of your DART, and send it again. A send you stopped and then finished with
 **Send the rest** also skips anybody who has left your DART since, with *Not in your DART*,
 as it skips anybody else who can no longer receive it.

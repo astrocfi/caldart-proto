@@ -64,9 +64,11 @@ describe('StatementsPanel', () => {
     renderWithProviders(<StatementsPanel />);
 
     expect(screen.getByLabelText('Year')).toHaveValue(2025);
-    expect(screen.getByLabelText('Dry run (send nothing)')).toBeChecked();
+    expect(
+      screen.getByLabelText('Practice run: show what would happen, send nothing'),
+    ).toBeChecked();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Run now' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Run now: year-end statements' }));
 
     expect(await screen.findByText('Would send 1, skip 2, and fail 0.')).toBeInTheDocument();
     expect(bodies).toEqual([{ year: 2025, dry_run: true }]);
@@ -84,7 +86,7 @@ describe('StatementsPanel', () => {
 
     await userEvent.clear(screen.getByLabelText('Year'));
     await userEvent.type(screen.getByLabelText('Year'), '2023');
-    await userEvent.click(screen.getByRole('button', { name: 'Run now' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Run now: year-end statements' }));
 
     expect(await screen.findByText('Would send 1, skip 2, and fail 0.')).toBeInTheDocument();
     expect(bodies).toEqual([{ year: 2023, dry_run: true }]);
@@ -94,7 +96,7 @@ describe('StatementsPanel', () => {
     server.use(http.post(`${API}/system/statements/run`, () => HttpResponse.json(RESULT)));
     renderWithProviders(<StatementsPanel />);
 
-    await userEvent.click(screen.getByRole('button', { name: 'Run now' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Run now: year-end statements' }));
 
     expect(
       await screen.findByRole('heading', { name: 'What this run would do' }),
@@ -104,7 +106,7 @@ describe('StatementsPanel', () => {
     expect(row).toHaveTextContent('$50.00');
   });
 
-  it('sends real emails once the dry-run box is cleared', async () => {
+  it('sends real emails once the practice-run box is cleared', async () => {
     const bodies: unknown[] = [];
     server.use(
       http.post(`${API}/system/statements/run`, async ({ request }) => {
@@ -114,8 +116,10 @@ describe('StatementsPanel', () => {
     );
     renderWithProviders(<StatementsPanel />);
 
-    await userEvent.click(screen.getByLabelText('Dry run (send nothing)'));
-    await userEvent.click(screen.getByRole('button', { name: 'Run now' }));
+    await userEvent.click(
+      screen.getByLabelText('Practice run: show what would happen, send nothing'),
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Run now: year-end statements' }));
 
     expect(await screen.findByText('Sent 1, skipped 2, and failed 0.')).toBeInTheDocument();
     expect(bodies).toEqual([{ year: 2025, dry_run: false }]);
@@ -130,7 +134,7 @@ describe('StatementsPanel', () => {
     );
     renderWithProviders(<StatementsPanel />);
 
-    await userEvent.click(screen.getByRole('button', { name: 'Run now' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Run now: year-end statements' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('The mail server is unreachable');
   });

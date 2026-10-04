@@ -63,7 +63,7 @@ describe('<CoveragePolicyCard/>', () => {
     const note = screen.getByRole('textbox', { name: /Note to members/ });
     await user.clear(note);
     await user.type(note, 'Rotorcraft and homebuilts are not covered.');
-    await user.click(screen.getByRole('button', { name: 'Save policy' }));
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
     await screen.findByRole('button', { name: 'Edit policy' });
     expect(sent).toEqual({
@@ -87,7 +87,7 @@ describe('<CoveragePolicyCard/>', () => {
 
     renderWithProviders(<CoveragePolicyCard />);
     await user.click(await screen.findByRole('button', { name: 'Edit policy' }));
-    await user.click(screen.getByRole('button', { name: 'Save policy' }));
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
     expect(
       await screen.findByText('Ensure this field has no more than 1000 characters.'),

@@ -131,7 +131,7 @@ describe('GroupDetailPage, a fixed group', () => {
     const name = await screen.findByRole('textbox', { name: /Group name/ });
     await user.clear(name);
     await user.type(name, 'Directors');
-    await user.click(screen.getByRole('button', { name: 'Save name' }));
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
     await waitFor(() => expect(calls.renamed).toEqual([{ name: 'Directors' }]));
   });
 

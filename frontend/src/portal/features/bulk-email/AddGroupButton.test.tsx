@@ -85,7 +85,7 @@ describe('Add a saved group', () => {
     renderCompose(state, 'management');
     await user.click(await screen.findByRole('button', { name: 'Add a saved group' }));
     await user.click(await screen.findByRole('button', { name: 'Board: fixed, 2 people' }));
-    expect(await screen.findByText('Added 1 person; 1 was already in the batch.')).toBeVisible();
+    expect(await screen.findByText('Added 1 person; 1 was already on the list.')).toBeVisible();
     expect(calls.added).toEqual([{ group: 5 }]);
   });
 
@@ -93,7 +93,7 @@ describe('Add a saved group', () => {
     const state = draft();
     answerCompose(state);
     renderCompose(state, 'dart_leader');
-    await screen.findByRole('button', { name: 'Add to batch' });
+    await screen.findByRole('button', { name: 'Add these people' });
     expect(screen.queryByRole('button', { name: 'Add a saved group' })).toBeNull();
   });
 });
@@ -105,10 +105,10 @@ describe('Save as a group', () => {
     const user = userEvent.setup();
     renderCompose(state, 'management');
     await user.click(await screen.findByRole('button', { name: 'Save as a group' }));
-    const form = screen.getByRole('form', { name: 'Save the batch as a group' });
+    const form = screen.getByRole('form', { name: 'Save the recipient list as a group' });
     await user.type(within(form).getByRole('textbox', { name: /Group name/ }), 'Hangar crew');
     await user.click(within(form).getByRole('radio', { name: 'Live' }));
-    await user.click(within(form).getByRole('button', { name: 'Save group' }));
+    await user.click(within(form).getByRole('button', { name: 'Add group' }));
     expect(await screen.findByRole('link', { name: 'Hangar crew' })).toHaveAttribute(
       'href',
       '/bulk-email/groups/9',
@@ -122,9 +122,9 @@ describe('Save as a group', () => {
     const user = userEvent.setup();
     renderCompose(state, 'management');
     await user.click(await screen.findByRole('button', { name: 'Save as a group' }));
-    const form = screen.getByRole('form', { name: 'Save the batch as a group' });
+    const form = screen.getByRole('form', { name: 'Save the recipient list as a group' });
     await user.type(within(form).getByRole('textbox', { name: /Group name/ }), 'Board');
-    await user.click(within(form).getByRole('button', { name: 'Save group' }));
+    await user.click(within(form).getByRole('button', { name: 'Add group' }));
     await waitFor(() =>
       expect(within(form).getByRole('alert')).toHaveTextContent(
         'A group named "Board" already exists. Choose another name.',
@@ -136,7 +136,7 @@ describe('Save as a group', () => {
     const state: BulkEmailState = { email: makeBulkEmail(), batch: makeBatch([]) };
     answerCompose(state);
     renderCompose(state, 'management');
-    await screen.findByText('Nobody is in the batch yet');
+    await screen.findByText('Nobody is on the recipient list yet');
     expect(screen.queryByRole('button', { name: 'Save as a group' })).toBeNull();
   });
 });

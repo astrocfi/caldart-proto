@@ -27,7 +27,7 @@ export function SaveGroupButton({ emailId }: { emailId: number }): JSX.Element |
   if (!hasAnyRole(roles, ['management'])) return null;
   return (
     <div className="stack-tight">
-      <PanelButton label="Save as a group" legend="Save the batch as a group" isForm>
+      <PanelButton label="Save as a group" legend="Save the recipient list as a group" isForm>
         {(handleClose) => (
           <SaveGroupForm
             emailId={emailId}
@@ -52,7 +52,7 @@ interface SaveGroupFormProps {
   onSaved: (group: RecipientGroup) => void;
 }
 
-/** The group's name and kind, and **Save group**. */
+/** The group's name and kind, and **Add group**. */
 function SaveGroupForm({ emailId, onSaved }: SaveGroupFormProps): JSX.Element {
   const [name, setName] = useState('');
   const [kind, setKind] = useState<RecipientGroupKind>('fixed');
@@ -64,7 +64,11 @@ function SaveGroupForm({ emailId, onSaved }: SaveGroupFormProps): JSX.Element {
   };
 
   return (
-    <form className="stack-tight" aria-label="Save the batch as a group" onSubmit={handleSubmit}>
+    <form
+      className="stack-tight"
+      aria-label="Save the recipient list as a group"
+      onSubmit={handleSubmit}
+    >
       <Field label="Group name" error={fieldError(save.error, 'name')} required>
         {(props) => (
           <input
@@ -79,7 +83,7 @@ function SaveGroupForm({ emailId, onSaved }: SaveGroupFormProps): JSX.Element {
       <FormAlert error={save.error} handled={['name', 'kind']} />
       <div className="cluster">
         <Button type="submit" small disabled={save.isPending}>
-          {save.isPending ? 'Saving…' : 'Save group'}
+          {save.isPending ? 'Adding…' : 'Add group'}
         </Button>
       </div>
     </form>

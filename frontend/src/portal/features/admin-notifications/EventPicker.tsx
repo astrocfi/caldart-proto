@@ -13,9 +13,9 @@ import './admin-notifications.css';
 interface EventPickerProps {
   /** The catalog, in its order. */
   events: readonly NotificationEvent[];
-  /** The ticked slugs. */
+  /** The checked slugs. */
   chosen: ReadonlySet<string>;
-  /** Called with the ticked slugs after every change. */
+  /** Called with the checked slugs after every change. */
   onChange: (chosen: Set<string>) => void;
 }
 

@@ -166,7 +166,7 @@ describe('<AircraftForm/> N-number typeahead', () => {
     const { user } = renderForm();
     await typeNNumber(user, '739');
     await user.click(await screen.findByRole('option', { name: /^N739TA/ }));
-    expect(screen.getByText('From the FAA registry as of 09/20/2026')).toBeVisible();
+    expect(screen.getByText('From FAA data as of 09/20/2026')).toBeVisible();
   });
 
   it('forgets what the registry said once the N-number changes', async () => {
@@ -175,7 +175,7 @@ describe('<AircraftForm/> N-number typeahead', () => {
     await typeNNumber(user, '739');
     await user.click(await screen.findByRole('option', { name: /^N739TA/ }));
     await user.type(nNumberBox(), '{Backspace}');
-    expect(screen.queryByText(/From the FAA registry/)).toBeNull();
+    expect(screen.queryByText(/From FAA data/)).toBeNull();
   });
 
   it('leaves the form alone while nothing is picked', async () => {

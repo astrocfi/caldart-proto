@@ -14,7 +14,7 @@
  * narrow screen the optional columns go first, then Email, then DART, while the
  * name, the membership status, and the expiry stay.
  *
- * The list hides deactivated accounts until **Include deactivated** is ticked.
+ * The list hides deactivated accounts until **Include deactivated** is checked.
  * That switch is the list's own: the report never lists a deactivated account,
  * so the export links leave it out.
  *
@@ -161,7 +161,7 @@ const FALLBACK_COLUMNS: ReportColumn[] = [
  * How each members report column draws.  On a narrow screen the default columns go in
  * a stated order: Email, then DART, then Phone, Kind, and Aircraft, so a laptop keeps the
  * pilot columns, then Medical, Certificate, and Medical expires.  The name, the
- * membership status, and the expiry never go, and neither does a column somebody ticked
+ * membership status, and the expiry never go, and neither does a column somebody checked
  * beyond the defaults: the table scrolls instead.
  */
 function memberCells(isAccountAdmin: boolean): Record<string, ReportCell<MemberRow>> {
@@ -351,7 +351,7 @@ export function MembersListPage(): JSX.Element {
 
         {members.isError ? (
           <p role="alert" className="field__error">
-            The member list could not be loaded.
+            The member list didn&apos;t load. Try again in a moment.
           </p>
         ) : null}
       </Card>

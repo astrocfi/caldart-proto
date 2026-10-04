@@ -28,7 +28,7 @@ test('CalDART management sets a Reply-To, sends a test, reads the checks, and se
 
   const filters = page.getByRole('search', { name: 'Choose people to add' });
   await filters.getByLabel('Role').selectOption('management');
-  await page.getByRole('button', { name: 'Add to batch' }).click();
+  await page.getByRole('button', { name: 'Add these people' }).click();
   await expect(page.getByText(/^Added \d+ (person|people)[.;]/)).toBeVisible();
 
   await page.getByRole('radio', { name: 'Operational' }).click();
@@ -40,14 +40,14 @@ test('CalDART management sets a Reply-To, sends a test, reads the checks, and se
 
   // A Reply-To saves when it is left: one that is not an address is refused beside the
   // field, without holding back the subject and the message; a real one saves.
-  const replyTo = page.getByRole('textbox', { name: 'Reply-To' });
+  const replyTo = page.getByRole('textbox', { name: 'Replies go to' });
   await replyTo.fill('operations@');
   await replyTo.blur();
   await expect(page.getByText('Enter a valid email address.')).toBeVisible();
   await expect(page.getByText('Saved', { exact: true })).toBeVisible();
   await replyTo.fill(REPLY_TO);
   await replyTo.blur();
-  await expect(page.getByText('Reply-To saved.')).toBeVisible();
+  await expect(page.getByText('Address for replies saved.')).toBeVisible();
 
   // The test goes to the sender alone, with the chosen Reply-To.
   await page.getByRole('button', { name: 'Send me a test' }).click();

@@ -158,7 +158,7 @@ def test_the_photo_id_choices_are_the_six_kinds() -> None:
 
 def test_a_fresh_profile_has_no_photo_id() -> None:
     """A profile's photo ID type defaults to *Not provided*."""
-    assert MemberProfileFactory().photo_id_type == PhotoIdType.NOT_PROVIDED
+    assert MemberProfile().photo_id_type == PhotoIdType.NOT_PROVIDED
 
 
 @pytest.mark.parametrize("slug", PERSON_ITEMS)

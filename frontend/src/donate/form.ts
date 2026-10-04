@@ -99,7 +99,7 @@ export function validateDonation(
  * The giver's part of the checkout body: the four required fields, then each optional
  * one the giver filled in.
  *
- * A blank field, an unticked box, and a select left on its default are left out, so
+ * A blank field, an unchecked box, and a select left on its default are left out, so
  * a returning donor's earlier answers are not cleared by a gift that skips them.
  */
 export function donorBody(values: DonationFormValues): DonorBody {

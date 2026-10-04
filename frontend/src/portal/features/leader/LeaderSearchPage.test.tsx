@@ -154,7 +154,7 @@ describe('LeaderSearchPage', () => {
     renderWithProviders(<LeaderSearchPage />, { route: '/leader?member=7' });
     expect(await screen.findByText('GO')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: /Back to search/ }));
+    await user.click(screen.getByRole('link', { name: 'Back to search' }));
     expect(screen.getByLabelText(/Name, email, phone, or N-number/i)).toBeInTheDocument();
   });
 
@@ -183,7 +183,7 @@ describe('LeaderSearchPage', () => {
 
     renderWithProviders(<LeaderSearchPage />, { route: '/leader?member=7' });
     await screen.findByText('GO');
-    await user.click(screen.getByRole('button', { name: /Back to search/ }));
+    await user.click(screen.getByRole('link', { name: 'Back to search' }));
 
     expect(screen.getByLabelText(/Name, email, phone, or N-number/i)).toHaveFocus();
   });
@@ -212,11 +212,14 @@ describe('LeaderSearchPage', () => {
   it('explains a 404 rather than showing an empty card', async () => {
     server.use(
       http.get(`${API}/leader/members/7/status`, () =>
-        HttpResponse.json({ detail: 'Not found.' }, { status: 404 }),
+        HttpResponse.json(
+          { detail: "That isn't here. It may have been deleted." },
+          { status: 404 },
+        ),
       ),
     );
     renderWithProviders(<LeaderSearchPage />, { route: '/leader?member=7' });
-    expect(await screen.findByText(/could not be loaded/i)).toBeInTheDocument();
+    expect(await screen.findByText(/didn't load/i)).toBeInTheDocument();
   });
 
   it('offers the aircraft check when an N-number matches no member', async () => {

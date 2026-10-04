@@ -109,7 +109,7 @@ def suspended() -> Iterator[None]:
 
 
 def roster_recipients(dart: object) -> list[Recipient]:
-    """The contacts ticked to receive ``dart``'s roster; nobody when ``dart`` is none."""
+    """The contacts checked to receive ``dart``'s roster; nobody when ``dart`` is none."""
     if not isinstance(dart, Dart):
         return []
     why = f"You are receiving this because the {dart.name} lists you to receive its roster."

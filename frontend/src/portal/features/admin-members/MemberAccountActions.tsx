@@ -1,5 +1,5 @@
 /**
- * The danger zone's account actions: **Make a friend**, and **Deactivate account** or
+ * The Delete or deactivate tab's account actions: **Make a friend**, and **Deactivate account** or
  * **Reactivate account**.
  *
  * Each asks first. Making a friend does what the member's own switch does: a current
@@ -41,11 +41,11 @@ function canBecomeFriend(member: MemberDetail): boolean {
   return !(member.membership.is_lifetime && member.membership.status === 'current');
 }
 
-/** The danger zone card holding the account actions for `member`. */
+/** The Delete or deactivate tab card holding the account actions for `member`. */
 export function MemberAccountActions({ member }: { member: MemberDetail }): JSX.Element | null {
   if (member.kind === 'donor') return null;
   return (
-    <Card title="Account" eyebrow="Danger zone">
+    <Card title="Account" eyebrow="Delete or deactivate">
       <div className="stack">
         {canBecomeFriend(member) ? <MakeFriend member={member} /> : null}
         {member.is_active ? (

@@ -352,7 +352,7 @@ def test_an_emptied_table_of_contents_is_removed(reader: Client, guide: Path) ->
 
 
 def test_a_next_link_to_a_restricted_page_is_removed(reader: Client, guide: Path) -> None:
-    """The link at the foot of the page to a restricted page goes."""
+    """The link at the bottom of the page to a restricted page goes."""
     page = body(reader.get("/docs/")).decode()
     assert "next-page" not in page
 

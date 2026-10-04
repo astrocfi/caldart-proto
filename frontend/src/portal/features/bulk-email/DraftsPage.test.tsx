@@ -121,7 +121,7 @@ describe('DraftsPage', () => {
     renderWithProviders(<DraftsPage />);
     await screen.findByText('No drafts');
     // One in the page header, one in the empty table.
-    expect(screen.getAllByRole('link', { name: 'Write a new email' })).toHaveLength(2);
+    expect(screen.getAllByRole('link', { name: 'New email' })).toHaveLength(2);
   });
 
   it('puts the subject first, with a real width', async () => {

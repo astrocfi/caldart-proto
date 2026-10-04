@@ -77,7 +77,7 @@ def leader_client(api_client: APIClient, dart_leader: User) -> APIClient:
 
 @pytest.fixture
 def go(leader_client: APIClient, annual_plan: MembershipPlan, today: date) -> User:
-    """A member who may fly: a current term and a medical in date."""
+    """A member who may fly: a current term and a current medical."""
     return make_member(
         email="go@example.test",
         annual_plan=annual_plan,

@@ -14,7 +14,7 @@ Create an account
 #. Under **How would you like to join?**, choose **Join as a member** or **Join as a
    friend**. A friend of CalDART supports it without paying dues.
 #. Type your **First name**, **Last name**, **Email address**, and a **Password** of
-   at least eight characters. Press **Create account**.
+   at least 8 characters. Press **Create account**.
 #. Open the email *CalDART: verify your email address* and follow its link. On the
    **Email verified** screen, press **Continue**.
 #. Fill in **About you**: at least your **Phone**, **Address**, **City**, **State**,
@@ -37,9 +37,9 @@ Add an aircraft you fly
 =======================
 
 #. Sign in and choose **My aircraft** in the menu.
-#. In **Search the aircraft register**, type the N-number.
+#. In **Search CalDART's aircraft list**, type the N-number.
 #. Click the airplane in the results. It joins your **Attached aircraft**.
-#. If it is not in the register, press **Add a new aircraft**, fill in the
+#. If it is not on CalDART's list, press **Add a new aircraft**, fill in the
    **N-number**, **Make**, **Model**, and the **Insurance expires** date, and press
    **Add aircraft**.
 
@@ -75,10 +75,10 @@ Pay, renew, and give
 To renew your membership:
 
 #. Choose **Renew** in the menu, or the **Renew** button on your **Dashboard**.
-#. Check **Where you stand**. The first plan listed is chosen for you. A site with
+#. Check **Your membership**. The first plan listed is chosen for you. A site with
    no membership plan set up shows *No membership plan is set up yet. Ask an
    administrator.* instead of the plans.
-#. Tick **Renew automatically each year** if you want CalDART to renew you from
+#. Check **Renew automatically each year** if you want CalDART to renew you from
    now on.
 #. Pay from the **Card · Apple Pay · Google Pay** tab or the **PayPal** tab. If you
    are still current, the new term starts the day after your present one ends; if
@@ -90,7 +90,7 @@ To give:
 
 #. Choose **Donate** in the menu.
 #. Choose an amount, or **Other amount** and type your own.
-#. To give on a schedule, tick **Make this a recurring donation** and choose **How
+#. To give on a schedule, check **Make this a recurring donation** and choose **How
    often** and **First charge on**.
 #. Pay from one of the tabs. *Thank you for your donation.* appears, and the receipt
    arrives by email.
@@ -114,7 +114,7 @@ Read a bulk email again, or turn a type off
 #. To stop a type of bulk email, such as Fundraising, choose **Email preferences** under
    **Your email** and turn its switch off. The change saves at once.
 
-The unsubscribe link at the foot of a bulk email turns its type off too. See
+The unsubscribe link at the bottom of a bulk email turns its type off too. See
 :doc:`member/messages` and :doc:`member/email-preferences`.
 
 
@@ -124,8 +124,8 @@ Send a bulk email
 CalDART management, and a DART leader writing to their own DART:
 
 #. Choose **Compose** under **Bulk email** in the menu.
-#. Under **1. Who gets it**, choose filters and press **Add to batch**. Add again until the
-   batch holds everybody the email is for.
+#. Under **1. Who gets it**, choose filters and press **Add these people**. Add again until the
+   recipient list holds everybody the email is for.
 #. Under **2. What it says**, choose the **Type of email**, write the **Subject** and the
    **Message**, and press **Send me a test** to see it in your own mail program.
 #. Under **3. Check and send**, fix anything marked **Must fix**, then press **Send to 38

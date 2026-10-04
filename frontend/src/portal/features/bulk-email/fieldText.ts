@@ -4,12 +4,12 @@
  */
 
 /**
- * The subject's hint.  The subject is a plain line, so a field shows there as its
- * token, in braces, where the message shows a chip.
+ * The subject's hint.  It names Insert field rather than a token's braces, which mean
+ * nothing to a sender until they see one.
  */
 export const SUBJECT_HINT =
-  "One line that says what it is about. A field such as {first_name} fills in each person's " +
-  'own value.';
+  "One line that says what it is about. Insert field adds each person's own details, such " +
+  'as their first name.';
 
 /**
  * The server's refusal of a token it does not know, as `fields.UNKNOWN_FIELD_MESSAGE`

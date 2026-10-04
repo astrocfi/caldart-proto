@@ -46,18 +46,19 @@ the compose screen's **What it says** card with a name:
 - **Type of email**: one button for each type, with the sentence saying what it is for, as
   on the compose screen; a draft started from the template takes that type. **No type**
   leaves the choice to each draft.
-- **Subject**, **Reply-To** (where replies go; the hint under it names the address used
+- **Subject**, **Replies go to** (where replies go; the hint under it names the address used
   when you leave it empty, as on the compose screen), and **Message**, with the same
   buttons as on :doc:`compose`, **Insert field** among them. A field such as **First name**
   shows in the message as a chip, as it does there, stays a field in the template, and is
   filled in for each person when an email goes.
 
-**Save template** keeps it, and a line such as *Monthly newsletter saved.* says so; **Cancel**
+**Add template** keeps a new one and **Save changes** an edited one, and a line such as
+*Monthly newsletter saved.* says so; **Cancel**
 closes the form without saving. A refused field says why under it, as on the compose screen.
 
 A quicker way to make a template is **Save as a template** at the top of **What it says** on
 the compose screen. It asks for a **Template name** and keeps the subject, message, type, and
-Reply-To address you have there; a line such as *Saved as the template Monthly newsletter.
+address for replies you have there; a line such as *Saved as the template Monthly newsletter.
 Find it under Templates.* says so, with **Templates** a link to this screen.
 
 
@@ -66,10 +67,10 @@ Using a template
 
 On :doc:`compose`, **Start from a template** at the top of **What it says** lists the
 templates. Choose one and press **Use this template**: the email takes the template's subject,
-message, type, and Reply-To address (the usual address when the template leaves it blank).
-The people in the batch stay. On a scheduled email, a different type takes it back to your
+message, type, and address for replies (the usual address when the template leaves it blank).
+The recipient list stays. On a scheduled email, a different type takes it back to your
 drafts, as :doc:`drafts` explains. When you have already written something, it
-asks first, saying the template replaces the subject, the message, and the Reply-To address
+asks first, saying the template replaces the subject, the message, and the address for replies
 you have, and the type too when the template has one, and goes ahead only once you press
 **Replace my words**.
 

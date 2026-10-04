@@ -96,10 +96,14 @@ function columns(year: number): Column<ContributionRow>[] {
     },
     {
       key: 'statement',
-      header: 'Statement',
+      header: 'Download',
       isActions: true,
       render: (row) => (
-        <a href={statementUrl(row.user_id, year)} className="button button--quiet button--small">
+        <a
+          href={statementUrl(row.user_id, year)}
+          className="button button--quiet button--small"
+          aria-label={`${year} statement for ${row.name}`}
+        >
           Statement
         </a>
       ),
@@ -157,7 +161,7 @@ export function ContributionsPage(): JSX.Element {
 
       {rows.isError ? (
         <p role="alert" className="field__error">
-          The contributions could not be loaded.
+          The contributions didn&apos;t load. Try again in a moment.
         </p>
       ) : null}
     </Page>

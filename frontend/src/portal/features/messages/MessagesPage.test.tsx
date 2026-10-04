@@ -89,6 +89,6 @@ describe('MessagesPage', () => {
   it('says so when the list cannot be loaded', async () => {
     server.use(http.get(`${API}/messages`, () => new HttpResponse(null, { status: 500 })));
     renderWithProviders(<MessagesPage />, { route: '/messages' });
-    expect(await screen.findByRole('alert')).toHaveTextContent('could not be loaded');
+    expect(await screen.findByRole('alert')).toHaveTextContent("didn't load");
   });
 });

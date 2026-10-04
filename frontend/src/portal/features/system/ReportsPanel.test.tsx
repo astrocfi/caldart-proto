@@ -46,8 +46,10 @@ describe('ReportsPanel', () => {
     server.use(runHandler(result(), bodies));
     renderWithProviders(<ReportsPanel />);
 
-    expect(screen.getByLabelText('Dry run (send nothing)')).toBeChecked();
-    await userEvent.click(screen.getByRole('button', { name: 'Run now' }));
+    expect(
+      screen.getByLabelText('Practice run: show what would happen, send nothing'),
+    ).toBeChecked();
+    await userEvent.click(screen.getByRole('button', { name: 'Run now: scheduled reports' }));
 
     expect(await screen.findByText('Would send 2 emails, skipped 0.')).toBeInTheDocument();
     expect(bodies).toEqual([{ dry_run: true }]);
@@ -57,7 +59,7 @@ describe('ReportsPanel', () => {
     server.use(runHandler(result()));
     renderWithProviders(<ReportsPanel />);
 
-    await userEvent.click(screen.getByRole('button', { name: 'Run now' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Run now: scheduled reports' }));
 
     const table = await screen.findByRole('table', { name: '2 actions' });
     expect(within(table).getByRole('row', { name: /Ada Admin/ })).toHaveTextContent(
@@ -68,13 +70,15 @@ describe('ReportsPanel', () => {
     );
   });
 
-  it('sends for real once the dry-run box is cleared', async () => {
+  it('sends for real once the practice-run box is cleared', async () => {
     const bodies: unknown[] = [];
     server.use(runHandler(result({ sent: 1, actions: [] }), bodies));
     renderWithProviders(<ReportsPanel />);
 
-    await userEvent.click(screen.getByLabelText('Dry run (send nothing)'));
-    await userEvent.click(screen.getByRole('button', { name: 'Run now' }));
+    await userEvent.click(
+      screen.getByLabelText('Practice run: show what would happen, send nothing'),
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Run now: scheduled reports' }));
 
     expect(await screen.findByText('Sent 1 email, skipped 0.')).toBeInTheDocument();
     expect(bodies).toEqual([{ dry_run: false }]);
@@ -86,10 +90,10 @@ describe('ReportsPanel', () => {
     );
     renderWithProviders(<ReportsPanel />);
 
-    await userEvent.click(screen.getByRole('button', { name: 'Run now' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Run now: scheduled reports' }));
 
     expect(
-      await screen.findByText('Skipped: nobody ticked 2, no address on file 1.'),
+      await screen.findByText('Skipped: nobody to send to 2, no address on file 1.'),
     ).toBeInTheDocument();
   });
 
@@ -97,7 +101,7 @@ describe('ReportsPanel', () => {
     server.use(runHandler(result({ failed: 1 })));
     renderWithProviders(<ReportsPanel />);
 
-    await userEvent.click(screen.getByRole('button', { name: 'Run now' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Run now: scheduled reports' }));
 
     expect(await screen.findByText('Failed 1.')).toBeInTheDocument();
   });
@@ -110,7 +114,7 @@ describe('ReportsPanel', () => {
     );
     renderWithProviders(<ReportsPanel />);
 
-    await userEvent.click(screen.getByRole('button', { name: 'Run now' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Run now: scheduled reports' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('The run failed.');
   });

@@ -140,7 +140,7 @@ export function TemplateForm({
         )}
       </Field>
       <Field
-        label="Reply-To"
+        label="Replies go to"
         error={fieldError(error, 'reply_to')}
         hint={replyToHint(sender.data?.default_reply_to ?? '')}
       >

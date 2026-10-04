@@ -17,7 +17,7 @@ screen.
 How the wizard works
 ====================
 
-The wizard has five steps, and the progress rail at the top ticks off each one you
+The wizard has five steps, and the progress rail at the top checks off each one you
 finish: **Account**, **Verify**, **Profile**, **Pay**, and **Done**. The line above
 each step's title says where you are, for example *Step 2 of 5 · Joining as a
 friend*.
@@ -59,7 +59,7 @@ you like to join?**
 
 Then give your **First name**, **Last name**, **Email address**, and a
 **Password**. The email address is how you will sign in, so use one you read. The
-password needs at least eight characters and must not be one of the obvious ones
+password needs at least 8 characters and must not be a common one such as password1
 (the rules are on :doc:`reset-password`). Press **Create account**.
 
 If you already have an account, follow **Already a member? Sign in** and the wizard
@@ -156,7 +156,7 @@ paying or choosing to be a friend instead.
    (Participating $20, Bronze $100, Silver $300, Gold $1,000, Diamond $3,000, or
    Platinum $10,000), **Other amount** to type your own figure in whole dollars, or
    **No thank you**. **Total today** adds it up as you choose.
-#. **Renew automatically each year.** Tick it if you want CalDART to renew the
+#. **Renew automatically each year.** Check it if you want CalDART to renew the
    membership for you each year with the card or PayPal account you pay with.
    :doc:`payments` explains what that means and how to turn it off.
 #. **How would you like to pay?** Choose a tab and pay. The tabs are described
@@ -164,7 +164,7 @@ paying or choosing to be a friend instead.
 
 A friend's step is headed **Contribute to CalDART** instead: *Friends pay no dues.*
 It offers the contribution alone, paid the same ways, with the option **Make this
-a recurring donation** (see :doc:`donate`). **Not now**, at the foot of the card,
+a recurring donation** (see :doc:`donate`). **Not now**, at the bottom of the card,
 moves on without paying anything, and you finish as a friend.
 
 If you chose to join as a friend when you made your account, under the

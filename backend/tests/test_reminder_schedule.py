@@ -390,31 +390,31 @@ def test_the_spans_tile_without_a_gap_or_an_overlap(
 # The words follow the schedule
 # --------------------------------------------------------------------------
 def test_the_default_stages_read_as_their_days() -> None:
-    """The defaults name 60, 30 and 7 days before expiry and 30 after."""
+    """Each default stage reads by its one name and its day, 60 days out to 30 after."""
     assert ReminderSchedule().kind_labels() == {
-        ReminderKind.FIRST: "60 days before expiry",
-        ReminderKind.SECOND: "30 days before expiry",
-        ReminderKind.FINAL: "7 days before expiry",
-        ReminderKind.EXPIRED: "Expired",
-        ReminderKind.LAPSED: "30 days after expiry",
+        ReminderKind.FIRST: "First reminder (60 days before)",
+        ReminderKind.SECOND: "Second reminder (30 days before)",
+        ReminderKind.FINAL: "Final reminder (7 days before)",
+        ReminderKind.EXPIRED: "Expired reminder (up to 6 days after)",
+        ReminderKind.LAPSED: "Lapsed reminder (30 days after)",
     }
 
 
 def test_a_final_reminder_one_day_out_reads_in_the_singular() -> None:
-    """``1 day before expiry``, not ``1 days``."""
+    """``1 day before``, not ``1 days``."""
     schedule = ReminderSchedule(final_days_before=1)
-    assert schedule.kind_labels()[ReminderKind.FINAL] == "1 day before expiry"
+    assert schedule.kind_labels()[ReminderKind.FINAL] == "Final reminder (1 day before)"
 
 
 def test_the_reminder_purposes_name_the_stored_days() -> None:
     """The email log's labels for the five reminders follow an edited schedule."""
     store(EDITED)
     assert [purpose_label(f"reminder_{kind}") for kind in ReminderKind] == [
-        "Renewal reminder (45 days)",
-        "Renewal reminder (20 days)",
-        "Renewal reminder (3 days)",
-        "Renewal reminder (expired)",
-        "Renewal reminder (14 days after)",
+        "First reminder (45 days before)",
+        "Second reminder (20 days before)",
+        "Final reminder (3 days before)",
+        "Expired reminder (up to 6 days after)",
+        "Lapsed reminder (14 days after)",
     ]
 
 
@@ -424,7 +424,7 @@ def test_the_purpose_filter_offers_the_stored_days_first(system_admin_client: AP
 
     labels = [row["label"] for row in system_admin_client.get(PURPOSES_URL).json()]
 
-    assert labels[:2] == ["Renewal reminder (45 days)", "Renewal reminder (20 days)"]
+    assert labels[:2] == ["First reminder (45 days before)", "Second reminder (20 days before)"]
 
 
 def test_an_email_log_row_names_the_stored_days(system_admin_client: APIClient) -> None:
@@ -434,7 +434,7 @@ def test_an_email_log_row_names_the_stored_days(system_admin_client: APIClient) 
 
     row = system_admin_client.get(EMAILS_URL).json()["results"][0]
 
-    assert row["purpose_label"] == "Renewal reminder (45 days)"
+    assert row["purpose_label"] == "First reminder (45 days before)"
 
 
 def test_a_page_of_the_email_log_reads_the_schedule_once(
@@ -457,7 +457,7 @@ def test_the_email_log_report_names_the_stored_days(system_admin_client: APIClie
 
     rows = read_csv(system_admin_client.get(EMAILS_CSV_URL))
 
-    assert rows[1][rows[0].index("Purpose")] == "Renewal reminder (14 days after)"
+    assert rows[1][rows[0].index("Purpose")] == "Lapsed reminder (14 days after)"
 
 
 def test_a_registered_source_leads_the_purpose_labels(monkeypatch: pytest.MonkeyPatch) -> None:

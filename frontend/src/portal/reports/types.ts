@@ -32,10 +32,10 @@ export type ReportFormat = 'csv' | 'pdf';
  * - `select`: a drop-down whose first option is blank, meaning "any";
  * - `multiselect`: a one-line drop-down that opens a checkbox per choice and takes
  *   several, sent as their values joined with commas in the order the panel lists
- *   them; ticking none means "any";
+ *   them; checking none means "any";
  * - `number`: a box that holds digits only, applied once the typing pauses;
  * - `date`: a date picker, sent as `YYYY-MM-DD`;
- * - `toggle`: a checkbox that sends `true` when ticked and nothing when not.
+ * - `toggle`: a checkbox that sends `true` when checked and nothing when not.
  */
 export type FilterKind = 'search' | 'select' | 'multiselect' | 'number' | 'date' | 'toggle';
 

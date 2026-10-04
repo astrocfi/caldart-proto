@@ -25,16 +25,16 @@ One line per email, the most recently changed first:
   minutes before sending.
 - **When**: the date and time a scheduled email goes out, in Pacific time as every time in the
   portal is, such as *10/04/2026 at 8:00 AM*, or *Starts in* a countdown.
-- **People**: how many are in the batch.
-- **Last edited**: the day the email or its batch last changed.
+- **People**: how many are on the recipient list.
+- **Last edited**: the day the email or its recipient list last changed.
 - **Actions**, last: **Cancel schedule** or **Cancel** on an email waiting to send, and the
   trashcan on a draft (below).
 
 On a screen too narrow for every column, **Type**, then **DART**, then **Last edited**, then
 **From** are left out, one at a time until the rest fit, so the actions stay in sight; on a
 phone the table scrolls sideways, says so above it, and keeps the subject pinned at the left.
-**Write a new email** at the top opens :doc:`compose`. Before the first draft the table reads
-*No drafts*, with its own **Write a new email** button. A DART leader whose profile names no DART sees, in place of **Write a new
+**New email** at the top opens :doc:`compose`. Before the first draft the table reads
+*No drafts*, with its own **New email** button. A DART leader whose profile names no DART sees, in place of **Write a new
 email**, the line saying to set their DART on My profile, with **Open My profile**
 (:doc:`dart-leaders`).
 
@@ -49,7 +49,7 @@ of its compose screen until you do.
 What you can do
 ===============
 
-- Press the subject to carry on writing, change the batch, or send it. A scheduled email can
+- Press the subject to carry on writing, change the recipient list, or send it. A scheduled email can
   still be changed there until it starts. Changing who gets it, or its type, takes it back
   to a draft, since the number of people it goes to may change: a line says *The type
   changed, so this email is back in your drafts. Press Send or Schedule again when it is
@@ -58,7 +58,7 @@ What you can do
 - **Cancel schedule** on a scheduled email, or **Cancel** on one waiting to send, turns it
   back into a draft. Nothing in it is lost, and a line confirms *Sending was canceled. The
   email is a draft again.*
-- The trashcan on a draft deletes it with its batch, after you press **Delete**. A
+- The trashcan on a draft deletes it with its recipient list, after you press **Delete**. A
   scheduled email must be canceled before it can be deleted.
 
 Once an email starts sending it leaves this list and appears under :doc:`sent`, and it stays

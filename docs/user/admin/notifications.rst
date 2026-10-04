@@ -14,10 +14,10 @@ An account administrator finds it under **Administration** in the menu. A system
 administrator can open it too.
 
 
-Who hears about what
-====================
+Notification emails
+===================
 
-The **Who hears about what** card lists every subscription, one per line:
+The **Notification emails** card lists every address that gets notifications, one per line:
 
 - **Recipient**: the account's name, or the bare address for somebody outside CalDART.
 - **Events**: the events it hears about, joined with commas. A long list is cut short;
@@ -41,38 +41,38 @@ so above it, and keeps **Recipient** pinned at the left.
 
 **The trashcan**
    Asks first: press it and it turns into **Delete** and **Cancel**. Press **Delete** and
-   the subscription is gone; **Cancel**, Escape, or a click elsewhere leaves it as it is.
+   the address is gone; **Cancel**, Escape, or a click elsewhere leaves it as it is.
 
-With none set up the table reads *Nobody is subscribed to a notification yet*.
+With none set up the table reads *No address gets notifications yet*.
 
 
 Setting one up
 ~~~~~~~~~~~~~~
 
-**New subscription** opens the form under the table and takes you to its first box:
+**Add an address** opens the form under the table and takes you to its first box:
 
 #. **Recipient email** is where the emails go. Each address has one subscription.
 #. The events come in five groups: **Membership**, **Money**, **Accounts**,
-   **Aircraft**, and **Callouts**. Tick each event the address should hear about; rest
-   the pointer on one to read what it covers. **Select all** ticks every event in its group, and **Clear**
-   unticks them.
+   **Aircraft**, and **Callouts**. Check each event the address should hear about; rest the pointer on one to
+   read what it covers. **Select all** checks every event in its group, and **Clear**
+   unchecks them.
 
-Press **Save**, or **Cancel** or Escape. *Subscription added.* confirms a save. An address
+Press **Add address**, or **Cancel** or Escape. *Subscription added.* confirms a save. An address
 that already has a subscription is refused with *This address already has a subscription.*
 Edit that one instead. An address that belongs
-to a CalDART account is refused when the account holds no role that may receive a ticked
+to a CalDART account is refused when the account holds no role that may receive a checked
 event, with a line under the events naming the first such event. An address no account
-holds is refused until you tick **This address is outside CalDART and may receive these
+holds is refused until you check **This address is outside CalDART and may receive these
 notifications**, which appears once CalDART asks for it.
 
 
 Changing one
 ~~~~~~~~~~~~
 
-**Edit** on a row opens the same form, headed **Edit subscription**, with the subscription's
-events ticked. The **Recipient** is shown as plain text, since it cannot change: to send the
-notifications somewhere else, delete the subscription and set up another. Change the ticks
-and press **Save**; the form closes, *Subscription saved.* confirms it, and the row shows the
+**Edit** on a row opens the same form, headed **Edit notifications**, with the subscription's
+events checked. The **Recipient** is shown as plain text, since it cannot change: to send the
+notifications somewhere else, delete the subscription and set up another. Change the checked events
+and press **Save changes**; the form closes, *Subscription saved.* confirms it, and the row shows the
 change. **Cancel**, or Escape, closes the form and changes nothing, and you are back on the
 row's **Edit**. One form is open at a time.
 
@@ -103,7 +103,7 @@ The events
 Each email's subject is the organization's name and a one-line headline, such as
 *CalDART: Pat Pilot signed up as a friend*. The email gives a few labeled lines and one
 link, to the member's record, the user's record, the payment, or the aircraft. A system
-administrator sees each one in the email log on the :doc:`sent-emails` page under the purpose
+administrator sees each one on the :doc:`sent-emails` page under the purpose
 shown in italics below.
 
 Membership
@@ -112,7 +112,7 @@ Membership
 *Notification: Sign-up*
    Somebody registers on the site. It gives their email, their DART, and whether they
    joined as a member or a friend. When they chose a DART, the email also goes to each of
-   that DART's people ticked **Roster** on the :doc:`darts` screen, subscribed or not.
+   that DART's people checked **Roster** on the :doc:`darts` screen, subscribed or not.
 *Notification: Member added by an administrator*
    An account administrator adds somebody on :doc:`new-member`. It names who added them.
 *Notification: Member became a friend*
@@ -132,14 +132,14 @@ Membership
 Money
 ~~~~~
 
-*Notification: Automatic payment turned on*
+*Notification: Automatic renewal or recurring donation turned on*
    Somebody turns on automatic renewal or a recurring donation; the email says which. It
    gives the plan or amount, how often, and the next charge.
-*Notification: Automatic payment turned off*
+*Notification: Automatic renewal or recurring donation turned off*
    An automatic renewal or recurring donation stops, and says whether the person, an
    administrator, a lapse, a deactivation, or the account's deletion stopped it. When
    the account was deleted, the email has no link, because the record is gone.
-*Notification: Automatic payment declined*
+*Notification: Automatic renewal or recurring donation charge failed*
    An automatic charge is declined. It gives the reason and when it is tried again.
 *Notification: Donation received*
    A gift arrives: a public donation, a contribution on its own, or a recurring donation.
@@ -199,5 +199,5 @@ If an address stops hearing about an event, look at its **Active** column: *Paus
 the subscription is paused, and **Resume** says whether the account may still receive every
 event on it. An account that lost a role or was deactivated is skipped quietly, so check
 its roles on the **Users and roles** screen. If a notification never arrives, a system
-administrator can find it in the email log on the :doc:`sent-emails` page and see whether the
+administrator can find it on the :doc:`sent-emails` page and see whether the
 mail server refused it.

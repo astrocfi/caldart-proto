@@ -391,7 +391,10 @@ export function columnSetHandlers(
       requests.push({ method: 'DELETE', url: request.url, body: null });
       const id = Number(params.id);
       if (!store.some((set) => set.id === id)) {
-        return HttpResponse.json({ detail: 'Not found.' }, { status: 404 });
+        return HttpResponse.json(
+          { detail: "That isn't here. It may have been deleted." },
+          { status: 404 },
+        );
       }
       store = store.filter((set) => set.id !== id);
       return new HttpResponse(null, { status: 204 });
@@ -529,21 +532,21 @@ export const NOTIFICATION_EVENTS: NotificationEvent[] = [
   ),
   notificationEvent(
     'auto_renewal_on',
-    'Automatic payment turned on',
+    'Automatic renewal or recurring donation turned on',
     'Money',
     'Somebody set up an automatic payment.',
     MONEY_ROLES,
   ),
   notificationEvent(
     'auto_renewal_off',
-    'Automatic payment turned off',
+    'Automatic renewal or recurring donation turned off',
     'Money',
     'An automatic payment was turned off.',
     MONEY_ROLES,
   ),
   notificationEvent(
     'auto_renewal_declined',
-    'Automatic payment declined',
+    'Automatic renewal or recurring donation charge failed',
     'Money',
     'An automatic charge was declined.',
     MONEY_ROLES,
@@ -781,6 +784,7 @@ export function makeVerifiedAircraft(overrides: Partial<AircraftDetail> = {}): A
         email: 'marta@example.org',
         membership_status: 'current',
         medical_is_current: true,
+        go_no_go: { membership: true, medical: true, verified: true },
       },
     ],
     ...overrides,

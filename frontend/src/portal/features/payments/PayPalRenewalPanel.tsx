@@ -86,7 +86,7 @@ export function PayPalRenewalPanel({
           onApprove={async () => {
             const token = setupToken.current;
             if (token === null) {
-              setError('That PayPal setup has gone missing. Please try again.');
+              setError('That PayPal setup has gone missing. Start again.');
               return;
             }
             try {
@@ -96,7 +96,7 @@ export function PayPalRenewalPanel({
               setError(
                 caught instanceof ApiError
                   ? caught.message
-                  : 'That PayPal account could not be saved.',
+                  : "That PayPal account wasn't saved. Try again in a moment.",
               );
             }
           }}
@@ -106,7 +106,7 @@ export function PayPalRenewalPanel({
               hasSetupError.current = false;
               return;
             }
-            setError('PayPal could not be reached. Please try again.');
+            setError("PayPal didn't answer. Try again in a moment.");
           }}
         />
       </PayPalScriptProvider>

@@ -4,11 +4,12 @@
  *
  * `/profile`, join step 2, "New member" and the Profile tab of a member record
  * all edit the same `ProfileFormValues`, so they all render this: one set of
- * labels, hints, input types and constraints, whoever is typing.  The only
- * difference between a member's screen and an administrator's is
- * `markRequired`, which stars the fields that make a profile complete.  The
- * administrator's screens leave it off, because a half-known record is a
- * normal thing for them to save.  The member's own profile passes
+ * labels, input types and constraints, whoever is typing.  A member's screen and
+ * an administrator's differ in two ways.  `markRequired` stars the fields that make
+ * a profile complete; the administrator's screens leave it off, because a half-known
+ * record is a normal thing for them to save.  `audience` words the hints for whoever
+ * reads them: to the member about their own record ("Your main DART"), or about the
+ * person whose record an administrator has open ("Their main DART").  The member's own profile passes
  * `verification` too, which marks the pilot certificate, the medical, and the
  * photo ID with whether an authority has checked them, and `withNames`, which
  * puts the account's first and last name at the top of Contact: the member record
@@ -38,6 +39,7 @@ import { Field } from '@/portal/components/Field';
 import { MaskedInput } from '@/portal/components/MaskedInput';
 import { Typeahead } from '@/portal/components/Typeahead';
 import { VerifiedMark } from '@/portal/components/VerifiedMark';
+import { isItemHeld, isLapsed } from '@/portal/features/verification/held';
 import {
   maskAirportIdentifier,
   maskDigits,
@@ -52,13 +54,6 @@ import type { Choice } from './constants';
 import type { ProfileFormErrors, ProfileFormValues } from './form';
 import './profile.css';
 
-/** Each verified item's coded field, and the value that means the member has none. */
-const ITEM_FIELDS = {
-  certificate: { key: 'pilot_certificate_type', none: 'none' },
-  medical: { key: 'medical_type', none: 'none' },
-  photo_id: { key: 'photo_id_type', none: 'not_provided' },
-} as const satisfies Record<VerificationItem, { key: keyof ProfileFormValues; none: string }>;
-
 /** The form keys holding free text, which is every key a plain input can edit. */
 type TextKey = {
   [Key in keyof ProfileFormValues]: string extends ProfileFormValues[Key] ? Key : never;
@@ -66,6 +61,9 @@ type TextKey = {
 
 /** The form keys holding a coded value, which a `<select>` picks from a list. */
 type CodedKey = 'pilot_certificate_type' | 'medical_type' | 'photo_id_type';
+
+/** Under each airport box: the format, with an example. */
+const AIRPORT_HINT = 'Leave off the leading K: PAO, not KPAO';
 
 /** Said once, under the first verified item, so the member knows who checks them. */
 export const VERIFICATION_HINT = 'A DART leader or verifier checks these against the documents.';
@@ -121,8 +119,10 @@ interface TextFieldOptions {
   maxLength?: number;
   size?: number;
   className?: string;
-  /** Under the field: help text, or a verification mark as `coded` takes one. */
+  /** Under the label: help text. */
   hint?: ReactNode;
+  /** Under the box: a verification mark, kept while an error shows. */
+  status?: ReactNode;
   /** Starred, and only when the caller asked for markers. */
   required?: boolean;
   /**
@@ -155,6 +155,11 @@ export interface ProfileFieldsetsProps {
   verification?: ProfileVerification;
   /** Put the account's first and last name, both required, at the top of Contact. */
   withNames?: boolean;
+  /**
+   * Who reads the hints: `self`, the member editing their own record, or
+   * `administrator`, somebody editing another person's record.
+   */
+  audience?: 'self' | 'administrator';
 }
 
 /**
@@ -173,21 +178,26 @@ export function ProfileFieldsets({
   onFieldBlur,
   verification,
   withNames = false,
+  audience = 'self',
 }: ProfileFieldsetsProps): JSX.Element {
+  const isSelf = audience === 'self';
   const extensionIds = useId();
 
   /**
    * The mark under an item's field, with the hint under the first; nothing without marks.
    * An item the member does not hold (no certificate, no medical, no photo ID) has nothing
-   * to verify, so it carries no *Not yet verified* chip.
+   * to verify, so it carries no mark at all, and a medical whose date has passed reads
+   * *Expired* before its mark.
    */
   const mark = (item: VerificationItem): ReactNode => {
     if (verification === undefined) return undefined;
-    const isUnverifiedNone =
-      !verification[item].verified && value[ITEM_FIELDS[item].key] === ITEM_FIELDS[item].none;
+    const isHeld = isItemHeld(item, value);
+    const isExpired = item === 'medical' && isLapsed(value.medical_expiration || null);
     return (
       <>
-        {isUnverifiedNone ? null : <VerifiedMark verification={verification[item]} pending />}
+        {isHeld ? (
+          <VerifiedMark verification={verification[item]} pending expired={isExpired} />
+        ) : null}
         {item === 'certificate' ? (
           <span className="verified-mark__hint">{VERIFICATION_HINT}</span>
         ) : null}
@@ -207,9 +217,15 @@ export function ProfileFieldsets({
     );
 
   const text = (key: TextKey, options: TextFieldOptions) => {
-    const { label, hint, required = false, mask, ...input } = options;
+    const { label, hint, status, required = false, mask, ...input } = options;
     return (
-      <Field label={label} hint={hint} error={errors[key]} required={markRequired && required}>
+      <Field
+        label={label}
+        hint={hint}
+        status={status}
+        error={errors[key]}
+        required={markRequired && required}
+      >
         {(props) =>
           mask ? (
             <MaskedInput
@@ -265,7 +281,6 @@ export function ProfileFieldsets({
             className="field-pair__main"
             autoComplete={options.autoComplete}
             name={key}
-            placeholder="415-555-0100"
             mask={maskPhone}
             value={value[key]}
             onValueChange={(next) => set(key, next)}
@@ -275,6 +290,7 @@ export function ProfileFieldsets({
             <span>ext.</span>
             <MaskedInput
               id={`${extensionIds}-${extensionKey}`}
+              aria-label={`${label} extension`}
               inputMode="numeric"
               name={extensionKey}
               mask={maskExtension}
@@ -292,9 +308,9 @@ export function ProfileFieldsets({
     key: Key,
     label: string,
     choices: readonly Choice<ProfileFormValues[Key]>[],
-    hint?: ReactNode,
+    status?: ReactNode,
   ) => (
-    <Field label={label} error={errors[key]} hint={hint}>
+    <Field label={label} error={errors[key]} status={status}>
       {(props) => (
         <select
           {...props}
@@ -335,7 +351,7 @@ export function ProfileFieldsets({
           {phone('phone', 'phone_extension', 'Phone', {
             required: true,
             autoComplete: 'tel',
-            hint: 'Ten digits; the dashes write themselves',
+            hint: '10 digits, such as 415-555-0100',
           })}
           {phone('phone_alt', 'phone_alt_extension', 'Alternate phone')}
           <Field label="Address" error={errors.address_line1} required={markRequired}>
@@ -380,7 +396,7 @@ export function ProfileFieldsets({
             inputMode: 'numeric',
             autoComplete: 'postal-code',
             size: 5,
-            placeholder: '95035',
+            hint: '5 digits, such as 95035',
             required: true,
             mask: maskPostalCode,
           })}
@@ -417,8 +433,7 @@ export function ProfileFieldsets({
             label: 'Amateur radio callsign',
             className: 'num',
             size: 7,
-            placeholder: 'W6ABC',
-            hint: 'Optional; a US callsign',
+            hint: 'Optional. A US callsign, such as W6ABC',
             mask: maskCallsign,
           })}
         </div>
@@ -430,18 +445,20 @@ export function ProfileFieldsets({
           {text('home_airport_identifier', {
             label: 'Home airport',
             size: 4,
-            placeholder: 'XXX',
-            hint: 'Three characters, omit the leading K',
+            hint: AIRPORT_HINT,
             mask: maskAirportIdentifier,
           })}
           {text('secondary_airport_identifier', {
             label: 'Secondary airport',
             size: 4,
-            placeholder: 'XXX',
-            hint: 'Three characters, omit the leading K',
+            hint: AIRPORT_HINT,
             mask: maskAirportIdentifier,
           })}
-          <Field label="DART" error={errors.dart_id} hint="Your primary DART">
+          <Field
+            label="DART"
+            error={errors.dart_id}
+            hint={isSelf ? 'Your main DART' : 'Their main DART'}
+          >
             {(props) => (
               <select
                 {...props}
@@ -477,7 +494,7 @@ export function ProfileFieldsets({
             label: 'Medical expires',
             type: 'date',
             required: value.medical_type !== 'none',
-            hint: mark('medical'),
+            status: mark('medical'),
           })}
           {coded('photo_id_type', 'Photo ID', PHOTO_ID_TYPES, mark('photo_id'))}
           {text('flight_review_date', { label: 'Last flight review', type: 'date' })}
@@ -496,7 +513,11 @@ export function ProfileFieldsets({
                   checked={value.flies_rented_aircraft}
                   onChange={(event) => set('flies_rented_aircraft', event.target.checked)}
                 />
-                <span>I fly rented or borrowed aircraft</span>
+                <span>
+                  {isSelf
+                    ? 'I fly rented or borrowed aircraft'
+                    : 'Flies rented or borrowed aircraft'}
+                </span>
               </label>
             )}
           </Field>
@@ -526,7 +547,9 @@ export function ProfileFieldsets({
       <fieldset>
         <legend>Volunteer interests</legend>
         <p className="muted profile-form__note">
-          CalDART runs on volunteers. Tick anything you would be willing to help with.
+          {isSelf
+            ? 'CalDART runs on volunteers. Check any you would help with.'
+            : 'What they would help with.'}
         </p>
         <div className="checkbox-grid">
           {VOLUNTEER_INTERESTS.map((interest) => (

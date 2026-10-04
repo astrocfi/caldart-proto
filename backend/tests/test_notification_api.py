@@ -25,7 +25,7 @@ EVENTS_URL = "/api/v1/notifications/events"
 SUBSCRIPTIONS_URL = "/api/v1/notifications/subscriptions"
 
 #: What an address outside CalDART is refused with until the caller confirms it.
-CONFIRM_MESSAGE = "Tick the box to confirm this address may receive these notifications."
+CONFIRM_MESSAGE = "Check the box to confirm this address may receive these notifications."
 
 
 def subscription_url(subscription: NotificationSubscription) -> str:
@@ -175,7 +175,7 @@ def test_a_bare_address_reads_with_no_name(account_admin_client: APIClient) -> N
 
 # -- setting one up ----------------------------------------------------------------------
 def test_an_outside_address_needs_confirming(account_admin_client: APIClient) -> None:
-    """An address no account holds is refused under ``confirmed`` until ticked."""
+    """An address no account holds is refused under ``confirmed`` until checked."""
     response = account_admin_client.post(
         SUBSCRIPTIONS_URL,
         {"recipient_email": "outside@example.test", "events": ["signed_up"]},

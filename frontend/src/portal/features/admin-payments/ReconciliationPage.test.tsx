@@ -77,7 +77,7 @@ describe('ReconciliationPage', () => {
       route: '/admin/payments/reconciliation?group=year&provider=paypal',
     });
 
-    expect(await screen.findByRole('table', { name: 'Takings by year' })).toBeInTheDocument();
+    expect(await screen.findByRole('table', { name: 'Money in by year' })).toBeInTheDocument();
     expect(seen[0]!.get('provider')).toBe('paypal');
   });
 
@@ -130,7 +130,7 @@ describe('ReconciliationPage', () => {
     renderWithProviders(<ReconciliationPage />);
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'The reconciliation could not be loaded.',
+      "The reconciliation didn't load. Try again in a moment.",
     );
   });
 });

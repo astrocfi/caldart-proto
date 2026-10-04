@@ -1,10 +1,10 @@
 /**
- * The Subscriptions card of `/admin/reports`: every report CalDART emails on a
+ * The Emailed reports card of `/admin/reports`: every report CalDART emails on a
  * schedule, with a button to edit one, send it now, pause or resume it, or
  * delete it, and the form that sets up another.
  *
  * One form is open at a time, always in the same place above the table:
- * **New subscription** opens it for a new one and a row's **Edit** for that row, each
+ * **Email a report** opens it for a new one and a row's **Edit** for that row, each
  * closing the other.  The focus moves into the form as it opens and back to the button
  * that opened it as it closes, Escape included.  What every action did is said in a
  * toast, the portal's one way of confirming a save or a send.
@@ -43,7 +43,7 @@ export function sendNotice(result: ReportRunResult, recipient: string): string {
   if ((result.skipped_by_reason.not_permitted ?? 0) > 0) {
     return (
       `Not sent: ${recipient} no longer holds a role that may read this report, ` +
-      'so the subscription is paused.'
+      'so its emails are paused.'
     );
   }
   return `Not sent to ${recipient}: the report could not be built or the mail server refused it.`;
@@ -57,7 +57,7 @@ function errorText(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message : fallback;
 }
 
-/** The subscriptions table, its row actions, and the form behind New subscription and Edit. */
+/** The subscriptions table, its row actions, and the form behind Email a report and Edit. */
 export function SubscriptionsCard(): JSX.Element {
   const [openForm, setOpenForm] = useState<OpenForm>(null);
   const toast = useToast();
@@ -94,7 +94,8 @@ export function SubscriptionsCard(): JSX.Element {
       { id: row.id, patch: { is_active: isActive } },
       {
         onSuccess: () => toast.show(isActive ? 'Resumed.' : 'Paused.', 'success'),
-        onError: (error) => toast.show(errorText(error, 'The change was not saved.'), 'error'),
+        onError: (error) =>
+          toast.show(errorText(error, "The change wasn't saved. Try again in a moment."), 'error'),
       },
     );
   };
@@ -102,7 +103,11 @@ export function SubscriptionsCard(): JSX.Element {
   const handleDelete = (row: ReportSubscription): Promise<void> =>
     remove.mutateAsync(row.id).then(
       () => toast.show('Deleted.', 'success'),
-      (error) => toast.show(errorText(error, 'The subscription was not deleted.'), 'error'),
+      (error) =>
+        toast.show(
+          errorText(error, "The emailed report wasn't deleted. Try again in a moment."),
+          'error',
+        ),
     );
 
   const handleAdd = (): void => {
@@ -186,40 +191,51 @@ export function SubscriptionsCard(): JSX.Element {
       width: '16rem',
       isActions: true,
       narrowWidth: '9rem',
-      render: (row) => (
-        <span className="cluster cluster--nowrap">
-          <Button variant="quiet" small disabled={isBusy} onClick={() => handleEdit(row)}>
-            Edit
-          </Button>
-          <Button
-            variant="quiet"
-            small
-            disabled={isBusy}
-            onClick={(event) => {
-              handlePress(event);
-              handleSend(row);
-            }}
-          >
-            Send now
-          </Button>
-          <Button
-            variant="quiet"
-            small
-            disabled={isBusy}
-            onClick={(event) => {
-              handlePress(event);
-              handleToggleActive(row);
-            }}
-          >
-            {row.is_active ? 'Pause' : 'Resume'}
-          </Button>
-          <DeleteButton
-            label="Delete subscription"
-            disabled={isBusy}
-            onDelete={() => handleDelete(row)}
-          />
-        </span>
-      ),
+      render: (row) => {
+        const which = `${row.report_title} for ${recipientLabel(row)}`;
+        return (
+          <span className="cluster cluster--nowrap">
+            <Button
+              variant="quiet"
+              small
+              disabled={isBusy}
+              aria-label={`Edit ${which}`}
+              onClick={() => handleEdit(row)}
+            >
+              Edit
+            </Button>
+            <Button
+              variant="quiet"
+              small
+              disabled={isBusy}
+              onClick={(event) => {
+                handlePress(event);
+                handleSend(row);
+              }}
+              aria-label={`Send now: ${which}`}
+            >
+              Send now
+            </Button>
+            <Button
+              variant="quiet"
+              small
+              disabled={isBusy}
+              onClick={(event) => {
+                handlePress(event);
+                handleToggleActive(row);
+              }}
+              aria-label={`${row.is_active ? 'Pause' : 'Resume'} ${which}`}
+            >
+              {row.is_active ? 'Pause' : 'Resume'}
+            </Button>
+            <DeleteButton
+              label={`Delete ${which}`}
+              disabled={isBusy}
+              onDelete={() => handleDelete(row)}
+            />
+          </span>
+        );
+      },
     },
   ];
 
@@ -228,16 +244,15 @@ export function SubscriptionsCard(): JSX.Element {
     openForm?.mode === 'edit' ? rows.find((subscription) => subscription.id === openForm.id) : null;
 
   return (
-    <Card title="Subscriptions">
+    <Card title="Reports on a schedule">
       <p className="muted">
-        Each subscription emails one report, filtered and with the columns chosen for it, to one
-        address on its schedule. <strong>Edit</strong> changes its filters, columns, formats, and
-        schedule; <strong>Send now</strong> sends it at once without moving its next date.
+        CalDART emails each report to one address on the schedule you choose, with the filters and
+        columns chosen for it.
       </p>
 
       {openForm?.mode === 'new' ? null : (
         <Button ref={newRef} onClick={handleAdd}>
-          New subscription
+          Email a report
         </Button>
       )}
 
@@ -256,14 +271,14 @@ export function SubscriptionsCard(): JSX.Element {
         columns={columns}
         rows={rows}
         rowKey={(row) => row.id}
-        caption={`${rows.length} subscription${rows.length === 1 ? '' : 's'}`}
+        caption={`${rows.length} emailed report${rows.length === 1 ? '' : 's'}`}
         emptyTitle="No reports are sent by email yet"
         isLoading={list.isLoading}
       />
 
       {list.isError ? (
         <p className="field__error" role="alert">
-          {errorText(list.error, 'The subscriptions could not be loaded.')}
+          {errorText(list.error, "The emailed reports didn't load. Try again in a moment.")}
         </p>
       ) : null}
     </Card>

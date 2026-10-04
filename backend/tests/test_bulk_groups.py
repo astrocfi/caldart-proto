@@ -698,7 +698,7 @@ def test_a_batch_from_a_deleted_group_cannot_be_saved_as_a_live_group(
         groups.save_group(bulk, name="Again", kind=GroupKind.LIVE, actor=management)
     assert refused.value.message == (
         'The group "Marin friends" was deleted, so its filters are gone. '
-        "Save this batch as a fixed group instead."
+        "Save this recipient list as a fixed group instead."
     )
 
 

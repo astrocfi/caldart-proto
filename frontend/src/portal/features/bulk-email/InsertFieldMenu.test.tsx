@@ -125,6 +125,8 @@ describe('InsertFieldMenu', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Insert field' }));
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('The fields could not be loaded.');
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      "The fields didn't load. Try again in a moment.",
+    );
   });
 });

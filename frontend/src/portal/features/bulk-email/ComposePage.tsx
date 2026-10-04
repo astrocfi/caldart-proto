@@ -56,7 +56,7 @@ export function ComposePage(): JSX.Element {
     return (
       <Page title="Compose">
         <p className="field__error" role="alert">
-          This email could not be loaded. It may have been deleted.{' '}
+          This email didn&apos;t load. It may have been deleted.{' '}
           <Link to="/bulk-email/drafts">See your drafts</Link>.
         </p>
       </Page>

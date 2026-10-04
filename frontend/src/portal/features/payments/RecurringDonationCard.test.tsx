@@ -99,12 +99,10 @@ describe('RecurringDonationCard', () => {
     expect(await screen.findByText('We email you a receipt after every charge.')).toBeVisible();
   });
 
-  it('promises the fortnight notice for a yearly donation', async () => {
+  it('promises the two weeks notice for a yearly donation', async () => {
     mount(monthly({ cadence: 'yearly' }));
 
-    expect(
-      await screen.findByText('We will email you fourteen days before every charge.'),
-    ).toBeVisible();
+    expect(await screen.findByText('We will email you 14 days before every charge.')).toBeVisible();
   });
 
   it('names no plan, because a donation renews nothing', async () => {

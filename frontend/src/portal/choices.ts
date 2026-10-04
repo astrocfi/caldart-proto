@@ -300,7 +300,7 @@ export const PAYMENT_PROVIDER_LABELS: Record<PaymentProvider, string> = {
 
 export const PAYMENT_STATUS_LABELS: Record<PaymentState, string> = {
   pending: 'Pending',
-  succeeded: 'Succeeded',
+  succeeded: 'Paid',
   failed: 'Failed',
   partially_refunded: 'Partly refunded',
   refunded: 'Refunded',

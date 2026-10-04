@@ -49,7 +49,7 @@ export function SentPage(): JSX.Element {
       <Card>
         {sent.isError ? (
           <p className="field__error" role="alert">
-            The sent bulk emails could not be loaded.
+            The sent bulk emails didn&apos;t load. Try again in a moment.
           </p>
         ) : (
           <DataTable

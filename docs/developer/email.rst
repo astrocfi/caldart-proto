@@ -34,8 +34,9 @@ from the stored reminder schedule, so the mail app never imports it:
      - Sent by
    * - ``reminder_first``, ``reminder_second``, ``reminder_final``,
        ``reminder_expired``, ``reminder_lapsed``
-     - Renewal reminder (60 days), (30 days), (7 days), (expired), (30 days
-       after) on the default schedule; the days follow the stored reminder
+     - First reminder (60 days before), Second reminder (30 days before), Final
+       reminder (7 days before), Expired reminder (up to 6 days after), and Lapsed reminder
+       (30 days after) on the default schedule; the days follow the stored reminder
        schedule (:ref:`reminders-schedule`)
      - the daily reminder scan (:doc:`reminders`)
    * - ``renewal_enabled``, ``renewal_notice``, ``renewal_card_expiring``,

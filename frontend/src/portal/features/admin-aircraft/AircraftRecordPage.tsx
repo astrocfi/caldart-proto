@@ -24,6 +24,7 @@ import {
   useUpdateAircraft,
 } from '@/portal/features/aircraft/api';
 import { aircraftToValues } from '@/portal/features/aircraft/form';
+import { PILOT_MEMBERSHIP } from '@/portal/features/leader/AircraftStatusCard';
 import { InsuranceVerificationCard } from '@/portal/features/verification/InsuranceVerificationCard';
 import { changeLine, lastUpdatedLine } from './history';
 import '@/portal/features/aircraft/aircraft.css';
@@ -64,17 +65,13 @@ export function AircraftRecordPage(): JSX.Element {
     return (
       <Page title="Aircraft">
         <EmptyState
-          title={missing ? 'No such aircraft' : 'That record could not be loaded'}
+          title={missing ? 'No such aircraft' : "That record didn't load"}
           description={
             missing
               ? 'It may have been deleted from the register.'
               : (record.error as Error)?.message
           }
-          action={
-            <Link className="button button--secondary" to="/admin/aircraft">
-              Back to the register
-            </Link>
-          }
+          action={<Link to="/admin/aircraft">Back to aircraft register</Link>}
         />
       </Page>
     );
@@ -112,7 +109,9 @@ export function AircraftRecordPage(): JSX.Element {
       );
     }
     if (changes.isError || changes.data === undefined) {
-      return <p className="muted">That record's history could not be loaded.</p>;
+      return (
+        <p className="muted">That record's history didn&apos;t load. Try again in a moment.</p>
+      );
     }
     if (changes.data.length === 0) {
       return <p className="muted">No change is recorded for this record.</p>;
@@ -135,6 +134,7 @@ export function AircraftRecordPage(): JSX.Element {
         <>
           <InsuranceDot aircraft={aircraft} />
           <ServiceDot aircraft={aircraft} />
+          <Link to="/admin/aircraft">Back to aircraft register</Link>
         </>
       }
     >
@@ -163,7 +163,7 @@ export function AircraftRecordPage(): JSX.Element {
 
       <Card title="History">{history()}</Card>
 
-      <Card title="Pilots who fly this aircraft">
+      <Card title="Pilots who fly it">
         {pilots.length === 0 ? (
           <p className="muted">No member lists this aircraft on their profile.</p>
         ) : (
@@ -173,10 +173,8 @@ export function AircraftRecordPage(): JSX.Element {
                 <Link to={`/admin/members/${pilot.user_id}`}>{pilot.name}</Link>
                 <span className="aircraft-pilots__email">{pilot.email}</span>
                 <StatusDot
-                  tone={pilot.membership_status === 'current' ? 'current' : 'expired'}
-                  label={
-                    pilot.membership_status === 'current' ? 'Member current' : 'Member expired'
-                  }
+                  tone={PILOT_MEMBERSHIP[pilot.membership_status].tone}
+                  label={PILOT_MEMBERSHIP[pilot.membership_status].label}
                 />
                 <StatusDot
                   tone={pilot.medical_is_current ? 'current' : 'expired'}

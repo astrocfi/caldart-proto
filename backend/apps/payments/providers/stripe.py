@@ -59,7 +59,7 @@ log = logging.getLogger(__name__)
 
 #: What a member is told when Stripe times out or answers with an error of its
 #: own.  It says nothing about the money: a call can fail after Stripe acted.
-UNAVAILABLE_MESSAGE = "Stripe could not be reached. Please try again."
+UNAVAILABLE_MESSAGE = "Stripe didn't answer. Try again in a moment."
 
 #: ``payment_method_details.card.wallet.type`` values mapped onto our choices.
 WALLET_TYPES: dict[str, str] = {

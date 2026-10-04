@@ -155,7 +155,7 @@ describe('AircraftRegisterPage', () => {
     ]);
   });
 
-  it('shows a column ticked in the chooser in the table as well as the downloads', async () => {
+  it('shows a column checked in the chooser in the table as well as the downloads', async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     server.use(columnsReturn(), listReturns([makeAircraft()], []));
 
@@ -348,7 +348,7 @@ describe('AircraftRegisterPage', () => {
     );
   });
 
-  it('offers every column the register exports can carry, defaults ticked', async () => {
+  it('offers every column the register exports can carry, defaults checked', async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     const seen: URLSearchParams[] = [];
     server.use(columnsReturn(), listReturns([makeAircraft()], seen));
@@ -416,10 +416,10 @@ describe('AircraftRegisterPage', () => {
     server.use(columnsReturn(), listReturns([], [], 0));
 
     renderWithProviders(<AircraftRegisterPage />, { route: '/admin/aircraft' });
-    expect(await screen.findByText('Registry as of 09/20/2026')).toBeInTheDocument();
+    expect(await screen.findByText('FAA data as of 09/20/2026')).toBeInTheDocument();
   });
 
-  it('says so in its header when the FAA registry has never been imported', async () => {
+  it('says so in its header when the FAA data has never been loaded', async () => {
     server.use(
       columnsReturn(),
       listReturns([], [], 0),
@@ -429,7 +429,7 @@ describe('AircraftRegisterPage', () => {
     );
 
     renderWithProviders(<AircraftRegisterPage />, { route: '/admin/aircraft' });
-    expect(await screen.findByText('Registry not imported yet')).toBeInTheDocument();
+    expect(await screen.findByText('FAA data not loaded yet')).toBeInTheDocument();
   });
 
   it('shows an empty state when nothing matches', async () => {

@@ -43,7 +43,7 @@ export function GroupKindChoice({
   const id = useId();
   return (
     <fieldset className="stack-tight bulk-email__types">
-      <legend>Kind of group</legend>
+      <legend>Type of group</legend>
       {KINDS.map((option) => (
         <div key={option.value} className="bulk-email__type">
           <input

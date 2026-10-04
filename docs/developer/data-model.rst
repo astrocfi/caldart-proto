@@ -674,9 +674,9 @@ How a term was come by (``Membership.source``).
 --------------------------------------------
 
 ``MemberProfile.photo_id_type``: the kind of photo ID a verifier has seen.
-Nothing else about the document is recorded.  ``not_provided`` is the default
-and a legitimate verified state: a verifier who saw the document and chose not
-to record its kind, or a friend with nothing to show.
+Nothing else about the document is recorded.  ``not_provided`` is the default:
+nobody has shown a photo ID, so there is nothing to verify and the item is never
+stamped (see :doc:`verification`).
 
 .. list-table::
    :header-rows: 1
@@ -1016,11 +1016,11 @@ charge (:doc:`payments-setup`); ``check``, ``cash``, ``bank_transfer``, and
    * - ``pending``
      - Pending
    * - ``succeeded``
-     - Succeeded
+     - Paid
    * - ``failed``
      - Failed
    * - ``partially_refunded``
-     - Partially refunded
+     - Partly refunded
    * - ``refunded``
      - Refunded
 
@@ -1084,7 +1084,7 @@ charge (:doc:`payments-setup`); ``check``, ``cash``, ``bank_transfer``, and
    * - ``pending``
      - Pending
    * - ``succeeded``
-     - Succeeded
+     - Refunded
    * - ``failed``
      - Failed
 
@@ -1168,7 +1168,7 @@ What a mandate charges for, which is what every renewal email says.
    * - ``scheduled``
      - Scheduled
    * - ``succeeded``
-     - Succeeded
+     - Charged
    * - ``failed``
      - Failed
    * - ``skipped``
@@ -1181,7 +1181,7 @@ What a mandate charges for, which is what every renewal email says.
 
 ``ReminderLog.kind``: the five reminder stages, in the order a term reaches them.
 ``ReminderSchedule`` (below) dates each one, and builds the words a screen prints
-for it, such as "60 days before expiry"; the labels here only name the stages.
+for it, such as "First reminder (60 days before)"; the labels here name the stages.
 
 .. list-table::
    :header-rows: 1
@@ -1196,9 +1196,9 @@ for it, such as "60 days before expiry"; the labels here only name the stages.
    * - ``final``
      - Final reminder
    * - ``expired``
-     - Expired
+     - Expired reminder
    * - ``lapsed``
-     - Lapsed
+     - Lapsed reminder
 
 .. _choices-email-status:
 
@@ -1289,7 +1289,7 @@ copy back to ``pending``.
    * - Value
      - Label
    * - ``batched``
-     - In the batch
+     - On the list
    * - ``pending``
      - Not sent yet
    * - ``sent``
@@ -1810,7 +1810,7 @@ A local Disaster Airlift Response Team (DART).
    * - ``roster_sent_at``
      - ``DateTimeField``
      - null; default ``NULL``
-     - when the team's monthly roster last went out to its ticked contacts, or null when none has; only the roster sender writes it
+     - when the team's monthly roster last went out to its checked contacts, or null when none has; only the roster sender writes it
 
 **Constraints, indexes, and ordering.**
 
@@ -1835,12 +1835,12 @@ stored as ``CRQ``), so one airport is written one way everywhere; a
 three-character identifier that begins with ``K`` is left alone, because Kelso
 really is ``KLS``.  ``airports`` gives the list, ``home_airport`` its first
 entry, which is what a single-line summary shows, and ``roster_recipients()``
-the contacts ticked to receive the roster who have an address.  ``__str__`` is
+the contacts checked to receive the roster who have an address.  ``__str__`` is
 ``"Contra Costa (CCR, C83)"``.
 
 Sixteen are seeded from ``DARTS`` in ``apps/members/seed.py``, each with the
 handful of example contacts ``seed_darts`` generates, the leader and the
-deputy leader ticked to receive the roster.  ``cms.DartPage`` points at this
+deputy leader checked to receive the roster.  ``cms.DartPage`` points at this
 table with a nullable ``SET_NULL`` foreign key, so deleting a DART leaves its
 page in place with no DART attached, and the airports are never retyped in the
 CMS.  A DART is identified by the fields it flies from, so it carries no town of
@@ -1898,7 +1898,7 @@ One named volunteer who runs a DART, and how to reach them.
    * - ``receives_roster``
      - ``BooleanField``
      - not null; default ``False``
-     - whether the person is sent the team's roster; a ticked person with no email address is skipped
+     - whether the person is sent the team's roster; a checked person with no email address is skipped
 
 **Constraints, indexes, and ordering.**
 
@@ -1909,7 +1909,7 @@ One named volunteer who runs a DART, and how to reach them.
 - ``dart``: foreign key to ``darts.Dart``, ``CASCADE``; the reverse accessor is ``contacts``.
 
 ``save()`` stores the phone number as ``XXX-XXX-XXXX``.  A DART lists any
-number of contacts, and a person without an email address may be ticked to
+number of contacts, and a person without an email address may be checked to
 receive the roster, to be skipped when it goes out.  The foreign key cascades,
 so a contact has no life without its DART.
 
@@ -3986,7 +3986,7 @@ so the reminder stays due, but the send itself leaves a ``failed`` row here
 regardless, the same as any other refused email.
 
 ``caldart.mail.send_templated`` takes an optional ``to_name`` and writes it as
-given: the DART roster sender passes the ticked contact's own name, for a
+given: the DART roster sender passes the checked contact's own name, for a
 recipient who may hold no account at all.  A caller that names an account
 (``user_id``) but no ``to_name`` has the account's ``display_name`` written in
 instead, so the row keeps the name its recipient had at send time even after

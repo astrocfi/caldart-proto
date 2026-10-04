@@ -135,7 +135,7 @@ describe('GroupsPage', () => {
     await user.click(await screen.findByRole('button', { name: 'New group' }));
     await user.type(screen.getByRole('textbox', { name: /^Name/ }), 'Seminar');
     await user.click(screen.getByRole('radio', { name: 'Live' }));
-    await user.click(screen.getByRole('button', { name: 'Make the group' }));
+    await user.click(screen.getByRole('button', { name: 'Add group' }));
     await waitFor(() => expect(router.state.location.pathname).toBe('/bulk-email/groups/9'));
     expect(state.posted).toEqual([{ name: 'Seminar', kind: 'live' }]);
   });

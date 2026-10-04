@@ -24,7 +24,7 @@ test('a member renames themselves and records a callsign on their profile', asyn
   const callsign = page.getByRole('textbox', { name: 'Amateur radio callsign' });
   await callsign.pressSequentially('w6abc');
   await expect(callsign).toHaveValue('W6ABC');
-  await page.getByRole('button', { name: 'Save profile' }).click();
+  await page.getByRole('button', { name: 'Save changes' }).click();
   await expect(page.getByText('Profile saved.')).toBeVisible();
 
   await page.reload();
@@ -43,7 +43,7 @@ test('a callsign that is not a US one is refused and nothing is saved', async ({
   await page.goto('portal/profile');
   const callsign = page.getByRole('textbox', { name: 'Amateur radio callsign' });
   await callsign.fill('X1ABC');
-  await page.getByRole('button', { name: 'Save profile' }).click();
+  await page.getByRole('button', { name: 'Save changes' }).click();
   await expect(page.getByText('Enter a US amateur radio callsign, such as W6ABC.')).toBeVisible();
 
   await page.reload();

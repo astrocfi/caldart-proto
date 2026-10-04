@@ -511,6 +511,7 @@ def test_aircraft_card_lists_the_pilots_who_fly_it(
             "email": "marta@example.test",
             "membership_status": "current",
             "medical_is_current": True,
+            "go_no_go": {"membership": True, "medical": True, "verified": False},
         }
     ]
 

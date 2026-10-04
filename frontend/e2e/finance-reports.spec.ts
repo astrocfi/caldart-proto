@@ -23,7 +23,7 @@ test('a treasurer reconciles a period and exports it', async ({ page }) => {
 
   await expect(page.getByRole('heading', { name: 'Reconciliation', level: 1 })).toBeVisible();
 
-  const byMonth = bodyRows(page, /Takings by month/);
+  const byMonth = bodyRows(page, /Money in by month/);
   await expect(byMonth.first()).toBeVisible();
   const monthCount = await byMonth.count();
   expect(monthCount).toBeGreaterThan(1);
@@ -31,7 +31,7 @@ test('a treasurer reconciles a period and exports it', async ({ page }) => {
   // The same money regrouped: one row per provider that took any of it, which
   // is necessarily fewer rows than the months it was spread over.
   await page.getByLabel('Rows').selectOption('provider');
-  const byProvider = bodyRows(page, /Takings by provider/);
+  const byProvider = bodyRows(page, /Money in by provider/);
   // The table keeps the rows it had while the regrouped ones are fetched, so
   // wait for a provider name in the first cell before counting.
   await expect(byProvider.first()).toContainText(/Stripe|PayPal|Test|By hand/);
@@ -100,7 +100,7 @@ test('a treasurer turns a stalled renewal off', async ({ page }) => {
   // The mandate is canceled rather than deleted, so it leaves the paused list.
   await expect(page.getByText('No renewals match')).toBeVisible();
   await page.getByLabel('Status', { exact: true }).selectOption('canceled');
-  await expect(bodyRows(page, /renewals?$/).first()).toContainText('Off');
+  await expect(bodyRows(page, /renewals?$/).first()).toContainText('Turned off');
 });
 
 test('a system administrator rehearses the renewal scan', async ({ page }) => {
@@ -110,8 +110,10 @@ test('a system administrator rehearses the renewal scan', async ({ page }) => {
   const panel = page
     .locator('section.card')
     .filter({ has: page.getByRole('heading', { name: 'Automatic renewal charges' }) });
-  await expect(panel.getByLabel('Dry run (charge nothing)')).toBeChecked();
-  await panel.getByRole('button', { name: 'Run now' }).click();
+  await expect(
+    panel.getByLabel('Practice run: show what would happen, charge nothing'),
+  ).toBeChecked();
+  await panel.getByRole('button', { name: 'Run now: automatic renewal charges' }).click();
 
   await expect(panel.getByRole('status').filter({ hasText: /^Would notice / })).toBeVisible();
   await expect(panel.getByRole('heading', { name: 'What this run would do' })).toBeVisible();

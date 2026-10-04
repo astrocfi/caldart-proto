@@ -1,7 +1,7 @@
 """Seed the demo report subscriptions.
 
 Idempotent: re-running updates the three subscriptions rather than adding more.  The
-DART rosters need nothing here; the members seed ticks who receives each one.
+DART rosters need nothing here; the members seed checks who receives each one.
 """
 
 from __future__ import annotations

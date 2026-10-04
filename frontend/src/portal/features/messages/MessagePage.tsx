@@ -24,7 +24,7 @@ export const NOT_AVAILABLE_MESSAGE =
   'This message is not available. It may not have been sent to you, or it has been taken off Messages.';
 
 /** What the page says when the message could not be loaded for another reason. */
-const FALLBACK_ERROR = 'This message could not be loaded. Try again in a moment.';
+const FALLBACK_ERROR = "This message didn't load. Try again in a moment.";
 
 /** One message, as the reader's own copy. */
 export function MessagePage(): JSX.Element {

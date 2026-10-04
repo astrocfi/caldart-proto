@@ -104,7 +104,7 @@ describe('MemberLedgerPage', () => {
 
     expect(await screen.findByRole('heading', { name: 'Recurring donation' })).toBeInTheDocument();
     expect(screen.getByText('Charges')).toBeInTheDocument();
-    expect(screen.getByText('Contribution · $50.00')).toBeInTheDocument();
+    expect(screen.getByText('Donation · $50.00')).toBeInTheDocument();
   });
 
   it('names why the last automatic charge was refused', async () => {
@@ -122,10 +122,9 @@ describe('MemberLedgerPage', () => {
     serveLedger();
     renderLedger();
 
-    expect(await screen.findByRole('link', { name: '2026' })).toHaveAttribute(
-      'href',
-      '/api/v1/admin/payments/ledger/37/statements/2026.pdf',
-    );
+    expect(
+      await screen.findByRole('link', { name: '2026 contribution statement (PDF)' }),
+    ).toHaveAttribute('href', '/api/v1/admin/payments/ledger/37/statements/2026.pdf');
   });
 
   it('says so when the member has given nothing', async () => {
@@ -140,11 +139,14 @@ describe('MemberLedgerPage', () => {
   it('explains a ledger it could not load', async () => {
     server.use(
       http.get(`${API}/admin/payments/ledger/37`, () =>
-        HttpResponse.json({ detail: 'Not found.' }, { status: 404 }),
+        HttpResponse.json(
+          { detail: "That isn't here. It may have been deleted." },
+          { status: 404 },
+        ),
       ),
     );
     renderLedger();
 
-    expect(await screen.findByText('That ledger could not be loaded')).toBeInTheDocument();
+    expect(await screen.findByText("That ledger didn't load")).toBeInTheDocument();
   });
 });

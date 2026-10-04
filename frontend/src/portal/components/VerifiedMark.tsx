@@ -12,21 +12,32 @@ export interface VerifiedMarkProps {
   verification: VerificationLike;
   /** The member's own wording for an unverified item: *Not yet verified*. */
   pending?: boolean;
+  /** The item's date has passed: *Expired* comes first, whatever its verification. */
+  expired?: boolean;
 }
 
 /**
  * Whether an authority has checked an item: *Verified by <name> on <date>*, or *Not
- * verified*.
+ * verified*, as a dot with its word, amber because a check nobody has made yet is a normal waiting
+ * state, not an alarm.  An item whose date has passed reads *Expired* first, in the
+ * expired tone, so a lapsed medical never reads as cleared beside a green *Verified*.
  *
  * Shared by the member check, the aircraft check, both records, and the member's own
  * profile and aircraft, so a pilot certificate reads the same wherever it is shown.
- * The name or the date is left out when the stamp does not carry it.
+ * The name or the date is left out when the stamp does not carry it.  A caller draws no
+ * mark at all for an item the person does not hold, since there is nothing to verify.
  */
-export function VerifiedMark({ verification, pending = false }: VerifiedMarkProps): JSX.Element {
+export function VerifiedMark({
+  verification,
+  pending = false,
+  expired = false,
+}: VerifiedMarkProps): JSX.Element {
+  const lapsed = expired ? <StatusDot tone="expired" label="Expired" /> : null;
   if (!verification.verified) {
     return (
       <span className="verified-mark">
-        <StatusDot tone="expired" label={pending ? 'Not yet verified' : 'Not verified'} />
+        {lapsed}
+        <StatusDot tone="expiring" label={pending ? 'Not yet verified' : 'Not verified'} />
       </span>
     );
   }
@@ -34,6 +45,7 @@ export function VerifiedMark({ verification, pending = false }: VerifiedMarkProp
   const at = verification.verified_at ?? null;
   return (
     <span className="verified-mark">
+      {lapsed}
       <StatusDot tone="current" label="Verified" />
       {by !== null ? ` by ${by}` : null}
       {at !== null ? (

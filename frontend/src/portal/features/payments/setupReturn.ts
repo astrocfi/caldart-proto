@@ -73,7 +73,7 @@ export function useSetupReturn(scope: MandateScope): SetupReturn {
         setError(
           caught instanceof ApiError
             ? caught.message
-            : 'That payment method could not be saved. Please try again.',
+            : "That payment method wasn't saved. Try again in a moment.",
         );
       })
       .finally(() => {

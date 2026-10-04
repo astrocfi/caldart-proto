@@ -58,7 +58,7 @@ export function RegistryPanel(): JSX.Element {
 
   return (
     <Card
-      title="Aircraft database"
+      title="FAA aircraft data"
       footer={
         <Button ref={runRef} onClick={handleRun} disabled={isRunning || run.isPending}>
           {isRunning ? 'Running…' : 'Run now'}
@@ -66,21 +66,23 @@ export function RegistryPanel(): JSX.Element {
       }
     >
       <p className="muted">
-        Loads the FAA aircraft registry, which is what the N-number box on an aircraft form offers.
-        It runs every night and changes nothing else, so running it again is harmless.
+        Loads the FAA aircraft data, which is what the N-number box on an aircraft form offers. It
+        runs every night and changes nothing else.
       </p>
 
       {status.data === undefined ? null : <p role="status">{registryImportSummary(status.data)}</p>}
 
       {status.isError ? (
         <p className="field__error" role="alert">
-          The registry&rsquo;s state could not be loaded.
+          The FAA data&rsquo;s state didn&apos;t load. Try again in a moment.
         </p>
       ) : null}
 
       {run.isError ? (
         <p className="field__error" role="alert">
-          {run.error instanceof Error ? run.error.message : 'The import could not be started.'}
+          {run.error instanceof Error
+            ? run.error.message
+            : "The load didn't start. Try again in a moment."}
         </p>
       ) : null}
     </Card>

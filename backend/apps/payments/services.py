@@ -35,7 +35,7 @@ UNKNOWN_NET_CENTS = 0
 
 #: What a life member is told when a checkout is asked to sell them a term.
 LIFE_MEMBER_CHECKOUT_MESSAGE = (
-    "You are a life member, so there is nothing to renew. Make a contribution instead."
+    "You are a life member, so there is nothing to renew. Make a donation instead."
 )
 
 

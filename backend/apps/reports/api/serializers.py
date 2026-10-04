@@ -14,6 +14,7 @@ from apps.reports.models import ReportSubscription, SavedColumnSet
 from apps.reports.registry import REPORTS
 from apps.reports.schedule import next_due_after
 from apps.reports.services import recipient_may_read
+from caldart.messages import email_messages, when_missing
 from caldart.reports import FIXED_COLUMNS_MESSAGE, Report, select_columns
 from caldart.runs import RunActionSerializer
 
@@ -24,7 +25,7 @@ NO_COLUMNS_MESSAGE = "Choose at least one column."
 NOT_PERMITTED_MESSAGE = "{name} does not hold a role that may read this report."
 
 #: What a subscription to an address no account holds is refused with until confirmed.
-CONFIRM_MESSAGE = "Tick the box to confirm this address may receive this report."
+CONFIRM_MESSAGE = "Check the box to confirm this address may receive this report."
 
 #: What a ``columns`` entry among a subscription's filters is refused with.
 COLUMNS_AS_FILTER_MESSAGE = "Choose columns with the columns field, not as a filter."
@@ -87,6 +88,7 @@ class SavedColumnSetSerializer(serializers.ModelSerializer[SavedColumnSet]):
         model = SavedColumnSet
         fields = ["id", "name", "columns"]
         read_only_fields = ["id"]
+        extra_kwargs = {"name": {"error_messages": when_missing("Give the set of columns a name.")}}
 
     def validate_columns(self, value: list[str]) -> list[str]:
         """The keys, once the report in the ``spec`` context entry accepts them."""
@@ -254,6 +256,9 @@ class ReportSubscriptionCreateSerializer(serializers.ModelSerializer[ReportSubsc
             "weekday",
             "confirmed",
         ]
+        extra_kwargs = {
+            "recipient_email": {"error_messages": email_messages("Enter the address to email.")}
+        }
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         """Check the contents against the report, then bind or confirm the recipient."""
@@ -306,7 +311,7 @@ class ReportRunResultSerializer(serializers.Serializer[dict[str, Any]]):
 class RosterSerializer(serializers.ModelSerializer[Dart]):
     """One active DART's roster: who receives it, and when it last went out.
 
-    ``roster_recipients`` counts the people ticked to receive it who have an address;
+    ``roster_recipients`` counts the people checked to receive it who have an address;
     ``roster_sent_at`` is null until the first roster goes out.
     """
 

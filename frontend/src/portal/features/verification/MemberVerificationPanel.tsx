@@ -17,6 +17,7 @@ import { RefusedSubmitNote, useRefusedSubmit } from '@/portal/components/Refused
 import { useToast } from '@/portal/components/Toast';
 import { useVerifyMember } from './api';
 import { saveErrors } from './errors';
+import { isItemHeld } from './held';
 import { ITEM_LABELS, ITEM_SLUGS, PHOTO_ID_TYPES } from './labels';
 import { editField, memberVerificationPayload, toggleItem } from './memberDraft';
 import type { MemberField, MemberVerificationDraft } from './memberDraft';
@@ -45,7 +46,11 @@ export interface MemberVerificationPanelProps {
   onClose: () => void;
 }
 
-/** Edits a person's verified fields and ticks the items an authority has checked. */
+/**
+ * Edits a person's verified fields and checks the items an authority has checked.  Only
+ * an item the person holds gets a box: *Not a pilot*, a medical of *None*, and a photo
+ * ID of *Not provided* have nothing to verify.
+ */
 export function MemberVerificationPanel({
   userId,
   initial,
@@ -61,6 +66,8 @@ export function MemberVerificationPanel({
   const formRef = useRef<HTMLFormElement>(null);
   const refusal = useRefusedSubmit(formRef, verify.error);
   const errors = saveErrors(verify.error, FORM_FIELDS);
+  // An item the person does not hold has nothing to verify, so it gets no box.
+  const held = ITEM_SLUGS.filter((item) => isItemHeld(item, draft));
 
   const set = <Key extends MemberField>(field: Key, value: MemberVerificationDraft[Key]): void =>
     setDraft((current) => editField(current, initial, field, value));
@@ -135,7 +142,13 @@ export function MemberVerificationPanel({
 
         <fieldset className="checkbox-set verification-panel__items">
           <legend>Checked against the documents</legend>
-          {ITEM_SLUGS.map((item) => (
+          {held.length === 0 ? (
+            <p className="muted">
+              Nothing to verify yet. Choose a pilot certificate, a medical, or a photo ID above to
+              verify it.
+            </p>
+          ) : null}
+          {held.map((item) => (
             <label key={item} className="checkbox">
               <input
                 type="checkbox"
@@ -151,7 +164,7 @@ export function MemberVerificationPanel({
 
         <div className="cluster">
           <Button type="submit" disabled={verify.isPending}>
-            {verify.isPending ? 'Saving…' : 'Save'}
+            {verify.isPending ? 'Saving…' : 'Save verification'}
           </Button>
           <Button variant="quiet" onClick={handleClose}>
             Cancel

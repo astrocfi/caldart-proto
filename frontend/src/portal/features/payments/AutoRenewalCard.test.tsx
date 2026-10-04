@@ -222,7 +222,7 @@ describe('AutoRenewalCard', () => {
     mount(makeMandate());
 
     expect(
-      await screen.findByText(/We will email you fourteen days before every charge\./),
+      await screen.findByText(/We will email you 14 days before every charge\./),
     ).toBeInTheDocument();
   });
 

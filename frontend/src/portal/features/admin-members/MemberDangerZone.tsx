@@ -1,5 +1,5 @@
 /**
- * The Danger zone tab: the account actions (make a friend, deactivate, reactivate),
+ * The Delete or deactivate tab: the account actions (make a friend, deactivate, reactivate),
  * then hard-deleting the member record.
  *
  * Deleting takes the profile and the membership terms with it, so the button
@@ -42,13 +42,13 @@ function PaymentsNote({ member }: { member: MemberDetail }) {
 }
 
 /**
- * The Danger zone tab: the account actions, then the delete, which keeps the member's
+ * The Delete or deactivate tab: the account actions, then the delete, which keeps the member's
  * payments in the books. A "Deleted member N" record offers neither, only the reason.
  */
 export function MemberDangerZone({ member }: { member: MemberDetail }): JSX.Element {
   if (member.is_tombstone) {
     return (
-      <Card title="Kept for the books" eyebrow="Danger zone">
+      <Card title="Kept for the books" eyebrow="Delete or deactivate">
         <p>{TOMBSTONE_NOTE}</p>
       </Card>
     );
@@ -85,7 +85,7 @@ function DeleteZone({ member }: { member: MemberDetail }): JSX.Element {
   return (
     <>
       <MemberAccountActions member={member} />
-      <Card title="Delete this member" eyebrow="Danger zone">
+      <Card title="Delete this member" eyebrow="Delete or deactivate">
         <p>
           Deleting <strong>{member.name}</strong> also deletes their profile and{' '}
           {member.memberships.length} membership term

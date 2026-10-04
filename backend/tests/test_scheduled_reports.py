@@ -497,7 +497,7 @@ def due_subscription() -> None:
 
 
 def due_roster() -> None:
-    """One active DART, never sent a roster, with one person ticked to receive it."""
+    """One active DART, never sent a roster, with one person checked to receive it."""
     DartContactFactory(dart=DartFactory(), email="lee@example.test", receives_roster=True)
 
 

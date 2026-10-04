@@ -15,6 +15,7 @@ import { formatDate } from '@/portal/components/DateText';
 import { VerifiedMark } from '@/portal/components/VerifiedMark';
 import { usePanelFocus } from '@/portal/components/focus';
 import { MemberVerificationPanel } from './MemberVerificationPanel';
+import { isItemHeld, isLapsed } from './held';
 import { ITEM_LABELS, ITEM_SLUGS, PHOTO_ID_LABELS } from './labels';
 import { draftFromProfile } from './memberDraft';
 import { useCanVerify } from './useCanVerify';
@@ -49,7 +50,11 @@ export interface MemberVerificationCardProps {
   onSaved?: (status: LeaderStatus) => void;
 }
 
-/** Lists a person's three items with their marks, and opens the panel on **Verify**. */
+/**
+ * Lists a person's three items with their marks, and opens the panel on **Verify**.  An
+ * item the person does not hold has no mark, and a lapsed medical reads *Expired* before
+ * its mark.
+ */
 export function MemberVerificationCard({
   userId,
   profile,
@@ -93,7 +98,12 @@ export function MemberVerificationCard({
           <li key={item} className="verification-items__row">
             <span className="verification-items__label">{ITEM_LABELS[item]}</span>
             <span className="verification-items__detail">{itemDetail(item, profile)}</span>
-            <VerifiedMark verification={profile.verification[item]} />
+            {isItemHeld(item, profile) ? (
+              <VerifiedMark
+                verification={profile.verification[item]}
+                expired={item === 'medical' && isLapsed(profile.medical_expiration)}
+              />
+            ) : null}
           </li>
         ))}
       </ul>

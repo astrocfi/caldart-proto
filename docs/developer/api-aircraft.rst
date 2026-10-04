@@ -291,13 +291,17 @@ verifying role (``verifier``, ``dart_leader``, ``user_admin``, or
          "name": "Ana Bracco",
          "email": "ana@example.org",
          "membership_status": "current",
-         "medical_is_current": true
+         "medical_is_current": true,
+         "go_no_go": {"membership": true, "medical": true, "verified": false}
        }
      ]
    }
 
-``pilots`` lists the members who name the airplane on their profile, sorted by
-surname then forename.  ``aircraft_pilots()`` fetches them in one query, with
+``pilots`` lists the members and friends who name the airplane on their profile,
+sorted by surname then forename.  ``membership_status`` is ``friend`` for a friend of
+CalDART, and ``go_no_go`` is the member check's own verdict for the person, the same
+three booleans its search row and status card carry (below), so the two checks never
+disagree.  ``aircraft_pilots()`` fetches them in one query, with
 the membership annotations aboard (see :ref:`membership-status-sql`), so a
 popular airplane costs no more than a rarely-flown one.
 
@@ -734,9 +738,9 @@ normalizes to ``NATE`` and matches every US registration on file.
 
 ``go_no_go`` is computed by the same rule the status card uses, so a leader
 reads the verdict off the list and opens the card for the detail rather than
-for the answer: ``verified`` is true when the pilot certificate, the medical,
-and the photo ID are all verified.  A member with no profile row is a no-go on
-every count.
+for the answer: ``verified`` is true when the member holds a pilot certificate, a
+medical, and a photo ID and all three are verified.  A member with no profile row
+is a no-go on every count.
 
 Every field comes from the row the search already fetched: the membership
 summary rides along as annotations (see :ref:`membership-status-sql`) and the
@@ -819,7 +823,8 @@ The pre-flight status card for one member.
 
 ``go_no_go`` is deliberately separate booleans rather than one verdict: a leader
 is entitled to see *why* a member is a no-go.  ``verified`` is true when the
-pilot certificate, the medical, and the photo ID are all verified; each of the
+member holds a pilot certificate, a medical, and a photo ID (none of them ``none``
+or ``not_provided``) and all three are verified; each of the
 three carries its own ``verification`` (``{verified, verified_by,
 verified_at}``), so the card says which one is missing.  A verified medical
 whose expiration passes stays verified: ``is_current`` and ``verification`` are
@@ -875,7 +880,9 @@ items that should be verified after the save — ``certificate``, ``medical``,
    alone;
 #. each listed item not yet verified is stamped with the time and the caller,
    and one already verified keeps its stamp, so re-verifying names whoever
-   verified it first;
+   verified it first; an item the saved profile does not hold (a certificate or
+   medical of ``none``, a photo ID of ``not_provided``) ends unverified even when
+   listed, since there is nothing to verify;
 #. the audit log records ``member.verify`` with ``verified`` (the items stamped)
    and ``cleared`` (the items verified before and not after), by slug;
 #. when either list is not empty, ``verification_changed`` is raised once, with
@@ -968,7 +975,9 @@ history row, ``aircraft.update``, ``aircraft_changed`` when a column moved, and
 the clearing of a verification the change made stale); then the insurance is
 stamped with the time and the caller when ``verified`` is true and it is not
 yet verified (verified insurance keeps its stamp), or cleared when ``verified``
-is false.  The audit log records ``aircraft.verify`` with ``verified``, and
+is false or the saved record has no ``insurance_expiration``, which is no policy
+to verify.  The audit log records ``aircraft.verify`` with whether the insurance
+ends verified, and
 ``verification_changed`` is raised once, with ``aircraft``, ``verified`` and
 ``cleared`` as item labels and ``actor``, when the insurance was stamped or
 cleared; a save that changes nothing raises nothing.

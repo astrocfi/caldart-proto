@@ -81,7 +81,7 @@ export function PayPalPanel({
           onApprove={async (data) => {
             const id = paymentId.current;
             if (id === null) {
-              setError('That PayPal order has gone missing. Please try again.');
+              setError('That PayPal order has gone missing. Start the payment again.');
               return;
             }
             try {
@@ -105,7 +105,7 @@ export function PayPalPanel({
               hasOrderError.current = false;
               return;
             }
-            setError('PayPal could not be reached. Please try again.');
+            setError("PayPal didn't answer. Try again in a moment.");
           }}
         />
       </PayPalScriptProvider>
@@ -113,7 +113,7 @@ export function PayPalPanel({
       <p className="checkout__fineprint muted">
         You will be asked to sign in to PayPal in a secure window.{' '}
         {fields.plan === null
-          ? 'Your gift is recorded the moment the payment clears.'
+          ? 'Your donation is recorded the moment the payment clears.'
           : 'Your membership starts the moment the payment clears.'}
       </p>
     </div>

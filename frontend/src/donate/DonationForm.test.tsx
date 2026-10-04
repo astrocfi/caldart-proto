@@ -273,10 +273,10 @@ describe('DonationForm', () => {
     await user.click(await screen.findByRole('button', { name: 'Succeed' }));
 
     // The refusal takes the giver back to the details, with the message beside
-    // the field it named rather than only in the payment panel.
+    // the field it named rather than only in the payment panel; the hint gives way to it.
     const email = await screen.findByLabelText(/^Email/);
     expect(email).toHaveAccessibleDescription(
-      'An account already uses that email address. Sign in to donate. Your receipt goes here',
+      'An account already uses that email address. Sign in to donate.',
     );
     expect(screen.getByRole('button', { name: 'Continue to payment' })).toBeInTheDocument();
   });

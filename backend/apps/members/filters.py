@@ -91,9 +91,9 @@ def derived_annotations() -> dict[str, Concat | Case]:
             default=F("past_end"),
             output_field=DateField(),
         ),
-        # The Pilot column, as a number: a pilot whose medical is in date, then
+        # The Pilot column, as a number: a pilot whose medical is current, then
         # one whose medical has lapsed, then somebody who is not a pilot.  The
-        # column shows a tick, a cross and a dash, and this is what sorts them.
+        # column shows a check mark, a cross, and a dash, and this is what sorts them.
         "pilot_rank": Case(
             When(profile__pilot_certificate_type=PilotCertificateType.NONE, then=Value(2)),
             When(profile__medical_type=MedicalType.NONE, then=Value(1)),

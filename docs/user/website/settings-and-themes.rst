@@ -11,7 +11,7 @@ typefaces. This page explains each setting and how to choose a theme.
 What you see
 ============
 
-The settings come in four groups. Press **Save** at the foot of the form to keep your
+The settings come in four groups. Press **Save** at the bottom of the form to keep your
 changes.
 
 **Organization**

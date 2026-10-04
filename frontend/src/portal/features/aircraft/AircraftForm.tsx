@@ -115,7 +115,7 @@ export function AircraftForm({
             onFound={handleFound}
             onBlur={handleBlur('n_number')}
             error={shown.n_number}
-            hint="Digits, then up to two letters"
+            hint="N, then digits, then at most two letters, such as N172SP"
           />
           <Field label="Year" error={shown.year}>
             {(field) => (
@@ -233,6 +233,7 @@ export function AircraftForm({
 
       <fieldset className="aircraft-form__section">
         <legend className="aircraft-form__legend">Insurance</legend>
+        <p className="muted small">Amounts are in US dollars.</p>
         <div className="aircraft-form__grid">
           <Field label="Carrier" error={shown.insurance_carrier}>
             {(field) => (
@@ -255,7 +256,6 @@ export function AircraftForm({
           </Field>
           <Field
             label="Liability per occurrence"
-            hint="US dollars; commas write themselves."
             error={shown.liability_per_occurrence ?? shown.insurance_liability_per_occurrence_cents}
           >
             {(field) => (
@@ -272,7 +272,6 @@ export function AircraftForm({
           </Field>
           <Field
             label="Liability per person"
-            hint="US dollars; commas write themselves."
             error={shown.liability_per_person ?? shown.insurance_liability_per_person_cents}
           >
             {(field) => (
@@ -287,11 +286,7 @@ export function AircraftForm({
               />
             )}
           </Field>
-          <Field
-            label="Hull"
-            hint="US dollars; commas write themselves."
-            error={shown.hull ?? shown.insurance_hull_cents}
-          >
+          <Field label="Hull" error={shown.hull ?? shown.insurance_hull_cents}>
             {(field) => (
               <MaskedInput
                 {...field}

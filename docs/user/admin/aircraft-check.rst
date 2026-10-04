@@ -65,9 +65,12 @@ the airplane out of service, and the make, model, year, and seats. Then come fiv
    or the :doc:`aircraft-record`.
 
 **Insurance**
-   The insurance status (**Insured**, **Expiring soon**, **Insurance expired**, or **No
-   insurance on file**), the carrier, the expiry date, and the mark: **Verified** with
-   who verified it and on which day, or **Not verified**.
+   Where the insurance stands, the carrier, the expiry date, and, once somebody has
+   checked the policy, **Verified** with who verified it and on which day. The insurance
+   reads **Not verified** in amber for a current policy nobody has checked, as the
+   :doc:`member-check` reads it, and otherwise **Insured**, **Expiring soon**, **Insurance
+   expired**, or **No insurance on file**. With no insurance on file there is nothing to
+   verify, and no mark.
 
 **Liability**
    The limits per occurrence and per person, and the hull value.
@@ -82,10 +85,17 @@ the airplane out of service, and the make, model, year, and seats. Then come fiv
    you how old the insurance details are: a policy that runs out next month on a record
    last changed two years ago is worth a phone call.
 
-**Members who fly it** lists every member who has the airplane on their profile, each with
-**Member current** or **Member expired** and **Medical current** or **Medical not
-current**. With nobody listed the card says *No member lists this aircraft on their
-profile.*
+**Pilots who fly it** lists every member and friend of CalDART who has the airplane on
+their profile. Each line gives:
+
+- the person's name, a link to their card on the :doc:`member-check`;
+- **Member current**, **Member expired**, or **Friend** for a friend of CalDART, who pays
+  no dues;
+- **GO** or **NO-GO**, the same verdict the :doc:`member-check` gives that person: a
+  current membership, a current medical, and a verified pilot certificate, medical, and
+  photo ID. Open their card to read why a pilot is a NO-GO.
+
+With nobody listed the card says *No member lists this aircraft on their profile.*
 
 The policy number is kept on the record and left off this card. An account administrator
 can read it in the aircraft register.
@@ -97,12 +107,13 @@ Verifying the insurance
 A verifier, a DART leader, a user administrator, an account administrator, and a system
 administrator see **Verify** under the N-number. Press it to open the **Verification**
 panel, with the policy's **Carrier**, **Policy number**, **Liability per occurrence**,
-**Liability per person**, **Hull**, and **Insurance expires**. Correct any that differ from
-the policy documents, tick **Insurance verified**, and press **Save**. The toast reads
-*Verification saved* and the card shows the new verdict. Changing a field unticks the box,
-so you tick it again once you have checked the new value; unticking it clears the
-verification. **Cancel**, or Escape, closes the panel and changes nothing. Either way you
-are back on **Verify**.
+**Liability per person**, **Hull**, and **Insurance expires**, the amounts in US dollars.
+Correct any that differ from the policy documents, check **Insurance verified**, and press
+**Save verification**. The toast reads *Verification saved* and the card shows the new
+verdict. Changing a field unchecks the box, so you check it again once you have checked the
+new value; unchecking it clears the verification. With no expiry date entered there is no
+policy to verify, so the box is replaced by *Nothing to verify yet*. **Cancel**, or Escape,
+closes the panel and changes nothing. Either way you are back on **Verify**.
 
 Any later change to the insurance, by the pilot on **My aircraft** or by an account
 administrator, clears the verification. Each save that verifies or clears it emails the

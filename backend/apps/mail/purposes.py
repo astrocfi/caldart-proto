@@ -51,9 +51,15 @@ PURPOSE_LABELS: dict[str, str] = {
     "notification_membership_paid": "Notification: Membership paid",
     "notification_membership_granted": "Notification: Membership granted by an administrator",
     "notification_membership_expired": "Notification: Membership expired",
-    "notification_auto_renewal_on": "Notification: Automatic payment turned on",
-    "notification_auto_renewal_off": "Notification: Automatic payment turned off",
-    "notification_auto_renewal_declined": "Notification: Automatic payment declined",
+    "notification_auto_renewal_on": (
+        "Notification: Automatic renewal or recurring donation turned on"
+    ),
+    "notification_auto_renewal_off": (
+        "Notification: Automatic renewal or recurring donation turned off"
+    ),
+    "notification_auto_renewal_declined": (
+        "Notification: Automatic renewal or recurring donation charge failed"
+    ),
     "notification_donation_received": "Notification: Donation received",
     "notification_payment_recorded": "Notification: Payment recorded by hand",
     "notification_payment_refunded": "Notification: Payment refunded",
@@ -85,7 +91,7 @@ def purpose_labels() -> dict[str, str]:
 
     Each registered source's labels come first, read afresh in registration order --
     the five renewal reminders, worded from the stored reminder schedule
-    (``"Renewal reminder (60 days)"`` on the default one) -- then
+    (``"First reminder (60 days before)"`` on the default one) -- then
     :data:`PURPOSE_LABELS`.  A source may read the database, so a caller labeling
     many rows asks for the labels once and looks each row up with
     :func:`purpose_label`.

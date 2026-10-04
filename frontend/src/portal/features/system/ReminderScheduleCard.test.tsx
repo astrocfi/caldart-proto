@@ -61,7 +61,7 @@ describe('<ReminderScheduleCard/>', () => {
     const final = await screen.findByLabelText('Final reminder');
     await userEvent.clear(final);
     await userEvent.type(final, '3');
-    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Save changes' }));
 
     expect(await screen.findByText('Reminder schedule saved.')).toBeInTheDocument();
     expect(bodies).toEqual([
@@ -79,7 +79,7 @@ describe('<ReminderScheduleCard/>', () => {
     renderWithProviders(<ReminderScheduleCard />);
 
     await screen.findByLabelText('First reminder');
-    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Save changes' }));
 
     expect(await screen.findByText('Last saved 09/30/2026 by Dana Fiske')).toBeInTheDocument();
   });
@@ -98,7 +98,7 @@ describe('<ReminderScheduleCard/>', () => {
     const lapsed = await screen.findByLabelText('Lapsed reminder');
     await userEvent.clear(lapsed);
     await userEvent.type(lapsed, '3');
-    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Save changes' }));
 
     expect(
       await screen.findByText('The lapsed reminder must be 7 to 365 days after expiry.'),
@@ -118,7 +118,7 @@ describe('<ReminderScheduleCard/>', () => {
 
     const second = await screen.findByLabelText('Second reminder');
     await userEvent.clear(second);
-    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Save changes' }));
 
     expect(await screen.findByText('Enter a number of days.')).toBeInTheDocument();
     expect(bodies).toEqual([]);
@@ -151,6 +151,6 @@ describe('<ReminderScheduleCard/>', () => {
 
     await screen.findByText('Last saved 09/30/2026 by Dana Fiske');
     expect(screen.queryByRole('spinbutton')).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Save changes' })).not.toBeInTheDocument();
   });
 });

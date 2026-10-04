@@ -54,7 +54,7 @@ describe('the counting sentences', () => {
 
   it('says what an add did', () => {
     expect(addSentence({ added: 12, already_present: 3, count: 41 })).toBe(
-      'Added 12 people; 3 were already in the batch.',
+      'Added 12 people; 3 were already on the list.',
     );
   });
 });

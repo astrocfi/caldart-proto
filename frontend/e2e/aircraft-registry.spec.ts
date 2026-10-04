@@ -109,7 +109,7 @@ test('a member picks a registration from the N-number list and a misspelled type
   await expect(page.getByRole('combobox', { name: /^N-number/ })).toHaveValue(
     REGISTRY.knownNNumber,
   );
-  await expect(page.getByText(`From the FAA registry as of ${REGISTRY.asOf}`)).toBeVisible();
+  await expect(page.getByText(`From FAA data as of ${REGISTRY.asOf}`)).toBeVisible();
   await expect(typeBox(page)).toHaveValue(REGISTRY.knownType);
   await expect(page.getByRole('textbox', { name: 'Year', exact: true })).toHaveValue(
     String(REGISTRY.knownYear),
@@ -133,7 +133,7 @@ test('a member picks a registration from the N-number list and a misspelled type
 test('an account administrator adds a type the FAA has never registered', async ({ page }) => {
   await signIn(page, DEMO.accountadmin);
   await page.goto('portal/admin/aircraft');
-  await expect(page.getByText(`Registry as of ${REGISTRY.asOf}`)).toBeVisible();
+  await expect(page.getByText(`FAA data as of ${REGISTRY.asOf}`)).toBeVisible();
   await page.getByRole('button', { name: 'New aircraft' }).click();
 
   const nNumber = unusedNNumber();
@@ -147,7 +147,7 @@ test('an account administrator adds a type the FAA has never registered', async 
   const adding = page.getByRole('group', { name: 'Add a type' });
   await adding.getByRole('textbox', { name: /^Make/ }).fill('Quillfeather');
   await adding.getByRole('textbox', { name: /^Model/ }).fill(model);
-  await adding.getByRole('button', { name: 'Add type' }).click();
+  await adding.getByRole('button', { name: 'Add aircraft type' }).click();
 
   await expect(adding).toHaveCount(0);
   await expect(typeBox(page)).toHaveValue(`Quillfeather ${model}`);
@@ -209,7 +209,7 @@ test('the system administrator runs the FAA registry import', async ({ page }) =
   // Health and database's panels are cards, each a section headed by its title.
   const panel = page
     .locator('section')
-    .filter({ has: page.getByRole('heading', { name: 'Aircraft database' }) });
+    .filter({ has: page.getByRole('heading', { name: 'FAA aircraft data' }) });
   const started = page.waitForResponse(
     (response) =>
       response.url().endsWith('/api/v1/admin/system/registry-import') &&

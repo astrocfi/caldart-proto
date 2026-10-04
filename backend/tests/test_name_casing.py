@@ -265,11 +265,11 @@ def test_put_profile_without_names_leaves_them_alone(
 def test_patch_profile_refuses_a_blank_name(
     api_client: APIClient, member: User, profile: MemberProfile, field: str
 ) -> None:
-    """A blank name is refused with the message registration gives a blank name."""
+    """A blank name is refused in words that suit a member and an administrator alike."""
     api_client.force_login(member)
     response = api_client.patch(PROFILE_URL, {field: "   "}, format="json")
     assert response.status_code == 400
-    assert response.json()[field] == ["This field may not be blank."]
+    assert response.json()[field] == [f"Enter a {field.replace('_', ' ')}."]
 
 
 def test_a_profile_name_change_names_the_field_in_the_event(

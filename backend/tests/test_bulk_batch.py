@@ -458,10 +458,10 @@ def test_the_batch_csv_holds_exactly_the_batch(
 def test_the_batch_csv_is_named_for_the_email(
     management_client: APIClient, bulk: BulkEmail
 ) -> None:
-    """The download is named ``caldart-bulk-email-<id>-batch.csv``."""
+    """The download is named ``caldart-bulk-email-<id>-recipient-list.csv``."""
     response = management_client.get(f"{base_url(bulk)}/batch.csv")
     assert response["Content-Disposition"] == (
-        f'attachment; filename="caldart-bulk-email-{bulk.pk}-batch.csv"'
+        f'attachment; filename="caldart-bulk-email-{bulk.pk}-recipient-list.csv"'
     )
 
 

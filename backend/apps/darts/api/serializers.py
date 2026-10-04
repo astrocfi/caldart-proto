@@ -51,7 +51,7 @@ class DartAdminContactSerializer(DartContactSerializer):
     """One person on a DART as the account administrator edits them.
 
     The public fields, plus ``receives_roster``: whether the person is sent the
-    team's roster.  The tick is the administrator's business, so the public
+    team's roster.  The checkbox is the administrator's business, so the public
     catalog leaves it out.
     """
 
@@ -87,7 +87,7 @@ class DartAdminSerializer(serializers.ModelSerializer[Dart]):
     row, saved together.  ``member_count`` and ``page_count`` say what a
     deletion would leave behind: the members whose profile names this DART, and
     the website pages linked to it.  ``roster_recipients`` counts the people
-    ticked to receive the roster who have an email address, and
+    checked to receive the roster who have an email address, and
     ``roster_sent_at`` is when the last roster went out (null when none has);
     both are read-only.
     """
@@ -159,7 +159,7 @@ class DartAdminSerializer(serializers.ModelSerializer[Dart]):
         return ", ".join(airports)
 
     def get_roster_recipients(self, dart: Dart) -> int:
-        """How many of ``dart``'s people are ticked for the roster and have an email.
+        """How many of ``dart``'s people are checked for the roster and have an email.
 
         Counted from the contacts themselves rather than annotated on the
         queryset, so the answer to a save counts the people that save wrote.
