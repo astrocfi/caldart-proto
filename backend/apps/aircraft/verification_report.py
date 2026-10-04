@@ -1,9 +1,14 @@
 """The CalDART verification report: which items a verifier has checked, and which not.
 
 Four sections, in this order: *Pilot certificates*, *Medicals*, and *Photo IDs*, one row
-per checkable person with a profile in each, and *Aircraft insurance*, one row per
-aircraft in service.  Each row names the item's holder, what is on file, when the record
-was last written, and whether, by whom, and on which day the item was verified.  The
+per checkable person with a profile who holds that item, and *Aircraft insurance*, one
+row per aircraft in service with a policy on file.  An item nobody holds (a non-pilot's
+certificate, a medical of *None*, a photo ID of *Not provided*, insurance with no
+expiration) has nothing to verify and is never listed.  Each row names the item's holder,
+what is on file, and when the record was last written; the Section column and the three
+verification columns (whether, by whom, and on which day) are there to choose, and off
+by default, since the section heads its rows and the default list is of items nobody
+has verified.  The
 house style lives in ``caldart.reports``; this module decides which rows the report
 holds, how its two filters narrow them, and what each cell prints.  It lives in the
 aircraft app, which sits above the members app and already decides who the leader's
@@ -24,7 +29,9 @@ from apps.accounts.models import User
 from apps.accounts.roles import VERIFY_ROLES
 from apps.aircraft.models import Aircraft
 from apps.aircraft.services import checkable_people
+from apps.darts.models import Dart
 from apps.members.models import MedicalType, MemberProfile, PhotoIdType, PilotCertificateType
+from apps.members.verification import is_held
 from caldart.dates import format_display_date
 from caldart.reports import Params, ReportColumn, ReportQuery, ReportSpec
 
@@ -55,6 +62,13 @@ ALL = "all"
 
 #: The values ``?status=`` accepts.
 STATUSES: tuple[str, ...] = (UNVERIFIED, VERIFIED, ALL)
+
+#: Each status in the words the PDF subtitle prints after ``Showing:``.
+STATUS_WORDS: dict[str, str] = {
+    UNVERIFIED: "Not yet verified",
+    VERIFIED: "Verified",
+    ALL: "Everything",
+}
 
 #: What joins the parts of a Details cell.
 DETAIL_SEPARATOR = " \u00b7 "
@@ -141,19 +155,20 @@ def _verified_by_name(row: VerificationRow) -> str:
     return "" if row.verified_by is None else row.verified_by.display_name
 
 
-#: Every column the report can carry, in export order, all of them on by default.
+#: Every column the report can carry, in export order.  Section and the three
+#: verification columns are off by default.
 VERIFICATION_REPORT_COLUMNS: tuple[ReportColumn[VerificationRow], ...] = (
-    ReportColumn("section", "Section", True, lambda row: row.section, width=2.3),
+    ReportColumn("section", "Section", False, lambda row: row.section, width=2.3),
     ReportColumn("name", "Name", True, lambda row: row.name, width=2.6),
     ReportColumn("dart", "DART", True, lambda row: row.dart, width=3.0),
     ReportColumn("details", "Details", True, lambda row: row.details, width=4.2),
     ReportColumn("updated", "Updated", True, lambda row: _local_day(row.updated_at), width=1.4),
     ReportColumn(
-        "verified", "Verified", True, lambda row: "Yes" if row.is_verified else "No", width=1.2
+        "verified", "Verified", False, lambda row: "Yes" if row.is_verified else "No", width=1.2
     ),
-    ReportColumn("verified_by", "Verified by", True, _verified_by_name, width=2.4),
+    ReportColumn("verified_by", "Verified by", False, _verified_by_name, width=2.4),
     ReportColumn(
-        "verified_on", "Verified on", True, lambda row: _local_day(row.verified_at), width=1.5
+        "verified_on", "Verified on", False, lambda row: _local_day(row.verified_at), width=1.5
     ),
 )
 
@@ -200,12 +215,15 @@ def checkable_profiles(dart: str) -> QuerySet[MemberProfile]:
 
 
 def insured_aircraft(dart: str) -> QuerySet[Aircraft]:
-    """Every aircraft in service, narrowed to ``dart`` when it is given, by N-number.
+    """Every aircraft in service with a policy on file, narrowed to ``dart``, by N-number.
 
+    A policy on file is an insurance expiration; without one there is nothing to verify.
     An aircraft belongs to a DART through its pilots: ``dart`` keeps the aircraft that
     some pilot on that DART flies, each once however many of them fly it.
     """
-    aircraft = Aircraft.objects.filter(is_active=True).select_related("insurance_verified_by")
+    aircraft = Aircraft.objects.filter(
+        is_active=True, insurance_expiration__isnull=False
+    ).select_related("insurance_verified_by")
     if dart != "":
         flown = Aircraft.objects.filter(_dart_filter(dart, "pilots__dart")).values("pk")
         aircraft = aircraft.filter(pk__in=flown)
@@ -213,9 +231,11 @@ def insured_aircraft(dart: str) -> QuerySet[Aircraft]:
 
 
 def person_rows(profiles: list[MemberProfile]) -> Iterator[VerificationRow]:
-    """One row per item of each of ``profiles``, item by item in section order."""
+    """One row per item each of ``profiles`` holds, item by item in section order."""
     for slug, details in PERSON_DETAILS:
         for profile in profiles:
+            if not is_held(profile, slug):
+                continue
             yield VerificationRow(
                 section=PERSON_SECTIONS[slug],
                 name=profile.user.display_name,
@@ -248,6 +268,18 @@ def _wanted(row: VerificationRow, status: str) -> bool:
     return row.is_verified is (status == VERIFIED)
 
 
+def _dart_words(value: str) -> str:
+    """How the PDF subtitle names the ``dart`` filter: a DART's name for its id.
+
+    A fragment of a name, or an id no DART has, is printed as it was given.
+    """
+    if value.isdigit():
+        found = Dart.objects.filter(pk=int(value)).values_list("name", flat=True).first()
+        if found is not None:
+            return found
+    return value
+
+
 def verification_report_query(params: Params) -> ReportQuery[VerificationRow]:
     """The report's rows and sections for ``params``.
 
@@ -256,8 +288,9 @@ def verification_report_query(params: Params) -> ReportQuery[VerificationRow]:
     ``status``.  ``dart`` is a DART's id or part of its name, and keeps that DART's
     people and the aircraft its pilots fly.  The rows come section by section in
     :data:`SECTIONS` order, every section is listed even when no row falls in it, and
-    the applied filters are ``status`` (always, since it has a default) and then
-    ``dart`` when given.
+    the applied filters, as the PDF subtitle prints them, are ``Showing`` with the
+    status in words (always, since it has a default; see :data:`STATUS_WORDS`) and then
+    ``DART`` with the DART's name, or the fragment given, when ``dart`` is.
     """
     status = _status(params)
     dart = params.get("dart", "").strip()
@@ -265,9 +298,9 @@ def verification_report_query(params: Params) -> ReportQuery[VerificationRow]:
         *person_rows(list(checkable_profiles(dart))),
         *insurance_rows(insured_aircraft(dart)),
     ]
-    filters = {"status": status}
+    filters = {"Showing": STATUS_WORDS[status]}
     if dart != "":
-        filters["dart"] = dart
+        filters["DART"] = _dart_words(dart)
     return ReportQuery(
         rows=[row for row in rows if _wanted(row, status)],
         filters=filters,

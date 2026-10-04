@@ -37,6 +37,7 @@ from reportlab.lib.units import inch
 from reportlab.pdfgen import canvas as pdf_canvas
 from reportlab.platypus import (
     BaseDocTemplate,
+    CondPageBreak,
     Flowable,
     Frame,
     LongTable,
@@ -129,6 +130,10 @@ SECTION_STYLE = ParagraphStyle(
     spaceBefore=8,
     spaceAfter=4,
 )
+#: The room a section's title needs below it, in points, for the table's header and its
+#: first row to follow on the same page; with less left, the title starts the next page.
+SECTION_KEEP_HEIGHT = inch
+
 #: The line an empty section draws under its title, when its report gives one.
 EMPTY_SECTION_STYLE = ParagraphStyle(
     "CalDartEmptySection",
@@ -454,7 +459,9 @@ def build_pdf_table(
     them, ``rows`` is not read: each section draws its title in
     :data:`SECTION_STYLE` and then its own table, header repeated on every page it
     runs onto.  A section with no rows draws its title and then ``empty_section`` in
-    italics, or its title alone when ``empty_section`` is blank.
+    italics, or its title alone when ``empty_section`` is blank.  A title with less than
+    :data:`SECTION_KEEP_HEIGHT` left under it on the page starts the next page, so it is
+    never left alone above a page break.
     """
     if widths is not None and len(widths) != len(header):
         raise ValueError(f"{len(header)} columns but {len(widths)} widths")
@@ -502,6 +509,7 @@ def build_pdf_table(
         story.append(_pdf_table(header, rows, col_widths))
     else:
         for section_title, section_rows in sections:
+            story.append(CondPageBreak(SECTION_KEEP_HEIGHT))
             story.append(Paragraph(escape_markup(section_title), SECTION_STYLE))
             if len(section_rows) > 0:
                 story.append(_pdf_table(header, section_rows, col_widths))

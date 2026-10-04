@@ -142,7 +142,9 @@ nothing.  The PDF draws each section's title in ``SECTION_STYLE`` (the subtitle'
 Helvetica at 10pt, bold, in the house blue, 8pt above and 4pt below) and then that
 section's own table, its header repeated on every page it runs onto.  A section
 with no rows draws its title and then the spec's ``empty_section`` in italics, or
-its title alone when ``empty_section`` is blank.
+its title alone when ``empty_section`` is blank.  A title with less than
+``SECTION_KEEP_HEIGHT`` (an inch) left under it on the page starts the next page,
+so a title is never left alone above a page break.
 
 Periods
 -------
@@ -494,13 +496,17 @@ It is sectioned, one section per kind of item, always in this order and each dra
 even when empty, with the line "Nothing to show." under an empty one:
 
 ``Pilot certificates``, ``Medicals``, ``Photo IDs``
-   One row per checkable person with a profile, in each of the three: every active
-   member and friend (``checkable_people()`` in ``apps/aircraft/services.py``).  A
+   One row per checkable person with a profile who holds the item, in each of the
+   three: every active member and friend (``checkable_people()`` in
+   ``apps/aircraft/services.py``).  An item the person does not hold (``is_held`` in
+   ``apps/members/verification.py``: a certificate of *Not a pilot*, a medical of
+   *None*, a photo ID of *Not provided*) has nothing to verify and is left out.  A
    donor, a deactivated account, and an account with no profile are never listed.
    The rows are ordered by last name, first name, then address.
 ``Aircraft insurance``
-   One row per aircraft in service (``is_active``), in N-number order.  An aircraft
-   out of service is never listed.
+   One row per aircraft in service (``is_active``) with a policy on file (an
+   ``insurance_expiration``), in N-number order.  An aircraft out of service, or with
+   no policy, is never listed.
 
 Two filters narrow the rows:
 
@@ -514,14 +520,17 @@ Two filters narrow the rows:
    report reads ``dart``.  It keeps that DART's people and the aircraft that at
    least one pilot on that DART flies, each aircraft once.
 
-The PDF subtitle always names the status, since it has a default, and then the
-DART when one is given.  Any other parameter is ignored, apart from ``columns``.
-Every column is a default; in order:
+The PDF subtitle always names the status in words, since it has a default
+(*Showing: Not yet verified*, *Verified*, or *Everything*), and then the DART when
+one is given, by name for an id (*DART: Monterey*) and as given for part of a name.
+Any other parameter is ignored, apart from ``columns``.  The section heads its rows
+and the default list is of items nobody has verified, so the Section column and the
+three verification columns are there to choose but off by default; in order:
 
 ============= ============== ======= =============================================
 Key           Label          Default Contents
 ============= ============== ======= =============================================
-section       Section        yes     The section's title, so the CSV keeps the
+section       Section        no      The section's title, so the CSV keeps the
                                      grouping
 name          Name           yes     The person's full name (or address), or the
                                      aircraft's N-number
@@ -534,10 +543,10 @@ updated       Updated        yes     ``MM/DD/YYYY`` of the profile's
                                      ``profile_updated_at`` or the aircraft's
                                      ``updated_at``; blank for a profile nobody has
                                      written
-verified      Verified       yes     ``Yes`` or ``No``
-verified_by   Verified by    yes     The verifier's name, blank when unverified or
+verified      Verified       no      ``Yes`` or ``No``
+verified_by   Verified by    no      The verifier's name, blank when unverified or
                                      when the verifier's account is gone
-verified_on   Verified on    yes     ``MM/DD/YYYY`` of the verification, in local
+verified_on   Verified on    no      ``MM/DD/YYYY`` of the verification, in local
                                      time
 ============= ============== ======= =============================================
 
@@ -826,7 +835,8 @@ headers, escaping, pagination, and an empty result set.
 ``backend/tests/test_report_endpoints.py`` proves the endpoints and the role
 matrix for every report.
 
-``backend/tests/test_report_sections.py`` covers sections.
+``backend/tests/test_report_sections.py`` covers sections, and
+``backend/tests/test_report_section_headings.py`` the title kept with its rows.
 ``backend/tests/test_members_reports.py`` covers the membership report and is
 the pattern to copy.  Assertions worth keeping:
 
