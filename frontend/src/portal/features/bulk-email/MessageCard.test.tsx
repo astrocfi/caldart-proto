@@ -30,6 +30,8 @@ function Card({
       emailId={7}
       emailType={1}
       emailTypeName="Operational"
+      isCallout={false}
+      closesAt={null}
       subject={subject}
       body={body}
       replyTo="grace@example.org"

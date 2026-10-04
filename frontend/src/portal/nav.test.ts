@@ -155,6 +155,7 @@ describe('visibleNavItems', () => {
       'Sent',
       'Templates',
       'Recipient groups',
+      'Callouts',
       'Mail delivery',
     ]);
   });
@@ -187,13 +188,14 @@ describe('visibleNavItems', () => {
       '/bulk-email/sent',
       '/bulk-email/templates',
       '/bulk-email/groups',
+      '/bulk-email/callouts',
       '/bulk-email/mail-delivery',
       '/messages',
       '/email-preferences',
     ]);
   });
 
-  it('gives a DART leader Compose, Drafts & scheduled, and Sent, for their own DART', () => {
+  it('gives a DART leader Compose, Drafts & scheduled, Sent, and Callouts, for their own DART', () => {
     const bulk = groupedNavItems(['member', 'dart_leader']).find(
       (bucket) => bucket.group === 'Bulk Email',
     );
@@ -201,6 +203,7 @@ describe('visibleNavItems', () => {
       '/bulk-email/compose',
       '/bulk-email/drafts',
       '/bulk-email/sent',
+      '/bulk-email/callouts',
       '/messages',
       '/email-preferences',
     ]);
@@ -285,6 +288,7 @@ describe('the Bulk Email group', () => {
       'Sent',
       'Templates',
       'Recipient groups',
+      'Callouts',
       'Email types',
       'Mail delivery',
       'Messages',

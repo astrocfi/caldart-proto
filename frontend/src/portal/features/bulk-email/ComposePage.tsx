@@ -100,6 +100,8 @@ function ComposeForm({
         emailId={email.id}
         emailType={email.email_type}
         emailTypeName={email.email_type_name}
+        isCallout={email.is_callout}
+        closesAt={email.closes_at}
         subject={values.subject}
         body={values.body}
         replyTo={email.reply_to}

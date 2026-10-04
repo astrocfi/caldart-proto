@@ -1893,7 +1893,8 @@ export type BulkEmailRecipientStatus =
  * copies the bounce check later found refused, which `sent_count` no longer counts;
  * `retries` lists each press of Retry failed, oldest first, and `retried_count` adds
  * up the copies they queued again. `hidden_from_archive` is true while the email is
- * kept off the recipients' Messages page.
+ * kept off the recipients' Messages page. `is_callout` is true for a mission callout,
+ * whose answers close at `closes_at`, null for any other email.
  */
 export interface BulkEmailDetail {
   id: number;
@@ -1926,6 +1927,8 @@ export interface BulkEmailDetail {
   retried_count: number;
   retries: BulkEmailRetry[];
   hidden_from_archive: boolean;
+  is_callout: boolean;
+  closes_at: IsoDateTime | null;
   can_edit: boolean;
   batch_count: number;
   receiving_count: number;
@@ -1969,7 +1972,8 @@ export interface BulkEmailHideRequest {
 /**
  * One bulk email the signed-in person received, from `GET /messages`: the subject as
  * their copy had it, when it went to them, who sent it (the organization's name once
- * the sender's account is gone), and its type, blank for none.
+ * the sender's account is gone), and its type, blank for none. `answer_url` is the
+ * reader's own answer page for a mission callout, blank for any other email.
  */
 export interface BulkEmailMessage {
   id: number;
@@ -1977,6 +1981,7 @@ export interface BulkEmailMessage {
   sent_at: IsoDateTime;
   from_name: string;
   email_type_name: string;
+  answer_url: string;
 }
 
 /**
@@ -2038,6 +2043,10 @@ export interface BulkEmailPatch {
   email_type?: number;
   /** Where replies go: a valid address, or blank for the default. */
   reply_to?: string;
+  /** True to make the email a mission callout, false to make it an ordinary email. */
+  is_callout?: boolean;
+  /** When a callout's answers close: a site-time `YYYY-MM-DDTHH:MM`. */
+  closes_at?: string;
 }
 
 /**
@@ -2330,4 +2339,71 @@ export interface AddGroupRequest {
 export interface SaveGroupRequest {
   name: string;
   kind: RecipientGroupKind;
+/* ----------------------------------------------------------- mission callouts */
+
+/** What a recipient answered a mission callout. */
+export type CalloutAnswerKind = 'available' | 'limited' | 'unavailable';
+
+/** How many people a callout reached, and how many gave each answer or none. */
+export interface CalloutCounts {
+  reached: number;
+  available: number;
+  limited: number;
+  unavailable: number;
+  no_answer: number;
+}
+
+/** One round of Remind non-responders: its number, when, and the reminders it queued. */
+export interface CalloutReminder {
+  round: number;
+  requested_at: IsoDateTime;
+  count: number;
+}
+
+/**
+ * One person a callout reached, from `GET /bulk-email/callouts/{id}`: their answer
+ * (null before they give one), its note and time, and what the member check shows of
+ * them now: DART, home airport, aircraft N-numbers, and the go/no-go verdicts.
+ */
+export interface CalloutRecipient {
+  user_id: number;
+  name: string;
+  email: string;
+  answer: CalloutAnswerKind | null;
+  note: string;
+  answered_at: IsoDateTime | null;
+  dart_name: string;
+  home_airport: string;
+  aircraft: string[];
+  go_no_go: LeaderGoNoGo;
+}
+
+/**
+ * One callout, from `GET /bulk-email/callouts`. `sender` is blank once the account is
+ * gone and `dart_name` blank for CalDART management's callout. `closes_at` is when
+ * answers close, `closed_at` when Close now closed it sooner, and `is_open` whether
+ * it takes answers now.
+ */
+export interface CalloutSummary {
+  id: number;
+  subject: string;
+  status: BulkEmailStatus;
+  sender: string;
+  dart_name: string;
+  started_at: IsoDateTime | null;
+  sent_at: IsoDateTime | null;
+  closes_at: IsoDateTime;
+  closed_at: IsoDateTime | null;
+  is_open: boolean;
+  counts: CalloutCounts;
+}
+
+/**
+ * One callout with its answers, from `GET /bulk-email/callouts/{id}`: who closed it
+ * (blank when nobody did), each round of reminders, and one row per person reached.
+ */
+export interface CalloutDetail extends CalloutSummary {
+  closed_by: string;
+  reminders: CalloutReminder[];
+  recipients: CalloutRecipient[];
 }

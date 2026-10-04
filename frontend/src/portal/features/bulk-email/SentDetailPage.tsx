@@ -6,7 +6,8 @@
  * after a stop. Then the message as it was sent, in a sandboxed frame with its
  * recipient field tokens as written, with whether it is on the recipients' Messages
  * page, and the delivery report: every person in the batch with what became of their
- * copy and why. The page is read again every few seconds while the email is sending.
+ * copy and why. A mission callout links to its answers. The page is read again every
+ * few seconds while the email is sending.
  */
 import type { JSX } from 'react';
 import { Link, useParams } from 'react-router-dom';
@@ -54,6 +55,12 @@ export function SentDetailPage(): JSX.Element {
           <SendStatus email={sent} />
         )}
         <DuplicateButton emailId={sent.id} subject={sent.subject} />
+        {sent.is_callout && sent.started_at !== null ? (
+          <p>
+            This is a mission callout.{' '}
+            <Link to={`/bulk-email/callouts/${sent.id}`}>See who can fly</Link>.
+          </p>
+        ) : null}
       </Card>
 
       <Card title="The message">

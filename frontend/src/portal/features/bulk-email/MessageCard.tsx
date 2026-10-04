@@ -1,7 +1,8 @@
 /**
- * Card 2 of the compose screen, **What it says**: the type, the subject, the
- * Reply-To address, and the message, with **Send me a test** at the bottom. The
- * type saves the moment it is chosen (`EmailTypeChoice`).
+ * Card 2 of the compose screen, **What it says**: whether it is a mission callout,
+ * the type, the subject, the Reply-To address, and the message, with **Send me a
+ * test** at the bottom. The callout switch (`CalloutFields`) and the type
+ * (`EmailTypeChoice`) save the moment they are chosen.
  *
  * Both save themselves as they are typed; a quiet note under the message says
  * whether the latest words are saved. The compose screen owns the values and the
@@ -18,6 +19,7 @@ import { Card } from '@/portal/components/Card';
 import { Field } from '@/portal/components/Field';
 import { RichTextEditor } from '@/portal/components/RichTextEditor';
 import type { RichTextEditorHandle } from '@/portal/components/RichTextEditor';
+import { CalloutFields } from './CalloutFields';
 import { EmailTypeChoice } from './EmailTypeChoice';
 import { InsertFieldMenu } from './InsertFieldMenu';
 import { ReplyToField } from './ReplyToField';
@@ -47,6 +49,9 @@ interface MessageCardProps {
   /** The chosen type's id, or null while none is chosen. */
   emailType: number | null;
   emailTypeName: string;
+  /** True for a mission callout, whose answers close at `closesAt`. */
+  isCallout: boolean;
+  closesAt: string | null;
   subject: string;
   body: string;
   /** The Reply-To address as saved, blank for `defaultReplyTo`; it saves itself. */
@@ -72,6 +77,8 @@ export function MessageCard({
   emailId,
   emailType,
   emailTypeName,
+  isCallout,
+  closesAt,
   subject,
   body,
   replyTo,
@@ -113,6 +120,12 @@ export function MessageCard({
           onReplaced={handleReplaced}
         />
       ) : null}
+      <CalloutFields
+        emailId={emailId}
+        isCallout={isCallout}
+        closesAt={closesAt}
+        isEditable={isEditable}
+      />
       <EmailTypeChoice
         emailId={emailId}
         emailType={emailType}

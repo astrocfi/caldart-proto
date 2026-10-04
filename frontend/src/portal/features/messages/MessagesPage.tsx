@@ -2,8 +2,10 @@
  * `/messages`: the bulk emails the signed-in person received, newest first.
  *
  * Each line is one email: when it was sent to them, its subject as their copy had
- * it, who sent it, and its kind. The subject opens the email. Only bulk email is
- * here; receipts, reminders, and other mail about the person's own account are not.
+ * it, who sent it, and its kind. The subject opens the email, or, for a mission
+ * callout, the reader's own answer page, which shows the message beside the answer.
+ * Only bulk email is here; receipts, reminders, and other mail about the person's own
+ * account are not.
  */
 import type { JSX } from 'react';
 import { Link } from 'react-router-dom';
@@ -53,7 +55,10 @@ export function MessagesPage(): JSX.Element {
   );
 }
 
-/** The list's columns, the date first and then the subject, which opens the email. */
+/**
+ * The list's columns, the date first and then the subject, which opens the email, or a
+ * callout's answer page.
+ */
 export const MESSAGE_COLUMNS: Column<BulkEmailMessage>[] = [
   {
     key: 'sent_at',
@@ -66,7 +71,12 @@ export const MESSAGE_COLUMNS: Column<BulkEmailMessage>[] = [
     key: 'subject',
     header: 'Subject',
     minWidth: '16rem',
-    render: (row) => <Link to={`/messages/${row.id}`}>{row.subject || '(no subject)'}</Link>,
+    render: (row) =>
+      row.answer_url === '' ? (
+        <Link to={`/messages/${row.id}`}>{row.subject || '(no subject)'}</Link>
+      ) : (
+        <a href={row.answer_url}>{row.subject || '(no subject)'}</a>
+      ),
     sortValue: (row) => row.subject,
   },
   {

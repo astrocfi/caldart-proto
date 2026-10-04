@@ -73,6 +73,12 @@ import type {
   BulkEmailStatus,
   BulkEmailSummary,
   BulkEmailTestResult,
+  CalloutAnswerKind,
+  CalloutCounts,
+  CalloutDetail,
+  CalloutRecipient,
+  CalloutReminder,
+  CalloutSummary,
   CheckoutRequest,
   DuplicateRequest,
   EmailTemplate,
@@ -548,6 +554,14 @@ const groupFilterAddRequest: Matches<GroupFilterAddRequest, Schemas['GroupFilter
 const addGroupRequest: Matches<AddGroupRequest, Schemas['AddGroupRequest']> = true;
 const saveGroupRequest: Matches<SaveGroupRequest, Schemas['SaveGroupRequest']> = true;
 
+/* ------------------------------------------------------- mission callouts */
+const calloutAnswerKind: Matches<CalloutAnswerKind, Schemas['CalloutAnswerEnum']> = true;
+const calloutCounts: Matches<CalloutCounts, Schemas['CalloutCounts']> = true;
+const calloutReminder: Matches<CalloutReminder, Schemas['CalloutReminder']> = true;
+const calloutRecipient: Matches<CalloutRecipient, Schemas['CalloutRecipient']> = true;
+const calloutSummary: Matches<CalloutSummary, Schemas['CalloutSummary']> = true;
+const calloutDetail: Matches<CalloutDetail, Schemas['CalloutDetail']> = true;
+
 /** Every pair above, so `noUnusedLocals` keeps each assertion referenced. */
 const assertions: readonly true[] = [
   roleSlug,
@@ -760,6 +774,12 @@ const assertions: readonly true[] = [
   groupFilterAddRequest,
   addGroupRequest,
   saveGroupRequest,
+  calloutAnswerKind,
+  calloutCounts,
+  calloutReminder,
+  calloutRecipient,
+  calloutSummary,
+  calloutDetail,
 ];
 
 /** The schema component each assertion above names, in the same order. */
@@ -974,6 +994,12 @@ const MAPPED_COMPONENTS: readonly (keyof Schemas)[] = [
   'GroupFilterAddRequest',
   'AddGroupRequest',
   'SaveGroupRequest',
+  'CalloutAnswerEnum',
+  'CalloutCounts',
+  'CalloutReminder',
+  'CalloutRecipient',
+  'CalloutSummary',
+  'CalloutDetail',
 ];
 
 /** Vitest runs with `frontend/` as its root, so the repository root is one level up. */
