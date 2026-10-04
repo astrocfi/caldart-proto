@@ -167,7 +167,7 @@ def test_get_profile_returns_the_documented_shape(
 def test_profile_aircraft_name_the_member_who_added_each(
     api_client: APIClient, member: User, profile: MemberProfile, aircraft: Aircraft
 ) -> None:
-    """Each listed aircraft carries the id of the account that added it, for My aircraft."""
+    """Each listed aircraft carries the id of the account that added it."""
     aircraft.created_by = member
     aircraft.save(update_fields=["created_by"])
     profile.aircraft.add(aircraft)

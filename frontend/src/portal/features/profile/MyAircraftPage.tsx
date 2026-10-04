@@ -185,10 +185,9 @@ export function MyAircraftPage(): JSX.Element {
  * excludes it, if it does.  Nothing at all when neither applies.
  */
 function AircraftMeta({ plane }: { plane: AircraftSummary }): JSX.Element | null {
-  const parts = [
-    liabilityLine(plane),
-    plane.coverage.excluded ? plane.coverage.reason : '',
-  ].filter((part) => part !== '');
+  const parts = [liabilityLine(plane), plane.coverage.excluded ? plane.coverage.reason : ''].filter(
+    (part) => part !== '',
+  );
   if (parts.length === 0) return null;
   return <p className="aircraft-list__meta">{parts.join(' · ')}</p>;
 }

@@ -707,9 +707,7 @@ describe('<JoinWizard/> for a member who changes their mind', () => {
     renderWizard('/join/pay');
 
     await userEvent.click(await screen.findByRole('button', { name: FRIEND_LINK }));
-    await userEvent.click(
-      await screen.findByRole('button', { name: 'Continue without a gift' }),
-    );
+    await userEvent.click(await screen.findByRole('button', { name: 'Continue without a gift' }));
 
     expect(await screen.findByText('You are a friend of CalDART.')).toBeInTheDocument();
     expect(path()).toBe('/join/done');

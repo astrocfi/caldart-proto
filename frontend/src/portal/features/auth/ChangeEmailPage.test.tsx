@@ -38,9 +38,7 @@ describe('<ChangeEmailPage/>', () => {
   it('names the address the account uses now', async () => {
     renderPage();
 
-    expect(
-      await screen.findByText(/Your address is member@example\.org\./),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/Your address is member@example\.org\./)).toBeInTheDocument();
   });
 
   it('sends the new address and the current password', async () => {

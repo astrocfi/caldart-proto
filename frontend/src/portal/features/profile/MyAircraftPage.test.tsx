@@ -393,9 +393,10 @@ describe('<MyAircraftPage/> editing', () => {
 
     const row = (await screen.findByText('N12345')).closest('li') as HTMLElement;
     expect(within(row).queryByRole('button', { name: /^Edit/ })).not.toBeInTheDocument();
-    expect(
-      await within(row).findByRole('link', { name: 'office@example.org' }),
-    ).toHaveAttribute('href', 'mailto:office@example.org');
+    expect(await within(row).findByRole('link', { name: 'office@example.org' })).toHaveAttribute(
+      'href',
+      'mailto:office@example.org',
+    );
     expect(row).toHaveTextContent('Added by someone else. To correct it, write to');
   });
 

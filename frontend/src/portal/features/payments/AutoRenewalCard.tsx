@@ -309,8 +309,8 @@ function DonationSummary({ mandate }: { mandate: RenewalMandate | null }): JSX.E
       <div className="stack">
         <StatusDot tone="none" label="Off" />
         <p>
-          A recurring donation charges a saved card or PayPal account monthly, quarterly, or
-          yearly, for the amount you choose.
+          A recurring donation charges a saved card or PayPal account monthly, quarterly, or yearly,
+          for the amount you choose.
         </p>
       </div>
     );

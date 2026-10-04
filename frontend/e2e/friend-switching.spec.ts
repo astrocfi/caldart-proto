@@ -89,7 +89,9 @@ test('a joiner who changes their mind on the pay step becomes a friend', async (
   await expect(page).toHaveURL(/\/portal\/membership\/join/);
   await expect(page.getByRole('heading', { name: 'Become a member', level: 1 })).toBeVisible();
   // Becoming a member is paying for it: the way back to a friend is the wizard's alone.
-  await expect(page.getByRole('button', { name: 'Join as a friend instead (no dues)' })).toHaveCount(0);
+  await expect(
+    page.getByRole('button', { name: 'Join as a friend instead (no dues)' }),
+  ).toHaveCount(0);
   await payWithMock(page);
 
   await expect(page).toHaveURL(/\/portal\/?$/);
@@ -119,9 +121,7 @@ test('a joiner goes from member to friend and back again, then pays', async ({ p
   await expect(page.getByRole('heading', { name: 'Your membership is current' })).toBeVisible();
 });
 
-test('a joiner who chooses to be a friend can give instead, then finishes', async ({
-  page,
-}) => {
+test('a joiner who chooses to be a friend can give instead, then finishes', async ({ page }) => {
   const email = uniqueEmail('giver');
   await registerAccount(page, email, { as: 'member', firstName: 'Gia' });
   await followVerificationLink(page, email);

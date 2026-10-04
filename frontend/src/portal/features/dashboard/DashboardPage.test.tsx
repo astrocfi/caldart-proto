@@ -438,7 +438,9 @@ describe('DashboardPage · payments and renewal', () => {
     mount({ user: makeUser({ membership: CURRENT }), status: CURRENT });
 
     const line = await screen.findByText(/Automatic renewal is on/);
-    expect(line).toHaveTextContent('Automatic renewal is on: $70.00 will be charged on 03/12/2027.');
+    expect(line).toHaveTextContent(
+      'Automatic renewal is on: $70.00 will be charged on 03/12/2027.',
+    );
   });
 
   it('says the recurring donation is off for a life member who has none', async () => {

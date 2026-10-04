@@ -30,7 +30,9 @@ describe('ForgotPasswordPage', () => {
   });
 
   it('says how long the link lasts', async () => {
-    server.use(http.post(`${API}/auth/password/reset`, () => new HttpResponse(null, { status: 204 })));
+    server.use(
+      http.post(`${API}/auth/password/reset`, () => new HttpResponse(null, { status: 204 })),
+    );
 
     renderWithProviders(<ForgotPasswordPage />);
     await userEvent.type(screen.getByLabelText(/email address/i), 'marta@example.org');

@@ -70,6 +70,8 @@ export function PayStep({
     };
   }
 
+  const handleSkipAsFriend = asFriend(handleDone);
+
   // Each card is keyed by its kind, so switching starts the checkout afresh rather
   // than carrying the other kind's choices over.
   if (joiningAs === 'friend') {
@@ -79,7 +81,7 @@ export function PayStep({
         <Checkout
           mode="contribute"
           onSuccess={(result) => asFriend(() => handleSuccess(result))()}
-          onSkip={asFriend(handleDone)}
+          onSkip={handleSkipAsFriend}
           onBecomeMember={() => handleJoiningAsChange('member')}
         />
         <FormAlert error={becomeFriend.error} />
