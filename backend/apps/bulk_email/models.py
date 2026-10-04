@@ -100,7 +100,7 @@ class BulkEmail(TimestampedModel):
     sanitized on every save (``apps.bulk_email.richtext.sanitize``), and both may
     carry recipient field tokens such as ``{first_name}``
     (``apps.bulk_email.fields``).  ``sender`` owns the draft and sends it, null once
-    that account is deleted.  ``email_type`` is the kind of email it is
+    that account is deleted.  ``email_type`` is the type of email it is
     (``apps.mail.models.EmailType``): null while a draft, required to send, and
     protected, so a type a bulk email names cannot be deleted.  ``dart`` is the DART a
     DART leader's email is limited to (``apps.bulk_email.senders``), recorded when the

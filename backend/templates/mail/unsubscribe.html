@@ -30,7 +30,7 @@
       {% if state == "confirm" %}
         <p class="lede">
           Press the button to stop receiving {{ email_type.name }} email from {{ org }} for
-          <strong>{{ address }}</strong>. Other kinds of email from {{ org }} are not affected.
+          <strong>{{ address }}</strong>. Other types of email from {{ org }} are not affected.
         </p>
         <form method="post">
           <button type="submit" class="button">Unsubscribe</button>
@@ -57,7 +57,7 @@
       {% endif %}
       {% if state != "confirm" %}
         <p>
-          To choose which kinds of email you receive, sign in and open
+          To choose which types of email you receive, sign in and open
           <a href="{{ preferences_url }}">Email preferences</a>.
         </p>
       {% else %}

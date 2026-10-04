@@ -1,5 +1,5 @@
 /**
- * The type choice at the top of **What it says**: what kind of email this is.
+ * The type choice at the top of **What it says**: what type of email this is.
  *
  * One radio button per type the sender may send, each with the sentence saying what
  * the type is for. Choosing one saves it at once, and the batch is read again, since
@@ -94,7 +94,7 @@ export function EmailTypeChoice({
       <legend>Type of email</legend>
       {chosen === null ? (
         <p id={hintId} className="field__hint">
-          {NO_TYPE_HINT} People who have turned that kind of email off are skipped.
+          {NO_TYPE_HINT} People who have turned that type of email off are skipped.
         </p>
       ) : null}
       {types.isPending ? <p role="status">Loading the types…</p> : null}
