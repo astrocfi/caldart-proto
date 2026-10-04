@@ -5,8 +5,9 @@
  * draw their filters through this component, from the report's `FilterField`s
  * in `@/portal/reports/definitions`.  Every control applies itself: a select,
  * a multiselect, a date and a toggle as soon as they change, a text or number
- * box once the typing pauses.  There is no Apply button.  **Reset to Defaults**
- * empties every field.  A field's hint is its control's `title` rather than a
+ * box once the typing pauses.  There is no Apply button.  **Reset filters**,
+ * as tall as the fields beside it, empties every field.  Every control in the bar
+ * is one height, and they line up along the bottom.  A field's hint is its control's `title` rather than a
  * line under it, so the controls of a row line up.  A multiselect is a one-line
  * `MultiSelect` box that opens a panel of checkboxes, so it takes several
  * choices and gives any of them back on its own.
@@ -68,6 +69,18 @@ function dollarsFromCents(cents: string): string {
 /** Whole dollars typed into a dollar field as the cents its parameter takes. */
 function centsFromDollars(dollars: string): string {
   return dollars === '' ? '' : String(Number(dollars) * 100);
+}
+
+/**
+ * `values` with every one of `fields` emptied, and any other value, such as the sort,
+ * kept: what **Reset filters** sends, for an empty table's own Reset filters button.
+ *
+ * @param fields the bar's filter fields.
+ * @param values the values the bar holds.
+ * @returns the values with each field's key set to `''`.
+ */
+export function clearedValues(fields: readonly FilterField[], values: FilterValues): FilterValues {
+  return { ...values, ...Object.fromEntries(fields.map((f) => [f.key, ''])) };
 }
 
 /**
@@ -140,7 +153,7 @@ export function FilterBar({
   };
 
   const handleReset = (): void => {
-    const cleared = { ...draft, ...Object.fromEntries(fields.map((f) => [f.key, ''])) };
+    const cleared = clearedValues(fields, draft);
     setDraft(cleared);
     send(cleared);
   };
@@ -156,8 +169,8 @@ export function FilterBar({
           onSet={(value) => set(field, value)}
         />
       ))}
-      <Button type="button" variant="quiet" small onClick={handleReset}>
-        Reset to Defaults
+      <Button type="button" variant="quiet" onClick={handleReset}>
+        Reset filters
       </Button>
     </form>
   );
@@ -187,7 +200,7 @@ function FilterControl({
       handleSet(event.target.checked ? TOGGLE_ON : '');
     };
     return (
-      <label className="cluster">
+      <label className="cluster data-table__toggle">
         <input
           type="checkbox"
           title={field.hint}

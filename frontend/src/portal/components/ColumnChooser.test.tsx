@@ -212,7 +212,7 @@ describe('ColumnChooser buttons', () => {
 
     await user.click(screen.getByRole('button', { name: 'Columns' }));
 
-    const panel = screen.getByRole('group', { name: 'Columns to show and export' });
+    const panel = screen.getByRole('group', { name: 'Columns in the table and the download' });
     expect(
       within(panel)
         .getAllByRole('button')

@@ -1,23 +1,35 @@
 /**
- * The sortable table every admin screen uses, with an optional
- * filter bar and CSV/PDF export buttons.
+ * The sortable table every list screen uses, with an optional filter bar, a row of
+ * tools (the column chooser and the CSV/PDF exports) at its right, and an optional
+ * pagination control under it.
  *
  * A single-line table fits itself to its container (`tableFit.ts`): it leaves out the
- * columns that matter least, one at a time, and on a phone narrows its leading column
- * so the row's actions stay in sight.
+ * columns that matter least, one at a time, and on a phone narrows its identifying
+ * column so the row's actions stay in sight.  No column is drawn narrower than its own
+ * minimum.  A table that is still too wide scrolls sideways inside its card: it says
+ * so in a line above it and with a shadow at the edge that hides more, its scroll box
+ * becomes a named region a keyboard can focus and scroll, and its identifying column
+ * stays pinned at the left so every row can still be told apart.
  */
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { JSX, ReactNode, RefObject } from 'react';
 
 import { Button } from './Button';
 import { EmptyState } from './EmptyState';
-import { DEFAULT_COLUMN_WIDTH, fitColumns, needsFitting } from './tableFit';
+import { Pagination } from './Pagination';
+import type { PaginationSettings } from './Pagination';
+import { arrangeColumns, DEFAULT_COLUMN_WIDTH, fitColumns, needsFitting } from './tableFit';
+import { useTableScroll } from './useTableScroll';
 
 export type SortDirection = 'asc' | 'desc';
 
 export interface Column<Row> {
   /** Stable key; also the `ordering` value sent to the API. */
   key: string;
+  /**
+   * The heading.  An actions column may leave it blank: it is then headed
+   * "Actions" for a screen reader alone.
+   */
   header: string;
   render: (row: Row) => ReactNode;
   /** Value used for client-side sorting. Omit to make the column unsortable. */
@@ -30,10 +42,10 @@ export interface Column<Row> {
   sortable?: boolean;
   /** Right-align and use tabular figures. */
   numeric?: boolean;
-  /** Column width, used when the table is in single-line mode. */
+  /** Column width in rem, used when the table is in single-line mode. */
   width?: string;
   /**
-   * The least a column of text takes in single-line mode, for a column that
+   * The least a column of text takes in single-line mode, in rem, for a column that
    * shares out the room the fixed widths leave, such as a name or an email
    * address. The table never grows narrower than its fixed widths and these
    * minimums together, so on a narrow screen it scrolls inside its card instead
@@ -49,14 +61,16 @@ export interface Column<Row> {
    */
   dropOrder?: number;
   /**
-   * A column that stays in sight on a screen too narrow for the table, such as the
-   * row's actions: the leading text column then gives up its room, down to a floor, so
-   * that the table's columns up to the last of these end within the container.
+   * A column that stays in sight on a screen too narrow for the table, such as a
+   * status or a total: the identifying column then gives up its room, down to a
+   * floor, so that the table's columns up to the last of these end within the
+   * container.  An actions column always stays in sight.
    */
   keepInSight?: boolean;
   /**
-   * The width a `keepInSight` column takes on a screen too narrow for the table, its
-   * content wrapping onto more lines, such as two buttons one above the other.
+   * The width a column that stays in sight takes on a screen too narrow for the
+   * table, its content wrapping onto more lines, such as two buttons one above the
+   * other.
    */
   narrowWidth?: string;
   /**
@@ -64,14 +78,33 @@ export interface Column<Row> {
    * must be read whole, such as a reason or a description.
    */
   wrap?: boolean;
+  /**
+   * The column that tells one row from another: a name, an N-number, a subject, or a
+   * description.  It keeps a readable width before any other, and stays pinned at
+   * the left while the table scrolls sideways.  Its cells never wrap.
+   */
+  isIdentity?: boolean;
+  /**
+   * The row's buttons.  The table draws this column last, at least wide enough for an
+   * open delete confirmation, never leaves it out, and heads it "Actions" for a screen
+   * reader when `header` is blank.
+   */
+  isActions?: boolean;
+  /**
+   * Keep each cell on one line in any table, for a value that reads wrongly broken:
+   * a receipt number, a phone number, a month.
+   */
+  noWrap?: boolean;
 }
 
 /**
  * The least width a single-line table takes: every fixed width and every minimum
- * added up, or `undefined` when no column names a minimum.
+ * added up, a column naming neither reckoned at the default width; `undefined`
+ * when no column names a width or a minimum.
  */
 export function tableMinWidth<Row>(columns: readonly Column<Row>[]): string | undefined {
-  if (!columns.some((column) => column.minWidth !== undefined)) return undefined;
+  const isSized = columns.some((column) => (column.width ?? column.minWidth) !== undefined);
+  if (!isSized) return undefined;
   const parts = columns.map((column) => column.width ?? column.minWidth ?? DEFAULT_COLUMN_WIDTH);
   return `calc(${parts.join(' + ')})`;
 }
@@ -85,11 +118,14 @@ function columnStyle<Row>(column: Column<Row>): { width: string } | undefined {
   return width === undefined ? undefined : { width };
 }
 
-/** The class a cell of `column` carries: numeric or text, and whether it wraps. */
+/** The class a cell of `column` carries: numeric or text, whether it wraps, pinned or actions. */
 function cellClass<Row>(column: Column<Row>): string | undefined {
   const classes = [
     column.numeric ? 'numeric' : column.minWidth !== undefined ? 'data-table__text' : '',
     column.wrap ? 'data-table__wrap' : '',
+    column.noWrap === true || column.isIdentity === true ? 'data-table__nowrap' : '',
+    column.isIdentity === true ? 'data-table__identity' : '',
+    column.isActions === true ? 'data-table__actions' : '',
   ].filter((name) => name !== '');
   return classes.length === 0 ? undefined : classes.join(' ');
 }
@@ -120,8 +156,18 @@ export interface DataTableProps<Row> {
   rows: Row[];
   rowKey: (row: Row) => string | number;
   caption?: string;
+  /**
+   * The name of the table's scroll box, which a keyboard can focus once the table
+   * scrolls sideways; the caption unless given.
+   */
+  label?: string;
   /** Filter controls rendered above the table. */
   filters?: ReactNode;
+  /**
+   * Tools that act on the table as a whole, such as the column chooser, drawn on one
+   * row at the right with the export buttons.
+   */
+  tools?: ReactNode;
   /** Export hrefs; the buttons only appear when a URL is given. */
   exportCsvUrl?: string;
   exportPdfUrl?: string;
@@ -133,6 +179,8 @@ export interface DataTableProps<Row> {
   exportDisabledReason?: string;
   emptyTitle?: string;
   emptyDescription?: ReactNode;
+  /** The next thing to do from an empty table, such as a **Reset filters** button. */
+  emptyAction?: ReactNode;
   isLoading?: boolean;
   /**
    * Keep every cell on one line, cutting anything too long with an ellipsis.
@@ -149,6 +197,11 @@ export interface DataTableProps<Row> {
    * it stays right when the order changes from elsewhere.  Overrides `initialSort`.
    */
   sort?: { key: string; direction: SortDirection };
+  /**
+   * Draw the pagination control under the table.  Moving to another page brings the
+   * top of the table back into view.
+   */
+  pagination?: PaginationSettings;
 }
 
 function compare(a: string | number | null, b: string | number | null): number {
@@ -195,25 +248,105 @@ function ExportLink({
   );
 }
 
-/** A sortable table with an optional filter bar and CSV/PDF export buttons. */
+interface HeaderCellProps<Row> {
+  column: Column<Row>;
+  isSortable: boolean;
+  /** The direction the table is sorted by this column, or null when it is not. */
+  sorted: SortDirection | null;
+  singleLine: boolean;
+  onSort: () => void;
+}
+
+/** The arrow a sortable heading carries: up, down, or a faint both-ways while unsorted. */
+function caretOf(sorted: SortDirection | null): string {
+  if (sorted === 'asc') return '↑';
+  if (sorted === 'desc') return '↓';
+  return '↕';
+}
+
+/**
+ * One column heading.  A sortable one is a button with an arrow, on the left of a
+ * right-aligned heading so the words end over the figures; an unsortable one is
+ * plain words with no arrow.  Only the sorted column carries `aria-sort`.
+ */
+function HeaderCell<Row>({
+  column,
+  isSortable,
+  sorted,
+  singleLine,
+  onSort: handleSort,
+}: HeaderCellProps<Row>): JSX.Element {
+  const isBlankActions = column.isActions === true && column.header === '';
+  const caret = (
+    <span
+      aria-hidden="true"
+      className={
+        sorted === null ? 'data-table__caret data-table__caret--idle' : 'data-table__caret'
+      }
+    >
+      {caretOf(sorted)}
+    </span>
+  );
+  let content: ReactNode = column.header;
+  if (isBlankActions) content = <span className="visually-hidden">Actions</span>;
+  else if (isSortable) {
+    content = (
+      <button type="button" className="data-table__sort" onClick={handleSort}>
+        {column.numeric ? caret : null}
+        {column.header}
+        {column.numeric ? null : caret}
+      </button>
+    );
+  }
+  return (
+    <th
+      scope="col"
+      className={cellClass(column)}
+      style={singleLine ? columnStyle(column) : undefined}
+      aria-sort={sorted === null ? undefined : sorted === 'asc' ? 'ascending' : 'descending'}
+    >
+      {content}
+    </th>
+  );
+}
+
+/** The class of the box that holds the scroll box: whether it scrolls, and which way. */
+function scrollClass(scroll: ReturnType<typeof useTableScroll>): string {
+  return [
+    'table-scroll',
+    scroll.isOverflowing ? 'table-scroll--overflowing' : '',
+    scroll.hasMoreLeft ? 'table-scroll--more-left' : '',
+    scroll.hasMoreRight ? 'table-scroll--more-right' : '',
+  ]
+    .filter((name) => name !== '')
+    .join(' ');
+}
+
+/** A sortable table with an optional filter bar, tools, exports, and pagination. */
 export function DataTable<Row>({
-  columns: allColumns,
+  columns: givenColumns,
   rows,
   rowKey,
   caption,
+  label,
   filters,
+  tools,
   exportCsvUrl,
   exportPdfUrl,
   exportDisabledReason,
   emptyTitle = 'Nothing to show',
   emptyDescription,
+  emptyAction,
   isLoading = false,
   singleLine = false,
   onSortChange,
   initialSort,
   sort,
+  pagination,
 }: DataTableProps<Row>): JSX.Element {
   const rootRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const allColumns = useMemo(() => arrangeColumns(givenColumns), [givenColumns]);
   const availableRem = useWidthRem(rootRef, singleLine && needsFitting(allColumns));
   const columns = fitColumns(allColumns, availableRem);
   const [ownKey, setSortKey] = useState<string | null>(initialSort?.key ?? null);
@@ -230,9 +363,15 @@ export function DataTable<Row>({
     );
   }, [rows, allColumns, sortKey, direction, onSortChange]);
 
+  const isEmpty = sorted.length === 0 && !isLoading;
+  const scroll = useTableScroll(scrollRef, !isEmpty);
+
+  const isSortable = (column: Column<Row>): boolean =>
+    column.sortable !== false &&
+    column.isActions !== true &&
+    (Boolean(column.sortValue) || Boolean(onSortChange));
+
   const toggle = (column: Column<Row>): void => {
-    if (column.sortable === false) return;
-    if (!column.sortValue && !onSortChange) return;
     const nextDirection: SortDirection =
       sortKey === column.key && direction === 'asc' ? 'desc' : 'asc';
     setSortKey(column.key);
@@ -240,15 +379,22 @@ export function DataTable<Row>({
     onSortChange?.(column.key, nextDirection);
   };
 
+  const handlePageMoved = (): void => {
+    rootRef.current?.scrollIntoView?.({ block: 'start' });
+  };
+
   const hasExports = Boolean(exportCsvUrl || exportPdfUrl);
+  const hasTools = hasExports || Boolean(tools);
+  const regionName = label ?? caption ?? 'Table';
 
   return (
     <div ref={rootRef} className={singleLine ? 'data-table data-table--single-line' : 'data-table'}>
-      {filters || hasExports ? (
+      {filters || hasTools ? (
         <div className="data-table__bar">
-          <div className="data-table__filters">{filters}</div>
-          {hasExports ? (
-            <div className="cluster data-table__exports">
+          {filters ? <div className="data-table__filters">{filters}</div> : null}
+          {hasTools ? (
+            <div className="cluster data-table__tools">
+              {tools}
               {exportCsvUrl ? (
                 <ExportLink href={exportCsvUrl} disabledReason={exportDisabledReason}>
                   Export CSV
@@ -264,76 +410,68 @@ export function DataTable<Row>({
         </div>
       ) : null}
 
-      {sorted.length === 0 && !isLoading ? (
-        <EmptyState title={emptyTitle} description={emptyDescription} />
+      {isEmpty ? (
+        <EmptyState title={emptyTitle} description={emptyDescription} action={emptyAction} />
       ) : (
-        // `.table-wrap` scrolls a table that is wider than its container,
-        // rather than widening the page around it.
-        <div className="table-wrap">
-          <table style={singleLine ? { minWidth: tableMinWidth(columns) } : undefined}>
-            {caption ? <caption>{caption}</caption> : null}
-            <thead>
-              <tr>
-                {columns.map((column) => {
-                  const sortable =
-                    column.sortable !== false &&
-                    (Boolean(column.sortValue) || Boolean(onSortChange));
-                  const isSorted = sortKey === column.key;
-                  return (
-                    <th
-                      key={column.key}
-                      scope="col"
-                      className={cellClass(column)}
-                      style={singleLine ? columnStyle(column) : undefined}
-                      aria-sort={
-                        isSorted ? (direction === 'asc' ? 'ascending' : 'descending') : 'none'
-                      }
-                    >
-                      {sortable ? (
-                        <button
-                          type="button"
-                          className="data-table__sort"
-                          onClick={() => toggle(column)}
-                        >
-                          {column.header}
-                          <span aria-hidden="true" className="data-table__caret">
-                            {isSorted ? (direction === 'asc' ? '↑' : '↓') : ''}
-                          </span>
-                        </button>
-                      ) : (
-                        column.header
-                      )}
-                    </th>
-                  );
-                })}
-              </tr>
-            </thead>
-            <tbody>
-              {sorted.map((row) => (
-                <tr key={rowKey(row)}>
-                  {columns.map((column) => {
-                    const content = column.render(row);
-                    return (
-                      <td
+        <>
+          {scroll.isOverflowing ? (
+            <p className="muted data-table__scroll-hint">Scroll sideways to see every column.</p>
+          ) : null}
+          <div className={scrollClass(scroll)}>
+            {/* The box scrolls a table wider than its card rather than widening the page.
+              Once it does, a keyboard can reach it, and a screen reader hears its name. */}
+            <div
+              ref={scrollRef}
+              className="table-wrap"
+              role={scroll.isOverflowing ? 'region' : undefined}
+              aria-label={scroll.isOverflowing ? regionName : undefined}
+              tabIndex={scroll.isOverflowing ? 0 : undefined}
+            >
+              <table style={singleLine ? { minWidth: tableMinWidth(columns) } : undefined}>
+                {caption ? <caption>{caption}</caption> : null}
+                <thead>
+                  <tr>
+                    {columns.map((column) => (
+                      <HeaderCell
                         key={column.key}
-                        className={cellClass(column)}
-                        title={typeof content === 'string' ? content : undefined}
-                      >
-                        {content}
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                        column={column}
+                        isSortable={isSortable(column)}
+                        sorted={sortKey === column.key ? direction : null}
+                        singleLine={singleLine}
+                        onSort={() => toggle(column)}
+                      />
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {sorted.map((row) => (
+                    <tr key={rowKey(row)}>
+                      {columns.map((column) => {
+                        const content = column.render(row);
+                        return (
+                          <td
+                            key={column.key}
+                            className={cellClass(column)}
+                            title={typeof content === 'string' ? content : undefined}
+                          >
+                            {content}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
       )}
       {isLoading ? (
         <p className="muted data-table__loading" role="status">
           Loading…
         </p>
       ) : null}
+      {pagination ? <Pagination {...pagination} onMoved={handlePageMoved} /> : null}
     </div>
   );
 }

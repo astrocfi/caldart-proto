@@ -2,8 +2,9 @@
  * A button that opens a small panel under itself, the way the column chooser's
  * three buttons do.
  *
- * The panel closes on a click anywhere outside it and on Escape, so it never
- * sits over the table somebody is trying to read.  Closing it while the focus is
+ * The panel closes on a click anywhere outside it, on Escape, and when the focus
+ * moves on past it (Tab from its last control, say), so it never sits over the
+ * table somebody is trying to read, or over a control the focus has moved to.  Closing it while the focus is
  * still inside puts the focus back on the button, so a keyboard user carries on
  * from the control they opened rather than from the top of the page.
  *
@@ -12,7 +13,7 @@
  * the button that sends it is never cut off.
  */
 import { useCallback, useId, useRef, useState } from 'react';
-import type { JSX, ReactNode } from 'react';
+import type { FocusEvent, JSX, ReactNode } from 'react';
 
 import { Button } from './Button';
 import { useClickOutside } from './useClickOutside';
@@ -61,8 +62,15 @@ export function PanelButton({
 
   useClickOutside(rootRef, handleClose, isOpen);
 
+  // Focus that moves to a control outside shuts the panel without pulling the focus
+  // back; focus that goes nowhere, as when a control in the panel unmounts, leaves it.
+  const handleBlur = (event: FocusEvent<HTMLDivElement>): void => {
+    const next = event.relatedTarget;
+    if (next instanceof Node && !event.currentTarget.contains(next)) setIsOpen(false);
+  };
+
   return (
-    <div className="panel-button" ref={rootRef}>
+    <div className="panel-button" ref={rootRef} onBlur={handleBlur}>
       <Button
         variant="quiet"
         small

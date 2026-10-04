@@ -20,6 +20,7 @@ function renderPanel() {
         )}
       </PanelButton>
       <p>somewhere else</p>
+      <button type="button">Export CSV</button>
     </>,
   );
 }
@@ -135,5 +136,25 @@ describe('PanelButton', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Done' }));
 
     expect(screen.getByRole('button', { name: 'Columns' })).toHaveFocus();
+  });
+
+  it('closes when the focus moves on past its last control', async () => {
+    renderPanel();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Columns' }));
+    screen.getByRole('button', { name: 'Done' }).focus();
+    await userEvent.tab();
+
+    expect(screen.queryByRole('group', { name: 'Columns to show' })).not.toBeInTheDocument();
+  });
+
+  it('leaves the focus where it moved when it closes that way', async () => {
+    renderPanel();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Columns' }));
+    screen.getByRole('button', { name: 'Done' }).focus();
+    await userEvent.tab();
+
+    expect(screen.getByRole('button', { name: 'Export CSV' })).toHaveFocus();
   });
 });
