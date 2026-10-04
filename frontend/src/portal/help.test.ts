@@ -154,11 +154,16 @@ describe('helpPath', () => {
   });
 
   it.each(NAV_ITEMS.map((item) => [item.label, item.to]))(
-    'opens a page of its own for the rail entry %s (%s), never the front page',
+    'opens a guide page for the rail entry %s (%s), never the front page',
     (_label, to) => {
       expect(helpPath(to)).not.toBe('/docs/');
     },
   );
+
+  it('opens a different guide page for every rail entry', () => {
+    const pages = NAV_ITEMS.map((item) => helpPath(item.to));
+    expect(new Set(pages).size).toBe(NAV_ITEMS.length);
+  });
 
   it('does not let /admin/members/:id swallow /admin/members/new', () => {
     expect(helpPath('/admin/members/new')).toBe('/docs/admin/new-member/');

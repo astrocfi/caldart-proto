@@ -91,8 +91,16 @@ describe('the rail and the router', () => {
     ]);
   });
 
-  it.each(BULK_AND_MEMBER_ENTRIES)('routes %s (%s) to a screen of its own', (_label, to) => {
-    expect(screenRoute(to ?? '')).not.toBe(NOT_FOUND);
+  it.each(BULK_AND_MEMBER_ENTRIES)(
+    'routes %s (%s) to a screen, never the not-found page',
+    (_label, to) => {
+      expect(screenRoute(to ?? '')).not.toBe(NOT_FOUND);
+    },
+  );
+
+  it('routes each of those entries to a different screen', () => {
+    const screens = BULK_AND_MEMBER_ENTRIES.map(([, to]) => screenRoute(to ?? ''));
+    expect(new Set(screens).size).toBe(BULK_AND_MEMBER_ENTRIES.length);
   });
 
   it('reads an unknown path as the not-found page, so the cases above can fail', () => {
