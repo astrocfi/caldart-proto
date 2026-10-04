@@ -805,6 +805,54 @@ def test_a_recorded_copy_is_not_sent_again_by_the_next_run(
     ]
 
 
+def test_a_copy_logged_before_its_row_was_saved_is_not_sent_again(
+    three: BulkEmail, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A run that dies between the email log and the row: the next run counts the copy."""
+    original = job._record
+    crashed: list[bool] = []
+
+    def crash_before_first(*args: Any, **kwargs: Any) -> None:
+        if not crashed:
+            crashed.append(True)
+            raise KeyboardInterrupt
+        original(*args, **kwargs)
+
+    monkeypatch.setattr(job, "_record", crash_before_first)
+    with pytest.raises(KeyboardInterrupt):
+        job.run_sender(now=NOW)
+    job.run_sender(now=NOW)
+    assert [message.to[0] for message in mail.outbox] == [
+        "ann@example.test",
+        "bea@example.test",
+        "cy@example.test",
+    ]
+
+
+def test_a_copy_recovered_from_the_log_keeps_the_message_id_it_went_with(
+    three: BulkEmail, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The recovered row is ``sent`` with the ``Message-ID`` its logged copy carried."""
+    original = job._record
+    crashed: list[bool] = []
+
+    def crash_before_first(*args: Any, **kwargs: Any) -> None:
+        if not crashed:
+            crashed.append(True)
+            raise KeyboardInterrupt
+        original(*args, **kwargs)
+
+    monkeypatch.setattr(job, "_record", crash_before_first)
+    with pytest.raises(KeyboardInterrupt):
+        job.run_sender(now=NOW)
+    job.run_sender(now=NOW)
+    ann = three.recipients.get(email="ann@example.test")
+    assert (ann.status, ann.message_id) == (
+        RecipientStatus.SENT,
+        mail.outbox[0].extra_headers["Message-ID"],
+    )
+
+
 # --------------------------------------------------------------------------
 # An unexpected error
 # --------------------------------------------------------------------------

@@ -4644,7 +4644,7 @@ each copy went to whatever happens to the account later.
    * - ``message_id``
      - ``CharField(255)``
      - not null; default ``""``
-     - the ``Message-ID`` the copy went out with, the same as its email log row's, which is how a later bounce finds the copy; blank until it is sent
+     - the ``Message-ID`` the copy went out with, the same as its email log row's, which is how a later bounce finds the copy; while the copy is pending, the ``Message-ID`` of the try being made, saved before the hand-over so a run that dies can tell whether it went; blank for a copy never tried and for one that failed
    * - ``tried_at``
      - ``DateTimeField``
      - null; default ``NULL``

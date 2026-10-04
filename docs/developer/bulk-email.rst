@@ -225,6 +225,8 @@ draft is made, at each add and **Send**, and when the send starts; the lists sho
 it, and once the email has started it is the DART it went to.
 
 
+.. _bulk-email-sender:
+
 The sender
 ==========
 
@@ -284,12 +286,18 @@ they are then) and the person's opt-out of the email's type
 (``apps.mail.types.is_opted_out``): a change made during a long paced send, between
 **Stop** and **Send the rest**, or before a run that died is resumed, is honored, the
 row becomes ``skipped`` with *Not in your DART* or *Opted out of <type>*, and
-``skipped_count`` grows.  After a copy is
-handed to the mail server its row is saved first, ``sent`` with its
-``Message-ID``, and only then the email's counts, all outside any transaction, so a
-run that dies after the hand-over leaves the copy marked sent and the next run does
-not send it again.  A crash between the two saves leaves a count short, never a
-duplicate email: when the email finishes, and when a stop takes effect,
+``skipped_count`` grows.  Before each try the row is saved with the
+``Message-ID`` the copy will carry (``caldart.mail.new_message_id``) and the field
+values it is filled in with.  ``send_templated`` writes the email log row as soon
+as the mail server accepts the copy; after that the row is saved first, ``sent``,
+and only then the email's counts, all outside any transaction, so a run that dies
+after the hand-over leaves the copy marked sent and the next run does not send it
+again.  A run that dies in the narrow gap between the email log row and the
+recipient row leaves a pending row whose ``Message-ID`` is logged without an error;
+the next run records that copy as sent before it sends anything
+(``job._recover_logged_copies``), and sends a pending row whose try is logged with
+an error, or not at all, as usual.  A crash between the row and the counts leaves
+a count short, never a duplicate email: when the email finishes, and when a stop takes effect,
 ``job.recount`` sets ``sent_count``, ``failed_count``, ``skipped_count``, and
 ``bounced_count`` from the rows, so no count stays off.  The counts are added to in the database (``F() + 1``) rather
 than written from the email held in memory, so a bounce moved off ``sent_count``

@@ -81,9 +81,12 @@ or ``BULK_EMAIL_REPLY_TO``, or the sender's own address
 SPF, DKIM, and DMARC still align.  Where any other template tells the reader how to
 get in touch, it prints the contact address from the website's site settings, which
 a website administrator edits in the Wagtail admin (:doc:`cms`).
-``send_templated`` takes two keyword arguments for a sender that needs more:
+``send_templated`` takes three keyword arguments for a sender that needs more:
 ``headers``, extra headers merged into the message (they cannot replace its
-``Message-ID`` or ``From``), and ``reply_to``, the message's ``Reply-To`` address.
+``Message-ID`` or ``From``); ``reply_to``, the message's ``Reply-To`` address; and
+``message_id``, a ``Message-ID`` made beforehand with ``new_message_id``, which the
+bulk email sender saves on its recipient row before the hand-over so it can find the
+copy in the email log after a crash (:ref:`bulk-email-sender`).
 
 
 Sending

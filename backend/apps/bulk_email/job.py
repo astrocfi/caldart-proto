@@ -15,8 +15,9 @@ name and address as they are then.  An email whose sender may no longer send its
 ``bulk_email.refused`` audit line.  The pending rows are then sent in surname order,
 one copy each, through ``caldart.mail.send_templated``, saving each row and the email's
 counts as soon as that copy has been tried; a person who turned the type off since
-the freeze is skipped then.  When no row is pending the email is
-``sent``, and one ``bulk_email.send`` audit line is written.
+the freeze is skipped then.  A pending copy the email log shows went out, left by a run
+that died before saving its row, is recorded as sent rather than sent again.  When no
+row is pending the email is ``sent``, and one ``bulk_email.send`` audit line is written.
 
 The sender paces itself to ``BULK_EMAIL_RATE_PER_MINUTE`` copies a minute and opens a
 fresh mail connection every ``BULK_EMAIL_BATCH_SIZE`` copies.  A temporary refusal
@@ -67,10 +68,11 @@ from apps.bulk_email.models import (
 from apps.bulk_email.render import COPY_TEMPLATE, PURPOSE, fill_values, render_copy
 from apps.bulk_email.reply_to import claimed_reply_to
 from apps.bulk_email.senders import SKIP_NOT_IN_DART, DartLimit, dart_limit, limit_dart
+from apps.mail.models import EmailLog
 from apps.mail.types import is_opted_out, sendable_types
 from apps.members.models import MemberProfile
 from caldart import audit
-from caldart.mail import MailRefusedError, error_name, send_templated
+from caldart.mail import MailRefusedError, error_name, new_message_id, send_templated
 from caldart.runs import RunAction
 
 log = logging.getLogger(__name__)
@@ -455,6 +457,7 @@ def _send(bulk: BulkEmail, run: SenderRun) -> None:
     unexpectedly; that copy is then ``failed`` with :data:`UNEXPECTED_REASON`.
     """
     run.emails += 1
+    _recover_logged_copies(bulk, run)
     rows = list(
         surname_order(bulk.recipients.filter(status=RecipientStatus.PENDING)).select_related("user")
     )
@@ -510,6 +513,34 @@ def _send(bulk: BulkEmail, run: SenderRun) -> None:
     finally:
         mailer.close()
     _finish(bulk)
+
+
+def _recover_logged_copies(bulk: BulkEmail, run: SenderRun) -> None:
+    """Mark ``sent`` each pending copy of ``bulk`` the email log shows went out.
+
+    :func:`_try_copy` saves each try's ``Message-ID`` on the row before handing the copy
+    over, and ``send_templated`` writes the email log row as soon as the mail server
+    accepts it, before :func:`_record` saves the row.  A run that died between those two
+    writes leaves a pending row whose ``Message-ID`` is in the log without an error; that
+    copy went, so it is recorded as sent rather than sent a second time.  A pending row
+    whose try is logged with an error, or not at all, is sent again as usual.
+    """
+    tried = {
+        row.message_id: row
+        for row in bulk.recipients.filter(status=RecipientStatus.PENDING).exclude(message_id="")
+    }
+    if len(tried) == 0:
+        return
+    went = EmailLog.objects.filter(message_id__in=tried, error="").values_list(
+        "message_id", flat=True
+    )
+    for message_id in went:
+        _record(
+            bulk,
+            tried[message_id],
+            _Attempt(status=RecipientStatus.SENT, message_id=message_id),
+            run,
+        )
 
 
 def _skip_if_unsendable(bulk: BulkEmail, row: BulkEmailRecipient, run: SenderRun) -> bool:
@@ -611,8 +642,10 @@ def _try_copy(
     later run, when the next retry's wait would take the run past its budget.
 
     The copy is filled in with the account's values as they are now, which are kept on
-    ``row`` (unsaved; :func:`_record` saves them) so it can be rebuilt as it went.  It
-    carries the ``Reply-To`` the claim settled on.
+    ``row`` so it can be rebuilt as it went.  It carries the ``Reply-To`` the claim
+    settled on.  Each try is given a fresh ``Message-ID``, saved on the row with the
+    values before the hand-over, so :func:`_recover_logged_copies` can tell a copy that
+    went from one that did not if the run dies before :func:`_record`.
     """
     row.values = fill_values(bulk, row.user)
     copy = render_copy(bulk, row)
@@ -622,6 +655,8 @@ def _try_copy(
         if delay > 0:
             sleep(delay)
             _open(mailer, bulk)
+        row.message_id = new_message_id()
+        row.save(update_fields=["message_id", "values", "updated_at"])
         try:
             message = send_templated(
                 to=row.email,
@@ -634,6 +669,7 @@ def _try_copy(
                 mailer=mailer,
                 headers=copy.headers,
                 reply_to=bulk.reply_to,
+                message_id=row.message_id,
             )
         except MailRefusedError as refusal:
             log.error(
