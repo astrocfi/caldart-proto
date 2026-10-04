@@ -285,11 +285,13 @@ they are then) and the person's opt-out of the email's type
 **Stop** and **Send the rest**, or before a run that died is resumed, is honored, the
 row becomes ``skipped`` with *Not in your DART* or *Opted out of <type>*, and
 ``skipped_count`` grows.  After a copy is
-handed to the mail server its row, ``sent`` with its ``Message-ID``, and the
-email's count are saved together in one short transaction, before anything else, so
-no reader ever sees the copy as neither waiting nor counted, and a run that dies once
-it commits leaves the copy marked sent and the next run does not send it again; a run
-that dies inside it sends that one copy again next time.  The counts are added to in the database (``F() + 1``) rather
+handed to the mail server its row is saved first, ``sent`` with its
+``Message-ID``, and only then the email's counts, all outside any transaction, so a
+run that dies after the hand-over leaves the copy marked sent and the next run does
+not send it again.  A crash between the two saves leaves a count short, never a
+duplicate email: when the email finishes, and when a stop takes effect,
+``job.recount`` sets ``sent_count``, ``failed_count``, ``skipped_count``, and
+``bounced_count`` from the rows, so no count stays off.  The counts are added to in the database (``F() + 1``) rather
 than written from the email held in memory, so a bounce moved off ``sent_count``
 while the email sends (`After the send`_) stays moved.  The run reads ``stop_requested`` afresh before each copy's
 pause and again after it.  A **Stop** takes effect there: every copy not yet sent
