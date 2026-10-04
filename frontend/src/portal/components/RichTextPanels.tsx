@@ -1,6 +1,8 @@
 /**
  * The two small panels `RichTextEditor` opens under its toolbar: one asks for a
- * link's address, the other for an uploaded image's description.
+ * link's address, the other for an uploaded image's description.  The panels a
+ * recipient field's chip opens are in `RichTextFieldPanels.tsx` and share the frame
+ * and helpers here.
  *
  * Each panel takes the focus when it opens, closes on **Cancel** or on Escape
  * anywhere inside it, and says what is wrong in words when it cannot finish.
@@ -19,7 +21,7 @@ export const LINK_ADDRESS_ERROR =
 /** Why an image cannot go in without a description. */
 export const IMAGE_ALT_ERROR = 'Describe the image before putting it in.';
 
-interface PanelProps {
+export interface PanelProps {
   /** The panel's accessible name. */
   label: string;
   /** Closes the panel, on Escape anywhere inside it. */
@@ -31,7 +33,7 @@ interface PanelProps {
  * The frame both panels share: a labeled section under the toolbar that closes on
  * Escape wherever the focus is inside it, a text box or a button alike.
  */
-function Panel({ label, onCancel, children }: PanelProps): JSX.Element {
+export function Panel({ label, onCancel, children }: PanelProps): JSX.Element {
   const sectionRef = useRef<HTMLElement>(null);
   const cancelRef = useRef(onCancel);
   useEffect(() => {
@@ -63,7 +65,7 @@ function Panel({ label, onCancel, children }: PanelProps): JSX.Element {
  * The key handler for a panel's text box: Enter does `onEnter`.  The editor
  * usually sits in a form, and Enter here must never submit it.
  */
-function enterKey(onEnter: () => void): (event: KeyboardEvent<HTMLInputElement>) => void {
+export function enterKey(onEnter: () => void): (event: KeyboardEvent<HTMLInputElement>) => void {
   return (event) => {
     if (event.key !== 'Enter') return;
     event.preventDefault();
@@ -72,7 +74,7 @@ function enterKey(onEnter: () => void): (event: KeyboardEvent<HTMLInputElement>)
 }
 
 /** Focuses the element `ref` points at once, when the panel mounts. */
-function useFocusOnMount<T extends HTMLElement>(): RefObject<T | null> {
+export function useFocusOnMount<T extends HTMLElement>(): RefObject<T | null> {
   const ref = useRef<T>(null);
   useEffect(() => {
     ref.current?.focus();

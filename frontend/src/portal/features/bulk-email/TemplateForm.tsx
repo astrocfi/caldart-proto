@@ -20,9 +20,10 @@ import { FormAlert, fieldError } from '@/portal/features/auth/form';
 import { useBulkSender, useSendableEmailTypes } from './api';
 import { TypeRadios } from './EmailTypeChoice';
 import type { TypeOption } from './EmailTypeChoice';
+import { SUBJECT_HINT, messageError } from './fieldText';
 import { InsertFieldMenu } from './InsertFieldMenu';
 import { replyToHint } from './ReplyToField';
-import { uploadBulkEmailImage } from './richTextApi';
+import { uploadBulkEmailImage, useBulkEmailFields } from './richTextApi';
 
 /** The fields the form shows the server's complaints beside. */
 const HANDLED_FIELDS = ['name', 'email_type', 'subject', 'reply_to', 'body'];
@@ -66,6 +67,7 @@ export function TemplateForm({
   const [body, setBody] = useState(template?.body ?? '');
   const types = useSendableEmailTypes();
   const sender = useBulkSender();
+  const fields = useBulkEmailFields();
   const typeError = fieldError(error, 'email_type');
   const typeOptions: TypeOption[] = [
     NO_TYPE,
@@ -125,11 +127,7 @@ export function TemplateForm({
           </p>
         )}
       </fieldset>
-      <Field
-        label="Subject"
-        error={fieldError(error, 'subject')}
-        hint="One line that says what it is about."
-      >
+      <Field label="Subject" error={fieldError(error, 'subject')} hint={SUBJECT_HINT}>
         {(props) => (
           <input
             {...props}
@@ -169,6 +167,7 @@ export function TemplateForm({
           value={body}
           onChange={(next) => setBody(next)}
           onUploadImage={(file) => uploadBulkEmailImage(file)}
+          fields={fields.data}
           describedBy={bodyError === null ? undefined : `${messageId}-error`}
           invalid={bodyError !== null}
           toolbarExtra={
@@ -181,7 +180,7 @@ export function TemplateForm({
         />
         {bodyError === null ? null : (
           <span className="field__error" id={`${messageId}-error`} role="alert">
-            {bodyError}
+            {messageError(bodyError)}
           </span>
         )}
       </div>

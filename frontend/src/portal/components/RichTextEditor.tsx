@@ -9,7 +9,9 @@
  * The toolbar's buttons are Bold, Italic, Heading, Bulleted list, Numbered list,
  * Link, and Image, each an icon with its name beside it, followed by any extra
  * controls the caller passes.  Link and Image open a small panel under the
- * toolbar (`RichTextPanels.tsx`).
+ * toolbar (`RichTextPanels.tsx`).  A recipient field's token shows as a chip
+ * (`richTextField.ts`), whose own panel sets what it shows for a person with no
+ * value.
  */
 import { Image } from '@tiptap/extension-image';
 import { Link } from '@tiptap/extension-link';
@@ -18,6 +20,8 @@ import type { Editor } from '@tiptap/react';
 import { StarterKit } from '@tiptap/starter-kit';
 import { useEffect, useImperativeHandle, useRef, useState } from 'react';
 import type { ChangeEvent, JSX, ReactNode, Ref } from 'react';
+
+import type { BulkEmailField } from '@/portal/api/types';
 
 import {
   BoldIcon,
@@ -30,6 +34,11 @@ import {
 } from './icons';
 import type { IconProps } from './icons';
 import { emailImageSize } from './richText';
+import { FieldToken } from './richTextField';
+import { insertFieldToken } from './richTextFieldCommands';
+import { FieldCatalog } from './richTextTokens';
+import type { FieldTokenAttrs } from './richTextTokens';
+import { ChipPanel } from './RichTextFieldPanels';
 import { ImagePanel, LinkPanel } from './RichTextPanels';
 import type { UploadState } from './RichTextPanels';
 
@@ -48,8 +57,11 @@ export interface UploadedImage {
 
 /** What a caller can do to the editor through its `ref`. */
 export interface RichTextEditorHandle {
-  /** Puts `text` in at the cursor, replacing any selection, and focuses the editor. */
-  insertText: (text: string) => void;
+  /**
+   * Puts the field named `token`, such as `first_name`, in at the cursor as a chip,
+   * replacing any selection, and focuses the editor with the cursor after the chip.
+   */
+  insertField: (token: string) => void;
   /** Moves the focus into the editing area. */
   focus: () => void;
   /** Whether `node` is the editing area or inside it. */
@@ -70,6 +82,11 @@ export interface RichTextEditorProps {
   onUploadImage: (file: File) => Promise<UploadedImage>;
   /** More toolbar controls, after the built-in buttons. */
   toolbarExtra?: ReactNode;
+  /**
+   * The recipient fields, whose labels the chips show; `undefined` while they load,
+   * when a chip shows its token's name made readable.
+   */
+  fields?: BulkEmailField[];
   /** Ids of the hint or error that describe the editing area. */
   describedBy?: string;
   /** Marks the editing area invalid, for a message the server refused. */
@@ -83,7 +100,8 @@ export interface RichTextEditorProps {
 type OpenPanel =
   | { kind: 'none' }
   | { kind: 'link'; href: string; isEditing: boolean }
-  | { kind: 'image'; fileName: string; upload: UploadState };
+  | { kind: 'image'; fileName: string; upload: UploadState }
+  | { kind: 'field'; pos: number; attrs: FieldTokenAttrs };
 
 /** The editing area's own attributes: its role, its name, and how it is described. */
 function areaAttributes(
@@ -114,7 +132,8 @@ function htmlOf(editor: Editor): string {
  * paragraphs, line breaks, bold, italic, underline, strike-through, headings,
  * lists, quotations, rules, links, and images.  A link's `target` and `rel` are
  * left off, and an inserted image carries its description and the width and height
- * it is shown at in an email (`emailImageSize`).
+ * it is shown at in an email (`emailImageSize`).  A recipient field shows as a chip
+ * with its label from `fields` and is written as its token, `{first_name|friend}`.
  */
 export function RichTextEditor({
   label,
@@ -122,6 +141,7 @@ export function RichTextEditor({
   onChange,
   onUploadImage,
   toolbarExtra,
+  fields,
   describedBy,
   invalid = false,
   readOnly = false,
@@ -134,6 +154,8 @@ export function RichTextEditor({
   useEffect(() => {
     onChangeRef.current = onChange;
   }, [onChange]);
+  // The chips' labels, which arrive after the editor is built.
+  const [catalog] = useState(() => new FieldCatalog());
 
   const editor = useEditor({
     extensions: [
@@ -151,6 +173,10 @@ export function RichTextEditor({
         HTMLAttributes: { target: null, rel: null },
       }),
       Image,
+      FieldToken.configure({
+        catalog,
+        onOpen: (pos, attrs) => setPanel({ kind: 'field', pos, attrs }),
+      }),
     ],
     content: value,
     editable: !readOnly,
@@ -175,6 +201,10 @@ export function RichTextEditor({
   }, [editor, value]);
 
   useEffect(() => {
+    catalog.set(fields);
+  }, [catalog, fields]);
+
+  useEffect(() => {
     editor.setEditable(!readOnly, false);
   }, [editor, readOnly]);
 
@@ -185,8 +215,8 @@ export function RichTextEditor({
   useImperativeHandle(
     ref,
     () => ({
-      insertText: (text: string) => {
-        editor.chain().focus().insertContent(text).run();
+      insertField: (token: string) => {
+        insertFieldToken(editor, token);
       },
       focus: () => {
         editor.commands.focus();
@@ -341,6 +371,17 @@ export function RichTextEditor({
           upload={panel.upload}
           onInsert={handleImageInsert}
           onCancel={handlePanelClose}
+        />
+      ) : null}
+      {panel.kind === 'field' ? (
+        <ChipPanel
+          // A fresh panel for each chip, so its box starts from that chip's fallback.
+          key={panel.pos}
+          editor={editor}
+          pos={panel.pos}
+          attrs={panel.attrs}
+          fields={fields}
+          onClose={() => setPanel({ kind: 'none' })}
         />
       ) : null}
       <EditorContent editor={editor} />

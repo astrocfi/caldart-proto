@@ -22,7 +22,7 @@ import { fileURLToPath } from 'node:url';
 
 import { chromium } from '@playwright/test';
 
-import { auditThemes } from './theme-contrast.mjs';
+import { auditThemes, describePair } from './theme-contrast.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FRONTEND = resolve(HERE, '..');
@@ -236,8 +236,7 @@ function escapeHtml(text) {
 function contrastTable(rows) {
   const body = rows
     .map((row) => {
-      const over = row.over === null ? '' : ` over ${row.over.replace('--color-', '')}`;
-      const pair = `${row.fg.replace('--color-', '')} on ${row.bg.replace('--color-', '')}${over}`;
+      const pair = describePair(row);
       const verdict = row.passes ? 'pass' : 'fail';
       return `<tr class="${verdict}"><td>${escapeHtml(pair)}</td><td>${row.ratio.toFixed(
         2,
@@ -406,8 +405,7 @@ function readmeMarkdown(sections) {
       '| --- | --- | --- | --- |',
     );
     for (const row of rows) {
-      const over = row.over === null ? '' : ` over ${row.over.replace('--color-', '')}`;
-      const pair = `${row.fg.replace('--color-', '')} on ${row.bg.replace('--color-', '')}${over}`;
+      const pair = describePair(row);
       lines.push(
         `| ${pair} | ${row.ratio.toFixed(2)}:1 | ${row.required}:1 | ${row.passes ? 'pass' : 'FAIL'} |`,
       );

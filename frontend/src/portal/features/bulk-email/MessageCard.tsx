@@ -22,9 +22,10 @@ import type { RichTextEditorHandle } from '@/portal/components/RichTextEditor';
 import { CalloutFields } from './CalloutFields';
 import { WHAT_IT_SAYS_ID } from './ChecksList';
 import { EmailTypeChoice } from './EmailTypeChoice';
+import { SUBJECT_HINT, messageError } from './fieldText';
 import { InsertFieldMenu } from './InsertFieldMenu';
 import { ReplyToField } from './ReplyToField';
-import { uploadBulkEmailImage } from './richTextApi';
+import { uploadBulkEmailImage, useBulkEmailFields } from './richTextApi';
 import { TemplateControls } from './StartFromTemplate';
 import { TestSendButton } from './TestSendButton';
 import type { SaveState } from './useAutosave';
@@ -99,6 +100,7 @@ export function MessageCard({
   editorRef,
 }: MessageCardProps): JSX.Element {
   const messageId = useId();
+  const fields = useBulkEmailFields();
   const hintId = `${messageId}-hint`;
   const errorId = `${messageId}-error`;
   const describedBy = [errors.body === undefined ? null : errorId, isEditable ? hintId : null]
@@ -138,7 +140,7 @@ export function MessageCard({
       />
       <fieldset className="bulk-email__fieldset stack" disabled={!isEditable}>
         <legend className="visually-hidden">The message</legend>
-        <Field label="Subject" error={errors.subject} hint="One line that says what it is about.">
+        <Field label="Subject" error={errors.subject} hint={SUBJECT_HINT}>
           {(field) => (
             <input
               {...field}
@@ -162,6 +164,7 @@ export function MessageCard({
             value={body}
             onChange={handleBodyChange}
             onUploadImage={(file) => uploadBulkEmailImage(file)}
+            fields={fields.data}
             describedBy={describedBy === '' ? undefined : describedBy}
             invalid={errors.body !== undefined}
             readOnly={!isEditable}
@@ -177,7 +180,7 @@ export function MessageCard({
           />
           {errors.body === undefined ? null : (
             <span className="field__error" id={errorId} role="alert">
-              {errors.body}
+              {messageError(errors.body)}
             </span>
           )}
           {isEditable ? (

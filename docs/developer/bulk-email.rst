@@ -400,6 +400,25 @@ pass-through pair ``emails/bulk_email_copy.{txt,html}``, which print the ``text`
 and ``html`` they are given unchanged, and passes the copy's ``headers`` through
 ``send_templated``'s ``headers`` argument.
 
+The editor shows each token as a chip, the ``fieldToken`` node in
+``frontend/src/portal/components/richTextField.ts``, but the HTML it saves is
+unchanged: a chip is written back out as its token's text, so ``richtext.sanitize``
+and ``fields.find_tokens`` read ``{first_name|friend}`` exactly as if it had been
+typed.  The node reads tokens out of the message's text with a pattern that mirrors
+``fields.TOKEN_RE`` (``TOKEN_PATTERN`` in ``components/richTextTokens.ts``), and a
+change to one must be made to the other.  A token split by formatting stays text in
+the editor, as does one whose fallback holds whitespace other than single plain
+spaces (the plain-text part reads every run of whitespace as one space, so
+``render.body_problem`` refuses it), and a chip with a brace written beside it, such
+as ``{{first_name}``, goes back to text, so every chip is a token the server fills
+in.  The fallback panel puts each run of whitespace in as one space.  A chip whose
+name is not in the catalog is marked *not a field*, and its panel
+(``components/RichTextFieldPanels.tsx``) offers to choose a field, to turn it into
+its name alone as words, or to remove it; the message's error line
+(``features/bulk-email/fieldText.ts``) words ``fields.UNKNOWN_FIELD_MESSAGE`` to
+point at **Insert field** rather than at braces, so that wording and the client's
+pattern for it change together.
+
 ``render.render_for(bulk, user, values)`` is one person's whole copy, footer and
 headers included: ``render_copy`` builds a row's copy through it with the row's
 stored values, the preview builds each person's with their values as they are now,

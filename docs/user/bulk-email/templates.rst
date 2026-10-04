@@ -47,9 +47,9 @@ the compose screen's **What it says** card with a name:
   leaves the choice to each draft.
 - **Subject**, **Reply-To** (where replies go; the hint under it names the address used
   when you leave it empty, as on the compose screen), and **Message**, with the same
-  buttons as on :doc:`compose`, **Insert field** among them. A field such as
-  *{first_name}* stays as written in the template and is filled in for each person when an
-  email goes.
+  buttons as on :doc:`compose`, **Insert field** among them. A field such as **First name**
+  shows in the message as a chip, as it does there, stays a field in the template, and is
+  filled in for each person when an email goes.
 
 **Save template** keeps it, and a line such as *Monthly newsletter saved.* says so; **Cancel**
 closes the form without saving. A refused field says why under it, as on the compose screen.

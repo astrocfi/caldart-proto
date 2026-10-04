@@ -1,8 +1,8 @@
 /**
- * A bulk email written in the rich text editor: bold words, a link, a recipient
- * field, and an uploaded image, previewed as the first person receives it, then sent
- * by the background sender, which the system administrator runs from the Scheduled
- * page.
+ * A bulk email written in the rich text editor: bold words, a link, two recipient
+ * fields, one inserted and one typed, each shown as a chip, and an uploaded image,
+ * previewed as the first person receives it, then sent by the background sender,
+ * which the system administrator runs from the Scheduled page.
  *
  * `make e2e` runs with `DEBUG` off, so Django does not serve `/media/` and the image
  * itself never loads; the spec checks the address the email links it by instead.
@@ -65,6 +65,11 @@ test('CalDART management writes a formatted email with an image, previews it, an
   await toolbar.getByRole('button', { name: 'Insert field' }).click();
   await page.getByRole('button', { name: /^Email address/ }).click();
   await typeInMessage('.');
+  // The inserted field shows as a chip with its label; one typed by hand becomes a
+  // chip once the cursor has moved on from it.
+  await expect(message.getByText('Email address', { exact: true })).toBeVisible();
+  await typeInMessage(' Hi {first_name|pilot}!');
+  await expect(message.getByText('First name, or pilot', { exact: true })).toBeVisible();
 
   await page.getByLabel('Choose an image').setInputFiles({
     name: 'square.png',
@@ -75,6 +80,12 @@ test('CalDART management writes a formatted email with an image, previews it, an
   await page.getByLabel(/^Describe the image/).fill('A blue square');
   await page.getByRole('button', { name: 'Put image in' }).click();
   await expect(page.getByText('Saved', { exact: true })).toBeVisible();
+
+  // The saved message holds the tokens, which read back as the same chips.
+  await page.reload();
+  await expect(message.getByText('Email address', { exact: true })).toBeVisible();
+  await expect(message.getByText('First name, or pilot', { exact: true })).toBeVisible();
+  await expect(message).not.toContainText('{email}');
 
   // The preview fills in the first person's own address, and keeps the formatting.
   const preview = page.getByRole('region', { name: 'Preview' });

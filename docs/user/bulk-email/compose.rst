@@ -63,8 +63,7 @@ narrow screen leaves out **Chosen by**, then **DART**. The reasons are:
 - *Opted out of Mission* (with the email's type): the person has turned that type of email
   off on their :doc:`../member/email-preferences` or with an unsubscribe link. Nobody is
   skipped for this until you choose the type.
-- *Duplicate address*: somebody earlier in the batch has the same address, so it gets one
-  copy.
+- *Duplicate address*: somebody earlier in the batch has the same address; one copy goes.
 
 Whether each person receives the email is worked out again whenever you open the screen, and
 once more when the email starts sending. In a batch of more than ten people, type in **Find in
@@ -114,20 +113,21 @@ press it again to take the style off.
   **Put image in**. The description is required: many mail programs hide pictures until the
   reader allows them, and the description is what they see instead. A large picture is made
   smaller to suit an email, and any location the camera recorded in it is removed.
-- **Insert field** lists details each person's copy fills in for them: **First name**,
-  **Last name**, **Full name**, **Email address**, **DART**, **Membership plan**,
-  **Membership status**, **Expiration date**, and **Home airport**. Choose one and it goes in
-  where the cursor was last, in the subject or the message, written in braces, such as
-  *{first_name}*. Somebody with no value for a field gets nothing there; to put in a word
-  instead, add it after a bar, as in *{first_name|friend}*, which reads *friend* for a person
-  with no first name.
+- **Insert field** lists details each person's copy fills in for them: **First name**, **Last
+  name**, **Full name**, **Email address**, **DART**, **Membership plan**, **Membership
+  status**, **Expiration date**, and **Home airport**. Choose one and it goes in where the
+  cursor was last: in braces in the subject, *{first_name}*, or as a chip in the message,
+  which Backspace or Delete removes whole; braces typed in the message become a chip once the
+  cursor moves on. To show a word for an empty value, click the chip or press Enter or Space
+  on it, fill in **If we don't have their first name, show**, and **Apply** (*First name, or
+  friend*); in the subject, write *{first_name|friend}*.
 
-A field can only be one of those in the list. Anything else written in braces, such as
-*{nickname}*, is refused with *{nickname} is not one of the fields. Pick a field from Insert
-field, or take out the braces.*, and the words are not saved until it is fixed. A link's web
-address that needs braces of its own writes them as *%7B* and *%7D*, as the message says
-when the braces are in one. A field with bold or another style on only part of it
-is refused too: delete it and put it in again with **Insert field**.
+A field not in the list, such as *{nickname}*, is refused, and the words are not saved until
+it is fixed: *{nickname} is not one of the fields. Delete it, or pick a field from Insert
+field.* In the message it is a chip marked *not a field*; click it for **Choose a field**,
+**Turn into words**, or **Remove**. In the subject, pick a field or take out the braces.
+Braces a link's web address needs are written *%7B* and *%7D*, as the message says. A field
+styled in part is refused too: put it in again with **Insert field**.
 
 Each copy comes from the site's own address, with replies going to the **Reply-To**
 address. Under the message it carries a short footer

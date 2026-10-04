@@ -1,7 +1,8 @@
 /**
- * The **Insert field** menu: puts a recipient field's token, such as
- * `{first_name}`, into the subject or the message, so nobody has to type the
- * syntax.  Each person's copy then carries that person's own value.
+ * The **Insert field** menu: puts a recipient field into the subject, as its token
+ * such as `{first_name}`, or into the message, as a chip that is written as the same
+ * token, so nobody has to type the syntax.  Each person's copy then carries that
+ * person's own value.
  */
 import { useEffect, useRef } from 'react';
 import type { JSX, RefObject } from 'react';
@@ -33,11 +34,12 @@ export function tokenText(field: BulkEmailField): string {
 
 /**
  * A button that opens the list of recipient fields, each by its label with its
- * description, and puts the chosen one's token in at the cursor.
+ * description, and puts the chosen one in at the cursor.
  *
- * The token goes into whichever of the subject and the message had the focus
- * last, the message until either has; it replaces any selected text, and the
- * cursor ends up just after it.
+ * The field goes into whichever of the subject and the message had the focus
+ * last, the message until either has: the subject gets its token as text, the
+ * message a chip (`RichTextEditorHandle.insertField`).  It replaces any selected
+ * text, and the cursor ends up just after it.
  */
 export function InsertFieldMenu({
   subjectRef,
@@ -57,12 +59,13 @@ export function InsertFieldMenu({
     return () => document.removeEventListener('focusin', handleFocusIn);
   }, [subjectRef, editorRef]);
 
-  const insert = (text: string): void => {
+  const insert = (field: BulkEmailField): void => {
     const subject = subjectRef.current;
     if (target.current === 'editor' || subject === null) {
-      editorRef.current?.insertText(text);
+      editorRef.current?.insertField(field.token);
       return;
     }
+    const text = tokenText(field);
     const start = subject.selectionStart ?? subject.value.length;
     const end = subject.selectionEnd ?? start;
     // Committed at once, so the caret can be placed in the input's new value.
@@ -86,7 +89,7 @@ export function InsertFieldMenu({
                   type="button"
                   className="insert-field__choice"
                   onClick={() => {
-                    insert(tokenText(field));
+                    insert(field);
                     handleClose();
                   }}
                 >

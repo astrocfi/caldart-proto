@@ -89,6 +89,22 @@ describe('MessageCard', () => {
     ]);
   });
 
+  it('says how to deal with an unknown field in the message', () => {
+    answerFields();
+    renderWithProviders(
+      <Card
+        errors={{
+          body:
+            '{nickname} is not one of the fields. Pick a field from Insert field, or take out ' +
+            'the braces.',
+        }}
+      />,
+    );
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      '{nickname} is not one of the fields. Delete it, or pick a field from Insert field.',
+    );
+  });
+
   it('holds the message still, without Insert field, once it cannot change', () => {
     answerFields();
     renderWithProviders(<Card isEditable={false} />);

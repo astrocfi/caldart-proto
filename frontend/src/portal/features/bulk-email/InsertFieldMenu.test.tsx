@@ -13,6 +13,7 @@ import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
 
 import { InsertFieldMenu } from './InsertFieldMenu';
+import { useBulkEmailFields } from './richTextApi';
 
 /** A subject input and a message editor, with the menu between them. */
 function Compose(): JSX.Element {
@@ -20,6 +21,7 @@ function Compose(): JSX.Element {
   const [body, setBody] = useState('<p>Dear </p>');
   const subjectRef = useRef<HTMLInputElement>(null);
   const editorRef = useRef<RichTextEditorHandle>(null);
+  const fields = useBulkEmailFields();
   return (
     <>
       <label>
@@ -31,6 +33,7 @@ function Compose(): JSX.Element {
         label="Message"
         value={body}
         onChange={(html) => setBody(html)}
+        fields={fields.data}
         onUploadImage={() => Promise.reject(new Error('unused'))}
         toolbarExtra={
           <InsertFieldMenu
@@ -68,13 +71,17 @@ describe('InsertFieldMenu', () => {
     ]);
   });
 
-  it('puts the token into the message when neither box has had the focus', async () => {
+  it('puts the field into the message as a chip when neither box has had the focus', async () => {
     answerFields();
     renderWithProviders(<Compose />);
 
     await choose('First name');
 
-    expect(screen.getByRole('textbox', { name: 'Message' }).textContent).toContain('{first_name}');
+    const message = screen.getByRole('textbox', { name: 'Message' });
+    expect([
+      message.querySelector('.rich-text__field')?.textContent,
+      screen.getByRole('status', { name: 'Body' }).textContent,
+    ]).toEqual(['First name', expect.stringContaining('{first_name}')]);
   });
 
   it('puts the token into the subject at the cursor after the subject had the focus', async () => {
@@ -99,7 +106,7 @@ describe('InsertFieldMenu', () => {
 
     expect([
       screen.getByRole<HTMLInputElement>('textbox', { name: 'Subject' }).value,
-      screen.getByRole('textbox', { name: 'Message' }).textContent,
+      screen.getByRole('status', { name: 'Body' }).textContent,
     ]).toEqual(['Hello  pilots', expect.stringContaining('{dart_name}')]);
   });
 
