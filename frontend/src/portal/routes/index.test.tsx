@@ -115,6 +115,12 @@ vi.mock('../features/bulk-email/SentPage', () => ({ SentPage: pageStub('Sent') }
 vi.mock('../features/bulk-email/SentDetailPage', () => ({
   SentDetailPage: pageStub('Sent bulk email'),
 }));
+vi.mock('../features/callouts/CalloutsPage', () => ({
+  CalloutsPage: pageStub('Callouts'),
+}));
+vi.mock('../features/callouts/CalloutDetailPage', () => ({
+  CalloutDetailPage: pageStub('Callout'),
+}));
 vi.mock('../features/mail-delivery/MailDeliveryPage', () => ({
   MailDeliveryPage: pageStub('Mail delivery'),
 }));
@@ -300,6 +306,16 @@ const GUARDED_PATHS: GuardedPath[] = [
   {
     path: '/bulk-email/sent/1',
     heading: 'Sent bulk email',
+    allowed: ['dart_leader', 'management', 'system_admin'],
+  },
+  {
+    path: '/bulk-email/callouts',
+    heading: 'Callouts',
+    allowed: ['dart_leader', 'management', 'system_admin'],
+  },
+  {
+    path: '/bulk-email/callouts/1',
+    heading: 'Callout',
     allowed: ['dart_leader', 'management', 'system_admin'],
   },
   {

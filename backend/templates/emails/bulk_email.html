@@ -1,9 +1,20 @@
 {% extends "emails/report_base.html" %}
-{% comment %}A bulk email from CalDART management; the plain-text body is bulk_email.txt.  body_html is the sanitized message with the recipient's values filled in (apps.bulk_email.render).{% endcomment %}
+{% comment %}A bulk email from CalDART management; the plain-text body is bulk_email.txt.  body_html is the sanitized message with the recipient's values filled in (apps.bulk_email.render).  answers, for a mission callout, holds its three answer links and when answers close.{% endcomment %}
 {% block title %}{{ subject }}{% endblock %}
 {% block preheader %}{{ preheader }}{% endblock %}
 {% block heading %}{{ subject }}{% endblock %}
 {% block body %}
                 {{ body_html }}
+                {% if answers %}
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0 0 0; border-top:1px solid #CCD6E1;">
+                  <tr>
+                    <td style="padding:16px 0 0 0;">
+                      <p style="margin:0 0 4px 0; font-weight:600;">Can you fly? Choose your answer.</p>
+                      <p style="margin:0 0 12px 0; font-size:14px; color:#55606D;">You can add a note on the next page, and change your answer until {{ answers.closes }}.</p>
+                      {% for link in answers.links %}<a href="{{ link.url }}" style="display:inline-block; margin:0 8px 8px 0; padding:10px 16px; background:#1F4E79; color:#FFFFFF; text-decoration:none; border-radius:2px; font-weight:600;">{{ link.label }}</a>{% endfor %}
+                    </td>
+                  </tr>
+                </table>
+                {% endif %}
 {% endblock %}
 {% block why %}{% if view_url %}<a href="{{ view_url }}" style="color:#1F4E79;">View this email in your browser</a>.<br />{% endif %}{% if footer_text %}{{ footer_text }}{% if footer_url %} <a href="{{ footer_url }}" style="color:#1F4E79;">Unsubscribe from {{ type_name }} email</a>{% endif %}{% else %}You receive this email as a member or a friend of {{ org_name }}.{% endif %}{% endblock %}

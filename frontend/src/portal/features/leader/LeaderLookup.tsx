@@ -10,6 +10,7 @@ import { useState } from 'react';
 import type { JSX, Key, ReactNode } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
+import type { LeaderGoNoGo } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { Field } from '@/portal/components/Field';
@@ -151,6 +152,16 @@ export function LeaderLookup<T>({
       </Card>
     </Page>
   );
+}
+
+/**
+ * Whether a person is a go: all three verdicts the server reports have to be true.
+ *
+ * The same three booleans drive the verdict band on the status card, so the list
+ * and the card can never disagree about who may fly.
+ */
+export function isReady(goNoGo: LeaderGoNoGo): boolean {
+  return goNoGo.membership && goNoGo.medical && goNoGo.verified;
 }
 
 export interface GoMarkProps {

@@ -47,7 +47,8 @@ The page of one sent email has three cards:
   stopped email reads *Stopped by* who stopped it, with **Send the rest**, which sends it to
   everybody the stop kept it from once you press **Send them now**. Nobody gets it twice, it
   starts within a minute, and the email reads *Waiting to send the rest* until then, with
-  **Stop sending**.
+  **Stop sending**. A mission callout adds *This is a mission callout.* with **See who can
+  fly**, which opens its answers on :doc:`callouts`.
 - **The message**: the email as it was sent, with the subject at its head, and above it its
   type and *Replies go to:* with the Reply-To address its copies carried. Fields such as
   *{first_name}* show as written, because each person's copy had their own details filled
@@ -105,7 +106,8 @@ Retry failed
 ------------
 
 When the mail server refused some copies, **Retry failed** sends a fresh copy to those
-people only, once you press **Retry now**. Nobody already sent a copy gets another, and
+people only, once you press **Retry now**. Nobody already sent a copy gets another (for a
+mission callout, nobody gets the first copy again once a reminder has reached them), and
 nobody whose copy bounced (their address is bad) or who was skipped is sent one. Each person
 is checked again first, as for any send: one whose account has since been deleted or
 deactivated, whose address has bounced, who has turned this kind of email off, or, for a
@@ -153,7 +155,8 @@ own from the email; **Duplicate…** on each line of the list opens that page. I
   shows as skipped, *Not in your DART*.
 
 The new draft opens on :doc:`compose`, ready to change and send. The email you copied stays as
-it was. **Cancel** closes the question without copying anything.
+it was. A copy of a mission callout is a callout too, with no answers yet and its answers
+closing two days ahead (:doc:`callouts`). **Cancel** closes the question without copying anything.
 
 
 If something looks wrong

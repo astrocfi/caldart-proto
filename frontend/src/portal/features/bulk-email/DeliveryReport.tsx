@@ -53,7 +53,14 @@ interface Viewing {
 }
 
 /** The delivery report of `email`, which has started sending. */
-export function DeliveryReport({ email }: { email: BulkEmailDetail }): JSX.Element {
+export function DeliveryReport({
+  email,
+  canRetry = true,
+}: {
+  email: BulkEmailDetail;
+  /** False for a reader who may not act on the email: **Retry failed** is left out. */
+  canRetry?: boolean;
+}): JSX.Element {
   const batch = useBatch(email.id, isMoving(email.status));
   const [viewing, setViewing] = useState<Viewing | null>(null);
 
@@ -73,7 +80,7 @@ export function DeliveryReport({ email }: { email: BulkEmailDetail }): JSX.Eleme
   return (
     <div className="stack">
       <DeliveryCounts email={email} />
-      <RetryFailed email={email} />
+      {canRetry ? <RetryFailed email={email} /> : null}
       {batch.isError ? (
         <p className="field__error" role="alert">
           The results could not be loaded.

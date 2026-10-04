@@ -34,6 +34,7 @@ GEOAPIFY_API_KEY = ""
 GEOAPIFY_URL = "https://api.geoapify.com/v1/geocode/autocomplete"
 ADDRESS_SUGGEST_THROTTLE_RATE = None
 BULK_EMAIL_CHECKS_THROTTLE_RATE = None
+CALLOUT_ANSWER_THROTTLE_RATE = None
 
 PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
 

@@ -15,6 +15,7 @@ const SPRING: BulkEmailMessageDetail = {
   sent_at: '2026-04-07T15:00:00Z',
   from_name: 'Grace Holloway',
   email_type_name: 'Operational',
+  answer_url: '',
   html: '<html><body><p>Dear Ann,</p></body></html>',
   text: 'Dear Ann,',
 };

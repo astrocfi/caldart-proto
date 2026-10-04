@@ -2,7 +2,8 @@
 
 Each event names what happened, in the words the screen and the email log use,
 the category it is listed under, and the roles whose holders may hear about it.
-A system administrator and a superuser may hear about every event.  The slugs
+A system administrator and a superuser may hear about every event; a DART leader hears
+of a callout answer only for a callout they may open.  The slugs
 are exactly those of ``caldart.events.EVENT_SLUGS``, in the same order.
 """
 
@@ -10,15 +11,18 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from apps.accounts.roles import ACCOUNT_ADMIN, TREASURER, USER_ADMIN
+from apps.accounts.roles import ACCOUNT_ADMIN, DART_LEADER, MANAGEMENT, TREASURER, USER_ADMIN
 
 #: The categories, in the order the screen groups them.
-CATEGORIES: tuple[str, ...] = ("Membership", "Money", "Accounts", "Aircraft")
+CATEGORIES: tuple[str, ...] = ("Membership", "Money", "Accounts", "Aircraft", "Callouts")
 
 _MEMBERSHIP_ROLES = (ACCOUNT_ADMIN, USER_ADMIN)
 _MONEY_ROLES = (TREASURER, ACCOUNT_ADMIN)
 _ACCOUNT_ROLES = (USER_ADMIN, ACCOUNT_ADMIN)
 _AIRCRAFT_ROLES = (ACCOUNT_ADMIN,)
+# The roles that send and read mission callouts; a DART leader hears only of the
+# callouts they may open (``apps.notifications.dispatch``).
+_CALLOUT_ROLES = (MANAGEMENT, DART_LEADER)
 
 
 @dataclass(frozen=True)
@@ -193,6 +197,13 @@ _EVENTS: tuple[Event, ...] = (
         "Aircraft",
         "An aircraft was taken off a member's list.",
         _AIRCRAFT_ROLES,
+    ),
+    Event(
+        "callout_answer",
+        "Callout answer",
+        "Callouts",
+        "Somebody answered a mission callout, or changed their answer.",
+        _CALLOUT_ROLES,
     ),
 )
 

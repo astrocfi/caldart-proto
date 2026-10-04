@@ -85,11 +85,12 @@ CalDART. The role adds the **Operations** group and one entry of
   and downloads. The member record behind each name stays the account
   administrator's.
 
-The role also adds three entries of the **Bulk Email** group, for writing to the members and
+The role also adds entries of the **Bulk Email** group, for writing to the members and
 friends of the DART on the leader's own profile (:doc:`bulk-email/dart-leaders`):
 **Compose** (:doc:`bulk-email/compose`), **Drafts & scheduled**
 (:doc:`bulk-email/drafts`), and **Sent** (:doc:`bulk-email/sent`). A leader sees only the
-emails they wrote. Which kinds of email a leader may send is set on **Email types**; as the
+emails they wrote. **Callouts** (:doc:`bulk-email/callouts`) collects the answers to the
+mission callouts the leader sent and to those sent to their DART. Which kinds of email a leader may send is set on **Email types**; as the
 site starts, those are Operational and Mission email.
 
 Every role beyond member also opens the members-only pages, whatever the holder's
@@ -180,6 +181,8 @@ group of the menu:
   such as the monthly newsletter.
 * **Recipient groups** (:doc:`bulk-email/groups`): the people kept to add to a batch in one
   step, either a fixed list or filters run again each time.
+* **Callouts** (:doc:`bulk-email/callouts`): the answers to every mission callout, who can
+  fly and who has not answered, to remind the rest or close the answers.
 * **Mail delivery** (:doc:`bulk-email/mail-delivery`): check that other mail systems will
   trust and deliver the email CalDART sends, and what to ask for when they will not.
 

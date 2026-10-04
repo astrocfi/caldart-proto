@@ -25,6 +25,7 @@ your home page, and the menu down its left leads to the rest.
    change-email
    change-password
    messages
+   callouts
    email-preferences
    members-only-content
    public-website

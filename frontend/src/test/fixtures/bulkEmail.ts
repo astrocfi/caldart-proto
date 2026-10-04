@@ -52,6 +52,8 @@ export function makeBulkEmail(overrides: Partial<BulkEmailDetail> = {}): BulkEma
     retried_count: 0,
     retries: [],
     hidden_from_archive: false,
+    is_callout: false,
+    closes_at: null,
     can_edit: true,
     batch_count: 1,
     receiving_count: 1,

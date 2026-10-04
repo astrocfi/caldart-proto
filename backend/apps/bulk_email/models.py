@@ -17,6 +17,8 @@ What CalDART management keeps to use again: an :class:`EmailTemplate` is a saved
 message a draft can start from, and a :class:`RecipientGroup` a saved set of people a
 batch can add, either the accounts themselves (:class:`RecipientGroupMember`, a fixed
 group) or the filters that find them (:class:`RecipientGroupFilter`, a live group).
+A mission callout is a bulk email with ``is_callout`` set and one :class:`Callout`
+row, which collects each recipient's :class:`CalloutAnswer`.
 """
 
 from __future__ import annotations
@@ -119,7 +121,9 @@ class BulkEmail(TimestampedModel):
     counts the rows of that status: a copy the bounce check later finds refused moves
     from ``sent_count`` to ``bounced_count``, and **Retry failed** takes the copies it
     queues again out of ``failed_count``.  ``hidden_from_archive`` keeps a sent email
-    off every recipient's **Messages** page without changing its history.
+    off every recipient's **Messages** page without changing its history.  ``is_callout``
+    marks a mission callout, whose copies carry the answer buttons and whose
+    :class:`Callout` row holds when answers close (``apps.bulk_email.callouts``).
     """
 
     subject = models.CharField(max_length=200, blank=True)
@@ -169,6 +173,7 @@ class BulkEmail(TimestampedModel):
     skipped_count = models.PositiveIntegerField(default=0)
     bounced_count = models.PositiveIntegerField(default=0)
     hidden_from_archive = models.BooleanField(default=False)
+    is_callout = models.BooleanField(default=False)
 
     class Meta:
         ordering = ["-created_at", "-id"]
@@ -480,3 +485,66 @@ class RecipientGroupFilter(TimestampedModel):
     def __str__(self) -> str:
         """Return ``"Filters <id> of <group>"``."""
         return f"Filters {self.pk} of {self.group_id}"
+
+
+class CalloutAnswerKind(models.TextChoices):
+    """What a recipient of a mission callout answered: whether they can fly."""
+
+    AVAILABLE = "available", "Available"
+    LIMITED = "limited", "Available with limits"
+    UNAVAILABLE = "unavailable", "Not available"
+
+
+class Callout(models.Model):
+    """The answers side of a mission callout: one per bulk email with ``is_callout`` set.
+
+    ``closes_at`` is when answers stop being taken; ``closed_at`` and ``closed_by`` say
+    when, and by whom, **Close now** closed it sooner, null while nobody has.
+    ``closed_by`` is null as well once that account is deleted.  ``reminded_at`` is
+    when **Remind non-responders** last queued a round of reminders, null before the
+    first.  A callout whose ``closes_at`` has passed, or whose ``closed_at`` is set,
+    takes no answer.
+    """
+
+    bulk_email = models.OneToOneField(BulkEmail, on_delete=models.CASCADE, related_name="callout")
+    closes_at = models.DateTimeField()
+    closed_at = models.DateTimeField(null=True, blank=True)
+    closed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="callouts_closed",
+    )
+    reminded_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self) -> str:
+        """Return ``"Callout <bulk email id>"``."""
+        return f"Callout {self.bulk_email_id}"
+
+
+class CalloutAnswer(models.Model):
+    """One recipient's answer to a mission callout, which they may change until it closes.
+
+    ``answer`` is one of :class:`CalloutAnswerKind`, ``note`` what they added, such as
+    *can fly Saturday only*, and ``answered_at`` when they last sent it.  Each person
+    answers a callout once; a later answer replaces the earlier one.
+    """
+
+    callout = models.ForeignKey(Callout, on_delete=models.CASCADE, related_name="answers")
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="callout_answers"
+    )
+    answer = models.CharField(max_length=11, choices=CalloutAnswerKind.choices)
+    note = models.CharField(max_length=500, blank=True)
+    answered_at = models.DateTimeField()
+
+    class Meta:
+        ordering = ["answered_at", "id"]
+        constraints = [
+            models.UniqueConstraint(fields=["callout", "user"], name="callout_answer_once")
+        ]
+
+    def __str__(self) -> str:
+        """Return ``"<user id>: <answer>"``."""
+        return f"{self.user_id}: {self.answer}"

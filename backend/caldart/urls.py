@@ -42,6 +42,7 @@ urlpatterns = [
     ),
     path("find-dart/", find_dart, name="find-dart"),
     path("", include("apps.mail.urls")),
+    path("", include("apps.bulk_email.urls")),
     re_path(r"^docs/(?P<path>.*)$", user_guide, name="user-guide"),
     re_path(r"^portal/(?P<path>.*)$", portal_shell, name="portal"),
 ]

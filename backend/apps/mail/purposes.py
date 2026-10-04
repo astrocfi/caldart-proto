@@ -66,6 +66,7 @@ PURPOSE_LABELS: dict[str, str] = {
     "notification_aircraft_added": "Notification: Aircraft added",
     "notification_aircraft_changed": "Notification: Aircraft changed",
     "notification_aircraft_removed": "Notification: Aircraft removed",
+    "notification_callout_answer": "Notification: Callout answer",
 }
 
 

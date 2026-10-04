@@ -92,6 +92,13 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ['management'],
     group: 'Bulk Email',
   },
+  // A DART leader reads the answers to the callouts they sent and to their DART's.
+  {
+    to: '/bulk-email/callouts',
+    label: 'Callouts',
+    roles: ['management', 'dart_leader'],
+    group: 'Bulk Email',
+  },
   { to: '/bulk-email/types', label: 'Email types', roles: ['system_admin'], group: 'Bulk Email' },
   // The DNS check is visible to management and (as for every entry) a system administrator.
   {

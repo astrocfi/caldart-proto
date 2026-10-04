@@ -1,5 +1,9 @@
 {% autoescape off %}{{ body_text }}
-
+{% if answers %}
+Can you fly? Choose your answer. You can add a note on the next page, and change your answer until {{ answers.closes }}.
+{% for link in answers.links %}
+{{ link.label }}: {{ link.url }}{% endfor %}
+{% endif %}
 --
 {% if view_url %}View this email in your browser: {{ view_url }}
 {% endif %}{{ org_name }} is a volunteer disaster air transportation network.

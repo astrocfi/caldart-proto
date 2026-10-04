@@ -7,25 +7,15 @@ import type { JSX } from 'react';
 import { Link } from 'react-router-dom';
 
 import { ApiError } from '@/portal/api/client';
-import type { LeaderGoNoGo, LeaderSearchResult } from '@/portal/api/types';
+import type { LeaderSearchResult } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { EmptyState } from '@/portal/components/EmptyState';
 import { looksLikeRegistration, normalizeNNumber } from '@/portal/features/aircraft/insurance';
 import { reportExportUrl } from '@/portal/reports/api';
-import { GoMark, LeaderLookup } from './LeaderLookup';
+import { GoMark, LeaderLookup, isReady } from './LeaderLookup';
 import { MemberStatusCard } from './MemberStatusCard';
 import { useLeaderSearch, useMemberStatus } from './api';
 import './leader.css';
-
-/**
- * Whether a search row is a go: all three counts the server reports have to be true.
- *
- * The same three booleans drive the verdict band on the status card, so the list
- * and the card can never disagree about who may fly.
- */
-function isReady(goNoGo: LeaderGoNoGo): boolean {
-  return goNoGo.membership && goNoGo.medical && goNoGo.verified;
-}
 
 /**
  * `?member=` comes from a link or a hand-edited URL: only a real record id

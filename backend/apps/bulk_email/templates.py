@@ -18,6 +18,7 @@ from django.db import transaction
 
 from apps.accounts.models import User
 from apps.bulk_email.batch import add_accounts, batch_queryset
+from apps.bulk_email.callouts import apply_settings
 from apps.bulk_email.drafts import update
 from apps.bulk_email.models import BulkEmail, EmailTemplate
 from apps.bulk_email.reply_to import default_reply_to
@@ -70,9 +71,12 @@ def duplicate(bulk: BulkEmail, *, actor: User, copy_recipients: bool) -> BulkEma
     :data:`COPIED_LABEL`; each is a fresh ``batched`` row with the account's name,
     address, kind, and DART as they are now, so whether each receives a copy is worked
     out afresh, and a DART leader's copy skips everybody outside their DART as
-    ``Not in your DART``.  Without it the batch is empty.  ``bulk`` itself is not
-    changed.  Raises ``DomainPermissionError`` with the sender's reason when ``actor``
-    may send to nobody, such as a DART leader whose profile names no DART.
+    ``Not in your DART``.  Without it the batch is empty.  A mission callout's copy is a
+    callout too, with no answers and its answers closing two days ahead
+    (``apps.bulk_email.callouts.apply_settings``), ready for the next activation.
+    ``bulk`` itself is not changed.  Raises ``DomainPermissionError`` with the sender's
+    reason when ``actor`` may send to nobody, such as a DART leader whose profile names
+    no DART.
     """
     context = sender_context(actor)
     if not context.can_send:
@@ -86,6 +90,9 @@ def duplicate(bulk: BulkEmail, *, actor: User, copy_recipients: bool) -> BulkEma
             reply_to=bulk.reply_to,
             email_type=_sendable(bulk.email_type, actor),
         )
+        if bulk.is_callout:
+            changed = apply_settings(copy, is_callout=True, closes_at=None, actor=actor)
+            copy.save(update_fields=[*changed, "updated_at"])
         if copy_recipients:
             people = member_admin_queryset().filter(
                 pk__in=batch_queryset(bulk).filter(user__isnull=False).values("user_id")

@@ -23,6 +23,7 @@ from apps.bulk_email.batch import (
     selected_accounts,
     unknown_filters,
 )
+from apps.bulk_email.callouts import callout_of
 from apps.bulk_email.delivery import retried_count
 from apps.bulk_email.drafts import NOT_SENDABLE_MESSAGE
 from apps.bulk_email.job import estimated_finish
@@ -33,7 +34,12 @@ from apps.bulk_email.models import (
     BulkEmailStatus,
     RecipientStatus,
 )
-from apps.bulk_email.render import body_problem, render_message, subject_problem
+from apps.bulk_email.render import (
+    body_problem,
+    callout_answers,
+    render_message,
+    subject_problem,
+)
 from apps.bulk_email.reply_to import default_reply_to
 from apps.bulk_email.richtext import sanitize
 from apps.bulk_email.senders import email_dart_name, sender_notice
@@ -120,7 +126,10 @@ class BulkEmailUpdateSerializer(serializers.Serializer[dict[str, Any]]):
     a type the caller may send (``GET /email-types/sendable``); any other is refused
     with :data:`apps.bulk_email.drafts.NOT_SENDABLE_MESSAGE`.  ``reply_to`` is a valid
     email address, trimmed, or blank for the default
-    (``apps.bulk_email.reply_to.default_reply_to``).  The caller is the context's
+    (``apps.bulk_email.reply_to.default_reply_to``).  ``is_callout`` makes the email a
+    mission callout or an ordinary email again, and ``closes_at`` is when a callout's
+    answers close, a time without an offset read in the site's time zone
+    (``apps.bulk_email.callouts.apply_settings``).  The caller is the context's
     ``user``.
     """
 
@@ -130,6 +139,8 @@ class BulkEmailUpdateSerializer(serializers.Serializer[dict[str, Any]]):
         queryset=EmailType.objects.all(), required=False
     )
     reply_to = serializers.EmailField(max_length=254, allow_blank=True, required=False)
+    is_callout = serializers.BooleanField(required=False)
+    closes_at = serializers.DateTimeField(required=False)
 
     def validate_email_type(self, value: EmailType) -> EmailType:
         """Refuse a type the caller may not send."""
@@ -227,10 +238,12 @@ class BulkEmailDetailSerializer(serializers.ModelSerializer[BulkEmail]):
     ``sent_count`` no longer counts; ``retries`` lists each press of **Retry failed**,
     oldest first, and ``retried_count`` adds up the copies they queued again.
     ``hidden_from_archive`` is true while the email is kept off the recipients'
-    **Messages** page.
+    **Messages** page.  ``is_callout`` is true for a mission callout, whose answers
+    close at ``closes_at``, null for any other email.
     """
 
     email_type_name = serializers.SerializerMethodField()
+    closes_at = serializers.SerializerMethodField()
     dart_name = serializers.SerializerMethodField()
     sender_notice = serializers.SerializerMethodField()
     default_reply_to = serializers.SerializerMethodField()
@@ -286,6 +299,8 @@ class BulkEmailDetailSerializer(serializers.ModelSerializer[BulkEmail]):
             "retried_count",
             "retries",
             "hidden_from_archive",
+            "is_callout",
+            "closes_at",
             "can_edit",
             "batch_count",
             "receiving_count",
@@ -311,6 +326,11 @@ class BulkEmailDetailSerializer(serializers.ModelSerializer[BulkEmail]):
     def get_email_type_name(self, bulk: BulkEmail) -> str:
         """The type's name, or ``""`` while none is chosen."""
         return email_type_name(bulk)
+
+    def get_closes_at(self, bulk: BulkEmail) -> datetime | None:
+        """When a callout's answers close, in the site's time zone; null for any other."""
+        callout = callout_of(bulk)
+        return None if callout is None else timezone.localtime(callout.closes_at)
 
     def get_dart_name(self, bulk: BulkEmail) -> str:
         """The DART a DART leader's email goes to, or ``""`` for anybody."""
@@ -363,8 +383,12 @@ class BulkEmailDetailSerializer(serializers.ModelSerializer[BulkEmail]):
         return int(settings.BULK_EMAIL_UNDO_SECONDS)
 
     def get_message_html(self, bulk: BulkEmail) -> str:
-        """The whole HTML email, its recipient field tokens as written."""
-        return render_message(bulk.subject, bulk.body, None).html
+        """The whole HTML email, its recipient field tokens as written.
+
+        A callout's answer buttons are shown inert, answering for nobody.
+        """
+        answers = callout_answers(bulk, None, live=False)
+        return render_message(bulk.subject, bulk.body, None, answers=answers).html
 
 
 class BulkEmailSummarySerializer(serializers.ModelSerializer[BulkEmail]):

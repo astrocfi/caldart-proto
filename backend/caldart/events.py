@@ -41,6 +41,7 @@ EVENT_SLUGS: tuple[str, ...] = (
     "aircraft_added",
     "aircraft_changed",
     "aircraft_removed",
+    "callout_answer",
 )
 
 _handlers: list[Handler] = []

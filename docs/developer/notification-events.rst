@@ -46,7 +46,9 @@ test and asserts the slug and the payload that one action raised.
 The events
 ==========
 
-The payload names are the keyword arguments to ``emit``.  ``user`` is the
+The payload names are the keyword arguments to ``emit``.  A payload may carry
+``audience``, a function of an account: the notifications app then sends the event to
+a subscription bound to an account only when the function answers true for it.  ``user`` is the
 ``User`` the event is about and ``actor`` the ``User`` who made the change,
 ``None`` where the person acted for themselves or nobody CalDART knows did.
 
@@ -240,3 +242,32 @@ Aircraft
      - ``aircraft.services.delete_aircraft``, which ``DELETE /aircraft/{id}`` calls
      - ``n_number`` and ``owner`` (the owner's name as the record gave it), since
        the record is gone; ``actor``
+
+Callouts
+--------
+
+.. list-table::
+   :header-rows: 1
+   :widths: 18 42 40
+
+   * - Slug
+     - Raised in
+     - Payload
+   * - ``callout_answer``
+     - ``bulk_email.callouts.record_answer``, which the answer page's **Send answer**
+       calls (:ref:`bulk-email-callouts`), for a new answer and for a change of answer;
+       a change to the note alone, and the same answer sent again, raise nothing
+     - ``user``, who answered; ``answer``, in words (*Available*, *Available with
+       limits*, or *Not available*); ``note``, as recorded; ``subject``, the callout's
+       subject as written; ``callout_id``, the bulk email's id; and ``audience``, a
+       function of an account that answers whether it may open the callout
+
+``callout_answer`` is for CalDART management and DART leaders.  Its email reads *Ann
+Able answered Available with limits to a mission callout*, with the lines
+``Callout`` (the subject with the sender's own values filled in), ``Answer``, ``Note`` (or ``None``), and
+``DART``, the person's, and links the callout's page on the Callouts screen.  A
+subscription bound to a DART leader's account is sent it only for a callout that
+leader may open, one they sent or one that went to their own DART (the payload's
+``audience``, ``bulk_email.callouts.can_see``); CalDART management hears of every one.
+The payload holds plain values because the bulk email app and the notifications app
+sit side by side, and neither imports the other.

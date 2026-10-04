@@ -476,7 +476,8 @@ order.  Like every staff slug it opens the website's members-only pages.
 ``IsBulkSender``, ``HasAnyRole(MANAGEMENT, DART_LEADER)``, guards every
 ``/bulk-email`` endpoint: a ``dart_leader`` sends bulk email too, but only to the DART
 on their own profile, and reaches only the emails they are the sender of
-(``apps.bulk_email.senders``).
+(``apps.bulk_email.senders``), and the mission callouts they sent or that went to that
+DART (``apps.bulk_email.callouts``).
 
 ``website_admin`` grants **no API endpoint at all**.  It exists to give its
 holder Wagtail admin permissions, which are enforced by Wagtail, not by DRF.
@@ -1434,7 +1435,7 @@ not (see :ref:`api-csrf-bootstrap`).
      - ·
      - ·
      - ·
-     - ``management``, a ``dart_leader`` on their own emails (404 on any other); 409 once the email has started sending (see :doc:`api-bulk-email`)
+     - ``management``, a ``dart_leader`` on their own emails (404 on any other), and ``GET`` on another sender's started email to their DART; 409 once the email has started sending (see :doc:`api-bulk-email`)
    * - ``GET | DELETE /bulk-email/{id}/batch``
      - ·
      - ·
@@ -1531,6 +1532,46 @@ not (see :ref:`api-csrf-bootstrap`).
      - ·
      - ·
      - ``management``; hides a sent email from Messages, or shows it again
+   * - ``GET /bulk-email/callouts``
+     - ·
+     - ·
+     - ✓
+     - ·
+     - ·
+     - ·
+     - ``management`` every callout, a ``dart_leader`` the ones they sent and their own DART's; the Callouts list
+   * - ``GET /bulk-email/callouts/{id}``
+     - ·
+     - ·
+     - ✓
+     - ·
+     - ·
+     - ·
+     - ``management``, a ``dart_leader`` on a callout they sent or their DART's (404 on any other); every answer
+   * - ``GET /bulk-email/callouts/{id}/answers.csv``
+     - ·
+     - ·
+     - ✓
+     - ·
+     - ·
+     - ·
+     - ``management``, a ``dart_leader`` on a callout they sent or their DART's (404 on any other); the answers as a CSV
+   * - ``POST /bulk-email/callouts/{id}/remind``
+     - ·
+     - ·
+     - ✓
+     - ·
+     - ·
+     - ·
+     - ``management``, a ``dart_leader`` on a callout they sent or their DART's (404 on any other); 409 unless it has finished sending and is open (see :doc:`api-bulk-email`)
+   * - ``POST /bulk-email/callouts/{id}/close``
+     - ·
+     - ·
+     - ✓
+     - ·
+     - ·
+     - ·
+     - ``management``, a ``dart_leader`` on a callout they sent or their DART's (404 on any other); 409 once it has closed
    * - ``GET /messages``
      - ·
      - ✓

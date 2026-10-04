@@ -65,6 +65,9 @@ NOBODY_TO_RETRY_MESSAGE = (
     "reason on their line."
 )
 
+#: Why a failed copy is not retried when a later copy has gone, or is going, instead.
+SKIP_LATER_COPY = "Sent a later copy instead"
+
 #: Why a recipient's copy cannot be shown.
 NOT_TRIED_MESSAGE = "This person was not sent a copy."
 
@@ -142,13 +145,16 @@ def retry_failed(bulk: BulkEmail, *, actor: User, now: datetime | None = None) -
     ``apps.bulk_email.batch.skip_reason`` afresh, as a send asks it: a deleted account
     (*Account deleted*), one no longer in the DART a DART leader's email is limited to
     (*Not in your DART*), a deactivated one, an address that is missing, invalid, or
-    bounced, an opt-out of the type, and an address already sent this email all make
-    the row ``skipped`` with that reason, and ``skipped_count`` grows.  Every other
+    bounced, an opt-out of the type, an address already sent this round of the email,
+    and, for a mission callout, a person a later round's copy reached or is going to
+    (:data:`SKIP_LATER_COPY`) all make the row ``skipped`` with that reason, and
+    ``skipped_count`` grows.  Every other
     failed row goes back to ``pending`` with its reason cleared.  Every failed row
     leaves ``failed_count``.  When any row went back to ``pending`` the email is queued
     with ``start_at`` at ``now`` and no undo window, and the background sender sends
     those copies alone, each filled in with the person's values as they are then.
-    Bounced and skipped copies are not retried, nor is anyone already sent a copy.  The
+    Bounced and skipped copies are not retried, nor is anyone already sent a copy of that
+    round or of a later one, and nobody is queued twice.  The
     email keeps its ``started_at``, so it stays read-only (``BulkEmail.can_edit``), and
     **Stop** stops the retry as it stops **Send the rest**.
 
@@ -203,22 +209,39 @@ def _sort_failed(
 ) -> tuple[int, int]:
     """Set each of ``failed`` to ``pending`` or ``skipped``; answer how many of each.
 
-    Each row takes its account's name and address as they are now, then
-    ``batch.skip_reason`` decides, with the DART a DART leader's email is limited to
-    (``senders.dart_limit``, as it is now), the type's opt-outs, and the addresses already
-    sent this email (or queued in this pass), trimmed and case-folded.  The rows are
-    changed in memory; the caller saves them.
+    The rows are taken a callout's latest round first, so a person whose reminder and
+    first copy both failed is retried once, with the reminder.  A row is ``skipped``
+    with :data:`SKIP_LATER_COPY` when its account has a copy of a later round that was
+    sent, bounced, or is pending, or one queued earlier in this pass, so nobody is sent
+    an earlier copy after a later one, or two copies in one retry.  Every other row takes
+    its account's name and address as they are now, then ``batch.skip_reason`` decides,
+    with the DART a DART leader's email is limited to (``senders.dart_limit``, as it is
+    now), the type's opt-outs, and the addresses already sent the row's own round of this
+    email (or queued in this pass), trimmed and case-folded, so nobody already sent a
+    copy of that round is sent another.  The rows are changed in memory; the caller
+    saves them.
     """
     opt_outs = type_opt_outs(bulk)
     limit = dart_limit(bulk)
     went = bulk.recipients.filter(
         status__in=[RecipientStatus.SENT, RecipientStatus.BOUNCED, RecipientStatus.PENDING]
-    ).values_list("email", flat=True)
-    seen = {_folded(address) for address in went}
+    ).values_list("round", "email", "user_id")
+    seen: dict[int, set[str]] = {}
+    latest: dict[int, int] = {}
+    for number, address, user_id in went:
+        seen.setdefault(number, set()).add(_folded(address))
+        if user_id is not None:
+            latest[user_id] = max(latest.get(user_id, number), number)
+    queued: set[int] = set()
     retried = 0
-    for row in failed:
+    # Stable: within a round the rows keep the surname order the caller gave them.
+    for row in sorted(failed, key=lambda candidate: -candidate.round):
         account = row.user
-        reason = skip_reason(account, seen, opt_outs=opt_outs, limit=limit)
+        in_round = seen.setdefault(row.round, set())
+        if account is not None and (latest.get(account.pk, -1) > row.round or account.pk in queued):
+            reason = SKIP_LATER_COPY
+        else:
+            reason = skip_reason(account, in_round, opt_outs=opt_outs, limit=limit)
         if account is not None:
             row.name = account.display_name
             row.email = account.email
@@ -226,7 +249,9 @@ def _sort_failed(
         row.reason = reason[:REASON_MAX_LENGTH]
         if reason == "":
             row.status = RecipientStatus.PENDING
-            seen.add(_folded(row.email))
+            in_round.add(_folded(row.email))
+            if account is not None:
+                queued.add(account.pk)
             retried += 1
         else:
             row.status = RecipientStatus.SKIPPED

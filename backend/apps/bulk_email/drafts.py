@@ -34,6 +34,7 @@ from apps.bulk_email.batch import (
     batch_rows,
     locked_for_edit,
 )
+from apps.bulk_email.callouts import apply_settings, check_for_send
 from apps.bulk_email.checks import NO_BODY_MESSAGE as NO_BODY_MESSAGE
 from apps.bulk_email.checks import NO_SUBJECT_MESSAGE as NO_SUBJECT_MESSAGE
 from apps.bulk_email.checks import refuse_on_errors
@@ -129,18 +130,36 @@ def update(bulk: BulkEmail, changes: dict[str, object], *, actor: User) -> BulkE
     or a message, which it is about to be sent with.  Changing a queued email's type
     takes it back to a draft instead, its schedule and confirmed count cleared, since
     who is skipped as opted out changes with the type
-    (``apps.bulk_email.batch.back_to_draft``, reason ``type_changed``).  Raises
-    ``DomainValidationError`` keyed ``subject`` or ``body`` for a queued email left
-    without either, and ``DomainError`` once the email has started sending.
+    (``apps.bulk_email.batch.back_to_draft``, reason ``type_changed``).
+    ``is_callout`` and ``closes_at`` make the email a mission callout or not, and set
+    when its answers close (``apps.bulk_email.callouts.apply_settings``, which chooses
+    the Mission type when ``actor`` may send it, a change of type like any other); a
+    queued callout's answers must still close after it starts.  Raises
+    ``DomainValidationError`` keyed ``subject``, ``body``, or ``closes_at`` for a queued
+    email that breaks one of those, and ``DomainError`` once the email has started
+    sending.
     """
+    fields = dict(changes)
+    is_callout = fields.pop("is_callout", None)
+    closes_at = fields.pop("closes_at", None)
     with transaction.atomic():
         locked = locked_for_edit(bulk)
-        is_type_change = "email_type" in changes and changes["email_type"] != locked.email_type
-        for name, value in changes.items():
+        type_before = locked.email_type_id
+        for name, value in fields.items():
             setattr(locked, name, value)
+        callout_fields = apply_settings(
+            locked,
+            is_callout=is_callout if isinstance(is_callout, bool) else None,
+            closes_at=closes_at if isinstance(closes_at, datetime) else None,
+            actor=actor,
+        )
+        is_type_change = locked.email_type_id != type_before
         if locked.status == BulkEmailStatus.QUEUED and not is_type_change:
             _check_content(locked)
-        locked.save(update_fields=[*changes, "updated_at"])
+            if locked.start_at is not None:
+                check_for_send(locked, locked.start_at)
+        changed = [*fields, *(name for name in callout_fields if name not in fields)]
+        locked.save(update_fields=[*changed, "updated_at"])
         if is_type_change:
             back_to_draft(locked, actor=actor, reason=TYPE_CHANGED)
     return locked
@@ -191,7 +210,8 @@ def queue(
     Raises ``DomainValidationError`` keyed ``subject``, ``body``, ``email_type``
     (:data:`NO_TYPE_MESSAGE`, or :data:`NOT_SENDABLE_MESSAGE` naming the type),
     ``batch`` (``apps.bulk_email.senders.sender_notice`` for an email limited to no
-    DART, else :data:`NOBODY_MESSAGE`), ``confirm_count``, or ``start_at``, and
+    DART, else :data:`NOBODY_MESSAGE`), ``confirm_count``, ``start_at``, or, for a
+    mission callout whose answers would close by the time it starts, ``closes_at``, and
     ``DomainError`` once the email has started sending; nothing changes then.  An
     error among the checks that the fields above do not already refuse raises
     ``apps.bulk_email.checks.ChecksFailedError`` with every error.
@@ -214,6 +234,12 @@ def queue(
             _check_confirm_count(confirm_count, receiving)
         if start_at is not None:
             _check_schedule(start_at, moment)
+        check_for_send(
+            locked,
+            start_at
+            if start_at is not None
+            else moment + timedelta(seconds=settings.BULK_EMAIL_UNDO_SECONDS),
+        )
         locked.status = BulkEmailStatus.QUEUED
         locked.scheduled = start_at is not None
         locked.start_at = (

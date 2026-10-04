@@ -55,8 +55,8 @@ in ``EVENTS``, keyed by slug and in the same order as ``EVENT_SLUGS``:
 ``label``
    the words the screen and the email log use, such as ``Sign-up``;
 ``category``
-   one of ``CATEGORIES`` — ``Membership``, ``Money``, ``Accounts`` and
-   ``Aircraft`` — the heading the screen groups it under;
+   one of ``CATEGORIES`` — ``Membership``, ``Money``, ``Accounts``, ``Aircraft``,
+   and ``Callouts`` — the heading the screen groups it under;
 ``description``
    one sentence saying when it happens, the screen's tooltip;
 ``roles``
@@ -99,6 +99,12 @@ Editing applies the same rule: adding an event the bound account may not
 receive is refused, and so is resuming a paused subscription that lists one.
 Removing events is always allowed, so a subscription can be trimmed after its
 account loses a role.
+
+An event whose payload carries ``audience`` narrows the rule for a bound account: the
+function must answer true for it as well (``audience_for`` in
+``apps/notifications/dispatch.py``).  A callout answer (``callout_answer``) carries
+one, so a DART leader hears only of the callouts they sent or that went to their own
+DART.
 
 A sign-up (``signed_up``) goes, in addition, to every contact in
 ``dart.roster_recipients()`` when the person chose a DART, whether or not the

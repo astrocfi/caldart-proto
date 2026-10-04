@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% comment %}
+  The page a mission callout's answer buttons open.  `state` is one of `form`, `done`,
+  `closed`, `busy`, `inactive`, or `invalid` (see `apps.bulk_email.views.callout_answer`).  The form posts
+  back to this same address; it carries no CSRF token because the signed token in the
+  address is the authorization.  `page.body_html` is the sanitized message with the
+  person's values filled in, each escaped.
+{% endcomment %}
+
+{% block title %}{% if state == "invalid" or state == "inactive" %}Mission callout{% else %}{{ page.subject }}{% endif %}{% endblock %}
+{% block body_class %}callout-answer{% endblock %}
+{% block extra_head %}<meta name="robots" content="noindex" />{% endblock %}
+
+{% block content %}
+  {% firstof site_settings.org_name "CalDART" as org %}
+  <section class="box">
+    <div class="box__head box__head--titled">
+      <p class="box__parent">Mission callout</p>
+      <h1>{% if state == "invalid" %}This link does not work{% elif state == "inactive" %}This link no longer works{% else %}{{ page.subject }}{% endif %}</h1>
+    </div>
+    <div class="box__body stack">
+      {% if state == "invalid" %}
+        <p class="lede">
+          The answer link was copied incompletely or changed, so nothing was recorded.
+          Open the email again and use one of its buttons.
+        </p>
+      {% elif state == "inactive" %}
+        <p class="lede">
+          This link no longer works, because the account it was sent to is no longer active,
+          so nothing was recorded.
+        </p>
+      {% elif state == "busy" %}
+        <p class="lede">
+          This link has sent many answers in the last hour, so this one was not recorded.
+          Try again later.
+        </p>
+      {% elif state == "closed" %}
+        <p class="lede">This callout has closed. Answers closed {{ closes }}, so nothing was recorded.</p>
+        {% if answer_label %}
+          <p>Your answer was <strong>{{ answer_label }}</strong>{% if page.answer.note %}, with the note “{{ page.answer.note }}”{% endif %}.</p>
+        {% endif %}
+      {% elif state == "done" %}
+        <p class="lede" role="status">
+          Thank you. Your answer is <strong>{{ answer_label }}</strong>{% if page.answer.note %}, with the note “{{ page.answer.note }}”{% endif %}.
+        </p>
+        <p>
+          You can change it until {{ closes }}:
+          use a button in the email again, or <a href="{{ request.path }}">open this page again</a>.
+        </p>
+      {% else %}
+        {% if answer_label %}
+          <p class="lede">
+            You answered <strong>{{ answer_label }}</strong> on {{ answered }}. You can change
+            your answer until {{ closes }}.
+          </p>
+        {% else %}
+          <p class="lede">Can you fly? Choose your answer and press Send answer. You can change it until {{ closes }}.</p>
+        {% endif %}
+        <form method="post" class="stack callout-answer__form">
+          <fieldset class="stack-tight callout-answer__choices"{% if error %} aria-describedby="callout-answer-error"{% endif %}>
+            <legend class="field__label">Your answer</legend>
+            {% for value, label in choices %}
+              <label class="callout-answer__choice">
+                <input type="radio" name="answer" value="{{ value }}"{% if value == chosen %} checked{% endif %} />
+                {{ label }}
+              </label>
+            {% endfor %}
+            {% if error %}<span class="field__error" id="callout-answer-error" role="alert">{{ error }}</span>{% endif %}
+          </fieldset>
+          <label class="field">
+            <span class="field__label">Note (optional)</span>
+            <textarea name="note" rows="3" maxlength="{{ note_max_length }}" aria-describedby="callout-answer-note-hint">{{ note }}</textarea>
+            <span class="field__hint" id="callout-answer-note-hint">For example, “can fly Saturday only” or “aircraft at KSQL”.</span>
+          </label>
+          <button type="submit" class="button">Send answer</button>
+        </form>
+      {% endif %}
+      {% if state != "invalid" and state != "inactive" %}
+        <hr />
+        <p class="small">The email {{ org }} sent:</p>
+        <div class="callout-answer__message">{{ page.body_html|safe }}</div>
+      {% endif %}
+    </div>
+  </section>
+{% endblock %}

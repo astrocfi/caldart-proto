@@ -680,6 +680,10 @@ def every_event_payload() -> dict[str, object]:
         "aircraft": AircraftFactory(),
         "n_number": "N12345",
         "owner": user,
+        "answer": "Available",
+        "note": "Can fly Saturday",
+        "subject": "Fire near Paradise",
+        "callout_id": 12,
     }
 
 

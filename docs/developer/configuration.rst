@@ -335,6 +335,17 @@ Content-Security-Policy needs no Geoapify origin.
    :Development: ``30/min``
    :Production: ``30/min``
 
+``CALLOUT_ANSWER_THROTTLE_RATE``
+   How often one mission callout's answer link may send an answer (the ``POST`` of
+   ``/mail/callout/<token>``), counted per link, as a DRF rate: empty turns the limit
+   off.  A changed answer can email every subscriber to callout answers, so the limit
+   keeps somebody holding a forwarded link from filling their inboxes; past it the
+   page says to try again later and records nothing.  Read by
+   ``apps.bulk_email.throttling``; ``caldart.settings.test`` sets it to ``None``.
+
+   :Development: ``10/hour``
+   :Production: ``10/hour``
+
 
 The FAA registry
 ================

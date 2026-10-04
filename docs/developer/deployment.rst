@@ -1971,6 +1971,18 @@ Action                        Fields beyond actor and target
 ``bulk_email.refused``        -- (WARNING; the target is the ``BulkEmail``, the
                               actor ``command``): the sender returned a due
                               email unsent, with the ``reason`` below
+``callout.answer``            ``answer`` -- ``available``, ``limited``, or
+                              ``unavailable`` (the actor is the person who
+                              answered, the target the ``BulkEmail``); one line
+                              per new answer or change of answer, never the note
+``callout.remind``            ``round``, ``recipients``, ``skipped`` -- the
+                              reminders **Remind non-responders** queued, and
+                              the people it found skipped
+``callout.remind_finished``   ``round``, ``sent``, ``failed`` -- a round of
+                              reminders, once all were tried (the actor is the
+                              callout's sender)
+``callout.close``             -- (the target is the ``BulkEmail``); one line
+                              per **Close now**
 ``email_type.create``         -- (the target is the ``EmailType``)
 ``email_type.update``         --
 ``email_type.delete``         --

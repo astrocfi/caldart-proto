@@ -391,6 +391,7 @@ SPECTACULAR_SETTINGS = {
         "BulkEmailStatusEnum": "apps.bulk_email.models.BulkEmailStatus.choices",
         "BulkEmailFindingLevelEnum": "apps.bulk_email.checks.Level.choices",
         "RecipientGroupKindEnum": "apps.bulk_email.models.GroupKind.choices",
+        "CalloutAnswerEnum": "apps.bulk_email.models.CalloutAnswerKind.choices",
         # The portal's and the public donation page's mock completions share one set.
         "MockCompleteOutcomeEnum": "apps.payments.api.serializers.MOCK_OUTCOMES",
     },
@@ -453,6 +454,10 @@ AUTH_THROTTLE_RATES = {
 # ``apps.bulk_email.throttling``: each run fetches every link in the message.
 # Empty is off.
 BULK_EMAIL_CHECKS_THROTTLE_RATE = _throttle_rate("BULK_EMAIL_CHECKS_THROTTLE_RATE", "30/min")
+
+# How often one mission callout answer link may send an answer, read by
+# ``apps.bulk_email.throttling``: each change can email every subscriber.  Empty is off.
+CALLOUT_ANSWER_THROTTLE_RATE = _throttle_rate("CALLOUT_ANSWER_THROTTLE_RATE", "10/hour")
 
 # --------------------------------------------------------------------------
 # Address suggestions (Geoapify)

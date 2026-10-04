@@ -19,7 +19,12 @@ from rest_framework.views import APIView
 
 from apps.accounts.permissions import IsManagement
 from apps.bulk_email import delivery
-from apps.bulk_email.api.common import BULK_EMAIL_PERMISSIONS, email_for, refused
+from apps.bulk_email.api.common import (
+    BULK_EMAIL_PERMISSIONS,
+    email_for,
+    readable_email_for,
+    refused,
+)
 from apps.bulk_email.api.serializers import BulkEmailDetailSerializer
 from apps.bulk_email.delivery import RecipientCopy
 from apps.bulk_email.models import BulkEmailRecipient, RecipientStatus
@@ -85,7 +90,7 @@ class RecipientCopyView(APIView):
 
         404 for a row of another email; 409 for a person whose copy was never tried.
         """
-        bulk = email_for(request, pk)
+        bulk = readable_email_for(request, pk)
         try:
             copy = delivery.recipient_copy(bulk, rid)
         except BulkEmailRecipient.DoesNotExist as missing:

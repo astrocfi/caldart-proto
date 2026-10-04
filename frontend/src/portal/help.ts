@@ -68,6 +68,8 @@ export const HELP_PAGES: readonly HelpPage[] = [
   { pattern: '/bulk-email/templates', slug: 'bulk-email/templates' },
   { pattern: '/bulk-email/groups', slug: 'bulk-email/groups' },
   { pattern: '/bulk-email/groups/:id', slug: 'bulk-email/groups' },
+  { pattern: '/bulk-email/callouts', slug: 'bulk-email/callouts' },
+  { pattern: '/bulk-email/callouts/:id', slug: 'bulk-email/callouts' },
   { pattern: '/bulk-email/mail-delivery', slug: 'bulk-email/mail-delivery' },
   { pattern: '/bulk-email/types', slug: 'bulk-email/email-types' },
   { pattern: '/messages', slug: 'member/messages' },
