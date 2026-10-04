@@ -43,7 +43,7 @@ describe('MessagePage', () => {
     ).toBeVisible();
   });
 
-  it('says who sent it, when, and what kind of email it is', async () => {
+  it('says who sent it, when, and what type of email it is', async () => {
     renderMessage(() => HttpResponse.json(SPRING));
     expect(
       await screen.findByText('From Grace Holloway on 04/07/2026, Operational email.'),

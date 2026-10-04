@@ -1,5 +1,5 @@
 /**
- * One switch per kind of bulk email, on when the person receives it.
+ * One switch per type of bulk email, on when the person receives it.
  *
  * Both the person's own Email preferences screen and the member record show these.
  * A switch saves the moment it moves; while that save is under way every switch
@@ -65,7 +65,7 @@ export function EmailPreferenceSwitches({
     return (
       <EmptyState
         title="There is nothing to turn off"
-        description="No kind of bulk email can be turned off at the moment."
+        description="No type of bulk email can be turned off at the moment."
       />
     );
   }

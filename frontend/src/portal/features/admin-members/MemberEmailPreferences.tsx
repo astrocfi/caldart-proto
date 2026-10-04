@@ -1,5 +1,5 @@
 /**
- * The member record's **Email preferences** card: the kinds of bulk email this
+ * The member record's **Email preferences** card: the types of bulk email this
  * person receives, with the same switches they see on their own screen.
  *
  * A change made here is saved at once and recorded as the administrator's. Each type
@@ -31,13 +31,13 @@ export function MemberEmailPreferences({ member }: { member: MemberDetail }): JS
   return (
     <Card title="Email preferences">
       <p className="muted">
-        The kinds of bulk email {member.name} receives. A change here is saved at once and recorded
+        The types of bulk email {member.name} receives. A change here is saved at once and recorded
         as yours; they can change it back on their own Email preferences screen.
       </p>
       <EmailPreferenceSwitches
         preferences={preferences}
         save={save}
-        label={`Kinds of email ${member.name} receives`}
+        label={`Types of email ${member.name} receives`}
         showsWhoTurnedOff
       />
     </Card>

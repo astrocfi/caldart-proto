@@ -1,5 +1,5 @@
 /**
- * `/bulk-email/types` — the kinds of bulk email, for a system administrator.
+ * `/bulk-email/types` — the types of bulk email, for a system administrator.
  *
  * One table, in a card, and one form: **Add an email type** opens the form empty and
  * each row's **Edit** opens it on that type. Each row's trashcan asks before it
@@ -178,7 +178,7 @@ export function EmailTypesPage(): JSX.Element {
     <Page
       title="Email types"
       eyebrow="Bulk Email"
-      lede="The kinds of bulk email CalDART sends. Each one says who may send it and whether members may turn it off on their Email preferences."
+      lede="The types of bulk email CalDART sends. Each one says who may send it and whether members may turn it off on their Email preferences."
       actions={openForm === null ? <Button onClick={handleAdd}>Add an email type</Button> : null}
     >
       {openForm?.mode === 'new' ? (
