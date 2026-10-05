@@ -105,6 +105,10 @@ export function RenewPage(): JSX.Element {
     return <Navigate to={LIFETIME_GIVING_PATH} replace />;
   }
 
+  function handleRenewAnyway(): void {
+    setIsRenewingAnyway(true);
+  }
+
   function handleSuccess() {
     refreshAfterPayment(queryClient);
     toast.show('Thank you — your membership is renewed.', 'success');
@@ -145,7 +149,8 @@ export function RenewPage(): JSX.Element {
         <>
           <AutomaticRenewalCard
             state={automatic}
-            onRenewAnyway={isCheckoutShown ? undefined : () => setIsRenewingAnyway(true)}
+            isCheckoutOpen={isCheckoutShown}
+            onRenewAnyway={handleRenewAnyway}
           />
           {isCheckoutShown ? (
             <div ref={checkoutRef}>
@@ -166,8 +171,10 @@ export function RenewPage(): JSX.Element {
 
 interface AutomaticRenewalCardProps {
   state: RenewalState;
-  /** Opens the checkout; left out once it is open, when the button goes. */
-  onRenewAnyway?: () => void;
+  /** True once the checkout is open under the card, when **Renew now anyway** goes. */
+  isCheckoutOpen: boolean;
+  /** Opens the checkout. */
+  onRenewAnyway: () => void;
 }
 
 /**
@@ -177,6 +184,7 @@ interface AutomaticRenewalCardProps {
  */
 function AutomaticRenewalCard({
   state,
+  isCheckoutOpen,
   onRenewAnyway: handleRenewAnyway,
 }: AutomaticRenewalCardProps): JSX.Element | null {
   if (state.kind === 'none') return null;
@@ -201,7 +209,7 @@ function AutomaticRenewalCard({
           : `We will charge ${formatCents(amount)} on ${formatDate(chargeOn)}. ` +
             'You do not need to do anything.'}
       </p>
-      {handleRenewAnyway === undefined ? null : (
+      {isCheckoutOpen ? null : (
         <div className="cluster card__footer">
           <Button variant="secondary" onClick={handleRenewAnyway}>
             Renew now anyway
