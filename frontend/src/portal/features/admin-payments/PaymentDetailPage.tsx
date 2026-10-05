@@ -378,13 +378,16 @@ export function PaymentDetailPage(): JSX.Element {
       ) : null}
 
       <Card title="Refunds">
-        <DataTable
-          columns={REFUND_COLUMNS}
-          rows={payment.refunds}
-          rowKey={(row) => row.id}
-          emptyTitle="Nothing has been refunded"
-          emptyDescription="Refunds made here or in the provider's dashboard are listed here."
-        />
+        {payment.refunds.length === 0 ? (
+          // One quiet line, not an empty state's heading and band: an unrefunded payment
+          // is the usual case, and the card should not stand taller than its news.
+          <p className="muted">
+            Nothing has been refunded. Refunds made here or in the provider&rsquo;s dashboard are
+            listed here.
+          </p>
+        ) : (
+          <DataTable columns={REFUND_COLUMNS} rows={payment.refunds} rowKey={(row) => row.id} />
+        )}
       </Card>
 
       <ReconcileCard payment={payment} />

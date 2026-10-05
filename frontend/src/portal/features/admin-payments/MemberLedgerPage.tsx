@@ -176,9 +176,7 @@ export function LedgerBody({ ledger }: { ledger: MemberLedger }): JSX.Element {
         </dl>
       </Card>
 
-      {ledger.mandate === null && hasNoMembership ? null : (
-        <MandateCard mandate={ledger.mandate} />
-      )}
+      {ledger.mandate === null && hasNoMembership ? null : <MandateCard mandate={ledger.mandate} />}
 
       <Card title="Payments">
         <DataTable

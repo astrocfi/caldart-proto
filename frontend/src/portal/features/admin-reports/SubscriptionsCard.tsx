@@ -30,6 +30,7 @@ import {
 } from '@/portal/reports/api';
 import { FORMAT_LABELS, recipientLabel, reportName, scheduleLabel } from './labels';
 import { SubscriptionForm } from './SubscriptionForm';
+import './admin-reports.css';
 
 /**
  * The line a **Send now** leaves: who the report reached, or why it did not.
@@ -257,7 +258,7 @@ export function SubscriptionsCard(): JSX.Element {
       )}
 
       {openForm === null ? null : (
-        <div ref={formRef}>
+        <div ref={formRef} className="subscriptions__form">
           {openForm.mode === 'new' ? (
             <SubscriptionForm onDone={handleFormDone} />
           ) : editing === null || editing === undefined ? null : (

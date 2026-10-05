@@ -95,8 +95,8 @@ function MemberPicker({
   if (chosen !== null) {
     return (
       <div className="record-payment__chosen">
-        <p>
-          <strong>{chosen.name}</strong> <span className="muted">{chosen.email}</span>{' '}
+        <p className="record-payment__who">
+          <strong>{chosen.name}</strong> <span className="muted">{chosen.email}</span>
           <MembershipDot membership={chosen.membership} />
         </p>
         <Button variant="quiet" small onClick={() => handleChoose(null)}>

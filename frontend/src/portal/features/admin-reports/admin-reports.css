@@ -1,7 +1,12 @@
 /*
- * The DART rosters card: the table, then the practice run box and its button, then what
- * the last run did, in the order the Scheduled page's panels keep.
+ * Emailed reports.  The subscriptions card's form stands a step clear of the line above
+ * it; the DART rosters card keeps the table, then the practice run box and its button,
+ * then what the last run did, in the order the Scheduled page's panels keep.
  */
+.subscriptions__form {
+  margin-top: var(--space-4);
+}
+
 .rosters__run,
 .rosters__result {
   margin-top: var(--space-4);

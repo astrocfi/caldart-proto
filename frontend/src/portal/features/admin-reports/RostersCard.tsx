@@ -22,7 +22,7 @@ import { PracticeRunCheckbox } from '@/portal/components/PracticeRunCheckbox';
 import { useFocusRunResult } from '@/portal/components/focus';
 import { useRosters, useSendRosters } from '@/portal/reports/api';
 import { ReportRunOutcome } from './ReportRunOutcome';
-import './rosters.css';
+import './admin-reports.css';
 
 /** The DART tells the rows apart; the count and the date keep their widths. */
 const COLUMNS: Column<Roster>[] = [

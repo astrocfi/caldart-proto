@@ -128,20 +128,15 @@ describe('PaymentDetailPage', () => {
     expect(within(table).getByText("The provider's dashboard")).toBeInTheDocument();
   });
 
-  it('says so when nothing has been refunded', async () => {
-    servePayment();
-    renderDetail();
-
-    expect(await screen.findByText('Nothing has been refunded')).toBeInTheDocument();
-  });
-
-  it('says where refunds are listed without promising a table it does not show', async () => {
+  it('says in one quiet line that nothing has been refunded, and where refunds are listed', async () => {
     servePayment();
     renderDetail();
 
     expect(
-      await screen.findByText("Refunds made here or in the provider's dashboard are listed here."),
-    ).toBeInTheDocument();
+      await screen.findByText(
+        'Nothing has been refunded. Refunds made here or in the provider’s dashboard are listed here.',
+      ),
+    ).toHaveClass('muted');
   });
 
   it('offers the whole unrefunded balance in the refund form', async () => {

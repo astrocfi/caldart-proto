@@ -194,10 +194,24 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* The chosen member's name, address, and membership, the dot a step clear of the address. */
+.record-payment__who {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+}
+
 .record-payment__chosen {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-3);
   padding-bottom: var(--space-3);
+}
+
+/* A card whose body is a form leaves its title a line's room above the first label. */
+.card__title + .finance-form {
+  margin-top: var(--space-4);
 }
