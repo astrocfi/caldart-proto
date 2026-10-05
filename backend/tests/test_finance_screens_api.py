@@ -17,6 +17,7 @@ from rest_framework.test import APIClient
 from apps.accounts.models import User
 from apps.accounts.roles import ACCOUNT_ADMIN, SYSTEM_ADMIN, TREASURER
 from apps.members.models import MembershipPlan
+from apps.members.services import tombstone_for
 from apps.payments.manual import record_manual_payment
 from apps.payments.models import Payment, PaymentStatus, PaymentWallet
 from apps.payments.providers.base import PaymentError
@@ -192,10 +193,19 @@ def test_the_search_reads_an_address_as_well_as_a_name(
 def test_the_search_never_offers_a_deactivated_account(
     treasurer_client: APIClient, searchable_members: list[User]
 ) -> None:
-    """A deactivated account, a tombstone included, is not one to record money for."""
+    """A deactivated account is not one to record money for."""
     User.objects.filter(pk=searchable_members[1].pk).update(is_active=False)
 
     assert [row["name"] for row in search(treasurer_client, "reyes")] == ["Marta Reyes"]
+
+
+def test_the_search_never_offers_a_deleted_member_s_tombstone(
+    treasurer_client: APIClient, searchable_members: list[User]
+) -> None:
+    """The account keeping a deleted member's payments is not one to record money for."""
+    tombstone = tombstone_for(searchable_members[0])
+
+    assert search(treasurer_client, tombstone.display_name) == []
 
 
 def test_a_row_names_the_member_the_record_form_will_charge(
