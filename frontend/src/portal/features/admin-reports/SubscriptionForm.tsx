@@ -268,6 +268,7 @@ export function SubscriptionForm({
             onChange={handleFiltersChange}
             options={runtimeOptions}
             label="Report filters"
+            hasReset={false}
           />
           {refusedFilters.length > 0 ? (
             <p className="field__error" role="alert">

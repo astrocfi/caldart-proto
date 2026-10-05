@@ -76,17 +76,20 @@ it.
    as an account administrator. The verification report lists what a verifier checks, in
    four sections: *Pilot certificates*, *Medicals*, *Photo IDs*, and *Aircraft insurance*,
    each saying *Nothing to show.* when it is empty. Each row names the member (or the
-   aircraft's N-number), their DART (or the aircraft's owner), what is on file, when it
-   was last updated, and whether, by whom, and on which day it was verified. Its
+   aircraft's N-number), their DART (or the aircraft's owner, under the one heading **DART
+   or owner**), what is on file, and the day it last changed; **Verified**, **Verified
+   by**, and **Verified on** are there to add from **Columns**. Its
    **Status** filter lists the items not yet verified when left blank, or the
    **Verified** ones, or **All** of them, and its **DART** filter keeps one DART's people
    and the aircraft they fly. It can go to a verifier, a DART leader, a user
    administrator, or an account administrator. Choosing a report draws the same filters its own screen
-   has. The payments, reconciliation, and donors reports add **Period**: **This month**,
-   **Last month**, **This year**, or **Last year**, worked out on the day each email goes,
-   so a monthly subscription for **Last month** always carries the month before the one it
-   is sent in. The contributions report has one **Year** control instead: **This year**
-   or **Last year**, also worked out on the day each email goes.
+   has, with no **Reset filters** button among them. The payments and donors reports add
+   **Period**: **This month**, **Last month**, **This year**, or **Last year**, worked out
+   on the day each email goes, so a monthly subscription for **Last month** always carries
+   the month before the one it is sent in. The reconciliation report offers **Period** in
+   place of its screen's fixed **From** and **To** dates, and the contributions report has
+   one **Year** control: **This year** or **Last year**, also worked out on the day each
+   email goes.
 #. **Columns** chooses what the report carries, as on the report's own screen; left alone,
    it carries the default columns. The reconciliation and contributions reports have fixed
    columns and offer no chooser.
@@ -148,9 +151,10 @@ The **DART rosters** card lists each active DART, its **Recipients** (the checke
 an address), and when its roster was **Last sent**. A DART with nobody set to receive it is sent nothing.
 
 Under the table sit the box **Practice run: show what would happen, send nothing**, checked
-to begin with, and the button beside it. While the box is checked the button reads
-**Preview rosters**: press it the first time, and the card reads **What this run would do**
-and a line such as *Would send 7 emails, skipped 1.* When something was skipped, a further
+to begin with, the button beside it, and under them what the last run did, so the button
+never moves when a long result appears. While the box is checked the button reads
+**Preview rosters**: press it, and under it the card reads **What this run would do**, where
+the cursor moves, and a line such as *Would send 7 emails, skipped 1.* When something was skipped, a further
 line gives the reasons: *nobody to send to* for a DART with nobody set to receive it, and
 *no address on file* for a checked person with no email address. A table names each email
 with **What** and **Who**, and **Report or DART** when an email names one. Clear the box,

@@ -5,7 +5,8 @@ per checkable person with a profile who holds that item, and *Aircraft insurance
 row per aircraft in service with a policy on file.  An item nobody holds (a non-pilot's
 certificate, a medical of *None*, a photo ID of *Not provided*, insurance with no
 expiration) has nothing to verify and is never listed.  Each row names the item's holder,
-what is on file, and when the record was last written.  The Section column is a default
+their DART or the aircraft's owner (under the one heading *DART or owner*), what is on
+file, and when the item was last changed.  The Section column is a default
 in the CSV, which has no headings, and left to the headings in the PDF; the three
 verification columns (whether, by whom, and on which day) are there to choose, and off
 by default, since the default list is of items nobody has verified.  The
@@ -81,7 +82,8 @@ class VerificationRow:
     ``section`` is the title of the section the row is drawn in.  ``name`` is the
     person's display name or the aircraft's N-number; ``dart`` the person's DART or the
     aircraft's owner; ``details`` what is on file for the item.  ``updated_at`` is when
-    the record was last written (``None`` for a profile nobody has written), and
+    the item was last changed: the profile's last edit, or its creation when nobody has
+    edited it since, and the aircraft record's last write; and
     ``verified_at`` and ``verified_by`` are the item's stamp, both ``None`` while it is
     unverified; ``verified_by`` is also ``None`` when the verifier's account is gone.
     """
@@ -160,7 +162,7 @@ def _verified_by_name(row: VerificationRow) -> str:
 VERIFICATION_REPORT_COLUMNS: tuple[ReportColumn[VerificationRow], ...] = (
     ReportColumn("section", "Section", True, lambda row: row.section, width=2.3),
     ReportColumn("name", "Name", True, lambda row: row.name, width=2.6),
-    ReportColumn("dart", "DART", True, lambda row: row.dart, width=3.0),
+    ReportColumn("dart", "DART or owner", True, lambda row: row.dart, width=3.0),
     ReportColumn("details", "Details", True, lambda row: row.details, width=4.2),
     ReportColumn("updated", "Updated", True, lambda row: _local_day(row.updated_at), width=1.4),
     ReportColumn(
@@ -230,6 +232,15 @@ def insured_aircraft(dart: str) -> QuerySet[Aircraft]:
     return aircraft.order_by("n_number")
 
 
+def _profile_changed_at(profile: MemberProfile) -> datetime:
+    """When ``profile``'s items were last changed: its last edit, else its creation.
+
+    A profile nobody has edited since it was made carries no ``profile_updated_at``,
+    and what is on file has been there since the profile was created.
+    """
+    return profile.profile_updated_at or profile.created_at
+
+
 def person_rows(profiles: list[MemberProfile]) -> Iterator[VerificationRow]:
     """One row per item each of ``profiles`` holds, item by item in section order."""
     for slug, details in PERSON_DETAILS:
@@ -241,7 +252,7 @@ def person_rows(profiles: list[MemberProfile]) -> Iterator[VerificationRow]:
                 name=profile.user.display_name,
                 dart="" if profile.dart is None else profile.dart.name,
                 details=details(profile),
-                updated_at=profile.profile_updated_at,
+                updated_at=_profile_changed_at(profile),
                 verified_at=getattr(profile, f"{slug}_verified_at"),
                 verified_by=getattr(profile, f"{slug}_verified_by"),
             )

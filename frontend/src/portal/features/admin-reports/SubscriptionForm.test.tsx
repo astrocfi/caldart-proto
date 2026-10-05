@@ -139,6 +139,32 @@ describe('SubscriptionForm', () => {
     expect(within(bar).getByRole('option', { name: 'Last month' })).toBeInTheDocument();
   });
 
+  it('offers the reconciliation its Period alone, with no fixed dates beside it', async () => {
+    server.use(
+      ...subscriptionHandlers({
+        reports: [
+          { slug: 'reconciliation', title: 'Reconciliation', choosable: false, periods: true },
+        ],
+      }),
+    );
+    renderWithProviders(<SubscriptionForm onDone={vi.fn()} />);
+
+    await chooseReport('Reconciliation');
+
+    const bar = screen.getByRole('search', { name: 'Report filters' });
+    expect(within(bar).queryByLabelText('From')).not.toBeInTheDocument();
+    expect(within(bar).queryByLabelText('To')).not.toBeInTheDocument();
+  });
+
+  it('draws no Reset filters button among the form of a subscription', async () => {
+    renderForm();
+
+    await chooseReport('Payments');
+
+    const bar = screen.getByRole('search', { name: 'Report filters' });
+    expect(within(bar).queryByRole('button', { name: 'Reset filters' })).not.toBeInTheDocument();
+  });
+
   it("draws the chosen report's filters, the period included", async () => {
     renderForm();
 

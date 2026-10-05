@@ -300,9 +300,14 @@ const RENEWAL_FILTERS: FilterField[] = [
   },
 ];
 
+/**
+ * The reconciliation report's filters.  The list page picks fixed dates; a subscription
+ * picks a **Period** relative to the day it is sent instead, since fixed dates would send
+ * the same rows every time, so it is offered the period alone.
+ */
 const RECONCILIATION_FILTERS: FilterField[] = [
-  { key: 'from', label: 'From', kind: 'date' },
-  { key: 'to', label: 'To', kind: 'date' },
+  { key: 'from', label: 'From', kind: 'date', listOnly: true },
+  { key: 'to', label: 'To', kind: 'date', listOnly: true },
   {
     key: 'provider',
     label: 'Provider',
