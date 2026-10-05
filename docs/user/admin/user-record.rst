@@ -46,9 +46,9 @@ it. Five cards follow.
    blocked reactivation*. It records an account an administrator created on
    :doc:`new-member`, each role given or taken away, and each deactivation, reactivation,
    block, and lifted block, including the person's own. A change made from the server's
-   command line reads *The system*, and one by an administrator whose account has since been
-deleted *A deleted account*. With none it reads *No change to this account's roles
-   or status is recorded.*
+   command line reads *The system*, and one by an administrator whose account has since
+   been deleted *A deleted account*. With none it reads *No change to this account's
+   roles or status is recorded.*
 
 Nothing is saved until you press **Save changes**, and the message *Account saved.* confirms
 it. A refused save takes you to what the site refused. **Cancel** puts every box back the
