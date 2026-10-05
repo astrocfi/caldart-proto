@@ -22,7 +22,10 @@ async function createMember(page: Page, email: string): Promise<string> {
   await page.getByLabel(/^Password/).fill(JOINER_PASSWORD);
   await page.getByRole('button', { name: 'Add member' }).click();
   await expect(page).toHaveURL(/\/portal\/admin\/members\/\d+$/);
-  return new URL(page.url()).pathname;
+  // Relative to the run's base address, which carries any URL prefix itself.
+  const record = /portal\/admin\/members\/\d+$/.exec(page.url());
+  if (record === null) throw new Error(`Not on a member record: ${page.url()}`);
+  return record[0];
 }
 
 /** Sign in as the account just created, with the password the administrator gave it. */
@@ -64,7 +67,7 @@ test('a member record with no term reads whole at phone width, with no sideways 
 }) => {
   const path = await createMember(page, uniqueEmail('noterm'));
   await page.setViewportSize(PHONE);
-  await page.goto(path.replace(/^\//, ''));
+  await page.goto(path);
   await expect(page.getByText(/No membership yet/)).toBeVisible();
 
   const overflow = await page.evaluate(
