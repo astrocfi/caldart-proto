@@ -31,6 +31,7 @@ import { useToast } from '@/portal/components/Toast';
 import { VerifiedMark } from '@/portal/components/VerifiedMark';
 import { usePanelFocus } from '@/portal/components/focus';
 import { useAuth } from '@/portal/auth/useAuth';
+import { hasAnyRole } from '@/portal/nav';
 import { AircraftEditor } from './AircraftEditor';
 import { useAttachAircraft, useDetachAircraft, useProfile } from './api';
 import './profile.css';
@@ -44,7 +45,8 @@ export function MyAircraftPage(): JSX.Element {
   const toast = useToast();
   const { user } = useAuth();
   const contactEmail = useSiteConfig().data?.contact_email ?? '';
-  const isAccountAdmin = user?.roles.includes('account_admin') ?? false;
+  // A system administrator holds every role's powers, as the server agrees.
+  const isAccountAdmin = hasAnyRole(user?.roles ?? [], ['account_admin']);
   // A member may correct an airplane they added; an account administrator, any.
   const canEdit = (plane: AircraftSummary): boolean =>
     isAccountAdmin || (user !== null && plane.created_by === user.id);
@@ -91,7 +93,7 @@ export function MyAircraftPage(): JSX.Element {
           </p>
         ) : aircraft.length === 0 ? (
           <EmptyState
-            title="No aircraft attached yet"
+            title="No aircraft yet"
             description="Search below for the aircraft you fly and add it to your profile."
           />
         ) : (

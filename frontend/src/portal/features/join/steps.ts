@@ -54,8 +54,12 @@ export function holdFriendPayStep(userId: number | null): void {
   }
 }
 
-/** Whether this tab holds the pay step open for `user` (see `holdFriendPayStep`). */
+/**
+ * Whether this tab holds the pay step open for `user` (see `holdFriendPayStep`).  Only a
+ * friend is ever held: a member's pay step is held by the dues they owe, or not at all.
+ */
 function isPayStepHeld(user: User): boolean {
+  if (user.kind !== 'friend') return false;
   try {
     return window.sessionStorage.getItem(FRIEND_PAY_KEY) === String(user.id);
   } catch {

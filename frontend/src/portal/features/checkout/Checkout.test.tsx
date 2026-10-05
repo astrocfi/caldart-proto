@@ -676,6 +676,15 @@ describe('Checkout · renewing automatically', () => {
     ).toBeInTheDocument();
   });
 
+  it('starts checked when the host says the member renews automatically already', async () => {
+    serveConfig(config());
+    renderWithProviders(<Checkout mode="renew" onSuccess={() => {}} defaultAutoRenew />);
+
+    expect(
+      await screen.findByRole('checkbox', { name: 'Renew automatically each year' }),
+    ).toBeChecked();
+  });
+
   it('hides the choice for a membership that never expires', async () => {
     const user = userEvent.setup();
     serveConfig(config());

@@ -207,7 +207,7 @@ describe('<MyAircraftPage/>', () => {
 
     renderWithProviders(<MyAircraftPage />, { route: '/profile/aircraft' });
 
-    expect(await screen.findByText('No aircraft attached yet')).toBeInTheDocument();
+    expect(await screen.findByText('No aircraft yet')).toBeInTheDocument();
   });
 
   it('tells the picker which aircraft are already attached', async () => {
@@ -304,7 +304,7 @@ describe('<MyAircraftPage/>', () => {
 
     expect(await screen.findByText('N12345 removed.')).toBeInTheDocument();
     expect(deleted).toBe('7');
-    expect(await screen.findByText('No aircraft attached yet')).toBeInTheDocument();
+    expect(await screen.findByText('No aircraft yet')).toBeInTheDocument();
   });
 
   it('says so when a detach fails', async () => {
@@ -398,6 +398,21 @@ describe('<MyAircraftPage/> editing', () => {
       'mailto:office@example.org',
     );
     expect(row).toHaveTextContent('Added by someone else. To correct it, write to');
+  });
+
+  it('lets a system administrator edit a plane somebody else added', async () => {
+    server.use(
+      signedInAs(makeUser({ id: 1, roles: ['member', 'system_admin'] })),
+      http.get(`${API}/me/profile`, () =>
+        HttpResponse.json(makeProfile({ aircraft: [{ ...TEST_AIRCRAFT, created_by: 99 }] })),
+      ),
+    );
+
+    renderWithProviders(<MyAircraftPage />);
+
+    expect(
+      await screen.findByRole('button', { name: `Edit ${TEST_AIRCRAFT.n_number}` }),
+    ).toBeInTheDocument();
   });
 
   it('lets an account administrator edit a plane somebody else added', async () => {

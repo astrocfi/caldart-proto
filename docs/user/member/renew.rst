@@ -33,7 +33,14 @@ If your automatic renewal is already on, a card headed **Automatic renewal is on
 takes the checkout's place: *We will charge $145.00 on 04/27/2027. You do not need
 to do anything.*, with your own amount and date. Nothing more is needed, so you do
 not pay twice by mistake. To pay for another term now all the same, press **Renew
-now anyway**, which opens the checkout.
+now anyway**, which opens the checkout under the card, with **Renew automatically
+each year** already checked. If the last charge was declined, the card says *The last
+charge was declined. CalDART will try again on* the day, for the amount, and **Renew
+now anyway** is still there.
+
+If your automatic renewal's charge date passed more than 30 days ago, CalDART no
+longer charges it. The card reads **Automatic renewal is paused**, names the date, and
+the checkout is open below it so you can renew here.
 
 
 What happens next

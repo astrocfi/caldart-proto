@@ -26,6 +26,18 @@ export function looksLikeRegistration(value: string): boolean {
   return /\d/.test(value);
 }
 
+/** A US registration once normalized: N, a digit other than 0, then up to four more. */
+const N_NUMBER = /^N[1-9][0-9A-Z]{0,4}$/;
+
+/**
+ * True when `value`, normalized as the server does (`normalizeNNumber`), is shaped like
+ * a US registration: N172SP or 12345, but not "Cessna 172" (CESSNA172) or "PA-28"
+ * (PA28), which only contain digits.
+ */
+export function isNNumber(value: string): boolean {
+  return N_NUMBER.test(normalizeNNumber(value));
+}
+
 /** Insurance currency as one of the four status tones. */
 export function insuranceTone(
   aircraft: Pick<AircraftSummary, 'insurance_is_current' | 'insurance_expiration'>,

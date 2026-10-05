@@ -24,10 +24,16 @@ import type { JSX } from 'react';
 import type { PersonKind } from '@/portal/api/types';
 import { useAuth } from '@/portal/auth/useAuth';
 import { Card } from '@/portal/components/Card';
-import { FormAlert } from '@/portal/features/auth/form';
 import { useBecomeFriend } from '@/portal/features/profile/api';
 import { refreshAfterPayment } from './refresh';
 import './join.css';
+
+/**
+ * What the step says when making the account a friend failed: in the step's own words,
+ * never the server's field messages, which name fields this step does not show.
+ */
+const BECOME_FRIEND_FAILED =
+  'Your account could not be changed to a friend. Try again, or contact CalDART.';
 
 export interface PayStepProps {
   /** The kind of account the step is for: a member pays dues, a friend may donate. */
@@ -66,6 +72,7 @@ export function PayStep({
         then();
         return;
       }
+      if (becomeFriend.isPending) return;
       becomeFriend.mutate({}, { onSuccess: then });
     };
   }
@@ -82,9 +89,14 @@ export function PayStep({
           mode="contribute"
           onSuccess={(result) => asFriend(() => handleSuccess(result))()}
           onSkip={handleSkipAsFriend}
+          isSkipping={becomeFriend.isPending}
           onBecomeMember={() => handleJoiningAsChange('member')}
         />
-        <FormAlert error={becomeFriend.error} />
+        {becomeFriend.isError ? (
+          <p className="field__error" role="alert">
+            {BECOME_FRIEND_FAILED}
+          </p>
+        ) : null}
       </Card>
     );
   }

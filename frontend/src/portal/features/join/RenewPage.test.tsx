@@ -14,11 +14,13 @@ import type { MembershipDetail } from '@/portal/api/types';
 import { RenewPage } from './RenewPage';
 
 const modes: string[] = [];
+const autoRenewDefaults: (boolean | undefined)[] = [];
 
 /** The real checkout is tested on its own; this stand-in records `mode` and drives success. */
 vi.mock('@/portal/features/checkout', () => ({
   Checkout: (props: CheckoutProps) => {
     modes.push(props.mode);
+    autoRenewDefaults.push(props.defaultAutoRenew);
     return (
       <button
         type="button"
@@ -181,5 +183,57 @@ describe('<RenewPage/> with automatic renewal on', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Renew now anyway' }));
 
     expect(screen.getByRole('button', { name: 'Pretend to pay' })).toHaveFocus();
+  });
+
+  it('keeps saying renewal is on above the open checkout, its box checked', async () => {
+    renderCovered();
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Renew now anyway' }));
+
+    expect(screen.getByRole('heading', { name: 'Automatic renewal is on' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Renew now anyway' })).not.toBeInTheDocument();
+    expect(autoRenewDefaults.at(-1)).toBe(true);
+  });
+
+  it('says a declined charge will be tried again', async () => {
+    server.use(
+      http.get(`${API}/me/renewal`, () =>
+        HttpResponse.json({
+          mandate: makeMandate({
+            amount_cents: 14500,
+            next_charge_on: '2027-04-27',
+            failure_count: 1,
+          }),
+        }),
+      ),
+    );
+    renderRenew(detail());
+
+    expect(
+      await screen.findByText(
+        'The last charge was declined. CalDART will try again on 04/27/2027, for $145.00.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Renew now anyway' })).toBeInTheDocument();
+  });
+});
+
+describe('<RenewPage/> with automatic renewal long past its day', () => {
+  it('says renewal is paused and offers the checkout at once', async () => {
+    server.use(
+      http.get(`${API}/me/renewal`, () =>
+        HttpResponse.json({
+          mandate: makeMandate({ amount_cents: 14500, next_charge_on: '2020-01-15' }),
+        }),
+      ),
+    );
+    renderRenew(detail({ status: 'expired', expires_on: '2020-01-16' }));
+
+    expect(
+      await screen.findByRole('heading', { name: 'Automatic renewal is paused' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/01\/15\/2020, passed more than 30 days ago/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Pretend to pay' })).toBeInTheDocument();
+    expect(screen.queryByText(/We will charge/)).not.toBeInTheDocument();
   });
 });

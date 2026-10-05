@@ -50,6 +50,33 @@ function renewingMandate(mandate: RenewalMandate | null | undefined): RenewalMan
   return mandate.next_charge_on === null ? null : mandate;
 }
 
+/**
+ * How many days past its charge date the renewal job still charges a mandate; beyond
+ * that it is paused and charges nothing.
+ */
+const CATCH_UP_DAYS = 30;
+
+/** What the page says about a member's automatic renewal. */
+type RenewalState =
+  | { kind: 'none' }
+  | { kind: 'on'; mandate: RenewalMandate }
+  | { kind: 'retrying'; mandate: RenewalMandate }
+  | { kind: 'paused'; mandate: RenewalMandate };
+
+/**
+ * Whether automatic renewal will renew the membership: on, on and trying again after a
+ * declined charge, paused because its charge date passed more than `CATCH_UP_DAYS` ago,
+ * or none at all.
+ */
+export function renewalState(mandate: RenewalMandate | null | undefined): RenewalState {
+  const renewing = renewingMandate(mandate);
+  if (renewing === null) return { kind: 'none' };
+  const days = daysUntil(renewing.next_charge_on);
+  if (days !== null && days < -CATCH_UP_DAYS) return { kind: 'paused', mandate: renewing };
+  if (renewing.failure_count > 0) return { kind: 'retrying', mandate: renewing };
+  return { kind: 'on', mandate: renewing };
+}
+
 /** Renders the current membership status and a checkout to renew it. */
 export function RenewPage(): JSX.Element {
   const membership = useMembership();
@@ -66,7 +93,10 @@ export function RenewPage(): JSX.Element {
 
   const status = membership.data ?? null;
   const days = status ? daysUntil(status.expires_on) : null;
-  const automatic = renewingMandate(renewal.data?.mandate);
+  const automatic = renewalState(renewal.data?.mandate);
+  // While renewal will charge by itself, the checkout waits behind Renew now anyway.
+  const isCovered = automatic.kind === 'on' || automatic.kind === 'retrying';
+  const isCheckoutShown = !isCovered || isRenewingAnyway;
 
   if (status?.status === 'friend') {
     return <Navigate to={JOIN_AS_MEMBER_PATH} replace />;
@@ -111,25 +141,73 @@ export function RenewPage(): JSX.Element {
         ) : null}
       </Card>
 
-      {renewal.isPending ? null : automatic !== null && !isRenewingAnyway ? (
-        <Card title="Automatic renewal is on">
-          <p>
-            We will charge {formatCents(automatic.amount_cents)} on{' '}
-            {formatDate(automatic.next_charge_on)}. You do not need to do anything.
-          </p>
-          <div className="cluster card__footer">
-            <Button variant="secondary" onClick={() => setIsRenewingAnyway(true)}>
-              Renew now anyway
-            </Button>
-          </div>
-        </Card>
-      ) : (
-        <div ref={checkoutRef}>
-          <Card>
-            <Checkout mode="renew" onSuccess={handleSuccess} />
-          </Card>
-        </div>
+      {renewal.isPending ? null : (
+        <>
+          <AutomaticRenewalCard
+            state={automatic}
+            onRenewAnyway={isCheckoutShown ? undefined : () => setIsRenewingAnyway(true)}
+          />
+          {isCheckoutShown ? (
+            <div ref={checkoutRef}>
+              <Card>
+                <Checkout
+                  mode="renew"
+                  onSuccess={handleSuccess}
+                  defaultAutoRenew={automatic.kind !== 'none'}
+                />
+              </Card>
+            </div>
+          ) : null}
+        </>
       )}
     </Page>
+  );
+}
+
+interface AutomaticRenewalCardProps {
+  state: RenewalState;
+  /** Opens the checkout; left out once it is open, when the button goes. */
+  onRenewAnyway?: () => void;
+}
+
+/**
+ * What automatic renewal will do, above the checkout: it will charge on its day, it is
+ * trying again after a declined charge, or it is paused and the member renews here.
+ * Nothing when the member has none.
+ */
+function AutomaticRenewalCard({
+  state,
+  onRenewAnyway: handleRenewAnyway,
+}: AutomaticRenewalCardProps): JSX.Element | null {
+  if (state.kind === 'none') return null;
+  const { amount_cents: amount, next_charge_on: chargeOn } = state.mandate;
+  if (state.kind === 'paused') {
+    return (
+      <Card title="Automatic renewal is paused">
+        <p>
+          Its charge date, {formatDate(chargeOn)}, passed more than {CATCH_UP_DAYS} days ago, so
+          CalDART will not charge it. Renew here, and turn automatic renewal on again below or from
+          Payments.
+        </p>
+      </Card>
+    );
+  }
+  return (
+    <Card title="Automatic renewal is on">
+      <p>
+        {state.kind === 'retrying'
+          ? `The last charge was declined. CalDART will try again on ${formatDate(chargeOn)}, ` +
+            `for ${formatCents(amount)}.`
+          : `We will charge ${formatCents(amount)} on ${formatDate(chargeOn)}. ` +
+            'You do not need to do anything.'}
+      </p>
+      {handleRenewAnyway === undefined ? null : (
+        <div className="cluster card__footer">
+          <Button variant="secondary" onClick={handleRenewAnyway}>
+            Renew now anyway
+          </Button>
+        </div>
+      )}
+    </Card>
   );
 }

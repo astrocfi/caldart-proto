@@ -67,6 +67,8 @@ export interface SkippableCheckoutProps extends CheckoutProps {
    * this is given.
    */
   onSkip?: () => void;
+  /** True while the host's skip is in flight: the button waits, so one press is one skip. */
+  isSkipping?: boolean;
   /**
    * Called by the **Join as a friend instead (no dues)** button; the button is offered
    * only in `join` mode, never to a life member, and only when this is given.
@@ -88,7 +90,9 @@ export function Checkout({
   mode,
   onSuccess,
   onScheduled: handleScheduled,
+  defaultAutoRenew = false,
   onSkip: handleSkip,
+  isSkipping = false,
   onBecomeFriend: handleBecomeFriend,
   onBecomeMember: handleBecomeMember,
 }: SkippableCheckoutProps): JSX.Element {
@@ -100,7 +104,7 @@ export function Checkout({
   const [contributionCents, setContributionCents] = useState(0);
   const [isOther, setIsOther] = useState(false);
   const [provider, setProvider] = useState<PaymentProvider | null>(null);
-  const [autoRenew, setAutoRenew] = useState(false);
+  const [autoRenew, setAutoRenew] = useState(defaultAutoRenew);
   const [recurring, setRecurring] = useState<RecurringDonation>(() => ({
     isRecurring: false,
     cadence: 'monthly',
@@ -133,7 +137,7 @@ export function Checkout({
         <p className="muted" role="status">
           Loading payment options…
         </p>
-        <SkipFooter onSkip={handleSkip} isLead />
+        <SkipFooter onSkip={handleSkip} isLead isPending={isSkipping} />
       </div>
     );
   }
@@ -145,7 +149,7 @@ export function Checkout({
           title="Payment options didn't load"
           description="Reload the page, or contact CalDART if it keeps happening."
         />
-        <SkipFooter onSkip={handleSkip} isLead />
+        <SkipFooter onSkip={handleSkip} isLead isPending={isSkipping} />
       </div>
     );
   }
@@ -174,7 +178,7 @@ export function Checkout({
           description="No membership plan is set up yet. Ask an administrator."
         />
         {friendSwitch}
-        <SkipFooter onSkip={handleSkip} isLead />
+        <SkipFooter onSkip={handleSkip} isLead isPending={isSkipping} />
       </div>
     );
   }
@@ -358,7 +362,7 @@ export function Checkout({
         />
       )}
 
-      <SkipFooter onSkip={handleSkip} isLead={contributionCents === 0} />
+      <SkipFooter onSkip={handleSkip} isLead={contributionCents === 0} isPending={isSkipping} />
     </div>
   );
 }
@@ -367,6 +371,8 @@ interface SkipFooterProps {
   onSkip: (() => void) | undefined;
   /** True while nothing is chosen to pay, when the button is the way on. */
   isLead: boolean;
+  /** True while the skip is in flight, when the button is disabled. */
+  isPending: boolean;
 }
 
 /**
@@ -375,11 +381,11 @@ interface SkipFooterProps {
  * main button while there is nothing to pay, and a quiet one under the payment methods
  * once there is.
  */
-function SkipFooter({ onSkip, isLead }: SkipFooterProps): JSX.Element | null {
+function SkipFooter({ onSkip, isLead, isPending }: SkipFooterProps): JSX.Element | null {
   if (onSkip === undefined) return null;
   return (
     <div className="cluster card__footer">
-      <Button variant={isLead ? 'primary' : 'quiet'} onClick={() => onSkip()}>
+      <Button variant={isLead ? 'primary' : 'quiet'} disabled={isPending} onClick={() => onSkip()}>
         Continue without a gift
       </Button>
     </div>

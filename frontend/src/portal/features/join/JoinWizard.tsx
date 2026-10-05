@@ -15,10 +15,14 @@
  * `done` step and lets `<ReturnStep/>` settle the payment first.
  *
  * A friend walks the same five steps, but owes no dues: their pay step offers a
- * donation they may skip.  Finishing the profile step holds a friend's pay step open in
- * this tab (`holdFriendPayStep`), so a reload stays on it and the rest of the portal
- * stays shut until they give or press **Continue without a gift**; leaving the pay step
- * either way lets it go.  A member's pay step also offers to become a friend instead,
+ * donation they may skip.  A friend joining for the first time who finishes the
+ * profile step has their pay step held open in this tab (`holdFriendPayStep`), so a
+ * reload stays on it and the rest of the portal stays shut until they give or press
+ * **Continue without a gift**; the done step lets it go once it is on screen, so the
+ * hold outlasts the move there and the wizard never judges the pay step without it.  Somebody
+ * who has joined already is never held, and the profile and pay steps send them to the
+ * dashboard, so browsing back into the wizard can neither charge them again nor turn a
+ * member into a friend.  A member's pay step also offers to become a friend instead,
  * which turns it into a friend's donation, and a friend's pay step offers to become a
  * member, which turns it into the member's dues.  The wizard remembers that choice in
  * this tab only, so the ledes follow it; a reload goes back to the kind the server has
@@ -50,6 +54,7 @@ import {
   furthestJoinStep,
   holdFriendPayStep,
   isJoinStep,
+  isOnboarded,
   joiningAs,
   laterJoinStep,
   nextJoinStep,
@@ -94,7 +99,6 @@ export function JoinWizard(): JSX.Element {
   const [chosenKind, setChosenKind] = useState<PersonKind | null>(null);
 
   const handleReturnSettled = useCallback(() => {
-    holdFriendPayStep(null);
     refreshAfterPayment(queryClient);
     setReached('done');
     setReturnSettled(true);
@@ -134,14 +138,22 @@ export function JoinWizard(): JSX.Element {
     return <Navigate to={`/join/${current}`} replace />;
   }
 
+  // Somebody who has joined has nothing to save or pay here, so browsing back into the
+  // wizard cannot charge them twice or turn a member into a friend.
+  if (!returning && isOnboarded(user) && (current === 'profile' || current === 'pay')) {
+    return <Navigate to="/" replace />;
+  }
+
   const kind = chosenKind ?? joiningAs(user);
   const lede = (kind === 'friend' ? FRIEND_LEDE[current] : undefined) ?? LEDE[current];
 
   function advance(from: JoinStep) {
     const next = nextJoinStep(from);
-    // The pay step is held open from the moment it is reached until it is left.
-    if (from === 'profile') holdFriendPayStep(user?.id ?? null);
-    if (from === 'pay') holdFriendPayStep(null);
+    // A friend joining for the first time is held on the pay step from the moment they
+    // reach it until they leave it; nobody who has joined already is ever held.
+    if (from === 'profile' && user !== null && kind === 'friend' && !isOnboarded(user)) {
+      holdFriendPayStep(user.id);
+    }
     setReached((seen) => laterJoinStep(seen, next));
     void navigate(`/join/${next}`);
   }
@@ -156,7 +168,14 @@ export function JoinWizard(): JSX.Element {
         {current === 'pay' ? (
           <PayStep
             joiningAs={kind}
-            onJoiningAsChange={(next) => setChosenKind(next)}
+            onJoiningAsChange={(next) => {
+              // A member who turns friend here is held on the pay step like any friend
+              // joining, so becoming one on the server does not let them out early.
+              if (next === 'friend' && user !== null && !isOnboarded(user)) {
+                holdFriendPayStep(user.id);
+              }
+              setChosenKind(next);
+            }}
             onPaid={() => setHasPaid(true)}
             onDone={() => advance('pay')}
           />

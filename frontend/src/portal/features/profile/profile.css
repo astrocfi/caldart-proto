@@ -124,6 +124,20 @@
   background: var(--color-bg-raised);
 }
 
+/* The stuck row must never cover the field that has the focus: the window scrolls a
+ * focused field clear of the row's height, which is the button, its padding, and a
+ * margin to spare. */
+.profile-form input,
+.profile-form select,
+.profile-form textarea,
+.profile-form [role='combobox'] {
+  scroll-margin-bottom: 7rem;
+}
+
+:root:has(.profile-form__actions[data-dirty='true']) {
+  scroll-padding-bottom: 7rem;
+}
+
 /* The deactivation password box takes one column of the profile form's grid, as every
  * other single field does. */
 .deactivate__password {

@@ -1,6 +1,6 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { HttpResponse, http } from 'msw';
+import { HttpResponse, delay, http } from 'msw';
 import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -161,6 +161,48 @@ describe('<PayStep/> for a member who chooses to be a friend', () => {
     await waitFor(() => expect(handleDone).toHaveBeenCalledOnce());
     expect(handlePaid).toHaveBeenCalledOnce();
     expect(kindCalls).toEqual(['POST']);
+  });
+});
+
+describe('<PayStep/> when making the account a friend', () => {
+  it('waits on its button, so a second press sends nothing more', async () => {
+    const kindCalls = stubPayApi('member');
+    server.use(
+      http.post(`${API}/me/kind/friend`, async () => {
+        kindCalls.push('POST');
+        await delay(200);
+        return HttpResponse.json(makeUser({ kind: 'friend', membership: UNPAID }));
+      }),
+    );
+    const { handleDone } = renderPayStep('member');
+
+    await userEvent.click(await screen.findByRole('button', { name: FRIEND_LINK }));
+    await screen.findByRole('radio', { name: /Participating/ });
+    const skip = screen.getByRole('button', { name: 'Continue without a gift' });
+    await userEvent.click(skip);
+
+    expect(skip).toBeDisabled();
+    await waitFor(() => expect(handleDone).toHaveBeenCalledOnce());
+    expect(kindCalls).toEqual(['POST']);
+  });
+
+  it('says in its own words when the change is refused, never the server’s', async () => {
+    stubPayApi('member');
+    server.use(
+      http.post(`${API}/me/kind/friend`, () =>
+        HttpResponse.json({ keep_contribution: ['This field is required.'] }, { status: 400 }),
+      ),
+    );
+    renderPayStep('member');
+
+    await userEvent.click(await screen.findByRole('button', { name: FRIEND_LINK }));
+    await screen.findByRole('radio', { name: /Participating/ });
+    await userEvent.click(screen.getByRole('button', { name: 'Continue without a gift' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Your account could not be changed to a friend. Try again, or contact CalDART.',
+    );
+    expect(screen.queryByText('This field is required.')).not.toBeInTheDocument();
   });
 });
 

@@ -42,7 +42,7 @@ An airplane the coverage policy leaves out reads **Not covered** beside a red do
 reason follows the limits, such as *Not covered: helicopters are excluded by CalDART's
 policy*.
 
-With nothing attached, the card says **No aircraft attached yet**.
+With nothing attached, the card says **No aircraft yet**.
 
 Beside each airplane you added yourself are **Edit** and a trashcan, **Remove**. An
 airplane somebody else added has no **Edit**; in its place the line reads *Added by
@@ -88,8 +88,8 @@ The form is the whole record, with every box the record has when you edit it lat
 
 * **N-number** (required). The box writes the N and takes digits first, then at
   most two letters, so 172sp becomes N172SP. A registration you typed in the search
-  box is already in it; a search for a make or a model, such as piper, leaves it
-  empty. As you type, the FAA data's airplanes whose N-number starts
+  box is already in it; a search for a make or a model, such as piper, Cessna 172, or
+  PA-28, leaves it empty. As you type, the FAA data's airplanes whose N-number starts
   with what you typed are listed under the box: see :ref:`registry-list`.
 * **Year**, four digits.
 * **Aircraft type** (required): type the make, the model, or a designator, for example
@@ -144,7 +144,7 @@ If CalDART's aircraft list has the airplane already, the form says so as soon as
 N-number is in the box, picked or typed, before you fill in anything else: *N30075
 is already on file.* with **Add it to my list**, which attaches that record and
 closes the form. An airplane on your list already reads *N30075 is already on your
-list.*
+list.* While that line shows, the list of FAA airplanes under the box stays shut.
 
 
 Editing an airplane

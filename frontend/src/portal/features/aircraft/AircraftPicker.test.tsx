@@ -375,16 +375,19 @@ describe('AircraftPicker', () => {
     expect(posted).toMatchObject({ n_number: 'N4321Q', type_id: 3 });
   });
 
-  it('starts a new aircraft with the search text only when it could be a registration', async () => {
-    const user = setupUser();
-    server.use(...searchOnly([]));
+  it.each(['piper', 'Cessna 172', 'PA-28'])(
+    'starts a new aircraft with an empty N-number after a search for %s',
+    async (text) => {
+      const user = setupUser();
+      server.use(...searchOnly([]));
 
-    renderWithProviders(<AircraftPicker onSelect={() => {}} />);
-    await search(user, /Search CalDART's aircraft list/i, 'piper');
-    await user.click(await screen.findByRole('button', { name: /Add a new aircraft/i }));
+      renderWithProviders(<AircraftPicker onSelect={() => {}} />);
+      await search(user, /Search CalDART's aircraft list/i, text);
+      await user.click(await screen.findByRole('button', { name: /Add a new aircraft/i }));
 
-    expect(screen.getByRole('combobox', { name: /^N-number/ })).toHaveValue('');
-  });
+      expect(screen.getByRole('combobox', { name: /^N-number/ })).toHaveValue('');
+    },
+  );
 
   it('says at the pick that CalDART has the registration, and adds it to the list', async () => {
     const user = setupUser();
@@ -412,6 +415,31 @@ describe('AircraftPicker', () => {
     expect(await screen.findByText('N739TA is already on file.')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Add it to my list' }));
     expect(handleSelect).toHaveBeenCalledWith(expect.objectContaining({ id: 30 }));
+  });
+
+  it('shuts the registry’s suggestions while the on-file line shows, so they never cover it', async () => {
+    const user = setupUser();
+    const onFile = makeAircraft({ id: 30, n_number: 'N739TA' });
+    server.use(
+      http.get(`${API}/aircraft/lookup`, ({ request }) =>
+        new URL(request.url).searchParams.get('n_number') === 'N739TA'
+          ? HttpResponse.json({ ...onFile, pilots: [] })
+          : HttpResponse.json({ detail: 'Not found.' }, { status: 404 }),
+      ),
+      http.get(`${API}/aircraft`, () =>
+        HttpResponse.json({ count: 0, next: null, previous: null, results: [] }),
+      ),
+      http.get(`${API}/aircraft/registrations`, () => HttpResponse.json([makeRegistration()])),
+    );
+
+    renderWithProviders(<AircraftPicker onSelect={() => {}} />);
+    await search(user, /Search CalDART's aircraft list/i, 'n739');
+    await user.click(await screen.findByRole('button', { name: /Add a new aircraft/i }));
+    await search(user, /^N-number/, 'ta');
+    await act(() => vi.advanceTimersByTimeAsync(SEARCH_DEBOUNCE_MS));
+
+    expect(await screen.findByText('N739TA is already on file.')).toBeInTheDocument();
+    expect(screen.queryByRole('listbox', { name: 'FAA registrations' })).not.toBeInTheDocument();
   });
 
   it('fills a new aircraft from the registration picked in the N-number box', async () => {

@@ -8,12 +8,12 @@
  *
  * Enter in the search box adds the one aircraft a search found.  **Add a new
  * aircraft** starts the form with the search text as its N-number only when that text
- * could be a registration (it has a digit), so a search for "piper" leaves the box
- * empty.  As soon as the form's N-number is one CalDART has on file, the form says so
+ * is shaped like a registration (`isNNumber`), so a search for "piper", "Cessna 172",
+ * or "PA-28" leaves the box empty.  As soon as the form's N-number is one CalDART has on file, the form says so
  * and offers **Add it to my list**, before anybody fills in the rest.
  */
 import { useCallback, useId, useRef, useState } from 'react';
-import type { JSX, KeyboardEvent } from 'react';
+import type { JSX, KeyboardEvent, ReactNode } from 'react';
 
 import { ApiError } from '@/portal/api/client';
 import type { Aircraft } from '@/portal/api/types';
@@ -29,7 +29,7 @@ import { InsuranceDot } from './InsuranceDot';
 import { ServiceDot } from './ServiceDot';
 import { useAircraftSearch, useCreateAircraft } from './api';
 import { emptyAircraftValues } from './form';
-import { looksLikeRegistration, normalizeNNumber } from './insurance';
+import { isNNumber, normalizeNNumber } from './insurance';
 
 export interface AircraftPickerProps {
   onSelect: (aircraft: Aircraft) => void;
@@ -78,8 +78,12 @@ export function AircraftPicker({ onSelect, excludeIds = [] }: AircraftPickerProp
     onSelect(only);
   };
 
+  // What the add form says under its N-number: the record on file, if there is one.
+  const useOnFileNote = (nNumber: string): ReactNode =>
+    useOnFileLine(nNumber, (aircraft) => excludeIds.includes(aircraft.id), handleCreated);
+
   const typed = term.trim();
-  const initialNNumber = looksLikeRegistration(typed) ? normalizeNNumber(typed) : '';
+  const initialNNumber = isNNumber(typed) ? normalizeNNumber(typed) : '';
 
   return (
     <Card eyebrow="Aircraft" title="Find an aircraft">
@@ -179,13 +183,7 @@ export function AircraftPicker({ onSelect, excludeIds = [] }: AircraftPickerProp
             serverError={create.error}
             onSubmit={(payload) => create.mutate(payload, { onSuccess: handleCreated })}
             onCancel={handleStopAdding}
-            nNumberNote={(nNumber) => (
-              <OnFileNote
-                nNumber={nNumber}
-                isListed={(aircraft) => excludeIds.includes(aircraft.id)}
-                onAdd={handleCreated}
-              />
-            )}
+            useNNumberNote={useOnFileNote}
           />
           {create.isError && Object.keys(fieldErrors ?? {}).length === 0 ? (
             <p className="field__error" role="alert">
@@ -207,22 +205,18 @@ function joinNNumbers(nNumbers: string[]): string {
   return `${nNumbers.slice(0, -1).join(', ')}, and ${nNumbers.at(-1)}`;
 }
 
-interface OnFileNoteProps {
-  /** The N-number in the add form's box, as typed or picked. */
-  nNumber: string;
-  /** Whether `aircraft` is on the reader's list already. */
-  isListed: (aircraft: Aircraft) => boolean;
-  /** Adds the aircraft on file to the reader's list, in place of a duplicate record. */
-  onAdd: (aircraft: Aircraft) => void;
-}
-
 /**
- * Under the add form's N-number: nothing, or, once the N-number is one CalDART has on
- * file, that it is, with **Add it to my list** (or that it is on the list already).
- * Saying so at the pick spares the reader a form that would be refused at the end.
+ * The line under the add form's N-number: null, or, once the N-number is one CalDART has
+ * on file, that it is, with **Add it to my list** (`onAdd`), or that it is on the
+ * reader's list already (`isListed`).  Saying so at the pick spares the reader a form
+ * that would be refused at the end.
  */
-function OnFileNote({ nNumber, isListed, onAdd: handleAdd }: OnFileNoteProps): JSX.Element | null {
-  const debounced = useDebounced(looksLikeRegistration(nNumber) ? nNumber : '');
+function useOnFileLine(
+  nNumber: string,
+  isListed: (aircraft: Aircraft) => boolean,
+  onAdd: (aircraft: Aircraft) => void,
+): ReactNode {
+  const debounced = useDebounced(isNNumber(nNumber) ? nNumber : '');
   const found = useAircraftSearch(debounced).data?.exact ?? null;
   if (found === null || found.n_number !== normalizeNNumber(nNumber)) return null;
   if (isListed(found)) {
@@ -235,7 +229,7 @@ function OnFileNote({ nNumber, isListed, onAdd: handleAdd }: OnFileNoteProps): J
   return (
     <p className="aircraft-on-file cluster" role="status">
       <span>{found.n_number} is already on file.</span>
-      <Button variant="secondary" small onClick={() => handleAdd(found)}>
+      <Button variant="secondary" small onClick={() => onAdd(found)}>
         Add it to my list
       </Button>
     </p>
