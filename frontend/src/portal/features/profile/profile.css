@@ -1,19 +1,7 @@
 /*
- * Profile editor and "my aircraft".
- * One column on a phone; a second column appears at 40rem.
+ * Profile editor and "my aircraft".  The two-column `.form-grid` they share with the
+ * other forms is in base.css.
  */
-
-.form-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 0 var(--space-5);
-}
-
-@media (min-width: 40rem) {
-  .form-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
 
 /*
  * A number and its extension share one column.

@@ -135,7 +135,8 @@ browser's back button steps back through them.
    **Individual**, **FBO**, or **Flying club**.
 
 **Insurance**
-   **Current** (a policy on file and not yet expired), **Expired**, or **Not on file**.
+   **Insured** (a policy on file and not yet expired), **Insurance expired**, or **No
+   insurance on file**, the words each row's insurance dot shows.
 
 **Expiring within**
    **Expiring in 30 days**, **Expiring in 60 days**, or **Expiring in 90 days**: cover that

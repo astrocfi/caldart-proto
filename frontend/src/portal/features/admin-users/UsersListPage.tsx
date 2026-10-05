@@ -125,6 +125,15 @@ export function emptyTitle(values: Record<string, string>): string {
   return `No accounts match the ${filters} filter${named.length === 1 ? '' : 's'}`;
 }
 
+/**
+ * The line under the empty list's title: a shorter search is offered only when a search
+ * was typed, and otherwise the filters are what to change.
+ */
+export function emptyDescription(values: Record<string, string>): string {
+  if ((values.search ?? '').trim() !== '') return 'Try a shorter search, or reset the filters.';
+  return 'Reset the filters to see more accounts.';
+}
+
 /** The API's `is_active` for the status chosen: blank means active only. */
 function activeParam(status: string): 'true' | 'false' | '' {
   if (status === ANY_STATUS) return '';
@@ -295,20 +304,16 @@ export function UsersListPage(): JSX.Element {
               label="Filter accounts"
             />
             {roleDescription === undefined ? null : (
-              <p className="users-list__role">
+              <p className="users-list__note">
                 <strong>{roleLabel(role)}</strong>: {roleDescription}
               </p>
             )}
-          </>
-        }
-        tools={
-          <>
             {disabledReason === undefined ? null : (
-              <p className="muted users-list__off">{disabledReason}</p>
+              <p className="muted users-list__note">{disabledReason}</p>
             )}
-            <ColumnTools choice={choice} disabledReason={disabledReason} />
           </>
         }
+        tools={<ColumnTools choice={choice} disabledReason={disabledReason} />}
         exportCsvUrl={reportExportUrl('roles', 'csv', exportParams)}
         exportPdfUrl={reportExportUrl('roles', 'pdf', exportParams)}
         exportDisabledReason={disabledReason}
@@ -316,7 +321,7 @@ export function UsersListPage(): JSX.Element {
         onSortChange={handleSortChange}
         sort={sort}
         emptyTitle={emptyTitle(filters)}
-        emptyDescription="Try a shorter search, or reset the filters."
+        emptyDescription={emptyDescription(filters)}
         emptyAction={
           <Button variant="quiet" onClick={handleReset}>
             Reset filters

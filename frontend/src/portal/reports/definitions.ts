@@ -186,9 +186,10 @@ const AIRCRAFT_FILTERS: FilterField[] = [
     kind: 'select',
     placeholder: 'Any insurance state',
     options: [
-      { value: 'current', label: 'Current' },
-      { value: 'expired', label: 'Expired' },
-      { value: 'missing', label: 'Not on file' },
+      // The words the register's insurance dot shows, so a filter and a row agree.
+      { value: 'current', label: 'Insured' },
+      { value: 'expired', label: 'Insurance expired' },
+      { value: 'missing', label: 'No insurance on file' },
     ],
   },
   {

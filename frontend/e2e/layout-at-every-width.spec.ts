@@ -150,3 +150,23 @@ test('Shift+Tab never leaves a field under the sticky header on a phone', async 
   }
   expect(hidden).toEqual([]);
 });
+
+test('New DART keeps its Name and Airports boxes level, under an error too', async ({ page }) => {
+  await page.setViewportSize(DESKTOP);
+  await signIn(page, DEMO.accountadmin);
+  await page.goto('portal/admin/darts');
+  await page.getByRole('button', { name: 'New DART' }).click();
+  const name = page.getByRole('textbox', { name: /^Name/ }).first();
+  const airports = page.getByRole('textbox', { name: /^Airports/ });
+  const level = async (): Promise<number> => {
+    const [left, right] = [await name.boundingBox(), await airports.boundingBox()];
+    if (left === null || right === null) throw new Error('The boxes are not laid out');
+    return Math.abs(left.y - right.y);
+  };
+  expect(await level()).toBeLessThan(1);
+
+  await page.getByRole('button', { name: 'Add DART' }).click();
+  await expect(name).toHaveAttribute('aria-invalid', 'true');
+
+  expect(await level()).toBeLessThan(1);
+});

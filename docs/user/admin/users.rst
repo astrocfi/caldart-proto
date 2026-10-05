@@ -81,8 +81,10 @@ at the end of the bar, empties them and puts **Account status** back on **Active
    you can find each one and correct the address (:doc:`user-record`).
 
 Changing a filter takes you back to the first page. With nothing to show, the table names
-the filters in force, such as *No accounts match the Role and Kind filters*, with a **Reset
-filters** button under it.
+the filters in force, such as *No accounts match the Role and Kind filters*. Under that it
+reads *Try a shorter search, or reset the filters.* when something is typed in **Search**,
+and *Reset the filters to see more accounts.* when nothing is, with a **Reset filters**
+button under it.
 
 
 Exporting the roles report
@@ -96,9 +98,9 @@ person holding two such roles is listed in both sections.
 The report lists active accounts only, whatever **Account status** shows, and follows
 the **Email** filter. It follows the screen's **Search**, the role chosen under **Role**,
 which leaves that one section, and **Member** or **Friend** under **Kind**. The
-report's Kind follows the membership it shows for today: an account given the kind member
-reads as a friend there until one of its membership terms has started, and again once its
-change to a friend has come.
+report's Kind is the account's kind, except that a member whose change to a friend has come
+reads Friend there; a member who has not paid yet reads Member, with *No membership yet*
+under Membership.
 
 **Columns** chooses the columns of the table on screen and of the two downloads together.
 It starts on Role, Name, Email, Phone, DART, Kind, and Membership, and adds City, County,
@@ -108,7 +110,7 @@ columns under a name, as :ref:`saved-column-sets` describes.
 With **Donor** chosen under **Kind**, or **Member** under **Role**, the report has
 nobody to list, so the two export buttons and **Columns** are grayed out, and **Load
 columns** and **Save columns** are put away until you choose another kind or role. A line
-beside the grayed-out buttons says why.
+of its own under the filters says why.
 
 An account administrator can have the same report emailed on a schedule, to themselves or to
 a user administrator, from :doc:`subscriptions`.

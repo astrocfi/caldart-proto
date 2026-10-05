@@ -12,9 +12,9 @@ import type { AircraftDetail } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { formatDate } from '@/portal/components/DateText';
-import { formatCents } from '@/portal/components/Money';
 import { VerifiedMark } from '@/portal/components/VerifiedMark';
 import { usePanelFocus } from '@/portal/components/focus';
+import { liabilityLine } from '@/portal/features/aircraft/insurance';
 import { InsuranceVerificationPanel } from './InsuranceVerificationPanel';
 import { useCanVerify } from './useCanVerify';
 import './verification.css';
@@ -24,19 +24,12 @@ function insuranceDetail(aircraft: AircraftDetail): string {
   const parts: string[] = [];
   if (aircraft.insurance_carrier !== '') parts.push(aircraft.insurance_carrier);
   if (aircraft.insurance_policy_number !== '') parts.push(aircraft.insurance_policy_number);
-  if (aircraft.insurance_liability_per_occurrence_cents > 0) {
-    const occurrence = formatCents(aircraft.insurance_liability_per_occurrence_cents, {
-      whole: true,
-    });
-    const perPerson = aircraft.insurance_liability_per_person_cents;
-    parts.push(
-      perPerson > 0 ? `${occurrence} / ${formatCents(perPerson, { whole: true })}` : occurrence,
-    );
-  }
+  const liability = liabilityLine(aircraft);
+  if (liability !== '') parts.push(liability);
   if (aircraft.insurance_expiration !== null) {
     parts.push(`expires ${formatDate(aircraft.insurance_expiration)}`);
   }
-  return parts.length === 0 ? 'Not on file' : parts.join(' · ');
+  return parts.length === 0 ? 'No insurance on file' : parts.join(' · ');
 }
 
 export interface InsuranceVerificationCardProps {

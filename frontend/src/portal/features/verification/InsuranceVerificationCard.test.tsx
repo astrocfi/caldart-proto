@@ -19,7 +19,7 @@ describe('InsuranceVerificationCard', () => {
     renderWithProviders(<InsuranceVerificationCard aircraft={makeVerifiedAircraft()} />);
     const row = screen.getByRole('listitem');
     expect(row).toHaveTextContent(
-      'InsuranceAvemco · AV-00012345 · $1,000,000 / $100,000 · expires 03/01/2027Verified by Dana Leader on 05/01/2026',
+      'InsuranceAvemco · AV-00012345 · Liability $1,000,000 per occurrence, $100,000 per person · expires 03/01/2027Verified by Dana Leader on 05/01/2026',
     );
   });
 
@@ -30,11 +30,11 @@ describe('InsuranceVerificationCard', () => {
       />,
     );
     expect(screen.getByRole('listitem')).toHaveTextContent(
-      'InsuranceAvemco · AV-00012345 · $1,000,000 · expires 03/01/2027',
+      'InsuranceAvemco · AV-00012345 · Liability $1,000,000 per occurrence · expires 03/01/2027',
     );
   });
 
-  it('reads Not on file for an aircraft with no insurance on record', () => {
+  it('reads No insurance on file for an aircraft with none on record', () => {
     renderWithProviders(
       <InsuranceVerificationCard
         aircraft={makeVerifiedAircraft({
@@ -47,7 +47,7 @@ describe('InsuranceVerificationCard', () => {
         })}
       />,
     );
-    expect(screen.getByRole('listitem')).toHaveTextContent(/^InsuranceNot on file$/);
+    expect(screen.getByRole('listitem')).toHaveTextContent(/^InsuranceNo insurance on file$/);
   });
 
   it('says Expired beside a lapsed policy that somebody verified', () => {

@@ -4,6 +4,7 @@
  * insurance state every screen colors its chips by.
  */
 import type { AircraftSummary } from '@/portal/api/types';
+import { formatCents } from '@/portal/components/Money';
 import { EXPIRING_WINDOW_DAYS, daysUntil } from '@/portal/components/StatusDot';
 import type { StatusTone } from '@/portal/components/StatusDot';
 
@@ -58,6 +59,28 @@ const INSURANCE_LABEL: Record<StatusTone, string> = {
   expired: 'Insurance expired',
   none: 'No insurance on file',
 };
+
+/** The liability limits an aircraft record holds, in cents; 0 for one not recorded. */
+export interface LiabilityLimits {
+  insurance_liability_per_occurrence_cents: number;
+  insurance_liability_per_person_cents: number;
+}
+
+/**
+ * The labeled liability limits, such as "Liability $2,000,000 per occurrence, $100,000 per
+ * person", or an empty string when none is recorded.  Every screen that names the limits
+ * says them this way, so nobody reads two bare amounts and guesses which is which.
+ */
+export function liabilityLine(plane: LiabilityLimits): string {
+  const limits = [
+    [plane.insurance_liability_per_occurrence_cents, 'per occurrence'],
+    [plane.insurance_liability_per_person_cents, 'per person'],
+  ] as const;
+  const named = limits
+    .filter(([cents]) => cents > 0)
+    .map(([cents, per]) => `${formatCents(cents, { whole: true })} ${per}`);
+  return named.length === 0 ? '' : `Liability ${named.join(', ')}`;
+}
 
 /** The status word for an insurance tone. */
 export function insuranceLabel(tone: StatusTone): string {

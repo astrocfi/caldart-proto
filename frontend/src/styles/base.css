@@ -343,6 +343,20 @@ a:hover {
   display: block;
 }
 
+/* A form of short fields: one column on a phone, a second from 40rem, on every screen
+ * that uses it, whichever screens were opened before it. */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0 var(--space-5);
+}
+
+@media (min-width: 40rem) {
+  .form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 /* Two columns: each field spans five rows of the grid (label, hint, box, status, and
  * error) and shares them with the field beside it, so a hint on one side lowers both
  * boxes alike, and nothing else does.  A child that is not a field spans all five. */

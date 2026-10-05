@@ -25,11 +25,11 @@ import { Card } from '@/portal/components/Card';
 import { DeleteButton } from '@/portal/components/DeleteButton';
 import { EmptyState } from '@/portal/components/EmptyState';
 import { Page } from '@/portal/components/Page';
-import { formatCents } from '@/portal/components/Money';
 import { StatusDot } from '@/portal/components/StatusDot';
 import { useToast } from '@/portal/components/Toast';
 import { VerifiedMark } from '@/portal/components/VerifiedMark';
 import { usePanelFocus } from '@/portal/components/focus';
+import { liabilityLine } from '@/portal/features/aircraft/insurance';
 import { useAuth } from '@/portal/auth/useAuth';
 import { hasAnyRole } from '@/portal/nav';
 import { AircraftEditor } from './AircraftEditor';
@@ -192,16 +192,4 @@ function AircraftMeta({ plane }: { plane: AircraftSummary }): JSX.Element | null
   );
   if (parts.length === 0) return null;
   return <p className="aircraft-list__meta">{parts.join(' · ')}</p>;
-}
-
-/** The labeled liability limits, or an empty string when none is recorded. */
-function liabilityLine(plane: AircraftSummary): string {
-  const limits = [
-    [plane.insurance_liability_per_occurrence_cents, 'per occurrence'],
-    [plane.insurance_liability_per_person_cents, 'per person'],
-  ] as const;
-  const named = limits
-    .filter(([cents]) => cents > 0)
-    .map(([cents, per]) => `${formatCents(cents, { whole: true })} ${per}`);
-  return named.length === 0 ? '' : `Liability ${named.join(', ')}`;
 }

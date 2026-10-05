@@ -41,10 +41,11 @@ ORDERING_PATHS: dict[str, str] = {"make": "type__make", "model": "type__model"}
 #: The order the register takes when ``?ordering=`` names nothing it accepts.
 DEFAULT_ORDERING = ["n_number"]
 
+#: The ``?insurance=`` choices, labeled in the words the register's insurance dot shows.
 INSURANCE_CHOICES = (
-    ("current", "Current"),
-    ("expired", "Expired"),
-    ("missing", "Not on file"),
+    ("current", "Insured"),
+    ("expired", "Insurance expired"),
+    ("missing", "No insurance on file"),
 )
 
 

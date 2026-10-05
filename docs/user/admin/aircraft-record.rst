@@ -22,7 +22,8 @@ service) at the right.
 
 A **Verification** card heads the page below that, the same as on a :doc:`member-record`.
 It lists **Insurance**, with what the record holds (such as *Avemco · AV-00012345 ·
-$1,000,000 / $100,000 · expires 03/01/2027*, or *Not on file* with nothing recorded) and its
+Liability $1,000,000 per occurrence, $100,000 per person · expires 03/01/2027*, or *No
+insurance on file* with nothing recorded) and its
 mark: **Verified** with who verified it and on which day, or **Not verified** in amber. A
 policy whose date has passed reads **Expired** before its mark, and insurance with no expiry
 date on file has nothing to verify and no mark. **Verify**
