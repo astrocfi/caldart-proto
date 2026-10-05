@@ -26,7 +26,7 @@ const MEMBERSHIP: MembershipDetail = {
 };
 
 describe('<DashboardPage/> for a DART leader with no DART', () => {
-  it('says so, with the way to My profile, as the Bulk Email screens do', async () => {
+  it('says bulk email needs a DART, with the way to My profile', async () => {
     server.use(
       signedInAs(makeUser({ roles: ['member', 'dart_leader'] })),
       http.get(`${API}/me/membership`, () => HttpResponse.json(MEMBERSHIP)),
@@ -37,7 +37,7 @@ describe('<DashboardPage/> for a DART leader with no DART', () => {
     renderWithProviders(<DashboardPage />, { route: '/' });
 
     expect(
-      await screen.findByText(/Your profile names no DART, so there is nobody to send to\./),
+      await screen.findByText(/^Bulk email needs a DART\. Set yours on My profile\./),
     ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Open My profile' })).toHaveAttribute(
       'href',

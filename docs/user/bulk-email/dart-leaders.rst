@@ -23,9 +23,10 @@ from then on.
 
 If your profile names no DART, **Compose** shows *Your profile names no DART, so there is
 nobody to send to. Set your DART on My profile.* in place of the email, in a box with a
-link, **Open My profile**. The same box stands at the top of your **Dashboard**, **Drafts
-and scheduled**, **Sent**, and **Callouts**, and none of them offers **New email** until
-your DART is set. Choose your DART there and press **Compose** again. An email you started earlier
+link, **Open My profile**. The same box stands at the top of **Drafts and scheduled**,
+**Sent**, and **Callouts**, and your **Dashboard** has it too, worded *Bulk email needs a
+DART. Set yours on My profile.* None of them offers **New email** until your DART is
+set. Choose your DART there and press **Compose** again. An email you started earlier
 says, in place of the filters, that it belongs to you and that your profile names no DART,
 so nobody can be added; CalDART management reads the same line if they open it.
 
