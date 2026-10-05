@@ -141,7 +141,7 @@ def test_a_send_s_results_download_as_a_csv(management_client: APIClient, sent: 
         [
             "Gil Gone",
             "gil@example.test",
-            "Friend",
+            "Member",
             "Marin DART",
             "Skipped",
             "Account deactivated",

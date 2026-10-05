@@ -61,6 +61,34 @@ K_WORDS = frozenset(
     }
 )
 
+#: Words that mark a registered name as a business's, so a leading ``K`` and three
+#: letters in it reads as an airport code rather than a person's name (``KATE SMITH``).
+BUSINESS_MARKERS = frozenset(
+    {
+        "aero",
+        "air",
+        "aircraft",
+        "aviation",
+        "club",
+        "co",
+        "company",
+        "corp",
+        "fbo",
+        "flight",
+        "flyers",
+        "flying",
+        "group",
+        "inc",
+        "jet",
+        "jets",
+        "llc",
+        "llp",
+        "lp",
+        "partners",
+        "services",
+    }
+)
+
 #: Short words with no vowel that are abbreviations read as words, title-cased as any
 #: word: ``St``, ``Mt``, ``Mr``, ``Dr``, ``Ctr``, and the like.
 SHORT_WORD_ABBREVIATIONS = frozenset(
@@ -132,7 +160,9 @@ def business_name(value: str) -> str:
     reads as an abbreviation rather than a word: one with no vowel (``JB``, ``NTSB``)
     other than the word abbreviations in ``SHORT_WORD_ABBREVIATIONS`` (``ST``, ``MR``,
     ``CTR``), or, as the name's first word, an airport identifier, ``K`` and three
-    letters (``KPAO``) that is not one of the ``K_WORDS`` (``KING``, ``KIDS``).  The words
+    letters (``KPAO``) that is not one of the ``K_WORDS`` (``KING``, ``KIDS``), in a name
+    whose other words include one of the ``BUSINESS_MARKERS`` (``INC``, ``FBO``,
+    ``AVIATION``), so ``KATE SMITH`` reads ``Kate Smith``.  The words
     in ``BUSINESS_SMALL_WORDS`` stay lower case past the first: ``SKYWAYS AVIATION OF NAPA
     LLC`` becomes ``Skyways Aviation of Napa LLC``, and ``KPAO FBO INC`` becomes ``KPAO
     FBO Inc``.  A blank value stays blank.
@@ -142,35 +172,40 @@ def business_name(value: str) -> str:
         return trimmed
     registered = trimmed.split(" ")
     words = title_case_words(trimmed).split(" ")
+    # A leading airport code needs the rest of the name to read as a business's.
+    leads_business = any(word.lower().strip(".,") in BUSINESS_MARKERS for word in registered[1:])
     return " ".join(
-        _business_word(word, registered[index], first=index == 0)
+        _business_word(
+            word, registered[index], first=index == 0, may_be_code=index == 0 and leads_business
+        )
         for index, word in enumerate(words)
     )
 
 
-def _business_word(word: str, registered: str, *, first: bool) -> str:
+def _business_word(word: str, registered: str, *, first: bool, may_be_code: bool) -> str:
     """One title-cased word of a business name, as :func:`business_name` lists.
 
     ``registered`` is the word as the registry wrote it, which decides whether a short
-    word was an abbreviation in capitals.
+    word was an abbreviation in capitals; ``may_be_code`` whether it may be an airport
+    code, which only the first word of a business's name may be.
     """
     lowered = word.lower()
     if lowered in BUSINESS_ABBREVIATIONS or "." in word:
         return word.upper()
     if not first and lowered in BUSINESS_SMALL_WORDS:
         return lowered
-    if _is_short_abbreviation(registered, first=first):
+    if _is_short_abbreviation(registered, may_be_code=may_be_code):
         return registered
     return word
 
 
-def _is_short_abbreviation(registered: str, *, first: bool) -> bool:
+def _is_short_abbreviation(registered: str, *, may_be_code: bool) -> bool:
     """True when the registry's word is a short abbreviation, kept in its capitals.
 
     That is a word of letters alone, at most ``SHORT_ABBREVIATION_LENGTH`` long, written
     in capitals, and either with no vowel and not one of ``SHORT_WORD_ABBREVIATIONS``,
-    or, when it is the name's ``first`` word, in the form of an airport identifier (``K``
-    and three letters) and not one of ``K_WORDS``.
+    or, when it ``may_be_code`` (the first word of a business's name), in the form of an
+    airport identifier (``K`` and three letters) and not one of ``K_WORDS``.
     """
     if not registered.isalpha() or not registered.isupper():
         return False
@@ -180,7 +215,7 @@ def _is_short_abbreviation(registered: str, *, first: bool) -> bool:
     if not any(character in _VOWELS for character in lowered):
         return lowered not in SHORT_WORD_ABBREVIATIONS
     is_identifier = _AIRPORT_IDENTIFIER_RE.fullmatch(registered) is not None
-    return first and is_identifier and lowered not in K_WORDS
+    return may_be_code and is_identifier and lowered not in K_WORDS
 
 
 def _name_word(word: str, *, first: bool) -> str:
