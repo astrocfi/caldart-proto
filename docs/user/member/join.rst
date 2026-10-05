@@ -47,9 +47,8 @@ friend owes nothing.
 
 An account an administrator created for you has joined already. Until you verify its
 address, signing in shows **Verify your email address** with the **Check your email**
-card alone, and no list of steps. Once it is verified, your first sign-in opens the
-dashboard, with no profile or pay step, and you fill in the rest of your profile when
-you like.
+card alone. Once it is verified, your first sign-in opens the dashboard, with no profile
+or pay step, and you fill in the rest of your profile when you like.
 
 Once you have joined, the **Profile** and **Pay** steps send you to your
 :doc:`dashboard`, so going back into the wizard cannot charge you again or change

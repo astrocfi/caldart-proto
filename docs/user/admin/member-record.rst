@@ -142,16 +142,12 @@ This person's whole money history, the same one the treasurer's screens show:
 - **Totals** over every year: **Paid**, **Contributed**, **Fees**, and **Refunded**.
 - Their automatic renewal, if they have one, with its state, the saved payment method, what
   it charges, the **Next charge** date, and the reason for its last refusal. A member without
-  one reads *This member renews by hand.*; a friend, or a member with no membership yet,
-  without one has no such card.
-- **Payments**: every payment with its date, receipt number, what it was for (the plan by
-  name, such as **Annual** or **Annual and contribution**, or **Contribution**), the total,
-  what was refunded, the method, and its status. A receipt number opens that payment's
-  record.
+  one reads *This member renews by hand.*; anybody else without one has no such card.
+- **Payments**: every payment's date, receipt number (which opens it), what it was for (such
+  as **Annual and contribution**), total, refund, method, and status.
 - **Contribution statements**: a button for each year the person gave beyond their dues,
-  such as **Download 2025 statement**. A member who never did reads *This member has not
-  given anything beyond their dues.*, and a friend or a member with no membership yet *This
-  person has not given anything yet.*
+  such as **Download 2025 statement**. Otherwise it reads *This member has not given
+  anything beyond their dues.*, or *This person has not given anything yet.* if no dues.
 
 A term you grant by hand has no payment behind it, so it does not appear here. For the
 organization's figures, use **Finance** under **Administration** in the menu.
