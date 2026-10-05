@@ -218,22 +218,22 @@ describe('<RenewPage/> with automatic renewal on', () => {
   });
 });
 
-describe('<RenewPage/> with automatic renewal long past its day', () => {
-  it('says renewal is paused and offers the checkout at once', async () => {
+describe('<RenewPage/> with automatic renewal paused', () => {
+  it('says renewal is paused and offers the checkout at once, its box checked', async () => {
     server.use(
       http.get(`${API}/me/renewal`, () =>
         HttpResponse.json({
-          mandate: makeMandate({ amount_cents: 14500, next_charge_on: '2020-01-15' }),
+          mandate: makeMandate({ status: 'paused', failure_count: 3, next_charge_on: null }),
         }),
       ),
     );
-    renderRenew(detail({ status: 'expired', expires_on: '2020-01-16' }));
+    renderRenew(detail({ status: 'expired', expires_on: '2026-03-01' }));
 
     expect(
       await screen.findByRole('heading', { name: 'Automatic renewal is paused' }),
     ).toBeInTheDocument();
-    expect(screen.getByText(/01\/15\/2020, passed more than 30 days ago/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Pretend to pay' })).toBeInTheDocument();
     expect(screen.queryByText(/We will charge/)).not.toBeInTheDocument();
+    expect(autoRenewDefaults.at(-1)).toBe(true);
   });
 });

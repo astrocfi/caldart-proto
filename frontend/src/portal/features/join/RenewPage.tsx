@@ -44,37 +44,27 @@ const EARLY_LEDE =
 /** The lede for a membership that has run out. */
 const LAPSED_LEDE = 'Your new year starts today.';
 
-/** The automatic renewal that will renew the membership by itself, or null when none will. */
-function renewingMandate(mandate: RenewalMandate | null | undefined): RenewalMandate | null {
-  if (mandate?.status !== 'active' || mandate.kind === 'contribution') return null;
-  return mandate.next_charge_on === null ? null : mandate;
-}
-
-/**
- * How many days past its charge date the renewal job still charges a mandate; beyond
- * that it is paused and charges nothing.
- */
-const CATCH_UP_DAYS = 30;
-
 /** What the page says about a member's automatic renewal. */
 type RenewalState =
   | { kind: 'none' }
   | { kind: 'on'; mandate: RenewalMandate }
   | { kind: 'retrying'; mandate: RenewalMandate }
-  | { kind: 'paused'; mandate: RenewalMandate };
+  | { kind: 'paused' };
 
 /**
- * Whether automatic renewal will renew the membership: on, on and trying again after a
- * declined charge, paused because its charge date passed more than `CATCH_UP_DAYS` ago,
- * or none at all.
+ * What the member's automatic renewal will do, read off the mandate the server sends: an
+ * active one charges on its day (`on`), or on its day again after a declined charge
+ * (`retrying`, when `failure_count` is above 0); a `paused` one charges nothing until the
+ * member saves another method; anything else, including a recurring donation, renews
+ * nothing (`none`).
  */
 export function renewalState(mandate: RenewalMandate | null | undefined): RenewalState {
-  const renewing = renewingMandate(mandate);
-  if (renewing === null) return { kind: 'none' };
-  const days = daysUntil(renewing.next_charge_on);
-  if (days !== null && days < -CATCH_UP_DAYS) return { kind: 'paused', mandate: renewing };
-  if (renewing.failure_count > 0) return { kind: 'retrying', mandate: renewing };
-  return { kind: 'on', mandate: renewing };
+  if (mandate === null || mandate === undefined || mandate.kind === 'contribution') {
+    return { kind: 'none' };
+  }
+  if (mandate.status === 'paused') return { kind: 'paused' };
+  if (mandate.status !== 'active' || mandate.next_charge_on === null) return { kind: 'none' };
+  return mandate.failure_count > 0 ? { kind: 'retrying', mandate } : { kind: 'on', mandate };
 }
 
 /** Renders the current membership status and a checkout to renew it. */
@@ -179,7 +169,8 @@ interface AutomaticRenewalCardProps {
 
 /**
  * What automatic renewal will do, above the checkout: it will charge on its day, it is
- * trying again after a declined charge, or it is paused and the member renews here.
+ * trying again after a declined charge, or it is paused after a refused charge and the
+ * member renews here.
  * Nothing when the member has none.
  */
 function AutomaticRenewalCard({
@@ -188,18 +179,17 @@ function AutomaticRenewalCard({
   onRenewAnyway: handleRenewAnyway,
 }: AutomaticRenewalCardProps): JSX.Element | null {
   if (state.kind === 'none') return null;
-  const { amount_cents: amount, next_charge_on: chargeOn } = state.mandate;
   if (state.kind === 'paused') {
     return (
       <Card title="Automatic renewal is paused">
         <p>
-          Its charge date, {formatDate(chargeOn)}, passed more than {CATCH_UP_DAYS} days ago, so
-          CalDART will not charge it. Renew here, and turn automatic renewal on again below or from
-          Payments.
+          A charge was refused, so CalDART will not renew you by itself. Renew here, and turn
+          automatic renewal on again below or from Payments.
         </p>
       </Card>
     );
   }
+  const { amount_cents: amount, next_charge_on: chargeOn } = state.mandate;
   return (
     <Card title="Automatic renewal is on">
       <p>

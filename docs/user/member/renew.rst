@@ -38,9 +38,10 @@ each year** already checked. If the last charge was declined, the card says *The
 charge was declined. CalDART will try again on* the day, for the amount, and **Renew
 now anyway** is still there.
 
-If your automatic renewal's charge date passed more than 30 days ago, CalDART no
-longer charges it. The card reads **Automatic renewal is paused**, names the date, and
-the checkout is open below it so you can renew here.
+If automatic renewal stopped after a charge was refused, the card reads **Automatic
+renewal is paused**: *A charge was refused, so CalDART will not renew you by itself.*
+The checkout is open below it, with **Renew automatically each year** checked, so you
+can renew here and turn it on again with the method you pay with.
 
 
 What happens next
