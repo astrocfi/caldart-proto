@@ -236,4 +236,24 @@ describe('<RenewPage/> with automatic renewal paused', () => {
     expect(screen.queryByText(/We will charge/)).not.toBeInTheDocument();
     expect(autoRenewDefaults.at(-1)).toBe(true);
   });
+
+  it.each([
+    [3, 'A charge was refused, so CalDART will not renew you by itself.'],
+    [0, 'Your membership lapsed, so CalDART will not renew it by itself.'],
+  ])('says why it paused, with %i refused charges', async (failures, reason) => {
+    server.use(
+      http.get(`${API}/me/renewal`, () =>
+        HttpResponse.json({
+          mandate: makeMandate({
+            status: 'paused',
+            failure_count: failures,
+            next_charge_on: null,
+          }),
+        }),
+      ),
+    );
+    renderRenew(detail({ status: 'expired', expires_on: '2026-03-01' }));
+
+    expect(await screen.findByText(new RegExp(reason.replace('.', '\\.')))).toBeInTheDocument();
+  });
 });

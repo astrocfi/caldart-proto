@@ -49,20 +49,21 @@ type RenewalState =
   | { kind: 'none' }
   | { kind: 'on'; mandate: RenewalMandate }
   | { kind: 'retrying'; mandate: RenewalMandate }
-  | { kind: 'paused' };
+  | { kind: 'paused'; wasRefused: boolean };
 
 /**
  * What the member's automatic renewal will do, read off the mandate the server sends: an
  * active one charges on its day (`on`), or on its day again after a declined charge
- * (`retrying`, when `failure_count` is above 0); a `paused` one charges nothing until the
- * member saves another method; anything else, including a recurring donation, renews
+ * (`retrying`, when `failure_count` is above 0); a `paused` one charges nothing, paused
+ * after refused charges (`wasRefused`) or because the membership lapsed more than 30 days
+ * before; anything else, including a recurring donation, renews
  * nothing (`none`).
  */
 export function renewalState(mandate: RenewalMandate | null | undefined): RenewalState {
   if (mandate === null || mandate === undefined || mandate.kind === 'contribution') {
     return { kind: 'none' };
   }
-  if (mandate.status === 'paused') return { kind: 'paused' };
+  if (mandate.status === 'paused') return { kind: 'paused', wasRefused: mandate.failure_count > 0 };
   if (mandate.status !== 'active' || mandate.next_charge_on === null) return { kind: 'none' };
   return mandate.failure_count > 0 ? { kind: 'retrying', mandate } : { kind: 'on', mandate };
 }
@@ -183,8 +184,10 @@ function AutomaticRenewalCard({
     return (
       <Card title="Automatic renewal is paused">
         <p>
-          A charge was refused, so CalDART will not renew you by itself. Renew here, and turn
-          automatic renewal on again below or from Payments.
+          {state.wasRefused
+            ? 'A charge was refused, so CalDART will not renew you by itself.'
+            : 'Your membership lapsed, so CalDART will not renew it by itself.'}{' '}
+          Renew here, and turn automatic renewal on again below or from Payments.
         </p>
       </Card>
     );
