@@ -488,7 +488,7 @@ def test_dart_leader_without_a_membership_reads_the_page(
     client: Client, walled_page: StandardPage, dart_leader: User
 ) -> None:
     """A DART leader with no membership of their own still reads the walled page."""
-    assert dart_leader.membership_status["status"] == "friend"
+    assert dart_leader.membership_status["status"] == "none"
     client.force_login(dart_leader)
 
     response = client.get(walled_page.url)

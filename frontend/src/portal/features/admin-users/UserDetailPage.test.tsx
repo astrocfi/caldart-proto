@@ -591,7 +591,7 @@ describe('UserDetailPage', () => {
   it('words a member with no term as the member record does, not as a friend', async () => {
     const noTerm = makeAdminUserDetail({
       ...TARGET,
-      membership: { status: 'friend', expires_on: null, plan: null, is_lifetime: false },
+      membership: { status: 'none', expires_on: null, plan: null, is_lifetime: false },
       has_terms: false,
     });
     stubDetail({ target: noTerm });
@@ -602,7 +602,7 @@ describe('UserDetailPage', () => {
   it('says when a member whose term has not begun starts', async () => {
     const pending = makeAdminUserDetail({
       ...TARGET,
-      membership: { status: 'friend', expires_on: null, plan: null, is_lifetime: false },
+      membership: { status: 'none', expires_on: null, plan: null, is_lifetime: false },
       next_term_starts_on: '2099-11-03',
     });
     stubDetail({ target: pending });

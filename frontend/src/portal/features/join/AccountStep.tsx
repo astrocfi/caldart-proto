@@ -11,7 +11,7 @@ import { Card } from '@/portal/components/Card';
 import { Field } from '@/portal/components/Field';
 import { MaskedInput } from '@/portal/components/MaskedInput';
 import { RefusedSubmitNote, useRefusedSubmit } from '@/portal/components/RefusedSubmit';
-import { EMAIL_MESSAGE, isEmailAddress, maskEmail } from '@/portal/masks';
+import { addressProblem, maskEmail } from '@/portal/masks';
 import './join.css';
 
 /** The error code `POST /auth/register` answers for a deactivated account's address. */
@@ -108,7 +108,8 @@ export function AccountStep({ onDone: handleDone }: AccountStepProps): JSX.Eleme
     const found: LocalErrors = {};
     if (firstName.trim() === '') found.first_name = MISSING.first_name;
     if (lastName.trim() === '') found.last_name = MISSING.last_name;
-    if (!isEmailAddress(email)) found.email = EMAIL_MESSAGE;
+    const badEmail = addressProblem(email);
+    if (badEmail !== null) found.email = badEmail;
     if (password === '') found.password = MISSING.password;
     setLocalErrors(found);
     if (Object.keys(found).length > 0) {

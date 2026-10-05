@@ -33,15 +33,18 @@ const MEMBERSHIP_TONE: Record<MembershipState, StatusTone> = {
   current: 'current',
   expired: 'expired',
   friend: 'none',
+  none: 'none',
   donor: 'none',
 };
 
 /**
  * Why the membership is a no-go, in the words a leader would say out loud: it ran out,
- * or the person is a friend of CalDART, which includes somebody who has not yet paid.
+ * the person has not paid their first dues, or they are a friend of CalDART.
  */
 function membershipNoGo(state: MembershipState): string {
-  return state === 'expired' ? 'Membership expired' : 'Friend of CalDART, not a member';
+  if (state === 'expired') return 'Membership expired';
+  if (state === 'none') return 'No membership yet';
+  return 'Friend of CalDART, not a member';
 }
 
 /**

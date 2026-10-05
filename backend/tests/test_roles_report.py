@@ -319,16 +319,16 @@ def test_search_matches_part_of_the_address(staff: list[User]) -> None:
 
 
 def test_kind_member_lists_members_alone(staff: list[User]) -> None:
-    """``?kind=member`` keeps the treasurer who holds a current term only."""
-    assert pairs(rows_for({"kind": "member"})) == [("Treasurer", "mt@example.test")]
+    """``?kind=member`` keeps the treasurer with a term and the leader who holds none yet."""
+    assert pairs(rows_for({"kind": "member"})) == [
+        ("DART leader", "dl@example.test"),
+        ("Treasurer", "mt@example.test"),
+    ]
 
 
 def test_kind_friend_lists_friends_alone(staff: list[User]) -> None:
-    """``?kind=friend`` keeps the friend treasurer and the leader, who holds no term."""
-    assert pairs(rows_for({"kind": "friend"})) == [
-        ("DART leader", "dl@example.test"),
-        ("Treasurer", "ft@example.test"),
-    ]
+    """``?kind=friend`` keeps the friend treasurer alone."""
+    assert pairs(rows_for({"kind": "friend"})) == [("Treasurer", "ft@example.test")]
 
 
 def test_kind_refuses_a_donor(staff: list[User]) -> None:

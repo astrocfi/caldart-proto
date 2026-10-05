@@ -7,7 +7,7 @@ import { Button } from '@/portal/components/Button';
 import { Field } from '@/portal/components/Field';
 import { MaskedInput } from '@/portal/components/MaskedInput';
 import { maskEmail } from '@/portal/masks';
-import { EMAIL_MESSAGE, isEmailAddress } from '@/portal/masks';
+import { addressProblem } from '@/portal/masks';
 import { AuthShell } from './AuthShell';
 import { FormAlert, fieldError } from './form';
 
@@ -46,8 +46,9 @@ export function ForgotPasswordPage(): JSX.Element {
         noValidate
         onSubmit={(event) => {
           event.preventDefault();
-          if (!isEmailAddress(email)) {
-            setEmailError(EMAIL_MESSAGE);
+          const badEmail = addressProblem(email);
+          if (badEmail !== null) {
+            setEmailError(badEmail);
             return;
           }
           setEmailError(null);

@@ -41,8 +41,8 @@ def row_by_email(table: list[list[str]], email: str) -> list[str]:
     return next(row for row in table[1:] if row[0] == email)
 
 
-def test_membership_state_choices_are_the_four_report_words() -> None:
-    """The four ``MembershipState`` labels, in order.
+def test_membership_state_choices_are_the_five_report_words() -> None:
+    """The five ``MembershipState`` labels, in order.
 
     The report, the member list's status filter, and the portal's status select all
     read their labels from here, so this is the one place the words live.
@@ -51,17 +51,29 @@ def test_membership_state_choices_are_the_four_report_words() -> None:
         ("current", "Current"),
         ("expired", "Expired"),
         ("friend", "Friend"),
+        ("none", "No membership yet"),
         ("donor", "Donor"),
     ]
 
 
-def test_member_report_prints_friend_for_a_member_who_never_paid(
+def test_member_report_prints_no_membership_yet_for_a_member_who_never_paid(
     account_admin_client: APIClient,
 ) -> None:
-    """A member who has never held a term is a friend: "Friend", never the slug."""
+    """A member who has never held a term reads "No membership yet", never the slug."""
     UserFactory(email="never-a-member@example.test")
     table = read_csv(account_admin_client.get(CSV_URL, STATUS_COLUMNS))
-    assert row_by_email(table, "never-a-member@example.test")[1] == "Friend"
+    assert row_by_email(table, "never-a-member@example.test")[1] == "No membership yet"
+
+
+def test_member_report_prints_member_as_the_kind_of_a_member_who_never_paid(
+    account_admin_client: APIClient,
+) -> None:
+    """The Kind column shows the kind the account chose, not Friend, until it pays."""
+    UserFactory(email="never-a-member@example.test")
+    table = read_csv(
+        account_admin_client.get(CSV_URL, {"columns": "email,kind", "search": "never-a-member"})
+    )
+    assert row_by_email(table, "never-a-member@example.test")[1] == "Member"
 
 
 def test_member_report_prints_expired_for_a_lapsed_member(
@@ -108,7 +120,7 @@ def test_report_certificate_labels_overrides_only_the_atp_certificate() -> None:
 def test_member_report_pdf_prints_the_label_and_the_abbreviation(
     account_admin_client: APIClient, pdf_text: PdfText
 ) -> None:
-    """The rendered PDF shows "Friend" and "ATP", never the raw codes."""
+    """The rendered PDF shows "No membership yet" and "ATP", never the raw codes."""
     UserFactory(email="never-pdf-label@example.test")
     pilot = UserFactory(email="atp-pdf-label@example.test")
     MemberProfileFactory(user=pilot, pilot_certificate_type=PilotCertificateType.ATP)
@@ -116,6 +128,6 @@ def test_member_report_pdf_prints_the_label_and_the_abbreviation(
         PDF_URL, {"columns": "email,status,certificate", "search": "pdf-label"}
     ).content
     text = " ".join(cell for page in pdf_text(body) for cell in page)
-    assert "Friend" in text
+    assert "No membership yet" in text
     assert "ATP" in text
     assert "none" not in text.lower()

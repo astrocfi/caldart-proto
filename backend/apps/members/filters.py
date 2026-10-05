@@ -41,7 +41,7 @@ from apps.members.models import (
     MembershipState,
     PilotCertificateType,
 )
-from apps.members.services import with_membership
+from apps.members.services import listed_kind_q, with_membership
 from caldart.reports import given_params, ordering_terms
 
 if TYPE_CHECKING:
@@ -197,15 +197,17 @@ class MemberAdminFilterSet(django_filters.FilterSet):
     def filter_kind(
         self, queryset: QuerySet[MemberRow], name: str, value: str | None
     ) -> QuerySet[MemberRow]:
-        """Rows whose effective kind is ``value``: ``member`` or ``friend``.
+        """Rows whose listed kind is ``value``: ``member`` or ``friend``.
 
-        The effective kind is the one worked out for today, so a member whose
-        ``friend_on`` has arrived is a friend here, and one whose change is still to
-        come is a member.  A blank value narrows nothing.
+        The listed kind (``listed_kind``) is the one the Kind column shows: the
+        effective kind worked out for today, so a member whose ``friend_on`` has arrived
+        is a friend here and one whose change is still to come is a member, except that
+        an account that chose to be a member and awaits its first term is a member.  A
+        blank value narrows nothing.
         """
         if not value:
             return queryset
-        return queryset.filter(effective_kind=value)
+        return queryset.filter(listed_kind_q(value))
 
     def filter_include_inactive(
         self, queryset: QuerySet[MemberRow], name: str, value: bool | None
@@ -269,18 +271,21 @@ class MemberAdminFilterSet(django_filters.FilterSet):
     ) -> QuerySet[MemberRow]:
         """Rows whose computed membership status is ``value``.
 
-        ``donor`` is a donor account, and ``friend`` an account whose effective kind
-        is friend, whatever its terms, together with a member whose only terms a
-        deactivation suspended; among the rest, ``current`` is a term covering today
-        and ``expired`` a paid or granted term that has started and run out.  The
-        four partition every account, exactly as ``membership_payload`` answers each
-        row.  Anything else leaves the queryset alone.
+        ``donor`` is a donor account; ``none`` an account that chose to be a member and
+        awaits its first term (``awaits_first_term``); and ``friend`` any other account
+        whose effective kind is friend, whatever its terms, together with a member whose
+        only terms a deactivation suspended.  Among the rest, ``current`` is a term
+        covering today and ``expired`` a paid or granted term that has started and run
+        out.  The five partition every account, exactly as ``membership_payload``
+        answers each row.  Anything else leaves the queryset alone.
         """
         if value == MembershipState.DONOR:
             return queryset.filter(effective_kind=AccountKind.DONOR)
+        if value == MembershipState.NONE:
+            return queryset.filter(awaits_first_term=True)
         if value == MembershipState.FRIEND:
             return queryset.filter(
-                Q(effective_kind=AccountKind.FRIEND)
+                Q(effective_kind=AccountKind.FRIEND, awaits_first_term=False)
                 | Q(
                     effective_kind=AccountKind.MEMBER,
                     covers_today=False,

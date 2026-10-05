@@ -95,7 +95,7 @@ export function isOnboarded(user: User | null): boolean {
 
 /** A member who has never held a paid term and has not asked to become a friend. */
 function owesFirstDues(user: User): boolean {
-  return user.kind === 'member' && user.membership.status === 'friend' && user.friend_on === null;
+  return user.membership.status === 'none';
 }
 
 /**

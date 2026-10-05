@@ -21,7 +21,7 @@ these is true:
 
 Nobody else can: a visitor who is not signed in, a member whose membership has
 expired, and a friend of CalDART (a supporter who pays no dues). Somebody who joined
-as a member and has not paid yet is a friend until the payment clears.
+as a member and has not paid yet is treated as a friend here until the payment clears.
 
 
 Where you find them

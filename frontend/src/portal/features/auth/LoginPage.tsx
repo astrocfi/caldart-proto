@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { JSX } from 'react';
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 
@@ -9,8 +9,8 @@ import { Card } from '@/portal/components/Card';
 import { Field } from '@/portal/components/Field';
 import { isGuidePath, openGuide } from '@/portal/guide';
 import { MaskedInput } from '@/portal/components/MaskedInput';
-import { maskEmail } from '@/portal/masks';
-import { EMAIL_MESSAGE, isEmailAddress } from '@/portal/masks';
+import { RefusedSubmitNote, useRefusedSubmit } from '@/portal/components/RefusedSubmit';
+import { addressProblem, maskEmail } from '@/portal/masks';
 import { AuthShell } from './AuthShell';
 import { FormAlert, fieldError } from './form';
 
@@ -61,6 +61,10 @@ export function LoginPage(): JSX.Element {
   const [password, setPassword] = useState('');
   const [emailError, setEmailError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  // A refusal, the form's own or the server's, takes the focus to what is wrong and
+  // says so beside the button.
+  const refusal = useRefusedSubmit(formRef, login.error);
 
   const next = safeNext(params.get('next'));
   const isGuide = isGuidePath(next);
@@ -91,15 +95,19 @@ export function LoginPage(): JSX.Element {
       }
     >
       <form
+        ref={formRef}
         noValidate
         onSubmit={(event) => {
           event.preventDefault();
           // Both boxes are checked at once, so an empty form names both of them.
-          const badEmail = isEmailAddress(email) ? null : EMAIL_MESSAGE;
+          const badEmail = addressProblem(email);
           const badPassword = password === '' ? PASSWORD_MESSAGE : null;
           setEmailError(badEmail);
           setPasswordError(badPassword);
-          if (badEmail !== null || badPassword !== null) return;
+          if (badEmail !== null || badPassword !== null) {
+            refusal.refuse();
+            return;
+          }
           reactivate.reset();
           login.mutate({ email, password }, { onSuccess: handleSignedIn });
         }}
@@ -149,6 +157,7 @@ export function LoginPage(): JSX.Element {
           <Button type="submit" disabled={login.isPending}>
             {login.isPending ? 'Signing in…' : 'Sign in'}
           </Button>
+          <RefusedSubmitNote count={refusal.count} />
           <Link to="/forgot-password">Forgot your password?</Link>
         </div>
       </form>

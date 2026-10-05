@@ -167,6 +167,22 @@ export function maskEmail(raw: string): string {
 /** What every screen says when an address is not one. */
 export const EMAIL_MESSAGE = 'Use an email address like name@example.org.';
 
+/** What a person's own email box says when it is left empty. */
+export const MISSING_OWN_EMAIL_MESSAGE = 'Enter your email address.';
+
+/**
+ * The complaint about an email box: `missing` when it is blank (by default the one
+ * for a person's own address), the shape of an address when it holds something that
+ * is not one, and null for a good address.
+ */
+export function addressProblem(
+  email: string,
+  missing: string = MISSING_OWN_EMAIL_MESSAGE,
+): string | null {
+  if (email.trim() === '') return missing;
+  return isEmailAddress(email) ? null : EMAIL_MESSAGE;
+}
+
 /**
  * Whether `value` is an address worth sending to: something, one `@`,
  * something, a dot, and a domain ending of at least two letters.

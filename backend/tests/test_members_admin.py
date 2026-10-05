@@ -384,7 +384,8 @@ def test_list_is_paginated(account_admin_client: APIClient, population: dict[str
     [
         ("current", {"current@example.test", "expiring@example.test", "lifetime@example.test"}),
         ("expired", {"expired@example.test"}),
-        ("friend", {"never@example.test"}),
+        ("none", {"never@example.test"}),
+        ("friend", set()),
     ],
 )
 def test_status_filter_puts_each_member_in_one_bucket(
@@ -401,11 +402,11 @@ def test_status_filter_puts_each_member_in_one_bucket(
 def test_status_filter_partitions_the_table(
     account_admin_client: APIClient, population: dict[str, User]
 ) -> None:
-    """The three status buckets add up to the whole table, with no member in two."""
+    """The four status buckets add up to the whole table, with no member in two."""
     total = account_admin_client.get(LIST_URL).json()["count"]
     counts = [
         account_admin_client.get(LIST_URL, {"status": value}).json()["count"]
-        for value in ("current", "expired", "friend")
+        for value in ("current", "expired", "none", "friend")
     ]
     assert sum(counts) == total
 
@@ -449,18 +450,18 @@ def test_ordering_by_pilot_ranks_current_medicals_first(
     assert order.index("lapsed@example.test") < order.index("nonpilot@example.test")
 
 
-def test_a_member_who_never_paid_is_listed_under_friend_alone(
+def test_a_member_who_never_paid_is_listed_under_no_membership_yet_alone(
     account_admin_client: APIClient, user_factory: type[UserFactory]
 ) -> None:
-    """Somebody who chose member and has not paid is a friend, in no other bucket."""
+    """Somebody who chose member and has not paid reads none, in no other bucket."""
     user_factory(email="unpaid@example.test", roles=["member"])
 
     buckets = {
         value: "unpaid@example.test"
         in emails(account_admin_client.get(LIST_URL, {"status": value}))
-        for value in ("current", "expired", "friend")
+        for value in ("current", "expired", "none", "friend")
     }
-    assert buckets == {"current": False, "expired": False, "friend": True}
+    assert buckets == {"current": False, "expired": False, "none": True, "friend": False}
 
 
 def test_expiring_within_uses_the_computed_expiry(
@@ -815,8 +816,8 @@ def test_create_with_a_password(account_admin_client: APIClient, dart: Dart) -> 
     assert body["profile"]["phone"] == "408-555-0199"
     assert body["profile"]["ratings"] == ["instrument", "cfi"]
     assert body["profile"]["notes"] == "Joined at the Watsonville airshow."
-    # A created account holds no term, so it is a friend until one is granted.
-    assert body["membership"]["status"] == "friend"
+    # A created account holds no term, so it has no membership until one is granted.
+    assert body["membership"]["status"] == "none"
 
     user = User.objects.get(email="newbie@example.test")
     assert user.check_password("correct-horse-battery")
@@ -1218,7 +1219,7 @@ def test_patch_a_term_changes_its_end_date_status_and_note(
 def test_patch_a_term_to_canceled_drops_the_membership(
     account_admin_client: APIClient, population: dict[str, User]
 ) -> None:
-    """Canceling the only term drops it, so the member reads as a friend again."""
+    """Canceling the only term drops it, so the member reads as no membership yet."""
     term = first_membership(population["current"])
     response = account_admin_client.patch(
         membership_url(term), {"status": "canceled"}, format="json"
@@ -1229,7 +1230,7 @@ def test_patch_a_term_to_canceled_drops_the_membership(
     listed = account_admin_client.get(LIST_URL, {"search": "current@example.test"}).json()[
         "results"
     ][0]
-    assert listed["membership"]["status"] == "friend"
+    assert listed["membership"]["status"] == "none"
 
 
 def test_patch_a_term_rejects_an_end_before_the_start(

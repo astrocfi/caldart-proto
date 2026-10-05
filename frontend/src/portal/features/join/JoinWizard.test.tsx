@@ -36,13 +36,16 @@ const CURRENT: MembershipStatus = {
   is_lifetime: false,
 };
 
-/** What a joiner who has not paid reads as, whichever kind they chose: a friend. */
+/** What a joiner who chose to be a member and has not paid reads as. */
 const UNPAID: MembershipStatus = {
-  status: 'friend',
+  status: 'none',
   expires_on: null,
   plan: null,
   is_lifetime: false,
 };
+
+/** What a friend reads as, paid or not. */
+const FRIEND_STATUS: MembershipStatus = { ...UNPAID, status: 'friend' };
 
 /** The lede over a member's pay step. */
 const MEMBER_PAY_LEDE =
@@ -215,7 +218,7 @@ describe('<JoinWizard/> for somebody who has joined already', () => {
   );
 
   it('sends a friend who has joined to the dashboard from the pay step', async () => {
-    stubApi(makeUser({ kind: 'friend', membership: UNPAID }));
+    stubApi(makeUser({ kind: 'friend', membership: FRIEND_STATUS }));
     renderWizard('/join/pay');
 
     expect(await screen.findByRole('heading', { name: 'Dashboard' })).toBeInTheDocument();
@@ -537,7 +540,7 @@ describe('<JoinWizard/> returning from a redirect payment', () => {
 });
 
 describe('<JoinWizard/> for a friend', () => {
-  const FRIEND: MembershipStatus = UNPAID;
+  const FRIEND: MembershipStatus = FRIEND_STATUS;
   const FRIEND_DETAIL: MembershipDetail = { ...FRIEND, history: [] };
 
   /** The pay step's config with a tier to give, since a friend's checkout has no plan. */
@@ -718,7 +721,7 @@ describe('<JoinWizard/> for a member who changes their mind', () => {
     stubApi(makeUser({ kind: 'member', membership: UNPAID }));
     server.use(
       http.post(`${API}/me/kind/friend`, () =>
-        HttpResponse.json(makeUser({ kind: 'friend', membership: UNPAID })),
+        HttpResponse.json(makeUser({ kind: 'friend', membership: FRIEND_STATUS })),
       ),
       http.get(`${API}/me/membership`, () => HttpResponse.json({ ...UNPAID, history: [] })),
     );
@@ -759,7 +762,7 @@ describe('<JoinWizard/> for a friend who changes their mind', () => {
 
   /** A stored friend on the pay step the wizard holds for them, whose payment makes them a current member. */
   function stubFriendToMember(): void {
-    let user = makeUser({ kind: 'friend', membership: UNPAID });
+    let user = makeUser({ kind: 'friend', membership: FRIEND_STATUS });
     window.sessionStorage.setItem(FRIEND_PAY_KEY, String(user.id));
     stubApi(user);
     server.use(

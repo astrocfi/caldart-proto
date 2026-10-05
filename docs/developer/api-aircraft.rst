@@ -303,7 +303,7 @@ verifying role (``verifier``, ``dart_leader``, ``user_admin``, or
 
 ``pilots`` lists the members and friends who name the airplane on their profile,
 sorted by surname then forename.  ``membership_status`` is ``friend`` for a friend of
-CalDART, and ``go_no_go`` is the member check's own verdict for the person, the same
+CalDART and ``none`` for a member who has never paid, and ``go_no_go`` is the member check's own verdict for the person, the same
 three booleans its search row and status card carry (below), so the two checks never
 disagree.  ``aircraft_pilots()`` fetches them in one query, with
 the membership annotations aboard (see :ref:`membership-status-sql`), so a
@@ -736,9 +736,9 @@ normalizes to ``NATE`` and matches every US registration on file.
      }
    ]
 
-``membership_status`` is the ``current`` / ``expired`` / ``friend`` string of the
-``members.services`` membership summary; a member who has never paid reads
-``friend``.
+``membership_status`` is the ``current`` / ``expired`` / ``friend`` / ``none`` string
+of the ``members.services`` membership summary; a member who has never paid reads
+``none``.
 
 ``go_no_go`` is computed by the same rule the status card uses, so a leader
 reads the verdict off the list and opens the card for the detail rather than

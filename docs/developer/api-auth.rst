@@ -115,10 +115,10 @@ Every endpoint that returns an account returns the same object:
 
 ``membership``
    The membership summary from ``apps.members.services``.  ``status`` is one of
-   ``current``, ``expired``, ``friend``, and ``donor``; an effective friend's is
-   always ``friend``, with ``expires_on`` and ``plan`` null, and that includes a
-   member who has never paid or been granted a term (see :ref:`kinds of account
-   <account-kinds>`).  ``expires_on`` is
+   ``current``, ``expired``, ``friend``, ``none``, and ``donor``; an effective
+   friend's is ``friend``, with ``expires_on`` and ``plan`` null, except that a
+   member who has never paid or been granted a term reads ``none`` (*No membership
+   yet*), with the same nulls (see :ref:`kinds of account <account-kinds>`).  ``expires_on`` is
    the end of the member's *unbroken* coverage, so an early renewal shows next
    year's date immediately, and it is ``null`` for a lifetime membership.
    A single-user endpoint such as ``/auth/me`` calls ``membership_status``,
@@ -146,9 +146,10 @@ Every endpoint that returns an account returns the same object:
    what the person asked to be.  A member with a pending ``friend_on`` still
    reads ``member`` here until the day comes; ``membership.status`` already
    reads ``friend`` from that day.  A member who registered and has not paid
-   reads ``kind: "member"`` with ``membership.status: "friend"`` and
-   ``friend_on: null``, and the portal reads the three to hold them at the join
-   wizard's payment step.
+   reads ``kind: "member"`` with ``membership.status: "none"``, and the portal
+   reads that to hold them at the join wizard's payment step, unless
+   ``admin_created`` is true, when they reach the dashboard and are offered the
+   dues there.
 
 ``friend_on``
    The date a member who asked to become a friend becomes one, or ``null``.

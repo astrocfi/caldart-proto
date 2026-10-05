@@ -68,8 +68,9 @@ password through the invitation, or with the verification link), signing in asks
 check their email; after that their first sign-in opens the dashboard, never the rest of
 the join wizard (see :doc:`../member/join`), even with the profile half empty or no term
 yet. Creating an account does not give anybody a membership, though:
-until a term starts the account reads **Friend** on :doc:`members`, and *No membership yet:
-grant a term on Memberships* on its record. Grant a term on the **Memberships** tab of the
+until a term starts the account reads **No membership yet** on :doc:`members`, with
+**Member** as its kind, and *No membership yet: grant a term on Memberships* on its record.
+The member's own dashboard says *You have no membership yet* and offers **Pay dues**. Grant a term on the **Memberships** tab of the
 :doc:`member-record`, or let the member pay online, and they are a member from that
 moment. A friend needs neither, because a friend pays no dues.
 

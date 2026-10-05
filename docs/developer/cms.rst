@@ -152,7 +152,7 @@ to action, chosen by ``members_wall_state``:
 ``expired``      A signed-in member whose term has run out.  Offers renew,
                  and names the expiry date.
 ``friend``       A signed-in friend of CalDART (:ref:`kinds of account <account-kinds>`),
-                 including a member who has never paid.
+                 including a member who has never paid (``none``).
                  Says "Friends of CalDART can read this page by becoming a
                  member." and offers **Make me a member**, a link to
                  ``/portal/membership/join``.

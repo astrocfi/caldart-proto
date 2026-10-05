@@ -41,15 +41,16 @@ changes both (see `Choosing the columns`_). At first it shows the report's eleve
 
 **Status**
    A colored dot and the membership's state: **Current** (green), **Expiring soon** in its
-   last 30 days (amber), **Expired** (red), **Never expires** for a life member (green), or
+   last 30 days (amber), **Expired** (red), **Never expires** for a life member (green),
+   **No membership yet** (gray) for a member who has not paid their first dues, or
    **Friend** (gray).
 
 **Kind**
-   Member or Friend.
+   Member or Friend. A member who has not paid yet reads Member.
 
 **Expires**
-   The date the membership runs out. A life member's reads **Never**, and a friend's reads
-   **Friend**. The date is the end of the person's unbroken cover: somebody who renews in
+   The date the membership runs out. A life member's reads **Never**, a friend's reads
+   **Friend**, and a member who has not paid yet reads **No membership yet**. The date is the end of the person's unbroken cover: somebody who renews in
    March for a term that starts in July already shows next July's date, so you never add
    terms up yourself.
 
@@ -105,7 +106,7 @@ the page's address, so a filtered list is a link you can bookmark or send to a c
    **Any kind**, the first choice, lists members and friends together. **Members only** and
    **Friends only** list one kind. A member who has asked to become a friend at the end of
    their term is a member until that day comes. Somebody who joined as a member and has
-   never paid is a friend: nobody is a member until a paid or granted term has started.
+   never paid is listed with the members.
 
 **Search**
    A name, an email address, either phone number, or a pilot certificate number, though the
@@ -114,9 +115,9 @@ the page's address, so a filtered list is a link you can bookmark or send to a c
 
 **Membership**
    **Any**, the blank choice, takes in everybody. **Current** (a term covers today),
-   **Expired** (a paid term has run out), and **Friend** (a friend of CalDART, including
-   somebody who joined as a member and has never paid) between them cover every person
-   exactly once, and the report's **Status** column prints the same three words.
+   **Expired** (a paid term has run out), **No membership yet** (somebody who joined as a
+   member and has never paid), and **Friend** (a friend of CalDART) between them cover
+   every person exactly once, and the report's **Status** column prints the same words.
 
 **Certificate** and **Medical**
    The pilot certificate and the medical on the person's profile. **Certificate** also
@@ -160,8 +161,8 @@ date and page numbers at the bottom, so it says on its face what it is a list of
 
 Both files carry eleven columns unless you choose others: **Name**, **Email**, **Phone**,
 **DART**, **Status**, **Kind**, **Expires**, **Certificate**, **Medical**, **Medical
-expires**, and **Aircraft**. **Kind** reads Member or Friend. A life member and a friend have
-an empty **Expires** cell.
+expires**, and **Aircraft**. **Kind** reads Member or Friend. A life member, a friend, and
+a member with no membership yet have an empty **Expires** cell.
 
 
 Choosing the columns

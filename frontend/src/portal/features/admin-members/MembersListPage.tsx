@@ -35,6 +35,7 @@ import {
   ACCOUNT_KIND_LABELS,
   MEMBERSHIP_STATUS_LABELS,
   certificateLabel,
+  isWithoutTerm,
   medicalLabel,
 } from '@/portal/choices';
 import { Button, ButtonLink } from '@/portal/components/Button';
@@ -105,12 +106,13 @@ function MemberName({
 }
 
 /**
- * The expiry cell: the date, **Never** for a lifetime member, and **Friend** for a
- * friend, who pays no dues and so has no date.
+ * The expiry cell: the date, **Never** for a lifetime member, **Friend** for a friend,
+ * who pays no dues and so has no date, and **No membership yet** for a member who has
+ * not paid their first dues.
  */
 function ExpiryText({ row }: { row: MemberRow }): JSX.Element {
-  if (row.membership.status === 'friend') {
-    return <span className="muted">{MEMBERSHIP_STATUS_LABELS.friend}</span>;
+  if (isWithoutTerm(row.membership.status)) {
+    return <span className="muted">{MEMBERSHIP_STATUS_LABELS[row.membership.status]}</span>;
   }
   if (row.membership.is_lifetime) return <>Never</>;
   return <DateText value={row.membership.expires_on} />;
@@ -118,7 +120,8 @@ function ExpiryText({ row }: { row: MemberRow }): JSX.Element {
 
 /**
  * The kind the report prints: Friend for anybody whose membership reads friend, which
- * takes in a member whose change to friend has come; otherwise the account's kind.
+ * takes in a member whose change to friend has come; otherwise the account's kind, so a
+ * member who has not paid their first dues reads Member.
  */
 function kindLabel(row: MemberRow): string {
   return row.membership.status === 'friend'

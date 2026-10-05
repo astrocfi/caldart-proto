@@ -187,7 +187,7 @@ def test_annotations_match_the_membership_status_service(histories: dict[str, Us
 @pytest.mark.parametrize(
     ("label", "expected_status", "is_lifetime"),
     [
-        ("never", "friend", False),
+        ("never", "none", False),
         ("current", "current", False),
         ("expired", "expired", False),
         ("stale-active", "expired", False),
@@ -196,8 +196,8 @@ def test_annotations_match_the_membership_status_service(histories: dict[str, Us
         ("future-term-after-a-gap", "current", False),
         ("lifetime", "current", True),
         ("annual-then-life", "current", True),
-        ("canceled-only", "friend", False),
-        ("starts-in-the-future", "friend", False),
+        ("canceled-only", "none", False),
+        ("starts-in-the-future", "none", False),
         ("overlapping", "current", False),
         ("expired-with-a-future-term", "expired", False),
         ("ends-today", "current", False),
@@ -273,11 +273,12 @@ def test_membership_of_falls_back_to_the_service(histories: dict[str, User], lab
     ("status", "labels"),
     [
         (
+            "none",
+            {"never", "canceled-only", "starts-in-the-future"},
+        ),
+        (
             "friend",
             {
-                "never",
-                "canceled-only",
-                "starts-in-the-future",
                 "suspended-only",
                 "friend-once-a-member",
                 "friend-with-a-live-term",
@@ -307,7 +308,9 @@ def test_membership_of_falls_back_to_the_service(histories: dict[str, User], lab
 def test_the_status_filter_puts_every_friend_under_friend(
     histories: dict[str, User], status: str, labels: set[str]
 ) -> None:
-    """``?status=friend`` lists the friends, and no other status lists any of them."""
+    """Each status lists its own accounts: a friend under friend alone, and a member
+    with no term yet under none alone.
+    """
     by_pk = {user.pk: label for label, user in histories.items()}
     queryset = MemberAdminFilterSet({"status": status}, queryset=member_admin_queryset()).qs
     assert {by_pk[user.pk] for user in queryset if user.pk in by_pk} == labels

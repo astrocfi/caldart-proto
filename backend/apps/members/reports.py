@@ -18,7 +18,6 @@ from typing import TYPE_CHECKING, TypedDict
 
 from django.utils import timezone
 
-from apps.accounts.models import AccountKind
 from apps.accounts.roles import ACCOUNT_ADMIN, DART_LEADER
 from apps.members.filters import (
     MemberAdminFilterSet,
@@ -27,7 +26,7 @@ from apps.members.filters import (
     member_admin_queryset,
 )
 from apps.members.models import MemberProfile, PilotCertificateType
-from apps.members.services import MembershipStatusDict, membership_payload
+from apps.members.services import MembershipStatusDict, listed_kind, membership_payload
 from caldart.reports import Params, ReportColumn, ReportQuery, ReportSpec, apply_filterset
 
 if TYPE_CHECKING:
@@ -63,9 +62,10 @@ class RowContext(TypedDict):
 #: never the slug, and the ``certificate`` cell abbreviates the airline
 #: transport pilot certificate to "ATP" through :data:`REPORT_CERTIFICATE_LABELS`,
 #: which keeps that column narrow.  The status is Current, Expired, or
-#: Friend: a donor is never in the report.  ``kind`` is the effective kind's
-#: label, Member or Friend, so a member whose change to friend has come, or
-#: who chose to be a member and has not yet paid, reads Friend.  The eleven
+#: No membership yet, or Friend: a donor is never in the report.  ``kind`` is the
+#: listed kind's label (``listed_kind``), Member or Friend, so a member whose change
+#: to friend has come reads Friend, and one who chose to be a member and has not yet
+#: paid reads Member.  The eleven
 #: default widths are balanced so that no seeded cell or heading wraps
 #: (``test_no_default_member_cell_wraps_in_the_pdf``).
 #: ``joined_on``
@@ -73,32 +73,30 @@ class RowContext(TypedDict):
 #: member says they joined -- the same date until the terms before a gap, or
 #: before an import, are missing.
 MEMBER_REPORT_COLUMNS: tuple[ReportColumn[RowContext], ...] = (
-    ReportColumn("name", "Name", True, lambda ctx: ctx["user"].display_name, width=2.55),
-    ReportColumn("email", "Email", True, lambda ctx: ctx["user"].email, width=4.4),
+    ReportColumn("name", "Name", True, lambda ctx: ctx["user"].display_name, width=2.63),
+    ReportColumn("email", "Email", True, lambda ctx: ctx["user"].email, width=4.63),
     ReportColumn(
         "phone",
         "Phone",
         True,
         lambda ctx: ctx["profile"].phone if ctx["profile"] else "",
-        width=1.9,
+        width=1.97,
     ),
-    ReportColumn("dart", "DART", True, lambda ctx: ctx["dart"], width=3.4),
+    ReportColumn("dart", "DART", True, lambda ctx: ctx["dart"], width=3.54),
     ReportColumn(
-        "status", "Status", True, lambda ctx: ctx["membership"]["status"].label, width=2.1
+        "status", "Status", True, lambda ctx: ctx["membership"]["status"].label, width=2.66
     ),
-    ReportColumn(
-        "kind", "Kind", True, lambda ctx: AccountKind(ctx["user"].effective_kind).label, width=1.2
-    ),
+    ReportColumn("kind", "Kind", True, lambda ctx: listed_kind(ctx["user"]).label, width=1.26),
     ReportColumn("plan", "Plan", False, lambda ctx: ctx["membership"]["plan"] or "", width=2.0),
     ReportColumn(
-        "expires_on", "Expires", True, lambda ctx: _iso(ctx["membership"]["expires_on"]), width=1.6
+        "expires_on", "Expires", True, lambda ctx: _iso(ctx["membership"]["expires_on"]), width=1.66
     ),
     ReportColumn(
         "certificate",
         "Certificate",
         True,
         lambda ctx: _certificate_display(ctx["profile"]),
-        width=1.75,
+        width=1.8,
     ),
     ReportColumn(
         "certificate_number",
@@ -115,16 +113,16 @@ MEMBER_REPORT_COLUMNS: tuple[ReportColumn[RowContext], ...] = (
         "Medical",
         True,
         lambda ctx: _display(ctx["profile"], "medical_type"),
-        width=1.8,
+        width=1.9,
     ),
     ReportColumn(
         "medical_expiration",
         "Medical expires",
         True,
         lambda ctx: _iso(_date(ctx["profile"], "medical_expiration")),
-        width=2.25,
+        width=2.31,
     ),
-    ReportColumn("aircraft", "Aircraft", True, lambda ctx: " ".join(ctx["aircraft"]), width=2.35),
+    ReportColumn("aircraft", "Aircraft", True, lambda ctx: " ".join(ctx["aircraft"]), width=2.42),
     ReportColumn(
         "home_airport",
         "Home airport",

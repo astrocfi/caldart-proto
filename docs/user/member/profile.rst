@@ -149,8 +149,9 @@ Your kind of account
 ====================
 
 The card says which you are: *You are a member of CalDART.*, *You are a life member
-of CalDART.*, or *You are a friend of CalDART: no dues, no expiry. Become a member
-any time.* A friend of CalDART has the same portal as a member but pays no dues, so
+of CalDART.*, *You have no membership yet. Pay your dues to become a member of
+CalDART.* (with **Pay dues**) when your account was made for you and nothing is paid yet,
+or *You are a friend of CalDART: no dues, no expiry. Become a member any time.* A friend of CalDART has the same portal as a member but pays no dues, so
 nothing expires, no renewal reminder is sent, and members-only pages stay closed.
 **Make me a friend** is offered here alone; your :doc:`dashboard` shows a change
 that is waiting, with its **Undo**, and a friend's **Make me a member**. A life member

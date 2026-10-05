@@ -8,17 +8,13 @@
  * appears, and when a run ends the focus moves to the result's heading (or to its
  * failure), so a keyboard or screen reader user lands on what the run did.
  */
-import { useEffect, useRef } from 'react';
 import type { JSX, ReactNode } from 'react';
 
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { actionsHeading } from '@/portal/components/RunActionsTable';
-import { focusIntoView } from '@/portal/components/focus';
+import { useFocusRunResult } from '@/portal/components/focus';
 import './jobPanel.css';
-
-/** What takes the focus in a run's result: its heading, or failing that its message. */
-const RESULT_TARGET = 'h3, [role="alert"], [role="status"]';
 
 export interface JobPanelProps {
   eyebrow: string;
@@ -51,17 +47,7 @@ export function JobPanel({
   result,
   children,
 }: JobPanelProps): JSX.Element {
-  const resultRef = useRef<HTMLDivElement>(null);
-  const wasRunningRef = useRef(false);
-  useEffect(() => {
-    const wasRunning = wasRunningRef.current;
-    wasRunningRef.current = isRunning;
-    if (!wasRunning || isRunning) return;
-    const target = resultRef.current?.querySelector<HTMLElement>(RESULT_TARGET) ?? null;
-    if (target === null) return;
-    target.tabIndex = -1;
-    focusIntoView(target);
-  });
+  const resultRef = useFocusRunResult(isRunning);
 
   return (
     <Card eyebrow={eyebrow} title={title} className="job-panel">

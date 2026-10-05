@@ -37,6 +37,10 @@ The translation, term by term:
     :func:`kind_annotation`, the SQL statement of :func:`account_kind`.  A row
     whose effective kind is ``friend`` or ``donor`` reads as that before any term
     is looked at, exactly as ``membership_status`` answers it.
+``awaits_first_term``
+    :func:`awaits_first_term_annotation`, the SQL statement of
+    :func:`awaits_first_term`: a friend by effective kind only because it chose to be
+    a member and no term of its own has started, which reads ``none``.
 
 ``tests/test_members_admin_status.py`` checks the two implementations agree
 over a deliberately awkward set of histories, including early renewals, gaps,
@@ -52,6 +56,7 @@ from typing import TYPE_CHECKING, Any, NoReturn, TypedDict, cast
 from django.contrib.auth.models import AnonymousUser
 from django.db import IntegrityError, transaction
 from django.db.models import (
+    BooleanField,
     Case,
     CharField,
     DateField,
@@ -125,6 +130,7 @@ class MembershipAnnotations(TypedDict):
     past_plan: str | None
     joined_on: date | None
     effective_kind: str
+    awaits_first_term: bool
 
 
 if TYPE_CHECKING:
@@ -528,6 +534,69 @@ def account_kind(user: User, today: date | None = None) -> AccountKind:
     return AccountKind.MEMBER if has_term else AccountKind.FRIEND
 
 
+def awaits_first_term(user: User, today: date | None = None) -> bool:
+    """True when ``user`` chose to be a member and no term of theirs has started.
+
+    That is a stored member whose ``friend_on`` has not come and who holds no term
+    that started on or before ``today`` (default: the local date) with the status
+    ``active``, ``expired``, or ``suspended``: an account an administrator created that
+    has not paid, or a joiner still at the pay step.  :func:`account_kind` counts such
+    an account a friend, since it owes its dues before it is anything more, but its
+    membership reads ``none`` (*No membership yet*) and a list shows its kind as
+    *Member*.  :func:`awaits_first_term_annotation` states the same rule in SQL.
+    """
+    today = today or timezone.localdate()
+    if user.kind != AccountKind.MEMBER:
+        return False
+    return account_kind(user, today) == AccountKind.FRIEND and not (
+        user.friend_on is not None and user.friend_on <= today
+    )
+
+
+def awaits_first_term_annotation(today: date | None = None) -> Case:
+    """:func:`awaits_first_term` as a boolean ``Case`` expression over a ``User`` row.
+
+    ``today`` defaults to the local date, read when this is called.
+    """
+    today = today or timezone.localdate()
+    member_making = Membership.objects.filter(
+        user=OuterRef("pk"), status__in=MEMBER_MAKING_STATUSES, starts_on__lte=today
+    )
+    return Case(
+        When(
+            Q(kind=AccountKind.MEMBER)
+            & (Q(friend_on__isnull=True) | Q(friend_on__gt=today))
+            & ~Exists(member_making),
+            then=Value(True),
+        ),
+        default=Value(False),
+        output_field=BooleanField(),
+    )
+
+
+def listed_kind(user: MemberRow) -> AccountKind:
+    """The kind a list shows for an annotated row.
+
+    That is its effective kind, except that an account awaiting its first term
+    (``awaits_first_term``) shows as a member, the kind it chose, while its membership
+    reads *No membership yet*.
+    """
+    if user.awaits_first_term:
+        return AccountKind.MEMBER
+    return AccountKind(user.effective_kind)
+
+
+def listed_kind_q(value: str) -> Q:
+    """The rows whose listed kind (:func:`listed_kind`) is ``value``, as a ``Q``.
+
+    ``member`` takes in the accounts awaiting a first term, and ``friend`` leaves them
+    out.  Apply it to a queryset carrying the membership annotations.
+    """
+    if value == AccountKind.MEMBER:
+        return Q(effective_kind=AccountKind.MEMBER) | Q(awaits_first_term=True)
+    return Q(effective_kind=value, awaits_first_term=False)
+
+
 def kind_annotation(today: date | None = None) -> Case:
     """:func:`account_kind` as a ``Case`` expression over a ``User`` row.
 
@@ -564,6 +633,16 @@ def _friend_membership() -> MembershipStatusDict:
     """
     return {
         "status": MembershipState.FRIEND,
+        "expires_on": None,
+        "plan": None,
+        "is_lifetime": False,
+    }
+
+
+def _no_membership_yet() -> MembershipStatusDict:
+    """The status of a member awaiting a first term: ``none``, with nothing else set."""
+    return {
+        "status": MembershipState.NONE,
         "expires_on": None,
         "plan": None,
         "is_lifetime": False,
@@ -657,8 +736,9 @@ def membership_status(
     """Summarize a user's membership, reading the terms out of the database.
 
     Returns ``{"status", "expires_on", "plan", "is_lifetime"}`` where status is one
-    of four.  ``donor`` for a donor account and ``friend`` when the account's kind on
-    ``on_date``, by :func:`account_kind`, is friend -- both decided before any term
+    of five.  ``donor`` for a donor account; ``none`` for a member awaiting a first term
+    (:func:`awaits_first_term`); and ``friend`` for any other account whose kind on
+    ``on_date``, by :func:`account_kind`, is friend -- all decided before any term
     is looked at, so a friend's past or even live terms never make them current or
     expired, and ``expires_on`` and ``plan`` are ``None``.  Otherwise ``current``
     (a term covers ``on_date``) or ``expired`` (a paid or granted term has started
@@ -682,6 +762,8 @@ def membership_status(
     if kind == AccountKind.DONOR:
         return _donor_membership()
     if kind == AccountKind.FRIEND:
+        if awaits_first_term(user, on_date):
+            return _no_membership_yet()
         return _friend_membership()
 
     covering = _coverage(user, on_date)
@@ -762,6 +844,7 @@ def membership_annotations(today: date | None = None) -> dict[str, Exists | Subq
             output_field=DateField(),
         ),
         "effective_kind": kind_annotation(today),
+        "awaits_first_term": awaits_first_term_annotation(today),
     }
 
 
@@ -789,7 +872,7 @@ def membership_payload(user: MemberRow) -> MembershipStatusDict:
     if user.effective_kind == AccountKind.DONOR:
         return _donor_membership()
     if user.effective_kind == AccountKind.FRIEND:
-        return _friend_membership()
+        return _no_membership_yet() if user.awaits_first_term else _friend_membership()
     if user.covers_today:
         lifetime = user.coverage_end is None
         return {

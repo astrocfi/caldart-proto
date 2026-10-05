@@ -269,13 +269,13 @@ The payment's **owner**, or a finance role (``treasurer`` or
 .. code-block:: json
 
    {"status": "pending",
-    "membership": {"status": "friend", "expires_on": null,
+    "membership": {"status": "none", "expires_on": null,
                    "plan": null, "is_lifetime": false}}
 
 ``status`` is ``pending``, ``succeeded``, ``failed``, ``partially_refunded``
 or ``refunded``.  ``membership`` is the payer's membership summary (see
-:ref:`membership-status`): a joiner whose first payment is still pending reads
-``friend``, and ``current`` once it has succeeded.
+:ref:`membership-status`): a member joiner whose first payment is still pending
+reads ``none``, and ``current`` once it has succeeded.
 
 Statuses: **200**; **401** when anonymous; **403** for a signed-in caller who
 neither owns the payment nor holds a finance role; **404** for an unknown

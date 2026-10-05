@@ -110,3 +110,17 @@ test('an error on Change password takes its hint line, leaving no gap', async ({
 
   expect(await labelToBox(page, NEW_PASSWORD)).toBeLessThan(before);
 });
+
+test("the dashboard's recent payments read their For cells whole at 1920", async ({ page }) => {
+  await page.setViewportSize(DESKTOP);
+  await signIn(page, DEMO.member);
+  await page.goto('portal/');
+  const table = page.getByRole('table', { name: 'Your most recent payments' });
+  await expect(table.locator('tbody tr').first()).toBeVisible();
+
+  const cut = [];
+  for (const cell of await table.locator('tbody tr td:nth-child(2)').all()) {
+    if (!(await isWhole(cell))) cut.push(await cell.textContent());
+  }
+  expect(cut).toEqual([]);
+});

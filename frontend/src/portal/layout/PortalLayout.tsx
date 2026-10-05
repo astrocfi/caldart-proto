@@ -13,6 +13,7 @@ import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuth, useSignOut } from '../auth/useAuth';
 import { isOnboarded } from '../features/join/steps';
 import { Button } from '../components/Button';
+import { isWithoutTerm } from '../choices';
 import { GUIDE_PREFIX } from '../guide';
 import { helpPath } from '../help';
 import type { User } from '../api/types';
@@ -120,7 +121,7 @@ export function PortalLayout(): JSX.Element {
 
   const groups = isOnboarded(user)
     ? groupedNavItems(roles, {
-        isEffectiveFriend: user?.membership.status === 'friend',
+        isEffectiveFriend: user ? isWithoutTerm(user.membership.status) : false,
         isLifetime: user?.membership.is_lifetime === true,
       })
     : [];

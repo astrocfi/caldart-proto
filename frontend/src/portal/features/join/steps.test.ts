@@ -21,13 +21,16 @@ const EXPIRED: MembershipStatus = {
   is_lifetime: false,
 };
 
-/** What anybody who has not paid reads as, whichever kind they chose. */
+/** What a friend reads as, however many terms they once held. */
 const FRIEND: MembershipStatus = {
   status: 'friend',
   expires_on: null,
   plan: null,
   is_lifetime: false,
 };
+
+/** What somebody who chose to be a member and has not paid reads as. */
+const NONE: MembershipStatus = { ...FRIEND, status: 'none' };
 
 describe('furthestJoinStep', () => {
   it('starts a visitor with no session at the account step', () => {
@@ -41,7 +44,7 @@ describe('furthestJoinStep', () => {
   });
 
   it('holds an unverified address at the verify step even with a complete profile', () => {
-    expect(furthestJoinStep(makeUser({ email_verified: false, membership: FRIEND }))).toBe(
+    expect(furthestJoinStep(makeUser({ email_verified: false, membership: NONE }))).toBe(
       'verify',
     );
   });
@@ -52,7 +55,7 @@ describe('furthestJoinStep', () => {
 
   it('sends a member-intent joiner who has not paid to the pay step', () => {
     expect(
-      furthestJoinStep(makeUser({ kind: 'member', profile_complete: true, membership: FRIEND })),
+      furthestJoinStep(makeUser({ kind: 'member', profile_complete: true, membership: NONE })),
     ).toBe('pay');
   });
 
@@ -91,13 +94,13 @@ describe('isOnboarded', () => {
     // verified, complete, kind, membership, onboarded
     [true, true, 'member', CURRENT, true],
     [true, true, 'member', EXPIRED, true],
-    [true, true, 'member', FRIEND, false],
+    [true, true, 'member', NONE, false],
     [true, true, 'friend', FRIEND, true],
     [true, false, 'member', CURRENT, false],
     [true, false, 'friend', FRIEND, false],
     [false, true, 'member', CURRENT, false],
     [false, true, 'friend', FRIEND, false],
-    [false, false, 'member', FRIEND, false],
+    [false, false, 'member', NONE, false],
   ] as const)(
     'verified %s, profile complete %s, kind %s, membership %o reads %s',
     (emailVerified, profileComplete, kind, membership, expected) => {
@@ -122,7 +125,7 @@ describe('isOnboarded', () => {
       email_verified: true,
       profile_complete: false,
       kind: 'member',
-      membership: FRIEND,
+      membership: NONE,
     });
     expect(isOnboarded(user)).toBe(true);
   });
@@ -133,13 +136,13 @@ describe('isOnboarded', () => {
       email_verified: false,
       profile_complete: false,
       kind: 'member',
-      membership: FRIEND,
+      membership: NONE,
     });
     expect(isOnboarded(user)).toBe(false);
   });
 
   it('resumes an unverified account an administrator created at the verify step', () => {
-    const user = makeUser({ admin_created: true, email_verified: false, membership: FRIEND });
+    const user = makeUser({ admin_created: true, email_verified: false, membership: NONE });
     expect(furthestJoinStep(user)).toBe('verify');
   });
 });
@@ -172,7 +175,7 @@ describe('holdFriendPayStep', () => {
 
 describe('joiningAs', () => {
   it('walks a member-intent joiner through as a member, though they read as a friend', () => {
-    expect(joiningAs(makeUser({ kind: 'member', membership: FRIEND }))).toBe('member');
+    expect(joiningAs(makeUser({ kind: 'member', membership: NONE }))).toBe('member');
   });
 
   it('walks a friend-intent joiner through as a friend', () => {

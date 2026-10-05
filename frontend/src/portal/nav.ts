@@ -217,7 +217,10 @@ export function hasAnyRole(userRoles: readonly RoleSlug[], required: readonly Ro
 
 /** What the rail knows about the reader beyond their roles. */
 export interface NavReader {
-  /** A friend by kind or by an arrived `friend_on` date, who has no membership to renew. */
+  /**
+   * A friend by kind or by an arrived `friend_on` date, or a member who has not paid
+   * their first dues: somebody with no membership to renew.
+   */
   isEffectiveFriend?: boolean;
   /** A lifetime member, who has no term to renew. */
   isLifetime?: boolean;

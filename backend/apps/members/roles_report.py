@@ -20,7 +20,13 @@ from django.db.models import Q
 from apps.accounts.models import AccountKind, User
 from apps.accounts.roles import ACCOUNT_ADMIN, STAFF_ROLE_LABELS, STAFF_ROLE_SLUGS, USER_ADMIN
 from apps.members.models import MemberProfile
-from apps.members.services import MembershipStatusDict, membership_payload, with_membership
+from apps.members.services import (
+    MembershipStatusDict,
+    listed_kind,
+    listed_kind_q,
+    membership_payload,
+    with_membership,
+)
 from caldart.reports import (
     Params,
     ReportColumn,
@@ -55,7 +61,7 @@ class RolesReportFilterSet(django_filters.FilterSet):
     part of the first name, the last name, or the address, case-insensitively, which
     is how the users list searches.  ``role`` is one staff role's slug and keeps its
     holders; the member role, or any other slug, is refused.  ``kind`` is ``member``
-    or ``friend``, matched against the effective kind the queryset is annotated with,
+    or ``friend``, matched against the listed kind (``listed_kind_q``),
     and anything else is refused.  ``email_bounced`` is ``true`` for the accounts whose
     address has a bounce recorded and ``false`` for the rest, as on the users list.  A
     parameter the set does not name is ignored, as the users list ignores it.
@@ -68,7 +74,7 @@ class RolesReportFilterSet(django_filters.FilterSet):
         label="Staff role slug",
     )
     kind = django_filters.ChoiceFilter(
-        choices=ROLE_HOLDER_KINDS, field_name="effective_kind", label="Member or friend"
+        choices=ROLE_HOLDER_KINDS, method="filter_kind", label="Member or friend"
     )
     # ``isnull`` excluded: true leaves the rows whose bounce time is set.
     email_bounced = django_filters.BooleanFilter(
@@ -93,6 +99,14 @@ class RolesReportFilterSet(django_filters.FilterSet):
                 | Q(email__icontains=word)
             )
         return queryset
+
+    def filter_kind(
+        self, queryset: QuerySet[MemberRow], name: str, value: str | None
+    ) -> QuerySet[MemberRow]:
+        """Rows whose listed kind is ``value`` (``listed_kind_q``); blank narrows none."""
+        if not value:
+            return queryset
+        return queryset.filter(listed_kind_q(value))
 
 
 @dataclass(frozen=True)
@@ -126,18 +140,16 @@ def _dart(row: RoleRow) -> str:
 
 #: Every column the roles report can carry, in export order.  The seven defaults are
 #: sized so that no seeded cell or heading wraps
-#: (``test_no_default_roles_cell_wraps_in_the_pdf``).  ``kind`` is the effective
-#: kind's label, Member or Friend, and ``membership`` the membership state's label,
-#: exactly as the membership report's Kind and Status columns read them.
+#: (``test_no_default_roles_cell_wraps_in_the_pdf``).  ``kind`` is the listed
+#: kind's label (``listed_kind``), Member or Friend, and ``membership`` the membership
+#: state's label, exactly as the membership report's Kind and Status columns read them.
 ROLES_REPORT_COLUMNS: tuple[ReportColumn[RoleRow], ...] = (
     ReportColumn("role", "Role", True, lambda row: row.role_label, width=2.6),
     ReportColumn("name", "Name", True, lambda row: row.user.display_name, width=2.6),
     ReportColumn("email", "Email", True, lambda row: row.user.email, width=4.4),
     ReportColumn("phone", "Phone", True, lambda row: _profile_text(row, "phone"), width=1.9),
     ReportColumn("dart", "DART", True, _dart, width=3.4),
-    ReportColumn(
-        "kind", "Kind", True, lambda row: AccountKind(row.user.effective_kind).label, width=1.2
-    ),
+    ReportColumn("kind", "Kind", True, lambda row: listed_kind(row.user).label, width=1.2),
     ReportColumn(
         "membership", "Membership", True, lambda row: row.membership["status"].label, width=1.8
     ),

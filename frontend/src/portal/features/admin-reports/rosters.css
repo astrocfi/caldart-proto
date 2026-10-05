@@ -1,0 +1,27 @@
+/*
+ * The DART rosters card: the table, then the practice run box and its button, then what
+ * the last run did, in the order the Scheduled page's panels keep.
+ */
+.rosters__run,
+.rosters__result {
+  margin-top: var(--space-4);
+}
+
+.rosters__result:empty {
+  display: none;
+}
+
+/* The result's heading sits under the card's title in size, as a part of the card. */
+.rosters__result h3 {
+  font-size: var(--text-base);
+}
+
+.rosters__result h3:focus {
+  outline-offset: var(--space-1);
+}
+
+/* The practice run box stays beside its words on a phone, the words wrapping under them. */
+.rosters__run label.cluster {
+  flex-wrap: nowrap;
+  align-items: baseline;
+}

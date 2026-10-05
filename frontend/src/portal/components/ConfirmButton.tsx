@@ -51,6 +51,12 @@ export interface ConfirmButtonProps {
   /** The ways to go ahead, in the order the panel shows them. */
   choices: ConfirmChoice[];
   /**
+   * Leave the focus where the choice put it rather than returning it to the button, for
+   * an action whose result takes the focus itself, such as a run whose result appears
+   * below the button.
+   */
+  keepFocusAfterChoice?: boolean;
+  /**
    * Open with the focus on **Cancel** whatever the first choice is, for a change that is
    * weighty without being destructive, such as making a member a friend, so a stray
    * second Enter never makes it.
@@ -88,7 +94,8 @@ export function choiceText(choiceLabel: string, triggerLabel: string): string {
  * focus back on the button that opened it, and an Escape pressed in the panel goes no
  * further, so a panel the button sits in stays open. After a choice goes through the focus also returns to
  * the button or, when the change took the button away, to the nearest place still on
- * the page: the table cell or list item it sat in, or the heading of its card.
+ * the page: the table cell or list item it sat in, or the heading of its card; with
+ * `keepFocusAfterChoice` it stays wherever the result of the choice put it.
  */
 export function ConfirmButton({
   label,
@@ -99,6 +106,7 @@ export function ConfirmButton({
   children,
   choices,
   startOnCancel = false,
+  keepFocusAfterChoice = false,
 }: ConfirmButtonProps): JSX.Element {
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, setIsPending] = useState(false);
@@ -156,11 +164,11 @@ export function ConfirmButton({
   const handleChoose = (choice: ConfirmChoice): void => {
     // Armed before the work starts: a change that takes this button away may land
     // before the promise does.
-    hasChosenRef.current = true;
+    hasChosenRef.current = !keepFocusAfterChoice;
     setIsPending(true);
     void choice
       .onChoose()
-      .then(handleClose, () => undefined)
+      .then(keepFocusAfterChoice ? () => setIsOpen(false) : handleClose, () => undefined)
       .finally(() => setIsPending(false));
   };
 

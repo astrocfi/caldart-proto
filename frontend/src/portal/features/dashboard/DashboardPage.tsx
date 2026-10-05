@@ -82,7 +82,9 @@ const RECENT_PAYMENT_COLUMNS: Column<PaymentSummary>[] = [
   {
     key: 'for',
     header: 'For',
-    minWidth: '6rem',
+    // Room for the longest name, "Annual and contribution", so it never reads cut off
+    // while the fixed columns beside it have room to spare.
+    minWidth: '12.5rem',
     dropOrder: 1,
     // Named as Payments names it: Annual, Annual and contribution, or Donation.
     render: (payment) => purchaseLabel(payment),
@@ -110,9 +112,10 @@ const RECENT_PAYMENT_COLUMNS: Column<PaymentSummary>[] = [
  *
  * Reading order is the order things matter: is my membership current, what can I
  * read, what have I paid.  Nobody reaches it before the join wizard is finished (an
- * unverified address, an incomplete profile, and an unpaid member are all held
- * there), so it never asks for any of those.  The renewal call to action takes an
- * accent edge inside 30 days.  A friend's
+ * unverified address, an incomplete profile, and an unpaid joiner are all held
+ * there), so it never asks for any of those.  An account an administrator created
+ * reaches it before paying, and its card reads *You have no membership yet* with **Pay
+ * dues**.  The renewal call to action takes an accent edge inside 30 days.  A friend's
  * membership card says what being a friend means and offers membership instead
  * of a renewal.  A member's card leads with **Renew**; becoming a friend is offered on
  * My profile alone, so a downgrade never sits beside the renewal, but a change the
@@ -131,22 +134,27 @@ export function DashboardPage(): JSX.Element {
 
   const status = membership.data ?? user?.membership ?? null;
   const tone = status ? membershipTone(status) : null;
-  // A friend owes nothing, so their card never takes the urgent edge.  A member who
-  // registered and has not yet paid reads as a friend, and gets the friend's card.
+  // A friend owes nothing, so their card never takes the urgent edge.  A member who has
+  // not paid their first dues (`none`) has nothing to renew either, and is offered the
+  // dues instead.
   const isFriend = status?.status === 'friend';
-  const urgent = !isFriend && (tone === 'expiring' || tone === 'expired');
-  // The members-only pages answer a friend with the wall unless a staff role lets
-  // them read, so the card is not offered to a friend who would be refused.
-  const isWalledOut = isFriend && roles.every((slug) => slug === 'member');
+  const isAwaitingDues = status?.status === 'none';
+  const isWithoutRenewal = isFriend || isAwaitingDues;
+  const urgent = !isWithoutRenewal && (tone === 'expiring' || tone === 'expired');
+  // The members-only pages answer anybody without a membership with the wall unless a
+  // staff role lets them read, so the card is not offered to somebody who would be refused.
+  const isWalledOut = isWithoutRenewal && roles.every((slug) => slug === 'member');
   const greeting = user?.first_name ? `Welcome, ${user.first_name}` : 'Welcome';
 
   const links = quickLinks(roles, {
-    isEffectiveFriend: isFriend,
+    isEffectiveFriend: isWithoutRenewal,
     isLifetime: status?.is_lifetime === true,
   });
   // A friend and a life member renew nothing, so the authority their line states is
   // their recurring donation.
-  const givesOnly = isFriend || status?.is_lifetime === true;
+  const givesOnly = isWithoutRenewal || status?.is_lifetime === true;
+  // Only a member with a term to renew has renewals among their payments.
+  const hasRenewals = !givesOnly;
 
   const membersPages = siteConfig.data?.members_pages ?? [];
   const recent = (payments.data ?? []).slice(0, RECENT_PAYMENTS);
@@ -163,6 +171,8 @@ export function DashboardPage(): JSX.Element {
           >
             {isFriend ? (
               <FriendStatus />
+            ) : isAwaitingDues ? (
+              <AwaitingDuesStatus />
             ) : status ? (
               <div className="dashboard__status">
                 <MembershipDot membership={status} />
@@ -186,7 +196,7 @@ export function DashboardPage(): JSX.Element {
               </p>
             )}
 
-            {status && !isFriend && !(status.is_lifetime && status.status === 'current') ? (
+            {status && !isWithoutRenewal && !(status.is_lifetime && status.status === 'current') ? (
               <div className="cluster card__footer">
                 <ButtonLink to="/renew" variant={urgent ? 'primary' : 'secondary'}>
                   {status.status === 'expired' ? 'Renew now' : 'Renew'}
@@ -230,14 +240,14 @@ export function DashboardPage(): JSX.Element {
             title="Recent payments"
             footer={
               <Link to="/payments">
-                {isFriend ? 'All payments and receipts' : 'All payments, receipts, and renewals'}
+                {hasRenewals ? 'All payments, receipts, and renewals' : 'All payments and receipts'}
               </Link>
             }
           >
             <RenewalLine
               mandate={(givesOnly ? donation : renewal).data?.mandate ?? null}
               givesOnly={givesOnly}
-              isFriend={isFriend}
+              isFriend={isWithoutRenewal}
             />
             <DataTable
               singleLine
@@ -319,7 +329,22 @@ function FriendStatus() {
   );
 }
 
-/** The membership card's title: current, expired, or a friend of CalDART. */
+/** A member who has not paid their first dues: what is missing, and the way to pay. */
+function AwaitingDuesStatus() {
+  return (
+    <>
+      <div className="dashboard__status">
+        <p>Pay your dues to become a member of CalDART.</p>
+      </div>
+      <div className="cluster card__footer">
+        <ButtonLink to="/membership/join">Pay dues</ButtonLink>
+        <Link to="/profile">Update your details</Link>
+      </div>
+    </>
+  );
+}
+
+/** The membership card's title: current, expired, none yet, or a friend of CalDART. */
 function MembershipHeadline({
   status,
 }: {
@@ -330,5 +355,6 @@ function MembershipHeadline({
     return <>{status.is_lifetime ? 'Lifetime member' : 'Your membership is current'}</>;
   }
   if (status.status === 'expired') return <>Your membership has expired</>;
+  if (status.status === 'none') return <>You have no membership yet</>;
   return <>You are a friend of CalDART</>;
 }

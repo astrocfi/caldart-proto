@@ -211,6 +211,37 @@ describe('LoginPage', () => {
     expect(asked).toBe(false);
   });
 
+  it('asks for the address, not its shape, when the email box is empty', async () => {
+    renderLogin();
+    await userEvent.click(await screen.findByRole('button', { name: /sign in/i }));
+
+    expect(screen.getByText('Enter your email address.')).toBeInTheDocument();
+  });
+
+  it('moves the focus to the first empty box and says so beside the button', async () => {
+    renderLogin();
+    await userEvent.click(await screen.findByRole('button', { name: /sign in/i }));
+
+    await waitFor(() => expect(screen.getByLabelText(/email address/i)).toHaveFocus());
+    expect(screen.getByText('Check the 2 highlighted fields.')).toBeInTheDocument();
+  });
+
+  it('moves the focus to the reason a sign-in was refused', async () => {
+    server.use(
+      http.post(`${API}/auth/login`, () =>
+        HttpResponse.json({ detail: 'Incorrect email address or password.' }, { status: 400 }),
+      ),
+    );
+
+    renderLogin();
+    await userEvent.type(await screen.findByLabelText(/email address/i), 'marta@example.org');
+    await userEvent.type(screen.getByLabelText(/password/i), 'nope');
+    await userEvent.click(screen.getByRole('button', { name: /sign in/i }));
+
+    const alert = await screen.findByRole('alert');
+    await waitFor(() => expect(alert).toHaveFocus());
+  });
+
   it('says what the portal is for above the form', async () => {
     renderLogin();
 

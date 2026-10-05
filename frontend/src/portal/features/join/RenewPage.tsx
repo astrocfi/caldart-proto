@@ -20,6 +20,7 @@ import { Checkout } from '@/portal/features/checkout';
 
 import { useRenewal } from '@/portal/api/queries';
 import type { RenewalMandate } from '@/portal/api/types';
+import { isWithoutTerm } from '@/portal/choices';
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { DateText, formatDate } from '@/portal/components/DateText';
@@ -89,7 +90,7 @@ export function RenewPage(): JSX.Element {
   const isCovered = automatic.kind === 'on' || automatic.kind === 'retrying';
   const isCheckoutShown = !isCovered || isRenewingAnyway;
 
-  if (status?.status === 'friend') {
+  if (status && isWithoutTerm(status.status)) {
     return <Navigate to={JOIN_AS_MEMBER_PATH} replace />;
   }
   if (status?.is_lifetime === true) {

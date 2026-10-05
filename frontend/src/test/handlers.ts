@@ -48,9 +48,9 @@ export const API = '*/api/v1';
 /** The value the default `GET /auth/csrf` handler hands out. */
 export const TEST_CSRF_TOKEN = 'test-csrf-token';
 
-/** What an account holding no paid membership reads as, whichever kind it chose: a friend. */
+/** What an account that chose to be a member and holds no paid term reads as. */
 export const NO_MEMBERSHIP: MembershipStatus = {
-  status: 'friend',
+  status: 'none',
   expires_on: null,
   plan: null,
   is_lifetime: false,

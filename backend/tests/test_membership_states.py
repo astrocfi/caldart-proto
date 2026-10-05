@@ -1,11 +1,12 @@
-"""The four membership states, and who counts as a friend.
+"""The five membership states, and who counts as a friend.
 
-A membership is Current, Expired, Friend, or Donor.  The stored ``kind`` is what the
-person asked for; the effective kind is what they are: an account that chose to be a
-member but holds no term that has started and was ever paid for, granted, or set
-aside by a deactivation is a friend until one covers it.  These tests pin that rule
+A membership is Current, Expired, Friend, No membership yet, or Donor.  The stored
+``kind`` is what the person asked for; the effective kind is what they are: an account
+that chose to be a member but holds no term that has started and was ever paid for,
+granted, or set aside by a deactivation is a friend until one covers it, and its
+membership reads *No membership yet* rather than *Friend*.  These tests pin that rule
 in both of its statements (``account_kind`` in Python and ``kind_annotation`` in SQL),
-the four answers ``membership_status`` and ``membership_payload`` agree on, the member
+the five answers ``membership_status`` and ``membership_payload`` agree on, the member
 list's status filter, and what the join wizard reads off ``/auth/me``.
 """
 
@@ -28,7 +29,10 @@ from apps.members.models import (
 from apps.members.services import (
     account_kind,
     activate_term,
+    awaits_first_term,
+    awaits_first_term_annotation,
     kind_annotation,
+    listed_kind,
     membership_payload,
     membership_status,
 )
@@ -106,18 +110,18 @@ def _due_friend(plan: MembershipPlan, today: date) -> User:
 
 #: ``(label, builder, effective kind, membership state)`` for every case the rule names.
 CASES: list[tuple[str, Builder, AccountKind, MembershipState]] = [
-    ("member-with-no-term", _no_term, AccountKind.FRIEND, MembershipState.FRIEND),
+    ("member-with-no-term", _no_term, AccountKind.FRIEND, MembershipState.NONE),
     (
         "canceled-only",
         _with_term("canceled", MembershipStatusChoices.CANCELED, starts_in=-10, ends_in=355),
         AccountKind.FRIEND,
-        MembershipState.FRIEND,
+        MembershipState.NONE,
     ),
     (
         "future-term",
         _with_term("future", MembershipStatusChoices.ACTIVE, starts_in=5, ends_in=369),
         AccountKind.FRIEND,
-        MembershipState.FRIEND,
+        MembershipState.NONE,
     ),
     (
         "suspended-only",
@@ -161,12 +165,13 @@ def build(annual_plan: MembershipPlan, today: date) -> Callable[[Builder], User]
 # --------------------------------------------------------------------------
 # The choices
 # --------------------------------------------------------------------------
-def test_the_membership_states_are_current_expired_friend_and_donor() -> None:
-    """``MembershipState`` holds exactly the four states, with their labels."""
+def test_the_membership_states_are_current_expired_friend_none_and_donor() -> None:
+    """``MembershipState`` holds exactly the five states, with their labels."""
     assert MembershipState.choices == [
         ("current", "Current"),
         ("expired", "Expired"),
         ("friend", "Friend"),
+        ("none", "No membership yet"),
         ("donor", "Donor"),
     ]
 
@@ -207,6 +212,70 @@ def test_kind_annotation_agrees_with_account_kind(
     assert row.effective == kind
 
 
+@pytest.mark.parametrize(("label", "builder", "kind", "state"), CASES, ids=CASE_IDS)
+def test_awaits_first_term_annotation_agrees_with_the_python_rule(
+    build: Callable[[Builder], User],
+    today: date,
+    label: str,
+    builder: Builder,
+    kind: AccountKind,
+    state: MembershipState,
+) -> None:
+    """The SQL statement of ``awaits_first_term`` agrees with the Python one."""
+    user = build(builder)
+    row = User.objects.annotate(awaiting=awaits_first_term_annotation(today)).get(pk=user.pk)
+    assert row.awaiting == awaits_first_term(user, today)
+
+
+@pytest.mark.parametrize(
+    ("label", "expected"),
+    [
+        ("member-with-no-term", AccountKind.MEMBER),
+        ("future-term", AccountKind.MEMBER),
+        ("canceled-only", AccountKind.MEMBER),
+        ("friend", AccountKind.FRIEND),
+        ("due-friend", AccountKind.FRIEND),
+        ("suspended-only", AccountKind.MEMBER),
+        ("current", AccountKind.MEMBER),
+    ],
+)
+def test_the_listed_kind_is_member_for_a_member_awaiting_a_first_term(
+    build: Callable[[Builder], User], today: date, label: str, expected: AccountKind
+) -> None:
+    """A list shows the kind the account chose until a friend's change has come."""
+    builder = {case[0]: case[1] for case in CASES}[label]
+    row = member_admin_queryset(today).get(pk=build(builder).pk)
+    assert listed_kind(row) == expected
+
+
+@pytest.mark.parametrize(
+    ("kind", "labels"),
+    [
+        (
+            "member",
+            {
+                "member-with-no-term",
+                "canceled-only",
+                "future-term",
+                "suspended-only",
+                "pending-friend",
+                "current",
+                "expired",
+                "stale-active",
+            },
+        ),
+        ("friend", {"friend", "due-friend"}),
+    ],
+)
+def test_the_kind_filter_matches_the_listed_kind(
+    annual_plan: MembershipPlan, today: date, kind: str, labels: set[str]
+) -> None:
+    """``?kind=member`` takes in a member awaiting a first term; ``friend`` does not."""
+    by_pk = {builder(annual_plan, today).pk: label for label, builder, _k, _s in CASES}
+    queryset = MemberAdminFilterSet({"kind": kind}, queryset=member_admin_queryset(today)).qs
+    assert {by_pk[user.pk] for user in queryset if user.pk in by_pk} == labels
+
+
 def test_a_payment_makes_an_unpaid_joiner_a_member(
     annual_plan: MembershipPlan, today: date
 ) -> None:
@@ -225,7 +294,7 @@ def test_a_payment_makes_a_friend_a_member(annual_plan: MembershipPlan, today: d
 
 
 # --------------------------------------------------------------------------
-# The four states, in Python and in SQL
+# The five states, in Python and in SQL
 # --------------------------------------------------------------------------
 @pytest.mark.parametrize(("label", "builder", "kind", "state"), CASES, ids=CASE_IDS)
 def test_membership_status_answers_the_case_state(
@@ -255,14 +324,21 @@ def test_membership_payload_agrees_with_membership_status(
     assert membership_payload(row) == membership_status(user, today)
 
 
-@pytest.mark.parametrize("label", ["member-with-no-term", "friend", "suspended-only"])
-def test_a_friend_reads_with_no_expiry_and_no_plan(
-    build: Callable[[Builder], User], today: date, label: str
+@pytest.mark.parametrize(
+    ("label", "state"),
+    [
+        ("member-with-no-term", MembershipState.NONE),
+        ("friend", MembershipState.FRIEND),
+        ("suspended-only", MembershipState.FRIEND),
+    ],
+)
+def test_a_friend_or_a_member_with_no_term_reads_with_no_expiry_and_no_plan(
+    build: Callable[[Builder], User], today: date, label: str, state: MembershipState
 ) -> None:
-    """Every friend answer is the same shape: no expiry, no plan, never lifetime."""
+    """Every answer with no term is one shape: no expiry, no plan, never lifetime."""
     builder = {case[0]: case[1] for case in CASES}[label]
     assert membership_status(build(builder), today) == {
-        "status": MembershipState.FRIEND,
+        "status": state,
         "expires_on": None,
         "plan": None,
         "is_lifetime": False,
@@ -292,24 +368,15 @@ def test_an_anonymous_caller_reads_as_a_friend(today: date) -> None:
     [
         ("current", {"pending-friend", "current"}),
         ("expired", {"expired", "stale-active"}),
-        (
-            "friend",
-            {
-                "member-with-no-term",
-                "canceled-only",
-                "future-term",
-                "suspended-only",
-                "friend",
-                "due-friend",
-            },
-        ),
+        ("friend", {"suspended-only", "friend", "due-friend"}),
+        ("none", {"member-with-no-term", "canceled-only", "future-term"}),
         ("donor", {"donor"}),
     ],
 )
 def test_the_status_filter_puts_every_account_under_its_state(
     annual_plan: MembershipPlan, today: date, status: str, labels: set[str]
 ) -> None:
-    """Each of the four filter choices lists exactly the accounts in that state."""
+    """Each of the five filter choices lists exactly the accounts in that state."""
     by_pk = {builder(annual_plan, today).pk: label for label, builder, _k, _s in CASES}
     queryset = MemberAdminFilterSet(
         {"status": status}, queryset=member_admin_queryset(today, include_donors=True)
@@ -333,14 +400,14 @@ def test_the_member_list_never_lists_a_donor(
 @pytest.mark.parametrize(
     ("kind", "expected"),
     [
-        ("member", {"kind": "member", "status": "friend"}),
+        ("member", {"kind": "member", "status": "none"}),
         ("friend", {"kind": "friend", "status": "friend"}),
     ],
 )
-def test_a_new_account_keeps_its_intent_and_reads_as_a_friend(
+def test_a_new_account_keeps_its_intent_and_reads_as_unpaid(
     api_client: APIClient, kind: str, expected: dict[str, str]
 ) -> None:
-    """A joiner's stored kind is what they chose; until they pay, they are a friend."""
+    """A joiner's stored kind is what they chose; a member reads none until they pay."""
     api_client.post(REGISTER_URL, register_payload(kind=kind))
     body = api_client.get(ME_URL).json()
     assert {"kind": body["kind"], "status": body["membership"]["status"]} == expected
