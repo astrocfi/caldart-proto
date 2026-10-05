@@ -84,6 +84,26 @@ describe('LeaderSearchPage', () => {
     );
   });
 
+  it('counts one match as 1 person found', async () => {
+    const user = setupUser();
+    server.use(searchReturns([MARTA]));
+
+    renderWithProviders(<LeaderSearchPage />, { route: '/leader' });
+    await search(user, 'reyes');
+
+    expect(await screen.findByText('1 person found')).toBeInTheDocument();
+  });
+
+  it('counts several matches as people found', async () => {
+    const user = setupUser();
+    server.use(searchReturns([MARTA, { ...MARTA, user_id: 8, email: 'marta.r@example.org' }]));
+
+    renderWithProviders(<LeaderSearchPage />, { route: '/leader' });
+    await search(user, 'reyes');
+
+    expect(await screen.findByText('2 people found')).toBeInTheDocument();
+  });
+
   it('tells two people of the same name apart by their DART and email', async () => {
     const user = setupUser();
     const namesake = { ...MARTA, user_id: 8, dart: null, email: 'marta.r@example.org' };

@@ -157,7 +157,7 @@ never moves when a long result appears. While the box is checked the button read
 the cursor moves, and a line such as *Would send 7 emails, skipped 1.* When something was skipped, a further
 line gives the reasons: *nobody to send to* for a DART with nobody set to receive it, and
 *no address on file* for a checked person with no email address. A table names each email
-with **What** and **Who**, and **Report or DART** when an email names one. Clear the box,
+with **Who** and **What**, and **Report or DART** when an email names one. Clear the box,
 and the button reads **Send rosters now**: it sends every DART's roster at once, whatever
 the date, and the heading then reads **What this run did**.
 

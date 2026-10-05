@@ -24,6 +24,7 @@ import type { ReportCell } from '@/portal/components/reportTable';
 import { ColumnTools, reportTableColumns, useColumnChoice } from '@/portal/components/reportTable';
 import { StatusDot } from '@/portal/components/StatusDot';
 import type { StatusTone } from '@/portal/components/StatusDot';
+import { identityFirst } from '@/portal/components/tableFit';
 import { useUrlFilters } from '@/portal/components/useUrlFilters';
 import {
   useFirstPageWhenMissing,
@@ -33,6 +34,7 @@ import { reportExportUrl } from '@/portal/reports/api';
 import { listFilters, REPORTS } from '@/portal/reports/definitions';
 import type { FilterValues } from '@/portal/reports/types';
 import { EMAIL_LOG_PAGE_SIZE, FROM_LOG, useEmailLog, useEmailPurposes } from './api';
+import { sendErrorWords } from './labels';
 
 /** The filters the panel draws: the email log report's own. */
 const FILTER_FIELDS = listFilters(REPORTS.emails);
@@ -48,10 +50,10 @@ const STATUS_TONE: Record<EmailStatus, StatusTone> = {
   bounced: 'expired',
 };
 
-/** What the Status column reads for each status: a refusal carries its error. */
+/** What the Status column reads for each status: a refusal says why, in words. */
 const STATUS_TEXT: Record<EmailStatus, (row: EmailLogEntry) => string> = {
   sent: () => 'Sent',
-  failed: (row) => `Failed: ${row.error}`,
+  failed: (row) => `Failed: ${sendErrorWords(row.error)}`,
   bounced: () => 'Bounced',
 };
 
@@ -73,18 +75,20 @@ const FALLBACK_COLUMNS: ReportColumn[] = [
 
 /**
  * How the table draws each column of the email log report.  The address it went to is
- * what the screen answers, so it tells one row from another, stays pinned when the table
- * scrolls, and never drops; the status stays in sight beside it.  The columns the
- * defaults leave out drop first on a narrow screen, then the purpose, the name, the
- * subject, and on a phone the time it went.  Only Sent sorts: it is the one order the
- * log takes.
+ * what the screen answers, so it comes first, tells one row from another, stays pinned
+ * when the table scrolls, and never drops; the time it went and the status stay in sight
+ * beside it, so a phone still tells two emails to one address apart.  The columns the
+ * defaults leave out drop first on a narrow screen, then the purpose, the name, and the
+ * subject.  Only Sent sorts: it is the one order the log takes.  A refusal reads in words
+ * in the Status and Error columns, as the email's own page reads it.
  */
 export const CELLS: Record<string, ReportCell<EmailLogEntry>> = {
   sent_at: {
     ordering: 'sent_at',
     width: '12rem',
     noWrap: true,
-    dropOrder: 9,
+    keepInSight: true,
+    narrowWidth: '6.5rem',
     render: (row) => <DateText value={row.sent_at} withTime />,
   },
   purpose: {
@@ -125,7 +129,7 @@ export const CELLS: Record<string, ReportCell<EmailLogEntry>> = {
   error: {
     minWidth: '12rem',
     dropOrder: 3,
-    render: (row) => (row.error === '' ? NOTHING : row.error),
+    render: (row) => (row.error === '' ? NOTHING : sendErrorWords(row.error)),
   },
   attachments: {
     minWidth: '12rem',
@@ -158,7 +162,9 @@ export function EmailLogPanel(): JSX.Element {
   const purposeOptions = useMemo(() => ({ purpose: purposes.data ?? [] }), [purposes.data]);
 
   const choice = useColumnChoice('emails', FALLBACK_COLUMNS);
-  const columns = reportTableColumns(choice.tableColumns, choice.tableChosen, CELLS, true);
+  const columns = identityFirst(
+    reportTableColumns(choice.tableColumns, choice.tableChosen, CELLS, true),
+  );
   const exportParams = { ...filters, ordering, columns: choice.chosen };
 
   const handleFilterChange = (next: FilterValues): void => {

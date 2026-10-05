@@ -2,7 +2,8 @@ import { render, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
 import type { RunAction } from '@/portal/api/types';
-import { actionsHeading, RunActionsTable } from './RunActionsTable';
+import { actionsHeading, RunActionsTable, runActionColumns } from './RunActionsTable';
+import { fitColumns } from './tableFit';
 
 const ACTIONS: RunAction[] = [
   {
@@ -116,8 +117,8 @@ describe('RunActionsTable', () => {
     );
 
     expect(screen.getAllByRole('columnheader').map((cell) => cell.textContent)).toEqual([
-      'What',
       'Who',
+      'What',
       'When',
       'Amount',
     ]);
@@ -139,14 +140,14 @@ describe('RunActionsTable', () => {
     );
 
     const headers = screen.getAllByRole('columnheader').map((header) => header.textContent);
-    expect(headers).toEqual(['What', 'Who', 'When', 'Amount']);
+    expect(headers).toEqual(['Who', 'What', 'When', 'Amount']);
   });
 
   it('leaves out a column that is empty in every row', () => {
     render(<RunActionsTable actions={ACTIONS} dryRun={true} kindLabel={() => 'Notice'} />);
 
     const headers = screen.getAllByRole('columnheader').map((header) => header.textContent);
-    expect(headers).toEqual(['What', 'Who', 'When']);
+    expect(headers).toEqual(['Who', 'What', 'When']);
   });
 
   it('leaves out When, Amount, and the detail when no row carries them, as for rosters', () => {
@@ -160,7 +161,7 @@ describe('RunActionsTable', () => {
     );
 
     const headers = screen.getAllByRole('columnheader').map((header) => header.textContent);
-    expect(headers).toEqual(['What', 'Who']);
+    expect(headers).toEqual(['Who', 'What']);
   });
 
   it('leaves the When and Amount columns out for actions that carry neither', () => {
@@ -175,7 +176,7 @@ describe('RunActionsTable', () => {
     );
 
     const headers = screen.getAllByRole('columnheader').map((header) => header.textContent);
-    expect(headers).toEqual(['What', 'Who', 'Reason']);
+    expect(headers).toEqual(['Who', 'What', 'Reason']);
   });
 
   it('keeps two actions apart that differ only by the person', () => {
@@ -225,5 +226,27 @@ describe('RunActionsTable', () => {
     );
 
     expect(screen.getByText('Nobody matches these filters')).toBeInTheDocument();
+  });
+});
+
+describe('runActionColumns on a phone', () => {
+  /** The room a phone leaves a table inside a Scheduled panel, in rem. */
+  const PHONE_REM = 20;
+
+  it('keeps What beside Who, so a practice run says which reminder goes to whom', () => {
+    const columns = runActionColumns({ actions: ACTIONS, kindLabel: (kind) => kind });
+
+    expect(fitColumns(columns, PHONE_REM).map((column) => column.key)).toEqual(['member', 'kind']);
+  });
+
+  it('gives up When before Amount when the room runs short', () => {
+    const charged: RunAction[] = [{ ...ACTIONS[0]!, amount_cents: 4500 }];
+    const columns = runActionColumns({ actions: charged, kindLabel: (kind) => kind });
+
+    expect(fitColumns(columns, 32).map((column) => column.key)).toEqual([
+      'member',
+      'kind',
+      'amount_cents',
+    ]);
   });
 });

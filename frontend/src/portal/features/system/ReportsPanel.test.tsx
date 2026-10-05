@@ -65,7 +65,7 @@ describe('ReportsPanel', () => {
 
     const table = await screen.findByRole('table', { name: '2 actions' });
     expect(within(table).getByRole('row', { name: /Ada Admin/ })).toHaveTextContent(
-      'ReportAda Admin · ada@example.orgMembers, PDF',
+      'Ada Admin · ada@example.orgReportMembers, PDF',
     );
     expect(within(table).getByRole('row', { name: /Lee Leader/ })).toHaveTextContent(
       'Bay Area DART',

@@ -65,6 +65,21 @@ export function arrangeColumns<Row>(columns: readonly Column<Row>[]): Column<Row
   return [...columns.filter((column) => column.isActions !== true), ...actions];
 }
 
+/**
+ * `columns` with the identifying column moved to the front, where it stays pinned as the
+ * table scrolls, for a table whose columns follow a report's export order, which leads
+ * with something else (the roles report with Role, the email log with Sent).
+ *
+ * @param columns the table's columns, as the report lists them.
+ * @returns the same columns, the identifying one first.
+ */
+export function identityFirst<Row>(columns: readonly Column<Row>[]): Column<Row>[] {
+  return [
+    ...columns.filter((column) => column.isIdentity === true),
+    ...columns.filter((column) => column.isIdentity !== true),
+  ];
+}
+
 /** Whether `columns` give the table anything to fit: a column to drop or to keep in sight. */
 export function needsFitting<Row>(columns: readonly Column<Row>[]): boolean {
   return columns.some((column) => column.dropOrder !== undefined || staysInSight(column));

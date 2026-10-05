@@ -10,7 +10,8 @@ import type { EmailLogEntry, Paginated, ReportColumn } from '@/portal/api/types'
 import { SEARCH_DEBOUNCE_MS } from '@/portal/components/useDebounced';
 import { API_BASE } from '@/portal/urlPrefix';
 import { reportTableColumns } from '@/portal/components/reportTable';
-import { fitColumns } from '@/portal/components/tableFit';
+import { fitColumns, identityFirst } from '@/portal/components/tableFit';
+import { tableHeaders } from '@test/table';
 import { CELLS, EmailLogPanel } from './EmailLogPanel';
 
 /** A userEvent instance whose internal waits advance the fake clock instead of sleeping. */
@@ -234,11 +235,21 @@ describe('EmailLogPanel', () => {
     expect(row).toHaveTextContent('Password reset');
   });
 
-  it('shows the error beside a failed send', async () => {
+  it("says in words why a send failed, as the email's own page does", async () => {
     server.use(emailsHandler(ENTRIES));
     renderWithProviders(<EmailLogPanel />);
 
-    expect(await screen.findByText('Failed: SMTPRecipientsRefused')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Failed: The mail server refused the address.'),
+    ).toBeInTheDocument();
+  });
+
+  it('leads with the address, so it stays pinned at the left', async () => {
+    server.use(emailsHandler(ENTRIES));
+    renderWithProviders(<EmailLogPanel />);
+
+    const table = await screen.findByRole('table');
+    expect(tableHeaders(table)[0]).toBe('To');
   });
 
   it('reads a bounced message as Bounced', async () => {
@@ -460,5 +471,13 @@ describe('the sent emails table at narrow widths', () => {
 
   it('keeps the subject beside the address on a tablet', () => {
     expect(fitColumns(columns, 46).map((column) => column.header)).toContain('Subject');
+  });
+
+  it('keeps the time each email went between its address and its status on a phone', () => {
+    expect(fitColumns(identityFirst(columns), 19).map((column) => column.header)).toEqual([
+      'To',
+      'Sent',
+      'Status',
+    ]);
   });
 });
