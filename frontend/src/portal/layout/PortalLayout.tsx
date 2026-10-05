@@ -85,6 +85,33 @@ function useRailScroll(
   return { railRef, hasMoreAbove, hasMoreBelow, handleRailScroll };
 }
 
+/** The custom property on the root element that holds the sticky bar's height. */
+const BAR_HEIGHT_PROPERTY = '--portal-bar-height';
+
+/**
+ * Keeps `BAR_HEIGHT_PROPERTY` on the root element equal to the height of the sticky bar
+ * `barRef` holds, measured again whenever it changes, such as when the bar wraps on a
+ * phone.  The page's `scroll-padding-top` reads it, so a field the keyboard moves to is
+ * scrolled clear of the bar rather than under it.
+ */
+function useBarHeight(barRef: RefObject<HTMLElement | null>): void {
+  useEffect(() => {
+    const bar = barRef.current;
+    if (bar === null || typeof ResizeObserver === 'undefined') return undefined;
+    const root = document.documentElement;
+    const measure = (): void => {
+      root.style.setProperty(BAR_HEIGHT_PROPERTY, `${bar.getBoundingClientRect().height}px`);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(bar);
+    return () => {
+      observer.disconnect();
+      root.style.removeProperty(BAR_HEIGHT_PROPERTY);
+    };
+  }, [barRef]);
+}
+
 /** The portal chrome: header, role-filtered navigation, and the routed page outlet. */
 export function PortalLayout(): JSX.Element {
   const { user, roles, isAuthenticated } = useAuth();
@@ -92,6 +119,8 @@ export function PortalLayout(): JSX.Element {
   const location = useLocation();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const toggleRef = useRef<HTMLButtonElement | null>(null);
+  const barRef = useRef<HTMLElement | null>(null);
+  useBarHeight(barRef);
 
   // Any navigation closes the mobile drawer and puts the page back at the top:
   // a screen opened from halfway down the last one starts mid-content
@@ -138,7 +167,7 @@ export function PortalLayout(): JSX.Element {
         Skip to content
       </a>
 
-      <header className="portal__bar">
+      <header ref={barRef} className="portal__bar">
         <div className="portal__bar-inner">
           {hasRail ? (
             <button

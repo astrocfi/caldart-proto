@@ -163,7 +163,7 @@ export function DashboardPage(): JSX.Element {
     <Page title={greeting} tabTitle="Dashboard">
       <OwnSenderNotice />
       <div className="grid">
-        <div className="col-text stack-loose">
+        <div className="col-text dashboard__main stack-loose">
           <Card
             className={urgent ? 'dashboard__card--urgent' : undefined}
             eyebrow={isFriend ? 'Friend of CalDART' : undefined}

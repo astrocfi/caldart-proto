@@ -44,9 +44,7 @@ describe('furthestJoinStep', () => {
   });
 
   it('holds an unverified address at the verify step even with a complete profile', () => {
-    expect(furthestJoinStep(makeUser({ email_verified: false, membership: NONE }))).toBe(
-      'verify',
-    );
+    expect(furthestJoinStep(makeUser({ email_verified: false, membership: NONE }))).toBe('verify');
   });
 
   it('sends a signed-in member with a thin profile to the profile step', () => {

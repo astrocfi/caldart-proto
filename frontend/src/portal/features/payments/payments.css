@@ -45,6 +45,19 @@
   border-top: var(--hairline) solid var(--color-rule);
 }
 
+/* The change form's own heading, under the card's title in size; the plan's legend below
+ * it is the form's one eyebrow. */
+.renewal__change-title {
+  font-size: var(--text-base);
+  margin: 0;
+}
+
+/* A date field is the width of a date, not of the card. */
+.renewal__change input[type='date'],
+.renewal-setup input[type='date'] {
+  max-width: 12rem;
+}
+
 .renewal-setup__total {
   max-width: var(--measure);
   font-size: var(--text-sm);

@@ -149,6 +149,24 @@ beforeEach(() => {
 });
 
 describe('Checkout', () => {
+  it('heads its payment tabs one level under a page title by default', async () => {
+    serveConfig(config());
+    renderWithProviders(<Checkout mode="join" onSuccess={() => {}} />);
+
+    expect(
+      await screen.findByRole('heading', { level: 2, name: 'How would you like to pay?' }),
+    ).toBeInTheDocument();
+  });
+
+  it('heads its payment tabs one level under a card title when asked', async () => {
+    serveConfig(config());
+    renderWithProviders(<Checkout mode="join" headingLevel={3} onSuccess={() => {}} />);
+
+    expect(
+      await screen.findByRole('heading', { level: 3, name: 'How would you like to pay?' }),
+    ).toBeInTheDocument();
+  });
+
   it('offers every plan and preselects the first the server lists', async () => {
     serveConfig(config());
     renderWithProviders(<Checkout mode="join" onSuccess={() => {}} />);

@@ -54,8 +54,8 @@ export function ProfileStep({ onDone }: ProfileStepProps): JSX.Element {
   return (
     <Card className="join-card" title="About you">
       <p className="muted join__intro">
-        CalDART needs a way to reach you during an activation. Everything except your address
-        can wait until later.
+        CalDART needs a way to reach you during an activation. Everything except your address can
+        wait until later.
       </p>
       <ProfileForm
         initialValues={profile.data ? profileToForm(profile.data) : EMPTY_PROFILE_FORM}

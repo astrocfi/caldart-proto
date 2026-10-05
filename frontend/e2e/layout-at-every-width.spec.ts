@@ -124,3 +124,29 @@ test("the dashboard's recent payments read their For cells whole at 1920", async
   }
   expect(cut).toEqual([]);
 });
+
+test('Shift+Tab never leaves a field under the sticky header on a phone', async ({ page }) => {
+  await page.setViewportSize(PHONE);
+  await signIn(page, DEMO.member);
+  await page.goto('portal/profile');
+  const hours = page.getByLabel(/^Total hours/);
+  await expect(hours).toBeVisible();
+  await hours.focus();
+  const bar = await page.locator('.portal__bar').boundingBox();
+  if (bar === null) throw new Error('The header is not laid out');
+
+  const hidden = [];
+  for (let press = 0; press < 12; press += 1) {
+    await page.keyboard.press('Shift+Tab');
+    const box = await page.evaluate(() => {
+      const focused = document.activeElement;
+      if (!(focused instanceof HTMLElement) || focused.closest('.portal__bar') !== null) {
+        return null;
+      }
+      const rect = focused.getBoundingClientRect();
+      return { top: rect.top, name: focused.getAttribute('name') ?? focused.id };
+    });
+    if (box !== null && box.top < bar.y + bar.height) hidden.push(box.name);
+  }
+  expect(hidden).toEqual([]);
+});

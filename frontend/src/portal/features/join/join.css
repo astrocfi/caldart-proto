@@ -124,6 +124,9 @@
   grid-template-columns: auto 1fr;
   gap: var(--space-1) var(--space-3);
   align-items: baseline;
+  /* The two cards share a row's height; the rows keep to the top rather than sharing out
+   * the spare height, so both descriptions start at the same line. */
+  align-content: start;
   padding: var(--space-4);
   border: var(--hairline) solid var(--color-rule-strong);
   border-radius: var(--radius);

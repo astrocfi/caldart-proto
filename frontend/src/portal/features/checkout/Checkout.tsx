@@ -95,6 +95,7 @@ export function Checkout({
   isSkipping = false,
   onBecomeFriend: handleBecomeFriend,
   onBecomeMember: handleBecomeMember,
+  headingLevel = 2,
 }: SkippableCheckoutProps): JSX.Element {
   const { data: config, isPending, error } = usePaymentsConfig();
   const { user } = useAuth();
@@ -341,6 +342,7 @@ export function Checkout({
       ) : isScheduledLater ? (
         <MandateSetupTabs
           config={config}
+          headingLevel={headingLevel}
           panelProps={{
             scope: 'donation',
             plan: null,
@@ -354,6 +356,7 @@ export function Checkout({
         />
       ) : (
         <ProviderTabs
+          headingLevel={headingLevel}
           providers={providers}
           active={provider}
           onChange={(next) => setProvider(next)}
