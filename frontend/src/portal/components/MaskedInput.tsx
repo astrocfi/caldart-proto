@@ -49,7 +49,7 @@ export function MaskedInput({
     // and the caret are set here rather than left where the browser put them.
     input.value = masked;
     if (SELECTABLE_TYPES.has(rest.type)) {
-      const next = caretAfterMask(raw, caret, masked);
+      const next = caretAfterMask(raw, caret, masked, mask);
       input.setSelectionRange(next, next);
     }
     onValueChange(masked);

@@ -208,22 +208,28 @@ function countSignificant(value: string): number {
  * Where the caret belongs in `masked` after the typist changed `raw`.
  *
  * A mask rewrites the whole value, which would otherwise throw the caret to
- * the end on every edit in the middle of a number.  Counting the letters and
- * digits before the caret and finding that many in the masked value keeps it
- * where the typist left it, whichever punctuation the mask added or removed.
- * A mask that writes a character of its own ahead of what was typed, as the
- * `N` of a registration is, moves the caret along with it.
+ * the end on every edit in the middle of a number.  The caret goes after as
+ * many letters and digits of `masked` as the mask keeps from what precedes the
+ * caret in `raw`, so it stays where the typist left it whichever punctuation
+ * the mask added or removed.  Counting what `mask` keeps, rather than every
+ * letter or digit typed, means a character the mask refuses -- a letter in a
+ * phone number -- leaves the caret where it was, and a character the mask
+ * writes ahead of what was typed, as the `N` of a registration is, moves the
+ * caret along with it.
  */
-export function caretAfterMask(raw: string, caret: number, masked: string): number {
+export function caretAfterMask(
+  raw: string,
+  caret: number,
+  masked: string,
+  mask: (raw: string) => string,
+): number {
   // Typing at the end is the common case, and the end is where the caret
   // belongs however the mask rewrote what came before it -- including a
   // separator the typist wrote themselves, such as the comma between two
   // airport identifiers.
   if (caret >= raw.length) return masked.length;
-  const typed = countSignificant(raw.slice(0, caret));
-  if (typed === 0) return 0;
-  const added = Math.max(0, countSignificant(masked) - countSignificant(raw));
-  const wanted = typed + added;
+  const wanted = countSignificant(mask(raw.slice(0, caret)));
+  if (wanted === 0) return 0;
   let seen = 0;
   for (let index = 0; index < masked.length; index += 1) {
     if (SIGNIFICANT.test(masked[index] as string)) {

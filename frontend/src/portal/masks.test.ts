@@ -167,27 +167,51 @@ describe('maskWholeDollars', () => {
 
 describe('caretAfterMask', () => {
   it('leaves the caret after the digits already typed', () => {
-    expect(caretAfterMask('4155', 4, '415-5')).toBe(5);
+    expect(caretAfterMask('4155', 4, '415-5', maskPhone)).toBe(5);
   });
 
   it('keeps the caret in the middle of an edited number', () => {
-    expect(caretAfterMask('4165550100', 3, '416-555-0100')).toBe(3);
+    expect(caretAfterMask('4165550100', 3, '416-555-0100', maskPhone)).toBe(3);
   });
 
   it('moves past a character the mask wrote itself', () => {
-    expect(caretAfterMask('4', 1, 'N4')).toBe(2);
+    expect(caretAfterMask('4', 1, 'N4', maskNNumber)).toBe(2);
   });
 
   it('stays after a separator the typist wrote', () => {
-    expect(caretAfterMask('CCR,', 4, 'CCR,')).toBe(4);
+    expect(caretAfterMask('CCR,', 4, 'CCR,', maskAirportIdentifiers)).toBe(4);
   });
 
   it('stays at the end when the mask refused the last character', () => {
-    expect(caretAfterMask('415a', 4, '415')).toBe(3);
+    expect(caretAfterMask('415a', 4, '415', maskPhone)).toBe(3);
+  });
+
+  it('leaves the caret in place when a phone number refuses a letter typed mid-number', () => {
+    expect(caretAfterMask('415-55x5-0100', 7, '415-555-0100', maskPhone)).toBe(6);
+  });
+
+  it('leaves the caret at the start of a selection a refused letter replaced', () => {
+    expect(caretAfterMask('415-5x-0100', 6, '415-501-00', maskPhone)).toBe(5);
+  });
+
+  it('leaves the caret in place when an extension refuses a letter', () => {
+    expect(caretAfterMask('40x21', 3, '4021', maskExtension)).toBe(2);
+  });
+
+  it('leaves the caret in place when a ZIP code refuses a letter', () => {
+    expect(caretAfterMask('95a035', 3, '95035', maskPostalCode)).toBe(2);
+  });
+
+  it('moves past a letter a registration keeps', () => {
+    expect(caretAfterMask('N172SP', 5, 'N172SP', maskNNumber)).toBe(5);
+  });
+
+  it('moves past a letter an airport identifier keeps', () => {
+    expect(caretAfterMask('CxCR', 2, 'CXC', maskAirportIdentifier)).toBe(2);
   });
 
   it('puts the caret at the start when nothing precedes it', () => {
-    expect(caretAfterMask('415-555-0100', 0, '415-555-0100')).toBe(0);
+    expect(caretAfterMask('415-555-0100', 0, '415-555-0100', maskPhone)).toBe(0);
   });
 });
 
