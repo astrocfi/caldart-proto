@@ -2531,7 +2531,9 @@ The service
     term was canceled or is still to start.  Its effective kind is ``friend``, so
     every rule that reads the kind treats it as one, but it reads *No membership
     yet* rather than *Friend*.  ``expires_on`` and ``plan`` are ``None`` and
-    ``is_lifetime`` is ``False``.
+    ``is_lifetime`` is ``False``.  When such an account holds a granted term still to
+    start, ``members.services.upcoming_term_start`` gives its first day, and the
+    dashboard and the members-only wall name that day instead of asking for dues.
 ``donor``
     The account is a donor's.  ``expires_on`` and ``plan`` are ``None`` and
     ``is_lifetime`` is ``False``.

@@ -20,8 +20,8 @@ these is true:
   administrator. They read these pages whatever their own membership is doing.
 
 Nobody else can: a visitor who is not signed in, a member whose membership has
-expired, and a friend of CalDART (a supporter who pays no dues). Somebody who joined
-as a member and has not paid yet is treated as a friend here until the payment clears.
+expired, a friend of CalDART (a supporter who pays no dues), and somebody who joined as
+a member and has not paid yet, who is offered **Pay dues** instead (below).
 
 
 Where you find them
@@ -57,7 +57,9 @@ membership includes**, lists what the pages hold.
 
 **A member who has not paid yet**
   *This page is open to CalDART members. Pay your dues to read it.* Buttons: **Pay
-  dues** (see :doc:`become-a-member`) and **Member portal**.
+  dues** (see :doc:`become-a-member`) and **Member portal**. If the office granted you a
+  membership that starts later, it says instead *Your membership starts on 3 November
+  2026, and this page opens to you that day.*, with **Member portal**.
 
 **A friend of CalDART**
   *Friends of CalDART can read this page by becoming a member.* Buttons: **Make me a

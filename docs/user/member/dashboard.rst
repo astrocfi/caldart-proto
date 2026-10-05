@@ -49,7 +49,9 @@ is set (see :doc:`../bulk-email/dart-leaders`).
 
   If the office made your account and you have not paid yet, the card is headed **You
   have no membership yet**, reads *Pay your dues to become a member of CalDART.*, and
-  offers **Pay dues**, which opens the checkout (see :doc:`become-a-member`).
+  offers **Pay dues**, which opens the checkout (see :doc:`become-a-member`). If the office
+  granted you a membership that starts later, the card is headed **Your membership starts**
+  with the day, says members-only pages open to you then, and asks for nothing.
 
 **Member content**
   The members-only pages you may read, straight from the public site (see

@@ -46,10 +46,31 @@ def test_a_reconciliation_subscription_loses_its_fixed_dates() -> None:
     """``from`` and ``to`` go; the provider and the period stay."""
     subscription = ReportSubscriptionFactory(
         report="reconciliation",
-        filters={"from": "2026-01-01", "to": "2026-03-31", "provider": "stripe"},
+        filters={
+            "from": "2026-01-01",
+            "to": "2026-03-31",
+            "provider": "stripe",
+            "period": "this_year",
+        },
     )
     _run_migration()
-    assert _filters(subscription) == {"provider": "stripe"}
+    assert _filters(subscription) == {"provider": "stripe", "period": "this_year"}
+
+
+def test_a_reconciliation_subscription_with_no_period_is_given_last_month() -> None:
+    """Fixed dates with no period become last month, not every date."""
+    subscription = ReportSubscriptionFactory(
+        report="reconciliation", filters={"from": "2026-01-01", "provider": "stripe"}
+    )
+    _run_migration()
+    assert _filters(subscription) == {"provider": "stripe", "period": "last_month"}
+
+
+def test_a_reconciliation_subscription_without_fixed_dates_is_left_alone() -> None:
+    """A subscription on every date that never named dates keeps its filters."""
+    subscription = ReportSubscriptionFactory(report="reconciliation", filters={})
+    _run_migration()
+    assert _filters(subscription) == {}
 
 
 def test_another_report_keeps_a_filter_of_the_same_name() -> None:

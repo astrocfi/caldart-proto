@@ -137,14 +137,12 @@ function ExpiryText({ row }: { row: MemberRow }): JSX.Element {
 }
 
 /**
- * The kind the report prints: Friend for anybody whose membership reads friend, which
- * takes in a member whose change to friend has come; otherwise the account's kind, so a
- * member who has not paid their first dues reads Member.
+ * The kind the report prints, which the server sends as the row's `kind`: the effective
+ * kind, so a member whose change to friend has come reads Friend, except that a member
+ * who has not paid their first dues reads Member.
  */
 function kindLabel(row: MemberRow): string {
-  return row.membership.status === 'friend'
-    ? ACCOUNT_KIND_LABELS.friend
-    : ACCOUNT_KIND_LABELS[row.kind];
+  return ACCOUNT_KIND_LABELS[row.kind];
 }
 
 /**

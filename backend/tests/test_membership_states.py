@@ -20,6 +20,7 @@ from django.contrib.auth.models import AnonymousUser
 from rest_framework.test import APIClient
 
 from apps.accounts.models import AccountKind, User
+from apps.members.api.admin_serializers import MemberListSerializer
 from apps.members.filters import MemberAdminFilterSet, member_admin_queryset
 from apps.members.models import (
     MembershipPlan,
@@ -246,6 +247,19 @@ def test_the_listed_kind_is_member_for_a_member_awaiting_a_first_term(
     builder = {case[0]: case[1] for case in CASES}[label]
     row = member_admin_queryset(today).get(pk=build(builder).pk)
     assert listed_kind(row) == expected
+
+
+@pytest.mark.parametrize(
+    ("label", "expected"),
+    [("suspended-only", "member"), ("member-with-no-term", "member"), ("due-friend", "friend")],
+)
+def test_the_member_list_row_sends_the_listed_kind(
+    build: Callable[[Builder], User], today: date, label: str, expected: str
+) -> None:
+    """The list's ``kind`` is the one its Kind column and the report show."""
+    builder = {case[0]: case[1] for case in CASES}[label]
+    row = member_admin_queryset(today).get(pk=build(builder).pk)
+    assert MemberListSerializer(row).data["kind"] == expected
 
 
 @pytest.mark.parametrize(

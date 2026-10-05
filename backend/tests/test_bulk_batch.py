@@ -149,6 +149,13 @@ def test_a_row_keeps_the_name_address_kind_and_dart_at_the_add(
     )
 
 
+def test_a_member_with_no_term_is_kept_as_a_friend(bulk: BulkEmail, management: User) -> None:
+    """A member who has not paid, whose membership reads none, is targeted as a friend."""
+    make_person("unpaid@example.test", "Una", "Paid")
+    batch.add_filters(bulk, MARIN, actor=management)
+    assert bulk.recipients.get().kind == "friend"
+
+
 def test_a_donor_is_never_added(bulk: BulkEmail, management: User) -> None:
     """A donor is in no member list, so no add chooses one."""
     make_person("member@example.test")

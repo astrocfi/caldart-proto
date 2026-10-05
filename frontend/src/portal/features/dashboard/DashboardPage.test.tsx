@@ -47,15 +47,17 @@ function mount({
   status,
   payments = [],
   config = SITE_CONFIG,
+  history = [],
 }: {
   user: User;
   status: MembershipStatus;
   payments?: PaymentSummary[];
   config?: SiteConfig;
+  history?: MembershipDetail['history'];
 }) {
   server.use(
     signedInAs(user),
-    http.get(`${API}/me/membership`, () => HttpResponse.json(membership(status))),
+    http.get(`${API}/me/membership`, () => HttpResponse.json({ ...membership(status), history })),
     http.get(`${API}/me/payments`, () => HttpResponse.json(payments)),
     http.get(`${API}/site/config`, () => HttpResponse.json(config)),
   );
@@ -165,6 +167,27 @@ describe('<DashboardPage/>', () => {
 
     await screen.findByRole('heading', { name: 'You have no membership yet' });
     expect(screen.queryByText(/friend of CalDART/)).not.toBeInTheDocument();
+  });
+
+  it('tells a member whose granted term is still to come when it starts, with nothing to pay', async () => {
+    const none: MembershipStatus = { ...FRIEND, status: 'none' };
+    mount({
+      user: makeUser({ kind: 'member', admin_created: true, membership: none }),
+      status: none,
+      history: [
+        {
+          id: 1,
+          plan: 'Annual',
+          starts_on: '2099-11-03',
+          ends_on: '2100-11-02',
+          status: 'active',
+          source: 'manual',
+        },
+      ],
+    });
+
+    await screen.findByRole('heading', { name: 'Your membership starts 11/03/2099' });
+    expect(screen.queryByRole('link', { name: 'Pay dues' })).not.toBeInTheDocument();
   });
 
   it('offers a member with no term yet Pay dues, which opens the checkout', async () => {

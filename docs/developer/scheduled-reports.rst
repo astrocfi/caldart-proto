@@ -56,7 +56,9 @@ is sent in.  The portal's form offers a subscription no fixed dates where a peri
 stands in for them: the contributions report has no ``year`` there, and the
 reconciliation report no ``from`` or ``to``.  Migration
 ``reports.0002_drop_fixed_dates`` cleared those filters from the subscriptions saved
-before, so each follows the day it is sent.
+before, so each follows the day it is sent; a reconciliation subscription it cleared
+that named no period was given ``last_month``.  The API refuses those filters on a
+subscription as well.
 
 The demo seed sets every subscription's ``next_due_on`` to the day it runs, so
 the daily job always has three ready to send: the membership report monthly to

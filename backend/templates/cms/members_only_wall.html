@@ -39,6 +39,16 @@
           <a class="button button--secondary" href="{% url 'portal' '' %}">Member portal</a>
         </p>
 
+      {% elif wall_state == "none" and starts_on %}
+        <p class="lede">
+          Your membership starts on
+          <span class="mono">{{ starts_on|date:"j F Y" }}</span>, and this page opens to you
+          that day.
+        </p>
+        <p class="cluster">
+          <a class="button button--secondary" href="{% url 'portal' '' %}">Member portal</a>
+        </p>
+
       {% elif wall_state == "none" %}
         <p class="lede">
           This page is open to CalDART members. Pay your dues to read it.

@@ -92,6 +92,15 @@ describe('PaymentsPage', () => {
     expect(screen.queryByRole('heading', { name: 'Automatic renewal' })).not.toBeInTheDocument();
   });
 
+  it('offers a member who has not paid their first dues no automatic renewal', async () => {
+    mount({
+      membership: { ...CURRENT_MEMBERSHIP, status: 'none', plan: null, expires_on: null },
+    });
+
+    expect(await screen.findByText(NO_RENEWAL_LEDE)).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Automatic renewal' })).not.toBeInTheDocument();
+  });
+
   it('shows a life member a renewal they still hold, so they can turn it off', async () => {
     mount({
       membership: LIFETIME_MEMBERSHIP,

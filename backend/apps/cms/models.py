@@ -15,6 +15,7 @@ the ``Members only`` document collection, through the hook in
 
 from __future__ import annotations
 
+from datetime import date
 from typing import TYPE_CHECKING, Any, ClassVar, Literal, TypedDict
 
 from django.conf import settings
@@ -41,7 +42,7 @@ from apps.cms.blocks import (
 from apps.cms.forms import RestrictedBlocksPageForm
 from apps.darts.models import Dart
 from apps.members.models import MembershipPlan, MembershipState
-from apps.members.services import MembershipStatusDict
+from apps.members.services import MembershipStatusDict, upcoming_term_start
 from caldart.casing import person_name
 
 if TYPE_CHECKING:
@@ -102,6 +103,7 @@ class MembersWallContext(TypedDict):
 
     wall_state: WallState
     membership: MembershipStatusDict | None
+    starts_on: date | None
 
 
 def user_can_access_members_content(user: User | AnonymousUser | None) -> bool:
@@ -138,14 +140,19 @@ def members_wall_state(user: User | AnonymousUser | None) -> WallState:
 
 
 def members_wall_context(user: User | AnonymousUser | None) -> MembersWallContext:
-    """The wall's own context for ``user``: ``wall_state`` and ``membership``.
+    """The wall's own context for ``user``: ``wall_state``, ``membership``, ``starts_on``.
 
     ``membership`` is the signed-in account's membership status dictionary, and
-    ``None`` for ``None`` and for an anonymous visitor.
+    ``None`` for ``None`` and for an anonymous visitor.  ``starts_on`` is, for the
+    ``none`` state, the day a granted term still to come starts
+    (``members.services.upcoming_term_start``), so the wall says when the page opens
+    rather than asking for dues; ``None`` otherwise.
     """
+    state = members_wall_state(user)
     if user is None or not user.is_authenticated:
-        return {"wall_state": members_wall_state(user), "membership": None}
-    return {"wall_state": members_wall_state(user), "membership": user.membership_status}
+        return {"wall_state": state, "membership": None, "starts_on": None}
+    starts_on = upcoming_term_start(user) if state == "none" else None
+    return {"wall_state": state, "membership": user.membership_status, "starts_on": starts_on}
 
 
 def ensure_members_only_collection() -> Collection:

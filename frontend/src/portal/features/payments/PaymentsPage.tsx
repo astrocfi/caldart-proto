@@ -11,6 +11,7 @@
 import type { JSX } from 'react';
 
 import { useRenewal } from '@/portal/api/queries';
+import { isWithoutTerm } from '@/portal/choices';
 import { Card } from '@/portal/components/Card';
 import { EmptyState } from '@/portal/components/EmptyState';
 import { Page } from '@/portal/components/Page';
@@ -28,10 +29,11 @@ export function PaymentsPage(): JSX.Element {
   const membership = useMembership();
   const renewal = useRenewal();
   // Until the membership is known the card stays, as it does for a member whose
-  // membership cannot be read: hiding it would take their own controls away.
+  // membership cannot be read: hiding it would take their own controls away.  A friend,
+  // and a member who has not paid their first dues, have nothing to renew.
   const renews =
     membership.data === undefined ||
-    (!membership.data.is_lifetime && membership.data.status !== 'friend');
+    (!membership.data.is_lifetime && !isWithoutTerm(membership.data.status));
   const held = renewal.data?.mandate;
   const holdsRenewal = held !== null && held !== undefined && held.status !== 'canceled';
   const showsRenewal = renews || holdsRenewal;

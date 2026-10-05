@@ -37,6 +37,7 @@ from apps.members.models import (
 from apps.members.services import (
     create_member,
     is_tombstone,
+    listed_kind,
     membership_of,
     membership_payload,
     update_member,
@@ -199,7 +200,7 @@ class MemberListSerializer(serializers.Serializer["MemberRow"]):
     phone = serializers.SerializerMethodField()
     dart = serializers.SerializerMethodField()
     is_active = serializers.BooleanField(read_only=True)
-    kind = serializers.ChoiceField(choices=AccountKind.choices, read_only=True)
+    kind = serializers.SerializerMethodField()
     membership = serializers.SerializerMethodField()
     pilot_certificate_type = serializers.SerializerMethodField()
     medical_type = serializers.SerializerMethodField()
@@ -233,6 +234,16 @@ class MemberListSerializer(serializers.Serializer["MemberRow"]):
         """The name of the DART the member belongs to, or ``None``."""
         profile = self._profile(obj)
         return profile.dart.name if profile and profile.dart is not None else None
+
+    @extend_schema_field(serializers.ChoiceField(choices=AccountKind.choices))
+    def get_kind(self, obj: MemberRow) -> str:
+        """The kind the Kind column and the member report show (``listed_kind``).
+
+        The effective kind for today, except that an account awaiting its first term is
+        a member: so a member whose change to friend has come reads ``friend``, and a
+        deactivated member whose terms are set aside reads ``member``.
+        """
+        return listed_kind(obj).value
 
     @extend_schema_field(MembershipStatusSerializer)
     def get_membership(self, obj: MemberRow) -> dict[str, Any]:

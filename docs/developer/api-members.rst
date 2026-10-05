@@ -132,13 +132,14 @@ The member table, filtered, ordered, and paginated with the project's standard
    }
 
 The row is ``MemberRow`` in ``frontend/src/portal/api/types.ts``.  ``kind`` is
-``member`` or ``friend``, as stored (:ref:`kinds of account <account-kinds>`): a donor is
-never a row.  An effective friend's ``membership.status`` is ``friend``, except
-for a row whose stored ``kind`` is ``member`` and who holds no started term that is
-active, expired, or suspended, which reads ``none`` (*No membership yet*): nobody is
-a member until a paid or granted term has started, and the list's **Kind** column
-shows such a row as a member, the kind it chose.  A member whose only started terms
-are suspended reads ``friend``.  ``joined_on`` is the start of the earliest membership term, or ``null`` for
+``member`` or ``friend``, the listed kind (``listed_kind``, :ref:`kinds of account
+<account-kinds>`) that the **Kind** column, the ``?kind=`` filter, and the member
+report all use: a donor is never a row.  An effective friend's ``membership.status``
+is ``friend``, except for a row whose stored ``kind`` is ``member`` and who holds no
+started term that is active, expired, or suspended, which reads ``none`` (*No
+membership yet*): nobody is a member until a paid or granted term has started, and
+such a row's ``kind`` is ``member``, the kind it chose.  A member whose only started
+terms are suspended reads ``friend`` with ``kind`` ``member``.  ``joined_on`` is the start of the earliest membership term, or ``null`` for
 somebody who has never had one.  ``profile_updated_at`` is when profile
 information was last written -- see :doc:`data-model` -- and ``null`` for a
 profile nobody has edited, or for an account with none.  An account with no

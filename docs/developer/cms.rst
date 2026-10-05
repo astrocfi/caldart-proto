@@ -154,7 +154,9 @@ to action, chosen by ``members_wall_state``:
 ``none``         A signed-in member who has never paid (membership ``none``).
                  Says "This page is open to CalDART members. Pay your dues to
                  read it." and offers **Pay dues**, a link to
-                 ``/portal/membership/join``.
+                 ``/portal/membership/join``; when a granted term is still to
+                 come (``starts_on``, from ``upcoming_term_start``), it names
+                 the day the page opens instead and asks for nothing.
 ``friend``       A signed-in friend of CalDART (:ref:`kinds of account <account-kinds>`).
                  Says "Friends of CalDART can read this page by becoming a
                  member." and offers **Make me a member**, a link to

@@ -13,6 +13,7 @@
 import type { JSX } from 'react';
 
 import type { MemberDetail, RenewalMandate } from '@/portal/api/types';
+import { isWithoutTerm } from '@/portal/choices';
 import { Card } from '@/portal/components/Card';
 import { ConfirmButton } from '@/portal/components/ConfirmButton';
 import type { ConfirmChoice } from '@/portal/components/ConfirmButton';
@@ -42,9 +43,12 @@ function renewalContribution(mandate: RenewalMandate | null | undefined): number
   return mandate.contribution_cents;
 }
 
-/** True when `member` is a member who can still be made a friend. */
+/**
+ * True when `member` is a member who can still be made a friend: not one already, nor a
+ * member with no term yet, who counts as a friend until they pay.
+ */
 function canBecomeFriend(member: MemberDetail): boolean {
-  if (member.kind !== 'member' || member.membership.status === 'friend') return false;
+  if (member.kind !== 'member' || isWithoutTerm(member.membership.status)) return false;
   return !(member.membership.is_lifetime && member.membership.status === 'current');
 }
 

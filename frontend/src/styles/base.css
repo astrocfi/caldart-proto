@@ -379,10 +379,48 @@ a:hover {
     align-content: start;
   }
 
-  /* A hidden hint keeps its row here, so the box stays level with its neighbor's. */
-  .form-grid > .field > .field__hint--hidden,
-  .aircraft-form__grid > .field > .field__hint--hidden {
+  /* Each part of a field keeps its own row, so a part that is not drawn leaves its row to
+   * the field beside it rather than pulling the parts under it up a row. */
+  :is(.form-grid, .aircraft-form__grid) > .field > .field__label {
+    grid-row: 1;
+  }
+
+  :is(.form-grid, .aircraft-form__grid) > .field > :is(.field__hint, .field__hint-slot) {
+    grid-row: 2;
+  }
+
+  :is(.form-grid, .aircraft-form__grid) > .field > :nth-child(3) {
+    grid-row: 3;
+  }
+
+  :is(.form-grid, .aircraft-form__grid) > .field > .field__status {
+    grid-row: 4;
+  }
+
+  :is(.form-grid, .aircraft-form__grid) > .field > .field__error {
+    grid-row: 5;
+  }
+
+  /* A hidden hint keeps its row here, so the box stays level with its neighbor's, which
+   * still shows a hint or has none to show. */
+  :is(.form-grid, .aircraft-form__grid) > .field > .field__hint--hidden {
     display: block;
+  }
+
+  /* When both fields of a row are refused, neither shows its hint and nothing needs
+   * holding level: the hint row gives up its room, leaving no blank band between the
+   * labels and the boxes.  A row is a field in an odd place among the fields and the one
+   * after it. */
+  :is(.form-grid, .aircraft-form__grid)
+    > .field:nth-child(odd of .field):has(> .field__hint--hidden):has(
+      + .field > .field__hint--hidden
+    )
+    > .field__hint--hidden,
+  :is(.form-grid, .aircraft-form__grid)
+    > .field:nth-child(odd of .field):has(> .field__hint--hidden)
+    + .field
+    > .field__hint--hidden {
+    display: none;
   }
 }
 

@@ -325,6 +325,26 @@ def test_a_contributions_subscription_refuses_a_fixed_year(
     }
 
 
+@pytest.mark.parametrize("key", ["from", "to"])
+def test_a_reconciliation_subscription_refuses_fixed_dates(
+    account_admin_client: APIClient, account_admin: User, key: str
+) -> None:
+    """Fixed dates would send the same rows every time, so the period says which."""
+    response = account_admin_client.post(
+        SUBSCRIPTIONS_URL,
+        new_subscription(report="reconciliation", filters={key: "2026-01-01"}),
+        format="json",
+    )
+
+    assert response.json() == {
+        "filters": {
+            key: [
+                "An emailed report covers a period counted from the day it goes. Choose a Period."
+            ]
+        }
+    }
+
+
 def test_a_contributions_subscription_may_cover_last_year(
     account_admin_client: APIClient, account_admin: User
 ) -> None:
