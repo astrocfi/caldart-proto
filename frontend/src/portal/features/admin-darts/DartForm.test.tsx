@@ -1,4 +1,4 @@
-import { fireEvent, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -84,15 +84,21 @@ describe('DartForm', () => {
     expect(handleSubmit).toHaveBeenCalledTimes(1);
   });
 
-  it('holds the error lines still while the focus leaves the airports for the submit button', async () => {
+  it('holds a line for the airports error while there is none, so nothing below moves', () => {
+    renderForm();
+    const airports = screen.getByRole('textbox', { name: /Airports/ });
+    expect(airports.closest('.field')?.querySelector('.field__status')).not.toBeNull();
+  });
+
+  it('gives the held line up to the airports error, so the field is one line taller in neither', async () => {
     const user = userEvent.setup();
     renderForm();
     const airports = screen.getByRole('textbox', { name: /Airports/ });
     await user.clear(airports);
+    await user.tab();
 
-    fireEvent.blur(airports, { relatedTarget: screen.getByRole('button', { name: 'Add DART' }) });
-
-    expect(screen.queryByText('Give the DART at least one airport.')).toBeNull();
+    const field = airports.closest('.field');
+    expect(field?.querySelectorAll('.field__status, .field__error')).toHaveLength(1);
   });
 
   it('checks the airports when the focus leaves them for another field', async () => {

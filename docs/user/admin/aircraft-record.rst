@@ -61,9 +61,9 @@ change has no such line. The form has four parts.
 
 **Owner**
    **Owner type** (Individual, FBO, or Flying club), **Owner name**, and **Owner contact**,
-   an email address or a phone number. A name typed, or filled from the registry, all in
-   capitals is saved in title case, *SKYWAYS AVIATION LLC* as **Skyways Aviation LLC**; one
-   typed in mixed case is kept as typed.
+   an email address or a phone number. A name filled from the FAA registry arrives in
+   title case, *SKYWAYS AVIATION LLC* as **Skyways Aviation LLC**; correct it if the
+   business spells itself otherwise. A business name you type is kept exactly as typed.
 
 **Insurance**
    **Carrier**, **Policy number**, **Liability per occurrence**, **Liability per person**,

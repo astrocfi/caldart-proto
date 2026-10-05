@@ -16,7 +16,8 @@
  * follow two of the screen's choices, Donor under Kind (a donor holds no
  * role) and the Member role (the report has no section for it), so while either is
  * chosen the exports and the column chooser are disabled, and a line beside them says
- * why.  A donor's row shows **No membership**, since a donor holds none.  An empty list
+ * why.  With a role chosen, a line under the filters says what that role lets its
+ * holders do.  A donor's row shows **No membership**, since a donor holds none.  An empty list
  * names the filters in force.  Name and Email
  * sort on the server; the other headings do not sort.
  */
@@ -41,6 +42,7 @@ import {
 } from '@/portal/components/useUrlListPosition';
 import { reportExportUrl } from '@/portal/reports/api';
 import type { FilterField, Option } from '@/portal/reports/types';
+import { useRoles } from '@/portal/auth/useAuth';
 import { useAdminUsers } from './api';
 import './users.css';
 
@@ -258,6 +260,8 @@ export function UsersListPage(): JSX.Element {
     [choice.tableColumns, choice.tableChosen],
   );
   const disabledReason = exportDisabledReason(role, kind);
+  // What the chosen role lets its holders do, in words under the filters.
+  const roleDescription = useRoles().data?.find((one) => one.slug === role)?.description;
   const exportParams = {
     search: filters.search ?? '',
     role,
@@ -283,12 +287,19 @@ export function UsersListPage(): JSX.Element {
         caption={query.isSuccess ? `${count} account${count === 1 ? '' : 's'}` : undefined}
         label="Accounts"
         filters={
-          <FilterBar
-            fields={FILTER_FIELDS}
-            values={filters}
-            onChange={(next) => setFilters(next)}
-            label="Filter accounts"
-          />
+          <>
+            <FilterBar
+              fields={FILTER_FIELDS}
+              values={filters}
+              onChange={(next) => setFilters(next)}
+              label="Filter accounts"
+            />
+            {roleDescription === undefined ? null : (
+              <p className="users-list__role">
+                <strong>{roleLabel(role)}</strong>: {roleDescription}
+              </p>
+            )}
+          </>
         }
         tools={
           <>

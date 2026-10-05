@@ -53,7 +53,12 @@ Column                Becomes
 ``MFR MDL CODE``      ``type``, the aircraft type with that ``faa_code``
 ``YEAR MFR``          ``year`` (blank is null)
 ``TYPE REGISTRANT``   ``registrant_type`` (below)
-``NAME``              ``registrant_name``
+``NAME``              ``registrant_name``, out of the registry's capitals: a
+                      person's or co-owners' through ``person_name``
+                      (``SMITH JOHN A`` is ``Smith John A``), any other's
+                      through ``business_name`` (``FOX FLYERS LLC`` is ``Fox
+                      Flyers LLC``), so a pick fills the owner's name ready to
+                      store
 ``STATUS CODE``       ``status`` (below)
 ``CERT ISSUE DATE``   ``certificate_issued_on`` (``YYYYMMDD``; blank is null)
 ``CERTIFICATION``     ``airworthiness``, from its first character (below)

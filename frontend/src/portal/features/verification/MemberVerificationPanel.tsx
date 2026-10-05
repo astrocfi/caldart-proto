@@ -8,7 +8,7 @@
 import { useRef, useState } from 'react';
 import type { FormEvent, JSX } from 'react';
 
-import type { LeaderStatus } from '@/portal/api/types';
+import type { LeaderStatus, VerificationItem } from '@/portal/api/types';
 import { CERTIFICATE_TYPES, MEDICAL_TYPES } from '@/portal/choices';
 import type { Choice } from '@/portal/choices';
 import { Button } from '@/portal/components/Button';
@@ -50,6 +50,8 @@ export interface MemberVerificationPanelProps {
    * record.  The panel then sends no field, only which items are verified.
    */
   checksOnly?: boolean;
+  /** What the record holds for each item, shown beside its box when only checks are offered. */
+  details?: Partial<Record<VerificationItem, string>>;
 }
 
 /**
@@ -63,6 +65,7 @@ export function MemberVerificationPanel({
   onSaved,
   onClose: handleClose,
   checksOnly = false,
+  details = {},
 }: MemberVerificationPanelProps): JSX.Element {
   // Freezes the opening draft so a refetch while the panel is open -- the status
   // card's own query, invalidated by another save -- cannot resend stale values
@@ -167,7 +170,12 @@ export function MemberVerificationPanel({
                   setDraft((current) => toggleItem(current, item, event.target.checked))
                 }
               />
-              <span>{ITEM_LABELS[item]} verified</span>
+              <span>
+                {ITEM_LABELS[item]} verified
+                {checksOnly && details[item] !== undefined ? (
+                  <span className="muted"> · {details[item]}</span>
+                ) : null}
+              </span>
             </label>
           ))}
         </fieldset>

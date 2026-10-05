@@ -366,8 +366,8 @@ expiry date whenever a medical class is given, a number whenever a certificate
 is — plus ``notes`` and ``how_heard``, and nothing mandatory.
 
 The user, of the kind posted, is granted the ``member`` role, marked
-``admin_created`` (the person has joined already, so the portal skips the join
-wizard for them, :doc:`api-auth`), and given an empty ``MemberProfile`` populated
+``admin_created`` (the person has joined already, so once the address is verified the
+portal skips the profile and pay steps for them, :doc:`api-auth`), and given an empty ``MemberProfile`` populated
 from ``profile``.  Its history (``GET /admin/users/{id}/history``) starts with a
 ``created`` entry under the administrator.  With no ``password`` the account gets an unusable
 password and ``apps.accounts.services.send_password_invitation`` emails an

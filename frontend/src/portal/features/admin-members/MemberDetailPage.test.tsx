@@ -134,6 +134,23 @@ describe('MemberDetailPage', () => {
     ).toBeInTheDocument();
   });
 
+  it('says when a member whose only term has not begun starts, rather than asking for a grant', async () => {
+    const base = makeDetail();
+    const future = makeDetail({
+      membership: { status: 'friend', expires_on: null, plan: null, is_lifetime: false },
+      memberships: base.memberships.map((term) => ({
+        ...term,
+        starts_on: '2099-11-03',
+        ends_on: '2100-11-02',
+      })),
+    });
+    server.use(...detailHandlers(future));
+    renderDetail();
+
+    const header = (await screen.findByText(/Membership starts/)).closest('.status');
+    expect(header).toHaveTextContent('Membership starts 11/03/2099');
+  });
+
   it('leaves out the expiry and joining dates a member with no term does not have', async () => {
     const noTerm = makeDetail({
       membership: { status: 'friend', expires_on: null, plan: null, is_lifetime: false },

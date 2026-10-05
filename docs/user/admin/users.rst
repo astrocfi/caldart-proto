@@ -63,7 +63,8 @@ at the end of the bar, empties them and puts **Account status** back on **Active
    Lovelace* finds one person and leaves out everyone else called Ada.
 
 **Role**
-   **Any role**, the first choice, or one role, to list the holders of that role.
+   **Any role**, the first choice, or one role, to list the holders of that role. A line
+   under the filters then says what that role lets its holders do.
 
 **Kind**
    **Any kind**, the first choice, **Member**, **Friend**, or **Donor**. This is the kind

@@ -28,6 +28,7 @@ import type {
   AccountChange,
   AccountChangeKind,
   AdminUser,
+  AdminUserDetail,
   AdminUserPatch,
   Aircraft,
   AircraftActor,
@@ -297,10 +298,11 @@ const passwordResetConfirm: Matches<
   PasswordResetConfirmPayload,
   Schemas['PasswordResetConfirmRequest']
 > = true;
-const adminUserPatch: Matches<AdminUserPatch, Schemas['PatchedAdminUserRequest']> = true;
+const adminUserPatch: Matches<AdminUserPatch, Schemas['PatchedAdminUserDetailRequest']> = true;
 const sendPasswordReset: Matches<SendPasswordResetResult, Schemas['SendPasswordResetResult']> =
   true;
 const adminUser: Matches<AdminUser, Schemas['AdminUser']> = true;
+const adminUserDetail: Matches<AdminUserDetail, Schemas['AdminUserDetail']> = true;
 const emailVerify: Matches<EmailVerifyPayload, Schemas['EmailVerifyRequest']> = true;
 const emailVerified: Matches<EmailVerifyResult, Schemas['EmailVerified']> = true;
 const emailChange: Matches<EmailChangePayload, Schemas['EmailChangeRequest']> = true;
@@ -608,6 +610,7 @@ const assertions: readonly true[] = [
   accountChange,
   accountChangeKind,
   adminUser,
+  adminUserDetail,
   emailVerify,
   emailVerified,
   emailChange,
@@ -827,9 +830,10 @@ const MAPPED_COMPONENTS: readonly (keyof Schemas)[] = [
   'PasswordChangeRequest',
   'PasswordResetRequest',
   'PasswordResetConfirmRequest',
-  'PatchedAdminUserRequest',
+  'PatchedAdminUserDetailRequest',
   'SendPasswordResetResult',
   'AdminUser',
+  'AdminUserDetail',
   'EmailVerifyRequest',
   'EmailVerified',
   'EmailChangeRequest',

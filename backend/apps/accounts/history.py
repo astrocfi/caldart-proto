@@ -23,13 +23,14 @@ def record_account_change(
     """Store one entry of ``target``'s history, and return it.
 
     ``actor`` is the account that acted, or the audit log's command actor (any string),
-    which is stored as no account.  ``added`` and ``removed`` are the role slugs a
-    ``roles`` change granted and took away, in the order given; every other kind
-    leaves them empty.  The entry is stamped with the present moment.
+    which is stored as no account with ``by_command`` set.  ``added`` and ``removed``
+    are the role slugs a ``roles`` change granted and took away, in the order given;
+    every other kind leaves them empty.  The entry is stamped with the present moment.
     """
     return AccountChange.objects.create(
         user=target,
         changed_by=actor if isinstance(actor, User) else None,
+        by_command=not isinstance(actor, User),
         kind=kind,
         added=list(added),
         removed=list(removed),

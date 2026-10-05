@@ -11,6 +11,7 @@ function change(overrides: Partial<AccountChange> = {}): AccountChange {
     id: 1,
     changed_at: AT,
     changed_by: { id: 7, name: 'Nina Kowalski' },
+    by_command: false,
     kind: 'roles',
     added: [],
     removed: [],
@@ -41,8 +42,12 @@ describe('changeWhat', () => {
 });
 
 describe('actorName', () => {
-  it('calls a change with no account behind it the system', () => {
-    expect(actorName(null)).toBe('The system');
+  it('calls a change a management command made the system', () => {
+    expect(actorName({ changed_by: null, by_command: true })).toBe('The system');
+  });
+
+  it('says a change by an account since deleted came from a deleted account', () => {
+    expect(actorName({ changed_by: null, by_command: false })).toBe('A deleted account');
   });
 });
 

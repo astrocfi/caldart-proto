@@ -2,7 +2,7 @@
  * The wording of a user record's history: one line per change to the account's roles
  * or status, in the words the record's own controls use.
  */
-import type { AccountActor, AccountChange, AccountChangeKind } from '@/portal/api/types';
+import type { AccountChange, AccountChangeKind } from '@/portal/api/types';
 import { roleLabel } from '@/portal/choices';
 import { formatDateTime } from '@/portal/components/DateText';
 
@@ -19,11 +19,12 @@ const DID: Record<Exclude<AccountChangeKind, 'roles'>, string> = {
 };
 
 /**
- * Who made a change: the account's name, or `The system` for a change a management
- * command made or an account since deleted.
+ * Who made a change: the account's name, `The system` for a change a management command
+ * made, or `A deleted account` for one whose account has since been deleted.
  */
-export function actorName(actor: AccountActor | null): string {
-  return actor === null ? 'The system' : actor.name;
+export function actorName(change: Pick<AccountChange, 'changed_by' | 'by_command'>): string {
+  if (change.changed_by !== null) return change.changed_by.name;
+  return change.by_command ? 'The system' : 'A deleted account';
 }
 
 /** What one change did: `gave Verifier and Treasurer; took away DART leader`. */
@@ -39,5 +40,5 @@ export function changeWhat(change: AccountChange): string {
 
 /** One history entry as a line: `10/04/2026 at 3:12 PM · Nina Kowalski · gave Verifier`. */
 export function changeLine(change: AccountChange): string {
-  return `${formatDateTime(change.changed_at)} · ${actorName(change.changed_by)} · ${changeWhat(change)}`;
+  return `${formatDateTime(change.changed_at)} · ${actorName(change)} · ${changeWhat(change)}`;
 }

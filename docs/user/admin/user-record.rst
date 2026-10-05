@@ -17,7 +17,10 @@ it. Five cards follow.
 
 **Membership**
    The kind of account (**Member**, **Friend**, or **Donor**), the membership status, and
-   *Profile complete* or *Profile incomplete*. A donor's card adds *A donor gave through the
+   *Profile complete* or *Profile incomplete*. A member with no term in force reads *No
+   membership yet* (or *No membership in force*), *Membership starts* and the date when
+   their term has not begun, or *Membership set aside while deactivated*, as on the
+   :doc:`member-record`. A donor's card adds *A donor gave through the
    public site and cannot sign in. Fix the email address here if a receipt went astray.* If
    you are an account administrator too, **Member record** opens the person's
    :doc:`member-record`, where a donor can be deleted.
@@ -43,7 +46,8 @@ it. Five cards follow.
    blocked reactivation*. It records an account an administrator created on
    :doc:`new-member`, each role given or taken away, and each deactivation, reactivation,
    block, and lifted block, including the person's own. A change made from the server's
-   command line reads *The system*. With none it reads *No change to this account's roles
+   command line reads *The system*, and one by an administrator whose account has since been
+deleted *A deleted account*. With none it reads *No change to this account's roles
    or status is recorded.*
 
 Nothing is saved until you press **Save changes**, and the message *Account saved.* confirms

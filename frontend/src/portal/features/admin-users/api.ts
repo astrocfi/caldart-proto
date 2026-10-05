@@ -8,6 +8,7 @@ import type {
   AccountChange,
   AccountKind,
   AdminUser,
+  AdminUserDetail,
   AdminUserPatch,
   Paginated,
   RoleSlug,
@@ -69,10 +70,10 @@ export function useAdminUsers(filters: AdminUserFilters): UseQueryResult<Paginat
 }
 
 /** One account's detail record by id, including when its email address was verified. */
-export function useAdminUser(id: string | number): UseQueryResult<AdminUser> {
+export function useAdminUser(id: string | number): UseQueryResult<AdminUserDetail> {
   return useQuery({
     queryKey: adminUserKey(id),
-    queryFn: () => api.get<AdminUser>(`/admin/users/${id}`),
+    queryFn: () => api.get<AdminUserDetail>(`/admin/users/${id}`),
   });
 }
 
@@ -102,10 +103,10 @@ export function useAdminUserHistory(id: string | number): UseQueryResult<Account
  */
 export function useUpdateAdminUser(
   id: string | number,
-): UseMutationResult<AdminUser, Error, AdminUserPatch> {
+): UseMutationResult<AdminUserDetail, Error, AdminUserPatch> {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (patch: AdminUserPatch) => api.patch<AdminUser>(`/admin/users/${id}`, patch),
+    mutationFn: (patch: AdminUserPatch) => api.patch<AdminUserDetail>(`/admin/users/${id}`, patch),
     onSuccess: (user) => {
       queryClient.setQueryData(adminUserKey(id), user);
       void queryClient.invalidateQueries({ queryKey: ADMIN_USERS_KEY });
@@ -175,11 +176,11 @@ export type AccountStatusAction = 'deactivate' | 'reactivate' | 'block' | 'unblo
  */
 export function useAccountStatusAction(
   id: string | number,
-): UseMutationResult<AdminUser, Error, AccountStatusAction> {
+): UseMutationResult<AdminUserDetail, Error, AccountStatusAction> {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (action: AccountStatusAction) =>
-      api.post<AdminUser>(`/admin/users/${id}/${action}`),
+      api.post<AdminUserDetail>(`/admin/users/${id}/${action}`),
     onSuccess: (user) => {
       queryClient.setQueryData(adminUserKey(id), user);
       return Promise.all([

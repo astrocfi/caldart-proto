@@ -37,3 +37,22 @@
   margin: 0;
   font-size: var(--text-sm);
 }
+
+/* A sentence in place of a membership dot wraps on a narrow screen, as words do, rather
+ * than pushing the page sideways the way a one-word status may not. */
+.membership-summary {
+  min-width: 0;
+}
+
+.membership-summary .status {
+  white-space: normal;
+}
+
+/* The account's address on a row of its own, its box no wider than a column's. */
+.account-fields__email {
+  grid-column: 1 / -1;
+}
+
+.account-fields__email > .field {
+  max-width: 32rem;
+}

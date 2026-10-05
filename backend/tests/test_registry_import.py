@@ -312,6 +312,13 @@ def test_an_imported_registration_points_at_its_type(small_registry: Path) -> No
     assert str(Registration.objects.get(n_number="N172SP").type) == "Cessna 172S"
 
 
+def test_an_import_stores_each_registrant_in_title_case(small_registry: Path) -> None:
+    """The registry's capitals are stored as a person's name or a business's reads."""
+    import_registry(str(small_registry))
+    names = dict(Registration.objects.values_list("n_number", "registrant_name"))
+    assert (names["N172SP"], names["N9EL"]) == ("Doe Jane", "Fox Flyers LLC")
+
+
 def test_an_import_writes_the_aliases() -> None:
     """The aliases resolve against the imported vocabulary."""
     import_registry(str(FIXTURE_DIR))

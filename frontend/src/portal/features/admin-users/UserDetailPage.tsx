@@ -11,7 +11,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { JSX } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
-import type { AdminUser, RoleSlug } from '@/portal/api/types';
+import type { AdminUser, AdminUserDetail, RoleSlug } from '@/portal/api/types';
 import { useAuth, useRoles } from '@/portal/auth/useAuth';
 import { ACCOUNT_KIND_LABELS, roleLabel } from '@/portal/choices';
 import { BouncedDot } from '@/portal/components/BouncedDot';
@@ -23,7 +23,8 @@ import { EmptyState } from '@/portal/components/EmptyState';
 import { Field } from '@/portal/components/Field';
 import { MaskedInput } from '@/portal/components/MaskedInput';
 import { MemberRecordLink } from '@/portal/components/MemberRecordLink';
-import { MembershipDot } from '@/portal/components/StatusDot';
+import { MembershipSummary } from '@/portal/features/admin-members/MembershipSummary';
+import type { MembershipFacts } from '@/portal/features/admin-members/MembershipSummary';
 import { Page } from '@/portal/components/Page';
 import {
   RefusedSubmitNote,
@@ -76,6 +77,19 @@ function blankNames(form: FormState): NameErrors {
 
 /** Why the System administrator box is grayed out for anybody who is not one. */
 const SYSTEM_ADMIN_ONLY = 'Only a system administrator can give or take away this role.';
+
+/** What the Membership card words the membership by, from the record's term facts. */
+function membershipFacts(user: AdminUserDetail): MembershipFacts {
+  return {
+    kind: user.kind,
+    isActive: user.is_active,
+    membership: user.membership,
+    friendOn: user.friend_on,
+    hasTerms: user.has_terms,
+    hasSetAside: user.has_suspended_term,
+    nextStartsOn: user.next_term_starts_on,
+  };
+}
 
 function displayName(user: AdminUser): string {
   return `${user.first_name} ${user.last_name}`.trim() || user.email;
@@ -166,7 +180,7 @@ export function UserDetailPage(): JSX.Element {
       <Card title="Membership">
         <div className="cluster">
           <span>{ACCOUNT_KIND_LABELS[user.kind]}</span>
-          <MembershipDot membership={user.membership} />
+          {isDonor ? null : <MembershipSummary facts={membershipFacts(user)} />}
           <span className="muted">
             {user.profile_complete ? 'Profile complete' : 'Profile incomplete'}
           </span>

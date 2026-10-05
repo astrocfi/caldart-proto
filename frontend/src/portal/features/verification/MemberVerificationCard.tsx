@@ -37,6 +37,15 @@ function itemDetail(item: VerificationItem, profile: AdminProfile): string {
   return PHOTO_ID_LABELS[profile.photo_id_type];
 }
 
+/** What the record holds for every item, for the checks-only panel to show beside each box. */
+function itemDetails(profile: AdminProfile): Record<VerificationItem, string> {
+  return {
+    certificate: itemDetail('certificate', profile),
+    medical: itemDetail('medical', profile),
+    photo_id: itemDetail('photo_id', profile),
+  };
+}
+
 export interface MemberVerificationCardProps {
   userId: number;
   profile: AdminProfile;
@@ -81,6 +90,7 @@ export function MemberVerificationCard({
           onSaved={handleSaved}
           onClose={handleCloseVerify}
           checksOnly={checksOnly}
+          details={checksOnly ? itemDetails(profile) : undefined}
         />
       </div>
     );

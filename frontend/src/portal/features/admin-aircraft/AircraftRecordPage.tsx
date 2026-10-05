@@ -35,6 +35,19 @@ import '@/portal/features/aircraft/aircraft.css';
 import './history.css';
 import './record.css';
 
+/** An email address with a line-break opportunity before its @, its only good place. */
+function EmailWithBreak({ email }: { email: string }): JSX.Element {
+  const at = email.indexOf('@');
+  if (at <= 0) return <>{email}</>;
+  return (
+    <>
+      {email.slice(0, at)}
+      <wbr />
+      {email.slice(at)}
+    </>
+  );
+}
+
 /** `/admin/aircraft/:id` page: edit, view pilots, and delete an aircraft record. */
 export function AircraftRecordPage(): JSX.Element {
   const { id } = useParams<{ id: string }>();
@@ -187,7 +200,9 @@ export function AircraftRecordPage(): JSX.Element {
               return (
                 <li key={pilot.user_id}>
                   <Link to={`/admin/members/${pilot.user_id}`}>{pilot.name}</Link>
-                  <span className="aircraft-pilots__email">{pilot.email}</span>
+                  <span className="aircraft-pilots__email">
+                    <EmailWithBreak email={pilot.email} />
+                  </span>
                   <StatusDot
                     tone={PILOT_MEMBERSHIP[pilot.membership_status].tone}
                     label={PILOT_MEMBERSHIP[pilot.membership_status].label}

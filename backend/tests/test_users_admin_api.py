@@ -24,7 +24,7 @@ from apps.accounts.roles import (
     USER_ADMIN,
     WEBSITE_ADMIN,
 )
-from apps.members.models import MembershipPlan
+from apps.members.models import MembershipPlan, MembershipStatusChoices
 from tests.conftest import role_matrix
 from tests.factories import DartFactory, MemberProfileFactory, MembershipFactory, UserFactory
 
@@ -621,3 +621,43 @@ def test_roles_are_available_to_any_authenticated_user(api_client: APIClient, me
     body = api_client.get(ROLES).json()
     assert [row["slug"] for row in body] == list(ROLE_SLUGS)
     assert all(row["description"] for row in body)
+
+
+# --------------------------------------------------------------------------
+# The record's term facts
+# --------------------------------------------------------------------------
+def test_the_record_says_an_account_holds_no_term(
+    api_client: APIClient, user_admin: User, member: User
+) -> None:
+    """An account without a term reads ``has_terms: false`` and no pending start."""
+    api_client.force_login(user_admin)
+    body = api_client.get(detail(member)).json()
+    assert (body["has_terms"], body["next_term_starts_on"]) == (False, None)
+
+
+def test_the_record_names_the_start_of_a_term_that_has_not_begun(
+    api_client: APIClient, user_admin: User, member: User, annual_plan: MembershipPlan, today: date
+) -> None:
+    """An active term starting after today is the record's ``next_term_starts_on``."""
+    starts = date(today.year + 1, 3, 1)
+    MembershipFactory(user=member, plan=annual_plan, starts_on=starts)
+    api_client.force_login(user_admin)
+    assert api_client.get(detail(member)).json()["next_term_starts_on"] == starts.isoformat()
+
+
+def test_the_record_says_a_deactivation_set_a_term_aside(
+    api_client: APIClient, user_admin: User, member: User, annual_plan: MembershipPlan
+) -> None:
+    """A suspended term reads ``has_suspended_term: true``."""
+    MembershipFactory(user=member, plan=annual_plan, status=MembershipStatusChoices.SUSPENDED)
+    api_client.force_login(user_admin)
+    assert api_client.get(detail(member)).json()["has_suspended_term"] is True
+
+
+def test_the_list_rows_carry_no_term_facts(
+    api_client: APIClient, user_admin: User, member: User
+) -> None:
+    """The term facts are the record's alone: a list row leaves them out."""
+    api_client.force_login(user_admin)
+    row = next(r for r in api_client.get(LIST).json()["results"] if r["id"] == member.pk)
+    assert "has_terms" not in row

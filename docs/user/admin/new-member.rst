@@ -63,9 +63,11 @@ tell them the password yourself. They are sent an email with the subject *CalDAR
 your email address*, and their address shows **Unverified** on their record until they open
 the link in it.
 
-Either way the person has joined already: their first sign-in opens the dashboard, never
-the join wizard (see :doc:`../member/join`), even with the address unverified, the profile
-half empty, or no term yet. Creating an account does not give anybody a membership, though:
+Either way the person has joined already. Until they verify the address (by setting a
+password through the invitation, or with the verification link), signing in asks them to
+check their email; after that their first sign-in opens the dashboard, never the rest of
+the join wizard (see :doc:`../member/join`), even with the profile half empty or no term
+yet. Creating an account does not give anybody a membership, though:
 until a term starts the account reads **Friend** on :doc:`members`, and *No membership yet:
 grant a term on Memberships* on its record. Grant a term on the **Memberships** tab of the
 :doc:`member-record`, or let the member pay online, and they are a member from that

@@ -82,6 +82,12 @@ def test_a_command_role_change_is_recorded_under_no_account(member: User) -> Non
     assert member.account_changes.get().changed_by is None
 
 
+def test_a_command_role_change_is_marked_as_the_commands(member: User) -> None:
+    """A command's change is told apart from a deleted actor's by ``by_command``."""
+    update_account(audit.COMMAND_ACTOR, member, {"roles": [MEMBER, VERIFIER]})
+    assert member.account_changes.get().by_command is True
+
+
 def test_deactivating_and_reactivating_are_recorded(user_admin: User, member: User) -> None:
     """An administrator's deactivation and reactivation each write an entry."""
     deactivate_account(user_admin, member)
@@ -170,7 +176,7 @@ def test_a_command_entry_has_no_actor(
     update_account(audit.COMMAND_ACTOR, member, {"roles": [MEMBER, VERIFIER]})
     api_client.force_login(user_admin)
     (row,) = api_client.get(history_url(member)).json()
-    assert row["changed_by"] is None
+    assert (row["changed_by"], row["by_command"]) == (None, True)
 
 
 def test_an_account_with_no_changes_has_an_empty_history(
@@ -192,4 +198,5 @@ def test_an_actor_since_deleted_leaves_the_entry_behind(member: User) -> None:
     actor = UserFactory(email="gone@example.test", roles=[MEMBER, USER_ADMIN])
     update_account(actor, member, {"roles": [MEMBER, VERIFIER]})
     actor.delete()
-    assert AccountChange.objects.get(user=member).changed_by is None
+    entry = AccountChange.objects.get(user=member)
+    assert (entry.changed_by, entry.by_command) == (None, False)

@@ -52,6 +52,7 @@ from apps.aircraft.models import (
     normalize_n_number,
 )
 from apps.aircraft.naming import display_make, display_model
+from caldart.casing import business_name, person_name
 
 log = logging.getLogger(__name__)
 
@@ -537,6 +538,26 @@ def _fold_custom_types() -> int:
     return folded
 
 
+#: The registrant types whose name is a person's, or several people's.
+PERSON_REGISTRANTS = frozenset(
+    {RegistrantType.INDIVIDUAL, RegistrantType.CO_OWNED, RegistrantType.NON_CITIZEN_CO_OWNED}
+)
+
+
+def registrant_display_name(name: str, registrant_type: str) -> str:
+    """The registry's capitals in the casing the register stores: ``name`` as it is shown.
+
+    A person's name, or co-owners', goes through :func:`caldart.casing.person_name`
+    (``SMITH JOHN A`` reads ``Smith John A``); any other registrant's through
+    :func:`caldart.casing.business_name` (``FOX FLYERS LLC`` reads ``Fox Flyers LLC``).
+    The aircraft form fills its owner's name from this, so a registry pick needs no
+    retyping, while a name a person types is stored as typed.
+    """
+    if registrant_type in PERSON_REGISTRANTS:
+        return person_name(name)
+    return business_name(name)
+
+
 def _write_registrations(rows: Iterator[RegistrationRow]) -> int:
     """Upsert a ``Registration`` for each of ``rows``; return how many were written.
 
@@ -555,7 +576,7 @@ def _write_registrations(rows: Iterator[RegistrationRow]) -> int:
             n_number=row.n_number,
             type_id=type_ids[row.faa_code],
             year=row.year,
-            registrant_name=row.registrant_name[:160],
+            registrant_name=registrant_display_name(row.registrant_name, row.registrant_type)[:160],
             registrant_type=row.registrant_type,
             status=row.status,
             certificate_issued_on=row.certificate_issued_on,

@@ -288,14 +288,7 @@ export function DartForm({
 
   const isLastNameless = isNameless(values.contacts.at(-1));
 
-  // Leaving Airports checks it, except on the way to the submit button: the check would
-  // change the error line above the button, moving the button out from under the click
-  // that left the box, and the submit checks the airports itself anyway.
-  const handleAirportsBlur = (event: React.FocusEvent<HTMLInputElement>): void => {
-    const next = event.relatedTarget;
-    if (next instanceof HTMLButtonElement && next.type === 'submit') return;
-    setAirportError(airportProblem(values.airport_identifiers));
-  };
+  const airportsError = airportError ?? freshErrors.airport_identifiers;
 
   const handleSubmit = (event: React.FormEvent): void => {
     event.preventDefault();
@@ -333,7 +326,11 @@ export function DartForm({
         <Field
           label="Airports"
           required
-          error={airportError ?? freshErrors.airport_identifiers}
+          error={airportsError}
+          // Leaving the box checks it, so its error line comes and goes as the focus moves
+          // on, to the submit button among others.  An empty line held in its place while
+          // there is no error keeps everything below, the button included, from moving.
+          status={airportsError ? undefined : <span aria-hidden="true">{'\u00a0'}</span>}
           hint="The fields the team flies from, separated by commas, such as CCR, C83. Leave off the leading K: CRQ, not KCRQ."
         >
           {(props) => (
@@ -347,7 +344,7 @@ export function DartForm({
                 set('airport_identifiers', next);
                 setAirportError(null);
               }}
-              onBlur={handleAirportsBlur}
+              onBlur={() => setAirportError(airportProblem(values.airport_identifiers))}
             />
           )}
         </Field>

@@ -5,9 +5,9 @@ import { HttpResponse, http } from 'msw';
 import { Route, Routes } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 
-import type { AccountChange, AdminUser, User } from '@/portal/api/types';
+import type { AccountChange, AdminUserDetail, User } from '@/portal/api/types';
 import { formatDateTime } from '@/portal/components/DateText';
-import { API, makeAdminUser, makeUser, signedInAs } from '@test/handlers';
+import { API, makeAdminUserDetail, makeUser, signedInAs } from '@test/handlers';
 import { renderWithProviders, signedInClient } from '@test/render';
 import { server } from '@test/server';
 import { UserDetailPage } from './UserDetailPage';
@@ -18,7 +18,7 @@ const ROLES = [
   { slug: 'system_admin', description: 'Everything, plus backups and health.' },
 ];
 
-const TARGET = makeAdminUser({
+const TARGET = makeAdminUserDetail({
   id: 7,
   email: 'priya@example.org',
   first_name: 'Priya',
@@ -27,14 +27,14 @@ const TARGET = makeAdminUser({
 });
 
 /** `TARGET` with an address the bounce check found bouncing at noon UTC, October 1st. */
-const BOUNCED = makeAdminUser({
+const BOUNCED = makeAdminUserDetail({
   ...TARGET,
   email_bounced_at: '2026-10-01T12:00:00Z',
   email_bounce_detail: '5.1.1 550 User unknown',
 });
 
 interface StubOptions {
-  target?: AdminUser;
+  target?: AdminUserDetail;
   me?: User;
   patch?: Parameters<typeof http.patch>[1];
   history?: AccountChange[];
@@ -240,7 +240,11 @@ describe('UserDetailPage', () => {
      * Answer `POST .../{action}` with `answer`, and from then on serve `answer` as the
      * record too, as the server would once the action has gone through.
      */
-    function stubAction(action: string, answer: AdminUser | { detail: string }, status = 200) {
+    function stubAction(
+      action: string,
+      answer: AdminUserDetail | { detail: string },
+      status = 200,
+    ) {
       const calls: string[] = [];
       server.use(
         http.post(`${API}/admin/users/${TARGET.id}/${action}`, () => {
@@ -547,7 +551,7 @@ describe('UserDetailPage', () => {
   });
 
   describe('for a donor', () => {
-    const DONOR = makeAdminUser({
+    const DONOR = makeAdminUserDetail({
       id: 9,
       email: 'gil@example.org',
       first_name: 'Gil',
@@ -584,6 +588,30 @@ describe('UserDetailPage', () => {
     });
   });
 
+  it('words a member with no term as the member record does, not as a friend', async () => {
+    const noTerm = makeAdminUserDetail({
+      ...TARGET,
+      membership: { status: 'friend', expires_on: null, plan: null, is_lifetime: false },
+      has_terms: false,
+    });
+    stubDetail({ target: noTerm });
+    renderDetail();
+    expect(await screen.findByText('No membership yet')).toBeInTheDocument();
+  });
+
+  it('says when a member whose term has not begun starts', async () => {
+    const pending = makeAdminUserDetail({
+      ...TARGET,
+      membership: { status: 'friend', expires_on: null, plan: null, is_lifetime: false },
+      next_term_starts_on: '2099-11-03',
+    });
+    stubDetail({ target: pending });
+    renderDetail();
+    expect(await screen.findByText(/Membership starts/)).toHaveTextContent(
+      'Membership starts 11/03/2099',
+    );
+  });
+
   it('grays out System administrator for a user administrator, and says why', async () => {
     stubDetail();
     renderDetail();
@@ -612,6 +640,7 @@ describe('UserDetailPage', () => {
           id: 2,
           changed_at: '2026-10-04T22:12:00Z',
           changed_by: { id: 1, name: 'Nina Kowalski' },
+          by_command: false,
           kind: 'blocked',
           added: [],
           removed: [],
@@ -620,6 +649,7 @@ describe('UserDetailPage', () => {
           id: 1,
           changed_at: '2026-10-03T16:00:00Z',
           changed_by: { id: 1, name: 'Nina Kowalski' },
+          by_command: false,
           kind: 'roles',
           added: ['dart_leader'],
           removed: [],

@@ -133,8 +133,8 @@ class User(AbstractUser):
     #: is set, no sign-in, password reset, or registration brings the account back.
     reactivation_blocked = models.BooleanField(default=False)
     #: True for an account an account administrator created on **New member**.  Such a
-    #: person has joined already, as a member or a friend, so their first sign-in opens
-    #: the portal rather than the join wizard and its pay step.
+    #: person has joined already, as a member or a friend, so once the address is
+    #: verified their sign-in opens the portal rather than the profile and pay steps.
     admin_created = models.BooleanField(default=False)
 
     USERNAME_FIELD = "email"
@@ -292,7 +292,8 @@ class AccountChange(models.Model):
     role granted or taken away, and an account deactivated, reactivated, blocked from
     reactivating, or allowed to reactivate again.  ``changed_by`` is the account that
     acted, which is the account itself when its owner deactivated or reactivated it,
-    and ``None`` for a management command or an actor since deleted.  ``added`` and
+    and ``None`` for a management command (``by_command`` is then true) or an actor
+    since deleted.  ``added`` and
     ``removed`` hold role slugs in privilege order, and are empty for every kind but
     ``roles``.
     """
@@ -306,6 +307,8 @@ class AccountChange(models.Model):
         related_name="account_changes_made",
     )
     changed_at = models.DateTimeField(default=timezone.now)
+    #: True for a change a management command made, which no account stands behind.
+    by_command = models.BooleanField(default=False)
     kind = models.CharField(max_length=12, choices=AccountChangeKind.choices)
     added = models.JSONField(default=list, blank=True)
     removed = models.JSONField(default=list, blank=True)

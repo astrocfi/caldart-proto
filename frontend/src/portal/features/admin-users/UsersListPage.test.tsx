@@ -500,6 +500,20 @@ describe('UsersListPage', () => {
     expect(screen.getByText(DONOR_TITLE)).toBeInTheDocument();
   });
 
+  it('says under the filters what the chosen role lets its holders do', async () => {
+    stubList();
+    server.use(
+      http.get(`${API}/roles`, () =>
+        HttpResponse.json([{ slug: 'treasurer', description: 'See every payment.' }]),
+      ),
+    );
+    renderWithProviders(<UsersListPage />, { route: '/admin/users?role=treasurer' });
+
+    expect(await screen.findByText(/See every payment\./)).toHaveTextContent(
+      'Treasurer: See every payment.',
+    );
+  });
+
   it('shows No membership for a donor rather than a membership dot', async () => {
     stubList([GIL]);
     renderWithProviders(<UsersListPage />);

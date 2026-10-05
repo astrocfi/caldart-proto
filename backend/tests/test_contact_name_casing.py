@@ -4,8 +4,7 @@ An emergency contact, a DART contact, an individual aircraft owner, and a DART p
 leader are each saved in the casing ``caldart.casing.person_name`` gives, and
 ``manage.py normalize_casing`` rewrites the rows already stored
 (``docs/developer/data-model.rst``).  An FBO's or a flying club's owner name is a
-business name: typed in one case it is title-cased with ``caldart.casing.business_name``,
-and typed in mixed case it is kept.
+business name and is kept as typed.
 """
 
 from __future__ import annotations
@@ -87,19 +86,11 @@ def test_saving_an_individual_owner_normalizes_the_owner_name() -> None:
 
 
 @pytest.mark.parametrize("owner_type", [OwnerType.FBO, OwnerType.CLUB], ids=["fbo", "club"])
-def test_a_business_owner_name_in_capitals_is_title_cased(owner_type: OwnerType) -> None:
-    """A business owner in capitals is title-cased, keeping ``LLC`` upper case."""
+def test_a_business_owner_name_is_kept_as_typed(owner_type: OwnerType) -> None:
+    """An FBO's or a flying club's name is a business name, kept as typed."""
     aircraft = AircraftFactory(owner_type=owner_type, owner_name="SKYHAWK AVIATION LLC")
     aircraft.refresh_from_db()
-    assert aircraft.owner_name == "Skyhawk Aviation LLC"
-
-
-@pytest.mark.parametrize("owner_type", [OwnerType.FBO, OwnerType.CLUB], ids=["fbo", "club"])
-def test_a_business_owner_name_in_mixed_case_is_kept_as_typed(owner_type: OwnerType) -> None:
-    """A business name typed in mixed case, such as ``SkyWest``, is kept."""
-    aircraft = AircraftFactory(owner_type=owner_type, owner_name="SkyWest Aviation")
-    aircraft.refresh_from_db()
-    assert aircraft.owner_name == "SkyWest Aviation"
+    assert aircraft.owner_name == "SKYHAWK AVIATION LLC"
 
 
 def test_publishing_a_dart_page_normalizes_the_leader_name() -> None:
@@ -119,7 +110,7 @@ def test_cleaning_a_dart_page_normalizes_the_leader_name() -> None:
 
 
 def test_normalize_casing_rewrites_the_other_names_already_stored() -> None:
-    """The command rewrites each kind of stored name, a business owner's included."""
+    """The command rewrites each kind of stored name, and leaves a business name alone."""
     profile = MemberProfile.objects.create(user=UserFactory())
     MemberProfile.objects.filter(pk=profile.pk).update(emergency_contact_name="MARY LEE")
     contact = DartContactFactory()
@@ -144,7 +135,7 @@ def test_normalize_casing_rewrites_the_other_names_already_stored() -> None:
         "Mary Lee",
         "Helen McDonald",
         "John Smith",
-        "Skyhawk Aviation LLC",
+        "SKYHAWK AVIATION LLC",
         "Helen Marchetti",
     )
 

@@ -39,9 +39,9 @@ chosen to be a friend instead on the pay step. A friend has finished once the
 profile is saved; paying is optional. A member whose membership has expired has
 already joined: the portal stays open to them, and they renew from it (see
 :doc:`renew`). Only a member who has never held a paid membership is held at the
-pay step. An account an administrator created for you
-works the same way: if its profile is missing something, your first sign-in opens
-the profile step.
+pay step. An account an administrator created for you has joined already: once you
+have verified its address, your first sign-in opens the dashboard, with no profile or
+pay step, and you fill in the rest of your profile when you like.
 
 
 Step 1: Account

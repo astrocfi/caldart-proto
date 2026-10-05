@@ -10,15 +10,13 @@ contracts are ``docs/developer/api-auth.rst`` and ``docs/developer/api-members.r
 
 from __future__ import annotations
 
-from io import StringIO
-
 import pytest
-from django.core.management import call_command
 from rest_framework.test import APIClient
 
 from apps.accounts.models import User
 from apps.accounts.roles import MEMBER, ROLE_DESCRIPTIONS, SYSTEM_ADMIN
-from apps.aircraft.models import Aircraft, OwnerType
+from apps.aircraft.models import OwnerType, RegistrantType
+from apps.aircraft.registry import registrant_display_name
 from caldart.casing import business_name
 from tests.conftest import ME_URL, REGISTER_URL, register_payload
 from tests.factories import AircraftFactory
@@ -89,38 +87,40 @@ def test_a_refused_system_administrator_grant_names_the_role_in_words(
 
 
 @pytest.mark.parametrize(
-    ("typed", "stored"),
+    ("registered", "shown"),
     [
         ("SKYWAYS AVIATION LLC", "Skyways Aviation LLC"),
-        ("bay area flying club", "Bay Area Flying Club"),
-        ("SkyWest Aviation", "SkyWest Aviation"),
+        ("SKYWAYS AVIATION OF NAPA L.L.C.", "Skyways Aviation of Napa L.L.C."),
         ("  NORTH  BAY FBO ", "North Bay FBO"),
+        ("SkyWest Aviation", "SkyWest Aviation"),
         ("", ""),
     ],
-    ids=["registry-capitals", "lower-case", "mixed-case-kept", "spaces-and-fbo", "blank"],
+    ids=["capitals", "small-word-and-periods", "spaces-and-fbo", "mixed-case-kept", "blank"],
 )
-def test_business_name(typed: str, stored: str) -> None:
-    """A one-case business name is title-cased with its abbreviations kept upper case."""
-    assert business_name(typed) == stored
+def test_business_name(registered: str, shown: str) -> None:
+    """A registry's capitals read in title case, the abbreviations kept upper case."""
+    assert business_name(registered) == shown
 
 
-def test_a_flying_clubs_name_from_the_registry_is_stored_title_cased() -> None:
-    """An owner that is not a person, typed in capitals, is saved in title case."""
-    aircraft = AircraftFactory(owner_type=OwnerType.CLUB, owner_name="DELTA FLYING CLUB INC")
+@pytest.mark.parametrize(
+    ("name", "registrant_type", "shown"),
+    [
+        ("SMITH JOHN A", RegistrantType.INDIVIDUAL, "Smith John A"),
+        ("MCDONALD ANN", RegistrantType.CO_OWNED, "McDonald Ann"),
+        ("FOX FLYERS LLC", RegistrantType.LLC, "Fox Flyers LLC"),
+        ("DELTA FLYING CLUB INC", RegistrantType.CORPORATION, "Delta Flying Club Inc"),
+    ],
+    ids=["individual", "co-owned", "llc", "corporation"],
+)
+def test_a_registrant_is_shown_in_the_casing_the_register_stores(
+    name: str, registrant_type: RegistrantType, shown: str
+) -> None:
+    """A person's name follows the person-name rule, and a business's the business one."""
+    assert registrant_display_name(name, registrant_type) == shown
+
+
+def test_a_business_owner_a_person_typed_is_kept_as_typed() -> None:
+    """An FBO's name typed in capitals is saved exactly as typed: ``KPAO FBO`` stays."""
+    aircraft = AircraftFactory(owner_type=OwnerType.FBO, owner_name="KPAO FBO")
     aircraft.refresh_from_db()
-    assert aircraft.owner_name == "Delta Flying Club Inc"
-
-
-def test_a_person_owner_is_still_cased_as_a_name() -> None:
-    """An individual owner keeps the person-name rules: ``MCDONALD`` is ``McDonald``."""
-    aircraft = AircraftFactory(owner_type=OwnerType.INDIVIDUAL, owner_name="ANN MCDONALD")
-    assert aircraft.owner_name == "Ann McDonald"
-
-
-def test_normalize_casing_title_cases_a_stored_business_owner() -> None:
-    """``manage.py normalize_casing`` gives a club stored in capitals its saved casing."""
-    aircraft = AircraftFactory(owner_type=OwnerType.CLUB, owner_name="x")
-    Aircraft.objects.filter(pk=aircraft.pk).update(owner_name="BAY AREA FLYING CLUB LLC")
-    call_command("normalize_casing", stdout=StringIO())
-    aircraft.refresh_from_db()
-    assert aircraft.owner_name == "Bay Area Flying Club LLC"
+    assert aircraft.owner_name == "KPAO FBO"

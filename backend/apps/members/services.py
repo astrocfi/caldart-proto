@@ -250,11 +250,11 @@ def create_member(
     mail server that refuses it is logged (``caldart.mail.send_on_commit``) rather than
     failing the committed create.
     ``request`` only tells the invitation which site's name and contact address to
-    use.  The account is marked ``admin_created``, so its owner's first sign-in opens the
-    portal rather than the join wizard, and its history starts with a ``created`` entry
-    under ``actor``.  The new
-    profile's ``profile_updated_at`` is stamped as the moment it was created.  The
-    ``member_added`` event is raised with the account and ``actor``.
+    use.  The account is marked ``admin_created``, so once the address is verified its
+    owner's sign-in opens the portal rather than the profile and pay steps, and its
+    history starts with a ``created`` entry under ``actor``.  The new profile's
+    ``profile_updated_at`` is stamped as the moment it was created.  The ``member_added``
+    event is raised with the account and ``actor``.
     """
     user = create_account(
         email=email, password=password, first_name=first_name, last_name=last_name, kind=kind

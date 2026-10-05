@@ -79,7 +79,8 @@ export interface User {
   friend_on: IsoDate | null;
   /**
    * True for an account an account administrator created on New member: its owner has
-   * joined already, so the portal opens for them without the join wizard.
+   * joined already, so once the address is verified the portal skips the profile and
+   * pay steps.
    */
   admin_created: boolean;
 }
@@ -176,13 +177,15 @@ export type AccountChangeKind =
 
 /**
  * One row of `GET /admin/users/{id}/history`, newest first.  `changed_by` is null for a
- * management command or an account since deleted; `added` and `removed` are the role
+ * management command (`by_command`) or an account since deleted; `added` and `removed` are the role
  * slugs a `roles` entry granted and took away, and empty for every other kind.
  */
 export interface AccountChange {
   id: number;
   changed_at: IsoDateTime;
   changed_by: AccountActor | null;
+  /** True for a change a management command made; false with no actor means one since deleted. */
+  by_command: boolean;
   kind: AccountChangeKind;
   added: RoleSlug[];
   removed: RoleSlug[];
@@ -192,6 +195,17 @@ export interface AccountChange {
 export interface AccountActor {
   id: number;
   name: string;
+}
+
+/**
+ * `GET|PATCH /admin/users/{id}` and the record's status actions: the list's row plus
+ * what the record needs to word the membership as the member record does.
+ * `next_term_starts_on` is the start of the earliest active term that has not begun.
+ */
+export interface AdminUserDetail extends AdminUser {
+  has_terms: boolean;
+  has_suspended_term: boolean;
+  next_term_starts_on: IsoDate | null;
 }
 
 /**

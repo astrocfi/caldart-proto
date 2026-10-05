@@ -58,11 +58,12 @@ export function nextJoinStep(step: JoinStep): JoinStep {
  * has a member who asked to become a friend (`friend_on` is set).  Nobody signed in
  * has not joined.  This is the one definition: the wizard's resume point, the route
  * guard, and the layout's rail all read it.  An account an administrator created on New
- * member has joined already, whatever it still lacks: the person never sees the wizard.
+ * member has joined already once its address is verified: it owes neither the profile
+ * step nor the pay step, and only the verify step stands in its way.
  */
 export function isOnboarded(user: User | null): boolean {
   if (user === null) return false;
-  if (user.admin_created) return true;
+  if (user.admin_created) return user.email_verified;
   return user.email_verified && user.profile_complete && !owesFirstDues(user);
 }
 

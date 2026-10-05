@@ -3,6 +3,7 @@ import type { HttpHandler } from 'msw';
 
 import type {
   AdminUser,
+  AdminUserDetail,
   DonorRow,
   MembershipStatus,
   NotificationEvent,
@@ -119,6 +120,25 @@ export function makeAdminUser(overrides: Partial<AdminUser> = {}): AdminUser {
     city,
     county,
     home_airport,
+  };
+}
+
+/**
+ * Build an `/admin/users/{id}` record: `makeAdminUser`, plus the term facts the record
+ * words the membership by, with a term on file and nothing pending or set aside.
+ */
+export function makeAdminUserDetail(overrides: Partial<AdminUserDetail> = {}): AdminUserDetail {
+  const {
+    has_terms = true,
+    has_suspended_term = false,
+    next_term_starts_on = null,
+    ...userOverrides
+  } = overrides;
+  return {
+    ...makeAdminUser(userOverrides),
+    has_terms,
+    has_suspended_term,
+    next_term_starts_on,
   };
 }
 

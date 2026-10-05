@@ -1557,7 +1557,7 @@ and ``PermissionsMixin`` classes it builds on.
    * - ``admin_created``
      - ``BooleanField``
      - not null; default ``False``
-     - true for an account an account administrator created on New member (``members.services.create_member``): its owner has joined already, so the portal opens without the join wizard
+     - true for an account an account administrator created on New member (``members.services.create_member``): its owner has joined already, so once the address is verified the portal opens without the profile and pay steps
    * - ``reactivation_blocked``
      - ``BooleanField``
      - not null; default ``False``
@@ -1756,6 +1756,10 @@ writes this row beside the audit line for the same change.  It does not inherit
      - ``DateTimeField``
      - not null; default now
      - when the change happened
+   * - ``by_command``
+     - ``BooleanField``
+     - not null; default ``False``
+     - true for a change a management command made, so a null ``changed_by`` tells a command from an actor since deleted
    * - ``kind``
      - ``CharField(12)``, choices :ref:`AccountChangeKind <choices-account-change-kind>`
      - not null; required
@@ -2726,8 +2730,8 @@ than copying it, so an insurance renewal entered once is right for everybody.
      - ``CharField(160)``
      - not null; default ``""``
      - the owner's name; an individual's is stored through ``caldart.casing.person_name``
-       (see ``User``), an FBO's or a club's through ``caldart.casing.business_name``:
-       title case for a name in one case, its abbreviations (``LLC``, ``FBO``) upper case
+       (see ``User``), an FBO's or a club's as typed; a name filled from the registry
+       arrives cased already (``Registration.registrant_name``)
    * - ``owner_contact``
      - ``CharField(200)``
      - not null; default ``""``
@@ -3097,7 +3101,10 @@ holds the registration.  No address is kept.  It does not inherit
    * - ``registrant_name``
      - ``CharField(160)``
      - not null; default ``""``
-     - who holds the registration
+     - who holds the registration, in the casing the register stores rather than the
+       registry's capitals: a person's or co-owners' name through
+       ``caldart.casing.person_name``, any other through ``caldart.casing.business_name``
+       (``apps.aircraft.registry.registrant_display_name``)
    * - ``registrant_type``
      - ``CharField(24)``, choices :ref:`RegistrantType <choices-registrant-type>`
      - not null; default ``"unknown"``

@@ -157,10 +157,12 @@ Every endpoint that returns an account returns the same object:
 ``admin_created``
    True for an account an account administrator created on New member
    (``POST /admin/members``, :doc:`api-members`), with or without a password.
-   Such a person has joined already, as a member or a friend, so the portal treats
-   them as onboarded whatever ``email_verified``, ``profile_complete``, and
-   ``membership`` say, and their first sign-in opens the dashboard rather than the
-   join wizard.  False for an account made any other way.  Read-only everywhere.
+   Such a person has joined already, as a member or a friend, so once
+   ``email_verified`` is true the portal treats them as onboarded whatever
+   ``profile_complete`` and ``membership`` say: their first sign-in after verifying
+   opens the dashboard rather than the profile or pay step.  An unverified one is
+   held at the verify step like anybody else, since the API refuses an unverified
+   session (see `Unverified sessions`_).  False for an account made any other way.  Read-only everywhere.
 
 The payload is read-only everywhere except ``PATCH /admin/users/{id}``, whose
 answer also carries ``email_verified_at`` (below).
@@ -785,7 +787,12 @@ end.
 ``GET /admin/users/{id}``
 -------------------------
 
-One user payload, exactly as the list returns it.
+One user payload as the list returns it, plus three facts about the account's terms that
+the user record words the membership by, since a user administrator cannot read the
+terms themselves: ``has_terms`` (any term at all), ``has_suspended_term`` (a deactivation
+set one aside), and ``next_term_starts_on`` (the start of the earliest active term that
+has not begun, or ``null``).  ``PATCH`` and the account status actions below answer in
+this shape too; the list leaves the three out, since each costs a query per row.
 
 Statuses: **200**; **401** when anonymous; **403** without ``user_admin``;
 **404** for an unknown id.
@@ -966,15 +973,17 @@ including the owner's own deactivation and reactivation.
 
    [
      {"id": 7, "changed_at": "2026-10-04T15:12:00-07:00",
-      "changed_by": {"id": 3, "name": "Nina Kowalski"}, "kind": "roles",
-      "added": ["dart_leader"], "removed": []},
+      "changed_by": {"id": 3, "name": "Nina Kowalski"}, "by_command": false,
+      "kind": "roles", "added": ["dart_leader"], "removed": []},
      {"id": 2, "changed_at": "2026-09-01T10:00:00-07:00",
-      "changed_by": null, "kind": "deactivated", "added": [], "removed": []}
+      "changed_by": null, "by_command": true, "kind": "deactivated",
+      "added": [], "removed": []}
    ]
 
 ``changed_by`` is the acting account's id and name, which is the account itself for
-its owner's own change, and ``null`` for a management command or an account since
-deleted.  ``added`` and ``removed`` are the role slugs a ``roles`` row granted and
+its owner's own change, and ``null`` for a management command (``by_command`` true,
+read as *The system*) or an account since deleted (``by_command`` false, read as *A
+deleted account*).  ``added`` and ``removed`` are the role slugs a ``roles`` row granted and
 took away, in privilege order, and empty for every other kind.
 
 Statuses: **200**; **401** when anonymous; **403** without ``user_admin``;
@@ -1236,7 +1245,7 @@ person presses one — no address signs anybody out by being opened.
 ``/login?next=<where they were going>`` and a missing role into the 403 page.
 ``RequireOnboarded``, nested inside ``RequireAuth`` around every signed-in route
 except ``/change-email``, sends a reader who has not finished joining
-(``isOnboarded`` in ``features/join/steps.ts``, always true for an account with
+(``isOnboarded`` in ``features/join/steps.ts``, true for a verified account with
 ``admin_created``) to ``/join/verify``,
 ``/join/profile``, or ``/join/pay``, whichever they still owe; the portal chrome
 draws no rail for them (see :doc:`architecture`).

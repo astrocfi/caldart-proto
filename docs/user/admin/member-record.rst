@@ -27,8 +27,9 @@ on a donor's record, when you have that tab). A summary strip under the name car
 - their membership status: **Current**, **Expiring soon**, **Expired**, **Friend**, or
   **Never expires** for a life member. A member with no term in force reads *No membership
   yet: grant a term on Memberships* (or *No membership in force* when every term was
-  canceled), and a deactivated member whose terms were set aside reads *Membership set
-  aside while deactivated*;
+  canceled), one whose next term has not begun *Membership starts* and its date, and a
+  deactivated member whose terms were set aside reads *Membership set aside while
+  deactivated*;
 - the plan, the expiry date, and *joined* with the date their first term began, each left
   out when there is none;
 - *Profile updated* with the date the profile was last changed, or *Profile never edited*.
@@ -41,8 +42,7 @@ on a donor's record, when you have that tab). A summary strip under the name car
   the flag on the :doc:`user-record`.
 
 Below the strip are four tabs: **Profile**, **Memberships**, **Payments**, and **Delete or
-deactivate**; on a phone the row scrolls sideways. The arrow keys move between them. The tab
-is part of the page's address, so you can send a colleague straight to somebody's payments.
+deactivate**, which the arrow keys move between. The tab is part of the page's address.
 
 
 Profile
@@ -51,8 +51,9 @@ Profile
 A **Verification** card heads the tab. It lists **Pilot certificate**, **Medical**, and
 **Photo ID**, each with what the record holds (such as *Private · 1234567* or *Third class
 · expires 01/31/2027*) and its mark, read as on the :doc:`member-check`; an item not held,
-such as *Not a pilot*, has none. **Verify** opens the checks alone: check each item you have seen
-on the documents and press **Save verification**; *Verification saved*
+such as *Not a pilot*, has none. **Verify** opens the checks alone, each with what the
+record holds beside it: check each item you have seen on the documents and press **Save
+verification**; *Verification saved*
 confirms it. Correct a wrong number or date in the form below and save it first. A record
 with no profile yet has no Verification card, and one for a donor or a deactivated account
 has no **Verify**, since neither can fly.
@@ -206,10 +207,9 @@ Delete this member
 ------------------
 
 The card is for a duplicate, a spam sign-up, a test record, or a person who asks to be
-removed. The delete is permanent, with no undo, and takes the profile and every membership
-term with it. Type the person's email address into the box; **Delete member** stays disabled
-until it matches. Two deletions are refused: your own account, and a system administrator's
-unless you are one.
+removed. The delete is permanent and takes the profile and every term with it. Type the
+person's email address into the box; **Delete member** stays disabled until it matches.
+Your own account, and a system administrator's unless you are one, cannot be deleted.
 
 Payments are the organization's financial record, so they are never deleted. The card says
 how many the person has, if any, and that they stay in the books under **Deleted member** and

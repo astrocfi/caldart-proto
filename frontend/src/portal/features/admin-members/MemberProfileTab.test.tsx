@@ -54,6 +54,17 @@ describe('MemberProfileTab', () => {
     expect(within(verificationCard()).queryByLabelText('Certificate number')).toBeNull();
   });
 
+  it('shows what the record holds beside each check', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<MemberProfileTab member={makeDetail()} />);
+
+    await user.click(await within(verificationCard()).findByRole('button', { name: 'Verify' }));
+
+    expect(
+      within(verificationCard()).getByRole('checkbox', { name: /Pilot certificate verified/ }),
+    ).toHaveAccessibleName('Pilot certificate verified · Private · 1234567');
+  });
+
   it('sends only which items are verified from the member record', async () => {
     const user = userEvent.setup();
     const calls = emptyVerificationCalls();
@@ -62,7 +73,7 @@ describe('MemberProfileTab', () => {
 
     await user.click(await within(verificationCard()).findByRole('button', { name: 'Verify' }));
     await user.click(
-      within(verificationCard()).getByRole('checkbox', { name: /medical verified/i }),
+      within(verificationCard()).getByRole('checkbox', { name: /^Medical verified/i }),
     );
     await user.click(within(verificationCard()).getByRole('button', { name: 'Save verification' }));
 
