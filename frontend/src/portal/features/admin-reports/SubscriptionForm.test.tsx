@@ -147,7 +147,8 @@ describe('SubscriptionForm', () => {
         ],
       }),
     );
-    renderWithProviders(<SubscriptionForm onDone={vi.fn()} />);
+    const handleDone = vi.fn();
+    renderWithProviders(<SubscriptionForm onDone={handleDone} />);
 
     await chooseReport('Reconciliation');
 

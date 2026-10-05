@@ -53,7 +53,10 @@ export function Page({
   actions,
   children,
 }: PageProps): JSX.Element {
-  const { pathname, state, key } = useLocation();
+  const location = useLocation();
+  const { pathname, key } = location;
+  // React Router types the navigation state as `any`; it is read as `unknown`.
+  const state: unknown = location.state;
   const eyebrow = noEyebrow ? null : navEyebrow(pathname);
   useDocumentTitle(tabTitle ?? title);
   const titleRef = useRef<HTMLHeadingElement>(null);
