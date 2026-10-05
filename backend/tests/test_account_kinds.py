@@ -372,6 +372,17 @@ def test_the_wall_invites_a_friend_to_become_a_member(
     assert "Make me a member" in body
 
 
+def test_the_wall_asks_a_member_who_has_not_paid_for_their_dues(
+    client: Client, walled_page: StandardPage
+) -> None:
+    """A member with no term yet is offered Pay dues, never called a friend."""
+    unpaid = UserFactory(email="unpaid@example.test")
+    client.force_login(unpaid)
+    body = client.get(walled_page.url).content.decode()
+    assert "This page is open to CalDART members. Pay your dues to read it." in body
+    assert "Friends of CalDART" not in body
+
+
 # --------------------------------------------------------------------------
 # Terms and checkout
 # --------------------------------------------------------------------------

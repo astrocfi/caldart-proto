@@ -94,7 +94,7 @@ ON_THIS_PAGE_MIN_HEADINGS = 3
 MEMBERS_ONLY_COLLECTION_NAME = "Members only"
 
 #: Which call to action the members-only wall offers the reader.
-WallState = Literal["anonymous", "expired", "friend"]
+WallState = Literal["anonymous", "expired", "none", "friend"]
 
 
 class MembersWallContext(TypedDict):
@@ -121,15 +121,19 @@ def members_wall_state(user: User | AnonymousUser | None) -> WallState:
 
     ``anonymous`` for ``None`` and for a visitor who is not signed in, so the wall
     invites them to sign in; ``expired`` for a signed-in account whose membership
-    status is ``expired``, so it invites a renewal; ``friend`` for every other
-    signed-in account the wall stops, which is a friend of CalDART (including
-    somebody who chose to be a member and has not yet paid), so it invites them to
-    become a member.  A current member passes the wall, and a donor cannot sign in.
+    status is ``expired``, so it invites a renewal; ``none`` for one that chose to be a
+    member and has not paid yet (status ``none``), so it invites them to pay their dues;
+    and ``friend`` for every other signed-in account the wall stops, which is a friend of
+    CalDART, so it invites them to become a member.  A current member passes the wall,
+    and a donor cannot sign in.
     """
     if user is None or not user.is_authenticated:
         return "anonymous"
-    if user.membership_status["status"] == MembershipState.EXPIRED:
+    status = user.membership_status["status"]
+    if status == MembershipState.EXPIRED:
         return "expired"
+    if status == MembershipState.NONE:
+        return "none"
     return "friend"
 
 

@@ -39,6 +39,15 @@
           <a class="button button--secondary" href="{% url 'portal' '' %}">Member portal</a>
         </p>
 
+      {% elif wall_state == "none" %}
+        <p class="lede">
+          This page is open to CalDART members. Pay your dues to read it.
+        </p>
+        <p class="cluster">
+          <a class="button" href="{% url 'portal' 'membership/join' %}">Pay dues</a>
+          <a class="button button--secondary" href="{% url 'portal' '' %}">Member portal</a>
+        </p>
+
       {% elif wall_state == "friend" %}
         <p class="lede">
           Friends of CalDART can read this page by becoming a member.

@@ -55,6 +55,10 @@ membership includes**, lists what the pages hold.
   takes a minute and reopens it immediately.* Buttons: **Renew my membership** (see
   :doc:`renew`) and **Member portal**.
 
+**A member who has not paid yet**
+  *This page is open to CalDART members. Pay your dues to read it.* Buttons: **Pay
+  dues** (see :doc:`become-a-member`) and **Member portal**.
+
 **A friend of CalDART**
   *Friends of CalDART can read this page by becoming a member.* Buttons: **Make me a
   member** (see :doc:`become-a-member`) and **Member portal**.

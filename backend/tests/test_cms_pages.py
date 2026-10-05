@@ -462,13 +462,13 @@ def test_wall_offers_renewal_to_an_expired_member(
 def test_wall_offers_membership_to_a_member_who_never_paid(
     client: Client, walled_page: StandardPage, member: User
 ) -> None:
-    """A member who never paid is a friend, so the wall offers Make me a member."""
+    """A member who never paid is offered Pay dues, which opens the checkout."""
     client.force_login(member)
 
     response = client.get(walled_page.url)
     assert response.status_code == 403
     body = response.content.decode()
-    assert "Make me a member" in body
+    assert "Pay dues" in body
     assert "/portal/membership/join" in body
 
 
