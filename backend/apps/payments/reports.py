@@ -161,7 +161,8 @@ class PaymentFilters:
     Each field is already validated: the API layer reads the query string, and an
     empty string or ``None`` means "do not narrow on this".  ``reconciled`` is
     ``"yes"`` for payments a treasurer has matched to a statement, ``"no"`` for
-    the ones still waiting, and empty for both.
+    the money that arrived and is still waiting (a pending or failed attempt never
+    reached a statement, so it is never waiting), and empty for both.
     """
 
     date_from: dt.date | None = None
@@ -214,7 +215,8 @@ def apply_filters(queryset: QuerySet[Payment], filters: PaymentFilters) -> Query
     if filters.reconciled == "yes":
         queryset = queryset.filter(reconciled_on__isnull=False)
     elif filters.reconciled == "no":
-        queryset = queryset.filter(reconciled_on__isnull=True)
+        # Only money that arrived is on a statement, as the reconciliation counts it.
+        queryset = queryset.filter(reconciled_on__isnull=True, status__in=RECEIVED_STATUSES)
     if filters.member is not None:
         queryset = queryset.filter(user_id=filters.member)
     if filters.min_cents is not None:

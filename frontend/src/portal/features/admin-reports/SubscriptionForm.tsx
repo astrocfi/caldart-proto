@@ -8,8 +8,9 @@
  *
  * The report's filters are drawn by the one `FilterBar` from the report's own
  * definition, the fields only a subscription offers (the period a dated report
- * covers) included, so a subscription filters exactly as the report's list
- * page does.  The server decides whether the recipient may have the report: an
+ * covers) included and those only a list page offers left out, so a subscription
+ * filters as the report's list page does.  The reports are named as the finance tabs
+ * name them, and Save, while it waits for a report, says so beside it.  The server decides whether the recipient may have the report: an
  * account that may not read it is refused under the address, and an address no
  * account holds must be confirmed with a checkbox that appears once the server
  * has asked for it.
@@ -35,9 +36,15 @@ import {
   useReports,
   useUpdateSubscription,
 } from '@/portal/reports/api';
-import { REPORTS } from '@/portal/reports/definitions';
+import { REPORTS, subscriptionFilters } from '@/portal/reports/definitions';
 import type { FilterField, FilterValues, ReportSlug } from '@/portal/reports/types';
-import { CADENCE_LABELS, FORMAT_LABELS, WEEKDAY_OPTIONS, recipientLabel } from './labels';
+import {
+  CADENCE_LABELS,
+  FORMAT_LABELS,
+  WEEKDAY_OPTIONS,
+  recipientLabel,
+  reportName,
+} from './labels';
 
 /**
  * The fields an edit shows errors for itself, so the form-level alert leaves
@@ -50,6 +57,9 @@ const EDIT_HANDLED_FIELDS = ['filters', 'columns', 'formats', 'cadence', 'weekda
 const CREATE_HANDLED_FIELDS = ['report', 'recipient_email', 'confirmed', ...EDIT_HANDLED_FIELDS];
 
 const FORMATS: readonly ReportFormats[] = ['csv', 'pdf', 'both'];
+
+/** The line beside a Save that waits for a report, which also describes the button. */
+const SAVE_HINT_ID = 'subscription-save-hint';
 const CADENCES: readonly ReportCadence[] = ['weekly', 'monthly', 'quarterly', 'yearly'];
 
 /** Whether `slug` names a report the portal has a definition for. */
@@ -88,6 +98,18 @@ function setValues(values: FilterValues): Record<string, string> {
   return Object.fromEntries(Object.entries(values).filter(([, value]) => value !== ''));
 }
 
+/**
+ * The filters an edit starts from: the subscription's own, less any the form does not
+ * draw for its report, such as a fixed contributions year from before the report took a
+ * period, so Save never sends back a filter nobody can see.
+ */
+export function storedFilters(subscription: ReportSubscription | undefined): FilterValues {
+  if (subscription === undefined) return {};
+  if (!isReportSlug(subscription.report)) return { ...subscription.filters };
+  const drawn = new Set(subscriptionFilters(REPORTS[subscription.report]).map((f) => f.key));
+  return Object.fromEntries(Object.entries(subscription.filters).filter(([key]) => drawn.has(key)));
+}
+
 interface SubscriptionFormProps {
   /** The subscription to edit; without one the form sets up a new subscription. */
   subscription?: ReportSubscription;
@@ -112,7 +134,7 @@ export function SubscriptionForm({
   const [slug, setSlug] = useState<ReportSlug | ''>(() =>
     subscription !== undefined && isReportSlug(subscription.report) ? subscription.report : '',
   );
-  const [filters, setFilters] = useState<FilterValues>(() => ({ ...subscription?.filters }));
+  const [filters, setFilters] = useState<FilterValues>(() => storedFilters(subscription));
   const [columns, setColumns] = useState<string[] | null>(() =>
     subscription === undefined || subscription.columns.length === 0 ? null : subscription.columns,
   );
@@ -147,7 +169,9 @@ export function SubscriptionForm({
   );
 
   const definition = slug === '' ? null : REPORTS[slug];
-  const refusedFilters = filterErrors(save.error, definition?.filters ?? []);
+  const fields = definition === null ? [] : subscriptionFilters(definition);
+  const refusedFilters = filterErrors(save.error, fields);
+  const isWaitingForReport = !isEditing && slug === '';
 
   const handleReportChange = (event: ChangeEvent<HTMLSelectElement>): void => {
     const next = event.target.value;
@@ -217,7 +241,10 @@ export function SubscriptionForm({
       <h3>{title}</h3>
 
       {subscription !== undefined ? (
-        <FixedValue label="Report" value={subscription.report_title} />
+        <FixedValue
+          label="Report"
+          value={reportName(subscription.report, subscription.report_title)}
+        />
       ) : (
         <Field label="Report" error={fieldError(create.error, 'report')}>
           {(props) => (
@@ -225,7 +252,7 @@ export function SubscriptionForm({
               <option value="">Choose a report…</option>
               {(reports.data ?? []).map((report) => (
                 <option key={report.slug} value={report.slug}>
-                  {report.title}
+                  {reportName(report.slug, report.title)}
                 </option>
               ))}
             </select>
@@ -236,7 +263,7 @@ export function SubscriptionForm({
       {definition === null ? null : (
         <>
           <FilterBar
-            fields={definition.filters}
+            fields={fields}
             values={filters}
             onChange={handleFiltersChange}
             options={runtimeOptions}
@@ -361,12 +388,21 @@ export function SubscriptionForm({
         )}
 
         <div className="cluster">
-          <Button type="submit" disabled={(!isEditing && slug === '') || save.isPending}>
+          <Button
+            type="submit"
+            disabled={isWaitingForReport || save.isPending}
+            aria-describedby={isWaitingForReport ? SAVE_HINT_ID : undefined}
+          >
             {save.isPending ? 'Saving…' : isEditing ? 'Save changes' : 'Add emailed report'}
           </Button>
           <Button variant="quiet" onClick={handleDone}>
             Cancel
           </Button>
+          {isWaitingForReport ? (
+            <span className="muted" id={SAVE_HINT_ID}>
+              Choose a report first.
+            </span>
+          ) : null}
           <RefusedSubmitNote count={refusal.count} />
         </div>
       </form>

@@ -274,7 +274,8 @@ role but finance; **401** when anonymous.
 ``GET /admin/renewals/attempts``
 --------------------------------
 
-Finance.  Every scheduled charge, paginated, latest first.
+Finance.  Every scheduled charge, paginated: the charges not yet tried first, latest
+scheduled first, then every tried charge by ``attempted_at``, newest first.
 
 .. code-block:: json
 
@@ -297,7 +298,10 @@ Finance.  Every scheduled charge, paginated, latest first.
 ``outcome`` is ``scheduled``, ``succeeded``, ``failed`` or ``skipped``.
 ``membership_id`` is ``null`` for a recurring donation's charge, which renews no
 term.  ``payment_id`` is ``null`` until the charge is made.  The three timestamps say
-which emails have gone out; ``error`` carries the provider's decline reason.
+which emails have gone out; ``error`` carries the provider's message, written for the
+member for a card decline (the finance screen names it by kind: *Card declined*, *PayPal
+refused the saved payment method*, *Payment could not be verified*, or *Charge
+refused*).
 
 ``?outcome=`` narrows to one outcome, ``?search=`` matches an email address, a
 surname or the error text, and ``?ordering=`` takes ``scheduled_on`` or

@@ -4,6 +4,7 @@
  * did.
  */
 import type { ReportCadence, ReportFormats, ReportSubscription } from '@/portal/api/types';
+import { REPORTS } from '@/portal/reports/definitions';
 import type { Option } from '@/portal/reports/types';
 import { skippedBreakdown } from '@/portal/components/runSummary';
 
@@ -88,4 +89,16 @@ export function reportKindLabel(kind: string): string {
 /** `Skipped: <reason> <count>, …` for a run of the report sender, or `''`. */
 export function reportSkippedBreakdown(byReason: Record<string, number>): string {
   return skippedBreakdown(byReason, REPORT_SKIPPED_REASON_LABELS);
+}
+
+/**
+ * A report as the finance tabs and the menu name it (`Payments`, `Reconciliation`), rather
+ * than by the title its PDF carries (`CalDART payments`); a report the portal has no
+ * definition for keeps the server's title.
+ *
+ * @param slug the report's slug.
+ * @param title the server's title for it.
+ */
+export function reportName(slug: string, title: string): string {
+  return slug in REPORTS ? REPORTS[slug as keyof typeof REPORTS].label : title;
 }

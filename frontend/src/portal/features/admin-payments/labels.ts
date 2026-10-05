@@ -10,10 +10,14 @@ import type {
   MandateKind,
   MandateStatus,
   ManualMethod,
+  MembershipTermStatus,
   PaymentKind,
+  PaymentProvider,
+  PaymentWallet,
   RefundReason,
   RefundState,
 } from '@/portal/api/types';
+import { PAYMENT_PROVIDER_LABELS, PAYMENT_WALLET_LABELS } from '@/portal/choices';
 
 export {
   PAYMENT_PROVIDER_LABELS as PROVIDER_LABELS,
@@ -80,3 +84,62 @@ export const PAYMENT_AUTOMATIC_LABELS: Record<PaymentKind, string> = {
   both: 'Automatic renewal and contribution',
   contribution: 'Recurring donation',
 };
+
+/** Where the membership term a payment bought stands, capitalized as a heading reads. */
+export const TERM_STATUS_LABELS: Record<MembershipTermStatus, string> = {
+  active: 'Active',
+  expired: 'Expired',
+  canceled: 'Canceled',
+  suspended: 'Suspended',
+};
+
+/**
+ * How a payment was made, such as `Stripe · Apple Pay`, or the one word when the
+ * provider and the way of paying share it (`PayPal`, not `PayPal · PayPal`).
+ */
+export function methodLabel(provider: PaymentProvider, wallet: PaymentWallet): string {
+  const providerLabel = PAYMENT_PROVIDER_LABELS[provider];
+  const walletLabel = PAYMENT_WALLET_LABELS[wallet];
+  return providerLabel === walletLabel ? providerLabel : `${providerLabel} · ${walletLabel}`;
+}
+
+/** The words a provider uses when it could not confirm a charge it was asked to take. */
+const VERIFICATION_PATTERNS: readonly RegExp[] = [
+  /\bcaptured\b/i,
+  /does not match/i,
+  /belongs to another payment/i,
+  /reports the payment as/i,
+  /without a capture/i,
+  /different currency/i,
+];
+
+/** A recorded message without its closing period, ready to quote. */
+function quoted(message: string): string {
+  return `“${message.replace(/\.$/, '')}”`;
+}
+
+/**
+ * Why an automatic charge failed, as the treasurer reads it.  The recorded message is the
+ * provider's, and a card's is written to the member ("Your card was declined"), so it is
+ * named by what happened:
+ *
+ * - a card decline reads `Card declined`, quoting the member's wording only when it says
+ *   more, as in `Card declined (member was told: “Your card has expired”)`;
+ * - PayPal refusing the saved account reads `PayPal refused the saved payment method`;
+ * - a charge the provider took but CalDART could not match to the payment reads
+ *   `Payment could not be verified`, with the recorded message after it;
+ * - anything else reads `Charge refused` with the recorded message quoted.
+ */
+export function declineReason(recorded: string): string {
+  const message = recorded.trim();
+  if (message === '') return '';
+  if (/^your card was declined\.?$/i.test(message)) return 'Card declined';
+  if (/^your card\b/i.test(message)) return `Card declined (member was told: ${quoted(message)})`;
+  if (/^PayPal refused the saved payment method\.?$/i.test(message)) {
+    return 'PayPal refused the saved payment method';
+  }
+  if (VERIFICATION_PATTERNS.some((pattern) => pattern.test(message))) {
+    return `Payment could not be verified (${quoted(message)})`;
+  }
+  return `Charge refused (${quoted(message)})`;
+}

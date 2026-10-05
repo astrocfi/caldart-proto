@@ -7,7 +7,9 @@
  * (`/portal/system/scheduled`) use it, and so does the DART rosters card of
  * `/admin/reports`.
  *
- * The table keeps each row on one line.  Who an action reached tells the rows apart
+ * A column that is empty in every row, such as When and Amount for a run of rosters, is
+ * left out, so the table shows only what the run says.  The table keeps each row on one
+ * line.  Who an action reached tells the rows apart
  * and stays pinned while a phone scrolls the table; the detail, such as the report or
  * the DART, wraps and stays in sight; the date, the amount, then what was done give
  * way on a narrow screen.
@@ -71,8 +73,12 @@ export function RunActionsTable({
   emptyTitle = 'Nothing was due',
   emptyDescription,
 }: RunActionsTableProps): JSX.Element {
+  // A column no row fills is left out; an empty table draws no headings at all.
+  const hasDetail = actions.some((row) => row.detail !== '');
+  const hasWhen = actions.some((row) => row.on !== null);
+  const hasAmount = actions.some((row) => row.amount_cents !== null);
   const detail: Column<RunAction>[] =
-    detailHeader === undefined
+    detailHeader === undefined || !hasDetail
       ? []
       : [
           {
@@ -85,26 +91,32 @@ export function RunActionsTable({
             render: (row) => row.detail,
           },
         ];
-  const whenAndAmount: Column<RunAction>[] = hasWhenAndAmount
-    ? [
-        {
-          key: 'on',
-          header: 'When',
-          width: '7rem',
-          noWrap: true,
-          dropOrder: 1,
-          render: (row) => <DateText value={row.on} />,
-        },
-        {
-          key: 'amount_cents',
-          header: 'Amount',
-          width: '6rem',
-          dropOrder: 2,
-          numeric: true,
-          render: (row) => <Money cents={row.amount_cents} />,
-        },
-      ]
-    : [];
+  const whenAndAmount: Column<RunAction>[] = [
+    ...(hasWhenAndAmount && hasWhen
+      ? [
+          {
+            key: 'on',
+            header: 'When',
+            width: '7rem',
+            noWrap: true,
+            dropOrder: 1,
+            render: (row: RunAction) => <DateText value={row.on} />,
+          },
+        ]
+      : []),
+    ...(hasWhenAndAmount && hasAmount
+      ? [
+          {
+            key: 'amount_cents',
+            header: 'Amount',
+            width: '6rem',
+            dropOrder: 2,
+            numeric: true,
+            render: (row: RunAction) => <Money cents={row.amount_cents} />,
+          },
+        ]
+      : []),
+  ];
   const columns: Column<RunAction>[] = [
     {
       key: 'kind',

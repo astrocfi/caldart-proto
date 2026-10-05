@@ -2,7 +2,14 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
 import type { MembershipStatus } from '../api/types';
-import { CurrencyDot, MembershipDot, StatusDot, daysUntil, membershipTone } from './StatusDot';
+import {
+  CurrencyDot,
+  MembershipDot,
+  StatusDot,
+  daysUntil,
+  membershipTone,
+  membershipWord,
+} from './StatusDot';
 
 const TODAY = new Date(2026, 5, 15); // 15 June 2026, local time
 
@@ -137,6 +144,12 @@ describe('MembershipDot', () => {
   it('shows the date the membership runs to on hover', () => {
     render(<MembershipDot membership={membership({ expires_on: '2026-07-01' })} today={TODAY} />);
     expect(screen.getByText('Expiring soon')).toHaveAttribute('title', 'Runs to 07/01/2026');
+  });
+});
+
+describe('membershipWord', () => {
+  it('gives the word the dot shows, for text that names the state', () => {
+    expect(membershipWord(membership({ expires_on: '2026-07-01' }), TODAY)).toBe('Expiring soon');
   });
 });
 

@@ -2,16 +2,18 @@
  * The refund form on a payment's detail screen.
  *
  * It opens with the whole unrefunded balance filled in, because a refund is
- * usually the whole thing, and with the membership term marked for cancellation
- * when the amount covers the dues the payment bought — a member who has their
- * money back has not paid for the year.
+ * usually the whole thing.  When the payment bought a membership that is still
+ * running, or suspended while the account is deactivated, a box offers to end it today, naming the member and the term's dates; it
+ * starts checked for a refund of everything that is left, since a member who has all
+ * their money back has not paid for the year, and unchecked for a partial refund.
  */
 import { useRef, useState } from 'react';
 import type { FormEvent, JSX } from 'react';
 
 import { ApiError } from '@/portal/api/client';
-import type { PaymentDetail, RefundReason } from '@/portal/api/types';
+import type { MembershipTermStatus, PaymentDetail, RefundReason } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
+import { formatDate } from '@/portal/components/DateText';
 import { Field } from '@/portal/components/Field';
 import { formatCents } from '@/portal/components/Money';
 import {
@@ -38,11 +40,41 @@ export interface RefundFormProps {
   onCancel: () => void;
 }
 
-/** Whether refunding `cents` should cancel the term the payment bought. */
+/** The term states a refund can still end: a running term, and one held while an account is
+ * deactivated, which would come back on reactivation. */
+const ENDABLE_TERM_STATES: readonly MembershipTermStatus[] = ['active', 'suspended'];
+
+/**
+ * Whether the payment bought a membership a refund can still end: one that is running, or
+ * suspended while the account is deactivated.  An expired or canceled term has nothing
+ * left to end.
+ */
+export function canEndTerm(payment: PaymentDetail): boolean {
+  const status = payment.membership?.status;
+  return (
+    status !== undefined && ENDABLE_TERM_STATES.includes(status) && payment.plan_amount_cents > 0
+  );
+}
+
+/**
+ * Whether the box that ends the membership starts checked for a refund of `cents`: only
+ * when the refund gives back everything that is left, never for a partial refund.
+ */
 export function shouldCancelTerm(payment: PaymentDetail, cents: number): boolean {
-  if (payment.membership === null) return false;
-  if (payment.plan_amount_cents === 0) return false;
-  return cents >= payment.plan_amount_cents;
+  if (!canEndTerm(payment)) return false;
+  const remaining = unrefundedCents(payment);
+  return remaining > 0 && cents >= remaining;
+}
+
+/**
+ * The box's words, which say what checking it does: `Also end Marta Reyes's membership
+ * (01/09/2026 to 01/08/2027) today`.
+ */
+export function endTermLabel(payment: PaymentDetail): string {
+  const term = payment.membership;
+  if (term === null) return '';
+  const dates = `${formatDate(term.starts_on)} to ${formatDate(term.ends_on)}`;
+  return `Also end ${payment.user_name}'s membership (${dates}) today`;
 }
 
 /** Dollars typed into the amount box as the integer cents the API takes. */
@@ -101,7 +133,7 @@ export function RefundForm({ payment, onDone, onCancel }: RefundFormProps): JSX.
         amount_cents: amountCents(amount),
         reason,
         note,
-        cancel_term: cancelTerm,
+        cancel_term: canEndTerm(payment) && cancelTerm,
       },
       {
         onSuccess: (issued) => {
@@ -115,23 +147,27 @@ export function RefundForm({ payment, onDone, onCancel }: RefundFormProps): JSX.
   return (
     <form
       ref={formRef}
-      className="stack refund-form"
+      className="stack finance-form"
       onSubmit={handleSubmit}
       aria-labelledby="refund-form"
     >
       <h3 id="refund-form">Refund this payment</h3>
       <p className="muted">{formatCents(remaining)} of this payment is left to refund.</p>
 
-      <Field label="Amount" hint="In US dollars." error={shown.amount_cents} required>
+      <Field label="Amount" error={shown.amount_cents} required>
         {(props) => (
-          <input
-            {...props}
-            type="number"
-            min="0"
-            step="0.01"
-            value={amount}
-            onChange={(event) => handleAmountChange(event.target.value)}
-          />
+          <span className="money-input">
+            <span aria-hidden="true">$</span>
+            <input
+              {...props}
+              type="number"
+              min="0"
+              step="0.01"
+              className="num"
+              value={amount}
+              onChange={(event) => handleAmountChange(event.target.value)}
+            />
+          </span>
         )}
       </Field>
 
@@ -166,16 +202,16 @@ export function RefundForm({ payment, onDone, onCancel }: RefundFormProps): JSX.
         )}
       </Field>
 
-      {payment.membership === null ? null : (
-        <label className="checkbox">
+      {canEndTerm(payment) ? (
+        <label className="finance-form__check">
           <input
             type="checkbox"
             checked={cancelTerm}
             onChange={(event) => handleCancelTermChange(event.target.checked)}
           />
-          Cancel the membership term this payment bought
+          {endTermLabel(payment)}
         </label>
-      )}
+      ) : null}
 
       {shown.detail ? (
         <p className="field__error" role="alert">

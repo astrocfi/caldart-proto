@@ -640,9 +640,13 @@ def test_list_filters_by_wallet(
 def test_list_filters_to_the_payments_still_to_be_matched(
     treasurer_client: APIClient, history: list[Payment]
 ) -> None:
-    """``?reconciled=no`` is how a treasurer finds what is left to do."""
+    """``?reconciled=no`` is how a treasurer finds what is left to do.
+
+    Only money that arrived can be found on a statement, so the failed and the pending
+    attempts are not counted, and the list agrees with the reconciliation's figures.
+    """
     Payment.objects.filter(pk=history[0].pk).update(reconciled_on=dt.date(2026, 3, 1))
-    assert treasurer_client.get(LIST, {"reconciled": "no"}).json()["count"] == 6
+    assert treasurer_client.get(LIST, {"reconciled": "no"}).json()["count"] == 4
 
 
 def test_list_filters_to_the_payments_already_matched(

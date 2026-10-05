@@ -16,13 +16,14 @@ One row per month to begin with, or per year or per payment provider if you choo
 row shows the number of **Payments**, the **Gross** taken, the **Fees**, the **Net**, what
 was **Refunded**, the **Net after refunds**, and **Reconciled**, how many of that period's
 payments you have already found on a statement, such as *12 of 15*. The months and the
-years run oldest first.
+years run newest first, as on the **Money overview**. Under the rows, a **Total** row adds
+every column up, so you can check the whole range against the statement at once.
 
 On a narrower screen the table leaves out the columns that matter least, one at a time, so
-the **Gross** and the **Net** stay beside the period: first **Refunded**, then **Net after
-refunds**, **Fees**, **Payments**, and **Reconciled**. On a phone, where even that is too
-wide, the table scrolls sideways inside the page, a line above it says so, and the period
-stays pinned at the left.
+the **Net** and **Reconciled**, with its link, stay beside the period: first **Refunded**,
+then **Net after refunds**, **Fees**, **Payments**, and **Gross**. A line above the table
+names what it left out. If even that is too wide, the table scrolls sideways inside the
+page, a line above it says so, and the period stays pinned at the left.
 
 Two dating rules make the rows line up with a statement, and the screen repeats them
 above the table:
@@ -53,15 +54,18 @@ Match payments as you go
 
 When you find a payment on the statement, open it from the payment list and set its
 **Reconciled on** date (see :doc:`payment-record`). The site records that it was you. The
-**Reconciled** column here then counts it. To see what is left to do, filter the payment
-list to **Reconciled**: **Not reconciled** (see :doc:`payment-list`).
+**Reconciled** column here then counts it. A **Reconciled** figure short of the count,
+such as *0 of 4*, opens the payment list (see :doc:`payment-list`) narrowed to that
+period and to **Not reconciled**, so you see the four payments still to find; with
+**Rows** set to **By provider**, it narrows to that provider over the range you chose.
 
 Download the rows
 ~~~~~~~~~~~~~~~~~
 
 **Export CSV** and **Export PDF** carry the rows on screen, grouped the same way. Each
 file is named for the day it was made, and the PDF prints the range it covers under its
-title. The **Emailed reports** screen can also send this report on a schedule.
+title. The **Emailed reports** screen can also send this report on a schedule, for a fixed
+range or for a **Period** such as **Last month**.
 
 If something looks wrong
 ========================

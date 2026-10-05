@@ -68,7 +68,7 @@ describe('RostersCard', () => {
     expect(
       screen.getByLabelText('Practice run: show what would happen, send nothing (DART rosters)'),
     ).toBeChecked();
-    await userEvent.click(screen.getByRole('button', { name: 'Send rosters now' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Preview rosters' }));
 
     expect(await screen.findByRole('status')).toHaveTextContent('Would send 2 emails, skipped 1.');
     expect(bodies).toEqual([{ dry_run: true }]);
@@ -92,6 +92,26 @@ describe('RostersCard', () => {
     expect(bodies).toEqual([{ dry_run: false }]);
   });
 
+  it('puts the practice-run box before the button it changes', async () => {
+    await renderCard();
+
+    const box = screen.getByLabelText(
+      'Practice run: show what would happen, send nothing (DART rosters)',
+    );
+    const button = screen.getByRole('button', { name: 'Preview rosters' });
+    expect(box.compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('names the button Send rosters now once the practice-run box is cleared', async () => {
+    await renderCard();
+
+    await userEvent.click(
+      screen.getByLabelText('Practice run: show what would happen, send nothing (DART rosters)'),
+    );
+
+    expect(screen.getByRole('button', { name: 'Send rosters now' })).toBeInTheDocument();
+  });
+
   it('says the rosters could not be loaded rather than that there are no DARTs', async () => {
     server.use(
       http.get(`${API}/reports/rosters`, () =>
@@ -112,7 +132,7 @@ describe('RostersCard', () => {
       ),
     );
 
-    await userEvent.click(screen.getByRole('button', { name: 'Send rosters now' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Preview rosters' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('The mail server is unavailable.');
   });

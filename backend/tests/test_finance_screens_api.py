@@ -189,6 +189,15 @@ def test_the_search_reads_an_address_as_well_as_a_name(
     assert [row["email"] for row in search(treasurer_client, "elsewhere")] == ["ana@elsewhere.test"]
 
 
+def test_the_search_never_offers_a_deactivated_account(
+    treasurer_client: APIClient, searchable_members: list[User]
+) -> None:
+    """A deactivated account, a tombstone included, is not one to record money for."""
+    User.objects.filter(pk=searchable_members[1].pk).update(is_active=False)
+
+    assert [row["name"] for row in search(treasurer_client, "reyes")] == ["Marta Reyes"]
+
+
 def test_a_row_names_the_member_the_record_form_will_charge(
     treasurer_client: APIClient, searchable_members: list[User]
 ) -> None:

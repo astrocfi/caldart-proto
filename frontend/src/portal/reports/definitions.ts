@@ -4,8 +4,10 @@
  * This is the one list of each report's filter fields.  A list page draws
  * `listFilters(REPORTS.<slug>)` in its `FilterBar`; the subscription form draws
  * `REPORTS.<slug>.filters`, which also holds the fields only a subscription
- * offers, such as the period a scheduled report covers.  Each field's key is
- * the query parameter the report's list and export endpoints read.
+ * offers, such as the period a scheduled report covers; the subscription form draws
+ * `subscriptionFilters(REPORTS.<slug>)`, which leaves out the fields only a list page
+ * offers.  Each field's key is the query parameter the report's list and export
+ * endpoints read.
  */
 import {
   ACCOUNT_KIND_LABELS,
@@ -318,15 +320,31 @@ const RECONCILIATION_FILTERS: FilterField[] = [
       { value: 'provider', label: 'By provider' },
     ],
   },
+  periodField(PERIOD_OPTIONS, 'Any date'),
 ];
 
+/**
+ * One **Year** control wherever the contributions are filtered.  The list page picks a
+ * calendar year; a subscription picks the year relative to the day it is sent, since a
+ * fixed year would send the same list every time.  Blank, either one is this year: the
+ * server's own choice, worked out on the day the report is built.
+ */
 const CONTRIBUTION_FILTERS: FilterField[] = [
-  // Blank is the server's own choice, the current calendar year.
-  { key: 'year', label: 'Year', kind: 'select', placeholder: 'This year', options: earlierYears() },
-  periodField(
-    PERIOD_OPTIONS.filter((option) => option.value.endsWith('_year')),
-    'The year chosen',
-  ),
+  {
+    key: 'year',
+    label: 'Year',
+    kind: 'select',
+    placeholder: 'This year',
+    options: earlierYears(),
+    listOnly: true,
+  },
+  {
+    ...periodField(
+      PERIOD_OPTIONS.filter((option) => option.value === 'last_year'),
+      'This year',
+    ),
+    label: 'Year',
+  },
 ];
 
 const DONOR_FILTERS: FilterField[] = [
@@ -416,7 +434,7 @@ export const REPORTS: Readonly<Record<ReportSlug, ReportDefinition>> = {
     label: 'Reconciliation',
     filters: RECONCILIATION_FILTERS,
     choosable: false,
-    periods: false,
+    periods: true,
   },
   contributions: {
     slug: 'contributions',
@@ -450,4 +468,15 @@ export const REPORTS: Readonly<Record<ReportSlug, ReportDefinition>> = {
  */
 export function listFilters(definition: ReportDefinition): FilterField[] {
   return definition.filters.filter((field) => field.subscriptionOnly !== true);
+}
+
+/**
+ * The fields the form that subscribes somebody to a report draws: every one but those
+ * only its list page offers.
+ *
+ * @param definition the report being subscribed to.
+ * @returns its filter fields in order, less the list-only ones.
+ */
+export function subscriptionFilters(definition: ReportDefinition): FilterField[] {
+  return definition.filters.filter((field) => field.listOnly !== true);
 }

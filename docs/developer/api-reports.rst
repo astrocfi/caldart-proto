@@ -94,7 +94,7 @@ Unpaginated::
   [
     {"slug": "payments", "title": "CalDART payments", "choosable": true, "periods": true},
     {"slug": "reconciliation", "title": "CalDART reconciliation", "choosable": false,
-     "periods": false},
+     "periods": true},
     {"slug": "contributions", "title": "CalDART contributions", "choosable": false,
      "periods": true}
   ]
@@ -154,7 +154,8 @@ filters            same way: :doc:`api-members` for ``members``,
                    ``{"columns": ["This report's columns are fixed."]}``.
 ``period``         ``this_month``, ``last_month``, ``this_year`` or
                    ``last_year``, counted from the day the report is built.  The
-                   payments and donors reports turn it into ``from`` and ``to``
+                   payments, reconciliation, and donors reports turn it into
+                   ``from`` and ``to``
                    (the first and last day of the period), the contributions
                    report into ``year``; either way the period wins over those
                    parameters.  Any other value is
@@ -332,7 +333,10 @@ Refusals:
   refuses — the report is built from the filters exactly as a download builds
   it, so ``{"filters": {"period": ["Unknown period 'someday'."]}}`` — and
   ``{"filters": {"columns": ["Choose columns with the columns field, not as a
-  filter."]}}`` for a ``columns`` entry among the filters.
+  filter."]}}`` for a ``columns`` entry among the filters, and ``{"filters":
+  {"year": ["An emailed report covers this year or last year. Choose one of
+  those."]}}`` for a fixed ``year`` on the contributions report, whose
+  subscriptions say ``period`` instead.
 
 ``GET | PATCH | DELETE /reports/subscriptions/{id}``
 ----------------------------------------------------

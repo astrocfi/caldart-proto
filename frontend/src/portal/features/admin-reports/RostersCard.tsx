@@ -1,8 +1,9 @@
 /**
  * The DART rosters card of `/admin/reports`: each active DART, how many of its
  * people receive its roster, when the last one went, and a button that sends
- * every roster now, whatever the date.  A roster lists the DART's members and
- * friends alike, with a Kind column.
+ * every roster now, whatever the date.  The practice-run box comes before the button
+ * it changes, and while it is checked the button reads **Preview rosters**.  A roster
+ * lists the DART's members and friends alike, with a Kind column.
  *
  * Who receives a DART's roster is checked on the DART itself, under **DARTs**.
  */
@@ -47,6 +48,12 @@ const COLUMNS: Column<Roster>[] = [
   },
 ];
 
+/** The button's words: a preview while the practice-run box is checked, else a send. */
+export function sendLabel(dryRun: boolean, isPending: boolean): string {
+  if (dryRun) return isPending ? 'Previewing…' : 'Preview rosters';
+  return isPending ? 'Sending…' : 'Send rosters now';
+}
+
 /** The rosters table and the button that sends them now, or rehearses it. */
 export function RostersCard(): JSX.Element {
   const [dryRun, setDryRun] = useState(true);
@@ -70,10 +77,10 @@ export function RostersCard(): JSX.Element {
       title="DART rosters"
       footer={
         <>
-          <Button onClick={handleSend} disabled={send.isPending}>
-            {send.isPending ? 'Sending…' : 'Send rosters now'}
-          </Button>
           <PracticeRunCheckbox checked={dryRun} onChange={handleDryRunChange} task="DART rosters" />
+          <Button onClick={handleSend} disabled={send.isPending}>
+            {sendLabel(dryRun, send.isPending)}
+          </Button>
         </>
       }
     >

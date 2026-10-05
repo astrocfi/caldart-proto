@@ -68,6 +68,14 @@ describe('SubscriptionsCard', () => {
     );
   });
 
+  it('names a report as its tab does, not by the title its PDF carries', async () => {
+    const table = await renderCard([
+      { ...PAYMENTS, report: 'reconciliation', report_title: 'CalDART reconciliation' },
+    ]);
+
+    expect(within(table).getByRole('rowheader', { name: 'Reconciliation' })).toBeInTheDocument();
+  });
+
   it('dates the last send and the next one', async () => {
     const table = await renderCard();
 

@@ -10,7 +10,10 @@ import { NotificationSubscriptionsCard } from './NotificationSubscriptionsCard';
 /** Renders the notifications screen. */
 export function AdminNotificationsPage(): JSX.Element {
   return (
-    <Page title="Notifications" lede="Email addresses that receive notification of system changes">
+    <Page
+      title="Notifications"
+      lede="Who is emailed when something happens, such as a sign-up, a payment, or a refund."
+    >
       <NotificationSubscriptionsCard />
     </Page>
   );

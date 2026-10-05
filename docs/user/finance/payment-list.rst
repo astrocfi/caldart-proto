@@ -57,7 +57,9 @@ The filter bar above the table narrows the list:
   contribution**. It starts at **Membership or contribution**, which lists them all.
 * **Method**, how it was paid: **Card**, **Apple Pay**, **Google Pay**, **Link**,
   **PayPal**, **Check**, **Cash**, **Bank transfer**, or **Other**.
-* **Reconciled**, **Reconciled** with a bank statement or **Not reconciled** yet.
+* **Reconciled**, **Reconciled** with a bank statement or **Not reconciled** yet. **Not
+  reconciled** lists only money that arrived, since a failed or pending payment never
+  reaches a statement.
 * **At least** and **At most**, bounds on the total, in whole dollars.
 * **Search**, which matches a member's name or email address, a provider's own reference
   (useful when somebody forwards you a receipt from Stripe or PayPal), or a note you

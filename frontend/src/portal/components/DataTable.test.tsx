@@ -96,6 +96,39 @@ describe('DataTable', () => {
     expect(bodyNames()).toEqual(['Reyes, Marta', 'Delgado, Owen', 'Adeyemi, Kofi']);
   });
 
+  it('draws a totals row under the rows, each total under its column', () => {
+    render(
+      <DataTable
+        columns={COLUMNS}
+        rows={ROWS}
+        rowKey={(row) => row.id}
+        footer={{ name: 'Total', hours: 1290 }}
+      />,
+    );
+    const foot = screen.getAllByRole('rowgroup')[2];
+    expect(
+      within(foot!)
+        .getAllByRole('cell')
+        .map((cell) => cell.textContent),
+    ).toEqual(['Total', '1290', '']);
+  });
+
+  it('keeps the totals row last whichever way the rows are sorted', async () => {
+    const user = userEvent.setup();
+    render(
+      <DataTable
+        columns={COLUMNS}
+        rows={ROWS}
+        rowKey={(row) => row.id}
+        footer={{ name: 'Total' }}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /Name/ }));
+
+    expect(screen.getAllByRole('row').at(-1)).toHaveTextContent(/^Total/);
+  });
+
   it('sorts when a header is clicked, and toggles direction', async () => {
     const user = userEvent.setup();
     render(<DataTable columns={COLUMNS} rows={ROWS} rowKey={(row) => row.id} />);

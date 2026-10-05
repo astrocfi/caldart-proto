@@ -1,12 +1,15 @@
 /**
  * `/admin/payments/reconciliation` — the books as a bank statement reads them.
  *
- * One row per month, per year or per provider, with the gross taken, what the
- * providers kept, what reached the bank, what went back, and how much of the
- * period has already been matched.  The two exports carry exactly the rows on
- * screen, so the figure a treasurer quotes is the figure they printed.
+ * One row per month, per year or per provider, newest first, with the gross taken,
+ * what the providers kept, what reached the bank, what went back, and how much of the
+ * period has already been matched, and a totals row under them to check against the
+ * statement.  A period not fully matched links to its payments still waiting.  The two
+ * exports carry exactly the rows on screen, so the figure a treasurer quotes is the
+ * figure they printed.
  */
-import type { JSX } from 'react';
+import type { JSX, ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 
 import type { ReconciliationRow } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
@@ -16,6 +19,7 @@ import { clearedValues, FilterBar } from '@/portal/components/FilterBar';
 import { Money } from '@/portal/components/Money';
 import { Page } from '@/portal/components/Page';
 import { useUrlFilters } from '@/portal/components/useUrlFilters';
+import type { FilterValues } from '@/portal/reports/types';
 import { reportExportUrl } from '@/portal/reports/api';
 import { REPORTS, listFilters } from '@/portal/reports/definitions';
 import { FinanceTabs } from './FinanceTabs';
@@ -41,12 +45,122 @@ export function matchedLabel(row: ReconciliationRow): string {
   return `${row.reconciled_count} of ${row.count}`;
 }
 
+/** The later of two ISO dates, either of which may be blank. */
+function laterOf(a: string, b: string): string {
+  return a > b ? a : b;
+}
+
+/** The earlier of two ISO dates, a blank one counting as no bound at all. */
+function earlierOf(a: string, b: string): string {
+  if (a === '') return b;
+  if (b === '') return a;
+  return a < b ? a : b;
+}
+
+/** The first and last day of a `2026-03` month or a `2026` year. */
+function periodBounds(period: string, group: 'month' | 'year'): { from: string; to: string } {
+  if (group === 'year') return { from: `${period}-01-01`, to: `${period}-12-31` };
+  const [year, month] = period.split('-').map(Number);
+  const lastDay = new Date(year ?? 0, month ?? 0, 0).getDate();
+  return { from: `${period}-01`, to: `${period}-${String(lastDay).padStart(2, '0')}` };
+}
+
 /**
- * The table's columns.  The period identifies a row and never wraps; Gross and Net
- * stay in sight on a phone, and the rest drop, the least needed first, when the
- * table would not fit.  Every column sorts.
+ * The payment list, narrowed to the payments of `row` still waiting to be matched: the
+ * row's period within the range on screen (or the whole range and the row's provider,
+ * by provider), the provider chosen, and **Not reconciled**.
  */
-function columns(group: ReconciliationGroup): Column<ReconciliationRow>[] {
+export function unmatchedPaymentsUrl(
+  row: ReconciliationRow,
+  group: ReconciliationGroup,
+  filters: FilterValues,
+): string {
+  const chosenFrom = filters.from ?? '';
+  const chosenTo = filters.to ?? '';
+  const range =
+    group === 'provider' ? { from: chosenFrom, to: chosenTo } : periodBounds(row.period, group);
+  const params = new URLSearchParams();
+  const from = laterOf(range.from, chosenFrom);
+  const to = earlierOf(range.to, chosenTo);
+  if (from !== '') params.set('from', from);
+  if (to !== '') params.set('to', to);
+  const provider = group === 'provider' ? row.period : (filters.provider ?? '');
+  if (provider !== '') params.set('provider', provider);
+  params.set('reconciled', 'no');
+  return `/admin/payments/list?${params.toString()}`;
+}
+
+/** The Reconciled figure, as a link to the payments still waiting when any are. */
+function matchedCell(
+  row: ReconciliationRow,
+  group: ReconciliationGroup,
+  filters: FilterValues,
+): ReactNode {
+  if (row.unreconciled_count === 0) return matchedLabel(row);
+  const period = reconciliationPeriodLabel(row.period, group);
+  return (
+    <Link to={unmatchedPaymentsUrl(row, group, filters)}>
+      {matchedLabel(row)}
+      <span className="visually-hidden">
+        {` reconciled, ${period}: the ${row.unreconciled_count} not reconciled`}
+      </span>
+    </Link>
+  );
+}
+
+/** The figures every row carries, summed for the totals row. */
+const SUMMED: readonly (keyof Omit<ReconciliationRow, 'period'>)[] = [
+  'count',
+  'gross_cents',
+  'fee_cents',
+  'net_cents',
+  'refunded_cents',
+  'net_after_refunds_cents',
+  'reconciled_count',
+  'unreconciled_count',
+];
+
+/** Every figure of `rows` added up, for the totals row. */
+export function reconciliationTotals(rows: readonly ReconciliationRow[]): ReconciliationRow {
+  const totals: ReconciliationRow = {
+    period: '',
+    count: 0,
+    gross_cents: 0,
+    fee_cents: 0,
+    net_cents: 0,
+    refunded_cents: 0,
+    net_after_refunds_cents: 0,
+    reconciled_count: 0,
+    unreconciled_count: 0,
+  };
+  for (const row of rows) {
+    for (const key of SUMMED) totals[key] += row[key];
+  }
+  return totals;
+}
+
+/** The totals row's cells, keyed by the columns they sit under. */
+function totalsFooter(rows: readonly ReconciliationRow[]): Record<string, ReactNode> {
+  const totals = reconciliationTotals(rows);
+  return {
+    period: 'Total',
+    count: totals.count,
+    gross_cents: <Money cents={totals.gross_cents} />,
+    fee_cents: <Money cents={totals.fee_cents} />,
+    net_cents: <Money cents={totals.net_cents} />,
+    refunded_cents: <Money cents={totals.refunded_cents} />,
+    net_after_refunds_cents: <Money cents={totals.net_after_refunds_cents} />,
+    matched: matchedLabel(totals),
+  };
+}
+
+/**
+ * The table's columns.  The period identifies a row and never wraps; Net and the
+ * Reconciled figure, whose link is what the page is for, stay in sight on a phone, and
+ * the rest drop, the least needed first and Gross last, when the table would not fit.
+ * Every column sorts.
+ */
+function columns(group: ReconciliationGroup, filters: FilterValues): Column<ReconciliationRow>[] {
   return [
     {
       key: 'period',
@@ -70,7 +184,7 @@ function columns(group: ReconciliationGroup): Column<ReconciliationRow>[] {
       header: 'Gross',
       numeric: true,
       width: '7.5rem',
-      keepInSight: true,
+      dropOrder: 6,
       render: (row) => <Money cents={row.gross_cents} />,
       sortValue: (row) => row.gross_cents,
     },
@@ -115,20 +229,21 @@ function columns(group: ReconciliationGroup): Column<ReconciliationRow>[] {
       header: 'Reconciled',
       numeric: true,
       width: '6.5rem',
-      dropOrder: 5,
+      keepInSight: true,
       noWrap: true,
-      render: matchedLabel,
+      render: (row) => matchedCell(row, group, filters),
       sortValue: (row) => row.reconciled_count,
     },
   ];
 }
 
 /**
- * The order the server lists the rows in, as the arrow the table opens on: oldest
- * period first, or none for the providers, which come in the server's own order.
+ * The order the server lists the rows in, as the arrow the table opens on: newest
+ * period first, as the money overview runs, or none for the providers, which come in
+ * the server's own order.
  */
-function defaultSort(group: ReconciliationGroup): { key: string; direction: 'asc' } | undefined {
-  return group === 'provider' ? undefined : { key: 'period', direction: 'asc' };
+function defaultSort(group: ReconciliationGroup): { key: string; direction: 'desc' } | undefined {
+  return group === 'provider' ? undefined : { key: 'period', direction: 'desc' };
 }
 
 /** The grouping a `group` value asks for, the server's own when it is blank or unknown. */
@@ -159,9 +274,10 @@ export function ReconciliationPage(): JSX.Element {
       <DataTable
         key={group}
         singleLine
-        columns={columns(group)}
+        columns={columns(group, filters)}
         initialSort={defaultSort(group)}
         rows={rows.data ?? []}
+        footer={rows.data === undefined ? undefined : totalsFooter(rows.data)}
         rowKey={(row) => row.period}
         caption={`Money in by ${GROUP_LABELS[group].toLowerCase()}`}
         filters={

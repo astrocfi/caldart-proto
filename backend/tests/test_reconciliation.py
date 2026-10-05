@@ -8,6 +8,7 @@ what reached the bank, what went back, and how much is still unmatched.
 from __future__ import annotations
 
 import datetime as dt
+from typing import Any
 
 import pytest
 from django.utils import timezone
@@ -88,22 +89,29 @@ def books(member: User, annual_plan: MembershipPlan) -> list[Payment]:
     ]
 
 
+def period_row(client: APIClient, period: str) -> dict[str, Any]:
+    """The table's row for ``period``, wherever the table puts it."""
+    rows: list[dict[str, Any]] = client.get(TABLE).json()
+    (row,) = [row for row in rows if row["period"] == period]
+    return row
+
+
 # --------------------------------------------------------------------------
 # The table
 # --------------------------------------------------------------------------
 def test_the_table_answers_one_row_per_month(
     treasurer_client: APIClient, books: list[Payment]
 ) -> None:
-    """Months are the default grouping, oldest first."""
+    """Months are the default grouping, newest first, as the money overview runs."""
     rows = treasurer_client.get(TABLE).json()
-    assert [row["period"] for row in rows] == ["2026-01", "2026-02"]
+    assert [row["period"] for row in rows] == ["2026-02", "2026-01"]
 
 
 def test_a_month_adds_up_the_gross_the_fees_and_the_net(
     treasurer_client: APIClient, books: list[Payment]
 ) -> None:
     """The three money columns are the sums of the month's payments."""
-    january = treasurer_client.get(TABLE).json()[0]
+    january = period_row(treasurer_client, "2026-01")
     assert january["gross_cents"] == 15_000
     assert january["fee_cents"] == 495
     assert january["net_cents"] == 14_505
@@ -113,7 +121,7 @@ def test_a_month_counts_what_is_matched_and_what_is_not(
     treasurer_client: APIClient, books: list[Payment]
 ) -> None:
     """The two counts together are the month's payment count."""
-    january = treasurer_client.get(TABLE).json()[0]
+    january = period_row(treasurer_client, "2026-01")
     assert january["reconciled_count"] == 1
     assert january["unreconciled_count"] == 1
 
@@ -131,7 +139,7 @@ def test_a_check_counts_in_the_month_it_was_received(
         provider=PaymentProvider.MANUAL,
     )
     Payment.objects.filter(pk=check.pk).update(received_on=dt.date(2026, 1, 28))
-    january = treasurer_client.get(TABLE).json()[0]
+    january = period_row(treasurer_client, "2026-01")
     assert january["gross_cents"] == 18_000
 
 
@@ -140,7 +148,7 @@ def test_a_refund_is_dated_by_the_day_it_was_taken(
 ) -> None:
     """A January payment refunded in February belongs to February here."""
     RefundFactory(payment=books[0], amount_cents=2_500, refunded_at=at_noon(2026, 2, 14))
-    february = treasurer_client.get(TABLE).json()[1]
+    february = period_row(treasurer_client, "2026-02")
     assert february["refunded_cents"] == 2_500
 
 
@@ -149,7 +157,7 @@ def test_the_net_after_refunds_takes_the_refunds_off(
 ) -> None:
     """The last money column is the net less what went back in the same period."""
     RefundFactory(payment=books[2], amount_cents=1_000, refunded_at=at_noon(2026, 2, 20))
-    february = treasurer_client.get(TABLE).json()[1]
+    february = period_row(treasurer_client, "2026-02")
     assert february["net_after_refunds_cents"] == 18_253
 
 
@@ -158,8 +166,7 @@ def test_a_period_with_only_a_refund_still_gets_a_row(
 ) -> None:
     """The statement has that line, so the table does too, with a zero count."""
     RefundFactory(payment=books[0], amount_cents=1_000, refunded_at=at_noon(2026, 3, 3))
-    march = treasurer_client.get(TABLE).json()[2]
-    assert march["period"] == "2026-03"
+    march = period_row(treasurer_client, "2026-03")
     assert march["count"] == 0
     assert march["refunded_cents"] == 1_000
 
@@ -261,7 +268,7 @@ def test_the_csv_export_carries_the_same_rows_as_the_table(
 ) -> None:
     """One header line and one line per period."""
     rows = read_csv(treasurer_client.get(EXPORT_CSV))
-    assert [row[0] for row in rows] == ["Period", "2026-01", "2026-02"]
+    assert [row[0] for row in rows] == ["Period", "2026-02", "2026-01"]
 
 
 def test_the_csv_export_writes_money_a_spreadsheet_can_add_up(
@@ -269,7 +276,35 @@ def test_the_csv_export_writes_money_a_spreadsheet_can_add_up(
 ) -> None:
     """The cells are plain decimals, with no currency symbol."""
     rows = read_csv(treasurer_client.get(EXPORT_CSV))
-    assert rows[1][2] == "150.00"
+    assert rows[2][2] == "150.00"
+
+
+def test_the_export_covers_the_period_a_subscription_names(
+    treasurer_client: APIClient,
+    books: list[Payment],
+    member: User,
+    annual_plan: MembershipPlan,
+    today: dt.date,
+) -> None:
+    """``?period=last_month`` is the month before the one the report is built in."""
+    last_month = today.replace(day=1) - dt.timedelta(days=1)
+    settled(
+        member,
+        annual_plan,
+        when=at_noon(last_month.year, last_month.month, 1),
+        total=7_000,
+        fee=0,
+    )
+
+    rows = read_csv(treasurer_client.get(EXPORT_CSV, {"period": "last_month"}))
+
+    assert [row[0] for row in rows] == ["Period", f"{last_month:%Y-%m}"]
+
+
+def test_the_export_refuses_a_period_it_does_not_know(treasurer_client: APIClient) -> None:
+    """An unknown period is a 400 naming the parameter, as every dated report answers."""
+    response = treasurer_client.get(EXPORT_CSV, {"period": "next_week"})
+    assert response.json()["period"] == ["Unknown period 'next_week'."]
 
 
 def test_the_pdf_export_is_named_for_the_day_it_was_run(

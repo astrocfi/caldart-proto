@@ -12,6 +12,7 @@
  * emailed about it.
  */
 import type { JSX } from 'react';
+import { Link } from 'react-router-dom';
 
 import type {
   MandateKind,
@@ -40,7 +41,7 @@ import { reportExportUrl } from '@/portal/reports/api';
 import { REPORTS, listFilters } from '@/portal/reports/definitions';
 import type { FilterField } from '@/portal/reports/types';
 import { FinanceTabs } from './FinanceTabs';
-import { MANDATE_KIND_LABELS, MANDATE_STATUS_LABELS } from './labels';
+import { MANDATE_KIND_LABELS, MANDATE_STATUS_LABELS, declineReason } from './labels';
 import {
   MANDATE_STATUS_TONES,
   RENEWAL_OUTCOME_LABELS,
@@ -68,6 +69,17 @@ const FALLBACK_COLUMNS: ReportColumn[] = [
 ];
 
 const OUTCOMES: RenewalOutcome[] = ['scheduled', 'succeeded', 'failed', 'skipped'];
+
+/**
+ * The order the server lists the charges in, as the arrow the table opens on: by when
+ * each was tried, newest first, with the charges still to come at the top.
+ */
+const ATTEMPTS_SORT = { key: 'attempted_at', direction: 'desc' } as const;
+
+/** A person's name as a link to everything they have paid, as on the other finance tabs. */
+function moneyHistoryLink(userId: number, name: string): JSX.Element {
+  return <Link to={`/admin/payments/members/${userId}`}>{name}</Link>;
+}
 
 /** A mandate can still be turned off while it is pending, active or paused. */
 export function isCancelable(mandate: RenewalMandate): boolean {
@@ -111,7 +123,7 @@ const MANDATE_CELLS: Record<string, ReportCell<RenewalMandate>> = {
   name: {
     minWidth: '10rem',
     isIdentity: true,
-    render: (row) => row.user_name,
+    render: (row) => moneyHistoryLink(row.user_id, row.user_name),
     sortValue: (row) => row.user_name,
   },
   email: {
@@ -173,7 +185,7 @@ const MANDATE_CELLS: Record<string, ReportCell<RenewalMandate>> = {
           tone={MANDATE_STATUS_TONES[row.status]}
           label={MANDATE_STATUS_LABELS[row.status]}
         />
-        {row.last_error === '' ? null : <p className="muted">{row.last_error}</p>}
+        {row.last_error === '' ? null : <p className="muted">{declineReason(row.last_error)}</p>}
       </>
     ),
     sortValue: (row) => row.status,
@@ -290,7 +302,7 @@ export function RenewalsPage(): JSX.Element {
       header: 'Member',
       minWidth: '10rem',
       isIdentity: true,
-      render: (row) => row.user_name,
+      render: (row) => moneyHistoryLink(row.user_id, row.user_name),
       sortValue: (row) => row.user_name,
     },
     {
@@ -321,7 +333,8 @@ export function RenewalsPage(): JSX.Element {
       minWidth: '12rem',
       wrap: true,
       dropOrder: 2,
-      render: (row) => (row.error === '' ? <span className="muted">&mdash;</span> : row.error),
+      render: (row) =>
+        row.error === '' ? <span className="muted">&mdash;</span> : declineReason(row.error),
     },
   ];
 
@@ -387,6 +400,7 @@ export function RenewalsPage(): JSX.Element {
         <DataTable
           singleLine
           columns={attemptColumns}
+          initialSort={ATTEMPTS_SORT}
           rows={attemptRows}
           rowKey={(row) => row.id}
           caption={`${attemptCount} attempt${attemptCount === 1 ? '' : 's'}`}

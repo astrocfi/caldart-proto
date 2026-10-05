@@ -89,8 +89,8 @@ describe('AdminRemindersPage', () => {
         (_text, element) =>
           element?.tagName.toLowerCase() === 'p' &&
           element.textContent ===
-            'Every morning at 7:00 AM, CalDART emails each member a renewal reminder 60, 30, ' +
-              'and 7 days before their membership ends, on the day it ends, and 30 days after. ' +
+            'Every morning at 7:00 AM, CalDART emails members whose membership is ending: 60, ' +
+              '30, and 7 days before it ends, on the day it ends, and 30 days after. ' +
               'Nobody gets the same reminder twice for one membership.',
       ),
     ).toBeInTheDocument();
@@ -110,9 +110,34 @@ describe('AdminRemindersPage', () => {
         (_text, element) =>
           element?.tagName.toLowerCase() === 'p' &&
           (element.textContent ?? '').startsWith(
-            'Every morning at 7:00 AM, CalDART emails each member a renewal reminder 90, 30, ' +
-              'and 1 day before their membership ends,',
+            'Every morning at 7:00 AM, CalDART emails members whose membership is ending: 90, ' +
+              '30, and 1 day before it ends,',
           ),
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('lists all five stages in the schedule card, the one on the day included', async () => {
+    server.use(logHandler(ENTRIES));
+    renderWithProviders(<AdminRemindersPage />);
+
+    await screen.findByText('60 days before expiry');
+    expect(screen.getAllByRole('term').map((term) => term.textContent)).toEqual([
+      'First reminder',
+      'Second reminder',
+      'Final reminder',
+      'Expired reminder',
+      'Lapsed reminder',
+    ]);
+  });
+
+  it('says who can change the default schedule', async () => {
+    server.use(logHandler(ENTRIES));
+    renderWithProviders(<AdminRemindersPage />);
+
+    expect(
+      await screen.findByText(
+        'The default schedule: nobody has changed it. A system administrator can change it.',
       ),
     ).toBeInTheDocument();
   });

@@ -28,7 +28,7 @@ import {
   useSubscriptions,
   useUpdateSubscription,
 } from '@/portal/reports/api';
-import { FORMAT_LABELS, recipientLabel, scheduleLabel } from './labels';
+import { FORMAT_LABELS, recipientLabel, reportName, scheduleLabel } from './labels';
 import { SubscriptionForm } from './SubscriptionForm';
 
 /**
@@ -130,8 +130,8 @@ export function SubscriptionsCard(): JSX.Element {
       header: 'Report',
       minWidth: '9.5rem',
       isIdentity: true,
-      render: (row) => row.report_title,
-      sortValue: (row) => row.report_title,
+      render: (row) => reportName(row.report, row.report_title),
+      sortValue: (row) => reportName(row.report, row.report_title),
     },
     {
       key: 'recipient',
@@ -192,7 +192,7 @@ export function SubscriptionsCard(): JSX.Element {
       isActions: true,
       narrowWidth: '9rem',
       render: (row) => {
-        const which = `${row.report_title} for ${recipientLabel(row)}`;
+        const which = `${reportName(row.report, row.report_title)} for ${recipientLabel(row)}`;
         return (
           <span className="cluster cluster--nowrap">
             <Button

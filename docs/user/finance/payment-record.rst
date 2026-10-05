@@ -21,11 +21,11 @@ This payment
 
 The **This payment** card lists the facts:
 
-* **Member**, the member's name (which opens their money history, see
-  :doc:`member-ledger`) and email address. An account administrator also sees **Member
-  record**, which opens the person's :doc:`../admin/member-record`, a donor's included.
-  A payment kept under **Deleted member** and a number has no **Member record**: that
-  record cannot be changed.
+* **Member**, the member's name and email address, then **Money history**, which opens
+  everything they have paid (see :doc:`member-ledger`). An account administrator also
+  sees **Member record**, which opens the person's :doc:`../admin/member-record`, a
+  donor's included. A payment kept under **Deleted member** and a number has no
+  **Member record**: that record cannot be changed.
 * **Receipt**, the receipt number.
 * **For**, what the payment bought (**Membership**, **Contribution**, or **Membership and
   contribution**) and the plan's name.
@@ -33,15 +33,16 @@ The **This payment** card lists the facts:
 * **Dues**, **Contribution**, and **Total**.
 * **Fee**, what the provider kept, or *Not reported yet* while the provider has not said.
 * **Net**, what reached the bank, and **Refunded**, what has gone back.
-* **Method**, the provider and how the member paid, such as **Stripe · Card**.
+* **Method**, the provider and how the member paid, such as **Stripe · Card**, or one
+  word when the two are the same, such as **PayPal**.
 * **Reference**, the provider's own reference for the payment, or the check number.
 * **Receipt emailed**, when the receipt last went to the member.
-* **Term**, the membership term the payment bought, with its dates and state, or
-  **None**.
+* **Term**, the membership term the payment bought, with its dates and state, such as
+  *01/09/2026 to 01/08/2027 · Active*, or a dash when it bought none.
 * A row named for what the payment was for, **Automatic renewal**, **Recurring donation**,
   or **Automatic renewal and contribution**, which reads *Charged on* and a date when the
-  site took the payment on its own, or *Paid by a person* when somebody paid at a
-  keyboard.
+  site took the payment on its own, or *No, paid by the member* when the member paid
+  themselves.
 * **Recorded by**, for a payment recorded by hand, the person who recorded it.
 
 Refunds
@@ -52,17 +53,20 @@ The **Refunds** card lists every refund against the payment, with the day it was
 **Refunded**, or **Failed**), and the **Source**: **The CalDART portal** for a refund
 issued from this screen, or **The provider's dashboard** for one somebody made in
 Stripe's or PayPal's own dashboard. With no refunds it reads *Nothing has been
-refunded*.
+refunded* and *Refunds made here or in the provider's dashboard are listed here.*
 
 Reconciliation
 ~~~~~~~~~~~~~~
 
 The **Reconciliation** card holds your two fields: **Reconciled on**, the day you found this
-payment on a bank statement, and **Note**, such as a check number or why the entry
-exists. Once a payment is reconciled, the card names who reconciled it.
+payment on a bank statement, and **Note**, anything worth keeping with the payment, such
+as a check number. Once a payment is reconciled, the card names who reconciled it.
 
 What you can do
 ===============
+
+Under the facts sit **Resend receipt**, **Download receipt**, **Fetch fee from
+provider** while the fee is unknown, and **Refund**, last, because it gives money back.
 
 Send or download the receipt
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -92,17 +96,20 @@ Refund the payment
 ~~~~~~~~~~~~~~~~~~
 
 **Refund** opens the form **Refund this payment** under the card and takes you to its
-**Amount**. The form tells you how much of the payment is left to refund. It has four
+**Amount**. The form tells you how much of the payment is left to refund. It has these
 fields:
 
-* **Amount**, in dollars, filled in with everything not yet refunded. Type a smaller
-  figure to give back part of it, such as a contribution while the dues stand.
+* **Amount**, in dollars after a **$**, filled in with everything not yet refunded. Type
+  a smaller figure to give back part of it, such as a contribution while the dues stand.
 * **Reason**: **The member asked for it**, **Duplicate payment**, **Charged in error**,
   **Fraudulent**, or **Something else**.
 * **Note**, kept with the refund. The member does not see it.
-* **Cancel the membership term this payment bought**, shown only when the payment bought
-  a term. It starts checked when the amount covers the dues, and unchecked when it does
-  not. Once you check or uncheck it yourself, changing the amount leaves your choice alone.
+* **Also end** the member's **membership** and its dates **today**, such as *Also end
+  Marta Reyes's membership (01/09/2026 to 01/08/2027) today*, shown when the payment
+  bought a membership that is still running, or one held while the account is
+  deactivated, which would otherwise come back on reactivation. It starts checked when you refund
+  everything that is left, and unchecked for a partial refund. Once you check or uncheck
+  it yourself, changing the amount leaves your choice alone.
 
 Press **Refund** to issue it, or **Cancel** or Escape to close the form and go back to the
 **Refund** that opened it. The screen confirms with *Refunded* and the amount. An amount the

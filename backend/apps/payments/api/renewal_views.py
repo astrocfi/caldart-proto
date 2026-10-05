@@ -17,7 +17,7 @@ from __future__ import annotations
 from typing import Any, cast
 
 from django.db import transaction
-from django.db.models import QuerySet
+from django.db.models import F, QuerySet
 from django.http import Http404
 from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import status as http_status
@@ -371,7 +371,7 @@ class AdminRenewalDetailView(APIView):
 
 
 class AdminRenewalAttemptListView(ListAPIView[RenewalAttempt]):
-    """``GET /admin/renewals/attempts`` -- the scheduled charges, newest first."""
+    """``GET /admin/renewals/attempts`` -- the scheduled charges, latest tried first."""
 
     permission_classes = [IsAuthenticated, IsFinance]
     serializer_class = RenewalAttemptSerializer
@@ -379,12 +379,17 @@ class AdminRenewalAttemptListView(ListAPIView[RenewalAttempt]):
     ordering_fields = ["scheduled_on", "outcome"]
 
     def get_queryset(self) -> QuerySet[RenewalAttempt]:
-        """Every attempt with its mandate and member loaded, latest scheduled first.
+        """Every attempt with its mandate and member loaded, in the order things happened.
 
-        ``?outcome=`` narrows to one outcome; anything outside the attempt
+        The charges not yet tried come first, the latest scheduled first, then every
+        tried charge by when it was tried, newest first,
+        so a retry scheduled for a later day but already refused reads in its place in
+        the history.  ``?outcome=`` narrows to one outcome; anything outside the attempt
         outcomes is a 400 keyed by ``outcome``.
         """
-        queryset = RenewalAttempt.objects.select_related("mandate", "mandate__user")
+        queryset = RenewalAttempt.objects.select_related("mandate", "mandate__user").order_by(
+            F("attempted_at").desc(nulls_first=True), "-scheduled_on", "-id"
+        )
         wanted = (self.request.query_params.get("outcome") or "").strip()
         if not wanted:
             return queryset

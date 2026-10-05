@@ -31,6 +31,7 @@ from apps.payments.reports import (
     RECEIVED_STATUSES,
     ReportDateField,
     base_queryset,
+    payment_period,
 )
 from caldart.reports import Money, Params, ReportColumn, ReportQuery, ReportSpec, given_params
 
@@ -187,12 +188,12 @@ def reconciliation_rows(
     provider: str = "",
     group: str = DEFAULT_GROUP,
 ) -> list[ReconciliationRow]:
-    """The reconciliation table, oldest period first.
+    """The reconciliation table, newest period first.
 
     ``group`` is one of :data:`RECONCILIATION_GROUPS`, which the API layer has
-    already checked: ``month`` and ``year`` answer one row per period, ordered by
-    the period, and ``provider`` one row per provider that took money, ordered by
-    the provider's name.
+    already checked: ``month`` and ``year`` answer one row per period, the latest
+    first as the money overview runs, and ``provider`` one row per provider that took
+    money, in the order the providers are declared.
 
     A period in which money only went back -- a refund taken in a month with no
     payments at all -- still gets a row, with a zero count and the refund in it,
@@ -212,7 +213,7 @@ def reconciliation_rows(
     if group == BY_PROVIDER:
         order = {provider_slug: index for index, provider_slug in enumerate(PaymentProvider.values)}
         return sorted(buckets.values(), key=lambda row: order.get(row["period"], len(order)))
-    return [buckets[key] for key in sorted(buckets)]
+    return [buckets[key] for key in sorted(buckets, reverse=True)]
 
 
 class ReconciliationQuerySerializer(serializers.Serializer[dict[str, Any]]):
@@ -299,7 +300,8 @@ def reconciliation_report_query(params: Params) -> ReportQuery[ReconciliationRow
     )
 
 
-#: The reconciliation table, for the finance roles: fixed columns, upright.
+#: The reconciliation table, for the finance roles: fixed columns, upright, and
+#: ``period`` for the month or year a download or a subscription means.
 RECONCILIATION_REPORT: ReportSpec[ReconciliationRow] = ReportSpec(
     slug="reconciliation",
     title=REPORT_TITLE,
@@ -309,4 +311,5 @@ RECONCILIATION_REPORT: ReportSpec[ReconciliationRow] = ReportSpec(
     query=reconciliation_report_query,
     landscape=False,
     choosable=False,
+    resolve=payment_period,
 )
