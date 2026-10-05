@@ -11,7 +11,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useDarts } from '@/portal/api/queries';
 import { Button, ButtonLink } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
-import { Page } from '@/portal/components/Page';
+import { FOCUS_TITLE, Page } from '@/portal/components/Page';
 import {
   RefusedSubmitNote,
   useFreshErrors,
@@ -88,7 +88,8 @@ export function MemberCreatePage(): JSX.Element {
               : `${member.name} has been emailed a link to set a password.`,
             'success',
           );
-          void navigate(`/admin/members/${member.id}`);
+          // The form goes with the move, so the record's title takes the focus.
+          void navigate(`/admin/members/${member.id}`, { state: FOCUS_TITLE });
         },
       },
     );

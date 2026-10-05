@@ -141,6 +141,18 @@ describe('<JoinWizard/> resume logic', () => {
     expect(path()).toBe('/join/verify');
   });
 
+  it('shows an account an administrator created the verify step alone, with no steps listed', async () => {
+    stubApi(makeUser({ admin_created: true, email_verified: false, membership: UNPAID }));
+    renderWizard('/join');
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Verify your email address' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Check your email' })).toBeInTheDocument();
+    expect(screen.queryByText('Profile')).not.toBeInTheDocument();
+    expect(screen.queryByText('Pay')).not.toBeInTheDocument();
+  });
+
   it('skips the verify step for an address that is already verified', async () => {
     stubApi(makeUser({ profile_complete: false, membership: UNPAID }));
     renderWizard('/join/verify');
@@ -590,6 +602,30 @@ describe('<JoinWizard/> for a friend', () => {
 
     expect(await screen.findByRole('heading', { name: 'Welcome to CalDART' })).toBeInTheDocument();
     expect(path()).toBe('/join/done');
+  });
+
+  it('moves the focus to the pay step heading after Save and continue', async () => {
+    stubFriendApi(makeFriend({ profile_complete: false }));
+    server.use(http.put(`${API}/me/profile`, () => HttpResponse.json(makeProfile())));
+    renderWizard('/join');
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Save and continue' }));
+
+    const heading = await screen.findByRole('heading', { name: 'Donate to CalDART' });
+    await waitFor(() => expect(heading).toHaveFocus());
+  });
+
+  it('moves the focus to the done step heading after Continue without a gift', async () => {
+    stubFriendApi(makeFriend({ profile_complete: false }));
+    server.use(http.put(`${API}/me/profile`, () => HttpResponse.json(makeProfile())));
+    renderWizard('/join');
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Save and continue' }));
+    await screen.findByRole('radio', { name: /Participating/ });
+    await userEvent.click(screen.getByRole('button', { name: 'Continue without a gift' }));
+
+    const heading = await screen.findByRole('heading', { name: 'Welcome to CalDART' });
+    await waitFor(() => expect(heading).toHaveFocus());
   });
 
   it('promises no receipt to a friend who gave nothing', async () => {

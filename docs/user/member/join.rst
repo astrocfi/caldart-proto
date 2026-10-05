@@ -19,7 +19,8 @@ How the wizard works
 
 The wizard has five steps, and the progress rail at the top checks off each one you
 finish: **Account**, **Verify**, **Profile**, **Pay**, and **Done**. Every step's
-card is the same width as the title and the progress rail above it.
+card is the same width as the title and the progress rail above it. Finishing a step
+moves the cursor to the next step's heading.
 
 Until you finish, the wizard is the whole portal. There is no menu down the left,
 and any other portal screen you open brings you back to the step you still have to
@@ -44,9 +45,11 @@ first time stays in the wizard, and reloading the pay step keeps them on it. A f
 who closes the tab at the pay step and signs in again later has finished, since a
 friend owes nothing.
 
-An account an administrator created for you has joined already: once you have
-verified its address, your first sign-in opens the dashboard, with no profile or pay
-step, and you fill in the rest of your profile when you like.
+An account an administrator created for you has joined already. Until you verify its
+address, signing in shows **Verify your email address** with the **Check your email**
+card alone, and no list of steps. Once it is verified, your first sign-in opens the
+dashboard, with no profile or pay step, and you fill in the rest of your profile when
+you like.
 
 Once you have joined, the **Profile** and **Pay** steps send you to your
 :doc:`dashboard`, so going back into the wizard cannot charge you again or change

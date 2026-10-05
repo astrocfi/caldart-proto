@@ -29,12 +29,17 @@
  * stored.
  *
  * Every step is drawn at one width, the width of the title and the step list above it,
- * so the card's edges never move as the visitor goes from step to step.
+ * so the card's edges never move as the visitor goes from step to step.  Finishing a step
+ * moves the focus to the next step's heading, so a keyboard or screen reader user lands
+ * on the step they are now on rather than on the page body.
+ *
+ * An account an administrator created has joined already and owes only the verify
+ * step, so it sees that step alone, under its own title, with no list of steps.
  *
  * Until the wizard is finished it is the whole portal: `RequireOnboarded` sends
  * every other screen here, and the layout draws no rail.
  */
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { JSX } from 'react';
 import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
@@ -42,6 +47,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import type { PersonKind } from '@/portal/api/types';
 import { useAuth } from '@/portal/auth/useAuth';
 import { Page } from '@/portal/components/Page';
+import { focusIntoView } from '@/portal/components/focus';
 import { AccountStep } from './AccountStep';
 import { DoneStep } from './DoneStep';
 import { PayStep } from './PayStep';
@@ -97,6 +103,20 @@ export function JoinWizard(): JSX.Element {
   // The kind chosen on the pay step, when the visitor changed their mind there;
   // null follows the kind the server has stored.
   const [chosenKind, setChosenKind] = useState<PersonKind | null>(null);
+  // The step just finished here, so the next step's heading takes the focus once it is
+  // drawn; a step reached by loading the page leaves the focus alone.
+  const finishedStepRef = useRef<JoinStep | null>(null);
+  const stepRef = useRef<HTMLDivElement>(null);
+  const shownStep = isJoinStep(stepParam) ? stepParam : null;
+  useEffect(() => {
+    const finished = finishedStepRef.current;
+    if (finished === null || shownStep === null || shownStep === finished) return;
+    const heading = stepRef.current?.querySelector<HTMLElement>('h2') ?? null;
+    if (heading === null) return;
+    finishedStepRef.current = null;
+    heading.tabIndex = -1;
+    focusIntoView(heading);
+  });
 
   const handleReturnSettled = useCallback(() => {
     refreshAfterPayment(queryClient);
@@ -155,38 +175,48 @@ export function JoinWizard(): JSX.Element {
       holdFriendPayStep(user.id);
     }
     setReached((seen) => laterJoinStep(seen, next));
+    finishedStepRef.current = from;
     void navigate(`/join/${next}`);
   }
 
+  // An account an administrator created owes the verify step alone.
+  const isVerifyOnly = user?.admin_created === true && current === 'verify';
+
   return (
     <div className="join-shell">
-      <Page title="Join CalDART" tabTitle="Join" lede={lede}>
-        <StepIndicator current={current} />
-        {current === 'account' ? <AccountStep onDone={() => advance('account')} /> : null}
-        {current === 'verify' ? <VerifyStep onDone={() => advance('verify')} /> : null}
-        {current === 'profile' ? <ProfileStep onDone={() => advance('profile')} /> : null}
-        {current === 'pay' ? (
-          <PayStep
-            joiningAs={kind}
-            onJoiningAsChange={(next) => {
-              // A member who turns friend here is held on the pay step like any friend
-              // joining, so becoming one on the server does not let them out early.
-              if (next === 'friend' && user !== null && !isOnboarded(user)) {
-                holdFriendPayStep(user.id);
-              }
-              setChosenKind(next);
-            }}
-            onPaid={() => setHasPaid(true)}
-            onDone={() => advance('pay')}
-          />
-        ) : null}
-        {current === 'done' ? (
-          returning ? (
-            <ReturnStep onSettled={handleReturnSettled} />
-          ) : (
-            <DoneStep joiningAs={kind} hasPaid={hasPaid} />
-          )
-        ) : null}
+      <Page
+        title={isVerifyOnly ? 'Verify your email address' : 'Join CalDART'}
+        tabTitle={isVerifyOnly ? 'Verify email' : 'Join'}
+        lede={lede}
+      >
+        {isVerifyOnly ? null : <StepIndicator current={current} />}
+        <div ref={stepRef} className="stack-loose">
+          {current === 'account' ? <AccountStep onDone={() => advance('account')} /> : null}
+          {current === 'verify' ? <VerifyStep onDone={() => advance('verify')} /> : null}
+          {current === 'profile' ? <ProfileStep onDone={() => advance('profile')} /> : null}
+          {current === 'pay' ? (
+            <PayStep
+              joiningAs={kind}
+              onJoiningAsChange={(next) => {
+                // A member who turns friend here is held on the pay step like any friend
+                // joining, so becoming one on the server does not let them out early.
+                if (next === 'friend' && user !== null && !isOnboarded(user)) {
+                  holdFriendPayStep(user.id);
+                }
+                setChosenKind(next);
+              }}
+              onPaid={() => setHasPaid(true)}
+              onDone={() => advance('pay')}
+            />
+          ) : null}
+          {current === 'done' ? (
+            returning ? (
+              <ReturnStep onSettled={handleReturnSettled} />
+            ) : (
+              <DoneStep joiningAs={kind} hasPaid={hasPaid} />
+            )
+          ) : null}
+        </div>
       </Page>
     </div>
   );

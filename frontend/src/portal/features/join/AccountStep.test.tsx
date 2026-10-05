@@ -227,10 +227,18 @@ describe('<AccountStep/>', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Create account' }));
 
     expect(
-      ['Enter your first name.', 'Enter your last name.', 'Choose a password.'].map(
-        (message) => screen.getByText(message).textContent,
-      ),
-    ).toEqual(['Enter your first name.', 'Enter your last name.', 'Choose a password.']);
+      [
+        'Enter your first name.',
+        'Enter your last name.',
+        'Enter your email address.',
+        'Choose a password.',
+      ].map((message) => screen.getByText(message).textContent),
+    ).toEqual([
+      'Enter your first name.',
+      'Enter your last name.',
+      'Enter your email address.',
+      'Choose a password.',
+    ]);
   });
 
   it('moves the focus to the box the server refused', async () => {

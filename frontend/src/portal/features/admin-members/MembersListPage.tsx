@@ -22,9 +22,10 @@
  * member record is the account administrator's: for a leader there is no
  * **New member** button, and a name opens the member check instead.  A leader whose
  * profile names a DART gets **Show my DART** in its place, which sets the DART filter
- * to theirs: their roster.
+ * to theirs: their roster.  The button goes once it has done that, so the focus moves
+ * to the DART filter that now names their DART.
  */
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import type { JSX } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -59,6 +60,22 @@ import type { FilterField, FilterValues } from '@/portal/reports/types';
 import { useMembers, useOwnDart } from './api';
 
 const PAGE_SIZE = 25;
+
+/** The filter bar's name, which is how **Show my DART** finds it to move the focus. */
+const FILTER_BAR_LABEL = 'Filter members';
+
+/** The DART filter's own words, the box **Show my DART** leaves the focus in. */
+const DART_FILTER_LABEL = 'DART';
+
+/** The DART box of the filter bar, or the bar itself when it holds none. */
+function dartFilter(): HTMLElement | null {
+  const bar = document.querySelector<HTMLElement>(
+    `form[role="search"][aria-label="${FILTER_BAR_LABEL}"]`,
+  );
+  const boxes = Array.from(bar?.querySelectorAll('select') ?? []);
+  const dart = boxes.find((box) => box.labels?.[0]?.textContent?.trim() === DART_FILTER_LABEL);
+  return dart ?? bar;
+}
 
 /** The order the list opens on, which the server also falls back to. */
 const DEFAULT_ORDERING = 'name';
@@ -305,8 +322,18 @@ export function MembersListPage(): JSX.Element {
   const myDart = useOwnDart(isLeader);
   const showsMyDart = isLeader && myDart !== null && filters.dart !== String(myDart.id);
 
+  // Set by Show my DART, which takes itself away: the DART filter takes the focus.
+  const shouldFocusDartRef = useRef(false);
+  useEffect(() => {
+    if (!shouldFocusDartRef.current || showsMyDart) return;
+    shouldFocusDartRef.current = false;
+    dartFilter()?.focus();
+  });
+
   const handleMyDart = (): void => {
-    if (myDart !== null) setFilters({ ...filters, dart: String(myDart.id) });
+    if (myDart === null) return;
+    shouldFocusDartRef.current = true;
+    setFilters({ ...filters, dart: String(myDart.id) });
   };
 
   const count = members.data?.count ?? 0;
@@ -344,7 +371,7 @@ export function MembersListPage(): JSX.Element {
               values={filters}
               onChange={handleFilterChange}
               options={dartOptions}
-              label="Filter members"
+              label={FILTER_BAR_LABEL}
             />
           }
           tools={<ColumnTools choice={choice} />}

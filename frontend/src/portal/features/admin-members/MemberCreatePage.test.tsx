@@ -7,6 +7,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { API } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
+import { Page } from '@/portal/components/Page';
 import { MemberCreatePage } from './MemberCreatePage';
 import { makeDetail } from '@test/fixtures/members';
 
@@ -28,7 +29,7 @@ function renderCreate() {
   return renderWithProviders(
     <Routes>
       <Route path="/admin/members/new" element={<MemberCreatePage />} />
-      <Route path="/admin/members/:id" element={<p>member record</p>} />
+      <Route path="/admin/members/:id" element={<Page title="Nova Ito">member record</Page>} />
       <Route path="/admin/members" element={<p>member list</p>} />
     </Routes>,
     { route: '/admin/members/new' },
@@ -152,6 +153,18 @@ describe('MemberCreatePage', () => {
     await user.click(screen.getByRole('button', { name: 'Add member' }));
 
     expect(await screen.findByText('member record')).toBeInTheDocument();
+  });
+
+  it("moves the focus to the new record's title, since the form went with the move", async () => {
+    const user = userEvent.setup();
+    server.use(...createHandlers(makeDetail({ id: 42 })));
+    renderCreate();
+
+    await fillAccount(user, 'nova@example.org');
+    await user.click(screen.getByRole('button', { name: 'Add member' }));
+
+    const title = await screen.findByRole('heading', { level: 1, name: 'Nova Ito' });
+    await waitFor(() => expect(title).toHaveFocus());
   });
 
   it('shows validation errors against the right fields', async () => {
