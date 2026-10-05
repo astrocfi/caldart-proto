@@ -71,7 +71,7 @@ export function MembershipSummary({
   grantHint = false,
 }: MembershipSummaryProps): JSX.Element {
   const isMember = facts.kind === 'member';
-  const hasNone = isMember && facts.membership.status === 'friend' && facts.friendOn === null;
+  const hasNone = facts.membership.status === 'none';
   if (isMember && !facts.isActive && facts.hasSetAside) {
     return (
       <span className="membership-summary">

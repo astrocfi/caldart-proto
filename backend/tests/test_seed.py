@@ -71,9 +71,12 @@ SEEDED_FRIEND_GIFTS = 1
 #: verifier, the management account, and the four generated friends.
 SEEDED_STORED_FRIENDS = 8
 
-#: The accounts whose membership reads ``friend``: the stored friends and the four
-#: generated joiners who chose member and never paid.
-SEEDED_EFFECTIVE_FRIENDS = SEEDED_STORED_FRIENDS + 4
+#: The accounts whose membership reads ``friend``: the stored friends.
+SEEDED_EFFECTIVE_FRIENDS = SEEDED_STORED_FRIENDS
+
+#: The generated joiners who chose member and never paid, whose membership reads
+#: ``none`` (*No membership yet*).
+SEEDED_AWAITING_FIRST_TERM = 4
 
 #: The donors ``seed_demo`` makes, and the gifts they gave between them.
 SEEDED_DONORS = len(DONOR_GIFT_COUNTS)
@@ -238,6 +241,7 @@ def test_seed_demo_covers_every_membership_status() -> None:
     assert counts[MembershipState.EXPIRED] == 6
     assert counts[MembershipState.DONOR] == SEEDED_DONORS
     assert counts[MembershipState.FRIEND] == SEEDED_EFFECTIVE_FRIENDS
+    assert counts[MembershipState.NONE] == SEEDED_AWAITING_FIRST_TERM
     lifetime = [u for u in User.objects.all() if membership_status(u)["is_lifetime"]]
     assert len(lifetime) == 6
 

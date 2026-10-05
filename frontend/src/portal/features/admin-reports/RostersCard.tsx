@@ -1,9 +1,11 @@
 /**
  * The DART rosters card of `/admin/reports`: each active DART, how many of its
  * people receive its roster, when the last one went, and a button that sends
- * every roster now, whatever the date.  The practice-run box comes before the button
- * it changes, and while it is checked the button reads **Preview rosters**.  A roster
- * lists the DART's members and friends alike, with a Kind column.
+ * every roster now, whatever the date.  Under the table sit the practice-run box, the
+ * button it changes, and then what the last run did, in the order the Scheduled page
+ * keeps, so the button never moves when a long result appears; while the box is checked
+ * the button reads **Preview rosters**, and when a run ends the focus moves to its
+ * result.  A roster lists the DART's members and friends alike, with a Kind column.
  *
  * Who receives a DART's roster is checked on the DART itself, under **DARTs**.
  */
@@ -17,8 +19,10 @@ import type { Column } from '@/portal/components/DataTable';
 import { DataTable } from '@/portal/components/DataTable';
 import { DateText } from '@/portal/components/DateText';
 import { PracticeRunCheckbox } from '@/portal/components/PracticeRunCheckbox';
+import { useFocusRunResult } from '@/portal/components/focus';
 import { useRosters, useSendRosters } from '@/portal/reports/api';
 import { ReportRunOutcome } from './ReportRunOutcome';
+import './admin-reports.css';
 
 /** The DART tells the rows apart; the count and the date keep their widths. */
 const COLUMNS: Column<Roster>[] = [
@@ -62,6 +66,7 @@ export function RostersCard(): JSX.Element {
   const rosters = useRosters();
   const send = useSendRosters();
   const rows = rosters.data ?? [];
+  const resultRef = useFocusRunResult(send.isPending);
 
   const handleSend = (): void => {
     setLastRunWasDry(dryRun);
@@ -73,17 +78,7 @@ export function RostersCard(): JSX.Element {
   };
 
   return (
-    <Card
-      title="DART rosters"
-      footer={
-        <>
-          <PracticeRunCheckbox checked={dryRun} onChange={handleDryRunChange} task="DART rosters" />
-          <Button onClick={handleSend} disabled={send.isPending}>
-            {sendLabel(dryRun, send.isPending)}
-          </Button>
-        </>
-      }
-    >
+    <Card title="DART rosters">
       <p className="muted">
         Early each month, each DART&rsquo;s roster goes out as a PDF to the people checked to
         receive it. It lists the DART&rsquo;s members and friends.
@@ -107,13 +102,21 @@ export function RostersCard(): JSX.Element {
         />
       )}
 
-      {send.isSuccess ? <ReportRunOutcome result={send.data} dryRun={lastRunWasDry} /> : null}
+      <div className="cluster rosters__run">
+        <PracticeRunCheckbox checked={dryRun} onChange={handleDryRunChange} task="DART rosters" />
+        <Button onClick={handleSend} disabled={send.isPending}>
+          {sendLabel(dryRun, send.isPending)}
+        </Button>
+      </div>
 
-      {send.isError ? (
-        <p className="field__error" role="alert">
-          {send.error instanceof Error ? send.error.message : 'The rosters were not sent.'}
-        </p>
-      ) : null}
+      <div ref={resultRef} className="rosters__result">
+        {send.isSuccess ? <ReportRunOutcome result={send.data} dryRun={lastRunWasDry} /> : null}
+        {send.isError ? (
+          <p className="field__error" role="alert">
+            {send.error instanceof Error ? send.error.message : 'The rosters were not sent.'}
+          </p>
+        ) : null}
+      </div>
     </Card>
   );
 }

@@ -100,6 +100,13 @@ describe('MemberAccountActions', () => {
     expect(screen.queryByRole('button', { name: 'Make a friend' })).not.toBeInTheDocument();
   });
 
+  it('offers a member with no membership yet no switch to friend, as the server refuses it', () => {
+    stub();
+    renderActions(makeDetail({ kind: 'member', membership: { ...FRIEND, status: 'none' } }));
+
+    expect(screen.queryByRole('button', { name: 'Make a friend' })).not.toBeInTheDocument();
+  });
+
   it('offers a life member no switch to friend', () => {
     stub();
     renderActions(makeDetail({ membership: LIFETIME }));

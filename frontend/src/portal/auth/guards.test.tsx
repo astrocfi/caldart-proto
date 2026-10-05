@@ -239,11 +239,12 @@ describe('the 403 page', () => {
 
 describe('RequireOnboarded', () => {
   const UNPAID: MembershipStatus = {
-    status: 'friend',
+    status: 'none',
     expires_on: null,
     plan: null,
     is_lifetime: false,
   };
+  const FRIEND: MembershipStatus = { ...UNPAID, status: 'friend' };
 
   function JoinStub() {
     return <p>join wizard</p>;
@@ -297,7 +298,7 @@ describe('RequireOnboarded', () => {
   });
 
   it('lets a friend with a complete profile through', async () => {
-    renderGate(makeUser({ kind: 'friend', membership: UNPAID }));
+    renderGate(makeUser({ kind: 'friend', membership: FRIEND }));
     expect(await screen.findByText('secret content')).toBeInTheDocument();
   });
 

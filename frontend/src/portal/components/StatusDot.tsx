@@ -44,7 +44,8 @@ export function membershipTone(
   membership: Pick<MembershipStatus, 'status' | 'expires_on' | 'is_lifetime'>,
   today: Date = new Date(),
 ): StatusTone {
-  if (membership.status === 'friend' || membership.status === 'donor') return 'none';
+  if (membership.status === 'friend' || membership.status === 'none') return 'none';
+  if (membership.status === 'donor') return 'none';
   if (membership.status === 'expired') return 'expired';
   if (membership.is_lifetime) return 'current';
   const days = daysUntil(membership.expires_on, today);
@@ -126,8 +127,13 @@ function membershipLabel(
   // say the membership is a lifetime one, and the word's job is to answer the
   // question the other states answer -- when does it run out.
   if (membership.is_lifetime && membership.status === 'current') return 'Never expires';
-  if (membership.status === 'friend') return MEMBERSHIP_STATUS_LABELS.friend;
-  if (membership.status === 'donor') return MEMBERSHIP_STATUS_LABELS.donor;
+  if (
+    membership.status === 'friend' ||
+    membership.status === 'none' ||
+    membership.status === 'donor'
+  ) {
+    return MEMBERSHIP_STATUS_LABELS[membership.status];
+  }
   return TONE_LABEL[tone];
 }
 

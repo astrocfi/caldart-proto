@@ -14,15 +14,12 @@
   font-size: var(--text-sm);
 }
 
-/* Why the users list's columns and downloads are off, beside the grayed buttons. */
-.users-list__off {
+/* What the chosen role lets its holders do, and why the columns and downloads are off,
+ * each on a line of its own under the filters rather than beside their buttons. */
+.users-list__note {
+  flex: 0 0 100%;
+  /* The bar is a wrapping row: the whole row's width puts the note on a line of its own. */
+  max-width: none;
   margin: 0;
-  font-size: var(--text-sm);
-  flex-basis: 100%;
-}
-
-/* What the chosen role lets its holders do, under the filters. */
-.users-list__role {
-  margin: var(--space-2) 0 0;
   font-size: var(--text-sm);
 }

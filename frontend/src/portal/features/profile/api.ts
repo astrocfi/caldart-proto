@@ -38,11 +38,12 @@ export function useProfile(): UseQueryResult<Profile> {
   return useQuery({ queryKey: PROFILE_KEY, queryFn: () => api.get<Profile>('/me/profile') });
 }
 
-/** The signed-in member's membership status, via `GET /me/membership`. */
-export function useMembership(): UseQueryResult<MembershipDetail> {
+/** The signed-in member's membership status, via `GET /me/membership`; `enabled` false holds it back. */
+export function useMembership(enabled = true): UseQueryResult<MembershipDetail> {
   return useQuery({
     queryKey: MEMBERSHIP_KEY,
     queryFn: () => api.get<MembershipDetail>('/me/membership'),
+    enabled,
   });
 }
 

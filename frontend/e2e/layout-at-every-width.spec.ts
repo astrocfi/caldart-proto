@@ -110,3 +110,76 @@ test('an error on Change password takes its hint line, leaving no gap', async ({
 
   expect(await labelToBox(page, NEW_PASSWORD)).toBeLessThan(before);
 });
+
+test("the dashboard's recent payments read their For cells whole at 1920", async ({ page }) => {
+  await page.setViewportSize(DESKTOP);
+  await signIn(page, DEMO.member);
+  await page.goto('portal/');
+  const table = page.getByRole('table', { name: 'Your most recent payments' });
+  await expect(table.locator('tbody tr').first()).toBeVisible();
+
+  const cut = [];
+  for (const cell of await table.locator('tbody tr td:nth-child(2)').all()) {
+    if (!(await isWhole(cell))) cut.push(await cell.textContent());
+  }
+  expect(cut).toEqual([]);
+});
+
+test('Shift+Tab never leaves a field under the sticky header on a phone', async ({ page }) => {
+  await page.setViewportSize(PHONE);
+  await signIn(page, DEMO.member);
+  await page.goto('portal/profile');
+  const hours = page.getByLabel(/^Total hours/);
+  await expect(hours).toBeVisible();
+  await hours.focus();
+  const bar = await page.locator('.portal__bar').boundingBox();
+  if (bar === null) throw new Error('The header is not laid out');
+
+  const hidden = [];
+  for (let press = 0; press < 12; press += 1) {
+    await page.keyboard.press('Shift+Tab');
+    const box = await page.evaluate(() => {
+      const focused = document.activeElement;
+      if (!(focused instanceof HTMLElement) || focused.closest('.portal__bar') !== null) {
+        return null;
+      }
+      const rect = focused.getBoundingClientRect();
+      return { top: rect.top, name: focused.getAttribute('name') ?? focused.id };
+    });
+    if (box !== null && box.top < bar.y + bar.height) hidden.push(box.name);
+  }
+  expect(hidden).toEqual([]);
+});
+
+for (const size of [DESKTOP, TABLET]) {
+  test(`New DART refused empty leaves no blank band above its boxes at ${size.width}`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(size);
+    await signIn(page, DEMO.accountadmin);
+    await page.goto('portal/admin/darts');
+    await page.getByRole('button', { name: 'New DART' }).click();
+    const name = page.getByRole('textbox', { name: /^Name/ }).first();
+    const airports = page.getByRole('textbox', { name: /^Airports/ });
+
+    await page.getByRole('button', { name: 'Add DART' }).click();
+    await expect(name).toHaveAttribute('aria-invalid', 'true');
+    await expect(airports).toHaveAttribute('aria-invalid', 'true');
+
+    const gaps = [];
+    for (const [box, label] of [
+      [name, 'Name'],
+      [airports, 'Airports'],
+    ] as const) {
+      const field = box.locator('xpath=ancestor::div[contains(@class, "field")][1]');
+      const caption = await field.locator('.field__label').boundingBox();
+      const drawn = await box.boundingBox();
+      if (caption === null || drawn === null) throw new Error(`${label} is not laid out`);
+      gaps.push(drawn.y - (caption.y + caption.height));
+    }
+    // The label's own margin, and no hint row held open above either box.
+    expect(gaps.every((gap) => gap < 10)).toBe(true);
+    const [left, right] = [await name.boundingBox(), await airports.boundingBox()];
+    expect(Math.abs((left?.y ?? 0) - (right?.y ?? 1))).toBeLessThan(1);
+  });
+}

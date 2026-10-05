@@ -47,15 +47,17 @@ function mount({
   status,
   payments = [],
   config = SITE_CONFIG,
+  history = [],
 }: {
   user: User;
   status: MembershipStatus;
   payments?: PaymentSummary[];
   config?: SiteConfig;
+  history?: MembershipDetail['history'];
 }) {
   server.use(
     signedInAs(user),
-    http.get(`${API}/me/membership`, () => HttpResponse.json(membership(status))),
+    http.get(`${API}/me/membership`, () => HttpResponse.json({ ...membership(status), history })),
     http.get(`${API}/me/payments`, () => HttpResponse.json(payments)),
     http.get(`${API}/site/config`, () => HttpResponse.json(config)),
   );
@@ -156,16 +158,49 @@ describe('<DashboardPage/>', () => {
     ).toHaveAttribute('href', '/renew');
   });
 
-  it('gives a member who registered and never paid the friend card', async () => {
-    mount({ user: makeUser({ kind: 'member', membership: FRIEND }), status: FRIEND });
+  it('tells a member with no term yet that they have no membership, not that they are a friend', async () => {
+    const none: MembershipStatus = { ...FRIEND, status: 'none' };
+    mount({
+      user: makeUser({ kind: 'member', admin_created: true, membership: none }),
+      status: none,
+    });
 
-    await screen.findByRole('heading', { name: 'You are a friend of CalDART' });
-    const status = card('You are a friend of CalDART');
-    expect(status.getByRole('link', { name: 'Make me a member' })).toHaveAttribute(
-      'href',
-      '/membership/join',
-    );
-    expect(status.queryByRole('link', { name: 'Join CalDART' })).not.toBeInTheDocument();
+    await screen.findByRole('heading', { name: 'You have no membership yet' });
+    expect(screen.queryByText(/friend of CalDART/)).not.toBeInTheDocument();
+  });
+
+  it('tells a member whose granted term is still to come when it starts, with nothing to pay', async () => {
+    const none: MembershipStatus = { ...FRIEND, status: 'none' };
+    mount({
+      user: makeUser({ kind: 'member', admin_created: true, membership: none }),
+      status: none,
+      history: [
+        {
+          id: 1,
+          plan: 'Annual',
+          starts_on: '2099-11-03',
+          ends_on: '2100-11-02',
+          status: 'active',
+          source: 'manual',
+        },
+      ],
+    });
+
+    await screen.findByRole('heading', { name: 'Your membership starts 11/03/2099' });
+    expect(screen.queryByRole('link', { name: 'Pay dues' })).not.toBeInTheDocument();
+  });
+
+  it('offers a member with no term yet Pay dues, which opens the checkout', async () => {
+    const none: MembershipStatus = { ...FRIEND, status: 'none' };
+    mount({
+      user: makeUser({ kind: 'member', admin_created: true, membership: none }),
+      status: none,
+    });
+
+    await screen.findByRole('heading', { name: 'You have no membership yet' });
+    expect(
+      card('You have no membership yet').getByRole('link', { name: 'Pay dues' }),
+    ).toHaveAttribute('href', '/membership/join');
   });
 
   it('never asks a life member to renew', async () => {
@@ -418,6 +453,14 @@ describe('DashboardPage · payments and renewal', () => {
       await card('Recent payments').findByRole('link', {
         name: 'All payments, receipts, and renewals',
       }),
+    ).toHaveAttribute('href', '/payments');
+  });
+
+  it('sends a life member on to their payments and receipts, with no word of renewals', async () => {
+    mount({ user: makeUser({ membership: LIFETIME }), status: LIFETIME });
+
+    expect(
+      await card('Recent payments').findByRole('link', { name: 'All payments and receipts' }),
     ).toHaveAttribute('href', '/payments');
   });
 

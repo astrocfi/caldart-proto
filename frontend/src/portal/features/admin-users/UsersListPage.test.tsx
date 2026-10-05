@@ -490,6 +490,22 @@ describe('UsersListPage', () => {
     ).toBeInTheDocument();
   });
 
+  it('offers a shorter search only when a search was typed', async () => {
+    stubList([]);
+    renderWithProviders(<UsersListPage />, { route: '/admin/users?kind=friend&role=treasurer' });
+
+    expect(await screen.findByText('Reset the filters to see more accounts.')).toBeInTheDocument();
+  });
+
+  it('offers a shorter search when the search found nobody', async () => {
+    stubList([]);
+    renderWithProviders(<UsersListPage />, { route: '/admin/users?search=zzz' });
+
+    expect(
+      await screen.findByText('Try a shorter search, or reset the filters.'),
+    ).toBeInTheDocument();
+  });
+
   it('says in words why the downloads are off while Donor is chosen', async () => {
     stubList([MARTA, GIL]);
     renderWithProviders(<UsersListPage />);
@@ -512,6 +528,18 @@ describe('UsersListPage', () => {
     expect(await screen.findByText(/See every payment\./)).toHaveTextContent(
       'Treasurer: See every payment.',
     );
+  });
+
+  it('gives the role description a line of its own under the filters, not beside them', async () => {
+    stubList();
+    server.use(
+      http.get(`${API}/roles`, () =>
+        HttpResponse.json([{ slug: 'treasurer', description: 'See every payment.' }]),
+      ),
+    );
+    renderWithProviders(<UsersListPage />, { route: '/admin/users?role=treasurer' });
+
+    expect(await screen.findByText(/See every payment\./)).toHaveClass('users-list__note');
   });
 
   it('shows No membership for a donor rather than a membership dot', async () => {

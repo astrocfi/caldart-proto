@@ -336,7 +336,9 @@ Refusals:
   filter."]}}`` for a ``columns`` entry among the filters, and ``{"filters":
   {"year": ["An emailed report covers this year or last year. Choose one of
   those."]}}`` for a fixed ``year`` on the contributions report, whose
-  subscriptions say ``period`` instead.
+  subscriptions say ``period`` instead, and ``{"filters": {"from": ["An emailed
+  report covers a period counted from the day it goes. Choose a Period."]}}``
+  (and likewise for ``to``) for fixed dates on the reconciliation report.
 
 ``GET | PATCH | DELETE /reports/subscriptions/{id}``
 ----------------------------------------------------
@@ -366,7 +368,7 @@ send, shaped as :ref:`api-reports-run` describes::
    "actions": [{"kind": "report", "member": "board@example.org",
                 "email": "board@example.org", "on": null,
                 "amount_cents": null,
-                "detail": "CalDART membership report, PDF"}]}
+                "detail": "Members, PDF"}]}
 
 ``last_sent_at`` is stamped and ``next_due_on`` stays where it was.  The
 recipient is brought up to date first, as the daily run does

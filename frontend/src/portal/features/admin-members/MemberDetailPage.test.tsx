@@ -122,7 +122,7 @@ describe('MemberDetailPage', () => {
 
   it('points a member with no term at Memberships rather than calling them a friend', async () => {
     const noTerm = makeDetail({
-      membership: { status: 'friend', expires_on: null, plan: null, is_lifetime: false },
+      membership: { status: 'none', expires_on: null, plan: null, is_lifetime: false },
       memberships: [],
       joined_on: null,
     });
@@ -137,7 +137,7 @@ describe('MemberDetailPage', () => {
   it('says when a member whose only term has not begun starts, rather than asking for a grant', async () => {
     const base = makeDetail();
     const future = makeDetail({
-      membership: { status: 'friend', expires_on: null, plan: null, is_lifetime: false },
+      membership: { status: 'none', expires_on: null, plan: null, is_lifetime: false },
       memberships: base.memberships.map((term) => ({
         ...term,
         starts_on: '2099-11-03',
@@ -151,9 +151,27 @@ describe('MemberDetailPage', () => {
     expect(header).toHaveTextContent('Membership starts 11/03/2099');
   });
 
+  it('does not repeat a future start date as the day the member joined', async () => {
+    const base = makeDetail();
+    const future = makeDetail({
+      membership: { status: 'none', expires_on: null, plan: null, is_lifetime: false },
+      joined_on: '2099-11-03',
+      memberships: base.memberships.map((term) => ({
+        ...term,
+        starts_on: '2099-11-03',
+        ends_on: '2100-11-02',
+      })),
+    });
+    server.use(...detailHandlers(future));
+    renderDetail();
+
+    const strip = (await screen.findByText(/Membership starts/)).closest('.cluster');
+    expect(strip?.textContent).not.toMatch(/joined/);
+  });
+
   it('leaves out the expiry and joining dates a member with no term does not have', async () => {
     const noTerm = makeDetail({
-      membership: { status: 'friend', expires_on: null, plan: null, is_lifetime: false },
+      membership: { status: 'none', expires_on: null, plan: null, is_lifetime: false },
       memberships: [],
       joined_on: null,
     });

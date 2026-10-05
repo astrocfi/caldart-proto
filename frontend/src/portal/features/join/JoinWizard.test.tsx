@@ -36,13 +36,16 @@ const CURRENT: MembershipStatus = {
   is_lifetime: false,
 };
 
-/** What a joiner who has not paid reads as, whichever kind they chose: a friend. */
+/** What a joiner who chose to be a member and has not paid reads as. */
 const UNPAID: MembershipStatus = {
-  status: 'friend',
+  status: 'none',
   expires_on: null,
   plan: null,
   is_lifetime: false,
 };
+
+/** What a friend reads as, paid or not. */
+const FRIEND_STATUS: MembershipStatus = { ...UNPAID, status: 'friend' };
 
 /** The lede over a member's pay step. */
 const MEMBER_PAY_LEDE =
@@ -138,6 +141,18 @@ describe('<JoinWizard/> resume logic', () => {
     expect(path()).toBe('/join/verify');
   });
 
+  it('shows an account an administrator created the verify step alone, with no steps listed', async () => {
+    stubApi(makeUser({ admin_created: true, email_verified: false, membership: UNPAID }));
+    renderWizard('/join');
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Verify your email address' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Check your email' })).toBeInTheDocument();
+    expect(screen.queryByText('Profile')).not.toBeInTheDocument();
+    expect(screen.queryByText('Pay')).not.toBeInTheDocument();
+  });
+
   it('skips the verify step for an address that is already verified', async () => {
     stubApi(makeUser({ profile_complete: false, membership: UNPAID }));
     renderWizard('/join/verify');
@@ -215,7 +230,7 @@ describe('<JoinWizard/> for somebody who has joined already', () => {
   );
 
   it('sends a friend who has joined to the dashboard from the pay step', async () => {
-    stubApi(makeUser({ kind: 'friend', membership: UNPAID }));
+    stubApi(makeUser({ kind: 'friend', membership: FRIEND_STATUS }));
     renderWizard('/join/pay');
 
     expect(await screen.findByRole('heading', { name: 'Dashboard' })).toBeInTheDocument();
@@ -537,7 +552,7 @@ describe('<JoinWizard/> returning from a redirect payment', () => {
 });
 
 describe('<JoinWizard/> for a friend', () => {
-  const FRIEND: MembershipStatus = UNPAID;
+  const FRIEND: MembershipStatus = FRIEND_STATUS;
   const FRIEND_DETAIL: MembershipDetail = { ...FRIEND, history: [] };
 
   /** The pay step's config with a tier to give, since a friend's checkout has no plan. */
@@ -587,6 +602,30 @@ describe('<JoinWizard/> for a friend', () => {
 
     expect(await screen.findByRole('heading', { name: 'Welcome to CalDART' })).toBeInTheDocument();
     expect(path()).toBe('/join/done');
+  });
+
+  it('moves the focus to the pay step heading after Save and continue', async () => {
+    stubFriendApi(makeFriend({ profile_complete: false }));
+    server.use(http.put(`${API}/me/profile`, () => HttpResponse.json(makeProfile())));
+    renderWizard('/join');
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Save and continue' }));
+
+    const heading = await screen.findByRole('heading', { name: 'Donate to CalDART' });
+    await waitFor(() => expect(heading).toHaveFocus());
+  });
+
+  it('moves the focus to the done step heading after Continue without a gift', async () => {
+    stubFriendApi(makeFriend({ profile_complete: false }));
+    server.use(http.put(`${API}/me/profile`, () => HttpResponse.json(makeProfile())));
+    renderWizard('/join');
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Save and continue' }));
+    await screen.findByRole('radio', { name: /Participating/ });
+    await userEvent.click(screen.getByRole('button', { name: 'Continue without a gift' }));
+
+    const heading = await screen.findByRole('heading', { name: 'Welcome to CalDART' });
+    await waitFor(() => expect(heading).toHaveFocus());
   });
 
   it('promises no receipt to a friend who gave nothing', async () => {
@@ -718,7 +757,7 @@ describe('<JoinWizard/> for a member who changes their mind', () => {
     stubApi(makeUser({ kind: 'member', membership: UNPAID }));
     server.use(
       http.post(`${API}/me/kind/friend`, () =>
-        HttpResponse.json(makeUser({ kind: 'friend', membership: UNPAID })),
+        HttpResponse.json(makeUser({ kind: 'friend', membership: FRIEND_STATUS })),
       ),
       http.get(`${API}/me/membership`, () => HttpResponse.json({ ...UNPAID, history: [] })),
     );
@@ -759,7 +798,7 @@ describe('<JoinWizard/> for a friend who changes their mind', () => {
 
   /** A stored friend on the pay step the wizard holds for them, whose payment makes them a current member. */
   function stubFriendToMember(): void {
-    let user = makeUser({ kind: 'friend', membership: UNPAID });
+    let user = makeUser({ kind: 'friend', membership: FRIEND_STATUS });
     window.sessionStorage.setItem(FRIEND_PAY_KEY, String(user.id));
     stubApi(user);
     server.use(

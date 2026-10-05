@@ -25,7 +25,7 @@ import type {
 import { ACCOUNT_KIND_LABELS } from '@/portal/choices';
 import { Field } from '@/portal/components/Field';
 import { MaskedInput } from '@/portal/components/MaskedInput';
-import { EMAIL_MESSAGE, isEmailAddress, maskEmail } from '@/portal/masks';
+import { addressProblem, maskEmail } from '@/portal/masks';
 import './members.css';
 
 export interface AccountDraft {
@@ -94,8 +94,7 @@ export const MISSING_EMAIL_MESSAGE = 'Enter their email address.';
  * that is not an address shows what one looks like.  Null for a good address.
  */
 export function emailProblem(email: string): string | null {
-  if (email.trim() === '') return MISSING_EMAIL_MESSAGE;
-  return isEmailAddress(email) ? null : EMAIL_MESSAGE;
+  return addressProblem(email, MISSING_EMAIL_MESSAGE);
 }
 
 /** What a blank name is refused with, in the server's own words. */

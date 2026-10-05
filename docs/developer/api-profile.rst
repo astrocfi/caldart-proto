@@ -328,7 +328,7 @@ One list serves every reader of it:
   while it is false, every signed-in screen sends the reader to the join
   wizard's profile step, and the wizard's step order keys off it too.  The
   pay step that follows holds only a ``member`` who has never held a paid
-  term (``membership.status`` is ``friend`` and ``friend_on`` is null); a
+  term (``membership.status`` is ``none``); a
   member whose term has expired has joined, and renews from the portal.
 - The portal's profile form requires exactly the same five
   (``REQUIRED_PROFILE_FIELDS`` in
@@ -408,8 +408,8 @@ full term history, newest first.
      ]
    }
 
-``status`` is ``current``, ``expired``, or ``friend`` (``donor`` is the fourth
-value of the enum, and a donor cannot sign in to ask).  ``expires_on`` is the end
+``status`` is ``current``, ``expired``, ``friend``, or ``none`` (``donor`` is the
+fifth value of the enum, and a donor cannot sign in to ask).  ``expires_on`` is the end
 of the member's *unbroken* coverage, so a renewal bought today shows next year's
 date immediately; it is ``null`` for a lifetime membership.
 
@@ -417,8 +417,9 @@ A friend of CalDART (:ref:`kinds of account <account-kinds>`) gets ``status: "fr
 ``expires_on`` and ``plan`` null and ``is_lifetime`` false, whatever terms they
 held as a member; those terms are still listed in ``history``.  So does a member
 whose ``friend_on`` date has arrived, before the nightly run writes the change
-down, and a member who has never paid or been granted a term, whose ``history``
-is empty (or holds only canceled, suspended, or future terms) rather than a 404.
+down.  A member who has never paid or been granted a term gets ``status: "none"``
+with the same nulls, and a ``history`` that is empty (or holds only canceled or
+future terms) rather than a 404.
 
 Statuses:
 

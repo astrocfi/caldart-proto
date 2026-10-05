@@ -75,6 +75,6 @@ describe('CalloutsPage', () => {
     expect(screen.queryByText(/switch on This is a mission callout/)).toBeNull();
     expect(
       screen.getAllByText(/^Your profile names no DART, so there is nobody to send to\./),
-    ).not.toHaveLength(0);
+    ).toHaveLength(1);
   });
 });

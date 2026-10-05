@@ -61,16 +61,17 @@ computer.
 If the screen says something else
 =================================
 
-*Enter your password.*
-  The password box is empty. Both boxes are checked together, so an empty form
-  names both.
+*Enter your email address.* or *Enter your password.*
+  That box is empty. Both boxes are checked together, so an empty form names both,
+  the cursor moves to the first of them, and a line beside **Sign in** says how many
+  to check.
 
 *Use an email address like name@example.org.*
   The box has no @ in it, or nothing after the last dot. The box takes no spaces,
   and a copied address often brings one with it.
 
 *Incorrect email address or password.*
-  One of the two is wrong. The message never says which, so a stranger cannot use
+  One of the two is wrong, and the cursor moves to this message. The message never says which, so a stranger cannot use
   the form to find out who has an account. Check the address first, then use
   **Forgot your password?** (see :doc:`forgot-password`).
 

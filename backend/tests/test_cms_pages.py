@@ -462,13 +462,13 @@ def test_wall_offers_renewal_to_an_expired_member(
 def test_wall_offers_membership_to_a_member_who_never_paid(
     client: Client, walled_page: StandardPage, member: User
 ) -> None:
-    """A member who never paid is a friend, so the wall offers Make me a member."""
+    """A member who never paid is offered Pay dues, which opens the checkout."""
     client.force_login(member)
 
     response = client.get(walled_page.url)
     assert response.status_code == 403
     body = response.content.decode()
-    assert "Make me a member" in body
+    assert "Pay dues" in body
     assert "/portal/membership/join" in body
 
 
@@ -488,7 +488,7 @@ def test_dart_leader_without_a_membership_reads_the_page(
     client: Client, walled_page: StandardPage, dart_leader: User
 ) -> None:
     """A DART leader with no membership of their own still reads the walled page."""
-    assert dart_leader.membership_status["status"] == "friend"
+    assert dart_leader.membership_status["status"] == "none"
     client.force_login(dart_leader)
 
     response = client.get(walled_page.url)

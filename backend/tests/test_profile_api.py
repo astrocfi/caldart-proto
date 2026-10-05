@@ -553,11 +553,11 @@ def test_membership_reports_status_and_history(
 
 
 def test_membership_for_a_member_who_never_paid(api_client: APIClient, member: User) -> None:
-    """A member with no membership row is a friend, with the documented empty shape."""
+    """A member with no membership row reads none, with the documented empty shape."""
     api_client.force_login(member)
     data = api_client.get(MEMBERSHIP_URL).json()
     assert data == {
-        "status": "friend",
+        "status": "none",
         "expires_on": None,
         "plan": None,
         "is_lifetime": False,

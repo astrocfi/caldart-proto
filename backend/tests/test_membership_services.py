@@ -36,10 +36,10 @@ def frozen() -> Iterator[date]:
         yield TODAY
 
 
-def test_no_memberships_is_a_friend(member: User, frozen: date) -> None:
-    """A member with no membership terms at all has never paid, so reports ``friend``."""
+def test_no_memberships_is_no_membership_yet(member: User, frozen: date) -> None:
+    """A member with no membership terms at all has never paid, so reports ``none``."""
     assert membership_status(member) == {
-        "status": "friend",
+        "status": "none",
         "expires_on": None,
         "plan": None,
         "is_lifetime": False,
@@ -94,14 +94,14 @@ def test_expiry_yesterday_is_expired(
 def test_term_starting_tomorrow_is_not_yet_current(
     member: User, annual_plan: MembershipPlan, frozen: date
 ) -> None:
-    """A term that starts tomorrow does not yet count, so the member reads as a friend."""
+    """A term that starts tomorrow does not yet count, so the member reads none yet."""
     MembershipFactory(
         user=member,
         plan=annual_plan,
         starts_on=TODAY + timedelta(days=1),
         ends_on=TODAY + timedelta(days=365),
     )
-    assert membership_status(member)["status"] == "friend"
+    assert membership_status(member)["status"] == "none"
 
 
 def test_term_starting_today_is_current(
@@ -152,7 +152,7 @@ def test_canceled_term_does_not_count(
         ends_on=TODAY + timedelta(days=364),
         status=MembershipStatusChoices.CANCELED,
     )
-    assert membership_status(member)["status"] == "friend"
+    assert membership_status(member)["status"] == "none"
 
 
 def test_expired_reports_the_most_recent_term(

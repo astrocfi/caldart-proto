@@ -33,7 +33,7 @@ from apps.darts.models import Dart, DartContact
 from apps.members.reports import MEMBER_REPORT, member_report_queryset
 from apps.reports.models import ReportFormats, ReportSubscription
 from apps.reports.permissions import can_read_report
-from apps.reports.registry import REPORTS
+from apps.reports.registry import REPORTS, report_name
 from apps.reports.schedule import next_due_after, schedule_label
 from caldart import audit
 from caldart.dates import format_display_date
@@ -217,13 +217,17 @@ def subscription_params(subscription: ReportSubscription) -> Params:
 
 
 def subscription_action(subscription: ReportSubscription, spec: Report) -> RunAction:
-    """The run action one email of ``subscription`` is recorded as."""
+    """The run action one email of ``subscription`` is recorded as.
+
+    Its detail names the report as the portal's tabs do, and the format: ``Payments,
+    CSV``.
+    """
     user = subscription.recipient_user
     return RunAction(
         kind=REPORT_KIND,
         member=user.display_name if user is not None else subscription.recipient_email,
         email=subscription.recipient_email,
-        detail=f"{spec.title}, {FORMAT_LABELS[subscription.formats]}",
+        detail=f"{report_name(spec)}, {FORMAT_LABELS[subscription.formats]}",
     )
 
 

@@ -213,7 +213,7 @@ exactly as ``manage.py send_scheduled_reports`` sends them (see
      "actions": [
        {"kind": "report", "member": "Curtis Whitfield",
         "email": "accountadmin@example.org", "on": null, "amount_cents": null,
-        "detail": "CalDART membership report, PDF"},
+        "detail": "Members, PDF"},
        {"kind": "roster", "member": "Dana Lee", "email": "dana@example.org",
         "on": null, "amount_cents": null, "detail": "Bay Area DART"}
      ]

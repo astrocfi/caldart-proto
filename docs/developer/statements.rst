@@ -23,7 +23,9 @@ contribution in the calendar year: a payment carrying a contribution whose
 ledger date (:doc:`reports`) falls in that year, and whose status is
 ``succeeded``, ``partially_refunded`` or ``refunded``.  A deactivated account
 is never written to, however much it gave while active; a pure membership
-payment, carrying no contribution, earns no statement.
+payment, carrying no contribution, earns no statement.  Nor does a year that nets to
+nothing: a giver whose every contribution that year was refunded in full is left out
+of the run, live or practice, and counted nowhere, so nobody is sent a $0.00 statement.
 
 ``givers_in_year(year)`` in ``apps/payments/statements.py`` finds them by the
 same ledger-date rule ``Payment.paid_on`` applies: a payment recorded by hand

@@ -17,29 +17,30 @@ What you see
 ============
 
 Each row is one email. The table shows the columns checked under **Columns** (see
-`Downloading the log`_), which are these unless you choose others:
+`Downloading the log`_), which are these unless you choose others, **To** first:
 
+- **To**: the address it went to, a link that opens the email (see `Opening an email`_).
 - **Sent**: the date and time. The arrow on the heading shows the order, newest first; click
   the heading to turn it round. The other headings carry no arrow: the log sorts by **Sent**
   alone.
 - **Purpose**: what the email was for. For a copy of a bulk email, *Bulk email* is a link
   to that email's page on :doc:`../bulk-email/sent`, where its delivery report shows every
   copy.
-- **To**: the address it went to, a link that opens the email (see `Opening an email`_).
 - **Name**: the recipient's name, when CalDART knows it. A DART contact on a roster has a
   name and no account.
 - **Subject**: the email's subject line.
-- **Status**: *Sent* beside a green dot; *Failed:* and the reason the mail server gave, beside a
-  red one; or *Bounced*, beside a red one, for an email the mail server took that the
-  recipient's mail server later refused for good.
+- **Status**: *Sent* beside a green dot; *Failed:* and the reason in words, such as *The mail
+  server refused the address.*, beside a red one; or *Bounced*, beside a red one, for an
+  email the mail server took that the recipient's mail server later refused for good.
 
 Check **Error**, **Attachments**, **Bounced**, or **Bounce detail** to add them: the reason a
-send failed, the names of any files attached, the date a bounce came back, and the reason
+send failed, in the same words, the names of any files attached, the date a bounce came back, and the reason
 the recipient's mail server gave, such as *5.1.1 550 User unknown*.
 
 On a narrow screen the table leaves out the default columns that matter least, **Purpose**,
-**Name**, **Subject**, and on a phone **Sent**, in turn, and keeps **To**, **Status**, and
-any column you checked beyond the defaults; a line above the table names what it left out.
+**Name**, and **Subject**, in turn, and keeps **To**, **Sent**, **Status**, and any column you
+checked beyond the defaults, so a phone still tells two emails to one address apart by when
+each went; a line above the table names what it left out.
 If it is still too wide it scrolls sideways inside its card, says so in that line, and
 keeps **To** pinned at the left.
 

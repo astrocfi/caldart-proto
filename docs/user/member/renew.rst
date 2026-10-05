@@ -18,9 +18,9 @@ your membership status, then *Expires* and the date with the days to go, or
 *Expired* and the date it ran out on, and the plan you hold, such as *Annual
 membership*.
 
-Renewing is for a member. A friend of CalDART, including somebody who joined as a
-member and has not paid yet, has nothing to renew: opening **Renew** takes a friend
-to :doc:`become-a-member` instead.
+Renewing is for a member. A friend of CalDART, and somebody who joined as a member and
+has not paid yet, have nothing to renew: opening **Renew** takes them to
+:doc:`become-a-member` instead.
 
 Below it is the checkout, in a card of its own. It works the same way as the join
 wizard's payment step (see :doc:`join`): choose the plan, with the first plan listed

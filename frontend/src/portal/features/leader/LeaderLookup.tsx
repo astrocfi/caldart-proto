@@ -42,8 +42,11 @@ export interface LeaderLookupProps<T> {
   /** The search box's hint. */
   hint: string;
   placeholder: string;
-  /** What the results are, in the plural, for the screen-reader count. */
-  noun: string;
+  /**
+   * What the results are, one and several, for the count: `['person', 'people']` reads
+   * *1 person found* and *3 people found*.
+   */
+  nouns: readonly [string, string];
   /** The query hook behind the results; it must stay idle for a blank term. */
   useResults: (term: string) => LookupResults<T>;
   rowKey: (row: T) => Key;
@@ -67,7 +70,7 @@ export function LeaderLookup<T>({
   label,
   hint,
   placeholder,
-  noun,
+  nouns,
   useResults,
   rowKey,
   rowValue,
@@ -129,7 +132,11 @@ export function LeaderLookup<T>({
         </Field>
 
         <p className="visually-hidden" role="status">
-          {search.isFetching ? 'Searching' : searched ? `${results.length} ${noun} found` : ''}
+          {search.isFetching
+            ? 'Searching'
+            : searched
+              ? `${results.length} ${results.length === 1 ? nouns[0] : nouns[1]} found`
+              : ''}
         </p>
 
         {search.isFetching && search.data === undefined ? (

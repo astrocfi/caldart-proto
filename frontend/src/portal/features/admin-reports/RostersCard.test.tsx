@@ -61,6 +61,20 @@ describe('RostersCard', () => {
     );
   });
 
+  it('puts the result under the button and moves the focus to it', async () => {
+    await renderCard();
+    const button = screen.getByRole('button', { name: 'Preview rosters' });
+
+    await userEvent.click(button);
+
+    const heading = await screen.findByRole('heading', { name: 'What this run would do' });
+    expect(heading).toHaveFocus();
+    // The box, the button, then the result, so the button never moves below the result.
+    expect(button.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+  });
+
   it('rehearses by default and names who would receive a roster', async () => {
     const bodies: unknown[] = [];
     await renderCard(bodies);

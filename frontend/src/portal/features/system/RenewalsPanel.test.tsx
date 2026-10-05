@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it } from 'vitest';
@@ -133,6 +133,25 @@ describe('RenewalsPanel', () => {
     ).toBeInTheDocument();
     expect(bodies).toEqual([{ dry_run: false }]);
     expect(screen.getByRole('heading', { name: 'What this run did' })).toBeInTheDocument();
+  });
+
+  it('moves the focus to the result after a real charge, not back to Run now', async () => {
+    server.use(http.post(`${API}/system/renewals/run`, () => HttpResponse.json(RESULT)));
+    renderWithProviders(<RenewalsPanel />);
+
+    await userEvent.click(
+      screen.getByLabelText(
+        'Practice run: show what would happen, charge nothing (automatic renewal charges)',
+      ),
+    );
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Run now: automatic renewal charges' }),
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Charge what is due' }));
+
+    const heading = await screen.findByRole('heading', { name: 'What this run did' });
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Cancel' })).toBeNull());
+    expect(heading).toHaveFocus();
   });
 
   it('charges nothing when the confirmation is waved off', async () => {

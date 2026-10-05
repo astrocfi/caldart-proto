@@ -46,6 +46,7 @@ export const PILOT_MEMBERSHIP: Record<MembershipState, { tone: StatusTone; label
   current: { tone: 'current', label: 'Member current' },
   expired: { tone: 'expired', label: 'Member expired' },
   friend: { tone: 'none', label: 'Friend' },
+  none: { tone: 'none', label: 'No membership yet' },
   donor: { tone: 'none', label: 'Donor' },
 };
 

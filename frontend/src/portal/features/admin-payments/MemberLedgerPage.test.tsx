@@ -92,6 +92,29 @@ describe('MemberLedgerPage', () => {
     expect(await screen.findByText('This member renews by hand.')).toBeInTheDocument();
   });
 
+  it("names the plan in the For column, as the member's own Payments screen does", async () => {
+    serveLedger();
+    renderLedger();
+
+    const table = await screen.findByRole('table');
+    expect(within(table).getByText('Annual and contribution')).toBeInTheDocument();
+  });
+
+  it('says nothing of renewals or dues to somebody with no membership yet', async () => {
+    const ledger = makeLedger({ statement_years: [] });
+    serveLedger({
+      ...ledger,
+      user: {
+        ...ledger.user,
+        membership: { status: 'none', expires_on: null, plan: null, is_lifetime: false },
+      },
+    });
+    renderLedger();
+
+    expect(await screen.findByText('This person has not given anything yet.')).toBeInTheDocument();
+    expect(screen.queryByText('This member renews by hand.')).not.toBeInTheDocument();
+  });
+
   it('describes the saved method when the member has a mandate', async () => {
     serveLedger(makeLedger({ mandate: makeMandate() }));
     renderLedger();

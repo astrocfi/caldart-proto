@@ -28,9 +28,10 @@ Every panel but the bulk email sender's works the same way:
    counts and a table naming each email or charge, and the focus moves to that heading.
    A run that found nothing at all to do says only *Nothing is due.* (*Nothing was due.*
    after a real run). A column no row fills, such as **Amount** for emails that charge
-   nothing, is left out. On a narrow screen the table leaves out **When**, then **Amount**,
-   then **What**, and keeps **Who** and any **Report or DART** column in sight; on a phone
-   it scrolls sideways, says so above it, and keeps **Who** pinned at the left.
+   nothing, is left out. **Who** comes first. On a narrow screen the table leaves out
+   **When**, then **Amount**, and keeps **Who**, **What**, and any **Report or DART** column
+   in sight, so a phone still shows which email goes to whom; if that is still too wide it
+   scrolls sideways, says so above it, and keeps **Who** pinned at the left.
 #. If the numbers look right and you have a reason not to wait for the schedule, clear the
    box and press **Run now** again.
 
@@ -52,8 +53,8 @@ reasons in the panel's
 words: *already sent*, *already renewed*, *auto-renew on*, *lifetime member*, *account
 deactivated*, and *no address on file*, such as *Skipped: already sent 10, auto-renew on 2.*
 When the mail server refused a send, a further line reads, for example, *Failed 2.* A
-refused reminder stays due and goes out on a later run. The table names every email: **What**
-reminder, **Who** it went to with their address, and **When** their membership ends; a
+refused reminder stays due and goes out on a later run. The table names every email: **Who**
+it went to with their address, **What** reminder, and **When** their membership ends; a
 reminder charges nothing, so the table has no **Amount** column.
 
 Each member gets each reminder once per membership. At the foot of the panel, under its
@@ -113,10 +114,10 @@ speak of the donation.
 #. Clear the box and press **Run now** again for a real run. It asks first, because it
    charges everybody who is due: press **Charge what is due**, or **Cancel**, which is
    where the confirmation starts you, so a second Enter charges nobody. Escape cancels
-   too. After a real run the focus goes back to **Run now**, with the result below it.
+   too. After a real run the focus moves to the result's heading, as after a practice run.
 
-The table names each email and each charge: **What** (*Notice*, *Card expiring warning*,
-*Charge taken notice*, *Charge failed notice*, or *Charge*), **Who**, **When**, and
+The table names each email and each charge: **Who**, **What** (*Notice*, *Card expiring
+warning*, *Charge taken notice*, *Charge failed notice*, or *Charge*), **When**, and
 **Amount**. Every scheduled charge records what has already gone out, so a second run charges
 nobody twice.
 
@@ -150,6 +151,8 @@ Year-end statements
 
 Each January 15th at 6:45 AM CalDART emails every active member, friend, and donor who gave in
 the year before a statement of their gifts for their tax return, with the statement attached.
+Somebody whose every gift that year was refunded is sent nothing, since there is nothing to
+state.
 The subject reads *CalDART: your 2025 contribution statement*, with the year and your
 organization's name.
 
@@ -184,8 +187,8 @@ sent to it, or until a user administrator clears it on :doc:`user-record`.
    bounce.
 #. Clear the box and press **Run now** again to mark them for real.
 
-The table names each one: **What** (*Bounced*, or *No matching email*), **Who** the email
-went to, the **Report** the other mail server gave, and **When** the email was sent.
+The table names each one: **Who** the email went to, **What** (*Bounced*, or *No matching
+email*), the **Report** the other mail server gave, and **When** the email was sent.
 
 If the server has no bounce mailbox set up, the panel says so as it opens, above the box:
 *Bounce checking is off. Ask the person who installed the site to set up a bounce
@@ -206,8 +209,8 @@ already pressed **Send** on. Press **Run now** to run it at once. The page waits
 seconds; a larger email carries on in the background after that. The result reads, for
 example, *Worked on 1 bulk email: sent 37, failed 1, and skipped 4.*, and when the time ran
 out it adds how many copies are still to go and that the server's sender carries on with
-them within a minute. A table names each copy: **What** (*Sent* or *Failed*), **Who** it
-went to, and the **Subject or reason**. When no bulk email was waiting the panel says only
+them within a minute. A table names each copy: **Who** it went to, **What** (*Sent* or
+*Failed*), and the **Subject or reason**. When no bulk email was waiting the panel says only
 *Nothing was due.* If the sender was already running, the panel says *The sender is
 already running, so this run did nothing. Try again in a minute.*
 

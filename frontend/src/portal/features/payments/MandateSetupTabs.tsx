@@ -12,6 +12,8 @@ import type { MandateProvider, PaymentsConfig } from '@/portal/api/types';
 import { MockRenewalPanel } from './MockRenewalPanel';
 import { PayPalRenewalPanel } from './PayPalRenewalPanel';
 import { StripeRenewalPanel } from './StripeRenewalPanel';
+import { Heading } from '@/portal/components/Heading';
+import type { CheckoutHeadingLevel } from '@/portal/features/checkout/types';
 import type { RenewalPanelProps } from './types';
 import { MANDATE_PROVIDER_LABELS, MANDATE_PROVIDER_ORDER } from './types';
 
@@ -24,6 +26,8 @@ export interface MandateSetupTabsProps {
   config: PaymentsConfig;
   /** What every panel is handed. */
   panelProps: RenewalPanelProps;
+  /** The level of the heading over the tabs, one under the heading of what holds them. */
+  headingLevel?: CheckoutHeadingLevel;
 }
 
 /**
@@ -34,6 +38,7 @@ export interface MandateSetupTabsProps {
 export function MandateSetupTabs({
   config,
   panelProps,
+  headingLevel = 3,
 }: MandateSetupTabsProps): JSX.Element | null {
   const providers = useMemo(() => mandateProviders(config), [config]);
   const [active, setActive] = useState<MandateProvider | null>(null);
@@ -57,7 +62,9 @@ export function MandateSetupTabs({
 
   return (
     <section className="checkout__pay">
-      <h4 className="eyebrow">Which method should we save?</h4>
+      <Heading level={headingLevel} className="eyebrow">
+        Which method should we save?
+      </Heading>
       <div className="checkout__tabs" role="tablist" aria-label="Payment method">
         {providers.map((slug) => (
           <button

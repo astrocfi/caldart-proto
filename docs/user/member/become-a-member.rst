@@ -11,7 +11,8 @@ You reach it from **Make me a member**, which a friend finds on the membership c
 of the :doc:`dashboard`, on the **Your kind of account** card of :doc:`profile`, and
 on the wall of any members-only page (see :doc:`members-only-content`). It is open
 to every friend, including one who chose **I changed my mind, I just want to be a
-friend** while joining (see :doc:`join`).
+friend** while joining (see :doc:`join`). A member whose account the office made, and who
+has not paid yet, reaches it from **Pay dues** on the dashboard's membership card.
 
 
 What you see

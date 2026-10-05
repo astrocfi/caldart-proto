@@ -1,7 +1,8 @@
 """Year-end contribution statements: who gets one, and the yearly send.
 
 Every active account -- a member, a friend, or a donor -- that made at least one
-settled contribution in a calendar year is sent one email,
+settled contribution in a calendar year, and whose giving that year was not all refunded,
+is sent one email,
 ``contribution_statement``, with that year's statement PDF attached
 (:func:`apps.payments.receipts.render_statement_pdf`).  A
 :class:`~apps.payments.models.YearStatement` row is written for each address
@@ -202,6 +203,9 @@ def send_year_statements(
     accounts and totals a live run would reach: an account with no address on
     file is counted in ``failed``, precisely as a live run would count it.
 
+    A giver whose year nets to nothing, every contribution of it refunded, is left out
+    altogether: no statement of $0.00 is sent, and the run counts them nowhere.
+
     Nothing about one account stops the run: an address that fails, or one
     with no address at all, is counted in ``failed`` and the walk carries on.
     Every run ends with one ``statements.run`` audit record carrying the year,
@@ -215,6 +219,8 @@ def send_year_statements(
             run.skipped += 1
             continue
         total_cents = _net_total_cents(user, year)
+        if total_cents <= 0:
+            continue
         outcome = bool(user.email) if dry_run else _send_statement(user, year, total_cents)
         if outcome is None:
             run.skipped += 1

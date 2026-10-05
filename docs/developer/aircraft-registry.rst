@@ -57,8 +57,11 @@ Column                Becomes
                       person's or co-owners' through ``person_name``
                       (``SMITH JOHN A`` is ``Smith John A``), any other's
                       through ``business_name`` (``FOX FLYERS LLC`` is ``Fox
-                      Flyers LLC``), so a pick fills the owner's name ready to
-                      store
+                      Flyers LLC``, and a short abbreviation keeps its
+                      capitals: ``KPAO FBO INC`` is ``KPAO FBO Inc``, while
+                      ``KING AIR INC`` is ``King Air Inc`` and ``ST LOUIS``
+                      is ``St Louis``), so a pick fills the owner's name ready
+                      to store
 ``STATUS CODE``       ``status`` (below)
 ``CERT ISSUE DATE``   ``certificate_issued_on`` (``YYYYMMDD``; blank is null)
 ``CERTIFICATION``     ``airworthiness``, from its first character (below)

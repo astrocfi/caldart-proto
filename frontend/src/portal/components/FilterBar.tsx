@@ -6,7 +6,8 @@
  * in `@/portal/reports/definitions`.  Every control applies itself: a select,
  * a multiselect, a date and a toggle as soon as they change, a text or number
  * box once the typing pauses.  There is no Apply button.  **Reset filters**,
- * as tall as the fields beside it, empties every field.  Every control in the bar
+ * as tall as the fields beside it, empties every field; a form that holds the bar
+ * among its own fields, such as a subscription's, leaves it out (`hasReset`).  Every control in the bar
  * is one height, and they line up along the bottom.  A field's hint is its control's `title` rather than a
  * line under it, so the controls of a row line up.  A multiselect is a one-line
  * `MultiSelect` box that opens a panel of checkboxes, so it takes several
@@ -36,6 +37,8 @@ export interface FilterBarProps {
   options?: Readonly<Record<string, readonly Option[]>>;
   /** The name of the search landmark the bar is. */
   label?: string;
+  /** End the bar with **Reset filters**; leave it out in a form of other fields. */
+  hasReset?: boolean;
 }
 
 /** The longest number a number field holds: six digits is ample for days and dollars. */
@@ -93,6 +96,7 @@ export function clearedValues(fields: readonly FilterField[], values: FilterValu
  * @param onChange called with the whole set of values whenever one applies.
  * @param options choices supplied at run time, such as the DART or plan list.
  * @param label the name of the search landmark, e.g. `Filter members`.
+ * @param hasReset whether the bar ends in **Reset filters**; true unless given.
  */
 export function FilterBar({
   fields,
@@ -100,6 +104,7 @@ export function FilterBar({
   onChange,
   options = {},
   label = 'Filters',
+  hasReset = true,
 }: FilterBarProps): JSX.Element {
   const applied = completeValues(fields, values);
   const appliedKey = JSON.stringify(applied);
@@ -169,9 +174,11 @@ export function FilterBar({
           onSet={(value) => set(field, value)}
         />
       ))}
-      <Button type="button" variant="quiet" onClick={handleReset}>
-        Reset filters
-      </Button>
+      {hasReset ? (
+        <Button type="button" variant="quiet" onClick={handleReset}>
+          Reset filters
+        </Button>
+      ) : null}
     </form>
   );
 }

@@ -15,6 +15,7 @@ the ``Members only`` document collection, through the hook in
 
 from __future__ import annotations
 
+from datetime import date
 from typing import TYPE_CHECKING, Any, ClassVar, Literal, TypedDict
 
 from django.conf import settings
@@ -41,7 +42,7 @@ from apps.cms.blocks import (
 from apps.cms.forms import RestrictedBlocksPageForm
 from apps.darts.models import Dart
 from apps.members.models import MembershipPlan, MembershipState
-from apps.members.services import MembershipStatusDict
+from apps.members.services import MembershipStatusDict, upcoming_term_start
 from caldart.casing import person_name
 
 if TYPE_CHECKING:
@@ -94,7 +95,7 @@ ON_THIS_PAGE_MIN_HEADINGS = 3
 MEMBERS_ONLY_COLLECTION_NAME = "Members only"
 
 #: Which call to action the members-only wall offers the reader.
-WallState = Literal["anonymous", "expired", "friend"]
+WallState = Literal["anonymous", "expired", "none", "friend"]
 
 
 class MembersWallContext(TypedDict):
@@ -102,6 +103,7 @@ class MembersWallContext(TypedDict):
 
     wall_state: WallState
     membership: MembershipStatusDict | None
+    starts_on: date | None
 
 
 def user_can_access_members_content(user: User | AnonymousUser | None) -> bool:
@@ -121,27 +123,36 @@ def members_wall_state(user: User | AnonymousUser | None) -> WallState:
 
     ``anonymous`` for ``None`` and for a visitor who is not signed in, so the wall
     invites them to sign in; ``expired`` for a signed-in account whose membership
-    status is ``expired``, so it invites a renewal; ``friend`` for every other
-    signed-in account the wall stops, which is a friend of CalDART (including
-    somebody who chose to be a member and has not yet paid), so it invites them to
-    become a member.  A current member passes the wall, and a donor cannot sign in.
+    status is ``expired``, so it invites a renewal; ``none`` for one that chose to be a
+    member and has not paid yet (status ``none``), so it invites them to pay their dues;
+    and ``friend`` for every other signed-in account the wall stops, which is a friend of
+    CalDART, so it invites them to become a member.  A current member passes the wall,
+    and a donor cannot sign in.
     """
     if user is None or not user.is_authenticated:
         return "anonymous"
-    if user.membership_status["status"] == MembershipState.EXPIRED:
+    status = user.membership_status["status"]
+    if status == MembershipState.EXPIRED:
         return "expired"
+    if status == MembershipState.NONE:
+        return "none"
     return "friend"
 
 
 def members_wall_context(user: User | AnonymousUser | None) -> MembersWallContext:
-    """The wall's own context for ``user``: ``wall_state`` and ``membership``.
+    """The wall's own context for ``user``: ``wall_state``, ``membership``, ``starts_on``.
 
     ``membership`` is the signed-in account's membership status dictionary, and
-    ``None`` for ``None`` and for an anonymous visitor.
+    ``None`` for ``None`` and for an anonymous visitor.  ``starts_on`` is, for the
+    ``none`` state, the day a granted term still to come starts
+    (``members.services.upcoming_term_start``), so the wall says when the page opens
+    rather than asking for dues; ``None`` otherwise.
     """
+    state = members_wall_state(user)
     if user is None or not user.is_authenticated:
-        return {"wall_state": members_wall_state(user), "membership": None}
-    return {"wall_state": members_wall_state(user), "membership": user.membership_status}
+        return {"wall_state": state, "membership": None, "starts_on": None}
+    starts_on = upcoming_term_start(user) if state == "none" else None
+    return {"wall_state": state, "membership": user.membership_status, "starts_on": starts_on}
 
 
 def ensure_members_only_collection() -> Collection:

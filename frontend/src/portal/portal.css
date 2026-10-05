@@ -16,6 +16,14 @@
 }
 
 /* ------------------------------------------------------------------- bar */
+/* The bar stays at the top as the page scrolls, so the page keeps its height clear when
+ * the keyboard moves to a field: Shift+Tab never leaves a field under the bar.  The
+ * layout measures the bar into `--portal-bar-height`, which a phone's wrapped bar
+ * raises. */
+:root:has(.portal__bar) {
+  scroll-padding-top: calc(var(--portal-bar-height, 4.5rem) + var(--space-3));
+}
+
 .portal__bar {
   border-bottom: var(--hairline) solid var(--color-rule);
   background: var(--color-bg-sunken);

@@ -602,6 +602,8 @@ member check, so no status dot for it is drawn anywhere.
      - Expired
    * - ``friend``
      - Friend
+   * - ``none``
+     - No membership yet
    * - ``donor``
      - Donor
 
@@ -1670,16 +1672,22 @@ nobody is a member until they have paid or been granted a term.
 
 Otherwise it is ``member``.  So a member who registered and never paid, one
 whose only term was canceled, and one whose only term starts in the future all
-read as ``friend`` until a term covers them.  A deactivated account whose
+count as ``friend`` until a term covers them, though their membership reads
+``none`` (*No membership yet*) rather than ``friend`` (see
+:ref:`membership-status`).  A deactivated account whose
 started terms are all suspended keeps the effective kind ``member``, since a
 suspended term still makes somebody a member: it is listed under
 ``?kind=member`` and its **Kind** column reads Member, while its membership
 status reads ``friend`` (see :ref:`membership-status`).  ``kind_annotation(today)`` is the same rule as a ``Case``
 expression, and ``membership_annotations`` carries it as ``effective_kind``;
-everything that reads the effective kind (the membership state, the member list
-and its **Kind** column, the member report, the rosters, the member check, the
-reminder and renewal scans, the members-only wall, the dashboard, and the
-portal's **Renew** entry) treats a member who has never paid as a friend.  ``members.lifecycle.convert_due_friends(today)`` writes the due conversions
+everything that reads the effective kind (the rosters, the member check, the
+reminder and renewal scans, the members-only wall, and the portal's **Renew** entry)
+treats a member who has never paid as a friend.  The lists show such an account by the
+kind it chose: ``members.services.listed_kind(row)`` is ``member`` for a row awaiting
+its first term (the ``awaits_first_term`` annotation) and the effective kind otherwise,
+and it is what the member list's **Kind** column and ``?kind=`` filter, the member
+report, the roles report, and so bulk email's adds and the kind a batch row records
+read (``listed_kind_q`` is the filter's ``Q``).  ``members.lifecycle.convert_due_friends(today)`` writes the due conversions
 down (``kind = friend``, ``friend_on = null``, audit ``account.kind``); the daily
 reminder run calls it.  ``accounts.services.set_kind`` is the one way a kind is
 written by hand (by an administrator's edit that changes the kind, the
@@ -2501,19 +2509,33 @@ The service
 ``apps.members.services.membership_status(user, on_date=None)`` returns::
 
     {
-        "status": "current" | "expired" | "friend" | "donor",
-        "expires_on": date | None,     # None for lifetime, a friend, and a donor
+        "status": "current" | "expired" | "friend" | "none" | "donor",
+        "expires_on": date | None,     # None for lifetime, a friend, none, and a donor
         "plan": str | None,
         "is_lifetime": bool,
     }
 
 ``friend``
     The account's effective kind on ``on_date`` is friend (see
-    :ref:`kinds of account <account-kinds>`), which includes a member who has
-    never paid.  Decided before any term is looked at, so a friend's past terms
+    :ref:`kinds of account <account-kinds>`) and it is not awaiting a first term
+    (below).  Decided before any term is looked at, so a friend's past terms
     — or a live one — never make them current or expired.  ``expires_on`` and
     ``plan`` are ``None`` and ``is_lifetime`` is ``False``.  An anonymous
     caller, or none at all, gets the same answer.
+``none``
+    The account chose to be a member and holds no term that has started yet
+    (``members.services.awaits_first_term``): its stored ``kind`` is ``member``,
+    its ``friend_on`` has not come, and no term with ``starts_on <= on_date`` is
+    active, expired, or suspended.  That is an account an administrator created
+    that has not paid, a joiner still at the pay step, and a member whose only
+    term was canceled or is still to start.  Its effective kind is ``friend``, so it counts as a friend for the
+    renewal and reminder scans, the members-only wall, and the member check, but as a
+    member, the kind it chose, for the member list, the member and roles reports, and
+    bulk email's adds (``listed_kind``); it reads *No membership
+    yet* rather than *Friend*.  ``expires_on`` and ``plan`` are ``None`` and
+    ``is_lifetime`` is ``False``.  When such an account holds a granted term still to
+    start, ``members.services.upcoming_term_start`` gives its first day, and the
+    dashboard and the members-only wall name that day instead of asking for dues.
 ``donor``
     The account is a donor's.  ``expires_on`` and ``plan`` are ``None`` and
     ``is_lifetime`` is ``False``.
@@ -2531,13 +2553,13 @@ neither cover a day nor count as past, so ``membership_status`` reaches that
 answer by its closing fallback, and the member list's ``?status=friend`` filter
 lists such a row by an explicit branch.
 
-Those four values are ``apps.members.models.MembershipState``, a
+Those five values are ``apps.members.models.MembershipState``, a
 ``TextChoices`` nothing stores: it is the computed answer, as against
 ``MembershipStatusChoices``, which is the state written on a term.  Every
 serializer that offers the status, the ``?status=`` filter on the member list
 and the payload builders take their values from it, so the backend spells them
 in exactly one place.  The portal's ``MembershipState`` union, in
-``frontend/src/portal/api/types.ts``, is the same four values.
+``frontend/src/portal/api/types.ts``, is the same five values.
 
 The subtlety is ``expires_on`` for a current member.  Renewing early creates a
 term that starts the day *after* the present one ends, and the member is
@@ -2638,10 +2660,17 @@ The translation, term by term:
     is ``friend``, ``friend_on <= today``, or ``kind`` is ``member`` and no
     term that is ``active``, ``expired``, or ``suspended`` has
     ``starts_on <= today``; else ``member``.  ``membership_payload`` answers
-    ``friend`` or ``donor`` from it before reading any term annotation, and the
-    member list's ``?status=`` filter puts every effective friend under
-    ``friend`` and under no other status.  An effective member whose only
-    started terms are suspended is listed under ``friend`` as well.
+    ``friend``, ``none``, or ``donor`` from it before reading any term annotation,
+    and the member list's ``?status=`` filter puts every effective friend under
+    ``friend`` or ``none`` and under no other status.  An effective member whose
+    only started terms are suspended is listed under ``friend`` as well.
+
+``awaits_first_term``
+    ``awaits_first_term_annotation(today)``: true when ``kind`` is ``member``,
+    ``friend_on`` is null or after ``today``, and no term that is ``active``,
+    ``expired``, or ``suspended`` has ``starts_on <= today``.  Such a row's
+    effective kind is ``friend``; ``membership_payload`` answers ``none`` for it,
+    ``?status=none`` lists it, and ``listed_kind`` shows it as ``member``.
 
 ``with_membership(queryset, today=None)`` hangs the lot on any ``User``
 queryset, and ``today`` is read when it is called, so a queryset built inside a

@@ -87,6 +87,7 @@ export function PayStep({
         <p className="muted join__intro">Friends pay no dues. A donation of any size helps.</p>
         <Checkout
           mode="contribute"
+          headingLevel={3}
           onSuccess={(result) => asFriend(() => handleSuccess(result))()}
           onSkip={handleSkipAsFriend}
           isSkipping={becomeFriend.isPending}
@@ -109,6 +110,7 @@ export function PayStep({
       </p>
       <Checkout
         mode="join"
+        headingLevel={3}
         onSuccess={handleSuccess}
         onBecomeFriend={() => handleJoiningAsChange('friend')}
       />

@@ -45,7 +45,7 @@ export function LeaderAircraftPage(): JSX.Element {
       label="N-number, make, model, or owner"
       hint="Try “N172SP”, “Cessna”, or the owner’s name."
       placeholder="Search aircraft"
-      noun="aircraft"
+      nouns={['aircraft', 'aircraft']}
       useResults={useAircraftMatches}
       rowKey={(aircraft) => aircraft.id}
       rowValue={(aircraft) => aircraft.n_number}

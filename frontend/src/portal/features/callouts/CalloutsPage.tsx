@@ -52,10 +52,12 @@ export function CalloutsPage(): JSX.Element {
             initialSort={{ key: 'started_at', direction: 'desc' }}
             caption={`${rows.length} ${rows.length === 1 ? 'callout' : 'callouts'}`}
             emptyTitle="No callout has been sent"
+            // A leader with no DART reads why in the notice above, so the empty list
+            // does not say it a second time.
             emptyDescription={
-              canSend || sender.data === undefined
+              canSend
                 ? 'To send one, write an email and switch on This is a mission callout.'
-                : sender.data.reason
+                : undefined
             }
             emptyAction={
               canSend ? <ButtonLink to="/bulk-email/compose">New email</ButtonLink> : undefined

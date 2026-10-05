@@ -151,16 +151,21 @@ to action, chosen by ``members_wall_state``:
                  and join.
 ``expired``      A signed-in member whose term has run out.  Offers renew,
                  and names the expiry date.
-``friend``       A signed-in friend of CalDART (:ref:`kinds of account <account-kinds>`),
-                 including a member who has never paid.
+``none``         A signed-in member who has never paid (membership ``none``).
+                 Says "This page is open to CalDART members. Pay your dues to
+                 read it." and offers **Pay dues**, a link to
+                 ``/portal/membership/join``; when a granted term is still to
+                 come (``starts_on``, from ``upcoming_term_start``), it names
+                 the day the page opens instead and asks for nothing.
+``friend``       A signed-in friend of CalDART (:ref:`kinds of account <account-kinds>`).
                  Says "Friends of CalDART can read this page by becoming a
                  member." and offers **Make me a member**, a link to
                  ``/portal/membership/join``.
 ===============  =========================================================
 
-Those three are every state a reader the wall stops can be in: a signed-in
-account is current (and so let through), expired, or a friend, and a donor
-cannot sign in.
+Those four are every state a reader the wall stops can be in: a signed-in
+account is current (and so let through), expired, without a membership yet, or a
+friend, and a donor cannot sign in.
 
 Who gets through is ``User.can_access_members_content`` (:doc:`data-model`): a current
 membership, *or* any role beyond plain ``member``.  A DART leader with no

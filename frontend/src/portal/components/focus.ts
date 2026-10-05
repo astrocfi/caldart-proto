@@ -14,6 +14,8 @@
  *   or to the form's own complaint when no field is highlighted.
  * - `useFocusAfterSave` puts the focus back on a button, or a form's submit button,
  *   or a switch, after a request that leaves it in place, which it lost while disabled.
+ * - `useFocusRunResult` moves the focus to what a run did, once the run ends, so a
+ *   keyboard or screen reader user lands on the result rather than on the button.
  */
 import { useEffect, useRef } from 'react';
 import type { RefObject } from 'react';
@@ -205,6 +207,40 @@ export function useFocusAfterSave(ref: RefObject<HTMLElement | null>, isPending:
       root?.matches('form') === true ? root.querySelector<HTMLElement>(SUBMIT_BUTTON) : root;
     control?.focus();
   }, [ref, isPending]);
+}
+
+/** What takes the focus in a run's result: its heading, or failing that its message. */
+const RESULT_TARGET = 'h3, h4, [role="alert"], [role="status"]';
+
+/**
+ * Move the focus to a run's result as the run ends.
+ *
+ * @returns a ref for the element the result is drawn in. When `isRunning` turns false,
+ *   or a result appears where there was none (a run so quick it never drew as running),
+ *   the focus moves to the result's heading or, failing that, its alert or status line,
+ *   made focusable (`tabindex="-1"`) for the purpose and brought into view.  Nothing
+ *   moves when the result holds none of them.
+ */
+export function useFocusRunResult<Result extends HTMLElement = HTMLDivElement>(
+  isRunning: boolean,
+): RefObject<Result | null> {
+  const resultRef = useRef<Result>(null);
+  const wasRunningRef = useRef(false);
+  // `undefined` until the first render has been seen: whatever result the page opens
+  // with is not news, and never takes the focus.
+  const lastTargetRef = useRef<HTMLElement | null | undefined>(undefined);
+  useEffect(() => {
+    const wasRunning = wasRunningRef.current;
+    wasRunningRef.current = isRunning;
+    if (isRunning) return;
+    const target = resultRef.current?.querySelector<HTMLElement>(RESULT_TARGET) ?? null;
+    const isFresh = lastTargetRef.current !== undefined && target !== lastTargetRef.current;
+    lastTargetRef.current = target;
+    if (target === null || !(wasRunning || isFresh)) return;
+    target.tabIndex = -1;
+    focusIntoView(target);
+  });
+  return resultRef;
 }
 
 /** The places around a control the focus may fall back to, nearest first. */

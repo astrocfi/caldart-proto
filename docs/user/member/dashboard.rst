@@ -9,7 +9,8 @@ matter: is my membership current, what can I read, and what have I paid.
 You reach it once you have finished joining: your address verified, your profile
 complete, and, if you joined as a member, your first payment made or a friend's
 account chosen instead. Until then every portal screen, this one included, opens
-the step of :doc:`join` you still have to finish.
+the step of :doc:`join` you still have to finish. An account the office made for you
+reaches it as soon as the address is verified, and pays its dues from here.
 
 
 What you see
@@ -17,17 +18,18 @@ What you see
 
 The cards read down the page in this order. Each appears only when it applies.
 
-A DART leader whose profile names no DART sees, above the cards, a box saying there is
-nobody to send bulk email to, with **Open My profile**, where the DART is set (see
-:doc:`../bulk-email/dart-leaders`).
+A DART leader whose profile names no DART sees, above the cards, a box saying *Bulk
+email needs a DART. Set yours on My profile.*, with **Open My profile**, where the DART
+is set (see :doc:`../bulk-email/dart-leaders`).
 
 **Membership**
   A colored dot and a word for your membership's state, and the date it runs to or ran
-  out on. The four states are:
+  out on. The five states are:
 
   * **Current**: a term covers today.
   * **Expiring soon**: current, with 30 days or fewer to run.
   * **Expired**: your last term has run out.
+  * **No membership yet**: you joined as a member and have not paid your dues.
   * **Friend**: you are a friend of CalDART, so nothing expires.
 
   The card's heading says the same in words, such as **Your membership is
@@ -45,13 +47,19 @@ nobody to send bulk email to, with **Open My profile**, where the DART is set (s
   CalDART**. It reads *No dues and no expiry. Become a member any time.* and offers
   **Make me a member** (see :doc:`become-a-member`). It never takes the colored edge.
 
+  If the office made your account and you have not paid yet, the card is headed **You
+  have no membership yet**, reads *Pay your dues to become a member of CalDART.*, and
+  offers **Pay dues**, which opens the checkout (see :doc:`become-a-member`). If the office
+  granted you a membership that starts later, the card is headed **Your membership starts**
+  with the day, says members-only pages open to you then, and asks for nothing.
+
 **Member content**
   The members-only pages you may read, straight from the public site (see
   :doc:`members-only-content`). When your membership has lapsed, the card says
   *Members-only pages are open to current members* and offers **Renew to read them
   again**, which opens :doc:`renew`. When nothing members-only is published, it says
-  **Nothing published yet**. A friend does not see this card, unless a staff role lets
-  them read those pages anyway.
+  **Nothing published yet**. A friend, or a member who has not paid yet, does not see
+  this card, unless a staff role lets them read those pages anyway.
 
 **Recent payments**
   One line saying whether automatic renewal is on, and if so what the next charge
@@ -62,7 +70,8 @@ nobody to send bulk email to, with **Open My profile**, where the DART is set (s
   **For** in the words :doc:`payments` uses (such as **Annual**, **Annual and
   contribution**, or **Donation**), the **Amount**, and the **Status** as a colored
   dot and its word. **All payments, receipts, and renewals** opens :doc:`payments`;
-  a friend's reads **All payments and receipts**.
+  for anybody with nothing to renew (a friend, a life member, or a member who has not
+  paid yet) it reads **All payments and receipts**.
 
 **Quick links**
   A few next steps; the menu has everything else. Everybody gets **Renew** (or **Donate**, for
@@ -132,7 +141,8 @@ When a screen will not open
 If something looks wrong
 ========================
 
-If you paid and the card still says **Expired** or **Friend**, reload the page
+If you paid and the card still says **Expired**, **No membership yet**, or **Friend**,
+reload the page
 first. Then look at **Recent payments**: a payment marked **Failed** moved no
 money, so try again from :doc:`renew`. A payment marked **Paid** with no
 membership behind it is a fault; tell the office the date and the amount. If a menu

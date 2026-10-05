@@ -652,7 +652,8 @@ naming the role.  ``RequireOnboarded`` sits inside ``RequireAuth`` around every
 signed-in route but ``/change-email`` and sends a reader who has not finished
 joining to the join wizard step they owe: ``/join/verify`` while the address is
 unverified, ``/join/profile`` while the profile is incomplete, and ``/join/pay``
-while a member has never paid.  ``isOnboarded(user)`` in
+while a member who joined through the wizard has never paid (``membership.status``
+``none``); an account an administrator created owes only the verify step.  ``isOnboarded(user)`` in
 ``features/join/steps.ts`` is the one definition of finished, which the guard,
 ``PortalLayout``, the wizard's ``furthestJoinStep``, and the verify-email page all
 read.  The public routes (``/login``, ``/forgot-password``, ``/reset-password``,

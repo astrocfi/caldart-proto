@@ -22,9 +22,10 @@
  * member record is the account administrator's: for a leader there is no
  * **New member** button, and a name opens the member check instead.  A leader whose
  * profile names a DART gets **Show my DART** in its place, which sets the DART filter
- * to theirs: their roster.
+ * to theirs: their roster.  The button goes once it has done that, so the focus moves
+ * to the DART filter that now names their DART.
  */
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import type { JSX } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -35,6 +36,7 @@ import {
   ACCOUNT_KIND_LABELS,
   MEMBERSHIP_STATUS_LABELS,
   certificateLabel,
+  isWithoutTerm,
   medicalLabel,
 } from '@/portal/choices';
 import { Button, ButtonLink } from '@/portal/components/Button';
@@ -58,6 +60,22 @@ import type { FilterField, FilterValues } from '@/portal/reports/types';
 import { useMembers, useOwnDart } from './api';
 
 const PAGE_SIZE = 25;
+
+/** The filter bar's name, which is how **Show my DART** finds it to move the focus. */
+const FILTER_BAR_LABEL = 'Filter members';
+
+/** The DART filter's own words, the box **Show my DART** leaves the focus in. */
+const DART_FILTER_LABEL = 'DART';
+
+/** The DART box of the filter bar, or the bar itself when it holds none. */
+function dartFilter(): HTMLElement | null {
+  const bar = document.querySelector<HTMLElement>(
+    `form[role="search"][aria-label="${FILTER_BAR_LABEL}"]`,
+  );
+  const boxes = Array.from(bar?.querySelectorAll('select') ?? []);
+  const dart = boxes.find((box) => box.labels?.[0]?.textContent?.trim() === DART_FILTER_LABEL);
+  return dart ?? bar;
+}
 
 /** The order the list opens on, which the server also falls back to. */
 const DEFAULT_ORDERING = 'name';
@@ -105,25 +123,26 @@ function MemberName({
 }
 
 /**
- * The expiry cell: the date, **Never** for a lifetime member, and **Friend** for a
- * friend, who pays no dues and so has no date.
+ * The expiry cell: the date, **Never** for a lifetime member, **Friend** for a friend,
+ * who pays no dues and so has no date, and **None yet** for a member who has not paid
+ * their first dues, whose Status already says so in full.
  */
 function ExpiryText({ row }: { row: MemberRow }): JSX.Element {
-  if (row.membership.status === 'friend') {
-    return <span className="muted">{MEMBERSHIP_STATUS_LABELS.friend}</span>;
+  if (row.membership.status === 'none') return <span className="muted">None yet</span>;
+  if (isWithoutTerm(row.membership.status)) {
+    return <span className="muted">{MEMBERSHIP_STATUS_LABELS[row.membership.status]}</span>;
   }
   if (row.membership.is_lifetime) return <>Never</>;
   return <DateText value={row.membership.expires_on} />;
 }
 
 /**
- * The kind the report prints: Friend for anybody whose membership reads friend, which
- * takes in a member whose change to friend has come; otherwise the account's kind.
+ * The kind the report prints, which the server sends as the row's `kind`: the effective
+ * kind, so a member whose change to friend has come reads Friend, except that a member
+ * who has not paid their first dues reads Member.
  */
 function kindLabel(row: MemberRow): string {
-  return row.membership.status === 'friend'
-    ? ACCOUNT_KIND_LABELS.friend
-    : ACCOUNT_KIND_LABELS[row.kind];
+  return ACCOUNT_KIND_LABELS[row.kind];
 }
 
 /**
@@ -188,7 +207,8 @@ function memberCells(isAccountAdmin: boolean): Record<string, ReportCell<MemberR
       render: (row) => row.dart ?? 'Unaffiliated',
     },
     status: {
-      width: '8.5rem',
+      // Room for the longest state, "No membership yet", beside its dot.
+      width: '10.5rem',
       keepInSight: true,
       // A dot and its word, "Expiring soon" for an expiry that is close, which the
       // Expires column dates.
@@ -302,8 +322,18 @@ export function MembersListPage(): JSX.Element {
   const myDart = useOwnDart(isLeader);
   const showsMyDart = isLeader && myDart !== null && filters.dart !== String(myDart.id);
 
+  // Set by Show my DART, which takes itself away: the DART filter takes the focus.
+  const shouldFocusDartRef = useRef(false);
+  useEffect(() => {
+    if (!shouldFocusDartRef.current || showsMyDart) return;
+    shouldFocusDartRef.current = false;
+    dartFilter()?.focus();
+  });
+
   const handleMyDart = (): void => {
-    if (myDart !== null) setFilters({ ...filters, dart: String(myDart.id) });
+    if (myDart === null) return;
+    shouldFocusDartRef.current = true;
+    setFilters({ ...filters, dart: String(myDart.id) });
   };
 
   const count = members.data?.count ?? 0;
@@ -341,7 +371,7 @@ export function MembersListPage(): JSX.Element {
               values={filters}
               onChange={handleFilterChange}
               options={dartOptions}
-              label="Filter members"
+              label={FILTER_BAR_LABEL}
             />
           }
           tools={<ColumnTools choice={choice} />}

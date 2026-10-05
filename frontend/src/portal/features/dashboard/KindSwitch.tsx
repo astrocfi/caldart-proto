@@ -7,7 +7,8 @@
  * end and they become a friend the day after, or at once when nothing is current.  When
  * the automatic renewal also takes a contribution, the panel asks whether to keep it as
  * a yearly recurring donation.  A member whose change is pending sees the day and an
- * **Undo** button; a friend gets **Make me a member**, which leads to the checkout.
+ * **Undo** button; a friend gets **Make me a member**, and a member who has not paid
+ * their first dues **Pay dues**, both of which lead to the checkout.
  */
 import type { JSX } from 'react';
 
@@ -21,7 +22,8 @@ import type { ConfirmChoice } from '@/portal/components/ConfirmButton';
 import { formatDate, todayIso } from '@/portal/components/DateText';
 import { formatCents } from '@/portal/components/Money';
 import { FormAlert } from '@/portal/features/auth/form';
-import { useBecomeFriend, useUndoBecomeFriend } from '@/portal/features/profile/api';
+import { useBecomeFriend, useMembership, useUndoBecomeFriend } from '@/portal/features/profile/api';
+import { upcomingTermStart } from './firstTerm';
 
 /** Where a friend goes to pay dues and become a member. */
 export const JOIN_AS_MEMBER_PATH = '/membership/join';
@@ -29,6 +31,7 @@ export const JOIN_AS_MEMBER_PATH = '/membership/join';
 /** Which of the four things the control can offer applies to the signed-in person. */
 export type KindState =
   | { kind: 'friend' }
+  | { kind: 'none' }
   | { kind: 'lifetime' }
   | { kind: 'pending'; friendOn: IsoDate }
   /** `expiresOn` is the end of a current membership, or null when none is current. */
@@ -37,12 +40,13 @@ export type KindState =
 /**
  * Works out what the kind control offers `user`, whose membership reads `status`.
  *
- * A friend by the membership state (which includes a member who registered and has
- * not yet paid, so they are offered **Make me a member**), a current life member, a
- * member with a pending `friend_on`, and otherwise a member.
+ * A friend by the membership state, a member who has not paid their first dues
+ * (`none`), a current life member, a member with a pending `friend_on`, and otherwise a
+ * member.
  */
 export function kindState(user: User, status: MembershipStatus): KindState {
   if (status.status === 'friend') return { kind: 'friend' };
+  if (status.status === 'none') return { kind: 'none' };
   if (status.is_lifetime && status.status === 'current') return { kind: 'lifetime' };
   if (user.friend_on !== null) return { kind: 'pending', friendOn: user.friend_on };
   return {
@@ -88,6 +92,7 @@ export function KindSwitch(): JSX.Element | null {
       </ButtonLink>
     );
   }
+  if (state.kind === 'none') return <ButtonLink to={JOIN_AS_MEMBER_PATH}>Pay dues</ButtonLink>;
   if (state.kind === 'pending') return <PendingChange friendOn={state.friendOn} />;
   return <BecomeFriend expiresOn={state.expiresOn} />;
 }
@@ -95,7 +100,18 @@ export function KindSwitch(): JSX.Element | null {
 /** The `Your kind of account` card on the profile page. */
 export function KindCard(): JSX.Element | null {
   const state = useKindState();
+  // Only somebody with no membership yet may have a granted term still to come.
+  const membership = useMembership(state?.kind === 'none');
   if (state === null) return null;
+  // A granted first term still to come needs no dues: the card says when it starts.
+  const startsOn = state.kind === 'none' ? upcomingTermStart(membership.data?.history) : null;
+  if (startsOn !== null) {
+    return (
+      <Card title="Your kind of account">
+        <p>Your membership of CalDART starts on {formatDate(startsOn)}.</p>
+      </Card>
+    );
+  }
   return (
     <Card title="Your kind of account">
       <div className="stack">
@@ -111,6 +127,7 @@ export function KindCard(): JSX.Element | null {
 /** The sentence the profile card opens with for each state. */
 const KIND_SENTENCES: Record<KindState['kind'], string> = {
   friend: 'You are a friend of CalDART: no dues, no expiry. Become a member any time.',
+  none: 'You have no membership yet. Pay your dues to become a member of CalDART.',
   lifetime: 'You are a life member of CalDART.',
   pending: 'You are a member of CalDART.',
   member: 'You are a member of CalDART.',

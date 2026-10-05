@@ -232,8 +232,17 @@ export const MEMBERSHIP_STATUS_LABELS: Record<MembershipState, string> = {
   current: 'Current',
   expired: 'Expired',
   friend: 'Friend',
+  none: 'No membership yet',
   donor: 'Donor',
 };
+
+/**
+ * True for a membership with nothing to renew because it never began: a friend, or an
+ * account that chose to be a member and has not paid its first dues (`none`).
+ */
+export function isWithoutTerm(state: MembershipState): boolean {
+  return state === 'friend' || state === 'none';
+}
 
 /** What each kind of account is called: a member pays dues, a friend does not. */
 export const ACCOUNT_KIND_LABELS: Record<AccountKind, string> = {
@@ -243,7 +252,12 @@ export const ACCOUNT_KIND_LABELS: Record<AccountKind, string> = {
 };
 
 /** The membership states a member list can hold: every state but a donor's. */
-const LISTED_MEMBERSHIP_STATES: readonly MembershipState[] = ['current', 'expired', 'friend'];
+const LISTED_MEMBERSHIP_STATES: readonly MembershipState[] = [
+  'current',
+  'expired',
+  'none',
+  'friend',
+];
 
 /**
  * The membership states as a choice list, in the order the member list's

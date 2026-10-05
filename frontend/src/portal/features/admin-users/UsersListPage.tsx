@@ -29,7 +29,7 @@ import type { AccountKind, AdminUser, ReportColumn, RoleSlug } from '@/portal/ap
 import { ACCOUNT_KIND_LABELS, ROLE_CHOICES, roleLabel } from '@/portal/choices';
 import { Button } from '@/portal/components/Button';
 import { DataTable } from '@/portal/components/DataTable';
-import type { Column } from '@/portal/components/DataTable';
+import { identityFirst } from '@/portal/components/tableFit';
 import { FilterBar, clearedValues } from '@/portal/components/FilterBar';
 import { Page } from '@/portal/components/Page';
 import type { ReportCell } from '@/portal/components/reportTable';
@@ -123,6 +123,15 @@ export function emptyTitle(values: Record<string, string>): string {
   if (named.length === 0) return 'No active accounts';
   const filters = FILTER_LIST.format(named);
   return `No accounts match the ${filters} filter${named.length === 1 ? '' : 's'}`;
+}
+
+/**
+ * The line under the empty list's title: a shorter search is offered only when a search
+ * was typed, and otherwise the filters are what to change.
+ */
+export function emptyDescription(values: Record<string, string>): string {
+  if ((values.search ?? '').trim() !== '') return 'Try a shorter search, or reset the filters.';
+  return 'Reset the filters to see more accounts.';
 }
 
 /** The API's `is_active` for the status chosen: blank means active only. */
@@ -219,18 +228,6 @@ const FALLBACK_COLUMNS: ReportColumn[] = [
   { key: 'membership', label: 'Membership', default: true },
 ];
 
-/**
- * `columns` with the identifying column, the name, moved to the front.  The roles report
- * leads with Role, which suits its sections in a download; on screen a row is an account,
- * told apart by its name.
- */
-export function nameFirst<Row>(columns: Column<Row>[]): Column<Row>[] {
-  return [
-    ...columns.filter((column) => column.isIdentity === true),
-    ...columns.filter((column) => column.isIdentity !== true),
-  ];
-}
-
 /** `/admin/users` page: search accounts and see what each one may do. */
 export function UsersListPage(): JSX.Element {
   const [filters, setFilters] = useUrlFilters(FILTER_KEYS);
@@ -256,7 +253,9 @@ export function UsersListPage(): JSX.Element {
 
   const choice = useColumnChoice('roles', FALLBACK_COLUMNS);
   const columns = useMemo(
-    () => nameFirst(reportTableColumns(choice.tableColumns, choice.tableChosen, CELLS, true)),
+    // The roles report leads with Role, which suits its sections in a download; on
+    // screen a row is an account, told apart by its name.
+    () => identityFirst(reportTableColumns(choice.tableColumns, choice.tableChosen, CELLS, true)),
     [choice.tableColumns, choice.tableChosen],
   );
   const disabledReason = exportDisabledReason(role, kind);
@@ -295,20 +294,16 @@ export function UsersListPage(): JSX.Element {
               label="Filter accounts"
             />
             {roleDescription === undefined ? null : (
-              <p className="users-list__role">
+              <p className="users-list__note">
                 <strong>{roleLabel(role)}</strong>: {roleDescription}
               </p>
             )}
-          </>
-        }
-        tools={
-          <>
             {disabledReason === undefined ? null : (
-              <p className="muted users-list__off">{disabledReason}</p>
+              <p className="muted users-list__note">{disabledReason}</p>
             )}
-            <ColumnTools choice={choice} disabledReason={disabledReason} />
           </>
         }
+        tools={<ColumnTools choice={choice} disabledReason={disabledReason} />}
         exportCsvUrl={reportExportUrl('roles', 'csv', exportParams)}
         exportPdfUrl={reportExportUrl('roles', 'pdf', exportParams)}
         exportDisabledReason={disabledReason}
@@ -316,7 +311,7 @@ export function UsersListPage(): JSX.Element {
         onSortChange={handleSortChange}
         sort={sort}
         emptyTitle={emptyTitle(filters)}
-        emptyDescription="Try a shorter search, or reset the filters."
+        emptyDescription={emptyDescription(filters)}
         emptyAction={
           <Button variant="quiet" onClick={handleReset}>
             Reset filters

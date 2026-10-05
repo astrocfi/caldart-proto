@@ -104,6 +104,35 @@ describe('ConfirmButton', () => {
     );
   });
 
+  it('leaves the focus where the choice put it when asked to keep it', async () => {
+    renderWithProviders(
+      <>
+        <ConfirmButton
+          label="Run now"
+          keepFocusAfterChoice
+          choices={[
+            {
+              label: 'Charge what is due',
+              onChoose: () => {
+                document.getElementById('result')?.focus();
+                return Promise.resolve();
+              },
+            },
+          ]}
+        />
+        <h3 id="result" tabIndex={-1}>
+          What this run did
+        </h3>
+      </>,
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'Run now' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Charge what is due' }));
+
+    await waitFor(() => expect(screen.queryByRole('region', { name: 'Run now' })).toBeNull());
+    expect(screen.getByRole('heading', { name: 'What this run did' })).toHaveFocus();
+  });
+
   it('gives the focus to its table cell when the choice takes the button away', async () => {
     renderWithProviders(<TurnOffRow />);
 

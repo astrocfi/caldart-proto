@@ -17,7 +17,7 @@ export interface InsuranceDotProps {
 
 /**
  * The one status that says whether a plane may fly, used on every screen: a dot and
- * its word (Insured, Expiring soon, Insurance expired, or Not on file), with the
+ * its word (Insured, Expiring soon, Insurance expired, or No insurance on file), with the
  * expiry date on hover.
  */
 export function InsuranceDot({

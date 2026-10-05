@@ -127,7 +127,7 @@ export function RenewalChangeForm({
 
   return (
     <form className="renewal__change stack" onSubmit={(event) => void save(event)}>
-      <h3 className="eyebrow">
+      <h3 className="renewal__change-title">
         {isDonation ? 'Change your recurring donation' : 'Change your renewal'}
       </h3>
 

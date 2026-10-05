@@ -144,7 +144,7 @@ def test_every_column_is_registered_in_export_order() -> None:
     assert [(column.key, column.label) for column in VERIFICATION_REPORT_COLUMNS] == [
         ("section", "Section"),
         ("name", "Name"),
-        ("dart", "DART"),
+        ("dart", "DART or owner"),
         ("details", "Details"),
         ("updated", "Updated"),
         ("verified", "Verified"),
@@ -154,7 +154,7 @@ def test_every_column_is_registered_in_export_order() -> None:
 
 
 def test_the_default_columns_leave_out_the_stamp() -> None:
-    """Choosing no columns prints Section, Name, DART, Details, and Updated.
+    """Choosing no columns prints Section, Name, DART or owner, Details, and Updated.
 
     The verified columns are always *No* and blank in the default list of items nobody
     has checked.
@@ -167,14 +167,14 @@ def test_the_default_csv_keeps_each_row_s_section() -> None:
     """A flat CSV has no headings, so its first column says which section a row is in."""
     person()
     table = VERIFICATION_REPORT.table({}, fmt="csv", today=TODAY)
-    assert table.header == ["Section", "Name", "DART", "Details", "Updated"]
+    assert table.header == ["Section", "Name", "DART or owner", "Details", "Updated"]
 
 
 def test_the_default_pdf_leaves_the_section_to_its_headings() -> None:
     """Each PDF section is headed by its title, so the column would only repeat it."""
     person()
     table = VERIFICATION_REPORT.table({}, fmt="pdf", today=TODAY)
-    assert table.header == ["Name", "DART", "Details", "Updated"]
+    assert table.header == ["Name", "DART or owner", "Details", "Updated"]
 
 
 def test_a_pdf_that_asks_for_the_section_column_prints_it() -> None:
@@ -309,12 +309,15 @@ def test_aircraft_are_ordered_by_n_number() -> None:
 # Cells
 # --------------------------------------------------------------------------
 def test_a_certificate_reads_its_type_and_number() -> None:
-    """DART, *Private \u00b7 1234567*, no update yet, and not verified."""
-    person(pilot_certificate_type=PilotCertificateType.PRIVATE, certificate_number="1234567")
+    """DART, *Private \u00b7 1234567*, the day the profile was made, and not verified."""
+    profile = person(
+        pilot_certificate_type=PilotCertificateType.PRIVATE, certificate_number="1234567"
+    )
+    MemberProfile.objects.filter(pk=profile.pk).update(created_at=STAMP)
     assert cells("Pilot certificates", "Pat Doe") == [
         "Palo Alto",
         "Private \u00b7 1234567",
-        "",
+        "09/20/2026",
         "No",
         "",
         "",
@@ -387,6 +390,13 @@ def test_an_aircraft_with_no_policy_on_file_is_not_listed() -> None:
 def test_a_person_s_updated_cell_is_when_the_profile_was_last_written() -> None:
     """``profile_updated_at`` printed as ``MM/DD/YYYY``."""
     person(profile_updated_at=STAMP)
+    assert cells("Photo IDs", "Pat Doe")[2] == "09/20/2026"
+
+
+def test_a_person_nobody_has_edited_is_updated_when_the_profile_was_made() -> None:
+    """A profile with no ``profile_updated_at`` dates its items from its creation."""
+    profile = person(profile_updated_at=None)
+    MemberProfile.objects.filter(pk=profile.pk).update(created_at=STAMP)
     assert cells("Photo IDs", "Pat Doe")[2] == "09/20/2026"
 
 

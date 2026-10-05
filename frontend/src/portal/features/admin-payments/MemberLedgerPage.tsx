@@ -21,14 +21,15 @@ import { MemberRecordLink } from '@/portal/components/MemberRecordLink';
 import { Money, formatCents } from '@/portal/components/Money';
 import { Page } from '@/portal/components/Page';
 import { MembershipDot, StatusDot } from '@/portal/components/StatusDot';
+import { isWithoutTerm } from '@/portal/choices';
 import { statementUrl, useMemberLedger } from './api';
 import { FinanceTabs } from './FinanceTabs';
 import {
-  KIND_LABELS,
   MANDATE_KIND_LABELS,
   MANDATE_STATUS_LABELS,
   PROVIDER_LABELS,
   STATUS_LABELS,
+  paymentForLabel,
   statusTone,
 } from './labels';
 import './admin-payments.css';
@@ -59,7 +60,7 @@ export const LEDGER_COLUMNS: Column<PaymentDetail>[] = [
     header: 'For',
     minWidth: '8rem',
     dropOrder: 2,
-    render: (row) => KIND_LABELS[row.kind],
+    render: (row) => paymentForLabel(row),
   },
   {
     key: 'amount_cents',
@@ -137,8 +138,13 @@ export function MandateCard({ mandate }: { mandate: RenewalMandate | null }): JS
   );
 }
 
-/** The ledger's three cards, for the finance screen and the member record alike. */
+/**
+ * The ledger's cards, for the finance screen and the member record alike.  Somebody with
+ * no membership to renew (a friend, or a member who has not paid yet) and no standing
+ * authority gets no renewal card, and their statements card says nothing of dues.
+ */
 export function LedgerBody({ ledger }: { ledger: MemberLedger }): JSX.Element {
+  const hasNoMembership = isWithoutTerm(ledger.user.membership.status);
   return (
     <>
       <Card title="Totals" eyebrow="Whole history">
@@ -170,7 +176,7 @@ export function LedgerBody({ ledger }: { ledger: MemberLedger }): JSX.Element {
         </dl>
       </Card>
 
-      <MandateCard mandate={ledger.mandate} />
+      {ledger.mandate === null && hasNoMembership ? null : <MandateCard mandate={ledger.mandate} />}
 
       <Card title="Payments">
         <DataTable
@@ -185,7 +191,11 @@ export function LedgerBody({ ledger }: { ledger: MemberLedger }): JSX.Element {
 
       <Card title="Contribution statements">
         {ledger.statement_years.length === 0 ? (
-          <p className="muted">This member has not given anything beyond their dues.</p>
+          <p className="muted">
+            {hasNoMembership
+              ? 'This person has not given anything yet.'
+              : 'This member has not given anything beyond their dues.'}
+          </p>
         ) : (
           <div className="cluster">
             {ledger.statement_years.map((year) => (

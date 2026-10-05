@@ -45,14 +45,16 @@ or **Automatic renewal and contribution**. It shows:
 * **Last failed charge**, when the last charge was declined, with the reason the provider gave.
   It is the same wording the member was emailed.
 
-A member with no standing authority sees *This member renews by hand.*
+A member with no standing authority sees *This member renews by hand.* A friend, or a
+member with no membership yet, who holds no standing authority has no such card.
 
 Payments
 ~~~~~~~~
 
 The **Payments** card lists every payment, including attempts that failed, with the day
 it was **Paid**, the **Receipt** number (which opens the payment's own screen, see
-:doc:`payment-record`), what it was **For**, the **Total**, what was **Refunded**, the
+:doc:`payment-record`), what it was **For** (the plan by name, such as **Annual** or
+**Annual and contribution**, or **Contribution**), the **Total**, what was **Refunded**, the
 provider under **Method**, and the **Status**. A member with none sees *No payments
 recorded*; a term an administrator granted by hand has no payment behind it. The receipt
 numbers are never broken or cut short. On a narrower screen the card leaves out **Refunded**
@@ -67,7 +69,8 @@ The **Contribution statements** card has a button for every calendar year in whi
 member gave something beyond their dues. Each downloads that year's statement as a PDF,
 the same document the member can download from their own **Payments** screen. A member
 who never gave beyond their dues sees *This member has not given anything beyond their
-dues.*
+dues.*, and a friend or a member with no membership yet *This person has not given
+anything yet.*
 
 What you can do
 ===============

@@ -101,6 +101,7 @@ export function RenewalsPanel(): JSX.Element {
             name="Run now: automatic renewal charges"
             variant="primary"
             disabled={run.isPending}
+            keepFocusAfterChoice
             choices={[{ label: 'Charge what is due', variant: 'danger', onChoose: handleCharge }]}
           >
             <p>

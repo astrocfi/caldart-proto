@@ -11,6 +11,7 @@ import type {
   MandateStatus,
   ManualMethod,
   MembershipTermStatus,
+  PaymentDetail,
   PaymentKind,
   PaymentProvider,
   PaymentWallet,
@@ -32,6 +33,17 @@ export const KIND_LABELS: Record<PaymentKind, string> = {
   contribution: 'Contribution',
   both: 'Membership and contribution',
 };
+
+/**
+ * What one payment paid for, by the plan's own name: "Annual", "Annual and contribution",
+ * or "Contribution", so a member's money history names the plan as the member's own
+ * Payments screen does.
+ */
+export function paymentForLabel(payment: Pick<PaymentDetail, 'kind' | 'plan'>): string {
+  if (payment.kind === 'contribution') return KIND_LABELS.contribution;
+  const plan = payment.plan ?? KIND_LABELS.membership;
+  return payment.kind === 'both' ? `${plan} and contribution` : plan;
+}
 
 /** Why a refund was issued, in the wording the refund form offers. */
 export const REFUND_REASON_LABELS: Record<RefundReason, string> = {

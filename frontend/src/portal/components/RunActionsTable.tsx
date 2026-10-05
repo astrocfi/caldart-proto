@@ -10,9 +10,9 @@
  * A column that is empty in every row, such as When and Amount for a run of rosters, is
  * left out, so the table shows only what the run says.  The table keeps each row on one
  * line.  Who an action reached tells the rows apart
- * and stays pinned while a phone scrolls the table; the detail, such as the report or
- * the DART, wraps and stays in sight; the date, the amount, then what was done give
- * way on a narrow screen.
+ * and stays pinned while a phone scrolls the table; what was done and the detail, such
+ * as the report or the DART, stay in sight beside it, so a phone still says which
+ * reminder goes to whom; the date, then the amount, give way on a narrow screen.
  */
 import type { JSX, ReactNode } from 'react';
 
@@ -21,6 +21,7 @@ import type { Column } from '@/portal/components/DataTable';
 import { DataTable } from '@/portal/components/DataTable';
 import { DateText } from '@/portal/components/DateText';
 import { Money } from '@/portal/components/Money';
+import { identityFirst } from '@/portal/components/tableFit';
 
 /** The heading over the actions table: what a rehearsal would do, or what a real run did. */
 export function actionsHeading(dryRun: boolean): string {
@@ -60,19 +61,26 @@ interface RunActionsTableProps {
   emptyDescription?: string;
 }
 
-/** A run's heading, its caller-supplied summary, and the actions behind it. */
-export function RunActionsTable({
+/** What the actions table's columns are built from. */
+export interface RunActionColumnsOptions {
+  actions: readonly RunAction[];
+  kindLabel: (kind: string) => string;
+  detailHeader?: string;
+  hasWhenAndAmount?: boolean;
+}
+
+/**
+ * The actions table's columns: Who and What, the detail when the caller names one and a
+ * row fills it, then When and Amount when a row fills them.  Who is the identifying
+ * column; What and the detail stay in sight on a phone; When gives way first, then
+ * Amount.
+ */
+export function runActionColumns({
   actions,
-  dryRun,
   kindLabel,
   detailHeader,
-  summary,
   hasWhenAndAmount = true,
-  heading,
-  caption,
-  emptyTitle = 'Nothing was due',
-  emptyDescription,
-}: RunActionsTableProps): JSX.Element {
+}: RunActionColumnsOptions): Column<RunAction>[] {
   // A column no row fills is left out; an empty table draws no headings at all.
   const hasDetail = actions.some((row) => row.detail !== '');
   const hasWhen = actions.some((row) => row.on !== null);
@@ -122,7 +130,8 @@ export function RunActionsTable({
       key: 'kind',
       header: 'What',
       minWidth: '9rem',
-      dropOrder: 3,
+      keepInSight: true,
+      narrowWidth: '8rem',
       render: (row) => kindLabel(row.kind),
     },
     {
@@ -145,7 +154,24 @@ export function RunActionsTable({
     ...detail,
     ...whenAndAmount,
   ];
+  // Who leads, pinned as a phone scrolls the table, with What beside it.
+  return identityFirst(columns);
+}
 
+/** A run's heading, its caller-supplied summary, and the actions behind it. */
+export function RunActionsTable({
+  actions,
+  dryRun,
+  kindLabel,
+  detailHeader,
+  summary,
+  hasWhenAndAmount = true,
+  heading,
+  caption,
+  emptyTitle = 'Nothing was due',
+  emptyDescription,
+}: RunActionsTableProps): JSX.Element {
+  const columns = runActionColumns({ actions, kindLabel, detailHeader, hasWhenAndAmount });
   return (
     <div className="run-actions stack-tight">
       <h3>{heading ?? actionsHeading(dryRun)}</h3>

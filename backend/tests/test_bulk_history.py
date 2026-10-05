@@ -137,11 +137,11 @@ def test_a_send_s_results_download_as_a_csv(management_client: APIClient, sent: 
     tried = format_display_datetime(tried_at)
     assert read_csv(response) == [
         ["Name", "Email", "Kind", "DART", "Result", "Reason", "Tried at", "Email type"],
-        ["Ann Able", "ann@example.test", "Friend", "Marin DART", "Sent", "", tried, "Operational"],
+        ["Ann Able", "ann@example.test", "Member", "Marin DART", "Sent", "", tried, "Operational"],
         [
             "Gil Gone",
             "gil@example.test",
-            "Friend",
+            "Member",
             "Marin DART",
             "Skipped",
             "Account deactivated",

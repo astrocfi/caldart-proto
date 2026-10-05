@@ -83,7 +83,7 @@ describe('<VerifyEmailPage/>', () => {
     server.use(
       signedInAs(
         makeUser({
-          membership: { status: 'friend', expires_on: null, plan: null, is_lifetime: false },
+          membership: { status: 'none', expires_on: null, plan: null, is_lifetime: false },
         }),
       ),
     );

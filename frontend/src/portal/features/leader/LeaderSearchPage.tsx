@@ -37,7 +37,7 @@ export function LeaderSearchPage(): JSX.Element {
       label="Name, email, phone, or N-number"
       hint="Try “Reyes”, “marta@example.org”, “415-555-0100”, or “N172SP”."
       placeholder="Search members"
-      noun="members"
+      nouns={['person', 'people']}
       useResults={useLeaderSearch}
       rowKey={(result) => result.user_id}
       rowValue={(result) => String(result.user_id)}

@@ -9,11 +9,12 @@
 import type { JSX } from 'react';
 
 import type { PaymentProvider } from '@/portal/api/types';
+import { Heading } from '@/portal/components/Heading';
 import { PROVIDER_LABELS } from './api';
 import { MockPanel } from './MockPanel';
 import { PayPalPanel } from './PayPalPanel';
 import { StripePanel } from './StripePanel';
-import type { ProviderPanelProps } from './types';
+import type { CheckoutHeadingLevel, ProviderPanelProps } from './types';
 import './checkout.css';
 
 export interface ProviderTabsProps {
@@ -22,6 +23,8 @@ export interface ProviderTabsProps {
   onChange: (provider: PaymentProvider) => void;
   config: { stripe_publishable_key: string; paypal_client_id: string };
   panelProps: ProviderPanelProps;
+  /** The level of the heading over the tabs, one under the heading of what holds them. */
+  headingLevel?: CheckoutHeadingLevel;
 }
 
 /** The tab list for `providers`, and the active provider's panel below it. */
@@ -31,6 +34,7 @@ export function ProviderTabs({
   onChange,
   config,
   panelProps,
+  headingLevel = 3,
 }: ProviderTabsProps): JSX.Element | null {
   const selected = active ?? providers[0];
   // `providers` is never empty here: the caller renders the empty state instead.
@@ -48,7 +52,9 @@ export function ProviderTabs({
 
   return (
     <section className="checkout__pay">
-      <h3 className="eyebrow">How would you like to pay?</h3>
+      <Heading level={headingLevel} className="eyebrow">
+        How would you like to pay?
+      </Heading>
       <div className="checkout__tabs" role="tablist" aria-label="Payment method">
         {providers.map((slug) => (
           <button

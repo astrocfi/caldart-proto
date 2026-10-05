@@ -629,6 +629,31 @@ describe('MembersListPage', () => {
     const cells = rowCells(row as HTMLElement);
     expect(cells[4]).toHaveTextContent(/^Friend$/);
   });
+
+  it('lists a member with no term yet as a Member with No membership yet', async () => {
+    server.use(
+      ...listHandlers([
+        makeRow({
+          kind: 'member',
+          membership: { status: 'none', expires_on: null, plan: null, is_lifetime: false },
+        }),
+      ]),
+    );
+    const withKind = [
+      ...COLUMNS.slice(0, 4),
+      { key: 'kind', label: 'Kind', default: true },
+      ...COLUMNS.slice(4),
+    ];
+    server.use(http.get(`${API}/reports/members/columns`, () => HttpResponse.json(withKind)));
+    await renderList();
+    await screen.findByRole('link', { name: 'Ana Bracco' });
+
+    const [, row] = screen.getAllByRole('row');
+    const texts = rowCells(row as HTMLElement).map((cell) => cell.textContent);
+    // Status, Kind, and Expires, in that order.
+    const status = texts.indexOf('No membership yet');
+    expect(texts.slice(status, status + 3)).toEqual(['No membership yet', 'Member', 'None yet']);
+  });
 });
 
 describe('MembersListPage for a DART leader', () => {
@@ -644,6 +669,15 @@ describe('MembersListPage for a DART leader', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Show my DART' }));
 
     expect(screen.getByTestId('location-search')).toHaveTextContent('dart=5');
+  });
+
+  it('moves the focus to the DART filter once Show my DART takes itself away', async () => {
+    server.use(...listHandlers());
+    await renderList();
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Show my DART' }));
+
+    await waitFor(() => expect(screen.getByRole('combobox', { name: 'DART' })).toHaveFocus());
   });
 
   it('drops Show my DART once the list shows that DART', async () => {
