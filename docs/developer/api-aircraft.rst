@@ -901,11 +901,11 @@ stamps it again under the caller.  Self-verification is allowed; nothing
 compares the caller with the member.  The profile is created if the account has
 none.
 
-The profile form's two rules hold, judged on the record the write would leave:
-``certificate_number`` is required once the certificate is not ``none`` and
-``medical_expiration`` once the medical is not ``none``, with the same
-sentences :ref:`profile-validation` gives.  A slug outside the three is refused
-under ``verified``:
+``certificate_number`` and ``medical_expiration`` are optional whatever the
+certificate and the medical, as on the profile.  A ``certificate_number`` that is
+not blank must be seven digits, refused otherwise with the sentence
+:ref:`profile-validation` gives.  A slug outside the three is refused under
+``verified``:
 
 .. code-block:: json
 
@@ -915,7 +915,7 @@ Statuses:
 
 * **200** — the status card, in the ``GET .../status`` shape above.
 * **400** — ``verified`` missing, an unknown item, a choice outside its list, or
-  a profile rule refused.  Nothing is written.
+  a certificate number that is not seven digits.  Nothing is written.
 * **404** — no account has that ``user_id``, or it is a donor or deactivated.
 
 ``PUT /leader/members/{user_id}/verifier``

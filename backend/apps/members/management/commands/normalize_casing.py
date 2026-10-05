@@ -21,12 +21,12 @@ from apps.aircraft.models import Aircraft, OwnerType
 from apps.cms.models import DartPage
 from apps.darts.models import DartContact
 from apps.members.models import MemberProfile
-from caldart.casing import person_name, title_case_words
+from caldart.casing import person_last_name, person_name, title_case_words
 
 #: The account columns the command normalizes, and the rule each one follows.
 USER_RULES: tuple[tuple[str, Callable[[str], str]], ...] = (
     ("first_name", person_name),
-    ("last_name", person_name),
+    ("last_name", person_last_name),
 )
 
 #: The profile columns the command normalizes, and the rule each one follows.

@@ -378,17 +378,16 @@ def test_a_member_can_only_edit_their_own_profile(
 
 
 # -- validation ------------------------------------------------------------
-def test_medical_expiration_is_required_for_a_real_medical(
+def test_a_real_medical_may_be_saved_without_an_expiration(
     api_client: APIClient, member: User, profile_factory: type[MemberProfileFactory]
 ) -> None:
-    """Setting a real medical type with no expiration date is refused."""
+    """Medical expires is always optional: a medical class with no date is saved."""
     profile_factory(user=member, medical_type="none", medical_expiration=None)
     api_client.force_login(member)
 
     response = api_client.patch(PROFILE_URL, {"medical_type": "basicmed"}, format="json")
 
-    assert response.status_code == 400
-    assert "medical_expiration" in response.json()
+    assert response.status_code == 200, response.json()
 
 
 def test_medical_expiration_may_be_omitted_when_there_is_no_medical(
@@ -414,17 +413,46 @@ def test_medical_expiration_supplied_together_is_accepted(
     assert response.json()["medical_expiration"] == "2029-05-31"
 
 
-def test_certificate_number_is_required_for_a_real_certificate(
+def test_a_real_certificate_may_be_saved_without_a_number(
     api_client: APIClient, member: User, profile_factory: type[MemberProfileFactory]
 ) -> None:
-    """Setting a real certificate type with no certificate number is refused."""
+    """Certificate number is always optional: a certificate with no number is saved."""
     profile_factory(user=member, pilot_certificate_type="none", certificate_number="")
     api_client.force_login(member)
 
     response = api_client.patch(PROFILE_URL, {"pilot_certificate_type": "private"}, format="json")
 
-    assert response.status_code == 400
-    assert "certificate_number" in response.json()
+    assert response.status_code == 200, response.json()
+
+
+@pytest.mark.parametrize(
+    "number",
+    ["123456", "12345678", "12345a7", "123-456"],
+    ids=["six-digits", "eight-digits", "a-letter", "punctuation"],
+)
+def test_a_certificate_number_that_is_not_seven_digits_is_refused(
+    api_client: APIClient, member: User, profile: MemberProfile, number: str
+) -> None:
+    """A certificate number holds exactly seven digits and nothing else."""
+    api_client.force_login(member)
+
+    response = api_client.patch(PROFILE_URL, {"certificate_number": number}, format="json")
+
+    assert (response.status_code, response.json()["certificate_number"]) == (
+        400,
+        ["Enter the 7 digits of the pilot certificate number."],
+    )
+
+
+def test_a_seven_digit_certificate_number_is_saved(
+    api_client: APIClient, member: User, profile: MemberProfile
+) -> None:
+    """Seven digits, with a leading zero kept, are stored as typed."""
+    api_client.force_login(member)
+
+    response = api_client.patch(PROFILE_URL, {"certificate_number": "0123456"}, format="json")
+
+    assert response.json()["certificate_number"] == "0123456"
 
 
 def test_certificate_number_is_not_required_without_a_certificate(

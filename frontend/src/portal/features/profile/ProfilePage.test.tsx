@@ -138,12 +138,10 @@ describe('<ProfilePage/>', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: 'Save changes' })).toHaveFocus());
   });
 
-  it('reports a medical without an expiration date', async () => {
+  it('reports a certificate number short of seven digits', async () => {
     server.use(
       http.get(`${API}/me/profile`, () =>
-        HttpResponse.json(
-          makeVerifiedProfile({ medical_type: 'basicmed', medical_expiration: null }),
-        ),
+        HttpResponse.json(makeVerifiedProfile({ certificate_number: '12345' })),
       ),
     );
 
@@ -151,7 +149,9 @@ describe('<ProfilePage/>', () => {
     await screen.findByLabelText(label('Phone'));
     await userEvent.click(screen.getByRole('button', { name: 'Save changes' }));
 
-    expect(await screen.findByText("Enter the medical's expiration date.")).toBeInTheDocument();
+    expect(
+      await screen.findByText('Enter the 7 digits of the pilot certificate number.'),
+    ).toBeInTheDocument();
   });
 
   it('clears an inline error as soon as the member fixes it', async () => {

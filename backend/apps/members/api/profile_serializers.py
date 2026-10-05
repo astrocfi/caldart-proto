@@ -8,7 +8,6 @@ membership terms and payments they may read, and the two public catalogs
 from __future__ import annotations
 
 import re
-from datetime import date
 from typing import Any, cast
 
 from django.db import models, transaction
@@ -34,13 +33,14 @@ from apps.members.models import (
     US_STATE_VALUES,
     MemberProfile,
     Membership,
+    check_certificate_number,
     normalize_ham_callsign,
 )
 from apps.members.services import touch_profile
-from apps.members.verification import VerificationState, clear_stale, document_errors, item_state
+from apps.members.verification import VerificationState, clear_stale, item_state
 from apps.payments.models import Payment, PaymentKind
 from caldart import events
-from caldart.casing import person_name
+from caldart.casing import person_last_name, person_name
 from caldart.messages import when_missing
 from caldart.phone import PHONE_EXTENSION_RE, PHONE_RE, normalize_phone
 
@@ -154,7 +154,8 @@ class ProfileSerializer(serializers.ModelSerializer[MemberProfile]):
 
     ``first_name`` and ``last_name`` are the account's, read from and written to the
     ``User`` row: optional on ``PUT`` and ``PATCH`` alike (left out, they are left
-    alone), never blank, and stored through :func:`caldart.casing.person_name`.
+    alone), never blank, and stored through :func:`caldart.casing.person_name` and
+    :func:`caldart.casing.person_last_name`.
     ``dart`` reads as ``{id, name}`` and is written as ``dart_id``; ``aircraft``
     is read-only here and maintained through ``/me/profile/aircraft``.  The
     admin-only ``notes`` and ``how_heard`` fields are deliberately absent.
@@ -214,6 +215,9 @@ class ProfileSerializer(serializers.ModelSerializer[MemberProfile]):
     # Wider than the column, so a callsign typed with spaces is answered with the
     # rule rather than with a complaint about length.
     ham_callsign = serializers.CharField(max_length=12, required=False, allow_blank=True)
+    # Declared, with its rule in validate_certificate_number, so the schema reads it as
+    # a plain string rather than a pattern or a blank.
+    certificate_number = serializers.CharField(max_length=40, required=False, allow_blank=True)
     county = serializers.ChoiceField(choices=CALIFORNIA_COUNTIES, required=False, allow_blank=True)
     total_hours = serializers.IntegerField(
         min_value=0, max_value=MAX_TOTAL_HOURS, required=False, allow_null=True
@@ -286,8 +290,16 @@ class ProfileSerializer(serializers.ModelSerializer[MemberProfile]):
         return person_name(value)
 
     def validate_last_name(self, value: str) -> str:
-        """The last name as it will be stored, by :func:`caldart.casing.person_name`."""
-        return person_name(value)
+        """The last name as stored, by :func:`caldart.casing.person_last_name`."""
+        return person_last_name(value)
+
+    def validate_certificate_number(self, value: str) -> str:
+        """The certificate number, refused unless it is blank or seven digits.
+
+        Anything else is refused with "Enter the 7 digits of the pilot certificate
+        number."
+        """
+        return check_certificate_number(value)
 
     def validate_ham_callsign(self, value: str) -> str:
         """The callsign upper case without spaces, refused unless it is in US format.
@@ -379,45 +391,6 @@ class ProfileSerializer(serializers.ModelSerializer[MemberProfile]):
             if rating not in unique:
                 unique.append(rating)
         return unique
-
-    # -- cross-field rules -------------------------------------------------
-    def _merged(self, attrs: dict[str, Any], name: str) -> str | date | None:
-        """The value a PATCH would leave in place, so rules see the whole row.
-
-        ``name`` is one of the choice or date fields the rules below read, and
-        the answer is the incoming value when the request carries the field and
-        the stored one otherwise, or ``None`` when neither has it.
-        """
-        merged: str | date | None = (
-            attrs[name] if name in attrs else getattr(self.instance, name, None)
-        )
-        return merged
-
-    def _merged_text(self, attrs: dict[str, Any], name: str) -> str:
-        """:meth:`_merged` for a text field, with anything unset read as blank."""
-        value = self._merged(attrs, name)
-        return value if isinstance(value, str) else ""
-
-    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
-        """Check the two rules that need more than one field, and return ``attrs``.
-
-        A medical class other than ``none`` needs an expiration date, refused
-        against ``medical_expiration`` with "Enter the medical's expiration date."  A
-        pilot certificate other than ``none`` needs a number, refused against
-        ``certificate_number`` with "Enter the pilot certificate number."  Both are
-        judged on the row a PATCH would leave behind, not on the fields this request
-        happens to carry, and both complaints are raised together when both apply.
-        """
-        medical_expiration = self._merged(attrs, "medical_expiration")
-        errors = document_errors(
-            certificate_type=self._merged_text(attrs, "pilot_certificate_type"),
-            certificate_number=self._merged_text(attrs, "certificate_number"),
-            medical_type=self._merged_text(attrs, "medical_type"),
-            medical_expiration=medical_expiration if isinstance(medical_expiration, date) else None,
-        )
-        if errors:
-            raise serializers.ValidationError(errors)
-        return attrs
 
     # -- write -------------------------------------------------------------
     @transaction.atomic

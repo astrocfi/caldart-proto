@@ -43,7 +43,7 @@ from apps.members.services import (
     membership_payload,
     update_member,
 )
-from caldart.casing import person_name
+from caldart.casing import person_last_name, person_name
 from caldart.messages import email_messages, when_missing
 
 if TYPE_CHECKING:
@@ -558,8 +558,8 @@ class MemberUpdateSerializer(serializers.Serializer[User]):
         return person_name(value)
 
     def validate_last_name(self, value: str) -> str:
-        """The last name as it will be stored, by :func:`caldart.casing.person_name`."""
-        return person_name(value)
+        """The last name as stored, by :func:`caldart.casing.person_last_name`."""
+        return person_last_name(value)
 
     def validate_email(self, value: str) -> str:
         """Trim the address, refusing one another account already has.

@@ -882,11 +882,11 @@ def test_create_applies_the_same_profile_rules_as_the_member_form(
 
     response = account_admin_client.post(
         LIST_URL,
-        {"email": "sloppy@example.test", "profile": {"medical_type": MedicalType.THIRD}},
+        {"email": "sloppy@example.test", "profile": {"certificate_number": "12345"}},
         format="json",
     )
     assert response.status_code == 400
-    assert "medical_expiration" in response.json()["profile"]
+    assert set(response.json()["profile"]) == {"certificate_number"}
 
 
 def test_create_needs_nothing_but_an_email_and_the_names(account_admin_client: APIClient) -> None:

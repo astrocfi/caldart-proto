@@ -140,7 +140,8 @@ administrator see **Verify** under the person's name. Press it to open the
 
 #. Check the fields against the documents in front of you: **Pilot certificate**,
    **Certificate number**, **Medical**, **Medical expires**, and **Photo ID**. Correct
-   any that are wrong.
+   any that are wrong. **Certificate number** takes seven digits and nothing else, and
+   it and **Medical expires** may be left blank.
 #. Check **Pilot certificate verified**, **Medical verified**, and **Photo ID verified**
    for each document you have seen. The boxes open checked for the items already
    verified, and changing a field unchecks its box, so you check it again only once you

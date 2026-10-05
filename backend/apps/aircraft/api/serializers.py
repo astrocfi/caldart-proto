@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import date
 from typing import Any, cast
 from uuid import uuid4
 
@@ -36,12 +35,12 @@ from apps.members.models import (
     MembershipState,
     PhotoIdType,
     PilotCertificateType,
+    check_certificate_number,
 )
 from apps.members.verification import (
     ITEM_CHOICES,
     ITEM_LABELS,
     VerificationState,
-    document_errors,
     verification_state,
 )
 
@@ -656,10 +655,8 @@ class MemberVerificationSerializer(serializers.Serializer[Any]):
     Each field is optional: one given is written, one omitted is left as it is.
     ``verified`` is required and lists the slugs of the items that end verified; an
     item left out ends unverified, and a slug outside the catalog is refused with
-    ``Unknown item '<slug>'.``  The profile form's two rules hold on the record the
-    write would leave (see :func:`apps.members.verification.document_errors`), judged
-    against the profile passed in the ``profile`` context key (``None`` for an account
-    with no profile).
+    ``Unknown item '<slug>'.``  A ``certificate_number`` that is not blank must be the
+    seven digits the profile form asks for, or it is refused with the profile's message.
     """
 
     pilot_certificate_type = serializers.ChoiceField(
@@ -671,32 +668,16 @@ class MemberVerificationSerializer(serializers.Serializer[Any]):
     photo_id_type = serializers.ChoiceField(choices=PhotoIdType.choices, required=False)
     verified = serializers.ListField(child=ItemSlugField(), allow_empty=True)
 
+    def validate_certificate_number(self, value: str) -> str:
+        """Refuse a certificate number that is not blank or seven digits; return it."""
+        return check_certificate_number(value)
+
     def validate_verified(self, value: list[str]) -> list[str]:
         """Refuse a slug that names no item; return the slugs without repeats."""
         for slug in value:
             if slug not in ITEM_LABELS:
                 raise serializers.ValidationError(f"Unknown item '{slug}'.")
         return list(dict.fromkeys(value))
-
-    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
-        """Apply the profile form's two document rules to the merged record."""
-        profile = self.context.get("profile")
-
-        def merged(name: str, default: object) -> object:
-            if name in attrs:
-                return attrs[name]
-            return getattr(profile, name) if profile is not None else default
-
-        expiration = merged("medical_expiration", None)
-        errors = document_errors(
-            certificate_type=str(merged("pilot_certificate_type", PilotCertificateType.NONE)),
-            certificate_number=str(merged("certificate_number", "")),
-            medical_type=str(merged("medical_type", MedicalType.NONE)),
-            medical_expiration=expiration if isinstance(expiration, date) else None,
-        )
-        if len(errors) > 0:
-            raise serializers.ValidationError(errors)
-        return attrs
 
 
 class VerifierGrantSerializer(serializers.Serializer[Any]):

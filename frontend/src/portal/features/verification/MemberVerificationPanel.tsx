@@ -14,8 +14,11 @@ import type { Choice } from '@/portal/choices';
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { Field } from '@/portal/components/Field';
+import { MaskedInput } from '@/portal/components/MaskedInput';
 import { RefusedSubmitNote, useRefusedSubmit } from '@/portal/components/RefusedSubmit';
 import { useToast } from '@/portal/components/Toast';
+import { CERTIFICATE_NUMBER_DIGITS } from '@/portal/features/profile/form';
+import { maskDigits } from '@/portal/masks';
 import { useVerifyMember } from './api';
 import { saveErrors } from './errors';
 import { isItemHeld } from './held';
@@ -126,13 +129,19 @@ export function MemberVerificationPanel({
         {checksOnly ? null : (
           <div className="form-grid">
             {coded('pilot_certificate_type', 'Pilot certificate', CERTIFICATE_TYPES)}
-            <Field label="Certificate number" error={errors.fields.certificate_number}>
+            <Field
+              label="Certificate number"
+              hint={`${CERTIFICATE_NUMBER_DIGITS} digits`}
+              error={errors.fields.certificate_number}
+            >
               {(props) => (
-                <input
+                <MaskedInput
                   {...props}
                   className="num"
+                  inputMode="numeric"
+                  mask={(raw) => maskDigits(raw, CERTIFICATE_NUMBER_DIGITS)}
                   value={draft.certificate_number}
-                  onChange={(event) => set('certificate_number', event.target.value)}
+                  onValueChange={(next) => set('certificate_number', next)}
                 />
               )}
             </Field>

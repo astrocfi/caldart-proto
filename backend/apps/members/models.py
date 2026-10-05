@@ -209,6 +209,29 @@ HAM_CALLSIGN_RE = re.compile(r"^(?:[KNW][A-Z]?|A[A-L])[0-9][A-Z]{1,3}$")
 #: What a callsign that is not in US format is answered with.
 HAM_CALLSIGN_MESSAGE = "Enter a US amateur radio callsign, such as W6ABC."
 
+#: The number of digits in a pilot certificate number, which holds nothing else.
+CERTIFICATE_NUMBER_DIGITS = 7
+
+#: A pilot certificate number: exactly ``CERTIFICATE_NUMBER_DIGITS`` digits.
+CERTIFICATE_NUMBER_RE = re.compile(rf"^[0-9]{{{CERTIFICATE_NUMBER_DIGITS}}}$")
+
+#: What a certificate number that is not seven digits is answered with.
+CERTIFICATE_NUMBER_MESSAGE = "Enter the 7 digits of the pilot certificate number."
+
+#: Refuses a certificate number that is not seven digits; Django skips it for a blank one.
+CERTIFICATE_NUMBER_VALIDATOR = RegexValidator(CERTIFICATE_NUMBER_RE, CERTIFICATE_NUMBER_MESSAGE)
+
+
+def check_certificate_number(value: str) -> str:
+    """Return the certificate number ``value`` when it is blank or seven digits.
+
+    Anything else raises Django's ``ValidationError`` with ``CERTIFICATE_NUMBER_MESSAGE``,
+    which a DRF serializer reports under the field it validates.
+    """
+    if value:
+        CERTIFICATE_NUMBER_VALIDATOR(value)
+    return value
+
 
 def normalize_ham_callsign(value: str) -> str:
     """A callsign as it is stored: upper case, with every space removed.
@@ -265,7 +288,11 @@ class MemberProfile(TimestampedModel):
     pilot_certificate_type = models.CharField(
         max_length=16, choices=PilotCertificateType.choices, default=PilotCertificateType.NONE
     )
-    certificate_number = models.CharField(max_length=40, blank=True)
+    certificate_number = models.CharField(
+        max_length=40,
+        blank=True,
+        validators=[CERTIFICATE_NUMBER_VALIDATOR],
+    )
     ratings = models.JSONField(default=list, blank=True)
     medical_type = models.CharField(
         max_length=16, choices=MedicalType.choices, default=MedicalType.NONE

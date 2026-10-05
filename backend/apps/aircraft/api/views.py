@@ -63,7 +63,6 @@ from apps.aircraft.models import (
 from apps.aircraft.types import search_types
 from apps.aircraft.verification import verify_insurance
 from apps.members.api.actors import acting_user
-from apps.members.models import MemberProfile
 from apps.members.verification import verify_member
 
 User = get_user_model()
@@ -425,8 +424,7 @@ class LeaderMemberVerificationView(APIView):
         through :func:`apps.members.verification.verify_member` under the caller.
         """
         target = get_object_or_404(services.checkable_people(), pk=user_id)
-        profile = MemberProfile.objects.filter(user=target).first()
-        serializer = MemberVerificationSerializer(data=request.data, context={"profile": profile})
+        serializer = MemberVerificationSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         changes = dict(serializer.validated_data)
         verified = changes.pop("verified")

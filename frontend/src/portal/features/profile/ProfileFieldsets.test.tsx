@@ -181,6 +181,9 @@ describe('<ProfileFieldsets/>', () => {
 
   it.each([
     ['Phone', '10 digits, such as 415-555-0100'],
+    ['Alternate phone', '10 digits, such as 415-555-0100'],
+    ['Address', 'Start typing the whole address, city included, then pick it from the list'],
+    ['Certificate number', '7 digits'],
     ['ZIP code', '5 digits, such as 95035'],
     ['Amateur radio callsign', 'Optional. A US callsign, such as W6ABC'],
   ])('gives the example for %s in its hint', (label, hint) => {
@@ -428,25 +431,32 @@ describe('<ProfileFieldsets/>', () => {
     expect(screen.getByLabelText('Phone')).toBeInTheDocument();
   });
 
-  it('marks the certificate number once a certificate is chosen', () => {
+  it('never marks the certificate number required, even for a pilot', () => {
     renderFieldsets({
       markRequired: true,
       value: { ...EMPTY_PROFILE_FORM, pilot_certificate_type: 'private' },
     });
-    expect(screen.getByLabelText('Certificate number*')).toBeInTheDocument();
-  });
-
-  it('leaves the certificate number unmarked while the member is not a pilot', () => {
-    renderFieldsets({ markRequired: true });
     expect(screen.getByLabelText('Certificate number')).toBeInTheDocument();
   });
 
-  it('marks the medical expiry once a medical class is chosen', () => {
+  it('never marks the medical expiry required, even with a medical class', () => {
     renderFieldsets({
       markRequired: true,
       value: { ...EMPTY_PROFILE_FORM, medical_type: 'third' },
     });
-    expect(screen.getByLabelText('Medical expires*')).toBeInTheDocument();
+    expect(screen.getByLabelText('Medical expires')).toBeInTheDocument();
+  });
+
+  it('keeps a pasted certificate number to its first seven digits', async () => {
+    const user = userEvent.setup();
+    const onChange = renderFieldsets();
+
+    await user.click(screen.getByLabelText('Certificate number'));
+    await user.paste('12-345678');
+
+    expect(onChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({ certificate_number: '1234567' }),
+    );
   });
 
   it('offers the kinds of photo ID, and nothing else about the document', () => {

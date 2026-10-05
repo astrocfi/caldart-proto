@@ -252,32 +252,26 @@ describe('validateProfileForm', () => {
     ).toBeUndefined();
   });
 
-  it('wants an expiration date once a medical is claimed', () => {
+  it('leaves the medical expiration optional when a medical is claimed', () => {
     const values = { ...profileToForm(makeProfile()), medical_expiration: '' };
-    expect(validateProfileForm(values).medical_expiration).toBe(
-      "Enter the medical's expiration date.",
-    );
+    expect(validateProfileForm(values).medical_expiration).toBeUndefined();
   });
 
-  it('leaves the medical expiration alone when there is no medical', () => {
-    const values = { ...profileToForm(makeProfile()), medical_expiration: '' };
-    expect(
-      validateProfileForm({ ...values, medical_type: 'none' }).medical_expiration,
-    ).toBeUndefined();
-  });
-
-  it('wants a certificate number once a certificate is claimed', () => {
+  it('leaves the certificate number optional when a certificate is claimed', () => {
     const values = { ...profileToForm(makeProfile()), certificate_number: '  ' };
+    expect(validateProfileForm(values).certificate_number).toBeUndefined();
+  });
+
+  it('refuses a certificate number short of seven digits', () => {
+    const values = { ...profileToForm(makeProfile()), certificate_number: '12345' };
     expect(validateProfileForm(values).certificate_number).toBe(
-      'Enter the pilot certificate number.',
+      'Enter the 7 digits of the pilot certificate number.',
     );
   });
 
-  it('leaves the certificate number alone for someone who is not a pilot', () => {
-    const values = { ...profileToForm(makeProfile()), certificate_number: '  ' };
-    expect(
-      validateProfileForm({ ...values, pilot_certificate_type: 'none' }).certificate_number,
-    ).toBeUndefined();
+  it('accepts a seven-digit certificate number', () => {
+    const values = { ...profileToForm(makeProfile()), certificate_number: '0123456' };
+    expect(validateProfileForm(values).certificate_number).toBeUndefined();
   });
 
   const HOURS_MESSAGE = 'Enter your total hours as a whole number.';

@@ -13,7 +13,8 @@ from itertools import pairwise
 #: Internal runs of whitespace collapse to one space.
 _WHITESPACE_RE = re.compile(r"\s+")
 
-#: The particles a name keeps lower case when they are not its first word.
+#: The particles a name keeps lower case when they are not its first word (a last name
+#: keeps them lower case as its first word too; see ``person_last_name``).
 NAME_PARTICLES = frozenset(
     {"van", "von", "der", "den", "de", "del", "della", "da", "di", "du", "la", "le"}
 )
@@ -138,13 +139,38 @@ def person_name(value: str) -> str:
     ``TJ``, ``DJ`` stays ``DJ``).  Past the first word, the particles in
     ``NAME_PARTICLES`` stay lower case (``VAN DER BERG`` -> ``Van der Berg``) and the
     suffixes in ``NAME_SUFFIXES`` upper case (``smith iii`` -> ``Smith III``).  A blank
-    value stays blank.
+    value stays blank.  A last name follows :func:`person_last_name` instead.
+    """
+    return _cased_name(value, particle_leads=False)
+
+
+def person_last_name(value: str) -> str:
+    """Return the last name ``value`` as it is stored.
+
+    The rules are :func:`person_name`'s, except that a particle in ``NAME_PARTICLES``
+    stays lower case as the first word too, when more words follow it: ``van dyke``
+    becomes ``van Dyke`` and ``DE LA CRUZ`` becomes ``de la Cruz``.  A particle that is
+    the whole name is a name of its own and is capitalized (``VAN`` -> ``Van``), and a
+    name in mixed case is kept as typed (``Van Dyke`` stays ``Van Dyke``).
+    """
+    return _cased_name(value, particle_leads=True)
+
+
+def _cased_name(value: str, *, particle_leads: bool) -> str:
+    """A person's name cased by :func:`person_name`'s rules.
+
+    With ``particle_leads``, a first word in ``NAME_PARTICLES`` followed by another word
+    stays lower case too, as :func:`person_last_name` describes.
     """
     trimmed = _WHITESPACE_RE.sub(" ", value.strip())
     if trimmed not in {trimmed.upper(), trimmed.lower()}:
         return trimmed
     words = trimmed.split(" ")
-    return " ".join(_name_word(word, first=index == 0) for index, word in enumerate(words))
+    lead_may_be_particle = particle_leads and len(words) > 1
+    return " ".join(
+        _name_word(word, first=index == 0, particle_leads=lead_may_be_particle)
+        for index, word in enumerate(words)
+    )
 
 
 def business_name(value: str) -> str:
@@ -218,10 +244,13 @@ def _is_short_abbreviation(registered: str, *, may_be_code: bool) -> bool:
     return may_be_code and is_identifier and lowered not in K_WORDS
 
 
-def _name_word(word: str, *, first: bool) -> str:
-    """One word of a one-case name, cased by the rules :func:`person_name` lists."""
+def _name_word(word: str, *, first: bool, particle_leads: bool = False) -> str:
+    """One word of a one-case name, cased by the rules :func:`person_name` lists.
+
+    ``particle_leads`` keeps a particle lower case even as the ``first`` word.
+    """
     lowered = word.lower()
-    if not first and lowered in NAME_PARTICLES:
+    if (particle_leads or not first) and lowered in NAME_PARTICLES:
         return lowered
     if not first and lowered in NAME_SUFFIXES:
         return word.upper()

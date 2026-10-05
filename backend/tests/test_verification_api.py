@@ -260,35 +260,45 @@ def test_verified_is_required(leader_client: APIClient, pilot: User) -> None:
     assert (response.status_code, list(response.json())) == (400, ["verified"])
 
 
-def test_a_certificate_needs_a_number_on_the_merged_record(
-    leader_client: APIClient, pilot: User
-) -> None:
-    """Blanking the number of a stored certificate is refused as the profile form does."""
-    response = leader_client.put(
+def test_a_certificate_number_may_be_blanked(leader_client: APIClient, pilot: User) -> None:
+    """Certificate number is optional, so a verifier may clear a stored one."""
+    leader_client.put(
         member_verification_url(pilot),
         {"certificate_number": "", "verified": []},
         format="json",
     )
-    assert response.json() == {"certificate_number": ["Enter the pilot certificate number."]}
+    assert MemberProfile.objects.get(user=pilot).certificate_number == ""
 
 
-def test_a_medical_needs_an_expiration_on_the_merged_record(
-    leader_client: APIClient, pilot: User
-) -> None:
-    """Clearing the expiration of a stored medical is refused as the profile form does."""
-    response = leader_client.put(
+def test_a_medical_expiration_may_be_cleared(leader_client: APIClient, pilot: User) -> None:
+    """Medical expires is optional, so a verifier may clear a stored date."""
+    leader_client.put(
         member_verification_url(pilot),
         {"medical_expiration": None, "verified": []},
         format="json",
     )
-    assert response.json() == {"medical_expiration": ["Enter the medical's expiration date."]}
+    assert MemberProfile.objects.get(user=pilot).medical_expiration is None
+
+
+def test_a_certificate_number_that_is_not_seven_digits_is_refused(
+    leader_client: APIClient, pilot: User
+) -> None:
+    """The verifier's body refuses a certificate number that is not seven digits."""
+    response = leader_client.put(
+        member_verification_url(pilot),
+        {"certificate_number": "12345", "verified": []},
+        format="json",
+    )
+    assert response.json() == {
+        "certificate_number": ["Enter the 7 digits of the pilot certificate number."]
+    }
 
 
 def test_a_refused_body_writes_nothing(leader_client: APIClient, pilot: User) -> None:
     """A refusal leaves every item unverified and the fields as they were."""
     leader_client.put(
         member_verification_url(pilot),
-        {"certificate_number": "", "verified": PERSON_ITEMS},
+        {"certificate_number": "12345", "verified": PERSON_ITEMS},
         format="json",
     )
     assert MemberProfile.objects.get(user=pilot).certificate_verified_at is None
