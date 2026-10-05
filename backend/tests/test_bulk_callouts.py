@@ -78,6 +78,17 @@ def _no_pause(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(job, "sleep", lambda seconds: None)
 
 
+@pytest.fixture(autouse=True)
+def _one_signing_instant(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Sign every token in a test at one instant.
+
+    A copy's answer token and the token a test builds to compare with it both carry the
+    second they were signed, so the signer's timestamp is held still. The clock itself is
+    untouched, so the answer page's throttle keeps counting real time.
+    """
+    monkeypatch.setattr(signing.TimestampSigner, "timestamp", lambda self: "1xDQ0A")
+
+
 @pytest.fixture
 def ann(db: None) -> User:
     """Ann Able, a member."""
