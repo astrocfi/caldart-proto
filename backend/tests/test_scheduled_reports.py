@@ -463,9 +463,7 @@ def test_the_run_names_each_email_in_its_lines(mailoutbox: list[EmailMessage]) -
 
     lines = run_scheduled_reports(today=TODAY).as_lines()
 
-    assert lines[-1] == (
-        "emailed report to board@example.org <board@example.org> (CalDART membership report, PDF)"
-    )
+    assert lines[-1] == ("emailed report to board@example.org <board@example.org> (Members, PDF)")
 
 
 # -- two runs at once --------------------------------------------------------
@@ -608,7 +606,7 @@ def test_the_run_endpoint_answers_the_run(
                 "email": "board@example.org",
                 "on": None,
                 "amount_cents": None,
-                "detail": "CalDART membership report, PDF",
+                "detail": "Members, PDF",
             }
         ],
     }

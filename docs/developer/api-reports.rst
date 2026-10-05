@@ -366,7 +366,7 @@ send, shaped as :ref:`api-reports-run` describes::
    "actions": [{"kind": "report", "member": "board@example.org",
                 "email": "board@example.org", "on": null,
                 "amount_cents": null,
-                "detail": "CalDART membership report, PDF"}]}
+                "detail": "Members, PDF"}]}
 
 ``last_sent_at`` is stamped and ``next_due_on`` stays where it was.  The
 recipient is brought up to date first, as the daily run does

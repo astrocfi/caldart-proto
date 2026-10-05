@@ -20,6 +20,7 @@ from apps.accounts.models import User
 from apps.accounts.roles import ACCOUNT_ADMIN, SYSTEM_ADMIN, TREASURER
 from apps.mail.models import EmailLog
 from apps.reports.models import ReportSubscription
+from apps.reports.registry import REPORT_NAMES, REPORTS
 from apps.reports.schedule import next_due_after
 from caldart import audit
 from tests.conftest import audit_messages, role_matrix
@@ -478,7 +479,7 @@ def test_send_now_emails_the_report_to_the_recipient(
                 "email": "board@example.org",
                 "on": None,
                 "amount_cents": None,
-                "detail": "CalDART membership report, PDF",
+                "detail": "Members, PDF",
             }
         ],
     }
@@ -545,3 +546,8 @@ def test_send_now_to_a_hidden_report_is_not_found(treasurer_client: APIClient) -
     subscription = ReportSubscriptionFactory(report="members")
 
     assert treasurer_client.post(f"{subscription_url(subscription)}/send").status_code == 404
+
+
+def test_every_report_has_the_name_its_tab_gives_it() -> None:
+    """Each registered report is named for a run as the portal's tabs name it."""
+    assert set(REPORT_NAMES) == set(REPORTS)

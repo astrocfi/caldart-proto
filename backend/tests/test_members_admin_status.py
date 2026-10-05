@@ -308,9 +308,7 @@ def test_membership_of_falls_back_to_the_service(histories: dict[str, User], lab
 def test_the_status_filter_puts_every_friend_under_friend(
     histories: dict[str, User], status: str, labels: set[str]
 ) -> None:
-    """Each status lists its own accounts: a friend under friend alone, and a member
-    with no term yet under none alone.
-    """
+    """Each status lists its own: a friend under friend, an unpaid member under none."""
     by_pk = {user.pk: label for label, user in histories.items()}
     queryset = MemberAdminFilterSet({"status": status}, queryset=member_admin_queryset()).qs
     assert {by_pk[user.pk] for user in queryset if user.pk in by_pk} == labels

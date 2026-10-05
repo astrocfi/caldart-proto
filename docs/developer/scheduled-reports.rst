@@ -182,7 +182,7 @@ The command
    sent             34
    skipped          0
    failed           0
-   would email report to Curtis Whitfield <accountadmin@example.org> (CalDART membership report, PDF)
+   would email report to Curtis Whitfield <accountadmin@example.org> (Members, PDF)
    ...
    would send 34, skipped 0
 

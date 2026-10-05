@@ -37,6 +37,27 @@ REPORTS: dict[str, Report] = {
 }
 
 
+#: Each report by the name the portal's tabs and menu give it (``Payments``), rather than
+#: the title its PDF carries (``CalDART payments``): what a run's actions call it.
+REPORT_NAMES: dict[str, str] = {
+    MEMBER_REPORT.slug: "Members",
+    ROLES_REPORT.slug: "Roles",
+    VERIFICATION_REPORT.slug: "Verification",
+    AIRCRAFT_REPORT.slug: "Aircraft",
+    PAYMENT_REPORT.slug: "Payments",
+    RENEWAL_REPORT.slug: "Renewals",
+    RECONCILIATION_REPORT.slug: "Reconciliation",
+    CONTRIBUTION_REPORT.slug: "Contributions",
+    DONOR_REPORT.slug: "Donors",
+    EMAIL_LOG_REPORT.slug: "Sent emails",
+}
+
+
+def report_name(spec: Report) -> str:
+    """``spec`` by its name in the portal (:data:`REPORT_NAMES`), else by its title."""
+    return REPORT_NAMES.get(spec.slug, spec.title)
+
+
 def report_or_404(slug: str) -> Report:
     """The report registered under ``slug``.
 
