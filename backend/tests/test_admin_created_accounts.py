@@ -93,9 +93,21 @@ def test_a_refused_system_administrator_grant_names_the_role_in_words(
         ("SKYWAYS AVIATION OF NAPA L.L.C.", "Skyways Aviation of Napa L.L.C."),
         ("  NORTH  BAY FBO ", "North Bay FBO"),
         ("SkyWest Aviation", "SkyWest Aviation"),
+        ("KPAO FBO INC", "KPAO FBO Inc"),
+        ("JB AVIATION", "JB Aviation"),
+        ("BAY AREA FLYERS", "Bay Area Flyers"),
         ("", ""),
     ],
-    ids=["capitals", "small-word-and-periods", "spaces-and-fbo", "mixed-case-kept", "blank"],
+    ids=[
+        "capitals",
+        "small-word-and-periods",
+        "spaces-and-fbo",
+        "mixed-case-kept",
+        "airport-identifier-kept",
+        "initials-kept",
+        "short-words-title-cased",
+        "blank",
+    ],
 )
 def test_business_name(registered: str, shown: str) -> None:
     """A registry's capitals read in title case, the abbreviations kept upper case."""
