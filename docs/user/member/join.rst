@@ -34,19 +34,23 @@ earlier step, but you cannot skip ahead of one you have not finished.
 
 You have finished joining once your address is verified, your profile is complete,
 and, if you chose **Join as a member**, your first payment has cleared or you have
-chosen to be a friend instead on the pay step. A friend has finished once they leave
-the pay step, by giving or by pressing **Continue without a gift**; giving is
-optional. Until then a friend joining for the first time stays in the wizard, and
-reloading the pay step keeps them on it. A friend who closes the tab at the pay step
-and signs in again later has finished, since a friend owes nothing. Once you have
-joined, the **Profile** and **Pay** steps send you to your :doc:`dashboard` instead,
-so going back into the wizard cannot charge you again or change your kind of
-account. A member whose membership has expired has
-already joined: the portal stays open to them, and they renew from it (see
-:doc:`renew`). Only a member who has never held a paid membership is held at the
-pay step. An account an administrator created for you has joined already: once you
-have verified its address, your first sign-in opens the dashboard, with no profile or
-pay step, and you fill in the rest of your profile when you like.
+chosen to be a friend instead on the pay step. Only a member who has never held a
+paid membership is held at the pay step; a member whose membership has expired has
+already joined, keeps the portal, and renews from it (see :doc:`renew`).
+
+A friend has finished once they leave the pay step, by giving or by pressing
+**Continue without a gift**; giving is optional. Until then a friend joining for the
+first time stays in the wizard, and reloading the pay step keeps them on it. A friend
+who closes the tab at the pay step and signs in again later has finished, since a
+friend owes nothing.
+
+An account an administrator created for you has joined already: once you have
+verified its address, your first sign-in opens the dashboard, with no profile or pay
+step, and you fill in the rest of your profile when you like.
+
+Once you have joined, the **Profile** and **Pay** steps send you to your
+:doc:`dashboard`, so going back into the wizard cannot charge you again or change
+your kind of account.
 
 
 Step 1: Account
