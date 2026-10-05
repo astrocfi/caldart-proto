@@ -50,7 +50,7 @@ changes both (see `Choosing the columns`_). At first it shows the report's eleve
 
 **Expires**
    The date the membership runs out. A life member's reads **Never**, a friend's reads
-   **Friend**, and a member who has not paid yet reads **No membership yet**. The date is the end of the person's unbroken cover: somebody who renews in
+   **Friend**, and a member who has not paid yet reads **None yet**. The date is the end of the person's unbroken cover: somebody who renews in
    March for a term that starts in July already shows next July's date, so you never add
    terms up yourself.
 

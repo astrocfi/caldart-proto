@@ -652,11 +652,7 @@ describe('MembersListPage', () => {
     const texts = rowCells(row as HTMLElement).map((cell) => cell.textContent);
     // Status, Kind, and Expires, in that order.
     const status = texts.indexOf('No membership yet');
-    expect(texts.slice(status, status + 3)).toEqual([
-      'No membership yet',
-      'Member',
-      'No membership yet',
-    ]);
+    expect(texts.slice(status, status + 3)).toEqual(['No membership yet', 'Member', 'None yet']);
   });
 });
 

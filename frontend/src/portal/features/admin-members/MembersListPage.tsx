@@ -124,10 +124,11 @@ function MemberName({
 
 /**
  * The expiry cell: the date, **Never** for a lifetime member, **Friend** for a friend,
- * who pays no dues and so has no date, and **No membership yet** for a member who has
- * not paid their first dues.
+ * who pays no dues and so has no date, and **None yet** for a member who has not paid
+ * their first dues, whose Status already says so in full.
  */
 function ExpiryText({ row }: { row: MemberRow }): JSX.Element {
+  if (row.membership.status === 'none') return <span className="muted">None yet</span>;
   if (isWithoutTerm(row.membership.status)) {
     return <span className="muted">{MEMBERSHIP_STATUS_LABELS[row.membership.status]}</span>;
   }
@@ -208,7 +209,8 @@ function memberCells(isAccountAdmin: boolean): Record<string, ReportCell<MemberR
       render: (row) => row.dart ?? 'Unaffiliated',
     },
     status: {
-      width: '8.5rem',
+      // Room for the longest state, "No membership yet", beside its dot.
+      width: '10.5rem',
       keepInSight: true,
       // A dot and its word, "Expiring soon" for an expiry that is close, which the
       // Expires column dates.
