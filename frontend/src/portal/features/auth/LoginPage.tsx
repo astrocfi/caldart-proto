@@ -14,6 +14,14 @@ import { EMAIL_MESSAGE, isEmailAddress } from '@/portal/masks';
 import { AuthShell } from './AuthShell';
 import { FormAlert, fieldError } from './form';
 
+/** What the sign-in screen says under its title: what the portal is, and which address. */
+const LEDE =
+  'The member portal is where CalDART members and friends keep their details, pay, and ' +
+  'renew. Sign in with the email address CalDART has on file.';
+
+/** What the password box says when it is left empty. */
+const PASSWORD_MESSAGE = 'Enter your password.';
+
 /** The `code` a sign-in refusal carries when the account is deactivated. */
 const DEACTIVATED_CODE = 'deactivated';
 
@@ -52,6 +60,7 @@ export function LoginPage(): JSX.Element {
   const [email, setEmail] = useState(() => params.get('email') ?? '');
   const [password, setPassword] = useState('');
   const [emailError, setEmailError] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
 
   const next = safeNext(params.get('next'));
   const isGuide = isGuidePath(next);
@@ -74,7 +83,7 @@ export function LoginPage(): JSX.Element {
   return (
     <AuthShell
       title="Sign in"
-      lede="Use the email address CalDART has on file."
+      lede={LEDE}
       footer={
         <>
           Not a member yet? <Link to="/join">Join CalDART</Link>.
@@ -85,11 +94,12 @@ export function LoginPage(): JSX.Element {
         noValidate
         onSubmit={(event) => {
           event.preventDefault();
-          if (!isEmailAddress(email)) {
-            setEmailError(EMAIL_MESSAGE);
-            return;
-          }
-          setEmailError(null);
+          // Both boxes are checked at once, so an empty form names both of them.
+          const badEmail = isEmailAddress(email) ? null : EMAIL_MESSAGE;
+          const badPassword = password === '' ? PASSWORD_MESSAGE : null;
+          setEmailError(badEmail);
+          setPasswordError(badPassword);
+          if (badEmail !== null || badPassword !== null) return;
           reactivate.reset();
           login.mutate({ email, password }, { onSuccess: handleSignedIn });
         }}
@@ -112,7 +122,11 @@ export function LoginPage(): JSX.Element {
             />
           )}
         </Field>
-        <Field label="Password" required error={fieldError(login.error, 'password')}>
+        <Field
+          label="Password"
+          required
+          error={passwordError ?? fieldError(login.error, 'password')}
+        >
           {(props) => (
             <input
               {...props}
@@ -121,7 +135,10 @@ export function LoginPage(): JSX.Element {
               autoComplete="current-password"
               required
               value={password}
-              onChange={(event) => setPassword(event.target.value)}
+              onChange={(event) => {
+                setPassword(event.target.value);
+                setPasswordError(null);
+              }}
             />
           )}
         </Field>

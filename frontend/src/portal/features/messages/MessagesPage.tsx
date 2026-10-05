@@ -25,10 +25,7 @@ export function MessagesPage(): JSX.Element {
   const rows = messages.data ?? [];
 
   return (
-    <Page
-      title="Messages"
-      lede="The emails CalDART has sent you along with other members and friends, to read again here."
-    >
+    <Page title="Messages" lede="Copies of the emails CalDART sent to members and friends.">
       <Card>
         {messages.isError ? (
           <p className="field__error" role="alert">

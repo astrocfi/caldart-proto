@@ -20,13 +20,13 @@ Create an account
 #. Fill in **About you**: at least your **Address**, **City**, **State**, and **ZIP
    code**. Press **Save and continue**.
 #. A member pays the dues on **Pay your dues**. A friend may give on **Donate to
-   CalDART**, or press **Not now**.
+   CalDART**, or press **Continue without a gift**.
 #. On **Welcome to CalDART**, press **Go to my dashboard**.
 
 Until the last step, the wizard is the whole portal: there is no menu, and signing
 in again brings you back to the step you still have to finish. A member who would
-rather not pay after all chooses **I changed my mind, I just want to be a friend**
-on **Pay your dues**, then **Continue as a friend**.
+rather not pay after all chooses **Join as a friend instead (no dues)** on **Pay
+your dues**, then **Continue without a gift**.
 
 Next time, choose **Sign in** in the public site's top menu and use the same email
 address and password. See :doc:`member/join`, :doc:`member/verify-email`, and
@@ -38,7 +38,7 @@ Add an aircraft you fly
 
 #. Sign in and choose **My aircraft** in the menu.
 #. In **Search CalDART's aircraft list**, type the N-number.
-#. Click the airplane in the results. It joins your **Attached aircraft**.
+#. Click the airplane in the results. It joins **Your aircraft**.
 #. If it is not on CalDART's list, press **Add a new aircraft**, fill in the
    **N-number**, **Make**, **Model**, and the **Insurance expires** date, and press
    **Add aircraft**.
@@ -52,11 +52,10 @@ Become a member or a friend, and back
 
 To become a friend:
 
-#. On your **Dashboard**, or on **My profile** under **Your kind of account**, press
-   **Make me a friend**.
+#. On **My profile**, under **Your kind of account**, press **Make me a friend**.
 #. Read the confirmation. If your automatic renewal also gives a contribution,
-   choose **Keep the contribution** or **Stop it**. Otherwise press **Yes, make me a
-   friend**.
+   choose **Become a friend and keep giving $100 a year** or **Become a friend and
+   stop the $100**, with your own amount. Otherwise press **Yes, make me a friend**.
 #. A current membership runs to its end, and you become a friend the next day. Until
    then, **Undo** keeps you a member.
 

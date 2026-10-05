@@ -39,7 +39,7 @@ function mount({
 }
 
 /** The lede once the membership is known to have nothing to renew. */
-const NO_RENEWAL_LEDE = 'Your recurring donation, your receipts, and your contribution statements.';
+const NO_RENEWAL_LEDE = 'Your recurring donation, payments and receipts, and tax statements.';
 
 /** Queries scoped to one `<Card>`, found by its heading. */
 function card(heading: string) {
@@ -54,7 +54,7 @@ describe('PaymentsPage', () => {
 
     expect(
       await screen.findByText(
-        'Your recurring donation, whether CalDART renews your membership for you, your receipts, and your contribution statements.',
+        'Your automatic renewal, recurring donation, payments and receipts, and tax statements.',
       ),
     ).toBeInTheDocument();
   });
@@ -71,7 +71,7 @@ describe('PaymentsPage', () => {
 
     expect(
       await screen.findByText(
-        'Your recurring donation, your receipts, and your contribution statements.',
+        'Your recurring donation, payments and receipts, and tax statements.',
       ),
     ).toBeInTheDocument();
   });
@@ -190,6 +190,16 @@ describe('PaymentsPage', () => {
       '/api/v1/me/payments/statements/2026.pdf',
     );
     expect(statements.getByRole('link', { name: '2025 statement' })).toBeInTheDocument();
+  });
+
+  it('says what a statement holds without tax jargon', async () => {
+    mount({ years: [2026] });
+
+    const statements = card('Contribution statements');
+    expect(
+      await statements.findByText(/the wording your tax preparer needs\./),
+    ).toBeInTheDocument();
+    expect(statements.queryByText(/501\(c\)\(3\) wording/)).not.toBeInTheDocument();
   });
 
   it('explains why a year of dues alone has no statement', async () => {

@@ -193,6 +193,32 @@ describe('LoginPage', () => {
     expect(asked).toBe(false);
   });
 
+  it('flags the email and the password together when both are empty', async () => {
+    let asked = false;
+    server.use(
+      http.post(`${API}/auth/login`, () => {
+        asked = true;
+        return HttpResponse.json({ detail: 'nope' }, { status: 400 });
+      }),
+    );
+
+    renderLogin();
+    await userEvent.click(await screen.findByRole('button', { name: /sign in/i }));
+
+    expect(screen.getByLabelText(/email address/i)).toHaveAttribute('aria-invalid', 'true');
+    expect(screen.getByLabelText(/^password/i)).toHaveAttribute('aria-invalid', 'true');
+    expect(screen.getByText('Enter your password.')).toBeInTheDocument();
+    expect(asked).toBe(false);
+  });
+
+  it('says what the portal is for above the form', async () => {
+    renderLogin();
+
+    expect(
+      await screen.findByText(/where CalDART members and friends keep their details/),
+    ).toBeInTheDocument();
+  });
+
   it('drops everything the previous user had cached', async () => {
     const user = makeUser({ id: 2, email: 'marta@example.org' });
     server.use(http.post(`${API}/auth/login`, () => HttpResponse.json(user)));

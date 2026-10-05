@@ -30,6 +30,8 @@ export interface NNumberFieldProps {
   onBlur?: () => void;
   error?: string;
   hint?: string;
+  /** Keep the registry's suggestions shut, such as while a note under the box speaks. */
+  hideSuggestions?: boolean;
 }
 
 /** A registration's type, year, and registrant, for the muted end of its line in the list. */
@@ -53,8 +55,14 @@ export function NNumberField({
   onBlur: handleBlur,
   error,
   hint,
+  hideSuggestions = false,
 }: NNumberFieldProps): JSX.Element {
   const [picked, setPicked] = useState<Registration | null>(null);
+  // One hook either way, so the list can shut without the hooks changing between renders.
+  const useSuggestions = (prefix: string): { data: Registration[] | undefined } => {
+    const found = useRegistrationSearch(prefix);
+    return hideSuggestions ? { data: [] } : found;
+  };
 
   const handleValueChange = (next: string): void => {
     setPicked(null);
@@ -80,7 +88,7 @@ export function NNumberField({
             onValueChange={handleValueChange}
             onPick={handlePick}
             onBlur={handleBlur}
-            useSuggestions={useRegistrationSearch}
+            useSuggestions={useSuggestions}
             itemKey={(registration) => registration.n_number}
             itemLabel={(registration) => registration.n_number}
             itemMeta={registrationMeta}

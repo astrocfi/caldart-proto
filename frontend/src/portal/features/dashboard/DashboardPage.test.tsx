@@ -14,7 +14,7 @@ import type {
   User,
 } from '@/portal/api/types';
 import { EXPIRING_WINDOW_DAYS } from '@/portal/components/StatusDot';
-import { DashboardPage } from './DashboardPage';
+import { DashboardPage, quickLinks } from './DashboardPage';
 
 const NOW = new Date('2026-06-15T12:00:00Z');
 
@@ -199,7 +199,7 @@ describe('<DashboardPage/>', () => {
       await screen.findByRole('heading', { name: 'You are a friend of CalDART' });
       expect(
         card('You are a friend of CalDART').getByText(
-          'You are a friend of CalDART: no dues, no expiry. Become a member any time.',
+          'No dues and no expiry. Become a member any time.',
         ),
       ).toBeVisible();
     });
@@ -227,11 +227,38 @@ describe('<DashboardPage/>', () => {
       expect(section).not.toHaveClass('dashboard__card--urgent');
     });
 
-    it('hides Renew from the quick links, having no membership to renew', async () => {
+    it('offers Donate rather than Renew in the quick links', async () => {
       mountFriend();
 
       await screen.findByRole('heading', { name: 'You are a friend of CalDART' });
-      expect(card('Quick links').queryByRole('link', { name: 'Renew' })).not.toBeInTheDocument();
+      const links = card('Quick links');
+      expect(links.queryByRole('link', { name: 'Renew' })).not.toBeInTheDocument();
+      expect(links.getByRole('link', { name: 'Donate' })).toHaveAttribute('href', '/donate');
+    });
+
+    it('says nothing about a renewal a friend cannot have', async () => {
+      mountFriend();
+
+      await screen.findByRole('heading', { name: 'You are a friend of CalDART' });
+      expect(screen.queryByText(/Automatic renewal/)).not.toBeInTheDocument();
+      expect(
+        card('Recent payments').getByRole('link', { name: 'All payments and receipts' }),
+      ).toHaveAttribute('href', '/payments');
+    });
+
+    it('names a friend’s recurring donation when there is one', async () => {
+      server.use(
+        http.get(`${API}/me/donation`, () =>
+          HttpResponse.json({
+            mandate: makeContributionMandate({ next_charge_on: '2027-08-20' }),
+          }),
+        ),
+      );
+      mountFriend();
+
+      expect(await screen.findByText(/Recurring donation is on/)).toHaveTextContent(
+        'Recurring donation is on: $50.00 will be charged on 08/20/2027.',
+      );
     });
 
     it('does not list the members-only pages the wall refuses a friend', async () => {
@@ -259,20 +286,28 @@ describe('<DashboardPage/>', () => {
     });
   });
 
-  it('filters the quick links by role', async () => {
+  it('offers an account administrator their own tasks among the quick links', async () => {
     mount({
       user: makeUser({ membership: CURRENT, roles: ['member', 'account_admin'] }),
       status: CURRENT,
     });
 
-    // The rail is role-filtered, so wait until `/auth/me` has actually landed.
+    // The links are role-filtered, so wait until `/auth/me` has actually landed.
     await screen.findByRole('heading', { name: 'Welcome, Marta' });
-    const links = card('Quick links');
-    expect(links.getByRole('link', { name: 'My profile' })).toBeInTheDocument();
-    expect(links.getByRole('link', { name: 'Members' })).toBeInTheDocument();
-    expect(links.queryByRole('link', { name: 'Health and database' })).not.toBeInTheDocument();
-    // The dashboard does not link to itself.
-    expect(links.queryByRole('link', { name: 'Dashboard' })).not.toBeInTheDocument();
+    const names = card('Quick links')
+      .getAllByRole('link')
+      .map((link) => link.textContent);
+    expect(names).toEqual(['Renew', 'My profile', 'Member check', 'Finance', 'Members']);
+  });
+
+  it('offers a plain member four next steps, not the whole menu', async () => {
+    mount({ user: makeUser({ membership: CURRENT }), status: CURRENT });
+
+    await screen.findByRole('heading', { name: 'Welcome, Marta' });
+    const names = card('Quick links')
+      .getAllByRole('link')
+      .map((link) => link.textContent);
+    expect(names).toEqual(['Renew', 'My profile', 'My aircraft', 'Messages']);
   });
 
   it('hides administration links from a plain member', async () => {
@@ -402,9 +437,10 @@ describe('DashboardPage · payments and renewal', () => {
     );
     mount({ user: makeUser({ membership: CURRENT }), status: CURRENT });
 
-    const line = await screen.findByText(/Automatic renewal and contribution is on/);
-    expect(within(line).getByText('$70.00')).toBeInTheDocument();
-    expect(within(line).getByText('03/12/2027')).toBeInTheDocument();
+    const line = await screen.findByText(/Automatic renewal is on/);
+    expect(line).toHaveTextContent(
+      'Automatic renewal is on: $70.00 will be charged on 03/12/2027.',
+    );
   });
 
   it('says the recurring donation is off for a life member who has none', async () => {
@@ -424,7 +460,9 @@ describe('DashboardPage · payments and renewal', () => {
     mount({ user: makeUser({ membership: LIFETIME }), status: LIFETIME });
 
     const line = await screen.findByText(/Recurring donation is on/);
-    expect(line).toHaveTextContent('Recurring donation is on: $50.00 on 08/20/2027.');
+    expect(line).toHaveTextContent(
+      'Recurring donation is on: $50.00 will be charged on 08/20/2027.',
+    );
   });
 
   it('says renewal stopped when a mandate has run out of retries', async () => {
@@ -436,7 +474,7 @@ describe('DashboardPage · payments and renewal', () => {
     mount({ user: makeUser({ membership: CURRENT }), status: CURRENT });
 
     expect(
-      await screen.findByText(/Automatic renewal and contribution stopped/),
+      await screen.findByText(/Automatic renewal stopped after a payment was refused/),
     ).toBeInTheDocument();
   });
 });
@@ -451,22 +489,18 @@ describe('DashboardPage · switching kinds', () => {
     vi.useRealTimers();
   });
 
-  it('offers a current member Make me a friend beside Renew', async () => {
-    mount({ user: makeUser({ membership: CURRENT }), status: CURRENT });
+  it.each([
+    [CURRENT, 'Your membership is current'],
+    [EXPIRED, 'Your membership has expired'],
+  ])('leaves Make me a friend to My profile, away from Renew', async (status, heading) => {
+    mount({ user: makeUser({ membership: status }), status });
 
-    await screen.findByRole('heading', { name: 'Your membership is current' });
-    expect(
-      card('Your membership is current').getByRole('button', { name: 'Make me a friend' }),
-    ).toBeInTheDocument();
-  });
-
-  it('offers a lapsed member Make me a friend too', async () => {
-    mount({ user: makeUser({ membership: EXPIRED }), status: EXPIRED });
-
-    await screen.findByRole('heading', { name: 'Your membership has expired' });
-    expect(
-      card('Your membership has expired').getByRole('button', { name: 'Make me a friend' }),
-    ).toBeInTheDocument();
+    await screen.findByRole('heading', { name: heading });
+    expect(card(heading).queryByRole('button', { name: 'Make me a friend' })).toBeNull();
+    expect(card(heading).getByRole('link', { name: 'Update your details' })).toHaveAttribute(
+      'href',
+      '/profile',
+    );
   });
 
   it('never offers a life member Make me a friend', async () => {
@@ -489,5 +523,46 @@ describe('DashboardPage · switching kinds', () => {
       await status.findByText(`You become a friend on ${month}/${day}/${year}.`),
     ).toBeInTheDocument();
     expect(status.getByRole('button', { name: 'Undo' })).toBeInTheDocument();
+  });
+});
+
+describe('quickLinks', () => {
+  /** The labels of the quick links for `roles`. */
+  function labels(roles: Parameters<typeof quickLinks>[0], reader = {}): string[] {
+    return quickLinks(roles, reader).map((item) => item.label);
+  }
+
+  it('adds Member check for a DART leader', () => {
+    expect(labels(['member', 'dart_leader'])).toEqual([
+      'Renew',
+      'My profile',
+      'My aircraft',
+      'Messages',
+      'Member check',
+    ]);
+  });
+
+  it('adds Finance for a treasurer', () => {
+    expect(labels(['member', 'treasurer'])).toEqual([
+      'Renew',
+      'My profile',
+      'My aircraft',
+      'Messages',
+      'Finance',
+    ]);
+  });
+
+  it('keeps a system administrator to five, their tasks first to stay', () => {
+    expect(labels(['member', 'system_admin'])).toEqual([
+      'Renew',
+      'My profile',
+      'Member check',
+      'Finance',
+      'Members',
+    ]);
+  });
+
+  it('offers a life member Donate in place of Renew', () => {
+    expect(labels(['member'], { isLifetime: true })[0]).toBe('Donate');
   });
 });

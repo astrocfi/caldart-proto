@@ -28,7 +28,7 @@ export function EmailPreferencesPage(): JSX.Element {
           save={save}
           label="Types of email you receive"
         />
-        <p className="muted">
+        <p className="muted email-preferences__note">
           Email about your own account, such as receipts, renewal reminders, and password links,
           always reaches you. The unsubscribe link at the bottom of a CalDART email turns off that
           one type, and you can turn it back on here.

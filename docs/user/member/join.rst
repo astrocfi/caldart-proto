@@ -5,9 +5,9 @@ Join CalDART
 ============
 
 The **Join CalDART** wizard creates your account and, for a member, takes your first
-year's dues. It takes about three minutes. Membership is annual or for life, and the
-pay step shows the prices. You can also join as a friend of CalDART, a supporter who
-pays no dues.
+year's dues. *Joining takes about three minutes.* Membership is yearly or for life,
+and the pay step shows the prices. You can also join as a friend of CalDART, a
+supporter who pays no dues.
 
 You open it from **Join CalDART** in the public site's top menu, from the **Join
 CalDART** buttons on the home page, or from *Not a member yet?* on the sign-in
@@ -18,9 +18,8 @@ How the wizard works
 ====================
 
 The wizard has five steps, and the progress rail at the top checks off each one you
-finish: **Account**, **Verify**, **Profile**, **Pay**, and **Done**. The line above
-each step's title says where you are, for example *Step 2 of 5 · Joining as a
-friend*.
+finish: **Account**, **Verify**, **Profile**, **Pay**, and **Done**. Every step's
+card is the same width as the title and the progress rail above it.
 
 Until you finish, the wizard is the whole portal. There is no menu down the left,
 and any other portal screen you open brings you back to the step you still have to
@@ -35,24 +34,35 @@ earlier step, but you cannot skip ahead of one you have not finished.
 
 You have finished joining once your address is verified, your profile is complete,
 and, if you chose **Join as a member**, your first payment has cleared or you have
-chosen to be a friend instead on the pay step. A friend has finished once the
-profile is saved; paying is optional. A member whose membership has expired has
-already joined: the portal stays open to them, and they renew from it (see
-:doc:`renew`). Only a member who has never held a paid membership is held at the
-pay step. An account an administrator created for you has joined already: once you
-have verified its address, your first sign-in opens the dashboard, with no profile or
-pay step, and you fill in the rest of your profile when you like.
+chosen to be a friend instead on the pay step. Only a member who has never held a
+paid membership is held at the pay step; a member whose membership has expired has
+already joined, keeps the portal, and renews from it (see :doc:`renew`).
+
+A friend has finished once they leave the pay step, by giving or by pressing
+**Continue without a gift**; giving is optional. Until then a friend joining for the
+first time stays in the wizard, and reloading the pay step keeps them on it. A friend
+who closes the tab at the pay step and signs in again later has finished, since a
+friend owes nothing.
+
+An account an administrator created for you has joined already: once you have
+verified its address, your first sign-in opens the dashboard, with no profile or pay
+step, and you fill in the rest of your profile when you like.
+
+Once you have joined, the **Profile** and **Pay** steps send you to your
+:doc:`dashboard`, so going back into the wizard cannot charge you again or change
+your kind of account.
 
 
 Step 1: Account
 ===============
 
 The step is headed **Create your account** and opens with the question **How would
-you like to join?**
+you like to join?** The two choices sit side by side on a computer, and the one
+chosen is tinted with a dark edge.
 
 **Join as a member**
-  *Pay annual dues now and be counted as a current member.* This is chosen when the
-  page opens.
+  *Pay yearly or lifetime dues and you are a member right away.* This is chosen when
+  the page opens.
 
 **Join as a friend**
   *No dues. Support CalDART when you like, and become a member any time.*
@@ -60,9 +70,12 @@ you like to join?**
 Then give your **First name**, **Last name**, **Email address**, and a
 **Password**. The email address is how you will sign in, so use one you read. The
 password needs at least 8 characters and must not be a common one such as password1
-(the rules are on :doc:`reset-password`). Press **Create account**.
+(the rules are on :doc:`reset-password`). Press **Create account**. Every empty or
+mistyped box is marked at once, and the line beside the button says how many to
+check.
 
-If you already have an account, follow **Already a member? Sign in** and the wizard
+If you already have an account, as a member or a friend, follow **Already have an
+account? Sign in** and the wizard
 picks up where you left off. If you are already signed in, the step says **Your
 account** with your address, and offers **Continue** and **Use a different
 account**, which signs you out.
@@ -113,8 +126,10 @@ Step 3: Profile
 
 The step is headed **About you**: *CalDART needs a way to reach you during an
 activation.* It is the same form you later keep up to date on :doc:`profile`, which
-describes every field, less your name, which you gave a step ago, and it is as wide as that screen, so on a computer each
-phone number sits on one line with its extension. Only these are required now: **Address**,
+describes every field, less your name, which you gave a step ago. Each phone number
+sits on one line with its extension. **California county** starts at *Choose a
+county* while the state is California, and reads *Not in California* for any other
+state. Only these are required now: **Address**,
 **City**, **State**, and **ZIP code**; every phone number is optional. **Pilot certificate** always holds a value;
 leave it at *Not a pilot* if that is what you are. Everything else can wait.
 
@@ -140,40 +155,36 @@ paying or choosing to be a friend instead.
 
 #. **Membership.** Choose **Annual** ($45.00, *One year*) or **Life** ($650.00,
    *One payment, membership for life*). The first plan on the list, Annual, is
-   chosen for you. If the step says *No membership plan is set up yet. Ask an
-   administrator.*, CalDART has not set up its plans on this site: ask the office.
-   The third card,
-   **I changed my mind, I just want to be a friend** (*A friend has an account and
-   hears from CalDART, but is not a member.*), is for joining as a friend after
-   all. It is chosen like a plan: the contribution tiers stay under it, and **Total
-   today** is the contribution alone. Choose a tier and pay it with the tabs below,
-   and your account becomes a friend of CalDART as the payment goes through; or,
-   with **No thank you** chosen, press **Continue as a friend** to finish without
-   giving. A recurring donation is not offered here; set one up later from
-   :doc:`donate`. To go back to membership, choose **Annual** or **Life** again.
+   chosen for you. When a site offers a single plan, the step names it instead of
+   offering a choice of one. If the step says *No membership plan is set up yet.
+   Ask an administrator.*, CalDART has not set up its plans on this site: ask the
+   office. Under the plans, **Join as a friend instead (no dues)** turns the step
+   into a friend's **Donate to CalDART**, described below.
 #. **Add a contribution.** CalDART is a 501(c)(3), so a contribution on top of your
    dues is tax deductible and pays for training, fuel, and equipment. Choose a tier
    (Participating $20, Bronze $100, Silver $300, Gold $1,000, Diamond $3,000, or
    Platinum $10,000), **Other amount** to type your own figure in whole dollars, or
    **No thank you**. **Total today** adds it up as you choose.
 #. **Renew automatically each year.** Check it if you want CalDART to renew the
-   membership for you each year with the card or PayPal account you pay with.
-   :doc:`payments` explains what that means and how to turn it off.
+   membership for you each year with the card or PayPal account you pay with. *We
+   will email you 14 days before each charge to your card or PayPal account, and
+   you can turn it off at any time from Payments.* :doc:`payments` explains more.
 #. **How would you like to pay?** Choose a tab and pay. The tabs are described
    below.
 
-A friend's step is headed **Donate to CalDART** instead: *Friends pay no dues.*
-It offers a donation alone, paid the same ways, with the option **Make this
-a recurring donation** (see :doc:`donate`). **Not now**, at the bottom of the card,
-moves on without paying anything, and you finish as a friend.
+A friend's step is headed **Donate to CalDART** instead: *Friends pay no dues. A
+donation of any size helps.* It offers a donation alone, with no amount chosen,
+paid the same ways, with the option **Make this a recurring donation** (see
+:doc:`donate`). While no amount is chosen, **Continue without a gift** is the
+button that moves on, and you finish as a friend without paying anything; once you
+choose an amount it stays at the bottom of the card as a quieter button.
 
-If you chose to join as a friend when you made your account, under the
-contribution tiers **I changed my mind, I want to be a member** turns the step
-into **Pay your dues**. Your account stays a friend until the dues are paid:
-paying makes you a member, and choosing **I changed my mind, I just want to be a
-friend** there finishes as a friend again. If you reload the page,
-the step shows the kind of account CalDART has stored for you, which is a friend
-until you have paid. You can also become a member any time later (see
+Under the donation amounts, **I changed my mind, I want to be a member** turns the
+step into **Pay your dues**, and **Join as a friend instead (no dues)** there turns
+it back. Your account changes only when you leave the step: paying dues makes you a
+member, and leaving a friend's step, with a donation or without one, makes you a
+friend. If you reload the page, the step shows the kind of account CalDART has
+stored for you. You can also become a member any time later (see
 :doc:`become-a-member`).
 
 The payment tabs

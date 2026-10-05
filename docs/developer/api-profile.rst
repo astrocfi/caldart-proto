@@ -103,8 +103,11 @@ row first if the account has none.
          "type": {"id": 3, "make": "Cessna", "model": "182T Skylane", "seats": 4, "engines": 1, "is_custom": false},
          "insurance_is_current": true,
          "insurance_expiration": "2027-03-01",
+         "insurance_liability_per_occurrence_cents": 100000000,
+         "insurance_liability_per_person_cents": 10000000,
          "insurance_summary": "$1,000,000 / $100,000 · exp 2027-03-01",
-         "insurance_verified": true
+         "insurance_verified": true,
+         "created_by": 42
        }
      ],
      "vol_ground_team": false,

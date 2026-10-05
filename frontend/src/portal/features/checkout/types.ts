@@ -19,6 +19,11 @@ export interface CheckoutProps {
    * today.  Handed the day of the first charge.
    */
   onScheduled?: (firstChargeOn: IsoDate) => void;
+  /**
+   * Start with **Renew automatically each year** checked, for a member whose automatic
+   * renewal is on already, so the form does not read as if it were off.
+   */
+  defaultAutoRenew?: boolean;
 }
 
 /** Every provider panel is handed the chosen plan and the running total. */

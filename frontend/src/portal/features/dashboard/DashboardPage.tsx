@@ -2,7 +2,12 @@ import type { JSX } from 'react';
 import { Link } from 'react-router-dom';
 
 import { useDonation, useRenewal, useSiteConfig } from '@/portal/api/queries';
-import type { MembershipStatus, PaymentSummary, RenewalMandate } from '@/portal/api/types';
+import type {
+  MembershipStatus,
+  PaymentSummary,
+  RenewalMandate,
+  RoleSlug,
+} from '@/portal/api/types';
 import { useAuth } from '@/portal/auth/useAuth';
 import { ButtonLink } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
@@ -14,14 +19,52 @@ import { Money } from '@/portal/components/Money';
 import { Page } from '@/portal/components/Page';
 import { MembershipDot, PaymentDot, membershipTone } from '@/portal/components/StatusDot';
 import { OwnSenderNotice } from '@/portal/features/bulk-email/SenderNotice';
-import { automaticCardTitle, automaticKindLabel } from '@/portal/features/payments/labels';
+import { automaticCardTitle } from '@/portal/features/payments/labels';
+import { purchaseLabel } from '@/portal/features/payments/PaymentsTable';
 import { useMembership, useMyPayments } from '@/portal/features/profile/api';
-import { groupedNavItems } from '@/portal/nav';
+import { hasAnyRole, visibleNavItems } from '@/portal/nav';
+import type { NavItem, NavReader } from '@/portal/nav';
 import { KindSwitch } from './KindSwitch';
 import './dashboard.css';
 
 /** How many payments the dashboard shows before sending you elsewhere. */
 const RECENT_PAYMENTS = 5;
+
+/** The most quick links the dashboard offers: a few next steps, not a copy of the menu. */
+const MAX_QUICK_LINKS = 5;
+
+/** The member's own next steps, after the way to pay (Renew, or Donate), in order. */
+const MEMBER_LINKS = ['/profile', '/profile/aircraft', '/messages'];
+
+/** A role's own task, and the roles that bring it to the dashboard. */
+const ROLE_LINKS: { to: string; roles: RoleSlug[] }[] = [
+  { to: '/leader', roles: ['dart_leader', 'account_admin', 'user_admin', 'verifier'] },
+  { to: '/admin/payments', roles: ['account_admin', 'treasurer'] },
+  { to: '/admin/members', roles: ['account_admin'] },
+];
+
+/**
+ * The dashboard's quick links for a reader with `roles`: three to five next steps
+ * rather than the whole menu.
+ *
+ * Every reader gets the way to pay, which is **Renew** for a member with a term to
+ * renew and **Donate** for a friend or a life member, then **My profile**, **My
+ * aircraft**, and **Messages**.  A role adds its own task: **Member check** for a DART
+ * leader, a verifier, or an administrator; **Finance** for a treasurer or an account
+ * administrator; **Members** for an account administrator.  The role's tasks are kept
+ * and the member's own links give way from the end, so the list never runs past five.
+ * Each link takes its label from the menu.
+ */
+export function quickLinks(roles: readonly RoleSlug[], reader: NavReader): NavItem[] {
+  const visible = visibleNavItems(roles, reader);
+  const byPath = (to: string): NavItem | undefined => visible.find((item) => item.to === to);
+  const pay = byPath('/renew') ?? byPath('/donate');
+  const own = [pay, ...MEMBER_LINKS.map(byPath)].filter((item) => item !== undefined);
+  const tasks = ROLE_LINKS.filter((link) => hasAnyRole(roles, link.roles))
+    .map((link) => byPath(link.to))
+    .filter((item) => item !== undefined);
+  return [...own.slice(0, MAX_QUICK_LINKS - tasks.length), ...tasks];
+}
 
 /**
  * The recent payments' columns.  The date identifies a payment, never gives way, and
@@ -37,12 +80,12 @@ const RECENT_PAYMENT_COLUMNS: Column<PaymentSummary>[] = [
     render: (payment) => <DateText value={payment.paid_on ?? payment.completed_at} />,
   },
   {
-    key: 'plan',
-    header: 'Plan',
+    key: 'for',
+    header: 'For',
     minWidth: '6rem',
     dropOrder: 1,
-    // A payment with no plan is a gift on its own: a donation.
-    render: (payment) => payment.plan ?? 'Donation',
+    // Named as Payments names it: Annual, Annual and contribution, or Donation.
+    render: (payment) => purchaseLabel(payment),
   },
   {
     key: 'amount',
@@ -71,8 +114,10 @@ const RECENT_PAYMENT_COLUMNS: Column<PaymentSummary>[] = [
  * there), so it never asks for any of those.  The renewal call to action takes an
  * accent edge inside 30 days.  A friend's
  * membership card says what being a friend means and offers membership instead
- * of a renewal; a member's (not a life member's) offers **Make me a friend** beside
- * the renewal, or shows the day a change they asked for takes effect.
+ * of a renewal.  A member's card leads with **Renew**; becoming a friend is offered on
+ * My profile alone, so a downgrade never sits beside the renewal, but a change the
+ * member already asked for shows here with its day and **Undo**.  The quick links are a
+ * few next steps for the reader's roles (`quickLinks`), not a copy of the menu.
  */
 export function DashboardPage(): JSX.Element {
   const { user, roles } = useAuth();
@@ -95,13 +140,13 @@ export function DashboardPage(): JSX.Element {
   const isWalledOut = isFriend && roles.every((slug) => slug === 'member');
   const greeting = user?.first_name ? `Welcome, ${user.first_name}` : 'Welcome';
 
-  const linkGroups = groupedNavItems(roles, {
+  const links = quickLinks(roles, {
     isEffectiveFriend: isFriend,
     isLifetime: status?.is_lifetime === true,
-  }).map((bucket) => ({
-    ...bucket,
-    items: bucket.items.filter((item) => item.to !== '/'),
-  }));
+  });
+  // A friend and a life member renew nothing, so the authority their line states is
+  // their recurring donation.
+  const givesOnly = isFriend || status?.is_lifetime === true;
 
   const membersPages = siteConfig.data?.members_pages ?? [];
   const recent = (payments.data ?? []).slice(0, RECENT_PAYMENTS);
@@ -146,7 +191,7 @@ export function DashboardPage(): JSX.Element {
                 <ButtonLink to="/renew" variant={urgent ? 'primary' : 'secondary'}>
                   {status.status === 'expired' ? 'Renew now' : 'Renew'}
                 </ButtonLink>
-                <KindSwitch />
+                {user?.friend_on ? <KindSwitch /> : null}
                 <Link to="/profile">Update your details</Link>
               </div>
             ) : null}
@@ -183,11 +228,16 @@ export function DashboardPage(): JSX.Element {
           <Card
             eyebrow="History"
             title="Recent payments"
-            footer={<Link to="/payments">All payments, receipts, and renewals</Link>}
+            footer={
+              <Link to="/payments">
+                {isFriend ? 'All payments and receipts' : 'All payments, receipts, and renewals'}
+              </Link>
+            }
           >
             <RenewalLine
-              mandate={(status?.is_lifetime ? donation : renewal).data?.mandate ?? null}
-              isLifetime={status?.is_lifetime ?? false}
+              mandate={(givesOnly ? donation : renewal).data?.mandate ?? null}
+              givesOnly={givesOnly}
+              isFriend={isFriend}
             />
             <DataTable
               singleLine
@@ -204,18 +254,13 @@ export function DashboardPage(): JSX.Element {
 
         <div className="col-side">
           <Card eyebrow="Go to" title="Quick links">
-            {linkGroups.map((bucket) => (
-              <div key={bucket.group} className="dashboard__link-group">
-                <p className="eyebrow">{bucket.group}</p>
-                <ul className="dashboard__links" role="list">
-                  {bucket.items.map((item) => (
-                    <li key={item.to}>
-                      <Link to={item.to}>{item.label}</Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
+            <ul className="dashboard__links" role="list">
+              {links.map((item) => (
+                <li key={item.to}>
+                  <Link to={item.to}>{item.label}</Link>
+                </li>
+              ))}
+            </ul>
           </Card>
         </div>
       </div>
@@ -225,16 +270,23 @@ export function DashboardPage(): JSX.Element {
 
 interface RenewalLineProps {
   mandate: RenewalMandate | null;
-  /** True for a life member, whose authority is over their contribution alone. */
-  isLifetime: boolean;
+  /** True for a friend or a life member, whose authority is a recurring donation. */
+  givesOnly: boolean;
+  /** True for a friend, who is told nothing about an authority they do not hold. */
+  isFriend: boolean;
 }
 
-/** One line on the dashboard saying what CalDART will charge, and when. */
-function RenewalLine({ mandate, isLifetime }: RenewalLineProps) {
+/**
+ * One line on the dashboard saying what CalDART will charge, and when: "Automatic
+ * renewal is on: $145.00 will be charged on 04/27/2027.", or the recurring donation's
+ * for a friend or a life member.  A friend with no recurring donation gets no line,
+ * since a friend has nothing to renew.
+ */
+function RenewalLine({ mandate, givesOnly, isFriend }: RenewalLineProps) {
+  const authority = automaticCardTitle(givesOnly);
   if (mandate === null || mandate.status === 'pending' || mandate.status === 'canceled') {
-    return <p className="muted">{automaticCardTitle(isLifetime)} is off.</p>;
+    return isFriend ? null : <p className="muted">{authority} is off.</p>;
   }
-  const authority = automaticKindLabel(mandate.kind);
   if (mandate.status === 'paused') {
     return (
       <p className="muted">
@@ -244,7 +296,7 @@ function RenewalLine({ mandate, isLifetime }: RenewalLineProps) {
   }
   return (
     <p className="muted">
-      {authority} is on: <Money cents={mandate.amount_cents} /> on{' '}
+      {authority} is on: <Money cents={mandate.amount_cents} /> will be charged on{' '}
       <DateText value={mandate.next_charge_on} />.
     </p>
   );
@@ -255,7 +307,7 @@ function FriendStatus() {
   return (
     <>
       <div className="dashboard__status">
-        <p>You are a friend of CalDART: no dues, no expiry. Become a member any time.</p>
+        <p>No dues and no expiry. Become a member any time.</p>
       </div>
       <div className="cluster card__footer">
         <ButtonLink to="/membership/join" variant="secondary">

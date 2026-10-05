@@ -6,7 +6,8 @@ Sign in
 
 The **Sign in** screen lets you into the member portal, the part of the site where
 you keep your own details, pay, and renew. Use the email address CalDART has on
-file and your password.
+file and your password. The screen says the same under its title: *The member
+portal is where CalDART members and friends keep their details, pay, and renew.*
 
 
 What you see
@@ -25,7 +26,8 @@ any portal page you open while signed out. The screen asks for two things:
   The password you chose when you joined, or the one you set from a reset link.
 
 Under the form sit the **Sign in** button and the **Forgot your password?** link.
-Under the card, *Not a member yet?* leads to **Join CalDART**.
+Under the card, *Not a member yet?* leads to **Join CalDART**. The top bar holds
+only **Help** here, since you are already on the way in.
 
 
 What happens next
@@ -58,6 +60,10 @@ computer.
 
 If the screen says something else
 =================================
+
+*Enter your password.*
+  The password box is empty. Both boxes are checked together, so an empty form
+  names both.
 
 *Use an email address like name@example.org.*
   The box has no @ in it, or nothing after the last dot. The box takes no spaces,

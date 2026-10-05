@@ -69,6 +69,15 @@ export function emptyAircraftValues(nNumber = ''): AircraftFormValues {
   };
 }
 
+/**
+ * A liability limit for its box: blank when none is recorded.  The register stores a
+ * missing limit as 0, and a box that comes back reading 0 after it was left blank
+ * reads as a limit of nothing.
+ */
+function limitToDollars(cents: number): string {
+  return cents === 0 ? '' : centsToDollars(cents);
+}
+
 /** An existing aircraft record as editable form values. */
 export function aircraftToValues(aircraft: Aircraft): AircraftFormValues {
   return {
@@ -83,8 +92,8 @@ export function aircraftToValues(aircraft: Aircraft): AircraftFormValues {
     airworthiness: aircraft.airworthiness,
     insurance_carrier: aircraft.insurance_carrier,
     insurance_policy_number: aircraft.insurance_policy_number,
-    liability_per_occurrence: centsToDollars(aircraft.insurance_liability_per_occurrence_cents),
-    liability_per_person: centsToDollars(aircraft.insurance_liability_per_person_cents),
+    liability_per_occurrence: limitToDollars(aircraft.insurance_liability_per_occurrence_cents),
+    liability_per_person: limitToDollars(aircraft.insurance_liability_per_person_cents),
     hull: centsToDollars(aircraft.insurance_hull_cents),
     insurance_expiration: aircraft.insurance_expiration ?? '',
     notes: aircraft.notes,

@@ -43,6 +43,28 @@ describe('<ProfilePage/>', () => {
     await waitFor(() => expect(screen.getByLabelText(label('DART'))).toHaveValue('1'));
   });
 
+  it('keeps Save changes in reach at the window’s foot once anything changes', async () => {
+    server.use(http.get(`${API}/me/profile`, () => HttpResponse.json(makeVerifiedProfile())));
+    renderWithProviders(<ProfilePage />, { route: '/profile' });
+
+    const city = await screen.findByLabelText(label('City'));
+    const actions = screen.getByRole('button', { name: 'Save changes' }).parentElement;
+    expect(actions).toHaveAttribute('data-dirty', 'false');
+
+    await userEvent.type(city, 'x');
+
+    expect(actions).toHaveAttribute('data-dirty', 'true');
+  });
+
+  it('leaves My aircraft to its button, with no sentence repeating it', async () => {
+    server.use(http.get(`${API}/me/profile`, () => HttpResponse.json(makeVerifiedProfile())));
+    renderWithProviders(<ProfilePage />, { route: '/profile' });
+
+    await screen.findByLabelText(label('City'));
+    expect(screen.getAllByRole('link', { name: 'My aircraft' })).toHaveLength(1);
+    expect(screen.queryByText(/The planes you commonly fly are kept/)).not.toBeInTheDocument();
+  });
+
   it('offers the DARTs the catalog returned', async () => {
     server.use(http.get(`${API}/me/profile`, () => HttpResponse.json(makeVerifiedProfile())));
 

@@ -8,7 +8,7 @@
  * picked from the aircraft types, and fills the category when the type knows it.
  */
 import { useRef, useState } from 'react';
-import type { JSX, MouseEvent } from 'react';
+import type { JSX, MouseEvent, ReactNode } from 'react';
 
 import type { AircraftPatch, AircraftType, Registration } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
@@ -59,6 +59,18 @@ export interface AircraftFormProps {
   onCancel?: () => void;
   /** Notes and the active flag: only on the administrator's screen. */
   withAdminFields?: boolean;
+  /**
+   * A hook handed the N-number box's value on every render, giving what to say about
+   * that registration (such as that CalDART has it on file already) or null.  The note
+   * takes a line of its own under the N-number and the year, and while there is one the
+   * registry's suggestions stay shut, so the list never covers it.
+   */
+  useNNumberNote?: (nNumber: string) => ReactNode;
+}
+
+/** No note about the N-number, for a form that offers none. */
+function useNoNote(): ReactNode {
+  return null;
 }
 
 /** The aircraft record form, shared by the create and edit screens. */
@@ -71,8 +83,10 @@ export function AircraftForm({
   onSubmit,
   onCancel: handleCancel,
   withAdminFields = false,
+  useNNumberNote = useNoNote,
 }: AircraftFormProps): JSX.Element {
   const [values, setValues] = useState<AircraftFormValues>(initial);
+  const nNumberNote = useNNumberNote(values.n_number);
   const formRef = useRef<HTMLFormElement>(null);
   const refusal = useRefusedSubmit(formRef, serverError);
   useFocusAfterSave(formRef, pending);
@@ -133,6 +147,7 @@ export function AircraftForm({
             onBlur={handleBlur('n_number')}
             error={shown.n_number}
             hint="N, then digits, then at most two letters, such as N172SP"
+            hideSuggestions={nNumberNote !== null}
           />
           <Field label="Year" error={shown.year}>
             {(field) => (
@@ -148,6 +163,7 @@ export function AircraftForm({
               />
             )}
           </Field>
+          {nNumberNote === null ? null : <div className="aircraft-form__wide">{nNumberNote}</div>}
           <AircraftTypePicker
             value={values.type}
             onChange={handleType}

@@ -15,15 +15,21 @@
  * `done` step and lets `<ReturnStep/>` settle the payment first.
  *
  * A friend walks the same five steps, but owes no dues: their pay step offers a
- * contribution they may skip, and a friend with a complete profile resumes on the
- * done step rather than being held at paying.  A member's pay step also offers to
- * become a friend instead, which turns it into a friend's contribution, and a
- * friend's pay step offers to become a member, which turns it into the member's
- * dues.  The wizard remembers that choice in this tab only, so the ledes follow it;
- * a reload goes back to the kind the server has stored.
+ * donation they may skip.  A friend joining for the first time who finishes the
+ * profile step has their pay step held open in this tab (`holdFriendPayStep`), so a
+ * reload stays on it and the rest of the portal stays shut until they give or press
+ * **Continue without a gift**; the done step lets it go once it is on screen, so the
+ * hold outlasts the move there and the wizard never judges the pay step without it.  Somebody
+ * who has joined already is never held, and the profile and pay steps send them to the
+ * dashboard, so browsing back into the wizard can neither charge them again nor turn a
+ * member into a friend.  A member's pay step also offers to become a friend instead,
+ * which turns it into a friend's donation, and a friend's pay step offers to become a
+ * member, which turns it into the member's dues.  The wizard remembers that choice in
+ * this tab only, so the ledes follow it; a reload goes back to the kind the server has
+ * stored.
  *
- * The profile step's form is the one `/profile` shows, so that step takes the
- * portal's full working width, as `/profile` does, rather than the wizard's own.
+ * Every step is drawn at one width, the width of the title and the step list above it,
+ * so the card's edges never move as the visitor goes from step to step.
  *
  * Until the wizard is finished it is the whole portal: `RequireOnboarded` sends
  * every other screen here, and the layout draws no rail.
@@ -46,7 +52,9 @@ import { StepIndicator } from './StepIndicator';
 import {
   clampJoinStep,
   furthestJoinStep,
+  holdFriendPayStep,
   isJoinStep,
+  isOnboarded,
   joiningAs,
   laterJoinStep,
   nextJoinStep,
@@ -56,9 +64,7 @@ import { VerifyStep } from './VerifyStep';
 import './join.css';
 
 const LEDE: Record<JoinStep, string> = {
-  account:
-    'Membership is annual or for life; the pay step shows the prices. ' +
-    'It takes about three minutes.',
+  account: 'Joining takes about three minutes.',
   verify: 'Nothing else in the portal is available until you verify your email address.',
   profile: 'Tell us how to reach you and what you fly.',
   pay: 'Card, Apple Pay, Google Pay, or PayPal. Your membership starts immediately.',
@@ -132,17 +138,28 @@ export function JoinWizard(): JSX.Element {
     return <Navigate to={`/join/${current}`} replace />;
   }
 
+  // Somebody who has joined has nothing to save or pay here, so browsing back into the
+  // wizard cannot charge them twice or turn a member into a friend.
+  if (!returning && isOnboarded(user) && (current === 'profile' || current === 'pay')) {
+    return <Navigate to="/" replace />;
+  }
+
   const kind = chosenKind ?? joiningAs(user);
   const lede = (kind === 'friend' ? FRIEND_LEDE[current] : undefined) ?? LEDE[current];
 
   function advance(from: JoinStep) {
     const next = nextJoinStep(from);
+    // A friend joining for the first time is held on the pay step from the moment they
+    // reach it until they leave it; nobody who has joined already is ever held.
+    if (from === 'profile' && user !== null && kind === 'friend' && !isOnboarded(user)) {
+      holdFriendPayStep(user.id);
+    }
     setReached((seen) => laterJoinStep(seen, next));
     void navigate(`/join/${next}`);
   }
 
   return (
-    <div className={current === 'profile' ? 'join-shell join-shell--wide' : 'join-shell'}>
+    <div className="join-shell">
       <Page title="Join CalDART" tabTitle="Join" lede={lede}>
         <StepIndicator current={current} />
         {current === 'account' ? <AccountStep onDone={() => advance('account')} /> : null}
@@ -151,7 +168,14 @@ export function JoinWizard(): JSX.Element {
         {current === 'pay' ? (
           <PayStep
             joiningAs={kind}
-            onJoiningAsChange={(next) => setChosenKind(next)}
+            onJoiningAsChange={(next) => {
+              // A member who turns friend here is held on the pay step like any friend
+              // joining, so becoming one on the server does not let them out early.
+              if (next === 'friend' && user !== null && !isOnboarded(user)) {
+                holdFriendPayStep(user.id);
+              }
+              setChosenKind(next);
+            }}
             onPaid={() => setHasPaid(true)}
             onDone={() => advance('pay')}
           />

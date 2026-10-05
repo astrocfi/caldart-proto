@@ -19,6 +19,8 @@ const ADMINISTRATOR_GROUPS = ['admin', 'finance', 'website'] as const;
 interface SearchIndex {
   docnames: string[];
   terms: Record<string, number | number[]>;
+  /** The words of section titles, which Sphinx keeps apart from the body's words. */
+  titleterms: Record<string, number | number[]>;
 }
 
 /** What Sphinx wraps the search index's JSON in. */
@@ -44,15 +46,26 @@ async function readSearchIndex(page: Page): Promise<SearchIndex> {
   return JSON.parse(text.slice(INDEX_OPEN.length, -1)) as SearchIndex;
 }
 
+/** The pages `found` names, from a term or title term of the index. */
+function pagesOf(found: number | number[] | undefined): number[] {
+  if (found === undefined) return [];
+  return Array.isArray(found) ? found : [found];
+}
+
 /**
  * A word of six letters or more that the index finds on two or more pages, all of them
- * administrator pages, or undefined. The index holds stems, so the caller confirms that
- * the system administrator's search finds the word before relying on it.
+ * administrator pages, in their body or a section title, or undefined. A word in another
+ * page's title counts against it, since the search finds titles too. The index holds
+ * stems, so the caller confirms that the system administrator's search finds the word
+ * before relying on it.
  */
 function administratorOnlyWord(index: SearchIndex): string | undefined {
   return Object.entries(index.terms)
     .filter(([word]) => /^[a-z]{6,}$/.test(word))
-    .map(([word, found]) => ({ word, pages: Array.isArray(found) ? found : [found] }))
+    .map(([word, found]) => ({
+      word,
+      pages: [...pagesOf(found), ...pagesOf(index.titleterms[word])],
+    }))
     .filter(({ pages }) => pages.length > 1)
     .find(({ pages }) => pages.every((n) => isAdministratorPage(index.docnames[n] ?? '')))?.word;
 }

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { JSX } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
-import { useEmailChange } from '@/portal/auth/useAuth';
+import { useAuth, useEmailChange } from '@/portal/auth/useAuth';
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { Field } from '@/portal/components/Field';
@@ -20,6 +20,7 @@ import { safeNext } from './LoginPage';
  */
 export function ChangeEmailPage(): JSX.Element {
   const change = useEmailChange();
+  const { user } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
   const [params] = useSearchParams();
@@ -31,7 +32,11 @@ export function ChangeEmailPage(): JSX.Element {
   return (
     <Page
       title="Change email"
-      lede="You sign in with the new address, and we send it a verification message."
+      lede={
+        user
+          ? `Your address is ${user.email}. We will send a link to the new one; sign in with it after you open the link.`
+          : undefined
+      }
     >
       <Card>
         <form

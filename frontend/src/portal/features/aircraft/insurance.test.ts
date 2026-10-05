@@ -14,6 +14,7 @@ import {
   dollarsToCents,
   formatDollars,
   insuranceTone,
+  isNNumber,
   looksLikeRegistration,
   normalizeNNumber,
 } from './insurance';
@@ -33,6 +34,19 @@ describe('normalizeNNumber', () => {
   ])('turns %s into %s', (raw, expected) => {
     expect(normalizeNNumber(raw)).toBe(expected);
   });
+});
+
+describe('isNNumber', () => {
+  it.each(['N172SP', 'n172sp', '12345', 'N-12345', 'N1'])('takes %s for a registration', (text) => {
+    expect(isNNumber(text)).toBe(true);
+  });
+
+  it.each(['Cessna 172', 'PA-28', 'piper', 'N0123', 'N1234567'])(
+    'does not take %s for a registration',
+    (text) => {
+      expect(isNNumber(text)).toBe(false);
+    },
+  );
 });
 
 describe('looksLikeRegistration', () => {

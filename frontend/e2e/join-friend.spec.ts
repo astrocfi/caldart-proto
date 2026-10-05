@@ -23,7 +23,7 @@ async function registerAsFriend(page: Page, first: string, email: string): Promi
   await page.getByRole('button', { name: 'Create account' }).click();
 
   await expect(page).toHaveURL(/\/portal\/join\/verify/);
-  await expect(page.getByText('Step 2 of 5 · Joining as a friend')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Check your email' })).toBeVisible();
   await followVerificationLink(page, email);
 
   await expect(page.getByRole('heading', { name: 'About you' })).toBeVisible();
@@ -44,7 +44,7 @@ test('a visitor joins as a friend and skips the contribution', async ({ page }) 
 
   // Wait for the payment options, so the click lands on the loaded form's button.
   await expect(page.getByRole('radio', { name: /Participating/ })).toBeVisible();
-  await page.getByRole('button', { name: 'Not now' }).click();
+  await page.getByRole('button', { name: 'Continue without a gift' }).click();
 
   await expect(page).toHaveURL(/\/portal\/join\/done/);
   await expect(page.getByRole('heading', { name: 'Welcome to CalDART' })).toBeVisible();
@@ -83,11 +83,20 @@ test('a friend contributes on the way through the wizard', async ({ page }) => {
   await expect(page.getByText(/A receipt is on its way to your inbox/)).toBeVisible();
 });
 
-test('coming back to the wizard, a friend lands on done rather than paying', async ({ page }) => {
+test('a friend stays on the pay step in that tab, and lands on done in another', async ({
+  page,
+}) => {
   await registerAsFriend(page, 'Fiona', uniqueEmail('friend-return'));
 
-  await page.goto('portal/join');
+  // The tab that reached the pay step holds it, reload and all, with no menu.
+  await page.reload();
+  await expect(page).toHaveURL(/\/portal\/join\/pay/);
+  await expect(page.getByRole('heading', { name: 'Donate to CalDART' })).toBeVisible();
+  await expect(page.getByRole('navigation', { name: 'Portal sections' })).toHaveCount(0);
 
-  await expect(page).toHaveURL(/\/portal\/join\/done/);
-  await expect(page.getByRole('heading', { name: 'Welcome to CalDART' })).toBeVisible();
+  // A friend owes nothing, so another tab finds them joined.
+  const other = await page.context().newPage();
+  await other.goto('portal/join');
+  await expect(other).toHaveURL(/\/portal\/join\/done/);
+  await expect(other.getByRole('heading', { name: 'Welcome to CalDART' })).toBeVisible();
 });

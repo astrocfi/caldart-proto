@@ -4,7 +4,6 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import type { JSX } from 'react';
-import { Link } from 'react-router-dom';
 
 import { ApiError } from '@/portal/api/client';
 import { ButtonLink } from '@/portal/components/Button';
@@ -96,10 +95,6 @@ export function ProfilePage(): JSX.Element {
       </div>
 
       <KindCard />
-
-      <p className="muted">
-        The planes you commonly fly are kept on <Link to="/profile/aircraft">My aircraft</Link>.
-      </p>
 
       <DeactivateCard />
     </Page>

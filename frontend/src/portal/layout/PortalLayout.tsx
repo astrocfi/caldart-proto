@@ -19,6 +19,12 @@ import type { User } from '../api/types';
 import { groupedNavItems } from '../nav';
 import { sitePath } from '../urlPrefix';
 
+/**
+ * The screens a signed-out visitor uses to get in, where a header **Sign in** button
+ * would only lead back to the screen itself.
+ */
+const SIGN_IN_SCREENS: readonly string[] = ['/login', '/forgot-password', '/reset-password'];
+
 /** The reader's name for the header, or their address when no name is on file. */
 export function headerName(user: Pick<User, 'first_name' | 'last_name' | 'email'>): string {
   return `${user.first_name} ${user.last_name}`.trim() || user.email;
@@ -172,7 +178,7 @@ export function PortalLayout(): JSX.Element {
                   Sign out
                 </Button>
               </>
-            ) : (
+            ) : SIGN_IN_SCREENS.includes(location.pathname) ? null : (
               <Link to="/login" className="button button--small">
                 Sign in
               </Link>

@@ -45,16 +45,10 @@ function makeDetail(overrides: Partial<AircraftDetail> = {}): AircraftDetail {
   };
 }
 
-function renderEditor(detail: AircraftDetail, isAccountAdmin = false) {
+function renderEditor(detail: AircraftDetail) {
   server.use(http.get(`${API}/aircraft/7`, () => HttpResponse.json(detail)));
   return renderWithProviders(
-    <AircraftEditor
-      aircraftId={7}
-      userId={MEMBER_ID}
-      isAccountAdmin={isAccountAdmin}
-      onClose={() => {}}
-      onSaved={() => {}}
-    />,
+    <AircraftEditor aircraftId={7} onClose={() => {}} onSaved={() => {}} />,
   );
 }
 
@@ -63,27 +57,22 @@ describe('<AircraftEditor/>', () => {
     server.use(signedInAs(makeUser({ id: MEMBER_ID })));
   });
 
-  it('edits a record the member added themselves', async () => {
+  it('edits the record in the shared aircraft form', async () => {
     renderEditor(makeDetail());
 
     expect(await screen.findByRole('button', { name: 'Save changes' })).toBeInTheDocument();
-    expect(screen.queryByText('Someone else added this aircraft')).not.toBeInTheDocument();
   });
 
-  it('lets an account administrator edit a record somebody else added', async () => {
-    renderEditor(makeDetail({ created_by: 99 }), true);
+  it('shows liability limits nobody recorded as blank boxes, not as 0', async () => {
+    renderEditor(
+      makeDetail({
+        insurance_liability_per_occurrence_cents: 0,
+        insurance_liability_per_person_cents: 0,
+      }),
+    );
 
-    expect(await screen.findByRole('button', { name: 'Save changes' })).toBeInTheDocument();
-    expect(screen.queryByText('Someone else added this aircraft')).not.toBeInTheDocument();
-  });
-
-  it('asks the member to go to an account administrator about a record somebody else added', async () => {
-    renderEditor(makeDetail({ created_by: 99 }));
-
-    expect(await screen.findByText('Someone else added this aircraft')).toBeInTheDocument();
-    expect(
-      screen.getByText('Ask a CalDART account administrator to correct it.'),
-    ).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Save changes' })).not.toBeInTheDocument();
+    await screen.findByRole('button', { name: 'Save changes' });
+    expect(screen.getByLabelText(/^Liability per occurrence/)).toHaveValue('');
+    expect(screen.getByLabelText(/^Liability per person/)).toHaveValue('');
   });
 });

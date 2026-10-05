@@ -1,8 +1,9 @@
 /**
- * The optional donation added to a membership.
+ * The contribution added to a membership, or a donation on its own.
  *
- * The tiers come from the server; "Other amount" and "No thank you" are the
- * two escape hatches every fundraising form needs.
+ * The tiers come from the server, and "Other amount" takes an amount of one's own.
+ * The server's zero tier reads "No thank you": it belongs beside dues, where a
+ * contribution is an extra, and is left out of a donation, where giving is the point.
  */
 import { useId } from 'react';
 import type { JSX } from 'react';
@@ -54,6 +55,8 @@ export interface ContributionChooserProps {
   amountLabel?: string;
   /** The line under the legend; null for none. */
   hint?: string | null;
+  /** Offer the server's zero tier as "No thank you"; false leaves it out. */
+  offerNone?: boolean;
 }
 
 /** What the chooser says over a contribution added to dues. */
@@ -81,8 +84,10 @@ export function ContributionChooser({
   legend = 'Add a contribution',
   amountLabel = 'Contribution amount',
   hint = DUES_HINT,
+  offerNone = true,
 }: ContributionChooserProps): JSX.Element {
   const otherId = useId();
+  const offered = offerNone ? tiers : tiers.filter((tier) => tier.cents > 0);
 
   const maskAmount = (raw: string): string => maskContribution(raw, maxCents);
 
@@ -91,7 +96,7 @@ export function ContributionChooser({
       <legend>{legend}</legend>
       {hint === null ? null : <p className="muted checkout__hint">{hint}</p>}
       <div className="tier-grid">
-        {tiers.map((tier) => (
+        {offered.map((tier) => (
           <label
             key={tier.cents}
             className="tier-card"

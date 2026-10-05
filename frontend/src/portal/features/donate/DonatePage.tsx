@@ -1,9 +1,10 @@
 /**
  * `/donate` — give to CalDART once, or on a schedule.
  *
- * The page is the shared checkout in its contribution form: an amount, then
- * **Make this a recurring donation** with how often and the day of the first
- * charge.  A gift taken now, recurring or not, thanks the giver and goes to
+ * The page is the shared checkout in its contribution form, in a card of the page's
+ * own: an amount, with none chosen at first and no "No thank you" to choose, since
+ * giving is the page's whole purpose, then **Make this a recurring donation** with how
+ * often and the day of the first charge.  A gift taken now, recurring or not, thanks the giver and goes to
  * Payments, where the recurring donation is shown; one set up for a later day
  * does the same without taking anything today.  Any member or friend may give,
  * whatever their membership.  Somebody who already gives on a schedule is told so
@@ -64,7 +65,9 @@ export function DonatePage(): JSX.Element {
       lede="Give once, or on a schedule. Every donation pays for training, fuel, and equipment."
     >
       {held?.status === 'active' ? <HeldDonation mandate={held} /> : null}
-      <Checkout mode="contribute" onSuccess={handleSuccess} onScheduled={handleScheduled} />
+      <Card>
+        <Checkout mode="contribute" onSuccess={handleSuccess} onScheduled={handleScheduled} />
+      </Card>
     </Page>
   );
 }

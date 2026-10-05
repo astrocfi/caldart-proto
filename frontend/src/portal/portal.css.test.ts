@@ -86,12 +86,14 @@ describe('the join wizard card', () => {
   });
 
   // `.portal__main .card` caps every card at --page-max; the join card's own
-  // narrower caps must outweigh it or the account step spreads to 76rem.
-  it.each([
-    ['.portal__main .card.join-card', '46rem'],
-    ['.portal__main .card.join-card--narrow', '30rem'],
-  ])('%s keeps its own width inside the portal', (selector, width) => {
-    expect(ruleBody(selector, joinCss)).toContain(`max-width: ${width};`);
+  // narrower cap must outweigh it or the account step spreads to 76rem.
+  it('keeps its own width inside the portal', () => {
+    expect(ruleBody('.portal__main .card.join-card', joinCss)).toContain('max-width: 46rem;');
+  });
+
+  // One width for every step, so the card's edges never move between steps.
+  it('has no narrower or wider variant for some steps', () => {
+    expect(joinCss).not.toMatch(/join-card--(narrow|wide)|join-shell--wide/);
   });
 });
 

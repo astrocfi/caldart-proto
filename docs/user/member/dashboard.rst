@@ -33,17 +33,17 @@ nobody to send bulk email to, with **Open My profile**, where the DART is set (s
   The card's heading says the same in words, such as **Your membership is
   current** or **Your membership has expired**. Inside 30 days of expiry, and
   after it, the card takes a colored edge and the **Renew** button leads; after
-  expiry it reads **Renew now**. **Update your details** opens :doc:`profile`, and
-  **Make me a friend** appears beside the button (see :doc:`profile`).
+  expiry it reads **Renew now**. **Update your details** opens :doc:`profile`, which
+  is also where you can become a friend instead. A change to friend you already asked
+  for shows here, *You become a friend on 03/02/2027.*, with its **Undo**.
 
   A life member's card is headed **Lifetime member**, carries the **Never
   expires** state, and reads *Nothing to renew* with thanks for joining for life.
   It offers no button.
 
   A friend's card is labeled **Friend of CalDART** and headed **You are a friend of
-  CalDART**. It reads *You are a friend of CalDART: no dues, no expiry. Become a
-  member any time.* and offers **Make me a member** (see :doc:`become-a-member`).
-  It never takes the colored edge.
+  CalDART**. It reads *No dues and no expiry. Become a member any time.* and offers
+  **Make me a member** (see :doc:`become-a-member`). It never takes the colored edge.
 
 **Member content**
   The members-only pages you may read, straight from the public site (see
@@ -55,14 +55,22 @@ nobody to send bulk email to, with **Open My profile**, where the DART is set (s
 
 **Recent payments**
   One line saying whether automatic renewal is on, and if so what the next charge
-  comes to and when. A life member's line is about their recurring donation. Then
-  your last five payments, with the **Date** each was paid, the **Plan** (**Donation** for a
-  gift on its own), the
-  **Amount**, and the **Status** as a colored dot and its word. **All payments,
-  receipts, and renewals** opens :doc:`payments`.
+  comes to and when: *Automatic renewal is on: $145.00 will be charged on
+  04/27/2027.* A life member's line is about their recurring donation. A friend has
+  nothing to renew, so a friend's line appears only for a recurring donation they
+  hold. Then your last five payments, with the **Date** each was paid, what it was
+  **For** in the words :doc:`payments` uses (such as **Annual**, **Annual and
+  contribution**, or **Donation**), the **Amount**, and the **Status** as a colored
+  dot and its word. **All payments, receipts, and renewals** opens :doc:`payments`;
+  a friend's reads **All payments and receipts**.
 
 **Quick links**
-  Every other screen your roles open, in the same groups as the menu.
+  A few next steps; the menu has everything else. Everybody gets **Renew** (or **Donate**, for
+  a friend or a life member), **My profile**, **My aircraft**, and **Messages**. A
+  DART leader, a verifier, or an administrator also gets **Member check**; a
+  treasurer or an account administrator, **Finance**; an account administrator,
+  **Members**. The list stops at five: your role's own screens stay, and **Messages**
+  and then **My aircraft** give way to them.
 
 
 Finding your way around

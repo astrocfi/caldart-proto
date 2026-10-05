@@ -35,7 +35,12 @@ test('a current member asks to become a friend, then undoes it', async ({ page }
   await completeOnboarding(page, uniqueEmail('switcher'), { as: 'member', firstName: 'Rosa' });
   await page.getByRole('link', { name: 'Go to my dashboard' }).click();
 
-  const card = membershipCard(page, 'Your membership is current');
+  // The dashboard leads with Renew; becoming a friend is offered on My profile.
+  const dashboardCard = membershipCard(page, 'Your membership is current');
+  await expect(dashboardCard.getByRole('button', { name: 'Make me a friend' })).toHaveCount(0);
+  await dashboardCard.getByRole('link', { name: 'Update your details' }).click();
+
+  const card = membershipCard(page, 'Your kind of account');
   await card.getByRole('button', { name: 'Make me a friend' }).click();
   await expect(
     card.getByText(/^Your membership stays current through \d{2}\/\d{2}\/\d{4}\./),
@@ -63,12 +68,12 @@ test('a joiner who changes their mind on the pay step becomes a friend', async (
   await expect(page).toHaveURL(/\/portal\/join\/pay/);
   await expect(page.getByRole('navigation', { name: 'Portal sections' })).toHaveCount(0);
 
-  // A friend may give, or not: the contribution stays in the same card as the plans.
-  await page.getByRole('radio', { name: /I changed my mind, I just want to be a friend/ }).check();
-  await expect(page.getByRole('heading', { name: 'Pay your dues' })).toBeVisible();
+  // A friend may give, or not: the step turns into a friend's donation.
+  await page.getByRole('button', { name: 'Join as a friend instead (no dues)' }).click();
+  await expect(page.getByRole('heading', { name: 'Donate to CalDART' })).toBeVisible();
   await expect(page.getByRole('radio', { name: /Participating/ })).toBeVisible();
   await expect(page.getByRole('tab', { name: 'Test payment' })).toHaveCount(0);
-  await page.getByRole('button', { name: 'Continue as a friend' }).click();
+  await page.getByRole('button', { name: 'Continue without a gift' }).click();
 
   await expect(page).toHaveURL(/\/portal\/join\/done/);
   await expect(page.getByText('You are a friend of CalDART.', { exact: true })).toBeVisible();
@@ -83,9 +88,9 @@ test('a joiner who changes their mind on the pay step becomes a friend', async (
 
   await expect(page).toHaveURL(/\/portal\/membership\/join/);
   await expect(page.getByRole('heading', { name: 'Become a member', level: 1 })).toBeVisible();
-  // Becoming a member is paying for it: the friend card is the wizard's alone.
+  // Becoming a member is paying for it: the way back to a friend is the wizard's alone.
   await expect(
-    page.getByRole('radio', { name: /I changed my mind, I just want to be a friend/ }),
+    page.getByRole('button', { name: 'Join as a friend instead (no dues)' }),
   ).toHaveCount(0);
   await payWithMock(page);
 
@@ -100,11 +105,12 @@ test('a joiner goes from member to friend and back again, then pays', async ({ p
   await followVerificationLink(page, email);
   await completeProfileStep(page);
 
-  // Friend, then member again, in the one card: the plan cards are the way back.
-  await page.getByRole('radio', { name: /I changed my mind, I just want to be a friend/ }).check();
-  await expect(page.getByRole('button', { name: 'Continue as a friend' })).toBeVisible();
-  await page.getByRole('radio', { name: /Annual/ }).check();
-  await expect(page.getByRole('button', { name: 'Continue as a friend' })).toHaveCount(0);
+  // Friend, then member again: each step offers the way back to the other.
+  await page.getByRole('button', { name: 'Join as a friend instead (no dues)' }).click();
+  await expect(page.getByRole('button', { name: 'Continue without a gift' })).toBeVisible();
+  await page.getByRole('button', { name: 'I changed my mind, I want to be a member' }).click();
+  await expect(page.getByRole('heading', { name: 'Pay your dues' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Continue without a gift' })).toHaveCount(0);
   await expect(page).toHaveURL(/\/portal\/join\/pay/);
   await payWithMock(page);
 
@@ -115,17 +121,15 @@ test('a joiner goes from member to friend and back again, then pays', async ({ p
   await expect(page.getByRole('heading', { name: 'Your membership is current' })).toBeVisible();
 });
 
-test('a joiner who chooses to be a friend can give in the same card, then finishes', async ({
-  page,
-}) => {
+test('a joiner who chooses to be a friend can give instead, then finishes', async ({ page }) => {
   const email = uniqueEmail('giver');
   await registerAccount(page, email, { as: 'member', firstName: 'Gia' });
   await followVerificationLink(page, email);
   await completeProfileStep(page);
 
-  await page.getByRole('radio', { name: /I changed my mind, I just want to be a friend/ }).check();
+  await page.getByRole('button', { name: 'Join as a friend instead (no dues)' }).click();
   await page.getByRole('radio', { name: /Participating/ }).check();
-  await expect(page.getByRole('heading', { name: 'Pay your dues' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Donate to CalDART' })).toBeVisible();
   await payWithMock(page);
 
   await expect(page).toHaveURL(/\/portal\/join\/done/);

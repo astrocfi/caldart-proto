@@ -159,7 +159,7 @@ describe('<KindSwitch/>', () => {
     const calls = setUp({ renewal: makeMandate({ contribution_cents: 2500 }) });
     renderWithProviders(<KindSwitch />);
     await openPanel();
-    await userEvent.click(await readyButton('Keep the contribution'));
+    await userEvent.click(await readyButton('Become a friend and keep giving $25 a year'));
     await screen.findByText('You become a friend on 07/01/2027.');
     expect(calls.bodies).toEqual([{ keep_contribution: true }]);
   });
@@ -168,7 +168,7 @@ describe('<KindSwitch/>', () => {
     const calls = setUp({ renewal: makeMandate({ contribution_cents: 2500 }) });
     renderWithProviders(<KindSwitch />);
     await openPanel();
-    await userEvent.click(await readyButton('Stop it'));
+    await userEvent.click(await readyButton('Become a friend and stop the $25'));
     await screen.findByText('You become a friend on 07/01/2027.');
     expect(calls.bodies).toEqual([{ keep_contribution: false }]);
   });

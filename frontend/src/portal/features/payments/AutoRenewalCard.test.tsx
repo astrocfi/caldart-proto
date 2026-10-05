@@ -68,6 +68,12 @@ function recordPatches(mandate: RenewalMandate): unknown[] {
 }
 
 describe('AutoRenewalCard', () => {
+  it('names the contribution a renewal takes as a yearly contribution', async () => {
+    mount(makeMandate({ contribution_cents: 2500 }));
+
+    expect(await screen.findByText('Yearly contribution')).toBeInTheDocument();
+  });
+
   it('offers to turn renewal on when the member has never had a mandate', async () => {
     mount(null);
 
@@ -305,7 +311,16 @@ describe('AutoRenewalCard', () => {
     await user.click(await screen.findByRole('button', { name: 'Change' }));
 
     expect(screen.getByRole('radio', { name: /Supporter/ })).toBeChecked();
-    expect(screen.getByRole('radio', { name: /Annual/ })).toBeChecked();
+  });
+
+  it('names the one plan that renews rather than offering a choice of one', async () => {
+    const user = userEvent.setup();
+    mount(makeMandate({ contribution_cents: 2500 }));
+
+    await user.click(await screen.findByRole('button', { name: 'Change' }));
+
+    expect(screen.getByText('Annual', { selector: '.plan-card__name' })).toBeInTheDocument();
+    expect(screen.queryByRole('radio', { name: /Annual/ })).not.toBeInTheDocument();
   });
 
   it('sends a contribution that is not whole dollars back untouched', async () => {

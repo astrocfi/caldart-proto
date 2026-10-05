@@ -75,7 +75,7 @@ test('a member signs in, edits their profile and reads members-only content', as
   await expect(page.getByText(/already on your list\.$/)).toHaveCount(0);
 
   await search.fill(nNumber);
-  await expect(page.getByText('Click on an aircraft to add it to your list.')).toHaveCount(0);
+  await expect(page.getByText(/to add it to your list\.$/)).toHaveCount(0);
   await expect(page.getByText(`${nNumber} is already on your list.`)).toBeVisible();
 
   // The dashboard lists the members-only pages, and one of them opens.

@@ -8,6 +8,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import type { JSX } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import { Card } from '@/portal/components/Card';
 import { Page } from '@/portal/components/Page';
 import { useToast } from '@/portal/components/Toast';
 import { Checkout } from '@/portal/features/checkout';
@@ -33,7 +34,9 @@ export function JoinAsMemberPage(): JSX.Element {
       title="Become a member"
       lede="Choose a plan and pay your dues: you are a member of CalDART as soon as the payment goes through. Nothing changes if you leave this page."
     >
-      <Checkout mode="join" onSuccess={handleSuccess} />
+      <Card>
+        <Checkout mode="join" onSuccess={handleSuccess} />
+      </Card>
     </Page>
   );
 }

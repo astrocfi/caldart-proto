@@ -19,16 +19,20 @@ each month by recurring donation. To change it, press Change on Payments. A
 recurring donation set up here replaces it.* Its **Go to Payments** button takes you
 there.
 
-Then the form, **Make a contribution**:
+Then the form, in a card of its own:
 
-* **Add a contribution**: the tiers (Participating $20, Bronze $100, Silver $300,
+* **Your donation**: *Gifts to CalDART, a 501(c)(3), are tax deductible.* Then the
+  tiers (Participating $20, Bronze $100, Silver $300,
   Gold $1,000, Diamond $3,000, and Platinum $10,000), or **Other amount**, where you
   type whole dollars up to $99,999. For more than that, talk to the treasurer.
 * **Total today**, the sum that will be charged now.
 * **Make this a recurring donation**, a box to check for a gift that repeats.
 * **How would you like to pay?**, the payment tabs, described on :doc:`join`.
 
-Until you choose an amount the screen says *Choose a donation amount to continue.*
+No amount is chosen when the screen opens, and there is no "No thank you", since
+giving is what the screen is for. Until you choose an amount the screen says *Choose
+a donation amount to continue.* Choosing **Other amount** opens a box with its hint,
+*Up to $99,999*, above it at the form's full width.
 
 
 Giving once

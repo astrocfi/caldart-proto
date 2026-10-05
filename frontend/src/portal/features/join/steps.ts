@@ -1,9 +1,10 @@
 /**
  * The join wizard's five steps and the rules for resuming one.
  *
- * Pure functions so the resume logic can be tested on its own: given the
- * signed-in user (or nobody), which step should the visitor be on, and may
- * they be on the step the URL asks for?
+ * Small functions so the resume logic can be tested on its own: given the signed-in
+ * user (or nobody), which step should the visitor be on, and may they be on the step
+ * the URL asks for?  The one thing they read beyond the user is the friend's pay step
+ * this tab holds open (`holdFriendPayStep`).
  */
 import type { PersonKind, User } from '@/portal/api/types';
 
@@ -29,19 +30,41 @@ export function joinStepIndex(step: JoinStep): number {
   return JOIN_STEPS.indexOf(step);
 }
 
-/** What the eyebrow says the visitor is joining as. */
-const JOINING_AS: Record<PersonKind, string> = {
-  member: 'Joining as a member',
-  friend: 'Joining as a friend',
-};
+/**
+ * Where this tab remembers the account whose friend's pay step is still open: the id of
+ * the account, as a string.
+ */
+export const FRIEND_PAY_KEY = 'caldart.join.friend-pay';
 
 /**
- * The eyebrow over a step's card, e.g. `Step 3 of 5`, followed by the kind of
- * account being joined as when `kind` is given: `Step 2 of 5 · Joining as a friend`.
+ * Hold the pay step open for `userId` in this tab, or let it go with `null`.
+ *
+ * A friend owes nothing, so the server counts a friend with a complete profile as
+ * joined; the wizard still walks them through the pay step, and holds them there,
+ * reload and all, until they pay or press **Continue without a gift**.  The hold lives
+ * in this tab's session storage, so it ends with the tab; storage that cannot be used
+ * holds nothing.
  */
-export function joinStepEyebrow(step: JoinStep, kind?: PersonKind): string {
-  const position = `Step ${joinStepIndex(step) + 1} of ${JOIN_STEPS.length}`;
-  return kind === undefined ? position : `${position} · ${JOINING_AS[kind]}`;
+export function holdFriendPayStep(userId: number | null): void {
+  try {
+    if (userId === null) window.sessionStorage.removeItem(FRIEND_PAY_KEY);
+    else window.sessionStorage.setItem(FRIEND_PAY_KEY, String(userId));
+  } catch {
+    // Storage switched off: the step is simply not held.
+  }
+}
+
+/**
+ * Whether this tab holds the pay step open for `user` (see `holdFriendPayStep`).  Only a
+ * friend is ever held: a member's pay step is held by the dues they owe, or not at all.
+ */
+function isPayStepHeld(user: User): boolean {
+  if (user.kind !== 'friend') return false;
+  try {
+    return window.sessionStorage.getItem(FRIEND_PAY_KEY) === String(user.id);
+  } catch {
+    return false;
+  }
 }
 
 /** The step after `step`, or `step` itself when it is the last one. */
@@ -56,15 +79,18 @@ export function nextJoinStep(step: JoinStep): JoinStep {
  * be a member, a membership they have paid for: a stored friend owes nothing.  A
  * member whose term has run out has joined already (renewing is not joining), and so
  * has a member who asked to become a friend (`friend_on` is set).  Nobody signed in
- * has not joined.  This is the one definition: the wizard's resume point, the route
- * guard, and the layout's rail all read it.  An account an administrator created on New
- * member has joined already once its address is verified: it owes neither the profile
- * step nor the pay step, and only the verify step stands in its way.
+ * has not joined, and neither has an account whose pay step this tab holds open
+ * (`holdFriendPayStep`).  This is the one definition: the wizard's resume point, the
+ * route guard, and the layout's rail all read it.  An account an administrator created on
+ * New member has joined already once its address is verified: it owes neither the
+ * profile step nor the pay step, and only the verify step stands in its way.
  */
 export function isOnboarded(user: User | null): boolean {
   if (user === null) return false;
   if (user.admin_created) return user.email_verified;
-  return user.email_verified && user.profile_complete && !owesFirstDues(user);
+  return (
+    user.email_verified && user.profile_complete && !owesFirstDues(user) && !isPayStepHeld(user)
+  );
 }
 
 /** A member who has never held a paid term and has not asked to become a friend. */
@@ -80,9 +106,9 @@ function owesFirstDues(user: User): boolean {
  * without a usable profile means the profile step; a member who still owes their
  * first dues is at the pay step however often they leave and come back.  Everybody
  * else (`isOnboarded`) has joined.  A friend owes nothing, so the wizard offers a
- * friend the pay step only on the way through from the profile step, never as the
- * place to resume.  Because a step is left only by finishing it, this is also the
- * step the visitor last saw.
+ * friend the pay step on the way through from the profile step, and resumes there only
+ * while this tab holds it open.  Because a step is left only by finishing it, this is
+ * also the step the visitor last saw.
  */
 export function furthestJoinStep(user: User | null): JoinStep {
   if (!user) return 'account';

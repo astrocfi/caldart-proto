@@ -153,10 +153,29 @@ def test_get_profile_returns_the_documented_shape(
             "coverage": {"excluded": False, "reason": "Category not recorded"},
             "insurance_is_current": True,
             "insurance_expiration": aircraft.insurance_expiration.isoformat(),
+            "insurance_liability_per_occurrence_cents": (
+                aircraft.insurance_liability_per_occurrence_cents
+            ),
+            "insurance_liability_per_person_cents": aircraft.insurance_liability_per_person_cents,
             "insurance_summary": aircraft.insurance_summary,
             "insurance_verified": False,
+            "created_by": aircraft.created_by_id,
         }
     ]
+
+
+def test_profile_aircraft_name_the_member_who_added_each(
+    api_client: APIClient, member: User, profile: MemberProfile, aircraft: Aircraft
+) -> None:
+    """Each listed aircraft carries the id of the account that added it."""
+    aircraft.created_by = member
+    aircraft.save(update_fields=["created_by"])
+    profile.aircraft.add(aircraft)
+    api_client.force_login(member)
+
+    data = api_client.get(PROFILE_URL).json()
+
+    assert data["aircraft"][0]["created_by"] == member.pk
 
 
 def test_get_profile_hides_admin_only_fields(

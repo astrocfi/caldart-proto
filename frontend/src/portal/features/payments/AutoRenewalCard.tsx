@@ -273,7 +273,7 @@ function RenewalSummary({ mandate, expiresOn }: RenewalSummaryProps): JSX.Elemen
           </div>
         )}
         <div>
-          <dt>Contribution renewed with it</dt>
+          <dt>Yearly contribution</dt>
           <dd>
             <Money cents={mandate.contribution_cents} />
           </dd>
@@ -309,8 +309,8 @@ function DonationSummary({ mandate }: { mandate: RenewalMandate | null }): JSX.E
       <div className="stack">
         <StatusDot tone="none" label="Off" />
         <p>
-          Set one up on the Donate screen and CalDART will charge a saved card or PayPal account
-          monthly, quarterly, or yearly, for the amount you choose.
+          A recurring donation charges a saved card or PayPal account monthly, quarterly, or yearly,
+          for the amount you choose.
         </p>
       </div>
     );

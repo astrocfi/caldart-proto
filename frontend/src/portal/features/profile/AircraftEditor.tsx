@@ -2,10 +2,9 @@
  * Editing an aircraft from the member's own screen.
  *
  * `AircraftPermission` lets the member who added an airplane keep it up to
- * date, and an account administrator edit any record.  This is the same
- * `<AircraftForm/>` the administrator uses, without the administrator's own
- * fields (notes, in-service); a record somebody else added, opened by a member
- * who is not an account administrator, shows who to ask instead.
+ * date, and an account administrator edit any record; My aircraft offers **Edit** on
+ * those records alone.  This is the same `<AircraftForm/>` the administrator uses,
+ * without the administrator's own fields (notes, in-service).
  */
 import { useAircraft, useUpdateAircraft } from '@/portal/features/aircraft';
 import { AircraftForm } from '@/portal/features/aircraft';
@@ -23,22 +22,13 @@ import { PROFILE_KEY } from './api';
 
 export interface AircraftEditorProps {
   aircraftId: number;
-  /** The signed-in member, to tell their own records from everyone else's. */
-  userId: number | null;
-  /** Whether the signed-in member holds `account_admin`, which edits any record. */
-  isAccountAdmin: boolean;
   onClose: () => void;
   onSaved: () => void;
 }
 
-/**
- * Edits an aircraft the signed-in member added, or any aircraft for an account
- * administrator; shows who to ask for any other record.
- */
+/** Edits an aircraft the signed-in member may change. */
 export function AircraftEditor({
   aircraftId,
-  userId,
-  isAccountAdmin,
   onClose: handleClose,
   onSaved,
 }: AircraftEditorProps): JSX.Element {
@@ -74,20 +64,6 @@ export function AircraftEditor({
   }
 
   const record = aircraft.data;
-  const mine = userId !== null && record.created_by === userId;
-
-  if (!mine && !isAccountAdmin) {
-    return (
-      <Card eyebrow="Edit" title={record.n_number}>
-        <EmptyState
-          title="Someone else added this aircraft"
-          description="Ask a CalDART account administrator to correct it."
-          action={<Button onClick={handleClose}>Close</Button>}
-        />
-      </Card>
-    );
-  }
-
   const serverErrors = update.error instanceof ApiError ? update.error.fieldErrors : undefined;
 
   return (

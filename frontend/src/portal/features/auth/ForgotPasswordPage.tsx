@@ -24,7 +24,7 @@ export function ForgotPasswordPage(): JSX.Element {
       <AuthShell title="Check your email" footer={<Link to="/login">Back to sign in</Link>}>
         <p>
           If an account uses <strong>{request.variables?.email}</strong>, a reset link is on its
-          way. The link can be used once and expires in a few days.
+          way. The link works once and expires in 3 days.
         </p>
         <p className="muted">
           Nothing arrived? Check the spam folder, then{' '}

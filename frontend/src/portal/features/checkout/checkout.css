@@ -38,18 +38,21 @@
   gap: var(--space-3);
   align-items: flex-start;
   padding: var(--space-4);
-  border: var(--hairline) solid var(--color-rule);
+  border: var(--hairline) solid var(--color-rule-strong);
   border-radius: var(--radius);
-  background: var(--color-bg);
+  /* An unchosen card is drawn like the card around it, so it reads as on offer rather
+   * than unavailable; the chosen one takes the sunken tint and the primary edge. */
+  background: var(--color-bg-raised);
   cursor: pointer;
   transition: border-color var(--duration) var(--ease);
 }
 
 .plan-card:hover {
-  border-color: var(--color-rule-strong);
+  border-color: var(--color-primary);
 }
 
 .plan-card[data-selected='true'] {
+  background: var(--color-bg-sunken);
   border-color: var(--color-primary);
   box-shadow: inset 3px 0 0 var(--color-primary);
 }
@@ -141,13 +144,28 @@
 
 .checkout__other {
   margin-top: var(--space-3);
-  max-width: 14rem;
 }
 
+/* The hint runs the width of the form, as every other field's does; only the box is
+ * narrow, the width of the largest amount. */
 .checkout__other-input {
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  max-width: 14rem;
+}
+
+/* The one plan on offer, named in place of a choice of one. */
+.plan-only {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--space-3);
+}
+
+.plan-only .plan-card__term {
+  flex-basis: 100%;
 }
 
 /* ----------------------------------------------------------------- total */
@@ -176,6 +194,12 @@
   padding-top: var(--space-2) !important;
   font-size: var(--text-base);
   font-weight: var(--weight-semibold);
+}
+
+/* With nothing above it, the total takes the list's own rule rather than a second one. */
+.checkout__total-row:first-child {
+  border-top: 0;
+  margin-top: 0;
 }
 
 /* ------------------------------------------------------------------ tabs */

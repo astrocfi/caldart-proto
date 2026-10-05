@@ -29,6 +29,20 @@ describe('ForgotPasswordPage', () => {
     expect(posted).toEqual({ email: 'marta@example.org' });
   });
 
+  it('says how long the link lasts', async () => {
+    server.use(
+      http.post(`${API}/auth/password/reset`, () => new HttpResponse(null, { status: 204 })),
+    );
+
+    renderWithProviders(<ForgotPasswordPage />);
+    await userEvent.type(screen.getByLabelText(/email address/i), 'marta@example.org');
+    await userEvent.click(screen.getByRole('button', { name: /email me a link/i }));
+
+    expect(
+      await screen.findByText(/The link works once and expires in 3 days\./),
+    ).toBeInTheDocument();
+  });
+
   it('shows a validation error without claiming success', async () => {
     server.use(
       http.post(`${API}/auth/password/reset`, () =>

@@ -20,23 +20,24 @@
  *
  * A finished payment is reported through `onSuccess` and nothing else: the flow
  * that hosts the widget owns the queries a payment moves, so the refresh happens
- * once, where the keys are known.  A host where paying is optional passes
- * `onSkip`, and the widget offers a quiet **Not now** button under the provider
- * tabs that calls it.
+ * once, where the keys are known.
+ *
+ * The widget draws no card, eyebrow, or title of its own: every host already puts it
+ * under a heading that says what is being paid for, inside a card of its own.  A
+ * donation (`contribute` mode) offers no "No thank you" and starts with no amount
+ * chosen, since giving is the point of the form; dues offer it, preselected, since a
+ * contribution on top of them is an extra.
+ *
+ * A host where giving is optional passes `onSkip`: the widget then offers **Continue
+ * without a gift**, the main button while no amount is chosen and a quiet one under the
+ * payment methods once one is.
  *
  * A host joining somebody as a member may pass `onBecomeFriend`: in `join` mode the
- * plan list then ends with a card for changing one's mind and becoming a friend of
- * CalDART instead.  It is chosen like a plan: the contribution chooser stays under the
- * cards, with the payment methods once an amount is chosen, and the total is the
- * contribution alone.  Paying it asks the server to make the account a friend
- * (`POST /me/kind/friend`), calls `onBecomeFriend`, then `onSuccess`.  With no
- * contribution chosen, a **Continue as a friend** button does the same and then calls
- * `onFriendDone`.  An account that is a friend already skips the request.
- *
- * A host offering a friend's contribution may pass `onBecomeMember`: in `contribute`
- * mode the contribution chooser is then followed by a link-styled **I changed my mind,
- * I want to be a member** button that calls it.  Nothing is sent to the server: paying
- * for a membership is what makes a member.  A life member is never offered it.
+ * plans are then followed by a link-styled **Join as a friend instead (no dues)**
+ * button that calls it.  A host offering a friend's donation may pass `onBecomeMember`:
+ * in `contribute` mode the amounts are then followed by a link-styled **I changed my
+ * mind, I want to be a member** button that calls it.  Neither sends anything to the
+ * server; the host decides what the change means.  A life member is offered neither.
  */
 import { useEffect, useId, useMemo, useState } from 'react';
 import type { JSX } from 'react';
@@ -44,45 +45,35 @@ import type { JSX } from 'react';
 import type { IsoDate, PaymentProvider } from '@/portal/api/types';
 import { useAuth } from '@/portal/auth/useAuth';
 import { Button } from '@/portal/components/Button';
-import { Card } from '@/portal/components/Card';
 import { formatDate, todayIso } from '@/portal/components/DateText';
 import { EmptyState } from '@/portal/components/EmptyState';
 import { formatCents } from '@/portal/components/Money';
 import { MandateSetupTabs } from '@/portal/features/payments/MandateSetupTabs';
-import { useBecomeFriend } from '@/portal/features/profile/api';
 import { PROVIDER_ORDER, usePaymentsConfig } from './api';
 import { ContributionChooser, DONATION_HINT } from './ContributionChooser';
-import { FRIEND_CHOICE, PlanChooser } from './PlanChooser';
+import { PlanChooser } from './PlanChooser';
 import { ProviderTabs } from './ProviderTabs';
 import { RecurringDonationFields } from './RecurringDonationFields';
 import type { RecurringDonation } from './RecurringDonationFields';
 import type { CheckoutMode, CheckoutProps, ProviderPanelProps } from './types';
 import './checkout.css';
 
-/** The eyebrow and title over each mode's form, never the title of the page around it. */
-const HEADINGS: Record<CheckoutMode, { eyebrow: string; title: string }> = {
-  join: { eyebrow: 'Membership', title: 'Your dues' },
-  renew: { eyebrow: 'Renewal', title: 'Your renewal' },
-  contribute: { eyebrow: 'Donation', title: 'Make a donation' },
-};
-
 export type { CheckoutProps, CheckoutResult } from './types';
 
 /** `CheckoutProps`, plus the way out a host offers where paying is optional. */
 export interface SkippableCheckoutProps extends CheckoutProps {
-  /** Called by the **Not now** button; the button is shown only when this is given. */
-  onSkip?: () => void;
   /**
-   * Called once the account has become a friend from the friend card, before
-   * `onSuccess` when a contribution was paid; the card is offered only in `join`
-   * mode, and only when this is given.
+   * Called by the **Continue without a gift** button; the button is shown only when
+   * this is given.
+   */
+  onSkip?: () => void;
+  /** True while the host's skip is in flight: the button waits, so one press is one skip. */
+  isSkipping?: boolean;
+  /**
+   * Called by the **Join as a friend instead (no dues)** button; the button is offered
+   * only in `join` mode, never to a life member, and only when this is given.
    */
   onBecomeFriend?: () => void;
-  /**
-   * Called after `onBecomeFriend` when the reader chose the friend card and pressed
-   * **Continue as a friend** without a contribution: the host moves on.
-   */
-  onFriendDone?: () => void;
   /**
    * Called by the **I changed my mind, I want to be a member** button; the button is
    * offered only in `contribute` mode, never to a life member, and only when this is
@@ -93,27 +84,27 @@ export interface SkippableCheckoutProps extends CheckoutProps {
 
 /**
  * Choose a plan and a contribution, then pay with the configured providers, or
- * press **Not now** when the host passed `onSkip`.
+ * press **Continue without a gift** when the host passed `onSkip`.
  */
 export function Checkout({
   mode,
   onSuccess,
   onScheduled: handleScheduled,
+  defaultAutoRenew = false,
   onSkip: handleSkip,
+  isSkipping = false,
   onBecomeFriend: handleBecomeFriend,
-  onFriendDone: handleFriendDone,
   onBecomeMember: handleBecomeMember,
 }: SkippableCheckoutProps): JSX.Element {
   const { data: config, isPending, error } = usePaymentsConfig();
   const { user } = useAuth();
-  const becomeFriend = useBecomeFriend();
 
   // Null until somebody picks: the first plan the server lists stands in for it.
   const [plan, setPlan] = useState<string | null>(null);
   const [contributionCents, setContributionCents] = useState(0);
   const [isOther, setIsOther] = useState(false);
   const [provider, setProvider] = useState<PaymentProvider | null>(null);
-  const [autoRenew, setAutoRenew] = useState(false);
+  const [autoRenew, setAutoRenew] = useState(defaultAutoRenew);
   const [recurring, setRecurring] = useState<RecurringDonation>(() => ({
     isRecurring: false,
     cadence: 'monthly',
@@ -135,7 +126,6 @@ export function Checkout({
   // them, so every mode collapses to the contribution form.
   const isLifetime = user?.membership.is_lifetime ?? false;
   const effectiveMode: CheckoutMode = isLifetime ? 'contribute' : mode;
-  const heading = HEADINGS[effectiveMode];
 
   useEffect(() => {
     if (provider === null && providers[0]) setProvider(providers[0]);
@@ -143,71 +133,57 @@ export function Checkout({
 
   if (isPending) {
     return (
-      <Card eyebrow={heading.eyebrow} title="Payment">
+      <div className="checkout">
         <p className="muted" role="status">
           Loading payment options…
         </p>
-        <SkipFooter onSkip={handleSkip} />
-      </Card>
+        <SkipFooter onSkip={handleSkip} isLead isPending={isSkipping} />
+      </div>
     );
   }
 
   if (error || !config) {
     return (
-      <Card eyebrow={heading.eyebrow} title="Payment">
+      <div className="checkout">
         <EmptyState
           title="Payment options didn't load"
           description="Reload the page, or contact CalDART if it keeps happening."
         />
-        <SkipFooter onSkip={handleSkip} />
-      </Card>
+        <SkipFooter onSkip={handleSkip} isLead isPending={isSkipping} />
+      </div>
     );
   }
 
   const isContributing = effectiveMode === 'contribute';
   const offersFriend = effectiveMode === 'join' && handleBecomeFriend !== undefined;
-  const isFriendChosen = offersFriend && plan === FRIEND_CHOICE;
   const offersMember = isContributing && !isLifetime && handleBecomeMember !== undefined;
-
-  // Make the account a friend (unless it is one already), tell the host, then `then`.
-  function finishAsFriend(then: () => void): void {
-    const done = () => {
-      handleBecomeFriend?.();
-      then();
-    };
-    if (user?.kind === 'friend') {
-      done();
-      return;
-    }
-    becomeFriend.mutate({}, { onSuccess: done });
-  }
+  const friendSwitch = offersFriend ? (
+    <SwitchLink onClick={() => handleBecomeFriend?.()}>
+      Join as a friend instead (no dues)
+    </SwitchLink>
+  ) : null;
 
   // The first plan the server lists stands in until somebody picks one, so the
   // chooser always has a selection whenever there is a plan to select.
   const offered = config.plans.map((entry) => entry.slug);
   const effectivePlan = plan !== null && offered.includes(plan) ? plan : (offered[0] ?? null);
 
-  // A server with no plan set up has nothing to sell a member; the friend card and
-  // a contribution still work without one.
-  if (!isContributing && !isFriendChosen && effectivePlan === null) {
+  // A server with no plan set up has nothing to sell a member; becoming a friend
+  // and a donation still work without one.
+  if (!isContributing && effectivePlan === null) {
     return (
-      <Card eyebrow={heading.eyebrow} title={heading.title} className="checkout">
-        {offersFriend ? (
-          <PlanChooser plans={[]} value="" onChange={(next) => setPlan(next)} offerFriend />
-        ) : null}
+      <div className="checkout">
         <EmptyState
           title="Membership is not on offer yet"
           description="No membership plan is set up yet. Ask an administrator."
         />
-        <SkipFooter onSkip={handleSkip} />
-      </Card>
+        {friendSwitch}
+        <SkipFooter onSkip={handleSkip} isLead isPending={isSkipping} />
+      </div>
     );
   }
 
-  // The friend card is chosen like a plan, but it buys nothing: what is left to pay
-  // for is the contribution, exactly as in `contribute` mode.
-  const isContributionOnly = isContributing || isFriendChosen;
-  const selectedPlan = isContributionOnly
+  const selectedPlan = isContributing
     ? null
     : (config.plans.find((entry) => entry.slug === effectivePlan) ?? null);
   const planCents = selectedPlan?.price_cents ?? 0;
@@ -216,13 +192,9 @@ export function Checkout({
   // Only a plan with a term can renew itself, and a contribution can only
   // repeat once there is an amount, so the offer is hidden rather than shown
   // and refused by the server.
-  // A friend chosen on the card gives once here; a recurring donation is set up
-  // later from Donate.
-  const canAutoRenew = isFriendChosen
-    ? false
-    : isContributing
-      ? contributionCents > 0
-      : selectedPlan !== null && selectedPlan.duration_days !== null;
+  const canAutoRenew = isContributing
+    ? contributionCents > 0
+    : selectedPlan !== null && selectedPlan.duration_days !== null;
 
   // The server refuses a payment of nothing, so a contribution waits for an
   // amount rather than starting a provider that cannot be paid.
@@ -237,7 +209,7 @@ export function Checkout({
   const needsMove = isDonating && moveMessage !== null && !isMoveAgreed;
 
   const panelProps: ProviderPanelProps = {
-    plan: isContributionOnly ? null : effectivePlan,
+    plan: isContributing ? null : effectivePlan,
     contributionCents,
     amountCents: totalCents,
     autoRenew: isContributing ? isDonating : canAutoRenew && autoRenew,
@@ -248,8 +220,7 @@ export function Checkout({
           onRenewalContribution: setMoveMessage,
         }
       : {}),
-    // A paid contribution from the friend card makes the account a friend first.
-    onSuccess: isFriendChosen ? (result) => finishAsFriend(() => onSuccess(result)) : onSuccess,
+    onSuccess,
   };
 
   function handleSetUp(): void {
@@ -258,26 +229,27 @@ export function Checkout({
   }
 
   return (
-    <Card eyebrow={heading.eyebrow} title={heading.title} className="checkout">
+    <div className="checkout">
       {isContributing ? null : (
         <PlanChooser
           plans={config.plans}
-          value={isFriendChosen ? FRIEND_CHOICE : (effectivePlan ?? '')}
+          value={effectivePlan ?? ''}
           onChange={(next) => setPlan(next)}
-          disabled={becomeFriend.isPending}
-          offerFriend={offersFriend}
         />
       )}
+      {friendSwitch}
 
       <ContributionChooser
         tiers={config.contribution_tiers}
         value={contributionCents}
         maxCents={config.max_contribution_cents}
         onChange={(next) => setContributionCents(next)}
-        // A donation stands on its own; a friend joining pays no dues to add it to.
-        legend={isContributionOnly ? 'Your donation' : 'Add a contribution'}
-        amountLabel={isContributionOnly ? 'Donation amount' : undefined}
-        hint={isContributionOnly ? DONATION_HINT : undefined}
+        // A donation stands on its own: there are no dues to add it to, and giving is
+        // the point, so nothing is preselected and "No thank you" is not offered.
+        legend={isContributing ? 'Your donation' : 'Add a contribution'}
+        amountLabel={isContributing ? 'Donation amount' : undefined}
+        hint={isContributing ? DONATION_HINT : undefined}
+        offerNone={!isContributing}
         isOther={isOther}
         // codespell:ignore-next-line onother
         onOther={(next) => {
@@ -287,19 +259,13 @@ export function Checkout({
       />
 
       {offersMember ? (
-        <p className="checkout__switch">
-          <button
-            type="button"
-            className="checkout__switch-button"
-            onClick={() => handleBecomeMember?.()}
-          >
-            I changed my mind, I want to be a member
-          </button>
-        </p>
+        <SwitchLink onClick={() => handleBecomeMember?.()}>
+          I changed my mind, I want to be a member
+        </SwitchLink>
       ) : null}
 
       <dl className="checkout__total">
-        {isContributionOnly ? null : (
+        {isContributing ? null : (
           <div>
             <dt>{selectedPlan?.name ?? 'Membership'}</dt>
             <dd className="num">{formatCents(planCents)}</dd>
@@ -307,7 +273,7 @@ export function Checkout({
         )}
         {contributionCents > 0 ? (
           <div>
-            <dt>{isContributionOnly ? 'Donation' : 'Contribution'}</dt>
+            <dt>{isContributing ? 'Donation' : 'Contribution'}</dt>
             <dd className="num">{formatCents(contributionCents)}</dd>
           </div>
         ) : null}
@@ -339,31 +305,19 @@ export function Checkout({
             <span>Renew automatically each year</span>
           </label>
           <p className="checkout__fineprint muted">
-            We will email you 14 days before charging this card, and you can turn it off at any time
-            from Payments.
+            We will email you 14 days before each charge to your card or PayPal account, and you can
+            turn it off at any time from Payments.
           </p>
         </div>
       ) : null}
 
-      {becomeFriend.error ? (
-        <p className="field__error" role="alert">
-          {becomeFriend.error.message}
-        </p>
-      ) : null}
-
-      {isFriendChosen && contributionCents === 0 ? (
-        <div className="cluster card__footer">
-          <Button
-            onClick={() => finishAsFriend(() => handleFriendDone?.())}
-            disabled={becomeFriend.isPending}
-          >
-            Continue as a friend
-          </Button>
-        </div>
-      ) : needsContribution ? (
-        <p className="checkout__blocked muted" role="status">
-          Choose a donation amount to continue.
-        </p>
+      {needsContribution ? (
+        // Where giving is optional, the button below says what to do instead.
+        handleSkip === undefined ? (
+          <p className="checkout__blocked muted" role="status">
+            Choose a donation amount to continue.
+          </p>
+        ) : null
       ) : scheduledOn !== null ? (
         <p className="checkout__notice" role="status">
           Your recurring donation is set up. The first charge is on {formatDate(scheduledOn)}.
@@ -408,22 +362,52 @@ export function Checkout({
         />
       )}
 
-      <SkipFooter onSkip={handleSkip} />
-    </Card>
+      <SkipFooter onSkip={handleSkip} isLead={contributionCents === 0} isPending={isSkipping} />
+    </div>
+  );
+}
+
+interface SkipFooterProps {
+  onSkip: (() => void) | undefined;
+  /** True while nothing is chosen to pay, when the button is the way on. */
+  isLead: boolean;
+  /** True while the skip is in flight, when the button is disabled. */
+  isPending: boolean;
+}
+
+/**
+ * The **Continue without a gift** button, drawn whether or not the payment options
+ * loaded, so a host where giving is optional is never left without a way on.  It is the
+ * main button while there is nothing to pay, and a quiet one under the payment methods
+ * once there is.
+ */
+function SkipFooter({ onSkip, isLead, isPending }: SkipFooterProps): JSX.Element | null {
+  if (onSkip === undefined) return null;
+  return (
+    <div className="cluster card__footer">
+      <Button variant={isLead ? 'primary' : 'quiet'} disabled={isPending} onClick={() => onSkip()}>
+        Continue without a gift
+      </Button>
+    </div>
   );
 }
 
 /**
- * The **Not now** button, drawn whether or not the payment options loaded, so a host
- * where paying is optional is never left without a way on.
+ * A change of mind between a member's dues and a friend's donation: a button, since it
+ * changes the form rather than going anywhere, drawn as a quiet link under the choices.
  */
-function SkipFooter({ onSkip }: { onSkip: (() => void) | undefined }) {
-  if (onSkip === undefined) return null;
+function SwitchLink({
+  onClick: handleClick,
+  children,
+}: {
+  onClick: () => void;
+  children: string;
+}): JSX.Element {
   return (
-    <div className="cluster card__footer">
-      <Button variant="quiet" onClick={() => onSkip()}>
-        Not now
-      </Button>
-    </div>
+    <p className="checkout__switch">
+      <button type="button" className="checkout__switch-button" onClick={handleClick}>
+        {children}
+      </button>
+    </p>
   );
 }

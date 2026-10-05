@@ -1,8 +1,4 @@
-/**
- * Step 3 — the same profile form `/profile` uses, at the same full working width, so
- * its paired fields (a phone number and its extension) sit side by side as they do
- * there.
- */
+/** Step 3 — the same profile form `/profile` uses. */
 import type { JSX } from 'react';
 
 import { ApiError } from '@/portal/api/client';
@@ -16,7 +12,6 @@ import {
   profileToForm,
   saveErrorMessage,
 } from '@/portal/features/profile/form';
-import { joinStepEyebrow } from './steps';
 import './join.css';
 
 export interface ProfileStepProps {
@@ -31,11 +26,7 @@ export function ProfileStep({ onDone }: ProfileStepProps): JSX.Element {
 
   if (profile.isPending) {
     return (
-      <Card
-        className="join-card join-card--wide"
-        eyebrow={joinStepEyebrow('profile')}
-        title="About you"
-      >
+      <Card className="join-card" title="About you">
         <p className="muted" role="status">
           Loading your profile…
         </p>
@@ -45,11 +36,7 @@ export function ProfileStep({ onDone }: ProfileStepProps): JSX.Element {
 
   if (profile.isError) {
     return (
-      <Card
-        className="join-card join-card--wide"
-        eyebrow={joinStepEyebrow('profile')}
-        title="About you"
-      >
+      <Card className="join-card" title="About you">
         <EmptyState
           title="Your profile didn't load"
           description={
@@ -65,12 +52,8 @@ export function ProfileStep({ onDone }: ProfileStepProps): JSX.Element {
   const serverErrors = save.error instanceof ApiError ? save.error.fieldErrors : undefined;
 
   return (
-    <Card
-      className="join-card join-card--wide"
-      eyebrow={joinStepEyebrow('profile')}
-      title="About you"
-    >
-      <p className="muted">
+    <Card className="join-card" title="About you">
+      <p className="muted join__intro">
         CalDART needs a way to reach you during an activation. Everything except your phone and
         address can wait until later.
       </p>

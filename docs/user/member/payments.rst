@@ -6,7 +6,9 @@ Payments
 you, whether you give on a schedule, everything you have paid with a receipt for
 each, and a contribution statement for each year you gave. Open it from
 **Payments** in the menu, or from **All payments, receipts, and renewals** on your
-:doc:`dashboard`. The screen's title reads **Payments**.
+:doc:`dashboard`. The screen's title reads **Payments**, and under it: *Your
+automatic renewal, recurring donation, payments and receipts, and tax statements.* A
+friend's and a life member's leave out the automatic renewal.
 
 
 What you see
@@ -23,7 +25,9 @@ The cards come in the order they matter.
 **Recurring donation**
   Whether you give on a schedule. Its status reads **On**, **Off**, or **Stopped**,
   and it shows the **Method**, **Amount**, **How often**, and **Next charge**, with
-  **Change** and **Turn off**, or **Set up**, which opens :doc:`donate`. Setting up
+  **Change** and **Turn off**. While none is set up the card reads *A recurring
+  donation charges a saved card or PayPal account monthly, quarterly, or yearly, for
+  the amount you choose.* beside **Set up**, which opens :doc:`donate`. Setting up
   and changing a recurring donation are described there.
 
 **Your payments**
@@ -75,13 +79,15 @@ What the card shows
 ~~~~~~~~~~~~~~~~~~~
 
 While it is on, the status reads **On** and the card shows the **Method**, the
-**Plan**, the **Contribution renewed with it**, and the **Next charge** with its
+**Plan**, the **Yearly contribution** it takes with the dues, and the **Next charge**
+with its
 amount. When the charge falls after your membership runs out, the day adds *after
 your membership runs out on* that date. While it is on you do not get the ordinary
 renewal reminders (see :doc:`renew`).
 
 **Change** opens **Change your renewal**: the plan, the contribution, and **Next
-charge on**. Press **Save changes**. The dues are whatever the chosen plan costs on
+charge on**. With one plan that renews, the form names that plan in place of a choice
+of one. Press **Save changes**. The dues are whatever the chosen plan costs on
 the day of the charge. A charge already scheduled keeps its own day, so a day you
 set while one waits is the day of the charge after it. After each charge the day
 moves to the end of the term that charge bought.
@@ -153,7 +159,7 @@ Contribution statements
 
 A statement gathers a calendar year of contributions onto one page: the date,
 receipt number, and amount of each, anything refunded, and the year's total, with
-the 501(c)(3) wording. It is what you file with a tax return.
+the wording your tax preparer needs. It is what you file with a tax return.
 
 Each January, CalDART emails every member, friend, and donor who gave in the year
 before their statement, subject *CalDART: your 2026 contribution statement*, with

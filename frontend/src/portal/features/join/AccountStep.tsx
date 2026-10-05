@@ -12,7 +12,6 @@ import { Field } from '@/portal/components/Field';
 import { MaskedInput } from '@/portal/components/MaskedInput';
 import { RefusedSubmitNote, useRefusedSubmit } from '@/portal/components/RefusedSubmit';
 import { EMAIL_MESSAGE, isEmailAddress, maskEmail } from '@/portal/masks';
-import { joinStepEyebrow } from './steps';
 import './join.css';
 
 /** The error code `POST /auth/register` answers for a deactivated account's address. */
@@ -33,7 +32,7 @@ const KIND_CHOICES: { kind: PersonKind; title: string; description: string }[] =
   {
     kind: 'member',
     title: 'Join as a member',
-    description: 'Pay annual dues now and be counted as a current member.',
+    description: 'Pay yearly or lifetime dues and you are a member right away.',
   },
   {
     kind: 'friend',
@@ -79,11 +78,7 @@ export function AccountStep({ onDone: handleDone }: AccountStepProps): JSX.Eleme
 
   if (isAuthenticated && user) {
     return (
-      <Card
-        className="join-card join-card--narrow"
-        eyebrow={joinStepEyebrow('account')}
-        title="Your account"
-      >
+      <Card className="join-card" title="Your account">
         <p>
           You are signed in as <strong>{user.email}</strong>.
         </p>
@@ -98,7 +93,7 @@ export function AccountStep({ onDone: handleDone }: AccountStepProps): JSX.Eleme
   }
 
   if (sentTo !== null) {
-    return <VerificationSent email={sentTo} kind={kind} />;
+    return <VerificationSent email={sentTo} />;
   }
 
   const error = register.error instanceof ApiError ? register.error : null;
@@ -142,11 +137,7 @@ export function AccountStep({ onDone: handleDone }: AccountStepProps): JSX.Eleme
   }
 
   return (
-    <Card
-      className="join-card join-card--narrow"
-      eyebrow={joinStepEyebrow('account')}
-      title="Create your account"
-    >
+    <Card className="join-card" title="Create your account">
       <form ref={formRef} onSubmit={handleSubmit} noValidate>
         <fieldset className="join-kind">
           <legend>How would you like to join?</legend>
@@ -270,7 +261,7 @@ export function AccountStep({ onDone: handleDone }: AccountStepProps): JSX.Eleme
           <Button type="submit" disabled={register.isPending}>
             {register.isPending ? 'Creating…' : 'Create account'}
           </Button>
-          <Link to="/login?next=%2Fjoin">Already a member? Sign in</Link>
+          <Link to="/login?next=%2Fjoin">Already have an account? Sign in</Link>
           <RefusedSubmitNote count={refusal.count} />
         </div>
       </form>
@@ -287,7 +278,6 @@ function errorCode(error: ApiError): string | null {
 
 interface VerificationSentProps {
   email: string;
-  kind: PersonKind;
 }
 
 /**
@@ -295,13 +285,9 @@ interface VerificationSentProps {
  * signed in, since only following the link turns the donor into an account that
  * can sign in.
  */
-function VerificationSent({ email, kind }: VerificationSentProps): JSX.Element {
+function VerificationSent({ email }: VerificationSentProps): JSX.Element {
   return (
-    <Card
-      className="join-card join-card--narrow"
-      eyebrow={joinStepEyebrow('verify', kind)}
-      title="Check your email"
-    >
+    <Card className="join-card" title="Check your email">
       <p>
         We sent a verification message to {email}. Click the link in it to continue setting up your
         account.

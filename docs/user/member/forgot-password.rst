@@ -22,8 +22,8 @@ What you do
 #. Type the email address your account uses.
 #. Press **Email me a link**.
 #. The screen changes to **Check your email**: *If an account uses
-   marta.reyes@example.org, a reset link is on its way. The link can be used once
-   and expires in a few days.*
+   marta.reyes@example.org, a reset link is on its way. The link works once and
+   expires in 3 days.*
 #. Open the email and follow its link. It opens :doc:`reset-password`, where you
    choose the new password.
 

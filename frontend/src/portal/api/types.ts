@@ -838,8 +838,13 @@ export interface AircraftSummary {
   coverage: AircraftCoverage;
   insurance_is_current: boolean;
   insurance_expiration: IsoDate | null;
+  /** Each liability limit in cents; 0 when none is recorded. */
+  insurance_liability_per_occurrence_cents: number;
+  insurance_liability_per_person_cents: number;
   insurance_summary: string;
   insurance_verified: boolean;
+  /** The account that added the record, or null. */
+  created_by: number | null;
 }
 
 /** The register record; its insurance state is `insurance_verification` rather than a flag. */

@@ -5,9 +5,15 @@
  * missing aircraft with `POST /aircraft` through the full `<AircraftForm/>`, whose
  * N-number box offers the FAA registry's registrations as it is typed into.
  * `/profile/aircraft` uses it for the planes a member commonly flies.
+ *
+ * Enter in the search box adds the one aircraft a search found.  **Add a new
+ * aircraft** starts the form with the search text as its N-number only when that text
+ * is shaped like a registration (`isNNumber`), so a search for "piper", "Cessna 172",
+ * or "PA-28" leaves the box empty.  As soon as the form's N-number is one CalDART has on file, the form says so
+ * and offers **Add it to my list**, before anybody fills in the rest.
  */
 import { useCallback, useId, useRef, useState } from 'react';
-import type { JSX } from 'react';
+import type { JSX, KeyboardEvent, ReactNode } from 'react';
 
 import { ApiError } from '@/portal/api/client';
 import type { Aircraft } from '@/portal/api/types';
@@ -23,7 +29,7 @@ import { InsuranceDot } from './InsuranceDot';
 import { ServiceDot } from './ServiceDot';
 import { useAircraftSearch, useCreateAircraft } from './api';
 import { emptyAircraftValues } from './form';
-import { normalizeNNumber } from './insurance';
+import { isNNumber, normalizeNNumber } from './insurance';
 
 export interface AircraftPickerProps {
   onSelect: (aircraft: Aircraft) => void;
@@ -64,6 +70,21 @@ export function AircraftPicker({ onSelect, excludeIds = [] }: AircraftPickerProp
     onSelect(aircraft);
   };
 
+  // Enter adds the one match, so a search that found the plane needs no pointer.
+  const handleSearchKeyDown = (event: KeyboardEvent<HTMLInputElement>): void => {
+    const [only, ...rest] = results;
+    if (event.key !== 'Enter' || only === undefined || rest.length > 0) return;
+    event.preventDefault();
+    onSelect(only);
+  };
+
+  // What the add form says under its N-number: the record on file, if there is one.
+  const useOnFileNote = (nNumber: string): ReactNode =>
+    useOnFileLine(nNumber, (aircraft) => excludeIds.includes(aircraft.id), handleCreated);
+
+  const typed = term.trim();
+  const initialNNumber = isNNumber(typed) ? normalizeNNumber(typed) : '';
+
   return (
     <Card eyebrow="Aircraft" title="Find an aircraft">
       <Field
@@ -83,6 +104,7 @@ export function AircraftPicker({ onSelect, excludeIds = [] }: AircraftPickerProp
               setTerm(event.target.value);
               setAdding(false);
             }}
+            onKeyDown={handleSearchKeyDown}
           />
         )}
       </Field>
@@ -99,7 +121,11 @@ export function AircraftPicker({ onSelect, excludeIds = [] }: AircraftPickerProp
 
       {results.length > 0 ? (
         <>
-          <p className="muted aircraft-pick">Click on an aircraft to add it to your list.</p>
+          <p className="muted aircraft-pick">
+            {results.length === 1
+              ? 'Press Enter, or choose it, to add it to your list.'
+              : 'Choose an aircraft to add it to your list.'}
+          </p>
           <ul className="aircraft-results">
             {results.map((aircraft) => (
               <li key={aircraft.id} className="aircraft-result">
@@ -150,13 +176,14 @@ export function AircraftPicker({ onSelect, excludeIds = [] }: AircraftPickerProp
             Add an aircraft
           </h3>
           <AircraftForm
-            initial={emptyAircraftValues(normalizeNNumber(term))}
+            initial={emptyAircraftValues(initialNNumber)}
             submitLabel="Add aircraft"
             pending={create.isPending}
             serverErrors={fieldErrors}
             serverError={create.error}
             onSubmit={(payload) => create.mutate(payload, { onSuccess: handleCreated })}
             onCancel={handleStopAdding}
+            useNNumberNote={useOnFileNote}
           />
           {create.isError && Object.keys(fieldErrors ?? {}).length === 0 ? (
             <p className="field__error" role="alert">
@@ -176,4 +203,35 @@ export function AircraftPicker({ onSelect, excludeIds = [] }: AircraftPickerProp
 function joinNNumbers(nNumbers: string[]): string {
   if (nNumbers.length < 3) return nNumbers.join(' and ');
   return `${nNumbers.slice(0, -1).join(', ')}, and ${nNumbers.at(-1)}`;
+}
+
+/**
+ * The line under the add form's N-number: null, or, once the N-number is one CalDART has
+ * on file, that it is, with **Add it to my list** (`onAdd`), or that it is on the
+ * reader's list already (`isListed`).  Saying so at the pick spares the reader a form
+ * that would be refused at the end.
+ */
+function useOnFileLine(
+  nNumber: string,
+  isListed: (aircraft: Aircraft) => boolean,
+  onAdd: (aircraft: Aircraft) => void,
+): ReactNode {
+  const debounced = useDebounced(isNNumber(nNumber) ? nNumber : '');
+  const found = useAircraftSearch(debounced).data?.exact ?? null;
+  if (found === null || found.n_number !== normalizeNNumber(nNumber)) return null;
+  if (isListed(found)) {
+    return (
+      <p className="aircraft-on-file" role="status">
+        {found.n_number} is already on your list.
+      </p>
+    );
+  }
+  return (
+    <p className="aircraft-on-file cluster" role="status">
+      <span>{found.n_number} is already on file.</span>
+      <Button variant="secondary" small onClick={() => onAdd(found)}>
+        Add it to my list
+      </Button>
+    </p>
+  );
 }

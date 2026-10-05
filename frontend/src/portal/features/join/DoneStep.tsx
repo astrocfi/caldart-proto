@@ -4,8 +4,10 @@
  * A member also sees the members-only pages they can now read.  A friend sees what
  * being a friend means instead, since those pages are for members.  The receipt is
  * mentioned only after a payment in this visit: a friend who skipped paying, or a
- * member who signed in and was sent here, has none coming.
+ * member who signed in and was sent here, has none coming.  Reaching this step lets go
+ * of the pay step a friend's tab held (`holdFriendPayStep`).
  */
+import { useEffect } from 'react';
 import type { JSX } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -17,7 +19,7 @@ import { DateText } from '@/portal/components/DateText';
 import { EmptyState } from '@/portal/components/EmptyState';
 import { MembershipDot } from '@/portal/components/StatusDot';
 import { useMembership } from '@/portal/features/profile/api';
-import { joinStepEyebrow } from './steps';
+import { holdFriendPayStep } from './steps';
 import './join.css';
 
 export interface DoneStepProps {
@@ -34,6 +36,8 @@ export interface DoneStepProps {
 export function DoneStep({ joiningAs, hasPaid }: DoneStepProps): JSX.Element {
   const membership = useMembership();
   const siteConfig = useSiteConfig();
+  // Reaching the end lets go of a friend's pay step, which held them in the wizard.
+  useEffect(() => holdFriendPayStep(null), []);
   const membersPages = siteConfig.data?.members_pages ?? [];
   const status = membership.data ?? null;
   // The kind being joined as, not the membership: a member whose payment has not
@@ -44,7 +48,6 @@ export function DoneStep({ joiningAs, hasPaid }: DoneStepProps): JSX.Element {
     <>
       <Card
         className="join-card"
-        eyebrow={joinStepEyebrow('done')}
         title={status?.status === 'current' || isFriend ? 'Welcome to CalDART' : 'Almost there'}
         footer={
           <>

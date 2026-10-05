@@ -40,6 +40,8 @@ function tree() {
         <Route path="/profile" element={<Body label="profile body" />} />
         <Route path="/profile/aircraft" element={<Body label="aircraft body" />} />
         <Route path="/leader/aircraft" element={<Body label="leader aircraft body" />} />
+        <Route path="/login" element={<Body label="sign in body" />} />
+        <Route path="/forgot-password" element={<Body label="forgot body" />} />
       </Route>
     </Routes>
   );
@@ -247,6 +249,16 @@ describe('PortalLayout', () => {
 
       expect(await screen.findByRole('button', { name: 'Sign out' })).toBeInTheDocument();
     });
+  });
+
+  it.each([
+    ['/login', 'sign in body'],
+    ['/forgot-password', 'forgot body'],
+  ])('offers no header Sign in on %s, the way in itself', async (route, body) => {
+    renderWithProviders(tree(), { route });
+
+    await screen.findByText(body);
+    expect(screen.queryByRole('link', { name: 'Sign in' })).not.toBeInTheDocument();
   });
 
   it('offers an anonymous visitor a way to sign in instead of an identity', async () => {

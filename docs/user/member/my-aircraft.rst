@@ -16,21 +16,24 @@ What you see
 ============
 
 When CalDART's coverage policy has a note to members, such as *Helicopters are not
-covered*, it stands at the top of the **Attached aircraft** card. It says which
+covered*, it stands at the top of the **Your aircraft** card. It says which
 airplanes CalDART's insurance leaves out; a DART leader treats an airplane it leaves out
 as a no-go.
 
-The **Attached aircraft** card lists each airplane on your profile: its N-number,
-make, and model, its insurance status, and the liability limits and expiry date on
-file, for example *$1,000,000 / $100,000 · exp 03/01/2027*. The status reads:
+The **Your aircraft** card lists each airplane on your profile: its N-number, make,
+and model, its insurance status with the expiry date on file, and the liability
+limits, each named, for example *Liability $1,000,000 per occurrence, $100,000 per
+person*. The status uses the same words as the search results below and every other
+aircraft list:
 
-* **Current**: a policy is on file and has not expired;
-* **Expired**: the expiry date on file has passed;
-* **Not on file**: the record has no insurance expiry date at all.
+* **Insured to 03/01/2027**: a policy is on file and runs more than 30 days yet;
+* **Expiring 10/31/2026**: it runs out within 30 days;
+* **Expired 03/02/2026**: the expiry date on file has passed;
+* **No insurance on file**: the record has no insurance expiry date at all.
 
 After the status comes the insurance's mark: **Verified** once a DART leader or a
 verifier has checked the policy against its documents, or **Not yet verified**. An
-airplane whose status reads **Not on file** carries no mark, since there is no policy to
+airplane whose status reads **No insurance on file** carries no mark, since there is no policy to
 verify yet; a DART leader still treats it as a no-go, and a verifier still sees its
 insurance as not verified. A DART leader treats an airplane whose insurance is not
 verified as a no-go.
@@ -39,10 +42,12 @@ An airplane the coverage policy leaves out reads **Not covered** beside a red do
 reason follows the limits, such as *Not covered: helicopters are excluded by CalDART's
 policy*.
 
-A record with no insurance reads *No insurance on file* in place of the limits.
-With nothing attached, the card says **No aircraft attached yet**.
+With nothing attached, the card says **No aircraft yet**.
 
-Beside each airplane are **Edit** and a trashcan, **Remove**.
+Beside each airplane you added yourself are **Edit** and a trashcan, **Remove**. An
+airplane somebody else added has no **Edit**; in its place the line reads *Added by
+someone else. To correct it, write to* and the site's contact address, which opens
+your email program (see *Editing an airplane* below).
 
 Below it, the **Find an aircraft** card searches CalDART's aircraft list.
 
@@ -52,12 +57,15 @@ Adding an airplane you fly
 
 #. Type in **Search CalDART's aircraft list**: the N-number, or the make, model, or
    owner if you do not have the number to hand.
-#. The results say *Click on an aircraft to add it to your list.* Each shows its
+#. The results run the card's width and say *Choose an aircraft to add it to your
+   list.*, or, when the search found one, *Press Enter, or choose it, to add it to
+   your list.* Each shows its
    N-number, make and model, its insurance status (**Insured**, **Expiring soon**,
    **Insurance expired**, or **No insurance on file**), and **Out of service** for
    an airplane taken out of use.
-#. Click the airplane. It is attached straight away, *N12345 added.* appears, and
-   it joins the list above, where you are taken to its line.
+#. Click the airplane, or press Enter in the search box when it is the only one. It
+   is attached straight away, *N12345 added.* appears, and it joins the list above,
+   where you are taken to its line.
 
 You can type a registration however you like. CalDART writes every N-number one
 way: upper case, no punctuation, and an N at the front. So 12345, n12345, and
@@ -79,8 +87,9 @@ register** in its place and takes you to the first box. **Cancel**, or Escape, c
 The form is the whole record, with every box the record has when you edit it later:
 
 * **N-number** (required). The box writes the N and takes digits first, then at
-  most two letters, so 172sp becomes N172SP. Anything you typed in the search box is
-  already in it. As you type, the FAA data's airplanes whose N-number starts
+  most two letters, so 172sp becomes N172SP. A registration you typed in the search
+  box is already in it; a search for a make or a model, such as piper, Cessna 172, or
+  PA-28, leaves it empty. As you type, the FAA data's airplanes whose N-number starts
   with what you typed are listed under the box: see :ref:`registry-list`.
 * **Year**, four digits.
 * **Aircraft type** (required): type the make, the model, or a designator, for example
@@ -131,6 +140,12 @@ out of date.
 An airplane the registry does not have simply does not appear in the list. Finish
 typing its N-number and fill the rest of the form in by hand.
 
+If CalDART's aircraft list has the airplane already, the form says so as soon as the
+N-number is in the box, picked or typed, before you fill in anything else: *N30075
+is already on file.* with **Add it to my list**, which attaches that record and
+closes the form. An airplane on your list already reads *N30075 is already on your
+list.* While that line shows, the list of FAA airplanes under the box stays shut.
+
 
 Editing an airplane
 ===================
@@ -141,7 +156,8 @@ the form opens with every detail, as it was added: **N-number**, **Year**, **Air
 **Category**, and **Airworthiness**; **Owner type** (Individual, FBO, or Flying club), **Owner name**, and
 **Owner contact**; and **Carrier**, **Policy number**, **Liability per occurrence**,
 **Liability per person**, **Hull**, and **Insurance expires**. Amounts are in US
-dollars, and the commas fill in as you type. To change the type, type in **Aircraft
+dollars, and the commas fill in as you type; a limit nobody recorded shows as an
+empty box. To change the type, type in **Aircraft
 type** and pick the new one from the list. Picking a type with **Seats** empty fills
 in its seats. Typing in **N-number** lists the registry's airplanes again, and
 picking one fills the form from it (:ref:`registry-list`). Press **Save changes**;
@@ -149,10 +165,10 @@ picking one fills the form from it (:ref:`registry-list`). Press **Save changes*
 insurance's verification, and the mark reads **Not yet verified** until a DART
 leader or a verifier checks the new policy.
 
-For an airplane somebody else added, **Edit** shows **Someone else added this
-aircraft**: *Ask a CalDART account administrator to correct it.* The list is
-shared, so flying an airplane does not make its record yours to change. An account
-administrator is the exception: for them **Edit** opens any airplane on the list.
+An airplane somebody else added offers no **Edit**, and its line says to write to
+the site's contact address instead. The list is shared, so flying an airplane does
+not make its record yours to change. An account administrator is the exception: for
+them **Edit** opens any airplane on the list.
 
 
 Removing an airplane
@@ -172,9 +188,10 @@ If something looks wrong
 *Pick the aircraft type from the list.* means the **Aircraft type** box holds typing
 that was never picked from the list. If the list has no entry for your airplane, ask
 an account administrator to add its type. *An aircraft with this N-number is already
-on file.* means CalDART's aircraft list has it already. Search for it and attach that record.
+on file.* means CalDART's aircraft list has it already: press **Add it to my list**
+under the N-number, or search for it and attach that record.
 *Use a US registration like N172SP: N, then digits, then at most two letters.* means
 the N-number cannot be a US registration. *Enter an amount of $0 or more.* means a
-money box holds something that is not an amount. If the insurance status says **Not on
-file** and the airplane is insured, the record has no expiry date: add it if you
-added the airplane, or ask an account administrator.
+money box holds something that is not an amount. If the insurance status says **No
+insurance on file** and the airplane is insured, the record has no expiry date: add
+it if you added the airplane, or write to the contact address on its line.
