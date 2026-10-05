@@ -2,7 +2,8 @@
 
 ``send_year_statements`` reaches every active account -- member, friend or
 donor -- with a settled contribution in a calendar year, once each: a rerun
-for a year already sent reaches nobody again.
+for a year already sent reaches nobody again, and a year whose giving was all
+refunded reaches nobody at all.
 """
 
 from __future__ import annotations
@@ -271,6 +272,30 @@ def test_send_year_statements_reports_the_net_total_as_the_actions_amount() -> N
     run = send_year_statements(YEAR)
 
     assert run.actions[0].amount_cents == 6_000
+
+
+def test_send_year_statements_sends_nothing_for_a_year_wholly_refunded(
+    mailoutbox: list[EmailMultiAlternatives],
+) -> None:
+    """A giver whose only gift came back in full is sent no $0.00 statement."""
+    giver = _giver()
+    payment = _settled_gift(giver, cents=5_000)
+    RefundFactory(payment=payment, amount_cents=5_000)
+
+    run = send_year_statements(YEAR)
+
+    assert (run.sent, run.skipped, run.failed, mailoutbox) == (0, 0, 0, [])
+
+
+def test_a_practice_run_lists_no_one_whose_year_was_wholly_refunded() -> None:
+    """The dry run reports exactly what a live run would, so no $0.00 line appears."""
+    giver = _giver()
+    payment = _settled_gift(giver, cents=5_000)
+    RefundFactory(payment=payment, amount_cents=5_000)
+
+    run = send_year_statements(YEAR, dry_run=True)
+
+    assert run.actions == []
 
 
 # --------------------------------------------------------------------------

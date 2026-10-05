@@ -150,6 +150,8 @@ Year-end statements
 
 Each January 15th at 6:45 AM CalDART emails every active member, friend, and donor who gave in
 the year before a statement of their gifts for their tax return, with the statement attached.
+Somebody whose every gift that year was refunded is sent nothing, since there is nothing to
+state.
 The subject reads *CalDART: your 2025 contribution statement*, with the year and your
 organization's name.
 
