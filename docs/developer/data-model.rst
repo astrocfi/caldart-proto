@@ -1681,13 +1681,13 @@ suspended term still makes somebody a member: it is listed under
 status reads ``friend`` (see :ref:`membership-status`).  ``kind_annotation(today)`` is the same rule as a ``Case``
 expression, and ``membership_annotations`` carries it as ``effective_kind``;
 everything that reads the effective kind (the rosters, the member check, the
-reminder and renewal scans, bulk email's kind filter, the members-only wall, and
-the portal's **Renew** entry) treats a member who has never paid as a friend.
-The lists show such an account by the kind it chose:
-``members.services.listed_kind(row)`` is ``member`` for a row awaiting its first
-term (the ``awaits_first_term`` annotation) and the effective kind otherwise, and
-it is what the member list's **Kind** column and ``?kind=`` filter, the member
-report, and the roles report read (``listed_kind_q`` is the filter's ``Q``).  ``members.lifecycle.convert_due_friends(today)`` writes the due conversions
+reminder and renewal scans, the members-only wall, and the portal's **Renew** entry)
+treats a member who has never paid as a friend.  The lists show such an account by the
+kind it chose: ``members.services.listed_kind(row)`` is ``member`` for a row awaiting
+its first term (the ``awaits_first_term`` annotation) and the effective kind otherwise,
+and it is what the member list's **Kind** column and ``?kind=`` filter, the member
+report, the roles report, and so bulk email's adds and the kind a batch row records
+read (``listed_kind_q`` is the filter's ``Q``).  ``members.lifecycle.convert_due_friends(today)`` writes the due conversions
 down (``kind = friend``, ``friend_on = null``, audit ``account.kind``); the daily
 reminder run calls it.  ``accounts.services.set_kind`` is the one way a kind is
 written by hand (by an administrator's edit that changes the kind, the

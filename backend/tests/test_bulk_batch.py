@@ -38,8 +38,8 @@ pytestmark = pytest.mark.django_db
 
 MARIN = {"county": "Marin"}
 FRIENDS_IN_MARIN = {"kind": "friend", "county": "Marin"}
-# Every account without a paid term is a friend, the role fixtures among them, so a
-# filter on kind alone would choose them too; the county keeps it to a test's people.
+# A filter on kind alone would choose the role fixtures too, a role fixture with no paid
+# term among the members; the county keeps it to a test's people.
 FRIENDS_IN_MARIN_AND_NAPA = {"kind": "friend", "county": "Marin,Napa"}
 
 
@@ -149,11 +149,21 @@ def test_a_row_keeps_the_name_address_kind_and_dart_at_the_add(
     )
 
 
-def test_a_member_with_no_term_is_kept_as_a_friend(bulk: BulkEmail, management: User) -> None:
-    """A member who has not paid, whose membership reads none, is targeted as a friend."""
+def test_a_member_with_no_term_is_kept_as_a_member(bulk: BulkEmail, management: User) -> None:
+    """A member who has not paid, whose membership reads none, is recorded as a member."""
     make_person("unpaid@example.test", "Una", "Paid")
     batch.add_filters(bulk, MARIN, actor=management)
-    assert bulk.recipients.get().kind == "friend"
+    assert bulk.recipients.get().kind == "member"
+
+
+@pytest.mark.parametrize(("kind", "chosen"), [("member", True), ("friend", False)])
+def test_a_member_with_no_term_is_added_by_members_only_alone(
+    bulk: BulkEmail, management: User, kind: str, *, chosen: bool
+) -> None:
+    """Members only takes a member with no term yet; Friends only leaves them out."""
+    make_person("unpaid@example.test", "Una", "Paid")
+    batch.add_filters(bulk, {"kind": kind, "county": "Marin"}, actor=management)
+    assert bulk.recipients.filter(email="unpaid@example.test").exists() is chosen
 
 
 def test_a_donor_is_never_added(bulk: BulkEmail, management: User) -> None:

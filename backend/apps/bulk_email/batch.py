@@ -648,11 +648,12 @@ def _folded(address: str) -> str:
 def _account_kind(account: User) -> str:
     """``member`` or ``friend``: the account's kind as worked out for today.
 
-    An account counts as a friend exactly when its membership status is ``friend`` or
-    ``none``: a friend by kind, a member whose friend date has come, or one who holds no
-    term yet, which owes its dues before it is a member.
+    An account counts as a friend exactly when its membership status is ``friend``: a
+    friend by kind, or a member whose friend date has come.  A member who holds no term
+    yet (``none``) is a member, the kind the member list and the report show, so a
+    *Members only* add takes them and a *Friends only* add does not.
     """
-    if membership_of(account)["status"] in (MembershipState.FRIEND, MembershipState.NONE):
+    if membership_of(account)["status"] == MembershipState.FRIEND:
         return RecipientKind.FRIEND
     return RecipientKind.MEMBER
 

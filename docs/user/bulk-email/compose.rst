@@ -23,7 +23,8 @@ The people you add make up the recipient list: everyone this email goes to. You 
 group at a time, with the filters the member list uses:
 
 - **Kind**: **Members only** or **Friends only**. A friend is somebody who supports CalDART
-  without a paid membership.
+  without paying dues; a member who has not paid yet counts with the members, as on
+  :doc:`../admin/members`.
 - **Search**: a name or an email address.
 - **Membership**, **Certificate**, **Medical**, **DART** (a Disaster Airlift Response Team,
   one of CalDART's local groups), **County**, and **Role**.
