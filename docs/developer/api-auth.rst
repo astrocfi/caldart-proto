@@ -117,8 +117,8 @@ Every endpoint that returns an account returns the same object:
    The membership summary from ``apps.members.services``.  ``status`` is one of
    ``current``, ``expired``, ``friend``, ``none``, and ``donor``; an effective
    friend's is ``friend``, with ``expires_on`` and ``plan`` null, except that a
-   member who has never paid or been granted a term reads ``none`` (*No membership
-   yet*), with the same nulls (see :ref:`kinds of account <account-kinds>`).  ``expires_on`` is
+   member who has never paid or been granted a term reads ``none`` (*Not yet
+   paid*), with the same nulls (see :ref:`kinds of account <account-kinds>`).  ``expires_on`` is
    the end of the member's *unbroken* coverage, so an early renewal shows next
    year's date immediately, and it is ``null`` for a lifetime membership.
    A single-user endpoint such as ``/auth/me`` calls ``membership_status``,

@@ -165,7 +165,7 @@ describe('<DashboardPage/>', () => {
       status: none,
     });
 
-    await screen.findByRole('heading', { name: 'You have no membership yet' });
+    await screen.findByRole('heading', { name: 'Your membership is not yet paid' });
     expect(screen.queryByText(/friend of CalDART/)).not.toBeInTheDocument();
   });
 
@@ -176,9 +176,9 @@ describe('<DashboardPage/>', () => {
       status: none,
     });
 
-    await screen.findByRole('heading', { name: 'You have no membership yet' });
+    await screen.findByRole('heading', { name: 'Your membership is not yet paid' });
     expect(
-      card('You have no membership yet').getByRole('link', { name: 'Pay dues' }),
+      card('Your membership is not yet paid').getByRole('link', { name: 'Pay dues' }),
     ).toHaveAttribute('href', '/membership/join');
   });
 

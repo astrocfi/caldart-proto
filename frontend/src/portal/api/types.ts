@@ -31,7 +31,7 @@ export interface Role {
 /**
  * A donor's membership reads `donor`; no screen draws it, since a donor cannot sign in.
  * `none` is an account that chose to be a member and holds no term yet, such as one an
- * administrator created that has not paid: *No membership yet*, never *Friend*.
+ * administrator created that has not paid: *Not yet paid*, never *Friend*.
  */
 export type MembershipState = 'current' | 'expired' | 'friend' | 'none' | 'donor';
 

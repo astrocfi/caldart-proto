@@ -381,7 +381,7 @@ def test_no_medical_on_file_is_never_current(api_client: APIClient, dart_leader:
     assert data["go_no_go"]["medical"] is False
 
 
-def test_a_member_who_never_paid_reads_no_membership_yet_and_is_a_no_go(
+def test_a_member_who_never_paid_reads_not_yet_paid_and_is_a_no_go(
     api_client: APIClient, dart_leader: User
 ) -> None:
     """A member who has never held a term reads ``none``, a no-go for membership."""

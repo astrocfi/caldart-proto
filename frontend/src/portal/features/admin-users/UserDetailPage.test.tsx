@@ -596,7 +596,7 @@ describe('UserDetailPage', () => {
     });
     stubDetail({ target: noTerm });
     renderDetail();
-    expect(await screen.findByText('No membership yet')).toBeInTheDocument();
+    expect(await screen.findByText('Not yet paid')).toBeInTheDocument();
   });
 
   it('grays out System administrator for a user administrator, and says why', async () => {

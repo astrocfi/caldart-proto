@@ -603,7 +603,7 @@ member check, so no status dot for it is drawn anywhere.
    * - ``friend``
      - Friend
    * - ``none``
-     - No membership yet
+     - Not yet paid
    * - ``donor``
      - Donor
 
@@ -1673,7 +1673,7 @@ nobody is a member until they have paid or been granted a term.
 Otherwise it is ``member``.  So a member who registered and never paid, one
 whose only term was canceled, and one whose only term starts in the future all
 count as ``friend`` until a term covers them, though their membership reads
-``none`` (*No membership yet*) rather than ``friend`` (see
+``none`` (*Not yet paid*) rather than ``friend`` (see
 :ref:`membership-status`).  A deactivated account whose
 started terms are all suspended keeps the effective kind ``member``, since a
 suspended term still makes somebody a member: it is listed under
@@ -2531,8 +2531,8 @@ The service
     term was canceled.  Its effective kind is ``friend``, so it counts as a friend for the
     renewal and reminder scans, the members-only wall, and the member check, but as a
     member, the kind it chose, for the member list, the member and roles reports, and
-    bulk email's adds (``listed_kind``); it reads *No membership
-    yet* rather than *Friend*.  ``expires_on`` and ``plan`` are ``None`` and
+    bulk email's adds (``listed_kind``); it reads *Not yet
+    paid* rather than *Friend*.  ``expires_on`` and ``plan`` are ``None`` and
     ``is_lifetime`` is ``False``.  A term granted by hand never starts after the day
     it is granted (:doc:`api-members`), so no such account is waiting for a term
     already granted.

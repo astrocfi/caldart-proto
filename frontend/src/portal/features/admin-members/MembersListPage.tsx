@@ -207,11 +207,10 @@ function memberCells(isAccountAdmin: boolean): Record<string, ReportCell<MemberR
       render: (row) => row.dart ?? 'Unaffiliated',
     },
     status: {
-      // Room for the longest state, "No membership yet", beside its dot.
+      // Room for the longest state, "Expiring soon" for an expiry that is close (which
+      // the Expires column dates), beside its dot.
       width: '10.5rem',
       keepInSight: true,
-      // A dot and its word, "Expiring soon" for an expiry that is close, which the
-      // Expires column dates.
       render: (row) => <MembershipDot membership={row.membership} />,
     },
     kind: { width: '6rem', dropOrder: 4, render: kindLabel },

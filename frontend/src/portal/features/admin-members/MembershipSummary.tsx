@@ -71,7 +71,7 @@ export function MembershipSummary({
     );
   }
   if (hasNone) {
-    const none = facts.hasTerms ? 'No membership in force' : 'No membership yet';
+    const none = facts.hasTerms ? 'No membership in force' : 'Not yet paid';
     return (
       <span className="membership-summary">
         <StatusDot tone="none" label={grantHint ? `${none}: grant a term on Memberships` : none} />

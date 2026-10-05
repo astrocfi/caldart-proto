@@ -100,7 +100,7 @@ describe('MemberAccountActions', () => {
     expect(screen.queryByRole('button', { name: 'Make a friend' })).not.toBeInTheDocument();
   });
 
-  it('offers a member with no membership yet no switch to friend, as the server refuses it', () => {
+  it('offers a member who has not paid yet no switch to friend, as the server refuses it', () => {
     stub();
     renderActions(makeDetail({ kind: 'member', membership: { ...FRIEND, status: 'none' } }));
 

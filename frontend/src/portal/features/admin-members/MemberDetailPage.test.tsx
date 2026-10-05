@@ -131,7 +131,7 @@ describe('MemberDetailPage', () => {
     renderDetail();
 
     expect(
-      await screen.findByText('No membership yet: grant a term on Memberships'),
+      await screen.findByText('Not yet paid: grant a term on Memberships'),
     ).toBeInTheDocument();
   });
 
@@ -144,7 +144,7 @@ describe('MemberDetailPage', () => {
     server.use(...detailHandlers(noTerm));
     renderDetail();
 
-    const header = (await screen.findByText(/No membership yet/)).closest('.cluster');
+    const header = (await screen.findByText(/Not yet paid/)).closest('.cluster');
     expect(header?.textContent).not.toMatch(/expires|joined/);
   });
 

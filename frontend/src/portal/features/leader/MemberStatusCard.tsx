@@ -43,7 +43,7 @@ const MEMBERSHIP_TONE: Record<MembershipState, StatusTone> = {
  */
 function membershipNoGo(state: MembershipState): string {
   if (state === 'expired') return 'Membership expired';
-  if (state === 'none') return 'No membership yet';
+  if (state === 'none') return 'Not yet paid';
   return 'Friend of CalDART, not a member';
 }
 

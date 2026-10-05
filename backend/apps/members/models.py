@@ -500,8 +500,8 @@ class MembershipState(models.TextChoices):
     current and never expired, whatever terms they held as a member.  ``NONE`` is an
     account that chose to be a member and holds no term that has started yet, such as
     one an administrator created that has not paid: it is still a friend by
-    ``account_kind`` (it owes the dues before it is anything more), but it reads *No
-    membership yet* rather than *Friend*, so a list never calls it a friend.  ``DONOR``
+    ``account_kind`` (it owes the dues before it is anything more), but it reads *Not
+    yet paid* rather than *Friend*, so a list never calls it a friend.  ``DONOR``
     is what a donor account reads, and a donor never appears in a member list.  These
     labels are what the member list's status filter, the member report, and the
     portal's status select all show, so a change here is a change everywhere at once.
@@ -510,7 +510,7 @@ class MembershipState(models.TextChoices):
     CURRENT = "current", "Current"
     EXPIRED = "expired", "Expired"
     FRIEND = "friend", "Friend"
-    NONE = "none", "No membership yet"
+    NONE = "none", "Not yet paid"
     DONOR = "donor", "Donor"
 
 

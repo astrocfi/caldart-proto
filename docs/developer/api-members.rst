@@ -136,8 +136,8 @@ The row is ``MemberRow`` in ``frontend/src/portal/api/types.ts``.  ``kind`` is
 <account-kinds>`) that the **Kind** column, the ``?kind=`` filter, and the member
 report all use: a donor is never a row.  An effective friend's ``membership.status``
 is ``friend``, except for a row whose stored ``kind`` is ``member`` and who holds no
-started term that is active, expired, or suspended, which reads ``none`` (*No
-membership yet*): nobody is a member until a paid or granted term has started, and
+started term that is active, expired, or suspended, which reads ``none`` (*Not
+yet paid*): nobody is a member until a paid or granted term has started, and
 such a row's ``kind`` is ``member``, the kind it chose.  A member whose only started
 terms are suspended reads ``friend`` with ``kind`` ``member``.  ``joined_on`` is the start of the earliest membership term, or ``null`` for
 somebody who has never had one.  ``profile_updated_at`` is when profile

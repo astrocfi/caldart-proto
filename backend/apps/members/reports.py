@@ -61,8 +61,8 @@ class RowContext(TypedDict):
 #: ``status`` cell is the :class:`~apps.members.models.MembershipState` label,
 #: never the slug, and the ``certificate`` cell abbreviates the airline
 #: transport pilot certificate to "ATP" through :data:`REPORT_CERTIFICATE_LABELS`,
-#: which keeps that column narrow.  The status is Current, Expired, or
-#: No membership yet, or Friend: a donor is never in the report.  ``kind`` is the
+#: which keeps that column narrow.  The status is Current, Expired, Not yet
+#: paid, or Friend: a donor is never in the report.  ``kind`` is the
 #: listed kind's label (``listed_kind``), Member or Friend, so a member whose change
 #: to friend has come reads Friend, and one who chose to be a member and has not yet
 #: paid reads Member.  The eleven

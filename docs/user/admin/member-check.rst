@@ -68,7 +68,7 @@ current and the pilot certificate, the medical, and the photo ID are all verifie
 *Membership and medical are current and verified* beside it. Otherwise it reads **NO-GO**
 and names each reason:
 
-- *Membership expired*; *No membership yet* for somebody who joined as a member and has
+- *Membership expired*; *Not yet paid* for somebody who joined as a member and has
   never paid; or, for a friend, *Friend of CalDART, not a member*. A friend pays no dues,
   so a friend is always a NO-GO on membership.
 - *Not a pilot* for somebody with no pilot certificate. It is their only reason besides the
@@ -91,8 +91,8 @@ Under the band is the person's name, then one line: their DART, such as *Montere
 *No DART*), *DART leader* and *Verifier* when they hold those roles, their phone number, and
 their email address. Tap the number to call them, or the address to write to them.
 
-**Membership** shows the status (**Current**, **Expiring soon**, **Expired**, **No
-membership yet**, **Friend**, or **Never expires** for a life member), then the plan and the expiry date. A membership
+**Membership** shows the status (**Current**, **Expiring soon**, **Expired**, **Not
+yet paid**, **Friend**, or **Never expires** for a life member), then the plan and the expiry date. A membership
 counts as current up to and including its last day.
 
 **Medical** shows **Current**, **Expired** once its date has passed, or **Not current**

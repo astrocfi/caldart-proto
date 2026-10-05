@@ -100,7 +100,7 @@ describe('MemberLedgerPage', () => {
     expect(within(table).getByText('Annual and contribution')).toBeInTheDocument();
   });
 
-  it('says nothing of renewals or dues to somebody with no membership yet', async () => {
+  it('says nothing of renewals or dues to somebody who has not paid yet', async () => {
     const ledger = makeLedger({ statement_years: [] });
     serveLedger({
       ...ledger,

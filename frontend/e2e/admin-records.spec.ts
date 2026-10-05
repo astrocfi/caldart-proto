@@ -68,7 +68,7 @@ test('a member record with no term reads whole at phone width, with no sideways 
   const path = await createMember(page, uniqueEmail('noterm'));
   await page.setViewportSize(PHONE);
   await page.goto(path);
-  await expect(page.getByText(/No membership yet/)).toBeVisible();
+  await expect(page.getByText(/Not yet paid/)).toBeVisible();
 
   const overflow = await page.evaluate(
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,

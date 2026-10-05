@@ -75,7 +75,7 @@ SEEDED_STORED_FRIENDS = 8
 SEEDED_EFFECTIVE_FRIENDS = SEEDED_STORED_FRIENDS
 
 #: The generated joiners who chose member and never paid, whose membership reads
-#: ``none`` (*No membership yet*).
+#: ``none`` (*Not yet paid*).
 SEEDED_AWAITING_FIRST_TERM = 4
 
 #: The donors ``seed_demo`` makes, and the gifts they gave between them.

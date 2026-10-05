@@ -114,7 +114,7 @@ const RECENT_PAYMENT_COLUMNS: Column<PaymentSummary>[] = [
  * read, what have I paid.  Nobody reaches it before the join wizard is finished (an
  * unverified address, an incomplete profile, and an unpaid joiner are all held
  * there), so it never asks for any of those.  An account an administrator created
- * reaches it before paying, and its card reads *You have no membership yet* with **Pay
+ * reaches it before paying, and its card reads *Your membership is not yet paid* with **Pay
  * dues**.  The renewal call to action takes an accent edge inside 30 days.  A friend's
  * membership card says what being a friend means and offers membership instead
  * of a renewal.  A member's card leads with **Renew**; becoming a friend is offered on
@@ -355,6 +355,6 @@ function MembershipHeadline({
     return <>{status.is_lifetime ? 'Lifetime member' : 'Your membership is current'}</>;
   }
   if (status.status === 'expired') return <>Your membership has expired</>;
-  if (status.status === 'none') return <>You have no membership yet</>;
+  if (status.status === 'none') return <>Your membership is not yet paid</>;
   return <>You are a friend of CalDART</>;
 }

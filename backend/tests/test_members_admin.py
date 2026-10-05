@@ -451,7 +451,7 @@ def test_ordering_by_pilot_ranks_current_medicals_first(
     assert order.index("lapsed@example.test") < order.index("nonpilot@example.test")
 
 
-def test_a_member_who_never_paid_is_listed_under_no_membership_yet_alone(
+def test_a_member_who_never_paid_is_listed_under_not_yet_paid_alone(
     account_admin_client: APIClient, user_factory: type[UserFactory]
 ) -> None:
     """Somebody who chose member and has not paid reads none, in no other bucket."""
@@ -1270,7 +1270,7 @@ def test_patch_a_term_changes_its_end_date_status_and_note(
 def test_patch_a_term_to_canceled_drops_the_membership(
     account_admin_client: APIClient, population: dict[str, User]
 ) -> None:
-    """Canceling the only term drops it, so the member reads as no membership yet."""
+    """Canceling the only term drops it, so the member reads as not yet paid."""
     term = first_membership(population["current"])
     response = account_admin_client.patch(
         membership_url(term), {"status": "canceled"}, format="json"

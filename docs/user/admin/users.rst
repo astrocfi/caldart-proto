@@ -99,7 +99,7 @@ The report lists active accounts only, whatever **Account status** shows, and fo
 the **Email** filter. It follows the screen's **Search**, the role chosen under **Role**,
 which leaves that one section, and **Member** or **Friend** under **Kind**. The
 report's Kind is the account's kind, except that a member whose change to a friend has come
-reads Friend there; a member who has not paid yet reads Member, with *No membership yet*
+reads Friend there; a member who has not paid yet reads Member, with *Not yet paid*
 under Membership.
 
 **Columns** chooses the columns of the table on screen and of the two downloads together.

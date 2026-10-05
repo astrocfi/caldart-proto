@@ -36,7 +36,7 @@ def frozen() -> Iterator[date]:
         yield TODAY
 
 
-def test_no_memberships_is_no_membership_yet(member: User, frozen: date) -> None:
+def test_no_memberships_is_not_yet_paid(member: User, frozen: date) -> None:
     """A member with no membership terms at all has never paid, so reports ``none``."""
     assert membership_status(member) == {
         "status": "none",

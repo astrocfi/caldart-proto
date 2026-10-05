@@ -162,7 +162,7 @@ to action, chosen by ``members_wall_state``:
 ===============  =========================================================
 
 Those four are every state a reader the wall stops can be in: a signed-in
-account is current (and so let through), expired, without a membership yet, or a
+account is current (and so let through), expired, not yet paid, or a
 friend, and a donor cannot sign in.
 
 Who gets through is ``User.can_access_members_content`` (:doc:`data-model`): a current

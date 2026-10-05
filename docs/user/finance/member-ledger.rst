@@ -46,7 +46,7 @@ or **Automatic renewal and contribution**. It shows:
   It is the same wording the member was emailed.
 
 A member with no standing authority sees *This member renews by hand.* A friend, or a
-member with no membership yet, who holds no standing authority has no such card.
+member who has not paid yet, who holds no standing authority has no such card.
 
 Payments
 ~~~~~~~~
@@ -69,7 +69,7 @@ The **Contribution statements** card has a button for every calendar year in whi
 member gave something beyond their dues. Each downloads that year's statement as a PDF,
 the same document the member can download from their own **Payments** screen. A member
 who never gave beyond their dues sees *This member has not given anything beyond their
-dues.*, and a friend or a member with no membership yet *This person has not given
+dues.*, and a friend or a member who has not paid yet *This person has not given
 anything yet.*
 
 What you can do

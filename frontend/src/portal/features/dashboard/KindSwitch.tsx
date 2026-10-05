@@ -115,7 +115,7 @@ export function KindCard(): JSX.Element | null {
 /** The sentence the profile card opens with for each state. */
 const KIND_SENTENCES: Record<KindState['kind'], string> = {
   friend: 'You are a friend of CalDART: no dues, no expiry. Become a member any time.',
-  none: 'You have no membership yet. Pay your dues to become a member of CalDART.',
+  none: 'Your membership is not yet paid. Pay your dues to become a member of CalDART.',
   lifetime: 'You are a life member of CalDART.',
   pending: 'You are a member of CalDART.',
   member: 'You are a member of CalDART.',

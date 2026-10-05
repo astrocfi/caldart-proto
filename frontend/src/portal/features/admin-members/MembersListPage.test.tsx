@@ -630,7 +630,7 @@ describe('MembersListPage', () => {
     expect(cells[4]).toHaveTextContent(/^Friend$/);
   });
 
-  it('lists a member with no term yet as a Member with No membership yet', async () => {
+  it('lists a member with no term yet as a Member with Not yet paid', async () => {
     server.use(
       ...listHandlers([
         makeRow({
@@ -651,8 +651,8 @@ describe('MembersListPage', () => {
     const [, row] = screen.getAllByRole('row');
     const texts = rowCells(row as HTMLElement).map((cell) => cell.textContent);
     // Status, Kind, and Expires, in that order.
-    const status = texts.indexOf('No membership yet');
-    expect(texts.slice(status, status + 3)).toEqual(['No membership yet', 'Member', 'None yet']);
+    const status = texts.indexOf('Not yet paid');
+    expect(texts.slice(status, status + 3)).toEqual(['Not yet paid', 'Member', 'None yet']);
   });
 });
 

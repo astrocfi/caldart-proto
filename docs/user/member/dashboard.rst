@@ -29,7 +29,7 @@ is set (see :doc:`../bulk-email/dart-leaders`).
   * **Current**: a term covers today.
   * **Expiring soon**: current, with 30 days or fewer to run.
   * **Expired**: your last term has run out.
-  * **No membership yet**: you joined as a member and have not paid your dues.
+  * **Not yet paid**: you joined as a member and have not paid your dues.
   * **Friend**: you are a friend of CalDART, so nothing expires.
 
   The card's heading says the same in words, such as **Your membership is
@@ -47,8 +47,8 @@ is set (see :doc:`../bulk-email/dart-leaders`).
   CalDART**. It reads *No dues and no expiry. Become a member any time.* and offers
   **Make me a member** (see :doc:`become-a-member`). It never takes the colored edge.
 
-  If the office made your account and you have not paid yet, the card is headed **You
-  have no membership yet**, reads *Pay your dues to become a member of CalDART.*, and
+  If the office made your account and you have not paid yet, the card is headed **Your
+  membership is not yet paid**, reads *Pay your dues to become a member of CalDART.*, and
   offers **Pay dues**, which opens the checkout (see :doc:`become-a-member`).
 
 **Member content**
@@ -139,7 +139,7 @@ When a screen will not open
 If something looks wrong
 ========================
 
-If you paid and the card still says **Expired**, **No membership yet**, or **Friend**,
+If you paid and the card still says **Expired**, **Not yet paid**, or **Friend**,
 reload the page
 first. Then look at **Recent payments**: a payment marked **Failed** moved no
 money, so try again from :doc:`renew`. A payment marked **Paid** with no
