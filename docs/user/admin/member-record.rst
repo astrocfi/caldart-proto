@@ -25,14 +25,15 @@ The person's name heads the page, with **Back to members** beside it (**Back to 
 on a donor's record, when you have that tab). A summary strip under the name carries:
 
 - their membership status: **Current**, **Expiring soon**, **Expired**, **Friend**, or
-  **Never expires** for a life member. Somebody who joined as a member and has no term that
-  has started, only a canceled one, or only suspended ones reads **Friend**: nobody is a
-  member until a paid or granted term has started;
-- the plan, the expiry date (left out for a life member), and *joined* with the date their
-  first term began;
-- *updated* with the date their profile was last changed, or *never edited* for a profile
-  nobody has changed since it was loaded. A payment, a renewal, or a membership grant does
-  not change the date, so it tells you how current the details are;
+  **Never expires** for a life member. A member with no term in force reads *No membership
+  yet: grant a term on Memberships* (or *No membership in force* when every term was
+  canceled), one whose next term has not begun *Membership starts* and its date, and a
+  deactivated member whose terms were set aside reads *Membership set aside while
+  deactivated*;
+- the plan, the expiry date, and *joined* with the date their first term began, each left
+  out when there is none;
+- *Profile updated* with the date the profile was last changed, or *Profile never edited*.
+  A payment, a renewal, or a membership grant does not change the date;
 - **Donor** for somebody who has only given through the public site, and **Account
   deactivated**, beside a red dot, for an account that cannot sign in;
 - their email address, and the roles the account holds. When another mail server has
@@ -41,8 +42,7 @@ on a donor's record, when you have that tab). A summary strip under the name car
   the flag on the :doc:`user-record`.
 
 Below the strip are four tabs: **Profile**, **Memberships**, **Payments**, and **Delete or
-deactivate**; on a phone the row scrolls sideways. The arrow keys move between them. The tab
-is part of the page's address, so you can send a colleague straight to somebody's payments.
+deactivate**, which the arrow keys move between. The tab is part of the page's address.
 
 
 Profile
@@ -51,12 +51,15 @@ Profile
 A **Verification** card heads the tab. It lists **Pilot certificate**, **Medical**, and
 **Photo ID**, each with what the record holds (such as *Private · 1234567* or *Third class
 · expires 01/31/2027*) and its mark, read as on the :doc:`member-check`; an item not held,
-such as *Not a pilot*, has none. **Verify** opens the same verification panel: correct the
-fields against the documents, check the items you have checked, and press **Save verification**.
-*Verification saved* confirms it, and a field you corrected there is filled in on the form
-below too. A record with no profile yet has no Verification card, and one for a
-donor or a deactivated account has the card but no **Verify**: there is nothing to check
-against, since neither can fly.
+such as *Not a pilot*, has none. **Verify** opens the checks alone, each with what the
+record holds beside it: check each item you have seen on the documents and press **Save
+verification**; *Verification saved*
+confirms it. Correct a wrong number or date in the form below and save it first. A record
+with no profile yet has no Verification card, and one for a donor or a deactivated account
+has no **Verify**, since neither can fly.
+
+An **Aircraft** card follows, listing each airplane on the person's profile with its make,
+model, and insurance; each N-number opens the :doc:`aircraft-record`.
 
 Below the card are the same fields as :doc:`new-member`, less the password, both names
 required as there, with **Photo ID** (the kind of photo ID only) among the aviation fields,
@@ -73,9 +76,7 @@ plus:
 **Save changes** saves the account and the profile together, and the message *Member saved.*
 confirms it. Saving a changed pilot certificate, medical, or photo ID clears that item's
 verification. Changing the email address marks it **Unverified** and sends the new address a
-message with the subject *CalDART: verify your email address*. Beside the button,
-**Aircraft on file** lists the airplanes on the person's profile; each N-number opens the
-:doc:`aircraft-record`.
+message with the subject *CalDART: verify your email address*.
 
 The **Amateur radio** fieldset, under the emergency contact, holds the **Amateur radio
 callsign**: optional, a US callsign such as W6ABC, upper-cased as you type. Anything else is
@@ -116,7 +117,8 @@ becomes a member by registering on the site with the same address.
 
 **Grant a term** gives somebody a membership by hand, for a check or cash, or as a gift.
 Choose the **Plan**, and optionally a **Start date** and a **Note** (*Why this term was
-granted*), then press **Grant term**. The message reads *Term granted through* and the end
+granted*), then press **Grant term**, which stays grayed out, with *Choose a plan first.*
+beside it, until a plan is chosen. The message reads *Term granted through* and the end
 date, or *Lifetime membership granted.*
 
 Leave the start date blank and the term starts in the right place:
@@ -144,7 +146,7 @@ This person's whole money history, the same one the treasurer's screens show:
 - **Payments**: every payment with its date, receipt number, what it was for, the total, what
   was refunded, the method, and its status. A receipt number opens that payment's record.
 - **Contribution statements**: a button for each year the person gave beyond their dues,
-  which downloads that year's statement. Somebody who never did reads *This member has not
+  such as **Download 2025 statement**. Somebody who never did reads *This member has not
   given anything beyond their dues.*
 
 A term you grant by hand has no payment behind it, so it does not appear here. For the
@@ -155,8 +157,9 @@ Delete or deactivate
 ====================
 
 The tab holds two cards: **Account**, with the actions that change what the person can do,
-and **Delete this member**. Each action asks first: pressing it opens a short explanation
-below them, with a button to go ahead and **Cancel**. A refusal appears in the card.
+and **Delete this member**. A line under each action says what it does. Each asks first:
+pressing it opens a short explanation, with a button to go ahead and **Cancel**. A refusal
+appears in the card.
 
 Account
 -------
@@ -164,8 +167,8 @@ Account
 **Make a friend** is offered for a member who is not a life member. It does exactly what the
 person's own **Make me a friend** does on their profile (see :doc:`../member/profile`): a
 membership that is current stays current to its end and they become a friend the day after,
-or they become one at once when nothing is current, and their automatic renewal is canceled.
-The explanation says which. When their automatic renewal also gives a contribution, it asks
+or they become one at once when nothing is current, and any automatic renewal is canceled.
+The explanation says which, and mentions the renewal only when there is one. When their automatic renewal also gives a contribution, it asks
 *Keep it as a yearly recurring donation?* and offers **Keep the contribution** and **Stop
 it** in place of **Yes, make a friend**. Once the change is waiting for its day, the card reads
 the name and *becomes a friend of CalDART on* the date instead of the button. The change is
@@ -185,8 +188,7 @@ A deactivated account's card offers **Reactivate account** instead. It does what
 person's own reactivation does: they can sign in again, each suspended term is active again
 (or expired, if its end date passed in the meantime), and an address that was never verified
 is sent a verification message. Automatic renewal stays off. The person can also reactivate
-the account themselves, by signing in with the right password or by resetting their
-password.
+it themselves, by signing in or by resetting their password.
 
 Four refusals can appear:
 
@@ -205,10 +207,9 @@ Delete this member
 ------------------
 
 The card is for a duplicate, a spam sign-up, a test record, or a person who asks to be
-removed. The delete is permanent, with no undo, and takes the profile and every membership
-term with it. Type the person's email address into the box; **Delete member** stays disabled
-until it matches. Two deletions are refused: your own account, and a system administrator's
-unless you are one.
+removed. The delete is permanent and takes the profile and every term with it. Type the
+person's email address into the box; **Delete member** stays disabled until it matches.
+Your own account, and a system administrator's unless you are one, cannot be deleted.
 
 Payments are the organization's financial record, so they are never deleted. The card says
 how many the person has, if any, and that they stay in the books under **Deleted member** and
@@ -246,5 +247,4 @@ every role that account holds. The **Delete or deactivate** tab lists what its o
 *The end date cannot be before the start date.* means the end date you typed is too early.
 *You cannot delete your own account.* and *Only a system administrator can delete a system
 administrator.* mean what they say. A granted term that starts later than you expected
-follows on from the current term; set the start date yourself to override it. Roles are
-changed by a user administrator on the :doc:`user-record`.
+follows on from the current term; set the start date yourself to override it.

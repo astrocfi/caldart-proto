@@ -13,11 +13,14 @@ What you see
 ============
 
 The person's name heads the page, with their address under it and **Back to users** beside
-it. Four cards follow.
+it. Five cards follow.
 
 **Membership**
    The kind of account (**Member**, **Friend**, or **Donor**), the membership status, and
-   *Profile complete* or *Profile incomplete*. A donor's card adds *A donor gave through the
+   *Profile complete* or *Profile incomplete*. A member with no term in force reads *No
+   membership yet* (or *No membership in force*), *Membership starts* and the date when
+   their term has not begun, or *Membership set aside while deactivated*, as on the
+   :doc:`member-record`. A donor's card adds *A donor gave through the
    public site and cannot sign in. Fix the email address here if a receipt went astray.* If
    you are an account administrator too, **Member record** opens the person's
    :doc:`member-record`, where a donor can be deleted.
@@ -26,15 +29,26 @@ it. Four cards follow.
    **First name**, **Last name**, and **Email address**, all three required, with the
    hint *This is also how they sign in.* and **Verified** with a date, or **Unverified**, and **Bounced**, beside
    a red dot, when the address bounces. Then **Roles**, a box for each role with a line saying what it
-   grants.
+   grants. Unless you are a system administrator, the **System administrator** box is grayed
+   out, and its line adds *Only a system administrator can give or take away this role.*
 
 **Account status**
    Whether the account can sign in, and the actions that change it: **Deactivate account**
-   or **Reactivate account**, and **Block reactivation** or **Allow reactivation**. A
-   donor's record leaves this card out.
+   or **Reactivate account**, and **Block reactivation** or **Allow reactivation**, each
+   with a line under it saying what it does. A donor's record leaves this card out.
 
 **Password**
    **Send password reset**, which a donor's record leaves out.
+
+**History**
+   Every change to the account's roles and status, newest first, one a line: when, who,
+   and what, such as *10/04/2026 at 3:12 PM · Nina Kowalski · gave DART leader* or *…
+   blocked reactivation*. It records an account an administrator created on
+   :doc:`new-member`, each role given or taken away, and each deactivation, reactivation,
+   block, and lifted block, including the person's own. A change made from the server's
+   command line reads *The system*, and one by an administrator whose account has since
+   been deleted *A deleted account*. With none it reads *No change to this account's
+   roles or status is recorded.*
 
 Nothing is saved until you press **Save changes**, and the message *Account saved.* confirms
 it. A refused save takes you to what the site refused. **Cancel** puts every box back the
@@ -97,7 +111,8 @@ Things worth knowing:
 - **Website administrator** opens the website's editor. Granting the role is the whole job;
   there is nothing else to switch on, and removing it closes the editor again.
 - **System administrator** can do everything, including the server's own administration
-  site. Grant it sparingly. Only a system administrator can grant or remove it.
+  site. Grant it sparingly. Only a system administrator can grant or remove it, so the box
+  is grayed out for anybody else.
 - A role change takes effect on the person's next visit to a page.
 
 
@@ -172,7 +187,8 @@ exactly as **Deactivate account** does. While the block holds:
 
 Only a user administrator blocks an account or lifts the block. **Allow reactivation** lifts
 it and leaves the account deactivated: the person can then reactivate it themselves, or you
-can press **Reactivate account**. Both changes are recorded under your name.
+can press **Reactivate account**. Both changes are recorded under your name, in the
+**History** card.
 
 
 Helping someone back in
@@ -192,9 +208,9 @@ screen cannot set one. The reset link is the way back in.
 If something looks wrong
 ========================
 
-A message that only a system administrator can grant or revoke that role means you changed a
-box on a system administrator's account, or on an account with full system access; put the
-boxes back and save, or ask a system administrator. *You cannot change the email address of
+*Only a system administrator can grant or take away the System administrator role.* means
+you changed a box on an account with full system access; put the boxes back and save, or
+ask a system administrator. *You cannot change the email address of
 an account that holds roles you do not hold.*, *You cannot activate or deactivate an
 account that holds roles you do not hold.*, and *You cannot block or unblock an account that
 holds roles you do not hold.* mean the account holds a role you lack; check it on your own

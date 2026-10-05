@@ -29,28 +29,24 @@ ROLE_DESCRIPTIONS: dict[str, str] = {
         "friends of the DART on their own profile."
     ),
     USER_ADMIN: (
-        "List users, assign roles, activate or deactivate accounts, and trigger password resets."
+        "List users, assign roles, deactivate or reactivate accounts, and send password "
+        "reset emails."
     ),
     TREASURER: (
         "See every payment, fee, refund, and renewal; issue refunds, record "
-        "payments taken by hand, reconcile periods, and run the financial reports."
+        "payments taken by hand, and run the financial reports."
     ),
     ACCOUNT_ADMIN: (
         "Create, edit, and delete members and profiles, grant or extend "
-        "memberships manually, manage aircraft, and run payment, membership, "
+        "memberships by hand, manage aircraft, and run payment, membership, "
         "and aircraft reports."
     ),
     MANAGEMENT: (
         "Send bulk email to any members and friends the filters choose, and see "
         "every bulk email any sender has written, with its sender and its DART."
     ),
-    WEBSITE_ADMIN: (
-        "Wagtail admin: create, edit, delete, and publish pages, images, "
-        "documents, redirects, and site settings."
-    ),
-    SYSTEM_ADMIN: (
-        "Everything above plus backups, health, reminder runs and Django superuser access."
-    ),
+    WEBSITE_ADMIN: ("Edit the public website: pages, pictures, documents, and site settings."),
+    SYSTEM_ADMIN: ("Everything above, plus the server's health, backups, and scheduled jobs."),
 }
 
 #: All role slugs, in privilege order.

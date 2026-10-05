@@ -1,6 +1,10 @@
 /**
  * `/admin/members/:id` — one member record, in four tabs.
  *
+ * The summary strip above the tabs says where the membership stands in words: a member
+ * with no term in force is pointed at Memberships, and one whose terms a deactivation
+ * set aside says so, rather than either reading as a friend.
+ *
  * A donor's record is reached from the donors report rather than the member list,
  * and leads back to it for a reader who opens that report (see `recordHome`).
  *
@@ -20,9 +24,10 @@ import { Card } from '@/portal/components/Card';
 import { DateText } from '@/portal/components/DateText';
 import { EmptyState } from '@/portal/components/EmptyState';
 import { Page } from '@/portal/components/Page';
-import { MembershipDot, StatusDot } from '@/portal/components/StatusDot';
+import { StatusDot } from '@/portal/components/StatusDot';
 import { useTabBar } from '@/portal/components/useTabBar';
 import { MemberDangerZone } from './MemberDangerZone';
+import { MembershipSummary, factsFromTerms } from './MembershipSummary';
 import { MemberEmailPreferences, showsEmailPreferences } from './MemberEmailPreferences';
 import { MemberMembershipsTab } from './MemberMembershipsTab';
 import { MemberPaymentsTab } from './MemberPaymentsTab';
@@ -132,22 +137,18 @@ function MemberHeader({ member }: { member: MemberDetail }) {
   return (
     <Card>
       <div className="cluster">
-        <MembershipDot membership={member.membership} />
-        {member.membership.plan ? <span className="muted">{member.membership.plan}</span> : null}
-        {member.membership.is_lifetime ? null : (
+        <MembershipSummary facts={factsFromTerms(member, member.memberships)} grantHint />
+        {member.joined_on === null ? null : (
           <span className="muted">
-            expires <DateText value={member.membership.expires_on} />
+            joined <DateText value={member.joined_on} />
           </span>
         )}
         <span className="muted">
-          joined <DateText value={member.joined_on} />
-        </span>
-        <span className="muted">
           {member.profile_updated_at === null ? (
-            'never edited'
+            'Profile never edited'
           ) : (
             <>
-              updated <DateText value={member.profile_updated_at} />
+              Profile updated <DateText value={member.profile_updated_at} />
             </>
           )}
         </span>

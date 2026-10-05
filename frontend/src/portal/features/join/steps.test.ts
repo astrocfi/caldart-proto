@@ -115,6 +115,33 @@ describe('isOnboarded', () => {
     const user = makeUser({ kind: 'member', membership: FRIEND, friend_on: '2026-01-01' });
     expect(isOnboarded(user)).toBe(true);
   });
+
+  it('counts a verified account an administrator created as joined, with no term or profile', () => {
+    const user = makeUser({
+      admin_created: true,
+      email_verified: true,
+      profile_complete: false,
+      kind: 'member',
+      membership: FRIEND,
+    });
+    expect(isOnboarded(user)).toBe(true);
+  });
+
+  it('holds an account an administrator created at the verify step until it is verified', () => {
+    const user = makeUser({
+      admin_created: true,
+      email_verified: false,
+      profile_complete: false,
+      kind: 'member',
+      membership: FRIEND,
+    });
+    expect(isOnboarded(user)).toBe(false);
+  });
+
+  it('resumes an unverified account an administrator created at the verify step', () => {
+    const user = makeUser({ admin_created: true, email_verified: false, membership: FRIEND });
+    expect(furthestJoinStep(user)).toBe('verify');
+  });
 });
 
 describe('joiningAs', () => {

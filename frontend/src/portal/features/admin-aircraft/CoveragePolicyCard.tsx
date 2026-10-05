@@ -21,6 +21,7 @@ import {
   CATEGORIES,
   CATEGORY_LABELS,
 } from '@/portal/features/aircraft/categories';
+import './policy.css';
 
 const CATEGORY_OPTIONS = CATEGORIES.map((value) => ({ value, label: CATEGORY_LABELS[value] }));
 

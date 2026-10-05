@@ -17,8 +17,8 @@ never on this list; the treasurer's screens cover donors.
 What you see
 ============
 
-The caption over the table counts the people your filters match, such as *42 members match
-these filters*. The table shows 25 people at a time. When there are more, the foot of the
+The caption over the table counts the people your filters match, such as *42 people
+match*. The table shows 25 people at a time. When there are more, the foot of the
 list reads, for example, *Showing 1–25 of 212*, between **Previous** and **Next**; a page
 button with nowhere to go has a dashed frame. Moving to another page brings the top of the
 table back into view.
@@ -79,7 +79,8 @@ the arrow keys.
 For an account administrator a name opens the :doc:`member-record`. For a DART leader it
 opens the :doc:`member-check` card for that person, and a deactivated account's name opens
 nothing, since the member check never shows one. Only an account administrator sees the
-**New member** button (see :doc:`new-member`).
+**New member** button (see :doc:`new-member`). A DART leader whose profile names a DART sees
+**Show my DART** there instead: it sets the **DART** filter to theirs, which is their roster.
 
 
 Sorting

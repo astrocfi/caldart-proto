@@ -28,7 +28,8 @@ from django.utils import timezone
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 
-from apps.accounts.models import PERSON_KINDS, AccountKind, User
+from apps.accounts.history import record_account_change
+from apps.accounts.models import PERSON_KINDS, AccountChangeKind, AccountKind, User
 from apps.accounts.roles import MEMBER, ROLE_SLUGS, SYSTEM_ADMIN, VERIFIER, WEBSITE_ADMIN
 from caldart import audit, events
 from caldart.exceptions import DomainValidationError
@@ -68,7 +69,9 @@ ACCOUNT_FIELDS: tuple[str, ...] = ("email", "first_name", "last_name")
 EMAIL_CHANGE_REFUSED = (
     "You cannot change the email address of an account that holds roles you do not hold."
 )
-ROLE_CHANGE_REFUSED = "Only a system administrator can grant or revoke the system_admin role."
+ROLE_CHANGE_REFUSED = (
+    "Only a system administrator can grant or take away the System administrator role."
+)
 DONOR_KIND_REFUSED = "A donor becomes a member or a friend only by registering."
 
 #: What one account column carries in an edit: an address or a name.
@@ -300,6 +303,14 @@ def update_account(actor: User | str, target: User, changes: AccountChanges) -> 
 
     for action, logged in records:
         audit.record(action, actor=actor, target=target, **logged)
+        if action == audit.ACCOUNT_ROLES:
+            record_account_change(
+                AccountChangeKind.ROLES,
+                actor=actor,
+                target=target,
+                added=logged.get("added", []),
+                removed=logged.get("removed", []),
+            )
         _raise_edit_event(action, logged, actor=actor, target=target)
     return target
 

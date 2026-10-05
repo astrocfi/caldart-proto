@@ -29,6 +29,13 @@ _NAME_SEPARATOR_RE = re.compile("(['\u2019.])")
 #: The vowels whose absence marks a part as initials (``TJ``) rather than a name.
 _VOWELS = frozenset("aeiouy")
 
+#: The words a business name keeps upper case when it is title-cased: the legal forms
+#: and the trade abbreviations a registered aircraft owner's name carries.
+BUSINESS_ABBREVIATIONS = frozenset({"llc", "llp", "lp", "pc", "fbo", "usa", "faa", "cap"})
+
+#: The short words a business name keeps lower case when they are not its first word.
+BUSINESS_SMALL_WORDS = frozenset({"of", "the", "and", "at", "for", "in", "on"})
+
 #: The prefix whose next letter is capitalized too.  ``Mac`` is deliberately absent:
 #: ``Macarthur`` and ``Mackey`` are as common as ``MacArthur``, so it cannot be guessed.
 _MC_PREFIX = "Mc"
@@ -76,6 +83,36 @@ def person_name(value: str) -> str:
         return trimmed
     words = trimmed.split(" ")
     return " ".join(_name_word(word, first=index == 0) for index, word in enumerate(words))
+
+
+def business_name(value: str) -> str:
+    """Return a business's name ``value``, as the FAA registry wrote it, in title case.
+
+    The registry writes every name in capitals, so this is for a name filled from it,
+    never for one a person typed.  Leading and trailing whitespace is trimmed and
+    internal runs of whitespace collapse to one space, always.  A name with any letter in
+    each case (``SkyWest Aviation``) is kept as it is.  A name in one case is title-cased
+    word by word by :func:`title_case_words`, except that the abbreviations in
+    ``BUSINESS_ABBREVIATIONS`` and a word holding a period (``L.L.C.``) stay upper case,
+    and the words in ``BUSINESS_SMALL_WORDS`` stay lower case past the first:
+    ``SKYWAYS AVIATION OF NAPA LLC`` becomes ``Skyways Aviation of Napa LLC``.  A blank
+    value stays blank.
+    """
+    trimmed = _WHITESPACE_RE.sub(" ", value.strip())
+    if trimmed not in {trimmed.upper(), trimmed.lower()}:
+        return trimmed
+    words = title_case_words(trimmed).split(" ")
+    return " ".join(_business_word(word, first=index == 0) for index, word in enumerate(words))
+
+
+def _business_word(word: str, *, first: bool) -> str:
+    """One title-cased word of a business name, as :func:`business_name` lists."""
+    lowered = word.lower()
+    if lowered in BUSINESS_ABBREVIATIONS or "." in word:
+        return word.upper()
+    if not first and lowered in BUSINESS_SMALL_WORDS:
+        return lowered
+    return word
 
 
 def _name_word(word: str, *, first: bool) -> str:

@@ -2,7 +2,8 @@
  * The Delete or deactivate tab's account actions: **Make a friend**, and **Deactivate account** or
  * **Reactivate account**.
  *
- * Each asks first. Making a friend does what the member's own switch does: a current
+ * Each asks first, and a line under each says what it does before it is pressed. Making
+ * a friend does what the member's own switch does: a current
  * membership runs to its end and they become a friend the day after, or at once, and
  * their automatic renewal ends; when that renewal also gives a contribution the panel
  * asks whether to keep it as a recurring donation. Deactivating does what the member's
@@ -21,9 +22,15 @@ import { useToast } from '@/portal/components/Toast';
 import { FormAlert, fieldError } from '@/portal/features/auth/form';
 import { useMemberLedger } from '@/portal/features/admin-payments/api';
 import { useDeactivateMember, useMakeFriend, useReactivateMember } from './api';
+import '@/portal/features/admin-users/users.css';
 
 /** The field a switch to friend answers whether to keep a contribution in. */
 const KEEP_FIELD = 'keep_contribution';
+
+/** True when `mandate` is an automatic renewal that is running: a plan, and active. */
+function hasRenewal(mandate: RenewalMandate | null | undefined): mandate is RenewalMandate {
+  return mandate?.plan !== null && mandate?.status === 'active';
+}
 
 /**
  * What an active automatic renewal gives on top of the dues, in cents; 0 for none. A
@@ -31,7 +38,7 @@ const KEEP_FIELD = 'keep_contribution';
  * stops, so neither is offered.
  */
 function renewalContribution(mandate: RenewalMandate | null | undefined): number {
-  if (mandate?.plan === null || mandate?.status !== 'active') return 0;
+  if (!hasRenewal(mandate)) return 0;
   return mandate.contribution_cents;
 }
 
@@ -112,8 +119,8 @@ function MakeFriend({ member }: { member: MemberDetail }) {
             ? `${member.name} becomes a friend of CalDART today: no dues, no expiry, and no ` +
               'renewal reminders.'
             : `${member.name}'s membership stays current through ${formatDate(expiresOn)}; ` +
-              'they become a friend of CalDART the day after.'}{' '}
-          Their automatic renewal is canceled.
+              'they become a friend of CalDART the day after.'}
+          {hasRenewal(ledger.data?.mandate) ? ' Their automatic renewal is canceled.' : null}
         </p>
         {asks ? (
           <p>
@@ -122,6 +129,9 @@ function MakeFriend({ member }: { member: MemberDetail }) {
           </p>
         ) : null}
       </ConfirmButton>
+      <p className="muted account-actions__hint">
+        A friend pays no dues and gets no renewal reminders.
+      </p>
       <FormAlert error={make.error} handled={wasAsked ? [KEEP_FIELD] : []} />
     </div>
   );
@@ -149,6 +159,9 @@ function Deactivate({ member }: { member: MemberDetail }) {
           membership with time left is set aside until they come back. Nothing is deleted.
         </p>
       </ConfirmButton>
+      <p className="muted account-actions__hint">
+        Signs them out and stops them signing in. Nothing is deleted, and it can be undone.
+      </p>
       <FormAlert error={deactivate.error} />
     </div>
   );

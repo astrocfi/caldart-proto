@@ -352,9 +352,9 @@ member record ``GET /admin/members/{user_id}`` returns.
 
 Only ``email``, ``first_name``, and ``last_name`` are required — an administrator
 records what they were told, which on the day somebody joins at an airshow may be no
-more than a name and an address.  A missing or blank name is refused with "Enter a
-first name." or "Enter a last name.", and every phone number in ``profile`` is
-optional.
+more than a name and an address.  A missing or blank address is refused with "Enter
+their email address.", a missing or blank name with "Enter a first name." or "Enter a
+last name.", and every phone number in ``profile`` is optional.
 ``kind`` is ``member`` (the default) or ``friend``; an administrator never
 creates a donor, and ``donor`` is a 400 on ``kind``.
 
@@ -365,9 +365,11 @@ and is written as ``dart_id``), the same rules — a two-letter state, a well-fo
 expiry date whenever a medical class is given, a number whenever a certificate
 is — plus ``notes`` and ``how_heard``, and nothing mandatory.
 
-The user, of the kind posted, is granted the ``member`` role and given an empty
-``MemberProfile``
-populated from ``profile``.  With no ``password`` the account gets an unusable
+The user, of the kind posted, is granted the ``member`` role, marked
+``admin_created`` (the person has joined already, so once the address is verified the
+portal skips the profile and pay steps for them, :doc:`api-auth`), and given an empty ``MemberProfile`` populated
+from ``profile``.  Its history (``GET /admin/users/{id}/history``) starts with a
+``created`` entry under the administrator.  With no ``password`` the account gets an unusable
 password and ``apps.accounts.services.send_password_invitation`` emails an
 invitation whose subject is ``<organization name>: set your password``.  It
 renders

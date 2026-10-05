@@ -21,7 +21,8 @@ from django.contrib.auth import SESSION_KEY
 from django.contrib.sessions.models import Session
 from django.utils import timezone
 
-from apps.accounts.models import User
+from apps.accounts.history import record_account_change
+from apps.accounts.models import AccountChangeKind, User
 from apps.accounts.roles import SYSTEM_ADMIN
 from apps.accounts.services import (
     effective_roles,
@@ -95,6 +96,7 @@ def deactivate_own_account(user: User) -> None:
     user.is_active = False
     user.save(update_fields=["is_active", "updated_at"])
     audit.record(audit.ACCOUNT_DEACTIVATE, actor=user, target=user, self_service=True)
+    record_account_change(AccountChangeKind.DEACTIVATED, actor=user, target=user)
     events.emit("account_deactivated", user=user, actor=None)
 
 
@@ -136,6 +138,7 @@ def reactivate_own_account(user: User) -> None:
     user.is_active = True
     user.save(update_fields=["is_active", "updated_at"])
     audit.record(audit.ACCOUNT_ACTIVATE, actor=user, target=user, self_service=True)
+    record_account_change(AccountChangeKind.REACTIVATED, actor=user, target=user)
     events.emit("account_reactivated", user=user, actor=None)
     _verify_on_commit(user)
 
@@ -176,6 +179,7 @@ def deactivate_account(actor: User, target: User) -> None:
     target.is_active = False
     target.save(update_fields=["is_active", "updated_at"])
     audit.record(audit.ACCOUNT_DEACTIVATE, actor=actor, target=target)
+    record_account_change(AccountChangeKind.DEACTIVATED, actor=actor, target=target)
     events.emit("account_deactivated", user=target, actor=actor)
     end_sessions(target)
 
@@ -213,6 +217,7 @@ def reactivate_account(actor: User, target: User) -> None:
     target.is_active = True
     target.save(update_fields=["is_active", "updated_at"])
     audit.record(audit.ACCOUNT_ACTIVATE, actor=actor, target=target)
+    record_account_change(AccountChangeKind.REACTIVATED, actor=actor, target=target)
     events.emit("account_reactivated", user=target, actor=actor)
     _verify_on_commit(target)
 
@@ -260,6 +265,11 @@ def set_reactivation_blocked(actor: User, target: User, *, blocked: bool) -> boo
     target.save(update_fields=["reactivation_blocked", "updated_at"])
     audit.record(
         audit.ACCOUNT_BLOCK if blocked else audit.ACCOUNT_UNBLOCK, actor=actor, target=target
+    )
+    record_account_change(
+        AccountChangeKind.BLOCKED if blocked else AccountChangeKind.UNBLOCKED,
+        actor=actor,
+        target=target,
     )
     return True
 

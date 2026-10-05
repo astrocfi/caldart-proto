@@ -69,6 +69,19 @@ function registryLine({ as_of: asOf }: RegistryStatus): string {
   return asOf === null ? 'FAA data not loaded yet' : `FAA data as of ${formatDate(asOf)}`;
 }
 
+/**
+ * True when the register holds no policy for `row`: no carrier and no expiry date.  Its
+ * insurance figures are then blank, rather than a dash or a $0 nobody insured.
+ */
+function hasNoPolicy(row: Aircraft): boolean {
+  return row.insurance_carrier.trim() === '' && row.insurance_expiration === null;
+}
+
+/** One insurance figure: the amount, blank when it is not on file or there is no policy. */
+function PolicyMoney({ row, cents }: { row: Aircraft; cents: number | null }): JSX.Element {
+  return <Money cents={hasNoPolicy(row) ? null : cents} whole placeholder="" />;
+}
+
 /** A column that only somebody who asks for it sees, and that goes first on a narrow screen. */
 const OPTIONAL = 1;
 
@@ -107,7 +120,7 @@ const CELLS: Record<string, ReportCell<Aircraft>> = {
     ordering: 'owner_name',
     minWidth: '12rem',
     dropOrder: 12,
-    render: (row) => row.owner_name || '—',
+    render: (row) => row.owner_name,
   },
   owner_type: {
     width: '8rem',
@@ -123,19 +136,19 @@ const CELLS: Record<string, ReportCell<Aircraft>> = {
     numeric: true,
     width: '10rem',
     dropOrder: 3,
-    render: (row) => <Money cents={row.insurance_liability_per_occurrence_cents} whole />,
+    render: (row) => <PolicyMoney row={row} cents={row.insurance_liability_per_occurrence_cents} />,
   },
   liability_per_person: {
     numeric: true,
     width: '9rem',
     dropOrder: OPTIONAL,
-    render: (row) => <Money cents={row.insurance_liability_per_person_cents} whole />,
+    render: (row) => <PolicyMoney row={row} cents={row.insurance_liability_per_person_cents} />,
   },
   hull: {
     numeric: true,
     width: '7.5rem',
     dropOrder: 4,
-    render: (row) => <Money cents={row.insurance_hull_cents} whole />,
+    render: (row) => <PolicyMoney row={row} cents={row.insurance_hull_cents} />,
   },
   insurance_expiration: {
     ordering: 'insurance_expiration',

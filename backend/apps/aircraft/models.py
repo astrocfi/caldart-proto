@@ -337,7 +337,8 @@ class Aircraft(TimestampedModel):
 
         An individual owner's name is stored through :func:`caldart.casing.person_name`;
         an FBO's or a flying club's is kept as typed, since a business name's casing
-        (``LLC``, ``FBO``) is not a person's.
+        (``LLC``, ``FBO``, ``KPAO``) is the business's own.  A name filled from the FAA
+        registry arrives cased already (``apps.aircraft.registry``).
         """
         self.n_number = normalize_n_number(self.n_number)
         if self.owner_type == OwnerType.INDIVIDUAL:

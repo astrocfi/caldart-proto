@@ -2,16 +2,24 @@
 
 from __future__ import annotations
 
+from datetime import date
 from typing import Any
 
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.tokens import default_token_generator
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.utils import timezone
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers, status
 from rest_framework.exceptions import APIException
 
-from apps.accounts.models import PERSON_KIND_CHOICES, AccountKind, User
+from apps.accounts.models import (
+    PERSON_KIND_CHOICES,
+    AccountChange,
+    AccountChangeKind,
+    AccountKind,
+    User,
+)
 from apps.accounts.roles import ROLE_SLUGS
 from apps.accounts.services import (
     AccountChanges,
@@ -23,12 +31,18 @@ from apps.accounts.services import (
 from apps.accounts.status import closed_account_message
 from apps.members.api.profile_serializers import FIRST_NAME_MESSAGE, LAST_NAME_MESSAGE
 from apps.members.api.serializers import MembershipStatusSerializer
+from apps.members.models import MembershipStatusChoices
 from apps.members.services import membership_of
 from caldart.messages import email_messages, when_missing
 
 
 class UserSerializer(serializers.ModelSerializer[User]):
-    """The ``user`` payload every account endpoint returns."""
+    """The ``user`` payload every account endpoint returns.
+
+    ``admin_created`` is true for an account an account administrator created on New
+    member: its owner has joined already, so once the address is verified the portal
+    opens without the profile and pay steps.
+    """
 
     roles = serializers.SerializerMethodField()
     membership = serializers.SerializerMethodField()
@@ -49,6 +63,7 @@ class UserSerializer(serializers.ModelSerializer[User]):
             "email_verified",
             "kind",
             "friend_on",
+            "admin_created",
         ]
         read_only_fields = fields
 
@@ -397,6 +412,7 @@ class AdminUserSerializer(UserSerializer):
             "id",
             "kind",
             "friend_on",
+            "admin_created",
             "is_active",
             "reactivation_blocked",
             "email_bounce_detail",
@@ -404,7 +420,7 @@ class AdminUserSerializer(UserSerializer):
         extra_kwargs = {
             "email": {
                 "required": False,
-                "error_messages": email_messages("Enter the email address."),
+                "error_messages": email_messages("Enter their email address."),
             },
             "first_name": {
                 "required": False,
@@ -477,3 +493,76 @@ class AdminUserSerializer(UserSerializer):
         ``DomainValidationError`` it raises rather than as a serializer error.
         """
         return update_account(self._actor, instance, validated_data)
+
+
+class AdminUserDetailSerializer(AdminUserSerializer):
+    """``/admin/users/{id}``: the list's row, plus three facts about the terms.
+
+    The user record words the membership as the member record does, and a user
+    administrator cannot read the terms, so the record carries what the wording needs:
+    ``has_terms`` (the account holds any term at all), ``has_suspended_term`` (a
+    deactivation set one aside), and ``next_term_starts_on`` (the start of the earliest
+    active term that has not begun yet, or null).  The list leaves them out, since each
+    costs a query per row.
+    """
+
+    has_terms = serializers.SerializerMethodField()
+    has_suspended_term = serializers.SerializerMethodField()
+    next_term_starts_on = serializers.SerializerMethodField()
+
+    class Meta(AdminUserSerializer.Meta):
+        fields = [
+            *AdminUserSerializer.Meta.fields,
+            "has_terms",
+            "has_suspended_term",
+            "next_term_starts_on",
+        ]
+
+    def get_has_terms(self, obj: User) -> bool:
+        """True when the account holds any membership term, of any status."""
+        return obj.memberships.exists()
+
+    def get_has_suspended_term(self, obj: User) -> bool:
+        """True when a deactivation set one of the account's terms aside."""
+        return obj.memberships.filter(status=MembershipStatusChoices.SUSPENDED).exists()
+
+    def get_next_term_starts_on(self, obj: User) -> date | None:
+        """The start of the earliest active term after today, or ``None`` without one."""
+        term = (
+            obj.memberships.filter(
+                status=MembershipStatusChoices.ACTIVE, starts_on__gt=timezone.localdate()
+            )
+            .order_by("starts_on")
+            .first()
+        )
+        return term.starts_on if term is not None else None
+
+
+class AccountActorSerializer(serializers.Serializer[User]):
+    """The account behind a history entry: its id and the name to print beside a date."""
+
+    id = serializers.IntegerField(read_only=True)
+    name = serializers.CharField(source="display_name", read_only=True)
+
+
+class AccountChangeSerializer(serializers.ModelSerializer[AccountChange]):
+    """One entry of ``GET /admin/users/{id}/history``.
+
+    ``changed_by`` is ``{id, name}`` for the account that acted, or null for a
+    management command (``by_command`` true) or an account since deleted
+    (``by_command`` false).  ``added`` and ``removed`` are the
+    role slugs a ``roles`` entry granted and took away, in privilege order, and empty for
+    every other kind.
+    """
+
+    changed_by = AccountActorSerializer(read_only=True, allow_null=True)
+    kind = serializers.ChoiceField(choices=AccountChangeKind.choices, read_only=True)
+    added = serializers.ListField(child=serializers.ChoiceField(choices=ROLE_SLUGS), read_only=True)
+    removed = serializers.ListField(
+        child=serializers.ChoiceField(choices=ROLE_SLUGS), read_only=True
+    )
+
+    class Meta:
+        model = AccountChange
+        fields = ["id", "changed_at", "changed_by", "by_command", "kind", "added", "removed"]
+        read_only_fields = fields

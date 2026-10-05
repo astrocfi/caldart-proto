@@ -25,7 +25,8 @@ import type {
 import { ACCOUNT_KIND_LABELS } from '@/portal/choices';
 import { Field } from '@/portal/components/Field';
 import { MaskedInput } from '@/portal/components/MaskedInput';
-import { maskEmail } from '@/portal/masks';
+import { EMAIL_MESSAGE, isEmailAddress, maskEmail } from '@/portal/masks';
+import './members.css';
 
 export interface AccountDraft {
   email: string;
@@ -84,6 +85,18 @@ export function adminProfilePayload<Patch extends AdminProfilePayload>(
 }
 
 export type FieldErrors = Record<string, string>;
+
+/** What a blank email address is refused with, in the server's own words. */
+export const MISSING_EMAIL_MESSAGE = 'Enter their email address.';
+
+/**
+ * The complaint about an administrator's email box: blank asks for the address, and one
+ * that is not an address shows what one looks like.  Null for a good address.
+ */
+export function emailProblem(email: string): string | null {
+  if (email.trim() === '') return MISSING_EMAIL_MESSAGE;
+  return isEmailAddress(email) ? null : EMAIL_MESSAGE;
+}
 
 /** What a blank name is refused with, in the server's own words. */
 const NAME_MESSAGES = {
@@ -145,18 +158,23 @@ export function AccountFields({
     <fieldset>
       <legend>Account</legend>
       <div className="form-grid">
-        <Field label="Email address" required error={errors.email} status={emailStatus}>
-          {(props) => (
-            <MaskedInput
-              {...props}
-              type="email"
-              autoComplete="email"
-              mask={maskEmail}
-              value={value.email}
-              onValueChange={(next) => set('email', next)}
-            />
-          )}
-        </Field>
+        {/* The address takes a row of its own, so the names share one with no hint above
+            either box, and the two fields that carry hints, the kind and the password,
+            share the next. */}
+        <div className="account-fields__email">
+          <Field label="Email address" required error={errors.email} status={emailStatus}>
+            {(props) => (
+              <MaskedInput
+                {...props}
+                type="email"
+                autoComplete="email"
+                mask={maskEmail}
+                value={value.email}
+                onValueChange={(next) => set('email', next)}
+              />
+            )}
+          </Field>
+        </div>
         <Field label="First name" required error={errors.first_name}>
           {(props) => (
             <input

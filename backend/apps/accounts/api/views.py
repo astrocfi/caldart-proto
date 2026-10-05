@@ -30,6 +30,8 @@ from apps.accounts.api.account_actions import (
 )
 from apps.accounts.api.filters import UserFilter
 from apps.accounts.api.serializers import (
+    AccountChangeSerializer,
+    AdminUserDetailSerializer,
     AdminUserSerializer,
     DeactivateSerializer,
     EmailChangeSerializer,
@@ -45,7 +47,7 @@ from apps.accounts.api.serializers import (
     UserSerializer,
     VerificationSentSerializer,
 )
-from apps.accounts.models import AccountKind, User
+from apps.accounts.models import AccountChange, AccountKind, User
 from apps.accounts.permissions import IsUserAdmin
 from apps.accounts.roles import ROLE_DESCRIPTIONS
 from apps.accounts.services import (
@@ -646,7 +648,7 @@ class AdminUserDetailView(generics.RetrieveUpdateAPIView[User]):
     """``GET|PATCH /admin/users/{id}``."""
 
     permission_classes = [IsUserAdmin]
-    serializer_class = AdminUserSerializer
+    serializer_class = AdminUserDetailSerializer
     http_method_names = ["get", "patch", "head", "options"]
 
     def get_queryset(self) -> QuerySet[User]:
@@ -660,7 +662,7 @@ class AdminUserDetailView(generics.RetrieveUpdateAPIView[User]):
         lack of roles, so ``PATCH`` on one is 400 ``{"detail": "This record keeps a
         deleted member's payments in the books and cannot be changed."}``, audited as
         ``account.update`` with the reason ``tombstone``.  Any other account is DRF's
-        partial update through ``AdminUserSerializer``.
+        partial update through ``AdminUserDetailSerializer``.
         """
         try:
             refuse_tombstone_change(
@@ -679,6 +681,22 @@ def _mail_refused(what: str, refusal: MailRefusedError) -> Response:
     """
     log_refusal(what, refusal)
     return Response({"detail": MAIL_REFUSED}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+
+class AdminUserHistoryView(generics.ListAPIView[AccountChange]):
+    """``GET /admin/users/{id}/history`` -- the account's role and status changes."""
+
+    permission_classes = [IsUserAdmin]
+    serializer_class = AccountChangeSerializer
+    pagination_class = None
+
+    def get_queryset(self) -> QuerySet[AccountChange]:
+        """The changes to the account in the URL, newest first, with each actor joined.
+
+        Answers 404 when no account has that id, rather than an empty history.
+        """
+        user = generics.get_object_or_404(User, pk=self.kwargs["pk"])
+        return user.account_changes.select_related("changed_by")
 
 
 class AdminUserSendPasswordResetView(APIView):
@@ -795,7 +813,7 @@ def _admin_user_action(request: Request, pk: int, action: AccountAction) -> Resp
     except DomainError as error:
         return Response({"detail": error.message}, status=status.HTTP_400_BAD_REQUEST)
     record = admin_user_queryset().get(pk=pk)
-    return Response(AdminUserSerializer(record, context={"request": request}).data)
+    return Response(AdminUserDetailSerializer(record, context={"request": request}).data)
 
 
 class AdminUserDeactivateView(APIView):
@@ -803,7 +821,7 @@ class AdminUserDeactivateView(APIView):
 
     permission_classes = [IsUserAdmin]
 
-    @extend_schema(request=None, responses={200: AdminUserSerializer})
+    @extend_schema(request=None, responses={200: AdminUserDetailSerializer})
     def post(self, request: Request, pk: int) -> Response:
         """Deactivate the account ``pk`` as its owner would deactivate it, answering 200.
 
@@ -822,7 +840,7 @@ class AdminUserReactivateView(APIView):
 
     permission_classes = [IsUserAdmin]
 
-    @extend_schema(request=None, responses={200: AdminUserSerializer})
+    @extend_schema(request=None, responses={200: AdminUserDetailSerializer})
     def post(self, request: Request, pk: int) -> Response:
         """Reactivate the account ``pk`` as its owner would reactivate it, answering 200.
 
@@ -840,7 +858,7 @@ class AdminUserBlockView(APIView):
 
     permission_classes = [IsUserAdmin]
 
-    @extend_schema(request=None, responses={200: AdminUserSerializer})
+    @extend_schema(request=None, responses={200: AdminUserDetailSerializer})
     def post(self, request: Request, pk: int) -> Response:
         """Block the account ``pk`` from reactivating, answering 200.
 
@@ -860,7 +878,7 @@ class AdminUserUnblockView(APIView):
 
     permission_classes = [IsUserAdmin]
 
-    @extend_schema(request=None, responses={200: AdminUserSerializer})
+    @extend_schema(request=None, responses={200: AdminUserDetailSerializer})
     def post(self, request: Request, pk: int) -> Response:
         """Lift the account ``pk``'s block, answering 200; it stays deactivated.
 
@@ -877,7 +895,7 @@ class AdminUserClearBounceView(APIView):
 
     permission_classes = [IsUserAdmin]
 
-    @extend_schema(request=None, responses={200: AdminUserSerializer})
+    @extend_schema(request=None, responses={200: AdminUserDetailSerializer})
     def post(self, request: Request, pk: int) -> Response:
         """Clear the bounce recorded against the account ``pk``'s address, answering 200.
 

@@ -71,6 +71,46 @@ describe('DartForm', () => {
     expect(screen.queryByText('A DART with that name already exists.')).toBeNull();
   });
 
+  it('sends the save on the first press after fixing the airports, the button holding still', async () => {
+    const user = userEvent.setup();
+    const { handleSubmit } = renderForm();
+    const airports = screen.getByRole('textbox', { name: /Airports/ });
+    await user.clear(airports);
+    await user.click(screen.getByRole('button', { name: 'Add DART' }));
+    await user.type(airports, 'PAO');
+
+    await user.click(screen.getByRole('button', { name: 'Add DART' }));
+
+    expect(handleSubmit).toHaveBeenCalledTimes(1);
+  });
+
+  it('holds a line for the airports error while there is none, so nothing below moves', () => {
+    renderForm();
+    const airports = screen.getByRole('textbox', { name: /Airports/ });
+    expect(airports.closest('.field')?.querySelector('.field__status')).not.toBeNull();
+  });
+
+  it('gives the held line up to the airports error, so the field is one line taller in neither', async () => {
+    const user = userEvent.setup();
+    renderForm();
+    const airports = screen.getByRole('textbox', { name: /Airports/ });
+    await user.clear(airports);
+    await user.tab();
+
+    const field = airports.closest('.field');
+    expect(field?.querySelectorAll('.field__status, .field__error')).toHaveLength(1);
+  });
+
+  it('checks the airports when the focus leaves them for another field', async () => {
+    const user = userEvent.setup();
+    renderForm();
+    const airports = screen.getByRole('textbox', { name: /Airports/ });
+    await user.clear(airports);
+    await user.tab();
+
+    expect(screen.getByText('Give the DART at least one airport.')).toBeInTheDocument();
+  });
+
   it('moves the focus to the field the server refused', () => {
     renderForm({ name: 'A DART with that name already exists.' }, new Error('refused'));
 

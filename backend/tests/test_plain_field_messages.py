@@ -116,7 +116,7 @@ def member_api(api_client: APIClient, member: User) -> APIClient:
             "current_password",
             "Enter your current password.",
         ),
-        ("account_admin_client", MEMBERS_URL, {"email": ""}, "email", "Enter the email address."),
+        ("account_admin_client", MEMBERS_URL, {"email": ""}, "email", "Enter their email address."),
         (
             "api_client",
             DONATION_URL,
@@ -230,4 +230,4 @@ def test_a_user_record_saved_with_no_address_says_to_enter_one(
     api_client.force_login(user_admin)
     response = api_client.patch(f"/api/v1/admin/users/{member.pk}", {"email": ""}, format="json")
     assert response.status_code == 400
-    assert response.json()["email"] == ["Enter the email address."]
+    assert response.json()["email"] == ["Enter their email address."]

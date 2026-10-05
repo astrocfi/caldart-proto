@@ -58,3 +58,12 @@
 .dart-form__danger {
   margin-inline-start: auto;
 }
+
+/* The Active box and the line under it saying what unchecking it does. */
+.dart-form__active {
+  margin-block: var(--space-4);
+}
+
+.dart-form__active .field__hint {
+  margin: 0;
+}

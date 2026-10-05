@@ -25,6 +25,7 @@ import { useToast } from '@/portal/components/Toast';
 import { TERM_SOURCE_LABELS, TERM_STATUS_CHOICES } from './choices';
 import { useGrantTerm, useUpdateTerm } from './api';
 import { splitErrors } from './errors';
+import './members.css';
 
 /** Why a donor's history is empty and offers no grant. */
 const DONOR_NO_TERMS = 'A donor holds no membership, and becomes a member only by registering.';
@@ -352,9 +353,18 @@ export function MemberMembershipsTab({ member }: { member: MemberDetail }): JSX.
               )}
             </Field>
             <div className="cluster">
-              <Button type="submit" disabled={!plan || grant.isPending}>
+              <Button
+                type="submit"
+                disabled={!plan || grant.isPending}
+                aria-describedby={plan ? undefined : 'grant-term-hint'}
+              >
                 {grant.isPending ? 'Granting…' : 'Grant term'}
               </Button>
+              {plan ? null : (
+                <p className="muted grant-term__hint" id="grant-term-hint">
+                  Choose a plan first.
+                </p>
+              )}
               <RefusedSubmitNote count={grantRefusal.count} />
             </div>
           </form>

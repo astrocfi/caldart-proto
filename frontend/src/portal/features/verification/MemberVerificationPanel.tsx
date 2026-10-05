@@ -2,12 +2,13 @@
  * The member verification panel: correct a person's certificate, medical, and photo ID,
  * and record which of them an authority has checked, in one save.
  *
- * Opened by **Verify** on the member check's status card and on the member record.
+ * Opened by **Verify** on the member check's status card and on the member record.  On
+ * the member record, whose own form edits the fields, it offers the checks alone.
  */
 import { useRef, useState } from 'react';
 import type { FormEvent, JSX } from 'react';
 
-import type { LeaderStatus } from '@/portal/api/types';
+import type { LeaderStatus, VerificationItem } from '@/portal/api/types';
 import { CERTIFICATE_TYPES, MEDICAL_TYPES } from '@/portal/choices';
 import type { Choice } from '@/portal/choices';
 import { Button } from '@/portal/components/Button';
@@ -44,6 +45,13 @@ export interface MemberVerificationPanelProps {
   onSaved?: (status: LeaderStatus) => void;
   /** Closes the panel, after a save or on Cancel. */
   onClose: () => void;
+  /**
+   * Offer only the checks, for a screen whose own form edits the fields: the member
+   * record.  The panel then sends no field, only which items are verified.
+   */
+  checksOnly?: boolean;
+  /** What the record holds for each item, shown beside its box when only checks are offered. */
+  details?: Partial<Record<VerificationItem, string>>;
 }
 
 /**
@@ -56,6 +64,8 @@ export function MemberVerificationPanel({
   initial,
   onSaved,
   onClose: handleClose,
+  checksOnly = false,
+  details = {},
 }: MemberVerificationPanelProps): JSX.Element {
   // Freezes the opening draft so a refetch while the panel is open -- the status
   // card's own query, invalidated by another save -- cannot resend stale values
@@ -113,39 +123,42 @@ export function MemberVerificationPanel({
             {errors.form}
           </p>
         ) : null}
-        <div className="form-grid">
-          {coded('pilot_certificate_type', 'Pilot certificate', CERTIFICATE_TYPES)}
-          <Field label="Certificate number" error={errors.fields.certificate_number}>
-            {(props) => (
-              <input
-                {...props}
-                className="num"
-                value={draft.certificate_number}
-                onChange={(event) => set('certificate_number', event.target.value)}
-              />
-            )}
-          </Field>
-          {coded('medical_type', 'Medical', MEDICAL_TYPES)}
-          <Field label="Medical expires" error={errors.fields.medical_expiration}>
-            {(props) => (
-              <input
-                {...props}
-                type="date"
-                className="num"
-                value={draft.medical_expiration}
-                onChange={(event) => set('medical_expiration', event.target.value)}
-              />
-            )}
-          </Field>
-          {coded('photo_id_type', 'Photo ID', PHOTO_ID_TYPES)}
-        </div>
+        {checksOnly ? null : (
+          <div className="form-grid">
+            {coded('pilot_certificate_type', 'Pilot certificate', CERTIFICATE_TYPES)}
+            <Field label="Certificate number" error={errors.fields.certificate_number}>
+              {(props) => (
+                <input
+                  {...props}
+                  className="num"
+                  value={draft.certificate_number}
+                  onChange={(event) => set('certificate_number', event.target.value)}
+                />
+              )}
+            </Field>
+            {coded('medical_type', 'Medical', MEDICAL_TYPES)}
+            <Field label="Medical expires" error={errors.fields.medical_expiration}>
+              {(props) => (
+                <input
+                  {...props}
+                  type="date"
+                  className="num"
+                  value={draft.medical_expiration}
+                  onChange={(event) => set('medical_expiration', event.target.value)}
+                />
+              )}
+            </Field>
+            {coded('photo_id_type', 'Photo ID', PHOTO_ID_TYPES)}
+          </div>
+        )}
 
         <fieldset className="checkbox-set verification-panel__items">
           <legend>Checked against the documents</legend>
           {held.length === 0 ? (
             <p className="muted">
-              Nothing to verify yet. Choose a pilot certificate, a medical, or a photo ID above to
-              verify it.
+              {checksOnly
+                ? 'Nothing to verify yet. Record a pilot certificate, a medical, or a photo ID in the form below first.'
+                : 'Nothing to verify yet. Choose a pilot certificate, a medical, or a photo ID above to verify it.'}
             </p>
           ) : null}
           {held.map((item) => (
@@ -157,7 +170,12 @@ export function MemberVerificationPanel({
                   setDraft((current) => toggleItem(current, item, event.target.checked))
                 }
               />
-              <span>{ITEM_LABELS[item]} verified</span>
+              <span>
+                {ITEM_LABELS[item]} verified
+                {checksOnly && details[item] !== undefined ? (
+                  <span className="muted"> · {details[item]}</span>
+                ) : null}
+              </span>
             </label>
           ))}
         </fieldset>

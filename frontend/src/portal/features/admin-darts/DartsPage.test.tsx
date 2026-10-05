@@ -213,11 +213,9 @@ describe('DartsPage', () => {
     renderPage();
 
     await user.click(await screen.findByRole('button', { name: 'New DART' }));
-    expect(
-      screen.getByLabelText(
-        'Active — uncheck to make the DART inactive without losing its history',
-      ),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: 'Active' })).toHaveAccessibleDescription(
+      'Uncheck to make the DART inactive without losing its history.',
+    );
   });
 
   it('heads the contacts fieldset DART management', async () => {

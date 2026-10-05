@@ -5,8 +5,10 @@ import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
 import { api } from '@/portal/api/client';
 import { ADMIN_USERS_KEY } from '@/portal/api/queries';
 import type {
+  AccountChange,
   AccountKind,
   AdminUser,
+  AdminUserDetail,
   AdminUserPatch,
   Paginated,
   RoleSlug,
@@ -68,10 +70,28 @@ export function useAdminUsers(filters: AdminUserFilters): UseQueryResult<Paginat
 }
 
 /** One account's detail record by id, including when its email address was verified. */
-export function useAdminUser(id: string | number): UseQueryResult<AdminUser> {
+export function useAdminUser(id: string | number): UseQueryResult<AdminUserDetail> {
   return useQuery({
     queryKey: adminUserKey(id),
-    queryFn: () => api.get<AdminUser>(`/admin/users/${id}`),
+    queryFn: () => api.get<AdminUserDetail>(`/admin/users/${id}`),
+  });
+}
+
+/**
+ * The query key for one account's history.  It sits under `ADMIN_USERS_KEY`, so every
+ * save and status action on the record, which invalidates that key, reads it again.
+ */
+export function adminUserHistoryKey(
+  id: number | string,
+): readonly [...typeof ADMIN_USERS_KEY, 'history', string] {
+  return [...ADMIN_USERS_KEY, 'history', String(id)] as const;
+}
+
+/** One account's role and status changes, newest first, from `/admin/users/{id}/history`. */
+export function useAdminUserHistory(id: string | number): UseQueryResult<AccountChange[]> {
+  return useQuery({
+    queryKey: adminUserHistoryKey(id),
+    queryFn: () => api.get<AccountChange[]>(`/admin/users/${id}/history`),
   });
 }
 
@@ -83,10 +103,10 @@ export function useAdminUser(id: string | number): UseQueryResult<AdminUser> {
  */
 export function useUpdateAdminUser(
   id: string | number,
-): UseMutationResult<AdminUser, Error, AdminUserPatch> {
+): UseMutationResult<AdminUserDetail, Error, AdminUserPatch> {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (patch: AdminUserPatch) => api.patch<AdminUser>(`/admin/users/${id}`, patch),
+    mutationFn: (patch: AdminUserPatch) => api.patch<AdminUserDetail>(`/admin/users/${id}`, patch),
     onSuccess: (user) => {
       queryClient.setQueryData(adminUserKey(id), user);
       void queryClient.invalidateQueries({ queryKey: ADMIN_USERS_KEY });
@@ -156,11 +176,11 @@ export type AccountStatusAction = 'deactivate' | 'reactivate' | 'block' | 'unblo
  */
 export function useAccountStatusAction(
   id: string | number,
-): UseMutationResult<AdminUser, Error, AccountStatusAction> {
+): UseMutationResult<AdminUserDetail, Error, AccountStatusAction> {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (action: AccountStatusAction) =>
-      api.post<AdminUser>(`/admin/users/${id}/${action}`),
+      api.post<AdminUserDetail>(`/admin/users/${id}/${action}`),
     onSuccess: (user) => {
       queryClient.setQueryData(adminUserKey(id), user);
       return Promise.all([

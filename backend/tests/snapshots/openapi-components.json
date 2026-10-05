@@ -1,4 +1,44 @@
 {
+  "AccountActor": {
+    "properties": {
+      "id": "integer",
+      "name": "string"
+    },
+    "required": [
+      "id",
+      "name"
+    ]
+  },
+  "AccountChange": {
+    "properties": {
+      "added": "array<ref:RolesEnum>",
+      "by_command": "boolean",
+      "changed_at": "string(date-time)",
+      "changed_by": "ref:AccountActor|null",
+      "id": "integer",
+      "kind": "ref:AccountChangeKindEnum",
+      "removed": "array<ref:RolesEnum>"
+    },
+    "required": [
+      "added",
+      "by_command",
+      "changed_at",
+      "changed_by",
+      "id",
+      "kind",
+      "removed"
+    ]
+  },
+  "AccountChangeKindEnum": {
+    "enum": [
+      "created",
+      "roles",
+      "deactivated",
+      "reactivated",
+      "blocked",
+      "unblocked"
+    ]
+  },
   "AccountKindEnum": {
     "enum": [
       "member",
@@ -181,6 +221,7 @@
   },
   "AdminUser": {
     "properties": {
+      "admin_created": "boolean",
       "city": "string",
       "county": "string",
       "dart": "string|null",
@@ -203,6 +244,7 @@
       "roles": "array<ref:RolesEnum>"
     },
     "required": [
+      "admin_created",
       "city",
       "county",
       "dart",
@@ -216,6 +258,56 @@
       "is_active",
       "kind",
       "membership",
+      "phone",
+      "profile_complete",
+      "reactivation_blocked"
+    ]
+  },
+  "AdminUserDetail": {
+    "properties": {
+      "admin_created": "boolean",
+      "city": "string",
+      "county": "string",
+      "dart": "string|null",
+      "email": "string(email)",
+      "email_bounce_detail": "string",
+      "email_bounced_at": "string(date-time)|null",
+      "email_verified": "boolean",
+      "email_verified_at": "string(date-time)|null",
+      "first_name": "string",
+      "friend_on": "string(date)|null",
+      "has_suspended_term": "boolean",
+      "has_terms": "boolean",
+      "home_airport": "string",
+      "id": "integer",
+      "is_active": "boolean",
+      "kind": "ref:AccountKindEnum",
+      "last_name": "string",
+      "membership": "ref:MembershipStatus",
+      "next_term_starts_on": "string(date)|null",
+      "phone": "string",
+      "profile_complete": "boolean",
+      "reactivation_blocked": "boolean",
+      "roles": "array<ref:RolesEnum>"
+    },
+    "required": [
+      "admin_created",
+      "city",
+      "county",
+      "dart",
+      "email_bounce_detail",
+      "email_bounced_at",
+      "email_verified",
+      "email_verified_at",
+      "friend_on",
+      "has_suspended_term",
+      "has_terms",
+      "home_airport",
+      "id",
+      "is_active",
+      "kind",
+      "membership",
+      "next_term_starts_on",
       "phone",
       "profile_complete",
       "reactivation_blocked"
@@ -2774,7 +2866,7 @@
     },
     "required": []
   },
-  "PatchedAdminUserRequest": {
+  "PatchedAdminUserDetailRequest": {
     "properties": {
       "email": "string(email)",
       "first_name": "string",
@@ -4263,6 +4355,7 @@
   },
   "User": {
     "properties": {
+      "admin_created": "boolean",
       "email": "string(email)",
       "email_verified": "boolean",
       "first_name": "string",
@@ -4276,6 +4369,7 @@
       "roles": "array<ref:RolesEnum>"
     },
     "required": [
+      "admin_created",
       "email",
       "email_verified",
       "first_name",

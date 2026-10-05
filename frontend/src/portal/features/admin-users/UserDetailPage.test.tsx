@@ -5,8 +5,9 @@ import { HttpResponse, http } from 'msw';
 import { Route, Routes } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 
-import type { AdminUser, User } from '@/portal/api/types';
-import { API, makeAdminUser, makeUser, signedInAs } from '@test/handlers';
+import type { AccountChange, AdminUserDetail, User } from '@/portal/api/types';
+import { formatDateTime } from '@/portal/components/DateText';
+import { API, makeAdminUserDetail, makeUser, signedInAs } from '@test/handlers';
 import { renderWithProviders, signedInClient } from '@test/render';
 import { server } from '@test/server';
 import { UserDetailPage } from './UserDetailPage';
@@ -17,7 +18,7 @@ const ROLES = [
   { slug: 'system_admin', description: 'Everything, plus backups and health.' },
 ];
 
-const TARGET = makeAdminUser({
+const TARGET = makeAdminUserDetail({
   id: 7,
   email: 'priya@example.org',
   first_name: 'Priya',
@@ -26,23 +27,25 @@ const TARGET = makeAdminUser({
 });
 
 /** `TARGET` with an address the bounce check found bouncing at noon UTC, October 1st. */
-const BOUNCED = makeAdminUser({
+const BOUNCED = makeAdminUserDetail({
   ...TARGET,
   email_bounced_at: '2026-10-01T12:00:00Z',
   email_bounce_detail: '5.1.1 550 User unknown',
 });
 
 interface StubOptions {
-  target?: AdminUser;
+  target?: AdminUserDetail;
   me?: User;
   patch?: Parameters<typeof http.patch>[1];
+  history?: AccountChange[];
 }
 
-function stubDetail({ target = TARGET, me, patch }: StubOptions = {}) {
+function stubDetail({ target = TARGET, me, patch, history = [] }: StubOptions = {}) {
   const patched: unknown[] = [];
   server.use(
     signedInAs(me ?? makeUser({ id: 1, roles: ['member', 'user_admin'] })),
     http.get(`${API}/roles`, () => HttpResponse.json(ROLES)),
+    http.get(`${API}/admin/users/${target.id}/history`, () => HttpResponse.json(history)),
     http.get(`${API}/admin/users/${target.id}`, () => HttpResponse.json(target)),
     http.patch(
       `${API}/admin/users/${target.id}`,
@@ -139,7 +142,9 @@ describe('UserDetailPage', () => {
       patch: () =>
         HttpResponse.json(
           {
-            roles: ['Only a system administrator can grant or revoke the system_admin role.'],
+            roles: [
+              'Only a system administrator can grant or take away the System administrator role.',
+            ],
           },
           { status: 400 },
         ),
@@ -147,10 +152,12 @@ describe('UserDetailPage', () => {
     renderDetail();
     await screen.findByRole('heading', { name: 'Priya Raman' });
 
-    await userEvent.click(screen.getByRole('checkbox', { name: /system admin/i }));
+    await userEvent.click(screen.getByRole('checkbox', { name: /dart leader/i }));
     await userEvent.click(screen.getByRole('button', { name: /save changes/i }));
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(/only a system administrator/i);
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      /grant or take away the system administrator role/i,
+    );
   });
 
   it("clears the server's refusal when the edits are canceled", async () => {
@@ -158,7 +165,9 @@ describe('UserDetailPage', () => {
       patch: () =>
         HttpResponse.json(
           {
-            roles: ['Only a system administrator can grant or revoke the system_admin role.'],
+            roles: [
+              'Only a system administrator can grant or take away the System administrator role.',
+            ],
           },
           { status: 400 },
         ),
@@ -166,12 +175,12 @@ describe('UserDetailPage', () => {
     renderDetail();
     await screen.findByRole('heading', { name: 'Priya Raman' });
 
-    await userEvent.click(screen.getByRole('checkbox', { name: /system admin/i }));
+    await userEvent.click(screen.getByRole('checkbox', { name: /dart leader/i }));
     await userEvent.click(screen.getByRole('button', { name: /save changes/i }));
-    await screen.findByText(/only a system administrator/i);
+    await screen.findByText(/grant or take away the system administrator role/i);
     await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
 
-    expect(screen.queryByText(/only a system administrator/i)).toBeNull();
+    expect(screen.queryByText(/grant or take away the system administrator role/i)).toBeNull();
   });
 
   it("moves the focus to the server's refusal when no field carries it", async () => {
@@ -179,7 +188,9 @@ describe('UserDetailPage', () => {
       patch: () =>
         HttpResponse.json(
           {
-            roles: ['Only a system administrator can grant or revoke the system_admin role.'],
+            roles: [
+              'Only a system administrator can grant or take away the System administrator role.',
+            ],
           },
           { status: 400 },
         ),
@@ -187,10 +198,12 @@ describe('UserDetailPage', () => {
     renderDetail();
     await screen.findByRole('heading', { name: 'Priya Raman' });
 
-    await userEvent.click(screen.getByRole('checkbox', { name: /system admin/i }));
+    await userEvent.click(screen.getByRole('checkbox', { name: /dart leader/i }));
     await userEvent.click(screen.getByRole('button', { name: /save changes/i }));
 
-    await waitFor(() => expect(screen.getByText(/only a system administrator/i)).toHaveFocus());
+    await waitFor(() =>
+      expect(screen.getByText(/grant or take away the system administrator role/i)).toHaveFocus(),
+    );
   });
 
   it('offers no action on your own account', async () => {
@@ -227,7 +240,11 @@ describe('UserDetailPage', () => {
      * Answer `POST .../{action}` with `answer`, and from then on serve `answer` as the
      * record too, as the server would once the action has gone through.
      */
-    function stubAction(action: string, answer: AdminUser | { detail: string }, status = 200) {
+    function stubAction(
+      action: string,
+      answer: AdminUserDetail | { detail: string },
+      status = 200,
+    ) {
       const calls: string[] = [];
       server.use(
         http.post(`${API}/admin/users/${TARGET.id}/${action}`, () => {
@@ -534,7 +551,7 @@ describe('UserDetailPage', () => {
   });
 
   describe('for a donor', () => {
-    const DONOR = makeAdminUser({
+    const DONOR = makeAdminUserDetail({
       id: 9,
       email: 'gil@example.org',
       first_name: 'Gil',
@@ -569,5 +586,103 @@ describe('UserDetailPage', () => {
 
       expect(screen.queryByRole('button', { name: /verification/i })).not.toBeInTheDocument();
     });
+  });
+
+  it('words a member with no term as the member record does, not as a friend', async () => {
+    const noTerm = makeAdminUserDetail({
+      ...TARGET,
+      membership: { status: 'friend', expires_on: null, plan: null, is_lifetime: false },
+      has_terms: false,
+    });
+    stubDetail({ target: noTerm });
+    renderDetail();
+    expect(await screen.findByText('No membership yet')).toBeInTheDocument();
+  });
+
+  it('says when a member whose term has not begun starts', async () => {
+    const pending = makeAdminUserDetail({
+      ...TARGET,
+      membership: { status: 'friend', expires_on: null, plan: null, is_lifetime: false },
+      next_term_starts_on: '2099-11-03',
+    });
+    stubDetail({ target: pending });
+    renderDetail();
+    expect(await screen.findByText(/Membership starts/)).toHaveTextContent(
+      'Membership starts 11/03/2099',
+    );
+  });
+
+  it('grays out System administrator for a user administrator, and says why', async () => {
+    stubDetail();
+    renderDetail();
+    const box = await screen.findByRole('checkbox', { name: 'System administrator' });
+    expect(box).toBeDisabled();
+  });
+
+  it('names the reason under the grayed-out System administrator box', async () => {
+    stubDetail();
+    renderDetail();
+    const box = await screen.findByRole('checkbox', { name: 'System administrator' });
+    expect(box).toHaveAccessibleDescription(/only a system administrator can give or take away/i);
+  });
+
+  it('lets a system administrator change the System administrator role', async () => {
+    stubDetail({ me: makeUser({ id: 1, roles: ['member', 'system_admin'] }) });
+    renderDetail();
+    const box = await screen.findByRole('checkbox', { name: 'System administrator' });
+    expect(box).toBeEnabled();
+  });
+
+  it('lists who changed the roles and status in the History card', async () => {
+    stubDetail({
+      history: [
+        {
+          id: 2,
+          changed_at: '2026-10-04T22:12:00Z',
+          changed_by: { id: 1, name: 'Nina Kowalski' },
+          by_command: false,
+          kind: 'blocked',
+          added: [],
+          removed: [],
+        },
+        {
+          id: 1,
+          changed_at: '2026-10-03T16:00:00Z',
+          changed_by: { id: 1, name: 'Nina Kowalski' },
+          by_command: false,
+          kind: 'roles',
+          added: ['dart_leader'],
+          removed: [],
+        },
+      ],
+    });
+    renderDetail();
+    const card = (await screen.findByRole('heading', { name: 'History' })).closest('section');
+    expect(card).not.toBeNull();
+    const lines = await within(card as HTMLElement).findAllByRole('listitem');
+    expect(lines.map((line) => line.textContent)).toEqual([
+      `${formatDateTime('2026-10-04T22:12:00Z')} · Nina Kowalski · blocked reactivation`,
+      `${formatDateTime('2026-10-03T16:00:00Z')} · Nina Kowalski · gave DART leader`,
+    ]);
+  });
+
+  it('says so when no change is recorded', async () => {
+    stubDetail();
+    renderDetail();
+    expect(
+      await screen.findByText("No change to this account's roles or status is recorded."),
+    ).toBeInTheDocument();
+  });
+
+  it('explains Deactivate account and Block reactivation before either is pressed', async () => {
+    stubDetail();
+    renderDetail();
+    expect(await screen.findByText(/they, or you, can reactivate it later/i)).toBeInTheDocument();
+  });
+
+  it('explains Block reactivation under its button', async () => {
+    stubDetail();
+    renderDetail();
+    expect(await screen.findByText(/cannot bring it back themselves/i)).toBeInTheDocument();
   });
 });

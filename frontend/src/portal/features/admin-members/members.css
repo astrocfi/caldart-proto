@@ -1,0 +1,58 @@
+/* The member record's Aircraft card: one airplane a line, its parts in three columns. */
+.member-aircraft {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: max-content minmax(0, max-content) minmax(max-content, 1fr);
+  column-gap: var(--space-5);
+}
+
+.member-aircraft li {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  align-items: baseline;
+  max-width: none;
+  padding: var(--space-2) 0;
+  border-bottom: var(--hairline) solid var(--color-rule);
+}
+
+.member-aircraft li:last-child {
+  border-bottom: 0;
+}
+
+@media (max-width: 40rem) {
+  .member-aircraft {
+    grid-template-columns: max-content minmax(0, 1fr);
+  }
+
+  .member-aircraft li > :last-child {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Why Grant term is grayed out, on the button's line. */
+.grant-term__hint {
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+/* A sentence in place of a membership dot wraps on a narrow screen, as words do, rather
+ * than pushing the page sideways the way a one-word status may not. */
+.membership-summary {
+  min-width: 0;
+}
+
+.membership-summary .status {
+  white-space: normal;
+}
+
+/* The account's address on a row of its own, its box no wider than a column's. */
+.account-fields__email {
+  grid-column: 1 / -1;
+}
+
+.account-fields__email > .field {
+  max-width: 32rem;
+}

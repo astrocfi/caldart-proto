@@ -12,6 +12,7 @@ import { api } from '@/portal/api/client';
 import { ADMIN_USERS_KEY } from '@/portal/api/queries';
 import type {
   BecomeFriendPayload,
+  Dart,
   GrantTermPayload,
   MemberCreatePayload,
   MemberDetail,
@@ -19,12 +20,28 @@ import type {
   MemberTerm,
   MemberUpdatePayload,
   Paginated,
+  Profile,
   TermUpdatePayload,
 } from '@/portal/api/types';
 import { FINANCE_KEY } from '@/portal/features/admin-payments/api';
+import { PROFILE_KEY } from '@/portal/features/profile/api';
 import type { FilterValues } from '@/portal/reports/types';
 
 export const MEMBERS_KEY = ['admin-members'] as const;
+
+/**
+ * The DART on the signed-in reader's own profile, read only when `enabled`: a DART
+ * leader's roster is the member list filtered to it.  Null while it loads, and for a
+ * profile that names no DART.
+ */
+export function useOwnDart(enabled: boolean): Pick<Dart, 'id' | 'name'> | null {
+  const profile = useQuery({
+    queryKey: PROFILE_KEY,
+    queryFn: () => api.get<Profile>('/me/profile'),
+    enabled,
+  });
+  return profile.data?.dart ?? null;
+}
 
 export interface MemberListQuery {
   /** The members report's filters and `ordering`, by query parameter; an empty value is unset. */

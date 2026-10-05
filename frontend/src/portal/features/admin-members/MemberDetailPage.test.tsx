@@ -109,7 +109,7 @@ describe('MemberDetailPage', () => {
     renderDetail();
 
     const header = (await screen.findByText('Current')).closest('.cluster');
-    expect(header).toHaveTextContent('updated 08/11/2026');
+    expect(header).toHaveTextContent('Profile updated 08/11/2026');
   });
 
   it('says a profile nobody has written has never been edited', async () => {
@@ -117,7 +117,64 @@ describe('MemberDetailPage', () => {
     renderDetail();
 
     const header = (await screen.findByText('Current')).closest('.cluster');
-    expect(header).toHaveTextContent('never edited');
+    expect(header).toHaveTextContent('Profile never edited');
+  });
+
+  it('points a member with no term at Memberships rather than calling them a friend', async () => {
+    const noTerm = makeDetail({
+      membership: { status: 'friend', expires_on: null, plan: null, is_lifetime: false },
+      memberships: [],
+      joined_on: null,
+    });
+    server.use(...detailHandlers(noTerm));
+    renderDetail();
+
+    expect(
+      await screen.findByText('No membership yet: grant a term on Memberships'),
+    ).toBeInTheDocument();
+  });
+
+  it('says when a member whose only term has not begun starts, rather than asking for a grant', async () => {
+    const base = makeDetail();
+    const future = makeDetail({
+      membership: { status: 'friend', expires_on: null, plan: null, is_lifetime: false },
+      memberships: base.memberships.map((term) => ({
+        ...term,
+        starts_on: '2099-11-03',
+        ends_on: '2100-11-02',
+      })),
+    });
+    server.use(...detailHandlers(future));
+    renderDetail();
+
+    const header = (await screen.findByText(/Membership starts/)).closest('.status');
+    expect(header).toHaveTextContent('Membership starts 11/03/2099');
+  });
+
+  it('leaves out the expiry and joining dates a member with no term does not have', async () => {
+    const noTerm = makeDetail({
+      membership: { status: 'friend', expires_on: null, plan: null, is_lifetime: false },
+      memberships: [],
+      joined_on: null,
+    });
+    server.use(...detailHandlers(noTerm));
+    renderDetail();
+
+    const header = (await screen.findByText(/No membership yet/)).closest('.cluster');
+    expect(header?.textContent).not.toMatch(/expires|joined/);
+  });
+
+  it('says a deactivated member’s membership is set aside, not that they are a friend', async () => {
+    const base = makeDetail();
+    const setAside = makeDetail({
+      is_active: false,
+      membership: { status: 'friend', expires_on: null, plan: null, is_lifetime: false },
+      memberships: base.memberships.map((term) => ({ ...term, status: 'suspended' as const })),
+    });
+    server.use(...detailHandlers(setAside));
+    renderDetail();
+
+    expect(await screen.findByText('Membership set aside while deactivated')).toBeInTheDocument();
   });
 
   it('marks a bounced address beside it in the header, with the report', async () => {
@@ -205,7 +262,7 @@ describe('MemberDetailPage', () => {
     server.use(...detailHandlers());
     renderDetail('/admin/members/1?tab=payments');
     expect(
-      await screen.findByRole('link', { name: '2025 contribution statement (PDF)' }),
+      await screen.findByRole('link', { name: 'Download the 2025 contribution statement (PDF)' }),
     ).toHaveAttribute('href', '/api/v1/admin/payments/ledger/1/statements/2025.pdf');
   });
 
@@ -289,6 +346,20 @@ describe('MemberDetailPage', () => {
     server.use(...detailHandlers());
     renderDetail('/admin/members/1?tab=memberships');
     expect(await screen.findByRole('button', { name: 'Grant term' })).toBeDisabled();
+  });
+
+  it('says why Grant term is grayed out', async () => {
+    server.use(...detailHandlers());
+    renderDetail('/admin/members/1?tab=memberships');
+    expect(await screen.findByRole('button', { name: 'Grant term' })).toHaveAccessibleDescription(
+      'Choose a plan first.',
+    );
+  });
+
+  it('labels each contribution statement with words, not the year alone', async () => {
+    server.use(...detailHandlers());
+    renderDetail('/admin/members/1?tab=payments');
+    expect(await screen.findByText('Download 2025 statement')).toBeInTheDocument();
   });
 
   it('edits the end date of an existing term', async () => {

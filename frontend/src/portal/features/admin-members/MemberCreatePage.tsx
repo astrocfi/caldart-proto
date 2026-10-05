@@ -25,6 +25,7 @@ import {
   AdminOnlyFields,
   EMPTY_ADMIN_ONLY,
   adminProfilePayload,
+  emailProblem,
   emptyAccountDraft,
   kindPayload,
   missingNames,
@@ -32,7 +33,6 @@ import {
 } from './MemberFormFields';
 import type { FieldErrors } from './MemberFormFields';
 import { useCreateMember } from './api';
-import { EMAIL_MESSAGE, isEmailAddress } from '@/portal/masks';
 import { splitErrors } from './errors';
 
 /** `/admin/members/new` page: create a member account and profile in one request. */
@@ -64,7 +64,8 @@ export function MemberCreatePage(): JSX.Element {
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     const found: FieldErrors = missingNames(account);
-    if (!isEmailAddress(account.email)) found.email = EMAIL_MESSAGE;
+    const emailError = emailProblem(account.email);
+    if (emailError !== null) found.email = emailError;
     setLocalErrors(found);
     if (Object.keys(found).length > 0) {
       refusal.refuse();

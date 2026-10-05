@@ -1,0 +1,31 @@
+/*
+ * The coverage policy card on the register: three labeled lines, then Edit.  The labels
+ * share one column across the three lines, so every value starts at the same place.
+ */
+.aircraft-policy {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--space-2) var(--space-5);
+  margin: 0 0 var(--space-4);
+}
+
+.aircraft-policy > div {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+}
+
+.aircraft-policy dt {
+  color: var(--color-muted);
+}
+
+.aircraft-policy dd {
+  margin: 0;
+  white-space: pre-line;
+}
+
+@media (max-width: 40rem) {
+  .aircraft-policy {
+    grid-template-columns: 1fr;
+  }
+}

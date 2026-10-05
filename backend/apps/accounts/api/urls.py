@@ -29,6 +29,11 @@ urlpatterns = [
     path("admin/users", views.AdminUserListView.as_view(), name="admin-user-list"),
     path("admin/users/<int:pk>", views.AdminUserDetailView.as_view(), name="admin-user-detail"),
     path(
+        "admin/users/<int:pk>/history",
+        views.AdminUserHistoryView.as_view(),
+        name="admin-user-history",
+    ),
+    path(
         "admin/users/<int:pk>/send-password-reset",
         views.AdminUserSendPasswordResetView.as_view(),
         name="admin-user-send-password-reset",
