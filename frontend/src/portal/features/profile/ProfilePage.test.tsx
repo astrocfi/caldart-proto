@@ -56,13 +56,21 @@ describe('<ProfilePage/>', () => {
     expect(actions).toHaveAttribute('data-dirty', 'true');
   });
 
-  it('leaves My aircraft to its button, with no sentence repeating it', async () => {
+  it('leaves My aircraft to its link, with no sentence repeating it', async () => {
     server.use(http.get(`${API}/me/profile`, () => HttpResponse.json(makeVerifiedProfile())));
     renderWithProviders(<ProfilePage />, { route: '/profile' });
 
     await screen.findByLabelText(label('City'));
     expect(screen.getAllByRole('link', { name: 'My aircraft' })).toHaveLength(1);
     expect(screen.queryByText(/The planes you commonly fly are kept/)).not.toBeInTheDocument();
+  });
+
+  it('reaches My aircraft by a plain link, as My aircraft reaches back', async () => {
+    server.use(http.get(`${API}/me/profile`, () => HttpResponse.json(makeVerifiedProfile())));
+    renderWithProviders(<ProfilePage />, { route: '/profile' });
+
+    await screen.findByLabelText(label('City'));
+    expect(screen.getByRole('link', { name: 'My aircraft' })).not.toHaveClass('button');
   });
 
   it('offers the DARTs the catalog returned', async () => {

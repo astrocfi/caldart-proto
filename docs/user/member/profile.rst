@@ -11,7 +11,7 @@ What you see
 ============
 
 The form is the one the join wizard used, with your first and last name added at
-the top, filled in with what CalDART has on file. **My aircraft**, at the top right, opens :doc:`my-aircraft`. Below the form
+the top, filled in with what CalDART has on file. The **My aircraft** link, at the top right, opens :doc:`my-aircraft`. Below the form
 come the **Your kind of account** card and the **Deactivate my account** card.
 
 Contact

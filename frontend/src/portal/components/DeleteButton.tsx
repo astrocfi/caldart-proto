@@ -55,6 +55,11 @@ interface DeleteButtonBaseProps extends Omit<ButtonProps, 'children' | 'ref'> {
    * alone, which suits a row's trashcan.
    */
   warning?: ReactNode;
+  /**
+   * Told whenever the inline confirmation opens (`true`) or closes (`false`), so a
+   * row can set aside its other actions while the confirmation stands alone.
+   */
+  onConfirmingChange?: (isConfirming: boolean) => void;
 }
 
 /** A trashcan followed by words, inside a `Button` the caller can style. */
@@ -97,8 +102,9 @@ export type DeleteButtonProps = WordedDeleteButtonProps | IconDeleteButtonProps;
  * clicking outside the pair, or moving the focus off it all restore the trashcan
  * without calling anything. The focus moves to **Cancel** when the pair opens, so a
  * stray second Enter keeps the thing, and returns to the trashcan after **Cancel**
- * or Escape. Once a delete settles the focus goes back to the trashcan or, when the
- * delete took it away with its row, to the nearest place still on the page: the
+ * or Escape. `onConfirmingChange` hears each opening and closing of the pair. Once a
+ * delete settles the focus goes back to the trashcan or, when the delete took it
+ * away with its row, to the nearest place still on the page: the
  * table cell or list item it sat in, or the heading of its card. An Escape pressed
  * on the pair stops there, so a panel or dialog the control sits in stays open. The pair
  * disables both of its buttons while `onDelete`'s promise is in flight, and
@@ -117,12 +123,25 @@ export function DeleteButton(props: DeleteButtonProps): JSX.Element {
     onDelete,
     confirmLabel = DEFAULT_CONFIRM_LABEL,
     warning,
+    onConfirmingChange,
     disabled = false,
     ...rest
   } = props;
 
   const [isConfirming, setIsConfirming] = useState(false);
   const [isPending, setIsPending] = useState(false);
+  // The latest listener, read when the confirmation opens or closes rather than made a
+  // dependency, so a caller's inline function does not report the same state again.
+  const onConfirmingChangeRef = useRef(onConfirmingChange);
+  useEffect(() => {
+    onConfirmingChangeRef.current = onConfirmingChange;
+  });
+  const hasConfirmedOnceRef = useRef(false);
+  useEffect(() => {
+    if (!isConfirming && !hasConfirmedOnceRef.current) return;
+    hasConfirmedOnceRef.current = true;
+    onConfirmingChangeRef.current?.(isConfirming);
+  }, [isConfirming]);
   const containerRef = useRef<HTMLSpanElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);

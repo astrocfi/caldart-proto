@@ -178,6 +178,12 @@
   margin-left: auto;
 }
 
+/* The editor opened on a plane spans the line under it, so the list resumes below. */
+.aircraft-list__editor {
+  flex-basis: 100%;
+  min-width: 0;
+}
+
 /* The coverage policy's note to members, above the attached aircraft. */
 .aircraft-coverage-note {
   margin: 0 0 var(--space-4);

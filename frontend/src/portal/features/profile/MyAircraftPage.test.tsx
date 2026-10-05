@@ -382,6 +382,58 @@ describe('<MyAircraftPage/> editing', () => {
     expect(await screen.findByText('N12345 updated.')).toBeInTheDocument();
   });
 
+  it('shows only the confirmation on a line whose trashcan was pressed', async () => {
+    renderWithProviders(<MyAircraftPage />);
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Remove N12345' }));
+
+    expect(screen.queryByRole('button', { name: 'Edit N12345' })).not.toBeInTheDocument();
+  });
+
+  it('brings Edit back once the confirmation is canceled', async () => {
+    renderWithProviders(<MyAircraftPage />);
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Remove N12345' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    expect(screen.getByRole('button', { name: 'Edit N12345' })).toBeInTheDocument();
+  });
+
+  it('opens the editor inside the line of the aircraft being edited', async () => {
+    const second = { ...TEST_AIRCRAFT, id: 8, n_number: 'N67890', created_by: 1 };
+    server.use(
+      http.get(`${API}/me/profile`, () =>
+        HttpResponse.json(makeProfile({ aircraft: [{ ...TEST_AIRCRAFT, created_by: 1 }, second] })),
+      ),
+      http.get(`${API}/aircraft/7`, () => HttpResponse.json(record(1))),
+    );
+    renderWithProviders(<MyAircraftPage />);
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Edit N12345' }));
+    const expiry = await screen.findByLabelText('Insurance expires');
+
+    expect(screen.getByRole('button', { name: 'Close N12345' }).closest('li')).toContainElement(
+      expiry,
+    );
+  });
+
+  it('keeps the next aircraft below the editor', async () => {
+    const second = { ...TEST_AIRCRAFT, id: 8, n_number: 'N67890', created_by: 1 };
+    server.use(
+      http.get(`${API}/me/profile`, () =>
+        HttpResponse.json(makeProfile({ aircraft: [{ ...TEST_AIRCRAFT, created_by: 1 }, second] })),
+      ),
+      http.get(`${API}/aircraft/7`, () => HttpResponse.json(record(1))),
+    );
+    renderWithProviders(<MyAircraftPage />);
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Edit N12345' }));
+    const expiry = await screen.findByLabelText('Insurance expires');
+    const next = screen.getByRole('button', { name: 'Edit N67890' });
+
+    expect(expiry.compareDocumentPosition(next) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it('offers no Edit on a plane somebody else added, and says who to write to', async () => {
     server.use(
       http.get(`${API}/me/profile`, () =>

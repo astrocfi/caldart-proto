@@ -250,8 +250,8 @@ describe('AircraftPicker', () => {
     expect(await screen.findByText(/No aircraft matches that/i)).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /Add a new aircraft/i }));
 
-    // The registration the member typed is carried into the form, normalized.
-    expect(screen.getByLabelText(/^N-number/)).toHaveValue('N4321Q');
+    // The registration searched for is not carried in, so typing it runs the registry.
+    expect(screen.getByLabelText(/^N-number/)).toHaveValue('');
   });
 
   it('offers exactly one way to add an aircraft when nothing matches', async () => {
@@ -364,6 +364,7 @@ describe('AircraftPicker', () => {
     renderWithProviders(<AircraftPicker onSelect={handleSelect} />);
     await search(user, /Search CalDART's aircraft list/i, 'n4321q');
     await user.click(await screen.findByRole('button', { name: /Add a new aircraft/i }));
+    await search(user, /^N-number/, 'n4321q');
 
     await search(user, /^Aircraft type/, 'sr22');
     await user.click(await screen.findByRole('option', { name: /^Cirrus SR22/ }));
@@ -375,7 +376,7 @@ describe('AircraftPicker', () => {
     expect(posted).toMatchObject({ n_number: 'N4321Q', type_id: 3 });
   });
 
-  it.each(['piper', 'Cessna 172', 'PA-28'])(
+  it.each(['piper', 'Cessna 172', 'PA-28', 'N4321Q'])(
     'starts a new aircraft with an empty N-number after a search for %s',
     async (text) => {
       const user = setupUser();
@@ -408,7 +409,7 @@ describe('AircraftPicker', () => {
     renderWithProviders(<AircraftPicker onSelect={handleSelect} />);
     await search(user, /Search CalDART's aircraft list/i, 'n739');
     await user.click(await screen.findByRole('button', { name: /Add a new aircraft/i }));
-    await search(user, /^N-number/, 't');
+    await search(user, /^N-number/, 'n739t');
     await user.click(await screen.findByRole('option', { name: /^N739TA/ }));
     await act(() => vi.advanceTimersByTimeAsync(SEARCH_DEBOUNCE_MS));
 
@@ -435,7 +436,7 @@ describe('AircraftPicker', () => {
     renderWithProviders(<AircraftPicker onSelect={() => {}} />);
     await search(user, /Search CalDART's aircraft list/i, 'n739');
     await user.click(await screen.findByRole('button', { name: /Add a new aircraft/i }));
-    await search(user, /^N-number/, 'ta');
+    await search(user, /^N-number/, 'n739ta');
     await act(() => vi.advanceTimersByTimeAsync(SEARCH_DEBOUNCE_MS));
 
     expect(await screen.findByText('N739TA is already on file.')).toBeInTheDocument();
@@ -452,7 +453,7 @@ describe('AircraftPicker', () => {
     renderWithProviders(<AircraftPicker onSelect={() => {}} />);
     await search(user, /Search CalDART's aircraft list/i, 'n739');
     await user.click(await screen.findByRole('button', { name: /Add a new aircraft/i }));
-    await search(user, /^N-number/, 't');
+    await search(user, /^N-number/, 'n739t');
     await user.click(await screen.findByRole('option', { name: /^N739TA/ }));
 
     const boxes = [
@@ -530,6 +531,7 @@ describe('AircraftPicker', () => {
     renderWithProviders(<AircraftPicker onSelect={() => {}} />);
     await search(user, /Search CalDART's aircraft list/i, 'n172sp');
     await user.click(await screen.findByRole('button', { name: /Add a new aircraft/i }));
+    await search(user, /^N-number/, 'n172sp');
     await search(user, /^Aircraft type/, '172S');
     await user.click(await screen.findByRole('option', { name: /^Cessna 172S/ }));
     await user.click(screen.getByRole('button', { name: /^Add aircraft$/ }));
@@ -552,6 +554,7 @@ describe('AircraftPicker', () => {
     renderWithProviders(<AircraftPicker onSelect={() => {}} />);
     await search(user, /Search CalDART's aircraft list/i, 'n172sp');
     await user.click(await screen.findByRole('button', { name: /Add a new aircraft/i }));
+    await search(user, /^N-number/, 'n172sp');
     await search(user, /^Aircraft type/, '172S');
     await user.click(await screen.findByRole('option', { name: /^Cessna 172S/ }));
     await user.click(screen.getByRole('button', { name: /^Add aircraft$/ }));

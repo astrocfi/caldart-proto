@@ -7,10 +7,10 @@
  * `/profile/aircraft` uses it for the planes a member commonly flies.
  *
  * Enter in the search box adds the one aircraft a search found.  **Add a new
- * aircraft** starts the form with the search text as its N-number only when that text
- * is shaped like a registration (`isNNumber`), so a search for "piper", "Cessna 172",
- * or "PA-28" leaves the box empty.  As soon as the form's N-number is one CalDART has on file, the form says so
- * and offers **Add it to my list**, before anybody fills in the rest.
+ * aircraft** starts the form with an empty N-number, whatever was searched for, so the
+ * registry's typeahead runs on the number as it is typed there.  As soon as the form's
+ * N-number is one CalDART has on file, the form says so and offers **Add it to my
+ * list**, before anybody fills in the rest.
  */
 import { useCallback, useId, useRef, useState } from 'react';
 import type { JSX, KeyboardEvent, ReactNode } from 'react';
@@ -81,9 +81,6 @@ export function AircraftPicker({ onSelect, excludeIds = [] }: AircraftPickerProp
   // What the add form says under its N-number: the record on file, if there is one.
   const useOnFileNote = (nNumber: string): ReactNode =>
     useOnFileLine(nNumber, (aircraft) => excludeIds.includes(aircraft.id), handleCreated);
-
-  const typed = term.trim();
-  const initialNNumber = isNNumber(typed) ? normalizeNNumber(typed) : '';
 
   return (
     <Card eyebrow="Aircraft" title="Find an aircraft">
@@ -176,7 +173,7 @@ export function AircraftPicker({ onSelect, excludeIds = [] }: AircraftPickerProp
             Add an aircraft
           </h3>
           <AircraftForm
-            initial={emptyAircraftValues(initialNNumber)}
+            initial={emptyAircraftValues()}
             submitLabel="Add aircraft"
             pending={create.isPending}
             serverErrors={fieldErrors}

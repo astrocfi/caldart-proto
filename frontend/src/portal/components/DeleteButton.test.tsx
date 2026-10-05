@@ -397,4 +397,21 @@ describe('DeleteButton confirmation', () => {
 
     expect(screen.getByRole('heading', { name: 'Aircraft' })).toHaveFocus();
   });
+
+  it('tells its listener when the confirmation opens and when it closes', async () => {
+    const user = userEvent.setup();
+    const handleConfirmingChange = vi.fn();
+    render(
+      <DeleteButton
+        label="Remove N12345"
+        onDelete={() => {}}
+        onConfirmingChange={handleConfirmingChange}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Remove N12345' }));
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    expect(handleConfirmingChange.mock.calls).toEqual([[true], [false]]);
+  });
 });
