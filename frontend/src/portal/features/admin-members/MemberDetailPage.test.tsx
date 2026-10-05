@@ -151,6 +151,24 @@ describe('MemberDetailPage', () => {
     expect(header).toHaveTextContent('Membership starts 11/03/2099');
   });
 
+  it('does not repeat a future start date as the day the member joined', async () => {
+    const base = makeDetail();
+    const future = makeDetail({
+      membership: { status: 'none', expires_on: null, plan: null, is_lifetime: false },
+      joined_on: '2099-11-03',
+      memberships: base.memberships.map((term) => ({
+        ...term,
+        starts_on: '2099-11-03',
+        ends_on: '2100-11-02',
+      })),
+    });
+    server.use(...detailHandlers(future));
+    renderDetail();
+
+    const strip = (await screen.findByText(/Membership starts/)).closest('.cluster');
+    expect(strip?.textContent).not.toMatch(/joined/);
+  });
+
   it('leaves out the expiry and joining dates a member with no term does not have', async () => {
     const noTerm = makeDetail({
       membership: { status: 'none', expires_on: null, plan: null, is_lifetime: false },
@@ -168,7 +186,7 @@ describe('MemberDetailPage', () => {
     const base = makeDetail();
     const setAside = makeDetail({
       is_active: false,
-      membership: { status: 'none', expires_on: null, plan: null, is_lifetime: false },
+      membership: { status: 'friend', expires_on: null, plan: null, is_lifetime: false },
       memberships: base.memberships.map((term) => ({ ...term, status: 'suspended' as const })),
     });
     server.use(...detailHandlers(setAside));
