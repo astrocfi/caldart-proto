@@ -176,18 +176,25 @@ page loads. See :doc:`../roles`.
 The verification report
 =======================
 
-Above the search box, *Everything nobody has checked yet:* stands beside **Export CSV**
-and **Export PDF**, which download the CalDART verification report: every pilot
-certificate, medical, photo ID, and aircraft insurance nobody has verified yet, each under
-its own heading, with the person or airplane, their DART or owner, the details, and the
-day the record last changed. The line under the PDF's title reads *Showing: Not yet
-verified*. Only what somebody holds is listed: a non-pilot has no certificate to check,
-nor a person with no medical a medical, nor one with no photo ID on file a photo ID, nor an
-airplane with no policy on file its insurance. A section heading always starts on the page
-with its first rows. The CSV names each row's section in its first column, **Section**,
-which the PDF leaves to its headings. The report can also be emailed on a schedule from
-the :doc:`subscriptions` screen, where the **Verified**, **Verified by**, and **Verified
-on** columns can be added.
+Above the search box, *Everything requiring validation:* stands beside **Export CSV**
+and **Export PDF**, which download the CalDART verification report of everything nobody
+has verified yet, in two sections:
+
+- **People**, one row per person with something to verify, sorted by name: their DART;
+  **Photo ID**, **Certificate**, and **Medical**, each reading *Not verified* or
+  *Verified*; what is on file, such as *Passport · Private · 1234567 · Third class*; the
+  medical's expiry date in **Expires**; and the day their profile last changed.
+- **Aircraft insurance**, one row per airplane: its N-number, its owner, the carrier, the
+  policy's expiry date in **Expires**, and the day the record last changed.
+
+The line under the PDF's title reads *Showing: Not yet verified*. Only what somebody holds
+is checked: a non-pilot's **Certificate** is blank, as is the **Medical** of a person with
+no medical and the **Photo ID** of one with no photo ID on file. A person who holds none of
+the three, and an airplane with no policy on file, is not listed. A section heading always
+starts on the page with its first rows. The CSV names each row's section in its first
+column, **Section**, which the PDF leaves to its headings. The report can also be emailed
+on a schedule from the :doc:`subscriptions` screen, where the **Verified**, **Verified
+by**, and **Verified on** columns can be added.
 
 
 When nobody matches

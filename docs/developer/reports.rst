@@ -205,7 +205,7 @@ Columns and cells
 spreadsheet sorts it: the membership, aircraft, and payments reports read that
 way.  A column that describes rather than sorts writes its date through
 ``caldart.dates`` (:doc:`architecture`), the ``MM/DD/YYYY`` a screen shows: the
-verification report's *Details*, *Updated*, and *Verified on* cells, and the
+verification report's *Expires*, *Updated*, and *Verified on* cells, and the
 email log's *Sent* cell (``MM/DD/YYYY at h:mm AM``).  The PDF footer stamps the
 moment it was generated the same way.  A file's name keeps ``YYYY-MM-DD``.
 
@@ -496,27 +496,30 @@ check can find, because it lists both people and aircraft.  An item
 is verified when its ``<item>_verified_at`` column is set; the columns are in
 :doc:`data-model`.
 
-It is sectioned, one section per kind of item, always in this order and each drawn
-even when empty, with the line "Nothing to show." under an empty one:
+It is sectioned, always in this order and each section drawn even when empty, with the
+line "Nothing to show." under an empty one:
 
-``Pilot certificates``, ``Medicals``, ``Photo IDs``
-   One row per checkable person with a profile who holds the item, in each of the
-   three: every active member and friend (``checkable_people()`` in
-   ``apps/aircraft/services.py``).  An item the person does not hold (``is_held`` in
-   ``apps/members/verification.py``: a certificate of *Not a pilot*, a medical of
-   *None*, a photo ID of *Not provided*) has nothing to verify and is left out.  A
-   donor, a deactivated account, and an account with no profile are never listed.
-   The rows are ordered by last name, first name, then address.
+``People``
+   One row per checkable person with a profile who holds at least one of a photo ID, a
+   pilot certificate, and a medical: every active member and friend
+   (``checkable_people()`` in ``apps/aircraft/services.py``).  Each of the three has a
+   check column; an item the person does not hold (``is_held`` in
+   ``apps/members/verification.py``: a photo ID of *Not provided*, a certificate of
+   *Not a pilot*, a medical of *None*) has nothing to verify, and its check is blank,
+   whatever stamp it carries.  A person who holds none of the three, a donor, a
+   deactivated account, and an account with no profile are never listed.  The rows are
+   ordered by last name, first name, then address.
 ``Aircraft insurance``
    One row per aircraft in service (``is_active``) with a policy on file (an
    ``insurance_expiration``), in N-number order.  An aircraft out of service, or with
    no policy, is never listed.
 
-Two filters narrow the rows:
+A row's held items decide its state: it is verified when every one of them carries a
+stamp, and requires validation otherwise.  Two filters narrow the rows:
 
 ``status``
-   ``unverified`` (the default, also when blank) keeps the items not yet verified,
-   ``verified`` the verified ones, and ``all`` every item.  Any other value is
+   ``unverified`` (the default, also when blank) keeps the rows that require
+   validation, ``verified`` the verified ones, and ``all`` every row.  Any other value is
    refused with a 400,
    ``{"status": ["Select a valid choice. <value> is not one of the available choices."]}``.
 ``dart``
@@ -527,11 +530,14 @@ Two filters narrow the rows:
 The PDF subtitle always names the status in words, since it has a default
 (*Showing: Not yet verified*, *Verified*, or *Everything*), and then the DART when
 one is given, by name for an id (*DART: Monterey*) and as given for part of a name.
-Any other parameter is ignored, apart from ``columns``.  The default list is of items
-nobody has verified, so the three verification columns are there to choose but off by
-default.  Section is a default, which keeps the grouping in the flat CSV; the spec names
-it as its ``section_column``, so a PDF of the default columns leaves it to the section
-headings and prints it only when ``columns`` asks for it.  In order:
+Any other parameter is ignored, apart from ``columns``.  The default list is of rows
+that require validation, and the check columns already say which items are verified, so
+the three verification stamp columns are there to choose but off by default.  Section
+is a default, which keeps the grouping in the flat CSV; the spec names it as its
+``section_column``, so a PDF of the default columns leaves it to the section headings
+and prints it only when ``columns`` asks for it.  Details is the one default column a
+PDF row may wrap in; ``test_report_columns.py`` holds every other default cell of the
+seeded data to one line.  In order:
 
 ============= ============== ======= =============================================
 Key           Label          Default Contents
@@ -540,20 +546,30 @@ section       Section        yes     The section's title, so the CSV keeps the
                                      grouping
 name          Name           yes     The person's full name (or address), or the
                                      aircraft's N-number
-dart          DART           yes     The person's DART, or the aircraft's owner
-details       Details        yes     What is on file: ``Private · 1234567``,
-                                     ``Third class · expires 03/01/2027``,
-                                     ``Passport``, ``Avemco · expires 03/01/2027``;
-                                     a blank part is left out
+dart          DART or owner  yes     The person's DART, or the aircraft's owner
+photo_id      Photo ID       yes     ``Verified`` or ``Not verified``; blank when
+                                     the person holds no photo ID, and on an
+                                     aircraft's row
+certificate   Certificate    yes     The same, for the pilot certificate
+medical       Medical        yes     The same, for the medical
+details       Details        yes     What is on file, in check-column order:
+                                     ``Passport · Private · 1234567 · Third class``
+                                     for a person, the held items only and a blank
+                                     certificate number left out; the carrier,
+                                     ``Avemco``, for an aircraft
+expires       Expires        yes     ``MM/DD/YYYY`` of the medical's or the policy's
+                                     expiration; blank without a medical
 updated       Updated        yes     ``MM/DD/YYYY`` of the profile's
-                                     ``profile_updated_at`` or the aircraft's
-                                     ``updated_at``; blank for a profile nobody has
-                                     written
-verified      Verified       no      ``Yes`` or ``No``
-verified_by   Verified by    no      The verifier's name, blank when unverified or
-                                     when the verifier's account is gone
-verified_on   Verified on    no      ``MM/DD/YYYY`` of the verification, in local
-                                     time
+                                     ``profile_updated_at`` (its ``created_at``
+                                     when nobody has edited it) or the aircraft's
+                                     ``updated_at``
+verified      Verified       no      ``Yes`` when every held item on the row is
+                                     verified, else ``No``
+verified_by   Verified by    no      The name of whoever made the row's most recent
+                                     verification, blank when nothing on the row is
+                                     verified or the verifier's account is gone
+verified_on   Verified on    no      ``MM/DD/YYYY`` of that most recent
+                                     verification, in local time
 ============= ============== ======= =============================================
 
 ``backend/tests/test_verification_report.py`` covers the report.

@@ -21,6 +21,7 @@ from reportlab.pdfbase.pdfmetrics import stringWidth
 from rest_framework.test import APIClient
 
 from apps.aircraft.reports import AIRCRAFT_REPORT, AIRCRAFT_REPORT_COLUMNS
+from apps.aircraft.verification_report import VERIFICATION_REPORT, VERIFICATION_REPORT_COLUMNS
 from apps.members.reports import MEMBER_REPORT, MEMBER_REPORT_COLUMNS
 from apps.members.roles_report import ROLES_REPORT, ROLES_REPORT_COLUMNS
 from caldart.reports import (
@@ -180,6 +181,30 @@ def test_no_default_aircraft_cell_wraps_in_the_pdf(seeded: None) -> None:
         for row in rows
         for column, cell in zip(columns, row, strict=True)
         if not fits(cell, column.width, total)
+    ]
+    assert too_wide == []
+
+
+@pytest.mark.slow
+def test_no_default_verification_cell_but_the_details_wraps_in_the_pdf(seeded: None) -> None:
+    """Every seeded row's checks, dates, name, and DART or owner fit on one line.
+
+    The PDF's default columns leave Section to the headings.  Details, which joins a
+    person's photo ID, certificate, and medical, is the one column a row may wrap in.
+    """
+    columns = [
+        column
+        for column in select_columns(VERIFICATION_REPORT_COLUMNS, None)
+        if column.key != "section"
+    ]
+    assert wrapped_headers(columns) == []
+    total = sum(column.width for column in columns)
+    table = VERIFICATION_REPORT.table({"status": "all"}, fmt="pdf", today=timezone.localdate())
+    too_wide = [
+        (column.key, cell)
+        for row in table.rows
+        for column, cell in zip(columns, row, strict=True)
+        if column.key != "details" and not fits(cell, column.width, total)
     ]
     assert too_wide == []
 

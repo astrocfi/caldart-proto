@@ -68,11 +68,11 @@ function dartLabel(result: LeaderSearchResult): string {
 }
 
 /** The caption of the verification report's downloads, which names the group. */
-const REPORT_CAPTION = 'Everything nobody has checked yet:';
+const REPORT_CAPTION = 'Everything requiring validation:';
 
 /**
- * The verification report, downloaded with its default filter: every item nobody has
- * verified yet.
+ * The verification report, downloaded with its default filter: every person with an item
+ * nobody has verified yet, and every aircraft whose insurance nobody has.
  */
 function VerificationReportLinks(): JSX.Element {
   return (

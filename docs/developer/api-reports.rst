@@ -422,7 +422,7 @@ Tests
    donation's plan and cadence, the ``status``, ``kind`` and ``search`` filters
    narrowing the download as they narrow the list, and the refused values.
 ``backend/tests/test_verification_report.py``
-   The verification report: its four sections and who is listed in each, the
+   The verification report: its two sections and who is listed in each, the
    cells, the ``status`` and ``dart`` filters and the refused status, the file
    name, the sections in the PDF, the role matrix, and who a subscription may
    send it to.
