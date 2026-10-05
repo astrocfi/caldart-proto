@@ -574,22 +574,6 @@ def awaits_first_term_annotation(today: date | None = None) -> Case:
     )
 
 
-def upcoming_term_start(user: User, today: date | None = None) -> date | None:
-    """The first day of ``user``'s earliest active term that starts after ``today``.
-
-    ``today`` defaults to the local date.  ``None`` when no such term is coming, as for a
-    member whose only term was canceled.  A member awaiting a first term that an
-    administrator granted to start later is told this day rather than asked for dues.
-    """
-    today = today or timezone.localdate()
-    starts = [
-        term.starts_on
-        for term in user.memberships.all()
-        if term.status == MembershipStatusChoices.ACTIVE and term.starts_on > today
-    ]
-    return min(starts, default=None)
-
-
 def listed_kind(user: MemberRow) -> AccountKind:
     """The kind a list shows for an annotated row.
 

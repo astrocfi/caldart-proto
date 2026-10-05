@@ -629,20 +629,9 @@ def test_roles_are_available_to_any_authenticated_user(api_client: APIClient, me
 def test_the_record_says_an_account_holds_no_term(
     api_client: APIClient, user_admin: User, member: User
 ) -> None:
-    """An account without a term reads ``has_terms: false`` and no pending start."""
+    """An account without a term reads ``has_terms: false``."""
     api_client.force_login(user_admin)
-    body = api_client.get(detail(member)).json()
-    assert (body["has_terms"], body["next_term_starts_on"]) == (False, None)
-
-
-def test_the_record_names_the_start_of_a_term_that_has_not_begun(
-    api_client: APIClient, user_admin: User, member: User, annual_plan: MembershipPlan, today: date
-) -> None:
-    """An active term starting after today is the record's ``next_term_starts_on``."""
-    starts = date(today.year + 1, 3, 1)
-    MembershipFactory(user=member, plan=annual_plan, starts_on=starts)
-    api_client.force_login(user_admin)
-    assert api_client.get(detail(member)).json()["next_term_starts_on"] == starts.isoformat()
+    assert api_client.get(detail(member)).json()["has_terms"] is False
 
 
 def test_the_record_says_a_deactivation_set_a_term_aside(

@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 
 import { useDonation, useRenewal, useSiteConfig } from '@/portal/api/queries';
 import type {
-  IsoDate,
   MembershipStatus,
   PaymentSummary,
   RenewalMandate,
@@ -25,7 +24,6 @@ import { purchaseLabel } from '@/portal/features/payments/PaymentsTable';
 import { useMembership, useMyPayments } from '@/portal/features/profile/api';
 import { hasAnyRole, visibleNavItems } from '@/portal/nav';
 import type { NavItem, NavReader } from '@/portal/nav';
-import { upcomingTermStart } from './firstTerm';
 import { KindSwitch } from './KindSwitch';
 import './dashboard.css';
 
@@ -142,8 +140,6 @@ export function DashboardPage(): JSX.Element {
   const isFriend = status?.status === 'friend';
   const isAwaitingDues = status?.status === 'none';
   const isWithoutRenewal = isFriend || isAwaitingDues;
-  // A member whose first term is granted but still to start has nothing to pay.
-  const startsOn = isAwaitingDues ? upcomingTermStart(membership.data?.history) : null;
   const urgent = !isWithoutRenewal && (tone === 'expiring' || tone === 'expired');
   // The members-only pages answer anybody without a membership with the wall unless a
   // staff role lets them read, so the card is not offered to somebody who would be refused.
@@ -171,12 +167,12 @@ export function DashboardPage(): JSX.Element {
           <Card
             className={urgent ? 'dashboard__card--urgent' : undefined}
             eyebrow={isFriend ? 'Friend of CalDART' : undefined}
-            title={<MembershipHeadline status={status} startsOn={startsOn} />}
+            title={<MembershipHeadline status={status} />}
           >
             {isFriend ? (
               <FriendStatus />
             ) : isAwaitingDues ? (
-              <AwaitingDuesStatus startsOn={startsOn} />
+              <AwaitingDuesStatus />
             ) : status ? (
               <div className="dashboard__status">
                 <MembershipDot membership={status} />
@@ -333,23 +329,8 @@ function FriendStatus() {
   );
 }
 
-/**
- * A member with no membership yet: when a granted term is coming, the day it starts and
- * nothing to pay; otherwise what is missing, and the way to pay.
- */
-function AwaitingDuesStatus({ startsOn }: { startsOn: IsoDate | null }) {
-  if (startsOn !== null) {
-    return (
-      <>
-        <div className="dashboard__status">
-          <p>Members-only pages open to you on that day.</p>
-        </div>
-        <div className="cluster card__footer">
-          <Link to="/profile">Update your details</Link>
-        </div>
-      </>
-    );
-  }
+/** A member who has not paid: what is missing, and the way to pay. */
+function AwaitingDuesStatus() {
   return (
     <>
       <div className="dashboard__status">
@@ -363,29 +344,17 @@ function AwaitingDuesStatus({ startsOn }: { startsOn: IsoDate | null }) {
   );
 }
 
-/**
- * The membership card's title: current, expired, starting on a day to come, none yet, or
- * a friend of CalDART.
- */
+/** The membership card's title: current, expired, not yet paid, or a friend of CalDART. */
 function MembershipHeadline({
   status,
-  startsOn,
 }: {
   status: Pick<MembershipStatus, 'status' | 'is_lifetime'> | null;
-  startsOn: IsoDate | null;
 }) {
   if (!status) return <>Your membership</>;
   if (status.status === 'current') {
     return <>{status.is_lifetime ? 'Lifetime member' : 'Your membership is current'}</>;
   }
   if (status.status === 'expired') return <>Your membership has expired</>;
-  if (status.status === 'none' && startsOn !== null) {
-    return (
-      <>
-        Your membership starts <DateText value={startsOn} />
-      </>
-    );
-  }
   if (status.status === 'none') return <>You have no membership yet</>;
   return <>You are a friend of CalDART</>;
 }

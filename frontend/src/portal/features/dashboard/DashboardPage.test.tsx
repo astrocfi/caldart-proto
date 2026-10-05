@@ -169,27 +169,6 @@ describe('<DashboardPage/>', () => {
     expect(screen.queryByText(/friend of CalDART/)).not.toBeInTheDocument();
   });
 
-  it('tells a member whose granted term is still to come when it starts, with nothing to pay', async () => {
-    const none: MembershipStatus = { ...FRIEND, status: 'none' };
-    mount({
-      user: makeUser({ kind: 'member', admin_created: true, membership: none }),
-      status: none,
-      history: [
-        {
-          id: 1,
-          plan: 'Annual',
-          starts_on: '2099-11-03',
-          ends_on: '2100-11-02',
-          status: 'active',
-          source: 'manual',
-        },
-      ],
-    });
-
-    await screen.findByRole('heading', { name: 'Your membership starts 11/03/2099' });
-    expect(screen.queryByRole('link', { name: 'Pay dues' })).not.toBeInTheDocument();
-  });
-
   it('offers a member with no term yet Pay dues, which opens the checkout', async () => {
     const none: MembershipStatus = { ...FRIEND, status: 'none' };
     mount({

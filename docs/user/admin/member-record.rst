@@ -27,11 +27,10 @@ on a donor's record, when you have that tab). A summary strip under the name car
 - their membership status: **Current**, **Expiring soon**, **Expired**, **Friend**, or
   **Never expires** for a life member. A member with no term in force reads *No membership
   yet: grant a term on Memberships* (or *No membership in force* when every term was
-  canceled), one whose next term has not begun *Membership starts* and its date, and a
-  deactivated member whose terms were set aside reads *Membership set aside while
-  deactivated*;
+  canceled), and a deactivated member whose terms were set aside reads *Membership set
+  aside while deactivated*;
 - the plan, the expiry date, and *joined* with the date their first term began, each left
-  out when there is none, and *joined* also while that first term has yet to begin;
+  out when there is none;
 - *Profile updated* with the date the profile was last changed, or *Profile never edited*.
   A payment, a renewal, or a membership grant does not change the date;
 - **Donor** for somebody who has only given through the public site, and **Account
@@ -129,7 +128,8 @@ Leave the start date blank and the term starts in the right place:
 - a life plan has no end date.
 
 Fill in the start date only for something that happened on a particular day, such as a
-check that arrived last month. Granting a term to a friend makes them a member, exactly as
+check that arrived last month. It may be today or earlier, never later: a membership is
+not granted to start on a day to come. Granting a term to a friend makes them a member, exactly as
 paying does. Granting one to a deactivated account marks it suspended, and it becomes
 active when the account is reactivated.
 
@@ -245,6 +245,8 @@ If something looks wrong
 the record carries a role you lack; ask a system administrator, or a colleague who holds
 every role that account holds. The **Delete or deactivate** tab lists what its own refusals mean.
 *The end date cannot be before the start date.* means the end date you typed is too early.
+*A membership cannot start after today.* means the start date is a day to come; leave it
+blank, or give today or an earlier day.
 *You cannot delete your own account.* and *Only a system administrator can delete a system
 administrator.* mean what they say. A granted term that starts later than you expected
 follows on from the current term; set the start date yourself to override it.

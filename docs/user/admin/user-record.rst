@@ -18,8 +18,8 @@ it. Five cards follow.
 **Membership**
    The kind of account (**Member**, **Friend**, or **Donor**), the membership status, and
    *Profile complete* or *Profile incomplete*. A member with no term in force reads *No
-   membership yet* (or *No membership in force*), *Membership starts* and the date when
-   their term has not begun, or *Membership set aside while deactivated*, as on the
+   membership yet* (or *No membership in force*), or *Membership set aside while
+   deactivated*, as on the
    :doc:`member-record`. A donor's card adds *A donor gave through the
    public site and cannot sign in. Fix the email address here if a receipt went astray.* If
    you are an account administrator too, **Member record** opens the person's

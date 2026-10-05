@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-from datetime import date
 from typing import Any
 
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.tokens import default_token_generator
 from django.core.exceptions import ValidationError as DjangoValidationError
-from django.utils import timezone
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers, status
 from rest_framework.exceptions import APIException
@@ -496,26 +494,23 @@ class AdminUserSerializer(UserSerializer):
 
 
 class AdminUserDetailSerializer(AdminUserSerializer):
-    """``/admin/users/{id}``: the list's row, plus three facts about the terms.
+    """``/admin/users/{id}``: the list's row, plus two facts about the terms.
 
     The user record words the membership as the member record does, and a user
     administrator cannot read the terms, so the record carries what the wording needs:
-    ``has_terms`` (the account holds any term at all), ``has_suspended_term`` (a
-    deactivation set one aside), and ``next_term_starts_on`` (the start of the earliest
-    active term that has not begun yet, or null).  The list leaves them out, since each
-    costs a query per row.
+    ``has_terms`` (the account holds any term at all) and ``has_suspended_term`` (a
+    deactivation set one aside).  The list leaves them out, since each costs a query per
+    row.
     """
 
     has_terms = serializers.SerializerMethodField()
     has_suspended_term = serializers.SerializerMethodField()
-    next_term_starts_on = serializers.SerializerMethodField()
 
     class Meta(AdminUserSerializer.Meta):
         fields = [
             *AdminUserSerializer.Meta.fields,
             "has_terms",
             "has_suspended_term",
-            "next_term_starts_on",
         ]
 
     def get_has_terms(self, obj: User) -> bool:
@@ -525,17 +520,6 @@ class AdminUserDetailSerializer(AdminUserSerializer):
     def get_has_suspended_term(self, obj: User) -> bool:
         """True when a deactivation set one of the account's terms aside."""
         return obj.memberships.filter(status=MembershipStatusChoices.SUSPENDED).exists()
-
-    def get_next_term_starts_on(self, obj: User) -> date | None:
-        """The start of the earliest active term after today, or ``None`` without one."""
-        term = (
-            obj.memberships.filter(
-                status=MembershipStatusChoices.ACTIVE, starts_on__gt=timezone.localdate()
-            )
-            .order_by("starts_on")
-            .first()
-        )
-        return term.starts_on if term is not None else None
 
 
 class AccountActorSerializer(serializers.Serializer[User]):

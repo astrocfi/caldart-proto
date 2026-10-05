@@ -87,7 +87,6 @@ function membershipFacts(user: AdminUserDetail): MembershipFacts {
     friendOn: user.friend_on,
     hasTerms: user.has_terms,
     hasSetAside: user.has_suspended_term,
-    nextStartsOn: user.next_term_starts_on,
   };
 }
 

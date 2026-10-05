@@ -284,7 +284,6 @@
       "kind": "ref:AccountKindEnum",
       "last_name": "string",
       "membership": "ref:MembershipStatus",
-      "next_term_starts_on": "string(date)|null",
       "phone": "string",
       "profile_complete": "boolean",
       "reactivation_blocked": "boolean",
@@ -307,7 +306,6 @@
       "is_active",
       "kind",
       "membership",
-      "next_term_starts_on",
       "phone",
       "profile_complete",
       "reactivation_blocked"

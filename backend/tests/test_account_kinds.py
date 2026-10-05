@@ -383,19 +383,6 @@ def test_the_wall_asks_a_member_who_has_not_paid_for_their_dues(
     assert "Friends of CalDART" not in body
 
 
-def test_the_wall_tells_a_member_whose_term_is_still_to_come_when_it_opens(
-    client: Client, walled_page: StandardPage, annual_plan: MembershipPlan, today: date
-) -> None:
-    """A granted term that starts later is named by its day, with no Pay dues."""
-    later = UserFactory(email="later@example.test")
-    start = today + timedelta(days=30)
-    MembershipFactory(user=later, plan=annual_plan, starts_on=start, ends_on=None)
-    client.force_login(later)
-    body = client.get(walled_page.url).content.decode()
-    assert "Your membership starts on" in body
-    assert "Pay dues" not in body
-
-
 # --------------------------------------------------------------------------
 # Terms and checkout
 # --------------------------------------------------------------------------

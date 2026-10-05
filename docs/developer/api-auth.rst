@@ -788,12 +788,11 @@ end.
 ``GET /admin/users/{id}``
 -------------------------
 
-One user payload as the list returns it, plus three facts about the account's terms that
+One user payload as the list returns it, plus two facts about the account's terms that
 the user record words the membership by, since a user administrator cannot read the
-terms themselves: ``has_terms`` (any term at all), ``has_suspended_term`` (a deactivation
-set one aside), and ``next_term_starts_on`` (the start of the earliest active term that
-has not begun, or ``null``).  ``PATCH`` and the account status actions below answer in
-this shape too; the list leaves the three out, since each costs a query per row.
+terms themselves: ``has_terms`` (any term at all) and ``has_suspended_term`` (a
+deactivation set one aside).  ``PATCH`` and the account status actions below answer in
+this shape too; the list leaves the two out, since each costs a query per row.
 
 Statuses: **200**; **401** when anonymous; **403** without ``user_admin``;
 **404** for an unknown id.

@@ -57,9 +57,7 @@ membership includes**, lists what the pages hold.
 
 **A member who has not paid yet**
   *This page is open to CalDART members. Pay your dues to read it.* Buttons: **Pay
-  dues** (see :doc:`become-a-member`) and **Member portal**. If the office granted you a
-  membership that starts later, it says instead *Your membership starts on 3 November
-  2026, and this page opens to you that day.*, with **Member portal**.
+  dues** (see :doc:`become-a-member`) and **Member portal**.
 
 **A friend of CalDART**
   *Friends of CalDART can read this page by becoming a member.* Buttons: **Make me a

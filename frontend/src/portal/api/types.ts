@@ -204,12 +204,10 @@ export interface AccountActor {
 /**
  * `GET|PATCH /admin/users/{id}` and the record's status actions: the list's row plus
  * what the record needs to word the membership as the member record does.
- * `next_term_starts_on` is the start of the earliest active term that has not begun.
  */
 export interface AdminUserDetail extends AdminUser {
   has_terms: boolean;
   has_suspended_term: boolean;
-  next_term_starts_on: IsoDate | null;
 }
 
 /**

@@ -2,15 +2,14 @@
  * Where a person's membership stands, in words, for the member record's summary strip
  * and the user record's Membership card.
  *
- * A member with no term in force is never called a friend: a member whose next term has
- * not begun reads when it starts, one whose terms a deactivation set aside says so, and
- * one with no term reads that there is none, with where to grant one when the reader
- * can.  Anybody else gets the membership's dot, plan, and expiry.
+ * A member with no term in force is never called a friend: one whose terms a deactivation
+ * set aside says so, and one with no term reads that there is none, with where to grant
+ * one when the reader can.  Anybody else gets the membership's dot, plan, and expiry.
  */
 import type { JSX } from 'react';
 
 import type { AccountKind, IsoDate, MemberTerm, MembershipStatus } from '@/portal/api/types';
-import { DateText, todayIso } from '@/portal/components/DateText';
+import { DateText } from '@/portal/components/DateText';
 import { MembershipDot, StatusDot } from '@/portal/components/StatusDot';
 import './members.css';
 
@@ -24,11 +23,9 @@ export interface MembershipFacts {
   hasTerms: boolean;
   /** A deactivation set one of its terms aside. */
   hasSetAside: boolean;
-  /** The start of the earliest active term that has not begun, or null. */
-  nextStartsOn: IsoDate | null;
 }
 
-/** The facts the member record's own term list gives, as of `today`. */
+/** The facts the member record's own term list gives. */
 export function factsFromTerms(
   {
     kind,
@@ -42,12 +39,7 @@ export function factsFromTerms(
     friend_on: IsoDate | null;
   },
   terms: MemberTerm[],
-  today: IsoDate = todayIso(),
 ): MembershipFacts {
-  const upcoming = terms
-    .filter((term) => term.status === 'active' && term.starts_on > today)
-    .map((term) => term.starts_on)
-    .sort();
   return {
     kind,
     isActive,
@@ -55,7 +47,6 @@ export function factsFromTerms(
     friendOn,
     hasTerms: terms.length > 0,
     hasSetAside: terms.some((term) => term.status === 'suspended'),
-    nextStartsOn: upcoming[0] ?? null,
   };
 }
 
@@ -76,18 +67,6 @@ export function MembershipSummary({
     return (
       <span className="membership-summary">
         <StatusDot tone="none" label="Membership set aside while deactivated" />
-      </span>
-    );
-  }
-  if (hasNone && facts.nextStartsOn !== null) {
-    return (
-      <span className="membership-summary">
-        <span className="status" data-tone="none">
-          <span className="status-dot" data-tone="none" aria-hidden="true" />
-          <span>
-            Membership starts <DateText value={facts.nextStartsOn} />
-          </span>
-        </span>
       </span>
     );
   }

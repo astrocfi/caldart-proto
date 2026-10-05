@@ -2528,14 +2528,14 @@ The service
     its ``friend_on`` has not come, and no term with ``starts_on <= on_date`` is
     active, expired, or suspended.  That is an account an administrator created
     that has not paid, a joiner still at the pay step, and a member whose only
-    term was canceled or is still to start.  Its effective kind is ``friend``, so it counts as a friend for the
+    term was canceled.  Its effective kind is ``friend``, so it counts as a friend for the
     renewal and reminder scans, the members-only wall, and the member check, but as a
     member, the kind it chose, for the member list, the member and roles reports, and
     bulk email's adds (``listed_kind``); it reads *No membership
     yet* rather than *Friend*.  ``expires_on`` and ``plan`` are ``None`` and
-    ``is_lifetime`` is ``False``.  When such an account holds a granted term still to
-    start, ``members.services.upcoming_term_start`` gives its first day, and the
-    dashboard and the members-only wall name that day instead of asking for dues.
+    ``is_lifetime`` is ``False``.  A term granted by hand never starts after the day
+    it is granted (:doc:`api-members`), so no such account is waiting for a term
+    already granted.
 ``donor``
     The account is a donor's.  ``expires_on`` and ``plan`` are ``None`` and
     ``is_lifetime`` is ``False``.

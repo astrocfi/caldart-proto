@@ -28,6 +28,7 @@ from apps.accounts.roles import (
     WEBSITE_ADMIN,
 )
 from apps.darts.models import Dart
+from apps.members.api.admin_serializers import GRANT_STARTS_LATER_MESSAGE
 from apps.members.filters import MemberOrderingFilter
 from apps.members.models import (
     MedicalType,
@@ -1172,6 +1173,56 @@ def test_grant_honors_an_explicit_start_date(
     assert response.status_code == 201
     assert response.json()["starts_on"] == start.isoformat()
     assert response.json()["ends_on"] == (start + timedelta(days=364)).isoformat()
+
+
+def test_grant_honors_a_start_date_of_today(
+    account_admin_client: APIClient,
+    population: dict[str, User],
+    annual_plan: MembershipPlan,
+    today: date,
+) -> None:
+    """A start date of today is the latest a granted term may start."""
+    response = account_admin_client.post(
+        grant_url(population["never"]),
+        {"plan": annual_plan.slug, "starts_on": today.isoformat()},
+        format="json",
+    )
+    assert response.status_code == 201
+    assert response.json()["starts_on"] == today.isoformat()
+
+
+def test_grant_refuses_a_start_date_after_today(
+    account_admin_client: APIClient,
+    population: dict[str, User],
+    annual_plan: MembershipPlan,
+    today: date,
+) -> None:
+    """A term granted to start tomorrow is a 400 keyed on ``starts_on``, with no term."""
+    member = population["never"]
+    response = account_admin_client.post(
+        grant_url(member),
+        {"plan": annual_plan.slug, "starts_on": (today + timedelta(days=1)).isoformat()},
+        format="json",
+    )
+    assert response.status_code == 400
+    assert response.json() == {"starts_on": [GRANT_STARTS_LATER_MESSAGE]}
+    assert not member.memberships.exists()
+
+
+def test_grant_without_a_start_date_follows_a_current_term(
+    account_admin_client: APIClient,
+    population: dict[str, User],
+    annual_plan: MembershipPlan,
+) -> None:
+    """A blank start date still places a renewal after the term in force."""
+    member = population["current"]
+    current_end = member.memberships.get().ends_on
+    assert current_end is not None
+    response = account_admin_client.post(
+        grant_url(member), {"plan": annual_plan.slug}, format="json"
+    )
+    assert response.status_code == 201
+    assert response.json()["starts_on"] == (current_end + timedelta(days=1)).isoformat()
 
 
 def test_grant_rejects_an_unknown_plan(

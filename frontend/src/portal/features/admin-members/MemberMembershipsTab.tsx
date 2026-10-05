@@ -16,7 +16,7 @@ import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import type { Column } from '@/portal/components/DataTable';
 import { DataTable } from '@/portal/components/DataTable';
-import { DateText, formatDate } from '@/portal/components/DateText';
+import { DateText, formatDate, todayIso } from '@/portal/components/DateText';
 import { Field } from '@/portal/components/Field';
 import { RefusedSubmitNote, useRefusedSubmit } from '@/portal/components/RefusedSubmit';
 import { StatusDot } from '@/portal/components/StatusDot';
@@ -327,13 +327,14 @@ export function MemberMembershipsTab({ member }: { member: MemberDetail }): JSX.
               <div className="col-half">
                 <Field
                   label="Start date"
-                  hint="Leave blank to follow on from the current term."
+                  hint="Today or earlier. Leave blank to follow on from the current term."
                   error={grantErrors.account.starts_on}
                 >
                   {(props) => (
                     <input
                       {...props}
                       type="date"
+                      max={todayIso()}
                       value={startsOn}
                       onChange={(event) => setStartsOn(event.target.value)}
                     />

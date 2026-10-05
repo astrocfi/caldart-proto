@@ -599,19 +599,6 @@ describe('UserDetailPage', () => {
     expect(await screen.findByText('No membership yet')).toBeInTheDocument();
   });
 
-  it('says when a member whose term has not begun starts', async () => {
-    const pending = makeAdminUserDetail({
-      ...TARGET,
-      membership: { status: 'none', expires_on: null, plan: null, is_lifetime: false },
-      next_term_starts_on: '2099-11-03',
-    });
-    stubDetail({ target: pending });
-    renderDetail();
-    expect(await screen.findByText(/Membership starts/)).toHaveTextContent(
-      'Membership starts 11/03/2099',
-    );
-  });
-
   it('grays out System administrator for a user administrator, and says why', async () => {
     stubDetail();
     renderDetail();

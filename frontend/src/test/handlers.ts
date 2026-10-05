@@ -128,17 +128,11 @@ export function makeAdminUser(overrides: Partial<AdminUser> = {}): AdminUser {
  * words the membership by, with a term on file and nothing pending or set aside.
  */
 export function makeAdminUserDetail(overrides: Partial<AdminUserDetail> = {}): AdminUserDetail {
-  const {
-    has_terms = true,
-    has_suspended_term = false,
-    next_term_starts_on = null,
-    ...userOverrides
-  } = overrides;
+  const { has_terms = true, has_suspended_term = false, ...userOverrides } = overrides;
   return {
     ...makeAdminUser(userOverrides),
     has_terms,
     has_suspended_term,
-    next_term_starts_on,
   };
 }
 

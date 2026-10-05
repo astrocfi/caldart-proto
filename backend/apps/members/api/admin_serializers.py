@@ -12,6 +12,7 @@ from datetime import date, datetime
 from typing import TYPE_CHECKING, Any, cast
 
 from django.contrib.auth import password_validation
+from django.utils import timezone
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
@@ -52,6 +53,12 @@ else:
     # generator evaluates every annotation on a ``SerializerMethodField`` handler, so the
     # name has to resolve at runtime as well; the plain model is what it stands for.
     MemberRow = User
+
+#: Why a hand-granted term may not start after today.
+GRANT_STARTS_LATER_MESSAGE = (
+    "A membership cannot start after today. Leave the start date blank to start it "
+    "today, or after the membership the member holds."
+)
 
 
 # --------------------------------------------------------------------------
@@ -145,13 +152,28 @@ class AdminMembershipSerializer(MembershipTermSerializer):
 
 
 class MembershipGrantSerializer(serializers.Serializer[Any]):
-    """``POST /admin/members/{id}/memberships`` -- grant a term by hand."""
+    """``POST /admin/members/{id}/memberships`` -- grant a term by hand.
+
+    ``starts_on`` may be today or earlier, or left out; a later date is refused (see
+    :meth:`validate_starts_on`).
+    """
 
     plan = serializers.SlugRelatedField(
         slug_field="slug", queryset=MembershipPlan.objects.filter(is_active=True)
     )
     starts_on = serializers.DateField(required=False, allow_null=True)
     note = serializers.CharField(required=False, allow_blank=True, max_length=255, default="")
+
+    def validate_starts_on(self, value: date | None) -> date | None:
+        """Return ``value``, refusing a start date after today (the local date).
+
+        A granted membership starts today or earlier: a later date is refused with
+        :data:`GRANT_STARTS_LATER_MESSAGE`.  A blank date passes, and the service then
+        places the term.
+        """
+        if value is not None and value > timezone.localdate():
+            raise serializers.ValidationError(GRANT_STARTS_LATER_MESSAGE)
+        return value
 
 
 class AdminPaymentSerializer(PaymentSummarySerializer):

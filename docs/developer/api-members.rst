@@ -796,7 +796,9 @@ member record — and records the grant in the audit log.
    {"plan": "annual", "starts_on": null, "note": "Check 1041"}
 
 ``plan`` is a ``MembershipPlan`` slug and must be an active plan.
-``starts_on`` and ``note`` are optional.  The view calls
+``starts_on`` and ``note`` are optional, and ``starts_on`` may be today or
+earlier but never later: a membership is not granted to begin on a day to come.
+The view calls
 ``members.services.grant_term``, which creates the term through
 ``members.services.activate_term`` with ``source="manual"`` and ``granted_by``
 set to the caller, so a manual grant is placed by the same rule a payment is.
@@ -820,7 +822,9 @@ member's **active or suspended** terms — terms whose stored status is
 
 ``ends_on`` is then ``starts_on + duration_days - 1``, or ``null`` for a
 lifetime plan.  Passing ``starts_on`` overrides the whole rule and the end date
-is measured from the date given.
+is measured from the date given.  Only the blank start date places a term after
+today, and then only after coverage the member already holds: a renewal that
+continues a membership, never a first membership starting later.
 
 A grant to a deactivated account is created ``suspended`` rather than
 ``active``, exactly as a checkout confirmed after the payer deactivated is (see
@@ -854,8 +858,11 @@ A tombstone, which is a donor too, is refused with its own sentence and
 Statuses:
 
 * **201** — the granted term, in the shape above.
-* **400** — ``plan`` missing, unknown, or naming a plan that is not active; or
-  the account is a donor or a tombstone, as ``{"detail": "..."}``.
+* **400** — ``plan`` missing, unknown, or naming a plan that is not active;
+  ``starts_on`` after today, as ``{"starts_on": ["A membership cannot start after
+  today. Leave the start date blank to start it today, or after the membership the
+  member holds."]}``; or the account is a donor or a tombstone, as
+  ``{"detail": "..."}``.
 * **404** — no account has that ``user_id``.
 
 
