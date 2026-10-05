@@ -52,7 +52,11 @@ schedule's next day after the edit; **Send now** leaves it.
 A ``period`` among the filters (``this_month``, ``last_month``, ``this_year``,
 ``last_year``) is resolved on the day the report is built, so a monthly
 subscription that says ``last_month`` always carries the month before the one it
-is sent in.
+is sent in.  The portal's form offers a subscription no fixed dates where a period
+stands in for them: the contributions report has no ``year`` there, and the
+reconciliation report no ``from`` or ``to``.  Migration
+``reports.0002_drop_fixed_dates`` cleared those filters from the subscriptions saved
+before, so each follows the day it is sent.
 
 The demo seed sets every subscription's ``next_due_on`` to the day it runs, so
 the daily job always has three ready to send: the membership report monthly to
