@@ -621,7 +621,6 @@ class LeaderSearchResultSerializer(serializers.Serializer[Any]):
 
     user_id = serializers.IntegerField()
     name = serializers.CharField()
-    email = serializers.EmailField()
     dart = serializers.CharField(allow_null=True)
     membership_status = serializers.ChoiceField(choices=MembershipState.choices)
     go_no_go = LeaderGoNoGoSerializer()

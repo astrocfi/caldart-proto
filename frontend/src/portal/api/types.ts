@@ -1490,7 +1490,6 @@ export interface LeaderGoNoGo {
 export interface LeaderSearchResult {
   user_id: number;
   name: string;
-  email: string;
   dart: string | null;
   membership_status: MembershipState;
   go_no_go: LeaderGoNoGo;

@@ -26,7 +26,6 @@ async function search(user: ReturnType<typeof setupUser>, text: string) {
 const MARTA: LeaderSearchResult = {
   user_id: 7,
   name: 'Marta Reyes',
-  email: 'marta@example.org',
   dart: 'Palo Alto',
   membership_status: 'current',
   go_no_go: { membership: true, medical: true, verified: true },
@@ -71,7 +70,7 @@ describe('LeaderSearchPage', () => {
     expect(queries).toEqual(['reyes']);
   });
 
-  it('shows the name, the DART, the email, and the verdict', async () => {
+  it('shows the name, the DART, and the verdict, and no email', async () => {
     const user = setupUser();
     server.use(searchReturns([MARTA]));
 
@@ -79,9 +78,18 @@ describe('LeaderSearchPage', () => {
     await search(user, 'reyes');
 
     const marta = await screen.findByRole('button', { name: /Marta Reyes/ });
-    expect(marta).toHaveTextContent(
-      /^Marta ReyesPalo Alto DART · marta@example\.orgCleared to flyGO$/,
-    );
+    expect(marta).toHaveTextContent(/^Marta ReyesPalo Alto DARTCleared to flyGO$/);
+  });
+
+  it('puts the DART in a column of its own beside the name', async () => {
+    const user = setupUser();
+    server.use(searchReturns([MARTA]));
+
+    renderWithProviders(<LeaderSearchPage />, { route: '/leader' });
+    await search(user, 'reyes');
+
+    const marta = await screen.findByRole('button', { name: /Marta Reyes/ });
+    expect(within(marta).getByText('Palo Alto DART')).toHaveClass('leader-search__dart');
   });
 
   it('counts one match as 1 person found', async () => {
@@ -96,7 +104,7 @@ describe('LeaderSearchPage', () => {
 
   it('counts several matches as people found', async () => {
     const user = setupUser();
-    server.use(searchReturns([MARTA, { ...MARTA, user_id: 8, email: 'marta.r@example.org' }]));
+    server.use(searchReturns([MARTA, { ...MARTA, user_id: 8, dart: 'Monterey' }]));
 
     renderWithProviders(<LeaderSearchPage />, { route: '/leader' });
     await search(user, 'reyes');
@@ -104,9 +112,9 @@ describe('LeaderSearchPage', () => {
     expect(await screen.findByText('2 people found')).toBeInTheDocument();
   });
 
-  it('tells two people of the same name apart by their DART and email', async () => {
+  it('tells two people of the same name apart by their DART', async () => {
     const user = setupUser();
-    const namesake = { ...MARTA, user_id: 8, dart: null, email: 'marta.r@example.org' };
+    const namesake = { ...MARTA, user_id: 8, dart: null };
     server.use(searchReturns([MARTA, namesake]));
 
     renderWithProviders(<LeaderSearchPage />, { route: '/leader' });
@@ -114,8 +122,8 @@ describe('LeaderSearchPage', () => {
 
     const rows = await screen.findAllByRole('button', { name: /Marta Reyes/ });
     expect(rows.map((row) => row.textContent)).toEqual([
-      'Marta ReyesPalo Alto DART · marta@example.orgCleared to flyGO',
-      'Marta ReyesNo DART · marta.r@example.orgCleared to flyGO',
+      'Marta ReyesPalo Alto DARTCleared to flyGO',
+      'Marta ReyesNo DARTCleared to flyGO',
     ]);
   });
 

@@ -2140,7 +2140,6 @@
   "LeaderSearchResult": {
     "properties": {
       "dart": "string|null",
-      "email": "string(email)",
       "go_no_go": "ref:LeaderGoNoGo",
       "membership_status": "ref:MembershipStateEnum",
       "name": "string",
@@ -2148,7 +2147,6 @@
     },
     "required": [
       "dart",
-      "email",
       "go_no_go",
       "membership_status",
       "name",

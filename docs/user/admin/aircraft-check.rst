@@ -92,11 +92,9 @@ the airplane out of service, and the make, model, year, and seats. Then come fiv
 their profile. Each line gives:
 
 - the person's name, a link to their card on the :doc:`member-check`;
-- **Member current**, **Member expired**, or **Friend** for a friend of CalDART, who pays
-  no dues;
 - **GO** or **NO-GO**, the same verdict the :doc:`member-check` gives that person: a
   current membership, a current medical, and a verified pilot certificate, medical, and
-  photo ID. Open their card to read why a pilot is a NO-GO.
+  photo ID. Open their card to read their membership and why a pilot is a NO-GO.
 
 With nobody listed the card says *No member lists this aircraft on their profile.*
 

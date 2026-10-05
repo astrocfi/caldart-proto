@@ -49,10 +49,10 @@ The search finds members and friends of CalDART. A friend supports CalDART witho
 dues. Two kinds of account are never found: an account that has been deactivated, and a
 donor, who gave through the public site and cannot sign in.
 
-You see at most twenty people, each on one line: the name, their DART and email address,
-such as *Monterey DART · marta@example.org* (or *No DART*), and **GO** or **NO-GO** at the
-end. The DART and the address tell two people of the same name apart. For a single name
-that line is the whole check.
+You see at most twenty people, each on one line: the name, their DART in a column of its
+own, such as *Monterey DART* (or *No DART*), and **GO** or **NO-GO** at the end. The DART
+tells two people of the same name apart; on a phone it sits under the name. For a single
+name that line is the whole check.
 
 
 Reading the status card

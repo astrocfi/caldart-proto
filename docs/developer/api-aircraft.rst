@@ -305,7 +305,9 @@ verifying role (``verifier``, ``dart_leader``, ``user_admin``, or
 sorted by surname then forename.  ``membership_status`` is ``friend`` for a friend of
 CalDART and ``none`` for a member who has never paid, and ``go_no_go`` is the member check's own verdict for the person, the same
 three booleans its search row and status card carry (below), so the two checks never
-disagree.  ``aircraft_pilots()`` fetches them in one query, with
+disagree.  The Aircraft check draws each pilot's name and ``go_no_go`` alone; the
+aircraft record's own pilot list adds the email address and the membership state.
+``aircraft_pilots()`` fetches them in one query, with
 the membership annotations aboard (see :ref:`membership-status-sql`), so a
 popular airplane costs no more than a rarely-flown one.
 
@@ -729,7 +731,6 @@ normalizes to ``NATE`` and matches every US registration on file.
      {
        "user_id": 11,
        "name": "Ana Bracco",
-       "email": "ana@example.org",
        "dart": "Palo Alto",
        "membership_status": "current",
        "go_no_go": {"membership": true, "medical": true, "verified": true}

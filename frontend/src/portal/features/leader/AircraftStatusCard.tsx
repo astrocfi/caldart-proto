@@ -9,7 +9,7 @@ import { useCallback, useRef, useState } from 'react';
 import type { JSX } from 'react';
 import { Link } from 'react-router-dom';
 
-import type { Aircraft, AircraftDetail, MembershipState } from '@/portal/api/types';
+import type { Aircraft, AircraftDetail } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { DateText } from '@/portal/components/DateText';
 import { Money } from '@/portal/components/Money';
@@ -40,15 +40,6 @@ export interface Verdict {
    */
   isAwaitingCheck?: boolean;
 }
-
-/** How the pilot list names each membership state: a friend is a friend, never expired. */
-export const PILOT_MEMBERSHIP: Record<MembershipState, { tone: StatusTone; label: string }> = {
-  current: { tone: 'current', label: 'Member current' },
-  expired: { tone: 'expired', label: 'Member expired' },
-  friend: { tone: 'none', label: 'Friend' },
-  none: { tone: 'none', label: 'Not yet paid' },
-  donor: { tone: 'none', label: 'Donor' },
-};
 
 const VERDICT: Record<StatusTone, Verdict> = {
   current: { word: 'INSURED', why: 'Coverage is current', mark: 'Insured', go: true },
@@ -283,10 +274,6 @@ export function AircraftStatusCard({ aircraft, today }: AircraftStatusCardProps)
                 <Link className="leader-search__name" to={`/leader?member=${pilot.user_id}`}>
                   {pilot.name}
                 </Link>
-                <StatusDot
-                  tone={PILOT_MEMBERSHIP[pilot.membership_status].tone}
-                  label={PILOT_MEMBERSHIP[pilot.membership_status].label}
-                />
                 <GoMark go={ready} label={ready ? 'Cleared to fly' : 'Not cleared to fly'} />
               </li>
             );

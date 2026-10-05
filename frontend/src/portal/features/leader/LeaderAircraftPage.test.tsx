@@ -320,11 +320,9 @@ describe('LeaderAircraftPage card', () => {
 
   const PILOT = makeVerifiedAircraft().pilots![0]!;
 
-  it('lists the members who fly it with their membership and the member check verdict', async () => {
+  it('lists the members who fly it with the member check verdict alone', async () => {
     const list = await renderPilots([PILOT]);
-    expect(list.getByRole('listitem')).toHaveTextContent(
-      /^Marta ReyesMember currentCleared to flyGO$/,
-    );
+    expect(list.getByRole('listitem')).toHaveTextContent(/^Marta ReyesCleared to flyGO$/);
   });
 
   it('links each pilot to their member check card', async () => {
@@ -335,7 +333,7 @@ describe('LeaderAircraftPage card', () => {
     );
   });
 
-  it('calls a friend a friend, not an expired member', async () => {
+  it("leaves a pilot's membership to their member check card", async () => {
     const list = await renderPilots([
       {
         ...PILOT,
@@ -343,7 +341,7 @@ describe('LeaderAircraftPage card', () => {
         go_no_go: { membership: false, medical: true, verified: true },
       },
     ]);
-    expect(list.getByText('Friend')).toBeInTheDocument();
+    expect(list.getByRole('listitem')).toHaveTextContent(/^Marta ReyesNot cleared to flyNO-GO$/);
   });
 
   it('reads a pilot nobody has verified NO-GO, as the member check does', async () => {

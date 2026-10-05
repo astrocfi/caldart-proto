@@ -246,10 +246,10 @@ def test_the_leader_search_endpoint_leaves_them_out_too(
     """``GET /leader/search`` never answers with a deactivated account or a donor."""
     api_client.force_login(dart_leader)
     rows = api_client.get(SEARCH_URL, {"q": "Quill"}).json()
-    assert {row["email"] for row in rows} == {
-        "member@lf.test",
-        "friend@lf.test",
-        "pending@lf.test",
+    assert {row["user_id"] for row in rows} == {
+        people["member"].pk,
+        people["friend"].pk,
+        people["pending"].pk,
     }
 
 
