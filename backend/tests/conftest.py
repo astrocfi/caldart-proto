@@ -10,6 +10,7 @@ import base64
 import copy
 import csv
 import imaplib
+import importlib
 import io
 import json
 import logging
@@ -82,6 +83,13 @@ User = get_user_model()
 # similar instrumentation) for the rest of a test session that ever freezes
 # time. Excluding pytest's own modules keeps the clock real for pytest itself.
 freezegun.configure(extend_ignore_list=["_pytest", "pluggy"])
+
+# A clock bound to a class when its module is first imported, such as DRF's
+# ``SimpleRateThrottle.timer = time.time``, keeps freezegun's fake for good if that import
+# happens inside a frozen block (the first request of a session, which loads the URLconf),
+# and every throttled request after it then fails.  Importing the URLconf here loads every
+# view, and the throttles with them, while the clock is still real.
+importlib.import_module(django_settings.ROOT_URLCONF)
 
 #: The endpoint that issues the ``csrftoken`` cookie, used by ``csrf_headers``.
 CSRF_URL = "/api/v1/auth/csrf"
