@@ -198,6 +198,6 @@ If something looks wrong
 If an address stops hearing about an event, look at its **Active** column: *Paused* means
 the subscription is paused, and **Resume** says whether the account may still receive every
 event on it. An account that lost a role or was deactivated is skipped quietly, so check
-its roles on the **Roles** screen. If a notification never arrives, a system
+its roles on the **Roles and status** screen. If a notification never arrives, a system
 administrator can find it on the :doc:`sent-emails` page and see whether the
 mail server refused it.

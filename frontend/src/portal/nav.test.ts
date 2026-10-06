@@ -53,7 +53,7 @@ describe('visibleNavItems', () => {
     const visible = labels(['member', 'dart_leader']);
     expect(visible).toContain('Member check');
     expect(visible).toContain('Aircraft check');
-    expect(visible).not.toContain('Roles');
+    expect(visible).not.toContain('Roles and status');
   });
 
   it.each([['verifier'], ['user_admin']] as const)(
@@ -71,7 +71,7 @@ describe('visibleNavItems', () => {
   it('gives account_admin the member, aircraft, and payment screens but not users', () => {
     const visible = labels(['member', 'account_admin']);
     expect(visible).toEqual(expect.arrayContaining(['Members', 'Aircraft', 'Accounting']));
-    expect(visible).not.toContain('Roles');
+    expect(visible).not.toContain('Roles and status');
     expect(visible).not.toContain('Health and database');
   });
 
@@ -143,7 +143,7 @@ describe('visibleNavItems', () => {
 
   it('gives user_admin only the users screen on top of membership', () => {
     const visible = labels(['member', 'user_admin']);
-    expect(visible).toContain('Roles');
+    expect(visible).toContain('Roles and status');
     expect(visible).not.toContain('Members');
   });
 

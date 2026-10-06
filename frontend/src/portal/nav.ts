@@ -151,7 +151,12 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ['account_admin'],
     group: 'Administration',
   },
-  { to: '/admin/users', label: 'Roles', roles: ['user_admin'], group: 'Administration' },
+  {
+    to: '/admin/users',
+    label: 'Roles and status',
+    roles: ['user_admin'],
+    group: 'Administration',
+  },
   { to: '/admin/darts', label: 'DARTs', roles: ['account_admin'], group: 'Administration' },
   // The emailed reports are the finance roles', so a treasurer reaches the
   // screen too; the DART rosters on it are the account administrator's.

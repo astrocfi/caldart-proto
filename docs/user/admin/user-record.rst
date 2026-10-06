@@ -5,16 +5,16 @@ User record
 ===========
 
 The **user record** is one account seen by a user administrator: where its membership
-stands, its name and address, the roles it holds, whether it can sign in, and a button that
-sends a password reset link. Roles and the account's status are changed here; the name and
-the address are not. Open it by clicking a name on :doc:`users`.
+stands, the roles it holds, whether it can sign in, and a button that sends a password
+reset link. Roles and the account's status are changed here; the name and the address are
+not. Open it by clicking a name on :doc:`users`.
 
 
 What you see
 ============
 
-The person's name heads the page, with their address under it and **Back to users** beside
-it. Five cards follow.
+The person's name heads the page, with their address under it and **Back to Roles and
+status** beside it. Five cards follow.
 
 **Membership**
    The kind of account (**Member**, **Friend**, or **Donor**), the membership status, and
@@ -27,13 +27,14 @@ it. Five cards follow.
    you are an account administrator too, **Member record** opens the person's
    :doc:`member-record`, where a donor can be deleted.
 
-**Account**
-   **First name**, **Last name**, and **Email address**, shown as plain text with no box to
-   type in, with **Verified** and a date, or **Unverified**, beside the address, and
-   **Bounced**, beside a red dot, when it bounces. A line under them reads *Names and the
-   email address are changed on the member record, or by the person themselves.* Then
-   **Roles**, a box for each role with a line saying what it grants. Unless you are a system administrator, the **System administrator** box is grayed
-   out, and its line adds *Only a system administrator can give or take away this role.*
+**Roles**
+   A line that reads **Email address:** and then **Verified** with a date, or
+   **Unverified**, and **Bounced**, beside a red dot, when the address bounces. The address
+   itself is at the top of the page, and the name and the address are changed on the
+   :doc:`member-record` or by the person, never here. Then a box for each role with a line
+   saying what it grants. Unless you are a system administrator, the **System
+   administrator** box is grayed out, and its line adds *Only a system administrator can
+   give or take away this role.*
 
 **Account status**
    Whether the account can sign in, and the actions that change it: **Deactivate account**

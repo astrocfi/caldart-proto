@@ -168,7 +168,7 @@ describe('PortalLayout', () => {
   it.each<[RoleSlug, string[]]>([
     ['dart_leader', ['Member check', 'Aircraft check']],
     ['account_admin', ['Member check', 'Aircraft check', 'Members', 'Aircraft', 'Accounting']],
-    ['user_admin', ['Roles']],
+    ['user_admin', ['Roles and status']],
     ['system_admin', ['Health and database', 'Sent emails', 'Scheduled tasks']],
   ])('adds the %s entries to the rail', async (role, expected) => {
     server.use(signedInAs(makeUser({ roles: ['member', role] })));
@@ -186,7 +186,7 @@ describe('PortalLayout', () => {
     renderWithProviders(tree(), { route: '/' });
 
     await screen.findByRole('navigation', { name: 'Portal sections' });
-    expect(railLinkNames()).not.toContain('Roles');
+    expect(railLinkNames()).not.toContain('Roles and status');
   });
 
   it('gives an anonymous visitor no rail at all', async () => {

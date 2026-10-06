@@ -103,7 +103,7 @@ User administrator
 
 A user administrator looks after accounts. The role adds:
 
-* **Roles** (:doc:`admin/users`): every account, with filters, and the
+* **Roles and status** (:doc:`admin/users`): every account, with filters, and the
   **User record** (:doc:`admin/user-record`) behind each: the roles it holds,
   deactivating and reactivating it, blocking it from reactivating, correcting its
   email address, and sending a password reset link or a verification message. The screen also downloads the

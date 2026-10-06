@@ -140,7 +140,7 @@ vi.mock('../features/callouts/CalloutDetailPage', () => ({
   CalloutDetailPage: pageStub('Callout'),
 }));
 vi.mock('../features/admin-users/UsersListPage', () => ({
-  UsersListPage: pageStub('Roles'),
+  UsersListPage: pageStub('Roles and status'),
 }));
 vi.mock('../features/admin-users/UserDetailPage', () => ({
   UserDetailPage: pageStub('User record'),
@@ -353,7 +353,7 @@ const GUARDED_PATHS: GuardedPath[] = [
   { path: '/messages', heading: 'Email to me', allowed: ANY_SIGNED_IN },
   { path: '/messages/1', heading: 'Message', allowed: ANY_SIGNED_IN },
   { path: '/email-preferences', heading: 'Email preferences', allowed: ANY_SIGNED_IN },
-  { path: '/admin/users', heading: 'Roles', allowed: ['user_admin', 'system_admin'] },
+  { path: '/admin/users', heading: 'Roles and status', allowed: ['user_admin', 'system_admin'] },
   { path: '/admin/users/1', heading: 'User record', allowed: ['user_admin', 'system_admin'] },
   { path: '/system', heading: 'Health and database', allowed: ['system_admin'] },
   {

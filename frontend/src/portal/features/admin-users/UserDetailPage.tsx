@@ -1,9 +1,10 @@
 /**
- * `/admin/users/:id` — show one account's names and email, edit its roles, and change its
- * status: deactivate or reactivate it, and block it from reactivating or lift the block.
- * The names and the address are changed on the member record or by the person, never here.
- * An address the bounce check found bouncing carries a **Bounced** chip beside it and a
- * **Clear bounce** action that asks first.  Only a system administrator may give or take
+ * `/admin/users/:id` — edit one account's roles and change its status: deactivate or
+ * reactivate it, and block it from reactivating or lift the block. The person's name heads
+ * the page and their address is the line under it; neither is changed here, but on the
+ * member record or by the person. The Roles card opens with whether the address is
+ * verified. An address the bounce check found bouncing carries a **Bounced** chip there and
+ * a **Clear bounce** action that asks first.  Only a system administrator may give or take
  * away the System administrator role, so its box is grayed out for anybody else, with
  * the reason under it.  The **History** card lists who changed the account's roles or
  * status, and when.
@@ -52,10 +53,6 @@ interface FormState {
 function formFor(user: AdminUser): FormState {
   return { roles: user.roles };
 }
-
-/** Where the names and the address the Account card shows are changed instead. */
-const CHANGED_ELSEWHERE =
-  'Names and the email address are changed on the member record, or by the person themselves.';
 
 /** Why the System administrator box is grayed out for anybody who is not one. */
 const SYSTEM_ADMIN_ONLY = 'Only a system administrator can give or take away this role.';
@@ -120,7 +117,7 @@ export function UserDetailPage(): JSX.Element {
         <EmptyState
           title="That account didn't load"
           description="It may have been deleted. Go back to the list and search again."
-          action={<Link to="/admin/users">Back to users</Link>}
+          action={<Link to="/admin/users">Back to Roles and status</Link>}
         />
       </Page>
     );
@@ -151,7 +148,7 @@ export function UserDetailPage(): JSX.Element {
       title={displayName(user)}
       tabTitle={`${displayName(user)} · User record`}
       lede={user.email}
-      actions={<Link to="/admin/users">Back to users</Link>}
+      actions={<Link to="/admin/users">Back to Roles and status</Link>}
     >
       <Card title="Membership">
         <div className="cluster">
@@ -170,28 +167,12 @@ export function UserDetailPage(): JSX.Element {
         ) : null}
       </Card>
 
-      <Card title="Account">
-        <dl className="user-record__facts">
-          <div>
-            <dt>First name</dt>
-            <dd>{user.first_name}</dd>
-          </div>
-          <div>
-            <dt>Last name</dt>
-            <dd>{user.last_name}</dd>
-          </div>
-          <div>
-            <dt>Email address</dt>
-            <dd>
-              {user.email}{' '}
-              <span className="field__hint">
-                <EmailVerifiedText verifiedAt={user.email_verified_at} />{' '}
-                <BouncedDot bouncedAt={user.email_bounced_at} detail={user.email_bounce_detail} />
-              </span>
-            </dd>
-          </div>
-        </dl>
-        <p className="muted user-record__elsewhere">{CHANGED_ELSEWHERE}</p>
+      <Card title="Roles">
+        <p className="user-record__email">
+          <span className="muted">Email address: </span>
+          <EmailVerifiedText verifiedAt={user.email_verified_at} />{' '}
+          <BouncedDot bouncedAt={user.email_bounced_at} detail={user.email_bounce_detail} />
+        </p>
         {user.email_verified || isDonor ? null : (
           <div className="cluster user-record__resend">
             <ResendVerificationButton

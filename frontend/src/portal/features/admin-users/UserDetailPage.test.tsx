@@ -60,12 +60,6 @@ function stubDetail({ target = TARGET, me, patch, history = [] }: StubOptions = 
   return patched;
 }
 
-/** The value the Account card shows beside the label `term`. */
-function shown(term: string): string | null {
-  const label = screen.getAllByRole('term').find((dt) => dt.textContent === term);
-  return label?.nextElementSibling?.textContent ?? null;
-}
-
 function renderDetail(id = String(TARGET.id), client?: QueryClient) {
   return renderWithProviders(
     <Routes>
@@ -128,23 +122,24 @@ describe('UserDetailPage', () => {
     expect(await screen.findByText(/account saved/i)).toBeInTheDocument();
   });
 
-  it.each([
-    ['First name', 'Priya'],
-    ['Last name', 'Raman'],
-  ])('shows the %s as text', async (term, value) => {
+  it('carries the name and the address in the heading alone, with no card repeating them', async () => {
     stubDetail();
     renderDetail();
     await screen.findByRole('heading', { name: 'Priya Raman' });
 
-    expect(shown(term)).toBe(value);
+    expect(screen.getAllByText('priya@example.org')).toHaveLength(1);
+    expect(screen.queryByText('First name')).not.toBeInTheDocument();
+    expect(screen.queryByText('Last name')).not.toBeInTheDocument();
   });
 
-  it('shows the email address as text, with whether it is verified', async () => {
+  it('says whether the address is verified, under Roles', async () => {
     stubDetail();
     renderDetail();
     await screen.findByRole('heading', { name: 'Priya Raman' });
 
-    expect(shown('Email address')).toMatch(/^priya@example\.org Verified/);
+    expect(screen.getByText(/^Email address:/).closest('p')).toHaveTextContent(
+      /^Email address: Verified/,
+    );
   });
 
   it.each(['First name', 'Last name', 'Email address'])(
@@ -157,17 +152,6 @@ describe('UserDetailPage', () => {
       expect(screen.queryByRole('textbox', { name })).not.toBeInTheDocument();
     },
   );
-
-  it('says where the names and the address are changed', async () => {
-    stubDetail();
-    renderDetail();
-
-    expect(
-      await screen.findByText(
-        'Names and the email address are changed on the member record, or by the person themselves.',
-      ),
-    ).toBeInTheDocument();
-  });
 
   it('sends the roles alone with a save', async () => {
     const patched = stubDetail();
