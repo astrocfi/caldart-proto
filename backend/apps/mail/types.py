@@ -47,6 +47,16 @@ NAME_TAKEN = "Another email type already has this name."
 #: The refusal for a name with nothing in it to make a slug from.
 NAME_NEEDS_LETTERS = "Use at least one letter or digit in the name."
 
+#: The refusal to rename the Mission type, the one a mission callout goes as.
+MISSION_RENAME_REFUSED = (
+    "Mission is the type every mission callout goes as, so its name cannot change."
+)
+
+#: The refusal to delete the Mission type.
+MISSION_DELETE_REFUSED = (
+    "Mission is the type every mission callout goes as, so it cannot be deleted."
+)
+
 #: The refusal for an opt-out of a type that does not allow one.
 OPT_OUT_NOT_ALLOWED = "{name} email cannot be turned off."
 
@@ -104,8 +114,12 @@ def update_type(email_type: EmailType, fields: EmailTypeFields, *, actor: User) 
     The slug follows the name.  A blank ``position`` keeps the type's place.  Turning
     ``allow_opt_out`` off keeps every recorded opt-out, which applies again once it is
     turned back on.  The refusals are :func:`create_type`'s, with the type itself never
-    counted as the other holder of its own name.
+    counted as the other holder of its own name.  The Mission type keeps its name, since
+    a mission callout finds it by the slug the name makes: a rename raises
+    ``DomainValidationError`` on ``name`` with :data:`MISSION_RENAME_REFUSED`.
     """
+    if email_type.is_mission and slugify(fields.name) != email_type.slug:
+        raise DomainValidationError("name", MISSION_RENAME_REFUSED)
     _check(fields, exclude=email_type)
     email_type.name = fields.name
     email_type.description = fields.description
@@ -122,8 +136,12 @@ def delete_type(email_type: EmailType, *, actor: User) -> None:
     """Delete ``email_type`` and every opt-out of it, auditing ``email_type.delete``.
 
     A type a bulk email names is protected: the delete raises ``DomainError`` with
-    :data:`TYPE_IN_USE` naming the type, deletes nothing, and writes no audit line.
+    :data:`TYPE_IN_USE` naming the type, deletes nothing, and writes no audit line.  The
+    Mission type is never deleted, used or not: the delete raises ``DomainError`` with
+    :data:`MISSION_DELETE_REFUSED`.
     """
+    if email_type.is_mission:
+        raise DomainError(MISSION_DELETE_REFUSED)
     pk = email_type.pk
     try:
         with transaction.atomic():

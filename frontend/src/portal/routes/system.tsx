@@ -1,8 +1,9 @@
 /**
  * System administration routes: Health and database, Sent emails and one sent email,
  * and Scheduled.
- * `/system` itself opens Health and database, and so does `/bulk-email/mail-delivery`, the
- * address of the mail delivery check before it became a card on that page.
+ * `/system` itself opens Health and database, and so does `/bulk-email/mail-delivery`, so
+ * a bookmark or a link in an email to the mail delivery check lands on the page that
+ * holds it.
  */
 import { Navigate } from 'react-router-dom';
 import type { RouteObject } from 'react-router-dom';

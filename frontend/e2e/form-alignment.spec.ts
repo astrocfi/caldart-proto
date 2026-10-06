@@ -73,6 +73,13 @@ test('a box stays put while an error replaces its hint', async ({ page }) => {
   expect(await top(zip)).toBeCloseTo(before, 0);
 });
 
+// Address line 2 shares its row with Address, whose hint lowers both boxes alike at two
+// columns, so it is held to its label only where the form is one column.
+const HINTLESS_ROWS: Record<number, string[]> = {
+  1920: ['City', 'Emergency contact'],
+  390: ['City', 'Address line 2', 'Emergency contact'],
+};
+
 for (const width of [1920, 390]) {
   test(`a field with no hint keeps its box under its label at ${width} px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 1000 });
@@ -80,8 +87,18 @@ for (const width of [1920, 390]) {
     await page.goto('portal/profile');
     await expect(box(page, 'City')).toBeVisible();
 
-    for (const label of ['City', 'Address line 2', 'Emergency contact']) {
+    for (const label of HINTLESS_ROWS[width] ?? []) {
       expect(await labelGap(page, label), label).toBeLessThanOrEqual(LABEL_GAP_MAX);
     }
   });
 }
+
+test('Address line 2 stays level with the Address box beside it at 1920 px', async ({ page }) => {
+  await page.setViewportSize({ width: 1920, height: 1000 });
+  await signIn(page, DEMO.member);
+  await page.goto('portal/profile');
+  const line2 = box(page, 'Address line 2');
+  await expect(line2).toBeVisible();
+
+  expect(await top(line2)).toBeCloseTo(await top(box(page, 'Address')), 0);
+});
