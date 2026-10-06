@@ -3,7 +3,8 @@
  * most recently sent first, one line each with its answers counted.
  *
  * CalDART management sees every callout; a DART leader the ones they sent and the ones
- * that went to their own DART. The subject opens the callout's answers. A callout is
+ * that went to their own DART. The subject, as written with its recipient fields as
+ * chips, opens the callout's answers. A callout is
  * written on the compose screen with **This is a mission callout** switched on.
  */
 import type { JSX } from 'react';
@@ -18,6 +19,7 @@ import { DateText } from '@/portal/components/DateText';
 import { Page } from '@/portal/components/Page';
 import { StatusDot } from '@/portal/components/StatusDot';
 import { useBulkSender } from '@/portal/features/bulk-email/api';
+import { FieldText } from '@/portal/features/bulk-email/FieldChips';
 import { DROP_ORDER } from '@/portal/features/bulk-email/dropOrder';
 import { SenderNotice } from '@/portal/features/bulk-email/SenderNotice';
 import { useCallouts } from './api';
@@ -72,8 +74,9 @@ export function CalloutsPage(): JSX.Element {
 
 /**
  * The table's columns: the subject, when it went, whether it is open (wrapping, so the
- * closing time reads in full), then the counts. Who sent it and their DART give way
- * first when the table would not fit its card.
+ * closing time reads in full), then the counts under short headings, each wide enough
+ * for its heading. Who sent it and their DART give way first when the table would not
+ * fit its card, then the subject narrows, so the counts stay whole and in sight.
  */
 export const CALLOUT_COLUMNS: Column<CalloutSummary>[] = [
   {
@@ -81,7 +84,11 @@ export const CALLOUT_COLUMNS: Column<CalloutSummary>[] = [
     header: 'Subject',
     minWidth: '12rem',
     isIdentity: true,
-    render: (row) => <Link to={`/bulk-email/callouts/${row.id}`}>{row.subject}</Link>,
+    render: (row) => (
+      <Link to={`/bulk-email/callouts/${row.id}`}>
+        <FieldText text={row.subject} />
+      </Link>
+    ),
     sortValue: (row) => row.subject,
   },
   {
@@ -95,7 +102,7 @@ export const CALLOUT_COLUMNS: Column<CalloutSummary>[] = [
   {
     key: 'closes_at',
     header: 'Answers',
-    width: '13rem',
+    width: '11.5rem',
     wrap: true,
     render: (row) => (
       <span className="callouts__state">
@@ -122,25 +129,25 @@ export const CALLOUT_COLUMNS: Column<CalloutSummary>[] = [
   },
   {
     key: 'available',
-    header: 'Available',
+    header: 'Yes',
     numeric: true,
-    width: '5.5rem',
+    width: '4rem',
     render: (row) => row.counts.available,
     sortValue: (row) => row.counts.available,
   },
   {
     key: 'limited',
-    header: 'With limits',
+    header: 'Limits',
     numeric: true,
-    width: '6rem',
+    width: '5.25rem',
     render: (row) => row.counts.limited,
     sortValue: (row) => row.counts.limited,
   },
   {
     key: 'unavailable',
-    header: 'Not available',
+    header: 'No',
     numeric: true,
-    width: '7rem',
+    width: '3.5rem',
     render: (row) => row.counts.unavailable,
     sortValue: (row) => row.counts.unavailable,
   },
@@ -148,7 +155,8 @@ export const CALLOUT_COLUMNS: Column<CalloutSummary>[] = [
     key: 'no_answer',
     header: 'No answer',
     numeric: true,
-    width: '5.5rem',
+    width: '7.25rem',
+    keepInSight: true,
     render: (row) => row.counts.no_answer,
     sortValue: (row) => row.counts.no_answer,
   },

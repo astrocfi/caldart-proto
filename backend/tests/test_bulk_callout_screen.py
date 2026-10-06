@@ -124,11 +124,11 @@ def addresses() -> list[str]:
 def test_the_list_counts_the_answers_by_kind(
     management_client: APIClient, callout: BulkEmail
 ) -> None:
-    """One row per callout, with the people it reached counted by answer."""
+    """One row per callout, its subject as written, with the people it reached counted."""
     (row,) = management_client.get(API).json()
     assert (row["id"], row["subject"], row["is_open"], row["counts"]) == (
         callout.pk,
-        "Fire near Paradise for Hollis",
+        "Fire near Paradise for {first_name}",
         True,
         {"reached": 3, "available": 0, "limited": 1, "unavailable": 0, "no_answer": 2},
     )

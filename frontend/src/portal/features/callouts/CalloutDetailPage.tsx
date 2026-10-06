@@ -33,6 +33,7 @@ import { Page } from '@/portal/components/Page';
 import { StatusDot } from '@/portal/components/StatusDot';
 import { useToast } from '@/portal/components/Toast';
 import { DROP_ORDER } from '@/portal/features/bulk-email/dropOrder';
+import { FieldText } from '@/portal/features/bulk-email/FieldChips';
 import { scheduledWords } from '@/portal/features/bulk-email/schedule';
 import { actionError } from '@/portal/features/bulk-email/SendStatus';
 import { resultsCaption } from '@/portal/features/bulk-email/DeliveryReport';
@@ -99,6 +100,7 @@ export function CalloutDetailPage(): JSX.Element {
   return (
     <Page
       title={shown.subject || 'Callout'}
+      heading={shown.subject === '' ? undefined : <FieldText text={shown.subject} />}
       lede={calloutLede(shown)}
       actions={<Link to="/bulk-email/callouts">Back to callouts</Link>}
     >

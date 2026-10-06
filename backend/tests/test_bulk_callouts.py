@@ -421,6 +421,33 @@ def test_sending_an_answer_records_it_with_the_note(
     )
 
 
+def test_an_answer_is_recorded_for_the_links_person_whoever_is_signed_in(
+    client: Client, management: User, ann: User, bea: User
+) -> None:
+    """With Bea signed in, Ann's link records Ann's answer and leaves Bea's alone."""
+    bulk = sent_callout(management, ann, bea)
+    record_answer(bulk.callout, bea, answer="available", note="")
+    client.force_login(bea)
+    client.post(page_url(token_for(bulk, ann)), {"answer": "unavailable"})
+    answers = dict(CalloutAnswer.objects.values_list("user__email", "answer"))
+    assert answers == {"ann@example.test": "unavailable", "bea@example.test": "available"}
+
+
+def test_the_page_asks_who_can_participate(client: Client, management: User, ann: User) -> None:
+    """The page asks *Can you participate?* and names **Send answer** in quotes."""
+    bulk = sent_callout(management, ann)
+    page = client.get(page_url(token_for(bulk, ann))).content.decode()
+    assert 'Can you participate? Choose your answer and press "Send answer".' in page
+
+
+def test_the_email_asks_who_can_participate(management: User, ann: User) -> None:
+    """Both parts of a copy ask whether the person can participate."""
+    sent_callout(management, ann)
+    message = message_to(ann.email)
+    question = "Can you participate? Choose your answer."
+    assert (question in str(message.body), question in html_of(message)) == (True, True)
+
+
 def test_an_answer_can_be_changed(client: Client, management: User, ann: User) -> None:
     """A second answer replaces the first; Ann has one answer."""
     bulk = sent_callout(management, ann)

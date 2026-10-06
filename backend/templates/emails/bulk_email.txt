@@ -1,6 +1,6 @@
 {% autoescape off %}{{ body_text }}
 {% if answers %}
-Can you fly? Choose your answer. You can add a note on the next page, and change your answer until {{ answers.closes }}.
+Can you participate? Choose your answer. You can add a note on the next page, and change your answer until {{ answers.closes }}.
 {% for link in answers.links %}
 {{ link.label }}: {{ link.url }}{% endfor %}
 {% endif %}

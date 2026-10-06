@@ -753,8 +753,9 @@ background sender asks ``callouts.closed_reason`` when it claims an email and be
 every copy, so a late timer, a long paced send, or **Send the rest** after the close
 sends nobody a callout that has closed.
 
-The Callouts screens and the notification show the subject filled in with
-the sender's own values (``callouts.display_subject``), so no token shows in braces.
+The Callouts screens show the subject as written, each token drawn as the compose
+editor's chip; the notification fills it in with the sender's own values
+(``callouts.display_subject``), so no token shows in braces there.
 The answer page's ``POST`` is limited per link by
 ``throttling.CalloutAnswerThrottle`` (``CALLOUT_ANSWER_THROTTLE_RATE``), and a
 deactivated account's link records nothing and reads *This link no longer works*;

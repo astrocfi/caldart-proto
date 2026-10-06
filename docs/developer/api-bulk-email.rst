@@ -939,8 +939,9 @@ callout goes out a few times a year.
      "counts": {"reached": 41, "available": 12, "limited": 5,
                 "unavailable": 9, "no_answer": 15}}]
 
-``subject`` reads as the sender's own copy would, each recipient field filled in with
-the sender's values, or its fallback once the sender's account is gone.  ``sender`` is
+``subject`` is the subject as written, a recipient field token such as ``{first_name}``
+left in, since the list is about the callout rather than one person's copy; the portal
+draws each token as the compose editor's chip.  ``sender`` is
 blank once the account is deleted, and ``dart_name`` blank for CalDART management's
 callout.  ``closes_at`` is when the answers close, ``closed_at`` when
 **Close now** closed it sooner, and ``is_open`` whether it takes answers now.

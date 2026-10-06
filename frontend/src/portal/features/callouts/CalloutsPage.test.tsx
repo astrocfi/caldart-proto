@@ -37,6 +37,19 @@ describe('CalloutsPage', () => {
     );
   });
 
+  it('keeps the No answer count in sight on a narrow screen', () => {
+    expect(
+      CALLOUT_COLUMNS.filter((column) => column.keepInSight === true).map((column) => column.key),
+    ).toEqual(['no_answer']);
+  });
+
+  it('shows the subject as written, its field as a chip', async () => {
+    renderList([makeCalloutSummary({ subject: 'Fire near Paradise for {first_name}' })]);
+
+    const link = await screen.findByRole('link', { name: 'Fire near Paradise for First name' });
+    expect(link.querySelector('.field-chip')).toHaveTextContent('First name');
+  });
+
   it('opens a callout on its own page', async () => {
     renderList([makeCalloutSummary()]);
 
