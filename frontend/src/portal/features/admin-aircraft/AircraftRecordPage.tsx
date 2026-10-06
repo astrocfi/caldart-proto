@@ -99,7 +99,7 @@ export function AircraftRecordPage(): JSX.Element {
               ? 'It may have been deleted from the register.'
               : (record.error as Error)?.message
           }
-          action={<Link to="/admin/aircraft">Back to aircraft register</Link>}
+          action={<Link to="/admin/aircraft">Back to aircraft</Link>}
         />
       </Page>
     );
@@ -165,7 +165,7 @@ export function AircraftRecordPage(): JSX.Element {
             verified={aircraft.insurance_verification.verified}
           />
           <ServiceDot aircraft={aircraft} />
-          <Link to="/admin/aircraft">Back to aircraft register</Link>
+          <Link to="/admin/aircraft">Back to aircraft</Link>
         </>
       }
     >

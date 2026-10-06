@@ -155,6 +155,35 @@ describe('AircraftRegisterPage', () => {
     ]);
   });
 
+  it('says whether the coverage policy covers each aircraft in the Covered column', async () => {
+    const covered: ReportColumn[] = [
+      { key: 'n_number', label: 'N-number', default: true },
+      { key: 'covered', label: 'Covered', default: true },
+    ];
+    const helicopter = makeAircraft({
+      id: 2,
+      n_number: 'N407HL',
+      category: 'helicopter',
+      coverage: {
+        excluded: true,
+        reason: "Not covered: helicopters are excluded by CalDART's policy",
+      },
+    });
+    server.use(
+      http.get(`${API}/reports/aircraft/columns`, () => HttpResponse.json(covered)),
+      listReturns([makeAircraft(), helicopter], []),
+    );
+
+    renderWithProviders(<AircraftRegisterPage />, { route: '/admin/aircraft' });
+    const airplane = (await screen.findByRole('link', { name: 'N172SP' })).closest('tr');
+    const excluded = screen.getByRole('link', { name: 'N407HL' }).closest('tr');
+
+    expect([airplane, excluded].map((row) => row?.lastElementChild?.textContent)).toEqual([
+      'Yes',
+      'No',
+    ]);
+  });
+
   it('shows a column checked in the chooser in the table as well as the downloads', async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     server.use(columnsReturn(), listReturns([makeAircraft()], []));

@@ -291,14 +291,39 @@ class Money:
     drop_zero_cents: bool = False
 
 
+#: The marks a PDF draws after a :class:`Marked` cell's text.  The built-in Helvetica
+#: has neither glyph, so reportlab draws them from ZapfDingbats, the standard PDF font
+#: it substitutes for a character its base font lacks.
+PDF_MARK_YES = "\u2713"
+PDF_MARK_NO = "\u2717"
+
+
+@dataclass(frozen=True)
+class Marked:
+    """A cell's text with a mark a PDF prints beside it: a check mark or an X.
+
+    A printed list is often read without color, so a date that is in force or has
+    lapsed says so with :data:`PDF_MARK_YES` or :data:`PDF_MARK_NO` after it, one space
+    apart.  A CSV carries ``text`` alone, so a spreadsheet still reads it as a date.
+    """
+
+    text: str
+    ok: bool
+
+
 def cell_text(value: object, fmt: ReportFormat) -> str:
     """One cell's value as the text ``fmt`` prints.
 
     :class:`Money` is a plain two-place number in a CSV and dollars in a PDF (see
-    :func:`money_label`); ``None`` is a blank cell; anything else is its ``str``.
+    :func:`money_label`); :class:`Marked` is its text in a CSV and its text and mark in
+    a PDF; ``None`` is a blank cell; anything else is its ``str``.
     """
     if value is None:
         return ""
+    if isinstance(value, Marked):
+        if fmt == "csv":
+            return value.text
+        return f"{value.text} {PDF_MARK_YES if value.ok else PDF_MARK_NO}"
     if not isinstance(value, Money):
         return str(value)
     if fmt == "csv":

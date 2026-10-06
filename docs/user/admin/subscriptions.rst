@@ -66,7 +66,7 @@ you choose a report, **Add emailed report** waits, and *Choose a report first.* 
 it.
 
 #. **Report** offers the reports you may read, each by the name its own screen uses: the
-   membership report, the roles report, the verification report, the aircraft register,
+   membership report, the roles report, the verification report, the aircraft,
    the payments, the renewals, the reconciliation, and the contributions for an account
    administrator; the payments, the renewals, the reconciliation, the contributions, and
    the donors for the treasurer; and every one of them plus the sent emails for a system

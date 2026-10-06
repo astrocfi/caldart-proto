@@ -148,7 +148,7 @@ An account administrator looks after the membership records. The role adds:
   and each member's record (:doc:`admin/member-record`): the profile, the
   membership terms, granting a term by hand, making a member a friend,
   deactivating and reactivating an account, and deleting a member.
-* **Aircraft register** (:doc:`admin/aircraft-register`) and
+* **Aircraft** (:doc:`admin/aircraft`) and
   each aircraft's record (:doc:`admin/aircraft-record`), and **New aircraft type** on any
   aircraft form, for an aircraft type the FAA has never registered.
 * **DARTs** (:doc:`admin/darts`): the teams, their airports, and their leaders.
@@ -218,7 +218,7 @@ role adds:
 * **Sent emails** (:doc:`admin/sent-emails`): the log of every email CalDART has sent.
 * **Email types** (:doc:`bulk-email/email-types`), under **Bulk email**: the types of
   bulk email, who may send each, and whether members may turn each off.
-* **Coverage policy** on the **Aircraft register** (:doc:`admin/aircraft-register`):
+* **Coverage policy** on the **Aircraft** screen (:doc:`admin/aircraft`):
   which aircraft categories and airworthiness categories CalDART's insurance does not
   cover, and the note members read on **My aircraft**.
 * **Scheduled** (:doc:`admin/scheduled`): the six jobs that run on a schedule (the

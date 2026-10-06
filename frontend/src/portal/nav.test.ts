@@ -70,7 +70,7 @@ describe('visibleNavItems', () => {
 
   it('gives account_admin the member, aircraft, and payment screens but not users', () => {
     const visible = labels(['member', 'account_admin']);
-    expect(visible).toEqual(expect.arrayContaining(['Members', 'Aircraft register', 'Finance']));
+    expect(visible).toEqual(expect.arrayContaining(['Members', 'Aircraft', 'Finance']));
     expect(visible).not.toContain('Users and roles');
     expect(visible).not.toContain('Health and database');
   });

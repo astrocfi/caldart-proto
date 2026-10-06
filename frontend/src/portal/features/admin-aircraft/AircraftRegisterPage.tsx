@@ -1,5 +1,5 @@
 /**
- * `/admin/aircraft` — the register an account administrator maintains:
+ * `/admin/aircraft` — the **Aircraft** screen, the register an account administrator maintains:
  * filter, sort, export, and add a record.  A system administrator also sees the
  * coverage policy that says which aircraft CalDART's insurance does not cover.  The header says which day the FAA
  * registry behind the N-number box and the aircraft types was imported.
@@ -156,10 +156,12 @@ const CELLS: Record<string, ReportCell<Aircraft>> = {
     keepInSight: true,
     render: (row) => <InsuranceDot aircraft={row} withDate />,
   },
-  insurance_current: {
+  // Whether the insurance is in force is the expiry's dot; this says whether the
+  // coverage policy covers the aircraft's category and airworthiness at all.
+  covered: {
     width: '6.5rem',
     dropOrder: 6,
-    render: (row) => (row.insurance_is_current ? 'Yes' : 'No'),
+    render: (row) => (row.coverage.excluded ? 'No' : 'Yes'),
   },
   // Who flies an aircraft is the member check's to show; the downloads carry it.
   pilots: { width: '8rem', dropOrder: OPTIONAL, render: () => '—' },
@@ -178,7 +180,7 @@ const FALLBACK_COLUMNS: ReportColumn[] = [
   { key: 'liability_per_occurrence', label: 'Liability / occurrence', default: true },
   { key: 'hull', label: 'Hull', default: true },
   { key: 'insurance_expiration', label: 'Expires', default: true },
-  { key: 'insurance_current', label: 'Current', default: true },
+  { key: 'covered', label: 'Covered', default: true },
 ];
 
 /** `/admin/aircraft` page: filter, sort, export, and add aircraft register records. */
@@ -236,7 +238,7 @@ export function AircraftRegisterPage(): JSX.Element {
 
   return (
     <Page
-      title="Aircraft register"
+      title="Aircraft"
       lede="Every airframe CalDART members fly, with the insurance a DART leader checks before a mission."
       actions={
         <>
@@ -282,7 +284,7 @@ export function AircraftRegisterPage(): JSX.Element {
         rows={rows}
         rowKey={(row) => row.id}
         caption={`${count} aircraft`}
-        label="Aircraft register"
+        label="Aircraft"
         isLoading={list.isPending}
         onSortChange={handleSortChange}
         sort={sort}

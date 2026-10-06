@@ -61,7 +61,7 @@ vi.mock('../features/admin-members/MemberDetailPage', () => ({
   MemberDetailPage: pageStub('Member record'),
 }));
 vi.mock('../features/admin-aircraft/AircraftRegisterPage', () => ({
-  AircraftRegisterPage: pageStub('Aircraft register'),
+  AircraftRegisterPage: pageStub('Aircraft'),
 }));
 vi.mock('../features/admin-aircraft/AircraftRecordPage', () => ({
   AircraftRecordPage: pageStub('Aircraft record'),
@@ -238,7 +238,7 @@ const GUARDED_PATHS: GuardedPath[] = [
   },
   {
     path: '/admin/aircraft',
-    heading: 'Aircraft register',
+    heading: 'Aircraft',
     allowed: ['account_admin', 'system_admin'],
   },
   {

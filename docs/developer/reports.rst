@@ -32,7 +32,7 @@ documents them.
      - ``apps/aircraft/verification_report.py``
      - ``verifier``, ``dart_leader``, ``user_admin``, ``account_admin``
    * - ``aircraft``
-     - Aircraft register
+     - Aircraft
      - ``apps/aircraft/reports.py``
      - ``account_admin``
    * - ``payments``
@@ -188,12 +188,17 @@ Columns and cells
    The registry as the chooser reads it: one ``{"key", "label", "default"}``
    entry per column, in registry order.  ``spec.column_choices()`` answers it
    for a spec, serialized by ``ReportColumnSerializer``.
-``Money(cents, drop_zero_cents=False)`` and ``cell_text(value, fmt)``
-   Money is the one cell the two formats render differently.  A column whose
-   value is a ``Money`` prints ``1234.56`` in a CSV, which a spreadsheet sums,
-   and ``$1,234.56`` in a PDF, which a person reads; ``drop_zero_cents`` leaves
-   the cents off a round PDF amount, ``$1,000,000``.  ``None`` is a blank cell
-   and anything else its ``str``.
+``Money(cents, drop_zero_cents=False)``, ``Marked(text, ok)``, and ``cell_text(value, fmt)``
+   Money and a marked cell are the two the formats render differently.  A column
+   whose value is a ``Money`` prints ``1234.56`` in a CSV, which a spreadsheet
+   sums, and ``$1,234.56`` in a PDF, which a person reads; ``drop_zero_cents``
+   leaves the cents off a round PDF amount, ``$1,000,000``.  A ``Marked`` cell
+   prints its ``text`` alone in a CSV and, in a PDF, its text followed by a
+   space and ``PDF_MARK_YES`` (✓) when ``ok`` or ``PDF_MARK_NO`` (✗) when not,
+   so a printed table reads without color.  Helvetica has neither glyph, so
+   reportlab draws the mark in ZapfDingbats, the standard font it substitutes
+   for a character its base font lacks.  ``None`` is a blank cell and anything
+   else its ``str``.
 ``money_label(cents, *, currency=True)``
    Integer cents as the dollars a reader sees: ``12345`` becomes ``$123.45``,
    with commas between thousands.  ``currency=False`` gives ``123.45``.  It is
@@ -660,14 +665,20 @@ Key                      Label                   Default Contents
 n_number                 N-number                yes     Registration, canonical form
 make                     Make                    yes     Manufacturer
 model                    Model                   yes     Model designation
+category                 Category                no      Airplane, Helicopter, …
+airworthiness            Airworthiness           no      Standard, Experimental, …
 owner_name               Owner                   yes     Registered owner
 owner_type               Owner type              no      Individual, flying club, FBO, …
 insurance_carrier        Carrier                 yes     Insurer on the policy
 liability_per_occurrence Liability / occurrence  yes     Liability limit per occurrence
 liability_per_person     Liability / person      no      Liability limit per person
 hull                     Hull                    yes     Hull value insured
-insurance_expiration     Expires                 yes     Date the cover runs out
-insurance_current        Current                 yes     ``yes`` or ``no``
+insurance_expiration     Expires                 yes     Date the cover runs out; in a
+                                                         PDF, a ✓ while it runs and a
+                                                         ✗ once it has lapsed
+covered                  Covered                 yes     ``Yes``, or ``No`` when the
+                                                         coverage policy excludes the
+                                                         category or airworthiness
 pilots                   Pilots                  no      Display names of the members who
                                                          have attached the airplane, from
                                                          ``apps.aircraft.services``
@@ -679,7 +690,10 @@ chooser on the register screen.  The pilot list is off by default because it is
 as long as the number of members who fly the plane, which is the one cell no
 width can promise to hold.
 
-The insured amounts are ``Money`` cells that drop round cents:
+Each row is a ``RegisterRow``: the aircraft and whether the coverage policy
+covers it, judged by one ``CoverageRule`` read before the first row, so the
+**Covered** column costs no query per row.  The insured amounts are ``Money``
+cells that drop round cents, and the expiry is a ``Marked`` cell:
 
 .. list-table::
    :header-rows: 1
@@ -691,6 +705,9 @@ The insured amounts are ``Money`` cells that drop round cents:
    * - Money
      - plain decimals, ``1000000.00``
      - currency, ``$1,000,000``
+   * - Expires
+     - the date, ``2027-04-29``
+     - the date and its mark, ``2027-04-29 ✓``
 
 The report takes the register's full filter set: ``search``, ``make``,
 ``owner_type``, ``insurance`` (``current`` / ``expired`` / ``missing``),

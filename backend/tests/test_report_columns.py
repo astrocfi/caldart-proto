@@ -71,7 +71,7 @@ AIRCRAFT_DEFAULTS = (
     "liability_per_occurrence",
     "hull",
     "insurance_expiration",
-    "insurance_current",
+    "covered",
 )
 
 

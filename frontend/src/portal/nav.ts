@@ -147,7 +147,7 @@ export const NAV_ITEMS: NavItem[] = [
   },
   {
     to: '/admin/aircraft',
-    label: 'Aircraft register',
+    label: 'Aircraft',
     roles: ['account_admin'],
     group: 'Administration',
   },

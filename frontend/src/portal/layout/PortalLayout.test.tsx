@@ -167,10 +167,7 @@ describe('PortalLayout', () => {
 
   it.each<[RoleSlug, string[]]>([
     ['dart_leader', ['Member check', 'Aircraft check']],
-    [
-      'account_admin',
-      ['Member check', 'Aircraft check', 'Members', 'Aircraft register', 'Finance'],
-    ],
+    ['account_admin', ['Member check', 'Aircraft check', 'Members', 'Aircraft', 'Finance']],
     ['user_admin', ['Users and roles']],
     ['system_admin', ['Health and database', 'Sent emails', 'Scheduled']],
   ])('adds the %s entries to the rail', async (role, expected) => {

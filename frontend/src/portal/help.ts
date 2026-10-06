@@ -45,7 +45,7 @@ export const HELP_PAGES: readonly HelpPage[] = [
   { pattern: '/admin/members', slug: 'admin/members' },
   { pattern: '/admin/members/new', slug: 'admin/new-member' },
   { pattern: '/admin/members/:id', slug: 'admin/member-record' },
-  { pattern: '/admin/aircraft', slug: 'admin/aircraft-register' },
+  { pattern: '/admin/aircraft', slug: 'admin/aircraft' },
   { pattern: '/admin/aircraft/:id', slug: 'admin/aircraft-record' },
   { pattern: '/admin/darts', slug: 'admin/darts' },
   { pattern: '/admin/payments', slug: 'finance/overview' },
