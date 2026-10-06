@@ -204,10 +204,21 @@ class AddGroupSerializer(serializers.Serializer[dict[str, Any]]):
 
 
 class SaveGroupSerializer(serializers.Serializer[dict[str, Any]]):
-    """``POST /bulk-email/{id}/save-group``'s body: the group's name and kind."""
+    """``POST /bulk-email/{id}/save-group``'s body: the group's name, kind, and search.
+
+    ``filters`` are the member list filters of the search on the compose screen, blank
+    ones ignored; left out, or empty, the search matches every member and friend.
+    """
 
     name = serializers.CharField(max_length=80, error_messages=when_missing(GROUP_NAME_MISSING))
     kind = serializers.ChoiceField(choices=GroupKind.choices)
+    filters = serializers.DictField(
+        child=serializers.CharField(allow_blank=True), required=False, default=dict
+    )
+
+    def validate_filters(self, value: dict[str, str]) -> dict[str, str]:
+        """Refuse a filter the member list does not have, or a value it refuses."""
+        return checked_filters(value)
 
     def validate_name(self, value: str) -> str:
         """Refuse a name another group has, ignoring case."""
@@ -464,26 +475,33 @@ class AddGroupView(APIView):
 
 
 class SaveGroupView(APIView):
-    """``POST /bulk-email/{id}/save-group`` -- save the batch as a group."""
+    """``POST /bulk-email/{id}/save-group`` -- save the compose screen's search."""
 
     permission_classes = [IsManagement]
 
-    @extend_schema(request=SaveGroupSerializer, responses={201: RecipientGroupSerializer})
+    @extend_schema(
+        request=SaveGroupSerializer, responses={201: RecipientGroupSerializer, 409: CONFLICT}
+    )
     def post(self, request: Request, pk: int) -> Response:
-        """201 with the group: the batch's people (fixed) or its filters (live).
+        """201 with the group: who the search matches (fixed), or its filters (live).
 
-        A taken name is a 400 keyed ``name``; an empty batch, or a live group from a
-        batch with people no filters chose, a 400 keyed ``batch``.
+        A taken name is a 400 keyed ``name``; a filter the member list does not have, or
+        a value it refuses, a 400 keyed ``filters``.  A search on a DART leader's email
+        is held to the leader's DART; one whose leader names no DART is a 409.
         """
         bulk = email_for(request, pk)
         payload = SaveGroupSerializer(data=request.data)
         payload.is_valid(raise_exception=True)
-        group = groups.save_group(
-            bulk,
-            name=payload.validated_data["name"],
-            kind=payload.validated_data["kind"],
-            actor=acting_user(request),
-        )
+        try:
+            group = groups.save_group(
+                bulk,
+                name=payload.validated_data["name"],
+                kind=payload.validated_data["kind"],
+                filters=payload.validated_data["filters"],
+                actor=acting_user(request),
+            )
+        except DomainError as error:
+            return refused(error)
         return Response(
             RecipientGroupSerializer(_group(group.pk)).data, status=status.HTTP_201_CREATED
         )

@@ -910,6 +910,40 @@
       "image"
     ]
   },
+  "BulkEmailMatch": {
+    "properties": {
+      "dart_name": "string",
+      "email": "string",
+      "kind": "string",
+      "name": "string",
+      "reason": "string",
+      "user_id": "integer",
+      "will_receive": "boolean"
+    },
+    "required": [
+      "dart_name",
+      "email",
+      "kind",
+      "name",
+      "reason",
+      "user_id",
+      "will_receive"
+    ]
+  },
+  "BulkEmailMatchPage": {
+    "properties": {
+      "count": "integer",
+      "next": "string(uri)|null",
+      "previous": "string(uri)|null",
+      "results": "array<ref:BulkEmailMatch>"
+    },
+    "required": [
+      "count",
+      "next",
+      "previous",
+      "results"
+    ]
+  },
   "BulkEmailMessage": {
     "properties": {
       "answer_url": "string",
@@ -4095,6 +4129,7 @@
   },
   "SaveGroupRequest": {
     "properties": {
+      "filters": "map<string>",
       "kind": "ref:RecipientGroupKindEnum",
       "name": "string"
     },

@@ -156,7 +156,9 @@ class MemberAdminFilterSet(django_filters.FilterSet):
         method="filter_medical",
         label="Medical",
     )
-    dart = django_filters.CharFilter(method="filter_dart", label="DART (id or name)")
+    dart = django_filters.CharFilter(
+        method="filter_dart", label="DARTs (ids separated by commas) or one DART's name"
+    )
     kind = django_filters.ChoiceFilter(
         choices=LISTED_KINDS, method="filter_kind", label="Member or friend"
     )
@@ -302,18 +304,19 @@ class MemberAdminFilterSet(django_filters.FilterSet):
     def filter_dart(
         self, queryset: QuerySet[MemberRow], name: str, value: str | None
     ) -> QuerySet[MemberRow]:
-        """Rows whose profile names that DART, by id or by part of its name.
+        """Rows whose profile names one of those DARTs, by id or by part of a name.
 
-        An all-digit value is read as the DART's id and anything else as a
-        case-insensitive fragment of its name.  A blank or missing value leaves
-        the queryset alone.
+        A value of ids separated by commas, such as ``"3"`` or ``"3,7"``, is read as
+        the DARTs' ids, blank pieces skipped, and selects the rows in any of them;
+        anything else is read as a case-insensitive fragment of one DART's name.  A
+        blank or missing value leaves the queryset alone.
         """
-        value = (value or "").strip()
-        if not value:
+        ids = [piece.strip() for piece in (value or "").split(",") if piece.strip()]
+        if len(ids) == 0:
             return queryset
-        if value.isdigit():
-            return queryset.filter(profile__dart_id=int(value))
-        return queryset.filter(profile__dart__name__icontains=value)
+        if all(piece.isdigit() for piece in ids):
+            return queryset.filter(profile__dart_id__in=[int(piece) for piece in ids])
+        return queryset.filter(profile__dart__name__icontains=(value or "").strip())
 
     def filter_role(
         self, queryset: QuerySet[MemberRow], name: str, value: str | None

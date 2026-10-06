@@ -3,10 +3,12 @@
 The sender chooses people with the member list's own filters
 (``apps.members.filters.MemberAdminFilterSet``), so a filter that works on the member
 list chooses the same people here, friends included through ``kind``.  Each press of
-**Add to batch** runs the filters and adds everybody they choose who is not in the batch
-yet, as a ``batched`` :class:`~apps.bulk_email.models.BulkEmailRecipient` row with the
-account's name, address, kind, and DART as they are now; :func:`add_filters` answers how
-many joined and how many were there already.
+**Add these people** runs the filters and adds everybody they choose who is not in the
+batch yet, as a ``batched`` :class:`~apps.bulk_email.models.BulkEmailRecipient` row
+with the account's name, address, kind, and DART as they are now; :func:`add_filters`
+answers how many joined and how many were there already.  Before that,
+:func:`matching_people` answers who the filters choose, each with whether they would
+receive a copy, so the sender sees a search's people before adding them.
 
 Whether each person will receive a copy is worked out afresh whenever the batch is read
 (:func:`batch_rows`), from the account as it is then: :func:`skip_reason` names why a
@@ -182,6 +184,25 @@ class BatchRow:
 
 
 @dataclass(frozen=True)
+class MatchRow:
+    """One person a search matches, as they would join the batch.
+
+    ``row`` is an unsaved batch row carrying the account's name, address, kind, and DART
+    as they are now; ``reason`` is why the person would be sent no copy, blank for one
+    who would receive it.
+    """
+
+    account: User
+    row: BulkEmailRecipient
+    reason: str
+
+    @property
+    def will_receive(self) -> bool:
+        """True when the person would be sent a copy."""
+        return self.reason == ""
+
+
+@dataclass(frozen=True)
 class BatchCounts:
     """How many people are in the batch, how many receive a copy, and how many not."""
 
@@ -218,6 +239,47 @@ def selected_accounts(filters: Mapping[str, str]) -> QuerySet[User]:
     return cast("QuerySet[User]", accounts.order_by("last_name", "first_name", "email", "pk"))
 
 
+def searched_filters(bulk: BulkEmail, filters: Mapping[str, str]) -> dict[str, str]:
+    """The given filters of ``filters``, held to ``bulk``'s DART limit; nothing is stored.
+
+    An email with no limit (``apps.bulk_email.senders.dart_limit``) takes the filters as
+    they are, blank ones dropped; a DART leader's email has its ``dart`` filter forced to
+    the sender's DART.  Raises ``DomainError`` with ``OWNER_NO_DART_MESSAGE`` naming the
+    sender for an email limited to no DART, and DRF's ``ValidationError`` keyed
+    ``filters`` then ``dart`` for a search naming another DART.
+    """
+    limit = dart_limit(bulk)
+    if limit is not None and limit.dart is None:
+        raise DomainError(OWNER_NO_DART_MESSAGE.format(name=_sender_name(bulk)))
+    return given_filters(_forced(limit, filters))
+
+
+def matching_people(bulk: BulkEmail, filters: Mapping[str, str]) -> list[MatchRow]:
+    """Everybody ``filters`` choose for ``bulk``, as an add would; nothing is stored.
+
+    The filters are held to the email's DART limit (:func:`searched_filters`) and run as
+    :func:`selected_accounts` runs them, so the people come in surname order, then first
+    name, then address, deactivated ones included.  Each carries :func:`skip_reason` for
+    the email's type as it is now, with a second account sharing an address skipped as
+    :data:`SKIP_DUPLICATE` after the first in that order.  Whether a person is in the
+    batch already plays no part.  Raises as :func:`searched_filters` does, and DRF's
+    ``ValidationError`` keyed by a filter whose value the member list refuses.
+    """
+    accounts = selected_accounts(searched_filters(bulk, filters))
+    opt_outs = type_opt_outs(bulk)
+    limit = dart_limit(bulk)
+    seen: set[str] = set()
+    matches: list[MatchRow] = []
+    for account in accounts:
+        reason = skip_reason(account, seen, opt_outs=opt_outs, limit=limit)
+        if reason == "":
+            seen.add(_folded(account.email))
+        row = BulkEmailRecipient(user=account)
+        snapshot(row, account)
+        matches.append(MatchRow(account=account, row=row, reason=reason))
+    return matches
+
+
 def locked_for_edit(bulk: BulkEmail) -> BulkEmail:
     """``bulk`` read afresh under its row lock, once it may still be changed.
 
@@ -240,8 +302,9 @@ def add_filters(bulk: BulkEmail, filters: Mapping[str, str], *, actor: User) -> 
     ``batched`` row carrying the account's name, address, kind, and DART as they are
     now, and one :class:`~apps.bulk_email.models.BatchAdd` records the given filters
     and the two counts.  Accounts already in the batch are counted and left alone.
-    ``actor`` is the account pressing **Add to batch**; the batch belongs to the email,
-    whoever builds it.  A queued email goes back to a draft (:func:`back_to_draft`).
+    ``actor`` is the account pressing **Add these people**; the batch belongs to the
+    email, whoever builds it.  A queued email goes back to a draft
+    (:func:`back_to_draft`).
 
     A DART leader's email is limited to the sender's DART
     (``apps.bulk_email.senders.dart_limit``), whoever adds to it: the ``dart`` filter is
@@ -322,7 +385,16 @@ def _within_limit(locked: BulkEmail, filters: Mapping[str, str]) -> dict[str, st
     email limited to no DART, and DRF's
     ``ValidationError`` keyed ``filters`` then ``dart`` for an add naming another DART.
     """
-    limit = _record_limit(locked)
+    return _forced(_record_limit(locked), filters)
+
+
+def _forced(limit: DartLimit | None, filters: Mapping[str, str]) -> dict[str, str]:
+    """``filters`` with the ``dart`` filter forced to ``limit``'s DART, when there is one.
+
+    Without a limit, or one naming no DART, the filters are taken as they are.  Raises
+    DRF's ``ValidationError`` keyed ``filters`` then ``dart`` for a ``dart`` filter
+    naming another DART.
+    """
     if limit is None or limit.dart is None:
         return dict(filters)
     try:
@@ -680,9 +752,8 @@ def _membership_label(account: User | None) -> str:
 
 def _value_label(key: str, value: str) -> str:
     """One filter's value in words, for :func:`add_label`."""
-    if key == "dart" and value.isdigit():
-        name = Dart.objects.filter(pk=int(value)).values_list("name", flat=True).first()
-        return name if name is not None else value
+    if key == "dart":
+        return _dart_label(value)
     if key == "kind":
         return KIND_FILTER_LABELS.get(value, value)
     if key == "role":
@@ -693,6 +764,18 @@ def _value_label(key: str, value: str) -> str:
         return f'"{value}"'
     choices = dict(_filter_choices(key))
     return str(choices.get(value, value))
+
+
+def _dart_label(value: str) -> str:
+    """A ``dart`` filter in words: each DART of a list of ids by name, else as given.
+
+    Ids are named in the order given, and an id no DART has any more stays a number.
+    """
+    ids = [piece.strip() for piece in value.split(",") if piece.strip()]
+    if len(ids) == 0 or not all(piece.isdigit() for piece in ids):
+        return value
+    names = dict(Dart.objects.filter(pk__in=[int(pk) for pk in ids]).values_list("pk", "name"))
+    return ", ".join(str(names.get(int(pk), pk)) for pk in ids)
 
 
 def _filter_choices(key: str) -> list[tuple[str, str]]:

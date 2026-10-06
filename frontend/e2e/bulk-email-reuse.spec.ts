@@ -41,7 +41,7 @@ test('a saved group and a saved template start a fresh draft', async ({ page }) 
   await page.getByRole('button', { name: 'Add these people' }).click();
   await expect(page.getByText(/^Added \d+ (person|people)[.;]/)).toBeVisible();
   await page.getByRole('button', { name: 'Save as a group' }).click();
-  const saveGroup = page.getByRole('form', { name: 'Save the recipient list as a group' });
+  const saveGroup = page.getByRole('form', { name: 'Save this search as a group' });
   await saveGroup.getByRole('textbox', { name: /Group name/ }).fill(group);
   await saveGroup.getByRole('button', { name: 'Add group' }).click();
   await expect(page.getByRole('link', { name: group, exact: true })).toBeVisible();

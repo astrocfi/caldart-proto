@@ -21,8 +21,8 @@ import type {
   PersonMatch,
   RecipientGroup,
   RecipientGroupFilter,
-  RecipientGroupKind,
   RecipientGroupWrite,
+  SaveGroupRequest,
 } from '@/portal/api/types';
 import { API_BASE } from '@/portal/urlPrefix';
 import { BULK_EMAIL_KEY, batchKey, emailKey } from './api';
@@ -238,16 +238,16 @@ export function useAddGroupToBatch(
   });
 }
 
-export interface SaveGroupInput {
-  name: string;
-  kind: RecipientGroupKind;
-}
-
-/** Saves email `id`'s batch as a group, via `POST .../save-group`. */
-export function useSaveGroup(id: number): UseMutationResult<RecipientGroup, Error, SaveGroupInput> {
+/**
+ * Saves the search on email `id`'s compose screen as a group, via `POST .../save-group`:
+ * a live group keeps the filters, a fixed group the people they match.
+ */
+export function useSaveGroup(
+  id: number,
+): UseMutationResult<RecipientGroup, Error, SaveGroupRequest> {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: SaveGroupInput) =>
+    mutationFn: (input: SaveGroupRequest) =>
       api.post<RecipientGroup>(`/bulk-email/${id}/save-group`, input),
     onSuccess: () => invalidateGroups(queryClient),
   });

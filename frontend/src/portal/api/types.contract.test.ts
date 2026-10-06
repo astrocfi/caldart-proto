@@ -56,6 +56,7 @@ import type {
   BulkEmailBatch,
   BulkEmailBatchAdd,
   BulkEmailBatchRow,
+  BulkEmailMatch,
   BulkEmailChecksRefusal,
   BulkEmailCopy,
   BulkEmailDetail,
@@ -516,6 +517,8 @@ const bulkEmailAddRequest: Matches<BulkEmailAddRequest, Schemas['BulkEmailAddReq
 const bulkEmailAddResult: Matches<BulkEmailAddResult, Schemas['BulkEmailAddResult']> = true;
 const bulkEmailBatchAdd: Matches<BulkEmailBatchAdd, Schemas['BulkEmailBatchAdd']> = true;
 const bulkEmailBatchRow: Matches<BulkEmailBatchRow, Schemas['BulkEmailBatchRow']> = true;
+const bulkEmailMatch: Matches<BulkEmailMatch, Schemas['BulkEmailMatch']> = true;
+const bulkEmailMatchPage: Matches<Paginated<BulkEmailMatch>, Schemas['BulkEmailMatchPage']> = true;
 const bulkEmailBatch: Matches<BulkEmailBatch, Schemas['BulkEmailBatch']> = true;
 const bulkEmailRunResult: Matches<BulkEmailRunResult, Schemas['BulkEmailRunResult']> = true;
 const bulkEmailField: Matches<BulkEmailField, Schemas['BulkEmailField']> = true;
@@ -755,6 +758,8 @@ const assertions: readonly true[] = [
   bulkEmailAddResult,
   bulkEmailBatchAdd,
   bulkEmailBatchRow,
+  bulkEmailMatch,
+  bulkEmailMatchPage,
   bulkEmailBatch,
   bulkEmailRunResult,
   bulkEmailField,
@@ -980,6 +985,8 @@ const MAPPED_COMPONENTS: readonly (keyof Schemas)[] = [
   'BulkEmailAddResult',
   'BulkEmailBatchAdd',
   'BulkEmailBatchRow',
+  'BulkEmailMatch',
+  'BulkEmailMatchPage',
   'BulkEmailBatch',
   'BulkEmailRunResult',
   'BulkEmailField',

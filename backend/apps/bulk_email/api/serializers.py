@@ -15,6 +15,7 @@ from apps.bulk_email.batch import (
     AddResult,
     BatchCounts,
     BatchRow,
+    MatchRow,
     add_name,
     batch_counts,
     batch_rows,
@@ -179,6 +180,37 @@ class BulkEmailAddResultSerializer(serializers.Serializer[AddResult]):
     added = serializers.IntegerField()
     already_present = serializers.IntegerField()
     count = serializers.IntegerField()
+
+
+class BulkEmailMatchSerializer(serializers.Serializer[MatchRow]):
+    """One person a search matches, as ``GET /bulk-email/{id}/batch/matches`` lists them.
+
+    ``user_id`` is the account; ``name``, ``email``, ``kind`` (``member`` or
+    ``friend``), and ``dart_name`` are as they would join the batch now.
+    ``will_receive`` and ``reason`` say whether a copy would go and why not, as a batch
+    row says it.
+    """
+
+    user_id = serializers.IntegerField(source="account.pk")
+    name = serializers.CharField(source="row.name", allow_blank=True)
+    email = serializers.CharField(source="row.email", allow_blank=True)
+    kind = serializers.CharField(source="row.kind", allow_blank=True)
+    dart_name = serializers.CharField(source="row.dart_name", allow_blank=True)
+    will_receive = serializers.BooleanField()
+    reason = serializers.CharField(allow_blank=True)
+
+
+class BulkEmailMatchPageSerializer(serializers.Serializer[dict[str, Any]]):
+    """One page of ``GET /bulk-email/{id}/batch/matches``, as the shared pagination pages.
+
+    ``count`` is how many people the filters choose in all; ``next`` and ``previous``
+    are the neighboring pages' addresses, null at either end.
+    """
+
+    count = serializers.IntegerField()
+    next = serializers.URLField(allow_null=True)
+    previous = serializers.URLField(allow_null=True)
+    results = BulkEmailMatchSerializer(many=True)
 
 
 class BulkEmailSendSerializer(serializers.Serializer[dict[str, Any]]):

@@ -124,11 +124,11 @@ describe('ComposePage', () => {
     await waitFor(() => expect(result).toHaveFocus());
   });
 
-  it('says what no filters add only until a filter is chosen', async () => {
+  it('says a search with no filters is everybody only until a filter is chosen', async () => {
     answerBulkEmail(draftState());
     renderCompose(draftState());
     const user = typist();
-    const hint = 'With no filters chosen, this adds every member and friend.';
+    const hint = 'With no filters chosen, this is every member and friend: 1 person.';
     expect(await screen.findByText(hint)).toBeVisible();
     const filters = screen.getByRole('search', { name: 'Choose people to add' });
     await user.type(within(filters).getByLabelText('Search'), 'bea');
@@ -207,7 +207,7 @@ describe('ComposePage', () => {
     answerBulkEmail(state);
     renderCompose(state);
     await screen.findByText('Zed Abbott');
-    const names = screen
+    const names = within(screen.getByRole('table', { name: /^Recipient list/ }))
       .getAllByRole('row')
       .slice(1)
       .map((row) => row.firstChild?.textContent);

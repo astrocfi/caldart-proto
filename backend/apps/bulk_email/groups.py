@@ -1,8 +1,8 @@
 """Saved recipient groups: people CalDART management mails again and again.
 
-A group is saved under a name, from a batch (:func:`save_group`) or from the Recipient
-groups screen, and is shared by everybody in CalDART management.  It is one of two
-kinds (``apps.bulk_email.models.GroupKind``):
+A group is saved under a name, from a search on the compose screen (:func:`save_group`)
+or from the Recipient groups screen, and is shared by everybody in CalDART
+management.  It is one of two kinds (``apps.bulk_email.models.GroupKind``):
 
 - a **fixed** group is a list of accounts.  It holds exactly the people it was saved
   with, until somebody adds or removes one (:func:`add_member`, :func:`remove_member`);
@@ -32,13 +32,12 @@ from apps.accounts.models import User
 from apps.bulk_email.batch import (
     AddResult,
     add_accounts,
-    batch_queryset,
     given_filters,
+    searched_filters,
     selected_accounts,
     snapshot,
 )
 from apps.bulk_email.models import (
-    BatchAdd,
     BulkEmail,
     BulkEmailRecipient,
     GroupKind,
@@ -53,22 +52,6 @@ from caldart.reports import CSV_DOCUMENT_TYPE, ReportDocument, csv_rows
 
 #: How a group's add is named in the batch; ``{name}`` is the group's name.
 GROUP_LABEL = "Group: {name}"
-
-#: The refusal of saving a batch with nobody in it.
-EMPTY_BATCH_MESSAGE = "The recipient list is empty. Add people to it before you save it as a group."
-
-#: The refusal of saving a batch as a live group when some of it has no filters behind it.
-NO_FILTERS_MESSAGE = (
-    "Some people on this recipient list came from a fixed group or were copied from another "
-    "email, so there are no filters to save for them. Save it as a fixed group instead."
-)
-
-#: The refusal of saving a batch as a live group when an add's group has since been
-#: deleted; ``{name}`` is the group's name as the add recorded it.
-DELETED_GROUP_MESSAGE = (
-    'The group "{name}" was deleted, so its filters are gone. '
-    "Save this recipient list as a fixed group instead."
-)
 
 #: What a live group whose stored filters the member list no longer accepts says, in
 #: place of its people, and as the refusal of adding it to a batch.
@@ -201,43 +184,32 @@ def add_group(bulk: BulkEmail, group: RecipientGroup, *, actor: User) -> AddResu
     )
 
 
-def save_group(bulk: BulkEmail, *, name: str, kind: str, actor: User) -> RecipientGroup:
-    """Save ``bulk``'s batch as a group called ``name``, made by ``actor``.
+def save_group(
+    bulk: BulkEmail, *, name: str, kind: str, filters: Mapping[str, str], actor: User
+) -> RecipientGroup:
+    """Save the search ``filters`` on ``bulk``'s compose screen as the group ``name``.
 
-    A ``fixed`` group holds every account in the batch now, whether or not each will
-    receive this email; a person whose account is deleted is left out.  A ``live``
-    group holds the filters behind the batch, once each, in the order they were added:
-    the filters of every add made with filters, and the filter sets, as they are now,
-    of every live group added.  People taken out of the batch one by one are not
-    remembered by a live group.
+    The filters are held to the email's DART limit and run as **Add these people** runs
+    them (``apps.bulk_email.batch.searched_filters``).  A ``fixed`` group holds every
+    account they match now, whether or not each would receive this email, deactivated
+    ones included; a ``live`` group holds the filters, blank ones dropped, as its one
+    filter set, so it matches afresh each time it is used.  The batch plays no part.
 
-    ``name`` must not be taken (the API checks it).  Raises ``DomainValidationError``
-    keyed ``batch`` with :data:`EMPTY_BATCH_MESSAGE` when the batch is empty, and with
-    :data:`NO_FILTERS_MESSAGE` for a live group when an add has no filters behind it,
-    a fixed group's or people copied from another email, and with
-    :data:`DELETED_GROUP_MESSAGE` when an add's group has since been deleted.  One
-    ``recipient_group.create`` audit line names the group and its kind.
+    ``name`` must not be taken (the API checks it).  Raises DRF's ``ValidationError``
+    keyed ``filters`` for a filter the member list refuses, and ``DomainError`` for an
+    email limited to no DART; nothing is saved then.  One ``recipient_group.create``
+    audit line names the group and its kind.
     """
-    if not batch_queryset(bulk).exists():
-        raise DomainValidationError("batch", EMPTY_BATCH_MESSAGE)
+    given = searched_filters(bulk, filters)
     with transaction.atomic():
+        group = RecipientGroup.objects.create(name=name, kind=kind, created_by=actor)
         if kind == GroupKind.FIXED:
-            group = RecipientGroup.objects.create(name=name, kind=kind, created_by=actor)
-            accounts = (
-                batch_queryset(bulk).filter(user__isnull=False).values_list("user_id", flat=True)
-            )
+            accounts = selected_accounts(given).values_list("pk", flat=True)
             RecipientGroupMember.objects.bulk_create(
                 [RecipientGroupMember(group=group, user_id=pk) for pk in accounts]
             )
         else:
-            filter_sets = _batch_filter_sets(bulk)
-            group = RecipientGroup.objects.create(name=name, kind=kind, created_by=actor)
-            RecipientGroupFilter.objects.bulk_create(
-                [
-                    RecipientGroupFilter(group=group, filters=filters, position=position)
-                    for position, filters in enumerate(filter_sets)
-                ]
-            )
+            RecipientGroupFilter.objects.create(group=group, filters=given, position=0)
     audit.record(audit.RECIPIENT_GROUP_CREATE, actor=actor, target=group, kind=group.kind)
     return group
 
@@ -347,28 +319,6 @@ def group_document(group: RecipientGroup) -> ReportDocument:
     )
 
 
-def _batch_filter_sets(bulk: BulkEmail) -> list[dict[str, str]]:
-    """The filter sets behind ``bulk``'s adds, once each, in the order they were added.
-
-    Raises ``DomainValidationError`` keyed ``batch`` when an add has none: with
-    :data:`DELETED_GROUP_MESSAGE` for a group add whose group has since been deleted,
-    and with :data:`NO_FILTERS_MESSAGE` for any other add with a label of its own that
-    is not a live group still on file.
-    """
-    found: list[dict[str, str]] = []
-    for add in bulk.adds.select_related("group").order_by("id"):
-        if add.label == "":
-            sets = [dict(add.filters)]
-        elif add.group is not None and add.group.kind == GroupKind.LIVE:
-            sets = [dict(filter_set.filters) for filter_set in add.group.filter_sets.all()]
-        else:
-            raise DomainValidationError("batch", _no_filters_message(add))
-        for filters in sets:
-            if filters not in found:
-                found.append(filters)
-    return found
-
-
 def person_of(account: User) -> GroupPerson:
     """``account`` as a group's page lists it, its kind and DART as a batch row has."""
     row = BulkEmailRecipient()
@@ -381,10 +331,3 @@ def person_of(account: User) -> GroupPerson:
         dart_name=row.dart_name,
         is_active=account.is_active,
     )
-
-
-def _no_filters_message(add: BatchAdd) -> str:
-    """Why ``add``, which has no filters behind it, cannot be kept in a live group."""
-    if add.group_id is None and add.label.startswith(GROUP_LABEL_PREFIX):
-        return DELETED_GROUP_MESSAGE.format(name=add.label.removeprefix(GROUP_LABEL_PREFIX))
-    return NO_FILTERS_MESSAGE

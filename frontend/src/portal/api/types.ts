@@ -2173,6 +2173,20 @@ export interface BulkEmailBatchAdd {
 }
 
 /**
+ * One person a search on the compose screen matches, before anybody is added:
+ * `will_receive` and `reason` say whether a copy would go and why not.
+ */
+export interface BulkEmailMatch {
+  user_id: number;
+  name: string;
+  email: string;
+  kind: string;
+  dart_name: string;
+  will_receive: boolean;
+  reason: string;
+}
+
+/**
  * One person in the batch. `added_by` is the id of the add that brought them in;
  * `will_receive` and `reason` say whether a copy goes and why not.
  */
@@ -2421,10 +2435,14 @@ export interface AddGroupRequest {
   group: number;
 }
 
-/** The body of `POST /bulk-email/{id}/save-group`: the batch's name and kind as a group. */
+/**
+ * The body of `POST /bulk-email/{id}/save-group`: the group's name and kind, and the
+ * search it keeps, the member list filters the compose screen shows.
+ */
 export interface SaveGroupRequest {
   name: string;
   kind: RecipientGroupKind;
+  filters: Record<string, string>;
 }
 
 /* ----------------------------------------------------------- mission callouts */
