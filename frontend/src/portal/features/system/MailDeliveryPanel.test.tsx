@@ -51,7 +51,7 @@ describe('summarize', () => {
 });
 
 describe('MailDeliveryPanel', () => {
-  it('shows one row per finding with its status in words and its explanation', async () => {
+  it('shows one row per finding with its status in words', async () => {
     serve(
       report([
         finding(),
@@ -69,6 +69,23 @@ describe('MailDeliveryPanel', () => {
     ).toBeVisible();
     expect(screen.getByRole('heading', { name: /^Warning\s*Message signature/ })).toBeVisible();
     expect(screen.getByRole('heading', { name: /^Problem\s*Bounce address$/ })).toBeVisible();
+  });
+
+  it('explains a finding that is not good, and says nothing more about a good one', async () => {
+    serve(
+      report([
+        finding(),
+        finding({ name: 'Message signature (DKIM)', status: 'warn', detail: 'No selector.' }),
+      ]),
+    );
+    renderWithProviders(<MailDeliveryPanel />);
+
+    const rows = await screen.findAllByRole('listitem');
+
+    expect(rows.map((row) => row.textContent)).toEqual([
+      'GoodApproved senders (SPF)',
+      'WarningMessage signature (DKIM)No selector.',
+    ]);
   });
 
   it('reads out each status as its word, not as a color', async () => {
@@ -89,8 +106,8 @@ describe('MailDeliveryPanel', () => {
     expect(heading.querySelector('.delivery-check__status')).toHaveTextContent('Problem');
   });
 
-  it('says what the record is for in the finding detail', async () => {
-    serve(report([finding()]));
+  it('says what the record is for in the detail of a finding that is not good', async () => {
+    serve(report([finding({ status: 'warn' })]));
     renderWithProviders(<MailDeliveryPanel />);
 
     expect(

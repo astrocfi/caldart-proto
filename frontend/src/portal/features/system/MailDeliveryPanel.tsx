@@ -3,10 +3,11 @@
  * trust the email CalDART sends.
  *
  * Each line of the server's check (who may send for the domain, the message signature,
- * what to do with forged mail, the bounce address) shows a dot and a word, what the
- * record is for and what was found, and, when something is wrong, what to ask for. On
- * a narrow screen the dot and the word take a line of their own under the line's name.
- * The page is written for a reader who has never heard of SPF, DKIM, or DMARC.
+ * what to do with forged mail, the bounce address) shows a dot and a word beside its
+ * name. A line that is good says nothing more; one that is not says what the record is
+ * for and what was found, and what to ask for. On a narrow screen the dot and the word
+ * take a line of their own under the line's name. The page is written for a reader who
+ * has never heard of SPF, DKIM, or DMARC.
  */
 import type { JSX } from 'react';
 
@@ -59,7 +60,7 @@ function FindingRow({ finding }: { finding: MailDeliveryFinding }): JSX.Element 
         </span>
         <span>{finding.name}</span>
       </h3>
-      <p>{finding.detail}</p>
+      {finding.status === 'pass' ? null : <p>{finding.detail}</p>}
       {finding.fix === '' ? null : (
         <p className="delivery-check__fix">
           <strong>What to do: </strong>

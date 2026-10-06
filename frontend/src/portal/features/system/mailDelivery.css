@@ -18,11 +18,17 @@
   border-top: var(--hairline) solid var(--color-rule);
 }
 
+/* Each check's name is a heading for a screen reader, but reads as a line of body text:
+   four checks under one card title do not want four display-size headings. */
 .delivery-check__name {
   display: flex;
   align-items: center;
   gap: var(--space-2);
   margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  font-variation-settings: normal;
 }
 
 .delivery-check__status {

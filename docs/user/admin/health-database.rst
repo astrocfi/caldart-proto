@@ -60,9 +60,10 @@ four checks. Each block has:
 
 - a colored dot and a word, **Good**, **Warning**, or **Problem**, beside the check's name,
   or on a line of its own under the name on a phone;
-- a line that says what the check is for, in plain words, and what it found;
-- when the check is not good, **What to do**, a sentence you can pass on as it stands to
-  the person who looks after the domain name or the server.
+- when the check is not good, a line that says what the check is for, in plain words, and
+  what it found, then **What to do**, a sentence you can pass on as it stands to the
+  person who looks after the domain name or the server. A check that is good shows its
+  name and the word alone.
 
 **Warning** means mail will probably still arrive, but the setup is weaker than it should
 be, or the panel could not judge it. **Problem** means some mail is likely to be marked as
