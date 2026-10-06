@@ -78,8 +78,10 @@ it.
    is empty. A person has one row: their DART, then **Photo ID**, **Certificate**, and
    **Medical**, each *Not verified*, *Verified*, or *Not provided* for an item they do not
    hold; then what is on file, the medical's expiry date in **Expires**, and the day it
-   last changed. An aircraft's row names its N-number, its owner (under the one heading **DART
-   or owner**), the carrier, the policy's expiry date, and the day it last changed.
+   last changed. An aircraft's row names its N-number, its owner, the carrier, the
+   policy's expiry date, and the day it last changed. In the PDF each section has its own
+   header row, and the aircraft's has no check columns; in the CSV one header row covers
+   both, the owner under **DART or owner**, and an aircraft's check cells are blank.
    **Verified** (*Yes* when everything on the row is verified), **Verified by**, and
    **Verified on** (the most recent verification on the row) are there to add from
    **Columns**. Its **Status** filter lists the rows with anything not yet verified when
@@ -94,7 +96,8 @@ it.
    one **Year** control: **This year** or **Last year**, also worked out on the day each
    email goes.
 #. **Columns** chooses what the report carries, as on the report's own screen; left alone,
-   it carries the default columns. The reconciliation and contributions reports have fixed
+   it carries the default columns. A column left out is left out of every section of the
+   PDF that has it. The reconciliation and contributions reports have fixed
    columns and offer no chooser.
 #. **Formats** attaches a CSV, a PDF, or both.
 #. **Schedule** is **Weekly**, **Monthly**, **Quarterly**, or **Yearly**. A weekly one asks

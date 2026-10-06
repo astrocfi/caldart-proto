@@ -7,12 +7,16 @@ insurance*, one row per aircraft in service with a policy on file.  An item nobo
 with no expiration) has nothing to verify, and a person who holds none of the three, like
 an aircraft with no policy, is never listed.  A person's row has a check column for each
 item, Photo ID, Certificate, and Medical in that order, each reading *Verified*, *Not
-verified*, or *Not provided* for an item the person does not hold; an aircraft's row
-leaves those three blank.  Then what is on file, the medical's expiry
-(the policy's for an aircraft) in a column of its own, and when the record last changed.
-The Section column is a default in the CSV, which has no headings, and left to the
-headings in the PDF; the three verification stamp columns (whether, by whom, and on which
-day) are there to choose, and off by default, since the default list is of rows with
+verified*, or *Not provided* for an item the person does not hold.  Then what is on file,
+the medical's expiry (the policy's for an aircraft) in a column of its own, and when the
+record last changed.  The PDF draws each section under its own header: People under
+Name, DART, the three checks, Details, Expires, and Updated, and Aircraft insurance under
+Name, Owner, Carrier, Expires, and Updated, with no check columns.  The CSV is one table
+under one header, the union of the two, so an aircraft's row leaves the three check
+cells blank and its owner and carrier sit under *DART or owner* and *Details*.  The
+Section column is a default in the CSV, which has no headings, and left to the headings
+in the PDF; the three verification stamp columns (whether, by whom, and on which day)
+are there to choose, and off by default, since the default list is of rows with
 something nobody has verified.  The house style lives in ``caldart.reports``; this module
 decides which rows the report holds, how its two filters narrow them, and what each cell
 prints.  It lives in the aircraft app, which sits above the members app and already
@@ -38,7 +42,7 @@ from apps.darts.models import Dart
 from apps.members.models import MedicalType, MemberProfile, PhotoIdType, PilotCertificateType
 from apps.members.verification import is_held
 from caldart.dates import format_display_date
-from caldart.reports import Params, ReportColumn, ReportQuery, ReportSpec
+from caldart.reports import Params, ReportColumn, ReportQuery, ReportSpec, SectionColumns
 
 #: The section every person is listed under.
 PEOPLE_SECTION = "People"
@@ -230,6 +234,36 @@ VERIFICATION_REPORT_COLUMNS: tuple[ReportColumn[VerificationRow], ...] = (
 )
 
 
+#: The verification stamp columns, which either section draws when they are chosen.
+_STAMP_KEYS: tuple[str, ...] = ("verified", "verified_by", "verified_on")
+
+#: The columns each section draws in the PDF, and the words it heads them with.  An
+#: aircraft has no check columns, and its DART and Details are its owner and carrier.
+VERIFICATION_SECTION_COLUMNS: tuple[SectionColumns, ...] = (
+    SectionColumns(
+        title=PEOPLE_SECTION,
+        keys=(
+            "section",
+            "name",
+            "dart",
+            "photo_id",
+            "certificate",
+            "medical",
+            "details",
+            "expires",
+            "updated",
+            *_STAMP_KEYS,
+        ),
+        labels={"dart": "DART"},
+    ),
+    SectionColumns(
+        title=INSURANCE_SECTION,
+        keys=("section", "name", "dart", "details", "expires", "updated", *_STAMP_KEYS),
+        labels={"dart": "Owner", "details": "Carrier"},
+    ),
+)
+
+
 def _status(params: Params) -> str:
     """The ``status`` param, :data:`UNVERIFIED` when blank or missing.
 
@@ -413,4 +447,5 @@ VERIFICATION_REPORT: ReportSpec[VerificationRow] = ReportSpec(
     section=lambda row: row.section,
     empty_section=EMPTY_SECTION,
     section_column="section",
+    section_columns=VERIFICATION_SECTION_COLUMNS,
 )

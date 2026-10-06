@@ -180,19 +180,25 @@ Above the search box, *Everything requiring validation:* stands beside **Export 
 and **Export PDF**, which download the CalDART verification report of everything nobody
 has verified yet, in two sections:
 
-- **People**, one row per person with something to verify, sorted by name: their DART;
-  **Photo ID**, **Certificate**, and **Medical**, each reading *Not verified*,
-  *Verified*, or *Not provided*; what is on file, such as *Passport · Private · 1234567 · Third class*; the
-  medical's expiry date in **Expires**; and the day their profile last changed.
-- **Aircraft insurance**, one row per airplane: its N-number, its owner, the carrier, the
-  policy's expiry date in **Expires**, and the day the record last changed.
+- **People**, one row per person with something to verify, sorted by name, under the
+  columns **Name**, **DART**, **Photo ID**, **Certificate**, **Medical**, **Details**,
+  **Expires**, and **Updated**. Each of the three checks reads *Not verified*,
+  *Verified*, or *Not provided*; **Details** is what is on file, such as *Passport ·
+  Private · 1234567 · Third class*; **Expires** is the medical's expiry date; and
+  **Updated** is the day their profile last changed.
+- **Aircraft insurance**, one row per airplane, under its own columns: **Name** (the
+  N-number), **Owner**, **Carrier**, **Expires** (the policy's expiry date), and
+  **Updated** (the day the record last changed). An airplane has no check columns.
 
 The line under the PDF's title reads *Showing: Not yet verified*. Only what somebody holds
 is checked: a non-pilot's **Certificate** reads *Not provided*, as does the **Medical** of a
 person with no medical and the **Photo ID** of one with no photo ID on file. A person who holds none of
 the three, and an airplane with no policy on file, is not listed. A section heading always
-starts on the page with its first rows. The CSV names each row's section in its first
-column, **Section**, which the PDF leaves to its headings. The report can also be emailed
+starts on the page with its first rows. The CSV is one table under one header row, so a
+spreadsheet reads it whole: it names each row's section in its first column, **Section**,
+which the PDF leaves to its headings, and it carries the People columns for both
+sections, with an airplane's owner under **DART or owner**, its carrier under **Details**,
+and its three check cells left blank. The report can also be emailed
 on a schedule from the :doc:`subscriptions` screen, where the **Verified**, **Verified
 by**, and **Verified on** columns can be added.
 

@@ -3,7 +3,8 @@
 A spec that names a ``section`` for each row groups its table into sections, in the
 order its query lists them or, without such a list, in the order the rows first name
 them.  The CSV stays one flat table; the PDF draws a heading per section, each over
-its own table.
+its own table, and a section the spec gives its own columns draws those alone, under
+its own labels.
 """
 
 from __future__ import annotations
@@ -20,6 +21,7 @@ from caldart.reports import (
     ReportQuery,
     ReportSection,
     ReportSpec,
+    SectionColumns,
     build_pdf_table,
     build_report,
 )
@@ -187,3 +189,102 @@ def test_build_pdf_table_without_sections_draws_the_rows(pdf_text: PdfText) -> N
     buffer = io.BytesIO()
     build_pdf_table(buffer, title="T", header=["A"], rows=[["x"]])
     assert pdf_text(buffer.getvalue())[0][1:3] == ["A", "x"]
+
+
+# --------------------------------------------------------------------------
+# A section's own columns
+# --------------------------------------------------------------------------
+#: Three columns over a row: its section, its name, and a note.
+OWN_COLUMNS: tuple[ReportColumn[Row], ...] = (
+    *COLUMNS,
+    ReportColumn("note", "Note", True, lambda row: f"{row[1]} note", width=2.0),
+)
+
+#: Alpha draws the name and the note; Beta the name alone, headed ``Who``.
+OWN_SECTIONS: tuple[SectionColumns, ...] = (
+    SectionColumns(title="Alpha", keys=("name", "note")),
+    SectionColumns(title="Beta", keys=("name",), labels={"name": "Who"}),
+)
+
+
+def own_spec(
+    rows: Sequence[Row] = ROWS, sections: Sequence[str] = ("Alpha", "Beta")
+) -> ReportSpec[Row]:
+    """A spec over ``rows`` whose sections draw the columns :data:`OWN_SECTIONS` gives."""
+
+    def query(params: Params) -> ReportQuery[Row]:
+        return ReportQuery(rows=iter(rows), sections=sections)
+
+    return ReportSpec(
+        slug="own",
+        title="Own columns",
+        filename_stem="own",
+        columns=OWN_COLUMNS,
+        roles=(),
+        query=query,
+        section=lambda row: row[0],
+        section_columns=OWN_SECTIONS,
+    )
+
+
+def test_a_section_with_its_own_columns_holds_those_cells_alone() -> None:
+    """Each declared section carries its own labels, width shares, and cells."""
+    assert sections_of(own_spec()) == [
+        ReportSection(
+            title="Alpha", rows=[["Al", "Al note"]], header=["Name", "Note"], widths=[1.0, 2.0]
+        ),
+        ReportSection(title="Beta", rows=[["Bo"], ["Bea"]], header=["Who"], widths=[1.0]),
+    ]
+
+
+def test_the_pdf_draws_each_section_under_its_own_header_row(pdf_text: PdfText) -> None:
+    """Two sections with their own columns draw two different header rows."""
+    assert pdf_strings(own_spec(), pdf_text)[2:11] == [
+        "Alpha",
+        "Name",
+        "Note",
+        "Al",
+        "Al note",
+        "Beta",
+        "Who",
+        "Bo",
+        "Bea",
+    ]
+
+
+def test_the_csv_of_a_spec_with_section_columns_keeps_one_header_row() -> None:
+    """The CSV is every chosen column under its registry label, one header for all."""
+    document = build_report(own_spec(), {}, fmt="csv", today=DAY)
+    assert document.content.decode().splitlines() == [
+        "Group,Name,Note",
+        "Beta,Bo,Bo note",
+        "Alpha,Al,Al note",
+        "Beta,Bea,Bea note",
+    ]
+
+
+def test_a_column_the_chooser_leaves_out_is_left_out_of_every_section() -> None:
+    """Without ``name`` chosen, neither section draws it."""
+    table = own_spec().table({"columns": "group,note"}, fmt="pdf", today=DAY)
+    assert [section.header for section in table.sections] == [["Note"], []]
+
+
+def test_a_section_left_with_no_column_draws_its_title_alone(pdf_text: PdfText) -> None:
+    """When the chooser keeps no column a section draws, only its title is drawn."""
+    document = build_report(own_spec(), {"columns": "group,note"}, fmt="pdf", today=DAY)
+    drawn = {"Alpha", "Note", "Al note", "Beta", "Bo", "Bea"}
+    strings = pdf_text(document.content)[0]
+    assert [text for text in strings if text in drawn] == ["Alpha", "Note", "Al note", "Beta"]
+
+
+def test_a_section_the_spec_does_not_name_keeps_every_chosen_column() -> None:
+    """A section with no declaration has no header of its own, and every cell."""
+    spec = own_spec([("Gamma", "Gil")], sections=("Alpha", "Beta", "Gamma"))
+    assert sections_of(spec)[2] == ReportSection(title="Gamma", rows=[["Gamma", "Gil", "Gil note"]])
+
+
+def test_build_pdf_table_refuses_a_section_whose_widths_miss_a_column() -> None:
+    """A section's own header and widths are held to one share per column."""
+    section = ReportSection(title="Alpha", rows=[["x", "y"]], header=["A", "B"], widths=[1.0])
+    with pytest.raises(ValueError, match="2 columns but 1 widths"):
+        build_pdf_table(io.BytesIO(), title="T", header=["A"], rows=[], sections=[section])

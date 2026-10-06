@@ -200,6 +200,55 @@ def test_the_default_pdf_leaves_the_section_to_its_headings() -> None:
     ]
 
 
+#: The People section's PDF header row for the default columns.
+PEOPLE_PDF_HEADER = [
+    "Name",
+    "DART",
+    "Photo ID",
+    "Certificate",
+    "Medical",
+    "Details",
+    "Expires",
+    "Updated",
+]
+
+#: The Aircraft insurance section's PDF header row for the default columns.
+INSURANCE_PDF_HEADER = ["Name", "Owner", "Carrier", "Expires", "Updated"]
+
+
+def pdf_section_headers(params: Params | None = None) -> list[list[str] | None]:
+    """Each section's own PDF header row for ``params``, in section order."""
+    table = VERIFICATION_REPORT.table(params or {}, fmt="pdf", today=TODAY)
+    return [section.header for section in table.sections]
+
+
+def test_the_pdf_heads_people_with_the_three_checks() -> None:
+    """People draws its checks, and calls its DART column DART."""
+    assert pdf_section_headers()[0] == PEOPLE_PDF_HEADER
+
+
+def test_the_pdf_heads_aircraft_insurance_without_check_columns() -> None:
+    """Aircraft insurance draws the owner and carrier, and no check column."""
+    assert pdf_section_headers()[1] == INSURANCE_PDF_HEADER
+
+
+def test_a_column_the_chooser_hides_is_hidden_in_both_sections() -> None:
+    """Leaving Expires out of the columns leaves it out of each section's header."""
+    columns = "name,dart,photo_id,details,updated"
+    assert pdf_section_headers({"columns": columns}) == [
+        ["Name", "DART", "Photo ID", "Details", "Updated"],
+        ["Name", "Owner", "Carrier", "Updated"],
+    ]
+
+
+def test_a_chosen_stamp_column_is_drawn_in_both_sections() -> None:
+    """Verified on applies to a person and to an aircraft alike."""
+    assert pdf_section_headers({"columns": "name,verified_on"}) == [
+        ["Name", "Verified on"],
+        ["Name", "Verified on"],
+    ]
+
+
 def test_a_pdf_that_asks_for_the_section_column_prints_it() -> None:
     """Asked for by name, the Section column is printed in the PDF too."""
     person()
@@ -669,6 +718,50 @@ def test_the_pdf_heads_each_section(account_admin_client: APIClient, pdf_text: P
     response = account_admin_client.get(PDF_URL, {"columns": "name,details"})
     strings = pdf_text(response.content)[0]
     assert [text for text in strings if text in SECTION_TITLES] == SECTION_TITLES
+
+
+def test_the_pdf_draws_the_aircraft_rows_under_their_own_header_row(
+    account_admin_client: APIClient, pdf_text: PdfText
+) -> None:
+    """Under Aircraft insurance come its own header cells, then the aircraft's row."""
+    person()
+    AircraftFactory(
+        n_number="N123AB",
+        owner_name="Sky Club",
+        insurance_carrier="Avemco",
+        insurance_expiration=date(2027, 3, 1),
+    )
+    strings = pdf_text(account_admin_client.get(PDF_URL).content)[0]
+    start = strings.index("Aircraft insurance")
+    assert strings[start + 1 : start + 10] == [
+        *INSURANCE_PDF_HEADER,
+        "N123AB",
+        "Sky Club",
+        "Avemco",
+        "03/01/2027",
+    ]
+
+
+def test_the_csv_keeps_one_header_with_blank_checks_on_an_aircraft_row(
+    account_admin_client: APIClient,
+) -> None:
+    """One header row for both sections; an aircraft's three check cells are blank."""
+    AircraftFactory(n_number="N123AB", owner_name="Sky Club", insurance_carrier="Avemco")
+    table = read_csv(account_admin_client.get(CSV_URL))
+    assert [table[0], table[1][:7]] == [
+        [
+            "Section",
+            "Name",
+            "DART or owner",
+            "Photo ID",
+            "Certificate",
+            "Medical",
+            "Details",
+            "Expires",
+            "Updated",
+        ],
+        ["Aircraft insurance", "N123AB", "Sky Club", "", "", "", "Avemco"],
+    ]
 
 
 def test_the_pdf_says_so_under_an_empty_section(

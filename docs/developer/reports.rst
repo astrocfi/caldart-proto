@@ -82,7 +82,7 @@ report (:ref:`reports-roles`) lists active accounts only; the verification repor
 The engine
 ==========
 
-``ReportSpec(slug, title, filename_stem, columns, roles, query, landscape=True, choosable=True, resolve=keep_params, section=None, empty_section="", section_column="")``
+``ReportSpec(slug, title, filename_stem, columns, roles, query, landscape=True, choosable=True, resolve=keep_params, section=None, empty_section="", section_column="", section_columns=())``
    One report.  ``slug`` names it in every URL; ``title`` heads its PDF and
    labels it in the portal; ``filename_stem`` begins its file name
    (``caldart-members``).  ``columns`` is its registry of ``ReportColumn``
@@ -97,8 +97,9 @@ The engine
    reads; a dated report uses it for ``period`` (below), and ``spec.periods`` is
    true exactly when it is not ``keep_params``, the identity.  ``section(row)``
    names the section a row is drawn in, ``empty_section`` is the line the PDF
-   draws under a section with no rows, and ``section_column`` the column a default
-   PDF leaves to its section headings (see `Sections`_ below).
+   draws under a section with no rows, ``section_column`` the column a default
+   PDF leaves to its section headings, and ``section_columns`` the columns each
+   section draws in the PDF (see `Sections`_ below).
 ``build_report(spec, params, *, fmt, today=None)``
    The whole job.  It resolves the parameters for ``today`` (the local date by
    default), chooses the columns — the ``columns`` parameter, or the defaults,
@@ -128,7 +129,8 @@ function is set names each row's section, and its query answers
 ``ReportQuery.sections``, every title in the order they are drawn, so a section no
 row falls in still appears.  ``spec.table()`` answers a ``ReportTable`` whose
 ``rows`` are every row in the order the query answered them and whose ``sections``
-are ``ReportSection(title, rows)`` entries grouping the same rows:
+are ``ReportSection(title, rows, header=None, widths=None)`` entries grouping the
+same rows:
 
 * with no ``section`` function, one section titled ``""`` holds every row, and the
   PDF is drawn exactly as a report without sections;
@@ -149,6 +151,20 @@ a PDF of the default columns leaves it out, since its headings say the same.  A 
 with less than
 ``SECTION_KEEP_HEIGHT`` (an inch) left under it on the page starts the next page,
 so a title is never left alone above a page break.
+
+A section can draw its own columns in the PDF.  ``section_columns`` is a list of
+``SectionColumns(title, keys, labels={})``: of the columns chosen for the report, the
+section titled ``title`` draws those whose key is in ``keys``, in the chosen order, and
+heads a column with ``labels[key]`` in place of its registry label.  Its
+``ReportSection`` then carries that ``header``, the columns' registry ``widths`` (scaled
+to fill the page as the table's are), and rows holding those columns' cells alone; a
+section the list does not name keeps ``header`` and ``widths`` at ``None`` and is drawn
+under every chosen column.  So the **Columns** chooser governs every section at once: a
+column it leaves out is left out of each section that lists it, and a section left with
+no column draws its title alone.  The CSV is never cut by section: ``ReportTable.header``
+and ``ReportTable.rows`` keep every chosen column under its registry label, one header
+row for the whole file, so a spreadsheet reads it as one table and a section's row
+leaves blank the cells of the columns that section does not draw.
 
 Periods
 -------
@@ -248,9 +264,10 @@ The house style
    ``widths`` gives the columns relative shares of the printable width —
    ``[3, 1, 1]`` makes the first column three times either of the others — and
    is scaled to fill the page; without it every column is the same width.  One
-   width per column, or ``ValueError``.  ``sections``, a list of
-   ``(title, rows)`` pairs, replaces ``rows`` with one titled table per section,
-   drawn as `Sections`_ describes.
+   width per column, or ``ValueError``.  ``sections``, a list of ``ReportSection``
+   entries, replaces ``rows`` with one titled table per section, drawn as
+   `Sections`_ describes; a section with its own ``header`` is drawn under it and its
+   own ``widths``, held to the same one-width-per-column rule.
 ``csv_rows(header, rows)`` and ``csv_cell(value)``
    The CSV lines, every cell through ``csv_cell``: ``None`` as an empty string,
    a formula-looking string with a leading apostrophe, everything else
@@ -542,7 +559,15 @@ is a default, which keeps the grouping in the flat CSV; the spec names it as its
 ``section_column``, so a PDF of the default columns leaves it to the section headings
 and prints it only when ``columns`` asks for it.  Details is the one default column a
 PDF row may wrap in; ``test_report_columns.py`` holds every other default cell of the
-seeded data to one line.  In order:
+seeded data to one line.
+
+The table below is the CSV's: one header row for both sections, in which an aircraft's
+row leaves the three check cells blank.  In the PDF each section draws its own columns
+(``VERIFICATION_SECTION_COLUMNS``, through the spec's ``section_columns``): *People*
+draws every column but Section under the labels below, except ``dart``, headed
+``DART``; *Aircraft insurance* draws Name, ``dart`` headed ``Owner``, ``details``
+headed ``Carrier``, Expires, and Updated, with no check columns.  Section and the three
+stamp columns are drawn in either section when they are chosen.  In order:
 
 ============= ============== ======= =============================================
 Key           Label          Default Contents
