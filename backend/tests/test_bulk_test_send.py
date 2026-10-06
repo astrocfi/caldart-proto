@@ -172,7 +172,7 @@ def test_the_body_is_the_copy_the_send_would_give_the_caller(
     """Both parts match the copy the background sender sends the same person.
 
     All but the real copy's *View this email in your browser* line: a test is nobody's
-    message on Messages, so it carries no such link.
+    message on Email to me, so it carries no such link.
     """
     add_to_batch(greeting, management)
     with freeze_time(NOW):

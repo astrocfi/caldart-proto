@@ -98,7 +98,7 @@ See :doc:`member/donate`.
 
 To find a receipt or a tax statement:
 
-#. Choose **Payments** in the menu.
+#. Choose **My payments** in the menu.
 #. Under **Your payments**, press **Receipt** on the payment's row.
 #. Under **Contribution statements**, press the button for the year.
 
@@ -108,10 +108,10 @@ See :doc:`member/payments`.
 Read a bulk email again, or turn a type off
 ===========================================
 
-#. Choose **Messages** under **Your email** in the menu, and press a subject to read that
+#. Choose **Email to me** under **My account** in the menu, and press a subject to read that
    email as you received it.
 #. To stop a type of bulk email, such as Fundraising, choose **Email preferences** under
-   **Your email** and turn its switch off. The change saves at once.
+   **My account** and turn its switch off. The change saves at once.
 
 The unsubscribe link at the bottom of a bulk email turns its type off too. See
 :doc:`member/messages` and :doc:`member/email-preferences`.

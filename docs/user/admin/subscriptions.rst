@@ -37,7 +37,7 @@ screen too narrow for every column, **Last sent**, then **Next**, then **Formats
 scrolls sideways, says so above it, and keeps **Report** pinned at the left.
 
 **Edit**
-   Opens the subscription's form above the table, where **Email a report** opens it, to
+   Opens the subscription's form above the table, where **Add a scheduled report** opens it, to
    change its filters, columns, formats, and schedule, as **Changing one** below describes.
 
 **Send now**
@@ -61,7 +61,7 @@ With none set up the table reads *No reports are sent by email yet*.
 Setting one up
 ~~~~~~~~~~~~~~
 
-**Email a report** opens the form above the table and takes you to its first box. Until
+**Add a scheduled report** opens the form above the table and takes you to its first box. Until
 you choose a report, **Add emailed report** waits, and *Choose a report first.* sits beside
 it.
 
@@ -128,7 +128,7 @@ after today. **Cancel**, or Escape, closes the form and changes nothing, and you
 the row's **Edit**. A filter the report cannot use is named, with the reason, under the
 filters, as when setting one up.
 
-One form is open at a time. **Email a report** closes an open edit, **Edit** on another row
+One form is open at a time. **Add a scheduled report** closes an open edit, **Edit** on another row
 opens that row's subscription in its place, and **Edit** on the row being edited closes it.
 
 

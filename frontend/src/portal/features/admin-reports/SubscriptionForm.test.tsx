@@ -43,7 +43,7 @@ async function chooseReport(title: string): Promise<void> {
 
 /** The form's own controls, outside the filter bar. */
 function form(): HTMLElement {
-  return screen.getByRole('form', { name: 'Email a report' });
+  return screen.getByRole('form', { name: 'Add a scheduled report' });
 }
 
 describe('storedFilters', () => {

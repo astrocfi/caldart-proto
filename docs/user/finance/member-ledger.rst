@@ -67,7 +67,7 @@ Contribution statements
 
 The **Contribution statements** card has a button for every calendar year in which the
 member gave something beyond their dues. Each downloads that year's statement as a PDF,
-the same document the member can download from their own **Payments** screen. A member
+the same document the member can download from their own **My payments** screen. A member
 who never gave beyond their dues sees *This member has not given anything beyond their
 dues.*, and a friend or a member who has not paid yet *This person has not given
 anything yet.*
@@ -85,4 +85,4 @@ If something looks wrong
 If the screen says *That ledger didn't load*, the member may have been removed,
 or the link may be out of date; find the member again from one of their payments. If a
 renewal reads **Paused after failed charges**, the **Last failed charge** line says why, and the
-member can put a new card on file from their own **Payments** screen.
+member can put a new card on file from their own **My payments** screen.

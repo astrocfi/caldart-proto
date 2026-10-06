@@ -1,7 +1,7 @@
 """``manage.py send_bulk_emails`` and ``POST /system/bulk-email/run``: one sender run.
 
-The timer runs the command every minute; **Run now** on the Scheduled page runs the same
-sender in the request.  Both report what the run did.
+The timer runs the command every minute; **Run now** on the Scheduled tasks page runs the
+same sender in the request.  Both report what the run did.
 """
 
 from __future__ import annotations

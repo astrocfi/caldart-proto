@@ -1,14 +1,14 @@
 :roles: user_admin
 
-===============
-Users and roles
-===============
+=====
+Roles
+=====
 
-**Users and roles** lists every account on the site: members, friends, donors, and
+**Roles** lists every account on the site: members, friends, donors, and
 administrators. Use it to find an account, to see what it may do, and to open it to change
 its roles, correct its name or address, or help somebody back in.
 
-A user administrator finds it as **Users and roles** under **Administration** in the menu. A
+A user administrator finds it as **Roles** under **Administration** in the menu. A
 system administrator can open it too. A user administrator looks after accounts and roles
 and does not edit profiles, grant memberships, or see payments, which belong to an account
 administrator and the treasurer.

@@ -15,7 +15,7 @@ describe('<Page/>', () => {
     ['/leader/aircraft', 'Operations'],
     ['/admin/payments/renewals', 'Finance'],
     ['/admin/users/4', 'Administration'],
-    ['/messages', 'Your email'],
+    ['/messages', 'My account'],
     ['/bulk-email/sent', 'Bulk email'],
   ])('heads the page at %s with its menu group, %s', (route, group) => {
     const { container } = renderWithProviders(<Page title="Anything" />, { route });

@@ -21,7 +21,7 @@ export const SETUP_SCOPE_PARAM = 'mandate';
 /**
  * Where Stripe sends the browser back for a card that needs a bank confirmation.
  *
- * The Payments screen, under the site's URL prefix, told which authority the card
+ * The My payments screen, under the site's URL prefix, told which authority the card
  * was for, so the right card there finishes the setup.
  *
  * @returns an absolute URL on the page's own origin.

@@ -270,7 +270,7 @@ class BulkEmailDetailSerializer(serializers.ModelSerializer[BulkEmail]):
     ``sent_count`` no longer counts; ``retries`` lists each press of **Retry failed**,
     oldest first, and ``retried_count`` adds up the copies they queued again.
     ``hidden_from_archive`` is true while the email is kept off the recipients'
-    **Messages** page.  ``is_callout`` is true for a mission callout, whose answers
+    **Email to me** page.  ``is_callout`` is true for a mission callout, whose answers
     close at ``closes_at``, null for any other email.
     """
 

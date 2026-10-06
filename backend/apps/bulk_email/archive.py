@@ -1,8 +1,8 @@
-"""The **Messages** page: the bulk emails a person received, each as their own copy.
+"""The **Email to me** page: the bulk emails a person received, each as their own copy.
 
 A bulk email lives in each recipient's mailbox, so one deleted or one that reads badly
 in a mail program could not be read again.  Every signed-in person can read the bulk
-emails they were sent on the portal's **Messages** page instead, and the **View this
+emails they were sent on the portal's **Email to me** page instead, and the **View this
 email in your browser** link in every copy opens the same page
 (``apps.bulk_email.render.view_url``).
 

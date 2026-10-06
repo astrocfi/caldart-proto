@@ -2,7 +2,7 @@
  * The DART rosters card of `/admin/reports`: each active DART, how many of its
  * people receive its roster, when the last one went, and a button that sends
  * every roster now, whatever the date.  Under the table sit the practice-run box, the
- * button it changes, and then what the last run did, in the order the Scheduled page
+ * button it changes, and then what the last run did, in the order the Scheduled tasks page
  * keeps, so the button never moves when a long result appears; while the box is checked
  * the button reads **Preview rosters**, and when a run ends the focus moves to its
  * result.  A roster lists the DART's members and friends alike, with a Kind column.

@@ -40,7 +40,7 @@ function messageFor(file: string, address: string): string {
   return found[0] ?? '';
 }
 
-/** Run the background sender from the Scheduled page, as the system administrator. */
+/** Run the background sender from the Scheduled tasks page, as the system administrator. */
 async function runSender(page: Page): Promise<void> {
   await page.context().clearCookies();
   await signIn(page, DEMO.sysadmin);

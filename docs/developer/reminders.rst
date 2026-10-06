@@ -229,7 +229,7 @@ Either way the scan carries on with the next member and returns its summary.
 non-zero when it is not zero, which is what makes the systemd unit go to
 ``failed`` and show up in ``systemctl list-timers`` and the journal.  The
 ``POST /system/reminders/run`` payload carries
-``{sent, skipped, failed, skipped_by_reason, actions}``, so the Scheduled page
+``{sent, skipped, failed, skipped_by_reason, actions}``, so the Scheduled tasks page
 says why a thin run was thin without anybody reading the log.
 
 
@@ -444,7 +444,7 @@ reminders, newest first, with a filter by kind.
    who use it.
 
 ``/portal/system/scheduled``
-   The *Renewal reminder emails* panel of the Scheduled page, guarded by
+   The *Renewal reminder emails* panel of the Scheduled tasks page, guarded by
    ``system_admin``.  The
    same table with the *Run now* button and the *Practice run* box above it,
    which call ``POST /system/reminders/run``, and the editable *Reminder

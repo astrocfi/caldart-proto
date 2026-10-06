@@ -10,7 +10,7 @@ recipient's values are filled into it HTML-escaped; the plain-text body is deriv
 from the filled-in message (``html_to_text``), so it reads each value as it is.  The
 bodies come from ``emails/bulk_email.{txt,html}``: the plain-text body is the message
 followed by the house footer, and the HTML one puts the message inside the house email
-layout, and every copy's footer links to the message on the recipient's **Messages**
+layout, and every copy's footer links to the message on the recipient's **Email to me**
 page (:func:`browser_url`).  A mission callout's copy carries its three answer buttons
 above the footer, and its footer link opens the answer page instead
 (``apps.bulk_email.callout_links``).  The sender hands the finished bodies to
@@ -150,7 +150,7 @@ def render_for(
     receive it and there is no header.  A copy of an email with no type, or for an
     account that is gone (``None``), carries no header and the general line *You
     receive this email as a member or a friend of <organization>.*
-    Above the footer the copy links to the email on the reader's **Messages** page,
+    Above the footer the copy links to the email on the reader's **Email to me** page,
     :func:`browser_url`; ``view_url`` given replaces that link, and ``""`` leaves it
     out, as a test copy does.
 
@@ -218,7 +218,7 @@ def inert_unsubscribe_url() -> str:
 
 
 def browser_url(bulk: BulkEmail) -> str:
-    """Where ``bulk`` reads in the browser: its page under the portal's **Messages**.
+    """Where ``bulk`` reads in the browser: its page under the portal's **Email to me**.
 
     Built on ``SITE_URL``, which carries the path the site is served under:
     ``<SITE_URL>/portal/messages/<id>``.  The page asks the reader to sign in and shows

@@ -4,7 +4,7 @@
  * delete it, and the form that sets up another.
  *
  * One form is open at a time, always in the same place above the table:
- * **Email a report** opens it for a new one and a row's **Edit** for that row, each
+ * **Add a scheduled report** opens it for a new one and a row's **Edit** for that row, each
  * closing the other.  The focus moves into the form as it opens and back to the button
  * that opened it as it closes, Escape included.  What every action did is said in a
  * toast, the portal's one way of confirming a save or a send.
@@ -58,7 +58,10 @@ function errorText(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message : fallback;
 }
 
-/** The subscriptions table, its row actions, and the form behind Email a report and Edit. */
+/**
+ * The subscriptions table, its row actions, and the form behind Add a scheduled report
+ * and Edit.
+ */
 export function SubscriptionsCard(): JSX.Element {
   const [openForm, setOpenForm] = useState<OpenForm>(null);
   const toast = useToast();
@@ -253,7 +256,7 @@ export function SubscriptionsCard(): JSX.Element {
 
       {openForm?.mode === 'new' ? null : (
         <Button ref={newRef} onClick={handleAdd}>
-          Email a report
+          Add a scheduled report
         </Button>
       )}
 

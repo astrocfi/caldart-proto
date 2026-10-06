@@ -37,7 +37,7 @@ export function CalloutsPage(): JSX.Element {
   return (
     <Page
       title="Callouts"
-      lede="Mission callouts ask who can fly. Open one to see each person's answer."
+      lede="Mission or exercise callouts to ask who can participate. Open one to see each person's answer."
     >
       {sender.data === undefined ? null : <SenderNotice sender={sender.data} />}
       <Card>

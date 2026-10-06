@@ -107,14 +107,14 @@ What happens next:
 * The row stays in the table, marked **Turned off**.
 * The person is emailed. The subject is *CalDART: automatic renewal is off* for a
   renewal, or *CalDART: your recurring donation is off* for a recurring donation.
-* They can turn it on again themselves from their own **Payments** screen, or, for a
+* They can turn it on again themselves from their own **My payments** screen, or, for a
   recurring donation, from the **Donate** screen.
 
 If something looks wrong
 ========================
 
 If a member says they were not renewed, find their row and read the reason under
-**Paused after failed charges**, usually a declined or expired card, and the member can put a new card on file from their own **Payments** screen. If
+**Paused after failed charges**, usually a declined or expired card, and the member can put a new card on file from their own **My payments** screen. If
 **Recent charges** says *No renewal charges yet*, nothing has fallen due: the site
 schedules a charge about two weeks before it takes it. If a charge you expected is
 missing, check the member's **Due** date in the first table.

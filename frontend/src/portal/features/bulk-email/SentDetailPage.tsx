@@ -5,7 +5,7 @@
  * progress with **Stop** while it sends, or the counts, with **Send the rest**
  * after a stop. Then the message as it was sent, in a sandboxed frame with each
  * recipient field shown as the editor's chip (the subject too), with whether it is on
- * the recipients' Messages
+ * the recipients' Email to me
  * page, and the delivery report: every person in the batch with what became of their
  * copy and why. A mission callout links to its answers. The page is read again every
  * few seconds while the email is sending.

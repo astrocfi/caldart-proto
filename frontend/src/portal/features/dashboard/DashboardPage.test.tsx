@@ -311,7 +311,7 @@ describe('<DashboardPage/>', () => {
     const names = card('Quick links')
       .getAllByRole('link')
       .map((link) => link.textContent);
-    expect(names).toEqual(['Renew', 'My profile', 'Member check', 'Finance', 'Members']);
+    expect(names).toEqual(['Renew', 'My profile', 'Member check', 'Accounting', 'Members']);
   });
 
   it('offers a plain member four next steps, not the whole menu', async () => {
@@ -321,7 +321,7 @@ describe('<DashboardPage/>', () => {
     const names = card('Quick links')
       .getAllByRole('link')
       .map((link) => link.textContent);
-    expect(names).toEqual(['Renew', 'My profile', 'My aircraft', 'Messages']);
+    expect(names).toEqual(['Renew', 'My profile', 'My aircraft', 'Email to me']);
   });
 
   it('hides administration links from a plain member', async () => {
@@ -559,18 +559,18 @@ describe('quickLinks', () => {
       'Renew',
       'My profile',
       'My aircraft',
-      'Messages',
+      'Email to me',
       'Member check',
     ]);
   });
 
-  it('adds Finance for a treasurer', () => {
+  it('adds Accounting for a treasurer', () => {
     expect(labels(['member', 'treasurer'])).toEqual([
       'Renew',
       'My profile',
       'My aircraft',
-      'Messages',
-      'Finance',
+      'Email to me',
+      'Accounting',
     ]);
   });
 
@@ -579,7 +579,7 @@ describe('quickLinks', () => {
       'Renew',
       'My profile',
       'Member check',
-      'Finance',
+      'Accounting',
       'Members',
     ]);
   });

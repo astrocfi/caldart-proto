@@ -3965,7 +3965,7 @@ early renewal being nagged about the term it replaced.  See :doc:`reminders`.
 When each reminder stage falls.  There is only ever one row, primary key 1:
 ``save()`` forces the key, and ``load()`` reads the row, answering an unsaved
 default schedule (60, 30, 7, 30) before one is stored; reading never writes.  A
-system administrator writes it from the Scheduled page's **Reminder schedule**
+system administrator writes it from the Scheduled tasks page's **Reminder schedule**
 card through ``PUT /admin/reminders/schedule`` (:ref:`api-reminder-schedule`).
 The ``expired`` stage spans the expiry day and the six days after it, so it has
 no field.
@@ -4618,7 +4618,7 @@ it.
    * - ``hidden_from_archive``
      - ``BooleanField``
      - not null; default ``False``
-     - true while CalDART management keeps the email off its recipients' **Messages** page; changes nothing else
+     - true while CalDART management keeps the email off its recipients' **Email to me** page; changes nothing else
    * - ``is_callout``
      - ``BooleanField``
      - not null; default ``False``

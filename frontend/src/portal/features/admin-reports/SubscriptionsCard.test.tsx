@@ -92,7 +92,7 @@ describe('SubscriptionsCard', () => {
     );
   });
 
-  it('opens Edit above the table, where Email a report opens', async () => {
+  it('opens Edit above the table, where Add a scheduled report opens', async () => {
     const user = userEvent.setup();
     const table = await renderCard();
 
@@ -255,12 +255,12 @@ describe('SubscriptionsCard', () => {
     expect(await screen.findByText('No reports are sent by email yet')).toBeInTheDocument();
   });
 
-  it('opens the form from Email a report', async () => {
+  it('opens the form from Add a scheduled report', async () => {
     await renderCard();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Email a report' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Add a scheduled report' }));
 
-    expect(screen.getByRole('form', { name: 'Email a report' })).toBeInTheDocument();
+    expect(screen.getByRole('form', { name: 'Add a scheduled report' })).toBeInTheDocument();
   });
 
   it('opens the edit form for the row whose Edit was pressed', async () => {
@@ -322,23 +322,23 @@ describe('SubscriptionsCard', () => {
     expect(screen.queryByRole('form', { name: 'Edit emailed report' })).not.toBeInTheDocument();
   });
 
-  it('closes an open edit when Email a report is pressed', async () => {
+  it('closes an open edit when Add a scheduled report is pressed', async () => {
     const table = await renderCard();
 
     await userEvent.click(within(row(table, /Ada Admin/)).getByRole('button', { name: /^Edit / }));
-    await userEvent.click(screen.getByRole('button', { name: 'Email a report' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Add a scheduled report' }));
 
     expect(screen.queryByRole('form', { name: 'Edit emailed report' })).not.toBeInTheDocument();
-    expect(screen.getByRole('form', { name: 'Email a report' })).toBeInTheDocument();
+    expect(screen.getByRole('form', { name: 'Add a scheduled report' })).toBeInTheDocument();
   });
 
-  it('closes the Email a report form when Edit is pressed', async () => {
+  it('closes the Add a scheduled report form when Edit is pressed', async () => {
     const table = await renderCard();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Email a report' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Add a scheduled report' }));
     await userEvent.click(within(row(table, /Ada Admin/)).getByRole('button', { name: /^Edit / }));
 
-    expect(screen.queryByRole('form', { name: 'Email a report' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('form', { name: 'Add a scheduled report' })).not.toBeInTheDocument();
     expect(screen.getByRole('form', { name: 'Edit emailed report' })).toBeInTheDocument();
   });
 

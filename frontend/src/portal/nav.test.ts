@@ -29,12 +29,12 @@ describe('visibleNavItems', () => {
       'Dashboard',
       'My profile',
       'My aircraft',
-      'Payments',
+      'My payments',
       'Donate',
       'Renew',
       'Change password',
       'Change email',
-      'Messages',
+      'Email to me',
       'Email preferences',
     ]);
   });
@@ -53,7 +53,7 @@ describe('visibleNavItems', () => {
     const visible = labels(['member', 'dart_leader']);
     expect(visible).toContain('Member check');
     expect(visible).toContain('Aircraft check');
-    expect(visible).not.toContain('Users and roles');
+    expect(visible).not.toContain('Roles');
   });
 
   it.each([['verifier'], ['user_admin']] as const)(
@@ -70,8 +70,8 @@ describe('visibleNavItems', () => {
 
   it('gives account_admin the member, aircraft, and payment screens but not users', () => {
     const visible = labels(['member', 'account_admin']);
-    expect(visible).toEqual(expect.arrayContaining(['Members', 'Aircraft', 'Finance']));
-    expect(visible).not.toContain('Users and roles');
+    expect(visible).toEqual(expect.arrayContaining(['Members', 'Aircraft', 'Accounting']));
+    expect(visible).not.toContain('Roles');
     expect(visible).not.toContain('Health and database');
   });
 
@@ -90,19 +90,18 @@ describe('visibleNavItems', () => {
     expect(labels(['member', 'dart_leader'])).not.toContain('Reminders');
   });
 
-  it('files the reminder log under Administration', () => {
-    const administration = groupedNavItems(['member', 'account_admin']).find(
-      (bucket) => bucket.group === 'Administration',
+  it('files Accounting and the reminder log, in that order, under Finance', () => {
+    const finance = groupedNavItems(['member', 'account_admin']).find(
+      (bucket) => bucket.group === 'Finance',
     );
-    expect(administration?.items.map((item) => item.to)).toContain('/admin/reminders');
+    expect(finance?.items.map((item) => item.label)).toEqual(['Accounting', 'Reminders']);
   });
 
-  it('gives account_admin the reports screen, straight after the reminder log', () => {
-    const administration = groupedNavItems(['member', 'account_admin']).find(
-      (bucket) => bucket.group === 'Administration',
+  it('gives a treasurer Accounting alone under Finance', () => {
+    const finance = groupedNavItems(['member', 'treasurer']).find(
+      (bucket) => bucket.group === 'Finance',
     );
-    const paths = administration?.items.map((item) => item.to) ?? [];
-    expect(paths.indexOf('/admin/reports')).toBe(paths.indexOf('/admin/reminders') + 1);
+    expect(finance?.items.map((item) => item.label)).toEqual(['Accounting']);
   });
 
   it('gives account_admin the notifications screen, straight after the reports screen', () => {
@@ -116,7 +115,7 @@ describe('visibleNavItems', () => {
   it.each([['treasurer'], ['user_admin'], ['dart_leader']] as const)(
     'keeps the notifications screen away from %s',
     (role) => {
-      expect(labels(['member', role])).not.toContain('Notifications');
+      expect(labels(['member', role])).not.toContain('Notification emails');
     },
   );
 
@@ -134,8 +133,8 @@ describe('visibleNavItems', () => {
     expect(visible).toContain('Aircraft check');
   });
 
-  it('gives a treasurer the finance area', () => {
-    expect(labels(['member', 'treasurer'])).toContain('Finance');
+  it('gives a treasurer Accounting', () => {
+    expect(labels(['member', 'treasurer'])).toContain('Accounting');
   });
 
   it('keeps the member register away from a treasurer', () => {
@@ -144,7 +143,7 @@ describe('visibleNavItems', () => {
 
   it('gives user_admin only the users screen on top of membership', () => {
     const visible = labels(['member', 'user_admin']);
-    expect(visible).toContain('Users and roles');
+    expect(visible).toContain('Roles');
     expect(visible).not.toContain('Members');
   });
 
@@ -236,11 +235,11 @@ describe('visibleNavItems', () => {
       'Dashboard',
       'My profile',
       'My aircraft',
-      'Payments',
+      'My payments',
       'Donate',
       'Change password',
       'Change email',
-      'Messages',
+      'Email to me',
       'Email preferences',
     ]);
   });
@@ -266,14 +265,14 @@ describe('visibleNavItems', () => {
 });
 
 describe('the System group', () => {
-  it('lists Health and database, Sent emails, and Scheduled, in that order', () => {
+  it('lists Health and database, Sent emails, and Scheduled tasks, in that order', () => {
     const system = groupedNavItems(['member', 'system_admin']).find(
       (bucket) => bucket.group === 'System',
     );
     expect(system?.items.map((item) => [item.label, item.to])).toEqual([
       ['Health and database', '/system/health'],
       ['Sent emails', '/system/emails'],
-      ['Scheduled', '/system/scheduled'],
+      ['Scheduled tasks', '/system/scheduled'],
     ]);
   });
 
@@ -331,10 +330,13 @@ describe('the Bulk email group', () => {
   );
 });
 
-describe('the Your email group', () => {
-  it('gives every signed-in person their messages and email preferences', () => {
-    const own = groupedNavItems(['member']).find((bucket) => bucket.group === 'Your email');
-    expect(own?.items.map((item) => item.to)).toEqual(['/messages', '/email-preferences']);
+describe('the My account group', () => {
+  it('ends with Email to me and Email preferences', () => {
+    const own = groupedNavItems(['member']).find((bucket) => bucket.group === 'My account');
+    expect(own?.items.slice(-2).map((item) => item.to)).toEqual([
+      '/messages',
+      '/email-preferences',
+    ]);
   });
 
   it('keeps the messages and preferences out of the Bulk email group for management', () => {
@@ -348,16 +350,16 @@ describe('the Your email group', () => {
 describe('groupedNavItems', () => {
   it('drops groups with nothing in them', () => {
     const groups = groupedNavItems(['member']).map((bucket) => bucket.group);
-    expect(groups).toEqual(['Membership', 'Your email']);
+    expect(groups).toEqual(['My account']);
   });
 
   it('orders groups consistently for a system admin', () => {
     const groups = groupedNavItems(['system_admin']).map((bucket) => bucket.group);
     expect(groups).toEqual([
-      'Membership',
-      'Your email',
+      'My account',
       'Operations',
       'Bulk email',
+      'Finance',
       'Administration',
       'System',
     ]);
@@ -366,11 +368,11 @@ describe('groupedNavItems', () => {
 
 describe('navEyebrow', () => {
   it.each([
-    ['/', 'Membership'],
-    ['/profile/aircraft', 'Membership'],
-    ['/change-password', 'Membership'],
-    ['/membership/join', 'Membership'],
-    ['/messages/12', 'Your email'],
+    ['/', 'My account'],
+    ['/profile/aircraft', 'My account'],
+    ['/change-password', 'My account'],
+    ['/membership/join', 'My account'],
+    ['/messages/12', 'My account'],
     ['/leader', 'Operations'],
     ['/leader/aircraft', 'Operations'],
     ['/bulk-email/drafts/4', 'Bulk email'],

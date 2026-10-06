@@ -99,7 +99,7 @@ test('an outside address hears of a sign-up, and stops once sign-ups are dropped
   const dart = await rosterDart(page);
   await page
     .getByRole('navigation', { name: 'Portal sections' })
-    .getByRole('link', { name: 'Notifications' })
+    .getByRole('link', { name: 'Notification emails' })
     .click();
   await expect(page).toHaveURL(/\/portal\/admin\/notifications/);
   await page.getByRole('button', { name: 'Add an address' }).click();

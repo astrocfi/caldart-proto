@@ -25,7 +25,7 @@ from caldart.views import (
 )
 
 urlpatterns = [
-    # Accounts and roles are managed in the portal alone (Users and roles, My
+    # Accounts and roles are managed in the portal alone (Roles, My
     # profile), so Wagtail's own screens for them are closed.
     re_path(
         r"^admin/(?:users|groups|bulk/accounts|bulk/auth|password_reset)/",

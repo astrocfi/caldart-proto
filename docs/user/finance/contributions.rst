@@ -40,7 +40,7 @@ Download a statement
 
 Each row's **Statement** button, in the **Download** column, downloads that person's
 contribution statement for the year on screen as a PDF. It is the same document the person can download from their own
-**Payments** screen.
+**My payments** screen.
 
 Every active account that gave that year is also emailed its statement, once, with the
 subject *CalDART: your 2025 contribution statement* (with that year's number). A system

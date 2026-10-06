@@ -1,7 +1,7 @@
 /**
- * A bulk email after it went: the recipient reads it again under Messages, through the
+ * A bulk email after it went: the recipient reads it again under Email to me, through the
  * View in browser link in their copy and from the menu; CalDART management reads that
- * copy on the delivery report and hides the email from Messages.
+ * copy on the delivery report and hides the email from Email to me.
  *
  * `make e2e` sets `BULK_EMAIL_UNDO_SECONDS=0`, so a send is ready for the sender's next
  * run at once.  The batch is the holder of the website administrator role, whom the seed
@@ -40,7 +40,7 @@ async function sendToWebsiteAdmins(page: Page, subject: string): Promise<void> {
   await expect(page.getByRole('region', { name: 'Waiting to send' })).toBeVisible();
 }
 
-/** Run the background sender from the Scheduled page, as the system administrator. */
+/** Run the background sender from the Scheduled tasks page, as the system administrator. */
 async function runSender(page: Page): Promise<void> {
   await page.context().clearCookies();
   await signIn(page, DEMO.sysadmin);
@@ -52,7 +52,7 @@ async function runSender(page: Page): Promise<void> {
   await expect(sender.getByRole('status')).toHaveText(/^Worked on \d+ bulk emails?: sent \d+/);
 }
 
-test('a recipient reads a bulk email again under Messages', async ({ page }) => {
+test('a recipient reads a bulk email again under Email to me', async ({ page }) => {
   const subject = `Hangar news ${Date.now().toString(36)}`;
   await sendToWebsiteAdmins(page, subject);
   await runSender(page);
@@ -71,8 +71,8 @@ test('a recipient reads a bulk email again under Messages', async ({ page }) => 
   await expect(page.getByRole('heading', { level: 1, name: subject })).toBeVisible();
   await expect(page.getByTitle(`The email: ${subject}`)).toBeVisible();
 
-  // Messages in the menu lists it, and its subject opens it.
-  await menu(page).getByRole('link', { name: 'Messages' }).click();
+  // Email to me in the menu lists it, and its subject opens it.
+  await menu(page).getByRole('link', { name: 'Email to me' }).click();
   await page.getByRole('link', { name: subject, exact: true }).click();
   await expect(page.getByRole('heading', { level: 1, name: subject })).toBeVisible();
 });
@@ -97,16 +97,16 @@ test('CalDART management reads a copy as it went and hides the email', async ({ 
   await dialog.getByRole('button', { name: 'Close' }).click();
   await expect(dialog).toHaveCount(0);
 
-  await page.getByRole('button', { name: 'Hide from Messages' }).click();
+  await page.getByRole('button', { name: 'Hide from Email to me' }).click();
   await page.getByRole('button', { name: 'Hide it' }).click();
-  await expect(page.getByRole('button', { name: 'Show in Messages' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Show in Email to me' })).toBeVisible();
 
   await page.context().clearCookies();
   await signIn(page, DEMO.webadmin);
   // Wait for the list itself, so its absence of the email is not read before it loads.
   const listed = page.waitForResponse((response) => response.url().endsWith('/api/v1/messages'));
-  await menu(page).getByRole('link', { name: 'Messages' }).click();
+  await menu(page).getByRole('link', { name: 'Email to me' }).click();
   await listed;
-  await expect(page.getByRole('heading', { level: 1, name: 'Messages' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Email to me' })).toBeVisible();
   await expect(page.getByRole('link', { name: subject, exact: true })).toHaveCount(0);
 });

@@ -11,7 +11,7 @@ import { NotificationSubscriptionsCard } from './NotificationSubscriptionsCard';
 export function AdminNotificationsPage(): JSX.Element {
   return (
     <Page
-      title="Notifications"
+      title="Notification emails"
       lede="Who is emailed when something happens, such as a sign-up, a payment, or a refund."
     >
       <NotificationSubscriptionsCard />

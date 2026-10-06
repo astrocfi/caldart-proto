@@ -6,7 +6,7 @@ The money overview
 
 The **Money overview** screen answers "how are we doing?" at a glance: what came in, what
 the payment providers kept, what reached the bank, and what went back in refunds. It is the
-first tab of the finance area, and the one **Finance** under **Administration** in the menu
+first tab of the finance area, and the one **Accounting** under **Finance** in the menu
 opens.
 
 Who sees this screen
@@ -92,7 +92,7 @@ bookmark a filtered view or send the link to another treasurer.
 Reports by email
 ~~~~~~~~~~~~~~~~
 
-The **Emailed reports** screen, also under **Administration**, sends the payments,
+The **Emailed reports** screen, under **Administration**, sends the payments,
 reconciliation, and contributions reports, and for the treasurer the donors report, to you
 or to anyone else allowed to read them, on a schedule you choose.
 

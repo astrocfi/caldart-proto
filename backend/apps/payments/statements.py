@@ -7,8 +7,8 @@ is sent one email,
 (:func:`apps.payments.receipts.render_statement_pdf`).  A
 :class:`~apps.payments.models.YearStatement` row is written for each address
 reached, so a rerun of :func:`send_year_statements` -- the yearly timer runs it
-once, and an operator can run it again from the portal's Scheduled page -- sends nothing
-twice.
+once, and an operator can run it again from the portal's Scheduled tasks page --
+sends nothing twice.
 """
 
 from __future__ import annotations
@@ -140,7 +140,7 @@ def _send_statement(user: User, year: int, total_cents: int) -> bool | None:
     Claims the :class:`~apps.payments.models.YearStatement` row with
     ``get_or_create`` before sending anything: Django resolves two callers
     racing for the same row through the unique constraint, so of two runs
-    started at once -- the timer and an operator's click on the Scheduled page,
+    started at once -- the timer and an operator's click on the Scheduled tasks page,
     say -- only one wins the claim.  Answers ``None`` without sending anything
     when another run already holds the claim, ``False`` without writing
     anything for an account with no address on file, and ``False`` (releasing

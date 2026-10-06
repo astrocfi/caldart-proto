@@ -735,7 +735,7 @@ the bounce check last found the address bouncing, as an ISO datetime, or ``null`
 while no bounce is known, and ``email_bounce_detail`` that report's status code and
 diagnostic, or ``""`` (:ref:`email-bounces`).  ``phone``, ``dart`` (the DART's
 name), ``city``, ``county``, and ``home_airport`` (the home airport's identifier) are
-read from the profile for the columns the Users and roles list can show; each is
+read from the profile for the columns the Roles list can show; each is
 ``""``, and ``dart`` is ``null``, for an account with no profile or no DART.
 
 .. code-block:: json

@@ -1981,7 +1981,7 @@ export type BulkEmailRecipientStatus =
  * copies the bounce check later found refused, which `sent_count` no longer counts;
  * `retries` lists each press of Retry failed, oldest first, and `retried_count` adds
  * up the copies they queued again. `hidden_from_archive` is true while the email is
- * kept off the recipients' Messages page. `is_callout` is true for a mission callout,
+ * kept off the recipients' Email to me page. `is_callout` is true for a mission callout,
  * whose answers close at `closes_at`, null for any other email.
  */
 export interface BulkEmailDetail {
@@ -2052,7 +2052,7 @@ export interface BulkEmailCopy {
   text: string;
 }
 
-/** The body of `POST /bulk-email/{id}/hide`: true to hide it from Messages, false to show it. */
+/** The body of `POST /bulk-email/{id}/hide`: true to hide it from Email to me, false to show it. */
 export interface BulkEmailHideRequest {
   hidden: boolean;
 }

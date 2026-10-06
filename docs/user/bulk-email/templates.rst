@@ -4,7 +4,7 @@
 Templates
 =========
 
-**Templates** keeps the messages you send again and again, such as the monthly newsletter, a
+**Templates** keeps the messages you send again and again, such as reminders about an exercise, a
 meeting notice, or a call for volunteers, so a new email starts from one instead of from a
 blank page. Every member of CalDART management shares the same templates. CalDART management
 opens it as **Templates** under **Bulk email** in the menu. A system administrator can open it

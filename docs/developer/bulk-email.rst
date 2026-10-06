@@ -81,9 +81,9 @@ added later lands in a file of its own rather than growing one:
 ``delivery.py``
     What became of the copies after they went: a later bounce tied back to its
     copy, **Retry failed**, one person's copy as it went, and hiding an email
-    from **Messages**.
+    from **Email to me**.
 ``archive.py``
-    The **Messages** page: the bulk emails a person received, each as their own
+    The **Email to me** page: the bulk emails a person received, each as their own
     copy.
 ``templates.py``
     Reusing a message: filling a draft from a saved template, and **Duplicate**.
@@ -259,7 +259,7 @@ The sender
 
 ``job.run_sender`` is one run of the sender.  ``manage.py send_bulk_emails`` calls
 it every minute, from ``caldart-bulk-email.timer`` (:ref:`deploy-bulk-email`),
-and ``POST /system/bulk-email/run`` calls it from the Scheduled page's **Run now**.
+and ``POST /system/bulk-email/run`` calls it from the Scheduled tasks page's **Run now**.
 
 A run may be given a time budget.  **Run now** gives it
 ``REQUEST_BUDGET_SECONDS`` (45), inside the web server's and the proxy's 60-second
@@ -436,7 +436,7 @@ and a test copy the sender's own, so all three read alike.  The preview's is ine
 showing a person's copy to a sender never hands over a link that would turn that
 person's email off.  The test copy carries the sender's own real link.  Above the
 footer every copy but a test copy carries *View this email in your browser*, a link
-to the email on the recipient's **Messages** page,
+to the email on the recipient's **Email to me** page,
 ``<SITE_URL>/portal/messages/<id>`` (``render.browser_url``; `After the send`_).
 The footer and the headers follow the email's type (:ref:`email-unsubscribe`).  For
 a type recipients may turn off, both bodies end with ``unsubscribe.footer_for``'s
@@ -680,16 +680,16 @@ queued one.
 
 **The buttons.**  ``render.render_for`` gives a callout's copy its three answer links
 above the footer (``render.callout_answers``), and points the copy's *View this email
-in your browser* line at the answer page instead of **Messages**.  Each link is
+in your browser* line at the answer page instead of **Email to me**.  Each link is
 ``<SITE_URL>/mail/callout/<token>?answer=<kind>``, the token
 ``django.core.signing`` with the salt ``bulk_email.callout`` over the callout's id and
 the account's id, with no age limit of its own: the close time decides whether it
 still records anything (``callout_links``).  Only a recipient's own copy carries a
 signed token: ``render_copy`` asks for live links unless it is ``inert``, so the copy
-the sender sends and the copy on the reader's **Messages** page carry the reader's
+the sender sends and the copy on the reader's **Email to me** page carry the reader's
 token, and the preview, a test copy (which goes to the sender, who is not answering),
 the copy on the delivery report, and ``message_html`` all carry
-``callout_links.STAND_IN`` and answer for nobody.  The reader's **Messages** entry for a
+``callout_links.STAND_IN`` and answer for nobody.  The reader's **Email to me** entry for a
 callout links their own answer page (``archive.Message.answer_url``).
 
 **The answer page.**  ``views.callout_answer`` reads the token
@@ -778,7 +778,7 @@ every review of one, holds to them.
 **A staff view never carries a recipient's live link.**  A copy holds signed links
 that act for the person it went to: the unsubscribe link and, in a callout, the
 three answer buttons.  Only that person's own copy carries them live: the copy the
-sender sends and the copy on the reader's **Messages** page.  Every view a sender or
+sender sends and the copy on the reader's **Email to me** page.  Every view a sender or
 an administrator reads (the compose preview, a test copy's callout buttons, **View
 copy** on the delivery report, ``message_html`` on the Sent page) is rendered inert,
 through ``render_for(..., inert=True)`` or ``render_copy(..., inert=True)``, so its

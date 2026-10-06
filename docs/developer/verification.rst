@@ -114,7 +114,7 @@ member check's search, not by browsing the membership.
 the member check with ``PUT /leader/members/{user_id}/verifier``, which goes
 through ``accounts.services.set_verifier`` and so through ``update_account``: the
 change is audited as ``account.roles`` and raised as ``roles_changed``.  A user
-administrator can also grant it from the Users and roles screen.
+administrator can also grant it from the Roles screen.
 
 Anybody who may verify may verify their own record; nothing compares the verifier
 with the person.

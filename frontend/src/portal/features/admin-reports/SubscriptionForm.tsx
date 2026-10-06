@@ -1,5 +1,5 @@
 /**
- * The form behind **Email a report** and each row's **Edit**: which report,
+ * The form behind **Add a scheduled report** and each row's **Edit**: which report,
  * filtered how, with which columns, in which formats, how often, and to whom.
  *
  * Editing changes everything but the report and the recipient, which the
@@ -152,7 +152,7 @@ export function SubscriptionForm({
   const toast = useToast();
   const sectionRef = useRef<HTMLElement>(null);
   const refusal = useRefusedSubmit(sectionRef, save.error);
-  const title = isEditing ? 'Edit emailed report' : 'Email a report';
+  const title = isEditing ? 'Edit emailed report' : 'Add a scheduled report';
   const darts = useDarts();
   const plans = usePlans();
   // Only the emails report's Purpose filter reads these, and only a

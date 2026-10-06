@@ -678,7 +678,7 @@ raises no notification, and sends no receipt, so the tombstone keeps its name an
 blank profile and never becomes a member.
 
 The payment list, the ledger, and the donors report name the tombstone as the
-payer; the member list and **Users and roles**, which show active accounts, do
+payer; the member list and **Roles**, which show active accounts, do
 not list it.  A member who never paid leaves no tombstone.
 
 The delete is recorded as ``member.delete``, with ``payments=<n>

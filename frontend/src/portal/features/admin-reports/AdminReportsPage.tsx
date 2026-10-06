@@ -25,7 +25,7 @@ export function AdminReportsPage(): JSX.Element {
   return (
     <Page
       title="Emailed reports"
-      lede="The reports CalDART emails on a schedule, and who receives them."
+      lede="The reports CalDART emails on a schedule and who receives them."
     >
       <SubscriptionsCard />
       {isAccountAdmin ? <RostersCard /> : null}

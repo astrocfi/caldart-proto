@@ -1,7 +1,7 @@
 /**
  * The checks before a bulk email goes: a Reply-To address the sender chooses, a test
  * copy to the sender alone, and the checks list warning about placeholder text without
- * stopping the send. The background sender, run from the Scheduled page, then sends
+ * stopping the send. The background sender, run from the Scheduled tasks page, then sends
  * the copies with the chosen Reply-To.
  *
  * The message holds no web link, so the checks never reach for the network. The batch

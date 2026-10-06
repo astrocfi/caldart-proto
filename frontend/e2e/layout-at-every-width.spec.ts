@@ -89,7 +89,7 @@ test('the finance tabs stay on one line on a phone, the current one in view', as
   await page.setViewportSize(PHONE);
   await signIn(page, DEMO.treasurer);
   await page.goto('portal/admin/payments/reconciliation');
-  const bar = page.getByRole('navigation', { name: 'Finance sections' });
+  const bar = page.getByRole('navigation', { name: 'Accounting sections' });
   const current = bar.getByRole('link', { name: 'Reconciliation' });
 
   await expect(current).toBeInViewport();

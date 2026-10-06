@@ -2,7 +2,7 @@
  * The client for a sent bulk email's delivery report: **Retry failed**
  * (`POST /bulk-email/{id}/retry`), one person's copy as it went
  * (`GET /bulk-email/{id}/recipients/{rid}/copy`), and hiding the email from the
- * recipients' Messages page (`POST /bulk-email/{id}/hide`).
+ * recipients' Email to me page (`POST /bulk-email/{id}/hide`).
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
@@ -43,7 +43,7 @@ export function useRetryFailed(id: number): UseMutationResult<BulkEmailDetail, u
   });
 }
 
-/** Hides email `id` from the recipients' Messages page, or shows it there again. */
+/** Hides email `id` from the recipients' Email to me page, or shows it there again. */
 export function useHideFromMessages(
   id: number,
 ): UseMutationResult<BulkEmailDetail, unknown, boolean> {

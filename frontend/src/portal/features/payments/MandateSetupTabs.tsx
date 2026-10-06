@@ -1,7 +1,7 @@
 /**
  * The provider tabs of every flow that saves a method for later charges.
  *
- * Automatic renewal's setup on the Payments screen and a recurring donation that
+ * Automatic renewal's setup on the My payments screen and a recurring donation that
  * starts on a later day both offer the same tabs over the same three panels, so
  * they render this rather than two copies of it.
  */

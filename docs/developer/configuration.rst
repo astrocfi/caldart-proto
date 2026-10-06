@@ -425,7 +425,7 @@ Email
    mailbox to ``INBOX``.  Only IMAP over TLS is accepted.
 
    :Both: empty, which turns bounce checking off: the hourly run and **Run now**
-      on the Scheduled page say so and read nothing.
+      on the Scheduled tasks page say so and read nothing.
    :Production: ``imaps://bounces%40caldart.example.org:app-password@imap.example.org/INBOX``.
 
 ``DKIM_SELECTOR``

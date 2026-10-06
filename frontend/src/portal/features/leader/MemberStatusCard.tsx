@@ -299,7 +299,7 @@ interface VerifierButtonProps {
  * *Make a verifier* or *Remove as verifier*, for a DART leader or user administrator.
  *
  * Either one changes the person's roles, so it asks first, with the focus on Cancel,
- * as a role change on Users and roles waits for Save changes.
+ * as a role change on Roles waits for Save changes.
  */
 function VerifierButton({ userId, status }: VerifierButtonProps): JSX.Element | null {
   const canGrant = useCanGrantVerifier();

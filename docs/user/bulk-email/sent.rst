@@ -65,7 +65,7 @@ Grace Holloway on 10/03/2026 at 5:34 PM.*, and has three cards:
   type and *Replies go to:* with the address for replies its copies carried. A field shows
   in the subject and the message as the chip you wrote it with, such as *First name, or
   friend*, because each person's copy had their own details filled in. Under it, a line says whether the people it went to can read it again under
-  **Messages**, with **Hide from Messages** or **Show in Messages** (`Messages`_).
+  **Email to me**, with **Hide from Email to me** or **Show in Email to me** (`Email to me`_).
 - **Who received it**: the delivery report, described next.
 
 
@@ -143,10 +143,10 @@ failed copies. Each retry is listed under **Retries** at the bottom of the repor
 it was pressed, who pressed it, and how many people it sent a fresh copy to.
 
 
-Messages
-========
+Email to me
+===========
 
-Every person a bulk email went to can read it again on their own **Messages** page, and
+Every person a bulk email went to can read it again on their own **Email to me** page, and
 every copy ends with a *View this email in your browser* link to it there. Each person sees
 only their own copy.
 

@@ -2,7 +2,7 @@
  * The **Reminder schedule** card: how many days before expiry the first, second, and final
  * renewal reminders go, and how many days after it the lapsed one does.
  *
- * A system administrator edits the four days in place on the Scheduled page; an account
+ * A system administrator edits the four days in place on the Scheduled tasks page; an account
  * administrator reads the same schedule on the Reminders page, without the form.
  */
 import { useState } from 'react';
@@ -36,7 +36,7 @@ interface ReminderScheduleCardProps {
 /** The reminder schedule, editable unless `readOnly`. */
 export function ReminderScheduleCard({ readOnly = false }: ReminderScheduleCardProps): JSX.Element {
   const schedule = useReminderSchedule();
-  // On the Scheduled page the eyebrow sorts the panels; the Reminders page is about
+  // On the Scheduled tasks page the eyebrow sorts the panels; the Reminders page is about
   // membership already, so its card goes without.
   const eyebrow = readOnly ? undefined : EYEBROW;
 

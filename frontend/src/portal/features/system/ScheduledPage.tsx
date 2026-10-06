@@ -19,14 +19,14 @@ import { ReportsPanel } from './ReportsPanel';
 import { StatementsPanel } from './StatementsPanel';
 
 /**
- * Renders the Scheduled page: the renewal reminder emails and their schedule, the
+ * Renders the Scheduled tasks page: the renewal reminder emails and their schedule, the
  * automatic renewal charges, the scheduled reports, the year-end statements, the
  * bounce check, and the bulk email sender, in that order.
  */
 export function ScheduledPage(): JSX.Element {
   return (
     <Page
-      title="Scheduled"
+      title="Scheduled tasks"
       lede="The jobs CalDART runs on a schedule. Run any of them by hand here: each is safe to run twice, and a practice run shows what it would do first."
     >
       <RemindersPanel />

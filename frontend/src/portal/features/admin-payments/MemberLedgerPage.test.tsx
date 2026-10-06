@@ -92,7 +92,7 @@ describe('MemberLedgerPage', () => {
     expect(await screen.findByText('This member renews by hand.')).toBeInTheDocument();
   });
 
-  it("names the plan in the For column, as the member's own Payments screen does", async () => {
+  it('names the plan in the For column, as the My payments screen does', async () => {
     serveLedger();
     renderLedger();
 

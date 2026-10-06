@@ -49,8 +49,8 @@ const ROLE_LINKS: { to: string; roles: RoleSlug[] }[] = [
  *
  * Every reader gets the way to pay, which is **Renew** for a member with a term to
  * renew and **Donate** for a friend or a life member, then **My profile**, **My
- * aircraft**, and **Messages**.  A role adds its own task: **Member check** for a DART
- * leader, a verifier, or an administrator; **Finance** for a treasurer or an account
+ * aircraft**, and **Email to me**.  A role adds its own task: **Member check** for a DART
+ * leader, a verifier, or an administrator; **Accounting** for a treasurer or an account
  * administrator; **Members** for an account administrator.  The role's tasks are kept
  * and the member's own links give way from the end, so the list never runs past five.
  * Each link takes its label from the menu.
@@ -86,7 +86,7 @@ const RECENT_PAYMENT_COLUMNS: Column<PaymentSummary>[] = [
     // while the fixed columns beside it have room to spare.
     minWidth: '12.5rem',
     dropOrder: 1,
-    // Named as Payments names it: Annual, Annual and contribution, or Donation.
+    // Named as My payments names it: Annual, Annual and contribution, or Donation.
     render: (payment) => purchaseLabel(payment),
   },
   {

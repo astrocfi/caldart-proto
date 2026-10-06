@@ -3,7 +3,7 @@ Change password
 ===============
 
 The **Change password** screen replaces a password you still know. *You stay signed in
-on this device.* Open it from **Change password** under **Membership** in the menu. If you
+on this device.* Open it from **Change password** under **My account** in the menu. If you
 have forgotten your password, use :doc:`forgot-password` instead.
 
 

@@ -25,7 +25,7 @@ export function MessagesPage(): JSX.Element {
   const rows = messages.data ?? [];
 
   return (
-    <Page title="Messages" lede="Copies of the emails CalDART sent to members and friends.">
+    <Page title="Email to me" lede="Copies of emails sent to me by CalDART.">
       <Card>
         {messages.isError ? (
           <p className="field__error" role="alert">
@@ -40,7 +40,7 @@ export function MessagesPage(): JSX.Element {
             initialSort={{ key: 'sent_at', direction: 'desc' }}
             caption={`${rows.length} ${rows.length === 1 ? 'message' : 'messages'}`}
             emptyTitle="No messages yet"
-            emptyDescription="When CalDART emails its members and friends, the email appears here too."
+            emptyDescription="When CalDART sends you an email, the email appears here too."
             emptyAction={
               <ButtonLink to="/email-preferences" variant="secondary">
                 Email preferences

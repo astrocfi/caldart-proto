@@ -75,7 +75,7 @@ export function useMandate(
 /**
  * The signed-in member's standing authority to renew, via `GET /me/renewal`.
  *
- * The dashboard states it in a line and the Payments screen states it in full,
+ * The dashboard states it in a line and the My payments screen states it in full,
  * so both read it from here; the checkout reads it only while a contribution is
  * being given, which `enabled` says.
  */
@@ -86,7 +86,7 @@ export function useRenewal(options: { enabled?: boolean } = {}): UseQueryResult<
 /**
  * The signed-in person's recurring donation, via `GET /me/donation`.
  *
- * The Payments screen states it and the dashboard names a life member's.
+ * The My payments screen states it and the dashboard names a life member's.
  */
 export function useDonation(): UseQueryResult<RenewalEnvelope> {
   return useMandate('donation');

@@ -1,7 +1,7 @@
 /**
  * Bulk email as CalDART management sends it: a batch built from two filter sets,
  * downloaded, sent behind a confirmation, and sent by the background sender, which
- * the system administrator runs from the Scheduled page; then a scheduled send
+ * the system administrator runs from the Scheduled tasks page; then a scheduled send
  * canceled back to a draft.
  *
  * `make e2e` sets `BULK_EMAIL_UNDO_SECONDS=0`, so a send is ready for the sender's

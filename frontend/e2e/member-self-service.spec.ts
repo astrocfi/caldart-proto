@@ -149,11 +149,11 @@ test('a member reads their payments, and every settled one offers its receipt', 
   await page
     .getByRole('navigation', { name: 'Portal sections' })
     .getByRole('link', {
-      name: 'Payments',
+      name: 'My payments',
     })
     .click();
   await expect(page).toHaveURL(/\/portal\/payments$/);
-  await expect(page.getByRole('heading', { level: 1, name: 'Payments' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'My payments' })).toBeVisible();
 
   // The seeded member has paid dues more than once, so the table has rows and
   // each settled row carries a receipt.

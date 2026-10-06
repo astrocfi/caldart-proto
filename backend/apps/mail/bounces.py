@@ -12,7 +12,7 @@ The run is the shared scheduled-run shape: counts (``bounced``, ``unmatched``,
 ``ignored``) and one :class:`~caldart.runs.RunAction` per failure, and a dry run that
 reports exactly what a live one would do while changing nothing, on the server or in
 the mailbox.  ``manage.py check_bounces`` runs it hourly, and ``POST
-/system/bounces/run`` runs it from the Scheduled page.
+/system/bounces/run`` runs it from the Scheduled tasks page.
 """
 
 from __future__ import annotations

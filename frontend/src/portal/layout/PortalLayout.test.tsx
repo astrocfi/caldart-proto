@@ -92,12 +92,12 @@ describe('PortalLayout', () => {
       'Dashboard',
       'My profile',
       'My aircraft',
-      'Payments',
+      'My payments',
       'Donate',
       'Renew',
       'Change password',
       'Change email',
-      'Messages',
+      'Email to me',
       'Email preferences',
       'User guide',
       'Back to caldart.org',
@@ -167,9 +167,9 @@ describe('PortalLayout', () => {
 
   it.each<[RoleSlug, string[]]>([
     ['dart_leader', ['Member check', 'Aircraft check']],
-    ['account_admin', ['Member check', 'Aircraft check', 'Members', 'Aircraft', 'Finance']],
-    ['user_admin', ['Users and roles']],
-    ['system_admin', ['Health and database', 'Sent emails', 'Scheduled']],
+    ['account_admin', ['Member check', 'Aircraft check', 'Members', 'Aircraft', 'Accounting']],
+    ['user_admin', ['Roles']],
+    ['system_admin', ['Health and database', 'Sent emails', 'Scheduled tasks']],
   ])('adds the %s entries to the rail', async (role, expected) => {
     server.use(signedInAs(makeUser({ roles: ['member', role] })));
     renderWithProviders(tree(), { route: '/' });
@@ -186,7 +186,7 @@ describe('PortalLayout', () => {
     renderWithProviders(tree(), { route: '/' });
 
     await screen.findByRole('navigation', { name: 'Portal sections' });
-    expect(railLinkNames()).not.toContain('Users and roles');
+    expect(railLinkNames()).not.toContain('Roles');
   });
 
   it('gives an anonymous visitor no rail at all', async () => {

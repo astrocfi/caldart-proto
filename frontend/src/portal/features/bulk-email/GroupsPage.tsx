@@ -138,7 +138,7 @@ export function GroupsPage(): JSX.Element {
   return (
     <Page
       title="Recipient groups"
-      lede="People you email again and again, such as the board. Add a group to an email's recipient list with Add a saved group on the compose screen."
+      lede="People you email again and again, such as the members of your DART. Add a group to an email's recipient list with “Add a saved group” on the compose screen."
       actions={
         isAdding ? null : (
           <Button

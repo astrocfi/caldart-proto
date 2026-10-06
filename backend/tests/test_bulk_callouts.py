@@ -296,7 +296,7 @@ def test_a_copy_token_reads_back_as_its_callout_and_recipient(management: User, 
 def test_a_copy_links_its_answer_page_to_read_it_in_the_browser(
     management: User, ann: User
 ) -> None:
-    """A callout's View in browser line opens the answer page, not Messages."""
+    """A callout's View in browser line opens the answer page, not Email to me."""
     # The token carries the second it was minted, so the copy and the expected link
     # must be signed at the same instant.
     with freeze_time("2026-08-01T15:10:00Z"):
@@ -347,7 +347,7 @@ def test_the_message_on_the_sent_page_carries_inert_buttons(
 def test_messages_leads_a_callout_to_the_readers_own_answer_page(
     api_client: APIClient, management: User, ann: User, bea: User
 ) -> None:
-    """Ann's Messages entry for a callout links her own answer page."""
+    """Ann's Email to me entry for a callout links her own answer page."""
     bulk = sent_callout(management, ann, bea)
     api_client.force_login(ann)
     (entry,) = api_client.get("/api/v1/messages").json()

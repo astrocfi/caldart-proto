@@ -4,8 +4,8 @@ The treasurer's screens
 
 The screens where the money is read, recorded, reconciled, and refunded.
 
-The treasurer and an account administrator both reach them from **Finance** under
-**Administration** in the portal's menu. Each screen shows the member's name, email
+The treasurer and an account administrator both reach them from **Accounting** under
+**Finance** in the portal's menu. Each screen shows the member's name, email
 address, and money, and nothing from the member's record about medicals or
 certificates. The **Donors** tab is the treasurer's alone.
 

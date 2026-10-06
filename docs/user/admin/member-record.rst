@@ -149,7 +149,7 @@ This person's whole money history, the same one the treasurer's screens show:
   anything beyond their dues.*, or *This person has not given anything yet.* if no dues.
 
 A term you grant by hand has no payment behind it, so it does not appear here. For the
-organization's figures, use **Finance** under **Administration** in the menu.
+organization's figures, use **Accounting** under **Finance** in the menu.
 
 
 Delete or deactivate

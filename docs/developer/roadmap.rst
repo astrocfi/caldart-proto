@@ -31,7 +31,7 @@ See :ref:`roadmap-i18n`.
 and nothing else.  Five things were considered and set aside: a second person
 approving an email before it goes, SMS, tracking who opens an email or clicks its
 links, an archive of past emails open to everybody, and members reading their own
-transactional mail (receipts, reminders, password links) on **Messages**.
+transactional mail (receipts, reminders, password links) on **Email to me**.
 
 Members and accounts
 ====================

@@ -67,15 +67,17 @@ test('a DART leader cannot reach the reminder log', async ({ page }) => {
   ).toHaveCount(0);
 });
 
-test('a system administrator keeps the run controls on the Scheduled page', async ({ page }) => {
+test('a system administrator keeps the run controls on the Scheduled tasks page', async ({
+  page,
+}) => {
   await signIn(page, DEMO.sysadmin);
   await page
     .getByRole('navigation', { name: 'Portal sections' })
-    .getByRole('link', { name: 'Scheduled', exact: true })
+    .getByRole('link', { name: 'Scheduled tasks', exact: true })
     .click();
   await expect(page).toHaveURL(/\/portal\/system\/scheduled$/);
 
-  // The Scheduled page carries other scans, the automatic renewal charges
+  // The Scheduled tasks page carries other scans, the automatic renewal charges
   // first among them, with run controls of their own, so every control here
   // is read inside its panel.
   const panel = page

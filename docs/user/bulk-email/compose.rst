@@ -246,5 +246,5 @@ If something looks wrong
 If the recipient list holds fewer people than you expected, look at the skips first, then at the
 **Chosen by** column: a forgotten **County** or **Kind** narrows an add quietly. If the email
 still says *Starting to send* a few minutes after the countdown ended, the server's sender may
-have stopped; a system administrator can start it by hand from the Scheduled page. If somebody
+have stopped; a system administrator can start it by hand from the Scheduled tasks page. If somebody
 says the email never arrived, find their row under :doc:`sent`.

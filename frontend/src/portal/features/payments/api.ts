@@ -1,5 +1,5 @@
 /**
- * Everything the member's own Payments screen says to the API.
+ * Everything the My payments screen says to the API.
  *
  * The payment rows themselves come from `@/portal/features/profile/api`, which
  * already owns `GET /me/payments`, and the mandate itself from

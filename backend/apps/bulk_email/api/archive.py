@@ -21,7 +21,7 @@ from apps.members.api.actors import acting_user
 
 
 class BulkEmailMessageSerializer(serializers.Serializer[Message]):
-    """One message the reader received, as the Messages list shows it.
+    """One message the reader received, as the Email to me list shows it.
 
     ``id`` is the bulk email's.  ``subject`` is the subject as the reader's copy had it,
     ``sent_at`` when their copy went, ``from_name`` who sent it (the organization's

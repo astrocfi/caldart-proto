@@ -16,7 +16,7 @@ lives here too: saved templates (:ref:`api-bulk-email-templates`) and saved reci
 groups (:ref:`api-bulk-email-groups`); so do mission callouts
 (:ref:`api-bulk-email-callouts`).  The
 ``/messages`` endpoints, under :ref:`api-bulk-email-messages`, are every signed-in
-person's own: the bulk emails they received, read on the portal's **Messages** page.
+person's own: the bulk emails they received, read on the portal's **Email to me** page.
 :doc:`api-reference` covers the conventions these endpoints share: session
 authentication, the CSRF header, and the error shapes.
 
@@ -185,7 +185,7 @@ which ``sent_count`` then no longer counts (:ref:`api-bulk-email-delivery`).
 ``{"id", "requested_at", "requested_by", "count"}`` (``requested_by`` a display name,
 blank once the account is deleted), and ``retried_count`` adds up their counts.
 ``hidden_from_archive`` is true while the email is kept off its recipients'
-**Messages** page.  ``is_callout`` is true for a mission callout, whose answers close
+**Email to me** page.  ``is_callout`` is true for a mission callout, whose answers close
 at ``closes_at``, and ``closes_at`` is null for any other email
 (:ref:`api-bulk-email-callouts`).  ``confirm_above`` is
 ``BULK_EMAIL_CONFIRM_ABOVE`` and ``undo_seconds`` is ``BULK_EMAIL_UNDO_SECONDS``,
@@ -833,7 +833,7 @@ was not sent a copy.*
 ------------------------------
 
 **Hide from Messages** and **Show in Messages**: keeps the email off every
-recipient's **Messages** page (:ref:`api-bulk-email-messages`), or puts it back.
+recipient's **Email to me** page (:ref:`api-bulk-email-messages`), or puts it back.
 
 .. code-block:: json
 
@@ -853,7 +853,7 @@ Messages
 ========
 
 Every signed-in person can read again the bulk emails they were sent, on the
-portal's **Messages** page (``/messages``).  ``apps.bulk_email.archive`` answers it.
+portal's **Email to me** page (``/messages``).  ``apps.bulk_email.archive`` answers it.
 An email is the reader's when one of its recipient rows names their account and reads
 ``sent`` or ``bounced``: a skipped, failed, stopped, or unsent copy is not one they
 received.  Each is shown as the reader's own copy, filled in from the values stored
@@ -1198,7 +1198,7 @@ such as ``{"first_name": "Pat", "expiration": "04/30/2026"}``; a message that fi
 in nothing stores ``{}``, and a deleted account fills every field in empty.
 ``render.render_copy(bulk, recipient)`` builds a copy from those stored values, so
 a copy rebuilt later reads as it went, whatever happened to the profile since, and
-puts the link to the email on the recipient's **Messages** page above its footer
+puts the link to the email on the recipient's **Email to me** page above its footer
 (:ref:`api-bulk-email-messages`).  The preview carries that link too, as the copy
 will; a test copy carries none, since it is nobody's message.
 

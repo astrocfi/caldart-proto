@@ -179,7 +179,7 @@ export function TemplatesPage(): JSX.Element {
   return (
     <Page
       title="Templates"
-      lede="Messages you send again and again, such as the monthly newsletter. Start a draft from one on the compose screen; changing the draft leaves the template as it is."
+      lede="Messages you send again and again, such as reminders about an exercise. Start a draft from one on the compose screen; changing the draft leaves the template as it is."
       actions={
         openForm === null ? (
           <Button ref={newRef} onClick={handleNew}>

@@ -388,7 +388,7 @@ Statuses: **200**; **401** when anonymous; **403** for every other role.
 ``GET /system/bounces``
 -----------------------
 
-Whether bounce checking is set up, so the Scheduled screen can say so before anyone
+Whether bounce checking is set up, so the Scheduled tasks screen can say so before anyone
 presses **Run now**: ``{"enabled": true}`` when ``BOUNCE_IMAP_URL`` is set, ``false``
 when it is empty (``bounce_checking_enabled()`` in ``apps/mail/bounces.py``).  Nothing
 is read from the mailbox; one that is set up but cannot be read is found by a run.

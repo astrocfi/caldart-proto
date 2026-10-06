@@ -7,7 +7,7 @@ Reminders
 **Reminders** is the record of the renewal emails CalDART has sent, newest first. Use it to
 answer "were they told?" when somebody says their membership lapsed without warning.
 
-An account administrator finds it under **Administration** in the menu. A system
+An account administrator finds it under **Finance** in the menu. A system
 administrator can open it too, and also reads the same record on the :doc:`scheduled` page,
 where the reminders can be sent by hand.
 

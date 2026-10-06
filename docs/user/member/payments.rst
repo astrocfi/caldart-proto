@@ -1,12 +1,12 @@
-========
-Payments
-========
+===========
+My payments
+===========
 
-**Payments** is where your money lives: whether CalDART renews your membership for
+**My payments** is where your money lives: whether CalDART renews your membership for
 you, whether you give on a schedule, everything you have paid with a receipt for
 each, and a contribution statement for each year you gave. Open it from
-**Payments** in the menu, or from **All payments, receipts, and renewals** on your
-:doc:`dashboard`. The screen's title reads **Payments**, and under it: *Your
+**My payments** in the menu, or from **All payments, receipts, and renewals** on your
+:doc:`dashboard`. The screen's title reads **My payments**, and under it: *Your
 automatic renewal, recurring donation, payments and receipts, and tax statements.* A
 friend's and a life member's leave out the automatic renewal.
 

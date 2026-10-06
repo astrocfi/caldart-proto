@@ -274,10 +274,7 @@ export function UsersListPage(): JSX.Element {
   };
 
   return (
-    <Page
-      title="Users and roles"
-      lede="Find an account, grant or remove roles, and send a password reset."
-    >
+    <Page title="Roles" lede="Find an account, grant or remove roles, and send a password reset.">
       <DataTable
         singleLine
         columns={columns}

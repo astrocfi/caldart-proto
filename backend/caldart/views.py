@@ -81,7 +81,7 @@ def wagtail_account_screen_closed(request: HttpRequest) -> HttpResponse:
 
     Wagtail's users, groups, bulk account actions, and password reset would each
     change an account outside the portal's rules, so they are not served; the
-    portal's Users and roles screen is where accounts are managed.
+    portal's Roles screen is where accounts are managed.
     """
     raise Http404("Accounts are managed in the portal.")
 

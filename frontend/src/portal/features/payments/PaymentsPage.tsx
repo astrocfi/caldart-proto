@@ -39,7 +39,7 @@ export function PaymentsPage(): JSX.Element {
   const showsRenewal = renews || holdsRenewal;
 
   return (
-    <Page title="Payments" lede={paymentsPageLede(showsRenewal)}>
+    <Page title="My payments" lede={paymentsPageLede(showsRenewal)}>
       {showsRenewal ? <AutoRenewalCard /> : null}
       <RecurringDonationCard />
 

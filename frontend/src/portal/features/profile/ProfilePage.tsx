@@ -62,11 +62,7 @@ export function ProfilePage(): JSX.Element {
   const { verification } = profile.data;
 
   return (
-    <Page
-      title="My profile"
-      lede="CalDART uses these details to reach you during an activation and to check you are current to fly."
-      actions={<Link to="/profile/aircraft">My aircraft</Link>}
-    >
+    <Page title="My profile" actions={<Link to="/profile/aircraft">My aircraft</Link>}>
       <div ref={formCardRef}>
         <Card>
           <ProfileForm

@@ -71,4 +71,4 @@ If something looks wrong
 A draft that has gone missing has either been deleted or has started sending; look under
 :doc:`sent`. An email waiting to send that still reads *Starting now* a few minutes after its
 two minutes ended is waiting for the server's sender, which a system administrator can start
-by hand from the Scheduled page.
+by hand from the Scheduled tasks page.

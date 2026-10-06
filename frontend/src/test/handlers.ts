@@ -203,7 +203,7 @@ export const handlers = [
   // Every screen that carries the renewal state reads this, so the default keeps
   // a suite that is not about renewal from having to declare one.
   http.get(`${API}/me/renewal`, () => HttpResponse.json({ mandate: null })),
-  // The same for the recurring donation, which the Payments screen, the checkout
+  // The same for the recurring donation, which the My payments screen, the checkout
   // and a life member's dashboard read.
   http.get(`${API}/me/donation`, () => HttpResponse.json({ mandate: null })),
   // The user record's History card reads the account's changes; none by default.
@@ -263,7 +263,7 @@ export const handlers = [
       { value: 'password_reset', label: 'Password reset' },
     ]),
   ),
-  // The Scheduled page's Bounces panel reads whether bounce checking is set up.
+  // The Scheduled tasks page's Bounces panel reads whether bounce checking is set up.
   http.get(`${API}/system/bounces`, () => HttpResponse.json({ enabled: true })),
   // The compose screen's type choice reads the types the sender may send.
   http.get(`${API}/email-types/sendable`, () => HttpResponse.json(SENDABLE_TYPES)),

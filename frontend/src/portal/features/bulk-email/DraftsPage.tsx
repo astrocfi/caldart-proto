@@ -84,7 +84,7 @@ export function DraftsPage(): JSX.Element {
   return (
     <Page
       title="Drafts and scheduled"
-      lede="Emails still being written, and emails waiting for their time to send."
+      lede="Emails still being written and emails waiting for their time to send."
       actions={cannotSend ? null : <ButtonLink to="/bulk-email/compose">New email</ButtonLink>}
     >
       {sender.data === undefined ? null : <SenderNotice sender={sender.data} />}

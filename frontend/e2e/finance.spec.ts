@@ -12,7 +12,7 @@ import type { Locator, Page } from '@playwright/test';
 import { DEMO, SEED, signIn, uniqueEmail } from './helpers';
 
 /**
- * The finance area's rail entry, Finance under Administration, named by its address
+ * The rail entry for Accounting, under Finance, named by its address
  * so a change to its label leaves the specs alone.
  */
 function financeRailEntry(page: Page): Locator {
@@ -21,12 +21,12 @@ function financeRailEntry(page: Page): Locator {
     .locator('a[href$="/portal/admin/payments"]');
 }
 
-/** Open the finance area's Payments tab as the treasurer. */
+/** Open the Payments tab of Accounting as the treasurer. */
 async function openPaymentList(page: Page): Promise<void> {
   await signIn(page, DEMO.treasurer);
   await financeRailEntry(page).click();
   await expect(page).toHaveURL(/\/portal\/admin\/payments$/);
-  await page.getByRole('navigation', { name: 'Finance sections' }).getByText('Payments').click();
+  await page.getByRole('navigation', { name: 'Accounting sections' }).getByText('Payments').click();
   await expect(page).toHaveURL(/\/portal\/admin\/payments\/list/);
 }
 

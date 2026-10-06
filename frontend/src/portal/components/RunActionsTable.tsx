@@ -3,7 +3,7 @@
  * caller's summary of what happened, and the table of every action behind
  * it — one row per email sent or charge taken, so "who did this actually
  * reach?" never needs a shell.  The renewals, reminders, scheduled-reports,
- * statements, bounces, and bulk email sender panels of the Scheduled page
+ * statements, bounces, and bulk email sender panels of the Scheduled tasks page
  * (`/portal/system/scheduled`) use it, and so does the DART rosters card of
  * `/admin/reports`.
  *

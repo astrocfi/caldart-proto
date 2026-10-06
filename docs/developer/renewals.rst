@@ -515,7 +515,7 @@ through ``deploy/manage.sh`` (:ref:`deploy-manage-commands`)::
 The command prints the counts and exits non-zero when any charge was refused, so
 the systemd unit goes to ``failed`` rather than reporting a clean run that took
 no money.  A system administrator can run the same scan from the portal's
-Scheduled page, which calls ``POST /system/renewals/run``.
+Scheduled tasks page, which calls ``POST /system/renewals/run``.
 
 The timer is installed with the rest of the units; see :ref:`deploy-renewals`.
 What went out is in the journal::

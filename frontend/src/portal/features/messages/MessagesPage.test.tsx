@@ -33,14 +33,12 @@ describe('MessagesPage', () => {
 
   it('says in plain words what the list holds', () => {
     renderList([SPRING]);
-    expect(
-      screen.getByText('Copies of the emails CalDART sent to members and friends.'),
-    ).toBeVisible();
+    expect(screen.getByText('Copies of emails sent to me by CalDART.')).toBeVisible();
   });
 
   it('speaks to the reader of their own email, not of bulk email', () => {
     renderList([SPRING]);
-    expect(screen.getByText('Your email')).toBeVisible();
+    expect(screen.getByText('My account')).toBeVisible();
   });
 
   it('lists each message with its date, subject, sender, and type', async () => {
