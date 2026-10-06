@@ -117,8 +117,8 @@ test('a seeded refund is on the payment it came out of', async ({ page }) => {
 });
 
 // A payment recorded by hand is the one a refund can be demonstrated on without
-// a provider: the seed takes its card payments through Stripe and PayPal, which
-// an end-to-end run has no keys for, while a manual refund calls nobody.
+// a provider: a manual refund calls nobody, so the step holds whether the seed's
+// card payments went through the mock provider or through Stripe and PayPal.
 test('the treasurer refunds part of a payment and the status follows', async ({ page }) => {
   await openPaymentList(page);
   await page.getByLabel('Provider').selectOption('manual');

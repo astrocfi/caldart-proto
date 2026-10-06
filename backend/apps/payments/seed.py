@@ -26,10 +26,14 @@ recurring donation, and one generated member a monthly one.
 
 Those pinned renewals, the paused one's declining card, and the two recurring
 donations use the mock payment provider, so they are seeded only while it is
-on (``PAYMENTS_MOCK_ENABLED``).  With it off, as the production settings leave
-it, the pinned members and the two givers are seeded without them and the paused
-renewal holds a Stripe Visa card instead, so the daily renewal job on a demo server
-finds nothing to charge through the mock provider.
+on (``PAYMENTS_MOCK_ENABLED``).  While it is on, every seeded card payment goes
+through it too -- provider ``mock``, wallet ``mock``, the mock provider's fee --
+so a refund taken on a demonstration site reaches a provider that can give the
+money back.  With it off, as the production settings leave it, the card payments
+are dealt out between Stripe and PayPal (:data:`PROVIDER_MIX`) under made-up
+references, the pinned members and the two givers are seeded without their
+mandates, and the paused renewal holds a Stripe Visa card instead, so the daily
+renewal job on a demo server finds nothing to charge through the mock provider.
 
 Six donors -- people who gave through the public donation page and hold no
 portal account -- close the set, each with one to three settled contributions.
@@ -78,7 +82,12 @@ from apps.payments.models import (
     RenewalMandate,
     RenewalOutcome,
 )
-from apps.payments.providers.mock import DECLINED_LAST4, DECLINED_MESSAGE, MockProvider
+from apps.payments.providers.mock import (
+    DECLINED_LAST4,
+    DECLINED_MESSAGE,
+    MockProvider,
+    fee_cents,
+)
 from apps.payments.refunds import apply_refund_totals
 from apps.payments.renewals.scan import NOTICE_DAYS, RETRY_OFFSETS
 from apps.payments.renewals.schedule import term_to_renew
@@ -175,6 +184,9 @@ SEED_CARDS: tuple[tuple[str, tuple[str, str, int, int] | None], ...] = (
     (MandateProvider.PAYPAL, None),
 )
 
+#: How the seeded card payments are dealt out between the providers while the
+#: mock payment provider is off.  While it is on, every one of them is a mock
+#: payment instead (:func:`_card_route`).
 PROVIDER_MIX: tuple[tuple[str, int], ...] = (
     (PaymentProvider.STRIPE, 70),
     (PaymentProvider.PAYPAL, 30),
@@ -239,6 +251,36 @@ def _pick(rng: random.Random, mix: tuple[tuple[str, int], ...]) -> str:
     return rng.choices(values, weights=weights)[0]
 
 
+def _card_route(rng: random.Random, *, mock_on: bool) -> tuple[str, str]:
+    """The ``(provider, wallet)`` a seeded card payment went through.
+
+    With ``mock_on`` every card payment is a mock one, so a refund taken against it
+    on a demonstration site reaches a provider that can answer.  Otherwise the
+    provider is drawn from :data:`PROVIDER_MIX` and a Stripe payment's wallet from
+    :data:`STRIPE_WALLETS`.  The draws happen either way: the random stream must
+    advance the same whether or not the mock provider is on, so the amounts and
+    dates that follow come out the same.
+    """
+    provider = _pick(rng, PROVIDER_MIX)
+    wallet = (
+        _pick(rng, STRIPE_WALLETS) if provider == PaymentProvider.STRIPE else PaymentWallet.PAYPAL
+    )
+    if mock_on:
+        return PaymentProvider.MOCK, PaymentWallet.MOCK
+    return provider, wallet
+
+
+def _card_fee_cents(provider: str, amount_cents: int) -> int:
+    """The fee a seeded card payment through ``provider`` carries.
+
+    A mock payment costs what the mock provider charges (:func:`fee_cents`); any
+    other provider costs its published rate (:func:`provider_fee_cents`).
+    """
+    if provider == PaymentProvider.MOCK:
+        return fee_cents(amount_cents)
+    return provider_fee_cents(provider, amount_cents)
+
+
 def _contribution(rng: random.Random) -> int:
     if rng.random() < 0.62:
         return 0
@@ -277,19 +319,20 @@ def _payment_for(
     index: int,
     rng: random.Random,
     today: dt.date,
+    *,
+    mock_on: bool,
 ) -> Payment:
     """The succeeded payment that bought ``user`` the term starting ``starts_on``.
 
-    Keyed on ``provider`` and a reference built from ``user`` and ``index``, so a
-    second ``seed_demo`` run finds the row it made before instead of a duplicate.
-    A row it creates is backdated: ``created_at`` and ``completed_at`` both become
-    a random daytime moment on ``starts_on``, or on ``today`` when the term starts
-    in the future.
+    Keyed on ``provider`` and a reference ``seed_<provider>_<user id>_<index>``, so
+    a second ``seed_demo`` run finds the row it made before instead of a duplicate.
+    The provider and wallet come from :func:`_card_route`: a mock payment under
+    ``seed_mock_...`` with ``mock_on``, otherwise a Stripe or PayPal one.  A row it
+    creates is backdated: ``created_at`` and ``completed_at`` both become a random
+    daytime moment on ``starts_on``, or on ``today`` when the term starts in the
+    future.
     """
-    provider = _pick(rng, PROVIDER_MIX)
-    wallet = (
-        _pick(rng, STRIPE_WALLETS) if provider == PaymentProvider.STRIPE else PaymentWallet.PAYPAL
-    )
+    provider, wallet = _card_route(rng, mock_on=mock_on)
     contribution = _contribution(rng)
     amount = plan.price_cents + contribution
     ref = f"seed_{provider}_{user.pk}_{index}"
@@ -304,7 +347,7 @@ def _payment_for(
         )
     )
 
-    fee = provider_fee_cents(provider, amount)
+    fee = _card_fee_cents(provider, amount)
     payment, created = Payment.objects.get_or_create(
         provider=provider,
         provider_ref=ref,
@@ -511,12 +554,13 @@ def run(ctx: dict[str, Any], stdout: OutputWrapper | None = None) -> dict[str, A
     are then marked expired.  A ``friend`` target holds no terms; the demo friend's
     one contribution is recorded (:func:`_seed_friend_contribution`) and one
     expiring member is left waiting to become a friend (:func:`_seed_pending_friend`).
-    ``ctx["payment_count"]`` is set to the number of payments, and a one-line summary
-    is written to ``stdout`` when one is given, followed by
-    :data:`MOCK_PROVIDER_OFF_NOTE` when the mock payment provider is off
-    (``PAYMENTS_MOCK_ENABLED``), since :func:`_seed_mandates` then leaves out every
-    mandate that would charge it.  Running it twice over the same database changes
-    nothing.
+    Every card payment -- a term's, the friend's, a donor's -- goes through the mock
+    payment provider while it is on (``PAYMENTS_MOCK_ENABLED``) and through Stripe or
+    PayPal otherwise (:func:`_card_route`).  ``ctx["payment_count"]`` is set to the
+    number of payments, and a one-line summary is written to ``stdout`` when one is
+    given, followed by :data:`MOCK_PROVIDER_OFF_NOTE` when the mock payment provider
+    is off, since :func:`_seed_mandates` then leaves out every mandate that would
+    charge it.  Running it twice over the same database changes nothing.
     """
     rng = ctx["rng"]
     today = ctx["today"]
@@ -526,6 +570,7 @@ def run(ctx: dict[str, Any], stdout: OutputWrapper | None = None) -> dict[str, A
 
     annual = plans["annual"]
     life = plans["life"]
+    mock_on = MockProvider.is_configured()
 
     payments = 0
     terms = 0
@@ -538,7 +583,7 @@ def run(ctx: dict[str, Any], stdout: OutputWrapper | None = None) -> dict[str, A
             delta = forced_start - starts[-1]
             starts = [start + delta for start in starts]
         for index, starts_on in enumerate(starts):
-            payment = _payment_for(user, plan, starts_on, index, rng, today)
+            payment = _payment_for(user, plan, starts_on, index, rng, today, mock_on=mock_on)
             payments += 1
             activate_term(
                 user,
@@ -553,11 +598,10 @@ def run(ctx: dict[str, Any], stdout: OutputWrapper | None = None) -> dict[str, A
     manual = _manual_payments(ctx)
     reconciled = _reconcile_settled_payments(ctx)
     refunds = _seed_refunds(today, ctx["generated_users"], set(forced_ends))
-    mock_on = MockProvider.is_configured()
     mandates = _seed_mandates(ctx, mock_on=mock_on)
-    friend_gifts = _seed_friend_contribution(ctx)
+    friend_gifts = _seed_friend_contribution(ctx, mock_on=mock_on)
     _seed_pending_friend(ctx)
-    donor_gifts = _seed_donors(ctx)
+    donor_gifts = _seed_donors(ctx, mock_on=mock_on)
 
     ctx["payment_count"] = payments + manual + friend_gifts + donor_gifts
     ctx["manual_payment_count"] = manual
@@ -575,13 +619,14 @@ def run(ctx: dict[str, Any], stdout: OutputWrapper | None = None) -> dict[str, A
     return ctx
 
 
-def _seed_friend_contribution(ctx: dict[str, Any]) -> int:
+def _seed_friend_contribution(ctx: dict[str, Any], *, mock_on: bool) -> int:
     """Record the demo friend's one contribution, and return how many there are.
 
-    A settled Stripe card payment of :data:`FRIEND_CONTRIBUTION_CENTS` with no plan,
-    made :data:`FRIEND_CONTRIBUTION_DAYS_AGO` days ago, with its fee and its receipt
-    recorded.  Keyed on the provider reference, so a second seed run finds the row it
-    made before.
+    A settled card payment of :data:`FRIEND_CONTRIBUTION_CENTS` with no plan, made
+    :data:`FRIEND_CONTRIBUTION_DAYS_AGO` days ago, with its fee and its receipt
+    recorded: a mock payment with ``mock_on``, a Stripe card payment otherwise.
+    Keyed on the provider reference, so a second seed run finds the row it made
+    before.
     """
     friend: User = ctx["demo_users"]["friend"]
     paid_at = timezone.make_aware(
@@ -589,9 +634,14 @@ def _seed_friend_contribution(ctx: dict[str, Any]) -> int:
             ctx["today"] - timedelta(days=FRIEND_CONTRIBUTION_DAYS_AGO), dt.time(hour=10)
         )
     )
-    fee = provider_fee_cents(PaymentProvider.STRIPE, FRIEND_CONTRIBUTION_CENTS)
+    provider, wallet = (
+        (PaymentProvider.MOCK, PaymentWallet.MOCK)
+        if mock_on
+        else (PaymentProvider.STRIPE, PaymentWallet.CARD)
+    )
+    fee = _card_fee_cents(provider, FRIEND_CONTRIBUTION_CENTS)
     payment, created = Payment.objects.get_or_create(
-        provider=PaymentProvider.STRIPE,
+        provider=provider,
         provider_ref=f"seed_friend_{friend.pk}",
         defaults={
             "user": friend,
@@ -600,11 +650,11 @@ def _seed_friend_contribution(ctx: dict[str, Any]) -> int:
             "plan_amount_cents": 0,
             "contribution_cents": FRIEND_CONTRIBUTION_CENTS,
             "currency": "usd",
-            "wallet": PaymentWallet.CARD,
+            "wallet": wallet,
             "status": PaymentStatus.SUCCEEDED,
             "fee_cents": fee,
             "net_cents": FRIEND_CONTRIBUTION_CENTS - fee,
-            "raw": {"seeded": True, "provider": PaymentProvider.STRIPE.value},
+            "raw": {"seeded": True, "provider": provider.value},
         },
     )
     if created:
@@ -640,12 +690,13 @@ def _seed_pending_friend(ctx: dict[str, Any]) -> User | None:
     return None
 
 
-def _seed_donors(ctx: dict[str, Any]) -> int:
+def _seed_donors(ctx: dict[str, Any], *, mock_on: bool) -> int:
     """Make the six donors and their gifts, and return how many gifts there are.
 
     Donor ``n`` (from one) gives from :data:`DONOR_EMAIL` and makes
     ``DONOR_GIFT_COUNTS[n - 1]`` settled contributions of a tier's amount, on days
-    within the last :data:`DONOR_HISTORY_DAYS`, through the seed's usual provider mix,
+    within the last :data:`DONOR_HISTORY_DAYS`, through the mock provider with
+    ``mock_on`` and the seed's usual provider mix otherwise (:func:`_card_route`),
     each with its fee and its receipt recorded.  Names, amounts and days come from a
     source of their own (:data:`DONOR_SEED`), so the rest of the demo data draws the
     same whether or not the donors are there; the town on each profile comes from
@@ -685,28 +736,32 @@ def _seed_donors(ctx: dict[str, Any]) -> int:
                 rng.choice(tiers),
                 today - timedelta(days=rng.randint(1, DONOR_HISTORY_DAYS)),
                 rng,
+                mock_on=mock_on,
             )
             gifts += 1
     return gifts
 
 
 def _donor_gift(
-    donor: User, index: int, cents: int, paid_on: dt.date, rng: random.Random
+    donor: User,
+    index: int,
+    cents: int,
+    paid_on: dt.date,
+    rng: random.Random,
+    *,
+    mock_on: bool,
 ) -> Payment:
     """The settled contribution ``donor`` made on ``paid_on``, found or made.
 
-    Keyed on the provider reference built from the donor and ``index``; a row this
-    makes is backdated to a daytime moment on ``paid_on``, with its receipt stamped
-    as sent then.
+    Keyed on the provider reference built from the donor and ``index``, with the
+    provider and wallet from :func:`_card_route`; a row this makes is backdated to a
+    daytime moment on ``paid_on``, with its receipt stamped as sent then.
     """
-    provider = _pick(rng, PROVIDER_MIX)
-    wallet = (
-        _pick(rng, STRIPE_WALLETS) if provider == PaymentProvider.STRIPE else PaymentWallet.PAYPAL
-    )
+    provider, wallet = _card_route(rng, mock_on=mock_on)
     paid_at = timezone.make_aware(
         dt.datetime.combine(paid_on, dt.time(hour=rng.randint(8, 20), minute=rng.randint(0, 59)))
     )
-    fee = provider_fee_cents(provider, cents)
+    fee = _card_fee_cents(provider, cents)
     payment, created = Payment.objects.get_or_create(
         provider=provider,
         provider_ref=f"seed_donor_{donor.pk}_{index}",

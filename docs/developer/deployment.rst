@@ -938,15 +938,20 @@ so::
 
   payments: the mock payment provider is off, so no renewal due today, no catch-up renewal, and no recurring donation was seeded
 
-The seed's other renewals carry made-up Stripe and PayPal references.  With no
-payment keys configured, ``caldart-renewals`` puts their charges off and runs
-cleanly against the seeded data; with real or sandbox keys, the provider can
-refuse a seeded charge, and the job then exits with an error counting the
-refusals.  A mock-provider renewal left from a seed run while that provider was
-on is put off too, never refused (:ref:`renewals-scanner`).  Leave the mock
-provider off: turning it on shows every visitor a **Test payment** tab with
-*Succeed* and *Fail* buttons, a way for anyone to grant themselves a membership
-with no money changing hands, as :doc:`payments-setup` describes.
+With the mock provider off, the seed's payment history is dealt out between
+Stripe and PayPal in a 70 / 30 split, and its other renewals carry made-up
+Stripe and PayPal references.  With no payment keys configured,
+``caldart-renewals`` puts their charges off and runs cleanly against the seeded
+data; with real or sandbox keys, the provider can refuse a seeded charge, and
+the job then exits with an error counting the refusals.  A mock-provider
+renewal left from a seed run while that provider was on is put off too, never
+refused (:ref:`renewals-scanner`).  Leave the mock provider off: turning it on
+shows every visitor a **Test payment** tab with *Succeed* and *Fail* buttons, a
+way for anyone to grant themselves a membership with no money changing hands,
+as :doc:`payments-setup` describes.  A demonstration site that keeps it on seeds
+its card payments through that Test provider instead, so a treasurer can refund
+them; a Stripe or PayPal row from a seed run with the provider off cannot be
+refunded, since neither provider ever took the money.
 
 With ``--admin-email`` the step creates the first real administrator::
 

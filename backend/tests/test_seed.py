@@ -15,7 +15,8 @@ from django.core.mail import EmailMessage
 from django.core.management import call_command
 from django.utils import timezone
 from faker import Faker
-from pytest_django.fixtures import DjangoCaptureOnCommitCallbacks
+from pytest_django.fixtures import DjangoCaptureOnCommitCallbacks, Settings
+from rest_framework.test import APIClient
 from wagtail.models import Site
 
 from apps.accounts.models import AccountKind
@@ -42,11 +43,14 @@ from apps.payments.models import (
     MandateProvider,
     MandateStatus,
     Payment,
+    PaymentProvider,
     PaymentStatus,
+    RefundReason,
     RenewalAttempt,
     RenewalMandate,
     RenewalOutcome,
 )
+from apps.payments.providers.mock import fee_cents
 from apps.payments.renewals.scan import _due_attempts, run_auto_renewals
 from apps.payments.renewals.schedule import lapsed_term_to_renew
 from apps.payments.seed import (
@@ -273,11 +277,70 @@ def test_seed_demo_has_expiring_and_mixed_medicals() -> None:
     }
 
 
-def test_seed_demo_payments_are_mixed_and_span_two_years() -> None:
-    """The seed spreads payments across the providers and at least 24 months."""
+def test_seed_demo_card_payments_go_through_the_mock_provider_while_it_is_on(
+    settings: Settings,
+) -> None:
+    """With the mock provider on, every settled payment is a mock one or one by hand."""
+    settings.PAYMENTS_MOCK_ENABLED = True
+    _seed()
+    providers = set(
+        Payment.objects.filter(status=PaymentStatus.SUCCEEDED).values_list("provider", flat=True)
+    )
+    assert providers == {PaymentProvider.MOCK, PaymentProvider.MANUAL}
+
+
+def test_seed_demo_mock_payments_carry_the_mock_fee(settings: Settings) -> None:
+    """Each seeded mock payment costs what the mock provider charges."""
+    settings.PAYMENTS_MOCK_ENABLED = True
+    _seed()
+    mocked = Payment.objects.filter(provider=PaymentProvider.MOCK)
+    off_fee = [p.pk for p in mocked if p.fee_cents != fee_cents(p.amount_cents)]
+    assert off_fee == []
+
+
+def test_seed_demo_mock_term_payments_are_keyed_as_mock(settings: Settings) -> None:
+    """A seeded mock payment that bought a term carries a ``seed_mock_`` reference."""
+    settings.PAYMENTS_MOCK_ENABLED = True
+    _seed()
+    term_payments = Payment.objects.filter(provider=PaymentProvider.MOCK, plan__isnull=False)
+    off_key = [p.pk for p in term_payments if not p.provider_ref.startswith("seed_mock_")]
+    assert off_key == []
+
+
+@pytest.mark.usefixtures("mock_payments_off")
+def test_seed_demo_splits_card_payments_between_stripe_and_paypal_with_the_mock_off() -> None:
+    """With the mock provider off, the history is dealt out between Stripe and PayPal."""
     _seed()
     providers = set(Payment.objects.values_list("provider", flat=True))
-    assert providers == {"stripe", "paypal", "manual"}
+    assert providers == {PaymentProvider.STRIPE, PaymentProvider.PAYPAL, PaymentProvider.MANUAL}
+
+
+def test_a_seeded_card_payment_can_be_refunded_on_a_demonstration_site(
+    settings: Settings, treasurer_client: APIClient
+) -> None:
+    """A treasurer's partial refund of the first seeded card payment goes through."""
+    settings.PAYMENTS_MOCK_ENABLED = True
+    _seed()
+    payment = (
+        Payment.objects.filter(status=PaymentStatus.SUCCEEDED, plan__isnull=False)
+        .exclude(provider=PaymentProvider.MANUAL)
+        .order_by("pk")
+        .first()
+    )
+    assert payment is not None
+
+    response = treasurer_client.post(
+        f"/api/v1/admin/payments/{payment.pk}/refunds",
+        {"amount_cents": 100, "reason": RefundReason.OTHER, "note": "Demo", "cancel_term": False},
+    )
+
+    assert response.status_code == 201
+    assert response.json()["payment"]["status"] == PaymentStatus.PARTIALLY_REFUNDED
+
+
+def test_seed_demo_payments_are_mixed_and_span_two_years() -> None:
+    """The seed mixes paid and free payments and spreads them over at least 24 months."""
+    _seed()
     with_contribution = Payment.objects.filter(contribution_cents__gt=0).count()
     assert with_contribution == (
         27 + MANUAL_PAYMENT_COUNT + SEEDED_FRIEND_GIFTS + SEEDED_DONOR_GIFTS
