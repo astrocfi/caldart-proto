@@ -578,6 +578,34 @@ def test_completing_a_gift_keeps_an_optional_field_the_giver_left_blank(
     assert (profile.city, profile.vol_newsletter) == ("Petaluma", True)
 
 
+def start_without_phone(api_client: APIClient, **overrides: Any) -> dict[str, Any]:
+    """Start a mock gift whose body carries no phone at all; the 201 body."""
+    body = gift(**overrides)
+    del body["phone"]
+    response = api_client.post(CHECKOUT_URL, body, format="json")
+    assert response.status_code == 201, response.content
+    started: dict[str, Any] = response.json()
+    return started
+
+
+def test_a_gift_without_a_phone_number_settles(api_client: APIClient) -> None:
+    """Completing a gift that gave no phone succeeds, and the donor's phone is blank."""
+    complete(api_client, start_without_phone(api_client))
+
+    assert MemberProfile.objects.get(user__email=DONOR_EMAIL).phone == ""
+
+
+def test_a_gift_without_a_phone_keeps_the_phone_an_earlier_gift_gave(
+    api_client: APIClient, give: Callable[..., dict[str, Any]]
+) -> None:
+    """The phone is optional, so leaving it out keeps what the donor told us before."""
+    complete(api_client, give())
+
+    complete(api_client, start_without_phone(api_client, email=DONOR_EMAIL.upper()))
+
+    assert MemberProfile.objects.get(user__email=DONOR_EMAIL).phone == "415-555-0100"
+
+
 def test_an_existing_donors_stored_details_stay_put_until_a_new_gift_settles(
     api_client: APIClient, give: Callable[..., dict[str, Any]]
 ) -> None:

@@ -81,10 +81,10 @@ DONOR_PROFILE_FIELDS: tuple[str, ...] = (
 
 
 class DonorFields(TypedDict, total=False):
-    """What a giver tells us: the four required fields, then the optional profile.
+    """What a giver tells us: the three required fields, then the optional ones.
 
-    ``first_name``, ``last_name``, ``email`` and ``phone`` are always present; the
-    rest are :data:`DONOR_PROFILE_FIELDS`, as the donation form collects them.
+    ``first_name``, ``last_name`` and ``email`` are always present; ``phone`` and the
+    rest, :data:`DONOR_PROFILE_FIELDS`, only when the donation form collected them.
     """
 
     first_name: str
@@ -217,10 +217,10 @@ def apply_donor_fields(payment: Payment) -> None:
     """Write the giver's details onto ``payment.user``, once the gift has settled.
 
     Reads them from ``payment.donor_fields``, as :func:`start_donation` left them.
-    The names and the phone are replaced outright, and each optional profile field
-    the giver filled in (a non-blank value, a DART, or a checked box) is written over
-    the stored one, while a field left blank or unchecked keeps what an earlier gift
-    told us.  A payment that carries no such fields -- every payment but a public
+    The names are replaced outright, and the phone and each optional profile field
+    the giver filled in (a non-blank value, a DART, or a checked box) are written over
+    the stored ones, while a field left out, blank, or unchecked keeps what an earlier
+    gift told us.  A payment that carries no such fields -- every payment but a public
     gift -- is left alone, which is what lets
     :func:`apps.payments.services.mark_succeeded` call this unconditionally for
     every payment that settles.
@@ -234,8 +234,7 @@ def apply_donor_fields(payment: Payment) -> None:
     user.save(update_fields=["first_name", "last_name", "updated_at"])
 
     profile, _ = MemberProfile.objects.get_or_create(user=user)
-    profile.phone = fields["phone"]
-    for name in DONOR_PROFILE_FIELDS:
+    for name in ("phone", *DONOR_PROFILE_FIELDS):
         value: Any = fields.get(name)
         if value not in (None, "", False):
             setattr(profile, name, value)

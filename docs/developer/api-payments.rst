@@ -370,10 +370,10 @@ address, so they make one donor between them.
 
 The names, the phone, and the profile fields land on the account only once this
 payment settles: a new donor's names and profile are then written for the first
-time, and an existing donor's names and phone are replaced, with each optional
+time, and an existing donor's names are replaced, with the phone and each optional
 field that was sent filled in (a non-blank value, a DART, a checked box) written
-over the stored one and a field left out keeping what an earlier, completed gift
-said (``apps.payments.donations.apply_donor_fields``, called from
+over the stored one and a field left out or blank keeping what an earlier, completed
+gift said (``apps.payments.donations.apply_donor_fields``, called from
 ``mark_succeeded``).  Nothing is mailed to the donor but the receipt.  The page's
 Stripe tab starts a checkout as soon as it shows, to load Stripe's card form, and
 again each time the giver comes back to it with changed details; each one counts
