@@ -218,26 +218,26 @@ now holds 39 people. Type the new count.*
 Once it is sent
 ===============
 
-Where the email stands then shows in a banner at the top of the screen.
+Once you press **Send**, the cards go. The banner at the top is all that stays.
 
 After **Send** you have two minutes to change your mind. The banner reads *Sending in 1
-min 58 s* with a bar counting down and **Cancel**, in place of **Check and send**; then
-*Starting to send. Nothing has been sent yet.* **Cancel** turns the email back into a draft
-with nothing lost until the first copy goes out.
+min 58 s* with a bar counting down and **Cancel**; then *Starting to send. Nothing has been
+sent yet.* **Cancel** turns the email back into a draft with nothing lost until the first
+copy goes out, and the three cards come back.
 
-A scheduled email shows *Scheduled for* its date and time with **Cancel the schedule**. Until
-it starts you can still change its message, and **Check and send** offers **Change the
-time** and **Send in 2 minutes instead**, which starts the two-minute countdown. A change to
-its recipient list takes it back to your drafts, since the count you confirmed changed: *The
-recipients changed, so this email is back in your drafts.*
+A scheduled email keeps its cards until it starts. Its banner shows *Scheduled for* its date
+and time with **Cancel the schedule**. You can still change its message, and **Check and
+send** offers **Change the time** and **Send in 2 minutes instead**, which starts the
+two-minute countdown. A change to its recipient list takes it back to your drafts, since the
+count you confirmed changed: *The recipients changed, so this email is back in your drafts.*
 
-Once sending starts, the screen holds still and the banner reads, for example, *Sending… 12
-of 38 sent, about 1 minute left.* with a bar. CalDART sends a few copies a minute so the mail
-provider never turns them away, so a large email takes a while. **Stop sending** stops it
-after the copy going out now, once you press **Stop now**: copies already sent cannot be
-called back. When it finishes, the banner says how it went, such as *Sent to 51 people.
-Everyone was sent a copy.*, beside **See who received it** (:doc:`sent`). A partly sent email
-can never be changed again.
+Once sending starts, the banner reads, for example, *Sending… 12 of 38 sent, about 1 minute
+left.* with a bar. CalDART sends a few copies a minute so the mail provider never turns them
+away, so a large email takes a while. **Stop sending** stops it after the copy going out
+now, once you press **Stop now**: copies already sent cannot be called back. When it
+finishes, the banner says how it went, such as *Sent to 51 people. Everyone was sent a
+copy.*, beside **See who received it** (:doc:`sent`). A partly sent email can never be
+changed again.
 
 
 If something looks wrong
