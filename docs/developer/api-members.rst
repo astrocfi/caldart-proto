@@ -198,7 +198,9 @@ Filters
    class.  An account with no profile row holds none, so ``any`` leaves it
    out.
 ``dart``
-   A DART id, or a case-insensitive substring of a DART name.
+   One or more DART ids separated by commas (``dart=3`` or ``dart=3,7``), which
+   holds the members of any DART named, or a case-insensitive substring of one
+   DART's name.
 ``county``
    One or more of California's 58 counties, separated by commas
    (``county=Alameda,Marin``), each spelled as the profile stores it

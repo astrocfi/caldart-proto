@@ -1473,6 +1473,14 @@ not (see :ref:`api-csrf-bootstrap`).
      - ·
      - ·
      - ``management``, a ``dart_leader`` on their own emails (404 on any other); the batch as a CSV
+   * - ``GET /bulk-email/{id}/batch/matches``
+     - ·
+     - ·
+     - ✓
+     - ·
+     - ·
+     - ·
+     - ``management``, a ``dart_leader`` on their own emails (404 on any other); who the filters choose, before adding
    * - ``POST /bulk-email/{id}/batch/add``
      - ·
      - ·
@@ -1760,7 +1768,7 @@ not (see :ref:`api-csrf-bootstrap`).
      - ·
      - ·
      - ·
-     - ``management``; saves the batch as a fixed or live group
+     - ``management``; saves the compose screen's search as a fixed or live group
    * - ``GET | PATCH /admin/payments/{id}``
      - ·
      - ·

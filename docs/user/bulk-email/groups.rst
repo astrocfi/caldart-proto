@@ -88,16 +88,13 @@ as *Added 12 people; 3 were already on the recipient list.* says so: as with any
 twice. The recipient list's **Chosen by** column reads *Group: Board* for the people the group brought
 in, and keeps that name if the group is renamed or deleted later.
 
-Under the recipient list, **Save as a group** keeps the recipient list as a group to use again. Give it a
-**Group name** and choose the **Type of group**:
+Beside **Add these people**, **Save as a group** keeps the search the filters make as a group
+to use again, whoever is on the recipient list. Give it a **Group name** and choose the **Type
+of group**, pressing the button or its name:
 
-- **Fixed** keeps everybody on the recipient list now, including people who will be skipped for this
-  email.
-- **Live** keeps the filters behind the recipient list, once each, so the group finds whoever matches
-  them each time it is used. People you took off the recipient list one at a time come back when
-  the filters find them. A recipient list with people a fixed group brought in, or copied from
-  another email with **Duplicate**, has no filters to keep for them, and is refused with
-  *Save it as a fixed group instead.* A recipient list with people from a group since deleted is
-  refused the same way, saying the group was deleted.
+- **Fixed** keeps everybody the search matches now, including people who would be skipped
+  for this email.
+- **Live** keeps the filters, so the group finds whoever matches them each time it is used.
 
-**Add group** keeps it, and a line such as *Saved as the group Board.* links to its page.
+The popup stays open while you fill it in, and closes on **Cancel**, Escape, or a click
+outside it. **Add group** keeps it, and a line such as *Saved as the group Board.* links to its page.

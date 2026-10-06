@@ -405,6 +405,31 @@ other than the sender's DART's id, a DART's name included, is **400**
 has started sending the answer is **409**, and so is an add to the email of a DART
 leader whose profile names no DART, with the sentence ``sender_notice`` carries.
 
+``GET /bulk-email/{id}/batch/matches``
+--------------------------------------
+
+Who the filters choose, before anybody is added: the compose screen's search.  The
+query parameters are the filters ``POST /bulk-email/{id}/batch/add`` takes in its
+body (``?kind=friend&dart=3,7``), with the shared ``page`` and ``page_size``.  The
+filters are held to a DART leader's DART exactly as an add holds them, and nothing is
+stored.  **200** with one page of the people, in the order an add puts them, and how
+many in all:
+
+.. code-block:: json
+
+   {"count": 41, "next": "https://…/batch/matches?kind=friend&page=2", "previous": null,
+    "results": [{"user_id": 12, "name": "Bea Bell", "email": "bea@example.org",
+                 "kind": "member", "dart_name": "Marin DART",
+                 "will_receive": true, "reason": ""}]}
+
+``will_receive`` and ``reason`` say whether the person would be sent a copy and why
+not, as a batch row says it, with a second account at an address already matched
+skipped as a duplicate.  Whether the person is in the batch already plays no part.
+A refused filter is **400** under ``filters``, as for an add; a DART leader's search
+naming any other DART, or several, is **400** ``{"filters": {"dart": ["You can only
+send to your own DART."]}}``; and a search on the email of a leader whose profile
+names no DART is **409**.
+
 ``DELETE /bulk-email/{id}/batch/{rid}``
 ---------------------------------------
 
@@ -1539,21 +1564,18 @@ one that has started sending is **409**.
 ``POST /bulk-email/{id}/save-group``
 ------------------------------------
 
-Saves the batch as a group: ``{"name": "Hangar crew", "kind": "fixed"}``, the name
-checked as ``POST /bulk-email/groups`` checks it.  **201** with the group, audited as
-``recipient_group.create`` like a group made empty.
+Saves the compose screen's search as a group:
+``{"name": "Hangar crew", "kind": "fixed", "filters": {"county": "Marin"}}``, the name
+checked as ``POST /bulk-email/groups`` checks it, and ``filters`` taken and refused as
+``POST /bulk-email/{id}/batch/add`` takes them, held to a DART leader's DART the same
+way.  The batch plays no part, so a search can always be saved.  **201** with the
+group, audited as ``recipient_group.create`` like a group made empty.
 
-- A ``fixed`` group holds every account in the batch now, whether or not each will
-  receive the email; a deleted account is left out.
-- A ``live`` group holds the filters behind the batch, once each, in the order they
-  were added: every add's filters, and every live group added, its sets as they are
-  now.  People taken out of the batch one by one are not remembered.  A batch with
-  people no filters chose, from a fixed group or **Duplicate**, is **400** under
-  ``batch``: *Some people in this batch came from a fixed group or were copied from
-  another email, so there are no filters to save for them. Save it as a fixed group
-  instead.*  One with people from a group since deleted is refused the same way with
-  *The group "Board" was deleted, so its filters are gone. Save this batch as a fixed
-  group instead.*
+- A ``fixed`` group holds every account the filters match now, whether or not each
+  would receive the email, deactivated ones included.  A search matching nobody saves
+  an empty group.
+- A ``live`` group holds the filters, blank ones dropped, as its one filter set, so it
+  matches afresh each time it is used.
 
-An empty batch is **400** under ``batch``: *The batch is empty. Add people to it
-before you save it as a group.*
+A refused filter is **400** under ``filters``; an email whose DART leader names no
+DART is **409**.

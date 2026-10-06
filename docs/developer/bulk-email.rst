@@ -202,6 +202,13 @@ allows one does not apply.  So an address that bounced, or an opt-out made, afte
 somebody was added shows as skipped at once, and two accounts sharing one address
 get one copy, the first in surname order.
 
+Before an add, the compose screen searches: ``batch.matching_people`` runs the same
+filters through ``batch.searched_filters`` (the given filters held to the email's DART
+limit, without recording it) and ``selected_accounts``, and gives each account
+``skip_reason`` as the batch would, without storing anything.
+``GET /bulk-email/{id}/batch/matches`` pages that list with the shared
+``StandardPagination``.
+
 Every add goes through ``batch.add_accounts``, which takes the people as a list of
 accounts and records one ``BatchAdd``: ``add_filters`` gives it the accounts the
 filters choose, a saved group's add the group's people, and **Duplicate** the
@@ -230,8 +237,9 @@ neither bulk email role any more.  The limit is the email's, not the caller's, s
 CalDART management changing a leader's email stays inside the leader's DART.
 
 It applies in three places, each reading the same function.  ``batch.add_filters``
-forces the add's ``dart`` filter to the DART's id and refuses any other value; an
-email limited to no DART refuses every add.  ``batch.skip_reason`` takes the limit
+forces the add's ``dart`` filter to the DART's id and refuses any other value, a list
+of DARTs included; an email limited to no DART refuses every add.  The search before
+an add (``batch.searched_filters``) and a group saved from it are held the same way.  ``batch.skip_reason`` takes the limit
 and skips anybody whose profile is not in the DART with *Not in your DART*, right
 after a deleted account, so the batch screen shows it at once and the freeze stores
 it.  And ``drafts.queue`` refuses an email limited to no DART, as the background
@@ -623,7 +631,7 @@ of the draft's words, once its autosave has caught up.  Saving, changing, and
 deleting a template each write one audit line (``email_template.create``,
 ``.update``, ``.delete``), and so do making, renaming, and deleting a group
 (``recipient_group.create``, with its kind, ``.rename``, ``.delete``), whether the
-group was made empty or saved from a batch.
+group was made empty or saved from a search.
 
 **Recipient groups.**  ``RecipientGroup`` is ``fixed`` (``RecipientGroupMember``
 rows) or ``live`` (``RecipientGroupFilter`` rows).  ``groups.group_accounts`` is the
@@ -631,10 +639,9 @@ one answer to who a group holds now: a fixed group's accounts, or everybody a li
 group's sets choose through ``batch.selected_accounts``, as an add would, combined
 in one query.  ``groups.add_group`` hands that to ``batch.add_accounts``, so
 duplicates, the row lock, and a queued email going back to a draft work as for any
-add.  ``groups.save_group`` turns a batch into a group: the accounts, or the filters
-of its adds (a live group added contributes its own sets), refusing a live group
-when an add has no filters behind it, and saying so separately for a group since
-deleted.  A live group's stored filters can stop being ones the member list
+add.  ``groups.save_group`` turns the compose screen's search into a group, whatever
+the batch holds: the accounts the filters match now, or the filters themselves as one
+set, held to the email's DART limit.  A live group's stored filters can stop being ones the member list
 accepts, such as a DART that has been deleted: ``groups.group_accounts`` then raises
 ``GroupFiltersError`` (*This group's filters need fixing.*), which the list answers
 as an unknown count, the group's people as a 409, and an add of that group as a

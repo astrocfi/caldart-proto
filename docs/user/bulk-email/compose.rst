@@ -20,31 +20,30 @@ kept as you go, so you can leave and come back from :doc:`drafts`. A draft made 
 ==============
 
 The people you add make up the recipient list: everyone this email goes to. You build it a
-group at a time, with the filters the member list uses:
+search at a time, with the filters the member list uses:
 
 - **Kind**: **Members only** or **Friends only**. A friend supports CalDART without paying
   dues; a member who has not paid yet counts with the members, as on :doc:`../admin/members`.
 - **Search**: a name or an email address.
 - **Membership**, **Certificate**, **Medical**, **DART** (a Disaster Airlift Response Team,
-  one of CalDART's local groups), **County**, and **Role**.
+  one of CalDART's local groups; check as many as you like, as with **County**), **County**,
+  and **Role**.
 - **Expiring within (days)**: members whose membership ends within that many days.
 
-Choose the filters, then press **Add these people**. Everybody they choose joins the recipient list, and a
-line, which takes the keyboard focus, says what happened, such as *Added 12 people; 3 were
-already on the recipient list.* or *Nobody matches these filters.* Add again as often as you like:
-nobody is added twice. With no filters chosen, it adds every member and friend. Donors are
-never added.
+The people the filters match show under them, ten at a time, counted, as in *12 people match
+these filters.* (every member and friend with no filters chosen; donors never match). Each row
+has **Name**, **Email**, **Will receive?** (*Yes*, or why not, as below), **Kind**, and **DART**.
 
-**Add a saved group**, beside **Add these people**, adds everybody in a recipient group kept on
-:doc:`groups` the same way: nobody is added twice.
+Press **Add these people** to put everybody the search matches on the recipient list. A line,
+which takes the keyboard focus, says what happened, such as *Added 12 people; 3 were already
+on the recipient list.* Search and add as often as you like: nobody is added twice.
+**Save as a group** keeps the search as a group (:doc:`groups`), and **Add a saved group**
+adds everybody in a group kept there the same way as a search.
 
-Once somebody is on the recipient list, a line counts it, such as *38 people will receive this email;
-4 are skipped.*, or *39 people will receive this email.* when nobody is skipped. Under it, in
-one row, **Download list** saves the recipient list as a spreadsheet file (CSV) with
-each person's membership status, the filters that chose them, whether they will receive
-the email, and its type. **Save as a group** keeps the recipient list as a group to add to another
-email later (:doc:`groups` explains the two kinds). **Remove everyone** takes everybody off the list once
-you confirm it.
+Once somebody is on the recipient list, a line counts it, such as *38 people will receive this
+email; 4 are skipped.* **Download list** saves the list as a spreadsheet file (CSV) with each
+person's membership status, the filters that chose them, whether they will receive the email,
+and its type; **Remove everyone** takes everybody off it once you confirm it.
 
 The table lists the people in surname order, ten at a time until you press **Show all**. Each
 row has the person's **Name**, **Email**, **Will receive?** (*Yes* or the reason they are
