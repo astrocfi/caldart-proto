@@ -181,15 +181,15 @@ and **Export PDF**, which download the CalDART verification report of everything
 has verified yet, in two sections:
 
 - **People**, one row per person with something to verify, sorted by name: their DART;
-  **Photo ID**, **Certificate**, and **Medical**, each reading *Not verified* or
-  *Verified*; what is on file, such as *Passport · Private · 1234567 · Third class*; the
+  **Photo ID**, **Certificate**, and **Medical**, each reading *Not verified*,
+  *Verified*, or *Not provided*; what is on file, such as *Passport · Private · 1234567 · Third class*; the
   medical's expiry date in **Expires**; and the day their profile last changed.
 - **Aircraft insurance**, one row per airplane: its N-number, its owner, the carrier, the
   policy's expiry date in **Expires**, and the day the record last changed.
 
 The line under the PDF's title reads *Showing: Not yet verified*. Only what somebody holds
-is checked: a non-pilot's **Certificate** is blank, as is the **Medical** of a person with
-no medical and the **Photo ID** of one with no photo ID on file. A person who holds none of
+is checked: a non-pilot's **Certificate** reads *Not provided*, as does the **Medical** of a
+person with no medical and the **Photo ID** of one with no photo ID on file. A person who holds none of
 the three, and an airplane with no policy on file, is not listed. A section heading always
 starts on the page with its first rows. The CSV names each row's section in its first
 column, **Section**, which the PDF leaves to its headings. The report can also be emailed

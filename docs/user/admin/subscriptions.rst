@@ -76,9 +76,9 @@ it.
    as an account administrator. The verification report lists what a verifier checks, in
    two sections, *People* and *Aircraft insurance*, each saying *Nothing to show.* when it
    is empty. A person has one row: their DART, then **Photo ID**, **Certificate**, and
-   **Medical**, each *Not verified*, *Verified*, or blank for an item they do not hold;
-   then what is on file, the medical's expiry date in **Expires**, and the day it last
-   changed. An aircraft's row names its N-number, its owner (under the one heading **DART
+   **Medical**, each *Not verified*, *Verified*, or *Not provided* for an item they do not
+   hold; then what is on file, the medical's expiry date in **Expires**, and the day it
+   last changed. An aircraft's row names its N-number, its owner (under the one heading **DART
    or owner**), the carrier, the policy's expiry date, and the day it last changed.
    **Verified** (*Yes* when everything on the row is verified), **Verified by**, and
    **Verified on** (the most recent verification on the row) are there to add from

@@ -4,10 +4,11 @@ Two sections, in this order: *People*, one row per checkable person with a profi
 holds at least one of a photo ID, a pilot certificate, and a medical, and *Aircraft
 insurance*, one row per aircraft in service with a policy on file.  An item nobody holds
 (a non-pilot's certificate, a medical of *None*, a photo ID of *Not provided*, insurance
-with no expiration) has nothing to verify: its check column is blank, and a person who
-holds none of the three, like an aircraft with no policy, is never listed.  A person's
-row has a check column for each item, Photo ID, Certificate, and Medical in that order,
-each reading *Verified* or *Not verified*; then what is on file, the medical's expiry
+with no expiration) has nothing to verify, and a person who holds none of the three, like
+an aircraft with no policy, is never listed.  A person's row has a check column for each
+item, Photo ID, Certificate, and Medical in that order, each reading *Verified*, *Not
+verified*, or *Not provided* for an item the person does not hold; an aircraft's row
+leaves those three blank.  Then what is on file, the medical's expiry
 (the policy's for an aircraft) in a column of its own, and when the record last changed.
 The Section column is a default in the CSV, which has no headings, and left to the
 headings in the PDF; the three verification stamp columns (whether, by whom, and on which
@@ -76,6 +77,9 @@ CHECK_VERIFIED = "Verified"
 #: What a check column reads for an item that requires validation.
 CHECK_UNVERIFIED = "Not verified"
 
+#: What a person's check column reads for an item the person does not hold.
+CHECK_NOT_PROVIDED = "Not provided"
+
 #: What joins the parts of a Details cell.
 DETAIL_SEPARATOR = " \u00b7 "
 
@@ -131,11 +135,15 @@ class VerificationRow:
         return all(item.is_verified for item in self.items)
 
     def check(self, slug: str) -> str:
-        """``slug``'s check: *Verified*, *Not verified*, or blank when it is not held."""
+        """``slug``'s check: *Verified* or *Not verified* when it is held.
+
+        An item the row does not hold reads *Not provided* on a person's row and is blank
+        on an aircraft's, whose only item is its insurance.
+        """
         for item in self.items:
             if item.slug == slug:
                 return CHECK_VERIFIED if item.is_verified else CHECK_UNVERIFIED
-        return ""
+        return CHECK_NOT_PROVIDED if self.section == PEOPLE_SECTION else ""
 
     @property
     def latest(self) -> ItemCheck | None:

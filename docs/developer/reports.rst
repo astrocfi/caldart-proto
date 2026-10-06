@@ -510,8 +510,8 @@ line "Nothing to show." under an empty one:
    (``checkable_people()`` in ``apps/aircraft/services.py``).  Each of the three has a
    check column; an item the person does not hold (``is_held`` in
    ``apps/members/verification.py``: a photo ID of *Not provided*, a certificate of
-   *Not a pilot*, a medical of *None*) has nothing to verify, and its check is blank,
-   whatever stamp it carries.  A person who holds none of the three, a donor, a
+   *Not a pilot*, a medical of *None*) has nothing to verify, and its check reads
+   ``Not provided``, whatever stamp it carries.  A person who holds none of the three, a donor, a
    deactivated account, and an account with no profile are never listed.  The rows are
    ordered by last name, first name, then address.
 ``Aircraft insurance``
@@ -552,9 +552,9 @@ section       Section        yes     The section's title, so the CSV keeps the
 name          Name           yes     The person's full name (or address), or the
                                      aircraft's N-number
 dart          DART or owner  yes     The person's DART, or the aircraft's owner
-photo_id      Photo ID       yes     ``Verified`` or ``Not verified``; blank when
-                                     the person holds no photo ID, and on an
-                                     aircraft's row
+photo_id      Photo ID       yes     ``Verified`` or ``Not verified``;
+                                     ``Not provided`` when the person holds no
+                                     photo ID, and blank on an aircraft's row
 certificate   Certificate    yes     The same, for the pilot certificate
 medical       Medical        yes     The same, for the medical
 details       Details        yes     What is on file, in check-column order:

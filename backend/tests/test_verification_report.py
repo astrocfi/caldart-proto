@@ -382,13 +382,15 @@ def test_a_certificate_with_no_number_reads_its_type_alone() -> None:
 
 
 @pytest.mark.parametrize("status", ["unverified", "all"])
-def test_a_person_without_a_medical_has_a_blank_medical_check(status: str) -> None:
-    """With no medical there is nothing to verify: the Medical check is blank."""
+def test_a_person_without_a_medical_reads_not_provided_in_the_medical_check(
+    status: str,
+) -> None:
+    """With no medical there is nothing to verify: the Medical check says so."""
     person(medical_type=MedicalType.NONE, medical_expiration=None)
     assert cells("People", "Pat Doe", {"status": status})[1:4] == [
         "Not verified",
         "Not verified",
-        "",
+        "Not provided",
     ]
 
 
@@ -398,16 +400,16 @@ def test_a_person_without_a_medical_has_no_expiry() -> None:
     assert cells("People", "Pat Doe")[5] == ""
 
 
-def test_a_non_pilot_has_a_blank_certificate_check() -> None:
+def test_a_non_pilot_reads_not_provided_in_the_certificate_check() -> None:
     """*Not a pilot* holds no certificate to verify."""
     person(pilot_certificate_type=PilotCertificateType.NONE, certificate_number="")
-    assert cells("People", "Pat Doe")[1:4] == ["Not verified", "", "Not verified"]
+    assert cells("People", "Pat Doe")[1:4] == ["Not verified", "Not provided", "Not verified"]
 
 
-def test_a_person_without_a_photo_id_has_a_blank_photo_id_check() -> None:
+def test_a_person_without_a_photo_id_reads_not_provided_in_the_photo_id_check() -> None:
     """A photo ID of *Not provided* is no document a verifier could check."""
     person(photo_id_type=PhotoIdType.NOT_PROVIDED)
-    assert cells("People", "Pat Doe")[1:4] == ["", "Not verified", "Not verified"]
+    assert cells("People", "Pat Doe")[1:4] == ["Not provided", "Not verified", "Not verified"]
 
 
 def test_a_person_who_holds_nothing_is_not_listed() -> None:
