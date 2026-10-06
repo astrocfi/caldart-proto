@@ -2,7 +2,8 @@
 
 Every endpoint is checked against the full role matrix, then against the
 business rules: role slugs are validated, only a ``system_admin`` may move the
-``system_admin`` role, and nobody may deactivate themselves.
+``system_admin`` role, the names and the address are refused, and nobody may deactivate
+themselves.
 """
 
 from __future__ import annotations
@@ -25,6 +26,7 @@ from apps.accounts.roles import (
     WEBSITE_ADMIN,
 )
 from apps.members.models import MembershipPlan, MembershipStatusChoices
+from caldart.messages import USER_RECORD_ROLES_ONLY
 from tests.conftest import role_matrix
 from tests.factories import DartFactory, MemberProfileFactory, MembershipFactory, UserFactory
 
@@ -78,7 +80,7 @@ def test_patch_role_matrix(
 ) -> None:
     """``PATCH`` is 200 only for a user administrator or a system administrator."""
     api_client.force_login(all_role_users[slug])
-    response = api_client.patch(detail(member), {"first_name": "Renamed"})
+    response = api_client.patch(detail(member), {"roles": [MEMBER]}, format="json")
     assert (response.status_code == 200) is allowed
 
 
@@ -296,59 +298,57 @@ def test_retrieve_404s_for_an_unknown_id(api_client: APIClient, user_admin: User
 
 
 # --------------------------------------------------------------------------
-# PATCH: names, email, is_active
+# PATCH: roles only
 # --------------------------------------------------------------------------
-def test_patch_updates_names_and_email(
+@pytest.mark.parametrize(
+    "body",
+    [{"first_name": "Marta"}, {"last_name": "Reyes"}, {"email": "marta.reyes@example.test"}],
+    ids=["first_name", "last_name", "email"],
+)
+def test_patch_refuses_a_name_or_the_address_keyed_on_the_field(
+    api_client: APIClient, user_admin: User, member: User, body: dict[str, str]
+) -> None:
+    """A name or the address in the body is a 400 keyed on that field, in plain words."""
+    api_client.force_login(user_admin)
+    response = api_client.patch(detail(member), body, format="json")
+
+    (field,) = body
+    assert (response.status_code, response.json()) == (400, {field: [USER_RECORD_ROLES_ONLY]})
+
+
+def test_patch_refuses_the_address_the_account_already_has(
     api_client: APIClient, user_admin: User, member: User
 ) -> None:
-    """A ``PATCH`` updates the names and the email in one request."""
+    """Resending the stored address is refused too: the record changes roles only."""
     api_client.force_login(user_admin)
-    response = api_client.patch(
-        detail(member),
-        {"first_name": "Marta", "last_name": "Reyes", "email": "marta.reyes@example.test"},
+    response = api_client.patch(detail(member), {"email": member.email}, format="json")
+
+    assert (response.status_code, response.json()) == (400, {"email": [USER_RECORD_ROLES_ONLY]})
+
+
+def test_patch_names_every_refused_field_it_carries(
+    api_client: APIClient, user_admin: User, member: User
+) -> None:
+    """A body carrying both names and the address is refused on all three."""
+    api_client.force_login(user_admin)
+    body = {"first_name": "Marta", "last_name": "Reyes", "email": "marta.reyes@example.test"}
+    response = api_client.patch(detail(member), body, format="json")
+
+    assert response.json() == {field: [USER_RECORD_ROLES_ONLY] for field in body}
+
+
+def test_a_refused_patch_saves_none_of_it(
+    api_client: APIClient, user_admin: User, member: User
+) -> None:
+    """A refused name leaves the roles sent beside it unsaved, and the name as it was."""
+    api_client.force_login(user_admin)
+    before = (member.first_name, member.roles)
+    api_client.patch(
+        detail(member), {"first_name": "Marta", "roles": [MEMBER, DART_LEADER]}, format="json"
     )
 
-    assert response.status_code == 200
     member.refresh_from_db()
-    assert (member.first_name, member.last_name) == ("Marta", "Reyes")
-    assert member.email == "marta.reyes@example.test"
-
-
-@pytest.mark.parametrize(
-    ("field", "message"),
-    [("first_name", "Enter a first name."), ("last_name", "Enter a last name.")],
-)
-def test_patch_refuses_a_blank_name(
-    api_client: APIClient, user_admin: User, member: User, field: str, message: str
-) -> None:
-    """A ``PATCH`` clearing a name is refused with the plain message and saves nothing."""
-    api_client.force_login(user_admin)
-    before = getattr(member, field)
-    response = api_client.patch(detail(member), {field: "  "})
-
-    assert (response.status_code, response.json()) == (400, {field: [message]})
-    member.refresh_from_db()
-    assert getattr(member, field) == before
-
-
-def test_patch_rejects_an_email_another_account_uses(
-    api_client: APIClient, user_admin: User, member: User
-) -> None:
-    """An email already used by another account is refused, naming ``email``."""
-    api_client.force_login(user_admin)
-    response = api_client.patch(detail(member), {"email": user_admin.email.upper()})
-    assert response.status_code == 400
-    assert "email" in response.json()
-    member.refresh_from_db()
-    assert member.email != user_admin.email
-
-
-def test_patch_can_keep_the_same_email(
-    api_client: APIClient, user_admin: User, member: User
-) -> None:
-    """Resending the account's own email is accepted."""
-    api_client.force_login(user_admin)
-    assert api_client.patch(detail(member), {"email": member.email}).status_code == 200
+    assert (member.first_name, member.roles) == before
 
 
 def test_deactivate_deactivates_another_account(

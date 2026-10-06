@@ -27,11 +27,10 @@ from apps.accounts.services import (
     user_from_uid,
 )
 from apps.accounts.status import closed_account_message
-from apps.members.api.profile_serializers import FIRST_NAME_MESSAGE, LAST_NAME_MESSAGE
 from apps.members.api.serializers import MembershipStatusSerializer
 from apps.members.models import MembershipStatusChoices
 from apps.members.services import membership_of
-from caldart.messages import email_messages, when_missing
+from caldart.messages import USER_RECORD_ROLES_ONLY, email_messages, when_missing
 
 
 class UserSerializer(serializers.ModelSerializer[User]):
@@ -355,23 +354,27 @@ class SendPasswordResetResultSerializer(serializers.Serializer[dict[str, str]]):
     detail = serializers.CharField()
 
 
-class AdminUserSerializer(UserSerializer):
-    """``/admin/users``: the ``user`` shape, partly writable.
+#: The account columns the user record shows but never changes.
+ROLES_ONLY_REFUSED_FIELDS: tuple[str, ...] = ("first_name", "last_name", "email")
 
-    The serializer validates the input -- the field formats, the role slugs against
-    ``accounts.roles``, and that the address is free -- and ``accounts.services``
-    owns the rules that need both the caller and the target: only a ``system_admin``
-    may move ``system_admin``, and the email address of an account holding roles the
-    caller lacks is untouchable.  The active flag and ``reactivation_blocked`` are read
+
+class AdminUserSerializer(UserSerializer):
+    """``/admin/users``: the ``user`` shape, with only ``roles`` writable.
+
+    The serializer checks the role slugs against ``accounts.roles``, and
+    ``accounts.services`` owns the rule that needs both the caller and the target: only
+    a ``system_admin`` may move ``system_admin``.  ``first_name``, ``last_name``, and
+    ``email`` are read here and changed on the member record or by the person; a request
+    carrying any of them, even unchanged, is refused 400 keyed on each one it carries,
+    with :data:`caldart.messages.USER_RECORD_ROLES_ONLY`, and changes nothing.  The
+    active flag and ``reactivation_blocked`` are read
     here and changed only through the record's own actions (deactivate, reactivate,
     block, unblock).  ``email_bounced_at`` and ``email_bounce_detail`` say when and why
     the bounce check last found the address bouncing, null and blank with no bounce
     known; they are changed only by the bounce check, a new or verified address, and
     the record's **Clear bounce** action.  ``phone``, ``dart`` (the DART's name),
     ``city``, ``county``, and ``home_airport`` are read from the profile, for the
-    columns the users list can show; blank, and a null DART, without a profile.  A name
-    left out is left alone, and one sent blank is refused with "Enter a first name." or
-    "Enter a last name."
+    columns the users list can show; blank, and a null DART, without a profile.
     """
 
     # djangorestframework-stubs types SerializerMethodField as a bare Field, so
@@ -408,6 +411,7 @@ class AdminUserSerializer(UserSerializer):
         # the user administrator's.
         read_only_fields = [
             "id",
+            *ROLES_ONLY_REFUSED_FIELDS,
             "kind",
             "friend_on",
             "admin_created",
@@ -415,22 +419,6 @@ class AdminUserSerializer(UserSerializer):
             "reactivation_blocked",
             "email_bounce_detail",
         ]
-        extra_kwargs = {
-            "email": {
-                "required": False,
-                "error_messages": email_messages("Enter their email address."),
-            },
-            "first_name": {
-                "required": False,
-                "allow_blank": False,
-                "error_messages": when_missing(FIRST_NAME_MESSAGE),
-            },
-            "last_name": {
-                "required": False,
-                "allow_blank": False,
-                "error_messages": when_missing(LAST_NAME_MESSAGE),
-            },
-        }
 
     @staticmethod
     def _profile_text(obj: User, field: str) -> str:
@@ -469,20 +457,19 @@ class AdminUserSerializer(UserSerializer):
         actor: User = self.context["request"].user
         return actor
 
-    def validate_email(self, value: str) -> str:
-        """The address, stripped, provided no other account uses it.
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        """``attrs`` unchanged, unless the request carries a name or the address.
 
-        The account being edited is excluded from the check, so resending its own
-        address is accepted.  Any other match, compared case-insensitively, is rejected
-        with "Another account already uses that email address."
+        A read-only field is otherwise dropped without a word, so each of
+        ``ROLES_ONLY_REFUSED_FIELDS`` the request carries is refused here, keyed on the
+        field, with :data:`caldart.messages.USER_RECORD_ROLES_ONLY`.
         """
-        value = value.strip()
-        clash = User.objects.filter(email__iexact=value)
-        if self.instance is not None:
-            clash = clash.exclude(pk=self.instance.pk)
-        if clash.exists():
-            raise serializers.ValidationError("Another account already uses that email address.")
-        return value
+        carried = [field for field in ROLES_ONLY_REFUSED_FIELDS if field in self.initial_data]
+        if len(carried) > 0:
+            raise serializers.ValidationError(
+                {field: [USER_RECORD_ROLES_ONLY] for field in carried}
+            )
+        return attrs
 
     def update(self, instance: User, validated_data: AccountChanges) -> User:
         """Hand the change to ``accounts.services.update_account`` and return the account.

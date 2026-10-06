@@ -1,8 +1,9 @@
-"""Plain-language ``error_messages`` for the serializer fields a person fills in.
+"""Plain-language messages for the serializer fields a person fills in.
 
 DRF answers a box left empty with its own stock sentences ("This field may not be
 blank.", "This field is required.").  A form field a person types into names what to
 put there instead, and these helpers build the ``error_messages`` dictionary that does.
+The module also holds the sentences that refuse a field an endpoint does not change.
 """
 
 from __future__ import annotations
@@ -17,6 +18,13 @@ type ErrorMessages = dict[str, str | StrPromise]
 
 #: The answer to an email address that does not parse as one.
 INVALID_EMAIL_MESSAGE = "Enter an email address, such as name@example.org."
+
+#: The answer to a name or an email address sent to the user record, which changes
+#: roles only.
+USER_RECORD_ROLES_ONLY = (
+    "The user record changes roles only. A name or an email address is changed on the "
+    "member record, or by the person themselves."
+)
 
 
 def when_missing(message: str) -> ErrorMessages:

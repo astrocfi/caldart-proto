@@ -60,6 +60,12 @@ function stubDetail({ target = TARGET, me, patch, history = [] }: StubOptions = 
   return patched;
 }
 
+/** The value the Account card shows beside the label `term`. */
+function shown(term: string): string | null {
+  const label = screen.getAllByRole('term').find((dt) => dt.textContent === term);
+  return label?.nextElementSibling?.textContent ?? null;
+}
+
 function renderDetail(id = String(TARGET.id), client?: QueryClient) {
   return renderWithProviders(
     <Routes>
@@ -96,8 +102,6 @@ describe('UserDetailPage', () => {
     renderDetail();
 
     expect(await screen.findByRole('heading', { name: 'Priya Raman' })).toBeInTheDocument();
-    expect(screen.getByLabelText(/first name/i)).toHaveValue('Priya');
-    expect(screen.getByLabelText(/email address/i)).toHaveValue('priya@example.org');
     expect(screen.getByText('Look up any member before a flight.')).toBeInTheDocument();
     expect(screen.getByRole('checkbox', { name: /member/i })).toBeChecked();
     expect(screen.getByRole('checkbox', { name: /dart leader/i })).not.toBeChecked();
@@ -124,17 +128,56 @@ describe('UserDetailPage', () => {
     expect(await screen.findByText(/account saved/i)).toBeInTheDocument();
   });
 
-  it('saves edited names and email', async () => {
+  it.each([
+    ['First name', 'Priya'],
+    ['Last name', 'Raman'],
+  ])('shows the %s as text', async (term, value) => {
+    stubDetail();
+    renderDetail();
+    await screen.findByRole('heading', { name: 'Priya Raman' });
+
+    expect(shown(term)).toBe(value);
+  });
+
+  it('shows the email address as text, with whether it is verified', async () => {
+    stubDetail();
+    renderDetail();
+    await screen.findByRole('heading', { name: 'Priya Raman' });
+
+    expect(shown('Email address')).toMatch(/^priya@example\.org Verified/);
+  });
+
+  it.each(['First name', 'Last name', 'Email address'])(
+    'offers no box to change the %s',
+    async (name) => {
+      stubDetail();
+      renderDetail();
+      await screen.findByRole('heading', { name: 'Priya Raman' });
+
+      expect(screen.queryByRole('textbox', { name })).not.toBeInTheDocument();
+    },
+  );
+
+  it('says where the names and the address are changed', async () => {
+    stubDetail();
+    renderDetail();
+
+    expect(
+      await screen.findByText(
+        'Names and the email address are changed on the member record, or by the person themselves.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('sends the roles alone with a save', async () => {
     const patched = stubDetail();
     renderDetail();
     await screen.findByRole('heading', { name: 'Priya Raman' });
 
-    await userEvent.clear(screen.getByLabelText(/first name/i));
-    await userEvent.type(screen.getByLabelText(/first name/i), 'Priyanka');
     await userEvent.click(screen.getByRole('button', { name: /save changes/i }));
 
     await waitFor(() => expect(patched).toHaveLength(1));
-    expect(patched[0]).toMatchObject({ first_name: 'Priyanka', email: 'priya@example.org' });
+    expect(patched[0]).toEqual({ roles: ['member'] });
   });
 
   it('surfaces the escalation rule from the API', async () => {
@@ -428,7 +471,7 @@ describe('UserDetailPage', () => {
     stubDetail();
     renderDetail();
 
-    await screen.findByLabelText('Email address');
+    await screen.findByRole('heading', { name: 'Priya Raman' });
     expect(screen.queryByRole('button', { name: 'Clear bounce' })).not.toBeInTheDocument();
   });
 
@@ -567,6 +610,15 @@ describe('UserDetailPage', () => {
       await screen.findByRole('heading', { name: 'Gil Ivers' });
 
       expect(screen.getByText('Donor')).toBeInTheDocument();
+    });
+
+    it('sends a mistyped address to the member record', async () => {
+      stubDetail({ target: DONOR });
+      renderDetail(String(DONOR.id));
+
+      expect(
+        await screen.findByText(/an account administrator corrects the email address/i),
+      ).toBeInTheDocument();
     });
 
     it('offers no password reset', async () => {

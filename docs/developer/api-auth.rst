@@ -59,8 +59,8 @@ mails to ``ADMIN_EMAILS``
   anything about the address, and any other answer would.
 * A change an administrator saves that mails somebody along the way answers as
   it does when the message goes out too, because the change has committed: an
-  edit of the address (``PATCH /admin/users/{id}``), a reactivation, and the
-  member record's create, edit, and reactivation (:doc:`api-members`).
+  reactivation, and the member record's create, edit, and reactivation
+  (:doc:`api-members`).
 * A send the user administrator asks for by name,
   ``POST /admin/users/{id}/send-password-reset`` or
   ``POST /admin/users/{id}/send-email-verification``, answers **503** and
@@ -576,8 +576,7 @@ case-insensitively — it clears ``email_verified_at`` and mails the new address
 once the transaction commits, with the address it replaced signed into the
 link.  The same edit clears any bounce recorded against the old address
 (``email_bounced_at`` and ``email_bounce_detail``).  That covers
-``PATCH /admin/users/{id}``, ``PATCH /admin/members/{user_id}``, and
-``POST /auth/email/change`` alike.  A mail server that refuses the link leaves
+``PATCH /admin/members/{user_id}`` and ``POST /auth/email/change`` alike.  A mail server that refuses the link leaves
 the edit standing and the answer unchanged
 (:ref:`refused sends <api-refused-send>`).
 
@@ -800,10 +799,17 @@ Statuses: **200**; **401** when anonymous; **403** without ``user_admin``;
 ``PATCH /admin/users/{id}``
 ---------------------------
 
-Accepts any of ``first_name``, ``last_name``, ``email``, and ``roles``, and
-returns the updated payload.  A name left out is left alone; one sent blank, or as
-spaces only, is a **400** ``{"first_name": ["Enter a first name."]}`` or
-``{"last_name": ["Enter a last name."]}``.  ``PUT`` and ``DELETE`` are 405:
+Accepts ``roles`` alone, and returns the updated payload.  The user record changes
+roles only: the names and the address are changed through
+``PATCH /admin/members/{user_id}`` (:doc:`api-members`) or by the person.  A body
+carrying ``first_name``, ``last_name``, or ``email``, even with the value the account
+already has, is a **400** keyed on each one it carries, and nothing is saved:
+
+.. code-block:: json
+
+   {"email": ["The user record changes roles only. A name or an email address is changed on the member record, or by the person themselves."]}
+
+``PUT`` and ``DELETE`` are 405:
 this API edits accounts, it does not replace or remove them.  Deleting a member
 is ``DELETE /admin/members/{user_id}``, behind ``account_admin`` — see
 :doc:`api-members`.
@@ -829,10 +835,7 @@ is ``DELETE /admin/members/{user_id}``, behind ``account_admin`` — see
 ``friend_on``, ``is_active`` and ``reactivation_blocked`` are read-only here: an
 ``is_active`` sent in the body is ignored.  The kind is the account administrator's to change (:doc:`api-members`),
 never the user administrator's, and the two flags change only through the
-account status actions (:ref:`api-account-status`).  A write that really changes ``email``
-clears ``email_verified_at`` and mails the new address a verification link (see
-`Email verification`_), and clears any bounce recorded against the old address; a
-change of capitalization alone leaves all of them alone.
+account status actions (:ref:`api-account-status`).
 
 A **Deleted member <id>** tombstone, which keeps a deleted account's payments,
 takes no edit at all: the view refuses any body with **400** ``{"detail": "This
@@ -840,7 +843,7 @@ record keeps a deleted member's payments in the books and cannot be changed."}``
 before the serializer runs, as the member record does
 (:ref:`api-members-tombstone`).
 
-Three rules are enforced in ``AdminUserSerializer``:
+Two rules are enforced on ``roles`` in ``AdminUserSerializer``:
 
 **Role slugs are validated.**  Anything outside ``ROLE_SLUGS`` is a 400 on
 ``roles``.  The list you send replaces the account's role groups exactly, and it
@@ -861,11 +864,6 @@ in the list — but no role list of a ``createsuperuser`` account is open to the
 because writing one rebuilds the flags from that list alone: leaving the role
 out would take the superuser flag away, and putting it in grants the group.
 
-**The account-edit guard covers ``email``.**  It is shared with ``PATCH
-/admin/members/{user_id}`` and with the account status actions, and described in
-full under :ref:`account-edit-guard` below.  ``first_name`` and ``last_name`` are outside
-it: anyone who may open the record may correct a name on it.
-
 Granting or revoking ``system_admin`` also syncs the Django flags, because a
 system administrator is a Django superuser::
 
@@ -876,8 +874,8 @@ system administrator is a Django superuser::
 the Wagtail admin away from a website administrator.
 
 Statuses: **200** with the updated payload; **400** for an unknown role slug,
-a move of ``system_admin`` by a caller who is not one, an address already in
-use, or a refusal from the account-edit guard below; **401** when anonymous;
+a move of ``system_admin`` by a caller who is not one, or a name or address in
+the body; **401** when anonymous;
 **403** without ``user_admin``; **404** for an unknown id; **405** for ``PUT``
 and ``DELETE``.
 
@@ -1083,10 +1081,10 @@ The account-edit guard
 Two things an administrator could use to take an account over are guarded: the
 email address, which is the login *and* where a password reset link is mailed,
 and the account's status, since deactivating or blocking it locks its owner out.
-Both administrator edit endpoints — ``PATCH /admin/users/{id}`` above and
-``PATCH /admin/members/{user_id}`` in :doc:`api-members` — write through
-``accounts.services.update_account``, which runs every write of ``email`` past
-``accounts.services.check_account_edit`` first.  The status actions — the user
+The one administrator edit of the address, ``PATCH /admin/members/{user_id}`` in
+:doc:`api-members`, writes through ``accounts.services.update_account``, which runs
+every write of ``email`` past ``accounts.services.check_account_edit`` first;
+``PATCH /admin/users/{id}`` above refuses the address outright.  The status actions — the user
 record's ``/deactivate``, ``/reactivate``, ``/block`` and ``/unblock`` above and
 the member record's ``/deactivate`` and ``/reactivate`` — apply the same rule in
 ``accounts.status``.
@@ -1110,17 +1108,16 @@ Both sides of that last comparison use *effective* roles:
 which sets the flag without adding the role group, is therefore protected — and
 protects — like any other system administrator.
 
-Worked through the roles: a user administrator may change a plain member's
-address but not a DART leader's or an account administrator's, an account
-administrator may not change a user administrator's, and a system administrator
-may change anybody's.  Every role counts, administrative or not.  Names are
-outside the guard entirely, so a user administrator can still correct the
-spelling of a system administrator's surname.
+Worked through the roles: an account administrator may change a plain member's
+address but not a DART leader's or a user administrator's, a user administrator
+may deactivate a plain member but not an account administrator, and a system
+administrator may do either to anybody.  Every role counts, administrative or
+not.  Names are outside the guard entirely.
 
 What the guard measures is the write in front of it, against the roles the two
 accounts hold when it arrives — it does not bound what the caller can reach over
 two requests.  A user administrator may grant themselves the role they lack, or
-take it off the target, and send the refused edit again; both are ordinary
+take it off the target, and send the refused status action again; both are ordinary
 ``roles`` writes on ``PATCH /admin/users/{id}``, which is the role's whole
 purpose.  ``system_admin`` is where the two rules meet and the reach stops: that
 role is refused in both directions to a caller who is not a system

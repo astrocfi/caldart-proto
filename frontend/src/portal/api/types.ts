@@ -211,13 +211,11 @@ export interface AdminUserDetail extends AdminUser {
 }
 
 /**
- * The writable half of `PATCH /admin/users/{id}`. The active flag and the block are
- * changed through the record's own actions, never a patch.
+ * The writable half of `PATCH /admin/users/{id}`: the roles alone. The names and the
+ * address are refused there, and the active flag and the block are changed through the
+ * record's own actions, never a patch.
  */
 export interface AdminUserPatch {
-  first_name?: string;
-  last_name?: string;
-  email?: string;
   roles?: RoleSlug[];
 }
 

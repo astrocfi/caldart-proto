@@ -6,7 +6,7 @@ Roles
 
 **Roles** lists every account on the site: members, friends, donors, and
 administrators. Use it to find an account, to see what it may do, and to open it to change
-its roles, correct its name or address, or help somebody back in.
+its roles, change whether it can sign in, or help somebody back in.
 
 A user administrator finds it as **Roles** under **Administration** in the menu. A
 system administrator can open it too. A user administrator looks after accounts and roles
@@ -78,7 +78,8 @@ at the end of the bar, empties them and puts **Account status** back on **Active
 **Email**
    **Any address**, the first choice, **Email bounced**, or **Not bounced**. **Email
    bounced** lists the accounts whose address another mail server has refused for good, so
-   you can find each one and correct the address (:doc:`user-record`).
+   you can find each one and ask the person for an address that works
+   (:doc:`user-record`).
 
 Changing a filter takes you back to the first page. With nothing to show, the table names
 the filters in force, such as *No accounts match the Role and Kind filters*. Under that it
@@ -123,8 +124,8 @@ A donor gave through the public site without joining. Each gift from a new email
 makes a donor account, and a later gift from the same address goes on the same one. A donor
 account keeps the gifts and receipts, holds no password and no role, and cannot sign in.
 Donors appear nowhere else outside the treasurer's screens, so this list is where you find
-one: choose **Donor** under **Kind**. The usual reason is a receipt sent to a
-mistyped address.
+one: choose **Donor** under **Kind**. A receipt sent to a mistyped address is corrected
+by an account administrator, on the donor's member record.
 
 
 What each role opens

@@ -609,8 +609,8 @@ case-insensitively — clears ``email_verified_at`` and, once it commits, mails
 the new address a verification link.  A refused link leaves the edit standing
 and the answer unchanged (:ref:`refused sends <api-refused-send>`).
 
-``email`` goes through the same account-edit guard as ``PATCH
-/admin/users/{id}`` — see :ref:`account-edit-guard`.  An account administrator
+``email`` goes through the account-edit guard, which also covers the account
+status actions — see :ref:`account-edit-guard`.  An account administrator
 may move a plain member's address, but not the address of an account holding a
 role they do not hold themselves.  A refusal is a **400** keyed on ``email``, and
 nothing is written at all — the profile half of the same request included.
