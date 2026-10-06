@@ -60,9 +60,12 @@ closed. Under it the answers are counted by kind, then come the actions, then on
 every person the callout reached:
 
 - **Name** and **Answer**: a dot and *Available*, *Available with limits*, *Not available*,
-  or *No answer yet*.
+  or *No answer yet*. For a DART leader or an account administrator, the name opens the
+  person's record on :doc:`../admin/member-record`.
 - **Go/no-go**: *GO* or *NO-GO*, as the member check reads them now: a current membership,
-  a current medical, and a verified certificate, medical, and photo ID.
+  a current medical, and a verified certificate, medical, and photo ID. For a DART leader,
+  an account administrator, a user administrator, or a verifier, it opens the person's card
+  on :doc:`../admin/member-check`, where each item is verified.
 - **Note**: what the person added, such as *can fly Saturday only*, in full.
 - **Answered**: when they last answered, such as *10/03/2026 at 5:34 PM*.
 - **DART**, **Home airport**, and **Aircraft**: from their profile as it is now. On a screen
