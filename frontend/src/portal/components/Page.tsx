@@ -19,6 +19,8 @@ function asksForTitleFocus(state: unknown): boolean {
 
 export interface PageProps {
   title: string;
+  /** What the heading shows, when it is richer than `title`'s words: chips, say. */
+  heading?: ReactNode;
   /**
    * The browser tab's name, when the heading is not the screen's name: the
    * dashboard's greeting, say.  The title otherwise.
@@ -47,6 +49,7 @@ export interface PageProps {
  */
 export function Page({
   title,
+  heading,
   tabTitle,
   noEyebrow = false,
   lede,
@@ -73,7 +76,7 @@ export function Page({
         {eyebrow !== null ? <p className="eyebrow">{eyebrow}</p> : null}
         <div className="page__heading">
           <h1 ref={titleRef} className="page__title">
-            {title}
+            {heading ?? title}
           </h1>
           {actions ? <div className="cluster page__actions">{actions}</div> : null}
         </div>

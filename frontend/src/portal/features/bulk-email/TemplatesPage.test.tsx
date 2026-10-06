@@ -66,11 +66,18 @@ describe('TemplatesPage', () => {
     const row = (await screen.findByRole('link', { name: 'Edit Monthly newsletter' })).closest(
       'tr',
     );
+    await within(row as HTMLElement).findByText('First name');
     expect(
       within(row as HTMLElement)
         .getAllByRole('cell')
         .map((cell) => cell.textContent),
-    ).toEqual(expect.arrayContaining(['News for {first_name}', 'Operational', '04/05/2026']));
+    ).toEqual(expect.arrayContaining(['News for First name', 'Operational', '04/05/2026']));
+  });
+
+  it("shows a field in a template's subject as a chip", async () => {
+    renderWithProviders(<TemplatesPage />);
+    const chip = await screen.findByText('First name');
+    expect(chip).toHaveClass('field-chip');
   });
 
   it('says so when there is no template yet', async () => {

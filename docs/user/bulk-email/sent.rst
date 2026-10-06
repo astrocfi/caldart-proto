@@ -15,7 +15,8 @@ The list
 
 One line per email, the most recently started first, which the arrow on **Date** shows:
 
-- **Subject**: what it said. It opens the email's own page, below.
+- **Subject**: what it said, a field in it shown as a chip, as on :doc:`compose`. It opens
+  the email's own page, below.
 - **Date**: the day it started sending.
 - **Type**: the type of email it was, such as *Operational*.
 - **From** and **DART**, for CalDART management only: who sent it, and the DART a DART
@@ -61,9 +62,9 @@ Grace Holloway on 10/03/2026 at 5:34 PM.*, and has three cards:
   until then, with **Stop sending**. A mission callout adds *This is a mission callout.*
   with **See who can fly**, which opens its answers on :doc:`callouts`.
 - **The message**: the email as it was sent, with the subject at its head, and above it its
-  type and *Replies go to:* with the address for replies its copies carried. Fields such as
-  *{first_name}* show as written, because each person's copy had their own details filled
-  in. Under it, a line says whether the people it went to can read it again under
+  type and *Replies go to:* with the address for replies its copies carried. A field shows
+  in the subject and the message as the chip you wrote it with, such as *First name, or
+  friend*, because each person's copy had their own details filled in. Under it, a line says whether the people it went to can read it again under
   **Messages**, with **Hide from Messages** or **Show in Messages** (`Messages`_).
 - **Who received it**: the delivery report, described next.
 

@@ -267,6 +267,11 @@ export const handlers = [
   http.get(`${API}/system/bounces`, () => HttpResponse.json({ enabled: true })),
   // The compose screen's type choice reads the types the sender may send.
   http.get(`${API}/email-types/sendable`, () => HttpResponse.json(SENDABLE_TYPES)),
+  http.get(`${API}/bulk-email/fields`, () =>
+    HttpResponse.json([
+      { token: 'first_name', label: 'First name', description: "The person's first name." },
+    ]),
+  ),
   // The bulk email screens read who the sender may send to.
   http.get(`${API}/bulk-email/sender`, () => HttpResponse.json(MANAGEMENT_SENDER)),
   // The member record's Email preferences card reads these as the record opens.

@@ -21,7 +21,7 @@ One line per template, by name:
 
 - **Name**: what the template is called when you choose it. Press it to open the template
   in the form below the heading.
-- **Subject**: the subject it starts an email with.
+- **Subject**: the subject it starts an email with, a field in it shown as a chip.
 - **Type**: the type of email it starts as, such as *Operational*, or a dash for none.
 - **Last edited**: the day it last changed.
 - **Actions**, last: the trashcan, which deletes the template after you press **Delete**.

@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it } from 'vitest';
@@ -91,9 +91,30 @@ describe('SentDetailPage', () => {
     ]);
   });
 
-  it('says the fields show as written when the message fills any in', async () => {
+  it('says the fields show as chips when the message fills any in', async () => {
     renderSent({ body: '<p>Dear {first_name|friend},</p>' });
-    expect(await screen.findByText(/Recipient fields show here in braces/)).toBeVisible();
+    expect(await screen.findByText(/Recipient fields show here as the chips/)).toBeVisible();
+  });
+
+  it('shows a field in the message as a chip reading its label and fallback', async () => {
+    renderSent({
+      body: '<p>Dear {first_name|friend},</p>',
+      message_html: '<html><head></head><body><p>Dear {first_name|friend},</p></body></html>',
+    });
+    const frame = await screen.findByTitle('The message as it was sent');
+    const chip = (): string | null | undefined =>
+      new DOMParser()
+        .parseFromString(frame.getAttribute('srcdoc') ?? '', 'text/html')
+        .querySelector('.field-chip')?.textContent;
+    await waitFor(() => expect(chip()).toBe('First name, or friend'));
+  });
+
+  it('shows a field in the subject as a chip', async () => {
+    renderSent({ subject: 'Hello {first_name|friend}' });
+    const heading = await screen.findByRole('heading', { level: 1 });
+    expect(await within(heading).findByText('First name, or', { exact: false })).toHaveTextContent(
+      'First name, or friend',
+    );
   });
 
   it('says nothing of fields when the message fills none in', async () => {

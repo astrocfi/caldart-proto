@@ -26,6 +26,7 @@ import { DROP_ORDER } from './dropOrder';
 import { SenderNotice } from './SenderNotice';
 import { recipientsCsvUrl, useBulkSender, useSentEmails } from './api';
 import './bulk-email.css';
+import { FieldText } from './FieldChips';
 import { withSenderColumns } from './senderColumns';
 import { statusLabel, statusTone } from './status';
 
@@ -90,7 +91,11 @@ export const SENT_COLUMNS: Column<BulkEmailSummary>[] = [
     header: 'Subject',
     minWidth: '9rem',
     isIdentity: true,
-    render: (row) => <Link to={`/bulk-email/sent/${row.id}`}>{row.subject}</Link>,
+    render: (row) => (
+      <Link to={`/bulk-email/sent/${row.id}`}>
+        <FieldText text={row.subject} />
+      </Link>
+    ),
     sortValue: (row) => row.subject,
   },
   {

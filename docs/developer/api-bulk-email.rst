@@ -169,7 +169,8 @@ in, and once **Send** has queued the email ``reply_to`` is the address its copie
 carry.  ``body`` is the message as sanitized HTML, its recipient field tokens as written
 (:ref:`api-bulk-email-rich-text`).  ``message_html`` is the whole HTML email as the
 history shows it: the message inside the house email layout, with its tokens as
-written rather than filled in.  ``status`` is ``draft``, ``queued``, ``sending``, ``sent``, or ``stopped``
+written rather than filled in; the portal's Sent detail draws each as the editor's chip
+before it frames the email.  ``status`` is ``draft``, ``queued``, ``sending``, ``sent``, or ``stopped``
 (:ref:`choices-bulk-email-status`); ``can_edit`` is true for a draft or a queued
 email that has never started sending (:ref:`the edit rule <bulk-email-edit-rule>`).
 ``start_at`` is when a queued email starts and ``scheduled`` whether the sender

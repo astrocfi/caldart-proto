@@ -23,6 +23,7 @@ import { DeleteButton } from '@/portal/components/DeleteButton';
 import { Page } from '@/portal/components/Page';
 import { usePanelFocus } from '@/portal/components/focus';
 import { DROP_ORDER } from './dropOrder';
+import { FieldText } from './FieldChips';
 import './bulk-email.css';
 import { useCreateTemplate, useDeleteTemplate, useTemplates, useUpdateTemplate } from './reuseApi';
 import { TemplateForm } from './TemplateForm';
@@ -154,7 +155,7 @@ export function TemplatesPage(): JSX.Element {
       header: 'Subject',
       minWidth: '12rem',
       dropOrder: DROP_ORDER.subject,
-      render: (template) => template.subject || '—',
+      render: (template) => (template.subject === '' ? '—' : <FieldText text={template.subject} />),
     },
     {
       key: 'email_type_name',

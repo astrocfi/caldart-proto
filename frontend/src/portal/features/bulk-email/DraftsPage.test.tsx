@@ -46,6 +46,13 @@ describe('DraftsPage', () => {
     expect(screen.getByText('Newsletter').closest('tr')).toHaveTextContent('04/07/2027 at 8:00 AM');
   });
 
+  it("shows a field in a draft's subject as a chip in its link", async () => {
+    answerDrafts([makeSummary({ subject: 'Hello {first_name|friend}' })]);
+    renderWithProviders(<DraftsPage />);
+    const link = await screen.findByRole('link', { name: 'Hello First name, or friend' });
+    expect(link.querySelector('.field-chip')).toHaveTextContent('First name, or friend');
+  });
+
   it('tells two drafts with no subject apart by when each was saved', async () => {
     answerDrafts([
       makeSummary({ id: 1, subject: '', updated_at: '2026-10-04T12:33:00Z' }),
