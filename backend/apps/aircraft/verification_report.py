@@ -10,18 +10,18 @@ item, Photo ID, Certificate, and Medical in that order, each reading *Verified*,
 verified*, or *Not provided* for an item the person does not hold.  Then what is on file,
 the medical's expiry (the policy's for an aircraft) in a column of its own, and when the
 record last changed.  The PDF draws each section under its own header: People under
-Name, DART, the three checks, Details, Expires, and Updated, and Aircraft insurance under
-Name, Owner, Carrier, Expires, and Updated, with no check columns.  The CSV is one table
-under one header, the union of the two, so an aircraft's row leaves the three check
-cells blank and its owner and carrier sit under *DART or owner* and *Details*.  The
-Section column is a default in the CSV, which has no headings, and left to the headings
-in the PDF; the three verification stamp columns (whether, by whom, and on which day)
-are there to choose, and off by default, since the default list is of rows with
-something nobody has verified.  The house style lives in ``caldart.reports``; this module
-decides which rows the report holds, how its two filters narrow them, and what each cell
-prints.  It lives in the aircraft app, which sits above the members app and already
-decides who the leader's member check can find, because it lists both people and
-aircraft.
+Name, DART, the three checks, Details, Expires, and Updated, and Aircraft insurance
+under N-number, Owner, Carrier, Expires, and Updated, with no check columns.  The CSV is
+one table under one header, the union of the two, so an aircraft's row leaves the three
+check cells blank and its N-number, owner, and carrier sit under *Name*, *DART or owner*,
+and *Details*.  The Section column is a default in the CSV, which has no headings, and
+left to the headings in the PDF; the three verification stamp columns (whether, by whom,
+and on which day) are there to choose, and off by default, since the default list is of
+rows with something nobody has verified.  The house style lives in ``caldart.reports``;
+this module decides which rows the report holds, how its two filters narrow them, and
+what each cell prints.  It lives in the aircraft app, which sits above the members app
+and already decides who the leader's member check can find, because it lists both people
+and aircraft.
 """
 
 from __future__ import annotations
@@ -238,7 +238,8 @@ VERIFICATION_REPORT_COLUMNS: tuple[ReportColumn[VerificationRow], ...] = (
 _STAMP_KEYS: tuple[str, ...] = ("verified", "verified_by", "verified_on")
 
 #: The columns each section draws in the PDF, and the words it heads them with.  An
-#: aircraft has no check columns, and its DART and Details are its owner and carrier.
+#: aircraft has no check columns, and its Name, DART, and Details are its N-number, owner,
+#: and carrier.
 VERIFICATION_SECTION_COLUMNS: tuple[SectionColumns, ...] = (
     SectionColumns(
         title=PEOPLE_SECTION,
@@ -259,7 +260,7 @@ VERIFICATION_SECTION_COLUMNS: tuple[SectionColumns, ...] = (
     SectionColumns(
         title=INSURANCE_SECTION,
         keys=("section", "name", "dart", "details", "expires", "updated", *_STAMP_KEYS),
-        labels={"dart": "Owner", "details": "Carrier"},
+        labels={"name": "N-number", "dart": "Owner", "details": "Carrier"},
     ),
 )
 

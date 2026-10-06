@@ -186,9 +186,9 @@ has verified yet, in two sections:
   *Verified*, or *Not provided*; **Details** is what is on file, such as *Passport ·
   Private · 1234567 · Third class*; **Expires** is the medical's expiry date; and
   **Updated** is the day their profile last changed.
-- **Aircraft insurance**, one row per airplane, under its own columns: **Name** (the
-  N-number), **Owner**, **Carrier**, **Expires** (the policy's expiry date), and
-  **Updated** (the day the record last changed). An airplane has no check columns.
+- **Aircraft insurance**, one row per airplane, under its own columns: **N-number**,
+  **Owner**, **Carrier**, **Expires** (the policy's expiry date), and **Updated** (the day
+  the record last changed). An airplane has no check columns.
 
 The line under the PDF's title reads *Showing: Not yet verified*. Only what somebody holds
 is checked: a non-pilot's **Certificate** reads *Not provided*, as does the **Medical** of a
@@ -197,10 +197,10 @@ the three, and an airplane with no policy on file, is not listed. A section head
 starts on the page with its first rows. The CSV is one table under one header row, so a
 spreadsheet reads it whole: it names each row's section in its first column, **Section**,
 which the PDF leaves to its headings, and it carries the People columns for both
-sections, with an airplane's owner under **DART or owner**, its carrier under **Details**,
-and its three check cells left blank. The report can also be emailed
-on a schedule from the :doc:`subscriptions` screen, where the **Verified**, **Verified
-by**, and **Verified on** columns can be added.
+sections, with an airplane's N-number under **Name**, its owner under **DART or owner**,
+its carrier under **Details**, and its three check cells left blank. The report can also
+be emailed on a schedule from the :doc:`subscriptions` screen, where the **Verified**,
+**Verified by**, and **Verified on** columns can be added.
 
 
 When nobody matches

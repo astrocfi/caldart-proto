@@ -565,8 +565,8 @@ The table below is the CSV's: one header row for both sections, in which an airc
 row leaves the three check cells blank.  In the PDF each section draws its own columns
 (``VERIFICATION_SECTION_COLUMNS``, through the spec's ``section_columns``): *People*
 draws every column but Section under the labels below, except ``dart``, headed
-``DART``; *Aircraft insurance* draws Name, ``dart`` headed ``Owner``, ``details``
-headed ``Carrier``, Expires, and Updated, with no check columns.  Section and the three
+``DART``; *Aircraft insurance* draws ``name`` headed ``N-number``, ``dart`` headed
+``Owner``, ``details`` headed ``Carrier``, Expires, and Updated, with no check columns.  Section and the three
 stamp columns are drawn in either section when they are chosen.  In order:
 
 ============= ============== ======= =============================================

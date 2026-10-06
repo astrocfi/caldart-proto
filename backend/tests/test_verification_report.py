@@ -213,7 +213,7 @@ PEOPLE_PDF_HEADER = [
 ]
 
 #: The Aircraft insurance section's PDF header row for the default columns.
-INSURANCE_PDF_HEADER = ["Name", "Owner", "Carrier", "Expires", "Updated"]
+INSURANCE_PDF_HEADER = ["N-number", "Owner", "Carrier", "Expires", "Updated"]
 
 
 def pdf_section_headers(params: Params | None = None) -> list[list[str] | None]:
@@ -237,7 +237,7 @@ def test_a_column_the_chooser_hides_is_hidden_in_both_sections() -> None:
     columns = "name,dart,photo_id,details,updated"
     assert pdf_section_headers({"columns": columns}) == [
         ["Name", "DART", "Photo ID", "Details", "Updated"],
-        ["Name", "Owner", "Carrier", "Updated"],
+        ["N-number", "Owner", "Carrier", "Updated"],
     ]
 
 
@@ -245,7 +245,7 @@ def test_a_chosen_stamp_column_is_drawn_in_both_sections() -> None:
     """Verified on applies to a person and to an aircraft alike."""
     assert pdf_section_headers({"columns": "name,verified_on"}) == [
         ["Name", "Verified on"],
-        ["Name", "Verified on"],
+        ["N-number", "Verified on"],
     ]
 
 
