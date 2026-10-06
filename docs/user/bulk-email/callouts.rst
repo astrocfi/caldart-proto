@@ -16,14 +16,14 @@ Sending a callout
 =================
 
 A callout is a bulk email. Write it on :doc:`compose` as any other, and switch on **This is
-a mission callout** under **What it says**. The type becomes **Mission** when you may send
-Mission email, and **Answers close** shows the date and the time the buttons stop working,
+a mission callout** under **What it says**. The type becomes **Mission**, the only type a
+callout can go as, so somebody who may not send Mission email cannot send one. **Answers close** shows the date and the time the buttons stop working,
 two days ahead. Change either if you need to. The callout cannot be sent if its answers
 would close before it goes out.
 
 Every copy carries three buttons above its footer: **Available**, **Available with
 limits**, and **Not available**. Each person's buttons are their own, so nobody can answer
-for anybody else. A test copy and the preview show the buttons, but they record nothing.
+for anybody else. A test copy and the preview show the buttons, but they don't record anything.
 How the email looks to the people it goes to is on :doc:`../member/callouts`.
 
 

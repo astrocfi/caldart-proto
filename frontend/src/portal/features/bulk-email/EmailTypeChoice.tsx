@@ -2,7 +2,7 @@
  * The type choice at the top of **What it says**: what type of email this is.
  *
  * One radio button per type the sender may send, each with the sentence saying what
- * the type is for. Choosing one saves it at once, and the batch is read again, since
+ * the type is for; a mission callout offers the Mission type alone. Choosing one saves it at once, and the batch is read again, since
  * whoever turned that type off is now skipped. While a choice saves the buttons stay
  * enabled, so the keyboard focus stays on them, and a further choice is ignored. Until a type is chosen the choice says
  * *Choose what type of email this is*, and Send is refused with *Choose a type.*
@@ -30,12 +30,18 @@ export function wasUnqueued(before: BulkEmailDetail | undefined, after: BulkEmai
 /** The hint shown until a type is chosen. */
 export const NO_TYPE_HINT = 'Choose what type of email this is.';
 
+/** What a callout's choice says when the sender may send no Mission type. */
+export const NO_MISSION_TYPE =
+  'A mission callout goes as the Mission type, which you may not send. Ask a system administrator.';
+
 interface EmailTypeChoiceProps {
   emailId: number;
   /** The chosen type's id, or null while none is chosen. */
   emailType: number | null;
   /** The chosen type's name, shown as it is once the email can no longer change. */
   emailTypeName: string;
+  /** True for a mission callout, which offers the Mission type only. */
+  isCallout: boolean;
   isEditable: boolean;
 }
 
@@ -44,6 +50,7 @@ export function EmailTypeChoice({
   emailId,
   emailType,
   emailTypeName,
+  isCallout,
   isEditable,
 }: EmailTypeChoiceProps): JSX.Element {
   const types = useSendableEmailTypes();
@@ -83,7 +90,7 @@ export function EmailTypeChoice({
     );
   }
 
-  const options = types.data ?? [];
+  const options = (types.data ?? []).filter((type) => !isCallout || type.is_mission);
   const error = update.error instanceof ApiError ? update.error.message : null;
 
   return (
@@ -105,7 +112,9 @@ export function EmailTypeChoice({
       ) : null}
       {types.isSuccess && options.length === 0 ? (
         <p className="field__error" role="alert">
-          There is no type of email you may send. Ask a system administrator.
+          {isCallout
+            ? NO_MISSION_TYPE
+            : 'There is no type of email you may send. Ask a system administrator.'}
         </p>
       ) : null}
       <TypeRadios

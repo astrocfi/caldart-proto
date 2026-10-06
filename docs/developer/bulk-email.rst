@@ -671,8 +671,10 @@ callout is a bulk email with ``is_callout`` set and one ``Callout`` row
 ``callouts.apply_settings`` inside the edit rule's lock: it makes the ``Callout`` row,
 with ``closes_at`` two days ahead rounded up to the half hour
 (``callouts.default_closes_at``) unless one is given, and makes the email Mission
-email when the caller may send that type (``callouts.mission_type``).  False deletes
-the row again; a draft holds no answer.  **Send** refuses a callout whose answers would
+email when the caller may send that type (``callouts.mission_type``), or clears another
+type when the caller may not.  A callout goes as Mission only (``EmailType.is_mission``,
+the ``mission`` slug): ``drafts.update`` refuses any other type for one, and the compose
+screen offers it alone.  False deletes the row again; a draft holds no answer.  **Send** refuses a callout whose answers would
 close by the time it starts (``callouts.check_for_send``), and so does a change to a
 queued one.
 

@@ -126,7 +126,9 @@ A system administrator can still send such a type.  An unknown ``{id}`` is a **4
 
 The types the caller may send: those whose ``sender_roles`` name one of the
 caller's roles, or every type for a system administrator; an empty list for anybody
-else.  Each row is ``{id, name, description, allow_opt_out}``, in the same order.
+else.  Each row is ``{id, name, description, allow_opt_out, is_mission}``, in the same
+order; ``is_mission`` is true for the Mission type alone (slug ``mission``), the only
+type a mission callout may go as.
 
 .. code-block:: json
 
@@ -135,7 +137,8 @@ else.  Each row is ``{id, name, description, allow_opt_out}``, in the same order
        "id": 3,
        "name": "Mission",
        "description": "Requests for pilots and aircraft when a disaster or an exercise needs them.",
-       "allow_opt_out": true
+       "allow_opt_out": true,
+       "is_mission": true
      }
    ]
 

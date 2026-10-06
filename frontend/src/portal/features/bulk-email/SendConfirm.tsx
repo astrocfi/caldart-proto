@@ -59,7 +59,7 @@ export function SendConfirm({
   const typedNumber = typed.trim();
   const isConfirmed = !needsCount || Number(typedNumber) === count;
   const isMismatch = needsCount && typedNumber !== '' && !isConfirmed;
-  const label = startAt === null ? 'Send now' : 'Schedule it';
+  const label = startAt === null ? 'Send' : 'Schedule it';
 
   useEffect(() => {
     (needsCount ? countRef.current : cancelRef.current)?.focus();

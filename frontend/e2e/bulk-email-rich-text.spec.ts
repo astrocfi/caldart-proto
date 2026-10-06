@@ -102,7 +102,7 @@ test('CalDART management writes a formatted email with an image, previews it, an
 
   await page.getByRole('button', { name: /^Send to \d+ (person|people)$/ }).click();
   const confirm = page.getByRole('region', { name: 'Confirm sending' });
-  await confirm.getByRole('button', { name: 'Send now' }).click();
+  await confirm.getByRole('button', { name: 'Send', exact: true }).click();
   await expect(page.getByRole('region', { name: 'Waiting to send' })).toBeVisible();
 
   await page.context().clearCookies();

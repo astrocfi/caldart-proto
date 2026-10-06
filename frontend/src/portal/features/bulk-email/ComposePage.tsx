@@ -109,7 +109,7 @@ function ComposeForm({
       title="Compose"
       lede={
         email.can_edit
-          ? 'Choose who gets it, write it, then check and send. Your work saves itself.'
+          ? 'Choose who gets it, write it, then check and send. Your work is automatically saved.'
           : undefined
       }
     >

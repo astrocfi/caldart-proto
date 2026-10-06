@@ -37,8 +37,8 @@ has **Name**, **Email**, **Will receive?** (*Yes*, or why not, as below), **Kind
 Press **Add these people** to put everybody the search matches on the recipient list. A line,
 which takes the keyboard focus, says what happened, such as *Added 12 people; 3 were already
 on the recipient list.* Search and add as often as you like: nobody is added twice.
-**Save as a group** keeps the search as a group (:doc:`groups`), and **Add a saved group**
-adds everybody in a group kept there the same way as a search.
+**Save as a group** keeps the search as a group (:doc:`groups`). **Add a saved group** opens
+a **Group** drop-down, with each group's size; choose one and press **Add this group**.
 
 Once somebody is on the recipient list, a line counts it, such as *38 people will receive this
 email; 4 are skipped.* **Download list** saves the list as a spreadsheet file (CSV) with each
@@ -81,13 +81,14 @@ To ask who can fly for a mission, switch on **This is a mission callout** and se
 close**; :doc:`callouts` explains the answer buttons and where the answers collect.
 
 First choose the **Type of email**: one button for each type you may send, such as
-**Operational** or **Mission**, with a sentence saying what it is for. Until you choose,
+**Operational** or **Mission**, with a sentence saying what it is for. A mission callout offers
+**Mission** alone, and switching one on chooses it. Until you choose,
 the card reads *Choose what type of email this is.* The choice saves at once. Everybody who
 has turned that type off is then skipped on the recipient list above. The types, and who may send
 each, are kept on :doc:`email-types`.
 
-Then write the **Subject**, one line, and the **Message**. Once you start typing, a quiet note
-under the message reads *Saving…* and then *Saved*.
+Then write the **Subject**, one line, and the **Message**. Your work is automatically saved: a
+quiet note under the message reads *Saving…* and then *Saved*.
 
 **Replies go to** is where a reader's reply goes. Every copy comes from the site's own address,
 which nobody reads, so without it a reply would reach nobody. Left empty, replies go to the
@@ -112,11 +113,11 @@ press it again to take the style off.
   **Put image in**. The description is required: many mail programs hide pictures until the
   reader allows them, and the description is what they see instead. A large picture is made
   smaller to suit an email, and any location the camera recorded in it is removed.
-- **Insert field** lists details each person's copy fills in for them: **First name**, **Last
-  name**, **Full name**, **Email address**, **DART**, **Membership plan**, **Membership
-  status**, **Expiration date**, and **Home airport**. Choose one and it goes in where the
-  cursor was last: in braces in the subject, *{first_name}*, or as a chip in the message,
-  which Backspace or Delete removes whole; braces typed in the message become a chip once the
+- **Insert field**, here and beside the subject, lists details each person's copy fills in
+  for them: **First name**, **Last name**, **Full name**, **Email address**, **DART**,
+  **Membership plan**, **Membership status**, **Expiration date**, and **Home airport**.
+  Choose one and it goes in at the cursor: in braces in the subject, *{first_name}*, or as a
+  chip in the message, which Backspace or Delete removes whole; braces typed in the message become a chip once the
   cursor moves on. To show a word for an empty value, click the chip or press Enter or Space
   on it, fill in **If we don't have their first name, show**, and **Apply** (*First name, or
   friend*); in the subject, write *{first_name|friend}*.
@@ -209,7 +210,7 @@ such as *Sending starts in 2 minutes, and until then you can cancel it.* or *It 
 confirmation also asks you to **Type 38 to confirm**, and the button that sends stays off
 until the number matches. A different number reads *That number does not match. Type 38, the
 number of people who will receive it.* The focus starts in that box, or on **Cancel**, so
-Enter pressed twice never sends. Press **Send now** or **Schedule it**, or **Cancel**. A recipient list
+Enter pressed twice never sends. Press **Send** or **Schedule it**, or **Cancel**. A recipient list
 that changed meanwhile is refused with its new number, such as *The recipient list has changed: it
 now holds 39 people. Type the new count.*
 
@@ -219,7 +220,7 @@ Once it is sent
 
 Where the email stands then shows in a banner at the top of the screen.
 
-After **Send now** you have two minutes to change your mind. The banner reads *Sending in 1
+After **Send** you have two minutes to change your mind. The banner reads *Sending in 1
 min 58 s* with a bar counting down and **Cancel**, in place of **Check and send**; then
 *Starting to send. Nothing has been sent yet.* **Cancel** turns the email back into a draft
 with nothing lost until the first copy goes out.

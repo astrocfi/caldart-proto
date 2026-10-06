@@ -82,8 +82,9 @@ a group with nobody in it, such as a live group whose filters find nobody, offer
 Using a group
 =============
 
-On :doc:`compose`, **Add a saved group** beside **Add these people** lists the groups, each with
-its kind and how many people it holds. Choosing one adds everybody in it now, and a line such
+On :doc:`compose`, **Add a saved group** beside **Add these people** opens a **Group** drop-down,
+each group with its kind and how many people it holds. Choose one and press **Add this
+group** to add everybody in it now; a line such
 as *Added 12 people; 3 were already on the recipient list.* says so: as with any add, nobody is added
 twice. The recipient list's **Chosen by** column reads *Group: Board* for the people the group brought
 in, and keeps that name if the group is renamed or deleted later.

@@ -43,8 +43,10 @@ export function panelShift(left: number, right: number, screenWidth: number): nu
 }
 
 export interface PanelButtonProps {
-  /** The button's words, which are also its accessible name. */
+  /** The button's words, which are also its accessible name unless `name` is given. */
   label: string;
+  /** The accessible name, when the words alone do not say which of two buttons it is. */
+  name?: string;
   /** The panel's caption, which names it as a group. */
   legend: string;
   /**
@@ -65,6 +67,7 @@ export interface PanelButtonProps {
  */
 export function PanelButton({
   label,
+  name,
   legend,
   children,
   isForm = false,
@@ -118,6 +121,7 @@ export function PanelButton({
         small
         className="panel-button__toggle"
         onClick={() => setIsOpen((open) => !open)}
+        aria-label={name}
         aria-expanded={isOpen}
         aria-controls={isOpen ? panelId : undefined}
       >

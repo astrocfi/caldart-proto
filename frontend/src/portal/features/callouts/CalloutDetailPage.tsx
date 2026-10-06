@@ -47,7 +47,8 @@ import { ANSWER_LABELS, answerLabel, answerTone } from './labels';
 export const REMINDING_MESSAGE = 'The reminders will be sent within a minute.';
 
 /** What the screen says once the callout is closed. */
-export const CLOSED_MESSAGE = 'The callout is closed. Its buttons record nothing from now on.';
+export const CLOSED_MESSAGE =
+  "The callout is closed. Its buttons don't record anything from now on.";
 
 /** The answers a reader can narrow the table to, then no answer. */
 const ANSWER_CHOICES: readonly CalloutAnswerKind[] = ['available', 'limited', 'unavailable'];

@@ -48,7 +48,8 @@ the compose screen's **What it says** card with a name:
   leaves the choice to each draft.
 - **Subject**, **Replies go to** (where replies go; the hint under it names the address used
   when you leave it empty, as on the compose screen), and **Message**, with the same
-  buttons as on :doc:`compose`, **Insert field** among them. A field such as **First name**
+  buttons as on :doc:`compose`, and **Insert field** beside the subject and among the
+  message's buttons. A field such as **First name**
   shows in the message as a chip, as it does there, stays a field in the template, and is
   filled in for each person when an email goes.
 
@@ -65,8 +66,8 @@ Find it under Templates.* says so, with **Templates** a link to this screen.
 Using a template
 ================
 
-On :doc:`compose`, **Start from a template** at the top of **What it says** lists the
-templates. Choose one and press **Use this template**: the email takes the template's subject,
+On :doc:`compose`, **Start from a template** at the top of **What it says** opens a
+**Template** drop-down. Choose one and press **Use this template**: the email takes the template's subject,
 message, type, and address for replies (the usual address when the template leaves it blank).
 The recipient list stays. On a scheduled email, a different type takes it back to your
 drafts, as :doc:`drafts` explains. When you have already written something, it

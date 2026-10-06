@@ -128,7 +128,7 @@ CalDART management, and a DART leader writing to their own DART:
 #. Under **2. What it says**, choose the **Type of email**, write the **Subject** and the
    **Message**, and press **Send me a test** to see it in your own mail program.
 #. Under **3. Check and send**, fix anything marked **Must fix**, then press **Send to 38
-   people** (with your own count) and **Send now**. Above 50 people, type the count first.
+   people** (with your own count) and **Send**. Above 50 people, type the count first.
 #. For two minutes, **Cancel** turns the email back into a draft. Then **Sent** shows what
    became of each person's copy.
 

@@ -7,8 +7,8 @@
  * Both save themselves as they are typed; a quiet note under the message says
  * whether the latest words are saved. The compose screen owns the values and the
  * saving, so Send can make sure the last words are saved before it goes. The
- * message is written in the rich text editor, and **Insert field** puts a
- * recipient's detail, such as their first name, into the subject or the message.
+ * message is written in the rich text editor.  The subject and the message each have
+ * an **Insert field** that puts a recipient's detail, such as their first name, in.
  * **Start from a template** and **Save as a template** sit at the top
  * (`TemplateControls`).
  */
@@ -16,22 +16,19 @@ import { useId } from 'react';
 import type { JSX, RefObject } from 'react';
 
 import { Card } from '@/portal/components/Card';
-import { Field } from '@/portal/components/Field';
 import { RichTextEditor } from '@/portal/components/RichTextEditor';
 import type { RichTextEditorHandle } from '@/portal/components/RichTextEditor';
 import { CalloutFields } from './CalloutFields';
 import { WHAT_IT_SAYS_ID } from './ChecksList';
 import { EmailTypeChoice } from './EmailTypeChoice';
-import { SUBJECT_HINT, messageError } from './fieldText';
-import { InsertFieldMenu } from './InsertFieldMenu';
+import { messageError } from './fieldText';
+import { MessageFieldMenu } from './InsertFieldMenu';
 import { ReplyToField } from './ReplyToField';
 import { uploadBulkEmailImage, useBulkEmailFields } from './richTextApi';
 import { TemplateControls } from './StartFromTemplate';
+import { SubjectField } from './SubjectField';
 import { TestSendButton } from './TestSendButton';
 import type { SaveState } from './useAutosave';
-
-/** The longest subject the server accepts. */
-const SUBJECT_MAX_LENGTH = 200;
 
 /** What the note under the message says for each save state. */
 const SAVE_NOTES: Record<SaveState, string> = {
@@ -111,8 +108,8 @@ export function MessageCard({
     <Card id={WHAT_IT_SAYS_ID} title="2. What it says" className="bulk-email__card">
       {isEditable ? (
         <p className="muted">
-          Choose the type, then write the subject and the message. Everything saves itself as you
-          type, so you can leave and come back later.
+          Choose the type, then write the subject and the message. Your work is automatically saved,
+          so you can leave and come back later.
         </p>
       ) : null}
       {isEditable ? (
@@ -136,22 +133,18 @@ export function MessageCard({
         emailId={emailId}
         emailType={emailType}
         emailTypeName={emailTypeName}
+        isCallout={isCallout}
         isEditable={isEditable}
       />
       <fieldset className="bulk-email__fieldset stack" disabled={!isEditable}>
         <legend className="visually-hidden">The message</legend>
-        <Field label="Subject" error={errors.subject} hint={SUBJECT_HINT}>
-          {(field) => (
-            <input
-              {...field}
-              ref={subjectRef}
-              type="text"
-              maxLength={SUBJECT_MAX_LENGTH}
-              value={subject}
-              onChange={(event) => handleSubjectChange(event.target.value)}
-            />
-          )}
-        </Field>
+        <SubjectField
+          subjectRef={subjectRef}
+          subject={subject}
+          onSubjectChange={handleSubjectChange}
+          error={errors.subject}
+          isEditable={isEditable}
+        />
         <ReplyToField emailId={emailId} saved={replyTo} defaultReplyTo={defaultReplyTo} />
         <div className="field">
           {/* The editing area names itself "Message"; this is the label a reader sees. */}
@@ -168,15 +161,7 @@ export function MessageCard({
             describedBy={describedBy === '' ? undefined : describedBy}
             invalid={errors.body !== undefined}
             readOnly={!isEditable}
-            toolbarExtra={
-              isEditable ? (
-                <InsertFieldMenu
-                  subjectRef={subjectRef}
-                  onSubjectChange={handleSubjectChange}
-                  editorRef={editorRef}
-                />
-              ) : null
-            }
+            toolbarExtra={isEditable ? <MessageFieldMenu editorRef={editorRef} /> : null}
           />
           {errors.body === undefined ? null : (
             <span className="field__error" id={errorId} role="alert">

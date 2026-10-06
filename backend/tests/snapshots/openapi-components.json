@@ -4173,12 +4173,14 @@
       "allow_opt_out": "boolean",
       "description": "string",
       "id": "integer",
+      "is_mission": "boolean",
       "name": "string"
     },
     "required": [
       "allow_opt_out",
       "description",
       "id",
+      "is_mission",
       "name"
     ]
   },

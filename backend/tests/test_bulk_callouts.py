@@ -160,10 +160,10 @@ def test_the_default_close_time_is_two_days_ahead_rounded_up_to_the_half_hour() 
     )
 
 
-def test_the_switch_keeps_the_type_of_a_sender_who_may_not_send_mission(
+def test_the_switch_clears_another_type_for_a_sender_who_may_not_send_mission(
     api_client: APIClient,
 ) -> None:
-    """A leader whose role Mission does not name keeps the type they chose."""
+    """A callout goes as Mission only: a leader whose role Mission omits has no type."""
     only_management = mission()
     only_management.sender_roles = [MANAGEMENT]
     only_management.save()
@@ -171,7 +171,31 @@ def test_the_switch_keeps_the_type_of_a_sender_who_may_not_send_mission(
     bulk = BulkEmailFactory(sender=leader)
     api_client.force_login(leader)
     body = api_client.patch(f"{API}/{bulk.pk}", {"is_callout": True}, format="json").json()
-    assert (body["is_callout"], body["email_type_name"]) == (True, "Operational")
+    assert (body["is_callout"], body["email_type"]) == (True, None)
+
+
+def test_a_callout_refuses_a_type_other_than_mission(
+    management_client: APIClient, management: User
+) -> None:
+    """Operational is refused for a mission callout, and the type stays Mission."""
+    bulk = BulkEmailFactory(sender=management)
+    management_client.patch(f"{API}/{bulk.pk}", {"is_callout": True}, format="json")
+    operational = EmailType.objects.get(slug="operational")
+    response = management_client.patch(
+        f"{API}/{bulk.pk}", {"email_type": operational.pk}, format="json"
+    )
+    bulk.refresh_from_db()
+    assert (response.status_code, response.json(), bulk.email_type) == (
+        400,
+        {"email_type": ["A mission callout goes as the Mission type."]},
+        mission(),
+    )
+
+
+def test_the_sendable_types_mark_the_mission_type(management_client: APIClient) -> None:
+    """``is_mission`` is true for Mission alone, so a callout's choice offers only it."""
+    rows = management_client.get("/api/v1/email-types/sendable").json()
+    assert [row["name"] for row in rows if row["is_mission"]] == ["Mission"]
 
 
 def test_a_close_time_can_be_chosen(management_client: APIClient, management: User) -> None:

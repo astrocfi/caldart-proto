@@ -35,7 +35,7 @@ async function sendToWebsiteAdmins(page: Page, subject: string): Promise<void> {
   await page.getByRole('button', { name: /^Send to \d+ (person|people)$/ }).click();
   await page
     .getByRole('region', { name: 'Confirm sending' })
-    .getByRole('button', { name: 'Send now' })
+    .getByRole('button', { name: 'Send', exact: true })
     .click();
   await expect(page.getByRole('region', { name: 'Waiting to send' })).toBeVisible();
 }

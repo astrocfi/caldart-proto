@@ -4,8 +4,8 @@
  * It is the compose screen's **What it says** card, saved under a name: the type in
  * the same radio list with each type's description, the subject, the **Reply-To**
  * address with the same sentence naming the default address, and the message in the
- * same rich text editor, with **Insert field** for each person's own details. Nothing saves until **Save
- * template** is pressed. The server checks the name against every other template
+ * same rich text editor; the subject and the message each have **Insert field** for
+ * each person's own details. Nothing saves until **Save template** is pressed. The server checks the name against every other template
  * and the words as it checks a draft's.
  */
 import { useId, useRef, useState } from 'react';
@@ -21,10 +21,11 @@ import { FormAlert, fieldError } from '@/portal/features/auth/form';
 import { useBulkSender, useSendableEmailTypes } from './api';
 import { TypeRadios } from './EmailTypeChoice';
 import type { TypeOption } from './EmailTypeChoice';
-import { SUBJECT_HINT, messageError } from './fieldText';
-import { InsertFieldMenu } from './InsertFieldMenu';
+import { messageError } from './fieldText';
+import { MessageFieldMenu } from './InsertFieldMenu';
 import { replyToHint } from './ReplyToField';
 import { uploadBulkEmailImage, useBulkEmailFields } from './richTextApi';
+import { SubjectField } from './SubjectField';
 
 /** The fields the form shows the server's complaints beside. */
 const HANDLED_FIELDS = ['name', 'email_type', 'subject', 'reply_to', 'body'];
@@ -32,9 +33,8 @@ const HANDLED_FIELDS = ['name', 'email_type', 'subject', 'reply_to', 'body'];
 /** What the Name box says when it is left empty, in the server's own words. */
 const NAME_MISSING = 'Give the template a name.';
 
-/** The longest name and subject the server accepts. */
+/** The longest name the server accepts. */
 const NAME_MAX_LENGTH = 80;
-const SUBJECT_MAX_LENGTH = 200;
 
 /** The choice of no type, first in the list. */
 const NO_TYPE: TypeOption = {
@@ -149,18 +149,13 @@ export function TemplateForm({
           </p>
         )}
       </fieldset>
-      <Field label="Subject" error={fieldError(error, 'subject')} hint={SUBJECT_HINT}>
-        {(props) => (
-          <input
-            {...props}
-            ref={subjectRef}
-            type="text"
-            maxLength={SUBJECT_MAX_LENGTH}
-            value={subject}
-            onChange={(change) => setSubject(change.target.value)}
-          />
-        )}
-      </Field>
+      <SubjectField
+        subjectRef={subjectRef}
+        subject={subject}
+        onSubjectChange={(next) => setSubject(next)}
+        error={fieldError(error, 'subject') ?? undefined}
+        isEditable
+      />
       <Field
         label="Replies go to"
         error={fieldError(error, 'reply_to')}
@@ -191,13 +186,7 @@ export function TemplateForm({
           fields={fields.data}
           describedBy={bodyError === null ? undefined : `${messageId}-error`}
           invalid={bodyError !== null}
-          toolbarExtra={
-            <InsertFieldMenu
-              subjectRef={subjectRef}
-              onSubjectChange={(next) => setSubject(next)}
-              editorRef={editorRef}
-            />
-          }
+          toolbarExtra={<MessageFieldMenu editorRef={editorRef} />}
         />
         {bodyError === null ? null : (
           <span className="field__error" id={`${messageId}-error`} role="alert">

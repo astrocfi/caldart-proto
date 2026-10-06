@@ -167,12 +167,14 @@ export const SENDABLE_TYPES: SendableEmailType[] = [
     name: 'Operational',
     description: 'News about how CalDART runs.',
     allow_opt_out: true,
+    is_mission: false,
   },
   {
     id: 3,
     name: 'Mission',
     description: 'Requests for pilots and aircraft.',
     allow_opt_out: true,
+    is_mission: true,
   },
 ];
 

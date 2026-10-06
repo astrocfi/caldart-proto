@@ -74,8 +74,8 @@ describe('Add a saved group', () => {
     renderCompose(state, 'management');
     await user.click(await screen.findByRole('button', { name: 'Add a saved group' }));
     expect(
-      await screen.findByRole('button', { name: 'Marin friends: live, 2 people' }),
-    ).toBeVisible();
+      await screen.findByRole('option', { name: 'Marin friends: live, 2 people' }),
+    ).toBeInTheDocument();
   });
 
   it('adds the group chosen and says what the add did', async () => {
@@ -84,7 +84,11 @@ describe('Add a saved group', () => {
     const user = userEvent.setup();
     renderCompose(state, 'management');
     await user.click(await screen.findByRole('button', { name: 'Add a saved group' }));
-    await user.click(await screen.findByRole('button', { name: 'Board: fixed, 2 people' }));
+    await user.selectOptions(
+      await screen.findByRole('combobox', { name: 'Group' }),
+      'Board: fixed, 2 people',
+    );
+    await user.click(screen.getByRole('button', { name: 'Add this group' }));
     expect(await screen.findByText('Added 1 person; 1 was already on the list.')).toBeVisible();
     expect(calls.added).toEqual([{ group: 5 }]);
   });

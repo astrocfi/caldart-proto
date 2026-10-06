@@ -63,7 +63,10 @@ test('a saved group and a saved template start a fresh draft', async ({ page }) 
   await openCompose(page);
   await expect(page.getByRole('textbox', { name: /^Subject/ })).toHaveValue('');
   await page.getByRole('button', { name: 'Add a saved group' }).click();
-  await page.getByRole('button', { name: new RegExp(`^${group}: fixed, `) }).click();
+  const groups = page.getByRole('combobox', { name: 'Group' });
+  const option = groups.locator('option', { hasText: `${group}: fixed, ` });
+  await groups.selectOption((await option.getAttribute('value')) ?? '');
+  await page.getByRole('button', { name: 'Add this group' }).click();
   await expect(page.getByText(/^Added \d+ (person|people)\.$/)).toBeVisible();
   const batch = page.getByRole('table', { name: /^Recipient list: / });
   // Chosen by shows on a screen wide enough for every column of the batch.
@@ -112,9 +115,7 @@ test('Duplicate starts a new draft from a sent email, with its people', async ({
   await page.getByRole('button', { name: /^Send to \d+ (person|people)$/ }).click();
   await page
     .getByRole('region', { name: 'Confirm sending' })
-    .getByRole('button', {
-      name: 'Send now',
-    })
+    .getByRole('button', { name: 'Send', exact: true })
     .click();
   await expect(
     page.getByRole('region', { name: 'Waiting to send' }).getByText(/^Starting to send/),

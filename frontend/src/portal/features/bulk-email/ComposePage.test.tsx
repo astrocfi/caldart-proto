@@ -305,7 +305,7 @@ describe('ComposePage', () => {
     expect(screen.getByRole('textbox', { name: /^Subject/ })).toBeDisabled();
     expect(screen.queryByRole('button', { name: 'Add these people' })).toBeNull();
     expect(screen.queryByRole('heading', { name: '3. Check and send' })).toBeNull();
-    expect(screen.queryByText(/Your work saves itself/)).toBeNull();
+    expect(screen.queryByText(/Your work is automatically saved/)).toBeNull();
   });
 
   it('shows the progress and Stop in the banner while sending', async () => {

@@ -1603,12 +1603,16 @@ export interface EmailTypeInput {
   position?: number;
 }
 
-/** A type the caller may send, from `GET /email-types/sendable`. */
+/**
+ * A type the caller may send, from `GET /email-types/sendable`. `is_mission` is true
+ * for the Mission type, the only one a mission callout offers.
+ */
 export interface SendableEmailType {
   id: number;
   name: string;
   description: string;
   allow_opt_out: boolean;
+  is_mission: boolean;
 }
 
 /**

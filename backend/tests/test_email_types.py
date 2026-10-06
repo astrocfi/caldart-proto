@@ -389,7 +389,7 @@ def test_a_type_nobody_is_named_for_is_the_system_administrators_alone(
 def test_a_sendable_type_carries_what_the_compose_screen_shows(
     api_client: APIClient, management: User
 ) -> None:
-    """A row is the type's id, name, description, and opt-out flag."""
+    """A row is the type's id, name, description, opt-out flag, and mission flag."""
     email_type = EmailTypeFactory(name="Mission", description="Pilots wanted.")
     api_client.force_login(management)
 
@@ -401,6 +401,7 @@ def test_a_sendable_type_carries_what_the_compose_screen_shows(
             "name": "Mission",
             "description": "Pilots wanted.",
             "allow_opt_out": True,
+            "is_mission": True,
         }
     ]
 

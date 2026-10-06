@@ -70,7 +70,7 @@ test('a callout is answered from its email, and the rest are reminded', async ({
   await page.getByRole('button', { name: 'Send to 2 people' }).click();
   await page
     .getByRole('region', { name: 'Confirm sending' })
-    .getByRole('button', { name: 'Send now' })
+    .getByRole('button', { name: 'Send', exact: true })
     .click();
   await expect(page.getByRole('region', { name: 'Waiting to send' })).toBeVisible();
   await runSender(page);

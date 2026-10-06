@@ -2,11 +2,13 @@
  * **Add a saved group**, beside **Add to batch**: puts everybody in a saved recipient
  * group into the batch at once.
  *
- * The button opens a list of the groups, each with how many people it holds now;
- * choosing one adds them, as any add does: nobody already in the batch is added
+ * The button opens the same panel as **Start from a template**: a drop-down of the
+ * groups, each with how many people it holds now, and **Add this group**, which adds
+ * them as any add does: nobody already in the batch is added
  * twice, and the batch table names the group that brought each person in. Groups are
  * CalDART management's, so nobody else sees the button.
  */
+import { useId, useState } from 'react';
 import type { JSX } from 'react';
 
 import { ApiError } from '@/portal/api/client';
@@ -31,7 +33,7 @@ export function AddGroupButton({ emailId, onAdded }: AddGroupButtonProps): JSX.E
   const { roles } = useAuth();
   if (!hasAnyRole(roles, ['management'])) return null;
   return (
-    <PanelButton label="Add a saved group" legend="Choose a saved group to add">
+    <PanelButton label="Add a saved group" legend="Add a saved group" isForm>
       {(handleClose) => (
         <GroupList
           emailId={emailId}
@@ -45,10 +47,12 @@ export function AddGroupButton({ emailId, onAdded }: AddGroupButtonProps): JSX.E
   );
 }
 
-/** One button per group, which adds its people. */
+/** The drop-down of groups, and **Add this group**, which adds the chosen one's people. */
 function GroupList({ emailId, onAdded }: AddGroupButtonProps): JSX.Element {
   const groups = useGroups();
   const add = useAddGroupToBatch(emailId);
+  const [chosen, setChosen] = useState('');
+  const id = useId();
 
   if (groups.isPending) return <p role="status">Loading the groups…</p>;
   if (groups.isError) {
@@ -67,22 +71,30 @@ function GroupList({ emailId, onAdded }: AddGroupButtonProps): JSX.Element {
   }
   return (
     <div className="stack-tight">
-      <ul className="bulk-email__choices">
-        {groups.data.map((group) => (
-          <li key={group.id}>
-            <Button
-              variant="quiet"
-              small
-              disabled={add.isPending}
-              onClick={() => add.mutate(group.id, { onSuccess: (result) => onAdded(result) })}
-            >
+      <div className="field">
+        <label className="field__label" htmlFor={id}>
+          Group
+        </label>
+        <select id={id} value={chosen} onChange={(change) => setChosen(change.target.value)}>
+          <option value="">Choose a group</option>
+          {groups.data.map((group) => (
+            <option key={group.id} value={String(group.id)}>
               {`${group.name}: ${groupKindLabel(group.kind).toLowerCase()}, ${
                 group.count === null ? 'filters need fixing' : people(group.count)
               }`}
-            </Button>
-          </li>
-        ))}
-      </ul>
+            </option>
+          ))}
+        </select>
+      </div>
+      <div>
+        <Button
+          small
+          disabled={chosen === '' || add.isPending}
+          onClick={() => add.mutate(Number(chosen), { onSuccess: (result) => onAdded(result) })}
+        >
+          Add this group
+        </Button>
+      </div>
       {add.error === null ? null : (
         <p className="field__error" role="alert">
           {add.error instanceof ApiError

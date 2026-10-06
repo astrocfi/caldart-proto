@@ -12,10 +12,10 @@ import { API } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
 
-import { InsertFieldMenu } from './InsertFieldMenu';
+import { MessageFieldMenu, SUBJECT_MENU_NAME, SubjectFieldMenu } from './InsertFieldMenu';
 import { useBulkEmailFields } from './richTextApi';
 
-/** A subject input and a message editor, with the menu between them. */
+/** A subject input with its menu, and a message editor with its own in the toolbar. */
 function Compose(): JSX.Element {
   const [subject, setSubject] = useState('Hello  pilots');
   const [body, setBody] = useState('<p>Dear </p>');
@@ -28,6 +28,7 @@ function Compose(): JSX.Element {
         Subject
         <input ref={subjectRef} value={subject} onChange={(e) => setSubject(e.target.value)} />
       </label>
+      <SubjectFieldMenu subjectRef={subjectRef} onSubjectChange={(next) => setSubject(next)} />
       <RichTextEditor
         ref={editorRef}
         label="Message"
@@ -35,13 +36,7 @@ function Compose(): JSX.Element {
         onChange={(html) => setBody(html)}
         fields={fields.data}
         onUploadImage={() => Promise.reject(new Error('unused'))}
-        toolbarExtra={
-          <InsertFieldMenu
-            subjectRef={subjectRef}
-            onSubjectChange={(next) => setSubject(next)}
-            editorRef={editorRef}
-          />
-        }
+        toolbarExtra={<MessageFieldMenu editorRef={editorRef} />}
       />
       <output aria-label="Body">{body}</output>
     </>
@@ -52,8 +47,8 @@ function answerFields(): void {
   server.use(http.get(`${API}/bulk-email/fields`, () => HttpResponse.json(FIELDS)));
 }
 
-async function choose(label: string): Promise<void> {
-  await userEvent.click(screen.getByRole('button', { name: 'Insert field' }));
+async function choose(label: string, menu = 'Insert field'): Promise<void> {
+  await userEvent.click(screen.getByRole('button', { name: menu }));
   await userEvent.click(await screen.findByRole('button', { name: new RegExp(`^${label}`) }));
 }
 
@@ -71,7 +66,7 @@ describe('InsertFieldMenu', () => {
     ]);
   });
 
-  it('puts the field into the message as a chip when neither box has had the focus', async () => {
+  it("puts the message's field into the message as a chip", async () => {
     answerFields();
     renderWithProviders(<Compose />);
 
@@ -84,24 +79,23 @@ describe('InsertFieldMenu', () => {
     ]).toEqual(['First name', expect.stringContaining('{first_name}')]);
   });
 
-  it('puts the token into the subject at the cursor after the subject had the focus', async () => {
+  it("puts the subject's field into the subject at the cursor", async () => {
     answerFields();
     renderWithProviders(<Compose />);
     const subject = screen.getByRole<HTMLInputElement>('textbox', { name: 'Subject' });
 
     await userEvent.click(subject);
     act(() => subject.setSelectionRange(6, 6));
-    await choose('First name');
+    await choose('First name', SUBJECT_MENU_NAME);
 
     expect([subject.value, subject.selectionStart]).toEqual(['Hello {first_name} pilots', 18]);
   });
 
-  it('puts the token into the message once the focus moved back to it', async () => {
+  it("puts the message's field into the message even after the subject had the focus", async () => {
     answerFields();
     renderWithProviders(<Compose />);
 
     await userEvent.click(screen.getByRole('textbox', { name: 'Subject' }));
-    await userEvent.click(screen.getByRole('textbox', { name: 'Message' }));
     await choose('DART');
 
     expect([

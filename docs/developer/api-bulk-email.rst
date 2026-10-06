@@ -209,8 +209,8 @@ valid email address."]}``.
 
 ``is_callout`` true makes the email a mission callout: its answers close two days
 ahead, rounded up to the half hour, unless ``closes_at`` is given too, and its type
-becomes Mission when the caller may send that type.  False makes it an ordinary email
-again.  ``closes_at`` is when a callout's answers close, a time given without an
+becomes Mission when the caller may send that type, or none when the caller may not and
+it was another.  False makes it an ordinary email again.  ``closes_at`` is when a callout's answers close, a time given without an
 offset read in the site's time zone; it is ignored for an email that is not a callout,
 and a time not after now is **400** ``{"closes_at": ["Choose a time in the
 future."]}``.  A queued callout cannot be changed so that its answers would close
@@ -218,7 +218,9 @@ before it starts: **400** keyed ``closes_at``, worded as **Send** words it.
 
 ``email_type`` is the id of a type the caller may send (``GET
 /email-types/sendable``); any other is **400** *You cannot send <type> email. Choose
-another type.*, and an id no type carries is DRF's *Invalid pk* message.  Choosing
+another type.*, and an id no type carries is DRF's *Invalid pk* message.  A mission
+callout takes the Mission type only: another is **400** ``{"email_type": ["A mission
+callout goes as the Mission type."]}``.  Choosing
 a type changes who the batch skips, since everybody who has turned it off is.
 
 ``subject`` is at most 200 characters, one line, and free of control characters,
