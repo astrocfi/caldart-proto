@@ -122,7 +122,8 @@ function EmailCard({ entry }: { entry: EmailLogEntry }): JSX.Element {
       </dl>
       {entry.link === '' ? (
         <p className="muted">
-          The log keeps who an email went to and what it was for. It keeps no copy of the text.
+          The log keeps who an email went to and what it was for. It doesn&apos;t keep a copy of the
+          text.
         </p>
       ) : (
         <p>
