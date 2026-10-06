@@ -3,8 +3,9 @@
  * three buttons do.
  *
  * The panel closes on a click anywhere outside it, on Escape, and when the focus
- * moves on past it (Tab from its last control, say), so it never sits over the
- * table somebody is trying to read, or over a control the focus has moved to.  Closing it while the focus is
+ * moves on past it to another control (Tab from its last control, say), so it never
+ * sits over the table somebody is trying to read, or over a control the focus has
+ * moved to.  A press anywhere inside it leaves it open.  Closing it while the focus is
  * still inside puts the focus back on the button, so a keyboard user carries on
  * from the control they opened rather than from the top of the page.
  *
@@ -100,9 +101,14 @@ export function PanelButton({
 
   // Focus that moves to a control outside shuts the panel without pulling the focus
   // back; focus that goes nowhere, as when a control in the panel unmounts, leaves it.
+  // So does focus that moves to a region holding the panel, such as the portal's
+  // focusable `<main>`, which takes it on a press on plain words or a label inside
+  // the panel: closing then would swallow the press, and the label's radio button
+  // would never be checked.
   const handleBlur = (event: FocusEvent<HTMLDivElement>): void => {
     const next = event.relatedTarget;
-    if (next instanceof Node && !event.currentTarget.contains(next)) setIsOpen(false);
+    const root = event.currentTarget;
+    if (next instanceof Node && !root.contains(next) && !next.contains(root)) setIsOpen(false);
   };
 
   return (
