@@ -732,6 +732,104 @@ def test_a_malformed_dmarc_policy_fails(dns_zone: Zone, record: str) -> None:
     assert "is malformed" in result.detail
 
 
+@pytest.fixture
+def subdomain_sender(settings: Settings) -> None:
+    """Send from ``caldart.example.org``, a subdomain with no DMARC record of its own."""
+    settings.DEFAULT_FROM_EMAIL = "CalDART <noreply@caldart.example.org>"
+
+
+def test_a_subdomain_without_a_policy_passes_on_the_organizational_domains_reject(
+    dns_zone: Zone, subdomain_sender: None
+) -> None:
+    """The organizational domain's ``p=reject`` covers the subdomain, and says where."""
+    result = finding(run(), DMARC_NAME)
+
+    assert result.status == DnsStatus.PASS
+    assert (
+        "The policy for caldart.example.org is published at _dmarc.example.org. "
+        "The policy is reject, so forged mail is refused."
+    ) in result.detail
+
+
+def test_the_organizational_records_sp_none_warns_for_the_subdomain_despite_p_reject(
+    dns_zone: Zone, subdomain_sender: None
+) -> None:
+    """``sp=`` is the policy a subdomain gets, so ``sp=none`` warns whatever p= says."""
+    dns_zone[("_dmarc.example.org", "TXT")] = ["v=DMARC1; p=reject; sp=none"]
+
+    result = finding(run(), DMARC_NAME)
+
+    assert result.status == DnsStatus.WARN
+    assert result.fix == (
+        "Once the reports show real CalDART mail passing, ask whoever manages the DNS for "
+        "example.org to change sp=none to sp=quarantine in the record at _dmarc.example.org."
+    )
+
+
+def test_a_multi_label_public_suffix_falls_back_to_the_registrable_domain(
+    dns_zone: Zone, settings: Settings
+) -> None:
+    """``caldart.example.co.uk`` falls back to ``example.co.uk``, never to ``co.uk``."""
+    settings.DEFAULT_FROM_EMAIL = "CalDART <noreply@caldart.example.co.uk>"
+    dns_zone[("_dmarc.example.co.uk", "TXT")] = ["v=DMARC1; p=quarantine"]
+    dns_zone[("_dmarc.co.uk", "TXT")] = ["v=DMARC1; p=none"]
+
+    result = finding(run(), DMARC_NAME)
+
+    assert "published at _dmarc.example.co.uk. The policy is quarantine" in result.detail
+
+
+def test_a_record_at_the_subdomain_itself_wins_over_the_organizational_one(
+    dns_zone: Zone, subdomain_sender: None
+) -> None:
+    """The organizational record is not even looked up when the subdomain has its own."""
+    dns_zone[("_dmarc.caldart.example.org", "TXT")] = ["v=DMARC1; p=none"]
+
+    result = finding(run(), DMARC_NAME)
+
+    assert result.status == DnsStatus.WARN
+    assert ("_dmarc.example.org", "TXT") not in FakeResolver.queries
+
+
+def test_a_subdomain_with_neither_record_fails_with_a_record_for_itself(
+    dns_zone: Zone, subdomain_sender: None
+) -> None:
+    """With no policy at either name, the fix is still the subdomain's own record."""
+    del dns_zone[("_dmarc.example.org", "TXT")]
+
+    result = finding(run(), DMARC_NAME)
+
+    assert result.status == DnsStatus.FAIL
+    assert result.fix == (
+        "Ask whoever manages the DNS for caldart.example.org to add a TXT record named "
+        "_dmarc.caldart.example.org that reads: v=DMARC1; p=quarantine; "
+        "rua=mailto:dmarc-reports@caldart.example.org"
+    )
+
+
+def test_the_organizational_lookup_counts_against_the_checks_time_budget(
+    dns_zone: Zone, subdomain_sender: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A fallback lookup begun after the budget is spent fails like any other lookup."""
+    real_query = dns_check._Resolver.query
+
+    def spend_budget_at_the_subdomain(
+        self: dns_check._Resolver, name: str, rdtype: str
+    ) -> list[dns.rdata.Rdata]:
+        """Answer as usual, then spend the budget once the subdomain's policy is read."""
+        answer = real_query(self, name, rdtype)
+        if name == "_dmarc.caldart.example.org":
+            monkeypatch.setattr(self, "_deadline", 0.0)
+        return answer
+
+    monkeypatch.setattr(dns_check._Resolver, "query", spend_budget_at_the_subdomain)
+
+    result = finding(run(), DMARC_NAME)
+
+    assert result.status == DnsStatus.FAIL
+    assert ("_dmarc.example.org", "TXT") not in FakeResolver.queries
+
+
 # --------------------------------------------------------------------------
 # Envelope alignment
 # --------------------------------------------------------------------------

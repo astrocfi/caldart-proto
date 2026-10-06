@@ -1716,7 +1716,10 @@ sending bulk email:
        local mail server (``opendkim``, for instance) chose, and goes in
        ``DKIM_SELECTOR`` (:doc:`configuration`)
    * - DMARC
-     - ``TXT`` at ``_dmarc.<domain>``
+     - ``TXT`` at ``_dmarc.<domain>``, or, when there is none, at
+       ``_dmarc.<organizational domain>`` (``_dmarc.example.org`` for
+       ``caldart.example.org``), whose ``sp=`` (or ``p=``) then applies to the
+       subdomain
      - what a receiver does with a message that fails both: ``v=DMARC1;
        p=none`` to watch, ``p=quarantine`` or ``p=reject`` to act, and an
        ``rua=mailto:`` address for the reports
@@ -1743,8 +1746,13 @@ report is in the **Mail delivery** card of the portal's Health and database page
 for system administrators only, which reads a copy cached for five minutes
 (``GET /mail/delivery-check``, :ref:`api-mail-delivery`).
 
-Four limits to know.  The DKIM and DMARC records are looked up at the From address's
-domain exactly, not at a parent domain.  The whole check gives up after about 15
+The DMARC record follows RFC 7489: with no policy at ``_dmarc.<From domain>``, the
+check reads the organizational domain's record, found with the public suffix list
+bundled with ``tldextract`` (never fetched at check time), so ``caldart.example.co.uk``
+falls back to ``example.co.uk``.  The finding then says where the policy was found,
+and judges its ``sp=`` when it has one.  The DKIM record has no such fallback.
+
+Three limits to know.  The whole check gives up after about 15
 seconds, and a lookup it did not reach is a ``[FAIL]`` that says the check took
 too long.  A mail server on the same machine
 (``--email local``) is reported as a warning rather than judged, because the

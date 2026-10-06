@@ -16,8 +16,10 @@ carries ``detail`` (what the record is for and what was found, in words a person
 never heard of the record can follow) and ``fix`` (what to ask for when it is not
 ``pass``).
 
-The records are looked up at the domain of ``DEFAULT_FROM_EMAIL`` exactly; no search of
-a parent domain is made.  The SPF check authorizes the host named by the default mailer's
+The records are looked up at the domain of ``DEFAULT_FROM_EMAIL``.  Only DMARC falls back
+to a parent: with no policy of its own, the From domain is judged by its organizational
+domain's (found on the public suffix list bundled with ``tldextract``), as RFC 7489
+says.  The SPF check authorizes the host named by the default mailer's
 ``host`` option (``EMAIL_URL``): it follows ``include:``, ``a``, ``mx``, ``ip4``, and
 ``ip6`` terms, with at most ``SPF_LOOKUP_LIMIT`` lookups as the SPF standard allows.  A
 host that resolves only to a loopback address (a mail server on the same machine) cannot
@@ -55,6 +57,7 @@ import dns.rdtypes.IN.AAAA
 import dns.rdtypes.mxbase
 import dns.rdtypes.txtbase
 import dns.resolver
+import tldextract
 from django.conf import settings
 from django.core.cache import cache
 
@@ -75,6 +78,10 @@ CACHE_SECONDS = 300
 #: The most DNS-querying terms an SPF record may need (``include``, ``a``, ``mx``,
 #: ``redirect``) before a receiver gives up on it.
 SPF_LOOKUP_LIMIT = 10
+
+#: The public suffix list, from the snapshot bundled with ``tldextract``: no list is
+#: fetched over the network and nothing is cached on disk.
+_PUBLIC_SUFFIXES = tldextract.TLDExtract(suffix_list_urls=(), cache_dir=None)
 
 #: The cache key's prefix; the settings the check reads are hashed onto the end.
 CACHE_KEY_PREFIX = "mail.dns_report."
@@ -802,17 +809,26 @@ def _dkim_key(record: str) -> str:
 # DMARC
 # --------------------------------------------------------------------------
 def _check_dmarc(resolver: _Resolver, inputs: _Inputs) -> DnsFinding:
-    """The DMARC finding: a policy is published, and it does something about forgeries."""
-    name = f"_dmarc.{inputs.from_domain}"
+    """The DMARC finding: a policy is published, and it does something about forgeries.
+
+    The policy is read at ``_dmarc.<From domain>``.  When no record there starts with
+    ``v=DMARC1``, it is read at the organizational domain's ``_dmarc`` name instead, as
+    RFC 7489 section 6.6.3 has a receiver do, and that record's ``sp=`` (or its ``p=``
+    when there is no valid ``sp=``) is the policy judged; the detail then says where it
+    was found, and a fix names that record.
+    """
+    domain = inputs.from_domain
+    name = f"_dmarc.{domain}"
     try:
-        records = [
-            text
-            for text in _txt_records(resolver, name)
-            if text.strip().lower().startswith(DMARC_VERSION)
-        ]
+        records = _dmarc_records(resolver, name)
+        org_domain = _organizational_domain(domain)
+        if len(records) == 0 and org_domain not in ("", domain):
+            name, domain = f"_dmarc.{org_domain}", org_domain
+            records = _dmarc_records(resolver, name)
     except DnsLookupError as exc:
         return DnsFinding(DMARC_NAME, DnsStatus.FAIL, f"{DMARC_PURPOSE} {exc}", exc.fix)
     if len(records) == 0:
+        name = f"_dmarc.{inputs.from_domain}"
         return DnsFinding(
             DMARC_NAME,
             DnsStatus.FAIL,
@@ -821,13 +837,16 @@ def _check_dmarc(resolver: _Resolver, inputs: _Inputs) -> DnsFinding:
             f"named {name} that reads: v=DMARC1; p=quarantine; rua=mailto:"
             f"dmarc-reports@{inputs.from_domain}",
         )
+    purpose = DMARC_PURPOSE
+    if domain != inputs.from_domain:
+        purpose += f" The policy for {inputs.from_domain} is published at {name}."
     if len(records) > 1:
         return DnsFinding(
             DMARC_NAME,
             DnsStatus.FAIL,
-            f"{DMARC_PURPOSE} {name} publishes {len(records)} policies; receiving servers "
+            f"{purpose} {name} publishes {len(records)} policies; receiving servers "
             "apply none of them when there is more than one.",
-            f"Ask whoever manages the DNS for {inputs.from_domain} to keep one TXT record "
+            f"Ask whoever manages the DNS for {domain} to keep one TXT record "
             f"at {name} that starts with v=DMARC1 and remove the others.",
         )
     tags = _dmarc_tags(records[0])
@@ -836,26 +855,48 @@ def _check_dmarc(resolver: _Resolver, inputs: _Inputs) -> DnsFinding:
         return DnsFinding(
             DMARC_NAME,
             DnsStatus.FAIL,
-            f"{DMARC_PURPOSE} The policy at {name} is malformed: it has no valid p= setting.",
-            f"Ask whoever manages the DNS for {inputs.from_domain} to correct the "
+            f"{purpose} The policy at {name} is malformed: it has no valid p= setting.",
+            f"Ask whoever manages the DNS for {domain} to correct the "
             f"record at {name} so it contains p=none, p=quarantine, or p=reject.",
         )
+    tag = "p"
+    if domain != inputs.from_domain and tags.get("sp", "").lower() in DMARC_POLICIES:
+        tag, policy = "sp", tags["sp"].lower()
     reports = _dmarc_reports(tags)
     if policy == "none":
         return DnsFinding(
             DMARC_NAME,
             DnsStatus.WARN,
-            f"{DMARC_PURPOSE} The policy is monitor-only (p=none), so receivers are not "
+            f"{purpose} The policy is monitor-only ({tag}=none), so receivers are not "
             f"asked to do anything about forged mail.{reports}",
             f"Once the reports show real CalDART mail passing, ask whoever manages the DNS "
-            f"for {inputs.from_domain} to change p=none to p=quarantine.",
+            f"for {domain} to change {tag}=none to {tag}=quarantine"
+            + ("." if domain == inputs.from_domain else f" in the record at {name}."),
         )
     return DnsFinding(
         DMARC_NAME,
         DnsStatus.PASS,
-        f"{DMARC_PURPOSE} The policy is {policy}, so forged mail is "
+        f"{purpose} The policy is {policy}, so forged mail is "
         f"{'sent to spam' if policy == 'quarantine' else 'refused'}.{reports}",
     )
+
+
+def _dmarc_records(resolver: _Resolver, name: str) -> list[str]:
+    """The TXT records at ``name`` that are DMARC policies: they start with v=DMARC1."""
+    return [
+        text
+        for text in _txt_records(resolver, name)
+        if text.strip().lower().startswith(DMARC_VERSION)
+    ]
+
+
+def _organizational_domain(domain: str) -> str:
+    """``domain``'s registrable domain on the public suffix list; blank when it has none.
+
+    ``caldart.example.co.uk`` gives ``example.co.uk``.  The list is the snapshot bundled
+    with ``tldextract``: nothing is fetched over the network.
+    """
+    return _PUBLIC_SUFFIXES(domain).top_domain_under_public_suffix
 
 
 def _dmarc_tags(record: str) -> dict[str, str]:

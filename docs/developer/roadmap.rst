@@ -97,13 +97,8 @@ Bulk email
 ----------
 
 :doc:`bulk-email` is complete for CalDART management, DART leaders, and the people
-they write to.  Four next steps are known:
+they write to.  Three next steps are known:
 
-* The **Mail delivery** check reads the DMARC record at the From address's domain
-  only.  A receiving server falls back to the organizational domain's record when a
-  subdomain has none, so a site sending from a subdomain is reported as failing
-  when it is not; the check should follow the same fallback, with the public suffix
-  list to find the organizational domain.
 * A mission callout's reminders are further rounds of copies of the same email.
   The Sent page's counts include them, but its table and its download list only the
   first round, so a failed reminder has no line of its own.

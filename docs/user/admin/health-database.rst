@@ -94,7 +94,10 @@ The four checks:
   when more than one is, because receiving systems then follow none of them. It is a warning
   while it only says to watch (``p=none``), and good when it says to send forgeries to spam
   (``quarantine``) or refuse them (``reject``). When it names addresses for reports, the
-  block lists them.
+  block lists them. When CalDART sends from a part of a larger domain, such as
+  ``caldart.example.org``, and that part has no instruction of its own, receiving systems
+  follow the one for ``example.org``, and so does the check: the block says where it found
+  the instruction, and judges its setting for subdomains (``sp=``) when there is one.
 - **Bounce address**: where a receiving server sends back a message it cannot deliver,
   which CalDART reads to find the addresses that are no good. Some systems trust a message
   more when it is on the same domain as the From address, so it is a warning when it is on
