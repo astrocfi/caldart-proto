@@ -482,9 +482,9 @@ ID, and an aircraft's insurance, and reaches no member list or member record.
 Like every staff slug it opens the website's members-only pages.
 
 ``management``, labeled *CalDART management*, grants the bulk email endpoints
-under ``/bulk-email`` (:doc:`api-bulk-email`) and the mail delivery check
-``GET /mail/delivery-check`` (:ref:`api-mail-delivery`) and nothing else: no member
-list, no member record, no payment.  It sits after ``account_admin`` in privilege
+under ``/bulk-email`` (:doc:`api-bulk-email`) and nothing else: no member list, no
+member record, no payment, and not the mail delivery check, which is
+``system_admin``'s (:ref:`api-mail-delivery`).  It sits after ``account_admin`` in privilege
 order.  Like every staff slug it opens the website's members-only pages.
 ``IsBulkSender``, ``HasAnyRole(MANAGEMENT, DART_LEADER)``, guards every
 ``/bulk-email`` endpoint: a ``dart_leader`` sends bulk email too, but only to the DART
@@ -1936,7 +1936,7 @@ not (see :ref:`api-csrf-bootstrap`).
      - ·
      - ·
      - ·
-     - ``management``; the DNS check (see :ref:`api-mail-delivery`)
+     - ``system_admin`` only; the DNS check (see :ref:`api-mail-delivery`)
    * - ``POST /system/bulk-email/run``
      - ·
      - ·

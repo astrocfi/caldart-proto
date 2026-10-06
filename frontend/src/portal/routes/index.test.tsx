@@ -139,9 +139,6 @@ vi.mock('../features/callouts/CalloutsPage', () => ({
 vi.mock('../features/callouts/CalloutDetailPage', () => ({
   CalloutDetailPage: pageStub('Callout'),
 }));
-vi.mock('../features/mail-delivery/MailDeliveryPage', () => ({
-  MailDeliveryPage: pageStub('Mail delivery'),
-}));
 vi.mock('../features/admin-users/UsersListPage', () => ({
   UsersListPage: pageStub('Roles'),
 }));
@@ -352,11 +349,6 @@ const GUARDED_PATHS: GuardedPath[] = [
     heading: 'Recipient group',
     allowed: ['management', 'system_admin'],
   },
-  {
-    path: '/bulk-email/mail-delivery',
-    heading: 'Mail delivery',
-    allowed: ['management', 'system_admin'],
-  },
   { path: '/bulk-email/types', heading: 'Email types', allowed: ['system_admin'] },
   { path: '/messages', heading: 'Email to me', allowed: ANY_SIGNED_IN },
   { path: '/messages/1', heading: 'Message', allowed: ANY_SIGNED_IN },
@@ -364,6 +356,11 @@ const GUARDED_PATHS: GuardedPath[] = [
   { path: '/admin/users', heading: 'Roles', allowed: ['user_admin', 'system_admin'] },
   { path: '/admin/users/1', heading: 'User record', allowed: ['user_admin', 'system_admin'] },
   { path: '/system', heading: 'Health and database', allowed: ['system_admin'] },
+  {
+    path: '/bulk-email/mail-delivery',
+    heading: 'Health and database',
+    allowed: ['system_admin'],
+  },
   { path: '/system/health', heading: 'Health and database', allowed: ['system_admin'] },
   { path: '/system/emails', heading: 'Sent emails', allowed: ['system_admin'] },
   { path: '/system/scheduled', heading: 'Scheduled tasks', allowed: ['system_admin'] },

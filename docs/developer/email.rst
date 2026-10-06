@@ -215,7 +215,7 @@ DMARC
 
       _dmarc.caldart.example.org.  TXT  "v=DMARC1; p=none; rua=mailto:dmarc@caldart.example.org"
 
-``manage.py check_mail_dns`` and the portal's **Mail delivery** screen look these
+``manage.py check_mail_dns`` and the **Mail delivery** card on Health and database look these
 records up and say which are missing, malformed, or too weak, and whether the
 mail host and ``BOUNCE_ADDRESS`` fit them (:ref:`deploy-mail-dns`).  Set
 ``DKIM_SELECTOR`` to the selector the DKIM record is published under so the check

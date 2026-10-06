@@ -1,5 +1,5 @@
 /*
- * The mail delivery check: one block per line, a dot and a word on the heading, then
+ * The Mail delivery panel of Health and database: one block per line, a dot and a word on the heading, then
  * what the record is for and what to do. Plain blocks rather than a table, because
  * every line carries sentences that must wrap on a phone.
  */

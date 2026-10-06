@@ -187,6 +187,8 @@ copy to the mail server, so ask them to check their spam folder, or point them t
 Messages page, where they can read it. *Failed*, *Bounced*, or *Skipped* gives the reason.
 After a failure the mail server reported, **Retry failed** may get the copy through. An
 address that needs correcting is corrected on the person's account by a user administrator
-or an account administrator. To write to everybody again, use **Duplicate**
+or an account administrator. If many people find CalDART's email in their spam folders, ask a
+system administrator to read **Mail delivery** on :doc:`../admin/health-database`. To write
+to everybody again, use **Duplicate**
 with the people; to write to only the people a failure left out, download the results and add
 them to a new email.

@@ -303,7 +303,6 @@ ADMIN_PAGE_ROLES: dict[str, frozenset[str]] = {
     "bulk-email/dart-leaders": frozenset({DART_LEADER}),
     "bulk-email/templates": frozenset({MANAGEMENT}),
     "bulk-email/groups": frozenset({MANAGEMENT}),
-    "bulk-email/mail-delivery": frozenset({MANAGEMENT}),
     "bulk-email/email-types": frozenset({SYSTEM_ADMIN}),
 }
 

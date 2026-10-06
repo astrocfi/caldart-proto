@@ -1739,8 +1739,8 @@ domain or a subdomain of it, then prints one line per finding: ``[PASS]``,
 ``[WARN]``, or ``[FAIL]``, what it found, and what to ask for.  It always queries
 afresh, never reads the cache, and exits non-zero when any line is ``[FAIL]``, so
 it can sit in a script; a ``[WARN]`` leaves the exit status at zero.  The same
-report is on the portal's **Mail delivery** screen, for CalDART management and
-system administrators, which reads a copy cached for five minutes
+report is in the **Mail delivery** card of the portal's Health and database page,
+for system administrators only, which reads a copy cached for five minutes
 (``GET /mail/delivery-check``, :ref:`api-mail-delivery`).
 
 Four limits to know.  The DKIM and DMARC records are looked up at the From address's

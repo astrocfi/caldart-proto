@@ -720,7 +720,8 @@ the files they test, and an ``index.ts`` of what the route files use:
 ``admin-*``             the members, aircraft, DARTs, payments, reminder-log,
                         reports, notifications, and users screens
 ``system``              the three System pages: Health and database (health,
-                        backups, and the FAA registry import), Sent emails
+                        the mail delivery check, backups, and the FAA
+                        registry import), Sent emails
                         (the email log), and Scheduled (the reminder emails,
                         the renewal charges, the scheduled reports, and the
                         year-end statements)

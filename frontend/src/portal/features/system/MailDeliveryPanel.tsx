@@ -1,6 +1,6 @@
 /**
- * `/bulk-email/mail-delivery` -- whether other mail systems will trust the email
- * CalDART sends.
+ * The Mail delivery panel of `/portal/system/health`: whether other mail systems will
+ * trust the email CalDART sends.
  *
  * Each line of the server's check (who may send for the domain, the message signature,
  * what to do with forged mail, the bounce address) shows a dot and a word, what the
@@ -19,11 +19,10 @@ import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { formatDateTime } from '@/portal/components/DateText';
 import { Loading } from '@/portal/components/Loading';
-import { Page } from '@/portal/components/Page';
 import { StatusDot } from '@/portal/components/StatusDot';
 import type { StatusTone } from '@/portal/components/StatusDot';
 import { useMailDeliveryCheck, useRecheckMailDelivery } from './api';
-import './mail-delivery.css';
+import './mailDelivery.css';
 
 const STATUS_TONE: Record<MailDeliveryStatus, StatusTone> = {
   pass: 'current',
@@ -84,50 +83,45 @@ function Report({ report }: { report: MailDeliveryCheck }): JSX.Element {
   );
 }
 
-/** The Mail delivery screen. */
-export function MailDeliveryPage(): JSX.Element {
+/** The Mail delivery card: the check's lines, when it was made, and **Check again**. */
+export function MailDeliveryPanel(): JSX.Element {
   const { data, isPending, isError, error } = useMailDeliveryCheck();
   const recheck = useRecheckMailDelivery();
   const report = recheck.data ?? data;
 
   return (
-    <Page
+    <Card
       title="Mail delivery"
-      lede="Whether other mail systems will trust and deliver the email CalDART sends. Do this check before a large send, and again after anyone changes the website's email settings."
+      footer={
+        <>
+          <Button variant="secondary" onClick={() => recheck.mutate()} disabled={recheck.isPending}>
+            {recheck.isPending ? 'Checking…' : 'Check again'}
+          </Button>
+          {report ? (
+            <span className="muted">
+              Checked {formatDateTime(report.checked_at)}
+              {report.domain === '' ? '' : ` for ${report.domain}`}.
+            </span>
+          ) : null}
+        </>
+      }
     >
-      <Card
-        title="What other mail systems check"
-        footer={
-          <>
-            <Button
-              variant="secondary"
-              onClick={() => recheck.mutate()}
-              disabled={recheck.isPending}
-            >
-              {recheck.isPending ? 'Checking…' : 'Check again'}
-            </Button>
-            {report ? (
-              <span className="muted">
-                Checked {formatDateTime(report.checked_at)}
-                {report.domain === '' ? '' : ` for ${report.domain}`}.
-              </span>
-            ) : null}
-          </>
-        }
-      >
-        {isPending ? <Loading /> : null}
-        {isError ? (
-          <p className="field__error" role="alert">
-            {error instanceof Error ? error.message : 'Could not run the mail delivery check.'}
-          </p>
-        ) : null}
-        {recheck.isError ? (
-          <p className="field__error" role="alert">
-            The check could not be run again. Try once more in a minute.
-          </p>
-        ) : null}
-        {report ? <Report report={report} /> : null}
-      </Card>
-    </Page>
+      <p className="muted">
+        Whether other mail systems will trust and deliver the email CalDART sends. Check again after
+        anyone changes the domain name&rsquo;s records or the server&rsquo;s mail settings.
+      </p>
+      {isPending ? <Loading /> : null}
+      {isError ? (
+        <p className="field__error" role="alert">
+          {error instanceof Error ? error.message : 'Could not run the mail delivery check.'}
+        </p>
+      ) : null}
+      {recheck.isError ? (
+        <p className="field__error" role="alert">
+          The check could not be run again. Try once more in a minute.
+        </p>
+      ) : null}
+      {report ? <Report report={report} /> : null}
+    </Card>
   );
 }

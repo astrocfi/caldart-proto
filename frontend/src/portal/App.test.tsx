@@ -87,7 +87,6 @@ describe('the rail and the router', () => {
       'Recipient groups',
       'Callouts',
       'Email types',
-      'Mail delivery',
     ]);
   });
 

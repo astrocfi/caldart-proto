@@ -8,7 +8,7 @@ import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
 import type { MailDeliveryCheck, MailDeliveryFinding } from '@/portal/api/types';
 import { formatDateTime } from '@/portal/components/DateText';
-import { MailDeliveryPage, summarize } from './MailDeliveryPage';
+import { MailDeliveryPanel, summarize } from './MailDeliveryPanel';
 
 const CHECK_URL = `${API}/mail/delivery-check`;
 
@@ -50,7 +50,7 @@ describe('summarize', () => {
   });
 });
 
-describe('MailDeliveryPage', () => {
+describe('MailDeliveryPanel', () => {
   it('shows one row per finding with its status in words and its explanation', async () => {
     serve(
       report([
@@ -59,7 +59,7 @@ describe('MailDeliveryPage', () => {
         finding({ name: 'Bounce address', status: 'fail', detail: 'It is elsewhere.' }),
       ]),
     );
-    renderWithProviders(<MailDeliveryPage />);
+    renderWithProviders(<MailDeliveryPanel />);
 
     const rows = await screen.findAllByRole('listitem');
 
@@ -73,7 +73,7 @@ describe('MailDeliveryPage', () => {
 
   it('reads out each status as its word, not as a color', async () => {
     serve(report([finding({ status: 'fail' })]));
-    renderWithProviders(<MailDeliveryPage />);
+    renderWithProviders(<MailDeliveryPanel />);
 
     const heading = await screen.findByRole('heading', { name: /Approved senders/ });
 
@@ -82,7 +82,7 @@ describe('MailDeliveryPage', () => {
 
   it('keeps the dot and the word together, apart from the name', async () => {
     serve(report([finding({ status: 'fail' })]));
-    renderWithProviders(<MailDeliveryPage />);
+    renderWithProviders(<MailDeliveryPanel />);
 
     const heading = await screen.findByRole('heading', { name: /Approved senders/ });
 
@@ -91,7 +91,7 @@ describe('MailDeliveryPage', () => {
 
   it('says what the record is for in the finding detail', async () => {
     serve(report([finding()]));
-    renderWithProviders(<MailDeliveryPage />);
+    renderWithProviders(<MailDeliveryPanel />);
 
     expect(
       await screen.findByText(/a list of the servers allowed to send CalDART email/),
@@ -105,7 +105,7 @@ describe('MailDeliveryPage', () => {
         finding({ name: 'Bounce address' }),
       ]),
     );
-    renderWithProviders(<MailDeliveryPage />);
+    renderWithProviders(<MailDeliveryPanel />);
 
     await screen.findByText('Ask whoever manages the DNS to add a TXT record.');
 
@@ -114,7 +114,7 @@ describe('MailDeliveryPage', () => {
 
   it('shows when and for which domain the check was made', async () => {
     serve(report([finding()], { checked_at: '2026-10-03T15:00:00Z' }));
-    renderWithProviders(<MailDeliveryPage />);
+    renderWithProviders(<MailDeliveryPanel />);
 
     expect(
       await screen.findByText(`Checked ${formatDateTime('2026-10-03T15:00:00Z')} for example.org.`),
@@ -123,7 +123,7 @@ describe('MailDeliveryPage', () => {
 
   it('summarizes the result above the rows', async () => {
     serve(report([finding({ status: 'warn' })]));
-    renderWithProviders(<MailDeliveryPage />);
+    renderWithProviders(<MailDeliveryPanel />);
 
     expect(
       await screen.findByText('Email can be delivered, but 1 of 1 checks could be better.'),
@@ -143,7 +143,7 @@ describe('MailDeliveryPage', () => {
         );
       }),
     );
-    renderWithProviders(<MailDeliveryPage />);
+    renderWithProviders(<MailDeliveryPanel />);
     await screen.findByText('Missing.');
 
     await userEvent.click(screen.getByRole('button', { name: 'Check again' }));
@@ -164,7 +164,7 @@ describe('MailDeliveryPage', () => {
         return HttpResponse.json(report([finding()]));
       }),
     );
-    renderWithProviders(<MailDeliveryPage />);
+    renderWithProviders(<MailDeliveryPanel />);
     await screen.findByRole('list');
 
     await userEvent.click(screen.getByRole('button', { name: 'Check again' }));
@@ -174,7 +174,7 @@ describe('MailDeliveryPage', () => {
 
   it('tells the reader when the check could not be run again', async () => {
     serve(report([finding()]));
-    renderWithProviders(<MailDeliveryPage />);
+    renderWithProviders(<MailDeliveryPanel />);
     await screen.findByRole('list');
     server.use(http.get(CHECK_URL, () => HttpResponse.json({ detail: 'Boom.' }, { status: 500 })));
 
@@ -187,7 +187,7 @@ describe('MailDeliveryPage', () => {
 
   it('shows the error when the first check fails', async () => {
     server.use(http.get(CHECK_URL, () => HttpResponse.json({ detail: 'No.' }, { status: 403 })));
-    renderWithProviders(<MailDeliveryPage />);
+    renderWithProviders(<MailDeliveryPanel />);
 
     expect(await screen.findByRole('alert')).toHaveTextContent('No.');
   });

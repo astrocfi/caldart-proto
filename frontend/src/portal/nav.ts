@@ -121,13 +121,6 @@ export const NAV_ITEMS: NavItem[] = [
     group: 'Bulk email',
   },
   { to: '/bulk-email/types', label: 'Email types', roles: ['system_admin'], group: 'Bulk email' },
-  // The DNS check is visible to management and (as for every entry) a system administrator.
-  {
-    to: '/bulk-email/mail-delivery',
-    label: 'Mail delivery',
-    roles: ['management'],
-    group: 'Bulk email',
-  },
 
   // Accounting admits a treasurer as well as an account administrator, and the rail
   // has to say so or a treasurer reaches it by URL only.

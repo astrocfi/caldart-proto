@@ -21,6 +21,7 @@ import type {
   EmailLogEntry,
   EmailPurpose,
   Health,
+  MailDeliveryCheck,
   Paginated,
   ReminderKind,
   ReminderLogEntry,
@@ -39,6 +40,7 @@ import { API_BASE } from '@/portal/urlPrefix';
 
 export const HEALTH_KEY = ['system', 'health'] as const;
 export const BACKUPS_KEY = ['system', 'backups'] as const;
+export const MAIL_DELIVERY_KEY = ['mail', 'delivery-check'] as const;
 
 /** Reminder log rows are cached per kind filter. */
 export function reminderLogKey(
@@ -59,6 +61,26 @@ export function useHealth(): UseQueryResult<Health> {
     queryKey: HEALTH_KEY,
     queryFn: () => api.get<Health>('/system/health'),
     staleTime: 15_000,
+  });
+}
+
+/** The mail delivery report, via `GET /mail/delivery-check` (the server caches it five minutes). */
+export function useMailDeliveryCheck(): UseQueryResult<MailDeliveryCheck> {
+  return useQuery({
+    queryKey: MAIL_DELIVERY_KEY,
+    queryFn: () => api.get<MailDeliveryCheck>('/mail/delivery-check'),
+  });
+}
+
+/** Look every record up again with `?refresh=true` and replace the cached report with the answer. */
+export function useRecheckMailDelivery(): UseMutationResult<MailDeliveryCheck, unknown, void> {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      api.get<MailDeliveryCheck>('/mail/delivery-check', { query: { refresh: true } }),
+    onSuccess: (report) => {
+      queryClient.setQueryData(MAIL_DELIVERY_KEY, report);
+    },
   });
 }
 

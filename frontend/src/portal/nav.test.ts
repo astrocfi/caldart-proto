@@ -156,26 +156,11 @@ describe('visibleNavItems', () => {
       'Templates',
       'Recipient groups',
       'Callouts',
-      'Mail delivery',
     ]);
   });
 
-  it('files Mail delivery in the Bulk email group, for management', () => {
-    expect(NAV_ITEMS.find((item) => item.to === '/bulk-email/mail-delivery')).toMatchObject({
-      group: 'Bulk email',
-      roles: ['management'],
-    });
-  });
-
-  it.each([['account_admin'], ['user_admin'], ['treasurer'], ['dart_leader']] as const)(
-    'keeps Mail delivery away from %s',
-    (role) => {
-      expect(labels(['member', role])).not.toContain('Mail delivery');
-    },
-  );
-
-  it('shows Mail delivery to a system administrator', () => {
-    expect(labels(['member', 'system_admin'])).toContain('Mail delivery');
+  it('has no Mail delivery entry, since the check is a card on Health and database', () => {
+    expect(NAV_ITEMS.map((item) => item.label)).not.toContain('Mail delivery');
   });
 
   it('files the bulk email screens in a Bulk email group of their own', () => {
@@ -189,7 +174,6 @@ describe('visibleNavItems', () => {
       '/bulk-email/templates',
       '/bulk-email/groups',
       '/bulk-email/callouts',
-      '/bulk-email/mail-delivery',
     ]);
   });
 
@@ -299,7 +283,6 @@ describe('the Bulk email group', () => {
       'Recipient groups',
       'Callouts',
       'Email types',
-      'Mail delivery',
     ]);
   });
 
@@ -318,7 +301,6 @@ describe('the Bulk email group', () => {
       ['Recipient groups', '/bulk-email/groups', ['management']],
       ['Callouts', '/bulk-email/callouts', ['management', 'dart_leader']],
       ['Email types', '/bulk-email/types', ['system_admin']],
-      ['Mail delivery', '/bulk-email/mail-delivery', ['management']],
     ]);
   });
 

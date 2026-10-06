@@ -185,8 +185,6 @@ group of the menu:
   step, either a fixed list or filters run again each time.
 * **Callouts** (:doc:`bulk-email/callouts`): the answers to every mission callout, who can
   fly and who has not answered, to remind the rest or close the answers.
-* **Mail delivery** (:doc:`bulk-email/mail-delivery`): check that other mail systems will
-  trust and deliver the email CalDART sends, and what to ask for when they will not.
 
 CalDART management writes to anybody, and sees every bulk email, its sender, and, for a DART
 leader's email, its DART. The role opens no member record and no payment. A user
@@ -211,9 +209,9 @@ System administrator
 A system administrator holds every role above and can do everything they can. The
 role adds:
 
-* **Health and database** (:doc:`admin/health-database`): the site's health, database
-  backups, and the FAA aircraft data, with a way to load
-  it now.
+* **Health and database** (:doc:`admin/health-database`): the site's health, whether other
+  mail systems will trust its email, database backups, and the FAA aircraft data, with a way
+  to load it now.
 * **Sent emails** (:doc:`admin/sent-emails`): the log of every email CalDART has sent.
 * **Email types** (:doc:`bulk-email/email-types`), under **Bulk email**: the types of
   bulk email, who may send each, and whether members may turn each off.
